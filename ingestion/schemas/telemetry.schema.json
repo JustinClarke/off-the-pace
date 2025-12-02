@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "telemetry",
+  "title": "Telemetry",
+  "description": "Bronze-layer event log. One row per sample per driver per lap. Sampled at ~10 Hz; ~2–5 million rows per race. Very wide partition   always filter by season and race_id.",
+  "x-file-pattern": "bronze/telemetry/season=YYYY/race=<slug>/telemetry.parquet",
+  "x-example-row-count": "2024 Bahrain: 23 drivers × 57 laps × 300 samples/lap ≈ 3.9M rows",
+  "x-notes": "speed_kph, throttle_pct, brake_pct are float32 to save space. Sparse: many null samples for cars that DNF or have sensor dropouts.",
+  "properties": {
+    "speed_kph": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Car speed in kilometres per hour. Sampled at ~10 Hz.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "throttle_pct": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Throttle pedal position, 0–100%.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "brake": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True if brake pedal is applied.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "brake_pct": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Brake pressure, 0–100%. Null if not available from the car's ECU.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "distance_m": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Distance from lap start in metres. Resets to 0 on each new lap. May have small gaps during pit stops.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "drs": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "DRS flap open. Null for cars without DRS (e.g., safety car).",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "driver_id": {
+      "type": "string",
+      "description": "Three-letter driver code (HAM, VER, etc.). Links to laps.DriverNumber via stg_f1_laps.",
+      "x-nullable": false,
+      "x-source": "FastF1 native"
+    },
+    "lap_number": {
+      "type": "integer",
+      "description": "Links to `laps.LapNumber`.",
+      "x-nullable": false,
+      "x-source": "FastF1 native"
+    },
+    "race_id": {
+      "type": "string",
+      "description": "Links to `laps.race_id`. Format: `YYYY_RoundNumber`.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    },
+    "session": {
+      "type": "string",
+      "enum": [
+        "R",
+        "Q"
+      ],
+      "description": "'R' for race, 'Q' for qualifying.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    },
+    "season": {
+      "type": "integer",
+      "description": "Hive partition key. Always include in WHERE clause to avoid full scans.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    }
+  },
+  "required": [
+    "driver_id",
+    "lap_number",
+    "race_id",
+    "session",
+    "season"
+  ]
+}

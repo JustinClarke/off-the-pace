@@ -1,0 +1,56 @@
+name: 'off_the_pace'
+version: '1.0.0'
+config-version: 2
+require-dbt-version: ">=1.5.0,<2.0.0"
+
+profile: 'off_the_pace'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+ -"target"
+ -"dbt_packages"
+
+models:
+  off_the_pace:
+    staging:
+      +materialized: view
+    reference:
+      +materialized: table
+    intermediate:
+      +materialized: view
+      +tags: [intermediate]
+    marts:
+      +materialized: table
+
+seeds:
+  off_the_pace:
+    _archive:
+      +enabled: false
+    _pending:
+      +enabled: false
+    circuit_reference:
+      +column_types:
+        era_start_year: integer
+        corner_count: integer
+        abrasiveness_index: integer
+        n_calibration_laps: integer
+        calibration_delta_pct: double
+        weight_penalty_factor: double
+        measured_weight_penalty_factor: double
+        prior_weight_penalty_factor: double
+        fit_date: date
+    compound_cliff_params:
+      +column_types:
+        season: integer
+        compound_cliff_onset_laps: double
+        compound_cliff_severity: double
+        compound_wear_gradient: double
+        compound_grip_peak: double
+        n_stints: integer
+        fit_date: date

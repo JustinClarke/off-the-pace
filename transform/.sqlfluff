@@ -1,0 +1,19 @@
+[sqlfluff]
+templater = dbt
+dialect = duckdb
+exclude_rules = L034, L036
+
+[sqlfluff:templater:dbt]
+project_dir = ./
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:layout:type:comma]
+line_position = trailing

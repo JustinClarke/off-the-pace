@@ -1,0 +1,7 @@
+event_id,race_id,round_number,circuit_name,event_type,description,affects_driver,magnitude_estimate,is_performance_event,is_reliability_event
+E001,2021_10,10,Silverstone,UPGRADE,Red Bull aero tweak,VER,0.1,TRUE,FALSE
+E002,2021_10,10,Silverstone,PENALTY,Hamilton grid penalty,HAM,0.0,FALSE,FALSE
+E003,2021_12,12,Spa,UPGRADE,Mercedes engine upgrade,HAM,0.2,TRUE,FALSE
+E004,2021_14,14,Monza,DNF,Verstappen mechanical DNF,VER,0.0,FALSE,TRUE
+E005,2021_16,16,Istanbul,WEATHER,Turkish GP tyre chaos,ALL,0.5,FALSE,FALSE
+E006,2021_19,19,Interlagos,FORMAT,Brazilian GP sprint weekend,ALL,0.0,FALSE,FALSE

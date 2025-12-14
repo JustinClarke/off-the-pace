@@ -1,0 +1,389 @@
+version: 2
+
+models:
+ -name: fct_driver_skill_features
+    description: >
+      Race-grain driver skill feature table for the driver skill extraction model.
+      One row per (race_year, race_id, driver_id). Aggregates clean-lap residuals,
+      synthetic-teammate deltas, constructor pace indices, and circuit context.
+      Clean-lap filter: correction_weight = 1.0 AND anomaly_class NOT IN ('mistake','conditions')
+      AND is_rain_lap = FALSE.
+    config:
+      contract:
+        enforced: true
+    tags: [marts]
+    columns:
+     -name: driver_race_id
+        description: Surrogate PK   hash of (race_year, race_id, driver_id)
+        data_type: varchar
+        constraints:
+         -type: not_null
+         -type: unique
+     -name: driver_id
+        description: FastF1 three-letter driver code (e.g. VER, HAM)
+        data_type: varchar
+        constraints:
+         -type: not_null
+     -name: race_year
+        description: Season year
+        data_type: integer
+        constraints:
+         -type: not_null
+     -name: race_id
+        description: Race identifier (e.g. 2021_19)
+        data_type: varchar
+        constraints:
+         -type: not_null
+     -name: constructor_id
+        description: Team name as used in FastF1
+        data_type: varchar
+     -name: circuit_key
+        description: Stable circuit identifier matching dim_circuits
+        data_type: varchar
+     -name: pu_family
+        description: Power unit family (e.g. mercedes_pu, honda_pu)
+        data_type: varchar
+     -name: driver_debut_year
+        description: First season in the dataset
+        data_type: integer
+     -name: driver_residual_mean_s
+        description: Mean driver skill residual over clean laps. Negative = faster than field.
+        data_type: double
+     -name: driver_residual_stddev_s
+        description: Stddev of driver skill residual over clean laps
+        data_type: double
+     -name: driver_residual_median_s
+        description: Median driver skill residual over clean laps
+        data_type: double
+     -name: clean_lap_count
+        description: Number of laps passing the clean-lap filter
+        data_type: bigint
+        constraints:
+         -type: not_null
+     -name: driver_skill_proxy_mean_s
+        description: >
+          Weighted mean of synthetic-teammate delta over clean laps.
+          Positive = ego driver faster than synthetic teammate.
+        data_type: double
+     -name: pair_quality_weight_mean
+        description: Mean pair quality weight (higher = more consistent comparison)
+        data_type: double
+     -name: teammate_available_flag
+        description: TRUE if a teammate comparison was available for at least one lap
+        data_type: boolean
+        constraints:
+         -type: not_null
+     -name: strategic_divergence_share
+        description: Fraction of clean laps where strategic_divergence_flag = TRUE
+        data_type: double
+        constraints:
+         -type: not_null
+     -name: constructor_power_pace_index_final
+        description: EW-smoothed constructor power-sector pace index at race end
+        data_type: double
+     -name: constructor_aero_pace_index_final
+        description: EW-smoothed constructor aero-sector pace index at race end
+        data_type: double
+     -name: constructor_index_confidence_final
+        description: Confidence score (0–1) for constructor pace index at race end
+        data_type: double
+     -name: race_wet_flag
+        description: TRUE if any rainfall was detected during the race
+        data_type: boolean
+        constraints:
+         -type: not_null
+     -name: circuit_energy_index
+        description: Track energy index from dim_circuits (proxy for power sensitivity)
+        data_type: double
+     -name: circuit_abrasiveness_index
+        description: Track abrasiveness index from dim_circuits (proxy for tyre wear)
+        data_type: integer
+     -name: total_race_laps
+        description: Total laps recorded for this driver in this race
+        data_type: bigint
+        constraints:
+         -type: not_null
+     -name: ml_eligible_lap_share
+        description: Fraction of driver's laps with usable_for_modelling = TRUE
+        data_type: double
+        constraints:
+         -type: not_null
+    tests:
+     -dbt_expectations.expect_column_values_to_be_between:
+          column_name: ml_eligible_lap_share
+          arguments:
+            min_value: 0
+            max_value: 1
+
+ -name: fct_cliff_prediction_features
+    description: >
+      Lap-grain feature table for the tyre cliff XGBoost model.
+      One row per valid race lap. Target is next_lap_degradation_jump_s
+      (NULL on the last lap of each stint). Excludes synthetic-teammate
+      features to prevent causal label leakage into a predictive model.
+    config:
+      contract:
+        enforced: true
+    tags: [marts]
+    columns:
+     -name: lap_id
+        description: Surrogate PK from stg_laps
+        data_type: varchar
+        constraints:
+         -type: not_null
+         -type: unique
+     -name: stint_id
+        description: Stint surrogate key
+        data_type: varchar
+        constraints:
+         -type: not_null
+     -name: race_year
+        description: Season year
+        data_type: integer
+        constraints:
+         -type: not_null
+     -name: race_id
+        description: Race identifier
+        data_type: varchar
+        constraints:
+         -type: not_null
+     -name: driver_id
+        description: FastF1 three-letter driver code
+        data_type: varchar
+        constraints:
+         -type: not_null
+     -name: constructor_id
+        description: Team name
+        data_type: varchar
+     -name: lap_number
+        description: Lap number within race
+        data_type: integer
+        constraints:
+         -type: not_null
+     -name: lap_in_stint
+        description: Lap position within current tyre stint
+        data_type: bigint
+     -name: age_in_stint
+        description: Tyre age in laps (may differ from lap_in_stint for used tyres)
+        data_type: integer
+     -name: compound
+        description: Tyre compound (SOFT, MEDIUM, HARD, etc.)
+        data_type: varchar
+     -name: compound_grip_peak
+        description: Fitted peak grip coefficient for this compound × circuit × season
+        data_type: double
+     -name: compound_wear_gradient
+        description: Fitted wear gradient (s/lap) for this compound × circuit × season
+        data_type: double
+     -name: compound_optimal_temp_low
+        description: Lower bound of optimal operating temperature window (°C)
+        data_type: double
+     -name: compound_optimal_temp_high
+        description: Upper bound of optimal operating temperature window (°C)
+        data_type: double
+     -name: compound_cliff_onset_laps
+        description: Expected lap age at cliff onset for this compound × circuit × season
+        data_type: double
+     -name: compound_cliff_severity
+        description: Fitted cliff severity (s/lap post-cliff) for this compound × circuit × season
+        data_type: double
+     -name: push_residual
+        description: Lap-level push load residual from int_lap_thermal_proxy
+        data_type: double
+     -name: cumulative_push_load_surface
+        description: EW cumulative push load (τ≈3 laps) for tyre surface
+        data_type: double
+     -name: cumulative_push_load_bulk
+        description: EW cumulative push load (τ≈5 laps) for tyre bulk
+        data_type: double
+     -name: dirty_air_share_lap
+        description: Fraction of this lap spent in dirty air (sector 2)
+        data_type: decimal(2,1)
+        constraints:
+         -type: not_null
+     -name: dirty_air_thermal_load_surface
+        description: EW dirty air thermal load on tyre surface
+        data_type: double
+        constraints:
+         -type: not_null
+     -name: dirty_air_thermal_load_bulk
+        description: EW dirty air thermal load on tyre bulk
+        data_type: double
+        constraints:
+         -type: not_null
+     -name: air_state_dominant
+        description: Dominant air state this lap (free_air, tow_zone, drs_train, dirty_air)
+        data_type: varchar
+        constraints:
+         -type: not_null
+     -name: expected_compound_pace_s
+        description: Model-expected compound pace contribution from int_compound_cliff_predicted
+        data_type: double
+     -name: expected_degradation_rate_s_per_lap
+        description: Model-expected degradation rate (s/lap) at current tyre age
+        data_type: double
+     -name: cliff_onset_passed
+        description: TRUE if tyre has passed its fitted cliff onset lap
+        data_type: boolean
+     -name: laps_past_cliff
+        description: Laps elapsed since cliff onset (0 if not passed)
+        data_type: double
+     -name: ambient_temp_delta
+        description: Difference between current ambient temp and optimal temp midpoint (°C)
+        data_type: double
+     -name: track_energy_index
+        description: Track energy index from dim_circuits
+        data_type: double
+     -name: circuit_abrasiveness_index
+        description: Track abrasiveness index from dim_circuits
+        data_type: integer
+     -name: fuel_mass_kg
+        description: Estimated fuel mass on board at this lap
+        data_type: double
+     -name: event_flag_any
+        description: TRUE if any race event contaminated this lap (SC, VSC, restart, etc.)
+        data_type: boolean
+        constraints:
+         -type: not_null
+     -name: cliff_candidate_flag
+        description: TRUE if this lap shows a MAD-score cliff spike consistent with tyre cliff
+        data_type: boolean
+     -name: anomaly_class
+        description: Anomaly classification (clean_cliff, mistake, event_driven, conditions, normal)
+        data_type: varchar
+     -name: is_rain_lap
+        description: TRUE if rainfall was detected on this lap
+        data_type: boolean
+     -name: next_lap_degradation_jump_s
+        description: >
+          Target: increase in driver skill residual on the next lap within the stint.
+          Positive = degradation step. NULL on the last lap of each stint.
+        data_type: double
+     -name: next_3_lap_cumulative_jump_s
+        description: >
+          Cumulative degradation jump over the next 3 laps (sum of residuals k=1..3 minus
+          current residual). NULL when fewer than 3 laps remain in stint. GREATEST floored at 0.
+        data_type: double
+     -name: next_5_lap_cumulative_jump_s
+        description: >
+          Cumulative degradation jump over the next 5 laps. NULL when fewer than 5 remain.
+        data_type: double
+     -name: laps_until_cliff_class
+        description: >
+          Bucket: 0_to_2, 3_to_5, 6_plus, none_in_stint. Based on >1.0s cumulative jump threshold
+          looking ahead up to 6 laps. NULL on last lap.
+        data_type: varchar
+     -name: is_training_eligible
+        description: TRUE if this lap is suitable for model training (age_in_stint > 3, no anomaly)
+        data_type: boolean
+        constraints:
+         -type: not_null
+    tests:
+     -dbt_expectations.expect_column_values_to_be_between:
+          column_name: next_lap_degradation_jump_s
+          arguments:
+            min_value: 0
+            max_value: 30
+          config:
+            where: "next_lap_degradation_jump_s IS NOT NULL"
+            warn_if: ">0"
+            error_if: ">0"
+
+ -name: fct_stint_features
+    description: >
+      One row per stint. Pit strategy feature table: compound, stint length, tyre age progression,
+      thermal load buildup, cumulative dirty air tax, cliff onset lap, and pace degradation slope.
+      Used to model pit strategy decision: is it time to box? Includes tyre_management_score and
+      pit_decision_class derived from int_pit_strategy_value.
+    tags: [marts, feature_engineering]
+    columns:
+     -name: stint_id
+        description: PK from int_stint_geometry
+        tests: [not_null, unique]
+     -name: driver_id
+        tests: [not_null]
+     -name: race_id
+        tests: [not_null]
+     -name: race_year
+        tests: [not_null]
+     -name: stint_length_laps
+        description: Total laps in this stint
+        tests:
+         -not_null
+         -dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 100
+     -name: compound
+        description: Tyre compound for this stint
+     -name: starting_tyre_age_laps
+        description: Tyre age at the start of this stint (before first lap)
+     -name: cumulative_thermal_load_end
+        description: EW cumulative thermal load at the end of the stint
+     -name: cumulative_dirty_air_tax_s
+        description: Sum of dirty air tax across all laps in the stint
+     -name: cliff_lap_in_stint
+        description: Lap position within stint where cliff is first detected (NULL if no cliff)
+     -name: tyre_management_score
+        description: "Tyre management score: actual end-of-stint driver residual normalised against the optimal pit opportunity cost. Low score = good management."
+     -name: end_of_stint_pace_falloff_s_per_lap
+        description: OLS slope of driver_skill_residual_s over last 3 laps. NULL when short_stint_flag = TRUE.
+     -name: short_stint_flag
+        description: TRUE when stint_length_laps < 3 (slope is NULL/unreliable)
+        tests: [not_null]
+     -name: pit_decision_class
+        description: "Pit strategy decision verdict from int_pit_strategy_value (optimal / overran / undercut_forced / early)."
+
+ -name: fct_ghost_car_pace
+    description: >
+      One row per (ego_driver, host_constructor, race, lap). "What if" lap times: recombines
+      ego driver's skill (residual) with host constructor's car pace. predicted_lap_time_s = ego skill + host car.
+      Degenerate check: ego == host → predicted == actual. Powers "ghost car" simulator: replay with different cars.
+    tags: [marts, simulation, ghost_car]
+    columns:
+     -name: ghost_id
+        description: Surrogate PK = MD5(ego_driver_id || host_constructor_id || race_id || lap_number)
+        tests: [not_null, unique]
+     -name: predicted_lap_time_s
+        description: Recombined lap time using ego skill + host constructor pace.
+        tests: [not_null]
+     -name: actual_lap_time_s
+        description: Observed actual lap time for the ego driver.
+        tests: [not_null]
+     -name: delta_vs_actual_lap_s
+        description: predicted_lap_time_s minus actual_lap_time_s. 0 when ego == host.
+        tests: [not_null]
+     -name: recombination_confidence
+        description: >
+          Confidence in recombination [0, 1]. Based on host constructor observation count.
+          Degrades when host constructor has sparse panel data.
+        tests:
+         -not_null
+         -dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+
+ -name: fct_ghost_race_finish
+    description: >
+      One row per (host_constructor, ego_driver, race). Projects final finishing position
+      if ego driver raced the full race in host constructor's car. Sums predicted lapwise deltas.
+      filtered to recombination_confidence ≥ 0.3. Powers "what if" race outcome scenarios.
+    tags: [marts, simulation, ghost_car]
+    columns:
+     -name: ghost_race_id
+        description: Surrogate PK = MD5(race_year || race_id || ego_driver_id || host_constructor_id)
+        tests: [not_null, unique]
+     -name: predicted_finish_position
+        description: Projected finish position within this host-constructor scenario.
+        tests:
+         -not_null
+         -dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 25
+     -name: actual_finish_position
+        description: Actual finish position from stg_laps (last valid position).
+     -name: delta_vs_actual_position
+        description: Projected minus actual finish position. Negative = would have finished higher.
+        tests: [not_null]

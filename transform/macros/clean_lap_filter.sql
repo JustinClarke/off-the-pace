@@ -1,0 +1,27 @@
+{% macro clean_lap_filter() %}
+  {#-
+  Reusable WHERE clause predicate for filtering to "clean" laps suitable for driver skill extraction.
+
+  A "clean lap" is one where:
+    1. correction_weight = 1.0 (no manual outlier downweighting)
+    2. anomaly_class ∉ ('mistake', 'conditions') (excludes crashes, water runoff, etc.)
+    3. is_rain_lap = FALSE (excludes wet-compound laps in mixed-weather races)
+
+  This macro is the canonical definition. Use it in every model that extracts or depends on
+  driver skill signals to prevent silent divergence where one model accidentally includes
+  rain laps while another filters them out.
+
+  Used as: WHERE {{ clean_lap_filter() }} in a FROM clause.
+
+  Returns: boolean expression (no parentheses, compose with AND as needed).
+
+  Sources:
+   -correction_weight: int_lap_anomaly_flags
+   -anomaly_class: int_lap_anomaly_flags
+   -is_rain_lap: int_lap_anomaly_flags or stg_laps
+  -#}
+
+  correction_weight = 1.0
+  AND COALESCE(anomaly_class, 'normal') NOT IN ('mistake', 'conditions')
+  AND COALESCE(is_rain_lap, FALSE) = FALSE
+{% endmacro %}

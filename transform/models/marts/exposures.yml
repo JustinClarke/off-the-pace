@@ -1,0 +1,43 @@
+version: 2
+
+exposures:
+ -name: xgboost_cliff_model
+    type: ml
+    owner:
+      name: Justin Clarke
+      email: justinsavioclarke@outlook.com
+    description: >
+      XGBoost model for tyre degradation cliff prediction.
+      Trained on fct_cliff_prediction_features (Feature engineering3) to predict next_lap_degradation_jump_s
+      at lap granularity. Ingests compound cliff parameters from dim_compounds_season
+      (fit via survival analysis in Simulation).
+    depends_on:
+     -ref('fct_cliff_prediction_features')
+     -ref('dim_compounds_season')
+    maturity: medium
+
+ -name: driver_skill_extraction
+    type: ml
+    owner:
+      name: Justin Clarke
+      email: justinsavioclarke@outlook.com
+    description: >
+      Driver skill quantification model. Reads fct_driver_skill_features (Feature engineering2)
+      (race-grain skill residuals and synthetic-teammate delta proxies) to extract
+      driver performance relative to equipment and teammate.
+    depends_on:
+     -ref('fct_driver_skill_features')
+    maturity: medium
+
+ -name: powerbi_degradation_dashboard
+    type: dashboard
+    owner:
+      name: Justin Clarke
+      email: justinsavioclarke@outlook.com
+    description: >
+      Power BI semantic model for F1 degradation analysis.
+      Consumes fct_lap_residuals (lap-grain decomposed residuals with anomaly flags)
+      for visualization and exploration. Deployment to Fabric and DirectLake is deferred.
+    depends_on:
+     -ref('fct_lap_residuals')
+    maturity: medium

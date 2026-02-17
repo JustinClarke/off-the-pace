@@ -1,0 +1,474 @@
+/**
+ * Premium Docusaurus UI Overhaul
+ * Cinematic, dynamic, and clean aesthetic.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import 'katex/dist/katex.min.css';
+
+:root {
+  --ifm-font-family-base: 'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  
+  /* Elegant Emerald/Teal Palette-Light Mode */
+  --ifm-color-primary: #059669;
+  --ifm-color-primary-dark: #047857;
+  --ifm-color-primary-darker: #065f46;
+  --ifm-color-primary-darkest: #064e3b;
+  --ifm-color-primary-light: #10b981;
+  --ifm-color-primary-lighter: #34d399;
+  --ifm-color-primary-lightest: #6ee7b7;
+
+  --ifm-background-color: #fafafa;
+  --ifm-background-surface-color: #ffffff;
+  
+  --ifm-navbar-background-color: rgba(255, 255, 255, 0.85);
+  --ifm-navbar-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  
+  --ifm-menu-color: #4b5563;
+  --ifm-menu-color-active: var(--ifm-color-primary);
+  --ifm-menu-color-background-active: rgba(16, 185, 129, 0.1);
+  --ifm-menu-color-background-hover: rgba(16, 185, 129, 0.05);
+  
+  --ifm-heading-color: #111827;
+  --ifm-font-color-base: #374151;
+  
+  --ifm-code-font-size: 92%;
+  --docusaurus-highlighted-code-line-bg: rgba(16, 185, 129, 0.15);
+  --ifm-border-radius-custom: 12px;
+}
+
+[data-theme='dark'] {
+  /* Lighter vibrant palette-Dark Mode */
+  --ifm-color-primary: #34d399;
+  --ifm-color-primary-dark: #10b981;
+  --ifm-color-primary-darker: #059669;
+  --ifm-color-primary-darkest: #047857;
+  --ifm-color-primary-light: #6ee7b7;
+  --ifm-color-primary-lighter: #a7f3d0;
+  --ifm-color-primary-lightest: #d1fae5;
+
+  --ifm-background-color: #0f1115;
+  --ifm-background-surface-color: #17191f;
+  
+  --ifm-navbar-background-color: rgba(15, 17, 21, 0.85);
+  --ifm-navbar-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  
+  --ifm-menu-color: #9ca3af;
+  --ifm-menu-color-active: var(--ifm-color-primary);
+  --ifm-menu-color-background-active: rgba(52, 211, 153, 0.1);
+  --ifm-menu-color-background-hover: rgba(255, 255, 255, 0.05);
+  
+  --ifm-heading-color: #f9fafb;
+  --ifm-font-color-base: #d1d5db;
+  
+  --docusaurus-highlighted-code-line-bg: rgba(52, 211, 153, 0.2);
+}
+
+/* ==========================================================================
+   GLOBAL TYPOGRAPHY & LAYOUT ENHANCEMENTS
+   ========================================================================== */
+
+/* Navbar Glassmorphism */
+.navbar {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+  transition: all 0.3s ease;
+}
+
+/* Stunning Gradients for Main Headings */
+h1 {
+  font-size: 3rem !important;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--ifm-color-primary-darker), var(--ifm-color-primary-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 1.5rem;
+}
+[data-theme='dark'] h1 {
+  background: linear-gradient(135deg, var(--ifm-color-primary-lighter), var(--ifm-color-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+h2 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-top: 3.5rem !important;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  padding-bottom: 0.5rem;
+}
+
+h3 {
+  font-weight: 500;
+  margin-top: 2.5rem !important;
+}
+
+p, li {
+  line-height: 1.75;
+  font-size: 1.05rem;
+}
+
+/* Fluid animations for Sidebar */
+.menu__link {
+  border-radius: 8px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+}
+.menu__link:hover {
+  transform: translateX(4px);
+  background-color: var(--ifm-menu-color-background-hover);
+}
+.menu__link--active {
+  font-weight: 600;
+}
+
+/* Refined Code Blocks */
+.theme-code-block {
+  border-radius: var(--ifm-border-radius-custom) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  border: 1px solid rgba(128,128,128,0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+[data-theme='dark'] .theme-code-block {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+.theme-code-block:hover {
+  box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+}
+[data-theme='dark'] .theme-code-block:hover {
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+
+/* Beautiful Admonitions (Callouts) */
+.theme-admonition {
+  border-radius: var(--ifm-border-radius-custom);
+  border: 1px solid rgba(128, 128, 128, 0.1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  backdrop-filter: blur(8px);
+}
+[data-theme='dark'] .theme-admonition {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+/* Card Enhancements */
+.card {
+  border-radius: var(--ifm-border-radius-custom);
+  border: 1px solid rgba(128, 128, 128, 0.1);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.08);
+}
+[data-theme='dark'] .card:hover {
+  box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+}
+
+/* Pagination Links (Next/Prev) */
+.pagination-nav__link {
+  border-radius: var(--ifm-border-radius-custom);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(128, 128, 128, 0.1);
+}
+.pagination-nav__link:hover {
+  transform: translateY(-2px);
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 8px 20px rgba(var(--ifm-color-primary), 0.15);
+}
+
+/* Premium Table Styling */
+.markdown table {
+  display: table;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--ifm-border-radius-custom);
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  margin-top: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(128, 128, 128, 0.1);
+}
+[data-theme='dark'] .markdown table {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.markdown table thead tr {
+  background-color: var(--ifm-color-emphasis-100);
+}
+[data-theme='dark'] .markdown table thead tr {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.markdown table th {
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 2px solid rgba(128, 128, 128, 0.1);
+  color: var(--ifm-color-emphasis-800);
+}
+
+.markdown table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+  color: var(--ifm-font-color-base);
+}
+
+.markdown table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.markdown table tbody tr:hover {
+  background-color: rgba(128, 128, 128, 0.02);
+}
+[data-theme='dark'] .markdown table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.markdown table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ==========================================================================
+   PREMIUM HIGH-SPECIFICITY PAGEFIND SEARCH SYSTEM
+   ========================================================================== */
+
+/* Configure theme-aware Pagefind design tokens with high specificity */
+html .pagefind-ui {
+  --pagefind-ui-primary: var(--ifm-color-primary) !important;
+  --pagefind-ui-text: var(--ifm-color-emphasis-900) !important;
+  --pagefind-ui-background: rgba(255, 255, 255, 0.95) !important;
+  --pagefind-ui-border: rgba(0, 0, 0, 0.08) !important;
+  --pagefind-ui-font: var(--ifm-font-family-base) !important;
+}
+
+html[data-theme='dark'] .pagefind-ui {
+  --pagefind-ui-primary: var(--ifm-color-primary) !important;
+  --pagefind-ui-text: var(--ifm-color-emphasis-900) !important;
+  --pagefind-ui-background: rgba(30, 30, 34, 0.98) !important;
+  --pagefind-ui-border: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Position search wrapper perfectly inside navbar */
+.navbar__search {
+  position: relative !important;
+  margin-left: 1rem !important;
+}
+
+.navbar__search .pagefind-ui {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 280px !important;
+  font-family: var(--ifm-font-family-base) !important;
+}
+
+/* Overhaul Pagefind Input Field */
+.navbar__search .pagefind-ui .pagefind-ui__search-input {
+  border-radius: 24px !important;
+  background-color: var(--ifm-background-color) !important;
+  border: 1.5px solid var(--ifm-toc-border-color) !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  padding: 0.4rem 1rem 0.4rem 2.2rem !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+  color: var(--ifm-color-emphasis-900) !important;
+}
+
+.navbar__search .pagefind-ui .pagefind-ui__search-input:focus {
+  border-color: var(--ifm-color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(46, 133, 85, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+  outline: none !important;
+}
+
+html[data-theme='dark'] .navbar__search .pagefind-ui .pagefind-ui__search-input:focus {
+  box-shadow: 0 0 0 3px rgba(37, 194, 160, 0.2), inset 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Glassmorphic Dropdown Drawer for Search Results-CRITICAL SPECIFICITY OVERRIDES */
+.navbar__search .pagefind-ui .pagefind-ui__drawer {
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  width: 480px !important;
+  max-height: 480px !important;
+  overflow-y: auto !important;
+  background-color: var(--pagefind-ui-background) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--pagefind-ui-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  z-index: 1000 !important;
+  padding: 1.25rem !important;
+  margin-top: 0.75rem !important;
+  animation: pagefindSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  transform-origin: top right !important;
+}
+
+@keyframes pagefindSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Remove default Pagefind layout margins */
+.navbar__search .pagefind-ui .pagefind-ui__results-area {
+  margin-top: 0 !important;
+}
+
+/* Elegant Search Result Entry */
+.navbar__search .pagefind-ui .pagefind-ui__result {
+  list-style: none !important;
+  padding: 0.85rem 0.5rem !important;
+  margin: 0 -0.5rem !important;
+  border-bottom: 1px solid var(--pagefind-ui-border) !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  border-left: 3px solid transparent !important;
+  background: transparent !important;
+}
+
+.navbar__search .pagefind-ui .pagefind-ui__result:hover {
+  background-color: rgba(46, 133, 85, 0.06) !important;
+  border-left-color: var(--ifm-color-primary) !important;
+  transform: translateX(4px) !important;
+}
+
+html[data-theme='dark'] .navbar__search .pagefind-ui .pagefind-ui__result:hover {
+  background-color: rgba(37, 194, 160, 0.08) !important;
+  border-left-color: var(--ifm-color-primary) !important;
+}
+
+.navbar__search .pagefind-ui .pagefind-ui__result:last-child {
+  border-bottom: none !important;
+}
+
+/* Premium Typography for Results */
+.navbar__search .pagefind-ui .pagefind-ui__result-link {
+  font-weight: 600 !important;
+  color: var(--ifm-color-primary) !important;
+  font-size: 1.05rem !important;
+  text-decoration: none !important;
+  display: inline-block !important;
+  margin-bottom: 0.35rem !important;
+  transition: color 0.15s ease !important;
+}
+
+.navbar__search .pagefind-ui .pagefind-ui__result-link:hover {
+  color: var(--ifm-color-primary-dark) !important;
+}
+
+.navbar__search .pagefind-ui .pagefind-ui__result-excerpt {
+  font-size: 0.875rem !important;
+  color: var(--ifm-color-emphasis-700) !important;
+  line-height: 1.5 !important;
+  font-weight: 400 !important;
+}
+
+/* Soft-glow Match Highlights */
+.navbar__search .pagefind-ui .pagefind-ui__result-excerpt mark {
+  background-color: rgba(255, 212, 59, 0.3) !important;
+  color: var(--ifm-color-emphasis-950) !important;
+  font-weight: 600 !important;
+  padding: 0.1rem 0.25rem !important;
+  border-radius: 4px !important;
+}
+
+html[data-theme='dark'] .navbar__search .pagefind-ui .pagefind-ui__result-excerpt mark {
+  background-color: rgba(255, 212, 59, 0.15) !important;
+  color: var(--ifm-color-emphasis-1000) !important;
+}
+
+/* Sleek Webkit Scrollbar */
+.navbar__search .pagefind-ui .pagefind-ui__drawer::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.navbar__search .pagefind-ui .pagefind-ui__drawer::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.navbar__search .pagefind-ui .pagefind-ui__drawer::-webkit-scrollbar-thumb {
+  background: var(--pagefind-ui-border) !important;
+  border-radius: 4px !important;
+}
+
+.navbar__search .pagefind-ui .pagefind-ui__drawer::-webkit-scrollbar-thumb:hover {
+  background: var(--ifm-color-emphasis-400) !important;
+}
+
+/* Spacing and counts */
+.navbar__search .pagefind-ui .pagefind-ui__message {
+  font-size: 0.825rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--ifm-color-emphasis-500) !important;
+  margin-bottom: 0.85rem !important;
+  padding-bottom: 0.6rem !important;
+  border-bottom: 1px solid var(--pagefind-ui-border) !important;
+}
+
+/* Premium Gradient button for "Load more" */
+.navbar__search .pagefind-ui .pagefind-ui__button {
+  background: linear-gradient(135deg, var(--ifm-color-primary), var(--ifm-color-primary-dark)) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  border: none !important;
+  border-radius: 20px !important;
+  padding: 0.5rem 1.25rem !important;
+  margin-top: 1rem !important;
+  width: 100% !important;
+  box-shadow: 0 4px 12px rgba(46, 133, 85, 0.2) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+}
+
+html[data-theme='dark'] .navbar__search .pagefind-ui .pagefind-ui__button {
+  box-shadow: 0 4px 12px rgba(37, 194, 160, 0.2) !important;
+}
+
+.navbar__search .pagefind-ui .pagefind-ui__button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(46, 133, 85, 0.3) !important;
+}
+
+html[data-theme='dark'] .navbar__search .pagefind-ui .pagefind-ui__button:hover {
+  box-shadow: 0 6px 16px rgba(37, 194, 160, 0.3) !important;
+}
+
+.navbar__search .pagefind-ui .pagefind-ui__button:active {
+  transform: translateY(0) !important;
+}
+
+/* Responsive adjustment for clean viewports */
+@media (max-width: 996px) {
+  .navbar__search {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 0.5rem 0 !important;
+  }
+  .navbar__search .pagefind-ui {
+    max-width: 100% !important;
+  }
+  .navbar__search .pagefind-ui .pagefind-ui__drawer {
+    width: calc(100vw-2rem) !important;
+    right: 50% !important;
+    transform: translateX(50%) !important;
+    transform-origin: top center !important;
+  }
+}
+

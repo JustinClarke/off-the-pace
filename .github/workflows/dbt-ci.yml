@@ -1,0 +1,122 @@
+name: dbt CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'transform/**'
+      - 'ingestion/**'
+      - '.github/workflows/dbt-ci.yml'
+      - 'requirements.txt'
+
+jobs:
+  dbt-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install dbt-duckdb dbt-core sqlfluff sqlfluff-templater-dbt
+
+      - name: Run dbt deps
+        working-directory: ./transform
+        run: dbt deps
+
+      # Gate 0: parse   catches config errors and missing refs before any data runs.
+      - name: Gate 0   dbt parse
+        working-directory: ./transform
+        run: dbt parse --profiles-dir profiles --target ci
+
+      - name: Check fixture data exists
+        id: fixture_check
+        run: |
+          if [ -d "transform/tests/fixtures/bronze/laps" ]; then
+            echo "fixtures_present=true" >> $GITHUB_OUTPUT
+          else
+            echo "fixtures_present=false" >> $GITHUB_OUTPUT
+            echo "::warning::Fixture parquet files not committed. Run ingestion/src/create_fixtures.py locally and commit the output to transform/tests/fixtures/bronze/ to enable dbt build in CI."
+          fi
+
+      - name: Run dbt seed
+        if: steps.fixture_check.outputs.fixtures_present == 'true'
+        working-directory: ./transform
+        run: dbt seed --profiles-dir profiles --target ci
+
+      # Gate 1 (fast): staging + reference only   quick smoke test (~2 min).
+      - name: Gate 1   fast_build selector (staging + reference)
+        if: steps.fixture_check.outputs.fixtures_present == 'true'
+        working-directory: ./transform
+        run: |
+          dbt build \
+            --profiles-dir profiles \
+            --target ci \
+            --selector fast_build \
+            --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+
+      # Gate 1b: full build   all models end-to-end.
+      - name: Gate 1b   full dbt build (all models + generic tests)
+        if: steps.fixture_check.outputs.fixtures_present == 'true'
+        working-directory: ./transform
+        run: |
+          dbt build \
+            --profiles-dir profiles \
+            --target ci \
+            --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+
+      # Gate 2: Identity-closure gates   run singular tests in isolation so failures
+      # surface as a distinct CI step with a clear label.  dbt build already fails on
+      # test failures; this step provides structured JUnit output for PR annotations.
+      - name: Gate 2   Identity-closure singular tests
+        if: steps.fixture_check.outputs.fixtures_present == 'true'
+        working-directory: ./transform
+        run: |
+          dbt test \
+            --profiles-dir profiles \
+            --target ci \
+            --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}' \
+            --select test_type:singular
+
+      # Gate 2–5 (Python layer): run the pytest validation harness.
+      # Tests are written to skip gracefully when the models they depend on are not yet
+      # materialised, so this step is safe to run at every phase of the build.
+      - name: Gates 2–5   pytest validation harness
+        if: steps.fixture_check.outputs.fixtures_present == 'true'
+        env:
+          CI_DB_PATH: ${{ github.workspace }}/data/ci.duckdb
+          PYTHONPATH: transform
+        run: |
+          pytest transform/tasks/coefficients/tests/ \
+            -v \
+            --tb=short \
+            --junitxml=transform/target/pytest-results.xml
+
+      # Lint SQL   hard failure so style regressions are caught at review time.
+      - name: Lint SQL
+        working-directory: ./transform
+        run: sqlfluff lint models/ --disable-progress-bar
+
+      - name: Generate dbt docs
+        if: steps.fixture_check.outputs.fixtures_present == 'true'
+        working-directory: ./transform
+        run: |
+          dbt docs generate --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+
+      - name: Upload dbt artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-artifacts
+          path: transform/target/

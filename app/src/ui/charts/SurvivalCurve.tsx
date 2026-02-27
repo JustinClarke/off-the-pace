@@ -107,8 +107,9 @@ export default function SurvivalCurve({
   const cliffedObs = stintObservations.filter(s => s.cliffed)
   const censoredObs = stintObservations.filter(s => !s.cliffed)
 
-  // Map observations to scatter data: x=endLap, y=degradation_s (right axis)
+  // Map observations to scatter data: x=lap (required by shared XAxis), y=degradation_s (right axis)
   const toScatterPoint = (s: StintObservation) => ({
+    lap: s.endLap,
     endLap: s.endLap,
     degradation_s: s.degradation_s,
     driver_id: s.driver_id,

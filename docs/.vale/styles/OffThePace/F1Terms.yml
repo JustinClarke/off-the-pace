@@ -1,0 +1,7 @@
+extends: substitution
+message: "Use '%s' instead of '%s' (F1 terminology)."
+level: warning
+ignorecase: true
+swap:
+  '\btires?\b': tyre
+  '\blap time\b': lap-time

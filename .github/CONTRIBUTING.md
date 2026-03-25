@@ -38,20 +38,22 @@ make app-install  # install React app dependencies
 
 ## Run the pipeline locally
 
-```bash
-make ingest-all   # pull historical F1 data via FastF1 → Bronze Parquet (optional; large)
-make dbt-dev      # build all 46 dbt models against local DuckDB
-make dbt-test     # run the 339 tests, including the seven-term identity
-```
-
-To verify the core invariant-every lap's seven components sum to zero-holds:
+**Data setup:** Choose based on your workflow—see the full [Data setup options](../ingestion/README.md#data-setup-options) table. Quick summary:
+- **SQL transforms only:** `make dbt-dev` (uses test fixtures, 0 min)
+- **Scale validation:** `make ingest-recent` (2023–2024, ~15 min)
+- **Full verification:** `make ingest-all` (all 168 races, 30–45 min)
 
 ```bash
-make dbt-test     # assert_lap_7term_identity must pass
+make ingest-recent  # or ingest-all; see link above for options
+make dbt-dev        # build all 46 dbt models against local DuckDB
+make dbt-test       # run the 339 tests, including the seven-term identity
 ```
 
-`make dbt-dev` works out of the box on the committed seeds and fixtures; you do **not** need to
-run `make ingest-all` (≈8 GB) just to build and test the transform layer.
+To verify the core invariant—every lap's seven components sum to zero—holds:
+
+```bash
+make dbt-test       # assert_lap_7term_identity must pass
+```
 
 ---
 
@@ -124,7 +126,7 @@ This fetches Bahrain 2024 and writes Parquet to `data/bronze/`.
 ## Adding work, by layer
 
 ### Add a dbt model
-Full guide: [off-the-pace.onrender.com/guides/add-a-new-model](https://off-the-pace.onrender.com/guides/add-a-new-model). Quick checklist:
+Quick checklist:
 1. Write the SQL in `transform/models/`.
 2. Add a description + column docs to `schema.yml`.
 3. Add at least one dbt test.
@@ -167,7 +169,7 @@ See [`ingestion/README.md`](../ingestion/README.md) for module architecture, dat
 ## Getting help
 
 - Usage questions → the relevant directory README (e.g. [`ingestion/README.md`](../ingestion/README.md)).
-- Architecture & rationale → the [explanation docs](https://off-the-pace.onrender.com/understand/goal-and-approach) and the [ADR log](adr/DECISIONS.md).
+- Architecture & rationale → the [explanation docs](https://offthepace.mintlify.app/decomposition/seven-term-identity) and the [ADR log](adr/DECISIONS.md).
 - Bugs / feature requests → open an issue or a discussion on GitHub.
 
 ---

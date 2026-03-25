@@ -31,4 +31,4 @@ export const methodologyContent = (
 )
 
 export const methodologyHref =
-  'https://off-the-pace.onrender.com/reference/models/int/int_era_normalized_driver_rating'
+  'https://offthepace.mintlify.app/reference/models/int/int_era_normalized_driver_rating'

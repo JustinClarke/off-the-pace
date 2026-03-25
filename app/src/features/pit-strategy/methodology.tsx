@@ -1,5 +1,5 @@
 export const methodologyHref =
-  'https://off-the-pace.onrender.com/reference/models/int_pit_strategy_value'
+  'https://offthepace.mintlify.app/reference/models/int/int_pit_strategy_value'
 
 export const methodologyContent = (
   <div className="space-y-3 text-sm text-muted">

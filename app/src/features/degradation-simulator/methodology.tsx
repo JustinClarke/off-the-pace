@@ -33,4 +33,4 @@ export const methodologyContent = (
   </>
 )
 
-export const methodologyHref = 'https://off-the-pace.onrender.com/machine-learning'
+export const methodologyHref = 'https://offthepace.mintlify.app/ml/overview'

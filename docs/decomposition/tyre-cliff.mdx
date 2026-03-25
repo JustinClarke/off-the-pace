@@ -1,0 +1,66 @@
+---
+title: "Understanding and predicting tyre cliff onset with ML"
+sidebarTitle: "Tyre Cliff"
+description: "Learn how Kaplan-Meier survival analysis detects tyre cliff onset and how ML models extend the population prior to per-lap, per-stint predictions."
+---
+
+A tyre does not lose grip linearly. It holds a working window, then falls off a cliff a stretch of a few laps where pace collapses by a second or more, sometimes two or three. Strategy lives and dies on calling that cliff: pit a lap early and you concede track position; pit a lap late and you bleed the race away on dead rubber. Off The Pace models cliff onset at two levels a population prior from survival analysis, and a per-lap ML prediction that accounts for what is actually happening to that specific tyre in that specific stint.
+
+## What a tyre cliff is
+
+The cliff is the lap at which a compound's grip deteriorates sharply past its working window. Before the cliff the degradation curve is gradual and manageable. After it, pace loss accelerates $\beta_3 \cdot \max(0, \text{age} - \tau)$ in the compound polynomial adds pace delta fast. The total pace loss from new tyre to post-cliff can reach 1.5–2.5 s on a Soft compound at a high-wear circuit.
+
+The cliff lap $\tau$ is not the same for every stint on the same compound. It shifts with thermal history, how much dirty air the tyre absorbed, ambient conditions, fuel load, and compound generation. Knowing the population average is a good prior; acting on it without updating for real conditions is how strategy calls go wrong.
+
+## Why the population prior is not enough
+
+The methodology layer fits a Kaplan-Meier survival curve per `(circuit, compound, season)` and stores the median cliff onset in `dim_compounds_season`. That is the right tool for a population-level question, and it feeds the decomposition's compound term honestly.
+
+But it answers the average case. The real cliff for a given stint shifts with:
+
+- **Thermal history** how hard the tyre has been pushed, measured as cumulative surface and bulk thermal load
+- **Dirty-air exposure** laps spent in another car's wake overheat the tyre surface
+- **Ambient and air density** a hot, thin-air afternoon cliffs earlier than a cool morning session
+- **Fuel load** a heavy car early in the stint loads the tyre differently than a light car at the same tyre age
+- **Compound generation** 2018 legacy compounds behave differently from the 2019+ range
+
+These factors interact. A linear correction per dimension cannot capture "Soft, lap 14, after six laps of dirty air, on a hot low-grip surface." Gradient-boosted trees can which is the entire reason for the machine layer.
+
+<Note>
+  The cliff onset τ stored in `dim_compounds_season` is the population median for each `(circuit, compound, season)` group. The real cliff for any individual stint varies around it based on actual conditions. Use the ML predictions (described below) when you need a per-stint estimate.
+</Note>
+
+## Kaplan-Meier cliff detection
+
+### How each stint becomes an observation
+
+Each stint contributes one observation to the survival analysis. A stint either **reaches** the cliff (an event) or **ends before** it because the team pitted first (a censored observation). The Kaplan-Meier estimator produces a survival function the probability that a tyre survives to each lap and the median survival time becomes the cliff onset estimate $\tau$.
+
+The censoring treatment is critical. A stint that pits on lap 18 is **not** a failed cliff at lap 18 it is a censored observation at lap 17. Treating it as an event would systematically underestimate cliff onset across every circuit-compound group. This is the same estimator used in clinical trials for time-to-event outcomes; the mathematical guarantee on handling censored observations is why it is the right tool here.
+
+### Where cliff parameters live
+
+Cliff parameters are stored in `dim_compounds_season` one row per `(circuit, compound, season)`. The current seeds cover **401 circuit-compound groups** across 2018–2024. These parameters feed directly into the compound polynomial in the decomposition, specifically the cliff onset $\tau$ and the post-cliff acceleration coefficient $\beta_3$.
+
+## What the ML layer adds
+
+The ML layer turns the population prior into a per-lap, per-stint prediction. On every lap of every stint, it reads the actual conditions thermal load, dirty-air share, fuel state, compound generation, and more and outputs three forward-looking predictions from the same feature row.
+
+### The three prediction targets
+
+**`next_lap_degradation_jump_s`** The fuel-corrected pace change the next lap will show, in seconds. This is modelled as a quantile trio (p10 / p50 / p90) so strategy sees a median estimate and a calibrated uncertainty band. Note that this target is legitimately negative roughly 44% of the time: a tyre coming into its working window, or recovering after an out-lap, genuinely gains pace.
+
+**`laps_until_cliff_class`** A 4-way classification bucket: `0_to_2`, `3_to_5`, `6_plus`, or `none_in_stint`. The rare imminent-cliff windows (the `0_to_2` bucket) are the highest-value prediction for race strategy, so the classifier trains with balanced class weights to prevent those windows from being drowned out by the majority class.
+
+**`remaining_stint_life_laps`** A synthesised, non-negative count of usable laps remaining in the stint. This feeds the strategy view's "this set is done in approximately N laps" readout.
+
+For full details on feature engineering, training, validation, and model cards, see the [ML models reference](/ml/models).
+
+<CardGroup cols={2}>
+  <Card title="Methodology" icon="flask" href="/decomposition/methodology">
+    How Kaplan-Meier cliff detection fits into the sequential estimation pipeline
+  </Card>
+  <Card title="Limitations" icon="triangle-exclamation" href="/decomposition/limitations">
+    Known constraints on tyre coefficient quality and ML cliff prediction accuracy
+  </Card>
+</CardGroup>

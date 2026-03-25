@@ -34,13 +34,18 @@ from logging_config import setup_logging
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT   = Path(__file__).resolve().parent.parent.parent
-BRONZE_DIR     = PROJECT_ROOT / "data" / "bronze"
-LAPS_DIR       = BRONZE_DIR / "laps"
-WEATHER_DIR    = BRONZE_DIR / "weather"
-RC_DIR         = BRONZE_DIR / "race_control"
-TELEMETRY_DIR  = BRONZE_DIR / "telemetry"
-MANIFESTS_DIR  = BRONZE_DIR / "manifests"
-CACHE_DIR      = PROJECT_ROOT / "data" / "cache"
+BRONZE_DIR         = PROJECT_ROOT / "data" / "bronze"
+LAPS_DIR           = BRONZE_DIR / "laps"
+WEATHER_DIR        = BRONZE_DIR / "weather"
+RC_DIR             = BRONZE_DIR / "race_control"
+TELEMETRY_DIR      = BRONZE_DIR / "telemetry"
+RESULTS_DIR        = BRONZE_DIR / "results"
+TRACK_STATUS_DIR   = BRONZE_DIR / "track_status"
+SESSION_STATUS_DIR = BRONZE_DIR / "session_status"
+CIRCUIT_INFO_DIR   = BRONZE_DIR / "circuit_info"
+SCHEDULE_DIR       = BRONZE_DIR / "schedule"
+MANIFESTS_DIR      = BRONZE_DIR / "manifests"
+CACHE_DIR          = PROJECT_ROOT / "data" / "cache"
 
 WEATHER_COL_MAP = {
     "AirTemp":       "ambient_temp_c",
@@ -244,12 +249,159 @@ def _write_telemetry(session, year: int, round_num: int, slug: str) -> None:
     logger.info(f"  Telemetry: {len(df):,} samples")
 
 
+def _write_telemetry_full(session, year: int, round_num: int, slug: str) -> None:
+    """Full-channel car_data (Speed, Throttle, Brake, nGear, RPM, DRS) per driver."""
+    try:
+        car_data = session.car_data
+        if car_data is None or car_data.empty:
+            logger.warning(f"  No car_data for {slug}")
+            return
+
+        for driver in car_data.index.get_level_values(0).unique():
+            try:
+                driver_data = car_data.loc[driver].reset_index()
+                driver_data["driver_id"] = driver
+                driver_data["race_id"] = f"{year}_{round_num}"
+                driver_data["season"] = year
+
+                out = TELEMETRY_FULL_DIR / f"season={year}" / f"race={slug}" / f"driver={driver}"
+                os.makedirs(out, exist_ok=True)
+                driver_data.to_parquet(out / "car_data.parquet", index=False, compression="zstd")
+            except Exception as e:
+                logger.warning(f"  Car data failed for {slug} driver {driver}: {e}")
+
+        logger.info(f"  Car data: {len(car_data.index.get_level_values(0).unique())} drivers")
+    except Exception as exc:
+        logger.warning(f"  Car data failed for {slug}: {exc}")
+
+
+def _write_pos_data(session, year: int, round_num: int, slug: str) -> None:
+    """Full position data (X, Y, Z) per driver at full rate."""
+    try:
+        pos_data = session.pos_data
+        if pos_data is None or pos_data.empty:
+            logger.warning(f"  No pos_data for {slug}")
+            return
+
+        for driver in pos_data.index.get_level_values(0).unique():
+            try:
+                driver_pos = pos_data.loc[driver].reset_index()
+                driver_pos["driver_id"] = driver
+                driver_pos["race_id"] = f"{year}_{round_num}"
+                driver_pos["season"] = year
+
+                out = POS_DATA_DIR / f"season={year}" / f"race={slug}" / f"driver={driver}"
+                os.makedirs(out, exist_ok=True)
+                driver_pos.to_parquet(out / "pos_data.parquet", index=False, compression="zstd")
+            except Exception as e:
+                logger.warning(f"  Pos data failed for {slug} driver {driver}: {e}")
+
+        logger.info(f"  Pos data: {len(pos_data.index.get_level_values(0).unique())} drivers")
+    except Exception as exc:
+        logger.warning(f"  Pos data failed for {slug}: {exc}")
+
+
+def _write_results(session, year: int, round_num: int, slug: str) -> None:
+    """Official race results (ClassifiedPosition, Status, GridPosition, Q1/Q2/Q3)."""
+    try:
+        if not hasattr(session, "results") or session.results is None or session.results.empty:
+            return
+        results = pd.DataFrame(session.results).reset_index()
+        results["race_id"] = f"{year}_{round_num}"
+        results["season"] = year
+        out = RESULTS_DIR / f"season={year}" / f"race={slug}"
+        os.makedirs(out, exist_ok=True)
+        results.to_parquet(out / "results.parquet", index=False, compression="snappy")
+        logger.info(f"  Results: {len(results)} drivers")
+    except Exception as exc:
+        logger.warning(f"  Results failed for {slug}: {exc}")
+
+
+def _write_track_status(session, year: int, round_num: int, slug: str) -> None:
+    """SC/VSC timeline (track_status events)."""
+    try:
+        if not hasattr(session, "track_status") or session.track_status is None or session.track_status.empty:
+            return
+        ts = pd.DataFrame(session.track_status).reset_index()
+        ts["race_id"] = f"{year}_{round_num}"
+        ts["season"] = year
+        if "Time" in ts.columns:
+            raw = ts["Time"]
+            if pd.api.types.is_timedelta64_dtype(raw):
+                ts["session_time_s"] = raw.dt.total_seconds()
+            elif pd.api.types.is_datetime64_any_dtype(raw):
+                epoch = raw.iloc[0].replace(hour=0, minute=0, second=0, microsecond=0)
+                ts["session_time_s"] = (raw - epoch).dt.total_seconds()
+        out = TRACK_STATUS_DIR / f"season={year}" / f"race={slug}"
+        os.makedirs(out, exist_ok=True)
+        ts.to_parquet(out / "track_status.parquet", index=False, compression="snappy")
+        logger.info(f"  Track status: {len(ts)} events")
+    except Exception as exc:
+        logger.warning(f"  Track status failed for {slug}: {exc}")
+
+
+def _write_session_status(session, year: int, round_num: int, slug: str) -> None:
+    """Red-flag events and session status."""
+    try:
+        if not hasattr(session, "session_status") or session.session_status is None or session.session_status.empty:
+            return
+        ss = pd.DataFrame(session.session_status).reset_index()
+        ss["race_id"] = f"{year}_{round_num}"
+        ss["season"] = year
+        if "Time" in ss.columns:
+            raw = ss["Time"]
+            if pd.api.types.is_timedelta64_dtype(raw):
+                ss["session_time_s"] = raw.dt.total_seconds()
+            elif pd.api.types.is_datetime64_any_dtype(raw):
+                epoch = raw.iloc[0].replace(hour=0, minute=0, second=0, microsecond=0)
+                ss["session_time_s"] = (raw - epoch).dt.total_seconds()
+        out = SESSION_STATUS_DIR / f"season={year}" / f"race={slug}"
+        os.makedirs(out, exist_ok=True)
+        ss.to_parquet(out / "session_status.parquet", index=False, compression="snappy")
+        logger.info(f"  Session status: {len(ss)} events")
+    except Exception as exc:
+        logger.warning(f"  Session status failed for {slug}: {exc}")
+
+
+def _write_circuit_info(session, year: int, round_num: int, slug: str) -> None:
+    """Circuit geometry (corners, coordinates, marshal sectors)."""
+    try:
+        if not hasattr(session, "get_circuit_info"):
+            return
+        circuit = session.get_circuit_info()
+        if circuit is None:
+            return
+        ci = pd.DataFrame(circuit.corners).reset_index()
+        ci["race_id"] = f"{year}_{round_num}"
+        ci["season"] = year
+        out = CIRCUIT_INFO_DIR / f"season={year}" / f"race={slug}"
+        os.makedirs(out, exist_ok=True)
+        ci.to_parquet(out / "circuit_info.parquet", index=False, compression="snappy")
+        logger.info(f"  Circuit info: {len(ci)} corners")
+    except Exception as exc:
+        logger.warning(f"  Circuit info failed for {slug}: {exc}")
+
+
+def _write_event_schedule(year: int) -> None:
+    """Event schedule for the season."""
+    try:
+        schedule = pd.DataFrame(fastf1.get_event_schedule(year, backend="fastf1"))
+        schedule["season"] = year
+        out = SCHEDULE_DIR / f"season={year}"
+        os.makedirs(out, exist_ok=True)
+        schedule.to_parquet(out / "schedule.parquet", index=False, compression="snappy")
+        logger.info(f"  Schedule: {len(schedule)} events")
+    except Exception as exc:
+        logger.warning(f"  Schedule failed for {year}: {exc}")
+
+
 # ---------------------------------------------------------------------------
 # Session-level ingest functions
 # ---------------------------------------------------------------------------
 
 def ingest_race(
     year: int, round_num: int, slug: str, force: bool, skip_telemetry: bool,
+    telemetry_full: bool = False,
     run_id: str = "",
 ) -> tuple[str, dict]:
     """
@@ -291,6 +443,18 @@ def ingest_race(
                 _write_telemetry(session, year, round_num, slug)
             except Exception as exc:
                 logger.warning(f"  Telemetry failed for {slug}: {exc}")
+
+        if telemetry_full:
+            try:
+                _write_telemetry_full(session, year, round_num, slug)
+                _write_pos_data(session, year, round_num, slug)
+            except Exception as exc:
+                logger.warning(f"  Full telemetry/pos failed for {slug}: {exc}")
+
+        _write_results(session, year, round_num, slug)
+        _write_track_status(session, year, round_num, slug)
+        _write_session_status(session, year, round_num, slug)
+        _write_circuit_info(session, year, round_num, slug)
 
         time.sleep(0.5)
         row = _make_manifest_row(
@@ -381,6 +545,7 @@ def ingest_season(
     sessions: str,
     force: bool,
     skip_telemetry: bool,
+    telemetry_full: bool = False,
     run_id: str = "",
 ) -> tuple[dict, list[dict]]:
     """
@@ -406,7 +571,7 @@ def ingest_season(
         slug = _slug(row["EventName"])
 
         if sessions in ("R", "both"):
-            result, mrow = ingest_race(year, round_num, slug, force, skip_telemetry, run_id)
+            result, mrow = ingest_race(year, round_num, slug, force, skip_telemetry, telemetry_full, run_id)
             counts[f"R_{result}"] += 1
             manifest_rows.append(mrow)
 
@@ -415,6 +580,7 @@ def ingest_season(
             counts[f"Q_{result}"] += 1
             manifest_rows.append(mrow)
 
+    _write_event_schedule(year)
     _log_season_summary(year, sessions, counts)
     return counts, manifest_rows
 
@@ -476,6 +642,10 @@ Examples:
         help="Skip telemetry extraction (faster dry-runs and qualifying-only runs)",
     )
     p.add_argument(
+        "--telemetry-full", action="store_true",
+        help="Ingest full-channel car_data (Speed, Throttle, Brake, nGear, RPM, DRS) and pos_data (v0.2)",
+    )
+    p.add_argument(
         "--force", action="store_true",
         help="Overwrite existing Parquet files instead of skipping them",
     )
@@ -515,7 +685,7 @@ def main() -> None:
         )
         return
 
-    for d in [LAPS_DIR, WEATHER_DIR, RC_DIR, TELEMETRY_DIR, MANIFESTS_DIR, CACHE_DIR]:
+    for d in [LAPS_DIR, WEATHER_DIR, RC_DIR, TELEMETRY_DIR, RESULTS_DIR, TRACK_STATUS_DIR, SESSION_STATUS_DIR, CIRCUIT_INFO_DIR, SCHEDULE_DIR, MANIFESTS_DIR, CACHE_DIR]:
         os.makedirs(d, exist_ok=True)
     fastf1.Cache.enable_cache(str(config.fastf1_cache_dir))
 
@@ -523,7 +693,7 @@ def main() -> None:
 
     logger.info(
         f"Ingestion run {run_id}: {start_year}–{end_year} | sessions={args.sessions} | "
-        f"force={args.force} | skip_telemetry={args.skip_telemetry}"
+        f"force={args.force} | skip_telemetry={args.skip_telemetry} | telemetry_full={args.telemetry_full}"
     )
     logger.info(f"Bronze: {BRONZE_DIR}")
 
@@ -535,6 +705,7 @@ def main() -> None:
             sessions=args.sessions,
             force=args.force,
             skip_telemetry=args.skip_telemetry,
+            telemetry_full=args.telemetry_full,
             run_id=run_id,
         )
         total_ok += counts.get("R_ok", 0) + counts.get("Q_ok", 0)

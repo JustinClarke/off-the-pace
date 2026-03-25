@@ -1,8 +1,0 @@
-extends: substitution
-message: "Use '%s' instead of '%s' (branding)."
-level: warning
-ignorecase: false
-swap:
-  '\bDBT\b': dbt
-  '\bDuck DB\b': DuckDB
-  '\bFastF 1\b': FastF1

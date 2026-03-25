@@ -1,0 +1,152 @@
+---
+title: "Key Concepts: F1 Lap Decomposition Terms and Methodology"
+sidebarTitle: "Key Concepts"
+description: "Definitions for pace delta, the seven additive components, tyre cliff, clean laps, and sequential residualisation as used throughout the Off The Pace docs."
+---
+
+Off The Pace rests on a small set of precisely defined concepts. Understanding them makes every number in the data meaningful: you will know not just what a column contains, but what it was designed to isolate and why it is defined the way it is. Read this page before diving into the marts or the attributed findings.
+
+<Note>
+  All component values `fuel_component_s`, `compound_component_s`, `rubber_component_s`, `ambient_component_s`, `constructor_component_s`, `dirty_air_tax_s`, and `driver_skill_residual_s` are in **seconds relative to the field baseline**. Positive means slower than the field. Negative means faster.
+</Note>
+
+## Pace delta
+
+Pace delta (`pace_delta_s`) is the foundation of the entire decomposition. It is not raw lap time it is the deviation of a driver's lap time from the field baseline on that lap.
+
+**Field baseline** (`base_track_pace_s`) is the trimmed-mean field pace computed over a 5-lap centred window. The fastest and slowest 10% of the field at each lap are excluded before computing the median, removing cars on extreme strategies or with mechanical issues. A driver running at exactly the field median has `pace_delta_s ≈ 0`.
+
+Normalising against the field removes the circuit characteristic Monza laps are around 80 s, Singapore laps are around 100 s so a driver residual of −0.4 s at Monza means the same thing as −0.4 s at Singapore: 400 ms faster than the field median, net of all physics.
+
+## The seven components
+
+<AccordionGroup>
+  <Accordion title="1. Fuel component (fuel_component_s)">
+    The fuel component captures the lap time penalty from carrying unburned fuel mass. As fuel burns off through the race, every car gets lighter and faster all else being equal.
+
+    **Formula:** `fuel = w × m_fuel`
+
+    - `m_fuel` is the estimated fuel mass at that lap in kilograms
+    - `w` is the weight penalty in seconds per kilogram, calibrated per circuit:
+      - Monaco (tight, high corner count): ~0.025 s/kg
+      - Monza (few corners, high speed): ~0.018 s/kg
+      - Suzuka (high downforce, high lateral G): ~0.035 s/kg
+
+    **Behaviour:** always positive (fuel makes you slower), decreasing through the race. A driver on lap 3 of a 55-lap race is typically 0.8–1.0 s slower than their end-of-race pace purely from fuel mass.
+  </Accordion>
+
+  <Accordion title="2. Compound component (compound_component_s)">
+    The compound component captures tyre degradation the pace loss that accumulates as the rubber wears down through a stint.
+
+    **Formula:** a hockey-stick polynomial in tyre age:
+
+    ```
+    compound(age) = β₀ + β₁·age + β₂·age² + β₃·max(0, age − τ) + δ_T·temp_delta
+    ```
+
+    - `τ` is the tyre cliff onset lap, estimated via Kaplan-Meier survival analysis (see [Tyre cliff](#tyre-cliff) below)
+    - `β₃` is the post-cliff degradation acceleration the steep part of the hockey stick
+    - `δ_T ≈ 0.005 s/°C` captures temperature sensitivity
+
+    All coefficients and `τ` are stored per `(circuit, compound, season)` in `dim_compounds_season`, pre-computed from 2018–2024 data.
+
+    **Behaviour:** grows with tyre age, steepens sharply after the cliff. For a Soft compound at a high-wear circuit, the full trajectory from new tyres to cliff can span 1.5–2.5 s of pace loss.
+  </Accordion>
+
+  <Accordion title="3. Rubber component (rubber_component_s)">
+    The rubber component captures track evolution the grip improvement that occurs as rubber from racing tyres builds up on the racing line throughout a race session.
+
+    **Formula:** `rubber(t) = γ_r × R(t)`
+
+    - `R(t)` is the race-level rubber accumulation index: a smoothed measure of grip improvement
+    - Identified from the residual of the field pace curve after removing fuel and compound contributions
+
+    **Behaviour:** typically negative (improving pace for everyone on track). Grows in magnitude through the first 30–40 laps, then plateaus as the racing line saturates.
+  </Accordion>
+
+  <Accordion title="4. Ambient component (ambient_component_s)">
+    The ambient component captures the effect of track temperature deviation from the session's thermal baseline. Higher track temperatures reduce tyre grip, especially for Soft compounds approaching their thermal ceiling.
+
+    **Formula:** `ambient(t) = γ_a × ΔT(t)`
+
+    - `ΔT` is track temperature minus the session baseline in °C
+    - Identified jointly with the rubber component: rubber accumulation is monotonically increasing while temperature can move either direction, making the two signals separable
+
+    **Behaviour:** can be positive or negative depending on whether temperatures are above or below session baseline. Effects are largest in afternoon sessions with strong solar loading.
+  </Accordion>
+
+  <Accordion title="5. Constructor component (constructor_component_s)">
+    The constructor component captures a team's structural pace relative to the field median the contribution of the car itself, independent of who is driving it.
+
+    **Estimation:** a panel fixed-effects regression on race-year-constructor combinations, pre-computed from 2018–2024. The constructor term is fixed within a race weekend for a given constructor.
+
+    **Purpose:** removing the constructor component is what makes `driver_skill_residual_s` a driver signal rather than a car signal. Without it, a driver in a slow car would always show a large positive residual, even if they were extracting everything the car had to give.
+
+    **Behaviour:** can be positive (slower car) or negative (faster car) relative to field median. Remains stable within a season for a given team.
+  </Accordion>
+
+  <Accordion title="6. Dirty air component (dirty_air_tax_s)">
+    The dirty air component captures the pace penalty for running in the aerodynamic wake of the car ahead. Following another car at close range disrupts airflow over the diffuser and rear wing, reducing downforce and increasing tyre thermal load.
+
+    **Formula:** `dirty_air = θ × dirty_air_share(t)`
+
+    - `dirty_air_share` measures the proportion of the lap run within aerodynamic wake range
+    - `θ` (seconds per unit share) is calibrated from the partial residual panel after removing fuel, compound, rubber, ambient, and constructor terms
+
+    **Behaviour:** positive (slower), proportional to time spent in close following distance. Largest effect at circuits where passing is difficult and cars run closely bunched.
+  </Accordion>
+
+  <Accordion title="7. Driver skill residual (driver_skill_residual_s)">
+    The driver skill residual is the closure term. It is not estimated independently it is defined as whatever remains after all six physics terms are subtracted from `pace_delta_s`:
+
+    ```
+    driver_skill = pace_delta − (fuel + compound + rubber + ambient + constructor + dirty_air)
+    ```
+
+    **Interpretation:** a large negative residual means the driver ran faster than the physics predicts a genuine performance surplus. A large positive residual means they ran slower than the physics predicts.
+
+    **Why define it as a closure:** defining the residual as a closure rather than estimating it ensures the additive identity holds exactly on every lap and prevents the residual from absorbing model specification error. If the physics terms are well-specified, the residual is a clean driver signal. Where they are not, the residual is honest about what it contains.
+  </Accordion>
+</AccordionGroup>
+
+## Tyre cliff
+
+The tyre cliff is the lap at which a compound's grip deteriorates sharply, causing a rapid acceleration in lap time degradation. Before the cliff, wear is gradual; after it, pace loss steepens dramatically.
+
+Off The Pace estimates the cliff onset lap `τ` per `(circuit, compound, season)` using **Kaplan-Meier survival analysis**. Each stint in the historical data is treated as a survival time the number of laps until the cliff event occurs. The Kaplan-Meier estimator produces a non-parametric survival curve per cohort, and `τ` is read off as the median survival lap.
+
+A companion Cox proportional hazard model fits cliff hazard rates as a function of tyre thermal load and ambient temperature covariates. This allows the model to adjust `τ` estimates for sessions with unusually high or low temperatures.
+
+<Tip>
+  The cliff onset lap `τ` is stored in `dim_compounds_season` as a pre-computed seed. The ML cliff classifier predicts laps-until-cliff in real time as a forward-looking complement to the historical fitted values.
+</Tip>
+
+## Clean laps
+
+Not every lap is eligible for coefficient estimation. A **clean lap** is one that meets all of the following conditions:
+
+- Not the first lap of the race (formation lap effects, standing start)
+- Not a pit-in or pit-out lap (anomalous delta from slow pit entry/exit)
+- Not under Safety Car or Virtual Safety Car (mandated pace destroys the pace signal)
+- Not in wet or mixed conditions (rain fundamentally changes the physics)
+- Not flagged as an anomaly by data quality checks
+
+Clean lap filtering is applied before estimating fuel weight penalties, compound degradation curves, constructor components, and dirty air coefficients. Using dirty laps in coefficient estimation would bias the physics terms and corrupt the driver skill residual.
+
+## Sequential residualisation
+
+Sequential residualisation is the identification strategy Off The Pace uses to estimate the six physics terms without conflating them with each other.
+
+The core idea: estimate terms in decreasing order of identifiability, removing each in sequence before estimating the next.
+
+1. **Fuel** estimated first. Fuel consumption is mechanistically known (regulated refuelling ban, lap-by-lap burn rate), so the fuel component is the most cleanly identified term.
+2. **Compound, rubber, and ambient** estimated jointly after fuel is removed. Rubber accumulation is monotonically increasing; temperature is non-monotonic. Their different time-series shapes allow joint identification.
+3. **Constructor** estimated from the clean-lap panel residual after fuel, compound, rubber, and ambient are removed. Fixed effects per race-year-constructor.
+4. **Dirty air** estimated from the partial residual after all four preceding terms are removed. Regressed against `dirty_air_share`.
+5. **Driver skill residual** defined as the closure. Whatever remains is attributed to driver execution.
+
+This ordering matters. Estimating driver residual before removing fuel would conflate fuel strategy with driver skill. Estimating dirty air before removing constructor would conflate car quality with traffic effects.
+
+<Warning>
+  Sequential residualisation is an **identification strategy**, not a causal proof. The driver skill residual captures everything the model does not account for including measurement error, model misspecification, and genuinely unmeasured factors. Interpret large residuals as signals worth investigating, not as definitive attributions.
+</Warning>

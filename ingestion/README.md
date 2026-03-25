@@ -2,8 +2,8 @@
 
 Raw F1 telemetry from FastF1 → Hive-partitioned Parquet. Bronze is append-only; all business logic lives in the dbt transform layer.
 
-📖 Full docs: https://off-the-pace.onrender.com/reference/schemas
-🚀 Quickstart: https://off-the-pace.onrender.com
+📖 Full docs: https://offthepace.mintlify.app/reference/schemas
+🚀 Quickstart: https://offthepace.mintlify.app
 
 **Coverage:** 168 races × 4 datasets (2018–2024). Laps, weather, race control, telemetry (~180M samples).
 
@@ -14,6 +14,20 @@ python src/ingest.py --season 2024 --round 1 --session R   # single race (~200 M
 python src/ingest.py --season 2024 --session both --force  # full season (~2 GB, 30–45 min)
 pytest tests/ -v                                            # offline tests (no network, <5 s)
 ```
+
+## Data setup options
+
+Choose based on your workflow:
+
+| Scenario | What you need | Time | Size | Command |
+|----------|---------------|------|------|---------|
+| **Experimenting with dbt SQL transforms** | Test fixtures only | 0 min | – | `make dbt-dev` (uses `transform/tests/fixtures/bronze/`) |
+| **Scale-testing transforms, validation before PR** | Recent seasons (2023–2024) | ~15 min | ~200 MB | `make ingest-recent` |
+| **Full feature verification, ML training** | All 168 races (2018–2024) | 30–45 min | ~2 GB | `make ingest-all` |
+| **Single race smoke test** | One race only | 2–5 min | ~200 MB | `python src/ingest.py --season 2024 --round 1 --session R` |
+| **Ingestion development** | Verify one race, run offline tests | <5 s | – | `pytest tests/ -v` (no network) |
+
+**Default:** most contributors start with fixtures for SQL work, then run `make ingest-recent` to validate their dbt changes scale. The full `make ingest-all` is optional unless working on ML models or verification.
 
 ## Setup
 

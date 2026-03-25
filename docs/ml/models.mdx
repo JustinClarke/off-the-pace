@@ -1,0 +1,80 @@
+---
+title: "Five XGBoost tyre prediction models and their metrics"
+sidebarTitle: "Models"
+description: "Degradation quantile trio, cliff classifier, and stint-life regressor five XGBoost models, every one beating a per-cohort baseline, with full metrics."
+---
+
+Off The Pace trains five XGBoost models on the same per-lap feature matrix and holds every one to the same standard: beat a strong, honest per-cohort baseline not just chance. All five pass that gate, and the numbers below are the proof.
+
+<Note>
+  The shipped v1 parameters come from a **reduced tuning budget** (15 trials / 3 folds / 30k-row search subsample). The canonical `make ml-tune` (50 trials / 5 folds / full data) only improves the parameters with no code change, and should precede any production blessing. The beats-baseline gate holds regardless.
+</Note>
+
+## Headline results
+
+| Model | Metric | CV | Eval (2024) | Baseline | Beats |
+|---|---|---|---|---|---|
+| `degradation_regressor_p10` | pinball ↓ | 0.0799 | 0.0781 | 0.1276 | ✅ |
+| `degradation_regressor_p50` | pinball ↓ | 0.1919 | 0.1896 | 0.2247 | ✅ |
+| `degradation_regressor_p90` | pinball ↓ | 0.1316 | 0.1283 | 0.1438 | ✅ |
+| `cliff_classifier` | macro-F1 ↑ | 0.3655 | 0.3679 | 0.1835 | ✅ |
+| `stint_life_regressor` | RMSE ↓ | 7.198 | 7.728 | 8.085 | ✅ |
+
+*CV is the season-grouped `TimeSeriesSplit` mean across five folds. Eval is the final fold (2024), standing in as a holdout until 2025 data ingests. See [Validation](/ml/validation).*
+
+---
+
+## Degradation quantile trio
+
+The three quantile regressors share the pinball loss objective (`reg:quantileerror`) but target different quantiles of `next_lap_degradation_jump_s` the fuel-corrected pace change the **next** lap will show, measured in seconds.
+
+**What this tells you:** the **p50 model gives you the median expected pace loss next lap** the single best guess at how much time this tyre will cost relative to its current pace. The **p10 model is the optimistic bound**: nine times out of ten, real pace loss will be worse than this. The **p90 model is the pessimistic bound**: nine times out of ten, real pace loss will be better than this. Together, `[p10, p90]` forms an 80% prediction interval that honestly brackets the next lap four times in five see [Validation](/ml/validation) for the coverage numbers.
+
+**When to rely on it:** the interval is most useful when you want to compare tyre risk between two stints or set a pit-window trigger. A narrow band means the tyre's behaviour is predictable; a wide band flags genuine uncertainty.
+
+**Limits:** the target is legitimately **negative roughly 44% of the time** a tyre coming into its working window, or recovering after an out-lap, genuinely gains pace. The model captures this, but intervals on the first two or three laps of a stint are wider as the tyre is still warming.
+
+The quantile outputs are always monotone p10 ≤ p50 ≤ p90 so crossed intervals never reach the UI. Each regressor's baseline is the honest naive answer in the same `(compound, circuit, age-bucket)` cells: the cell group-mean for p50, the empirical 10th/90th percentile for p10/p90. Beating a per-cell empirical percentile means the model adds real signal beyond "what usually happens here."
+
+---
+
+## Cliff classifier
+
+The cliff classifier is a 4-class model over `laps_until_cliff_class`, trained with `multi:softprob` and **balanced class weights** to keep the rare imminent-cliff windows from being drowned out by the dominant majority class.
+
+**What this tells you:** where the tyre sits relative to a cliff. The four classes map directly to how urgent the strategy call is:
+
+| Class | Meaning | Approx. share |
+|---|---|---|
+| `0_to_2` | Cliff imminent within the next two laps | ~15% |
+| `3_to_5` | Cliff approaching three to five laps away | ~15% |
+| `6_plus` | Cliff not yet close | ~58% |
+| `none_in_stint` | No cliff expected this stint | ~12% |
+
+**When to rely on it:** use the classifier's output as a yellow/amber/red alert for pit-stop timing, not as a lap-precise countdown. The probability scores for each class are surfaced a high probability on `0_to_2` is a stronger signal than a marginal one.
+
+**Limits read this:** the model's **macro-F1 of 0.368 nearly doubles the majority-class prior** (0.184), and the balanced weighting earns its keep on the minority imminent-cliff windows. But **macro-F1 ≈ 0.37 is modest in absolute terms** this is the weakest of the five models. It decisively beats chance, but absolute skill on rare cliff windows is limited, and you should treat `0_to_2` calls as a strong prompt to look at the degradation band, not a certainty. The largest confident misses are reviewed continuously to inform the v2 roadmap. See also [Tyre cliff](/decomposition/tyre-cliff).
+
+---
+
+## Stint-life regressor
+
+The stint-life regressor predicts `remaining_stint_life_laps` a synthesised, non-negative count of usable laps remaining in the stint using squared-error loss (`reg:squarederror`, clipped ≥ 0).
+
+**What this tells you:** this is the number that drives the strategy view's "this set has approximately N laps left" readout. It integrates tyre age, thermal load, and compound character to give a single actionable figure.
+
+**When to rely on it:** the overall RMSE of 7.73 laps means individual predictions carry meaningful uncertainty treat the output as a planning horizon, not a precise countdown. The estimate tightens as the stint progresses and the tyre's behaviour becomes clearer.
+
+**Limits:** its baseline is **knowingly near-oracle** it uses the true final stint length the model is explicitly forbidden to see yet the model still wins overall (RMSE 7.73 vs 8.08). On specific circuits (notably Australia and Japan), the baseline wins; those cohort losses are recorded openly rather than dropped.
+
+---
+
+## Tuning and refit
+
+Each model is tuned with Optuna (`TPESampler` + `MedianPruner`, seeded), searching a 9-dimensional hyperparameter space with per-fold pruning. The best parameters are persisted so studies are reproducible and resumable. The model is then **refit on the full training data** cross-validation selects the hyperparameters; the full dataset trains the final model.
+
+---
+
+## ONNX export and in-browser scoring
+
+Every model is exported to ONNX and passes a round-trip parity test to `atol=1e-5` including a NaN-bearing sample that confirms parity holds on the ~47% of laps with a null cliff-onset prior. This export is what allows the React app to score predictions entirely client-side, with no server required.

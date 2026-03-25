@@ -1,0 +1,66 @@
+---
+title: "Simulate tyre wear curves with the degradation model"
+sidebarTitle: "Tyre Simulator"
+description: "Dial compound, fuel, and conditions to watch XGBoost models predict pace loss, cliff risk, and tyre life scored live in your browser via ONNX."
+---
+
+The Tyre Degradation Simulator lets you interrogate the trained degradation models directly no server, no waiting. You dial a compound, fuel load, dirty-air exposure, and environmental conditions, and five XGBoost models re-score the entire stint in real time via ONNX running in WebAssembly. The result is an interactive pace-loss fan showing the model's p10/p50/p90 uncertainty band, a cliff risk indicator, and a tyre life gauge all updating as you move the sliders.
+
+## What the simulator shows
+
+The main chart plots **predicted next-lap degradation jump** (in seconds of pace loss) against lap-in-stint. It renders three overlaid series:
+
+- **p50 line** the median model prediction for pace loss on each lap of the stint.
+- **p10/p90 band** the model's uncertainty envelope. A wide band means the model is less certain about this part of the degradation curve, typically around the cliff onset region.
+- **Cliff onset zone** a shaded region marking the laps where the 4-class cliff classifier transitions to `cliff_candidate = true`. Pace deterioration after this point is expected to accelerate sharply.
+
+A **tyre life gauge** summarises the stint-life regressor's estimate of how many laps remain before the compound falls below a usable pace threshold.
+
+<Note>
+  When you load a **real stint preset**, the chart also overlays the observed next-lap degradation jumps from the warehouse so you can see exactly where the model was confident, conservative, or surprised.
+</Note>
+
+## Inputs you control
+
+| Slider / selector | What it drives |
+|---|---|
+| **Compound** | Switches the compound coefficients (`compound_grip_peak`, `compound_wear_gradient`, `compound_cliff_onset_laps`, `compound_cliff_severity`) from `dim_compounds_season` |
+| **Stint length** | Sweeps the predicted curve across that many laps |
+| **Fuel mass (kg)** | Sets `fuel_mass_kg` on each lap row fed to the model |
+| **Dirty air share** | Controls `dirty_air_share_lap` the fraction of the lap spent in aerodynamic wake |
+| **Ambient temp delta** | Adjusts `ambient_temp_delta` relative to the circuit's seasonal baseline |
+| **Push residual** | Sets `push_residual`, representing how aggressively the driver is extracting pace and loading the tyre surface |
+
+Slider ranges are calibrated to the p5–p95 of `fct_cliff_prediction_features` across 2018–2024, so you cannot dial inputs the model has never seen.
+
+## Loading a real stint
+
+Use the **Preset** selector above the controls to load a real stint from the warehouse. This seeds all 38 model features from the actual race data for that stint and overlays the observed degradation jumps on the chart. Once a preset is loaded you can perturb individual sliders to run counterfactuals for example, asking "how would this stint have degraded if the driver had backed off the push residual by 20%?"
+
+Selecting **Reset** clears the preset and returns all sliders to their default values.
+
+## Practical use
+
+The most direct use of the simulator is understanding **why a strategy call was made**. If you select a real stint from a race and see that the tyre was already past the cliff onset zone with ten laps to go, the pit call that looks early on a lap chart starts to make sense. Conversely, if the pace fan shows the compound still well within its degradation window, an early stop was either a reactive undercut or a risk call.
+
+<Tip>
+  Load two stints from the same race on the same compound one from a driver who extended and one who stopped early and compare where each stint sat relative to the cliff onset zone. The model's cliff classifier often explains tyre-to-tyre strategy differences that look confusing from lap times alone.
+</Tip>
+
+<Warning>
+  The simulator scores five models (three quantile regressors, one cliff classifier, one stint-life regressor) on every slider change. On first load, the ONNX runtime compiles the model session, which takes a few seconds on some browsers. Subsequent re-scores are near-instant.
+</Warning>
+
+## How the models score in the browser
+
+Each lap of the simulated stint is converted into a 38-feature `float32` vector built from the current slider state, then passed through the ONNX runtime in your browser. The feature order, encoder mappings, and post-processing logic are read from the model manifest at runtime. Browser-side inference matches the originally trained boosters to a maximum absolute error of `1e-5`.
+
+## Data sources
+
+| Table | Role |
+|---|---|
+| `fct_cliff_prediction_features` | Real stint presets and the observed `next_lap_degradation_jump_s` overlay |
+| `dim_compounds_season` | Compound coefficients used to seed the `compound_*` features on each lap row |
+| `race_to_track` / `dim_circuits` | Circuit name resolution for the preset selector |
+
+The model was trained on data from **2018–2024**. The dataset fingerprint for the current ONNX bundle is `3aff4559`.

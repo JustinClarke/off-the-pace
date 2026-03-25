@@ -1,0 +1,52 @@
+---
+title: "Visualizing driver consistency across races and seasons"
+sidebarTitle: "Driver Consistency"
+description: "Plot each driver's residual skill mean and variance after removing all six physics factors see who delivers reliably and who runs hot and cold."
+---
+
+The driver consistency chart answers a single question: after you strip away the car, the tyres, the fuel load, the dirty air, and the ambient conditions, how reliably does each driver extract the same pace the car is capable of? Every point on the chart represents one driver's season-level aggregation of their `driver_skill_residual_s` the component of lap time left over once all six modelled physics terms have been subtracted. Drivers with a tight, negative cluster are delivering better-than-expected pace, consistently. Drivers scattered wide are brilliant sometimes and costly others.
+
+## What the chart shows
+
+The scatter plot places every driver on two axes derived from `fct_driver_skill_features`:
+
+- **X-axis mean residual (`driver_residual_mean_s`)**: the average delta between a driver's actual pace and what the physics model predicts given their exact conditions. Negative means the driver is consistently faster than circumstances alone would explain; positive means they are leaving time on the table on average.
+- **Y-axis standard deviation (`driver_residual_stddev_s`)**: the lap-to-lap variance of that residual. A low value means consistent delivery; a high value means hot laps and cold ones in equal measure.
+
+Crosshair lines mark the season median on each axis, creating four quadrants. The north-star quadrant fast *and* consistent sits at bottom-left: negative mean, low spread.
+
+<Note>
+  Only **clean laps** are included. The query filters to rows where `clean_lap_count >= 10` and both residual statistics are non-null, so drivers with very short sample seasons may not appear.
+</Note>
+
+## How to use it
+
+1. **Select a season** using the filter bar at the top of the page. The chart reloads automatically with the new season's data.
+2. **Hover over any point** to see the driver's name, constructor, mean residual, standard deviation, and clean lap count for that season.
+3. **Compare quadrant positions** across seasons by switching the season filter a driver migrating from top-right (fast but erratic) toward bottom-left over multiple years is developing consistency.
+4. **Export the data** using the CSV button in the page header if you want to do your own analysis against the raw residual statistics.
+
+## Reading the signal correctly
+
+A **negative mean residual** means the driver outperforms what the physics model predicts, not just that they are fast in absolute terms. The model has already accounted for having a faster car, fresher tyres, lighter fuel, cleaner air, and better track temperature. What remains is something the driver is doing that the model cannot attribute to those factors.
+
+A **positive mean residual** means the driver is, on average, delivering less pace than their exact set of conditions would predict. This is not the same as being a slow driver it may reflect a car that demands a particular driving style the model underestimates.
+
+A **low standard deviation** means that signal positive or negative is reproducible. A high standard deviation means the driver has more lap-to-lap variance after conditions are controlled, which could indicate sensitivity to tyre windows, traffic effects not fully captured by the dirty-air term, or genuine inconsistency.
+
+<Warning>
+  Circuits that carry a `REVIEW_REQUIRED` flag in the data quality audit should be treated with caution. Residuals from those events may absorb miscalibration in one of the six physics terms rather than genuine driver skill variation. Check the [decomposition limitations](/decomposition/limitations) page before drawing strong conclusions from any single race.
+</Warning>
+
+## Data source
+
+The chart queries `fct_driver_skill_features` via DuckDB-Wasm in the browser. The underlying residuals are computed by the seven-term additive decomposition pipeline and enforced lap-by-lap in the warehouse by the `assert_additive_identity` CI check. Season-level aggregates are produced by averaging across all clean laps per driver per season.
+
+| Column | Meaning |
+|---|---|
+| `driver_residual_mean_s` | Season-average of per-lap `driver_skill_residual_s` |
+| `driver_residual_stddev_s` | Season standard deviation of the same residual |
+| `clean_lap_count` | Number of laps included after SC, pit-window, and anomaly filters |
+| `constructor_id` | The constructor the driver raced for that season |
+
+The data window covers **2018–2024**.

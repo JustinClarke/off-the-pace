@@ -103,6 +103,11 @@ const config: Config = {
           label: 'Reference',
         },
         {
+          href: 'pathname:///project-graph.html',
+          position: 'left',
+          label: 'Project Graph',
+        },
+        {
           href: 'https://github.com/justinclarke/off-the-pace',
           label: 'GitHub',
           position: 'right',

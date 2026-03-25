@@ -5,7 +5,6 @@ xgboost
 scikit-learn
 pandas
 pyarrow
-streamlit
 plotly
 statsmodels
 pyfixest
@@ -13,3 +12,7 @@ pytest
 python-dotenv
 lifelines
 scipy
+watchdog
+sqlfluff
+sqlfluff-templater-dbt
+

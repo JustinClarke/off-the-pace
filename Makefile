@@ -1,16 +1,31 @@
-.PHONY: setup dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs ingest ingest-all simulate streamlit test query \
+.PHONY: setup dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs ingest ingest-all simulate test query \
         coefficients-check coefficients-fit coefficients-promote coefficients-status \
         test-all test-fast lint lint-fix \
-        docs-reference docs-site docs-audit docs-facts app-data app-data-check app-data-wave0 app-models app-parity app-build \
+        docs-install docs-reference docs-site docs-audit docs-facts app-install app-dev app-data app-data-check app-data-wave0 app-models app-parity app-build \
         ml-setup ml-features ml-train ml-tune ml-predict ml-onnx ml-evaluate ml-card ml-reference ml-all ml-test ml-clean \
-        clean-logs clean-ds
+        clean-logs clean-ds project-graph watch-graph
 
 ## ─── Setup ──────────────────────────────────────────────────────────────────────
 ## make setup        Build Python venv and install all dependencies (requirements.txt)
 setup:
+	@if [ ! -d ".venv" ]; then \
+		echo "Creating virtual environment..."; \
+		python3 -m venv .venv; \
+	fi
+	./.venv/bin/pip install --upgrade pip
 	./.venv/bin/pip install -r requirements.txt
-	mkdir -p data/bronze data/silver data/gold data/cache
-	touch data/bronze/.gitkeep data/silver/.gitkeep data/gold/.gitkeep data/cache/.gitkeep
+	mkdir -p data/bronze data/silver data/gold data/cache data/marts
+	touch data/bronze/.gitkeep data/silver/.gitkeep data/gold/.gitkeep data/cache/.gitkeep data/marts/.gitkeep
+	cd transform && ../.venv/bin/dbt deps
+
+
+## ─── Development Workflow ────────────────────────────────────────────────────────
+## For the most optimized workflow when developing, run these concurrently:
+## 1. Terminal 1: make docs-site    (Starts Docusaurus and live-reloads on /static changes)
+## 2. Terminal 2: make watch-graph  (Watches source files and runs make project-graph)
+##
+## This ensures your project graph is automatically updated when source files
+## change, and Docusaurus instantly reloads it in your browser.
 
 ## ─── dbt: Transform Layer ────────────────────────────────────────────────────────
 ## make dbt-dev          Run all 46 dbt models against the local dev DuckDB
@@ -44,20 +59,21 @@ coefficients-status:
 
 # Full dev build: freshness check → dbt run.
 dbt-dev-full: coefficients-check
-	cd transform && dbt run --profiles-dir profiles --target dev
+	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
 
 dbt-dev:
-	cd transform && dbt run --profiles-dir profiles --target dev
+	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
 
 dbt-prod:
 	# Fabric target is deferred runs against dev until a fabric profile is wired up
-	cd transform && dbt run --profiles-dir profiles --target dev
+	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
 
 dbt-test:
-	cd transform && dbt test --profiles-dir profiles
+	cd transform && ../.venv/bin/dbt test --profiles-dir profiles
 
 dbt-docs:
-	cd transform && dbt docs generate --profiles-dir profiles && dbt docs serve
+	cd transform && ../.venv/bin/dbt docs generate --profiles-dir profiles && ../.venv/bin/dbt docs serve
+
 
 ## ─── Ingestion ───────────────────────────────────────────────────────────────────
 ## make ingest-all     Pull all 168 races (2018–2024) to Bronze Parquet (~2 GB, 30–45 min)
@@ -78,17 +94,20 @@ ingest-fix-2024:
 simulate:
 	./.venv/bin/python ingestion/src/replay_simulator.py --parquet_path data/bronze/2021_bahrain_laps.parquet --race_id 2021_01 --speed 10
 
-streamlit:
-	./.venv/bin/streamlit run app/app.py
-
 test:
-	pytest ingestion/tests/test_ingestion.py
+	./.venv/bin/pytest ingestion/tests/test_ingestion.py
+
+test-integration:
+	./.venv/bin/pytest ingestion/tests/test_integration_fastf1.py -m integration
+
 
 query:
 	./.venv/bin/harlequin data/dev.duckdb
 
 ## ─── Docs ────────────────────────────────────────────────────────────────────────
 ## make docs-reference  Regenerate all docs/docs/reference/**/*.mdx from source
+## make project-graph   Regenerate interactive project dependency graph HTML
+## make watch-graph     Watch source files and run project-graph on change
 ## make docs-audit      README-presence + tour-footer + file-header checks (CI gate)
 ## make docs-facts      Headline-count reconciliation across README + docs/intro.md
 ## make docs-site       Start Docusaurus dev server at http://localhost:3000
@@ -101,14 +120,23 @@ query:
 docs-reference:
 	./.venv/bin/python scripts/build_reference.py
 
+project-graph:
+	./.venv/bin/python scripts/gen_project_graph.py -o docs/static/project-graph.html
+
+watch-graph:
+	./.venv/bin/python scripts/watch_project_graph.py
+
 docs-audit:
 	./.venv/bin/python scripts/docs_audit.py --headers
 
 docs-facts:
 	./.venv/bin/python scripts/docs_facts.py
 
+docs-install:
+	cd docs && pnpm install
+
 docs-site:
-	cd docs && yarn start
+	cd docs && pnpm start
 
 app-data:
 	./.venv/bin/python scripts/export_app_data.py
@@ -132,6 +160,12 @@ app-models:
 	  echo "  ⚠️   ml/models/ not found run: make ml-onnx"; \
 	fi
 
+app-install:
+	cd app && pnpm install
+
+app-dev:
+	cd app && pnpm dev
+
 app-build:
 	cd app && pnpm build
 
@@ -145,18 +179,20 @@ app-parity:
 ## make lint-fix   SQLFluff auto-fix
 # Open-source contributor helpers
 test-all:
-	cd transform && dbt build --profiles-dir profiles --target ci
+	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
 	PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/coefficients/tests/
 
 test-fast:
-	cd transform && dbt build --profiles-dir profiles --target ci --selector fast_build
-	cd transform && dbt test --profiles-dir profiles --target ci
+	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --selector fast_build --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+
+
 
 lint:
-	cd transform && sqlfluff lint models/ --dialect duckdb --disable-progress-bar
+	cd transform && ../.venv/bin/sqlfluff lint models/ --dialect duckdb --disable-progress-bar
 
 lint-fix:
-	cd transform && sqlfluff fix models/ --dialect duckdb --disable-progress-bar
+	cd transform && ../.venv/bin/sqlfluff fix models/ --dialect duckdb --disable-progress-bar
+
 
 clean-logs:
 	rm -rf transform/logs/*.log transform/logs/*.log.* ingestion/_archive/*.log ingestion/_archive/*.txt logs/*.log

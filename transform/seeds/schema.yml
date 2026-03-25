@@ -1,85 +1,85 @@
 version: 2
 
 seeds:
- -name: compound_cliff_params
+  - name: compound_cliff_params
     description: >
       Fitted tyre cliff parameters per (circuit_key, compound_code, season).
       Values are produced by the survival-analysis fitter in
       tasks/coefficients/fit_compound_cliff.py and promoted via seed_writer.py.
       Placeholder rows have notes containing "placeholder".
     columns:
-     -name: circuit_key
+      - name: circuit_key
         description: FK to dim_circuits.circuit_key.
         tests:
-         -not_null
-     -name: compound_code
+          - not_null
+      - name: compound_code
         description: Tyre compound identifier (SOFT, MEDIUM, HARD, INTERMEDIATE, WET).
         tests:
-         -not_null
-         -accepted_values:
+          - not_null
+          - accepted_values:
               values: ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET']
-     -name: season
+      - name: season
         description: F1 season year this fit applies to.
         tests:
-         -not_null
-     -name: compound_cliff_onset_laps
+          - not_null
+      - name: compound_cliff_onset_laps
         description: Estimated lap-in-stint at which the tyre cliff begins (KM survival median).
         tests:
-         -not_null
-         -dbt_expectations.expect_column_values_to_be_between:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
               min_value: 5
               max_value: 100
-     -name: compound_cliff_severity
+      - name: compound_cliff_severity
         description: Average lap-time increase (seconds) in the 5 laps following cliff onset.
         tests:
-         -not_null
-         -dbt_expectations.expect_column_values_to_be_between:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0.1
               max_value: 8.0
-     -name: compound_wear_gradient
+      - name: compound_wear_gradient
         description: Steady-state degradation rate (seconds per lap) before cliff onset.
         tests:
-         -not_null
-         -dbt_expectations.expect_column_values_to_be_between:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0.005
               max_value: 0.300
-     -name: fit_date
+      - name: fit_date
         description: ISO date when these coefficients were last fitted.
         tests:
-         -not_null
-         -dbt_expectations.expect_column_values_to_be_between:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
               # Warn (not error) if fit_date is more than 365 days old.
               # A stale fit is a maintenance concern, not a build blocker.
               min_value: "{{ \"'\" ~ (modules.datetime.date.today()-modules.datetime.timedelta(days=365)).isoformat() ~ \"'\" }}"
               severity: warn
               row_condition: "fit_date != '2024-01-15'"  # exclude the original placeholder date
 
- -name: circuit_reference
+  - name: circuit_reference
     description: >
       Per-circuit physical parameters including weight_penalty_factor.
       The weight_penalty_factor is calibrated by fit_weight_penalty.py from
       first-stint regression against actual lap times; the prior was a formula
       based on corner_count and avg_lateral_g.
     columns:
-     -name: circuit_key
+      - name: circuit_key
         description: Primary key   unique circuit identifier matching stg_laps.circuit_key.
         tests:
-         -not_null
-         -unique
-     -name: weight_penalty_factor
+          - not_null
+          - unique
+      - name: weight_penalty_factor
         description: >
           Lap-time improvement per kg of fuel burned (s/kg).
           Typical range: 0.020–0.040 s/kg. Low-energy circuits (Monaco, Singapore)
           sit at the lower end; high-energy circuits (Suzuka, Spa) at the higher end.
         tests:
-         -not_null
-         -dbt_expectations.expect_column_values_to_be_between:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0.010
               max_value: 0.060
-     -name: fit_date
+      - name: fit_date
         description: ISO date when the weight_penalty_factor was last calibrated.
         tests:
-         -dbt_expectations.expect_column_values_to_be_between:
+          - dbt_expectations.expect_column_values_to_be_between:
               min_value: "{{ \"'\" ~ (modules.datetime.date.today()-modules.datetime.timedelta(days=365)).isoformat() ~ \"'\" }}"
               severity: warn
               row_condition: "fit_date is not null"

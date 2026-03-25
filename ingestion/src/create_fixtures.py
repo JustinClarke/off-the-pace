@@ -31,9 +31,11 @@ def copy_race(bronze_root: Path, output_root: Path, season: str, race_id: str) -
         if not src.exists():
             print(f"  SKIP (not found): {src}")
             continue
-        dst.mkdir(parents=True, exist_ok=True)
-        for parquet in src.glob("*.parquet"):
-            shutil.copy2(parquet, dst / parquet.name)
+        for parquet in src.rglob("*.parquet"):
+            rel_path = parquet.relative_to(src)
+            dest_file = dst / rel_path
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(parquet, dest_file)
         print(f"  OK: {dataset}/{season}/{race_id} → {dst}")
 
 

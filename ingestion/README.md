@@ -15,6 +15,25 @@ python src/ingest.py --season 2024 --session both --force  # full season (~2 GB,
 pytest tests/ -v                                            # offline tests (no network, <5 s)
 ```
 
+## Long-running ingestion monitoring
+
+For full backfills (hours-long runs), use the monitoring script to catch failures early:
+
+```bash
+# Terminal 1: Start ingestion in background
+python src/ingest.py --start-season 2018 --end-season 2024 --session R > ingest.log 2>&1 &
+
+# Terminal 2: Monitor for failures/completion (exits when done)
+./scripts/monitor_ingest.sh ingest.log
+```
+
+The monitor polls every 10 seconds and alerts immediately if:
+- Data quality failures ([DQ FAIL])
+- Process errors (OOM, disk full, etc.)
+- Ingestion completes (success or error)
+
+Ignores FastF1 DEBUG-level noise.
+
 ## Data setup options
 
 Choose based on your workflow:

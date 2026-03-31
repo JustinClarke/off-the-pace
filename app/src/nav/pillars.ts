@@ -16,13 +16,6 @@ export const pillars: Pillar[] = [
     description: 'Project overview and navigation',
   },
   {
-    id: 'races',
-    label: 'Races',
-    icon: '⏱',
-    path: '/races',
-    description: 'Race lifecycle deep dive causal leaderboard to ghost-car sandbox',
-  },
-  {
     id: 'ghost-car',
     label: 'Ghost Car',
     icon: '👻',
@@ -51,13 +44,6 @@ export const pillars: Pillar[] = [
     description: 'Dirty air cost, track evolution, wind, altitude, field pace',
   },
   {
-    id: 'race-craft',
-    label: 'Race Craft',
-    icon: '⚔',
-    path: '/race-craft',
-    description: 'Overtakes, DRS dependency, stewarding, pass-location heatmap',
-  },
-  {
     id: 'drivers',
     label: 'Drivers',
     icon: '◈',
@@ -70,13 +56,6 @@ export const pillars: Pillar[] = [
     icon: '⊞',
     path: '/constructors',
     description: 'Structural pace and circuit interaction matrices',
-  },
-  {
-    id: 'energy',
-    label: 'Energy & Telemetry',
-    icon: '⚡',
-    path: '/energy',
-    description: 'ERS deployment, coast tax, telemetry fingerprints, corner taxonomy',
   },
   {
     id: 'ml',
@@ -99,5 +78,12 @@ export const pillars: Pillar[] = [
     icon: '✦',
     path: '/data-quality',
     description: 'Anomaly audit and coverage stats the DE view',
+  },
+  {
+    id: 'roadmap',
+    label: 'Roadmap',
+    icon: '◷',
+    path: '/roadmap',
+    description: 'Features designed but not yet shipped, and the data each one is waiting on',
   },
 ]

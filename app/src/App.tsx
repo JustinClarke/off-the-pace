@@ -37,12 +37,14 @@ export const router = createBrowserRouter([
     element: <Root />,
     children: [
       { path: '/', element: <Home /> },
+      // Roadmap needs no data engine-keep it out of DataLayout so it renders instantly.
+      { path: '/roadmap', element: lazyRoute(() => import('./routes/roadmap')) },
       {
         element: <DataLayout />,
         children: [
           // Races
           { path: '/races', element: <Stub title="Races" /> },
-          { path: '/races/:raceId', element: <Stub title="Race Story" /> },
+          { path: '/races/:raceId', element: lazyRoute(() => import('./routes/races/story')) },
 
           // Ghost Car
           { path: '/ghost-car', element: lazyRoute(() => import('./routes/ghost-car/index')) },
@@ -62,16 +64,16 @@ export const router = createBrowserRouter([
           { path: '/tyre-strategy/survival', element: lazyRoute(() => import('./features/tyre-cliff-survival')) },
           { path: '/tyre-strategy/degradation', element: lazyRoute(() => import('./routes/tyre-strategy/degradation')) },
           { path: '/tyre-strategy/pit-gantt', element: lazyRoute(() => import('./features/pit-strategy')) },
-          { path: '/tyre-strategy/recovery', element: <Stub title="Tyre Recovery Forecast" /> },
-          { path: '/tyre-strategy/party-mode', element: <Stub title="Party Mode" /> },
+          { path: '/tyre-strategy/recovery', element: lazyRoute(() => import('./features/tyre-recovery-forecast')) },
+          { path: '/tyre-strategy/party-mode', element: lazyRoute(() => import('./features/party-mode')) },
 
           // Aero & Conditions (canonical paths; old /aerodynamics/* paths kept below as aliases)
           { path: '/aero', element: lazyRoute(() => import('./routes/aerodynamics/index')) },
           { path: '/aero/dirty-air', element: lazyRoute(() => import('./routes/aerodynamics/dirty-air')) },
           { path: '/aero/lap-map', element: lazyRoute(() => import('./routes/aerodynamics/lap-map')) },
           { path: '/aero/wind-altitude', element: <Stub title="Wind & Altitude" /> },
-          { path: '/aero/track-evolution', element: <Stub title="Track Evolution" /> },
-          { path: '/aero/field-pace', element: <Stub title="Field Pace Curve" /> },
+          { path: '/aero/track-evolution', element: lazyRoute(() => import('./features/track-evolution')) },
+          { path: '/aero/field-pace', element: lazyRoute(() => import('./features/field-pace-curve')) },
           // Legacy aliases
           { path: '/aerodynamics', element: lazyRoute(() => import('./routes/aerodynamics/index')) },
           { path: '/aerodynamics/dirty-air', element: lazyRoute(() => import('./routes/aerodynamics/dirty-air')) },
@@ -79,11 +81,11 @@ export const router = createBrowserRouter([
 
           // Race Craft
           { path: '/race-craft', element: <Stub title="Race Craft" /> },
-          { path: '/race-craft/overtakes', element: <Stub title="Overtake Graph" /> },
-          { path: '/race-craft/stewarding', element: <Stub title="Penalty Impact" /> },
-          { path: '/race-craft/drs', element: <Stub title="DRS Dependency" /> },
-          { path: '/race-craft/pass-location', element: <Stub title="Pass-Location Heatmap" /> },
-          { path: '/race-craft/race-control', element: <Stub title="Race Control Timeline" /> },
+          { path: '/race-craft/overtakes', element: lazyRoute(() => import('./routes/race-craft/overtakes')) },
+          { path: '/race-craft/stewarding', element: lazyRoute(() => import('./routes/race-craft/stewarding')) },
+          { path: '/race-craft/drs', element: lazyRoute(() => import('./routes/race-craft/drs')) },
+          { path: '/race-craft/pass-location', element: lazyRoute(() => import('./routes/race-craft/pass-location')) },
+          { path: '/race-craft/race-control', element: lazyRoute(() => import('./routes/race-craft/race-control')) },
 
           // Drivers
           { path: '/drivers', element: lazyRoute(() => import('./routes/drivers/index')) },
@@ -94,11 +96,11 @@ export const router = createBrowserRouter([
           { path: '/drivers/era-translator', element: lazyRoute(() => import('./routes/drivers/era-translator')) },
           { path: '/drivers/wet-race', element: lazyRoute(() => import('./routes/drivers/wet-race')) },
           { path: '/drivers/workload', element: lazyRoute(() => import('./routes/drivers/workload')) },
-          { path: '/drivers/synthetic-teammate', element: <Stub title="Synthetic Teammate" /> },
+          { path: '/drivers/synthetic-teammate', element: lazyRoute(() => import('./features/synthetic-teammate')) },
           { path: '/drivers/dna-clusters', element: lazyRoute(() => import('./routes/drivers/dna-clusters')) },
           { path: '/drivers/career-twin', element: lazyRoute(() => import('./routes/drivers/career-twin')) },
-          { path: '/drivers/corner-skill', element: <Stub title="Corner-Phase Skill" /> },
-          { path: '/drivers/racing-line', element: <Stub title="Racing Line Fidelity" /> },
+          { path: '/drivers/corner-skill', element: lazyRoute(() => import('./features/corner-phase-skill')) },
+          { path: '/drivers/racing-line', element: lazyRoute(() => import('./routes/drivers/racing-line')) },
 
           // Constructors
           { path: '/constructors', element: lazyRoute(() => import('./routes/constructors/index')) },
@@ -108,9 +110,9 @@ export const router = createBrowserRouter([
           // Energy & Telemetry (deep-dives telemetry migrated here)
           { path: '/energy', element: <Stub title="Energy & Telemetry" /> },
           { path: '/energy/telemetry-fingerprint', element: lazyRoute(() => import('./routes/deep-dives/telemetry-fingerprint')) },
-          { path: '/energy/management-map', element: <Stub title="Energy-Management Map" /> },
-          { path: '/energy/ers-short-shift', element: <Stub title="ERS & Short-Shift" /> },
-          { path: '/energy/corner-taxonomy', element: <Stub title="Corner Taxonomy" /> },
+          { path: '/energy/management-map', element: lazyRoute(() => import('./routes/energy/management-map')) },
+          { path: '/energy/ers-short-shift', element: lazyRoute(() => import('./routes/energy/ers-short-shift')) },
+          { path: '/energy/corner-taxonomy', element: lazyRoute(() => import('./routes/energy/corner-taxonomy')) },
           // Legacy deep-dives alias
           { path: '/deep-dives', element: lazyRoute(() => import('./routes/deep-dives/index')) },
           { path: '/deep-dives/sectors', element: lazyRoute(() => import('./routes/deep-dives/sector-decomposition')) },
@@ -121,13 +123,13 @@ export const router = createBrowserRouter([
           { path: '/ml/blind-test', element: lazyRoute(() => import('./features/blind-test-scoreboard')) },
           { path: '/ml/simulator', element: lazyRoute(() => import('./features/degradation-simulator')) },
           { path: '/ml/metrics', element: lazyRoute(() => import('./features/model-metrics')) },
-          { path: '/ml/edge-cases', element: <Stub title="Degradation Edge Cases" /> },
+          { path: '/ml/edge-cases', element: lazyRoute(() => import('./routes/ml/edge-cases')) },
 
           // Query Lab
           { path: '/query', element: lazyRoute(() => import('./routes/query')) },
 
           // Data Quality
-          { path: '/data-quality', element: <Stub title="Data Quality Audit" /> },
+          { path: '/data-quality', element: lazyRoute(() => import('./features/data-quality-audit')) },
         ],
       },
     ],

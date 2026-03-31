@@ -4,10 +4,10 @@ export interface RankedTableColumn<T> {
   key: keyof T
   header: string
   /** Custom cell renderer. If omitted, value is stringified. */
-  render?: (value: T[keyof T], row: T) => ReactNode
+  render?: (value: unknown, row: T) => ReactNode
   align?: 'left' | 'right' | 'center'
   /** Highlight the cell based on the row e.g. colour-code deltas */
-  cellClass?: (value: T[keyof T], row: T) => string | undefined
+  cellClass?: (value: unknown, row: T) => string | undefined
 }
 
 export interface RankedTableProps<T> {
@@ -21,6 +21,8 @@ export interface RankedTableProps<T> {
   /** Highlight the row at this index (0-based) */
   pinnedRow?: number
   emptyMessage?: string
+  /** Extra class(es) to apply to each row */
+  rowClass?: (row: T) => string | undefined
 }
 
 const ALIGN: Record<string, string> = {
@@ -29,7 +31,7 @@ const ALIGN: Record<string, string> = {
   center: 'text-center',
 }
 
-export default function RankedTable<T extends Record<string, unknown>>({
+export default function RankedTable<T extends object>({
   rows,
   columns,
   sortKey,
@@ -37,11 +39,12 @@ export default function RankedTable<T extends Record<string, unknown>>({
   initialRows = 20,
   pinnedRow,
   emptyMessage = 'No data',
+  rowClass,
 }: RankedTableProps<T>) {
   const sorted = sortKey
     ? [...rows].sort((a, b) => {
-        const av = a[sortKey] as number
-        const bv = b[sortKey] as number
+        const av = (a as Record<keyof T, unknown>)[sortKey] as number
+        const bv = (b as Record<keyof T, unknown>)[sortKey] as number
         return sortDir === 'desc' ? bv-av : av-bv
       })
     : rows
@@ -76,10 +79,10 @@ export default function RankedTable<T extends Record<string, unknown>>({
                 i === pinnedRow
                   ? 'bg-accent/10'
                   : 'hover:bg-surface'
-              }`}
+              } ${rowClass ? (rowClass(row) ?? '') : ''}`}
             >
               {columns.map(col => {
-                const val = row[col.key]
+                const val = (row as Record<keyof T, unknown>)[col.key]
                 const extra = col.cellClass ? col.cellClass(val, row) : undefined
                 return (
                   <td

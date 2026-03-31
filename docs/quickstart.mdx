@@ -34,7 +34,7 @@ The fastest path to working with Off The Pace data is three commands: clone, set
   </Step>
 
   <Step title="Build the transform layer">
-    Run `make dbt-dev` to execute all 46 dbt models and write the output to `data/dev.duckdb`. This builds the full pipeline from Bronze Parquet through staging and intermediate physics to the gold feature marts.
+    Run `make dbt-dev` to execute all 60 dbt models and write the output to `data/dev.duckdb`. This builds the full pipeline from Bronze Parquet through staging and intermediate physics to the gold feature marts.
 
     ```bash
     make dbt-dev
@@ -44,7 +44,7 @@ The fastest path to working with Off The Pace data is three commands: clone, set
   </Step>
 
   <Step title="(Optional) Run the test suite">
-    Verify the build, including the CI-enforced additive identity across all 168 races, by running the full 339-test suite:
+    Verify the build, including the CI-enforced additive identity across all 168 races, by running the full 336-test suite:
 
     ```bash
     make dbt-test
@@ -63,8 +63,8 @@ The primary mart is `fct_lap_residuals`. Each row is one lap driven by one drive
 | Column | Description |
 |---|---|
 | `race_year` | Season (2018–2024) |
-| `event_name` | Race name, e.g. `"British Grand Prix"` |
-| `driver_code` | Three-letter driver abbreviation, e.g. `"HAM"` |
+| `race_id` | Numeric FastF1 event ID, e.g. `"2023_10"` |
+| `driver_id` | Lowercase driver string, e.g. `"hamilton"` |
 | `lap_number` | Lap number within the race |
 | `pace_delta_s` | Total deviation from the field baseline (seconds) |
 | `fuel_component_s` | Fuel weight penalty contribution |
@@ -87,8 +87,8 @@ con = duckdb.connect("data/dev.duckdb")
 df = con.execute("""
     SELECT
         race_year,
-        event_name,
-        driver_code,
+        race_id,
+        driver_id,
         lap_number,
         pace_delta_s,
         fuel_component_s,
@@ -100,8 +100,8 @@ df = con.execute("""
         driver_skill_residual_s
     FROM fct_lap_residuals
     WHERE race_year = 2023
-      AND event_name = 'British Grand Prix'
-    ORDER BY driver_code, lap_number
+      AND race_id = '2023_10'
+    ORDER BY driver_id, lap_number
 """).fetchdf()
 
 print(df.head(20))
@@ -145,8 +145,8 @@ con = duckdb.connect("data/dev.duckdb")
 top_skill = con.execute("""
     SELECT
         race_year,
-        event_name,
-        driver_code,
+        race_id,
+        driver_id,
         lap_number,
         round(driver_skill_residual_s, 3) AS skill_s,
         round(pace_delta_s, 3)            AS pace_delta_s

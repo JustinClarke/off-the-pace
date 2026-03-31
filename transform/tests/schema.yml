@@ -81,6 +81,27 @@ models:
                 values: ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
               config:
                 where: "compound IS NOT NULL"
+      - name: pace_delta_s
+        tests:
+          - not_null
+      - name: fuel_component_s
+        tests:
+          - not_null
+      - name: compound_component_s
+        tests:
+          - not_null
+      - name: rubber_component_s
+        tests:
+          - not_null
+      - name: ambient_component_s
+        tests:
+          - not_null
+      - name: constructor_component_s
+        tests:
+          - not_null
+      - name: dirty_air_tax_s
+        tests:
+          - not_null
       - name: driver_skill_residual_s
         tests:
           - not_null

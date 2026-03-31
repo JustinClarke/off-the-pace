@@ -1,13 +1,16 @@
-"""Optuna hyperparameter search → best_params.json → chains the production v1 refit.
+"""Optuna hyperparameter search → best_params.json → chains the production refit.
 
 CLI:
-  python -m ml.src.tune --target all --trials 50           # canonical
+  python -m ml.src.tune --target all --trials 50              # canonical (refits MODEL_VERSION_DEFAULT)
   python -m ml.src.tune --target cliff_classifier --trials 20 --folds 3
+  python -m ml.src.tune --target all --version v2 --trials 50 # tune a specific version
 
 TPESampler + MedianPruner (seeded by RANDOM_STATE). The objective is the mean
 season-grouped CV headline metric (pinball ↓ for quantiles, macro-F1 ↑ for the
 classifier, RMSE ↓ for stint-life). The study DB and best_params.json are persisted;
-the closing operation refits on the full training set via train.train_one(version="v1").
+the closing operation refits on the full training set via train.train_one(version=...).
+The study namespace is keyed off the version (schema.optuna_study_name) so a fresh
+tuning run per version gets its own study instead of overwriting v1.
 """
 from __future__ import annotations
 
@@ -44,7 +47,7 @@ def _suggest(trial: optuna.Trial) -> dict:
     }
 
 
-def tune_one(target: str, *, trials: int, folds: int, subsample_rows: int = 0) -> dict:
+def tune_one(target: str, *, trials: int, folds: int, version: str, subsample_rows: int = 0) -> dict:
     spec = S.TARGET_BY_NAME[target]
     bundle = F.load_features(target=target)
     X, y = bundle.X_train, bundle.y_train.to_numpy()
@@ -71,12 +74,13 @@ def tune_one(target: str, *, trials: int, folds: int, subsample_rows: int = 0) -
         return float(np.mean(scores))
 
     STUDIES_DIR.mkdir(parents=True, exist_ok=True)
+    study_name = S.optuna_study_name(target, version)
     study = optuna.create_study(
         direction="maximize" if maximize else "minimize",
         sampler=optuna.samplers.TPESampler(seed=S.RANDOM_STATE),
         pruner=optuna.pruners.MedianPruner(n_warmup_steps=1),
-        study_name=f"{target}_v1",
-        storage=f"sqlite:///{STUDIES_DIR / f'{target}_v1.db'}",
+        study_name=study_name,
+        storage=f"sqlite:///{STUDIES_DIR / f'{study_name}.db'}",
         load_if_exists=True,
     )
     study.optimize(objective, n_trials=trials, show_progress_bar=False)
@@ -87,7 +91,7 @@ def tune_one(target: str, *, trials: int, folds: int, subsample_rows: int = 0) -
           f"({len(study.trials)} trials) -> {best_path.name}")
 
     # Chain the production refit on the FULL training set (train.py runs its own 5-fold CV log).
-    T.train_one(target, version="v1", params=study.best_params, smoke=False)
+    T.train_one(target, version=version, params=study.best_params, smoke=False)
     return study.best_params
 
 
@@ -96,12 +100,14 @@ def main() -> int:
     ap.add_argument("--target", default="all")
     ap.add_argument("--trials", type=int, default=50)
     ap.add_argument("--folds", type=int, default=5)
+    ap.add_argument("--version", default=S.MODEL_VERSION_DEFAULT,
+                    help="model version to tune + refit; keys the Optuna study namespace (default: production version)")
     ap.add_argument("--subsample-rows", type=int, default=0,
                     help="row subsample for the SEARCH only (0=full); final refit always uses full data")
     args = ap.parse_args()
     targets = [t.name for t in S.PRODUCTION_TARGETS] if args.target == "all" else [args.target]
     for t in targets:
-        tune_one(t, trials=args.trials, folds=args.folds, subsample_rows=args.subsample_rows)
+        tune_one(t, trials=args.trials, folds=args.folds, version=args.version, subsample_rows=args.subsample_rows)
     return 0
 
 

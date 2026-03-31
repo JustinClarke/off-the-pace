@@ -21,7 +21,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).parent))
-from mdx_utils import escape_mdx
+from mdx_utils import escape_mdx, first_sentence, mintlify_frontmatter
 
 REPO_ROOT = Path(__file__).parent.parent
 CARD_PATH = REPO_ROOT / "ml" / "model_card.yml"
@@ -55,16 +55,12 @@ def _arrow(metric: str) -> str:
 
 
 def render_mdx(card: dict) -> str:
-    L: list[str] = [
+    L: list[str] = mintlify_frontmatter(
+        title=f"{card['name']} ({card['version']})",
+        sidebar_title=card["name"],
+        description=first_sentence(card["summary"]),
+    ) + [
         AUTOGEN_HEADER,
-        "",
-        "---",
-        "id: degradation-model-v1",
-        "title: Tyre Degradation Predictors (v1)",
-        "sidebar_position: 1",
-        "---",
-        "",
-        f"# {escape_mdx(card['name'])} (`{card['version']}`)",
         "",
         escape_mdx(card["summary"]),
         "",

@@ -30,7 +30,7 @@ For the machine layer, also run `make ml-setup` (installs `ml/requirements.txt`)
 
 For the web frontend and documentation site, install Node dependencies:
 ```bash
-make docs-install # install Docusaurus docs dependencies
+make docs-install # install Mintlify docs dependencies
 make app-install  # install React app dependencies
 ```
 
@@ -38,18 +38,18 @@ make app-install  # install React app dependencies
 
 ## Run the pipeline locally
 
-**Data setup:** Choose based on your workflow—see the full [Data setup options](../ingestion/README.md#data-setup-options) table. Quick summary:
+**Data setup:** Choose based on your workflow see the full [Data setup options](../ingestion/README.md#data-setup-options) table. Quick summary:
 - **SQL transforms only:** `make dbt-dev` (uses test fixtures, 0 min)
 - **Scale validation:** `make ingest-recent` (2023–2024, ~15 min)
 - **Full verification:** `make ingest-all` (all 168 races, 30–45 min)
 
 ```bash
 make ingest-recent  # or ingest-all; see link above for options
-make dbt-dev        # build all 46 dbt models against local DuckDB
-make dbt-test       # run the 339 tests, including the seven-term identity
+make dbt-dev        # build all 54 dbt models against local DuckDB
+make dbt-test       # run the 336 tests, including the seven-term identity
 ```
 
-To verify the core invariant—every lap's seven components sum to zero—holds:
+To verify the core invariant every lap's seven components sum to zero holds:
 
 ```bash
 make dbt-test       # assert_lap_7term_identity must pass
@@ -78,7 +78,7 @@ For the full repo layout and a file-by-file walkthrough, start at the
 # dbt models + identity tests
 make dbt-test
 
-# ML spine (27 tests: leakage, ONNX parity, schema, beats-baseline)
+# ML spine (28 tests: leakage, ONNX parity, schema, beats-baseline)
 make ml-test
 
 # Ingestion (mocked API calls-no network, runs in <5s)

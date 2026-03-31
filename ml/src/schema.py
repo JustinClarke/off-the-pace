@@ -5,7 +5,7 @@ Pure constants + the predictions Arrow schema. Everything downstream
 the feature contract, leakage guards and output schema have exactly one definition.
 
 Column names are verified live against `data/dev.duckdb`
-(fct_cliff_prediction_features, 50 cols) ml/BUILD_LOG.md §1.
+(fct_cliff_prediction_features) by tests/test_features.py::test_feature_contract_subset_of_mart.
 """
 from __future__ import annotations
 
@@ -36,23 +36,40 @@ EXCLUDED_LEAKAGE_COLUMNS: frozenset[str] = frozenset({
     "is_training_eligible",
     # targets: next-lap (modelled), alt-horizon (forward-looking, never features),
     # the classifier label, and the synthesised / join-time stint-life columns
-    "next_lap_degradation_jump_s",
+    "next_lap_degradation_jump_s",            # legacy (undetrended)
+    "next_lap_degradation_jump_detrended_s",  # C1 primary target
     "next_3_lap_cumulative_jump_s",
     "next_5_lap_cumulative_jump_s",
     "laps_until_cliff_class",
     "remaining_stint_life_laps",   # synthesised target
     "stint_length_laps",           # join-time only → synthesises the target, never a feature
+    # C1: per-stint drift slope carried in base; causally encodes the target
+    "drift_s_per_lap",
+    # C2: IPW weight carried as training metadata, never a predictor
+    "survival_weight",
 })
 
 # Identifier / metadata columns carried through load_features for splitting & cohort
 # eval, but stripped from X. (race_year drives the season split; circuit_key is the
 # L0-1 cohort key; compound/constructor_id are also features but handy as cohorts.)
+# survival_weight (C2) is carried here so train.py can use it as IPW without it
+# entering the feature matrix.
 IDENTIFIER_COLUMNS: tuple[str, ...] = (
     "lap_id", "stint_id", "race_year", "race_id", "circuit_key",
     "driver_id", "constructor_id", "is_training_eligible",
+    "survival_weight",
 )
 
-# ─── Feature set (38) verified members, grouped for ablation (§7.3) ───────────
+# ─── Feature set (42) verified members, grouped for ablation (§7.3) ───────────
+# The `powertrain` (6) and `telemetry_cliff` (5) groups land with telemetry ingestion
+# (ml-v0.2 §2): per-lap aggregates projected by int_lap_telemetry_aggregates →
+# fct_cliff_prediction_features. They are gated by the pre-registered §2.3 ablation  
+# kept here only because they beat the _v2 baseline (see ml/artefacts/ablation_*).
+# The air-density weather features (air_density_kgm3 / density_ratio_to_ref) remain
+# DEFERRED pending air-density enrichment (transform §5.6); the export-time guard
+# (test_feature_contract) asserts contract ⊆ mart so nothing can be referenced before it lands.
+# C3 (Route C): surface_bulk_ratio added as 42nd feature to the thermal group so the
+# model can attribute early-stint surface vs bulk thermal loading (warm-up vs real deg).
 FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     "stint_position": ("lap_number", "lap_in_stint", "age_in_stint", "fuel_mass_kg"),
     "compound": (
@@ -64,7 +81,10 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "expected_compound_pace_s", "expected_degradation_rate_s_per_lap",
         "cliff_onset_passed", "laps_past_cliff", "cliff_candidate_flag",
     ),
-    "thermal": ("push_residual", "cumulative_push_load_surface", "cumulative_push_load_bulk"),
+    "thermal": (
+        "push_residual", "cumulative_push_load_surface", "cumulative_push_load_bulk",
+        "surface_bulk_ratio",
+    ),
     "dirty_air": (
         "dirty_air_share_lap", "dirty_air_thermal_load_surface",
         "dirty_air_thermal_load_bulk", "air_state_dominant",
@@ -73,7 +93,11 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "n_gear_changes", "mean_rpm", "max_rpm",
         "pct_full_throttle", "pct_drs_active", "short_shift_index",
     ),
-    "weather_air": ("ambient_temp_delta", "air_density_kgm3", "density_ratio_to_ref", "is_rain_lap"),
+    "telemetry_cliff": (
+        "mid_corner_speed_loss_kph", "traction_wheelspin_proxy",
+        "throttle_trace_decay", "braking_point_drift_m", "lift_coast_share",
+    ),
+    "weather_air": ("ambient_temp_delta", "is_rain_lap"),
     "track": ("track_energy_index", "circuit_abrasiveness_index"),
     "context": ("constructor_id", "event_flag_any", "anomaly_class"),
 }
@@ -96,7 +120,7 @@ MISSING_ORDINAL = -1.0
 AUDIT_FEATURES: tuple[str, ...] = ("cliff_candidate_flag", "anomaly_class")
 
 # ─── Targets / model families (§5.3) ────────────────────────────────────────────
-DEGRADATION_TARGET = "next_lap_degradation_jump_s"
+DEGRADATION_TARGET = "next_lap_degradation_jump_detrended_s"  # C1: detrended (was next_lap_degradation_jump_s)
 CLIFF_TARGET = "laps_until_cliff_class"
 STINT_LIFE_TARGET = "remaining_stint_life_laps"  # synthesised in features.py
 
@@ -138,8 +162,15 @@ PER_TARGET_FEATURE_MASK: dict[str, frozenset[str]] = {
 
 
 def artefact_name(spec: TargetSpec, version: str) -> str:
-    """version ∈ {"smoke", "v1"} → e.g. degradation_regressor_p50_v1."""
+    """version ∈ {"smoke", "v1", "v2", "v3"} → e.g. degradation_regressor_p50_v3."""
     return f"{spec.name}_{version}"
+
+
+def optuna_study_name(target: str, version: str) -> str:
+    """Optuna study + sqlite DB stem for a target at a given model version,
+    e.g. cliff_classifier_v3. Keying off the version (rather than a hardcoded
+    'v1') means a fresh tuning run per version gets its own study namespace."""
+    return f"{target}_{version}"
 
 
 # ─── Predictions output schema (§5.6 / plan §6.5)-17 columns ──────────────────
@@ -167,4 +198,4 @@ PREDICTIONS_ARROW_SCHEMA = pa.schema([
 ])
 assert len(PREDICTIONS_ARROW_SCHEMA) == 17, "predictions schema must be 17 columns"
 
-MODEL_VERSION_DEFAULT = "v1"
+MODEL_VERSION_DEFAULT = "v4"  # v4 = 42-feature (+ surface_bulk_ratio), detrended target (Route C); v3 kept for diff

@@ -42,10 +42,10 @@ FACTS: list[tuple[str, str]] = [
 
 # Simpler targeted patterns that are unambiguous in context
 TARGETED: list[tuple[str, re.Pattern]] = [
-    ("dbt models", re.compile(r"\b(46)\s+(?:dbt\s+)?models")),
-    ("dbt tests", re.compile(r"\b(339)\s*[- ]\s*tests?")),
+    ("dbt models", re.compile(r"\b(53)\s+(?:dbt\s+)?models")),
+    ("dbt tests", re.compile(r"\b(336)\s*[- ]\s*tests?")),
     ("ML models", re.compile(r"\b(5)\s+XGBoost\s+models")),
-    ("ML tests", re.compile(r"\b(27)\s+(?:ml\s+)?tests?")),
+    ("ML tests", re.compile(r"\b(28)\s+(?:ml\s+)?tests?")),
 ]
 
 

@@ -1,11 +1,13 @@
 """Monitor a running tune job (poll for trial updates).
 
 Usage:
-  # In another terminal, watch progress:
+  # In another terminal, watch progress (defaults to the production version):
   watch -n 5 "python -m ml.src.monitor_tune"
+  watch -n 5 "python -m ml.src.monitor_tune --version v2"
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -17,9 +19,15 @@ STUDIES_DIR = Path("ml/models/optuna_studies")
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--version", default=S.MODEL_VERSION_DEFAULT,
+                    help="model version whose studies to monitor (default: production version)")
+    args = ap.parse_args()
+
     for target in S.PRODUCTION_TARGETS:
         name = target.name
-        db_path = STUDIES_DIR / f"{name}_v1.db"
+        study_name = S.optuna_study_name(name, args.version)
+        db_path = STUDIES_DIR / f"{study_name}.db"
         if not db_path.exists():
             print(f"[{name}] no study")
             continue
@@ -27,7 +35,7 @@ def main() -> int:
         storage = f"sqlite:///{db_path}"
         study = optuna.create_study(
             direction="maximize" if target.kind == "classification" else "minimize",
-            study_name=f"{name}_v1",
+            study_name=study_name,
             storage=storage,
             load_if_exists=True,
         )

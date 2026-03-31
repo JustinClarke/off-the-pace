@@ -2,116 +2,98 @@ import { registerQuery, rawQuery } from '../../data/hooks/useQuery'
 import { loadManifest, getTablePath } from '../../data/manifest'
 import { registerParquet } from '../../data/duckdb/register'
 
-export interface GhostStandingsRow {
-  ghost_race_id: string
-  race_year: number
-  race_id: string
-  ego_driver_id: string
-  host_constructor_id: string
-  is_self_scenario: boolean
-  predicted_finish_position: number
-  actual_finish_position: number | null
-  delta_vs_actual_position: number | null
-  predicted_mean_lap_s: number
-  predicted_total_race_time_s: number
-  actual_total_race_time_s: number | null
-  laps_counted: number
-  race_distance_laps: number
-  lap_coverage: number
-  is_short_run: boolean
-  avg_recombination_confidence: number
+// Equal-car track record: one row per (driver, circuit, era) from
+// int_driver_circuit_era_affinity. shrunk_affinity_s is the car-removed pace at this
+// circuit (negative = faster than field), shrunk toward the driver's within-era mean.
+export interface EraAffinityRow {
+  driver_id: string
+  circuit_id: string
+  circuit_name: string
+  era_key: string
+  era_label: string
+  n_obs: number
+  seasons_observed_n: number
+  raw_affinity_s: number
+  shrunk_affinity_s: number
+  shrunk_affinity_se_s: number
+  shrunk_affinity_ci_low_s: number
+  shrunk_affinity_ci_high_s: number
+  affinity_confidence: number
 }
 
-export interface RaceOption {
-  race_id: string
-  race_year: number
+export interface CircuitOption {
+  circuit_id: string
   circuit_name: string
 }
 
-export interface ConstructorOption {
-  host_constructor_id: string
+export interface EraOption {
+  era_key: string
+  era_label: string
 }
 
 async function registerTables(manifest: Awaited<ReturnType<typeof loadManifest>>) {
-  const ghostPath = getTablePath(manifest, 'fct_ghost_race_finish')
-  const raceToTrackPath = getTablePath(manifest, 'race_to_track')
-  const circuitsPath = getTablePath(manifest, 'dim_circuits')
-  await Promise.all([
-    registerParquet('fct_ghost_race_finish', ghostPath),
-    registerParquet('race_to_track', raceToTrackPath),
-    registerParquet('dim_circuits', circuitsPath),
-  ])
+  const affinityPath = getTablePath(manifest, 'int_driver_circuit_era_affinity')
+  await registerParquet('int_driver_circuit_era_affinity', affinityPath)
 }
 
-// Options query: races for a given season (with circuit name) + distinct host constructors.
+// Options query: every circuit that has affinity data (with display name) + the eras.
+// Cross-season by design, so it ignores the global season filter.
 export const queryGhostOptions = registerQuery<
-  { season: number },
-  { races: RaceOption[]; constructors: ConstructorOption[] }
+  Record<string, never>,
+  { circuits: CircuitOption[]; eras: EraOption[] }
 >(
   'ghost-race-standings.options',
-  async ({ season }) => {
+  async () => {
     const manifest = await loadManifest()
     await registerTables(manifest)
 
-    const [races, constructors] = await Promise.all([
-      rawQuery<RaceOption>(`
-        SELECT DISTINCT
-          g.race_id,
-          g.race_year,
-          COALESCE(dc.circuit_name, g.race_id) AS circuit_name
-        FROM fct_ghost_race_finish g
-        LEFT JOIN race_to_track rt
-          ON CAST(REPLACE(g.race_id, '_', '') AS INTEGER) = rt.race_id
-        LEFT JOIN dim_circuits dc
-          ON rt.track_id = dc.circuit_key
-        WHERE g.race_year = ?
-        ORDER BY g.race_id
-      `, [season]),
-      rawQuery<ConstructorOption>(`
-        SELECT DISTINCT host_constructor_id
-        FROM fct_ghost_race_finish
-        WHERE race_year = ?
-        ORDER BY host_constructor_id
-      `, [season]),
+    const [circuits, eras] = await Promise.all([
+      rawQuery<CircuitOption>(`
+        SELECT DISTINCT circuit_id, circuit_name
+        FROM int_driver_circuit_era_affinity
+        ORDER BY circuit_name
+      `),
+      rawQuery<EraOption>(`
+        SELECT DISTINCT era_key, era_label
+        FROM int_driver_circuit_era_affinity
+        -- ASC puts 'post2022' before 'pre2022' so the most recent era leads the dropdown
+        ORDER BY era_key ASC
+      `),
     ])
 
-    return { races, constructors }
+    return { circuits, eras }
   }
 )
 
-// Main data query: one (race_id, constructor) scenario race_id already encodes the year
+// Main data query: every driver's equal-car record at one (circuit, era), ranked by pace.
 export const queryGhostStandings = registerQuery<
-  { raceId: string; hostConstructorId: string },
-  GhostStandingsRow[]
+  { circuitId: string; eraKey: string },
+  EraAffinityRow[]
 >(
   'ghost-race-standings.data',
-  async ({ raceId, hostConstructorId }) => {
+  async ({ circuitId, eraKey }) => {
     const manifest = await loadManifest()
     await registerTables(manifest)
 
-    return rawQuery<GhostStandingsRow>(`
+    return rawQuery<EraAffinityRow>(`
       SELECT
-        ghost_race_id,
-        race_year,
-        race_id,
-        ego_driver_id,
-        host_constructor_id,
-        is_self_scenario,
-        predicted_finish_position,
-        actual_finish_position,
-        delta_vs_actual_position,
-        predicted_mean_lap_s,
-        predicted_total_race_time_s,
-        actual_total_race_time_s,
-        laps_counted,
-        race_distance_laps,
-        lap_coverage,
-        is_short_run,
-        avg_recombination_confidence
-      FROM fct_ghost_race_finish
-      WHERE race_id = ?
-        AND host_constructor_id = ?
-      ORDER BY predicted_finish_position
-    `, [raceId, hostConstructorId])
+        driver_id,
+        circuit_id,
+        circuit_name,
+        era_key,
+        era_label,
+        n_obs,
+        seasons_observed_n,
+        raw_affinity_s,
+        shrunk_affinity_s,
+        shrunk_affinity_se_s,
+        shrunk_affinity_ci_low_s,
+        shrunk_affinity_ci_high_s,
+        affinity_confidence
+      FROM int_driver_circuit_era_affinity
+      WHERE circuit_id = ?
+        AND era_key = ?
+      ORDER BY shrunk_affinity_s ASC
+    `, [circuitId, eraKey])
   }
 )

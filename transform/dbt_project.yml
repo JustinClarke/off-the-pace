@@ -6,6 +6,11 @@ require-dbt-version: ">=1.5.0,<2.0.0"
 profile: 'off_the_pace'
 
 vars:
+  # Regulation-era boundary year (ground-effect regs introduced).
+  # Moving this single knob re-splits pre/post eras across all era-aware models
+  # and the isotonic fit. A third era (e.g. 2026 regs) needs new label strings
+  # in int_driver_circuit_era_affinity.sql flag as a follow-up when it lands.
+  era_boundary: 2022
   # Ghost car: a driver contributing fewer than this fraction of the race distance
   # is flagged is_short_run (DNF / partial) rather than trusted as a full estimate.
   ghost_short_run_threshold: 0.5

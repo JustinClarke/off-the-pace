@@ -37,6 +37,8 @@ export interface QuantileFanChartProps {
   xRefLabel?: string
   height?: number
   renderTooltip?: (point: FanPoint) => ReactNode
+  /** Reverse the y-axis direction (larger values at bottom) */
+  reversed?: boolean
 }
 
 const GRID = 'rgba(255,255,255,0.05)'
@@ -78,6 +80,7 @@ export default function QuantileFanChart({
   xRefLabel,
   height = 380,
   renderTooltip,
+  reversed = false,
 }: QuantileFanChartProps) {
   // Normalize data so p10 and p90 are both non-negative for proper stacking.
   // Find the global min (most negative p10) and shift everything up.
@@ -88,6 +91,9 @@ export default function QuantileFanChart({
     ...d,
     _p10offset: d.p10 + offset,
     _p90_minus_p10: d.p90 - d.p10,
+    // Lines must live in the same shifted space as the band; the YAxis formatter un-shifts both.
+    _p50offset: d.p50 + offset,
+    ...(d.actual !== undefined ? { _actualOffset: d.actual + offset } : {}),
   }))
 
   const hasActual = data.some(p => p.actual !== undefined)
@@ -122,6 +128,7 @@ export default function QuantileFanChart({
             tick={AXIS_STYLE}
           />
           <YAxis
+            reversed={reversed}
             tickFormatter={(v: number) => yFormatter(v - offset)}
             label={yLabel ? { value: yLabel, angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: 'rgb(var(--color-text-muted))' } : undefined}
             tick={AXIS_STYLE}
@@ -167,21 +174,21 @@ export default function QuantileFanChart({
             />
           )}
 
-          {/* p50 median line shift by offset for display */}
+          {/* p50 median line shifted by offset to match the band's space (YAxis un-shifts it). */}
           <Line
             type="monotone"
-            dataKey="p50"
+            dataKey="_p50offset"
             stroke={color}
             strokeWidth={2}
             dot={false}
             isAnimationActive={false}
           />
 
-          {/* Actual overlay shift by offset for display */}
+          {/* Actual overlay same offset shift as the band/p50 line. */}
           {hasActual && (
             <Line
               type="monotone"
-              dataKey="actual"
+              dataKey="_actualOffset"
               stroke={actualColor}
               strokeWidth={1.5}
               strokeDasharray="4 2"

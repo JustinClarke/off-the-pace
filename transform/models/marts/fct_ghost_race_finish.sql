@@ -102,15 +102,50 @@ race_distance AS (
     GROUP BY race_year, race_id, host_constructor_id
 ),
 
--- Actual finish position from stg_laps (last valid lap's position)
-actual_finish AS (
+-- Actual finish position (§5.4). Source of truth = official classified results
+-- (stg_results): classified finishers get their official finishing position;
+-- retirements (is_dnf) get NULL so deltas stay undefined. Falls back to the
+-- legacy lap-derived position (last valid lap) only for races not yet present
+-- in stg_results during the partial v0.2 backfill.
+lap_finish AS (
     SELECT
         race_year,
         race_id,
         driver_id                               AS ego_driver_id,
-        MAX(position) FILTER (WHERE is_valid_lap = TRUE) AS actual_finish_position
+        MAX(position) FILTER (WHERE is_valid_lap = TRUE) AS lap_finish_position
     FROM {{ ref('stg_laps') }}
     GROUP BY race_year, race_id, driver_id
+),
+
+results_finish AS (
+    SELECT
+        race_year,
+        race_id,
+        driver_id                               AS ego_driver_id,
+        -- Official position only for classified finishers; DNFs → NULL.
+        CASE WHEN is_classified THEN finish_position ELSE NULL END AS result_finish_position,
+        is_dnf,
+        dnf_cause
+    FROM {{ ref('stg_results') }}
+),
+
+actual_finish AS (
+    SELECT
+        lf.race_year,
+        lf.race_id,
+        lf.ego_driver_id,
+        -- Prefer classified results; fall back to lap-derived only when this
+        -- race has no ingested result row for the driver yet.
+        CASE
+            WHEN rf.ego_driver_id IS NOT NULL THEN rf.result_finish_position
+            ELSE lf.lap_finish_position
+        END                                     AS actual_finish_position,
+        COALESCE(rf.is_dnf, FALSE)              AS actual_is_dnf,
+        rf.dnf_cause                            AS actual_dnf_cause,
+        rf.ego_driver_id IS NOT NULL            AS finish_from_results
+    FROM lap_finish lf
+    LEFT JOIN results_finish rf
+        USING (race_year, race_id, ego_driver_id)
 ),
 
 -- Per (driver, host_constructor, race): mean pace + cumulative totals (informational)
@@ -265,6 +300,10 @@ SELECT
     r.is_self_scenario,
     r.predicted_finish_position,
     af.actual_finish_position,
+    -- Classified-result DNF flags (§5.4) feed the MC finish-order core (§4.5).
+    af.actual_is_dnf,
+    af.actual_dnf_cause,
+    af.finish_from_results,
     -- Delta only defined when the driver has a real finishing position. DNFs (NULL
     -- actual) get NULL delta rather than a magic default.
     CASE

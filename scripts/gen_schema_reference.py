@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from mdx_utils import escape_mdx
+from mdx_utils import escape_mdx, first_sentence, mintlify_frontmatter
 
 REPO_ROOT = Path(__file__).parent.parent
 SCHEMAS_DIR = REPO_ROOT / "ingestion" / "schemas"
@@ -37,15 +37,17 @@ def render_schema_mdx(schema: dict) -> str:
     properties = schema.get("properties", {})
     required = set(schema.get("required", []))
 
-    lines = [
+    lines = mintlify_frontmatter(
+        title=title,
+        sidebar_title=title,
+        description=first_sentence(description) or f"Bronze-layer schema for {title}.",
+    ) + [
         AUTOGEN_HEADER,  # JSX comment for .mdx
-        "",
-        f"# {title}",
         "",
     ]
 
     if description:
-        lines += [description, ""]
+        lines += [escape_mdx(description), ""]
 
     lines += ["## Overview", "", "| Property | Value |", "|---|---|"]
     if file_pattern:
@@ -55,7 +57,7 @@ def render_schema_mdx(schema: dict) -> str:
     lines.append("")
 
     if notes:
-        lines += [f":::note", "", notes, "", ":::", ""]
+        lines += ["<Note>", "", escape_mdx(notes), "", "</Note>", ""]
 
     if properties:
         lines += [
@@ -104,17 +106,11 @@ def render_schema_mdx(schema: dict) -> str:
 
 
 def render_index(datasets: list[dict]) -> str:
-    lines = [
-        AUTOGEN_HEADER_MD,  # HTML comment for .md
-        "",
-        "---",
-        "id: schemas-index",
-        "slug: /reference/schemas",
-        "sidebar_position: 1",
-        "title: Bronze Schemas",
-        "---",
-        "",
-        "# Bronze Schemas Reference",
+    lines = mintlify_frontmatter(
+        title="Bronze Schemas",
+        description="Auto-generated reference for all Bronze-layer datasets ingested from FastF1.",
+    ) + [
+        AUTOGEN_HEADER_MD,
         "",
         "Auto-generated reference for all Bronze-layer datasets ingested from FastF1.",
         "",

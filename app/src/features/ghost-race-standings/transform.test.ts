@@ -1,105 +1,83 @@
 import { describe, it, expect } from 'vitest'
 import { transform, toCsvRows, CONFIDENCE_FLOOR } from './transform'
-import type { GhostStandingsRow } from './queries'
+import type { EraAffinityRow } from './queries'
 
-function makeRow(overrides: Partial<GhostStandingsRow> = {}): GhostStandingsRow {
+function makeRow(overrides: Partial<EraAffinityRow> = {}): EraAffinityRow {
   return {
-    ghost_race_id: 'abc',
-    race_year: 2024,
-    race_id: '2024_1',
-    ego_driver_id: 'HAM',
-    host_constructor_id: 'mercedes',
-    is_self_scenario: false,
-    predicted_finish_position: 1,
-    actual_finish_position: 1,
-    delta_vs_actual_position: 0,
-    predicted_mean_lap_s: 94.7,
-    predicted_total_race_time_s: 5400,
-    actual_total_race_time_s: 5400,
-    laps_counted: 57,
-    race_distance_laps: 57,
-    lap_coverage: 1,
-    is_short_run: false,
-    avg_recombination_confidence: 0.85,
+    driver_id: 'HAM',
+    circuit_id: 'silverstone_circuit',
+    circuit_name: 'Silverstone Circuit',
+    era_key: 'post2022',
+    era_label: '2022–2024',
+    n_obs: 3,
+    seasons_observed_n: 3,
+    raw_affinity_s: -0.4,
+    shrunk_affinity_s: -0.3,
+    shrunk_affinity_se_s: 0.12,
+    shrunk_affinity_ci_low_s: -0.54,
+    shrunk_affinity_ci_high_s: -0.06,
+    affinity_confidence: 0.375,
     ...overrides,
   }
 }
 
 describe('transform', () => {
-  it('returns empty result for no rows', () => {
-    const r = transform([])
-    expect(r.scenarios).toHaveLength(0)
-    expect(r.totalRows).toBe(0)
+  it('returns null for no rows', () => {
+    expect(transform([])).toBeNull()
   })
 
-  it('groups rows into scenarios by race + constructor', () => {
+  it('ranks entries fastest (most negative affinity) first', () => {
     const rows = [
-      makeRow({ ego_driver_id: 'HAM', race_id: '2024_1', host_constructor_id: 'mercedes', predicted_finish_position: 1, actual_finish_position: 1, delta_vs_actual_position: 0 }),
-      makeRow({ ego_driver_id: 'VER', race_id: '2024_1', host_constructor_id: 'mercedes', predicted_finish_position: 2, actual_finish_position: 1, delta_vs_actual_position: 1 }),
-      makeRow({ ego_driver_id: 'HAM', race_id: '2024_2', host_constructor_id: 'mercedes', predicted_finish_position: 3, actual_finish_position: 1, delta_vs_actual_position: 2 }),
+      makeRow({ driver_id: 'VER', shrunk_affinity_s: -0.1 }),
+      makeRow({ driver_id: 'HAM', shrunk_affinity_s: -0.5 }),
+      makeRow({ driver_id: 'NOR', shrunk_affinity_s: 0.2 }),
     ]
-    const r = transform(rows)
-    expect(r.scenarios).toHaveLength(2)
-    expect(r.totalRows).toBe(3)
+    const r = transform(rows)!
+    expect(r.entries.map(e => e.driverId)).toEqual(['HAM', 'VER', 'NOR'])
+    expect(r.entries.map(e => e.rank)).toEqual([1, 2, 3])
   })
 
-  it('sorts entries within a scenario by predicted position asc', () => {
+  it('computes gap-to-leader against the fastest row passed in', () => {
     const rows = [
-      makeRow({ ego_driver_id: 'VER', predicted_finish_position: 3, delta_vs_actual_position: 2 }),
-      makeRow({ ego_driver_id: 'HAM', predicted_finish_position: 1, delta_vs_actual_position: 0, avg_recombination_confidence: 0.95 }),
+      makeRow({ driver_id: 'VER', shrunk_affinity_s: -0.1 }),
+      makeRow({ driver_id: 'HAM', shrunk_affinity_s: -0.5 }),
     ]
-    const r = transform(rows)
-    const entries = r.scenarios[0].entries
-    expect(entries[0].driverId).toBe('HAM')
-    expect(entries[1].driverId).toBe('VER')
+    const r = transform(rows)!
+    expect(r.entries[0].gapToLeaderS).toBeCloseTo(0) // leader
+    expect(r.entries[1].gapToLeaderS).toBeCloseTo(0.4) // -0.1 − (−0.5)
   })
 
-  it('computes minConfidence across entries', () => {
-    const rows = [
-      makeRow({ ego_driver_id: 'HAM', avg_recombination_confidence: 0.9, predicted_finish_position: 1, delta_vs_actual_position: 0 }),
-      makeRow({ ego_driver_id: 'VER', avg_recombination_confidence: 0.4, predicted_finish_position: 2, delta_vs_actual_position: 1 }),
-    ]
-    const r = transform(rows)
-    expect(r.scenarios[0].minConfidence).toBeCloseTo(0.4)
+  it('carries circuit + era metadata onto the result', () => {
+    const r = transform([makeRow({ circuit_name: 'Monaco', era_label: '2018–2021' })])!
+    expect(r.circuitName).toBe('Monaco')
+    expect(r.eraLabel).toBe('2018–2021')
+    expect(r.totalDrivers).toBe(1)
   })
 
-  it('marks self-scenario from the mart column', () => {
-    const rows = [
-      makeRow({ is_self_scenario: true }),
-    ]
-    const r = transform(rows)
-    expect(r.scenarios[0].entries[0].isSelfScenario).toBe(true)
+  it('passes through confidence, races, seasons and CI', () => {
+    const r = transform([
+      makeRow({ affinity_confidence: 0.44, n_obs: 4, seasons_observed_n: 4, shrunk_affinity_ci_low_s: -0.6, shrunk_affinity_ci_high_s: -0.1 }),
+    ])!
+    const e = r.entries[0]
+    expect(e.confidence).toBeCloseTo(0.44)
+    expect(e.races).toBe(4)
+    expect(e.seasons).toBe(4)
+    expect(e.ciLowS).toBeCloseTo(-0.6)
+    expect(e.ciHighS).toBeCloseTo(-0.1)
   })
 
-  it('does not mark self-scenario when the column is false', () => {
-    const rows = [
-      makeRow({ is_self_scenario: false, delta_vs_actual_position: 0 }),
-    ]
-    const r = transform(rows)
-    expect(r.scenarios[0].entries[0].isSelfScenario).toBe(false)
-  })
-
-  it('passes through a null delta (DNF) without coercing it', () => {
-    const rows = [
-      makeRow({ delta_vs_actual_position: null, is_short_run: true, lap_coverage: 0.2 }),
-    ]
-    const r = transform(rows)
-    expect(r.scenarios[0].entries[0].delta).toBeNull()
-    expect(r.scenarios[0].entries[0].isShortRun).toBe(true)
-  })
-
-  it('CONFIDENCE_FLOOR matches the filter applied in the mart (0.3)', () => {
+  it('CONFIDENCE_FLOOR is the prior-dominated threshold (0.3)', () => {
     expect(CONFIDENCE_FLOOR).toBe(0.3)
   })
 
-  it('toCsvRows produces one row per entry', () => {
+  it('toCsvRows produces one row per entry in rank order', () => {
     const rows = [
-      makeRow({ ego_driver_id: 'HAM', predicted_finish_position: 1, delta_vs_actual_position: 0, avg_recombination_confidence: 0.95 }),
-      makeRow({ ego_driver_id: 'VER', predicted_finish_position: 2, delta_vs_actual_position: 1 }),
+      makeRow({ driver_id: 'VER', shrunk_affinity_s: -0.1 }),
+      makeRow({ driver_id: 'HAM', shrunk_affinity_s: -0.5 }),
     ]
-    const result = transform(rows)
-    const csv = toCsvRows(result)
+    const csv = toCsvRows(transform(rows)!)
     expect(csv).toHaveLength(2)
     expect(csv[0].driver_id).toBe('HAM')
+    expect(csv[0].rank).toBe(1)
   })
 })

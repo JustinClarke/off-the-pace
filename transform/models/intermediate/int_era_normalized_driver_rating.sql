@@ -40,8 +40,8 @@ WITH season_ratings AS (
 driver_era_counts AS (
     SELECT
         driver_id,
-        SUM(CASE WHEN season < 2022 THEN n_races ELSE 0 END)  AS pre_era_races,
-        SUM(CASE WHEN season >= 2022 THEN n_races ELSE 0 END) AS post_era_races
+        SUM(CASE WHEN season < {{ var('era_boundary', 2022) }} THEN n_races ELSE 0 END)  AS pre_era_races,
+        SUM(CASE WHEN season >= {{ var('era_boundary', 2022) }} THEN n_races ELSE 0 END) AS post_era_races
     FROM season_ratings
     GROUP BY driver_id
 ),
@@ -57,8 +57,8 @@ bridge_drivers AS (
 bridge_era_means AS (
     SELECT
         sr.driver_id,
-        AVG(CASE WHEN sr.season < 2022  THEN sr.shrunk_residual_s END) AS pre_era_mean_s,
-        AVG(CASE WHEN sr.season >= 2022 THEN sr.shrunk_residual_s END) AS post_era_mean_s
+        AVG(CASE WHEN sr.season < {{ var('era_boundary', 2022) }}  THEN sr.shrunk_residual_s END) AS pre_era_mean_s,
+        AVG(CASE WHEN sr.season >= {{ var('era_boundary', 2022) }} THEN sr.shrunk_residual_s END) AS post_era_mean_s
     FROM season_ratings sr
     JOIN bridge_drivers  bd USING (driver_id)
     GROUP BY sr.driver_id
@@ -106,17 +106,17 @@ with_era_adjustment AS (
         eo.n_bridge_drivers,
         eo.low_anchor_sample_flag,
 
-        -- Apply offset only to pre-2022 seasons; if low anchor, offset is 0
+        -- Apply offset only to pre-era seasons; if low anchor, offset is 0
         sr.shrunk_residual_s
          -CASE
-              WHEN sr.season < 2022 AND NOT eo.low_anchor_sample_flag
+              WHEN sr.season < {{ var('era_boundary', 2022) }} AND NOT eo.low_anchor_sample_flag
               THEN COALESCE(eo.era_shift_global_s, 0)
               ELSE 0
             END                               AS era_adjusted_rating,
 
         -- Propagate SE: sqrt(shrunk_se² + era_shift_se² [if pre-era])
         CASE
-            WHEN sr.season < 2022 AND NOT eo.low_anchor_sample_flag
+            WHEN sr.season < {{ var('era_boundary', 2022) }} AND NOT eo.low_anchor_sample_flag
             THEN SQRT(
                 POWER(COALESCE(sr.shrunk_residual_se_s, 0), 2)
               + POWER(COALESCE(eo.era_shift_se_s, 0), 2)

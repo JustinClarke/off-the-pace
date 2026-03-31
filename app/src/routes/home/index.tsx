@@ -176,13 +176,49 @@ function ShowcaseHero({ feature }: { feature: Feature }) {
   )
 }
 
-function StatChip({ value, label }: { value: string | number; label: string }) {
+// The OTP hexagon mark (matches the sidebar brand), used in the footer.
+function BrandMark({ className = 'h-4 w-4' }: { className?: string }) {
   return (
-    <div className="flex flex-col leading-none">
-      <span className="font-mono text-lg font-bold tabular-nums text-[rgb(var(--color-text))]">
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </span>
-      <span className="mt-1 text-[9px] uppercase tracking-wider text-muted">{label}</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" className={className} aria-hidden>
+      <path d="M12 2.5l8.5 4.9v9.2L12 21.5 3.5 16.6V7.4z" />
+      <path d="M12 7.5v9M8 9.5l8 5M16 9.5l-8 5" strokeWidth="1.1" opacity="0.55" />
+    </svg>
+  )
+}
+
+// The hero's headline numbers, presented as a single self-contained "instrument cluster"
+// (divided cells, mono numerals, accent tick on the lead metric) rather than four floating
+// figures reads like a pit-wall readout instead of a spreadsheet row.
+function StatCluster({ stats }: { stats: NonNullable<DataManifest['stats']> }) {
+  const items: { value: string | number; label: string; lead?: boolean }[] = [
+    { value: stats.total_laps, label: 'laps decomposed', lead: true },
+    { value: stats.total_drivers ?? 40, label: 'drivers modeled' },
+    { value: stats.total_circuits ?? 44, label: 'circuits covered' },
+    { value: stats.dbt_models, label: 'dbt models' },
+    { value: `${stats.ml_models}/5`, label: 'ml models beat baseline' },
+    { value: stats.seasons, label: 'seasons' },
+  ]
+  return (
+    <div className="relative hidden overflow-hidden rounded-xl border border-border/60 bg-[rgb(var(--color-bg)/0.7)] backdrop-blur-md shadow-inner sm:grid sm:grid-cols-3">
+      <span aria-hidden className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-[rgb(var(--color-accent))]/70 to-transparent opacity-80" />
+      {items.map((s, i) => (
+        <div
+          key={s.label}
+          className={[
+            "group flex flex-col justify-center px-4 py-2.5 transition-colors hover:bg-white/[0.02]",
+            i < 3 ? "border-b border-border/50" : "",
+            i % 3 !== 0 ? "border-l border-border/50" : ""
+          ].filter(Boolean).join(" ")}
+        >
+          <span className="font-mono text-[18px] font-bold leading-none tracking-tight tabular-nums text-[rgb(var(--color-text))] drop-shadow-sm transition-all group-hover:scale-[1.02]">
+            {typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
+          </span>
+          <span className="mt-1.5 flex items-center gap-1.5 whitespace-nowrap text-[8.5px] font-semibold uppercase tracking-[0.15em] text-muted/90">
+            <span className={`h-[3.5px] w-[3.5px] rounded-full transition-colors ${s.lead ? 'bg-[rgb(var(--color-accent))] shadow-[0_0_8px_rgba(var(--color-accent),0.6)]' : 'bg-muted/30 group-hover:bg-muted/50'}`} aria-hidden />
+            {s.label}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }
@@ -192,7 +228,7 @@ export default function Home() {
 
   // Fire-and-forget DuckDB warm-up: download + boot the engine while the visitor reads (AD-12).
   useEffect(() => {
-    import('../../data/duckdb/client').then((m) => m.getConnection()).catch(() => {})
+    import('../../data/duckdb/client').then((m) => m.getConnection()).catch(() => { })
   }, [])
 
   const { data: manifest } = useManifestStats()
@@ -203,43 +239,35 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-3 px-4 py-3 sm:px-6 lg:h-full">
       {/* ---------- Condensed hero ---------- */}
-      <header className="relative shrink-0 overflow-hidden rounded-2xl border border-border bg-surface px-5 py-4">
+      <header className="relative shrink-0 overflow-hidden rounded-[1.25rem] border border-border/50 bg-gradient-to-br from-surface to-surface/40 shadow-sm">
         <HeroTrace />
-        <div className="relative flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
-          <div className="min-w-0 max-w-xl">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-[rgb(var(--color-bg)/0.6)] px-2.5 py-0.5 backdrop-blur">
+        {/* striking top accent */}
+        <span aria-hidden className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[rgb(var(--color-accent))]/0 via-[rgb(var(--color-accent))] to-[rgb(var(--color-accent))]/0 opacity-80" />
+
+        {/* ambient glow behind title */}
+        <div aria-hidden className="absolute -left-32 -top-32 h-64 w-64 rounded-full bg-[rgb(var(--color-accent))]/10 blur-3xl" />
+
+        <div className="relative flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:px-6">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2.5 inline-flex items-center gap-2 rounded-full border border-[rgb(var(--color-accent))]/20 bg-[rgb(var(--color-accent))]/5 px-2.5 py-0.5 shadow-inner backdrop-blur-md">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[rgb(var(--color-accent))] opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[rgb(var(--color-accent))]" />
               </span>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-muted">Runs entirely in your browser</span>
+              <span className="font-mono text-[9px] font-medium uppercase tracking-[0.2em] text-[rgb(var(--color-accent))]">Runs entirely in your browser</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Off The Pace</h1>
-            <p className="mt-1.5 text-[13px] leading-snug text-muted">
-              Causal lap-time decomposition for Formula 1-ghost-car counterfactuals, tyre-cliff
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-[2rem] lg:leading-none">
+              Off The Pace
+            </h1>
+            <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted/90 sm:text-[14px]">
+              Causal lap-time decomposition for Formula 1 ghost-car counterfactuals, tyre-cliff
               survival models and live ONNX inference, with{' '}
-              <span className="text-[rgb(var(--color-text))]">no backend and no cost.</span>
+              <strong className="font-medium text-[rgb(var(--color-text))]">no backend and no cost.</strong>
             </p>
           </div>
 
-          <div className="flex items-center gap-5">
-            {stats && (
-              <div className="hidden items-center gap-5 sm:flex">
-                <StatChip value={stats.total_laps} label="laps decomposed" />
-                <StatChip value={stats.dbt_models} label="dbt models" />
-                <StatChip value={`${stats.ml_models}/5`} label="beat baseline" />
-                <StatChip value={stats.seasons} label="seasons" />
-              </div>
-            )}
-            <Link
-              to="/ghost-car/standings"
-              className="group inline-flex shrink-0 items-center gap-2 rounded-lg bg-[rgb(var(--color-accent))] px-4 py-2 text-sm font-semibold text-white transition-transform hover:scale-[1.03]"
-            >
-              Explore the grid
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="transition-transform group-hover:translate-x-0.5" aria-hidden>
-                <path d="M2 7h9M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
+          <div className="flex shrink-0 flex-col items-start gap-4 lg:items-end">
+            {stats && <StatCluster stats={stats} />}
           </div>
         </div>
       </header>
@@ -285,14 +313,31 @@ export default function Home() {
         </section>
       </motion.div>
 
-      {/* ---------- Minimal footer row ---------- */}
-      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 text-[11px] text-muted">
-        <span>{APP_CONFIG.title}-a portfolio data product.</span>
-        <div className="flex flex-wrap gap-4">
-          <Link to="/roadmap" className="transition-colors hover:text-[rgb(var(--color-text))]">Roadmap</Link>
-          <a href="https://offthepace.mintlify.app" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[rgb(var(--color-text))]">Docs</a>
-          <a href={APP_CONFIG.githubUrl} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[rgb(var(--color-text))]">GitHub</a>
-          <a href="https://justinclarke.github.io" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[rgb(var(--color-text))]">Portfolio</a>
+      {/* ---------- Footer ---------- */}
+      <footer className="shrink-0">
+        <span aria-hidden className="mb-3 block h-px w-full bg-gradient-to-r from-[rgb(var(--color-accent))]/40 via-border to-transparent" />
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-[11px]">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="text-[rgb(var(--color-accent))]"><BrandMark /></span>
+            <span className="font-semibold text-[rgb(var(--color-text))]">{APP_CONFIG.title}</span>
+            <span className="text-muted/60">a portfolio data product</span>
+            <span className="hidden items-center gap-1.5 md:flex">
+              {['DuckDB-WASM', 'ONNX Runtime', 'dbt'].map((t) => (
+                <span key={t} className="rounded border border-border px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-muted/70">
+                  {t}
+                </span>
+              ))}
+            </span>
+          </div>
+          <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-wider text-muted">
+            <Link to="/roadmap" className="transition-colors hover:text-[rgb(var(--color-text))]">Roadmap</Link>
+            <span aria-hidden className="text-muted/30">/</span>
+            <a href="https://offthepace.mintlify.app" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[rgb(var(--color-text))]">Docs</a>
+            <span aria-hidden className="text-muted/30">/</span>
+            <a href={APP_CONFIG.githubUrl} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[rgb(var(--color-text))]">GitHub</a>
+            <span aria-hidden className="text-muted/30">/</span>
+            <a href="https://justinclarke.github.io" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[rgb(var(--color-text))]">Portfolio</a>
+          </nav>
         </div>
       </footer>
     </div>

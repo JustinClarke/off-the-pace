@@ -67,6 +67,51 @@ models:
         description: Named track corner
         tests: [not_null]
 
+  - name: int_lap_telemetry_aggregates
+    description: >
+      Per-lap telemetry features for the tyre-cliff model (ml-v0.2 §2). One row per race lap.
+      Powertrain aggregates (gear changes, rpm, full-throttle/DRS share, short-shift index) plus
+      five within-stint-drift cliff signals (mid-corner speed loss, wheelspin proxy, throttle-trace
+      decay, braking-point drift, lift-and-coast share), each measured vs the driver's own
+      early-stint baseline. Computed lap-internally from the 'car' telemetry channel; NULL where a
+      lap has no telemetry (explicit missingness, carried as XGBoost native-NaN).
+    tags: [intermediate]
+    columns:
+      - name: lap_id
+        description: Foreign key to stg_laps
+        tests: [not_null, unique]
+      - name: stint_id
+        description: Stint surrogate key (baseline partition)
+        tests: [not_null]
+      - name: pct_full_throttle
+        description: Fraction of the lap at full throttle (0–1)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              where: "pct_full_throttle is not null"
+      - name: pct_drs_active
+        description: Fraction of the lap with DRS active (0–1)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              where: "pct_drs_active is not null"
+      - name: traction_wheelspin_proxy
+        description: Share of corner-exit full-throttle samples with non-positive accel (0–1)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              where: "traction_wheelspin_proxy is not null"
+      - name: lift_coast_share
+        description: Off-throttle, non-braking, decelerating share of the lap (0–1)
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+              where: "lift_coast_share is not null"
+
   - name: int_compound_cliff_predicted
     description: >
       Tyre compound degradation prediction using fitted survival-analysis parameters (Pillar 1).
@@ -202,6 +247,37 @@ models:
       Retained for backwards compatibility with early demos. Will be removed after 06_app migration.
       One row per stint. Aggregates lap residuals to stint grain for quick performance analysis.
     tags: [intermediate, legacy]
+
+  - name: int_constructor_car_fe
+    description: >
+      De-biased constructor car pace (constructor×race fixed effect), one row per
+      (race_year, race_id, constructor_id). A thin reader over
+      data/fits/constructor_car_fe.parquet, fitted by
+      tasks/coefficients/fit_constructor_car_fe.py via a two-way FE regression
+      (pace_delta_s ~ 1 | driver_id + constructor_race) on the clean lap panel.
+      car_fe_s estimates car pace net of driver skill (global driver anchor),
+      so subtracting it removes the car without crediting a weak driver's slowness
+      as skill. Consumed only by int_driver_race_skill_loro.driver_skill_field_s →
+      int_driver_circuit_era_affinity (Ghost Car Standings). Negative = faster than field.
+    tags: [intermediate, causal_decomposition, constructor]
+    columns:
+      - name: constructor_car_fe_id
+        description: Surrogate PK = race_year_raceid_constructorid
+        tests: [not_null, unique]
+      - name: race_year
+        description: Season year
+        tests: [not_null]
+      - name: race_id
+        description: Race identifier (matches int_lap_fuel_state.race_id, e.g. 2018_5)
+        tests: [not_null]
+      - name: constructor_id
+        description: Constructor identifier (stg_laps.constructor_id)
+        tests: [not_null]
+      - name: car_fe_s
+        description: >
+          Constructor×race fixed effect in seconds, net of driver skill.
+          Negative = faster than field.
+        tests: [not_null]
 
   - name: int_constructor_structural_pace
     description: >
@@ -722,6 +798,119 @@ models:
                 min_value: 0
                 max_value: 1
 
+  - name: int_driver_circuit_era_affinity
+    description: >
+      One row per (driver_id, circuit_id, era_key). Same shrinkage as int_driver_circuit_affinity
+      but split on the 2022 ground-effect regulation boundary so a driver's track record is never
+      blended across incomparable car eras (pre2022 = 2018–2021, post2022 = 2022–2024). circuit_id
+      is the physical-circuit identifier, so renamed events and double-headers at one venue pool
+      into a single track record. Within an
+      era the residual is car-removed, so ranking drivers by shrunk_affinity_s ≈ "equal-car track
+      record" at that circuit. Shrunk toward the driver's within-era global mean (Bayesian, prior =
+      5 virtual races). Negative = faster than field. Backs the Ghost Car Standings feature.
+    tags: [intermediate, driver_rating, driver_affinity]
+    columns:
+      - name: driver_circuit_era_id
+        description: Surrogate PK = hash(driver_id, circuit_id, era_key)
+        tests: [not_null, unique]
+      - name: driver_id
+        description: Driver identifier
+        tests: [not_null]
+      - name: circuit_id
+        description: >
+          Physical-circuit identifier (slug of circuit_name). Collapses event-slug
+          aliases (renamed events, double-headers) onto one venue.
+        tests: [not_null]
+      - name: circuit_name
+        description: Canonical circuit display name for this circuit_id.
+        tests: [not_null]
+      - name: era_key
+        description: Regulation era. pre2022 = 2018–2021, post2022 = 2022–2024.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['pre2022', 'post2022']
+      - name: era_label
+        description: Human-readable era span ('2018–2021' / '2022–2024').
+        tests: [not_null]
+      - name: n_obs
+        description: Number of race-residual observations backing this estimate within the era
+        tests: [not_null]
+      - name: seasons_observed_n
+        description: Count of distinct seasons the driver raced at this circuit within the era
+        tests: [not_null]
+      - name: raw_affinity_s
+        description: Unshrunk observed mean residual at this circuit-era. Negative = faster.
+        tests: [not_null]
+      - name: shrunk_affinity_s
+        description: Bayesian posterior mean. Pulled toward the driver's within-era global mean.
+        tests: [not_null]
+      - name: shrunk_affinity_se_s
+        description: Posterior standard error in seconds. Non-negative.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 2.0
+      - name: shrunk_affinity_ci_low_s
+        description: Lower bound of 95% credible interval
+        tests: [not_null]
+      - name: shrunk_affinity_ci_high_s
+        description: Upper bound of 95% credible interval
+        tests: [not_null]
+      - name: affinity_confidence
+        description: Data fraction of posterior mass. n_obs / (n_obs + 5). [0, 1].
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+
+  - name: int_driver_race_skill_loro
+    description: >
+      Metric 1 (de-confounded absolute equal-car skill), race grain
+      (race_year, race_id, driver_id). driver_skill_loro_s = P20 ceiling minus the LORO
+      teammate baseline (used by the rating chain). driver_skill_field_s = median pace
+      delta minus the de-biased constructor×race FE (int_constructor_car_fe.car_fe_s,
+      car pace net of driver skill); used only by int_driver_circuit_era_affinity / Ghost
+      Car Standings leaderboard, fixing the weak-teammate inflation confound. Negative =
+      faster than field (both signals).
+    tags: [intermediate, driver_rating, causal_decomposition]
+    columns:
+      - name: driver_race_skill_id
+        description: Surrogate PK = hash(race_year, race_id, driver_id)
+        tests: [not_null, unique]
+      - name: driver_id
+        description: Driver identifier
+        tests: [not_null]
+      - name: race_year
+        description: Race year (integer)
+        tests: [not_null]
+      - name: race_id
+        description: Race identifier (numeric)
+        tests: [not_null]
+      - name: driver_skill_loro_s
+        description: >
+          De-confounded equal-car skill, seconds. P20 of focal deltas minus LORO car baseline.
+          Negative = faster. NULL when the driver is the only one with clean laps in his car
+          that race (no equal-car reference). Used by the rating chain.
+      - name: driver_skill_field_s
+        description: >
+          Field-anchored equal-car skill, seconds. Median pace delta minus the de-biased
+          car term (int_constructor_car_fe.car_fe_s the constructor×race FE, car pace
+          net of driver skill). The FE's global driver anchor fixes the weak-teammate
+          inflation confound that the old constructor-median term still leaked (that
+          median absorbed the team's driver skill, so subtracting it handed a weak
+          driver's slowness back as skill). NULL when the constructor×race FE is
+          unidentified for this race. Used only by int_driver_circuit_era_affinity
+          (Ghost Car Standings leaderboard).
+      - name: clean_lap_count
+        description: Clean laps contributing to this driver-race estimate.
+        tests: [not_null]
+
   - name: int_driver_season_ratings
     description: >
       One row per (driver_id, season). Aggregates race residuals to season grain.
@@ -819,3 +1008,107 @@ models:
       - name: low_anchor_sample_flag
         description: TRUE if fewer than 3 bridge drivers found; era offset is 0 when this fires.
         tests: [not_null]
+
+  - name: int_sc_hazard_history
+    description: >
+      Safety-Car / Virtual-Safety-Car base rate per circuit (venue slug), as a
+      hazard per racing lap. Estimated from SC/VSC deployment onsets in
+      stg_track_status with racing-lap exposure from stg_laps, over the set of
+      races that have an ingested track_status timeline (partial during the v0.2
+      backfill). Raw and empirical-Bayes-shrunk rates are provided. Feeds the
+      MC finish-order core (transform-v0.2 §4.5).
+    columns:
+      - name: circuit_slug
+        description: Venue identifier (race name slug, e.g. monaco_grand_prix); recurs across seasons.
+        tests: [not_null, unique]
+      - name: n_races
+        description: Number of races with a track_status timeline observed at this circuit.
+        tests: [not_null]
+      - name: racing_laps
+        description: Total racing-lap exposure (sum of per-race leader lap counts) the hazard denominator.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 100000
+      - name: sc_hazard_per_lap
+        description: Raw Safety-Car onsets per racing lap.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: vsc_hazard_per_lap
+        description: Raw Virtual-Safety-Car onsets per racing lap.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: any_hazard_per_lap
+        description: Raw combined SC+VSC onsets per racing lap.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: sc_hazard_per_lap_shrunk
+        description: Empirical-Bayes SC hazard shrunk toward the global pooled rate (pseudo-count sc_hazard_prior_laps).
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: vsc_hazard_per_lap_shrunk
+        description: Empirical-Bayes VSC hazard shrunk toward the global pooled rate.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: any_hazard_per_lap_shrunk
+        description: Empirical-Bayes combined SC+VSC hazard shrunk toward the global pooled rate.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+
+  - name: int_pit_loss_circuit
+    description: >
+      Empirical circuit-specific pit-lane loss prior, replacing the largely-imputed
+      constant in circuit_reference. Per stop, loss = (in_lap − ref) + (out_lap − ref)
+      where ref is the driver's median green lap that race; circuit value is the
+      median across stops within a sane [pit_loss_min_s, pit_loss_max_s] window,
+      EB-shrunk toward the global median. Scoped to races with a venue slug
+      available (partial during the v0.2 backfill). Consumed by int_pit_strategy_value.
+    columns:
+      - name: circuit_slug
+        description: Venue identifier (race name slug); recurs across seasons.
+        tests: [not_null, unique]
+      - name: n_stops
+        description: Number of clean pit stops observed at this circuit.
+        tests: [not_null]
+      - name: pit_loss_s_empirical
+        description: Median empirical pit-lane loss (seconds) across observed stops.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 8
+                max_value: 60
+      - name: pit_loss_s_shrunk
+        description: Pit-lane loss EB-shrunk toward the global median (pseudo-count pit_loss_prior_stops).
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 8
+                max_value: 60

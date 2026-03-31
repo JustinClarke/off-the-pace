@@ -69,7 +69,7 @@ sources:
           - name: Position
             description: Race position at end of lap
           - name: race_id
-            description: Hive partition value   race name slug (e.g. british_grand_prix)
+            description: Hive partition value   numeric FastF1 event id (e.g. 2018_1), not the slug
           - name: season
             description: Hive partition value   calendar year
 
@@ -115,6 +115,109 @@ sources:
           - name: wind_direction
             description: Wind direction (degrees, 0–360)
 
+      - name: raw_results
+        meta:
+          external_location: "{{ var('bronze_base', '../data/bronze') }}/results/*/*/*.parquet"
+        description: >
+          FastF1 session.results official classified results. One row per driver
+          per race. Carries finishing position, grid position, classified position,
+          status (Finished / +N Lap(s) / DNF reason), points, and total race
+          time / gap (nanoseconds). Partitioned by season and race (slug).
+        columns:
+          - name: race_id
+            description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps.race_id (the downstream join key)
+          - name: race
+            description: Hive partition race name slug (e.g. azerbaijan_grand_prix); exposed as race_slug
+          - name: season
+            description: Calendar year
+          - name: Abbreviation
+            description: Three-letter driver code (e.g. VER, HAM)
+          - name: TeamName
+            description: Constructor display name
+          - name: Position
+            description: Finishing position (double; NULL if not classified)
+          - name: ClassifiedPosition
+            description: Official classified position string ('1'..'20', 'R'=retired, 'D'=disqualified, etc.)
+          - name: GridPosition
+            description: Starting grid position (double)
+          - name: Time
+            description: Total race time for winner / gap to winner for others (nanoseconds)
+          - name: Status
+            description: Finish status 'Finished', '+1 Lap', or DNF reason (e.g. 'Engine', 'Collision')
+          - name: Points
+            description: Championship points scored
+
+      - name: raw_track_status
+        meta:
+          external_location: "{{ var('bronze_base', '../data/bronze') }}/track_status/*/*/*.parquet"
+        description: >
+          FastF1 session.track_status SC/VSC/yellow/red timeline. One row per
+          track-status change event, ordered by session_time_s. Status codes
+          (ground-truthed against the Message column): 1=AllClear, 2=Yellow,
+          4=SCDeployed, 5=Red, 6=VSCDeployed, 7=VSCEnding.
+        columns:
+          - name: race_id
+            description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps.race_id (the downstream join key)
+          - name: race
+            description: Hive partition race name slug; exposed as race_slug
+          - name: season
+            description: Calendar year
+          - name: Status
+            description: Track status code (1/2/4/5/6/7)
+          - name: Message
+            description: Human-readable label (AllClear / Yellow / SCDeployed / VSCDeployed / Red)
+          - name: session_time_s
+            description: Session elapsed time of the status change (seconds)
+
+      - name: raw_session_status
+        meta:
+          external_location: "{{ var('bronze_base', '../data/bronze') }}/session_status/*/*/*.parquet"
+        description: >
+          FastF1 session.session_status session lifecycle events. One row per
+          change (Inactive / Started / Aborted / Finished / Finalised). Aborted
+          marks red-flag stoppages.
+        columns:
+          - name: race_id
+            description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps.race_id (the downstream join key)
+          - name: race
+            description: Hive partition race name slug; exposed as race_slug
+          - name: season
+            description: Calendar year
+          - name: Status
+            description: Session status (Inactive / Started / Aborted / Finished / Finalised)
+          - name: session_time_s
+            description: Session elapsed time of the status change (seconds)
+
+      - name: raw_circuit_info
+        meta:
+          # union_by_name tolerates degenerate files: a few circuit_info parquets
+          # were written with no corner columns (FastF1 circuit.corners KeyError;
+          # see ingestion STATUS) and contribute zero rows.
+          external_location: "read_parquet('{{ var('bronze_base', '../data/bronze') }}/circuit_info/*/*/*.parquet', union_by_name=true)"
+        description: >
+          FastF1 circuit_info.corners corner geometry for the circuit map. One
+          row per corner, ordered by Distance along the racing line. Partitioned
+          by season and race (slug); geometry can vary slightly year to year.
+        columns:
+          - name: race_id
+            description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps.race_id (the downstream join key)
+          - name: race
+            description: Hive partition race name slug; exposed as race_slug
+          - name: season
+            description: Calendar year
+          - name: Number
+            description: Corner number (FIA designation)
+          - name: Letter
+            description: Corner letter suffix for multi-apex corners (e.g. 'A', 'B'); blank otherwise
+          - name: X
+            description: Corner apex X coordinate (FastF1 track frame, 1/10 m)
+          - name: Y
+            description: Corner apex Y coordinate (FastF1 track frame, 1/10 m)
+          - name: Angle
+            description: Corner orientation angle (degrees)
+          - name: Distance
+            description: Distance of the corner along the racing line from start/finish (m)
+
       - name: raw_telemetry
         meta:
           external_location: "{{ var('bronze_base', '../data/bronze') }}/telemetry/*/*/*.parquet"
@@ -134,6 +237,12 @@ sources:
             description: Throttle pedal position (0–100%)
           - name: brake
             description: Brake pedal binary (true if pressed)
+          - name: RPM
+            description: Engine RPM
+          - name: nGear
+            description: Selected gear (1–8)
+          - name: DRS
+            description: DRS state code (0/1 off, 8 eligible, 10/12/14 active)
           - name: race_id
             description: Hive partition   race identifier (YYYY_RoundNumber)
           - name: season

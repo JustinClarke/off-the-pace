@@ -17,7 +17,10 @@ MODELS_DIR = Path("ml/models")
 
 
 def _present_version() -> str | None:
-    for version in ("v1", "smoke"):
+    # v4 = current production (42-feature frame, detrended target, Route C).
+    # v3/v2/v1 onnx are kept for diffing; they have different feature counts so are
+    # never the parity target. MODEL_VERSION_DEFAULT is the canonical production version.
+    for version in (S.MODEL_VERSION_DEFAULT, "v3", "v2", "v1", "smoke"):
         if all((MODELS_DIR / f"{S.artefact_name(t, version)}.onnx").exists()
                for t in S.PRODUCTION_TARGETS):
             return version

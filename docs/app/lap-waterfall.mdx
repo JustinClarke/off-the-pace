@@ -1,10 +1,10 @@
 ---
-title: "Lap waterfall: visualize the eight-component breakdown"
+title: "Lap waterfall: visualize the seven-term decomposition"
 sidebarTitle: "Lap Waterfall"
-description: "A waterfall chart showing how fuel, compound, rubber, ambient, constructor, dirty air, driver skill, and track noise each contribute to a driver's pace delta."
+description: "A waterfall chart showing how fuel, compound, rubber, ambient, constructor, dirty air, and driver skill each contribute to a driver's pace delta, with track noise shown as a diagnostic."
 ---
 
-The Lap Waterfall chart makes the eight-term additive decomposition tangible. For any driver in any race, it shows you exactly how much of their pace delta their deviation from the field-pace baseline came from each of eight distinct causes, and proves that the eight bars sum exactly to the total. When a driver looks slow, you can see whether the slowness belongs to the car, the tyre strategy, the conditions, or the driver. When a driver looks fast, you can tell whether they are genuinely overdelivering or simply running the lightest fuel and freshest rubber.
+The Lap Waterfall chart makes the [seven-term additive identity](/decomposition/seven-term-identity) tangible. For any driver in any race, it shows you exactly how much of their pace delta their deviation from the field-pace baseline came from each of the seven identity terms. Alongside them it surfaces an eighth, non-closing bar **track noise** (`track_unexplained_s`) as a transparency diagnostic. When a driver looks slow, you can see whether the slowness belongs to the car, the tyre strategy, the conditions, or the driver. When a driver looks fast, you can tell whether they are genuinely overdelivering or simply running the lightest fuel and freshest rubber.
 
 ## What the chart shows
 
@@ -19,15 +19,15 @@ Each driver gets a waterfall (stacked bar) chart where every segment is one addi
 | **Constructor** | `constructor_component_s` | Negative for front-running cars |
 | **Dirty Air** | `dirty_air_tax_s` | Positive (running in wake always costs time) |
 | **Driver Skill** | `driver_skill_residual_s` | Negative if driver outperforms predicted pace |
-| **Track Noise** | `track_unexplained_s` | Residual not attributable to any modelled term |
+| **Track Noise** *(diagnostic)* | `track_unexplained_s` | Field-level residual not attributable to any modelled term **not part of the identity** |
 
-The first six terms sum to `total_explained_s`. Add driver skill and track noise and you reconstruct `pace_delta_s` exactly. A **closure badge** on the chart verifies that `|Σ components − pace_delta_s| < 1e-4` if the identity does not close, the badge turns red, indicating an export or aggregation bug rather than a modelling issue.
+The six environmental terms sum to `total_explained_s`; add the driver-skill residual and you reconstruct `pace_delta_s` exactly. That is the seven-term identity, enforced in the warehouse by `assert_additive_identity` (see [the Seven-Term Identity](/decomposition/seven-term-identity)). **Track noise** (`track_unexplained_s`) is a separate field-level diagnostic the part of the smoothed field-pace curve the rubber and ambient fits cannot explain. It is shown for transparency but is **not** one of the closing terms; it is excluded from the CI-enforced identity.
 
 ## How to read the bars
 
 - **Bars extending right (positive)** are slowing contributions. A large positive fuel bar early in the race is expected the car is heavy. A large positive constructor bar is not a good sign for the team.
 - **Bars extending left (negative)** are speeding contributions. A strongly negative driver skill bar means the driver is extracting more pace than their exact set of conditions predicts. A negative compound bar means they are on a faster compound than the season median.
-- **The final total** where the stacked bars land is `pace_delta_s`, the driver's average deviation from field baseline across the race.
+- **The total** of the seven identity bars is `pace_delta_s`, the driver's average deviation from field baseline across the race. The track-noise bar is appended as a diagnostic and is not part of that total.
 
 ## How to navigate
 
@@ -57,4 +57,4 @@ The waterfall makes this decomposition explicit and arithmetic, not interpretive
 
 ## Data source
 
-The chart queries `fct_lap_residuals` (partitioned by season) via DuckDB-Wasm in the browser. The additive identity is enforced in the warehouse by `assert_additive_identity`, which runs against every lap on every pipeline build. The full table reference is at [fct\_lap\_residuals](/reference/fct-lap-residuals). The data window covers **2018–2024**.
+The chart queries `fct_lap_residuals` (partitioned by season) via DuckDB-Wasm in the browser. The additive identity is enforced in the warehouse by `assert_additive_identity`, which runs against every lap on every pipeline build. The full table reference is at [fct\_lap\_residuals](/reference/models/fct/fct_lap_residuals). The data window covers **2018–2024**.

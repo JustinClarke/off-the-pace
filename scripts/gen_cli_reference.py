@@ -13,6 +13,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from mdx_utils import first_sentence, mintlify_frontmatter
+
 REPO_ROOT = Path(__file__).parent.parent
 OUT_DIR = REPO_ROOT / "docs" / "reference" / "cli"
 
@@ -93,10 +96,12 @@ def render_cli_mdx(name: str, raw_help: str, description_override: str) -> str:
     parsed = parse_argparse_help(raw_help)
     description = description_override or parsed["description"]
 
-    lines = [
+    lines = mintlify_frontmatter(
+        title=name,
+        sidebar_title=name,
+        description=first_sentence(description) or f"Reference for the {name} command-line tool.",
+    ) + [
         AUTOGEN_HEADER,  # JSX comment for .mdx
-        "",
-        f"# `{name}`",
         "",
     ]
 
@@ -137,17 +142,11 @@ def render_cli_mdx(name: str, raw_help: str, description_override: str) -> str:
 
 
 def render_index(commands: list[tuple[str, str]]) -> str:
-    lines = [
-        AUTOGEN_HEADER_MD,  # HTML comment for .md
-        "",
-        "---",
-        "id: cli-index",
-        "slug: /reference/cli",
-        "sidebar_position: 1",
-        "title: CLI Reference",
-        "---",
-        "",
-        "# CLI Reference",
+    lines = mintlify_frontmatter(
+        title="CLI Reference",
+        description="Auto-generated reference for all Off The Pace command-line tools.",
+    ) + [
+        AUTOGEN_HEADER_MD,
         "",
         "Auto-generated reference for all Off The Pace command-line tools.",
         "",

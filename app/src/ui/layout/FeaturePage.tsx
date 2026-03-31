@@ -7,7 +7,7 @@ import { downloadCsv } from '../../lib/csv'
 import type { ProvenanceMeta } from '../methodology'
 
 export interface AudienceBadge {
-  label: 'What It Means' | 'Why It Matters' | 'How It\'s Calculated'
+  label: string
   content: string
 }
 
@@ -27,6 +27,8 @@ interface FeaturePageProps {
   isLoading?: boolean
   error?: Error | null
   isEmpty?: boolean
+  /** Widen the content column (for two-pane / control-rail layouts like the simulator). */
+  wide?: boolean
   children: ReactNode
 }
 
@@ -54,7 +56,7 @@ function AudienceTabs({ badges }: { badges: AudienceBadge[] }) {
       <div className="flex gap-0 border-b border-border">
         {badges.map(b => {
           const isActive = active === b.label
-          const styles = PANEL_STYLES[b.label]
+          const styles = PANEL_STYLES[b.label] ?? { tab: '', panel: '' }
           return (
             <button
               key={b.label}
@@ -71,7 +73,7 @@ function AudienceTabs({ badges }: { badges: AudienceBadge[] }) {
       {/* Panel */}
       {active && (() => {
         const badge = badges.find(b => b.label === active)!
-        const styles = PANEL_STYLES[active]
+        const styles = PANEL_STYLES[active] ?? { tab: '', panel: '' }
         return (
           <div className={`text-xs text-muted leading-relaxed px-3 py-2.5 border-x border-b rounded-b ${styles.panel}`}>
             {badge.content}
@@ -151,10 +153,11 @@ export default function FeaturePage({
   isLoading,
   error,
   isEmpty,
+  wide,
   children,
 }: FeaturePageProps) {
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10 flex flex-col gap-6">
+    <div className={`${wide ? 'max-w-7xl' : 'max-w-5xl'} mx-auto px-6 py-10 flex flex-col gap-6`}>
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>

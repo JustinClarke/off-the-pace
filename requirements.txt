@@ -1,0 +1,15 @@
+fastf1
+dbt-core==1.11.9
+dbt-duckdb==1.10.1
+xgboost
+scikit-learn
+pandas
+pyarrow
+streamlit
+plotly
+statsmodels
+pyfixest
+pytest
+python-dotenv
+lifelines
+scipy

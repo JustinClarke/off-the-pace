@@ -105,7 +105,7 @@ with_shrinkage AS (
         / NULLIF(dco.n_obs + 5, 0) AS affinity_confidence
 
     FROM driver_circuit_obs AS dco
-    JOIN driver_global AS dg USING (driver_id)
+    INNER JOIN driver_global AS dg ON dco.driver_id = dg.driver_id
     CROSS JOIN variance_components AS vc
 )
 

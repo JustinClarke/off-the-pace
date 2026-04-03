@@ -54,7 +54,7 @@ laps_with_flags AS (
         a.usable_for_modelling,
         a.is_rain_lap
     FROM residuals AS r
-    LEFT JOIN anomaly AS a USING (lap_id)
+    LEFT JOIN anomaly AS a ON r.lap_id = a.lap_id
 ),
 
 -- Residual aggregates at race grain (clean laps only)
@@ -129,7 +129,7 @@ teammate_agg AS (
         ) AS strategic_divergence_share
     FROM {{ ref('int_synthetic_teammate') }} AS st
     -- Same clean-lap filter applied via join back to anomaly flags
-    JOIN laps_with_flags AS lf
+    INNER JOIN laps_with_flags AS lf
         ON
             st.race_year = lf.race_year
             AND st.race_id = lf.race_id
@@ -229,11 +229,20 @@ SELECT
     ra.ml_eligible_lap_share
 
 FROM residual_agg AS ra
-LEFT JOIN teammate_agg AS ta USING (race_year, race_id, driver_id)
-LEFT JOIN constructor_final AS cf USING (race_year, race_id, constructor_id)
-LEFT JOIN race_to_track AS rtt USING (race_id)
-LEFT JOIN dim_circuits AS dc_cir USING (circuit_key)
-LEFT JOIN dim_drivers AS dd USING (driver_id)
+LEFT JOIN
+    teammate_agg AS ta
+    ON
+        ra.race_year = ta.race_year
+        AND ra.race_id = ta.race_id
+        AND ra.driver_id = ta.driver_id
+LEFT JOIN constructor_final AS cf
+    ON
+        ra.race_year = cf.race_year
+        AND ra.race_id = cf.race_id
+        AND ra.constructor_id = cf.constructor_id
+LEFT JOIN race_to_track AS rtt ON ra.race_id = rtt.race_id
+LEFT JOIN dim_circuits AS dc_cir ON rtt.circuit_key = dc_cir.circuit_key
+LEFT JOIN dim_drivers AS dd ON ra.driver_id = dd.driver_id
 LEFT JOIN
     dim_constructors AS dc_con
     ON ra.constructor_id = dc_con.constructor_id

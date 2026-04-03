@@ -92,14 +92,14 @@ clean_panel AS (
         - COALESCE(fp.field_pace_smoothed_s, f.lap_time_s) AS pace_delta_s,
         g.lap_in_stint
     FROM fuel AS f
-    JOIN geom AS g USING (lap_id)
-    JOIN laps_meta AS lm USING (lap_id)
+    INNER JOIN geom AS g ON f.lap_id = g.lap_id
+    INNER JOIN laps_meta AS lm ON f.lap_id = lm.lap_id
     LEFT JOIN field_pace AS fp
         ON
             f.race_year = fp.race_year
             AND f.race_id = fp.race_id
             AND f.lap_number = fp.lap_number
-    LEFT JOIN corrections AS cor USING (lap_id)
+    LEFT JOIN corrections AS cor ON f.lap_id = cor.lap_id
     LEFT JOIN evolution AS e
         ON
             f.race_year = e.race_year
@@ -176,5 +176,6 @@ SELECT
     NULL AS r_squared_within,
     CAST(CURRENT_TIMESTAMP AS VARCHAR) AS fit_timestamp
 FROM constructor_agg AS ca
-JOIN race_mean AS rm USING (race_year, race_id)
+INNER JOIN race_mean AS rm
+    ON ca.race_year = rm.race_year AND ca.race_id = rm.race_id
 ORDER BY ca.race_year DESC, ca.race_id ASC, ca.constructor_id ASC

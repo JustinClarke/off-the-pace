@@ -39,7 +39,7 @@ lap_keys AS (
         sg.lap_number,
         sl.constructor_id
     FROM {{ ref('int_stint_geometry') }} AS sg
-    JOIN {{ ref('stg_laps') }} AS sl USING (lap_id)
+    INNER JOIN {{ ref('stg_laps') }} AS sl ON sg.lap_id = sl.lap_id
 ),
 
 sector2_speed AS (
@@ -71,13 +71,13 @@ corners_with_keys AS (
         1.0 / NULLIF(s2.s2_speed_trap_kph * (1000.0 / 3600.0), 0) AS dt_per_dm,
         FLOOR(CAST(cm.lap_number AS DOUBLE) / 5.0) * 5.0 AS lap_window
     FROM corner_metrics AS cm
-    JOIN lap_keys AS lk
+    INNER JOIN lap_keys AS lk
         ON
             cm.race_year = lk.race_year
             AND cm.race_id = lk.race_id
             AND cm.driver_id = lk.driver_id
             AND cm.lap_number = lk.lap_number
-    LEFT JOIN sector2_speed AS s2 USING (lap_id)
+    LEFT JOIN sector2_speed AS s2 ON lk.lap_id = s2.lap_id
 ),
 
 field_medians AS (

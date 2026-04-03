@@ -96,7 +96,7 @@ with_shrinkage AS (
         / NULLIF(dso.n_races + 5, 0) AS rating_confidence
 
     FROM driver_season_obs AS dso
-    JOIN season_means AS sm USING (race_year)
+    INNER JOIN season_means AS sm ON dso.race_year = sm.race_year
     CROSS JOIN variance_components AS vc
 )
 

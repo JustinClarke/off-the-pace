@@ -38,7 +38,7 @@ clean_quali AS (
         -- model)
         q.lap_time_s - fp.session_median_s AS pace_delta_s
     FROM {{ ref('stg_laps_qualifying') }} AS q
-    JOIN field_pace AS fp
+    INNER JOIN field_pace AS fp
         ON
             q.race_year = fp.race_year
             AND q.race_id = fp.race_id
@@ -104,5 +104,6 @@ SELECT
     ca.n_obs AS panel_observations_n,
     CAST(CURRENT_TIMESTAMP AS VARCHAR) AS fit_timestamp
 FROM constructor_agg AS ca
-JOIN race_mean AS rm USING (race_year, race_id)
+INNER JOIN race_mean AS rm
+    ON ca.race_year = rm.race_year AND ca.race_id = rm.race_id
 ORDER BY ca.race_year DESC, ca.race_id ASC, ca.constructor_id ASC

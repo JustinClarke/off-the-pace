@@ -261,9 +261,9 @@ combined AS (
         cor.is_major_outlier_lap
 
     FROM fuel AS f
-    JOIN geom AS g USING (lap_id)
-    JOIN laps_meta AS lm USING (lap_id)
-    LEFT JOIN cliff AS c USING (lap_id)
+    INNER JOIN geom AS g ON f.lap_id = g.lap_id
+    INNER JOIN laps_meta AS lm ON f.lap_id = lm.lap_id
+    LEFT JOIN cliff AS c ON f.lap_id = c.lap_id
     LEFT JOIN field_pace AS fp
         ON
             f.race_year = fp.race_year
@@ -284,8 +284,8 @@ combined AS (
             f.race_year = cci.race_year
             AND f.race_id = cci.race_id
             AND lm.constructor_id = cci.constructor_id
-    LEFT JOIN dirty_air AS da USING (lap_id)
-    LEFT JOIN corrections AS cor USING (lap_id)
+    LEFT JOIN dirty_air AS da ON f.lap_id = da.lap_id
+    LEFT JOIN corrections AS cor ON f.lap_id = cor.lap_id
 ),
 
 with_residual AS (

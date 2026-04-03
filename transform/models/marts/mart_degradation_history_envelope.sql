@@ -57,9 +57,9 @@ WITH clean AS (
         lrd.age_in_stint,
         lrd.weight_corrected_lap_time AS wclt
     FROM {{ ref('int_lap_residual_decomposed') }} AS lrd
-    JOIN {{ ref('race_to_track') }} AS rt
+    INNER JOIN {{ ref('race_to_track') }} AS rt
         ON CAST(REPLACE(lrd.race_id, '_', '') AS INTEGER) = rt.race_id
-    JOIN {{ ref('dim_circuits') }} AS dc
+    INNER JOIN {{ ref('dim_circuits') }} AS dc
         ON rt.track_id = dc.circuit_key
     WHERE
         lrd.weight_corrected_lap_time IS NOT NULL
@@ -118,7 +118,12 @@ envelope AS (
         QUANTILE_CONT(l.wclt, 0.90)
         - r.ref_green_pace_s AS obs_deg_from_fresh_p90_s
     FROM laps AS l
-    JOIN ref AS r USING (circuit_id, era, compound)
+    INNER JOIN
+        ref AS r
+        ON
+            l.circuit_id = r.circuit_id
+            AND l.era = r.era
+            AND l.compound = r.compound
     GROUP BY l.circuit_id, l.era, l.compound, l.lap_in_stint, r.ref_green_pace_s
 )
 
@@ -146,12 +151,12 @@ SELECT
     COALESCE(iso.temp_headroom_c, 8.0) AS temp_headroom_c,
     COALESCE(iso.temp_penalty_s_per_deg, 0.010) AS temp_penalty_s_per_deg
 FROM envelope AS e
-JOIN circuit_name_map AS cnm USING (circuit_id)
+INNER JOIN circuit_name_map AS cnm ON e.circuit_id = cnm.circuit_id
 LEFT JOIN {{ source('fits', 'degradation_isotonic') }} AS iso
     ON
-        iso.circuit_id = e.circuit_id
-        AND iso.era = e.era
-        AND iso.compound = e.compound
-        AND iso.lap_in_stint = e.lap_in_stint
+        e.circuit_id = iso.circuit_id
+        AND e.era = iso.era
+        AND e.compound = iso.compound
+        AND e.lap_in_stint = iso.lap_in_stint
 WHERE e.n_observations >= 3
 ORDER BY e.circuit_id, e.era, e.compound, e.lap_in_stint

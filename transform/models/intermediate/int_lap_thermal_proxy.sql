@@ -42,7 +42,7 @@ combined AS (
         -- 60th percentile cut-off lap position (min 3 to have enough data)
         GREATEST(CEIL(g.stint_length_actual * 0.60), 3) AS baseline_cutoff_lap
     FROM geom AS g
-    JOIN laps AS l USING (lap_id)
+    INNER JOIN laps AS l ON g.lap_id = l.lap_id
 ),
 
 -- Pre-aggregate median over baseline window (laps ≤ cutoff) per stint.
@@ -63,7 +63,7 @@ with_baseline AS (
         c.*,
         s.stint_baseline_pace
     FROM combined AS c
-    JOIN stint_baseline_agg AS s USING (stint_id)
+    INNER JOIN stint_baseline_agg AS s ON c.stint_id = s.stint_id
 ),
 
 with_residual AS (

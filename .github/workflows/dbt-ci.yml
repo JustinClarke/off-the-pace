@@ -76,6 +76,16 @@ jobs:
             --target ci \
             --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
 
+      # Byte-stability oracle: fail if any fct_* mart output drifted vs the committed
+      # baseline (transform/tests/model_hashes.baseline.json). Guards against cosmetic /
+      # lint changes silently moving model output. duckdb is pinned in requirements.txt so
+      # the float-content hashes match the baseline. Regenerate the baseline (make
+      # lint-oracle-snapshot) when model logic changes intentionally. See work.md §6 Phase F.
+      - name: Gate 1c   byte-stability oracle (fct_* output)
+        if: steps.fixture_check.outputs.fixtures_present == 'true'
+        working-directory: ./transform
+        run: python scripts/snapshot_model_hashes.py --check
+
       # Gate 2: Identity-closure gates   run singular tests in isolation so failures
       # surface as a distinct CI step with a clear label.  dbt build already fails on
       # test failures; this step provides structured JUnit output for PR annotations.

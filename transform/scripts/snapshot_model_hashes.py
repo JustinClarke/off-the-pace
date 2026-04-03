@@ -34,7 +34,12 @@ HERE = Path(__file__).resolve().parent
 TRANSFORM_ROOT = HERE.parent
 DEFAULT_DB = TRANSFORM_ROOT.parent / "data" / "ci.duckdb"
 DEFAULT_MANIFEST = TRANSFORM_ROOT / "target" / "manifest.json"
-DEFAULT_BASELINE = TRANSFORM_ROOT / "target" / "model_hashes.baseline.json"
+# Committed path (not target/, which is gitignored) so CI — which starts with no
+# target/ — can run `--check` against a baseline that travels with the repo. Treat
+# it like an approval/snapshot test: regenerate + commit it when model *logic*
+# changes intentionally; the check then guards against cosmetic edits silently
+# moving fct_* output. See work.md §6 Phase F.
+DEFAULT_BASELINE = TRANSFORM_ROOT / "tests" / "model_hashes.baseline.json"
 
 # Mandatory byte-stable subset: any drift here is a hard failure (work.md §5/§6.1).
 MANDATORY_PREFIX = "fct_"

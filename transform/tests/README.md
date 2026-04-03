@@ -32,6 +32,7 @@ closure checks are built on the [`assert_additive_identity`](../macros/assert_ad
 | `assert_cliff_hinge_centering.sql` | Fix 2: constructor cliff-onset hinge centring | `int_constructor_deg_sensitivity` | ✅ Active |
 | `assert_affinity_shrinkage_bounds.sql` | Shrinkage bounds (circuit affinity) | `int_driver_circuit_affinity` | ✅ Active |
 | `assert_era_rating_shrinkage_bounds.sql` | Shrinkage bounds (era rating) | `int_driver_season_ratings` | ✅ Active |
+| `assert_affinity_ci_brackets_mean.sql` | Credible interval brackets the posterior mean (`ci_low ≤ shrunk ≤ ci_high`) | `int_driver_circuit_affinity`, `int_driver_circuit_era_affinity` | ✅ Active |
 
 ## Domain Constraint Tests
 
@@ -43,6 +44,7 @@ closure checks are built on the [`assert_additive_identity`](../macros/assert_ad
 | `assert_field_pace_honest_range.sql` | Field pace curve stays within ±5s of the overall race median | `int_field_pace_curve` | ✅ Active |
 | `assert_mad_floor.sql` | MAD scale estimator is floored at 0.10s (prevents cliff self-masking) | `int_lap_anomaly_flags` | ✅ Active |
 | `assert_track_evolution_monotone.sql` | Rubber-in evolution is monotonically non-negative within a race | `int_track_evolution` | ✅ Active |
+| `assert_sc_hazard_probability_bounds.sql` | Per-lap SC/VSC/any hazard rates are valid probabilities in [0, 1] and `any` ≥ each component | `int_sc_hazard_history` | ✅ Active |
 | `assert_driver_skill_residual_reasonable.sql` | Driver-skill residual per race is centred near 0 (mean < ±1s) | `fct_lap_residuals` | ✅ Active |
 | `assert_raw_laps_has_both_sessions.sql` | Both race (`stg_laps`) and qualifying (`stg_laps_qualifying`) laps are present with data | `stg_laps`, `stg_laps_qualifying` | ✅ Active |
 | `assert_p_beats_next_geq_half.sql` | Fix 3 pairwise consistency: `p_beats_next` ≥ 0.5 for adjacently-ranked drivers (ranked by ascending predicted pace) | `fct_ghost_race_finish` | ✅ Active |
@@ -60,6 +62,23 @@ included, so they pass vacuously until a snapshot is generated.
 |---|---|---|---|
 | `assert_constructor_pace_propagates.sql` | `constructor_component_s` must reduce variance in `driver_skill_residual_s` vs the pre-release baseline | `fct_lap_residuals`, `int_constructor_structural_pace` | ⏸️ Inert |
 | `assert_residual_variance_shrinks.sql` | `driver_skill_residual_s` variance must not regress vs the baseline snapshot (SHA `7d4a58f`) | `fct_lap_residuals` | ⏸️ Inert |
+
+## Lint & byte-stability gate
+
+`sqlfluff lint models/` is a **genuinely enforcing** hard-fail gate (CI + `make
+transform-check`). It connects to the checked-in dbt profile via `.sqlfluff`
+(`profiles_dir = profiles`, `target = ci`), so the dbt templater renders models the
+same way locally and in CI. The only excluded model is `fct_ghost_race_finish.sql`
+(`.sqlfluffignore`) — it exceeds sqlfluff's parse-depth limit and is hand-maintained.
+
+Style fixes must not move model *output*. The **byte-stability oracle**
+(`scripts/snapshot_model_hashes.py`) enforces that: it computes an order-independent
+content hash of every materialized model and hard-fails (`--check`) if any `fct_*`
+mart drifts from the committed baseline (`tests/model_hashes.baseline.json`). `duckdb`
+is pinned in `requirements.txt` so the float-content hashes match across environments.
+Treat the baseline like an approval test: when model *logic* changes intentionally,
+regenerate it with `make lint-oracle-snapshot` and commit. The gate runs as CI
+"Gate 1c" and in `make transform-check`.
 
 ## Fixtures
 

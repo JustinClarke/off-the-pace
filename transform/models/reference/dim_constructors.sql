@@ -15,29 +15,31 @@ teams AS (
 
 -- PU family mapping: manually maintained until an external seed is built
 pu_mapping AS (
-    SELECT * FROM (VALUES
-        ('Mercedes',          'mercedes_pu'),
-        ('Red Bull Racing',   'honda_pu'),
-        ('Ferrari',           'ferrari_pu'),
-        ('McLaren',           'mercedes_pu'),
-        ('Alpine',            'renault_pu'),
-        ('Aston Martin',      'mercedes_pu'),
-        ('AlphaTauri',        'honda_pu'),
-        ('Alfa Romeo',        'ferrari_pu'),
-        ('Haas F1 Team',      'ferrari_pu'),
-        ('Williams',          'mercedes_pu'),
-        ('Racing Point',      'mercedes_pu'),
-        ('Renault',           'renault_pu'),
-        ('Toro Rosso',        'honda_pu'),
-        ('Force India',       'mercedes_pu'),
-        ('Sauber',            'ferrari_pu'),
-        ('RB',                'honda_pu')
-    ) AS t(team_name, pu_family)
+    SELECT * FROM (
+        VALUES
+        ('Mercedes', 'mercedes_pu'),
+        ('Red Bull Racing', 'honda_pu'),
+        ('Ferrari', 'ferrari_pu'),
+        ('McLaren', 'mercedes_pu'),
+        ('Alpine', 'renault_pu'),
+        ('Aston Martin', 'mercedes_pu'),
+        ('AlphaTauri', 'honda_pu'),
+        ('Alfa Romeo', 'ferrari_pu'),
+        ('Haas F1 Team', 'ferrari_pu'),
+        ('Williams', 'mercedes_pu'),
+        ('Racing Point', 'mercedes_pu'),
+        ('Renault', 'renault_pu'),
+        ('Toro Rosso', 'honda_pu'),
+        ('Force India', 'mercedes_pu'),
+        ('Sauber', 'ferrari_pu'),
+        ('RB', 'honda_pu')
+    -- the t(...) column-list alias names the VALUES columns; load-bearing
+    ) AS t (team_name, pu_family)  -- noqa: AL05
 )
 
 SELECT
-    t.team_name                         AS constructor_id,
+    t.team_name AS constructor_id,
     COALESCE(p.pu_family, 'unknown_pu') AS pu_family
-FROM teams t
-LEFT JOIN pu_mapping p USING (team_name)
+FROM teams AS t
+LEFT JOIN pu_mapping AS p USING (team_name)
 ORDER BY constructor_id

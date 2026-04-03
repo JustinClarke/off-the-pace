@@ -1,4 +1,5 @@
--- Circuit × constructor interaction model: Circuit × constructor interaction term.
+-- Circuit × constructor interaction model: Circuit × constructor interaction
+-- term.
 -- Some constructors are systematically faster at specific circuits beyond their
 -- season-average coefficient (e.g., Ferrari at Monza due to low-drag trim).
 -- This model estimates that circuit-specific bonus/penalty using EW-smoothed
@@ -36,8 +37,8 @@ with_circuit AS (
         cp.constructor_structural_pace_s,
         cp.panel_observations_n,
         rm.circuit_key
-    FROM constructor_pace cp
-    LEFT JOIN race_map rm ON cp.race_id = rm.race_id
+    FROM constructor_pace AS cp
+    LEFT JOIN race_map AS rm ON cp.race_id = rm.race_id
 ),
 
 -- Season-average constructor coefficient (to compute deviation)
@@ -58,13 +59,14 @@ circuit_constructor_obs AS (
         wc.race_year,
         wc.race_id,
         -- Deviation of this race from the season average for this constructor
-        wc.constructor_structural_pace_s-COALESCE(csa.season_avg_pace_s, 0.0)
+        wc.constructor_structural_pace_s - COALESCE(csa.season_avg_pace_s, 0.0)
             AS pace_circuit_deviation_s,
         wc.panel_observations_n
-    FROM with_circuit wc
-    LEFT JOIN constructor_season_avg csa
-        ON wc.race_year = csa.race_year
-        AND wc.constructor_id = csa.constructor_id
+    FROM with_circuit AS wc
+    LEFT JOIN constructor_season_avg AS csa
+        ON
+            wc.race_year = csa.race_year
+            AND wc.constructor_id = csa.constructor_id
 ),
 
 -- Shrinkage: Bayesian posterior of circuit-constructor deviation toward 0
@@ -72,9 +74,9 @@ circuit_constructor_agg AS (
     SELECT
         constructor_id,
         circuit_key,
-        COUNT(*)                                       AS n_obs,
-        AVG(pace_circuit_deviation_s)                  AS observed_mean_s,
-        STDDEV_POP(pace_circuit_deviation_s)           AS observed_std_s
+        COUNT(*) AS n_obs,
+        AVG(pace_circuit_deviation_s) AS observed_mean_s,
+        STDDEV_POP(pace_circuit_deviation_s) AS observed_std_s
     FROM circuit_constructor_obs
     GROUP BY constructor_id, circuit_key
 ),
@@ -83,7 +85,8 @@ with_shrinkage AS (
     SELECT
         *,
         -- Bayesian shrinkage toward 0: prior_weight = 3 (weak prior)
-        (n_obs * observed_mean_s) / NULLIF(n_obs + 3.0, 0)  AS shrunk_interaction_s
+        (n_obs * observed_mean_s)
+        / NULLIF(n_obs + 3.0, 0) AS shrunk_interaction_s
     FROM circuit_constructor_agg
 )
 
@@ -93,16 +96,17 @@ SELECT
         CAST(wc.race_year AS VARCHAR), '_',
         wc.race_id, '_',
         wc.constructor_id
-    )                                                        AS constructor_race_id,
+    ) AS constructor_race_id,
     wc.race_year,
     wc.race_id,
     wc.constructor_id,
     wc.circuit_key,
-    COALESCE(ws.shrunk_interaction_s, 0.0)                  AS circuit_constructor_interaction_s,
-    COALESCE(ws.n_obs, 0)                                   AS interaction_obs_n,
-    COALESCE(ws.observed_std_s, 0.0)                        AS interaction_se_s
-FROM with_circuit wc
-LEFT JOIN with_shrinkage ws
-    ON wc.constructor_id = ws.constructor_id
-    AND wc.circuit_key   = ws.circuit_key
+    COALESCE(ws.shrunk_interaction_s, 0.0) AS circuit_constructor_interaction_s,
+    COALESCE(ws.n_obs, 0) AS interaction_obs_n,
+    COALESCE(ws.observed_std_s, 0.0) AS interaction_se_s
+FROM with_circuit AS wc
+LEFT JOIN with_shrinkage AS ws
+    ON
+        wc.constructor_id = ws.constructor_id
+        AND wc.circuit_key = ws.circuit_key
 ORDER BY wc.race_year, wc.race_id, wc.constructor_id

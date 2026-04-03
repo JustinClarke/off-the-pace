@@ -1,25 +1,31 @@
--- Driver circuit affinity model: Driver × circuit affinity via Bayesian shrinkage.
+-- Driver circuit affinity model: Driver × circuit affinity via Bayesian
+-- shrinkage.
 --
 -- For each (driver, circuit) pair, computes a shrunk residual estimate
 -- pulling the observed per-circuit mean toward the driver's global mean
 -- using the normal-normal conjugate posterior (prior_weight = 5 virtual races).
 --
--- Identification: within-driver, between-circuit variation. Same driver observed
--- at the same circuit across multiple seasons. The shrinkage framework separates
+-- Identification: within-driver, between-circuit variation. Same driver
+-- observed
+-- at the same circuit across multiple seasons. The shrinkage framework
+-- separates
 -- systematic circuit affinity from single-race variance.
 --
 -- Output grain: (driver_id, circuit_key). One row per driver-circuit pair.
 -- PK: driver_circuit_id (surrogate hash).
 --
--- Sign convention: negative _s = faster than driver's mean (same as driver_skill_residual_s).
+-- Sign convention: negative _s = faster than driver's mean (same as
+-- driver_skill_residual_s).
 -- affinity_confidence: n_obs / (n_obs + prior_weight) in [0, 1].
---   Values below ~0.17 (1 race, prior_weight=5) mean posterior is prior-dominated.
+--   Values below ~0.17 (1 race, prior_weight=5) mean posterior is
+--   prior-dominated.
 
 {{ config(materialized='table', tags=['driver_rating', 'driver_affinity']) }}
 
 WITH driver_race AS (
     -- Metric 1 source: de-confounded LORO equal-car skill (was
-    -- fct_driver_skill_features.driver_residual_mean_s). Aliased to the old name so the
+    -- fct_driver_skill_features.driver_residual_mean_s). Aliased to the old
+    -- name so the
     -- shrinkage logic below is unchanged. See int_driver_race_skill_loro.
     SELECT
         driver_id,
@@ -29,8 +35,9 @@ WITH driver_race AS (
         driver_skill_loro_s AS driver_residual_mean_s,
         clean_lap_count
     FROM {{ ref('int_driver_race_skill_loro') }}
-    WHERE driver_skill_loro_s IS NOT NULL
-      AND circuit_key         IS NOT NULL
+    WHERE
+        driver_skill_loro_s IS NOT NULL
+        AND circuit_key IS NOT NULL
 ),
 
 -- Per (driver, circuit): observed mean and sample count
@@ -38,11 +45,11 @@ driver_circuit_obs AS (
     SELECT
         driver_id,
         circuit_key,
-        COUNT(*)                          AS n_obs,
-        COUNT(DISTINCT race_year)         AS seasons_observed_n,
-        AVG(driver_residual_mean_s)       AS raw_affinity_s,
-        STDDEV(driver_residual_mean_s)    AS within_cell_stddev_s,
-        SUM(clean_lap_count)              AS total_clean_laps
+        COUNT(*) AS n_obs,
+        COUNT(DISTINCT race_year) AS seasons_observed_n,
+        AVG(driver_residual_mean_s) AS raw_affinity_s,
+        STDDEV(driver_residual_mean_s) AS within_cell_stddev_s,
+        SUM(clean_lap_count) AS total_clean_laps
     FROM driver_race
     GROUP BY driver_id, circuit_key
 ),
@@ -51,9 +58,9 @@ driver_circuit_obs AS (
 driver_global AS (
     SELECT
         driver_id,
-        AVG(driver_residual_mean_s)    AS global_driver_mean_s,
+        AVG(driver_residual_mean_s) AS global_driver_mean_s,
         STDDEV(driver_residual_mean_s) AS global_driver_stddev_s,
-        COUNT(*)                       AS total_race_n
+        COUNT(*) AS total_race_n
     FROM driver_race
     GROUP BY driver_id
 ),
@@ -64,7 +71,7 @@ driver_global AS (
 variance_components AS (
     SELECT
         AVG(POWER(COALESCE(within_cell_stddev_s, 0), 2)) AS sigma2_residual,
-        STDDEV(raw_affinity_s)                            AS sigma_prior_approx
+        STDDEV(raw_affinity_s) AS sigma_prior_approx
     FROM driver_circuit_obs
 ),
 
@@ -95,16 +102,16 @@ with_shrinkage AS (
 
         -- Confidence: fraction of posterior mass from data vs prior
         CAST(dco.n_obs AS DOUBLE)
-            / NULLIF(dco.n_obs + 5, 0)    AS affinity_confidence
+        / NULLIF(dco.n_obs + 5, 0) AS affinity_confidence
 
-    FROM driver_circuit_obs dco
-    JOIN driver_global      dg  USING (driver_id)
-    CROSS JOIN variance_components vc
+    FROM driver_circuit_obs AS dco
+    JOIN driver_global AS dg USING (driver_id)
+    CROSS JOIN variance_components AS vc
 )
 
 SELECT
     {{ dbt_utils.generate_surrogate_key(['driver_id', 'circuit_key']) }}
-                                        AS driver_circuit_id,
+        AS driver_circuit_id,
     driver_id,
     circuit_key,
     n_obs,
@@ -113,16 +120,16 @@ SELECT
     shrunk_affinity_s,
 
     -- Posterior SE and 95% CI
-    SQRT(NULLIF(posterior_var_s2, 0))   AS shrunk_affinity_se_s,
-    shrunk_affinity_s-1.96 * SQRT(NULLIF(posterior_var_s2, 0))
-                                        AS shrunk_affinity_ci_low_s,
+    SQRT(NULLIF(posterior_var_s2, 0)) AS shrunk_affinity_se_s,
+    shrunk_affinity_s - 1.96 * SQRT(NULLIF(posterior_var_s2, 0))
+        AS shrunk_affinity_ci_low_s,
     shrunk_affinity_s + 1.96 * SQRT(NULLIF(posterior_var_s2, 0))
-                                        AS shrunk_affinity_ci_high_s,
+        AS shrunk_affinity_ci_high_s,
 
     affinity_confidence,
 
     -- Shrinkage bounds identity check columns (for singular test)
-    LEAST(raw_affinity_s, global_driver_mean_s)    AS _shrinkage_lower_bound,
+    LEAST(raw_affinity_s, global_driver_mean_s) AS _shrinkage_lower_bound,
     GREATEST(raw_affinity_s, global_driver_mean_s) AS _shrinkage_upper_bound
 
 FROM with_shrinkage

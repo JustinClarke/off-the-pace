@@ -8,13 +8,13 @@ WITH seed AS (
 )
 
 SELECT
-    CONCAT(race_id, '_', event_id)      AS stg_event_id,
+    CONCAT(race_id, '_', event_id) AS stg_event_id,
     event_id,
     race_id,
-    affects_driver                      AS driver_id,
+    affects_driver AS driver_id,
     event_type,
-    CAST(magnitude_estimate AS DOUBLE)  AS event_severity,
-    'manual'                            AS source,
+    CAST(magnitude_estimate AS DOUBLE) AS event_severity,
+    'manual' AS source,
     CAST(is_performance_event AS BOOLEAN) AS is_performance_impact,
     CAST(is_reliability_event AS BOOLEAN) AS is_reliability_impact
 FROM seed

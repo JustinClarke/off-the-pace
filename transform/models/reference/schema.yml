@@ -28,8 +28,9 @@ models:
         description: Circuit lap length in kilometers
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 2
-              max_value: 8
+              arguments:
+                min_value: 2
+                max_value: 8
 
   - name: dim_compounds_season
     description: >

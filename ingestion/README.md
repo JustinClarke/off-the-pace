@@ -26,7 +26,7 @@ Pick the smallest scope that fits your task most contributors never need a full 
 | **Experimenting with dbt SQL transforms** | Test fixtures only | 0 min | – | `make dbt-dev` (uses `transform/tests/fixtures/bronze/`) |
 | **Scale-testing transforms, validation before PR** | Recent seasons (2023–2024) | ~15 min | ~200 MB | `make ingest-recent` |
 | **Full feature verification, ML training** | All 168 races (2018–2024) | 30–45 min | ~2 GB | `make ingest-all` |
-| **Single race smoke test** | One race only | 2–5 min | ~200 MB | `python src/ingest.py --season 2024 --round 1 --session R` |
+| **Single race smoke test** | One race only | 2–5 min | ~100 MB | `python src/ingest.py --season 2024 --round 1 --session R` |
 | **Ingestion development** | Verify one race, run offline tests | <5 s | – | `pytest tests/ -v` (no network) |
 
 **Default:** most contributors start with fixtures for SQL work, then run `make ingest-recent` to validate their dbt changes scale. The full `make ingest-all` is optional unless working on ML models or verification.
@@ -34,7 +34,7 @@ Pick the smallest scope that fits your task most contributors never need a full 
 ## 3. Ingest
 
 ```bash
-python src/ingest.py --season 2024 --round 1 --session R   # single race (~200 MB, 2–5 min)
+python src/ingest.py --season 2024 --round 1 --session R   # single race (~100 MB, 2–5 min)
 python src/ingest.py --season 2024 --session both --force  # full season (~2 GB, 30–45 min)
 pytest tests/ -v                                            # offline tests (no network, <5 s)
 ```
@@ -71,6 +71,19 @@ make verify-bronze   # or: python verify_bronze.py
 
 Only seasons present on disk are checked, so it works after a partial
 `make ingest-recent` as well as a full `make ingest-all`. Exits non-zero if anything is off.
+
+Two companion views read what each run recorded:
+
+```bash
+make manifest-report                 # last-run status per session + schema-drift across runs
+python verify_bronze.py --markdown   # regenerate the Bronze Coverage table below from disk
+```
+
+`manifest-report` turns the per-run manifests (`data/bronze/manifests/run_<id>.parquet`)
+into observability: it surfaces the latest `ok`/`skip`/`error` per session and flags any
+change in a dataset's schema fingerprint between runs (FastF1 column drift). The
+`--markdown` mode of `verify_bronze.py` emits the coverage table straight from the files
+on disk, so the docs stay honest instead of being hand-maintained.
 
 ## 6. Next: build features
 
@@ -112,6 +125,10 @@ FastF1 API → src/ingest.py → data/bronze/<dataset>/season=YYYY/race=<slug>/
 ```
 
 Output feeds directly into `transform/` (dbt Silver layer).
+
+For the design decisions behind this layout — why Bronze is dumb, why append-only,
+why schema fingerprinting, the retry/backoff contract and DQ severity tiers — see
+[DESIGN.md](DESIGN.md).
 
 ## Bronze Coverage
 

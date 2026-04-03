@@ -27,5 +27,6 @@
 --     and decoupled sector medians.
 -- 
 -- Gate: PASSIVE / INFORMATION ONLY (Placeholder test)
+{{ config(tags=['placeholder']) }}
 
 SELECT 1 WHERE FALSE

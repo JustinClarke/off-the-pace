@@ -109,6 +109,19 @@ def test_cli_force_and_skip_telemetry():
     assert args.skip_telemetry is True
 
 
+def test_cli_round_single_race():
+    parser = ingest._build_parser()
+    args = parser.parse_args(["-s", "2024", "--round", "1", "--session", "R"])
+    assert args.season == 2024
+    assert args.round == 1
+
+
+def test_cli_round_defaults_none():
+    parser = ingest._build_parser()
+    args = parser.parse_args(["-s", "2024"])
+    assert args.round is None
+
+
 def test_cli_mutually_exclusive_season_args():
     """--season and --start-season cannot both be specified."""
     parser = ingest._build_parser()
@@ -375,6 +388,24 @@ def test_ingest_season_counts_correctly(tmp_path, monkeypatch):
     assert counts["Q_skip"] == 1
     assert counts["Q_ok"] == 1
     assert len(rows) == 4  # 2 races + 2 quali
+
+
+def test_ingest_season_only_round_filters(tmp_path, monkeypatch):
+    """only_round must restrict ingestion to the single matching round."""
+    monkeypatch.setattr(ingest, "LAPS_DIR", tmp_path / "laps")
+    monkeypatch.setattr(ingest, "MANIFESTS_DIR", tmp_path / "manifests")
+
+    schedule = _make_schedule_df([(1, "Bahrain Grand Prix"), (2, "Saudi Arabian Grand Prix")])
+
+    with patch("ingest._with_retry", return_value=schedule), \
+         patch("ingest.ingest_race", return_value=("ok", {})) as mock_race, \
+         patch("ingest.ingest_qualifying", return_value=("ok", {})) as mock_quali:
+        ingest.ingest_season(2024, sessions="both", force=False, skip_telemetry=True, only_round=2)
+
+    # Only round 2 attempted   round 1 filtered out
+    assert mock_race.call_count == 1
+    assert mock_quali.call_count == 1
+    assert mock_race.call_args.args[1] == 2  # round_num positional arg
 
 
 def test_ingest_season_schedule_failure_returns_empty(tmp_path, monkeypatch):

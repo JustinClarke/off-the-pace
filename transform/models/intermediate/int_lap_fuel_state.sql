@@ -56,14 +56,14 @@ combined AS (
         r.race_lap_count,
         -- Initial fuel = race_lap_count × consumption × safety_factor (1.0)
         r.race_lap_count * c.fuel_consumption_rate_kg_per_lap AS initial_fuel_kg
-    FROM geom g
-    JOIN laps l
+    FROM geom AS g
+    JOIN laps AS l
         ON g.lap_id = l.lap_id
-    JOIN race_map rm
+    JOIN race_map AS rm
         ON g.race_id = rm.race_id
-    JOIN circuits c
+    JOIN circuits AS c
         ON rm.track_id = c.circuit_key
-    JOIN race_lap_counts r
+    JOIN race_lap_counts AS r
         ON g.race_year = r.race_year AND g.race_id = r.race_id
 ),
 
@@ -72,11 +72,13 @@ with_fuel AS (
         *,
         -- Fuel remaining at start of this lap (lap 1 = full tank)
         GREATEST(
-            initial_fuel_kg-fuel_consumption_rate_kg_per_lap * (lap_number-1),
+            initial_fuel_kg
+            - fuel_consumption_rate_kg_per_lap * (lap_number - 1),
             0.0
         ) AS fuel_mass_kg,
         -- Expected fuel consumed by this lap
-        fuel_consumption_rate_kg_per_lap * lap_number AS expected_fuel_consumed_kg
+        fuel_consumption_rate_kg_per_lap
+        * lap_number AS expected_fuel_consumed_kg
     FROM combined
 )
 
@@ -89,8 +91,11 @@ SELECT
     lap_number,
     lap_time_s,
     fuel_mass_kg,
-    fuel_mass_kg * weight_penalty_factor                        AS weight_penalty_s,
-    lap_time_s-(fuel_mass_kg * weight_penalty_factor)         AS weight_corrected_lap_time,
-    -- Positive = lap consumed more fuel than model expects (lift-and-coast → negative delta)
-    (initial_fuel_kg-fuel_mass_kg)-expected_fuel_consumed_kg AS fuel_delta_vs_expected
+    fuel_mass_kg * weight_penalty_factor AS weight_penalty_s,
+    lap_time_s
+    - (fuel_mass_kg * weight_penalty_factor) AS weight_corrected_lap_time,
+    -- Positive = lap consumed more fuel than model expects (lift-and-coast →
+    -- negative delta)
+    (initial_fuel_kg - fuel_mass_kg)
+    - expected_fuel_consumed_kg AS fuel_delta_vs_expected
 FROM with_fuel

@@ -12,7 +12,7 @@ Validates that an additive decomposition identity holds: `total = sum(components
 
 **Example:**
 ```sql
--- In tests/assert_lap_residual_identity.sql
+-- In tests/assert_lap_7term_identity.sql
 {{ assert_additive_identity(
      ref('int_lap_residual_decomposed'),
      'pace_delta_s',
@@ -118,12 +118,53 @@ JOIN dim_compounds_season
 
 ---
 
+### `circuit_id_from_name(name_col)`
+
+Derives a stable physical-circuit identifier by slugifying a circuit's display name
+(`lower` → non-alphanumerics to `_` → trimmed). The seed key (`circuit_key`) is really a
+grand-prix/event slug, so one physical venue can carry several keys (renamed events,
+double-headers). Slugifying `circuit_name` collapses those into one `circuit_id` so an
+"equal-car track record at a circuit" pools all races run at the same venue.
+
+**Used by:** `int_driver_circuit_era_affinity` and `mart_degradation_history_envelope`
+(physical-circuit grain).
+
+**Example:**
+```sql
+SELECT
+  {{ circuit_id_from_name('circuit_name') }} AS circuit_id,
+  circuit_name
+FROM dim_circuits
+```
+
+---
+
+### `normal_cdf(x)`
+
+Standard normal CDF Φ(x). DuckDB has no `erf`/normal-CDF builtin, so this inlines the
+Zelen & Severo rational approximation (Abramowitz & Stegun 26.2.17), max absolute error
+~7.5e-8 over the whole real line. Pass a simple column or scalar expression (it is inlined
+several times, so avoid an expensive sub-expression).
+
+**Used by:** `fct_ghost_race_finish` (Fix 3 SE propagation: `p_beats_next`, finish-position
+probabilities).
+
+**Example:**
+```sql
+SELECT
+  driver_id,
+  {{ normal_cdf('pace_gap_s / pace_gap_se_s') }} AS p_beats_next
+FROM ranked_pairs
+```
+
+---
+
 ## Future Candidates
 
 Patterns that appear in 3+ models but are not yet extracted to macros:
 
-- **Nanosecond-to-seconds cast** (`CAST(x AS DOUBLE) / 1e9`)-used in `stg_laps`, `stg_weather`, `stg_telemetry`
-- **Trailing-N-lap window bounds** (`ROWS BETWEEN N PRECEDING AND CURRENT ROW`)-currently hard-coded in several intermediate models
-- **Exponential moving average** (EW smoothing with configurable τ)-used in `int_lap_air_state`, `int_lap_thermal_proxy`
+- **Nanosecond-to-seconds cast** (`CAST(x AS DOUBLE) / 1e9`)  -  used in `stg_laps`, `stg_weather`, `stg_telemetry`
+- **Trailing-N-lap window bounds** (`ROWS BETWEEN N PRECEDING AND CURRENT ROW`)  -  currently hard-coded in several intermediate models
+- **Exponential moving average** (EW smoothing with configurable τ)  -  used in `int_lap_air_state`, `int_lap_thermal_proxy`
 
 These will be extracted when they repeat across 3+ models or when a subsequent refactoring makes the pattern frequency obvious.

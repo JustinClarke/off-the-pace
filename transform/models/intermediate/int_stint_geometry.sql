@@ -1,6 +1,7 @@
 -- Layer 03: Foundation for all downstream window functions.
 -- Partition key for all physics-layer windows is `stint_id`, not lap_number.
--- age_in_stint uses tyre_life (may exceed lap_in_stint if set used in qualifying).
+-- age_in_stint uses tyre_life (may exceed lap_in_stint if set used in
+-- qualifying).
 {{ config(materialized='table') }}
 
 WITH laps AS (
@@ -12,9 +13,9 @@ with_stint_id AS (
     SELECT
         *,
         CONCAT(
-            CAST(race_year    AS VARCHAR), '_',
-            CAST(race_id      AS VARCHAR), '_',
-            CAST(driver_id    AS VARCHAR), '_',
+            CAST(race_year AS VARCHAR), '_',
+            CAST(race_id AS VARCHAR), '_',
+            CAST(driver_id AS VARCHAR), '_',
             CAST(stint_number AS VARCHAR)
         ) AS stint_id,
 
@@ -43,10 +44,11 @@ SELECT
     lap_number,
     stint_number,
     lap_in_stint,
-    tyre_life                           AS age_in_stint,
-    compound                            AS compound_in_stint,
-    -- compound_code (C1–C5) is circuit-specific; populated once stg_tyre_allocations is ingested
-    NULL::VARCHAR                       AS compound_code,
+    tyre_life AS age_in_stint,
+    compound AS compound_in_stint,
+    -- compound_code (C1–C5) is circuit-specific; populated once
+    -- stg_tyre_allocations is ingested
+    CAST(NULL AS VARCHAR) AS compound_code,
     stint_length_actual,
-    NULL::BOOLEAN                       AS planned_vs_actual_flag
+    CAST(NULL AS BOOLEAN) AS planned_vs_actual_flag
 FROM with_stint_length

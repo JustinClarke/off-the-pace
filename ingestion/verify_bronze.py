@@ -7,7 +7,7 @@ Only seasons present on disk are checked, so this is safe to run after a
 partial backfill (e.g. `make ingest-recent`) as well as a full `make ingest-all`.
 """
 
-import json
+import argparse
 import sys
 import pandas as pd
 from pathlib import Path
@@ -32,12 +32,6 @@ EXPECTED_RACES = {
 
 # Expected datasets for each race
 EXPECTED_DATASETS = ["laps", "weather", "race_control", "telemetry"]
-
-# Known issues to account for
-KNOWN_ISSUES = {
-    "2018_round_01": "telemetry",  # Not covered in this run, but good to know
-    "2018_round_02": "telemetry",
-}
 
 
 def check_dataset_presence():
@@ -207,7 +201,40 @@ def check_row_counts():
                 print(f"  {dataset:15} ⚠️  no files found")
 
 
+def emit_coverage_markdown():
+    """
+    Emit the Bronze coverage table as markdown from what is actually on disk.
+
+    Self-updating docs: paste the output into ingestion/README.md instead of
+    hand-maintaining the coverage table (which drifts the moment data changes).
+    """
+    print("| Season | Laps | Weather | Race Control | Telemetry |")
+    print("|--------|------|---------|--------------|-----------|")
+    for season in sorted(EXPECTED_RACES.keys()):
+        season_dir = BRONZE_DIR / "laps" / f"season={season}"
+        if not season_dir.exists():
+            continue
+        race_dirs = [d for d in season_dir.iterdir() if d.is_dir()]
+        cells = []
+        for dataset in EXPECTED_DATASETS:
+            n = sum(
+                1 for rd in race_dirs
+                if (BRONZE_DIR / dataset / f"season={season}" / rd.name).exists()
+            )
+            cells.append(f"{n} ✓")
+        print(f"| {season} | " + " | ".join(cells) + " |")
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Verify Bronze layer integrity")
+    parser.add_argument("--markdown", action="store_true",
+                        help="Emit the coverage table as markdown (for docs) and exit")
+    args = parser.parse_args()
+
+    if args.markdown:
+        emit_coverage_markdown()
+        return 0
+
     print("\n🔍 BRONZE LAYER VERIFICATION (2018–2024)")
     print("="*80)
 

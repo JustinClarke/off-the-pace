@@ -8,4 +8,11 @@ off_the_pace:
     ci:
       type: duckdb
       path: '../data/ci.duckdb'
-      threads: 2
+      # threads: 1 (dbt model-level) + settings.threads: 1 (DuckDB intra-query) make the
+      # build byte-reproducible run-to-run, which the lint byte-stability oracle requires.
+      # DuckDB's internal thread count is the one that matters: non-associative float
+      # aggregation reorders across intra-query threads, drifting fct_* output. dbt's own
+      # `threads:` only controls model concurrency, not this. See work.md §6.
+      threads: 1
+      settings:
+        threads: 1

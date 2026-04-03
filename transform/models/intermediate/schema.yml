@@ -87,30 +87,38 @@ models:
         description: Fraction of the lap at full throttle (0–1)
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 1
-              where: "pct_full_throttle is not null"
+              arguments:
+                min_value: 0
+                max_value: 1
+              config:
+                where: "pct_full_throttle is not null"
       - name: pct_drs_active
         description: Fraction of the lap with DRS active (0–1)
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 1
-              where: "pct_drs_active is not null"
+              arguments:
+                min_value: 0
+                max_value: 1
+              config:
+                where: "pct_drs_active is not null"
       - name: traction_wheelspin_proxy
         description: Share of corner-exit full-throttle samples with non-positive accel (0–1)
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 1
-              where: "traction_wheelspin_proxy is not null"
+              arguments:
+                min_value: 0
+                max_value: 1
+              config:
+                where: "traction_wheelspin_proxy is not null"
       - name: lift_coast_share
         description: Off-throttle, non-braking, decelerating share of the lap (0–1)
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 1
-              where: "lift_coast_share is not null"
+              arguments:
+                min_value: 0
+                max_value: 1
+              config:
+                where: "lift_coast_share is not null"
 
   - name: int_compound_cliff_predicted
     description: >
@@ -156,13 +164,6 @@ models:
       - name: lap_number
         description: Lap number within race
         tests: [not_null]
-
-  - name: int_constructor_pace_index
-    description: >
-      DEPRECATED (Causal decomposition, 2026-05-26). Moved to models/_legacy/. Superseded by
-      int_constructor_structural_pace (#6). No longer consumed by int_lap_residual_decomposed
-      or fct_driver_skill_features. Retained in _legacy/ for reference.
-    tags: [intermediate, legacy]
 
   - name: int_synthetic_teammate
     description: >
@@ -240,13 +241,6 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
-
-  - name: int_stint_metrics
-    description: >
-      DEPRECATED (2026-05-21). Superseded by fct_driver_skill_features and fct_cliff_prediction_features.
-      Retained for backwards compatibility with early demos. Will be removed after 06_app migration.
-      One row per stint. Aggregates lap residuals to stint grain for quick performance analysis.
-    tags: [intermediate, legacy]
 
   - name: int_constructor_car_fe
     description: >
@@ -570,7 +564,7 @@ models:
               arguments:
                 values: ['fuel', 'compound', 'rubber', 'ambient', 'constructor', 'dirty_air']
 
-  - name: int_corner_residuals
+  - name: int_corner_skill_residuals
     description: >
       One row per lap per named corner. Decomposes corner skill into braking, mid-corner,
       and exit phases relative to field median (5-lap rolling window). Grain: (lap_id, corner_name).
@@ -684,7 +678,8 @@ models:
         description: Strategy classification.
         tests:
           - accepted_values:
-              values: ['optimal', 'overran', 'undercut_forced', 'early', 'unknown']
+              arguments:
+                values: ['optimal', 'overran', 'undercut_forced', 'early', 'unknown']
               config:
                 where: "strategy_verdict IS NOT NULL"
       - name: optimal_pit_lap_confidence
@@ -733,7 +728,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['surface_driven', 'bulk_driven', 'mixed']
+              arguments:
+                values: ['surface_driven', 'bulk_driven', 'mixed']
       - name: recovery_probability
         description: Probability of pace recovery within 2 laps. [0, 1]. SQL approximation.
         tests:

@@ -10,7 +10,13 @@ on:
       - 'ml/**'
       - 'app/**'
       - 'infra/**'
-      - '.github/**'
+      - '.github/CONTRIBUTING.md'
+      - '.github/CONVENTIONS.md'
+      - '.github/DATA_PIPELINE.md'
+      - '.github/DEPLOYMENT.md'
+      - '.github/OBSERVABILITY.md'
+      - '.github/PERFORMANCE.md'
+      - '.github/SECURITY.md'
       - 'README.md'
       - '**.py'
       - '**.ts'
@@ -22,6 +28,8 @@ on:
 jobs:
   validate:
     name: Mintlify validation
+    # Dependency bumps never change documentation content.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,11 +50,12 @@ jobs:
 
   docs-audit:
     name: Docs audit (README presence + tour footers + file headers)
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -55,11 +64,12 @@ jobs:
 
   docs-facts:
     name: Headline-count reconciliation
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -68,6 +78,7 @@ jobs:
 
   lint-comments:
     name: Banned planning/history language check
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,11 +95,12 @@ jobs:
 
   docs-app-audit:
     name: App feature-page coverage
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -99,11 +111,12 @@ jobs:
 
   bronze-coverage-drift:
     name: Bronze coverage snippet drift
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -112,11 +125,12 @@ jobs:
 
   overview-numbers-drift:
     name: Overview by-the-numbers snippet drift
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -125,11 +139,12 @@ jobs:
 
   ml-inventory-drift:
     name: ML inventory snippet drift
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -141,11 +156,12 @@ jobs:
 
   reference-drift:
     name: Reference drift check
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip
@@ -175,11 +191,12 @@ jobs:
 
   transform-inventory-drift:
     name: Transform test-inventory snippet drift
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip

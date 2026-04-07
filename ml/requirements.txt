@@ -7,16 +7,16 @@
 xgboost>=3,<4
 duckdb>=1,<2
 pandas>=2,<3
-numpy>=2,<3
-pyarrow>=21,<22
-scikit-learn>=1.8,<2
-matplotlib>=3,<4
-PyYAML>=6,<7
+numpy>=2,<2.5
+pyarrow>=24.0.0,<25
+scikit-learn>=1.9.0,<2
+matplotlib>=3.11.0,<4
+PyYAML>=6.0.3,<7
 
 # Machine Learning additions (D4 not previously installed):
-pytest-cov>=4,<7
-onnxmltools>=1.13,<2
-onnxruntime>=1.20,<2
-optuna>=4,<5
-shap>=0.46
-sqlglot>=25,<28
+pytest-cov>=7.1.0,<8
+onnxmltools>=1.16.0,<2
+onnxruntime>=1.27.0,<2
+optuna>=4.9.0,<5
+shap>=0.52.0
+sqlglot>=30.11.0,<31

@@ -1,0 +1,112 @@
+skills-lock.json
+
+# Firebase service account keys — never commit
+*firebase-adminsdk*.json
+service-account*.json
+
+# Firebase CLI local cache
+.firebase/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# dbt (generated under transform/)
+transform/target/
+transform/dbt_packages/
+transform/logs/
+transform/docs/
+transform/validation/
+transform/profiles/
+logs/
+
+# Data lake keep folders, ignore contents (bronze parquet is reproducible from FastF1 cache)
+data/bronze/*
+!data/bronze/.gitkeep
+data/silver/*
+!data/silver/.gitkeep
+data/gold/*
+!data/gold/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+data/marts/*.parquet
+!data/marts/.gitkeep
+*.duckdb
+*.duckdb.wal
+
+# ML artifacts ignore large/regenerable binaries + transient dirs;
+# TRACK small published metadata (encoders.json, manifest.json, model_card.json)
+ml/models/*.bst
+ml/models/*.onnx
+ml/models/training_logs/*
+!ml/models/training_logs/.gitkeep
+ml/models/optuna_studies/*
+!ml/models/optuna_studies/.gitkeep
+ml/artefacts/*
+!ml/artefacts/.gitkeep
+
+# Environments (credential files, never commit)
+.env
+.env.local
+.env.*.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Test / coverage artifacts (any directory)
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ingestion artifacts (reproducible from FastF1 cache)
+/ingestion/.env
+/ingestion/.env.local
+/ingestion/.env.*.local
+/ingestion/.cache/
+/ingestion/__pycache__/
+/ingestion/*.log
+
+# Web build artifacts
+web/build/
+web/.docusaurus/
+
+# IDEs
+.vscode/
+.idea/
+**/.DS_Store
+
+# dbt user config (machine-specific anonymous UUIDs, not project config)
+.user.yml
+
+# Local-only not published (kept in author working tree, excluded from repo)
+_roadmap/
+agents/
+.agents/
+data/dev.duckdb.tmp/

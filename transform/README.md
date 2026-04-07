@@ -32,42 +32,23 @@ Batch transformation for **Off The Pace**. Reads Bronze Hive-partitioned Parquet
 
 ## Model DAG (summary)
 
+Reading order down the DAG is also the layer's family taxonomy eight families, walked in
+topological order. The full per-model breakdown (every model, its lineage, and its family) is
+generated and gate-checked, so it lives on the docs site rather than as a second, hand-maintained
+copy here: see [the layer overview](https://offthepace.mintlify.app/transform/overview) for the
+DAG diagram and [Model Reference](https://offthepace.mintlify.app/reference/models/stg/stg_laps)
+for every model.
+
 ```
 Bronze Parquet (laps / results / track_status / session_status / circuit_info / weather / telemetry / qualifying)
-    └── Staging
-            stg_laps · stg_laps_qualifying · stg_sector_times · stg_telemetry · stg_weather
-            · stg_pits · stg_tyre_allocations · stg_events
-            · stg_results · stg_track_status · stg_session_status · stg_circuit_info
-            ├── Reference (seed-backed dims)
-            │       dim_circuits · dim_compounds_season · dim_constructors · dim_drivers
-            └── Intermediate
-                    ├── Physics: int_stint_geometry · int_lap_fuel_state
-                    │       · int_lap_fuel_state_qualifying · int_lap_air_state
-                    │       · int_lap_thermal_proxy · int_dirty_air_tax_component · int_corner_metrics
-                    ├── Baseline / pace: int_compound_cliff_predicted · int_field_pace_curve
-                    │       · int_track_evolution · int_constructor_structural_pace
-                    │       · int_constructor_structural_pace_qualifying
-                    │       · int_circuit_x_constructor_interaction · int_synthetic_teammate
-                    │       · int_driver_season_ratings · int_era_normalized_driver_rating
-                    │       · int_driver_circuit_affinity
-                    ├── Residual / decomposition: int_lap_residual_decomposed
-                    │       · int_lap_residual_decomposed_qualifying · int_sector_residual_decomposed
-                    │       · int_corner_skill_residuals · int_tyre_surface_vs_bulk_decoupling
-                    │       · int_qualifying_decomposed · int_lap_anomaly_flags · int_event_corrections
-                    └── Strategy / hazard: int_pit_strategy_value
-                            · int_constructor_deg_sensitivity · int_pit_loss_circuit
-                            · int_sc_hazard_history
-                                    └── Feature Marts
-                                            ├── dim_events                        race event flags
-                                            ├── fct_driver_skill_features         driver × race, ML input A
-                                            ├── fct_cliff_prediction_features     lap-grain, ML input B (target: next_lap_degradation_jump_s)
-                                            ├── fct_lap_residuals                 lap-grain, seven-term identity analytics
-                                            ├── fct_telemetry_deltas              telemetry-grain, sector micro-analysis
-                                            ├── fct_stint_features                stint-grain strategy features
-                                            ├── fct_ghost_car_pace                lap-grain, counterfactual pace decomposition
-                                            ├── fct_ghost_race_finish             driver × race, simulated finish + honest SE
-                                            ├── mart_corner_skill_driver          driver × season, corner-skill aggregates
-                                            └── mart_degradation_history_envelope circuit × era × compound × lap-in-stint, deg envelope
+    └── Staging                  Bronze → clean views, no joins
+            ├── Reference        seed-backed dims (circuits, compounds) + live dims (drivers, constructors)
+            └── Physics          fuel, air state, thermal proxy, dirty air, corner metrics, telemetry cliff signals
+                    └── Pace Baselines    field pace, track evolution, compound trajectory, constructor structural pace
+                            ├── Skill                 car FE, LORO baseline, shrinkage, era bridges
+                            └── Residual Decomposition  where the seven-term identity closes
+                                    └── Strategy        pit-loss, degradation sensitivity, SC hazard
+                                            └── Feature Marts   the contract with ml/ and app/
 ```
 
 ---
@@ -78,8 +59,8 @@ Bronze Parquet (laps / results / track_status / session_status / circuit_info / 
 transform/
 ├── models/
 │   ├── staging/            Bronze → clean views (stg_laps, stg_results, …)
-│   ├── reference/          Seed-based dimension tables
-│   ├── intermediate/       Physics · baseline · residual · strategy
+│   ├── reference/          Dimension tables: two seed-backed, two derived live from stg_laps
+│   ├── intermediate/       Physics · pace baselines · skill · residual · strategy
 │   └── marts/              Feature marts + exposures.yml
 ├── seeds/                  CSV seeds (circuit_reference, compound_cliff_params, …)
 │   └── _pending/           Fitted seeds awaiting promotion
@@ -99,7 +80,7 @@ transform/
 
 New to dbt? Each `.sql` file under `models/` is a `SELECT` statement  -  dbt materialises it as a view or table. `{{ ref('x') }}` is a typed dependency; dbt sorts the DAG and runs models in topological order, so you never manage `DROP/CREATE` ordering manually.
 
-See the [Quick Start](https://offthepace.mintlify.app/quickstart) page in the documentation site for setup and query details.
+See [Quick Start](https://offthepace.mintlify.app/ingestion/quickstart) for environment setup and [the seven-term identity](https://offthepace.mintlify.app/decomposition/seven-term-identity) for what this layer computes.
 
 ---
 

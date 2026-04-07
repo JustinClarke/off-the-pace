@@ -1,0 +1,96 @@
+---
+title: "Data pipeline & quality"
+sidebarTitle: "Data Pipeline"
+description: "The scheduled, retried, quality-gated DAG that rebuilds the warehouse ingest through publish and verify with three data-quality layers and automatic manifest rollback on mismatch."
+---
+
+## The DAG
+
+```
+ingest → transform (+ identity & byte oracles) → data-quality → ml → export → publish(staging) → verify
+```
+
+[`pipeline.yml`](../.github/workflows/pipeline.yml) runs this as one job where each stage consumes the previous stage's `data/` on disk. Triggered via `workflow_dispatch` (with a `season` input) or a weekly schedule.
+
+<Warning>
+  **Runner constraint:** the warehouse rebuild needs the ~6 GB bronze corpus, which doesn't fit a fresh GitHub-hosted runner. Run on a **self-hosted runner with a persistent `data/`** set repo var `PIPELINE_RUNNER` to its label so ingest is incremental. The job guards on `vars.PIPELINE_ENABLED == 'true'`, so it never fires before that's deliberately set.
+</Warning>
+
+## Stages
+
+| # | Stage | Command | Gate |
+|---|---|---|---|
+| 1 | Ingest | `make ingest-recent ingest-jolpica` | Retried 3× for network errors |
+| 2 | Transform | `make dbt-dev-full dbt-test` + byte oracle `--check` | Identity invariant + byte-stability |
+| 3 | Data quality | `make dq-test` | Profile diff + freshness (non-fatal review) |
+| 4 | ML | `make ml-all` | Leakage guards + ONNX↔booster parity |
+| 5 | Export | `make app-data app-models` | Manifest + model copy |
+| 6 | Publish | `make app-publish-staging` (WIF) | Staging only |
+| 7 | Verify | `scripts/verify_published.sh --env staging --rollback-on-fail` | Version + stats + ONNX; **auto-rollback on mismatch** |
+
+Promotion staging → prod stays the deliberate step in [Deployment](/platform/deployment) (`make app-promote`).
+
+## Data quality layers
+
+Three layers sit on top of the additive-identity invariant and the byte-stability oracle.
+
+<AccordionGroup>
+
+  <Accordion title="Build-over-build data diff" icon="chart-bar">
+    `transform/scripts/snapshot_data_profile.py` profiles every `fct_*` / `mart_*` / `dim_*` table (row count, per-column null-rate, numeric means) into a committed baseline (`transform/tests/data_profile.baseline.json`) and `--check`s with tolerances.
+
+    Catches **volume drift, null-rate spikes, and target-mean shift** the semantic drift that the byte oracle (which only proves byte-identity) can't describe.
+
+    The baseline is an approval artefact: regenerate it (`make data-profile-snapshot`) when the data *should* change.
+
+    ```bash
+    make data-profile-snapshot   # regenerate baseline (intentional change)
+    make dq-test                 # diff + check against baseline
+    ```
+  </Accordion>
+
+  <Accordion title="Source freshness" icon="clock">
+    `transform/scripts/check_source_freshness.py` asserts season recency (`MAX(season) ≥ MIN_SEASON`).
+
+    Classic dbt `source freshness` keys on a per-row `loaded_at_field`; the bronze sources are file-based external parquet with no ingestion timestamp, so that doesn't apply. The season-recency check is the equivalent. Non-fatal by default (`--strict` once a new season should have landed).
+  </Accordion>
+
+  <Accordion title="Post-publish verification" icon="shield-check">
+    `scripts/verify_published.sh` (stage 7) fetches the just-published manifest, a sample parquet, the model manifest, and the ONNX file. It asserts the live version/stats match the local export and that a real inference returns finite output.
+
+    On mismatch it **auto-rolls-back the manifest** (`rollback_cdn.sh`), protecting users from a broken deploy. This is the direct guard against the 2026-06-11 class of incident stale bundle pointing at parquet that 404s.
+
+    ```bash
+    make verify-published ENV=prod
+    make verify-published ENV=staging
+    ```
+  </Accordion>
+
+</AccordionGroup>
+
+## Bucket lifecycle
+
+The no-delete publish accumulates storage over time. `infra/gcs_lifecycle.json` (applied via `make bucket-lifecycle`) enables object versioning and:
+
+- Expires **noncurrent** versions 30 days after being superseded, keeping the **3 newest** for rollback.
+- Reaps the ephemeral `staging/` prefix after **14 days**.
+- Expires `data/manifest-archive/` rollback pointers after **180 days**.
+
+This is also codified in `infra/terraform/bucket.tf`.
+
+## Operator setup checklist
+
+- [ ] Provide a runner with persistent `data/`; set `vars.PIPELINE_RUNNER` and `vars.PIPELINE_ENABLED=true`.
+- [ ] Configure WIF (see [Deployment](/platform/deployment)) for the publish/verify stages.
+- [ ] Run `make bucket-lifecycle` once to enable versioning + GC.
+- [ ] Set `secrets.ALERT_WEBHOOK` for failure alerts (optional).
+- [ ] Bump `MIN_SEASON` and the freshness `--strict` flag when a new season should have landed.
+
+<CardGroup cols={2}>
+  <Card title="Deployment" href="/platform/deployment" icon="rocket">
+    Promotion staging→prod and rollback after the pipeline completes.
+  </Card>
+  <Card title="Observability" href="/platform/observability" icon="activity">
+    Synthetic monitors that guard the serving plane the pipeline publishes to.
+  </Card>
+</CardGroup>

@@ -1,0 +1,86 @@
+---
+title: "Observability & SLOs"
+sidebarTitle: "Observability"
+description: "In-browser error tracking and RUM via an env-gated Sentry facade, plus black-box synthetic monitoring of the CDN serving plane the direct guard against stale-manifest incidents."
+---
+
+The platform is static and client-side, so production observability splits in two: **in-browser** telemetry (errors + RUM from real users) and **black-box** synthetic monitoring of the serving plane. Everything here is **off by default** and activates only when configured.
+
+## Error tracking (Sentry)
+
+A vendor-neutral facade lives in `app/src/observability/`:
+
+- `initObservability()` (called in `main.tsx`) initialises Sentry **only when `VITE_SENTRY_DSN` is set**. The SDK is dynamically imported, so the default telemetry-off build never downloads it.
+- `ErrorBoundary.componentDidCatch` forwards caught render errors via `captureException()`.
+- `sendDefaultPii: false` no IP or user identifiers collected.
+
+**Source maps:** when a build sets `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` + `SENTRY_PROJECT`, `vite.config.ts` enables `@sentry/vite-plugin` to upload hidden source maps, then deletes them from `dist/` so they symbolicate Sentry stacks without being served publicly. Without those variables, no maps are generated or shipped.
+
+## RUM / Core Web Vitals
+
+`reportWebVitals()` streams **LCP / INP / CLS / FCP / TTFB** plus app-specific timings via `track()`:
+
+| Metric | Emitted in |
+|---|---|
+| `duckdb_init` | `data/duckdb/client.ts` DuckDB-wasm boot duration |
+| `first_query` | `data/duckdb/client.ts` latency of the first user query (cold path) |
+| `onnx_warmup` | `ml/session.ts` `InferenceSession.create` per model |
+| `web_vital.*` | `observability/webVitals.ts` |
+
+`track()` routes to (a) a `VITE_RUM_ENDPOINT` beacon if set and (b) Sentry breadcrumbs. RUM is active when **either** a DSN or a beacon endpoint exists, sampled by `VITE_RUM_SAMPLE_RATE`.
+
+The timing marks are also mirrored read-only to `window.__OTP_PERF__` a handy devtools probe and the signal the E2E tests wait on. See [Performance & E2E](/platform/performance).
+
+## Synthetic monitoring
+
+[`synthetic-monitor.yml`](../.github/workflows/synthetic-monitor.yml) exercises the live serving plane the same way a browser does:
+
+<CardGroup cols={2}>
+  <Card title="http-smoke every 30 min" icon="wifi">
+    `scripts/smoke_cdn.sh` manifest 200, a sample parquet 200, the live site 200, version present, freshness within 90 days. Cheap (curl only). The direct guard against a 404-parquet incident.
+  </Card>
+  <Card title="onnx-liveness daily" icon="microchip">
+    `app/scripts/synthetic_check.mjs` loads the live ONNX in headless Node and runs one real inference, asserting finite output.
+  </Card>
+</CardGroup>
+
+Both are runnable locally:
+
+```bash
+make app-smoke ENV=prod
+node app/scripts/synthetic_check.mjs
+```
+
+**Alerting:** a failed scheduled run emails repo admins (GitHub default). If `secrets.ALERT_WEBHOOK` is set, failures also POST a Slack/Discord-compatible message. Set `vars.PROD_SITE_URL` to include the live-site check.
+
+## SLOs
+
+| SLO | Target | Measured by | On breach |
+|---|---|---|---|
+| CDN manifest availability | 99.9% of probes 200 | `http-smoke` every 30 min | Page (webhook + email) |
+| Sample parquet reachability | 100% | `http-smoke` | Page the 404-parquet guard |
+| Live site availability | 99.9% | `http-smoke` (`--site`) | Page |
+| ONNX serving liveness | Daily inference returns finite output | `onnx-liveness` | Page |
+| Data freshness lag | Manifest `generatedAt` ≤ 90 days | `http-smoke` `--max-age-hours 2160` | Review (non-paging) |
+| Parity badge green | ONNX↔booster parity holds | `ml-ci` / `app-parity` at build | Block release |
+
+Freshness is intentionally non-paging: the dataset updates per F1 season, so an older manifest is usually correct. It surfaces as a warning to review, not a page.
+
+## Operator setup
+
+- [ ] Create a Sentry (or GlitchTip) project; set `VITE_SENTRY_DSN` as a build env var.
+- [ ] (Optional) Set `SENTRY_AUTH_TOKEN` / `SENTRY_ORG` / `SENTRY_PROJECT` for source-map upload.
+- [ ] (Optional) Stand up a RUM beacon endpoint; set `VITE_RUM_ENDPOINT`.
+- [ ] Set `vars.PROD_SITE_URL` so the synthetic monitor checks the live site.
+- [ ] (Optional) Set `secrets.ALERT_WEBHOOK` for push alerting on monitor failure.
+
+See [`app/.env.example`](../app/.env.example) for every variable.
+
+<CardGroup cols={2}>
+  <Card title="Performance & E2E" href="/platform/performance" icon="gauge">
+    Bundle-size budget, Playwright E2E, and coverage thresholds.
+  </Card>
+  <Card title="Deployment" href="/platform/deployment" icon="rocket">
+    Release pipeline and rollback the process observability guards.
+  </Card>
+</CardGroup>

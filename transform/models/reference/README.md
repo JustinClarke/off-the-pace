@@ -1,7 +1,9 @@
 # Reference Models
 
-Static dimension tables derived from dbt seeds. Loaded once and reused across the DAG
-as lookup and join targets. All materialised as **tables**.
+Static dimension tables, reused across the DAG as lookup and join targets. Two
+(`dim_circuits`, `dim_compounds_season`) lift a committed dbt seed into a typed dimension;
+the other two (`dim_drivers`, `dim_constructors`) derive live from `stg_laps` on every build,
+with no seed involved. All four materialise as **tables**.
 
 ---
 
@@ -38,7 +40,9 @@ intermediate layer resolves to a row in `dim_circuits`. These live in `schema.ym
 
 ## How it connects
 
-- **Upstream (depends on):** `transform/seeds/`  -  CSV files (hand-authored and fitted) loaded by `dbt seed`
+- **Upstream (depends on):** `transform/seeds/`  -  CSV files (hand-authored and fitted) loaded
+  by `dbt seed`, for `dim_circuits`/`dim_compounds_season`; `transform/models/staging/stg_laps`
+  for `dim_drivers`/`dim_constructors`
 - **Downstream (consumed by):** `transform/models/intermediate/`  -  joins `dim_circuits`, `dim_drivers`, `dim_constructors`, `dim_compounds_season` to add physics parameters to lap-grain models
 
 ## Layer contract

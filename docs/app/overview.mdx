@@ -1,6 +1,6 @@
 ---
 title: "Off The Pace app: browser-native F1 analytics"
-sidebarTitle: "App Overview"
+sidebarTitle: "App Layer"
 description: "A zero-server React app powered by DuckDB-Wasm and ONNX. Parquet files load in your browser; every SQL query runs locally in under 10 ms."
 ---
 
@@ -47,35 +47,31 @@ The app is organized into content pillars. The following are **live** and availa
 3. Pick a pillar from the sidebar to explore the visualization you want.
 4. The **engine status indicator** in the top bar shows when DuckDB-Wasm has finished loading queries run as soon as it turns green.
 
-## Explore the feature pages
+## Explore by pillar
 
 <CardGroup cols={2}>
-  <Card
-    title="Driver Consistency"
-    icon="chart-scatter"
-    href="/app/driver-consistency"
-  >
-    Understand how reliably each driver extracts pace from the car across laps and seasons, using the residual skill signal from the seven-term decomposition.
+  <Card title="Ghost Car" icon="ghost" href="/app/families/ghost-car">
+    Driver skill in equal machinery ghost recombination, counterfactual championships, and hidden strong drives.
   </Card>
-  <Card
-    title="Tyre Degradation Simulator"
-    icon="sliders"
-    href="/app/tyre-degradation-simulator"
-  >
-    Dial a compound, fuel load, and conditions to watch the XGBoost degradation models score a full stint live in your browser.
+  <Card title="Lap Decomposition" icon="chart-gantt" href="/app/families/lap-decomposition">
+    The seven-term identity at every scale per-lap waterfall, full-race totals, and per-sector splits.
   </Card>
-  <Card
-    title="Lap Waterfall"
-    icon="chart-gantt"
-    href="/app/lap-waterfall"
-  >
-    Decompose any lap into its eight additive causes fuel, compound, rubber, ambient, constructor, dirty air, driver skill, and unexplained noise and verify the identity closes.
+  <Card title="Tyre & Strategy" icon="timer" href="/app/families/tyre-strategy">
+    Survival curves, degradation timelines, pit-strategy Gantts, and recovery forecasts.
   </Card>
-  <Card
-    title="Query Lab"
-    icon="terminal"
-    href="https://off-the-pace.web.app/query"
-  >
-    Write raw SQL against the full gold mart directly in the browser. No credentials, no server just DuckDB-Wasm and Parquet.
+  <Card title="Aero & Conditions" icon="wind" href="/app/families/aero-conditions">
+    Dirty-air cost and lap maps, track rubber buildup, and the field pace baseline.
+  </Card>
+  <Card title="Drivers" icon="user" href="/app/families/drivers">
+    Nine angles on driver skill ratings, circuit affinity, wet-weather edge, corner technique, and teammate duels.
+  </Card>
+  <Card title="Constructors" icon="car" href="/app/families/constructors">
+    Car pace isolated from the driver structural pace and the circuit interaction heatmap.
+  </Card>
+  <Card title="The Machine" icon="cpu" href="/app/families/the-machine">
+    Live ONNX-scored degradation simulator, model metrics dashboard, and held-out blind-test scoreboard.
+  </Card>
+  <Card title="Data & Validation" icon="shield-check" href="/app/families/data-validation">
+    Query the gold marts directly in SQL, and audit per-race lap exclusions from the pipeline.
   </Card>
 </CardGroup>

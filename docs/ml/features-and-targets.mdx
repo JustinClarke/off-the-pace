@@ -1,0 +1,130 @@
+---
+title: "Features and targets: how a mart row becomes a training row"
+sidebarTitle: "Features & Targets"
+description: "How fct_cliff_prediction_features is loaded, encoded, fingerprinted, and audited and the three targets the models predict."
+---
+
+The `ml-features` stage (`ml/src/features.py`) is where a mart row becomes a row of the `X` matrix. It handles loading, ordinal encoding, season splitting, dataset fingerprinting, and the forward-window SQL audit before any model ever trains.
+
+## The three targets
+
+<Tabs>
+  <Tab title="next_lap_degradation_jump_detrended_s">
+    **What it measures:** the detrended per-lap pace change (in seconds) from this lap to the next. Positive means pace loss; negative means the tyre is still coming into its window.
+
+    **Distribution:** legitimately negative roughly **44% of the time** a tyre warming up, or recovering from a dirty-air lap, genuinely gains pace. The target is not clipped at zero; predicting recovery is as important as predicting loss.
+
+    **Detrending (Route C):** the raw `next_lap_degradation_jump_s` carried a subtle fuel artefact a downward drift over the stint as fuel burned off. The detrended version removes the within-stint linear slope ($\approx−0.072$ s/lap) before training, so the model learns the cliff signal rather than the fuel signal.
+
+    **Models that use it:** `degradation_regressor_p10`, `degradation_regressor_p50`, `degradation_regressor_p90`.
+  </Tab>
+  <Tab title="laps_until_cliff_class">
+    **What it measures:** how many laps until the next cliff event in this stint, bucketed into four ordered classes.
+
+    | Class | Meaning | Approx. share |
+    |---|---|---|
+    | `0_to_2` | Cliff within the next two laps | ~15% |
+    | `3_to_5` | Cliff three to five laps away | ~15% |
+    | `6_plus` | Cliff not yet close | ~58% |
+    | `none_in_stint` | No cliff expected in this stint | ~12% |
+
+    The class order is fixed (`CLIFF_CLASS_LABELS` in `ml/src/schema.py`) so XGBoost label integers are stable across builds.
+
+    **Models that use it:** `cliff_classifier` (4-class `multi:softprob`).
+  </Tab>
+  <Tab title="remaining_stint_life_laps">
+    **What it measures:** how many usable laps remain in the stint. This is a **synthesised** target: it is computed at feature-load time as `stint_length_laps − lap_in_stint`, not read from the mart. It is always ≥ 0.
+
+    **Why synthesised:** `stint_length_laps` is available at join time (the full stint is already in the database), but it is not a feature knowing the final stint length would memorise the target. The synthesis happens inside `load_features`; the mask `PER_TARGET_FEATURE_MASK["stint_life_regressor"]` ensures `stint_length_laps` never enters `X` for this model.
+
+    The training population is wider than for the degradation/cliff targets (**119,876 laps** vs 113,309) because a lap can have a valid `remaining_stint_life_laps` even where the next-lap degradation target is undefined.
+
+    **Models that use it:** `stint_life_regressor` (squared-error regression, clipped ≥ 0).
+  </Tab>
+</Tabs>
+
+## Ordinal encoding
+
+Categoricals (`compound`, `air_state_dominant`, `constructor_id`, `anomaly_class`) are encoded from the training map a deterministic integer assignment built once from the training set and persisted to `ml/models/encoders.json`.
+
+```python
+# Characteristic clause from ml/src/features.py _build_encoders
+for col in CATEGORICAL_COLUMNS:
+    values = sorted(v for v in train_df[col].dropna().unique())
+    encoders[col] = {str(v): i for i, v in enumerate(values)}
+
+# Applied at scoring time
+mapped = df[col].astype("object").map(encoders[col])
+out[col] = mapped.fillna(MISSING_ORDINAL).astype("float32")  # NULL / unseen → −1
+```
+
+**The `MISSING_ORDINAL = −1.0` sentinel** handles:
+- Null values (a lap with no compound assignment)
+- Values seen at scoring time but absent from the training set (e.g. a new constructor)
+
+XGBoost treats −1 like any other split point; the trees learn whether "unseen" is closer to one category or another based on training examples.
+
+Continuous features keep `NaN` as `NaN`. XGBoost has native missing-value support it learns the optimal split direction for missing values and never requires imputation.
+
+Booleans map `True → 1.0`, `False → 0.0`, `NULL → NaN`.
+
+<AccordionGroup>
+  <Accordion title="The dataset fingerprint" icon="fingerprint">
+    After encoding, the feature matrix is fingerprinted with SHA-256:
+
+    ```python
+    # Characteristic clause from ml/src/features.py _fingerprint
+    ordered = X.reindex(columns=feature_cols).to_numpy(dtype=np.float32)
+    ordered = ordered[np.lexsort(ordered.T[::-1])]  # canonical row order, NaN-stable
+    h = hashlib.sha256()
+    h.update(np.ascontiguousarray(ordered).tobytes())
+    h.update(json.dumps({"seasons": training_seasons, "features": feature_cols}).encode())
+    return h.hexdigest()
+    ```
+
+    The fingerprint encodes the encoded matrix, the training season list, and the feature column names. It is logged to stdout during `ml-features` and embedded in the model card. Given the same mart rows, the same features, and the same training seasons, the fingerprint is byte-for-byte identical across machines and runs so any two runs with the same fingerprint produced the same boosters.
+
+    The card gates on the fingerprint: if the mart changes and the fingerprint changes, the card is out of date and must be regenerated.
+  </Accordion>
+  <Accordion title="The forward-window leakage audit" icon="search">
+    The SQL from which the mart is built lives in `transform/models/**`. Before any model trains, `audit_forward_window` walks the dbt manifest's SQL with `sqlglot` and rejects any query that contains a `LEAD` or `FOLLOWING` window function the two SQL constructs that can see the future.
+
+    ```bash
+    # Runs automatically as part of ml-features
+    python -m ml.src.features --check
+    ```
+
+    The audit returns an empty list on success; CI runs it via `make ml-features`. It is one of the 12 leakage-spine guards see [The leakage spine](/ml/ci/leakage-spine) for the full set.
+
+    The reason this lives in `ml/src/features.py` rather than in the transform tests is that it operates on the *compiled* SQL (the dbt manifest), not the dbt model source and it is conceptually the feature layer's responsibility to verify that what it reads is not forward-looking.
+  </Accordion>
+</AccordionGroup>
+
+## Season split
+
+The training/holdout season split is derived from the data never hard-coded:
+
+```python
+def resolve_holdout_season(con) -> int:
+    """Holdout = latest ingested season + 1. No literal year, ever."""
+    return int(con.execute("SELECT MAX(race_year) + 1 FROM fct_cliff_prediction_features").fetchone()[0])
+```
+
+Today the holdout season is 2025 (no data yet). The final `TimeSeriesSplit` fold (2024) stands in as the evaluation holdout until 2025 ingests at which point the reveal happens with zero code change.
+
+## Relationships
+
+<CardGroup cols={2}>
+  <Card title="Feature contract" href="/ml/feature-contract" icon="layers">
+    The full 42-feature table, physics group descriptions, and the read-only mart contract.
+  </Card>
+  <Card title="Models" href="/ml/models" icon="microchip">
+    How each target is used objective function, loss, and weighting.
+  </Card>
+  <Card title="Leakage spine" href="/ml/ci/leakage-spine" icon="shield">
+    The 12 CI guards that enforce the exclusions and the forward-window audit every build.
+  </Card>
+  <Card title="Pipeline" href="/ml/pipeline" icon="workflow">
+    Where this stage fits in the full `make ml-all` DAG.
+  </Card>
+</CardGroup>

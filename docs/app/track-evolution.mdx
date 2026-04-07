@@ -1,0 +1,49 @@
+---
+title: "How much did the track speed up during the race?"
+sidebarTitle: "Track Evolution"
+description: "The lap-time baseline split into rubber buildup and ambient drift, showing how much the circuit itself changed underneath the field over a race."
+---
+
+A circuit is not a fixed stopwatch it rubbers in and gets faster, and the ambient conditions drift underneath the cars. Track evolution decomposes the lap-time baseline into those two time-varying components, both extracted from the seven-term decomposition run over clean laps. It separates "the track got quicker" from "the cars got quicker".
+
+## What it shows
+
+The chart splits the moving baseline into two curves plus a weather overlay:
+
+- **Rubber component (`rubber_component_s`)**: how much the surface improves as rubber is laid down over the race. A positive offset early means the track is slow; as it rubbers in, the offset shrinks.
+- **Ambient component**: temperature and humidity drift over the race window, extracted as a separate time-varying offset. Usually small, but it can matter in night races or under changing cloud cover.
+- **Rainfall**: laps tagged with the rainfall flag are highlighted; the track state resets substantially after rain.
+
+<Note>
+  Both components come from clean laps only, so safety-car and anomaly laps don't distort the evolution curve.
+</Note>
+
+## How to use it
+
+1. **Select a race** from the filter bar; the rubber and ambient curves load.
+2. **Read the rubber curve's slope** a steep early improvement means a green track that came to the field quickly.
+3. **Watch the ambient curve** for evening cool-down or warming that shifts pace independently of rubber.
+4. **Note rainfall highlights** a reset in the track state after rain explains a sudden pace swing.
+
+## Reading the signal correctly
+
+These offsets are **field-wide baseline shifts**, not any single car's pace they describe the track everyone shares. Rubber and ambient are estimated jointly with the rest of the decomposition, so they reflect what's left after fuel and tyre effects are removed.
+
+<Warning>
+  On short or interrupted races there may be too few clean laps to resolve the ambient component cleanly, and it can absorb residual rubber signal. Treat a noisy ambient curve as low-confidence. See the [decomposition limitations](/decomposition/limitations).
+</Warning>
+
+## Data source
+
+The chart queries `int_track_evolution` via DuckDB-Wasm in the browser, for a single race.
+
+| Column | Meaning |
+|---|---|
+| `rubber_component_s` | Time-varying surface-grip offset (rubbering in) |
+| `ambient_component_s` | Time-varying temperature/humidity offset |
+| `rainfall_flag` | Whether the lap was rain-affected (highlighted) |
+| `lap_number` | The race lap, the x-axis |
+
+This is a **single-race** view across **2018–2024** data.
+
+For the full model definition, see the [`int_track_evolution` reference](/reference/models/int/int_track_evolution).

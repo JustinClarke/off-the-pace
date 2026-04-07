@@ -1,5 +1,5 @@
 // Runs the five tyre-degradation models in the browser and post-processes each output
-// per the manifest contract (AD-3, Appendix C):
+// per the manifest contract:
 //   degradation_regressor_p10/p50/p90 → scalar at output index 0, clamp [-10, 10]
 //   cliff_classifier                  → probabilities tensor (output index 1), argmax → label
 //   stint_life_regressor              → scalar at output index 0, clip(>=0)

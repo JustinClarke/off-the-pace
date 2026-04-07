@@ -1,4 +1,4 @@
-// Loads and types ml/models/manifest.json the browser-inference contract (AD-3, Appendix C).
+// Loads and types ml/models/manifest.json, the browser-inference contract.
 // Everything about feature order, encoders, and per-model output interpretation is read from
 // here at runtime; nothing is hard-coded in the inference layer.
 

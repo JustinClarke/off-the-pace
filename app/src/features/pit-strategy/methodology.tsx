@@ -1,5 +1,6 @@
-export const methodologyHref =
-  'https://offthepace.mintlify.app/reference/models/int/int_pit_strategy_value'
+import { CANONICAL_DOCS_BASE } from '../../config'
+
+export const methodologyHref = `${CANONICAL_DOCS_BASE}/app/pit-strategy`
 
 export const methodologyContent = (
   <div className="space-y-3 text-sm text-muted">

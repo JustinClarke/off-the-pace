@@ -1,4 +1,5 @@
 import { SurvivalCurve } from '../../ui/charts'
+import { compoundColor } from '../../ui/compound'
 import type { SurvivalTransformResult } from './transform'
 
 interface Props {
@@ -24,6 +25,7 @@ export default function TyreCliffSurvivalChart({ result }: Props) {
       dataWindow={dataWindow ?? undefined}
       nStints={nStints ?? undefined}
       height={420}
+      curveColor={compoundColor(result.compound)}
     />
   )
 }

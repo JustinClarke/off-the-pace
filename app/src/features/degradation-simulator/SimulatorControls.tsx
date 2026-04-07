@@ -1,18 +1,29 @@
-// The slider/select panel that drives the simulator. Emits a new SimulatorInputs on every change;
-// the page re-scores via the ONNX layer. The "load a real stint" preset is handled by the page and
-// surfaced here as a selector plus a reset-to-defaults affordance.
+// The control panel that drives the simulator, organised into two explicit modes so each user job
+// gets an uncluttered view:
+//   • Replay load a real stint (GP → driver → stint) and watch what actually happened. No
+//                sliders: a pristine stint scores its real per-lap telemetry, and editing any lever
+//                would silently drop to the synthetic sweep, so we don't expose them here.
+//   • Scenario build a hypothetical from the headline levers (compound, stint length, fuel,
+//                dirty-air), with the finer conditions behind an Advanced drawer.
+// Circuit + era are shared context above the tabs (they anchor the absolute lap time in both modes).
+// The current-lap playhead is NOT here it's a scrubber on the chart (it isn't a model feature).
 
 import { useMemo, useState } from 'react'
 import {
-  SLIDERS, COMPOUND_OPTIONS, AIR_STATE_OPTIONS, CONSTRUCTOR_OPTIONS,
+  PRIMARY_SLIDERS, ADVANCED_SLIDERS, COMPOUND_OPTIONS, AIR_STATE_OPTIONS, CONSTRUCTOR_OPTIONS,
   compoundConstants,
 } from './inputs'
-import type { SimulatorInputs } from './inputs'
+
+import type { SimulatorInputs, SliderSpec } from './inputs'
 import type { StintOption, CircuitOption } from './queries'
+
+export type SimulatorMode = 'replay' | 'scenario'
 
 interface Props {
   inputs: SimulatorInputs
   onChange: (next: SimulatorInputs) => void
+  mode: SimulatorMode
+  onModeChange: (mode: SimulatorMode) => void
   stintOptions: StintOption[]
   selectedStintId: string | null
   onSelectStint: (stintId: string | null) => void
@@ -63,8 +74,31 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
+// One labelled range row, used for both the primary levers and the advanced drawer.
+function Slider({ spec, value, onChange }: { spec: SliderSpec; value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-baseline justify-between gap-2">
+        <label className="text-[11px] text-muted">{spec.label}</label>
+        <span className="rounded bg-white/[0.05] px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-[rgb(var(--color-text))]">
+          {spec.step < 1 ? value.toFixed(2) : value}{spec.unit ? ` ${spec.unit}` : ''}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={spec.min}
+        max={spec.max}
+        step={spec.step}
+        value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="w-full cursor-pointer accent-[rgb(var(--color-accent))]"
+      />
+    </div>
+  )
+}
+
 export default function SimulatorControls({
-  inputs, onChange, stintOptions, selectedStintId, onSelectStint, onReset,
+  inputs, onChange, mode, onModeChange, stintOptions, selectedStintId, onSelectStint, onReset,
   circuitOptions, circuitId, era, onSelectCircuit, onSelectEra,
 }: Props) {
   const set = (patch: Partial<SimulatorInputs>) => onChange({ ...inputs, ...patch })
@@ -107,6 +141,11 @@ export default function SimulatorControls({
         label: `Stint ${s.stint_number} · ${s.compound} · ${s.stint_length} laps`,
       }))
   }, [stintOptions, selectedRaceId, selectedDriverId])
+
+  const loadedStint = useMemo(
+    () => stintOptions.find(s => s.stint_id === selectedStintId) ?? null,
+    [stintOptions, selectedStintId],
+  )
 
   const handleGpChange = (raceId: string) => {
     setSelectedRaceId(raceId)
@@ -169,118 +208,170 @@ export default function SimulatorControls({
         )}
       </Section>
 
-      {/* Cascading preset selectors */}
-      <Section label="Load a real stint">
-        <select
-          className={SELECT_CLS + ' w-full'}
-          value={selectedRaceId}
-          onChange={e => handleGpChange(e.target.value)}
-        >
-          <option value="">Grand Prix…</option>
-          {gpOptions.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+      {/* Mode switch: Replay (load real data) vs Scenario (build a what-if). Reset is global. */}
+      <div className="flex items-center justify-between gap-2">
+        <div role="tablist" aria-label="Simulator mode" className="inline-flex rounded-lg border border-border bg-[rgb(var(--color-bg))] p-0.5">
+          {(['replay', 'scenario'] as const).map(m => (
+            <button
+              key={m}
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => onModeChange(m)}
+              className={[
+                'rounded-md px-3 py-1 text-xs font-medium capitalize transition-colors',
+                mode === m
+                  ? 'bg-[rgb(var(--color-accent)/0.15)] text-[rgb(var(--color-text))]'
+                  : 'text-muted hover:text-[rgb(var(--color-text))]',
+              ].join(' ')}
+            >
+              {m}
+            </button>
           ))}
-        </select>
-        <select
-          className={SELECT_CLS + ' w-full'}
-          value={selectedDriverId}
-          onChange={e => handleDriverChange(e.target.value)}
-          disabled={!selectedRaceId}
-        >
-          <option value="">Driver…</option>
-          {driverOptions.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        <select
-          className={SELECT_CLS + ' w-full'}
-          value={selectedStintId ?? ''}
-          onChange={e => handleStintChange(e.target.value)}
-          disabled={!selectedDriverId || stintNumberOptions.length === 0}
-        >
-          <option value="">Stint…</option>
-          {stintNumberOptions.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        <div className="flex items-center justify-between gap-2">
-          {selectedStintId
-            ? <p className="text-[11px] leading-snug text-muted/70">Sliders show the loaded stint drag any to run a what-if.</p>
-            : <span />}
-          <button
-            onClick={handleReset}
-            className="shrink-0 rounded border border-border px-3 py-1 text-xs text-muted transition-colors hover:border-[rgb(var(--color-accent))] hover:text-[rgb(var(--color-text))]"
-          >
-            Reset
-          </button>
         </div>
-      </Section>
+        <button
+          onClick={handleReset}
+          className="shrink-0 rounded border border-border px-3 py-1 text-xs text-muted transition-colors hover:border-[rgb(var(--color-accent))] hover:text-[rgb(var(--color-text))]"
+        >
+          Reset
+        </button>
+      </div>
 
-      {/* Compound + categoricals */}
-      <Section label="Tyre & car">
-        <Field label="Compound">
+      {mode === 'replay' ? (
+        // ── Replay: pick a real stint, then read what happened. No sliders (see file header). ──
+        <Section label="Load a real stint">
           <select
             className={SELECT_CLS + ' w-full'}
-            value={inputs.constants.compound}
-            onChange={e => set({ constants: compoundConstants(e.target.value) })}
+            value={selectedRaceId}
+            onChange={e => handleGpChange(e.target.value)}
           >
-            {COMPOUND_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value="">Grand Prix…</option>
+            {gpOptions.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
-        </Field>
-        <Field label="Constructor">
           <select
             className={SELECT_CLS + ' w-full'}
-            value={inputs.constructor_id}
-            onChange={e => set({ constructor_id: e.target.value })}
+            value={selectedDriverId}
+            onChange={e => handleDriverChange(e.target.value)}
+            disabled={!selectedRaceId}
           >
-            {CONSTRUCTOR_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value="">Driver…</option>
+            {driverOptions.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
-        </Field>
-        <Field label="Air state">
           <select
             className={SELECT_CLS + ' w-full'}
-            value={inputs.air_state_dominant}
-            onChange={e => set({ air_state_dominant: e.target.value })}
+            value={selectedStintId ?? ''}
+            onChange={e => handleStintChange(e.target.value)}
+            disabled={!selectedDriverId || stintNumberOptions.length === 0}
           >
-            {AIR_STATE_OPTIONS.map(a => <option key={a} value={a}>{AIR_STATE_LABELS[a]}</option>)}
+            <option value="">Stint…</option>
+            {stintNumberOptions.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
-        </Field>
-        <label className="flex cursor-pointer items-center gap-2 py-0.5 text-sm">
-          <input
-            type="checkbox"
-            className="accent-[rgb(var(--color-accent))]"
-            checked={inputs.is_rain_lap}
-            onChange={e => set({ is_rain_lap: e.target.checked })}
-          />
-          <span className="text-muted">Rain lap</span>
-        </label>
-      </Section>
 
-      {/* Numeric sliders */}
-      <Section label="Stint & conditions">
-        {SLIDERS.map(s => {
-          const value = inputs[s.key] as number
-          return (
-            <div key={s.key} className="flex flex-col gap-1.5">
-              <div className="flex items-baseline justify-between gap-2">
-                <label className="text-[11px] text-muted">{s.label}</label>
-                <span className="rounded bg-white/[0.05] px-1.5 py-0.5 font-mono text-[11px] tabular-nums text-[rgb(var(--color-text))]">
-                  {s.step < 1 ? value.toFixed(2) : value}{s.unit ? ` ${s.unit}` : ''}
-                </span>
+          {loadedStint ? (
+            <div className="flex flex-col gap-2.5 rounded-lg border border-border bg-white/[0.02] p-3">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[11px] text-muted">
+                <span className="font-medium text-[rgb(var(--color-text))]">{loadedStint.driver_id}</span>
+                <span>{loadedStint.compound}</span>
+                <span>{loadedStint.stint_length} laps</span>
+                <span>{inputs.fuel_mass_kg.toFixed(0)} kg start</span>
               </div>
-              <input
-                type="range"
-                min={s.min}
-                max={s.max}
-                step={s.step}
-                value={value}
-                onChange={e => set({ [s.key]: Number(e.target.value) } as Partial<SimulatorInputs>)}
-                className="w-full cursor-pointer accent-[rgb(var(--color-accent))]"
-              />
+              <p className="text-[11px] leading-snug text-muted/70">
+                Scoring this stint's real per-lap telemetry. Scrub the current lap on the chart.
+              </p>
+              <button
+                onClick={() => onModeChange('scenario')}
+                className="self-start rounded border border-border px-2.5 py-1 text-xs text-muted transition-colors hover:border-[rgb(var(--color-accent))] hover:text-[rgb(var(--color-text))]"
+              >
+                Tweak this stint in Scenario →
+              </button>
             </div>
-          )
-        })}
-      </Section>
+          ) : (
+            <p className="text-[11px] leading-snug text-muted/70">
+              Pick a Grand Prix, driver and stint to replay it. Switch to Scenario to build a hypothetical instead.
+            </p>
+          )}
+        </Section>
+      ) : (
+        // ── Scenario: the headline levers, with finer conditions tucked behind Advanced. ──
+        <Section label="Build a scenario">
+          {loadedStint && (
+            <p className="text-[11px] leading-snug text-muted/70">
+              Starting from {loadedStint.driver_id}'s real stint edit any lever to go hypothetical.
+            </p>
+          )}
+          <Field label="Compound">
+            <div className="relative">
+              <select
+                className={SELECT_CLS + ` w-full`}
+                value={inputs.constants.compound}
+                onChange={e => set({ constants: compoundConstants(e.target.value) })}
+              >
+                {COMPOUND_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </Field>
+
+          {PRIMARY_SLIDERS.map(s => (
+            <Slider
+              key={s.key}
+              spec={s}
+              value={inputs[s.key] as number}
+              onChange={v => set({ [s.key]: v } as Partial<SimulatorInputs>)}
+            />
+          ))}
+
+          <details className="group flex flex-col gap-2.5">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[11px] font-medium text-muted transition-colors hover:text-[rgb(var(--color-text))]">
+              <span className="transition-transform group-open:rotate-90" aria-hidden>▸</span>
+              Advanced conditions
+            </summary>
+            <div className="mt-2.5 flex flex-col gap-3 border-l border-border pl-3">
+              <Field label="Constructor">
+                <div className="relative">
+                  <select
+                    className={SELECT_CLS + ` w-full`}
+                    value={inputs.constructor_id}
+                    onChange={e => set({ constructor_id: e.target.value })}
+                  >
+                    {CONSTRUCTOR_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </Field>
+              <Field label="Air state">
+                <select
+                  className={SELECT_CLS + ' w-full'}
+                  value={inputs.air_state_dominant}
+                  onChange={e => set({ air_state_dominant: e.target.value })}
+                >
+                  {AIR_STATE_OPTIONS.map(a => <option key={a} value={a}>{AIR_STATE_LABELS[a]}</option>)}
+                </select>
+              </Field>
+              {ADVANCED_SLIDERS.map(s => (
+                <Slider
+                  key={s.key}
+                  spec={s}
+                  value={inputs[s.key] as number}
+                  onChange={v => set({ [s.key]: v } as Partial<SimulatorInputs>)}
+                />
+              ))}
+              <label className="flex cursor-pointer items-center gap-2 py-0.5 text-sm">
+                <input
+                  type="checkbox"
+                  className="accent-[rgb(var(--color-accent))]"
+                  checked={inputs.is_rain_lap}
+                  onChange={e => set({ is_rain_lap: e.target.checked })}
+                />
+                <span className="text-muted">Rain lap</span>
+              </label>
+            </div>
+          </details>
+        </Section>
+      )}
     </div>
   )
 }

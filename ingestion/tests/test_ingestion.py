@@ -420,7 +420,7 @@ def test_ingest_season_schedule_failure_returns_empty(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Race control KI-001: elapsed seconds handles both timedelta and datetime columns
+# Race control: elapsed seconds handles both timedelta and datetime columns
 # ---------------------------------------------------------------------------
 
 def test_race_control_timedelta_column(tmp_path, monkeypatch):

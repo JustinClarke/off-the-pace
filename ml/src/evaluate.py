@@ -1,4 +1,4 @@
-"""Evaluation: honest metrics, strong baselines, cohorts, calibration, and the §7 elevations.
+"""Evaluation: honest metrics, strong baselines, cohorts, calibration, and elevations.
 
 CLI:
   python -m ml.src.evaluate --all                 # evaluate every production target
@@ -9,17 +9,17 @@ The headline contract (the gate): **every model must beat its per-cohort baselin
 headline metric** (pinball ↓ for quantiles, macro-F1 ↑ for the classifier, RMSE ↓ for stint-life).
 `tests/test_evaluate.py::test_model_beats_baseline_overall` reads the JSON this writes.
 
-Holdout policy (§2 / §16.6): the designated holdout is 2025, *not yet ingested* → there is no live
+Holdout policy: the designated holdout is 2025, *not yet ingested* → there is no live
 holdout today. The evaluation set is therefore the **final TimeSeriesSplit fold**-train on
 2018–2023, evaluate on 2024 (the most-recent, holdout-shaped unseen season). The moment 2025 ingests
 this switches to a true-holdout evaluation with **zero code changes** (`_evaluation_split` detects a
 populated holdout and uses it instead). Eval models are refit on the honest split and are distinct
 from the shipped `_v3.bst` (which use all seasons-correct for production scoring).
 
-Each §7 elevation (conformal coverage, SHAP+permutation, ablation+learning curve, behaviour audit,
+Each elevation (conformal coverage, SHAP+permutation, ablation+learning curve, behaviour audit,
 adversarial leakage probe, biggest-misses) is wrapped so a failure degrades to a logged note and
 never blocks the core headline/baseline/cohort gate. Artefacts (PNGs, parquets) land in ml/artefacts/
-(gitignored, regen-able); the metrics JSON is the single feed for card.py (M6).
+(gitignored, regen-able); the metrics JSON is the single feed for card.py.
 """
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ EVAL_METRICS_PATH = ARTEFACTS_DIR / "evaluation_metrics.json"
 
 MIN_COHORT_N = 30          # cells below this fold into "_other" (R5)
 AGE_BUCKET_WIDTH = 5       # laps per age_in_stint bucket for the baseline key
-CONFORMAL_TARGET = 0.80    # quantile interval [p10, p90] nominal coverage (§7.1)
+CONFORMAL_TARGET = 0.80    # quantile interval [p10, p90] nominal coverage
 SHAP_SAMPLE = 1000
 PERM_SAMPLE = 3000
 PERM_REPEATS = 5
@@ -62,8 +62,8 @@ ELEVATION_TARGETS = frozenset(
 # Raw cohort/baseline dimensions, keyed by lap_id (read-only, once per run).
 COHORT_DIMS = (
     "compound", "is_rain_lap", "age_in_stint", "lap_in_stint",
-    "next_lap_degradation_jump_s", "laps_until_cliff_class",
-    "circuit_key", "race_year", "constructor_id",
+    S.DEGRADATION_TARGET, "laps_until_cliff_class",
+    "circuit_key", "race_year", "constructor_id", "stint_id",
 )
 
 
@@ -132,15 +132,20 @@ def load_cohort_dims(duckdb_path: str = S.DUCKDB_PATH) -> pd.DataFrame:
     try:
         df = con.execute(
             f"SELECT {', '.join(COHORT_DIMS)} , lap_id FROM {S.MART}").df()
+        # stint_length_laps lives in fct_stint_features (the cliff mart only carries stint_id);
+        # the stint-life baseline derives remaining life from it join exactly as load_features.
+        stint_len = con.execute(
+            f"SELECT stint_id, stint_length_laps FROM {S.STINT_FEATURES}").df()
     finally:
         con.close()
+    df = df.merge(stint_len, on="stint_id", how="left")
     df["age_bucket"] = np.where(
         df["age_in_stint"].notna(),
         (df["age_in_stint"].fillna(0) // AGE_BUCKET_WIDTH).astype("Int64"), -1)
     return df.set_index("lap_id")
 
 
-# ─── Baselines (one strong anchor per family; §5.5) ─────────────────────────────
+# ─── Baselines (one strong anchor per family) ───────────────────────────────────
 def _cell_lookup(train_dims: pd.DataFrame, value_col: str, agg) -> dict:
     """(compound, circuit_key, age_bucket) → agg(value); used with compound + global fallback."""
     g = train_dims.groupby(["compound", "circuit_key", "age_bucket"], observed=True)[value_col]
@@ -212,7 +217,7 @@ def _cohort_table(spec: S.TargetSpec, dim_name: str, dims: pd.DataFrame,
     return table, under
 
 
-# ─── Calibration / split-conformal coverage (§7.1) ──────────────────────────────
+# ─── Calibration / split-conformal coverage ─────────────────────────────────────
 def calibration_report(y: np.ndarray, p10: np.ndarray, p90: np.ndarray,
                        seed: int = S.RANDOM_STATE) -> dict:
     """Raw [p10,p90] coverage + a split-conformal (CQR) correction computed post-hoc on the
@@ -254,7 +259,7 @@ def _calibration_plot(y, p10, p90, path: Path) -> None:
     plt.close(fig)
 
 
-# ─── Dual importance: SHAP + permutation (§7.2) ─────────────────────────────────
+# ─── Dual importance: SHAP + permutation ─────────────────────────────────────────
 def dual_importance(model, spec: S.TargetSpec, X_explain: pd.DataFrame,
                     X_perm: pd.DataFrame, y_perm: np.ndarray) -> dict:
     import shap
@@ -293,7 +298,7 @@ def dual_importance(model, spec: S.TargetSpec, X_explain: pd.DataFrame,
             "agreement_note": note}
 
 
-# ─── Ablation + learning curve (§7.3) ────────────────────────────────────────────
+# ─── Ablation + learning curve ────────────────────────────────────────────────────
 def ablation(spec: S.TargetSpec, params: dict, X_tr, y_tr, X_ev, y_ev,
              target: str) -> list[dict]:
     full = _fit(spec, params, X_tr, y_tr)
@@ -334,7 +339,7 @@ def learning_curve(spec: S.TargetSpec, params: dict, X_tr, y_tr, seasons_tr,
     return rows
 
 
-# ─── Behaviour audit: PDP top-3 + monotonicity sanity (§7.4) ────────────────────
+# ─── Behaviour audit: PDP top-3 + monotonicity sanity ───────────────────────────
 def behaviour_audit(model, spec: S.TargetSpec, X_ev: pd.DataFrame,
                     top_features: list[str], target: str) -> dict:
     from sklearn.inspection import PartialDependenceDisplay
@@ -372,7 +377,7 @@ def behaviour_audit(model, spec: S.TargetSpec, X_ev: pd.DataFrame,
     return result
 
 
-# ─── Adversarial leakage probe: predict race_year from X (§7.5) ──────────────────
+# ─── Adversarial leakage probe: predict race_year from X ─────────────────────────
 def leakage_probe(X: pd.DataFrame, seasons: np.ndarray) -> dict:
     import xgboost as xgb
     from sklearn.model_selection import train_test_split
@@ -395,7 +400,7 @@ def leakage_probe(X: pd.DataFrame, seasons: np.ndarray) -> dict:
                      "X carries limited recoverable temporal signal")}
 
 
-# ─── Biggest misses: most-confident classifier disagreements (§7.8) ─────────────
+# ─── Biggest misses: most-confident classifier disagreements ─────────────────────
 def biggest_misses(model, X_ev: pd.DataFrame, y_ev: np.ndarray,
                    lap_ids: np.ndarray, n: int = 100) -> int:
     y_ev = np.asarray(y_ev).astype(int)  # cliff label index (Series.map can yield float dtype)
@@ -486,7 +491,7 @@ def evaluate_target(target: str, version: str, dims_all: pd.DataFrame,
         shared.setdefault("degradation", {})[spec.name] = {
             "y": split.y_ev, "pred": model_pred, "lap_ids": split.lap_ids_ev}
 
-    # ── §7 elevations (headline model of each family; each wrapped, never a gate) ──
+    # ── Elevations: one per model family; each wrapped, never a gate ──────────────
     if target in ELEVATION_TARGETS:
         try:
             sample_n = min(SHAP_SAMPLE, len(split.X_tr))
@@ -547,7 +552,7 @@ def run(targets: list[str], version: str = S.MODEL_VERSION_DEFAULT) -> dict:
     report["eval_season"] = sample_split.eval_season
     report["holdout_populated"] = sample_split.mode == "holdout"
 
-    # Family-level calibration for the degradation quantile trio (§7.1).
+    # Family-level calibration for the degradation quantile trio.
     deg = shared.get("degradation", {})
     if {"degradation_regressor_p10", "degradation_regressor_p50",
             "degradation_regressor_p90"} <= set(deg):
@@ -561,7 +566,7 @@ def run(targets: list[str], version: str = S.MODEL_VERSION_DEFAULT) -> dict:
         except Exception as e:
             report["calibration_error"] = str(e)
 
-    # Adversarial leakage probe (once, on the p50 training split) (§7.5).
+    # Adversarial leakage probe (once, on the p50 training split).
     try:
         b = F.load_features(target="degradation_regressor_p50")
         report["leakage_probe"] = leakage_probe(b.X_train, b.groups_train.to_numpy())

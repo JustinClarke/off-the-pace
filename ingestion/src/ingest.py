@@ -11,7 +11,7 @@ Writes partitioned Bronze-layer Parquet files:
 
 Usage examples:
   python ingest.py --start-season 2018 --end-season 2024 --sessions both
-  python ingest.py -s 2024 --sessions R --force          # re-ingest 2024 races (fixes KI-001)
+  python ingest.py -s 2024 --sessions R --force          # re-ingest 2024 races
   python ingest.py -s 2024 --sessions Q --skip-telemetry
 """
 
@@ -200,7 +200,7 @@ def _write_race_control(session, year: int, round_num: int, slug: str) -> None:
         rc["race_id"] = f"{year}_{round_num}"
         rc["season"]  = year
         if "Time" in rc.columns:
-            # Handles both timedelta64 and datetime-with-timezone correctly (fixes KI-001)
+            # Handles both timedelta64 and datetime-with-timezone correctly
             raw = rc["Time"]
             if pd.api.types.is_timedelta64_dtype(raw):
                 rc["session_time_s"] = raw.dt.total_seconds()

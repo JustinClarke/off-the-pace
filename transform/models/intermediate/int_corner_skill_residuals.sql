@@ -1,4 +1,4 @@
--- Second Model Sequence #4b: Corner-level skill decomposition.
+-- Corner-level skill decomposition.
 -- Grain: (lap_id, corner_name) one row per corner per lap.
 -- PK: corner_id = lap_id || '_C_' || corner_name
 --

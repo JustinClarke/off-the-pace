@@ -1,4 +1,4 @@
-"""Stint-life target synthesis correctness (§8)."""
+"""Stint-life target synthesis correctness."""
 from __future__ import annotations
 
 import numpy as np

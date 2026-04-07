@@ -10,6 +10,9 @@ export const tokens = {
     pitstop: '#fbbf24',
     base: '#94a3b8',
 
+    /** 
+     * Official constructor brand colors from F1/team styling.
+     */
     constructor: {
       red_bull: '#3671c6',
       ferrari: '#e8002d',
@@ -23,6 +26,9 @@ export const tokens = {
       haas: '#b6babd',
     },
 
+    /**
+     * Official Pirelli tyre compound colors.
+     */
     tyre: {
       soft: '#e8002d',
       medium: '#ffd700',

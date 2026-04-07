@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import Scatter from '../../ui/charts/Scatter'
 import type { ScoreboardResult, ConfusionCell, CliffClass } from './transform'
 import { CLIFF_CLASSES, COMPOUND_COLORS } from './transform'
+import { TechTooltip } from '../../ui/TechTooltip'
 
 const FALLBACK_COLOR = '#a78bfa'
 
@@ -39,12 +40,12 @@ function CoverageRug({ rug }: CoverageRugProps) {
       <div className="text-xs text-muted mb-1">Interval coverage rug (each bar = one lap)</div>
       <div className="flex gap-px h-6 w-full overflow-hidden rounded-sm">
         {sample.map((entry, i) => (
-          <div
-            key={i}
-            className="flex-1 min-w-0"
-            style={{ background: entry.inEnvelope ? '#2dd4bf' : '#ef444466' }}
-            title={entry.inEnvelope ? 'In envelope' : 'Outside envelope'}
-          />
+          <TechTooltip key={i} content={entry.inEnvelope ? 'In envelope' : 'Outside envelope'}>
+            <div
+              className="flex-1 min-w-0"
+              style={{ background: entry.inEnvelope ? '#2dd4bf' : '#ef444466' }}
+            />
+          </TechTooltip>
         ))}
       </div>
     </div>
@@ -82,14 +83,17 @@ function ConfusionMatrix({ cells }: ConfusionMatrixProps) {
               {CLIFF_CLASSES.map(actual => {
                 const cell = cells.find(c => c.predicted === predicted && c.actual === actual)!
                 return (
-                  <td
+                  <TechTooltip
                     key={actual}
-                    className="text-center px-2 py-1 font-mono min-w-[60px] rounded"
-                    style={{ background: cell.count > 0 ? confusionCellBg(cell) : 'transparent' }}
-                    title={`${cell.count} laps (${(cell.rowShare * 100).toFixed(0)}% of predicted ${CLASS_LABELS[predicted]})`}
+                    content={`${cell.count} laps (${(cell.rowShare * 100).toFixed(0)}% of predicted ${CLASS_LABELS[predicted]})`}
                   >
-                    {cell.count}
-                  </td>
+                    <td
+                      className="text-center px-2 py-1 font-mono min-w-[60px] rounded cursor-help"
+                      style={{ background: cell.count > 0 ? confusionCellBg(cell) : 'transparent' }}
+                    >
+                      {cell.count}
+                    </td>
+                  </TechTooltip>
                 )
               })}
             </tr>

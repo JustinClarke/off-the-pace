@@ -1,0 +1,81 @@
+---
+title: "Identity-closure tests: the additive identities, enforced"
+sidebarTitle: "Identity-Closure"
+description: "The fourteen hand-written assertions that prove the transform layer's additive identities and shrinkage bounds hold exactly, not approximately, on every row of every build."
+---
+
+This is where "the identity closes to 0.1 ms" stops being a claim about the SQL and becomes a property CI checks on every row, every build. Fourteen singular tests: thirteen run real logic today; one is a placeholder, documented honestly below rather than silently passing as if it were full coverage.
+
+## The shared closure macro
+
+Most of these tests share one shape: a total column must equal the sum of named components plus a residual, within a tolerance. Rather than writing that comparison fourteen times, [`assert_additive_identity`](/reference/macros/assert_additive_identity) takes the model, the total column, the component list, and the residual column, and returns whichever rows violate the sum:
+
+```sql
+{{ assert_additive_identity(
+     ref('int_lap_residual_decomposed'),
+     'pace_delta_s',
+     ['fuel_component_s', 'compound_component_s', 'rubber_component_s',
+      'ambient_component_s', 'constructor_component_s', 'dirty_air_tax_s'],
+     'driver_skill_residual_s',
+     tolerance=0.0001
+) }}
+```
+
+That's the literal body of `assert_lap_7term_identity`, the "Lap 7-term residual identity" test below that enforces the [seven-term identity](/decomposition/seven-term-identity) itself. Three more of the fourteen tests below restate the same kind of sum-equals-total check by hand, at sector and qualifying grain, where the column lists differ enough that a direct `SELECT` reads more clearly than a macro call.
+
+<AccordionGroup>
+  <Accordion title="Residual decomposition identity">
+    `driver_skill_residual_s` must equal `pace_delta_s − total_explained_s`, within 0.0001 s. This is the identity's original two-term form total explained vs. residual that the seven-term test below further decomposes into six named physics components. `track_unexplained_s` is explicitly excluded from both sides: it's the track-evolution model's own internal residual, informational, not part of the closure. Guards [`int_lap_residual_decomposed`](/reference/models/int/int_lap_residual_decomposed). **Active.**
+  </Accordion>
+  <Accordion title="Lap 7-term residual identity">
+    The headline test. After `dirty_air_tax_s` is extracted as its own term, the closure is:
+
+    $$\text{pace\_delta\_s} = \text{fuel} + \text{compound} + \text{rubber} + \text{ambient} + \text{constructor} + \text{dirty\_air\_tax} + \text{driver\_skill\_residual}$$
+
+    enforced via [`assert_additive_identity`](/reference/macros/assert_additive_identity) at 0.0001 s tolerance. Full derivation and the meaning of each term: [the Seven-Term Identity](/decomposition/seven-term-identity). The model this closes: [`families/residual`](/transform/families/residual). Guards [`int_lap_residual_decomposed`](/reference/models/int/int_lap_residual_decomposed). **Active.**
+  </Accordion>
+  <Accordion title="Qualifying 7-term identity">
+    The same identity, re-fit at qualifying grain rather than mirrored from the race-grain coefficients qualifying laps have their own fuel, compound, rubber, ambient, constructor, and dirty-air terms because a single push lap has a fundamentally different fuel and tyre-temperature profile than a race stint:
+
+    $$\text{quali\_pace\_delta\_s} = \sum(\text{6 quali-fit components}) + \text{quali\_skill\_residual\_s}$$
+
+    Same 0.0001 s tolerance as the race-grain test proof that the qualifying-specific coefficients are mathematically sound, not just plausible. Guards [`int_qualifying_decomposed`](/reference/models/int/int_qualifying_decomposed). **Active.**
+  </Accordion>
+  <Accordion title="Sector residual identity">
+    Each of a lap's three sectors closes its own copy of the identity `sector_pace_delta_s` equals the sum of six sector-grain components plus `sector_driver_skill_residual_s`, at the same 0.0001 s tolerance the lap grain uses (the linear time-share allocation that produces sector components from lap components introduces no meaningful error). Guards [`int_sector_residual_decomposed`](/reference/models/int/int_sector_residual_decomposed). **Active.**
+  </Accordion>
+  <Accordion title="Sector-to-lap re-aggregation">
+    Checks whether `SUM(sector_driver_skill_residual_s)` over a lap's three sectors equals that lap's own `driver_skill_residual_s` from the lap-grain model. It doesn't, today, by more than the 0.001 s tolerance and the gap is structural, not a bug: the sector-grain baseline (`field_sector_pace_smoothed_s`, a per-sector median) and the lap-grain baseline (`base_track_pace_s`, a trimmed-mean smoothed value) are fit independently, and the median of a sum isn't the sum of medians. Closing this exactly would mean fitting a joint sector-grain baseline via panel regression instead of three independent sector medians a larger change than this test's scope. Tagged `placeholder`; returns no rows by construction until that joint baseline exists. **Placeholder.**
+  </Accordion>
+  <Accordion title="Corner closure">
+    `braking_loss_s + mid_corner_residual_s + exit_residual_s` must equal `corner_residual_total_s` within 0.001 s, checked only where all three phase residuals are non-`NULL`. Unlike the sector split, this isn't a proportional time-share allocation of a known total each phase residual is measured independently against a field median so the sum equaling the total is a real, checked property rather than true by construction. Guards [`int_corner_skill_residuals`](/reference/models/int/int_corner_skill_residuals). **Active.**
+  </Accordion>
+  <Accordion title="Ghost-car self-consistency">
+    A degenerate-case identity rather than an additive one: when the ghost car's ego driver and host constructor are the same (i.e. the counterfactual recombination is asking "what if this driver drove their own car"), `predicted_lap_time_s` must equal the driver's own `actual_lap_time_s` exactly, within 0.0001 s. If recombination is mathematically correct, the self-case has to be a no-op; any drift here means the recombination formula itself is wrong, not just imprecise for genuine swaps. Guards [`fct_ghost_car_pace`](/reference/models/fct/fct_ghost_car_pace). **Active.**
+  </Accordion>
+  <Accordion title="Example identity closure">
+    The same macro call as the lap 7-term test above, byte-for-byte kept as a standalone, readable usage example of `assert_additive_identity` rather than removed once the canonical test existed. It doesn't add coverage beyond what the lap 7-term test already enforces; its job is documentation-by-example for anyone adding a new closure test, not an independent guarantee. Guards [`int_lap_residual_decomposed`](/reference/models/int/int_lap_residual_decomposed). **Active.**
+  </Accordion>
+  <Accordion title="Deg-slope centering">
+    An internal-consistency check on the field-mean itself, not on any one constructor's slope: the precision-weighted mean of `(deg_slope_raw_s_per_lap − field_mean_slope_s_per_lap)` must be exactly 0 within every `(race_year, compound)` cell, at 1e-9 s/lap tolerance (low-sample cells excluded they don't enter the field mean). If this drifts, "deviation from the field-average compound curve" stops meaning what every downstream consumer of the centred slope assumes it means. Guards [`int_constructor_deg_sensitivity`](/reference/models/int/int_constructor_deg_sensitivity). **Active.**
+  </Accordion>
+  <Accordion title="Cliff-hinge centering">
+    The same centring property, applied to the post-cliff-onset hinge coefficient instead of the pre-cliff slope: the precision-weighted mean of `(cliff_hinge_coef_s_per_lap − cliff_hinge_field_mean_s_per_lap)` must be 0 within every `(race_year, compound)` cell, same 1e-9 s/lap tolerance, low-sample cliff cells excluded. Guards [`int_constructor_deg_sensitivity`](/reference/models/int/int_constructor_deg_sensitivity). **Active.**
+  </Accordion>
+  <Accordion title="Affinity shrinkage bounds">
+    Three tests below share one statistical property: Bayesian shrinkage toward a proper prior is convex, so the posterior (shrunk) mean is mathematically guaranteed to land between the raw observed value and the prior mean never outside either:
+
+    $$\text{shrunk} \in \big[\min(\text{raw}, \text{prior}),\ \max(\text{raw}, \text{prior})\big]$$
+
+    This one checks it for per-circuit driver affinity, at floating-point epsilon (1e-9 s). A violation isn't a borderline statistical judgment it means the shrinkage formula itself is wrong, or the prior and observed values were mismatched (e.g. computed over different row sets). Guards [`int_driver_circuit_affinity`](/reference/models/int/int_driver_circuit_affinity). **Active.**
+  </Accordion>
+  <Accordion title="Era-affinity shrinkage bounds">
+    The same convexity bound, checked within each era cell instead of pooled across eras. Guards [`int_driver_circuit_era_affinity`](/reference/models/int/int_driver_circuit_era_affinity). **Active.**
+  </Accordion>
+  <Accordion title="Era-rating shrinkage bounds">
+    The same convexity bound again, applied to era-normalized driver ratings: `shrunk_residual_s` must land between the driver's raw residual mean and the season mean. Guards [`int_driver_season_ratings`](/reference/models/int/int_driver_season_ratings). **Active.**
+  </Accordion>
+  <Accordion title="Affinity CI brackets mean">
+    A 95% credible interval built symmetrically around a posterior mean (`mean ± 1.96·se`) has to bracket that mean by construction `ci_low ≤ mean ≤ ci_high`. This test checks that property across both circuit-affinity models at once (era and non-era), wherever the standard error is estimable; degenerate single-observation cells carry `NULL` bounds by design and are excluded rather than flagged. A violation means the mean and the CI bounds were computed from mismatched intermediates a stale standard error, or low/high swapped. Guards [`int_driver_circuit_affinity`](/reference/models/int/int_driver_circuit_affinity) and [`int_driver_circuit_era_affinity`](/reference/models/int/int_driver_circuit_era_affinity). **Active.**
+  </Accordion>
+</AccordionGroup>

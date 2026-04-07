@@ -1,0 +1,68 @@
+---
+title: "Drivers: isolating skill from the car, nine ways"
+sidebarTitle: "Overview"
+description: "Nine features that each strip a different confound out of raw lap times to leave a signal that reflects the driver rather than the machinery career ratings, circuit and weather affinity, workload, and head-to-head duels."
+---
+
+## What this pillar does
+
+Every feature here attacks the same confound: in Formula 1, the car and the driver
+are almost perfectly correlated, so raw pace rankings are mostly a car ranking.
+The Drivers pillar isolates the driver's contribution using multiple independent
+identification strategies, each reading a different signal:
+
+- **Rating chains.** Era Ratings Timeline and Era Translator read `int_era_normalized_driver_rating`,
+  a four-stage pipeline (car FE → LORO teammate baseline → Bayesian shrinkage → era bridge)
+  that produces one comparable number per driver per season across the 2022 regulation boundary.
+- **Circuit and weather slices.** Driver Circuit Affinity, Wet-Race Specialist, and workload
+  features ask a narrower question at a specific grain a circuit, a weather condition, or
+  a traffic pattern.
+- **Pairwise.** Synthetic Teammate and Quali vs Race read the driver's own residual against
+  a tightly controlled comparator (a synthesized same-car teammate, or the driver's own
+  qualifying signal vs their race signal), eliminating the car by construction.
+- **Technique.** Corner-Phase Skill uses braking and mid-corner deviations relative to the
+  driver's own car baseline so technique is isolated even within the same chassis.
+
+The Transform [Skill](/transform/families/skill) family page explains the de-biasing pipeline
+in full.
+
+## Every feature in this pillar
+
+<CardGroup cols={2}>
+  <Card title="Era Ratings Timeline" icon="chart-line" href="/app/era-ratings-timeline">
+    Each driver's era-adjusted pace rating across seasons, corrected for the 2022 regulation
+    change and shown with honest confidence ribbons.
+  </Card>
+  <Card title="Era Translator" icon="shuffle" href="/app/era-translator">
+    A season leaderboard of era-adjusted driver ratings on one comparable scale, anchored by
+    drivers who raced on both sides of the 2022 rule change.
+  </Card>
+  <Card title="Consistency" icon="chart-scatter" href="/app/driver-consistency">
+    How reliably each driver extracts pace from the car, lap to lap, using the residual
+    skill signal from the seven-term decomposition.
+  </Card>
+  <Card title="Quali vs Race" icon="gauge" href="/app/quali-vs-race-skill">
+    Each driver's skill residual in qualifying plotted against their skill in the race,
+    separating one-lap merchants from drivers who come alive over a stint.
+  </Card>
+  <Card title="Circuit Affinity" icon="map-pin" href="/app/driver-circuit-affinity">
+    How much faster or slower each driver is at a specific circuit, relative to their own
+    season average, after removing car and field effects.
+  </Card>
+  <Card title="Wet-Race Specialist" icon="cloud-rain" href="/app/wet-race-specialist">
+    Each driver's wet-weather edge: race skill residual in the wet minus their dry baseline,
+    across their full 2018–2024 career.
+  </Card>
+  <Card title="Workload Heatmap" icon="activity" href="/app/driver-workload">
+    Four tyre and traffic stress signals aggregated per driver per season push, stint age,
+    dirty-air share, and cliff risk revealing who races hardest on their rubber.
+  </Card>
+  <Card title="Synthetic Teammate" icon="user-check" href="/app/synthetic-teammate">
+    A pace comparison that weight-corrects each driver against a synthetic teammate,
+    isolating pure skill from strategy and track-position effects.
+  </Card>
+  <Card title="Corner-Phase Skill" icon="corner-down-right" href="/app/corner-phase-skill">
+    A skill index built from braking, mid-corner, and exit deviations relative to each
+    driver's own car baseline so a fast car can't flatter a driver.
+  </Card>
+</CardGroup>

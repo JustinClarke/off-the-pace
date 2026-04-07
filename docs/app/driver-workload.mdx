@@ -1,0 +1,50 @@
+---
+title: "Who works their tyres and runs in traffic the most?"
+sidebarTitle: "Workload Heatmap"
+description: "Four tyre and traffic stress signals aggregated per driver per season push, stint age, dirty-air share, and cliff risk revealing who races hardest on their rubber."
+---
+
+Not all seasons are equally demanding on the driver and the tyre. The workload heatmap aggregates four stress signals per driver per season to show who pushes hardest, runs deepest into stints, and spends the most time in compromised air. It is a portrait of racecraft load, not outright pace.
+
+## What it shows
+
+Each driver carries four per-season signals:
+
+- **Push residual**: a thermal and mechanical load proxy from within-stint driver-skill residual drift. Higher = a more aggressive pushing style that accelerates tyre degradation.
+- **Average stint age**: mean lap-in-stint across eligible laps. A longer average means the driver is kept out longer a proxy for tyre management or strategic circumstance.
+- **Dirty-air share**: the fraction of eligible laps classified as dirty-air (gap < 1.5s in sector 2). Higher = more time in thermally loaded air behind other cars.
+- **Cliff risk**: the fraction of eligible laps flagged as cliff candidates by the degradation model how often the driver approaches the tyre cliff.
+
+<Note>
+  Only training-eligible laps are included (age in stint > 3, no safety-car or mistake laps), and drivers with fewer than 50 eligible laps in the season are excluded.
+</Note>
+
+## How to use it
+
+1. **Select a season** from the filter bar; the heatmap reloads.
+2. **Scan a driver's row** across the four signals to read their workload fingerprint.
+3. **Scan a column** to rank the field on one stress dimension say, who carried the most cliff risk.
+4. **Cross-reference push residual with cliff risk** high on both is a driver living near the tyre limit.
+
+## Reading the signal correctly
+
+These are **exposure** signals, not skill scores: a high dirty-air share often reflects grid position and car pace, not a driver choice. Read the heatmap as "what this driver's season demanded", and pair it with the skill ratings to separate circumstance from technique.
+
+<Warning>
+  Push residual is a proxy derived from residual drift, not a direct telemetry measurement of throttle or load. Compare it across drivers within the same season rather than as an absolute physical quantity.
+</Warning>
+
+## Data source
+
+The chart queries `fct_cliff_prediction_features` via DuckDB-Wasm in the browser, aggregating per driver per season.
+
+| Column | Meaning |
+|---|---|
+| `push_residual` | Within-stint load proxy from skill-residual drift |
+| `lap_in_stint` | Averaged to give mean stint age |
+| `dirty_air_share_lap` | Share of laps in dirty air (gap < 1.5s, sector 2) |
+| `cliff_candidate` | Whether a lap is flagged near the tyre cliff (averaged to cliff risk) |
+
+The data window covers **2018–2024**.
+
+For the full model definition, see the [`fct_cliff_prediction_features` reference](/reference/models/fct/fct_cliff_prediction_features).

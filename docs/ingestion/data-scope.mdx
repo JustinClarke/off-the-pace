@@ -1,0 +1,67 @@
+---
+title: "Choosing how much data to pull"
+sidebarTitle: "Data Scope"
+description: "Five ingestion scopes, from zero-network test fixtures to a full multi-hour backfill pick the smallest one that fits what you're building."
+---
+
+Most work on Off The Pace never needs a full backfill. Pick the smallest scope that fits the task you can always pull more later, since every `ingest.py` run is idempotent and skips what's already on disk unless you pass `--force`.
+
+<Tabs>
+  <Tab title="Test fixtures">
+    **Use when:** writing or testing dbt SQL transforms.
+
+    No network call at all `transform/tests/fixtures/bronze/` ships a small, committed slice of three real races (a low-energy circuit, a clean dry race, a wet/mixed race) that dbt can build against directly via the `bronze_base` var.
+
+    ```bash
+    make test-all   # dbt build against fixtures, CI-equivalent
+    ```
+
+    <Tip>This is the default starting point for almost any transform-layer change it's also exactly what CI runs.</Tip>
+  </Tab>
+  <Tab title="Single race">
+    **Use when:** smoke-testing ingestion itself, or you only need one specific session.
+
+    ```bash
+    python ingestion/src/ingest.py --season 2024 --round 1 --session R
+    ```
+
+    Roughly 2–5 minutes and ~100 MB, derived from `ingest.py --dry-run`'s own estimate (`races × 0.15 GB`).
+  </Tab>
+  <Tab title="Recent seasons">
+    **Use when:** scale-testing a transform change or validating it before a PR recent seasons are enough to exercise current schema shapes without waiting on a full backfill.
+
+    ```bash
+    make ingest-recent   # 2023–2024, both sessions
+    ```
+
+    ~15 minutes, ~200 MB.
+  </Tab>
+  <Tab title="Full backfill">
+    **Use when:** training ML models, running full verification, or anything that depends on the complete historical record.
+
+    ```bash
+    make ingest-all   # every season on record, both sessions
+    ```
+
+    <Warning>
+      A full backfill takes 30–45 minutes and roughly 2 GB on disk. It's the slowest path confirm you actually need every season before reaching for it.
+    </Warning>
+  </Tab>
+  <Tab title="Offline tests">
+    **Use when:** developing ingestion itself no network, no Bronze write.
+
+    ```bash
+    make test   # pytest, <5 s, no network
+    ```
+
+    Exercises `DataQualityEngine` and the ingest pipeline against small in-memory DataFrames and mocked FastF1 responses no Parquet fixtures, no real API call.
+  </Tab>
+</Tabs>
+
+## Mix and match with flags
+
+Every scope above is a starting point, not a fixed menu combine `ingest.py`'s flags (see [CLI](/ingestion/cli)) to narrow further: `--session R` to skip qualifying, `--skip-telemetry` for a faster pull when you don't need it, or `--round N` to pin a single race within a season.
+
+<Note>
+  Re-running any of these commands is safe. `ingest.py` skips a session that already exists on disk unless you pass `--force` so reaching for `make ingest-all` after already having `make ingest-recent` only pulls the seasons you're missing.
+</Note>

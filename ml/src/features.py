@@ -206,7 +206,7 @@ def load_scoring_frame(duckdb_path: str = S.DUCKDB_PATH):
     return X_all, meta, encoders, holdout_season
 
 
-# ─── Forward-window audit (the test that earns its keep §5.2 item 8) ───────────
+# ─── Forward-window audit ───────────────────────────────────────────────────────
 import sqlglot  # noqa: E402
 from sqlglot import exp  # noqa: E402
 

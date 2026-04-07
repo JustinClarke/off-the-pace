@@ -1,0 +1,39 @@
+---
+title: "The Machine: ML transparency and live inference"
+sidebarTitle: "Overview"
+description: "Three features that expose the tyre-degradation ML models a live ONNX-scored simulator, a held-out blind-test scoreboard, and a full evaluation dashboard so the model's behaviour is auditable, not a black box."
+---
+
+## What this pillar does
+
+The Machine is where the XGBoost tyre-degradation models become interactive and auditable.
+Three features cover the full transparency arc:
+
+- **Understand it.** Model Metrics shows the evaluation dashboard written at training time:
+  temporal holdout performance, per-cohort baselines, conformal calibration intervals, and
+  feature importance from SHAP and permutation.
+- **Test it.** Blind-Test Scoreboard scores the model on a held-out season it never saw
+  during training the hardest honest test of whether degradation predictions generalise.
+- **Play with it.** Degradation Simulator lets you dial compound, fuel load, and conditions
+  and watch the ONNX-exported XGBoost quantile regressors score a full stint live in your
+  browser, with cliff probability and stint-life estimates updating in under 5 ms.
+
+The models are documented in full in the [ML Pipeline](/ml/pipeline) and
+[Validation & Trust](/ml/validation) sections.
+
+## Every feature in this pillar
+
+<CardGroup cols={2}>
+  <Card title="Degradation Simulator" icon="sliders" href="/app/degradation-simulator">
+    Dial compound, fuel, and conditions to watch XGBoost models predict pace loss, cliff risk,
+    and tyre life scored live in your browser via ONNX.
+  </Card>
+  <Card title="Model Metrics" icon="bar-chart-2" href="/app/model-metrics">
+    The evaluation dashboard for the tyre-degradation models temporal holdout, per-cohort
+    baselines, conformal calibration, and SHAP-vs-permutation feature importance.
+  </Card>
+  <Card title="Blind-Test Scoreboard" icon="clipboard-check" href="/app/blind-test-scoreboard">
+    The degradation models scored on a held-out season predicted-vs-actual scatter, interval
+    coverage, and a cliff-class confusion matrix, all read from the model card.
+  </Card>
+</CardGroup>

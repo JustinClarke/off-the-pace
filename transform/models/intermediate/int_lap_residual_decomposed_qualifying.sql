@@ -1,11 +1,11 @@
--- Third Model Sequence #5 (sub): Qualifying lap residual decomposition.
+-- Qualifying lap residual decomposition.
 -- Applies the same 7-term identity as int_lap_residual_decomposed but for quali
 -- sessions.
 --
 -- Key physical differences from race decomposition:
 --  -fuel_component_s ≈ 0 (12 kg flat, no burnoff)
 --  -compound_component_s: tyre age is low (push lap); cliff dynamics suppressed
---  -constructor_component_s: qualifying-trim coefficient (#5 sub-model)
+--  -constructor_component_s: qualifying-trim coefficient
 --  -dirty_air_tax_s: typically zero in quali (clear track for push laps)
 --  -driver_skill_residual_s: purer single-lap pace signal
 --

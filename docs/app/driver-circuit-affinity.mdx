@@ -1,0 +1,50 @@
+---
+title: "Which circuits suit each driver's style?"
+sidebarTitle: "Circuit Affinity"
+description: "A heatmap of how much faster or slower each driver is at a specific circuit, relative to their own season average, after removing car and field effects."
+---
+
+Some drivers seem to find an extra tenth at certain tracks year after year. This heatmap measures that: for each driver and circuit, how much faster or slower they tend to be there relative to **their own** season-average pace, after constructor and field effects are removed. Negative (green) means faster than the driver's average at that circuit; positive (red) means slower.
+
+## What it shows
+
+Each cell is one driver × circuit affinity:
+
+- **Shrunk affinity**: a Bayesian posterior mean that pulls the raw observed circuit delta toward the driver's global mean, using 5 virtual races as the prior weight. Drivers with fewer observations are shrunk more aggressively toward neutral.
+- **Sign convention**: negative = faster than the driver's own average at that circuit (green); positive = slower (red) the same convention as the driver skill residual.
+- **Confidence**: the fraction of the posterior coming from data versus prior, `n_obs / (n_obs + 5)`. Values below 0.17 (one race) are prior-dominated.
+
+Drivers are sorted fastest-to-slowest by median affinity across circuits; circuits are sorted alphabetically.
+
+<Note>
+  Cells are shown only when `n_obs ≥ 2` (two or more races at the circuit). Single-race visits are excluded as unreliable, so empty cells mean too few visits, not zero affinity.
+</Note>
+
+## How to use it
+
+1. **Select a season scope** from the filter bar; the heatmap reloads.
+2. **Scan a driver's row** for their strong (green) and weak (red) circuits.
+3. **Scan a circuit's column** to see which drivers historically over-deliver there.
+4. **Check confidence before concluding** a strong colour on a low-confidence cell is mostly prior, not signal.
+
+## Reading the signal correctly
+
+Affinity is **within-driver**: it compares a driver to themselves, so it is not a pace ranking. A slow-car driver can show strong positive affinity at a circuit that suits their style, independent of where they finished.
+
+<Warning>
+  Affinity and the era ratings share an underlying skill residual; do not stack them as if independent. A circuit where a whole era's data is thin (few events) will show wide, prior-dominated cells read the confidence column. See the [decomposition limitations](/decomposition/limitations).
+</Warning>
+
+## Data source
+
+The chart queries `int_driver_circuit_affinity` via DuckDB-Wasm in the browser.
+
+| Column | Meaning |
+|---|---|
+| `shrunk_affinity_s` | Bayesian posterior circuit delta vs the driver's own average (the cell colour) |
+| `n_obs` | Races the driver ran at the circuit; gates display at `≥ 2` |
+| `confidence` | Data fraction of the estimate, `n_obs / (n_obs + 5)` |
+
+The data window covers **2018–2024**.
+
+For the full model definition, see the [`int_driver_circuit_affinity` reference](/reference/models/int/int_driver_circuit_affinity).

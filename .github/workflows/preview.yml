@@ -1,0 +1,77 @@
+name: Preview Deploy
+
+# Per-PR preview deploys. Every app PR gets a shareable
+# Firebase Hosting preview-channel URL, built against the STAGING data prefix so reviewers see
+# the PR's code without touching prod data. Keyless via WIF (see .github/DEPLOYMENT.md).
+#
+# Skips on fork PRs (no access to WIF) and until WIF is provisioned.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/preview.yml'
+
+permissions:
+  contents: read
+  id-token: write          # WIF OIDC exchange
+  pull-requests: write     # post the preview URL as a PR comment
+
+jobs:
+  preview:
+    name: Build + deploy preview channel
+    if: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FIREBASE_PROJECT: ${{ vars.FIREBASE_PROJECT || 'off-the-pace' }}
+      # Preview reads the staging data prefix on the CDN.
+      VITE_DATA_BASE: https://storage.googleapis.com/off-the-pace-cdn/staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (WIF, keyless)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.4.0
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Build app (against staging data)
+        working-directory: app
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Deploy preview channel
+        id: deploy
+        run: |
+          out=$(npx -y firebase-tools@latest hosting:channel:deploy "pr-${{ github.event.number }}" \
+                  --only app \
+                  --project "$FIREBASE_PROJECT" \
+                  --expires 7d \
+                  --json)
+          echo "$out"
+          url=$(echo "$out" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next(iter(d["result"].values()))["url"])')
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Comment preview URL
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.number }}" --edit-last --create-if-none --body \
+            "🔭 **Preview deploy** (staging data): ${{ steps.deploy.outputs.url }}
+          _Channel \`pr-${{ github.event.number }}\`, expires in 7 days. Built from ${{ github.event.pull_request.head.sha }}._"

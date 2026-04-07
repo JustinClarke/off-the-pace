@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Byte-stability oracle for dbt model relations (work.md §6 Phase B).
+"""Byte-stability oracle for dbt model relations.
 
 Computes an *order-independent* content hash for every dbt model materialized in a
 DuckDB warehouse, so a cosmetic change (lint fix, refactor) can be proven to leave
 model *output* byte-identical. The 7 `fct_*` marts are the mandatory byte-stable
-subset (work.md §5/§6.1): drift in any of them fails the check.
+subset: drift in any of them fails the check.
 
 Two modes:
   snapshot (default)  write target/model_hashes.baseline.json
@@ -34,22 +34,22 @@ HERE = Path(__file__).resolve().parent
 TRANSFORM_ROOT = HERE.parent
 DEFAULT_DB = TRANSFORM_ROOT.parent / "data" / "ci.duckdb"
 DEFAULT_MANIFEST = TRANSFORM_ROOT / "target" / "manifest.json"
-# Committed path (not target/, which is gitignored) so CI — which starts with no
-# target/ — can run `--check` against a baseline that travels with the repo. Treat
+# Committed path (not target/, which is gitignored) so CI which starts with no
+# target/ can run `--check` against a baseline that travels with the repo. Treat
 # it like an approval/snapshot test: regenerate + commit it when model *logic*
 # changes intentionally; the check then guards against cosmetic edits silently
-# moving fct_* output. See work.md §6 Phase F.
+# moving fct_* output.
 DEFAULT_BASELINE = TRANSFORM_ROOT / "tests" / "model_hashes.baseline.json"
 
-# Mandatory byte-stable subset: any drift here is a hard failure (work.md §5/§6.1).
+# Mandatory byte-stable subset: any drift here is a hard failure.
 MANDATORY_PREFIX = "fct_"
 
 # Columns that legitimately vary build-to-build (wall-clock build metadata) and must be
 # excluded from the content hash, else they create spurious "drift". `fit_timestamp` is
 # `CAST(CURRENT_TIMESTAMP AS VARCHAR)` in the constructor-pace family. Real byte-stability
 # additionally requires DuckDB's *internal* thread count pinned to 1 (profiles `settings:
-# threads: 1`) so non-associative float aggregation can't reorder — dbt's own `threads:`
-# only controls model-level concurrency, not intra-query parallelism. See work.md §6.
+# threads: 1`) so non-associative float aggregation can't reorder dbt's own `threads:`
+# only controls model-level concurrency, not intra-query parallelism.
 VOLATILE_COLS = {"fit_timestamp"}
 
 

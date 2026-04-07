@@ -1,4 +1,4 @@
--- Fix 3 pairwise-consistency invariant: p_beats_next is the probability a driver
+-- Pairwise-consistency invariant: p_beats_next is the probability a driver
 -- finishes ahead of the one ranked immediately below it. Since drivers are ranked
 -- by ascending predicted mean pace, the higher-ranked driver always has the lower
 -- (or equal) predicted pace, so under the symmetric normal approximation its

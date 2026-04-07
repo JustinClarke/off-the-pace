@@ -111,7 +111,7 @@ stint_survival AS (
     INNER JOIN total_per_compound AS tp ON sr.compound = tp.compound
 ),
 
--- Per-lap telemetry features (ml-v0.2 §2): powertrain + within-stint-drift
+-- Per-lap telemetry features: powertrain + within-stint-drift
 -- cliff signals.
 -- LEFT JOINed → explicit NULL on laps with no telemetry (carried as XGBoost
 -- native-NaN).

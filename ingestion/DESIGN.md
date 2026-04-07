@@ -26,7 +26,7 @@ weather file.
                           make manifest-report  (status + schema drift)
                                           │
                                           ▼
-                                  transform/  (dbt — all business logic)
+                                  transform/  (dbt all business logic)
 ```
 
 ## Design decisions
@@ -68,7 +68,7 @@ The senior touches that make a multi-hour backfill survivable:
 | **Exponential backoff retry** | `_with_retry` (1s → 2s → 4s → 8s) | Transient FastF1/network blips recover automatically instead of failing the run. |
 | **DQ severity tiers** | `_run_quality_checks` | Schema failure on a race → skip the write and record `error`. Low row count / high nulls → warn only. The gate protects the spine without rejecting legitimately short sessions. |
 | **Idempotency via skip-unless-`--force`** | `ingest_race` / `ingest_qualifying` | Re-running after a crash resumes from the gap, not from zero. |
-| **Run manifest as audit log** | `_make_manifest_row` → `run_<id>.parquet` | Every attempt — ok, skip, or error — is recorded with row count, DQ flag, and a schema fingerprint. The run is queryable after the fact. |
+| **Run manifest as audit log** | `_make_manifest_row` → `run_<id>.parquet` | Every attempt ok, skip, or error is recorded with row count, DQ flag, and a schema fingerprint. The run is queryable after the fact. |
 | **Schema fingerprinting** | `_schema_fingerprint` (SHA-1 of sorted columns) | FastF1's schema drifts between seasons. The fingerprint makes that drift *detectable* (`make manifest-report`) instead of silently flowing into the warehouse. |
 
 ## Observability
@@ -76,9 +76,9 @@ The senior touches that make a multi-hour backfill survivable:
 The manifest is only valuable if something reads it. `make manifest-report`
 (`manifest_report.py`) loads every `run_*.parquet` and reports:
 
-1. **Last-run status** per `(season, round, session)` — the most recent
+1. **Last-run status** per `(season, round, session)` the most recent
    ok/skip/error outcome, with errored sessions called out.
-2. **Schema drift** — any change in a dataset's schema fingerprint between runs,
+2. **Schema drift** any change in a dataset's schema fingerprint between runs,
    flagged with the timestamp it changed.
 
 It exits non-zero when anything errored or drifted, so it doubles as a CI gate.
@@ -87,5 +87,5 @@ and exits early on `[DQ FAIL]` or process death.
 
 ## See also
 
-- [README.md](README.md) — how to run ingestion, scope your data, and verify it.
-- [SCHEMA.md](SCHEMA.md) — exact column definitions for every Bronze dataset.
+- [README.md](README.md) how to run ingestion, scope your data, and verify it.
+- [SCHEMA.md](SCHEMA.md) exact column definitions for every Bronze dataset.

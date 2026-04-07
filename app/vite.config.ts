@@ -1,7 +1,18 @@
 import { defineConfig, Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import path from 'path'
 import fs from 'fs'
+
+// Source-map upload to Sentry. Active ONLY when a build sets all three of
+// SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT (the deploy pipeline); otherwise the plugin
+// is omitted and no maps are generated, so local/CI builds without Sentry are unaffected and
+// no .map files are ever shipped to the public artifact. When active, maps are uploaded then
+// deleted from dist/ (filesToDeleteAfterUpload), so they symbolicate Sentry stacks without
+// being served publicly.
+const sentryActive = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT,
+)
 
 // onnxruntime-web (1.26) loads its threaded proxy worker by calling import() on the self-hosted
 // /ort/*.mjs assets. Vite's dev server intercepts any import() of a /public .mjs, appends ?import,
@@ -50,7 +61,27 @@ function injectCoopCoepHeaders(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [injectCoopCoepHeaders(), serveOrtMjsRaw(), react()],
+  plugins: [
+    injectCoopCoepHeaders(),
+    serveOrtMjsRaw(),
+    react(),
+    ...(sentryActive
+      ? [
+          sentryVitePlugin({
+            org: process.env.SENTRY_ORG,
+            project: process.env.SENTRY_PROJECT,
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            release: process.env.VITE_APP_RELEASE ? { name: process.env.VITE_APP_RELEASE } : undefined,
+            sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] },
+          }),
+        ]
+      : []),
+  ],
+  // Generate hidden source maps only when uploading them to Sentry (then they're deleted from
+  // dist) never reference or ship maps in the public build otherwise.
+  build: {
+    sourcemap: sentryActive ? 'hidden' : false,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -64,6 +95,15 @@ export default defineConfig({
     exclude: ['@duckdb/duckdb-wasm', 'onnxruntime-web'],
   },
   server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+  // `vite preview` serves the production bundle for the Playwright E2E suite. It must
+  // carry the same cross-origin-isolation headers Firebase Hosting sets in prod, or DuckDB-wasm /
+  // onnxruntime-web cannot spin up their workers (COEP require-corp). Mirrors `server.headers`.
+  preview: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',

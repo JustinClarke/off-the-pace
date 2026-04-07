@@ -62,6 +62,7 @@ describe('transform', () => {
   })
 
   it('coerces unknown verdict strings to null', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately invalid verdict to exercise null-coercion
     const rows = [baseRow({ verdict: 'something_else' as any })]
     const result = transform(rows, 57)
     expect(result.stints[0].verdict).toBeNull()

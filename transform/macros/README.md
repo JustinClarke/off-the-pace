@@ -1,6 +1,6 @@
 # dbt Macros
 
-Custom macros for validation, statistical operations, and reusable filter predicates. Established initially to eliminate pattern duplication across 10 new models (§3.2 of the implementation plan).
+Custom macros for validation, statistical operations, and reusable filter predicates. Each one exists to eliminate pattern duplication: a definition lives once here instead of being copy-pasted, and silently diverging, across models.
 
 ## Implemented Macros
 
@@ -8,7 +8,9 @@ Custom macros for validation, statistical operations, and reusable filter predic
 
 Validates that an additive decomposition identity holds: `total = sum(components) + residual ± tolerance`.
 
-**Used by:** identity-closure singular tests in #4, #5, #6, #7, #8, and any future additive model.
+**Used by:** the lap seven-term identity test (`assert_lap_7term_identity`) and its worked
+macro-usage duplicate (`assert_example_identity_closure`). The other identity-closure tests
+assert different identity shapes with their own inline SQL rather than this macro.
 
 **Example:**
 ```sql
@@ -31,7 +33,8 @@ Computes normal-normal conjugate shrinkage: `posterior = (n × observed + weight
 
 Handles `n=0` by returning NULL, which is correct for unobserved cells.
 
-**Used by:** #3 (driver affinity shrinkage) and #10 (era-bridge anchor shrinkage).
+**Used by:** `int_driver_circuit_affinity`, `int_driver_circuit_era_affinity`, and
+`int_driver_season_ratings`.
 
 **Example:**
 ```sql
@@ -54,7 +57,9 @@ Computes posterior variance from normal-normal conjugate model: `1 / (n/σ² + 1
 
 Returns NULL if any input is NULL or ≤0 (precision-weighted inversion requires positive variances).
 
-**Used by:** shrinkage models (#3, #10) to emit `_se_s` and CI bounds derived from posterior variance.
+**Used by:** the same three shrinkage models as `bayesian_shrinkage` above
+(`int_driver_circuit_affinity`, `int_driver_circuit_era_affinity`, `int_driver_season_ratings`)
+to emit `_se_s` and CI bounds derived from posterior variance.
 
 **Example:**
 ```sql
@@ -82,7 +87,10 @@ Clean lap criteria:
 
 This is the canonical definition; use it everywhere skill signals are extracted to prevent silent divergence.
 
-**Used by:** #3, #4, #5, #6, #8, #10, and any future model extracting driver skill or reading anomaly flags.
+**Used by:** no model directly today this is the canonical recommended pattern, not yet an
+adopted one. Every current skill-extracting model (including `fct_driver_skill_features`, the
+driver-skill ML feature mart) inlines the equivalent three-condition filter itself rather than
+calling this macro, the silent-divergence risk this macro's own definition exists to prevent.
 
 **Example:**
 ```sql
@@ -104,7 +112,9 @@ Pirelli ran a 7-compound range in 2018 (HYPERSOFT/ULTRASOFT/SUPERSOFT/SOFT/MEDIU
 
 **Scope warning:** use this **only** on ML-facing feature joins (e.g. `fct_cliff_prediction_features`). Do **not** apply it inside `int_compound_cliff_predicted`-that model's output feeds `compound_component_s` in `int_lap_residual_decomposed`, and normalising there would silently re-attribute compound vs. driver skill for 2018 laps. Residual nulls after normalisation are intentional and handled by XGBoost's native missing-value path.
 
-**Used by:** `fct_cliff_prediction_features` (compound-params join only).
+**Used by:** no model today. `fct_cliff_prediction_features` is the intended consumer (its
+compound-params join is exactly the 2018-legacy-name problem this macro solves) but currently
+handles compound normalisation inline rather than calling this macro.
 
 **Example:**
 ```sql
@@ -126,8 +136,7 @@ grand-prix/event slug, so one physical venue can carry several keys (renamed eve
 double-headers). Slugifying `circuit_name` collapses those into one `circuit_id` so an
 "equal-car track record at a circuit" pools all races run at the same venue.
 
-**Used by:** `int_driver_circuit_era_affinity` and `mart_degradation_history_envelope`
-(physical-circuit grain).
+**Used by:** `int_driver_circuit_era_affinity` and `dim_circuits` (physical-circuit grain).
 
 **Example:**
 ```sql
@@ -146,7 +155,7 @@ Zelen & Severo rational approximation (Abramowitz & Stegun 26.2.17), max absolut
 ~7.5e-8 over the whole real line. Pass a simple column or scalar expression (it is inlined
 several times, so avoid an expensive sub-expression).
 
-**Used by:** `fct_ghost_race_finish` (Fix 3 SE propagation: `p_beats_next`, finish-position
+**Used by:** `fct_ghost_race_finish` (SE propagation: `p_beats_next`, finish-position
 probabilities).
 
 **Example:**

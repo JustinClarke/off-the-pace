@@ -1,4 +1,4 @@
--- Third Model Sequence #7 (part 2): Ghost car race finish simulator.
+-- Ghost car race finish simulator.
 -- For each (host_constructor, race) scenario, computes the projected finish
 -- position if every driver had been in the given host constructor's car.
 --
@@ -12,13 +12,13 @@
 -- Ties broken by actual finish position.
 --
 -- ─────────────────────────────────────────────────────────────────────────────
--- transform v0.2 Fix 3 honest confidence via SE propagation
+-- Honest confidence via SE propagation
 -- ─────────────────────────────────────────────────────────────────────────────
--- The old confidence was an n/(n+50) shrinkage heuristic structurally capped near
--- 0.6 and blind to how *separated* drivers actually are. Fix 3 propagates the real
--- coefficient uncertainties already carried in fct_ghost_car_pace into a per-driver
--- predicted-mean-pace variance, then turns pairwise pace gaps into order
--- probabilities under a normal approximation.
+-- A simpler n/(n+50) shrinkage heuristic is structurally capped near 0.6 and
+-- blind to how *separated* drivers actually are. This propagates the real
+-- coefficient uncertainties already carried in fct_ghost_car_pace into a
+-- per-driver predicted-mean-pace variance, then turns pairwise pace gaps into
+-- order probabilities under a normal approximation.
 --
 -- Per driver d (in host h), predicted mean pace mu_d carries variance from:
 --   * host structural-pace SE        (se_pace_h)        multiplier 1
@@ -49,7 +49,8 @@
 -- induce mild correlation in the residual terms) honest enough for calibration,
 -- documented here rather than hidden.
 --
--- avg_recombination_confidence (old heuristic) is retained one release for app diffing.
+-- avg_recombination_confidence is a coverage-weighted confidence heuristic,
+-- read directly by app features alongside the SE-propagation columns below.
 --
 -- Grain: (host_constructor_id, ego_driver_id, race_id) one row per scenario.
 -- PK: surrogate hash of the three keys.
@@ -67,7 +68,7 @@ WITH ghost_laps AS (
         predicted_lap_time_s,
         actual_lap_time_s,
         recombination_confidence,
-        -- Fix 3 SE-propagation ingredients (per lap)
+        -- SE-propagation ingredients (per lap)
         host_constructor_pace_se_s,
         host_deg_slope_sd_s_per_lap,
         ego_deg_slope_sd_s_per_lap,
@@ -102,11 +103,11 @@ race_distance AS (
     GROUP BY race_year, race_id, host_constructor_id
 ),
 
--- Actual finish position (§5.4). Source of truth = official classified results
+-- Actual finish position. Source of truth = official classified results
 -- (stg_results): classified finishers get their official finishing position;
 -- retirements (is_dnf) get NULL so deltas stay undefined. Falls back to the
--- legacy lap-derived position (last valid lap) only for races not yet present
--- in stg_results during the partial v0.2 backfill.
+-- lap-derived position (last valid lap) only for races not yet present
+-- in stg_results.
 lap_finish AS (
     SELECT
         race_year,
@@ -165,7 +166,7 @@ race_totals AS (
         SUM(actual_lap_time_s)                  AS actual_total_race_time_s,
         COUNT(*)                                AS laps_counted,
         AVG(recombination_confidence)           AS lap_mean_confidence,
-        -- Fix 3 aggregated exposures (constant-ish per scenario averaged over laps)
+        -- Aggregated exposures (constant-ish per scenario averaged over laps)
         AVG(host_constructor_pace_se_s)         AS host_pace_se,
         AVG(host_deg_slope_sd_s_per_lap)        AS host_slope_sd,
         AVG(ego_deg_slope_sd_s_per_lap)         AS ego_slope_sd,
@@ -196,7 +197,7 @@ with_coverage AS (
         rt.lap_mean_confidence
             * SQRT(LEAST(1.0, CAST(rt.laps_counted AS DOUBLE)
                 / NULLIF(rd.race_distance_laps, 0)))        AS avg_recombination_confidence,
-        -- ── Fix 3 variance propagation ──
+        -- ── Variance propagation ──
         -- Shared host coefficient × this driver's exposure (survives only as a
         -- differential between drivers, so kept separate for the pairwise step).
         rt.host_slope_sd * rt.mean_age                      AS host_slope_term,
@@ -300,7 +301,7 @@ SELECT
     r.is_self_scenario,
     r.predicted_finish_position,
     af.actual_finish_position,
-    -- Classified-result DNF flags (§5.4) feed the MC finish-order core (§4.5).
+    -- Classified-result DNF flags, exported for downstream consumers (unconsumed today).
     af.actual_is_dnf,
     af.actual_dnf_cause,
     af.finish_from_results,
@@ -319,7 +320,7 @@ SELECT
     r.lap_coverage,
     r.is_short_run,
     r.avg_recombination_confidence,
-    -- Fix 3 honest-confidence columns
+    -- Honest-confidence columns
     r.predicted_mean_lap_se_s,
     pa.p_beats_next,
     COALESCE(pa.finish_pos_se, 0.0)             AS finish_pos_se

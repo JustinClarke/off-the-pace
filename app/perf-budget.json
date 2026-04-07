@@ -1,0 +1,6 @@
+{
+  "_comment": "Bundle-size budget for app/scripts/check_bundle_size.mjs (Phase 5 / F9). JS bytes in dist/ (.wasm excluded). Regenerate with `make app-bundle-budget-update` after an intentional size change.",
+  "maxTotalJsBytes": 3407872,
+  "maxGzipJsBytes": 1005568,
+  "maxLargestJsBytes": 835584
+}

@@ -1,0 +1,62 @@
+---
+title: "Replay: step through a race lap by lap"
+sidebarTitle: "Replay"
+description: "Walk one race's Bronze laps in order, printing each driver's lap as it would have happened useful for spot-checking ingestion or debugging a specific lap."
+---
+
+`replay_simulator.py` reads a Bronze laps Parquet file, filters to one race, sorts by lap number, and prints (or streams) each lap in order. It's the fastest way to look at what actually landed in a file without writing SQL.
+
+<Warning>
+  `make simulate` fails immediately out of the box it calls `replay_simulator.py` without `--dry_run`, and live mode requires `EVENTSTREAM_CONNECTION_STRING` and `EVENTHUB_NAME` for a not-yet-deployed Azure EventHub streaming target. Use the `--dry_run` invocation below instead; it prints every payload locally and needs no credentials.
+</Warning>
+
+```bash
+python ingestion/src/replay_simulator.py \
+  --parquet_path data/bronze/laps/season=2024/race=bahrain_grand_prix/2024_bahrain_grand_prix_laps.parquet \
+  --race_id 2024_1 \
+  --speed 10 \
+  --dry_run
+```
+
+<Frame>
+```text
+Simulating 2024_1 at 10.0x [DRY RUN]   57 laps
+  Lap   1 | Driver 16 | 98.342s
+  Lap   2 | Driver 16 | 96.118s
+  ...
+Complete   57 laps emitted
+```
+</Frame>
+
+<Note>
+  `--dry_run` still sleeps `90 / speed` seconds between laps to simulate real-time pacing it skips only the EventHub send, not the timing. At `--speed 10` (the default), a full race replays in a few minutes; raise `--speed` further to print faster.
+</Note>
+
+## Flags
+
+<ParamField path="--parquet_path" type="string" required>
+  Path to a Bronze laps Parquet file (race laps only qualifying laps aren't supported).
+</ParamField>
+<ParamField path="--race_id" type="string" required>
+  The `race_id` to filter to, in `<season>_<round_number>` form (e.g. `2024_1`). A laps file can contain only one race, but this still filters defensively.
+</ParamField>
+<ParamField path="--speed" type="float" default="10.0">
+  Replay speed multiplier. `1.0` is real-time (~90s between laps); higher values replay faster.
+</ParamField>
+<ParamField path="--dry_run" type="boolean" default="false">
+  Print each lap's payload without sending anything the only mode that works without EventHub credentials configured.
+</ParamField>
+
+## Why it exists
+
+Bronze laps Parquet is easy to query but tedious to *read* a wide DataFrame of every driver's every lap, unordered, with `LapTime` as a raw nanosecond integer. Replaying converts a row into something legible: lap number, driver, decoded lap time in seconds, compound, and tyre life, one line per lap, in race order. It doubles as a debugging tool for a single suspicious lap find it in the stream rather than filtering a DataFrame by hand.
+
+<Note>
+  The live EventHub path (`RaceReplaySimulator` without `--dry_run`) targets a streaming-integration component that isn't deployed yet. It has no effect on the rest of the pipeline today `--dry_run` is the working invocation.
+</Note>
+
+## Next
+
+<Card title="Architecture" icon="code" href="/ingestion/architecture">
+  The full ingestion code walkthrough how a race's laps got into the file you just replayed.
+</Card>

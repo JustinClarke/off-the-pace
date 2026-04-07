@@ -1,0 +1,50 @@
+---
+title: "Where did a driver's race actually go?"
+sidebarTitle: "How the Race Was Lost"
+description: "The per-lap decomposition summed across an entire race, turning average-per-lap components into total seconds gained or lost to each cause."
+---
+
+A driver finishes ten seconds behind but to what? "How the Race Was Lost" cumulates the per-lap decomposition identity across the whole race for one driver, turning average-per-lap components into total race contributions. The result reads as a budget: across the full race, how many seconds did dirty air cost, how many did the tyres take, and how many were down to the driver?
+
+## What it shows
+
+For each component the chart sums the per-lap value across all classified laps:
+
+- **Components**: fuel, tyres, ambient, constructor, dirty air, and driver skill each summed across the race versus the per-lap field median.
+- **Negative total**: the driver/car *gained* time from that factor versus the field median.
+- **Positive total**: the driver/car *lost* time from that factor.
+- **Driver skill**: the residual after removing all physics components the pure driving contribution.
+- **Track noise**: unexplained lap-to-lap variation, shown as informational; it is **not** additive to the seven-term identity and should not be added into the total.
+
+<Note>
+  Laps under safety car, virtual safety car, and major outlier laps are excluded from the sum, so the totals reflect representative racing laps only.
+</Note>
+
+## How to use it
+
+1. **Select a race and driver** from the filter bar; the cumulative budget loads.
+2. **Read the largest bars first** they are where the race was won or lost.
+3. **Separate car from driver** a large constructor bar is the machinery; the driver-skill bar is the part the driver owns.
+4. **Treat track noise as a diagnostic**, not a cause it sits outside the additive identity.
+
+## Reading the signal correctly
+
+These are totals **relative to the per-lap field median**, so a positive dirty-air bar means this driver spent more of the race in traffic than the median car it is a comparison, not an absolute physical loss. The six physics components plus driver skill close the identity; track noise is shown separately on purpose.
+
+<Warning>
+  Do not add track noise into the seven-term total it is non-additive and would double-count. See the [seven-term identity](/decomposition/seven-term-identity) for why the identity closes on six environmental terms plus driver skill.
+</Warning>
+
+## Data source
+
+The chart queries `fct_lap_residuals` via DuckDB-Wasm in the browser, summing across a single race.
+
+| Column | Meaning |
+|---|---|
+| `fuel_component_s`, `compound_component_s`, … | The six environmental components, summed across the race |
+| `driver_skill_residual_s` | The driver contribution after physics is removed |
+| `track_unexplained_s` | Lap-to-lap noise, shown as informational (non-additive) |
+
+This is a **single-race** view across **2018–2024** data.
+
+For the full model definition, see the [`fct_lap_residuals` reference](/reference/models/fct/fct_lap_residuals).

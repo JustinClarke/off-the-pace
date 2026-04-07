@@ -5,7 +5,7 @@ import type { LabResult } from '../../data/duckdb/queryLab'
 const RENDER_CAP = 1000
 
 function formatCell(v: unknown): string {
-  if (v === null || v === undefined) return '—'
+  if (v === null || v === undefined) return ' '
   if (typeof v === 'number') return Number.isInteger(v) ? v.toLocaleString() : String(v)
   return String(v)
 }
@@ -64,7 +64,7 @@ export default function ResultGrid({ result }: { result: LabResult }) {
       {rows.length > RENDER_CAP && (
         <p className="shrink-0 border-t border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted">
           showing {RENDER_CAP.toLocaleString()} of {result.rowCount.toLocaleString()}
-          {result.truncated ? '+ (capped)' : ''} rows — Export CSV emits the full set
+          {result.truncated ? '+ (capped)' : ''} rows Export CSV emits the full set
         </p>
       )}
     </div>

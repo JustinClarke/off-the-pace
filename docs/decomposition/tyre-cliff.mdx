@@ -34,9 +34,13 @@ These factors interact. A linear correction per dimension cannot capture "Soft, 
 
 ### How each stint becomes an observation
 
-Each stint contributes one observation to the survival analysis. A stint either **reaches** the cliff (an event) or **ends before** it because the team pitted first (a censored observation). The Kaplan-Meier estimator produces a survival function the probability that a tyre survives to each lap and the median survival time becomes the cliff onset estimate $\tau$.
+Each stint contributes one observation to the survival analysis. A stint either **reaches** the cliff (an event) or **ends before** it because the team pitted first (a censored observation). The Kaplan-Meier product-limit estimator turns these into a survival function the probability that a tyre is still in its working window at lap $t$:
 
-The censoring treatment is critical. A stint that pits on lap 18 is **not** a failed cliff at lap 18 it is a censored observation at lap 17. Treating it as an event would systematically underestimate cliff onset across every circuit-compound group. This is the same estimator used in clinical trials for time-to-event outcomes; the mathematical guarantee on handling censored observations is why it is the right tool here.
+$$\hat{S}(t) = \prod_{t_i \le t}\left(1 - \frac{d_i}{n_i}\right)$$
+
+Here $n_i$ is the number of stints still *at risk* just before lap $t_i$, and $d_i$ is the number that cliff (the events) at $t_i$. The cliff onset estimate $\tau$ is the **median survival lap** the first lap where $\hat{S}(\tau) \le 0.5$.
+
+The censoring treatment is critical, and it lives in the at-risk count $n_i$. A stint that pits on lap 18 is **not** a failed cliff at lap 18 it is a censored observation at lap 17: it leaves the at-risk set $n_i$ without ever contributing an event $d_i$. Treating it as an event instead would inflate the $d_i/n_i$ ratios and systematically underestimate cliff onset across every circuit-compound group. This is the same estimator used in clinical trials for time-to-event outcomes; the mathematical guarantee on handling censored observations is why it is the right tool here.
 
 ### Where cliff parameters live
 
@@ -56,11 +60,14 @@ The ML layer turns the population prior into a per-lap, per-stint prediction. On
 
 For full details on feature engineering, training, validation, and model cards, see the [ML models reference](/ml/models).
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Methodology" icon="flask-conical" href="/decomposition/methodology">
     How Kaplan-Meier cliff detection fits into the sequential estimation pipeline
   </Card>
   <Card title="Limitations" icon="triangle-alert" href="/decomposition/limitations">
     Known constraints on tyre coefficient quality and ML cliff prediction accuracy
+  </Card>
+  <Card title="Reference" icon="library" href="/transform/families/reference">
+    Where the fitted cliff coefficients live and how the survival fitter promotes them
   </Card>
 </CardGroup>

@@ -41,6 +41,24 @@ EXPLANATION_LINKS: dict[str, str] = {
     "fct_cliff_prediction_features": "/decomposition/methodology",
 }
 
+# Generic test kind -> the CI Contract page that explains it (transform/ci/*).
+CI_PAGE_OF_KIND: dict[str, str] = {
+    "not_null": "/transform/ci/structural",
+    "unique": "/transform/ci/structural",
+    "unique_combination_of_columns": "/transform/ci/structural",
+    "expect_column_values_to_be_between": "/transform/ci/range-and-domain",
+    "accepted_range": "/transform/ci/range-and-domain",
+    "expect_table_row_count_to_be_between": "/transform/ci/range-and-domain",
+    "accepted_values": "/transform/ci/range-and-domain",
+    "expect_column_pair_values_A_to_be_greater_than_B": "/transform/ci/range-and-domain",
+}
+
+# Two ML feature marts whose schema is a hard contract with ml/ (config.contract.enforced).
+CONTRACT_WARNING = (
+    "Breaking a column type on this model fails the dbt build  -  this is the "
+    "enforced handoff contract with `ml/`."
+)
+
 
 def load_manifest() -> dict:
     if not MANIFEST_PATH.exists():
@@ -98,6 +116,45 @@ def upstream_models(node: dict, nodes: dict) -> list[str]:
     ]
 
 
+def downstream_models(uid: str, nodes: dict, child_map: dict) -> list[str]:
+    children = child_map.get(uid, [])
+    return sorted(
+        {nodes[c]["name"] for c in children if c in nodes and nodes[c]["resource_type"] == "model"}
+    )
+
+
+def tests_guarding_model(uid: str, all_tests: list[dict]) -> list[dict]:
+    """Every test (generic or singular) whose depends_on includes this model."""
+    return [t for t in all_tests if uid in t.get("depends_on", {}).get("nodes", [])]
+
+
+def family_of(node: dict) -> str:
+    family = (node.get("meta") or {}).get("family")
+    if not family:
+        raise ValueError(f"model {node['name']} has no meta.family (transform/models/**/schema.yml)")
+    return family
+
+
+def family_label(family: str) -> str:
+    return family.replace("-", " ").title()
+
+
+def lineage_mermaid(node: dict, nodes: dict, child_map: dict) -> str:
+    name = node["name"]
+    upstream = sorted(upstream_models(node, nodes))
+    downstream = downstream_models(node["unique_id"], nodes, child_map)
+    lines = ["```mermaid", "flowchart LR"]
+    for u in upstream:
+        lines.append(f"  {u} --> {name}")
+    for d in downstream:
+        lines.append(f"  {name} --> {d}")
+    if not upstream and not downstream:
+        lines.append(f"  {name}")
+    lines.append(f"  style {name} fill:#e40404,stroke:#e40404,color:#fff")
+    lines.append("```")
+    return "\n".join(lines)
+
+
 LAYER_SUBDIR = {
     "staging": "stg",
     "intermediate": "int",
@@ -112,7 +169,8 @@ def layer_of(node: dict) -> str:
 
 
 def subdir_of(name: str) -> str:
-    for prefix, subdir in [("stg_", "stg"), ("int_", "int"), ("dim_", "dim"), ("fct_", "fct")]:
+    # fct_ and mart_ are both gold marts and share the "Marts" nav group / fct subdir.
+    for prefix, subdir in [("stg_", "stg"), ("int_", "int"), ("dim_", "dim"), ("fct_", "fct"), ("mart_", "fct")]:
         if name.startswith(prefix):
             return subdir
     return "other"
@@ -125,7 +183,7 @@ def model_link(source_subdir: str, target_name: str) -> str:
     return f"[`{target_name}`](../{target_subdir}/{target_name})"
 
 
-def render_model_mdx(node: dict, tests_index: dict, nodes: dict) -> str:
+def render_model_mdx(node: dict, tests_index: dict, nodes: dict, child_map: dict, all_tests: list[dict]) -> str:
     name = node["name"]
     desc_raw = node.get("description", "").strip()
     description = escape_mdx(desc_raw)
@@ -137,6 +195,7 @@ def render_model_mdx(node: dict, tests_index: dict, nodes: dict) -> str:
     uid = node["unique_id"]
     upstream = upstream_models(node, nodes)
     model_level_tests = model_tests_no_column(uid, tests_index)
+    family = family_of(node)
 
     lines = mintlify_frontmatter(
         title=name,
@@ -144,6 +203,8 @@ def render_model_mdx(node: dict, tests_index: dict, nodes: dict) -> str:
         description=first_sentence(desc_raw) or f"Reference for the {name} dbt model.",
     ) + [
         AUTOGEN_HEADER,  # JSX comment   valid in .mdx
+        "",
+        f"<Note>Part of the [{family_label(family)}](/transform/families/{family}) family.</Note>",
         "",
     ]
 
@@ -156,9 +217,16 @@ def render_model_mdx(node: dict, tests_index: dict, nodes: dict) -> str:
     if description:
         lines += [description, ""]
 
+    if contract_enforced:
+        lines += [f"<Warning>{CONTRACT_WARNING}</Warning>", ""]
+
+    # Lineage diagram
+    lines += ["## Lineage", "", lineage_mermaid(node, nodes, child_map), ""]
+
     # Metadata table
     lines += ["## Overview", "", "| Property | Value |", "|---|---|"]
     lines.append(f"| Layer | `{layer}` |")
+    lines.append(f"| Family | [{family_label(family)}](/transform/families/{family}) |")
     lines.append(f"| Contract enforced | {'✅ Yes' if contract_enforced else 'No'} |")
     if tags:
         lines.append(f"| Tags | {', '.join(f'`{t}`' for t in tags)} |")
@@ -168,6 +236,14 @@ def render_model_mdx(node: dict, tests_index: dict, nodes: dict) -> str:
     if model_level_tests:
         lines.append(f"| Model-level tests | {', '.join(f'`{t}`' for t in model_level_tests)} |")
     lines.append("")
+
+    guarding = tests_guarding_model(uid, all_tests)
+    generic_n = sum(1 for t in guarding if t.get("test_metadata"))
+    singular_n = len(guarding) - generic_n
+    lines += [
+        f"**{len(guarding)} tests** [guard](/transform/ci/overview) this model  -  {generic_n} generic, {singular_n} singular.",
+        "",
+    ]
 
     # Columns table
     if columns:
@@ -183,7 +259,7 @@ def render_model_mdx(node: dict, tests_index: dict, nodes: dict) -> str:
             constraints = col.get("constraints", [])
             nullable = "No" if any(c.get("type") == "not_null" for c in constraints) else "Yes"
             col_tests = tests_for_column(uid, col_name, tests_index)
-            tests_str = ", ".join(f"`{t}`" for t in col_tests) if col_tests else " "
+            tests_str = ", ".join(test_badge(t) for t in col_tests) if col_tests else " "
             type_str = f"`{data_type}`" if data_type else " "
             lines.append(f"| `{col_name}` | {type_str} | {nullable} | {tests_str} | {col_description} |")
         lines.append("")
@@ -191,6 +267,12 @@ def render_model_mdx(node: dict, tests_index: dict, nodes: dict) -> str:
         lines += ["## Columns", "", "_Column definitions not yet documented in schema.yml._", ""]
 
     return "\n".join(lines)
+
+
+def test_badge(kind: str) -> str:
+    page = CI_PAGE_OF_KIND.get(kind)
+    label = f"`{kind}`"
+    return f"[{label}]({page})" if page else label
 
 
 def render_index(models_by_layer: dict[str, list[dict]]) -> str:
@@ -230,8 +312,10 @@ def render_index(models_by_layer: dict[str, list[dict]]) -> str:
 def main() -> None:
     manifest = load_manifest()
     nodes = manifest["nodes"]
+    child_map = manifest["child_map"]
 
     tests_index = collect_tests_by_model(nodes)
+    all_tests = [v for v in nodes.values() if v["resource_type"] == "test"]
 
     models = {k: v for k, v in nodes.items() if v["resource_type"] == "model" and v.get("package_name") == "off_the_pace"}
 
@@ -246,7 +330,7 @@ def main() -> None:
 
     written = 0
     for node in models.values():
-        mdx = render_model_mdx(node, tests_index, nodes)
+        mdx = render_model_mdx(node, tests_index, nodes, child_map, all_tests)
         subdir = subdir_of(node["name"])
         subdir_path = OUT_DIR / subdir
         subdir_path.mkdir(parents=True, exist_ok=True)

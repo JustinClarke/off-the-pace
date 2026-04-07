@@ -1,0 +1,79 @@
+---
+title: "Evaluation gates: beats-baseline, calibration, and cohorts"
+sidebarTitle: "Evaluation Gates"
+description: "The 7 tests in test_evaluate.py that assert every model beats its per-cohort baseline, calibration coverage is computed, cohorts are surfaced not dropped, and metrics match the model card."
+---
+
+The seven evaluation gates in `test_evaluate.py` enforce the properties that make the model card trustworthy: all five models beat honest baselines, coverage is computed, and no cohort loss is silently hidden. These tests run against `ml/artefacts/evaluation_metrics.json`, produced by `make ml-evaluate`.
+
+<Note>
+  These tests are skipped when `evaluation_metrics.json` is absent (i.e. in CI pull requests that do not retrain). They are always run before a release. To run them locally: `make ml-evaluate && make ml-test`.
+</Note>
+
+## The 7 gates
+
+<AccordionGroup>
+  <Accordion title="Gate 1: All five targets evaluated" icon="list-check">
+    **Source:** `test_evaluate.py::test_all_targets_evaluated`
+
+    **Assertion:** `set(report["models"]) == {target.name for target in PRODUCTION_TARGETS}`
+
+    **Why it matters:** if `evaluate.py` silently skips a model (e.g. a name mismatch after a rename), the missing model's metrics would not appear in the card, the model could ship without a baseline comparison, and the CI would pass. This gate ensures the evaluation ran for all five not just some of them.
+  </Accordion>
+  <Accordion title="Gates 2–6: Every model beats its baseline (×5 models)" icon="trophy">
+    **Source:** `test_evaluate.py::test_model_beats_baseline_overall` (parametrized × 5)
+
+    **Assertion (for each model):**
+    - `beats_baseline` flag in the report matches the raw metric comparison
+    - `model_score` is better than `baseline_score` in the correct direction (↓ for pinball/RMSE, ↑ for macro-F1)
+
+    **Why it matters:** the `beats_baseline` flag in the card is set by `evaluate.py`. This test re-derives the comparison from the raw numbers to catch any inversion in the direction logic (e.g. accidentally using `<` instead of `>` for macro-F1). If the flag and the raw numbers disagree, one of them is wrong and the gate will not accept either.
+
+    The baselines are:
+    - **Quantile trio**: the empirical p10/p50/p90 of the degradation target within the same `(compound, circuit, lap-age-bucket)` cell
+    - **Cliff classifier**: the majority-class precision within the same `(compound, circuit)` cell
+    - **Stint-life regressor**: the mean `remaining_stint_life_laps` within the same `(compound, circuit, lap-in-stint-bucket)` cell
+
+    These are genuinely non-trivial baselines they know the typical behaviour for this compound and this circuit. Beating them means the model adds real conditional signal.
+
+    See [Models](/ml/models#headline-results) for the current scores.
+  </Accordion>
+  <Accordion title="Gate 7: Cohorts surfaced, not dropped" icon="chart-bar">
+    **Source:** `test_evaluate.py::test_underperforming_cohorts_present`
+
+    **Assertion:** every model's entry in the report contains an `underperforming_cohorts` key
+
+    **Why it matters:** a model that silently skips the cohort-level evaluation (e.g. because an exception was swallowed) would pass every global metric gate while hiding per-cohort failures. This gate checks that the evaluation ran the cohort loop for every model and wrote the result even if that result is an empty list (which would mean the model beats the baseline in every cell, a suspicious but plausible outcome).
+
+    See [Cohorts](/ml/cohorts) for the current underperforming cells and their context.
+  </Accordion>
+</AccordionGroup>
+
+## The relationship to the model card
+
+The evaluation gates check `evaluation_metrics.json`; the model card (`model_card.yml`) is written by `ml-card` from the same source. The reference docs (`docs/reference/ml/degradation-model-v1.mdx`) are generated from the card. The chain is:
+
+```
+make ml-evaluate  →  evaluation_metrics.json  →  ml-card  →  model_card.yml  →  ml-reference  →  docs
+      ↑
+ test_evaluate.py gates this output
+```
+
+Any model that fails an evaluation gate cannot produce a valid card, and therefore cannot produce valid reference docs. The gates enforce the property "published numbers are honest" at the point where the metrics are first computed.
+
+## Relationships
+
+<CardGroup cols={2}>
+  <Card title="Validation" href="/ml/validation" icon="shield-check">
+    The CV scheme, baselines, and calibration methodology these gates enforce.
+  </Card>
+  <Card title="Cohorts" href="/ml/cohorts" icon="chart-bar">
+    The surfaced underperforming cohort cells and what they mean.
+  </Card>
+  <Card title="Models" href="/ml/models" icon="microchip">
+    The headline numbers the beats-baseline gates are checking.
+  </Card>
+  <Card title="CI overview" href="/ml/ci/overview" icon="vial">
+    All 28 tests where these seven sit in the full contract.
+  </Card>
+</CardGroup>

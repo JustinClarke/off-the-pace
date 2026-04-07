@@ -1,0 +1,44 @@
+---
+title: "FastF1: the primary timing source"
+sidebarTitle: "FastF1"
+description: "What FastF1 provides, its quirks schema drift, on-disk caching, mixed time formats and the retry envelope that absorbs transient blips."
+---
+
+[FastF1](https://github.com/theOehrly/Fast-F1) is the primary timing source: every lap, telemetry sample, weather reading, and race-control message ingestion writes to Bronze comes from a FastF1 session object. It wraps the official F1 live-timing feed and historical archives in a single Python API, needs no authentication, and is the source for everything in the [Bronze Schemas](/reference/data-schemas) group except standings and pit stops (see [Jolpica](/data/source-jolpica)).
+
+<Note>
+  No credentials required. FastF1 caches every session it loads to `data/cache/` on disk, so re-running ingestion including with `--force` never re-fetches data that's already been pulled once.
+</Note>
+
+## Loading a session
+
+`ingest.py` asks FastF1 for a `Race` or `Qualifying` session by year and round number, then loads it: laps for both session types, plus telemetry and weather for races. The object that comes back exposes everything downstream `session.laps`, `session.weather_data`, `session.race_control_messages`, `session.results`, `session.track_status`, `session.car_data`, `session.pos_data` as pandas DataFrames or DataFrame-like accessors, one per dataset Bronze writes.
+
+## Retry envelope
+
+Network calls and FastF1's own session load can fail transiently. Every load goes through a generic retry wrapper: up to 4 attempts, with a 1s, then 2s, then 4s delay between them. If the final attempt still fails, the original exception propagates and the session is recorded as `error` on the run manifest rather than silently skipped.
+
+| Attempt | Delay before it |
+|---|---|
+| 1 | |
+| 2 | 1s |
+| 3 | 2s |
+| 4 | 4s |
+
+A run that lasts hours absorbs the transient blips this way without any operator intervention; only a true, sustained failure surfaces as an error.
+
+<Warning>
+  **Time columns are nanosecond integers, not seconds.** Every `*Time` column (`LapTime`, `Sector1Time`, `Time`, …) is stored as a `BIGINT` of nanoseconds. Divide by `1e9` for seconds.
+
+  **DRS is a numeric enum, not a boolean.** The `DRS` telemetry column is a `BIGINT`; only the values **10, 12, and 14 mean the flap is open**. Decode it once in staging don't carry the magic numbers into downstream models.
+</Warning>
+
+<Accordion title="Schema drift between seasons">
+  FastF1's own output schema isn't perfectly stable across seasons a column can be renamed, retyped, or added. Ingestion doesn't try to predict this; instead, every write computes a schema fingerprint (a hash of the sorted column names) and records it on the run manifest. Comparing fingerprints across runs makes drift detectable rather than something that silently flows into the warehouse. See [Data Quality](/data/data-quality) and [Manifest Report](/ingestion/manifest-report).
+</Accordion>
+
+Some fields arrive as plain timedeltas and others as timezone-aware datetimes, depending on the session and dataset. The race-control and track/session-status writers handle both representations explicitly rather than assuming one converting either shape to elapsed session seconds correctly instead of raising on the one FastF1 didn't return this time.
+
+<Tip>
+  Because FastF1 caches to disk, a `--force` re-ingest of data you've already pulled once is cheap: the slow part (talking to the upstream feed) is skipped, and only the local cache read plus the Bronze write happens.
+</Tip>

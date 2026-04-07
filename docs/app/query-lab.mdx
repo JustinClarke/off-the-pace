@@ -1,0 +1,49 @@
+---
+title: "Run SQL against the gold marts in your browser"
+sidebarTitle: "Query Lab"
+description: "A full SQL editor backed by DuckDB-Wasm. Write raw queries against every registered gold mart no credentials, no server, results in milliseconds."
+---
+
+Query Lab is the escape hatch from the curated charts: a full SQL editor wired straight to the same DuckDB-Wasm engine that powers every other page. The registered gold-mart Parquet files load into your browser, and your query runs locally in WebAssembly no credentials, no backend, results in milliseconds. If a chart doesn't ask the question you have, Query Lab lets you ask it yourself.
+
+## What it shows
+
+Query Lab is a two-pane workspace rather than a chart:
+
+- **Editor pane**: a SQL editor where you write DuckDB SQL against any registered table.
+- **Results grid**: the rows your query returns, rendered as a sortable table.
+- **Registered tables**: every gold mart published by the dbt pipeline is registered by name (`fct_lap_residuals`, `fct_driver_skill_features`, `fct_cliff_prediction_features`, `dim_compounds_season`, and the dimension tables), queryable exactly as they appear in the warehouse.
+
+<Note>
+  Query Lab is the one shipped feature that is **not** a FeaturePage module it is a bespoke editor page (`/query`) with no chart methodology drawer. It is documented here by hand rather than harvested from a `methodology.tsx`.
+</Note>
+
+## How to use it
+
+1. **Open Query Lab** from the sidebar (or at `/query`).
+2. **Wait for the engine indicator** in the top bar to turn green DuckDB-Wasm has finished loading the Parquet files.
+3. **Write a query** against any registered table and run it; results render in the grid below.
+4. **Iterate locally** every run executes in your browser, so there is no rate limit and nothing leaves the page.
+
+## Reading the signal correctly
+
+Query Lab queries the **published gold marts**, the same tables the charts read so a number you compute here will match the corresponding chart when you apply the same filters (clean-lap gates, anomaly exclusions, minimum samples). If a hand query disagrees with a chart, the difference is almost always an inclusion filter the chart applies that your query does not.
+
+<Warning>
+  The marts are modelling outputs, not raw timing data columns like `driver_skill_residual_s` already have car, tyre, fuel, and conditions removed. Read the relevant model's reference page before interpreting a column, so you know what has already been controlled for.
+</Warning>
+
+## Data source
+
+Query Lab registers the full set of published gold marts via DuckDB-Wasm in the browser; there is no single backing model. The complete column-level catalog for every table lives in the **Reference** tab.
+
+| Table | Role |
+|---|---|
+| `fct_lap_residuals` | Per-lap seven-term decomposition (the core mart) |
+| `fct_driver_skill_features` | Driver skill residual aggregates |
+| `fct_cliff_prediction_features` | Per-lap degradation / cliff feature matrix |
+| `dim_*` | Driver, constructor, circuit, event, and compound dimensions |
+
+The data window covers **2018–2024**.
+
+For the full table and column catalog, browse the [model reference](/reference/models/fct/fct_lap_residuals) and the other entries in the Reference tab.

@@ -1,7 +1,7 @@
 ---
-title: "Model validation, leakage prevention, and calibration"
+title: "Model validation: leakage spine, CV, and the adversarial probe"
 sidebarTitle: "Validation"
-description: "Season-grouped TimeSeriesSplit, a five-guard leakage spine, adversarial probes, and 80% calibration coverage verified on 18,677 held-out laps."
+description: "Season-grouped TimeSeriesSplit, a five-guard leakage spine, adversarial probes, and the MAX+1-derived holdout policy that flips to a true reveal when 2025 ingests."
 ---
 
 Forward-looking targets make leakage the defining risk of the machine layer. A model that accidentally sees the future or the answer will look good on paper and fail the moment it runs on live data. Off The Pace defends against this with a **leakage spine**: a set of guards baked into tests and CI that prove the model never sees what it should not.
@@ -9,6 +9,28 @@ Forward-looking targets make leakage the defining risk of the machine layer. A m
 ## Season-grouped time-series validation
 
 Tyre data is a time series. A random train/test split would let the model train on 2024 laps and then "predict" 2022 which is not prediction at all. Instead, validation uses a **season-grouped `TimeSeriesSplit`** with an expanding window across five splits: whole seasons move together, and each fold validates on the season(s) immediately after those it trained on.
+
+```mermaid
+gantt
+    title Season-grouped expanding-window cross-validation
+    dateFormat  YYYY
+    axisFormat  %Y
+    section Fold 1
+    Train 2018-2019      :2018, 2020
+    Validate 2020        :crit, 2020, 2021
+    section Fold 2
+    Train 2018-2020      :2018, 2021
+    Validate 2021        :crit, 2021, 2022
+    section Fold 3
+    Train 2018-2021      :2018, 2022
+    Validate 2022        :crit, 2022, 2023
+    section Fold 4
+    Train 2018-2022      :2018, 2023
+    Validate 2023        :crit, 2023, 2024
+    section Fold 5 · headline
+    Train 2018-2023      :2018, 2024
+    Validate 2024        :crit, 2024, 2025
+```
 
 The final fold trains on 2018–2023 and validates on **2024** the most recent, holdout-shaped unseen season. That final-fold score is the evaluation headline reported in the [model metrics table](/ml/models#headline-results).
 
@@ -28,44 +50,69 @@ The final fold trains on 2018–2023 and validates on **2024** the most recent, 
 | **No hard-coded holdout** | The split is `MAX+1`-derived, never a literal year |
 | **Bounded / non-null targets** | Degradation ∈ [−10, 10]; no NULL-target rows enter training |
 
-These five guards are part of the **28-test suite** (12 spine + 5 ONNX parity + 3 predict + 7 evaluate + 1 targets) and run automatically in CI on every change. Reproduce locally with `make ml-test`.
+<Check>
+  These five guards are part of the **28-test suite** and run automatically in CI on every change. Reproduce locally with `make ml-test`. Each guard is explained in depth on the [Leakage Spine page](/ml/ci/leakage-spine).
+</Check>
 
 ---
 
 ## The adversarial leakage probe
 
-The two most consequential exclusions `driver_id` and `race_year` are justified by **demonstration, not assertion**. A throwaway XGBoost model is trained to recover `race_year` from the remaining features. It succeeds at **0.9999 accuracy** against a majority-class baseline of 0.169 a lift of 0.83.
+The two most consequential exclusions `driver_id` and `race_year` are justified by **demonstration, not assertion**. A throwaway XGBoost model is trained to recover `race_year` from the remaining features. It succeeds at **0.987 accuracy** against a majority-class baseline of 0.168 a lift of 0.82.
 
 That is the point. Constructor identities and compound generations carry such a strong residual temporal signal that `race_year` is almost perfectly recoverable from them. Including `race_year` as a feature would create a backdoor to the season, and through it to outcomes the model should not know. The same logic applies to `driver_id`, which would let the trees relearn per-driver skill the very signal the decomposition works to isolate into `driver_skill_residual_s`. Both are correctly excluded.
 
----
-
-## Calibration does the 80% interval actually cover 80%?
-
-The degradation quantile trio claims an 80% prediction interval from `[p10, p90]`. On the 2024 evaluation set (n = 18,677 laps):
-
-| Measure | Coverage |
-|---|---|
-| Nominal target | 0.800 |
-| Raw `[p10, p90]` empirical coverage | **0.803** |
-| Split-conformal (CQR) coverage | **0.805** |
-| Mean interval width | 1.106 s |
-
-The raw quantiles are **already calibrated** empirical coverage lands within 0.003 of nominal. A split-conformal correction (computed post-hoc, no extra model fits) nudges it to 0.805 with a conformal offset of essentially zero (q ≈ −0.0008). The conformal step confirms the calibration rather than rescuing it.
-
-In plain terms: when the model says "pace loss next lap will fall between A and B seconds," it is right approximately four times in five. The interval averages 1.1 seconds wide on held-out data.
+<Warning>
+  A feature that *predicts the season* is a feature that predicts the answer. Temporal leakage is silent it never throws an error, it just inflates every offline number and collapses the moment the model meets a season it has not memorised. The probe is the tripwire that makes the exclusion non-negotiable.
+</Warning>
 
 ---
 
-## ONNX round-trip parity
+## Metric definitions
 
-Every model passes a round-trip parity test to `atol=1e-5` between the XGBoost native scorer and the ONNX runtime. The parity sample is deliberately NaN-bearing to confirm that the ~47% of laps with a null cliff-onset prior round-trip correctly. Numbers in the browser match numbers from training.
+Each model family is judged on a single headline metric, computed directly from the implementations in `ml/src/train.py` and `ml/src/evaluate.py`.
+
+<Tabs>
+  <Tab title="Pinball ↓ (quantiles)">
+    The quantile trio is scored by the same **pinball loss** it is trained on, at $\alpha \in \{0.1, 0.5, 0.9\}$. For a residual $u = y - \hat{y}$:
+
+    $$\ell_\alpha(y,\hat{y}) = \max\!\big(\alpha\,u,\;(\alpha-1)\,u\big)$$
+
+    Lower is better. Because the loss is the training objective, beating the empirical-percentile baseline on it is direct evidence the model has learned conditional structure the cohort average has not. Full derivation in [Models → Objective functions](/ml/models#objective-functions).
+  </Tab>
+  <Tab title="RMSE ↓ (stint life)">
+    The stint-life regressor is scored by **root-mean-square error** in laps:
+
+    $$\mathrm{RMSE} = \sqrt{\tfrac{1}{n}\sum_i (y_i - \hat{y}_i)^2}$$
+
+    Lower is better. RMSE punishes large misses quadratically, which is the right risk profile for a planning horizon: being ten laps wrong is far worse than being one lap wrong ten times.
+  </Tab>
+  <Tab title="Macro-F1 ↑ (cliff class)">
+    The cliff classifier is scored by **macro-averaged F1** the *unweighted* mean of the four per-class F1 scores:
+
+    $$\text{F1}_c = \frac{2\,P_c\,R_c}{P_c + R_c}, \qquad \text{macro-F1} = \frac{1}{C}\sum_{c=1}^{C}\text{F1}_c$$
+
+    where $P_c$ and $R_c$ are precision and recall for class $c$ and $C = 4$. Averaging *unweighted* (rather than by class support) is deliberate: it gives the rare `0_to_2` window the same say as the dominant `6_plus` class, so a model that quietly ignored imminent cliffs would be punished hard. This is also why macro-F1 sets a far lower ceiling than raw accuracy would.
+  </Tab>
+</Tabs>
+
+---
+
+## Calibration
+
+The degradation quantile trio claims an 80% prediction interval from `[p10, p90]`. The raw quantiles are **already calibrated** empirical coverage lands within ~0.014 of nominal on the 2024 evaluation fold. A split-conformal (CQR) correction is computed post-hoc and confirms calibration with a finite-sample guarantee. In plain terms: the model is right approximately four times in five, and the interval averages ~1.24 seconds wide.
+
+The full LaTeX derivation of the conformity score, the CQR quantile formula, and the coverage table live on the [Calibration page](/ml/calibration).
 
 ---
 
 ## Cohorts surfaced, never dropped
 
-Beyond the global headline, every model is scored across cohorts: compound, circuit, constructor, rain-lap, and season. **21 underperforming cells** are recorded to the model card rather than hidden. The majority are the near-oracle stint-life baseline winning on specific circuits. The degradation regressors lose narrowly only at the Canadian GP; the classifier only at São Paulo. The contract is explicit: surface the losses, do not hide them.
+Beyond the global headline, every model is scored across cohorts: compound, circuit, constructor, rain-lap, and season. Underperforming cells are recorded to the model card rather than hidden. Most are the near-oracle stint-life baseline winning on specific circuits (the Dutch, Japanese, and Las Vegas Grands Prix among them). The contract is explicit: surface the losses, do not hide them.
+
+The full cohort table and the context for each loss live on the [Cohorts page](/ml/cohorts).
+
+---
 
 ---
 
@@ -75,6 +122,6 @@ Beyond the global headline, every model is scored across cohorts: compound, circ
   **No live 2025 holdout yet.** Evaluation headlines are the final time-series CV fold (2024). They become a true out-of-sample reveal automatically when 2025 data ingests but until that moment, they are cross-validation, not a held-out season.
 </Warning>
 
-- **The cliff classifier is the weakest model.** Macro-F1 ≈ 0.37 decisively beats the majority prior but is modest in absolute terms; skill on the rare imminent-cliff windows is limited. The 100 most-confident misses are exported for study and inform the v2 roadmap.
+- **The cliff classifier is the weakest model.** Macro-F1 ≈ 0.33 decisively beats the majority prior but is modest in absolute terms; skill on the rare imminent-cliff windows is limited. The 100 most-confident misses are exported for study and inform the v2 roadmap.
 - **v1 hyperparameters come from a reduced tuning budget.** Running `make ml-tune` (50 trials / 5 folds / full data) only improves them no code change required and should precede any production blessing.
 - **~47% of laps have a null cliff-onset prior** (2018 legacy compounds, un-fit circuits). XGBoost handles the missingness natively via default-direction splits rather than imputation this is documented and its ONNX parity is proven but those laps lean less on the strongest prior feature.

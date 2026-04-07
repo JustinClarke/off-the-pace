@@ -1,0 +1,50 @@
+---
+title: "Range & domain tests: plausibility, enums, and monotonicity"
+sidebarTitle: "Range & Domain"
+description: "The three value-shape generic test families, clubbed together because they share one theme: every number and label in the warehouse stays inside the range that's physically or logically possible."
+---
+
+import TransformInventoryRangeAndDomain from '/snippets/transform-inventory-range-and-domain.mdx';
+
+Three generic dbt/`dbt_expectations` test kinds, individually small but sharing one job: bounding what a column is allowed to contain. Where [Structural](/transform/ci/structural) asks "does this row exist exactly once," this group asks "is this value physically or logically possible."
+
+<AccordionGroup>
+  <Accordion title="Bounded shares & probabilities [0, 1]">
+    Anything that's a fraction, a share, or a probability is range-tested to `[0, 1]` `int_lap_telemetry_aggregates`'s throttle/DRS/wheelspin/lift-coast shares (via `accepted_range`), `int_sc_hazard_history`'s per-lap SC/VSC/any hazard rates in both raw and shrunk form, and the confidence scores that travel with every shrinkage estimate (`affinity_confidence`, `rating_confidence`, `tax_calibration_confidence`, `optimal_pit_lap_confidence`, ghost-car `recombination_confidence`). A value outside `[0, 1]` here isn't a plausibility judgment call it's a unit-error or an off-by-one in a shrinkage formula, full stop.
+
+    ```yaml
+    - name: pct_drs_active
+      tests:
+        - dbt_utils.accepted_range:
+            arguments:
+              min_value: 0
+              max_value: 1
+    ```
+  </Accordion>
+  <Accordion title="Honest envelopes">
+    Pace and degradation deltas are bounded to a range wide enough to admit every legitimate outlier (a wet race, a mid-season driver swap) without admitting a decomposition that's silently blown up. `dirty_air_tax_s`, the deg-sensitivity slopes (`deg_slope_s_per_lap`, `deg_slope_raw_s_per_lap`, and their standard errors), the cliff-onset shift, and both pit-loss estimates (`pit_loss_s_empirical`, `pit_loss_s_shrunk`) are each bounded this way wide enough to be honest, narrow enough that a coefficient many multiples outside history fails the build instead of silently propagating into a feature mart.
+  </Accordion>
+  <Accordion title="Enum integrity">
+    `accepted_values` pins every categorical column to the exact label set the rest of the codebase switches on these sets are themselves gate-checked (a typo'd label fails the build, not a downstream `CASE` that silently falls through to a default):
+
+    | Column | Allowed values |
+    |---|---|
+    | `compound` (multiple models) | `SOFT`, `MEDIUM`, `HARD`, `INTERMEDIATE`, `WET`, `SUPERSOFT`, `ULTRASOFT`, `HYPERSOFT` |
+    | `int_constructor_deg_sensitivity.compound` | `SOFT`, `MEDIUM`, `HARD` (slick-only the model that fits degradation slopes) |
+    | `compound_cliff_params.compound_code` (seed) | `SOFT`, `MEDIUM`, `HARD`, `INTERMEDIATE`, `WET` |
+    | `sector` (`stg_sector_times`, `int_sector_residual_decomposed`) | `1`, `2`, `3` |
+    | `stg_results.dnf_cause` | `racing`, `mechanical`, `non_classified` |
+    | `stg_track_status.status_label` | `all_clear`, `yellow`, `safety_car`, `vsc`, `vsc_ending`, `red_flag`, `unknown` |
+    | `int_sector_residual_decomposed.dominant_component_class` | `fuel`, `compound`, `rubber`, `ambient`, `constructor`, `dirty_air` |
+    | `int_pit_strategy_value.strategy_verdict` | `optimal`, `overran`, `undercut_forced`, `early`, `unknown` |
+    | `int_tyre_surface_vs_bulk_decoupling.degradation_source` | `surface_driven`, `bulk_driven`, `mixed` |
+    | `era` / `era_key` (`mart_degradation_history_envelope`, `int_driver_circuit_era_affinity`) | `pre2022`, `post2022` |
+  </Accordion>
+  <Accordion title="Cross-column monotonicity">
+    Four `expect_column_pair_values_A_to_be_greater_than_B` tests assert that two related columns stay in the order their meaning requires. `int_constructor_structural_pace`'s confidence interval must have `constructor_structural_pace_ci_high_s ≥ constructor_structural_pace_ci_low_s` this is also the test that supersedes the now-placeholder `assert_constructor_confidence_monotone` singular test, since the model it guarded was folded into this one and re-grained from lap-level to race-level. `mart_degradation_history_envelope`'s three fuel-removed pace percentiles are pinned to their statistical order: p90 ≥ p50 ≥ p10.
+  </Accordion>
+</AccordionGroup>
+
+## Every model, by range & domain test count
+
+<TransformInventoryRangeAndDomain />

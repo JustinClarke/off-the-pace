@@ -1,4 +1,4 @@
--- Third Model Sequence #5 (sub): Fuel state for qualifying laps.
+-- Fuel state for qualifying laps.
 -- Qualifying cars run with 10-20 kg fuel nearly constant across a push lap.
 -- The fuel component is structurally ~zero for qualifying; we model it honestly
 -- as a

@@ -1,0 +1,12 @@
+<Warning>
+**Read-only mart contract.** ML never writes the warehouse or the app. It reads
+[`fct_cliff_prediction_features`](/reference/models/fct/fct_cliff_prediction_features)
+read-only. The columns below are excluded from every model's feature matrix
+(`EXCLUDED_LEAKAGE_COLUMNS` in `ml/src/schema.py`), asserted by the
+[leakage-spine tests](/ml/ci/leakage-spine) every build.
+</Warning>
+
+Excluded (0 columns causal leakage / identifiers / targets / training
+gate):
+
+

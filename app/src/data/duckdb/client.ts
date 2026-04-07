@@ -1,7 +1,8 @@
 // Singleton DuckDB-Wasm client initialises the in-browser warehouse once and exposes query() for all hooks.
-// Uses a self-hosted bundle (public/duckdb/) so COEP require-corp doesn't block cross-origin assets (AD-11).
+// Uses a self-hosted bundle (public/duckdb/) so COEP require-corp doesn't block cross-origin assets.
 import * as duckdb from '@duckdb/duckdb-wasm'
 import { setDbStatus } from './status'
+import { track } from '../../observability'
 
 export type DuckDBConnection = duckdb.AsyncDuckDBConnection
 
@@ -17,6 +18,7 @@ let initPromise: Promise<duckdb.AsyncDuckDBConnection> | null = null
 
 async function createDb(): Promise<duckdb.AsyncDuckDBConnection> {
   setDbStatus('initializing')
+  const initStart = performance.now()
 
   try {
     const bundle: duckdb.DuckDBBundle = {
@@ -36,12 +38,17 @@ async function createDb(): Promise<duckdb.AsyncDuckDBConnection> {
 
     conn = await db.connect()
     setDbStatus('ready')
+    track('duckdb_init', performance.now() - initStart)
     return conn
   } catch (err) {
     console.error('[DuckDB] Initialization failed:', err)
     throw err
   }
 }
+
+// First-query latency: the cold path includes parquet registration + httpfs, so the first user
+// query is the latency that matters. Tracked once; subsequent queries are not instrumented here.
+let firstQueryDone = false
 
 export async function getConnection(): Promise<duckdb.AsyncDuckDBConnection> {
   if (conn) return conn
@@ -82,9 +89,14 @@ export async function query<T = Record<string, unknown>>(
   params?: unknown[]
 ): Promise<T[]> {
   const c = await getConnection()
+  const queryStart = firstQueryDone ? 0 : performance.now()
   const stmt = params?.length ? await c.prepare(sql) : null
   const result = stmt ? await stmt.query(...(params as unknown[])) : await c.query(sql)
   if (stmt) await stmt.close()
+  if (!firstQueryDone) {
+    firstQueryDone = true
+    track('first_query', performance.now() - queryStart)
+  }
   return result.toArray().map(row => coerceBigInt(row.toJSON()) as T)
 }
 

@@ -1,0 +1,51 @@
+name: App Performance
+
+# Performance budgets: two gates on the built bundle:
+#   • Bundle-size budget BLOCKING. JS byte ceiling (raw + gzip + largest chunk) enforced by
+#     scripts/check_bundle_size.mjs against app/perf-budget.json. Deterministic, offline.
+#   • Lighthouse CI ADVISORY. Core Web Vitals / a11y / best-practices on the data-engine-free shell
+#     routes (warn-only assertions, continue-on-error), so a wasm-heavy SPA can't flake the build red.
+# See app/perf-budget.json + app/lighthouserc.json + .github/PERFORMANCE.md.
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - '.github/workflows/app-perf.yml'
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  perf:
+    name: bundle budget · lighthouse
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.4.0
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build app
+        run: pnpm build
+
+      - name: Bundle-size budget (blocking)
+        run: pnpm run bundlesize
+
+      - name: Lighthouse CI (advisory)
+        continue-on-error: true
+        run: pnpm dlx @lhci/cli@0.14.x autorun --config=./lighthouserc.json

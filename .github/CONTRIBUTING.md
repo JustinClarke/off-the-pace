@@ -134,6 +134,19 @@ Quick checklist:
 5. **If the model participates in the seven-term identity,** confirm `assert_lap_7term_identity` still passes.
 6. Open a PR-CI runs the full build automatically.
 
+### Add or change an app feature
+Every shipped feature ships its end-user docs in the **same PR** as its code. When you add or
+change a `app/src/features/<dir>/` feature:
+1. Write/update `docs/app/<dir>.mdx` from [`docs/app/_TEMPLATE.mdx`](../docs/app/_TEMPLATE.mdx) - the slug is the feature directory name.
+2. Add the slug to the `docs.json` "App & Visualizations" group.
+3. Set the feature's `methodologyHref` to `` `${CANONICAL_DOCS_BASE}/app/<dir>` `` (import the constant from `app/src/config.ts`; never hard-code the host).
+4. Run `make docs-app-audit` and `make docs-facts` until both are green.
+
+The feature **anatomy** (module layout + `FeaturePage` prop contract) and **slug convention** are
+documented in [`app/README.md`](../app/README.md#feature-anatomy). `shipped: false` roadmap stubs are
+exempt-they live on `/roadmap`, not in `docs/app/`. Query Lab is the one bespoke (non-FeaturePage)
+shipped feature and is documented by hand at `docs/app/query-lab.mdx`.
+
 ### Ingestion changes
 See [`ingestion/README.md`](../ingestion/README.md) for module architecture, data-quality checks, and known issues. Key principles:
 - **Graceful degradation**-one dataset failure doesn't abort the race.
@@ -163,6 +176,9 @@ See [`ingestion/README.md`](../ingestion/README.md) for module architecture, dat
 1. **Search existing issues first.**
 2. **Provide context**-Python version and OS, the exact command you ran, the full error message.
 3. **Include reproduction steps**-exact command, relevant tool versions (e.g. FastF1), and whether it's consistently reproducible.
+
+> **Security vulnerability?** Do **not** open a public issue. Follow the private disclosure
+> process in [`SECURITY.md`](SECURITY.md).
 
 ---
 

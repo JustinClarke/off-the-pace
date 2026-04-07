@@ -1,3 +1,5 @@
+import { CANONICAL_DOCS_BASE } from '../../config'
+
 export const methodologyContent = (
   <>
     <p>
@@ -22,4 +24,4 @@ export const methodologyContent = (
   </>
 )
 
-export const methodologyHref = 'https://offthepace.mintlify.app/reference/models/fct/fct_cliff_prediction_features'
+export const methodologyHref = `${CANONICAL_DOCS_BASE}/app/stint-degradation-timeline`

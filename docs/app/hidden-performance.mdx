@@ -1,0 +1,49 @@
+---
+title: "Which drives were better than the result showed?"
+sidebarTitle: "Hidden Performance"
+description: "Drivers whose ghost-projected finish beat their actual result strong drives masked by car pace, strategy, or circumstance."
+---
+
+A points-less afternoon can hide a great drive. Hidden performance surfaces those: it compares each driver's ghost-projected finish what the model expected given their pace in a chosen host car against where they actually finished. A driver who was projected higher than they finished was, in pace terms, under-rewarded by the result.
+
+## What it shows
+
+The table ranks drivers by the gap between projection and result:
+
+- **Ghost-projected position (`fct_ghost_race_finish`)**: each driver's lap times recombined with a chosen host constructor's car pace, then re-ranked by predicted cumulative race time.
+- **Delta**: projected minus actual finish. A *negative* delta means the model projected a better finish than actually occurred the driver was under-rewarded.
+- **Confidence**: how well the host constructor's pace is estimated from panel data; more races with that team means higher confidence.
+
+<Note>
+  Only scenarios where `avg_recombination_confidence ≥ 0.3` are included, and short runs with too few laps for a reliable estimate are excluded.
+</Note>
+
+## How to use it
+
+1. **Pick a host constructor** from the filter bar; projections re-score against that car.
+2. **Sort by delta** to surface the most under-rewarded drives.
+3. **Read confidence** before trusting a large delta a low-confidence host pace makes the projection noisier.
+4. **Use the identity check** as a sanity test: when the host equals the driver's own team, projected should equal actual.
+
+## Reading the signal correctly
+
+The delta is **pace versus result**, not an injustice ledger strategy, safety cars, and incidents legitimately move finishing positions in ways a pace projection cannot see. A negative delta says "faster than the result", not "robbed".
+
+<Warning>
+  When the host constructor equals the driver's own team, predicted finish should equal actual finish any non-zero delta in that case signals a data issue, not hidden performance. Treat it as a diagnostic, not a finding.
+</Warning>
+
+## Data source
+
+The chart queries `fct_ghost_race_finish` via DuckDB-Wasm in the browser.
+
+| Column | Meaning |
+|---|---|
+| `projected_finish_pos` | Ghost-projected finishing position in the host car |
+| `actual_finish_pos` | The real finishing position |
+| `finish_delta` | Projected minus actual; negative = under-rewarded |
+| `avg_recombination_confidence` | Panel-data confidence; gated at `≥ 0.3` |
+
+The data window covers **2018–2024**.
+
+For the full model definition, see the [`fct_ghost_race_finish` reference](/reference/models/fct/fct_ghost_race_finish).

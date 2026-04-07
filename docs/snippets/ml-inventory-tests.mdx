@@ -1,0 +1,8 @@
+| Group | Source file | Count | What it guarantees |
+|---|---|---|---|
+| **Leakage Spine** | `test_features.py` | 12 | No target, skill, or season column enters `X`; forward-window SQL audit; holdout purity; `MAX+1`-derived split; bounded & non-null targets. |
+| **ONNX Parity** | `test_onnx_parity.py` | 5 | Each booster round-trips to ONNX within `atol=1e-5`, including a NaN-bearing sample (the ~47% null-prior laps). |
+| **Predict Schema** | `test_predict.py` | 3 | Scored predictions parquet carries the declared 17-column schema; Arrow-validated. |
+| **Evaluation Gates** | `test_evaluate.py` | 7 | Every model beats its per-cohort baseline; calibration coverage computed; cohorts surfaced not dropped; metrics match the card. |
+| **Targets** | `test_targets.py` | 1 | Degradation target ∈ [−10, 10]; no NULL-target row enters training. |
+| **Total** | | **28** | |

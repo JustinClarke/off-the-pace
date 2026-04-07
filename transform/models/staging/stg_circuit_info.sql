@@ -1,6 +1,6 @@
 -- stg_circuit_info.sql · staging · grain: one row per corner per race
--- FastF1 circuit_info.corners corner geometry for the circuit map and the
--- corner-map prior in the race pack (§5.7). Ordered by distance along the lap.
+-- FastF1 circuit_info.corners corner geometry for the circuit map. Ordered by
+-- distance along the lap.
 -- Geometry can differ slightly between seasons, so race_year is part of the
 -- key.
 -- No joins, no aggregations.

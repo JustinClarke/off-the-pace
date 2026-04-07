@@ -1,7 +1,7 @@
 -- stg_track_status.sql · staging · grain: one row per track-status change event
 -- FastF1 session.track_status timeline (SC/VSC/yellow/red). Decodes the numeric
 -- Status into named flags and orders events within each race by session_time_s.
--- Feeds int_sc_hazard_history (§5.2). No joins, no aggregations.
+-- Feeds int_sc_hazard_history. No joins, no aggregations.
 {{ config(materialized='view') }}
 
 WITH source AS (

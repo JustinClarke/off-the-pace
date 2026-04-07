@@ -1,4 +1,4 @@
--- Third Model Sequence #1: Pit window opportunity cost.
+-- Pit window opportunity cost.
 -- For each driver stint, computes the optimal pit lap and the seconds-cost of
 -- the actual pit decision relative to the modelled optimum.
 --

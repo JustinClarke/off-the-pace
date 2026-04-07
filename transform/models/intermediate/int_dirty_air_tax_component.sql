@@ -7,7 +7,7 @@
 --
 -- Output grain: lap_id (one row per lap, grain matches stg_laps).
 --
--- Identity expansion (initial transform release):
+-- Identity expansion:
 --   pace_delta_s = fuel + compound + rubber + ambient + constructor
 --               + dirty_air_tax + driver_skill + unexplained
 --

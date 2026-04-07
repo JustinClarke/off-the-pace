@@ -1,0 +1,74 @@
+name: Synthetic Monitor
+
+# Black-box monitoring of the live production site + data/model serving plane. Guards against
+# a stale bundle or a
+# manifest that points at parquet which 404s by exercising the same fetch path a browser takes.
+#
+# Two cadences:
+#   • http-smoke   every 30 min cheap curl checks: manifest 200, a sample parquet 200, the live
+#                  site 200, version present, freshness. No build, no install.
+#   • onnx-liveness daily (+ on demand) loads the live ONNX in headless node and runs one real
+#                  inference, asserting finite output (the "ONNX-parity assertion").
+#
+# Alerting: a failed scheduled run emails the repo admins by default; if the ALERT_WEBHOOK secret
+# is set, failures also POST to it (Slack/Discord-compatible JSON).
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # http-smoke
+    - cron: '37 6 * * *'     # + onnx-liveness (daily)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  http-smoke:
+    name: HTTP smoke (manifest · parquet · site)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PROD_SITE_URL: ${{ vars.PROD_SITE_URL }}
+      ALERT_WEBHOOK: ${{ secrets.ALERT_WEBHOOK }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Smoke prod CDN + site
+        run: |
+          args=(--env prod --max-age-hours 2160)   # 90-day freshness SLO signal (non-fatal)
+          [ -n "$PROD_SITE_URL" ] && args+=(--site "$PROD_SITE_URL")
+          scripts/smoke_cdn.sh "${args[@]}"
+      - name: Alert on failure
+        if: failure() && env.ALERT_WEBHOOK != ''
+        run: |
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            -d "{\"text\":\"🔴 Off The Pace synthetic monitor (http-smoke) FAILED run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "$ALERT_WEBHOOK"
+
+  onnx-liveness:
+    name: ONNX serving liveness
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '37 6 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ALERT_WEBHOOK: ${{ secrets.ALERT_WEBHOOK }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.4.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - name: Install app deps
+        working-directory: app
+        run: pnpm install --frozen-lockfile
+      - name: Headless ONNX inference against prod
+        run: node app/scripts/synthetic_check.mjs
+      - name: Alert on failure
+        if: failure() && env.ALERT_WEBHOOK != ''
+        run: |
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            -d "{\"text\":\"🔴 Off The Pace synthetic monitor (onnx-liveness) FAILED run ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "$ALERT_WEBHOOK"

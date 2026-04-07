@@ -1,0 +1,50 @@
+---
+title: "How many seconds did dirty air cost each driver?"
+sidebarTitle: "Dirty Air Cost"
+description: "A leaderboard of the cumulative time each driver lost to running in disturbed airflow during a race, from the per-circuit dirty-air model."
+---
+
+Following another car costs lap time: the wake disrupts downforce and overheats the tyres. The dirty air cost leaderboard quantifies that loss in seconds for each driver in a race, accumulating the per-lap penalty from an airflow model calibrated per circuit. It turns "stuck in traffic" into a number you can rank.
+
+## What it shows
+
+Each driver carries three dirty-air figures:
+
+- **Total cost (`cumulative_dirty_air_tax_race_s`)**: the race-end cumulative penalty from the OLS airflow model. Drivers who spent more laps closely following another car accumulate a larger penalty.
+- **Average per lap (`dirty_air_tax_s`)**: the mean penalty per classified lap, capturing intensity rather than duration a high average with a low total means a short stint in heavy traffic.
+- **Taxed laps**: the count of laps where any dirty-air tax was applied (`dirty_air_tax_s > 0`).
+
+The model estimates dirty air from the gap to the car ahead, scaled by a per-circuit OLS coefficient.
+
+<Note>
+  Zero-gap laps the race leader, safety-car restarts, and laps where DRS opens carry no tax, because there is no car ahead to disturb the air.
+</Note>
+
+## How to use it
+
+1. **Select a race** from the filter bar; the leaderboard loads.
+2. **Sort by total cost** to see who lost the most to traffic over the full race.
+3. **Compare average per lap** to separate intensity from duration who was in the worst air versus who was in traffic longest.
+4. **Read taxed laps** to size how much of the race each driver spent following.
+
+## Reading the signal correctly
+
+Dirty-air cost is largely a function of **track position and car pace**, not driver error a quick car stuck behind a slower one accrues a large penalty through no fault of the driver. Read it as "how much traffic shaped this race", and pair it with the [lap air map](/app/dirty-air-lap-map) to see exactly when the driver was in disturbed air.
+
+<Warning>
+  The penalty is a per-circuit OLS estimate from gap-to-car-ahead, not a direct aero measurement. Circuits where following is aerodynamically cheap (or telemetry gaps are sparse) will show smaller, noisier costs.
+</Warning>
+
+## Data source
+
+The chart queries `int_dirty_air_tax_component` via DuckDB-Wasm in the browser, for a single race.
+
+| Column | Meaning |
+|---|---|
+| `cumulative_dirty_air_tax_race_s` | Race-end cumulative dirty-air penalty (the total) |
+| `dirty_air_tax_s` | Per-lap penalty, averaged for the per-lap figure |
+| `taxed_lap_count` | Laps where any dirty-air tax was applied |
+
+This is a **single-race** view across **2018–2024** data.
+
+For the full model definition, see the [`int_dirty_air_tax_component` reference](/reference/models/int/int_dirty_air_tax_component).

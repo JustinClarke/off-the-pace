@@ -1,4 +1,4 @@
-// Builds the positional Float32Array[38] the ONNX models expect (AD-3, Appendix C),
+// Builds the positional Float32Array the ONNX models expect,
 // mirroring ml/src/features.py:_encode_frame exactly so browser inference matches training.
 //
 //   categoricals  → encoder lookup; NULL / unseen → missing_ordinal (-1)

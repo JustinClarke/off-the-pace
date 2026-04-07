@@ -7,6 +7,8 @@ import { useQuery } from '../../data/hooks/useQuery'
 import { useFilters } from '../../state/FilterContext'
 import { useRaceOptions } from '../shared/useRaceOptions'
 import { transform, toCsvRows } from './transform'
+
+import { TechTooltip } from '../../ui/TechTooltip'
 import './queries'
 import type { RaceCompoundRow, CompoundProfileRow, StintSummaryRow } from './queries'
 
@@ -26,19 +28,21 @@ function Select({
   return (
     <div className="flex flex-col gap-1">
       <label className="text-xs font-medium text-muted uppercase tracking-wider">{label}</label>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        disabled={disabled || !options.length}
-        className="bg-surface border border-border rounded px-3 py-1.5 text-sm font-mono
-                   text-[rgb(var(--color-text))] focus:outline-none focus:ring-1 focus:ring-accent
-                   disabled:opacity-40 cursor-pointer min-w-[160px]"
-      >
-        <option value="">-- select --</option>
-        {options.map(o => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          disabled={disabled || !options.length}
+          className={`bg-surface border border-border rounded py-1.5 px-3 text-sm font-mono
+                     text-[rgb(var(--color-text))] focus:outline-none focus:ring-1 focus:ring-accent
+                     disabled:opacity-40 cursor-pointer min-w-[160px]`}
+        >
+          <option value="">-- select --</option>
+          {options.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
     </div>
   )
 }
@@ -107,8 +111,8 @@ export default function TyreCliffSurvivalPage() {
 
   return (
     <FeaturePage
-      title="Tyre Cliff Survival Profile"
-      hook="How long does a compound actually last before the cliff? A Kaplan-Meier curve built from every historical stint at this circuit shows the distribution of cliff onset and overlays actual stint degradation to validate the fit in-view."
+      title="When Do the Tyres Die?"
+      hook="How many laps before the rubber falls off the cliff? A survival curve built from every stint at this circuit tells you and shows you which strategies were gambling."
       badges={[
         {
           label: 'What It Means',
@@ -156,9 +160,15 @@ export default function TyreCliffSurvivalPage() {
         />
         {profile && (
           <div className="flex items-end gap-4 text-xs text-muted">
-            <span>Model onset: <span className="font-mono text-[rgb(var(--color-text))]">lap {profile.compound_cliff_onset_laps}</span></span>
-            <span>Severity: <span className="font-mono text-[rgb(var(--color-text))]">+{profile.compound_cliff_severity?.toFixed(2)}s</span></span>
-            <span>Wear rate: <span className="font-mono text-[rgb(var(--color-text))]">{profile.compound_wear_gradient?.toFixed(4)}s/lap</span></span>
+            <TechTooltip content="The lap when degradation begins accelerating rapidly (Kaplan-Meier survival baseline)">
+              <span className="cursor-help">Model onset: <span className="font-mono text-[rgb(var(--color-text))]">lap {profile.compound_cliff_onset_laps}</span></span>
+            </TechTooltip>
+            <TechTooltip content="The sudden jump in lap time (seconds) when the cliff hits">
+              <span className="cursor-help">Severity: <span className="font-mono text-[rgb(var(--color-text))]">+{profile.compound_cliff_severity?.toFixed(2)}s</span></span>
+            </TechTooltip>
+            <TechTooltip content="The steady pace loss per lap (seconds/lap) before the cliff">
+              <span className="cursor-help">Wear rate: <span className="font-mono text-[rgb(var(--color-text))]">{profile.compound_wear_gradient?.toFixed(4)}s/lap</span></span>
+            </TechTooltip>
           </div>
         )}
       </div>

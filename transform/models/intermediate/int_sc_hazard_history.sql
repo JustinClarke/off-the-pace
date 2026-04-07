@@ -1,15 +1,14 @@
 -- int_sc_hazard_history.sql · intermediate · grain: one row per circuit (venue
 -- slug)
 -- Safety-Car / Virtual-Safety-Car base rate per circuit, expressed as a hazard
--- PER RACING LAP (not per race) so the MC finish-order core (§4.5) can draw an
--- interruption on each simulated lap. Estimated from the SC/VSC deployment
--- events
+-- PER RACING LAP (not per race) so a Monte Carlo race simulator could draw an
+-- interruption on each simulated lap; exported for downstream consumers
+-- (unconsumed today). Estimated from the SC/VSC deployment events
 -- in stg_track_status, with racing-lap exposure from stg_laps.
 --
--- Scope: only races that have an ingested track_status timeline (partial during
--- the
--- v0.2 backfill). Onset and exposure are taken over the SAME race set so the
--- rate is
+-- Scope: only races that have an ingested track_status timeline (incomplete
+-- for some seasons). Onset and exposure are taken over the SAME race set so
+-- the rate is
 -- well defined. The venue key is the race name slug (e.g. monaco_grand_prix),
 -- which
 -- recurs across seasons; stg_laps.race_id is the numeric per-season id, so we

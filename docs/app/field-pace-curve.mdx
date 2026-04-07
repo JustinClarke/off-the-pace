@@ -1,0 +1,48 @@
+---
+title: "What pace did the field actually run, lap by lap?"
+sidebarTitle: "Field Pace Curve"
+description: "The trimmed field-average lap time across a race, blending fuel burn, tyre degradation, and track rubbering into one reference baseline."
+---
+
+To say a driver was "fast" you need a yardstick: what did the field run on that lap? The field pace curve builds that yardstick. It plots the trimmed field-average lap time as it evolves over race distance, blending fuel-load drop, tyre degradation, and track rubbering-in into a single reference baseline the curve every other decomposition measures against.
+
+## What it shows
+
+The chart overlays a smoothed reference, the raw mean, and a caution flag:
+
+- **Smoothed curve**: a LOWESS-smoothed field pace that suppresses outliers from safety cars, pit entries, and stint boundaries. This is the primary answer to "what did the field actually run this lap?"
+- **Raw trimmed mean**: the 20th–80th percentile lap time across all eligible cars per lap. The ribbon between the two series shows where smoothing diverges from the raw data a wide ribbon means a noisy lap (few cars, spread strategy).
+- **Low-sample laps**: laps with fewer than 4 eligible cars (pit windows, early laps) are flagged and should be read with caution.
+
+<Note>
+  The fuel-corrected rate of change of this curve feeds the `base_track_pace_s` input to the seven-term decomposition so this is not just a chart, it is an upstream model input.
+</Note>
+
+## How to use it
+
+1. **Select a race** from the filter bar; the curve loads.
+2. **Read the smoothed curve** as the field reference for that race.
+3. **Watch the ribbon width** where the smoothed and raw series diverge, the lap is noisy and the average is less reliable.
+4. **Discount flagged low-sample laps** pit windows and opening laps have too few cars to average well.
+
+## Reading the signal correctly
+
+The curve is a **trimmed central tendency**, not the leader's pace or the fastest lap it deliberately discards the top and bottom 20% to resist outliers. Its shape combines several physical effects (fuel, tyres, track), so a downward slope is fuel burn and rubbering, not the field simply getting faster.
+
+<Warning>
+  Early laps and pit windows are sparse and flagged for a reason the curve there leans on a handful of cars and can swing. Don't read fine structure in the flagged regions.
+</Warning>
+
+## Data source
+
+The chart queries `int_field_pace_curve` via DuckDB-Wasm in the browser, for a single race.
+
+| Column | Meaning |
+|---|---|
+| `smoothed_field_pace_s` | LOWESS-smoothed field reference pace |
+| `trimmed_mean_pace_s` | 20th–80th percentile lap-time mean per lap |
+| `eligible_car_count` | Cars contributing to the lap; gates the low-sample flag at `< 4` |
+
+This is a **single-race** view across **2018–2024** data.
+
+For the full model definition, see the [`int_field_pace_curve` reference](/reference/models/int/int_field_pace_curve).

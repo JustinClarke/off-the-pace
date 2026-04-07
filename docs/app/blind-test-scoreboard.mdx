@@ -1,0 +1,49 @@
+---
+title: "How well do the degradation models hold up out of sample?"
+sidebarTitle: "Blind-Test Scoreboard"
+description: "The degradation models scored on a held-out season predicted-vs-actual scatter, interval coverage, and a cliff-class confusion matrix, all read from the model card."
+---
+
+A model that fits its training data proves nothing. The blind-test scoreboard shows the degradation models' out-of-sample performance on the 2024 evaluation fold the last `TimeSeriesSplit` fold, held out of training. Until the 2025 season ingests, 2024 is the proxy holdout; the scoreboard promotes the new season automatically the moment it arrives. Every number is read from the model artefacts, not hand-typed.
+
+## What it shows
+
+Three panels score the models on unseen laps:
+
+- **Predicted-vs-actual scatter**: each point is one lap. The x-axis is the actual next-lap degradation jump; the y-axis is the model p50 prediction. Points on the 45° diagonal are perfect calls. The p10 / p90 band is the 80% conformal envelope.
+- **Interval coverage rug**: empirical coverage is the fraction of laps where the actual jump falls inside [p10, p90]. The target is 80% (conformal calibration from the training fold). Green bars hit; red bars miss.
+- **Cliff-class confusion matrix**: predicted laps-until-cliff class (rows) versus actual class (columns), row-normalised so each cell's intensity is the fraction of that predicted class landing in each actual bucket. The teal diagonal is correct; red off-diagonal is error.
+
+<Note>
+  All numbers are read from `mart_degradation_predictions.parquet`, joined to `fct_cliff_prediction_features` for the actuals. No values are hand-typed.
+</Note>
+
+## How to use it
+
+1. **Read the scatter's spread around the diagonal** tight is well-calibrated; a tilt means systematic over- or under-prediction.
+2. **Check the coverage rug against 80%** consistent green means the intervals are honest.
+3. **Read the confusion diagonal** a strong teal diagonal means the cliff classifier rarely confuses adjacent classes.
+4. **Re-check after a season ingests** the holdout fold advances automatically.
+
+## Reading the signal correctly
+
+This is **out-of-sample** by construction the 2024 fold never appears in training so the scoreboard is the honest measure of the models, not their in-sample fit. The conformal band targets 80% coverage by design, so slight over-coverage is expected and healthy.
+
+<Warning>
+  2024 is a *proxy* holdout until 2025 ingests. It is a genuine temporal split, but a single season is a limited sample read the confusion matrix's off-diagonal mass, not just the headline diagonal.
+</Warning>
+
+## Data source
+
+The chart reads `mart_degradation_predictions` (the held-out predictions), joined to `fct_cliff_prediction_features` for actuals, via DuckDB-Wasm in the browser.
+
+| Column | Meaning |
+|---|---|
+| `pred_p10` / `pred_p50` / `pred_p90` | Quantile predictions; p50 is the scatter y-axis, p10–p90 the band |
+| `actual_jump_s` | Observed next-lap degradation jump (the scatter x-axis) |
+| `pred_cliff_class` / `actual_cliff_class` | Confusion-matrix rows and columns |
+| `is_holdout` | Whether the lap is in the held-out evaluation fold |
+
+The evaluation fold is the **2024** season (proxy holdout until 2025 ingests).
+
+For the full evaluation methodology, see the [ML validation page](/ml/validation).

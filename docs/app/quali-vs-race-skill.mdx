@@ -1,0 +1,51 @@
+---
+title: "Qualifying specialist or race-day driver?"
+sidebarTitle: "Quali vs Race"
+description: "Each driver's skill residual in qualifying plotted against their skill in the race, separating one-lap merchants from drivers who come alive over a stint."
+---
+
+Some drivers light up over a single lap; others find their rhythm only once the race settles. This chart estimates each driver's skill residual **independently** in qualifying and in the race both from the same seven-term decomposition, after removing car, tyre, fuel, dirty air, and conditions and plots one against the other. Where a driver sits relative to the diagonal tells you which direction they specialise.
+
+## What it shows
+
+Each point is one driver-season on two skill axes:
+
+- **Qualifying skill (x)**: average residual from personal-best Q laps, with traffic and DNQ sessions excluded.
+- **Race skill (y)**: average `driver_skill_proxy_mean_s` across race stints from `fct_driver_skill_features`.
+- **Q−R delta**: qualifying residual minus race residual. Negative means relatively faster in qualifying (qualifying specialist); positive means they gain more in race trim (race specialist).
+- **Diagonal reference**: marks equal qualifying and race skill; distance from it shows the direction and size of specialisation.
+
+Residuals are on the absolute lap-time scale (seconds, negative = faster than the model predicts), so the two axes are directly comparable.
+
+<Note>
+  A minimum of 3 valid qualifying sessions per season is required for a driver to appear, so part-season entries may be absent.
+</Note>
+
+## How to use it
+
+1. **Select a season** from the filter bar; the scatter reloads.
+2. **Read position relative to the diagonal** above it = stronger in the race, below it = stronger in qualifying.
+3. **Hover a point** for the driver, constructor, and both residuals.
+4. **Export the data** with the CSV button to rank drivers by Q−R delta yourself.
+
+## Reading the signal correctly
+
+Both axes are **already car-corrected**, so a qualifying specialist is fast on Saturday relative to what their car explains not simply because they have a fast car. The delta is a *style* signal, not an overall ranking: a driver can be excellent in both and still sit off the diagonal.
+
+<Warning>
+  Qualifying residuals come from a small number of laps per weekend and are noisier than race residuals. Treat extreme qualifying positions with more caution than equally extreme race positions.
+</Warning>
+
+## Data source
+
+The chart queries `int_qualifying_decomposed` (qualifying residuals) and `fct_driver_skill_features` (race residuals) via DuckDB-Wasm in the browser.
+
+| Column | Meaning |
+|---|---|
+| `qualifying_skill_residual_s` | Season-average qualifying residual (`int_qualifying_decomposed`) |
+| `driver_skill_proxy_mean_s` | Season-average race skill residual (`fct_driver_skill_features`) |
+| `quali_race_delta_s` | Qualifying minus race residual; negative = qualifying specialist |
+
+The data window covers **2018–2024**.
+
+For the full model definitions, see the [`int_qualifying_decomposed` reference](/reference/models/int/int_qualifying_decomposed) and the [`fct_driver_skill_features` reference](/reference/models/fct/fct_driver_skill_features).

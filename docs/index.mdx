@@ -1,71 +1,150 @@
 ---
 title: "Off The Pace: F1 Lap Decomposition Analytics"
 sidebarTitle: "Overview"
-description: "Decompose every F1 lap into seven additive, physically-grounded components. Attribute lost time to fuel load, tyre degradation, dirty air, weather, constructor pace, or driver skill."
+description: "Every F1 lap split into seven physically-grounded components, served by a fully client-side pipeline: FastF1 ingestion, dbt + DuckDB transforms, XGBoost models exported to ONNX, and a React app that runs entirely in the browser."
 ---
 
+<Frame caption="The Off The Pace home dashboard showing lap decomposition analytics, driver ratings, and strategy projections running entirely client-side.">
+  <img src="/images/off-the-pace-home.png" alt="Off The Pace home dashboard showing race analysis and lap decomposition charts" />
+</Frame>
 
-Off The Pace answers the question that lap time alone cannot: **when a car is off the pace, exactly why?** Every lap is split into seven named, additive components each measured in seconds so you can see precisely how much pace came from fuel mass, tyre degradation, aerodynamic wake, ambient conditions, constructor speed, and the driver's own execution.
+Off The Pace answers the question lap time alone can't: **when a car is off the pace, exactly why?** Every lap is split into seven named, additive components fuel, tyre degradation, track rubber, ambient conditions, constructor pace, dirty air, and driver skill so you can see precisely how much of the gap is the car, the tyres, the conditions, or the driver.
 
-<CardGroup cols={2}>
-  <Card title="Introduction" icon="flag" href="/introduction">
-    Understand what Off The Pace does and how the seven-term decomposition works.
+## How the pipeline fits together
+
+Raw timing data becomes an interactive chart through four layers, each documented in its own tab:
+
+```mermaid
+flowchart LR
+    A["Sources<br/>FastF1 · Jolpica"] --> B["Data<br/>Bronze ingestion"]
+    B --> C["Transform<br/>dbt + DuckDB"]
+    C --> D["Machine Learning<br/>XGBoost → ONNX"]
+    D --> E["App<br/>React, in-browser"]
+
+    classDef layer fill:#111827,stroke:#e40404,color:#fff;
+    class A,B,C,D,E layer;
+```
+
+<CardGroup cols={4}>
+  <Card title="Data" icon="table" href="/data/overview">
+    Where the timing data comes from and how to ingest it yourself.
   </Card>
-  <Card title="Quick Start" icon="rocket" href="/quickstart">
-    Run your first lap decomposition in minutes with DuckDB.
+  <Card title="Transform" icon="layers" href="/decomposition/seven-term-identity">
+    The seven-term decomposition: dbt models enforced by a CI contract.
   </Card>
-  <Card title="Seven-Term Identity" icon="sigma" href="/decomposition/seven-term-identity">
-    The mathematical identity at the core of every lap attribution.
+  <Card title="Machine Learning" icon="brain" href="/ml/overview">
+    XGBoost models predicting tyre cliff onset and degradation, exported to ONNX.
   </Card>
-  <Card title="Case Studies" icon="presentation" href="/findings/overview">
-    Real race decompositions starting with Hamilton vs Verstappen at São Paulo 2021.
+  <Card title="App" icon="monitor" href="/app/overview">
+    The browser app every chart and simulator above ships from.
   </Card>
 </CardGroup>
 
-## How it works
+## By the numbers
 
-Off The Pace ingests raw F1 telemetry from 168 races across 2018–2024 and runs every lap through a physics-first decomposition pipeline. The result is a single additive identity that holds to within 0.1 ms on every lap:
+import OverviewNumbers from '/snippets/overview-numbers.mdx';
 
-```
-pace_delta = fuel + compound + rubber + ambient + constructor + dirty_air + driver_skill
-```
+<OverviewNumbers />
 
-Each term has physical units (seconds). Positive means slower than the field baseline; negative means faster. The seven terms sum to zero not as an approximation, but as an enforced contract tested in CI on every build.
+## The stack
+
+### Data Pipeline & ML
+
+<div className="mobile-grid">
+<CardGroup cols={3}>
+  <Card title="FastF1" icon="flag" color="#E10600">
+    Telemetry & lap timing API
+  </Card>
+  <Card title="Jolpica" icon="trophy" color="#E2B714">
+    Championship standings & pit API
+  </Card>
+  <Card title="Python" icon="python" color="#3776AB">
+    Ingestion & orchestration
+  </Card>
+  <Card title="DuckDB" icon="database" color="#EAB308">
+    In-process data warehouse
+  </Card>
+  <Card title="dbt" icon="layers" color="#FF694B">
+    Transform layer & data tests
+  </Card>
+  <Card title="XGBoost" icon="brain" color="#1A936F">
+    Gradient-boosted models
+  </Card>
+</CardGroup>
+</div>
+
+### App & Inference
+
+<div className="mobile-grid">
+<CardGroup cols={3}>
+  <Card title="React + Vite" icon="react" color="#0ea5e9">
+    App framework & build tool
+  </Card>
+  <Card title="DuckDB-Wasm" icon="server" color="#EAB308">
+    In-browser SQL analytics
+  </Card>
+  <Card title="ONNX Runtime Web" icon="microchip" color="#005CED">
+    In-browser ML inference
+  </Card>
+</CardGroup>
+</div>
+
+### Infrastructure
+
+<div className="mobile-grid">
+<CardGroup cols={3}>
+  <Card title="Google Cloud Storage" icon="cloud" color="#4285F4">
+    Gold-mart CDN
+  </Card>
+  <Card title="Firebase" icon="flame" color="#F59E0B">
+    Static hosting
+  </Card>
+  <Card title="GitHub Actions" icon="github">
+    CI: tests, drift gates, deploy
+  </Card>
+</CardGroup>
+</div>
+
+## What you can do
+
+<CardGroup cols={2}>
+  <Card title="Degradation Simulator" icon="activity" href="https://off-the-pace.web.app/ml/simulator">
+    Dial in a stint compound, fuel load, and dirty air and watch the trained models project pace loss and cliff risk live.
+  </Card>
+  <Card title="Ghost Race Standings" icon="flag" href="https://off-the-pace.web.app/ghost-car/standings">
+    Every driver re-ranked in equal machinery a counterfactual championship built from the structural pace model.
+  </Card>
+  <Card title="Lap Decomposition Waterfall" icon="bar-chart-3" href="https://off-the-pace.web.app/lap-decomposition/waterfall">
+    Any lap, any driver: seven causes stacked into one bar that always closes to zero.
+  </Card>
+  <Card title="Tyre Cliff Survival" icon="trending-down" href="https://off-the-pace.web.app/tyre-strategy/survival">
+    How long each compound lasts before the cliff, by circuit and season.
+  </Card>
+</CardGroup>
 
 <Steps>
-  <Step title="Explore the decomposition">
-    Start with the [Seven-Term Identity](/decomposition/seven-term-identity) to understand how each component is defined and why the math is enforced rather than merely stated.
+  <Step title="A question">
+    "Did Mercedes' pit call or Hamilton's driving win São Paulo 2021?"
   </Step>
-  <Step title="Understand the methodology">
-    Read [Methodology](/decomposition/methodology) to see how sequential residualisation separates six physics signals from one another before computing the driver residual.
+  <Step title="A decomposition">
+    `fct_lap_residuals` splits every lap of the race into fuel, tyre, rubber, ambient, constructor, dirty-air, and driver-skill components see [the case study](/findings/sao-paulo-2021).
   </Step>
-  <Step title="Query the data">
-    Use the [Quick Start](/quickstart) guide to run SQL against `fct_lap_residuals` and pull per-lap component breakdowns for any driver, race, or season.
+  <Step title="A model">
+    The same physics terms feed the ONNX degradation models that power the live simulator.
   </Step>
-  <Step title="See it in action">
-    Read the [São Paulo 2021 case study](/findings/sao-paulo-2021) for a concrete example: Hamilton vs Verstappen, decomposed lap by lap.
+  <Step title="A chart">
+    The React app queries the gold Parquet mart with DuckDB-Wasm and renders the answer client-side, in milliseconds.
   </Step>
 </Steps>
 
-## What's inside
-
 <CardGroup cols={3}>
-  <Card title="The Decomposition" icon="atom" href="/decomposition/seven-term-identity">
-    Seven physics terms, one enforced identity.
+  <Card title="Key Concepts" icon="book-open" href="/key-concepts">
+    The vocabulary used throughout the docs pace delta, clean laps, the tyre cliff.
   </Card>
-  <Card title="Machine Learning" icon="brain" href="/ml/overview">
-    Five XGBoost models predict tyre cliff onset and degradation rate.
+  <Card title="Quick Start" icon="rocket" href="/ingestion/quickstart">
+    Clone the repo and ingest your first race in five minutes.
   </Card>
-  <Card title="App & Visualizations" icon="monitor" href="/app/overview">
-    Browser-native analytics sub-10ms queries, zero server.
-  </Card>
-  <Card title="Data Models" icon="database" href="/reference/models/fct/fct_lap_residuals">
-    DuckDB mart tables powering every chart and query.
-  </Card>
-  <Card title="Glossary" icon="book" href="/reference/glossary">
-    F1 and analytics terminology, defined precisely.
-  </Card>
-  <Card title="Limitations" icon="triangle-alert" href="/decomposition/limitations">
-    Where the model is strongest and where to be cautious.
+  <Card title="Case Studies" icon="presentation" href="/findings/overview">
+    Real race decompositions, starting with Hamilton vs Verstappen at São Paulo 2021.
   </Card>
 </CardGroup>

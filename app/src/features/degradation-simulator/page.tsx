@@ -1,22 +1,23 @@
-// Feature 16 Degradation Simulator. The headline is an absolute lap time built from three
-// additive pieces: a per-circuit/era/compound fresh-tyre anchor + a deterministic fuel term +
-// the isotonic-fitted observed tyre degradation × a physics modulation factor M (dirty-air bump
-// + compound-window temp penalty). The monotone fit guarantees old rubber only adds time; M is
-// constant across the stint so monotonicity is preserved at all slider positions. The ONNX models
-// (jump fan, cliff risk, remaining life) are unchanged. The Fuel slider moves the curve only via
-// the deterministic term; dirty-air and temp move it modestly by design (~0.1–0.3s).
+// Feature 16 Degradation Simulator. The headline is an absolute lap time, built entirely client-side
+// and DECOUPLED from ONNX: a per-circuit/era/compound fresh-tyre anchor (plus constructor and
+// conditions pace costs) + a deterministic fuel term + the isotonic observed degradation extended by
+// a fitted convex cliff past its onset (see transform.ts). It renders the moment the history loads,
+// independent of the trained models. The ONNX models (jump fan, cliff risk, remaining life) drive
+// only the lower panels and now also see the Fuel slider, so every control moves something.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import DegradationSimulatorChart from './DegradationSimulatorChart'
 import SimulatorControls from './SimulatorControls'
+import { compoundColor } from '../../ui/compound'
+import type { SimulatorMode } from './SimulatorControls'
 import { methodologyContent, methodologyHref } from './methodology'
 import { useQuery } from '../../data/hooks/useQuery'
 import { useFilters } from '../../state/FilterContext'
 import { loadManifest } from '../../data/manifest'
 import { predictLaps } from '../../ml'
 import type { LapPrediction, FeatureRow } from '../../ml'
-import { buildStintRows, DEFAULT_INPUTS } from './inputs'
+import { buildStintRows, constructorPaceOffset, DEFAULT_INPUTS } from './inputs'
 import type { SimulatorInputs } from './inputs'
 import { transform, toCsvRows, inputsFromStint, observedJumps } from './transform'
 import type { RecomposeOptions } from './transform'
@@ -39,6 +40,8 @@ const num = (v: unknown, d: number) => {
 export default function DegradationSimulatorPage() {
   const { season } = useFilters()
   const [inputs, setInputs] = useState<SimulatorInputs>(DEFAULT_INPUTS)
+  // Default to the synthetic what-if (Scenario); Replay is the 'show me real data' tab.
+  const [mode, setMode] = useState<SimulatorMode>('scenario')
   const [selectedStintId, setSelectedStintId] = useState<string | null>(null)
   const [circuitId, setCircuitId] = useState<string | null>(null)
   const [era, setEra] = useState<string>('post2022')
@@ -159,10 +162,13 @@ export default function DegradationSimulatorPage() {
     return () => { cancelled = true }
   }, [rows])
 
-  // The recomposition options: historical anchor + deterministic fuel + isotonic envelope + modulation.
+  // The recomposition options: historical anchor + deterministic fuel + isotonic working window +
+  // fitted cliff extrapolation + conditions/constructor pace costs. Decoupled from ONNX, so the
+  // headline renders the moment history loads. While a chosen circuit's history is still loading we
+  // hold off (avoids a 0-anchor flash); a generic circuit (no circuit picked) renders a relative curve.
   const recompose = useMemo<RecomposeOptions | undefined>(() => {
-    if (!history || !history.length) return undefined
-    const hist: HistoryEnvelopeRow[] = history.map(h => ({
+    if (circuitId !== null && history === undefined) return undefined
+    const hist: HistoryEnvelopeRow[] = (history ?? []).map(h => ({
       lap_in_stint: num(h.lap_in_stint, 0),
       n_observations: num(h.n_observations, 0),
       ref_green_pace_s: num(h.ref_green_pace_s, 0),
@@ -180,17 +186,28 @@ export default function DegradationSimulatorPage() {
       temp_penalty_s_per_deg: num(h.temp_penalty_s_per_deg, 0.01),
     }))
     return {
-      refGreenPaceS: hist[0].ref_green_pace_s,
+      refGreenPaceS: hist[0]?.ref_green_pace_s ?? 0,
+      stintLength: inputs.stint_length,
       fuelStartKg: inputs.fuel_mass_kg,
       fuelConsumptionRateKgPerLap: inputs.fuel_consumption_rate_kg_per_lap,
       weightPenaltyFactor: inputs.weight_penalty_factor,
-      history: hist,
+      history: hist.length ? hist : undefined,
       dirtyAirShare: inputs.dirty_air_share_lap,
       ambientTempDelta: inputs.ambient_temp_delta,
       analyticalDegRatePerLap: inputs.constants.expected_degradation_rate_s_per_lap,
+      cliffOnsetLaps: inputs.constants.compound_cliff_onset_laps,
+      cliffSeverity: inputs.constants.compound_cliff_severity,
+      abrasivenessIndex: inputs.circuit_abrasiveness_index,
+      trackEnergyIndex: inputs.track_energy_index,
+      airState: inputs.air_state_dominant,
+      isRainLap: inputs.is_rain_lap,
+      constructorPaceOffsetS: constructorPaceOffset(inputs.constructor_id),
     }
-  }, [history, inputs.fuel_mass_kg, inputs.fuel_consumption_rate_kg_per_lap, inputs.weight_penalty_factor,
-      inputs.dirty_air_share_lap, inputs.ambient_temp_delta, inputs.constants.expected_degradation_rate_s_per_lap])
+  }, [history, circuitId, inputs.stint_length, inputs.fuel_mass_kg, inputs.fuel_consumption_rate_kg_per_lap,
+      inputs.weight_penalty_factor, inputs.dirty_air_share_lap, inputs.ambient_temp_delta,
+      inputs.constants.expected_degradation_rate_s_per_lap, inputs.constants.compound_cliff_onset_laps,
+      inputs.constants.compound_cliff_severity, inputs.circuit_abrasiveness_index, inputs.track_energy_index,
+      inputs.air_state_dominant, inputs.is_rain_lap, inputs.constructor_id])
 
   const result = useMemo(
     () => transform(predictions, inputs.current_lap, actuals, recompose),
@@ -216,24 +233,28 @@ export default function DegradationSimulatorPage() {
     appliedSig.current = ''
     setEra(e)
   }
+  // The chart playhead: clamp into [1, stint_length]. current_lap isn't a model feature, so this
+  // only re-positions the hero/cliff/jump markers (transform reads it) no re-score.
+  const onCurrentLapChange = (lap: number) =>
+    setInputs(prev => ({ ...prev, current_lap: Math.max(1, Math.min(lap, prev.stint_length)) }))
 
   return (
     <FeaturePage
       wide
-      title="Degradation Simulator"
-      hook="The trained tyre-degradation models, running live in your browser anchored to observed reality. Pick a circuit and era, dial fuel, compound, dirty air and conditions, and watch the projected lap time, tyre degradation, cliff risk, and remaining tyre life update instantly via onnxruntime-web."
+      title="Build Your Own Stint"
+      hook="Pick a circuit, choose your tyres, dial the conditions and watch how many laps you'd last before the cliff hits. The headline lap time is built from observed reality; the ONNX panels predict what happens next."
       badges={[
         {
           label: 'What It Means',
-          content: 'The headline is the observed tyre degradation for this circuit, era and compound monotone-fitted so old rubber only ever adds time scaled by your dirty-air and temperature conditions, then anchored to the historical fresh-tyre pace with the deterministic fuel term on top.',
+          content: 'The headline is the observed tyre degradation for this circuit, era and compound monotone-fitted so old rubber only ever adds time, then extended past its onset by a convex cliff scaled from the fitted compound severity, all anchored to the historical fresh-tyre pace with deterministic fuel and your conditions on top.',
         },
         {
           label: 'Why It Matters',
-          content: 'The raw observed median is non-monotone (survivorship bias collapses the late-stint tail), and ONNX jump-integration was a category error. The isotonic fit (MAE ≤ 0.5s vs raw data) corrects both and stays faithful to what actually happened. The dirty-air and temp sliders move it modestly by design (~0.1–0.3s) because that is what the data supports.',
+          content: 'The raw observed median goes flat late-stint only because cliff-hitting tyres get pitted and leave the sample (survivorship), so an observed-only curve shows no cliff. Reconstructing the cliff from the fitted params restores the effect strategists actually care about, while the pre-onset working window stays strictly faithful to what happened (MAE ≤ 0.5s). The headline is decoupled from ONNX, so it renders even if inference is offline.',
         },
         {
           label: "How It's Calculated",
-          content: 'net(k) = ref_green_pace + weight_penalty × fuel(k) + isotonic_p50(k) × M, where M = clamp(1 + air_bump·𝟙[dirty_air] + temp_penalty·max(0, ΔT−headroom), 1.0, 1.5). The ONNX models (fan / cliff risk / remaining life) are unchanged; the headline no longer integrates their jumps.',
+          content: 'net(k) = base + weight_penalty × fuel(k) + working_deg(k) × track_scale + cliff_term(k), where base = ref_green_pace + constructor + conditions costs, working_deg is the isotonic observed deg-from-fresh, and cliff_term = gain × severity × max(0, k − onset_eff)^1.5 (0 before onset, C¹ join). Dirty-air and temperature also bring the onset forward. The ONNX models (fan / cliff risk / remaining life) drive the lower panels.',
         },
       ]}
       methodology={methodologyContent}
@@ -243,10 +264,10 @@ export default function DegradationSimulatorPage() {
         datasetFingerprint: 'b8a37b7c',
         dataWindow: 'ONNX parity 7.6e-6 (max abs) vs trained boosters',
       }}
-      csvRows={result.fan.length ? toCsvRows(result) : undefined}
+      csvRows={result.laptimeCurve.length || result.fan.length ? toCsvRows(result) : undefined}
       csvFilename={`degradation-simulator-${inputs.constants.compound.toLowerCase()}.csv`}
-      isLoading={scoring && predictions.length === 0}
-      error={scoreError}
+      isLoading={false}
+      error={null}
       isEmpty={false}
     >
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
@@ -254,6 +275,8 @@ export default function DegradationSimulatorPage() {
           <SimulatorControls
             inputs={inputs}
             onChange={setInputs}
+            mode={mode}
+            onModeChange={setMode}
             stintOptions={stintOptions ?? []}
             selectedStintId={selectedStintId}
             onSelectStint={onSelectStint}
@@ -266,7 +289,13 @@ export default function DegradationSimulatorPage() {
           />
         </div>
         <div className="min-w-0 flex-1">
-          <DegradationSimulatorChart result={result} />
+          <DegradationSimulatorChart
+            result={result}
+            onnxLoading={scoring && result.fan.length === 0}
+            onnxError={scoreError}
+            onCurrentLapChange={onCurrentLapChange}
+            tyreColor={compoundColor(inputs.constants.compound)}
+          />
         </div>
       </div>
     </FeaturePage>

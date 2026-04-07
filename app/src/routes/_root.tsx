@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { FilterProvider } from '../state/FilterContext'
 import AppShell from '../ui/layout/AppShell'
 import { ErrorBoundary } from '../ui/feedback/ErrorBoundary'
+import { TechTooltipProvider } from '../ui/TechTooltip'
 import { getPageMeta } from '../nav/seo'
 
 export default function Root() {
@@ -16,11 +17,13 @@ export default function Root() {
 
   return (
     <FilterProvider>
-      <AppShell>
-        <ErrorBoundary>
-          <Outlet />
-        </ErrorBoundary>
-      </AppShell>
+      <TechTooltipProvider>
+        <AppShell>
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
+        </AppShell>
+      </TechTooltipProvider>
     </FilterProvider>
   )
 }

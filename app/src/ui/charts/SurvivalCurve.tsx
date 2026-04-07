@@ -47,11 +47,11 @@ export interface SurvivalCurveProps {
   /** Fit provenance: number of stints used in fit (from notes field) */
   nStints?: number
   height?: number
+  curveColor?: string
 }
 
 const GRID = 'rgba(255,255,255,0.05)'
 const AXIS_STYLE = { fontSize: 11, fill: 'rgb(var(--color-text-muted))' }
-const KM_COLOR = '#60a5fa'
 const CLIFFED_COLOR = '#f87171'
 const CENSORED_COLOR = '#94a3b8'
 
@@ -102,7 +102,9 @@ export default function SurvivalCurve({
   dataWindow,
   nStints,
   height = 380,
+  curveColor,
 }: SurvivalCurveProps) {
+  const kmColor = curveColor ?? '#60a5fa'
   const hasScatter = stintObservations.length > 0
   const cliffedObs = stintObservations.filter(s => s.cliffed)
   const censoredObs = stintObservations.filter(s => !s.cliffed)
@@ -121,7 +123,7 @@ export default function SurvivalCurve({
       {/* Legend */}
       <div className="flex flex-wrap gap-4 mb-4">
         <div className="flex items-center gap-1.5 text-xs text-muted">
-          <span className="w-8 h-0.5 inline-block" style={{ background: KM_COLOR }} />
+          <span className="w-8 h-0.5 inline-block" style={{ background: kmColor }} />
           KM survival curve (left axis)
         </div>
         {hasScatter && (
@@ -204,7 +206,7 @@ export default function SurvivalCurve({
             data={kmCurve}
             dataKey="survival"
             type="stepAfter"
-            stroke={KM_COLOR}
+            stroke={kmColor}
             strokeWidth={2.5}
             dot={false}
             isAnimationActive={false}

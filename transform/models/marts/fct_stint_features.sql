@@ -1,5 +1,4 @@
--- Second Model Sequence #9 Part 2 (Third iteration backfill): Stint-grain
--- feature table for pit strategy modelling.
+-- Stint-grain feature table for pit strategy modelling.
 -- Grain: stint_id one row per stint.
 -- PK: stint_id (from int_stint_geometry).
 --
@@ -8,7 +7,7 @@
 -- cumulative dirty air tax, first cliff lap, and OLS pace falloff slope (last 3
 -- laps).
 --
--- Third iteration backfill:
+-- Strategy columns:
 --   pit_decision_class: from int_pit_strategy_value (strategy_verdict).
 --   tyre_management_score: actual end-of-stint residual / expected (from
 --   int_pit_strategy_value context).
@@ -116,7 +115,7 @@ last_lap_residual AS (
         = 1
 ),
 
--- Pit strategy verdicts from Third iteration #1
+-- Pit strategy verdicts
 pit_strategy AS (
     SELECT
         stint_id,

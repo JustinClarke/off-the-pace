@@ -1,0 +1,92 @@
+name: Security Scan
+
+# Supply-chain & secret hygiene gate. Two postures:
+#
+#   • secret-scan (gitleaks) is BLOCKING. A committed credential is never acceptable, and
+#     a leaked key cannot be un-leaked there is no "triage backlog" posture that makes
+#     sense here. Pair this with GitHub push protection (enabled in repo settings; see
+#     SECURITY.md) so most secrets are stopped before they ever reach a commit.
+#
+#   • dependency-audit (pip-audit + pnpm audit) starts NON-BLOCKING (continue-on-error).
+#     Dependabot (.github/dependabot.yml) does the actual upgrades; this surfaces, in the
+#     PR log, what still needs one. Flip the `continue-on-error: true` lines to `false`
+#     once the advisory backlog is clean to make it a hard gate (the "non-blocking-then-
+#     blocking" rollout the audit calls for). Cross-ecosystem SARIF lands via osv-scanner.yml.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history so gitleaks scans every commit a PR introduces, not just the tip.
+          fetch-depth: 0
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITLEAKS_LICENSE is only required for GitHub Organizations; this is a personal
+          # repo, so the action runs without one.
+
+  dependency-audit:
+    name: Dependency audit (pip-audit · pnpm audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install pip-audit
+        run: python -m pip install --upgrade pip pip-audit
+
+      # root + ml requirements per the audit. --desc prints advisory detail in the log.
+      - name: pip-audit root requirements
+        continue-on-error: true
+        run: pip-audit -r requirements.txt --desc
+
+      - name: pip-audit ml requirements
+        continue-on-error: true
+        run: pip-audit -r ml/requirements.txt --desc
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.4.0
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install app dependencies
+        working-directory: app
+        run: pnpm install --frozen-lockfile
+
+      # --prod ignores devDependency advisories: only what actually ships to users gates.
+      - name: pnpm audit app
+        working-directory: app
+        continue-on-error: true
+        run: pnpm audit --prod

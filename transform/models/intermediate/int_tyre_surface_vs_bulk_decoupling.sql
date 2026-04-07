@@ -1,4 +1,4 @@
--- Third Model Sequence #2: Tyre surface vs bulk thermal decoupling.
+-- Tyre surface vs bulk thermal decoupling.
 -- For each lap past the tyre cliff, attributes degradation to surface
 -- (recoverable)
 -- or bulk (structural) thermal damage using the two EW thermal signals with
@@ -14,14 +14,14 @@
 -- time-constant differences. If surface ratio predicts recovery (subsequent
 -- residuals improve), the two signals carry separable physics information.
 --
--- Null hypothesis (from plan §6.4):
+-- Null hypothesis:
 --   H₀: surface_bulk_ratio does NOT predict subsequent lap recovery.
 --   Rejected when logistic coefficient is positive at p < 0.01.
 --
 -- This SQL model computes surface_bulk_ratio and the classification.
 -- The logistic recovery_probability is approximated in SQL via a linear
--- sigmoid approximation (no pyfixest required for third iteration; validation
--- notebook fits the logistic for the exact coefficients).
+-- sigmoid approximation (no pyfixest dependency; a validation notebook fits
+-- the logistic for the exact coefficients).
 --
 -- Output grain: lap_id (only laps where cliff_onset_passed = TRUE).
 -- PK: lap_id (subset of stg_laps).
@@ -113,7 +113,7 @@ with_classification AS (
         push_load_bulk,
         COALESCE(surface_bulk_ratio, 0.5) AS surface_bulk_ratio,
 
-        -- Degradation source classification (thresholds from plan §6.4)
+        -- Degradation source classification
         CASE
             WHEN COALESCE(surface_bulk_ratio, 0.5) > 0.65 THEN 'surface_driven'
             WHEN COALESCE(surface_bulk_ratio, 0.5) < 0.35 THEN 'bulk_driven'

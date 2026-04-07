@@ -1,0 +1,21 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored (it can carry the
+# billing account ID). Defaults for everything else match the live project (see variables.tf),
+# so a minimal file is just project_number.
+
+# REQUIRED: `gcloud projects describe off-the-pace --format='value(projectNumber)'`
+project_number = "000000000000"
+
+# ── Optional overrides (defaults shown) ───────────────────────────────────────────
+# project_id      = "off-the-pace"
+# cdn_bucket_name = "off-the-pace-cdn"
+# bucket_location = "US"
+# github_repo     = "JustinClarke/off-the-pace"
+
+# -- Firebase (default off; import the existing site first - see README -> Firebase) --
+# manage_firebase  = false
+# firebase_site_id = "off-the-pace"
+
+# ── Cost budget (leave billing_account empty to skip the budget entirely) ──────────
+# billing_account     = "XXXXXX-XXXXXX-XXXXXX"
+# budget_amount_usd   = 50
+# budget_alert_emails = ["justinclarke241@gmail.com"]

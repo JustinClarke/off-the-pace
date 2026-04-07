@@ -26,7 +26,11 @@ A driver running at exactly the field median pace has `pace_delta ≈ 0`. Positi
 
 $$\text{fuel} = w \times m_{\text{fuel}}$$
 
-$m_{\text{fuel}}$ is the estimated fuel mass at lap $t$ in kilograms. $w$ is the weight penalty in seconds per kilogram, calibrated per circuit using the corner count and average lateral G:
+$m_{\text{fuel}}$ is the estimated fuel mass at lap $t$ in kilograms. It is computed deterministically never measured from the lap count and a seeded per-circuit burn rate:
+
+$$m_{\text{fuel}}(t) = \max\!\big(m_0 - r\,(t-1),\; 0\big), \qquad m_0 = N_{\text{laps}} \cdot r$$
+
+where $r$ is the per-lap burn rate (kg/lap, seeded in `dim_circuits` as `fuel_consumption_rate_kg_per_lap`), $N_{\text{laps}}$ is the race lap count, and $m_0$ is the full-race start-line load (safety factor 1.0). Because $m_{\text{fuel}}$ is fixed by arithmetic, the only *fitted* quantity in the fuel term is the weight penalty $w$ in seconds per kilogram, calibrated per circuit using the corner count and average lateral G:
 
 $$w \approx 0.02 + 0.0002 \times \text{corner\_count} \times \text{avg\_lateral\_g}$$
 
@@ -72,7 +76,7 @@ The driver skill term is defined as the closure not estimated independently, but
 
 A stated invariant is documentation. An enforced invariant is a contract.
 
-The following SQL test runs in CI on every model change. If it returns any rows meaning any lap where the seven terms diverge from `pace_delta` by more than 0.1 ms the dbt test fails and the merge is blocked:
+The following SQL test runs in CI on every model change. If it returns any rows meaning any lap where the seven terms diverge from `pace_delta` by more than 0.1 ms the dbt test fails and the merge is blocked. It is one of fourteen identity-closure tests enforced the same way see [Identity Closure](/transform/ci/identity-closure) for the full set:
 
 ```sql
 select count(*) from {{ model }}
@@ -85,11 +89,14 @@ where abs(pace_delta_s-(
 
 Every model change must maintain this invariant or explicitly update the test contract. It is the most important engineering property in the project: it means you can trust that every attribution you read was derived from an equation that closed exactly.
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Methodology" icon="flask-conical" href="/decomposition/methodology">
     How each physics term is identified and estimated from lap time data
   </Card>
   <Card title="Tyre Cliff" icon="trending-down" href="/decomposition/tyre-cliff">
     Kaplan-Meier cliff detection and per-lap ML prediction
+  </Card>
+  <Card title="Residual Decomposition" icon="sigma" href="/transform/families/residual">
+    The nine models that compute this identity and the closure it defines
   </Card>
 </CardGroup>

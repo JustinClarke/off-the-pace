@@ -20,12 +20,6 @@
     "light": "https://media.brand.dev/ac2251a0-45a7-490a-8cdc-9a56a531fba3.svg",
     "dark": "https://media.brand.dev/ac2251a0-45a7-490a-8cdc-9a56a531fba3.svg"
   },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/JustinClarke/off-the-pace"
-    }
-  },
   "navigation": {
     "global": {
       "anchors": [
@@ -33,6 +27,11 @@
           "anchor": "Launch App",
           "href": "https://off-the-pace.web.app",
           "icon": "gauge"
+        },
+        {
+          "anchor": "Docs",
+          "href": "https://offthepace.mintlify.app/",
+          "icon": "book"
         },
         {
           "anchor": "GitHub Repository",
@@ -43,47 +42,22 @@
     },
     "tabs": [
       {
-        "tab": "Documentation",
-        "icon": "book-open",
+        "tab": "Overview",
+        "icon": "house",
         "groups": [
           {
-            "group": "Get Started",
-            "icon": "rocket",
+            "group": "What You Can Do",
+            "icon": "lightbulb",
             "pages": [
               "index",
-              "introduction",
-              "quickstart",
-              "key-concepts",
-              "repo-tour"
+              "key-concepts"
             ]
           },
           {
-            "group": "The Decomposition",
-            "icon": "calculator",
+            "group": "Glossary",
+            "icon": "book-marked",
             "pages": [
-              "decomposition/seven-term-identity",
-              "decomposition/methodology",
-              "decomposition/tyre-cliff",
-              "decomposition/limitations"
-            ]
-          },
-          {
-            "group": "Machine Learning",
-            "icon": "brain",
-            "pages": [
-              "ml/overview",
-              "ml/models",
-              "ml/validation"
-            ]
-          },
-          {
-            "group": "App & Visualizations",
-            "icon": "presentation",
-            "pages": [
-              "app/overview",
-              "app/driver-consistency",
-              "app/tyre-degradation-simulator",
-              "app/lap-waterfall"
+              "reference/glossary"
             ]
           },
           {
@@ -97,18 +71,109 @@
         ]
       },
       {
-        "tab": "Reference",
-        "icon": "binary",
+        "tab": "Data",
+        "icon": "table",
         "groups": [
           {
             "group": "Overview",
             "icon": "info",
             "pages": [
-              "reference/glossary"
+              "data/overview"
             ]
           },
           {
-            "group": "Models",
+            "group": "Sources",
+            "icon": "plug",
+            "pages": [
+              "data/source-fastf1",
+              "data/source-jolpica"
+            ]
+          },
+          {
+            "group": "Bronze Schemas",
+            "icon": "database",
+            "pages": [
+              "reference/data-schemas",
+              "reference/schemas/laps",
+              "reference/schemas/race_control",
+              "reference/schemas/telemetry",
+              "reference/schemas/weather"
+            ]
+          },
+          {
+            "group": "Quality & Coverage",
+            "icon": "shield-check",
+            "pages": [
+              "data/data-quality",
+              "data/known-issues"
+            ]
+          },
+          {
+            "group": "Get Started",
+            "icon": "rocket",
+            "pages": [
+              "ingestion/quickstart",
+              "ingestion/data-scope"
+            ]
+          },
+          {
+            "group": "How to Ingest",
+            "icon": "workflow",
+            "pages": [
+              "ingestion/cli",
+              "ingestion/configuration",
+              "ingestion/monitoring"
+            ]
+          },
+          {
+            "group": "Operations",
+            "icon": "activity",
+            "pages": [
+              "ingestion/verify",
+              "ingestion/manifest-report",
+              "ingestion/replay"
+            ]
+          },
+          {
+            "group": "Deep Dive",
+            "icon": "code",
+            "pages": [
+              "ingestion/architecture"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Transform",
+        "icon": "layers",
+        "groups": [
+          {
+            "group": "Concepts",
+            "icon": "calculator",
+            "pages": [
+              "transform/overview",
+              "decomposition/seven-term-identity",
+              "decomposition/methodology",
+              "decomposition/tyre-cliff",
+              "decomposition/limitations"
+            ]
+          },
+          {
+            "group": "How the Layer Works",
+            "icon": "workflow",
+            "pages": [
+              "transform/families/staging",
+              "transform/families/reference",
+              "transform/families/physics",
+              "transform/families/pace-baselines",
+              "transform/families/skill",
+              "transform/families/residual",
+              "transform/families/strategy",
+              "transform/families/marts"
+            ]
+          },
+          {
+            "group": "Model Reference",
             "icon": "database",
             "pages": [
               {
@@ -135,6 +200,7 @@
                 "pages": [
                   "reference/models/int/int_circuit_x_constructor_interaction",
                   "reference/models/int/int_compound_cliff_predicted",
+                  "reference/models/int/int_constructor_car_fe",
                   "reference/models/int/int_constructor_deg_sensitivity",
                   "reference/models/int/int_constructor_structural_pace",
                   "reference/models/int/int_constructor_structural_pace_qualifying",
@@ -142,6 +208,8 @@
                   "reference/models/int/int_corner_skill_residuals",
                   "reference/models/int/int_dirty_air_tax_component",
                   "reference/models/int/int_driver_circuit_affinity",
+                  "reference/models/int/int_driver_circuit_era_affinity",
+                  "reference/models/int/int_driver_race_skill_loro",
                   "reference/models/int/int_driver_season_ratings",
                   "reference/models/int/int_era_normalized_driver_rating",
                   "reference/models/int/int_event_corrections",
@@ -152,6 +220,7 @@
                   "reference/models/int/int_lap_fuel_state_qualifying",
                   "reference/models/int/int_lap_residual_decomposed",
                   "reference/models/int/int_lap_residual_decomposed_qualifying",
+                  "reference/models/int/int_lap_residual_stint_detrend",
                   "reference/models/int/int_lap_telemetry_aggregates",
                   "reference/models/int/int_lap_thermal_proxy",
                   "reference/models/int/int_pit_loss_circuit",
@@ -175,7 +244,9 @@
                   "reference/models/fct/fct_ghost_race_finish",
                   "reference/models/fct/fct_lap_residuals",
                   "reference/models/fct/fct_stint_features",
-                  "reference/models/fct/fct_telemetry_deltas"
+                  "reference/models/fct/fct_telemetry_deltas",
+                  "reference/models/fct/mart_corner_skill_driver",
+                  "reference/models/fct/mart_degradation_history_envelope"
                 ]
               },
               {
@@ -192,40 +263,219 @@
             ]
           },
           {
+            "group": "The CI Contract",
+            "icon": "shield-check",
+            "pages": [
+              "transform/ci/overview",
+              "transform/ci/structural",
+              "transform/ci/range-and-domain",
+              "transform/ci/identity-closure",
+              "transform/ci/domain-constraints",
+              "transform/ci/regression-gates"
+            ]
+          },
+          {
             "group": "Macros",
             "icon": "code",
             "pages": [
+              "transform/macros",
               "reference/macros/assert_additive_identity",
               "reference/macros/bayesian_shrinkage",
+              "reference/macros/circuit_id_from_name",
               "reference/macros/clean_lap_filter",
               "reference/macros/normal_cdf",
               "reference/macros/normalize_compound",
               "reference/macros/posterior_variance"
             ]
+          }
+        ]
+      },
+      {
+        "tab": "Machine Learning",
+        "icon": "brain",
+        "groups": [
+          {
+            "group": "Concepts",
+            "icon": "lightbulb",
+            "pages": [
+              "ml/overview",
+              "ml/feature-contract"
+            ]
           },
           {
-            "group": "Bronze Schemas",
+            "group": "The Pipeline",
+            "icon": "workflow",
+            "pages": [
+              "ml/pipeline",
+              "ml/features-and-targets",
+              "ml/models",
+              "ml/tuning",
+              "ml/onnx"
+            ]
+          },
+          {
+            "group": "Validation & Trust",
+            "icon": "shield-check",
+            "pages": [
+              "ml/validation",
+              "ml/calibration",
+              "ml/cohorts"
+            ]
+          },
+          {
+            "group": "The CI Contract",
+            "icon": "vial",
+            "pages": [
+              "ml/ci/overview",
+              "ml/ci/leakage-spine",
+              "ml/ci/parity-and-schema",
+              "ml/ci/evaluation-gates"
+            ]
+          },
+          {
+            "group": "Model Reference",
             "icon": "database",
             "pages": [
-              "reference/data-schemas",
-              "reference/schemas/laps",
-              "reference/schemas/race_control",
-              "reference/schemas/telemetry",
-              "reference/schemas/weather"
+              "reference/ml/degradation-model-v1"
             ]
-          },
+          }
+        ]
+      },
+      {
+        "tab": "App",
+        "icon": "layout-dashboard",
+        "groups": [
           {
-            "group": "CLI",
-            "icon": "terminal",
+            "group": "Concepts",
+            "icon": "lightbulb",
             "pages": [
-              "reference/cli/ingest"
+              "app/overview",
+              "app/architecture"
             ]
           },
           {
-            "group": "ML Models",
+            "group": "Ghost Car",
+            "icon": "ghost",
+            "pages": [
+              "app/families/ghost-car",
+              "app/ghost-race-standings",
+              "app/counterfactual-championship",
+              "app/hidden-performance"
+            ]
+          },
+          {
+            "group": "Lap Decomposition",
+            "icon": "chart-gantt",
+            "pages": [
+              "app/families/lap-decomposition",
+              "app/lap-waterfall",
+              "app/race-lost",
+              "app/sector-decomposition"
+            ]
+          },
+          {
+            "group": "Tyre & Strategy",
+            "icon": "timer",
+            "pages": [
+              "app/families/tyre-strategy",
+              "app/tyre-cliff-survival",
+              "app/stint-degradation-timeline",
+              "app/pit-strategy",
+              "app/tyre-recovery-forecast",
+              "app/party-mode"
+            ]
+          },
+          {
+            "group": "Aero & Conditions",
+            "icon": "wind",
+            "pages": [
+              "app/families/aero-conditions",
+              "app/dirty-air-cost",
+              "app/dirty-air-lap-map",
+              "app/track-evolution",
+              "app/field-pace-curve"
+            ]
+          },
+          {
+            "group": "Drivers",
+            "icon": "user",
+            "pages": [
+              "app/families/drivers",
+              "app/era-ratings-timeline",
+              "app/driver-consistency",
+              "app/quali-vs-race-skill",
+              "app/driver-circuit-affinity",
+              "app/era-translator",
+              "app/wet-race-specialist",
+              "app/driver-workload",
+              "app/synthetic-teammate",
+              "app/corner-phase-skill"
+            ]
+          },
+          {
+            "group": "Constructors",
+            "icon": "car",
+            "pages": [
+              "app/families/constructors",
+              "app/constructor-structural-pace",
+              "app/constructor-circuit-interaction"
+            ]
+          },
+          {
+            "group": "The Machine",
             "icon": "cpu",
             "pages": [
-              "reference/ml/degradation-model-v1"
+              "app/families/the-machine",
+              "app/degradation-simulator",
+              "app/model-metrics",
+              "app/blind-test-scoreboard"
+            ]
+          },
+          {
+            "group": "Data & Validation",
+            "icon": "shield-check",
+            "pages": [
+              "app/families/data-validation",
+              "app/query-lab",
+              "app/data-quality-audit"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Platform",
+        "icon": "wrench",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "icon": "rocket",
+            "pages": [
+              "platform/contributing",
+              "platform/conventions"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "icon": "building-2",
+            "pages": [
+              "platform/architecture-decisions"
+            ]
+          },
+          {
+            "group": "Operations",
+            "icon": "gear",
+            "pages": [
+              "platform/deployment",
+              "platform/data-pipeline"
+            ]
+          },
+          {
+            "group": "Reliability",
+            "icon": "shield-check",
+            "pages": [
+              "platform/observability",
+              "platform/performance",
+              "platform/security"
             ]
           }
         ]

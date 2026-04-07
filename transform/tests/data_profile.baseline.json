@@ -1,0 +1,1111 @@
+{
+  "dim_circuits": {
+    "columns": {
+      "abrasiveness_index": {
+        "mean": 2.590909,
+        "null_rate": 0.0
+      },
+      "avg_lateral_g": {
+        "mean": 2.227273,
+        "null_rate": 0.0
+      },
+      "circuit_id": {
+        "null_rate": 0.0
+      },
+      "circuit_key": {
+        "null_rate": 0.0
+      },
+      "circuit_name": {
+        "null_rate": 0.0
+      },
+      "corner_count": {
+        "mean": 16.272727,
+        "null_rate": 0.0
+      },
+      "era_start_year": {
+        "mean": 1988.795455,
+        "null_rate": 0.0
+      },
+      "fuel_consumption_rate_kg_per_lap": {
+        "mean": 1.947727,
+        "null_rate": 0.0
+      },
+      "lap_length_km": {
+        "mean": 5.069841,
+        "null_rate": 0.0
+      },
+      "track_energy_index": {
+        "mean": 85.568182,
+        "null_rate": 0.0
+      },
+      "weight_penalty_factor": {
+        "mean": 0.025628,
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 44
+  },
+  "dim_compounds_season": {
+    "columns": {
+      "circuit_key": {
+        "null_rate": 0.0
+      },
+      "compound_cliff_onset_laps": {
+        "mean": 21.919701,
+        "null_rate": 0.0
+      },
+      "compound_cliff_severity": {
+        "mean": 1.035162,
+        "null_rate": 0.0
+      },
+      "compound_code": {
+        "null_rate": 0.0
+      },
+      "compound_grip_peak": {
+        "mean": 0.998978,
+        "null_rate": 0.0
+      },
+      "compound_optimal_temp_high": {
+        "mean": 103.187032,
+        "null_rate": 0.0
+      },
+      "compound_optimal_temp_low": {
+        "mean": 74.663342,
+        "null_rate": 0.0
+      },
+      "compound_wear_gradient": {
+        "mean": 0.089585,
+        "null_rate": 0.0
+      },
+      "data_window": {
+        "null_rate": 0.0
+      },
+      "fit_date": {
+        "null_rate": 0.0
+      },
+      "notes": {
+        "null_rate": 0.0
+      },
+      "season": {
+        "mean": 2021.376559,
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 401
+  },
+  "dim_constructors": {
+    "columns": {
+      "constructor_id": {
+        "null_rate": 0.0
+      },
+      "pu_family": {
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 18
+  },
+  "dim_corners": {
+    "columns": {
+      "corner_name": {
+        "null_rate": 0.0
+      },
+      "end_distance_m": {
+        "mean": 2655.440415,
+        "null_rate": 0.0
+      },
+      "start_distance_m": {
+        "mean": 2253.88601,
+        "null_rate": 0.0
+      },
+      "track_id": {
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 193
+  },
+  "dim_drivers": {
+    "columns": {
+      "career_races_in_dataset": {
+        "mean": 74.325,
+        "null_rate": 0.0
+      },
+      "debut_year": {
+        "mean": 2019.55,
+        "null_rate": 0.0
+      },
+      "driver_id": {
+        "null_rate": 0.0
+      },
+      "driver_number": {
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 40
+  },
+  "dim_events": {
+    "columns": {
+      "circuit_name": {
+        "null_rate": 0.0
+      },
+      "event_description": {
+        "null_rate": 0.0
+      },
+      "event_id": {
+        "null_rate": 0.0
+      },
+      "event_severity_multiplier": {
+        "mean": 0.133333,
+        "null_rate": 0.0
+      },
+      "event_type": {
+        "null_rate": 0.0
+      },
+      "is_performance_impact": {
+        "null_rate": 0.0
+      },
+      "is_reliability_impact": {
+        "null_rate": 0.0
+      },
+      "race_id": {
+        "null_rate": 0.0
+      },
+      "round_number": {
+        "mean": 13.5,
+        "null_rate": 0.0
+      },
+      "target_driver_code": {
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 6
+  },
+  "fct_cliff_prediction_features": {
+    "columns": {
+      "age_in_stint": {
+        "mean": 16.1861,
+        "null_rate": 3.6e-05
+      },
+      "air_state_dominant": {
+        "null_rate": 0.0
+      },
+      "ambient_temp_delta": {
+        "mean": 7.896782,
+        "null_rate": 0.0
+      },
+      "anomaly_class": {
+        "null_rate": 0.0
+      },
+      "braking_point_drift_m": {
+        "mean": -2.114833,
+        "null_rate": 0.01589
+      },
+      "circuit_abrasiveness_index": {
+        "mean": 2.676202,
+        "null_rate": 0.0
+      },
+      "circuit_key": {
+        "null_rate": 0.0
+      },
+      "cliff_candidate_flag": {
+        "null_rate": 0.0
+      },
+      "cliff_onset_passed": {
+        "null_rate": 3.6e-05
+      },
+      "compound": {
+        "null_rate": 3.6e-05
+      },
+      "compound_cliff_onset_laps": {
+        "mean": 20.984884,
+        "null_rate": 0.469679
+      },
+      "compound_cliff_severity": {
+        "mean": 0.883506,
+        "null_rate": 0.469679
+      },
+      "compound_grip_peak": {
+        "mean": 0.992753,
+        "null_rate": 0.469679
+      },
+      "compound_optimal_temp_high": {
+        "mean": 103.209614,
+        "null_rate": 0.469679
+      },
+      "compound_optimal_temp_low": {
+        "mean": 73.994567,
+        "null_rate": 0.469679
+      },
+      "compound_wear_gradient": {
+        "mean": 0.084007,
+        "null_rate": 0.469679
+      },
+      "constructor_id": {
+        "null_rate": 0.0
+      },
+      "cumulative_push_load_bulk": {
+        "mean": 1.163202,
+        "null_rate": 0.0
+      },
+      "cumulative_push_load_surface": {
+        "mean": 0.829614,
+        "null_rate": 0.0
+      },
+      "dirty_air_share_lap": {
+        "mean": 0.225665,
+        "null_rate": 0.0
+      },
+      "dirty_air_thermal_load_bulk": {
+        "mean": 0.353715,
+        "null_rate": 0.0
+      },
+      "dirty_air_thermal_load_surface": {
+        "mean": 0.400484,
+        "null_rate": 0.0
+      },
+      "driver_id": {
+        "null_rate": 0.0
+      },
+      "event_flag_any": {
+        "null_rate": 0.0
+      },
+      "expected_compound_pace_s": {
+        "mean": 3.169551,
+        "null_rate": 3.6e-05
+      },
+      "expected_degradation_rate_s_per_lap": {
+        "mean": 0.577855,
+        "null_rate": 3.6e-05
+      },
+      "fuel_mass_kg": {
+        "mean": 59.222592,
+        "null_rate": 0.0
+      },
+      "is_rain_lap": {
+        "null_rate": 0.0
+      },
+      "is_training_eligible": {
+        "null_rate": 0.0
+      },
+      "lap_id": {
+        "null_rate": 0.0
+      },
+      "lap_in_stint": {
+        "mean": 13.501757,
+        "null_rate": 0.0
+      },
+      "lap_number": {
+        "mean": 31.754145,
+        "null_rate": 0.0
+      },
+      "laps_past_cliff": {
+        "mean": 1.402625,
+        "null_rate": 0.0
+      },
+      "laps_until_cliff_class": {
+        "null_rate": 0.051613
+      },
+      "lift_coast_share": {
+        "mean": 0.076948,
+        "null_rate": 0.011575
+      },
+      "max_rpm": {
+        "mean": 12165.063148,
+        "null_rate": 0.011575
+      },
+      "mean_rpm": {
+        "mean": 10090.586887,
+        "null_rate": 0.011575
+      },
+      "mid_corner_speed_loss_kph": {
+        "mean": 0.877782,
+        "null_rate": 0.014529
+      },
+      "n_gear_changes": {
+        "mean": 39.189657,
+        "null_rate": 0.011575
+      },
+      "next_3_lap_cumulative_jump_s": {
+        "mean": 0.278176,
+        "null_rate": 0.151622
+      },
+      "next_5_lap_cumulative_jump_s": {
+        "mean": 0.376705,
+        "null_rate": 0.248649
+      },
+      "next_lap_degradation_jump_detrended_s": {
+        "mean": -0.132685,
+        "null_rate": 0.051613
+      },
+      "next_lap_degradation_jump_s": {
+        "mean": -0.177417,
+        "null_rate": 0.051613
+      },
+      "pct_drs_active": {
+        "mean": 0.030717,
+        "null_rate": 0.011575
+      },
+      "pct_full_throttle": {
+        "mean": 0.402246,
+        "null_rate": 0.011575
+      },
+      "push_residual": {
+        "mean": -0.047346,
+        "null_rate": 0.0
+      },
+      "race_id": {
+        "null_rate": 0.0
+      },
+      "race_year": {
+        "mean": 2021.161284,
+        "null_rate": 0.0
+      },
+      "short_shift_index": {
+        "mean": 0.545878,
+        "null_rate": 0.01223
+      },
+      "stint_id": {
+        "null_rate": 0.0
+      },
+      "surface_bulk_ratio": {
+        "mean": 0.375991,
+        "null_rate": 0.145685
+      },
+      "survival_weight": {
+        "mean": 1.717295,
+        "null_rate": 0.0
+      },
+      "throttle_trace_decay": {
+        "mean": -0.003465,
+        "null_rate": 0.014267
+      },
+      "track_energy_index": {
+        "mean": 84.702475,
+        "null_rate": 0.0
+      },
+      "traction_wheelspin_proxy": {
+        "mean": 0.03044,
+        "null_rate": 0.011888
+      }
+    },
+    "row_count": 137447
+  },
+  "fct_driver_skill_features": {
+    "columns": {
+      "circuit_abrasiveness_index": {
+        "mean": 2.650424,
+        "null_rate": 0.0
+      },
+      "circuit_energy_index": {
+        "mean": 86.350883,
+        "null_rate": 0.0
+      },
+      "circuit_key": {
+        "null_rate": 0.0
+      },
+      "clean_lap_count": {
+        "mean": 41.25459,
+        "null_rate": 0.0
+      },
+      "constructor_aero_pace_index_final": {
+        "mean": -0.002886,
+        "null_rate": 0.00565
+      },
+      "constructor_id": {
+        "null_rate": 0.0
+      },
+      "constructor_index_confidence_final": {
+        "mean": 0.173126,
+        "null_rate": 0.00565
+      },
+      "constructor_power_pace_index_final": {
+        "mean": -0.002886,
+        "null_rate": 0.00565
+      },
+      "driver_debut_year": {
+        "mean": 2018.657133,
+        "null_rate": 0.0
+      },
+      "driver_id": {
+        "null_rate": 0.0
+      },
+      "driver_race_id": {
+        "null_rate": 0.0
+      },
+      "driver_residual_mean_s": {
+        "mean": -3.09147,
+        "null_rate": 0.002825
+      },
+      "driver_residual_median_s": {
+        "mean": -2.285198,
+        "null_rate": 0.002825
+      },
+      "driver_residual_stddev_s": {
+        "mean": 2.761363,
+        "null_rate": 0.004944
+      },
+      "driver_skill_proxy_mean_s": {
+        "mean": 0.070395,
+        "null_rate": 0.039548
+      },
+      "ml_eligible_lap_share": {
+        "mean": 0.721811,
+        "null_rate": 0.0
+      },
+      "pair_quality_weight_mean": {
+        "mean": 0.625533,
+        "null_rate": 0.039548
+      },
+      "pu_family": {
+        "null_rate": 0.0
+      },
+      "race_id": {
+        "null_rate": 0.0
+      },
+      "race_wet_flag": {
+        "null_rate": 0.0
+      },
+      "race_year": {
+        "mean": 2021.135946,
+        "null_rate": 0.0
+      },
+      "strategic_divergence_share": {
+        "mean": 0.319792,
+        "null_rate": 0.0
+      },
+      "teammate_available_flag": {
+        "null_rate": 0.0
+      },
+      "total_race_laps": {
+        "mean": 48.533545,
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 2832
+  },
+  "fct_ghost_car_pace": {
+    "columns": {
+      "actual_lap_time_s": {
+        "mean": 88.791035,
+        "null_rate": 0.0
+      },
+      "age_in_stint": {
+        "mean": 16.217628,
+        "null_rate": 0.0
+      },
+      "ambient_component_s": {
+        "mean": -0.001874,
+        "null_rate": 0.0
+      },
+      "base_track_pace_s": {
+        "mean": 86.675093,
+        "null_rate": 0.081767
+      },
+      "circuit_interaction_s": {
+        "mean": 0.000207,
+        "null_rate": 0.0
+      },
+      "cliff_interaction_s": {
+        "mean": 0.002619,
+        "null_rate": 0.0
+      },
+      "compound_cliff_severity": {
+        "mean": 0.468414,
+        "null_rate": 0.0
+      },
+      "compound_component_s": {
+        "mean": 3.174925,
+        "null_rate": 3.8e-05
+      },
+      "deg_interaction_s": {
+        "mean": 0.007652,
+        "null_rate": 0.0
+      },
+      "delta_vs_actual_lap_s": {
+        "mean": 0.038423,
+        "null_rate": 0.0
+      },
+      "dirty_air_tax_s": {
+        "mean": 0.097285,
+        "null_rate": 0.0
+      },
+      "driver_skill_residual_s": {
+        "mean": -3.053243,
+        "null_rate": 0.0
+      },
+      "ego_cliff_active": {
+        "mean": 0.166579,
+        "null_rate": 0.0
+      },
+      "ego_cliff_shift_laps": {
+        "mean": 0.108872,
+        "null_rate": 0.0
+      },
+      "ego_cliff_shift_se_laps": {
+        "mean": 0.170543,
+        "null_rate": 0.0
+      },
+      "ego_constructor_id": {
+        "null_rate": 0.0
+      },
+      "ego_deg_slope_s_per_lap": {
+        "mean": 0.000748,
+        "null_rate": 0.0
+      },
+      "ego_deg_slope_sd_s_per_lap": {
+        "mean": 0.004752,
+        "null_rate": 0.0
+      },
+      "ego_driver_id": {
+        "null_rate": 0.0
+      },
+      "ego_host_regime_overlap_n": {
+        "mean": 91.453112,
+        "null_rate": 0.0
+      },
+      "fuel_component_s": {
+        "mean": 1.499199,
+        "null_rate": 0.0
+      },
+      "ghost_id": {
+        "null_rate": 0.0
+      },
+      "host_cliff_active": {
+        "mean": 0.166288,
+        "null_rate": 0.0
+      },
+      "host_cliff_shift_laps": {
+        "mean": 0.113683,
+        "null_rate": 0.0
+      },
+      "host_cliff_shift_se_laps": {
+        "mean": 0.171918,
+        "null_rate": 0.0
+      },
+      "host_constructor_id": {
+        "null_rate": 0.0
+      },
+      "host_constructor_pace_s": {
+        "mean": -0.0,
+        "null_rate": 0.0
+      },
+      "host_constructor_pace_se_s": {
+        "mean": 0.131477,
+        "null_rate": 0.0
+      },
+      "host_deg_slope_s_per_lap": {
+        "mean": 0.000895,
+        "null_rate": 0.0
+      },
+      "host_deg_slope_sd_s_per_lap": {
+        "mean": 0.004897,
+        "null_rate": 0.0
+      },
+      "lap_number": {
+        "mean": 31.814296,
+        "null_rate": 0.0
+      },
+      "predicted_lap_time_s": {
+        "mean": 88.829459,
+        "null_rate": 0.0
+      },
+      "race_id": {
+        "null_rate": 0.0
+      },
+      "race_year": {
+        "mean": 2021.197808,
+        "null_rate": 0.0
+      },
+      "recombination_confidence": {
+        "mean": 0.622289,
+        "null_rate": 0.0
+      },
+      "rubber_component_s": {
+        "mean": 0.000451,
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 1282974
+  },
+  "fct_ghost_race_finish": {
+    "columns": {
+      "actual_dnf_cause": {
+        "null_rate": 0.901611
+      },
+      "actual_finish_position": {
+        "mean": 9.272533,
+        "null_rate": 0.098389
+      },
+      "actual_is_dnf": {
+        "null_rate": 0.0
+      },
+      "actual_mean_lap_s": {
+        "mean": 90.348633,
+        "null_rate": 0.0
+      },
+      "actual_total_race_time_s": {
+        "mean": 4095.339911,
+        "null_rate": 0.0
+      },
+      "avg_recombination_confidence": {
+        "mean": 0.580642,
+        "null_rate": 0.0
+      },
+      "delta_vs_actual_position": {
+        "mean": 0.50776,
+        "null_rate": 0.098389
+      },
+      "ego_driver_id": {
+        "null_rate": 0.0
+      },
+      "finish_from_results": {
+        "null_rate": 0.0
+      },
+      "finish_pos_se": {
+        "mean": 1.255677,
+        "null_rate": 0.0
+      },
+      "ghost_race_id": {
+        "null_rate": 0.0
+      },
+      "host_constructor_id": {
+        "null_rate": 0.0
+      },
+      "is_self_scenario": {
+        "null_rate": 0.0
+      },
+      "is_short_run": {
+        "null_rate": 0.0
+      },
+      "lap_coverage": {
+        "mean": 0.912386,
+        "null_rate": 0.0
+      },
+      "laps_counted": {
+        "mean": 46.158917,
+        "null_rate": 0.0
+      },
+      "p_beats_next": {
+        "mean": 0.625003,
+        "null_rate": 0.051928
+      },
+      "predicted_finish_position": {
+        "mean": 10.161759,
+        "null_rate": 0.0
+      },
+      "predicted_mean_lap_s": {
+        "mean": 90.353712,
+        "null_rate": 0.0
+      },
+      "predicted_mean_lap_se_s": {
+        "mean": 0.315109,
+        "null_rate": 0.0
+      },
+      "predicted_total_race_time_s": {
+        "mean": 4096.886933,
+        "null_rate": 0.0
+      },
+      "race_distance_laps": {
+        "mean": 50.315866,
+        "null_rate": 0.0
+      },
+      "race_id": {
+        "null_rate": 0.0
+      },
+      "race_year": {
+        "mean": 2021.163363,
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 27442
+  },
+  "fct_lap_residuals": {
+    "columns": {
+      "age_in_stint": {
+        "mean": 16.1861,
+        "null_rate": 3.6e-05
+      },
+      "ambient_component_s": {
+        "mean": -0.00174,
+        "null_rate": 0.0
+      },
+      "ambient_temp_delta": {
+        "mean": 7.897548,
+        "null_rate": 0.0
+      },
+      "cliff_onset_passed": {
+        "null_rate": 3.6e-05
+      },
+      "compound": {
+        "null_rate": 3.6e-05
+      },
+      "compound_component_s": {
+        "mean": 3.169555,
+        "null_rate": 3.6e-05
+      },
+      "constructor_component_ci_high_s": {
+        "mean": 0.234536,
+        "null_rate": 0.002743
+      },
+      "constructor_component_ci_low_s": {
+        "mean": -0.288595,
+        "null_rate": 0.002743
+      },
+      "constructor_component_s": {
+        "mean": -0.026955,
+        "null_rate": 0.0
+      },
+      "constructor_component_se_s": {
+        "mean": 0.317181,
+        "null_rate": 0.0
+      },
+      "constructor_id": {
+        "null_rate": 0.0
+      },
+      "correction_class": {
+        "null_rate": 0.0
+      },
+      "correction_weight": {
+        "mean": 0.959406,
+        "null_rate": 0.0
+      },
+      "cumulative_dirty_air_tax_race_s": {
+        "mean": 2.567961,
+        "null_rate": 0.0
+      },
+      "dirty_air_tax_s": {
+        "mean": 0.09149,
+        "null_rate": 0.0
+      },
+      "dirty_air_tax_se_s": {
+        "mean": 0.013723,
+        "null_rate": 0.0
+      },
+      "driver_debut_year": {
+        "mean": 2018.648206,
+        "null_rate": 0.0
+      },
+      "driver_id": {
+        "null_rate": 0.0
+      },
+      "driver_skill_residual_s": {
+        "mean": -3.060574,
+        "null_rate": 0.0
+      },
+      "expected_degradation_rate_s_per_lap": {
+        "mean": 0.577855,
+        "null_rate": 3.6e-05
+      },
+      "fuel_component_s": {
+        "mean": 1.504782,
+        "null_rate": 0.0
+      },
+      "fuel_mass_kg": {
+        "mean": 59.222592,
+        "null_rate": 0.0
+      },
+      "is_local_yellow_lap": {
+        "null_rate": 0.0
+      },
+      "is_major_outlier_lap": {
+        "null_rate": 0.0
+      },
+      "is_pre_controlled_lap": {
+        "null_rate": 0.0
+      },
+      "is_restart_lap": {
+        "null_rate": 0.0
+      },
+      "is_safety_car_lap": {
+        "null_rate": 0.0
+      },
+      "is_vsc_lap": {
+        "null_rate": 0.0
+      },
+      "lap_id": {
+        "null_rate": 0.0
+      },
+      "lap_in_stint": {
+        "mean": 13.501757,
+        "null_rate": 0.0
+      },
+      "lap_number": {
+        "mean": 31.754145,
+        "null_rate": 0.0
+      },
+      "lap_time_s": {
+        "mean": 88.778615,
+        "null_rate": 0.0
+      },
+      "laps_past_cliff": {
+        "mean": 1.402625,
+        "null_rate": 0.0
+      },
+      "ml_eligible": {
+        "null_rate": 0.0
+      },
+      "position": {
+        "mean": 9.627231,
+        "null_rate": 0.0
+      },
+      "pu_family": {
+        "null_rate": 0.0
+      },
+      "race_id": {
+        "null_rate": 0.0
+      },
+      "race_year": {
+        "mean": 2021.161284,
+        "null_rate": 0.0
+      },
+      "rainfall_flag": {
+        "null_rate": 0.152968
+      },
+      "rubber_component_s": {
+        "mean": 0.000883,
+        "null_rate": 0.0
+      },
+      "stint_id": {
+        "null_rate": 0.0
+      },
+      "stint_length_actual": {
+        "mean": 26.003514,
+        "null_rate": 0.0
+      },
+      "total_explained_s": {
+        "mean": 4.737899,
+        "null_rate": 0.0
+      },
+      "track_temp_c": {
+        "mean": 36.151213,
+        "null_rate": 0.152968
+      },
+      "track_unexplained_s": {
+        "mean": -0.003902,
+        "null_rate": 0.152968
+      },
+      "weight_corrected_lap_time": {
+        "mean": 87.273833,
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 137447
+  },
+  "fct_stint_features": {
+    "columns": {
+      "cliff_lap_in_stint": {
+        "mean": 13.760417,
+        "null_rate": 0.986534
+      },
+      "compound": {
+        "null_rate": 0.000701
+      },
+      "constructor_id": {
+        "null_rate": 0.0
+      },
+      "cumulative_dirty_air_tax_s": {
+        "mean": 1.763922,
+        "null_rate": 0.0
+      },
+      "cumulative_thermal_load_end": {
+        "mean": 1.935925,
+        "null_rate": 0.0
+      },
+      "driver_id": {
+        "null_rate": 0.0
+      },
+      "end_of_stint_pace_falloff_s_per_lap": {
+        "mean": -0.445791,
+        "null_rate": 0.042923
+      },
+      "pit_decision_class": {
+        "null_rate": 0.419694
+      },
+      "race_id": {
+        "null_rate": 0.0
+      },
+      "race_year": {
+        "mean": 2021.223874,
+        "null_rate": 0.0
+      },
+      "short_stint_flag": {
+        "null_rate": 0.0
+      },
+      "starting_tyre_age_laps": {
+        "mean": 2.475014,
+        "null_rate": 0.000701
+      },
+      "stint_id": {
+        "null_rate": 0.0
+      },
+      "stint_length_laps": {
+        "mean": 19.39683,
+        "null_rate": 0.0
+      },
+      "tyre_management_score": {
+        "mean": -0.262633,
+        "null_rate": 0.822415
+      }
+    },
+    "row_count": 7129
+  },
+  "fct_telemetry_deltas": {
+    "columns": {
+      "braking_point_delta_m": {
+        "mean": 0.078648,
+        "null_rate": 0.0
+      },
+      "corner_name": {
+        "null_rate": 0.0
+      },
+      "driver_a": {
+        "null_rate": 0.0
+      },
+      "driver_b": {
+        "null_rate": 0.0
+      },
+      "lap_number": {
+        "mean": 30.789983,
+        "null_rate": 0.0
+      },
+      "race_id": {
+        "null_rate": 0.0
+      },
+      "throttle_point_delta_m": {
+        "mean": 1.641607,
+        "null_rate": 0.0
+      },
+      "track_id": {
+        "null_rate": 0.0
+      },
+      "v_min_delta_kph": {
+        "mean": 0.011334,
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 10675035
+  },
+  "mart_corner_skill_driver": {
+    "columns": {
+      "braking_skill_s": {
+        "mean": 0.001077,
+        "null_rate": 0.0
+      },
+      "braking_skill_z": {
+        "mean": 0.011304,
+        "null_rate": 0.0
+      },
+      "constructor_id": {
+        "null_rate": 0.0
+      },
+      "corner_skill_index": {
+        "mean": -0.023043,
+        "null_rate": 0.0
+      },
+      "driver_id": {
+        "null_rate": 0.0
+      },
+      "exit_skill_s": {
+        "mean": -0.001315,
+        "null_rate": 0.0
+      },
+      "exit_skill_z": {
+        "mean": -0.00913,
+        "null_rate": 0.0
+      },
+      "mapped_corners": {
+        "mean": 122.532609,
+        "null_rate": 0.0
+      },
+      "mid_corner_skill_s": {
+        "mean": -0.000907,
+        "null_rate": 0.0
+      },
+      "mid_corner_skill_z": {
+        "mean": -0.025326,
+        "null_rate": 0.0
+      },
+      "race_year": {
+        "mean": 2021.586957,
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 92
+  },
+  "mart_degradation_history_envelope": {
+    "columns": {
+      "circuit_id": {
+        "null_rate": 0.0
+      },
+      "circuit_name": {
+        "null_rate": 0.0
+      },
+      "compound": {
+        "null_rate": 0.0
+      },
+      "dirty_air_deg_mult": {
+        "mean": 1.071133,
+        "null_rate": 0.0
+      },
+      "era": {
+        "null_rate": 0.0
+      },
+      "lap_in_stint": {
+        "mean": 18.312376,
+        "null_rate": 0.0
+      },
+      "n_observations": {
+        "mean": 33.227218,
+        "null_rate": 0.0
+      },
+      "obs_deg_from_fresh_p10_mono_s": {
+        "mean": -1.297491,
+        "null_rate": 0.0
+      },
+      "obs_deg_from_fresh_p10_s": {
+        "mean": -1.249514,
+        "null_rate": 0.0
+      },
+      "obs_deg_from_fresh_p50_mono_s": {
+        "mean": 0.265937,
+        "null_rate": 0.0
+      },
+      "obs_deg_from_fresh_p50_s": {
+        "mean": 0.235326,
+        "null_rate": 0.0
+      },
+      "obs_deg_from_fresh_p90_mono_s": {
+        "mean": 2.329613,
+        "null_rate": 0.0
+      },
+      "obs_deg_from_fresh_p90_s": {
+        "mean": 2.082137,
+        "null_rate": 0.0
+      },
+      "obs_fuel_removed_pace_p10_s": {
+        "mean": 86.100824,
+        "null_rate": 0.0
+      },
+      "obs_fuel_removed_pace_p50_s": {
+        "mean": 87.585665,
+        "null_rate": 0.0
+      },
+      "obs_fuel_removed_pace_p90_s": {
+        "mean": 89.432476,
+        "null_rate": 0.0
+      },
+      "ref_green_pace_s": {
+        "mean": 87.350338,
+        "null_rate": 0.0
+      },
+      "temp_headroom_c": {
+        "mean": 9.501658,
+        "null_rate": 0.0
+      },
+      "temp_penalty_s_per_deg": {
+        "mean": 0.01,
+        "null_rate": 0.0
+      }
+    },
+    "row_count": 7539
+  }
+}

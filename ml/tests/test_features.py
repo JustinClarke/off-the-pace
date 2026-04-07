@@ -1,6 +1,6 @@
 """Leakage spine-written before features.py was trusted; these gate the whole build.
 
-Covers §8: no leaked columns, no forward-looking features, holdout purity,
+Covers: no leaked columns, no forward-looking features, holdout purity,
 no hardcoded holdout year, bounded target (D5), and no NULL targets in training (L0-7).
 """
 from __future__ import annotations
@@ -31,7 +31,7 @@ def test_no_forward_looking_features():
 
 
 def test_audit_features_clear_forward_window():
-    """The label-adjacent features (cliff_candidate_flag, anomaly_class) kept per §15-5
+    """The label-adjacent features (cliff_candidate_flag, anomaly_class) kept in the feature set
     must themselves clear the audit, else they belong in EXCLUDED_LEAKAGE_COLUMNS."""
     violations = F.audit_forward_window()
     flagged = [v for v in violations if any(a in v for a in S.AUDIT_FEATURES)]
@@ -39,9 +39,9 @@ def test_audit_features_clear_forward_window():
 
 
 def test_feature_contract_subset_of_mart():
-    """§1.4 'never again' guard: every column the ml layer reads features,
+    """Column contract guard: every column the ml layer reads features,
     identifiers/metadata, and target source columns must exist in the live mart.
-    Catches schema drift in BOTH directions of the §1.1 break: dropped feature
+    Catches schema drift in both directions of a prior break: dropped feature
     columns (powertrain/air-density) and un-projected metadata (circuit_key)."""
     import duckdb
 

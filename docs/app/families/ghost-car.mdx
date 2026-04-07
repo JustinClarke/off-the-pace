@@ -1,0 +1,34 @@
+---
+title: "Ghost Car: driver skill in equal machinery"
+sidebarTitle: "Overview"
+description: "Three features that transplant drivers into a common car and re-run the race, turning subjective impressions of 'strong drives' into quantified, car-removed rankings and championship simulations."
+---
+
+## What this pillar does
+
+Ghost Car answers one question: **what would happen if you removed the car advantage?**
+Every feature here takes a driver, swaps them into a chosen host car, and re-scores them
+against the real grid using the same seven-term decomposition that powers the Lap
+Decomposition pillar, combined with a Monte Carlo race simulation.
+
+The ghost recombination reads `fct_ghost_race_finish`, which carries predicted finish
+positions and confidence intervals for every driver × host-car pairing. The circuit-level
+leaderboard uses `int_driver_circuit_era_affinity`, which shrinks car-removed pace estimates
+to a per-driver, per-circuit, per-era grain.
+
+## Every feature in this pillar
+
+<CardGroup cols={2}>
+  <Card title="Ghost Race Standings" icon="trophy" href="/app/ghost-race-standings">
+    A per-circuit, per-era leaderboard ranking drivers by car-removed pace, so the board
+    reads as driver skill at that track rather than whose car was quickest.
+  </Card>
+  <Card title="Counterfactual Championship" icon="git-branch" href="/app/counterfactual-championship">
+    Every driver transplanted one at a time into a chosen host car and re-scored against the
+    real grid, summed into a what-if championship across a season.
+  </Card>
+  <Card title="Hidden Performance" icon="eye-off" href="/app/hidden-performance">
+    Drivers whose ghost-projected finish beat their actual result strong drives masked by
+    car pace, strategy, or circumstance.
+  </Card>
+</CardGroup>

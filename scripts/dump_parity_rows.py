@@ -6,7 +6,7 @@ To keep the parity test a true ONNX↔booster integrity check we score the .bst 
 directly on the same feature vector the app reconstructs, rather than trusting a stored
 artefact. The full v3 feature frame lives in fct_cliff_prediction_features (the telemetry/
 air columns that once lived in int_lap_powertrain_signature + int_air_density were folded
-in during ml-v0.2 §2), so the vector is read straight from that one mart. Boosters are
+in during a feature consolidation), so the vector is read straight from that one mart. Boosters are
 loaded at S.MODEL_VERSION_DEFAULT so ground truth tracks whatever version the app ships.
 
 Usage:

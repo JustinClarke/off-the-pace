@@ -1,4 +1,4 @@
--- Driver corner skill: time-gained vs LORO car baseline (Metric 1 rework).
+-- Driver corner skill: time-gained vs LORO car baseline.
 --
 -- Three changes from the old geometry-deviation model:
 -- 1. Time-based inputs. Uses int_corner_skill_residuals (braking_loss_s,

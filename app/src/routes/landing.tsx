@@ -1,4 +1,4 @@
-// Product home stats from manifest JSON (zero SQL), fire-and-forget DuckDB warm-up on mount (AD-12).
+// Product home stats from manifest JSON (zero SQL), fire-and-forget DuckDB warm-up on mount.
 import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -25,7 +25,7 @@ function StatPill({ value, label }: { value: string | number; label: string }) {
 }
 
 export default function Landing() {
-  // Fire-and-forget DuckDB warm-up starts the download while user reads the home page (AD-12).
+  // Fire-and-forget DuckDB warm-up starts the download while user reads the home page.
   useEffect(() => {
     import('../data/duckdb/client').then(m => m.getConnection()).catch(() => {/* silently warm up */})
   }, [])

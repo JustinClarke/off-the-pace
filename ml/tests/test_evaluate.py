@@ -1,4 +1,4 @@
-"""The headline contract (§8): every model must beat its per-cohort baseline on the headline
+"""Headline contract: every model must beat its per-cohort baseline on the headline
 metric. Reads ml/artefacts/evaluation_metrics.json (produced by `make ml-evaluate`); skips when
 absent, exactly like test_predict / test_onnx_parity skip when their artefacts are missing.
 

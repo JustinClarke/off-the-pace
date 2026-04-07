@@ -5,31 +5,50 @@
   "description": "Bronze-layer event log. One row per race control message. ~50–200 rows per race (average ~100). Covers flags, incidents, safety car deployments, and procedure messages.",
   "x-file-pattern": "bronze/race_control/season=YYYY/race=<slug>/race_control.parquet",
   "x-example-row-count": "2024 Bahrain: ~120 messages",
-  "x-notes": "session_time_s is null for all 2024 races due to FastF1 v3.8.3 API change. Use `time` (HH:MM:SS) instead; join to laps via lap number for precise timing. `message` text is unstructured   use regex or fuzzy matching.",
+  "x-notes": "session_time_s is null for all 2024 races due to FastF1 v3.8.3 API change. Use `Lap` instead; join to laps via lap number for precise timing. `message` text is unstructured   use regex or fuzzy matching. Race only; race control is never written for qualifying sessions.",
+  "x-phantom-columns": [
+    {
+      "name": "code",
+      "reason": "Never ingested; there is no `code` column in any partition."
+    },
+    {
+      "name": "lap (lowercase)",
+      "reason": "The real column is Title-Case `Lap`."
+    },
+    {
+      "name": "time (lowercase)",
+      "reason": "The real column is Title-Case `Time`."
+    },
+    {
+      "name": "flag (lowercase)",
+      "reason": "The real column is Title-Case `Flag`."
+    }
+  ],
   "properties": {
-    "lap": {
+    "Lap": {
       "type": ["integer", "null"],
       "description": "Lap number when message triggered. Null for pre-race messages (parades, formation laps).",
       "x-nullable": true,
       "x-source": "FastF1 native"
     },
-    "time": {
-      "type": ["string", "null"],
-      "description": "Message timestamp in HH:MM:SS format (session time, not wall clock). Parse as needed.",
+    "Time": {
+      "type": ["integer", "null"],
+      "description": "Message timestamp (session clock).",
       "x-nullable": true,
+      "x-dtype": "TIMESTAMP_NS",
       "x-source": "FastF1 native"
     },
     "session_time_s": {
       "type": ["number", "null"],
-      "description": "Time in seconds since session start. **Null for all 2024 races** due to FastF1 v3.8.3 DatetimeProperties API change. Use `time` column instead.",
+      "description": "Time in seconds since session start. **Null for all 2024 races** due to FastF1 v3.8.3 DatetimeProperties API change. Use `Lap` for joins instead.",
       "x-nullable": true,
       "x-dtype": "float64",
       "x-known-issue": "Null for 2024 races (FastF1 v3.8.3 regression)",
       "x-source": "FastF1 native"
     },
-    "flag": {
+    "Flag": {
       "type": ["string", "null"],
-      "description": "Flag status: YELLOW, DOUBLE_YELLOW, RED, GREEN, CHECKERED. Null for non-flag messages.",
+      "description": "Flag colour: GREEN, YELLOW, DOUBLE YELLOW, RED, CLEAR, CHEQUERED, BLUE. Null for non-flag messages.",
       "x-nullable": true,
       "x-source": "FastF1 native"
     },
@@ -42,12 +61,6 @@
     "message": {
       "type": ["string", "null"],
       "description": "Human-readable message text. Unstructured   values include 'Safety car deployed', 'Debris on track', 'Lapped car released'. Use regex or fuzzy matching.",
-      "x-nullable": true,
-      "x-source": "FastF1 native"
-    },
-    "code": {
-      "type": ["string", "null"],
-      "description": "Internal race control code. Format varies.",
       "x-nullable": true,
       "x-source": "FastF1 native"
     },

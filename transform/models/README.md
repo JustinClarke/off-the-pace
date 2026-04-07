@@ -19,12 +19,13 @@ New models follow the house style so the layer stays consistent and CI-clean:
 
 - **Header comment** (every model): one-line purpose; for decomposition/identity models,
   the full additive identity with units (`= a_s + b_s + …`, positive = slower) and a
-  per-term source map; a dated `BREAKING CHANGE:` log line when a column's meaning changes.
+  per-term source map. Describe present behaviour only a column-meaning change belongs
+  in the commit message, not a log line in the header.
 - **Naming**: `stg_` / `int_` / `fct_` / `dim_` / `mart_` prefixes; `_s` suffix = seconds,
   `_se_s` = standard error in seconds, `*_flag` = boolean.
 - **Materialisation**: staging = view, intermediate = view (+`tags: [intermediate]`),
   reference/marts = table (set in `dbt_project.yml`; don't override per-model without reason).
-- **Refs only** — never hardcode a table name: `{{ ref(...) }}` for models,
+- **Refs only** never hardcode a table name: `{{ ref(...) }}` for models,
   `{{ source(...) }}` for bronze.
 - **Macros over copy-paste**: `clean_lap_filter`, `normalize_compound`, `bayesian_shrinkage`,
   `posterior_variance`, `normal_cdf`, `circuit_id_from_name`, `assert_additive_identity`
@@ -39,5 +40,4 @@ New models follow the house style so the layer stays consistent and CI-clean:
   Register them in [../tests/README.md](../tests/README.md).
 - **sqlfluff-clean**: UPPER keywords/functions, lower identifiers, trailing commas.
 
-See [../tests/README.md](../tests/README.md) §"add a new transform" runbook and
-[../../work.md](../../work.md) §4 for the full CI-conformance recipe.
+See [../tests/README.md](../tests/README.md) to register a new singular test.

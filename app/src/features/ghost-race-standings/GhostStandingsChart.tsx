@@ -1,6 +1,8 @@
 import RankedTable from '../../ui/charts/RankedTable'
 import type { LeaderboardResult, LeaderboardEntry } from './transform'
 import { CONFIDENCE_FLOOR } from './transform'
+import { constructorColor } from '../../ui/compound'
+import { TechTooltip } from '../../ui/TechTooltip'
 
 interface Props {
   result: LeaderboardResult
@@ -50,7 +52,19 @@ export default function GhostStandingsChart({ result }: Props) {
             key: 'driverId',
             header: 'Driver',
             align: 'left',
-            render: v => <span className="font-medium tracking-wide">{String(v)}</span>,
+            render: (v, row) => (
+              <div className="flex items-center gap-2">
+                {row.constructorId && (
+                  <TechTooltip content={row.constructorId}>
+                    <span
+                      className="w-1.5 h-3.5 rounded-sm"
+                      style={{ background: constructorColor(row.constructorId) }}
+                    />
+                  </TechTooltip>
+                )}
+                <span className="font-medium tracking-wide">{String(v)}</span>
+              </div>
+            ),
           },
           {
             key: 'affinityS',
@@ -59,12 +73,11 @@ export default function GhostStandingsChart({ result }: Props) {
             render: v => {
               const s = v as number
               return (
-                <span
-                  className={`font-mono ${paceClass(s)}`}
-                  title="Car-removed pace at this circuit, shrunk toward the driver's era average. Negative = faster than the field."
-                >
-                  {fmtSigned(s)}s
-                </span>
+                <TechTooltip content="Car-removed pace at this circuit, shrunk toward the driver's era average. Negative = faster than the field.">
+                  <span className={`font-mono cursor-help ${paceClass(s)}`}>
+                    {fmtSigned(s)}s
+                  </span>
+                </TechTooltip>
               )
             },
           },
@@ -83,12 +96,11 @@ export default function GhostStandingsChart({ result }: Props) {
             header: '95% CI',
             align: 'right',
             render: (_v, row) => (
-              <span
-                className="font-mono text-xs text-muted/70"
-                title="95% credible interval on the shrunk pace estimate (seconds)."
-              >
-                [{row.ciLowS.toFixed(2)}, {row.ciHighS.toFixed(2)}]
-              </span>
+              <TechTooltip content="95% credible interval on the shrunk pace estimate (seconds).">
+                <span className="font-mono text-xs text-muted/70 cursor-help">
+                  [{row.ciLowS.toFixed(2)}, {row.ciHighS.toFixed(2)}]
+                </span>
+              </TechTooltip>
             ),
           },
           {
@@ -96,9 +108,11 @@ export default function GhostStandingsChart({ result }: Props) {
             header: 'Races',
             align: 'right',
             render: (v, row) => (
-              <span title={`${row.seasons} season${row.seasons === 1 ? '' : 's'} observed in this era`}>
-                {String(v)}
-              </span>
+              <TechTooltip content={`${row.seasons} season${row.seasons === 1 ? '' : 's'} observed in this era`}>
+                <span className="cursor-help">
+                  {String(v)}
+                </span>
+              </TechTooltip>
             ),
           },
           {
@@ -108,16 +122,17 @@ export default function GhostStandingsChart({ result }: Props) {
             render: v => {
               const c = v as number
               return (
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded font-mono ${confidenceBadge(c)}`}
-                  title={
+                <TechTooltip
+                  content={
                     c < CONFIDENCE_FLOOR
                       ? 'Prior-dominated: too few races to separate from this driver’s career average.'
                       : `Data fraction of the estimate (n / (n+5)). Higher = more races behind it.`
                   }
                 >
-                  {c.toFixed(2)}
-                </span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded font-mono cursor-help ${confidenceBadge(c)}`}>
+                    {c.toFixed(2)}
+                  </span>
+                </TechTooltip>
               )
             },
           },

@@ -1,10 +1,11 @@
 -- Qualifying constructor pace model: Constructor pace coefficient for
 -- qualifying sessions.
--- Mirrors int_constructor_structural_pace (#6) but fit on qualifying laps only.
+-- Mirrors int_constructor_structural_pace but fit on qualifying laps only.
 -- The qualifying-mode constructor coefficient reflects high-power/low-fuel trim
 -- and is expected to differ from the race coefficient.
 --
--- Identification: same within-constructor between-driver logic as #6.
+-- Identification: same within-constructor between-driver logic as
+-- int_constructor_structural_pace.
 -- Two teammates share the car common pace deviation from the session median
 -- is the constructor effect.
 --

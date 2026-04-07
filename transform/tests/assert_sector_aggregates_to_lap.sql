@@ -22,9 +22,9 @@
 --       Sum_{s=1}^{3} sector_driver_skill_residual_s  ≠  driver_skill_residual_s
 -- 
 --  -This discrepancy is expected and is mathematically consistent with the differing baseline
---     definitions. To close this to 0.001 s, a sector-grain panel fixed-effects regression must be
---     run (subsequent integration) to construct a joint baseline, rather than using simple proportional time shares
---     and decoupled sector medians.
+--     definitions. Closing this to 0.001 s would require fitting a sector-grain panel
+--     fixed-effects regression to construct a joint baseline, rather than using simple
+--     proportional time shares and decoupled sector medians.
 -- 
 -- Gate: PASSIVE / INFORMATION ONLY (Placeholder test)
 {{ config(tags=['placeholder']) }}

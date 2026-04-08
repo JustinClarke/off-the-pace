@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "weather",
+  "title": "Weather",
+  "description": "Bronze-layer dimension. One row per sample   typically one per minute during the session. ~150–300 rows per race day.",
+  "x-file-pattern": "bronze/weather/season=YYYY/race=<slug>/weather.parquet",
+  "x-example-row-count": "2024 Bahrain race day: ~300 samples",
+  "x-notes": "rainfall_flag is boolean (true = precipitation detected). wind_direction is int16 (0–360). wind_speed_ms is in metres per second.",
+  "properties": {
+    "ambient_temp_c": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Ambient (air) temperature in Celsius.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "track_temp_c": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Track surface temperature in Celsius. Typically 10–20°C higher than ambient on sunny days.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "humidity_pct": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Relative humidity, 0–100%.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "rainfall_flag": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True if precipitation is detected during this sample period.",
+      "x-nullable": true,
+      "x-dtype": "bool",
+      "x-source": "FastF1 native"
+    },
+    "wind_direction": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Wind direction in degrees (0–360°). Null if calm.",
+      "x-nullable": true,
+      "x-dtype": "int16",
+      "x-source": "FastF1 native"
+    },
+    "wind_speed_ms": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Wind speed in metres per second.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "pressure_hpa": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Atmospheric pressure in hectopascals.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "session_time_s": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Session elapsed time in seconds when this sample was recorded.",
+      "x-nullable": true,
+      "x-dtype": "float64",
+      "x-source": "Ingestion pipeline"
+    },
+    "session": {
+      "type": "string",
+      "description": "'R' for race, 'Q', 'FP1', 'FP2', 'FP3'.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    },
+    "race_id": {
+      "type": "string",
+      "description": "Links to `laps.race_id`. Format: `YYYY_RoundNumber`.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    },
+    "season": {
+      "type": "integer",
+      "description": "Hive partition key.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    }
+  },
+  "required": [
+    "race_id",
+    "session",
+    "season"
+  ]
+}

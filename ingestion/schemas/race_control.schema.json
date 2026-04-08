@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "race_control",
+  "title": "Race Control",
+  "description": "Bronze-layer event log. One row per race control message. ~50–200 rows per race (average ~100). Covers flags, incidents, safety car deployments, and procedure messages.",
+  "x-file-pattern": "bronze/race_control/season=YYYY/race=<slug>/race_control.parquet",
+  "x-example-row-count": "2024 Bahrain: ~120 messages",
+  "x-notes": "session_time_s is null for all 2024 races due to FastF1 v3.8.3 API change. Use `time` (HH:MM:SS) instead; join to laps via lap number for precise timing. `message` text is unstructured   use regex or fuzzy matching.",
+  "properties": {
+    "lap": {
+      "type": ["integer", "null"],
+      "description": "Lap number when message triggered. Null for pre-race messages (parades, formation laps).",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "time": {
+      "type": ["string", "null"],
+      "description": "Message timestamp in HH:MM:SS format (session time, not wall clock). Parse as needed.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "session_time_s": {
+      "type": ["number", "null"],
+      "description": "Time in seconds since session start. **Null for all 2024 races** due to FastF1 v3.8.3 DatetimeProperties API change. Use `time` column instead.",
+      "x-nullable": true,
+      "x-dtype": "float64",
+      "x-known-issue": "Null for 2024 races (FastF1 v3.8.3 regression)",
+      "x-source": "FastF1 native"
+    },
+    "flag": {
+      "type": ["string", "null"],
+      "description": "Flag status: YELLOW, DOUBLE_YELLOW, RED, GREEN, CHECKERED. Null for non-flag messages.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "category": {
+      "type": ["string", "null"],
+      "description": "Message category: 'Weather', 'Incident', 'CarEvent', 'SafetyCar', 'Procedure', etc.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "message": {
+      "type": ["string", "null"],
+      "description": "Human-readable message text. Unstructured   values include 'Safety car deployed', 'Debris on track', 'Lapped car released'. Use regex or fuzzy matching.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "code": {
+      "type": ["string", "null"],
+      "description": "Internal race control code. Format varies.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "race_id": {
+      "type": "string",
+      "description": "Links to `laps.race_id`. Format: `YYYY_RoundNumber`.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    },
+    "season": {
+      "type": "integer",
+      "description": "Hive partition key.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    }
+  },
+  "required": ["race_id", "season"]
+}

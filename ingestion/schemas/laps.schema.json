@@ -1,0 +1,325 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "laps",
+  "title": "Laps",
+  "description": "Bronze-layer fact table. One row per driver per lap. ~20–30k rows per race (20 drivers × 50–70 laps). Hive-partitioned by season and race.",
+  "x-file-pattern": "bronze/laps/season=YYYY/race=<slug>/YYYY_<slug>_laps.parquet",
+  "x-example-row-count": "2024 Bahrain: 23 drivers × 57 laps = ~1,311 rows",
+  "x-notes": "LapTime is nanoseconds in Parquet; convert to seconds with / 1e9. Qualifying laps share this schema with session='Q'.",
+  "properties": {
+    "DriverNumber": {
+      "type": "integer",
+      "description": "FIA driver number (1–99).",
+      "x-nullable": false,
+      "x-source": "FastF1 native"
+    },
+    "LapNumber": {
+      "type": "integer",
+      "description": "1-indexed lap number within the session. Includes outlap (lap 0) if present.",
+      "x-nullable": false,
+      "x-source": "FastF1 native"
+    },
+    "LapTime": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Lap duration in nanoseconds. Null for in-progress or invalid laps. Convert to seconds in dbt: `LapTime / 1000000000.0`.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "Compound": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "SOFT",
+        "MEDIUM",
+        "HARD",
+        "INTERMEDIATE",
+        "WET",
+        null
+      ],
+      "description": "Pirelli compound. Null if unknown (rare).",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "TyreLife": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Consecutive laps on current tyre set. Resets to 1 on pit stop.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "FreshTyre": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True if tyre age ≤ 1 lap. FastF1 infers from pit stop data.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "TrackStatus": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Single-digit string. 1=green, 2=yellow, 3=virtual safety car, 4=safety car, 5=red, 6=VSC, 7=red+stopped.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "PitOutLap": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True if driver exited the pit lane on this lap.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "PitInLap": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True if driver pitted at the end of this lap.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "PitInTime": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Session elapsed time at pit lane entry in nanoseconds. Null if no pit-in this lap.",
+      "x-nullable": true,
+      "x-dtype": "int64",
+      "x-source": "FastF1 native"
+    },
+    "PitOutTime": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Session elapsed time at pit lane exit in nanoseconds. Null if no pit-out this lap.",
+      "x-nullable": true,
+      "x-dtype": "int64",
+      "x-source": "FastF1 native"
+    },
+    "Driver": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Three-letter driver code (e.g. HAM, VER).",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "Team": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Constructor/team name as returned by FastF1.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "Stint": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Stint number within the race session, 1-indexed. Resets to 1 after a pit stop.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "Sector1Time": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Sector 1 duration in nanoseconds. Convert to seconds with / 1e9.",
+      "x-nullable": true,
+      "x-dtype": "int64",
+      "x-source": "FastF1 native"
+    },
+    "Sector2Time": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Sector 2 duration in nanoseconds. Convert to seconds with / 1e9.",
+      "x-nullable": true,
+      "x-dtype": "int64",
+      "x-source": "FastF1 native"
+    },
+    "Sector3Time": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Sector 3 duration in nanoseconds. Convert to seconds with / 1e9.",
+      "x-nullable": true,
+      "x-dtype": "int64",
+      "x-source": "FastF1 native"
+    },
+    "Sector1SessionTime": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Session elapsed time at Sector 1 exit in nanoseconds. Used for air-gap joins.",
+      "x-nullable": true,
+      "x-dtype": "int64",
+      "x-source": "FastF1 native"
+    },
+    "Sector2SessionTime": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Session elapsed time at Sector 2 exit in nanoseconds.",
+      "x-nullable": true,
+      "x-dtype": "int64",
+      "x-source": "FastF1 native"
+    },
+    "Sector3SessionTime": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Session elapsed time at Sector 3 exit in nanoseconds.",
+      "x-nullable": true,
+      "x-dtype": "int64",
+      "x-source": "FastF1 native"
+    },
+    "SpeedI1": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Speed at intermediate trap 1 in kph.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "SpeedI2": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Speed at intermediate trap 2 in kph.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "SpeedFL": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Speed at finish line trap in kph.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "SpeedST": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Speed at main straight speed trap in kph.",
+      "x-nullable": true,
+      "x-dtype": "float32",
+      "x-source": "FastF1 native"
+    },
+    "IsPersonalBest": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True if this lap is the driver's personal best for the session.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "Deleted": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True if the lap time was deleted (e.g. track limits violation).",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "Position": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Race position at end of lap.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "FastF1Generated": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True if this lap row was synthesised by FastF1 rather than sourced from telemetry.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "LapStartTime": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Session elapsed time at lap start in nanoseconds.",
+      "x-nullable": true,
+      "x-dtype": "int64",
+      "x-source": "FastF1 native"
+    },
+    "IsAccurate": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "True if telemetry coverage is complete for the lap. FastF1 internal flag.",
+      "x-nullable": true,
+      "x-source": "FastF1 native"
+    },
+    "race_id": {
+      "type": "string",
+      "description": "Format: `YYYY_RoundNumber`. Links to telemetry and race_control.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    },
+    "session": {
+      "type": "string",
+      "enum": [
+        "R",
+        "Q"
+      ],
+      "description": "'R' for race, 'Q' for qualifying.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    },
+    "season": {
+      "type": "integer",
+      "description": "Hive partition key. Prune all queries with this column.",
+      "x-nullable": false,
+      "x-source": "Ingestion pipeline"
+    }
+  },
+  "required": [
+    "DriverNumber",
+    "LapNumber",
+    "race_id",
+    "session",
+    "season"
+  ]
+}

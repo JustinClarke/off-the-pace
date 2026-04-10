@@ -10,7 +10,11 @@ name: OSV-Scanner
 #   • On schedule / push to main: a full scan of every lockfile, catching advisories
 #     published after the code already merged.
 #
-# Lockfiles scanned: the deployable Python surfaces (root + ml) and the app (pnpm).
+# Lockfile scanned: the app (pnpm), a true lockfile with exact versions OSV scans cleanly.
+# Python is gated by pip-audit in security-scan.yml, which resolves the real environment;
+# OSV's transitive resolver crashes on ml/requirements.txt (rpc Internal error) and
+# false-positives the unpinned root requirements.txt (resolving versions pip never installs),
+# so scanning them here was redundant noise. Accepted dev-only advisories: osv-scanner.toml.
 # Pinned by tag; Dependabot's github-actions ecosystem keeps the @v2.3.8 ref current.
 
 on:
@@ -43,8 +47,7 @@ jobs:
     uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.8
     with:
       scan-args: |-
-        --lockfile=./requirements.txt
-        --lockfile=./ml/requirements.txt
+        --config=./osv-scanner.toml
         --lockfile=./app/pnpm-lock.yaml
 
   scan-full:
@@ -57,6 +60,5 @@ jobs:
     uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.8
     with:
       scan-args: |-
-        --lockfile=./requirements.txt
-        --lockfile=./ml/requirements.txt
+        --config=./osv-scanner.toml
         --lockfile=./app/pnpm-lock.yaml

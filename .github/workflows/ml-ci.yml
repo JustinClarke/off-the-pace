@@ -54,11 +54,16 @@ jobs:
       - name: Build the cliff mart from fixtures
         if: steps.fixtures.outputs.present == 'true'
         working-directory: ./transform
+        # --indirect-selection cautious: this is a partial DAG (only the cliff-features
+        # lineage is built), so a singular test must run ONLY when every model it refs is
+        # in the build set. Eager (the default) would pull in tests that also ref un-built
+        # models (e.g. stg_laps_qualifying, int_synthetic_teammate) → Catalog Error.
         run: |
           dbt deps --profiles-dir profiles --target ci
           dbt seed --profiles-dir profiles --target ci
           dbt build --profiles-dir profiles --target ci \
             --select +fct_cliff_prediction_features+ \
+            --indirect-selection cautious \
             --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
 
       # Warehouse + manifest present (compiled_code makes the forward-window audit meaningful).
@@ -109,11 +114,14 @@ jobs:
       - name: Build the cliff mart from fixtures
         if: steps.fixtures.outputs.present == 'true'
         working-directory: ./transform
+        # See ml-leakage-guard: cautious indirect selection keeps tests that ref
+        # un-built models out of this partial-DAG build.
         run: |
           dbt deps --profiles-dir profiles --target ci
           dbt seed --profiles-dir profiles --target ci
           dbt build --profiles-dir profiles --target ci \
             --select +fct_cliff_prediction_features+ \
+            --indirect-selection cautious \
             --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
 
       - name: Features audit (--check)

@@ -8,7 +8,7 @@ This layer sits on top of the unit tests, parity contract, identity invariant, a
 
 ## Playwright E2E
 
-Four specs in [`app/e2e/`](../app/e2e/) drive the **production bundle** in headless Chromium and prove the three heavy client subsystems boot and produce output.
+Four specs in [`app/e2e/`](https://github.com/JustinClarke/off-the-pace/tree/main/app/e2e) drive the **production bundle** in headless Chromium and prove the three heavy client subsystems boot and produce output.
 
 | Spec | Route | Proves |
 |---|---|---|
@@ -43,7 +43,7 @@ E2E_BASE_URL=https://<channel>.web.app pnpm exec playwright test
 
 ## Bundle-size budget (blocking)
 
-[`app/scripts/check_bundle_size.mjs`](../app/scripts/check_bundle_size.mjs) sums the **JavaScript** bytes in `dist/` (raw + gzip + largest single chunk; `.wasm` binaries excluded) and fails if any metric exceeds [`app/perf-budget.json`](../app/perf-budget.json).
+[`app/scripts/check_bundle_size.mjs`](https://github.com/JustinClarke/off-the-pace/blob/main/app/scripts/check_bundle_size.mjs) sums the **JavaScript** bytes in `dist/` (raw + gzip + largest single chunk; `.wasm` binaries excluded) and fails if any metric exceeds [`app/perf-budget.json`](https://github.com/JustinClarke/off-the-pace/blob/main/app/perf-budget.json).
 
 Current baseline: **~3.0 MB raw / ~0.9 MB gzip** of JS across ~70 assets; the largest single chunk is the self-hosted DuckDB worker (~0.75 MB). The committed budget carries **8% headroom** so ordinary churn doesn't flake the gate.
 
@@ -58,7 +58,7 @@ make app-bundle-budget-update             # regenerate budget after intentional 
 
 ## Lighthouse CI (advisory)
 
-[`app/lighthouserc.json`](../app/lighthouserc.json) collects Lighthouse on the data-engine-free shell routes (`/`, `/roadmap`) so scores reflect bundle/shell health rather than wasm-init variance. All assertions are `warn` and the step is `continue-on-error` it surfaces CWV/a11y regressions for review without flaking the build red. The bundle-size script is the hard byte gate.
+[`app/lighthouserc.json`](https://github.com/JustinClarke/off-the-pace/blob/main/app/lighthouserc.json) collects Lighthouse on the data-engine-free shell routes (`/`, `/roadmap`) so scores reflect bundle/shell health rather than wasm-init variance. All assertions are `warn` and the step is `continue-on-error` it surfaces CWV/a11y regressions for review without flaking the build red. The bundle-size script is the hard byte gate.
 
 ```bash
 make app-build && make app-lighthouse   # advisory; non-blocking

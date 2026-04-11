@@ -1,0 +1,78 @@
+---
+title: "Engineering highlights: what a reviewer should notice"
+sidebarTitle: "Engineering Highlights"
+description: "The eight things a senior reviewer should clock in sixty seconds: a CI-enforced invariant, a medallion warehouse, zero-server economics, train/serve parity, drift gates, out-of-sample honesty, and IaC. Each with one-line proof and a link to the evidence."
+---
+
+This project is an F1 analytics product, but the thing worth grading is the engineering underneath it. The list below is the sixty-second version: each item is one claim, one line of proof, and a link to the evidence in this site. Every claim is enforced or reproducible, not asserted.
+
+import OverviewNumbers from '/snippets/overview-numbers.mdx';
+
+<OverviewNumbers />
+
+## 1. A CI-enforced mathematical invariant
+
+Every lap is decomposed into seven physically-grounded components that sum to the measured pace delta by construction:
+
+```
+pace_delta = fuel + compound + rubber + ambient + constructor + dirty_air + driver_skill
+```
+
+This is not a property the docs claim. It is a test that runs on every lap in CI: [`assert_additive_identity`](https://github.com/JustinClarke/off-the-pace/blob/main/transform/macros/assert_additive_identity.sql) fails the build if any lap's terms miss closure by more than `0.0001` s. An enforced invariant is worth more than a stated one.
+
+<Note>**Proof:** [The seven-term identity](/decomposition/seven-term-identity) explains the maths; [Identity closure](/transform/ci/identity-closure) is the CI gate that holds it to zero.</Note>
+
+## 2. A medallion warehouse, not a pile of scripts
+
+Raw timing data flows through a staging → intermediate → mart warehouse (bronze → silver → gold): 60 dbt models, 443 tests, every model a single `SELECT` with dbt resolving the dependency graph. Lineage is a contract, not a diagram drawn after the fact.
+
+<Note>**Proof:** [Transform layer overview](/transform/overview) maps the eight model families and the DAG; the [Model Reference](/reference/models/fct/fct_lap_residuals) documents every model and column.</Note>
+
+## 3. Zero-server economics
+
+DuckDB-Wasm and ONNX Runtime Web run the entire analytics stack inside the browser tab. Nothing computes at request time, so serving 30 interactive features costs nothing per user. The trade-off is stated, not hidden: a larger initial download and no row-level auth, in exchange for free, offline-capable serving.
+
+<Note>**Proof:** [App architecture](/app/architecture) shows the in-browser pipeline; [ADR-002 / ADR-003](/platform/architecture-decisions) record the decision and its cost; [Performance](/platform/performance) holds the bundle to a budget.</Note>
+
+## 4. Train/serve parity
+
+Every XGBoost booster round-trips to ONNX and is re-scored against the native model within `atol=1e-5`, enforced by tests. The model that trains is provably the model that serves: no silent drift between Python training and in-browser inference.
+
+<Note>**Proof:** [ONNX export](/ml/onnx) covers the round-trip; [Parity and schema](/ml/ci/parity-and-schema) is the gate.</Note>
+
+## 5. Reproducible drift gates
+
+Silent data regressions are caught before they ship. A byte-stability oracle hashes every model output build-over-build, a profile diff compares table-level statistics against a committed baseline, and a post-publish verify step rolls back automatically if the live CDN disagrees with what was built.
+
+<Note>**Proof:** [Data pipeline](/platform/data-pipeline) describes the staged DAG and verify/rollback; [The CI Contract](/transform/ci/overview) lists the structural and regression gates.</Note>
+
+## 6. Out-of-sample honesty
+
+Models are trained on 2018–2024 with a season-grouped `TimeSeriesSplit`; the most recent fold stands in as a holdout, and the 2025 season is reserved as a reproducible out-of-sample check against now-public data. Paired with an explicit, written limitations section. No varnish.
+
+<Note>**Proof:** [Validation](/ml/validation) shows the holdout protocol; [Limitations](/decomposition/limitations) states what the decomposition cannot do.</Note>
+
+## 7. Calibrated uncertainty, not point guesses
+
+The degradation model ships a quantile trio (p10 / p50 / p90), and the interval is checked for empirical coverage rather than assumed: nominal 0.80 coverage lands at 0.80 on held-out laps. A prediction interval that actually covers is rarer than a point estimate that looks plausible.
+
+<Note>**Proof:** [Calibration](/ml/calibration) reports the coverage and reliability curves.</Note>
+
+## 8. Infrastructure as code and real observability
+
+The cloud footprint is codified, not clicked: Terraform provisions the GCS bucket, Workload Identity Federation, and a billing budget. Production has Sentry error tracking, web-vitals RUM, Playwright E2E against the live bundle, and written SLOs.
+
+<Note>**Proof:** [ADRs](/platform/architecture-decisions) and [Observability](/platform/observability) cover the IaC and monitoring; [Performance](/platform/performance) holds the SLOs.</Note>
+
+## See it answer a real question
+
+Highlights are claims about the build. The [São Paulo 2021 case study](/findings/sao-paulo-2021) is the payoff: the same decomposition splits Hamilton's win into 2.91 s of strategy and 1.60 s of driver skill on the overtake lap, in seconds, from `fct_lap_residuals`. It is the clearest single demonstration of what the whole pipeline exists to produce.
+
+<CardGroup cols={2}>
+  <Card title="Skills demonstrated" icon="user-check" href="/about">
+    The competency map: each data-engineering skill linked to its evidence in the repo.
+  </Card>
+  <Card title="How it clears a production bar" icon="check-double" href="/data-engineering">
+    The hiring-manager checklist: contracts, drift gates, lineage, orchestration, SLOs, cost.
+  </Card>
+</CardGroup>

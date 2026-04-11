@@ -33,7 +33,7 @@ The timing marks are also mirrored read-only to `window.__OTP_PERF__` a handy de
 
 ## Synthetic monitoring
 
-[`synthetic-monitor.yml`](../.github/workflows/synthetic-monitor.yml) exercises the live serving plane the same way a browser does:
+[`synthetic-monitor.yml`](https://github.com/JustinClarke/off-the-pace/blob/main/.github/workflows/synthetic-monitor.yml) exercises the live serving plane the same way a browser does:
 
 <CardGroup cols={2}>
   <Card title="http-smoke every 30 min" icon="wifi">
@@ -74,7 +74,7 @@ Freshness is intentionally non-paging: the dataset updates per F1 season, so an 
 - [ ] Set `vars.PROD_SITE_URL` so the synthetic monitor checks the live site.
 - [ ] (Optional) Set `secrets.ALERT_WEBHOOK` for push alerting on monitor failure.
 
-See [`app/.env.example`](../app/.env.example) for every variable.
+See [`app/.env.example`](https://github.com/JustinClarke/off-the-pace/blob/main/app/.env.example) for every variable.
 
 <CardGroup cols={2}>
   <Card title="Performance & E2E" href="/platform/performance" icon="gauge">

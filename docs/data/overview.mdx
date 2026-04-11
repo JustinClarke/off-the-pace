@@ -6,6 +6,13 @@ description: "Where Off The Pace's F1 data comes from, what the Bronze layer sto
 
 Every decomposition, model, and chart in Off The Pace traces back to two upstream APIs and one rule: Bronze stores data exactly as the source returns it, and computes nothing. This page orients you to where the data comes from and how it's shaped; the rest of the Data tab covers populating it yourself.
 
+<Note>
+  **For a reviewer:**
+  - **Decision:** Bronze stores source data verbatim and computes nothing; every derived value lives downstream where it is version-controlled and tested.
+  - **Trade-off:** raw data keeps its rough edges (nanosecond integers, undocumented enums, telemetry gaps), which the transform layer must absorb.
+  - **Proof:** every write passes a data-quality gate and records a schema fingerprint, so source-side drift is detectable rather than silent.
+</Note>
+
 ```mermaid
 flowchart LR
     A["FastF1 API<br/>timing · telemetry"] --> C["src/ingest.py<br/>retry + DQ gate"]

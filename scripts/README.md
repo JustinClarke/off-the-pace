@@ -26,7 +26,7 @@ MDX directly. Run `make docs-reference` to regenerate and commit the result.
 | `gen_schema_reference.py` | `docs/reference/schemas/**` | `ingestion/schemas/*.json` |
 | `gen_cli_reference.py` | `docs/reference/cli/**` | Python `--help` output from `ingestion/src/` |
 | `gen_macro_reference.py` | `docs/reference/macros/**` | macro SQL + docstrings |
-| `gen_ml_reference.py` | `docs/reference/ml/degradation-model-v1.mdx` | `ml/model_card.yml` |
+| `gen_ml_reference.py` | `docs/reference/ml/degradation-model.mdx` | `ml/model_card.yml` |
 | `mdx_utils.py` | (shared) |-MDX formatting helpers used by all generators |
 
 ## How to connect

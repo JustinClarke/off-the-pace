@@ -41,7 +41,7 @@ transform/dbt_packages/
 transform/logs/
 transform/docs/
 transform/validation/
-transform/profiles/
+transform/profiles/.user.yml
 logs/
 
 # Data lake keep folders, ignore contents (bronze parquet is reproducible from FastF1 cache)
@@ -110,3 +110,5 @@ _roadmap/
 agents/
 .agents/
 data/dev.duckdb.tmp/
+graphify-out/
+docs/static/project-graph.html

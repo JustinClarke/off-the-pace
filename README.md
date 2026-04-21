@@ -50,17 +50,39 @@ Trained on 2018–2024. The 2025 season is held out as a reproducible out-of-sam
 
 ## Quickstart
 
-Requires Python 3.11.
+Requires Python 3.11+.
 
 ```bash
 git clone https://github.com/justinclarke/off-the-pace
 cd off-the-pace
-make setup           # build venv + install deps
+make setup           # build venv + install Python/dbt deps
 make dbt-dev         # build the transform layer (46 models)
 make dbt-test        # run 339 tests including assert_additive_identity
 ```
 
 No cloud credentials required. DuckDB runs locally at `data/dev.duckdb`.
+
+### Running the Frontend React App & Docs
+
+If you want to run the React app or the documentation site locally, you'll also need **Node.js (v18+)** and **pnpm** installed:
+
+1. **Install dependencies**:
+   ```bash
+   make docs-install    # install docs dependencies
+   make app-install     # install React app dependencies
+   ```
+
+2. **Generate data and models for the app**:
+   The React app runs entirely in the browser using DuckDB-Wasm and ONNX. Before running the app, export the warehouse data and ML models:
+   ```bash
+   make app-data        # export DuckDB warehouse data to app/public/data/
+   make app-models      # copy trained ONNX models to app/public/models/
+   ```
+   *(Note: `make app-models` requires models to be trained first via `make ml-setup && make ml-all`)*
+
+3. **Start the development servers**:
+   - For the **Docs site**: `make docs-site` (runs Docusaurus at http://localhost:3000)
+   - For the **React app**: `make app-dev` (runs Vite dev server at http://localhost:5173)
 
 ---
 

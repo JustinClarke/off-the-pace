@@ -1,34 +1,40 @@
 selectors:
- -name: fast_build
+  - name: fast_build
     description: "Staging and reference only-runs in ~2 min on CI fixtures"
     definition:
       union:
-       -method: path
+        - method: path
           value: models/staging
-       -method: path
+        - method: path
           value: models/reference
+        - exclude:
+            - method: tag
+              value: intermediate
+            - method: tag
+              value: marts
 
- -name: math_tests
+
+  - name: math_tests
     description: "Singular identity-closure tests only-the mathematical crown jewels"
     definition:
       method: test_type
       value: singular
 
- -name: intermediate_only
+  - name: intermediate_only
     description: "All intermediate models and their tests"
     definition:
       method: path
       value: models/intermediate
 
- -name: full_build
+  - name: full_build
     description: "All models end-to-end (staging → reference → intermediate → marts)"
     definition:
       union:
-       -method: path
+        - method: path
           value: models/staging
-       -method: path
+        - method: path
           value: models/reference
-       -method: path
+        - method: path
           value: models/intermediate
-       -method: path
+        - method: path
           value: models/marts

@@ -1,3 +1,5 @@
+{{ config(tags=['intermediate']) }}
+
 -- Field pace honest range test: field_pace_smoothed_s / race_fastest_lap_s
 -- should be between 0.990 and 1.055 for normal dry, non-SC races/laps.
 -- Lower bound: early laps where fastest lap (lap 1-3) is faster than rolling smoothed mean.

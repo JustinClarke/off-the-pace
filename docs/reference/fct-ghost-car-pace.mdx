@@ -1,0 +1,113 @@
+---
+title: "fct_ghost_car_pace: strategy reference pace model"
+sidebarTitle: "fct_ghost_car_pace"
+description: "Synthetic counterfactual lap-time model for strategy comparison. Recombines a driver's skill residual with any constructor's structural pace per lap."
+---
+
+`fct_ghost_car_pace` answers the question: *what would this driver have lapped if they had been in a different team's car?* For every combination of ego driver, host constructor, race, and lap number, the table stores a recombined predicted lap time built by substituting the host constructor's structural pace coefficient into the ego driver's actual decomposition. You use this table whenever you want to separate the effect of car performance from driver execution or to simulate how an alternative pit strategy would have played out in a different piece of machinery.
+
+## How the recombination works
+
+The ghost car lap time for a given `(ego_driver, host_constructor, race, lap)` is:
+
+```
+predicted_lap_time_s = base_track_pace_s
+                     + fuel_component_s          -- ego driver's actual fuel load
+                     + compound_component_s       -- ego driver's actual tyre strategy
+                     + rubber_component_s         -- shared track state
+                     + ambient_component_s        -- shared weather conditions
+                     + dirty_air_tax_s            -- ego driver's actual grid position
+                     + driver_skill_residual_s    -- ego driver's actual execution
+                     + host_constructor_pace_s    -- substituted host car pace
+                     + circuit_interaction_s      -- substituted host car × circuit term
+```
+
+Everything except the two host constructor terms is inherited directly from the ego driver's observed lap. The degenerate identity when `ego_driver == host_constructor` produces `predicted_lap_time_s == actual_lap_time_s` within 0.0001 s on every row, and this self-consistency is asserted as a build-time test.
+
+## Grain
+
+One row per `(ego_driver_id, host_constructor_id, race_id, lap_number)`.
+
+Rows are only generated for host constructors that actually competed in the same `race_year` as the ego driver lap. Rows where `recombination_confidence = 0` (host constructor has no panel observations at all) are excluded entirely.
+
+## Columns
+
+<ParamField path="ghost_id" type="varchar">
+  Surrogate primary key: `MD5(race_year || '_' || race_id || '_' || ego_driver_id || '_' || host_constructor_id || '_' || lap_number)`. Unique per row.
+</ParamField>
+
+<ParamField path="race_year" type="integer">
+  The Formula 1 season year.
+</ParamField>
+
+<ParamField path="race_id" type="varchar">
+  The race event identifier.
+</ParamField>
+
+<ParamField path="ego_driver_id" type="varchar">
+  The driver whose skill residual and strategy is used as the ego baseline.
+</ParamField>
+
+<ParamField path="host_constructor_id" type="varchar">
+  The constructor whose structural pace coefficient is substituted into the recombination.
+</ParamField>
+
+<ParamField path="lap_number" type="integer">
+  The lap number within the race session.
+</ParamField>
+
+<ParamField path="predicted_lap_time_s" type="double">
+  The recombined ghost car lap time in seconds: what the ego driver would have lapped in the host constructor's car, all else equal.
+</ParamField>
+
+<ParamField path="actual_lap_time_s" type="double">
+  The ego driver's observed actual lap time in seconds. Carried through for direct comparison. When `ego_driver == host_constructor`, this equals `predicted_lap_time_s` within 0.0001 s.
+</ParamField>
+
+<ParamField path="delta_vs_actual_lap_s" type="double">
+  `predicted_lap_time_s - actual_lap_time_s`. Positive means the ghost car is slower than the ego driver's actual car; negative means the ghost car would have been faster. Zero (within tolerance) when ego and host are the same constructor.
+</ParamField>
+
+<ParamField path="recombination_confidence" type="double">
+  A confidence score in `[0.0, 1.0]` reflecting how well the host constructor's structural pace is estimated. Degrades when the host constructor has sparse panel observations:
+
+  | Observations | Confidence |
+  |---|---|
+  | ≥ 100 | 0.9 |
+  | ≥ 50 | 0.7 |
+  | ≥ 20 | 0.5 |
+  | > 0 | 0.3 |
+  | 0 | excluded |
+</ParamField>
+
+<ParamField path="ego_host_regime_overlap_n" type="integer">
+  The number of panel observations behind the host constructor's pace estimate. Use this alongside `recombination_confidence` to assess result reliability.
+</ParamField>
+
+## Component columns
+
+The following columns expose the individual terms of the recombination formula for explainability and debugging:
+
+| Column | Description |
+|---|---|
+| `base_track_pace_s` | Session-level base pace at this circuit |
+| `fuel_component_s` | Ego driver's fuel load contribution |
+| `compound_component_s` | Ego driver's compound degradation contribution |
+| `rubber_component_s` | Track rubber evolution contribution |
+| `ambient_component_s` | Weather and temperature contribution |
+| `dirty_air_tax_s` | Ego driver's aerodynamic wake penalty |
+| `driver_skill_residual_s` | Ego driver's execution residual |
+| `host_constructor_pace_s` | Substituted host constructor structural pace |
+| `circuit_interaction_s` | Substituted host constructor × circuit interaction |
+
+## Primary use case: Ghost Race Standings
+
+The Ghost Race Standings view in the Off The Pace app uses this table to answer questions like: "If Hamilton had been in the Red Bull in 2023, where would he have finished in Bahrain?" The app filters to the ego driver's actual pit stops and strategy, then reads `predicted_lap_time_s` from each row to reconstruct a hypothetical race trace using the host constructor's pace.
+
+<Tip>
+  When filtering for strategy analysis, restrict to `recombination_confidence >= 0.7` (≥ 50 panel observations) to avoid constructors whose pace estimate is too uncertain to produce meaningful results. Use the lower threshold of `> 0.0` only for exploratory or visual comparisons where uncertainty is communicated alongside the result.
+</Tip>
+
+<Note>
+  Only clean laps enter the ego lap pool: `correction_weight = 1.0` and `rainfall_flag = FALSE`. Safety car laps, VSC laps, and wet-weather laps are excluded from the ghost table entirely because the recombination formula is not valid under those conditions.
+</Note>

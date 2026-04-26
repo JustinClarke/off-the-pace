@@ -4,7 +4,7 @@
 
 Off The Pace decomposes every F1 lap into seven additive, physically-grounded components so lost time can be attributed to an exact, named cause rather than a vibe.
 
-**[Docs at off-the-pace.onrender.com](https://off-the-pace.onrender.com)** · **[Repository Tour →](TOUR.md)**
+**[Docs at offthepace.mintlify.app](https://offthepace.mintlify.app)** · **[Repository Tour →](docs/repo-tour.md)**
 
 ---
 
@@ -14,9 +14,9 @@ Off The Pace decomposes every F1 lap into seven additive, physically-grounded co
 
 Most F1 analytics tells you *who* is slow. This project asks *why*. Each lap is decomposed into:
 
-> `lap_time = baseline + tyre_deg + fuel_load + traffic + safety_car + weather + residual`
+> `lap_time = base_track_pace + fuel + compound + rubber + ambient + constructor + dirty_air + driver_skill`
 
-The residual is what remains after every measurable physical factor is removed. That is the driver signal, representing the part that actually belongs to the human.
+The driver skill residual is what remains after every measurable physical factor is removed the part that actually belongs to the human.
 
 ### 2. A CI-enforced mathematical invariant
 
@@ -34,7 +34,7 @@ where abs(pace_delta_s-(
 
 If it fails, the build fails. An enforced invariant is worth more than a claimed one.
 
-### 3. Honest out-of-sample validation + honest limitations
+### 3. Out-of-sample validation + limitations
 
 Trained on 2018–2024. The 2025 season is held out as a reproducible out-of-sample validation against now-public OpenF1 data; you can run it yourself to get the same numbers. Paired with an explicit limitations section: no 2025 ingestion yet (so the ML holdout is time-series CV for now), no frontend yet.
 
@@ -42,7 +42,7 @@ Trained on 2018–2024. The 2025 season is held out as a reproducible out-of-sam
 
 ## Choose your path
 
-**I want to understand the idea →** [off-the-pace.onrender.com/understand/goal-and-approach](https://off-the-pace.onrender.com/understand/goal-and-approach)
+**I want to understand the idea →** [offthepace.mintlify.app/introduction](https://offthepace.mintlify.app/introduction)
 
 **I want to run it →** `make setup && make dbt-dev` (see Quickstart below)
 
@@ -81,8 +81,26 @@ If you want to run the React app or the documentation site locally, you'll also 
    *(Note: `make app-models` requires models to be trained first via `make ml-setup && make ml-all`)*
 
 3. **Start the development servers**:
-   - For the **Docs site**: `make docs-site` (runs Docusaurus at http://localhost:3000)
-   - For the **React app**: `make app-dev` (runs Vite dev server at http://localhost:5173)
+   - For the **Docs site**: `make docs-site` (runs Mintlify at http://localhost:3000)
+   - For the **React app** (offline/local data): `VITE_DATA_BASE="" make app-dev`
+   - For the **React app** (live CDN data): `make app-dev`
+
+   > **Running offline:** By default the app fetches parquet and models from the live CDN
+   > (`gs://off-the-pace-cdn`) no credentials required to read, but you will see whatever
+   > data is currently published there. Set `VITE_DATA_BASE=""` to point the app at your
+   > local `app/public/data/` export instead, so you can develop and test entirely offline
+   > with no dependency on the bucket.
+
+4. **Publish data to the CDN** (when data changes, maintainers only):
+   `make app-data` only writes to `app/public/data/` on disk; nothing reaches the
+   live site until synced to the bucket (requires `gcloud` with write access):
+   ```bash
+   make app-publish-dry # preview the sync (uploads nothing)
+   make app-publish     # sync app/public/data/ + models → CDN (no delete; manifest last)
+   make app-deploy      # convenience: app-data then app-publish
+   ```
+   Parquet URLs are cache-busted by the manifest `version` so a data change is
+   never masked by stale CDN/browser caching (see ADR-010).
 
 ---
 
@@ -93,8 +111,8 @@ If you want to run the React app or the documentation site locally, you'll also 
 | Ingestion (Bronze) | ✅ Built | `ingestion/src/`: FastF1 to Hive-partitioned Parquet |
 | Transform (46 models, 339 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests |
 | Coefficients (KM tyre cliff) | ✅ Fitted | `transform/tasks/coefficients/`: seeds |
-| Reference docs | ✅ Generated | `docs/docs/reference/` generated from dbt manifest |
-| ML (5 XGBoost models, 27 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life; ONNX parity; auto-generated [model card](docs/docs/reference/ml/degradation-model-v1.mdx) |
+| Reference docs | ✅ Generated | `docs/reference/` generated from dbt manifest |
+| ML (5 XGBoost models, 27 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life; ONNX parity; auto-generated [model card](docs/reference/ml/degradation-model-v1.mdx) |
 | Frontend (React + DuckDB-Wasm) | ✅ Built | [`app/`](app/): platform complete; 35 tests passing; deployed to Firebase Hosting |
 | Visualizations | ✅ Complete | Driver consistency, tyre degradation simulator, and more |
 | Streaming (Microsoft Fabric) | ❌ Planned | Streaming Integration |
@@ -121,7 +139,7 @@ make ml-all          # features → tune → train → evaluate → predict → 
 make ml-test         # 27 tests: leakage spine, ONNX parity, output schema, beats-baseline
 ```
 
-Full auto-generated **[model card](docs/docs/reference/ml/degradation-model-v1.mdx)** (metrics, baselines, calibration, dual feature importance, limitations) is built from `ml/model_card.yml`.
+Full auto-generated **[model card](docs/reference/ml/degradation-model-v1.mdx)** (metrics, baselines, calibration, dual feature importance, limitations) is built from `ml/model_card.yml`.
 
 ---
 
@@ -142,7 +160,7 @@ Full auto-generated **[model card](docs/docs/reference/ml/degradation-model-v1.m
 | [`ingestion/`](ingestion/) | FastF1 + OpenF1 pulls → Bronze Parquet |
 | [`transform/`](transform/) | dbt project, from staging through feature marts |
 | [`ml/`](ml/) | Machine learning layer: XGBoost models, ONNX export, model card |
-| [`docs/`](docs/) | Docusaurus docs site |
+| [`docs/`](docs/) | Mintlify docs site |
 | [`scripts/`](scripts/) | Reference doc generators, CI tooling |
 
 ---
@@ -154,8 +172,8 @@ Full auto-generated **[model card](docs/docs/reference/ml/degradation-model-v1.m
 | Document | Purpose |
 |---|---|
 | **[README.md](README.md)** | *Start here* thesis, status, quickstart, stack |
-| **[TOUR.md](TOUR.md)** | *Read next* guided walkthrough of every directory in lifecycle order |
-| **[CONTRIBUTING.md](CONTRIBUTING.md)** | How to contribute; pipeline overview for new contributors |
+| **[docs/repo-tour.md](docs/repo-tour.md)** | *Read next* guided walkthrough of every directory in lifecycle order |
+| **[.github/CONTRIBUTING.md](.github/CONTRIBUTING.md)** | How to contribute; pipeline overview for new contributors |
 
 ---
 

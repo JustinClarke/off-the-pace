@@ -32,7 +32,7 @@ LAYERS = [
     ("ml", "#fbbf24", "ML XGBoost + ONNX"),
     ("app", "#f472b6", "App React + DuckDB-Wasm"),
     ("scripts", "#a78bfa", "Scripts reference generators"),
-    ("docs", "#cbd5e1", "Docs Docusaurus"),
+    ("docs", "#cbd5e1", "Docs Mintlify"),
 ]
 LAYER_COLOR = {name: color for name, color, _ in LAYERS}
 LAYER_INDEX = {name: i for i, (name, _, _) in enumerate(LAYERS)}

@@ -5,7 +5,7 @@ All run as part of `dbt test` (or `make dbt-test`).
 
 ## Identity-Closure Tests (§3.4 Catalogue)
 
-These tests enforce the mathematical identities that the transform layer must satisfy. See [`06_residual_layer.md`](../../docs/docs/learn-dbt/06_residual_layer.md) for the complete catalogue, rationale, and forward-reference tests.
+These tests enforce the mathematical identities that the transform layer must satisfy. See [`06_residual_layer.md`](../../docs/learn-dbt/06_residual_layer.md) for the complete catalogue, rationale, and forward-reference tests.
 
 | File | Identity | Group | Status |
 |---|---|---|---|

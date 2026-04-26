@@ -1,4 +1,4 @@
-export const methodologyHref = 'https://off-the-pace.onrender.com/machine-learning'
+export const methodologyHref = 'https://offthepace.mintlify.app/ml/overview'
 
 export const methodologyContent = `
 The Blind Test Scoreboard shows the degradation models' out-of-sample performance on the 2024

@@ -1,0 +1,80 @@
+---
+title: "Model validation, leakage prevention, and calibration"
+sidebarTitle: "Validation"
+description: "Season-grouped TimeSeriesSplit, a five-guard leakage spine, adversarial probes, and 80% calibration coverage verified on 18,677 held-out laps."
+---
+
+Forward-looking targets make leakage the defining risk of the machine layer. A model that accidentally sees the future or the answer will look good on paper and fail the moment it runs on live data. Off The Pace defends against this with a **leakage spine**: a set of guards baked into tests and CI that prove the model never sees what it should not.
+
+## Season-grouped time-series validation
+
+Tyre data is a time series. A random train/test split would let the model train on 2024 laps and then "predict" 2022 which is not prediction at all. Instead, validation uses a **season-grouped `TimeSeriesSplit`** with an expanding window across five splits: whole seasons move together, and each fold validates on the season(s) immediately after those it trained on.
+
+The final fold trains on 2018–2023 and validates on **2024** the most recent, holdout-shaped unseen season. That final-fold score is the evaluation headline reported in the [model metrics table](/ml/models#headline-results).
+
+<Note>
+  **2025 is the planned true out-of-sample holdout.** The holdout season is data-derived, not hard-coded: `HOLDOUT_SEASON = MAX(race_year) + 1`. Today that resolves to 2025, which has no rows yet. The moment 2025 data ingests, the evaluation logic detects the populated holdout and switches to a true out-of-sample reveal **with zero code change**. The split year is never a hard-coded literal the test suite enforces this.
+</Note>
+
+---
+
+## The leakage spine five guards
+
+| Guard | What it proves |
+|---|---|
+| **No leaked columns** | Targets, driver-skill signals, and season identifiers never enter the feature matrix |
+| **No forward-looking features** | A `sqlglot` audit walks the compiled mart and all ancestors, rejecting any `LEAD` or `FOLLOWING` window function |
+| **Holdout purity** | No holdout-season row appears in any training fold |
+| **No hard-coded holdout** | The split is `MAX+1`-derived, never a literal year |
+| **Bounded / non-null targets** | Degradation ∈ [−10, 10]; no NULL-target rows enter training |
+
+These five guards are part of the **27-test suite** (12 spine + 5 ONNX parity + 3 predict + 7 evaluate) and run automatically in CI on every change. Reproduce locally with `make ml-test`.
+
+---
+
+## The adversarial leakage probe
+
+The two most consequential exclusions `driver_id` and `race_year` are justified by **demonstration, not assertion**. A throwaway XGBoost model is trained to recover `race_year` from the remaining features. It succeeds at **0.9999 accuracy** against a majority-class baseline of 0.169 a lift of 0.83.
+
+That is the point. Constructor identities and compound generations carry such a strong residual temporal signal that `race_year` is almost perfectly recoverable from them. Including `race_year` as a feature would create a backdoor to the season, and through it to outcomes the model should not know. The same logic applies to `driver_id`, which would let the trees relearn per-driver skill the very signal the decomposition works to isolate into `driver_skill_residual_s`. Both are correctly excluded.
+
+---
+
+## Calibration does the 80% interval actually cover 80%?
+
+The degradation quantile trio claims an 80% prediction interval from `[p10, p90]`. On the 2024 evaluation set (n = 18,677 laps):
+
+| Measure | Coverage |
+|---|---|
+| Nominal target | 0.800 |
+| Raw `[p10, p90]` empirical coverage | **0.803** |
+| Split-conformal (CQR) coverage | **0.805** |
+| Mean interval width | 1.106 s |
+
+The raw quantiles are **already calibrated** empirical coverage lands within 0.003 of nominal. A split-conformal correction (computed post-hoc, no extra model fits) nudges it to 0.805 with a conformal offset of essentially zero (q ≈ −0.0008). The conformal step confirms the calibration rather than rescuing it.
+
+In plain terms: when the model says "pace loss next lap will fall between A and B seconds," it is right approximately four times in five. The interval averages 1.1 seconds wide on held-out data.
+
+---
+
+## ONNX round-trip parity
+
+Every model passes a round-trip parity test to `atol=1e-5` between the XGBoost native scorer and the ONNX runtime. The parity sample is deliberately NaN-bearing to confirm that the ~47% of laps with a null cliff-onset prior round-trip correctly. Numbers in the browser match numbers from training.
+
+---
+
+## Cohorts surfaced, never dropped
+
+Beyond the global headline, every model is scored across cohorts: compound, circuit, constructor, rain-lap, and season. **21 underperforming cells** are recorded to the model card rather than hidden. The majority are the near-oracle stint-life baseline winning on specific circuits. The degradation regressors lose narrowly only at the Canadian GP; the classifier only at São Paulo. The contract is explicit: surface the losses, do not hide them.
+
+---
+
+## Known limitations
+
+<Warning>
+  **No live 2025 holdout yet.** Evaluation headlines are the final time-series CV fold (2024). They become a true out-of-sample reveal automatically when 2025 data ingests but until that moment, they are cross-validation, not a held-out season.
+</Warning>
+
+- **The cliff classifier is the weakest model.** Macro-F1 ≈ 0.37 decisively beats the majority prior but is modest in absolute terms; skill on the rare imminent-cliff windows is limited. The 100 most-confident misses are exported for study and inform the v2 roadmap.
+- **v1 hyperparameters come from a reduced tuning budget.** Running `make ml-tune` (50 trials / 5 folds / full data) only improves them no code change required and should precede any production blessing.
+- **~47% of laps have a null cliff-onset prior** (2018 legacy compounds, un-fit circuits). XGBoost handles the missingness natively via default-direction splits rather than imputation this is documented and its ONNX parity is proven but those laps lean less on the strongest prior feature.

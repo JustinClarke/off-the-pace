@@ -353,29 +353,90 @@ models:
       - name: delta_vs_actual_lap_s
         description: predicted_lap_time_s minus actual_lap_time_s. 0 when ego == host.
         tests: [not_null]
+      - name: deg_interaction_s
+        description: >
+          Transform v0.2 Fix 1: (host deg slope - ego deg slope) x age_in_stint, slopes from
+          int_constructor_deg_sensitivity at the ego lap's (compound, season). The only
+          host-dependent term that varies within a race, so it is what lets different hosts
+          produce different driver orders. Exactly 0 when ego == host; 0 when no cell exists
+          (wet compounds / low-sample = field-average degradation).
+        tests: [not_null]
+      - name: host_deg_slope_s_per_lap
+        description: Host constructor's deg slope for the ego lap's compound; 0 when no cell.
+        tests: [not_null]
+      - name: ego_deg_slope_s_per_lap
+        description: Ego constructor's deg slope for the ego lap's compound; 0 when no cell.
+        tests: [not_null]
+      - name: cliff_interaction_s
+        description: >
+          Transform v0.2 Fix 2: severity x [hinge(host) - hinge(ego)] where
+          hinge(c) = GREATEST(0, age - field_onset - cliff_onset_shift(c)). The nonlinear
+          host-dependent term: it only fires once tyres approach/pass the cliff, reordering
+          drivers on long stints. Exactly 0 when ego == host. Guardrail-clipped to +/-2 s.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: -2.0
+                max_value: 2.0
+      - name: host_cliff_shift_laps
+        description: Host constructor's cliff-onset shift (laps) for the ego lap's compound; 0 when no cell.
+        tests: [not_null]
+      - name: ego_cliff_shift_laps
+        description: Ego constructor's cliff-onset shift (laps) for the ego lap's compound; 0 when no cell.
+        tests: [not_null]
       - name: recombination_confidence
         description: >
-          Confidence in recombination [0, 1]. Based on host constructor observation count.
-          Degrades when host constructor has sparse panel data.
+          Continuous confidence in recombination [0, 1] = host_obs_factor
+          (panel_obs / (panel_obs + 50)) × the lap's correction_weight. Degrades smoothly
+          when the host has sparse panel data or the lap was soft-down-weighted.
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
                 max_value: 1
+      - name: host_constructor_pace_se_s
+        description: >
+          Fix 3 SE-propagation ingredient: SE of the host constructor's structural pace
+          (0 when no panel cell). Aggregated into predicted_mean_lap_se_s downstream; cancels
+          in within-scenario ordering since every driver shares the host car.
+        tests: [not_null]
+      - name: host_deg_slope_sd_s_per_lap
+        description: "Fix 3: posterior sd of the host deg slope for the ego lap's compound; 0 when no cell."
+        tests: [not_null]
+      - name: ego_deg_slope_sd_s_per_lap
+        description: "Fix 3: posterior sd of the ego deg slope for the ego lap's compound; 0 when no cell."
+        tests: [not_null]
+      - name: host_cliff_shift_se_laps
+        description: "Fix 3: SE (laps) of the host cliff-onset shift; 0 when no cell."
+        tests: [not_null]
+      - name: ego_cliff_shift_se_laps
+        description: "Fix 3: SE (laps) of the ego cliff-onset shift; 0 when no cell."
+        tests: [not_null]
+      - name: host_cliff_active
+        description: "Fix 3: 1.0 when the host car is past its shifted cliff onset on this lap, else 0.0."
+        tests: [not_null]
+      - name: ego_cliff_active
+        description: "Fix 3: 1.0 when the ego car is past its shifted cliff onset on this lap, else 0.0."
+        tests: [not_null]
 
   - name: fct_ghost_race_finish
     description: >
-      One row per (host_constructor, ego_driver, race). Projects final finishing position
-      if ego driver raced the full race in host constructor's car. Sums predicted lapwise deltas.
-      filtered to recombination_confidence ≥ 0.3. Powers "what if" race outcome scenarios.
+      One row per (host_constructor, ego_driver, race). Projects finishing position if ego
+      driver raced in host constructor's car, ranked by predicted MEAN lap pace (invariant to
+      lap count, so DNF / partial runs are ranked fairly and flagged via is_short_run).
+      Filtered to recombination_confidence ≥ 0.3. Powers "what if" race outcome scenarios.
     tags: [marts, simulation, ghost_car]
     columns:
       - name: ghost_race_id
         description: Surrogate PK = MD5(race_year || race_id || ego_driver_id || host_constructor_id)
         tests: [not_null, unique]
+      - name: is_self_scenario
+        description: True when ego driver is placed in their own constructor's car (degenerate identity).
+        tests: [not_null]
       - name: predicted_finish_position
-        description: Projected finish position within this host-constructor scenario.
+        description: Projected finish position within this host-constructor scenario (ranked by mean pace).
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -383,7 +444,54 @@ models:
                 min_value: 1
                 max_value: 25
       - name: actual_finish_position
-        description: Actual finish position from stg_laps (last valid position).
+        description: Actual finish position from stg_laps (last valid position); NULL for DNF.
       - name: delta_vs_actual_position
-        description: Projected minus actual finish position. Negative = would have finished higher.
+        description: >
+          Projected minus actual finish position. Negative = would have finished higher.
+          NULL when the driver has no real finishing position (DNF).
+      - name: predicted_mean_lap_s
+        description: Mean predicted lap time across counted laps; the ranking key.
         tests: [not_null]
+      - name: lap_coverage
+        description: laps_counted / race_distance_laps in [0,1]; fraction of the race the driver contributes.
+      - name: is_short_run
+        description: True when lap_coverage < ghost_short_run_threshold (default 0.5) DNF / partial run.
+        tests: [not_null]
+      - name: avg_recombination_confidence
+        description: >
+          Legacy coverage-weighted lap confidence (n/(n+50) heuristic × sqrt coverage).
+          Retained one release for app diffing; superseded by the Fix 3 SE columns below.
+      - name: predicted_mean_lap_se_s
+        description: >
+          Fix 3: marginal standard error (seconds) of predicted_mean_lap_s, propagating
+          host structural-pace SE, host/ego deg-slope posterior sds, host/ego cliff-shift
+          SEs (scaled by tyre-age and past-cliff exposure), and the finite-sample SE of the
+          lap mean. Includes the host-pace term that cancels in within-scenario ordering.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 30
+      - name: p_beats_next
+        description: >
+          Fix 3: probability this driver finishes ahead of the driver ranked immediately
+          below it in this scenario, under a normal approximation on the pairwise pace gap
+          (host structural pace cancels). NULL for the last-ranked driver (no one below).
+          ≥ 0.5 by construction since the driver above always has the lower predicted pace.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: finish_pos_se
+        description: >
+          Fix 3: standard error of the projected finish position the Poisson-binomial sd
+          of the number of drivers predicted ahead (sqrt of sum p_k(1-p_k) over pairwise
+          order probabilities). 0 when the scenario has a single driver.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 25

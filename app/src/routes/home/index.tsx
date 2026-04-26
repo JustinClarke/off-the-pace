@@ -157,7 +157,7 @@ export default function Home() {
               </svg>
             </Link>
             <a
-              href="https://off-the-pace.onrender.com" target="_blank" rel="noopener noreferrer"
+              href="https://offthepace.mintlify.app" target="_blank" rel="noopener noreferrer"
               className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-muted transition-colors hover:text-[rgb(var(--color-text))]"
             >
               Methodology
@@ -202,7 +202,7 @@ export default function Home() {
         <span>{APP_CONFIG.title}-a portfolio data product.</span>
         <div className="flex flex-wrap gap-4">
           <a href={APP_CONFIG.githubUrl} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[rgb(var(--color-text))]">GitHub</a>
-          <a href="https://off-the-pace.onrender.com" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[rgb(var(--color-text))]">Docs</a>
+          <a href="https://offthepace.mintlify.app" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[rgb(var(--color-text))]">Docs</a>
           <a href="https://justinclarke.github.io" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[rgb(var(--color-text))]">Portfolio</a>
         </div>
       </footer>

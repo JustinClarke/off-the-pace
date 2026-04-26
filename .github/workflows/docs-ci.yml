@@ -13,8 +13,8 @@ on:
       - '.github/workflows/docs-ci.yml'
 
 jobs:
-  build:
-    name: Docusaurus build
+  validate:
+    name: Mintlify validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,95 +22,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
-          cache-dependency-path: docs/package-lock.json
 
-      - name: Install dependencies
-        run: cd docs && npm ci
-
-      - name: Build site
-        run: cd docs && npm run build
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: docusaurus-build
-          path: docs/build/
-          retention-days: 1
-
-  links:
-    name: Link check (internal)
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: docusaurus-build
-          path: docs/build/
-
-      - name: Install lychee
+      - name: Validate Mintlify configuration
         run: |
-          curl -sL \
-            https://github.com/lycheeverse/lychee/releases/download/lychee-v0.15.1/lychee-x86_64-unknown-linux-musl.tar.gz \
-            | tar xz
-          sudo mv lychee /usr/local/bin/
+          cd docs
+          npx -y mintlify@latest validate
 
-      - name: Check internal links
+      - name: Check broken links
         run: |
-          lychee \
-            --offline \
-            --no-progress \
-            --exclude 'mailto:' \
-            --exclude-path 'docs/build/assets' \
-            'docs/build/**/*.html'
-
-  style:
-    name: Vale style lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: errata-ai/vale-action@reviewdog
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          files: docs/docs/
-          reporter: github-pr-review
-          fail_on_error: true
-
-  spellcheck:
-    name: Spell check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: streetsidesoftware/cspell-action@v6
-        with:
-          files: 'docs/docs/**/*.{md,mdx}'
-          config: docs/.cspell.json
-          strict: true
-          incremental_files_only: false
-
-  snippets:
-    name: Snippet tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install snippet test dependencies
-        run: pip install sybil pytest
-
-      - name: Run snippet tests
-        run: |
-          pytest \
-            docs/docs/tutorials/first-build.md \
-            docs/docs/guides/add-a-season.md \
-            -v --tb=short
+          cd docs
+          npx -y mintlify@latest broken-links
 
   docs-audit:
     name: Docs audit (README presence + tour footers + file headers)
@@ -165,7 +86,7 @@ jobs:
 
       - name: Fail if reference docs drifted
         run: |
-          if ! git diff --exit-code docs/docs/reference/; then
+          if ! git diff --exit-code docs/reference/; then
             echo ""
             echo "Reference docs are out of date."
             echo "Run 'python scripts/build_reference.py' locally and commit the changes."

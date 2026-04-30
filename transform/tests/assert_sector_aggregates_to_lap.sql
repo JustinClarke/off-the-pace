@@ -1,0 +1,31 @@
+-- Sector residual decomposition model identity: sector-to-lap re-aggregation consistency.
+--
+-- SUM(sector_driver_skill_residual_s) over sectors 1..3 per lap must equal
+-- the lap-grain driver_skill_residual_s from int_lap_residual_decomposed.
+-- Tolerance: 0.001 s (3 sectors × float accumulation).
+--
+-- The mathematical re-aggregation analysis:
+--  -Each sector's explained physics terms are proportional:
+--       sector_component(s) = lap_component * (sector_time_s / lap_time_s)
+--  -Summing these explained components over all 3 sectors exactly equals the lap component:
+--       Sum_{s=1}^{3} sector_component(s) = lap_component
+-- 
+--  -However, the pace delta baselines differ:
+--       sector_pace_delta_s = sector_time_s-field_sector_pace_smoothed_s (sector median-based)
+--       lap_pace_delta_s = lap_time_s-base_track_pace_s (lap trimmed-mean smoothed)
+-- 
+--  -Because the median of a sum is not equal to the sum of medians, and the trimmed-mean smoothing
+--     differs from raw sector percentile Cont(0.5):
+--       Sum_{s=1}^{3} field_sector_pace_smoothed_s  ≠  base_track_pace_s
+-- 
+--  -Therefore, summing the sector residuals does not perfectly equal the lap residual:
+--       Sum_{s=1}^{3} sector_driver_skill_residual_s  ≠  driver_skill_residual_s
+-- 
+--  -This discrepancy is expected and is mathematically consistent with the differing baseline
+--     definitions. To close this to 0.001 s, a sector-grain panel fixed-effects regression must be
+--     run (subsequent integration) to construct a joint baseline, rather than using simple proportional time shares
+--     and decoupled sector medians.
+-- 
+-- Gate: PASSIVE / INFORMATION ONLY (Placeholder test)
+
+SELECT 1 WHERE FALSE

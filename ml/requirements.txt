@@ -1,0 +1,21 @@
+# Machine Learning Layer dependencies. One venv (repo-root ../.venv).
+# Install via: make ml-setup   (./.venv/bin/pip install -r ml/requirements.txt)
+# Pin majors only (D4). xgboost is the D1 risk: pinned <4 so a 4.x bump can't
+# silently break the onnxmltools quantile round-trip proven in M2.
+
+# Already present via root requirements.txt (listed to document the ML contract):
+xgboost>=3,<4
+duckdb>=1,<2
+pandas>=2,<3
+numpy>=2,<3
+pyarrow>=21,<22
+scikit-learn>=1.8,<2
+matplotlib>=3,<4
+PyYAML>=6,<7
+
+# Machine Learning additions (D4 not previously installed):
+onnxmltools>=1.13,<2
+onnxruntime>=1.20,<2
+optuna>=4,<5
+shap>=0.46
+sqlglot>=25,<28

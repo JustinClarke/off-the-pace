@@ -1,0 +1,43 @@
+{
+  "air_state_dominant": {
+    "dirty_air": 0,
+    "drs_train": 1,
+    "free_air": 2,
+    "tow_zone": 3
+  },
+  "anomaly_class": {
+    "clean_cliff": 0,
+    "event_driven": 1,
+    "normal": 2
+  },
+  "compound": {
+    "HARD": 0,
+    "HYPERSOFT": 1,
+    "INTERMEDIATE": 2,
+    "MEDIUM": 3,
+    "SOFT": 4,
+    "SUPERSOFT": 5,
+    "ULTRASOFT": 6,
+    "WET": 7
+  },
+  "constructor_id": {
+    "Alfa Romeo": 0,
+    "Alfa Romeo Racing": 1,
+    "AlphaTauri": 2,
+    "Alpine": 3,
+    "Aston Martin": 4,
+    "Ferrari": 5,
+    "Force India": 6,
+    "Haas F1 Team": 7,
+    "Kick Sauber": 8,
+    "McLaren": 9,
+    "Mercedes": 10,
+    "RB": 11,
+    "Racing Point": 12,
+    "Red Bull Racing": 13,
+    "Renault": 14,
+    "Sauber": 15,
+    "Toro Rosso": 16,
+    "Williams": 17
+  }
+}

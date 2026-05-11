@@ -1,0 +1,278 @@
+{
+  "manifest_schema_version": 1,
+  "name": "Off the Pace \u2014 Tyre Degradation Predictors",
+  "model_version": "v1",
+  "generated_at": "2026-05-31T06:02:42.750884+00:00",
+  "input": {
+    "tensor_name": "input",
+    "dtype": "float32",
+    "shape": [
+      "batch",
+      38
+    ],
+    "feature_order": [
+      "lap_number",
+      "lap_in_stint",
+      "age_in_stint",
+      "fuel_mass_kg",
+      "compound",
+      "compound_grip_peak",
+      "compound_wear_gradient",
+      "compound_optimal_temp_low",
+      "compound_optimal_temp_high",
+      "compound_cliff_onset_laps",
+      "compound_cliff_severity",
+      "expected_compound_pace_s",
+      "expected_degradation_rate_s_per_lap",
+      "cliff_onset_passed",
+      "laps_past_cliff",
+      "cliff_candidate_flag",
+      "push_residual",
+      "cumulative_push_load_surface",
+      "cumulative_push_load_bulk",
+      "dirty_air_share_lap",
+      "dirty_air_thermal_load_surface",
+      "dirty_air_thermal_load_bulk",
+      "air_state_dominant",
+      "n_gear_changes",
+      "mean_rpm",
+      "max_rpm",
+      "pct_full_throttle",
+      "pct_drs_active",
+      "short_shift_index",
+      "ambient_temp_delta",
+      "air_density_kgm3",
+      "density_ratio_to_ref",
+      "is_rain_lap",
+      "track_energy_index",
+      "circuit_abrasiveness_index",
+      "constructor_id",
+      "event_flag_any",
+      "anomaly_class"
+    ],
+    "n_features": 38,
+    "encoding": {
+      "categorical_columns": [
+        "compound",
+        "air_state_dominant",
+        "constructor_id",
+        "anomaly_class"
+      ],
+      "boolean_columns": [
+        "cliff_onset_passed",
+        "event_flag_any",
+        "cliff_candidate_flag",
+        "is_rain_lap"
+      ],
+      "missing_ordinal": -1.0,
+      "boolean_true_false": [
+        1.0,
+        0.0
+      ],
+      "continuous_missing": "NaN (XGBoost native-missing; preserve, do not impute)",
+      "encoders": {
+        "air_state_dominant": {
+          "dirty_air": 0,
+          "drs_train": 1,
+          "free_air": 2,
+          "tow_zone": 3
+        },
+        "anomaly_class": {
+          "clean_cliff": 0,
+          "event_driven": 1,
+          "normal": 2
+        },
+        "compound": {
+          "HARD": 0,
+          "HYPERSOFT": 1,
+          "INTERMEDIATE": 2,
+          "MEDIUM": 3,
+          "SOFT": 4,
+          "SUPERSOFT": 5,
+          "ULTRASOFT": 6,
+          "WET": 7
+        },
+        "constructor_id": {
+          "Alfa Romeo": 0,
+          "Alfa Romeo Racing": 1,
+          "AlphaTauri": 2,
+          "Alpine": 3,
+          "Aston Martin": 4,
+          "Ferrari": 5,
+          "Force India": 6,
+          "Haas F1 Team": 7,
+          "Kick Sauber": 8,
+          "McLaren": 9,
+          "Mercedes": 10,
+          "RB": 11,
+          "Racing Point": 12,
+          "Red Bull Racing": 13,
+          "Renault": 14,
+          "Sauber": 15,
+          "Toro Rosso": 16,
+          "Williams": 17
+        }
+      }
+    }
+  },
+  "models": [
+    {
+      "name": "degradation_regressor_p10",
+      "family": "degradation_regressor",
+      "kind": "quantile",
+      "objective": "reg:quantileerror",
+      "onnx": "degradation_regressor_p10_v1.onnx",
+      "onnx_sha256": "f4d1b71e15ee02e1d2483bbb48a63e91021e8c86a96d207dcba24e4d107f82da",
+      "booster_sha256": "55479405dcf4153c4c19c481e8f79a6f940f5ed00f3488dc2db2edc55ec2e5a8",
+      "cv_headline": 0.07984942435113569,
+      "headline_metric": "pinball",
+      "quantile_alpha": 0.1,
+      "output": {
+        "index": 0,
+        "meaning": "degradation_jump_seconds",
+        "bounds": [
+          -10.0,
+          10.0
+        ]
+      }
+    },
+    {
+      "name": "degradation_regressor_p50",
+      "family": "degradation_regressor",
+      "kind": "quantile",
+      "objective": "reg:quantileerror",
+      "onnx": "degradation_regressor_p50_v1.onnx",
+      "onnx_sha256": "aca8d699a20d1944128d3395e99d770b8494d003e43ac8aac137c934deab08db",
+      "booster_sha256": "2031a40856aaa374715577645c5b9d20aead5eb6741ef8158e7ff3386210fd99",
+      "cv_headline": 0.19189518829378976,
+      "headline_metric": "pinball",
+      "quantile_alpha": 0.5,
+      "output": {
+        "index": 0,
+        "meaning": "degradation_jump_seconds",
+        "bounds": [
+          -10.0,
+          10.0
+        ]
+      }
+    },
+    {
+      "name": "degradation_regressor_p90",
+      "family": "degradation_regressor",
+      "kind": "quantile",
+      "objective": "reg:quantileerror",
+      "onnx": "degradation_regressor_p90_v1.onnx",
+      "onnx_sha256": "492ede14d6c37f7c2ce22d63029108a736a8183e3118939441b04784b5829e49",
+      "booster_sha256": "51855f7dfa4327c93dc8e8894241a7e0ebe6ff66acfe6a04e4a6dcae5cc044b9",
+      "cv_headline": 0.13158044393086119,
+      "headline_metric": "pinball",
+      "quantile_alpha": 0.9,
+      "output": {
+        "index": 0,
+        "meaning": "degradation_jump_seconds",
+        "bounds": [
+          -10.0,
+          10.0
+        ]
+      }
+    },
+    {
+      "name": "cliff_classifier",
+      "family": "cliff_classifier",
+      "kind": "classification",
+      "objective": "multi:softprob",
+      "onnx": "cliff_classifier_v1.onnx",
+      "onnx_sha256": "7157def1eddffc77e38867dd1ac89c0f18928b30bb89c1de51efe03cdd99512f",
+      "booster_sha256": "901e79e63a96aea6cb852e8dbb69ee498cf31c2e9af868c32755a68c28217160",
+      "cv_headline": 0.36552395147673344,
+      "headline_metric": "macro_f1",
+      "output": {
+        "probabilities_index": 1,
+        "zipmap": true,
+        "class_order": [
+          "0_to_2",
+          "3_to_5",
+          "6_plus",
+          "none_in_stint"
+        ],
+        "meaning": "laps_until_cliff_class softprob"
+      }
+    },
+    {
+      "name": "stint_life_regressor",
+      "family": "stint_life_regressor",
+      "kind": "regression",
+      "objective": "reg:squarederror",
+      "onnx": "stint_life_regressor_v1.onnx",
+      "onnx_sha256": "9ade92338779b784334b0db680ef678f35e055a5046774f80a21b9d7fdc54966",
+      "booster_sha256": "ca1f9e5874913fe55f1bf970fb89dae586c089306f0e0d101d6caa2989efc832",
+      "cv_headline": 7.197823862152047,
+      "headline_metric": "rmse",
+      "output": {
+        "index": 0,
+        "meaning": "remaining_stint_life_laps",
+        "postprocess": "clip(>=0)"
+      }
+    }
+  ],
+  "cliff_class_labels": [
+    "0_to_2",
+    "3_to_5",
+    "6_plus",
+    "none_in_stint"
+  ],
+  "predictions_schema": [
+    "lap_id",
+    "stint_id",
+    "race_year",
+    "circuit_key",
+    "is_holdout",
+    "is_in_envelope",
+    "predicted_degradation_jump_s",
+    "predicted_degradation_jump_p10_s",
+    "predicted_degradation_jump_p90_s",
+    "predicted_cliff_class",
+    "prob_0_to_2",
+    "prob_3_to_5",
+    "prob_6_plus",
+    "prob_none_in_stint",
+    "predicted_remaining_stint_life_laps",
+    "model_version",
+    "predicted_at"
+  ],
+  "provenance": {
+    "source_mart": "fct_cliff_prediction_features",
+    "training_seasons": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "holdout_season": 2025,
+    "dataset_fingerprint": "3aff45592c335b9781de5a5627e33068bfd03677b2e8aebc78ec3480ba162e7d",
+    "random_state": 20260528,
+    "library_versions": {
+      "xgboost": "3.2.0",
+      "sklearn": "1.8.0"
+    },
+    "onnx_parity": {
+      "atol": 1e-05,
+      "rtol": 1e-05,
+      "max_abs_diff": {
+        "degradation_regressor_p10": 2.86102294921875e-06,
+        "degradation_regressor_p50": 1.5497207641601562e-06,
+        "degradation_regressor_p90": 3.0994415283203125e-06,
+        "cliff_classifier": 3.5762786865234375e-07,
+        "stint_life_regressor": 2.288818359375e-05
+      },
+      "all_pass": true
+    }
+  },
+  "related": {
+    "model_card": "model_card.json",
+    "encoders": "encoders.json"
+  }
+}

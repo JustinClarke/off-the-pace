@@ -1,0 +1,13 @@
+node_modules
+dist
+.env
+.env.local
+*.local
+src/data/schemas/
+public/data/*.parquet
+public/data/facts/
+public/data/intermediates/
+public/data/dimensions/
+public/data/ml/*.parquet
+public/data/ml/*.onnx
+public/models/

@@ -67,6 +67,10 @@ const ICONS: Record<string, (p: IconProps) => JSX.Element> = {
   'data-quality': (p) => (
     <svg {...base} {...p}><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" /><path d="M9 12l2 2 4-4" /></svg>
   ),
+  // Roadmap-clock / horizon (work still ahead)
+  roadmap: (p) => (
+    <svg {...base} {...p}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+  ),
 }
 
 export default function PillarIcon({ id, className }: { id: string; className?: string }) {

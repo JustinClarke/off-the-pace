@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: 255 255 255;
+    --color-surface: 249 250 251;
+    --color-border: 229 231 235;
+    --color-text: 17 24 39;
+    --color-text-muted: 107 114 128;
+    --color-accent: 225 6 0;
+    --color-accent-subtle: 255 241 241;
+
+    --radius: 0.5rem;
+    --sidebar-width: 220px;
+    --topbar-height: 56px;
+  }
+
+  .dark {
+    --color-bg: 9 9 11;
+    --color-surface: 24 24 27;
+    --color-border: 39 39 42;
+    --color-text: 250 250 250;
+    --color-text-muted: 161 161 170;
+    --color-accent: 225 6 0;
+    --color-accent-subtle: 80 2 2;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    background-color: rgb(var(--color-bg));
+    color: rgb(var(--color-text));
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .bg-surface { background-color: rgb(var(--color-surface)); }
+  .bg-accent-subtle { background-color: rgb(var(--color-accent-subtle)); }
+  .border-border { border-color: rgb(var(--color-border)); }
+  .text-muted { color: rgb(var(--color-text-muted)); }
+  .text-accent { color: rgb(var(--color-accent)); }
+}

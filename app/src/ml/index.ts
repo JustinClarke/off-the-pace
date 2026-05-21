@@ -1,0 +1,10 @@
+// Public surface of the ONNX inference layer (AD-3).
+export { loadModelManifest, getModelSpec, isClassifierOutput, MODELS_BASE } from './manifest'
+export type { ModelManifest, ModelSpec, ManifestInput, ScalarOutput, ClassifierOutput, ModelKind } from './manifest'
+export { buildFeatureVector, buildFeatureMatrix, encodeValue } from './featureVector'
+export type { FeatureRow, FeatureValue } from './featureVector'
+export { getSession, resetSessions } from './session'
+export { predictLap, predictLaps } from './infer'
+export type { LapPrediction, CliffPrediction } from './infer'
+export { verifyParity } from './verifyParity'
+export type { ParityResult, ParityRow } from './verifyParity'

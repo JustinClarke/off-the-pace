@@ -1,0 +1,9 @@
+// STATUS: stub | Pillar: Lap Decomposition | Will render: seven-term decomposition waterfall for a single lap from fct_lap_residuals. | Spec: IMPLEMENTATION_PLAN.md feature 4.
+export default function Page() {
+  return (
+    <div className="max-w-4xl mx-auto px-6 py-10">
+      <h1 className="text-2xl font-bold tracking-tight mb-2">Waterfall Decomposition</h1>
+      <p className="text-muted text-sm">Feature coming soon.</p>
+    </div>
+  )
+}

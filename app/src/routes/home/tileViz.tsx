@@ -71,13 +71,13 @@ export function SurvivalViz() {
       />
       {/* cliff marker */}
       <motion.circle
-        cx={73} cy={41} r={2.4} fill={ACCENT}
-        initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        cx={73} cy={41} r={0} fill={ACCENT}
+        initial={{ r: 0, opacity: 0 }} animate={{ r: 2.4, opacity: 1 }}
         transition={{ delay: 1.0, type: 'spring', stiffness: 300 }}
       />
       <motion.circle
         cx={73} cy={41} r={2.4} fill="none" stroke={ACCENT}
-        initial={{ scale: 1, opacity: 0.7 }} animate={{ scale: 3, opacity: 0 }}
+        initial={{ r: 2.4, opacity: 0.7 }} animate={{ r: 7.2, opacity: 0 }}
         transition={{ delay: 1.0, duration: 1.4, repeat: Infinity, repeatDelay: 0.6 }}
       />
     </Frame>
@@ -205,22 +205,71 @@ export function ScatterViz() {
 // #16 Degradation Simulator-quantile fan (p10-p90 ribbon) + live p50 line. The hero ML viz.
 export function QuantileFanViz() {
   return (
-    <Frame label="Live degradation quantile forecast">
+    <Frame label="Live degradation simulation model">
+      {/* Baseline */}
+      <line x1={10} y1={52} x2={114} y2={52} stroke={BORDER} strokeWidth={1} />
+
+      {/* Fresh-tyre anchor (flat reference) */}
+      <motion.line
+        x1={10} y1={48} x2={114} y2={48}
+        stroke={MUTED}
+        strokeWidth={1}
+        strokeDasharray="2 2"
+        opacity={0.4}
+        {...draw(0.4)}
+      />
+
+      {/* Fuel burn-off component (pace improving as weight decreases) */}
       <motion.path
-        d="M 10 32 C 34 30, 60 30, 90 36 C 100 38, 108 40, 112 42 L 112 54 C 108 52, 100 50, 90 50 C 60 46, 34 40, 10 36 Z"
-        fill={ACCENT} opacity={0.16}
-        initial={{ opacity: 0, scaleY: 0.4 }} animate={{ opacity: 0.16, scaleY: 1 }}
-        style={{ transformOrigin: '10px 34px' }}
+        d="M 10 38 C 40 41, 80 46, 114 48"
+        stroke="rgb(56, 189, 248)"
+        strokeWidth={1.2}
+        strokeDasharray="2 2"
+        fill="none"
+        opacity={0.6}
+        {...draw(0.3)}
+      />
+
+      {/* Tyre degradation uncertainty fan (ribbon widening over time) */}
+      <motion.path
+        d="M 10 48 C 40 48, 80 43, 114 12 L 114 28 C 80 45, 40 48, 10 48 Z"
+        fill={ACCENT}
+        opacity={0.12}
+        initial={{ opacity: 0, scaleY: 0.3 }}
+        animate={{ opacity: 0.12, scaleY: 1 }}
+        style={{ transformOrigin: '10px 48px' }}
         transition={{ delay: 0.5, duration: 0.7 }}
       />
+
+      {/* Combined net pace projection (solid curve showing crossover then cliff) */}
       <motion.path
-        d="M 10 34 C 34 33, 60 33, 90 40 C 100 42, 108 44, 112 46"
-        stroke={ACCENT} strokeWidth={2} fill="none" strokeLinecap="round" {...draw(0.1)}
+        d="M 10 38 C 35 41, 70 42, 90 38 C 102 32, 110 24, 114 20"
+        stroke={ACCENT}
+        strokeWidth={2}
+        fill="none"
+        strokeLinecap="round"
+        {...draw(0.1)}
       />
-      {/* live point pulse at the leading edge */}
+
+      {/* Tyre Cliff detection pulse */}
       <motion.circle
-        cx={112} cy={46} r={2.6} fill={ACCENT}
-        initial={{ scale: 0 }} animate={{ scale: [1, 1.5, 1] }}
+        cx={90} cy={38} r={0} fill={ACCENT}
+        initial={{ r: 0, opacity: 0 }}
+        animate={{ r: 2.4, opacity: 1 }}
+        transition={{ delay: 1.0, type: 'spring', stiffness: 300 }}
+      />
+      <motion.circle
+        cx={90} cy={38} r={2.4} fill="none" stroke={ACCENT} strokeWidth={1}
+        initial={{ r: 2.4, opacity: 0.7 }}
+        animate={{ r: 7.7, opacity: 0 }}
+        transition={{ delay: 1.0, duration: 1.5, repeat: Infinity, repeatDelay: 0.5 }}
+      />
+
+      {/* Live point pulse at the stint end */}
+      <motion.circle
+        cx={114} cy={20} r={2.5} fill={ACCENT}
+        initial={{ r: 0 }}
+        animate={{ r: [2.5, 3.8, 2.5] }}
         transition={{ delay: 1.2, duration: 1.4, repeat: Infinity }}
       />
     </Frame>
@@ -329,13 +378,13 @@ export function AffinityViz() {
       />
       {/* affinity node */}
       <motion.circle
-        cx={36} cy={16} r={3} fill={ACCENT}
-        initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        cx={36} cy={16} r={0} fill={ACCENT}
+        initial={{ r: 0, opacity: 0 }} animate={{ r: 3, opacity: 1 }}
         transition={{ delay: 1.1, type: 'spring', stiffness: 300 }}
       />
       <motion.circle
         cx={36} cy={16} r={3} fill="none" stroke={ACCENT}
-        initial={{ scale: 1, opacity: 0.7 }} animate={{ scale: 3, opacity: 0 }}
+        initial={{ r: 3, opacity: 0.7 }} animate={{ r: 9, opacity: 0 }}
         transition={{ delay: 1.1, duration: 1.6, repeat: Infinity, repeatDelay: 0.5 }}
       />
     </Frame>

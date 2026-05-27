@@ -59,8 +59,8 @@ export default function BlindTestScoreboardPage() {
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
       provenance={{
-        modelVersion: '1',
-        datasetFingerprint: '3aff4559',
+        modelVersion: '3',
+        datasetFingerprint: 'b8a37b7c',
         dataWindow: 'Training seasons 2018-2024 (CV fold 2024 as eval)',
       }}
       csvRows={result.scatter.length ? toCsvRows(result) : undefined}

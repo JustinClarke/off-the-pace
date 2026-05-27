@@ -18,16 +18,19 @@
 {{ config(materialized='table', tags=['driver_rating', 'driver_affinity']) }}
 
 WITH driver_race AS (
+    -- Metric 1 source: de-confounded LORO equal-car skill (was
+    -- fct_driver_skill_features.driver_residual_mean_s). Aliased to the old name so the
+    -- shrinkage logic below is unchanged. See int_driver_race_skill_loro.
     SELECT
         driver_id,
         circuit_key,
         race_year,
         race_id,
-        driver_residual_mean_s,
+        driver_skill_loro_s AS driver_residual_mean_s,
         clean_lap_count
-    FROM {{ ref('fct_driver_skill_features') }}
-    WHERE driver_residual_mean_s IS NOT NULL
-      AND circuit_key            IS NOT NULL
+    FROM {{ ref('int_driver_race_skill_loro') }}
+    WHERE driver_skill_loro_s IS NOT NULL
+      AND circuit_key         IS NOT NULL
 ),
 
 -- Per (driver, circuit): observed mean and sample count

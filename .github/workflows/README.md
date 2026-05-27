@@ -7,9 +7,9 @@ run locally-if it passes locally, it passes here.
 
 | Workflow | File | Triggers on | What it gates |
 |---|---|---|---|
-| **dbt CI** | `dbt-ci.yml` | Changes to `transform/`, `ingestion/`, `requirements.txt` | Build all 46 models; run 339 tests including `assert_additive_identity`; confirm the seven-term identity holds on every lap |
-| **Docs CI** | `docs-ci.yml` | Changes to `docs/`, `scripts/`, `transform/models/**`, `ingestion/schemas/**` | Build Docusaurus; run `python scripts/build_reference.py && git diff --exit-code`-fails if any generated MDX drifts from its source |
-| **ML CI** | `ml-ci.yml` | Changes to `ml/`, `scripts/gen_ml_reference.py` | 27-test leakage spine (static guards always run; warehouse-dependent guards gate on bronze fixtures); ONNX parity; beats-baseline; no hardcoded holdout year in `ml/src`; model-card MDX drift check |
+| **dbt CI** | `dbt-ci.yml` | Changes to `transform/`, `ingestion/`, `requirements.txt` | Build all 54 models; run 336 tests including `assert_additive_identity`; confirm the seven-term identity holds on every lap |
+| **Docs CI** | `docs-ci.yml` | Changes to `docs/`, `scripts/`, `transform/models/**`, `ingestion/schemas/**` | Validate Mintlify docs; run `python scripts/build_reference.py && git diff --exit-code`-fails if any generated MDX drifts from its source |
+| **ML CI** | `ml-ci.yml` | Changes to `ml/`, `scripts/gen_ml_reference.py` | 28-test leakage spine (static guards always run; warehouse-dependent guards gate on bronze fixtures); ONNX parity; beats-baseline; no hardcoded holdout year in `ml/src`; model-card MDX drift check |
 
 ## Local equivalents
 

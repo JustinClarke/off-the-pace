@@ -38,6 +38,39 @@ def test_audit_features_clear_forward_window():
     assert not flagged, f"label-adjacent feature peeks forward-exclude it: {flagged}"
 
 
+def test_feature_contract_subset_of_mart():
+    """§1.4 'never again' guard: every column the ml layer reads features,
+    identifiers/metadata, and target source columns must exist in the live mart.
+    Catches schema drift in BOTH directions of the §1.1 break: dropped feature
+    columns (powertrain/air-density) and un-projected metadata (circuit_key)."""
+    import duckdb
+
+    con = duckdb.connect(S.DUCKDB_PATH, read_only=True)
+    try:
+        mart_cols = {
+            r[0] for r in con.execute(
+                "SELECT column_name FROM information_schema.columns "
+                f"WHERE table_name = '{S.MART}'"
+            ).fetchall()
+        }
+    finally:
+        con.close()
+    assert mart_cols, f"{S.MART} not found in {S.DUCKDB_PATH} build the mart first"
+
+    # Target source columns that come from the mart (stint-life is synthesised in
+    # features.py from stint_length_laps, so it is exempt).
+    mart_target_cols = {
+        t.source_column for t in S.PRODUCTION_TARGETS
+        if t.source_column != S.STINT_LIFE_TARGET
+    }
+    required = set(S.FEATURE_COLUMNS) | set(S.IDENTIFIER_COLUMNS) | mart_target_cols
+    missing = sorted(required - mart_cols)
+    assert not missing, (
+        f"ml contract references columns absent from {S.MART}: {missing}. "
+        "Either project them in the mart or remove them from schema.py."
+    )
+
+
 def test_holdout_purity(degradation):
     b = degradation
     # Holdout season is strictly after every training season (derived as MAX+1).

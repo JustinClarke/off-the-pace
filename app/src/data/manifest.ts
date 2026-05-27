@@ -16,9 +16,16 @@ export interface TableManifest {
 
 export interface ManifestStats {
   total_laps: number
+  total_drivers: number
+  total_events: number
+  total_circuits: number
   dbt_models: number
   ml_models: number
   seasons: string
+  /** Explicit sorted list of ingested seasons derived from MIN/MAX(race_year) in the warehouse. */
+  seasons_list?: number[]
+  /** Regulation-era boundary year (matches dbt_project.yml vars.era_boundary). */
+  era_boundary?: number
 }
 
 export interface DataManifest {

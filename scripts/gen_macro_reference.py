@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from mdx_utils import escape_mdx
+from mdx_utils import escape_mdx, first_sentence, mintlify_frontmatter
 
 REPO_ROOT = Path(__file__).parent.parent
 MANIFEST_PATH = REPO_ROOT / "transform" / "target" / "manifest.json"
@@ -145,10 +145,12 @@ def render_macro_mdx(macro: dict) -> str:
 
     signature = f"{name}({', '.join(sig_args)})" if sig_args else f"{name}()"
 
-    lines = [
+    lines = mintlify_frontmatter(
+        title=name,
+        sidebar_title=name,
+        description=first_sentence(doc["description"]) or f"Reference for the {name} dbt macro.",
+    ) + [
         AUTOGEN_HEADER,  # JSX comment for .mdx
-        "",
-        f"# `{name}`",
         "",
     ]
 
@@ -196,17 +198,11 @@ def render_macro_mdx(macro: dict) -> str:
 
 
 def render_index(macros: list[dict]) -> str:
-    lines = [
-        AUTOGEN_HEADER_MD,  # HTML comment for .md
-        "",
-        "---",
-        "id: macros-index",
-        "slug: /reference/macros",
-        "sidebar_position: 1",
-        "title: dbt Macros",
-        "---",
-        "",
-        "# dbt Macros Reference",
+    lines = mintlify_frontmatter(
+        title="dbt Macros",
+        description=f"Auto-generated reference for all {len(macros)} project macros.",
+    ) + [
+        AUTOGEN_HEADER_MD,
         "",
         f"Auto-generated reference for all {len(macros)} project macros.",
         "",

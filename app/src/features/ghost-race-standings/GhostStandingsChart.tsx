@@ -1,45 +1,48 @@
 import RankedTable from '../../ui/charts/RankedTable'
-import type { TransformResult, RaceScenario } from './transform'
+import type { LeaderboardResult, LeaderboardEntry } from './transform'
 import { CONFIDENCE_FLOOR } from './transform'
 
 interface Props {
-  result: TransformResult
-  /** If provided, only show this scenario (filtered by the page to one race + constructor). */
-  activeScenario?: RaceScenario
+  result: LeaderboardResult
 }
 
-function ScenarioTable({ scenario }: { scenario: RaceScenario }) {
-  const deltaClass = (delta: number): string => {
-    if (delta < -1) return 'text-emerald-400'
-    if (delta > 1) return 'text-rose-400'
-    return 'text-muted'
-  }
+function paceClass(s: unknown): string {
+  const n = s as number
+  if (n < -0.05) return 'text-emerald-400'
+  if (n > 0.05) return 'text-rose-400'
+  return 'text-muted'
+}
 
-  const confidenceBadge = (conf: number): string => {
-    if (conf >= 0.7) return 'bg-emerald-500/10 text-emerald-400'
-    if (conf >= CONFIDENCE_FLOOR) return 'bg-amber-500/10 text-amber-400'
-    return 'bg-rose-500/10 text-rose-400'
-  }
+function fmtSigned(s: unknown): string {
+  const n = s as number
+  const r = n.toFixed(2)
+  return n > 0 ? `+${r}` : r
+}
+
+function confidenceBadge(conf: unknown): string {
+  const c = conf as number
+  if (c >= 0.5) return 'bg-emerald-500/10 text-emerald-400'
+  if (c >= CONFIDENCE_FLOOR) return 'bg-amber-500/10 text-amber-400'
+  return 'bg-rose-500/10 text-rose-400'
+}
+
+export default function GhostStandingsChart({ result }: Props) {
+  if (!result.entries.length) return null
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-3">
         <span className="text-xs font-mono text-muted uppercase tracking-wider">
-          {scenario.hostConstructorId}
+          {result.circuitName}
         </span>
-        <span className="text-xs text-muted/50">race {scenario.raceId}</span>
-        {scenario.minConfidence < 0.5 && (
-          <span className="ml-auto text-xs text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
-            low confidence
-          </span>
-        )}
+        <span className="text-xs text-muted/50">equal-car record · {result.eraLabel}</span>
       </div>
-      <RankedTable<any>
-        rows={scenario.entries}
+      <RankedTable<LeaderboardEntry>
+        rows={result.entries}
         columns={[
           {
-            key: 'predictedPosition',
-            header: 'Pred.',
+            key: 'rank',
+            header: '#',
             align: 'right',
             render: v => <span className="font-semibold">{String(v)}</span>,
           },
@@ -50,26 +53,53 @@ function ScenarioTable({ scenario }: { scenario: RaceScenario }) {
             render: v => <span className="font-medium tracking-wide">{String(v)}</span>,
           },
           {
-            key: 'actualPosition',
-            header: 'Actual',
+            key: 'affinityS',
+            header: 'Pace vs field',
             align: 'right',
-            render: v => v != null ? String(v) : <span className="text-muted/40">-</span>,
+            render: v => {
+              const s = v as number
+              return (
+                <span
+                  className={`font-mono ${paceClass(s)}`}
+                  title="Car-removed pace at this circuit, shrunk toward the driver's era average. Negative = faster than the field."
+                >
+                  {fmtSigned(s)}s
+                </span>
+              )
+            },
           },
           {
-            key: 'delta',
-            header: 'Δ pos',
+            key: 'gapToLeaderS',
+            header: 'Gap',
             align: 'right',
             render: (v, row) => {
-              if (row.isSelfScenario) {
-                return <span className="text-muted/40 text-xs" title="Own-car scenario identity holds">self</span>
-              }
-              const d = v as number | null
-              if (d == null) {
-                return <span className="text-muted/40 text-xs" title="DNF no actual finishing position">—</span>
-              }
-              const label = d === 0 ? '=' : d > 0 ? `+${d}` : String(d)
-              return <span className={deltaClass(d)}>{label}</span>
+              const g = v as number
+              if (row.rank === 1) return <span className="text-muted/40 text-xs"> </span>
+              return <span className="font-mono text-muted">+{g.toFixed(2)}s</span>
             },
+          },
+          {
+            key: 'ciLowS',
+            header: '95% CI',
+            align: 'right',
+            render: (_v, row) => (
+              <span
+                className="font-mono text-xs text-muted/70"
+                title="95% credible interval on the shrunk pace estimate (seconds)."
+              >
+                [{row.ciLowS.toFixed(2)}, {row.ciHighS.toFixed(2)}]
+              </span>
+            ),
+          },
+          {
+            key: 'races',
+            header: 'Races',
+            align: 'right',
+            render: (v, row) => (
+              <span title={`${row.seasons} season${row.seasons === 1 ? '' : 's'} observed in this era`}>
+                {String(v)}
+              </span>
+            ),
           },
           {
             key: 'confidence',
@@ -78,56 +108,22 @@ function ScenarioTable({ scenario }: { scenario: RaceScenario }) {
             render: v => {
               const c = v as number
               return (
-                <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${confidenceBadge(c)}`}>
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded font-mono ${confidenceBadge(c)}`}
+                  title={
+                    c < CONFIDENCE_FLOOR
+                      ? 'Prior-dominated: too few races to separate from this driver’s career average.'
+                      : `Data fraction of the estimate (n / (n+5)). Higher = more races behind it.`
+                  }
+                >
                   {c.toFixed(2)}
                 </span>
               )
             },
           },
-          {
-            key: 'lapsScored',
-            header: 'Laps',
-            align: 'right',
-            render: (v, row) => {
-              const laps = v as number
-              if (row.isShortRun) {
-                return (
-                  <span
-                    className="text-amber-400/80"
-                    title={`Partial race ${(row.lapCoverage * 100).toFixed(0)}% of distance (small-sample estimate)`}
-                  >
-                    {laps}
-                    <span className="ml-1 text-[10px] uppercase tracking-wide">dnf</span>
-                  </span>
-                )
-              }
-              return <span>{laps}</span>
-            },
-          },
         ]}
-        initialRows={25}
+        initialRows={30}
       />
-    </div>
-  )
-}
-
-export default function GhostStandingsChart({ result, activeScenario }: Props) {
-  const scenarios = activeScenario ? [activeScenario] : result.scenarios
-
-  if (!scenarios.length) return null
-
-  if (scenarios.length === 1) {
-    return <ScenarioTable scenario={scenarios[0]} />
-  }
-
-  return (
-    <div className="space-y-8">
-      {scenarios.map(s => (
-        <ScenarioTable
-          key={`${s.raceId}::${s.hostConstructorId}`}
-          scenario={s}
-        />
-      ))}
     </div>
   )
 }

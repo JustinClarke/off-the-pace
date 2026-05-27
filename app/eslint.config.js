@@ -22,7 +22,7 @@ export default tseslint.config(
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
-  // Chart-primitive import gate (AD-14): primitives must stay generic —
+  // Chart-primitive import gate (AD-14): primitives must stay generic  
   // they may not reach into features/ or data/schemas/.
   {
     files: ['src/ui/charts/**/*.{ts,tsx}'],

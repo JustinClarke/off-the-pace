@@ -1,51 +1,54 @@
 export const methodologyContent = (
   <>
     <p>
-      For each race, every driver is placed into every constructor's car and their lap times
-      are predicted using pace recombination. Drivers are then re-ranked by predicted
-      <strong> mean lap pace</strong> to produce a ghost finishing order.
+      This is a driver's <strong>track record in equal machinery</strong>. For one circuit and
+      one regulation era, every driver who raced there is ranked by their car-removed pace so the
+      board reads as driver skill at that track not whose car was quickest.
     </p>
     <ul className="list-disc pl-4 mt-3 space-y-1">
       <li>
-        <strong>Pace recombination</strong>: lap times are rebuilt from the driver's
-        skill residual plus the host constructor's structural pace, tyre degradation, and
-        environmental components from the seven-term additive decomposition.
+        <strong>Equal car</strong>: each lap's time is decomposed into fuel, tyre compound, rubber,
+        ambient, <em>constructor</em>, and driver-skill components (the seven-term additive
+        identity). The leaderboard uses only the driver-skill residual the part left once the car
+        and conditions are removed so a slow car no longer hides a fast driver, and vice versa.
+        Negative = faster than the field.
       </li>
       <li>
-        <strong>Ranked by pace, not total time</strong>: ranking on cumulative race time
-        unfairly rewards drivers who ran fewer laps (a DNF accumulates a smaller total).
-        Ranking by mean lap pace is invariant to lap count, so partial races compare fairly.
+        <strong>Split by era, not blended</strong>: records are computed separately for
+        <span className="font-mono"> 2018–2021</span> (last-gen aero) and
+        <span className="font-mono"> 2022–2024</span> (ground-effect), split on the 2022 regulation
+        change. A driver's pace is only ever compared within one car era, never averaged across
+        the boundary.
       </li>
       <li>
-        <strong>Partial races (DNF)</strong>: drivers covering less than half the race
-        distance are flagged <span className="text-amber-400/80 font-mono">dnf</span> their
-        estimate is small-sample, and &Delta; pos is blank because they have no real finishing
-        position.
+        <strong>No single year</strong>: every race a driver ran at the circuit within the era is
+        pooled, so this is a multi-season record rather than one race's result.
       </li>
       <li>
-        <strong>Confidence</strong>: a continuous score combining how well the host car's
-        pace is estimated (panel-observation shrinkage) with how much of the race the driver
-        actually contributed. It now varies per driver rather than sitting at a flat value.
+        <strong>Shrunk toward the driver's own average</strong>: a one-race sample is regularised
+        toward the driver's era-wide mean (Bayesian, prior = 5 virtual races), so a single hot lap
+        can't top the board on noise. The <span className="font-mono">Conf.</span> column is the
+        data fraction of the estimate <span className="font-mono">n / (n + 5)</span>; values
+        below <span className="font-mono">{0.3}</span> (amber) are prior-dominated and should be
+        read as "not enough races yet".
       </li>
       <li>
-        <strong>Identity invariant</strong>: when a driver is placed in their own
-        constructor's car (the self-scenario, shown as <em>self</em>), predicted pace equals
-        actual. A degenerate but verifiable case the model must satisfy.
+        <strong>95% CI</strong>: the credible interval on the shrunk estimate. Overlapping
+        intervals mean two drivers are statistically tied at that track.
       </li>
       <li>
-        <strong>&Delta; pos</strong>: predicted minus actual finish position. Negative
-        values (green) mean the driver would have finished <em>higher</em> in the ghost
-        scenario; positive (red) means lower.
+        <strong>Min. races</strong>: filters out thin samples; the gap-to-leader is measured
+        against the fastest driver among those shown.
       </li>
     </ul>
     <p className="mt-3 text-muted/70">
-      Source: <code>fct_ghost_race_finish</code> via <code>fct_ghost_car_pace</code>.
-      Recombination is a probabilistic reconstruction, not a physics simulation; treat
-      positions as expected-value estimates with the confidence column as the uncertainty
-      proxy.
+      Source: <code>int_driver_circuit_era_affinity</code>, built on the driver-skill residual of{' '}
+      <code>fct_lap_residuals</code>. This is a statistical reconstruction of equal-car pace, not a
+      physics simulation treat the ranking as expected-value estimates with the confidence and CI
+      columns as the uncertainty.
     </p>
   </>
 )
 
 export const methodologyHref =
-  'https://offthepace.mintlify.app/reference/models/fct/fct_ghost_race_finish'
+  'https://offthepace.mintlify.app/reference/models/int/int_driver_circuit_era_affinity'

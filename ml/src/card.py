@@ -43,10 +43,10 @@ HOLDOUT_NOTE = (
     "true-holdout reveal the moment 2025 ingests, with no code change.")
 
 
-def _latest_log(target: str) -> dict:
-    logs = sorted(LOGS_DIR.glob(f"{target}_v1_*.json"))
+def _latest_log(target: str, version: str) -> dict:
+    logs = sorted(LOGS_DIR.glob(f"{target}_{version}_*.json"))
     if not logs:
-        raise FileNotFoundError(f"no v1 training log for {target}-run `make ml-tune`")
+        raise FileNotFoundError(f"no {version} training log for {target}-run `make ml-tune`")
     return json.loads(logs[-1].read_text())
 
 
@@ -56,10 +56,10 @@ def _require(path: Path) -> dict:
     return json.loads(path.read_text())
 
 
-def build_card() -> dict:
+def build_card(version: str = "v1") -> dict:
     ev = _require(EVAL_PATH)
     encoders = _require(ENCODERS_PATH)
-    logs = {t.name: _latest_log(t.name) for t in S.PRODUCTION_TARGETS}
+    logs = {t.name: _latest_log(t.name, version) for t in S.PRODUCTION_TARGETS}
     any_log = next(iter(logs.values()))
 
     # ── Per-model block: CV (from the training log) + eval headline-vs-baseline (from eval) ──
@@ -82,8 +82,8 @@ def build_card() -> dict:
             "fit_seconds": log["fit_seconds"],
             "hyperparameters": log["params"],
             "artefacts": {
-                "booster": f"ml/models/{spec.name}_v1.bst",
-                "onnx": f"ml/models/{spec.name}_v1.onnx",
+                "booster": f"ml/models/{spec.name}_{version}.bst",
+                "onnx": f"ml/models/{spec.name}_{version}.onnx",
             },
         })
 
@@ -103,7 +103,7 @@ def build_card() -> dict:
     card = {
         "model_card": {
             "name": "Off the Pace-Tyre Degradation Predictors",
-            "version": "v1",
+            "version": version,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "summary": (
                 "Five XGBoost models predicting next-lap tyre-degradation pace loss "
@@ -155,15 +155,15 @@ def build_card() -> dict:
                     "degradation_p50": "group-mean over (compound, circuit, age-bucket) cells, compound→global fallback",
                     "degradation_p10_p90": "empirical 10th/90th percentile in the same cells",
                     "cliff_classifier": "majority-class prior (none_in_stint)",
-                    "stint_life": "(stint_length_laps − lap_in_stint)/2-knowingly leakage-shaped strong anchor",
+                    "stint_life": "cell group-mean of remaining stint life over (compound, circuit, age-bucket), compound→global fallback (non-leakage)",
                 },
                 "calibration": ev.get("calibration", {}),
                 "leakage_probe": ev.get("leakage_probe", {}),
                 "dual_importance": importance,
                 "underperforming_cohorts": underperformers,
                 "underperforming_cohorts_note": (
-                    "Surfaced, never dropped. The majority are stint-life cohorts losing to its "
-                    "near-oracle anchor on specific circuits/constructors; the model still wins overall."),
+                    "Surfaced, never dropped. Specific circuit/constructor cells where the model "
+                    "trails its non-leakage cohort-mean baseline; the model wins comfortably overall."),
             },
 
             "reproducibility": {
@@ -176,7 +176,7 @@ def build_card() -> dict:
 
             "deviations": [
                 {"id": "D1", "note": "Built on XGBoost 3.2.0 (contract said 2.x); ONNX quantile round-trip spiked in M2 before tuning."},
-                {"id": "D5", "note": "Degradation target is bounded [−10,10] with 44% legitimate negatives (thermal gain / out-lap recovery); the contract's y>0 test was a spec bug."},
+                {"id": "D5", "note": "Degradation target is bounded [−10,10]; the majority of jumps are legitimate negatives (fuel burn / track evolution / out-lap recovery), so the contract's y>0 floor was a spec bug that degenerated the p10 quantile."},
                 {"id": "E1", "note": "Evaluation uses the final CV fold (2024) as a holdout stand-in; 2025 not yet ingested."},
                 {"id": "E3", "note": "Heavy elevations (ablation/learning-curve/SHAP/PDP) run on the headline model of each family; quantile siblings share p50's structure."},
             ],
@@ -210,8 +210,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--write", action="store_true", help="write model_card.yml + model_card.json")
     ap.add_argument("--to-json", action="store_true", help="print the JSON mirror to stdout")
+    ap.add_argument("--version", default="v1", help="artefact version to describe (v1/v2/v3)")
     args = ap.parse_args()
-    card = build_card()
+    card = build_card(args.version)
     if args.to_json:
         print(json.dumps(card, indent=2, ensure_ascii=False))
         return 0

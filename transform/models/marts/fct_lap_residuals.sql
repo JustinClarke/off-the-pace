@@ -5,9 +5,9 @@
 --   • debut_year       -driver vintage for era-normalisation features
 --
 -- Residual identity (all in seconds, positive = slower):
---   lap_time_s = fuel_component_s + compound_component_s + rubber_component_s
---              + ambient_component_s + constructor_component_s
---              + driver_skill_residual_s + [unexplained]
+--   pace_delta_s = fuel_component_s + compound_component_s + rubber_component_s
+--                + ambient_component_s + constructor_component_s
+--                + dirty_air_tax_s + driver_skill_residual_s
 --
 -- correction_weight < 1.0 rows are retained but ml_eligible = FALSE.
 -- Consumers that want clean laps only: WHERE ml_eligible = TRUE.

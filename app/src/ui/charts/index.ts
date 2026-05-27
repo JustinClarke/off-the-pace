@@ -18,3 +18,6 @@ export type { KMPoint, StintObservation, SurvivalCurveProps } from './SurvivalCu
 
 export { default as Gantt } from './Gantt'
 export type { GanttStint, GanttProps, StrategyVerdict } from './Gantt'
+
+export { default as Heatmap } from './Heatmap'
+export type { HeatmapCell, HeatmapProps } from './Heatmap'

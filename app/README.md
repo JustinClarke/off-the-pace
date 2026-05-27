@@ -57,17 +57,17 @@ Route components are organised into 13 pillars. Some are fully implemented, othe
 | Pillar | Path | Status |
 |---|---|---|
 | Races | `/races` | coming soon |
-| Ghost Car | `/ghost-car` | coming soon |
-| Lap Decomposition | `/lap-decomposition` | coming soon |
-| Tyre Strategy | `/tyre-strategy` | coming soon |
-| Aero & Conditions | `/aero` | coming soon |
+| Ghost Car | `/ghost-car` | live |
+| Lap Decomposition | `/lap-decomposition` | live |
+| Tyre Strategy | `/tyre-strategy` | live |
+| Aero & Conditions | `/aero` | live |
 | Race Craft | `/race-craft` | coming soon |
 | Drivers | `/drivers` | live |
-| Constructors | `/constructors` | coming soon |
+| Constructors | `/constructors` | live |
 | Energy & Telemetry | `/energy` | coming soon |
 | The Machine | `/ml` | live |
 | Query Lab | `/query` | live |
-| Data Quality | `/data-quality` | coming soon |
+| Data Quality | `/data-quality` | live |
 
 ## Status legend
 

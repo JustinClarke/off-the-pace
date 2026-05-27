@@ -6,9 +6,9 @@
 //
 // Only the features a strategist actually reasons about are exposed as controls. Every other
 // model feature is either derived from a control (the cliff-state booleans, age) or left as the
-// compound/circuit constant captured in the preset. Features absent from the exported parquet
-// (telemetry + air-density columns) were NULL in training too, so they stay NaN here-the model
-// was trained to handle them as native-missing.
+// compound/circuit constant captured in the preset. The 11 v3 telemetry features have no sliders,
+// so the synthetic sweep leaves them unset (XGBoost native-missing / NaN); a loaded real stint
+// scores its actual per-lap telemetry instead (see queries.ts / page.tsx).
 
 import type { FeatureRow } from '../../ml'
 
@@ -39,7 +39,25 @@ export interface SimulatorInputs {
   circuit_abrasiveness_index: number
   constructor_id: string
   constants: CompoundConstants
+  // ── Circuit / era context (powers the deterministic fuel term + historical anchor) ──
+  circuit_id: string | null     // chosen physical circuit; null = generic (use defaults)
+  circuit_name: string          // display name of the chosen circuit
+  era: string                   // 'pre2022' | 'post2022' (regulation era for the history envelope)
+  weight_penalty_factor: number          // s/kg circuit lap-time cost of fuel mass
+  fuel_consumption_rate_kg_per_lap: number // kg burned per lap on this circuit
 }
+
+/** Default circuit physics when no circuit is selected (medians across the field). */
+export const DEFAULT_WEIGHT_PENALTY_FACTOR = 0.025
+export const DEFAULT_FUEL_CONSUMPTION_RATE = 1.6
+
+/**
+ * Fuel mass the *model* sees in what-if mode: a neutral realistic trajectory derived from the
+ * circuit consumption rate, NOT the user's Fuel slider. Fuel is applied to the headline only via
+ * the deterministic fuel term (transform.ts), so the ONNX tyre prediction stays stable while the
+ * Fuel slider cleanly raises the absolute curve. A loaded real stint feeds its actual fuel instead.
+ */
+export const NEUTRAL_MODEL_FUEL_START_KG = 60
 
 export interface SliderSpec {
   key: keyof SimulatorInputs
@@ -117,6 +135,11 @@ export const DEFAULT_INPUTS: SimulatorInputs = {
   circuit_abrasiveness_index: 3,
   constructor_id: 'Mercedes',
   constants: compoundConstants('MEDIUM'),
+  circuit_id: null,
+  circuit_name: '',
+  era: 'post2022',
+  weight_penalty_factor: DEFAULT_WEIGHT_PENALTY_FACTOR,
+  fuel_consumption_rate_kg_per_lap: DEFAULT_FUEL_CONSUMPTION_RATE,
 }
 
 /**
@@ -132,6 +155,7 @@ export const DEFAULT_INPUTS: SimulatorInputs = {
 export function buildStintRows(inputs: SimulatorInputs): FeatureRow[] {
   const { constants } = inputs
   const cliffOnset = constants.compound_cliff_onset_laps
+  const burnRate = inputs.fuel_consumption_rate_kg_per_lap || DEFAULT_FUEL_CONSUMPTION_RATE
   const rows: FeatureRow[] = []
 
   for (let lap = 1; lap <= inputs.stint_length; lap++) {
@@ -144,7 +168,9 @@ export function buildStintRows(inputs: SimulatorInputs): FeatureRow[] {
       lap_number: inputs.lap_number + (lap - 1),
       lap_in_stint: lap,
       age_in_stint: lap, // fresh-fitted stint: tyre age tracks laps run
-      fuel_mass_kg: Math.max(1, inputs.fuel_mass_kg - (lap - 1) * 1.6), // ~1.6 kg/lap burn
+      // The model sees a NEUTRAL fuel trajectory (circuit burn rate), not the Fuel slider, so the
+      // tyre prediction is stable; the slider's fuel is applied only via the deterministic term.
+      fuel_mass_kg: Math.max(1, NEUTRAL_MODEL_FUEL_START_KG - (lap - 1) * burnRate),
       compound: constants.compound,
       compound_grip_peak: constants.compound_grip_peak,
       compound_wear_gradient: constants.compound_wear_gradient,
@@ -172,8 +198,10 @@ export function buildStintRows(inputs: SimulatorInputs): FeatureRow[] {
       constructor_id: inputs.constructor_id,
       event_flag_any: false,
       anomaly_class: 'normal',
-      // n_gear_changes, mean_rpm, max_rpm, pct_full_throttle, pct_drs_active, short_shift_index,
-      // air_density_kgm3, density_ratio_to_ref are intentionally omitted -> NaN (native-missing).
+      // The 11 v3 telemetry features (n_gear_changes, mean_rpm, max_rpm, pct_full_throttle,
+      // pct_drs_active, short_shift_index, mid_corner_speed_loss_kph, traction_wheelspin_proxy,
+      // throttle_trace_decay, braking_point_drift_m, lift_coast_share) have no sliders -> omitted
+      // -> NaN (native-missing). A loaded real stint scores its actual telemetry instead.
     })
   }
   return rows

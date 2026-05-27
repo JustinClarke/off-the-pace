@@ -128,6 +128,7 @@ deg_sensitivity AS (
     FROM {{ ref('int_constructor_deg_sensitivity') }}
 ),
 
+
 -- Cartesian: every (ego_driver_race_lap) × (valid host_constructor in same race)
 ghost_recombined AS (
     SELECT

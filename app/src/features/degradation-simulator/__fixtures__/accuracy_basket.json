@@ -1,0 +1,75 @@
+{
+  "_doc": "Ground-truth accuracy basket for the Degradation Simulator. Five well-populated circuit×era×compound cells. Each cell records obs_deg_from_fresh_p{10,50,90}_s at laps {5,10,15,20,25,30}, queried directly from mart_degradation_history_envelope. The p50 values here are the regression sentinels: the fitted monotone curve must reproduce them to within MAE ≤ 0.5s at neutral inputs. Generated 2026-06-15 from data/dev.duckdb.",
+  "basket": [
+    {
+      "circuit_id": "red_bull_ring",
+      "era": "post2022",
+      "compound": "HARD",
+      "ref_green_pace_s": 68.919,
+      "samples": [
+        { "lap_in_stint": 5,  "n_observations": 73, "obs_deg_from_fresh_p10_s": -0.6668, "obs_deg_from_fresh_p50_s": 0.3055, "obs_deg_from_fresh_p90_s": 0.7735 },
+        { "lap_in_stint": 10, "n_observations": 70, "obs_deg_from_fresh_p10_s": -0.4039, "obs_deg_from_fresh_p50_s": 0.6970, "obs_deg_from_fresh_p90_s": 1.4136 },
+        { "lap_in_stint": 15, "n_observations": 70, "obs_deg_from_fresh_p10_s":  0.2111, "obs_deg_from_fresh_p50_s": 1.0823, "obs_deg_from_fresh_p90_s": 2.1474 },
+        { "lap_in_stint": 20, "n_observations": 55, "obs_deg_from_fresh_p10_s":  0.4736, "obs_deg_from_fresh_p50_s": 1.1695, "obs_deg_from_fresh_p90_s": 2.0696 },
+        { "lap_in_stint": 25, "n_observations": 38, "obs_deg_from_fresh_p10_s":  0.6026, "obs_deg_from_fresh_p50_s": 1.4880, "obs_deg_from_fresh_p90_s": 2.2762 },
+        { "lap_in_stint": 30, "n_observations": 16, "obs_deg_from_fresh_p10_s":  0.3568, "obs_deg_from_fresh_p50_s": 0.9297, "obs_deg_from_fresh_p90_s": 2.5828 }
+      ]
+    },
+    {
+      "circuit_id": "autodromo_nazionale_monza",
+      "era": "post2022",
+      "compound": "HARD",
+      "ref_green_pace_s": 83.560,
+      "samples": [
+        { "lap_in_stint": 5,  "n_observations": 58, "obs_deg_from_fresh_p10_s": -1.2768, "obs_deg_from_fresh_p50_s": 0.9346, "obs_deg_from_fresh_p90_s": 2.3710 },
+        { "lap_in_stint": 10, "n_observations": 58, "obs_deg_from_fresh_p10_s": -1.1260, "obs_deg_from_fresh_p50_s": 1.1334, "obs_deg_from_fresh_p90_s": 2.6511 },
+        { "lap_in_stint": 15, "n_observations": 54, "obs_deg_from_fresh_p10_s": -1.1418, "obs_deg_from_fresh_p50_s": 1.2847, "obs_deg_from_fresh_p90_s": 2.9404 },
+        { "lap_in_stint": 20, "n_observations": 39, "obs_deg_from_fresh_p10_s": -0.4860, "obs_deg_from_fresh_p50_s": 2.1032, "obs_deg_from_fresh_p90_s": 3.3460 },
+        { "lap_in_stint": 25, "n_observations": 27, "obs_deg_from_fresh_p10_s":  0.4750, "obs_deg_from_fresh_p50_s": 2.4952, "obs_deg_from_fresh_p90_s": 4.0422 },
+        { "lap_in_stint": 30, "n_observations": 14, "obs_deg_from_fresh_p10_s":  0.0638, "obs_deg_from_fresh_p50_s": 1.5660, "obs_deg_from_fresh_p90_s": 3.7317 }
+      ]
+    },
+    {
+      "circuit_id": "red_bull_ring",
+      "era": "post2022",
+      "compound": "MEDIUM",
+      "ref_green_pace_s": 68.661,
+      "samples": [
+        { "lap_in_stint": 5,  "n_observations": 82, "obs_deg_from_fresh_p10_s": -0.7481, "obs_deg_from_fresh_p50_s": 0.1885, "obs_deg_from_fresh_p90_s": 0.8334 },
+        { "lap_in_stint": 10, "n_observations": 60, "obs_deg_from_fresh_p10_s": -0.1897, "obs_deg_from_fresh_p50_s": 0.5822, "obs_deg_from_fresh_p90_s": 1.3404 },
+        { "lap_in_stint": 15, "n_observations": 53, "obs_deg_from_fresh_p10_s":  0.0461, "obs_deg_from_fresh_p50_s": 0.7620, "obs_deg_from_fresh_p90_s": 2.0597 },
+        { "lap_in_stint": 20, "n_observations": 30, "obs_deg_from_fresh_p10_s":  0.5215, "obs_deg_from_fresh_p50_s": 0.9835, "obs_deg_from_fresh_p90_s": 1.8512 },
+        { "lap_in_stint": 25, "n_observations": 18, "obs_deg_from_fresh_p10_s":  0.3362, "obs_deg_from_fresh_p50_s": 1.0485, "obs_deg_from_fresh_p90_s": 2.4530 },
+        { "lap_in_stint": 30, "n_observations":  6, "obs_deg_from_fresh_p10_s":  0.3655, "obs_deg_from_fresh_p50_s": 0.8658, "obs_deg_from_fresh_p90_s": 1.6758 }
+      ]
+    },
+    {
+      "circuit_id": "yas_marina_circuit",
+      "era": "post2022",
+      "compound": "HARD",
+      "ref_green_pace_s": 88.079,
+      "samples": [
+        { "lap_in_stint": 5,  "n_observations": 81, "obs_deg_from_fresh_p10_s": -0.5410, "obs_deg_from_fresh_p50_s": 0.3330, "obs_deg_from_fresh_p90_s": 1.7890 },
+        { "lap_in_stint": 10, "n_observations": 80, "obs_deg_from_fresh_p10_s": -0.5686, "obs_deg_from_fresh_p50_s": 0.6025, "obs_deg_from_fresh_p90_s": 1.7813 },
+        { "lap_in_stint": 15, "n_observations": 76, "obs_deg_from_fresh_p10_s": -0.2070, "obs_deg_from_fresh_p50_s": 0.7305, "obs_deg_from_fresh_p90_s": 2.0965 },
+        { "lap_in_stint": 20, "n_observations": 57, "obs_deg_from_fresh_p10_s": -0.0302, "obs_deg_from_fresh_p50_s": 0.9150, "obs_deg_from_fresh_p90_s": 2.2216 },
+        { "lap_in_stint": 25, "n_observations": 30, "obs_deg_from_fresh_p10_s": -0.1174, "obs_deg_from_fresh_p50_s": 1.3355, "obs_deg_from_fresh_p90_s": 3.1855 },
+        { "lap_in_stint": 30, "n_observations": 19, "obs_deg_from_fresh_p10_s": -0.2764, "obs_deg_from_fresh_p50_s": 1.2240, "obs_deg_from_fresh_p90_s": 3.0724 }
+      ]
+    },
+    {
+      "circuit_id": "istanbul_park",
+      "era": "pre2022",
+      "compound": "INTERMEDIATE",
+      "ref_green_pace_s": 99.504,
+      "samples": [
+        { "lap_in_stint": 5,  "n_observations": 58, "obs_deg_from_fresh_p10_s": -6.1904, "obs_deg_from_fresh_p50_s": -4.3330, "obs_deg_from_fresh_p90_s":  5.2819 },
+        { "lap_in_stint": 10, "n_observations": 63, "obs_deg_from_fresh_p10_s": -7.0656, "obs_deg_from_fresh_p50_s": -5.0080, "obs_deg_from_fresh_p90_s":  3.1804 },
+        { "lap_in_stint": 15, "n_observations": 62, "obs_deg_from_fresh_p10_s": -7.5923, "obs_deg_from_fresh_p50_s": -5.2140, "obs_deg_from_fresh_p90_s":  3.5751 },
+        { "lap_in_stint": 20, "n_observations": 49, "obs_deg_from_fresh_p10_s": -8.0506, "obs_deg_from_fresh_p50_s": -5.5340, "obs_deg_from_fresh_p90_s":  2.9770 },
+        { "lap_in_stint": 25, "n_observations": 28, "obs_deg_from_fresh_p10_s": -7.0967, "obs_deg_from_fresh_p50_s": -5.8155, "obs_deg_from_fresh_p90_s":  2.2658 },
+        { "lap_in_stint": 30, "n_observations": 23, "obs_deg_from_fresh_p10_s": -6.8340, "obs_deg_from_fresh_p50_s": -5.2690, "obs_deg_from_fresh_p90_s":  1.2858 }
+      ]
+    }
+  ]
+}

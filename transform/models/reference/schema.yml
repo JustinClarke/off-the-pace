@@ -9,8 +9,13 @@ models:
       Seeded from circuit_reference.csv   refresh when layouts change.
     columns:
       - name: circuit_key
-        description: Stable identifier matching race_id in stg_laps
+        description: Event slug (grand-prix key) matching race_id in stg_laps
         tests: [not_null, unique]
+      - name: circuit_id
+        description: >
+          Physical-circuit identifier (slug of circuit_name). Several event slugs can share
+          one circuit_id (renamed events, double-headers), so it is non-unique here.
+        tests: [not_null]
       - name: fuel_consumption_rate_kg_per_lap
         description: Estimated kg/lap used for fuel_mass_kg calculation in Layer 03
         tests: [not_null]

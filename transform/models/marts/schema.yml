@@ -147,6 +147,11 @@ models:
         data_type: varchar
         constraints:
           - type: not_null
+      - name: circuit_key
+        description: Circuit identifier (track_id via race_to_track); L0-1 cohort key and predictions output column
+        data_type: varchar
+        constraints:
+          - type: not_null
       - name: driver_id
         description: FastF1 three-letter driver code
         data_type: varchar
@@ -237,6 +242,45 @@ models:
       - name: circuit_abrasiveness_index
         description: Track abrasiveness index from dim_circuits
         data_type: integer
+      - name: n_gear_changes
+        description: Gear changes this lap (telemetry powertrain group; NULL if no telemetry)
+        data_type: integer
+      - name: mean_rpm
+        description: Mean engine RPM this lap
+        data_type: double
+      - name: max_rpm
+        description: Max engine RPM this lap
+        data_type: double
+      - name: pct_full_throttle
+        description: Fraction of the lap at full throttle (0–1)
+        data_type: double
+      - name: pct_drs_active
+        description: Fraction of the lap with DRS active (0–1)
+        data_type: double
+      - name: short_shift_index
+        description: Fraction of upshifts taken below 92% of lap-max RPM (short-shifting)
+        data_type: double
+      - name: mid_corner_speed_loss_kph
+        description: >
+          Within-stint drift: early-stint baseline minus this lap's mean local-minimum (corner-apex)
+          speed. Positive = slow points getting slower vs own baseline. NULL if no telemetry.
+        data_type: double
+      - name: traction_wheelspin_proxy
+        description: Share of corner-exit full-throttle samples with non-positive accel (wheelspin proxy, 0–1)
+        data_type: double
+      - name: throttle_trace_decay
+        description: Within-stint drift of full-throttle fraction (early-stint baseline minus this lap)
+        data_type: double
+      - name: braking_point_drift_m
+        description: >
+          Within-stint drift: early-stint baseline minus this lap's mean brake-onset distance.
+          Positive = braking earlier than own baseline. NULL if no telemetry.
+        data_type: double
+      - name: lift_coast_share
+        description: >
+          Off-throttle, non-braking, decelerating share of the lap (0–1). CONFOUND with fuel-saving  
+          consumed alongside int_lap_fuel_state, not equated with degradation.
+        data_type: double
       - name: fuel_mass_kg
         description: Estimated fuel mass on board at this lap
         data_type: double
@@ -254,10 +298,31 @@ models:
       - name: is_rain_lap
         description: TRUE if rainfall was detected on this lap
         data_type: boolean
+      - name: surface_bulk_ratio
+        description: >
+          C3 feature (42nd): ratio of surface thermal load to total thermal load
+          (cumulative_push_load_surface / (surface + bulk)). NULL when both loads are zero.
+          Helps the model distinguish early-stint surface-dominated warming from bulk-driven
+          structural degradation.
+        data_type: double
+      - name: survival_weight
+        description: >
+          C2 metadata (not a feature): IPW weight = 1 / P(stint reaches lap_in_stint | compound),
+          clipped to [0.25, 4]. Used by train.py for quantile regressor sample weighting to
+          correct for survivorship bias (degraded stints pitted early are under-represented
+          at high lap_in_stint values).
+        data_type: double
+      - name: next_lap_degradation_jump_detrended_s
+        description: >
+          C1 PRIMARY target: per-lap change in driver skill residual with per-stint linear
+          drift removed. drift_s_per_lap (OLS slope on pre-cliff laps, Step 0 median -0.072
+          s/lap) is subtracted so fuel-lightening and track-evolution leaks are cancelled.
+          Bounded [-10, 10]. NULL on last lap of each stint.
+        data_type: double
       - name: next_lap_degradation_jump_s
         description: >
-          Target: increase in driver skill residual on the next lap within the stint.
-          Positive = degradation step. NULL on the last lap of each stint.
+          Legacy target (undetrended): change in driver skill residual on the next lap, bounded
+          [-10, 10]. Kept alongside the detrended primary for gate comparison. NULL on last lap.
         data_type: double
       - name: next_3_lap_cumulative_jump_s
         description: >
@@ -282,10 +347,19 @@ models:
       - dbt_expectations.expect_column_values_to_be_between:
           column_name: next_lap_degradation_jump_s
           arguments:
-            min_value: 0
-            max_value: 30
+            min_value: -10
+            max_value: 10
           config:
             where: "next_lap_degradation_jump_s IS NOT NULL"
+            warn_if: ">0"
+            error_if: ">0"
+      - dbt_expectations.expect_column_values_to_be_between:
+          column_name: next_lap_degradation_jump_detrended_s
+          arguments:
+            min_value: -10
+            max_value: 10
+          config:
+            where: "next_lap_degradation_jump_detrended_s IS NOT NULL"
             warn_if: ">0"
             error_if: ">0"
 
@@ -444,7 +518,17 @@ models:
                 min_value: 1
                 max_value: 25
       - name: actual_finish_position
-        description: Actual finish position from stg_laps (last valid position); NULL for DNF.
+        description: >
+          Actual finishing position. §5.4: sourced from official classified results
+          (stg_results) classified finishers get their official position, retirements
+          get NULL. Falls back to the legacy last-valid-lap position only for races not
+          yet in stg_results during the partial v0.2 backfill (see finish_from_results).
+      - name: actual_is_dnf
+        description: True when official results classify the driver as a retirement (NULL position). FALSE when results absent.
+      - name: actual_dnf_cause
+        description: Coarse DNF cause from stg_results ('racing'/'mechanical'/'non_classified'); NULL for finishers or races without results.
+      - name: finish_from_results
+        description: True when actual_finish_position came from official classified results; False when it fell back to the lap-derived position.
       - name: delta_vs_actual_position
         description: >
           Projected minus actual finish position. Negative = would have finished higher.
@@ -495,3 +579,148 @@ models:
               arguments:
                 min_value: 0
                 max_value: 25
+
+  - name: mart_corner_skill_driver
+    description: >
+      Ghost-car-style driver corner skill ranking. Grain: (race_year, driver_id).
+      Estimates driver skill as their deviation from their car's average corner geometry
+      (braking point, apex speed, throttle point), converts to seconds, and z-scores
+      each phase across the field so all three contribute equally to corner_skill_index.
+      SC / VSC / pit / inaccurate laps are excluded before car averages are formed.
+      Negative values = faster. corner_skill_index = sum of three z-scores; lower = faster.
+    tags: [marts]
+    columns:
+      - name: race_year
+        description: Season year
+        tests: [not_null]
+      - name: driver_id
+        description: FastF1 three-letter driver code (e.g. VER, HAM)
+        tests: [not_null]
+      - name: constructor_id
+        description: Driver's team for the season (ANY_VALUE may vary for mid-season changes)
+        tests: [not_null]
+      - name: braking_skill_s
+        description: Mean braking deviation from car average (seconds). Negative = earlier brake = faster.
+        tests: [not_null]
+      - name: mid_corner_skill_s
+        description: Mean apex speed deviation from car average (seconds). Negative = higher apex speed = faster.
+        tests: [not_null]
+      - name: exit_skill_s
+        description: Mean throttle-point deviation from car average (seconds). Negative = earlier throttle = faster.
+        tests: [not_null]
+      - name: braking_skill_z
+        description: braking_skill_s standardised within season (zero mean, unit variance).
+        tests: [not_null]
+      - name: mid_corner_skill_z
+        description: mid_corner_skill_s standardised within season.
+        tests: [not_null]
+      - name: exit_skill_z
+        description: exit_skill_s standardised within season.
+        tests: [not_null]
+      - name: corner_skill_index
+        description: >
+          Sum of the three z-scores. Lower = faster driver in corner skill.
+          Mid-season replacements with few races can reach ±9 because the car baseline
+          is dominated by the full-season driver; this is expected behaviour.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: -12
+                max_value: 12
+      - name: mapped_corners
+        description: Number of corner observations used in the season aggregate (≥ 100).
+        tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [race_year, driver_id]
+
+  - name: mart_degradation_history_envelope
+    description: >
+      Pre-aggregated historical stint envelope for the Degradation Simulator.
+      Grain: (circuit_id, era, compound, lap_in_stint). For each physical circuit ×
+      regulation era × compound, captures at every lap-in-stint the observed fuel-removed
+      pace distribution (p10/p50/p90 of weight_corrected_lap_time) and the corresponding
+      tyre-degradation-from-fresh band (the same minus the fresh-tyre anchor ref_green_pace_s).
+      A compound='_all' rollup is emitted for fallback. Clean laps only
+      (correction_weight = 1, not SC/VSC, not major outlier); cells with < 3 observations dropped.
+    tags: [marts]
+    columns:
+      - name: circuit_id
+        description: Physical circuit identifier (slug of circuit_name).
+        tests: [not_null]
+      - name: circuit_name
+        description: Canonical display name for the circuit.
+        tests: [not_null]
+      - name: era
+        description: Regulation era 'pre2022' (2018–2021) or 'post2022' (2022–2024).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['pre2022', 'post2022']
+      - name: compound
+        description: Tyre compound code, or '_all' for the cross-compound rollup.
+        tests: [not_null]
+      - name: lap_in_stint
+        description: Lap number within the stint (1-based).
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 50
+      - name: n_observations
+        description: Clean-lap count behind this cell (≥ 3).
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 3
+      - name: ref_green_pace_s
+        description: Fuel-removed fresh-tyre anchor (median weight_corrected_lap_time, age ≤ 2 laps).
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 50
+                max_value: 130
+      - name: obs_fuel_removed_pace_p10_s
+        description: 10th percentile of fuel-removed lap time at this lap-in-stint.
+        tests: [not_null]
+      - name: obs_fuel_removed_pace_p50_s
+        description: Median fuel-removed lap time at this lap-in-stint.
+        tests: [not_null]
+      - name: obs_fuel_removed_pace_p90_s
+        description: 90th percentile of fuel-removed lap time at this lap-in-stint.
+        tests: [not_null]
+      - name: obs_deg_from_fresh_p10_s
+        description: p10 tyre-degradation-from-fresh (obs_fuel_removed_pace_p10_s − ref_green_pace_s).
+        tests: [not_null]
+      - name: obs_deg_from_fresh_p50_s
+        description: p50 tyre-degradation-from-fresh.
+        tests: [not_null]
+      - name: obs_deg_from_fresh_p90_s
+        description: p90 tyre-degradation-from-fresh.
+        tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [circuit_id, era, compound, lap_in_stint]
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 1
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+          arguments:
+            column_A: obs_fuel_removed_pace_p90_s
+            column_B: obs_fuel_removed_pace_p10_s
+            or_equal: true
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+          arguments:
+            column_A: obs_fuel_removed_pace_p50_s
+            column_B: obs_fuel_removed_pace_p10_s
+            or_equal: true
+      - dbt_expectations.expect_column_pair_values_A_to_be_greater_than_B:
+          arguments:
+            column_A: obs_fuel_removed_pace_p90_s
+            column_B: obs_fuel_removed_pace_p50_s
+            or_equal: true

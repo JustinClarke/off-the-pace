@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from mdx_utils import escape_mdx
+from mdx_utils import escape_mdx, first_sentence, mintlify_frontmatter
 
 REPO_ROOT = Path(__file__).parent.parent
 MANIFEST_PATH = REPO_ROOT / "transform" / "target" / "manifest.json"
@@ -127,7 +127,8 @@ def model_link(source_subdir: str, target_name: str) -> str:
 
 def render_model_mdx(node: dict, tests_index: dict, nodes: dict) -> str:
     name = node["name"]
-    description = escape_mdx(node.get("description", "").strip())
+    desc_raw = node.get("description", "").strip()
+    description = escape_mdx(desc_raw)
     layer = layer_of(node)
     source_subdir = subdir_of(name)
     tags = [t for t in node.get("tags", []) if t != layer]
@@ -137,10 +138,12 @@ def render_model_mdx(node: dict, tests_index: dict, nodes: dict) -> str:
     upstream = upstream_models(node, nodes)
     model_level_tests = model_tests_no_column(uid, tests_index)
 
-    lines = [
+    lines = mintlify_frontmatter(
+        title=name,
+        sidebar_title=name,
+        description=first_sentence(desc_raw) or f"Reference for the {name} dbt model.",
+    ) + [
         AUTOGEN_HEADER,  # JSX comment   valid in .mdx
-        "",
-        f"# `{name}`",
         "",
     ]
 
@@ -191,19 +194,14 @@ def render_model_mdx(node: dict, tests_index: dict, nodes: dict) -> str:
 
 
 def render_index(models_by_layer: dict[str, list[dict]]) -> str:
-    lines = [
-        AUTOGEN_HEADER_MD,  # HTML comment   valid in .md
+    total = sum(len(v) for v in models_by_layer.values())
+    lines = mintlify_frontmatter(
+        title="dbt Models",
+        description=f"Auto-generated reference for all {total} dbt models.",
+    ) + [
+        AUTOGEN_HEADER_MD,
         "",
-        "---",
-        "id: models-index",
-        "slug: /reference/models",
-        "sidebar_position: 1",
-        "title: dbt Models",
-        "---",
-        "",
-        "# dbt Models Reference",
-        "",
-        f"Auto-generated reference for all {sum(len(v) for v in models_by_layer.values())} dbt models.",
+        f"Auto-generated reference for all {total} dbt models.",
         "",
     ]
 

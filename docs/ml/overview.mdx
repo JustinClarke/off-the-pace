@@ -36,10 +36,10 @@ All five models read from a single contracted mart: `fct_cliff_prediction_featur
 </CardGroup>
 
 <CardGroup cols={2}>
-  <Card title="How many usable laps remain?" icon="flag-checkered">
+  <Card title="How many usable laps remain?" icon="flag">
     A single regressor predicts `remaining_stint_life_laps` the synthesised, non-negative count of usable laps left in the stint. This is what drives the strategy view's "this set is done in ~N laps" readout.
   </Card>
-  <Card title="All five run in-browser" icon="browser">
+  <Card title="All five run in-browser" icon="chrome">
     Every model is exported to ONNX and scored client-side via the React app no server round-trip required. ONNX parity tests confirm numbers in the browser match numbers from training to within `atol=1e-5`.
   </Card>
 </CardGroup>
@@ -58,7 +58,7 @@ The machine layer reads the warehouse **read-only** and never writes to the appl
 
 ```bash
 make ml-all   # features → tune → train → evaluate → predict → onnx → card
-make ml-test  # 27 tests: leakage spine, ONNX parity, output schema, beats-baseline
+make ml-test  # 28 tests: leakage spine, ONNX parity, output schema, beats-baseline
 ```
 
 ## Go deeper

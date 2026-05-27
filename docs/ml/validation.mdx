@@ -28,7 +28,7 @@ The final fold trains on 2018–2023 and validates on **2024** the most recent, 
 | **No hard-coded holdout** | The split is `MAX+1`-derived, never a literal year |
 | **Bounded / non-null targets** | Degradation ∈ [−10, 10]; no NULL-target rows enter training |
 
-These five guards are part of the **27-test suite** (12 spine + 5 ONNX parity + 3 predict + 7 evaluate) and run automatically in CI on every change. Reproduce locally with `make ml-test`.
+These five guards are part of the **28-test suite** (12 spine + 5 ONNX parity + 3 predict + 7 evaluate + 1 targets) and run automatically in CI on every change. Reproduce locally with `make ml-test`.
 
 ---
 

@@ -102,7 +102,7 @@ Maps Pirelli's 2018-era legacy compound names onto the modern SOFT/MEDIUM/HARD t
 
 Pirelli ran a 7-compound range in 2018 (HYPERSOFT/ULTRASOFT/SUPERSOFT/SOFT/MEDIUM/HARD/SUPERHARD). The cliff-parameter seed only fits the modern 5-name set (`{SOFT, MEDIUM, HARD, INTERMEDIATE, WET}`). Without this macro the three legacy soft variants (8,836 laps, all 2018) produce a 100%-NULL compound-param join.
 
-**Scope warning:** use this **only** on ML-facing feature joins (e.g. `fct_cliff_prediction_features`). Do **not** apply it inside `int_compound_cliff_predicted`-that model's output feeds `compound_component_s` in `int_lap_residual_decomposed`, and normalising there would silently re-attribute compound vs. driver skill for 2018 laps. Residual nulls after normalisation are intentional and handled by XGBoost's native missing-value path. See `ml/BUILD_LOG.md` (L0-2).
+**Scope warning:** use this **only** on ML-facing feature joins (e.g. `fct_cliff_prediction_features`). Do **not** apply it inside `int_compound_cliff_predicted`-that model's output feeds `compound_component_s` in `int_lap_residual_decomposed`, and normalising there would silently re-attribute compound vs. driver skill for 2018 laps. Residual nulls after normalisation are intentional and handled by XGBoost's native missing-value path.
 
 **Used by:** `fct_cliff_prediction_features` (compound-params join only).
 

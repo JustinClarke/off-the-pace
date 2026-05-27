@@ -9,7 +9,7 @@ const BASE = 'Off The Pace'
 export const pageMeta: Record<string, PageMeta> = {
   '/': { title: BASE, description: 'F1 causal lap time decomposition and performance analysis.' },
   '/ghost-car': { title: `Ghost Car · ${BASE}`, description: 'What would a reference constructor have scored with each driver?' },
-  '/ghost-car/standings': { title: `Ghost Car Standings · ${BASE}`, description: 'Counterfactual race finish positions.' },
+  '/ghost-car/standings': { title: `Ghost Car Standings · ${BASE}`, description: 'Driver track record at a circuit in equal machinery, by regulation era.' },
   '/ghost-car/lap-chart': { title: `Ghost Car Lap Chart · ${BASE}`, description: 'Lap-by-lap actual vs predicted pace.' },
   '/ghost-car/championship': { title: `Ghost Car Championship · ${BASE}`, description: 'Season-level counterfactual standings.' },
   '/ghost-car/hidden': { title: `Hidden Performance · ${BASE}`, description: 'Under-rewarded drives.' },
@@ -19,14 +19,17 @@ export const pageMeta: Record<string, PageMeta> = {
   '/tyre-strategy': { title: `Tyre Strategy · ${BASE}`, description: 'Degradation and survival modelling.' },
   '/tyre-strategy/survival': { title: `Survival Profile · ${BASE}`, description: 'Kaplan-Meier tyre cliff profiles.' },
   '/tyre-strategy/degradation': { title: `Degradation Timeline · ${BASE}`, description: 'Pace vs expected degradation.' },
+  '/tyre-strategy/recovery': { title: `Tyre Recovery Forecast · ${BASE}`, description: 'Post-cliff recovery probability by compound.' },
   '/tyre-strategy/pit-gantt': { title: `Pit Gantt · ${BASE}`, description: 'Strategy Gantt and pit optimizer.' },
   '/aerodynamics': { title: `Aerodynamics · ${BASE}`, description: 'Dirty air and airflow analysis.' },
   '/aerodynamics/dirty-air': { title: `Dirty Air · ${BASE}`, description: 'Dirty air cost leaderboard.' },
+  '/aero/dirty-air': { title: `Dirty Air · ${BASE}`, description: 'Dirty air cost leaderboard.' },
   '/aerodynamics/lap-map': { title: `Lap Air Map · ${BASE}`, description: 'Per-lap air state timeline.' },
   '/drivers': { title: `Drivers · ${BASE}`, description: 'Era-adjusted driver ratings and analysis.' },
   '/constructors': { title: `Constructors · ${BASE}`, description: 'Structural pace and circuit interaction.' },
   '/deep-dives': { title: `Deep Dives · ${BASE}`, description: 'Sector and telemetry decomposition.' },
   '/query': { title: `Query Lab · ${BASE}`, description: 'DuckDB-Wasm SQL lab.' },
+  '/data-quality': { title: `Data Quality Audit · ${BASE}`, description: 'Lap usability by race and season.' },
   '/ml': { title: `ML · ${BASE}`, description: 'Tyre degradation prediction model.' },
 }
 

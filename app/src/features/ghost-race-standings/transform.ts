@@ -1,104 +1,90 @@
-import type { GhostStandingsRow } from './queries'
+import type { EraAffinityRow } from './queries'
 
+// Below this confidence the posterior is prior-dominated (≈1 race at prior_weight=5).
+// Rows under it are shown amber so a thin sample never reads as a hard result.
 export const CONFIDENCE_FLOOR = 0.3
 
-export interface StandingsEntry {
+export interface LeaderboardEntry {
+  rank: number
   driverId: string
-  hostConstructorId: string
-  raceId: string
-  predictedPosition: number
-  actualPosition: number | null
-  /** negative = predicted better than actual; positive = predicted worse; null = DNF (no actual position) */
-  delta: number | null
+  /** car-removed pace at this circuit-era, shrunk. negative = faster than field. */
+  affinityS: number
+  /** unshrunk observed mean (negative = faster). */
+  rawAffinityS: number
+  ciLowS: number
+  ciHighS: number
+  seS: number
+  /** n_obs / (n_obs + 5) ∈ [0,1]. */
   confidence: number
-  lapsScored: number
-  /** laps_counted / race_distance_laps in [0,1] */
-  lapCoverage: number
-  /** true when the driver ran a partial race (DNF / few laps) and the estimate is small-sample */
-  isShortRun: boolean
-  /** true when ego_driver_id === host_constructor_id's car (identity/self scenario) */
-  isSelfScenario: boolean
+  /** number of races backing the estimate (n_obs). */
+  races: number
+  /** distinct seasons observed within the era. */
+  seasons: number
+  /** affinityS − leader's affinityS, in seconds (≥ 0; the leader's gap is 0). */
+  gapToLeaderS: number
 }
 
-export interface RaceScenario {
-  raceId: string
-  raceYear: number
-  hostConstructorId: string
-  entries: StandingsEntry[]
-  /** min confidence across all entries in this scenario */
-  minConfidence: number
+export interface LeaderboardResult {
+  circuitId: string
+  circuitName: string
+  eraKey: string
+  eraLabel: string
+  entries: LeaderboardEntry[]
+  /** total drivers before any min-races filtering (for provenance / empty state). */
+  totalDrivers: number
 }
 
-export interface TransformResult {
-  scenarios: RaceScenario[]
-  totalRows: number
-}
+/**
+ * Build a ranked equal-car track-record leaderboard for one (circuit, era).
+ * Rows are expected to already be a single (circuit, era) cohort; ranking and the
+ * gap-to-leader are computed over exactly the rows passed in (so the caller can
+ * pre-filter by a minimum race count and the leader is the fastest of the survivors).
+ */
+export function transform(rows: EraAffinityRow[]): LeaderboardResult | null {
+  if (!rows.length) return null
 
-export function transform(rows: GhostStandingsRow[]): TransformResult {
-  if (!rows.length) return { scenarios: [], totalRows: 0 }
+  const sorted = [...rows].sort((a, b) => a.shrunk_affinity_s-b.shrunk_affinity_s)
+  const leaderAffinity = sorted[0].shrunk_affinity_s
+  const first = sorted[0]
 
-  // Group by (race_id, host_constructor_id)
-  const map = new Map<string, GhostStandingsRow[]>()
-  for (const row of rows) {
-    const key = `${row.race_id}::${row.host_constructor_id}`
-    const bucket = map.get(key) ?? []
-    bucket.push(row)
-    map.set(key, bucket)
+  const entries: LeaderboardEntry[] = sorted.map((r, i) => ({
+    rank: i + 1,
+    driverId: r.driver_id,
+    affinityS: r.shrunk_affinity_s,
+    rawAffinityS: r.raw_affinity_s,
+    ciLowS: r.shrunk_affinity_ci_low_s,
+    ciHighS: r.shrunk_affinity_ci_high_s,
+    seS: r.shrunk_affinity_se_s,
+    confidence: r.affinity_confidence,
+    races: r.n_obs,
+    seasons: r.seasons_observed_n,
+    gapToLeaderS: r.shrunk_affinity_s-leaderAffinity,
+  }))
+
+  return {
+    circuitId: first.circuit_id,
+    circuitName: first.circuit_name,
+    eraKey: first.era_key,
+    eraLabel: first.era_label,
+    entries,
+    totalDrivers: entries.length,
   }
-
-  const scenarios: RaceScenario[] = []
-  for (const bucket of map.values()) {
-    const first = bucket[0]
-    const entries: StandingsEntry[] = bucket.map(r => ({
-      driverId: r.ego_driver_id,
-      hostConstructorId: r.host_constructor_id,
-      raceId: r.race_id,
-      predictedPosition: r.predicted_finish_position,
-      actualPosition: r.actual_finish_position,
-      delta: r.delta_vs_actual_position,
-      confidence: r.avg_recombination_confidence,
-      lapsScored: r.laps_counted,
-      lapCoverage: r.lap_coverage,
-      isShortRun: r.is_short_run,
-      // The mart now carries this directly (ego_constructor_id === host_constructor_id),
-      // so we no longer infer it from delta/confidence.
-      isSelfScenario: r.is_self_scenario,
-    }))
-
-    entries.sort((a, b) => a.predictedPosition-b.predictedPosition)
-
-    scenarios.push({
-      raceId: first.race_id,
-      raceYear: first.race_year,
-      hostConstructorId: first.host_constructor_id,
-      entries,
-      minConfidence: Math.min(...entries.map(e => e.confidence)),
-    })
-  }
-
-  // Sort scenarios: by raceId then constructorId
-  scenarios.sort((a, b) =>
-    a.raceId < b.raceId ? -1 : a.raceId > b.raceId ? 1 :
-    a.hostConstructorId < b.hostConstructorId ? -1 : 1
-  )
-
-  return { scenarios, totalRows: rows.length }
 }
 
-export function toCsvRows(result: TransformResult): Record<string, unknown>[] {
-  return result.scenarios.flatMap(s =>
-    s.entries.map(e => ({
-      race_id: e.raceId,
-      host_constructor_id: e.hostConstructorId,
-      driver_id: e.driverId,
-      predicted_position: e.predictedPosition,
-      actual_position: e.actualPosition ?? '',
-      delta_positions: e.delta ?? '',
-      avg_confidence: e.confidence.toFixed(3),
-      laps_scored: e.lapsScored,
-      lap_coverage: e.lapCoverage.toFixed(3),
-      is_short_run: e.isShortRun,
-      is_self_scenario: e.isSelfScenario,
-    }))
-  )
+export function toCsvRows(result: LeaderboardResult): Record<string, unknown>[] {
+  return result.entries.map(e => ({
+    rank: e.rank,
+    driver_id: e.driverId,
+    circuit: result.circuitName,
+    era: result.eraLabel,
+    affinity_s: e.affinityS.toFixed(3),
+    raw_affinity_s: e.rawAffinityS.toFixed(3),
+    ci_low_s: e.ciLowS.toFixed(3),
+    ci_high_s: e.ciHighS.toFixed(3),
+    se_s: e.seS.toFixed(3),
+    gap_to_leader_s: e.gapToLeaderS.toFixed(3),
+    races: e.races,
+    seasons: e.seasons,
+    confidence: e.confidence.toFixed(3),
+  }))
 }

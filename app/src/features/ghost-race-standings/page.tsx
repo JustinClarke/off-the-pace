@@ -1,13 +1,15 @@
-import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import GhostStandingsChart from './GhostStandingsChart'
 import { methodologyContent, methodologyHref } from './methodology'
 import { useQuery } from '../../data/hooks/useQuery'
-import { useFilters } from '../../state/FilterContext'
 import { transform, toCsvRows } from './transform'
 import './queries'
-import type { GhostStandingsRow } from './queries'
+import type { EraAffinityRow, CircuitOption, EraOption } from './queries'
+
+const DEFAULT_ERA = 'post2022'
+const MIN_RACES_OPTIONS = ['1', '2', '3']
+const DEFAULT_MIN_RACES = '2'
 
 function Select({
   label,
@@ -43,106 +45,118 @@ function Select({
 }
 
 export default function GhostStandingsPage() {
-  const { season } = useFilters()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const raceId = searchParams.get('race_id') ?? ''
-  const hostConstructorId = searchParams.get('constructor') ?? ''
+  const circuitId = searchParams.get('circuit') ?? ''
+  const eraKey = searchParams.get('era') ?? DEFAULT_ERA
+  const minRaces = searchParams.get('min') ?? DEFAULT_MIN_RACES
 
   const setParam = (key: string, value: string) =>
     setSearchParams(p => { value ? p.set(key, value) : p.delete(key); return p }, { replace: true })
 
-  // When season changes, clear both selections they belong to the old season
-  useEffect(() => {
-    setSearchParams(p => { p.delete('race_id'); p.delete('constructor'); return p }, { replace: true })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [season])
-
-  // Options query-scoped to the selected season
+  // Options are cross-season (eras), so no season dependency.
   const { data: opts, isLoading: optsLoading } = useQuery<{
-    races: { race_id: string; race_year: number; circuit_name: string }[]
-    constructors: { host_constructor_id: string }[]
-  }>(
-    'ghost-race-standings.options',
-    { season }
-  )
+    circuits: CircuitOption[]
+    eras: EraOption[]
+  }>('ghost-race-standings.options', {})
 
-  const raceOptions = (opts?.races ?? []).map(r => ({
-    value: r.race_id,
-    label: r.circuit_name || r.race_id,
+  const circuitOptions = (opts?.circuits ?? []).map(c => ({
+    value: c.circuit_id,
+    label: c.circuit_name,
+  }))
+  const eraOptions = (opts?.eras ?? []).map(e => ({
+    value: e.era_key,
+    label: e.era_label,
   }))
 
-  const constructorOptions = (opts?.constructors ?? []).map(c => ({
-    value: c.host_constructor_id,
-    label: c.host_constructor_id,
-  }))
-
-  // Main data query-only fires when both selectors are set
-  const ready = Boolean(raceId && hostConstructorId)
-  const { data, isLoading: dataLoading, error } = useQuery<GhostStandingsRow[]>(
+  const ready = Boolean(circuitId && eraKey)
+  const { data, isLoading: dataLoading, error } = useQuery<EraAffinityRow[]>(
     'ghost-race-standings.data',
-    { raceId, hostConstructorId },
+    { circuitId, eraKey },
     { enabled: ready }
   )
 
-  const result = data ? transform(data) : null
-  const scenario = result?.scenarios[0] ?? null
+  // Pre-filter by minimum race count so the leader (and gap-to-leader) is the fastest
+  // driver among the survivors, then rank.
+  const minN = Number(minRaces) || 1
+  const filtered = (data ?? []).filter(r => r.n_obs >= minN)
+  const result = filtered.length ? transform(filtered) : null
+
+  // No driver at all at this (circuit, era) → genuine empty state; rows exist but all
+  // fell below the min-races filter → a tailored "lower the filter" hint instead.
+  const settled = ready && !dataLoading
+  const noDataAtAll = settled && (data?.length ?? 0) === 0
+  const allFilteredOut = settled && (data?.length ?? 0) > 0 && result === null
 
   const selectors = (
     <div className="flex flex-wrap gap-4 mb-6">
       <Select
-        label="Race"
-        value={raceId}
-        onChange={v => setParam('race_id', v)}
-        options={raceOptions}
+        label="Circuit"
+        value={circuitId}
+        onChange={v => setParam('circuit', v)}
+        options={circuitOptions}
         disabled={optsLoading}
       />
       <Select
-        label="Host constructor"
-        value={hostConstructorId}
-        onChange={v => setParam('constructor', v)}
-        options={constructorOptions}
+        label="Era"
+        value={eraKey}
+        onChange={v => setParam('era', v)}
+        options={eraOptions}
         disabled={optsLoading}
+      />
+      <Select
+        label="Min. races"
+        value={minRaces}
+        onChange={v => setParam('min', v)}
+        options={MIN_RACES_OPTIONS.map(n => ({ value: n, label: `≥ ${n}` }))}
       />
     </div>
   )
 
-  const csvFilename = raceId && hostConstructorId
-    ? `ghost-standings-${raceId}-${hostConstructorId.replace(/\s+/g, '-').toLowerCase()}.csv`
-    : `ghost-standings-${season}.csv`
+  const eraLabel = result?.eraLabel ?? (eraKey === 'pre2022' ? '2018–2021' : '2022–2024')
+  const csvFilename = circuitId
+    ? `equal-car-record-${circuitId}-${eraKey}.csv`
+    : 'equal-car-record.csv'
 
   return (
     <FeaturePage
-      title="Ghost Car Race Standings"
-      hook="What if every driver raced in every team's car? Pace recombination rebuilds each driver's lap times in a host constructor's car and re-ranks the grid revealing how much of the finishing order is the car, and how much is the driver."
+      title="Ghost Car Standings"
+      hook="What if every driver had the same car? Strip the constructor out of every lap and you are left with pure driver pace this ranks each driver's track record at a circuit in equal machinery, pooled across a regulation era rather than a single race."
       badges={[
         {
           label: 'What It Means',
-          content: 'A driver finishing 6th in their own car but 2nd in a top-team ghost scenario is telling you the car cost them four places not their driving.',
+          content: 'A driver topping the board at a circuit is the fastest there once the car is removed regardless of where their real machinery let them finish. It is a measure of the driver, not the team.',
         },
         {
           label: 'Why It Matters',
-          content: 'Ghost standings separate car performance from driver performance without requiring the impossible counterfactual to actually happen. The confidence column is an explicit uncertainty quantification not a hand-waving disclaimer.',
+          content: "Real finishing order is dominated by car performance. Equalising the car exposes which drivers genuinely master a track and which were flattered by quick machinery and the confidence column tells you when there are too few races to trust the number.",
         },
         {
           label: "How It's Calculated",
-          content: "Each driver's lap times are rebuilt from their skill residual + the host constructor's structural pace + degradation + environmental terms. Drivers are re-ranked by predicted cumulative race time. Only laps with recombination confidence >= 0.3 count.",
+          content: "Each lap's driver-skill residual (time left after fuel, tyre, rubber, ambient and constructor are removed) is averaged per driver per circuit within a regulation era, then shrunk toward the driver's era-wide mean (Bayesian, prior = 5 races). Eras split at the 2022 ground-effect change and are never blended. Negative = faster than the field.",
         },
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018-2024', nObs: scenario?.entries.length }}
+      provenance={{ dataWindow: eraLabel, nObs: result?.entries.length }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename={csvFilename}
       isLoading={dataLoading && ready}
       error={error}
-      isEmpty={ready && result?.scenarios.length === 0}
     >
+      {/* Selectors stay mounted in every state so the user can always recover a
+          dead-end selection (e.g. an era a circuit never raced in). */}
       {selectors}
       {!ready && !dataLoading && (
-        <p className="text-sm text-muted py-6">Select a race and host constructor above to see the ghost standings.</p>
+        <p className="text-sm text-muted py-6">Select a circuit and era above to see the equal-car track record.</p>
       )}
-      {scenario && <GhostStandingsChart result={result!} activeScenario={scenario} />}
+      {noDataAtAll && (
+        <p className="text-sm text-muted py-6">No driver raced this circuit in the selected era try the other era.</p>
+      )}
+      {allFilteredOut && (
+        <p className="text-sm text-muted py-6">No driver meets the minimum race count for this circuit and era lower the “Min. races” filter.</p>
+      )}
+      {result && <GhostStandingsChart result={result} />}
     </FeaturePage>
   )
 }

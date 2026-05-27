@@ -63,14 +63,21 @@ def _make_model(spec: S.TargetSpec, params: dict):
     return xgb.XGBRegressor(objective="reg:squarederror", **common)
 
 
-def _sample_weight(spec: S.TargetSpec, y) -> np.ndarray | None:
-    """Balanced class weights for the classifier (R3-minority cliff-window recall)."""
-    if spec.kind != "classification":
-        return None
-    classes = np.unique(y)
-    w = compute_class_weight("balanced", classes=classes, y=y)
-    lut = dict(zip(classes, w))
-    return np.asarray([lut[v] for v in y], dtype=np.float32)
+def _sample_weight(spec: S.TargetSpec, y, meta=None) -> np.ndarray | None:
+    """Return per-row training weights.
+
+    Classifier: balanced class weights for minority cliff-window recall.
+    Quantile regressors (C2): IPW survival weights from meta["survival_weight"]
+    so early-pitted (degraded) stints are not under-counted at high lap_in_stint.
+    """
+    if spec.kind == "classification":
+        classes = np.unique(y)
+        w = compute_class_weight("balanced", classes=classes, y=y)
+        lut = dict(zip(classes, w))
+        return np.asarray([lut[v] for v in y], dtype=np.float32)
+    if spec.kind == "quantile" and meta is not None and "survival_weight" in meta.columns:
+        return meta["survival_weight"].to_numpy(dtype=np.float32)
+    return None
 
 
 def _season_folds(seasons: np.ndarray, training_seasons: list[int], n_splits: int):
@@ -96,7 +103,8 @@ def train_one(target: str, *, version: str, params: dict | None,
     fold_metrics = []
     for k, (tr, val) in enumerate(_season_folds(seasons, bundle.training_seasons, n_splits)):
         model = _make_model(spec, fit_params)
-        model.fit(X.iloc[tr], y[tr], sample_weight=_sample_weight(spec, y[tr]))
+        model.fit(X.iloc[tr], y[tr],
+                  sample_weight=_sample_weight(spec, y[tr], bundle.meta_train.iloc[tr]))
         pred = model.predict(X.iloc[val])
         name, value = _headline(spec, y[val], pred)
         fold_metrics.append({"fold": k, "val_season": int(seasons[val][0]), name: value})
@@ -107,7 +115,7 @@ def train_one(target: str, *, version: str, params: dict | None,
 
     # Refit on the full training set → the shipped booster.
     final = _make_model(spec, fit_params)
-    final.fit(X, y, sample_weight=_sample_weight(spec, y))
+    final.fit(X, y, sample_weight=_sample_weight(spec, y, bundle.meta_train))
     fit_seconds = round(time.time()-t0, 2)
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)

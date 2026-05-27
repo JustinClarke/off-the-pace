@@ -1,11 +1,12 @@
 """
 build_reference.py   Entry point for all reference doc generation.
 
-Runs all four generators in sequence:
+Runs all five generators in sequence:
   1. gen_dbt_reference.py    dbt manifest → docs/reference/models/
   2. gen_schema_reference.py   JSON schemas → docs/reference/schemas/
   3. gen_cli_reference.py    --help output → docs/reference/cli/
   4. gen_macro_reference.py   macro docstrings → docs/reference/macros/
+  5. gen_ml_reference.py    model_card.yml → docs/reference/ml/
 
 Usage:
   python scripts/build_reference.py           # run all generators
@@ -13,6 +14,7 @@ Usage:
   python scripts/build_reference.py --schemas
   python scripts/build_reference.py --cli
   python scripts/build_reference.py --macros
+  python scripts/build_reference.py --ml
 
 CI drift check (in GitHub Actions):
   python scripts/build_reference.py
@@ -51,6 +53,7 @@ GENERATORS = [
     ("schemas", "gen_schema_reference.py", "Bronze schemas"),
     ("cli",     "gen_cli_reference.py",    "CLI commands"),
     ("macros",  "gen_macro_reference.py",  "dbt macros"),
+    ("ml",      "gen_ml_reference.py",     "ML model card"),
 ]
 
 

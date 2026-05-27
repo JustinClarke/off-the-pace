@@ -78,7 +78,7 @@ The following SQL test runs in CI on every model change. If it returns any rows 
 select count(*) from {{ model }}
 where abs(pace_delta_s-(
   fuel_component_s + compound_component_s + rubber_component_s +
-  ambient_component_s + constructor_component_s + dirty_air_component_s +
+  ambient_component_s + constructor_component_s + dirty_air_tax_s +
   driver_skill_residual_s
 )) > 0.0001
 ```
@@ -86,10 +86,10 @@ where abs(pace_delta_s-(
 Every model change must maintain this invariant or explicitly update the test contract. It is the most important engineering property in the project: it means you can trust that every attribution you read was derived from an equation that closed exactly.
 
 <CardGroup cols={2}>
-  <Card title="Methodology" icon="flask" href="/decomposition/methodology">
+  <Card title="Methodology" icon="flask-conical" href="/decomposition/methodology">
     How each physics term is identified and estimated from lap time data
   </Card>
-  <Card title="Tyre Cliff" icon="chart-line-down" href="/decomposition/tyre-cliff">
+  <Card title="Tyre Cliff" icon="trending-down" href="/decomposition/tyre-cliff">
     Kaplan-Meier cliff detection and per-lap ML prediction
   </Card>
 </CardGroup>

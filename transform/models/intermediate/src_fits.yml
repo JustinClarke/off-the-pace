@@ -1,0 +1,87 @@
+version: 2
+
+sources:
+  - name: fits
+    database: read_only
+    tables:
+      - name: degradation_isotonic
+        meta:
+          external_location: "{{ var('fits_base', '../data/fits') }}/degradation_isotonic.parquet"
+        description: >
+          Weighted isotonic tyre-degradation fits + modulation coefficients for the
+          Degradation Simulator headline. Produced by
+          tasks/coefficients/fit_degradation_isotonic.py a deterministic statistical
+          fit (no ML retrain). One row per (circuit_id, era, compound, lap_in_stint).
+          Isotonic base guarantees 0 monotone violations and MAE ≤ 0.5s vs raw
+          obs_deg_from_fresh_p50 on the accuracy basket. Dirty-air multiplier is
+          sign+significance gated (falls back to 1.0 for noisy/negative cells). Temp
+          penalty uses a compound-aware headroom (softs overheat sooner). Read by
+          mart_degradation_history_envelope to supply the app headline columns.
+        columns:
+          - name: circuit_id
+            description: Physical circuit identifier (from dim_circuits)
+          - name: era
+            description: Regulation era pre2022 or post2022
+          - name: compound
+            description: Tyre compound (HARD/MEDIUM/SOFT/…/_all for rollup)
+          - name: lap_in_stint
+            description: Lap number within the stint (1-based)
+          - name: obs_deg_from_fresh_p10_mono_s
+            description: Isotonic-fitted p10 degradation from fresh tyre (s); monotone non-decreasing
+          - name: obs_deg_from_fresh_p50_mono_s
+            description: Isotonic-fitted p50 degradation from fresh tyre (s); monotone non-decreasing
+          - name: obs_deg_from_fresh_p90_mono_s
+            description: Isotonic-fitted p90 degradation from fresh tyre (s); monotone non-decreasing
+          - name: dirty_air_deg_mult
+            description: >
+              Dirty-air degradation multiplier in [1.0, 1.15]. Positive within-race-centred
+              contrast on deg-from-fresh, sign+significance gated; 1.0 when gate fails.
+          - name: temp_headroom_c
+            description: >
+              °C of ambient_temp_delta before the compound-window overheating penalty engages.
+              Softer compounds have smaller headroom.
+          - name: temp_penalty_s_per_deg
+            description: >
+              Seconds of additional degradation per °C of ambient_temp_delta past the headroom.
+              Small calibrated constant (0.01 s/°C).
+          - name: fit_date
+            description: Provenance ISO date the fit was run
+          - name: data_window
+            description: Provenance season span the fit covers (e.g. 2018_to_2024)
+          - name: fit_method
+            description: Provenance fit identifier (degradation_isotonic_v1)
+          - name: git_sha
+            description: Provenance short git SHA at fit time
+          - name: fit_timestamp
+            description: Provenance UTC timestamp the fit was written
+
+      - name: constructor_car_fe
+        meta:
+          external_location: "{{ var('fits_base', '../data/fits') }}/constructor_car_fe.parquet"
+        description: >
+          De-biased constructor car pace (constructor×race fixed effect) fitted by
+          tasks/coefficients/fit_constructor_car_fe.py a two-way FE regression
+          (pace_delta_s ~ 1 | driver_id + constructor_race) on the clean lap panel.
+          One row per (race_year, race_id, constructor_id). car_fe_s is the car pace
+          net of driver skill (negative = faster than field). A per-build fit, not a
+          curated seed, so it lives in data/fits/ (gitignored, regenerated each build)
+          rather than as a CSV seed. Read by int_constructor_car_fe.
+        columns:
+          - name: race_year
+            description: Race year (integer)
+          - name: race_id
+            description: Numeric FastF1 event id (e.g. 2018_5); matches int_lap_fuel_state.race_id
+          - name: constructor_id
+            description: Constructor identifier (stg_laps.constructor_id, e.g. 'Ferrari')
+          - name: car_fe_s
+            description: Constructor×race fixed effect in seconds (negative = faster than field)
+          - name: fit_date
+            description: Provenance ISO date the fit was run
+          - name: data_window
+            description: Provenance season span the fit covers (e.g. 2018_to_2024)
+          - name: fit_method
+            description: Provenance fit identifier (constructor_car_fe_hdfe_v1)
+          - name: git_sha
+            description: Provenance short git SHA at fit time
+          - name: fit_timestamp
+            description: Provenance UTC timestamp the fit was written

@@ -1,9 +1,10 @@
 """Inspect tuning results from Optuna studies + training logs.
 
 CLI:
-  python -m ml.src.inspect_trials                # all targets
+  python -m ml.src.inspect_trials                # all targets, production version
   python -m ml.src.inspect_trials --target degradation_regressor_p50
   python -m ml.src.inspect_trials --target all --verbose
+  python -m ml.src.inspect_trials --version v2   # inspect a specific version's studies
 """
 from __future__ import annotations
 
@@ -31,7 +32,7 @@ def _param_importance(study: optuna.Study) -> dict[str, float]:
         return {}
 
 
-def _fold_variance(target: str, version: str = "v1") -> tuple[list[float], float] | None:
+def _fold_variance(target: str, version: str) -> tuple[list[float], float] | None:
     """Extract fold metrics and their variance from training log."""
     log_pattern = f"{target}_{version}_*.json"
     logs = sorted(LOGS_DIR.glob(log_pattern), reverse=True)
@@ -49,16 +50,16 @@ def _fold_variance(target: str, version: str = "v1") -> tuple[list[float], float
     return metrics, variance
 
 
-def inspect_one(target: str, verbose: bool = False) -> None:
+def inspect_one(target: str, version: str, verbose: bool = False) -> None:
     spec = S.TARGET_BY_NAME[target]
-    db_path = STUDIES_DIR / f"{target}_v1.db"
+    study_name = S.optuna_study_name(target, version)
+    db_path = STUDIES_DIR / f"{study_name}.db"
     if not db_path.exists():
         print(f"[{target}] no study found ({db_path})")
         return
 
     # Load study from persistent DB
     storage = f"sqlite:///{db_path}"
-    study_name = f"{target}_v1"
     study = optuna.create_study(
         direction="maximize" if spec.kind == "classification" else "minimize",
         study_name=study_name,
@@ -86,7 +87,7 @@ def inspect_one(target: str, verbose: bool = False) -> None:
             print(f"    {k}: {v:.4f}")
 
     # Fold variance (from training log after tuning refitted)
-    fold_data = _fold_variance(target)
+    fold_data = _fold_variance(target, version)
     if fold_data:
         folds, variance = fold_data
         print(f"  Fold metrics (CV refit, full data):")
@@ -104,12 +105,14 @@ def inspect_one(target: str, verbose: bool = False) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", default="all")
+    ap.add_argument("--version", default=S.MODEL_VERSION_DEFAULT,
+                    help="model version whose studies to inspect (default: production version)")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
 
     targets = [t.name for t in S.PRODUCTION_TARGETS] if args.target == "all" else [args.target]
     for t in targets:
-        inspect_one(t, verbose=args.verbose)
+        inspect_one(t, args.version, verbose=args.verbose)
     return 0
 
 

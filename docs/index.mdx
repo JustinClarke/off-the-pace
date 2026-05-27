@@ -1,13 +1,14 @@
 ---
 title: "Off The Pace: F1 Lap Decomposition Analytics"
-sidebarTitle: "Home"
+sidebarTitle: "Overview"
 description: "Decompose every F1 lap into seven additive, physically-grounded components. Attribute lost time to fuel load, tyre degradation, dirty air, weather, constructor pace, or driver skill."
 ---
+
 
 Off The Pace answers the question that lap time alone cannot: **when a car is off the pace, exactly why?** Every lap is split into seven named, additive components each measured in seconds so you can see precisely how much pace came from fuel mass, tyre degradation, aerodynamic wake, ambient conditions, constructor speed, and the driver's own execution.
 
 <CardGroup cols={2}>
-  <Card title="Introduction" icon="flag-checkered" href="/introduction">
+  <Card title="Introduction" icon="flag" href="/introduction">
     Understand what Off The Pace does and how the seven-term decomposition works.
   </Card>
   <Card title="Quick Start" icon="rocket" href="/quickstart">
@@ -16,7 +17,7 @@ Off The Pace answers the question that lap time alone cannot: **when a car is of
   <Card title="Seven-Term Identity" icon="sigma" href="/decomposition/seven-term-identity">
     The mathematical identity at the core of every lap attribution.
   </Card>
-  <Card title="Case Studies" icon="chart-bar" href="/findings/overview">
+  <Card title="Case Studies" icon="presentation" href="/findings/overview">
     Real race decompositions starting with Hamilton vs Verstappen at São Paulo 2021.
   </Card>
 </CardGroup>
@@ -55,16 +56,16 @@ Each term has physical units (seconds). Positive means slower than the field bas
   <Card title="Machine Learning" icon="brain" href="/ml/overview">
     Five XGBoost models predict tyre cliff onset and degradation rate.
   </Card>
-  <Card title="App & Visualizations" icon="display" href="/app/overview">
+  <Card title="App & Visualizations" icon="monitor" href="/app/overview">
     Browser-native analytics sub-10ms queries, zero server.
   </Card>
-  <Card title="Data Models" icon="database" href="/reference/fct-lap-residuals">
+  <Card title="Data Models" icon="database" href="/reference/models/fct/fct_lap_residuals">
     DuckDB mart tables powering every chart and query.
   </Card>
   <Card title="Glossary" icon="book" href="/reference/glossary">
     F1 and analytics terminology, defined precisely.
   </Card>
-  <Card title="Limitations" icon="triangle-exclamation" href="/decomposition/limitations">
+  <Card title="Limitations" icon="triangle-alert" href="/decomposition/limitations">
     Where the model is strongest and where to be cautious.
   </Card>
 </CardGroup>

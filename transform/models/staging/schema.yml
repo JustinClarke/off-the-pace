@@ -68,6 +68,90 @@ models:
       - name: stg_event_id
         tests: [not_null, unique]
 
+  - name: stg_results
+    description: >
+      Official classified race results from FastF1 session.results. One row per
+      driver × race. Source of truth for finishing position, grid, points, and
+      the explicit DNF / classification split that replaces the MAX(position)
+      finish derivation in fct_ghost_race_finish (transform-v0.2 §5.4).
+    columns:
+      - name: result_id
+        description: Surrogate key   raceid_season_driverid
+        tests: [not_null, unique]
+      - name: race_id
+        description: Race name slug (matches stg_laps.race_id)
+        tests: [not_null]
+      - name: race_year
+        tests: [not_null]
+      - name: driver_id
+        tests: [not_null]
+      - name: is_classified
+        description: TRUE when ClassifiedPosition parses to an integer (ranked finisher)
+        tests: [not_null]
+      - name: is_dnf
+        description: TRUE for retirements (not classified, not a lapped finish)
+        tests: [not_null]
+      - name: dnf_cause
+        description: Coarse cause for DNFs only 'racing' / 'mechanical' / 'non_classified'; NULL for finishers
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['racing', 'mechanical', 'non_classified']
+              config:
+                where: "dnf_cause IS NOT NULL"
+
+  - name: stg_track_status
+    description: >
+      SC/VSC/yellow/red timeline from FastF1 session.track_status. One row per
+      status-change event, ordered by session_time_s, with named decode and
+      per-event duration. Feeds int_sc_hazard_history (§5.2).
+    columns:
+      - name: track_status_id
+        description: Surrogate key   raceid_season_sessiontime
+        tests: [not_null]
+      - name: race_id
+        tests: [not_null]
+      - name: status_label
+        description: Decoded status name
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['all_clear', 'yellow', 'safety_car', 'vsc', 'vsc_ending', 'red_flag', 'unknown']
+      - name: session_time_s
+        tests: [not_null]
+
+  - name: stg_session_status
+    description: >
+      Session lifecycle events from FastF1 session.session_status
+      (Inactive / Started / Aborted / Finished / Finalised). 'Aborted' flags
+      red-flag stoppages.
+    columns:
+      - name: session_status_id
+        description: Surrogate key   raceid_season_sessiontime
+        tests: [not_null]
+      - name: race_id
+        tests: [not_null]
+      - name: session_time_s
+        tests: [not_null]
+
+  - name: stg_circuit_info
+    description: >
+      Corner geometry from FastF1 circuit_info.corners. One row per corner per
+      race, ordered by distance along the lap. Feeds the corner-map prior in the
+      race-pack contract (§5.7). race_year is part of the key geometry can vary
+      year to year.
+    columns:
+      - name: corner_id
+        description: Surrogate key   raceid_season_number+letter
+        tests: [not_null, unique]
+      - name: race_id
+        tests: [not_null]
+      - name: race_year
+        tests: [not_null]
+      - name: corner_distance_m
+        description: Distance of the corner along the lap from start/finish (m)
+        tests: [not_null]
+
   - name: stg_tyre_allocations
     description: >
       STUB   source not yet ingested. Returns an empty result set with the correct schema

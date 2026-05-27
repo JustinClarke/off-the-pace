@@ -85,7 +85,7 @@ For depth → [data/README.md](https://github.com/JustinClarke/off-the-pace/blob
 | [`transform/macros/assert_additive_identity.sql`](https://github.com/JustinClarke/off-the-pace/blob/main/transform/macros/assert_additive_identity.sql) | The CI-enforced invariant: all seven components must sum to zero |
 | [`transform/seeds/`](https://github.com/JustinClarke/off-the-pace/tree/main/transform/seeds/) | Hand-fitted parameters: `circuit_reference.csv`, `compound_cliff_params.csv` |
 | [`transform/tasks/coefficients/`](https://github.com/JustinClarke/off-the-pace/tree/main/transform/tasks/coefficients/) | Python fitters that produce the seed CSVs |
-| [`transform/tests/`](https://github.com/JustinClarke/off-the-pace/tree/main/transform/tests/) | 339 tests schema, singular, `assert_*` invariants |
+| [`transform/tests/`](https://github.com/JustinClarke/off-the-pace/tree/main/transform/tests/) | 336 tests schema, singular, `assert_*` invariants |
 
 The mathematical identity that the whole project rests on:
 ```
@@ -193,9 +193,9 @@ For depth → [scripts/README.md](https://github.com/JustinClarke/off-the-pace/b
 | File | What it does |
 |---|---|
 | [`Makefile`](https://github.com/JustinClarke/off-the-pace/blob/main/Makefile) | One-command entry for every subsystem (`make setup`, `make dbt-*`, `make ml-*`, `make docs-*`) |
-| [`.github/workflows/dbt-ci.yml`](https://github.com/JustinClarke/off-the-pace/blob/main/.github/workflows/dbt-ci.yml) | Build all 46 models + run 339 tests + assert additive identity |
+| [`.github/workflows/dbt-ci.yml`](https://github.com/JustinClarke/off-the-pace/blob/main/.github/workflows/dbt-ci.yml) | Build all 53 models + run 336 tests + assert additive identity |
 | [`.github/workflows/docs-ci.yml`](https://github.com/JustinClarke/off-the-pace/blob/main/.github/workflows/docs-ci.yml) | Build Mintlify + reference drift check |
-| [`.github/workflows/ml-ci.yml`](https://github.com/JustinClarke/off-the-pace/blob/main/.github/workflows/ml-ci.yml) | 27-test spine: leakage, ONNX parity, output schema, beats-baseline |
+| [`.github/workflows/ml-ci.yml`](https://github.com/JustinClarke/off-the-pace/blob/main/.github/workflows/ml-ci.yml) | 28-test spine: leakage, ONNX parity, output schema, beats-baseline |
 | [`.github/adr/DECISIONS.md`](https://github.com/JustinClarke/off-the-pace/blob/main/.github/adr/DECISIONS.md) | Architecture decision records |
 | [`.github/CONTRIBUTING.md`](https://github.com/JustinClarke/off-the-pace/blob/main/.github/CONTRIBUTING.md) | Canonical contributor guide |
 

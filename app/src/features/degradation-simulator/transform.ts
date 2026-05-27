@@ -8,8 +8,52 @@
 import type { LapPrediction } from '../../ml'
 import type { FanPoint } from '../../ui/charts/QuantileFanChart'
 import type { SimulatorInputs } from './inputs'
-import { compoundConstants } from './inputs'
-import type { StintFeatureRow } from './queries'
+import {
+  compoundConstants,
+  DEFAULT_FUEL_CONSUMPTION_RATE,
+  DEFAULT_WEIGHT_PENALTY_FACTOR,
+} from './inputs'
+import type { StintFeatureRow, HistoryEnvelopeRow } from './queries'
+
+/** Inputs the recomposition needs beyond the ONNX jumps all already in the app's data. */
+export interface RecomposeOptions {
+  /** Per-circuit/era/compound fuel-removed fresh-tyre anchor (s). */
+  refGreenPaceS: number
+  /** The user's Fuel slider value (start-of-stint fuel mass, kg). */
+  fuelStartKg: number
+  /** Circuit fuel burn (kg/lap) for the deterministic fuel trajectory. */
+  fuelConsumptionRateKgPerLap: number
+  /** Circuit weight penalty (s/kg). */
+  weightPenaltyFactor: number
+  /** Historical envelope rows keyed by lap_in_stint (required for isotonic headline). */
+  history?: HistoryEnvelopeRow[]
+  /** User-facing dirty-air share [0..1]; > 0 activates the dirty-air bump. */
+  dirtyAirShare?: number
+  /** User-facing ambient temp delta above circuit typical (°C); activates the temp penalty when past headroom. */
+  ambientTempDelta?: number
+  /** Per-compound analytical deg rate (s/lap) fallback when no history is available. */
+  analyticalDegRatePerLap?: number
+}
+
+/** One lap of the absolute-lap-time recomposition (Net = ref + fuel + tyre). */
+export interface LaptimePoint {
+  x: number          // lap_in_stint (1-based)
+  net: number        // absolute projected lap time (s)
+  ref: number        // historical fresh-tyre anchor (s)
+  fuel: number       // deterministic fuel component at this lap (s)
+  tyre: number       // cumulative tyre degradation from fresh (s)
+  p10: number        // net − model band
+  p90: number        // net + model band
+}
+
+/** One lap of the historical envelope, lifted onto the absolute axis (fuel re-added). */
+export interface HistoryBandPoint {
+  x: number
+  p10: number
+  p50: number
+  p90: number
+  obs?: number       // observed median absolute pace (alias of p50, for tooltips/overlay)
+}
 
 export interface CliffBar {
   /** Class label from manifest class_order, prettified for display. */
@@ -33,6 +77,12 @@ export interface SimulatorResult {
   stintLength: number
   /** The 1-based current lap the bars/gauge read. */
   currentLap: number
+  /** Absolute lap-time recomposition per lap (empty when no recompose options supplied). */
+  laptimeCurve: LaptimePoint[]
+  /** Historical envelope on the absolute axis, aligned by lap_in_stint (empty if no history). */
+  historyBand: HistoryBandPoint[]
+  /** Absolute projected lap time at the current lap (the new headline). 0 when not recomposed. */
+  currentLapTime: number
 }
 
 const CLIFF_LABELS: Record<string, string> = {
@@ -55,6 +105,7 @@ export function transform(
   predictions: LapPrediction[],
   currentLap: number,
   actuals: (number | null)[] = [],
+  recompose?: RecomposeOptions,
 ): SimulatorResult {
   const n = predictions.length
   const lap = Math.min(Math.max(1, Math.round(currentLap)), Math.max(1, n))
@@ -77,6 +128,12 @@ export function transform(
         .sort((a, b) => b.prob - a.prob)
     : []
 
+  const { laptimeCurve, historyBand } = recompose
+    ? recomposeLapTimes(predictions, recompose)
+    : { laptimeCurve: [] as LaptimePoint[], historyBand: [] as HistoryBandPoint[] }
+
+  const currentLapTime = laptimeCurve[lap - 1]?.net ?? 0
+
   return {
     fan,
     cliffBars,
@@ -85,17 +142,129 @@ export function transform(
     currentJumpP50: current ? current.degradation_jump_s : 0,
     stintLength: n,
     currentLap: lap,
+    laptimeCurve,
+    historyBand,
+    currentLapTime,
   }
 }
 
+/**
+ * Physical recomposition: read the isotonic-fitted monotone degradation from the history
+ * envelope, scale it by the physics modulation factor M (dirty-air bump + temp-window penalty),
+ * add the deterministic fuel component, and anchor to the historical fresh-tyre pace.
+ *
+ * Formula:
+ *   M(k) = clamp(1 + air_bump·𝟙[dirty_air] + temp_penalty·max(0, temp_delta−headroom), 1.0, 1.5)
+ *   tyre(k) = mono_p50(k) × M    [monotone by construction; running-max guard as belt+suspenders]
+ *   net(k)  = ref + fuel(k) + tyre(k)
+ *   band(k) = ref + fuel(k) + mono_{p10,p90}(k) × M
+ *
+ * Empty-history guard: if no fitted history is available (even after the _all fallback), falls
+ * back to the analytical ramp: tyre = max(0, analyticalDegRatePerLap × (k-1)) × M.
+ *
+ * The ONNX jump predictions are still used for the fan / cliff bars / stint-life gauge panels;
+ * this function only drives the absolute-lap-time headline and band.
+ */
+export function recomposeLapTimes(
+  predictions: LapPrediction[],
+  opts: RecomposeOptions,
+): { laptimeCurve: LaptimePoint[]; historyBand: HistoryBandPoint[] } {
+  const rate = opts.fuelConsumptionRateKgPerLap || DEFAULT_FUEL_CONSUMPTION_RATE
+  const histByLap = new Map<number, HistoryEnvelopeRow>()
+  for (const h of opts.history ?? []) histByLap.set(h.lap_in_stint, h)
+
+  // Read modulation coefficients from the first history row (constant within a cell).
+  const firstHist = opts.history?.[0]
+  const dirtyAirMult   = firstHist?.dirty_air_deg_mult    ?? 1.0
+  const tempHeadroom   = firstHist?.temp_headroom_c       ?? 8.0
+  const tempPenaltyPer = firstHist?.temp_penalty_s_per_deg ?? 0.01
+
+  // Compute M constant across the stint (the isotonic curve, not M, varies per lap).
+  const dirtyAirShare = opts.dirtyAirShare ?? 0
+  const tempDelta     = opts.ambientTempDelta ?? 0
+  const airBump  = dirtyAirShare > 0 ? (dirtyAirMult - 1) : 0
+  const tempBump = tempPenaltyPer * Math.max(0, tempDelta - tempHeadroom)
+  const M = Math.min(1.5, Math.max(1.0, 1 + airBump + tempBump))
+
+  const hasFittedHistory = [...histByLap.values()].some(
+    h => h.obs_deg_from_fresh_p50_mono_s !== null && h.obs_deg_from_fresh_p50_mono_s !== undefined
+  )
+  const analyticalRate = opts.analyticalDegRatePerLap ?? 0
+
+  const laptimeCurve: LaptimePoint[] = []
+  const historyBand:  HistoryBandPoint[] = []
+  let prevTyre = -Infinity // running-max guard: belt-and-suspenders monotonicity
+
+  for (let i = 0; i < predictions.length; i++) {
+    const k = i + 1
+    const fuelMass = Math.max(0, opts.fuelStartKg - rate * (k - 1))
+    const fuel = opts.weightPenaltyFactor * fuelMass
+
+    const h = histByLap.get(k)
+    let rawTyre: number
+    if (hasFittedHistory && h?.obs_deg_from_fresh_p50_mono_s != null) {
+      // Modulation only amplifies positive degradation multiplying a negative base by M > 1
+      // would worsen it (drying track appears faster → more credit), which is unphysical.
+      const base = h.obs_deg_from_fresh_p50_mono_s
+      rawTyre = base >= 0 ? base * M : base
+    } else {
+      // Empty-history fallback: analytical ramp (0 on lap 1, linear from lap 2 onward).
+      rawTyre = Math.max(0, analyticalRate * (k - 1)) * M
+    }
+    // Running-max guard: enforce tyre is non-decreasing even if the fit has a plateau issue.
+    const tyre = Math.max(prevTyre, rawTyre)
+    prevTyre = tyre
+
+    const net = opts.refGreenPaceS + fuel + tyre
+
+    // Band edges: use fitted p10/p90 × M; fall back to analytical ramp ± small fraction.
+    let p10Net: number
+    let p90Net: number
+    if (hasFittedHistory && h?.obs_deg_from_fresh_p10_mono_s != null && h?.obs_deg_from_fresh_p90_mono_s != null) {
+      const b10 = h.obs_deg_from_fresh_p10_mono_s
+      const b90 = h.obs_deg_from_fresh_p90_mono_s
+      p10Net = opts.refGreenPaceS + fuel + (b10 >= 0 ? b10 * M : b10)
+      p90Net = opts.refGreenPaceS + fuel + (b90 >= 0 ? b90 * M : b90)
+    } else {
+      p10Net = net - tyre * 0.2
+      p90Net = net + tyre * 0.5
+    }
+
+    laptimeCurve.push({ x: k, net, ref: opts.refGreenPaceS, fuel, tyre, p10: p10Net, p90: p90Net })
+
+    if (h) {
+      historyBand.push({
+        x: k,
+        p10: h.obs_fuel_removed_pace_p10_s + fuel,
+        p50: h.obs_fuel_removed_pace_p50_s + fuel,
+        p90: h.obs_fuel_removed_pace_p90_s + fuel,
+        obs: h.obs_fuel_removed_pace_p50_s + fuel,
+      })
+    }
+  }
+
+  return { laptimeCurve, historyBand }
+}
+
 export function toCsvRows(result: SimulatorResult): Record<string, unknown>[] {
-  return result.fan.map(p => ({
-    lap_in_stint: p.x,
-    predicted_jump_p10_s: p.p10.toFixed(4),
-    predicted_jump_p50_s: p.p50.toFixed(4),
-    predicted_jump_p90_s: p.p90.toFixed(4),
-    observed_jump_s: p.actual !== undefined ? p.actual.toFixed(4) : '',
-  }))
+  const lt = new Map(result.laptimeCurve.map(p => [p.x, p]))
+  return result.fan.map(p => {
+    const k = p.x as number
+    const l = lt.get(k)
+    return {
+      lap_in_stint: p.x,
+      predicted_jump_p10_s: p.p10.toFixed(4),
+      predicted_jump_p50_s: p.p50.toFixed(4),
+      predicted_jump_p90_s: p.p90.toFixed(4),
+      observed_jump_s: p.actual !== undefined ? p.actual.toFixed(4) : '',
+      projected_lap_time_s: l ? l.net.toFixed(4) : '',
+      ref_green_pace_s: l ? l.ref.toFixed(4) : '',
+      fuel_component_s: l ? l.fuel.toFixed(4) : '',
+      tyre_component_s: l ? l.tyre.toFixed(4) : '',
+      projected_lap_time_p10_s: l ? l.p10.toFixed(4) : '',
+      projected_lap_time_p90_s: l ? l.p90.toFixed(4) : '',
+    }
+  })
 }
 
 /**
@@ -128,6 +297,12 @@ export function inputsFromStint(rows: StintFeatureRow[]): SimulatorInputs | null
     track_energy_index: num(first.track_energy_index, 80),
     circuit_abrasiveness_index: num(first.circuit_abrasiveness_index, 3),
     constructor_id: first.constructor_id,
+    // Circuit context is enriched by the page from the loaded stint's circuit; defaults here.
+    circuit_id: null,
+    circuit_name: '',
+    era: 'post2022',
+    weight_penalty_factor: DEFAULT_WEIGHT_PENALTY_FACTOR,
+    fuel_consumption_rate_kg_per_lap: DEFAULT_FUEL_CONSUMPTION_RATE,
     constants: {
       compound: first.compound,
       compound_grip_peak: num(first.compound_grip_peak, defaults.compound_grip_peak),

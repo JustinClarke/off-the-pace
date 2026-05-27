@@ -26,12 +26,18 @@ The app is organized into content pillars. The following are **live** and availa
 
 | Pillar | Path | What you get |
 |---|---|---|
+| **Ghost Car** | `/ghost-car` | Compare simulated optimal laps vs actual laps |
+| **Lap Decomposition** | `/lap-decomposition` | Decompose any lap into its eight additive causes |
+| **Tyre Strategy** | `/tyre-strategy` | Dial a compound and conditions to watch the degradation models |
+| **Aero & Conditions** | `/aero` | Analyze track temperature and dirty air impacts |
 | **Drivers** | `/drivers` | Driver consistency charts and era-normalized skill ratings |
+| **Constructors** | `/constructors` | Team structural pace contribution and trends |
 | **The Machine** | `/ml` | ML model metrics, blind-test scoreboard, and the degradation simulator |
 | **Query Lab** | `/query` | A full SQL editor run any query against the gold mart in-browser |
+| **Data Quality** | `/data-quality` | Data pipeline invariants and telemetry reliability checks |
 
 <Note>
-  The following pillars are deployed as placeholders and are **coming soon**: Races, Ghost Car, Lap Decomposition (full), Tyre & Strategy, Aero & Conditions, Race Craft, Constructors, Energy & Telemetry, and Data Quality.
+  The following pillars are deployed as placeholders and are **coming soon**: Races, Race Craft, Energy & Telemetry.
 </Note>
 
 ## How to use the app
@@ -60,7 +66,7 @@ The app is organized into content pillars. The following are **live** and availa
   </Card>
   <Card
     title="Lap Waterfall"
-    icon="chart-waterfall"
+    icon="chart-gantt"
     href="/app/lap-waterfall"
   >
     Decompose any lap into its eight additive causes fuel, compound, rubber, ambient, constructor, dirty air, driver skill, and unexplained noise and verify the identity closes.

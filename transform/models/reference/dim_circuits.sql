@@ -1,10 +1,15 @@
--- dim_circuits.sql · reference · grain: one row per circuit
+-- dim_circuits.sql · reference · grain: one row per event slug (circuit_key)
 -- Lifts the circuit_reference seed into a typed dimension: lap length, corner count,
 -- lateral-g proxy, and weight-penalty coefficient fitted by tasks/coefficients/.
+--
+-- circuit_key is a grand-prix/event slug, so several keys can share one physical venue
+-- (renamed events, double-headers). circuit_id is the stable physical-circuit identifier:
+-- map event-keyed rows to it to pool races run at the same track.
 {{ config(materialized='table') }}
 
 SELECT
     CAST(circuit_key                      AS VARCHAR) AS circuit_key,
+    CAST({{ circuit_id_from_name('circuit_name') }} AS VARCHAR) AS circuit_id,
     CAST(circuit_name                     AS VARCHAR) AS circuit_name,
     CAST(lap_length_km                    AS DOUBLE)  AS lap_length_km,
     CAST(corner_count                     AS INTEGER) AS corner_count,

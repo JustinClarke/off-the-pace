@@ -15,20 +15,23 @@ renamed AS (
             CAST(session_time_s AS VARCHAR)
         ) AS track_status_id,
 
-        -- race_id = numeric FastF1 event id (matches stg_laps.race_id); race_slug = name.
-        CAST(season AS INTEGER)  AS race_year,
+        -- race_id = numeric FastF1 event id (matches stg_laps.race_id);
+        -- race_slug = name.
+        CAST(season AS INTEGER) AS race_year,
         CAST(race_id AS VARCHAR) AS race_id,
-        CAST(race    AS VARCHAR) AS race_slug,
+        CAST(race AS VARCHAR) AS race_slug,
 
         CAST(session_time_s AS DOUBLE) AS session_time_s,
-        CAST(Status AS VARCHAR)        AS status_code,
-        CAST(Message AS VARCHAR)       AS status_message,
+        CAST(status AS VARCHAR) AS status_code,
+        CAST(message AS VARCHAR) AS status_message,
 
-        -- Named decode of the FastF1 status code. Mapping ground-truthed against
-        -- the Message column in bronze: 4=SCDeployed, 6=VSCDeployed, 7=VSCEnding.
+        -- Named decode of the FastF1 status code. Mapping ground-truthed
+        -- against
+        -- the Message column in bronze: 4=SCDeployed, 6=VSCDeployed,
+        -- 7=VSCEnding.
         -- (Note: this corrects the stale comment in stg_laps, which has 5/6/7
         -- mislabelled; the FastF1 truth is 5=Red, 6=VSC, 7=VSC-ending.)
-        CASE CAST(Status AS VARCHAR)
+        CASE CAST(status AS VARCHAR)
             WHEN '1' THEN 'all_clear'
             WHEN '2' THEN 'yellow'
             WHEN '4' THEN 'safety_car'
@@ -38,15 +41,16 @@ renamed AS (
             ELSE 'unknown'
         END AS status_label,
 
-        CAST(Status AS VARCHAR) = '4'         AS is_safety_car,
-        CAST(Status AS VARCHAR) IN ('6', '7') AS is_vsc,
-        CAST(Status AS VARCHAR) = '5'         AS is_red_flag
+        CAST(status AS VARCHAR) = '4' AS is_safety_car,
+        CAST(status AS VARCHAR) IN ('6', '7') AS is_vsc,
+        CAST(status AS VARCHAR) = '5' AS is_red_flag
     FROM source
 )
 
 SELECT
     *,
-    -- Duration this status was in effect: until the next change in the same race
+    -- Duration this status was in effect: until the next change in the same
+    -- race
     -- (NULL for the final, open-ended event).
     LEAD(session_time_s) OVER (
         PARTITION BY race_year, race_id ORDER BY session_time_s

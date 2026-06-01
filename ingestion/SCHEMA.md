@@ -34,8 +34,13 @@ data/bronze/
 │       └── race=<slug>/
 │           └── telemetry.parquet
 └── manifests/
-    └── manifests.parquet
+    └── run_<run_id>.parquet                          # One file per ingestion run
 ```
+
+Manifests are append-only: each ingestion run writes a single
+`run_<run_id>.parquet` (where `run_id` is the run's UTC timestamp, e.g.
+`run_20260612T080731Z.parquet`), never a rolling `manifests.parquet`. Read them
+back with `make manifest-report` (run status + schema-drift across all runs).
 
 ## Column Definitions by Dataset
 
@@ -228,6 +233,33 @@ TIME PENALTY ... CAR 16 (LEC)
 - Some messages have null `Lap` (pre-race briefings, formation-lap events)-retain these rows;
   downstream models must filter `WHERE lap_number IS NOT NULL` as needed.
 - `RacingNumber` is the *car number* (string), not the driver code.
+
+---
+
+### Manifests
+
+**File:** `bronze/manifests/run_<run_id>.parquet`
+
+**Type:** Audit log. One row per (season, round, session) attempted in a run.
+
+**Grain:** `(run_id, season, round_number, session_type)`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| run_id | VARCHAR | UTC timestamp of the run (e.g. `20260612T080731Z`) |
+| ingested_at_utc | VARCHAR | ISO-8601 timestamp the row was written |
+| season | BIGINT | Calendar year |
+| round_number | BIGINT | Round within the season |
+| race_slug | VARCHAR | Event name slug (e.g. `bahrain_grand_prix`) |
+| session_type | VARCHAR | `R` or `Q` |
+| status | VARCHAR | `ok` \| `skip` \| `error` |
+| row_count | BIGINT | Laps written (0 for skip/error) |
+| dq_passed | BOOLEAN | True if data-quality schema check passed |
+| duplicate_lap_keys | BIGINT | Count of duplicate lap keys detected |
+| schema_fingerprint | VARCHAR | SHA-1 (first 12 chars) of sorted column names; blank for skip/error. Used to detect FastF1 schema drift between runs. |
+
+`make manifest-report` reads every `run_*.parquet`, reports the latest status per
+session, and flags any `schema_fingerprint` change over time as schema drift.
 
 ---
 

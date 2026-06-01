@@ -38,13 +38,13 @@ intermediate layer resolves to a row in `dim_circuits`. These live in `schema.ym
 
 ## How it connects
 
-- **Upstream (depends on):** `transform/seeds/`-CSV files (hand-authored and fitted) loaded by `dbt seed`
-- **Downstream (consumed by):** `transform/models/intermediate/`-joins `dim_circuits`, `dim_drivers`, `dim_constructors`, `dim_compounds_season` to add physics parameters to lap-grain models
+- **Upstream (depends on):** `transform/seeds/`  -  CSV files (hand-authored and fitted) loaded by `dbt seed`
+- **Downstream (consumed by):** `transform/models/intermediate/`  -  joins `dim_circuits`, `dim_drivers`, `dim_constructors`, `dim_compounds_season` to add physics parameters to lap-grain models
 
 ## Layer contract
 
 - Materialised as **tables** (stable lookups; loaded once per `dbt run`)
-- Never written at lap grain-reference models are slowly-changing dimensions only
+- Never written at lap grain  -  reference models are slowly-changing dimensions only
 - Must have a `schema.yml` entry with `relationships` tests to the intermediate layer
 
 ---

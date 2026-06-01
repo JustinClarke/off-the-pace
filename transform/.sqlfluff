@@ -5,6 +5,12 @@ exclude_rules = L034, L036
 
 [sqlfluff:templater:dbt]
 project_dir = ./
+# Use the project's checked-in profile (relative ../data/*.duckdb paths) and the
+# ci target, matching every other dbt invocation. Without this, the dbt templater
+# falls back to ~/.dbt/profiles.yml, whose absolute path may not resolve locally.
+profiles_dir = profiles
+profile = off_the_pace
+target = ci
 
 [sqlfluff:rules:capitalisation.keywords]
 capitalisation_policy = upper

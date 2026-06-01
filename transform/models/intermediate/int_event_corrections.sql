@@ -1,8 +1,11 @@
 -- Extended pipeline: Race-control derived lap corrections.
--- Classifies each lap in the race as affected by SC, VSC, red flag, or yellow sector,
--- and provides a correction multiplier that downstream residual decomposition uses to
+-- Classifies each lap in the race as affected by SC, VSC, red flag, or yellow
+-- sector,
+-- and provides a correction multiplier that downstream residual decomposition
+-- uses to
 -- either exclude or down-weight contaminated laps.
--- Source: stg_laps track_status strings + stg_pits (for pit-lap classification).
+-- Source: stg_laps track_status strings + stg_pits (for pit-lap
+-- classification).
 -- Grain: one row per race_year × race_id × driver_id × lap_number.
 {{ config(materialized='table') }}
 
@@ -34,8 +37,10 @@ race_fastest AS (
     GROUP BY race_year, race_id
 ),
 
--- Identify laps adjacent to a SC/VSC period (1 lap before deployment laps at full speed
--- and 1 lap after the restart are excluded both are anomalous in different directions).
+-- Identify laps adjacent to a SC/VSC period (1 lap before deployment laps at
+-- full speed
+-- and 1 lap after the restart are excluded both are anomalous in different
+-- directions).
 sc_windows AS (
     SELECT
         race_year,
@@ -57,12 +62,14 @@ sc_windows AS (
     FROM laps
 ),
 
--- Yellow flag in any sector (digit 2 anywhere in track_status) but not full SC/VSC
+-- Yellow flag in any sector (digit 2 anywhere in track_status) but not full
+-- SC/VSC
 yellow_flag AS (
     SELECT
         lap_id,
         REGEXP_MATCHES(track_status, '.*2.*')
-            AND NOT REGEXP_MATCHES(track_status, '.*[4567].*')  AS is_local_yellow_lap
+        AND NOT REGEXP_MATCHES(track_status, '.*[4567].*')
+            AS is_local_yellow_lap
     FROM laps
 ),
 
@@ -86,47 +93,58 @@ classified AS (
 
         -- Derived adjacency flags
         COALESCE(sc.prev_lap_was_controlled, FALSE) AS is_restart_lap,
-        COALESCE(sc.next_lap_is_controlled, FALSE)  AS is_pre_controlled_lap,
+        COALESCE(sc.next_lap_is_controlled, FALSE) AS is_pre_controlled_lap,
 
         -- Local yellow (sector caution, no full neutralisation)
-        COALESCE(y.is_local_yellow_lap, FALSE)       AS is_local_yellow_lap,
+        COALESCE(y.is_local_yellow_lap, FALSE) AS is_local_yellow_lap,
 
         -- Time relative to race fastest (magnitude check)
         CASE
             WHEN l.lap_time_s IS NOT NULL AND rf.fastest_lap_s IS NOT NULL
                 THEN l.lap_time_s / rf.fastest_lap_s
-            ELSE NULL
         END AS lap_time_ratio_to_fastest,
 
-        -- Severe outlier: hard-exclude only laps above outlier_exclude_ratio × fastest
-        -- (genuine in-laps / incidents). The [1.20, ratio) band is a soft outlier,
-        -- down-weighted rather than nuked, so heavy-fuel / traffic laps are salvaged.
+        -- Severe outlier: hard-exclude only laps above outlier_exclude_ratio ×
+        -- fastest
+        -- (genuine in-laps / incidents). The [1.20, ratio) band is a soft
+        -- outlier,
+        -- down-weighted rather than nuked, so heavy-fuel / traffic laps are
+        -- salvaged.
         CASE
             WHEN l.lap_time_s IS NOT NULL AND rf.fastest_lap_s IS NOT NULL
-                THEN l.lap_time_s > {{ var('outlier_exclude_ratio', 1.40) }} * rf.fastest_lap_s
+                THEN
+                    l.lap_time_s
+                    > {{ var('outlier_exclude_ratio', 1.40) }}
+                    * rf.fastest_lap_s
             ELSE FALSE
         END AS is_major_outlier_lap,
 
         -- Soft outlier band: slower than 120% but below the hard-exclude ratio.
         CASE
             WHEN l.lap_time_s IS NOT NULL AND rf.fastest_lap_s IS NOT NULL
-                THEN l.lap_time_s > 1.20 * rf.fastest_lap_s
-                     AND l.lap_time_s <= {{ var('outlier_exclude_ratio', 1.40) }} * rf.fastest_lap_s
+                THEN
+                    l.lap_time_s > 1.20 * rf.fastest_lap_s
+                    AND l.lap_time_s
+                    <= {{ var('outlier_exclude_ratio', 1.40) }}
+                    * rf.fastest_lap_s
             ELSE FALSE
         END AS is_soft_outlier_lap
 
-    FROM laps l
-    LEFT JOIN sc_windows sc
+    FROM laps AS l
+    LEFT JOIN sc_windows AS sc
         USING (race_year, race_id, driver_id, lap_number)
-    LEFT JOIN yellow_flag y
+    LEFT JOIN yellow_flag AS y
         USING (lap_id)
-    LEFT JOIN race_fastest rf
+    LEFT JOIN race_fastest AS rf
         USING (race_year, race_id)
 ),
 
--- Manual race-watch overrides. A row with lap_number set targets a single lap; a row
--- with NULL lap_number applies to every lap of that driver in the race. event_type
--- 'salvage' (override 1.0) rescues a lap the heuristic killed; other types let a human
+-- Manual race-watch overrides. A row with lap_number set targets a single lap;
+-- a row
+-- with NULL lap_number applies to every lap of that driver in the race.
+-- event_type
+-- 'salvage' (override 1.0) rescues a lap the heuristic killed; other types let
+-- a human
 -- mark spins / lockups / damage the automatic classifier missed.
 manual AS (
     SELECT
@@ -134,27 +152,30 @@ manual AS (
         race_id,
         driver_id,
         lap_number,
-        event_type                              AS manual_event_type,
-        correction_weight_override              AS manual_weight
+        event_type AS manual_event_type,
+        correction_weight_override AS manual_weight
     FROM {{ ref('seed_manual_lap_exceptions') }}
 ),
 
 with_manual AS (
     SELECT
         c.*,
-        COALESCE(m_lap.manual_event_type, m_all.manual_event_type) AS manual_event_type,
-        COALESCE(m_lap.manual_weight, m_all.manual_weight)         AS manual_weight
-    FROM classified c
-    LEFT JOIN manual m_lap
-        ON c.race_year  = m_lap.race_year
-        AND c.race_id   = m_lap.race_id
-        AND c.driver_id = m_lap.driver_id
-        AND c.lap_number = m_lap.lap_number
-    LEFT JOIN manual m_all
-        ON c.race_year  = m_all.race_year
-        AND c.race_id   = m_all.race_id
-        AND c.driver_id = m_all.driver_id
-        AND m_all.lap_number IS NULL
+        COALESCE(m_lap.manual_event_type, m_all.manual_event_type)
+            AS manual_event_type,
+        COALESCE(m_lap.manual_weight, m_all.manual_weight) AS manual_weight
+    FROM classified AS c
+    LEFT JOIN manual AS m_lap
+        ON
+            c.race_year = m_lap.race_year
+            AND c.race_id = m_lap.race_id
+            AND c.driver_id = m_lap.driver_id
+            AND c.lap_number = m_lap.lap_number
+    LEFT JOIN manual AS m_all
+        ON
+            c.race_year = m_all.race_year
+            AND c.race_id = m_all.race_id
+            AND c.driver_id = m_all.driver_id
+            AND m_all.lap_number IS NULL
 )
 
 SELECT
@@ -178,13 +199,18 @@ SELECT
     manual_event_type,
 
     -- Composite correction class mutually exclusive, priority ordered.
-    -- A manual override always wins, so a human decision is never silently overruled.
+    -- A manual override always wins, so a human decision is never silently
+    -- overruled.
     CASE
         WHEN manual_event_type IS NOT NULL
             THEN 'manual_' || manual_event_type
         WHEN is_deleted OR is_major_outlier_lap OR is_fastf1_generated
             THEN 'exclude'
-        WHEN is_safety_car_lap OR is_vsc_lap OR is_restart_lap OR is_pre_controlled_lap
+        WHEN
+            is_safety_car_lap
+            OR is_vsc_lap
+            OR is_restart_lap
+            OR is_pre_controlled_lap
             THEN 'neutralisation'
         WHEN is_pit_lap
             THEN 'pit'

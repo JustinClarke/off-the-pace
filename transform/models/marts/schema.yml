@@ -633,7 +633,8 @@ models:
         tests: [not_null]
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [race_year, driver_id]
+          arguments:
+            combination_of_columns: [race_year, driver_id]
 
   - name: mart_degradation_history_envelope
     description: >
@@ -705,7 +706,8 @@ models:
         tests: [not_null]
     tests:
       - dbt_utils.unique_combination_of_columns:
-          combination_of_columns: [circuit_id, era, compound, lap_in_stint]
+          arguments:
+            combination_of_columns: [circuit_id, era, compound, lap_in_stint]
       - dbt_expectations.expect_table_row_count_to_be_between:
           arguments:
             min_value: 1
@@ -724,3 +726,151 @@ models:
             column_A: obs_fuel_removed_pace_p90_s
             column_B: obs_fuel_removed_pace_p50_s
             or_equal: true
+
+  - name: dim_events
+    description: >
+      Race-level event dimension. One row per event (damage, retirement, penalty).
+      Currently populated from the raw_dim_events seed (manual entries for 2021).
+      Joined onto fct_lap_residuals to flag performance-impact and reliability-impact events.
+    tags: [marts]
+    columns:
+      - name: event_id
+        description: Surrogate PK for the event.
+        tests:
+          - not_null
+          - unique
+      - name: race_id
+        description: Race identifier the event belongs to.
+        tests:
+          - not_null
+
+  - name: fct_lap_residuals
+    description: >
+      Lap-grain analytics table. One row per valid race lap. Exposes the full
+      residual decomposition from int_lap_residual_decomposed plus anomaly flags
+      from int_lap_anomaly_flags. Use ml_eligible = TRUE to filter to training-quality
+      laps. For ML model inputs, prefer the split marts:
+        - fct_driver_skill_features   race-grain skill aggregates
+        - fct_cliff_prediction_features   lap-grain with next_lap_degradation_jump_s target
+    tags: [marts]
+    columns:
+      - name: lap_id
+        description: Surrogate PK, FK to stg_laps.
+        tests:
+          - not_null
+          - unique
+      - name: race_year
+        description: Season year.
+        tests:
+          - not_null
+      - name: race_id
+        description: Race identifier.
+        tests:
+          - not_null
+      - name: driver_id
+        description: Driver identifier.
+        tests:
+          - not_null
+      - name: constructor_id
+        description: Constructor identifier.
+        tests:
+          - not_null
+      - name: lap_number
+        description: Lap number within the race.
+        tests:
+          - not_null
+      - name: lap_time_s
+        description: Raw lap time in seconds.
+        tests:
+          - not_null
+      - name: compound
+        description: Tyre compound on this lap.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
+              config:
+                where: "compound IS NOT NULL"
+      - name: fuel_component_s
+        description: Fuel-burnoff weight penalty component.
+        tests:
+          - not_null
+      - name: compound_component_s
+        description: Tyre-compound degradation component.
+        tests:
+          - not_null
+      - name: rubber_component_s
+        description: Track-rubber evolution component.
+        tests:
+          - not_null
+      - name: ambient_component_s
+        description: Ambient/weather component.
+        tests:
+          - not_null
+      - name: constructor_component_s
+        description: Constructor structural pace component.
+        tests:
+          - not_null
+      - name: dirty_air_tax_s
+        description: Per-lap dirty-air slowdown component.
+        tests:
+          - not_null
+      - name: driver_skill_residual_s
+        description: Residual after all physics/car/strategy components (driver skill).
+        tests:
+          - not_null
+      - name: ml_eligible
+        description: TRUE when the lap is training-quality for ML inputs.
+        tests:
+          - not_null
+      - name: correction_weight
+        description: IPW/cleanliness weight for the lap.
+        tests:
+          - not_null
+
+  - name: fct_telemetry_deltas
+    description: >
+      Driver-vs-teammate corner-metric deltas. Grain: one row per
+      (race_id, driver_a, driver_b, corner_name, lap_number) — for each teammate
+      pair (driver_a < driver_b) within a race, the per-corner difference in braking
+      point, minimum corner speed, and throttle-application point. Built by joining
+      int_corner_metrics to itself across same-car teammates. Powers the Telemetry
+      Style Fingerprint feature (#19).
+    tags: [marts]
+    columns:
+      - name: race_id
+        description: Race identifier.
+        tests:
+          - not_null
+      - name: driver_a
+        description: First driver of the teammate pair (lexicographically smaller id).
+        tests:
+          - not_null
+      - name: driver_b
+        description: Second driver of the teammate pair.
+        tests:
+          - not_null
+      - name: corner_name
+        description: Named track corner the delta is measured at.
+        tests:
+          - not_null
+      - name: track_id
+        description: Track identifier for the corner.
+        tests:
+          - not_null
+      - name: lap_number
+        description: Lap number within the race.
+        tests:
+          - not_null
+      - name: braking_point_delta_m
+        description: driver_a − driver_b braking point (metres). Positive = driver_a brakes later.
+        tests:
+          - not_null
+      - name: v_min_delta_kph
+        description: driver_a − driver_b minimum corner speed (kph). Positive = driver_a carries more speed.
+        tests:
+          - not_null
+      - name: throttle_point_delta_m
+        description: driver_a − driver_b throttle-application point (metres). Positive = driver_a gets on power later.
+        tests:
+          - not_null

@@ -39,6 +39,8 @@ LAPS_DIR           = BRONZE_DIR / "laps"
 WEATHER_DIR        = BRONZE_DIR / "weather"
 RC_DIR             = BRONZE_DIR / "race_control"
 TELEMETRY_DIR      = BRONZE_DIR / "telemetry"
+TELEMETRY_FULL_DIR = BRONZE_DIR / "telemetry_full"
+POS_DATA_DIR       = BRONZE_DIR / "pos_data"
 RESULTS_DIR        = BRONZE_DIR / "results"
 TRACK_STATUS_DIR   = BRONZE_DIR / "track_status"
 SESSION_STATUS_DIR = BRONZE_DIR / "session_status"
@@ -547,12 +549,16 @@ def ingest_season(
     skip_telemetry: bool,
     telemetry_full: bool = False,
     run_id: str = "",
+    only_round: int | None = None,
 ) -> tuple[dict, list[dict]]:
     """
-    Ingest all rounds for a season.
+    Ingest all rounds for a season, or a single round when only_round is set.
     Returns (counts, manifest_rows) where counts has ok/skip/error per session type.
     """
-    logger.info(f"=== Season {year} ===")
+    if only_round is not None:
+        logger.info(f"=== Season {year} Rd{only_round} ===")
+    else:
+        logger.info(f"=== Season {year} ===")
 
     counts = {"R_ok": 0, "R_skip": 0, "R_error": 0, "Q_ok": 0, "Q_skip": 0, "Q_error": 0}
     manifest_rows: list[dict] = []
@@ -568,6 +574,8 @@ def ingest_season(
         if pd.isna(rn) or int(rn) == 0:
             continue
         round_num = int(rn)
+        if only_round is not None and round_num != only_round:
+            continue
         slug = _slug(row["EventName"])
 
         if sessions in ("R", "both"):
@@ -608,6 +616,8 @@ def _build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  python ingest.py --season 2024 --round 1 --session R
+                 Ingest a single race (2024 Rd1, Bahrain)
   python ingest.py --season 2024 --session R
                  Ingest 2024 races only
   python ingest.py --season 2024 --session both
@@ -632,6 +642,10 @@ Examples:
     p.add_argument(
         "--end-season", type=int, metavar="YEAR",
         help="Last season to ingest (inclusive). Required with --start-season.",
+    )
+    p.add_argument(
+        "--round", type=int, metavar="N", default=None,
+        help="Ingest only this round number (requires a single season via -s/--season)",
     )
     p.add_argument(
         "--session", dest="sessions", choices=["R", "Q", "both"], default="both",
@@ -676,16 +690,22 @@ def main() -> None:
     if start_year > end_year:
         parser.error(f"--start-season {start_year} is after --end-season {end_year}")
 
+    if args.round is not None and start_year != end_year:
+        parser.error("--round requires a single season (use -s/--season N, not a season range)")
+
     if args.dry_run:
-        total_races = (end_year-start_year + 1) * 23
-        estimated_gb = total_races * 0.15
-        logger.info(
-            f"DRY RUN: Would ingest {start_year}–{end_year} ({total_races} races, "
-            f"~{estimated_gb:.1f} GB)"
-        )
+        if args.round is not None:
+            logger.info(f"DRY RUN: Would ingest {start_year} Rd{args.round} (1 race, ~0.2 GB)")
+        else:
+            total_races = (end_year-start_year + 1) * 23
+            estimated_gb = total_races * 0.15
+            logger.info(
+                f"DRY RUN: Would ingest {start_year}–{end_year} ({total_races} races, "
+                f"~{estimated_gb:.1f} GB)"
+            )
         return
 
-    for d in [LAPS_DIR, WEATHER_DIR, RC_DIR, TELEMETRY_DIR, RESULTS_DIR, TRACK_STATUS_DIR, SESSION_STATUS_DIR, CIRCUIT_INFO_DIR, SCHEDULE_DIR, MANIFESTS_DIR, CACHE_DIR]:
+    for d in [LAPS_DIR, WEATHER_DIR, RC_DIR, TELEMETRY_DIR, TELEMETRY_FULL_DIR, POS_DATA_DIR, RESULTS_DIR, TRACK_STATUS_DIR, SESSION_STATUS_DIR, CIRCUIT_INFO_DIR, SCHEDULE_DIR, MANIFESTS_DIR, CACHE_DIR]:
         os.makedirs(d, exist_ok=True)
     fastf1.Cache.enable_cache(str(config.fastf1_cache_dir))
 
@@ -707,6 +727,7 @@ def main() -> None:
             skip_telemetry=args.skip_telemetry,
             telemetry_full=args.telemetry_full,
             run_id=run_id,
+            only_round=args.round,
         )
         total_ok += counts.get("R_ok", 0) + counts.get("Q_ok", 0)
         all_manifest_rows.extend(manifest_rows)

@@ -3,5 +3,6 @@
 -- This can occur when cliffs are early in the stint and driver recovers, or when
 -- cliff detection is noise. Not a failure condition, but useful for validation.
 -- Placeholder: returns empty (passes) for second iteration. Will be upgraded to warning/error in fourth iteration.
+{{ config(tags=['placeholder']) }}
 
 SELECT 1 WHERE FALSE

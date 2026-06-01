@@ -25,7 +25,7 @@ Batch transformation for **Off The Pace**. Reads Bronze Hive-partitioned Parquet
 |---|---|
 | Transform engine | dbt Core 1.11 |
 | Production engine | DuckDB (file-based, zero-infra, CI-validated) |
-| Future target | Microsoft Fabric Lakehouse (deferred-not yet wired) |
+| Future target | Microsoft Fabric Lakehouse (deferred  -  not yet wired) |
 | Adapter | dbt-duckdb (`external_location` sources) |
 
 ---
@@ -65,7 +65,9 @@ Bronze Parquet (laps / results / track_status / session_status / circuit_info / 
                                             ├── fct_telemetry_deltas              telemetry-grain, sector micro-analysis
                                             ├── fct_stint_features                stint-grain strategy features
                                             ├── fct_ghost_car_pace                lap-grain, counterfactual pace decomposition
-                                            └── fct_ghost_race_finish             driver × race, simulated finish + honest SE
+                                            ├── fct_ghost_race_finish             driver × race, simulated finish + honest SE
+                                            ├── mart_corner_skill_driver          driver × season, corner-skill aggregates
+                                            └── mart_degradation_history_envelope circuit × era × compound × lap-in-stint, deg envelope
 ```
 
 ---
@@ -95,7 +97,7 @@ transform/
 
 ## Reading a model (for SQL developers)
 
-New to dbt? Each `.sql` file under `models/` is a `SELECT` statement-dbt materialises it as a view or table. `{{ ref('x') }}` is a typed dependency; dbt sorts the DAG and runs models in topological order, so you never manage `DROP/CREATE` ordering manually.
+New to dbt? Each `.sql` file under `models/` is a `SELECT` statement  -  dbt materialises it as a view or table. `{{ ref('x') }}` is a typed dependency; dbt sorts the DAG and runs models in topological order, so you never manage `DROP/CREATE` ordering manually.
 
 See the [Quick Start](https://offthepace.mintlify.app/quickstart) page in the documentation site for setup and query details.
 
@@ -103,7 +105,7 @@ See the [Quick Start](https://offthepace.mintlify.app/quickstart) page in the do
 
 ## ML handoff
 
-The two feature marts are the contract with `ml/`. Schemas are enforced via dbt model contracts-breaking a column type will fail the build.
+The two feature marts are the contract with `ml/`. Schemas are enforced via dbt model contracts  -  breaking a column type will fail the build.
 
 | Mart | Grain | ML use |
 |---|---|---|
@@ -137,8 +139,8 @@ make dbt-dev-full
 ## Adding a new season
 
 1. Ingest bronze: `python ingestion/src/ingest.py --start-season YYYY --end-season YYYY --sessions both`
-2. `dbt run`-the `*/*/*/*.parquet` glob picks it up automatically
-3. `make coefficients-fit`-re-fit cliff params on the expanded data window
+2. `dbt run`  -  the `*/*/*/*.parquet` glob picks it up automatically
+3. `make coefficients-fit`  -  re-fit cliff params on the expanded data window
 4. `dbt test` to confirm quality
 5. Update `seeds/tyre_allocations.csv` if new compounds were introduced
 

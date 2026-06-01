@@ -1,7 +1,8 @@
 -- Extract pit-stop events from the laps parquet.
 -- One row per pit stop (lap where PitInTime or PitOutTime is non-null).
 -- pit_in_lap = lap on which the car entered the pit lane.
--- pit_out_lap = lap on which the car exited the pit lane (usually pit_in_lap + 1).
+-- pit_out_lap = lap on which the car exited the pit lane (usually pit_in_lap +
+-- 1).
 {{ config(materialized='view') }}
 
 WITH source AS (
@@ -13,23 +14,31 @@ pit_laps AS (
         CONCAT(
             CAST(season AS VARCHAR), '_',
             CAST(race_id AS VARCHAR), '_',
-            CAST(Driver  AS VARCHAR), '_',
-            CAST(CAST(LapNumber AS INTEGER) AS VARCHAR)
+            CAST(driver AS VARCHAR), '_',
+            CAST(CAST(lapnumber AS INTEGER) AS VARCHAR)
         ) AS lap_id,
 
-        CAST(season  AS INTEGER) AS race_year,
+        CAST(season AS INTEGER) AS race_year,
         CAST(race_id AS VARCHAR) AS race_id,
-        CAST(Driver  AS VARCHAR) AS driver_id,
-        CAST(LapNumber AS INTEGER) AS lap_number,
-        CAST(Stint     AS INTEGER) AS stint_number,
-        UPPER(CAST(Compound AS VARCHAR)) AS compound_out,
+        CAST(driver AS VARCHAR) AS driver_id,
+        CAST(lapnumber AS INTEGER) AS lap_number,
+        CAST(stint AS INTEGER) AS stint_number,
+        UPPER(CAST(compound AS VARCHAR)) AS compound_out,
 
         -- Pit times (nanoseconds → seconds)
-        CASE WHEN PitInTime  IS NOT NULL THEN CAST(PitInTime  AS DOUBLE) / 1e9 ELSE NULL END AS pit_in_time_s,
-        CASE WHEN PitOutTime IS NOT NULL THEN CAST(PitOutTime AS DOUBLE) / 1e9 ELSE NULL END AS pit_out_time_s
+        CASE
+            WHEN
+                pitintime IS NOT NULL
+                THEN CAST(pitintime AS DOUBLE) / 1e9
+        END AS pit_in_time_s,
+        CASE
+            WHEN
+                pitouttime IS NOT NULL
+                THEN CAST(pitouttime AS DOUBLE) / 1e9
+        END AS pit_out_time_s
 
     FROM source
-    WHERE PitInTime IS NOT NULL OR PitOutTime IS NOT NULL
+    WHERE pitintime IS NOT NULL OR pitouttime IS NOT NULL
 ),
 
 with_duration AS (
@@ -38,16 +47,15 @@ with_duration AS (
         race_year,
         race_id,
         driver_id,
-        lap_number                        AS pit_in_lap_number,
-        lap_number + 1                    AS pit_out_lap_number,
+        lap_number AS pit_in_lap_number,
+        lap_number + 1 AS pit_out_lap_number,
         stint_number,
         compound_out,
         pit_in_time_s,
         pit_out_time_s,
         CASE
             WHEN pit_in_time_s IS NOT NULL AND pit_out_time_s IS NOT NULL
-            THEN pit_out_time_s-pit_in_time_s
-            ELSE NULL
+                THEN pit_out_time_s - pit_in_time_s
         END AS pit_duration_s
     FROM pit_laps
 )

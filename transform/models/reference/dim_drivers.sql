@@ -24,7 +24,7 @@ career_summary AS (
         driver_id,
         -- Most recent number (drivers sometimes change numbers)
         MAX(driver_number) AS driver_number,
-        MIN(race_year)     AS debut_year,
+        MIN(race_year) AS debut_year,
         SUM(races_in_season) AS career_races_in_dataset
     FROM driver_seasons
     GROUP BY driver_id

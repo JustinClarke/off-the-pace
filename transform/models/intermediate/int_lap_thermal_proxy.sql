@@ -41,18 +41,19 @@ combined AS (
         l.lap_time_s,
         -- 60th percentile cut-off lap position (min 3 to have enough data)
         GREATEST(CEIL(g.stint_length_actual * 0.60), 3) AS baseline_cutoff_lap
-    FROM geom g
-    JOIN laps l USING (lap_id)
+    FROM geom AS g
+    JOIN laps AS l USING (lap_id)
 ),
 
 -- Pre-aggregate median over baseline window (laps ≤ cutoff) per stint.
--- DuckDB does not support FILTER in ordered-set aggregates inside window functions,
+-- DuckDB does not support FILTER in ordered-set aggregates inside window
+-- functions,
 -- so we compute one value per stint via a plain GROUP BY first.
 stint_baseline_agg AS (
     SELECT
         stint_id,
         MEDIAN(lap_time_s) FILTER (WHERE lap_in_stint <= baseline_cutoff_lap)
-                                       AS stint_baseline_pace
+            AS stint_baseline_pace
     FROM combined
     GROUP BY stint_id
 ),
@@ -61,15 +62,15 @@ with_baseline AS (
     SELECT
         c.*,
         s.stint_baseline_pace
-    FROM combined c
-    JOIN stint_baseline_agg s USING (stint_id)
+    FROM combined AS c
+    JOIN stint_baseline_agg AS s USING (stint_id)
 ),
 
 with_residual AS (
     SELECT
         *,
         -- Positive = faster than baseline = pushing harder
-        stint_baseline_pace-lap_time_s   AS push_residual
+        stint_baseline_pace - lap_time_s AS push_residual
     FROM with_baseline
 ),
 
@@ -87,7 +88,8 @@ thermal AS (
             + 0.514 * GREATEST(COALESCE(LAG(push_residual, 2) OVER w, 0), 0)
             + 0.369 * GREATEST(COALESCE(LAG(push_residual, 3) OVER w, 0), 0)
             + 0.264 * GREATEST(COALESCE(LAG(push_residual, 4) OVER w, 0), 0),
-        4) AS cumulative_push_load_surface,
+            4
+        ) AS cumulative_push_load_surface,
 
         -- Bulk load (τ=5): 8-lap lookback, only positive residuals
         ROUND(
@@ -99,7 +101,8 @@ thermal AS (
             + 0.368 * GREATEST(COALESCE(LAG(push_residual, 5) OVER w, 0), 0)
             + 0.301 * GREATEST(COALESCE(LAG(push_residual, 6) OVER w, 0), 0)
             + 0.247 * GREATEST(COALESCE(LAG(push_residual, 7) OVER w, 0), 0),
-        4) AS cumulative_push_load_bulk
+            4
+        ) AS cumulative_push_load_bulk
 
     FROM with_residual
     WINDOW w AS (

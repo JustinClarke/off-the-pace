@@ -10,7 +10,8 @@ A test **passes when it returns zero rows**. Each test is in one of three states
   baseline snapshot it compares against isn't committed; it passes vacuously until
   a snapshot is generated.
 - **📝 Placeholder** `SELECT 1 WHERE FALSE`; wired up once the upstream model
-  (or its confidence intervals) lands.
+  (or its confidence intervals) lands. These carry `tags: ['placeholder']`, so
+  `dbt test --exclude tag:placeholder` measures real coverage only.
 
 ## Identity-Closure Tests
 
@@ -41,12 +42,11 @@ closure checks are built on the [`assert_additive_identity`](../macros/assert_ad
 | `assert_synthetic_teammate_identity.sql` | `driver_skill_proxy` ≈ 0 when ego and teammate are the same driver | `int_synthetic_teammate`, `int_stint_geometry` | ✅ Active |
 | `assert_field_pace_honest_range.sql` | Field pace curve stays within ±5s of the overall race median | `int_field_pace_curve` | ✅ Active |
 | `assert_mad_floor.sql` | MAD scale estimator is floored at 0.10s (prevents cliff self-masking) | `int_lap_anomaly_flags` | ✅ Active |
-| `assert_pos_degradation.sql` | Positive degradation detected in representative high-wear stints | `fct_driver_degradation` | ✅ Active |
 | `assert_track_evolution_monotone.sql` | Rubber-in evolution is monotonically non-negative within a race | `int_track_evolution` | ✅ Active |
 | `assert_driver_skill_residual_reasonable.sql` | Driver-skill residual per race is centred near 0 (mean < ±1s) | `fct_lap_residuals` | ✅ Active |
 | `assert_raw_laps_has_both_sessions.sql` | Both race (`stg_laps`) and qualifying (`stg_laps_qualifying`) laps are present with data | `stg_laps`, `stg_laps_qualifying` | ✅ Active |
 | `assert_p_beats_next_geq_half.sql` | Fix 3 pairwise consistency: `p_beats_next` ≥ 0.5 for adjacently-ranked drivers (ranked by ascending predicted pace) | `fct_ghost_race_finish` | ✅ Active |
-| `assert_constructor_coefficient_signs.sql` | Championship top-3 constructors have `constructor_structural_pace_s` < 0 (faster than field) at 95% CI | `int_constructor_structural_pace`, `dim_constructor_championship` | 📝 Placeholder (awaiting real CIs) |
+| `assert_constructor_coefficient_signs.sql` | Every season has at least one constructor genuinely faster than the field (`MIN(constructor_structural_pace_s) < 0`) and at least one identified (non-degenerate) CI | `int_constructor_structural_pace` | ✅ Active |
 | `assert_constructor_confidence_monotone.sql` | Constructor-index confidence increases with lap count (more data ⇒ more confidence) | `int_constructor_structural_pace` | 📝 Placeholder (superseded by a `dbt_expectations` pair test in `schema.yml` after `int_constructor_pace_index` was folded into `int_constructor_structural_pace`) |
 | `assert_cliff_stints_have_falloff.sql` | Informational (non-blocking): flags stints with a detected cliff but minimal end-of-stint pace falloff | | 📝 Placeholder |
 

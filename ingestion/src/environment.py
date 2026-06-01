@@ -1,8 +1,9 @@
 """
-Environment configuration with secure credential handling.
+Environment configuration for ingestion.
 
-Load and validate environment variables for ingestion, with automatic
-validation and helpful error messages for missing credentials.
+FastF1 needs no credentials, so config is deliberately small: a cache
+directory, a log level, and a request timeout, each overridable by an
+environment variable (optionally via a `.env` file).
 """
 
 import logging
@@ -15,15 +16,8 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 
-def mask_sensitive(value: str) -> str:
-    """Mask API keys and connection strings for safe logging."""
-    if not value or len(value) < 8:
-        return value
-    return value[:4] + "*" * (len(value)-8) + value[-4:]
-
-
 class EnvironmentConfig:
-    """Load and validate environment variables with secure defaults."""
+    """Load environment variables with sensible defaults."""
 
     def __init__(self, env_file: Optional[Path] = None):
         """
@@ -33,7 +27,6 @@ class EnvironmentConfig:
             env_file: Path to .env file. If None, searches parent directories.
         """
         self._load_env_file(env_file)
-        self._validate_required()
 
     @staticmethod
     def _load_env_file(env_file: Optional[Path]) -> None:
@@ -57,14 +50,6 @@ class EnvironmentConfig:
                 logger.debug(f"Loaded environment from {env_path}")
                 return
 
-    @staticmethod
-    def _validate_required() -> None:
-        """Validate that no secrets are hardcoded in code."""
-        # FastF1 doesn't require authentication
-        # This is mainly a safety check that we're not accidentally
-        # storing credentials in the codebase
-        pass
-
     @property
     def fastf1_cache_dir(self) -> Path:
         """FastF1 cache directory. Default: data/cache"""
@@ -85,27 +70,6 @@ class EnvironmentConfig:
         except ValueError:
             logger.warning("INGESTION_TIMEOUT_SECONDS is not a valid number; using 300")
             return 300.0
-
-    @property
-    def azure_event_hub_conn_string(self) -> Optional[str]:
-        """Azure Event Hub connection string (optional, future streaming integration)."""
-        val = os.getenv("AZURE_EVENT_HUB_CONN_STRING")
-        if val:
-            logger.debug(f"Azure Event Hub: {mask_sensitive(val)}")
-        return val
-
-    @property
-    def azure_event_hub_topic(self) -> str:
-        """Azure Event Hub topic name. Default: f1_laps"""
-        return os.getenv("AZURE_EVENT_HUB_TOPIC", "f1_laps")
-
-    @property
-    def ergast_api_key(self) -> Optional[str]:
-        """Ergast API key (optional). Ergast API is deprecated as of Dec 2024."""
-        val = os.getenv("ERGAST_API_KEY")
-        if val:
-            logger.debug(f"Ergast API key: {mask_sensitive(val)}")
-        return val
 
 
 def get_config(env_file: Optional[Path] = None) -> EnvironmentConfig:

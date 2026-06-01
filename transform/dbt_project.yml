@@ -45,10 +45,6 @@ models:
 
 seeds:
   off_the_pace:
-    _archive:
-      +enabled: false
-    _pending:
-      +enabled: false
     circuit_reference:
       +column_types:
         era_start_year: integer

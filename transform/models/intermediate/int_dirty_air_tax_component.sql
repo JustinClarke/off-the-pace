@@ -30,7 +30,7 @@ WITH fuel AS (
         driver_id,
         lap_number,
         lap_time_s,
-        weight_penalty_s    AS fuel_component_s
+        weight_penalty_s AS fuel_component_s
     FROM {{ ref('int_lap_fuel_state') }}
 ),
 
@@ -70,7 +70,8 @@ air_state AS (
 ),
 
 corrections AS (
-    -- Clean-lap filter: use correction_weight instead of int_lap_anomaly_flags to
+    -- Clean-lap filter: use correction_weight instead of int_lap_anomaly_flags
+    -- to
     -- avoid the cycle: int_dirty_air_tax_component → int_lap_anomaly_flags →
     -- int_lap_residual_decomposed → int_dirty_air_tax_component.
     SELECT
@@ -97,26 +98,34 @@ panel AS (
         f.driver_id,
         f.lap_number,
         g.lap_in_stint,
-        -- Partial residual: pace delta minus fuel only (avoids circular ref to int_lap_residual_decomposed).
-        -- Compound, rubber, ambient, and constructor noise increases variance but θ_air remains identified
+        -- Partial residual: pace delta minus fuel only (avoids circular ref to
+        -- int_lap_residual_decomposed).
+        -- Compound, rubber, ambient, and constructor noise increases variance
+        -- but θ_air remains identified
         -- via within-driver-race variation orthogonal to those components.
-        (f.lap_time_s-COALESCE(fp.field_pace_smoothed_s, f.lap_time_s))-f.fuel_component_s
-                                                    AS partial_residual_s,
+        (f.lap_time_s - COALESCE(fp.field_pace_smoothed_s, f.lap_time_s))
+        - f.fuel_component_s
+            AS partial_residual_s,
         a.dirty_air_share_lap,
         a.air_state_dominant
-    FROM fuel f
-    JOIN geom g             USING (lap_id)
-    LEFT JOIN field_pace fp ON f.race_year  = fp.race_year
-                            AND f.race_id   = fp.race_id
-                            AND f.lap_number = fp.lap_number
-    LEFT JOIN air_state a   USING (lap_id)
-    LEFT JOIN corrections c USING (lap_id)
-    LEFT JOIN evolution e   ON f.race_year  = e.race_year
-                            AND f.race_id   = e.race_id
-                            AND f.lap_number = e.lap_number
-    WHERE f.lap_time_s IS NOT NULL
-      AND COALESCE(c.correction_weight, 1.0) = 1.0
-      AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+    FROM fuel AS f
+    JOIN geom AS g USING (lap_id)
+    LEFT JOIN field_pace AS fp
+        ON
+            f.race_year = fp.race_year
+            AND f.race_id = fp.race_id
+            AND f.lap_number = fp.lap_number
+    LEFT JOIN air_state AS a USING (lap_id)
+    LEFT JOIN corrections AS c USING (lap_id)
+    LEFT JOIN evolution AS e
+        ON
+            f.race_year = e.race_year
+            AND f.race_id = e.race_id
+            AND f.lap_number = e.lap_number
+    WHERE
+        f.lap_time_s IS NOT NULL
+        AND COALESCE(c.correction_weight, 1.0) = 1.0
+        AND COALESCE(e.rainfall_flag, FALSE) = FALSE
 ),
 
 with_lagged AS (
@@ -139,17 +148,19 @@ calibration_panel AS (
         partial_residual_s,
         dirty_air_share_lag1
     FROM with_lagged
-    WHERE dirty_air_share_lag1 > 0
-      AND partial_residual_s IS NOT NULL
+    WHERE
+        dirty_air_share_lag1 > 0
+        AND partial_residual_s IS NOT NULL
 ),
 
 -- Global θ_air: weighted regression slope Σ(x·y)/Σ(x²)
--- In production this is a pyfixest HDFE regression; here a SQL OLS approximation.
+-- In production this is a pyfixest HDFE regression; here a SQL OLS
+-- approximation.
 theta_air_estimate AS (
     SELECT
         COALESCE(
-            COVAR_POP(partial_residual_s, dirty_air_share_lag1) /
-            NULLIF(VAR_POP(dirty_air_share_lag1), 0),
+            COVAR_POP(partial_residual_s, dirty_air_share_lag1)
+            / NULLIF(VAR_POP(dirty_air_share_lag1), 0),
             0.5
         ) AS theta_air,
         COUNT(*) AS calibration_sample_n
@@ -171,41 +182,51 @@ with_tax AS (
         ta.calibration_sample_n,
         -- Dirty air tax: θ_air × lagged share, bounded [0, 5.0]
         CASE
-            WHEN ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) < 0 THEN 0.0
-            WHEN ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) > 5.0 THEN 5.0
+            WHEN
+                ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) < 0
+                THEN 0.0
+            WHEN
+                ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) > 5.0
+                THEN 5.0
             ELSE ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0)
         END AS dirty_air_tax_s,
-        ABS(ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) * 0.15) AS dirty_air_tax_se_s,
-        -- Continuous shrinkage-towards-prior: n / (n + k) where k = 500 (prior equivalent sample).
+        ABS(ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) * 0.15)
+            AS dirty_air_tax_se_s,
+        -- Continuous shrinkage-towards-prior: n / (n + k) where k = 500 (prior
+        -- equivalent sample).
         -- Approaches 1.0 asymptotically; stays honest near zero at small n.
         CAST(ta.calibration_sample_n AS DOUBLE)
-            / (CAST(ta.calibration_sample_n AS DOUBLE) + 500.0) AS tax_calibration_confidence,
+        / (CAST(ta.calibration_sample_n AS DOUBLE) + 500.0)
+            AS tax_calibration_confidence,
         SUM(
             CASE
-                WHEN ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) < 0 THEN 0.0
-                WHEN ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) > 5.0 THEN 5.0
+                WHEN
+                    ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) < 0
+                    THEN 0.0
+                WHEN
+                    ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) > 5.0
+                    THEN 5.0
                 ELSE ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0)
             END
         ) OVER (
             PARTITION BY wl.race_year, wl.race_id, wl.driver_id
-            ORDER BY wl.lap_number ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ORDER BY
+                wl.lap_number
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
         ) AS cumulative_dirty_air_tax_race_s
-    FROM with_lagged wl
-    CROSS JOIN theta_air_estimate ta
+    FROM with_lagged AS wl
+    CROSS JOIN theta_air_estimate AS ta
 )
 
 SELECT
     lap_id,
-    dirty_air_share_lag1                AS dirty_air_intensity_lag1,
+    dirty_air_share_lag1 AS dirty_air_intensity_lag1,
     dirty_air_tax_s,
     dirty_air_tax_se_s,
     tax_calibration_confidence,
     cumulative_dirty_air_tax_race_s,
-    CASE
-        WHEN dirty_air_tax_s = MAX(dirty_air_tax_s) OVER (
-            PARTITION BY race_year, race_id, driver_id
-        ) THEN TRUE
-        ELSE FALSE
-    END AS dirtiest_air_lap_in_race_flag
+    COALESCE(dirty_air_tax_s = MAX(dirty_air_tax_s) OVER (
+        PARTITION BY race_year, race_id, driver_id
+    ), FALSE) AS dirtiest_air_lap_in_race_flag
 FROM with_tax
 ORDER BY race_year, race_id, driver_id, lap_number

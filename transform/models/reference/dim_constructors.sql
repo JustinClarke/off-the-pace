@@ -41,5 +41,5 @@ SELECT
     t.team_name AS constructor_id,
     COALESCE(p.pu_family, 'unknown_pu') AS pu_family
 FROM teams AS t
-LEFT JOIN pu_mapping AS p USING (team_name)
+LEFT JOIN pu_mapping AS p ON t.team_name = p.team_name
 ORDER BY constructor_id

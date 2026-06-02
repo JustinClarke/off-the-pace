@@ -132,11 +132,15 @@ classified AS (
 
     FROM laps AS l
     LEFT JOIN sc_windows AS sc
-        USING (race_year, race_id, driver_id, lap_number)
+        ON
+            l.race_year = sc.race_year
+            AND l.race_id = sc.race_id
+            AND l.driver_id = sc.driver_id
+            AND l.lap_number = sc.lap_number
     LEFT JOIN yellow_flag AS y
-        USING (lap_id)
+        ON l.lap_id = y.lap_id
     LEFT JOIN race_fastest AS rf
-        USING (race_year, race_id)
+        ON l.race_year = rf.race_year AND l.race_id = rf.race_id
 ),
 
 -- Manual race-watch overrides. A row with lap_number set targets a single lap;

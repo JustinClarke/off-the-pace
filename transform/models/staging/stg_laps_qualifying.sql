@@ -36,7 +36,9 @@ renamed AS (
         CAST(tyrelife AS INTEGER) AS tyre_life,
         CAST(freshtyre AS BOOLEAN) AS is_fresh_tyre,
         CAST(ispersonalbest AS BOOLEAN) AS is_personal_best,
-        CAST(position AS INTEGER) AS position,
+        -- 'position' is the canonical column name consumed unquoted
+        -- downstream; renaming has wide blast radius, so keep the keyword.
+        CAST(position AS INTEGER) AS position,  -- noqa: RF04
 
         -- Lap timing (nanoseconds → seconds)
         CASE

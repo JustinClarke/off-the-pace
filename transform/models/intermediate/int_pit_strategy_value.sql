@@ -67,7 +67,7 @@ cliff_onset_per_stint AS (
             AS cliff_onset_lap_number,
         MAX(cp.compound) AS compound
     FROM stint_meta AS sg
-    LEFT JOIN cliff_per_lap AS cp USING (lap_id)
+    LEFT JOIN cliff_per_lap AS cp ON sg.lap_id = cp.lap_id
     GROUP BY sg.stint_id
 ),
 
@@ -114,7 +114,7 @@ min_gap_per_stint AS (
             WHEN la.min_gap_s < 22.0 THEN sg.lap_number
         END) AS first_undercut_threat_lap
     FROM stint_meta AS sg
-    LEFT JOIN {{ ref('int_lap_air_state') }} AS la USING (lap_id)
+    LEFT JOIN {{ ref('int_lap_air_state') }} AS la ON sg.lap_id = la.lap_id
     GROUP BY sg.stint_id, sg.race_year, sg.race_id, sg.driver_id
 ),
 
@@ -137,7 +137,7 @@ cumulative_cost AS (
             )
             AS cumulative_expected_pace_s
     FROM stint_meta AS sg
-    LEFT JOIN cliff_per_lap AS cp USING (lap_id)
+    LEFT JOIN cliff_per_lap AS cp ON sg.lap_id = cp.lap_id
 ),
 
 -- Find the optimal pit lap: minimise remaining degradation cost + pit loss.
@@ -188,7 +188,7 @@ optimal_pit_estimate AS (
                 THEN cc.lap_number
         END) AS optimal_pit_lap_number
     FROM cumulative_cost AS cc
-    JOIN cliff_onset_per_stint AS cos USING (stint_id)
+    INNER JOIN cliff_onset_per_stint AS cos ON cc.stint_id = cos.stint_id
     GROUP BY
         cc.stint_id,
         cos.cliff_onset_lap_in_stint,
@@ -217,7 +217,7 @@ opportunity_cost_calc AS (
             END
         ) AS pre_actual_overrun_cost_s
     FROM optimal_pit_estimate AS ope
-    JOIN cumulative_cost AS cc USING (stint_id)
+    INNER JOIN cumulative_cost AS cc ON ope.stint_id = cc.stint_id
     GROUP BY
         ope.stint_id, ope.cliff_onset_lap_in_stint, ope.stint_length_laps,
         ope.compound, ope.optimal_pit_lap_in_stint, ope.optimal_pit_lap_number
@@ -237,7 +237,8 @@ stint_base AS (
 
 -- Get stint_number for joining to actual_pits
 stint_numbers AS (
-    SELECT DISTINCT
+    -- GROUP BY already yields one row per stint_id; no DISTINCT needed.
+    SELECT
         sg.stint_id,
         sg.race_year,
         sg.race_id,
@@ -259,7 +260,7 @@ stint_actual_pit AS (
         sn.stint_id,
         MAX(ap.actual_pit_lap) AS actual_pit_lap
     FROM stint_numbers AS sn
-    JOIN actual_pits AS ap
+    INNER JOIN actual_pits AS ap
         ON
             sn.race_year = ap.race_year
             AND sn.race_id = ap.race_id
@@ -330,10 +331,9 @@ SELECT
         ELSE 'optimal'
     END AS strategy_verdict
 FROM stint_base AS sb
-LEFT JOIN stint_numbers USING (stint_id)
-LEFT JOIN opportunity_cost_calc AS occ USING (stint_id)
-LEFT JOIN min_gap_per_stint AS mgps USING (stint_id)
+LEFT JOIN opportunity_cost_calc AS occ ON sb.stint_id = occ.stint_id
+LEFT JOIN min_gap_per_stint AS mgps ON sb.stint_id = mgps.stint_id
 LEFT JOIN race_map AS rm ON sb.race_id = rm.race_id
 LEFT JOIN circuit_pit_loss AS cpl ON rm.circuit_key = cpl.circuit_key
-LEFT JOIN stint_actual_pit AS ap USING (stint_id)
+LEFT JOIN stint_actual_pit AS ap ON sb.stint_id = ap.stint_id
 ORDER BY sb.race_year, sb.race_id, sb.driver_id

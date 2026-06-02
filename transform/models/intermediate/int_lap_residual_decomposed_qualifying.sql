@@ -122,7 +122,7 @@ combined AS (
         0.0 AS dirty_air_tax_s,
         0.0 AS dirty_air_tax_se_s
     FROM quali_laps AS q
-    LEFT JOIN fuel AS f USING (lap_id)
+    LEFT JOIN fuel AS f ON q.lap_id = f.lap_id
     LEFT JOIN
         field_pace AS fp
         ON q.race_year = fp.race_year AND q.race_id = fp.race_id

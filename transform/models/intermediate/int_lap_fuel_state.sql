@@ -57,13 +57,13 @@ combined AS (
         -- Initial fuel = race_lap_count × consumption × safety_factor (1.0)
         r.race_lap_count * c.fuel_consumption_rate_kg_per_lap AS initial_fuel_kg
     FROM geom AS g
-    JOIN laps AS l
+    INNER JOIN laps AS l
         ON g.lap_id = l.lap_id
-    JOIN race_map AS rm
+    INNER JOIN race_map AS rm
         ON g.race_id = rm.race_id
-    JOIN circuits AS c
+    INNER JOIN circuits AS c
         ON rm.track_id = c.circuit_key
-    JOIN race_lap_counts AS r
+    INNER JOIN race_lap_counts AS r
         ON g.race_year = r.race_year AND g.race_id = r.race_id
 ),
 

@@ -21,8 +21,9 @@ A fresh session with zero prior context should start here, not at §0.
 | Phase 2 | Forward-compat (16 `arguments:` migrations + 6 `config:` moves) | ✅ DONE | `dbt parse` deprecation summary → empty (was 16+6) |
 | Phase 3.2 | Placeholder tests tagged `tags: ['placeholder']` | ✅ DONE | 3 files tagged; `tests/README.md` table updated |
 | Phase 3.3 | pytest coverage for fitters (weight_penalty, constructor_car_fe, degradation_isotonic, survival, provenance, seed_writer, check_freshness) | ✅ DONE | `pytest transform/tasks/coefficients/tests/` → 42/42 pass |
-| Phase 3.1 | New singular tests for currently-unguarded invariants | 🔲 TODO | — |
-| Phase 4.1 | `contract:` policy decision + doc | 🔲 TODO | Still only 2 marts have `contract:` |
+| Phase 3.1 | New singular tests for currently-unguarded invariants | ✅ DONE (session 8) | 2 new tests: `assert_affinity_ci_brackets_mean`, `assert_sc_hazard_probability_bounds`; both PASS, registered in tests/README |
+| Phase 4.1 | `contract:` policy decision + doc | ✅ DONE (session 8) | Deliberate narrow-contract policy documented in `models/marts/README.md` (2 ML-input marts only; rest intentionally uncontracted) |
+| Phase G | Fix the 11 CI-fixture build errors | ✅ DONE (session 8) | 4 missing fixture sources copied + 7 sparse-SE not_null scoped to multi-obs; `dbt build` ERROR=11→**0**, oracle regen (58/0-missing), all 7 fct_* byte-stable |
 | Phase 4.2 | Em-dash normalization (`word-word` → `word  -  word`) | ✅ DONE (this session) | Fixed all 10 confirmed instances: `selectors.yml` ×2, `README.md` ×4, `macros/README.md` ×3, `models/reference/README.md` ×2 (sic, see note), `models/staging/README.md` ×2. Full repo sweep was scoped to `transform/` only — `app/`, `ingestion/` untouched (out of scope, pre-existing unrelated diffs). |
 | Phase 4.3 | `make transform-check` target | ✅ DONE | Present in `Makefile`, chains parse→lint→build→test→pytest |
 | Phase 4.4 | sqlfluff re-enable rules one at a time | SUPERSEDED by §6 (same work, §6 is the rigorous version) | — |
@@ -31,14 +32,61 @@ A fresh session with zero prior context should start here, not at §0.
 | §6 Phase C | Cosmetic lint batch (LT*/CP* auto-fix) | ✅ DONE + ORACLE-VERIFIED (session 5) | Auto-fix loop: **2,828 → 902** violations (63 model files, +2109/−1287). **Output-neutrality PROVEN session 5** via the documented pristine-vs-edited stash diff: stashed model `.sql` edits → built pristine ci.duckdb → snapshotted baseline → popped → rebuilt edited → `lint-oracle-check` **exit 0, all 7 fct_* byte-stable, zero non-fct drift**. Both builds PASS=413/ERROR=11 (the same pre-existing fixture fails). Residual 902 = LT05 396 (hand-break) + Phase D/E rules (AL01 279, ST07 97, AM05 69, ST01 33, etc.). Edits in working tree, uncommitted. |
 | §6 Phase C.5 | LT05 long-line hand-break (the 396 residual) | ✅ DONE + ORACLE-VERIFIED (session 6) | 387/396 were standalone `--` comments → conservatively auto-wrapped to ≤80 (skip separators/tables/`\|`-lines); 9 SQL/jinja + 1 `\|`-comment hand-broken (config()/surrogate_key reflow, BETWEEN splits). **LT05 396→0, total 902→505, no new layout viols.** `dbt parse` clean; current edited tree built (PASS=413/ERROR=11 same pre-existing fails); `lint-oracle-check` **exit 0, all 7 fct_* byte-stable vs the session-5 pre-Phase-C baseline** → Phase C+LT05 proven output-neutral end-to-end. |
 | §6 Phase D | Aliasing/structure batch (AL01, ST01/02, AM03, CV11, AL05) | ✅ DONE + ORACLE-VERIFIED (session 6) | `sqlfluff fix --rules AL01,AL03,AL05,RF02,RF04,ST01,ST02,AM03,CV11` + cosmetic settle pass. **AL01 279→0, ST01 33→0, ST02/AM03/CV11/AL05 cleared. Total 505→180.** ⚠️ **Caught a real regression:** AL05 auto-fix stripped `AS t(team_name, pu_family)` (the load-bearing VALUES column-list alias) from `dim_constructors` → Binder Error "team_name does not exist" → 26 downstream skips. Restored the alias + `-- noqa: AL05` (sqlfluff false-positive: it sees table alias `t` as unused under `SELECT *`, blind to the column-list). Swept diff — only this one `\) AS x(cols)` case existed. Rebuilt: **PASS=413/ERROR=11 baseline restored**, `lint-oracle-check` **exit 0, all 7 fct_* byte-stable.** |
-| §6 Phase E–F | Semantic-risk batch + lock gate | 🔲 TODO | **180 remaining, all Phase E:** ST07 97 (USING→ON), AM05 69 (implicit/cross join), RF02 4, ST09 3, RF04 2, AL03 2, ST11/ST05/AM01 1 each. ONE FILE AT A TIME, oracle after each (ST07 USING→ON can change projected columns — exactly where fct_* can break). Then F (lock gate: noqa rationale comments, CI wiring, persist baseline path). **`fct_ghost_race_finish.sql` cannot be sqlfluff-parsed** (PRS "max parse depth 255 exceeded" — too deeply nested) so it's lint-exempt by limitation; it's also not materialized on CI fixtures. |
+| §6 Phase E | Semantic-risk batch (ST07/AM05 + leftovers) | ✅ DONE + ORACLE-VERIFIED (session 7) | **All 181 cleared → lint rule-clean.** Leftovers first (RF02 4 qualify, AL03 2 alias, RF04 2 `position` keyword→`-- noqa: RF04` w/ rationale, ST09 3 operand-flip, ST11 dead-join drop, AM01 redundant-DISTINCT drop, ST05 subquery→CTE). Then **ST07 96→0**: `sqlfluff fix --rules ST07` auto-converted 55, broke 4 models (Binder "ambiguous"/"does not have column" — the documented USING-collapse hazard); manually converted the remaining 41 USING→ON anchored to the correct FROM alias (caught int_corner_skill_residuals where the key lived in `lk` not `cm`). Then **AM05 69→0**: bare `JOIN`→`INNER JOIN` (cosmetic, autofix). Fixed the LT05/LT02 reflow fallout from the longer ON lines. **Oracle exit 0, all 7 fct_* byte-stable** through every batch; build held PASS=413/ERROR=11. 3 non-materialized files (int_pit_loss_circuit/int_sc_hazard_history/int_era_normalized) hand-verified output-neutral (no SELECT* over a converted join). `int_constructor_deg_sensitivity` has 0 ST07 (sqlfluff can't render it) → left untouched. Edits uncommitted. |
+| §6 Phase F | Lock gate | ✅ DONE (session 7) | (a) `transform/.sqlfluffignore` excludes the PRS-unparseable `fct_ghost_race_finish.sql` → `sqlfluff lint models/` now exits **0** on a rule-clean tree (CI "green-by-accident" risk DISCHARGED — tree genuinely passes). (b) Oracle baseline moved to committed `transform/tests/model_hashes.baseline.json` (was gitignored `target/`); script DEFAULT_BASELINE updated; regenerated (50 models/8 missing). (c) Wired `lint-oracle-check` into `make transform-check` AND added CI "Gate 1c" step in dbt-ci.yml. (d) **Pinned `duckdb==1.5.3` in requirements.txt** (user chose pin-for-CI) so float-hashes match local↔CI — baseline computed on 1.5.3. (e) Documented honest lint+oracle gate in tests/README.md. NOTE: CI Gate 1b currently fails on the 11 pre-existing fixture errors → oracle Gate 1c unreachable until **Phase G** lands. After G, REGENERATE baseline (more models will materialize). Uncommitted. |
 
-**Build health (unrelated to this plan, do not fix as part of it):** `dbt build` on CI fixtures has
+**Build health — NOW IN SCOPE (user directive 2026-06-19 session 7):** `dbt build` on CI fixtures has
 11 pre-existing errors (`stg_track_status` fixture parquet missing + 6 `not_null` fails on sparse
 driver-circuit-affinity SE/CI columns). Confirmed via `git stash` against original HEAD: HEAD had
 **12** errors, current working tree has **11** (one fewer — a dead legacy test patch was removed in
-Phase 0, not a real fix). This plan does not touch fixture data or model logic, so these are out of
-scope; don't let them block any phase gate above.
+Phase 0, not a real fix). **User asked to FIX these too, AFTER Phase E/F is done** (Phase G below).
+Until then they don't block any phase gate above (oracle treats them as pre-existing).
+
+### ✅ Phase G DONE + Phase 3.1 + 4.1 DONE + open-source clarity pass (2026-06-19 session 8)
+**Build is now ERROR=0 on fixtures** (was ERROR=11). The "11" was actually **4 missing-fixture-source
+errors** (circuit_info, results, session_status, track_status — NOT just track_status as prior note said)
++ **7 not_null fails** on sparse SE/CI cols.
+- **Fixtures (root cause 1):** copied real bronze parquet for the 3 fixture races into
+  `transform/tests/fixtures/bronze/{track_status,session_status,results,circuit_info}/` (small, 5–19KB each).
+  Also extended `ingestion/src/create_fixtures.py` `DATASETS` to all 8 so this is reproducible.
+- **Sparse SE (root cause 2):** the 7 cols are NULL **only** on degenerate single-obs fixture cells
+  (`SQRT(NULLIF(posterior_var,0))`); on **real dev data they are NEVER null** (verified 998/998, 1359/1359,
+  152/152). Fix = scoped `not_null` to `where: n_obs > 1` (affinity) / `n_races > 1` (ratings) in
+  `models/intermediate/schema.yml`, with rationale comments. Range checks already ignore NULLs.
+- **Oracle baseline REGENERATED** → now 58 models hashed / 0 missing (was 50/8); `fct_ghost_race_finish`
+  now materializes + is in baseline + byte-stable. 2 models (mart_corner_skill_driver, stg_tyre_allocations)
+  are empty on fixtures → null hash → warn-only (non-fct, acceptable).
+- **Phase 3.1 (singular invariant tests):** added `assert_affinity_ci_brackets_mean.sql` (CI brackets
+  posterior mean across both affinity models) + `assert_sc_hazard_probability_bounds.sql` (per-lap SC/VSC/any
+  hazards ∈ [0,1], any ≥ components). Both registered in tests/README, both PASS.
+- **Phase 4.1 (contract policy):** documented deliberate narrow-contract policy in `models/marts/README.md`
+  (contracts ONLY on the 2 ML-input marts that bind to `ml/` ONNX pipeline; all other marts intentionally
+  uncontracted). Also completed the marts README table (was 5 of 10) + fixed mangled em-dashes.
+- **Open-source clarity sweep:** completed staging README table (was 7 of 12 models), fixed
+  `race_id=`→`race=` + 4→8 datasets in fixtures/README, swept mangled em-dashes (intermediate/staging/
+  coefficients READMEs + create_fixtures.py docstring) to the `  -  ` convention.
+- **FINAL VERIFY:** `make transform-check` fully green — parse clean, sqlfluff "All Finished", build
+  PASS=502/ERROR=0/SKIP=0, singular tests PASS, oracle "all 7 fct_* byte-stable", pytest 42 passed.
+- **Uncommitted (user-gated).** New files: 4 fixture-source dirs of parquet, 2 new singular test `.sql`,
+  `transform/tests/model_hashes.baseline.json` (regenerated). Modified: schema.yml, several READMEs,
+  create_fixtures.py, tests/README.md, work.md.
+- **REMAINING (oracle-independent, optional):** none of the original plan phases are open. Possible future
+  polish only: force data into the 2 empty-on-fixture marts if you want 0-missing oracle. Otherwise the
+  whole work.md plan (Phases 0–4 + §6 A–F + G + 3.1 + 4.1) is COMPLETE. Decide commit/push strategy
+  (see "Risk to flag" — committing flips CI lint gate to genuinely-enforcing; whole effort should land
+  as one reviewed branch).
+
+### Phase G — Fix the 11 pre-existing CI-fixture build errors (user directive, do AFTER E/F)
+The 11 ERROR=11 baseline breaks into two root causes:
+1. **Missing `stg_track_status` fixture parquet** → cascade of skips + any test depending on it.
+   Fix: add the missing fixture parquet under `tests/fixtures/bronze/` (mirror an existing
+   bronze fixture's schema) so the staging model materializes on CI.
+2. **6 `not_null` failures on sparse SE/CI columns** (`int_driver_circuit_era_affinity` shrunk_affinity_se_s
+   / CI bounds, `int_driver_season_ratings` shrunk_residual_se_s) — these are legitimately NULL when a
+   driver-circuit-era cell has too few races to estimate an SE. Fix: either (a) relax the test to
+   `not_null` only where `n_races >= min`, (b) COALESCE a sentinel, or (c) drop `not_null` for genuinely
+   sparse stats columns and document why. Decide per-column; don't blanket-suppress.
+**Gate:** `dbt build --target ci` reaches ERROR=0 on fixtures; oracle still exit 0 (fct_* byte-stable).
 
 ### ✅ ORACLE FIXED — the byte-stability gate now works (resolved 2026-06-19 session 4)
 
@@ -87,11 +135,13 @@ until §6 is far enough along, (b) temporarily widen `.sqlfluff` `exclude_rules`
 1. ~~Verify Phase C didn't move output~~ ✅ DONE session 5.
 2. ~~Hand-break the 396 residual LT05 long lines~~ ✅ DONE session 6 (LT05 396→0, oracle exit 0).
 3. ~~Phase D (aliasing AL01 etc.)~~ ✅ DONE session 6 (505→180, oracle exit 0; caught+fixed dim_constructors regression).
-4. **Phase E (semantic-risk)** — NEXT. ST07 97 USING→ON + AM05 69 implicit-join + RF02/RF04/ST05/09/11/AL03.
-   ONE FILE AT A TIME: rewrite, rebuild ci, `lint-oracle-check` (exit 0 required), revert that file if any fct_* hash moves.
-   START with the low-risk leftovers (RF02 4, AL03 2, ST09 3 — reference-qualification/expr-alias, no column-set change)
-   before the bulk ST07/AM05. Watch `SELECT *` + USING-collapse interactions.
-5. THEN Phase F (lock the gate: CI wiring, persist baseline to a committed path since CI has no target/).
+4. ~~Phase E (semantic-risk)~~ ✅ DONE session 7 (ST07 96→0, AM05 69→0, all leftovers; oracle exit 0). Lint rule-clean.
+5. ~~Phase F (lock the gate)~~ ✅ DONE session 7 (.sqlfluffignore PRS file, committed baseline, transform-check +
+   CI Gate 1c wiring, duckdb==1.5.3 pin, tests/README doc).
+6. **Phase G (user directive)** — **NEXT / START HERE.** Fix the 11 pre-existing CI-fixture build errors (missing
+   stg_track_status fixture parquet + 6 sparse-SE not_null fails). See the Phase G section under the dashboard.
+   After ERROR=0, REGENERATE the oracle baseline (`make lint-oracle-snapshot`) since more models will materialize.
+   Phase 3.1 (singular invariant tests) and 4.1 (`contract:` policy) also remain, oracle-independent.
 Phase 3.1 (singular invariant tests) and 4.1 (`contract:` policy) remain oracle-independent and unblocked.
 
 Phase 3.1 (singular invariant tests) and 4.1 (`contract:` policy) remain oracle-independent and unblocked.
@@ -107,6 +157,40 @@ gitignored (dbt convention). That's correct for a within-session snapshot→fix�
 to a persistent path, since CI starts with no `target/`.
 
 ### Handoff Log (newest first — append, don't rewrite history)
+
+**2026-06-19 (session 7)** — **§6 Phase E (semantic-risk batch) DONE + oracle-verified; lint now rule-clean.**
+First noted the working tree was unexpectedly CLEAN — Phases 0–D had been **committed** in `da0cf76` (not left
+uncommitted as prior checkpoints assumed). Rebuilt ci.duckdb fresh (PASS=413/ERROR=11 baseline), snapshotted the
+oracle. Then Phase E in tiers: (1) **leftovers** — RF02×4 qualify, AL03×2 alias (`2 AS sector`), RF04×2
+(`position` keyword → kept + `-- noqa: RF04` rationale, after `"position"` quoting just traded RF04→RF06),
+ST09×3 operand-flip, ST11 dropped the dead `stint_numbers` join, AM01 dropped redundant DISTINCT, ST05
+hoisted a subquery to a `stint_lengths` CTE; rebuild+oracle exit 0. (2) **ST07 96→0** — ran
+`sqlfluff fix --rules ST07` (converted 55), which broke 4 models with Binder ambiguity (the documented
+USING-collapse hazard: an ON-join exposes a duplicate key, making a sibling `USING` ambiguous). Manually
+converted ALL 41 remaining USING→ON anchored to the right FROM alias; one gotcha — int_corner_skill_residuals'
+`USING(lap_id)` actually resolved to `lk.lap_id` (lap_keys), not `cm`. (3) **AM05 69→0** — bare `JOIN`→`INNER JOIN`
+(autofix, cosmetic). Cleaned up LT05/LT02 reflow fallout (autofix + 5 hand-breaks). **Oracle exit 0 / all 7 fct_*
+byte-stable after every batch**; the 3 non-materialized files (int_pit_loss_circuit/int_sc_hazard_history/
+int_era_normalized) hand-verified output-neutral. `int_constructor_deg_sensitivity` left untouched (0 ST07 — sqlfluff
+can't render it). **`sqlfluff lint models/` is now rule-clean; sole remaining failure was the fct_ghost_race_finish
+PRS** (unparseable).
+**THEN completed Phase F (lock gate) same session:** `.sqlfluffignore`'d the PRS file → `sqlfluff lint models/`
+exits **0**; moved the oracle baseline to committed `transform/tests/model_hashes.baseline.json` (script
+DEFAULT_BASELINE updated) + regenerated it; wired `lint-oracle-check` into `make transform-check` and added CI
+"Gate 1c"; **pinned `duckdb==1.5.3` in requirements.txt** (user picked pin-for-CI when asked) so float-hashes match
+local↔CI; documented the honest gate in tests/README.md. **Did NOT start Phase G** — user asked to hand off here.
+No commit/push (user-gated). Uncommitted files this session: ~30 model `.sql` (ST07/AM05/leftover fixes),
+`transform/.sqlfluffignore` (new), `transform/tests/model_hashes.baseline.json` (new), `transform/scripts/
+snapshot_model_hashes.py`, `transform/tests/README.md`, `Makefile`, `requirements.txt`,
+`.github/workflows/dbt-ci.yml`, `work.md`.
+
+**⏭️ NEXT SESSION STARTS HERE → Phase G (user directive): fix the 11 pre-existing CI-fixture build errors.**
+See the "Phase G" section under the dashboard. Two root causes: (1) missing `stg_track_status` fixture parquet
+(+ its cascade), (2) 6 `not_null` fails on genuinely-sparse SE/CI columns (driver-circuit-era affinity + driver
+season ratings). After fixing → `dbt build --target ci` must reach ERROR=0, then **REGENERATE the oracle baseline**
+(`make lint-oracle-snapshot`) because newly-materializing models (incl. possibly fct_ghost_race_finish) need
+hashes, and re-run `make lint-oracle-check`. Working tree state: clean build of current edited models in ci.duckdb;
+lint exits 0; oracle exits 0 vs the committed 50-model baseline.
 
 **2026-06-19 (session 6, cont.)** — **§6 Phase D (aliasing/structure batch) done + oracle-verified.**
 Ran `sqlfluff fix --rules AL01,AL03,AL05,RF02,RF04,ST01,ST02,AM03,CV11` then a cosmetic settle pass for the

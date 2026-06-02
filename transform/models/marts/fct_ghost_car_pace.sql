@@ -275,7 +275,7 @@ ghost_recombined AS (
             / NULLIF(COALESCE(hcp.panel_observations_n, 0) + 50, 0)
         ) * el.correction_weight AS recombination_confidence
     FROM ego_laps AS el
-    JOIN host_constructors AS hc
+    INNER JOIN host_constructors AS hc
         ON
             el.race_year = hc.race_year
             AND el.race_id = hc.race_id

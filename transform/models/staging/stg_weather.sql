@@ -46,11 +46,11 @@ lap_weather AS (
         -- Pick weather sample closest to (and not after) lap start
         MAX(w.session_time_s) AS matched_session_time_s
     FROM laps AS l
-    JOIN weather_raw AS w
+    INNER JOIN weather_raw AS w
         ON
             l.race_year = w.race_year
             AND l.race_id = w.race_id
-            AND w.session_time_s <= l.lap_start_time_s
+            AND l.lap_start_time_s >= w.session_time_s
     GROUP BY
         l.lap_id,
         l.race_year,
@@ -71,7 +71,7 @@ lap_weather_fallback AS (
         l.lap_start_time_s,
         MIN(w.session_time_s) AS matched_session_time_s
     FROM laps AS l
-    JOIN weather_raw AS w
+    INNER JOIN weather_raw AS w
         ON
             l.race_year = w.race_year
             AND l.race_id = w.race_id
@@ -112,7 +112,7 @@ SELECT
     w.wind_speed_ms,
     w.wind_direction
 FROM combined_matches AS m
-JOIN weather_raw AS w
+INNER JOIN weather_raw AS w
     ON
         m.race_year = w.race_year
         AND m.race_id = w.race_id

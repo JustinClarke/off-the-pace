@@ -35,7 +35,7 @@ constructor_per_stint AS (
         sg.stint_id,
         sl.constructor_id
     FROM {{ ref('int_stint_geometry') }} AS sg
-    JOIN {{ ref('stg_laps') }} AS sl USING (lap_id)
+    INNER JOIN {{ ref('stg_laps') }} AS sl ON sg.lap_id = sl.lap_id
     QUALIFY
         ROW_NUMBER() OVER (PARTITION BY sg.stint_id ORDER BY sg.lap_in_stint)
         = 1
@@ -46,7 +46,7 @@ thermal_last AS (
         sg.stint_id,
         tp.cumulative_push_load_bulk AS cumulative_thermal_load_end
     FROM {{ ref('int_stint_geometry') }} AS sg
-    LEFT JOIN {{ ref('int_lap_thermal_proxy') }} AS tp USING (lap_id)
+    LEFT JOIN {{ ref('int_lap_thermal_proxy') }} AS tp ON sg.lap_id = tp.lap_id
     QUALIFY
         ROW_NUMBER()
             OVER (PARTITION BY sg.stint_id ORDER BY sg.lap_in_stint DESC)
@@ -58,7 +58,9 @@ dirty_air_agg AS (
         sg.stint_id,
         SUM(da.dirty_air_tax_s) AS cumulative_dirty_air_tax_s
     FROM {{ ref('int_stint_geometry') }} AS sg
-    LEFT JOIN {{ ref('int_dirty_air_tax_component') }} AS da USING (lap_id)
+    LEFT JOIN
+        {{ ref('int_dirty_air_tax_component') }} AS da
+        ON sg.lap_id = da.lap_id
     GROUP BY sg.stint_id
 ),
 
@@ -72,7 +74,7 @@ cliff_agg AS (
         )
             AS cliff_lap_in_stint
     FROM {{ ref('int_stint_geometry') }} AS sg
-    LEFT JOIN {{ ref('int_lap_anomaly_flags') }} AS af USING (lap_id)
+    LEFT JOIN {{ ref('int_lap_anomaly_flags') }} AS af ON sg.lap_id = af.lap_id
     GROUP BY sg.stint_id
 ),
 
@@ -82,7 +84,8 @@ last_3_laps AS (
         sg.lap_in_stint,
         lr.driver_skill_residual_s
     FROM {{ ref('int_stint_geometry') }} AS sg
-    JOIN {{ ref('int_lap_residual_decomposed') }} AS lr USING (lap_id)
+    INNER JOIN {{ ref('int_lap_residual_decomposed') }} AS lr
+        ON sg.lap_id = lr.lap_id
     QUALIFY
         ROW_NUMBER()
             OVER (PARTITION BY sg.stint_id ORDER BY sg.lap_in_stint DESC)
@@ -105,7 +108,8 @@ last_lap_residual AS (
         sg.stint_id,
         lr.driver_skill_residual_s AS end_residual_s
     FROM {{ ref('int_stint_geometry') }} AS sg
-    JOIN {{ ref('int_lap_residual_decomposed') }} AS lr USING (lap_id)
+    INNER JOIN {{ ref('int_lap_residual_decomposed') }} AS lr
+        ON sg.lap_id = lr.lap_id
     QUALIFY
         ROW_NUMBER()
             OVER (PARTITION BY sg.stint_id ORDER BY sg.lap_in_stint DESC)
@@ -138,7 +142,7 @@ slope_calc AS (
                 / NULLIF(SUM(POWER(l.lap_in_stint - sm.mean_x, 2)), 0)
         END AS end_of_stint_pace_falloff_s_per_lap
     FROM last_3_laps AS l
-    JOIN slope_means AS sm USING (stint_id)
+    INNER JOIN slope_means AS sm ON l.stint_id = sm.stint_id
     GROUP BY l.stint_id, sm.n_laps
 )
 
@@ -169,11 +173,11 @@ SELECT
     sa.stint_length_laps < 3 AS short_stint_flag,
     ps.pit_decision_class
 FROM stint_aggregates AS sa
-LEFT JOIN constructor_per_stint AS cs USING (stint_id)
-LEFT JOIN thermal_last AS ta USING (stint_id)
-LEFT JOIN dirty_air_agg AS da USING (stint_id)
-LEFT JOIN cliff_agg AS ca USING (stint_id)
-LEFT JOIN slope_calc AS sc USING (stint_id)
-LEFT JOIN last_lap_residual AS llr USING (stint_id)
-LEFT JOIN pit_strategy AS ps USING (stint_id)
-ORDER BY race_year, race_id, driver_id
+LEFT JOIN constructor_per_stint AS cs ON sa.stint_id = cs.stint_id
+LEFT JOIN thermal_last AS ta ON sa.stint_id = ta.stint_id
+LEFT JOIN dirty_air_agg AS da ON sa.stint_id = da.stint_id
+LEFT JOIN cliff_agg AS ca ON sa.stint_id = ca.stint_id
+LEFT JOIN slope_calc AS sc ON sa.stint_id = sc.stint_id
+LEFT JOIN last_lap_residual AS llr ON sa.stint_id = llr.stint_id
+LEFT JOIN pit_strategy AS ps ON sa.stint_id = ps.stint_id
+ORDER BY sa.race_year, sa.race_id, sa.driver_id

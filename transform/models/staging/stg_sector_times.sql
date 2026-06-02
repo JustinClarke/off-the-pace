@@ -39,7 +39,7 @@ unpivoted AS (
 
     SELECT
         lap_id, race_year, race_id, driver_id, lap_number,
-        2,
+        2 AS sector,
         sector2_time_s,
         sector2_session_time_s,
         speed_i2_kph,
@@ -51,7 +51,7 @@ unpivoted AS (
 
     SELECT
         lap_id, race_year, race_id, driver_id, lap_number,
-        3,
+        3 AS sector,
         sector3_time_s,
         sector3_session_time_s,
         speed_fl_kph,   -- FL trap is S3 exit

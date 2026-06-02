@@ -170,9 +170,11 @@ with_shrinkage AS (
         / NULLIF(dco.n_obs + 5, 0) AS affinity_confidence
 
     FROM driver_circuit_obs AS dco
-    JOIN driver_global AS dg USING (driver_id, era_key)
-    JOIN variance_components AS vc USING (era_key)
-    JOIN circuit_name_map AS cnm USING (circuit_id)
+    INNER JOIN
+        driver_global AS dg
+        ON dco.driver_id = dg.driver_id AND dco.era_key = dg.era_key
+    INNER JOIN variance_components AS vc ON dco.era_key = vc.era_key
+    INNER JOIN circuit_name_map AS cnm ON dco.circuit_id = cnm.circuit_id
 )
 
 SELECT

@@ -9,7 +9,7 @@ The naive approach is to fit an OLS regression of `lap_time ~ age_in_stint` and 
 inflection point. This systematically **underestimates** cliff onset for one reason: F1
 teams pit *before* the cliff. By the time the race engineer calls the pit, the tyre is
 degrading badly but hasn't fully cliffed yet. Every voluntary pit is an "I stopped the
-experiment early" event   in survival-analysis language, it is **right-censored**.
+experiment early" event  -  in survival-analysis language, it is **right-censored**.
 
 If you ignore censoring and treat voluntary pits as complete stints, your regression
 sees "no cliff happened by lap X" and concludes X is a typical stint length. This is
@@ -19,7 +19,7 @@ occurred?"   and that requires accounting for censoring.
 ### The model
 
 We use the **Kaplan-Meier estimator** (nonparametric) to estimate the survival function
-`S(t) = P(cliff has not occurred by lap t)`. The **median survival time**   the lap at
+`S(t) = P(cliff has not occurred by lap t)`. The **median survival time**  -  the lap at
 which S(t) crosses 0.5   is our estimate of `compound_cliff_onset_laps`.
 
 **Event:** A lap where `lap_time > rolling_5_lap_median + 0.5s` for at least 2
@@ -27,10 +27,10 @@ consecutive laps. The continuation requirement filters out single-lap anomalies 
 limits, lock-ups).
 
 **Censoring:** Any stint that ends without observing the event (voluntary pit, end of
-race). These contribute information about the *minimum* cliff onset   we know the cliff
+race). These contribute information about the *minimum* cliff onset  -  we know the cliff
 hadn't happened yet when the car pitted.
 
-**Forced stops:** DNF, retirement, crash, safety-car pitting   these are treated as
+**Forced stops:** DNF, retirement, crash, safety-car pitting  -  these are treated as
 *uncensored* because the team did not choose to pit at that moment. They provide the
 cleanest observations of full tyre wear curves.
 
@@ -45,7 +45,7 @@ covariates like `track_temp_c` and `compound_code`. KM was chosen for V1 because
 2. **Interpretability:** The KM median has a direct physical interpretation
    ("half the stints would have cliffed by lap X"). Cox PH hazard ratios require
    more explanation for a portfolio audience.
-3. **Data density:** Some groups have <20 stints   Cox PH with multiple covariates
+3. **Data density:** Some groups have <20 stints  -  Cox PH with multiple covariates
    would be underpowered. KM is robust to small N.
 
 When more seasons are added (2025+), switching to a stratified Cox PH model to

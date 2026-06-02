@@ -1,6 +1,11 @@
 fastf1
 dbt-core==1.11.9
 dbt-duckdb==1.10.1
+# Pinned so the byte-stability oracle (transform/scripts/snapshot_model_hashes.py)
+# produces the same float-content hashes locally and in CI. The committed baseline
+# (transform/tests/model_hashes.baseline.json) is computed on this exact version;
+# bumping duckdb requires regenerating the baseline. See work.md §6 Phase F.
+duckdb==1.5.3
 xgboost
 scikit-learn
 pandas

@@ -58,7 +58,7 @@ combined AS (
         cp.compound_grip_peak,
         cp.compound_optimal_temp_low
     FROM geom AS g
-    JOIN race_map AS rm
+    INNER JOIN race_map AS rm
         ON g.race_id = rm.race_id
     LEFT JOIN compound_params AS cp
         ON

@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "off-the-pace"
+  },
+  "targets": {
+    "off-the-pace": {
+      "hosting": {
+        "app": ["off-the-pace"]
+      }
+    }
+  }
+}

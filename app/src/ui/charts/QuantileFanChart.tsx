@@ -79,14 +79,15 @@ export default function QuantileFanChart({
   height = 380,
   renderTooltip,
 }: QuantileFanChartProps) {
-  // Recharts Area stacking for the fan:
-  // Layer 1: transparent base from 0 to p10
-  // Layer 2: opaque fan from p10 to p90 (delta)
-  // Layer 3: p50 line on top
-  const remapped = data.map(p => ({
-    ...p,
-    _p10base: p.p10,
-    _fanDelta: p.p90-p.p10,
+  // Normalize data so p10 and p90 are both non-negative for proper stacking.
+  // Find the global min (most negative p10) and shift everything up.
+  const minVal = Math.min(...data.map(d => d.p10))
+  const offset = minVal < 0 ? Math.abs(minVal) : 0
+
+  const normalized = data.map(d => ({
+    ...d,
+    _p10offset: d.p10 + offset,
+    _p90_minus_p10: d.p90 - d.p10,
   }))
 
   const hasActual = data.some(p => p.actual !== undefined)
@@ -112,7 +113,7 @@ export default function QuantileFanChart({
       </div>
 
       <ResponsiveContainer width="100%" height={height}>
-        <ComposedChart data={remapped} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+        <ComposedChart data={normalized} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
           <XAxis
             dataKey="x"
@@ -121,7 +122,7 @@ export default function QuantileFanChart({
             tick={AXIS_STYLE}
           />
           <YAxis
-            tickFormatter={yFormatter}
+            tickFormatter={(v: number) => yFormatter(v - offset)}
             label={yLabel ? { value: yLabel, angle: -90, position: 'insideLeft', offset: 10, fontSize: 11, fill: 'rgb(var(--color-text-muted))' } : undefined}
             tick={AXIS_STYLE}
           />
@@ -133,20 +134,23 @@ export default function QuantileFanChart({
             }
           />
 
-          {/* Transparent base to p10 */}
+          {/* Invisible base from p10 to p10 (stacking anchor) */}
           <Area
             type="monotone"
-            dataKey="_p10base"
+            dataKey="_p10offset"
+            stackId="band"
             stroke="none"
             fill="transparent"
+            fillOpacity={0}
             legendType="none"
             isAnimationActive={false}
           />
-          {/* Fan: p10 → p90 */}
+
+          {/* Visible band from p10 to p90 via delta stacking */}
           <Area
             type="monotone"
-            dataKey="_fanDelta"
-            stackId="fan"
+            dataKey="_p90_minus_p10"
+            stackId="band"
             stroke="none"
             fill={color}
             fillOpacity={0.2}
@@ -163,7 +167,7 @@ export default function QuantileFanChart({
             />
           )}
 
-          {/* p50 median line */}
+          {/* p50 median line — shift by offset for display */}
           <Line
             type="monotone"
             dataKey="p50"
@@ -173,7 +177,7 @@ export default function QuantileFanChart({
             isAnimationActive={false}
           />
 
-          {/* Actual overlay */}
+          {/* Actual overlay — shift by offset for display */}
           {hasActual && (
             <Line
               type="monotone"

@@ -7,7 +7,7 @@ import rehypeKatex from 'rehype-katex';
 const config: Config = {
   title: 'Off The Pace',
   tagline: 'Physics-informed F1 lap-time decomposition',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/favicon.svg',
 
   future: {
     v4: true,
@@ -32,6 +32,14 @@ const config: Config = {
     defaultLocale: 'en',
     locales: ['en'],
   },
+
+  scripts: [
+    {
+      src: 'https://cloud.umami.is/script.js',
+      defer: true,
+      'data-website-id': '591c3025-6560-47b4-b7b0-16fa8c3f4c0b',
+    },
+  ],
 
   presets: [
     [

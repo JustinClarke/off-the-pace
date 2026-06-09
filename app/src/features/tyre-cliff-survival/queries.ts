@@ -92,7 +92,7 @@ export const queryRaceCompounds = registerQuery<SeasonParams, RaceCompoundRow[]>
       FROM fct_cliff_prediction_features_${season}
       WHERE race_year = ?
         AND compound NOT IN ('INTERMEDIATE', 'WET')
-        AND anomaly_class IS NULL
+        AND anomaly_class IN ('normal', 'clean_cliff')
         AND is_rain_lap = false
       GROUP BY race_id, race_year, compound
       ORDER BY race_id, compound
@@ -122,7 +122,7 @@ export const queryStintSummaries = registerQuery<StintParams, StintSummaryRow[]>
       WHERE race_id = ?
         AND compound = ?
         AND race_year = ?
-        AND anomaly_class IS NULL
+        AND anomaly_class IN ('normal', 'clean_cliff')
         AND is_rain_lap = false
       GROUP BY stint_id
       ORDER BY stint_id

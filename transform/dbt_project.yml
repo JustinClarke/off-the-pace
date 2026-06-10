@@ -13,8 +13,9 @@ macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
 clean-targets:
- -"target"
- -"dbt_packages"
+  - "target"
+  - "dbt_packages"
+
 
 models:
   off_the_pace:

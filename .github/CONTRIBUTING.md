@@ -9,6 +9,7 @@ Follow it to go from zero to running models in under 30 minutes.
 ## Prerequisites
 
 - **Python 3.11+**
+- **Node.js (v18+)** and **pnpm** (needed if you are developing the React app or docs site)
 - **Git**
 - **Make** (standard on macOS/Linux)
 
@@ -22,10 +23,16 @@ Fabric deployment is planned for subsequent streaming integration-**do not add c
 ```bash
 git clone https://github.com/justinclarke/off-the-pace.git
 cd off-the-pace
-make setup        # builds ./.venv and installs dependencies
+make setup        # builds ./.venv and installs Python/dbt dependencies
 ```
 
 For the machine layer, also run `make ml-setup` (installs `ml/requirements.txt`).
+
+For the web frontend and documentation site, install Node dependencies:
+```bash
+make docs-install # install Docusaurus docs dependencies
+make app-install  # install React app dependencies
+```
 
 ---
 

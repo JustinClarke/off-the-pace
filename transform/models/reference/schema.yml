@@ -1,63 +1,63 @@
 version: 2
 
 models:
- -name: dim_circuits
+  - name: dim_circuits
     description: >
       One row per circuit × era. Physical properties used for fuel load estimation
       (weight_penalty_factor), track evolution (abrasiveness_index), and
       constructor pace decomposition (track_energy_index).
       Seeded from circuit_reference.csv   refresh when layouts change.
     columns:
-     -name: circuit_key
+      - name: circuit_key
         description: Stable identifier matching race_id in stg_laps
         tests: [not_null, unique]
-     -name: fuel_consumption_rate_kg_per_lap
+      - name: fuel_consumption_rate_kg_per_lap
         description: Estimated kg/lap used for fuel_mass_kg calculation in Layer 03
         tests: [not_null]
-     -name: weight_penalty_factor
+      - name: weight_penalty_factor
         description: >
           Seconds per kg of fuel mass carried. Formula: 0.02 + 0.0002 × corner_count × avg_lateral_g.
           Used in int_lap_fuel_state to compute weight_corrected_lap_time.
         tests: [not_null]
-     -name: lap_length_km
+      - name: lap_length_km
         description: Circuit lap length in kilometers
         tests:
-         -dbt_expectations.expect_column_values_to_be_between:
+          - dbt_expectations.expect_column_values_to_be_between:
               min_value: 2
               max_value: 8
 
- -name: dim_compounds_season
+  - name: dim_compounds_season
     description: >
       One row per circuit × compound × season. Cliff parameters estimated from stint
       survival analysis (Kaplan-Meier, fitted on 2018–2024 data   see
       tasks/coefficients/README.md). All rows carry fit_date and data_window for
       governance. Re-fit when a new season is ingested via make coefficients-fit.
     columns:
-     -name: circuit_key
+      - name: circuit_key
         tests: [not_null]
-     -name: compound_code
+      - name: compound_code
         tests: [not_null]
-     -name: season
+      - name: season
         tests: [not_null]
-     -name: fit_date
+      - name: fit_date
         description: Date on which the cliff parameters were last estimated
         tests: [not_null]
 
- -name: dim_drivers
+  - name: dim_drivers
     description: >
       One row per driver_id. Derived from stg_laps   debut_year and
       career_races_in_dataset reflect only the seasons present in the bronze layer.
     columns:
-     -name: driver_id
+      - name: driver_id
         tests: [not_null, unique]
 
- -name: dim_constructors
+  - name: dim_constructors
     description: >
       One row per constructor (team). Includes pu_family for conditioning
       constructor_pace_index on similar-engine teams in Layer 04.
       pu_family mapping is manually maintained   update when customer relationships change.
     columns:
-     -name: constructor_id
+      - name: constructor_id
         tests: [not_null, unique]
-     -name: pu_family
+      - name: pu_family
         tests: [not_null]

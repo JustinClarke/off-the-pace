@@ -1,10 +1,10 @@
 version: 2
 
 sources:
- -name: bronze_f1
+  - name: bronze_f1
     database: read_only
     tables:
-     -name: raw_laps
+      - name: raw_laps
         meta:
           external_location: "{{ var('bronze_base', '../data/bronze') }}/laps/*/*/*.parquet"
         description: >
@@ -13,128 +13,128 @@ sources:
           Sector times, speed traps, and pit markers are embedded per row.
           Partitioned by season, race, and session_type (R=race, Q=qualifying).
         columns:
-         -name: session_type
+          - name: session_type
             description: >
               Session type partition: 'R' for race sessions, 'Q' for qualifying.
               Existing race files have no session_type column and read NULL (coalesced to 'R' in stg_laps).
-         -name: Driver
+          - name: Driver
             description: Three-letter driver code (e.g. VER, HAM)
-         -name: DriverNumber
+          - name: DriverNumber
             description: Official race number
-         -name: LapNumber
+          - name: LapNumber
             description: Lap number within the race session
-         -name: Stint
+          - name: Stint
             description: Stint number assigned by FastF1 (1-indexed)
-         -name: LapTime
+          - name: LapTime
             description: Lap time in nanoseconds
-         -name: Sector1Time
+          - name: Sector1Time
             description: Sector 1 time in nanoseconds
-         -name: Sector2Time
+          - name: Sector2Time
             description: Sector 2 time in nanoseconds
-         -name: Sector3Time
+          - name: Sector3Time
             description: Sector 3 time in nanoseconds
-         -name: Sector1SessionTime
+          - name: Sector1SessionTime
             description: Session elapsed time at S1 exit (nanoseconds)
-         -name: Sector2SessionTime
+          - name: Sector2SessionTime
             description: Session elapsed time at S2 exit (nanoseconds)
-         -name: Sector3SessionTime
+          - name: Sector3SessionTime
             description: Session elapsed time at S3 exit (nanoseconds)
-         -name: SpeedI1
+          - name: SpeedI1
             description: Speed at intermediate 1 trap (kph)
-         -name: SpeedI2
+          - name: SpeedI2
             description: Speed at intermediate 2 trap (kph)
-         -name: SpeedFL
+          - name: SpeedFL
             description: Speed at finish line trap (kph)
-         -name: SpeedST
+          - name: SpeedST
             description: Speed at speed trap on main straight (kph)
-         -name: Compound
+          - name: Compound
             description: Tyre compound label (SOFT/MEDIUM/HARD/INTERMEDIATE/WET)
-         -name: TyreLife
+          - name: TyreLife
             description: Laps completed on the current tyre set
-         -name: FreshTyre
+          - name: FreshTyre
             description: Whether the set was new when fitted
-         -name: PitInTime
+          - name: PitInTime
             description: Session time at pit lane entry (nanoseconds); null if no pit-in this lap
-         -name: PitOutTime
+          - name: PitOutTime
             description: Session time at pit lane exit (nanoseconds); null if no pit-out this lap
-         -name: TrackStatus
+          - name: TrackStatus
             description: >
               Encoded track condition. 1=clear, 2=yellow, 4=SC, 5=VSC, 6=SC ending, 7=red flag.
-         -name: IsPersonalBest
+          - name: IsPersonalBest
             description: Whether this lap is the driver's personal best for the session
-         -name: Deleted
+          - name: Deleted
             description: Whether the lap time was deleted (track limits etc.)
-         -name: IsAccurate
+          - name: IsAccurate
             description: FastF1 accuracy flag   false for interpolated/estimated times
-         -name: Position
+          - name: Position
             description: Race position at end of lap
-         -name: race_id
+          - name: race_id
             description: Hive partition value   race name slug (e.g. british_grand_prix)
-         -name: season
+          - name: season
             description: Hive partition value   calendar year
 
-     -name: raw_laps_qualifying
+      - name: raw_laps_qualifying
         meta:
           external_location: "{{ var('bronze_base', '../data/bronze') }}/laps/*/*/session=Q/*.parquet"
         description: >
           Qualifying session lap data. Sourced separately due to different Hive partition structure
           (includes session=Q subdirectory). Unioned with raw_laps in stg_laps.
         columns:
-         -name: session_type
+          - name: session_type
             description: Always 'Q' for qualifying sessions
-         -name: Driver
+          - name: Driver
             description: Three-letter driver code (e.g. VER, HAM)
-         -name: DriverNumber
+          - name: DriverNumber
             description: Official race number
-         -name: LapNumber
+          - name: LapNumber
             description: Lap number within the qualifying session
 
-     -name: raw_weather
+      - name: raw_weather
         meta:
           external_location: "{{ var('bronze_base', '../data/bronze') }}/weather/*/*/*.parquet"
         description: >
           FastF1 session.weather_data sampled at ~1Hz during the race session.
           One row per weather sample; joined to laps on nearest session_time_s.
         columns:
-         -name: race_id
+          - name: race_id
             description: Hive partition   race identifier (YYYY_RoundNumber)
-         -name: season
+          - name: season
             description: Hive partition   calendar year
-         -name: session_time_s
+          - name: session_time_s
             description: Session elapsed time of the weather sample (seconds)
-         -name: ambient_temp_c
+          - name: ambient_temp_c
             description: Ambient air temperature (°C)
-         -name: track_temp_c
+          - name: track_temp_c
             description: Track surface temperature (°C)
-         -name: rainfall_flag
+          - name: rainfall_flag
             description: Boolean   true if rainfall detected
-         -name: humidity_pct
+          - name: humidity_pct
             description: Relative humidity (%)
-         -name: wind_speed_ms
+          - name: wind_speed_ms
             description: Wind speed (m/s)
-         -name: wind_direction
+          - name: wind_direction
             description: Wind direction (degrees, 0–360)
 
-     -name: raw_telemetry
+      - name: raw_telemetry
         meta:
           external_location: "{{ var('bronze_base', '../data/bronze') }}/telemetry/*/*/*.parquet"
         description: >
           High-frequency telemetry from FastF1. One row per ~10ms sample per driver per lap.
           Distance-indexed (0 to circuit length).
         columns:
-         -name: driver_id
+          - name: driver_id
             description: Three-letter driver code (e.g. VER, HAM)
-         -name: lap_number
+          - name: lap_number
             description: Lap number within the race session
-         -name: distance_m
+          - name: distance_m
             description: Distance from start line in meters
-         -name: speed_kph
+          - name: speed_kph
             description: Speed in km/h
-         -name: throttle_pct
+          - name: throttle_pct
             description: Throttle pedal position (0–100%)
-         -name: brake
+          - name: brake
             description: Brake pedal binary (true if pressed)
-         -name: race_id
+          - name: race_id
             description: Hive partition   race identifier (YYYY_RoundNumber)
-         -name: season
+          - name: season
             description: Hive partition   calendar year

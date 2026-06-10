@@ -1,92 +1,92 @@
 version: 2
 
 models:
- -name: fct_driver_degradation
+  - name: fct_driver_degradation
     description: >
       LEGACY (tag:legacy). Superseded by fct_driver_skill_features (race-grain) and
       fct_cliff_prediction_features (lap-grain). Retained for backwards compatibility
-      with early Streamlit demos in 06_app. Will be removed after 06_app migrates.
+      with early app demos. Will be removed after 06_app migrates.
       Grain: (race_season, race_id, driver_id, compound, stint_number).
     columns:
-     -name: race_season
+      - name: race_season
         tests:
-         -not_null
-     -name: driver_id
+          - not_null
+      - name: driver_id
         tests:
-         -not_null
-     -name: race_id
+          - not_null
+      - name: race_id
         tests:
-         -not_null
-     -name: compound
+          - not_null
+      - name: compound
         tests:
-         -accepted_values:
+          - accepted_values:
               arguments:
                 values: ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
               config:
                 where: "compound IS NOT NULL"
-     -name: stint_number
+      - name: stint_number
         tests:
-         -not_null
+          - not_null
 
- -name: dim_events
+  - name: dim_events
     description: >
       Race-level event dimension. One row per event (damage, retirement, penalty).
       Currently populated from the raw_dim_events seed (manual entries for 2021).
       Joined onto fct_driver_degradation (legacy) and fct_lap_residuals to flag
       performance-impact and reliability-impact events.
     columns:
-     -name: event_id
+      - name: event_id
         tests:
-         -not_null
-         -unique
-     -name: race_id
+          - not_null
+          - unique
+      - name: race_id
         tests:
-         -not_null
+          - not_null
 
- -name: fct_lap_residuals
+  - name: fct_lap_residuals
     description: >
       Lap-grain analytics table. One row per valid race lap. Exposes the full
       residual decomposition from int_lap_residual_decomposed plus anomaly flags
       from int_lap_anomaly_flags. Use ml_eligible = TRUE to filter to training-quality
       laps. For ML model inputs, prefer the split marts:
-       -fct_driver_skill_features   race-grain skill aggregates
-       -fct_cliff_prediction_features   lap-grain with next_lap_degradation_jump_s target
+        - fct_driver_skill_features   race-grain skill aggregates
+        - fct_cliff_prediction_features   lap-grain with next_lap_degradation_jump_s target
     columns:
-     -name: lap_id
+      - name: lap_id
         tests:
-         -not_null
-         -unique
-     -name: race_year
+          - not_null
+          - unique
+      - name: race_year
         tests:
-         -not_null
-     -name: race_id
+          - not_null
+      - name: race_id
         tests:
-         -not_null
-     -name: driver_id
+          - not_null
+      - name: driver_id
         tests:
-         -not_null
-     -name: constructor_id
+          - not_null
+      - name: constructor_id
         tests:
-         -not_null
-     -name: lap_number
+          - not_null
+      - name: lap_number
         tests:
-         -not_null
-     -name: lap_time_s
+          - not_null
+      - name: lap_time_s
         tests:
-         -not_null
-     -name: compound
+          - not_null
+      - name: compound
         tests:
-         -accepted_values:
+          - accepted_values:
               arguments:
                 values: ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
               config:
                 where: "compound IS NOT NULL"
-     -name: driver_skill_residual_s
+      - name: driver_skill_residual_s
         tests:
-         -not_null
-     -name: ml_eligible
+          - not_null
+      - name: ml_eligible
         tests:
-         -not_null
-     -name: correction_weight
+          - not_null
+      - name: correction_weight
         tests:
-         -not_null
+          - not_null

@@ -1,0 +1,11 @@
+off_the_pace:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: '../data/dev.duckdb'
+      threads: 4
+    ci:
+      type: duckdb
+      path: '../data/ci.duckdb'
+      threads: 2

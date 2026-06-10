@@ -1,7 +1,7 @@
 version: 2
 
 exposures:
- -name: xgboost_cliff_model
+  - name: xgboost_cliff_model
     type: ml
     owner:
       name: Justin Clarke
@@ -12,11 +12,11 @@ exposures:
       at lap granularity. Ingests compound cliff parameters from dim_compounds_season
       (fit via survival analysis in Simulation).
     depends_on:
-     -ref('fct_cliff_prediction_features')
-     -ref('dim_compounds_season')
+      - ref('fct_cliff_prediction_features')
+      - ref('dim_compounds_season')
     maturity: medium
 
- -name: driver_skill_extraction
+  - name: driver_skill_extraction
     type: ml
     owner:
       name: Justin Clarke
@@ -26,10 +26,10 @@ exposures:
       (race-grain skill residuals and synthetic-teammate delta proxies) to extract
       driver performance relative to equipment and teammate.
     depends_on:
-     -ref('fct_driver_skill_features')
+      - ref('fct_driver_skill_features')
     maturity: medium
 
- -name: powerbi_degradation_dashboard
+  - name: powerbi_degradation_dashboard
     type: dashboard
     owner:
       name: Justin Clarke
@@ -39,5 +39,5 @@ exposures:
       Consumes fct_lap_residuals (lap-grain decomposed residuals with anomaly flags)
       for visualization and exploration. Deployment to Fabric and DirectLake is deferred.
     depends_on:
-     -ref('fct_lap_residuals')
+      - ref('fct_lap_residuals')
     maturity: medium

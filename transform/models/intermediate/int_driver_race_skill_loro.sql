@@ -1,4 +1,4 @@
--- De-confounded absolute driver skill (Metric 1): leave-one-driver-out (LORO)
+-- De-confounded absolute driver skill: leave-one-driver-out (LORO)
 -- car baseline.
 --
 -- Replaces the cruise-and-self-baseline-biased `driver_residual_mean_s` as the
@@ -211,7 +211,7 @@ SELECT
     d.race_id,
     d.constructor_id,
     rtt.circuit_key,
-    -- Ceiling skill (P20): used by the RATING chain (Phase A). P20 = best 20%
+    -- Ceiling skill (P20): used by the RATING chain. P20 = best 20%
     -- of clean
     -- laps, which kills cruise drag so dominant-car leaders are no longer
     -- penalised.
@@ -230,7 +230,7 @@ SELECT
     -- Used ONLY by int_driver_circuit_era_affinity (Ghost Car Standings
     -- leaderboard).
     d.driver_median_pace_delta_s - cfe.car_fe_s AS driver_skill_field_s,
-    -- Typical race skill (median): used by the GHOST PACE simulation (Phase D).
+    -- Typical race skill (median): used by the GHOST PACE simulation.
     -- The
     -- median preserves the driver's normal within-race pace without
     -- extrapolating to

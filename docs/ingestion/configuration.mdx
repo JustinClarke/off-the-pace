@@ -1,0 +1,40 @@
+---
+title: "Configuration: environment variables and the FastF1 cache"
+sidebarTitle: "Configuration"
+description: "The full ingestion config surface three optional environment variables, no credentials, and how the on-disk FastF1 cache works."
+---
+
+Ingestion needs no credentials. `EnvironmentConfig` exposes exactly three settings, each with a sensible default, each overridable via an environment variable or a `.env` file.
+
+<ParamField path="FASTF1_CACHE_DIR" type="path" default="data/cache">
+  Where FastF1 caches downloaded session data on disk. Sized to hold every session you've loaded once see [the cache section](#the-fastf1-cache) below.
+</ParamField>
+<ParamField path="INGESTION_LOG_LEVEL" type="string" default="INFO">
+  Default logging verbosity, overridden per-run by `ingest.py`'s `--log-level` flag.
+</ParamField>
+<ParamField path="INGESTION_TIMEOUT_SECONDS" type="float" default="300">
+  Per-request timeout passed through to FastF1's network calls. Falls back to 300 with a warning if set to a non-numeric value.
+</ParamField>
+
+<Info>
+  Neither FastF1 nor Jolpica requires authentication. There is no API key, token, or secret anywhere in the ingestion config surface.
+</Info>
+
+## .env discovery
+
+`EnvironmentConfig` searches for a `.env` file up the directory tree the current working directory, then `ingestion/`, then the project root and loads the first one it finds. You don't need to `export` variables manually; dropping a `.env` file at the project root is enough.
+
+```bash .env
+FASTF1_CACHE_DIR=/custom/path/to/cache
+INGESTION_LOG_LEVEL=DEBUG
+```
+
+## The FastF1 cache
+
+Every session FastF1 loads is cached to `FASTF1_CACHE_DIR` (`data/cache/` by default) the first time it's pulled. Subsequent loads of the same session including a `--force` re-ingest read from the local cache instead of hitting the upstream feed again.
+
+<Tip>
+  This is why `--force` re-pulls are cheap: the slow part (talking to FastF1's live-timing/archive feed) only happens once per session. Everything after that is a local cache read plus the Bronze write.
+</Tip>
+
+The cache directory is created automatically on first run via `fastf1.Cache.enable_cache(...)` there's nothing to set up beyond optionally redirecting where it lives.

@@ -1,5 +1,6 @@
-export const methodologyHref =
-  'https://offthepace.mintlify.app/ml/overview'
+import { CANONICAL_DOCS_BASE } from '../../config'
+
+export const methodologyHref = `${CANONICAL_DOCS_BASE}/app/model-metrics`
 
 export const methodologyContent = (
   <div className="flex flex-col gap-3 text-sm text-muted leading-relaxed">

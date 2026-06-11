@@ -1,0 +1,50 @@
+---
+title: "Which teams find more in qualifying than in the race?"
+sidebarTitle: "Party Mode"
+description: "The gap between each constructor's single-lap qualifying pace and their sustained race pace, separating qualifying specialists from race-spec cars."
+---
+
+"Party mode" was the paddock nickname for the engine maps teams could unleash for a single qualifying lap. This chart measures the effect structurally: it differences each constructor's **qualifying structural pace** against their **race structural pace**, both estimated from the same fixed-effects panel model. A team that extracts far more over one lap than they sustain across a stint shows a negative delta they run a party-mode profile.
+
+## What it shows
+
+Each constructor is placed on a single delta:
+
+- **Negative delta (party mode)**: the team extracts more pace over a single lap than they sustain across a race stint a qualifying-biased car or engine map.
+- **Positive delta (race spec)**: the car comes into its own over race distance; the team may lose time in qualifying but manage tyres or fuel better than their grid slot suggests.
+- **Balanced**: teams within ±0.15s of zero are even across the two sessions.
+
+Both pace estimates come from the fixed-effects panel that isolates the constructor's car contribution after controlling for driver, tyre, fuel, and conditions so the delta is a property of the car, not of who drove it.
+
+<Note>
+  The effect was most pronounced in the turbo-hybrid era, when manufacturers could publish separate qualifying and race engine maps. It persists today as an aerodynamic signature: a high-downforce qualifying setup versus lower-drag race trim.
+</Note>
+
+## How to use it
+
+1. **Select a season** to see that year's constructor deltas.
+2. **Sort by delta** to rank the field from most qualifying-biased to most race-biased.
+3. **Read the ±0.15s balanced band** teams inside it have no meaningful session bias.
+4. **Pair with grid-vs-finish results** to see how often a party-mode car's qualifying advantage survived the race.
+
+## Reading the signal correctly
+
+The delta is a **difference of two model estimates**, so it inherits both estimates' uncertainty a team with few clean teammate-pair observations in either session has a noisier delta. A negative delta is a *bias*, not a flaw: a strong qualifier still scores from the front.
+
+<Warning>
+  Qualifying and race pace are estimated on different lap populations (single-lap Q runs versus race stints). A team that barely runs in a given session a rain-shortened qualifying, for instance can show a misleading delta for that round.
+</Warning>
+
+## Data source
+
+The chart queries the constructor structural-pace panel for both sessions via DuckDB-Wasm in the browser: `int_constructor_structural_pace` (race) and `int_constructor_structural_pace_qualifying` (qualifying).
+
+| Column | Meaning |
+|---|---|
+| `structural_pace_s` (race) | Constructor car contribution to race lap time |
+| `structural_pace_s` (qualifying) | Constructor car contribution to qualifying lap time |
+| `party_mode_delta_s` | Qualifying pace minus race pace; negative = party mode |
+
+The data window covers **2018–2024**.
+
+For the full model definitions, see the [`int_constructor_structural_pace` reference](/reference/models/int/int_constructor_structural_pace) and the [`int_constructor_structural_pace_qualifying` reference](/reference/models/int/int_constructor_structural_pace_qualifying).

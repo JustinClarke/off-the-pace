@@ -1,0 +1,77 @@
+---
+title: "Security policy"
+sidebarTitle: "Security"
+description: "Vulnerability reporting, automated supply-chain and SAST controls, and the GitHub settings required to harden the build and deploy pipeline."
+---
+
+Off The Pace is a static, serverless analytics site all compute is either offline (build time) or client-side (in the browser). There is no backend, no user accounts, and no secrets served at runtime. The attack surface is the **supply chain and the build/deploy pipeline**.
+
+## Reporting a vulnerability
+
+<Warning>
+  **Do not open a public issue for a security vulnerability.** Use GitHub's private reporting instead.
+</Warning>
+
+1. Go to the repository's **Security** tab → **Report a vulnerability** (GitHub private vulnerability reporting).
+2. Describe the issue, the affected component, and reproduction steps.
+
+If private reporting is unavailable, contact the maintainer directly via GitHub. You will receive an acknowledgement within a few days; please allow reasonable time for a fix before any public disclosure.
+
+## Automated controls
+
+These run in CI on every PR to `main`, plus a weekly schedule.
+
+| Concern | Tooling | Workflow | Posture |
+|---|---|---|---|
+| SAST (Python + TS/JS) | CodeQL (`security-extended`) | `codeql.yml` | Blocking |
+| Committed secrets | gitleaks | `security-scan.yml` | **Blocking** |
+| Python dependency CVEs | `pip-audit` (root + `ml/`) | `security-scan.yml` | Non-blocking¹ |
+| npm dependency CVEs | `pnpm audit --prod` | `security-scan.yml` | Non-blocking¹ |
+| Cross-ecosystem CVEs | OSV-Scanner (SARIF → Security tab) | `osv-scanner.yml` | PR-diff: blocking on *new* vulns |
+| Dependency updates | Dependabot (grouped, weekly) | `dependabot.yml` | PRs |
+| Inventory | CycloneDX SBOM (syft) | `sbom.yml` | On release |
+
+¹ Dependency audits are non-blocking (`continue-on-error: true`) so the existing advisory backlog can be triaged without wedging PRs. Flip those steps to blocking once the backlog is clean see the comment at the top of `security-scan.yml`.
+
+```bash
+make security          # gitleaks secret scan (local)
+make audit             # pip-audit + pnpm audit (local)
+make sbom              # CycloneDX SBOM (local)
+```
+
+## Required GitHub settings
+
+These controls live in **repo settings**, not in code, and must be enabled by an admin (Settings → Code security).
+
+- [ ] **Secret scanning** on (catches secrets server-side, including in history).
+- [ ] **Push protection** on (blocks secrets *before* they're committed; gitleaks CI is the backstop, not the first line).
+- [ ] **Dependabot alerts** + **Dependabot security updates** on.
+- [ ] **Private vulnerability reporting** on (enables the disclosure flow above).
+- [ ] **CodeQL: switch "Default setup" → "Advanced"** required, otherwise the committed `codeql.yml` conflicts with default setup and errors.
+- [ ] **Branch protection on `main`** require these status checks before merge:
+
+  | Status check | Workflow |
+  |---|---|
+  | App CI | `app-ci.yml` |
+  | dbt CI | `dbt-ci.yml` |
+  | ML CI | `ml-ci.yml` |
+  | Docs CI | `docs-ci.yml` |
+  | CodeQL | `codeql.yml` |
+  | Security Scan / Secret scan (gitleaks) | `security-scan.yml` |
+  | App E2E | `app-e2e.yml` |
+  | App Performance → `perf` | `app-perf.yml` |
+
+## Scope
+
+**In scope:** this repository's code, CI/CD, and published artefacts (the app bundle, the GCS CDN data and models).
+
+**Out of scope:** the upstream FastF1 / Jolpica data sources, and the analytics/model *correctness* that is covered by the dbt identity oracle and ML leakage guards, not by this policy.
+
+<CardGroup cols={2}>
+  <Card title="Performance & E2E" href="/platform/performance" icon="gauge">
+    App E2E and App Performance status checks that branch protection requires.
+  </Card>
+  <Card title="Deployment" href="/platform/deployment" icon="rocket">
+    Workload Identity Federation setup that keeps GCP credentials out of CI.
+  </Card>
+</CardGroup>

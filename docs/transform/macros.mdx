@@ -1,0 +1,55 @@
+---
+title: "Macros: the seven reusable building blocks"
+sidebarTitle: "Overview"
+description: "The seven dbt macros that keep shrinkage, filtering, mapping, validation, and numeric logic defined once instead of copy-pasted across models grouped by what they do, each linking to its full signature and usage."
+---
+
+<Note>
+  A macro exists when the same logic would otherwise be copy-pasted across models a shrinkage formula, a filter predicate, a numeric approximation. Defining it once means every consumer shares one definition instead of several silently-diverging copies. A macro's full signature, arguments, and worked example live on its own generated reference page, linked from each card below.
+</Note>
+
+## Validation
+
+<CardGroup cols={1}>
+  <Card title="assert_additive_identity" icon="check-check" href="/reference/macros/assert_additive_identity">
+    Proves an additive decomposition holds to tolerance: `total = Σ(components) + residual`. The shared engine behind the lap seven-term identity test and its worked macro-usage duplicate; the other identity-closure tests assert different identity shapes with their own inline SQL rather than this macro.
+  </Card>
+</CardGroup>
+
+## Shrinkage
+
+<CardGroup cols={2}>
+  <Card title="bayesian_shrinkage" icon="scale" href="/reference/macros/bayesian_shrinkage">
+    Normal-normal conjugate shrinkage toward a prior mean, weighted by sample size. Used by the three Skill-family shrinkage models: driver-circuit affinity, driver-circuit-era affinity, and driver-season ratings.
+  </Card>
+  <Card title="posterior_variance" icon="sigma" href="/reference/macros/posterior_variance">
+    The matching posterior variance for a `bayesian_shrinkage` estimate, used by the same three models to emit standard errors and confidence-interval bounds.
+  </Card>
+</CardGroup>
+
+## Filters
+
+<CardGroup cols={1}>
+  <Card title="clean_lap_filter" icon="filter" href="/reference/macros/clean_lap_filter">
+    The canonical "clean lap" predicate `correction_weight = 1.0`, no mistake/conditions anomaly class, no rain for any model extracting a driver-skill signal. Defined as the recommended pattern so skill extraction can't silently diverge; no model calls it directly today, since each current skill-extracting model inlines the equivalent three-condition filter itself.
+  </Card>
+</CardGroup>
+
+## Mapping
+
+<CardGroup cols={2}>
+  <Card title="normalize_compound" icon="shuffle" href="/reference/macros/normalize_compound">
+    Maps 2018's legacy seven-compound names onto the modern SOFT/MEDIUM/HARD set so compound-parameter joins don't go NULL for that season. Scoped to ML-facing feature joins only applying it inside the compound-cliff model itself would silently re-attribute compound effects as driver skill. Not called by any model today.
+  </Card>
+  <Card title="circuit_id_from_name" icon="map-pin" href="/reference/macros/circuit_id_from_name">
+    Slugifies a circuit's display name into a stable physical-venue ID, collapsing renamed events and same-venue double-headers onto one identifier. Used by `int_driver_circuit_era_affinity` and `dim_circuits`.
+  </Card>
+</CardGroup>
+
+## Numeric
+
+<CardGroup cols={1}>
+  <Card title="normal_cdf" icon="function-square" href="/reference/macros/normal_cdf">
+    The standard normal CDF Φ(x), inlined via a Zelen & Severo rational approximation since DuckDB has no `erf` builtin. Used by `fct_ghost_race_finish` to turn pairwise predicted-pace gaps into finish-order probabilities.
+  </Card>
+</CardGroup>

@@ -1,10 +1,11 @@
-// Lazy-creates and caches one onnxruntime-web InferenceSession per model (AD-3).
+// Lazy-creates and caches one onnxruntime-web InferenceSession per model.
 // ort's WASM binaries are self-hosted under /ort/ (see scripts/copy-runtime-assets.mjs)
-// so COEP `require-corp` (AD-11) doesn't block them; threads work when the page is
+// so COEP `require-corp` doesn't block them; threads work when the page is
 // cross-origin-isolated, and degrade to single-threaded otherwise.
 
 import * as ort from 'onnxruntime-web'
 import { loadModelManifest, getModelSpec, MODELS_BASE } from './manifest'
+import { track } from '../observability'
 
 let configured = false
 
@@ -31,10 +32,13 @@ export function getSession(modelName: string): Promise<ort.InferenceSession> {
     const manifest = await loadModelManifest()
     const spec = getModelSpec(manifest, modelName)
     const url = `${MODELS_BASE}/${spec.onnx}`
-    return ort.InferenceSession.create(url, {
+    const warmStart = performance.now()
+    const session = await ort.InferenceSession.create(url, {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all',
     })
+    track('onnx_warmup', performance.now() - warmStart, 'millisecond', { model: modelName })
+    return session
   })()
 
   // Don't cache a rejected promise let the next call retry a transient load failure.

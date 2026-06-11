@@ -80,7 +80,7 @@ jobs:
       # baseline (transform/tests/model_hashes.baseline.json). Guards against cosmetic /
       # lint changes silently moving model output. duckdb is pinned in requirements.txt so
       # the float-content hashes match the baseline. Regenerate the baseline (make
-      # lint-oracle-snapshot) when model logic changes intentionally. See work.md §6 Phase F.
+      # lint-oracle-snapshot) when model logic changes intentionally.
       - name: Gate 1c   byte-stability oracle (fct_* output)
         if: steps.fixture_check.outputs.fixtures_present == 'true'
         working-directory: ./transform
@@ -111,6 +111,9 @@ jobs:
           pytest transform/tasks/coefficients/tests/ \
             -v \
             --tb=short \
+            --cov=transform/tasks/coefficients \
+            --cov-report=term-missing \
+            --cov-fail-under=60 \
             --junitxml=transform/target/pytest-results.xml
 
       # Lint SQL   hard failure so style regressions are caught at review time.

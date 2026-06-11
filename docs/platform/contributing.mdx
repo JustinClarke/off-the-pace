@@ -1,0 +1,150 @@
+---
+title: "Contributing to Off The Pace"
+sidebarTitle: "Contributing"
+description: "From zero to running models in under 30 minutes. Prerequisites, setup, pipeline commands, and the PR process."
+---
+
+No cloud credentials are required to get started. The local DuckDB pipeline is the entry point for every layer ingestion, transform, ML, and app.
+
+## Prerequisites
+
+- **Python 3.11+**
+- **Node.js v18+** and **pnpm** for the React app or docs site
+- **Git**
+- **Make** standard on macOS/Linux
+
+## Setup
+
+```bash
+git clone https://github.com/justinclarke/off-the-pace.git
+cd off-the-pace
+make setup          # creates .venv, installs Python + dbt dependencies
+make ml-setup       # installs ml/requirements.txt (ML layer only)
+make app-install    # installs React app dependencies
+make docs-install   # installs Mintlify docs dependencies
+```
+
+## Run the pipeline locally
+
+Choose a data scope based on what you're working on:
+
+| Command | Data | Time |
+|---|---|---|
+| `make dbt-dev` | Test fixtures (no ingest) | < 1 min |
+| `make ingest-recent` | 2023–2024 | ~15 min |
+| `make ingest-all` | All seasons (168 races) | 30–45 min |
+
+```bash
+make ingest-recent   # or ingest-all
+make dbt-dev         # build all dbt models against local DuckDB
+make dbt-test        # run 443 tests including the seven-term identity
+```
+
+The core invariant every lap's seven decomposition components sum to zero is enforced by `assert_lap_7term_identity` inside `make dbt-test`.
+
+## Testing
+
+<CodeGroup>
+
+```bash dbt (transform)
+make dbt-test
+```
+
+```bash ML (warehouse-free subset)
+make ml-test   # 28 tests: leakage spine, ONNX parity, output schema, beats-baseline
+```
+
+```bash Ingestion
+pytest ingestion/tests/ -v
+mypy ingestion/src/
+```
+
+```bash App
+pnpm --filter app test --run        # vitest unit tests
+make app-e2e-install && make app-e2e  # Playwright browser tests (one-time install)
+```
+
+</CodeGroup>
+
+**Single-race smoke test** before submitting ingestion changes:
+
+```bash
+python ingestion/src/ingest.py --season 2024 --round 1 --session R --force
+ls -la data/bronze/laps/season=2024/race=bahrain_grand_prix/
+```
+
+## Code style
+
+<AccordionGroup>
+
+  <Accordion title="Python" icon="python">
+    - **Type hints on all public functions.**
+    - **Use `logging`, not `print()`** sensitive data is masked automatically in `ingestion/src/environment.py`.
+    - **No hardcoded secrets** environment variables only.
+
+    ```python
+    def ingest_race(year: int, round_num: int, slug: str, force: bool) -> tuple[str, dict]:
+        """Ingest a single race. Returns (status, manifest_row)."""
+    ```
+  </Accordion>
+
+  <Accordion title="dbt / SQL" icon="database">
+    - Every model needs a description and column docs in its `schema.yml`.
+    - Every new model needs at least one dbt test.
+    - Match the header-comment style in [`int_lap_fuel_state.sql`](../transform/models/intermediate/int_lap_fuel_state.sql): layer, grain, the identity/contract it satisfies.
+  </Accordion>
+
+</AccordionGroup>
+
+## Adding work by layer
+
+<Steps>
+  <Step title="Add a dbt model" icon="database">
+    1. Write the SQL in `transform/models/`.
+    2. Add a description + column docs to `schema.yml`.
+    3. Add at least one dbt test.
+    4. Run `make dbt-dev` and `make dbt-test`.
+    5. If the model participates in the seven-term identity, confirm `assert_lap_7term_identity` still passes.
+  </Step>
+  <Step title="Add or change an app feature" icon="monitor">
+    Every shipped feature ships its docs in the **same PR** as its code.
+
+    1. Write or update `docs/app/<dir>.mdx` from [`docs/app/_TEMPLATE.mdx`](../app/_TEMPLATE.mdx).
+    2. Add the slug to the `docs.json` App group.
+    3. Set `methodologyHref` to `` `${CANONICAL_DOCS_BASE}/app/<dir>` `` import from `app/src/config.ts`, never hard-code the host.
+    4. Run `make docs-app-audit` and `make docs-facts` until both are green.
+  </Step>
+  <Step title="Ingestion changes" icon="arrow-down-to-line">
+    See [`ingestion/README.md`](../ingestion/README.md) for module architecture and data-quality checks. Key principles: graceful degradation, idempotent writes, schema validation before write, exponential backoff.
+  </Step>
+  <Step title="ML / reference docs" icon="microchip">
+    - ML: see [`ml/README.md`](../ml/README.md); run `make ml-test`.
+    - Reference docs are **auto-generated** edit the source (`schema.yml`, docstrings, `ml/model_card.yml`), then run `make ml-reference` or the relevant generator in `scripts/`. CI fails if the committed reference drifts from a fresh generation.
+  </Step>
+</Steps>
+
+## Pull request process
+
+1. **Test locally** run the relevant suite(s) before pushing.
+2. **Keep PRs focused** one change per PR.
+3. **Write a descriptive title** e.g. "Add dry-run flag to ingest CLI", not "Fix stuff".
+4. **Include context** what problem it solves, what you tested, known limitations.
+5. **Expect iteration** reviews may request changes; respond and re-push.
+
+<Warning>
+  **Security vulnerability?** Do **not** open a public issue. Use GitHub's private vulnerability reporting (Security tab → Report a vulnerability) or contact the maintainer directly. See [Security](/platform/security) for the full disclosure process.
+</Warning>
+
+## Getting help
+
+<CardGroup cols={3}>
+  <Card title="Usage questions" icon="book-open">
+    The relevant layer README e.g. [`ingestion/README.md`](../ingestion/README.md), [`transform/README.md`](../transform/README.md).
+  </Card>
+  <Card title="Architecture & rationale" icon="building-2">
+    The [Architecture Decisions](/platform/architecture-decisions) log and the [seven-term identity](/decomposition/seven-term-identity) explanation.
+  </Card>
+  <Card title="Bugs & features" icon="github">
+    Open an issue or discussion on GitHub.
+  </Card>
+</CardGroup>

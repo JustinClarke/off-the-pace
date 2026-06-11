@@ -62,7 +62,7 @@ export async function registerPartitionedParquet(name: string, manifest: DataMan
   const table = manifest.tables.find(t => t.name === name)
   if (!table) throw new Error(`Table not found in manifest: ${name}`)
   if (!table.partitioned || !table.partitions?.length) {
-    // Not partitioned (or no partitions) — fall back to the single-file registrar.
+    // Not partitioned (or no partitions) fall back to the single-file registrar.
     return registerParquet(name, getTablePath(manifest, name))
   }
 

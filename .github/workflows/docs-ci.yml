@@ -5,12 +5,19 @@ on:
     paths:
       - 'docs/**'
       - 'scripts/**'
-      - 'transform/models/**'
-      - 'transform/macros/**'
+      - 'transform/**'
       - 'ingestion/**'
       - 'ml/**'
+      - 'app/**'
+      - 'infra/**'
+      - '.github/**'
       - 'README.md'
-      - '.github/workflows/docs-ci.yml'
+      - '**.py'
+      - '**.ts'
+      - '**.tsx'
+      - '**.sh'
+      - '**.sql'
+      - '**.tf'
 
 jobs:
   validate:
@@ -59,6 +66,79 @@ jobs:
       - name: Check fact consistency
         run: python scripts/docs_facts.py
 
+  lint-comments:
+    name: Banned planning/history language check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if banned patterns found in source
+        run: |
+          ! grep -rn \
+            --include="*.ts" --include="*.tsx" --include="*.py" --include="*.sh" \
+            --include="*.sql" --include="*.yml" --include="*.yaml" --include="*.tf" \
+            -E -f .github/lint-comments-patterns.txt \
+            --exclude-dir=".git" --exclude-dir="_roadmap" --exclude-dir="node_modules" \
+            --exclude-dir=".venv" --exclude-dir=".agents" --exclude-dir="target" . \
+            || { echo "Banned planning/history language in source. See CLEANUP_PLAN.md for the rule."; exit 1; }
+
+  docs-app-audit:
+    name: App feature-page coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # --strict: every shipped feature must have an /app/<slug> page. Drop the flag
+      # for report mode if you ever need CI to stay green mid-backfill.
+      - name: Audit app feature-page coverage
+        run: python scripts/app_docs_audit.py --strict
+
+  bronze-coverage-drift:
+    name: Bronze coverage snippet drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Check bronze-coverage.mdx is current
+        run: python scripts/ingestion_docs_facts.py
+
+  overview-numbers-drift:
+    name: Overview by-the-numbers snippet drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Check overview-numbers.mdx is current
+        run: python scripts/overview_docs_facts.py
+
+  ml-inventory-drift:
+    name: ML inventory snippet drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install yaml
+        run: pip install pyyaml
+
+      - name: Check ml-inventory snippets are current
+        run: python scripts/ml_docs_facts.py
+
   reference-drift:
     name: Reference drift check
     runs-on: ubuntu-latest
@@ -92,3 +172,28 @@ jobs:
             echo "Run 'python scripts/build_reference.py' locally and commit the changes."
             exit 1
           fi
+
+  transform-inventory-drift:
+    name: Transform test-inventory snippet drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dbt and generators
+        run: pip install dbt-core==1.11.9 dbt-duckdb==1.10.1
+
+      - name: Install dbt packages
+        working-directory: transform
+        run: dbt deps --profiles-dir profiles --target ci
+
+      - name: Parse dbt project
+        working-directory: transform
+        run: dbt parse --profiles-dir profiles --target ci
+
+      - name: Check transform-inventory snippets are current
+        run: python scripts/transform_docs_facts.py

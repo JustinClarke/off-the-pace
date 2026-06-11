@@ -6,6 +6,7 @@ import { useFilters } from '../../state/FilterContext'
 import { transform, toCsvRows } from './transform'
 import './queries'
 import type { EraTranslatorRow } from './queries'
+import { TechTooltip } from '../../ui/TechTooltip'
 
 function fmtRating(v: number) {
   return `${v >= 0 ? '+' : ''}${v.toFixed(3)}s`
@@ -68,7 +69,9 @@ export default function EraTranslatorPage() {
                 <span className="flex items-center gap-1">
                   <span className="font-mono">{v as string}</span>
                   {(row as { bridge_driver_anchor_flag: boolean }).bridge_driver_anchor_flag && (
-                    <span className="text-amber-400/80 text-[10px]" title="Bridge driver anchor">★</span>
+                    <TechTooltip content="Bridge driver anchor">
+                      <span className="text-amber-400/80 text-[10px] cursor-help">★</span>
+                    </TechTooltip>
                   )}
                 </span>
               ),

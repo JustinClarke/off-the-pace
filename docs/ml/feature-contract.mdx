@@ -1,0 +1,82 @@
+---
+title: "Feature contract: the 42 features and the read-only mart"
+sidebarTitle: "Feature Contract"
+description: "42 features across 10 physics groups, all read from fct_cliff_prediction_features. The machine layer never re-derives physics it reads the decomposition's output and writes nothing back."
+---
+
+import MLFeatures from '/snippets/ml-inventory-features.mdx';
+import MLLeakage from '/snippets/ml-inventory-leakage.mdx';
+
+The physics lives in the dbt transform layer. The machine layer reads it. That sentence is the entire design of the feature contract: `fct_cliff_prediction_features` is the single mart the five models consume, and every feature in the table was computed by the transform layer before ML ever runs.
+
+<Warning>
+**Read-only mart contract.** The ML layer reads `fct_cliff_prediction_features` read-only. It never writes to the warehouse or the application. `driver_skill_residual_s` the decomposition's closure is **excluded** from the feature matrix; the models must not relearn what the skill layer already attributed.
+</Warning>
+
+## 42 features across 10 physics groups
+
+Every feature has a physics interpretation. The grouping below matches `FEATURE_GROUPS` in `ml/src/schema.py` and the `features.groups` section of the model card the exact same ordering used during training.
+
+<MLFeatures />
+
+<CardGroup cols={2}>
+  <Card title="stint_position (4)" icon="clock">
+    Lap number, stint position, fuel mass. The core temporal signal where in the stint this lap falls.
+  </Card>
+  <Card title="compound (7)" icon="circle">
+    Compound identity, grip peak, wear gradient, optimal temp window, cliff-onset and severity priors. The compound-level physics prior baked into the Reference family.
+  </Card>
+  <Card title="cliff_prior (5)" icon="triangle-alert">
+    Expected pace, degradation rate, whether the onset lap has passed, laps past the cliff, and a cliff candidate flag. The Kaplan-Meier survival prior from the physics layer ML's starting point, not its conclusion.
+  </Card>
+  <Card title="thermal (4)" icon="thermometer">
+    Push residual, cumulative surface and bulk thermal load, and the surface-to-bulk ratio (42nd feature, Route C). Encodes how hard the tyre has been working at each of the two thermal layers.
+  </Card>
+  <Card title="dirty_air (4)" icon="wind">
+    Dirty-air share per lap, surface and bulk thermal load attributed to following traffic, and the dominant air-state label. Encodes the aerodynamic heat penalty from following another car.
+  </Card>
+  <Card title="powertrain (6)" icon="zap">
+    Gear changes, RPM mean and max, full-throttle share, DRS active share, short-shift index. Per-lap telemetry aggregates projected by `int_lap_telemetry_aggregates`.
+  </Card>
+  <Card title="telemetry_cliff (5)" icon="chart-line">
+    Mid-corner speed loss, traction wheelspin proxy, throttle trace decay, braking point drift, lift-coast share. Cliff-sensitive telemetry signatures from the same aggregation.
+  </Card>
+  <Card title="weather_air (2)" icon="cloud">
+    Ambient temperature delta and rain flag. The environmental overlay on every prediction.
+  </Card>
+  <Card title="track (2)" icon="map">
+    Track energy index and circuit abrasiveness index. Circuit-level physics constants from the Reference family.
+  </Card>
+  <Card title="context (3)" icon="tag">
+    Constructor ID, event anomaly flag, and anomaly class. Encodes team and race-weekend context not captured by physics alone.
+  </Card>
+</CardGroup>
+
+## The read-only contract in practice
+
+<Info>
+  **Two target spans.** The quantile trio and cliff classifier train on **113,309 laps** that carry the degradation and cliff targets; the stint-life regressor trains on **119,876 laps** the spans differ because a lap can have a valid stint-life count even where its next-lap jump is undefined.
+</Info>
+
+Ordinal encoding handles categoricals: the training map assigns each seen value an integer; NULL or unseen values get `−1` (the `MISSING_ORDINAL` sentinel). Continuous features keep `NaN` as `NaN` XGBoost learns the best split direction for missing values natively.
+
+## Excluded columns
+
+<MLLeakage />
+
+## Relationships
+
+<CardGroup cols={2}>
+  <Card title="fct_cliff_prediction_features" href="/reference/models/fct/fct_cliff_prediction_features" icon="database">
+    The mart this contract reads its full column list, lineage, and the tests that guard its grain.
+  </Card>
+  <Card title="Features and targets" href="/ml/features-and-targets" icon="list">
+    How a mart row becomes a row of the `X` matrix encoding, fingerprinting, the forward-window audit, and the three targets.
+  </Card>
+  <Card title="Leakage spine" href="/ml/ci/leakage-spine" icon="shield">
+    The 12 CI tests that assert these exclusions hold every build one idea per guard.
+  </Card>
+  <Card title="Model overview" href="/ml/overview" icon="microchip">
+    Back to the ML front door.
+  </Card>
+</CardGroup>

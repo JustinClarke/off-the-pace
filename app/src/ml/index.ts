@@ -1,4 +1,4 @@
-// Public surface of the ONNX inference layer (AD-3).
+// Public surface of the ONNX inference layer.
 export { loadModelManifest, getModelSpec, isClassifierOutput, MODELS_BASE } from './manifest'
 export type { ModelManifest, ModelSpec, ManifestInput, ScalarOutput, ClassifierOutput, ModelKind } from './manifest'
 export { buildFeatureVector, buildFeatureMatrix, encodeValue } from './featureVector'

@@ -1,0 +1,69 @@
+---
+title: "One-line, sentence-case headline naming the question the feature answers"
+sidebarTitle: "Short Nav Label"
+description: "One or two sentences a search engine and a recruiter both understand. Name the signal and what it reveals."
+---
+
+{/*
+  TEMPLATE copy this file to docs/app/<feature-dir>.mdx and fill every section.
+  The filename MUST equal the feature directory name under app/src/features/ (the slug).
+  Register the new slug in docs.json under the "App & Visualizations" group, and set the
+  feature's methodologyHref to `${CANONICAL_DOCS_BASE}/app/<feature-dir>`.
+  Harvest the prose from the feature's methodology.tsx it already carries ~80% of this.
+  Required sections (the docs gate checks for them): a "What ... shows" intro, a usage/
+  interpretation section ("How to use it" / "Reading the signal"), and a "Data source".
+  Delete every {/* … */} comment before committing.
+*/}
+
+Open with the **hook**: the single question this feature answers, in plain language, and what a
+reader gets from it. One short paragraph. Name the core metric in `code` and its sign convention.
+
+## What it shows
+
+Map each axis / series / cell to a concrete column name from the mart the feature queries.
+
+- **X-axis / first series (`column_name`)**: what it is and what direction means what.
+- **Y-axis / second series (`column_name`)**: same.
+- **Encoding (colour / size / shading)**: what it encodes and the sign convention
+  (negative = faster/green, positive = slower/red, mirroring the residual convention).
+
+<Note>
+  State the inclusion filter the query applies (clean laps only, `n_obs >= 2`, minimum sample,
+  etc.) so a reader knows why some rows are absent.
+</Note>
+
+## How to use it
+
+1. **Select a season / driver / race** using the filter bar; the chart reloads automatically.
+2. **Hover** to read the per-point detail (name, constructor, the metric, sample size).
+3. **Compare** across the relevant dimension to read the signal the feature is built for.
+4. **Export the data** with the CSV button in the page header to analyse the raw rows yourself.
+
+## Reading the signal correctly
+
+Explain what the signal does and does **not** mean especially what has already been controlled
+for, so the reader does not double-count or over-interpret.
+
+<Warning>
+  Call out the caveat that matters most for this feature (survivorship, small samples,
+  `REVIEW_REQUIRED` circuits, prior-dominated estimates, etc.) and link the relevant
+  [decomposition limitations](/decomposition/limitations) page where appropriate.
+</Warning>
+
+## Data source
+
+The chart queries `mart_or_fct_table` via DuckDB-Wasm in the browser. {/* name the real table */}
+
+| Column | Meaning |
+|---|---|
+| `column_a` | what it is |
+| `column_b` | what it is |
+| `column_c` | what it is |
+
+The data window covers **2018–2024**. {/* adjust if the feature differs */}
+
+{/*
+  Link the underlying dbt model here with a real reference path, for example a link whose
+  target is /reference/models/int/int_my_model (mart_ models render under the fct/ subdir).
+  Write it as a normal markdown link in the rendered page see any sibling app/<slug>.mdx.
+*/}

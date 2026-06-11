@@ -1,4 +1,4 @@
--- Reference example for the assert_additive_identity macro (updated initial release: 7-term).
+-- Reference example for the assert_additive_identity macro, using the 7-term identity.
 -- Superseded as the canonical test by assert_lap_7term_identity.sql.
 -- Kept here as a usage example for the macro pattern.
 

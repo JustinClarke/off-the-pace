@@ -1,0 +1,49 @@
+---
+title: "How much pace each compound loses over a stint"
+sidebarTitle: "Degradation Timeline"
+description: "The average pace a tyre compound loses relative to fresh rubber across a race, with a spread band showing how differently drivers managed the same tyre."
+---
+
+The degradation timeline shows how much pace a tyre compound bleeds away as a stint ages, averaged across every clean stint run on that compound in the selected race. It turns a pile of individual stints into one readable curve: this is what the medium did today, and this is how much the field disagreed about how hard to push it.
+
+## What it shows
+
+The chart plots cumulative pace loss against lap-in-stint for each compound:
+
+- **Pace loss curve (`expected_compound_pace_s`)**: the average cumulative seconds lost versus lap 1 of the stint, across all clean stints of that compound.
+- **Shaded band (±1σ)**: one standard deviation across stints. A wide band means drivers managed the same tyre very differently fuel-load strategy, push versus save.
+- **Cliff onset**: the pre-fit lap count at which the degradation model expects exponential onset, taken from `dim_compounds_season`.
+
+<Note>
+  Safety-car, in-lap, out-lap, and wet laps are excluded. Only the `normal` and `clean_cliff` anomaly classes are included, which suppresses strategy artefacts (cold out-laps, lift-and-coast in-laps) that would otherwise distort the slope.
+</Note>
+
+## How to use it
+
+1. **Select a race** from the filter bar; the curves reload for that event's compounds.
+2. **Compare compounds** the gap between the soft and hard curves at a given lap is the tyre-life cost of the faster compound.
+3. **Watch the cliff onset marker** pace loss accelerates after it; a stop before onset is proactive, a stop after it is reactive.
+4. **Read the band width** to gauge strategic spread: a tight band means the field agreed on how to run the tyre; a wide band means it was a management lottery.
+
+## Reading the signal correctly
+
+The curve is a **field average**, not any single driver's stint a driver who saved heavily and one who pushed are both inside the band, and the mean sits between them. The cliff onset line is a model prior, not an observation of this race.
+
+<Warning>
+  Compounds with only one or two clean stints in a race produce a noisy curve and a band that understates real uncertainty. Treat single-stint compounds as indicative only.
+</Warning>
+
+## Data source
+
+The chart queries `fct_cliff_prediction_features` for the per-lap degradation history and `dim_compounds_season` for the cliff onset prior, via DuckDB-Wasm in the browser.
+
+| Column | Meaning |
+|---|---|
+| `expected_compound_pace_s` | Cumulative pace loss vs fresh tyre, the curve |
+| `lap_in_stint` | Lap index within the stint, the x-axis |
+| `anomaly_class` | Lap classification; only `normal` / `clean_cliff` are kept |
+| `compound_cliff_onset_laps` | Expected exponential-onset lap from `dim_compounds_season` |
+
+This is a **single-race** view across **2018–2024** data.
+
+For the full model definition, see the [`fct_cliff_prediction_features` reference](/reference/models/fct/fct_cliff_prediction_features).

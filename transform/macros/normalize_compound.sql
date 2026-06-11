@@ -1,6 +1,5 @@
-{#
-  normalize_compound(compound_col)
-
+{% macro normalize_compound(compound_col) %}
+  {#-
   Maps Pirelli's 2018-era legacy compound names onto the modern SOFT/MEDIUM/HARD
   taxonomy so that compound-parameter joins (dim_compounds_season) land for 2018.
 
@@ -16,9 +15,8 @@
   would silently re-attribute compound vs. driver skill for 2018 legacy laps.
 
   Residual nulls (legacy laps at circuits with no slug-keyed 2018 SOFT fit) are
-  intentional and carried by XGBoost's native missing-value handling. See ml/BUILD_LOG.md (L0-2).
-#}
-{% macro normalize_compound(compound_col) %}
+  intentional and carried by XGBoost's native missing-value handling.
+  -#}
     CASE {{ compound_col }}
         WHEN 'HYPERSOFT' THEN 'SOFT'
         WHEN 'ULTRASOFT' THEN 'SOFT'

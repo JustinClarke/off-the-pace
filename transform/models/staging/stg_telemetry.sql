@@ -5,7 +5,7 @@
 -- aggregations.
 -- Projects the powertrain channels (rpm / n_gear / drs_active) needed by the
 -- per-lap
--- telemetry aggregates (int_lap_telemetry_aggregates, ml-v0.2 §2). FastF1 DRS
+-- telemetry aggregates (int_lap_telemetry_aggregates). FastF1 DRS
 -- codes:
 -- 0/1 = off, 8 = eligible-but-inactive, 10/12/14 = active → drs_active.
 {{ config(materialized='view') }}

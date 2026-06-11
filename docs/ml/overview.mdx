@@ -1,10 +1,14 @@
 ---
 title: "Machine learning for tyre prediction in Off The Pace"
-sidebarTitle: "ML Overview"
-description: "5 XGBoost models extend the physics decomposition to predict next-lap pace loss, cliff proximity, and remaining stint life across 137,373 laps."
+sidebarTitle: "ML Layer"
+description: "Five XGBoost models extend the physics decomposition to predict next-lap pace loss, cliff proximity, and remaining stint life across seven seasons of F1 (2018–2024)."
 ---
 
-The seven-term decomposition tells you where each lap's time went. The machine layer asks what happens next. 5 XGBoost models sit on top of the decomposed lap data and translate per-lap physics signals into forward-looking predictions about tyre behaviour how much pace the next lap will cost, how close the cliff is, and how many usable laps remain in the stint.
+import MLInventory from '/snippets/ml-inventory.mdx';
+
+The seven-term decomposition tells you where each lap's time went. The machine layer asks what happens next. Five XGBoost models sit on top of the decomposed lap data and translate per-lap physics signals into forward-looking predictions about tyre behaviour how much pace the next lap will cost, how close the cliff is, and how many usable laps remain in the stint.
+
+<MLInventory />
 
 ## Why ML is needed on top of the physics decomposition
 
@@ -22,7 +26,11 @@ These factors interact. A linear correction per dimension cannot capture "Soft, 
 
 ## The feature source
 
-All five models read from a single contracted mart: `fct_cliff_prediction_features`. This mart covers **137,373 laps across the 2018–2024 seasons** (seven seasons of F1). After eligibility filtering, **110,440 rows** carry both the degradation and cliff targets; **116,957 rows** carry the stint-life target. The models consume 38 features across nine physics-grouped families nothing is hand-engineered inside the ML layer. The physics lives in the dbt transform layer; the machine layer reads it.
+All five models read from a single contracted mart: `fct_cliff_prediction_features`. The models consume 42 features across ten physics-grouped families nothing is hand-engineered inside the ML layer. The physics lives in the dbt transform layer; the machine layer reads it.
+
+<Info>
+  **One mart, two target spans.** The quantile trio and the cliff classifier train on **113,309 laps** that carry the degradation and cliff targets; the stint-life regressor trains on **119,876 laps** the spans differ because a lap can have a usable stint-life count even where its next-lap jump is undefined. All seven seasons (2018–2024) feed in, and the **19,067-lap 2024 fold** stands in as the evaluation holdout until 2025 ingests.
+</Info>
 
 ## Three question families, five models
 
@@ -46,28 +54,53 @@ All five models read from a single contracted mart: `fct_cliff_prediction_featur
 
 ## How the models fit into the broader system
 
-```
-Physics decomposition (seven-term)
-        ↓
-fct_cliff_prediction_features  (38 features, 137 k laps)
-        ↓
-Five XGBoost models  →  ONNX export  →  In-browser scoring
+```mermaid
+flowchart TD
+    A["Physics decomposition<br/>(seven-term identity)"] --> B["fct_cliff_prediction_features<br/>42 features · 2018–2024"]
+    B --> C1["degradation p10"]
+    B --> C2["degradation p50"]
+    B --> C3["degradation p90"]
+    B --> C4["cliff classifier"]
+    B --> C5["stint-life regressor"]
+    C1 & C2 & C3 & C4 & C5 --> D["ONNX export<br/>(parity ≤ 1e-5)"]
+    D --> E["In-browser scoring<br/>(React app, no server)"]
+
+    classDef mart fill:#1f2937,stroke:#e40404,color:#fff;
+    classDef ship fill:#111827,stroke:#22c55e,color:#fff;
+    class B mart;
+    class E ship;
 ```
 
 The machine layer reads the warehouse **read-only** and never writes to the application layer. Reproducing the full pipeline takes a single command:
 
-```bash
+<CodeGroup>
+
+```bash Build
 make ml-all   # features → tune → train → evaluate → predict → onnx → card
+```
+
+```bash Test
 make ml-test  # 28 tests: leakage spine, ONNX parity, output schema, beats-baseline
 ```
+
+</CodeGroup>
 
 ## Go deeper
 
 <CardGroup cols={2}>
-  <Card title="Models" href="/ml/models" icon="microchip">
-    Objective functions, tuning approach, headline metrics for all five models, and the honest caveats.
+  <Card title="Feature contract" href="/ml/feature-contract" icon="layers">
+    The 42 features across 10 physics groups, where each comes from in the mart, and the read-only contract that keeps physics and ML cleanly separated.
   </Card>
-  <Card title="Validation" href="/ml/validation" icon="shield-check">
-    Season-grouped time-series cross-validation, the leakage spine, calibration coverage, and the 2025 holdout policy.
+  <Card title="The pipeline" href="/ml/pipeline" icon="workflow">
+    The eight-stage `make ml-all` DAG features → tune → train → evaluate → predict → onnx → card → reference and what each stage reads, writes, and guarantees.
+  </Card>
+  <Card title="Validation & Trust" href="/ml/validation" icon="shield-check">
+    Season-grouped time-series cross-validation, the leakage spine, calibration coverage, and the `MAX+1`-derived holdout policy.
+  </Card>
+  <Card title="The CI Contract" href="/ml/ci/overview" icon="vial">
+    All 28 tests 12 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 7 evaluation gates, 1 target bound grouped and explained.
+  </Card>
+  <Card title="Model Reference" href="/reference/ml/degradation-model-v1" icon="database">
+    The generated model card: per-model hyperparameters, headline metrics, calibration, cohorts, and reproducibility.
   </Card>
 </CardGroup>

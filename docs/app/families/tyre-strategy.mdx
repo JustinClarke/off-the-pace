@@ -1,0 +1,48 @@
+---
+title: "Tyre & Strategy: from observed degradation to optimal stops"
+sidebarTitle: "Overview"
+description: "Five features spanning tyre survival curves, stint degradation timelines, pit-strategy Gantts, post-cliff recovery forecasts, and the qualifying-vs-race pace gap the full arc from data to decision."
+---
+
+## What this pillar does
+
+Tyre & Strategy answers two related questions: **what did the tyres actually do**, and
+**when was the right time to stop?** The features split along that line:
+
+- **Observed.** Cliff Survival Profile and Degradation Timeline describe what happened in
+  real races how long tyres lasted and how much pace they lost.
+- **Decided.** Pit Strategy Gantt shows whether each team's actual stop matched the model's
+  optimal window, and how much time a late stop cost.
+- **Characterised.** Tyre Recovery Forecast identifies whether post-cliff degradation is
+  thermal (recoverable by backing off) or structural (not). Party Mode separates teams
+  whose qualifying pace doesn't carry into race trim.
+
+The observational features read from `mart_degradation_history_envelope` and
+`fct_cliff_prediction_features`; the strategy feature from `int_pit_strategy_value`. The
+[ML Pipeline](/ml/pipeline) page explains how the XGBoost cliff and degradation models
+were built and validated.
+
+## Every feature in this pillar
+
+<CardGroup cols={2}>
+  <Card title="Cliff Survival Profile" icon="chart-line-down" href="/app/tyre-cliff-survival">
+    A Kaplan-Meier survival curve estimating the probability a stint reaches each lap without
+    hitting the degradation cliff, validated against where real stints actually ended.
+  </Card>
+  <Card title="Degradation Timeline" icon="trending-down" href="/app/stint-degradation-timeline">
+    The average pace a tyre compound loses relative to fresh rubber across a race, with a
+    spread band showing how differently drivers managed the same tyre.
+  </Card>
+  <Card title="Pit Strategy Gantt" icon="flag" href="/app/pit-strategy">
+    A Gantt of every stint in a race, marking where each tyre hit the cliff, where the model
+    says the optimal stop was, and how much time a late stop cost.
+  </Card>
+  <Card title="Tyre Recovery Forecast" icon="refresh-cw" href="/app/tyre-recovery-forecast">
+    Post-cliff tyre behaviour by compound: how often a worn tyre shows pace recovery when
+    the driver backs off, and whether the wear is thermal or structural.
+  </Card>
+  <Card title="Party Mode" icon="zap" href="/app/party-mode">
+    The gap between each constructor's single-lap qualifying pace and their sustained race
+    pace, separating qualifying specialists from race-spec cars.
+  </Card>
+</CardGroup>

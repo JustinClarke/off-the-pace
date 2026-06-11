@@ -1,0 +1,104 @@
+---
+title: "Repository conventions"
+sidebarTitle: "Conventions"
+description: "How this repository is laid out, documented, and kept readable by humans and coding agents alike."
+---
+
+Two principles drive everything here:
+
+1. **Describe what a thing does, not how it came to be.** Git carries history.
+2. **Everything a reader needs resolves inside a fresh clone.** No pointers to files or labels that exist only on one machine.
+
+## The pipeline
+
+Data flows in one direction. Each stage reads the stage above and writes for the stage below.
+
+```
+ingestion/   raw F1 telemetry → Hive-partitioned Parquet (Bronze; no business logic)
+    ↓
+transform/   dbt + DuckDB: clean → physics decomposition → coefficient fits → feature marts
+    ↓
+ml/          XGBoost on the gold marts → versioned .bst + parity-tested .onnx
+    ↓
+app/         React + DuckDB-Wasm + ONNX Runtime Web: queries and inference in the browser
+```
+
+Cross-cutting directories sit beside the pipeline rather than inside it: `scripts/` (research, validation, reference generation), `docs/` (this site), `infra/` (Terraform), `data/` (artefacts), `agents/`.
+
+This order is the canonical reading order. Layer README footers link upstream and downstream so the tree can be walked end to end.
+
+## Writing rules
+
+### Describe the present
+
+State what the code is and does. Do not narrate the process that produced it.
+
+<CardGroup cols={2}>
+  <Card title="Banned" icon="x" color="#ef4444">
+    "Phase 5", "Sprint 0", "Wave 0", "Step 3 of", "recently added", "now complete", "newly", "deprecated alias for"
+  </Card>
+  <Card title="Fine" icon="check" color="#22c55e">
+    Ordered *instructions* for a genuine procedure that is a how-to, not a history. The test: does the number describe what the reader does next (keep) or what stage the project reached (delete)?
+  </Card>
+</CardGroup>
+
+### Every reference resolves in a clone
+
+A reader has the committed tree and nothing else. Never point at something they cannot open.
+
+- **Banned:** links to `_roadmap/**`, `_issue_logs/**`, or labels whose definition is not committed `AD-3`, `Appendix C`, `R-3`, `F9`, and the like.
+- If a decision is worth citing, **state the decision inline.** Replace "self-hosted bundle so COEP doesn't block assets (AD-11)" with the reason itself.
+- Describing a gitignored directory *as* gitignored is allowed. The rule bans depending on its contents, not naming its existence.
+
+### Counts live behind a gate
+
+A number written by hand rots. Cite a count in prose only when a drift gate keeps it honest (the repo gates several via `scripts/docs_facts.py` and `scripts/app_docs_audit.py`). Otherwise describe the structure without the literal number, or point at the generated artefact.
+
+### One vocabulary
+
+The same concept gets the same heading everywhere. The section names in the layer README contract below are the canonical names use them verbatim.
+
+## Layer README contract
+
+Every pipeline layer (`ingestion/`, `transform/`, `ml/`, `app/`) carries a `README.md` with these sections, in this order. Omit a section only when it is genuinely empty; never reorder or rename.
+
+<Steps>
+  <Step title="Title + purpose" icon="tag">
+    `# <dir>/ <one line>`. A single sentence: what the layer reads and what it produces.
+  </Step>
+  <Step title="What it does" icon="info">
+    One short paragraph. The layer's job in the pipeline, naming the upstream input and downstream consumer.
+  </Step>
+  <Step title="Layout" icon="folder">
+    The directory/file map, each entry with a one-line role. A DAG or data-flow diagram is a subsection here, not a separate top-level heading.
+  </Step>
+  <Step title="Inputs and outputs" icon="arrow-right-left">
+    The concrete upstream source and downstream consumer, and the contract between them which tables/files/columns cross the boundary.
+  </Step>
+  <Step title="Contracts" icon="shield-check">
+    What this layer guarantees that something downstream relies on: enforced schemas, numerical tolerances, determinism, invariants. Omit if none.
+  </Step>
+  <Step title="Commands" icon="terminal">
+    The `make`/CLI targets to build, test, and run, one line each.
+  </Step>
+  <Step title="Tracked vs generated" icon="git-branch">
+    What is committed versus regenerated, and the command that regenerates it. Omit if the layer has no generated artefacts.
+  </Step>
+  <Step title="Tests" icon="flask">
+    What is covered and how to run it.
+  </Step>
+</Steps>
+
+**Footer:** upstream/downstream neighbour links phrased as data flow:
+`← upstream: <dir>/ · downstream: <dir>/ →`
+
+## Layer directory contract
+
+- A layer's own code lives under a predictable root (`src/` for Python layers, `src/` for the app, `models/` for dbt).
+- Tests live in `tests/` beside the code they cover.
+- Generated artefacts are gitignored and reproducible from a single command named in **Tracked vs generated**.
+- File and directory names describe their contents in the project vocabulary. A new app feature directory is its canonical slug, reused verbatim as its docs filename.
+
+## Code comments
+
+Comments explain *what the code does and why*, in place. A comment that offloads the "why" to an uncommitted document is a dangling pointer. Write the reason; drop the label.

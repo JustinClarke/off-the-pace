@@ -1,0 +1,20 @@
+{
+  "//": "GCS lifecycle policy for gs://off-the-pace-cdn (F10, Phase 4 of SYSTEM_DESIGN_AUDIT.md). The no-delete publish + in-place overwrite leaks storage forever; this expires superseded data without endangering rollback. Apply with scripts/apply_bucket_lifecycle.sh. Now codified (canonically) in infra/terraform/bucket.tf (Phase 6); this file + the script are the no-Terraform interim; keep them in sync.",
+  "rule": [
+    {
+      "//": "Expire superseded (noncurrent) object versions 30 days after they were replaced, but always keep the 3 most recent generations so a recent rollback can still restore real parquet bytes (see .github/DEPLOYMENT.md → Rollback). Requires bucket object versioning ON.",
+      "action": { "type": "Delete" },
+      "condition": { "daysSinceNoncurrentTime": 30, "numNewerVersions": 3 }
+    },
+    {
+      "//": "Staging is ephemeral: rebuilt on every release. Reap staging objects 14 days after their last update so abandoned staging revisions don't accrete.",
+      "action": { "type": "Delete" },
+      "condition": { "age": 14, "matchesPrefix": ["staging/"] }
+    },
+    {
+      "//": "Keep the manifest-archive (rollback pointers) for 180 days, then expire; far longer than any realistic rollback window, but not forever.",
+      "action": { "type": "Delete" },
+      "condition": { "age": 180, "matchesPrefix": ["data/manifest-archive/"] }
+    }
+  ]
+}

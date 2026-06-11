@@ -1,4 +1,4 @@
--- Transform v0.2 Fix 1: centring identity for constructor deg slopes.
+-- Centring identity for constructor degradation slopes.
 --
 -- The unshrunk deviation (deg_slope_raw_s_per_lap - field_mean_slope_s_per_lap)
 -- must have a precision-weighted mean of exactly 0 within each (race_year,

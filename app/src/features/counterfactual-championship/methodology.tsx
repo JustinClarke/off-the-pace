@@ -1,5 +1,6 @@
-export const methodologyHref =
-  'https://docs.offthepace.dev/reference/models/fct/fct_ghost_race_finish'
+import { CANONICAL_DOCS_BASE } from '../../config'
+
+export const methodologyHref = `${CANONICAL_DOCS_BASE}/app/counterfactual-championship`
 
 export const methodologyContent = (
   <>

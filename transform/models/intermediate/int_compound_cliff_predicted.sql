@@ -108,8 +108,8 @@ SELECT
     age_in_stint,
     compound,
     cliff_onset_passed,
-    -- Field cliff parameters exposed for Fix 2 recombination (host/ego onset
-    -- shift):
+    -- Field cliff parameters exposed for the ghost-car cliff interaction term
+    -- (host/ego onset shift):
     -- onset (laps) and post-onset severity (s/lap^2) from dim_compounds_season.
     COALESCE(compound_cliff_onset_laps, 999.0) AS compound_cliff_onset_laps,
     COALESCE(compound_cliff_severity, 0.0) AS compound_cliff_severity,

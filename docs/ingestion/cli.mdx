@@ -1,0 +1,75 @@
+---
+title: "ingest.py: the full CLI surface"
+sidebarTitle: "CLI Reference"
+description: "Every ingest.py flag what it does, its default, and the validation rules that govern how they combine."
+---
+
+`ingestion/src/ingest.py` is the single entry point for pulling data into Bronze. It takes a season range (or a single season shorthand), an optional round and session filter, and a handful of behaviour flags.
+
+## Season selection
+
+A season range is the one required argument, and it comes in two mutually exclusive forms.
+
+<ParamField path="--start-season" type="int">
+  First season to ingest. Must be paired with `--end-season`.
+</ParamField>
+<ParamField path="--end-season" type="int">
+  Last season to ingest, inclusive. Required alongside `--start-season`; ignored if you used `-s`/`--season` instead.
+</ParamField>
+<ParamField path="-s, --season" type="int">
+  Shorthand for a single season equivalent to passing the same year to both `--start-season` and `--end-season`.
+</ParamField>
+
+<Warning>
+  `--start-season`/`-s` are **mutually exclusive** the parser rejects a command that passes both. If `--start-season` is after `--end-season`, or `--round` is combined with a season range spanning more than one year, `ingest.py` exits immediately with an error before touching the network.
+</Warning>
+
+## Scope and behaviour flags
+
+<ParamField path="--round" type="int" default="None">
+  Ingest only this round number. Requires a single season combine with `-s`/`--season`, not a multi-year range.
+</ParamField>
+<ParamField path="--session" type="'R' | 'Q' | 'both'" default="both">
+  Which session types to pull. `R` for race only, `Q` for qualifying only, `both` for everything.
+</ParamField>
+<ParamField path="--skip-telemetry" type="boolean" default="false">
+  Skip the telemetry writer entirely. Useful for fast dry-runs or qualifying-only pulls where telemetry isn't needed.
+</ParamField>
+<ParamField path="--telemetry-full" type="boolean" default="false">
+  Also ingest full-channel car data (Speed, Throttle, Brake, nGear, RPM, DRS) and car-position data, beyond the default telemetry write. Substantially larger and slower see [Architecture](/ingestion/architecture) for what each telemetry writer captures.
+</ParamField>
+<ParamField path="--force" type="boolean" default="false">
+  Overwrite existing Parquet files instead of skipping sessions already on disk. Without it, `ingest.py` is idempotent re-running the same command after a crash resumes from the gap rather than re-pulling everything.
+</ParamField>
+<ParamField path="--dry-run" type="boolean" default="false">
+  Print what would be fetched race count and an estimated size without making any network calls or writing anything.
+</ParamField>
+<ParamField path="--log-level" type="string" default="INFO">
+  Logging verbosity: `DEBUG`, `INFO`, `WARNING`, or `ERROR`.
+</ParamField>
+
+## Canonical invocations
+
+<CodeGroup>
+```bash Single race
+python ingestion/src/ingest.py --season 2024 --round 1 --session R
+```
+```bash One season, both sessions
+python ingestion/src/ingest.py --season 2024 --session both
+```
+```bash Full historical backfill
+python ingestion/src/ingest.py --start-season 2018 --end-season 2024 --session both
+```
+```bash Re-ingest, overwriting existing files
+python ingestion/src/ingest.py --season 2024 --force
+```
+```bash Dry-run without telemetry
+python ingestion/src/ingest.py --season 2024 --skip-telemetry --dry-run
+```
+</CodeGroup>
+
+<Tip>
+  `--dry-run` estimates size from `races × 0.15 GB` a single round is reported as `~0.2 GB`; a season range multiplies by the round count. It's a quick sanity check before committing to a multi-hour backfill.
+</Tip>
+
+See the [generated flag dump](/reference/cli/ingest) for the raw `argparse` help text, including the exact `usage:` line.

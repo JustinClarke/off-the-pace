@@ -1,5 +1,5 @@
 // Preset loader: pulls a real stint out of fct_cliff_prediction_features so the user can score an
-// actual lapped tyre (all 41 features faithful) instead of hand-dialled sliders, and overlay the
+// actual lapped tyre (all 42 features faithful) instead of hand-dialled sliders, and overlay the
 // observed next-lap degradation jump against the model's predicted fan. This is the "load a real
 // stint" affordance from the Feature 16 spec.
 

@@ -1,0 +1,49 @@
+---
+title: "How are the degradation models scored?"
+sidebarTitle: "Model Metrics"
+description: "The evaluation dashboard for the tyre-degradation models temporal holdout, per-cohort baselines, conformal calibration, and SHAP-vs-permutation feature importance, all read from the model card."
+---
+
+The model metrics page is the degradation models' report card. Five XGBoost models predict next-lap tyre degradation (a p10/p50/p90 quantile trio), laps-until-cliff class, and remaining stint life, all trained on per-lap features from `fct_cliff_prediction_features` over 2018–2024. Every number on the page is read directly from `model_card.json` none are hand-typed.
+
+## What it shows
+
+The dashboard surfaces the metrics that matter for a temporal model:
+
+- **Temporal holdout**: evaluation uses a season-grouped `TimeSeriesSplit` (5 folds, expanding window), so the final fold always validates on 2024 a strict temporal holdout, never a random shuffle.
+- **Baselines**: strong per-cohort anchors a group-mean over compound × circuit × age-bucket cells for the degradation models, a majority-class prior for the cliff classifier, and a knowingly leakage-shaped anchor for stint life. Beating these is the headline claim.
+- **Calibration**: the p10–p90 interval targets 80% empirical coverage; conformal calibration applies a small correction (`conformal_q` from the card) to hit the nominal level on the held-out fold.
+- **Feature importance**: SHAP (tree-path attribution) cross-validated against permutation importance (model-agnostic). Agreement in the top-5 indicates genuine signal; disagreement flags correlated or collinear features.
+
+<Note>
+  2025 is the designated true holdout and ingests post-launch. The `is_holdout` flag in `mart_degradation_predictions` flips automatically when it arrives, with no code change.
+</Note>
+
+## How to use it
+
+1. **Read the metric versus its baseline** the gap to the per-cohort anchor is the real claim, not the absolute number.
+2. **Check calibration coverage against 80%** to confirm the prediction intervals are honest.
+3. **Compare SHAP and permutation top-5** agreement is signal; disagreement is a collinearity flag.
+4. **Note the fold structure** every headline number is on a temporal holdout, so it reflects forward-looking performance.
+
+## Reading the signal correctly
+
+A model beating a weak baseline is meaningless, which is why the baselines here are deliberately strong (per-cohort means, not a global average). The metrics are **out-of-sample on a temporal split**, so they estimate how the model will do on the *next* season, not how well it memorised the past.
+
+<Warning>
+  Until 2025 ingests, the holdout is the 2024 fold a real temporal split but a single season. Read the per-cohort breakdowns, not just the aggregate, before trusting a metric.
+</Warning>
+
+## Data source
+
+The page reads `model_card.json` (the evaluation artefact) and `mart_degradation_predictions` via DuckDB-Wasm and ONNX in the browser; features come from `fct_cliff_prediction_features`.
+
+| Source | Role |
+|---|---|
+| `model_card.json` | All headline metrics, baselines, calibration `q`, and importance rankings |
+| `mart_degradation_predictions` | Per-lap held-out predictions and the `is_holdout` flag |
+| `fct_cliff_prediction_features` | The per-lap feature matrix the models are trained and scored on |
+
+The data window covers **2018–2024**, with 2025 as the designated future holdout.
+
+For the full model details and validation methodology, see the [ML models page](/ml/models) and the [ML validation page](/ml/validation).

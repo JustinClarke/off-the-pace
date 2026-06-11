@@ -9,9 +9,11 @@ import PillarIcon from './PillarIcon'
 interface SidebarProps {
   collapsed?: boolean
   onToggle?: () => void
+  /** Called when a nav link is tapped used to close the mobile drawer. */
+  onNavigate?: () => void
 }
 
-export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
+export default function Sidebar({ collapsed = false, onToggle, onNavigate }: SidebarProps) {
   const visible = pillars.filter(
     (p) => !p.featureFlag || FEATURE_FLAGS[p.featureFlag as keyof typeof FEATURE_FLAGS],
   )
@@ -39,6 +41,7 @@ export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
             <NavLink
               to={pillar.path}
               end={pillar.path === '/'}
+              onClick={onNavigate}
               title={collapsed ? pillar.label : undefined}
               className={({ isActive }) =>
                 [
@@ -80,7 +83,7 @@ export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
           <button
             onClick={onToggle}
             className={[
-              'shrink-0 p-1.5 rounded-full border border-border bg-surface text-muted text-xs shadow-sm hover:text-[rgb(var(--color-text))] transition-colors',
+              'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-muted text-xs shadow-sm hover:text-[rgb(var(--color-text))] transition-colors',
               collapsed ? 'mx-auto' : 'ml-auto',
             ].join(' ')}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}

@@ -1,0 +1,32 @@
+---
+title: "Regression gates: baseline comparison, lint, and byte-stability"
+sidebarTitle: "Regression Gates"
+description: "The gates that don't return data-quality violations on a single build two baseline-comparison tests, the sqlfluff hard-fail lint gate, and the byte-stability oracle that proves a style fix never moved model output."
+---
+
+The rest of the CI Contract checks a single build against a fixed contract an identity that has to close, a bound that has to hold. This group checks something different: that a change didn't quietly make things worse than they already were, against either a historical snapshot or the model's own prior output.
+
+<Warning>
+  **Both baseline-comparison singular tests are inert in a fresh checkout, by design.** Each one probes for an external snapshot file (`data/silver/_lap_residuals_baseline/fct_lap_residuals.parquet`) at the start of its own Jinja-templated SQL, using `glob()` to check whether it exists before deciding which query body to run. The snapshot isn't committed to the repository, so a clean clone never has it the test detects that and falls back to `SELECT NULL WHERE 1 = 0`, which trivially returns zero rows and passes. This isn't a bug being described after the fact; it's the test's own designed behavior, branching at runtime on whether its comparison target is available. Treat "inert" as "structurally present, not currently load-bearing," not as "broken."
+</Warning>
+
+`assert_constructor_pace_propagates` checks that `constructor_component_s` carries real signal (non-zero variance) and that adding it to the decomposition genuinely reduces `driver_skill_residual_s` variance relative to the baseline snapshot reading [`fct_lap_residuals`](/reference/models/fct/fct_lap_residuals) and [`int_constructor_structural_pace`](/reference/models/int/int_constructor_structural_pace) when it runs. `assert_residual_variance_shrinks` checks the same residual variance against the baseline more strictly: the ratio of current to baseline variance has to land in `[0.85, 0.99]` enough shrinkage to prove the added decomposition terms are absorbing real variance, not so much that the comparison looks suspicious.
+
+Neither test shows a guarded model in the dependency graph below, and that's not an oversight in the generator: both tests' `ref()` calls live inside the `{% if baseline_exists %}` branch, and `baseline_exists` is only ever probed inside `{% if execute %}` a Jinja flag that's `false` during `dbt parse` (what builds the manifest these pages render from) and `true` only during an actual `dbt run`/`dbt test`. Since the branch holding the real `ref()` calls never renders at parse time, dbt's static dependency graph for these two tests is genuinely empty, not just thin.
+
+<AccordionGroup>
+  <Accordion title="Byte-stability oracle">
+    A style fix or a refactor must never move a model's actual output that's a property `transform/.sqlfluff` and the singular tests above can't check on their own, since neither one reads a model's full row-for-row content. The oracle does: it computes an order-independent content hash of every materialized model each row hashed as its struct cast to text, then aggregated with `string_agg(... ORDER BY rh)` so row order can never affect the result and diffs it against a committed baseline (`transform/tests/model_hashes.baseline.json`).
+
+    The seven `fct_*` marts are the mandatory byte-stable subset: drift in any of them is a hard failure (`--check` exits 1). Drift in any other model is reported as a warning, not a failure the marts are the layer's external contract, so they're held to a stricter bar than an intermediate model nobody outside the DAG reads directly. One column family is excluded from the hash on principle rather than by exception list: wall-clock build metadata like `fit_timestamp` would make every single build "drift" against the last one for a reason that has nothing to do with model logic.
+
+    Real byte-stability needs one more thing besides the hash itself: DuckDB's internal thread count pinned to `1` in the dbt profile (`settings: threads: 1`), because non-associative floating-point aggregation can reorder under parallelism dbt's own `threads:` setting only controls how many *models* build concurrently, not the intra-query parallelism inside any one of them. `duckdb` is also pinned in `requirements.txt` so the float-content hashes match across machines and CI runners, not just within one.
+
+    Treat the baseline the way you'd treat an approval test: when a model's logic changes intentionally, regenerate and commit it with `make lint-oracle-snapshot`. The gate exists to catch the unintentional case a lint autofix, a refactor that was supposed to be a no-op not to freeze the models in place.
+  </Accordion>
+  <Accordion title="sqlfluff lint">
+    `sqlfluff lint models/` is a genuinely enforcing hard-fail gate, run in CI and via `make transform-check`. It uses the dbt templater, wired through `.sqlfluff` to the project's own checked-in profile (`profiles_dir = profiles`, `target = ci`) rather than falling back to a developer's local `~/.dbt/profiles.yml` the same models render identically whether the gate runs on a laptop or in CI.
+
+    Exactly one model is excluded, via `.sqlfluffignore`: `fct_ghost_race_finish.sql` exceeds sqlfluff's parser depth limit and is hand-maintained against every applicable rule instead of machine-checked. It's a lint *limitation*, not a style exemption the model still has to follow the same conventions, just without the automated check.
+  </Accordion>
+</AccordionGroup>

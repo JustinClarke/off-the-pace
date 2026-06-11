@@ -62,7 +62,7 @@ function AudienceTabs({ badges }: { badges: AudienceBadge[] }) {
               key={b.label}
               data-active={isActive}
               onClick={() => setActive(isActive ? null : b.label)}
-              className={`text-xs px-3 py-1.5 -mb-px border-b-2 border-transparent text-muted transition-colors hover:text-[rgb(var(--color-text))] ${styles.tab}`}
+              className={`text-xs px-3 py-2.5 -mb-px border-b-2 border-transparent text-muted transition-colors hover:text-[rgb(var(--color-text))] ${styles.tab}`}
             >
               {b.label}
             </button>
@@ -103,7 +103,7 @@ function MethodologyDrawer({
         <Dialog.Content style={{ backgroundColor: 'rgb(var(--color-bg))' }} className="fixed right-0 top-0 h-full w-full max-w-md border-l border-border z-50 overflow-y-auto p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <Dialog.Title className="text-base font-semibold">Methodology</Dialog.Title>
-            <Dialog.Close className="text-muted hover:text-[rgb(var(--color-text))] transition-colors text-lg leading-none">
+            <Dialog.Close className="-mr-2 inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:text-[rgb(var(--color-text))] transition-colors text-xl leading-none">
               ×
             </Dialog.Close>
           </div>
@@ -157,7 +157,7 @@ export default function FeaturePage({
   children,
 }: FeaturePageProps) {
   return (
-    <div className={`${wide ? 'max-w-7xl' : 'max-w-5xl'} mx-auto px-6 py-10 flex flex-col gap-6`}>
+    <div className={`${wide ? 'max-w-7xl' : 'max-w-5xl'} mx-auto px-4 py-6 sm:px-6 sm:py-10 flex flex-col gap-6`}>
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>

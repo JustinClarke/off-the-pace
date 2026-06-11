@@ -1,19 +1,19 @@
 """
-export_app_data.py  –  Sprint 0 F1: data export pipeline (AD-2, AD-13)
+App data export pipeline.
 
 Exports the Off The Pace warehouse (data/dev.duckdb) to app/public/data/ as
 partitioned and unpartitioned Parquet files (ZSTD compressed), then emits
 app/public/data/_manifest.json with:
  -the table registry (paths + partition info)
- -a pre-baked stats block (AD-12: total_laps, models, ml_models, seasons)
+ -a pre-baked stats block (total_laps, models, ml_models, seasons)
 
 Usage:
   python scripts/export_app_data.py           # full export
   python scripts/export_app_data.py --check   # regenerate and diff (CI drift gate)
-  python scripts/export_app_data.py --wave 0  # export only Wave-0 / canary tables
+  python scripts/export_app_data.py --canary  # export only canary tables
   python scripts/export_app_data.py --table fct_driver_skill_features
 
-Rules (AD-13):
+Rules:
  -Reference dims and small marts: single parquet, load once.
  -Lap-grain large tables: PARTITION_BY race_year (+ race_id for heaviest).
  -No raw stg_telemetry ever exported.
@@ -37,10 +37,11 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 DB_PATH = ROOT / "data" / "dev.duckdb"
 APP_DATA = ROOT / "app" / "public" / "data"
+OUT_ROOT_GLOBAL = APP_DATA
 MART_PREDS = ROOT / "data" / "marts" / "mart_degradation_predictions.parquet"
 DRIVER_NETWORK_RATING = ROOT / "data" / "marts" / "driver_network_rating.parquet"
 
-MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB gate (AD-2)
+MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB gate
 
 # ─── Table catalogue ──────────────────────────────────────────────────────────
 # Each entry: (name, dest_subdir, partition_by, partition_also_by_race_id)
@@ -75,6 +76,7 @@ TABLES: list[tuple[str, str, str | None, bool]] = [
     ("int_constructor_structural_pace_qualifying","intermediates", None, False),
     ("int_driver_circuit_affinity",               "intermediates", None, False),
     ("int_driver_circuit_era_affinity",           "intermediates", None, False),
+    ("int_driver_race_skill_loro",                "intermediates", None, False),
     ("int_circuit_x_constructor_interaction",     "intermediates", None, False),
     ("int_qualifying_decomposed",                 "intermediates", None, False),
     ("int_compound_cliff_predicted",              "intermediates", None, False),
@@ -113,8 +115,8 @@ OPTIONAL_TABLES: list[tuple[str, str, str | None, bool]] = [
     ("stg_pits",                   "intermediates", "race_year", False),
 ]
 
-# Wave-0 subset: just enough for the canary feature (#14) and platform validation
-WAVE0_TABLES = {
+# Canary subset: just enough for the canary feature (#14) and platform validation
+CANARY_TABLES = {
     "dim_circuits", "dim_compounds_season", "dim_drivers", "dim_constructors", "dim_events",
     "race_to_track",
     "fct_driver_skill_features", "fct_lap_residuals", "fct_ghost_race_finish",
@@ -180,10 +182,10 @@ def export_table(
         """)
         size_report.append((name, out.stat().st_size))
         _check_size(out, name)
-        _progress(f"{name}  →  {out.relative_to(ROOT/'app'/'public')}  ({_size_str(out)})")
+        _progress(f"{name}  →  {out.relative_to(OUT_ROOT_GLOBAL.parent)}  ({_size_str(out)})")
         return {
             "name": name,
-            "path": f"/data/{out.relative_to(ROOT/'app'/'public'/'data')}",
+            "path": f"/data/{out.relative_to(OUT_ROOT_GLOBAL)}",
             "partitioned": False,
         }
     else:
@@ -222,11 +224,11 @@ def export_table(
                     total_bytes += out.stat().st_size
                     race_partitions.append({
                         "value": rid,
-                        "path": f"/data/{out.relative_to(ROOT/'app'/'public'/'data')}",
+                        "path": f"/data/{out.relative_to(OUT_ROOT_GLOBAL)}",
                     })
                 partitions.append({
                     "value": year,
-                    "path": f"/data/{year_dir.relative_to(ROOT/'app'/'public'/'data')}",
+                    "path": f"/data/{year_dir.relative_to(OUT_ROOT_GLOBAL)}",
                     "subPartitions": race_partitions,
                 })
             else:
@@ -239,17 +241,17 @@ def export_table(
                 total_bytes += out.stat().st_size
                 partitions.append({
                     "value": year,
-                    "path": f"/data/{out.relative_to(ROOT/'app'/'public'/'data')}",
+                    "path": f"/data/{out.relative_to(OUT_ROOT_GLOBAL)}",
                 })
 
         size_report.append((name, total_bytes))
         _progress(
-            f"{name}  →  {part_dir.relative_to(ROOT/'app'/'public')}/"
+            f"{name}  →  {part_dir.relative_to(OUT_ROOT_GLOBAL.parent)}/"
             f"  ({len(partitions)} partitions, {total_bytes/1024**2:.2f} MB total)"
         )
         return {
             "name": name,
-            "path": f"/data/{part_dir.relative_to(ROOT/'app'/'public'/'data')}",
+            "path": f"/data/{part_dir.relative_to(OUT_ROOT_GLOBAL)}",
             "partitioned": True,
             "partitionKey": partition_by,
             "partitions": partitions,
@@ -293,17 +295,17 @@ def export_enriched(conn, name: str, dest_dir: Path, size_report: list) -> dict:
         total_bytes += out.stat().st_size
         partitions.append({
             "value": year,
-            "path": f"/data/{out.relative_to(ROOT/'app'/'public'/'data')}",
+            "path": f"/data/{out.relative_to(OUT_ROOT_GLOBAL)}",
         })
 
     size_report.append((name, total_bytes))
     _progress(
-        f"{name} (enriched)  →  {part_dir.relative_to(ROOT/'app'/'public')}/"
+        f"{name} (enriched)  →  {part_dir.relative_to(OUT_ROOT_GLOBAL.parent)}/"
         f"  ({len(partitions)} partitions, {total_bytes/1024**2:.2f} MB total)"
     )
     return {
         "name": name,
-        "path": f"/data/{part_dir.relative_to(ROOT/'app'/'public'/'data')}",
+        "path": f"/data/{part_dir.relative_to(OUT_ROOT_GLOBAL)}",
         "partitioned": True,
         "partitionKey": "race_year",
         "partitions": partitions,
@@ -343,7 +345,7 @@ def export_predictions_mart(dest_dir: Path, size_report: list) -> dict | None:
         total_bytes += out.stat().st_size
         partitions.append({
             "value": year,
-            "path": f"/data/{out.relative_to(ROOT/'app'/'public'/'data')}",
+            "path": f"/data/{out.relative_to(OUT_ROOT_GLOBAL)}",
         })
 
     size_report.append(("mart_degradation_predictions", total_bytes))
@@ -391,17 +393,17 @@ def export_telemetry_deltas(conn, dest_dir: Path, size_report: list) -> dict:
         total_bytes += out.stat().st_size
         partitions.append({
             "value": year,
-            "path": f"/data/{out.relative_to(ROOT/'app'/'public'/'data')}",
+            "path": f"/data/{out.relative_to(OUT_ROOT_GLOBAL)}",
         })
 
     size_report.append(("fct_telemetry_deltas", total_bytes))
     _progress(
-        f"fct_telemetry_deltas  →  {part_dir.relative_to(ROOT/'app'/'public')}/"
+        f"fct_telemetry_deltas  →  {part_dir.relative_to(OUT_ROOT_GLOBAL.parent)}/"
         f"  ({len(partitions)} partitions, {total_bytes/1024**2:.2f} MB total)"
     )
     return {
         "name": "fct_telemetry_deltas",
-        "path": f"/data/{part_dir.relative_to(ROOT/'app'/'public'/'data')}",
+        "path": f"/data/{part_dir.relative_to(OUT_ROOT_GLOBAL)}",
         "partitioned": True,
         "partitionKey": "race_year",
         "partitions": partitions,
@@ -431,7 +433,7 @@ def export_driver_network_rating(dest_dir: Path, size_report: list) -> dict | No
 
 
 def build_stats_block(conn) -> dict:
-    """Build the AD-12 pre-baked stats block for the home page (zero SQL in browser)."""
+    """Build the pre-baked stats block for the home page (zero SQL in browser)."""
     total_laps = conn.execute("SELECT COUNT(*) FROM fct_lap_residuals").fetchone()[0]
     seasons = conn.execute(
         "SELECT MIN(race_year), MAX(race_year) FROM fct_lap_residuals"
@@ -492,7 +494,7 @@ def build_stats_block(conn) -> dict:
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 def run_export(
-    wave0_only: bool = False,
+    canary_only: bool = False,
     target_table: str | None = None,
     check_mode: bool = False,
 ) -> None:
@@ -505,18 +507,20 @@ def run_export(
     if check_mode:
         # Write to a temp dir, then diff
         with tempfile.TemporaryDirectory() as tmp:
-            _run_export_to(Path(tmp), wave0_only, target_table, check_mode=True)
+            _run_export_to(Path(tmp), canary_only, target_table, check_mode=True)
         return
 
-    _run_export_to(APP_DATA, wave0_only, target_table, check_mode=False)
+    _run_export_to(APP_DATA, canary_only, target_table, check_mode=False)
 
 
 def _run_export_to(
     out_root: Path,
-    wave0_only: bool,
+    canary_only: bool,
     target_table: str | None,
     check_mode: bool,
 ) -> None:
+    global OUT_ROOT_GLOBAL
+    OUT_ROOT_GLOBAL = out_root
     import duckdb
 
     t0 = time.time()
@@ -525,8 +529,8 @@ def _run_export_to(
     print(f"\n{'[CHECK MODE] ' if check_mode else ''}Off The Pace app data export")
     print(f"  warehouse:  {DB_PATH}")
     print(f"  output:     {out_root}")
-    if wave0_only:
-        print("  scope:      Wave 0 (canary tables only)")
+    if canary_only:
+        print("  scope:      canary tables only")
     if target_table:
         print(f"  scope:      single table: {target_table}")
     print()
@@ -535,13 +539,13 @@ def _run_export_to(
     size_report: list[tuple[str, int]] = []
 
     all_tables = list(TABLES)
-    if not wave0_only:
+    if not canary_only:
         all_tables += OPTIONAL_TABLES
 
     for name, subdir, partition_by, also_race_id in all_tables:
         if target_table and name != target_table:
             continue
-        if wave0_only and name not in WAVE0_TABLES:
+        if canary_only and name not in CANARY_TABLES:
             continue
 
         dest = out_root / subdir
@@ -555,7 +559,7 @@ def _run_export_to(
                 print(f"\n  ❌  FAILED: {name}: {e}")
                 sys.exit(1)
 
-    if not wave0_only and not target_table:
+    if not canary_only and not target_table:
         for name, subdir in ENRICHED_TABLES:
             dest = out_root / subdir
             try:
@@ -578,7 +582,7 @@ def _run_export_to(
         if network_entry:
             manifest_entries.append(network_entry)
 
-    # Stats block (AD-12)
+    # Stats block
     stats = build_stats_block(conn)
     conn.close()
 
@@ -646,10 +650,9 @@ def main() -> None:
         help="Regenerate manifest in a temp dir and diff against current (CI drift gate).",
     )
     parser.add_argument(
-        "--wave",
-        type=int,
-        choices=[0],
-        help="Export only the Wave-0 / canary table subset.",
+        "--canary",
+        action="store_true",
+        help="Export only the canary table subset.",
     )
     parser.add_argument(
         "--table",
@@ -659,7 +662,7 @@ def main() -> None:
     args = parser.parse_args()
 
     run_export(
-        wave0_only=(args.wave == 0),
+        canary_only=args.canary,
         target_table=args.table,
         check_mode=args.check,
     )

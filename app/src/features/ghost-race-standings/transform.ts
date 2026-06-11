@@ -22,6 +22,8 @@ export interface LeaderboardEntry {
   seasons: number
   /** affinityS − leader's affinityS, in seconds (≥ 0; the leader's gap is 0). */
   gapToLeaderS: number
+  /** Primary constructor ID for this driver in this era. */
+  constructorId: string
 }
 
 export interface LeaderboardResult {
@@ -59,6 +61,7 @@ export function transform(rows: EraAffinityRow[]): LeaderboardResult | null {
     races: r.n_obs,
     seasons: r.seasons_observed_n,
     gapToLeaderS: r.shrunk_affinity_s-leaderAffinity,
+    constructorId: r.constructor_id,
   }))
 
   return {

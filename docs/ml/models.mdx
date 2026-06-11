@@ -4,6 +4,17 @@ sidebarTitle: "Models"
 description: "Degradation quantile trio, cliff classifier, and stint-life regressor five XGBoost models, every one beating a per-cohort baseline, with full metrics."
 ---
 
+import MLMetrics from '/snippets/ml-inventory-metrics.mdx';
+
+<CardGroup cols={2}>
+  <Card title="Features & Targets" href="/ml/features-and-targets" icon="layers">
+    The 42-feature input matrix, encoding, the three targets, and the dataset fingerprint.
+  </Card>
+  <Card title="Tuning" href="/ml/tuning" icon="sliders">
+    The 9-dimensional Optuna search, CV selection, and full refit.
+  </Card>
+</CardGroup>
+
 Off The Pace trains five XGBoost models on the same per-lap feature matrix and holds every one to the same standard: beat a strong, honest per-cohort baseline not just chance. All five pass that gate, and the numbers below are the proof.
 
 <Note>
@@ -12,15 +23,55 @@ Off The Pace trains five XGBoost models on the same per-lap feature matrix and h
 
 ## Headline results
 
-| Model | Metric | CV | Eval (2024) | Baseline | Beats |
-|---|---|---|---|---|---|
-| `degradation_regressor_p10` | pinball ↓ | 0.0799 | 0.0781 | 0.1276 | ✅ |
-| `degradation_regressor_p50` | pinball ↓ | 0.1919 | 0.1896 | 0.2247 | ✅ |
-| `degradation_regressor_p90` | pinball ↓ | 0.1316 | 0.1283 | 0.1438 | ✅ |
-| `cliff_classifier` | macro-F1 ↑ | 0.3655 | 0.3679 | 0.1835 | ✅ |
-| `stint_life_regressor` | RMSE ↓ | 7.198 | 7.728 | 8.085 | ✅ |
+<MLMetrics />
 
-*CV is the season-grouped `TimeSeriesSplit` mean across five folds. Eval is the final fold (2024), standing in as a holdout until 2025 data ingests. See [Validation](/ml/validation).*
+*CV is the season-grouped `TimeSeriesSplit` mean across five folds. Eval is the final fold (2024), standing in as a holdout until 2025 data ingests. See [Validation](/ml/validation) for the full CV scheme and the per-cohort baselines. For individual model hyperparameters and per-cohort breakdowns, see the [Model Reference](/reference/ml/degradation-model-v1).*
+
+---
+
+## How the models learn
+
+All five models are gradient-boosted decision-tree ensembles (XGBoost). A prediction is an additive sum of $K$ regression trees, built greedily one residual-correcting tree at a time:
+
+$$\hat{y}_i = \sum_{k=1}^{K} f_k(x_i), \qquad f_k \in \mathcal{F}$$
+
+where $\mathcal{F}$ is the space of CART trees and $K$ is `n_estimators`. Training minimises a regularised objective that trades goodness-of-fit against tree complexity:
+
+$$\mathcal{L} = \sum_i \ell\!\left(y_i,\, \hat{y}_i\right) \;+\; \sum_{k=1}^{K}\Omega(f_k), \qquad \Omega(f) = \gamma\,T \;+\; \tfrac{1}{2}\lambda\lVert w\rVert^2 \;+\; \alpha\lVert w\rVert_1$$
+
+$T$ is a tree's leaf count and $w$ its leaf weights. The three regularisation strengths map directly to the tuned hyperparameters in the [model card](/reference/ml/degradation-model-v1): $\gamma$ = `gamma` (minimum split-loss), $\lambda$ = `reg_lambda` (L2), $\alpha$ = `reg_alpha` (L1). The **only** thing that differs between the five models is the per-row loss $\ell$ the objective function below.
+
+---
+
+## Objective functions
+
+### Pinball loss (the quantile trio)
+
+The three degradation regressors minimise the **pinball (quantile) loss** at $\alpha \in \{0.1,\, 0.5,\, 0.9\}$ (`reg:quantileerror`). For a residual $u = y - \hat{y}$:
+
+$$\ell_\alpha(y, \hat{y}) = \max\!\big(\alpha\,u,\;(\alpha-1)\,u\big) = \begin{cases} \alpha\,u & u \ge 0 \\[2pt] (\alpha-1)\,u & u < 0 \end{cases}$$
+
+The asymmetry is the entire mechanism. At $\alpha = 0.9$ an under-prediction ($u>0$) is penalised nine times harder than an over-prediction, so the fitted surface is pushed up to the 90th percentile; at $\alpha = 0.1$ the penalty flips and the surface settles at the 10th. At $\alpha = 0.5$ the loss is symmetric and reduces to mean absolute error, recovering the median. This is why $\alpha=0.1$ gives the optimistic bound, $\alpha=0.9$ the pessimistic one, and the three together form the $[p_{10}, p_{90}]$ interval.
+
+### Squared error (stint life)
+
+The stint-life regressor minimises ordinary squared error (`reg:squarederror`) and is reported as RMSE:
+
+$$\ell(y,\hat{y}) = (y-\hat{y})^2, \qquad \mathrm{RMSE} = \sqrt{\tfrac{1}{n}\textstyle\sum_i (y_i - \hat{y}_i)^2}$$
+
+Predictions are clipped at $\ge 0$: a stint cannot have a negative number of laps remaining.
+
+### Softprob with balanced class weights (the cliff classifier)
+
+The cliff classifier minimises multiclass cross-entropy over a softmax (`multi:softprob`) across the four `laps_until_cliff_class` buckets. Because the classes are imbalanced (≈58% `6_plus`), each row is weighted inversely to its class frequency sklearn's *balanced* scheme:
+
+$$w_c = \frac{n}{C \cdot n_c}$$
+
+for a class $c$ with $n_c$ members, $C = 4$ classes, and $n$ rows in total. A rare `0_to_2` lap therefore carries several times the gradient of a common `6_plus` lap, which is what keeps the high-value imminent-cliff windows from being optimised away by the majority class.
+
+### Inverse-censoring survival weights (the quantile trio)
+
+The quantile regressors carry one further weight on top of the loss: an **inverse-probability-of-censoring (IPW) survival weight** $w_i = 1 / \hat{S}(t_i)$, the reciprocal of the probability that stint $i$ survived (avoided being pitted) to its current lap $t_i$. Without it, the high-`lap_in_stint` tail is dominated by the durable stints that happened to run long, and the genuinely degraded stints that were pitted early are under-counted biasing the predicted degradation downward exactly where the cliff matters most.
 
 ---
 
@@ -53,7 +104,9 @@ The cliff classifier is a 4-class model over `laps_until_cliff_class`, trained w
 
 **When to rely on it:** use the classifier's output as a yellow/amber/red alert for pit-stop timing, not as a lap-precise countdown. The probability scores for each class are surfaced a high probability on `0_to_2` is a stronger signal than a marginal one.
 
-**Limits read this:** the model's **macro-F1 of 0.368 nearly doubles the majority-class prior** (0.184), and the balanced weighting earns its keep on the minority imminent-cliff windows. But **macro-F1 ≈ 0.37 is modest in absolute terms** this is the weakest of the five models. It decisively beats chance, but absolute skill on rare cliff windows is limited, and you should treat `0_to_2` calls as a strong prompt to look at the degradation band, not a certainty. The largest confident misses are reviewed continuously to inform the v2 roadmap. See also [Tyre cliff](/decomposition/tyre-cliff).
+<Warning>
+  **Limits read this.** The model's macro-F1 of 0.328 comfortably beats the majority-class prior (0.232), and the balanced weighting earns its keep on the minority imminent-cliff windows. But **macro-F1 ≈ 0.33 is modest in absolute terms** this is the weakest of the five models. It decisively beats chance, but absolute skill on rare cliff windows is limited, so treat `0_to_2` calls as a strong prompt to look at the degradation band, not a certainty. The largest confident misses are reviewed continuously to inform the v2 roadmap. See also [Tyre cliff](/decomposition/tyre-cliff).
+</Warning>
 
 ---
 
@@ -63,18 +116,33 @@ The stint-life regressor predicts `remaining_stint_life_laps` a synthesised, non
 
 **What this tells you:** this is the number that drives the strategy view's "this set has approximately N laps left" readout. It integrates tyre age, thermal load, and compound character to give a single actionable figure.
 
-**When to rely on it:** the overall RMSE of 7.73 laps means individual predictions carry meaningful uncertainty treat the output as a planning horizon, not a precise countdown. The estimate tightens as the stint progresses and the tyre's behaviour becomes clearer.
+**When to rely on it:** the overall RMSE of 8.09 laps means individual predictions carry meaningful uncertainty treat the output as a planning horizon, not a precise countdown. The estimate tightens as the stint progresses and the tyre's behaviour becomes clearer.
 
-**Limits:** its baseline is **knowingly near-oracle** it uses the true final stint length the model is explicitly forbidden to see yet the model still wins overall (RMSE 7.73 vs 8.08). On specific circuits (notably Australia and Japan), the baseline wins; those cohort losses are recorded openly rather than dropped.
+**Limits:** its baseline is **knowingly near-oracle** it uses the true final stint length the model is explicitly forbidden to see yet the model still wins overall (RMSE 8.09 vs 9.50). On specific circuits (notably the Dutch and Las Vegas Grands Prix), the baseline wins; those cohort losses are recorded openly rather than dropped.
 
 ---
 
 ## Tuning and refit
 
-Each model is tuned with Optuna (`TPESampler` + `MedianPruner`, seeded), searching a 9-dimensional hyperparameter space with per-fold pruning. The best parameters are persisted so studies are reproducible and resumable. The model is then **refit on the full training data** cross-validation selects the hyperparameters; the full dataset trains the final model.
+Each model is tuned with Optuna (`TPESampler` + `MedianPruner`, seeded), then refit on the full training set. Cross-validation selects the hyperparameters; the complete dataset trains the shipped booster. The 9-dimensional search space and the full Steps walkthrough live on the [Tuning page](/ml/tuning).
 
 ---
 
 ## ONNX export and in-browser scoring
 
-Every model is exported to ONNX and passes a round-trip parity test to `atol=1e-5` including a NaN-bearing sample that confirms parity holds on the ~47% of laps with a null cliff-onset prior. This export is what allows the React app to score predictions entirely client-side, with no server required.
+Every model is exported to ONNX and passes a round-trip parity test to `atol=1e-5` including a NaN-bearing sample that confirms parity holds on the ~47% of laps with a null cliff-onset prior. This export is what allows the React app to score predictions entirely client-side, with no server required. Full details on the [ONNX page](/ml/onnx).
+
+<AccordionGroup>
+  <Accordion title="Worked example: reading a p10 / p50 / p90 interval" icon="calculator">
+    Suppose, on lap 14 of a stint, the trio outputs **p10 = −0.05 s**, **p50 = +0.18 s**, **p90 = +0.61 s**.
+
+    - The **median** call is "next lap costs ≈ 0.18 s of pace."
+    - The **80% interval** is `[−0.05, +0.61]` four times in five, the real next-lap change will land in that band.
+    - The interval is *asymmetric and skewed positive* the downside tail (+0.61) is wider than the upside (−0.05), which is the model saying the tyre is more likely to lurch slower than faster. That asymmetry is the early warning the cliff classifier then quantifies as a class.
+
+    A symmetric band tight around zero means a settled tyre; a band that fans out on the positive side is a tyre starting to ask questions.
+  </Accordion>
+  <Accordion title="Why gradient-boosted trees and not one regression?" icon="circle-question">
+    The decomposition already runs the linear, physics-grounded corrections each one a single coefficient per dimension. The cliff is where that approach runs out: it is an *interaction* effect ("Soft **and** lap 14 **and** six laps of dirty air **and** a hot low-grip surface"), and a linear model would need every interaction term hand-specified. Boosted trees discover the interactions that matter from the data, which is precisely the job the linear layer cannot do. The trade is interpretability, recovered post-hoc via SHAP (see [Model Reference → feature importance](/reference/ml/degradation-model-v1#feature-importance-shap-vs-permutation)).
+  </Accordion>
+</AccordionGroup>

@@ -1,6 +1,6 @@
 // Hand-built SVG mini-visualisations for the home bento grid. Each is a faithful,
 // lightweight sketch of the real feature chart-static and representative, no DuckDB
-// on the home route (keeps the page zero-SQL per AD-12). They animate on mount via
+// on the home route (keeps the page zero-SQL). They animate on mount via
 // framer-motion and react to the parent tile's hover state through CSS group utilities.
 import { motion } from 'framer-motion'
 

@@ -1,6 +1,7 @@
 import { Gantt } from '../../ui/charts'
 import { compoundColor } from '../../lib/colors'
 import type { GanttResult } from './transform'
+import { TechTooltip } from '../../ui/TechTooltip'
 
 interface Props {
   result: GanttResult
@@ -51,11 +52,12 @@ export default function PitStrategyGanttChart({ result }: Props) {
                 className="flex items-center gap-3 py-1.5 text-xs"
               >
                 <span className="font-mono text-[rgb(var(--color-text))] w-10">{s.driverId}</span>
-                <span
-                  className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-                  style={{ background: compoundColor(s.compound) }}
-                  title={s.compound}
-                />
+                <TechTooltip content={s.compound}>
+                  <span
+                    className="w-2.5 h-2.5 rounded-sm flex-shrink-0 cursor-help"
+                    style={{ background: compoundColor(s.compound) }}
+                  />
+                </TechTooltip>
                 <span className="text-muted flex-1">
                   Stint {s.stintNumber} &middot; laps {s.startLap}&ndash;{s.endLap}
                   {s.overrunLaps != null && s.overrunLaps > 0 && (

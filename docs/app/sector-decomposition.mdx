@@ -1,0 +1,52 @@
+---
+title: "Which part of the lap is the driver finding time in?"
+sidebarTitle: "Sector & Corner"
+description: "The lap decomposition applied to each of the three timing sectors separately, allocating physics components by sector time share so sectors sum to the lap."
+---
+
+A lap delta is one number, but the time is found in different places a strong sector one, a weak sector three. Sector decomposition applies the lap-level residual identity to each of the three timing sectors separately, allocating the physics components in proportion to each sector's share of the lap. It tells you not just *how much* faster a driver was, but *where* on the track.
+
+## What it shows
+
+Each sector carries its own decomposition:
+
+- **Pace delta**: the driver's average sector time minus the rolling 7-lap field median sector time for that sector and lap number.
+- **Skill residual**: the portion of the pace delta not explained by the physics components (fuel, tyres, ambient, constructor, dirty air) the driving contribution within that sector.
+- **Total explained**: the sum of the six physics components allocated to the sector. A large value means external factors, not driving style, dominated the delta.
+- **Consistency**: the within-race standard deviation of the skill residual for that driver–sector pair. Lower = more repeatable.
+
+All physics components are allocated using `sector_time / lap_time` as the weight, which preserves the **sector sum = lap total** identity.
+
+<Note>
+  Because allocation is proportional, the three sectors' components add back up to the full-lap decomposition you can read a sector in isolation without breaking the identity.
+</Note>
+
+## How to use it
+
+1. **Select a race and driver** from the filter bar; the three sector decompositions load.
+2. **Compare skill residual across sectors** to find where the driver genuinely gains or loses.
+3. **Check total explained** a big delta with a big explained component is the car or conditions, not the driver.
+4. **Read consistency** to separate a one-off fast sector from a repeatable strength.
+
+## Reading the signal correctly
+
+Sector time is a coarse proxy for "where on track" a sector can contain several corner types, so a strong sector-two residual localises but does not pinpoint the gain. The allocation is **proportional**, which assumes physics effects scale with time share; this holds well on average but blurs corner-specific effects.
+
+<Warning>
+  The rolling 7-lap field median is noisier per sector than per lap (sector times are shorter and more variable). Treat single-sector residuals as lower-confidence than the full-lap figure. See the [decomposition limitations](/decomposition/limitations).
+</Warning>
+
+## Data source
+
+The chart queries `int_sector_residual_decomposed` via DuckDB-Wasm in the browser, for a single race.
+
+| Column | Meaning |
+|---|---|
+| `sector_pace_delta_s` | Sector time vs rolling 7-lap field median |
+| `sector_skill_residual_s` | The unexplained (driving) part of the sector delta |
+| `sector_total_explained_s` | The six physics components allocated to the sector |
+| `sector_skill_stddev_s` | Within-race consistency of the sector skill residual |
+
+This is a **single-race** view across **2018–2024** data.
+
+For the full model definition, see the [`int_sector_residual_decomposed` reference](/reference/models/int/int_sector_residual_decomposed).

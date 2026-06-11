@@ -17,9 +17,9 @@
 --                      strategy)
 --                      + rubber_component
 --                      + ambient_component
---                      + deg_interaction           (transform v0.2 Fix 1, see
+--                      + deg_interaction           (see
 --                      below)
---                      + cliff_interaction         (transform v0.2 Fix 2, see
+--                      + cliff_interaction         (see
 --                      below)
 --
 -- deg_interaction_s = (deg_slope(host) - deg_slope(ego)) * age_in_stint, with
@@ -30,7 +30,7 @@
 -- re-ranking no-op bug). Missing cells (wet compounds, low-sample) resolve to a
 -- slope of 0 = field-average degradation.
 --
--- cliff_interaction_s (Fix 2) = severity * [ hinge(host) - hinge(ego) ], where
+-- cliff_interaction_s = severity * [ hinge(host) - hinge(ego) ], where
 --   hinge(c) = GREATEST(0, age - field_onset - cliff_onset_shift(c))
 -- and field_onset/severity are the ego lap's field cliff parameters from
 -- int_compound_cliff_predicted (which applies severity LINEARLY to
@@ -80,7 +80,7 @@ WITH ego_laps AS (
         lr.lap_time_s AS actual_lap_time_s,
         lr.correction_weight,
         lr.rainfall_flag,
-        -- Field hockey-stick parameters for this lap (Fix 2 cliff interaction)
+        -- Field hockey-stick parameters for this lap (cliff interaction)
         cp.compound_cliff_onset_laps,
         cp.compound_cliff_severity
     FROM {{ ref('int_lap_residual_decomposed') }} AS lr
@@ -137,7 +137,7 @@ deg_sensitivity AS (
         constructor_id,
         compound,
         deg_slope_s_per_lap,
-        -- Fix 3: posterior sd of the (shrunk) slope and SE of the cliff-onset
+        -- Posterior sd of the (shrunk) slope and SE of the cliff-onset
         -- shift.
         -- These are the per-coefficient uncertainties propagated into
         -- predicted-pace
@@ -181,7 +181,7 @@ ghost_recombined AS (
             AS host_constructor_pace_se_s,
         COALESCE(hi.circuit_constructor_interaction_s, 0.0)
             AS circuit_interaction_s,
-        -- Deg interaction (Fix 1): host-vs-ego degradation slope delta × tyre
+        -- Deg interaction: host-vs-ego degradation slope delta × tyre
         -- age.
         -- COALESCE both lookups to 0 (field-average) so the ego == host case is
         -- an
@@ -194,7 +194,7 @@ ghost_recombined AS (
         ) * COALESCE(el.age_in_stint, 0) AS deg_interaction_s,
         COALESCE(deg_host.cliff_onset_shift_laps, 0.0) AS host_cliff_shift_laps,
         COALESCE(deg_ego.cliff_onset_shift_laps, 0.0) AS ego_cliff_shift_laps,
-        -- Cliff interaction (Fix 2): host-vs-ego difference in the field's
+        -- Cliff interaction: host-vs-ego difference in the field's
         -- LINEAR
         -- post-onset penalty, each constructor's onset moved by its own shift.
         -- severity * [ hinge(host) - hinge(ego) ], hinge(c) = GREATEST(0, age -
@@ -221,7 +221,7 @@ ghost_recombined AS (
                 )
             ), -2.0
         ), 2.0) AS cliff_interaction_s,
-        -- Fix 3 SE-propagation ingredients (per lap; aggregated in
+        -- SE-propagation ingredients (per lap; aggregated in
         -- fct_ghost_race_finish).
         -- Posterior sds of the deg slopes and SEs of the cliff shifts, plus the
         -- per-lap
@@ -352,7 +352,7 @@ SELECT
     ego_deg_slope_s_per_lap,
     host_cliff_shift_laps,
     ego_cliff_shift_laps,
-    -- Fix 3 SE-propagation ingredients (consumed by fct_ghost_race_finish).
+    -- SE-propagation ingredients (consumed by fct_ghost_race_finish).
     host_constructor_pace_se_s,
     host_deg_slope_sd_s_per_lap,
     ego_deg_slope_sd_s_per_lap,

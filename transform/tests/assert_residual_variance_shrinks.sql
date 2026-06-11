@@ -1,16 +1,17 @@
--- Initial release exit gate: driver_skill_residual_s variance must not regress significantly
--- versus the pre-initial baseline snapshot (SHA 7d4a58f).
+-- driver_skill_residual_s variance must not regress significantly versus a committed
+-- baseline snapshot.
 --
 -- Reads the baseline parquet directly; compares to the current fct_lap_residuals.
 -- Returns rows (i.e. FAILS) if the variance ratio falls outside [0.85, 0.99].
--- A ratio < 0.85 suggests strong variance reduction (initial models extracted meaningful variance).
--- A ratio > 0.99 means initial release regression-new models made residuals noisier.
+-- A ratio < 0.85 suggests strong variance reduction (the decomposition extracted meaningful
+-- variance). A ratio > 0.99 means the decomposition made residuals noisier instead of
+-- explaining more of them.
 --
--- Baseline file: data/silver/_baseline_pre_phase_a/fct_lap_residuals.parquet an external
--- snapshot captured pre-Phase-A, not committed. When absent from a checkout this guardrail
--- cannot run, so it stays inert (passes) rather than hard-erroring the whole build.
+-- Baseline file: data/silver/_lap_residuals_baseline/fct_lap_residuals.parquet, an external
+-- snapshot, not committed. When absent from a checkout this guardrail cannot run, so it
+-- stays inert (passes) rather than hard-erroring the whole build.
 
-{% set baseline_path = '../data/silver/_baseline_pre_phase_a/fct_lap_residuals.parquet' %}
+{% set baseline_path = '../data/silver/_lap_residuals_baseline/fct_lap_residuals.parquet' %}
 {% set baseline_exists = false %}
 {% if execute %}
     {% set probe %}SELECT count(*) AS n FROM glob('{{ baseline_path }}'){% endset %}

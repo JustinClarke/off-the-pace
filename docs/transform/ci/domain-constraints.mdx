@@ -1,0 +1,59 @@
+---
+title: "Domain-constraint tests: physical and statistical invariants"
+sidebarTitle: "Domain Constraints"
+description: "Thirteen singular tests that aren't additive closures stint resets, look-ahead guards, honest ranges, and probability sanity checks on the models that feed Physics, Skill, and Strategy."
+---
+
+Where [Identity-Closure](/transform/ci/identity-closure) checks that a sum equals a total, this group checks everything else a closure test can't express: that a window function never reads a future lap, that a shrinkage bound holds, that a probability is actually a probability. Thirteen tests; eleven active, two placeholders, documented honestly below rather than left to look like coverage they aren't.
+
+Two of the thirteen are worth walking in detail before the rest, because together they're the proof that the [Physics](/transform/families/physics) family's exponentially-weighted state fuel, thermal, dirty-air load can't see into a lap that hasn't happened yet.
+
+<Steps>
+  <Step title="Re-derive independently">
+    `assert_no_future_leakage` doesn't introspect the model's SQL. It re-computes the expected cumulative push-load from scratch, using the same backward-only `LAG` weights `int_lap_thermal_proxy` itself uses (surface: a 4-lap lookback with weights `0.717, 0.514, 0.369, 0.264`; bulk: a 7-lap lookback decaying to `0.247`) entirely independently, in the test file.
+  </Step>
+  <Step title="Compare to the materialized output">
+    The independently re-derived value is diffed against `cumulative_push_load_surface` / `cumulative_push_load_bulk` as the model actually computed them, at 0.0001 s tolerance.
+  </Step>
+  <Step title="A mismatch only happens one way">
+    Because both sides use the identical backward-only formula, the only way they can diverge is if the model's real window function stopped being backward-only a `FOLLOWING` frame, or a window that wasn't partitioned by `stint_id`, either of which would leak a future or cross-stint lap into the current row's load.
+  </Step>
+</Steps>
+
+`assert_stint_boundary_integrity` makes the same backward-only guarantee from the other direction checking the boundary instead of the trajectory. At `lap_in_stint = 1`, three models must show no contribution from the *previous* stint at all: `int_lap_thermal_proxy`'s cumulative surface and bulk loads must equal exactly `GREATEST(push_residual, 0)` (the single current-lap term, nothing accumulated); `int_lap_air_state`'s surface and bulk dirty-air loads must hold the same fixed ratio to each other that a clean, bleed-free lap implies. A fifth check in the same file is a sanity guard rather than a boundary check: `int_lap_fuel_state.fuel_mass_kg` must never increase lap-over-lap within a `(race_year, race_id, driver_id)` an increase would mean laps were misordered or assigned to the wrong stint upstream, not that an EW window leaked.
+
+<AccordionGroup>
+  <Accordion title="Synthetic-teammate identity">
+    When the ego driver and their synthetic teammate share identical compound and tyre age there's nothing left for the comparison to adjust for `teammate_pace_adjusted_s` must equal the teammate's raw lap time within 0.001 s. The adjustment has to be a no-op exactly when it has nothing to do. Guards [`int_synthetic_teammate`](/reference/models/int/int_synthetic_teammate), [`int_stint_geometry`](/reference/models/int/int_stint_geometry) ([Skill](/transform/families/skill), [Physics](/transform/families/physics)). **Active.**
+  </Accordion>
+  <Accordion title="Field-pace honest range">
+    `field_pace_smoothed_s / race_fastest_lap_s` must stay within `[0.990, 1.055]` for dry, non-safety-car, non-low-sample laps. The lower bound admits early-race laps where the single fastest lap can briefly run ahead of the rolling smoothed mean; the upper bound (`1.055`) sits just above the real data's p99 of `1.047`, giving headroom without admitting a baseline that's drifted away from the race it's supposed to describe. Guards [`int_field_pace_curve`](/reference/models/int/int_field_pace_curve) ([Pace Baselines](/transform/families/pace-baselines)). **Active.**
+  </Accordion>
+  <Accordion title="MAD floor">
+    `mad_floored_s` must never drop below `0.10` s. The anomaly classifier scores each lap's residual against a trailing median absolute deviation rather than a fixed threshold, precisely so a contaminated stint doesn't under-flag its own cliff laps but an unfloored MAD on an unusually quiet, low-variance stint could collapse toward zero and manufacture false anomalies out of ordinary noise. The floor is what keeps that collapse from happening. Guards [`int_lap_anomaly_flags`](/reference/models/int/int_lap_anomaly_flags) ([Residual Decomposition](/transform/families/residual)). **Active.**
+  </Accordion>
+  <Accordion title="Track-evolution monotone">
+    `rubber_component_s` must be monotonically non-increasing across `lap_number` within a race rubber accumulation only ever improves pace (or holds flat), it never reverses lap-to-lap, at 0.0001 s tolerance on the `LAG`-based comparison. Guards [`int_track_evolution`](/reference/models/int/int_track_evolution) ([Pace Baselines](/transform/families/pace-baselines)). **Active.**
+  </Accordion>
+  <Accordion title="SC hazard probability bounds">
+    The per-lap safety-car, VSC, and combined "any" hazard rates raw and shrunk must each be valid probabilities in `[0, 1]`, and `any_hazard_per_lap` must be at least as large as either component (an SC onset is definitionally also an "any" onset). A violation means a miscounted onset, a bad denominator, or a shrinkage prior that pushed a rate out of range. Guards [`int_sc_hazard_history`](/reference/models/int/int_sc_hazard_history) ([Strategy](/transform/families/strategy)). **Active.**
+  </Accordion>
+  <Accordion title="Driver-skill residual reasonable">
+    For laps flagged `ml_eligible`, `|driver_skill_residual_s|` must stay within 15 s. The typical residual is within ±3 s; a 15 s band is deliberately loose enough to admit a genuinely unusual wet race or circuit without admitting a decomposition component that's quietly blown up from a thin sample (a constructor or compound coefficient fit on too few laps). Guards [`fct_lap_residuals`](/reference/models/fct/fct_lap_residuals) ([Feature Marts](/transform/families/marts)). **Active.**
+  </Accordion>
+  <Accordion title="Raw laps has both sessions">
+    The simplest test in the suite: both `stg_laps` (race) and `stg_laps_qualifying` must contain at least one row. A basic completeness guard at the top of the DAG if ingestion silently dropped one session's Bronze data, every downstream model would still build (and might even pass its own tests on an empty input), so this is the one check that catches that failure mode directly. Guards [`stg_laps`](/reference/models/stg/stg_laps), [`stg_laps_qualifying`](/reference/models/stg/stg_laps_qualifying) ([Staging](/transform/families/staging)). **Active.**
+  </Accordion>
+  <Accordion title="p_beats_next ≥ ½">
+    Ghost-race drivers are ranked by ascending predicted mean pace, so the higher-ranked driver always has the lower (or equal) predicted pace than the driver immediately below them. Under the symmetric normal approximation [Feature Marts](/transform/families/marts) uses to propagate standard errors into a win probability, that ordering forces `p_beats_next ≥ 0.5` for every adjacent pair (a small epsilon absorbs floating-point noise in the CDF approximation). A value below 0.5 means the rank order and the probability model have come apart a recombination bug, not noise. Guards [`fct_ghost_race_finish`](/reference/models/fct/fct_ghost_race_finish). **Active.**
+  </Accordion>
+  <Accordion title="Constructor coefficient signs">
+    Constructor structural pace is centred on the field, so every season must show at least one constructor with a point estimate below zero (genuinely faster than the centred field average) and at least one identified, non-degenerate confidence interval (`ci_low < ci_high`). If a whole season collapsed to "nobody faster than field" or to every constructor unidentified, that would mean the underlying fit produced no usable signal that year a build-breaking condition, not a borderline result. Guards [`int_constructor_structural_pace`](/reference/models/int/int_constructor_structural_pace) ([Pace Baselines](/transform/families/pace-baselines)). **Active.**
+  </Accordion>
+  <Accordion title="Constructor confidence monotone">
+    Originally a lap-grain monotonicity check (more laps of data should mean tighter confidence). The model it guarded was consolidated into today's race-grain `int_constructor_structural_pace`, where lap-by-lap confidence monotonicity no longer applies as a concept CI-bound validity for that model is instead covered by the [`ci_high ≥ ci_low` pairwise test](/transform/ci/range-and-domain) in `schema.yml`. Kept as a tagged placeholder rather than deleted, so the historical guarantee stays documented even though a different test now carries it. No guarded model. **Placeholder.**
+  </Accordion>
+  <Accordion title="Cliff stints have falloff">
+    An informational, deliberately non-blocking check: it's designed to flag stints where a cliff was detected but end-of-stint pace falloff is minimal which can mean the cliff was early enough in the stint for the driver to recover, or that the detection itself was noise. Useful as a validation signal a human can review, not as a pass/fail correctness guarantee, so it's wired as a placeholder by design rather than as an active test that would fail builds on a judgment call. No guarded model. **Placeholder.**
+  </Accordion>
+</AccordionGroup>

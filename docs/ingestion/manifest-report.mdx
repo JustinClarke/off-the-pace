@@ -1,0 +1,65 @@
+---
+title: "Manifest report: every ingestion run, queryable"
+sidebarTitle: "Manifest Report"
+description: "Turn the per-run manifest Parquet files into a status summary what's ok, skipped, or errored, and whether FastF1's schema drifted between runs."
+---
+
+Every ingestion attempt `ok`, `skip`, or `error` is logged as one row in `data/bronze/manifests/run_<run_id>.parquet`, written once per `ingest.py` invocation (see [Architecture](/ingestion/architecture)). `manifest_report.py` reads every manifest file back and answers the two questions the raw Parquet doesn't answer on its own: what's the latest status per session, and did FastF1's schema change underneath you.
+
+```bash
+make manifest-report
+```
+
+<Frame>
+```text
+========================================================================
+INGESTION MANIFEST REPORT
+========================================================================
+Runs on record:  3
+Sessions tracked:  47  (ok=45, skip=1, error=1)
+
+Latest-run ERRORS (need attention):
+  ✗ 2019 Rd9 R    austrian_grand_prix
+
+Schema drift:
+  ✓ no fingerprint changes detected   FastF1 schema stable across all runs
+```
+</Frame>
+
+## Last-run status
+
+For every `(season, round_number, session_type)` combination that's ever been attempted, the report keeps only the most recent manifest row so re-running `make ingest-recent` after a transient error supersedes the earlier failure rather than reporting it twice. Anything still showing `error` after the latest run is printed by name and needs attention.
+
+<ResponseField name="run_id" type="string">
+  UTC timestamp the run started (`YYYYMMDDTHHMMSSZ`) sortable by construction, used to order runs chronologically.
+</ResponseField>
+<ResponseField name="season / round_number / session_type" type="int / int / 'R' | 'Q'">
+  The session this row describes.
+</ResponseField>
+<ResponseField name="status" type="'ok' | 'skip' | 'error'">
+  `ok` written this run. `skip` already existed on disk, untouched. `error` failed the DQ gate or raised during load.
+</ResponseField>
+<ResponseField name="row_count / dq_passed / duplicate_lap_keys" type="int / boolean / int">
+  Row count of the laps written, whether the schema check passed, and how many duplicate `(race_id, DriverNumber, LapNumber)` keys were found.
+</ResponseField>
+<ResponseField name="schema_fingerprint" type="string">
+  12-character SHA-1 of the sorted column names empty for `skip`/`error` rows, since no write happened.
+</ResponseField>
+
+## Schema drift detection
+
+<Accordion title="How fingerprint comparison works">
+  Within each `(season, session_type)` group, manifest rows are walked in chronological order. Every time `schema_fingerprint` changes from one successful write to the next, that's a drift event FastF1 added, removed, or renamed a column between the two runs. Each transition is reported with the from/to fingerprint and the timestamp it changed, so a silent upstream schema change can't slip into the warehouse unnoticed.
+</Accordion>
+
+<Note>
+  Schema drift is compared **within** a season, not across seasons. A 2018 fingerprint differing from a 2024 fingerprint isn't drift different seasons are expected to have different schemas. Drift means the *same* `(season, session_type)` produced a different fingerprint on a later run, which only happens on a re-ingest with `--force`.
+</Note>
+
+The report's exit code is non-zero whenever any session shows `error` in its latest run, or any drift was detected making `make manifest-report` usable as a CI gate, not just an interactive tool.
+
+## Next
+
+<Card title="Replay" icon="play" href="/ingestion/replay">
+  Step through one race's laps to spot-check what a manifest row's data actually looks like.
+</Card>

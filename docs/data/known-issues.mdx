@@ -1,0 +1,49 @@
+---
+title: "Known issues and expected gaps"
+sidebarTitle: "Known Issues"
+description: "The data quirks Bronze doesn't smooth over FastF1 regressions, sparse telemetry, undecoded enums, and the phantom columns that don't actually exist."
+---
+
+Bronze is a faithful copy of what FastF1 and Jolpica return including their rough edges. This page catalogues the gaps and quirks worth knowing before you query Bronze directly, so you can tell "the data really is like this" from "something broke."
+
+## Coverage
+
+import BronzeCoverage from '/snippets/bronze-coverage.mdx';
+
+<BronzeCoverage />
+
+Generated directly from `ingestion/verify_bronze.py --markdown` against the files actually on disk never hand-typed, so it can't drift from reality. Regenerate it yourself with `make docs-coverage`.
+
+## Known issues
+
+<AccordionGroup>
+  <Accordion title="2024: session_time_s is null in telemetry and race control">
+    A FastF1 v3.8.3 change to how it represents the `Time` column means `session_time_s` doesn't populate for any 2024 race in telemetry or race-control output. The fields it's normally used to join are still derivable: use `lap_number` for telemetry joins, and `Lap` for race-control joins. Laps and weather data for 2024 are unaffected.
+  </Accordion>
+  <Accordion title="Las Vegas 2024: timing-integrity warnings on seven drivers">
+    FastF1 raises an internal timing-accuracy flag for several drivers at the 2024 Las Vegas Grand Prix. Impact is low the laps themselves are present and usable and the root cause is still under investigation upstream.
+  </Accordion>
+  <Accordion title="Pre-season testing: round-zero warnings">
+    FastF1 raises when asked to resolve a pre-season testing event by round number, since testing isn't numbered like a points-paying round. Ingestion already excludes round zero from its season loop, so this surfaces only as a benign log line, never a failed write.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  Red-flagged and short qualifying sessions are common, and expected the data-quality engine [warns but never blocks](/data/data-quality) a qualifying write on row count alone.
+</Note>
+
+## Phantom columns you might expect but don't exist
+
+Earlier, hand-maintained docs for this pipeline named several columns that were never actually present in the Parquet output. They're listed here so a search for one of these names lands on its real equivalent instead of a dead end.
+
+<Accordion title="Phantom columns, by dataset">
+  **Weather** there is no cumulative `rainfall_mm`; rain is a boolean flag (`rainfall_flag`) only. `wind_direction_deg` and `wind_speed_kmh` don't exist either the real columns are `wind_direction` (degrees, as a plain integer) and `wind_speed_ms` (metres per second, not km/h).
+
+  **Telemetry** there is no `brake_pct`; FastF1 exposes no brake-pressure channel, only a boolean `brake`. `drs` as a boolean doesn't exist the real column is `DRS`, a numeric enum where only 10, 12, and 14 mean the flap is open. `gear` doesn't exist either the real column is `nGear`.
+
+  **Race Control** there is no `code` column; it was never ingested. The lowercase `lap`, `time`, and `flag` don't exist the real columns are Title-Case: `Lap`, `Time`, `Flag`.
+</Accordion>
+
+<Note>
+  `TrackStatus` on the laps dataset is ingested as an opaque `VARCHAR` digit string, passed through exactly as FastF1 returns it. Ingestion applies no decoding interpreting the digits into safety-car, VSC, or flag states is a transform-layer concern, not a Bronze one.
+</Note>

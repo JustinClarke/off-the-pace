@@ -1,0 +1,38 @@
+---
+title: "Lap Decomposition: the seven-term identity at every scale"
+sidebarTitle: "Overview"
+description: "Three features that apply the seven-term lap decomposition fuel, compound, rubber, ambient, constructor, dirty air, driver skill at per-lap, full-race, and per-sector resolution."
+---
+
+## What this pillar does
+
+The seven-term identity says every lap time is the sum of six physics components plus
+driver skill. This pillar makes that identity visible at three different scales:
+
+- **Per lap** the Waterfall shows a single driver's full breakdown as an additive bar chart.
+- **Full race** How the Race Was Lost sums the per-lap components across an entire race,
+  turning fractions of a second into total minutes of time lost or gained.
+- **Per sector** Sector & Corner splits the decomposition by timing sector, allocating
+  each physics component to where in the lap it actually came from.
+
+All three features read directly from [`fct_lap_residuals`](/reference/models/fct/fct_lap_residuals),
+the transform model that closes the identity for every green lap in the dataset. The
+decomposition maths are documented in the Transform
+[Residual Decomposition](/transform/families/residual) family page.
+
+## Every feature in this pillar
+
+<CardGroup cols={2}>
+  <Card title="Lap Waterfall" icon="chart-gantt" href="/app/lap-waterfall">
+    A waterfall chart showing how fuel, compound, rubber, ambient, constructor, dirty air,
+    and driver skill each contribute to a driver's pace delta, with track noise as a diagnostic.
+  </Card>
+  <Card title="How the Race Was Lost" icon="clock" href="/app/race-lost">
+    The per-lap decomposition summed across an entire race, turning average-per-lap
+    components into total seconds gained or lost to each cause.
+  </Card>
+  <Card title="Sector & Corner" icon="layers" href="/app/sector-decomposition">
+    The lap decomposition applied to each of the three timing sectors separately, so
+    sectors sum correctly to the full lap total.
+  </Card>
+</CardGroup>

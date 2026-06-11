@@ -1,0 +1,42 @@
+---
+title: "Structural tests: grain and completeness across every model"
+sidebarTitle: "Structural"
+description: "not_null, unique, and unique-combination tests are the largest test family by count and the simplest by idea every model's declared key is present once and only once."
+---
+
+import TransformInventoryStructural from '/snippets/transform-inventory-structural.mdx';
+
+This is the biggest single page in the CI Contract by test count and the smallest by idea: three dbt test kinds, repeated once per declared key or required column across every staging, reference, intermediate, and mart model (plus the two reference seeds). One pattern, explained once, then a gated table carrying the per-model breakdown.
+
+<Tabs>
+  <Tab title="not_null">
+    The most common test in the suite. Declared on every column a downstream model or the app is allowed to assume is populated a surrogate key, a foreign key, a physics component that's supposed to exist on every valid lap. A `not_null` failure means either an upstream join silently dropped rows it shouldn't have, or a column that's genuinely optional (and should read `NULL` downstream, like `compound_component_s` on a lap with no tyre data) had its test declared too strictly.
+
+    ```yaml
+    - name: lap_id
+      description: Foreign key to stg_laps
+      tests: [not_null, unique]
+    ```
+  </Tab>
+  <Tab title="unique">
+    Declared on every model's grain key the column (or surrogate) that should have exactly one row per real-world entity. `int_lap_residual_decomposed`'s `lap_id` above is the canonical case: this is the model that closes the seven-term identity, so a duplicated `lap_id` here wouldn't just be a data-quality nuisance, it would mean a lap's `driver_skill_residual_s` gets counted twice in any downstream aggregate that doesn't already correct for it.
+  </Tab>
+  <Tab title="unique_combination_of_columns">
+    For models whose grain isn't a single surrogate column, this asserts uniqueness over the column tuple that defines a row. `mart_corner_skill_driver` is keyed on `(race_year, driver_id)`; `mart_degradation_history_envelope` is keyed on `(circuit_id, era, compound, lap_in_stint)` a pre-aggregated cell, not a lap. Two of these exist today, both on marts whose grain is a model-specific aggregate rather than one of the DAG's two universal grains (lap, sector).
+
+    ```yaml
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [circuit_id, era, compound, lap_in_stint]
+    ```
+  </Tab>
+</Tabs>
+
+<Accordion title="Why the join spine can't fan out">
+  Every model between `stg_laps` and a feature mart joins back to the same lap, directly or transitively, by `lap_id` (or a sector/corner-grain extension of it). The `unique` test on every model's grain key is what makes that join spine trustworthy: if any one of the ~30 models a lap passes through on its way to `fct_lap_residuals` silently duplicated a row, every downstream `JOIN` on that model would fan out, and a single lap's contribution to a race-level or season-level aggregate would be counted more than once invisibly, since the duplicated rows would carry consistent-looking values. This is also what protects the identity itself: [`assert_lap_7term_identity`](/transform/ci/identity-closure) checks that `pace_delta_s` equals the sum of six components plus the residual on every row of `int_lap_residual_decomposed`, but that check is only meaningful once per lap. A duplicated `lap_id` would pass the identity test twice instead of failing it once.
+</Accordion>
+
+## Every model, by structural test count
+
+<TransformInventoryStructural />

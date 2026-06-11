@@ -1,4 +1,4 @@
-"""Predictions output-schema parity (§8)-generated against the smoke models."""
+"""Predictions output-schema parity, generated against the smoke models."""
 from __future__ import annotations
 
 from pathlib import Path

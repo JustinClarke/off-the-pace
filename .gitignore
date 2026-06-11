@@ -7,6 +7,10 @@ service-account*.json
 # Firebase CLI local cache
 .firebase/
 
+# Generated SBOMs (produced by `make sbom` / sbom.yml; release-attached, not committed)
+sbom.cyclonedx.json
+*.cyclonedx.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

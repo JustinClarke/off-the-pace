@@ -5,7 +5,25 @@
   "description": "Bronze-layer event log. One row per sample per driver per lap. Sampled at ~10 Hz; ~2–5 million rows per race. Very wide partition   always filter by season and race_id.",
   "x-file-pattern": "bronze/telemetry/season=YYYY/race=<slug>/telemetry.parquet",
   "x-example-row-count": "2024 Bahrain: 23 drivers × 57 laps × 300 samples/lap ≈ 3.9M rows",
-  "x-notes": "speed_kph, throttle_pct, brake_pct are float32 to save space. Sparse: many null samples for cars that DNF or have sensor dropouts.",
+  "x-notes": "speed_kph, throttle_pct are float32 to save space. Sparse: many null samples for cars that DNF or have sensor dropouts. Race only; telemetry is never written for qualifying sessions.",
+  "x-phantom-columns": [
+    {
+      "name": "brake_pct",
+      "reason": "FastF1 exposes no brake-pressure channel; only the boolean `brake`."
+    },
+    {
+      "name": "drs (boolean)",
+      "reason": "The real column is `DRS`, a numeric enum where only 10, 12, and 14 mean the flap is open."
+    },
+    {
+      "name": "gear",
+      "reason": "The real column is `nGear`."
+    },
+    {
+      "name": "session",
+      "reason": "Telemetry has no session column at all; it's written only for race sessions, never qualifying."
+    }
+  ],
   "properties": {
     "speed_kph": {
       "type": [
@@ -36,14 +54,14 @@
       "x-nullable": true,
       "x-source": "FastF1 native"
     },
-    "brake_pct": {
+    "nGear": {
       "type": [
-        "number",
+        "integer",
         "null"
       ],
-      "description": "Brake pressure, 0–100%. Null if not available from the car's ECU.",
+      "description": "Current gear, 0 (neutral) to 8.",
       "x-nullable": true,
-      "x-dtype": "float32",
+      "x-dtype": "int64",
       "x-source": "FastF1 native"
     },
     "distance_m": {
@@ -56,13 +74,14 @@
       "x-dtype": "float32",
       "x-source": "FastF1 native"
     },
-    "drs": {
+    "DRS": {
       "type": [
-        "boolean",
+        "integer",
         "null"
       ],
-      "description": "DRS flap open. Null for cars without DRS (e.g., safety car).",
+      "description": "DRS status enum. Only 10, 12, and 14 mean the flap is open; other values mean inactive. Decode once in staging; don't carry the magic numbers downstream.",
       "x-nullable": true,
+      "x-dtype": "int64",
       "x-source": "FastF1 native"
     },
     "driver_id": {
@@ -83,16 +102,6 @@
       "x-nullable": false,
       "x-source": "Ingestion pipeline"
     },
-    "session": {
-      "type": "string",
-      "enum": [
-        "R",
-        "Q"
-      ],
-      "description": "'R' for race, 'Q' for qualifying.",
-      "x-nullable": false,
-      "x-source": "Ingestion pipeline"
-    },
     "season": {
       "type": "integer",
       "description": "Hive partition key. Always include in WHERE clause to avoid full scans.",
@@ -104,7 +113,6 @@
     "driver_id",
     "lap_number",
     "race_id",
-    "session",
     "season"
   ]
 }

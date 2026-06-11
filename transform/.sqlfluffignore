@@ -1,6 +1,6 @@
 # fct_ghost_race_finish is too deeply nested for sqlfluff's templater to parse
 # (PRS "Maximum parse depth exceeded (limit 255)"). It is a lint *limitation*,
-# not a style violation — every applicable rule is hand-maintained here instead.
+# not a style violation; every applicable rule is hand-maintained here instead.
 # It is also not materialized on CI fixtures. Excluded so `sqlfluff lint models/`
 # can exit 0 on a genuinely rule-clean tree.
 models/marts/fct_ghost_race_finish.sql

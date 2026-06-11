@@ -20,12 +20,10 @@ graph TD
 
 ### The Singleton client
 The application communicates with a single initialized instance of DuckDB-Wasm.
-*   **File Location**: [client.ts](file:///Users/justin/github/off-the-pace/app/src/data/duckdb/client.ts)
 *   **WASM Worker Bundle**: It loads the **EH (Exception Handling) bundle** (`duckdb-eh.wasm` + `duckdb-browser-eh.worker.js`) to support range-request Parquet reads over HTTP. Other bundles (MVP, COI) are bypassed because COI uses shared memory that crashes DuckDB-Wasm during simultaneous Parquet queries due to memory model constraints.
 
 ### Dynamic Parquet Registration
 Tables are loaded on-the-fly when a query references them.
-*   **File Location**: [register.ts](file:///Users/justin/github/off-the-pace/app/src/data/duckdb/register.ts)
 *   **Unpartitioned Tables**: Single `.parquet` files are registered with DuckDB's HTTP file system and loaded via `CREATE OR REPLACE VIEW <name> AS SELECT * FROM parquet_scan('<name>.parquet')`.
 *   **Partitioned Tables**: Tables like `fct_lap_residuals` or `mart_corner_skill_driver` are partitioned by year. The registrar dynamically parses the table partitions from the manifest, registers each file URL individually, and binds them into a single `UNION ALL` view under the table name, making the partitioning transparent to the query writer:
     ```sql
@@ -42,9 +40,6 @@ Tables are loaded on-the-fly when a query references them.
 
 The **Query Lab** is an interactive, browser-based SQL IDE that gives users a direct interface to execute arbitrary read-only queries against the database views.
 
-*   **Page Component**: [query.tsx](file:///Users/justin/github/off-the-pace/app/src/routes/query.tsx)
-*   **Engine & Safety Guards**: [queryLab.ts](file:///Users/justin/github/off-the-pace/app/src/data/duckdb/queryLab.ts)
-
 ### Read-Only Security Model
 Because the database runs client-side, mutating commands (e.g. dropping views) would corrupt the schema cache for all other page components until a full page reload. The engine enforces a strict read-only parser before executing any query:
 1.  **Allowed Formats**: Only queries starting with `SELECT`, `WITH`, `EXPLAIN`, `DESCRIBE`, `DESC`, `SUMMARIZE`, `SHOW`, `PRAGMA table_info`, `PIVOT`, `TABLE`, `VALUES`, or `FROM` are permitted.
@@ -55,17 +50,14 @@ Because the database runs client-side, mutating commands (e.g. dropping views) w
 To optimize bandwidth, the engine parses the SQL syntax using `resolveTablesInSql()` to extract referenced table identifiers, matching them against the data manifest. Only those referenced tables are loaded and registered from the CDN before executing the query.
 
 ### UI Features
-*   **Schema Rail Explorer**: ([SchemaExplorer.tsx](file:///Users/justin/github/off-the-pace/app/src/features/query-lab/SchemaExplorer.tsx)) Displays tables categorized by layer (dimensions, facts, intermediate, marts, ml). Clicking a table name performs a lazy `DESCRIBE` query to fetch and display its columns, allowing columns to be clicked to insert directly into the text editor.
-*   **Dynamic Result Grid**: ([ResultGrid.tsx](file:///Users/justin/github/off-the-pace/app/src/features/query-lab/ResultGrid.tsx)) Renders data in a paginated grid. Coerces DuckDB's native `BigInt` outputs into JavaScript standard `Number` to prevent JSON serialization errors.
+*   **Schema Rail Explorer**: Displays tables categorized by layer (dimensions, facts, intermediate, marts, ml). Clicking a table name performs a lazy `DESCRIBE` query to fetch and display its columns, allowing columns to be clicked to insert directly into the text editor.
+*   **Dynamic Result Grid**: Renders data in a paginated grid. Coerces DuckDB's native `BigInt` outputs into JavaScript standard `Number` to prevent JSON serialization errors.
 *   **Shareable Links**: SQL queries can be encoded into Base64 hashes and embedded directly into the URL query parameters (`?q=...`), making workbench configurations shareable.
 *   **Query History**: Persists the user's historical queries in local storage.
 
 ---
 
 ## 3. Data CDN & Manifest
-
-*   **File Location**: [manifest.ts](file:///Users/justin/github/off-the-pace/app/src/data/manifest.ts)
-*   **Manifest Path**: `app/public/data/_manifest.json`
 
 The data files are hosted on Google Cloud Storage (GCS) or Firebase Storage acting as the CDN. At startup, the app loads `_manifest.json` which maps each table name to its CDN path, partitioning style, and metadata.
 
@@ -81,9 +73,6 @@ function withVersion(url: string, version: string): string {
 ---
 
 ## 4. Deployment & Security Configuration
-
-*   **File Location**: [firebase.json](file:///Users/justin/github/off-the-pace/firebase.json)
-*   **Docs**: [deployment-data-cdn.md](file:///Users/justin/github/off-the-pace/app/_docs/deployment-data-cdn.md)
 
 ### WASM Execution Headers (COEP & COOP)
 To allow WebAssembly multi-threading, the browser environment must run in a secure, isolated context. The app's deployment configuration explicitly sets these headers on all responses via `firebase.json`:

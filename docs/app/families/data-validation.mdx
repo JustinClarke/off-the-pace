@@ -1,0 +1,34 @@
+---
+title: "Data & Validation: verify the numbers yourself"
+sidebarTitle: "Overview"
+description: "Two transparency features a live SQL editor backed by DuckDB-Wasm and a per-race pipeline quality audit so you can interrogate the data directly rather than taking the charts on faith."
+---
+
+## What this pillar does
+
+Data & Validation provides the tools to answer: **should I trust this number, and can I
+check it myself?**
+
+- **Query Lab** gives you a full SQL editor running against every registered gold mart in
+  your browser the same Parquet files every other feature reads. If a chart looks wrong,
+  you can write the query and compare.
+- **Data Quality Audit** shows the per-race breakdown of every lap the pipeline excluded
+  and why: neutralisation flags, rain laps, out/in laps, and anomalies. The same invariants
+  run automatically in CI; this page surfaces the per-race detail the gate summarises.
+
+The pipeline exclusion rules are documented in the [Quality & Coverage](/data/data-quality)
+data-tab page. The ML models have their own trust surface in
+[The Machine](/app/families/the-machine) pillar above.
+
+## Every feature in this pillar
+
+<CardGroup cols={2}>
+  <Card title="Query Lab" icon="terminal" href="/app/query-lab">
+    A full SQL editor backed by DuckDB-Wasm. Write raw queries against every registered gold
+    mart no credentials, no server, results in milliseconds.
+  </Card>
+  <Card title="Data Quality Audit" icon="shield" href="/app/data-quality-audit">
+    Per-race usable-lap counts and a breakdown of every excluded lap type neutralisation,
+    rain, out/in laps, and anomalies for a season.
+  </Card>
+</CardGroup>

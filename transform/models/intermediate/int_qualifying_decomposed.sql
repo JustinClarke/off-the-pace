@@ -1,5 +1,4 @@
--- Third Model Sequence #5: Qualifying residual decomposition public-facing
--- model.
+-- Qualifying residual decomposition public-facing model.
 -- Combines the qualifying residual chain with the quali-vs-race skill
 -- differential.
 --
@@ -11,7 +10,7 @@
 -- Grain: lap_id one row per valid qualifying lap.
 -- PK: lap_id (FK to stg_laps_qualifying).
 --
--- Validation gate (from plan §6.1):
+-- Validation gate:
 --   R² in qualifying fit ≥ R² in race fit + 10pp (not enforced in SQL;
 --   enforced in validation notebook simulation_ghost_validation.ipynb).
 --   quasi_traffic_flag: TRUE if a car was within 1.5s during the push lap (from

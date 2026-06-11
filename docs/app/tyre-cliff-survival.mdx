@@ -1,0 +1,50 @@
+---
+title: "How long does a tyre survive before the cliff?"
+sidebarTitle: "Cliff Survival Profile"
+description: "A Kaplan-Meier survival curve estimating the probability a stint reaches each lap without hitting the degradation cliff, validated against where real stints actually ended."
+---
+
+The cliff survival profile answers a strategist's question: if you put this compound on now, how likely is it to still be alive in ten laps? Each curve is the probability that a stint reaches a given lap **without a cliff onset event**, estimated with the Kaplan-Meier estimator from every comparable stint in the data. The scatter of where real stints actually ended is the live validation if the curve crosses 0.5 near the fitted model's onset line, the cliff model is well calibrated.
+
+## What it shows
+
+The chart overlays a survival curve, a model reference line, and a validation scatter:
+
+- **Survival curve `S(t)`**: the Kaplan-Meier probability a stint of this compound is still pre-cliff at lap `t`. At each lap where at least one cliff is observed, `S(t) = S(t-1) × (1 − events / at-risk)`.
+- **Censoring**: a stint where the driver pitted *before* the cliff is **censored** it reduces the at-risk pool without contributing an event, because it only tells us the cliff had not happened yet, not that it never would.
+- **Model onset line**: the median cliff lap from the fitted survival model stored in `dim_compounds_season`.
+- **Degradation overlay (right axis)**: cumulative expected degradation in seconds at the point each stint ended. **Red dots** mark a cliff observed before the pit; **grey squares** mark a pit before the cliff.
+
+<Note>
+  Rain laps and anomaly-flagged laps are excluded from both the survival curve and the scatter. The provenance footer shows the original fit date and the number of cross-season stints used.
+</Note>
+
+## How to use it
+
+1. **Select a compound and circuit** from the filter bar; the curve and onset line reload for that combination.
+2. **Read the 0.5 crossing** the lap where survival drops to 50% is the median expected cliff lap.
+3. **Compare the curve against the model line** to judge calibration: a curve crossing 0.5 far from the model line signals a compound the model is mis-pricing here.
+4. **Inspect the scatter** a cluster of red dots earlier than the curve suggests drivers were pushed past the cliff; grey squares clustered early mean conservative, undercut-driven stops.
+
+## Reading the signal correctly
+
+Survival is **conditional on reaching each lap**, so the right-hand tail thins out as stints are pitted or end wide steps late in the curve come from a small at-risk pool, not a real cliff in probability.
+
+<Warning>
+  Censored (pit-before-cliff) stints dominate short-stint circuits. Where almost every driver pits early for strategy rather than degradation, the curve is built mostly from censoring and should be read as a lower bound on tyre life, not the tyre's true limit.
+</Warning>
+
+## Data source
+
+The chart queries `fct_cliff_prediction_features` (the per-lap stint history) and `dim_compounds_season` (the fitted onset coefficients) via DuckDB-Wasm in the browser.
+
+| Column | Meaning |
+|---|---|
+| `expected_degradation_rate_s_per_lap` | Per-lap expected degradation, summed for the right-axis overlay |
+| `compound_cliff_onset_laps` | The fitted median cliff lap (`dim_compounds_season`) drawn as the model line |
+| `lap_in_stint` | Lap index within the stint, the survival time axis |
+| `cliff_observed` | Whether a cliff event occurred before the stint ended (red dot vs grey square) |
+
+The data window covers **2018–2024**.
+
+For the full model definitions, see the [`fct_cliff_prediction_features` reference](/reference/models/fct/fct_cliff_prediction_features) and the [`dim_compounds_season` reference](/reference/models/dim/dim_compounds_season).

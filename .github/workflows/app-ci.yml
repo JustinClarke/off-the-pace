@@ -1,0 +1,56 @@
+name: App CI
+
+# The React app was the only layer with no CI gate, so its vitest files never ran on
+# a PR. Runs the full
+# frontend gate typecheck, lint, unit tests, production build on any app change.
+#
+# The build defaults VITE_DATA_BASE to the GCS CDN (app/src/data/manifest.ts), so it
+# needs no exported parquet: this is a pure compile/sanity build, not a data build.
+# The headless ONNX↔booster parity test (parity.node.test.ts) self-skips here it is
+# gated behind RUN_PARITY=1 + the python-dumped rows, which require the warehouse.
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - '.github/workflows/app-ci.yml'
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  app-gate:
+    name: typecheck · lint · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.4.0
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests + coverage threshold (vitest)
+        # --coverage enforces the regression-ratchet thresholds in vitest.config.ts.
+        run: pnpm exec vitest run --coverage
+
+      - name: Production build
+        run: pnpm build

@@ -1,7 +1,6 @@
--- Qualifying decomposition model identity: qualifying 7-term residual decomposition
+-- Qualifying 7-term residual decomposition identity.
 --
--- After qualifying decomposition model (qualifying decomposition), qualifying laps must close the 7-term identity
--- with their own (re-fit) coefficients:
+-- Qualifying laps close the 7-term identity with their own (re-fit) coefficients:
 --   quali_pace_delta_s = quali_fuel + quali_compound + quali_rubber
 --                      + quali_ambient + quali_constructor + quali_dirty_air_tax
 --                      + quali_driver_skill + quali_unexplained

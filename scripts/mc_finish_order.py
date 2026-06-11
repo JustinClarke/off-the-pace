@@ -1,4 +1,4 @@
-"""Pure-function Monte Carlo finish-order core (roadmap transform-v0.2 §4.5).
+"""Pure-function Monte Carlo finish-order core.
 
 Pulled forward from the strategy-engine v2 so the simulation core can be validated
 offline on existing marts with zero live data. Deliberately dependency-light and
@@ -7,7 +7,7 @@ samples and ranks them into finish-position distributions. This same function is
 intended to become the live engine's core, so it stays pure (rng passed in, no I/O).
 
 Pace model: lower pace = better finish. Each driver d gets pace_d ~ Normal(mu_d, se_d).
-An optional common_se adds a single shared shock per simulation (the §3 host
+An optional common_se adds a single shared shock per simulation (the host
 structural pace, which is common-mode across drivers and cancels in ordering) kept
 as a parameter so the live engine can switch it on without changing the core.
 """

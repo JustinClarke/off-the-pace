@@ -38,7 +38,7 @@ Constructor structural pace priors are estimated from 2018–2024 data and held 
 
 ### 7. ML cliff prediction is v1
 
-The machine layer (see [Tyre Cliff](/decomposition/tyre-cliff) for how it works) is built and beats a strong per-cohort baseline across all three target families. The honest remaining constraint is narrower: the **cliff classifier is the weakest model**, with a macro-F1 of approximately 0.37 on the 4-class cliff timing problem. It decisively outperforms the majority prior, but absolute skill on the rare imminent-cliff windows (`0_to_2` laps) is modest. There is also no live 2025 holdout yet headline numbers come from time-series cross-validation with the final fold at 2024. They will convert to a true out-of-sample reveal once 2025 data is ingested.
+The machine layer (see [Tyre Cliff](/decomposition/tyre-cliff) for how it works) is built and beats a strong per-cohort baseline across all three target families. The honest remaining constraint is narrower: the **cliff classifier is the weakest model**, with a macro-F1 of approximately 0.32 on the 4-class cliff timing problem. It decisively outperforms the majority prior, but absolute skill on the rare imminent-cliff windows (`0_to_2` laps) is modest. There is also no live 2025 holdout yet headline numbers come from time-series cross-validation with the final fold at 2024. They will convert to a true out-of-sample reveal once 2025 data is ingested.
 
 <Warning>
   Circuits with `REVIEW_REQUIRED` flags in `dim_circuits` have limited telemetry coverage or unusual tyre behaviour that reduces calibration quality. Treat driver residuals and compound estimates at these circuits with extra caution until the flags are cleared.
@@ -58,11 +58,14 @@ The limitations above are modelling choices improvable with better calibration o
 
 None of these limits invalidate the decomposition framework. They define where current estimates should be treated with more caution, where data improvements would help most, and what the roadmap is addressing next.
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
   <Card title="Seven-Term Identity" icon="sigma" href="/decomposition/seven-term-identity">
     The additive equation and the CI invariant that keeps it honest
   </Card>
   <Card title="Methodology" icon="flask-conical" href="/decomposition/methodology">
     How sequential residualisation separates the six physics terms
+  </Card>
+  <Card title="Residual Decomposition" icon="sigma" href="/transform/families/residual">
+    Why error propagation is contained to arithmetic, not coefficient correctness
   </Card>
 </CardGroup>

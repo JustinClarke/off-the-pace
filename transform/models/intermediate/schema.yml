@@ -7,6 +7,8 @@ models:
       Builds stint identifiers (stint_id), lap positions within stints (lap_in_stint, age_in_stint),
       and compound tracking. All Layer 03 window functions partition on stint_id.
     tags: [intermediate]
+    meta:
+      family: physics
     columns:
       - name: stint_id
         description: Surrogate key combining race_year, race_id, driver_id, stint_number
@@ -17,10 +19,12 @@ models:
 
   - name: int_lap_fuel_state
     description: >
-      Fuel burnoff and weight correction (Pillar 2). One row per valid lap.
+      Fuel burnoff and weight correction. One row per valid lap.
       Calculates fuel_mass_kg based on consumption rate and weight_corrected_lap_time
       by applying weight penalty from fuel load.
     tags: [intermediate]
+    meta:
+      family: physics
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
@@ -28,10 +32,12 @@ models:
 
   - name: int_lap_air_state
     description: >
-      Air state classification and thermal load from dirty air (Pillar 3). One row per stint-lap.
+      Air state classification and thermal load from dirty air. One row per stint-lap.
       Classifies air state per sector (free_air, tow_zone, drs_train, dirty_air) and accumulates
       cumulative thermal load on tyre surface and bulk using exponential moving average.
     tags: [intermediate]
+    meta:
+      family: physics
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
@@ -39,10 +45,12 @@ models:
 
   - name: int_lap_thermal_proxy
     description: >
-      Cumulative push load from engine thermal management (Pillar 2b). One row per lap.
+      Cumulative push load from engine thermal management. One row per lap.
       Models engine braking and thermal duty via cumulative exponential moving average,
       aggregated to lap-level push load on braking.
     tags: [intermediate]
+    meta:
+      family: physics
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
@@ -53,6 +61,8 @@ models:
       Corner-level g-force and speed metrics. Grain is (driver_id, lap_number, race_id, corner_name).
       Multiple rows per lap, one per named corner. Used for lateral-g features and track-signature analysis.
     tags: [intermediate]
+    meta:
+      family: physics
     columns:
       - name: driver_id
         description: Driver identifier
@@ -69,13 +79,15 @@ models:
 
   - name: int_lap_telemetry_aggregates
     description: >
-      Per-lap telemetry features for the tyre-cliff model (ml-v0.2 §2). One row per race lap.
+      Per-lap telemetry features for the tyre-cliff model. One row per race lap.
       Powertrain aggregates (gear changes, rpm, full-throttle/DRS share, short-shift index) plus
       five within-stint-drift cliff signals (mid-corner speed loss, wheelspin proxy, throttle-trace
       decay, braking-point drift, lift-and-coast share), each measured vs the driver's own
       early-stint baseline. Computed lap-internally from the 'car' telemetry channel; NULL where a
       lap has no telemetry (explicit missingness, carried as XGBoost native-NaN).
     tags: [intermediate]
+    meta:
+      family: physics
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
@@ -122,10 +134,12 @@ models:
 
   - name: int_compound_cliff_predicted
     description: >
-      Tyre compound degradation prediction using fitted survival-analysis parameters (Pillar 1).
+      Tyre compound degradation prediction using fitted survival-analysis parameters.
       One row per lap. Predicts degradation rate and cliff onset based on fitted compound parameters
       and current thermal conditions.
     tags: [intermediate]
+    meta:
+      family: pace-baselines
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
@@ -133,10 +147,12 @@ models:
 
   - name: int_field_pace_curve
     description: >
-      Field-level baseline pace curve (Pillar 5). Grain is (race_year, race_id, lap_number).
+      Field-level baseline pace curve. Grain is (race_year, race_id, lap_number).
       Computes rolling median of free-air pace for each lap to establish a clean baseline
       uncontaminated by individual driver skill or traffic.
     tags: [intermediate]
+    meta:
+      family: pace-baselines
     columns:
       - name: race_year
         description: Race year
@@ -150,10 +166,12 @@ models:
 
   - name: int_track_evolution
     description: >
-      Track temperature and grip evolution over race (Pillar 5). Grain is (race_year, race_id, lap_number).
+      Track temperature and grip evolution over race. Grain is (race_year, race_id, lap_number).
       Tracks ambient and track surface temperature, and grip envelope changes over the race
       due to rubber lay-down and fuel load shedding.
     tags: [intermediate]
+    meta:
+      family: pace-baselines
     columns:
       - name: race_year
         description: Race year
@@ -167,10 +185,12 @@ models:
 
   - name: int_synthetic_teammate
     description: >
-      Synthetic teammate for driver skill extraction (Pillar 5). Grain is (race_year, race_id, ego_driver_id, lap_number).
+      Synthetic teammate for driver skill extraction. Grain is (race_year, race_id, ego_driver_id, lap_number).
       Uses closest-match teammate with same car to create a counterfactual for what the driver would have done
       in the same equipment if conditions matched.
     tags: [intermediate]
+    meta:
+      family: skill
     columns:
       - name: race_year
         description: Race year
@@ -190,6 +210,8 @@ models:
       Safety car, red flag, and other race event corrections. One row per lap with event flags
       indicating whether the lap should be treated as anomalous for skill extraction (e.g., SC restart, red flag laps).
     tags: [intermediate]
+    meta:
+      family: residual
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
@@ -203,18 +225,20 @@ models:
       + constructor_component_s + dirty_air_tax_s + driver_skill_residual_s.
       Driver skill residual = what remains after removing all physics/car/strategy factors.
     tags: [intermediate, causal_decomposition]
+    meta:
+      family: residual
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
       - name: constructor_component_s
         description: >
-          Constructor structural pace in seconds from int_constructor_structural_pace (#6).
-          Positive = slower than field. Replaces legacy EW rolling index.
+          Constructor structural pace in seconds from int_constructor_structural_pace.
+          Positive = slower than field.
         tests: [not_null]
       - name: dirty_air_tax_s
         description: >
-          Per-lap dirty-air slowdown cost from int_dirty_air_tax_component (#8).
+          Per-lap dirty-air slowdown cost from int_dirty_air_tax_component.
           Non-negative seconds. Zero when not in dirty air.
         tests:
           - not_null
@@ -233,10 +257,12 @@ models:
 
   - name: int_lap_anomaly_flags
     description: >
-      Anomaly detection flags for data quality control (Pillar 6). One row per lap.
+      Anomaly detection flags for data quality control. One row per lap.
       Uses trailing-7-lap MAD (median absolute deviation) to classify anomalies robustly
       (cliff, mistakes, event-driven, conditions, normal).
     tags: [intermediate]
+    meta:
+      family: residual
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
@@ -254,6 +280,8 @@ models:
       as skill. Consumed only by int_driver_race_skill_loro.driver_skill_field_s →
       int_driver_circuit_era_affinity (Ghost Car Standings). Negative = faster than field.
     tags: [intermediate, causal_decomposition, constructor]
+    meta:
+      family: skill
     columns:
       - name: constructor_car_fe_id
         description: Surrogate PK = race_year_raceid_constructorid
@@ -276,10 +304,14 @@ models:
   - name: int_constructor_structural_pace
     description: >
       One row per (race_year, race_id, constructor_id). Car-inherent pace advantage/penalty estimated
-      via panel regression: compares same-constructor teammates in the same race to isolate car pace
-      from driver skill. Uses high-dimensional fixed effects to control driver, circuit, and fuel effects.
-      Positive = slower car. Includes 95% CI and clean pair sample counts for confidence.
+      from a re-centred median pace delta across same-constructor teammates in the same race, isolating
+      car pace from driver skill via within-constructor, between-driver variation. A placeholder for
+      the full panel regression (pyfixest HDFE fit) named in the model's own header; that fixed-effects
+      estimate exists separately, as int_constructor_car_fe. Positive = slower car. Includes a normal-
+      approximation 95% CI and clean pair sample counts for confidence.
     tags: [intermediate, causal_decomposition]
+    meta:
+      family: pace-baselines
     columns:
       - name: constructor_race_id
         description: Surrogate PK = hash(race_year, race_id, constructor_id)
@@ -295,13 +327,14 @@ models:
         tests: [not_null]
       - name: constructor_structural_pace_s
         description: >
-          Fixed-effect coefficient α_constructor in seconds. Positive = slower than field.
-          Identified via within-constructor, between-driver variation from teammate pairs.
+          Re-centred median pace-delta coefficient in seconds (not yet a fitted fixed effect
+          see the model description). Positive = slower than field. Identified via
+          within-constructor, between-driver variation from teammate pairs.
         tests: [not_null]
       - name: constructor_structural_pace_se_s
         description: >
-          Clustered standard error (CRV1) by (race_id, constructor_id).
-          Positive, ≥0. Captures uncertainty in α estimate.
+          Standard error of the median pace delta (stddev / √n), not yet a clustered (CRV1)
+          regression SE. Positive, ≥0. Captures uncertainty in the coefficient estimate.
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -315,7 +348,7 @@ models:
         description: 95% confidence interval upper bound
         tests: [not_null]
       - name: panel_observations_n
-        description: Sample size of clean laps used in the regression
+        description: Sample size of clean laps used in the aggregate estimate
         tests: [not_null]
       - name: clean_teammate_pair_laps_n
         description: >
@@ -348,14 +381,16 @@ models:
       field-centred per (compound, season) and empirical-Bayes shrunk toward 0 (DerSimonian-Laird).
       Positive = degrades faster than the field-average compound curve. Feeds the ghost-car
       recombination interaction term (host slope minus ego slope) x age_in_stint, which is what
-      lets host identity reorder drivers (transform v0.2 Fix 1). slope_se and n_laps are carried
-      for Fix 3 SE propagation.
-      Fix 2 adds cliff_onset_shift_laps: a per-constructor break-point offset (laps) for the field
+      lets host identity reorder drivers. slope_se and n_laps are carried for downstream SE
+      propagation.
+      cliff_onset_shift_laps is a per-constructor break-point offset (laps) for the field
       tyre-cliff onset, estimated as a bivariate within-stint hinge coefficient (extra post-onset
       degradation), field-centred and EB-shrunk like the linear slope, then mapped to an onset
       shift via the field severity and typical post-onset depth. Positive = cliff arrives later
       (gentler). Feeds the ghost-car cliff interaction term.
     tags: [intermediate, causal_decomposition, degradation]
+    meta:
+      family: strategy
     columns:
       - name: deg_sensitivity_id
         description: Surrogate PK = race_year || constructor_id || compound
@@ -399,7 +434,7 @@ models:
       - name: deg_slope_se_s_per_lap
         description: >
           FE-regression standard error of the raw slope (dof = n_laps - n_stints - 1), floored at
-          1e-4. NULL for low-sample cells. Carried for Fix 3 SE propagation.
+          1e-4. NULL for low-sample cells. Carried for downstream SE propagation.
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
@@ -432,7 +467,7 @@ models:
         tests: [not_null]
       - name: cliff_onset_shift_laps
         description: >
-          Fix 2 production value: per-constructor tyre-cliff onset shift in laps relative to the
+          Per-constructor tyre-cliff onset shift in laps relative to the
           field onset. Positive = cliff arrives LATER (gentler), negative = EARLIER (harsher).
           0.0 for cells without enough post-onset depth. Clipped to +/-3 laps.
         tests:
@@ -444,7 +479,7 @@ models:
       - name: cliff_onset_shift_se_laps
         description: >
           SE of the onset shift (hinge SE mapped through ref_depth / severity). NULL for
-          low-sample cells. Carried for Fix 3 SE propagation.
+          low-sample cells. Carried for downstream SE propagation.
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
@@ -485,6 +520,8 @@ models:
       Uses prior-lap dirty-air intensity to establish causality: current lap slowdown → prior lap's position.
       Avoids reverse causality. Seconds lost = θ_air × dirty_air_intensity_lag1, capped [0, 5.0] seconds.
     tags: [intermediate, causal_decomposition]
+    meta:
+      family: physics
     columns:
       - name: lap_id
         description: PK, FK to stg_laps
@@ -529,6 +566,8 @@ models:
       proportional to sector time. Grain: (lap_id, sector). Allows per-sector skill analysis.
       Matches stg_sector_times granularity. Identity: sector_pace_delta = sector_components + sector_skill_residual.
     tags: [intermediate, feature_engineering]
+    meta:
+      family: residual
     columns:
       - name: sector_id
         description: PK = lap_id || '_S' || sector. Matches stg_sector_times convention.
@@ -570,6 +609,8 @@ models:
       and exit phases relative to field median (5-lap rolling window). Grain: (lap_id, corner_name).
       Null when field sample < 5 drivers. Enables high-res corner-by-corner skill profiling.
     tags: [intermediate, feature_engineering]
+    meta:
+      family: residual
     columns:
       - name: corner_id
         description: PK = lap_id || '_C_' || corner_name
@@ -597,6 +638,8 @@ models:
       Fuel component negligible (~0.42 s). Enables matching between int_lap_residual_decomposed (race)
       and int_lap_residual_decomposed_qualifying (quali) on grain.
     tags: [intermediate, simulation, qualifying]
+    meta:
+      family: physics
     columns:
       - name: lap_id
         description: PK, FK to stg_laps_qualifying
@@ -608,6 +651,8 @@ models:
       (one-lap trim) via same panel regression as race version. Different coefficient expected
       vs race due to fuel load and strategy differences. Single-lap setup may favor different cars.
     tags: [intermediate, simulation, qualifying]
+    meta:
+      family: pace-baselines
     columns:
       - name: constructor_race_id
         description: Surrogate PK = concat(race_year, race_id, constructor_id, '_Q')
@@ -622,6 +667,8 @@ models:
       but with qualifying-specific coefficients (near-zero fuel, cliff-suppressed compound degradation,
       quali-mode car pace). Grain: lap_id. Enables quali-vs-race skill comparison.
     tags: [intermediate, simulation, qualifying]
+    meta:
+      family: residual
     columns:
       - name: lap_id
         description: PK, FK to stg_laps_qualifying
@@ -636,6 +683,8 @@ models:
       how much faster/slower is this driver in qualifying vs their race average? Positive = single-lap specialist.
       Grain: lap_id. Used in analytics dashboards to profile driver strengths.
     tags: [intermediate, simulation, qualifying]
+    meta:
+      family: residual
     columns:
       - name: lap_id
         description: PK, FK to stg_laps_qualifying
@@ -655,6 +704,8 @@ models:
       (optimal / overran / undercut_forced / early). Counterfactual assumes cliff model degradation trajectory.
       Pit-loss constant per circuit (~21 s average); missing circuits imputed at 21.0 s.
     tags: [intermediate, simulation, strategy]
+    meta:
+      family: strategy
     columns:
       - name: stint_id
         description: PK, FK to int_stint_geometry
@@ -696,6 +747,8 @@ models:
       season-average. E.g., Red Bull faster at high-downforce tracks. Shrunk toward 0 (Bayesian prior).
       Positive = slower at this circuit than season average.
     tags: [intermediate, simulation, ghost_car]
+    meta:
+      family: pace-baselines
     columns:
       - name: constructor_race_id
         description: Surrogate PK
@@ -711,6 +764,8 @@ models:
       low = must pit. Includes recovery_probability (pace-recovery chance within 2 laps).
       Grain: lap_id filtered to cliff_onset_passed = TRUE.
     tags: [intermediate, simulation, thermal]
+    meta:
+      family: residual
     columns:
       - name: lap_id
         description: PK, FK to stg_laps (post-cliff laps only)
@@ -749,6 +804,8 @@ models:
       Negative = faster at this circuit than career average. affinity_confidence [0,1]: < 0.17 = prior-dominated.
       Identifies drivers who suit high-downforce, street, etc. tracks.
     tags: [intermediate, driver_rating, driver_affinity]
+    meta:
+      family: skill
     columns:
       - name: driver_circuit_id
         description: Surrogate PK = hash(driver_id, circuit_key)
@@ -818,6 +875,8 @@ models:
       record" at that circuit. Shrunk toward the driver's within-era global mean (Bayesian, prior =
       5 virtual races). Negative = faster than field. Backs the Ghost Car Standings feature.
     tags: [intermediate, driver_rating, driver_affinity]
+    meta:
+      family: skill
     columns:
       - name: driver_circuit_era_id
         description: Surrogate PK = hash(driver_id, circuit_id, era_key)
@@ -891,7 +950,7 @@ models:
 
   - name: int_driver_race_skill_loro
     description: >
-      Metric 1 (de-confounded absolute equal-car skill), race grain
+      De-confounded absolute equal-car skill, race grain
       (race_year, race_id, driver_id). driver_skill_loro_s = P20 ceiling minus the LORO
       teammate baseline (used by the rating chain). driver_skill_field_s = median pace
       delta minus the de-biased constructor×race FE (int_constructor_car_fe.car_fe_s,
@@ -899,6 +958,8 @@ models:
       Car Standings leaderboard, fixing the weak-teammate inflation confound. Negative =
       faster than field (both signals).
     tags: [intermediate, driver_rating, causal_decomposition]
+    meta:
+      family: skill
     columns:
       - name: driver_race_skill_id
         description: Surrogate PK = hash(race_year, race_id, driver_id)
@@ -938,6 +999,8 @@ models:
       Negative = faster than season average. Intermediate for era_normalized_driver_rating.
       Isolates driver strength from era variation (e.g., 2016 vs 2022 regulations).
     tags: [intermediate, driver_rating, era_rating]
+    meta:
+      family: skill
     columns:
       - name: driver_season_id
         description: Surrogate PK = hash(driver_id, season)
@@ -986,6 +1049,8 @@ models:
       to estimate era offset, then adjusts season residuals. era_adjusted_rating = comparable across eras;
       negative = faster than era average. low_anchor_sample_flag = few bridge drivers (weak offset).
     tags: [intermediate, driver_rating, era_rating]
+    meta:
+      family: skill
     columns:
       - name: driver_season_id
         description: Surrogate PK = hash(driver_id, season). Matches int_driver_season_ratings.
@@ -1039,9 +1104,13 @@ models:
       Safety-Car / Virtual-Safety-Car base rate per circuit (venue slug), as a
       hazard per racing lap. Estimated from SC/VSC deployment onsets in
       stg_track_status with racing-lap exposure from stg_laps, over the set of
-      races that have an ingested track_status timeline (partial during the v0.2
-      backfill). Raw and empirical-Bayes-shrunk rates are provided. Feeds the
-      MC finish-order core (transform-v0.2 §4.5).
+      races that have an ingested track_status timeline. Raw and
+      empirical-Bayes-shrunk rates are provided. Not yet read by any downstream
+      dbt model or app feature  -  scripts/mc_finish_order.py (the Monte Carlo
+      finish-order roll-forward) is a candidate consumer but does not read this
+      model today.
+    meta:
+      family: strategy
     columns:
       - name: circuit_slug
         description: Venue identifier (race name slug, e.g. monaco_grand_prix); recurs across seasons.
@@ -1108,12 +1177,15 @@ models:
 
   - name: int_pit_loss_circuit
     description: >
-      Empirical circuit-specific pit-lane loss prior, replacing the largely-imputed
-      constant in circuit_reference. Per stop, loss = (in_lap − ref) + (out_lap − ref)
-      where ref is the driver's median green lap that race; circuit value is the
-      median across stops within a sane [pit_loss_min_s, pit_loss_max_s] window,
-      EB-shrunk toward the global median. Scoped to races with a venue slug
-      available (partial during the v0.2 backfill). Consumed by int_pit_strategy_value.
+      Empirical circuit-specific pit-lane loss prior, intended to replace the
+      largely-imputed constant in circuit_reference. Per stop, loss = (in_lap − ref) +
+      (out_lap − ref) where ref is the driver's median green lap that race; circuit
+      value is the median across stops within a sane [pit_loss_min_s, pit_loss_max_s]
+      window, EB-shrunk toward the global median. Scoped to races with a venue slug
+      available. Not yet read by any downstream dbt model  -  int_pit_strategy_value
+      still joins the circuit_reference seed constant directly.
+    meta:
+      family: strategy
     columns:
       - name: circuit_slug
         description: Venue identifier (race name slug); recurs across seasons.
@@ -1137,3 +1209,25 @@ models:
               arguments:
                 min_value: 8
                 max_value: 60
+
+  - name: int_lap_residual_stint_detrend
+    description: >
+      Per-stint linear drift of driver_skill_residual_s against lap_in_stint, fit on pre-cliff
+      laps only (cliff_onset_passed = FALSE) via OLS REGR_SLOPE. One row per stint with >= 3
+      pre-cliff laps; stints with fewer laps get drift_s_per_lap = 0.0 (no detrending, no data).
+      Consumed by fct_cliff_prediction_features to produce next_lap_degradation_jump_detrended_s
+      the per-lap first-difference with this per-stint drift (fuel burn / track evolution leaking
+      into the residual) removed. Diagnostic: pooled median slope ≈ -0.072 s/lap across ~5,950 stints.
+    tags: [intermediate, simulation]
+    meta:
+      family: residual
+    columns:
+      - name: stint_id
+        description: Surrogate key combining race_year, race_id, driver_id, stint_number (grain).
+        tests: [not_null]
+      - name: drift_s_per_lap
+        description: >
+          OLS slope of driver_skill_residual_s vs lap_in_stint over pre-cliff laps (seconds per
+          lap). Negative = residual trending faster through the stint. 0.0 when the stint has
+          fewer than 3 pre-cliff laps.
+        tests: [not_null]

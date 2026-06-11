@@ -1,6 +1,6 @@
 -- int_lap_telemetry_aggregates.sql · intermediate · grain: one row per race lap
 -- (lap_id)
--- Per-lap telemetry features for the tyre-cliff model (ml-v0.2 §2). Two
+-- Per-lap telemetry features for the tyre-cliff model. Two
 -- families:
 --   * powertrain (6): straight per-lap aggregates of the car channels
 --   * telemetry-cliff (5): within-stint-drift signals, each measured vs the
@@ -14,8 +14,8 @@
 -- dim_corners is a partial,
 -- inconsistently-named seed that joins for only ~5 circuits (~6% of laps); the
 -- lap-internal
--- formulation gives full telemetry coverage and is faithful to the roadmap
--- intent (mid-corner =
+-- formulation gives full telemetry coverage and is faithful to the intent
+-- (mid-corner =
 -- the lap's slow points). Missingness is explicit (LEFT JOIN, NULLs preserved →
 -- XGBoost native).
 --

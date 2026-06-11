@@ -1,0 +1,52 @@
+---
+title: "Data quality: checks, severity tiers, and expected gaps"
+sidebarTitle: "Data Quality"
+description: "The four checks ingestion runs on every Bronze write, the one condition that actually blocks a write, and which gaps are expected rather than corruption."
+---
+
+Every laps file ingestion writes passes through the same quality engine before and in one case, instead of landing on disk. The checks are deliberately tiered: race laps are the spine every downstream model depends on, so they're held to a harder gate than qualifying.
+
+## Blocks the write vs. warns only
+
+<Tabs>
+  <Tab title="Blocks the write">
+    Exactly one condition stops a write: a **race** laps file missing a required column (`DriverNumber`, `LapNumber`, `LapTime`, `Compound`, `TyreLife`, `race_id`). The schema check raises, the Parquet write is skipped entirely, and the run manifest records `status=error` with `dq_passed=false`.
+  </Tab>
+  <Tab title="Warns only">
+    Everything else logs a warning and still writes: a row count under 50, a null rate above 5% on any column, and duplicate lap keys. **Qualifying never gates on the schema check at all** even a missing required column only warns there. Short, attritional qualifying sessions are common enough that gating on them would lose data that's still usable.
+  </Tab>
+</Tabs>
+
+| Check | Race (R) | Qualifying (Q) |
+|---|---|---|
+| Required columns present | **Blocks the write** | Warns only |
+| Row count ≥ 50 | Warns only | Warns only |
+| Null rate ≤ 5% per column | Warns only | Warns only |
+| No duplicate lap keys | Warns only (count recorded on the manifest) | Warns only (count recorded on the manifest) |
+
+<Warning>
+  A schema failure on a race never partially writes the file either has every required column or it doesn't exist on disk at all. There's no silent partial Bronze write to clean up after.
+</Warning>
+
+## The four checks
+
+<AccordionGroup>
+  <Accordion title="Required columns validate_bronze_schema">
+    Confirms `DriverNumber`, `LapNumber`, `LapTime`, `Compound`, `TyreLife`, and `race_id` are all present. These six are what every downstream model depends on existing, regardless of what else FastF1 did or didn't return for a given session. Missing any one raises, naming exactly which columns are absent.
+  </Accordion>
+  <Accordion title="Row count assert_row_count">
+    Requires at least 50 rows. Catches truncated files and sessions abandoned early a red flag on lap 2 produces a real but tiny laps file, and this is the check that notices.
+  </Accordion>
+  <Accordion title="Null rates check_null_rates">
+    Flags any column whose null rate exceeds 5%. A high null rate usually means one of: the race ended early, the session only partially loaded from FastF1, or there's a genuine per-driver, per-lap gap in the upstream feed. Logged for every flagged column; never raises.
+  </Accordion>
+  <Accordion title="Duplicate lap keys check_lap_key_duplicates">
+    Checks for repeated `(race_id, DriverNumber, LapNumber)` combinations the combination that should uniquely identify a lap. Duplicates mean double-ingestion or FastF1 returning overlapping records, either of which would silently corrupt any aggregation downstream. The count is recorded on the run manifest as `duplicate_lap_keys` so it stays queryable after the fact, not just a log line.
+  </Accordion>
+</AccordionGroup>
+
+## Expected gaps, not failures
+
+<Note>
+  Telemetry is sparse by design in places the checks above don't flag: safety-car laps, pit-in/pit-out laps, and red-flagged stints frequently return no telemetry from FastF1 at all. The per-lap telemetry writer catches this per lap and moves on a missing lap of telemetry there is an expected gap, not a data-quality failure. See [Known Issues](/data/known-issues) for the catalogue of gaps worth knowing about before you query Bronze directly.
+</Note>

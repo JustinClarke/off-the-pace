@@ -1,3 +1,5 @@
+import { CANONICAL_DOCS_BASE } from '../../config'
+
 export const methodologyContent = (
   <>
     <p>
@@ -43,4 +45,4 @@ export const methodologyContent = (
   </>
 )
 
-export const methodologyHref = 'https://offthepace.mintlify.app/reference/models/mart/mart_corner_skill_driver'
+export const methodologyHref = `${CANONICAL_DOCS_BASE}/app/corner-phase-skill`

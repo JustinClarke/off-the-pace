@@ -1,0 +1,50 @@
+---
+title: "How would the championship look in one chosen car?"
+sidebarTitle: "Counterfactual Championship"
+description: "Every driver transplanted one at a time into a chosen host car and re-scored against the real grid, summed into a what-if championship across a season."
+---
+
+Put every driver in the same car for a whole season who wins the title? The counterfactual championship does exactly that. For each race, every driver's lap times are recombined with a chosen host constructor's car pace, then transplanted one at a time into that car and slotted into the real grid. F1 points are scored against the actual field and summed across the season, producing a championship that holds the car constant and lets driver skill (and the host car's pace level) decide the order.
+
+## What it shows
+
+The table re-runs the season in the host car:
+
+- **Recombined pace (`fct_ghost_race_finish`)**: each driver's lap times combined with the host constructor's car pace, giving the pace they would have shown in that car.
+- **Projected finish**: one plus the number of cars whose *actual* race pace beat the ghost's host-car pace so each transplant is raced against the real grid, not against the other ghosts.
+- **Points**: the F1 scale (25-18-15-12-10-8-6-4-2-1) applied to both projected and actual positions, summed across the season.
+- **Delta**: how many championship points each driver gained or lost versus their real-world result.
+
+<Note>
+  Ranking against the *real grid* (rather than against the other ghosts) is deliberate. If all drivers share the host car and are ranked only against each other, the car's pace cancels out and the order collapses to a pure skill ranking that barely changes whichever car you pick. Racing each ghost against the field keeps the car level in play a slow host scores almost nothing, a dominant host sweeps the points.
+</Note>
+
+## How to use it
+
+1. **Pick a host constructor** from the filter bar; the season is re-scored in that car.
+2. **Read the standings** as "this season, if everyone drove the host car".
+3. **Compare the delta column** to see who the host car would have flattered or hurt.
+4. **Switch hosts** to feel how much the car's pace level moves the championship.
+
+## Reading the signal correctly
+
+The host team's own drivers still appear in the real grid, so each transplant is measured against the actual field including the car's incumbents. The result is an **expected-value** reconstruction, not a simulation of how the races would have unfolded with overtaking, strategy, and incidents.
+
+<Warning>
+  Only races where `avg_recombination_confidence ≥ 0.3` contribute low-data scenarios are excluded, not imputed. A coverage badge appears when fewer than 15 races qualify, signalling unreliable season-level aggregation. Treat badged seasons as indicative only.
+</Warning>
+
+## Data source
+
+The chart queries `fct_ghost_race_finish` via DuckDB-Wasm in the browser, aggregated across a season.
+
+| Column | Meaning |
+|---|---|
+| `ghost_host_pace_s` | The driver's pace in the host constructor's car |
+| `projected_finish_pos` | Re-ranked position against the real grid |
+| `avg_recombination_confidence` | Panel-data confidence; races gated at `≥ 0.3` |
+| `points_delta` | Championship points gained/lost vs the real result |
+
+The data window covers **2018–2024**.
+
+For the full model definition, see the [`fct_ghost_race_finish` reference](/reference/models/fct/fct_ghost_race_finish).

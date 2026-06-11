@@ -1,0 +1,95 @@
+name: Deploy
+
+# Release pipeline replaces the laptop
+# `make app-deploy`. Triggered when a GitHub Release is published (release-please cuts the
+# tag), or manually. Authenticates to GCP with Workload Identity Federation NO long-lived
+# JSON key (run scripts/setup_wif.sh once; see .github/DEPLOYMENT.md).
+#
+# Flow:  build app (code) → smoke STAGING data → promote staging→prod (atomic manifest flip)
+#        → firebase deploy (code) → smoke PROD.
+#
+# Data note: the warehouse (6 GB bronze) is not in CI, so the data *export* + *staging publish*
+# (`make app-data app-models app-publish-staging`) is the operator/orchestration step that runs
+# BEFORE a release. This workflow validates that staging revision and
+# promotes it it does not rebuild data. The app bundle is pure code and is built here.
+#
+# Skips cleanly until WIF is provisioned (the job `if` guards on the provider var being set),
+# so releases don't show a red deploy before the one-time GCP setup is done.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # mint the OIDC token WIF exchanges for GCP credentials
+
+jobs:
+  deploy:
+    name: Promote staging → prod + deploy
+    if: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      FIREBASE_PROJECT: ${{ vars.FIREBASE_PROJECT || 'off-the-pace' }}
+      PROD_SITE_URL: ${{ vars.PROD_SITE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (WIF, keyless)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.4.0
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      # Capture the staging version up front so the post-deploy prod smoke can assert the
+      # promoted pointer actually went live.
+      - name: Read staging version
+        id: staging
+        run: |
+          v=$(gcloud storage cat gs://off-the-pace-cdn/staging/data/_manifest.json \
+                | python3 -c 'import sys,json; print(json.load(sys.stdin)["version"])')
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "staging version: $v"
+
+      - name: Smoke staging
+        run: scripts/smoke_cdn.sh --env staging
+
+      - name: Build app (production)
+        working-directory: app
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Promote staging → prod
+        run: scripts/promote_cdn.sh --skip-smoke
+
+      - name: Deploy to Firebase Hosting
+        run: |
+          npx -y firebase-tools@latest deploy \
+            --only hosting:app \
+            --project "$FIREBASE_PROJECT" \
+            --non-interactive
+
+      - name: Smoke prod
+        run: |
+          args=(--env prod --expect-version "${{ steps.staging.outputs.version }}")
+          [ -n "$PROD_SITE_URL" ] && args+=(--site "$PROD_SITE_URL")
+          scripts/smoke_cdn.sh "${args[@]}"

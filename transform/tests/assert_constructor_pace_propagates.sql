@@ -1,5 +1,5 @@
--- Initial transform release medium priority: constructor_component_s must reduce variance in
--- driver_skill_residual_s relative to the pre-initial-release baseline.
+-- constructor_component_s must reduce variance in driver_skill_residual_s relative to a
+-- committed baseline.
 --
 -- Companion to assert_residual_variance_shrinks.sql, targeting the constructor signal
 -- specifically: the variance of constructor_component_s in the current model must be
@@ -8,11 +8,11 @@
 --
 -- Returns rows (FAILS) if either condition is violated.
 --
--- The baseline is an external snapshot (data/silver/_baseline_pre_phase_a/) captured
--- before Phase A; it is not committed. When it is absent from a checkout this guardrail
--- cannot run, so it stays inert (passes) rather than hard-erroring the whole build.
+-- The baseline is an external snapshot (data/silver/_lap_residuals_baseline/), not committed
+-- to the repository. When it is absent from a checkout this guardrail cannot run, so it
+-- stays inert (passes) rather than hard-erroring the whole build.
 
-{% set baseline_path = '../data/silver/_baseline_pre_phase_a/fct_lap_residuals.parquet' %}
+{% set baseline_path = '../data/silver/_lap_residuals_baseline/fct_lap_residuals.parquet' %}
 {% set baseline_exists = false %}
 {% if execute %}
     {% set probe %}SELECT count(*) AS n FROM glob('{{ baseline_path }}'){% endset %}

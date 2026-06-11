@@ -60,13 +60,12 @@ IDENTIFIER_COLUMNS: tuple[str, ...] = (
     "survival_weight",
 )
 
-# ─── Feature set (42) verified members, grouped for ablation (§7.3) ───────────
+# ─── Feature set (42) verified members, grouped for ablation ────────────────────
 # The `powertrain` (6) and `telemetry_cliff` (5) groups land with telemetry ingestion
-# (ml-v0.2 §2): per-lap aggregates projected by int_lap_telemetry_aggregates →
-# fct_cliff_prediction_features. They are gated by the pre-registered §2.3 ablation  
-# kept here only because they beat the _v2 baseline (see ml/artefacts/ablation_*).
+# Per-lap aggregates projected by int_lap_telemetry_aggregates →
+# fct_cliff_prediction_features; included because they beat the baseline (see ml/artefacts/ablation_*).
 # The air-density weather features (air_density_kgm3 / density_ratio_to_ref) remain
-# DEFERRED pending air-density enrichment (transform §5.6); the export-time guard
+# DEFERRED pending air-density enrichment; the export-time guard
 # (test_feature_contract) asserts contract ⊆ mart so nothing can be referenced before it lands.
 # C3 (Route C): surface_bulk_ratio added as 42nd feature to the thermal group so the
 # model can attribute early-stint surface vs bulk thermal loading (warm-up vs real deg).
@@ -108,7 +107,7 @@ FEATURE_COLUMNS: tuple[str, ...] = tuple(
 )
 assert len(FEATURE_COLUMNS) == len(set(FEATURE_COLUMNS)), "duplicate feature column"
 
-# ─── Categorical handling (§5.1, L0-3) ──────────────────────────────────────────
+# ─── Categorical handling ─────────────────────────────────────────────────────────
 # String categoricals → ordinal-encoded from the TRAINING map; NULL/unseen → MISSING_ORDINAL.
 CATEGORICAL_COLUMNS: tuple[str, ...] = ("compound", "air_state_dominant", "constructor_id", "anomaly_class")
 # Booleans → float (True=1.0, False=0.0, NULL=NaN → native-NaN).
@@ -116,10 +115,10 @@ BOOLEAN_COLUMNS: tuple[str, ...] = ("cliff_onset_passed", "event_flag_any", "cli
 # Continuous features keep NaN as NaN (XGBoost native missing). Reserved ordinal for missing categoricals:
 MISSING_ORDINAL = -1.0
 
-# Label-adjacent features that must clear the M1 forward-window audit before they stay in (§15-5).
+# Label-adjacent features that must clear the forward-window audit before they stay in.
 AUDIT_FEATURES: tuple[str, ...] = ("cliff_candidate_flag", "anomaly_class")
 
-# ─── Targets / model families (§5.3) ────────────────────────────────────────────
+# ─── Targets / model families ───────────────────────────────────────────────────
 DEGRADATION_TARGET = "next_lap_degradation_jump_detrended_s"  # C1: detrended (was next_lap_degradation_jump_s)
 CLIFF_TARGET = "laps_until_cliff_class"
 STINT_LIFE_TARGET = "remaining_stint_life_laps"  # synthesised in features.py
@@ -173,7 +172,7 @@ def optuna_study_name(target: str, version: str) -> str:
     return f"{target}_{version}"
 
 
-# ─── Predictions output schema (§5.6 / plan §6.5)-17 columns ──────────────────
+# ─── Predictions output schema (17 columns) ─────────────────────────────────────
 # Validated at write time by predict.py and by tests/test_predict.py.
 PROB_COLUMNS: tuple[str, ...] = tuple(f"prob_{c}" for c in CLIFF_CLASS_LABELS)
 

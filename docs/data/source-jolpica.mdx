@@ -1,0 +1,59 @@
+---
+title: "Jolpica: reference data for standings and pit stops"
+sidebarTitle: "Jolpica"
+description: "Why Off The Pace uses Jolpica, the Ergast-compatible successor, for driver/constructor standings and classified pit stops and why it's reference data, not timing data."
+---
+
+[Ergast](https://ergast.com), the long-standing community F1 data API, shut down after the 2024 season. [Jolpica](https://api.jolpi.ca) is its drop-in successor: the same JSON response schema, the same endpoint shape, a new host. Off The Pace uses it for exactly two things FastF1 doesn't provide cleanly official championship standings and classified pit-stop records.
+
+<Note>
+  This is **reference data, not timing data**. It never feeds the live decomposition path; it lands in Bronze as a separate, clearly-scoped dataset under `data/bronze/reference/jolpica/`, decoupled from the FastF1-sourced tables that drive `transform/`.
+</Note>
+
+## What it provides
+
+<CardGroup cols={1}>
+  <Card title="Driver standings" icon="trophy">
+    Per-season (optionally per-round) championship position, points, and wins for every driver, with the constructor they're credited to.
+  </Card>
+  <Card title="Constructor standings" icon="award">
+    The same shape for constructors, including nationality.
+  </Card>
+  <Card title="Pit stops" icon="timer">
+    Every classified stop for a race: driver, lap, stop number, and duration.
+  </Card>
+</CardGroup>
+
+Each endpoint's nested JSON is flattened to one tidy row per entity before it's written Ergast/Jolpica's response shape nests standings inside a list-of-lists structure that isn't useful to query directly.
+
+## Politeness contract
+
+Jolpica is a free, shared API. The client throttles itself rather than relying on the server to reject it:
+
+<Warning>
+  Requests are spaced at least **0.30 seconds apart**, enforced client-side before every call. A `429` response honours the server's `Retry-After` header when present; any other failure backs off exponentially (1s, then 2s, then 4s) across up to 4 attempts. Pagination is capped at **100 rows per page** most standings queries fit in one page, but a full season of pit stops can span several.
+</Warning>
+
+## CLI
+
+<ParamField path="--start-season" type="int" default="2018">
+  First season to pull.
+</ParamField>
+<ParamField path="--end-season" type="int" default="2024">
+  Last season to pull (inclusive).
+</ParamField>
+<ParamField path="--rounds" type="int" default="24">
+  Maximum round number to probe for pit stops in each season. Seasons with fewer rounds simply log a skip once they run out.
+</ParamField>
+<ParamField path="--min-interval" type="float" default="0.30">
+  Seconds enforced between requests.
+</ParamField>
+
+```bash
+python ingestion/src/jolpica_client.py --start-season 2018 --end-season 2024
+# or: make ingest-jolpica
+```
+
+<Info>
+  Reference data is additive, not a dependency of the core pipeline: `make dbt-dev` and the full decomposition build run without ever calling Jolpica. Pull it only when you specifically need standings or pit-stop records.
+</Info>

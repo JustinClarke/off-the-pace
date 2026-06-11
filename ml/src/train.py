@@ -155,7 +155,7 @@ def main() -> int:
     args = ap.parse_args()
 
     params = json.loads(Path(args.params).read_text()) if args.params else None
-    if args.n_estimators or args.max_depth:  # CI tiny-smoke overrides (plan §6.10)
+    if args.n_estimators or args.max_depth:  # CI tiny-smoke overrides
         params = dict(params or SMOKE_DEFAULTS)
         if args.n_estimators:
             params["n_estimators"] = args.n_estimators

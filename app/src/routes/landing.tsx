@@ -59,7 +59,7 @@ export default function Landing() {
             GitHub →
           </a>
           <a
-            href="https://off-the-pace.onrender.com"
+            href="https://offthepace.mintlify.app"
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm px-4 py-2 rounded-md border border-border text-muted hover:text-[rgb(var(--color-text))] transition-colors"

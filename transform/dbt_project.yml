@@ -5,6 +5,15 @@ require-dbt-version: ">=1.5.0,<2.0.0"
 
 profile: 'off_the_pace'
 
+vars:
+  # Ghost car: a driver contributing fewer than this fraction of the race distance
+  # is flagged is_short_run (DNF / partial) rather than trusted as a full estimate.
+  ghost_short_run_threshold: 0.5
+  # int_event_corrections: lap_time / race_fastest above this ratio is hard-excluded
+  # (weight 0.0). The band [1.20, outlier_exclude_ratio) is soft-downweighted to 0.6
+  # so legit heavy-fuel / traffic laps are salvaged instead of nuked.
+  outlier_exclude_ratio: 1.40
+
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
@@ -55,3 +64,12 @@ seeds:
         compound_grip_peak: double
         n_stints: integer
         fit_date: date
+    seed_manual_lap_exceptions:
+      +column_types:
+        race_year: integer
+        race_id: varchar
+        driver_id: varchar
+        lap_number: integer
+        event_type: varchar
+        correction_weight_override: double
+        note: varchar

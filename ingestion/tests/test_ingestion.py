@@ -409,3 +409,98 @@ def test_race_control_timedelta_column(tmp_path, monkeypatch):
     written = pd.read_parquet(tmp_path / "season=2024" / "race=test_race" / "race_control.parquet")
     assert list(written["session_time_s"]) == [60.0, 120.0]
     assert written["session_time_s"].notna().all()
+
+
+# ---------------------------------------------------------------------------
+# v0.2 Writers (results, track_status, session_status, circuit_info, schedule)
+# ---------------------------------------------------------------------------
+
+def test_write_results(tmp_path, monkeypatch):
+    """Test results writer with ClassifiedPosition, Status, GridPosition."""
+    monkeypatch.setattr(ingest, "RESULTS_DIR", tmp_path / "results")
+
+    results_df = pd.DataFrame({
+        "DriverNumber": [1, 2, 3],
+        "ClassifiedPosition": ["1", "2", "3"],
+        "Status": ["Finished", "Finished", "+1 Lap"],
+        "GridPosition": ["2", "1", "3"],
+    })
+    mock_session = MagicMock()
+    mock_session.results = results_df
+
+    ingest._write_results(mock_session, 2024, 1, "bahrain_grand_prix")
+
+    written = pd.read_parquet(tmp_path / "results" / "season=2024" / "race=bahrain_grand_prix" / "results.parquet")
+    assert len(written) == 3
+    assert "race_id" in written.columns
+    assert "season" in written.columns
+    assert written["season"].iloc[0] == 2024
+
+
+def test_write_track_status(tmp_path, monkeypatch):
+    """Test track_status writer with SC/VSC timeline."""
+    monkeypatch.setattr(ingest, "TRACK_STATUS_DIR", tmp_path / "track_status")
+
+    ts_df = pd.DataFrame({
+        "Status": ["GREEN", "YELLOW", "GREEN"],
+        "Time": pd.to_timedelta(["0:05:00", "0:10:00", "0:15:00"]),
+    })
+    mock_session = MagicMock()
+    mock_session.track_status = ts_df
+
+    ingest._write_track_status(mock_session, 2024, 1, "bahrain_grand_prix")
+
+    written = pd.read_parquet(tmp_path / "track_status" / "season=2024" / "race=bahrain_grand_prix" / "track_status.parquet")
+    assert len(written) == 3
+    assert "session_time_s" in written.columns
+    assert written["session_time_s"].tolist() == [300.0, 600.0, 900.0]
+
+
+def test_write_session_status(tmp_path, monkeypatch):
+    """Test session_status writer with red-flag events."""
+    monkeypatch.setattr(ingest, "SESSION_STATUS_DIR", tmp_path / "session_status")
+
+    ss_df = pd.DataFrame({
+        "Status": ["Started", "Red Flag", "Resumed"],
+        "Time": pd.to_timedelta(["0:00:00", "0:20:00", "0:25:00"]),
+    })
+    mock_session = MagicMock()
+    mock_session.session_status = ss_df
+
+    ingest._write_session_status(mock_session, 2024, 1, "bahrain_grand_prix")
+
+    written = pd.read_parquet(tmp_path / "session_status" / "season=2024" / "race=bahrain_grand_prix" / "session_status.parquet")
+    assert len(written) == 3
+    assert "session_time_s" in written.columns
+
+
+def test_write_circuit_info(tmp_path, monkeypatch):
+    """Test circuit_info writer with corner data."""
+    monkeypatch.setattr(ingest, "CIRCUIT_INFO_DIR", tmp_path / "circuit_info")
+
+    circuit_info_mock = MagicMock()
+    circuit_info_mock.corners = pd.DataFrame({
+        "CornerNumber": [1, 2, 3],
+        "CornerName": ["Turn 1", "Turn 2", "Turn 3"],
+        "X": [100.0, 200.0, 300.0],
+        "Y": [50.0, 75.0, 100.0],
+    })
+
+    mock_session = MagicMock()
+    mock_session.get_circuit_info.return_value = circuit_info_mock
+
+    ingest._write_circuit_info(mock_session, 2024, 1, "bahrain_grand_prix")
+
+    written = pd.read_parquet(tmp_path / "circuit_info" / "season=2024" / "race=bahrain_grand_prix" / "circuit_info.parquet")
+    assert len(written) == 3
+    assert "race_id" in written.columns
+
+
+def test_cli_telemetry_full_flag():
+    """Test --telemetry-full CLI flag."""
+    parser = ingest._build_parser()
+    args = parser.parse_args(["-s", "2024", "--telemetry-full"])
+    assert args.telemetry_full is True
+
+    args2 = parser.parse_args(["-s", "2024"])
+    assert args2.telemetry_full is False

@@ -1,0 +1,73 @@
+---
+title: "Machine learning for tyre prediction in Off The Pace"
+sidebarTitle: "ML Overview"
+description: "5 XGBoost models extend the physics decomposition to predict next-lap pace loss, cliff proximity, and remaining stint life across 137,373 laps."
+---
+
+The seven-term decomposition tells you where each lap's time went. The machine layer asks what happens next. 5 XGBoost models sit on top of the decomposed lap data and translate per-lap physics signals into forward-looking predictions about tyre behaviour how much pace the next lap will cost, how close the cliff is, and how many usable laps remain in the stint.
+
+## Why ML is needed on top of the physics decomposition
+
+The statistical layer already estimates a tyre cliff for every `(circuit, compound, season)` cohort using Kaplan-Meier survival analysis. That is the right answer to a population question: *when does the average Soft at Bahrain fall off?* It cannot answer whether *this* stint, in *these* conditions, is about to drop.
+
+The cliff is not a fixed lap number. It moves with:
+
+- **Thermal history** how hard the tyre has been pushed (`push_residual`, cumulative surface and bulk load)
+- **Dirty air** laps spent in another car's wake overheat the surface (`dirty_air_thermal_load_surface/bulk`)
+- **Ambient and air density** a hot, thin-air afternoon cliffs earlier than a cool evening session
+- **Fuel load** a heavy car early in the stint loads the tyre differently from a light car at the end
+- **Compound generation** 2018 legacy compounds behave unlike the 2019+ range
+
+These factors interact. A linear correction per dimension cannot capture "Soft, lap 14, after six laps in dirty air, on a hot low-grip surface." Gradient-boosted trees can which is the entire reason for the machine layer. The Kaplan-Meier prior becomes a feature the models consume as a starting point, not the final word.
+
+## The feature source
+
+All five models read from a single contracted mart: `fct_cliff_prediction_features`. This mart covers **137,373 laps across the 2018–2024 seasons** (seven seasons of F1). After eligibility filtering, **110,440 rows** carry both the degradation and cliff targets; **116,957 rows** carry the stint-life target. The models consume 38 features across nine physics-grouped families nothing is hand-engineered inside the ML layer. The physics lives in the dbt transform layer; the machine layer reads it.
+
+## Three question families, five models
+
+<CardGroup cols={2}>
+  <Card title="How much pace will the tyre lose?" icon="chart-line">
+    Three quantile regressors p10, p50, and p90 predict `next_lap_degradation_jump_s`. Together they form a calibrated 80% prediction interval: p50 is the best single guess; p10 and p90 bound it. The target is legitimately negative roughly 44% of the time a tyre coming into its working window genuinely gains pace.
+  </Card>
+  <Card title="How close is the cliff?" icon="triangle-exclamation">
+    A 4-class classifier predicts `laps_until_cliff_class`: `0_to_2`, `3_to_5`, `6_plus`, or `none_in_stint`. The class balance is roughly 58 / 15 / 15 / 12 percent, so the model trains with balanced class weights to keep the rare imminent-cliff windows from being drowned out.
+  </Card>
+</CardGroup>
+
+<CardGroup cols={2}>
+  <Card title="How many usable laps remain?" icon="flag-checkered">
+    A single regressor predicts `remaining_stint_life_laps` the synthesised, non-negative count of usable laps left in the stint. This is what drives the strategy view's "this set is done in ~N laps" readout.
+  </Card>
+  <Card title="All five run in-browser" icon="browser">
+    Every model is exported to ONNX and scored client-side via the React app no server round-trip required. ONNX parity tests confirm numbers in the browser match numbers from training to within `atol=1e-5`.
+  </Card>
+</CardGroup>
+
+## How the models fit into the broader system
+
+```
+Physics decomposition (seven-term)
+        ↓
+fct_cliff_prediction_features  (38 features, 137 k laps)
+        ↓
+Five XGBoost models  →  ONNX export  →  In-browser scoring
+```
+
+The machine layer reads the warehouse **read-only** and never writes to the application layer. Reproducing the full pipeline takes a single command:
+
+```bash
+make ml-all   # features → tune → train → evaluate → predict → onnx → card
+make ml-test  # 27 tests: leakage spine, ONNX parity, output schema, beats-baseline
+```
+
+## Go deeper
+
+<CardGroup cols={2}>
+  <Card title="Models" href="/ml/models" icon="microchip">
+    Objective functions, tuning approach, headline metrics for all five models, and the honest caveats.
+  </Card>
+  <Card title="Validation" href="/ml/validation" icon="shield-check">
+    Season-grouped time-series cross-validation, the leakage spine, calibration coverage, and the 2025 holdout policy.
+  </Card>
+</CardGroup>

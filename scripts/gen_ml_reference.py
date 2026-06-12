@@ -2,15 +2,15 @@
 gen_ml_reference.py   Generate the ML model-card MDX from ml/model_card.yml.
 
 Reads ml/model_card.yml (machine-written by ml/src/card.py) and writes:
-  docs/docs/reference/ml/degradation-model-v1.mdx
-  docs/docs/reference/ml/_category_.json   ("ML Models")
+  docs/reference/ml/degradation-model-v1.mdx
+  docs/reference/ml/_category_.json   ("ML Models")
 
 Run:   python scripts/gen_ml_reference.py
 Check: python scripts/gen_ml_reference.py --check   # exit 1 if committed MDX drifted (D2)
 
 D2: this generator implements a *real* --check (re-emit in memory, diff vs committed, exit 1 on
 drift) AND is registered in scripts/build_reference.py's GENERATORS list, so the existing
-`git diff --exit-code docs/docs/reference/` CI gate also covers the ML docs. Belt and braces.
+`git diff --exit-code docs/reference/` CI gate also covers the ML docs. Belt and braces.
 """
 
 import argparse
@@ -25,7 +25,7 @@ from mdx_utils import escape_mdx
 
 REPO_ROOT = Path(__file__).parent.parent
 CARD_PATH = REPO_ROOT / "ml" / "model_card.yml"
-OUT_DIR = REPO_ROOT / "docs" / "docs" / "reference" / "ml"
+OUT_DIR = REPO_ROOT / "docs" / "reference" / "ml"
 MDX_PATH = OUT_DIR / "degradation-model-v1.mdx"
 CATEGORY_PATH = OUT_DIR / "_category_.json"
 
@@ -68,7 +68,7 @@ def render_mdx(card: dict) -> str:
         "",
         escape_mdx(card["summary"]),
         "",
-        "> Conceptual foundation: [Methodology](/understand/methodology) · "
+        "> Conceptual foundation: [Methodology](/decomposition/methodology) · "
         "feature source: [`fct_cliff_prediction_features`](/reference/models/fct/fct_cliff_prediction_features).",
         "",
         "## Intended use",

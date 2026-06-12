@@ -60,13 +60,15 @@ function ScenarioTable({ scenario }: { scenario: RaceScenario }) {
             header: 'Δ pos',
             align: 'right',
             render: (v, row) => {
-              const d = v as number
+              if (row.isSelfScenario) {
+                return <span className="text-muted/40 text-xs" title="Own-car scenario identity holds">self</span>
+              }
+              const d = v as number | null
+              if (d == null) {
+                return <span className="text-muted/40 text-xs" title="DNF no actual finishing position">—</span>
+              }
               const label = d === 0 ? '=' : d > 0 ? `+${d}` : String(d)
-              return (
-                <span className={deltaClass(d)}>
-                  {row.isSelfScenario ? <span className="text-muted/40 text-xs" title="Own-car scenario-identity holds">self</span> : label}
-                </span>
-              )
+              return <span className={deltaClass(d)}>{label}</span>
             },
           },
           {
@@ -86,6 +88,21 @@ function ScenarioTable({ scenario }: { scenario: RaceScenario }) {
             key: 'lapsScored',
             header: 'Laps',
             align: 'right',
+            render: (v, row) => {
+              const laps = v as number
+              if (row.isShortRun) {
+                return (
+                  <span
+                    className="text-amber-400/80"
+                    title={`Partial race ${(row.lapCoverage * 100).toFixed(0)}% of distance (small-sample estimate)`}
+                  >
+                    {laps}
+                    <span className="ml-1 text-[10px] uppercase tracking-wide">dnf</span>
+                  </span>
+                )
+              }
+              return <span>{laps}</span>
+            },
           },
         ]}
         initialRows={25}

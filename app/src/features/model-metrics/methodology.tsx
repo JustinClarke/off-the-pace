@@ -1,5 +1,5 @@
 export const methodologyHref =
-  'https://off-the-pace.onrender.com/machine-learning'
+  'https://offthepace.mintlify.app/ml/overview'
 
 export const methodologyContent = (
   <div className="flex flex-col gap-3 text-sm text-muted leading-relaxed">

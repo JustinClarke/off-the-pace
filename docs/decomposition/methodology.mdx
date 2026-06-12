@@ -1,0 +1,85 @@
+---
+title: "How lap time components are identified and estimated"
+sidebarTitle: "Methodology"
+description: "Learn how sequential residualisation separates six simultaneous physics signals from driver skill and why the estimation order matters."
+---
+
+All six physics terms in the decomposition are active on every lap at the same time. Estimating any one of them requires holding the others constant, but you cannot hold them constant without estimates of the others first. Off The Pace breaks this circularity through sequential residualisation: estimate terms in order of decreasing identifiability, subtract each estimated term, then estimate the next one on the residual. This page explains that order, why it is the right one, and what the model does and explicitly does not claim.
+
+## The identification challenge
+
+Fuel load, tyre degradation, rubber build-up, ambient temperature, constructor pace, and dirty-air exposure are all embedded in the same single number: the lap time. A driver who looks slow on lap 40 might be managing a tyre cliff, running in dirty air, carrying heavy fuel, or some combination of all three. No single lap, viewed in isolation, can tell you which.
+
+The only way to separate these signals is to use the structure of the data: fuel varies predictably with lap count, rubber accumulation is always monotone-increasing, temperature can move in either direction, and constructor pace is identified across drivers within the same team. Sequential residualisation exploits each of these structural features in turn.
+
+## Estimation order
+
+<Steps>
+
+### Fuel
+
+Estimate fuel first it is physically the most constrained term. Fuel mass is computable directly from lap number and circuit length using the known tank capacity and average burn rate. The weight penalty $w$ is calibrated per circuit from clean stints (no safety car, no pit in/out) where tyre age is low enough that the compound term is still minimal. Subtract the fuel component and pass the residual forward.
+
+### Compound, rubber, and ambient (jointly)
+
+Estimate these three terms together from the fuel-adjusted residual panel. Use their distinct structural signatures to separate them:
+
+- **Compound** is identified by stint-level within-driver variation the same driver on the same tyre compound at the same circuit, but at different tyre ages.
+- **Rubber** is identified by its monotone-increasing signature over the race: grip always improves as rubber builds on the racing line, never the reverse.
+- **Ambient** is identified because it can move in either direction temperature rises and falls which distinguishes it from rubber even when both are changing simultaneously.
+
+### Constructor
+
+Estimate constructor pace from the compound + rubber + ambient residual using the panel structure. A constructor's structural pace relative to the field is identified by cross-driver variation within the same team in the same race. Two drivers in the same car should share the same constructor offset; any difference between them flows into their individual driver residuals.
+
+### Dirty air
+
+Regress the constructor-adjusted residual against `dirty_air_share` the proportion of each lap run in aerodynamic wake, computed from position gaps between cars on each lap. The dirty-air coefficient $\theta$ is calibrated from this partial residual panel. Because all five prior terms have already been subtracted, any remaining correlation with dirty-air share is attributable to aerodynamic disruption rather than confounding from fuel load or tyre state.
+
+### Driver residual
+
+Take everything that remains. The driver skill residual is the closure: `pace_delta` minus the sum of all five preceding components. It is not estimated independently see [The Seven-Term Identity](/decomposition/seven-term-identity) for why that design choice matters.
+
+</Steps>
+
+## Tyre cliff: Kaplan-Meier survival analysis
+
+The lap at which a compound's grip deteriorates sharply is not a fixed number. It varies by circuit, compound, ambient temperature, driver weight, and stint history. A Hard compound at Suzuka cliffs far later than a Soft at Bahrain.
+
+Off The Pace estimates cliff onset $\tau$ using Kaplan-Meier survival analysis on stint populations. Each stint is one observation that either reaches the cliff (an event) or ends before it (a censored observation, because the team pitted before the cliff arrived). The KM estimator produces a survival function the probability that a tyre survives to each lap and the cliff onset estimate is the median survival time.
+
+This is the same estimator used in clinical drug trials for time-to-event outcomes. The critical property: it handles censoring correctly. A stint that pits on lap 18 is **not** a missed cliff at lap 18 it is a censored observation at lap 17. Treating it as an event would systematically underestimate cliff onset across every circuit-compound group.
+
+Cliff parameters are stored in `dim_compounds_season`, one row per `(circuit, compound, season)`, covering 401 groups in the current seeds.
+
+## Clean lap filter
+
+Not all laps are usable for coefficient estimation. The `clean_lap_filter` macro excludes:
+
+- Pit-in and pit-out laps (tyre age jumps, outlap grip anomalies)
+- Safety car laps (artificial pace reduction)
+- Virtual safety car laps
+- Laps with rain
+- Lap 1 (grid effects, multi-car incidents)
+- Laps with race-control interference (crashes, FCY, etc.)
+
+The `correction_weight` column in `fct_lap_residuals` reflects how clean each lap is. A value of 1.0 means fully clean. Partial weights indicate laps with some interference that were included but down-weighted.
+
+## Teammate baseline
+
+The purest way to isolate driver skill is within-team comparison: two drivers in the same car, in the same race, under the same conditions. A synthetic teammate residual is computed by comparing each driver's residual to their teammate's on equivalent laps same lap number, same compound, same correction weight. This approach strips away any remaining car-quality signal and exposes the human contribution more cleanly than the full-panel estimate. The synthetic teammate signal feeds into the downstream ML models.
+
+## What the model does not claim
+
+The decomposition is **attributive**, not causal in the strict do-calculus sense. When the model says a car lost 0.4 s to dirty air on lap 32, it means 0.4 s of that lap's pace deficit is attributable to aerodynamic disruption not that the car would have been exactly 0.4 s faster in clean air. That counterfactual claim requires additional assumptions about race dynamics, tyre response, and driver behaviour that the model does not make.
+
+Attribution is more defensible than counterfactual prediction, and it is sufficient for the stated purpose: ranking the causes of a pace deficit by magnitude and communicating them clearly.
+
+<CardGroup cols={2}>
+  <Card title="Seven-Term Identity" icon="sigma" href="/decomposition/seven-term-identity">
+    The full additive equation and the CI invariant that enforces it
+  </Card>
+  <Card title="Tyre Cliff" icon="chart-line-down" href="/decomposition/tyre-cliff">
+    How Kaplan-Meier cliff detection feeds into per-lap ML prediction
+  </Card>
+</CardGroup>

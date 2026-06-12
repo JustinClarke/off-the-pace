@@ -1,0 +1,68 @@
+---
+title: "Off The Pace: Seven-Term F1 Lap Decomposition Analytics"
+sidebarTitle: "Introduction"
+description: "Off The Pace decomposes every F1 lap into seven additive components, so you can attribute lost time to an exact, named cause not just 'pace'."
+---
+
+Off The Pace answers a question that F1 commentary almost never does: when a car is off the pace, *exactly* why? Every lap in a race is pulled down by fuel weight, tyre wear, track temperature, the car's structural speed relative to the field, the aerodynamic penalty of following another car, and the driver's own execution. A single lap time number conflates all of those causes simultaneously. Off The Pace separates them subtracting each measurable physical factor in sequence and defining whatever remains as the driver's contribution.
+
+## The core question
+
+A driver who looks slow on lap 40 might be managing a tyre cliff, carrying dirty air from the car ahead, or simply running heavier fuel than the rest of the field. Any of those causes would make a fast driver look slow. Without decomposition, you cannot tell the difference. Off The Pace makes the attribution precise: if the dirty air component reads `+0.4 s` on lap 32, the car lost 400 ms to aerodynamic wake on that lap full stop.
+
+## The seven-term identity
+
+Every lap satisfies one equation:
+
+```
+pace_delta = fuel + compound + rubber + ambient + constructor + dirty_air + driver_skill
+```
+
+Each term has units of seconds relative to the field baseline. Positive means slower than the field; negative means faster. The seven terms are:
+
+| Term | What it captures |
+|---|---|
+| **Fuel component** | Weight penalty from remaining fuel mass positive and decreasing through the race |
+| **Compound component** | Tyre degradation a hockey-stick polynomial that steepens after the tyre cliff |
+| **Rubber component** | Track evolution grip improvement as rubber builds on the racing line; typically negative |
+| **Ambient component** | Track temperature deviation from session baseline higher temps reduce grip |
+| **Constructor component** | Team's structural pace relative to the field median, fixed per race-year-constructor |
+| **Dirty air component** | Pace penalty for running in aerodynamic wake, proportional to `dirty_air_share` |
+| **Driver skill residual** | The closure whatever remains after all six physics terms are subtracted |
+
+The driver skill residual is not estimated independently. It is defined as the difference between the observed pace delta and the sum of all six physics terms. This design choice is intentional: it ensures the identity holds exactly and prevents the residual from absorbing model error.
+
+## An enforced invariant, not a stated one
+
+The additive identity is tested on every single lap in CI. If the seven terms on any lap fail to sum to zero within 0.1 ms floating-point tolerance, the build fails and the merge is blocked:
+
+```sql
+-- Enforced by dbt test on every lap in every race
+select count(*) from fct_lap_residuals
+where abs(pace_delta_s - (
+  fuel_component_s + compound_component_s + rubber_component_s +
+  ambient_component_s + constructor_component_s + dirty_air_tax_s +
+  driver_skill_residual_s
+)) > 0.0001
+```
+
+A stated invariant is documentation. An enforced invariant is a contract.
+
+## Data coverage and the app
+
+The decomposition runs across **168 races from 2018 through 2024**, sourced from FastF1 and OpenF1. The browser app at [off-the-pace.web.app](https://off-the-pace.web.app) surfaces the full mart no server, no compute cost. DuckDB-Wasm runs SQL in WebAssembly directly in your browser, with queries completing in under 10 ms against the gold Parquet files.
+
+<Note>
+  Off The Pace attributes lap times that *already happened* it is not a lap time prediction model. The ML layer predicts tyre cliff onset and degradation rates, which are inputs to the decomposition, not lap times directly.
+</Note>
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Clone the repo, run `make setup && make dbt-dev`, and query `fct_lap_residuals` with DuckDB in five minutes.
+  </Card>
+  <Card title="The Seven-Term Identity" icon="function" href="/key-concepts">
+    Understand what each of the seven components measures, how the field baseline is constructed, and what sequential residualisation means.
+  </Card>
+</CardGroup>

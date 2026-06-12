@@ -1,0 +1,172 @@
+---
+title: "Quickstart: Query F1 Lap Decompositions with Off The Pace"
+sidebarTitle: "Quick Start"
+description: "Clone the repo, build the local DuckDB warehouse with two make commands, and query fct_lap_residuals to explore seven-term lap decompositions."
+---
+
+The fastest path to working with Off The Pace data is three commands: clone, setup, and build. After that, a local DuckDB file at `data/dev.duckdb` holds the full seven-term decomposition for every lap across 168 races from 2018 to 2024. You can query it from Python, the DuckDB CLI, or any tool that speaks DuckDB. If you prefer to skip the local setup entirely, open [off-the-pace.web.app](https://off-the-pace.web.app) the browser app runs the same gold mart directly in WebAssembly.
+
+## Prerequisites
+
+- **Python 3.11 or higher** the transform layer and coefficient fitters are Python-based
+- **Git** to clone the repository
+- **Make** all pipeline commands are exposed as `make` targets; run `make help` for a full list
+- **Node.js v18+ and pnpm** only needed if you want to run the React app or docs site locally
+
+## Set up the local warehouse
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the Off The Pace repository from GitHub and move into the project root:
+
+    ```bash
+    git clone https://github.com/justinclarke/off-the-pace
+    cd off-the-pace
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    Run `make setup` to create a Python virtual environment and install all Python and dbt dependencies. No cloud credentials are required everything runs locally.
+
+    ```bash
+    make setup
+    ```
+  </Step>
+
+  <Step title="Build the transform layer">
+    Run `make dbt-dev` to execute all 46 dbt models and write the output to `data/dev.duckdb`. This builds the full pipeline from Bronze Parquet through staging and intermediate physics to the gold feature marts.
+
+    ```bash
+    make dbt-dev
+    ```
+
+    The build takes a few minutes on first run. Once it completes, `data/dev.duckdb` contains every model including `fct_lap_residuals`.
+  </Step>
+
+  <Step title="(Optional) Run the test suite">
+    Verify the build, including the CI-enforced additive identity across all 168 races, by running the full 339-test suite:
+
+    ```bash
+    make dbt-test
+    ```
+
+    If `assert_additive_identity` passes, every lap in the dataset satisfies the seven-term equation to within 0.1 ms.
+  </Step>
+</Steps>
+
+## Query fct_lap_residuals
+
+The primary mart is `fct_lap_residuals`. Each row is one lap driven by one driver in one race session. All component columns are in seconds relative to the field baseline positive means slower than the field, negative means faster.
+
+### Key columns
+
+| Column | Description |
+|---|---|
+| `race_year` | Season (2018–2024) |
+| `event_name` | Race name, e.g. `"British Grand Prix"` |
+| `driver_code` | Three-letter driver abbreviation, e.g. `"HAM"` |
+| `lap_number` | Lap number within the race |
+| `pace_delta_s` | Total deviation from the field baseline (seconds) |
+| `fuel_component_s` | Fuel weight penalty contribution |
+| `compound_component_s` | Tyre degradation curve contribution |
+| `rubber_component_s` | Track evolution (rubber build-up) contribution |
+| `ambient_component_s` | Track temperature deviation contribution |
+| `constructor_component_s` | Team structural pace contribution |
+| `dirty_air_tax_s` | Aerodynamic wake penalty |
+| `driver_skill_residual_s` | Closure pace_delta minus all six physics terms |
+
+### Python example
+
+Query the mart from Python using the `duckdb` package:
+
+```python
+import duckdb
+
+con = duckdb.connect("data/dev.duckdb")
+
+df = con.execute("""
+    SELECT
+        race_year,
+        event_name,
+        driver_code,
+        lap_number,
+        pace_delta_s,
+        fuel_component_s,
+        compound_component_s,
+        rubber_component_s,
+        ambient_component_s,
+        constructor_component_s,
+        dirty_air_tax_s,
+        driver_skill_residual_s
+    FROM fct_lap_residuals
+    WHERE race_year = 2023
+      AND event_name = 'British Grand Prix'
+    ORDER BY driver_code, lap_number
+""").fetchdf()
+
+print(df.head(20))
+```
+
+### Verify the additive identity yourself
+
+Confirm that the seven components sum back to `pace_delta_s` on every lap the same invariant that CI enforces:
+
+```sql
+-- Run in DuckDB CLI: duckdb data/dev.duckdb
+SELECT
+    COUNT(*) AS total_laps,
+    COUNT(*) FILTER (
+        WHERE abs(
+            pace_delta_s - (
+                fuel_component_s
+                + compound_component_s
+                + rubber_component_s
+                + ambient_component_s
+                + constructor_component_s
+                + dirty_air_tax_s
+                + driver_skill_residual_s
+            )
+        ) > 0.0001
+    ) AS laps_violating_identity
+FROM fct_lap_residuals;
+```
+
+A correct build returns `laps_violating_identity = 0`.
+
+### Find the largest driver skill contributions
+
+Sort by `driver_skill_residual_s` to surface the laps where a driver ran furthest from what the physics predicted:
+
+```python
+import duckdb
+
+con = duckdb.connect("data/dev.duckdb")
+
+top_skill = con.execute("""
+    SELECT
+        race_year,
+        event_name,
+        driver_code,
+        lap_number,
+        round(driver_skill_residual_s, 3) AS skill_s,
+        round(pace_delta_s, 3)            AS pace_delta_s
+    FROM fct_lap_residuals
+    WHERE driver_skill_residual_s IS NOT NULL
+    ORDER BY driver_skill_residual_s ASC   -- most negative = furthest ahead of physics
+    LIMIT 20
+""").fetchdf()
+
+print(top_skill)
+```
+
+<Tip>
+  Negative `driver_skill_residual_s` means the driver ran faster than the physics terms predict a genuine performance surplus. Positive means they ran slower.
+</Tip>
+
+## Explore visually in the browser
+
+If you want to explore decompositions without writing SQL, open the browser app at [off-the-pace.web.app](https://off-the-pace.web.app). It queries the same gold mart using DuckDB-Wasm running entirely in your browser no server, no API key, sub-10 ms queries. Use the season, race, and driver filters to slice the data, then switch to the Query Lab pillar to run arbitrary SQL against the mart directly.
+
+<Note>
+  The browser app streams Parquet files from Firebase Storage on first load. Subsequent queries are fully local the data is already in the browser's DuckDB instance.
+</Note>

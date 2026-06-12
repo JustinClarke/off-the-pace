@@ -98,12 +98,22 @@ classified AS (
             ELSE NULL
         END AS lap_time_ratio_to_fastest,
 
-        -- Slow outlier flag (>120% of fastest-severe incident / full neutralisation)
+        -- Severe outlier: hard-exclude only laps above outlier_exclude_ratio × fastest
+        -- (genuine in-laps / incidents). The [1.20, ratio) band is a soft outlier,
+        -- down-weighted rather than nuked, so heavy-fuel / traffic laps are salvaged.
+        CASE
+            WHEN l.lap_time_s IS NOT NULL AND rf.fastest_lap_s IS NOT NULL
+                THEN l.lap_time_s > {{ var('outlier_exclude_ratio', 1.40) }} * rf.fastest_lap_s
+            ELSE FALSE
+        END AS is_major_outlier_lap,
+
+        -- Soft outlier band: slower than 120% but below the hard-exclude ratio.
         CASE
             WHEN l.lap_time_s IS NOT NULL AND rf.fastest_lap_s IS NOT NULL
                 THEN l.lap_time_s > 1.20 * rf.fastest_lap_s
+                     AND l.lap_time_s <= {{ var('outlier_exclude_ratio', 1.40) }} * rf.fastest_lap_s
             ELSE FALSE
-        END AS is_major_outlier_lap
+        END AS is_soft_outlier_lap
 
     FROM laps l
     LEFT JOIN sc_windows sc
@@ -112,6 +122,39 @@ classified AS (
         USING (lap_id)
     LEFT JOIN race_fastest rf
         USING (race_year, race_id)
+),
+
+-- Manual race-watch overrides. A row with lap_number set targets a single lap; a row
+-- with NULL lap_number applies to every lap of that driver in the race. event_type
+-- 'salvage' (override 1.0) rescues a lap the heuristic killed; other types let a human
+-- mark spins / lockups / damage the automatic classifier missed.
+manual AS (
+    SELECT
+        race_year,
+        race_id,
+        driver_id,
+        lap_number,
+        event_type                              AS manual_event_type,
+        correction_weight_override              AS manual_weight
+    FROM {{ ref('seed_manual_lap_exceptions') }}
+),
+
+with_manual AS (
+    SELECT
+        c.*,
+        COALESCE(m_lap.manual_event_type, m_all.manual_event_type) AS manual_event_type,
+        COALESCE(m_lap.manual_weight, m_all.manual_weight)         AS manual_weight
+    FROM classified c
+    LEFT JOIN manual m_lap
+        ON c.race_year  = m_lap.race_year
+        AND c.race_id   = m_lap.race_id
+        AND c.driver_id = m_lap.driver_id
+        AND c.lap_number = m_lap.lap_number
+    LEFT JOIN manual m_all
+        ON c.race_year  = m_all.race_year
+        AND c.race_id   = m_all.race_id
+        AND c.driver_id = m_all.driver_id
+        AND m_all.lap_number IS NULL
 )
 
 SELECT
@@ -130,16 +173,23 @@ SELECT
     is_pit_lap,
     is_deleted,
     is_major_outlier_lap,
+    is_soft_outlier_lap,
     is_fastf1_generated,
+    manual_event_type,
 
-    -- Composite correction class mutually exclusive, priority ordered
+    -- Composite correction class mutually exclusive, priority ordered.
+    -- A manual override always wins, so a human decision is never silently overruled.
     CASE
+        WHEN manual_event_type IS NOT NULL
+            THEN 'manual_' || manual_event_type
         WHEN is_deleted OR is_major_outlier_lap OR is_fastf1_generated
             THEN 'exclude'
         WHEN is_safety_car_lap OR is_vsc_lap OR is_restart_lap OR is_pre_controlled_lap
             THEN 'neutralisation'
         WHEN is_pit_lap
             THEN 'pit'
+        WHEN is_soft_outlier_lap
+            THEN 'soft_outlier'
         WHEN is_local_yellow_lap
             THEN 'yellow'
         ELSE 'clean'
@@ -149,6 +199,8 @@ SELECT
     --   1.0 = no adjustment, 0.0 = fully excluded from aggregates
     --   Partial weights allow soft-down-weighting without hard exclusion
     CASE
+        WHEN manual_weight IS NOT NULL
+            THEN manual_weight
         WHEN is_deleted OR is_major_outlier_lap OR is_fastf1_generated
             THEN 0.0
         WHEN is_safety_car_lap OR is_vsc_lap
@@ -157,6 +209,8 @@ SELECT
             THEN 0.3
         WHEN is_pit_lap
             THEN 0.0
+        WHEN is_soft_outlier_lap
+            THEN 0.6
         WHEN is_local_yellow_lap
             THEN 0.6
         ELSE 1.0
@@ -164,5 +218,5 @@ SELECT
 
     lap_time_ratio_to_fastest
 
-FROM classified
+FROM with_manual
 ORDER BY race_year, race_id, driver_id, lap_number

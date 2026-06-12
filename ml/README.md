@@ -2,7 +2,7 @@
 
 XGBoost degradation models trained on `fct_cliff_prediction_features` (the gold lap-grain mart).
 Reads the warehouse **read-only**; publishes artefacts to `ml/models/` (never to `app/`-application layer pulls).
-Narrative docs: [Machine Learning section](../docs/docs/machine-learning/index.md) · auto-generated [model card](../docs/docs/reference/ml/degradation-model-v1.mdx).
+Narrative docs: [Machine Learning section](../docs/machine-learning/index.md) · auto-generated [model card](../docs/reference/ml/degradation-model-v1.mdx).
 
 ## Five production artefacts
 - `degradation_regressor_p10_v1`, `_p50_v1`, `_p90_v1`-quantile trio for next-lap fuel-corrected pace jump (s).

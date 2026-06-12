@@ -167,7 +167,7 @@ export default function QuantileFanChart({
             />
           )}
 
-          {/* p50 median line — shift by offset for display */}
+          {/* p50 median line shift by offset for display */}
           <Line
             type="monotone"
             dataKey="p50"
@@ -177,7 +177,7 @@ export default function QuantileFanChart({
             isAnimationActive={false}
           />
 
-          {/* Actual overlay — shift by offset for display */}
+          {/* Actual overlay shift by offset for display */}
           {hasActual && (
             <Line
               type="monotone"

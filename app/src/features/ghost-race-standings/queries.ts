@@ -8,12 +8,17 @@ export interface GhostStandingsRow {
   race_id: string
   ego_driver_id: string
   host_constructor_id: string
+  is_self_scenario: boolean
   predicted_finish_position: number
   actual_finish_position: number | null
-  delta_vs_actual_position: number
+  delta_vs_actual_position: number | null
+  predicted_mean_lap_s: number
   predicted_total_race_time_s: number
   actual_total_race_time_s: number | null
   laps_counted: number
+  race_distance_laps: number
+  lap_coverage: number
+  is_short_run: boolean
   avg_recombination_confidence: number
 }
 
@@ -91,12 +96,17 @@ export const queryGhostStandings = registerQuery<
         race_id,
         ego_driver_id,
         host_constructor_id,
+        is_self_scenario,
         predicted_finish_position,
         actual_finish_position,
         delta_vs_actual_position,
+        predicted_mean_lap_s,
         predicted_total_race_time_s,
         actual_total_race_time_s,
         laps_counted,
+        race_distance_laps,
+        lap_coverage,
+        is_short_run,
         avg_recombination_confidence
       FROM fct_ghost_race_finish
       WHERE race_id = ?

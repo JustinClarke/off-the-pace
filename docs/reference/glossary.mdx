@@ -1,0 +1,207 @@
+---
+title: "Glossary of F1 analytics and lap decomposition terms"
+sidebarTitle: "Glossary"
+description: "Definitions for every F1 domain term, decomposition component, tyre model concept, and ML metric used throughout the Off The Pace documentation."
+---
+
+Every term in these docs has a precise meaning. This glossary collects those definitions in one place, organized by category, so you can check the exact definition of any concept without hunting through individual pages. Terms that appear in column names are shown with their `snake_case` identifier alongside the plain-English label.
+
+---
+
+## Decomposition Terms
+
+These terms describe the seven-term additive identity at the heart of Off The Pace the equation that breaks every race lap into its measurable physical causes.
+
+<AccordionGroup>
+
+<Accordion title="Pace delta (pace_delta_s)">
+The difference between a driver's lap time and the field baseline, in seconds. Positive means the driver is slower than the field; negative means faster. Every decomposition term is expressed as a contribution to `pace_delta_s`, not to the raw lap time. This normalisation removes the circuit characteristic (Monza runs ~80 s per lap, Singapore ~100 s) so that a residual of −0.4 s carries the same meaning at every venue: 400 ms faster than the field median, net of all physics.
+</Accordion>
+
+<Accordion title="Field baseline (base_track_pace_s)">
+The trimmed-mean field pace computed over a 5-lap centred window at each point in the race. The fastest and slowest 10% of cars are excluded before computing the mean to remove drivers on extreme strategies or with mechanical issues. A driver running at exactly the field baseline pace will have `pace_delta_s ≈ 0`.
+</Accordion>
+
+<Accordion title="Seven-term identity">
+The additive equation that defines how Off The Pace decomposes every race lap:
+
+```
+pace_delta = fuel + compound + rubber + ambient + constructor + dirty_air + driver_skill
+```
+
+Six measurable physics terms plus one closure term (driver skill) that captures everything else. This is an exact identity, not an approximation it is enforced to within 0.1 ms floating-point tolerance on every lap in every race via a CI test. If any model change breaks the identity, the build fails.
+</Accordion>
+
+<Accordion title="Fuel component">
+The pace penalty attributable to the car's current fuel mass, in seconds. Computed as `weight_penalty × estimated_fuel_mass`, where the weight penalty is calibrated per circuit based on corner count and average lateral G. The fuel term is always positive and decreases monotonically through the race a driver on lap 3 of a 55-lap stint is typically 0.8–1.0 s slower than their end-of-race pace from fuel alone. At Monaco the penalty reaches ~0.025 s/kg; at Monza ~0.018 s/kg; at Suzuka ~0.035 s/kg.
+</Accordion>
+
+<Accordion title="Compound component">
+The pace penalty attributable to tyre degradation, modelled as a hockey-stick polynomial against tyre age. The model is quadratic before the cliff onset lap (τ) and steeper after it. Coefficients and τ are stored per `(circuit, compound, season)` in `dim_compounds_season`. For a Soft compound at a high-wear circuit, the full trajectory from new tyres to the cliff can span 1.5–2.5 s of pace loss.
+</Accordion>
+
+<Accordion title="Rubber component">
+The pace improvement attributable to track evolution the grip increase as rubber laid by earlier cars builds on the racing line. The rubber term is typically negative (faster pace) and grows through the first 30–40 laps of a race before plateauing. It is identified from the fuel-adjusted residual panel using the fact that rubber accumulation is monotonically increasing while temperature can move in either direction.
+</Accordion>
+
+<Accordion title="Ambient component">
+The pace effect of track temperature deviation from the session's thermal baseline. Higher track temperatures reduce tyre grip, particularly for Soft compounds operating near their thermal ceiling. Identified jointly with the rubber component using their opposite time-series signatures.
+</Accordion>
+
+<Accordion title="Constructor component">
+The team's structural pace advantage or deficit relative to the field median, estimated from a panel fixed-effects regression across race-year-constructor combinations. Pre-computed from 2018–2024 historical data. Subtracting the constructor term means the driver skill residual reflects execution, not machinery.
+</Accordion>
+
+<Accordion title="Dirty air component">
+The pace penalty a driver incurs from running in the aerodynamic wake of the car ahead. Computed as `θ × dirty_air_share`, where θ is the seconds-per-unit-share coefficient calibrated from the partial residual panel after all prior terms have been subtracted.
+</Accordion>
+
+<Accordion title="Driver skill residual">
+The closure term of the seven-term identity. Defined as `pace_delta` minus the sum of all six physics terms it is not estimated independently. This is intentional: it ensures the identity holds exactly and prevents the residual from absorbing model error. A large negative driver residual means the driver is running faster than the physics predicts; a large positive residual means the opposite.
+</Accordion>
+
+<Accordion title="Sequential residualisation">
+The estimation strategy used to separate the seven terms from one another. Because all physics effects are active on every lap simultaneously, the model estimates them in order of decreasing physical identifiability fuel first, then compound + rubber + ambient jointly, then constructor, then dirty air subtracting each estimated term before estimating the next. The driver residual is what remains after all six physics terms have been subtracted.
+</Accordion>
+
+<Accordion title="Additive identity">
+The mathematical guarantee that all seven decomposition terms sum exactly to `pace_delta_s` for every lap. Enforced as an automated test on every build: if any lap violates the identity by more than 0.1 ms, the build fails and the merge is blocked.
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## Tyre Terms
+
+These terms describe how Off The Pace models tyre degradation, the tyre cliff, and the survival analysis approach used to estimate cliff timing.
+
+<AccordionGroup>
+
+<Accordion title="Tyre cliff">
+The lap at which a tyre compound's grip deteriorates sharply, causing lap times to increase by 1–2+ seconds within a small number of laps. The cliff is not a fixed number it varies by circuit, compound, ambient temperature, driver weight, and stint history. Off The Pace estimates cliff onset per `(circuit, compound, season)` using Kaplan-Meier survival analysis.
+</Accordion>
+
+<Accordion title="Cliff onset (τ)">
+The median lap at which the tyre cliff occurs for a given `(circuit, compound, season)` combination, estimated via Kaplan-Meier survival analysis on the historical stint population. τ is stored in `dim_compounds_season` and used as the kink point in the hockey-stick polynomial. 401 circuit-compound groups are covered in the current seed data.
+</Accordion>
+
+<Accordion title="Hockey-stick polynomial">
+The functional form used to model the compound component against tyre age. It is quadratic (smooth) before the cliff onset lap τ, then switches to a steeper linear slope after τ to capture the rapid post-cliff degradation acceleration. The kink at τ is what gives the model its hockey-stick shape when plotted against lap number.
+</Accordion>
+
+<Accordion title="Kaplan-Meier survival analysis">
+The non-parametric statistical estimator used to estimate tyre cliff onset. Each stint is treated as an observation that either reaches the cliff (event) or ends before the cliff (censored). The Kaplan-Meier estimator produces the survival function the probability that a tyre survives to each lap and cliff onset is taken as the median survival time. This is the same estimator used in clinical trials for time-to-event outcomes.
+</Accordion>
+
+<Accordion title="Censored observation">
+A stint that ends before the tyre cliff is observed because the driver pitted, the race ended, or a safety car intervened. A censored observation is not a "no cliff at this lap"; it is correctly counted as an observation that survived up to that lap, without revealing whether the cliff would have occurred later. Kaplan-Meier handles censoring correctly; ignoring it would systematically underestimate cliff onset.
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## Data and Model Terms
+
+These terms describe data quality concepts, lap eligibility criteria, and the ML metrics used to evaluate Off The Pace's predictive models.
+
+<AccordionGroup>
+
+<Accordion title="Clean lap">
+A lap that is eligible for coefficient estimation. The pipeline excludes pit-in and pit-out laps, safety car laps, VSC laps, laps with rain, lap 1, and any lap with known anomalies. Only clean laps are used to fit degradation coefficients, the rubber index, or the dirty air tax.
+</Accordion>
+
+<Accordion title="Correction weight">
+A 0–1 value that quantifies how clean a given lap is. A weight of 1.0 indicates a fully clean lap suitable for training. Partial weights indicate laps with partial interference (for example, a lap that briefly ran under yellow flag). Weights below a model-specific threshold are excluded from coefficient fitting.
+</Accordion>
+
+<Accordion title="Dirty air share (dirty_air_share)">
+The proportion of a lap that a driver spent running in another car's aerodynamic wake, expressed as a value between 0 and 1. Derived from on-track position gaps. A `dirty_air_share` of 0.8 means the driver spent 80% of the lap in disturbed airflow.
+</Accordion>
+
+<Accordion title="Stint">
+A continuous run on one set of tyres, bounded by pit stops or the start and end of the race. Each stint carries a 1-indexed stint number and a tyre age counter that resets to 1 after every pit stop.
+</Accordion>
+
+<Accordion title="Tyre age">
+The number of laps completed on the current tyre set, stored as `TyreLife` in the Bronze laps schema and as `tyre_age_laps` in Silver and Gold models. Tyre age is the primary independent variable in the compound component polynomial.
+</Accordion>
+
+<Accordion title="Quantile trio (p10 / p50 / p90)">
+The three outputs from the ML degradation prediction model for next-lap pace. Together they form an 80% prediction interval: you can expect the actual value to fall between p10 and p90 roughly 80% of the time. p50 is the point estimate. The trio is surfaced in the UI as an uncertainty band around the predicted degradation curve.
+</Accordion>
+
+<Accordion title="Macro-F1">
+The primary evaluation metric for the tyre cliff classifier. Macro-F1 averages the F1 score across all four prediction classes (no cliff, cliff imminent, cliff occurring, cliff passed) treating each class equally, regardless of how frequently it appears in the data. This prevents the metric from being dominated by the most common class (no cliff).
+</Accordion>
+
+<Accordion title="ONNX (Open Neural Network Exchange)">
+The model serialization format used for all Off The Pace ML models. ONNX enables cross-platform inference the same model file trained in Python can run in-browser via WebAssembly, or server-side without a Python runtime. The cliff classifier and degradation regressor are both exported as `.onnx` files at the end of each training run.
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## F1 Terms
+
+These terms cover the Formula 1 concepts that appear throughout the pipeline and UI, with the specific meaning each carries in the Off The Pace context.
+
+<AccordionGroup>
+
+<Accordion title="DRS (Drag Reduction System)">
+A movable rear-wing element that reduces aerodynamic drag on designated straights when a driver is within one second of the car ahead. DRS activation is recorded as a boolean `drs` field in the Bronze telemetry schema. In the decomposition, DRS interaction is part of the dirty air attribution: the car behind may benefit from DRS while simultaneously suffering downforce loss from the wake, creating a net effect that varies by circuit.
+</Accordion>
+
+<Accordion title="VSC (Virtual Safety Car)">
+A race neutralisation procedure that requires all drivers to maintain a prescribed delta time without deploying a physical safety car. VSC periods produce artificially slow laps but cause less pace disruption than a full safety car. Laps under VSC are excluded from the clean lap filter.
+</Accordion>
+
+<Accordion title="Safety car (SC)">
+A physical safety car deployed on track that neutralises the race and bunches the field. Safety car laps are excluded from the clean lap filter entirely. The `TrackStatus` field in the Bronze laps schema uses code `4` for safety car and `6` for VSC.
+</Accordion>
+
+<Accordion title="Outlap">
+The lap immediately after a driver exits the pit lane following a tyre change. Tyres are not yet at optimal operating temperature, and the driver typically drives cautiously to build temperature before pushing. Outlaps are marked `PitOutLap = true` in the laps schema and are excluded from all coefficient estimation.
+</Accordion>
+
+<Accordion title="Inlap">
+The final lap of a stint before the driver enters the pit lane to change tyres. The driver typically begins managing the tyres earlier in this lap, making the recorded time unrepresentative of the compound's true pace at that age. Inlaps are marked `PitInLap = true` and are excluded from coefficient estimation.
+</Accordion>
+
+<Accordion title="Stint length">
+The total number of laps completed in a single stint, from outlap to inlap inclusive. Stint length determines the maximum observed tyre age and is a key input to the Kaplan-Meier cliff analysis short stints yield censored observations at their final lap.
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## Data Engineering Terms
+
+These terms describe the storage architecture and pipeline tooling that Off The Pace uses to process F1 data from raw ingestion to model-ready features.
+
+<AccordionGroup>
+
+<Accordion title="Medallion architecture">
+The three-layer data organisation pattern used throughout the Off The Pace pipeline: Bronze (raw ingested data), Silver (cleaned and standardised staging models), and Gold (feature marts ready for ML training or dashboard queries). Each layer adds quality and structure without modifying the layers below.
+</Accordion>
+
+<Accordion title="Bronze layer">
+The raw ingestion layer. Data arrives from FastF1 and OpenF1 exactly as returned by those APIs, stored as Snappy-compressed Parquet files Hive-partitioned by season and race. No transformations are applied at this layer Bronze is the source of truth for all downstream models.
+</Accordion>
+
+<Accordion title="Hive partitioning">
+A directory naming convention that encodes partition keys in the folder path, allowing query engines to skip entire directories when a filter matches. Off The Pace Bronze data uses `season=YYYY/race=<event-slug>/` partitions. Always include `season` in your `WHERE` clause to avoid full scans across all years.
+</Accordion>
+
+<Accordion title="FastF1">
+The open-source Python library used to fetch historical F1 lap timing, telemetry, and weather data from the Ergast and F1 livetiming APIs. All Bronze-layer data originates from FastF1. Known limitations include missing livetiming data for 2018 Rd1 and Rd2, and a `session_time_s` regression in v3.8.3 affecting 2024 race control data.
+</Accordion>
+
+<Accordion title="dbt (data build tool)">
+The SQL-based transformation framework used to build all Silver and Gold models. dbt applies software engineering practices testing, documentation, version control to data pipeline SQL. The seven-term additive identity is enforced as a dbt test on every build.
+</Accordion>
+
+</AccordionGroup>

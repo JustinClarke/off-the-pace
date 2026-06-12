@@ -9,12 +9,17 @@ function makeRow(overrides: Partial<GhostStandingsRow> = {}): GhostStandingsRow 
     race_id: '2024_1',
     ego_driver_id: 'HAM',
     host_constructor_id: 'mercedes',
+    is_self_scenario: false,
     predicted_finish_position: 1,
     actual_finish_position: 1,
     delta_vs_actual_position: 0,
+    predicted_mean_lap_s: 94.7,
     predicted_total_race_time_s: 5400,
     actual_total_race_time_s: 5400,
     laps_counted: 57,
+    race_distance_laps: 57,
+    lap_coverage: 1,
+    is_short_run: false,
     avg_recombination_confidence: 0.85,
     ...overrides,
   }
@@ -58,20 +63,29 @@ describe('transform', () => {
     expect(r.scenarios[0].minConfidence).toBeCloseTo(0.4)
   })
 
-  it('marks self-scenario when delta is 0 and confidence >= 0.9', () => {
+  it('marks self-scenario from the mart column', () => {
     const rows = [
-      makeRow({ delta_vs_actual_position: 0, avg_recombination_confidence: 0.95 }),
+      makeRow({ is_self_scenario: true }),
     ]
     const r = transform(rows)
     expect(r.scenarios[0].entries[0].isSelfScenario).toBe(true)
   })
 
-  it('does not mark self-scenario when delta != 0', () => {
+  it('does not mark self-scenario when the column is false', () => {
     const rows = [
-      makeRow({ delta_vs_actual_position: 2, avg_recombination_confidence: 0.95 }),
+      makeRow({ is_self_scenario: false, delta_vs_actual_position: 0 }),
     ]
     const r = transform(rows)
     expect(r.scenarios[0].entries[0].isSelfScenario).toBe(false)
+  })
+
+  it('passes through a null delta (DNF) without coercing it', () => {
+    const rows = [
+      makeRow({ delta_vs_actual_position: null, is_short_run: true, lap_coverage: 0.2 }),
+    ]
+    const r = transform(rows)
+    expect(r.scenarios[0].entries[0].delta).toBeNull()
+    expect(r.scenarios[0].entries[0].isShortRun).toBe(true)
   })
 
   it('CONFIDENCE_FLOOR matches the filter applied in the mart (0.3)', () => {

@@ -2,7 +2,7 @@
   "model_card": {
     "name": "Off the Pace-Tyre Degradation Predictors",
     "version": "v1",
-    "generated_at": "2026-06-01T17:54:07.151979+00:00",
+    "generated_at": "2026-06-12T08:44:39.770135+00:00",
     "summary": "Five XGBoost models predicting next-lap tyre-degradation pace loss (quantile trio p10/p50/p90), laps-until-cliff class, and remaining stint life, from per-lap thermal, dirty-air, powertrain, weather and compound-prior features. Trained on 2018–2024 F1 laps; every model beats a strong per-cohort baseline.",
     "intended_use": "Race-strategy analysis and the Off the Pace web app (application layer): surfacing when a stint is about to fall off the degradation cliff and how much pace a driver is leaving on track. Not a betting or safety system.",
     "data": {
@@ -320,7 +320,7 @@
         "majority_class_accuracy": 0.1691174695158759,
         "lift_over_chance": 0.8308463117228058,
         "n_seasons": 7,
-        "note": "X carries strong residual temporal signal-race_year recoverable far above chance; race_year is correctly excluded from features"
+        "note": "X carries strong residual temporal signal race_year recoverable far above chance; race_year is correctly excluded from features"
       },
       "dual_importance": {
         "degradation_regressor_p50": {
@@ -338,7 +338,7 @@
             "pct_drs_active",
             "age_in_stint"
           ],
-          "agreement_note": "top-5 differ on: dirty_air_thermal_load_bulk, pct_drs_active-likely correlated features or leakage pressure"
+          "agreement_note": "top-5 differ on: dirty_air_thermal_load_bulk, pct_drs_active likely correlated features or leakage pressure"
         },
         "cliff_classifier": {
           "shap_top5": [
@@ -354,7 +354,7 @@
             "cumulative_push_load_bulk",
             "ambient_temp_delta"
           ],
-          "agreement_note": "top-5 differ on: ambient_temp_delta, cumulative_push_load_bulk, lap_in_stint, lap_number, push_residual-likely correlated features or leakage pressure"
+          "agreement_note": "top-5 differ on: ambient_temp_delta, cumulative_push_load_bulk, lap_in_stint, lap_number, push_residual likely correlated features or leakage pressure"
         },
         "stint_life_regressor": {
           "shap_top5": [

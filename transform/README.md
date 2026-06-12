@@ -9,13 +9,13 @@ Batch transformation for **Off The Pace**. Reads Bronze Hive-partitioned Parquet
 **New contributor?** Start here:
 - [Getting Started](../README.md#quickstart)-10-minute local setup
 - [Project Architecture](../README.md#repo-layout)-understand the repo layout
-- [Contributing](../CONTRIBUTING.md)-PR workflow and checklist
+- [Contributing](../.github/CONTRIBUTING.md)-PR workflow and checklist
 
 **Reference & Explanation:**
-- [Docusaurus Documentation Site](https://off-the-pace.onrender.com)
-- [Goal & Approach](https://off-the-pace.onrender.com/understand/goal-and-approach)-core thesis and the seven-term identity
-- [Methodology](https://off-the-pace.onrender.com/understand/methodology)-detailed physics-informed approach
-- [Limitations](https://off-the-pace.onrender.com/understand/limitations)-current scope and boundaries
+- [Documentation Site](https://offthepace.mintlify.app)
+- [Goal & Approach](https://offthepace.mintlify.app/decomposition/seven-term-identity) - core thesis and the seven-term identity
+- [Methodology](https://offthepace.mintlify.app/decomposition/methodology) - detailed physics-informed approach
+- [Limitations](https://offthepace.mintlify.app/decomposition/limitations) - current scope and boundaries
 
 ---
 
@@ -128,7 +128,7 @@ transform/
 
 New to dbt? Each `.sql` file under `models/` is a `SELECT` statement-dbt materialises it as a view or table. `{{ ref('x') }}` is a typed dependency; dbt sorts the DAG and runs models in topological order, so you never manage `DROP/CREATE` ordering manually.
 
-See the [SQL Developer Fast-Path](https://off-the-pace.onrender.com/learn-dbt/for_sql_developers) for an annotated walkthrough, or the [Learn dbt](https://off-the-pace.onrender.com/learn-dbt) series for the full guide.
+See the [Quick Start](https://offthepace.mintlify.app/quickstart) page in the documentation site for setup and query details.
 
 ---
 

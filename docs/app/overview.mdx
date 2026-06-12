@@ -1,0 +1,75 @@
+---
+title: "Off The Pace app: browser-native F1 analytics"
+sidebarTitle: "App Overview"
+description: "A zero-server React app powered by DuckDB-Wasm and ONNX. Parquet files load in your browser; every SQL query runs locally in under 10 ms."
+---
+
+Off The Pace is a browser-native F1 analytics application deployed at [off-the-pace.web.app](https://off-the-pace.web.app). There is no compute server when you open the app, your browser downloads Parquet files, loads them into DuckDB-Wasm running in WebAssembly, and executes SQL queries locally in under 10 ms. The ML models (XGBoost quantile regressors, cliff classifiers, stint-life regressors) are bundled as ONNX and scored in-browser. Nothing you interact with touches a backend at runtime.
+
+## Architecture
+
+Data loads in your browser no server processes your queries. Three layers run entirely inside your browser tab:
+
+```
+Parquet files  ·  ONNX model bundles
+      ↓
+DuckDB-Wasm  (WebAssembly, sub-10 ms SQL)
+      ↓
+Charts, simulators, and query editor
+```
+
+The Parquet files are the same gold-mart tables produced by the dbt pipeline `fct_lap_residuals`, `fct_driver_skill_features`, `fct_cliff_prediction_features`, `dim_compounds_season`, and a handful of dimension tables. A manifest resolves every table path at runtime so you always query the latest published build.
+
+## Available visualizations
+
+The app is organized into content pillars. The following are **live** and available today:
+
+| Pillar | Path | What you get |
+|---|---|---|
+| **Drivers** | `/drivers` | Driver consistency charts and era-normalized skill ratings |
+| **The Machine** | `/ml` | ML model metrics, blind-test scoreboard, and the degradation simulator |
+| **Query Lab** | `/query` | A full SQL editor run any query against the gold mart in-browser |
+
+<Note>
+  The following pillars are deployed as placeholders and are **coming soon**: Races, Ghost Car, Lap Decomposition (full), Tyre & Strategy, Aero & Conditions, Race Craft, Constructors, Energy & Telemetry, and Data Quality.
+</Note>
+
+## How to use the app
+
+1. Navigate to [off-the-pace.web.app](https://off-the-pace.web.app).
+2. Use the **filter bar** at the top of every page to select a season and, where relevant, a specific race.
+3. Pick a pillar from the sidebar to explore the visualization you want.
+4. The **engine status indicator** in the top bar shows when DuckDB-Wasm has finished loading queries run as soon as it turns green.
+
+## Explore the feature pages
+
+<CardGroup cols={2}>
+  <Card
+    title="Driver Consistency"
+    icon="chart-scatter"
+    href="/app/driver-consistency"
+  >
+    Understand how reliably each driver extracts pace from the car across laps and seasons, using the residual skill signal from the seven-term decomposition.
+  </Card>
+  <Card
+    title="Tyre Degradation Simulator"
+    icon="sliders"
+    href="/app/tyre-degradation-simulator"
+  >
+    Dial a compound, fuel load, and conditions to watch the XGBoost degradation models score a full stint live in your browser.
+  </Card>
+  <Card
+    title="Lap Waterfall"
+    icon="chart-waterfall"
+    href="/app/lap-waterfall"
+  >
+    Decompose any lap into its eight additive causes fuel, compound, rubber, ambient, constructor, dirty air, driver skill, and unexplained noise and verify the identity closes.
+  </Card>
+  <Card
+    title="Query Lab"
+    icon="terminal"
+    href="https://off-the-pace.web.app/query"
+  >
+    Write raw SQL against the full gold mart directly in the browser. No credentials, no server just DuckDB-Wasm and Parquet.
+  </Card>
+</CardGroup>

@@ -37,5 +37,5 @@ export const methodologyContent = (
   </>
 )
 
-export const methodologyHref = 'https://off-the-pace.onrender.com/reference/models/fct/fct_lap_residuals'
+export const methodologyHref = 'https://offthepace.mintlify.app/reference/models/fct/fct_lap_residuals'
 

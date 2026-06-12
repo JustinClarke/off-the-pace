@@ -17,7 +17,7 @@ are served from a public Firebase Storage bucket so the hosting deployment stays
 
 ## Why Firebase Storage for data?
 
-- Full CORS control via `gsutil cors set` — sets `Access-Control-Allow-Origin: *` on
+- Full CORS control via `gsutil cors set` sets `Access-Control-Allow-Origin: *` on
   all objects, which GitHub Pages cannot do
 - `Cross-Origin-Resource-Policy` is not required on Storage responses because COEP
   `require-corp` only blocks responses that lack CORP when fetched as "no-cors" mode;
@@ -38,7 +38,7 @@ self-hosted and are copied at build time by `scripts/copy-runtime-assets.mjs`:
 | `public/duckdb/` | `duckdb-eh.wasm` + `duckdb-browser-eh.worker.js` |
 | `public/ort/` | ONNX Runtime Web WASM + MJS files |
 
-**DuckDB EH bundle only** — MVP and COI are excluded. COI uses shared memory which
+**DuckDB EH bundle only** MVP and COI are excluded. COI uses shared memory which
 causes the Parquet extension to fail with "mismatch in shared state of memory". MVP is
 unused. Do not add them back without re-testing Parquet reads end-to-end.
 
@@ -67,10 +67,10 @@ All data and model paths flow through this constant:
 
 ### Rules
 
-- **Run local CI before every commit** — all three checks must pass before pushing to GitHub.
-- **Deploy to Firebase manually after pushing** — no automated CI deploy; you control when it goes live.
-- **Data/model uploads to Storage are independent** — they are build artefacts, not source code. Upload any time with `gsutil`, no commit needed.
-- **Always build before deploying** — Firebase serves whatever is in `app/dist/`, it does not trigger a build.
+- **Run local CI before every commit** all three checks must pass before pushing to GitHub.
+- **Deploy to Firebase manually after pushing** no automated CI deploy; you control when it goes live.
+- **Data/model uploads to Storage are independent** they are build artefacts, not source code. Upload any time with `gsutil`, no commit needed.
+- **Always build before deploying** Firebase serves whatever is in `app/dist/`, it does not trigger a build.
 
 ### Local CI (run before every commit)
 
@@ -89,7 +89,7 @@ firebase deploy --only hosting --project off-the-pace
 
 ### Update data/models in Storage
 
-After regenerating data or retraining models — no commit required:
+After regenerating data or retraining models no commit required:
 
 ```bash
 # Parquet marts
@@ -99,7 +99,7 @@ gsutil -m cp -r app/dist/data gs://off-the-pace-cdn/
 gsutil -m cp -r app/dist/models gs://off-the-pace-cdn/
 ```
 
-Uploads are live immediately — Storage has no staging/release concept.
+Uploads are live immediately Storage has no staging/release concept.
 
 ### Rollback the app
 

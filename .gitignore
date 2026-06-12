@@ -1,6 +1,6 @@
 skills-lock.json
 
-# Firebase service account keys — never commit
+# Firebase service account keys never commit
 *firebase-adminsdk*.json
 service-account*.json
 
@@ -111,4 +111,4 @@ agents/
 .agents/
 data/dev.duckdb.tmp/
 graphify-out/
-docs/static/project-graph.html
+docs/project-graph.html

@@ -1,0 +1,68 @@
+---
+title: "Known limitations of the lap decomposition pipeline"
+sidebarTitle: "Limitations"
+description: "Understand where the decomposition model is reliable, where estimates carry more uncertainty, and what data the FIA and FastF1 do not expose."
+---
+
+Documenting limitations precisely is a strength, not a weakness. Every number the decomposition produces is only as trustworthy as your understanding of where it holds and where it does not. This page draws a clear line between modelling limitations things that better calibration or more code could improve and the fundamental data ceiling set by what the FIA and FastF1 actually publish.
+
+## Modelling limitations
+
+### 1. Sequential residualisation propagates error
+
+The estimation strategy (see [Methodology](/decomposition/methodology)) subtracts each term in order and operates on the residual. Estimation error in an early term propagates into every downstream term, including the driver residual. If the fuel weight penalty is miscalibrated for a circuit with few qualifying stints, the compound and driver estimates absorb that error.
+
+The CI invariant proves the arithmetic closes exactly. It cannot prove the coefficients are physically correct. Trust driver residuals most at circuits where all upstream terms are well-calibrated, and treat them with more caution where any upstream term carries high uncertainty.
+
+### 2. Tyre coefficients need sufficient data
+
+The Kaplan-Meier survival estimates and hockey-stick polynomial coefficients are estimated per `(circuit, compound, season)`. Groups with fewer than approximately 8 qualifying stints produce high-variance estimates. Currently **24 circuits** in `dim_circuits` carry a `REVIEW_REQUIRED` flag on weight penalty calibration, reflecting limited telemetry coverage or unusual tyre behaviour at those venues.
+
+The `dim_compounds_season` seed covers 401 groups. Not all are equally well-calibrated.
+
+### 3. 2025 data not yet ingested
+
+The model was trained on 2018–2024. 2025 OpenF1 data is publicly available but has not yet been ingested into the Bronze layer. Until that ingestion is complete, the decomposition produces no 2025 laps. Out-of-sample validation against 2025 data is planned for after the ML layer is finalised.
+
+### 4. No 2018 Rounds 1–2 telemetry
+
+F1 did not publish live timing telemetry until mid-season 2018. Rounds 1 and 2 (Australia and Bahrain) have no telemetry data in the Bronze layer. This does not affect decompositions for other races, but it means 2018 is slightly underrepresented in coefficient estimation.
+
+### 5. Weather granularity is session-level
+
+Track temperature and weather data are sourced at session resolution. Within-race variation afternoon temperature rises, brief cloud cover is captured only coarsely by the ambient component. Compounds with high temperature sensitivity at circuits with strong afternoon temperature gradients (Bahrain, Abu Dhabi) may carry less precise decompositions as a result. Higher-resolution ambient modelling is possible with OpenF1's 1 Hz weather data but is not yet implemented.
+
+### 6. Constructor coefficients are pre-season priors
+
+Constructor structural pace priors are estimated from 2018–2024 data and held fixed during the 2025 validation window. A team that undergoes a major performance shift mid-season a large floor upgrade or a regulatory regression will have a stale constructor coefficient. The driver residual absorbs that difference until the constructor model is refitted.
+
+### 7. ML cliff prediction is v1
+
+The machine layer (see [Tyre Cliff](/decomposition/tyre-cliff) for how it works) is built and beats a strong per-cohort baseline across all three target families. The honest remaining constraint is narrower: the **cliff classifier is the weakest model**, with a macro-F1 of approximately 0.37 on the 4-class cliff timing problem. It decisively outperforms the majority prior, but absolute skill on the rare imminent-cliff windows (`0_to_2` laps) is modest. There is also no live 2025 holdout yet headline numbers come from time-series cross-validation with the final fold at 2024. They will convert to a true out-of-sample reveal once 2025 data is ingested.
+
+<Warning>
+  Circuits with `REVIEW_REQUIRED` flags in `dim_circuits` have limited telemetry coverage or unusual tyre behaviour that reduces calibration quality. Treat driver residuals and compound estimates at these circuits with extra caution until the flags are cleared.
+</Warning>
+
+## Data ceiling
+
+The limitations above are modelling choices improvable with better calibration or additional code. The limits below are fundamental: they follow from what the FIA and FastF1 expose, regardless of how much modelling effort goes in. State them plainly; the project's credibility comes from modelling around them honestly.
+
+| Limit | Consequence | How addressed |
+|---|---|---|
+| No tyre temperature or pressure | Degradation is always inferred from lap-time decay, never measured directly | Modelled as a latent decay from clean-lap pace; validated against stint shapes, not ground truth; uncertainty is explicit |
+| No actual fuel load | Fuel correction is modelled, not observed fuel mass is inferred from lap count and known burn rates | Assumed burn rate is explicit and seeded; sensitivity-testable |
+| No setup data (wing angle, ride height, diff, camber) | Car setup is confounded with constructor; cannot separate "good car" from "good setup" | Absorbed into constructor + circuit-interaction terms and labelled as confounded |
+| No ERS state-of-charge or deployment map | Energy management is proxied from throttle, RPM, and speed patterns | Used as a control proxy, not ground truth |
+| Telemetry is ~10 Hz interpolated | Lossy for micro-corner and exact pass-instant work | Aggregate features preferred; lap `position` used as backstop for events |
+
+None of these limits invalidate the decomposition framework. They define where current estimates should be treated with more caution, where data improvements would help most, and what the roadmap is addressing next.
+
+<CardGroup cols={2}>
+  <Card title="Seven-Term Identity" icon="sigma" href="/decomposition/seven-term-identity">
+    The additive equation and the CI invariant that keeps it honest
+  </Card>
+  <Card title="Methodology" icon="flask" href="/decomposition/methodology">
+    How sequential residualisation separates the six physics terms
+  </Card>
+</CardGroup>

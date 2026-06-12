@@ -40,4 +40,4 @@ export const methodologyContent = (
 )
 
 export const methodologyHref =
-  'https://off-the-pace.onrender.com/reference/models/int/int_compound_cliff_predicted'
+  'https://offthepace.mintlify.app/reference/models/int/int_compound_cliff_predicted'

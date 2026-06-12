@@ -57,7 +57,6 @@ TABLES: list[tuple[str, str, str | None, bool]] = [
 
     # ── Small marts (load once) ────────────────────────────────────────────
     ("fct_driver_skill_features",  "facts",       None,        False),
-    ("fct_racecraft",              "facts",       None,        False),
     ("fct_ghost_race_finish",      "facts",       None,        False),
     ("fct_stint_features",         "facts",       None,        False),
 
@@ -77,25 +76,16 @@ TABLES: list[tuple[str, str, str | None, bool]] = [
     ("int_compound_cliff_predicted",              "intermediates", None, False),
     ("int_tyre_surface_vs_bulk_decoupling",        "intermediates", None, False),
     ("int_synthetic_teammate",                    "intermediates", None, False),
-    ("int_track_geometry",                        "intermediates", None, False),
-    ("int_corner_metrics",                        "intermediates", None, False),
     ("int_track_evolution",                       "intermediates", None, False),
+    ("int_corner_metrics",                        "intermediates", None, False),
     ("int_field_pace_curve",                      "intermediates", None, False),
     ("int_pit_strategy_value",                    "intermediates", None, False),
     ("int_corner_skill_residuals",                "intermediates", None, False),
-    ("int_penalties",                             "intermediates", None, False),
-    ("int_wind_component",                        "intermediates", "race_year", False),
-    ("int_air_density",                           "intermediates", "race_year", False),
 
     # ── Large intermediates (partition by season) ──────────────────────────
     ("int_lap_air_state",          "intermediates", "race_year", False),
-    ("int_lap_energy_management",  "intermediates", "race_year", False),
     ("int_lap_anomaly_flags",      "intermediates", "race_year", False),
-    ("int_overtakes",              "intermediates", "race_year", False),
-    ("int_race_control_events",    "intermediates", "race_year", False),
     ("int_sector_residual_decomposed", "intermediates", "race_year", True),
-    ("int_lap_powertrain_signature",   "intermediates", "race_year", False),
-    ("int_lap_line_deviation",         "intermediates", "race_year", True),
 
     # ── Tables without race_year (join-enriched below) ─────────────────────
     # int_dirty_air_tax_component: join via fct_lap_residuals on lap_id → add race_year
@@ -113,9 +103,19 @@ ENRICHED_TABLES: list[tuple[str, str]] = [
     ("int_coast_tax_component",     "intermediates"),
 ]
 
-# Optional tables that may be unavailable (stg_ depends on raw bronze files)
+# Optional tables that may be unavailable (stg_ depends on raw bronze files;
+# some int_ models not yet built in all environments)
 OPTIONAL_TABLES: list[tuple[str, str, str | None, bool]] = [
-    ("stg_pits", "intermediates", "race_year", False),
+    ("stg_pits",                   "intermediates", "race_year", False),
+    ("fct_racecraft",              "facts",         None,        False),
+    ("int_penalties",              "intermediates", None,        False),
+    ("int_wind_component",         "intermediates", "race_year", False),
+    ("int_air_density",            "intermediates", "race_year", False),
+    ("int_lap_energy_management",  "intermediates", "race_year", False),
+    ("int_overtakes",              "intermediates", "race_year", False),
+    ("int_race_control_events",    "intermediates", "race_year", False),
+    ("int_lap_powertrain_signature","intermediates","race_year", False),
+    ("int_lap_line_deviation",     "intermediates", "race_year", True),
 ]
 
 # Wave-0 subset: just enough for the canary feature (#14) and platform validation
@@ -474,8 +474,7 @@ def _run_export_to(
                 entry = export_enriched(conn, name, dest, size_report)
                 manifest_entries.append(entry)
             except Exception as e:
-                print(f"\n  ❌  FAILED enriched: {name}: {e}")
-                sys.exit(1)
+                _progress(f"{name}  →  skipped (optional enriched: {e})")
 
         preds_entry = export_predictions_mart(out_root, size_report)
         if preds_entry:

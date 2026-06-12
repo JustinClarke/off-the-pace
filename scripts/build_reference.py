@@ -2,10 +2,10 @@
 build_reference.py   Entry point for all reference doc generation.
 
 Runs all four generators in sequence:
-  1. gen_dbt_reference.py    dbt manifest → docs/docs/reference/models/
-  2. gen_schema_reference.py   JSON schemas → docs/docs/reference/schemas/
-  3. gen_cli_reference.py    --help output → docs/docs/reference/cli/
-  4. gen_macro_reference.py   macro docstrings → docs/docs/reference/macros/
+  1. gen_dbt_reference.py    dbt manifest → docs/reference/models/
+  2. gen_schema_reference.py   JSON schemas → docs/reference/schemas/
+  3. gen_cli_reference.py    --help output → docs/reference/cli/
+  4. gen_macro_reference.py   macro docstrings → docs/reference/macros/
 
 Usage:
   python scripts/build_reference.py           # run all generators
@@ -16,7 +16,7 @@ Usage:
 
 CI drift check (in GitHub Actions):
   python scripts/build_reference.py
-  git diff --exit-code docs/docs/reference/
+  git diff --exit-code docs/reference/
 """
 
 import argparse

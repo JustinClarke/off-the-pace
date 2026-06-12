@@ -1,0 +1,111 @@
+---
+title: "dim_compounds_season: tyre compound parameters"
+sidebarTitle: "dim_compounds_season"
+description: "Per-circuit, per-compound, per-season tyre parameters: Kaplan-Meier cliff onset, wear gradient, grip peak, and hockey-stick polynomial coefficients."
+---
+
+`dim_compounds_season` is the reference table that tells every other model in Off The Pace how a specific tyre compound behaves at a specific circuit in a specific season. Each row holds the Kaplan-Meier-estimated cliff onset, the fitted degradation polynomial coefficients, the optimal temperature window, and governance metadata everything the decomposition pipeline and the ML models need to convert a raw lap time into a physically meaningful component. You will rarely query this table directly in analysis, but you will see its columns surfaced across `fct_lap_residuals` and `fct_cliff_prediction_features` wherever compound physics appear.
+
+## Grain
+
+One row per `(circuit_key, compound_code, season)`. The current seed contains **401 groups**.
+
+## Columns
+
+### Identifiers
+
+<ParamField path="circuit_key" type="varchar">
+  The canonical circuit identifier used across all Off The Pace tables (e.g. `"bahrain"`, `"monza"`). Joins to `dim_circuits` on `circuit_key`.
+</ParamField>
+
+<ParamField path="compound_code" type="varchar">
+  The tyre compound name: `SOFT`, `MEDIUM`, `HARD`, `INTERMEDIATE`, or `WET`.
+</ParamField>
+
+<ParamField path="season" type="integer">
+  The Formula 1 season year for which these parameters were fitted (e.g. `2023`).
+</ParamField>
+
+### Cliff onset
+
+<ParamField path="compound_cliff_onset_laps" type="double">
+  The Kaplan-Meier estimated median cliff onset, expressed as tyre age in laps into the stint. This is the `p50` of the survival distribution fitted across all stints on this compound × circuit × season. The decomposition pipeline uses this value to determine when the post-cliff acceleration term activates.
+</ParamField>
+
+<ParamField path="compound_cliff_severity" type="double">
+  The fitted post-cliff degradation acceleration, in seconds per lap. Once `age_in_stint` exceeds `compound_cliff_onset_laps`, the compound component grows at this accelerated rate in addition to the baseline wear gradient.
+</ParamField>
+
+### Degradation polynomial coefficients
+
+The compound degradation curve is modelled as a piecewise polynomial: a hockey-stick with a quadratic pre-cliff phase and a steeper linear post-cliff phase. The four coefficients below define the full curve.
+
+<ParamField path="compound_grip_peak" type="double">
+  The fitted peak grip coefficient for this compound × circuit × season the theoretical maximum performance level at optimal tyre age and temperature.
+</ParamField>
+
+<ParamField path="compound_wear_gradient" type="double">
+  The baseline wear gradient in seconds per lap, describing how quickly the compound loses performance before cliff onset. A higher value means the tyre degrades faster in normal operation.
+</ParamField>
+
+<ParamField path="compound_optimal_temp_low" type="double">
+  The lower bound of the compound's optimal operating temperature window (°C). Performance drops when track or tyre temperatures fall below this threshold.
+</ParamField>
+
+<ParamField path="compound_optimal_temp_high" type="double">
+  The upper bound of the compound's optimal operating temperature window (°C). Performance and durability degrade and cliff risk rises when temperatures exceed this threshold.
+</ParamField>
+
+### Governance metadata
+
+<ParamField path="fit_date" type="date">
+  The date on which the cliff parameters were last estimated. Re-fit this table when a new season is ingested by running `make coefficients-fit`.
+</ParamField>
+
+<ParamField path="data_window" type="varchar">
+  A description of the historical data range used to fit these parameters (e.g. `"2018-2024"`).
+</ParamField>
+
+<ParamField path="notes" type="varchar">
+  Free-text notes recorded during fitting typically used to flag unusual circuits, reduced sample sizes, or manual overrides applied after automated fitting.
+</ParamField>
+
+## Example query
+
+The following query retrieves the expected cliff onset and degradation curve for the Soft compound at Bahrain in the 2023 season:
+
+```sql
+-- Compound parameters for Bahrain Soft 2023
+SELECT
+  circuit_key,
+  compound_code,
+  season,
+  compound_cliff_onset_laps,
+  compound_cliff_severity,
+  compound_wear_gradient,
+  compound_optimal_temp_low,
+  compound_optimal_temp_high,
+  fit_date
+FROM dim_compounds_season
+WHERE circuit_key  = 'bahrain'
+  AND compound_code = 'SOFT'
+  AND season        = 2023;
+```
+
+## Reliability flag
+
+<Warning>
+  Some circuit × compound × season groups have insufficient historical stint data to produce reliable parameter estimates. These groups are flagged with `notes` values indicating low confidence. When you are working at circuits or with compounds that have sparse historical coverage, **treat all derived components with extra caution**: `compound_component_s` in `fct_lap_residuals` and `driver_skill_residual_s` will carry higher variance than usual, and cliff onset predictions from `fct_cliff_prediction_features` may be unreliable. Filter your analysis to circuits and compounds where the sample is adequate before drawing strategic conclusions.
+</Warning>
+
+<Tip>
+  To find all groups that may need review, run:
+
+  ```sql
+  SELECT circuit_key, compound_code, season, notes
+  FROM dim_compounds_season
+  WHERE notes IS NOT NULL
+    AND notes != ''
+  ORDER BY season DESC, circuit_key, compound_code;
+  ```
+</Tip>

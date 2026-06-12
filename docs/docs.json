@@ -1,0 +1,90 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "luma",
+  "name": "Off The Pace",
+  "colors": {
+    "primary": "#e40404"
+  },
+  "logo": {
+    "light": "https://media.brand.dev/ac2251a0-45a7-490a-8cdc-9a56a531fba3.svg",
+    "dark": "https://media.brand.dev/ac2251a0-45a7-490a-8cdc-9a56a531fba3.svg"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/JustinClarke/off-the-pace"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "key-concepts",
+              "repo-tour"
+            ]
+          },
+          {
+            "group": "The Decomposition",
+            "pages": [
+              "decomposition/seven-term-identity",
+              "decomposition/methodology",
+              "decomposition/tyre-cliff",
+              "decomposition/limitations"
+            ]
+          },
+          {
+            "group": "Machine Learning",
+            "pages": [
+              "ml/overview",
+              "ml/models",
+              "ml/validation"
+            ]
+          },
+          {
+            "group": "App & Visualizations",
+            "pages": [
+              "app/overview",
+              "app/driver-consistency",
+              "app/tyre-degradation-simulator",
+              "app/lap-waterfall"
+            ]
+          },
+          {
+            "group": "Case Studies",
+            "pages": [
+              "findings/overview",
+              "findings/sao-paulo-2021"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Data Models",
+            "pages": [
+              "reference/fct-lap-residuals",
+              "reference/fct-cliff-prediction-features",
+              "reference/fct-ghost-car-pace",
+              "reference/dim-compounds-season"
+            ]
+          },
+          {
+            "group": "Glossary & Schemas",
+            "pages": [
+              "reference/glossary",
+              "reference/data-schemas"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

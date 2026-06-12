@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
 DB = Path(__file__).parent.parent / "data" / "dev.duckdb"
-IMG_DIR = Path(__file__).parent.parent / "docs" / "static" / "img" / "case-studies" / "sao-paulo-2021"
+IMG_DIR = Path(__file__).parent.parent / "docs" / "images" / "case-studies" / "sao-paulo-2021"
 IMG_DIR.mkdir(parents=True, exist_ok=True)
 
 RACE_ID = "2021_19"

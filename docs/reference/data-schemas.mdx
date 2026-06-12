@@ -1,0 +1,178 @@
+---
+title: "Raw data schemas: laps, weather, telemetry, race control"
+sidebarTitle: "Data Schemas"
+description: "The four Bronze-layer Parquet schemas from FastF1 and OpenF1 that feed the decomposition pipeline: laps, weather, telemetry, and race control events."
+---
+
+Before any decomposition can run, four raw datasets must exist on disk. These are the Bronze-layer schemas the unmodified output of the FastF1 and OpenF1 ingestion pipeline, stored as Snappy-compressed Parquet files and Hive-partitioned by season and race. Every Silver and Gold model in the pipeline reads from exactly these four sources, so understanding their structure, quirks, and known gaps will save you debugging time when you query them directly.
+
+---
+
+## What the Bronze layer is
+
+The Bronze layer stores data exactly as returned by the upstream APIs, with no transformations applied. No type coercions, no deduplication, no nullability enforcement beyond what FastF1 itself provides. This makes Bronze the source of truth for auditing pipeline results if a Silver model produces an unexpected value, you trace it back to the Bronze row.
+
+All four datasets are stored under a common partition grammar:
+
+```
+data/bronze/<dataset>/season=<YYYY>/race=<event-slug>/[session=<Q|R>]/<file>.parquet
+```
+
+| Path variable | Values |
+|---|---|
+| `<dataset>` | `laps` \| `weather` \| `race_control` \| `telemetry` |
+| `<YYYY>` | `2018` – `2024` |
+| `<event-slug>` | `EventName` lowercased, spaces replaced with hyphens e.g. `bahrain-grand-prix` |
+| `session=<Q\|R>` | Present for **telemetry only** distinguishes Qualifying from Race sessions |
+
+Always include `season` in your query predicate. The partition pruner uses it to skip entire years; omitting it triggers a full scan across all 168 races.
+
+### Coverage
+
+The pipeline covers **168 races across 2018–2024**, with one known gap:
+
+<Note>
+  Telemetry data for **2018 Rd1 and Rd2** is missing. FastF1's livetiming feed started mid-season in 2018, so no position or channel data was recorded for the Australian and Bahraini rounds. Laps, weather, and race control for those rounds are present. Telemetry coverage is complete from 2018 Rd3 onward.
+</Note>
+
+---
+
+## Laps
+
+The laps dataset is the backbone of every decomposition. Each row represents one lap completed by one driver. A typical race produces 1,000–1,400 rows; a full-grid 70-lap race reaches ~1,400 rows at 20 drivers.
+
+**File pattern:** `bronze/laps/season=YYYY/race=<slug>/YYYY_<slug>_laps.parquet`
+
+**Example:** 2024 Bahrain Grand Prix 23 drivers × 57 laps = ~1,311 rows
+
+<Note>
+  `LapTime`, `Sector1Time`, `Sector2Time`, and `Sector3Time` are stored as **nanoseconds** (int64) in Parquet. Convert to seconds with `/ 1000000000.0`.
+</Note>
+
+### Key fields
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `DriverNumber` | `integer` | No | FIA driver number (1–99). |
+| `Driver` | `string` | Yes | Three-letter driver code (e.g. `HAM`, `VER`). |
+| `Team` | `string` | Yes | Constructor name as returned by FastF1. |
+| `LapNumber` | `integer` | No | 1-indexed lap number within the session. Lap 0 is the outlap if present. |
+| `LapTime` | `int64` | Yes | Lap duration in **nanoseconds**. Null for in-progress or invalid laps. |
+| `Stint` | `integer` | Yes | Stint number within the session, 1-indexed. Resets to 1 after each pit stop. |
+| `Compound` | `string` | Yes | Pirelli compound: `SOFT`, `MEDIUM`, `HARD`, `INTERMEDIATE`, `WET`. Null if unknown. |
+| `TyreLife` | `integer` | Yes | Consecutive laps on the current tyre set. Resets to 1 on pit stop. |
+| `FreshTyre` | `boolean` | Yes | `true` if tyre age ≤ 1 lap. Inferred by FastF1 from pit stop data. |
+| `PitOutLap` | `boolean` | Yes | `true` if the driver exited the pit lane on this lap (outlap). |
+| `PitInLap` | `boolean` | Yes | `true` if the driver pitted at the end of this lap (inlap). |
+| `Position` | `integer` | Yes | Race position at end of lap. |
+| `TrackStatus` | `string` | Yes | Single-digit code: `1`=green, `2`=yellow, `3`=virtual safety car, `4`=safety car, `5`=red, `6`=VSC, `7`=red+stopped. |
+| `Sector1Time` | `int64` | Yes | Sector 1 duration in nanoseconds. |
+| `Sector2Time` | `int64` | Yes | Sector 2 duration in nanoseconds. |
+| `Sector3Time` | `int64` | Yes | Sector 3 duration in nanoseconds. |
+| `Deleted` | `boolean` | Yes | `true` if the lap time was deleted (e.g. track limits violation). |
+| `IsAccurate` | `boolean` | Yes | FastF1 internal flag `true` if telemetry coverage is complete for this lap. |
+| `race_id` | `string` | No | Pipeline key. Format: `YYYY_RoundNumber`. Links to telemetry and race control. |
+| `session` | `string` | No | `R` for race, `Q` for qualifying. |
+| `season` | `integer` | No | Hive partition key. Always include in `WHERE` clauses. |
+
+### Full column list
+
+The table above covers the fields most commonly used in decomposition queries. The full schema also includes speed trap columns (`SpeedI1`, `SpeedI2`, `SpeedFL`, `SpeedST`), sector session-time columns used for air-gap joins (`Sector1SessionTime`, `Sector2SessionTime`, `Sector3SessionTime`), and housekeeping flags (`FastF1Generated`, `IsPersonalBest`, `LapStartTime`, `PitInTime`, `PitOutTime`). These are documented in their complete form in the JSON schema at `ingestion/schemas/laps.schema.json`.
+
+---
+
+## Weather
+
+The weather dataset provides session-level atmospheric observations sampled approximately once per minute. You use it to identify rain laps (excluded from the clean lap filter), to compute the track temperature deviation that feeds the ambient component, and to flag high-humidity sessions where tyre behaviour deviates from dry-weather models.
+
+**File pattern:** `bronze/weather/season=YYYY/race=<slug>/weather.parquet`
+
+**Example:** 2024 Bahrain Grand Prix race day ~300 samples
+
+### Key fields
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `ambient_temp_c` | `float32` | Yes | Air temperature in Celsius. |
+| `track_temp_c` | `float32` | Yes | Track surface temperature in Celsius. Typically 10–20°C above ambient on sunny days. |
+| `humidity_pct` | `float32` | Yes | Relative humidity, 0–100%. |
+| `rainfall_flag` | `bool` | Yes | `true` if precipitation is detected during this sample period. |
+| `wind_direction` | `int16` | Yes | Wind direction in degrees (0–360°). Null when calm. |
+| `wind_speed_ms` | `float32` | Yes | Wind speed in metres per second. |
+| `pressure_hpa` | `float32` | Yes | Atmospheric pressure in hectopascals. |
+| `session_time_s` | `float64` | Yes | Session elapsed time in seconds when the sample was recorded. Used to join weather observations to lap data. |
+| `session` | `string` | No | `R` for race; also `Q`, `FP1`, `FP2`, `FP3` for non-race sessions. |
+| `race_id` | `string` | No | Links to `laps.race_id`. Format: `YYYY_RoundNumber`. |
+| `season` | `integer` | No | Hive partition key. |
+
+---
+
+## Telemetry
+
+The telemetry dataset is the largest by volume. Each row is one ~10 Hz sample from one car speed, throttle, brake, gear, DRS state, and 3D position. A single race produces 2–5 million rows, so you should always predicate on both `season` and `race_id` before querying.
+
+**File pattern:** `bronze/telemetry/season=YYYY/race=<slug>/session=<Q|R>/telemetry.parquet`
+
+**Example:** 2024 Bahrain Grand Prix 23 drivers × 57 laps × ~300 samples/lap ≈ 3.9M rows
+
+<Warning>
+  **2024 data: `session_time_s` is null.** A regression in FastF1 v3.8.3 (`DatetimeProperties` API change) caused `session_time_s` to be null for all telemetry rows in the 2024 season. Use `lap_number` for joins on 2024 data instead of `session_time_s`. This is a known upstream issue; laps and weather for 2024 are unaffected, but race control `session_time_s` is also null for 2024 see the Race Control section below.
+</Warning>
+
+### Key fields
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `driver_id` | `string` | No | Three-letter driver code (`HAM`, `VER`, etc.). Links to `laps.Driver`. |
+| `lap_number` | `integer` | No | Links to `laps.LapNumber`. Use this for 2024 joins (see warning above). |
+| `speed_kph` | `float32` | Yes | Car speed in kilometres per hour, sampled at ~10 Hz. |
+| `throttle_pct` | `float32` | Yes | Throttle pedal position, 0–100%. |
+| `brake` | `boolean` | Yes | `true` if the brake pedal is applied. |
+| `brake_pct` | `float32` | Yes | Brake pressure, 0–100%. Null if not available from the car's ECU. |
+| `gear` | `integer` | Yes | Current gear (1–8). Null when in neutral or pit lane. |
+| `drs` | `boolean` | Yes | `true` if the DRS flap is open. Null for non-DRS vehicles (e.g. safety car). |
+| `distance_m` | `float32` | Yes | Distance from lap start in metres. Resets to 0 at the start of each lap. |
+| `race_id` | `string` | No | Links to `laps.race_id`. Format: `YYYY_RoundNumber`. |
+| `session` | `string` | No | `R` for race, `Q` for qualifying. |
+| `season` | `integer` | No | Hive partition key. Always include in `WHERE` to avoid scanning all years. |
+
+The 3D position channels (`x_m`, `y_m`, `z_m`) are available in the raw FastF1 output for circuit mapping and overtake detection, but are not stored in the Bronze Parquet files by default they are derived on demand during pipeline processing.
+
+---
+
+## Race Control
+
+The race control dataset captures every message broadcast by race control during a session flag states, safety car deployments, incidents, penalties, and procedural messages. The pipeline uses it to identify laps that must be excluded from the clean lap filter and to mark safety car and VSC windows for downstream models.
+
+**File pattern:** `bronze/race_control/season=YYYY/race=<slug>/race_control.parquet`
+
+**Example:** 2024 Bahrain Grand Prix ~120 messages
+
+<Note>
+  `session_time_s` is **null for all 2024 races** due to the same FastF1 v3.8.3 regression that affects the telemetry schema. For 2024 data, use the `time` column (HH:MM:SS format) or join to laps via `lap` number. The `message` field is free-form text use regex or fuzzy matching to classify message types rather than exact-string comparison.
+</Note>
+
+### Key fields
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| `lap` | `integer` | Yes | Lap number when the message was triggered. Null for pre-race messages (formation lap, parade). |
+| `time` | `string` | Yes | Message timestamp in `HH:MM:SS` session-elapsed format. Not wall clock time. |
+| `session_time_s` | `float64` | Yes | Session elapsed time in seconds. **Null for all 2024 races** use `time` instead. |
+| `flag` | `string` | Yes | Flag status: `YELLOW`, `DOUBLE_YELLOW`, `RED`, `GREEN`, `CHECKERED`. Null for non-flag messages. |
+| `category` | `string` | Yes | Message category: `Weather`, `Incident`, `CarEvent`, `SafetyCar`, `Procedure`, etc. |
+| `message` | `string` | Yes | Free-form human-readable message text (e.g. `"Safety car deployed"`, `"Debris on track"`). |
+| `code` | `string` | Yes | Internal race control code. Format varies by season and message type. |
+| `race_id` | `string` | No | Links to `laps.race_id`. Format: `YYYY_RoundNumber`. |
+| `season` | `integer` | No | Hive partition key. |
+
+---
+
+## Known data issues
+
+Both issues below are upstream FastF1 bugs, not Off The Pace pipeline errors.
+
+| Issue | Scope | Workaround |
+|---|---|---|
+| Missing telemetry 2018 Rd1 and Rd2 | Telemetry only | No workaround. Exclude those rounds from telemetry-dependent analyses. |
+| `session_time_s` null all 2024 races | Telemetry + Race control | Use `lap_number` for telemetry joins; use `time` (HH:MM:SS) or `lap` for race control joins. |

@@ -1,0 +1,95 @@
+---
+title: "The seven-term lap decomposition identity explained"
+sidebarTitle: "Seven-Term Identity"
+description: "Understand the additive identity that breaks every lap into six physics terms plus a driver residual enforced as a CI contract to within 0.1 ms."
+---
+
+Every lap in Off The Pace is governed by a single additive equation. Six measurable physics terms fuel, tyre degradation, track rubber, ambient temperature, constructor pace, and dirty air plus one closure term (driver skill) defined as whatever remains after all six are subtracted. That equation is not an approximation or a modelling convenience: it is an exact identity enforced on every lap in every race, and a failing CI test blocks any merge that breaks it.
+
+## The core identity
+
+$$\text{pace\_delta} = \text{fuel} + \text{compound} + \text{rubber} + \text{ambient} + \text{constructor} + \text{dirty\_air} + \text{driver\_skill}$$
+
+Read each term in seconds relative to the field baseline. Positive values mean slower than the field; negative values mean faster. The terms always sum to exactly `pace_delta` not approximately, but exactly.
+
+## What pace_delta means
+
+`pace_delta` is each lap's deviation from the trimmed-mean field pace, smoothed over a 5-lap centred window. Before computing the median, the fastest and slowest 10% of cars at each lap are excluded to remove cars on extreme strategies or with mechanical issues.
+
+$$\text{pace\_delta} = \text{lap\_time} - \text{base\_track\_pace}$$
+
+A driver running at exactly the field median pace has `pace_delta ≈ 0`. Positive is slower than field; negative is faster. Normalising against the field removes the circuit characteristic Monza averages around 80 s, Singapore around 100 s so a driver residual of −0.4 s at Monza means the same thing as −0.4 s at Singapore: 400 ms faster than the field median, net of all physics.
+
+## The six physics terms
+
+### 1. Fuel
+
+$$\text{fuel} = w \times m_{\text{fuel}}$$
+
+$m_{\text{fuel}}$ is the estimated fuel mass at lap $t$ in kilograms. $w$ is the weight penalty in seconds per kilogram, calibrated per circuit using the corner count and average lateral G:
+
+$$w \approx 0.02 + 0.0002 \times \text{corner\_count} \times \text{avg\_lateral\_g}$$
+
+This gives $w \approx 0.018$ s/kg at Monza (few corners, high speed), $\approx 0.025$ s/kg at Monaco (tight, high corner count), and $\approx 0.035$ s/kg at Suzuka (high downforce, high lateral G). The fuel term is always positive and decreasing: a driver on lap 3 of a 55-lap race runs 0.8–1.0 s slower than their end-of-race pace from fuel mass alone.
+
+### 2. Compound (tyre degradation)
+
+$$\text{compound}(\text{age}) = \beta_0 + \beta_1 \cdot \text{age} + \beta_2 \cdot \text{age}^2 + \beta_3 \cdot \max(0,\, \text{age} - \tau) + \delta_T \cdot \text{temp\_delta}$$
+
+This hockey-stick polynomial captures the full tyre wear trajectory. $\tau$ is the cliff onset lap estimated via Kaplan-Meier survival analysis (see [Tyre Cliff](/decomposition/tyre-cliff)). $\beta_3$ is the post-cliff degradation acceleration the additional pace loss per lap once the cliff begins. $\delta_T \approx 0.005$ s/°C captures temperature sensitivity.
+
+All coefficients and $\tau$ are stored per `(circuit, compound, season)` in `dim_compounds_season`, pre-computed from 2018–2024 data. For a Soft compound at a high-wear circuit, the full trajectory from new tyres to cliff can span 1.5–2.5 s of pace loss.
+
+### 3. Rubber (track evolution)
+
+$$\text{rubber}(t) = \gamma_r \times R(t)$$
+
+$R(t)$ is the race-level rubber accumulation index a smoothed measure of grip improvement as rubber builds on the racing line. The rubber term is typically negative (improving pace), grows through the first 30–40 laps, then plateaus. It is identified from the field pace curve residual after removing fuel and compound contributions.
+
+### 4. Ambient (weather)
+
+$$\text{ambient}(t) = \gamma_a \times \Delta T(t)$$
+
+$\Delta T$ is the track temperature deviation from the session's thermal baseline. Higher temperatures reduce tyre grip, particularly for Soft compounds near their thermal ceiling. The ambient term is identified jointly with the rubber term by exploiting a key asymmetry: rubber accumulation is monotonically increasing over the race, while temperature can move in either direction.
+
+### 5. Constructor
+
+The constructor's structural pace relative to the field median, estimated from a panel fixed-effects regression on race-year-constructor combinations pre-computed from 2018–2024. Subtracting this term removes the car quality signal so the driver residual reflects execution, not machinery.
+
+### 6. Dirty air
+
+$$\text{dirty\_air} = \theta \times \text{dirty\_air\_share}(t)$$
+
+`dirty_air_share` measures the proportion of each lap run in the aerodynamic wake of another car. $\theta$, in seconds per unit share, is calibrated from a partial residual panel after removing fuel, compound, rubber, ambient, and constructor contributions. Higher dirty-air exposure increases pace delta the car simply cannot generate the same downforce in turbulent air.
+
+## Driver skill residual (the closure)
+
+$$\text{driver\_skill} = \text{pace\_delta} - \sum_{\text{terms 1–6}}$$
+
+The driver skill term is defined as the closure not estimated independently, but derived. Subtract all six physics terms from `pace_delta` and whatever remains is the driver's contribution. A large negative residual means the driver is running faster than the physics predicts; a large positive residual means the opposite. Defining it as a closure rather than an independent estimate is intentional: it guarantees the identity holds exactly and prevents the residual from silently absorbing model error.
+
+## The CI invariant
+
+A stated invariant is documentation. An enforced invariant is a contract.
+
+The following SQL test runs in CI on every model change. If it returns any rows meaning any lap where the seven terms diverge from `pace_delta` by more than 0.1 ms the dbt test fails and the merge is blocked:
+
+```sql
+select count(*) from {{ model }}
+where abs(pace_delta_s-(
+  fuel_component_s + compound_component_s + rubber_component_s +
+  ambient_component_s + constructor_component_s + dirty_air_component_s +
+  driver_skill_residual_s
+)) > 0.0001
+```
+
+Every model change must maintain this invariant or explicitly update the test contract. It is the most important engineering property in the project: it means you can trust that every attribution you read was derived from an equation that closed exactly.
+
+<CardGroup cols={2}>
+  <Card title="Methodology" icon="flask" href="/decomposition/methodology">
+    How each physics term is identified and estimated from lap time data
+  </Card>
+  <Card title="Tyre Cliff" icon="chart-line-down" href="/decomposition/tyre-cliff">
+    Kaplan-Meier cliff detection and per-lap ML prediction
+  </Card>
+</CardGroup>

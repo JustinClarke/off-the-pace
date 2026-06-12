@@ -1,7 +1,7 @@
 """
 docs_facts.py   Headline-count reconciliation across key documentation files.
 
-Asserts that the numbers stated in README.md and docs/docs/intro.md agree for:
+Asserts that the numbers stated in README.md, docs/quickstart.mdx, and docs/ml/overview.mdx agree for:
  -dbt model count
  -dbt test count
  -ML model count
@@ -26,7 +26,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 FILES = {
     "README.md": ROOT / "README.md",
-    "docs/docs/intro.md": ROOT / "docs/docs/intro.md",
+    "docs/quickstart.mdx": ROOT / "docs/quickstart.mdx",
+    "docs/ml/overview.mdx": ROOT / "docs/ml/overview.mdx",
 }
 
 # Each fact: (label, regex that must match the same integer in all files that contain it)
@@ -42,9 +43,9 @@ FACTS: list[tuple[str, str]] = [
 # Simpler targeted patterns that are unambiguous in context
 TARGETED: list[tuple[str, re.Pattern]] = [
     ("dbt models", re.compile(r"\b(46)\s+(?:dbt\s+)?models")),
-    ("dbt tests", re.compile(r"\b(339)\s+tests")),
+    ("dbt tests", re.compile(r"\b(339)\s*[- ]\s*tests?")),
     ("ML models", re.compile(r"\b(5)\s+XGBoost\s+models")),
-    ("ML tests", re.compile(r"\b(27)\s+(?:ml\s+)?tests")),
+    ("ML tests", re.compile(r"\b(27)\s+(?:ml\s+)?tests?")),
 ]
 
 

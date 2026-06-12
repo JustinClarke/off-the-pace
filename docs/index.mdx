@@ -1,0 +1,70 @@
+---
+title: "Off The Pace: F1 Lap Decomposition Analytics"
+sidebarTitle: "Home"
+description: "Decompose every F1 lap into seven additive, physically-grounded components. Attribute lost time to fuel load, tyre degradation, dirty air, weather, constructor pace, or driver skill."
+---
+
+Off The Pace answers the question that lap time alone cannot: **when a car is off the pace, exactly why?** Every lap is split into seven named, additive components each measured in seconds so you can see precisely how much pace came from fuel mass, tyre degradation, aerodynamic wake, ambient conditions, constructor speed, and the driver's own execution.
+
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="flag-checkered" href="/introduction">
+    Understand what Off The Pace does and how the seven-term decomposition works.
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Run your first lap decomposition in minutes with DuckDB.
+  </Card>
+  <Card title="Seven-Term Identity" icon="sigma" href="/decomposition/seven-term-identity">
+    The mathematical identity at the core of every lap attribution.
+  </Card>
+  <Card title="Case Studies" icon="chart-bar" href="/findings/overview">
+    Real race decompositions starting with Hamilton vs Verstappen at São Paulo 2021.
+  </Card>
+</CardGroup>
+
+## How it works
+
+Off The Pace ingests raw F1 telemetry from 168 races across 2018–2024 and runs every lap through a physics-first decomposition pipeline. The result is a single additive identity that holds to within 0.1 ms on every lap:
+
+```
+pace_delta = fuel + compound + rubber + ambient + constructor + dirty_air + driver_skill
+```
+
+Each term has physical units (seconds). Positive means slower than the field baseline; negative means faster. The seven terms sum to zero not as an approximation, but as an enforced contract tested in CI on every build.
+
+<Steps>
+  <Step title="Explore the decomposition">
+    Start with the [Seven-Term Identity](/decomposition/seven-term-identity) to understand how each component is defined and why the math is enforced rather than merely stated.
+  </Step>
+  <Step title="Understand the methodology">
+    Read [Methodology](/decomposition/methodology) to see how sequential residualisation separates six physics signals from one another before computing the driver residual.
+  </Step>
+  <Step title="Query the data">
+    Use the [Quick Start](/quickstart) guide to run SQL against `fct_lap_residuals` and pull per-lap component breakdowns for any driver, race, or season.
+  </Step>
+  <Step title="See it in action">
+    Read the [São Paulo 2021 case study](/findings/sao-paulo-2021) for a concrete example: Hamilton vs Verstappen, decomposed lap by lap.
+  </Step>
+</Steps>
+
+## What's inside
+
+<CardGroup cols={3}>
+  <Card title="The Decomposition" icon="atom" href="/decomposition/seven-term-identity">
+    Seven physics terms, one enforced identity.
+  </Card>
+  <Card title="Machine Learning" icon="brain" href="/ml/overview">
+    Five XGBoost models predict tyre cliff onset and degradation rate.
+  </Card>
+  <Card title="App & Visualizations" icon="display" href="/app/overview">
+    Browser-native analytics sub-10ms queries, zero server.
+  </Card>
+  <Card title="Data Models" icon="database" href="/reference/fct-lap-residuals">
+    DuckDB mart tables powering every chart and query.
+  </Card>
+  <Card title="Glossary" icon="book" href="/reference/glossary">
+    F1 and analytics terminology, defined precisely.
+  </Card>
+  <Card title="Limitations" icon="triangle-exclamation" href="/decomposition/limitations">
+    Where the model is strongest and where to be cautious.
+  </Card>
+</CardGroup>

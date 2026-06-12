@@ -1,0 +1,124 @@
+---
+title: "fct_lap_residuals: per-lap decomposition data model"
+sidebarTitle: "fct_lap_residuals"
+description: "The core seven-component additive decomposition mart. One row per race lap, covering every driver, race, and session in the dataset."
+---
+
+`fct_lap_residuals` is the primary output of the Off The Pace decomposition pipeline the table you will reach for most often when you want to understand *why* a lap time was what it was. Every row represents a single race lap driven by a single driver, and carries all seven additive components that together account for that lap time, plus the metadata you need to decide whether to trust the row in a model or query.
+
+## Grain
+
+One row per `(race_year, race_id, driver_id, lap_number)`.
+
+## Additive identity
+
+The decomposition components are guaranteed to satisfy the following identity on every row:
+
+```
+lap_time_s ≈ fuel_component_s
+           + compound_component_s
+           + rubber_component_s
+           + ambient_component_s
+           + constructor_component_s
+           + dirty_air_tax_s
+           + driver_skill_residual_s
+           + track_unexplained_s
+```
+
+The absolute residual from this identity is less than `0.0001 s` on every row. If you ever see a larger gap, the upstream integrity test has failed and the table is in a bad state.
+
+<Note>
+  All component columns are in seconds and share the same sign convention: **positive values mean slower than the field baseline**, negative values mean faster.
+</Note>
+
+## Columns
+
+### Identifiers
+
+<ParamField path="race_year" type="integer">
+  The Formula 1 season year (e.g. `2023`).
+</ParamField>
+
+<ParamField path="race_id" type="varchar">
+  The race event identifier used across all Off The Pace tables.
+</ParamField>
+
+<ParamField path="driver_id" type="varchar">
+  The driver identifier used across all Off The Pace tables.
+</ParamField>
+
+<ParamField path="lap_number" type="integer">
+  The lap number within the race session.
+</ParamField>
+
+### Raw time
+
+<ParamField path="lap_time_s" type="double">
+  The observed raw lap time in seconds as recorded by FIA timing. `NULL` on laps where no valid lap time was logged (out-laps, in-laps, SC laps mislabelled in telemetry).
+</ParamField>
+
+### Decomposition components
+
+<ParamField path="fuel_component_s" type="double">
+  The lap-time contribution from the car's fuel load, in seconds. Derived from the fuel burn model: heavier fuel = slower lap. Typically decreases monotonically across a stint.
+</ParamField>
+
+<ParamField path="compound_component_s" type="double">
+  The lap-time contribution from tyre compound degradation, in seconds. Encodes the fitted degradation curve for the specific compound, circuit, and season from `dim_compounds_season`. Grows as the tyre ages and accelerates sharply after cliff onset.
+</ParamField>
+
+<ParamField path="rubber_component_s" type="double">
+  The lap-time contribution from track surface evolution (rubber laid down by all cars), in seconds. Negative values indicate the track is gripping up; positive values are rare and indicate a disrupted surface (e.g. red flag restart on a cold track).
+</ParamField>
+
+<ParamField path="ambient_component_s" type="double">
+  The lap-time contribution from ambient weather conditions air temperature, track temperature, and air density in seconds. Estimated from the session-level atmospheric model.
+</ParamField>
+
+<ParamField path="constructor_component_s" type="double">
+  The structural pace contribution attributable to the driver's constructor, in seconds. Estimated from the panel model across all drivers within a constructor per season. A positive value means the car is structurally slower than the field median.
+</ParamField>
+
+<ParamField path="dirty_air_tax_s" type="double">
+  The aerodynamic wake penalty in seconds. Positive when the driver spent a significant fraction of the lap in another car's dirty air, reducing downforce and tyre efficiency.
+</ParamField>
+
+<ParamField path="driver_skill_residual_s" type="double">
+  The closure term the remaining pace deviation after all physical components have been subtracted. Captures driver execution, tyre management, and any variance the model could not attribute to a named physical cause. This is the primary input to the ML tyre cliff models.
+</ParamField>
+
+### Quality metadata
+
+<ParamField path="correction_weight" type="double">
+  A weight in the range `[0.0, 1.0]` representing how clean this lap was. `1.0` means a fully clean lap with no contaminating events. Values below `1.0` are assigned by the correction classifier (Safety Car, VSC, local yellows, major outlier). Use this to weight regressions or to exclude noisy rows.
+</ParamField>
+
+<ParamField path="ml_eligible" type="boolean">
+  `TRUE` if this lap is eligible for model training requires `correction_weight = 1.0`, a non-null `compound_component_s` within plausible bounds, and a non-null `lap_time_s`. Use this flag when you want only training-quality rows without writing the full filter yourself.
+</ParamField>
+
+## Example query
+
+The query below compares two drivers on lap 59 of the 2021 São Paulo Grand Prix the lap where the strategic picture diverged most sharply.
+
+```sql
+-- Lap 59 of São Paulo 2021, Hamilton vs Verstappen
+SELECT
+  driver_id,
+  lap_number,
+  lap_time_s,
+  fuel_component_s,
+  compound_component_s,
+  dirty_air_tax_s,
+  driver_skill_residual_s
+FROM fct_lap_residuals
+WHERE race_year = 2021
+  AND race_id   = 'sao_paulo'
+  AND lap_number = 59
+  AND driver_id IN ('hamilton', 'verstappen')
+ORDER BY driver_id;
+```
+
+<Tip>
+  To isolate pure driver execution from strategy effects, filter to `ml_eligible = TRUE` and compare `driver_skill_residual_s` across drivers on the same compound and tyre age. The other components will already have absorbed everything outside the driver's control.
+</Tip>

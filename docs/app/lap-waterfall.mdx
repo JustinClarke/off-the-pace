@@ -1,0 +1,60 @@
+---
+title: "Lap waterfall: visualize the eight-component breakdown"
+sidebarTitle: "Lap Waterfall"
+description: "A waterfall chart showing how fuel, compound, rubber, ambient, constructor, dirty air, driver skill, and track noise each contribute to a driver's pace delta."
+---
+
+The Lap Waterfall chart makes the eight-term additive decomposition tangible. For any driver in any race, it shows you exactly how much of their pace delta their deviation from the field-pace baseline came from each of eight distinct causes, and proves that the eight bars sum exactly to the total. When a driver looks slow, you can see whether the slowness belongs to the car, the tyre strategy, the conditions, or the driver. When a driver looks fast, you can tell whether they are genuinely overdelivering or simply running the lightest fuel and freshest rubber.
+
+## What the chart shows
+
+Each driver gets a waterfall (stacked bar) chart where every segment is one additive component from `fct_lap_residuals`, averaged across all clean laps in the selected race. The segments stack horizontally:
+
+| Component | Column | Typical sign |
+|---|---|---|
+| **Fuel** | `fuel_component_s` | Positive early in race (heavy fuel slows the car) |
+| **Compound** | `compound_component_s` | Negative on faster compounds vs season median |
+| **Rubber** | `rubber_component_s` | Varies by stint position and track state |
+| **Ambient** | `ambient_component_s` | Positive in high-temperature conditions |
+| **Constructor** | `constructor_component_s` | Negative for front-running cars |
+| **Dirty Air** | `dirty_air_tax_s` | Positive (running in wake always costs time) |
+| **Driver Skill** | `driver_skill_residual_s` | Negative if driver outperforms predicted pace |
+| **Track Noise** | `track_unexplained_s` | Residual not attributable to any modelled term |
+
+The first six terms sum to `total_explained_s`. Add driver skill and track noise and you reconstruct `pace_delta_s` exactly. A **closure badge** on the chart verifies that `|Σ components − pace_delta_s| < 1e-4` if the identity does not close, the badge turns red, indicating an export or aggregation bug rather than a modelling issue.
+
+## How to read the bars
+
+- **Bars extending right (positive)** are slowing contributions. A large positive fuel bar early in the race is expected the car is heavy. A large positive constructor bar is not a good sign for the team.
+- **Bars extending left (negative)** are speeding contributions. A strongly negative driver skill bar means the driver is extracting more pace than their exact set of conditions predicts. A negative compound bar means they are on a faster compound than the season median.
+- **The final total** where the stacked bars land is `pace_delta_s`, the driver's average deviation from field baseline across the race.
+
+## How to navigate
+
+1. **Select a season** in the filter bar. The chart defaults to a season average across all races, showing one bar stack per driver.
+2. **Select a race** to narrow the view to a single event. Each driver's bar stack now reflects that race's average clean-lap conditions.
+3. **Click a driver name** in the selector above the chart to highlight their waterfall and focus the view on their decomposition.
+4. If no race is selected, the status label reads *"season average select a race in the filter bar to narrow to one event"* as a reminder.
+
+<Tip>
+  To separate car and strategy effects from driver execution, find a lap where two drivers ran nearly identical stints same compound age, similar fuel load, similar track position and compare their waterfalls side by side. If their constructor bars are similar but one driver's skill bar is significantly more negative, the pace difference is attributable to the driver, not the equipment.
+</Tip>
+
+## Key use case: decomposing a confusing lap
+
+Pick a driver who looked unusually slow (or fast) in a race. Open the Lap Waterfall for that race and driver. Work through the bars:
+
+1. Is the **constructor component** large and positive? The car was off that weekend.
+2. Is the **compound component** large and positive? They were on older or harder tyres than most of the field.
+3. Is the **dirty air tax** high? They spent significant time in traffic.
+4. Only after accounting for all of the above: what does the **driver skill residual** show? If it is still positive after all the above, there may be a genuine execution story.
+
+The waterfall makes this decomposition explicit and arithmetic, not interpretive.
+
+<Note>
+  Safety-car laps and major-outlier laps are excluded before the averages are computed. The filter applied in the query is `NOT is_safety_car_lap AND NOT is_major_outlier_lap AND fuel_component_s IS NOT NULL`. Laps removed by this filter are not shown in the `n_laps` provenance count.
+</Note>
+
+## Data source
+
+The chart queries `fct_lap_residuals` (partitioned by season) via DuckDB-Wasm in the browser. The additive identity is enforced in the warehouse by `assert_additive_identity`, which runs against every lap on every pipeline build. The full table reference is at [fct\_lap\_residuals](/reference/fct-lap-residuals). The data window covers **2018–2024**.

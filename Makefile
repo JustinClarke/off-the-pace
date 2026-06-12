@@ -1,7 +1,7 @@
 .PHONY: setup dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs ingest ingest-all simulate test query \
         coefficients-check coefficients-fit coefficients-promote coefficients-status \
         test-all test-fast lint lint-fix \
-        docs-install docs-reference docs-site docs-audit docs-facts app-install app-dev app-data app-data-check app-data-wave0 app-models app-parity app-build \
+        docs-install docs-reference docs-site docs-audit docs-facts app-install app-dev app-dev-local app-data app-data-check app-data-wave0 app-publish app-publish-dry app-deploy app-models app-parity app-build \
         ml-setup ml-features ml-train ml-tune ml-predict ml-onnx ml-evaluate ml-card ml-reference ml-all ml-test ml-clean \
         clean-logs clean-ds project-graph watch-graph
 
@@ -76,20 +76,25 @@ dbt-docs:
 
 
 ## ─── Ingestion ───────────────────────────────────────────────────────────────────
-## make ingest-all     Pull all 168 races (2018–2024) to Bronze Parquet (~2 GB, 30–45 min)
-## make ingest-recent  Pull 2023–2024 seasons only
-## make test           Run offline ingestion tests (no network, <5 s)
+## make ingest-all              Pull all 168 races (2018–2024) to Bronze Parquet (~2 GB, 30–45 min)
+## make ingest-recent           Pull 2023–2024 seasons only
+## make ingest-v02-phase-a      Pull 2022 with full telemetry/pos_data (Phase A v0.2)
+## make ingest-v02-phase-b      Pull 2018 with full telemetry/pos_data (Phase B v0.2 canary)
+## make test                    Run offline ingestion tests (no network, <5 s)
 ingest:
 	./.venv/bin/python ingestion/src/api_client.py
 
 ingest-all:
-	./.venv/bin/python ingestion/src/ingest.py --start-season 2018 --end-season 2024 --sessions both
+	./.venv/bin/python ingestion/src/ingest.py --start-season 2018 --end-season 2024 --session both
 
 ingest-recent:
-	./.venv/bin/python ingestion/src/ingest.py --start-season 2023 --end-season 2024 --sessions both
+	./.venv/bin/python ingestion/src/ingest.py --start-season 2023 --end-season 2024 --session both
 
 ingest-fix-2024:
-	./.venv/bin/python ingestion/src/ingest.py -s 2024 --sessions R --force
+	./.venv/bin/python ingestion/src/ingest.py -s 2024 --session R --force
+
+ingest-v02:
+	./.venv/bin/python ingestion/src/ingest.py --start-season 2018 --end-season 2024 --session R --force
 
 simulate:
 	./.venv/bin/python ingestion/src/replay_simulator.py --parquet_path data/bronze/2021_bahrain_laps.parquet --race_id 2021_01 --speed 10
@@ -105,15 +110,20 @@ query:
 	./.venv/bin/harlequin data/dev.duckdb
 
 ## ─── Docs ────────────────────────────────────────────────────────────────────────
-## make docs-reference  Regenerate all docs/docs/reference/**/*.mdx from source
+## make docs-reference  Regenerate all docs/reference/**/*.mdx from source
 ## make project-graph   Regenerate interactive project dependency graph HTML
 ## make watch-graph     Watch source files and run project-graph on change
 ## make docs-audit      README-presence + tour-footer + file-header checks (CI gate)
-## make docs-facts      Headline-count reconciliation across README + docs/intro.md
-## make docs-site       Start Docusaurus dev server at http://localhost:3000
+## make docs-facts      Headline-count reconciliation across README and Mintlify overview/quickstart
+## make docs-site       Start Mintlify dev server at http://localhost:3000
 ## make app-data        Export warehouse → app/public/data/ parquet + _manifest.json
 ## make app-data-check  CI drift gate: regenerate and diff manifest (no write)
 ## make app-data-wave0  Export Wave-0 / canary tables only (fast)
+## make app-dev         Start Vite dev server (reads live CDN data)
+## make app-dev-local   Start Vite dev server using local app/public/data/ (offline, no CDN)
+## make app-publish     Sync app/public/data/ → live GCS CDN (no delete; manifest last)
+## make app-publish-dry Preview the CDN sync without uploading anything
+## make app-deploy      Export warehouse then publish to the CDN (app-data + app-publish)
 ## make app-models      Copy ONNX models + manifest/encoders → app/public/models/
 ## make app-parity      Prove in-browser ONNX inference == booster ground truth (F3 acceptance)
 ## make app-build       Type-check + build the React app to app/dist/ (local only)
@@ -121,7 +131,7 @@ docs-reference:
 	./.venv/bin/python scripts/build_reference.py
 
 project-graph:
-	./.venv/bin/python scripts/gen_project_graph.py -o docs/static/project-graph.html
+	./.venv/bin/python scripts/gen_project_graph.py -o docs/project-graph.html
 
 watch-graph:
 	./.venv/bin/python scripts/watch_project_graph.py
@@ -133,10 +143,10 @@ docs-facts:
 	./.venv/bin/python scripts/docs_facts.py
 
 docs-install:
-	cd docs && pnpm install
+	@echo "No global install needed. npx will be used automatically."
 
 docs-site:
-	cd docs && pnpm start
+	cd docs && npx -y mintlify dev
 
 app-data:
 	./.venv/bin/python scripts/export_app_data.py
@@ -146,6 +156,14 @@ app-data-check:
 
 app-data-wave0:
 	./.venv/bin/python scripts/export_app_data.py --wave 0
+
+app-publish:
+	./scripts/publish_cdn.sh
+
+app-publish-dry:
+	./scripts/publish_cdn.sh --dry-run
+
+app-deploy: app-data app-publish
 
 app-models:
 	@mkdir -p app/public/models
@@ -165,6 +183,9 @@ app-install:
 
 app-dev:
 	cd app && pnpm dev
+
+app-dev-local:
+	cd app && VITE_DATA_BASE="" pnpm dev
 
 app-build:
 	cd app && pnpm build

@@ -271,6 +271,144 @@ models:
             column_B: constructor_structural_pace_ci_low_s
             or_equal: true
 
+  - name: int_constructor_deg_sensitivity
+    description: >
+      One row per (race_year, constructor_id, compound). Constructor-specific tyre degradation
+      sensitivity: within-stint fixed-effects slope of the post-decomposition residual on tyre age,
+      field-centred per (compound, season) and empirical-Bayes shrunk toward 0 (DerSimonian-Laird).
+      Positive = degrades faster than the field-average compound curve. Feeds the ghost-car
+      recombination interaction term (host slope minus ego slope) x age_in_stint, which is what
+      lets host identity reorder drivers (transform v0.2 Fix 1). slope_se and n_laps are carried
+      for Fix 3 SE propagation.
+      Fix 2 adds cliff_onset_shift_laps: a per-constructor break-point offset (laps) for the field
+      tyre-cliff onset, estimated as a bivariate within-stint hinge coefficient (extra post-onset
+      degradation), field-centred and EB-shrunk like the linear slope, then mapped to an onset
+      shift via the field severity and typical post-onset depth. Positive = cliff arrives later
+      (gentler). Feeds the ghost-car cliff interaction term.
+    tags: [intermediate, causal_decomposition, degradation]
+    columns:
+      - name: deg_sensitivity_id
+        description: Surrogate PK = race_year || constructor_id || compound
+        tests: [not_null, unique]
+      - name: race_year
+        description: Season year (cells are season-scoped; no cross-season pooling)
+        tests: [not_null]
+      - name: constructor_id
+        description: Constructor identifier
+        tests: [not_null]
+      - name: compound
+        description: Dry tyre compound the slope is estimated for
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['SOFT', 'MEDIUM', 'HARD']
+      - name: deg_slope_s_per_lap
+        description: >
+          Production value: EB-shrunk deviation from the field-mean within-stint slope, in s/lap
+          per lap of tyre age. Positive = degrades faster than field. 0.0 for low-sample cells.
+          2024 reference range: ~±0.025 s/lap on HARD, ~±0.08 on SOFT.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: -0.25
+                max_value: 0.25
+      - name: deg_slope_raw_s_per_lap
+        description: >
+          Uncentred within-stint FE slope (diagnostic). Uniformly negative (~ -0.08 s/lap in 2024)
+          because a common residual fuel under-correction survives the decomposition; the common
+          part cancels in field-centring and in the (host - ego) recombination difference.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: -0.5
+                max_value: 0.5
+      - name: field_mean_slope_s_per_lap
+        description: Precision-weighted mean raw slope per (race_year, compound); the centring constant.
+      - name: deg_slope_se_s_per_lap
+        description: >
+          FE-regression standard error of the raw slope (dof = n_laps - n_stints - 1), floored at
+          1e-4. NULL for low-sample cells. Carried for Fix 3 SE propagation.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1.0
+      - name: deg_slope_posterior_sd_s_per_lap
+        description: >
+          EB posterior sd of the shrunk slope; equals tau (prior sd) for low-sample cells and 0
+          when tau^2 = 0 (no between-constructor signal).
+        tests: [not_null]
+      - name: shrink_factor
+        description: tau^2 / (tau^2 + se^2) in [0,1]; 0 for low-sample cells.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: tau_s_per_lap
+        description: DerSimonian-Laird between-constructor sd per (race_year, compound).
+        tests: [not_null]
+      - name: n_laps
+        description: Clean dry pre-cliff laps in the cell (cell-count; qualifying rule >= 30).
+        tests: [not_null]
+      - name: n_stints
+        description: Distinct stints in the cell (qualifying rule >= 5).
+        tests: [not_null]
+      - name: is_low_sample
+        description: TRUE when the cell fails minimum-cell rules; slope forced to 0, excluded from pooling.
+        tests: [not_null]
+      - name: cliff_onset_shift_laps
+        description: >
+          Fix 2 production value: per-constructor tyre-cliff onset shift in laps relative to the
+          field onset. Positive = cliff arrives LATER (gentler), negative = EARLIER (harsher).
+          0.0 for cells without enough post-onset depth. Clipped to +/-3 laps.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: -3.0
+                max_value: 3.0
+      - name: cliff_onset_shift_se_laps
+        description: >
+          SE of the onset shift (hinge SE mapped through ref_depth / severity). NULL for
+          low-sample cells. Carried for Fix 3 SE propagation.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 50.0
+      - name: cliff_hinge_coef_s_per_lap
+        description: >
+          Diagnostic: raw bivariate within-stint hinge coefficient (extra s/lap of degradation
+          after the field onset). Uniformly negative like the linear slope; common part cancels
+          in field-centring.
+      - name: cliff_hinge_field_mean_s_per_lap
+        description: Precision-weighted mean hinge coefficient per (race_year, compound); the centring constant.
+      - name: cliff_severity_used_s_per_lap
+        description: Median field post-onset severity (s/lap) per (compound, season), floored at 0.30, used in the shift mapping.
+      - name: cliff_ref_depth_laps
+        description: Mean laps past the field onset over post-onset clean laps per (compound, season); the depth at which the hinge deviation is converted to an onset shift.
+      - name: cliff_hinge_tau_s_per_lap
+        description: DerSimonian-Laird between-constructor sd of the hinge coefficient per (race_year, compound).
+      - name: n_post_cliff_laps
+        description: Post-onset clean laps in the cell (qualifying rule >= 30).
+        tests: [not_null]
+      - name: n_deep_cliff_laps
+        description: Post-onset laps at least 2 laps past onset (depth rule >= 15); guards against shallow-crossing noise.
+        tests: [not_null]
+      - name: n_stints_cliff
+        description: Distinct stints contributing post-onset laps (qualifying rule >= 5).
+        tests: [not_null]
+      - name: is_low_sample_cliff
+        description: TRUE when the cell fails cliff minimum-cell rules; cliff_onset_shift_laps forced to 0.
+        tests: [not_null]
+      - name: fit_timestamp
+        description: UTC timestamp when the slopes were fitted (ISO 8601)
+        tests: [not_null]
+
   - name: int_dirty_air_tax_component
     description: >
       One row per lap. Cost of driving in dirty air (turbulent wake) following another car.

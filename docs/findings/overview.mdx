@@ -1,0 +1,45 @@
+---
+title: "Attributed findings: race decompositions with evidence"
+sidebarTitle: "Overview"
+description: "Real race analyses where the seven-term decomposition produces precise, verifiable answers from actual historical F1 data not a theoretical model."
+---
+
+Attributed findings are real race analyses where Off The Pace runs the seven-term lap decomposition against actual historical grands prix and produces precise, verifiable answers to questions that broadcast commentary leaves unanswered. Every number in an attributed finding comes from the same `fct_lap_residuals` pipeline that runs across all 168 races in the 2018–2024 dataset, and every finding must pass the CI-enforced additive identity before it is published.
+
+## What an attributed finding is
+
+The seven-term decomposition separates each lap time into fuel load, tyre compound age, rubber state, ambient conditions, constructor pace, dirty-air penalty, and driver skill residual. On any single race weekend, those seven terms tell you exactly what a driver contributed versus what the car, the tyres, and the strategy handed them.
+
+An attributed finding applies that decomposition to a specific race, isolates the key strategic or competitive moment, and reports the result in seconds not adjectives. The methodology behind every term is documented in the [Seven-Term Identity](/decomposition/seven-term-identity) reference; the findings here are where that methodology meets real race outcomes.
+
+## Why these matter
+
+Lap time alone is a blunt instrument. Two drivers can post identical lap times for completely different reasons: one fighting degraded tyres while the other cruises on fresh rubber, one extracting every tenth in clean air while the other loses pace in a dirty wake. Without decomposition, a commentator watching those numbers scroll by sees parity. The model sees the opposing forces that cancel each other out and makes them visible.
+
+Attributed findings demonstrate that the framework produces **meaningful, non-trivial insights on actual race data** not a theoretical construction that looks clean in a notebook but dissolves when applied to the noise of a real grand prix. If the decomposition can cleanly separate strategy advantage from driver execution at São Paulo 2021, it can do the same across every race in the dataset.
+
+## The primary case study: Hamilton vs Verstappen, São Paulo 2021
+
+The São Paulo 2021 Brazilian Grand Prix is the first and flagship attributed finding. Lewis Hamilton started tenth after a grid penalty and won by 10.5 seconds. Commentary called it brilliant driving. The decomposition finds the precise split.
+
+The key finding: Mercedes' third pit stop on lap 44 manufactured a **2.91 s structural tyre advantage** by the final lap. On the overtake lap itself (lap 59), the tyre age delta contributed **0.36 s** while Hamilton's driver skill residual contributed **1.60 s** strategy and execution in roughly equal measure on the pass that decided the race.
+
+<CardGroup cols={1}>
+  <Card
+    title="São Paulo 2021: strategy vs driver skill, decomposed"
+    icon="flag-checkered"
+    href="/findings/sao-paulo-2021"
+  >
+    Hamilton wins from tenth by 10.5 seconds. The decomposition finds exactly how much came from Mercedes' pit strategy and how much came from the driver in seconds, not adjectives.
+  </Card>
+</CardGroup>
+
+## What makes a good attributed finding
+
+The most revealing attributed findings share a common structure: broadcast commentary produced a confident but vague claim "brilliant driving," "strategy win," "dominant pace" and the decomposition replaces that vagueness with a number. São Paulo 2021 is a clear example: "brilliant driving" is true, but it is also incomplete. The driver contributed 1.60 s on the overtake lap; the strategy contributed 0.36 s; the dirty-air penalty Hamilton absorbed while following Verstappen cost him 6.5 s across the first 14 laps of the final stint. All three of those are invisible in a raw lap time chart.
+
+A finding earns its place here when the decomposition answers a question that the raw data actively obscures where apparent equivalence hides opposing forces, or where a dominant margin turns out to have a more nuanced origin than the headline suggests.
+
+## What comes next
+
+The React application currently in development will expose interactive decomposition across all 168 races in the 2018–2024 dataset. You will be able to filter by driver, constructor, circuit, compound, or season and see the full seven-term breakdown on demand every race an attributed finding, explored at your own pace.

@@ -8,10 +8,14 @@ export interface StandingsEntry {
   raceId: string
   predictedPosition: number
   actualPosition: number | null
-  /** negative = predicted better than actual; positive = predicted worse */
-  delta: number
+  /** negative = predicted better than actual; positive = predicted worse; null = DNF (no actual position) */
+  delta: number | null
   confidence: number
   lapsScored: number
+  /** laps_counted / race_distance_laps in [0,1] */
+  lapCoverage: number
+  /** true when the driver ran a partial race (DNF / few laps) and the estimate is small-sample */
+  isShortRun: boolean
   /** true when ego_driver_id === host_constructor_id's car (identity/self scenario) */
   isSelfScenario: boolean
 }
@@ -54,9 +58,11 @@ export function transform(rows: GhostStandingsRow[]): TransformResult {
       delta: r.delta_vs_actual_position,
       confidence: r.avg_recombination_confidence,
       lapsScored: r.laps_counted,
-      // degenerate identity check: when a driver is in their own constructor's car,
-      // predicted == actual (no recombination); surface this so the UI can annotate it.
-      isSelfScenario: isSelf(r),
+      lapCoverage: r.lap_coverage,
+      isShortRun: r.is_short_run,
+      // The mart now carries this directly (ego_constructor_id === host_constructor_id),
+      // so we no longer infer it from delta/confidence.
+      isSelfScenario: r.is_self_scenario,
     }))
 
     entries.sort((a, b) => a.predictedPosition-b.predictedPosition)
@@ -79,15 +85,6 @@ export function transform(rows: GhostStandingsRow[]): TransformResult {
   return { scenarios, totalRows: rows.length }
 }
 
-/** Self-scenario: the ego driver's actual constructor matches the host constructor. */
-function isSelf(r: GhostStandingsRow): boolean {
-  // The mart doesn't carry the driver's actual constructor, but the identity invariant
-  // (predicted == actual in self-scenarios) is enforced in the SQL via RANK() on the same
-  // time values. We detect it by checking delta == 0 AND confidence is high (>= 0.9).
-  // This is a heuristic; the UI footnote acknowledges it.
-  return r.delta_vs_actual_position === 0 && r.avg_recombination_confidence >= 0.9
-}
-
 export function toCsvRows(result: TransformResult): Record<string, unknown>[] {
   return result.scenarios.flatMap(s =>
     s.entries.map(e => ({
@@ -96,9 +93,11 @@ export function toCsvRows(result: TransformResult): Record<string, unknown>[] {
       driver_id: e.driverId,
       predicted_position: e.predictedPosition,
       actual_position: e.actualPosition ?? '',
-      delta_positions: e.delta,
+      delta_positions: e.delta ?? '',
       avg_confidence: e.confidence.toFixed(3),
       laps_scored: e.lapsScored,
+      lap_coverage: e.lapCoverage.toFixed(3),
+      is_short_run: e.isShortRun,
       is_self_scenario: e.isSelfScenario,
     }))
   )

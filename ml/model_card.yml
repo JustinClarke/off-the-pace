@@ -1,7 +1,7 @@
 model_card:
   name: Off the Pace-Tyre Degradation Predictors
   version: v1
-  generated_at: '2026-06-01T17:54:07.151979+00:00'
+  generated_at: '2026-06-12T08:44:39.770135+00:00'
   summary: Five XGBoost models predicting next-lap tyre-degradation pace loss (quantile trio p10/p50/p90),
     laps-until-cliff class, and remaining stint life, from per-lap thermal, dirty-air, powertrain, weather
     and compound-prior features. Trained on 2018–2024 F1 laps; every model beats a strong per-cohort baseline.
@@ -11,15 +11,15 @@ model_card:
   data:
     source_mart: fct_cliff_prediction_features
     training_seasons:
-   -2018
-   -2019
-   -2020
-   -2021
-   -2022
-   -2023
-   -2024
+    - 2018
+    - 2019
+    - 2020
+    - 2021
+    - 2022
+    - 2023
+    - 2024
     holdout_seasons:
-   -2025
+    - 2025
     holdout_note: 2025 is the designated holdout, ingested post-launch; until then the model trains on
       all ingested seasons (2018–2024) and selection rests on time-series CV-there is no live holdout.
       The evaluation headline is reported on the final TimeSeriesSplit fold (2024); it switches to a true-holdout
@@ -30,120 +30,120 @@ model_card:
     evaluation_season: 2024
   features:
     columns:
-   -lap_number
-   -lap_in_stint
-   -age_in_stint
-   -fuel_mass_kg
-   -compound
-   -compound_grip_peak
-   -compound_wear_gradient
-   -compound_optimal_temp_low
-   -compound_optimal_temp_high
-   -compound_cliff_onset_laps
-   -compound_cliff_severity
-   -expected_compound_pace_s
-   -expected_degradation_rate_s_per_lap
-   -cliff_onset_passed
-   -laps_past_cliff
-   -cliff_candidate_flag
-   -push_residual
-   -cumulative_push_load_surface
-   -cumulative_push_load_bulk
-   -dirty_air_share_lap
-   -dirty_air_thermal_load_surface
-   -dirty_air_thermal_load_bulk
-   -air_state_dominant
-   -n_gear_changes
-   -mean_rpm
-   -max_rpm
-   -pct_full_throttle
-   -pct_drs_active
-   -short_shift_index
-   -ambient_temp_delta
-   -air_density_kgm3
-   -density_ratio_to_ref
-   -is_rain_lap
-   -track_energy_index
-   -circuit_abrasiveness_index
-   -constructor_id
-   -event_flag_any
-   -anomaly_class
+    - lap_number
+    - lap_in_stint
+    - age_in_stint
+    - fuel_mass_kg
+    - compound
+    - compound_grip_peak
+    - compound_wear_gradient
+    - compound_optimal_temp_low
+    - compound_optimal_temp_high
+    - compound_cliff_onset_laps
+    - compound_cliff_severity
+    - expected_compound_pace_s
+    - expected_degradation_rate_s_per_lap
+    - cliff_onset_passed
+    - laps_past_cliff
+    - cliff_candidate_flag
+    - push_residual
+    - cumulative_push_load_surface
+    - cumulative_push_load_bulk
+    - dirty_air_share_lap
+    - dirty_air_thermal_load_surface
+    - dirty_air_thermal_load_bulk
+    - air_state_dominant
+    - n_gear_changes
+    - mean_rpm
+    - max_rpm
+    - pct_full_throttle
+    - pct_drs_active
+    - short_shift_index
+    - ambient_temp_delta
+    - air_density_kgm3
+    - density_ratio_to_ref
+    - is_rain_lap
+    - track_energy_index
+    - circuit_abrasiveness_index
+    - constructor_id
+    - event_flag_any
+    - anomaly_class
     groups:
       stint_position:
-     -lap_number
-     -lap_in_stint
-     -age_in_stint
-     -fuel_mass_kg
+      - lap_number
+      - lap_in_stint
+      - age_in_stint
+      - fuel_mass_kg
       compound:
-     -compound
-     -compound_grip_peak
-     -compound_wear_gradient
-     -compound_optimal_temp_low
-     -compound_optimal_temp_high
-     -compound_cliff_onset_laps
-     -compound_cliff_severity
+      - compound
+      - compound_grip_peak
+      - compound_wear_gradient
+      - compound_optimal_temp_low
+      - compound_optimal_temp_high
+      - compound_cliff_onset_laps
+      - compound_cliff_severity
       cliff_prior:
-     -expected_compound_pace_s
-     -expected_degradation_rate_s_per_lap
-     -cliff_onset_passed
-     -laps_past_cliff
-     -cliff_candidate_flag
+      - expected_compound_pace_s
+      - expected_degradation_rate_s_per_lap
+      - cliff_onset_passed
+      - laps_past_cliff
+      - cliff_candidate_flag
       thermal:
-     -push_residual
-     -cumulative_push_load_surface
-     -cumulative_push_load_bulk
+      - push_residual
+      - cumulative_push_load_surface
+      - cumulative_push_load_bulk
       dirty_air:
-     -dirty_air_share_lap
-     -dirty_air_thermal_load_surface
-     -dirty_air_thermal_load_bulk
-     -air_state_dominant
+      - dirty_air_share_lap
+      - dirty_air_thermal_load_surface
+      - dirty_air_thermal_load_bulk
+      - air_state_dominant
       powertrain:
-     -n_gear_changes
-     -mean_rpm
-     -max_rpm
-     -pct_full_throttle
-     -pct_drs_active
-     -short_shift_index
+      - n_gear_changes
+      - mean_rpm
+      - max_rpm
+      - pct_full_throttle
+      - pct_drs_active
+      - short_shift_index
       weather_air:
-     -ambient_temp_delta
-     -air_density_kgm3
-     -density_ratio_to_ref
-     -is_rain_lap
+      - ambient_temp_delta
+      - air_density_kgm3
+      - density_ratio_to_ref
+      - is_rain_lap
       track:
-     -track_energy_index
-     -circuit_abrasiveness_index
+      - track_energy_index
+      - circuit_abrasiveness_index
       context:
-     -constructor_id
-     -event_flag_any
-     -anomaly_class
+      - constructor_id
+      - event_flag_any
+      - anomaly_class
     categorical:
       compound: 8
       air_state_dominant: 4
       constructor_id: 18
       anomaly_class: 3
     excluded_leakage:
-   -circuit_key
-   -driver_id
-   -driver_skill_proxy_s
-   -driver_skill_residual_proxy_s
-   -driver_skill_residual_s
-   -is_training_eligible
-   -lap_id
-   -laps_until_cliff_class
-   -next_3_lap_cumulative_jump_s
-   -next_5_lap_cumulative_jump_s
-   -next_lap_degradation_jump_s
-   -race_id
-   -race_year
-   -remaining_stint_life_laps
-   -stint_id
-   -stint_length_laps
+    - circuit_key
+    - driver_id
+    - driver_skill_proxy_s
+    - driver_skill_residual_proxy_s
+    - driver_skill_residual_s
+    - is_training_eligible
+    - lap_id
+    - laps_until_cliff_class
+    - next_3_lap_cumulative_jump_s
+    - next_5_lap_cumulative_jump_s
+    - next_lap_degradation_jump_s
+    - race_id
+    - race_year
+    - remaining_stint_life_laps
+    - stint_id
+    - stint_length_laps
     excluded_note: 'driver_id and race_year are deliberately excluded: an adversarial probe recovers race_year
       from the remaining features at 1.000 accuracy (majority baseline 0.169)-constructor identity and
       compound generation encode the season, so race_year would be a backdoor. driver_id would let the
       trees relearn per-driver skill, the exact signal the mart strips via driver_skill_residual_s.'
   models:
- -name: degradation_regressor_p10
+  - name: degradation_regressor_p10
     family: degradation_regressor
     kind: quantile
     objective: reg:quantileerror
@@ -168,7 +168,7 @@ model_card:
     artefacts:
       booster: ml/models/degradation_regressor_p10_v1.bst
       onnx: ml/models/degradation_regressor_p10_v1.onnx
- -name: degradation_regressor_p50
+  - name: degradation_regressor_p50
     family: degradation_regressor
     kind: quantile
     objective: reg:quantileerror
@@ -193,7 +193,7 @@ model_card:
     artefacts:
       booster: ml/models/degradation_regressor_p50_v1.bst
       onnx: ml/models/degradation_regressor_p50_v1.onnx
- -name: degradation_regressor_p90
+  - name: degradation_regressor_p90
     family: degradation_regressor
     kind: quantile
     objective: reg:quantileerror
@@ -218,7 +218,7 @@ model_card:
     artefacts:
       booster: ml/models/degradation_regressor_p90_v1.bst
       onnx: ml/models/degradation_regressor_p90_v1.onnx
- -name: cliff_classifier
+  - name: cliff_classifier
     family: cliff_classifier
     kind: classification
     objective: multi:softprob
@@ -243,7 +243,7 @@ model_card:
     artefacts:
       booster: ml/models/cliff_classifier_v1.bst
       onnx: ml/models/cliff_classifier_v1.onnx
- -name: stint_life_regressor
+  - name: stint_life_regressor
     family: stint_life_regressor
     kind: regression
     objective: reg:squarederror
@@ -290,159 +290,159 @@ model_card:
       majority_class_accuracy: 0.1691174695158759
       lift_over_chance: 0.8308463117228058
       n_seasons: 7
-      note: X carries strong residual temporal signal-race_year recoverable far above chance; race_year
+      note: X carries strong residual temporal signal race_year recoverable far above chance; race_year
         is correctly excluded from features
     dual_importance:
       degradation_regressor_p50:
         shap_top5:
-       -push_residual
-       -cumulative_push_load_surface
-       -age_in_stint
-       -cumulative_push_load_bulk
-       -dirty_air_thermal_load_bulk
+        - push_residual
+        - cumulative_push_load_surface
+        - age_in_stint
+        - cumulative_push_load_bulk
+        - dirty_air_thermal_load_bulk
         permutation_top5:
-       -push_residual
-       -cumulative_push_load_surface
-       -cumulative_push_load_bulk
-       -pct_drs_active
-       -age_in_stint
-        agreement_note: 'top-5 differ on: dirty_air_thermal_load_bulk, pct_drs_active-likely correlated
+        - push_residual
+        - cumulative_push_load_surface
+        - cumulative_push_load_bulk
+        - pct_drs_active
+        - age_in_stint
+        agreement_note: 'top-5 differ on: dirty_air_thermal_load_bulk, pct_drs_active likely correlated
           features or leakage pressure'
       cliff_classifier:
         shap_top5:
-       -fuel_mass_kg
-       -lap_number
-       -age_in_stint
-       -lap_in_stint
+        - fuel_mass_kg
+        - lap_number
+        - age_in_stint
+        - lap_in_stint
         permutation_top5:
-       -push_residual
-       -fuel_mass_kg
-       -age_in_stint
-       -cumulative_push_load_bulk
-       -ambient_temp_delta
+        - push_residual
+        - fuel_mass_kg
+        - age_in_stint
+        - cumulative_push_load_bulk
+        - ambient_temp_delta
         agreement_note: 'top-5 differ on: ambient_temp_delta, cumulative_push_load_bulk, lap_in_stint,
-          lap_number, push_residual-likely correlated features or leakage pressure'
+          lap_number, push_residual likely correlated features or leakage pressure'
       stint_life_regressor:
         shap_top5:
-       -fuel_mass_kg
-       -age_in_stint
-       -cumulative_push_load_bulk
-       -lap_number
-       -compound
+        - fuel_mass_kg
+        - age_in_stint
+        - cumulative_push_load_bulk
+        - lap_number
+        - compound
         permutation_top5:
-       -fuel_mass_kg
-       -age_in_stint
-       -compound
-       -lap_number
-       -cumulative_push_load_bulk
+        - fuel_mass_kg
+        - age_in_stint
+        - compound
+        - lap_number
+        - cumulative_push_load_bulk
         agreement_note: SHAP and permutation top-5 agree
     underperforming_cohorts:
-   -dimension: compound
+    - dimension: compound
       cohort: _other
       n: 9
       model: 0.22999863287501776
       baseline: 0.2291022222222221
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: canadian_grand_prix
       n: 817
       model: 0.2446708084899141
       baseline: 0.23909785801713596
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: british_grand_prix
       n: 586
       model: 0.5578596220486226
       baseline: 0.5548777132044578
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: canadian_grand_prix
       n: 817
       model: 0.42335387168355165
       baseline: 0.4177764125129029
-   -dimension: is_rain_lap
+    - dimension: is_rain_lap
       cohort: _other
       n: 20
       model: 2.0782061952847983
       baseline: 1.975603977471566
-   -dimension: compound
+    - dimension: compound
       cohort: _other
       n: 9
       model: 0.325
       baseline: 0.47058823529411764
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: são_paulo_grand_prix
       n: 346
       model: 0.18637946317767612
       baseline: 0.2232
-   -dimension: compound
+    - dimension: compound
       cohort: INTERMEDIATE
       n: 1126
       model: 6.361107324763206
       baseline: 6.301801315685866
-   -dimension: compound
+    - dimension: compound
       cohort: MEDIUM
       n: 6573
       model: 7.148753838110615
       baseline: 6.892678300108783
-   -dimension: compound
+    - dimension: compound
       cohort: SOFT
       n: 1275
       model: 4.573568864013192
       baseline: 4.12688459622852
-   -dimension: compound
+    - dimension: compound
       cohort: _other
       n: 12
       model: 6.135040890171121
       baseline: 1.7380544678845176
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: australian_grand_prix
       n: 678
       model: 10.520092294676731
       baseline: 5.358807158248189
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: bahrain_grand_prix
       n: 809
       model: 5.211531038515653
       baseline: 4.735527036818611
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: belgian_grand_prix
       n: 620
       model: 5.204887994309918
       baseline: 4.833018158059106
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: canadian_grand_prix
       n: 871
       model: 6.354353480929562
       baseline: 5.505685402981323
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: chinese_grand_prix
       n: 617
       model: 6.867370181601261
       baseline: 5.320863494831651
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: emilia_romagna_grand_prix
       n: 961
       model: 9.378765983258102
       baseline: 9.113031686219898
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: italian_grand_prix
       n: 796
       model: 6.65721241445135
       baseline: 6.633083861036108
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: japanese_grand_prix
       n: 607
       model: 7.480063626000421
       baseline: 4.874664690872073
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: las_vegas_grand_prix
       n: 683
       model: 5.190437101655225
       baseline: 4.792128428532466
-   -dimension: circuit_key
+    - dimension: circuit_key
       cohort: monaco_grand_prix
       n: 1006
       model: 19.311221669290145
       baseline: 18.662762597040103
-   -dimension: constructor_id
+    - dimension: constructor_id
       cohort: Alpine
       n: 1862
       model: 8.667694030148832
@@ -456,23 +456,23 @@ model_card:
       xgboost: 3.2.0
       sklearn: 1.8.0
     command: make ml-all
-    onnx_parity: all 5 boosters round-trip to ONNX within atol=1e-5 on a NaN-bearing sample (spike tested during ONNX parity milestone, validated during tuning milestone)
+    onnx_parity: all 5 boosters round-trip to ONNX within atol=1e-5 on a NaN-bearing sample (M2/M4)
   deviations:
- -id: D1
-    note: Built on XGBoost 3.2.0 (contract said 2.x); ONNX quantile round-trip spiked during ONNX parity milestone before tuning.
- -id: D5
+  - id: D1
+    note: Built on XGBoost 3.2.0 (contract said 2.x); ONNX quantile round-trip spiked in M2 before tuning.
+  - id: D5
     note: Degradation target is bounded [−10,10] with 44% legitimate negatives (thermal gain / out-lap
       recovery); the contract's y>0 test was a spec bug.
- -id: E1
+  - id: E1
     note: Evaluation uses the final CV fold (2024) as a holdout stand-in; 2025 not yet ingested.
- -id: E3
+  - id: E3
     note: Heavy elevations (ablation/learning-curve/SHAP/PDP) run on the headline model of each family;
       quantile siblings share p50's structure.
   limitations:
- -The cliff classifier (macro-F1 ≈ 0.36 on 4-class cliff timing) is the weakest model-it decisively
+  - The cliff classifier (macro-F1 ≈ 0.36 on 4-class cliff timing) is the weakest model-it decisively
     beats the majority prior but absolute skill on minority cliff windows is modest.
- -v1 hyperparameters come from a reduced session tuning budget; a canonical 50-trial / 5-fold search
+  - v1 hyperparameters come from a reduced session tuning budget; a canonical 50-trial / 5-fold search
     should precede a production blessing.
- -No live 2025 holdout yet-headline numbers are time-series CV until 2025 ingests.
- -Cliff-onset priors are NULL for ~45% of laps (legacy compounds, un-fit circuits); XGBoost native-NaN
+  - No live 2025 holdout yet-headline numbers are time-series CV until 2025 ingests.
+  - Cliff-onset priors are NULL for ~45% of laps (legacy compounds, un-fit circuits); XGBoost native-NaN
     carries them, documented rather than imputed.

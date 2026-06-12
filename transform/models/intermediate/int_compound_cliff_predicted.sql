@@ -93,6 +93,10 @@ SELECT
     age_in_stint,
     compound,
     cliff_onset_passed,
+    -- Field cliff parameters exposed for Fix 2 recombination (host/ego onset shift):
+    -- onset (laps) and post-onset severity (s/lap^2) from dim_compounds_season.
+    COALESCE(compound_cliff_onset_laps, 999.0)                  AS compound_cliff_onset_laps,
+    COALESCE(compound_cliff_severity, 0.0)                      AS compound_cliff_severity,
     -- Hockey-stick pace model:
     -- grip_peak baseline + linear wear + quadratic age term (rubber accumulation)
     -- + cliff_severity * laps_past_cliff (linear post-cliff acceleration-severity

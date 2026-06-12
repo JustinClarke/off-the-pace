@@ -1,0 +1,107 @@
+---
+title: "São Paulo 2021: strategy vs driver skill, decomposed"
+sidebarTitle: "São Paulo 2021"
+description: "Decomposing the Hamilton vs Verstappen final stint at the 2021 Brazilian Grand Prix to measure strategy advantage and driver skill in seconds."
+---
+
+On 14 November 2021, Lewis Hamilton started the Brazilian Grand Prix from tenth position a five-place grid penalty had erased a sprint race victory and won by 10.5 seconds. Broadcast commentary called it brilliant driving. The seven-term decomposition finds a precise answer: it was brilliant driving *and* brilliant strategy, in measurable proportions, and the two contributions are not interchangeable.
+
+## The problem with lap time as a single number
+
+Verstappen's lap times in the final stint looked nearly identical to Hamilton's. Both drivers were running in the low 72s to low 73s. Commentary treated this apparent equivalence as evidence of matched machinery and a race decided by wheel-to-wheel skill.
+
+The decomposition tells a richer story. That surface equivalence was the **product of two opposing forces cancelling each other out**: Verstappen's tyres were aging faster, slowing him down, while he was pushing proportionally harder to compensate, speeding him up. Neither effect shows in the raw lap time. The seven-term identity makes both forces visible by separating what the tyre produced from what the driver contributed.
+
+## Setup: two drivers, two tyre ages
+
+Hamilton pitted for the third time on lap 44. Verstappen had made his third stop on lap 41. Three laps difference in the moment by race end, it was everything.
+
+The table below shows selected laps across the final stint, with compound penalty and driver skill residual pulled directly from `fct_lap_residuals`.
+
+| Lap | Driver | Tyre Age | Lap Time | Compound Penalty | Driver Skill | Dirty Air |
+|-----|--------|----------|----------|------------------|--------------|-----------|
+| 45  | HAM    | 2        | 72.14 s  | +1.08 s          | −1.99 s      | 0.00 s    |
+| 45  | VER    | 5        | 72.98 s  | +1.28 s          | −2.08 s      | 0.50 s    |
+| 55  | HAM    | 12       | 72.56 s  | +1.87 s          | −2.57 s      | 0.50 s    |
+| 55  | VER    | 15       | 72.49 s  | +2.19 s          | −2.69 s      | 0.00 s    |
+| 59  | HAM    | 16       | 72.38 s  | +2.30 s          | −3.11 s      | 0.50 s    |
+| 59  | VER    | 19       | 74.07 s  | +2.66 s          | −1.51 s      | 0.00 s    |
+| 65  | HAM    | 22       | 72.95 s  | +5.46 s          | −5.44 s      | 0.00 s    |
+| 65  | VER    | 25       | 73.66 s  | +8.30 s          | −7.79 s      | 0.00 s    |
+| 71  | HAM    | 28       | 73.86 s  | +11.17 s         | −9.72 s      | 0.00 s    |
+| 71  | VER    | 31       | 74.93 s  | +14.08 s         | −12.86 s     | 0.00 s    |
+
+<Note>
+  `Compound Penalty` maps to `compound_component_s` in `fct_lap_residuals`. `Driver Skill` maps to `driver_skill_residual_s`. Both values are in seconds relative to the field pace baseline: **positive = slower than baseline**, **negative = faster than baseline**.
+</Note>
+
+Three things stand out immediately in this data. The findings below address each in turn.
+
+## Finding 1 Constructor parity: the race was not decided by the cars
+
+At the start of the final stint (laps 45–50), Hamilton averaged **72.36 s** and Verstappen **72.77 s** a 0.41 s gap that almost exactly matches the compound penalty difference from the three-lap tyre age gap between them. Adjust for that structural difference and the two cars were running identical pace.
+
+This matters for everything that follows. Red Bull and Mercedes had equivalent structural speed at Interlagos that day. Neither team's engineers handed their driver a car-level advantage. Every second of margin in the final 28 laps was earned in the pits or on the wheel.
+
+## Finding 2 Strategy created a 2.91 s tyre advantage
+
+Compound penalty grows roughly linearly with tyre age once a set passes its initial thermal window. By the final lap, the three-lap difference from the pit stop timing had compounded into a structural gulf:
+
+| Driver | Final Lap Compound Penalty | Tyre Age |
+|--------|---------------------------|----------|
+| HAM    | +11.17 s                  | 28 laps  |
+| VER    | +14.08 s                  | 31 laps  |
+| **Delta** | **+2.91 s in HAM's favour** | 3 laps  |
+
+That **2.91 s** was manufactured entirely by Mercedes' decision to pit Hamilton a third time on lap 44 rather than running to the flag on a 36-lap stint. Hamilton surrendered track position to make the stop; the model shows exactly what he received in return.
+
+## Finding 3 The overtake (lap 59) was skill and strategy in roughly equal measure
+
+Lap 59 is where Hamilton passed Verstappen for the lead and held it to the flag. The decomposition of the 1.69 s lap time gap on that lap:
+
+| Component | Value | Explanation |
+|-----------|-------|-------------|
+| Compound penalty delta | +0.36 s | VER was 3 laps older on this set (age 19 vs age 16) |
+| Driver skill delta | +1.60 s | HAM residual −3.11 s; VER residual −1.51 s |
+| Dirty air (HAM) | −0.50 s | Hamilton absorbed a 0.50 s wake penalty following VER |
+| **Total explained** | **+1.46 s** | Remaining gap from ambient and rubber components |
+| **Actual gap** | **1.69 s** | |
+
+Strategy delivered **0.36 s** of structural tyre edge on the pass lap. The driver delivered **1.60 s** four times as much. Neither alone was decisive. Strip out Verstappen's tyre disadvantage and Hamilton still had to find the gap; strip out Hamilton's driving execution and the tyre edge was too small to force a pass cleanly.
+
+Hamilton was also penalised **0.50 s** that same lap for running in Verstappen's dirty wake a cost the decomposition separates cleanly from the skill residual. Without that correction, the lap times alone would understate Hamilton's actual pace capability.
+
+## The dirty-air penalty that never made the headlines
+
+From the moment Hamilton rejoined in the final stint, he spent **13 of his first 14 racing laps** in Verstappen's wake. The model attributed **6.5 s in total dirty-air penalties** to those laps time that a commentator watching lap times would read as Hamilton running at roughly Verstappen's pace or "conserving."
+
+The decomposition shows the car was capable of 72.0–72.1 s in clean air, as laps 59–65 confirm once Hamilton has the lead. The apparent equivalence before the pass was partially the dirty-air cost masking the true pace delta.
+
+## How the skill residuals grew
+
+The driver skill residual deepens for both drivers across the stint as the tyres degrade a clear signal that both Hamilton and Verstappen were pushing progressively harder to compensate for what their compounds were losing. By lap 65, Verstappen's compound penalty was **+8.30 s** but his skill residual was **−7.79 s**: he was nearly fully compensating through effort. Hamilton's compound penalty was **+5.46 s** with a residual of **−5.44 s**, doing the same from a fresher tyre base.
+
+By the final lap the numbers are extraordinary in both directions:
+
+| Driver | Compound Penalty (lap 71) | Driver Skill (lap 71) | Lap Time |
+|--------|--------------------------|----------------------|----------|
+| HAM    | +11.17 s                 | −9.72 s              | 73.86 s  |
+| VER    | +14.08 s                 | −12.86 s             | 74.93 s  |
+
+A driver running 9–13 seconds faster than the model's structural prediction on a single lap is not managing the race. That is the upper limit of what a human can extract from a degraded compound at racing speed. Both drivers were there Verstappen just could not overcome the structural tyre disadvantage the strategy had imposed.
+
+## Conclusion: where the 10.5 s came from
+
+From lap 59 to the flag 13 laps Hamilton's cumulative time was **950.9 s** against Verstappen's **961.9 s**. The entire winning margin was accumulated after the overtake. The decomposition breaks that margin into its origins:
+
+- **2.91 s from strategy** the structural tyre advantage manufactured by the lap 44 pit stop, compounding through the final 28 laps
+- **1.60 s from driver execution** Hamilton's skill residual advantage on the overtake lap itself
+- **The remainder** from compounding tyre age differences accumulating across every lap after the pass, amplified by both drivers pushing to their limits
+
+Commentary's answer "brilliant driving" was directionally correct. The decomposition adds the precision: brilliant driving contributed the majority of the advantage on the overtake lap; Mercedes' strategy engineering created the structural conditions that made the overtake possible in the first place; and Verstappen's own driving in those final laps, carrying a −12.86 s skill residual, was not a failure but a structural battle his tyres would not let him win.
+
+## What this demonstrates
+
+The São Paulo 2021 analysis answers a question that broadcast coverage could not: *how much of the win was the driver, and how much was strategy?* Not as an impression, but as a number. That is what the Off The Pace decomposition exists to do and it runs across all 168 races in the dataset.
+
+The React application in development will expose the same decomposition interactively, letting you examine any race, any driver, any stint in the 2018–2024 season archive. São Paulo 2021 was the first case study because it is a race where the outcome *seemed* explicable by feel. The data shows the feel was right and considerably more precise than any broadcast account captured.

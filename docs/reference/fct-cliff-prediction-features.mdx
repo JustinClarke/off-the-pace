@@ -1,0 +1,138 @@
+---
+title: "fct_cliff_prediction_features: ML feature mart"
+sidebarTitle: "fct_cliff_prediction_features"
+description: "Contracted lap-grain feature mart for all five tyre ML models. 137,373 laps across 2018–2024 with leakage controls enforced at build time."
+---
+
+`fct_cliff_prediction_features` is the single contracted input surface for every tyre degradation ML model in Off The Pace. Rather than letting each model reach into intermediate tables and risk inconsistent feature definitions, this mart assembles all predictors stint position, thermal proxies, dirty air loads, compound parameters, and circuit characteristics into one lap-grain table with enforced column types and leakage controls. If you are training or scoring any of the five cliff or degradation models, this is the only table you should use.
+
+## Grain
+
+One row per `(race_year, event_name, driver_code, lap_number)`, restricted to laps eligible for ML scoring. Laps in the early stint warmup window (`age_in_stint ≤ 3`) and laps classified as `mistake` or `conditions` anomalies are excluded from `is_training_eligible`, though they remain in the table so that inference-time scoring can proceed on all laps.
+
+## Coverage
+
+| Segment | Rows |
+|---|---|
+| Total laps | 137,373 |
+| Season range | 2018–2024 |
+| With degradation + cliff targets | 110,440 |
+| With stint-life target | 116,957 |
+
+<Note>
+  The difference between target coverage figures arises because `next_lap_degradation_jump_s` and `laps_until_cliff_class` are `NULL` on the final lap of each stint (no next lap exists), while `remaining_stint_life_laps` can still be estimated on those laps from the survival model.
+</Note>
+
+## Feature categories
+
+### Stint position
+
+<ParamField path="lap_in_stint" type="bigint">
+  The lap's position within the current tyre stint, counting from 1. The primary time axis for all degradation models.
+</ParamField>
+
+<ParamField path="age_in_stint" type="integer">
+  The tyre's physical age in laps. Differs from `lap_in_stint` when a driver starts on used (pre-worn) tyres fitted before the race began.
+</ParamField>
+
+### Physics inputs from the decomposition
+
+<ParamField path="fuel_component_s" type="double">
+  Fuel weight penalty contribution in seconds, passed through directly from `fct_lap_residuals`. Provides a physics-grounded proxy for lap number within the race.
+</ParamField>
+
+<ParamField path="compound_component_s" type="double">
+  Tyre compound degradation contribution in seconds from the decomposition. Reflects the model's current estimate of compound-driven pace loss at this tyre age.
+</ParamField>
+
+### Thermal proxies
+
+<ParamField path="push_residual" type="double">
+  A lap-level push load residual from the thermal proxy model. Captures how hard the driver pushed relative to the modelled expectation a leading indicator of accelerated surface wear.
+</ParamField>
+
+<ParamField path="cumulative_push_load_surface" type="double">
+  Exponentially weighted cumulative push load on the tyre surface (decay constant τ ≈ 3 laps). Tracks the recent short-horizon thermal history that drives blistering.
+</ParamField>
+
+<ParamField path="cumulative_push_load_bulk" type="double">
+  Exponentially weighted cumulative push load on the tyre bulk (decay constant τ ≈ 5 laps). Tracks the slower thermal state that drives grain and structural degradation.
+</ParamField>
+
+<ParamField path="dirty_air_thermal_load_surface" type="double">
+  Exponentially weighted dirty air thermal load on the tyre surface. Dirty air raises tyre operating temperatures; this feature captures the accumulated thermal effect of running in traffic.
+</ParamField>
+
+<ParamField path="dirty_air_thermal_load_bulk" type="double">
+  Exponentially weighted dirty air thermal load on the tyre bulk. Complements the surface load for models that need to distinguish fast-onset vs slow-onset thermal degradation.
+</ParamField>
+
+### Conditions
+
+<ParamField path="ambient_temp_delta" type="double">
+  Difference between the current ambient temperature and the compound's optimal operating temperature midpoint (°C). Large positive values indicate the compound is running hot; large negative values indicate it is outside its thermal window.
+</ParamField>
+
+<ParamField path="track_energy_index" type="double">
+  A circuit-level index of total aerodynamic and mechanical energy demand. Sourced from `dim_circuits`. Higher values correlate with faster tyre degradation independent of compound choice.
+</ParamField>
+
+<ParamField path="circuit_abrasiveness_index" type="integer">
+  An integer abrasiveness rating for the circuit surface. High-abrasiveness circuits produce more aggressive wear gradients and earlier cliff onset.
+</ParamField>
+
+### Compound metadata
+
+<ParamField path="compound" type="varchar">
+  The tyre compound name: `SOFT`, `MEDIUM`, `HARD`, `INTERMEDIATE`, or `WET`.
+</ParamField>
+
+<ParamField path="compound_grip_peak" type="double">
+  The fitted peak grip coefficient for this compound × circuit × season from `dim_compounds_season`.
+</ParamField>
+
+<ParamField path="compound_wear_gradient" type="double">
+  The fitted wear gradient in seconds per lap for this compound × circuit × season.
+</ParamField>
+
+<ParamField path="compound_cliff_onset_laps" type="double">
+  The expected tyre age at cliff onset for this compound × circuit × season.
+</ParamField>
+
+<ParamField path="compound_cliff_severity" type="double">
+  The fitted post-cliff degradation acceleration in seconds per lap.
+</ParamField>
+
+## Target columns
+
+<ParamField path="next_lap_degradation_jump_s" type="double">
+  **Primary target for the quantile regression trio.** The fuel-corrected increase in `driver_skill_residual_s` on the next lap within the same stint. Positive values indicate the tyre degraded between this lap and the next. `NULL` on the final lap of each stint. Capped at `30.0 s` to exclude telemetry anomalies.
+</ParamField>
+
+<ParamField path="next_3_lap_cumulative_jump_s" type="double">
+  Cumulative degradation jump summed over the next three laps. `NULL` when fewer than three laps remain in the stint.
+</ParamField>
+
+<ParamField path="next_5_lap_cumulative_jump_s" type="double">
+  Cumulative degradation jump summed over the next five laps. `NULL` when fewer than five laps remain in the stint.
+</ParamField>
+
+<ParamField path="laps_until_cliff_class" type="varchar">
+  **Target for the cliff classifier.** A four-way bucket indicating when the next >1.0 s cumulative degradation jump is expected within the stint. Values: `0_to_2`, `3_to_5`, `6_plus`, `none_in_stint`. `NULL` on the final lap of each stint.
+</ParamField>
+
+<ParamField path="is_training_eligible" type="boolean">
+  `TRUE` if this lap meets the minimum quality bar for model training: `age_in_stint > 3` and no `mistake` or `conditions` anomaly class. Use this flag as your training mask. Rows with `is_training_eligible = FALSE` are retained for inference scoring.
+</ParamField>
+
+## Leakage controls
+
+<Warning>
+  The following features are **deliberately excluded** from this mart to prevent causal label leakage into predictive models:
+
+  - `driver_skill_residual_s` this is what the target is derived from; including it would let the model memorise the answer.
+  - `driver_id` and `race_year` excluded to prevent the model from learning driver-specific or season-specific shortcuts that do not generalise.
+  - All synthetic teammate comparison features these causally encode the label and are never surfaced here.
+
+  If you need these columns for post-hoc attribution, query `fct_lap_residuals` directly.
+</Warning>

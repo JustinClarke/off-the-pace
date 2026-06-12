@@ -1,0 +1,412 @@
+{
+  "version": "ab4f77eb4bcd36bb",
+  "generatedAt": "2026-06-11T10:09:23.716842+00:00",
+  "stats": {
+    "total_laps": 23256,
+    "dbt_models": 46,
+    "ml_models": 5,
+    "seasons": "2024\u20132024"
+  },
+  "tables": [
+    {
+      "name": "dim_circuits",
+      "path": "/data/dimensions/dim_circuits.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "dim_compounds_season",
+      "path": "/data/dimensions/dim_compounds_season.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "dim_drivers",
+      "path": "/data/dimensions/dim_drivers.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "dim_constructors",
+      "path": "/data/dimensions/dim_constructors.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "dim_events",
+      "path": "/data/dimensions/dim_events.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "race_to_track",
+      "path": "/data/dimensions/race_to_track.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "fct_driver_skill_features",
+      "path": "/data/facts/fct_driver_skill_features.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "fct_ghost_race_finish",
+      "path": "/data/facts/fct_ghost_race_finish.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "fct_stint_features",
+      "path": "/data/facts/fct_stint_features.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "fct_lap_residuals",
+      "path": "/data/facts/fct_lap_residuals",
+      "partitioned": true,
+      "partitionKey": "race_year",
+      "partitions": [
+        {
+          "value": 2024,
+          "path": "/data/facts/fct_lap_residuals/2024.parquet"
+        }
+      ]
+    },
+    {
+      "name": "fct_cliff_prediction_features",
+      "path": "/data/facts/fct_cliff_prediction_features",
+      "partitioned": true,
+      "partitionKey": "race_year",
+      "partitions": [
+        {
+          "value": 2024,
+          "path": "/data/facts/fct_cliff_prediction_features/2024.parquet"
+        }
+      ]
+    },
+    {
+      "name": "fct_ghost_car_pace",
+      "path": "/data/facts/fct_ghost_car_pace",
+      "partitioned": true,
+      "partitionKey": "race_year",
+      "partitions": [
+        {
+          "value": 2024,
+          "path": "/data/facts/fct_ghost_car_pace/2024",
+          "subPartitions": [
+            {
+              "value": "2024_1",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_1.parquet"
+            },
+            {
+              "value": "2024_10",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_10.parquet"
+            },
+            {
+              "value": "2024_11",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_11.parquet"
+            },
+            {
+              "value": "2024_12",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_12.parquet"
+            },
+            {
+              "value": "2024_13",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_13.parquet"
+            },
+            {
+              "value": "2024_14",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_14.parquet"
+            },
+            {
+              "value": "2024_15",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_15.parquet"
+            },
+            {
+              "value": "2024_16",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_16.parquet"
+            },
+            {
+              "value": "2024_17",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_17.parquet"
+            },
+            {
+              "value": "2024_18",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_18.parquet"
+            },
+            {
+              "value": "2024_19",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_19.parquet"
+            },
+            {
+              "value": "2024_2",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_2.parquet"
+            },
+            {
+              "value": "2024_20",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_20.parquet"
+            },
+            {
+              "value": "2024_21",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_21.parquet"
+            },
+            {
+              "value": "2024_22",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_22.parquet"
+            },
+            {
+              "value": "2024_23",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_23.parquet"
+            },
+            {
+              "value": "2024_24",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_24.parquet"
+            },
+            {
+              "value": "2024_3",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_3.parquet"
+            },
+            {
+              "value": "2024_4",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_4.parquet"
+            },
+            {
+              "value": "2024_5",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_5.parquet"
+            },
+            {
+              "value": "2024_6",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_6.parquet"
+            },
+            {
+              "value": "2024_7",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_7.parquet"
+            },
+            {
+              "value": "2024_8",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_8.parquet"
+            },
+            {
+              "value": "2024_9",
+              "path": "/data/facts/fct_ghost_car_pace/2024/2024_9.parquet"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fct_telemetry_deltas",
+      "path": "/data/facts/fct_telemetry_deltas.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_era_normalized_driver_rating",
+      "path": "/data/intermediates/int_era_normalized_driver_rating.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_constructor_structural_pace",
+      "path": "/data/intermediates/int_constructor_structural_pace.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_constructor_structural_pace_qualifying",
+      "path": "/data/intermediates/int_constructor_structural_pace_qualifying.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_driver_circuit_affinity",
+      "path": "/data/intermediates/int_driver_circuit_affinity.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_circuit_x_constructor_interaction",
+      "path": "/data/intermediates/int_circuit_x_constructor_interaction.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_qualifying_decomposed",
+      "path": "/data/intermediates/int_qualifying_decomposed.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_compound_cliff_predicted",
+      "path": "/data/intermediates/int_compound_cliff_predicted.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_tyre_surface_vs_bulk_decoupling",
+      "path": "/data/intermediates/int_tyre_surface_vs_bulk_decoupling.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_synthetic_teammate",
+      "path": "/data/intermediates/int_synthetic_teammate.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_track_evolution",
+      "path": "/data/intermediates/int_track_evolution.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_corner_metrics",
+      "path": "/data/intermediates/int_corner_metrics.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_field_pace_curve",
+      "path": "/data/intermediates/int_field_pace_curve.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_pit_strategy_value",
+      "path": "/data/intermediates/int_pit_strategy_value.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_corner_skill_residuals",
+      "path": "/data/intermediates/int_corner_skill_residuals.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_lap_air_state",
+      "path": "/data/intermediates/int_lap_air_state",
+      "partitioned": true,
+      "partitionKey": "race_year",
+      "partitions": [
+        {
+          "value": 2024,
+          "path": "/data/intermediates/int_lap_air_state/2024.parquet"
+        }
+      ]
+    },
+    {
+      "name": "int_lap_anomaly_flags",
+      "path": "/data/intermediates/int_lap_anomaly_flags",
+      "partitioned": true,
+      "partitionKey": "race_year",
+      "partitions": [
+        {
+          "value": 2024,
+          "path": "/data/intermediates/int_lap_anomaly_flags/2024.parquet"
+        }
+      ]
+    },
+    {
+      "name": "int_sector_residual_decomposed",
+      "path": "/data/intermediates/int_sector_residual_decomposed",
+      "partitioned": true,
+      "partitionKey": "race_year",
+      "partitions": [
+        {
+          "value": 2024,
+          "path": "/data/intermediates/int_sector_residual_decomposed/2024",
+          "subPartitions": [
+            {
+              "value": "2024_1",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_1.parquet"
+            },
+            {
+              "value": "2024_10",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_10.parquet"
+            },
+            {
+              "value": "2024_11",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_11.parquet"
+            },
+            {
+              "value": "2024_12",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_12.parquet"
+            },
+            {
+              "value": "2024_13",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_13.parquet"
+            },
+            {
+              "value": "2024_14",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_14.parquet"
+            },
+            {
+              "value": "2024_15",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_15.parquet"
+            },
+            {
+              "value": "2024_16",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_16.parquet"
+            },
+            {
+              "value": "2024_17",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_17.parquet"
+            },
+            {
+              "value": "2024_18",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_18.parquet"
+            },
+            {
+              "value": "2024_19",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_19.parquet"
+            },
+            {
+              "value": "2024_2",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_2.parquet"
+            },
+            {
+              "value": "2024_20",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_20.parquet"
+            },
+            {
+              "value": "2024_21",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_21.parquet"
+            },
+            {
+              "value": "2024_22",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_22.parquet"
+            },
+            {
+              "value": "2024_23",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_23.parquet"
+            },
+            {
+              "value": "2024_24",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_24.parquet"
+            },
+            {
+              "value": "2024_3",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_3.parquet"
+            },
+            {
+              "value": "2024_4",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_4.parquet"
+            },
+            {
+              "value": "2024_5",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_5.parquet"
+            },
+            {
+              "value": "2024_6",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_6.parquet"
+            },
+            {
+              "value": "2024_7",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_7.parquet"
+            },
+            {
+              "value": "2024_8",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_8.parquet"
+            },
+            {
+              "value": "2024_9",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2024/2024_9.parquet"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "int_dirty_air_tax_component",
+      "path": "/data/intermediates/int_dirty_air_tax_component",
+      "partitioned": true,
+      "partitionKey": "race_year",
+      "partitions": [
+        {
+          "value": 2024,
+          "path": "/data/intermediates/int_dirty_air_tax_component/2024.parquet"
+        }
+      ]
+    }
+  ]
+}

@@ -16,6 +16,15 @@ name: Security Scan
 on:
   pull_request:
     branches: [main]
+    # Prevent the workflow from appearing in Actions on Dependabot PRs.
+    # Gitleaks: no human-authored commits to scan. Dep-audit: redundant
+    # when the PR is itself a dep bump. Full coverage via push + schedule.
+    paths-ignore:
+      - '**/requirements*.txt'
+      - 'app/pnpm-lock.yaml'
+      - 'app/package.json'
+      - '.github/workflows/**'
+      - '.github/dependabot.yml'
   push:
     branches: [main]
   schedule:
@@ -27,6 +36,8 @@ permissions:
 jobs:
   secret-scan:
     name: Secret scan (gitleaks)
+    # Dependabot PRs contain no human-authored commits to scan for secrets.
+    if: github.actor != 'dependabot[bot]' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -45,6 +56,9 @@ jobs:
 
   dependency-audit:
     name: Dependency audit (pip-audit · pnpm audit)
+    # Dependabot PRs are themselves dependency upgrades; auditing them here is
+    # redundant with the post-merge full scan and the weekly schedule.
+    if: github.actor != 'dependabot[bot]' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -52,7 +66,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: pip

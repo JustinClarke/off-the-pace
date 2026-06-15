@@ -2,18 +2,12 @@
 headless ONNX-parity test (app/src/ml/parity.node.test.ts).
 
 Why score with the boosters here (not just read mart_degradation_predictions)?
-The shipped mart was generated against an earlier warehouse state whose
-fct_cliff_prediction_features still joined in 8 powertrain/air-density features
-(n_gear_changes, mean_rpm, max_rpm, pct_full_throttle, pct_drs_active,
-short_shift_index, air_density_kgm3, density_ratio_to_ref). The current mart SQL no
-longer joins them, so the stored predictions are stale relative to today's parquet.
-To keep the parity test a meaningful ONNX↔booster integrity check (not a check against
-a stale artefact), we reconstruct the 38-feature vector the training way cliff mart +
-int_lap_powertrain_signature + int_air_density, joined on lap_id and score it with the
-.bst boosters. The app then proves its ONNX run matches this booster ground truth.
-
-(When the warehouse + mart are regenerated consistently, swap ground truth back to the
-mart columns; the reconstruction + tolerance stay identical.)
+To keep the parity test a true ONNX↔booster integrity check we score the .bst boosters
+directly on the same feature vector the app reconstructs, rather than trusting a stored
+artefact. The full v3 feature frame lives in fct_cliff_prediction_features (the telemetry/
+air columns that once lived in int_lap_powertrain_signature + int_air_density were folded
+in during ml-v0.2 §2), so the vector is read straight from that one mart. Boosters are
+loaded at S.MODEL_VERSION_DEFAULT so ground truth tracks whatever version the app ships.
 
 Usage:
     ./.venv/bin/python scripts/dump_parity_rows.py [--season 2024] [--limit 48]
@@ -33,12 +27,7 @@ from ml.src import schema as S
 
 DATA = Path("app/public/data")
 MODELS = Path("ml/models")
-SOURCES = {
-    "f": DATA / "facts/fct_cliff_prediction_features/{season}.parquet",
-    "p": DATA / "intermediates/int_lap_powertrain_signature/{season}.parquet",
-    "a": DATA / "intermediates/int_air_density/{season}.parquet",
-}
-PRIORITY = ["f", "p", "a"]
+SOURCE = str(DATA / "facts/fct_cliff_prediction_features/{season}.parquet")
 
 
 def _encode(df: pd.DataFrame, encoders: dict, order: list[str]) -> np.ndarray:
@@ -58,7 +47,7 @@ def _load(name: str):
     spec = S.TARGET_BY_NAME[name]
     cls = xgb.XGBClassifier if spec.kind == "classification" else xgb.XGBRegressor
     m = cls()
-    m.load_model(str(MODELS / f"{name}_v1.bst"))
+    m.load_model(str(MODELS / f"{name}_{S.MODEL_VERSION_DEFAULT}.bst"))
     m.get_booster().feature_names = None
     return m
 
@@ -70,27 +59,19 @@ def main() -> int:
     ap.add_argument("--out", default="/tmp/parity_rows.json")
     args = ap.parse_args()
 
-    paths = {a: str(p).format(season=args.season) for a, p in SOURCES.items()}
+    path = SOURCE.format(season=args.season)
     con = duckdb.connect()
-    cols = {
-        a: {r[0] for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{paths[a]}')").fetchall()}
-        for a in PRIORITY
-    }
+    available = {r[0] for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{path}')").fetchall()}
     order = list(S.FEATURE_COLUMNS)
+    missing = [c for c in order if c not in available]
+    if missing:
+        raise SystemExit(f"feature columns missing from fct_cliff_prediction_features: {missing}")
 
-    def owner(c: str) -> str:
-        for a in PRIORITY:
-            if c in cols[a]:
-                return a
-        raise SystemExit(f"feature column {c!r} not present in any source")
-
-    select = ",\n      ".join(f'{owner(c)}."{c}" AS "{c}"' for c in order)
+    select = ",\n      ".join(f'f."{c}" AS "{c}"' for c in order)
     df = con.execute(f"""
       SELECT f.lap_id AS lap_id,
       {select}
-      FROM read_parquet('{paths["f"]}') f
-      LEFT JOIN read_parquet('{paths["p"]}') p USING (lap_id)
-      LEFT JOIN read_parquet('{paths["a"]}') a USING (lap_id)
+      FROM read_parquet('{path}') f
       ORDER BY f.lap_id
       LIMIT {args.limit}
     """).df()

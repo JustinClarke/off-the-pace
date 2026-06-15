@@ -14,7 +14,7 @@ holdout today. The evaluation set is therefore the **final TimeSeriesSplit fold*
 2018–2023, evaluate on 2024 (the most-recent, holdout-shaped unseen season). The moment 2025 ingests
 this switches to a true-holdout evaluation with **zero code changes** (`_evaluation_split` detects a
 populated holdout and uses it instead). Eval models are refit on the honest split and are distinct
-from the shipped `_v1.bst` (which use all seasons-correct for production scoring).
+from the shipped `_v3.bst` (which use all seasons-correct for production scoring).
 
 Each §7 elevation (conformal coverage, SHAP+permutation, ablation+learning curve, behaviour audit,
 adversarial leakage probe, biggest-misses) is wrapped so a failure degrades to a logged note and
@@ -164,7 +164,8 @@ def _apply_cell_baseline(train_dims, eval_dims, value_col, agg) -> np.ndarray:
 def baseline_predictions(spec: S.TargetSpec, train_dims: pd.DataFrame,
                          eval_dims: pd.DataFrame) -> np.ndarray:
     """Per family: cell group-mean (p50) / empirical pctile (p10/p90) / majority class /
-    (stint_length − lap_in_stint)/2 (stint-life, knowingly leakage-shaped to be strong)."""
+    cell group-mean remaining life (stint-life). Every baseline is a NON-LEAKAGE anchor:
+    it never reads the per-row answer, so 'beats baseline' is a valid quality gate."""
     if spec.name == "degradation_regressor_p50":
         return _apply_cell_baseline(train_dims, eval_dims, S.DEGRADATION_TARGET, agg="mean")
     if spec.name == "degradation_regressor_p10":
@@ -175,9 +176,13 @@ def baseline_predictions(spec: S.TargetSpec, train_dims: pd.DataFrame,
         labels = list(S.CLIFF_CLASS_LABELS)
         maj = train_dims["laps_until_cliff_class"].mode().iloc[0]
         return np.full(len(eval_dims), labels.index(maj), dtype=np.int64)
-    # stint-life: (stint_length_laps − lap_in_stint)/2, clipped ≥ 0
-    half = (eval_dims["stint_length_laps"]-eval_dims["lap_in_stint"]) / 2.0
-    return np.clip(half.to_numpy(dtype=np.float64), 0, None)
+    # stint-life: FAIR cell group-mean of actual remaining life (compound × circuit × age-bucket),
+    # compound→global fallback. NOT the old (stint_length − lap_in_stint)/2 anchor that is half
+    # the target, a leakage near-oracle the masked model cannot fairly be required to beat.
+    for d in (train_dims, eval_dims):
+        d["remaining_stint_life_laps"] = d["stint_length_laps"] - d["lap_in_stint"]
+    base = _apply_cell_baseline(train_dims, eval_dims, "remaining_stint_life_laps", agg="mean")
+    return np.clip(base, 0, None)
 
 
 # ─── Cohort metric breakdown ────────────────────────────────────────────────────
@@ -424,8 +429,10 @@ def _predict_index(spec: S.TargetSpec, model, X) -> np.ndarray:
 
 
 def _params_for(target: str, version: str) -> dict:
+    """Tuned best_params for any production version (v1/v2/v3 the shipped models are
+    refit from these); SMOKE_DEFAULTS only for the 'smoke' CI version."""
     p = MODELS_DIR / f"{target}_best_params.json"
-    if version == "v1" and p.exists():
+    if version != "smoke" and p.exists():
         return json.loads(p.read_text())
     return dict(T.SMOKE_DEFAULTS)
 
@@ -445,8 +452,9 @@ def evaluate_target(target: str, version: str, dims_all: pd.DataFrame,
     # Cohort/baseline dims aligned to the eval rows (and the training side, for the lookup).
     train_dims = dims_all.loc[split.lap_ids_tr].reset_index()
     eval_dims = dims_all.loc[split.lap_ids_ev].reset_index()
-    eval_dims["stint_length_laps"] = bundle.meta_train.set_index("lap_id").reindex(
-        split.lap_ids_ev)["stint_length_laps"].to_numpy()
+    stint_len = bundle.meta_train.set_index("lap_id")["stint_length_laps"]
+    eval_dims["stint_length_laps"] = stint_len.reindex(split.lap_ids_ev).to_numpy()
+    train_dims["stint_length_laps"] = stint_len.reindex(split.lap_ids_tr).to_numpy()
 
     base_pred = baseline_predictions(spec, train_dims, eval_dims)
 

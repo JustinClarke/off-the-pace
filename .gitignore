@@ -53,8 +53,12 @@ data/gold/*
 !data/gold/.gitkeep
 data/cache/*
 !data/cache/.gitkeep
-data/marts/*.parquet
+data/marts/*
 !data/marts/.gitkeep
+data/fits/*
+!data/fits/.gitkeep
+data/intermediates/*
+!data/intermediates/.gitkeep
 *.duckdb
 *.duckdb.wal
 
@@ -108,7 +112,6 @@ web/.docusaurus/
 # Local-only not published (kept in author working tree, excluded from repo)
 _roadmap/
 agents/
-.agents/
 data/dev.duckdb.tmp/
 graphify-out/
 docs/project-graph.html

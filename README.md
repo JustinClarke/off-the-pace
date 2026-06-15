@@ -56,8 +56,8 @@ Requires Python 3.11+.
 git clone https://github.com/justinclarke/off-the-pace
 cd off-the-pace
 make setup           # build venv + install Python/dbt deps
-make dbt-dev         # build the transform layer (46 models)
-make dbt-test        # run 339 tests including assert_additive_identity
+make dbt-dev         # build the transform layer (53 models)
+make dbt-test        # run 336 tests including assert_additive_identity
 ```
 
 No cloud credentials required. DuckDB runs locally at `data/dev.duckdb`.
@@ -109,10 +109,10 @@ If you want to run the React app or the documentation site locally, you'll also 
 | Subsystem | State | Evidence |
 |---|---|---|
 | Ingestion (Bronze) | ✅ Built | `ingestion/src/`: FastF1 to Hive-partitioned Parquet |
-| Transform (46 models, 339 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests |
+| Transform (53 models, 336 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests |
 | Coefficients (KM tyre cliff) | ✅ Fitted | `transform/tasks/coefficients/`: seeds |
 | Reference docs | ✅ Generated | `docs/reference/` generated from dbt manifest |
-| ML (5 XGBoost models, 27 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life; ONNX parity; auto-generated [model card](docs/reference/ml/degradation-model-v1.mdx) |
+| ML (5 XGBoost models, 28 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life; ONNX parity; auto-generated [model card](docs/reference/ml/degradation-model-v1.mdx) |
 | Frontend (React + DuckDB-Wasm) | ✅ Built | [`app/`](app/): platform complete; 35 tests passing; deployed to Firebase Hosting |
 | Visualizations | ✅ Complete | Driver consistency, tyre degradation simulator, and more |
 | Streaming (Microsoft Fabric) | ❌ Planned | Streaming Integration |
@@ -136,7 +136,7 @@ Reproduce end-to-end (one venv, warehouse read-only, nothing written to `app/`):
 ```bash
 make ml-setup        # install ml/requirements.txt
 make ml-all          # features → tune → train → evaluate → predict → onnx → card → docs
-make ml-test         # 27 tests: leakage spine, ONNX parity, output schema, beats-baseline
+make ml-test         # 28 tests: leakage spine, ONNX parity, output schema, beats-baseline
 ```
 
 Full auto-generated **[model card](docs/reference/ml/degradation-model-v1.mdx)** (metrics, baselines, calibration, dual feature importance, limitations) is built from `ml/model_card.yml`.
@@ -148,7 +148,7 @@ Full auto-generated **[model card](docs/reference/ml/degradation-model-v1.mdx)**
 | Layer | Tech |
 |---|---|
 | Ingestion | FastF1 + OpenF1 → Hive-partitioned Parquet |
-| Transform | dbt-core (DuckDB local, 46 models, 339 tests) |
+| Transform | dbt-core (DuckDB local, 53 models, 336 tests) |
 | ML | XGBoost (degradation quantile trio, cliff classifier, remaining life) → ONNX |
 | Frontend | React + DuckDB-Wasm (sub-10ms queries, zero compute cost) |
 | Hosting | Firebase Hosting (frontend) + Firebase Storage (data CDN) + Render (docs) |

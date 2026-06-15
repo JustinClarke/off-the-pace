@@ -20,7 +20,7 @@ export async function registerParquet(tableName: string, url: string): Promise<v
 
     const absoluteUrl = new URL(url, window.location.origin).href
 
-    if (url.endsWith('.parquet')) {
+    if (url.split('?')[0].endsWith('.parquet')) {
       // Single-file parquet: register via HTTP then create a view over it.
       // DuckDB-Wasm resolves server-absolute paths against its virtual filesystem
       // (not the HTTP server), so we must register the file by HTTP URL first.

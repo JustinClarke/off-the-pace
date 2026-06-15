@@ -1,8 +1,11 @@
 -- Initial transform identity: 7-term lap residual decomposition
 --
--- After dirty air tax model (dirty_air_tax_s extraction), the identity becomes:
+-- After dirty air tax model (dirty_air_tax_s extraction), the identity is:
 --   pace_delta_s = fuel + compound + rubber + ambient + constructor
---                + dirty_air_tax + driver_skill + unexplained
+--                + dirty_air_tax + driver_skill
+-- NOTE: track_unexplained_s is NOT in the closure it is an informational
+-- field-level diagnostic (see int_lap_residual_decomposed header). The enforced
+-- identity below is 7-term; adding track_unexplained_s would break it by up to ~2.5s.
 --
 -- This test uses the assert_additive_identity macro to enforce it.
 -- It will fail if:

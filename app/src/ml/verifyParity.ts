@@ -4,16 +4,15 @@
 // precomputed mart_degradation_predictions within tolerance. This is the browser
 // analogue of the Python ONNX-parity test (manifest.provenance.onnx_parity).
 //
-// The 38-feature vector is reconstructed from the warehouse the same way training did:
-// fct_cliff_prediction_features carries 30 of the columns; the remaining 8 live in
-// int_lap_powertrain_signature (6) and int_air_density (2), joined on lap_id.
+// The 41-feature vector is read straight from fct_cliff_prediction_features, which carries the
+// full v3 feature set (the 8 telemetry/air columns that once lived in int_lap_powertrain_signature
+// and int_air_density were folded into this mart in ml-v0.2 §2). predict.py scores the same single
+// frame, so the browser vector and the stored mart line up column-for-column.
 //
-// ⚠️ KNOWN DATA CAVEAT (not an inference bug): the shipped mart_degradation_predictions was
-// generated against an earlier warehouse state whose cliff-features mart still joined those 8
-// columns; the current mart SQL no longer does, so the stored predictions are STALE. Until the
-// mart is regenerated consistently, this badge will report a mismatch. The inference layer
-// itself is proven correct against booster ground truth see app/src/ml/parity.node.test.ts
-// (1.05e-5 maxAbs). When the mart is refreshed, this check goes green with no code change.
+// The inference layer itself is independently proven against booster ground truth in
+// app/src/ml/parity.node.test.ts (1.05e-5 maxAbs); this badge additionally proves the *shipped*
+// predictions match in-browser scoring. Both sides must be regenerated from the same warehouse
+// state (make ml-predict → make app-data) or the badge will flag a mismatch.
 
 import { query } from '@/data/duckdb/client'
 import { registerParquetMany } from '@/data/duckdb/register'
@@ -55,8 +54,6 @@ interface JoinedRow extends FeatureRow {
 async function registerParityViews(manifest: DataManifest, season: number): Promise<void> {
   const tables = [
     { name: 'fct_cliff_prediction_features', table: 'fct_cliff_prediction_features' },
-    { name: 'int_lap_powertrain_signature', table: 'int_lap_powertrain_signature' },
-    { name: 'int_air_density', table: 'int_air_density' },
     { name: 'mart_degradation_predictions', table: 'mart_degradation_predictions' },
   ]
   await registerParquetMany(
@@ -65,31 +62,22 @@ async function registerParityViews(manifest: DataManifest, season: number): Prom
 }
 
 /**
- * For each column, pick the first source view (in priority order) whose schema contains it.
- * `aliases` are the SQL aliases used in the join; `viewByAlias` maps alias → registered view name.
+ * Assert every feature column exists in fct_cliff_prediction_features (the single source view).
+ * Fails loud listing the missing columns if the mart and the model's feature_order drift,
+ * rather than letting DuckDB error on `f."col"` for an absent column mid-query.
  */
-async function resolveColumnOwners(
-  cols: string[],
-  aliases: string[],
-  viewByAlias: Record<string, string>,
-): Promise<Record<string, string>> {
-  const viewNames = aliases.map(a => viewByAlias[a])
-  const inList = viewNames.map(v => `'${v}'`).join(', ')
-  const rows = await query<{ table_name: string; column_name: string }>(
-    `SELECT table_name, column_name FROM information_schema.columns WHERE table_name IN (${inList})`,
+async function assertFeatureColumns(cols: string[]): Promise<void> {
+  const rows = await query<{ column_name: string }>(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_name = 'fct_cliff_prediction_features'`,
   )
-  const colsByView = new Map<string, Set<string>>()
-  for (const r of rows) {
-    if (!colsByView.has(r.table_name)) colsByView.set(r.table_name, new Set())
-    colsByView.get(r.table_name)!.add(r.column_name)
+  const present = new Set(rows.map(r => r.column_name))
+  const missing = cols.filter(c => !present.has(c))
+  if (missing.length > 0) {
+    throw new Error(
+      `Parity: feature columns missing from fct_cliff_prediction_features: ${missing.join(', ')}`,
+    )
   }
-  const owner: Record<string, string> = {}
-  for (const c of cols) {
-    const alias = aliases.find(a => colsByView.get(viewByAlias[a])?.has(c))
-    if (!alias) throw new Error(`Parity: feature column "${c}" not found in any source view`)
-    owner[c] = alias
-  }
-  return owner
 }
 
 /**
@@ -103,17 +91,12 @@ export async function verifyParity(season = 2024, limit = 64, tolerance = DEFAUL
   const modelManifest = await loadModelManifest()
   const featureCols = modelManifest.input.feature_order
 
-  // Route each feature column to the single source view that actually carries it. DuckDB
-  // errors on `t."col"` for an absent column, so we can't blanket-COALESCE across sources;
-  // instead we resolve ownership from information_schema (priority: cliff mart → powertrain
-  // → air-density). 30 cols come from f, 6 from p, 2 from a today, but this adapts if they move.
-  const owner = await resolveColumnOwners(featureCols, ['f', 'p', 'a'], {
-    f: 'fct_cliff_prediction_features',
-    p: 'int_lap_powertrain_signature',
-    a: 'int_air_density',
-  })
+  // All 41 features live in fct_cliff_prediction_features (v3); guard that the mart and the
+  // model's feature_order haven't drifted before building the query, so a mismatch fails loud
+  // instead of as a DuckDB "column not found" mid-scoring.
+  await assertFeatureColumns(featureCols)
   const featureSelect = featureCols
-    .map(c => `${owner[c]}."${c}" AS "${c}"`)
+    .map(c => `f."${c}" AS "${c}"`)
     .join(',\n    ')
 
   const sql = `
@@ -127,8 +110,6 @@ export async function verifyParity(season = 2024, limit = 64, tolerance = DEFAUL
       m.predicted_cliff_class               AS m_cliff
     FROM fct_cliff_prediction_features f
     JOIN mart_degradation_predictions m USING (lap_id)
-    LEFT JOIN int_lap_powertrain_signature p USING (lap_id)
-    LEFT JOIN int_air_density a USING (lap_id)
     ORDER BY f.lap_id
     LIMIT ${limit}
   `

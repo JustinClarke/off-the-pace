@@ -38,6 +38,7 @@ ROOT = Path(__file__).parent.parent
 DB_PATH = ROOT / "data" / "dev.duckdb"
 APP_DATA = ROOT / "app" / "public" / "data"
 MART_PREDS = ROOT / "data" / "marts" / "mart_degradation_predictions.parquet"
+DRIVER_NETWORK_RATING = ROOT / "data" / "marts" / "driver_network_rating.parquet"
 
 MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB gate (AD-2)
 
@@ -59,30 +60,33 @@ TABLES: list[tuple[str, str, str | None, bool]] = [
     ("fct_driver_skill_features",  "facts",       None,        False),
     ("fct_ghost_race_finish",      "facts",       None,        False),
     ("fct_stint_features",         "facts",       None,        False),
+    ("mart_corner_skill_driver",   "marts",       "race_year", False),
+    ("mart_degradation_history_envelope", "marts", None,        False),
 
     # ── Large marts (partition by season; heaviest also by race) ──────────
     ("fct_lap_residuals",          "facts",       "race_year", False),
     ("fct_cliff_prediction_features", "facts",    "race_year", False),
     ("fct_ghost_car_pace",         "facts",       "race_year", True),
-    ("fct_telemetry_deltas",       "facts",       None,        False),   # joined; no race_year col; small enough
+    # fct_telemetry_deltas handled separately (no race_year col; derived inline)
 
     # ── Small intermediates (load once) ────────────────────────────────────
     ("int_era_normalized_driver_rating",          "intermediates", None, False),
     ("int_constructor_structural_pace",           "intermediates", None, False),
     ("int_constructor_structural_pace_qualifying","intermediates", None, False),
     ("int_driver_circuit_affinity",               "intermediates", None, False),
+    ("int_driver_circuit_era_affinity",           "intermediates", None, False),
     ("int_circuit_x_constructor_interaction",     "intermediates", None, False),
     ("int_qualifying_decomposed",                 "intermediates", None, False),
     ("int_compound_cliff_predicted",              "intermediates", None, False),
     ("int_tyre_surface_vs_bulk_decoupling",        "intermediates", None, False),
     ("int_synthetic_teammate",                    "intermediates", None, False),
     ("int_track_evolution",                       "intermediates", None, False),
-    ("int_corner_metrics",                        "intermediates", None, False),
     ("int_field_pace_curve",                      "intermediates", None, False),
     ("int_pit_strategy_value",                    "intermediates", None, False),
-    ("int_corner_skill_residuals",                "intermediates", None, False),
 
     # ── Large intermediates (partition by season) ──────────────────────────
+    ("int_corner_metrics",         "intermediates", "race_year", False),
+    ("int_corner_skill_residuals", "intermediates", "race_year", False),
     ("int_lap_air_state",          "intermediates", "race_year", False),
     ("int_lap_anomaly_flags",      "intermediates", "race_year", False),
     ("int_sector_residual_decomposed", "intermediates", "race_year", True),
@@ -103,19 +107,10 @@ ENRICHED_TABLES: list[tuple[str, str]] = [
     ("int_coast_tax_component",     "intermediates"),
 ]
 
-# Optional tables that may be unavailable (stg_ depends on raw bronze files;
-# some int_ models not yet built in all environments)
+# Optional tables that may be unavailable (stg_ depends on raw bronze files
+# being present; skipped gracefully if missing).
 OPTIONAL_TABLES: list[tuple[str, str, str | None, bool]] = [
     ("stg_pits",                   "intermediates", "race_year", False),
-    ("fct_racecraft",              "facts",         None,        False),
-    ("int_penalties",              "intermediates", None,        False),
-    ("int_wind_component",         "intermediates", "race_year", False),
-    ("int_air_density",            "intermediates", "race_year", False),
-    ("int_lap_energy_management",  "intermediates", "race_year", False),
-    ("int_overtakes",              "intermediates", "race_year", False),
-    ("int_race_control_events",    "intermediates", "race_year", False),
-    ("int_lap_powertrain_signature","intermediates","race_year", False),
-    ("int_lap_line_deviation",     "intermediates", "race_year", True),
 ]
 
 # Wave-0 subset: just enough for the canary feature (#14) and platform validation
@@ -124,6 +119,7 @@ WAVE0_TABLES = {
     "race_to_track",
     "fct_driver_skill_features", "fct_lap_residuals", "fct_ghost_race_finish",
     "fct_stint_features", "fct_cliff_prediction_features",
+    "mart_degradation_history_envelope",
     "int_era_normalized_driver_rating", "int_constructor_structural_pace",
 }
 
@@ -364,6 +360,76 @@ def export_predictions_mart(dest_dir: Path, size_report: list) -> dict | None:
     }
 
 
+def export_telemetry_deltas(conn, dest_dir: Path, size_report: list) -> dict:
+    """Export fct_telemetry_deltas with race_year derived inline from race_id."""
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    part_dir = dest_dir / "fct_telemetry_deltas"
+    part_dir.mkdir(parents=True, exist_ok=True)
+
+    years = [
+        r[0] for r in conn.execute("""
+            SELECT DISTINCT CAST(SPLIT_PART(race_id, '_', 1) AS INTEGER) AS race_year
+            FROM fct_telemetry_deltas
+            ORDER BY 1
+        """).fetchall()
+    ]
+
+    partitions = []
+    total_bytes = 0
+    for year in years:
+        out = part_dir / f"{year}.parquet"
+        conn.execute(f"""
+            COPY (
+                SELECT *,
+                       CAST(SPLIT_PART(race_id, '_', 1) AS INTEGER) AS race_year
+                FROM fct_telemetry_deltas
+                WHERE CAST(SPLIT_PART(race_id, '_', 1) AS INTEGER) = {year}
+            )
+            TO '{out}'
+            (FORMAT PARQUET, COMPRESSION ZSTD)
+        """)
+        total_bytes += out.stat().st_size
+        partitions.append({
+            "value": year,
+            "path": f"/data/{out.relative_to(ROOT/'app'/'public'/'data')}",
+        })
+
+    size_report.append(("fct_telemetry_deltas", total_bytes))
+    _progress(
+        f"fct_telemetry_deltas  →  {part_dir.relative_to(ROOT/'app'/'public')}/"
+        f"  ({len(partitions)} partitions, {total_bytes/1024**2:.2f} MB total)"
+    )
+    return {
+        "name": "fct_telemetry_deltas",
+        "path": f"/data/{part_dir.relative_to(ROOT/'app'/'public'/'data')}",
+        "partitioned": True,
+        "partitionKey": "race_year",
+        "partitions": partitions,
+    }
+
+
+def export_driver_network_rating(dest_dir: Path, size_report: list) -> dict | None:
+    """Export driver_network_rating.parquet from data/marts/ if present."""
+    if not DRIVER_NETWORK_RATING.exists():
+        _progress("driver_network_rating.parquet not found skipping")
+        return None
+
+    ml_dir = dest_dir / "ml"
+    ml_dir.mkdir(parents=True, exist_ok=True)
+    out = ml_dir / "driver_network_rating.parquet"
+
+    import shutil as _shutil
+    _shutil.copy2(DRIVER_NETWORK_RATING, out)
+
+    size_report.append(("driver_network_rating", out.stat().st_size))
+    _progress(f"driver_network_rating  →  ml/driver_network_rating.parquet  ({_size_str(out)})")
+    return {
+        "name": "driver_network_rating",
+        "path": "/data/ml/driver_network_rating.parquet",
+        "partitioned": False,
+    }
+
+
 def build_stats_block(conn) -> dict:
     """Build the AD-12 pre-baked stats block for the home page (zero SQL in browser)."""
     total_laps = conn.execute("SELECT COUNT(*) FROM fct_lap_residuals").fetchone()[0]
@@ -393,11 +459,33 @@ def build_stats_block(conn) -> dict:
         else 0
     )
 
+    # Read era_boundary from transform/dbt_project.yml vars so the manifest
+    # stays in sync with the dbt var without a separate hardcode here.
+    era_boundary = 2022
+    try:
+        import yaml as _yaml
+        dbt_proj = ROOT / "transform" / "dbt_project.yml"
+        if dbt_proj.exists():
+            with open(dbt_proj) as _f:
+                _dbt = _yaml.safe_load(_f)
+            era_boundary = int(_dbt.get("vars", {}).get("era_boundary", 2022))
+    except Exception:
+        pass  # fall back to default
+
+    total_drivers = conn.execute("SELECT COUNT(*) FROM dim_drivers").fetchone()[0]
+    total_events = conn.execute("SELECT COUNT(*) FROM dim_events").fetchone()[0]
+    total_circuits = conn.execute("SELECT COUNT(*) FROM dim_circuits").fetchone()[0]
+
     return {
         "total_laps": total_laps,
+        "total_drivers": total_drivers,
+        "total_events": total_events,
+        "total_circuits": total_circuits,
         "dbt_models": dbt_model_count,
         "ml_models": ml_model_count or 5,
         "seasons": f"{seasons[0]}–{seasons[1]}",
+        "seasons_list": list(range(seasons[0], seasons[1] + 1)),
+        "era_boundary": era_boundary,
     }
 
 
@@ -476,9 +564,19 @@ def _run_export_to(
             except Exception as e:
                 _progress(f"{name}  →  skipped (optional enriched: {e})")
 
+        try:
+            telem_entry = export_telemetry_deltas(conn, out_root / "facts", size_report)
+            manifest_entries.append(telem_entry)
+        except Exception as e:
+            _progress(f"fct_telemetry_deltas  →  skipped (optional: {e})")
+
         preds_entry = export_predictions_mart(out_root, size_report)
         if preds_entry:
             manifest_entries.append(preds_entry)
+
+        network_entry = export_driver_network_rating(out_root, size_report)
+        if network_entry:
+            manifest_entries.append(network_entry)
 
     # Stats block (AD-12)
     stats = build_stats_block(conn)

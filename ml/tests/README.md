@@ -1,18 +1,18 @@
-# ml/tests/-The 27-Test Leakage and Parity Spine
+# ml/tests/ Leakage and Parity Spine
 
 These tests are the ML layer's CI gate. They enforce three non-negotiable properties: no data
-leakage, ONNX numerical parity, and beating the baseline. All 27 pass before any model is
+leakage, ONNX numerical parity, and beating the baseline. All must pass before any model is
 considered production-ready.
 
 ## Test files
 
 | File | What it asserts | Count |
 |---|---|---|
-| `test_features.py` | No leaked columns (`driver_skill_*`, `driver_id`, `race_year`) reach `X`; no forward-looking features; feature set matches `schema.FEATURE_COLUMNS` | ~6 |
-| `test_targets.py` | Target distributions are non-degenerate (not constant, not all-zero); regression targets are ≥ 0 | ~4 |
-| `test_predict.py` | Predictions have correct shape, dtype, and value range per model type (regressor: float, classifier: valid class label) | ~5 |
-| `test_onnx_parity.py` | Every ONNX model's output matches the `.bst` booster within `atol=1e-5` on 100 randomly sampled rows | ~5 |
-| `test_evaluate.py` | Every model beats a strong per-cohort mean baseline on its headline metric; calibration within tolerance | ~7 |
+| `test_features.py` | No leaked columns (`driver_skill_*`, `driver_id`, `race_year`) reach `X`; no forward-looking features; feature contract ⊆ live mart; bounded/non-null targets; no hardcoded holdout year | 12 |
+| `test_targets.py` | Target distributions are non-degenerate (not constant, not all-zero) | 1 |
+| `test_predict.py` | Predictions have correct shape, dtype, and value range per model type (regressor: float, classifier: valid class label) | 3 |
+| `test_onnx_parity.py` | Every ONNX model's output matches the `.bst` booster within `atol=1e-5` on a NaN-bearing sample | 5 |
+| `test_evaluate.py` | Every model beats a strong per-cohort mean baseline on its headline metric; calibration within tolerance | 7 |
 
 ## Infrastructure
 
@@ -24,7 +24,7 @@ considered production-ready.
 ## Run
 
 ```bash
-make ml-test     # runs all 27 tests via pytest ml/tests/ -v
+make ml-test     # runs all 28 tests via pytest ml/tests/ -v
 ```
 
 CI pipeline: `.github/workflows/ml-ci.yml`-any failure is red.

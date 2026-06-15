@@ -108,7 +108,7 @@ def test_coercers_handle_garbage():
 
 
 # ---------------------------------------------------------------------------
-# Client (mocked HTTP) — accessors, throttle, retry
+# Client (mocked HTTP) accessors, throttle, retry
 # ---------------------------------------------------------------------------
 
 def test_get_driver_standings_calls_correct_path(driver_standings_payload):

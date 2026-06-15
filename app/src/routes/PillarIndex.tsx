@@ -6,7 +6,12 @@ import { pillars } from '../nav/pillars'
 export default function PillarIndex() {
   const { pathname } = useLocation()
   const pillar = pillars.find(p => p.path === pathname)
-  const children = routes.filter(r => r.path.startsWith(pathname + '/') && r.path.split('/').length === pathname.split('/').length + 1)
+  const children = routes.filter(
+    r =>
+      r.shipped !== false &&
+      r.path.startsWith(pathname + '/') &&
+      r.path.split('/').length === pathname.split('/').length + 1,
+  )
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">

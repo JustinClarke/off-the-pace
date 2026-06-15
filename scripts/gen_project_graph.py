@@ -517,7 +517,7 @@ function renderLegend(){
     row.append("span").attr("class","dot").style("background", l.color);
     const t = row.append("div");
     t.append("div").text(l.name);
-    t.append("div").attr("class","desc").text(l.desc.replace(/^[^—]*— /,""));
+    t.append("div").attr("class","desc").text(l.desc.replace(/^[^ ]*  /,""));
   });
 }
 

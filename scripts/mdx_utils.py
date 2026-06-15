@@ -4,6 +4,35 @@ mdx_utils.py   Shared helpers for MDX generation.
 
 import re
 
+
+def first_sentence(text: str) -> str:
+    """First sentence of a description, whitespace-collapsed (for frontmatter descriptions)."""
+    text = re.sub(r"\s+", " ", (text or "")).strip()
+    if not text:
+        return ""
+    return re.split(r"(?<=[.!?])\s", text)[0].strip()
+
+
+def mintlify_frontmatter(title: str, sidebar_title: str = "", description: str = "") -> list[str]:
+    """
+    YAML frontmatter lines for a Mintlify page. These MUST be the first lines of the file.
+
+    Values are emitted as double-quoted scalars (whitespace-collapsed, inner double quotes
+    downgraded to single) so colons/brackets in titles or descriptions can't break the YAML.
+    Pass raw text   do NOT pre-escape with escape_mdx (frontmatter is YAML, not MDX body).
+    """
+    def q(s: str) -> str:
+        s = re.sub(r"\s+", " ", (s or "").replace('"', "'")).strip()
+        return f'"{s}"'
+
+    out = ["---", f"title: {q(title)}"]
+    if sidebar_title:
+        out.append(f"sidebarTitle: {q(sidebar_title)}")
+    if description:
+        out.append(f"description: {q(description)}")
+    out += ["---", ""]
+    return out
+
 # Matches backtick code spans to protect them from escaping
 _CODE_SPAN_RE = re.compile(r"(`+)(.+?)\1")
 # Matches Markdown links [text](url) to protect link text from escaping

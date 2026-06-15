@@ -34,19 +34,19 @@ corner_windowed AS (
         c.track_id,
 
         MIN(CASE WHEN t.brake_applied THEN t.distance_m END)
-            OVER (PARTITION BY t.driver_id, t.lap_number, c.corner_name)
+            OVER (PARTITION BY t.race_year, t.race_id, t.driver_id, t.lap_number, c.corner_name)
             AS braking_point_m,
 
         MIN(t.speed_kph)
-            OVER (PARTITION BY t.driver_id, t.lap_number, c.corner_name)
+            OVER (PARTITION BY t.race_year, t.race_id, t.driver_id, t.lap_number, c.corner_name)
             AS v_min_kph,
 
         MAX(CASE WHEN t.distance_m BETWEEN c.start_distance_m AND c.end_distance_m
                  AND t.throttle_pct = 100 THEN t.distance_m END)
-            OVER (PARTITION BY t.driver_id, t.lap_number, c.corner_name)
+            OVER (PARTITION BY t.race_year, t.race_id, t.driver_id, t.lap_number, c.corner_name)
             AS throttle_point_m,
 
-        ROW_NUMBER() OVER (PARTITION BY t.driver_id, t.lap_number, c.corner_name ORDER BY t.distance_m) AS rn
+        ROW_NUMBER() OVER (PARTITION BY t.race_year, t.race_id, t.driver_id, t.lap_number, c.corner_name ORDER BY t.distance_m) AS rn
     FROM telemetry_with_track t
     INNER JOIN corners c
         ON t.track_id = c.track_id

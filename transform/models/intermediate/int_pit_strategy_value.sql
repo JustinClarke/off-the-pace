@@ -228,6 +228,23 @@ stint_numbers AS (
         MAX(sg.lap_number)  AS stint_end_lap
     FROM stint_meta sg
     GROUP BY sg.stint_id, sg.race_year, sg.race_id, sg.driver_id
+),
+
+-- One actual pit per stint: the pit that TERMINATES the stint (the latest pit-in
+-- within the stint's lap window). Red-flag races (e.g. 2022 Monaco) can record two
+-- pit events inside a single FastF1 stint number without this dedupe the same
+-- stint_id matches multiple actual_pits rows and the stint_id grain breaks.
+stint_actual_pit AS (
+    SELECT
+        sn.stint_id,
+        MAX(ap.actual_pit_lap) AS actual_pit_lap
+    FROM stint_numbers sn
+    JOIN actual_pits ap
+        ON  sn.race_year = ap.race_year
+        AND sn.race_id   = ap.race_id
+        AND sn.driver_id = ap.driver_id
+        AND ap.actual_pit_lap BETWEEN sn.stint_start_lap AND sn.stint_end_lap + 1
+    GROUP BY sn.stint_id
 )
 
 SELECT
@@ -289,9 +306,5 @@ LEFT JOIN opportunity_cost_calc occ   USING (stint_id)
 LEFT JOIN min_gap_per_stint mgps      USING (stint_id)
 LEFT JOIN race_map rm                 ON sb.race_id = rm.race_id
 LEFT JOIN circuit_pit_loss cpl        ON rm.circuit_key = cpl.circuit_key
-LEFT JOIN actual_pits ap
-    ON sb.race_year  = ap.race_year
-    AND sb.race_id   = ap.race_id
-    AND sb.driver_id = ap.driver_id
-    AND ap.actual_pit_lap BETWEEN sn.stint_start_lap AND sn.stint_end_lap + 1
+LEFT JOIN stint_actual_pit ap         USING (stint_id)
 ORDER BY sb.race_year, sb.race_id, sb.driver_id

@@ -249,6 +249,178 @@ export function BlindTestViz() {
   )
 }
 
+// #10 Degradation Timeline-observed pace climbing away from a flat expected line as the tyre ages.
+export function DegTimelineViz() {
+  return (
+    <Frame label="Observed versus expected degradation over a stint">
+      <line x1={10} y1={50} x2={114} y2={50} stroke={BORDER} strokeWidth={1} />
+      {/* gap fill between expected and observed */}
+      <motion.path
+        d="M 10 38 C 40 37, 64 36, 90 30 C 100 27, 108 22, 112 18 L 112 36 C 108 36, 100 36, 90 36 C 64 36, 40 37, 10 38 Z"
+        fill={ACCENT} opacity={0.12}
+        initial={{ opacity: 0 }} animate={{ opacity: 0.12 }} transition={{ delay: 0.7, duration: 0.6 }}
+      />
+      {/* expected (flat-ish, dashed) */}
+      <motion.path
+        d="M 10 38 C 40 37, 70 36, 112 36" stroke={MUTED} strokeWidth={1.4} fill="none"
+        strokeDasharray="3 3" strokeLinecap="round" {...draw(0.3)}
+      />
+      {/* observed (rising = slowing) */}
+      <motion.path
+        d="M 10 38 C 40 37, 64 36, 90 30 C 100 27, 108 22, 112 18" stroke={ACCENT} strokeWidth={2}
+        fill="none" strokeLinecap="round" {...draw(0.1)}
+      />
+    </Frame>
+  )
+}
+
+// #12 Circuit Interaction-constructor x circuit heatmap grid, accent intensity = pace edge.
+export function MatrixViz() {
+  const cols = 6
+  const rows = 4
+  // deterministic pseudo-intensity per cell
+  const cell = (r: number, c: number) => ((r * 7 + c * 5) % 10) / 10
+  return (
+    <Frame label="Constructor by circuit interaction heatmap">
+      {Array.from({ length: rows }).map((_, r) =>
+        Array.from({ length: cols }).map((_, c) => {
+          const v = cell(r, c)
+          return (
+            <motion.rect
+              key={`${r}-${c}`}
+              x={10 + c * 17} y={8 + r * 13} width={15} height={11} rx={1.5}
+              fill={v > 0.45 ? ACCENT : MUTED} opacity={0.18 + v * 0.6}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 0.18 + v * 0.6 }}
+              style={{ transformOrigin: `${17.5 + c * 17}px ${13.5 + r * 13}px` }}
+              transition={{ delay: 0.03 * (r * cols + c), type: 'spring', stiffness: 280 }}
+            />
+          )
+        }),
+      )}
+    </Frame>
+  )
+}
+
+// #7 Structural Pace-ranked horizontal bars (a constructor pace leaderboard), leader in accent.
+export function RankedBarsViz() {
+  const bars = [52, 44, 38, 30, 22]
+  return (
+    <Frame label="Constructor structural pace ranking">
+      {bars.map((w, i) => (
+        <motion.rect
+          key={i} x={10} y={8 + i * 11} height={7} rx={2}
+          fill={i === 0 ? ACCENT : MUTED} opacity={i === 0 ? 0.9 : 0.45-i * 0.05}
+          initial={{ width: 0 }} animate={{ width: w }}
+          transition={{ duration: 0.55, delay: 0.08 * i, ease: 'easeOut' }}
+        />
+      ))}
+    </Frame>
+  )
+}
+
+// #11 Circuit Affinity-a circuit loop with a glowing node where the driver over-performs.
+export function AffinityViz() {
+  return (
+    <Frame label="Driver circuit affinity">
+      <motion.path
+        d="M 24 44 C 14 34, 18 18, 36 16 C 52 14, 56 26, 72 24 C 92 21, 104 30, 100 42 C 96 54, 72 54, 56 50 C 42 46, 34 54, 24 44 Z"
+        stroke={MUTED} strokeWidth={1.6} fill="none" strokeLinecap="round" {...draw(0.1)}
+      />
+      {/* affinity node */}
+      <motion.circle
+        cx={36} cy={16} r={3} fill={ACCENT}
+        initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 1.1, type: 'spring', stiffness: 300 }}
+      />
+      <motion.circle
+        cx={36} cy={16} r={3} fill="none" stroke={ACCENT}
+        initial={{ scale: 1, opacity: 0.7 }} animate={{ scale: 3, opacity: 0 }}
+        transition={{ delay: 1.1, duration: 1.6, repeat: Infinity, repeatDelay: 0.5 }}
+      />
+    </Frame>
+  )
+}
+
+// #26 Wet-Race Specialist-rain streaks over a dry/wet delta pair; specialist loses less in the wet.
+export function WetViz() {
+  const rain = [20, 34, 48, 62, 76, 90, 100]
+  return (
+    <Frame label="Wet versus dry pace delta">
+      {rain.map((x, i) => (
+        <motion.line
+          key={i} x1={x} y1={6} x2={x-6} y2={20} stroke={MUTED} strokeWidth={1}
+          initial={{ opacity: 0, y: -6 }} animate={{ opacity: 0.4, y: 0 }}
+          transition={{ delay: 0.05 * i, duration: 0.3 }}
+        />
+      ))}
+      <line x1={10} y1={54} x2={114} y2={54} stroke={BORDER} strokeWidth={1} />
+      {/* dry baseline bar vs shorter wet-loss bar (specialist) */}
+      <motion.rect
+        x={32} width={18} rx={2} fill={MUTED} opacity={0.4}
+        initial={{ height: 0, y: 54 }} animate={{ height: 28, y: 26 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      />
+      <motion.rect
+        x={68} width={18} rx={2} fill={ACCENT} opacity={0.85}
+        initial={{ height: 0, y: 54 }} animate={{ height: 16, y: 38 }}
+        transition={{ duration: 0.5, delay: 0.55 }}
+      />
+    </Frame>
+  )
+}
+
+// #30 Corner-Phase Skill-a corner arc split into entry / apex / exit, apex phase highlighted.
+export function CornerPhaseViz() {
+  return (
+    <Frame label="Corner-phase skill: entry, apex, exit">
+      <motion.path
+        d="M 12 14 C 12 36, 26 50, 60 50" stroke={MUTED} strokeWidth={2.4} fill="none"
+        strokeLinecap="round" {...draw(0.1)}
+      />
+      <motion.path
+        d="M 60 50 C 94 50, 108 36, 108 14" stroke={ACCENT} strokeWidth={2.4} fill="none"
+        strokeLinecap="round" {...draw(0.35)}
+      />
+      {/* phase markers */}
+      {[
+        { cx: 12, cy: 14, c: MUTED },
+        { cx: 60, cy: 50, c: ACCENT },
+        { cx: 108, cy: 14, c: MUTED },
+      ].map((m, i) => (
+        <motion.circle
+          key={i} cx={m.cx} cy={m.cy} r={2.6} fill={m.c}
+          initial={{ scale: 0 }} animate={{ scale: 1 }}
+          transition={{ delay: 0.8 + 0.12 * i, type: 'spring', stiffness: 300 }}
+        />
+      ))}
+    </Frame>
+  )
+}
+
+// #13 Lap Air Map-per-lap clean/dirty air barcode along a stint, with an airflow wave behind.
+export function AirMapViz() {
+  const laps = Array.from({ length: 16 })
+  const dirty = (i: number) => [3, 4, 5, 9, 10, 13].includes(i)
+  return (
+    <Frame label="Per-lap clean and dirty air timeline">
+      <motion.path
+        d="M 8 22 C 28 14, 48 30, 68 22 C 88 14, 104 28, 114 22" stroke={ACCENT} strokeWidth={1.2}
+        fill="none" opacity={0.5} strokeLinecap="round" {...draw(0.2)}
+      />
+      {laps.map((_, i) => (
+        <motion.rect
+          key={i} x={8 + i * 6.6} y={34} width={5} height={18} rx={1}
+          fill={dirty(i) ? ACCENT : MUTED} opacity={dirty(i) ? 0.85 : 0.3}
+          initial={{ scaleY: 0, originY: 1 }} animate={{ scaleY: 1 }}
+          style={{ transformOrigin: `${10.5 + i * 6.6}px 52px` }}
+          transition={{ duration: 0.35, delay: 0.03 * i, ease: 'easeOut' }}
+        />
+      ))}
+    </Frame>
+  )
+}
+
 // #17 Model Metrics-model-vs-baseline paired bars, all models beating baseline.
 export function MetricsViz() {
   const models = [0, 1, 2, 3, 4]

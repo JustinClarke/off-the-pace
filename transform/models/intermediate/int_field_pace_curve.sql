@@ -47,9 +47,9 @@ eligible AS (
         f.lap_number,
         f.weight_corrected_lap_time
     FROM fuel_state AS f
-    JOIN geom AS g USING (lap_id)
-    JOIN air AS a USING (lap_id)
-    JOIN race_fastest AS rf
+    INNER JOIN geom AS g ON f.lap_id = g.lap_id
+    INNER JOIN air AS a ON f.lap_id = a.lap_id
+    INNER JOIN race_fastest AS rf
         ON f.race_year = rf.race_year AND f.race_id = rf.race_id
     WHERE
         -- no out-laps

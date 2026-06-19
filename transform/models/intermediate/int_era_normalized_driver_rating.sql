@@ -93,7 +93,7 @@ bridge_era_means AS (
         )
             AS post_era_mean_s
     FROM season_ratings AS sr
-    JOIN bridge_drivers USING (driver_id)
+    INNER JOIN bridge_drivers ON sr.driver_id = bridge_drivers.driver_id
     GROUP BY sr.driver_id
 ),
 

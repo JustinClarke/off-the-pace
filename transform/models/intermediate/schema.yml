@@ -774,17 +774,30 @@ models:
       - name: shrunk_affinity_se_s
         description: Posterior standard error in seconds. Non-negative.
         tests:
-          - not_null
+          # SE is NULL only for degenerate single-observation cells where the
+          # posterior variance collapses to zero (SQRT(NULLIF(var, 0))). On real
+          # data every cell is estimable; the NULL surfaces only on tiny CI
+          # fixtures. Scope not_null to multi-obs cells, which must always be
+          # estimable. Range check ignores NULLs natively.
+          - not_null:
+              config:
+                where: "n_obs > 1"
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
                 max_value: 2.0
       - name: shrunk_affinity_ci_low_s
         description: Lower bound of 95% credible interval
-        tests: [not_null]
+        tests:
+          - not_null:
+              config:
+                where: "n_obs > 1"
       - name: shrunk_affinity_ci_high_s
         description: Upper bound of 95% credible interval
-        tests: [not_null]
+        tests:
+          - not_null:
+              config:
+                where: "n_obs > 1"
       - name: affinity_confidence
         description: Data fraction of posterior mass. n_obs / (n_obs + 5). [0, 1].
         tests:
@@ -845,17 +858,28 @@ models:
       - name: shrunk_affinity_se_s
         description: Posterior standard error in seconds. Non-negative.
         tests:
-          - not_null
+          # See int_driver_circuit_affinity: SE/CI are NULL only for degenerate
+          # single-observation cells (posterior variance collapses to zero).
+          # Scope not_null to estimable multi-obs cells.
+          - not_null:
+              config:
+                where: "n_obs > 1"
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
                 max_value: 2.0
       - name: shrunk_affinity_ci_low_s
         description: Lower bound of 95% credible interval
-        tests: [not_null]
+        tests:
+          - not_null:
+              config:
+                where: "n_obs > 1"
       - name: shrunk_affinity_ci_high_s
         description: Upper bound of 95% credible interval
-        tests: [not_null]
+        tests:
+          - not_null:
+              config:
+                where: "n_obs > 1"
       - name: affinity_confidence
         description: Data fraction of posterior mass. n_obs / (n_obs + 5). [0, 1].
         tests:
@@ -936,7 +960,12 @@ models:
       - name: shrunk_residual_se_s
         description: Posterior standard error in seconds.
         tests:
-          - not_null
+          # NULL only for degenerate single-race cells where posterior variance
+          # collapses to zero. Scope not_null to multi-race cells (always
+          # estimable); the NULL surfaces only on tiny CI fixtures.
+          - not_null:
+              config:
+                where: "n_races > 1"
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0

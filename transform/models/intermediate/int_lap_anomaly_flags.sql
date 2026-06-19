@@ -78,7 +78,7 @@ trailing_window AS (
         -- trailing-only)
         MEDIAN(w.driver_skill_residual_s) AS trailing_median_s
     FROM residuals AS r
-    JOIN residuals AS w
+    INNER JOIN residuals AS w
         ON
             r.race_year = w.race_year
             AND r.race_id = w.race_id
@@ -104,8 +104,8 @@ trailing_mad AS (
             0.10
         ) AS mad_floored_s
     FROM residuals AS r
-    JOIN trailing_window AS tw USING (lap_id)
-    JOIN residuals AS w
+    INNER JOIN trailing_window AS tw ON r.lap_id = tw.lap_id
+    INNER JOIN residuals AS w
         ON
             r.race_year = w.race_year
             AND r.race_id = w.race_id
@@ -143,8 +143,21 @@ with_scores AS (
         END AS mad_score
 
     FROM residuals AS r
-    LEFT JOIN residual_stats AS rs USING (race_year, race_id, driver_id)
-    LEFT JOIN trailing_mad AS tm USING (lap_id)
+    LEFT JOIN
+        residual_stats AS rs
+        ON
+            r.race_year = rs.race_year
+            AND r.race_id = rs.race_id
+            AND r.driver_id = rs.driver_id
+    LEFT JOIN trailing_mad AS tm ON r.lap_id = tm.lap_id
+),
+
+-- Stint length per lap, sourced for the in-lap boundary flag below.
+stint_lengths AS (
+    SELECT
+        lap_id,
+        stint_length_actual
+    FROM {{ ref('int_lap_residual_decomposed') }}
 ),
 
 -- Stint boundary flags
@@ -157,10 +170,7 @@ with_boundaries AS (
             AND s.lap_in_stint = sg.stint_length_actual
         ) AS is_in_lap
     FROM with_scores AS s
-    LEFT JOIN (
-        SELECT lap_id, stint_length_actual
-        FROM {{ ref('int_lap_residual_decomposed') }}
-    ) AS sg USING (lap_id)
+    LEFT JOIN stint_lengths AS sg ON s.lap_id = sg.lap_id
 )
 
 SELECT

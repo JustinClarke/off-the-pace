@@ -109,14 +109,14 @@ panel AS (
         a.dirty_air_share_lap,
         a.air_state_dominant
     FROM fuel AS f
-    JOIN geom AS g USING (lap_id)
+    INNER JOIN geom AS g ON f.lap_id = g.lap_id
     LEFT JOIN field_pace AS fp
         ON
             f.race_year = fp.race_year
             AND f.race_id = fp.race_id
             AND f.lap_number = fp.lap_number
-    LEFT JOIN air_state AS a USING (lap_id)
-    LEFT JOIN corrections AS c USING (lap_id)
+    LEFT JOIN air_state AS a ON f.lap_id = a.lap_id
+    LEFT JOIN corrections AS c ON f.lap_id = c.lap_id
     LEFT JOIN evolution AS e
         ON
             f.race_year = e.race_year

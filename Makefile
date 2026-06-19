@@ -1,29 +1,37 @@
-# ══════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════════
 #  Off The Pace project Makefile
 #
-#  Targets are ordered by the data pipeline, top to bottom the same order you
-#  run them in:
+#  Targets organized by workflow stage in chronological order:
 #
-#     1. Setup   →  2. Ingest  →  3. Coefficients  →  4. Transform
-#                                                          │
-#                            6. App  ←  5. Machine Learning┘
+#     1. Setup      	— environment + dependencies (one-time)
+#     2. Ingest     	— pull raw F1 data into Bronze
+#     3. Coefficients 	— fit physics-model seeds
+#     4. Transform  	— dbt warehouse (Bronze → warehouse, with quality gates)
+#     5. ML         	— train + export scoring models
+#     6. App        	— build web app, publish CDN
+#     7. Docs       	— build reference docs + interactive graphs
+#     8. Workflows  	— composite tasks (e.g., add a new season)
+#     9. Housekeeping 	— cleanup
 #
-#  Plus cross-cutting stages: 7. Docs and 8. Housekeeping.
-#
-#  New here? Just run `make` (or `make help`) for a grouped list of every target.
-# ══════════════════════════════════════════════════════════════════════════════
+#  New here? Just run `make` (or `make help`) to see all targets grouped by stage.
+# ════════════════════════════════════════════════════════════════════════════════
 
 .DEFAULT_GOAL := help
 
-.PHONY: help \
-        setup ml-setup app-install \
-        ingest-all ingest-recent ingest-jolpica verify-bronze monitor-ingest manifest-report simulate test test-integration \
-        coefficients-fit coefficients-promote coefficients-status coefficients-check car-fe-fit \
-        dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs query lint lint-fix lint-oracle-snapshot lint-oracle-check test-all test-fast transform-check \
-        ml-features ml-tune ml-train ml-evaluate ml-predict ml-onnx ml-card ml-reference ml-all ml-test ml-clean \
-        app-data app-data-wave0 app-data-check app-models app-dev app-dev-local app-build app-parity app-publish app-publish-dry app-deploy \
-        docs-reference project-graph watch-graph docs-audit docs-facts docs-site docs-install \
-        clean-logs clean-ds
+.PHONY: \
+	help \
+	setup ml-setup app-install \
+	ingest-all ingest-recent ingest-jolpica verify-bronze monitor-ingest manifest-report simulate \
+	test test-integration \
+	coefficients-fit coefficients-promote coefficients-status coefficients-check car-fe-fit deg-iso-fit \
+	dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs query \
+	lint lint-fix lint-oracle-snapshot lint-oracle-check \
+	test-all test-fast transform-check \
+	ml-features ml-tune ml-train ml-evaluate ml-predict ml-onnx ml-card ml-reference ml-all ml-test ml-clean \
+	app-data app-data-wave0 app-data-check app-models app-dev app-dev-local app-build app-parity app-publish app-publish-dry app-deploy \
+	docs-reference project-graph watch-graph docs-audit docs-facts docs-site docs-install \
+	add-season \
+	clean-logs clean-ds
 
 help:  ## Show this help, grouped by pipeline stage
 	@awk 'BEGIN {FS = ":.*##"} \
@@ -32,7 +40,7 @@ help:  ## Show this help, grouped by pipeline stage
 	@echo ""
 
 
-##@ 1. Setup install once, in this order
+##@ 1. Setup  — run once at project init
 setup:  ## Build venv + install all deps, scaffold data/ (run first)
 	@if [ ! -d ".venv" ]; then \
 		echo "Creating virtual environment..."; \
@@ -51,7 +59,7 @@ app-install:  ## Install web-app deps (pnpm)
 	cd app && pnpm install
 
 
-##@ 2. Ingest pull raw F1 timing data into Bronze Parquet
+##@ 2. Ingest  — pull raw F1 timing data into Bronze Parquet
 ingest-all:  ## Pull all 2018–2024 races → Bronze (~2 GB, 30–45 min)
 	./.venv/bin/python ingestion/src/ingest.py --start-season 2018 --end-season 2024 --session both
 
@@ -81,7 +89,7 @@ test-integration:  ## Live FastF1 ingestion test (needs network)
 	./.venv/bin/pytest ingestion/tests/test_integration_fastf1.py -m integration
 
 
-##@ 3. Coefficients fit physics seeds before transforming
+##@ 3. Coefficients  — fit physics-model seeds
 coefficients-fit:  ## Fit cliff + weight-penalty seeds → seeds/_pending/ (no promote)
 	cd transform && ../.venv/bin/python -m tasks.coefficients.fit_compound_cliff
 	cd transform && ../.venv/bin/python -m tasks.coefficients.fit_weight_penalty
@@ -107,7 +115,9 @@ deg-iso-fit:  ## Fit isotonic tyre-deg curves + modulation coefs → data/fits/d
 	cd transform && ../.venv/bin/python -m tasks.coefficients.fit_degradation_isotonic
 
 
-##@ 4. Transform Bronze → DuckDB warehouse (dbt)
+##@ 4. Transform  — Bronze → DuckDB warehouse (dbt models + quality gates)
+
+##   Build targets
 dbt-dev:  ## Build all 53 dbt models → data/dev.duckdb
 	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
 
@@ -117,26 +127,15 @@ dbt-dev-full: coefficients-check car-fe-fit  ## Seed check → car-FE refit → 
 dbt-prod:  ## Prod build (Fabric deferred runs against dev for now)
 	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
 
-dbt-test:  ## Run all 336 dbt tests (schema + singular + assert_* invariants)
-	cd transform && ../.venv/bin/dbt test --profiles-dir profiles
-
 dbt-docs:  ## Generate + serve the dbt docs site (port 8080)
 	cd transform && ../.venv/bin/dbt docs generate --profiles-dir profiles && ../.venv/bin/dbt docs serve
 
 query:  ## Open the warehouse in the Harlequin SQL IDE
 	./.venv/bin/harlequin data/dev.duckdb
 
-lint:  ## SQLFluff lint all models
-	cd transform && ../.venv/bin/sqlfluff lint models/ --dialect duckdb --disable-progress-bar
-
-lint-fix:  ## SQLFluff auto-fix all models
-	cd transform && ../.venv/bin/sqlfluff fix models/ --dialect duckdb --disable-progress-bar
-
-lint-oracle-snapshot:  ## Record byte-stable baseline of all model outputs (run on a known-good ci.duckdb)
-	cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py
-
-lint-oracle-check:  ## Fail if any fct_* model output drifted vs the recorded baseline (gates lint fixes)
-	cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py --check
+##   Test targets
+dbt-test:  ## Run all 336 dbt tests (schema + singular + assert_* invariants)
+	cd transform && ../.venv/bin/dbt test --profiles-dir profiles
 
 test-all:  ## CI-equivalent: full dbt build on fixtures + coefficient tests
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
@@ -145,15 +144,31 @@ test-all:  ## CI-equivalent: full dbt build on fixtures + coefficient tests
 test-fast:  ## CI fast path: fast_build selector on fixtures
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --selector fast_build --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
 
-transform-check:  ## Reproduce the CI transform gates in order (parse → lint → build → singular tests → pytest)
+##   Lint targets
+lint:  ## SQLFluff lint all models
+	cd transform && ../.venv/bin/sqlfluff lint models/ --dialect duckdb --disable-progress-bar
+
+lint-fix:  ## SQLFluff auto-fix all models
+	cd transform && ../.venv/bin/sqlfluff fix models/ --dialect duckdb --disable-progress-bar
+
+##   Oracle gates (byte-stability for fct_* models)
+lint-oracle-snapshot:  ## Record byte-stable baseline of all model outputs (run on a known-good ci.duckdb)
+	cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py
+
+lint-oracle-check:  ## Fail if any fct_* model output drifted vs the recorded baseline (gates lint fixes)
+	cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py --check
+
+##   Composite gate (all CI checks in sequence)
+transform-check:  ## Reproduce the CI transform gates in order (parse → lint → build → singular tests → oracle → pytest)
 	cd transform && ../.venv/bin/dbt parse --profiles-dir profiles --target ci
 	cd transform && ../.venv/bin/sqlfluff lint models/ --dialect duckdb --disable-progress-bar
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
 	cd transform && ../.venv/bin/dbt test --profiles-dir profiles --target ci --select test_type:singular --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+	cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py --check
 	PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/coefficients/tests/
 
 
-##@ 5. Machine Learning warehouse → XGBoost / ONNX models
+##@ 5. ML  — train + export scoring models
 ml-features:  ## Validate the ML feature contract against the warehouse
 	./.venv/bin/python -m ml.src.features --check
 
@@ -187,7 +202,9 @@ ml-clean:  ## Remove built models + predictions
 	rm -rf ml/models/*.bst ml/models/*.onnx ml/artefacts/* data/marts/mart_degradation_predictions.parquet
 
 
-##@ 6. App warehouse + models → web app & CDN
+##@ 6. App  — build web app + publish CDN
+
+##   Data export
 app-data:  ## Export warehouse → app/public/data/ parquet + _manifest.json
 	./.venv/bin/python scripts/export_app_data.py
 
@@ -197,6 +214,7 @@ app-data-wave0:  ## Export Wave-0 / canary tables only (fast)
 app-data-check:  ## CI drift gate: regenerate manifest and diff (no write)
 	./.venv/bin/python scripts/export_app_data.py --check
 
+##   Models
 app-models:  ## Copy ONNX models (version per manifest) + manifest/encoders → app/public/models/
 	@mkdir -p app/public/models
 	@if [ -d ml/models ]; then \
@@ -212,12 +230,14 @@ app-models:  ## Copy ONNX models (version per manifest) + manifest/encoders → 
 	  echo "  ⚠️   ml/models/ not found run: make ml-onnx"; \
 	fi
 
+##   Dev server
 app-dev:  ## Start Vite dev server (reads live CDN data)
 	cd app && pnpm dev
 
 app-dev-local:  ## Start Vite dev server using local app/public/data/ (offline)
 	cd app && VITE_DATA_BASE="" pnpm dev
 
+##   Build + validation
 app-build:  ## Type-check + build the React app → app/dist/
 	cd app && pnpm build
 
@@ -225,6 +245,7 @@ app-parity:  ## Prove in-browser ONNX == booster ground truth (F3 acceptance)
 	PYTHONPATH=. ./.venv/bin/python scripts/dump_parity_rows.py
 	cd app && RUN_PARITY=1 ./node_modules/.bin/vitest run src/ml/parity.node.test.ts --environment node
 
+##   Publish to CDN
 app-publish:  ## Sync app/public/data/ → live GCS CDN (no delete; manifest last)
 	./scripts/publish_cdn.sh
 
@@ -232,6 +253,35 @@ app-publish-dry:  ## Preview the CDN sync without uploading
 	./scripts/publish_cdn.sh --dry-run
 
 app-deploy: app-data app-publish  ## Export warehouse then publish to the CDN
+
+
+##@ 7. Docs  — build reference docs + interactive graphs
+##   Tip: for live editing, run `make docs-site` and `make watch-graph` in two terminals.
+##   The graph regenerates on source change and Mintlify hot-reloads.
+
+docs-reference:  ## Regenerate docs/reference/**/*.mdx from source
+	./.venv/bin/python scripts/build_reference.py
+
+project-graph:  ## Regenerate the interactive project dependency graph HTML
+	./.venv/bin/python scripts/gen_project_graph.py -o docs/project-graph.html
+
+watch-graph:  ## Watch source files and run project-graph on change
+	./.venv/bin/python scripts/watch_project_graph.py
+
+docs-audit:  ## CI gate: README-presence + tour-footer + file-header checks
+	./.venv/bin/python scripts/docs_audit.py --headers
+
+docs-facts:  ## CI gate: reconcile headline counts across README + docs
+	./.venv/bin/python scripts/docs_facts.py
+
+docs-site:  ## Start the Mintlify docs dev server (http://localhost:3000)
+	cd docs && npx -y mintlify dev
+
+docs-install:  ## (no-op) npx fetches Mintlify automatically
+	@echo "No global install needed. npx will be used automatically."
+
+
+##@ 8. Workflows  — composite orchestration tasks
 
 add-season:  ## Onboard a new season end-to-end (stops before publish): make add-season SEASON=YYYY
 	@test -n "$(SEASON)" || { echo "Usage: make add-season SEASON=YYYY"; exit 1; }
@@ -257,32 +307,8 @@ add-season:  ## Onboard a new season end-to-end (stops before publish): make add
 	@echo "   When satisfied, publish: make app-publish"
 
 
-##@ 7. Docs reference, project graph, site
-##   Tip: for live editing run `make docs-site` and `make watch-graph` in two terminals  
-##   the graph regenerates on source change and Mintlify hot-reloads it.
-docs-reference:  ## Regenerate docs/reference/**/*.mdx from source
-	./.venv/bin/python scripts/build_reference.py
+##@ 9. Housekeeping  — cleanup tasks
 
-project-graph:  ## Regenerate the interactive project dependency graph HTML
-	./.venv/bin/python scripts/gen_project_graph.py -o docs/project-graph.html
-
-watch-graph:  ## Watch source files and run project-graph on change
-	./.venv/bin/python scripts/watch_project_graph.py
-
-docs-audit:  ## CI gate: README-presence + tour-footer + file-header checks
-	./.venv/bin/python scripts/docs_audit.py --headers
-
-docs-facts:  ## CI gate: reconcile headline counts across README + docs
-	./.venv/bin/python scripts/docs_facts.py
-
-docs-site:  ## Start the Mintlify docs dev server (http://localhost:3000)
-	cd docs && npx -y mintlify dev
-
-docs-install:  ## (no-op) npx fetches Mintlify automatically
-	@echo "No global install needed. npx will be used automatically."
-
-
-##@ 8. Housekeeping
 clean-logs:  ## Remove dbt + ingestion + root logs
 	rm -rf transform/logs/*.log transform/logs/*.log.* ingestion/_archive/*.log ingestion/_archive/*.txt logs/*.log
 

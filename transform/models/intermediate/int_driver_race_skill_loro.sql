@@ -121,13 +121,13 @@ clean_panel AS (
         f.lap_time_s
         - COALESCE(fp.field_pace_smoothed_s, f.lap_time_s) AS pace_delta_s
     FROM fuel AS f
-    JOIN laps_meta AS lm USING (lap_id)
+    INNER JOIN laps_meta AS lm ON f.lap_id = lm.lap_id
     LEFT JOIN field_pace AS fp
         ON
             f.race_year = fp.race_year
             AND f.race_id = fp.race_id
             AND f.lap_number = fp.lap_number
-    LEFT JOIN corrections AS cor USING (lap_id)
+    LEFT JOIN corrections AS cor ON f.lap_id = cor.lap_id
     LEFT JOIN evolution AS e
         ON
             f.race_year = e.race_year
@@ -193,7 +193,12 @@ deconf AS (
         dra.driver_median_pace_delta_s,
         dra.driver_p20_pace_delta_s
     FROM driver_race_agg AS dra
-    JOIN car_agg AS ca USING (race_year, race_id, constructor_id)
+    INNER JOIN
+        car_agg AS ca
+        ON
+            dra.race_year = ca.race_year
+            AND dra.race_id = ca.race_id
+            AND dra.constructor_id = ca.constructor_id
 )
 
 SELECT
@@ -237,7 +242,7 @@ SELECT
     d.n_car_drivers,
     d.clean_lap_count
 FROM deconf AS d
-LEFT JOIN race_to_track AS rtt USING (race_id)
+LEFT JOIN race_to_track AS rtt ON d.race_id = rtt.race_id
 LEFT JOIN car_fe AS cfe
     ON
         d.race_year = cfe.race_year

@@ -10,7 +10,7 @@ All models are materialised as **views** (no storage cost; recomputed on demand)
 
 ## Layer contract
 
-- Sources: `{{ ref('stg_*') }}` and `{{ ref('dim_*') }}` only   never raw tables.
+- Sources: `{{ ref('stg_*') }}` and `{{ ref('dim_*') }}` only  -  never raw tables.
 - No presentation logic (rounding, formatting)   that lives in marts.
 - Every additive decomposition must pass the corresponding identity-closure singular test.
 
@@ -64,7 +64,7 @@ panel-level estimates. Shrinks toward a zero-centred prior when sample size is s
 See `macros/README.md` for the exact conjugate formula.
 
 **Clean lap predicate:** Use `{{ clean_lap_filter() }}` macro wherever driver skill
-is extracted. This is the canonical definition of a "clean" lap   do not re-implement it inline.
+is extracted. This is the canonical definition of a "clean" lap  -  do not re-implement it inline.
 
 ---
 

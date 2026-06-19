@@ -48,7 +48,10 @@ combined AS (
         w.rainfall_flag
     FROM pace AS p
     LEFT JOIN weather_per_lap AS w
-        USING (race_year, race_id, lap_number)
+        ON
+            p.race_year = w.race_year
+            AND p.race_id = w.race_id
+            AND p.lap_number = w.lap_number
 ),
 
 -- Pre-compute per-race means to avoid nested window functions
@@ -79,7 +82,9 @@ race_slope AS (
             0.0
         ) AS rubber_slope_s_per_lap
     FROM combined AS c
-    JOIN race_means AS rm USING (race_year, race_id)
+    INNER JOIN
+        race_means AS rm
+        ON c.race_year = rm.race_year AND c.race_id = rm.race_id
     GROUP BY c.race_year, c.race_id, rm.mean_lap, rm.mean_pace
 ),
 
@@ -100,8 +105,8 @@ with_rubber AS (
         )
             AS track_state_residual_s
     FROM combined AS c
-    JOIN race_slope AS rs
-        USING (race_year, race_id)
+    INNER JOIN race_slope AS rs
+        ON c.race_year = rs.race_year AND c.race_id = rs.race_id
 ),
 
 -- Pre-compute per-race temperature means for ambient OLS
@@ -125,7 +130,9 @@ ambient_slope AS (
         / NULLIF(SUM(POWER(r.track_temp_c - tm.mean_track_temp, 2)), 0)
             AS ambient_slope_s_per_c
     FROM with_rubber AS r
-    JOIN temp_means AS tm USING (race_year, race_id)
+    INNER JOIN
+        temp_means AS tm
+        ON r.race_year = tm.race_year AND r.race_id = tm.race_id
     WHERE r.track_temp_c IS NOT NULL
     GROUP BY r.race_year, r.race_id, tm.mean_track_temp
 )
@@ -152,5 +159,5 @@ SELECT
     r.rainfall_flag
 FROM with_rubber AS r
 LEFT JOIN ambient_slope AS a
-    USING (race_year, race_id)
-ORDER BY race_year, race_id, lap_number
+    ON r.race_year = a.race_year AND r.race_id = a.race_id
+ORDER BY r.race_year, r.race_id, r.lap_number

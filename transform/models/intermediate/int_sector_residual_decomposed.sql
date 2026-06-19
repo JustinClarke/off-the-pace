@@ -33,7 +33,7 @@ WITH sector_times AS (
         st.sector_time_s,
         sl.lap_time_s
     FROM {{ ref('stg_sector_times') }} AS st
-    JOIN {{ ref('stg_laps') }} AS sl USING (lap_id)
+    INNER JOIN {{ ref('stg_laps') }} AS sl ON st.lap_id = sl.lap_id
     WHERE
         st.is_valid_lap = TRUE
         AND st.sector_time_s > 0
@@ -54,7 +54,7 @@ lap_components AS (
         lr.correction_weight,
         COALESCE(air.dirty_air_share_lap, 0.0) AS dirty_air_share_lap
     FROM {{ ref('int_lap_residual_decomposed') }} AS lr
-    LEFT JOIN {{ ref('int_lap_air_state') }} AS air USING (lap_id)
+    LEFT JOIN {{ ref('int_lap_air_state') }} AS air ON lr.lap_id = air.lap_id
 ),
 
 -- Self-join rolling ±3 lap median (DuckDB: MEDIAN not available as window
@@ -82,7 +82,7 @@ field_sector_pace AS (
             AS field_sector_pace_smoothed_s,
         COUNT(w.sector_time_s) AS field_sector_sample_n
     FROM sector_all_drivers AS a
-    JOIN sector_all_drivers AS w
+    INNER JOIN sector_all_drivers AS w
         ON
             a.race_year = w.race_year
             AND a.race_id = w.race_id
@@ -105,7 +105,7 @@ joined AS (
         lc.dirty_air_share_lap,
         fsp.field_sector_pace_smoothed_s
     FROM sector_times AS st
-    JOIN lap_components AS lc ON st.lap_id = lc.lap_id
+    INNER JOIN lap_components AS lc ON st.lap_id = lc.lap_id
     LEFT JOIN field_sector_pace AS fsp
         ON
             st.race_year = fsp.race_year

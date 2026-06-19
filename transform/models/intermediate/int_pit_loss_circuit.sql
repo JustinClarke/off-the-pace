@@ -59,19 +59,24 @@ stops AS (
         (il.lap_time_s - r.ref_lap_s)
         + (ol.lap_time_s - r.ref_lap_s) AS time_lost_s
     FROM {{ ref('stg_pits') }} AS p
-    JOIN race_slug_map AS m USING (race_year, race_id)
-    JOIN ref_lap AS r USING (race_year, race_id, driver_id)
+    INNER JOIN
+        race_slug_map AS m
+        ON p.race_year = m.race_year AND p.race_id = m.race_id
+    INNER JOIN ref_lap AS r
+        ON
+            p.race_year = r.race_year AND p.race_id = r.race_id
+            AND p.driver_id = r.driver_id
     -- in-lap (the lap the car pitted on) and out-lap (next lap) times
-    JOIN lap_times AS il
+    INNER JOIN lap_times AS il
         ON
-            il.race_year = p.race_year AND il.race_id = p.race_id
-            AND il.driver_id = p.driver_id
-            AND il.lap_number = p.pit_in_lap_number
-    JOIN lap_times AS ol
+            p.race_year = il.race_year AND p.race_id = il.race_id
+            AND p.driver_id = il.driver_id
+            AND p.pit_in_lap_number = il.lap_number
+    INNER JOIN lap_times AS ol
         ON
-            ol.race_year = p.race_year AND ol.race_id = p.race_id
-            AND ol.driver_id = p.driver_id
-            AND ol.lap_number = p.pit_out_lap_number
+            p.race_year = ol.race_year AND p.race_id = ol.race_id
+            AND p.driver_id = ol.driver_id
+            AND p.pit_out_lap_number = ol.lap_number
 ),
 
 clean_stops AS (

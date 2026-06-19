@@ -69,7 +69,7 @@ pairs AS (
         t.driver_id AS teammate_driver_id,
         e.constructor_id
     FROM laps AS e
-    JOIN laps AS t
+    INNER JOIN laps AS t
         ON
             e.race_year = t.race_year
             AND e.race_id = t.race_id
@@ -89,8 +89,8 @@ ego_data AS (
         g.lap_in_stint AS ego_lap_in_stint,
         c.expected_compound_pace_s AS ego_compound_pace_s
     FROM fuel_state AS f
-    JOIN geom AS g USING (lap_id)
-    JOIN cliff AS c USING (lap_id)
+    INNER JOIN geom AS g ON f.lap_id = g.lap_id
+    INNER JOIN cliff AS c ON f.lap_id = c.lap_id
 ),
 
 teammate_data AS (
@@ -104,8 +104,8 @@ teammate_data AS (
         g.lap_in_stint AS tm_lap_in_stint,
         c.expected_compound_pace_s AS tm_compound_pace_s
     FROM fuel_state AS f
-    JOIN geom AS g USING (lap_id)
-    JOIN cliff AS c USING (lap_id)
+    INNER JOIN geom AS g ON f.lap_id = g.lap_id
+    INNER JOIN cliff AS c ON f.lap_id = c.lap_id
 ),
 
 joined AS (
@@ -136,13 +136,13 @@ joined AS (
         > 3 AS strategic_divergence_flag,
         t.tm_raw_lap_time_s IS NOT NULL AS teammate_available_flag
     FROM pairs AS p
-    JOIN ego_data AS e
+    INNER JOIN ego_data AS e
         ON
             p.race_year = e.race_year
             AND p.race_id = e.race_id
             AND p.lap_number = e.lap_number
             AND p.ego_driver_id = e.driver_id
-    JOIN teammate_data AS t
+    INNER JOIN teammate_data AS t
         ON
             p.race_year = t.race_year
             AND p.race_id = t.race_id

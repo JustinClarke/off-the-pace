@@ -1,14 +1,14 @@
 """
-create_fixtures.py   extract a small subset of bronze parquet data for CI fixtures.
+create_fixtures.py - extract a small subset of bronze parquet data for CI fixtures.
 
 Usage:
     python ingestion/src/create_fixtures.py \
         --output transform/tests/fixtures/bronze
 
 Hardcoded races (chosen for coverage):
-    2020 / italian_grand_prix   Monza, low-energy, sprint strategy
-    2023 / bahrain_grand_prix   clean dry race, multi-compound baseline
-    2024 / sao_paulo_grand_prix   wet/mixed, exercises rain-lap handling
+    2020 / italian_grand_prix   - Monza, low-energy, sprint strategy
+    2023 / bahrain_grand_prix   - clean dry race, multi-compound baseline
+    2024 / são_paulo_grand_prix - wet/mixed, exercises rain-lap handling
 """
 
 import argparse
@@ -21,7 +21,16 @@ RACES = [
     ("2024", "são_paulo_grand_prix"),
 ]
 
-DATASETS = ["laps", "weather", "telemetry", "race_control"]
+DATASETS = [
+    "laps",
+    "weather",
+    "telemetry",
+    "race_control",
+    "track_status",
+    "session_status",
+    "results",
+    "circuit_info",
+]
 
 
 def copy_race(bronze_root: Path, output_root: Path, season: str, race_id: str) -> None:

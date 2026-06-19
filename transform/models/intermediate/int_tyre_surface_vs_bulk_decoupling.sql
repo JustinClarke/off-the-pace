@@ -78,7 +78,7 @@ combined AS (
         COALESCE(th.cumulative_push_load_surface, 0.0) AS push_load_surface,
         COALESCE(th.cumulative_push_load_bulk, 0.0) AS push_load_bulk
     FROM residuals AS r
-    JOIN thermal AS th USING (lap_id)
+    INNER JOIN thermal AS th ON r.lap_id = th.lap_id
 ),
 
 -- Compute surface-to-total ratio and next-2-lap recovery window

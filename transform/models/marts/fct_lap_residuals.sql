@@ -104,6 +104,6 @@ SELECT
     AND b.lap_time_s IS NOT NULL AS ml_eligible
 
 FROM base AS b
-LEFT JOIN drivers AS d USING (driver_id)
-LEFT JOIN constructors AS c USING (constructor_id)
+LEFT JOIN drivers AS d ON b.driver_id = d.driver_id
+LEFT JOIN constructors AS c ON b.constructor_id = c.constructor_id
 ORDER BY b.race_year, b.race_id, b.driver_id, b.lap_number

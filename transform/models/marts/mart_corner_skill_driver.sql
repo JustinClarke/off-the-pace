@@ -62,8 +62,8 @@ push_corners AS (
         csr.mid_corner_residual_s,
         csr.exit_residual_s
     FROM {{ ref('int_corner_skill_residuals') }} AS csr
-    JOIN lap_meta AS lm USING (lap_id)
-    LEFT JOIN corrections AS cor USING (lap_id)
+    INNER JOIN lap_meta AS lm ON csr.lap_id = lm.lap_id
+    LEFT JOIN corrections AS cor ON csr.lap_id = cor.lap_id
     LEFT JOIN evolution AS e
         ON
             csr.race_year = e.race_year
@@ -153,7 +153,7 @@ loro_corner AS (
         dca.driver_sum_mid_s / NULLIF(dca.n_mid, 0) AS driver_mean_mid_s,
         dca.driver_sum_exit_s / NULLIF(dca.n_exit, 0) AS driver_mean_exit_s
     FROM driver_corner_agg AS dca
-    JOIN car_agg AS ca
+    INNER JOIN car_agg AS ca
         ON
             dca.race_id = ca.race_id
             AND dca.constructor_id = ca.constructor_id

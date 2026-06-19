@@ -108,7 +108,7 @@ stint_survival AS (
         sr.lap_in_stint,
         sr.n_reaching * 1.0 / tp.n_total AS survival_prob
     FROM stints_reaching AS sr
-    JOIN total_per_compound AS tp ON sr.compound = tp.compound
+    INNER JOIN total_per_compound AS tp ON sr.compound = tp.compound
 ),
 
 -- Per-lap telemetry features (ml-v0.2 §2): powertrain + within-stint-drift
@@ -251,14 +251,14 @@ base AS (
         ) AS surface_bulk_ratio
 
     FROM residuals AS r
-    LEFT JOIN anomaly AS a USING (lap_id)
-    LEFT JOIN cliff AS c USING (lap_id)
-    LEFT JOIN thermal AS th USING (lap_id)
-    LEFT JOIN air AS ai USING (lap_id)
-    LEFT JOIN corrections AS cor USING (lap_id)
-    LEFT JOIN telemetry AS tel USING (lap_id)
-    LEFT JOIN race_to_track AS rtt USING (race_id)
-    LEFT JOIN dim_circuits AS dc USING (circuit_key)
+    LEFT JOIN anomaly AS a ON r.lap_id = a.lap_id
+    LEFT JOIN cliff AS c ON r.lap_id = c.lap_id
+    LEFT JOIN thermal AS th ON r.lap_id = th.lap_id
+    LEFT JOIN air AS ai ON r.lap_id = ai.lap_id
+    LEFT JOIN corrections AS cor ON r.lap_id = cor.lap_id
+    LEFT JOIN telemetry AS tel ON r.lap_id = tel.lap_id
+    LEFT JOIN race_to_track AS rtt ON r.race_id = rtt.race_id
+    LEFT JOIN dim_circuits AS dc ON rtt.circuit_key = dc.circuit_key
     LEFT JOIN compound_params AS cp
         ON
             rtt.circuit_key = cp.circuit_key

@@ -60,8 +60,9 @@ per_race AS (
         COALESCE(o.n_vsc_onsets, 0) AS n_vsc_onsets,
         e.racing_laps
     FROM races_in_scope AS s
-    LEFT JOIN onsets AS o USING (race_year, race_id)
-    JOIN exposure AS e USING (race_year, race_id)
+    LEFT JOIN onsets AS o ON s.race_year = o.race_year AND s.race_id = o.race_id
+    INNER JOIN exposure AS e
+        ON s.race_year = e.race_year AND s.race_id = e.race_id
     WHERE e.racing_laps > 0
 ),
 

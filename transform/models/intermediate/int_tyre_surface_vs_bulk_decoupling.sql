@@ -1,5 +1,6 @@
 -- Third Model Sequence #2: Tyre surface vs bulk thermal decoupling.
--- For each lap past the tyre cliff, attributes degradation to surface (recoverable)
+-- For each lap past the tyre cliff, attributes degradation to surface
+-- (recoverable)
 -- or bulk (structural) thermal damage using the two EW thermal signals with
 -- different time constants:
 --  -cumulative_push_load_surface (τ≈3 laps, fast-decaying)
@@ -42,7 +43,8 @@ WITH thermal AS (
 ),
 
 residuals AS (
-    -- All race laps with driver residual and cliff flags; includes non-cliff laps
+    -- All race laps with driver residual and cliff flags; includes non-cliff
+    -- laps
     -- for the LEAD window to look ahead past the cliff.
     SELECT
         lap_id,
@@ -74,9 +76,9 @@ combined AS (
         th.stint_id,
         th.lap_in_stint,
         COALESCE(th.cumulative_push_load_surface, 0.0) AS push_load_surface,
-        COALESCE(th.cumulative_push_load_bulk, 0.0)    AS push_load_bulk
-    FROM residuals r
-    JOIN thermal th USING (lap_id)
+        COALESCE(th.cumulative_push_load_bulk, 0.0) AS push_load_bulk
+    FROM residuals AS r
+    JOIN thermal AS th USING (lap_id)
 ),
 
 -- Compute surface-to-total ratio and next-2-lap recovery window
@@ -85,11 +87,12 @@ with_ratio AS (
         *,
         -- Surface/total ratio: bounded [0, 1].
         push_load_surface
-            / NULLIF(push_load_surface + push_load_bulk, 0.0) AS surface_bulk_ratio,
+        / NULLIF(push_load_surface + push_load_bulk, 0.0) AS surface_bulk_ratio,
 
-        -- Next 2-lap driver_skill_residual: compare to current for recovery detection
-        LEAD(driver_skill_residual_s, 1) OVER w               AS next_lap_1_residual,
-        LEAD(driver_skill_residual_s, 2) OVER w               AS next_lap_2_residual
+        -- Next 2-lap driver_skill_residual: compare to current for recovery
+        -- detection
+        LEAD(driver_skill_residual_s, 1) OVER w AS next_lap_1_residual,
+        LEAD(driver_skill_residual_s, 2) OVER w AS next_lap_2_residual
     FROM combined
     WINDOW w AS (
         PARTITION BY race_year, race_id, driver_id, stint_id
@@ -108,38 +111,47 @@ with_classification AS (
         compound_component_s,
         push_load_surface,
         push_load_bulk,
-        COALESCE(surface_bulk_ratio, 0.5)               AS surface_bulk_ratio,
+        COALESCE(surface_bulk_ratio, 0.5) AS surface_bulk_ratio,
 
         -- Degradation source classification (thresholds from plan §6.4)
         CASE
             WHEN COALESCE(surface_bulk_ratio, 0.5) > 0.65 THEN 'surface_driven'
             WHEN COALESCE(surface_bulk_ratio, 0.5) < 0.35 THEN 'bulk_driven'
             ELSE 'mixed'
-        END                                             AS degradation_source,
+        END AS degradation_source,
 
-        -- Recovery flag: TRUE if avg of next 2 laps' residuals is better than current
+        -- Recovery flag: TRUE if avg of next 2 laps' residuals is better than
+        -- current
         -- (lower residual = faster relative to field = recovering)
         CASE
-            WHEN next_lap_1_residual IS NOT NULL AND next_lap_2_residual IS NOT NULL
-                THEN (next_lap_1_residual + next_lap_2_residual) / 2.0 < driver_skill_residual_s
+            WHEN
+                next_lap_1_residual IS NOT NULL
+                AND next_lap_2_residual IS NOT NULL
+                THEN
+                    (next_lap_1_residual + next_lap_2_residual) / 2.0
+                    < driver_skill_residual_s
             WHEN next_lap_1_residual IS NOT NULL
                 THEN next_lap_1_residual < driver_skill_residual_s
-            ELSE NULL
-        END                                             AS recovery_flag,
+        END AS recovery_flag,
 
-        -- Thermal attribution: share of compound degradation explained by thermal damage
+        -- Thermal attribution: share of compound degradation explained by
+        -- thermal damage
         -- Approximation: surface ratio × compound_component_s
         COALESCE(surface_bulk_ratio, 0.5)
-            * COALESCE(compound_component_s, 0.0)       AS thermal_attribution_s,
+        * COALESCE(compound_component_s, 0.0) AS thermal_attribution_s,
 
         -- Recovery probability: sigmoid approximation over surface_bulk_ratio.
         -- Full logistic fit is in validation notebook; SQL approximation:
         --   P = 1 / (1 + exp(-2.0 × (ratio-0.5))) × decay_with_laps_past_cliff
         -- Bounded [0, 1].
-        GREATEST(0.0, LEAST(1.0,
-            (1.0 / (1.0 + EXP(-2.0 * (COALESCE(surface_bulk_ratio, 0.5)-0.5))))
+        GREATEST(0.0, LEAST(
+            1.0,
+            (
+                1.0
+                / (1.0 + EXP(-2.0 * (COALESCE(surface_bulk_ratio, 0.5) - 0.5)))
+            )
             * (1.0 / (1.0 + 0.1 * GREATEST(laps_past_cliff, 0.0)))
-        ))                                              AS recovery_probability
+        )) AS recovery_probability
     FROM with_ratio
     WHERE cliff_onset_passed = TRUE
 )

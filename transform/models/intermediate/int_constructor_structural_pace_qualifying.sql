@@ -1,4 +1,5 @@
--- Qualifying constructor pace model: Constructor pace coefficient for qualifying sessions.
+-- Qualifying constructor pace model: Constructor pace coefficient for
+-- qualifying sessions.
 -- Mirrors int_constructor_structural_pace (#6) but fit on qualifying laps only.
 -- The qualifying-mode constructor coefficient reflects high-power/low-fuel trim
 -- and is expected to differ from the race coefficient.
@@ -19,7 +20,7 @@ WITH field_pace AS (
         race_year,
         race_id,
         PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY lap_time_s)
-            FILTER (WHERE is_valid_lap = TRUE AND lap_time_s IS NOT NULL)
+        FILTER (WHERE is_valid_lap = TRUE AND lap_time_s IS NOT NULL)
             AS session_median_s
     FROM {{ ref('stg_laps_qualifying') }}
     GROUP BY race_year, race_id
@@ -33,17 +34,21 @@ clean_quali AS (
         q.driver_id,
         q.constructor_id,
         q.lap_time_s,
-        -- Pace delta vs session median (analogous to pace_delta_s in race model)
-        q.lap_time_s-fp.session_median_s  AS pace_delta_s
-    FROM {{ ref('stg_laps_qualifying') }} q
-    JOIN field_pace fp
-        ON q.race_year = fp.race_year
-        AND q.race_id  = fp.race_id
-    WHERE q.is_valid_lap = TRUE
-      AND q.lap_time_s IS NOT NULL
-      AND fp.session_median_s IS NOT NULL
-      -- Only best lap per driver per session to reduce noise from scrubbed laps
-      AND q.is_personal_best = TRUE
+        -- Pace delta vs session median (analogous to pace_delta_s in race
+        -- model)
+        q.lap_time_s - fp.session_median_s AS pace_delta_s
+    FROM {{ ref('stg_laps_qualifying') }} AS q
+    JOIN field_pace AS fp
+        ON
+            q.race_year = fp.race_year
+            AND q.race_id = fp.race_id
+    WHERE
+        q.is_valid_lap = TRUE
+        AND q.lap_time_s IS NOT NULL
+        AND fp.session_median_s IS NOT NULL
+        -- Only best lap per driver per session to reduce noise from scrubbed
+        -- laps
+        AND q.is_personal_best = TRUE
 ),
 
 constructor_agg AS (
@@ -51,10 +56,11 @@ constructor_agg AS (
         race_year,
         race_id,
         constructor_id,
-        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY pace_delta_s) AS median_pace_delta,
-        STDDEV_POP(pace_delta_s)                                   AS stddev_pace_delta,
-        COUNT(*)                                                   AS n_obs,
-        COUNT(DISTINCT driver_id)                                  AS n_drivers
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY pace_delta_s)
+            AS median_pace_delta,
+        STDDEV_POP(pace_delta_s) AS stddev_pace_delta,
+        COUNT(*) AS n_obs,
+        COUNT(DISTINCT driver_id) AS n_drivers
     FROM clean_quali
     GROUP BY race_year, race_id, constructor_id
     HAVING COUNT(*) >= 1
@@ -74,28 +80,29 @@ SELECT
         CAST(ca.race_year AS VARCHAR), '_',
         ca.race_id, '_',
         ca.constructor_id, '_Q'
-    )                                                              AS constructor_race_id,
+    ) AS constructor_race_id,
     ca.race_year,
     ca.race_id,
     ca.constructor_id,
     -- Re-centred: constructor pace relative to session average.
-    ca.median_pace_delta-rm.race_avg_pace_delta                  AS constructor_structural_pace_s,
+    ca.median_pace_delta
+    - rm.race_avg_pace_delta AS constructor_structural_pace_s,
     COALESCE(
         ca.stddev_pace_delta / SQRT(CAST(ca.n_obs AS DOUBLE)),
         0.0
-    )                                                              AS constructor_structural_pace_se_s,
+    ) AS constructor_structural_pace_se_s,
     COALESCE(
-        (ca.median_pace_delta-rm.race_avg_pace_delta)
-           -1.96 * (ca.stddev_pace_delta / SQRT(CAST(ca.n_obs AS DOUBLE))),
-        ca.median_pace_delta-rm.race_avg_pace_delta
-    )                                                              AS constructor_structural_pace_ci_low_s,
+        (ca.median_pace_delta - rm.race_avg_pace_delta)
+        - 1.96 * (ca.stddev_pace_delta / SQRT(CAST(ca.n_obs AS DOUBLE))),
+        ca.median_pace_delta - rm.race_avg_pace_delta
+    ) AS constructor_structural_pace_ci_low_s,
     COALESCE(
-        (ca.median_pace_delta-rm.race_avg_pace_delta)
-            + 1.96 * (ca.stddev_pace_delta / SQRT(CAST(ca.n_obs AS DOUBLE))),
-        ca.median_pace_delta-rm.race_avg_pace_delta
-    )                                                              AS constructor_structural_pace_ci_high_s,
-    ca.n_obs                                                       AS panel_observations_n,
-    CAST(CURRENT_TIMESTAMP AS VARCHAR)                             AS fit_timestamp
-FROM constructor_agg ca
-JOIN race_mean rm USING (race_year, race_id)
-ORDER BY ca.race_year DESC, ca.race_id, ca.constructor_id
+        (ca.median_pace_delta - rm.race_avg_pace_delta)
+        + 1.96 * (ca.stddev_pace_delta / SQRT(CAST(ca.n_obs AS DOUBLE))),
+        ca.median_pace_delta - rm.race_avg_pace_delta
+    ) AS constructor_structural_pace_ci_high_s,
+    ca.n_obs AS panel_observations_n,
+    CAST(CURRENT_TIMESTAMP AS VARCHAR) AS fit_timestamp
+FROM constructor_agg AS ca
+JOIN race_mean AS rm USING (race_year, race_id)
+ORDER BY ca.race_year DESC, ca.race_id ASC, ca.constructor_id ASC

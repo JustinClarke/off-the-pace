@@ -1,7 +1,10 @@
--- int_corner_metrics.sql · intermediate · grain: one row per driver × lap × circuit turn
--- Aggregates 10 Hz telemetry to per-corner metrics: min speed, mean throttle, max brake
+-- int_corner_metrics.sql · intermediate · grain: one row per driver × lap ×
+-- circuit turn
+-- Aggregates 10 Hz telemetry to per-corner metrics: min speed, mean throttle,
+-- max brake
 -- force, and entry/apex/exit speed. Upstream of int_corner_skill_residuals and
--- fct_telemetry_deltas. Joins stg_telemetry to the track-geometry corner catalogue.
+-- fct_telemetry_deltas. Joins stg_telemetry to the track-geometry corner
+-- catalogue.
 {{ config(materialized='table') }}
 
 WITH telemetry AS (
@@ -16,8 +19,8 @@ telemetry_with_track AS (
     SELECT
         t.*,
         r.track_id
-    FROM telemetry t
-    LEFT JOIN race_map r ON t.race_id = r.race_id
+    FROM telemetry AS t
+    LEFT JOIN race_map AS r ON t.race_id = r.race_id
 ),
 
 corners AS (
@@ -34,23 +37,58 @@ corner_windowed AS (
         c.track_id,
 
         MIN(CASE WHEN t.brake_applied THEN t.distance_m END)
-            OVER (PARTITION BY t.race_year, t.race_id, t.driver_id, t.lap_number, c.corner_name)
+            OVER (
+                PARTITION BY
+                    t.race_year,
+                    t.race_id,
+                    t.driver_id,
+                    t.lap_number,
+                    c.corner_name
+            )
             AS braking_point_m,
 
         MIN(t.speed_kph)
-            OVER (PARTITION BY t.race_year, t.race_id, t.driver_id, t.lap_number, c.corner_name)
+            OVER (
+                PARTITION BY
+                    t.race_year,
+                    t.race_id,
+                    t.driver_id,
+                    t.lap_number,
+                    c.corner_name
+            )
             AS v_min_kph,
 
-        MAX(CASE WHEN t.distance_m BETWEEN c.start_distance_m AND c.end_distance_m
-                 AND t.throttle_pct = 100 THEN t.distance_m END)
-            OVER (PARTITION BY t.race_year, t.race_id, t.driver_id, t.lap_number, c.corner_name)
+        MAX(CASE
+            WHEN
+                t.distance_m BETWEEN c.start_distance_m AND c.end_distance_m
+                AND t.throttle_pct = 100 THEN t.distance_m
+        END)
+            OVER (
+                PARTITION BY
+                    t.race_year,
+                    t.race_id,
+                    t.driver_id,
+                    t.lap_number,
+                    c.corner_name
+            )
             AS throttle_point_m,
 
-        ROW_NUMBER() OVER (PARTITION BY t.race_year, t.race_id, t.driver_id, t.lap_number, c.corner_name ORDER BY t.distance_m) AS rn
-    FROM telemetry_with_track t
-    INNER JOIN corners c
-        ON t.track_id = c.track_id
-        AND t.distance_m BETWEEN c.start_distance_m AND c.end_distance_m
+        ROW_NUMBER()
+            OVER (
+                PARTITION BY
+                    t.race_year,
+                    t.race_id,
+                    t.driver_id,
+                    t.lap_number,
+                    c.corner_name
+                ORDER BY t.distance_m
+            )
+            AS rn
+    FROM telemetry_with_track AS t
+    INNER JOIN corners AS c
+        ON
+            t.track_id = c.track_id
+            AND t.distance_m BETWEEN c.start_distance_m AND c.end_distance_m
 )
 
 SELECT

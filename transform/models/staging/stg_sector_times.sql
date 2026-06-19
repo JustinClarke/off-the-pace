@@ -25,34 +25,37 @@ WITH laps AS (
 ),
 
 unpivoted AS (
-    SELECT lap_id, race_year, race_id, driver_id, lap_number,
-           1               AS sector,
-           sector1_time_s  AS sector_time_s,
-           sector1_session_time_s AS sector_session_time_s,
-           speed_i1_kph    AS speed_trap_kph,
-           is_valid_lap
+    SELECT
+        lap_id, race_year, race_id, driver_id, lap_number,
+        1 AS sector,
+        sector1_time_s AS sector_time_s,
+        sector1_session_time_s AS sector_session_time_s,
+        speed_i1_kph AS speed_trap_kph,
+        is_valid_lap
     FROM laps
     WHERE sector1_time_s IS NOT NULL
 
     UNION ALL
 
-    SELECT lap_id, race_year, race_id, driver_id, lap_number,
-           2,
-           sector2_time_s,
-           sector2_session_time_s,
-           speed_i2_kph,
-           is_valid_lap
+    SELECT
+        lap_id, race_year, race_id, driver_id, lap_number,
+        2,
+        sector2_time_s,
+        sector2_session_time_s,
+        speed_i2_kph,
+        is_valid_lap
     FROM laps
     WHERE sector2_time_s IS NOT NULL
 
     UNION ALL
 
-    SELECT lap_id, race_year, race_id, driver_id, lap_number,
-           3,
-           sector3_time_s,
-           sector3_session_time_s,
-           speed_fl_kph,   -- FL trap is S3 exit
-           is_valid_lap
+    SELECT
+        lap_id, race_year, race_id, driver_id, lap_number,
+        3,
+        sector3_time_s,
+        sector3_session_time_s,
+        speed_fl_kph,   -- FL trap is S3 exit
+        is_valid_lap
     FROM laps
     WHERE sector3_time_s IS NOT NULL
 )

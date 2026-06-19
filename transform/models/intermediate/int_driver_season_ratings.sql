@@ -3,7 +3,8 @@
 -- Aggregates race-grain skill residuals to driver-season grain, then applies
 -- Bayesian shrinkage toward the season mean (prior_weight = 5 virtual races).
 --
--- This is the first era rating iteration of the era normalisation chain. The subsequent era rating offset iteration
+-- This is the first era rating iteration of the era normalisation chain. The
+-- subsequent era rating offset iteration
 -- lives in int_era_normalized_driver_rating, which consumes this model.
 --
 -- Output grain: (driver_id, race_year). One row per driver per season.
@@ -16,8 +17,10 @@
 
 WITH driver_race AS (
     -- Metric 1 source: de-confounded LORO equal-car skill (was
-    -- fct_driver_skill_features.driver_residual_mean_s, which buried elite drivers via a
-    -- self-referencing car baseline + cruise drag). Aliased to the old name so the shrinkage
+    -- fct_driver_skill_features.driver_residual_mean_s, which buried elite
+    -- drivers via a
+    -- self-referencing car baseline + cruise drag). Aliased to the old name so
+    -- the shrinkage
     -- logic/macros below are unchanged. See int_driver_race_skill_loro.
     SELECT
         driver_id,
@@ -34,11 +37,11 @@ driver_season_obs AS (
     SELECT
         driver_id,
         race_year,
-        COUNT(*)                                          AS n_races,
-        SUM(clean_lap_count)                              AS total_clean_laps_n,
-        AVG(driver_residual_mean_s)                       AS raw_residual_mean_s,
-        STDDEV(driver_residual_mean_s)                    AS residual_stddev_s,
-        COUNT(DISTINCT race_id)                           AS races_completed_n
+        COUNT(*) AS n_races,
+        SUM(clean_lap_count) AS total_clean_laps_n,
+        AVG(driver_residual_mean_s) AS raw_residual_mean_s,
+        STDDEV(driver_residual_mean_s) AS residual_stddev_s,
+        COUNT(DISTINCT race_id) AS races_completed_n
     FROM driver_race
     GROUP BY driver_id, race_year
 ),
@@ -47,9 +50,9 @@ driver_season_obs AS (
 season_means AS (
     SELECT
         race_year,
-        AVG(raw_residual_mean_s)       AS season_mean_s,
-        STDDEV(raw_residual_mean_s)    AS season_stddev_s,
-        COUNT(*)                       AS drivers_in_season_n
+        AVG(raw_residual_mean_s) AS season_mean_s,
+        STDDEV(raw_residual_mean_s) AS season_stddev_s,
+        COUNT(*) AS drivers_in_season_n
     FROM driver_season_obs
     GROUP BY race_year
 ),
@@ -58,7 +61,7 @@ season_means AS (
 variance_components AS (
     SELECT
         AVG(POWER(COALESCE(residual_stddev_s, 0), 2)) AS sigma2_residual,
-        STDDEV(raw_residual_mean_s)                    AS sigma_prior_approx
+        STDDEV(raw_residual_mean_s) AS sigma_prior_approx
     FROM driver_season_obs
 ),
 
@@ -90,18 +93,20 @@ with_shrinkage AS (
 
         -- Confidence: fraction of posterior from data vs prior
         CAST(dso.n_races AS DOUBLE)
-            / NULLIF(dso.n_races + 5, 0)    AS rating_confidence
+        / NULLIF(dso.n_races + 5, 0) AS rating_confidence
 
-    FROM driver_season_obs dso
-    JOIN season_means      sm   USING (race_year)
-    CROSS JOIN variance_components vc
+    FROM driver_season_obs AS dso
+    JOIN season_means AS sm USING (race_year)
+    CROSS JOIN variance_components AS vc
 )
 
 SELECT
-    {{ dbt_utils.generate_surrogate_key(['driver_id', 'CAST(race_year AS VARCHAR)']) }}
-                                            AS driver_season_id,
+    {{ dbt_utils.generate_surrogate_key([
+        'driver_id', 'CAST(race_year AS VARCHAR)'
+    ]) }}
+        AS driver_season_id,
     driver_id,
-    race_year                               AS season,
+    race_year AS season,
     n_races,
     total_clean_laps_n,
     races_completed_n,
@@ -110,16 +115,16 @@ SELECT
     season_mean_s,
     shrunk_residual_s,
 
-    SQRT(NULLIF(posterior_var_s2, 0))       AS shrunk_residual_se_s,
-    shrunk_residual_s-1.96 * SQRT(NULLIF(posterior_var_s2, 0))
-                                            AS shrunk_residual_ci_low_s,
+    SQRT(NULLIF(posterior_var_s2, 0)) AS shrunk_residual_se_s,
+    shrunk_residual_s - 1.96 * SQRT(NULLIF(posterior_var_s2, 0))
+        AS shrunk_residual_ci_low_s,
     shrunk_residual_s + 1.96 * SQRT(NULLIF(posterior_var_s2, 0))
-                                            AS shrunk_residual_ci_high_s,
+        AS shrunk_residual_ci_high_s,
 
     rating_confidence,
 
     -- Bounds for shrinkage identity test
-    LEAST(raw_residual_mean_s, season_mean_s)    AS _shrinkage_lower_bound,
+    LEAST(raw_residual_mean_s, season_mean_s) AS _shrinkage_lower_bound,
     GREATEST(raw_residual_mean_s, season_mean_s) AS _shrinkage_upper_bound
 
 FROM with_shrinkage

@@ -14,13 +14,14 @@ SELECT
         CAST(session_time_s AS VARCHAR)
     ) AS session_status_id,
 
-    -- race_id = numeric FastF1 event id (matches stg_laps.race_id); race_slug = name.
-    CAST(season AS INTEGER)  AS race_year,
+    -- race_id = numeric FastF1 event id (matches stg_laps.race_id); race_slug =
+    -- name.
+    CAST(season AS INTEGER) AS race_year,
     CAST(race_id AS VARCHAR) AS race_id,
-    CAST(race    AS VARCHAR) AS race_slug,
+    CAST(race AS VARCHAR) AS race_slug,
 
     CAST(session_time_s AS DOUBLE) AS session_time_s,
-    CAST(Status AS VARCHAR)        AS status,
+    CAST(status AS VARCHAR) AS status,
 
-    LOWER(CAST(Status AS VARCHAR)) = 'aborted' AS is_red_flag_stop
+    LOWER(CAST(status AS VARCHAR)) = 'aborted' AS is_red_flag_stop
 FROM source

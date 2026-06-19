@@ -17,9 +17,9 @@
 
 .PHONY: help \
         setup ml-setup app-install \
-        ingest-all ingest-recent ingest-jolpica verify-bronze monitor-ingest simulate test test-integration \
+        ingest-all ingest-recent ingest-jolpica verify-bronze monitor-ingest manifest-report simulate test test-integration \
         coefficients-fit coefficients-promote coefficients-status coefficients-check car-fe-fit \
-        dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs query lint lint-fix test-all test-fast \
+        dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs query lint lint-fix lint-oracle-snapshot lint-oracle-check test-all test-fast transform-check \
         ml-features ml-tune ml-train ml-evaluate ml-predict ml-onnx ml-card ml-reference ml-all ml-test ml-clean \
         app-data app-data-wave0 app-data-check app-models app-dev app-dev-local app-build app-parity app-publish app-publish-dry app-deploy \
         docs-reference project-graph watch-graph docs-audit docs-facts docs-site docs-install \
@@ -69,10 +69,13 @@ monitor-ingest:  ## Watch a running ingest log for failures/completion (LOG=path
 	./.venv/bin/python ingestion/scripts/monitor_ingest.py $(LOG)
 
 simulate:  ## Replay a Bronze race lap-by-lap (demo of the data)
-	./.venv/bin/python ingestion/src/replay_simulator.py --parquet_path data/bronze/2021_bahrain_laps.parquet --race_id 2021_01 --speed 10
+	./.venv/bin/python ingestion/src/replay_simulator.py --parquet_path data/bronze/laps/season=2024/race=bahrain_grand_prix/2024_bahrain_grand_prix_laps.parquet --race_id 2024_1 --speed 10
+
+manifest-report:  ## Report ingestion run status + schema-drift from manifests
+	./.venv/bin/python ingestion/manifest_report.py
 
 test:  ## Offline ingestion unit tests (no network, <5 s)
-	./.venv/bin/pytest ingestion/tests/test_ingestion.py
+	./.venv/bin/pytest ingestion/tests/test_ingestion.py ingestion/tests/test_jolpica.py
 
 test-integration:  ## Live FastF1 ingestion test (needs network)
 	./.venv/bin/pytest ingestion/tests/test_integration_fastf1.py -m integration
@@ -129,12 +132,25 @@ lint:  ## SQLFluff lint all models
 lint-fix:  ## SQLFluff auto-fix all models
 	cd transform && ../.venv/bin/sqlfluff fix models/ --dialect duckdb --disable-progress-bar
 
+lint-oracle-snapshot:  ## Record byte-stable baseline of all model outputs (run on a known-good ci.duckdb)
+	cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py
+
+lint-oracle-check:  ## Fail if any fct_* model output drifted vs the recorded baseline (gates lint fixes)
+	cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py --check
+
 test-all:  ## CI-equivalent: full dbt build on fixtures + coefficient tests
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
 	PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/coefficients/tests/
 
 test-fast:  ## CI fast path: fast_build selector on fixtures
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --selector fast_build --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+
+transform-check:  ## Reproduce the CI transform gates in order (parse → lint → build → singular tests → pytest)
+	cd transform && ../.venv/bin/dbt parse --profiles-dir profiles --target ci
+	cd transform && ../.venv/bin/sqlfluff lint models/ --dialect duckdb --disable-progress-bar
+	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+	cd transform && ../.venv/bin/dbt test --profiles-dir profiles --target ci --select test_type:singular --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+	PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/coefficients/tests/
 
 
 ##@ 5. Machine Learning warehouse → XGBoost / ONNX models

@@ -1,8 +1,11 @@
--- Third Model Sequence #5: Qualifying residual decomposition public-facing model.
--- Combines the qualifying residual chain with the quali-vs-race skill differential.
+-- Third Model Sequence #5: Qualifying residual decomposition public-facing
+-- model.
+-- Combines the qualifying residual chain with the quali-vs-race skill
+-- differential.
 --
 -- The quali_vs_race_skill_delta_s is the key publishable output:
---   positive = driver is faster in quali relative to race (single-lap specialist)
+--   positive = driver is faster in quali relative to race (single-lap
+--   specialist)
 --   negative = driver is stronger in races than in qualifying
 --
 -- Grain: lap_id one row per valid qualifying lap.
@@ -54,13 +57,16 @@ quali_driver_session_avg AS (
         race_year,
         race_id,
         driver_id,
-        AVG(quali_driver_skill_residual_s) FILTER (WHERE is_personal_best = TRUE)
+        AVG(quali_driver_skill_residual_s) FILTER (
+            WHERE is_personal_best = TRUE
+        )
             AS quali_skill_session_avg_s
     FROM quali_residuals
     GROUP BY race_year, race_id, driver_id
 ),
 
--- Race-season driver residual mean (from int_lap_residual_decomposed via fct_driver_skill_features)
+-- Race-season driver residual mean (from int_lap_residual_decomposed via
+-- fct_driver_skill_features)
 -- Aggregate to (race_year, race_id, driver_id) grain for joining
 race_driver_race_avg AS (
     SELECT
@@ -68,10 +74,10 @@ race_driver_race_avg AS (
         race_id,
         driver_id,
         AVG(driver_skill_residual_s)
-            FILTER (
-                WHERE correction_weight = 1.0
-                  AND COALESCE(rainfall_flag, FALSE) = FALSE
-            ) AS race_skill_race_avg_s
+        FILTER (
+            WHERE correction_weight = 1.0
+            AND COALESCE(rainfall_flag, FALSE) = FALSE
+        ) AS race_skill_race_avg_s
     FROM {{ ref('int_lap_residual_decomposed') }}
     GROUP BY race_year, race_id, driver_id
 )
@@ -102,26 +108,30 @@ SELECT
     q.dirty_air_tax_se_s,
     q.total_explained_s,
     -- Per-lap qualifying driver skill signal
-    q.quali_driver_skill_residual_s         AS quali_skill_residual_s,
+    q.quali_driver_skill_residual_s AS quali_skill_residual_s,
     -- Session-aggregate skill (best lap only)
     qs.quali_skill_session_avg_s,
     -- Quali vs race differential (positive = single-lap pace specialist)
     qs.quali_skill_session_avg_s
-       -COALESCE(rd.race_skill_race_avg_s, 0.0)
-                                            AS quali_vs_race_skill_delta_s,
+    - COALESCE(rd.race_skill_race_avg_s, 0.0)
+        AS quali_vs_race_skill_delta_s,
     q.track_temp_c,
-    -- Traffic flag: NULL until qualifying telemetry sector-classification is available.
-    -- When int_lap_air_state supports session='Q', replace with actual gap-based flag.
-    NULL::BOOLEAN                           AS quali_traffic_flag,
+    -- Traffic flag: NULL until qualifying telemetry sector-classification is
+    -- available.
+    -- When int_lap_air_state supports session='Q', replace with actual
+    -- gap-based flag.
+    NULL::BOOLEAN AS quali_traffic_flag,
     -- DNQ flag: TRUE when driver has no valid laps in this session
-    FALSE                                   AS dnq_flag
-FROM quali_residuals q
-LEFT JOIN quali_driver_session_avg qs
-    ON q.race_year = qs.race_year
-    AND q.race_id  = qs.race_id
-    AND q.driver_id = qs.driver_id
-LEFT JOIN race_driver_race_avg rd
-    ON q.race_year  = rd.race_year
-    AND q.race_id   = rd.race_id
-    AND q.driver_id = rd.driver_id
+    FALSE AS dnq_flag
+FROM quali_residuals AS q
+LEFT JOIN quali_driver_session_avg AS qs
+    ON
+        q.race_year = qs.race_year
+        AND q.race_id = qs.race_id
+        AND q.driver_id = qs.driver_id
+LEFT JOIN race_driver_race_avg AS rd
+    ON
+        q.race_year = rd.race_year
+        AND q.race_id = rd.race_id
+        AND q.driver_id = rd.driver_id
 ORDER BY q.race_year, q.race_id, q.driver_id, q.lap_number

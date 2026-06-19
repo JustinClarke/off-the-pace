@@ -22,7 +22,8 @@ WITH pace AS (
     WHERE NOT low_sample_flag
 ),
 
--- One weather reading per lap (any driver all share the same ambient conditions).
+-- One weather reading per lap (any driver all share the same ambient
+-- conditions).
 -- Use min lap_id per race+lap to pick one representative row.
 weather_per_lap AS (
     SELECT DISTINCT ON (race_year, race_id, lap_number)
@@ -45,8 +46,8 @@ combined AS (
         w.track_temp_c,
         w.humidity_pct,
         w.rainfall_flag
-    FROM pace p
-    LEFT JOIN weather_per_lap w
+    FROM pace AS p
+    LEFT JOIN weather_per_lap AS w
         USING (race_year, race_id, lap_number)
 ),
 
@@ -55,8 +56,8 @@ race_means AS (
     SELECT
         race_year,
         race_id,
-        AVG(lap_number)             AS mean_lap,
-        AVG(field_pace_smoothed_s)  AS mean_pace
+        AVG(lap_number) AS mean_lap,
+        AVG(field_pace_smoothed_s) AS mean_pace
     FROM combined
     GROUP BY race_year, race_id
 ),
@@ -70,12 +71,15 @@ race_slope AS (
         rm.mean_lap,
         rm.mean_pace,
         LEAST(
-            SUM((c.lap_number-rm.mean_lap) * (c.field_pace_smoothed_s-rm.mean_pace))
-            / NULLIF(SUM(POWER(c.lap_number-rm.mean_lap, 2)), 0),
+            SUM(
+                (c.lap_number - rm.mean_lap)
+                * (c.field_pace_smoothed_s - rm.mean_pace)
+            )
+            / NULLIF(SUM(POWER(c.lap_number - rm.mean_lap, 2)), 0),
             0.0
-        )                           AS rubber_slope_s_per_lap
-    FROM combined c
-    JOIN race_means rm USING (race_year, race_id)
+        ) AS rubber_slope_s_per_lap
+    FROM combined AS c
+    JOIN race_means AS rm USING (race_year, race_id)
     GROUP BY c.race_year, c.race_id, rm.mean_lap, rm.mean_pace
 ),
 
@@ -85,13 +89,18 @@ with_rubber AS (
         rs.rubber_slope_s_per_lap,
         rs.mean_lap,
         rs.mean_pace,
-        -- rubber_component: linear trend removed from mean (monotone decreasing)
-        rs.rubber_slope_s_per_lap * (c.lap_number-rs.mean_lap) AS rubber_component_s,
+        -- rubber_component: linear trend removed from mean (monotone
+        -- decreasing)
+        rs.rubber_slope_s_per_lap
+        * (c.lap_number - rs.mean_lap) AS rubber_component_s,
         c.field_pace_smoothed_s
-           -(rs.mean_pace + rs.rubber_slope_s_per_lap * (c.lap_number-rs.mean_lap))
-                                                                AS track_state_residual_s
-    FROM combined c
-    JOIN race_slope rs
+        - (
+            rs.mean_pace
+            + rs.rubber_slope_s_per_lap * (c.lap_number - rs.mean_lap)
+        )
+            AS track_state_residual_s
+    FROM combined AS c
+    JOIN race_slope AS rs
         USING (race_year, race_id)
 ),
 
@@ -112,11 +121,11 @@ ambient_slope AS (
         r.race_year,
         r.race_id,
         tm.mean_track_temp,
-        SUM((r.track_temp_c-tm.mean_track_temp) * r.track_state_residual_s)
-        / NULLIF(SUM(POWER(r.track_temp_c-tm.mean_track_temp, 2)), 0)
-                                                                AS ambient_slope_s_per_c
-    FROM with_rubber r
-    JOIN temp_means tm USING (race_year, race_id)
+        SUM((r.track_temp_c - tm.mean_track_temp) * r.track_state_residual_s)
+        / NULLIF(SUM(POWER(r.track_temp_c - tm.mean_track_temp, 2)), 0)
+            AS ambient_slope_s_per_c
+    FROM with_rubber AS r
+    JOIN temp_means AS tm USING (race_year, race_id)
     WHERE r.track_temp_c IS NOT NULL
     GROUP BY r.race_year, r.race_id, tm.mean_track_temp
 )
@@ -125,21 +134,23 @@ SELECT
     r.race_year,
     r.race_id,
     r.lap_number,
-    r.field_pace_smoothed_s                                     AS track_state_index_s,
+    r.field_pace_smoothed_s AS track_state_index_s,
     r.rubber_component_s,
     -- ambient_component: weather-correlated fraction of the residual
     COALESCE(
-        a.ambient_slope_s_per_c * (r.track_temp_c-a.mean_track_temp),
+        a.ambient_slope_s_per_c * (r.track_temp_c - a.mean_track_temp),
         0.0
-    )                                                           AS ambient_component_s,
+    ) AS ambient_component_s,
     -- pure residual after both components removed (unexplained variation)
     r.track_state_residual_s
-       -COALESCE(a.ambient_slope_s_per_c * (r.track_temp_c-a.mean_track_temp), 0.0)
-                                                                AS unexplained_residual_s,
+    - COALESCE(
+        a.ambient_slope_s_per_c * (r.track_temp_c - a.mean_track_temp), 0.0
+    )
+        AS unexplained_residual_s,
     r.track_temp_c,
     r.humidity_pct,
     r.rainfall_flag
-FROM with_rubber r
-LEFT JOIN ambient_slope a
+FROM with_rubber AS r
+LEFT JOIN ambient_slope AS a
     USING (race_year, race_id)
 ORDER BY race_year, race_id, lap_number

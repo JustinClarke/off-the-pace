@@ -3,8 +3,10 @@
 -- Targets: next_lap_degradation_jump_detrended_s (PRIMARY, detrended) and
 --          next_lap_degradation_jump_s (legacy, kept for diff/gate).
 --
--- LEAKAGE WARNING: driver_skill_proxy_s and synthetic-teammate features are deliberately
--- excluded they causally encode the label and would contaminate a predictive model.
+-- LEAKAGE WARNING: driver_skill_proxy_s and synthetic-teammate features are
+-- deliberately
+-- excluded they causally encode the label and would contaminate a predictive
+-- model.
 -- This mart must never reference int_synthetic_teammate.
 {{ config(materialized='table') }}
 
@@ -81,8 +83,10 @@ detrend AS (
 ),
 
 -- C2: empirical survival curve P(stint reaches lap_in_stint) per compound.
--- Numerator = stints with a valid lap at that lap_in_stint; denominator = total stints
--- of that compound. IPW = 1/P clipped to [0.25, 4] to control variance in the tail.
+-- Numerator = stints with a valid lap at that lap_in_stint; denominator = total
+-- stints
+-- of that compound. IPW = 1/P clipped to [0.25, 4] to control variance in the
+-- tail.
 total_per_compound AS (
     SELECT compound, COUNT(DISTINCT stint_id) AS n_total
     FROM {{ ref('int_lap_residual_decomposed') }}
@@ -94,7 +98,7 @@ stints_reaching AS (
         d.compound,
         d.lap_in_stint,
         COUNT(DISTINCT d.stint_id) AS n_reaching
-    FROM {{ ref('int_lap_residual_decomposed') }} d
+    FROM {{ ref('int_lap_residual_decomposed') }} AS d
     GROUP BY d.compound, d.lap_in_stint
 ),
 
@@ -103,12 +107,14 @@ stint_survival AS (
         sr.compound,
         sr.lap_in_stint,
         sr.n_reaching * 1.0 / tp.n_total AS survival_prob
-    FROM stints_reaching sr
-    JOIN total_per_compound tp ON sr.compound = tp.compound
+    FROM stints_reaching AS sr
+    JOIN total_per_compound AS tp ON sr.compound = tp.compound
 ),
 
--- Per-lap telemetry features (ml-v0.2 §2): powertrain + within-stint-drift cliff signals.
--- LEFT JOINed → explicit NULL on laps with no telemetry (carried as XGBoost native-NaN).
+-- Per-lap telemetry features (ml-v0.2 §2): powertrain + within-stint-drift
+-- cliff signals.
+-- LEFT JOINed → explicit NULL on laps with no telemetry (carried as XGBoost
+-- native-NaN).
 telemetry AS (
     SELECT
         lap_id,
@@ -190,13 +196,15 @@ base AS (
         th.cumulative_push_load_bulk,
 
         -- Dirty air predictors
-        COALESCE(ai.dirty_air_share_lap, 0.0)           AS dirty_air_share_lap,
-        COALESCE(ai.dirty_air_thermal_load_surface, 0.0) AS dirty_air_thermal_load_surface,
-        COALESCE(ai.dirty_air_thermal_load_bulk, 0.0)   AS dirty_air_thermal_load_bulk,
-        COALESCE(ai.air_state_dominant, 'free_air')     AS air_state_dominant,
+        COALESCE(ai.dirty_air_share_lap, 0.0) AS dirty_air_share_lap,
+        COALESCE(ai.dirty_air_thermal_load_surface, 0.0)
+            AS dirty_air_thermal_load_surface,
+        COALESCE(ai.dirty_air_thermal_load_bulk, 0.0)
+            AS dirty_air_thermal_load_bulk,
+        COALESCE(ai.air_state_dominant, 'free_air') AS air_state_dominant,
 
         -- Event flag: any event contamination on this lap
-        COALESCE(cor.correction_weight < 1.0, FALSE)    AS event_flag_any,
+        COALESCE(cor.correction_weight < 1.0, FALSE) AS event_flag_any,
 
         -- Compound continuous features (from dim_compounds_season)
         cp.compound_grip_peak,
@@ -208,7 +216,7 @@ base AS (
 
         -- Track context
         dc.track_energy_index,
-        dc.abrasiveness_index                           AS circuit_abrasiveness_index,
+        dc.abrasiveness_index AS circuit_abrasiveness_index,
 
         -- Telemetry features (powertrain + within-stint-drift cliff signals)
         tel.n_gear_changes,
@@ -223,38 +231,43 @@ base AS (
         tel.braking_point_drift_m,
         tel.lift_coast_share,
 
-        -- C1: per-stint drift slope (s/lap), used to compute detrended jump target.
-        COALESCE(det.drift_s_per_lap, 0.0)                      AS drift_s_per_lap,
+        -- C1: per-stint drift slope (s/lap), used to compute detrended jump
+        -- target.
+        COALESCE(det.drift_s_per_lap, 0.0) AS drift_s_per_lap,
 
-        -- C2: IPW survival weight 1/P(stint reaches this lap) per compound, clipped [0.25, 4].
+        -- C2: IPW survival weight 1/P(stint reaches this lap) per compound,
+        -- clipped [0.25, 4].
         COALESCE(
             GREATEST(0.25, LEAST(4.0, 1.0 / NULLIF(ss.survival_prob, 0.0))),
             1.0
-        )                                                       AS survival_weight,
+        ) AS survival_weight,
 
         -- C3: surface/total thermal load ratio warm-up attribution feature.
         COALESCE(th.cumulative_push_load_surface, 0.0)
-            / NULLIF(
-                COALESCE(th.cumulative_push_load_surface, 0.0)
-                + COALESCE(th.cumulative_push_load_bulk, 0.0),
-                0.0
-            )                                                   AS surface_bulk_ratio
+        / NULLIF(
+            COALESCE(th.cumulative_push_load_surface, 0.0)
+            + COALESCE(th.cumulative_push_load_bulk, 0.0),
+            0.0
+        ) AS surface_bulk_ratio
 
-    FROM residuals r
-    LEFT JOIN anomaly a             USING (lap_id)
-    LEFT JOIN cliff c               USING (lap_id)
-    LEFT JOIN thermal th            USING (lap_id)
-    LEFT JOIN air ai                USING (lap_id)
-    LEFT JOIN corrections cor       USING (lap_id)
-    LEFT JOIN telemetry tel         USING (lap_id)
-    LEFT JOIN race_to_track rtt     USING (race_id)
-    LEFT JOIN dim_circuits dc       USING (circuit_key)
-    LEFT JOIN compound_params cp
-        ON rtt.circuit_key          = cp.circuit_key
-        AND r.compound              = cp.compound_code
-        AND r.race_year             = cp.season
-    LEFT JOIN detrend det           ON r.stint_id = det.stint_id
-    LEFT JOIN stint_survival ss     ON r.compound = ss.compound AND r.lap_in_stint = ss.lap_in_stint
+    FROM residuals AS r
+    LEFT JOIN anomaly AS a USING (lap_id)
+    LEFT JOIN cliff AS c USING (lap_id)
+    LEFT JOIN thermal AS th USING (lap_id)
+    LEFT JOIN air AS ai USING (lap_id)
+    LEFT JOIN corrections AS cor USING (lap_id)
+    LEFT JOIN telemetry AS tel USING (lap_id)
+    LEFT JOIN race_to_track AS rtt USING (race_id)
+    LEFT JOIN dim_circuits AS dc USING (circuit_key)
+    LEFT JOIN compound_params AS cp
+        ON
+            rtt.circuit_key = cp.circuit_key
+            AND r.compound = cp.compound_code
+            AND r.race_year = cp.season
+    LEFT JOIN detrend AS det ON r.stint_id = det.stint_id
+    LEFT JOIN
+        stint_survival AS ss
+        ON r.compound = ss.compound AND r.lap_in_stint = ss.lap_in_stint
 ),
 
 -- Compute targets: single-lap and multi-horizon degradation jumps.
@@ -266,74 +279,114 @@ with_target AS (
             WHEN LEAD(driver_skill_residual_s, 1) OVER w IS NULL THEN NULL
             ELSE GREATEST(
                 LEAST(
-                    LEAD(driver_skill_residual_s, 1) OVER w-driver_skill_residual_s,
-                    10.0),
-                -10.0)
+                    LEAD(driver_skill_residual_s, 1) OVER w
+                    - driver_skill_residual_s,
+                    10.0
+                ),
+                -10.0
+            )
         END AS next_lap_degradation_jump_s,
 
-        -- C1 PRIMARY target: detrended single-lap jump with per-stint fuel/track drift removed.
-        -- drift_s_per_lap is the OLS slope of residual ~ lap_in_stint on pre-cliff laps.
-        -- Subtracting it removes the systematic ~-0.07 s/lap leak (Step 0: median slope).
+        -- C1 PRIMARY target: detrended single-lap jump with per-stint
+        -- fuel/track drift removed.
+        -- drift_s_per_lap is the OLS slope of residual ~ lap_in_stint on
+        -- pre-cliff laps.
+        -- Subtracting it removes the systematic ~-0.07 s/lap leak (Step 0:
+        -- median slope).
         -- Bounded [-10, 10] same as legacy target.
         CASE
             WHEN LEAD(driver_skill_residual_s, 1) OVER w IS NULL THEN NULL
             ELSE GREATEST(
                 LEAST(
-                    LEAD(driver_skill_residual_s, 1) OVER w - driver_skill_residual_s
+                    LEAD(driver_skill_residual_s, 1) OVER w
+                    - driver_skill_residual_s
                     - drift_s_per_lap,
-                    10.0),
-                -10.0)
+                    10.0
+                ),
+                -10.0
+            )
         END AS next_lap_degradation_jump_detrended_s,
 
         -- 3-lap cumulative target: sum of next 3 laps minus current
         CASE
             WHEN LEAD(lap_in_stint, 3) OVER w IS NOT NULL
-            THEN GREATEST(
-                LEAD(driver_skill_residual_s, 1) OVER w
-                + LEAD(driver_skill_residual_s, 2) OVER w
-                + LEAD(driver_skill_residual_s, 3) OVER w
-               -driver_skill_residual_s,
-                0)
-            ELSE NULL
+                THEN GREATEST(
+                    LEAD(driver_skill_residual_s, 1) OVER w
+                    + LEAD(driver_skill_residual_s, 2) OVER w
+                    + LEAD(driver_skill_residual_s, 3) OVER w
+                    - driver_skill_residual_s,
+                    0
+                )
         END AS next_3_lap_cumulative_jump_s,
 
         -- 5-lap cumulative target: sum of next 5 laps minus current
         CASE
             WHEN LEAD(lap_in_stint, 5) OVER w IS NOT NULL
-            THEN GREATEST(
-                LEAD(driver_skill_residual_s, 1) OVER w
-                + LEAD(driver_skill_residual_s, 2) OVER w
-                + LEAD(driver_skill_residual_s, 3) OVER w
-                + LEAD(driver_skill_residual_s, 4) OVER w
-                + LEAD(driver_skill_residual_s, 5) OVER w
-               -driver_skill_residual_s,
-                0)
-            ELSE NULL
+                THEN GREATEST(
+                    LEAD(driver_skill_residual_s, 1) OVER w
+                    + LEAD(driver_skill_residual_s, 2) OVER w
+                    + LEAD(driver_skill_residual_s, 3) OVER w
+                    + LEAD(driver_skill_residual_s, 4) OVER w
+                    + LEAD(driver_skill_residual_s, 5) OVER w
+                    - driver_skill_residual_s,
+                    0
+                )
         END AS next_5_lap_cumulative_jump_s,
 
-        -- Cliff bucket class: laps until >1.0s DETRENDED jump, or none in stint.
-        -- Uses detrended thresholds: subtract k×drift_s_per_lap from k-lap cumulative change
+        -- Cliff bucket class: laps until >1.0s DETRENDED jump, or none in
+        -- stint.
+        -- Uses detrended thresholds: subtract k×drift_s_per_lap from k-lap
+        -- cumulative change
         -- so fuel-lightening drift cannot trigger a false cliff classification.
         CASE
             WHEN LEAD(lap_in_stint, 1) OVER w IS NULL
                 THEN NULL
-            WHEN (LEAD(driver_skill_residual_s, 1) OVER w - driver_skill_residual_s - drift_s_per_lap) > 1.0
+            WHEN
+                (
+                    LEAD(driver_skill_residual_s, 1) OVER w
+                    - driver_skill_residual_s
+                    - drift_s_per_lap
+                )
+                > 1.0
                 THEN '0_to_2'
-            WHEN LEAD(lap_in_stint, 2) OVER w IS NOT NULL
-                AND (LEAD(driver_skill_residual_s, 2) OVER w - driver_skill_residual_s - 2.0 * drift_s_per_lap) > 1.0
+            WHEN
+                LEAD(lap_in_stint, 2) OVER w IS NOT NULL
+                AND (
+                    LEAD(driver_skill_residual_s, 2) OVER w
+                    - driver_skill_residual_s
+                    - 2.0 * drift_s_per_lap
+                )
+                > 1.0
                 THEN '0_to_2'
-            WHEN LEAD(lap_in_stint, 3) OVER w IS NOT NULL
-                AND (LEAD(driver_skill_residual_s, 3) OVER w - driver_skill_residual_s - 3.0 * drift_s_per_lap) > 1.0
+            WHEN
+                LEAD(lap_in_stint, 3) OVER w IS NOT NULL
+                AND (
+                    LEAD(driver_skill_residual_s, 3) OVER w
+                    - driver_skill_residual_s
+                    - 3.0 * drift_s_per_lap
+                )
+                > 1.0
                 THEN '3_to_5'
-            WHEN LEAD(lap_in_stint, 5) OVER w IS NOT NULL
-                AND (LEAD(driver_skill_residual_s, 5) OVER w - driver_skill_residual_s - 5.0 * drift_s_per_lap) > 1.0
+            WHEN
+                LEAD(lap_in_stint, 5) OVER w IS NOT NULL
+                AND (
+                    LEAD(driver_skill_residual_s, 5) OVER w
+                    - driver_skill_residual_s
+                    - 5.0 * drift_s_per_lap
+                )
+                > 1.0
                 THEN '3_to_5'
-            WHEN LEAD(lap_in_stint, 6) OVER w IS NOT NULL
-                AND (LEAD(driver_skill_residual_s, 6) OVER w - driver_skill_residual_s - 6.0 * drift_s_per_lap) > 1.0
+            WHEN
+                LEAD(lap_in_stint, 6) OVER w IS NOT NULL
+                AND (
+                    LEAD(driver_skill_residual_s, 6) OVER w
+                    - driver_skill_residual_s
+                    - 6.0 * drift_s_per_lap
+                )
+                > 1.0
                 THEN '6_plus'
             WHEN LEAD(lap_in_stint, 1) OVER w IS NOT NULL
                 THEN 'none_in_stint'
-            ELSE NULL
         END AS laps_until_cliff_class
 
     FROM base
@@ -424,7 +477,7 @@ SELECT
         age_in_stint > 3
         AND COALESCE(anomaly_class, 'normal') NOT IN ('mistake', 'conditions'),
         FALSE
-    )                                                   AS is_training_eligible
+    ) AS is_training_eligible
 
 FROM with_target
 ORDER BY race_year, race_id, driver_id, stint_id, lap_in_stint

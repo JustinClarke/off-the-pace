@@ -1,13 +1,17 @@
--- Era-normalised driver rating model: Era-normalised driver rating (cross-season comparable).
+-- Era-normalised driver rating model: Era-normalised driver rating
+-- (cross-season comparable).
 --
 -- Two-part hierarchy:
---   First part: Per-(driver, season) shrunk residual from int_driver_season_ratings.
---   Second part: Cross-era calibration anchored on "bridge drivers" drivers with
+--   First part: Per-(driver, season) shrunk residual from
+--   int_driver_season_ratings.
+--   Second part: Cross-era calibration anchored on "bridge drivers" drivers
+--   with
 --            ≥8 clean races in both pre-2022 and post-2022 eras. The average
 --            shift in their shrunk residual across the 2022 regulation boundary
 --            is the era offset applied to all pre-2022 seasons.
 --
--- Regulation boundary: 2022 (ground-effect regulation change). Pre-era: 2018–2021.
+-- Regulation boundary: 2022 (ground-effect regulation change). Pre-era:
+-- 2018–2021.
 -- Post-era: 2022–2024. If fewer than 3 bridge drivers are found the era offset
 -- is set to 0 and low_anchor_sample_flag = TRUE.
 --
@@ -15,7 +19,8 @@
 -- PK: driver_season_id (same surrogate as int_driver_season_ratings).
 --
 -- era_adjusted_rating: negative = faster than era-normalised field average.
--- bridge_driver_anchor_flag: TRUE if this driver-season was used to estimate the offset.
+-- bridge_driver_anchor_flag: TRUE if this driver-season was used to estimate
+-- the offset.
 
 {{ config(materialized='table', tags=['driver_rating', 'era_rating']) }}
 
@@ -36,12 +41,25 @@ WITH season_ratings AS (
 ),
 
 -- Bridge driver identification:
--- Drivers with ≥8 races in pre-era (2018–2021) AND ≥8 races in post-era (2022–2024).
+-- Drivers with ≥8 races in pre-era (2018–2021) AND ≥8 races in post-era
+-- (2022–2024).
 driver_era_counts AS (
     SELECT
         driver_id,
-        SUM(CASE WHEN season < {{ var('era_boundary', 2022) }} THEN n_races ELSE 0 END)  AS pre_era_races,
-        SUM(CASE WHEN season >= {{ var('era_boundary', 2022) }} THEN n_races ELSE 0 END) AS post_era_races
+        SUM(
+            CASE
+                WHEN season < {{ var('era_boundary', 2022) }} THEN n_races ELSE
+                    0
+            END
+        )
+            AS pre_era_races,
+        SUM(
+            CASE
+                WHEN season >= {{ var('era_boundary', 2022) }} THEN n_races ELSE
+                    0
+            END
+        )
+            AS post_era_races
     FROM season_ratings
     GROUP BY driver_id
 ),
@@ -49,18 +67,33 @@ driver_era_counts AS (
 bridge_drivers AS (
     SELECT driver_id
     FROM driver_era_counts
-    WHERE pre_era_races  >= 8
-      AND post_era_races >= 8
+    WHERE
+        pre_era_races >= 8
+        AND post_era_races >= 8
 ),
 
 -- For each bridge driver, compute average shrunk residual per era
 bridge_era_means AS (
     SELECT
         sr.driver_id,
-        AVG(CASE WHEN sr.season < {{ var('era_boundary', 2022) }}  THEN sr.shrunk_residual_s END) AS pre_era_mean_s,
-        AVG(CASE WHEN sr.season >= {{ var('era_boundary', 2022) }} THEN sr.shrunk_residual_s END) AS post_era_mean_s
-    FROM season_ratings sr
-    JOIN bridge_drivers  bd USING (driver_id)
+        AVG(
+            CASE
+                WHEN
+                    sr.season < {{ var('era_boundary', 2022) }}
+                    THEN sr.shrunk_residual_s
+            END
+        )
+            AS pre_era_mean_s,
+        AVG(
+            CASE
+                WHEN
+                    sr.season >= {{ var('era_boundary', 2022) }}
+                    THEN sr.shrunk_residual_s
+            END
+        )
+            AS post_era_mean_s
+    FROM season_ratings AS sr
+    JOIN bridge_drivers USING (driver_id)
     GROUP BY sr.driver_id
 ),
 
@@ -69,21 +102,22 @@ bridge_era_means AS (
 bridge_shifts AS (
     SELECT
         driver_id,
-        pre_era_mean_s -post_era_mean_s    AS era_shift_s
+        pre_era_mean_s - post_era_mean_s AS era_shift_s
     FROM bridge_era_means
-    WHERE pre_era_mean_s  IS NOT NULL
-      AND post_era_mean_s IS NOT NULL
+    WHERE
+        pre_era_mean_s IS NOT NULL
+        AND post_era_mean_s IS NOT NULL
 ),
 
 -- Global era offset: mean shift across all bridge drivers
 era_offset AS (
     SELECT
-        AVG(era_shift_s)                            AS era_shift_global_s,
-        STDDEV(era_shift_s)                         AS era_shift_stddev_s,
-        COUNT(*)                                    AS n_bridge_drivers,
+        AVG(era_shift_s) AS era_shift_global_s,
+        STDDEV(era_shift_s) AS era_shift_stddev_s,
+        COUNT(*) AS n_bridge_drivers,
         STDDEV(era_shift_s)
-            / NULLIF(SQRT(COUNT(*)), 0)             AS era_shift_se_s,
-        COUNT(*) < 3                                AS low_anchor_sample_flag
+        / NULLIF(SQRT(COUNT(*)), 0) AS era_shift_se_s,
+        COUNT(*) < 3 AS low_anchor_sample_flag
     FROM bridge_shifts
 ),
 
@@ -108,27 +142,31 @@ with_era_adjustment AS (
 
         -- Apply offset only to pre-era seasons; if low anchor, offset is 0
         sr.shrunk_residual_s
-         -CASE
-              WHEN sr.season < {{ var('era_boundary', 2022) }} AND NOT eo.low_anchor_sample_flag
-              THEN COALESCE(eo.era_shift_global_s, 0)
-              ELSE 0
-            END                               AS era_adjusted_rating,
+        - CASE
+            WHEN
+                sr.season < {{ var('era_boundary', 2022) }}
+                AND NOT eo.low_anchor_sample_flag
+                THEN COALESCE(eo.era_shift_global_s, 0)
+            ELSE 0
+        END AS era_adjusted_rating,
 
         -- Propagate SE: sqrt(shrunk_se² + era_shift_se² [if pre-era])
         CASE
-            WHEN sr.season < {{ var('era_boundary', 2022) }} AND NOT eo.low_anchor_sample_flag
-            THEN SQRT(
-                POWER(COALESCE(sr.shrunk_residual_se_s, 0), 2)
-              + POWER(COALESCE(eo.era_shift_se_s, 0), 2)
-            )
+            WHEN
+                sr.season < {{ var('era_boundary', 2022) }}
+                AND NOT eo.low_anchor_sample_flag
+                THEN SQRT(
+                    POWER(COALESCE(sr.shrunk_residual_se_s, 0), 2)
+                    + POWER(COALESCE(eo.era_shift_se_s, 0), 2)
+                )
             ELSE COALESCE(sr.shrunk_residual_se_s, 0)
-        END                                   AS era_adjusted_rating_se_s,
+        END AS era_adjusted_rating_se_s,
 
-        bd.driver_id IS NOT NULL              AS bridge_driver_anchor_flag
+        bd.driver_id IS NOT NULL AS bridge_driver_anchor_flag
 
-    FROM season_ratings    sr
-    CROSS JOIN era_offset  eo
-    LEFT JOIN bridge_drivers bd              ON sr.driver_id = bd.driver_id
+    FROM season_ratings AS sr
+    CROSS JOIN era_offset AS eo
+    LEFT JOIN bridge_drivers AS bd ON sr.driver_id = bd.driver_id
 )
 
 SELECT
@@ -144,8 +182,10 @@ SELECT
     era_adjusted_rating_se_s,
 
     -- 95% CI on era-adjusted rating
-    era_adjusted_rating-1.96 * era_adjusted_rating_se_s    AS era_adjusted_rating_ci_low_s,
-    era_adjusted_rating + 1.96 * era_adjusted_rating_se_s    AS era_adjusted_rating_ci_high_s,
+    era_adjusted_rating
+    - 1.96 * era_adjusted_rating_se_s AS era_adjusted_rating_ci_low_s,
+    era_adjusted_rating
+    + 1.96 * era_adjusted_rating_se_s AS era_adjusted_rating_ci_high_s,
 
     rating_confidence,
     bridge_driver_anchor_flag,

@@ -19,8 +19,8 @@ Column-level tests are in [schema.yml](schema.yml).
 
 ## How it connects
 
-- **Upstream (depends on):** `data/bronze/`-Hive-partitioned Parquet written by `ingestion/`
-- **Downstream (consumed by):** `transform/models/intermediate/`-physics models join staging views; `transform/models/reference/`-derives dims from seeds
+- **Upstream (depends on):** `data/bronze/`  -  Hive-partitioned Parquet written by `ingestion/`
+- **Downstream (consumed by):** `transform/models/intermediate/`  -  physics models join staging views; `transform/models/reference/`  -  derives dims from seeds
 
 ## Layer contract
 

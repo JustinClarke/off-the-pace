@@ -1,6 +1,6 @@
 selectors:
   - name: fast_build
-    description: "Staging and reference only-runs in ~2 min on CI fixtures"
+    description: "Staging and reference only  -  runs in ~2 min on CI fixtures"
     definition:
       union:
         - method: path
@@ -15,7 +15,7 @@ selectors:
 
 
   - name: math_tests
-    description: "Singular identity-closure tests only-the mathematical crown jewels"
+    description: "Singular identity-closure tests only  -  the mathematical crown jewels"
     definition:
       method: test_type
       value: singular

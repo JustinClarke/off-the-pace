@@ -23,4 +23,18 @@ export const preferences = {
 
   get sidebarCollapsed(): boolean { return get('sidebar-collapsed', false) },
   set sidebarCollapsed(v: boolean) { set('sidebar-collapsed', v) },
+
+  // Query Lab history: most-recent-first, de-duplicated, capped.
+  get queryHistory(): string[] { return get<string[]>('query-history', []) },
+  set queryHistory(v: string[]) { set('query-history', v) },
+}
+
+const QUERY_HISTORY_CAP = 20
+
+/** Push a query to the front of the history (de-duped, capped). No-op for blanks. */
+export function pushQueryHistory(sql: string): void {
+  const trimmed = sql.trim()
+  if (!trimmed) return
+  const next = [trimmed, ...preferences.queryHistory.filter(q => q !== trimmed)].slice(0, QUERY_HISTORY_CAP)
+  preferences.queryHistory = next
 }

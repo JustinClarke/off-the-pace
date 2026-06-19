@@ -12,63 +12,98 @@ renamed AS (
         -- Surrogate key
         CONCAT(
             CAST(season AS VARCHAR), '_',
-            CAST(race_id  AS VARCHAR), '_',
-            CAST(Driver   AS VARCHAR), '_',
-            CAST(CAST(LapNumber AS INTEGER) AS VARCHAR)
+            CAST(race_id AS VARCHAR), '_',
+            CAST(driver AS VARCHAR), '_',
+            CAST(CAST(lapnumber AS INTEGER) AS VARCHAR)
         ) AS lap_id,
 
         -- Session / circuit identifiers
-        CAST(season   AS INTEGER) AS race_year,
-        CAST(race_id  AS VARCHAR) AS circuit_key,
-        CAST(race_id  AS VARCHAR) AS race_id,
+        CAST(season AS INTEGER) AS race_year,
+        CAST(race_id AS VARCHAR) AS circuit_key,
+        CAST(race_id AS VARCHAR) AS race_id,
 
         -- Driver / constructor
-        CAST(Driver       AS VARCHAR) AS driver_id,
-        CAST(DriverNumber AS VARCHAR) AS driver_number,
-        CAST(Team         AS VARCHAR) AS constructor_id,
+        CAST(driver AS VARCHAR) AS driver_id,
+        CAST(drivernumber AS VARCHAR) AS driver_number,
+        CAST(team AS VARCHAR) AS constructor_id,
 
         -- Lap metadata
-        CAST(LapNumber AS INTEGER) AS lap_number,
-        CAST(Stint     AS INTEGER) AS stint_number,
+        CAST(lapnumber AS INTEGER) AS lap_number,
+        CAST(stint AS INTEGER) AS stint_number,
         -- compound normalised in flagged CTE below
-        CAST(Compound AS VARCHAR) AS compound_raw,
-        CAST(TyreLife   AS INTEGER) AS tyre_life,
-        CAST(FreshTyre  AS BOOLEAN) AS is_fresh_tyre,
-        CAST(IsPersonalBest AS BOOLEAN) AS is_personal_best,
-        CAST(Position   AS INTEGER) AS position,
+        CAST(compound AS VARCHAR) AS compound_raw,
+        CAST(tyrelife AS INTEGER) AS tyre_life,
+        CAST(freshtyre AS BOOLEAN) AS is_fresh_tyre,
+        CAST(ispersonalbest AS BOOLEAN) AS is_personal_best,
+        CAST(position AS INTEGER) AS position,
 
         -- Lap timing (nanoseconds → seconds)
-        CASE WHEN LapTime   IS NOT NULL THEN CAST(LapTime   AS DOUBLE) / 1e9 ELSE NULL END AS lap_time_s,
-        CASE WHEN LapStartTime IS NOT NULL THEN CAST(LapStartTime AS DOUBLE) / 1e9 ELSE NULL END AS lap_start_time_s,
+        CASE
+            WHEN laptime IS NOT NULL THEN CAST(laptime AS DOUBLE) / 1e9
+        END AS lap_time_s,
+        CASE
+            WHEN
+                lapstarttime IS NOT NULL
+                THEN CAST(lapstarttime AS DOUBLE) / 1e9
+        END AS lap_start_time_s,
 
         -- Sector times (nanoseconds → seconds)
-        CASE WHEN Sector1Time IS NOT NULL THEN CAST(Sector1Time AS DOUBLE) / 1e9 ELSE NULL END AS sector1_time_s,
-        CASE WHEN Sector2Time IS NOT NULL THEN CAST(Sector2Time AS DOUBLE) / 1e9 ELSE NULL END AS sector2_time_s,
-        CASE WHEN Sector3Time IS NOT NULL THEN CAST(Sector3Time AS DOUBLE) / 1e9 ELSE NULL END AS sector3_time_s,
+        CASE
+            WHEN
+                sector1time IS NOT NULL
+                THEN CAST(sector1time AS DOUBLE) / 1e9
+        END AS sector1_time_s,
+        CASE
+            WHEN
+                sector2time IS NOT NULL
+                THEN CAST(sector2time AS DOUBLE) / 1e9
+        END AS sector2_time_s,
+        CASE
+            WHEN
+                sector3time IS NOT NULL
+                THEN CAST(sector3time AS DOUBLE) / 1e9
+        END AS sector3_time_s,
 
-        -- Sector session timestamps (nanoseconds → seconds; used for air-gap join)
-        CASE WHEN Sector1SessionTime IS NOT NULL THEN CAST(Sector1SessionTime AS DOUBLE) / 1e9 ELSE NULL END AS sector1_session_time_s,
-        CASE WHEN Sector2SessionTime IS NOT NULL THEN CAST(Sector2SessionTime AS DOUBLE) / 1e9 ELSE NULL END AS sector2_session_time_s,
-        CASE WHEN Sector3SessionTime IS NOT NULL THEN CAST(Sector3SessionTime AS DOUBLE) / 1e9 ELSE NULL END AS sector3_session_time_s,
+        -- Sector session timestamps (nanoseconds → seconds; used for air-gap
+        -- join)
+        CASE
+            WHEN
+                sector1sessiontime IS NOT NULL
+                THEN CAST(sector1sessiontime AS DOUBLE) / 1e9
+        END AS sector1_session_time_s,
+        CASE
+            WHEN
+                sector2sessiontime IS NOT NULL
+                THEN CAST(sector2sessiontime AS DOUBLE) / 1e9
+        END AS sector2_session_time_s,
+        CASE
+            WHEN
+                sector3sessiontime IS NOT NULL
+                THEN CAST(sector3sessiontime AS DOUBLE) / 1e9
+        END AS sector3_session_time_s,
 
         -- Speed traps (kph)
-        CAST(SpeedI1 AS DOUBLE) AS speed_i1_kph,
-        CAST(SpeedI2 AS DOUBLE) AS speed_i2_kph,
-        CAST(SpeedFL AS DOUBLE) AS speed_fl_kph,
-        CAST(SpeedST AS DOUBLE) AS speed_st_kph,
+        CAST(speedi1 AS DOUBLE) AS speed_i1_kph,
+        CAST(speedi2 AS DOUBLE) AS speed_i2_kph,
+        CAST(speedfl AS DOUBLE) AS speed_fl_kph,
+        CAST(speedst AS DOUBLE) AS speed_st_kph,
 
         -- Track / quality flags
-        CAST(TrackStatus AS VARCHAR) AS track_status,
-        CASE WHEN PitOutTime IS NOT NULL OR PitInTime IS NOT NULL THEN TRUE ELSE FALSE END AS is_pit_lap,
-        CAST(Deleted        AS BOOLEAN) AS is_deleted,
-        CAST(IsAccurate     AS BOOLEAN) AS is_accurate,
-        CAST(FastF1Generated AS BOOLEAN) AS is_fastf1_generated,
+        CAST(trackstatus AS VARCHAR) AS track_status,
+        COALESCE(pitouttime IS NOT NULL OR pitintime IS NOT NULL, FALSE)
+            AS is_pit_lap,
+        CAST(deleted AS BOOLEAN) AS is_deleted,
+        CAST(isaccurate AS BOOLEAN) AS is_accurate,
+        CAST(fastf1generated AS BOOLEAN) AS is_fastf1_generated,
 
         -- Normalise compound: treat None/nan/UNKNOWN as NULL
         CASE
-            WHEN UPPER(CAST(Compound AS VARCHAR)) IN ('NONE', 'NAN', 'UNKNOWN', 'NULL', '')
+            WHEN
+                UPPER(CAST(compound AS VARCHAR)) IN (
+                    'NONE', 'NAN', 'UNKNOWN', 'NULL', ''
+                )
                 THEN NULL
-            ELSE UPPER(CAST(Compound AS VARCHAR))
+            ELSE UPPER(CAST(compound AS VARCHAR))
         END AS compound
     FROM source
 ),
@@ -77,20 +112,22 @@ flagged AS (
     SELECT
         * EXCLUDE (compound_raw),
 
-        -- TrackStatus is a concatenated digit string (e.g. '41' = VSC+yellow, '124' = SC+yellow+DRS).
-        -- Use REGEXP_MATCHES to check for presence of flag digits anywhere in the string.
+        -- TrackStatus is a concatenated digit string (e.g. '41' = VSC+yellow,
+        -- '124' = SC+yellow+DRS).
+        -- Use REGEXP_MATCHES to check for presence of flag digits anywhere in
+        -- the string.
         REGEXP_MATCHES(track_status, '.*[467].*') AS is_safety_car_lap,
-        REGEXP_MATCHES(track_status, '.*5.*')     AS is_vsc_lap,
+        REGEXP_MATCHES(track_status, '.*5.*') AS is_vsc_lap,
 
         -- Valid laps: timed, on-track, not deleted, accurate, not lap 1,
         -- and no SC/VSC flag anywhere in the multi-char TrackStatus string.
         lap_time_s > 0
-            AND NOT is_pit_lap
-            AND NOT is_deleted
-            AND is_accurate
-            AND NOT REGEXP_MATCHES(track_status, '.*[4567].*')
-            AND lap_number > 1
-        AS is_valid_lap
+        AND NOT is_pit_lap
+        AND NOT is_deleted
+        AND is_accurate
+        AND NOT REGEXP_MATCHES(track_status, '.*[4567].*')
+        AND lap_number > 1
+            AS is_valid_lap
     FROM renamed
 )
 

@@ -19,7 +19,7 @@ dbt-duckdb==1.10.1
 # Validation notebook runner
 # papermill not yet installed; add version pin once confirmed:
 # papermill==2.6.0
-jupyter-core>=5.0
+jupyter-core>=5.9.1
 
 # Testing
 pytest>=8.0

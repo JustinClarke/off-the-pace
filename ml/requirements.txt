@@ -6,7 +6,7 @@
 # Already present via root requirements.txt (listed to document the ML contract):
 xgboost>=3,<4
 duckdb>=1,<2
-pandas>=2,<3
+pandas>=3.0.3,<4
 numpy>=2,<2.5
 pyarrow>=24.0.0,<25
 scikit-learn>=1.9.0,<2

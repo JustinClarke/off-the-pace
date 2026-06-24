@@ -5,7 +5,7 @@
 # Core model runtime
 pyfixest==0.60.0
 scikit-learn==1.9.0
-pandas==2.3.3
+pandas==3.0.3
 numpy==2.4.6
 pyarrow==24.0.0
 scipy==1.18.0

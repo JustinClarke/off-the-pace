@@ -58,7 +58,7 @@ jobs:
           dbt deps --profiles-dir profiles --target ci
           dbt seed --profiles-dir profiles --target ci
           dbt build --profiles-dir profiles --target ci \
-            --select fct_cliff_prediction_features+ \
+            --select +fct_cliff_prediction_features+ \
             --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
 
       # Warehouse + manifest present (compiled_code makes the forward-window audit meaningful).
@@ -113,7 +113,7 @@ jobs:
           dbt deps --profiles-dir profiles --target ci
           dbt seed --profiles-dir profiles --target ci
           dbt build --profiles-dir profiles --target ci \
-            --select fct_cliff_prediction_features+ \
+            --select +fct_cliff_prediction_features+ \
             --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
 
       - name: Features audit (--check)

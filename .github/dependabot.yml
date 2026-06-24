@@ -30,6 +30,9 @@ updates:
       # NumPy 2.5+ breaks Numba 0.65.x (used by shap) on Python 3.12.
       - dependency-name: "numpy"
         versions: [">=2.5.0"]
+      # Pandas 3.0+ is incompatible with lifelines and fastf1.
+      - dependency-name: "pandas"
+        versions: [">=3.0.0"]
 
   # ML Python: training + ONNX export.
   - package-ecosystem: pip
@@ -50,6 +53,9 @@ updates:
       # NumPy 2.5+ breaks Numba 0.65.x (used by shap) on Python 3.12.
       - dependency-name: "numpy"
         versions: [">=2.5.0"]
+      # Pandas 3.0+ is incompatible with lifelines and fastf1.
+      - dependency-name: "pandas"
+        versions: [">=3.0.0"]
 
   # React app (pnpm).
   - package-ecosystem: npm

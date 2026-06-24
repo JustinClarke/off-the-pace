@@ -15,7 +15,7 @@ PyYAML>=6,<7
 
 # Machine Learning additions (D4 not previously installed):
 pytest-cov>=7.1.0,<8
-onnxmltools>=1.13,<2
+onnxmltools>=1.16.0,<2
 onnxruntime>=1.27.0,<2
 optuna>=4,<5
 shap>=0.52.0

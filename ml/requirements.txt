@@ -18,5 +18,5 @@ pytest-cov>=4,<7
 onnxmltools>=1.13,<2
 onnxruntime>=1.27.0,<2
 optuna>=4,<5
-shap>=0.46
+shap>=0.52.0
 sqlglot>=30.11.0,<31

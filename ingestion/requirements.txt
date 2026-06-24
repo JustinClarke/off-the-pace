@@ -1,19 +1,19 @@
 # Core dependencies F1 ingestion
-fastf1==3.5.0
+fastf1==3.8.3
 pandas==2.1.4
 pyarrow==14.0.1
-requests==2.31.0
+requests==2.34.2
 
 # Environment and configuration
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 
 # Testing
 pytest==7.4.3
 pytest-cov==4.1.0
-responses==0.23.3
+responses==0.26.1
 
 # Type checking
-mypy==1.7.1
+mypy==2.1.0
 
 # Utilities
-tqdm==4.66.1
+tqdm==4.68.3

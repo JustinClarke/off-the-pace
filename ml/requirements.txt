@@ -9,7 +9,7 @@ duckdb>=1,<2
 pandas>=2,<3
 numpy>=2,<3
 pyarrow>=21,<22
-scikit-learn>=1.8,<2
+scikit-learn>=1.9.0,<2
 matplotlib>=3,<4
 PyYAML>=6,<7
 

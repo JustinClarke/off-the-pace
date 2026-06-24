@@ -3,23 +3,23 @@
 # Update by running: pip freeze | grep -f requirements-frozen-names.txt > requirements-frozen.txt
 #
 # Core model runtime
-pyfixest==0.30.3
-scikit-learn==1.8.0
+pyfixest==0.60.0
+scikit-learn==1.9.0
 pandas==2.3.3
-numpy==2.2.6
-pyarrow==21.0.0
-scipy==1.17.1
-lifelines==0.30.0
+numpy==2.4.6
+pyarrow==24.0.0
+scipy==1.18.0
+lifelines==0.30.3
 duckdb==1.5.2
 
 # dbt
-dbt-core>=1.8,<2.0
+dbt-core>=1.11.11,<2.0
 dbt-duckdb==1.10.1
 
 # Validation notebook runner
 # papermill not yet installed; add version pin once confirmed:
 # papermill==2.6.0
-jupyter-core>=5.0
+jupyter-core>=5.9.1
 
 # Testing
-pytest>=8.0
+pytest>=9.1.1

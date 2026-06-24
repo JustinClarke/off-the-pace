@@ -17,6 +17,6 @@ PyYAML>=6,<7
 pytest-cov>=7.1.0,<8
 onnxmltools>=1.13,<2
 onnxruntime>=1.27.0,<2
-optuna>=4,<5
+optuna>=4.9.0,<5
 shap>=0.52.0
 sqlglot>=30.11.0,<31

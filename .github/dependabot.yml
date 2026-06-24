@@ -27,6 +27,9 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "dbt-duckdb"
         update-types: ["version-update:semver-major"]
+      # NumPy 2.5+ breaks Numba 0.65.x (used by shap) on Python 3.12.
+      - dependency-name: "numpy"
+        versions: [">=2.5.0"]
 
   # ML Python: training + ONNX export.
   - package-ecosystem: pip
@@ -44,6 +47,9 @@ updates:
         update-types: ["version-update:semver-major"]
       # Keep duckdb aligned with the warehouse/oracle baseline.
       - dependency-name: "duckdb"
+      # NumPy 2.5+ breaks Numba 0.65.x (used by shap) on Python 3.12.
+      - dependency-name: "numpy"
+        versions: [">=2.5.0"]
 
   # React app (pnpm).
   - package-ecosystem: npm

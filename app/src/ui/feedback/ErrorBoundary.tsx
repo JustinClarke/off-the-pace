@@ -1,5 +1,6 @@
 // React class error boundary catches render errors in child trees and displays a fallback UI.
 import { Component, ErrorInfo, ReactNode } from 'react'
+import { captureException } from '../../observability'
 
 interface Props {
   children: ReactNode
@@ -19,6 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[ErrorBoundary]', error, info.componentStack)
+    captureException(error, { componentStack: info.componentStack })
   }
 
   render() {

@@ -12,6 +12,8 @@ models:
       contract:
         enforced: true
     tags: [marts]
+    meta:
+      family: marts
     columns:
       - name: driver_race_id
         description: Surrogate PK   hash of (race_year, race_id, driver_id)
@@ -125,6 +127,8 @@ models:
       contract:
         enforced: true
     tags: [marts]
+    meta:
+      family: marts
     columns:
       - name: lap_id
         description: Surrogate PK from stg_laps
@@ -370,15 +374,20 @@ models:
       Used to model pit strategy decision: is it time to box? Includes tyre_management_score and
       pit_decision_class derived from int_pit_strategy_value.
     tags: [marts, feature_engineering]
+    meta:
+      family: marts
     columns:
       - name: stint_id
         description: PK from int_stint_geometry
         tests: [not_null, unique]
       - name: driver_id
+        description: FastF1 three-letter driver code (e.g. VER, HAM).
         tests: [not_null]
       - name: race_id
+        description: Race identifier (numeric FastF1 event id cast to string).
         tests: [not_null]
       - name: race_year
+        description: Season year.
         tests: [not_null]
       - name: stint_length_laps
         description: Total laps in this stint
@@ -414,6 +423,8 @@ models:
       ego driver's skill (residual) with host constructor's car pace. predicted_lap_time_s = ego skill + host car.
       Degenerate check: ego == host → predicted == actual. Powers "ghost car" simulator: replay with different cars.
     tags: [marts, simulation, ghost_car]
+    meta:
+      family: marts
     columns:
       - name: ghost_id
         description: Surrogate PK = MD5(ego_driver_id || host_constructor_id || race_id || lap_number)
@@ -429,7 +440,7 @@ models:
         tests: [not_null]
       - name: deg_interaction_s
         description: >
-          Transform v0.2 Fix 1: (host deg slope - ego deg slope) x age_in_stint, slopes from
+          (host deg slope - ego deg slope) x age_in_stint, slopes from
           int_constructor_deg_sensitivity at the ego lap's (compound, season). The only
           host-dependent term that varies within a race, so it is what lets different hosts
           produce different driver orders. Exactly 0 when ego == host; 0 when no cell exists
@@ -443,7 +454,7 @@ models:
         tests: [not_null]
       - name: cliff_interaction_s
         description: >
-          Transform v0.2 Fix 2: severity x [hinge(host) - hinge(ego)] where
+          severity x [hinge(host) - hinge(ego)] where
           hinge(c) = GREATEST(0, age - field_onset - cliff_onset_shift(c)). The nonlinear
           host-dependent term: it only fires once tyres approach/pass the cliff, reordering
           drivers on long stints. Exactly 0 when ego == host. Guardrail-clipped to +/-2 s.
@@ -472,27 +483,27 @@ models:
                 max_value: 1
       - name: host_constructor_pace_se_s
         description: >
-          Fix 3 SE-propagation ingredient: SE of the host constructor's structural pace
+          SE-propagation ingredient: SE of the host constructor's structural pace
           (0 when no panel cell). Aggregated into predicted_mean_lap_se_s downstream; cancels
           in within-scenario ordering since every driver shares the host car.
         tests: [not_null]
       - name: host_deg_slope_sd_s_per_lap
-        description: "Fix 3: posterior sd of the host deg slope for the ego lap's compound; 0 when no cell."
+        description: "Posterior sd of the host deg slope for the ego lap's compound; 0 when no cell."
         tests: [not_null]
       - name: ego_deg_slope_sd_s_per_lap
-        description: "Fix 3: posterior sd of the ego deg slope for the ego lap's compound; 0 when no cell."
+        description: "Posterior sd of the ego deg slope for the ego lap's compound; 0 when no cell."
         tests: [not_null]
       - name: host_cliff_shift_se_laps
-        description: "Fix 3: SE (laps) of the host cliff-onset shift; 0 when no cell."
+        description: "SE (laps) of the host cliff-onset shift; 0 when no cell."
         tests: [not_null]
       - name: ego_cliff_shift_se_laps
-        description: "Fix 3: SE (laps) of the ego cliff-onset shift; 0 when no cell."
+        description: "SE (laps) of the ego cliff-onset shift; 0 when no cell."
         tests: [not_null]
       - name: host_cliff_active
-        description: "Fix 3: 1.0 when the host car is past its shifted cliff onset on this lap, else 0.0."
+        description: "1.0 when the host car is past its shifted cliff onset on this lap, else 0.0."
         tests: [not_null]
       - name: ego_cliff_active
-        description: "Fix 3: 1.0 when the ego car is past its shifted cliff onset on this lap, else 0.0."
+        description: "1.0 when the ego car is past its shifted cliff onset on this lap, else 0.0."
         tests: [not_null]
 
   - name: fct_ghost_race_finish
@@ -502,6 +513,8 @@ models:
       lap count, so DNF / partial runs are ranked fairly and flagged via is_short_run).
       Filtered to recombination_confidence ≥ 0.3. Powers "what if" race outcome scenarios.
     tags: [marts, simulation, ghost_car]
+    meta:
+      family: marts
     columns:
       - name: ghost_race_id
         description: Surrogate PK = MD5(race_year || race_id || ego_driver_id || host_constructor_id)
@@ -519,10 +532,10 @@ models:
                 max_value: 25
       - name: actual_finish_position
         description: >
-          Actual finishing position. §5.4: sourced from official classified results
+          Actual finishing position, sourced from official classified results
           (stg_results) classified finishers get their official position, retirements
           get NULL. Falls back to the legacy last-valid-lap position only for races not
-          yet in stg_results during the partial v0.2 backfill (see finish_from_results).
+          yet in stg_results (see finish_from_results).
       - name: actual_is_dnf
         description: True when official results classify the driver as a retirement (NULL position). FALSE when results absent.
       - name: actual_dnf_cause
@@ -543,11 +556,12 @@ models:
         tests: [not_null]
       - name: avg_recombination_confidence
         description: >
-          Legacy coverage-weighted lap confidence (n/(n+50) heuristic × sqrt coverage).
-          Retained one release for app diffing; superseded by the Fix 3 SE columns below.
+          Coverage-weighted lap confidence (n/(n+50) heuristic × sqrt coverage), used by the
+          Counterfactual Championship and Hidden Performance app features. Coexists with the
+          finer-grained SE columns below rather than being replaced by them.
       - name: predicted_mean_lap_se_s
         description: >
-          Fix 3: marginal standard error (seconds) of predicted_mean_lap_s, propagating
+          Marginal standard error (seconds) of predicted_mean_lap_s, propagating
           host structural-pace SE, host/ego deg-slope posterior sds, host/ego cliff-shift
           SEs (scaled by tyre-age and past-cliff exposure), and the finite-sample SE of the
           lap mean. Includes the host-pace term that cancels in within-scenario ordering.
@@ -559,7 +573,7 @@ models:
                 max_value: 30
       - name: p_beats_next
         description: >
-          Fix 3: probability this driver finishes ahead of the driver ranked immediately
+          Probability this driver finishes ahead of the driver ranked immediately
           below it in this scenario, under a normal approximation on the pairwise pace gap
           (host structural pace cancels). NULL for the last-ranked driver (no one below).
           ≥ 0.5 by construction since the driver above always has the lower predicted pace.
@@ -570,7 +584,7 @@ models:
                 max_value: 1
       - name: finish_pos_se
         description: >
-          Fix 3: standard error of the projected finish position the Poisson-binomial sd
+          Standard error of the projected finish position the Poisson-binomial sd
           of the number of drivers predicted ahead (sqrt of sum p_k(1-p_k) over pairwise
           order probabilities). 0 when the scenario has a single driver.
         tests:
@@ -589,6 +603,8 @@ models:
       SC / VSC / pit / inaccurate laps are excluded before car averages are formed.
       Negative values = faster. corner_skill_index = sum of three z-scores; lower = faster.
     tags: [marts]
+    meta:
+      family: marts
     columns:
       - name: race_year
         description: Season year
@@ -646,6 +662,8 @@ models:
       A compound='_all' rollup is emitted for fallback. Clean laps only
       (correction_weight = 1, not SC/VSC, not major outlier); cells with < 3 observations dropped.
     tags: [marts]
+    meta:
+      family: marts
     columns:
       - name: circuit_id
         description: Physical circuit identifier (slug of circuit_name).
@@ -733,6 +751,8 @@ models:
       Currently populated from the raw_dim_events seed (manual entries for 2021).
       Joined onto fct_lap_residuals to flag performance-impact and reliability-impact events.
     tags: [marts]
+    meta:
+      family: marts
     columns:
       - name: event_id
         description: Surrogate PK for the event.
@@ -753,6 +773,8 @@ models:
         - fct_driver_skill_features   race-grain skill aggregates
         - fct_cliff_prediction_features   lap-grain with next_lap_degradation_jump_s target
     tags: [marts]
+    meta:
+      family: marts
     columns:
       - name: lap_id
         description: Surrogate PK, FK to stg_laps.
@@ -831,12 +853,14 @@ models:
   - name: fct_telemetry_deltas
     description: >
       Driver-vs-teammate corner-metric deltas. Grain: one row per
-      (race_id, driver_a, driver_b, corner_name, lap_number) — for each teammate
+      (race_id, driver_a, driver_b, corner_name, lap_number) for each teammate
       pair (driver_a < driver_b) within a race, the per-corner difference in braking
       point, minimum corner speed, and throttle-application point. Built by joining
-      int_corner_metrics to itself across same-car teammates. Powers the Telemetry
-      Style Fingerprint feature (#19).
+      int_corner_metrics to itself across same-car teammates. Exported to the app's
+      data bundle but has no current app feature consumer.
     tags: [marts]
+    meta:
+      family: marts
     columns:
       - name: race_id
         description: Race identifier.

@@ -1,0 +1,76 @@
+---
+title: "How the app runs entirely in your browser"
+sidebarTitle: "Architecture"
+description: "A zero-server, three-layer stack: GCS-hosted Parquet files, DuckDB-Wasm for SQL, and ONNX Runtime Web for ML inference all executing inside your browser tab with no backend at request time."
+---
+
+## The zero-server model
+
+When you open Off The Pace, your browser downloads data and runs queries itself. There is no compute server waiting for your requests. The entire runtime is:
+
+```
+GCS CDN (Parquet + ONNX bundles)
+          ↓  HTTP fetch at page load
+DuckDB-Wasm  (WebAssembly, sub-10 ms SQL in a SharedArrayBuffer worker)
+          ↓
+ONNX Runtime Web  (in-browser ML inference, same worker thread)
+          ↓
+React components + charts
+```
+
+This architecture means latency is dominated by the initial Parquet download, not by a round-trip to a server. Once the files are in memory, every SQL query completes in milliseconds regardless of network conditions.
+
+## Cross-origin isolation (COOP / COEP)
+
+DuckDB-Wasm requires a `SharedArrayBuffer` for its multi-threaded worker. Browsers only expose `SharedArrayBuffer` in a cross-origin-isolated context, which requires two HTTP response headers on every page:
+
+```
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+```
+
+The Firebase hosting config sets these on every HTML response. Any asset served from a different origin (GCS bucket, CDN) must also carry `Cross-Origin-Resource-Policy: cross-origin`, which the bucket's CORS policy provides. Removing or weakening either header causes the DuckDB worker to silently fall back to a single-threaded mode where queries still work but run several times slower.
+
+## The runtime manifest
+
+The app never hard-codes data file paths. Instead, a lightweight manifest JSON file is fetched at startup:
+
+```
+public/data/_manifest.json
+```
+
+The manifest lists every registered Parquet table with its CDN path and a build timestamp. The client resolves paths at runtime, so a re-published data build is picked up immediately on next page load without a code deploy.
+
+## Cache busting
+
+GCS edge caches have a default TTL of one hour. Parquet files are served with an appended `?v=<build_hash>` query string baked into the manifest. When a new build is published, the manifest points to new `?v=` URLs; the CDN serves fresh files even if the previous version is still cached under the old URL. The manifest itself is served with `Cache-Control: no-cache` so it is always re-fetched.
+
+## Data shape
+
+The Parquet files on the CDN are the gold-mart tables produced by the dbt pipeline, exported verbatim from the warehouse. The tables the app reads at runtime include:
+
+| Table | Used by |
+|---|---|
+| `fct_lap_residuals` | Lap Waterfall, Race Lost, Sector Decomposition, Dirty Air maps |
+| `fct_driver_skill_features` | Degradation Simulator (ML features) |
+| `fct_cliff_prediction_features` | Tyre Cliff Survival, Tyre Recovery Forecast |
+| `fct_ghost_race_finish` | Ghost Race Standings, Hidden Performance, Counterfactual Championship |
+| `mart_degradation_history_envelope` | Stint Degradation Timeline |
+| `int_era_normalized_driver_rating` | Era Ratings Timeline, Era Translator |
+| `int_driver_circuit_affinity` | Driver Circuit Affinity |
+| `int_driver_circuit_era_affinity` | Ghost Race Standings |
+| `int_pit_strategy_value` | Pit Strategy |
+| `int_field_pace_curve` | Field Pace Curve |
+| `int_track_evolution` | Track Evolution |
+| `int_constructor_structural_pace` | Constructor Structural Pace, Constructor Circuit Interaction |
+| `dim_compounds_season` | Compound pickers across tyre features |
+
+DuckDB-Wasm registers each Parquet file as a virtual table, so every SQL query in the app runs against the same schema as the warehouse no translation layer.
+
+## ONNX inference
+
+The XGBoost models (quantile regressors, cliff classifier, stint-life regressor) are exported to ONNX and bundled alongside the app. At warmup, ONNX Runtime Web loads the model into a WebAssembly session. Subsequent calls score a feature vector and return quantile predictions, cliff probability, and stint-life estimates in a single synchronous call no fetch, no server. The Degradation Simulator's interactive sliders update predictions in under 5 ms on a mid-range device.
+
+## Source code and deployment
+
+The app is a React + Vite single-page application hosted on Firebase Hosting. Code changes are deployed by CI; data changes (new Parquet builds) are published separately via `scripts/publish_cdn.sh` and take effect on next page load without a code deploy. The two cycles are deliberately decoupled so a broken data build does not require a code rollback and a new code deploy does not require a data rebuild.

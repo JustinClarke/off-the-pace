@@ -1,0 +1,86 @@
+---
+title: "Quickstart: ingest your first race"
+sidebarTitle: "Quickstart"
+description: "Zero to a verified race on disk in five minutes: install, ingest one session, verify, and explore it lap by lap."
+---
+
+Ingestion needs no credentials and no cloud account a single Python process talks to FastF1, runs it through the data-quality gate, and writes Hive-partitioned Parquet to `data/bronze/`. This page takes you from a clean clone to one verified race on disk.
+
+<Steps>
+  <Step title="Install dependencies">
+    From the project root, `make setup` creates a virtual environment and installs every Python dependency the pipeline needs ingestion included.
+
+    ```bash
+    make setup
+    ```
+  </Step>
+
+  <Step title="Ingest one race">
+    Pull a single session straight from FastF1. The first race of the 2024 season is a good test case small enough to finish in a couple of minutes.
+
+    <CodeGroup>
+      ```bash Single race
+      python ingestion/src/ingest.py --season 2024 --round 1 --session R
+      ```
+      ```bash Recent seasons
+      make ingest-recent   # 2023–2024, ~15 min, ~200 MB
+      ```
+      ```bash Full backfill
+      make ingest-all   # 2018–2024, 30–45 min, ~2 GB
+      ```
+    </CodeGroup>
+
+    A single race writes laps, telemetry, weather, and race-control data under `data/bronze/<dataset>/season=2024/race=bahrain_grand_prix/`. Expect output like this (exact lap counts vary by race):
+
+    ```text
+    Ingestion run 20240315T091500Z: 2024–2024 | sessions=R | force=False | skip_telemetry=False | telemetry_full=False
+    Bronze: /path/to/off-the-pace/data/bronze
+    === Season 2024 Rd1 ===
+      [PULL] R  2024 Rd1 bahrain_grand_prix
+      [OK]   R  2024 Rd1 bahrain_grand_prix   57 laps
+    === COMPLETE: 1 sessions newly written ===
+    ```
+  </Step>
+
+  <Step title="Verify what landed">
+    Confirm the race passed every integrity check row counts, null rates, duplicate keys, required columns.
+
+    ```bash
+    make verify-bronze
+    ```
+
+    `verify_bronze.py` only checks seasons present on disk, so this works identically after a single-race pull, `make ingest-recent`, or a full backfill.
+  </Step>
+
+  <Step title="Explore it lap by lap">
+    Replay the race you just ingested to see the data move, without writing any SQL.
+
+    ```bash
+    python ingestion/src/replay_simulator.py \
+      --parquet_path data/bronze/laps/season=2024/race=bahrain_grand_prix/2024_bahrain_grand_prix_laps.parquet \
+      --race_id 2024_1 \
+      --speed 10 \
+      --dry_run
+    ```
+
+    See [Replay](/ingestion/replay) for what `--dry_run` does and why it's the working invocation today.
+  </Step>
+</Steps>
+
+<Check>
+  You now have a verified, partitioned Bronze race on disk ready for the transform layer to build on.
+</Check>
+
+## Next
+
+<CardGroup cols={3}>
+  <Card title="Choose your scope" icon="filter" href="/ingestion/data-scope">
+    Pick the right amount of data to pull for what you're building.
+  </Card>
+  <Card title="CLI reference" icon="terminal" href="/ingestion/cli">
+    Every `ingest.py` flag, with the *why* and *when*.
+  </Card>
+  <Card title="Bronze schemas" icon="database" href="/reference/data-schemas">
+    What's actually in the Parquet files you just wrote.
+  </Card>
+</CardGroup>

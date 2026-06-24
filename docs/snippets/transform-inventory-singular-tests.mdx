@@ -1,0 +1,31 @@
+| Category | Test | Status | Guarded model(s) |
+|---|---|---|---|
+| Identity-Closure | `assert_affinity_ci_brackets_mean.sql` | Active | `int_driver_circuit_affinity`, `int_driver_circuit_era_affinity` |
+| Identity-Closure | `assert_affinity_shrinkage_bounds.sql` | Active | `int_driver_circuit_affinity` |
+| Identity-Closure | `assert_cliff_hinge_centering.sql` | Active | `int_constructor_deg_sensitivity` |
+| Identity-Closure | `assert_corner_closure.sql` | Active | `int_corner_skill_residuals` |
+| Identity-Closure | `assert_deg_slope_centering.sql` | Active | `int_constructor_deg_sensitivity` |
+| Identity-Closure | `assert_era_affinity_shrinkage_bounds.sql` | Active | `int_driver_circuit_era_affinity` |
+| Identity-Closure | `assert_era_rating_shrinkage_bounds.sql` | Active | `int_driver_season_ratings` |
+| Identity-Closure | `assert_example_identity_closure.sql` | Active | `int_lap_residual_decomposed` |
+| Identity-Closure | `assert_ghost_car_self_consistency.sql` | Active | `fct_ghost_car_pace` |
+| Identity-Closure | `assert_lap_7term_identity.sql` | Active | `int_lap_residual_decomposed` |
+| Identity-Closure | `assert_qualifying_7term_identity.sql` | Active | `int_qualifying_decomposed` |
+| Identity-Closure | `assert_residual_decomposition_identity.sql` | Active | `int_lap_residual_decomposed` |
+| Identity-Closure | `assert_sector_aggregates_to_lap.sql` | Placeholder |   |
+| Identity-Closure | `assert_sector_residual_identity.sql` | Active | `int_sector_residual_decomposed` |
+| Domain Constraint | `assert_cliff_stints_have_falloff.sql` | Placeholder |   |
+| Domain Constraint | `assert_constructor_coefficient_signs.sql` | Active | `int_constructor_structural_pace` |
+| Domain Constraint | `assert_constructor_confidence_monotone.sql` | Placeholder |   |
+| Domain Constraint | `assert_driver_skill_residual_reasonable.sql` | Active | `fct_lap_residuals` |
+| Domain Constraint | `assert_field_pace_honest_range.sql` | Active | `int_field_pace_curve`, `stg_laps`, `stg_weather` |
+| Domain Constraint | `assert_mad_floor.sql` | Active | `int_lap_anomaly_flags` |
+| Domain Constraint | `assert_no_future_leakage.sql` | Active | `int_lap_thermal_proxy` |
+| Domain Constraint | `assert_p_beats_next_geq_half.sql` | Active | `fct_ghost_race_finish` |
+| Domain Constraint | `assert_raw_laps_has_both_sessions.sql` | Active | `stg_laps`, `stg_laps_qualifying` |
+| Domain Constraint | `assert_sc_hazard_probability_bounds.sql` | Active | `int_sc_hazard_history` |
+| Domain Constraint | `assert_stint_boundary_integrity.sql` | Active | `int_lap_air_state`, `int_lap_fuel_state`, `int_lap_thermal_proxy` |
+| Domain Constraint | `assert_synthetic_teammate_identity.sql` | Active | `int_stint_geometry`, `int_synthetic_teammate` |
+| Domain Constraint | `assert_track_evolution_monotone.sql` | Active | `int_track_evolution` |
+| Regression Gate | `assert_constructor_pace_propagates.sql` | Active |   |
+| Regression Gate | `assert_residual_variance_shrinks.sql` | Active |   |

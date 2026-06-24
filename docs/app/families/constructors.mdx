@@ -1,0 +1,29 @@
+---
+title: "Constructors: isolating car pace from the driver"
+sidebarTitle: "Overview"
+description: "Two features that read the constructor's contribution to lap time from a fixed-effects panel model the season-level structural pace and the per-circuit interaction term after controlling for driver skill, tyre state, and conditions."
+---
+
+## What this pillar does
+
+The Constructors pillar asks the inverse of the Drivers question: **how fast is the car,
+with the driver removed?** Both features here read from `int_constructor_structural_pace`,
+which carries the constructor's fixed-effect coefficient from a two-way panel model that
+controls for driver skill, tyre compound, fuel, ambient conditions, and track evolution.
+
+The same car-pace term that powers these two features also feeds the Driver pillar's
+de-biasing chain so "car pace" means precisely the same thing whether you're ranking
+teams or isolating a driver's skill from their machinery.
+
+## Every feature in this pillar
+
+<CardGroup cols={2}>
+  <Card title="Structural Pace" icon="car" href="/app/constructor-structural-pace">
+    Each constructor's car contribution to lap time from a fixed-effects panel model, after
+    controlling for driver skill, tyre state, fuel, and conditions.
+  </Card>
+  <Card title="Circuit Interaction" icon="map" href="/app/constructor-circuit-interaction">
+    A heatmap of how each constructor over- or under-performs at specific circuits relative
+    to their own season average the circuit × constructor interaction term.
+  </Card>
+</CardGroup>

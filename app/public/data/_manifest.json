@@ -1,6 +1,6 @@
 {
-  "version": "4a9abfd9811bd163",
-  "generatedAt": "2026-06-15T18:06:37.496515+00:00",
+  "version": "85b1b8d1bf058543",
+  "generatedAt": "2026-06-24T13:04:12.077934+00:00",
   "stats": {
     "total_laps": 137447,
     "total_drivers": 40,
@@ -836,6 +836,11 @@
     {
       "name": "int_driver_circuit_era_affinity",
       "path": "/data/intermediates/int_driver_circuit_era_affinity.parquet",
+      "partitioned": false
+    },
+    {
+      "name": "int_driver_race_skill_loro",
+      "path": "/data/intermediates/int_driver_race_skill_loro.parquet",
       "partitioned": false
     },
     {

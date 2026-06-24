@@ -9,6 +9,7 @@ import type { SpanCohort } from './transform'
 import { lineColor } from './colors'
 import './queries'
 import type { EraRatingRow } from './queries'
+import { TechTooltip } from '../../ui/TechTooltip'
 
 const DEFAULT_SELECTED_N = 6
 const COHORT_ORDER: SpanCohort[] = ['bridge', 'full-span', 'joined', 'left', 'cameo']
@@ -148,10 +149,12 @@ export default function EraRatingsTimelinePage() {
                 {COHORT_ORDER.map(c => {
                   const s = COHORT_STYLE[c]
                   return (
-                    <div key={c} className="flex items-center gap-1.5 text-[11px]" title={s.hint}>
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
-                      <span className="text-muted font-medium">{s.label}</span>
-                    </div>
+                    <TechTooltip key={c} content={s.hint}>
+                      <div className="flex items-center gap-1.5 text-[11px] cursor-help">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
+                        <span className="text-muted font-medium">{s.label}</span>
+                      </div>
+                    </TechTooltip>
                   )
                 })}
               </div>

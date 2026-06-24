@@ -1,3 +1,5 @@
+import { CANONICAL_DOCS_BASE } from '../../config'
+
 export const methodologyContent = (
   <>
     <p>
@@ -37,5 +39,5 @@ export const methodologyContent = (
   </>
 )
 
-export const methodologyHref = 'https://offthepace.mintlify.app/reference/models/fct/fct_lap_residuals'
+export const methodologyHref = `${CANONICAL_DOCS_BASE}/app/lap-waterfall`
 

@@ -1,0 +1,46 @@
+---
+title: "Aero & Conditions: the environment every lap is driven into"
+sidebarTitle: "Overview"
+description: "Four features covering the two environmental axes that sit outside any driver's control: aerodynamic disturbance from running in traffic, and the circuit's own evolution in grip and baseline pace across a race."
+---
+
+## What this pillar does
+
+Aero & Conditions isolates the part of lap time that comes from **where you are on track
+and when you are on track**, rather than from the driver or the car. Two distinct phenomena
+are covered:
+
+- **Dirty air.** Running behind another car costs measurable pace time that shows up in
+  the decomposition's dirty-air term. Dirty Air Cost totals that loss per driver across a
+  race; Dirty Air Lap Map shows the aerodynamic environment every driver was in, lap by lap.
+- **Circuit evolution.** Track Evolution separates rubber buildup from ambient temperature
+  drift, showing how the baseline pace changed underneath the whole field. Field Pace Curve
+  shows the trimmed field-average pace those two forces produced the reference line every
+  lap time in the race is measured against.
+
+All four features read from `fct_lap_residuals` (for the per-lap dirty-air classification)
+and `int_track_evolution` / `int_field_pace_curve` (for the circuit-level baselines). The
+underlying models are documented in the Transform
+[Physics](/transform/families/physics) and [Pace Baselines](/transform/families/pace-baselines)
+family pages.
+
+## Every feature in this pillar
+
+<CardGroup cols={2}>
+  <Card title="Dirty Air Cost" icon="wind" href="/app/dirty-air-cost">
+    A leaderboard of the cumulative time each driver lost to running in disturbed airflow
+    during a race, from the per-circuit dirty-air model.
+  </Card>
+  <Card title="Dirty Air Lap Map" icon="grid" href="/app/dirty-air-lap-map">
+    A lap-by-lap grid of the aerodynamic environment every driver experienced free air,
+    dirty air, tow, or DRS train across a whole race.
+  </Card>
+  <Card title="Track Evolution" icon="route" href="/app/track-evolution">
+    The lap-time baseline split into rubber buildup and ambient drift, showing how much the
+    circuit itself changed underneath the field over a race.
+  </Card>
+  <Card title="Field Pace Curve" icon="chart-spline" href="/app/field-pace-curve">
+    The trimmed field-average lap time across a race, blending fuel burn, tyre degradation,
+    and track rubbering into one reference baseline.
+  </Card>
+</CardGroup>

@@ -1,4 +1,4 @@
--- transform v0.2 Fix 3 SE propagation design note + verification
+-- SE propagation design note + verification
 -- ===========================================================================
 -- DELIVERABLE for roadmap step 3.1. The variance algebra is implemented in
 -- fct_ghost_race_finish (see its header); this file states it compactly and
@@ -36,7 +36,7 @@
 --
 -- Pairwise events are then treated as independent for the Poisson-binomial
 -- finish_pos_se = sqrt(sum_k p_k(1-p_k)); residual correlation from shared host
--- slope/cliff is second-order and left for the §4 calibration gate to measure.
+-- slope/cliff is second-order and left for the calibration gate to measure.
 -- ===========================================================================
 
 -- CHECK 1: quantify what the cancellation is worth. Host structural pace is the

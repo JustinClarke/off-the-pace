@@ -1,4 +1,4 @@
--- Transform v0.2 Fix 2: centring identity for the constructor cliff-onset hinge.
+-- Centring identity for the constructor cliff-onset hinge.
 --
 -- The unshrunk hinge deviation (cliff_hinge_coef_s_per_lap -
 -- cliff_hinge_field_mean_s_per_lap) must have a precision-weighted mean of exactly

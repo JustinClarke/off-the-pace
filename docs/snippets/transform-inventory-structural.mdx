@@ -1,0 +1,60 @@
+| Model | Family | `not_null` | `unique` | `unique_combination_of_columns` | Total |
+|---|---|---|---|---|---|
+| `stg_circuit_info` | Staging | 4 | 1 |   | 5 |
+| `stg_events` | Staging | 1 | 1 |   | 2 |
+| `stg_laps` | Staging | 5 | 1 |   | 6 |
+| `stg_laps_qualifying` | Staging | 5 | 1 |   | 6 |
+| `stg_pits` | Staging | 1 |   |   | 1 |
+| `stg_results` | Staging | 6 | 1 |   | 7 |
+| `stg_sector_times` | Staging | 2 | 1 |   | 3 |
+| `stg_session_status` | Staging | 3 |   |   | 3 |
+| `stg_track_status` | Staging | 3 |   |   | 3 |
+| `dim_circuits` | Reference | 4 | 1 |   | 5 |
+| `dim_compounds_season` | Reference | 4 |   |   | 4 |
+| `dim_constructors` | Reference | 2 | 1 |   | 3 |
+| `dim_drivers` | Reference | 1 | 1 |   | 2 |
+| `int_corner_metrics` | Physics | 4 |   |   | 4 |
+| `int_dirty_air_tax_component` | Physics | 7 | 1 |   | 8 |
+| `int_lap_air_state` | Physics | 1 | 1 |   | 2 |
+| `int_lap_fuel_state` | Physics | 1 | 1 |   | 2 |
+| `int_lap_fuel_state_qualifying` | Physics | 1 | 1 |   | 2 |
+| `int_lap_telemetry_aggregates` | Physics | 2 | 1 |   | 3 |
+| `int_lap_thermal_proxy` | Physics | 1 | 1 |   | 2 |
+| `int_stint_geometry` | Physics | 2 | 1 |   | 3 |
+| `int_circuit_x_constructor_interaction` | Pace Baselines | 2 | 1 |   | 3 |
+| `int_compound_cliff_predicted` | Pace Baselines | 1 | 1 |   | 2 |
+| `int_constructor_structural_pace` | Pace Baselines | 11 | 1 |   | 12 |
+| `int_constructor_structural_pace_qualifying` | Pace Baselines | 2 | 1 |   | 3 |
+| `int_field_pace_curve` | Pace Baselines | 3 |   |   | 3 |
+| `int_track_evolution` | Pace Baselines | 3 |   |   | 3 |
+| `int_constructor_car_fe` | Skill | 5 | 1 |   | 6 |
+| `int_driver_circuit_affinity` | Skill | 11 | 1 |   | 12 |
+| `int_driver_circuit_era_affinity` | Skill | 14 | 1 |   | 15 |
+| `int_driver_race_skill_loro` | Skill | 5 | 1 |   | 6 |
+| `int_driver_season_ratings` | Skill | 8 | 1 |   | 9 |
+| `int_era_normalized_driver_rating` | Skill | 12 | 1 |   | 13 |
+| `int_synthetic_teammate` | Skill | 4 |   |   | 4 |
+| `int_corner_skill_residuals` | Residual | 5 | 1 |   | 6 |
+| `int_event_corrections` | Residual | 1 | 1 |   | 2 |
+| `int_lap_anomaly_flags` | Residual | 1 | 1 |   | 2 |
+| `int_lap_residual_decomposed` | Residual | 5 | 1 |   | 6 |
+| `int_lap_residual_decomposed_qualifying` | Residual | 2 | 1 |   | 3 |
+| `int_lap_residual_stint_detrend` | Residual | 2 |   |   | 2 |
+| `int_qualifying_decomposed` | Residual | 2 | 1 |   | 3 |
+| `int_sector_residual_decomposed` | Residual | 7 | 1 |   | 8 |
+| `int_tyre_surface_vs_bulk_decoupling` | Residual | 5 | 1 |   | 6 |
+| `int_constructor_deg_sensitivity` | Strategy | 17 | 1 |   | 18 |
+| `int_pit_loss_circuit` | Strategy | 4 | 1 |   | 5 |
+| `int_pit_strategy_value` | Strategy | 1 | 1 |   | 2 |
+| `int_sc_hazard_history` | Strategy | 9 | 1 |   | 10 |
+| `dim_events` | Marts | 2 | 1 |   | 3 |
+| `fct_ghost_car_pace` | Marts | 18 | 1 |   | 19 |
+| `fct_ghost_race_finish` | Marts | 7 | 1 |   | 8 |
+| `fct_lap_residuals` | Marts | 16 | 1 |   | 17 |
+| `fct_stint_features` | Marts | 6 | 1 |   | 7 |
+| `fct_telemetry_deltas` | Marts | 9 |   |   | 9 |
+| `mart_corner_skill_driver` | Marts | 11 |   | 1 | 12 |
+| `mart_degradation_history_envelope` | Marts | 13 |   | 1 | 14 |
+| `circuit_reference` | Reference (seed) | 2 | 1 |   | 3 |
+| `compound_cliff_params` | Reference (seed) | 7 |   |   | 7 |
+| **Total** |  | 293 | 44 | 2 | **339** |

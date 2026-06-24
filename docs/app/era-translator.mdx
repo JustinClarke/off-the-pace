@@ -1,0 +1,50 @@
+---
+title: "Comparing drivers across regulation eras"
+sidebarTitle: "Era Translator"
+description: "A season leaderboard of era-adjusted driver ratings on one comparable scale, anchored by drivers who raced on both sides of the 2022 regulation change."
+---
+
+The era translator answers the bar-argument question: was a 2019 season better than a 2024 one? It puts every driver-season on a single comparable scale, correcting for the 2022 ground-effect regulation shift, and presents it as a leaderboard rather than a timeline so you can line up drivers from different eras within one ranked view. Negative means faster than the era-normalised field average.
+
+## What it shows
+
+Each row is one driver-season rating:
+
+- **Era-adjusted rating**: a Bayesian-shrunk seasonal residual, offset by the era shift estimated from 20 bridge drivers who raced on both sides of the 2022 boundary. Negative = faster than the era-normalised field average.
+- **95% CI**: propagates both within-season sampling uncertainty and the era-offset uncertainty. A wider interval means fewer qualifying seasons for the bridge anchor or fewer clean laps for the driver.
+- **Bridge anchor (★)**: drivers with ≥8 clean-race seasons spanning pre- and post-2022, used to anchor the era shift. Their ratings are the most directly comparable across eras.
+
+This is the same underlying data as the [era ratings timeline](/app/era-ratings-timeline), presented as a season leaderboard for direct within-season cross-era comparison.
+
+<Note>
+  A minimum of 5 races is required for a driver-season to appear, so part-season cameos are excluded.
+</Note>
+
+## How to use it
+
+1. **Select a season** to rank that year, or compare ratings across seasons on the shared scale.
+2. **Look for the ★** bridge-anchored ratings are the safest to compare across eras.
+3. **Read the CI** before ranking two adjacent rows; overlapping intervals are a statistical tie.
+4. **Export the data** to build your own cross-era comparisons.
+
+## Reading the signal correctly
+
+The rating is **era-normalised and relative** it answers "how far ahead of their own era's field was this driver?", not "what lap time would they set today?". The cross-era comparison rests entirely on the bridge-driver offset.
+
+<Warning>
+  Non-bridge seasons inherit the era offset without anchoring it themselves, so their absolute cross-era level is less certain than a bridge driver's. Weight ★ rows more heavily for cross-era claims. See the [decomposition limitations](/decomposition/limitations).
+</Warning>
+
+## Data source
+
+The chart queries `int_era_normalized_driver_rating` via DuckDB-Wasm in the browser.
+
+| Column | Meaning |
+|---|---|
+| `era_adjusted_rating_s` | Era-normalised seasonal rating, the leaderboard value |
+| `rating_ci_lower_s` / `rating_ci_upper_s` | 95% credible interval |
+| `is_bridge_driver` | Whether the driver anchors the era offset (the ★) |
+
+The data window covers **2018–2024**.
+
+For the full model definition, see the [`int_era_normalized_driver_rating` reference](/reference/models/int/int_era_normalized_driver_rating).

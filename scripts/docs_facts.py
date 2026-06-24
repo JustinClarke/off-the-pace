@@ -1,11 +1,12 @@
 """
 docs_facts.py   Headline-count reconciliation across key documentation files.
 
-Asserts that the numbers stated in README.md, docs/quickstart.mdx, and docs/ml/overview.mdx agree for:
+Asserts that the numbers stated in README.md and the ML front-door pages agree for:
  -dbt model count
  -dbt test count
  -ML model count
  -ML test count
+ -ML feature count
 
 Run after updating counts anywhere to catch silent drift.
 
@@ -26,32 +27,17 @@ ROOT = Path(__file__).resolve().parent.parent
 
 FILES = {
     "README.md": ROOT / "README.md",
-    "docs/quickstart.mdx": ROOT / "docs/quickstart.mdx",
     "docs/ml/overview.mdx": ROOT / "docs/ml/overview.mdx",
 }
 
-# Each fact: (label, regex that must match the same integer in all files that contain it)
-# The regex is applied to each file's full text; if the file doesn't mention the fact at all
-# it is skipped (not an error some files are partial mirrors).
-FACTS: list[tuple[str, str]] = [
-    ("dbt model count", r"(\d+)\s+models?(?:\s+[\,\)]|\b.*dbt|\b.*build)"),
-    ("dbt test count", r"(\d+)\s+tests?(?:\s+[\,\)]|\b.*dbt|\b.*assert)"),
-    ("ML model count", r"(\d+)\s+XGBoost\s+models?"),
-    ("ML test count", r"(\d+)\s+(?:ml\s+)?tests?.*leakage|leakage.*(\d+)\s+tests?"),
-]
-
 # Simpler targeted patterns that are unambiguous in context
 TARGETED: list[tuple[str, re.Pattern]] = [
-    ("dbt models", re.compile(r"\b(53)\s+(?:dbt\s+)?models")),
-    ("dbt tests", re.compile(r"\b(336)\s*[- ]\s*tests?")),
+    ("dbt models", re.compile(r"\b(60)\s+(?:dbt\s+)?models")),
+    ("dbt tests", re.compile(r"\b(443)\s*[- ]\s*tests?")),
     ("ML models", re.compile(r"\b(5)\s+XGBoost\s+models")),
     ("ML tests", re.compile(r"\b(28)\s+(?:ml\s+)?tests?")),
+    ("ML features", re.compile(r"\b(42)\s+features")),
 ]
-
-
-def extract_counts(text: str, pattern: re.Pattern) -> list[str]:
-    """Return all non-overlapping matches of a capturing group."""
-    return pattern.findall(text)
 
 
 def check_facts(quiet: bool = False) -> int:

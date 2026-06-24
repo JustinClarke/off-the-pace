@@ -1,0 +1,48 @@
+---
+title: "Same car, same race who would be faster?"
+sidebarTitle: "Synthetic Teammate"
+description: "A pace comparison that weight-corrects each driver against a synthetic teammate, isolating pure skill from strategy and track-position effects."
+---
+
+The fairest comparison in motorsport is teammates in identical cars but even teammates diverge on strategy and track position. The synthetic teammate comparison removes that divergence: instead of comparing raw lap times, it weight-corrects each driver's pace against a teammate's condition-adjusted lap time, isolating pure skill from strategy and position. The result answers a clean question: given the same car in the same race conditions, which driver would be faster?
+
+## What it shows
+
+Each driver carries a skill proxy built from like-for-like lap pairs:
+
+- **Skill proxy**: the driver's pace minus the synthetic teammate's world-coordinate-adjusted pace, averaged over non-divergent laps. Negative means the driver is faster than their synthetic benchmark.
+- **Quality weight**: confidence in each comparison lap. A higher weight means the lap pair is in similar conditions (tyre age, position, fuel load); low-weight laps are down-weighted in the average.
+- **Strategic divergence**: laps where the driver and teammate are on different stint strategies are excluded, so non-pace factors don't contaminate the comparison.
+
+<Note>
+  A minimum of 3 non-divergent races is required, and the comparison is aggregated to season level.
+</Note>
+
+## How to use it
+
+1. **Select a season** from the filter bar; the comparison reloads.
+2. **Read the skill proxy sign** negative means the driver beat their synthetic benchmark.
+3. **Weight your confidence by the quality weight** a small proxy on low-weight laps is weaker evidence than the same proxy on well-matched laps.
+4. **Export the data** to compare teammates head-to-head on the condition-corrected scale.
+
+## Reading the signal correctly
+
+The benchmark is a **synthetic** teammate constructed from condition-matched laps, not a literal head-to-head average it is designed to strip out the strategy and position noise that makes raw teammate gaps misleading. A near-zero proxy means two drivers are genuinely matched once conditions are equalised.
+
+<Warning>
+  Drivers on persistently divergent strategies from their teammate yield few non-divergent laps, so their proxy rests on a thin, possibly unrepresentative sample. Read the quality weight before trusting an extreme value.
+</Warning>
+
+## Data source
+
+The chart queries `int_synthetic_teammate` via DuckDB-Wasm in the browser, aggregated to season level.
+
+| Column | Meaning |
+|---|---|
+| `skill_proxy_s` | Ego pace minus the synthetic teammate's adjusted pace (negative = faster) |
+| `quality_weight` | Condition-similarity confidence for the comparison lap |
+| `is_divergent` | Whether the lap pair is on different strategies (excluded if true) |
+
+The data window covers **2018–2024**.
+
+For the full model definition, see the [`int_synthetic_teammate` reference](/reference/models/int/int_synthetic_teammate).

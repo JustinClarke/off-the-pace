@@ -28,9 +28,10 @@ closure checks are built on the [`assert_additive_identity`](../macros/assert_ad
 | `assert_corner_closure.sql` | Corner-grain closure: braking + mid-corner + exit = total corner residual (within 0.001s) | `int_corner_skill_residuals` | ✅ Active |
 | `assert_ghost_car_self_consistency.sql` | Ghost-car degenerate identity (self-match ⇒ zero delta) | `fct_ghost_car_pace` | ✅ Active |
 | `assert_example_identity_closure.sql` | Usage example for the `assert_additive_identity` macro (superseded as canonical by `assert_lap_7term_identity`) | `int_lap_residual_decomposed` | ✅ Active |
-| `assert_deg_slope_centering.sql` | Fix 1: constructor deg-slope centring (raw − field mean) | `int_constructor_deg_sensitivity` | ✅ Active |
-| `assert_cliff_hinge_centering.sql` | Fix 2: constructor cliff-onset hinge centring | `int_constructor_deg_sensitivity` | ✅ Active |
+| `assert_deg_slope_centering.sql` | Constructor deg-slope centring (raw − field mean) | `int_constructor_deg_sensitivity` | ✅ Active |
+| `assert_cliff_hinge_centering.sql` | Constructor cliff-onset hinge centring | `int_constructor_deg_sensitivity` | ✅ Active |
 | `assert_affinity_shrinkage_bounds.sql` | Shrinkage bounds (circuit affinity) | `int_driver_circuit_affinity` | ✅ Active |
+| `assert_era_affinity_shrinkage_bounds.sql` | Shrinkage bounds (circuit affinity, era-segmented) | `int_driver_circuit_era_affinity` | ✅ Active |
 | `assert_era_rating_shrinkage_bounds.sql` | Shrinkage bounds (era rating) | `int_driver_season_ratings` | ✅ Active |
 | `assert_affinity_ci_brackets_mean.sql` | Credible interval brackets the posterior mean (`ci_low ≤ shrunk ≤ ci_high`) | `int_driver_circuit_affinity`, `int_driver_circuit_era_affinity` | ✅ Active |
 
@@ -47,7 +48,7 @@ closure checks are built on the [`assert_additive_identity`](../macros/assert_ad
 | `assert_sc_hazard_probability_bounds.sql` | Per-lap SC/VSC/any hazard rates are valid probabilities in [0, 1] and `any` ≥ each component | `int_sc_hazard_history` | ✅ Active |
 | `assert_driver_skill_residual_reasonable.sql` | Driver-skill residual per race is centred near 0 (mean < ±1s) | `fct_lap_residuals` | ✅ Active |
 | `assert_raw_laps_has_both_sessions.sql` | Both race (`stg_laps`) and qualifying (`stg_laps_qualifying`) laps are present with data | `stg_laps`, `stg_laps_qualifying` | ✅ Active |
-| `assert_p_beats_next_geq_half.sql` | Fix 3 pairwise consistency: `p_beats_next` ≥ 0.5 for adjacently-ranked drivers (ranked by ascending predicted pace) | `fct_ghost_race_finish` | ✅ Active |
+| `assert_p_beats_next_geq_half.sql` | Pairwise consistency: `p_beats_next` ≥ 0.5 for adjacently-ranked drivers (ranked by ascending predicted pace) | `fct_ghost_race_finish` | ✅ Active |
 | `assert_constructor_coefficient_signs.sql` | Every season has at least one constructor genuinely faster than the field (`MIN(constructor_structural_pace_s) < 0`) and at least one identified (non-degenerate) CI | `int_constructor_structural_pace` | ✅ Active |
 | `assert_constructor_confidence_monotone.sql` | Constructor-index confidence increases with lap count (more data ⇒ more confidence) | `int_constructor_structural_pace` | 📝 Placeholder (superseded by a `dbt_expectations` pair test in `schema.yml` after `int_constructor_pace_index` was folded into `int_constructor_structural_pace`) |
 | `assert_cliff_stints_have_falloff.sql` | Informational (non-blocking): flags stints with a detected cliff but minimal end-of-stint pace falloff | | 📝 Placeholder |
@@ -69,7 +70,7 @@ included, so they pass vacuously until a snapshot is generated.
 transform-check`). It connects to the checked-in dbt profile via `.sqlfluff`
 (`profiles_dir = profiles`, `target = ci`), so the dbt templater renders models the
 same way locally and in CI. The only excluded model is `fct_ghost_race_finish.sql`
-(`.sqlfluffignore`) — it exceeds sqlfluff's parse-depth limit and is hand-maintained.
+(`.sqlfluffignore`) it exceeds sqlfluff's parse-depth limit and is hand-maintained.
 
 Style fixes must not move model *output*. The **byte-stability oracle**
 (`scripts/snapshot_model_hashes.py`) enforces that: it computes an order-independent

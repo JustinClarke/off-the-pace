@@ -120,8 +120,8 @@ export default function GhostStandingsPage() {
 
   return (
     <FeaturePage
-      title="Ghost Car Standings"
-      hook="What if every driver had the same car? Strip the constructor out of every lap and you are left with pure driver pace this ranks each driver's track record at a circuit in equal machinery, pooled across a regulation era rather than a single race."
+      title="What If the Cars Were Equal?"
+      hook="Strip the car advantage and re-rank every driver on pure pace. The ghost car standings reveal who's really fastest."
       badges={[
         {
           label: 'What It Means',

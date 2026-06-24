@@ -1,5 +1,6 @@
-export const methodologyHref =
-  'https://docs.offthepace.dev/reference/models/int/int_constructor_structural_pace'
+import { CANONICAL_DOCS_BASE } from '../../config'
+
+export const methodologyHref = `${CANONICAL_DOCS_BASE}/app/constructor-structural-pace`
 
 export const methodologyContent = (
   <>

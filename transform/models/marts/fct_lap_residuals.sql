@@ -74,8 +74,7 @@ SELECT
     b.ambient_temp_delta,
     b.track_temp_c,
     b.rainfall_flag,
-    -- Initial transform release: legacy EW index columns replaced by structural
-    -- pace SE and CI
+    -- Structural pace SE and CI
     b.constructor_component_se_s,
     b.constructor_component_ci_low_s,
     b.constructor_component_ci_high_s,

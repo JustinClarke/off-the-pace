@@ -2,8 +2,7 @@
 -- result)
 -- Renames FastF1 session.results to snake_case, casts nanoseconds → seconds,
 -- and
--- derives an explicit DNF / classification split (replacing the MAX(position)
--- finish derivation downstream see transform-v0.2 §5.4). No joins, no
+-- derives an explicit DNF / classification split. No joins, no
 -- aggregations.
 {{ config(materialized='view') }}
 
@@ -61,7 +60,7 @@ SELECT
         AND status <> 'Finished'
     ) AS is_dnf,
 
-    -- Coarse DNF cause split for the DNF hazard model (§5.4): mechanical vs
+    -- Coarse DNF cause split for the DNF hazard model: mechanical vs
     -- racing-incident. Crash/collision/accident/spun → racing; the rest of the
     -- non-finishes are treated as mechanical/other.
     CASE

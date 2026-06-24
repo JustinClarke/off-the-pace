@@ -1,3 +1,5 @@
+import { CANONICAL_DOCS_BASE } from '../../config'
+
 export const methodologyContent = (
   <>
     <p>
@@ -23,4 +25,4 @@ export const methodologyContent = (
   </>
 )
 
-export const methodologyHref = 'https://offthepace.mintlify.app/decomposition/seven-term-identity'
+export const methodologyHref = `${CANONICAL_DOCS_BASE}/app/race-lost`

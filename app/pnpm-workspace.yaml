@@ -1,5 +1,14 @@
+# pnpm 11 reads build-script approvals from here (no longer the package.json "pnpm" field).
+# allowBuilds: explicit per-package approval (the non-interactive form of `pnpm approve-builds`).
+#   • esbuild Vite's bundler; needs its platform binary.
+#   • @sentry/cli postinstall fetches the CLI binary used by @sentry/vite-plugin to upload
+#                    source maps. Harmless when source-map upload is off; required
+#                    for the deploy build to symbolicate Sentry stacks.
+#   • protobufjs left disabled; it doesn't need its install script.
 allowBuilds:
+  '@sentry/cli': true
   esbuild: true
   protobufjs: false
 onlyBuiltDependencies:
   - esbuild
+  - '@sentry/cli'

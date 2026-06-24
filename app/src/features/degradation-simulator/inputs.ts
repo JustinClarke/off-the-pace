@@ -52,12 +52,31 @@ export const DEFAULT_WEIGHT_PENALTY_FACTOR = 0.025
 export const DEFAULT_FUEL_CONSUMPTION_RATE = 1.6
 
 /**
- * Fuel mass the *model* sees in what-if mode: a neutral realistic trajectory derived from the
- * circuit consumption rate, NOT the user's Fuel slider. Fuel is applied to the headline only via
- * the deterministic fuel term (transform.ts), so the ONNX tyre prediction stays stable while the
- * Fuel slider cleanly raises the absolute curve. A loaded real stint feeds its actual fuel instead.
+ * Per-constructor pace offset (s) applied to the headline's fresh-tyre anchor so the Constructor
+ * control always moves the curve it is weak in the ONNX cliff/life models (not in any top-5
+ * feature), so without this hook it would be a near-dead slider. Values are the post-2022
+ * season-mean of int_constructor_structural_pace (negative = faster than the field median); a top
+ * team's projected lap time sits below the circuit-wide observed band, a backmarker's above. Read
+ * via constructorPaceOffset(); unknown names fall back to 0 (field-neutral).
  */
-export const NEUTRAL_MODEL_FUEL_START_KG = 60
+export const CONSTRUCTOR_PACE_OFFSET_S: Record<string, number> = {
+  'Red Bull Racing': -0.913,
+  Ferrari: -0.717,
+  Mercedes: -0.575,
+  McLaren: -0.247,
+  'Aston Martin': 0.133,
+  Alpine: 0.232,
+  'Haas F1 Team': 0.393,
+  AlphaTauri: 0.439,
+  'Alfa Romeo': 0.496,
+  RB: 0.576,
+  Williams: 0.625,
+  'Kick Sauber': 0.802,
+}
+
+export function constructorPaceOffset(constructorId: string): number {
+  return CONSTRUCTOR_PACE_OFFSET_S[constructorId] ?? 0
+}
 
 export interface SliderSpec {
   key: keyof SimulatorInputs
@@ -68,16 +87,21 @@ export interface SliderSpec {
   unit?: string
 }
 
-// Slider bounds: p5/p95 of the real data, rounded to sensible strategist units.
-export const SLIDERS: SliderSpec[] = [
+// Slider bounds: p5/p95 of the real data, rounded to sensible strategist units. Split into the
+// headline levers a strategist reasons about (always shown in Scenario mode) and the finer
+// conditions tucked behind the Advanced drawer. Deliberately excluded from both:
+//   • current_lap not a model feature; it's the chart playhead (scrubber on the chart).
+//   • track_energy_index, circuit_abrasiveness_index auto-filled from the picked circuit
+//     (page.tsx merge), so a slider here would silently contradict the chosen circuit.
+export const PRIMARY_SLIDERS: SliderSpec[] = [
   { key: 'stint_length', label: 'Stint length', min: 5, max: 50, step: 1, unit: 'laps' },
-  { key: 'current_lap', label: 'Current lap in stint', min: 1, max: 50, step: 1, unit: 'laps' },
-  { key: 'lap_number', label: 'Race lap at stint start', min: 1, max: 70, step: 1, unit: 'laps' },
   { key: 'fuel_mass_kg', label: 'Fuel load', min: 5, max: 115, step: 1, unit: 'kg' },
   { key: 'dirty_air_share_lap', label: 'Dirty-air share', min: 0, max: 1, step: 0.05 },
+]
+
+export const ADVANCED_SLIDERS: SliderSpec[] = [
+  { key: 'lap_number', label: 'Race lap at stint start', min: 1, max: 70, step: 1, unit: 'laps' },
   { key: 'ambient_temp_delta', label: 'Ambient temp delta', min: 0, max: 30, step: 1, unit: '°C' },
-  { key: 'track_energy_index', label: 'Track energy index', min: 40, max: 135, step: 1 },
-  { key: 'circuit_abrasiveness_index', label: 'Circuit abrasiveness', min: 2, max: 4, step: 1 },
 ]
 
 export const COMPOUND_OPTIONS = ['HARD', 'MEDIUM', 'SOFT', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT', 'INTERMEDIATE', 'WET']
@@ -168,9 +192,10 @@ export function buildStintRows(inputs: SimulatorInputs): FeatureRow[] {
       lap_number: inputs.lap_number + (lap - 1),
       lap_in_stint: lap,
       age_in_stint: lap, // fresh-fitted stint: tyre age tracks laps run
-      // The model sees a NEUTRAL fuel trajectory (circuit burn rate), not the Fuel slider, so the
-      // tyre prediction is stable; the slider's fuel is applied only via the deterministic term.
-      fuel_mass_kg: Math.max(1, NEUTRAL_MODEL_FUEL_START_KG - (lap - 1) * burnRate),
+      // Feed the user's Fuel slider down the circuit burn trajectory. fuel_mass_kg is the #1 feature
+      // for both the cliff classifier and stint-life regressor, so this is what makes Fuel move the
+      // ONNX panels (the headline applies fuel separately via its deterministic weight term).
+      fuel_mass_kg: Math.max(1, inputs.fuel_mass_kg - (lap - 1) * burnRate),
       compound: constants.compound,
       compound_grip_peak: constants.compound_grip_peak,
       compound_wear_gradient: constants.compound_wear_gradient,

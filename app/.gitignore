@@ -11,3 +11,10 @@ public/data/dimensions/
 public/data/ml/*.parquet
 public/data/ml/*.onnx
 public/models/
+
+# Playwright E2E + Lighthouse CI artefacts (Phase 5 / F9)
+test-results/
+playwright-report/
+playwright/.cache/
+.lighthouseci/
+coverage/

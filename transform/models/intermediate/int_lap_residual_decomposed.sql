@@ -1,10 +1,10 @@
--- Initial transform: 7-term residual decomposition per lap.
+-- 7-term residual decomposition per lap.
 -- Decomposes actual lap_time_s into seven additive components, yielding a
 -- driver-skill residual stripped of field pace baseline, fuel mass, tyre
 -- compound
 -- trajectory, rubber track evolution, ambient weather, constructor structural
 -- pace,
--- and dirty-air tax (initial addition).
+-- and dirty-air tax.
 --
 -- Residual identity (all terms in seconds, positive = slower):
 --   pace_delta_s = lap_time_s-base_track_pace_s
@@ -13,7 +13,7 @@
 --                + rubber_component_s
 --                + ambient_component_s
 --                + constructor_component_s
---                + dirty_air_tax_s          ← Initial release: extracted from
+--                + dirty_air_tax_s          ← extracted from
 --                driver_skill_residual_s
 --                + driver_skill_residual_s
 --                + track_unexplained_s      (informational; not in
@@ -28,18 +28,11 @@
 -- rubber_component_s     : rubber_component_s from int_track_evolution
 -- ambient_component_s    : ambient_component_s from int_track_evolution
 -- constructor_component_s: constructor_structural_pace_s from
--- int_constructor_structural_pace (#6)
+-- int_constructor_structural_pace
 -- dirty_air_tax_s        : per-lap dirty-air tax from
--- int_dirty_air_tax_component (#8)
+-- int_dirty_air_tax_component
 -- driver_skill_residual_s: pace_delta_s minus all above; cleaned of dirty-air
 -- signal
---
--- BREAKING CHANGE (2026-05-20): driver_skill_residual_s is a
--- delta-from-field-pace residual.
--- BREAKING CHANGE (initial transform): constructor source changed from
--- int_constructor_pace_index to
---   int_constructor_structural_pace; dirty_air_tax_s added;
---   driver_skill_residual_s is smaller.
 --
 -- correction_weight from int_event_corrections is carried but NOT applied here.
 {{ config(materialized='table') }}
@@ -122,8 +115,8 @@ evolution AS (
 ),
 
 constructor_struct AS (
-    -- Initial transform: panel-regression constructor coefficient replaces the
-    -- EW rolling index.
+    -- Grouped-aggregation constructor coefficient (placeholder for the full
+    -- panel-regression spec; see int_constructor_structural_pace).
     -- Grain: (race_year, race_id, constructor_id) one row per constructor per
     -- race.
     SELECT
@@ -139,7 +132,7 @@ constructor_struct AS (
 ),
 
 constructor_interaction AS (
-    -- Third-Iteration: circuit-constructor interaction to capture
+    -- Circuit-constructor interaction to capture
     -- circuit-specific baseline deviations
     SELECT
         race_year,
@@ -152,7 +145,7 @@ constructor_interaction AS (
 ),
 
 dirty_air AS (
-    -- Initial transform: per-lap dirty-air tax extracted from
+    -- Per-lap dirty-air tax extracted from
     -- driver_skill_residual_s.
     SELECT
         lap_id,
@@ -220,8 +213,8 @@ combined AS (
         e.track_temp_c,
         e.rainfall_flag,
 
-        -- Constructor structural pace (#6): panel FE coefficient + circuit
-        -- interaction.
+        -- Constructor structural pace: grouped-aggregation coefficient +
+        -- circuit interaction.
         COALESCE(cs.constructor_structural_pace_s, 0.0)
         + COALESCE(cci.circuit_constructor_interaction_s, 0.0)
             AS constructor_component_s,
@@ -238,7 +231,7 @@ combined AS (
             AS constructor_component_ci_high_s,
         cs.panel_observations_n AS constructor_panel_n,
 
-        -- Dirty-air tax (#8): per-lap seconds attributable to following another
+        -- Dirty-air tax: per-lap seconds attributable to following another
         -- car.
         COALESCE(da.dirty_air_tax_s, 0.0) AS dirty_air_tax_s,
         COALESCE(da.dirty_air_tax_se_s, 0.0) AS dirty_air_tax_se_s,
@@ -294,10 +287,9 @@ with_residual AS (
         -- Driver delta vs trimmed field pace (the closure base)
         lap_time_s - COALESCE(base_track_pace_s, lap_time_s) AS pace_delta_s,
 
-        -- Total physics offsets subtracted from pace_delta_s (7-term, initial
-        -- transform).
-        -- dirty_air_tax_s is now accounted for separately;
-        -- driver_skill_residual_s is cleaner.
+        -- Total physics offsets subtracted from pace_delta_s (7-term identity).
+        -- dirty_air_tax_s is accounted for separately, so
+        -- driver_skill_residual_s carries no dirty-air signal.
         fuel_component_s
         + COALESCE(compound_component_s, 0.0)
         + rubber_component_s
@@ -308,8 +300,6 @@ with_residual AS (
         -- Driver skill residual: pace_delta_s minus all 7 physics components.
         -- Identity: pace_delta_s = total_explained_s + driver_skill_residual_s
         -- + track_unexplained_s
-        -- Initial transform: dirty_air_tax_s is subtracted here; residual is
-        -- smaller and cleaner than pre-initial.
         (lap_time_s - COALESCE(base_track_pace_s, lap_time_s))
         - fuel_component_s
         - COALESCE(compound_component_s, 0.0)

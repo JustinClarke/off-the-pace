@@ -1,0 +1,140 @@
+---
+title: "Deployment & release runbook"
+sidebarTitle: "Deployment"
+description: "How Off The Pace ships keyless Workload Identity Federation, staged promotion from staging to prod, preview deploys for every PR, and rollback."
+---
+
+## Architecture
+
+The app bundle is **pure code** it reads all data and models from the GCS CDN (`gs://off-the-pace-cdn`) at runtime. So a **code deploy runs entirely in CI**. The **data export needs the 6 GB warehouse**, which is not in CI producing and publishing data is an operator step that runs *before* a release. CI then validates that data in **staging**, promotes it to **prod**, and deploys the code.
+
+```
+ operator                                       CI (deploy.yml, on release)
+ ───────────────────────────────────────────    ──────────────────────────────────────────
+ make app-data app-models                       smoke staging  ─┐
+ make app-publish-staging  ──► gs://…/staging/                  ├─ promote staging→prod
+                                                                ├─ firebase deploy (code)
+                                                ◄── prod ───────┘  smoke prod
+```
+
+## One-time cloud setup
+
+CI authenticates to GCP with **Workload Identity Federation** no long-lived JSON key.
+
+<Steps>
+  <Step title="Provision WIF" icon="key">
+    Run the provisioning script from a machine with owner-level ADC:
+
+    ```bash
+    bash scripts/setup_wif.sh
+    ```
+
+    It prints two values. Store them as **repository Actions variables** (Settings → Secrets and variables → Actions → **Variables** tab they are not sensitive):
+
+    | Variable | Value |
+    |---|---|
+    | `GCP_WORKLOAD_IDENTITY_PROVIDER` | `projects/<num>/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
+    | `GCP_DEPLOY_SERVICE_ACCOUNT` | `gh-deploy@off-the-pace.iam.gserviceaccount.com` |
+    | `FIREBASE_PROJECT` | `off-the-pace` (optional; this is the default) |
+    | `PROD_SITE_URL` | e.g. `https://off-the-pace.web.app` (optional; enables the prod site smoke) |
+
+    Until `GCP_WORKLOAD_IDENTITY_PROVIDER` is set, `deploy.yml` and `preview.yml` **skip** on their `if:` guards releases won't show a red deploy before setup.
+  </Step>
+  <Step title="Enable GCS object versioning" icon="database">
+    Object versioning makes data rollback restore real parquet bytes rather than just the version pointer:
+
+    ```bash
+    gcloud storage buckets update gs://off-the-pace-cdn --versioning
+    ```
+
+    This is also codified in `infra/terraform/bucket.tf` (`make tf-apply`).
+  </Step>
+</Steps>
+
+## Cutting a release
+
+Versioning is automated by **release-please** (`release-please.yml`), driven by [Conventional Commits](https://www.conventionalcommits.org/) on `main`.
+
+<Steps>
+  <Step title="Land conventional commits on main" icon="git-commit">
+    Use `feat:`, `fix:`, `perf:`, etc. as commit prefixes. release-please keeps an open **"chore: release X.Y.Z"** PR with the computed version and a generated `CHANGELOG.md`. Review it.
+  </Step>
+  <Step title="Publish data to staging" icon="upload">
+    From a machine with the 6 GB warehouse:
+
+    ```bash
+    make app-data app-models       # export warehouse → app/public/data, copy ONNX
+    make app-publish-staging       # → gs://…/staging/data
+    make app-smoke ENV=staging     # sanity-check staging
+    ```
+  </Step>
+  <Step title="Merge the release PR" icon="git-merge">
+    That tags the release and publishes a GitHub Release, which triggers `deploy.yml`:
+
+    1. Smoke staging
+    2. Build the app bundle
+    3. Promote staging → prod (atomic manifest flip)
+    4. `firebase deploy` (code)
+    5. Smoke prod
+
+    `make app-deploy` still works for emergencies but bypasses staging/smoke prefer the pipeline.
+  </Step>
+</Steps>
+
+## Preview deploys
+
+Every app PR (`preview.yml`) builds against the **staging** data prefix and deploys to a Firebase preview channel `pr-<n>`, posting the shareable URL as a PR comment (expires 7 days). Fork PRs are skipped no WIF access.
+
+## Rollback
+
+Prod's data version pointer is the `version` field in `_manifest.json`. Every promotion archives the superseded prod manifest to `gs://…/data/manifest-archive/`.
+
+<CodeGroup>
+
+```bash Data rollback
+make app-rollback                             # restore the previous manifest
+make app-rollback TO=_manifest.<stamp>.<ver>.json  # restore a specific archived manifest
+scripts/rollback_cdn.sh --list                # list archived manifests
+```
+
+```bash Code rollback
+firebase hosting:rollback   # Firebase keeps prior code releases
+# or: re-deploy a prior git tag via CI
+```
+
+</CodeGroup>
+
+<Note>
+  **Parquet bytes vs. version pointer.** `make app-rollback` restores what the app *loads*, not necessarily what the bucket *stores* (publish overwrites parquet in place). To recover the actual parquet bytes you need object versioning enabled (step 2 of setup):
+
+  ```bash
+  gcloud storage ls --all-versions gs://off-the-pace-cdn/data/marts/<table>.parquet
+  gcloud storage cp gs://…/<table>.parquet#<generation> gs://…/<table>.parquet
+  ```
+</Note>
+
+## Workflows at a glance
+
+| Workflow | Trigger | Does |
+|---|---|---|
+| `release-please.yml` | push to `main` | Maintain release PR + CHANGELOG; tag on merge |
+| `deploy.yml` | release published / manual | Smoke staging → promote → firebase deploy → smoke prod |
+| `preview.yml` | app PR | Build vs staging data → preview channel + PR comment |
+
+## Local equivalents
+
+```bash
+make app-publish-staging   # publish_cdn.sh --env staging
+make app-smoke ENV=staging # smoke_cdn.sh --env staging
+make app-promote           # promote_cdn.sh  (staging → prod, atomic)
+make app-rollback          # rollback_cdn.sh --previous
+```
+
+<CardGroup cols={2}>
+  <Card title="Data pipeline" href="/platform/data-pipeline" icon="database">
+    The DAG that produces the data that deployment promotes.
+  </Card>
+  <Card title="Observability" href="/platform/observability" icon="activity">
+    Synthetic monitors that guard the live serving plane after every deploy.
+  </Card>
+</CardGroup>

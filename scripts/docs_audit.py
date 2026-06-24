@@ -17,10 +17,30 @@ CI (docs-ci.yml):
 
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def _git_ignored(rel: str) -> bool:
+    """True if `rel` is git-ignored (local-only / not published).
+
+    The catalogues below describe the *published* repo surface. Some entries
+    (`agents/`, `.agents/`, `_roadmap/`) are intentionally gitignored working
+    trees see repo-tour Stop 8 so they are absent from a fresh CI checkout.
+    Skip them rather than hard-fail; tracked directories stay required.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", rel],
+            cwd=ROOT,
+            capture_output=True,
+        )
+    except OSError:
+        return False  # git unavailable → fall back to strict behaviour
+    return result.returncode == 0
 
 # ── 1. README-presence catalogue ────────────────────────────────────────────────
 README_REQUIRED: list[str] = [
@@ -136,6 +156,8 @@ def _has_ts_header(path: Path) -> bool:
 def check_readme_presence() -> list[str]:
     errors = []
     for rel in README_REQUIRED:
+        if _git_ignored(f"{rel}/README.md"):
+            continue  # local-only working tree (not published) see _git_ignored
         readme = ROOT / rel / "README.md"
         if not readme.exists():
             errors.append(f"MISSING README: {rel}/README.md")
@@ -145,6 +167,8 @@ def check_readme_presence() -> list[str]:
 def check_tour_footers() -> list[str]:
     errors = []
     for rel in TOUR_STOP_READMES:
+        if _git_ignored(rel):
+            continue  # local-only working tree (not published) see _git_ignored
         path = ROOT / rel
         if not path.exists():
             errors.append(f"MISSING tour-stop README: {rel}")

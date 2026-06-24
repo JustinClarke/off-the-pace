@@ -102,43 +102,49 @@ describe('transform', () => {
   })
 })
 
-describe('recomposeLapTimes (P2.2 isotonic base × M)', () => {
+describe('recomposeLapTimes (decoupled physical model)', () => {
   // Three laps with monotone fitted deg: 0.2, 0.5, 0.8s. Bands: p10 = mono−0.3, p90 = mono+0.5.
-  // dirty_air_deg_mult=1.05, temp_headroom=10°C, temp_penalty=0.01 (from hRow defaults).
   const history: HistoryEnvelopeRow[] = [
     hRow(1, 0.2),
     hRow(2, 0.5),
     hRow(3, 0.8),
   ]
-  const preds = [
-    pred(0.1, 0.2, 0.4, 20, PROBS, 'none_in_stint'),
-    pred(0.1, 0.2, 0.4, 15, PROBS, 'none_in_stint'),
-    pred(0.1, 0.2, 0.4, 10, PROBS, 'none_in_stint'),
-  ]
   const baseOpts: RecomposeOptions = {
     refGreenPaceS: 90,
+    stintLength: 3,
     fuelStartKg: 50,
     fuelConsumptionRateKgPerLap: 2,
     weightPenaltyFactor: 0.03,
     history,
   }
 
-  it('tyre(k) = mono_p50(k) × M at neutral inputs (M = 1)', () => {
-    // No dirty air, no temp → M = 1.0 → tyre = raw mono values
-    const { laptimeCurve } = recomposeLapTimes(preds, { ...baseOpts, dirtyAirShare: 0, ambientTempDelta: 0 })
-    expect(laptimeCurve.map(p => +p.tyre.toFixed(4))).toEqual([0.2, 0.5, 0.8])
+  // A longer fitted history (laps 1..30, deg saturating ~1.3s) for cliff-extrapolation tests.
+  const longHistory: HistoryEnvelopeRow[] = Array.from({ length: 30 }, (_, i) =>
+    hRow(i + 1, Math.min(1.3, 0.05 * (i + 1))))
+
+  it('sweeps exactly stintLength laps (decoupled from any ONNX output length)', () => {
+    const { laptimeCurve } = recomposeLapTimes({ ...baseOpts, stintLength: 7, history: longHistory })
+    expect(laptimeCurve.map(p => p.x)).toEqual([1, 2, 3, 4, 5, 6, 7])
   })
 
-  it('net = ref + fuel + tyre at every lap', () => {
-    const { laptimeCurve } = recomposeLapTimes(preds, { ...baseOpts, dirtyAirShare: 0, ambientTempDelta: 0 })
+  it('tyre(k) = working_deg(k) at neutral inputs with no cliff params', () => {
+    const { laptimeCurve, cliffOnsetLap } = recomposeLapTimes({ ...baseOpts, dirtyAirShare: 0, ambientTempDelta: 0 })
+    expect(laptimeCurve.map(p => +p.tyre.toFixed(4))).toEqual([0.2, 0.5, 0.8])
+    expect(cliffOnsetLap).toBe(0) // cliff inactive without a fitted severity
+  })
+
+  it('net = base + fuel + tyre at every lap (neutral base = ref)', () => {
+    const { laptimeCurve } = recomposeLapTimes({ ...baseOpts, dirtyAirShare: 0, ambientTempDelta: 0 })
     // fuel(k) = 0.03 × (50 - 2(k-1)) → lap 1: 1.5, lap 2: 1.44, lap 3: 1.38
     expect(laptimeCurve[0].net).toBeCloseTo(90 + 1.5  + 0.2, 6)
     expect(laptimeCurve[1].net).toBeCloseTo(90 + 1.44 + 0.5, 6)
     expect(laptimeCurve[2].net).toBeCloseTo(90 + 1.38 + 0.8, 6)
+    // base (ref) carries no conditions/constructor cost at neutral inputs.
+    expect(laptimeCurve[0].ref).toBeCloseTo(90, 6)
   })
 
-  it('band edges = ref + fuel + mono_{p10,p90} × M (neutral)', () => {
-    const { laptimeCurve } = recomposeLapTimes(preds, { ...baseOpts, dirtyAirShare: 0, ambientTempDelta: 0 })
+  it('band edges = base + fuel + working_{p10,p90} (neutral, no cliff)', () => {
+    const { laptimeCurve } = recomposeLapTimes({ ...baseOpts, dirtyAirShare: 0, ambientTempDelta: 0 })
     // At lap 1: mono_p10 = 0.2−0.3 = −0.1, mono_p90 = 0.2+0.5 = 0.7
     const ref = 90, fuel1 = 0.03 * 50
     expect(laptimeCurve[0].p10).toBeCloseTo(ref + fuel1 + (-0.1), 4)
@@ -146,50 +152,105 @@ describe('recomposeLapTimes (P2.2 isotonic base × M)', () => {
   })
 
   it('tyre term is monotone non-decreasing (the physics gate)', () => {
-    const { laptimeCurve } = recomposeLapTimes(preds, baseOpts)
+    const { laptimeCurve } = recomposeLapTimes(baseOpts)
     const tyres = laptimeCurve.map(p => p.tyre)
     for (let i = 1; i < tyres.length; i++) {
       expect(tyres[i]).toBeGreaterThanOrEqual(tyres[i - 1])
     }
   })
 
-  it('dirty air → M > 1 → tyre and net increase (bounded ≤ 1.5×)', () => {
-    const clean = recomposeLapTimes(preds, { ...baseOpts, dirtyAirShare: 0 }).laptimeCurve
-    const dirty = recomposeLapTimes(preds, { ...baseOpts, dirtyAirShare: 0.8 }).laptimeCurve
+  // ── Cliff extrapolation ──────────────────────────────────────────────────
+  it('cliff term: inactive without severity, strictly positive past onset when supplied', () => {
+    const flat = recomposeLapTimes({ ...baseOpts, stintLength: 30, history: longHistory })
+    const cliff = recomposeLapTimes({
+      ...baseOpts, stintLength: 30, history: longHistory, cliffOnsetLaps: 18, cliffSeverity: 1.0,
+    })
+    expect(cliff.cliffOnsetLap).toBeCloseTo(18, 6)
+    // Pre-onset the two curves agree; post-onset the cliff lifts the tyre term.
+    expect(cliff.laptimeCurve[10].tyre).toBeCloseTo(flat.laptimeCurve[10].tyre, 6) // lap 11 < onset
+    expect(cliff.laptimeCurve[25].tyre).toBeGreaterThan(flat.laptimeCurve[25].tyre + 0.2) // lap 26 > onset
+  })
+
+  it('cliff curve stays monotone and the band rises with it', () => {
+    const { laptimeCurve } = recomposeLapTimes({
+      ...baseOpts, stintLength: 30, history: longHistory, cliffOnsetLaps: 18, cliffSeverity: 1.2,
+    })
+    const tyres = laptimeCurve.map(p => p.tyre)
+    for (let i = 1; i < tyres.length; i++) expect(tyres[i]).toBeGreaterThanOrEqual(tyres[i - 1])
+    // p90 band edge keeps a non-negative gap above net and rises into the cliff.
+    const late = laptimeCurve[26]
+    expect(late.p90).toBeGreaterThan(late.net)
+  })
+
+  it('dirty air and overheating bring the cliff onset forward', () => {
+    const onset = (o: Partial<RecomposeOptions>) => recomposeLapTimes({
+      ...baseOpts, stintLength: 30, history: longHistory, cliffOnsetLaps: 25, cliffSeverity: 1.0, ...o,
+    }).cliffOnsetLap
+    expect(onset({ dirtyAirShare: 1.0 })).toBeLessThan(onset({}))
+    expect(onset({ ambientTempDelta: 30 })).toBeLessThan(onset({}))
+  })
+
+  it('abrasiveness scales the cliff severity (and brings onset forward)', () => {
+    const post = (abras: number) => {
+      const r = recomposeLapTimes({
+        ...baseOpts, stintLength: 30, history: longHistory,
+        cliffOnsetLaps: 18, cliffSeverity: 1.0, abrasivenessIndex: abras,
+      })
+      return r.laptimeCurve[27].tyre // lap 28, well past onset
+    }
+    expect(post(4)).toBeGreaterThan(post(2))
+  })
+
+  // ── Every headline control moves the curve ───────────────────────────────
+  it('↑ fuel ⇒ ↑ projected lap time at every lap', () => {
+    const lo = recomposeLapTimes({ ...baseOpts, fuelStartKg: 30 }).laptimeCurve
+    const hi = recomposeLapTimes({ ...baseOpts, fuelStartKg: 90 }).laptimeCurve
+    for (let i = 0; i < lo.length; i++) expect(hi[i].net).toBeGreaterThan(lo[i].net)
+  })
+
+  it('dirty-air share accelerates degradation (scales the tyre term, not base pace)', () => {
+    const clean = recomposeLapTimes({ ...baseOpts, dirtyAirShare: 0 }).laptimeCurve
+    const dirty = recomposeLapTimes({ ...baseOpts, dirtyAirShare: 0.8 }).laptimeCurve
+    // working_deg > 0 at every lap in this fixture, so the multiplier lifts the tyre term each lap.
     for (let i = 0; i < clean.length; i++) {
       expect(dirty[i].tyre).toBeGreaterThan(clean[i].tyre)
       expect(dirty[i].net).toBeGreaterThan(clean[i].net)
-      // M = 1 + (1.05-1) = 1.05 → tyre = mono × 1.05 (bounded ≤ 1.5)
-      expect(dirty[i].tyre).toBeLessThanOrEqual(clean[i].tyre * 1.5 + 1e-9)
     }
   })
 
-  it('temp past headroom → M > 1 → tyre and net increase', () => {
-    // headroom = 10°C; temp_delta = 20°C → penalty = 0.01 × (20−10) = 0.10 → M = 1.10
-    const cool = recomposeLapTimes(preds, { ...baseOpts, ambientTempDelta: 5 }).laptimeCurve
-    const hot  = recomposeLapTimes(preds, { ...baseOpts, ambientTempDelta: 20 }).laptimeCurve
-    for (let i = 0; i < cool.length; i++) {
-      expect(hot[i].tyre).toBeGreaterThan(cool[i].tyre)
-    }
-  })
-
-  it('temp within headroom has no penalty', () => {
-    const base  = recomposeLapTimes(preds, { ...baseOpts, dirtyAirShare: 0, ambientTempDelta: 0 }).laptimeCurve
-    const inWin = recomposeLapTimes(preds, { ...baseOpts, dirtyAirShare: 0, ambientTempDelta: 5 }).laptimeCurve
+  it('temp past headroom accelerates degradation; within headroom does not', () => {
+    const hot   = recomposeLapTimes({ ...baseOpts, ambientTempDelta: 20 }).laptimeCurve
+    const cool  = recomposeLapTimes({ ...baseOpts, ambientTempDelta: 5 }).laptimeCurve  // within 10°C window
+    const base  = recomposeLapTimes({ ...baseOpts, ambientTempDelta: 0 }).laptimeCurve
     for (let i = 0; i < base.length; i++) {
-      expect(inWin[i].tyre).toBeCloseTo(base[i].tyre, 6)
+      expect(hot[i].tyre).toBeGreaterThan(cool[i].tyre)
+      expect(cool[i].tyre).toBeCloseTo(base[i].tyre, 6) // headroom = 10°C, 5°C is within it → no effect
     }
   })
 
-  it('↑ fuel ⇒ ↑ projected lap time at every lap', () => {
-    const lo = recomposeLapTimes(preds, { ...baseOpts, fuelStartKg: 30 }).laptimeCurve
-    const hi = recomposeLapTimes(preds, { ...baseOpts, fuelStartKg: 90 }).laptimeCurve
-    for (let i = 0; i < lo.length; i++) expect(hi[i].net).toBeGreaterThan(lo[i].net)
+  it('air state and rain shift the curve; constructor offset moves the anchor', () => {
+    const free = recomposeLapTimes({ ...baseOpts, airState: 'free_air' }).laptimeCurve
+    const dirty = recomposeLapTimes({ ...baseOpts, airState: 'dirty_air' }).laptimeCurve
+    const rain = recomposeLapTimes({ ...baseOpts, isRainLap: true }).laptimeCurve
+    const fast = recomposeLapTimes({ ...baseOpts, constructorPaceOffsetS: -0.9 }).laptimeCurve
+    for (let i = 0; i < free.length; i++) {
+      expect(dirty[i].net).toBeGreaterThan(free[i].net)
+      expect(rain[i].net).toBeGreaterThan(free[i].net)
+      expect(fast[i].net).toBeLessThan(free[i].net)
+      expect(fast[i].ref).toBeCloseTo(free[i].ref - 0.9, 6)
+    }
+  })
+
+  it('track energy index scales the working-window degradation', () => {
+    const hi = recomposeLapTimes({ ...baseOpts, trackEnergyIndex: 120 }).laptimeCurve
+    const lo = recomposeLapTimes({ ...baseOpts, trackEnergyIndex: 60 }).laptimeCurve
+    // working_deg is positive every lap here, so a harder track lifts the tyre term.
+    for (let i = 0; i < hi.length; i++) expect(hi[i].tyre).toBeGreaterThan(lo[i].tyre)
   })
 
   it('historyBand lifts obs fuel-removed p50 onto the absolute axis (fuel re-added)', () => {
     // hRow(lap, mono): obs_fuel_removed_pace_p50_s = ref + mono = 90 + monoP50
-    const { historyBand } = recomposeLapTimes(preds, baseOpts)
+    const { historyBand } = recomposeLapTimes(baseOpts)
     expect(historyBand).toHaveLength(3)
     // fuel(lap 1) = 0.03*50 = 1.5; obs p50 = 90 + 0.2 = 90.2; + fuel = 91.7
     expect(historyBand[0].p50).toBeCloseTo(90 + 0.2 + 1.5, 4)
@@ -197,8 +258,8 @@ describe('recomposeLapTimes (P2.2 isotonic base × M)', () => {
     expect(historyBand[2].p50).toBeCloseTo(90 + 0.8 + 1.38, 4)
   })
 
-  it('empty-history guard: falls back to analytical ramp × M', () => {
-    const { laptimeCurve } = recomposeLapTimes(preds, {
+  it('empty-history guard: falls back to the analytical ramp', () => {
+    const { laptimeCurve } = recomposeLapTimes({
       ...baseOpts,
       history: [],
       analyticalDegRatePerLap: 0.06,

@@ -15,8 +15,8 @@
 -- value is the median
 -- across stops, EB-shrunk toward the global median for thin circuits.
 --
--- Scope: races with a venue slug available (results / track_status ingested  
--- partial during the v0.2 backfill). The numeric race_id is per-season; the
+-- Scope: races with a venue slug available (results / track_status ingestion
+-- is incomplete for some seasons). The numeric race_id is per-season; the
 -- slug
 -- (e.g. monaco_grand_prix) is the cross-season venue key.
 {{ config(materialized='table') }}

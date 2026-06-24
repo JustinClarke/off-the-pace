@@ -1,0 +1,56 @@
+name: CodeQL
+
+# Static application security testing (SAST) for the two code surfaces Python
+# (ingestion / transform scripts / ml) and the React+TypeScript app. Free for this public repo.
+#
+# This is the *advanced* (committed-workflow) setup. If GitHub "default setup" for
+# CodeQL is enabled in repo Settings → Code security → CodeQL analysis, switch it to
+# Advanced first the two configurations conflict and this workflow will error
+# ("CodeQL analyses from advanced configurations cannot be processed when the default
+# setup is enabled"). The default-setup → advanced switch is recorded in SECURITY.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly re-scan surfaces advisories published after a PR already merged.
+    - cron: '23 5 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write   # upload SARIF results to the Security tab
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          - language: python
+            build-mode: none
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # security-extended adds higher-signal queries beyond the default pack.
+          queries: security-extended
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"

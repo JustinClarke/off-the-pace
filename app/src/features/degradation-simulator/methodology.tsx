@@ -1,43 +1,59 @@
+import { CANONICAL_DOCS_BASE } from '../../config'
+
 export const methodologyContent = (
   <>
     <p>
       This is the trained tyre-degradation models running <strong>live in your browser</strong> -
-      not a precomputed lookup. Five XGBoost models, exported to ONNX, score a 41-feature input
+      not a precomputed lookup. Five XGBoost models, exported to ONNX, score a 42-feature input
       vector through <code>onnxruntime-web</code> every time you move a slider.
     </p>
     <p className="mt-3">
-      The headline is an <strong>absolute projected lap time</strong>, built from three additive pieces:
+      The headline is an <strong>absolute projected lap time</strong>, built entirely client-side and
+      <strong> decoupled from the ONNX models</strong> &mdash; it renders the moment the history loads,
+      even if inference is slow or offline:
     </p>
     <pre className="mt-2 text-xs bg-white/5 rounded p-3 overflow-x-auto">
-{`projected_lap_time(k) = ref_green_pace                         [fresh-tyre anchor, fuel-removed]
-                      + weight_penalty_factor × fuel(k)         [Fuel]
-                      + isotonic(observed deg)(k) × M           [Tyre monotone by construction]
+{`projected_lap_time(k) = base + fuel(k) + tyre(k)
 
-M = clamp(1 + air_bump·𝟙[dirty_air] + temp_penalty·max(0, ΔT − headroom), 1.0, 1.5)`}
+base     = ref_green_pace + constructor_offset + conditions_cost   [fresh-tyre, fuel-removed]
+fuel(k)  = weight_penalty_factor × max(0, fuel_start − burn × (k−1))
+tyre(k)  = working_deg(k) × track_scale + cliff_term(k)            [monotone by construction]
+  working_deg(k) = isotonic observed deg-from-fresh (held flat past the observed range)
+  cliff_term(k)  = gain × severity × max(0, k − onset_eff)^1.5     [0 before onset]`}
     </pre>
     <p className="mt-3">
-      The <strong>Tyre</strong> term is a <em>weighted isotonic regression</em> fit to the raw
-      observed deg-from-fresh (p10/p50/p90) per circuit × era × compound, n-weighted so the thin
-      survivor-biased tail is held flat rather than dropping. The raw median is non-monotone (old
-      tyres spuriously appear faster when only the hardiest tyres remain at late laps); the isotonic
-      fit corrects this with 0 violations and MAE ≤ 0.5s vs the raw data. Multiplied by <strong>M</strong>
-      a modulation factor computed from your dirty-air and ambient-temp sliders the curve stays
-      monotone at all inputs (M is constant across the stint).
+      The <strong>working window</strong> (k ≤ onset) is a <em>weighted isotonic regression</em> fit
+      to the raw observed deg-from-fresh (p10/p50/p90) per circuit × era × compound, n-weighted so the
+      thin survivor-biased tail is held flat rather than dropping. The raw median is non-monotone (old
+      tyres spuriously appear faster when only the hardiest tyres survive at late laps); the isotonic
+      fit corrects this with 0 violations and MAE ≤ 0.5s vs the raw data &mdash; this part stays
+      strictly faithful to what actually happened.
     </p>
     <p className="mt-3">
-      The model is fed a <strong>neutral fuel trajectory</strong> (the circuit&apos;s consumption
-      rate) so the Fuel slider cleanly shifts the curve without distorting the ONNX tyre prediction.
-      The dirty-air and temp sliders move the headline <em>modestly by design</em> (~0.1–0.3s):
-      dirty air is a sign-gated within-race contrast; the temp penalty is a compound-window
-      overheating term (not a raw linear slope the raw data is non-monotone in temperature).
-      Fuel, compound, circuit, and era are the dominant movers.
+      Past the onset the curve adds a <strong>cliff term</strong>: a convex acceleration scaled by the
+      circuit × compound&apos;s <em>fitted</em> cliff severity. This is a deliberate, signposted
+      extrapolation <em>beyond</em> the survivor sample &mdash; the observed median goes flat there only
+      because cliff-hitting tyres get pitted and leave the data, so the headline reconstructs the cliff
+      from the fitted params rather than pretending it does not exist. The term and its slope are both
+      zero at the onset, so the join is smooth (no kink), and a running-max guard keeps the whole curve
+      monotone at every slider position.
+    </p>
+    <p className="mt-3">
+      Every control moves the curve: <strong>Fuel</strong> tilts it (and now also feeds the ONNX
+      panels); <strong>Dirty-air</strong> and <strong>temperature</strong> add a per-lap pace cost
+      <em> and</em> bring the cliff onset forward (overheating wears faster); <strong>abrasiveness</strong>
+      scales cliff severity; <strong>track energy</strong> scales the working-window deg rate;
+      <strong> constructor</strong> shifts the fresh-tyre anchor (post-2022 structural pace);
+      <strong> circuit</strong>, <strong>era</strong> and <strong>compound</strong> swap the whole
+      envelope and cliff parameters.
     </p>
     <ul className="list-disc pl-4 mt-3 space-y-1">
       <li><strong>Fresh-tyre anchor</strong> (<code>ref_green_pace_s</code>) is the per
         circuit × era × compound median fuel-removed lap time over fresh-tyre clean laps, from the{' '}
         <code>mart_degradation_history_envelope</code> mart.</li>
-      <li><strong>Observed range</strong> (dashed band) is the fitted p10/p90 × M what actually
-        happened across comparable 2018–2024 stints, monotonised and scaled to your conditions.</li>
+      <li><strong>Observed range</strong> (dashed band) is the fitted p10/p90 what actually happened
+        across comparable 2018–2024 stints, monotonised; past the onset it carries the same cliff term
+        so the band rises with the projection.</li>
       <li><strong>The fan</strong> is the degradation-jump quantile trio (p10/p50/p90) the
         predicted next-lap pace loss swept across every lap (ONNX models unchanged).</li>
       <li><strong>Cliff probability</strong> is the multiclass cliff classifier&apos;s softprob over
@@ -53,7 +69,7 @@ M = clamp(1 + air_bump·𝟙[dirty_air] + temp_penalty·max(0, ΔT − headroom)
     </p>
     <p className="mt-3">
       <strong>Load a real stint</strong> to score that tyre&apos;s actual per-lap rows - the full
-      41-feature vector including its real telemetry (gear changes, RPM, full-throttle and DRS
+      42-feature vector including its real telemetry (gear changes, RPM, full-throttle and DRS
       share, corner-speed loss, …) - and overlay its observed next-lap jump (dashed) against the
       predicted fan. The moment you drag a slider you enter what-if space: those laps never
       happened, so the 11 telemetry features (which have no sliders) pass through as XGBoost
@@ -67,4 +83,4 @@ M = clamp(1 + air_bump·𝟙[dirty_air] + temp_penalty·max(0, ΔT − headroom)
   </>
 )
 
-export const methodologyHref = 'https://offthepace.mintlify.app/ml/overview'
+export const methodologyHref = `${CANONICAL_DOCS_BASE}/app/degradation-simulator`

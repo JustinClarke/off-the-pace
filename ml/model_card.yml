@@ -1,7 +1,7 @@
 model_card:
   name: Off the Pace-Tyre Degradation Predictors
-  version: v3
-  generated_at: '2026-06-12T22:03:54.434215+00:00'
+  version: v4
+  generated_at: '2026-06-20T19:24:54.822043+00:00'
   summary: Five XGBoost models predicting next-lap tyre-degradation pace loss (quantile trio p10/p50/p90),
     laps-until-cliff class, and remaining stint life, from per-lap thermal, dirty-air, powertrain, weather
     and compound-prior features. Trained on 2018–2024 F1 laps; every model beats a strong per-cohort baseline.
@@ -24,8 +24,8 @@ model_card:
       all ingested seasons (2018–2024) and selection rests on time-series CV-there is no live holdout.
       The evaluation headline is reported on the final TimeSeriesSplit fold (2024); it switches to a true-holdout
       reveal the moment 2025 ingests, with no code change.
-    n_training_rows: 113300
-    feature_count: 41
+    n_training_rows: 113309
+    feature_count: 42
     evaluation_mode: cv_final_fold
     evaluation_season: 2024
   features:
@@ -49,6 +49,7 @@ model_card:
     - push_residual
     - cumulative_push_load_surface
     - cumulative_push_load_bulk
+    - surface_bulk_ratio
     - dirty_air_share_lap
     - dirty_air_thermal_load_surface
     - dirty_air_thermal_load_bulk
@@ -95,6 +96,7 @@ model_card:
       - push_residual
       - cumulative_push_load_surface
       - cumulative_push_load_bulk
+      - surface_bulk_ratio
       dirty_air:
       - dirty_air_share_lap
       - dirty_air_thermal_load_surface
@@ -130,6 +132,7 @@ model_card:
       anomaly_class: 3
     excluded_leakage:
     - circuit_key
+    - drift_s_per_lap
     - driver_id
     - driver_skill_proxy_s
     - driver_skill_residual_proxy_s
@@ -139,12 +142,14 @@ model_card:
     - laps_until_cliff_class
     - next_3_lap_cumulative_jump_s
     - next_5_lap_cumulative_jump_s
+    - next_lap_degradation_jump_detrended_s
     - next_lap_degradation_jump_s
     - race_id
     - race_year
     - remaining_stint_life_laps
     - stint_id
     - stint_length_laps
+    - survival_weight
     excluded_note: 'driver_id and race_year are deliberately excluded: an adversarial probe recovers race_year
       from the remaining features at 0.987 accuracy (majority baseline 0.168)-constructor identity and
       compound generation encode the season, so race_year would be a backdoor. driver_id would let the
@@ -156,125 +161,95 @@ model_card:
     objective: reg:quantileerror
     quantile_alpha: 0.1
     headline_metric: pinball
-    cv_headline: 0.10174
-    eval_headline: 0.09104
-    baseline_headline: 0.17197
+    cv_headline: 0.10873
+    eval_headline: 0.09408
+    baseline_headline: 0.17919
     beats_baseline: true
-    n_train_rows: 113300
-    fit_seconds: 39.26
+    n_train_rows: 113309
+    fit_seconds: 8.42
     hyperparameters:
-      colsample_bytree: 0.8047002686470622
-      gamma: 0.1650384951853549
-      learning_rate: 0.03956844592849967
-      max_depth: 5
-      min_child_weight: 15
-      n_estimators: 600
-      reg_alpha: 0.007127026660949176
-      reg_lambda: 0.006624369168909375
-      subsample: 0.9138877364644629
+      n_estimators: 120
+      max_depth: 4
+      learning_rate: 0.1
     artefacts:
-      booster: ml/models/degradation_regressor_p10_v3.bst
-      onnx: ml/models/degradation_regressor_p10_v3.onnx
+      booster: ml/models/degradation_regressor_p10_v4.bst
+      onnx: ml/models/degradation_regressor_p10_v4.onnx
   - name: degradation_regressor_p50
     family: degradation_regressor
     kind: quantile
     objective: reg:quantileerror
     quantile_alpha: 0.5
     headline_metric: pinball
-    cv_headline: 0.21528
-    eval_headline: 0.19527
-    baseline_headline: 0.30057
+    cv_headline: 0.22331
+    eval_headline: 0.19968
+    baseline_headline: 0.30371
     beats_baseline: true
-    n_train_rows: 113300
-    fit_seconds: 49.75
+    n_train_rows: 113309
+    fit_seconds: 8.49
     hyperparameters:
-      colsample_bytree: 0.6573577757386964
-      gamma: 0.7863904862139618
-      learning_rate: 0.043653912524506795
-      max_depth: 5
-      min_child_weight: 16
-      n_estimators: 700
-      reg_alpha: 0.013805813619030546
-      reg_lambda: 4.798277734257555
-      subsample: 0.9812031103145763
+      n_estimators: 120
+      max_depth: 4
+      learning_rate: 0.1
     artefacts:
-      booster: ml/models/degradation_regressor_p50_v3.bst
-      onnx: ml/models/degradation_regressor_p50_v3.onnx
+      booster: ml/models/degradation_regressor_p50_v4.bst
+      onnx: ml/models/degradation_regressor_p50_v4.onnx
   - name: degradation_regressor_p90
     family: degradation_regressor
     kind: quantile
     objective: reg:quantileerror
     quantile_alpha: 0.9
     headline_metric: pinball
-    cv_headline: 0.13746
-    eval_headline: 0.12249
-    baseline_headline: 0.15603
+    cv_headline: 0.13831
+    eval_headline: 0.12305
+    baseline_headline: 0.15539
     beats_baseline: true
-    n_train_rows: 113300
-    fit_seconds: 50.43
+    n_train_rows: 113309
+    fit_seconds: 8.41
     hyperparameters:
-      colsample_bytree: 0.8139728964601125
-      gamma: 0.6148248720878129
-      learning_rate: 0.03759048334449324
+      n_estimators: 120
       max_depth: 4
-      min_child_weight: 17
-      n_estimators: 700
-      reg_alpha: 0.015225860064412827
-      reg_lambda: 4.811467324800486
-      subsample: 0.9979933219097051
+      learning_rate: 0.1
     artefacts:
-      booster: ml/models/degradation_regressor_p90_v3.bst
-      onnx: ml/models/degradation_regressor_p90_v3.onnx
+      booster: ml/models/degradation_regressor_p90_v4.bst
+      onnx: ml/models/degradation_regressor_p90_v4.onnx
   - name: cliff_classifier
     family: cliff_classifier
     kind: classification
     objective: multi:softprob
     quantile_alpha: null
     headline_metric: macro_f1
-    cv_headline: 0.32007
-    eval_headline: 0.32289
-    baseline_headline: 0.23484
+    cv_headline: 0.28556
+    eval_headline: 0.32782
+    baseline_headline: 0.23175
     beats_baseline: true
-    n_train_rows: 113300
-    fit_seconds: 53.16
+    n_train_rows: 113309
+    fit_seconds: 8.75
     hyperparameters:
-      colsample_bytree: 0.62803831639132
-      gamma: 0.08644886334946138
-      learning_rate: 0.020206948627565842
-      max_depth: 8
-      min_child_weight: 5
-      n_estimators: 400
-      reg_alpha: 0.0010479348128786838
-      reg_lambda: 0.06838051227790198
-      subsample: 0.6925569126934085
+      n_estimators: 120
+      max_depth: 4
+      learning_rate: 0.1
     artefacts:
-      booster: ml/models/cliff_classifier_v3.bst
-      onnx: ml/models/cliff_classifier_v3.onnx
+      booster: ml/models/cliff_classifier_v4.bst
+      onnx: ml/models/cliff_classifier_v4.onnx
   - name: stint_life_regressor
     family: stint_life_regressor
     kind: regression
     objective: reg:squarederror
     quantile_alpha: null
     headline_metric: rmse
-    cv_headline: 7.49702
-    eval_headline: 8.12556
-    baseline_headline: 9.49957
+    cv_headline: 7.44388
+    eval_headline: 8.09024
+    baseline_headline: 9.49805
     beats_baseline: true
-    n_train_rows: 119868
-    fit_seconds: 10.29
+    n_train_rows: 119876
+    fit_seconds: 2.59
     hyperparameters:
-      colsample_bytree: 0.849893616236758
-      gamma: 0.0013846541929909116
-      learning_rate: 0.026307490821070707
-      max_depth: 8
-      min_child_weight: 5
-      n_estimators: 200
-      reg_alpha: 0.009107831834843637
-      reg_lambda: 0.24251495812504203
-      subsample: 0.8462988772079394
+      n_estimators: 120
+      max_depth: 4
+      learning_rate: 0.1
     artefacts:
-      booster: ml/models/stint_life_regressor_v3.bst
-      onnx: ml/models/stint_life_regressor_v3.onnx
+      booster: ml/models/stint_life_regressor_v4.bst
+      onnx: ml/models/stint_life_regressor_v4.onnx
   validation:
     scheme: season-grouped TimeSeriesSplit (expanding window, n_splits=5); whole seasons move together,
       the final fold validates on 2024
@@ -288,15 +263,15 @@ model_card:
         fallback (non-leakage)
     calibration:
       nominal: 0.8
-      raw_empirical_coverage: 0.8206230987097451
-      conformal_empirical_coverage: 0.8019511171719291
-      conformal_q: -0.028391061170167653
-      mean_interval_width: 1.232076644897461
-      n: 19066
+      raw_empirical_coverage: 0.8140766769811717
+      conformal_empirical_coverage: 0.8052234109502832
+      conformal_q: -0.014295337532319596
+      mean_interval_width: 1.2378928661346436
+      n: 19067
     leakage_probe:
-      accuracy: 0.987360988526037
-      majority_class_accuracy: 0.16828478964401294
-      lift_over_chance: 0.8190761988820241
+      accuracy: 0.9868328155888167
+      majority_class_accuracy: 0.16827290806180206
+      lift_over_chance: 0.8185599075270147
       n_seasons: 7
       note: X carries strong residual temporal signal-race_year recoverable far above chance; race_year
         is correctly excluded from features
@@ -306,16 +281,16 @@ model_card:
         - push_residual
         - cliff_onset_passed
         - laps_past_cliff
-        - expected_compound_pace_s
         - dirty_air_thermal_load_surface
+        - dirty_air_share_lap
         permutation_top5:
         - push_residual
         - cliff_onset_passed
+        - compound_cliff_severity
         - laps_past_cliff
         - dirty_air_share_lap
-        - dirty_air_thermal_load_surface
-        agreement_note: 'top-5 differ on: dirty_air_share_lap, expected_compound_pace_s-likely correlated
-          features or leakage pressure'
+        agreement_note: 'top-5 differ on: compound_cliff_severity, dirty_air_thermal_load_surface-likely
+          correlated features or leakage pressure'
       cliff_classifier:
         shap_top5:
         - fuel_mass_kg
@@ -324,123 +299,108 @@ model_card:
         - lap_number
         permutation_top5:
         - push_residual
-        - lap_in_stint
         - lap_number
-        - fuel_mass_kg
-        - track_energy_index
-        agreement_note: 'top-5 differ on: age_in_stint, push_residual, track_energy_index-likely correlated
-          features or leakage pressure'
+        - constructor_id
+        - compound_cliff_onset_laps
+        - dirty_air_thermal_load_surface
+        agreement_note: 'top-5 differ on: age_in_stint, compound_cliff_onset_laps, constructor_id, dirty_air_thermal_load_surface,
+          fuel_mass_kg, lap_in_stint, push_residual-likely correlated features or leakage pressure'
       stint_life_regressor:
         shap_top5:
         - fuel_mass_kg
         - age_in_stint
-        - compound
         - lap_number
+        - compound
         - cumulative_push_load_bulk
         permutation_top5:
         - fuel_mass_kg
         - age_in_stint
-        - cumulative_push_load_bulk
         - compound
+        - lap_number
         - track_energy_index
-        agreement_note: 'top-5 differ on: lap_number, track_energy_index-likely correlated features or
-          leakage pressure'
+        agreement_note: 'top-5 differ on: cumulative_push_load_bulk, track_energy_index-likely correlated
+          features or leakage pressure'
     underperforming_cohorts:
     - dimension: compound
       cohort: _other
       n: 9
-      model: 0.043498096100754204
-      baseline: 0.01020555555555557
+      model: 0.07751583962983152
+      baseline: 0.0025561346801346715
     - dimension: is_rain_lap
       cohort: _other
       n: 15
-      model: 0.5628895647091876
-      baseline: 0.536113061680318
+      model: 0.5714938089908241
+      baseline: 0.5554465796427691
     - dimension: compound
       cohort: _other
       n: 9
-      model: 0.09557225809064174
-      baseline: 0.007649347745967144
+      model: 0.06938091169783478
+      baseline: 0.021114878265057424
     - dimension: is_rain_lap
       cohort: _other
       n: 15
-      model: 2.4180952759461922
-      baseline: 2.1322503757191376
+      model: 2.4522967683625194
+      baseline: 2.2198018489089675
     - dimension: compound
       cohort: _other
       n: 9
-      model: 0.08340654134856328
-      baseline: 0.0014888888888888818
+      model: 0.07117575066606603
+      baseline: 0.0029478653198653348
     - dimension: circuit_key
       cohort: canadian_grand_prix
       n: 820
-      model: 0.12898119838986286
-      baseline: 0.12203013807847521
+      model: 0.12387846203840185
+      baseline: 0.12314780475481966
     - dimension: compound
       cohort: INTERMEDIATE
       n: 1057
-      model: 0.3028364770954475
-      baseline: 0.3264123611781748
+      model: 0.3225292163492911
+      baseline: 0.3250929067700759
     - dimension: compound
       cohort: _other
       n: 9
-      model: 0.4375
+      model: 1.0
       baseline: 1.0
-    - dimension: circuit_key
-      cohort: belgian_grand_prix
-      n: 579
-      model: 0.24241071428571428
-      baseline: 0.24538258575197888
-    - dimension: circuit_key
-      cohort: chinese_grand_prix
-      n: 588
-      model: 0.18736838144796342
-      baseline: 0.2375
     - dimension: circuit_key
       cohort: miami_grand_prix
       n: 786
-      model: 0.22223334980062004
-      baseline: 0.238
+      model: 0.21263067976496264
+      baseline: 0.23283480625424882
     - dimension: compound
       cohort: _other
       n: 12
-      model: 5.406506521932757
+      model: 5.744105540876945
       baseline: 2.412769846739082
     - dimension: circuit_key
       cohort: azerbaijan_grand_prix
       n: 796
-      model: 8.451079165169325
-      baseline: 8.21868964846339
+      model: 8.533142161963962
+      baseline: 8.218694802620703
     - dimension: circuit_key
       cohort: bahrain_grand_prix
       n: 847
-      model: 4.494297782965056
+      model: 4.088814045475155
       baseline: 3.943529343923808
     - dimension: circuit_key
-      cohort: british_grand_prix
-      n: 650
-      model: 5.9829865507961815
-      baseline: 5.961780342595143
-    - dimension: circuit_key
       cohort: dutch_grand_prix
-      n: 1220
-      model: 9.824526245535932
-      baseline: 8.724805361588778
+      n: 1221
+      model: 9.7075132196211
+      baseline: 8.723566923281474
     - dimension: circuit_key
       cohort: japanese_grand_prix
       n: 626
-      model: 6.6628024431789665
-      baseline: 5.986360043474815
+      model: 6.696869213732192
+      baseline: 5.986548762856367
     - dimension: circuit_key
       cohort: las_vegas_grand_prix
       n: 705
-      model: 7.351883944484754
-      baseline: 5.4086537056344755
+      model: 6.829309067252847
+      baseline: 5.408656053710752
     underperforming_cohorts_note: Surfaced, never dropped. Specific circuit/constructor cells where the
       model trails its non-leakage cohort-mean baseline; the model wins comfortably overall.
   reproducibility:
     random_state: 20260528
-    dataset_fingerprint: b8a37b7c298916e4fdc25757c1bfa35dbe503adc6fd03f850cf2c5d8519a49ea
+    dataset_fingerprint: 6ada528adfa940aa517a59b2640f91e22c48b5b94eb302095dfcbecfd6adfdf2
     library_versions:
       xgboost: 3.2.0
       sklearn: 1.9.0
@@ -459,7 +419,7 @@ model_card:
     note: Heavy elevations (ablation/learning-curve/SHAP/PDP) run on the headline model of each family;
       quantile siblings share p50's structure.
   limitations:
-  - The cliff classifier (macro-F1 ≈ 0.36 on 4-class cliff timing) is the weakest model-it decisively
+  - The cliff classifier (macro-F1 ≈ 0.33 on 4-class cliff timing) is the weakest model-it decisively
     beats the majority prior but absolute skill on minority cliff windows is modest.
   - v1 hyperparameters come from a reduced session tuning budget; a canonical 50-trial / 5-fold search
     should precede a production blessing.

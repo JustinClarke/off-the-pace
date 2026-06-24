@@ -1,0 +1,22 @@
+# Code ownership for review routing + branch protection (F4 in SYSTEM_DESIGN_AUDIT.md).
+# Single maintainer today; structured by layer so it scales when collaborators are added.
+
+# Default owner for everything not matched below.
+*                       @JustinClarke
+
+# Data pipeline: warehouse models, identity invariant, byte-stability oracle.
+/transform/             @JustinClarke
+/ingestion/             @JustinClarke
+
+# ML: training, ONNX export, parity contract, model cards.
+/ml/                    @JustinClarke
+
+# Web app.
+/app/                   @JustinClarke
+
+# CI/CD, supply chain, governance.
+/.github/               @JustinClarke
+
+# Docs-as-code + ADRs.
+/docs/                  @JustinClarke
+/.github/adr/           @JustinClarke

@@ -1,0 +1,70 @@
+---
+title: "Monitoring a long-running backfill"
+sidebarTitle: "Monitoring"
+description: "Run ingestion in the background and let a stdlib-only watcher catch failures early, instead of staring at a multi-hour terminal session."
+---
+
+A full historical backfill runs for tens of minutes to hours. Watching the terminal the whole time doesn't scale instead, redirect ingestion's output to a log file and let `monitor_ingest.py` watch it for you, exiting the moment it sees a real failure or a clean completion.
+
+## The two-terminal pattern
+
+<Steps>
+  <Step title="Start ingestion in the background, logging to a file">
+    ```bash
+    python ingestion/src/ingest.py --start-season 2018 --end-season 2024 --session R > ingest.log 2>&1 &
+    ```
+  </Step>
+  <Step title="Watch the log from a second terminal">
+    <CodeGroup>
+    ```bash Via make
+    make monitor-ingest LOG=ingest.log
+    ```
+    ```bash Directly
+    python ingestion/scripts/monitor_ingest.py ingest.log
+    ```
+    </CodeGroup>
+
+    The monitor polls the log every 10 seconds, printing the latest `[OK]`/`[PULL]` progress line as it goes, and blocks until it sees a failure or a completion marker.
+  </Step>
+</Steps>
+
+<Note>
+  `monitor_ingest.py` is **stdlib-only Python** no extra dependencies beyond the interpreter itself, so it can watch a run from anywhere without needing the project's virtualenv active.
+</Note>
+
+## Exit conditions
+
+| Signal in the log | Monitor exit code | Meaning |
+|---|---|---|
+| `=== COMPLETE:` | `0` | Ingestion finished; the run's manifest rows were all written |
+| `[DQ FAIL]` | `1` | A race laps file failed the schema gate and its write was skipped |
+| ` ERROR `, ` CRITICAL ` | `1` | An unhandled error surfaced in the log |
+| `ProcessRuntimeError`, `MemoryError`, disk-full `OSError`, `killed by`/`Killed` | `1` | The process died (OOM, disk full, or was killed) |
+
+FastF1's own DEBUG-level noise is ignored, so a verbose `--log-level DEBUG` run doesn't trip false positives.
+
+## Reading the manifest afterward
+
+Once a run finishes or while it's still going `manifest-report` turns the per-run manifests into a status summary: the latest outcome per session, and any schema-fingerprint drift between runs.
+
+```bash
+make manifest-report
+```
+
+<Frame>
+```text
+========================================================================
+INGESTION MANIFEST REPORT
+========================================================================
+Runs on record:  3
+Sessions tracked:  47  (ok=45, skip=1, error=1)
+
+Latest-run ERRORS (need attention):
+  ✗ 2019 Rd9 R    austrian_grand_prix
+
+Schema drift:
+  ✓ no fingerprint changes detected FastF1 schema stable across all runs
+```
+</Frame>
+
+See [Manifest Report](/ingestion/manifest-report) for what each column means and how schema-drift detection works.

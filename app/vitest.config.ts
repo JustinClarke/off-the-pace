@@ -12,6 +12,18 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/features/**', 'src/lib/**', 'src/data/**'],
       exclude: ['**/*.fixture.ts', '**/*.types.ts'],
+      // Regression ratchet, set just below the current
+      // baseline (lines/stmts 33%, fns 34%, branches 79%). The included globs span whole feature
+      // dirs pure transform/lib logic is well covered by *.test.ts; React rendering is exercised by
+      // the Playwright E2E, not unit tests so this floor guards against *losing* coverage (deleting
+      // tests, landing large untested modules) rather than asserting a high quality bar. Raise it when
+      // coverage rises; never lower it without cause.
+      thresholds: {
+        statements: 32,
+        branches: 78,
+        functions: 33,
+        lines: 32,
+      },
     },
   },
   resolve: {

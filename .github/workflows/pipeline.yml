@@ -1,0 +1,114 @@
+name: Data Pipeline
+
+# End-to-end orchestration of the data pipeline:
+# ingest → transform (+ data-quality) → ml → export → publish(staging) → verify. Replaces
+# "a human remembering to run make app-deploy". Lightweight by design a scheduled GitHub
+# Actions DAG; graduate to Dagster/Prefect if asset-level lineage + backfills justify it.
+#
+# RUNNER NOTE (important): the warehouse rebuild needs the ~6 GB bronze corpus, which does NOT
+# fit a fresh GitHub-hosted runner. Run this on a **self-hosted runner with a persistent `data/`**
+# (set repo var PIPELINE_RUNNER to its label) so ingest is incremental and dbt rebuilds against
+# existing bronze. On ubuntu-latest it would re-ingest from scratch (~45 min) every run. The job
+# therefore guards on `vars.PIPELINE_ENABLED == 'true'` so it never fires unconfigured.
+#
+# All stages run in ONE job because each stage consumes the previous stage's `data/` on disk
+# (6 GB is too large to pass between jobs as artifacts).
+
+on:
+  workflow_dispatch:
+    inputs:
+      season:
+        description: 'Season to ingest (blank = recent 2023–2024 path)'
+        required: false
+        default: ''
+      publish:
+        description: 'Publish + verify to staging after build'
+        type: boolean
+        default: true
+  schedule:
+    # Weekly refresh during a season. Adjust/disable as cadence demands.
+    - cron: '41 4 * * 1'
+
+permissions:
+  contents: read
+  id-token: write   # WIF for the publish stage (keyless)
+
+concurrency:
+  group: data-pipeline
+  cancel-in-progress: false   # never interrupt a half-published pipeline
+
+jobs:
+  pipeline:
+    name: ingest → transform → ml → export → publish(staging) → verify
+    if: ${{ vars.PIPELINE_ENABLED == 'true' }}
+    runs-on: ${{ vars.PIPELINE_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 180
+    env:
+      ALERT_WEBHOOK: ${{ secrets.ALERT_WEBHOOK }}
+      SEASON: ${{ inputs.season }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python + deps
+        run: |
+          python3 -m venv .venv || true
+          ./.venv/bin/pip install -q -r requirements.txt
+          cd transform && ../.venv/bin/dbt deps
+
+      # ── Stage 1: ingest (network-flaky → retry up to 3×) ──────────────────────────
+      - name: Stage 1 ingest
+        run: |
+          for attempt in 1 2 3; do
+            if [ -n "$SEASON" ]; then
+              make add-season SEASON="$SEASON" && break
+            else
+              make ingest-recent && make ingest-jolpica && break
+            fi
+            echo "::warning::ingest attempt $attempt failed; retrying"; sleep 30
+          done
+
+      # ── Stage 2: transform + invariants ───────────────────────────────────────────
+      - name: Stage 2 dbt build + tests (identity oracle, byte oracle)
+        run: |
+          make dbt-dev-full
+          make dbt-test
+          cd transform && python scripts/snapshot_model_hashes.py --check --db ../data/dev.duckdb
+
+      # ── Stage 3: data quality (build-over-build diff + freshness; non-fatal review) ─
+      - name: Stage 3 data-quality gate
+        continue-on-error: true
+        run: make dq-test
+
+      # ── Stage 4: ML (train/eval/export/parity) ────────────────────────────────────
+      - name: Stage 4 ml
+        run: make ml-all
+
+      # ── Stage 5: export warehouse → app artefacts ─────────────────────────────────
+      - name: Stage 5 export
+        run: make app-data app-models
+
+      # ── Stage 6: keyless publish to STAGING (requires WIF) ────────────────────────
+      - name: Authenticate to GCP (WIF)
+        if: ${{ inputs.publish != false && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - name: Set up gcloud
+        if: ${{ inputs.publish != false && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Stage 6 publish to staging
+        if: ${{ inputs.publish != false && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+        run: make app-publish-staging
+
+      # ── Stage 7: post-publish verification (auto-rollback on mismatch) ────────────
+      - name: Stage 7 verify staging
+        if: ${{ inputs.publish != false && vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+        run: scripts/verify_published.sh --env staging --rollback-on-fail
+
+      - name: Alert on failure
+        if: failure() && env.ALERT_WEBHOOK != ''
+        run: |
+          curl -fsS -X POST -H 'Content-Type: application/json' \
+            -d "{\"text\":\"🔴 Off The Pace data pipeline FAILED ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+            "$ALERT_WEBHOOK"

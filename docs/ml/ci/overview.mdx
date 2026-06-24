@@ -1,0 +1,80 @@
+---
+title: "The CI contract: 28 tests across five groups"
+sidebarTitle: "CI Overview"
+description: "28 tests 12 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 7 evaluation gates, 1 target bound. Run them all with make ml-test."
+---
+
+import MLTests from '/snippets/ml-inventory-tests.mdx';
+
+The ML layer's 28 tests are load-bearing, not box-ticking. The leakage spine is the only thing standing between a model that looks good on paper and one that silently inflates every offline number by memorising the season. The ONNX parity gate is the only thing that ensures the browser scores what the Python booster trained. Every test has a unique idea; none is decorative.
+
+<CodeGroup>
+
+```bash Run all ML tests
+make ml-test
+```
+
+```bash Run a specific group
+./.venv/bin/python -m pytest ml/tests/test_features.py -v   # leakage spine
+./.venv/bin/python -m pytest ml/tests/test_onnx_parity.py -v  # ONNX parity
+./.venv/bin/python -m pytest ml/tests/test_predict.py -v    # predict schema
+./.venv/bin/python -m pytest ml/tests/test_evaluate.py -v   # evaluation gates
+./.venv/bin/python -m pytest ml/tests/test_targets.py -v    # targets
+```
+
+</CodeGroup>
+
+## The 28 tests, grouped
+
+<MLTests />
+
+```mermaid
+graph TD
+    subgraph "Leakage Spine (12)"
+        L1["no leaked columns"]
+        L2["no forward window"]
+        L3["no AUDIT feature leakage"]
+        L4["mart contract ⊆ live mart"]
+        L5["holdout purity"]
+        L6["MAX+1 holdout"]
+        L7["target bounded −10/+10"]
+        L8["no NULL targets (×3 targets)"]
+    end
+    subgraph "ONNX Parity (5)"
+        O1["p10 booster ≈ onnx"]
+        O2["p50 booster ≈ onnx"]
+        O3["p90 booster ≈ onnx"]
+        O4["cliff booster ≈ onnx"]
+        O5["stint-life booster ≈ onnx"]
+    end
+    subgraph "Predict Schema (3)"
+        P1["output schema 17 cols"]
+        P2["holdout + envelope flags"]
+        P3["quantile monotone + probs sum to 1"]
+    end
+    subgraph "Evaluation Gates (7)"
+        E1["all 5 targets evaluated"]
+        E2["beats baseline (×5 models)"]
+        E3["cohorts surfaced not dropped"]
+    end
+    subgraph "Targets (1)"
+        T1["stint-life synthesis ≥ 0"]
+    end
+```
+
+## Go deeper
+
+<CardGroup cols={2}>
+  <Card title="Leakage Spine" href="/ml/ci/leakage-spine" icon="shield">
+    The 12 guards in detail one idea each, with the assertion and why it matters.
+  </Card>
+  <Card title="Parity & Schema" href="/ml/ci/parity-and-schema" icon="check-check">
+    The 5 ONNX parity + 3 predict-schema + 1 target tests the mechanical contracts.
+  </Card>
+  <Card title="Evaluation Gates" href="/ml/ci/evaluation-gates" icon="trophy">
+    The 7 evaluation gates beats-baseline, calibration computed, cohorts surfaced.
+  </Card>
+  <Card title="Validation" href="/ml/validation" icon="chart-bar">
+    The methodology behind the metrics these gates enforce.
+  </Card>
+</CardGroup>

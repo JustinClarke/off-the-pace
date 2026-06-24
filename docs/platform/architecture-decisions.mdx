@@ -1,0 +1,104 @@
+---
+title: "Architecture Decision Log"
+sidebarTitle: "Architecture Decisions"
+description: "The ten key decisions that shape Off The Pace's stack DuckDB, CDN parquet, ONNX browser runtime, and more. Each entry captures the decision, rationale, and tradeoff."
+---
+
+These decisions were made to minimise infrastructure cost, eliminate server-side compute, and keep the entire analytical pipeline reproducible from a single clone. They are recorded here so new contributors can understand *why* the stack looks the way it does.
+
+<AccordionGroup>
+
+  <Accordion title="ADR-001 DuckDB as the primary database engine" icon="database">
+    **Decision:** Use DuckDB (via dbt-duckdb) as the core transform and analytical engine for local development, CI/CD, and production parquet compilation.
+
+    **Rationale:** Low-overhead columnar engine, zero setup, optimised execution, and direct integration with Parquet files without requiring an active SQL database process.
+
+    **Tradeoff:** Single-connection write limit fully sufficient for the batch transformation DAG.
+  </Accordion>
+
+  <Accordion title="ADR-002 React + DuckDB-Wasm for zero-compute client-side analytics" icon="monitor">
+    **Decision:** Run SQL queries directly in the user's browser using DuckDB-Wasm, querying Gold-layer Parquet files served from a CDN.
+
+    **Rationale:** Eliminates server runtime hosting costs, scales with client bandwidth, and executes complex analytics queries in under 10 ms.
+
+    **Tradeoff:** Initial payload includes downloading the WASM engine and base parquets mitigated via background pre-warming.
+  </Accordion>
+
+  <Accordion title="ADR-003 CDN Parquet storage over active cloud warehouses" icon="cloud">
+    **Decision:** Serve Gold-layer analytics outputs as compressed Parquet files from a CDN (`gs://off-the-pace-cdn`) rather than running an active cloud database server.
+
+    **Rationale:** Dramatically reduces costs, simplifies infrastructure maintenance, and enables the zero-compute DuckDB-Wasm architecture.
+
+    **Tradeoff:** Real-time write/update capabilities are not natively supported handled by compiling static database files via offline/CI batch builds.
+  </Accordion>
+
+  <Accordion title="ADR-004 Local ML pipeline with ONNX client-side runtime" icon="microchip">
+    **Decision:** Train XGBoost models locally/in CI and compile them to `.onnx` files for direct browser-side evaluation.
+
+    **Rationale:** Avoids server-side ML hosting costs, preserves data privacy, and enables instantaneous in-browser stint-life and tyre cliff classification.
+
+    **Tradeoff:** Target model complexity is bounded by browser memory XGBoost fits this constraint comfortably.
+  </Accordion>
+
+  <Accordion title="ADR-005 Python replay simulator for eventstream testing" icon="play">
+    **Decision:** Build `replay_simulator.py` to stream historical data to EventHub/Eventstream endpoints.
+
+    **Rationale:** Allows 24/7 integration testing and simulation of live race streams outside actual race weekends.
+
+    **Tradeoff:** Simulated lap interval (e.g. 90 s) is a flat approximation of real-world timing flow.
+  </Accordion>
+
+  <Accordion title="ADR-006 OLS regression for causal isolation" icon="chart-line">
+    **Decision:** Use OLS with event dummy variables from `dim_events.csv`.
+
+    **Rationale:** Interpretable and sufficient for the 22-race sample size.
+
+    **Tradeoff:** Assumes linear degradation across the stint.
+  </Accordion>
+
+  <Accordion title="ADR-007 XGBoost with TimeSeriesSplit" icon="clock">
+    **Decision:** Use `TimeSeriesSplit` for model validation.
+
+    **Rationale:** Guarantees temporal integrity training always precedes validation in seasonal data.
+
+    **Tradeoff:** Fewer validation folds than random cross-validation.
+  </Accordion>
+
+  <Accordion title="ADR-008 React + Tailwind CSS for the public dashboard" icon="palette">
+    **Decision:** Implement the public-facing dashboard as a React application styled with Tailwind CSS instead of Streamlit.
+
+    **Rationale:** Professional visual design, deep layout customisation, and smooth integration of DuckDB-Wasm and ONNX runtimes.
+
+    **Tradeoff:** More complex development setup and boilerplate than a Python-based Streamlit dashboard.
+  </Accordion>
+
+  <Accordion title="ADR-009 Accept 2018 Rd1/Rd2 telemetry gap" icon="triangle-alert">
+    **Decision:** Include all 20 races from 2018 but accept missing telemetry for Rd1/Rd2 F1 didn't publish the livetiming feed until later that season.
+
+    **Rationale:** Preserves the full dataset for trend analysis; lap-time degradation signals are available as a fallback; clean to document and test.
+
+    **Tradeoff:** Feature inconsistency for 2018 Rd1/Rd2 (laps-only vs. full telemetry). The ML layer handles this via conditional feature selection `fct_lap_degradation` includes both `lap_time_delta` and `speed_delta` where available.
+  </Accordion>
+
+  <Accordion title="ADR-010 CDN publish pipeline with version-stamped cache-busting" icon="refresh-cw">
+    **Decision:** Promote exported Gold-layer parquet + ONNX artefacts to the live CDN bucket via a dedicated, idempotent script (`scripts/publish_cdn.sh`), and cache-bust every parquet URL with the manifest `version` hash (`?v=<version>`).
+
+    **Rationale:** The app reads all data from the CDN even in local dev, so `make app-data` alone never reaches the running app a publish step is mandatory. CDN parquet paths are not content-hashed, so a schema/data change reuses the same URL; the GCS public edge cache (`Cache-Control: public, max-age=3600`) would then serve stale data to all clients for up to an hour. Stamping URLs with the manifest `version` gives each data revision a unique key that always misses the stale cache.
+
+    **Tradeoff:** A redundant `?v=` query param on every data request, and a manual publish step. Models are exempt their filenames already carry a `_vN` version.
+
+    <Note>
+      This decision was triggered by the 2026-06-11 incident where a rebuilt mart was correct on disk but the public HTTP endpoint served a months-old cached generation with a pre-expansion schema.
+    </Note>
+  </Accordion>
+
+</AccordionGroup>
+
+<CardGroup cols={2}>
+  <Card title="Deployment" href="/platform/deployment" icon="rocket">
+    How releases are cut, promoted staging→prod, and rolled back.
+  </Card>
+  <Card title="Conventions" href="/platform/conventions" icon="book">
+    Writing rules and the layer README contract.
+  </Card>
+</CardGroup>

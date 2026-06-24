@@ -1,0 +1,66 @@
+# Dependency update automation. Deps were pinned but
+# never patched. Grouping keeps minor/patch churn to one PR per ecosystem per week;
+# majors arrive as individual PRs for deliberate review.
+#
+# Critical pins are protected with `ignore` rules so an automated bump can't silently
+# break a proven invariant:
+#   • duckdb==1.5.3 byte-stability oracle baseline (transform/tests/model_hashes.baseline.json,
+#     byte-stability oracle baseline. Bumping requires regenerating the baseline by hand.
+#   • xgboost <4 onnxmltools quantile round-trip proven in ml M2.
+version: 2
+updates:
+  # Root Python: warehouse/transform build + tooling.
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      python-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # Pinned to the byte-stability oracle baseline never auto-bump.
+      - dependency-name: "duckdb"
+      # dbt majors drive the reference-drift + identity gates; bump deliberately.
+      - dependency-name: "dbt-core"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dbt-duckdb"
+        update-types: ["version-update:semver-major"]
+
+  # ML Python: training + ONNX export.
+  - package-ecosystem: pip
+    directory: "/ml"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      ml-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # Major would break the proven onnxmltools quantile round-trip (D1).
+      - dependency-name: "xgboost"
+        update-types: ["version-update:semver-major"]
+      # Keep duckdb aligned with the warehouse/oracle baseline.
+      - dependency-name: "duckdb"
+
+  # React app (pnpm).
+  - package-ecosystem: npm
+    directory: "/app"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      app-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # GitHub Actions used by all workflows.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

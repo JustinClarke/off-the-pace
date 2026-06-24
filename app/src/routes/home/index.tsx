@@ -1,7 +1,7 @@
 // Product home-a single-viewport showcase (no scroll on desktop) split into three bands:
 // Constructor & Strategy, Driver Craft, and a wide Showcase led by the live ONNX simulator.
 // Stats come from the manifest JSON (zero SQL); a fire-and-forget DuckDB warm-up boots the
-// engine in the background while the visitor browses (AD-12). Only shipped features appear-
+// engine in the background while the visitor browses. Only shipped features appear-
 // everything still waiting on data lives on /roadmap.
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
@@ -25,28 +25,28 @@ interface Feature {
 }
 
 const CONSTRUCTOR_FEATURES: Feature[] = [
-  { title: 'Degradation Timeline', tag: 'Strategy', to: '/tyre-strategy/degradation', Viz: DegTimelineViz, hook: "Observed pace against the model's expected degradation curve, lap by lap." },
-  { title: 'Pit Strategy Gantt', tag: 'Strategy', to: '/tyre-strategy/pit-gantt', Viz: PitGanttViz, hook: 'Every stint as a swimlane, each call graded on its timing.' },
-  { title: 'Circuit Interaction', tag: 'Constructors', to: '/constructors/circuits', Viz: MatrixViz, hook: 'Which teams overperform where-a constructor x circuit heatmap.' },
-  { title: 'Structural Pace', tag: 'Constructors', to: '/constructors/structural', Viz: RankedBarsViz, hook: "The car's true pace, stripped of driver and circuit." },
+  { title: 'When Does Pace Drop Off?', tag: 'Strategy', to: '/tyre-strategy/degradation', Viz: DegTimelineViz, hook: "Watch how tyre grip fades lap by lap and where the model saw it coming." },
+  { title: "The Pit Wall's Playbook", tag: 'Strategy', to: '/tyre-strategy/pit-gantt', Viz: PitGanttViz, hook: 'Every stint as a swimlane. See who nailed the undercut and who got hung out.' },
+  { title: 'Which Teams Own Which Tracks?', tag: 'Constructors', to: '/constructors/circuits', Viz: MatrixViz, hook: 'Red Bull at Spa, Ferrari at Monza the circuit × constructor heatmap.' },
+  { title: 'The Car, Unmasked', tag: 'Constructors', to: '/constructors/structural', Viz: RankedBarsViz, hook: "Strip away the driver and the circuit. What's left is the machine." },
 ]
 
 const DRIVER_FEATURES: Feature[] = [
-  { title: 'Circuit Affinity', tag: 'Drivers', to: '/drivers/circuit-affinity', Viz: AffinityViz, hook: 'The tracks where a driver consistently beats their own baseline.' },
-  { title: 'Wet-Race Specialist', tag: 'Drivers', to: '/drivers/wet-race', Viz: WetViz, hook: 'Who loses the least pace when the rain arrives.' },
-  { title: 'Corner-Phase Skill', tag: 'Drivers', to: '/drivers/corner-skill', Viz: CornerPhaseViz, hook: "Entry, apex, exit-where a driver's lap time really comes from." },
-  { title: 'Lap Air Map', tag: 'Aero', to: '/aero/lap-map', Viz: AirMapViz, hook: 'Clean versus dirty air, mapped lap by lap across a stint.' },
+  { title: "Who's Fastest Where?", tag: 'Drivers', to: '/drivers/circuit-affinity', Viz: AffinityViz, hook: 'The tracks where a driver consistently beats their own baseline.' },
+  { title: "Who's the Rain King?", tag: 'Drivers', to: '/drivers/wet-race', Viz: WetViz, hook: 'When the spray flies, who loses the least?' },
+  { title: 'Entry, Apex, Exit', tag: 'Drivers', to: '/drivers/corner-skill', Viz: CornerPhaseViz, hook: "Where in the corner does a driver's lap time actually come from?" },
+  { title: 'Clean Air vs. Dirty Air', tag: 'Aero', to: '/aero/lap-map', Viz: AirMapViz, hook: 'Mapped lap by lap: where you breathe free and where the turbulence bites.' },
 ]
 
 const SHOWCASE_HERO: Feature = {
-  title: 'Degradation Simulator', tag: 'Live ONNX', to: '/ml/simulator', Viz: QuantileFanViz,
-  hook: 'The trained tyre-degradation models running live in your browser. Dial a stint-compound, fuel, dirty air, track temperature-and watch predicted pace loss, cliff risk and remaining tyre life update in real time.',
+  title: 'Build Your Own Stint', tag: 'Live ONNX', to: '/ml/simulator', Viz: QuantileFanViz,
+  hook: 'The ONNX models running live in your browser. Pick a compound, dial the conditions, and watch the cliff.',
 }
 
 const SHOWCASE_TILES: Feature[] = [
-  { title: 'Ghost Car Standings', tag: 'Counterfactual', to: '/ghost-car/standings', Viz: GhostCarViz, hook: 'Every driver re-ranked in equal machinery.' },
-  { title: 'Lap Decomposition', tag: 'The Core', to: '/lap-decomposition/waterfall', Viz: WaterfallViz, hook: 'Seven causes, one lap time-an identity that always closes.' },
-  { title: 'Tyre Cliff Survival', tag: 'Strategy', to: '/tyre-strategy/survival', Viz: SurvivalViz, hook: 'How long a compound lasts before the cliff.' },
+  { title: 'What If the Cars Were Equal?', tag: 'Counterfactual', to: '/ghost-car/standings', Viz: GhostCarViz, hook: 'Every driver re-ranked pure skill, no car advantage.' },
+  { title: 'Seven Causes, One Lap Time', tag: 'The Core', to: '/lap-decomposition/waterfall', Viz: WaterfallViz, hook: 'Fuel, tyres, dirty air, skill the identity that always closes to zero.' },
+  { title: 'When Do the Tyres Die?', tag: 'Strategy', to: '/tyre-strategy/survival', Viz: SurvivalViz, hook: 'How long before the cliff? A Kaplan-Meier survival curve from every historical stint.' },
 ]
 
 function useManifestStats() {
@@ -62,11 +62,13 @@ const rise = {
   show: { opacity: 1, y: 0 },
 }
 
-// A spotlight border + hover lift, shared by every tile on the page.
+// A spotlight border + hover lift, shared by every tile on the page. The active: state gives
+// touch devices a press response (the hover affordances never fire on a phone).
 const tileBase =
   'group relative flex flex-col overflow-hidden rounded-xl border border-border bg-surface ' +
   'transition-all duration-300 ease-out hover:-translate-y-0.5 hover:border-[rgb(var(--color-accent))]/50 ' +
-  'hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/30'
+  'hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/30 ' +
+  'active:scale-[0.98] active:border-[rgb(var(--color-accent))]/60'
 
 function GroupHeader({ kicker, title, accent = false }: { kicker: string; title: string; accent?: boolean }) {
   return (
@@ -78,8 +80,8 @@ function GroupHeader({ kicker, title, accent = false }: { kicker: string; title:
         ].join(' ')}
         aria-hidden
       />
-      <h2 className="text-[13px] font-semibold tracking-tight text-[rgb(var(--color-text))]">{title}</h2>
-      <span className="font-mono text-[9px] uppercase tracking-widest text-muted/70">{kicker}</span>
+      <h2 className="whitespace-nowrap text-[13px] font-semibold tracking-tight text-[rgb(var(--color-text))]">{title}</h2>
+      <span className="truncate font-mono text-[9px] uppercase tracking-widest text-muted/70">{kicker}</span>
     </div>
   )
 }
@@ -88,10 +90,10 @@ function GroupHeader({ kicker, title, accent = false }: { kicker: string; title:
 function CompactTile({ feature }: { feature: Feature }) {
   const { Viz } = feature
   return (
-    <motion.div variants={rise} className="min-h-0 flex-1">
-      <Link to={feature.to} className={`${tileBase} h-full min-h-[104px] p-3`}>
+    <motion.div variants={rise} className="w-[80%] shrink-0 snap-start sm:w-[300px] lg:w-auto lg:min-h-0 lg:flex-1 lg:shrink">
+      <Link to={feature.to} className={`${tileBase} h-[172px] p-4 lg:h-full lg:min-h-[104px] lg:p-3`}>
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[8px] uppercase tracking-widest text-muted">{feature.tag}</span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted lg:text-[8px]">{feature.tag}</span>
           <svg width="11" height="11" viewBox="0 0 14 14" fill="none" className="text-muted/50 transition-all group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden>
             <path d="M2 7h9M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -99,10 +101,10 @@ function CompactTile({ feature }: { feature: Feature }) {
         <div className="min-h-0 flex-1 py-1.5">
           <Viz />
         </div>
-        <h3 className="truncate text-[12px] font-semibold tracking-tight text-[rgb(var(--color-text))] transition-colors group-hover:text-accent">
+        <h3 className="truncate text-[14px] font-semibold tracking-tight text-[rgb(var(--color-text))] transition-colors group-hover:text-accent lg:text-[12px]">
           {feature.title}
         </h3>
-        <p className="truncate text-[10px] leading-snug text-muted">{feature.hook}</p>
+        <p className="line-clamp-2 text-[12px] leading-snug text-muted lg:truncate lg:text-[10px]">{feature.hook}</p>
       </Link>
     </motion.div>
   )
@@ -112,16 +114,16 @@ function CompactTile({ feature }: { feature: Feature }) {
 function ShowcaseTile({ feature }: { feature: Feature }) {
   const { Viz } = feature
   return (
-    <motion.div variants={rise} className="min-h-0 min-w-0 flex-1">
-      <Link to={feature.to} className={`${tileBase} h-full min-h-[104px] p-3`}>
-        <span className="font-mono text-[8px] uppercase tracking-widest text-muted">{feature.tag}</span>
+    <motion.div variants={rise} className="w-[80%] shrink-0 snap-start sm:w-[300px] lg:w-auto lg:min-h-0 lg:min-w-0 lg:flex-1 lg:shrink">
+      <Link to={feature.to} className={`${tileBase} h-[172px] p-4 lg:h-full lg:min-h-[104px] lg:p-3`}>
+        <span className="font-mono text-[10px] uppercase tracking-widest text-muted lg:text-[8px]">{feature.tag}</span>
         <div className="min-h-0 flex-1 py-1.5">
           <Viz />
         </div>
-        <h3 className="truncate text-[12px] font-semibold tracking-tight text-[rgb(var(--color-text))] transition-colors group-hover:text-accent">
+        <h3 className="truncate text-[14px] font-semibold tracking-tight text-[rgb(var(--color-text))] transition-colors group-hover:text-accent lg:text-[12px]">
           {feature.title}
         </h3>
-        <p className="truncate text-[10px] leading-snug text-muted">{feature.hook}</p>
+        <p className="line-clamp-2 text-[12px] leading-snug text-muted lg:truncate lg:text-[10px]">{feature.hook}</p>
       </Link>
     </motion.div>
   )
@@ -131,13 +133,14 @@ function ShowcaseTile({ feature }: { feature: Feature }) {
 function ShowcaseHero({ feature }: { feature: Feature }) {
   const { Viz } = feature
   return (
-    <motion.div variants={rise} className="min-h-0 flex-[1.5]">
+    <motion.div variants={rise} className="min-h-0 lg:flex-[1.5]">
       <Link
         to={feature.to}
         className={[
-          'group relative flex h-full min-h-[150px] flex-col overflow-hidden rounded-2xl border bg-surface p-4',
+          'group relative flex min-h-[210px] flex-col overflow-hidden rounded-2xl border bg-surface p-4 lg:h-full lg:min-h-[150px]',
           'border-[rgb(var(--color-accent))]/30 transition-all duration-300 ease-out',
           'hover:-translate-y-0.5 hover:border-[rgb(var(--color-accent))]/70 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/40',
+          'active:scale-[0.99] active:border-[rgb(var(--color-accent))]/80',
         ].join(' ')}
       >
         <div
@@ -150,7 +153,7 @@ function ShowcaseHero({ feature }: { feature: Feature }) {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[rgb(var(--color-accent))] opacity-75" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[rgb(var(--color-accent))]" />
           </span>
-          <span className="font-mono text-[9px] uppercase tracking-widest text-accent">{feature.tag}</span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-accent lg:text-[9px]">{feature.tag}</span>
         </div>
 
         <div className="relative my-2 min-h-0 flex-1">
@@ -159,10 +162,10 @@ function ShowcaseHero({ feature }: { feature: Feature }) {
 
         <div className="relative flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-base font-bold tracking-tight text-[rgb(var(--color-text))] transition-colors group-hover:text-accent">
+            <h3 className="text-lg font-bold tracking-tight text-[rgb(var(--color-text))] transition-colors group-hover:text-accent lg:text-base">
               {feature.title}
             </h3>
-            <p className="mt-0.5 line-clamp-2 max-w-md text-[11px] leading-snug text-muted">{feature.hook}</p>
+            <p className="mt-0.5 line-clamp-2 max-w-md text-[12.5px] leading-snug text-muted lg:text-[11px]">{feature.hook}</p>
           </div>
           <span className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-[rgb(var(--color-accent))] px-3 py-1.5 text-[11px] font-semibold text-white transition-transform group-hover:scale-[1.04]">
             Open
@@ -199,26 +202,47 @@ function StatCluster({ stats }: { stats: NonNullable<DataManifest['stats']> }) {
     { value: stats.seasons, label: 'seasons' },
   ]
   return (
-    <div className="relative hidden overflow-hidden rounded-xl border border-border/60 bg-[rgb(var(--color-bg)/0.7)] backdrop-blur-md shadow-inner sm:grid sm:grid-cols-3">
+    <div className="relative grid w-full grid-cols-2 sm:grid-cols-3 overflow-hidden rounded-xl border border-border/60 bg-[rgb(var(--color-bg)/0.7)] backdrop-blur-md shadow-inner lg:w-auto">
       <span aria-hidden className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-[rgb(var(--color-accent))]/70 to-transparent opacity-80" />
-      {items.map((s, i) => (
-        <div
-          key={s.label}
-          className={[
-            "group flex flex-col justify-center px-4 py-2.5 transition-colors hover:bg-white/[0.02]",
-            i < 3 ? "border-b border-border/50" : "",
-            i % 3 !== 0 ? "border-l border-border/50" : ""
-          ].filter(Boolean).join(" ")}
-        >
-          <span className="font-mono text-[18px] font-bold leading-none tracking-tight tabular-nums text-[rgb(var(--color-text))] drop-shadow-sm transition-all group-hover:scale-[1.02]">
-            {typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
-          </span>
-          <span className="mt-1.5 flex items-center gap-1.5 whitespace-nowrap text-[8.5px] font-semibold uppercase tracking-[0.15em] text-muted/90">
-            <span className={`h-[3.5px] w-[3.5px] rounded-full transition-colors ${s.lead ? 'bg-[rgb(var(--color-accent))] shadow-[0_0_8px_rgba(var(--color-accent),0.6)]' : 'bg-muted/30 group-hover:bg-muted/50'}`} aria-hidden />
-            {s.label}
-          </span>
-        </div>
-      ))}
+      {items.map((s, i) => {
+        const borderB = i < 2
+          ? "border-b border-border/50"
+          : i === 2
+          ? "border-b border-border/50"
+          : i === 3
+          ? "border-b border-border/50 sm:border-b-0"
+          : "";
+
+        const borderL = i === 0
+          ? ""
+          : i === 1
+          ? "border-l border-border/50"
+          : i === 2
+          ? "sm:border-l border-border/50"
+          : i === 3
+          ? "border-l sm:border-l-0 border-border/50"
+          : i === 4
+          ? "sm:border-l border-border/50"
+          : "border-l border-border/50";
+
+        return (
+          <div
+            key={s.label}
+            className={[
+              "group flex flex-col justify-center px-2.5 py-2.5 sm:px-4 transition-colors hover:bg-white/[0.02]",
+              borderB,
+              borderL
+            ].filter(Boolean).join(" ")}
+          >
+            <span className={`font-mono text-[15px] sm:text-[18px] font-bold leading-none tracking-tight tabular-nums drop-shadow-sm transition-all group-hover:scale-[1.02] ${s.lead ? 'text-[rgb(var(--color-accent))]' : 'text-[rgb(var(--color-text))]'}`}>
+              {typeof s.value === 'number' ? s.value.toLocaleString() : s.value}
+            </span>
+            <span className="mt-1.5 text-[8px] sm:text-[8.5px] font-semibold uppercase leading-tight tracking-[0.08em] sm:tracking-[0.15em] text-muted/90">
+              {s.label}
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -226,7 +250,7 @@ function StatCluster({ stats }: { stats: NonNullable<DataManifest['stats']> }) {
 export default function Home() {
   const reduce = useReducedMotion()
 
-  // Fire-and-forget DuckDB warm-up: download + boot the engine while the visitor reads (AD-12).
+  // Fire-and-forget DuckDB warm-up: download + boot the engine while the visitor reads.
   useEffect(() => {
     import('../../data/duckdb/client').then((m) => m.getConnection()).catch(() => { })
   }, [])
@@ -237,7 +261,7 @@ export default function Home() {
   const stagger = reduce ? undefined : { hidden: {}, show: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } } }
 
   return (
-    <div className="flex flex-col gap-3 px-4 py-3 sm:px-6 lg:h-full">
+    <div className="flex flex-col gap-4 px-4 py-3 sm:px-6 lg:h-full lg:gap-3">
       {/* ---------- Condensed hero ---------- */}
       <header className="relative shrink-0 overflow-hidden rounded-[1.25rem] border border-border/50 bg-gradient-to-br from-surface to-surface/40 shadow-sm">
         <HeroTrace />
@@ -260,8 +284,7 @@ export default function Home() {
               Off The Pace
             </h1>
             <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted/90 sm:text-[14px]">
-              Causal lap-time decomposition for Formula 1 ghost-car counterfactuals, tyre-cliff
-              survival models and live ONNX inference, with{' '}
+              What if the cars were equal? When will the tyres fail? Where did they lose time? Every question answered with models running live in your browser {' '}
               <strong className="font-medium text-[rgb(var(--color-text))]">no backend and no cost.</strong>
             </p>
           </div>
@@ -277,12 +300,12 @@ export default function Home() {
         variants={stagger}
         initial={reduce ? undefined : 'hidden'}
         animate={reduce ? undefined : 'show'}
-        className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-12"
+        className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-3"
       >
         {/* Constructor & Strategy */}
         <section className="flex min-h-0 flex-col lg:col-span-3">
-          <GroupHeader title="Constructor & Strategy" kicker="The car & the call" />
-          <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <GroupHeader title="Constructor & Strategy" kicker="Car Performance & Pit Calls" />
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-2 lg:overflow-visible lg:px-0 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {CONSTRUCTOR_FEATURES.map((f) => (
               <CompactTile key={f.to} feature={f} />
             ))}
@@ -291,8 +314,8 @@ export default function Home() {
 
         {/* Driver Craft */}
         <section className="flex min-h-0 flex-col lg:col-span-3">
-          <GroupHeader title="Driver Craft" kicker="The hands on the wheel" />
-          <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <GroupHeader title="Driver Craft" kicker="Driver Talent & Track Mastery" />
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-2 lg:overflow-visible lg:px-0 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {DRIVER_FEATURES.map((f) => (
               <CompactTile key={f.to} feature={f} />
             ))}
@@ -301,10 +324,10 @@ export default function Home() {
 
         {/* Showcase */}
         <section className="flex min-h-0 flex-col lg:col-span-6">
-          <GroupHeader title="Showcase" kicker="Where the modelling shows" accent />
+          <GroupHeader title="Showcase" kicker="Live Models & What-Ifs" accent />
           <div className="flex min-h-0 flex-1 flex-col gap-3">
             <ShowcaseHero feature={SHOWCASE_HERO} />
-            <div className="flex min-h-0 flex-1 flex-col gap-3 sm:flex-row">
+            <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:min-h-0 lg:flex-1 lg:flex-row lg:overflow-visible lg:px-0 lg:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {SHOWCASE_TILES.map((f) => (
                 <ShowcaseTile key={f.to} feature={f} />
               ))}

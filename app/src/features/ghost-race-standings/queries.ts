@@ -19,6 +19,7 @@ export interface EraAffinityRow {
   shrunk_affinity_ci_low_s: number
   shrunk_affinity_ci_high_s: number
   affinity_confidence: number
+  constructor_id: string
 }
 
 export interface CircuitOption {
@@ -34,6 +35,9 @@ export interface EraOption {
 async function registerTables(manifest: Awaited<ReturnType<typeof loadManifest>>) {
   const affinityPath = getTablePath(manifest, 'int_driver_circuit_era_affinity')
   await registerParquet('int_driver_circuit_era_affinity', affinityPath)
+
+  const loroPath = getTablePath(manifest, 'int_driver_race_skill_loro')
+  await registerParquet('int_driver_race_skill_loro', loroPath)
 }
 
 // Options query: every circuit that has affinity data (with display name) + the eras.
@@ -76,24 +80,42 @@ export const queryGhostStandings = registerQuery<
     await registerTables(manifest)
 
     return rawQuery<EraAffinityRow>(`
+      WITH driver_constructors AS (
+        SELECT
+          driver_id,
+          constructor_id,
+          COUNT(*) as n_races
+        FROM int_driver_race_skill_loro
+        WHERE CASE WHEN race_year < 2022 THEN 'pre2022' ELSE 'post2022' END = ?
+        GROUP BY driver_id, constructor_id
+      ),
+      ranked_constructors AS (
+        SELECT
+          driver_id,
+          constructor_id,
+          ROW_NUMBER() OVER (PARTITION BY driver_id ORDER BY n_races DESC) as rn
+        FROM driver_constructors
+      )
       SELECT
-        driver_id,
-        circuit_id,
-        circuit_name,
-        era_key,
-        era_label,
-        n_obs,
-        seasons_observed_n,
-        raw_affinity_s,
-        shrunk_affinity_s,
-        shrunk_affinity_se_s,
-        shrunk_affinity_ci_low_s,
-        shrunk_affinity_ci_high_s,
-        affinity_confidence
-      FROM int_driver_circuit_era_affinity
-      WHERE circuit_id = ?
-        AND era_key = ?
-      ORDER BY shrunk_affinity_s ASC
-    `, [circuitId, eraKey])
+        a.driver_id,
+        a.circuit_id,
+        a.circuit_name,
+        a.era_key,
+        a.era_label,
+        a.n_obs,
+        a.seasons_observed_n,
+        a.raw_affinity_s,
+        a.shrunk_affinity_s,
+        a.shrunk_affinity_se_s,
+        a.shrunk_affinity_ci_low_s,
+        a.shrunk_affinity_ci_high_s,
+        a.affinity_confidence,
+        c.constructor_id
+      FROM int_driver_circuit_era_affinity a
+      LEFT JOIN ranked_constructors c ON a.driver_id = c.driver_id AND c.rn = 1
+      WHERE a.circuit_id = ?
+        AND a.era_key = ?
+      ORDER BY a.shrunk_affinity_s ASC
+    `, [eraKey, circuitId, eraKey])
   }
 )

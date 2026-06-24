@@ -20,13 +20,18 @@ export interface TyrePoint {
  * Mean absolute error of the projected tyre term vs the basket ground-truth p50 values,
  * over the laps where the basket has a sample. Call once per basket cell.
  *
+ * Pass `maxLap` to restrict the comparison to the working window (laps ≤ onset), where the observed
+ * data is trustworthy. Past the cliff onset the curve deliberately extrapolates above the
+ * survivor-collapsed observed median, so accuracy there is not a meaningful target.
+ *
  * Returns Infinity when there are no overlapping laps.
  */
-export function projectedDegMAE(curve: TyrePoint[], samples: BasketSample[]): number {
+export function projectedDegMAE(curve: TyrePoint[], samples: BasketSample[], maxLap = Infinity): number {
   const byLap = new Map(curve.map(p => [p.x, p.tyre]))
   let sumAE = 0
   let count = 0
   for (const s of samples) {
+    if (s.lap_in_stint > maxLap) continue
     const projected = byLap.get(s.lap_in_stint)
     if (projected !== undefined) {
       sumAE += Math.abs(projected - s.obs_deg_from_fresh_p50_s)

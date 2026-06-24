@@ -68,17 +68,9 @@ function runCell(cell: FittedCell, overrides?: Partial<RecomposeOptions>): TyreP
     temp_penalty_s_per_deg: r.temp_penalty_s_per_deg,
   }))
 
-  // One dummy prediction per lap the headline no longer uses ONNX for tyre; only fan/cliff need it.
-  const preds = cell.rows.map(() => ({
-    degradation_jump_p10_s: 0,
-    degradation_jump_s: 0,
-    degradation_jump_p90_s: 0,
-    remaining_stint_life_laps: 10,
-    cliff: { label: 'none_in_stint', probabilities: { none_in_stint: 1 } },
-  }))
-
   const opts: RecomposeOptions = {
     refGreenPaceS: cell.rows[0].ref_green_pace_s,
+    stintLength: cell.rows.length,
     fuelStartKg: 60,
     fuelConsumptionRateKgPerLap: 2,
     weightPenaltyFactor: 0.032,
@@ -88,7 +80,9 @@ function runCell(cell: FittedCell, overrides?: Partial<RecomposeOptions>): TyreP
     ...overrides,
   }
 
-  return recomposeLapTimes(preds, opts).laptimeCurve.map(p => ({ x: p.x, tyre: p.tyre }))
+  // No cliff params by default → cliff term inactive → the curve is the pure observed working window,
+  // which is what the MAE / monotonicity / sign gates below assert against the raw data.
+  return recomposeLapTimes(opts).laptimeCurve.map(p => ({ x: p.x, tyre: p.tyre }))
 }
 
 describe('P3.1 MAE ≤ 0.5s for every basket cell (neutral inputs)', () => {
@@ -163,7 +157,7 @@ describe('P3.3 Sign / sanity', () => {
     })
   }
 
-  it('Red Bull Ring HARD post2022 lap-30 tyre ≈ +1.2s ± 0.2 (regression anchor)', () => {
+  it('Red Bull Ring HARD post2022 lap-30 tyre ≈ +1.2s ± 0.2 (regression anchor, no cliff)', () => {
     const rbr = cells.find(c => c.circuit_id === 'red_bull_ring' && c.compound === 'HARD' && c.era === 'post2022')
     if (!rbr) throw new Error('RBR HARD post2022 not found in fitted fixture')
     const curve = runCell(rbr)
@@ -176,4 +170,42 @@ describe('P3.3 Sign / sanity', () => {
       expect(lap30.tyre).toBeCloseTo(1.264, 0) // ±0.5 (integer precision)
     }
   })
+})
+
+// P3.4 Cliff extrapolation: with the fitted compound cliff params supplied, the curve must (a) match
+// the observed working window pre-onset, (b) add a strictly positive convex term post-onset, and
+// (c) stay monotone across the full curve.
+describe('P3.4 Cliff extrapolation past onset', () => {
+  const ONSET = 20
+  const SEVERITY = 1.0
+  for (const cell of cells) {
+    const label = `${cell.circuit_id}/${cell.compound}/${cell.era}`
+    // Only cells long enough to reach a few laps past the onset can exercise the cliff.
+    if (cell.rows.length <= ONSET + 2) continue
+
+    it(`${label}: MAE ≤ 0.5s in the working window (laps ≤ onset)`, () => {
+      const gt = groundTruth.find(
+        g => g.circuit_id === cell.circuit_id && g.era === cell.era && g.compound === cell.compound,
+      )
+      if (!gt) return
+      const samples: BasketSample[] = gt.samples.map(s => ({
+        lap_in_stint: s.lap_in_stint, obs_deg_from_fresh_p50_s: s.obs_deg_from_fresh_p50_s,
+      }))
+      const curve = runCell(cell, { cliffOnsetLaps: ONSET, cliffSeverity: SEVERITY })
+      expect(projectedDegMAE(curve, samples, ONSET)).toBeLessThanOrEqual(0.5)
+    })
+
+    it(`${label}: cliff adds a strictly positive term post-onset`, () => {
+      const noCliff = runCell(cell)
+      const withCliff = runCell(cell, { cliffOnsetLaps: ONSET, cliffSeverity: SEVERITY })
+      const past = withCliff.find(p => p.x === ONSET + 2)!
+      const base = noCliff.find(p => p.x === ONSET + 2)!
+      expect(past.tyre).toBeGreaterThan(base.tyre + 0.05)
+    })
+
+    it(`${label}: full curve stays monotone with the cliff active`, () => {
+      const tyres = runCell(cell, { cliffOnsetLaps: ONSET, cliffSeverity: SEVERITY }).map(p => p.tyre)
+      expect(monotoneViolations(tyres)).toBe(0)
+    })
+  }
 })

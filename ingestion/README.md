@@ -2,12 +2,12 @@
 
 Raw F1 telemetry from FastF1 → Hive-partitioned Parquet. Bronze is append-only; all business logic lives in the dbt transform layer.
 
-📖 Full docs: https://offthepace.mintlify.app/reference/schemas
-🚀 Quickstart: https://offthepace.mintlify.app
+📖 Full docs: https://offthepace.mintlify.app/data/overview (data layer) · https://offthepace.mintlify.app/ingestion/architecture (code walkthrough)
+🚀 Quickstart: https://offthepace.mintlify.app/ingestion/quickstart
 
-**Coverage:** 168 races × 4 datasets (2018–2024). Laps, weather, race control, telemetry (~180M samples).
+**Coverage:** four datasets (laps, weather, race control, telemetry) across every 2018–2024 season currently on disk see the [gated coverage table](https://offthepace.mintlify.app/data/known-issues#coverage) for the exact current count; it's generated straight from `verify_bronze.py --markdown` so it can't drift from reality the way a hand-typed count would.
 
-Follow steps 1–5 in order; step 6 hands off to the downstream layers. The reference tables below the steps document coverage, known issues, and schemas.
+Follow steps 1–5 in order; step 6 hands off to the downstream layers. The reference tables below the steps document known issues and schemas. For a deeper read than this README every flag, every writer function, the retry/DQ/manifest machinery see the [Data tab](https://offthepace.mintlify.app/data/overview) on the docs site.
 
 ## 1. Setup
 
@@ -23,11 +23,11 @@ Pick the smallest scope that fits your task most contributors never need a full 
 
 | Scenario | What you need | Time | Size | Command |
 |----------|---------------|------|------|---------|
-| **Experimenting with dbt SQL transforms** | Test fixtures only | 0 min | – | `make dbt-dev` (uses `transform/tests/fixtures/bronze/`) |
+| **Experimenting with dbt SQL transforms** | Test fixtures only | 0 min | – | `make test-all` (dbt build against `transform/tests/fixtures/bronze/` no network) |
 | **Scale-testing transforms, validation before PR** | Recent seasons (2023–2024) | ~15 min | ~200 MB | `make ingest-recent` |
-| **Full feature verification, ML training** | All 168 races (2018–2024) | 30–45 min | ~2 GB | `make ingest-all` |
+| **Full feature verification, ML training** | Every season on record (2018–2024) | 30–45 min | ~2 GB | `make ingest-all` |
 | **Single race smoke test** | One race only | 2–5 min | ~100 MB | `python src/ingest.py --season 2024 --round 1 --session R` |
-| **Ingestion development** | Verify one race, run offline tests | <5 s | – | `pytest tests/ -v` (no network) |
+| **Ingestion development** | Offline unit tests, no Bronze write | <5 s | – | `make test` (no network) |
 
 **Default:** most contributors start with fixtures for SQL work, then run `make ingest-recent` to validate their dbt changes scale. The full `make ingest-all` is optional unless working on ML models or verification.
 
@@ -36,10 +36,10 @@ Pick the smallest scope that fits your task most contributors never need a full 
 ```bash
 python src/ingest.py --season 2024 --round 1 --session R   # single race (~100 MB, 2–5 min)
 python src/ingest.py --season 2024 --session both --force  # full season (~2 GB, 30–45 min)
-pytest tests/ -v                                            # offline tests (no network, <5 s)
+make test                                                   # offline unit tests (no network, <5 s)
 ```
 
-The `make` targets in step 2 wrap `src/ingest.py` with the season ranges shown.
+The `make` targets in step 2 wrap `src/ingest.py` with the season ranges shown. Every flag including the validation rules that govern how they combine is documented at [/ingestion/cli](https://offthepace.mintlify.app/ingestion/cli).
 
 ## 4. Monitor long runs
 
@@ -59,7 +59,7 @@ The monitor polls every 10 seconds and exits immediately (non-zero) if:
 - Process errors (OOM, disk full, killed, etc.)
 
 …or exits 0 when ingestion completes (`=== COMPLETE:`). Ignores FastF1 DEBUG-level noise.
-The monitor is stdlib-only Python no extra dependencies.
+The monitor is stdlib-only Python no extra dependencies. See [/ingestion/monitoring](https://offthepace.mintlify.app/ingestion/monitoring) for the full two-terminal walkthrough.
 
 ## 5. Verify
 
@@ -83,7 +83,12 @@ python verify_bronze.py --markdown   # regenerate the Bronze Coverage table belo
 into observability: it surfaces the latest `ok`/`skip`/`error` per session and flags any
 change in a dataset's schema fingerprint between runs (FastF1 column drift). The
 `--markdown` mode of `verify_bronze.py` emits the coverage table straight from the files
-on disk, so the docs stay honest instead of being hand-maintained.
+on disk, so the docs stay honest instead of being hand-maintained. See
+[/ingestion/verify](https://offthepace.mintlify.app/ingestion/verify) and
+[/ingestion/manifest-report](https://offthepace.mintlify.app/ingestion/manifest-report) for
+what each check and column means, and
+[/ingestion/replay](https://offthepace.mintlify.app/ingestion/replay) to step through one
+race's laps without writing SQL.
 
 ## 6. Next: build features
 
@@ -126,30 +131,26 @@ FastF1 API → src/ingest.py → data/bronze/<dataset>/season=YYYY/race=<slug>/
 
 Output feeds directly into `transform/` (dbt Silver layer).
 
-For the design decisions behind this layout — why Bronze is dumb, why append-only,
-why schema fingerprinting, the retry/backoff contract and DQ severity tiers — see
-[DESIGN.md](DESIGN.md).
+For the design decisions behind this layout why Bronze is dumb, why append-only,
+why schema fingerprinting, the retry/backoff contract and DQ severity tiers see
+[DESIGN.md](DESIGN.md). For the full code walkthrough every writer function, the
+control-flow diagram, and what each `try/except` tolerates see
+[/ingestion/architecture](https://offthepace.mintlify.app/ingestion/architecture).
 
 ## Bronze Coverage
 
-| Season | Laps | Weather | Race Control | Telemetry | Notes |
-|--------|------|---------|-------------|-----------|-------|
-| 2018 | 20 ✓ | 20 ✓ | 20 ✓ | 18 ✓ | Rd1/Rd2 telemetry unavailable F1 didn't publish livetiming feed until later in season |
-| 2019 | 21 ✓ | 21 ✓ | 21 ✓ | 21 ✓ | German GP cancelled |
-| 2020 | 17 ✓ | 17 ✓ | 17 ✓ | 17 ✓ | Covid-shortened season |
-| 2021 | 22 ✓ | 22 ✓ | 22 ✓ | 22 ✓ | |
-| 2022 | 22 ✓ | 22 ✓ | 22 ✓ | 22 ✓ | |
-| 2023 | 22 ✓ | 22 ✓ | 22 ✓ | 22 ✓ | Emilia Romagna cancelled |
-| 2024 | 24 ✓ | 24 ✓ | 24 ✓* | 24 ✓ | *`session_time_s` null |
-| **Total** | **168** | **168** | **168** | **166** | Telemetry for 166/168 races; 2018 Rd1/Rd2 missing |
+Generated from `verify_bronze.py --markdown` against whatever is actually on disk, never
+hand-typed see the live, gated table at
+[/data/known-issues#coverage](https://offthepace.mintlify.app/data/known-issues#coverage).
+Regenerate it locally with `python verify_bronze.py --markdown` or, from the repo root,
+`make docs-coverage`.
 
 ## Known Issues
 
-| Issue | Root cause | Impact | Remediation |
-|-------|-----------|--------|-------------|
-| `session_time_s` null in 2024 RC files | FastF1 v3.8.3 changed `Time` column type | Low supplementary field | Fix in src/; files not re-written |
-| Las Vegas 2024: timing integrity warnings 7 drivers | FastF1 internal accuracy flag | Low laps still present | Under investigation |
-| Pre-season Rd 0 warning in logs | FastF1 raises on testing events by round number | None correctly handled | Acceptable |
+See [/data/known-issues](https://offthepace.mintlify.app/data/known-issues) for the full,
+versioned catalogue `session_time_s` null in 2024 telemetry/race-control, Las Vegas 2024
+timing-integrity warnings, pre-season round-zero log noise, and the columns that look real
+but aren't (phantom columns by dataset).
 
 ## Schemas index
 
@@ -158,11 +159,18 @@ why schema fingerprinting, the retry/backoff contract and DQ severity tiers — 
 | `schemas/laps.schema.json` | `stg_laps` row shape lap number, sector times, compound, stint |
 | `schemas/weather.schema.json` | `stg_weather` row shape air/track temp, humidity, wind |
 | `schemas/race_control.schema.json` | `race_control` bronze row shape safety car, flags, penalties |
-| `schemas/telemetry.schema.json` | `stg_telemetry` row shape 18Hz speed, throttle, brake, DRS |
+| `schemas/telemetry.schema.json` | `stg_telemetry` row shape ~10 Hz speed, throttle, gear, DRS |
+
+Rendered with full column-level detail (type, nullability, phantom-column warnings) at
+[/reference/data-schemas](https://offthepace.mintlify.app/reference/data-schemas).
 
 ## Tests
 
-`tests/test_ingestion.py` asserts row counts, null guards, and schema conformance against fixture Parquet (no network, <5 s with `pytest tests/ -v`). Fixtures live in `tests/fixtures/`.
+`tests/test_ingestion.py` and `tests/test_jolpica.py` assert row counts, null guards, and
+schema conformance against small in-memory DataFrames and mocked FastF1/Jolpica responses
+no network, no fixture Parquet, <5 s via `make test`. `tests/test_integration_fastf1.py`
+is a separate, network-dependent suite (`make test-integration`), not part of the offline
+default.
 
 ---
 

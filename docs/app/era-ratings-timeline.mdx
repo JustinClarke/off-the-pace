@@ -1,0 +1,50 @@
+---
+title: "Tracking driver pace across eras on one scale"
+sidebarTitle: "Era Ratings Timeline"
+description: "Each driver's era-adjusted pace rating across seasons, corrected for the 2022 regulation change and shown with honest confidence ribbons."
+---
+
+The era ratings timeline draws every driver's career as a line of era-adjusted pace, expressed in seconds relative to the field after normalising for the 2022 ground-effect regulation change. A 2018 rating sits on the same scale as a 2024 rating, so you can read a career arc rise, peak, decline without a regulation reset hiding inside it. Negative means faster than the era-normalised field average.
+
+## What it shows
+
+Each line is one driver's season-by-season rating:
+
+- **Era-adjusted rating**: the per-season skill residual after the regulation offset is applied. Negative = faster than the era-normalised field average.
+- **Bayesian shrinkage**: per-season residuals are shrunk toward the season league average. Drivers with fewer races have wider intervals and estimates pulled closer to zero the uncertainty is honest, not hidden.
+- **Era calibration**: the 2022 offset is estimated from 20 "bridge drivers" with ≥8 clean-race seasons on both sides of the boundary, then applied to all pre-2022 seasons. Bridge drivers render as **solid** lines; non-bridge drivers as **dashed**.
+- **95% CI ribbon**: propagates both the per-season shrinkage standard error and, for pre-2022 seasons, the era-offset estimation uncertainty.
+
+<Note>
+  Dashed (non-bridge) lines before 2022 lean more on the estimated era offset than on the driver's own cross-era racing, so their absolute level is less certain than a solid line's.
+</Note>
+
+## How to use it
+
+1. **Select drivers** to add or remove their career lines.
+2. **Read line style** solid lines are anchored by cross-era racing; dashed lines inherit more offset uncertainty.
+3. **Compare ribbon overlap** between two drivers in the same season: overlapping ribbons mean the gap is within noise.
+4. **Follow a single arc** across seasons to see development, peak, and decline on one continuous scale.
+
+## Reading the signal correctly
+
+The rating is a **relative** measure it places a driver against the era-normalised field, not on an absolute lap-time scale. A flat line across a regulation boundary is the goal of the era correction, not evidence the driver stood still.
+
+<Warning>
+  Pre-2022 absolute levels depend on the bridge-driver offset. If you care about cross-era comparisons specifically, weight the solid (bridge) lines more heavily and treat dashed early-season levels as wider than the ribbon alone suggests. See the [decomposition limitations](/decomposition/limitations).
+</Warning>
+
+## Data source
+
+The chart queries `int_era_normalized_driver_rating` (built on `int_driver_season_ratings`) via DuckDB-Wasm in the browser; the clean-lap filter is applied upstream.
+
+| Column | Meaning |
+|---|---|
+| `era_adjusted_rating_s` | Era-normalised seasonal pace rating, the line |
+| `rating_ci_lower_s` / `rating_ci_upper_s` | 95% credible interval, the ribbon |
+| `is_bridge_driver` | Whether the driver anchors the era offset (solid vs dashed) |
+| `season` | The season, the x-axis |
+
+The data window covers **2018–2024**.
+
+For the full model definitions, see the [`int_era_normalized_driver_rating` reference](/reference/models/int/int_era_normalized_driver_rating) and the [`int_driver_season_ratings` reference](/reference/models/int/int_driver_season_ratings).

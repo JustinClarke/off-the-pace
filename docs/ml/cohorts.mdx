@@ -1,0 +1,74 @@
+---
+title: "Cohorts surfaced, never dropped"
+sidebarTitle: "Cohorts"
+description: "Every model is evaluated across compound, circuit, and rain-lap cohorts. Underperforming cells are recorded in the model card and published here never hidden."
+---
+
+import MLCalibration from '/snippets/ml-inventory-calibration.mdx';
+
+Beyond the global headline, every model is scored across cohorts `compound`, `circuit_key`, and `is_rain_lap` dimensions. Cells where the model trails its per-cohort baseline are recorded in the model card and published here. The contract: **surface the losses, do not drop them**.
+
+<Warning>
+  The underperforming cohorts below are honest; they are not a sign that the model fails overall. The per-cohort baseline is itself non-trivial (the cohort-mean degradation rate, a strong signal that "knows" the typical behaviour for this compound and circuit). Beating it everywhere is a high bar. The cells the model trails on are mostly low-n edge cases or circuits where the baseline's near-oracle advantage is structural.
+</Warning>
+
+## Underperforming cohort cells
+
+The cell count comes from the model card it updates on every `make ml-card` run. The table below reflects the most recent evaluation.
+
+| Dimension | Cohort | n | Model score | Baseline | Δ |
+|---|---|---|---|---|---|
+| `compound` | `_other` (p10) | 9 | 0.078 | 0.003 | −0.075 |
+| `is_rain_lap` | `_other` (p10) | 15 | 0.571 | 0.555 | −0.016 |
+| `compound` | `_other` (p50) | 9 | 0.069 | 0.021 | −0.048 |
+| `is_rain_lap` | `_other` (p50) | 15 | 2.452 | 2.220 | −0.232 |
+| `compound` | `_other` (p90) | 9 | 0.071 | 0.003 | −0.068 |
+| `circuit_key` | Canadian GP | 820 | 0.124 | 0.123 | −0.001 |
+| `compound` | `INTERMEDIATE` | 1,057 | 0.323 | 0.325 | −0.002 |
+| `compound` | `_other` (classifier) | 9 | 1.000 | 1.000 | 0 |
+| `circuit_key` | Miami GP | 786 | 0.213 | 0.233 | +0.020 |
+| `compound` | `_other` (stint-life) | 12 | 5.744 | 2.413 | −3.331 |
+| `circuit_key` | Azerbaijan GP | 796 | 8.533 | 8.219 | −0.314 |
+| `circuit_key` | Bahrain GP | 847 | 4.089 | 3.944 | −0.145 |
+| `circuit_key` | Dutch GP | 1,221 | 9.708 | 8.724 | −0.984 |
+| `circuit_key` | Japanese GP | 626 | 6.697 | 5.987 | −0.710 |
+| `circuit_key` | Las Vegas GP | 705 | 6.829 | 5.409 | −1.420 |
+
+*Model score and Baseline are the headline metric for each family: pinball ↓ for p10/p50/p90, macro-F1 for the classifier (higher is better, so this row's Δ is positive), RMSE ↓ for stint-life.*
+
+## What the losses mean
+
+**The `_other` compound cells (n = 9, 12).** The `_other` bucket covers legacy or unrecognised compound codes. With nine training rows, the baseline has nothing to learn it is essentially the global mean. These losses are structural artefacts of the small cell size rather than evidence the model has a problem with any real compound.
+
+**The `INTERMEDIATE` compound (n = 1,057).** The cliff classifier trails the baseline on Intermediate compounds by a tiny margin (0.323 vs 0.325 macro-F1). Intermediate compounds behave differently from slicks; the baseline, which knows the cell distribution, edges out the model here. Margin is essentially zero.
+
+**The `is_rain_lap` = false cells (n = 15 rain laps).** Fifteen laps in the evaluation set. Another low-n artefact.
+
+**Circuit-level losses (stint-life regressor).** The stint-life regressor's per-cohort baseline is **near-oracle**: it uses the true final stint length known only once the stint is over as its "prediction." On circuits where stint lengths are highly predictable (the Dutch GP historically runs long stints, the Las Vegas circuit tends toward specific strategic windows), that oracle baseline is genuinely hard to beat. The model wins globally (RMSE 8.09 vs 9.50) because the baseline is not available in real-time, but in the retrospective evaluation on those circuits the oracle wins.
+
+The losses on Canadian GP (pinball), Bahrain GP, Azerbaijan GP, and Japanese GP (stint-life) are smaller and mix of sample-size effects and track-specific behaviour the model does not fully capture.
+
+## The CI contract
+
+<Check>
+  `test_evaluate.py` asserts that cohort losses are **computed and surfaced** on every build, not that the model wins every cell. The gate is: "we measured this cohort, and if we lost, we know it." A model that silently skipped the cohort evaluation would fail the gate even if it was otherwise excellent.
+</Check>
+
+See [Evaluation gates](/ml/ci/evaluation-gates) for the exact assertions.
+
+## Relationships
+
+<CardGroup cols={2}>
+  <Card title="Validation" href="/ml/validation" icon="shield-check">
+    The global validation context where the model wins overall.
+  </Card>
+  <Card title="Evaluation gates" href="/ml/ci/evaluation-gates" icon="vial">
+    The CI tests that enforce cohort surfacing and the beats-baseline contract.
+  </Card>
+  <Card title="Model Reference" href="/reference/ml/degradation-model-v1" icon="database">
+    The full cohort table from the latest model card updated on every `make ml-card` run.
+  </Card>
+  <Card title="Tyre cliff" href="/decomposition/tyre-cliff" icon="triangle-alert">
+    The physics behind the cliff concept the classifier is trying to predict.
+  </Card>
+</CardGroup>

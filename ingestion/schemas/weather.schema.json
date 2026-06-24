@@ -6,6 +6,24 @@
   "x-file-pattern": "bronze/weather/season=YYYY/race=<slug>/weather.parquet",
   "x-example-row-count": "2024 Bahrain race day: ~300 samples",
   "x-notes": "rainfall_flag is boolean (true = precipitation detected). wind_direction is int16 (0–360). wind_speed_ms is in metres per second.",
+  "x-phantom-columns": [
+    {
+      "name": "rainfall_mm",
+      "reason": "Rain is a boolean flag (`rainfall_flag`) only; there's no cumulative millimetre channel."
+    },
+    {
+      "name": "wind_direction_deg",
+      "reason": "The real column is `wind_direction` (degrees, plain integer)."
+    },
+    {
+      "name": "wind_speed_kmh",
+      "reason": "The real column is `wind_speed_ms` (metres per second, not km/h)."
+    },
+    {
+      "name": "session",
+      "reason": "Race weather has no session column at all; only qualifying weather gets `session_type=\"Q\"`."
+    }
+  ],
   "properties": {
     "ambient_temp_c": {
       "type": [
@@ -87,10 +105,11 @@
       "x-dtype": "float64",
       "x-source": "Ingestion pipeline"
     },
-    "session": {
-      "type": "string",
-      "description": "'R' for race, 'Q', 'FP1', 'FP2', 'FP3'.",
-      "x-nullable": false,
+    "session_type": {
+      "type": ["string", "null"],
+      "enum": ["Q", null],
+      "description": "Only present on qualifying weather files, where it's always `\"Q\"`. Absent entirely from race weather; there is no `session` column on race files.",
+      "x-nullable": true,
       "x-source": "Ingestion pipeline"
     },
     "race_id": {
@@ -108,7 +127,6 @@
   },
   "required": [
     "race_id",
-    "session",
     "season"
   ]
 }

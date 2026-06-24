@@ -1,6 +1,6 @@
--- Sector residual decomposition model identity: sector-grain residual decomposition
+-- Sector-grain residual decomposition identity.
 --
--- After sector residual decomposition model (sector grain introduction), each sector must close its own identity:
+-- Each sector must close its own identity:
 --   sector_pace_delta_s = sector_fuel + sector_compound + sector_rubber
 --                       + sector_ambient + sector_constructor
 --                       + sector_dirty_air_tax + sector_driver_skill + sector_unexplained

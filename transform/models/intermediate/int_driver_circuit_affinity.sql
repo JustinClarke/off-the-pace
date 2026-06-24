@@ -23,7 +23,7 @@
 {{ config(materialized='table', tags=['driver_rating', 'driver_affinity']) }}
 
 WITH driver_race AS (
-    -- Metric 1 source: de-confounded LORO equal-car skill (was
+    -- De-confounded LORO equal-car skill (was
     -- fct_driver_skill_features.driver_residual_mean_s). Aliased to the old
     -- name so the
     -- shrinkage logic below is unchanged. See int_driver_race_skill_loro.

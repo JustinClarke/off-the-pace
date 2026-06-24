@@ -1,0 +1,51 @@
+---
+title: "Was the pit stop on the optimal lap?"
+sidebarTitle: "Pit Strategy Gantt"
+description: "A Gantt of every stint in a race, marking where each tyre hit the cliff, where the model says the optimal stop was, and how much time a late stop cost."
+---
+
+The pit strategy Gantt lays every driver's race out as a row of coloured stint bars, then overlays two things a lap chart can't show you: the lap each tyre actually crossed the degradation cliff, and the lap the model says they *should* have stopped. The gap between those two measured in seconds of opportunity cost is the verdict on each strategy call.
+
+## What it shows
+
+Each stint is a horizontal bar spanning its actual race laps:
+
+- **Bar fill**: the tyre compound for that stint.
+- **Border colour the verdict**: <span style={{color: '#34d399'}}>optimal</span>, <span style={{color: '#f87171'}}>overran</span>, or unknown (below the confidence threshold; shown explicitly rather than as a silent null).
+- **Cliff onset** (dashed line inside the bar): `fct_stint_features.cliff_lap_in_stint`, the lap within the stint where the compound crossed the degradation threshold.
+- **Optimal pit window** (triangle below the bar): `int_pit_strategy_value.optimal_pit_lap_in_stint`, the lap at which stopping would have minimised total race time given the degradation model and the undercut-threat window.
+- **Opportunity cost**: the estimated time lost by pitting later than optimal, in seconds.
+
+<Note>
+  Verdicts require a minimum confidence threshold. A stint whose estimate falls below it shows as **unknown** rather than being forced into optimal or overran.
+</Note>
+
+## How to use it
+
+1. **Select a race** from the filter bar; every driver's stint sequence loads as Gantt rows.
+2. **Find the dashed cliff line inside each bar** if it sits well before the bar's end, the driver ran deep into degradation.
+3. **Compare the cliff line to the optimal-window triangle** a triangle far left of the actual stop end signals a late stop.
+4. **Read the opportunity cost** on overran stints to size the loss; sort drivers to see who left the most time on track.
+
+## Reading the signal correctly
+
+The optimal lap is a **model counterfactual** computed from the degradation curve and undercut window it assumes the rest of the race plays out as observed. A stop that looks "late" may have been the correct defensive response to track position the single-stint model does not price.
+
+<Warning>
+  An **overran** verdict is not automatically a mistake: teams trade lap-time loss for track position, safety-car optionality, or tyre-offset at the end. Read the opportunity cost as the pace price paid, not as proof of an error.
+</Warning>
+
+## Data source
+
+The chart joins `fct_stint_features` (stint windows and cliff lap), `fct_lap_residuals` (lap windows), and `int_pit_strategy_value` (the optimal-lap counterfactual), via DuckDB-Wasm in the browser.
+
+| Column | Meaning |
+|---|---|
+| `cliff_lap_in_stint` | Lap within the stint where the compound crossed the cliff (`fct_stint_features`) |
+| `optimal_pit_lap_in_stint` | Model-optimal stop lap (`int_pit_strategy_value`) |
+| `opportunity_cost_s` | Estimated time lost by stopping later than optimal |
+| `strategy_verdict` | optimal / overran / unknown, gated on a confidence threshold |
+
+This is a **single-race** view across **2018–2024** data.
+
+For the full model definitions, see the [`int_pit_strategy_value` reference](/reference/models/int/int_pit_strategy_value) and the [`fct_stint_features` reference](/reference/models/fct/fct_stint_features).

@@ -1,0 +1,111 @@
+---
+title: "Parity and schema: ONNX, predict output, and target bounds"
+sidebarTitle: "Parity & Schema"
+description: "5 ONNX parity tests, 3 predict-schema tests, and 1 target synthesis test the mechanical contracts that ensure the browser sees what training produced and the output schema never silently changes."
+---
+
+These nine tests (5 + 3 + 1) are mechanical contracts: each one verifies a single repeated pattern rather than a unique idea. They are grouped here because they share the same character "this thing must match that thing exactly" rather than explaining a policy choice.
+
+## ONNX parity (5 tests)
+
+**Source:** `test_onnx_parity.py::test_onnx_parity` (parametrized across 5 models)
+
+**Assertion:** for each model, `|booster.predict(sample) − ort.session.run(sample)| ≤ 1e-5` on both a clean row and a NaN-bearing row
+
+**What it catches:** divergence between the XGBoost native scorer (used in Python training) and the ONNX runtime (used in the React app). The divergence would be silent the browser would show wrong numbers with no error. The NaN-bearing sample (the ~47% of laps where `cliff_candidate_flag` or `cliff_onset_passed` is null) is the critical case: XGBoost learns the optimal missing-value split direction during training, and that direction must survive the ONNX conversion.
+
+<Tabs>
+  <Tab title="Parity status">
+    <Check>All five models pass `atol=1e-5` parity, including NaN-bearing samples.</Check>
+
+    | Model | Kind | Gate |
+    |---|---|---|
+    | `degradation_regressor_p10` | quantile | `atol=1e-5` |
+    | `degradation_regressor_p50` | quantile | `atol=1e-5` |
+    | `degradation_regressor_p90` | quantile | `atol=1e-5` |
+    | `cliff_classifier` | classification | `atol=1e-5` |
+    | `stint_life_regressor` | regression | `atol=1e-5` |
+  </Tab>
+  <Tab title="Why atol=1e-5">
+    The tolerance is set at `1e-5` because XGBoost and ONNX Runtime can accumulate floating-point rounding differences across large tree ensembles. `1e-5` seconds is 10 microseconds unmeasurable by any timing instrument and irrelevant to any strategy decision. Tightening the tolerance to `1e-7` causes false positives on some hardware combinations; loosening to `1e-3` would permit divergences that could affect the first decimal place of a displayed lap time.
+
+    The quantile trio moves together: if any one model fails parity, none ship. The models share the same feature matrix and ONNX conversion path, so a systematic divergence would affect all three.
+  </Tab>
+</Tabs>
+
+## Predict schema (3 tests)
+
+**Source:** `test_predict.py` (3 test functions)
+
+**What these catch:** changes to the output parquet that would silently break downstream consumers (the app, the mart, the model card) by dropping a column, changing a type, or violating a business rule.
+
+<Tabs>
+  <Tab title="Output schema (17 columns)">
+    **Source:** `test_predict.py::test_output_schema`
+
+    **Assertion:** the written parquet has exactly the 17 columns in `PREDICTIONS_ARROW_SCHEMA`, with matching types.
+
+    The 17 columns are:
+
+    | Column | Type | Role |
+    |---|---|---|
+    | `lap_id` | string | Join key |
+    | `stint_id` | string | Join key |
+    | `race_year` | int32 | Season |
+    | `circuit_key` | string | Circuit |
+    | `is_holdout` | bool | Holdout flag |
+    | `is_in_envelope` | bool | Training-eligible flag |
+    | `predicted_degradation_jump_s` | float64 | p50 |
+    | `predicted_degradation_jump_p10_s` | float64 | p10 |
+    | `predicted_degradation_jump_p90_s` | float64 | p90 |
+    | `predicted_cliff_class` | string | argmax class |
+    | `prob_0_to_2` | float64 | Class prob |
+    | `prob_3_to_5` | float64 | Class prob |
+    | `prob_6_plus` | float64 | Class prob |
+    | `prob_none_in_stint` | float64 | Class prob |
+    | `predicted_remaining_stint_life_laps` | float64 | Stint life |
+    | `model_version` | string | Version tag |
+    | `predicted_at` | timestamp[us] | Scoring timestamp |
+  </Tab>
+  <Tab title="Holdout & envelope flags">
+    **Source:** `test_predict.py::test_holdout_and_envelope_flags`
+
+    **Assertion:** `is_holdout` is `True` if and only if `race_year == HOLDOUT_SEASON`; `is_in_envelope` matches `is_training_eligible`.
+
+    These two flags are what lets the app and the evaluation scripts partition rows correctly. A bug in their assignment (e.g. the holdout year changes but the flag logic is not updated) would silently mislabel rows without causing any type error or schema violation.
+  </Tab>
+  <Tab title="Quantile monotonicity & prob normalisation">
+    **Source:** `test_predict.py::test_quantiles_monotonic_and_probs_normalised`
+
+    **Assertions:**
+    - `p10 ≤ p50 ≤ p90` for every row (quantile monotonicity)
+    - `prob_0_to_2 + prob_3_to_5 + prob_6_plus + prob_none_in_stint ≈ 1.0` for every row (softmax normalisation)
+
+    The quantile trio is trained independently. There is no mathematical guarantee the three outputs will be ordered at scoring time for a given input. XGBoost's quantile regression can produce crossed quantiles in the tails, especially for out-of-distribution inputs. The test gates the output rather than the training process, so any crossing caught at score time fails the prediction run before the parquet is written.
+  </Tab>
+</Tabs>
+
+## Target synthesis (1 test)
+
+**Source:** `test_targets.py::test_stint_life_synthesis`
+
+**Assertion:** `remaining_stint_life_laps ≥ 0` for all rows; the synthesis `stint_length_laps − lap_in_stint` is non-negative everywhere.
+
+**What it catches:** the stint-life target is synthesised in `features.py` at load time, not read from the mart. A bug in the synthesis (e.g. a subtraction with wrong column alignment) would produce negative "remaining laps", which has no physical meaning and would cause the regressor to learn from impossible targets. The test gates the synthesised values before any training can start.
+
+## Relationships
+
+<CardGroup cols={2}>
+  <Card title="ONNX export" href="/ml/onnx" icon="cpu">
+    The export stage and why parity must be exact in depth.
+  </Card>
+  <Card title="CI overview" href="/ml/ci/overview" icon="vial">
+    All 28 tests where these nine sit in the full contract.
+  </Card>
+  <Card title="Features & Targets" href="/ml/features-and-targets" icon="layers">
+    Target synthesis and why `stint_length_laps` is never in the feature matrix.
+  </Card>
+  <Card title="Evaluation gates" href="/ml/ci/evaluation-gates" icon="trophy">
+    The other seven tests beats-baseline, calibration, cohorts.
+  </Card>
+</CardGroup>

@@ -25,7 +25,7 @@ export interface LabResult {
 }
 
 // Statement forms the lab permits. Anything that mutates the shared catalog or filesystem
-// (CREATE/DROP/ALTER/INSERT/UPDATE/DELETE/ATTACH/COPY/INSTALL/LOAD) is rejected — the shared
+// (CREATE/DROP/ALTER/INSERT/UPDATE/DELETE/ATTACH/COPY/INSTALL/LOAD) is rejected the shared
 // view catalog means a single DROP would break every other page until a reload.
 const ALLOWED_LEADING = /^(SELECT|WITH|EXPLAIN|DESCRIBE|DESC|SUMMARIZE|SHOW|PRAGMA|PIVOT|TABLE|VALUES|FROM)\b/i
 const FORBIDDEN = /\b(CREATE|DROP|ALTER|INSERT|UPDATE|DELETE|TRUNCATE|ATTACH|DETACH|COPY|INSTALL|LOAD|CALL|SET|RESET|EXPORT|IMPORT)\b/i

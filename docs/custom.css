@@ -1,0 +1,37 @@
+/* Custom styles for Mintlify documentation */
+
+/* Make CardGroups wrapped in .mobile-grid display as 2 columns on mobile */
+@media (max-width: 639px) {
+  .mobile-grid > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.5rem !important; /* Tighter gap on small screens */
+  }
+
+  /* Optimize card spacing for mobile 2-column layout */
+  .mobile-grid > div > a,
+  .mobile-grid > div > div {
+    padding: 0.75rem !important; /* Compact padding */
+    min-height: auto !important;
+  }
+
+  /* Make titles and descriptions fit better */
+  .mobile-grid > div h2,
+  .mobile-grid > div h3,
+  .mobile-grid > div .font-semibold {
+    font-size: 0.875rem !important; /* Smaller title text */
+    line-height: 1.25rem !important;
+  }
+
+  .mobile-grid > div p {
+    font-size: 0.75rem !important; /* Smaller description text */
+    line-height: 1rem !important;
+    margin-top: 0.25rem !important;
+  }
+
+  /* Make icons a bit more compact but still distinct */
+  .mobile-grid > div svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+}

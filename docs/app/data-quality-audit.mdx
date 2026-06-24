@@ -1,0 +1,51 @@
+---
+title: "How many laps actually survive the pipeline's quality gate?"
+sidebarTitle: "Data Quality Audit"
+description: "Per-race usable-lap counts and a breakdown of every excluded lap type neutralisation, rain, out/in laps, and anomalies for a season."
+---
+
+Every model in the project runs on "usable" laps, and the rest are deliberately thrown away. The data quality audit makes that visible: for each race in a season, how many laps passed the usability gate, and exactly which lap types were excluded and why. It is the data-engineer's view of the pipeline the honest denominator behind every other chart.
+
+## What it shows
+
+Each race is broken into a usable share and exclusion buckets:
+
+- **Usable %**: the fraction of laps flagged `usable_for_modelling = true`. A lap is usable when it is not a safety car / VSC period, not an out-lap or in-lap, not rain-affected, and carries no major anomaly flag.
+- **Neutralised**: laps under safety car or VSC (`correction_class = 'neutralisation'`); pace is unrepresentative, so they are excluded from degradation and skill models.
+- **Rain**: laps where wet weather was detected; degradation behaviour is qualitatively different and excluded from dry-compound models.
+- **Out / In laps**: the lap after a pit stop (cold tyres) and the lap into the pits (lift-and-coast), both excluded from degradation slopes.
+- **Anomalies**: laps with `anomaly_class != 'normal'` mechanical events, mistakes, or clean-cliff detections that carry special handling.
+
+<Note>
+  The buckets are exhaustive of the exclusions, so usable % plus the excluded categories account for every lap in the race.
+</Note>
+
+## How to use it
+
+1. **Select a season** from the filter bar; the per-race breakdown loads.
+2. **Scan usable %** to spot races with thin modelling data (wet events, safety-car-heavy races).
+3. **Read the exclusion buckets** to see *why* a race is thin rain versus neutralisation tells very different stories.
+4. **Use it as a caveat layer** a feature's confidence at a given race should be read against that race's usable %.
+
+## Reading the signal correctly
+
+A low usable % is **not** a data error it is the pipeline correctly discarding unrepresentative laps. A wet, safety-car-interrupted race *should* have few usable laps; the audit confirms the gate is working, not that data is missing.
+
+<Warning>
+  Races with a very low usable % feed every downstream model less data, so their estimates elsewhere in the app carry wider uncertainty. Treat this page as the provenance check behind the rest of the suite.
+</Warning>
+
+## Data source
+
+The chart queries `int_lap_anomaly_flags` via DuckDB-Wasm in the browser, aggregated per race across a full season.
+
+| Column | Meaning |
+|---|---|
+| `usable_for_modelling` | Whether the lap passes the usability gate (the usable %) |
+| `correction_class` | Marks `neutralisation` (safety car / VSC) laps |
+| `anomaly_class` | Lap classification; non-`normal` rows are the anomaly bucket |
+| `is_pit_in` / `is_pit_out` | Flags the in-lap and out-lap exclusions |
+
+This is a **full-season** view across **2018–2024** data.
+
+For the full model definition, see the [`int_lap_anomaly_flags` reference](/reference/models/int/int_lap_anomaly_flags).

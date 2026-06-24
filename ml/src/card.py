@@ -56,7 +56,7 @@ def _require(path: Path) -> dict:
     return json.loads(path.read_text())
 
 
-def build_card(version: str = "v1") -> dict:
+def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
     ev = _require(EVAL_PATH)
     encoders = _require(ENCODERS_PATH)
     logs = {t.name: _latest_log(t.name, version) for t in S.PRODUCTION_TARGETS}
@@ -182,7 +182,7 @@ def build_card(version: str = "v1") -> dict:
             ],
 
             "limitations": [
-                "The cliff classifier (macro-F1 ≈ 0.36 on 4-class cliff timing) is the weakest model-"
+                "The cliff classifier (macro-F1 ≈ 0.33 on 4-class cliff timing) is the weakest model-"
                 "it decisively beats the majority prior but absolute skill on minority cliff windows is modest.",
                 "v1 hyperparameters come from a reduced session tuning budget; a canonical 50-trial / "
                 "5-fold search should precede a production blessing.",
@@ -210,7 +210,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--write", action="store_true", help="write model_card.yml + model_card.json")
     ap.add_argument("--to-json", action="store_true", help="print the JSON mirror to stdout")
-    ap.add_argument("--version", default="v1", help="artefact version to describe (v1/v2/v3)")
+    ap.add_argument("--version", default=S.MODEL_VERSION_DEFAULT,
+                    help="artefact version to describe; defaults to the production version "
+                         "(MODEL_VERSION_DEFAULT), matching evaluate.py / predict.py")
     args = ap.parse_args()
     card = build_card(args.version)
     if args.to_json:

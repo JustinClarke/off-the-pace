@@ -1,0 +1,24 @@
+{
+  "//": "Lighthouse CI config (Phase 5 / F9 of SYSTEM_DESIGN_AUDIT.md). Advisory Core Web Vitals + a11y/best-practices visibility for the app shell. Collected on the data-engine-free routes (/, /roadmap) so scores reflect bundle/shell health, not wasm-init variance; the heavy DuckDB/ONNX routes are covered by the Playwright E2E. All assertions are 'warn' (non-blocking); the bundle-size script (check_bundle_size.mjs) is the hard byte budget; LHCI surfaces CWV regressions without flaking the build on a wasm-heavy SPA.",
+  "ci": {
+    "collect": {
+      "startServerCommand": "pnpm exec vite preview --port 4173 --strictPort",
+      "startServerReadyPattern": "Local:",
+      "url": ["http://localhost:4173/", "http://localhost:4173/roadmap"],
+      "numberOfRuns": 1,
+      "settings": { "preset": "desktop" }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.5 }],
+        "categories:accessibility": ["warn", { "minScore": 0.9 }],
+        "categories:best-practices": ["warn", { "minScore": 0.9 }],
+        "first-contentful-paint": ["warn", { "maxNumericValue": 4000 }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 5000 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 1200 }],
+        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }]
+      }
+    },
+    "upload": { "target": "temporary-public-storage" }
+  }
+}

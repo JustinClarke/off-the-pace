@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://offthepace.mintlify.app/
+    about: Methodology, reference docs, and ADRs before filing an issue.
+  - name: Architecture decisions
+    url: https://github.com/JustinClarke/off-the-pace/blob/main/.github/adr/DECISIONS.md
+    about: Why the system is built the way it is.

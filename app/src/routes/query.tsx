@@ -1,4 +1,4 @@
-// Query Lab — an in-browser SQL workbench over the gold warehouse. Everything runs client-side
+// Query Lab an in-browser SQL workbench over the gold warehouse. Everything runs client-side
 // via DuckDB-Wasm: SQL editor, schema explorer, dynamic results grid, CSV export. Read-only.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'

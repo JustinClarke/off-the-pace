@@ -1,0 +1,48 @@
+---
+title: "Can a tyre recover once it is past the cliff?"
+sidebarTitle: "Tyre Recovery Forecast"
+description: "Post-cliff tyre behaviour by compound: how often a worn tyre shows pace recovery when the driver backs off, and whether the wear is thermal (recoverable) or structural (not)."
+---
+
+Once a tyre is past the degradation cliff, is it gone, or can the driver nurse some pace back by lifting off? The recovery forecast answers that by looking only at post-cliff laps and asking how often, and how strongly, a tyre shows a partial recovery and critically, whether the wear is thermal (surface, recoverable) or structural (bulk, not).
+
+## What it shows
+
+The chart breaks post-cliff recovery into three signals per compound:
+
+- **Recovery rate (`recovery_flag`)**: the fraction of post-cliff laps where the model flags any partial pace recovery. This runs very high across all compounds (~86–89%) because the flag fires on any positive deviation from the cliff slope, however small.
+- **Average recovery probability**: the model's probabilistic estimate of how likely a lap with the observed surface/bulk load split is to recover. This is far more discriminating than the binary flag typically 21–29%.
+- **Surface/bulk ratio**: the ratio of surface thermal load to bulk mechanical load. Below ~0.4 the wear is **bulk-driven** (compound breakdown, hard to recover); above ~0.4 it is mixed or **surface-driven** (thermal, can partially recover with reduced push).
+
+<Note>
+  Only post-cliff laps are included the feature is silent about pre-cliff behaviour, which the [degradation timeline](/app/stint-degradation-timeline) covers.
+</Note>
+
+## How to use it
+
+1. **Select a compound** to see its post-cliff recovery profile.
+2. **Trust the probability over the rate** the near-universal recovery rate is a low bar; the average recovery probability is the number that separates compounds.
+3. **Read the surface/bulk ratio** to know *why* a tyre can or cannot recover: a low ratio means structural breakdown that lifting won't fix.
+4. **Cross-reference a real stint** in the [pit strategy Gantt](/app/pit-strategy) to see whether a driver who extended was riding recoverable thermal wear or terminal structural wear.
+
+## Reading the signal correctly
+
+A high recovery rate does **not** mean tyres bounce back to fresh pace it means a measurable, often tiny, deviation above the cliff slope. The magnitude lives in the average recovery probability, not the flag.
+
+<Warning>
+  Surface/bulk ratios near the ~0.4 boundary are ambiguous: the same lap can read as thermal or structural across nearby laps. Treat the boundary as a soft transition, not a hard switch.
+</Warning>
+
+## Data source
+
+The chart queries `int_tyre_surface_vs_bulk_decoupling` via DuckDB-Wasm in the browser, using post-cliff laps only.
+
+| Column | Meaning |
+|---|---|
+| `recovery_flag` | Whether a lap shows any positive deviation from the cliff slope |
+| `recovery_probability` | Model probability the lap genuinely recovers, averaged per compound |
+| `surface_bulk_ratio` | Surface thermal load ÷ bulk mechanical load (the recoverability split) |
+
+The data window covers **2018–2024**, post-cliff laps only.
+
+For the full model definition, see the [`int_tyre_surface_vs_bulk_decoupling` reference](/reference/models/int/int_tyre_surface_vs_bulk_decoupling).

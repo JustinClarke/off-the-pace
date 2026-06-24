@@ -3,67 +3,149 @@ version: 2
 models:
   - name: dim_circuits
     description: >
-      One row per circuit × era. Physical properties used for fuel load estimation
-      (weight_penalty_factor), track evolution (abrasiveness_index), and
-      constructor pace decomposition (track_energy_index).
-      Seeded from circuit_reference.csv   refresh when layouts change.
+      One row per event slug (circuit_key). Lifts the circuit_reference seed into a typed
+      dimension carrying the physical properties used for fuel-load estimation
+      (weight_penalty_factor), track evolution (abrasiveness_index), and constructor pace
+      decomposition (track_energy_index). circuit_key is a grand-prix/event slug, so several keys
+      can share one physical venue (renamed events, double-headers); circuit_id is the stable
+      physical-circuit identifier used to pool races run at the same track. Refresh the seed when
+      layouts change.
+    meta:
+      family: reference
     columns:
       - name: circuit_key
-        description: Event slug (grand-prix key) matching race_id in stg_laps
+        description: Event slug (grand-prix key) matching race_id in stg_laps.
+        data_type: varchar
         tests: [not_null, unique]
       - name: circuit_id
         description: >
-          Physical-circuit identifier (slug of circuit_name). Several event slugs can share
-          one circuit_id (renamed events, double-headers), so it is non-unique here.
+          Physical-circuit identifier (slug of circuit_name). Several event slugs can share one
+          circuit_id (renamed events, double-headers), so it is non-unique here.
+        data_type: varchar
         tests: [not_null]
-      - name: fuel_consumption_rate_kg_per_lap
-        description: Estimated kg/lap used for fuel_mass_kg calculation in Layer 03
-        tests: [not_null]
-      - name: weight_penalty_factor
-        description: >
-          Seconds per kg of fuel mass carried. Formula: 0.02 + 0.0002 × corner_count × avg_lateral_g.
-          Used in int_lap_fuel_state to compute weight_corrected_lap_time.
-        tests: [not_null]
+      - name: circuit_name
+        description: Human-readable circuit name from the seed.
+        data_type: varchar
       - name: lap_length_km
-        description: Circuit lap length in kilometers
+        description: Circuit lap length in kilometres.
+        data_type: double
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 2
                 max_value: 8
+      - name: corner_count
+        description: Number of corners on the lap (used in the weight-penalty formula).
+        data_type: integer
+      - name: avg_lateral_g
+        description: Average lateral g-force proxy for the circuit (used in the weight-penalty formula).
+        data_type: double
+      - name: fuel_consumption_rate_kg_per_lap
+        description: Estimated kg of fuel burned per lap, used for fuel_mass_kg in Layer 03.
+        data_type: double
+        tests: [not_null]
+      - name: track_energy_index
+        description: Energy-demand index for the circuit; conditions constructor structural-pace decomposition.
+        data_type: double
+      - name: abrasiveness_index
+        description: Ordinal surface-abrasiveness rating driving track-evolution / rubber-in modelling.
+        data_type: integer
+      - name: weight_penalty_factor
+        description: >
+          Seconds per kg of fuel mass carried. Formula: 0.02 + 0.0002 × corner_count × avg_lateral_g.
+          Used in int_lap_fuel_state to compute weight_corrected_lap_time.
+        data_type: double
+        tests: [not_null]
+      - name: era_start_year
+        description: First season of the regulation era this circuit row applies to (e.g. 2022 ground-effect).
+        data_type: integer
 
   - name: dim_compounds_season
     description: >
-      One row per circuit × compound × season. Cliff parameters estimated from stint
-      survival analysis (Kaplan-Meier, fitted on 2018–2024 data   see
-      tasks/coefficients/README.md). All rows carry fit_date and data_window for
-      governance. Re-fit when a new season is ingested via make coefficients-fit.
+      One row per circuit × compound × season. Lifts the compound_cliff_params seed into a typed
+      dimension: cliff parameters estimated from stint survival analysis (Kaplan-Meier, fitted on
+      2018–2024 data   see tasks/coefficients/README.md). Every row carries fit_date and
+      data_window for governance. Re-fit when a new season is ingested via make coefficients-fit.
+    meta:
+      family: reference
     columns:
       - name: circuit_key
+        description: Event slug (grand-prix key) matching race_id in stg_laps.
+        data_type: varchar
         tests: [not_null]
       - name: compound_code
+        description: Compound identifier the cliff parameters were fitted for (e.g. SOFT/MEDIUM/HARD or C1–C5).
+        data_type: varchar
         tests: [not_null]
       - name: season
+        description: Season year the parameters apply to.
+        data_type: integer
         tests: [not_null]
+      - name: compound_grip_peak
+        description: Fitted peak grip level (relative pace offset at the compound's best window).
+        data_type: double
+      - name: compound_wear_gradient
+        description: Fitted linear wear rate (pace loss per lap before the cliff).
+        data_type: double
+      - name: compound_optimal_temp_low
+        description: Lower bound of the compound's optimal operating-temperature window (°C).
+        data_type: double
+      - name: compound_optimal_temp_high
+        description: Upper bound of the compound's optimal operating-temperature window (°C).
+        data_type: double
+      - name: compound_cliff_onset_laps
+        description: Fitted Kaplan-Meier cliff-onset age (laps) at which performance falls off sharply.
+        data_type: double
+      - name: compound_cliff_severity
+        description: Fitted magnitude of the pace drop once the cliff is reached.
+        data_type: double
       - name: fit_date
-        description: Date on which the cliff parameters were last estimated
+        description: Date on which the cliff parameters were last estimated.
+        data_type: date
         tests: [not_null]
+      - name: data_window
+        description: Season range the fit was estimated over (governance provenance).
+        data_type: varchar
+      - name: notes
+        description: Free-text provenance / caveat notes carried from the seed.
+        data_type: varchar
 
   - name: dim_drivers
     description: >
-      One row per driver_id. Derived from stg_laps   debut_year and
-      career_races_in_dataset reflect only the seasons present in the bronze layer.
+      One row per driver_id. Derived from stg_laps   driver_id is the FastF1 three-letter code
+      (e.g. VER, HAM); debut_year and career_races_in_dataset reflect only the seasons present in
+      the Bronze layer.
+    meta:
+      family: reference
     columns:
       - name: driver_id
+        description: FastF1 three-letter driver code (e.g. VER, HAM).
+        data_type: varchar
         tests: [not_null, unique]
+      - name: driver_number
+        description: Most recent car number observed for the driver (drivers occasionally change numbers).
+        data_type: varchar
+      - name: debut_year
+        description: Earliest season the driver appears in the dataset.
+        data_type: integer
+      - name: career_races_in_dataset
+        description: Count of distinct races the driver contested across the ingested seasons.
+        data_type: hugeint
 
   - name: dim_constructors
     description: >
-      One row per constructor (team). Includes pu_family for conditioning
-      constructor_pace_index on similar-engine teams in Layer 04.
-      pu_family mapping is manually maintained   update when customer relationships change.
+      One row per constructor (team). Derived from stg_laps with a manually maintained power-unit
+      family mapping. pu_family conditions constructor_pace_index on similar-engine teams in
+      Layer 04 (e.g. Mercedes PU customers share base drag); update the mapping when customer
+      relationships change.
+    meta:
+      family: reference
     columns:
       - name: constructor_id
+        description: Team name as reported by FastF1 (e.g. 'Mercedes', 'Red Bull Racing').
+        data_type: varchar
         tests: [not_null, unique]
       - name: pu_family
+        description: Power-unit family grouping (e.g. mercedes_pu, honda_pu, ferrari_pu, renault_pu); 'unknown_pu' when unmapped.
+        data_type: varchar
         tests: [not_null]

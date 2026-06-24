@@ -1,11 +1,11 @@
-"""Pre-registered ablation for the ml-v0.2 §2 telemetry cliff features.
+"""Ablation study for the telemetry cliff features.
 
 Decision question: do the 11 telemetry features (powertrain + telemetry_cliff groups,
 landed in fct_cliff_prediction_features via int_lap_telemetry_aggregates) earn their place
 in the cliff classifier, or do they only add an ONNX/parity/drift surface?
 
 PRE-REGISTERED (stated before any model is fit no peeking):
-  * Primary metric : macro-F1 of the 4-class cliff classifier on the evaluation split
+  * Primary metric : macro-F1 on the 4-class cliff classifier, evaluation split
                      (final TimeSeriesSplit fold = most-recent ingested season; the same
                      honest split evaluate.py uses until 2025 ingests).
   * Both arms      : identical tuned hyperparameters (cliff_classifier_best_params.json),
@@ -57,7 +57,7 @@ def main() -> int:
     params = json.loads(Path(f"ml/models/{TARGET}_best_params.json").read_text())
     tel_cols = _telemetry_columns()
 
-    print("── Pre-registered telemetry ablation (ml-v0.2 §2.3) ──")
+    print("── Telemetry cliff feature ablation ──")
     print(f"  primary metric : macro_f1 (cliff classifier)")
     print(f"  decision rule  : KEEP iff Δmacro_f1 ≥ +{PRIMARY_MARGIN} "
           f"AND no cliff-positive class loses > {MAX_RECALL_DROP} recall")
@@ -71,7 +71,7 @@ def main() -> int:
     keep_cols = [c for c in split.X_tr.columns if c not in tel_cols]
     assert len(split.X_tr.columns) - len(keep_cols) == len(tel_cols), "telemetry columns not all present"
 
-    # Full arm (41 features)
+    # Full arm (42 features)
     full = E._fit(spec, params, split.X_tr, split.y_tr)
     yhat_full = full.predict(split.X_ev)
     f1_full = f1_score(split.y_ev, yhat_full, average="macro")

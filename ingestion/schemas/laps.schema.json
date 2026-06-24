@@ -5,7 +5,13 @@
   "description": "Bronze-layer fact table. One row per driver per lap. ~20–30k rows per race (20 drivers × 50–70 laps). Hive-partitioned by season and race.",
   "x-file-pattern": "bronze/laps/season=YYYY/race=<slug>/YYYY_<slug>_laps.parquet",
   "x-example-row-count": "2024 Bahrain: 23 drivers × 57 laps = ~1,311 rows",
-  "x-notes": "LapTime is nanoseconds in Parquet; convert to seconds with / 1e9. Qualifying laps share this schema with session='Q'.",
+  "x-notes": "LapTime is nanoseconds in Parquet; convert to seconds with / 1e9. Qualifying laps share this schema and add a session_type='Q' column race laps have no such column at all.",
+  "x-phantom-columns": [
+    {
+      "name": "session",
+      "reason": "Race laps have no session column at all; only qualifying laps get `session_type=\"Q\"`."
+    }
+  ],
   "properties": {
     "DriverNumber": {
       "type": "integer",
@@ -298,14 +304,11 @@
       "x-nullable": false,
       "x-source": "Ingestion pipeline"
     },
-    "session": {
-      "type": "string",
-      "enum": [
-        "R",
-        "Q"
-      ],
-      "description": "'R' for race, 'Q' for qualifying.",
-      "x-nullable": false,
+    "session_type": {
+      "type": ["string", "null"],
+      "enum": ["Q", null],
+      "description": "Only present on qualifying laps files, where it's always `\"Q\"`. Absent entirely from race laps; there is no `session` column on race files.",
+      "x-nullable": true,
       "x-source": "Ingestion pipeline"
     },
     "season": {
@@ -319,7 +322,6 @@
     "DriverNumber",
     "LapNumber",
     "race_id",
-    "session",
     "season"
   ]
 }

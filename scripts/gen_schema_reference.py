@@ -34,6 +34,7 @@ def render_schema_mdx(schema: dict) -> str:
     file_pattern = schema.get("x-file-pattern", "")
     example_row_count = schema.get("x-example-row-count", "")
     notes = schema.get("x-notes", "")
+    phantom_columns = schema.get("x-phantom-columns", [])
     properties = schema.get("properties", {})
     required = set(schema.get("required", []))
 
@@ -59,37 +60,44 @@ def render_schema_mdx(schema: dict) -> str:
     if notes:
         lines += ["<Note>", "", escape_mdx(notes), "", "</Note>", ""]
 
+    if phantom_columns:
+        lines += ["<Warning>", "", "**Columns that look real but aren't.** A search for one of", "these on this dataset will come up empty:", ""]
+        for col in phantom_columns:
+            name = col.get("name", "")
+            reason = escape_mdx(col.get("reason", ""))
+            lines.append(f"- `{name}` {reason}")
+        lines += ["", "</Warning>", ""]
+
     if properties:
-        lines += [
-            "## Columns",
-            "",
-            "| Column | Type | Nullable | Source | Description |",
-            "|---|---|---|---|---|",
-        ]
+        lines += ["## Columns", ""]
         for col_name, col in properties.items():
             raw_type = col.get("type", "")
             if isinstance(raw_type, list):
                 types = [t for t in raw_type if t != "null"]
-                nullable = "Yes" if "null" in raw_type else "No"
+                nullable = "null" in raw_type
                 type_str = types[0] if types else "unknown"
             else:
                 type_str = raw_type
-                nullable = "No" if col_name in required else "Yes"
+                nullable = col_name not in required
 
             dtype_override = col.get("x-dtype")
             if dtype_override:
                 type_str = dtype_override
 
             source = col.get("x-source", "")
-            col_description = escape_mdx(col.get("description", "").replace("|", "\\|").replace("\n", " ").strip())
+            col_description = escape_mdx(col.get("description", "").replace("\n", " ").strip())
 
             known_issue = col.get("x-known-issue")
             if known_issue:
-                col_description += f" ⚠️ *{known_issue}*"
+                col_description += f" ⚠️ *{escape_mdx(known_issue)}*"
 
-            lines.append(
-                f"| `{col_name}` | `{type_str}` | {nullable} | {source} | {col_description} |"
-            )
+            required_attr = "" if nullable else " required"
+            lines.append(f'<ResponseField name="{col_name}" type="{type_str}"{required_attr}>')
+            body = col_description
+            if source:
+                body += f" *Source: {source}.*"
+            lines.append(f"  {body}")
+            lines.append("</ResponseField>")
         lines.append("")
 
     # Required columns callout

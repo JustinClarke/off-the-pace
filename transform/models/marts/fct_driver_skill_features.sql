@@ -141,9 +141,8 @@ teammate_agg AS (
     GROUP BY st.race_year, st.race_id, st.ego_driver_id
 ),
 
--- Constructor structural pace (#6): one row per constructor-race, no lap grain
+-- Constructor structural pace: one row per constructor-race, no lap grain
 -- needed.
--- Initial transform release: replaces the legacy EW rolling index.
 -- Power/aero split not yet available at race grain (subsequent sector
 -- decomposition).
 constructor_final AS (

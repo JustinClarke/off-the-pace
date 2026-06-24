@@ -1,0 +1,51 @@
+---
+title: "What air was each driver running in, lap by lap?"
+sidebarTitle: "Dirty Air Lap Map"
+description: "A lap-by-lap grid of the aerodynamic environment every driver experienced free air, dirty air, tow, or DRS train across a whole race."
+---
+
+The lap air map shows the aerodynamic story of a race as a grid: one row per driver, one cell per lap, coloured by the air they were running in. It makes the invisible visible where a driver was stuck in a competitor's wake, where they caught a tow, and where they sat in a DRS train unable to break free.
+
+## What it shows
+
+Each cell classifies one driver's lap into an air state:
+
+- **Dirty air** (red): gap to the car ahead < 1.5s in the middle-third sector. Thermally loaded air disrupts downforce and overheats the tyres.
+- **Tow zone** (green): gap < 1.0s on a straight sector without active DRS slipstream benefit without full aerodynamic interference.
+- **DRS train** (amber): gap < 1.0s with DRS active a speed benefit but still constrained by the car ahead.
+- **Free air** (grey): gap > 2.0s or gap unavailable clean conditions, the baseline.
+
+Drivers are sorted by total dirty-air laps (most affected first); lap numbers run left to right.
+
+<Note>
+  Gap estimates are telemetry-derived. Laps with missing telemetry are shown as free-air (grey), so a grey cell can mean clean air *or* absent data read it alongside the dirty-air totals.
+</Note>
+
+## How to use it
+
+1. **Select a race** from the filter bar; the grid loads with drivers ranked by traffic exposure.
+2. **Scan a driver's row** to see their race shape long red runs are extended stints in traffic.
+3. **Look for amber blocks** to spot DRS trains where nobody could pass.
+4. **Hover a cell** for the thermal-load index and the closest gap reading on that lap.
+
+## Reading the signal correctly
+
+The air state is a **gap-and-sector heuristic**, not a wind-tunnel reading a 1.5s gap is the threshold, so a driver hovering just outside it reads as free air despite some wake. The map shows *exposure*, which is mostly driven by track position, not driver choice.
+
+<Warning>
+  Because missing telemetry defaults to grey, a driver with sparse telemetry can look like they ran in clean air all race. Cross-check with the [dirty air cost](/app/dirty-air-cost) leaderboard, which only taxes laps with a valid gap.
+</Warning>
+
+## Data source
+
+The chart queries `int_lap_air_state` via DuckDB-Wasm in the browser, for a single race.
+
+| Column | Meaning |
+|---|---|
+| `air_state` | The lap's classification: dirty air / tow / DRS train / free air |
+| `gap_to_ahead_s` | Closest gap reading used for classification |
+| `thermal_load_index` | Estimated thermal load from the wake (cell hover) |
+
+This is a **single-race** view across **2018–2024** data.
+
+For the full model definition, see the [`int_lap_air_state` reference](/reference/models/int/int_lap_air_state).

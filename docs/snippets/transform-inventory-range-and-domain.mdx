@@ -1,0 +1,32 @@
+| Model | Family | `expect_column_values_to_be_between` | `accepted_range` | `expect_table_row_count_to_be_between` | `accepted_values` | `expect_column_pair_values_A_to_be_greater_than_B` | Total |
+|---|---|---|---|---|---|---|---|
+| `stg_laps` | Staging |   |   |   | 1 |   | 1 |
+| `stg_results` | Staging |   |   |   | 1 |   | 1 |
+| `stg_sector_times` | Staging |   |   |   | 1 |   | 1 |
+| `stg_track_status` | Staging |   |   |   | 1 |   | 1 |
+| `dim_circuits` | Reference | 1 |   |   |   |   | 1 |
+| `int_dirty_air_tax_component` | Physics | 2 |   |   |   |   | 2 |
+| `int_lap_telemetry_aggregates` | Physics |   | 4 |   |   |   | 4 |
+| `int_constructor_structural_pace` | Pace Baselines | 2 |   |   |   | 1 | 3 |
+| `int_driver_circuit_affinity` | Skill | 2 |   |   |   |   | 2 |
+| `int_driver_circuit_era_affinity` | Skill | 2 |   |   | 1 |   | 3 |
+| `int_driver_season_ratings` | Skill | 2 |   |   |   |   | 2 |
+| `int_era_normalized_driver_rating` | Skill | 2 |   |   |   |   | 2 |
+| `int_lap_residual_decomposed` | Residual | 1 |   |   |   |   | 1 |
+| `int_sector_residual_decomposed` | Residual |   |   |   | 2 |   | 2 |
+| `int_tyre_surface_vs_bulk_decoupling` | Residual | 2 |   |   | 1 |   | 3 |
+| `int_constructor_deg_sensitivity` | Strategy | 6 |   |   | 1 |   | 7 |
+| `int_pit_loss_circuit` | Strategy | 2 |   |   |   |   | 2 |
+| `int_pit_strategy_value` | Strategy | 2 |   |   | 1 |   | 3 |
+| `int_sc_hazard_history` | Strategy | 7 |   |   |   |   | 7 |
+| `fct_cliff_prediction_features` | Marts | 2 |   |   |   |   | 2 |
+| `fct_driver_skill_features` | Marts | 1 |   |   |   |   | 1 |
+| `fct_ghost_car_pace` | Marts | 2 |   |   |   |   | 2 |
+| `fct_ghost_race_finish` | Marts | 4 |   |   |   |   | 4 |
+| `fct_lap_residuals` | Marts |   |   |   | 1 |   | 1 |
+| `fct_stint_features` | Marts | 1 |   |   |   |   | 1 |
+| `mart_corner_skill_driver` | Marts | 1 |   |   |   |   | 1 |
+| `mart_degradation_history_envelope` | Marts | 3 |   | 1 | 1 | 3 | 8 |
+| `circuit_reference` | Reference (seed) | 2 |   |   |   |   | 2 |
+| `compound_cliff_params` | Reference (seed) | 4 |   |   | 1 |   | 5 |
+| **Total** |  | 53 | 4 | 1 | 13 | 4 | **75** |

@@ -1,7 +1,7 @@
--- Transform v0.2 Fix 1: constructor-specific tyre degradation sensitivity.
+-- Constructor-specific tyre degradation sensitivity.
 --
--- DESIGN NOTE (Fix 1.1, 2026-06-11)
--- =================================
+-- DESIGN NOTE: degradation slope estimator
+-- =========================================
 -- Purpose: give the ghost-car recombination an interaction term that depends on
 -- host identity, so different hosts can produce different driver orders:
 --
@@ -54,23 +54,23 @@
 --
 -- Lap selection: clean laps only (correction_weight = 1.0), dry compounds
 -- (SOFT/MEDIUM/HARD), no rain, lap_in_stint > 1 (out-laps), pre-cliff only
--- (cliff_onset_passed = FALSE) the post-cliff nonlinearity is Fix 2's
--- per-constructor break-point shift, not this linear term.
+-- (cliff_onset_passed = FALSE) the post-cliff nonlinearity is the
+-- per-constructor break-point shift below, not this linear term.
 --
 -- Known limitation: with two drivers per car and stint FE, car-deg and
 -- driver-pair tyre management are not separable; the cell slope is their blend.
--- The Phase 2 teammate-swap harness (gate 4.1) is the designed test for this.
+-- A teammate-swap validation harness is the designed test for this.
 --
--- Deconfounding verdict (Fix 1.4): see analyses/deg_slope_fuel_deconfounding.sql.
+-- Deconfounding verdict: see analyses/deg_slope_fuel_deconfounding.sql.
 -- Slopes are fit on the post-fuel-correction residual; conditioning on fuel_mass_kg
 -- (identified across stints: same age at different fuel loads) moves the pooled age
 -- slope by only ~11-16% and preserves the constructor ordering and spread, so the
 -- slope is not a fuel artifact.
 --
--- DESIGN NOTE (Fix 2.2 per-constructor cliff-onset shift, 2026-06-11)
--- ====================================================================
--- The linear slope above is fit on PRE-cliff laps only. Fix 2 adds a second
--- deliverable: how much EARLIER or LATER each constructor's tyre cliff begins
+-- DESIGN NOTE: per-constructor cliff-onset shift estimator
+-- ==========================================================
+-- The linear slope above is fit on PRE-cliff laps only. This section adds a
+-- second deliverable: how much EARLIER or LATER each constructor's tyre cliff begins
 -- relative to the field onset already priced into compound_component_s
 -- (dim_compounds_season.compound_cliff_onset_laps). We do NOT re-locate the
 -- breakpoint per stint (too noisy on thin post-cliff samples); instead we measure
@@ -81,8 +81,9 @@
 -- (age_in_stint, hinge) per (constructor, compound, season), where
 --   hinge = laps_past_cliff = GREATEST(age - field_onset, 0)  (int_compound_cliff_predicted)
 -- over clean dry laps INCLUDING post-onset, stint-demeaned so stint level/skill/
--- circuit drop out. The age term absorbs the linear trend (the same quantity Fix 1
--- isolates); the hinge coefficient b_hinge is the EXTRA s/lap that kicks in after
+-- circuit drop out. The age term absorbs the linear trend (the same quantity the
+-- degradation-slope estimator above isolates); the hinge coefficient b_hinge is
+-- the EXTRA s/lap that kicks in after
 -- the field onset. 2x2 normal equations give b_hinge and b_age in closed form;
 -- det = Sxx*Szz - Sxz^2 must be > 0 for identification (a stint fully pre-onset
 -- contributes Szz = Sxz = 0, so a cell needs real post-onset variation).
@@ -108,21 +109,21 @@
 -- A constructor that degrades HARDER post-onset (dev_hinge > 0) gets a NEGATIVE
 -- shift = earlier effective onset = slower once past the cliff. severity is the
 -- per-(compound, season) median field severity, floored at 0.30 s/lap so a soft
--- cell cannot blow the ratio up; the shift is clipped to +/-5 laps. Min-cell rule:
+-- cell cannot blow the ratio up; the shift is clipped to +/-3 laps. Min-cell rule:
 -- n_post >= 30 AND n_stints >= 5 AND det > 0 AND Szz > 0; non-qualifying cells get
 -- cliff_onset_shift_laps = 0 (field-timed cliff), is_low_sample_cliff = TRUE.
--- cliff_onset_shift_se_laps is carried for Fix 3 SE propagation.
+-- cliff_onset_shift_se_laps is carried for downstream SE propagation.
 --
 -- Why an onset shift, not a raw slope-difference term: a slope difference grows
 -- unbounded with stint length (a thin-cell outlier slope would dominate a 25-lap
 -- post-cliff run), whereas an onset shift's recombination contribution is bounded
 -- by severity*shift. The break-point shift is the outlier-robust primitive near a
--- cliff, which is exactly why the roadmap specified an onset shift here.
+-- cliff.
 --
 -- Output grain: one row per (race_year, constructor_id, compound).
 -- deg_slope_s_per_lap > 0 = degrades faster than the field on that compound.
 -- cliff_onset_shift_laps > 0 = cliff arrives LATER than the field (gentler).
--- slope_se / posterior sd / n_laps are carried for Fix 3 (SE propagation).
+-- slope_se / posterior sd / n_laps are carried for downstream SE propagation.
 
 {{ config(materialized='table', tags=['causal_decomposition', 'constructor', 'degradation']) }}
 
@@ -238,7 +239,7 @@ tau AS (
 ),
 
 -- ============================================================================
--- Fix 2.2: per-constructor cliff-onset shift (hinge-coefficient proxy)
+-- Per-constructor cliff-onset shift (hinge-coefficient proxy)
 -- ============================================================================
 
 -- Clean dry laps INCLUDING post-onset, carrying the field hinge from
@@ -456,15 +457,15 @@ SELECT
     c.n_laps,
     c.n_stints,
     NOT c.qualifies                         AS is_low_sample,
-    -- Fix 2.2: per-constructor cliff-onset shift (laps). Positive = cliff arrives
+    -- Per-constructor cliff-onset shift (laps). Positive = cliff arrives
     -- LATER than the field (gentler); negative = earlier (harsher). 0 for cells
-    -- without enough post-onset evidence. Clipped to +/-5 laps.
+    -- without enough post-onset evidence. Clipped to +/-3 laps.
     LEAST(GREATEST(
         -COALESCE(cs.hinge_dev_shrunk, 0.0) * cs.ref_depth
             / NULLIF(cs.severity_used, 0),
         -3.0), 3.0)                         AS cliff_onset_shift_laps,
     -- SE of the shift (delta-method through the same ref_depth/severity map);
-    -- carried for Fix 3 SE propagation. NULL for non-qualifying cells.
+    -- carried for downstream SE propagation. NULL for non-qualifying cells.
     CASE WHEN cs.cliff_qualifies
          THEN cs.b_hinge_se * cs.ref_depth / NULLIF(cs.severity_used, 0) END
                                             AS cliff_onset_shift_se_laps,

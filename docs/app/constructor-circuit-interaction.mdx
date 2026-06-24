@@ -1,0 +1,50 @@
+---
+title: "Which circuits suit each car?"
+sidebarTitle: "Circuit Interaction"
+description: "A heatmap of how each constructor over- or under-performs at specific circuits relative to their own season average the circuit × constructor interaction term."
+---
+
+Some cars are built for Monza's straights, others for Monaco's corners. This heatmap measures that fit directly: for each constructor and circuit, how much they over- or under-perform relative to **their own** season average the circuit × constructor interaction term. Negative (green) means the car is better than its season average at that circuit; positive (red) means worse.
+
+## What it shows
+
+Each cell is one constructor × circuit interaction:
+
+- **Interaction term**: the deviation of the constructor's race-average pace from their own season mean at a circuit, estimated with exponentially weighted smoothing and Bayesian shrinkage toward zero (prior weight = 3 races).
+- **Sign convention**: negative = the constructor outperforms their season average at that circuit (green); positive = underperforms (red). Ferrari at Monza, for instance, typically shows a favourable negative interaction from their low-drag setup.
+- **Average shown**: cells display the multi-season average of the race-level interaction, requiring at least 2 races at the circuit to appear.
+
+Constructors are sorted by overall average interaction (lowest first); circuits are sorted alphabetically.
+
+<Note>
+  Empty cells indicate fewer than 2 race visits too few to estimate an interaction, not a zero interaction.
+</Note>
+
+## How to use it
+
+1. **Scan a constructor's row** for their circuit strengths (green) and weaknesses (red).
+2. **Scan a circuit's column** to see which cars the track flatters.
+3. **Look for low-drag / high-downforce patterns** a car green at Monza and red at Monaco has a clear aero bias.
+4. **Remember the shrinkage** a faint colour on a 2-race cell is mostly prior.
+
+## Reading the signal correctly
+
+The interaction is **within-constructor**: it compares a car to its own season form, so it is not a pace ranking. A midfield car can show a strong positive interaction at a circuit that suits it without ever being quick in absolute terms.
+
+<Warning>
+  With a prior weight of 3 races, circuits a team has visited only twice are heavily shrunk and faint by design. Read strong colours on high-visit cells, and treat thin cells as directional only.
+</Warning>
+
+## Data source
+
+The chart queries `int_circuit_x_constructor_interaction` via DuckDB-Wasm in the browser.
+
+| Column | Meaning |
+|---|---|
+| `interaction_s` | Constructor's circuit pace vs their own season mean (the cell colour) |
+| `n_races` | Races at the circuit; gates display at `≥ 2` |
+| `constructor_id` / `circuit_id` | The heatmap axes |
+
+The data window covers **2018–2024**.
+
+For the full model definition, see the [`int_circuit_x_constructor_interaction` reference](/reference/models/int/int_circuit_x_constructor_interaction).

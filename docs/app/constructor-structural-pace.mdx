@@ -1,0 +1,50 @@
+---
+title: "How fast is each car, with the driver removed?"
+sidebarTitle: "Structural Pace"
+description: "Each constructor's car contribution to lap time from a fixed-effects panel model, after controlling for driver skill, tyre state, fuel, and conditions."
+---
+
+When a car wins, how much was the car and how much was the driver? Constructor structural pace isolates the machinery: a fixed-effects panel regression estimates each team's car contribution to lap time after controlling for driver skill, tyre state, fuel, and ambient conditions. Negative means the car is faster than the field average.
+
+## What it shows
+
+Each constructor carries a car-only pace estimate:
+
+- **Structural pace**: the team's car contribution to lap time from the panel model. Negative = faster than the field average for that race; positive = slower.
+- **Confidence interval**: estimation uncertainty teams with few clean teammate-pair observations have wider intervals.
+- **Race vs qualifying**: race pace (`int_constructor_structural_pace`) and qualifying pace (`int_constructor_structural_pace_qualifying`) are estimated separately, because race tyre-management strategies decorrelate from single-lap qualifying performance.
+
+The season view averages across all rounds; the per-race view shows a single-round estimate.
+
+<Note>
+  Because driver skill is controlled for in the panel, two teams with very different driver line-ups are still comparable on car pace alone.
+</Note>
+
+## How to use it
+
+1. **Select a season or race** from the filter bar; the structural pace loads.
+2. **Rank the field on car pace** with the driver removed.
+3. **Read the CI** before separating two close teams overlapping intervals are a tie.
+4. **Toggle race versus qualifying** to see which cars are single-lap quick versus race-strong (see also [party mode](/app/party-mode)).
+
+## Reading the signal correctly
+
+Structural pace is the car's contribution **relative to the field**, estimated jointly with driver effects it is not a top-speed or downforce figure. A team with an unbalanced driver pairing or few clean teammate laps yields a wider, less certain estimate.
+
+<Warning>
+  Panel fixed-effects need clean teammate-pair observations to separate car from driver. New teams, mid-season driver swaps, or rain-shortened rounds produce wide intervals; don't over-read a point estimate without its CI.
+</Warning>
+
+## Data source
+
+The chart queries `int_constructor_structural_pace` (race) and `int_constructor_structural_pace_qualifying` (qualifying) via DuckDB-Wasm in the browser.
+
+| Column | Meaning |
+|---|---|
+| `structural_pace_s` | Car contribution to lap time (negative = faster than field) |
+| `structural_pace_ci_lower_s` / `_upper_s` | 95% confidence interval on the estimate |
+| `session` | Whether the estimate is race or qualifying |
+
+The data window covers **2018–2024**.
+
+For the full model definitions, see the [`int_constructor_structural_pace` reference](/reference/models/int/int_constructor_structural_pace) and the [`int_constructor_structural_pace_qualifying` reference](/reference/models/int/int_constructor_structural_pace_qualifying).

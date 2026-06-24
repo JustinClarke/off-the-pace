@@ -1,4 +1,4 @@
--- Second Model Sequence #4a: Sector-grain residual decomposition.
+-- Sector-grain residual decomposition.
 -- Allocates lap-level physics components proportionally to sector time.
 -- Grain: (lap_id, sector) 3 rows per lap matching stg_sector_times.
 -- PK: sector_id = lap_id || '_S' || sector (surrogate)

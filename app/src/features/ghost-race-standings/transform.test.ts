@@ -17,6 +17,7 @@ function makeRow(overrides: Partial<EraAffinityRow> = {}): EraAffinityRow {
     shrunk_affinity_ci_low_s: -0.54,
     shrunk_affinity_ci_high_s: -0.06,
     affinity_confidence: 0.375,
+    constructor_id: 'Mercedes',
     ...overrides,
   }
 }

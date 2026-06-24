@@ -104,7 +104,7 @@ def parity(target: str, version: str, sample: np.ndarray) -> dict:
 
 def nan_bearing_sample(n: int = PARITY_ROWS, seed: int = S.RANDOM_STATE) -> np.ndarray:
     """500-row float32 sample guaranteed to contain NaN (R9). Sourced from training
-    today (holdout empty per §16.6); the NaN concern is orthogonal to season."""
+    today; the NaN concern is orthogonal to season."""
     bundle = F.load_features(target="degradation_regressor_p50")
     X = bundle.X_train.to_numpy(dtype=np.float32)
     rng = np.random.default_rng(seed)
@@ -120,7 +120,7 @@ def nan_bearing_sample(n: int = PARITY_ROWS, seed: int = S.RANDOM_STATE) -> np.n
     return sample
 
 
-# ─── Publish manifest (the §3 SoT-chain deliverable application layer reads) ────────────────
+# ─── Publish manifest (the SoT-chain deliverable the application layer reads) ───────────────
 def _sha256(path: Path) -> str:
     h = hashlib.sha256()
     h.update(path.read_bytes())
@@ -240,7 +240,7 @@ def main() -> int:
         if not r["pass"]:
             failed.append(t)
     if failed:
-        print(f"\nPARITY FAILED: {failed}-do NOT loosen atol; escalate (R1/§15-4).")
+        print(f"\nPARITY FAILED: {failed}-do NOT loosen atol; escalate.")
         return 1
     print("\nONNX parity OK for all targets.")
     # Finalise the publish manifest only on a full, all-pass export (the application layer contract).

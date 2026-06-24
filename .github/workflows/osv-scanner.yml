@@ -1,0 +1,54 @@
+name: OSV-Scanner
+
+# Cross-ecosystem dependency vulnerability scan,
+# using Google's OSV-Scanner reusable workflows. Complements pip-audit / pnpm audit in
+# security-scan.yml by querying the OSV database across every lockfile in one pass and
+# pushing deduplicated SARIF into the Security tab (the same surface CodeQL writes to).
+#
+#   • On a PR: the *-pr* reusable workflow diffs against the base branch and only flags
+#     vulnerabilities the PR newly introduces a precise, low-noise hard gate.
+#   • On schedule / push to main: a full scan of every lockfile, catching advisories
+#     published after the code already merged.
+#
+# Lockfiles scanned: the deployable Python surfaces (root + ml) and the app (pnpm).
+# Pinned by tag; Dependabot's github-actions ecosystem keeps the @v2.3.8 ref current.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 7 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  scan-pr:
+    name: Scan PR (new vulnerabilities only)
+    if: github.event_name == 'pull_request'
+    permissions:
+      actions: read
+      security-events: write
+      contents: read
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.8
+    with:
+      scan-args: |-
+        --lockfile=./requirements.txt
+        --lockfile=./ml/requirements.txt
+        --lockfile=./app/pnpm-lock.yaml
+
+  scan-full:
+    name: Full scan (all lockfiles)
+    if: github.event_name != 'pull_request'
+    permissions:
+      actions: read
+      security-events: write
+      contents: read
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.8
+    with:
+      scan-args: |-
+        --lockfile=./requirements.txt
+        --lockfile=./ml/requirements.txt
+        --lockfile=./app/pnpm-lock.yaml

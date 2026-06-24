@@ -1,0 +1,59 @@
+name: SBOM
+
+# Software Bill of Materials.
+# Generates a CycloneDX SBOM with syft (via anchore/sbom-action) cataloguing both code
+# surfaces from their committed lockfiles Python (requirements.txt + ml/requirements.txt)
+# and the app (app/pnpm-lock.yaml) so every release ships an inventory of exactly what
+# is in it. Runs on a published release and on manual dispatch.
+#
+# Build provenance / attestation of the *deployed* artifact is stubbed at the bottom of
+# this file; deploy.yml is where app/dist and the CDN objects are produced in CI.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    name: Generate CycloneDX SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write   # attach the SBOM as a release asset on `release` events
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Lockfile-driven scan of the whole repo: syft reads requirements.txt,
+      # ml/requirements.txt and app/pnpm-lock.yaml without needing deps installed, so the
+      # inventory is deterministic and matches what the pinned builds resolve.
+      - name: Generate SBOM (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cyclonedx.json
+          artifact-name: sbom.cyclonedx.json
+          # Attaches to the GitHub Release automatically on `release` events.
+          upload-release-assets: true
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cyclonedx.json
+          if-no-files-found: error
+
+      # ── Provenance hook ────────────────────────────────────────────────────────────
+      # Once deploy.yml builds the canonical app bundle in CI, attest it here so the
+      # released artifact carries verifiable provenance + an SBOM attestation:
+      #
+      #   permissions: { id-token: write, attestations: write, contents: read }
+      #   - uses: actions/attest-build-provenance@v2
+      #     with: { subject-path: 'app/dist/**' }
+      #   - uses: actions/attest-sbom@v2
+      #     with: { subject-path: 'app/dist/**', sbom-path: 'sbom.cyclonedx.json' }

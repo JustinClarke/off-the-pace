@@ -1,0 +1,59 @@
+---
+title: "Verify: confirm Bronze integrity"
+sidebarTitle: "Verify"
+description: "Re-run the data-quality gate against every file already on disk, and regenerate the coverage table the rest of the docs link to."
+---
+
+`verify_bronze.py` re-checks everything ingestion already wrote dataset presence, the same four quality checks from [Data Quality](/data/data-quality), and row-count distributions as a standalone pass over `data/bronze/`. It's the script to reach for after a backfill finishes, or any time you want to confirm Bronze is healthy without re-reading ingestion logs.
+
+<Steps>
+  <Step title="Run it">
+    ```bash
+    make verify-bronze
+    ```
+  </Step>
+  <Step title="Read the three sections">
+    The output walks through dataset presence, then data quality, then row-count distribution, each printed as its own block.
+  </Step>
+</Steps>
+
+<Check>
+  Only seasons present on disk are checked, so this works identically after a single-race pull, `make ingest-recent`, or a full `make ingest-all` there's no separate "partial" mode to remember.
+</Check>
+
+## What each section checks
+
+<AccordionGroup>
+  <Accordion title="1. Dataset presence">
+    For every season with a `laps/season=<year>/` directory, counts how many races are present against the expected count for that season, and how many of those races have all four core datasets (`laps`, `weather`, `race_control`, `telemetry`). A race missing one of the four is flagged by name.
+  </Accordion>
+  <Accordion title="2. Data quality">
+    Re-runs all four `DataQualityEngine` checks schema, row count, null rate, duplicate lap keys against every laps Parquet file on disk, independent of whatever the original ingestion run logged. A file passes only if it has no high-null columns and no duplicate keys; the per-issue counts are summarized at the end.
+  </Accordion>
+  <Accordion title="3. Row-count distribution">
+    For each season and dataset, reports the number of races present and the median/min/max row count per race. Useful for spotting an outlier race one with far fewer telemetry samples than its neighbours, for example without opening a single file by hand.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  The data-quality re-check here uses a 10% null-rate threshold, looser than the 5% threshold `ingest.py` applies inline during ingestion (see [Data Quality](/data/data-quality)). A file can pass this verification pass while still having logged a null-rate warning the first time it was written.
+</Note>
+
+## Regenerating the coverage table
+
+```bash
+verify_bronze.py --markdown
+```
+
+emits the Bronze coverage table season-by-season counts of how many races have each dataset as Markdown, read straight off disk. `make docs-coverage` wraps this into `docs/snippets/bronze-coverage.mdx`, the snippet embedded on [Known Issues](/data/known-issues); a CI gate fails if the committed snippet ever drifts from a fresh regeneration, so the table in the docs can't go stale.
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Manifest report" icon="list-checks" href="/ingestion/manifest-report">
+    Per-run status and schema-drift detection, instead of a point-in-time disk check.
+  </Card>
+  <Card title="Architecture" icon="code" href="/ingestion/architecture">
+    How the data-quality gate runs inline during ingestion itself.
+  </Card>
+</CardGroup>

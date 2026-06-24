@@ -1,4 +1,6 @@
-export const methodologyHref = 'https://offthepace.mintlify.app/ml/overview'
+import { CANONICAL_DOCS_BASE } from '../../config'
+
+export const methodologyHref = `${CANONICAL_DOCS_BASE}/app/blind-test-scoreboard`
 
 export const methodologyContent = `
 The Blind Test Scoreboard shows the degradation models' out-of-sample performance on the 2024

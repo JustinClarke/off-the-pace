@@ -1,0 +1,48 @@
+---
+title: "Who is genuinely faster in the wet?"
+sidebarTitle: "Wet-Race Specialist"
+description: "Each driver's wet-weather skill advantage their race skill residual in the wet minus their dry baseline across their full 2018–2024 career."
+---
+
+Rain reshuffles the order, but how much of that is the driver and how much is the car's wet setup? This chart isolates the driver: it compares each driver's race skill residual on wet-flagged races against their own dry-race baseline, across their full career. Because the residual already removes car pace, tyres, fuel, and conditions, a positive wet advantage reflects genuine adaptability rather than a good wet car.
+
+## What it shows
+
+Each driver carries a single wet-advantage figure:
+
+- **Wet advantage**: wet skill residual minus dry skill residual. Positive = the driver is faster (relative to the field model) in wet conditions than their dry-race baseline. It is shrunk toward zero by sample size (a k=6 prior), so low-sample drivers appear closer to neutral.
+- **Wet flag (`race_wet_flag`)**: from `fct_driver_skill_features`; marks a race where weather significantly affected conditions during the timed stint window.
+- **Eligibility**: at least 4 wet races and 5 dry races, each with ≥5 clean laps. Drivers below that are excluded.
+
+<Note>
+  The skill residual already accounts for car pace, tyre compound, fuel load, and ambient conditions so the wet advantage reflects driver adaptability, not the car's wet-weather setup.
+</Note>
+
+## How to use it
+
+1. **Read the ranked wet-advantage bars** drivers at the top consistently outperform their dry baseline when it rains.
+2. **Remember the shrinkage** a driver near zero may simply have few wet races, not zero wet skill.
+3. **Cross-check eligibility** only drivers meeting the wet/dry minimums appear; absence is a sample-size statement.
+4. **Export the data** to compare wet advantage against career length or era.
+
+## Reading the signal correctly
+
+This is a **within-driver** difference (wet minus that driver's own dry baseline), so it is not a wet-weather pace ranking a slower driver with a large positive advantage gains more *relative to themselves* in the rain than a quick driver who is merely consistent.
+
+<Warning>
+  Wet races are rare and heterogeneous (a damp start versus a full monsoon are both "wet"). Even after shrinkage, treat wet advantage as a lower-confidence signal than dry-season ratings, and read it alongside the [decomposition limitations](/decomposition/limitations).
+</Warning>
+
+## Data source
+
+The chart queries `fct_driver_skill_features` via DuckDB-Wasm in the browser, aggregating across each driver's career.
+
+| Column | Meaning |
+|---|---|
+| `driver_skill_proxy_mean_s` | Per-race skill residual, split by wet/dry flag |
+| `race_wet_flag` | Whether weather materially affected the race |
+| `wet_advantage_s` | Wet residual minus dry residual, shrunk by sample size |
+
+The data window covers a **career aggregation over 2018–2024**.
+
+For the full model definition, see the [`fct_driver_skill_features` reference](/reference/models/fct/fct_driver_skill_features).

@@ -1,0 +1,59 @@
+name: App E2E
+
+# Playwright end-to-end smoke suite. Drives the production bundle
+# in headless Chromium to prove the three heavy client-side subsystems boot against the LIVE GCS CDN:
+# DuckDB-wasm init + a real query, an in-browser ONNX inference, and the additive-identity UI.
+#
+# Self-contained: playwright.config.ts serves the built bundle via `vite preview` (cross-origin-isolated)
+# and the app fetches data + models from the prod CDN, so no warehouse is required. To smoke a real
+# deploy instead, set E2E_BASE_URL to a Firebase preview-channel URL. See app/e2e/ + .github/PERFORMANCE.md.
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - '.github/workflows/app-e2e.yml'
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  e2e:
+    name: Playwright smoke (chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.4.0
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build app
+        run: pnpm build
+
+      - name: Run E2E (vite preview → live CDN data)
+        run: pnpm exec playwright test
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: app/playwright-report/
+          retention-days: 7

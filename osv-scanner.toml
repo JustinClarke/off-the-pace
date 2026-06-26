@@ -1,0 +1,27 @@
+# OSV-Scanner config (see .github/workflows/osv-scanner.yml).
+#
+# Surgical ignores ONLY — the scan stays a hard gate for every other advisory, and any
+# NEW vulnerability (including in these same packages) still fails CI. Each entry below is
+# a dev-only dependency (test/build tooling, never shipped to the browser bundle) whose
+# advisory is not reachable in this project's usage. Revisit on the next dep bump; the
+# proper long-term fix is happy-dom >= 20.8.9 + an esbuild >= 0.25.0 override.
+
+# esbuild dev-server can be requested cross-origin (esbuild serve). We never run `esbuild
+# serve`; esbuild is a build-time transitive of vite only. Fixed in 0.25.0.
+[[IgnoredVulns]]
+id = "GHSA-67mh-4wv8-2f99"
+reason = "Dev/build-only (vite transitive). esbuild serve is never used; not in the shipped bundle."
+
+# happy-dom code execution via crafted HTML/script. happy-dom is the vitest test
+# environment, fed only author-controlled fixtures — no untrusted HTML is parsed.
+[[IgnoredVulns]]
+id = "GHSA-37j7-fg3j-429f"
+reason = "Dev-only test DOM (vitest). Only author-controlled fixtures are parsed; not shipped."
+
+[[IgnoredVulns]]
+id = "GHSA-96g7-g7g9-jxw8"
+reason = "Dev-only test DOM (vitest). Only author-controlled fixtures are parsed; not shipped."
+
+[[IgnoredVulns]]
+id = "GHSA-w4gp-fjgq-3q4g"
+reason = "Dev-only test DOM (vitest). Only author-controlled fixtures are parsed; not shipped."

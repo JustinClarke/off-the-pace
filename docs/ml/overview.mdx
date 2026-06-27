@@ -8,6 +8,13 @@ import MLInventory from '/snippets/ml-inventory.mdx';
 
 The seven-term decomposition tells you where each lap's time went. The machine layer asks what happens next. Five XGBoost models sit on top of the decomposed lap data and translate per-lap physics signals into forward-looking predictions about tyre behaviour how much pace the next lap will cost, how close the cliff is, and how many usable laps remain in the stint.
 
+<Note>
+  **For a reviewer:**
+  - **Decision:** gradient-boosted trees over a hand-built physics feature mart, exported to ONNX for in-browser scoring; interpretability and parity over raw model flexibility.
+  - **Trade-off:** tree models on tabular features, not deep learning, so gains come from the decomposition's signal rather than model capacity.
+  - **Proof:** train/serve parity to `atol=1e-5`, calibrated prediction intervals, and a no-leakage feature spine, all enforced in CI.
+</Note>
+
 <MLInventory />
 
 ## Why ML is needed on top of the physics decomposition
@@ -100,7 +107,7 @@ make ml-test  # 28 tests: leakage spine, ONNX parity, output schema, beats-basel
   <Card title="The CI Contract" href="/ml/ci/overview" icon="vial">
     All 28 tests 12 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 7 evaluation gates, 1 target bound grouped and explained.
   </Card>
-  <Card title="Model Reference" href="/reference/ml/degradation-model-v1" icon="database">
+  <Card title="Model Reference" href="/reference/ml/degradation-model" icon="database">
     The generated model card: per-model hyperparameters, headline metrics, calibration, cohorts, and reproducibility.
   </Card>
 </CardGroup>

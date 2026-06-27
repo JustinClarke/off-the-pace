@@ -100,11 +100,24 @@ TS_GLOBS = [
 # Files exempt from header lint (test helpers, inits, type stubs, etc.)
 HEADER_EXEMPT_SUFFIXES = ("__init__.py", "conftest.py", "types.ts", "vite-env.d.ts")
 HEADER_EXEMPT_DIRS = {"__pycache__", "node_modules", ".venv", "dist", "target"}
+# Leaf UI under app/src: presentational React view components carry no module
+# header by convention. The lint covers logic/subsystem modules (data, ml, lib,
+# state, observability), not view leaves or tests. See DOCS_AUDIT.md P3.
+APP_LEAF_UI_DIRS = {"features", "routes", "ui", "nav"}
+
+
+def _is_test_file(name: str) -> bool:
+    return name.endswith((".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx"))
 
 
 def _exempt(path: Path) -> bool:
     if any(part in HEADER_EXEMPT_DIRS for part in path.parts):
         return True
+    if _is_test_file(path.name):
+        return True  # tests carry no module header by convention
+    parts = set(path.parts)
+    if {"app", "src"} <= parts and parts & APP_LEAF_UI_DIRS:
+        return True  # leaf UI view component see APP_LEAF_UI_DIRS
     return path.name in HEADER_EXEMPT_SUFFIXES or path.name.startswith("_")
 
 
@@ -135,6 +148,8 @@ def _has_sql_header(path: Path) -> bool:
         return True
     for line in lines[:5]:
         stripped = line.strip()
+        if stripped.startswith("{{"):
+            continue  # Jinja statement (e.g. {{ config(...) }})-structural, skip like a shebang
         if stripped.startswith("--") or stripped.startswith("{#") or stripped.startswith("{%"):
             return True
         if stripped:

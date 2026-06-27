@@ -10,7 +10,7 @@ description: "The scheduled, retried, quality-gated DAG that rebuilds the wareho
 ingest → transform (+ identity & byte oracles) → data-quality → ml → export → publish(staging) → verify
 ```
 
-[`pipeline.yml`](../.github/workflows/pipeline.yml) runs this as one job where each stage consumes the previous stage's `data/` on disk. Triggered via `workflow_dispatch` (with a `season` input) or a weekly schedule.
+[`pipeline.yml`](https://github.com/JustinClarke/off-the-pace/blob/main/.github/workflows/pipeline.yml) runs this as one job where each stage consumes the previous stage's `data/` on disk. Triggered via `workflow_dispatch` (with a `season` input) or a weekly schedule.
 
 <Warning>
   **Runner constraint:** the warehouse rebuild needs the ~6 GB bronze corpus, which doesn't fit a fresh GitHub-hosted runner. Run on a **self-hosted runner with a persistent `data/`** set repo var `PIPELINE_RUNNER` to its label so ingest is incremental. The job guards on `vars.PIPELINE_ENABLED == 'true'`, so it never fires before that's deliberately set.

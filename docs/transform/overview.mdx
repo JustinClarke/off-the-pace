@@ -8,6 +8,13 @@ import TransformInventory from '/snippets/transform-inventory.mdx';
 
 dbt models turn raw lap times into seven physics-attributed seconds and a driver-skill residual, in one topological pass from Bronze Parquet to feature mart. Every model is a single `SELECT` statement; dbt resolves the `{{ ref() }}` graph and runs models in dependency order, so no contributor manages `CREATE`/`DROP` sequencing by hand. This page orients you to that DAG end to end: what each tier materializes and why, the three knobs that retune the whole layer, and a map of the eight model families the rest of this tab is organised around.
 
+<Note>
+  **For a reviewer:**
+  - **Decision:** a medallion warehouse (staging → intermediate → marts) where every model is a single, tested `SELECT` and lineage is resolved by dbt, not by hand.
+  - **Trade-off:** pushing all business logic into SQL means a large model graph (60 models) to keep coherent and documented.
+  - **Proof:** the seven-term additive identity closes to zero on every lap in CI, and 443 tests gate every build.
+</Note>
+
 ```mermaid
 flowchart LR
     Bronze["Bronze Parquet"] --> Staging["Staging (12)"]

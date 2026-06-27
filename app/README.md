@@ -141,7 +141,7 @@ CI gate see [.github/CONTRIBUTING.md](../.github/CONTRIBUTING.md) ("Documenting 
 feature") and run `make docs-app-audit` to check coverage. In short, when you add or change a
 feature, in the same PR:
 
-1. write/update `docs/app/<dir>.mdx` from `docs/app/_TEMPLATE.mdx`,
+1. write/update `docs/app/<dir>.mdx` from `docs/snippets/app-page-template.mdx`,
 2. add the slug to the `docs.json` "App & Visualizations" group,
 3. set `methodologyHref` to `` `${CANONICAL_DOCS_BASE}/app/<dir>` ``,
 4. run `make docs-app-audit` and `make docs-facts` green.

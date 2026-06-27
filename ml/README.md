@@ -2,7 +2,7 @@
 
 XGBoost tyre-degradation models trained on `fct_cliff_prediction_features` (the gold lap-grain mart).
 Reads the warehouse **read-only**; publishes artefacts to `ml/models/`, which the application layer pulls from.
-Narrative docs: [Machine Learning section](../docs/ml/overview.mdx) · auto-generated [model card](../docs/reference/ml/degradation-model-v1.mdx).
+Narrative docs: [Machine Learning section](../docs/ml/overview.mdx) · auto-generated [model card](../docs/reference/ml/degradation-model.mdx).
 
 ## Production artefacts
 

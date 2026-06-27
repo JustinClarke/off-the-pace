@@ -42,21 +42,31 @@
     },
     "tabs": [
       {
-        "tab": "Overview",
-        "icon": "house",
+        "tab": "Start Here",
+        "icon": "compass",
         "groups": [
           {
-            "group": "What You Can Do",
-            "icon": "lightbulb",
+            "group": "For Reviewers",
+            "icon": "user-check",
             "pages": [
               "index",
-              "key-concepts"
+              "engineering-highlights",
+              "about"
             ]
           },
           {
-            "group": "Glossary",
+            "group": "How It's Built",
+            "icon": "sitemap",
+            "pages": [
+              "system-design",
+              "data-engineering"
+            ]
+          },
+          {
+            "group": "Key Concepts",
             "icon": "book-marked",
             "pages": [
+              "key-concepts",
               "reference/glossary"
             ]
           },
@@ -330,7 +340,7 @@
             "group": "Model Reference",
             "icon": "database",
             "pages": [
-              "reference/ml/degradation-model-v1"
+              "reference/ml/degradation-model"
             ]
           }
         ]

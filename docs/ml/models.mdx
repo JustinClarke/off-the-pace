@@ -25,7 +25,7 @@ Off The Pace trains five XGBoost models on the same per-lap feature matrix and h
 
 <MLMetrics />
 
-*CV is the season-grouped `TimeSeriesSplit` mean across five folds. Eval is the final fold (2024), standing in as a holdout until 2025 data ingests. See [Validation](/ml/validation) for the full CV scheme and the per-cohort baselines. For individual model hyperparameters and per-cohort breakdowns, see the [Model Reference](/reference/ml/degradation-model-v1).*
+*CV is the season-grouped `TimeSeriesSplit` mean across five folds. Eval is the final fold (2024), standing in as a holdout until 2025 data ingests. See [Validation](/ml/validation) for the full CV scheme and the per-cohort baselines. For individual model hyperparameters and per-cohort breakdowns, see the [Model Reference](/reference/ml/degradation-model).*
 
 ---
 
@@ -39,7 +39,7 @@ where $\mathcal{F}$ is the space of CART trees and $K$ is `n_estimators`. Traini
 
 $$\mathcal{L} = \sum_i \ell\!\left(y_i,\, \hat{y}_i\right) \;+\; \sum_{k=1}^{K}\Omega(f_k), \qquad \Omega(f) = \gamma\,T \;+\; \tfrac{1}{2}\lambda\lVert w\rVert^2 \;+\; \alpha\lVert w\rVert_1$$
 
-$T$ is a tree's leaf count and $w$ its leaf weights. The three regularisation strengths map directly to the tuned hyperparameters in the [model card](/reference/ml/degradation-model-v1): $\gamma$ = `gamma` (minimum split-loss), $\lambda$ = `reg_lambda` (L2), $\alpha$ = `reg_alpha` (L1). The **only** thing that differs between the five models is the per-row loss $\ell$ the objective function below.
+$T$ is a tree's leaf count and $w$ its leaf weights. The three regularisation strengths map directly to the tuned hyperparameters in the [model card](/reference/ml/degradation-model): $\gamma$ = `gamma` (minimum split-loss), $\lambda$ = `reg_lambda` (L2), $\alpha$ = `reg_alpha` (L1). The **only** thing that differs between the five models is the per-row loss $\ell$ the objective function below.
 
 ---
 
@@ -143,6 +143,19 @@ Every model is exported to ONNX and passes a round-trip parity test to `atol=1e-
     A symmetric band tight around zero means a settled tyre; a band that fans out on the positive side is a tyre starting to ask questions.
   </Accordion>
   <Accordion title="Why gradient-boosted trees and not one regression?" icon="circle-question">
-    The decomposition already runs the linear, physics-grounded corrections each one a single coefficient per dimension. The cliff is where that approach runs out: it is an *interaction* effect ("Soft **and** lap 14 **and** six laps of dirty air **and** a hot low-grip surface"), and a linear model would need every interaction term hand-specified. Boosted trees discover the interactions that matter from the data, which is precisely the job the linear layer cannot do. The trade is interpretability, recovered post-hoc via SHAP (see [Model Reference → feature importance](/reference/ml/degradation-model-v1#feature-importance-shap-vs-permutation)).
+    The decomposition already runs the linear, physics-grounded corrections each one a single coefficient per dimension. The cliff is where that approach runs out: it is an *interaction* effect ("Soft **and** lap 14 **and** six laps of dirty air **and** a hot low-grip surface"), and a linear model would need every interaction term hand-specified. Boosted trees discover the interactions that matter from the data, which is precisely the job the linear layer cannot do. The trade is interpretability, recovered post-hoc via SHAP (see [Model Reference → feature importance](/reference/ml/degradation-model#feature-importance-shap-vs-permutation)).
   </Accordion>
 </AccordionGroup>
+
+---
+
+## What the p50 regressor learned
+
+A partial-dependence plot isolates how the median-degradation model's output moves with each of its three most important features, holding the rest fixed the post-hoc interpretability the SHAP analysis quantifies.
+
+<img src="/images/ml/pdp-degradation-regressor-p50.png" alt="Partial-dependence plot for degradation_regressor_p50 across its top-3 features: push_residual, cliff_onset_passed, and laps_past_cliff" />
+
+- **`push_residual`** is the dominant, near-monotone driver: the harder a lap is pushed relative to its stint, the more the model expects the *next* lap to give back.
+- **`cliff_onset_passed`** (a binary flag) and **`laps_past_cliff`** move the median once the tyre crosses its modelled cliff `laps_past_cliff` saturates almost immediately, consistent with the cliff being a step change rather than a gradual slope.
+
+See the [Model Reference](/reference/ml/degradation-model#feature-importance-shap-vs-permutation) for the full SHAP-vs-permutation importance ranking behind this selection.

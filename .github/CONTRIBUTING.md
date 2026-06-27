@@ -137,7 +137,7 @@ Quick checklist:
 ### Add or change an app feature
 Every shipped feature ships its end-user docs in the **same PR** as its code. When you add or
 change a `app/src/features/<dir>/` feature:
-1. Write/update `docs/app/<dir>.mdx` from [`docs/app/_TEMPLATE.mdx`](../docs/app/_TEMPLATE.mdx) - the slug is the feature directory name.
+1. Write/update `docs/app/<dir>.mdx` from [`docs/snippets/app-page-template.mdx`](../docs/snippets/app-page-template.mdx) - the slug is the feature directory name.
 2. Add the slug to the `docs.json` "App & Visualizations" group.
 3. Set the feature's `methodologyHref` to `` `${CANONICAL_DOCS_BASE}/app/<dir>` `` (import the constant from `app/src/config.ts`; never hard-code the host).
 4. Run `make docs-app-audit` and `make docs-facts` until both are green.

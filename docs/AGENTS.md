@@ -25,7 +25,7 @@
 
 ## App feature-page contract
 
-Every `docs/app/<slug>.mdx` page (except the hand-written `query-lab.mdx`) is built from `docs/app/_TEMPLATE.mdx` and must carry, in order:
+Every `docs/app/<slug>.mdx` page (except the hand-written `query-lab.mdx`) is built from `docs/snippets/app-page-template.mdx` and must carry, in order:
 
 1. **Frontmatter** `title` (the question the feature answers, sentence case), `sidebarTitle` (short nav label), `description`.
 2. **Hook** one opening paragraph naming the core metric and its sign convention.

@@ -36,7 +36,10 @@
         {
           "anchor": "GitHub Repository",
           "href": "https://github.com/JustinClarke/off-the-pace",
-          "icon": "github"
+          "icon": {
+            "name": "github",
+            "library": "fontawesome"
+          }
         }
       ]
     },
@@ -56,7 +59,7 @@
           },
           {
             "group": "How It's Built",
-            "icon": "sitemap",
+            "icon": "network",
             "pages": [
               "system-design",
               "data-engineering"
@@ -76,6 +79,38 @@
             "pages": [
               "findings/overview",
               "findings/sao-paulo-2021"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "icon": "rocket",
+            "pages": [
+              "platform/contributing",
+              "platform/conventions"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "icon": "building-2",
+            "pages": [
+              "platform/architecture-decisions"
+            ]
+          },
+          {
+            "group": "Operations",
+            "icon": "settings",
+            "pages": [
+              "platform/deployment",
+              "platform/data-pipeline"
+            ]
+          },
+          {
+            "group": "Reliability",
+            "icon": "shield-check",
+            "pages": [
+              "platform/observability",
+              "platform/performance",
+              "platform/security"
             ]
           }
         ]
@@ -328,7 +363,7 @@
           },
           {
             "group": "The CI Contract",
-            "icon": "vial",
+            "icon": "test-tube",
             "pages": [
               "ml/ci/overview",
               "ml/ci/leakage-spine",
@@ -442,44 +477,6 @@
               "app/families/data-validation",
               "app/query-lab",
               "app/data-quality-audit"
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "Platform",
-        "icon": "wrench",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "icon": "rocket",
-            "pages": [
-              "platform/contributing",
-              "platform/conventions"
-            ]
-          },
-          {
-            "group": "Architecture",
-            "icon": "building-2",
-            "pages": [
-              "platform/architecture-decisions"
-            ]
-          },
-          {
-            "group": "Operations",
-            "icon": "gear",
-            "pages": [
-              "platform/deployment",
-              "platform/data-pipeline"
-            ]
-          },
-          {
-            "group": "Reliability",
-            "icon": "shield-check",
-            "pages": [
-              "platform/observability",
-              "platform/performance",
-              "platform/security"
             ]
           }
         ]

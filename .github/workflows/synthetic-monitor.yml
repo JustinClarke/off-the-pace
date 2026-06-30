@@ -58,7 +58,7 @@ jobs:
           version: 11.4.0
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
       - name: Install app deps

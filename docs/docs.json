@@ -75,10 +75,11 @@
         "icon": "table",
         "groups": [
           {
-            "group": "Overview",
-            "icon": "info",
+            "group": "Concepts",
+            "icon": "lightbulb",
             "pages": [
-              "data/overview"
+              "data/overview",
+              "ingestion/architecture"
             ]
           },
           {
@@ -91,7 +92,7 @@
           },
           {
             "group": "Bronze Schemas",
-            "icon": "database",
+            "icon": "shapes",
             "pages": [
               "reference/data-schemas",
               "reference/schemas/laps",
@@ -132,13 +133,6 @@
               "ingestion/verify",
               "ingestion/manifest-report",
               "ingestion/replay"
-            ]
-          },
-          {
-            "group": "Deep Dive",
-            "icon": "code",
-            "pages": [
-              "ingestion/architecture"
             ]
           }
         ]

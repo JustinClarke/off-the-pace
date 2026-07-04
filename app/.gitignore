@@ -10,7 +10,11 @@ public/data/intermediates/
 public/data/dimensions/
 public/data/ml/*.parquet
 public/data/ml/*.onnx
-public/models/
+# Ignore the heavy model binaries; TRACK the small published metadata
+# (manifest.json, encoders.json, model_card.json) — it is the browser-inference
+# contract that featureVector.test.ts / parity.node.test.ts assert against in CI.
+public/models/*.onnx
+public/models/*.bst
 
 # Playwright E2E + Lighthouse CI artefacts (Phase 5 / F9)
 test-results/

@@ -11,7 +11,8 @@ test('onnxruntime-web warms a session and serves an inference', async ({ page })
     if (msg.type() === 'error') consoleErrors.push(msg.text())
   })
 
-  await gotoFeature(page, '/ml/simulator', /Degradation Simulator/i)
+  // H1 is "Build Your Own Stint" (the Degradation Simulator's display title).
+  await gotoFeature(page, '/ml/simulator', /Build Your Own Stint/i)
 
   // DuckDB feeds the simulator its history; ONNX then warms and scores the stint.
   await waitForPerfMark(page, 'duckdb_init')

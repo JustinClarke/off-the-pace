@@ -6,6 +6,13 @@ description: "A zero-server React app powered by DuckDB-Wasm and ONNX. Parquet f
 
 Off The Pace is a browser-native F1 analytics application deployed at [off-the-pace.web.app](https://off-the-pace.web.app). There is no compute server when you open the app, your browser downloads Parquet files, loads them into DuckDB-Wasm running in WebAssembly, and executes SQL queries locally in under 10 ms. The ML models (XGBoost quantile regressors, cliff classifiers, stint-life regressors) are bundled as ONNX and scored in-browser. Nothing you interact with touches a backend at runtime.
 
+<Note>
+  **For a reviewer:**
+  - **Decision:** a zero-server React app; DuckDB-Wasm and ONNX Runtime Web run every query and every inference on the client.
+  - **Trade-off:** a larger initial download and no row-level authorization, in exchange for free, offline-capable serving.
+  - **Proof:** Playwright E2E drives the live production bundle and a bundle-size budget gates every build.
+</Note>
+
 ## Architecture
 
 Data loads in your browser no server processes your queries. Three layers run entirely inside your browser tab:

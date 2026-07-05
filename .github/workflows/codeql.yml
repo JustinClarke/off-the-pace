@@ -15,7 +15,7 @@ on:
   pull_request:
     branches: [main]
     # Dependabot PRs only touch dependency manifests, lockfiles, and workflow
-    # YAMLs — none of which are source code CodeQL analyses. Excluding them
+    # YAMLs none of which are source code CodeQL analyses. Excluding them
     # prevents the workflow from even appearing in the Actions tab.
     paths-ignore:
       - '**/requirements*.txt'

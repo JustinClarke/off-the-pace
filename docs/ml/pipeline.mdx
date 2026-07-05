@@ -125,7 +125,7 @@ flowchart TD
   <Step title="ml-reference generate the reference MDX" icon="book">
     **What it reads:** `ml/model_card.yml`.
 
-    **What it writes:** `docs/reference/ml/degradation-model-v1.mdx` the rendered model card as Mintlify MDX, with a drift-gate that fails CI if the committed page disagrees with a fresh generation.
+    **What it writes:** `docs/reference/ml/degradation-model.mdx` the rendered model card as Mintlify MDX, with a drift-gate that fails CI if the committed page disagrees with a fresh generation.
 
     **What it guarantees:** the published reference always matches the last run of `ml-card`. See `python scripts/gen_ml_reference.py --check`.
 

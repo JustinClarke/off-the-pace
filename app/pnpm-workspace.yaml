@@ -12,3 +12,9 @@ allowBuilds:
 onlyBuiltDependencies:
   - esbuild
   - '@sentry/cli'
+
+# Transitive-dependency pins (resolve OSV advisories with no direct dependent to bump).
+#   • js-yaml only reaches the tree via eslint's @eslint/eslintrc (^4.1.0); GHSA-h67p-54hq-rp68
+#     is fixed in 4.2.0, still inside eslintrc's range, so this lifts the floor without a major.
+overrides:
+  js-yaml: '^4.2.0'

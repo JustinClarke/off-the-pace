@@ -1,0 +1,43 @@
+---
+title: "About: skills demonstrated and the builder behind Off The Pace"
+sidebarTitle: "About / Skills"
+description: "Off The Pace mapped to concrete data-engineering competencies, each linked to its evidence in the repo: data modelling, data contracts, orchestration, ML engineering, CI/CD, IaC, observability, and cost."
+---
+
+Off The Pace is a portfolio project built to clear a production data-engineering bar end to end, from raw API pulls to a deployed, monitored, browser-native app. This page maps the work to the competencies a reviewer is grading for, with a link to the real artifact behind each one. Nothing here is a keyword without an artifact attached.
+
+## Skills demonstrated
+
+| Competency | Demonstrated by | Evidence |
+|---|---|---|
+| **Data modelling** | Medallion warehouse (bronze → silver → gold), dimensional marts, 60 dbt models in one topological pass | [Transform layer](/transform/overview) |
+| **Data quality & contracts** | 443 dbt tests, the CI-enforced additive-identity invariant, schema contracts | [The CI Contract](/transform/ci/overview) |
+| **Orchestration** | Staged pipeline DAG with retries, source-freshness checks, and build-over-build profiling | [Data pipeline](/platform/data-pipeline) |
+| **ML engineering** | XGBoost trained and exported to ONNX with train/serve parity and calibrated intervals | [ML layer](/ml/overview) |
+| **CI/CD** | Deploy / promote / rollback, PR preview channels, drift gates as merge blockers | [Deployment](/platform/deployment) |
+| **Infrastructure as code** | Terraform for the GCS bucket, Workload Identity Federation, and a billing budget | [Architecture decisions](/platform/architecture-decisions) |
+| **Observability & cost** | Sentry, web-vitals RUM, synthetic monitors, SLOs, and a zero-server cost model | [Observability](/platform/observability) · [Performance](/platform/performance) |
+
+For the narrative version of how these fit together, see [Engineering highlights](/engineering-highlights) (the sixty-second tour) and [How this clears a production bar](/data-engineering) (the deep read).
+
+## What this project is
+
+A full-stack F1 analytics platform that answers a question lap time alone cannot: when a car is off the pace, exactly why? It ingests seven seasons of telemetry, models it through a dbt + DuckDB warehouse, trains five ML models, and serves 30 interactive features in the browser with no server, no login, and no per-user serving cost. Every lap is decomposed into seven additive, physically-grounded components, so lost time is attributed to a named cause rather than a feeling.
+
+The engineering thesis is that the interesting numbers should be *enforced*, not asserted: the seven-term decomposition closes to zero on every lap because a CI test fails the build otherwise, and the model that serves in the browser is provably the model that trained because ONNX parity is tested to `atol=1e-5`.
+
+## About the builder
+
+Built by Justin Clarke. The project doubles as a working demonstration of an end-to-end data and ML platform: data contracts and lineage, reproducible drift gates, ML with calibrated uncertainty and honest out-of-sample validation, CI/CD with rollback, infrastructure as code, and observability with SLOs.
+
+<CardGroup cols={3}>
+  <Card title="Portfolio site" icon="globe" href="https://justinclarke.github.io">
+    More work and contact details.
+  </Card>
+  <Card title="GitHub repository" icon="github" href="https://github.com/JustinClarke/off-the-pace">
+    The full source: ingestion, transform, ML, app, and infra.
+  </Card>
+  <Card title="Launch the app" icon="gauge" href="https://off-the-pace.web.app">
+    All 30 features, running client-side.
+  </Card>
+</CardGroup>

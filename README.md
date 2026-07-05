@@ -1,10 +1,26 @@
 # Off The Pace
 
-**When a car is off the pace, why?**
+> **When a car is off the pace, why?**
 
-Off The Pace decomposes every F1 lap into seven additive, physically-grounded components so lost time can be attributed to an exact, named cause rather than a vibe.
+**A browser-native, full-stack F1 analytics platform.** It ingests 7 seasons of telemetry, models it through a 60-table dbt warehouse, trains 5 ML models, and serves 30 interactive analytics features with **no server, no login, and no cost to serve**.
 
-**[offthepace.mintlify.app](https://offthepace.mintlify.app)** · **[Launch App](https://off-the-pace.web.app)**
+Under the hood, every lap is decomposed into seven additive, physically-grounded components, so lost time is attributed to an exact, named cause rather than a vibe.
+
+![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
+![dbt](https://img.shields.io/badge/dbt--core-FF694B?logo=dbt&logoColor=white)
+![DuckDB](https://img.shields.io/badge/DuckDB--Wasm-FFF000?logo=duckdb&logoColor=black)
+![XGBoost → ONNX](https://img.shields.io/badge/XGBoost%E2%86%92ONNX-005CED?logo=onnx&logoColor=white)
+![React + TypeScript](https://img.shields.io/badge/React%20%2B%20TypeScript-61DAFB?logo=react&logoColor=black)
+![GCP](https://img.shields.io/badge/GCP%20Storage%20CDN-4285F4?logo=googlecloud&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform%20IaC-7B42BC?logo=terraform&logoColor=white)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
+![License](https://img.shields.io/badge/License-AGPL--3.0-blue)
+
+**[▶ Launch the app](https://off-the-pace.web.app)** · **[Read the docs](https://offthepace.mintlify.app)**
+
+![Off The Pace: browser-native F1 analytics dashboard decomposing every lap into named causes](docs/images/off-the-pace-home.png)
+
+**137,447** laps decomposed · **149** races · **40** drivers · **44** circuits · **60** dbt models · **443** tests · **5/5** ML models beat baseline · **30** browser features · **0** servers
 
 ---
 
@@ -37,6 +53,23 @@ If it fails, the build fails. An enforced invariant is worth more than a claimed
 ### 3. Out-of-sample validation + limitations
 
 Trained on 2018–2024. The 2025 season is held out as a reproducible out-of-sample validation against now-public OpenF1 data; you can run it yourself to get the same numbers. Paired with an explicit limitations section: no 2025 ingestion yet (so the ML holdout is time-series CV for now).
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A["FastF1 + OpenF1"] --> B["Bronze<br/>Hive-partitioned Parquet<br/>7 seasons · 149 races"]
+    B --> C["Transform<br/>dbt + DuckDB<br/>60 models · 443 tests"]
+    C --> D["ML<br/>5 XGBoost models<br/>→ ONNX, 42 features"]
+    C --> E["GCS CDN<br/>parquet + models"]
+    D --> E
+    E --> F["Browser App<br/>React · DuckDB-Wasm · ONNX Runtime<br/>30 features · zero server"]
+    F --> G["Firebase Hosting"]
+```
+
+Bronze Parquet → a dbt/DuckDB warehouse → XGBoost models exported to ONNX → published to a GCS CDN → a React app that runs DuckDB-Wasm and ONNX Runtime Web **in the browser**. No backend computes anything at request time: the client downloads the data and models and does the work locally, which is why serving is free.
 
 ---
 
@@ -141,7 +174,7 @@ make ml-all          # features → tune → train → evaluate → predict → 
 make ml-test         # 28 tests: leakage spine, ONNX parity, output schema, beats-baseline
 ```
 
-Full auto-generated **[model card](docs/reference/ml/degradation-model-v1.mdx)** (metrics, baselines, calibration, dual feature importance, limitations) is built from `ml/model_card.yml`.
+Full auto-generated **[model card](docs/reference/ml/degradation-model.mdx)** (metrics, baselines, calibration, dual feature importance, limitations) is built from `ml/model_card.yml`.
 
 ---
 

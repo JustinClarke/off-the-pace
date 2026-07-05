@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""watch_project_graph.py   Watch source files and regenerate the project dependency graph (scripts/gen_project_graph.py) on change."""
 import sys
 import time
 import subprocess

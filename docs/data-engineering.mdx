@@ -1,0 +1,72 @@
+---
+title: "How this clears a production data-engineering bar"
+sidebarTitle: "Data Engineering"
+description: "The data-engineering checklist a hiring manager grades on, each item met by a real artifact in Off The Pace: idempotent ingestion, data contracts and a testing pyramid, drift and quality gates, lineage, orchestration, observability, SLOs, and a zero-server cost model."
+---
+
+A production data platform is judged on standards, not features. This page reframes the same material that lives in the Data, Transform, ML, and Platform tabs as the checklist a data-engineering reviewer actually runs down, and links each standard to where it is met in the repo.
+
+## Idempotent, partitioned ingestion
+
+Bronze stores source data exactly as the API returns it, Hive-partitioned by season and race, with each writer isolated by its own `try`/`except` so one failing dataset never blocks the others. Re-running a season overwrites its partitions deterministically rather than appending duplicates, and a data-quality gate runs on write. A schema fingerprint is recorded on every run so source-side drift becomes a queryable event instead of a downstream surprise.
+
+<Note>**Met by:** [Ingestion architecture](/ingestion/architecture) (per-writer isolation, fingerprinting) and [Data quality](/data/data-quality) (the write-time gate).</Note>
+
+## Data contracts and a testing pyramid
+
+The warehouse is governed by 443 dbt tests: schema tests (not-null, unique, accepted-values, relationships) at the base, singular SQL tests for business rules in the middle, and at the top a hand-written invariant, the additive identity, that fails the build if the seven decomposition terms miss closure on any lap. Tests are the contract between layers, not an afterthought.
+
+<Note>**Met by:** [The CI Contract](/transform/ci/overview), [Structural tests](/transform/ci/structural), and [Identity closure](/transform/ci/identity-closure).</Note>
+
+## Drift and quality gates
+
+Silent regressions are the failure mode that matters most for an analytics warehouse, and three independent gates guard against them:
+
+- **Byte-stability oracle**: every model output is hashed build-over-build; a changed hash without a code change fails CI.
+- **Build-over-build profile diff**: table-level statistics are compared against a committed baseline to catch distributional drift.
+- **Post-publish verify with auto-rollback**: after publishing to the CDN, a verify step confirms the live files match what was built and rolls back automatically if they do not.
+
+<Note>**Met by:** [Regression gates](/transform/ci/regression-gates) and [Data pipeline](/platform/data-pipeline).</Note>
+
+## Lineage
+
+Lineage is not drawn after the fact: dbt resolves the `{{ ref() }}` graph and builds models in dependency order, and the full DAG is generated as a [browsable lineage graph](/project-graph.html). Every model and every column is documented in the [Model Reference](/reference/models/fct/fct_lap_residuals), generated from the dbt manifest so it cannot drift from the code.
+
+## Orchestration
+
+The pipeline runs as a staged DAG in CI: ingest, build, test, train, export, publish, verify, each stage gated on the last, with retries and alerting on failure. There is no hidden manual step between a code change and a published, verified artifact.
+
+<Note>**Met by:** [Data pipeline](/platform/data-pipeline) and [Deployment](/platform/deployment).</Note>
+
+## Observability and SLOs
+
+Production is monitored, not hoped about: Sentry captures errors, web-vitals RUM captures real-user performance, synthetic monitors exercise the live app on a schedule, and the targets are written down as SLOs rather than left implicit.
+
+<Note>**Met by:** [Observability](/platform/observability) and [Performance](/platform/performance).</Note>
+
+## Cost model
+
+Because all compute is build-time or client-side, serving has no per-user cost: the CDN ships static files and the browser does the work. The cloud footprint is codified in Terraform, including a billing budget with alert thresholds, so cost is a guarded number rather than a monthly surprise.
+
+<Note>**Met by:** [Architecture decisions](/platform/architecture-decisions) (the IaC) and [Performance](/platform/performance) (the zero-server serving model).</Note>
+
+## The scorecard in one view
+
+| Standard | How it is met |
+|---|---|
+| Idempotent, partitioned ingestion | Hive-partitioned Parquet, deterministic re-runs, write-time DQ gate |
+| Data contracts & testing pyramid | 443 dbt tests + singular tests + the additive-identity invariant |
+| Drift & quality gates | Byte-stability oracle, profile diff, post-publish verify + rollback |
+| Lineage | dbt DAG, generated lineage graph, column-level reference docs |
+| Orchestration | Staged CI pipeline with retries and alerting |
+| Observability & SLOs | Sentry, RUM, synthetic monitors, written SLOs |
+| Cost | Zero-server serving, Terraform billing budget |
+
+<CardGroup cols={2}>
+  <Card title="See the architecture" icon="sitemap" href="/system-design">
+    The end-to-end system and the build-time vs request-time split.
+  </Card>
+  <Card title="See it answer a question" icon="flag" href="/findings/sao-paulo-2021">
+    The São Paulo 2021 case study: strategy vs driver skill, in seconds.
+  </Card>
+</CardGroup>

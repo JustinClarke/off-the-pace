@@ -6,6 +6,13 @@ description: "From zero to running models in under 30 minutes. Prerequisites, se
 
 No cloud credentials are required to get started. The local DuckDB pipeline is the entry point for every layer ingestion, transform, ML, and app.
 
+<Note>
+  **For a reviewer:**
+  - **Decision:** correctness is gated in CI, not reviewed by eye; drift gates, ONNX parity, and the additive-identity invariant are merge blockers.
+  - **Trade-off:** more gates mean slower merges, traded for never shipping a silent data or model regression.
+  - **Proof:** CI/CD with deploy / promote / rollback, post-publish verify with auto-rollback, and Terraform-codified infrastructure.
+</Note>
+
 ## Prerequisites
 
 - **Python 3.11+**
@@ -91,7 +98,7 @@ ls -la data/bronze/laps/season=2024/race=bahrain_grand_prix/
   <Accordion title="dbt / SQL" icon="database">
     - Every model needs a description and column docs in its `schema.yml`.
     - Every new model needs at least one dbt test.
-    - Match the header-comment style in [`int_lap_fuel_state.sql`](../transform/models/intermediate/int_lap_fuel_state.sql): layer, grain, the identity/contract it satisfies.
+    - Match the header-comment style in [`int_lap_fuel_state.sql`](https://github.com/JustinClarke/off-the-pace/blob/main/transform/models/intermediate/int_lap_fuel_state.sql): layer, grain, the identity/contract it satisfies.
   </Accordion>
 
 </AccordionGroup>
@@ -109,16 +116,16 @@ ls -la data/bronze/laps/season=2024/race=bahrain_grand_prix/
   <Step title="Add or change an app feature" icon="monitor">
     Every shipped feature ships its docs in the **same PR** as its code.
 
-    1. Write or update `docs/app/<dir>.mdx` from [`docs/app/_TEMPLATE.mdx`](../app/_TEMPLATE.mdx).
+    1. Write or update `docs/app/<dir>.mdx` from [`docs/snippets/app-page-template.mdx`](https://github.com/JustinClarke/off-the-pace/blob/main/docs/snippets/app-page-template.mdx).
     2. Add the slug to the `docs.json` App group.
     3. Set `methodologyHref` to `` `${CANONICAL_DOCS_BASE}/app/<dir>` `` import from `app/src/config.ts`, never hard-code the host.
     4. Run `make docs-app-audit` and `make docs-facts` until both are green.
   </Step>
   <Step title="Ingestion changes" icon="arrow-down-to-line">
-    See [`ingestion/README.md`](../ingestion/README.md) for module architecture and data-quality checks. Key principles: graceful degradation, idempotent writes, schema validation before write, exponential backoff.
+    See [`ingestion/README.md`](https://github.com/JustinClarke/off-the-pace/blob/main/ingestion/README.md) for module architecture and data-quality checks. Key principles: graceful degradation, idempotent writes, schema validation before write, exponential backoff.
   </Step>
   <Step title="ML / reference docs" icon="microchip">
-    - ML: see [`ml/README.md`](../ml/README.md); run `make ml-test`.
+    - ML: see [`ml/README.md`](https://github.com/JustinClarke/off-the-pace/blob/main/ml/README.md); run `make ml-test`.
     - Reference docs are **auto-generated** edit the source (`schema.yml`, docstrings, `ml/model_card.yml`), then run `make ml-reference` or the relevant generator in `scripts/`. CI fails if the committed reference drifts from a fresh generation.
   </Step>
 </Steps>
@@ -139,7 +146,7 @@ ls -la data/bronze/laps/season=2024/race=bahrain_grand_prix/
 
 <CardGroup cols={3}>
   <Card title="Usage questions" icon="book-open">
-    The relevant layer README e.g. [`ingestion/README.md`](../ingestion/README.md), [`transform/README.md`](../transform/README.md).
+    The relevant layer README e.g. [`ingestion/README.md`](https://github.com/JustinClarke/off-the-pace/blob/main/ingestion/README.md), [`transform/README.md`](https://github.com/JustinClarke/off-the-pace/blob/main/transform/README.md).
   </Card>
   <Card title="Architecture & rationale" icon="building-2">
     The [Architecture Decisions](/platform/architecture-decisions) log and the [seven-term identity](/decomposition/seven-term-identity) explanation.

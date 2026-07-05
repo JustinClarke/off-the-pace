@@ -51,7 +51,7 @@ The seven evaluation gates in `test_evaluate.py` enforce the properties that mak
 
 ## The relationship to the model card
 
-The evaluation gates check `evaluation_metrics.json`; the model card (`model_card.yml`) is written by `ml-card` from the same source. The reference docs (`docs/reference/ml/degradation-model-v1.mdx`) are generated from the card. The chain is:
+The evaluation gates check `evaluation_metrics.json`; the model card (`model_card.yml`) is written by `ml-card` from the same source. The reference docs (`docs/reference/ml/degradation-model.mdx`) are generated from the card. The chain is:
 
 ```
 make ml-evaluate  →  evaluation_metrics.json  →  ml-card  →  model_card.yml  →  ml-reference  →  docs

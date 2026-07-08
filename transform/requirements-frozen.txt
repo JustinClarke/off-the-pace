@@ -13,7 +13,7 @@ lifelines==0.30.3
 duckdb==1.5.2
 
 # dbt
-dbt-core>=1.11.11,<2.0
+dbt-core>=1.11.12,<2.0
 dbt-duckdb==1.10.1
 
 # Validation notebook runner

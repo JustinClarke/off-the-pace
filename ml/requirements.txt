@@ -19,4 +19,4 @@ onnxmltools>=1.16.0,<2
 onnxruntime>=1.27.0,<2
 optuna>=4.9.0,<5
 shap>=0.52.0
-sqlglot>=30.11.0,<31
+sqlglot>=30.13.0,<31

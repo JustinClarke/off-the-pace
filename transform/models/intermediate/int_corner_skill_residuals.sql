@@ -40,6 +40,10 @@ lap_keys AS (
         sl.constructor_id
     FROM {{ ref('int_stint_geometry') }} AS sg
     INNER JOIN {{ ref('stg_laps') }} AS sl ON sg.lap_id = sl.lap_id
+    -- int_stint_geometry now carries SC/pit/invalid laps too; exclude them
+    -- here or their braking/speed metrics pollute the 5-lap windowed field
+    -- medians below.
+    WHERE sg.is_valid_lap = TRUE
 ),
 
 sector2_speed AS (

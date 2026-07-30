@@ -34,7 +34,7 @@ flowchart LR
 | Tags | `simulation`, `ghost_car` |
 | Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_compound_cliff_predicted`](../int/int_compound_cliff_predicted), [`stg_laps`](../stg/stg_laps), [`int_constructor_structural_pace`](../int/int_constructor_structural_pace), [`int_circuit_x_constructor_interaction`](../int/int_circuit_x_constructor_interaction), [`int_constructor_deg_sensitivity`](../int/int_constructor_deg_sensitivity) |
 
-**22 tests** [guard](/transform/ci/overview) this model  -  21 generic, 1 singular.
+**25 tests** [guard](/transform/ci/overview) this model  -  23 generic, 2 singular.
 
 ## Columns
 
@@ -43,6 +43,8 @@ flowchart LR
 | `ghost_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = MD5(ego_driver_id \|\| host_constructor_id \|\| race_id \|\| lap_number) |
 | `predicted_lap_time_s` |   | Yes | [`not_null`](/transform/ci/structural) | Recombined lap time using ego skill + host constructor pace. |
 | `actual_lap_time_s` |   | Yes | [`not_null`](/transform/ci/structural) | Observed actual lap time for the ego driver. |
+| `predicted_residual_pace_s` |   | Yes | [`not_null`](/transform/ci/structural) | predicted_lap_time_s with the fuel-burn component backed out (the fuel term is simply omitted from the recombination sum). Fuel-adjusted so ranking by pace isn't biased by which lap window (heavy vs. light fuel) a driver ran. |
+| `actual_residual_pace_s` |   | Yes | [`not_null`](/transform/ci/structural) | actual_lap_time_s minus fuel_component_s. Fuel-adjusted counterpart to actual_lap_time_s. |
 | `delta_vs_actual_lap_s` |   | Yes | [`not_null`](/transform/ci/structural) | predicted_lap_time_s minus actual_lap_time_s. 0 when ego == host. |
 | `deg_interaction_s` |   | Yes | [`not_null`](/transform/ci/structural) | (host deg slope - ego deg slope) x age_in_stint, slopes from int_constructor_deg_sensitivity at the ego lap's (compound, season). The only host-dependent term that varies within a race, so it is what lets different hosts produce different driver orders. Exactly 0 when ego == host; 0 when no cell exists (wet compounds / low-sample = field-average degradation). |
 | `host_deg_slope_s_per_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Host constructor's deg slope for the ego lap's compound; 0 when no cell. |

@@ -67,6 +67,8 @@ WITH ghost_laps AS (
         lap_number,
         predicted_lap_time_s,
         actual_lap_time_s,
+        predicted_residual_pace_s,
+        actual_residual_pace_s,
         recombination_confidence,
         -- SE-propagation ingredients (per lap)
         host_constructor_pace_se_s,
@@ -162,6 +164,10 @@ race_totals AS (
                                                 AS is_self_scenario,
         AVG(predicted_lap_time_s)               AS predicted_mean_lap_s,
         AVG(actual_lap_time_s)                  AS actual_mean_lap_s,
+        -- Fuel-adjusted mean pace, the ranking key for assert_ghost_self_scenario_rank
+        -- (see fct_ghost_car_pace for why fuel is backed out before averaging).
+        AVG(predicted_residual_pace_s)          AS predicted_mean_residual_pace_s,
+        AVG(actual_residual_pace_s)             AS actual_mean_residual_pace_s,
         SUM(predicted_lap_time_s)               AS predicted_total_race_time_s,
         SUM(actual_lap_time_s)                  AS actual_total_race_time_s,
         COUNT(*)                                AS laps_counted,
@@ -313,6 +319,8 @@ SELECT
     END                                         AS delta_vs_actual_position,
     r.predicted_mean_lap_s,
     r.actual_mean_lap_s,
+    r.predicted_mean_residual_pace_s,
+    r.actual_mean_residual_pace_s,
     r.predicted_total_race_time_s,
     r.actual_total_race_time_s,
     r.laps_counted,

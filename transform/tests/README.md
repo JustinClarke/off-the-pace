@@ -52,6 +52,20 @@ closure checks are built on the [`assert_additive_identity`](../macros/assert_ad
 | `assert_constructor_coefficient_signs.sql` | Every season has at least one constructor genuinely faster than the field (`MIN(constructor_structural_pace_s) < 0`) and at least one identified (non-degenerate) CI | `int_constructor_structural_pace` | ✅ Active |
 | `assert_constructor_confidence_monotone.sql` | Constructor-index confidence increases with lap count (more data ⇒ more confidence) | `int_constructor_structural_pace` | 📝 Placeholder (superseded by a `dbt_expectations` pair test in `schema.yml` after `int_constructor_pace_index` was folded into `int_constructor_structural_pace`) |
 | `assert_cliff_stints_have_falloff.sql` | Informational (non-blocking): flags stints with a detected cliff but minimal end-of-stint pace falloff | | 📝 Placeholder |
+| `assert_aero_penalty_negative.sql` | Dirty-air tax is always a penalty, never a bonus (`dirty_air_tax_s` ≥ 0, positive = slower) | `int_dirty_air_tax_component` | ✅ Active |
+| `assert_thermal_variance_positive.sql` | Track temperature genuinely varies within a race (range ≥ 0.1 °C), catching a stalled or missing thermal join | `int_track_evolution` | ✅ Active |
+| `assert_fuel_curve_monotonicity.sql` | Fuel weight penalty strictly decreases as fuel burns off within a stint | `int_lap_fuel_state` | ✅ Active |
+| `assert_stint_boundaries_correct.sql` | `age_in_stint` increases strictly with lap number inside a stint (off-by-one guard near pit stops) | `int_lap_residual_decomposed` | ✅ Active |
+| `assert_pace_delta_flat_by_race_fifth.sql` | `pace_delta_s` carries no within-race fuel trend on the field curve's own eligible panel: every fifth of race distance sits within 0.15s of the panel mean | `int_lap_fuel_state`, `int_field_pace_curve` | ✅ Active |
+| `assert_affinity_min_races.sql` | No era-segmented affinity is published from fewer than 2 races at that circuit | `int_driver_circuit_era_affinity` | ✅ Active |
+| `assert_rating_confidence.sql` | No global LORO confidence collapse: drivers with ≥ 5 races keep `rating_confidence` ≥ 0.3 | `int_driver_season_ratings` | ✅ Active |
+| `assert_rating_top_season_well_supported.sql` | Results-anchored: the top-rated driver-season of all time rests on ≥ 10 races, not a small-sample artifact. Self-limiting on warehouses too thin to test (fires only once some season could clear the bar) | `int_era_normalized_driver_rating` | ✅ Active |
+| `assert_corner_skill_cell_winsorized.sql` | Season corner-skill means stay inside the ±1.0s per-cell winsorization bound (a lap-weighted mean of winsorized cells cannot exceed it) | `mart_corner_skill_driver` | ✅ Active |
+| `assert_corner_skill_phase_gate.sql` | A phase z-score needs ≥ 30 cells, and `corner_skill_index` needs all three phases populated | `mart_corner_skill_driver` | ✅ Active |
+| `assert_cliff_predictions_valid.sql` | `expected_compound_pace_s` never rests on the 0.0/0.5 default sentinels, catching a silently failed seed join | `int_compound_cliff_predicted` | ✅ Active |
+| `assert_cliff_seed_severity_bounded.sql` | Cliff-seed tripwire: fitted severity ≤ 1.6 s/lap, and the cross-season fallback never fires from fewer than 8 real stints | `compound_cliff_params` (seed) | ✅ Active |
+| `assert_ghost_recombination.sql` | Ghost lap-time predictions stay within ±10s of the actual lap (fuel-envelope and interpolation guard) | `fct_ghost_car_pace` | ✅ Active |
+| `assert_ghost_self_scenario_rank.sql` | Results-anchored: self-scenario ghost pace recovers official finishing order (mean per-race Spearman ρ ≥ 0.5, no race negatively correlated). Validates recombination pace, not the counterfactual car swap | `fct_ghost_race_finish`, `stg_results` | ✅ Active |
 
 ## Regression Gates
 

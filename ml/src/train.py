@@ -83,7 +83,18 @@ def _sample_weight(spec: S.TargetSpec, y, meta=None) -> np.ndarray | None:
 def _season_folds(seasons: np.ndarray, training_seasons: list[int], n_splits: int):
     """Yield (train_idx, val_idx) where whole seasons move together (expanding window)."""
     uniq = np.asarray(sorted(training_seasons))
-    for tr_seasons_idx, val_seasons_idx in TimeSeriesSplit(n_splits=n_splits).split(uniq):
+    # An expanding window over whole seasons needs one season to validate each fold, so
+    # n_splits folds need n_splits+1 seasons. Fold down to what the data actually carries
+    # rather than dying: a fixture-built warehouse (CI: 3 seasons) can't feed the
+    # production default of 5. No-op on the real warehouse (7 training seasons).
+    usable = min(n_splits, len(uniq)-1)
+    if usable < 1:
+        raise ValueError(
+            f"season-grouped CV needs >= 2 training seasons, got {len(uniq)}: {list(uniq)}"
+        )
+    if usable < n_splits:
+        print(f"[cv] {len(uniq)} training seasons supports {usable} folds, not {n_splits}")
+    for tr_seasons_idx, val_seasons_idx in TimeSeriesSplit(n_splits=usable).split(uniq):
         tr = np.isin(seasons, uniq[tr_seasons_idx])
         val = np.isin(seasons, uniq[val_seasons_idx])
         yield np.where(tr)[0], np.where(val)[0]

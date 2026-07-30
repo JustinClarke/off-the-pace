@@ -3,9 +3,16 @@ version: 2
 models:
   - name: int_stint_geometry
     description: >
-      Foundation for all downstream window functions. One row per valid race lap.
-      Builds stint identifiers (stint_id), lap positions within stints (lap_in_stint, age_in_stint),
-      and compound tracking. All Layer 03 window functions partition on stint_id.
+      Foundation for all downstream window functions. One row per race lap
+      (the FULL chronological sequence, including SC/VSC/pit/invalid laps)
+      so physics-layer LAG/EWMA windows decay correctly across those gaps
+      instead of treating the lap before/after a gap as adjacent. Builds
+      stint identifiers (stint_id), lap positions within stints
+      (lap_in_stint = chronological ordinal, valid_lap_in_stint = ordinal
+      among valid laps only, age_in_stint = tyre_life), and compound
+      tracking. Consumers that fit pace/regression models filter to
+      is_valid_lap (or key off valid_lap_in_stint) at their own input
+      boundary. All Layer 03 window functions partition on stint_id.
     tags: [intermediate]
     meta:
       family: physics
@@ -16,6 +23,28 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: lap_in_stint
+        description: Chronological ordinal within the stint (1, 2, 3, ...), counting every lap including SC/VSC/pit/invalid ones.
+        tests: [not_null]
+      - name: valid_lap_in_stint
+        description: Ordinal among valid laps only within the stint (NULL on invalid laps). Use for pace-fitting position/length logic instead of lap_in_stint.
+      - name: stint_length_actual
+        description: Total lap count in the stint (valid + invalid).
+        tests: [not_null]
+      - name: stint_length_valid
+        description: Count of valid laps in the stint.
+      - name: is_valid_lap
+        description: Carried through from stg_laps. Timed, on-track, not deleted, accurate, not lap 1, no SC/VSC.
+        tests: [not_null]
+      - name: is_pit_lap
+        description: Carried through from stg_laps. TRUE for the out-lap/in-lap of a pit stop.
+        tests: [not_null]
+      - name: is_safety_car_lap
+        description: Carried through from stg_laps. TRUE when the TrackStatus string contains a full-SC digit.
+        tests: [not_null]
+      - name: is_vsc_lap
+        description: Carried through from stg_laps. TRUE when the TrackStatus string contains the VSC digit.
+        tests: [not_null]
 
   - name: int_lap_fuel_state
     description: >
@@ -231,6 +260,10 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: valid_lap_in_stint
+        description: Passed through from int_stint_geometry. Ordinal among valid laps only within the stint; consumers should key position/length logic off this, not lap_in_stint.
+      - name: stint_length_valid
+        description: Passed through from int_stint_geometry. Count of valid laps in the stint.
       - name: constructor_component_s
         description: >
           Constructor structural pace in seconds from int_constructor_structural_pace.
@@ -913,7 +946,13 @@ models:
         tests: [not_null]
       - name: shrunk_affinity_s
         description: Bayesian posterior mean. Pulled toward the driver's within-era global mean.
-        tests: [not_null]
+        tests:
+          # NULL at n_obs = 1: a single race is one data point, not a track
+          # record, and the posterior at that n is too prior-dominated to be
+          # worth publishing. Scope not_null to estimable multi-obs cells.
+          - not_null:
+              config:
+                where: "n_obs > 1"
       - name: shrunk_affinity_se_s
         description: Posterior standard error in seconds. Non-negative.
         tests:

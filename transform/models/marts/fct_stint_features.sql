@@ -46,9 +46,15 @@ thermal_last AS (
         tp.cumulative_push_load_bulk AS cumulative_thermal_load_end
     FROM {{ ref('int_stint_geometry') }} AS sg
     LEFT JOIN {{ ref('int_lap_thermal_proxy') }} AS tp ON sg.lap_id = tp.lap_id
+    -- int_stint_geometry now carries the pit-in lap too, and chronologically
+    -- it's almost always last — but it's invalid (no int_lap_thermal_proxy
+    -- row), so ordering by raw lap_in_stint DESC picked it and joined to
+    -- NULL for nearly every stint. Restrict to valid laps and order by the
+    -- valid ordinal so this picks the actual last valid lap.
+    WHERE sg.is_valid_lap = TRUE
     QUALIFY
         ROW_NUMBER()
-            OVER (PARTITION BY sg.stint_id ORDER BY sg.lap_in_stint DESC)
+            OVER (PARTITION BY sg.stint_id ORDER BY sg.valid_lap_in_stint DESC)
         = 1
 ),
 
@@ -80,7 +86,7 @@ cliff_agg AS (
 last_3_laps AS (
     SELECT
         sg.stint_id,
-        sg.lap_in_stint,
+        sg.valid_lap_in_stint,
         lr.driver_skill_residual_s
     FROM {{ ref('int_stint_geometry') }} AS sg
     INNER JOIN {{ ref('int_lap_residual_decomposed') }} AS lr
@@ -94,7 +100,7 @@ last_3_laps AS (
 slope_means AS (
     SELECT
         stint_id,
-        AVG(lap_in_stint) AS mean_x,
+        AVG(valid_lap_in_stint) AS mean_x,
         AVG(driver_skill_residual_s) AS mean_y,
         COUNT(*) AS n_laps
     FROM last_3_laps
@@ -127,6 +133,9 @@ pit_strategy AS (
 ),
 
 slope_calc AS (
+    -- Regress on valid_lap_in_stint, not chronological lap_in_stint: an SC
+    -- gap between two of the trailing 3 laps would otherwise stretch the
+    -- x-spacing and distort the fitted wear gradient.
     SELECT
         l.stint_id,
         sm.n_laps,
@@ -135,10 +144,10 @@ slope_calc AS (
                 THEN NULL
             ELSE
                 SUM(
-                    (l.lap_in_stint - sm.mean_x)
+                    (l.valid_lap_in_stint - sm.mean_x)
                     * (l.driver_skill_residual_s - sm.mean_y)
                 )
-                / NULLIF(SUM(POWER(l.lap_in_stint - sm.mean_x, 2)), 0)
+                / NULLIF(SUM(POWER(l.valid_lap_in_stint - sm.mean_x, 2)), 0)
         END AS end_of_stint_pace_falloff_s_per_lap
     FROM last_3_laps AS l
     INNER JOIN slope_means AS sm ON l.stint_id = sm.stint_id

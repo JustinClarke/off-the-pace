@@ -119,3 +119,4 @@ agents/
 data/dev.duckdb.tmp/
 graphify-out/
 docs/project-graph.html
+_improvements/

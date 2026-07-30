@@ -18,8 +18,14 @@ WITH geom AS (
         race_id,
         driver_id,
         lap_number,
-        lap_in_stint
+        lap_in_stint,
+        is_safety_car_lap,
+        is_vsc_lap
     FROM {{ ref('int_stint_geometry') }}
+    -- Deliberately no is_valid_lap filter: this model consumes the full
+    -- chronological sequence (SC/VSC/pit laps included) so the EWMA thermal
+    -- load decays through those laps instead of treating the lap before/
+    -- after a gap as adjacent.
 ),
 
 telemetry AS (
@@ -118,7 +124,11 @@ lap_air AS (
     GROUP BY race_year, race_id, driver_id, lap_number
 ),
 
--- Join lap-level air state back to stint geometry for ordered windows
+-- Join lap-level air state back to stint geometry for ordered windows.
+-- SC/VSC bunching trap: under SC the field closes to <1s gaps, which would
+-- otherwise spike dirty-air share/intensity on exactly the laps where there
+-- is no real aero load (SC pace). Zero both on SC/VSC laps so the EWMA
+-- decays toward zero through the gap instead of teleporting across it.
 with_stint AS (
     SELECT
         g.stint_id,
@@ -128,9 +138,15 @@ with_stint AS (
         g.driver_id,
         g.lap_number,
         g.lap_in_stint,
-        COALESCE(a.dirty_air_share_lap, 0.0) AS dirty_air_share_lap,
+        CASE
+            WHEN g.is_safety_car_lap OR g.is_vsc_lap THEN 0.0
+            ELSE COALESCE(a.dirty_air_share_lap, 0.0)
+        END AS dirty_air_share_lap,
         COALESCE(a.tow_benefit_lap_s, 0.0) AS tow_benefit_lap_s,
-        COALESCE(a.dirty_air_intensity, 0.0) AS dirty_air_intensity,
+        CASE
+            WHEN g.is_safety_car_lap OR g.is_vsc_lap THEN 0.0
+            ELSE COALESCE(a.dirty_air_intensity, 0.0)
+        END AS dirty_air_intensity,
         COALESCE(a.air_state_dominant, 'free_air') AS air_state_dominant,
         a.min_gap_s
     FROM geom AS g

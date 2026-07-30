@@ -435,6 +435,15 @@ models:
       - name: actual_lap_time_s
         description: Observed actual lap time for the ego driver.
         tests: [not_null]
+      - name: predicted_residual_pace_s
+        description: >
+          predicted_lap_time_s with the fuel-burn component backed out (the fuel term
+          is simply omitted from the recombination sum). Fuel-adjusted so ranking by
+          pace isn't biased by which lap window (heavy vs. light fuel) a driver ran.
+        tests: [not_null]
+      - name: actual_residual_pace_s
+        description: actual_lap_time_s minus fuel_component_s. Fuel-adjusted counterpart to actual_lap_time_s.
+        tests: [not_null]
       - name: delta_vs_actual_lap_s
         description: predicted_lap_time_s minus actual_lap_time_s. 0 when ego == host.
         tests: [not_null]
@@ -549,6 +558,16 @@ models:
       - name: predicted_mean_lap_s
         description: Mean predicted lap time across counted laps; the ranking key.
         tests: [not_null]
+      - name: predicted_mean_residual_pace_s
+        description: >
+          Mean fuel-adjusted predicted pace (AVG of fct_ghost_car_pace's
+          predicted_residual_pace_s over counted laps). The ranking key for
+          assert_ghost_self_scenario_rank so drivers aren't ranked on raw pace that
+          conflates fuel load with true speed.
+        tests: [not_null]
+      - name: actual_mean_residual_pace_s
+        description: Mean fuel-adjusted actual pace (AVG of actual_residual_pace_s over counted laps).
+        tests: [not_null]
       - name: lap_coverage
         description: laps_counted / race_distance_laps in [0,1]; fraction of the race the driver contributes.
       - name: is_short_run
@@ -596,12 +615,16 @@ models:
 
   - name: mart_corner_skill_driver
     description: >
-      Ghost-car-style driver corner skill ranking. Grain: (race_year, driver_id).
-      Estimates driver skill as their deviation from their car's average corner geometry
-      (braking point, apex speed, throttle point), converts to seconds, and z-scores
-      each phase across the field so all three contribute equally to corner_skill_index.
-      SC / VSC / pit / inaccurate laps are excluded before car averages are formed.
-      Negative values = faster. corner_skill_index = sum of three z-scores; lower = faster.
+      Driver corner skill vs a LORO (leave-one-race-out) same-car baseline. Grain:
+      (race_year, driver_id). For each push-lap corner cell, subtracts the mean
+      residual of the driver's OTHER same-car teammates that race, so a driver's
+      edge over a teammate isn't split in half by including themselves in their
+      own car average. Each (driver, race, corner) cell is winsorized to +/-1.0s
+      before the season mean so one thin/outlier cell can't dominate a season.
+      Each phase is z-scored within season so all three contribute equally to
+      corner_skill_index. SC / VSC / pit / inaccurate / non-push (corrected or
+      rain-affected) laps are excluded before car averages are formed. Negative
+      values = faster. corner_skill_index = sum of three z-scores; lower = faster.
     tags: [marts]
     meta:
       family: marts
@@ -616,34 +639,92 @@ models:
         description: Driver's team for the season (ANY_VALUE may vary for mid-season changes)
         tests: [not_null]
       - name: braking_skill_s
-        description: Mean braking deviation from car average (seconds). Negative = earlier brake = faster.
-        tests: [not_null]
-      - name: mid_corner_skill_s
-        description: Mean apex speed deviation from car average (seconds). Negative = higher apex speed = faster.
-        tests: [not_null]
-      - name: exit_skill_s
-        description: Mean throttle-point deviation from car average (seconds). Negative = earlier throttle = faster.
-        tests: [not_null]
-      - name: braking_skill_z
-        description: braking_skill_s standardised within season (zero mean, unit variance).
-        tests: [not_null]
-      - name: mid_corner_skill_z
-        description: mid_corner_skill_s standardised within season.
-        tests: [not_null]
-      - name: exit_skill_z
-        description: exit_skill_s standardised within season.
-        tests: [not_null]
-      - name: corner_skill_index
         description: >
-          Sum of the three z-scores. Lower = faster driver in corner skill.
-          Mid-season replacements with few races can reach ±9 because the car baseline
-          is dominated by the full-season driver; this is expected behaviour.
+          Mean winsorized LORO-adjusted braking-phase residual (seconds).
+          Negative = faster than the equal-car benchmark. Bounded to [-1, 1] by
+          the cell winsorization (convexity of the mean).
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
+                min_value: -1.0
+                max_value: 1.0
+      - name: mid_corner_skill_s
+        description: Mean winsorized LORO-adjusted mid-corner residual (seconds). Negative = faster.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: -1.0
+                max_value: 1.0
+      - name: exit_skill_s
+        description: Mean winsorized LORO-adjusted exit-phase residual (seconds). Negative = faster.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: -1.0
+                max_value: 1.0
+      - name: braking_skill_se_s
+        description: Standard error of braking_skill_s (STDDEV of winsorized cells / SQRT(braking_cells_n)).
+        tests: [not_null]
+      - name: mid_corner_skill_se_s
+        description: Standard error of mid_corner_skill_s.
+        tests: [not_null]
+      - name: exit_skill_se_s
+        description: Standard error of exit_skill_s.
+        tests: [not_null]
+      - name: braking_skill_z
+        description: >
+          braking_skill_s standardised within season (zero mean, unit variance).
+          NULL below PHASE_MIN_CELLS=30 braking_cells_n -- the mean is still
+          published, only the standardized score is withheld as unreliable.
+        tests:
+          - not_null:
+              config:
+                where: "braking_cells_n >= 30"
+      - name: mid_corner_skill_z
+        description: mid_corner_skill_s standardised within season. NULL below 30 mid_cells_n.
+        tests:
+          - not_null:
+              config:
+                where: "mid_cells_n >= 30"
+      - name: exit_skill_z
+        description: exit_skill_s standardised within season. NULL below 30 exit_cells_n.
+        tests:
+          - not_null:
+              config:
+                where: "exit_cells_n >= 30"
+      - name: corner_skill_index
+        description: >
+          Sum of the three z-scores. Lower = faster driver in corner skill. NULL
+          if any one phase is withheld by its cell floor (see braking_skill_z).
+          Mid-season replacements with few races can reach ±9 because the car
+          baseline is dominated by the full-season driver; this is expected
+          behaviour.
+        tests:
+          - not_null:
+              config:
+                where: "braking_cells_n >= 30 AND mid_cells_n >= 30 AND exit_cells_n >= 30"
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
                 min_value: -12
                 max_value: 12
+      - name: braking_cells_n
+        description: Count of (race, corner) cells behind braking_skill_s this season.
+        tests: [not_null]
+      - name: mid_cells_n
+        description: >
+          Count of (race, corner) cells behind mid_corner_skill_s this season.
+          Equal to mapped_corners: every mapped corner has a mid-apex, the most
+          complete of the three phases.
+        tests: [not_null]
+      - name: exit_cells_n
+        description: >
+          Count of (race, corner) cells behind exit_skill_s this season. Can be
+          much lower than mapped_corners -- not every corner has a clean
+          exit-measurement point before the next braking zone.
+        tests: [not_null]
       - name: mapped_corners
         description: Number of corner observations used in the season aggregate (≥ 100).
         tests: [not_null]

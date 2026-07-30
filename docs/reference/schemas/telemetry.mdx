@@ -17,26 +17,55 @@ Bronze-layer event log. One row per sample per driver per lap. Sampled at ~10 Hz
 
 <Note>
 
-speed_kph, throttle_pct, brake_pct are float32 to save space. Sparse: many null samples for cars that DNF or have sensor dropouts.
+speed_kph, throttle_pct are float32 to save space. Sparse: many null samples for cars that DNF or have sensor dropouts. Race only; telemetry is never written for qualifying sessions.
 
 </Note>
 
+<Warning>
+
+**Columns that look real but aren't.** A search for one of
+these on this dataset will come up empty:
+
+- `brake_pct` FastF1 exposes no brake-pressure channel; only the boolean `brake`.
+- `drs (boolean)` The real column is `DRS`, a numeric enum where only 10, 12, and 14 mean the flap is open.
+- `gear` The real column is `nGear`.
+- `session` Telemetry has no session column at all; it's written only for race sessions, never qualifying.
+
+</Warning>
+
 ## Columns
 
-| Column | Type | Nullable | Source | Description |
-|---|---|---|---|---|
-| `speed_kph` | `float32` | Yes | FastF1 native | Car speed in kilometres per hour. Sampled at ~10 Hz. |
-| `throttle_pct` | `float32` | Yes | FastF1 native | Throttle pedal position, 0–100%. |
-| `brake` | `boolean` | Yes | FastF1 native | True if brake pedal is applied. |
-| `brake_pct` | `float32` | Yes | FastF1 native | Brake pressure, 0–100%. Null if not available from the car's ECU. |
-| `distance_m` | `float32` | Yes | FastF1 native | Distance from lap start in metres. Resets to 0 on each new lap. May have small gaps during pit stops. |
-| `drs` | `boolean` | Yes | FastF1 native | DRS flap open. Null for cars without DRS (e.g., safety car). |
-| `driver_id` | `string` | No | FastF1 native | Three-letter driver code (HAM, VER, etc.). Links to laps.DriverNumber via stg_f1_laps. |
-| `lap_number` | `integer` | No | FastF1 native | Links to `laps.LapNumber`. |
-| `race_id` | `string` | No | Ingestion pipeline | Links to `laps.race_id`. Format: `YYYY_RoundNumber`. |
-| `session` | `string` | No | Ingestion pipeline | 'R' for race, 'Q' for qualifying. |
-| `season` | `integer` | No | Ingestion pipeline | Hive partition key. Always include in WHERE clause to avoid full scans. |
+<ResponseField name="speed_kph" type="float32">
+  Car speed in kilometres per hour. Sampled at ~10 Hz. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="throttle_pct" type="float32">
+  Throttle pedal position, 0–100%. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="brake" type="boolean">
+  True if brake pedal is applied. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="nGear" type="int64">
+  Current gear, 0 (neutral) to 8. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="distance_m" type="float32">
+  Distance from lap start in metres. Resets to 0 on each new lap. May have small gaps during pit stops. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="DRS" type="int64">
+  DRS status enum. Only 10, 12, and 14 mean the flap is open; other values mean inactive. Decode once in staging; don't carry the magic numbers downstream. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="driver_id" type="string" required>
+  Three-letter driver code (HAM, VER, etc.). Links to laps.DriverNumber via stg_f1_laps. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="lap_number" type="integer" required>
+  Links to `laps.LapNumber`. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="race_id" type="string" required>
+  Links to `laps.race_id`. Format: `YYYY_RoundNumber`. *Source: Ingestion pipeline.*
+</ResponseField>
+<ResponseField name="season" type="integer" required>
+  Hive partition key. Always include in WHERE clause to avoid full scans. *Source: Ingestion pipeline.*
+</ResponseField>
 
 ## Required Columns
 
-These columns are always present (non-null, always ingested): `driver_id`, `lap_number`, `race_id`, `season`, `session`.
+These columns are always present (non-null, always ingested): `driver_id`, `lap_number`, `race_id`, `season`.

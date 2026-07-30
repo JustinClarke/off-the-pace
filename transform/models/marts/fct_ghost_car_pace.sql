@@ -322,6 +322,22 @@ SELECT
     + COALESCE(deg_interaction_s, 0.0)
     + COALESCE(cliff_interaction_s, 0.0) AS predicted_lap_time_s,
     actual_lap_time_s,
+    -- Fuel-adjusted pace: predicted/actual lap time with the fuel-burn component backed
+    -- out, so ranking by pace isn't biased by which lap window (heavy vs. light fuel) a
+    -- driver happened to run. predicted_residual_pace_s omits the fuel term entirely
+    -- (equivalent to predicted_lap_time_s - fuel_component_s); actual has no fuel term to
+    -- begin with, so it's a plain subtraction.
+    COALESCE(base_track_pace_s, actual_lap_time_s)
+    + COALESCE(driver_skill_residual_s, 0.0)
+    + COALESCE(host_constructor_pace_s, 0.0)
+    + COALESCE(circuit_interaction_s, 0.0)
+    + COALESCE(dirty_air_tax_s, 0.0)
+    + COALESCE(compound_component_s, 0.0)
+    + COALESCE(rubber_component_s, 0.0)
+    + COALESCE(ambient_component_s, 0.0)
+    + COALESCE(deg_interaction_s, 0.0)
+    + COALESCE(cliff_interaction_s, 0.0) AS predicted_residual_pace_s,
+    actual_lap_time_s - COALESCE(fuel_component_s, 0.0) AS actual_residual_pace_s,
     -- Delta vs actual
     (
         COALESCE(base_track_pace_s, actual_lap_time_s)

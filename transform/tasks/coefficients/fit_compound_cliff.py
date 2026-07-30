@@ -50,12 +50,16 @@ MIN_STINTS = 8
 
 # Compound-class defaults when data is insufficient.
 # Values are conservative (later onset, milder severity) to avoid overcorrecting.
+# Severities capped at 1.5 (matching estimate_cliff_severity's winsorization) so
+# a default never itself breaches the assert_cliff_seed_severity_bounded gate;
+# relative compound ordering (soft > wet > medium > intermediate > hard) is
+# otherwise unchanged from the original values.
 COMPOUND_DEFAULTS = {
-    "SOFT":         {"cliff_onset_laps": 22, "cliff_severity": 2.0, "wear_gradient": 0.070, "grip_peak": 1.03},
-    "MEDIUM":       {"cliff_onset_laps": 33, "cliff_severity": 1.6, "wear_gradient": 0.040, "grip_peak": 1.00},
-    "HARD":         {"cliff_onset_laps": 50, "cliff_severity": 1.2, "wear_gradient": 0.022, "grip_peak": 0.97},
-    "INTERMEDIATE": {"cliff_onset_laps": 25, "cliff_severity": 1.5, "wear_gradient": 0.055, "grip_peak": 0.98},
-    "WET":          {"cliff_onset_laps": 20, "cliff_severity": 1.8, "wear_gradient": 0.080, "grip_peak": 0.95},
+    "SOFT":         {"cliff_onset_laps": 22, "cliff_severity": 1.50, "wear_gradient": 0.070, "grip_peak": 1.03},
+    "MEDIUM":       {"cliff_onset_laps": 33, "cliff_severity": 1.40, "wear_gradient": 0.040, "grip_peak": 1.00},
+    "HARD":         {"cliff_onset_laps": 50, "cliff_severity": 1.20, "wear_gradient": 0.022, "grip_peak": 0.97},
+    "INTERMEDIATE": {"cliff_onset_laps": 25, "cliff_severity": 1.30, "wear_gradient": 0.055, "grip_peak": 0.98},
+    "WET":          {"cliff_onset_laps": 20, "cliff_severity": 1.45, "wear_gradient": 0.080, "grip_peak": 0.95},
 }
 
 OPTIMAL_TEMP_RANGES = {
@@ -149,32 +153,42 @@ def fit_group(
     ]
 
     survival_df = build_survival_dataset(group_df) if len(group_df) > 0 else pd.DataFrame()
-    n_stints = len(survival_df)
+    season_n_stints = len(survival_df)
+    cross_survival = (
+        build_survival_dataset(fallback_df)
+        if fallback_df is not None and len(fallback_df) > 0
+        else pd.DataFrame()
+    )
     fit_notes = ""
 
-    if n_stints >= MIN_STINTS:
+    if season_n_stints >= MIN_STINTS:
         cliff_onset = fit_cliff_onset_median(survival_df)
         cliff_severity = estimate_cliff_severity(group_df, cliff_onset or defaults["cliff_onset_laps"])
         wear_gradient = estimate_wear_gradient(group_df, cliff_onset or defaults["cliff_onset_laps"])
         source = "cox_km_survival"
-    elif fallback_df is not None and len(fallback_df) >= MIN_STINTS:
-        # Cross-season fallback: all seasons for this circuit+compound
-        cross_survival = build_survival_dataset(fallback_df)
+        used_n_stints = season_n_stints
+    elif len(cross_survival) >= MIN_STINTS:
+        # Cross-season fallback: all seasons for this circuit+compound. Gated
+        # and reported on cross_survival (actual stints), not fallback_df
+        # (lap rows) -- a handful of long stints would otherwise clear
+        # MIN_STINTS on lap count alone while providing far fewer real stints.
         cliff_onset = fit_cliff_onset_median(cross_survival)
         cliff_severity = estimate_cliff_severity(fallback_df, cliff_onset or defaults["cliff_onset_laps"])
         wear_gradient = estimate_wear_gradient(fallback_df, cliff_onset or defaults["cliff_onset_laps"])
         source = "cross_season_fallback"
-        fit_notes = f"insufficient season stints ({n_stints}); used {len(cross_survival)} cross-season stints"
+        used_n_stints = len(cross_survival)
+        fit_notes = f"insufficient season stints ({season_n_stints}); used {used_n_stints} cross-season stints"
         log.warning(
             "%s / %s / %d: only %d stints, falling back to cross-season (%s)",
-            circuit_key, compound_code, season, n_stints, fit_notes,
+            circuit_key, compound_code, season, season_n_stints, fit_notes,
         )
     else:
         cliff_onset = None
         cliff_severity = None
         wear_gradient = None
         source = "compound_class_default"
-        fit_notes = f"insufficient data ({n_stints} stints); used class defaults"
+        used_n_stints = season_n_stints
+        fit_notes = f"insufficient data ({season_n_stints} stints); used class defaults"
         log.warning(
             "%s / %s / %d: using class defaults (%s)",
             circuit_key, compound_code, season, fit_notes,
@@ -186,7 +200,7 @@ def fit_group(
     onset_val = max(5.0, min(100.0, onset_val))
 
     severity_val = float(cliff_severity or defaults["cliff_severity"])
-    if severity_val < 0.1 or severity_val > 8.0:
+    if severity_val < 0.1 or severity_val > 1.5:
         severity_val = defaults["cliff_severity"]
 
     gradient_val = float(wear_gradient or defaults["wear_gradient"])
@@ -204,8 +218,8 @@ def fit_group(
         "compound_cliff_onset_laps": round(onset_val, 1),
         "compound_cliff_severity": round(severity_val, 2),
         "fit_source": source,
-        "n_stints": n_stints,
-        "notes": fit_notes or f"fitted from {n_stints} stints via {source}",
+        "n_stints": used_n_stints,
+        "notes": fit_notes or f"fitted from {used_n_stints} stints via {source}",
     }
 
 

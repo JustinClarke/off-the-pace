@@ -36,6 +36,13 @@
 -- (prior_weight = 5 virtual races). Variance components are pooled within each
 -- era.
 --
+-- n_obs=1 cells get no shrunk estimate (NULL shrunk_affinity_s/se/CI): a
+-- single race is one data point, not a track record, and the posterior at
+-- that n is prior-dominated enough (affinity_confidence ~0.17) to be
+-- misleading rather than merely uncertain. raw_affinity_s and
+-- affinity_confidence stay populated since they don't claim to be a track
+-- record estimate.
+--
 -- Output grain: (driver_id, circuit_id, era_key). PK: driver_circuit_era_id.
 -- circuit_id is the physical-circuit identifier (slug of circuit_name), so
 -- renamed events
@@ -148,20 +155,29 @@ with_shrinkage AS (
         dco.raw_affinity_s,
 
         -- Bayesian posterior mean (shrinkage toward the driver's within-era
-        -- global mean)
-        {{ bayesian_shrinkage(
-            'dco.n_obs',
-            'dco.raw_affinity_s',
-            'dg.global_driver_mean_s',
-            '5'
-        ) }}                               AS shrunk_affinity_s,
+        -- global mean). Requires >= 2 races at this circuit/era: a single
+        -- race isn't a track record.
+        CASE
+            WHEN dco.n_obs >= 2
+                THEN {{ bayesian_shrinkage(
+                    'dco.n_obs',
+                    'dco.raw_affinity_s',
+                    'dg.global_driver_mean_s',
+                    '5'
+                ) }}
+        END                                AS shrunk_affinity_s,
 
-        -- Posterior variance (σ²_residual / n and σ²_prior, per era)
-        {{ posterior_variance(
-            'dco.n_obs',
-            'NULLIF(vc.sigma2_residual, 0)',
-            'NULLIF(POWER(vc.sigma_prior_approx, 2), 0)'
-        ) }}                               AS posterior_var_s2,
+        -- Posterior variance (σ²_residual / n and σ²_prior, per era). Gated
+        -- with shrunk_affinity_s so shrunk_affinity_se_s is NULL, not just
+        -- the CI bounds, at n_obs < 2.
+        CASE
+            WHEN dco.n_obs >= 2
+                THEN {{ posterior_variance(
+                    'dco.n_obs',
+                    'NULLIF(vc.sigma2_residual, 0)',
+                    'NULLIF(POWER(vc.sigma_prior_approx, 2), 0)'
+                ) }}
+        END                                AS posterior_var_s2,
 
         dg.global_driver_mean_s,
 
@@ -204,9 +220,15 @@ SELECT
 
     affinity_confidence,
 
-    -- Shrinkage bounds identity check columns (for singular test)
-    LEAST(raw_affinity_s, global_driver_mean_s) AS _shrinkage_lower_bound,
-    GREATEST(raw_affinity_s, global_driver_mean_s) AS _shrinkage_upper_bound
+    -- Shrinkage bounds identity check columns (for singular test). NULL
+    -- alongside shrunk_affinity_s -- a bound with nothing to check against
+    -- is meaningless, not just unused.
+    CASE
+        WHEN n_obs >= 2 THEN LEAST(raw_affinity_s, global_driver_mean_s)
+    END AS _shrinkage_lower_bound,
+    CASE
+        WHEN n_obs >= 2 THEN GREATEST(raw_affinity_s, global_driver_mean_s)
+    END AS _shrinkage_upper_bound
 
 FROM with_shrinkage
 ORDER BY era_key, circuit_id, shrunk_affinity_s

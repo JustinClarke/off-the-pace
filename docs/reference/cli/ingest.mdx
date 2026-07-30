@@ -11,7 +11,7 @@ Unified F1 Bronze-layer ingestion controller. Fetches race and qualifying data f
 ## Usage
 
 ```bash
-usage: ingest.py [-h] (--start-season YEAR | -s YEAR) [--end-season YEAR] [--session {R,Q,both}] [--skip-telemetry] [--telemetry-full] [--force] [--dry-run] [--log-level LOG_LEVEL]
+usage: ingest.py [-h] (--start-season YEAR | -s YEAR) [--end-season YEAR] [--round N] [--session {R,Q,both}] [--skip-telemetry] [--telemetry-full] [--force] [--dry-run] [--log-level LOG_LEVEL]
 ```
 
 ## Options
@@ -19,11 +19,12 @@ usage: ingest.py [-h] (--start-season YEAR | -s YEAR) [--end-season YEAR] [--ses
 ```
 -h, --help            show this help message and exit
   --start-season YEAR   First season to ingest (use with --end-season)
-  -s YEAR, --season YEAR
-                        Single season shorthand (equivalent to --start-season
+  -s, --season YEAR     Single season shorthand (equivalent to --start-season
                         N --end-season N)
   --end-season YEAR     Last season to ingest (inclusive). Required with
                         --start-season.
+  --round N             Ingest only this round number (requires a single
+                        season via -s/--season)
   --session {R,Q,both}  Which session types to ingest (default: both)
   --skip-telemetry      Skip telemetry extraction (faster dry-runs and
                         qualifying-only runs)
@@ -40,7 +41,9 @@ usage: ingest.py [-h] (--start-season YEAR | -s YEAR) [--end-season YEAR] [--ses
 ## Examples
 
 ```bash
-python ingest.py --season 2024 --session R
+python ingest.py --season 2024 --round 1 --session R
+                 Ingest a single race (2024 Rd1, Bahrain)
+  python ingest.py --season 2024 --session R
                  Ingest 2024 races only
   python ingest.py --season 2024 --session both
                  Ingest 2024 races and qualifying

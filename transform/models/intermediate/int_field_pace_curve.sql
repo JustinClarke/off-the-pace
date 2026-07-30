@@ -23,8 +23,8 @@ geom AS (
     SELECT
         stint_id,
         lap_id,
-        lap_in_stint,
-        stint_length_actual
+        valid_lap_in_stint,
+        stint_length_valid
     FROM {{ ref('int_stint_geometry') }}
 ),
 
@@ -53,8 +53,8 @@ eligible AS (
         ON f.race_year = rf.race_year AND f.race_id = rf.race_id
     WHERE
         -- no out-laps
-        g.lap_in_stint > 1
-        AND g.lap_in_stint < g.stint_length_actual - 1             -- no in-laps
+        g.valid_lap_in_stint > 1
+        AND g.valid_lap_in_stint < g.stint_length_valid - 1        -- no in-laps
         -- no major incident laps
         AND f.lap_time_s < 1.07 * rf.race_fastest_lap_s
         AND a.air_state_dominant IN ('free_air', 'tow_zone')       -- clean air

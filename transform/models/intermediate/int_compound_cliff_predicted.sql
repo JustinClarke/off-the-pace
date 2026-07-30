@@ -19,6 +19,11 @@ WITH geom AS (
         age_in_stint,
         compound_in_stint AS compound
     FROM {{ ref('int_stint_geometry') }}
+    -- int_stint_geometry now carries the full chronological sequence
+    -- (SC/VSC/pit/invalid laps included); this model outputs expected
+    -- pace so it must stay valid-lap-only, or it prices SC/pit laps as if
+    -- they were racing laps.
+    WHERE is_valid_lap = TRUE
 ),
 
 race_map AS (

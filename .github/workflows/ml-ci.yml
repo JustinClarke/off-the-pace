@@ -14,6 +14,12 @@ on:
       - 'scripts/build_reference.py'
       - '.github/workflows/ml-ci.yml'
 
+# Both jobs build the warehouse with `dbt --target ci`, which writes data/ci.duckdb.
+# The ML layer defaults to the local-dev data/dev.duckdb, which never exists on a
+# clean runner, so every warehouse-backed step needs this override to find the mart.
+env:
+  ML_DUCKDB_PATH: data/ci.duckdb
+
 jobs:
   # ── Leakage guards: the spine. Static guards run unconditionally; warehouse-dependent
   #    guards run once the mart is built from fixtures. Any failure is red. ──────────────

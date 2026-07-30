@@ -8,7 +8,7 @@ description: "Foundation for all downstream window functions."
 
 <Note>Part of the [Physics](/transform/families/physics) family.</Note>
 
-Foundation for all downstream window functions. One row per valid race lap. Builds stint identifiers (stint_id), lap positions within stints (lap_in_stint, age_in_stint), and compound tracking. All Layer 03 window functions partition on stint_id.
+Foundation for all downstream window functions. One row per race lap (the FULL chronological sequence, including SC/VSC/pit/invalid laps) so physics-layer LAG/EWMA windows decay correctly across those gaps instead of treating the lap before/after a gap as adjacent. Builds stint identifiers (stint_id), lap positions within stints (lap_in_stint = chronological ordinal, valid_lap_in_stint = ordinal among valid laps only, age_in_stint = tyre_life), and compound tracking. Consumers that fit pace/regression models filter to is_valid_lap (or key off valid_lap_in_stint) at their own input boundary. All Layer 03 window functions partition on stint_id.
 
 ## Lineage
 
@@ -39,7 +39,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`stg_laps`](../stg/stg_laps) |
 
-**4 tests** [guard](/transform/ci/overview) this model  -  3 generic, 1 singular.
+**11 tests** [guard](/transform/ci/overview) this model  -  9 generic, 2 singular.
 
 ## Columns
 
@@ -47,3 +47,11 @@ flowchart LR
 |---|---|---|---|---|
 | `stint_id` |   | Yes | [`not_null`](/transform/ci/structural) | Surrogate key combining race_year, race_id, driver_id, stint_number |
 | `lap_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Foreign key to stg_laps |
+| `lap_in_stint` |   | Yes | [`not_null`](/transform/ci/structural) | Chronological ordinal within the stint (1, 2, 3, ...), counting every lap including SC/VSC/pit/invalid ones. |
+| `valid_lap_in_stint` |   | Yes |   | Ordinal among valid laps only within the stint (NULL on invalid laps). Use for pace-fitting position/length logic instead of lap_in_stint. |
+| `stint_length_actual` |   | Yes | [`not_null`](/transform/ci/structural) | Total lap count in the stint (valid + invalid). |
+| `stint_length_valid` |   | Yes |   | Count of valid laps in the stint. |
+| `is_valid_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. Timed, on-track, not deleted, accurate, not lap 1, no SC/VSC. |
+| `is_pit_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE for the out-lap/in-lap of a pit stop. |
+| `is_safety_car_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains a full-SC digit. |
+| `is_vsc_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains the VSC digit. |

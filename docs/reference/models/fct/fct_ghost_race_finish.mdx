@@ -30,7 +30,7 @@ flowchart LR
 | Tags | `simulation`, `ghost_car` |
 | Upstream | [`fct_ghost_car_pace`](./fct_ghost_car_pace), [`stg_laps`](../stg/stg_laps), [`stg_results`](../stg/stg_results) |
 
-**13 tests** [guard](/transform/ci/overview) this model  -  12 generic, 1 singular.
+**16 tests** [guard](/transform/ci/overview) this model  -  14 generic, 2 singular.
 
 ## Columns
 
@@ -45,6 +45,8 @@ flowchart LR
 | `finish_from_results` |   | Yes |   | True when actual_finish_position came from official classified results; False when it fell back to the lap-derived position. |
 | `delta_vs_actual_position` |   | Yes |   | Projected minus actual finish position. Negative = would have finished higher. NULL when the driver has no real finishing position (DNF). |
 | `predicted_mean_lap_s` |   | Yes | [`not_null`](/transform/ci/structural) | Mean predicted lap time across counted laps; the ranking key. |
+| `predicted_mean_residual_pace_s` |   | Yes | [`not_null`](/transform/ci/structural) | Mean fuel-adjusted predicted pace (AVG of fct_ghost_car_pace's predicted_residual_pace_s over counted laps). The ranking key for assert_ghost_self_scenario_rank so drivers aren't ranked on raw pace that conflates fuel load with true speed. |
+| `actual_mean_residual_pace_s` |   | Yes | [`not_null`](/transform/ci/structural) | Mean fuel-adjusted actual pace (AVG of actual_residual_pace_s over counted laps). |
 | `lap_coverage` |   | Yes |   | laps_counted / race_distance_laps in [0,1]; fraction of the race the driver contributes. |
 | `is_short_run` |   | Yes | [`not_null`](/transform/ci/structural) | True when lap_coverage &lt; ghost_short_run_threshold (default 0.5) DNF / partial run. |
 | `avg_recombination_confidence` |   | Yes |   | Coverage-weighted lap confidence (n/(n+50) heuristic × sqrt coverage), used by the Counterfactual Championship and Hidden Performance app features. Coexists with the finer-grained SE columns below rather than being replaced by them. |

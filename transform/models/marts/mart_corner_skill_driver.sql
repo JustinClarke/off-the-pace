@@ -22,6 +22,21 @@
 -- Output grain: (race_year, driver_id). Sign: negative = faster than the LORO
 -- equal-car benchmark (consistent with driver_skill_loro_s upstream).
 -- corner_skill_index = sum of three z-scored phase components.
+--
+-- 4. Cell winsorization. Each (driver, race, corner) cell is clipped to
+--    +/-1.0s before the season AVG, so one thin/outlier cell (e.g. a corner
+--    with a handful of laps and a bad LORO baseline) can't dominate a whole
+--    season. Guarantees |braking_skill_s| <= 1.0 by convexity.
+-- 5. Per-phase cell floor. braking_cells_n / mid_cells_n / exit_cells_n count
+--    the winsorized cells behind each phase mean. A phase's z-score (and
+--    therefore corner_skill_index, their sum) is only populated once its own
+--    cell count clears PHASE_MIN_CELLS=30 -- the mean/SE stay published below
+--    that floor (still informative), only the standardized/composite score
+--    is withheld. Phases differ in coverage because not every corner has a
+--    discrete braking zone or a clean exit-measurement point, even though
+--    every corner has a mid-apex.
+
+{% set phase_min_cells = 30 %}
 
 {{ config(materialized='table', tags=['mart']) }}
 
@@ -160,7 +175,9 @@ loro_corner AS (
             AND dca.corner_name = ca.corner_name
 ),
 
--- LORO-adjusted skill per driver-race-corner.
+-- LORO-adjusted skill per driver-race-corner, winsorized to +/-1.0s (see
+-- header point 4): a single cell's deviation from the car baseline cannot
+-- contribute more than +/-1.0s to the season mean.
 -- Negative = driver faster than the equal-car (LORO) benchmark.
 deconf_corner AS (
     SELECT
@@ -169,9 +186,12 @@ deconf_corner AS (
         driver_id,
         constructor_id,
         corner_name,
-        driver_mean_braking_s - loro_braking_s AS deconf_braking_s,
-        driver_mean_mid_s - loro_mid_s AS deconf_mid_s,
-        driver_mean_exit_s - loro_exit_s AS deconf_exit_s
+        GREATEST(-1.0, LEAST(1.0, driver_mean_braking_s - loro_braking_s))
+            AS deconf_braking_s,
+        GREATEST(-1.0, LEAST(1.0, driver_mean_mid_s - loro_mid_s))
+            AS deconf_mid_s,
+        GREATEST(-1.0, LEAST(1.0, driver_mean_exit_s - loro_exit_s))
+            AS deconf_exit_s
     FROM loro_corner
     WHERE
         loro_braking_s IS NOT NULL
@@ -179,10 +199,11 @@ deconf_corner AS (
         OR loro_exit_s IS NOT NULL
 ),
 
--- Season-driver aggregates: mean LORO-adjusted skill across all corners and
--- races.
--- Require ≥ 100 mapped corners for reliability (same guard as the original
--- model).
+-- Season-driver aggregates: mean LORO-adjusted skill (of winsorized cells)
+-- across all corners and races, plus per-phase cell counts and standard
+-- errors. Require ≥ 100 mapped corners for reliability (same guard as the
+-- original model). mapped_corners tracks mid_cells_n: every corner has a
+-- mid-apex, so it's the most complete of the three phases.
 driver_season AS (
     SELECT
         race_year,
@@ -191,6 +212,15 @@ driver_season AS (
         AVG(deconf_braking_s) AS braking_skill_s,
         AVG(deconf_mid_s) AS mid_corner_skill_s,
         AVG(deconf_exit_s) AS exit_skill_s,
+        STDDEV(deconf_braking_s)
+        / SQRT(NULLIF(COUNT(deconf_braking_s), 0)) AS braking_skill_se_s,
+        STDDEV(deconf_mid_s)
+        / SQRT(NULLIF(COUNT(deconf_mid_s), 0)) AS mid_corner_skill_se_s,
+        STDDEV(deconf_exit_s)
+        / SQRT(NULLIF(COUNT(deconf_exit_s), 0)) AS exit_skill_se_s,
+        COUNT(deconf_braking_s) AS braking_cells_n,
+        COUNT(deconf_mid_s) AS mid_cells_n,
+        COUNT(deconf_exit_s) AS exit_cells_n,
         COUNT(*) AS mapped_corners
     FROM deconf_corner
     GROUP BY race_year, driver_id
@@ -200,7 +230,9 @@ driver_season AS (
 -- Per-phase z-scores within each season so all three phases contribute equally
 -- to
 -- corner_skill_index and the exit phase does not dominate (unchanged from old
--- model).
+-- model). Each z is withheld below PHASE_MIN_CELLS=30 cells (header point 5);
+-- corner_skill_index is their sum, so it goes NULL automatically once any
+-- one phase is withheld.
 standardized AS (
     SELECT
         race_year,
@@ -209,16 +241,28 @@ standardized AS (
         braking_skill_s,
         mid_corner_skill_s,
         exit_skill_s,
+        braking_skill_se_s,
+        mid_corner_skill_se_s,
+        exit_skill_se_s,
+        braking_cells_n,
+        mid_cells_n,
+        exit_cells_n,
         mapped_corners,
-        braking_skill_s
-        / NULLIF(STDDEV(braking_skill_s) OVER (PARTITION BY race_year), 0)
-            AS braking_skill_z,
-        mid_corner_skill_s
-        / NULLIF(STDDEV(mid_corner_skill_s) OVER (PARTITION BY race_year), 0)
-            AS mid_corner_skill_z,
-        exit_skill_s
-        / NULLIF(STDDEV(exit_skill_s) OVER (PARTITION BY race_year), 0)
-            AS exit_skill_z
+        CASE
+            WHEN braking_cells_n >= {{ phase_min_cells }}
+                THEN braking_skill_s
+                / NULLIF(STDDEV(braking_skill_s) OVER (PARTITION BY race_year), 0)
+        END AS braking_skill_z,
+        CASE
+            WHEN mid_cells_n >= {{ phase_min_cells }}
+                THEN mid_corner_skill_s
+                / NULLIF(STDDEV(mid_corner_skill_s) OVER (PARTITION BY race_year), 0)
+        END AS mid_corner_skill_z,
+        CASE
+            WHEN exit_cells_n >= {{ phase_min_cells }}
+                THEN exit_skill_s
+                / NULLIF(STDDEV(exit_skill_s) OVER (PARTITION BY race_year), 0)
+        END AS exit_skill_z
     FROM driver_season
 )
 
@@ -229,11 +273,17 @@ SELECT
     ROUND(braking_skill_s, 4) AS braking_skill_s,
     ROUND(mid_corner_skill_s, 4) AS mid_corner_skill_s,
     ROUND(exit_skill_s, 4) AS exit_skill_s,
+    ROUND(braking_skill_se_s, 4) AS braking_skill_se_s,
+    ROUND(mid_corner_skill_se_s, 4) AS mid_corner_skill_se_s,
+    ROUND(exit_skill_se_s, 4) AS exit_skill_se_s,
     ROUND(braking_skill_z, 2) AS braking_skill_z,
     ROUND(mid_corner_skill_z, 2) AS mid_corner_skill_z,
     ROUND(exit_skill_z, 2) AS exit_skill_z,
     ROUND(braking_skill_z + mid_corner_skill_z + exit_skill_z, 2)
         AS corner_skill_index,
+    braking_cells_n,
+    mid_cells_n,
+    exit_cells_n,
     mapped_corners
 FROM standardized
 ORDER BY race_year ASC, corner_skill_index ASC

@@ -75,7 +75,7 @@ Auto-generated reference for all 60 dbt models.
 | [`fct_lap_residuals`](/reference/models/fct/fct_lap_residuals) | Lap-grain analytics table. |
 | [`fct_stint_features`](/reference/models/fct/fct_stint_features) | One row per stint. |
 | [`fct_telemetry_deltas`](/reference/models/fct/fct_telemetry_deltas) | Driver-vs-teammate corner-metric deltas. |
-| [`mart_corner_skill_driver`](/reference/models/fct/mart_corner_skill_driver) | Ghost-car-style driver corner skill ranking. |
+| [`mart_corner_skill_driver`](/reference/models/fct/mart_corner_skill_driver) | Driver corner skill vs a LORO (leave-one-race-out) same-car baseline. |
 | [`mart_degradation_history_envelope`](/reference/models/fct/mart_degradation_history_envelope) | Pre-aggregated historical stint envelope for the Degradation Simulator. |
 
 ## Reference

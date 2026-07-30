@@ -70,9 +70,11 @@ geom AS (
         driver_id,
         lap_number,
         lap_in_stint,
+        valid_lap_in_stint,
         age_in_stint,
         compound_in_stint AS compound,
-        stint_length_actual
+        stint_length_actual,
+        stint_length_valid
     FROM {{ ref('int_stint_geometry') }}
 ),
 
@@ -199,7 +201,9 @@ combined AS (
         c.laps_past_cliff,
         c.ambient_temp_delta,
         g.lap_in_stint,
+        g.valid_lap_in_stint,
         g.stint_length_actual,
+        g.stint_length_valid,
 
         -- Field pace baseline (trimmed-mean field pace, smoothed 5-lap centred
         -- window)
@@ -324,7 +328,9 @@ SELECT
     compound,
     age_in_stint,
     lap_in_stint,
+    valid_lap_in_stint,
     stint_length_actual,
+    stint_length_valid,
     cliff_onset_passed,
     laps_past_cliff,
     fuel_mass_kg,

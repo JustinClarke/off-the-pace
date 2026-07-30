@@ -141,7 +141,7 @@ WITH clean_laps AS (
     WHERE correction_weight = 1.0
       AND COALESCE(rainfall_flag, FALSE) = FALSE
       AND compound IN ('SOFT', 'MEDIUM', 'HARD')
-      AND lap_in_stint > 1
+      AND valid_lap_in_stint > 1
       AND COALESCE(cliff_onset_passed, FALSE) = FALSE
       AND driver_skill_residual_s IS NOT NULL
       AND age_in_stint IS NOT NULL
@@ -260,7 +260,7 @@ clean_laps_cliff AS (
     WHERE lr.correction_weight = 1.0
       AND COALESCE(lr.rainfall_flag, FALSE) = FALSE
       AND lr.compound IN ('SOFT', 'MEDIUM', 'HARD')
-      AND lr.lap_in_stint > 1
+      AND lr.valid_lap_in_stint > 1
       AND lr.driver_skill_residual_s IS NOT NULL
       AND lr.age_in_stint IS NOT NULL
       AND cp.laps_past_cliff IS NOT NULL

@@ -27,16 +27,24 @@ TRAILING_WINDOW = 5
 
 def detect_cliff_lap(
     lap_times: pd.Series,
-    lap_in_stint: pd.Series,
+    age_in_stint: pd.Series,
 ) -> int | None:
     """
-    Return the lap_in_stint at which the cliff is detected, or None if not observed.
+    Return the age_in_stint (tyre-life lap) at which the cliff is detected,
+    or None if not observed.
+
+    Keyed on age_in_stint, not lap_in_stint: compound_cliff_onset_laps is
+    compared against age_in_stint downstream (int_compound_cliff_predicted's
+    hockey-stick formula), and age_in_stint is the tyre's true physical
+    odometer (continuous across SC/VSC gaps, and can exceed lap_in_stint when
+    the set was scrubbed in qualifying) while lap_in_stint only counts laps
+    within this race stint.
 
     A cliff is detected when lap_time exceeds the trailing 5-lap median by
     CLIFF_DETECTION_THRESHOLD_S for at least CLIFF_MIN_CONTINUATION_LAPS consecutive laps.
     This guards against one-off track-limits events or lock-ups.
     """
-    df = pd.DataFrame({"t": lap_times.values, "lap": lap_in_stint.values}).sort_values("lap")
+    df = pd.DataFrame({"t": lap_times.values, "age": age_in_stint.values}).sort_values("age")
     if len(df) < TRAILING_WINDOW + CLIFF_MIN_CONTINUATION_LAPS:
         return None
 
@@ -55,7 +63,7 @@ def detect_cliff_lap(
             streak += 1
             if streak >= CLIFF_MIN_CONTINUATION_LAPS:
                 # Return the first lap of the streak (not the confirmation lap)
-                return int(row["lap"])-(streak-1)
+                return int(row["age"])-(streak-1)
         else:
             streak = 0
     return None
@@ -67,26 +75,26 @@ def build_survival_dataset(
     """
     Given a DataFrame of stints (one row per lap), build the per-stint survival table:
         stint_id, circuit_key, compound_code, race_year,
-        duration (= lap at which event/censoring occurred),
+        duration (= age_in_stint at which event/censoring occurred),
         observed (= 1 if cliff detected, 0 if censored),
         avg_track_temp_c, forced_stop (= 1 if DNF/SC/damage retirement)
 
-    Expects columns: stint_id, lap_in_stint, lap_time_s, circuit_key,
+    Expects columns: stint_id, age_in_stint, lap_time_s, circuit_key,
                      compound_code, race_year, track_temp_c, forced_stop_flag
     """
     records = []
     for stint_id, grp in stints_df.groupby("stint_id"):
-        grp = grp.sort_values("lap_in_stint")
+        grp = grp.sort_values("age_in_stint")
         if len(grp) < 3:
             continue
 
-        cliff_lap = detect_cliff_lap(grp["lap_time_s"], grp["lap_in_stint"])
+        cliff_lap = detect_cliff_lap(grp["lap_time_s"], grp["age_in_stint"])
 
         if cliff_lap is not None:
             duration = cliff_lap
             observed = 1
         else:
-            duration = int(grp["lap_in_stint"].max())
+            duration = int(grp["age_in_stint"].max())
             observed = 0
 
         records.append(
@@ -150,25 +158,29 @@ def estimate_cliff_severity(
 
     Uses only uncensored stints (observed cliff or forced stop) where we actually
     see post-cliff laps. Computes the average lap-time delta between
-    [onset, onset+5] vs [onset-5, onset-1].
+    [onset, onset+5] vs [onset-5, onset-1], windowed on age_in_stint (tyre-life
+    laps) to match the units cliff_lap is detected in.
     """
     records = []
     for _stint_id, grp in stints_df.groupby("stint_id"):
-        grp = grp.sort_values("lap_in_stint").reset_index(drop=True)
-        cliff_lap = detect_cliff_lap(grp["lap_time_s"], grp["lap_in_stint"])
+        grp = grp.sort_values("age_in_stint").reset_index(drop=True)
+        cliff_lap = detect_cliff_lap(grp["lap_time_s"], grp["age_in_stint"])
         if cliff_lap is None:
             continue
 
-        pre = grp[grp["lap_in_stint"].between(cliff_lap-5, cliff_lap-1)]["lap_time_s"]
-        post = grp[grp["lap_in_stint"].between(cliff_lap, cliff_lap + 5)]["lap_time_s"]
+        pre = grp[grp["age_in_stint"].between(cliff_lap-5, cliff_lap-1)]["lap_time_s"]
+        post = grp[grp["age_in_stint"].between(cliff_lap, cliff_lap + 5)]["lap_time_s"]
 
         if len(pre) >= 2 and len(post) >= 2:
             records.append(float(post.mean()-pre.mean()))
 
     if not records:
         return None
-    # Trim outliers (top/bottom 10%) before averaging
-    arr = np.array(records)
+    # Winsorise to 1.5s/lap   an unbounded mean lets one stint's post-cliff
+    # laps (backmarker traffic, a slow puncture) dwarf real car pace in the
+    # ghost cliff term. Cap before trimming so the trim's own percentiles
+    # aren't skewed by the same outliers.
+    arr = np.clip(np.array(records), None, 1.5)
     p10, p90 = np.percentile(arr, [10, 90])
     trimmed = arr[(arr >= p10) & (arr <= p90)]
     return float(trimmed.mean()) if len(trimmed) > 0 else float(arr.mean())
@@ -181,8 +193,10 @@ def estimate_wear_gradient(
     """
     Estimate compound_wear_gradient (s/lap) from the linear portion of the wear curve.
 
-    Fits a linear regression on laps 3 to min(cliff_onset-2, max_lap-2) to capture
-    the steady-state degradation before the cliff accelerates.
+    Fits a linear regression on tyre-life laps 3 to min(cliff_onset-2, max_age-2)
+    to capture the steady-state degradation before the cliff accelerates, windowed
+    on age_in_stint so an SC/VSC gap (already excluded from this row set by the
+    caller) doesn't compress the fitted x-spacing and inflate the slope.
     Uses uncensored stints only (forced stop or observed cliff) to avoid the selection
     bias of voluntary pits cutting short the measurable degradation range.
     """
@@ -192,16 +206,16 @@ def estimate_wear_gradient(
     cutoff = max(3, int(cliff_onset_laps)-2)
 
     for _stint_id, grp in stints_df.groupby("stint_id"):
-        grp = grp.sort_values("lap_in_stint").reset_index(drop=True)
+        grp = grp.sort_values("age_in_stint").reset_index(drop=True)
         linear_region = grp[
-            grp["lap_in_stint"].between(3, cutoff) &
+            grp["age_in_stint"].between(3, cutoff) &
             grp["lap_time_s"].notna()
         ]
         if len(linear_region) < 3:
             continue
 
         result = stats.linregress(
-            linear_region["lap_in_stint"].values,
+            linear_region["age_in_stint"].values,
             linear_region["lap_time_s"].values,
         )
         # Only accept positive slopes (pace genuinely deteriorating)

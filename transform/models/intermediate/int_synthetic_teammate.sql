@@ -28,7 +28,7 @@ geom AS (
         race_id,
         driver_id,
         lap_number,
-        lap_in_stint,
+        valid_lap_in_stint,
         compound_in_stint AS compound,
         age_in_stint
     FROM {{ ref('int_stint_geometry') }}
@@ -86,7 +86,7 @@ ego_data AS (
         f.driver_id,
         f.lap_number,
         f.weight_corrected_lap_time AS ego_wc_lap_time_s,
-        g.lap_in_stint AS ego_lap_in_stint,
+        g.valid_lap_in_stint AS ego_valid_lap_in_stint,
         c.expected_compound_pace_s AS ego_compound_pace_s
     FROM fuel_state AS f
     INNER JOIN geom AS g ON f.lap_id = g.lap_id
@@ -101,7 +101,7 @@ teammate_data AS (
         f.lap_number,
         f.lap_time_s AS tm_raw_lap_time_s,
         f.weight_corrected_lap_time AS tm_wc_lap_time_s,
-        g.lap_in_stint AS tm_lap_in_stint,
+        g.valid_lap_in_stint AS tm_valid_lap_in_stint,
         c.expected_compound_pace_s AS tm_compound_pace_s
     FROM fuel_state AS f
     INNER JOIN geom AS g ON f.lap_id = g.lap_id
@@ -117,11 +117,11 @@ joined AS (
         p.teammate_driver_id,
         p.constructor_id,
         e.ego_wc_lap_time_s,
-        e.ego_lap_in_stint,
+        e.ego_valid_lap_in_stint,
         e.ego_compound_pace_s,
         t.tm_raw_lap_time_s,
         t.tm_wc_lap_time_s,
-        t.tm_lap_in_stint,
+        t.tm_valid_lap_in_stint,
         t.tm_compound_pace_s,
         -- Tyre-state correction: adjust teammate weight-corrected time to ego
         -- compound/age
@@ -131,8 +131,11 @@ joined AS (
         -- Skill proxy: positive = ego is faster than synthetic teammate
         (t.tm_wc_lap_time_s + (e.ego_compound_pace_s - t.tm_compound_pace_s))
         - e.ego_wc_lap_time_s AS driver_skill_proxy_s,
-        -- Strategic divergence: stint positions differ by > 3 laps
-        ABS(t.tm_lap_in_stint - e.ego_lap_in_stint)
+        -- Strategic divergence: stint positions (valid-lap ordinal, not
+        -- chronological) differ by > 3 laps. Chronological lap_in_stint
+        -- would diverge across an SC period even with no real strategy
+        -- difference if only one teammate hit the SC laps.
+        ABS(t.tm_valid_lap_in_stint - e.ego_valid_lap_in_stint)
         > 3 AS strategic_divergence_flag,
         t.tm_raw_lap_time_s IS NOT NULL AS teammate_available_flag
     FROM pairs AS p

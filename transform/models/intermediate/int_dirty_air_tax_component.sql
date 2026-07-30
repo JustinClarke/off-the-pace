@@ -51,7 +51,8 @@ geom AS (
         race_id,
         driver_id,
         lap_number,
-        lap_in_stint
+        lap_in_stint,
+        is_valid_lap
     FROM {{ ref('int_stint_geometry') }}
 ),
 
@@ -67,6 +68,23 @@ air_state AS (
         dirty_air_share_lap,
         air_state_dominant
     FROM {{ ref('int_lap_air_state') }}
+),
+
+-- Lag dirty_air_share over the FULL chronological sequence (SC/VSC/pit laps
+-- included, via geom + air_state which both now carry every lap). Without
+-- this, the first valid lap after an SC period would lag back to the last
+-- *valid* pre-SC lap and wrongly inherit a high traffic penalty; with the
+-- full sequence, it correctly lags to the SC lap itself (share = 0, per the
+-- int_lap_air_state SC-bunching fix).
+full_sequence_lag AS (
+    SELECT
+        g.lap_id,
+        LAG(COALESCE(a.dirty_air_share_lap, 0.0), 1, 0.0) OVER (
+            PARTITION BY g.stint_id
+            ORDER BY g.lap_in_stint
+        ) AS dirty_air_share_lag1
+    FROM geom AS g
+    LEFT JOIN air_state AS a ON g.lap_id = a.lap_id
 ),
 
 corrections AS (
@@ -107,9 +125,11 @@ panel AS (
         - f.fuel_component_s
             AS partial_residual_s,
         a.dirty_air_share_lap,
-        a.air_state_dominant
+        a.air_state_dominant,
+        fsl.dirty_air_share_lag1
     FROM fuel AS f
     INNER JOIN geom AS g ON f.lap_id = g.lap_id
+    INNER JOIN full_sequence_lag AS fsl ON f.lap_id = fsl.lap_id
     LEFT JOIN field_pace AS fp
         ON
             f.race_year = fp.race_year
@@ -128,17 +148,6 @@ panel AS (
         AND COALESCE(e.rainfall_flag, FALSE) = FALSE
 ),
 
-with_lagged AS (
-    SELECT
-        *,
-        -- Lag dirty_air_share within stint by 1 lap for causal identification
-        LAG(dirty_air_share_lap, 1, 0.0) OVER (
-            PARTITION BY race_year, race_id, driver_id, stint_id
-            ORDER BY lap_in_stint
-        ) AS dirty_air_share_lag1
-    FROM panel
-),
-
 calibration_panel AS (
     SELECT
         race_year,
@@ -147,7 +156,7 @@ calibration_panel AS (
         lap_in_stint,
         partial_residual_s,
         dirty_air_share_lag1
-    FROM with_lagged
+    FROM panel
     WHERE
         dirty_air_share_lag1 > 0
         AND partial_residual_s IS NOT NULL
@@ -214,7 +223,7 @@ with_tax AS (
                 wl.lap_number
             ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
         ) AS cumulative_dirty_air_tax_race_s
-    FROM with_lagged AS wl
+    FROM panel AS wl
     CROSS JOIN theta_air_estimate AS ta
 )
 

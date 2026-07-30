@@ -33,8 +33,15 @@ WITH stint_meta AS (
         sg.lap_in_stint,
         sg.age_in_stint,
         sg.lap_number,
-        sg.lap_id
+        sg.lap_id,
+        sg.stint_length_valid
     FROM {{ ref('int_stint_geometry') }} AS sg
+    -- int_stint_geometry now carries SC/pit/invalid laps too; this model's
+    -- degradation-cost simulation is pace-fitting, not a physics window, so
+    -- it stays valid-lap-only (restores pre-A1 behaviour: SC laps must not
+    -- inflate counted stint duration or leak into the undercut-threat gap
+    -- scan below).
+    WHERE sg.is_valid_lap = TRUE
 ),
 
 cliff_per_lap AS (
@@ -61,7 +68,7 @@ cliff_onset_per_stint AS (
         sg.stint_id,
         MIN(sg.lap_in_stint) FILTER (WHERE cp.cliff_onset_passed = TRUE)
             AS cliff_onset_lap_in_stint,
-        MAX(sg.lap_in_stint)
+        MAX(sg.stint_length_valid)
             AS stint_length_laps,
         MAX(sg.lap_number) FILTER (WHERE cp.cliff_onset_passed = TRUE)
             AS cliff_onset_lap_number,
@@ -230,7 +237,7 @@ stint_base AS (
         race_year,
         race_id,
         driver_id,
-        MAX(lap_in_stint) AS stint_length_laps
+        MAX(stint_length_valid) AS stint_length_laps
     FROM stint_meta
     GROUP BY stint_id, race_year, race_id, driver_id
 ),

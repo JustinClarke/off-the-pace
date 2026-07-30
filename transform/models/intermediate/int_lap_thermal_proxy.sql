@@ -18,14 +18,19 @@ WITH geom AS (
         driver_id,
         lap_number,
         lap_in_stint,
-        stint_length_actual
+        stint_length_actual,
+        is_valid_lap
     FROM {{ ref('int_stint_geometry') }}
 ),
 
+-- Full sequence (SC/VSC/pit/invalid laps included): the LAG window below
+-- must run over every lap so the push-residual EWMA decays across a gap
+-- instead of treating the lap before/after it as adjacent. Invalid laps are
+-- much slower than the stint baseline, so their push_residual is clipped to
+-- ~0 by the GREATEST(...,0) below and naturally contribute little.
 laps AS (
     SELECT lap_id, lap_time_s
     FROM {{ ref('stg_laps') }}
-    WHERE is_valid_lap = TRUE
 ),
 
 combined AS (
@@ -38,6 +43,7 @@ combined AS (
         g.lap_number,
         g.lap_in_stint,
         g.stint_length_actual,
+        g.is_valid_lap,
         l.lap_time_s,
         -- 60th percentile cut-off lap position (min 3 to have enough data)
         GREATEST(CEIL(g.stint_length_actual * 0.60), 3) AS baseline_cutoff_lap
@@ -49,10 +55,13 @@ combined AS (
 -- DuckDB does not support FILTER in ordered-set aggregates inside window
 -- functions,
 -- so we compute one value per stint via a plain GROUP BY first.
+-- Baseline is computed from valid laps only (SC/pit laps would drag the
+-- median pace down and distort the push-residual signal).
 stint_baseline_agg AS (
     SELECT
         stint_id,
-        MEDIAN(lap_time_s) FILTER (WHERE lap_in_stint <= baseline_cutoff_lap)
+        MEDIAN(lap_time_s)
+        FILTER (WHERE lap_in_stint <= baseline_cutoff_lap AND is_valid_lap)
             AS stint_baseline_pace
     FROM combined
     GROUP BY stint_id
@@ -126,3 +135,8 @@ SELECT
     cumulative_push_load_surface,
     cumulative_push_load_bulk
 FROM thermal
+-- Deliberately NOT filtered to valid laps here (mirrors int_lap_air_state):
+-- downstream consumers key off int_lap_residual_decomposed (valid-only) so
+-- the extra SC/pit rows are naturally excluded by their joins, and keeping
+-- them here preserves lap_in_stint=1 rows that
+-- assert_stint_boundary_integrity depends on to check no cross-stint bleed.

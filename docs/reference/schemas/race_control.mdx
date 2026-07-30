@@ -17,23 +17,48 @@ Bronze-layer event log. One row per race control message. ~50–200 rows per rac
 
 <Note>
 
-session_time_s is null for all 2024 races due to FastF1 v3.8.3 API change. Use `time` (HH:MM:SS) instead; join to laps via lap number for precise timing. `message` text is unstructured   use regex or fuzzy matching.
+session_time_s is null for all 2024 races due to FastF1 v3.8.3 API change. Use `Lap` instead; join to laps via lap number for precise timing. `message` text is unstructured   use regex or fuzzy matching. Race only; race control is never written for qualifying sessions.
 
 </Note>
 
+<Warning>
+
+**Columns that look real but aren't.** A search for one of
+these on this dataset will come up empty:
+
+- `code` Never ingested; there is no `code` column in any partition.
+- `lap (lowercase)` The real column is Title-Case `Lap`.
+- `time (lowercase)` The real column is Title-Case `Time`.
+- `flag (lowercase)` The real column is Title-Case `Flag`.
+
+</Warning>
+
 ## Columns
 
-| Column | Type | Nullable | Source | Description |
-|---|---|---|---|---|
-| `lap` | `integer` | Yes | FastF1 native | Lap number when message triggered. Null for pre-race messages (parades, formation laps). |
-| `time` | `string` | Yes | FastF1 native | Message timestamp in HH:MM:SS format (session time, not wall clock). Parse as needed. |
-| `session_time_s` | `float64` | Yes | FastF1 native | Time in seconds since session start. **Null for all 2024 races** due to FastF1 v3.8.3 DatetimeProperties API change. Use `time` column instead. ⚠️ *Null for 2024 races (FastF1 v3.8.3 regression)* |
-| `flag` | `string` | Yes | FastF1 native | Flag status: YELLOW, DOUBLE_YELLOW, RED, GREEN, CHECKERED. Null for non-flag messages. |
-| `category` | `string` | Yes | FastF1 native | Message category: 'Weather', 'Incident', 'CarEvent', 'SafetyCar', 'Procedure', etc. |
-| `message` | `string` | Yes | FastF1 native | Human-readable message text. Unstructured   values include 'Safety car deployed', 'Debris on track', 'Lapped car released'. Use regex or fuzzy matching. |
-| `code` | `string` | Yes | FastF1 native | Internal race control code. Format varies. |
-| `race_id` | `string` | No | Ingestion pipeline | Links to `laps.race_id`. Format: `YYYY_RoundNumber`. |
-| `season` | `integer` | No | Ingestion pipeline | Hive partition key. |
+<ResponseField name="Lap" type="integer">
+  Lap number when message triggered. Null for pre-race messages (parades, formation laps). *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="Time" type="TIMESTAMP_NS">
+  Message timestamp (session clock). *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="session_time_s" type="float64">
+  Time in seconds since session start. **Null for all 2024 races** due to FastF1 v3.8.3 DatetimeProperties API change. Use `Lap` for joins instead. ⚠️ *Null for 2024 races (FastF1 v3.8.3 regression)* *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="Flag" type="string">
+  Flag colour: GREEN, YELLOW, DOUBLE YELLOW, RED, CLEAR, CHEQUERED, BLUE. Null for non-flag messages. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="category" type="string">
+  Message category: 'Weather', 'Incident', 'CarEvent', 'SafetyCar', 'Procedure', etc. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="message" type="string">
+  Human-readable message text. Unstructured   values include 'Safety car deployed', 'Debris on track', 'Lapped car released'. Use regex or fuzzy matching. *Source: FastF1 native.*
+</ResponseField>
+<ResponseField name="race_id" type="string" required>
+  Links to `laps.race_id`. Format: `YYYY_RoundNumber`. *Source: Ingestion pipeline.*
+</ResponseField>
+<ResponseField name="season" type="integer" required>
+  Hive partition key. *Source: Ingestion pipeline.*
+</ResponseField>
 
 ## Required Columns
 

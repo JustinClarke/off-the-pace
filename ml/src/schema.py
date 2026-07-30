@@ -9,6 +9,7 @@ Column names are verified live against `data/dev.duckdb`
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 import pyarrow as pa
@@ -17,7 +18,10 @@ import pyarrow as pa
 RANDOM_STATE = 20260528  # imported everywhere; any other seed is a defect
 
 # ─── Warehouse handles ──────────────────────────────────────────────────────────
-DUCKDB_PATH = "data/dev.duckdb"
+# ML_DUCKDB_PATH lets a caller point the layer at a warehouse other than the local
+# dev build. CI needs this: it builds only `data/ci.duckdb` (dbt --target ci), so
+# without the override every warehouse-backed step dies on a missing dev.duckdb.
+DUCKDB_PATH = os.environ.get("ML_DUCKDB_PATH", "data/dev.duckdb")
 MART = "fct_cliff_prediction_features"
 STINT_FEATURES = "fct_stint_features"
 RACE_TO_TRACK = "race_to_track"

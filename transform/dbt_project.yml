@@ -74,3 +74,6 @@ seeds:
         event_type: varchar
         correction_weight_override: double
         note: varchar
+    race_to_track:
+      +column_types:
+        race_id: varchar

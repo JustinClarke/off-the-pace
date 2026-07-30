@@ -71,6 +71,22 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: time_in_dirty_air_s
+        description: >
+          Real per-lap dirty-air exposure time (seconds), summed from actual
+          ~10Hz telemetry sample durations where gap-to-car-ahead < 1.5s.
+          Zeroed on SC/VSC laps (no real aero load at safety-car speeds).
+          Null-gap samples (~5%, car ahead unavailable) are treated as free
+          air, matching dirty_air_share_lap's existing convention.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                # Generous upper bound: red-flag/standing-start stoppages (e.g.
+                # 2020 Austrian GP) hold the field bunched at <1.5s gaps for
+                # real wall-clock minutes, well past a normal green-flag lap.
+                max_value: 900
 
   - name: int_lap_thermal_proxy
     description: >
@@ -84,6 +100,36 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+
+  - name: int_track_geometry
+    description: >
+      Circuit geometry (gradient + curvature) from raw X/Y/Z telemetry, binned
+      to 25m distance intervals. Grain is (race_year, track_id, distance_bin) --
+      per-season, not collapsed to a single per-circuit shape, since GPS
+      origin/heading can drift between seasons (verified at Bahrain: 2019
+      diverges from 2020-2024). Start/finish bin has NULL gradient/curvature
+      (no wraparound across the lap boundary).
+    tags: [intermediate]
+    meta:
+      family: physics
+    columns:
+      - name: race_year
+        description: Season
+        tests: [not_null]
+      - name: track_id
+        description: Circuit identifier (from race_to_track)
+        tests: [not_null]
+      - name: distance_bin
+        description: Lower edge of the 25m distance bin (meters from start line)
+        tests: [not_null]
+      - name: gradient_dz_ds
+        description: Elevation gradient dZ/ds between the previous and next bin
+      - name: curvature_per_m
+        description: >
+          Menger curvature (1/m) from 3 consecutive binned points. NULL at
+          season boundaries or where points are collinear.
+      - name: lateral_accel_proxy_ms2
+        description: v^2 * curvature_per_m, using median speed at the bin (m/s^2)
 
   - name: int_corner_metrics
     description: >

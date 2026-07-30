@@ -16,9 +16,11 @@ from tasks.coefficients.survival import (
     estimate_cliff_severity,
     estimate_wear_gradient,
     fit_cliff_onset_median,
+    is_tyre_failure,
 )
 from tasks.coefficients.provenance import build_provenance
 from tasks.coefficients.seed_writer import write_pending, PENDING_DIR
+from tasks.coefficients.fit_compound_cliff import fresh_tyre_only
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +152,62 @@ class TestBuildSurvivalDataset:
         if len(censored) > 0 and len(cliffed) > 0:
             assert censored["duration"].mean() < cliffed["duration"].mean()
 
+    def test_is_fresh_tyre_defaults_true_when_absent(self):
+        """Synthetic fixtures without the column shouldn't be dropped from the survival set."""
+        pool = make_stint_pool(n_stints=10)
+        survival = build_survival_dataset(pool)
+        assert survival["is_fresh_tyre"].all()
+
+    def test_scrubbed_stints_kept_as_covariate_not_dropped(self):
+        """Scrubbed (non-fresh) stints stay in the survival set, just flagged."""
+        pool = make_stint_pool(n_stints=10)
+        pool["is_fresh_tyre"] = True
+        pool.loc[pool["stint_id"] == pool["stint_id"].iloc[0], "is_fresh_tyre"] = False
+        survival = build_survival_dataset(pool)
+        assert len(survival) == pool["stint_id"].nunique()
+        assert (~survival["is_fresh_tyre"]).sum() == 1
+
+    def test_tyre_failure_status_marks_observed_event(self):
+        """A puncture DNF with no pace-based cliff signature should still be an event."""
+        # Short, clean stint (no cliff) that ends abruptly in a puncture.
+        df = make_clean_stint(
+            "s_puncture", "bahrain_grand_prix", "SOFT", 2023,
+            n_laps=10, cliff_at_lap=None, noise_std=0.02,
+        )
+        df["dnf_status"] = "Puncture"
+        survival = build_survival_dataset(df)
+        row = survival.iloc[0]
+        assert row["observed"] == 1
+        assert row["tyre_failure"] == 1
+        assert row["duration"] == 9  # max age_in_stint (n_laps - 1)
+
+    def test_mechanical_dnf_status_stays_censored(self):
+        """Engine/collision DNFs are not tyre-failure events -- stay censored by default."""
+        df = make_clean_stint(
+            "s_engine", "bahrain_grand_prix", "SOFT", 2023,
+            n_laps=10, cliff_at_lap=None, noise_std=0.02,
+        )
+        df["dnf_status"] = "Engine"
+        survival = build_survival_dataset(df)
+        row = survival.iloc[0]
+        assert row["observed"] == 0
+        assert row["tyre_failure"] == 0
+
+    def test_missing_dnf_status_defaults_not_failure(self):
+        pool = make_stint_pool(n_stints=10)
+        survival = build_survival_dataset(pool)
+        assert (survival["tyre_failure"] == 0).all()
+
+
+class TestIsTyreFailure:
+    @pytest.mark.parametrize("status", ["Puncture", "Wheel", "Wheel nut", "Tyre", "puncture"])
+    def test_recognizes_tyre_failure_statuses(self, status):
+        assert is_tyre_failure(status)
+
+    @pytest.mark.parametrize("status", ["Engine", "Collision", "Retired", "Gearbox", None])
+    def test_rejects_non_tyre_statuses(self, status):
+        assert not is_tyre_failure(status)
+
 
 # ---------------------------------------------------------------------------
 # fit_cliff_onset_median tests
@@ -209,6 +267,55 @@ class TestEstimateWearGradient:
         gradient = estimate_wear_gradient(pool, cliff_onset_laps=25)
         if gradient is not None:
             assert 0.01 < gradient < 0.15, f"Gradient {gradient} out of expected range"
+
+    def test_recovers_known_gradient_net_of_wind(self):
+        """Injecting a wind-driven lap-time penalty shouldn't bias the recovered
+        wear slope once wind_speed_ms is available to net out."""
+        pool = make_stint_pool(n_stints=40, cliff_at_lap=25)
+        rng = np.random.default_rng(seed=42)
+        pool["wind_speed_ms"] = rng.uniform(0, 15, size=len(pool))
+        # Wind adds drag independent of wear: +0.05s/lap per m/s of wind.
+        pool["lap_time_s"] = pool["lap_time_s"] + 0.05 * pool["wind_speed_ms"]
+        gradient = estimate_wear_gradient(pool, cliff_onset_laps=25)
+        if gradient is not None:
+            assert 0.01 < gradient < 0.15, f"Gradient {gradient} out of expected range"
+
+    def test_missing_wind_column_falls_back_to_simple_regression(self):
+        """No wind_speed_ms column (e.g. older callers) should behave exactly as before."""
+        pool = make_stint_pool(n_stints=40, cliff_at_lap=25)
+        assert "wind_speed_ms" not in pool.columns
+        gradient = estimate_wear_gradient(pool, cliff_onset_laps=25)
+        if gradient is not None:
+            assert 0.01 < gradient < 0.15, f"Gradient {gradient} out of expected range"
+
+
+# ---------------------------------------------------------------------------
+# fresh_tyre_only tests
+# ---------------------------------------------------------------------------
+
+class TestFreshTyreOnly:
+    def test_filters_to_fresh_laps(self):
+        df = pd.DataFrame({
+            "lap_time_s": [90.0, 91.0, 92.0],
+            "is_fresh_tyre": [True, False, True],
+        })
+        result = fresh_tyre_only(df)
+        assert len(result) == 2
+        assert result["is_fresh_tyre"].all()
+
+    def test_missing_column_keeps_all_rows(self):
+        """Synthetic fixtures / older data without the column stay unfiltered."""
+        df = pd.DataFrame({"lap_time_s": [90.0, 91.0]})
+        result = fresh_tyre_only(df)
+        assert len(result) == 2
+
+    def test_null_treated_as_not_fresh(self):
+        df = pd.DataFrame({
+            "lap_time_s": [90.0, 91.0],
+            "is_fresh_tyre": [True, None],
+        })
+        result = fresh_tyre_only(df)
+        assert len(result) == 1
 
 
 # ---------------------------------------------------------------------------

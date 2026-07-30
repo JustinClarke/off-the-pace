@@ -899,9 +899,16 @@ models:
         tests:
           - not_null
       - name: compound_component_s
-        description: Tyre-compound degradation component.
+        description: >
+          Tyre-compound degradation component. NULL when compound itself is
+          NULL — a handful of laps (5, all 2018) have no tyre-compound tag in
+          bronze; known source-data gap, not a pipeline bug.
         tests:
-          - not_null
+          - not_null:
+              config:
+                # Only enforce non-null where we actually know the compound;
+                # see description above for the known 2018 exception.
+                where: "compound IS NOT NULL"
       - name: rubber_component_s
         description: Track-rubber evolution component.
         tests:

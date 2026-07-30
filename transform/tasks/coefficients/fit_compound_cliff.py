@@ -91,15 +91,19 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
             -- compound_code in int_stint_geometry is NULL; source from stg_laps
             l.compound                          AS compound_code,
             sg.stint_length_actual,
-            -- stg_laps.circuit_key is the numeric race_id; resolve to friendly name via race_to_track
+            -- stg_laps.circuit_key is the raw race_id ("YYYY_N"); resolve to friendly
+            -- name via race_to_track (both race_id columns are VARCHAR "YYYY_N"; the
+            -- fallback is defensive only -- 2018_14 is a known, unrelated seed gap)
             COALESCE(rtt.track_id, l.circuit_key) AS circuit_key,
             l.lap_time_s,
             l.is_valid_lap,
             l.is_safety_car_lap,
             l.is_vsc_lap,
             l.is_pit_lap,
+            l.is_fresh_tyre,
             COALESCE(w.track_temp_c, 30.0)     AS track_temp_c,
             COALESCE(w.rainfall_flag, FALSE)    AS rainfall_flag,
+            w.wind_speed_ms,
             -- A forced stop is a DNF or retirement (driver didn't choose to pit)
             COALESCE(
                 (SELECT TRUE FROM stg_events e
@@ -108,13 +112,27 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
                    AND e.event_type = 'DNF'
                  LIMIT 1),
                 FALSE
-            ) AS forced_stop_flag
+            ) AS forced_stop_flag,
+            -- Raw retirement status string, attached only to the driver's last
+            -- stint of the race (NULL for earlier stints that ended in a
+            -- voluntary pit, and for classified/finished drivers) -- otherwise
+            -- a driver with 2+ stints before retiring would have every prior,
+            -- completed stint wrongly tagged with the eventual failure.
+            CASE WHEN sg.stint_number = (
+                SELECT MAX(sg2.stint_number) FROM int_stint_geometry sg2
+                WHERE sg2.driver_id = sg.driver_id AND sg2.race_id = sg.race_id
+            ) THEN (
+                SELECT r.status FROM stg_results r
+                WHERE r.driver_id = sg.driver_id
+                  AND r.race_id = sg.race_id
+                  AND r.is_dnf
+                LIMIT 1
+            ) END AS dnf_status
         FROM int_stint_geometry sg
         JOIN stg_laps l ON sg.lap_id = l.lap_id
         LEFT JOIN stg_weather w ON sg.lap_id = w.lap_id
         LEFT JOIN race_to_track rtt
-          ON CAST(SPLIT_PART(l.race_id, '_', 1) AS INTEGER) * 100
-           + CAST(SPLIT_PART(l.race_id, '_', 2) AS INTEGER) = rtt.race_id
+          ON l.race_id = rtt.race_id
         WHERE sg.race_year IN ({season_filter})
           AND l.compound IN ('SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET')
           AND l.is_valid_lap = TRUE
@@ -128,6 +146,22 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
     df = con.execute(query).df()
     log.info("Loaded %d lap rows from %d stints", len(df), df["stint_id"].nunique())
     return df
+
+
+def fresh_tyre_only(stints_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Restrict to fresh-tyre laps for baseline compound wear-curve fitting.
+
+    Scrubbed (non-fresh) tyres degrade from a different starting point, which
+    would bias the steady-state wear_gradient regression. They stay in the
+    survival dataset (cliff-onset/severity) as a covariate rather than being
+    dropped from the fitter entirely -- only the baseline curve fit excludes
+    them. Missing column (e.g. synthetic test fixtures) defaults to keeping
+    all rows.
+    """
+    if "is_fresh_tyre" not in stints_df.columns:
+        return stints_df
+    return stints_df[stints_df["is_fresh_tyre"] == True]  # noqa: E712 -- NaN-safe, unlike .astype(bool)
 
 
 def fit_group(
@@ -164,7 +198,7 @@ def fit_group(
     if season_n_stints >= MIN_STINTS:
         cliff_onset = fit_cliff_onset_median(survival_df)
         cliff_severity = estimate_cliff_severity(group_df, cliff_onset or defaults["cliff_onset_laps"])
-        wear_gradient = estimate_wear_gradient(group_df, cliff_onset or defaults["cliff_onset_laps"])
+        wear_gradient = estimate_wear_gradient(fresh_tyre_only(group_df), cliff_onset or defaults["cliff_onset_laps"])
         source = "cox_km_survival"
         used_n_stints = season_n_stints
     elif len(cross_survival) >= MIN_STINTS:
@@ -174,7 +208,7 @@ def fit_group(
         # MIN_STINTS on lap count alone while providing far fewer real stints.
         cliff_onset = fit_cliff_onset_median(cross_survival)
         cliff_severity = estimate_cliff_severity(fallback_df, cliff_onset or defaults["cliff_onset_laps"])
-        wear_gradient = estimate_wear_gradient(fallback_df, cliff_onset or defaults["cliff_onset_laps"])
+        wear_gradient = estimate_wear_gradient(fresh_tyre_only(fallback_df), cliff_onset or defaults["cliff_onset_laps"])
         source = "cross_season_fallback"
         used_n_stints = len(cross_survival)
         fit_notes = f"insufficient season stints ({season_n_stints}); used {used_n_stints} cross-season stints"

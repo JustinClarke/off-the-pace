@@ -8,6 +8,9 @@
 -- since precise sector boundary distances are not available in telemetry.
 -- EW thermal loads use finite weighted sums partitioned on stint_id so load
 -- resets at each stop.
+-- time_in_dirty_air_s sums real per-sample elapsed time (from the merged
+-- ~10Hz car/pos telemetry stream) where gap < 1.5s, replacing the coarse
+-- "was the S2 sector median gap < 1.5s" binary with an actual duration.
 {{ config(materialized='table') }}
 
 WITH geom AS (
@@ -38,6 +41,7 @@ telemetry AS (
         distance_m,
         relativedistance AS relative_distance,
         distancetodriverahead AS distance_to_ahead_m,
+        date AS sample_ts,
         -- Convert to time gap (s); null when car is stationary or gap
         -- unavailable
         CASE
@@ -53,6 +57,39 @@ telemetry AS (
         drs
     FROM {{ source('bronze_f1', 'raw_telemetry') }}
     WHERE speed_kph > 0
+),
+
+-- Real elapsed time since the previous sample in the merged ~10Hz car/pos
+-- stream (per driver-lap). Used to sum actual dirty-air exposure time rather
+-- than approximate it from a single per-sector median gap. The first sample
+-- of each lap has no predecessor (NULL dt, contributes 0) -- a fixed,
+-- negligible (~one sample period) undercount common to every lap.
+telemetry_dt AS (
+    SELECT
+        *,
+        EPOCH(sample_ts - LAG(sample_ts) OVER w) AS dt_s
+    FROM telemetry
+    WINDOW w AS (
+        PARTITION BY race_year, race_id, driver_id, lap_number
+        ORDER BY sample_ts
+    )
+),
+
+-- Real per-lap dirty-air exposure time: sum of sample dt where gap < 1.5s,
+-- replacing the coarse "was the S2 median gap < 1.5s" binary with an actual
+-- duration. Null gap samples (~5%, car ahead unavailable) are treated as
+-- free air, matching the existing sector-median behavior.
+lap_dirty_air_time AS (
+    SELECT
+        race_year,
+        race_id,
+        driver_id,
+        lap_number,
+        SUM(dt_s) FILTER (
+            WHERE gap_to_ahead_s IS NOT NULL AND gap_to_ahead_s < 1.5
+        ) AS time_in_dirty_air_s
+    FROM telemetry_dt
+    GROUP BY race_year, race_id, driver_id, lap_number
 ),
 
 -- Aggregate per lap × sector_proxy: median gap and DRS state
@@ -148,7 +185,11 @@ with_stint AS (
             ELSE COALESCE(a.dirty_air_intensity, 0.0)
         END AS dirty_air_intensity,
         COALESCE(a.air_state_dominant, 'free_air') AS air_state_dominant,
-        a.min_gap_s
+        a.min_gap_s,
+        CASE
+            WHEN g.is_safety_car_lap OR g.is_vsc_lap THEN 0.0
+            ELSE COALESCE(t.time_in_dirty_air_s, 0.0)
+        END AS time_in_dirty_air_s
     FROM geom AS g
     LEFT JOIN lap_air AS a
         ON
@@ -156,6 +197,12 @@ with_stint AS (
             AND g.race_id = a.race_id
             AND g.driver_id = a.driver_id
             AND g.lap_number = a.lap_number
+    LEFT JOIN lap_dirty_air_time AS t
+        ON
+            g.race_year = t.race_year
+            AND g.race_id = t.race_id
+            AND g.driver_id = t.driver_id
+            AND g.lap_number = t.lap_number
 ),
 
 -- EW thermal loads finite weighted sum approximation partitioned by stint.
@@ -209,5 +256,6 @@ SELECT
     dirty_air_thermal_load_surface,
     dirty_air_thermal_load_bulk,
     air_state_dominant,
-    min_gap_s
+    min_gap_s,
+    time_in_dirty_air_s
 FROM thermal

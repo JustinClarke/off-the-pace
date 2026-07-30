@@ -16,6 +16,8 @@ gives an unbiased estimate of cliff_onset_laps.
 
 from __future__ import annotations
 
+import re
+
 import numpy as np
 import pandas as pd
 
@@ -23,6 +25,18 @@ import pandas as pd
 CLIFF_DETECTION_THRESHOLD_S = 0.5
 CLIFF_MIN_CONTINUATION_LAPS = 2
 TRAILING_WINDOW = 5
+
+# Genuine tyre failures (vs. mechanical/collision/other retirements) are true
+# survival events, not censoring -- the tyre didn't survive to be censored.
+# Mechanical (Engine/Gearbox/Brakes/Hydraulics/...), Collision/Accident, and
+# ambiguous ("Retired") stay censored: default `observed=0` unless a pace-based
+# cliff was independently detected already covers that case.
+TYRE_FAILURE_STATUS_PATTERN = re.compile(r"puncture|tyre|wheel", re.IGNORECASE)
+
+
+def is_tyre_failure(status: object) -> bool:
+    """True if a DNF status string indicates a genuine tyre/wheel failure."""
+    return isinstance(status, str) and bool(TYRE_FAILURE_STATUS_PATTERN.search(status))
 
 
 def detect_cliff_lap(
@@ -76,11 +90,17 @@ def build_survival_dataset(
     Given a DataFrame of stints (one row per lap), build the per-stint survival table:
         stint_id, circuit_key, compound_code, race_year,
         duration (= age_in_stint at which event/censoring occurred),
-        observed (= 1 if cliff detected, 0 if censored),
-        avg_track_temp_c, forced_stop (= 1 if DNF/SC/damage retirement)
+        observed (= 1 if cliff detected OR a genuine tyre failure ended the
+        stint, 0 if censored -- voluntary pit, non-tyre DNF, or still running),
+        avg_track_temp_c, forced_stop (= 1 if DNF/SC/damage retirement),
+        is_fresh_tyre (= whether the stint started on a fresh tyre set; carried
+        through as a covariate for scrubbed stints rather than dropping them),
+        tyre_failure (= 1 if this stint ended in a Puncture/Wheel/Tyre DNF)
 
     Expects columns: stint_id, age_in_stint, lap_time_s, circuit_key,
-                     compound_code, race_year, track_temp_c, forced_stop_flag
+                     compound_code, race_year, track_temp_c, forced_stop_flag.
+    is_fresh_tyre and dnf_status are optional (default to True / not-a-failure
+    if absent, e.g. synthetic tests).
     """
     records = []
     for stint_id, grp in stints_df.groupby("stint_id"):
@@ -89,9 +109,19 @@ def build_survival_dataset(
             continue
 
         cliff_lap = detect_cliff_lap(grp["lap_time_s"], grp["age_in_stint"])
+        # The retirement status (if any) applies to the driver's last lap of the
+        # race, which for a retiring stint is this group's last (chronologically
+        # latest) row.
+        tyre_failure = "dnf_status" in grp.columns and is_tyre_failure(grp["dnf_status"].iloc[-1])
 
         if cliff_lap is not None:
             duration = cliff_lap
+            observed = 1
+        elif tyre_failure:
+            # Sudden failure (e.g. a puncture) often doesn't produce the two
+            # consecutive slow laps detect_cliff_lap requires -- without this,
+            # a real tyre-failure event would be misclassified as censored.
+            duration = int(grp["age_in_stint"].max())
             observed = 1
         else:
             duration = int(grp["age_in_stint"].max())
@@ -106,7 +136,14 @@ def build_survival_dataset(
                 "duration": duration,
                 "observed": observed,
                 "avg_track_temp_c": float(grp["track_temp_c"].mean()),
+                "avg_wind_speed_ms": (
+                    float(grp["wind_speed_ms"].mean())
+                    if "wind_speed_ms" in grp and grp["wind_speed_ms"].notna().any()
+                    else None
+                ),
                 "forced_stop": int(grp["forced_stop_flag"].iloc[0]),
+                "is_fresh_tyre": bool(grp["is_fresh_tyre"].iloc[0]) if "is_fresh_tyre" in grp else True,
+                "tyre_failure": int(tyre_failure),
             }
         )
 
@@ -186,6 +223,25 @@ def estimate_cliff_severity(
     return float(trimmed.mean()) if len(trimmed) > 0 else float(arr.mean())
 
 
+def _fit_wear_slope_with_wind(linear_region: pd.DataFrame) -> tuple[float, float]:
+    """
+    OLS lap_time_s ~ intercept + age_in_stint + wind_speed_ms, returning the
+    age_in_stint coefficient (wear slope net of wind) and R^2. Wind adds drag
+    that inflates lap time independent of tyre wear; without netting it out,
+    a windy stint's wear_gradient estimate is biased high.
+    """
+    age = linear_region["age_in_stint"].to_numpy(dtype=float)
+    wind = linear_region["wind_speed_ms"].to_numpy(dtype=float)
+    y = linear_region["lap_time_s"].to_numpy(dtype=float)
+    design = np.column_stack([np.ones_like(age), age, wind])
+    coeffs, *_ = np.linalg.lstsq(design, y, rcond=None)
+    residuals = y - design @ coeffs
+    ss_res = float(np.sum(residuals ** 2))
+    ss_tot = float(np.sum((y - y.mean()) ** 2))
+    r_squared = 1.0 - ss_res / ss_tot if ss_tot > 0 else 0.0
+    return float(coeffs[1]), r_squared
+
+
 def estimate_wear_gradient(
     stints_df: pd.DataFrame,
     cliff_onset_laps: float,
@@ -199,11 +255,17 @@ def estimate_wear_gradient(
     caller) doesn't compress the fitted x-spacing and inflate the slope.
     Uses uncensored stints only (forced stop or observed cliff) to avoid the selection
     bias of voluntary pits cutting short the measurable degradation range.
+
+    When wind_speed_ms is available (and the window has enough points to fit a
+    3-parameter model), nets wind out via multivariate OLS so a windy stint's
+    aero drag doesn't get misread as tyre wear; otherwise falls back to the
+    simple age_in_stint-only regression.
     """
     from scipy import stats  # type: ignore
 
     slopes = []
     cutoff = max(3, int(cliff_onset_laps)-2)
+    has_wind = "wind_speed_ms" in stints_df.columns
 
     for _stint_id, grp in stints_df.groupby("stint_id"):
         grp = grp.sort_values("age_in_stint").reset_index(drop=True)
@@ -214,13 +276,18 @@ def estimate_wear_gradient(
         if len(linear_region) < 3:
             continue
 
-        result = stats.linregress(
-            linear_region["age_in_stint"].values,
-            linear_region["lap_time_s"].values,
-        )
+        if has_wind and len(linear_region) >= 4 and linear_region["wind_speed_ms"].notna().all():
+            slope, r_squared = _fit_wear_slope_with_wind(linear_region)
+        else:
+            result = stats.linregress(
+                linear_region["age_in_stint"].values,
+                linear_region["lap_time_s"].values,
+            )
+            slope, r_squared = result.slope, result.rvalue ** 2
+
         # Only accept positive slopes (pace genuinely deteriorating)
-        if result.slope > 0 and result.rvalue ** 2 > 0.1:
-            slopes.append(result.slope)
+        if slope > 0 and r_squared > 0.1:
+            slopes.append(slope)
 
     if not slopes:
         return None

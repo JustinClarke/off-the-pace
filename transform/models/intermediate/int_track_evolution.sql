@@ -24,7 +24,11 @@ WITH pace AS (
 
 -- One weather reading per lap (any driver all share the same ambient
 -- conditions).
--- Use min lap_id per race+lap to pick one representative row.
+-- stg_weather is per-driver (one row per lap_id); multiple drivers share a
+-- (race_year, race_id, lap_number) but can ASOF-match different weather
+-- samples near a sample boundary, so ties on the DISTINCT ON key are real
+-- (verified: up to 20 rows per key, ~46% with differing track_temp_c).
+-- Tiebreak explicitly or DuckDB's pick varies with scan order/parallelism.
 weather_per_lap AS (
     SELECT DISTINCT ON (race_year, race_id, lap_number)
         race_year,
@@ -34,7 +38,7 @@ weather_per_lap AS (
         humidity_pct,
         rainfall_flag
     FROM {{ ref('stg_weather') }}
-    ORDER BY race_year, race_id, lap_number
+    ORDER BY race_year, race_id, lap_number, weather_session_time_s DESC, driver_id
 ),
 
 combined AS (

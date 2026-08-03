@@ -290,6 +290,84 @@ class TestEstimateWearGradient:
 
 
 # ---------------------------------------------------------------------------
+# Phase C: normalized-pace column selection
+# ---------------------------------------------------------------------------
+
+def _pool_with_traffic(n_stints: int = 40, cliff_at_lap: int = 25):
+    """Stint pool where lap_time_s carries a large traffic penalty and
+    normalized_pace_s is the clean underlying pace.
+
+    The penalty is deliberately age-correlated (it grows through the stint) so
+    that fitting the contaminated column visibly inflates the wear slope --
+    a pace-blind implementation would pass a test using uncorrelated noise.
+    """
+    pool = make_stint_pool(n_stints=n_stints, cliff_at_lap=cliff_at_lap)
+    pool["normalized_pace_s"] = pool["lap_time_s"]
+    pool["lap_time_s"] = pool["lap_time_s"] + 0.10 * pool["age_in_stint"]
+    return pool
+
+
+class TestNormalizedPaceColumn:
+    def test_wear_gradient_fits_the_requested_column(self):
+        """Same rows, different pace column -> the normalized fit must recover
+        the true 0.04 gradient while the contaminated one reads ~0.14."""
+        pool = _pool_with_traffic()
+        raw = estimate_wear_gradient(pool, cliff_onset_laps=25)
+        normalized = estimate_wear_gradient(pool, cliff_onset_laps=25, pace_col="normalized_pace_s")
+        assert raw is not None and normalized is not None
+        assert normalized < raw, "normalized fit should not inherit the traffic penalty"
+        assert 0.01 < normalized < 0.08, f"expected ~0.04, got {normalized}"
+
+    def test_absent_column_falls_back_to_lap_time(self):
+        """A pre-Phase-C frame (no normalized_pace_s) must not raise, and must
+        give exactly the same answer as asking for lap_time_s."""
+        pool = make_stint_pool(n_stints=40, cliff_at_lap=25)
+        assert "normalized_pace_s" not in pool.columns
+        assert estimate_wear_gradient(
+            pool, cliff_onset_laps=25, pace_col="normalized_pace_s"
+        ) == estimate_wear_gradient(pool, cliff_onset_laps=25)
+
+    def test_survival_dataset_detects_cliff_on_requested_column(self):
+        """Cliff detection must key off the normalized series."""
+        pool = _pool_with_traffic()
+        surv = build_survival_dataset(pool, pace_col="normalized_pace_s")
+        assert len(surv) > 0
+        assert surv["observed"].sum() > 0, "no cliffs detected on the normalized series"
+
+    def test_severity_fits_the_requested_column(self):
+        """Severity measured on normalized pace is smaller than on the
+        traffic-inflated series: the post-cliff window is exactly where a
+        struggling car collects traffic, which otherwise reads as cliff depth.
+
+        Magnitudes are kept under estimate_cliff_severity's 1.5s winsorise cap
+        on both sides -- a larger synthetic cliff saturates the clip and the
+        comparison stops measuring the penalty at all.
+        """
+        cliff_at_lap = 20
+        pool = pd.concat(
+            [
+                make_clean_stint(
+                    f"sev_{i:04d}", "bahrain_grand_prix", "SOFT", 2023,
+                    n_laps=cliff_at_lap + 8, cliff_at_lap=cliff_at_lap, cliff_jump_s=0.7,
+                )
+                for i in range(30)
+            ],
+            ignore_index=True,
+        )
+        pool["normalized_pace_s"] = pool["lap_time_s"]
+        post_cliff = pool["lap_in_stint"] >= cliff_at_lap
+        pool.loc[post_cliff, "lap_time_s"] += 0.25
+
+        raw = estimate_cliff_severity(pool, cliff_onset_laps=cliff_at_lap)
+        normalized = estimate_cliff_severity(
+            pool, cliff_onset_laps=cliff_at_lap, pace_col="normalized_pace_s"
+        )
+        assert raw is not None and normalized is not None
+        assert max(raw, normalized) < 1.5, "test saturated the winsorise cap; lower the magnitudes"
+        assert normalized < raw, f"normalized {normalized} should undercut raw {raw}"
+
+
+# ---------------------------------------------------------------------------
 # fresh_tyre_only tests
 # ---------------------------------------------------------------------------
 

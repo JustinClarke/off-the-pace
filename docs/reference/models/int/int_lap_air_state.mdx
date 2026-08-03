@@ -18,6 +18,7 @@ flowchart LR
   int_lap_air_state --> fct_cliff_prediction_features
   int_lap_air_state --> int_dirty_air_tax_component
   int_lap_air_state --> int_field_pace_curve
+  int_lap_air_state --> int_lap_normalized_pace
   int_lap_air_state --> int_pit_strategy_value
   int_lap_air_state --> int_sector_residual_decomposed
   style int_lap_air_state fill:#e40404,stroke:#e40404,color:#fff
@@ -32,10 +33,11 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`int_stint_geometry`](./int_stint_geometry) |
 
-**4 tests** [guard](/transform/ci/overview) this model  -  2 generic, 2 singular.
+**6 tests** [guard](/transform/ci/overview) this model  -  4 generic, 2 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `lap_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Foreign key to stg_laps |
+| `time_in_dirty_air_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Real per-lap dirty-air exposure time (seconds), summed from actual ~10Hz telemetry sample durations where gap-to-car-ahead &lt; 1.5s. Zeroed on SC/VSC laps (no real aero load at safety-car speeds). Null-gap samples (~5%, car ahead unavailable) are treated as free air, matching dirty_air_share_lap's existing convention. |

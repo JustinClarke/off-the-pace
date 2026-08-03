@@ -88,6 +88,60 @@ models:
                 # real wall-clock minutes, well past a normal green-flag lap.
                 max_value: 900
 
+  - name: int_lap_normalized_pace
+    description: >
+      Phase C: lap pace with the dirty-air cost removed, so laps run in traffic
+      stay usable for wear/cliff fitting instead of being discarded.
+      normalized_pace_s = lap_time_s - theta_time * time_in_dirty_air_s, with
+      theta_time calibrated on clean, dry, valid laps and applied to the full
+      lap sequence. Neither a tow term nor a fixed in-traffic step is applied;
+      both were measured against the phase's acceptance metric and made it
+      worse (see the model header for the numbers). One row per lap carried by
+      int_lap_air_state. Deliberately a graph leaf, consumed only by the
+      offline cliff solver: feeding normalized pace into the ratings/residual
+      chain would double-count the dirty-air component already modelled in
+      int_lap_residual_decomposed.
+    tags: [intermediate]
+    meta:
+      family: physics
+    columns:
+      - name: lap_id
+        description: Foreign key to stg_laps
+        tests: [not_null, unique]
+      - name: normalized_pace_s
+        description: >
+          Lap time net of the dirty-air penalty. Null only where lap_time_s
+          itself is null (untimed lap); the solver filters those out rather
+          than having a pace fabricated for them.
+        tests:
+          # Two bounds rather than one. Normalization must never produce a
+          # negative pace on any lap, but no useful upper bound holds across
+          # all laps: red-flag stoppages are recorded as single enormous laps
+          # (2024 Monaco lap 1 is ~2500s for all 16 running cars), which are
+          # real events, not data faults. The tight bound is therefore scoped
+          # to the laps the solver actually fits.
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                row_condition: "normalized_pace_s is not null"
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                # Solver ceiling (200s) plus headroom for the tow add-back.
+                max_value: 210
+                row_condition: "normalized_pace_s is not null and lap_time_s < 200"
+      - name: dirty_air_penalty_s
+        description: >
+          theta_time * time_in_dirty_air_s, bounded [0, 5.0] (same clamp as
+          int_dirty_air_tax_component's dirty_air_tax_s). Zero on clean-air
+          laps by construction.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 5.0
+
   - name: int_lap_thermal_proxy
     description: >
       Cumulative push load from engine thermal management. One row per lap.

@@ -48,7 +48,7 @@ flowchart LR
 | `lap_time_s` |   | Yes | [`not_null`](/transform/ci/structural) | Raw lap time in seconds. |
 | `compound` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Tyre compound on this lap. |
 | `fuel_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Fuel-burnoff weight penalty component. |
-| `compound_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Tyre-compound degradation component. |
+| `compound_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Tyre-compound degradation component. NULL when compound itself is NULL — a handful of laps (5, all 2018) have no tyre-compound tag in bronze; known source-data gap, not a pipeline bug. |
 | `rubber_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Track-rubber evolution component. |
 | `ambient_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Ambient/weather component. |
 | `constructor_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor structural pace component. |

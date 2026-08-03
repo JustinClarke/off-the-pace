@@ -1,0 +1,71 @@
+[
+  {
+    "step": "4.1 teammate-swap harness",
+    "n_pairs": 2470,
+    "gap_slope_mean_s_per_age": 0.00234,
+    "gap_slope_qweighted_mean_s_per_age": 0.00184,
+    "gap_slope_median_s_per_age": 0.00102,
+    "gap_slope_qweighted_std": 0.19533,
+    "gap_slope_abs_median (noise)": 0.04861,
+    "constructor_deg_delta_abs_median (signal)": 0.01276,
+    "signal_to_noise": 0.263,
+    "reading": "Constructor-shared degradation is unbiased on average (mean slope +0.0023 s/lap-age, ~0); but per-pair dispersion (noise 0.0486) exceeds the reordering signal (0.0128), SNR=0.26. Per-stint deg reorderings are within noise trust full-race aggregation, not single-lap deltas."
+  },
+  {
+    "step": "4.2 team-change counterfactuals",
+    "n_switchers": 29,
+    "n_stayers": 77,
+    "switcher_mae_s": 0.3705,
+    "stayer_mae_s": 0.1918,
+    "mae_gap_switcher_minus_stayer_s": 0.1788,
+    "mae_gap_ci95": [
+      0.0939,
+      0.2714
+    ],
+    "reading": "Switchers MAE 0.371 vs stayers 0.192; gap +0.179 (95% CI [+0.094, +0.271]). CI excludes 0 \u2192 switchers materially worse; investigate."
+  },
+  {
+    "step": "4.3 LORO finish-order backtest",
+    "n_races": 146,
+    "model_spearman": 0.599,
+    "baseline_spearman": -0.04,
+    "model_kendall": 0.456,
+    "model_top3": 0.507,
+    "baseline_top3": 0.158,
+    "spearman_gap_mean": 0.639,
+    "spearman_gap_ci95": [
+      0.592,
+      0.688
+    ],
+    "reading": "Model Spearman 0.599 (top-3 0.51) vs host-invariant baseline -0.040 (top-3 0.16); gap +0.639 (95% CI [+0.592, +0.688]). Car/track structure beats skill-only criterion 2 PASS. Skill-only ~ random confirms the constructor pace the host-swap manipulates carries the finish-order signal."
+  },
+  {
+    "step": "4.4 pairwise probability calibration",
+    "full_pairwise_n": 1104,
+    "full_mean_pred": 0.778,
+    "full_observed": 0.823,
+    "full_calibration_slope": 0.722,
+    "full_brier": 0.1361,
+    "brier_baseline_0.5": 0.25,
+    "variance_inflation_k_star": 0.73,
+    "recalibrated_slope": 0.713,
+    "recalibrated_brier": 0.1342,
+    "mart_adjacent_n": 177,
+    "mart_adjacent_slope": 0.291,
+    "mart_adjacent_brier": 0.2422,
+    "reading": "Full-pairwise: resolution present (Brier 0.136 vs 0.5-baseline 0.250) but OVERCONFIDENT slope 0.72 (target ~1), predicts 0.78 delivers 0.82. Inflating the predicted SE by k=0.73 restores slope 0.71. Mart adjacent p_beats_next (app-facing, hardest pairs) is uninformative: slope 0.29, Brier 0.242. Criterion 3 (slope ~= 1) NOT met as-shipped needs SE inflation before live."
+  },
+  {
+    "step": "4.5 offline Monte Carlo core",
+    "n_scenarios": 1428,
+    "max_p_beats_next_dev_vs_analytic": 0.0264,
+    "mean_p_beats_next_dev": 0.0143,
+    "finish_pos_se_dev_median": 2.2928,
+    "finish_pos_se_dev_p95": 3.3962,
+    "finish_pos_se_dev_max": 4.7197,
+    "max_p_position_rowsum_dev": 0.0,
+    "max_p_position_colsum_dev": 0.0,
+    "min_mu_to_expected_pos_spearman": 0.95,
+    "reading": "Core CORRECT: MC reproduces analytic p_beats_next (max dev 0.026 ~ MC error 0.014), p_position is a valid distribution (row/col sums to 1 within 4e-16), expected position monotone in pace (min Spearman 0.95). BUT finish_pos_se diverges from the mart's Poisson-binomial (median 2.29, p95 3.40, max 4.72 positions): pairwise-independence understates true position uncertainty under high pace overlap. The MC (permutation-respecting) is the reference corroborates 4.4's overconfidence; the live engine should take finish-position SE from the MC, not the analytic approximation."
+  }
+]

@@ -75,8 +75,10 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
     """
     Build the per-lap stint dataset from dev.duckdb.
 
-    Joins int_stint_geometry + stg_laps + stg_weather + stg_events.
-    Filters to dry, valid, non-SC laps on slick compounds.
+    Joins int_stint_geometry + stg_laps + stg_weather + stg_events +
+    int_lap_normalized_pace. Filters to dry, green-flag, non-SC laps on slick
+    compounds -- see the WHERE clause for why that is green-flag rather than
+    is_valid_lap.
     """
     season_filter = ", ".join(str(s) for s in seasons)
     query = f"""
@@ -101,6 +103,12 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
             l.is_vsc_lap,
             l.is_pit_lap,
             l.is_fresh_tyre,
+            -- Phase C: pace with the dirty-air cost removed, so
+            -- traffic-compromised laps stay usable instead of being discarded.
+            -- COALESCE keeps the column complete for laps int_lap_air_state
+            -- does not cover, so a missing air state degrades to raw lap time
+            -- rather than dropping the lap from the fit.
+            COALESCE(np.normalized_pace_s, l.lap_time_s) AS normalized_pace_s,
             COALESCE(w.track_temp_c, 30.0)     AS track_temp_c,
             COALESCE(w.rainfall_flag, FALSE)    AS rainfall_flag,
             w.wind_speed_ms,
@@ -133,12 +141,23 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
         LEFT JOIN stg_weather w ON sg.lap_id = w.lap_id
         LEFT JOIN race_to_track rtt
           ON l.race_id = rtt.race_id
+        LEFT JOIN int_lap_normalized_pace np ON sg.lap_id = np.lap_id
         WHERE sg.race_year IN ({season_filter})
           AND l.compound IN ('SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET')
-          AND l.is_valid_lap = TRUE
+          -- Phase C: green-flag laps, not is_valid_lap. The dropped condition
+          -- is is_accurate only -- every other component of is_valid_lap is
+          -- restated below (SC/VSC via the two flags, which between them cover
+          -- the same TrackStatus digits 4-7; pit; deleted; lap 1; timed).
+          -- FastF1 marks a lap inaccurate for reasons that are pace-relevant
+          -- but not pace-invalidating once normalized, which is exactly the
+          -- population this phase is trying to recover. Deleted laps
+          -- (track-limits) stay out: those times are void, not compromised.
+          -- Lap 1 stays out: a standing start is not a pace signal.
           AND l.is_safety_car_lap = FALSE
           AND l.is_vsc_lap = FALSE
           AND l.is_pit_lap = FALSE
+          AND NOT l.is_deleted
+          AND l.lap_number > 1
           AND l.lap_time_s > 0
           AND l.lap_time_s < 200
     """
@@ -186,10 +205,18 @@ def fit_group(
         (stints_df["race_year"] == season)
     ]
 
-    survival_df = build_survival_dataset(group_df) if len(group_df) > 0 else pd.DataFrame()
+    # Phase C: fit on normalized pace when the warehouse supplies it, raw lap
+    # time otherwise (synthetic fixtures, or a pre-Phase-C warehouse). Resolved
+    # once here so onset, severity and gradient are all fitted on the same
+    # series -- mixing them would make cliff onset and severity incomparable.
+    pace_col = "normalized_pace_s" if "normalized_pace_s" in stints_df.columns else "lap_time_s"
+
+    survival_df = (
+        build_survival_dataset(group_df, pace_col=pace_col) if len(group_df) > 0 else pd.DataFrame()
+    )
     season_n_stints = len(survival_df)
     cross_survival = (
-        build_survival_dataset(fallback_df)
+        build_survival_dataset(fallback_df, pace_col=pace_col)
         if fallback_df is not None and len(fallback_df) > 0
         else pd.DataFrame()
     )
@@ -197,8 +224,12 @@ def fit_group(
 
     if season_n_stints >= MIN_STINTS:
         cliff_onset = fit_cliff_onset_median(survival_df)
-        cliff_severity = estimate_cliff_severity(group_df, cliff_onset or defaults["cliff_onset_laps"])
-        wear_gradient = estimate_wear_gradient(fresh_tyre_only(group_df), cliff_onset or defaults["cliff_onset_laps"])
+        cliff_severity = estimate_cliff_severity(
+            group_df, cliff_onset or defaults["cliff_onset_laps"], pace_col=pace_col
+        )
+        wear_gradient = estimate_wear_gradient(
+            fresh_tyre_only(group_df), cliff_onset or defaults["cliff_onset_laps"], pace_col=pace_col
+        )
         source = "cox_km_survival"
         used_n_stints = season_n_stints
     elif len(cross_survival) >= MIN_STINTS:
@@ -207,8 +238,12 @@ def fit_group(
         # (lap rows) -- a handful of long stints would otherwise clear
         # MIN_STINTS on lap count alone while providing far fewer real stints.
         cliff_onset = fit_cliff_onset_median(cross_survival)
-        cliff_severity = estimate_cliff_severity(fallback_df, cliff_onset or defaults["cliff_onset_laps"])
-        wear_gradient = estimate_wear_gradient(fresh_tyre_only(fallback_df), cliff_onset or defaults["cliff_onset_laps"])
+        cliff_severity = estimate_cliff_severity(
+            fallback_df, cliff_onset or defaults["cliff_onset_laps"], pace_col=pace_col
+        )
+        wear_gradient = estimate_wear_gradient(
+            fresh_tyre_only(fallback_df), cliff_onset or defaults["cliff_onset_laps"], pace_col=pace_col
+        )
         source = "cross_season_fallback"
         used_n_stints = len(cross_survival)
         fit_notes = f"insufficient season stints ({season_n_stints}); used {used_n_stints} cross-season stints"

@@ -85,6 +85,7 @@ def detect_cliff_lap(
 
 def build_survival_dataset(
     stints_df: pd.DataFrame,
+    pace_col: str = "lap_time_s",
 ) -> pd.DataFrame:
     """
     Given a DataFrame of stints (one row per lap), build the per-stint survival table:
@@ -97,18 +98,25 @@ def build_survival_dataset(
         through as a covariate for scrubbed stints rather than dropping them),
         tyre_failure (= 1 if this stint ended in a Puncture/Wheel/Tyre DNF)
 
-    Expects columns: stint_id, age_in_stint, lap_time_s, circuit_key,
+    Expects columns: stint_id, age_in_stint, <pace_col>, circuit_key,
                      compound_code, race_year, track_temp_c, forced_stop_flag.
     is_fresh_tyre and dnf_status are optional (default to True / not-a-failure
     if absent, e.g. synthetic tests).
+
+    pace_col selects which pace series drives cliff detection. Defaults to raw
+    lap_time_s; Phase C passes normalized_pace_s so traffic-compromised laps
+    report the pace the car would have shown in clean air. Falls back to
+    lap_time_s if the requested column is absent, keeping synthetic fixtures
+    (which have no normalized pace) on the original path.
     """
+    pace_col = pace_col if pace_col in stints_df.columns else "lap_time_s"
     records = []
     for stint_id, grp in stints_df.groupby("stint_id"):
         grp = grp.sort_values("age_in_stint")
         if len(grp) < 3:
             continue
 
-        cliff_lap = detect_cliff_lap(grp["lap_time_s"], grp["age_in_stint"])
+        cliff_lap = detect_cliff_lap(grp[pace_col], grp["age_in_stint"])
         # The retirement status (if any) applies to the driver's last lap of the
         # race, which for a retiring stint is this group's last (chronologically
         # latest) row.
@@ -189,6 +197,7 @@ def fit_cliff_onset_median(
 def estimate_cliff_severity(
     stints_df: pd.DataFrame,
     cliff_onset_laps: float,
+    pace_col: str = "lap_time_s",
 ) -> float | None:
     """
     Estimate cliff_severity_s (seconds of pace loss at onset + 5 laps post-cliff).
@@ -197,16 +206,21 @@ def estimate_cliff_severity(
     see post-cliff laps. Computes the average lap-time delta between
     [onset, onset+5] vs [onset-5, onset-1], windowed on age_in_stint (tyre-life
     laps) to match the units cliff_lap is detected in.
+
+    pace_col: see build_survival_dataset. Normalizing matters here because the
+    post-cliff window is exactly where a struggling car picks up traffic, which
+    would otherwise inflate the measured severity.
     """
+    pace_col = pace_col if pace_col in stints_df.columns else "lap_time_s"
     records = []
     for _stint_id, grp in stints_df.groupby("stint_id"):
         grp = grp.sort_values("age_in_stint").reset_index(drop=True)
-        cliff_lap = detect_cliff_lap(grp["lap_time_s"], grp["age_in_stint"])
+        cliff_lap = detect_cliff_lap(grp[pace_col], grp["age_in_stint"])
         if cliff_lap is None:
             continue
 
-        pre = grp[grp["age_in_stint"].between(cliff_lap-5, cliff_lap-1)]["lap_time_s"]
-        post = grp[grp["age_in_stint"].between(cliff_lap, cliff_lap + 5)]["lap_time_s"]
+        pre = grp[grp["age_in_stint"].between(cliff_lap-5, cliff_lap-1)][pace_col]
+        post = grp[grp["age_in_stint"].between(cliff_lap, cliff_lap + 5)][pace_col]
 
         if len(pre) >= 2 and len(post) >= 2:
             records.append(float(post.mean()-pre.mean()))
@@ -223,16 +237,19 @@ def estimate_cliff_severity(
     return float(trimmed.mean()) if len(trimmed) > 0 else float(arr.mean())
 
 
-def _fit_wear_slope_with_wind(linear_region: pd.DataFrame) -> tuple[float, float]:
+def _fit_wear_slope_with_wind(
+    linear_region: pd.DataFrame,
+    pace_col: str = "lap_time_s",
+) -> tuple[float, float]:
     """
-    OLS lap_time_s ~ intercept + age_in_stint + wind_speed_ms, returning the
+    OLS pace ~ intercept + age_in_stint + wind_speed_ms, returning the
     age_in_stint coefficient (wear slope net of wind) and R^2. Wind adds drag
     that inflates lap time independent of tyre wear; without netting it out,
     a windy stint's wear_gradient estimate is biased high.
     """
     age = linear_region["age_in_stint"].to_numpy(dtype=float)
     wind = linear_region["wind_speed_ms"].to_numpy(dtype=float)
-    y = linear_region["lap_time_s"].to_numpy(dtype=float)
+    y = linear_region[pace_col].to_numpy(dtype=float)
     design = np.column_stack([np.ones_like(age), age, wind])
     coeffs, *_ = np.linalg.lstsq(design, y, rcond=None)
     residuals = y - design @ coeffs
@@ -245,6 +262,7 @@ def _fit_wear_slope_with_wind(linear_region: pd.DataFrame) -> tuple[float, float
 def estimate_wear_gradient(
     stints_df: pd.DataFrame,
     cliff_onset_laps: float,
+    pace_col: str = "lap_time_s",
 ) -> float | None:
     """
     Estimate compound_wear_gradient (s/lap) from the linear portion of the wear curve.
@@ -260,9 +278,14 @@ def estimate_wear_gradient(
     3-parameter model), nets wind out via multivariate OLS so a windy stint's
     aero drag doesn't get misread as tyre wear; otherwise falls back to the
     simple age_in_stint-only regression.
+
+    pace_col: see build_survival_dataset. This is the fit Phase C's acceptance
+    test measures -- normalizing removes traffic scatter around the wear line,
+    which is what should tighten the residual.
     """
     from scipy import stats  # type: ignore
 
+    pace_col = pace_col if pace_col in stints_df.columns else "lap_time_s"
     slopes = []
     cutoff = max(3, int(cliff_onset_laps)-2)
     has_wind = "wind_speed_ms" in stints_df.columns
@@ -271,17 +294,17 @@ def estimate_wear_gradient(
         grp = grp.sort_values("age_in_stint").reset_index(drop=True)
         linear_region = grp[
             grp["age_in_stint"].between(3, cutoff) &
-            grp["lap_time_s"].notna()
+            grp[pace_col].notna()
         ]
         if len(linear_region) < 3:
             continue
 
         if has_wind and len(linear_region) >= 4 and linear_region["wind_speed_ms"].notna().all():
-            slope, r_squared = _fit_wear_slope_with_wind(linear_region)
+            slope, r_squared = _fit_wear_slope_with_wind(linear_region, pace_col)
         else:
             result = stats.linregress(
                 linear_region["age_in_stint"].values,
-                linear_region["lap_time_s"].values,
+                linear_region[pace_col].values,
             )
             slope, r_squared = result.slope, result.rvalue ** 2
 

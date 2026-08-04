@@ -58,7 +58,7 @@ setup:  ## Build venv + install all deps, scaffold data/ (run first)
 ml-setup:  ## Install ML deps (ml/requirements.txt) into the shared venv
 	./.venv/bin/pip install -r ml/requirements.txt
 
-app-install:  ## Install web-app deps (pnpm)
+app-install:  ## Install web-app dependencies (pnpm)
 	cd app && pnpm install
 
 

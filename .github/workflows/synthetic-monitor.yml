@@ -31,7 +31,7 @@ jobs:
       PROD_SITE_URL: ${{ vars.PROD_SITE_URL }}
       ALERT_WEBHOOK: ${{ secrets.ALERT_WEBHOOK }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Smoke prod CDN + site
         run: |
           args=(--env prod --max-age-hours 2160)   # 90-day freshness SLO signal (non-fatal)
@@ -52,11 +52,11 @@ jobs:
     env:
       ALERT_WEBHOOK: ${{ secrets.ALERT_WEBHOOK }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v5
         with:
           version: 11.4.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: pnpm

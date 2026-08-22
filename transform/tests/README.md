@@ -66,6 +66,11 @@ closure checks are built on the [`assert_additive_identity`](../macros/assert_ad
 | `assert_cliff_seed_severity_bounded.sql` | Cliff-seed tripwire: fitted severity ≤ 1.6 s/lap, and the cross-season fallback never fires from fewer than 8 real stints | `compound_cliff_params` (seed) | ✅ Active |
 | `assert_ghost_recombination.sql` | Ghost lap-time predictions stay within ±10s of the actual lap (fuel-envelope and interpolation guard) | `fct_ghost_car_pace` | ✅ Active |
 | `assert_ghost_self_scenario_rank.sql` | Results-anchored: self-scenario ghost pace recovers official finishing order (mean per-race Spearman ρ ≥ 0.5, no race negatively correlated). Validates recombination pace, not the counterfactual car swap | `fct_ghost_race_finish`, `stg_results` | ✅ Active |
+| `assert_track_status_flag_partition.sql` | FastF1 TrackStatus decode: `is_safety_car_lap`/`is_vsc_lap`/`is_red_flag_lap` match digits 4 / 6-7 / 5 exactly, their union is the neutralised set (`[4567]`), and no neutralised lap is valid | `stg_laps` | ✅ Active |
+| `assert_quali_segment_matches_official.sql` | Recovered Q1/Q2/Q3 windows: every official segment time was set inside the segment the lap was assigned to. Official times with no matching lap, and a segment time identical to the next segment's, are skipped as source artefacts rather than failed | `int_qualifying_segments`, `int_qualifying_push_laps`, `stg_results_qualifying` | ✅ Active |
+| `assert_pit_stop_grain.sql` | Pit-stop grain and duration: one row per stop (never per pit lap), the out-lap is the next lap, the three exit-side columns resolve together, and `pit_duration_s` is positive and equals its two stamps | `stg_pits` | ✅ Active |
+| `assert_pit_loss_excludes_neutralised.sql` | Pit-loss stop population: the model counted exactly the green-flag stops (no SC/VSC/red in-lap or out-lap), event slugs sharing a physical venue carry one pooled estimate, and the EB value lies between the circuit and global medians | `int_pit_loss_circuit` | ✅ Active |
+| `assert_corner_window_geometry.sql` | Derived corner windows: each window contains its own apex, stays inside its neighbouring apexes, respects the configured entry/exit margins, borrowed geometry never crosses event slugs, and the corner count matches the source session | `dim_corners`, `stg_circuit_info` | ✅ Active |
 
 ## Regression Gates
 

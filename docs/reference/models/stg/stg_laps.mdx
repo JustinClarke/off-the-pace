@@ -15,6 +15,7 @@ Cleaned lap-level data from FastF1 race sessions. One row per driver × lap. Ren
 ```mermaid
 flowchart LR
   stg_laps --> dim_constructors
+  stg_laps --> dim_corners
   stg_laps --> dim_drivers
   stg_laps --> fct_ghost_car_pace
   stg_laps --> fct_ghost_race_finish
@@ -47,7 +48,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**9 tests** [guard](/transform/ci/overview) this model  -  7 generic, 2 singular.
+**14 tests** [guard](/transform/ci/overview) this model  -  10 generic, 4 singular.
 
 ## Columns
 
@@ -84,6 +85,7 @@ flowchart LR
 | `is_accurate` | `boolean` | Yes |   | FastF1 quality flag   timing considered reliable. |
 | `is_fastf1_generated` | `boolean` | Yes |   | TRUE when the row was synthesised by FastF1 rather than read from raw timing. |
 | `compound` | `varchar` | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Normalised tyre compound label (UPPER). None/nan/UNKNOWN mapped to NULL. Pre-2019 compounds (SUPERSOFT/ULTRASOFT/HYPERSOFT) preserved as-is. |
-| `is_safety_car_lap` | `boolean` | Yes |   | TRUE when TrackStatus contains a 4, 6 or 7. Per the corrected FastF1 decode (see stg_track_status), 4 = SC and 6/7 = VSC, so this flag fires for both SC and VSC laps. Use stg_track_status for a precise SC-vs-VSC split. |
-| `is_vsc_lap` | `boolean` | Yes |   | TRUE when TrackStatus contains a 5. NOTE: 5 is the red-flag code in the corrected FastF1 decode (stg_track_status), so this column is a known mislabel kept for backwards compatibility   prefer stg_track_status for accurate VSC classification. (is_valid_lap excludes 4–7 regardless.) |
+| `is_safety_car_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 4 (SCDeployed). Full safety car only   VSC is is_vsc_lap and a red flag is is_red_flag_lap. Decode matches stg_track_status, ground-truthed against the bronze Message column. |
+| `is_vsc_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 6 (VSCDeployed) or 7 (VSCEnding). Decode matches stg_track_status. |
+| `is_red_flag_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 5 (Red). A red flag is a full session stoppage   physically the opposite of a VSC lap (tyres go to ambient, and may legally be changed), so it is flagged separately rather than folded into either neutralisation flag. The three flags together are the neutralised set the layer excludes; consumers should test all three, not a pair. |
 | `is_valid_lap` | `boolean` | Yes |   | Clean-lap flag: timed (lap_time_s &gt; 0), not a pit lap, not deleted, accurate, lap_number &gt; 1, and no SC/VSC/red flag (TrackStatus contains no 4–7). |

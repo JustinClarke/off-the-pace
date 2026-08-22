@@ -14,7 +14,7 @@ One row per (race_year, race_id, constructor_id). Car pace advantage in qualifyi
 
 ```mermaid
 flowchart LR
-  stg_laps_qualifying --> int_constructor_structural_pace_qualifying
+  int_qualifying_push_laps --> int_constructor_structural_pace_qualifying
   int_constructor_structural_pace_qualifying --> int_lap_residual_decomposed_qualifying
   style int_constructor_structural_pace_qualifying fill:#e40404,stroke:#e40404,color:#fff
 ```
@@ -27,7 +27,7 @@ flowchart LR
 | Family | [Pace Baselines](/transform/families/pace-baselines) |
 | Contract enforced | No |
 | Tags | `simulation`, `qualifying` |
-| Upstream | [`stg_laps_qualifying`](../stg/stg_laps_qualifying) |
+| Upstream | [`int_qualifying_push_laps`](./int_qualifying_push_laps) |
 
 **3 tests** [guard](/transform/ci/overview) this model  -  3 generic, 0 singular.
 
@@ -36,4 +36,4 @@ flowchart LR
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `constructor_race_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = concat(race_year, race_id, constructor_id, '_Q') |
-| `constructor_structural_pace_s` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor qualifying-mode coefficient vs session median. Positive = slower. |
+| `constructor_structural_pace_s` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor qualifying-mode coefficient. Fit on each driver's best push lap per Q1/Q2/Q3 segment, measured against that segment's median push lap and re-centred within the segment before pooling. Positive = slower. |

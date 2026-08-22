@@ -7,8 +7,7 @@ column tests and descriptions.
 |---|---|---|---|
 | `circuit_reference.csv` | 44 circuits | First-stint regression (`fit_weight_penalty.py`) | `make coefficients-fit` |
 | `compound_cliff_params.csv` | 401 groups | KM survival fitter (`fit_compound_cliff.py`) | `make coefficients-fit` |
-| `dim_corners.csv` | ~400 corners | Manual from circuit maps | When track layouts change |
-| `race_to_track.csv` | 168 races | Manual | When new seasons are ingested (covers all 168 races; telemetry incomplete for 2 of them) |
+| `race_to_track.csv` | 148 races | Manual | When new seasons are ingested (2018_14 is missing from it; models that need corner geometry read dim_corners, which resolves that race from its own FastF1 corner table) |
 | `raw_dim_events.csv` | ~30 events | Manual (2021 season only) | Expand as automated detection is built |
 | `tyre_allocations.csv` | stub | Not yet populated | When Pirelli allocation sheets are scraped |
 

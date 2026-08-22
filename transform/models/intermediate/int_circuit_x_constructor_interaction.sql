@@ -29,6 +29,16 @@ race_map AS (
     FROM {{ ref('race_to_track') }}
 ),
 
+-- Map event slug (circuit_key) -> physical circuit_id, so the shrinkage pool
+-- below is per physical venue (e.g. mexican_grand_prix + mexico_city_grand_prix
+-- share one pool) rather than per renamed-event/double-header key.
+circuit_map AS (
+    SELECT
+        circuit_key,
+        {{ circuit_id_from_name('circuit_name') }} AS circuit_id
+    FROM {{ ref('circuit_reference') }}
+),
+
 with_circuit AS (
     SELECT
         cp.race_year,
@@ -36,9 +46,11 @@ with_circuit AS (
         cp.constructor_id,
         cp.constructor_structural_pace_s,
         cp.panel_observations_n,
-        rm.circuit_key
+        rm.circuit_key,
+        COALESCE(cm.circuit_id, rm.circuit_key) AS circuit_id
     FROM constructor_pace AS cp
     LEFT JOIN race_map AS rm ON cp.race_id = rm.race_id
+    LEFT JOIN circuit_map AS cm ON rm.circuit_key = cm.circuit_key
 ),
 
 -- Season-average constructor coefficient (to compute deviation)
@@ -51,11 +63,14 @@ constructor_season_avg AS (
     GROUP BY race_year, constructor_id
 ),
 
--- Circuit-level constructor baseline (pooled across seasons with shrinkage)
+-- Circuit-level constructor baseline (pooled across seasons with shrinkage).
+-- Pools on circuit_id (physical venue), not circuit_key (event slug): a
+-- renamed-event or double-header key would otherwise split a constructor's
+-- circuit-specific bonus/penalty across two thinner, independent cells.
 circuit_constructor_obs AS (
     SELECT
         wc.constructor_id,
-        wc.circuit_key,
+        wc.circuit_id,
         wc.race_year,
         wc.race_id,
         -- Deviation of this race from the season average for this constructor
@@ -73,12 +88,12 @@ circuit_constructor_obs AS (
 circuit_constructor_agg AS (
     SELECT
         constructor_id,
-        circuit_key,
+        circuit_id,
         COUNT(*) AS n_obs,
         AVG(pace_circuit_deviation_s) AS observed_mean_s,
         STDDEV_POP(pace_circuit_deviation_s) AS observed_std_s
     FROM circuit_constructor_obs
-    GROUP BY constructor_id, circuit_key
+    GROUP BY constructor_id, circuit_id
 ),
 
 with_shrinkage AS (
@@ -90,7 +105,9 @@ with_shrinkage AS (
     FROM circuit_constructor_agg
 )
 
--- Join back to the race grain for downstream model consumption
+-- Join back to the race grain for downstream model consumption. Output grain
+-- and circuit_key column are unchanged -- only the shrinkage pool moved to
+-- circuit_id.
 SELECT
     CONCAT(
         CAST(wc.race_year AS VARCHAR), '_',
@@ -108,5 +125,5 @@ FROM with_circuit AS wc
 LEFT JOIN with_shrinkage AS ws
     ON
         wc.constructor_id = ws.constructor_id
-        AND wc.circuit_key = ws.circuit_key
+        AND wc.circuit_id = ws.circuit_id
 ORDER BY wc.race_year, wc.race_id, wc.constructor_id

@@ -135,8 +135,12 @@ flagged AS (
         speed_i1_kph, speed_i2_kph, speed_fl_kph, speed_st_kph, track_status,
         is_pit_lap, is_deleted, is_accurate, is_fastf1_generated, compound,
 
-        REGEXP_MATCHES(track_status, '.*[467].*') AS is_safety_car_lap,
-        REGEXP_MATCHES(track_status, '.*5.*') AS is_vsc_lap,
+        -- FastF1 codes, ground-truthed against the bronze Message column:
+        -- 4=SCDeployed, 5=Red, 6=VSCDeployed, 7=VSCEnding. Same decode as
+        -- stg_track_status and stg_laps.
+        REGEXP_MATCHES(track_status, '.*4.*') AS is_safety_car_lap,
+        REGEXP_MATCHES(track_status, '.*[67].*') AS is_vsc_lap,
+        REGEXP_MATCHES(track_status, '.*5.*') AS is_red_flag_lap,
 
         lap_time_s > 0
         AND NOT is_pit_lap

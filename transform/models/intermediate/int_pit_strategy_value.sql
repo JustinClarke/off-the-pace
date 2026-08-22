@@ -18,7 +18,11 @@
 -- Assumptions:
 --   1. Cliff model (int_compound_cliff_predicted) is the correct
 --   counterfactual.
---   2. Pit-lane loss is constant per circuit (from circuit_reference.csv).
+--   2. Pit-lane loss is constant per circuit, taken from
+--      int_pit_loss_circuit's empirical, EB-shrunk estimate (median in-lap +
+--      out-lap loss over that venue's green-flag stops). The
+--      circuit_reference.pit_lane_loss_s seed is the fallback for a circuit
+--      that resolves no stops; pit_loss_source records which was used.
 --   3. Undercut threat captured by gap_to_ahead (ignores overcut threat).
 --   4. Last stint of race has no pit actual_pit_lap NULL.
 
@@ -84,13 +88,33 @@ race_map AS (
     FROM {{ ref('race_to_track') }}
 ),
 
--- Pit-lane loss per circuit
+-- Pit-lane loss per circuit. The empirical estimate wins wherever it exists:
+-- it is measured off that venue's own green-flag stops and spans ~16-31 s,
+-- where the seed constant is 21.0 s flat for the 8 circuits nobody measured
+-- and 19-24 s for the rest. The seed only fills in for a circuit that
+-- resolved no clean stops at all.
 circuit_pit_loss AS (
     SELECT
         cr.circuit_key,
-        COALESCE(CAST(cr.pit_lane_loss_s AS DOUBLE), 21.0) AS pit_lane_loss_s,
-        CAST(cr.pit_loss_imputed_flag AS BOOLEAN) AS pit_loss_imputed_flag
+        COALESCE(
+            pl.pit_loss_s_shrunk,
+            CAST(cr.pit_lane_loss_s AS DOUBLE),
+            21.0
+        ) AS pit_lane_loss_s,
+        CASE
+            WHEN pl.pit_loss_s_shrunk IS NOT NULL THEN 'empirical'
+            WHEN cr.pit_lane_loss_s IS NOT NULL THEN 'seed'
+            ELSE 'default'
+        END AS pit_loss_source,
+        -- Imputed now means "nothing was measured for this circuit on either
+        -- side", not "the seed row was a guess".
+        (
+            pl.pit_loss_s_shrunk IS NULL
+            AND COALESCE(CAST(cr.pit_loss_imputed_flag AS BOOLEAN), TRUE)
+        ) AS pit_loss_imputed_flag
     FROM {{ ref('circuit_reference') }} AS cr
+    LEFT JOIN {{ ref('int_pit_loss_circuit') }} AS pl
+        ON cr.circuit_key = pl.circuit_slug
 ),
 
 -- Actual pit data: one row per (driver, race, stint) pit event
@@ -116,12 +140,18 @@ min_gap_per_stint AS (
         -- Minimum gap in the potential pit window [cliff_onset-5,
         -- cliff_onset+10]
         MIN(COALESCE(la.min_gap_s, 999.0)) AS min_gap_in_window_s,
-        -- First lap_number where gap drops below undercut threshold
+        -- First lap_number where the gap ahead drops under one pit stop plus
+        -- a second of margin. The threshold is the circuit's own pit-lane
+        -- loss, so a long pit lane opens the undercut window earlier than a
+        -- short one instead of every venue sharing a flat 22 s.
         MIN(CASE
-            WHEN la.min_gap_s < 22.0 THEN sg.lap_number
+            WHEN la.min_gap_s < COALESCE(cpl.pit_lane_loss_s, 21.0) + 1.0
+                THEN sg.lap_number
         END) AS first_undercut_threat_lap
     FROM stint_meta AS sg
     LEFT JOIN {{ ref('int_lap_air_state') }} AS la ON sg.lap_id = la.lap_id
+    LEFT JOIN race_map AS rm ON sg.race_id = rm.race_id
+    LEFT JOIN circuit_pit_loss AS cpl ON rm.circuit_key = cpl.circuit_key
     GROUP BY sg.stint_id, sg.race_year, sg.race_id, sg.driver_id
 ),
 
@@ -317,6 +347,7 @@ SELECT
     mgps.first_undercut_threat_lap AS undercut_threat_lap,
     -- Pit-lane loss
     COALESCE(cpl.pit_lane_loss_s, 21.0) AS pit_lane_loss_s,
+    COALESCE(cpl.pit_loss_source, 'default') AS pit_loss_source,
     COALESCE(cpl.pit_loss_imputed_flag, TRUE) AS pit_loss_imputed_flag,
     -- Strategy verdict
     CASE

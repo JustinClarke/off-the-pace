@@ -55,6 +55,8 @@ export const queryRaceLost = registerQuery<Params, RaceLostRow[]>(
         AND race_id   = ?
         AND driver_id = ?
         AND NOT is_safety_car_lap
+        AND NOT is_vsc_lap
+        AND NOT is_red_flag_lap
         AND NOT is_major_outlier_lap
         AND fuel_component_s IS NOT NULL
     `, [season, raceId, driverId])

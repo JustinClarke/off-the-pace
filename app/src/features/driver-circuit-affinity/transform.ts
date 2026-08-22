@@ -19,7 +19,7 @@ export function transform(rows: CircuitAffinityRow[]): CircuitAffinityHeatmap {
   const driverAffinities = new Map<string, number[]>()
 
   for (const r of rows) {
-    circuitNameByKey.set(r.circuit_key, r.circuit_name)
+    circuitNameByKey.set(r.circuit_id, r.circuit_name)
     if (!driverAffinities.has(r.driver_id)) driverAffinities.set(r.driver_id, [])
     driverAffinities.get(r.driver_id)!.push(r.shrunk_affinity_s)
   }
@@ -43,7 +43,7 @@ export function transform(rows: CircuitAffinityRow[]): CircuitAffinityHeatmap {
   let maxValue = -Infinity
 
   for (const r of rows) {
-    const x = circuitIndexByKey.get(r.circuit_key)
+    const x = circuitIndexByKey.get(r.circuit_id)
     const y = driverIndexById.get(r.driver_id)
     if (x === undefined || y === undefined) continue
     cells.push({ x, y, value: r.shrunk_affinity_s })

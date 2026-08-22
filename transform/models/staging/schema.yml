@@ -119,16 +119,25 @@ models:
                 where: "compound IS NOT NULL"
       - name: is_safety_car_lap
         description: >
-          TRUE when TrackStatus contains a 4, 6 or 7. Per the corrected FastF1 decode (see stg_track_status),
-          4 = SC and 6/7 = VSC, so this flag fires for both SC and VSC laps. Use stg_track_status for a
-          precise SC-vs-VSC split.
+          TRUE when TrackStatus contains a 4 (SCDeployed). Full safety car only   VSC is is_vsc_lap and a
+          red flag is is_red_flag_lap. Decode matches stg_track_status, ground-truthed against the bronze
+          Message column.
         data_type: boolean
+        tests: [not_null]
       - name: is_vsc_lap
         description: >
-          TRUE when TrackStatus contains a 5. NOTE: 5 is the red-flag code in the corrected FastF1 decode
-          (stg_track_status), so this column is a known mislabel kept for backwards compatibility   prefer
-          stg_track_status for accurate VSC classification. (is_valid_lap excludes 4–7 regardless.)
+          TRUE when TrackStatus contains a 6 (VSCDeployed) or 7 (VSCEnding). Decode matches
+          stg_track_status.
         data_type: boolean
+        tests: [not_null]
+      - name: is_red_flag_lap
+        description: >
+          TRUE when TrackStatus contains a 5 (Red). A red flag is a full session stoppage   physically the
+          opposite of a VSC lap (tyres go to ambient, and may legally be changed), so it is flagged
+          separately rather than folded into either neutralisation flag. The three flags together are the
+          neutralised set the layer excludes; consumers should test all three, not a pair.
+        data_type: boolean
+        tests: [not_null]
       - name: is_valid_lap
         description: >
           Clean-lap flag: timed (lap_time_s > 0), not a pit lap, not deleted, accurate, lap_number > 1,
@@ -246,11 +255,17 @@ models:
         description: Normalised tyre compound (UPPER); None/nan/UNKNOWN mapped to NULL.
         data_type: varchar
       - name: is_safety_car_lap
-        description: TRUE when TrackStatus contains a 4, 6 or 7 (see stg_laps for the decode caveat).
+        description: TRUE when TrackStatus contains a 4 (SCDeployed). See stg_laps for the full decode.
         data_type: boolean
+        tests: [not_null]
       - name: is_vsc_lap
-        description: TRUE when TrackStatus contains a 5 (known mislabel; see stg_laps).
+        description: TRUE when TrackStatus contains a 6 or 7 (VSCDeployed/VSCEnding).
         data_type: boolean
+        tests: [not_null]
+      - name: is_red_flag_lap
+        description: TRUE when TrackStatus contains a 5 (Red) — a full session stoppage.
+        data_type: boolean
+        tests: [not_null]
       - name: is_valid_lap
         description: Clean-lap flag (timed, not pit/deleted, accurate, no SC/VSC, lap_number > 1).
         data_type: boolean
@@ -353,17 +368,17 @@ models:
 
   - name: stg_pits
     description: >
-      One row per pit-stop event, derived from laps with a non-null PitInTime or PitOutTime.
-      pit_in_lap_number is the lap on which the car entered the pit lane; pit_out_lap_number is
-      the (usually next) lap on which it exited. pit_duration_s is NULL when only one of the
-      in/out times is recorded.
+      One row per pit stop: a lap carrying PitInTime. Bronze splits a stop across two lap
+      rows (PitInTime on the in-lap, PitOutTime on the out-lap), so the exit side is resolved
+      with a LEAD over the driver's own pit laps and out-lap-only rows — including pit-lane
+      race starts — are not emitted as stops. 5,336 stops across 2018–2024.
     meta:
       family: staging
     columns:
       - name: lap_id
         description: Foreign key to stg_laps (the pit-in lap).
         data_type: varchar
-        tests: [not_null]
+        tests: [not_null, unique]
       - name: race_year
         description: Season year.
         data_type: integer
@@ -376,23 +391,37 @@ models:
       - name: pit_in_lap_number
         description: Lap on which the car entered the pit lane.
         data_type: integer
+        tests: [not_null]
       - name: pit_out_lap_number
-        description: Lap on which the car exited the pit lane (pit_in_lap_number + 1).
+        description: >
+          Lap on which the car exited, always pit_in_lap_number + 1 where an out-lap exists.
+          NULL for the 227 stops with no following out-lap (retired in the pit lane, or the
+          race ended under the stop).
         data_type: integer
       - name: stint_number
-        description: Stint index at the moment of the stop.
+        description: Stint index of the in-lap, i.e. the stint this stop ends.
         data_type: integer
+      - name: compound_in
+        description: >
+          Tyre compound removed at this stop (UPPER), read off the in-lap. Bronze reports each
+          lap's own rubber, so this differs from compound_out on 3,844 of 5,109 stops.
+        data_type: varchar
       - name: compound_out
-        description: Tyre compound fitted on exit (UPPER).
+        description: Tyre compound fitted on exit (UPPER), read off the out-lap; NULL when there is none.
         data_type: varchar
       - name: pit_in_time_s
-        description: Session clock (s) at pit entry; NULL when not recorded.
+        description: Session clock (s) at pit entry.
         data_type: double
+        tests: [not_null]
       - name: pit_out_time_s
-        description: Session clock (s) at pit exit; NULL when not recorded.
+        description: Session clock (s) at pit exit, taken from the out-lap row; NULL when there is none.
         data_type: double
       - name: pit_duration_s
-        description: pit_out_time_s − pit_in_time_s (seconds); NULL when either bound is missing.
+        description: >
+          pit_out_time_s − pit_in_time_s (seconds): pit entry to pit exit, so it spans the whole
+          pit lane rather than the stationary time alone. Median 23.93 s. Red-flag stoppages and
+          garage returns fall inside the car's pit window and inflate it — 388 of 5,109 exceed
+          60 s — so consumers wanting a green-flag service time must filter.
         data_type: double
 
   - name: stg_weather
@@ -633,6 +662,113 @@ models:
       - name: is_red_flag_stop
         description: TRUE when status is 'Aborted' (a red-flag stoppage).
         data_type: boolean
+
+  - name: stg_session_status_qualifying
+    description: >
+      Session lifecycle events for the qualifying session, mirroring stg_session_status. This is
+      the only record of where Q1, Q2 and Q3 begin and end   FastF1 reports one flat lap set per
+      Q session with no segment column   so int_qualifying_segments splits the session on the
+      Started / Finished pairs here. 'Aborted' marks a red-flag stoppage inside a segment.
+    meta:
+      family: staging
+    columns:
+      - name: session_status_id
+        description: Surrogate key   {race_id}_Q_{session_time_s}.
+        data_type: varchar
+        tests: [not_null]
+      - name: race_year
+        description: Season year.
+        data_type: integer
+        tests: [not_null]
+      - name: race_id
+        description: Numeric FastF1 event id cast to string; matches stg_laps_qualifying.race_id.
+        data_type: varchar
+        tests: [not_null]
+      - name: race_slug
+        description: Human-readable event name.
+        data_type: varchar
+      - name: session_type
+        description: Constant 'Q' marking the qualifying session.
+        data_type: varchar
+      - name: session_time_s
+        description: Session clock (s) at the lifecycle event.
+        data_type: double
+        tests: [not_null]
+      - name: status
+        description: Raw FastF1 session status ('Started', 'Aborted', 'Finished', ...).
+        data_type: varchar
+      - name: is_red_flag_stop
+        description: TRUE when status is 'Aborted' (a red-flag stoppage).
+        data_type: boolean
+      - name: is_green_light
+        description: >
+          TRUE when status is 'Started'. Raw event, NOT one per segment: a red flag inside a
+          segment is written 'Aborted' and the resumption is another 'Started'.
+        data_type: boolean
+      - name: is_chequered_flag
+        description: >
+          TRUE when status is 'Finished'. Usually three per session, but a segment red-flagged at
+          its end never gets one   the session goes straight to 'Finalised'.
+        data_type: boolean
+
+  - name: stg_results_qualifying
+    description: >
+      Official classified results for the qualifying session. One row per driver × session. The
+      Q1/Q2/Q3 columns are each driver's official best lap in each segment and are populated only
+      on the qualifying session's own results (they are always null on the race session's, which is
+      what stg_results reads). Those times are the anchors int_qualifying_segments matches back to
+      the laps that set them.
+    meta:
+      family: staging
+    columns:
+      - name: quali_result_id
+        description: Surrogate key   {race_id}_Q_{driver_id}.
+        data_type: varchar
+        tests: [not_null, unique]
+      - name: race_year
+        description: Season year.
+        data_type: integer
+        tests: [not_null]
+      - name: race_id
+        description: Numeric FastF1 event id cast to string; matches stg_laps_qualifying.race_id.
+        data_type: varchar
+        tests: [not_null]
+      - name: race_slug
+        description: Human-readable event name.
+        data_type: varchar
+      - name: session_type
+        description: Constant 'Q' marking the qualifying session.
+        data_type: varchar
+      - name: driver_id
+        description: FastF1 three-letter driver code (e.g. VER, HAM).
+        data_type: varchar
+        tests: [not_null]
+      - name: driver_number
+        description: Car number the driver carried in this session.
+        data_type: varchar
+      - name: constructor_id
+        description: Team name as reported by FastF1.
+        data_type: varchar
+      - name: quali_position
+        description: >
+          Official qualifying classification (1..20). Not the race grid   penalties are applied
+          afterwards and show up in stg_results.grid_position.
+        data_type: integer
+      - name: q1_time_s
+        description: Official best Q1 lap in seconds; NULL if the driver set no Q1 time.
+        data_type: double
+      - name: q2_time_s
+        description: Official best Q2 lap in seconds; NULL if eliminated in Q1.
+        data_type: double
+      - name: q3_time_s
+        description: Official best Q3 lap in seconds; NULL if eliminated in Q1 or Q2.
+        data_type: double
+      - name: final_segment_reached
+        description: >
+          Furthest segment the driver reached   'Q1', 'Q2', 'Q3', or 'none' when they set no time
+          at all.
+        data_type: varchar
+        tests: [not_null]
 
   - name: stg_circuit_info
     description: >

@@ -18,6 +18,34 @@ vars:
   # (weight 0.0). The band [1.20, outlier_exclude_ratio) is soft-downweighted to 0.6
   # so legit heavy-fuel / traffic laps are salvaged instead of nuked.
   outlier_exclude_ratio: 1.40
+  # int_qualifying_push_laps: a qualifying lap counts as a push lap when it is
+  # within this ratio of the best lap set in its own Q1/Q2/Q3 segment   the
+  # classic 107% cut for "this was a serious lap". Cool-down laps between two
+  # push laps carry no pit time and so pass every other validity check; this is
+  # the only thing that removes them. Each driver's own best lap in a segment is
+  # always a push lap regardless of the ratio, so nobody drops out of the
+  # decomposition entirely.
+  quali_push_lap_ratio: 1.07
+  # int_pit_loss_circuit: a stop's measured loss must land inside
+  # [pit_loss_min_s, pit_loss_max_s] to count. The floor drops stops where the
+  # reference lap was itself compromised; the ceiling drops what the SC/VSC/red
+  # filter upstream of it does not already catch (a drive-through, a car parked
+  # in its box behind a stuck wheel gun). pit_loss_prior_stops is the EB
+  # pseudo-count in stops: a venue with a single race-weekend's worth of stops
+  # sits roughly half-way to the global median, one with a full history barely
+  # moves.
+  pit_loss_min_s: 8
+  pit_loss_max_s: 60
+  pit_loss_prior_stops: 15
+  # dim_corners: each corner's telemetry window runs from its apex minus
+  # corner_entry_margin_m to its apex plus corner_exit_margin_m, with both ends
+  # clipped at the neighbouring apex so no corner reaches past its neighbours.
+  # 250 m of entry covers the 99th percentile braking zone measured on corners
+  # with a clear 600 m approach (p50 119 m, p95 181 m, p99 232 m); 150 m of exit
+  # covers the 75th percentile of the first full-throttle point after the apex
+  # (p50 75 m), the next apex clipping most of what a wider margin would add.
+  corner_entry_margin_m: 250
+  corner_exit_margin_m: 150
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]

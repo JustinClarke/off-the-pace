@@ -47,6 +47,7 @@ WITH lap_meta AS (
         is_deleted,
         is_safety_car_lap,
         is_vsc_lap,
+        is_red_flag_lap,
         is_pit_lap
     FROM {{ ref('stg_laps') }}
 ),
@@ -90,6 +91,7 @@ push_corners AS (
         AND NOT lm.is_deleted
         AND NOT lm.is_safety_car_lap
         AND NOT lm.is_vsc_lap
+        AND NOT lm.is_red_flag_lap
         AND NOT lm.is_pit_lap
         AND COALESCE(cor.correction_weight, 1.0) = 1.0
         AND COALESCE(e.rainfall_flag, FALSE) = FALSE
@@ -179,6 +181,14 @@ loro_corner AS (
 -- header point 4): a single cell's deviation from the car baseline cannot
 -- contribute more than +/-1.0s to the season mean.
 -- Negative = driver faster than the equal-car (LORO) benchmark.
+--
+-- The IS NOT NULL guards are load-bearing, not defensive: DuckDB's GREATEST and
+-- LEAST ignore NULL arguments rather than propagating them, so a bare
+-- LEAST(1.0, NULL) returns 1.0 and a phase with no measurement would enter the
+-- season mean as the maximum possible penalty. A corner with no discrete
+-- braking zone, or none where full throttle returns before the next apex, has
+-- no value for that phase and must stay NULL so the phase's cell count and
+-- mean both exclude it.
 deconf_corner AS (
     SELECT
         race_year,
@@ -186,12 +196,25 @@ deconf_corner AS (
         driver_id,
         constructor_id,
         corner_name,
-        GREATEST(-1.0, LEAST(1.0, driver_mean_braking_s - loro_braking_s))
-            AS deconf_braking_s,
-        GREATEST(-1.0, LEAST(1.0, driver_mean_mid_s - loro_mid_s))
-            AS deconf_mid_s,
-        GREATEST(-1.0, LEAST(1.0, driver_mean_exit_s - loro_exit_s))
-            AS deconf_exit_s
+        CASE
+            WHEN
+                driver_mean_braking_s IS NOT NULL AND loro_braking_s IS NOT NULL
+                THEN GREATEST(
+                    -1.0, LEAST(1.0, driver_mean_braking_s - loro_braking_s)
+                )
+        END AS deconf_braking_s,
+        CASE
+            WHEN driver_mean_mid_s IS NOT NULL AND loro_mid_s IS NOT NULL
+                THEN GREATEST(
+                    -1.0, LEAST(1.0, driver_mean_mid_s - loro_mid_s)
+                )
+        END AS deconf_mid_s,
+        CASE
+            WHEN driver_mean_exit_s IS NOT NULL AND loro_exit_s IS NOT NULL
+                THEN GREATEST(
+                    -1.0, LEAST(1.0, driver_mean_exit_s - loro_exit_s)
+                )
+        END AS deconf_exit_s
     FROM loro_corner
     WHERE
         loro_braking_s IS NOT NULL

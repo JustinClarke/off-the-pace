@@ -23,6 +23,7 @@
 | Domain Constraint | `assert_constructor_confidence_monotone.sql` | Placeholder |   |
 | Domain Constraint | `assert_corner_skill_cell_winsorized.sql` | Active | `mart_corner_skill_driver` |
 | Domain Constraint | `assert_corner_skill_phase_gate.sql` | Active | `mart_corner_skill_driver` |
+| Domain Constraint | `assert_corner_window_geometry.sql` | Active | `dim_corners`, `stg_circuit_info` |
 | Domain Constraint | `assert_driver_skill_residual_reasonable.sql` | Active | `fct_lap_residuals` |
 | Domain Constraint | `assert_field_pace_honest_range.sql` | Active | `int_field_pace_curve`, `stg_laps`, `stg_weather` |
 | Domain Constraint | `assert_fuel_curve_monotonicity.sql` | Active | `int_lap_fuel_state` |
@@ -32,6 +33,9 @@
 | Domain Constraint | `assert_no_future_leakage.sql` | Active | `int_lap_thermal_proxy` |
 | Domain Constraint | `assert_p_beats_next_geq_half.sql` | Active | `fct_ghost_race_finish` |
 | Domain Constraint | `assert_pace_delta_flat_by_race_fifth.sql` | Active | `int_field_pace_curve`, `int_lap_air_state`, `int_lap_fuel_state`, `int_stint_geometry` |
+| Domain Constraint | `assert_pit_loss_excludes_neutralised.sql` | Active | `dim_circuits`, `int_pit_loss_circuit`, `stg_laps`, `stg_pits`, `stg_results`, `stg_track_status` |
+| Domain Constraint | `assert_pit_stop_grain.sql` | Active | `stg_pits` |
+| Domain Constraint | `assert_quali_segment_matches_official.sql` | Active | `int_qualifying_push_laps`, `stg_results_qualifying` |
 | Domain Constraint | `assert_rating_confidence.sql` | Active | `int_driver_season_ratings` |
 | Domain Constraint | `assert_rating_top_season_well_supported.sql` | Active | `int_era_normalized_driver_rating` |
 | Domain Constraint | `assert_raw_laps_has_both_sessions.sql` | Active | `stg_laps`, `stg_laps_qualifying` |
@@ -41,5 +45,6 @@
 | Domain Constraint | `assert_synthetic_teammate_identity.sql` | Active | `int_stint_geometry`, `int_synthetic_teammate` |
 | Domain Constraint | `assert_thermal_variance_positive.sql` | Active | `int_track_evolution` |
 | Domain Constraint | `assert_track_evolution_monotone.sql` | Active | `int_track_evolution` |
+| Domain Constraint | `assert_track_status_flag_partition.sql` | Active | `stg_laps` |
 | Regression Gate | `assert_constructor_pace_propagates.sql` | Active |   |
 | Regression Gate | `assert_residual_variance_shrinks.sql` | Active |   |

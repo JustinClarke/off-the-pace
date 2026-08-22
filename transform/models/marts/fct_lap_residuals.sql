@@ -87,6 +87,7 @@ SELECT
     b.correction_weight,
     b.is_safety_car_lap,
     b.is_vsc_lap,
+    b.is_red_flag_lap,
     b.is_restart_lap,
     b.is_pre_controlled_lap,
     b.is_local_yellow_lap,

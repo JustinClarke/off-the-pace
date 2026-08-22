@@ -8,7 +8,7 @@ description: "One row per (race_year, race_id, constructor_id)."
 
 <Note>Part of the [Pace Baselines](/transform/families/pace-baselines) family.</Note>
 
-One row per (race_year, race_id, constructor_id). Circuit-specific car advantage beyond season-average. E.g., Red Bull faster at high-downforce tracks. Shrunk toward 0 (Bayesian prior). Positive = slower at this circuit than season average.
+One row per (race_year, race_id, constructor_id). Circuit-specific car advantage beyond season-average. E.g., Red Bull faster at high-downforce tracks. The shrinkage pool is keyed on the physical-circuit id, so a renamed event or double-header (e.g. mexican_grand_prix / mexico_city_grand_prix) shares one pool rather than splitting into two thinner cells. Shrunk toward 0 (Bayesian prior). Positive = slower at this circuit than season average.
 
 ## Lineage
 

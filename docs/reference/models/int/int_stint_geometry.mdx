@@ -39,7 +39,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`stg_laps`](../stg/stg_laps) |
 
-**11 tests** [guard](/transform/ci/overview) this model  -  9 generic, 2 singular.
+**12 tests** [guard](/transform/ci/overview) this model  -  10 generic, 2 singular.
 
 ## Columns
 
@@ -53,5 +53,6 @@ flowchart LR
 | `stint_length_valid` |   | Yes |   | Count of valid laps in the stint. |
 | `is_valid_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. Timed, on-track, not deleted, accurate, not lap 1, no SC/VSC. |
 | `is_pit_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE for the out-lap/in-lap of a pit stop. |
-| `is_safety_car_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains a full-SC digit. |
-| `is_vsc_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains the VSC digit. |
+| `is_safety_car_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains a 4 (full SC). |
+| `is_vsc_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains a 6 or 7 (VSC). |
+| `is_red_flag_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains a 5 (red flag). |

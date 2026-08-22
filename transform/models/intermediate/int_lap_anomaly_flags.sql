@@ -40,6 +40,7 @@ WITH residuals AS (
         correction_weight,
         is_safety_car_lap,
         is_vsc_lap,
+        is_red_flag_lap,
         is_restart_lap,
         is_pre_controlled_lap,
         is_local_yellow_lap,
@@ -190,6 +191,7 @@ SELECT
     correction_weight,
     is_safety_car_lap,
     is_vsc_lap,
+    is_red_flag_lap,
     is_restart_lap,
     is_pre_controlled_lap,
     is_local_yellow_lap,
@@ -221,6 +223,7 @@ SELECT
         WHEN
             is_safety_car_lap
             OR is_vsc_lap
+            OR is_red_flag_lap
             OR is_restart_lap
             OR is_pre_controlled_lap
             THEN 'event_driven'
@@ -252,7 +255,9 @@ SELECT
     CASE
         WHEN correction_class = 'exclude' THEN FALSE
         WHEN COALESCE(rainfall_flag, FALSE) THEN FALSE
-        WHEN is_safety_car_lap OR is_vsc_lap OR is_restart_lap THEN FALSE
+        WHEN
+            is_safety_car_lap OR is_vsc_lap OR is_red_flag_lap OR is_restart_lap
+            THEN FALSE
         WHEN is_in_lap OR is_out_lap THEN FALSE
         WHEN mad_score > 3.0 THEN FALSE
         ELSE TRUE

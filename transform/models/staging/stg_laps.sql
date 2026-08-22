@@ -114,15 +114,21 @@ flagged AS (
     SELECT
         * EXCLUDE (compound_raw),
 
-        -- TrackStatus is a concatenated digit string (e.g. '41' = VSC+yellow,
-        -- '124' = SC+yellow+DRS).
-        -- Use REGEXP_MATCHES to check for presence of flag digits anywhere in
-        -- the string.
-        REGEXP_MATCHES(track_status, '.*[467].*') AS is_safety_car_lap,
-        REGEXP_MATCHES(track_status, '.*5.*') AS is_vsc_lap,
+        -- TrackStatus is a concatenated digit string (e.g. '41' = SC+all-clear,
+        -- '26' = yellow+VSC) — a lap spanning a status change carries every
+        -- code that was in effect during it, so test for digit *presence*
+        -- rather than equality.
+        -- FastF1 codes, ground-truthed against the bronze Message column:
+        -- 1=AllClear, 2=Yellow, 4=SCDeployed, 5=Red, 6=VSCDeployed,
+        -- 7=VSCEnding. Same decode as stg_track_status.
+        REGEXP_MATCHES(track_status, '.*4.*') AS is_safety_car_lap,
+        REGEXP_MATCHES(track_status, '.*[67].*') AS is_vsc_lap,
+        REGEXP_MATCHES(track_status, '.*5.*') AS is_red_flag_lap,
 
-        -- Valid laps: timed, on-track, not deleted, accurate, not lap 1,
-        -- and no SC/VSC flag anywhere in the multi-char TrackStatus string.
+        -- Valid laps: timed, on-track, not deleted, accurate, not lap 1, and
+        -- no neutralisation (SC/red/VSC) anywhere in the multi-char
+        -- TrackStatus string. The [4567] set is the union of the three flags
+        -- above and is unchanged by their individual decode.
         lap_time_s > 0
         AND NOT is_pit_lap
         AND NOT is_deleted

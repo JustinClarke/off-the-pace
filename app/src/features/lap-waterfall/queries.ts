@@ -57,6 +57,8 @@ export const queryLapWaterfall = registerQuery<Params, LapResidualRow[]>(
         WHERE race_year = ?
           AND race_id = ?
           AND NOT is_safety_car_lap
+          AND NOT is_vsc_lap
+          AND NOT is_red_flag_lap
           AND NOT is_major_outlier_lap
           AND fuel_component_s IS NOT NULL
         GROUP BY driver_id, race_id, race_year
@@ -86,6 +88,8 @@ export const queryLapWaterfall = registerQuery<Params, LapResidualRow[]>(
       FROM fct_lap_residuals_${season}
       WHERE race_year = ?
         AND NOT is_safety_car_lap
+        AND NOT is_vsc_lap
+        AND NOT is_red_flag_lap
         AND NOT is_major_outlier_lap
         AND fuel_component_s IS NOT NULL
       GROUP BY driver_id, race_year

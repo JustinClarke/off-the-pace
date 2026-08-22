@@ -4,13 +4,13 @@ import type { CircuitAffinityRow } from './queries'
 
 const mkRow = (
   driver_id: string,
-  circuit_key: string,
+  circuit_id: string,
   circuit_name: string,
   shrunk_affinity_s: number,
   n_obs = 3,
 ): CircuitAffinityRow => ({
   driver_id,
-  circuit_key,
+  circuit_id,
   circuit_name,
   shrunk_affinity_s,
   n_obs,

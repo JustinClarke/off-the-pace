@@ -1,4 +1,4 @@
--- Qualifying constructor pace model: Constructor pace coefficient for
+-- Qualifying constructor pace model: constructor pace coefficient for
 -- qualifying sessions.
 -- Mirrors int_constructor_structural_pace but fit on qualifying laps only.
 -- The qualifying-mode constructor coefficient reflects high-power/low-fuel trim
@@ -6,50 +6,98 @@
 --
 -- Identification: same within-constructor between-driver logic as
 -- int_constructor_structural_pace.
--- Two teammates share the car common pace deviation from the session median
+-- Two teammates share the car   common pace deviation from the segment median
 -- is the constructor effect.
+--
+-- Baseline is per Q1/Q2/Q3 segment, over push laps only (see
+-- int_qualifying_push_laps). Both halves of that matter: the session median
+-- used to be taken over every lap flagged valid, ~30% of which were cool-down
+-- laps more than 107% off the session best, and it pooled three segments run on
+-- a track that gains ~1s of grip between them.
+--
+-- Composition caveat: Q2 and Q3 are progressively self-selected fields, so a
+-- fast constructor's delta to its own segment's median compresses as the field
+-- narrows. Deltas are therefore re-centred within each segment before they are
+-- aggregated to the constructor, which removes the level shift; the residual
+-- compression is second-order and not corrected here.
 --
 -- Output grain: one row per (race_year, race_id, constructor_id).
 -- PK: constructor_race_id (surrogate).
 
 {{ config(materialized='table', tags=['simulation', 'qualifying']) }}
 
-WITH field_pace AS (
-    -- Session-level median lap time per (race, constructor, session)
-    -- Used as the baseline equivalent to field_pace_curve for race sessions.
+WITH push_laps AS (
     SELECT
         race_year,
         race_id,
-        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY lap_time_s)
-        FILTER (WHERE is_valid_lap = TRUE AND lap_time_s IS NOT NULL)
-            AS session_median_s
-    FROM {{ ref('stg_laps_qualifying') }}
-    GROUP BY race_year, race_id
+        driver_id,
+        constructor_id,
+        quali_segment,
+        lap_time_s,
+        driver_segment_best_s
+    FROM {{ ref('int_qualifying_push_laps') }}
+    WHERE is_push_lap = TRUE AND lap_time_s IS NOT NULL
 ),
 
+-- Segment-level median push lap: the field-pace baseline this model measures
+-- against.
+segment_pace AS (
+    SELECT
+        race_year,
+        race_id,
+        quali_segment,
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY lap_time_s)
+            AS segment_median_s
+    FROM push_laps
+    GROUP BY race_year, race_id, quali_segment
+),
+
+-- One observation per driver × segment: the driver's best push lap there.
 clean_quali AS (
     SELECT
-        q.lap_id,
-        q.race_year,
-        q.race_id,
-        q.driver_id,
-        q.constructor_id,
-        q.lap_time_s,
-        -- Pace delta vs session median (analogous to pace_delta_s in race
-        -- model)
-        q.lap_time_s - fp.session_median_s AS pace_delta_s
-    FROM {{ ref('stg_laps_qualifying') }} AS q
-    INNER JOIN field_pace AS fp
+        p.race_year,
+        p.race_id,
+        p.quali_segment,
+        p.driver_id,
+        p.constructor_id,
+        p.lap_time_s,
+        p.lap_time_s - sp.segment_median_s AS raw_pace_delta_s
+    FROM push_laps AS p
+    INNER JOIN segment_pace AS sp
         ON
-            q.race_year = fp.race_year
-            AND q.race_id = fp.race_id
+            p.race_year = sp.race_year
+            AND p.race_id = sp.race_id
+            AND p.quali_segment = sp.quali_segment
     WHERE
-        q.is_valid_lap = TRUE
-        AND q.lap_time_s IS NOT NULL
-        AND fp.session_median_s IS NOT NULL
-        -- Only best lap per driver per session to reduce noise from scrubbed
-        -- laps
-        AND q.is_personal_best = TRUE
+        sp.segment_median_s IS NOT NULL
+        AND p.lap_time_s = p.driver_segment_best_s
+),
+
+-- Re-centre within the segment so Q1, Q2 and Q3 observations are on a common
+-- scale before they are pooled per constructor.
+segment_centre AS (
+    SELECT
+        race_year,
+        race_id,
+        quali_segment,
+        AVG(raw_pace_delta_s) AS segment_avg_pace_delta
+    FROM clean_quali
+    GROUP BY race_year, race_id, quali_segment
+),
+
+centred AS (
+    SELECT
+        c.race_year,
+        c.race_id,
+        c.driver_id,
+        c.constructor_id,
+        c.raw_pace_delta_s - sc.segment_avg_pace_delta AS pace_delta_s
+    FROM clean_quali AS c
+    INNER JOIN segment_centre AS sc
+        ON
+            c.race_year = sc.race_year
+            AND c.race_id = sc.race_id
+            AND c.quali_segment = sc.quali_segment
 ),
 
 constructor_agg AS (
@@ -62,7 +110,7 @@ constructor_agg AS (
         STDDEV_POP(pace_delta_s) AS stddev_pace_delta,
         COUNT(*) AS n_obs,
         COUNT(DISTINCT driver_id) AS n_drivers
-    FROM clean_quali
+    FROM centred
     GROUP BY race_year, race_id, constructor_id
     HAVING COUNT(*) >= 1
 ),

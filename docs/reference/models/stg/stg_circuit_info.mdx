@@ -14,7 +14,7 @@ Corner geometry from FastF1 circuit_info.corners. One row per corner per race, o
 
 ```mermaid
 flowchart LR
-  stg_circuit_info
+  stg_circuit_info --> dim_corners
   style stg_circuit_info fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -26,7 +26,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**5 tests** [guard](/transform/ci/overview) this model  -  5 generic, 0 singular.
+**6 tests** [guard](/transform/ci/overview) this model  -  5 generic, 1 singular.
 
 ## Columns
 

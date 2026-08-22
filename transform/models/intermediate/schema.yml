@@ -40,10 +40,13 @@ models:
         description: Carried through from stg_laps. TRUE for the out-lap/in-lap of a pit stop.
         tests: [not_null]
       - name: is_safety_car_lap
-        description: Carried through from stg_laps. TRUE when the TrackStatus string contains a full-SC digit.
+        description: Carried through from stg_laps. TRUE when the TrackStatus string contains a 4 (full SC).
         tests: [not_null]
       - name: is_vsc_lap
-        description: Carried through from stg_laps. TRUE when the TrackStatus string contains the VSC digit.
+        description: Carried through from stg_laps. TRUE when the TrackStatus string contains a 6 or 7 (VSC).
+        tests: [not_null]
+      - name: is_red_flag_lap
+        description: Carried through from stg_laps. TRUE when the TrackStatus string contains a 5 (red flag).
         tests: [not_null]
 
   - name: int_lap_fuel_state
@@ -187,24 +190,44 @@ models:
 
   - name: int_corner_metrics
     description: >
-      Corner-level g-force and speed metrics. Grain is (driver_id, lap_number, race_id, corner_name).
-      Multiple rows per lap, one per named corner. Used for lateral-g features and track-signature analysis.
+      Per-corner telemetry metrics. Grain is (race_year, race_id, driver_id, lap_number,
+      corner_name)   one row per corner the driver's telemetry reaches on that lap. Windows come
+      from dim_corners, keyed per race, so each session is measured against its own corner
+      geometry. Feeds int_corner_skill_residuals and fct_telemetry_deltas.
     tags: [intermediate]
     meta:
       family: physics
     columns:
       - name: driver_id
-        description: Driver identifier
+        description: FastF1 three-letter driver code.
         tests: [not_null]
       - name: lap_number
-        description: Lap number within race
+        description: Lap number within the race.
         tests: [not_null]
       - name: race_id
-        description: Race identifier
+        description: Numeric FastF1 event id.
+        tests: [not_null]
+      - name: race_year
+        description: Season year.
         tests: [not_null]
       - name: corner_name
-        description: Named track corner
+        description: Turn label from dim_corners (Turn_7, Turn_7A).
         tests: [not_null]
+      - name: track_id
+        description: Event slug the corner belongs to, carried from dim_corners as a label.
+        tests: [not_null]
+      - name: braking_point_m
+        description: >
+          Distance of the first sample on the brakes inside the corner window. NULL where the
+          corner is taken flat   a real answer for a fast corner, not missing data.
+      - name: v_min_kph
+        description: Minimum speed recorded inside the corner window (the apex speed).
+        tests: [not_null]
+      - name: throttle_point_m
+        description: >
+          Distance of the first full-throttle sample at or after the apex: where the driver gets
+          back on power. NULL where the driver never reaches 100% throttle before the window ends
+          at the next apex.
 
   - name: int_lap_telemetry_aggregates
     description: >
@@ -765,6 +788,110 @@ models:
   # Simulation   Surface expansion
   # ──────────────────────────────────────────────────────────
 
+  - name: int_qualifying_segments
+    description: >
+      One row per (race_year, race_id, quali_segment). The Q1/Q2/Q3 windows of each qualifying
+      session, recovered by anchoring the session-status timeline (stg_session_status_qualifying)
+      to the official per-driver segment times (stg_results_qualifying). FastF1 reports one flat
+      lap set per Q session with no segment column, so before this model every qualifying baseline
+      was computed per race   pooling a Q1 first effort with a Q3 final lap across ~1s of track
+      evolution and a self-selected top-10 field. Verified against the official results by
+      assert_quali_segment_matches_official.
+    tags: [intermediate, simulation, qualifying]
+    meta:
+      family: pace-baselines
+    columns:
+      - name: quali_segment_id
+        description: Surrogate PK = concat(race_id, '_Q', segment_index).
+        tests: [not_null, unique]
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: race_id
+        description: Numeric FastF1 event id; matches stg_laps_qualifying.race_id.
+        tests: [not_null]
+      - name: quali_segment
+        description: Segment label   'Q1', 'Q2' or 'Q3'.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Q1', 'Q2', 'Q3']
+      - name: segment_index
+        description: 1 for Q1, 2 for Q2, 3 for Q3.
+        tests: [not_null]
+      - name: segment_start_s
+        description: Session clock (s) at the segment's green light.
+        tests: [not_null]
+      - name: segment_end_s
+        description: >
+          Session clock (s) at the segment's chequered flag; the unresumed red flag that ended it,
+          or the session's 'Finalised', when no chequered flag fell.
+      - name: segment_span_s
+        description: >
+          segment_end_s minus segment_start_s. Nominally 1080s (Q1), 900s (Q2), 720s (Q3); longer
+          when a red flag suspended the clock.
+      - name: stoppage_n
+        description: Red-flag stoppages ('Aborted' events) inside the segment window.
+      - name: anchor_lap_n
+        description: >
+          Official segment times matched back to the lap that set them. Diagnostic   a low count
+          means the segment's boundary rests on few anchors.
+      - name: window_start_s
+        description: >
+          Lower bound (inclusive) for assigning a lap to this segment by lap_start_time_s.
+          NULL for Q1, whose window is open at the bottom so pre-session installation laps land there.
+      - name: window_end_s
+        description: >
+          Upper bound (exclusive) = the next segment's green light. NULL for Q3. Deliberately not
+          the chequered flag: the in-lap every driver runs starts after it and still belongs to
+          the segment.
+
+  - name: int_qualifying_push_laps
+    description: >
+      One row per qualifying lap (gated or not, so consumers filter rather than lose the row set).
+      Assigns each lap to its Q1/Q2/Q3 segment and applies the push-lap gate that stg_laps_qualifying
+      cannot: is_valid_lap removes out-laps and in-laps, but not the cool-down lap between two push
+      laps, which carries no pit time and passes every other check. 25% of the laps previously
+      treated as valid were more than 107% off their segment's best.
+    tags: [intermediate, simulation, qualifying]
+    meta:
+      family: pace-baselines
+    columns:
+      - name: lap_id
+        description: PK, FK to stg_laps_qualifying.
+        tests: [not_null, unique]
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: race_id
+        description: Numeric FastF1 event id.
+        tests: [not_null]
+      - name: driver_id
+        description: FastF1 three-letter driver code.
+        tests: [not_null]
+      - name: quali_segment
+        description: >
+          Segment the lap was set in   'Q1', 'Q2' or 'Q3', or 'Q' when the session has no
+          recoverable segment structure (the pre-segment behaviour, not a dropped row).
+        tests: [not_null]
+      - name: segment_best_s
+        description: Fastest valid lap set in this session's segment.
+      - name: driver_segment_best_s
+        description: This driver's fastest valid lap in this session's segment.
+      - name: ratio_to_segment_best
+        description: >
+          lap_time_s / segment_best_s. Above 1.07 on a push lap means the lap was admitted by the
+          driver's-own-best carve-out rather than the 107% cut   43 laps of 14,165, a handful of
+          which are aborted runs that were the driver's only lap in the segment. Filter on this if
+          you need a stricter set.
+      - name: is_push_lap
+        description: >
+          The gate: a valid, timed lap within quali_push_lap_ratio (1.07) of its segment's best,
+          or the driver's own best lap in that segment so that no driver drops out of the
+          decomposition entirely.
+        tests: [not_null]
+
   - name: int_lap_fuel_state_qualifying
     description: >
       One row per qualifying lap. Fuel weight correction for qualifying (flat 12 kg assumption).
@@ -791,7 +918,10 @@ models:
         description: Surrogate PK = concat(race_year, race_id, constructor_id, '_Q')
         tests: [not_null, unique]
       - name: constructor_structural_pace_s
-        description: Constructor qualifying-mode coefficient vs session median. Positive = slower.
+        description: >
+          Constructor qualifying-mode coefficient. Fit on each driver's best push lap per Q1/Q2/Q3
+          segment, measured against that segment's median push lap and re-centred within the
+          segment before pooling. Positive = slower.
         tests: [not_null]
 
   - name: int_lap_residual_decomposed_qualifying
@@ -807,8 +937,26 @@ models:
         description: PK, FK to stg_laps_qualifying
         tests: [not_null, unique]
       - name: quali_driver_skill_residual_s
-        description: Driver pure quali skill residual   purer single-lap pace signal than race.
+        description: >
+          Driver pure quali skill residual   purer single-lap pace signal than race. The identity
+          closes in closed form, so this term absorbs whatever the baseline gets wrong; gating the
+          lap set to push laps and taking the baseline per segment moved its mean absolute value
+          from 7.04s (sd 13.13) to 0.76s (sd 1.33), against a real qualifying field spread of ~1-3s.
         tests: [not_null]
+      - name: quali_segment
+        description: Q1/Q2/Q3 segment the lap was set in (FK to int_qualifying_segments).
+        tests: [not_null]
+      - name: base_track_pace_s
+        description: >
+          Field-pace baseline: the median push lap of this lap's own segment, not of the whole
+          session.
+      - name: ratio_to_segment_best
+        description: lap_time_s / the best valid lap in the same segment.
+      - name: track_unexplained_s
+        description: >
+          The track-evolution model's own residual for the event, carried informationally and
+          deliberately not part of the identity   the same treatment as track_unexplained_s on the
+          race side. Race-day proxy, like rubber_component_s and ambient_component_s here.
 
   - name: int_qualifying_decomposed
     description: >
@@ -829,13 +977,27 @@ models:
         description: >
           Per-driver per-event differential between qualifying and race skill.
           Positive = qualifying specialist. NULL when no race data available for that event.
+      - name: quali_skill_session_avg_s
+        description: >
+          Driver's qualifying skill for the event: the residual of their best push lap in each
+          segment, averaged over the segments they contested. Previously the mean over every lap
+          FastF1 flagged IsPersonalBest, which fires on every improving lap (4.58 per driver-race,
+          up to 15) and charged a driver who built up incrementally as much as ~4s of pure
+          aggregation artefact.
+      - name: quali_segments_contested_n
+        description: Segments (1-3) in which the driver set a best push lap.
+      - name: quali_segment
+        description: Q1/Q2/Q3 segment the lap was set in (FK to int_qualifying_segments).
+        tests: [not_null]
 
   - name: int_pit_strategy_value
     description: >
       One row per stint. Evaluates pit strategy: what was the optimal pit lap vs actual?
       Computes opportunity_cost_s (seconds lost by pitting late), optimal_pit_lap, and verdict
       (optimal / overran / undercut_forced / early). Counterfactual assumes cliff model degradation trajectory.
-      Pit-loss constant per circuit (~21 s average); missing circuits imputed at 21.0 s.
+      Pit-loss is per circuit from int_pit_loss_circuit's empirical, EB-shrunk estimate
+      (19.3–29.6 s over the 147 races that resolve one), falling back to the circuit_reference
+      seed and then 21.0 s; pit_loss_source records which was used.
     tags: [intermediate, simulation, strategy]
     meta:
       family: strategy
@@ -873,12 +1035,37 @@ models:
               arguments:
                 min_value: 0
                 max_value: 1
+      - name: pit_lane_loss_s
+        description: >
+          Pit-lane loss used for this stint's undercut-threat scan, in seconds. Empirical
+          where int_pit_loss_circuit resolves the venue, else the circuit_reference seed,
+          else 21.0.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 8
+                max_value: 60
+      - name: pit_loss_source
+        description: Which pit-loss estimate this row used - empirical / seed / default.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['empirical', 'seed', 'default']
+      - name: pit_loss_imputed_flag
+        description: >
+          TRUE when nothing was measured on either side - no empirical stops resolved and the
+          seed row was itself a guess.
+        tests: [not_null]
 
   - name: int_circuit_x_constructor_interaction
     description: >
       One row per (race_year, race_id, constructor_id). Circuit-specific car advantage beyond
-      season-average. E.g., Red Bull faster at high-downforce tracks. Shrunk toward 0 (Bayesian prior).
-      Positive = slower at this circuit than season average.
+      season-average. E.g., Red Bull faster at high-downforce tracks. The shrinkage pool is keyed
+      on the physical-circuit id, so a renamed event or double-header (e.g. mexican_grand_prix /
+      mexico_city_grand_prix) shares one pool rather than splitting into two thinner cells.
+      Shrunk toward 0 (Bayesian prior). Positive = slower at this circuit than season average.
     tags: [intermediate, simulation, ghost_car]
     meta:
       family: pace-baselines
@@ -932,8 +1119,10 @@ models:
 
   - name: int_driver_circuit_affinity
     description: >
-      One row per (driver_id, circuit_key). How much faster/slower is this driver at this circuit
-      relative to their career average? Shrunk toward driver mean (Bayesian, prior = 5 virtual races).
+      One row per (driver_id, circuit_id). How much faster/slower is this driver at this circuit
+      relative to their career average? circuit_id is the physical-circuit identifier, so renamed
+      events and double-headers at one venue (e.g. mexican_grand_prix / mexico_city_grand_prix)
+      pool into a single track record. Shrunk toward driver mean (Bayesian, prior = 5 virtual races).
       Negative = faster at this circuit than career average. affinity_confidence [0,1]: < 0.17 = prior-dominated.
       Identifies drivers who suit high-downforce, street, etc. tracks.
     tags: [intermediate, driver_rating, driver_affinity]
@@ -941,13 +1130,18 @@ models:
       family: skill
     columns:
       - name: driver_circuit_id
-        description: Surrogate PK = hash(driver_id, circuit_key)
+        description: Surrogate PK = hash(driver_id, circuit_id)
         tests: [not_null, unique]
       - name: driver_id
         description: Driver identifier
         tests: [not_null]
-      - name: circuit_key
-        description: Circuit identifier from race_to_track seed
+      - name: circuit_id
+        description: >
+          Physical-circuit identifier (slug of circuit_name). Collapses event-slug
+          aliases (renamed events, double-headers) onto one venue.
+        tests: [not_null]
+      - name: circuit_name
+        description: Canonical circuit display name for this circuit_id.
         tests: [not_null]
       - name: n_obs
         description: Number of race-residual observations backing this estimate
@@ -1316,21 +1510,30 @@ models:
 
   - name: int_pit_loss_circuit
     description: >
-      Empirical circuit-specific pit-lane loss prior, intended to replace the
-      largely-imputed constant in circuit_reference. Per stop, loss = (in_lap − ref) +
-      (out_lap − ref) where ref is the driver's median green lap that race; circuit
+      Empirical circuit-specific pit-lane loss prior, read by int_pit_strategy_value in
+      place of the largely-imputed circuit_reference constant. Per stop, loss = (in_lap −
+      ref) + (out_lap − ref) where ref is the driver's median green lap that race; the
       value is the median across stops within a sane [pit_loss_min_s, pit_loss_max_s]
-      window, EB-shrunk toward the global median. Scoped to races with a venue slug
-      available. Not yet read by any downstream dbt model  -  int_pit_strategy_value
-      still joins the circuit_reference seed constant directly.
+      window, EB-shrunk toward the global median. Stops whose in-lap or out-lap ran under
+      SC, VSC or a red flag are excluded — under a neutralisation the lap the stop is
+      measured against is not the lap the driver would otherwise have run. Estimated per
+      physical venue (circuit_id) so a renamed event or double-header shares one pit lane
+      and one sample, then emitted per event slug so the consumer's race_to_track join is
+      unchanged. Scoped to races with a venue slug available.
     meta:
       family: strategy
     columns:
       - name: circuit_slug
-        description: Venue identifier (race name slug); recurs across seasons.
+        description: Event identifier (race name slug); recurs across seasons. PK.
         tests: [not_null, unique]
+      - name: circuit_id
+        description: >
+          Physical-venue identifier the estimate is pooled on. Several event slugs can share
+          one circuit_id (british / 70th_anniversary, brazilian / são_paulo, mexican /
+          mexico_city, austrian / styrian) and then carry identical values by construction.
+        tests: [not_null]
       - name: n_stops
-        description: Number of clean pit stops observed at this circuit.
+        description: Number of clean green-flag pit stops observed at this physical venue.
         tests: [not_null]
       - name: pit_loss_s_empirical
         description: Median empirical pit-lane loss (seconds) across observed stops.

@@ -97,6 +97,12 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
             -- name via race_to_track (both race_id columns are VARCHAR "YYYY_N"; the
             -- fallback is defensive only -- 2018_14 is a known, unrelated seed gap)
             COALESCE(rtt.track_id, l.circuit_key) AS circuit_key,
+            -- Physical-venue id (dim_circuits collapses renamed-event/double-header
+            -- keys, e.g. mexican_grand_prix + mexico_city_grand_prix, onto one venue).
+            -- Used only to pool the cross-season fallback; the emitted seed still
+            -- keys on circuit_key (event slug) so int_compound_cliff_predicted's
+            -- join to race_to_track.track_id keeps working.
+            dc.circuit_id AS circuit_id,
             l.lap_time_s,
             l.is_valid_lap,
             l.is_safety_car_lap,
@@ -141,6 +147,8 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
         LEFT JOIN stg_weather w ON sg.lap_id = w.lap_id
         LEFT JOIN race_to_track rtt
           ON l.race_id = rtt.race_id
+        LEFT JOIN dim_circuits dc
+          ON rtt.track_id = dc.circuit_key
         LEFT JOIN int_lap_normalized_pace np ON sg.lap_id = np.lap_id
         WHERE sg.race_year IN ({season_filter})
           AND l.compound IN ('SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET')
@@ -313,17 +321,37 @@ def run_fit(
     )
     log.info("Fitting %d circuit/compound/season groups...", len(groups))
 
+    # circuit_key -> circuit_id (physical venue), for cross-season pooling below.
+    # A circuit_key absent from dim_circuits (e.g. the known 2018_14 race_to_track
+    # gap) has no circuit_id and pools on itself only, same as before this fix.
+    circuit_id_by_key = (
+        stints_df.dropna(subset=["circuit_id"])
+        .drop_duplicates("circuit_key")
+        .set_index("circuit_key")["circuit_id"]
+    )
+
     results = []
     for _, row in groups.iterrows():
         circuit_key = row["circuit_key"]
         compound_code = row["compound_code"]
         season = int(row["race_year"])
 
-        # Cross-season data for this circuit+compound (fallback pool)
-        cross_df = stints_df[
-            (stints_df["circuit_key"] == circuit_key) &
-            (stints_df["compound_code"] == compound_code)
-        ]
+        # Cross-season fallback pool: keyed on the physical venue
+        # (dim_circuits.circuit_id), not the event slug, so renamed-event and
+        # double-header keys (mexican_grand_prix / mexico_city_grand_prix,
+        # austrian_grand_prix / styrian_grand_prix, etc.) share history instead
+        # of each falling to compound_class_default in isolation.
+        circuit_id = circuit_id_by_key.get(circuit_key)
+        if circuit_id is not None:
+            cross_df = stints_df[
+                (stints_df["circuit_id"] == circuit_id) &
+                (stints_df["compound_code"] == compound_code)
+            ]
+        else:
+            cross_df = stints_df[
+                (stints_df["circuit_key"] == circuit_key) &
+                (stints_df["compound_code"] == compound_code)
+            ]
 
         result = fit_group(stints_df, circuit_key, compound_code, season, fallback_df=cross_df)
         results.append(result)

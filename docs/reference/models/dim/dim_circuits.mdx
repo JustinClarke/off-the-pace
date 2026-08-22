@@ -14,9 +14,11 @@ One row per event slug (circuit_key). Lifts the circuit_reference seed into a ty
 
 ```mermaid
 flowchart LR
+  dim_circuits --> dim_corners
   dim_circuits --> fct_cliff_prediction_features
   dim_circuits --> fct_driver_skill_features
   dim_circuits --> int_lap_fuel_state
+  dim_circuits --> int_pit_loss_circuit
   dim_circuits --> mart_degradation_history_envelope
   style dim_circuits fill:#e40404,stroke:#e40404,color:#fff
 ```
@@ -29,7 +31,7 @@ flowchart LR
 | Family | [Reference](/transform/families/reference) |
 | Contract enforced | No |
 
-**6 tests** [guard](/transform/ci/overview) this model  -  6 generic, 0 singular.
+**7 tests** [guard](/transform/ci/overview) this model  -  6 generic, 1 singular.
 
 ## Columns
 

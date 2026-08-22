@@ -72,5 +72,6 @@ SELECT
     is_pit_lap,
     is_safety_car_lap,
     is_vsc_lap,
+    is_red_flag_lap,
     CAST(NULL AS BOOLEAN) AS planned_vs_actual_flag
 FROM with_stint_length

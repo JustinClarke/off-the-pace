@@ -13,7 +13,7 @@
 SELECT
     driver_circuit_id,
     driver_id,
-    circuit_key,
+    circuit_id,
     raw_affinity_s,
     shrunk_affinity_s,
     _shrinkage_lower_bound,

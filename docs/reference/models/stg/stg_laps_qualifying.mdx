@@ -14,9 +14,10 @@ Cleaned qualifying lap data (Q1/Q2/Q3), mirroring stg_laps for qualifying sessio
 
 ```mermaid
 flowchart LR
-  stg_laps_qualifying --> int_constructor_structural_pace_qualifying
   stg_laps_qualifying --> int_lap_fuel_state_qualifying
   stg_laps_qualifying --> int_lap_residual_decomposed_qualifying
+  stg_laps_qualifying --> int_qualifying_push_laps
+  stg_laps_qualifying --> int_qualifying_segments
   style stg_laps_qualifying fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -28,7 +29,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**7 tests** [guard](/transform/ci/overview) this model  -  6 generic, 1 singular.
+**10 tests** [guard](/transform/ci/overview) this model  -  9 generic, 1 singular.
 
 ## Columns
 
@@ -66,6 +67,7 @@ flowchart LR
 | `is_accurate` | `boolean` | Yes |   | FastF1 quality flag   timing considered reliable. |
 | `is_fastf1_generated` | `boolean` | Yes |   | TRUE when the row was synthesised by FastF1. |
 | `compound` | `varchar` | Yes |   | Normalised tyre compound (UPPER); None/nan/UNKNOWN mapped to NULL. |
-| `is_safety_car_lap` | `boolean` | Yes |   | TRUE when TrackStatus contains a 4, 6 or 7 (see stg_laps for the decode caveat). |
-| `is_vsc_lap` | `boolean` | Yes |   | TRUE when TrackStatus contains a 5 (known mislabel; see stg_laps). |
+| `is_safety_car_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 4 (SCDeployed). See stg_laps for the full decode. |
+| `is_vsc_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 6 or 7 (VSCDeployed/VSCEnding). |
+| `is_red_flag_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 5 (Red) — a full session stoppage. |
 | `is_valid_lap` | `boolean` | Yes |   | Clean-lap flag (timed, not pit/deleted, accurate, no SC/VSC, lap_number &gt; 1). |

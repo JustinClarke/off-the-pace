@@ -1,22 +1,22 @@
 <CardGroup cols={3}>
-  <Card title="62 models" icon="database">
-    Staging (12) + Reference (4) + 36
+  <Card title="67 models" icon="database">
+    Staging (14) + Reference (5) + 38
     intermediate models across 5 families + Marts (10).
   </Card>
-  <Card title="487 tests" icon="shield-check">
-    444 generic column contracts + 43 hand-written mathematical
+  <Card title="552 tests" icon="shield-check">
+    504 generic column contracts + 48 hand-written mathematical
     assertions, every build.
   </Card>
-  <Card title="362 structural" icon="key">
+  <Card title="418 structural" icon="key">
     `not_null`, `unique`, and unique-combination tests guard every model's grain.
   </Card>
-  <Card title="82 range &amp; domain" icon="ruler">
+  <Card title="86 range &amp; domain" icon="ruler">
     Bounded shares, honest envelopes, enum integrity, and cross-column monotonicity.
   </Card>
   <Card title="14 identity-closure" icon="equal">
     Additive identities and shrinkage bounds that close to tolerance on every lap.
   </Card>
-  <Card title="27 domain + 2 regression" icon="check-check">
+  <Card title="32 domain + 2 regression" icon="check-check">
     Physical/statistical invariants, plus baseline-comparison gates on headline statistics.
     3 singular tests are placeholders (`SELECT 1 WHERE FALSE`), wired up once
     their upstream model lands.
@@ -24,10 +24,10 @@
 </CardGroup>
 
 <CardGroup cols={4}>
-  <Card title="12 Staging" icon="layers" href="/transform/families/staging" />
-  <Card title="4 Reference" icon="layers" href="/transform/families/reference" />
+  <Card title="14 Staging" icon="layers" href="/transform/families/staging" />
+  <Card title="5 Reference" icon="layers" href="/transform/families/reference" />
   <Card title="10 Physics" icon="layers" href="/transform/families/physics" />
-  <Card title="6 Pace Baselines" icon="layers" href="/transform/families/pace-baselines" />
+  <Card title="8 Pace Baselines" icon="layers" href="/transform/families/pace-baselines" />
   <Card title="7 Skill" icon="layers" href="/transform/families/skill" />
   <Card title="9 Residual" icon="layers" href="/transform/families/residual" />
   <Card title="4 Strategy" icon="layers" href="/transform/families/strategy" />

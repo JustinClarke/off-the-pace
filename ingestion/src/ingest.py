@@ -7,6 +7,9 @@ Writes partitioned Bronze-layer Parquet files:
   Quali laps:   laps/season=YYYY/race=<slug>/session=Q/YYYY_<slug>_quali_laps.parquet
   Weather:      weather/season=YYYY/race=<slug>/[session=Q/]weather.parquet
   Race control: race_control/season=YYYY/race=<slug>/race_control.parquet
+  Track status: track_status/season=YYYY/race=<slug>/[session=Q/]track_status.parquet
+  Sess. status: session_status/season=YYYY/race=<slug>/[session=Q/]session_status.parquet
+  Results:      results/season=YYYY/race=<slug>/[session=Q/]results.parquet
   Telemetry:    telemetry/season=YYYY/race=<slug>/telemetry.parquet
 
 Usage examples:
@@ -303,23 +306,37 @@ def _write_pos_data(session, year: int, round_num: int, slug: str) -> None:
         logger.warning(f"  Pos data failed for {slug}: {exc}")
 
 
-def _write_results(session, year: int, round_num: int, slug: str) -> None:
-    """Official race results (ClassifiedPosition, Status, GridPosition, Q1/Q2/Q3)."""
+def _write_results(
+    session, year: int, round_num: int, slug: str, session_type: str = "R",
+) -> None:
+    """Official classified results.
+
+    Race: ClassifiedPosition, Status, GridPosition, Points. The Q1/Q2/Q3 columns
+    are present in the frame but always null on a race session   the segment
+    times only populate on the qualifying session's own results, which is why
+    this is written for Q as well.
+    """
     try:
         if not hasattr(session, "results") or session.results is None or session.results.empty:
             return
         results = pd.DataFrame(session.results).reset_index()
         results["race_id"] = f"{year}_{round_num}"
         results["season"] = year
+        if session_type == "Q":
+            results["session_type"] = "Q"
         out = RESULTS_DIR / f"season={year}" / f"race={slug}"
+        if session_type == "Q":
+            out = out / "session=Q"
         os.makedirs(out, exist_ok=True)
         results.to_parquet(out / "results.parquet", index=False, compression="snappy")
-        logger.info(f"  Results: {len(results)} drivers")
+        logger.info(f"  Results ({session_type}): {len(results)} drivers")
     except Exception as exc:
         logger.warning(f"  Results failed for {slug}: {exc}")
 
 
-def _write_track_status(session, year: int, round_num: int, slug: str) -> None:
+def _write_track_status(
+    session, year: int, round_num: int, slug: str, session_type: str = "R",
+) -> None:
     """SC/VSC timeline (track_status events)."""
     try:
         if not hasattr(session, "track_status") or session.track_status is None or session.track_status.empty:
@@ -327,6 +344,8 @@ def _write_track_status(session, year: int, round_num: int, slug: str) -> None:
         ts = pd.DataFrame(session.track_status).reset_index()
         ts["race_id"] = f"{year}_{round_num}"
         ts["season"] = year
+        if session_type == "Q":
+            ts["session_type"] = "Q"
         if "Time" in ts.columns:
             raw = ts["Time"]
             if pd.api.types.is_timedelta64_dtype(raw):
@@ -335,21 +354,32 @@ def _write_track_status(session, year: int, round_num: int, slug: str) -> None:
                 epoch = raw.iloc[0].replace(hour=0, minute=0, second=0, microsecond=0)
                 ts["session_time_s"] = (raw - epoch).dt.total_seconds()
         out = TRACK_STATUS_DIR / f"season={year}" / f"race={slug}"
+        if session_type == "Q":
+            out = out / "session=Q"
         os.makedirs(out, exist_ok=True)
         ts.to_parquet(out / "track_status.parquet", index=False, compression="snappy")
-        logger.info(f"  Track status: {len(ts)} events")
+        logger.info(f"  Track status ({session_type}): {len(ts)} events")
     except Exception as exc:
         logger.warning(f"  Track status failed for {slug}: {exc}")
 
 
-def _write_session_status(session, year: int, round_num: int, slug: str) -> None:
-    """Red-flag events and session status."""
+def _write_session_status(
+    session, year: int, round_num: int, slug: str, session_type: str = "R",
+) -> None:
+    """Session lifecycle events (Inactive / Started / Aborted / Finished).
+
+    For qualifying this is the only record of where Q1, Q2 and Q3 begin and end:
+    the lap table carries no segment column, so the Started/Finished pairs here
+    are what int_qualifying_segments splits the session on.
+    """
     try:
         if not hasattr(session, "session_status") or session.session_status is None or session.session_status.empty:
             return
         ss = pd.DataFrame(session.session_status).reset_index()
         ss["race_id"] = f"{year}_{round_num}"
         ss["season"] = year
+        if session_type == "Q":
+            ss["session_type"] = "Q"
         if "Time" in ss.columns:
             raw = ss["Time"]
             if pd.api.types.is_timedelta64_dtype(raw):
@@ -358,9 +388,11 @@ def _write_session_status(session, year: int, round_num: int, slug: str) -> None
                 epoch = raw.iloc[0].replace(hour=0, minute=0, second=0, microsecond=0)
                 ss["session_time_s"] = (raw - epoch).dt.total_seconds()
         out = SESSION_STATUS_DIR / f"season={year}" / f"race={slug}"
+        if session_type == "Q":
+            out = out / "session=Q"
         os.makedirs(out, exist_ok=True)
         ss.to_parquet(out / "session_status.parquet", index=False, compression="snappy")
-        logger.info(f"  Session status: {len(ss)} events")
+        logger.info(f"  Session status ({session_type}): {len(ss)} events")
     except Exception as exc:
         logger.warning(f"  Session status failed for {slug}: {exc}")
 
@@ -511,6 +543,9 @@ def ingest_qualifying(
         logger.info(f"  [OK]   Q  {year} Rd{round_num} {slug}   {len(laps)} laps")
 
         _write_weather(session, year, round_num, slug, "Q")
+        _write_track_status(session, year, round_num, slug, "Q")
+        _write_session_status(session, year, round_num, slug, "Q")
+        _write_results(session, year, round_num, slug, "Q")
 
         time.sleep(0.3)
         row = _make_manifest_row(

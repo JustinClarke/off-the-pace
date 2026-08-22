@@ -14,29 +14,43 @@
 --                      + constructor + dirty_air_tax + driver_skill +
 --                      unexplained
 --
--- Output grain: lap_id one row per valid qualifying lap.
+-- Lap set and baseline: push laps only, measured against the median push lap of
+-- their own Q1/Q2/Q3 segment (int_qualifying_push_laps). Previously this was
+-- every lap flagged valid, against one median for the whole session   which
+-- admitted the cool-down lap between two runs (no pit time, so it passes every
+-- validity check) and pooled three segments run on a track that gains ~1s of
+-- grip between them. Since the identity closes in closed form, everything that
+-- baseline got wrong landed in quali_driver_skill_residual_s.
+--
+-- Output grain: lap_id one row per qualifying push lap.
 -- PK: lap_id (FK to stg_laps_qualifying).
 
 {{ config(materialized='table', tags=['simulation', 'qualifying']) }}
 
 WITH quali_laps AS (
     SELECT
-        q.lap_id,
-        q.race_year,
-        q.race_id,
-        q.driver_id,
-        q.constructor_id,
-        q.lap_number,
+        p.lap_id,
+        p.race_year,
+        p.race_id,
+        p.driver_id,
+        p.constructor_id,
+        p.lap_number,
         q.session_type,
-        q.lap_time_s,
-        q.tyre_life,
-        q.compound,
-        q.is_personal_best,
-        q.is_valid_lap
-    FROM {{ ref('stg_laps_qualifying') }} AS q
+        p.lap_time_s,
+        p.tyre_life,
+        p.compound,
+        p.is_personal_best,
+        p.is_valid_lap,
+        p.quali_segment,
+        p.segment_best_s,
+        p.driver_segment_best_s,
+        p.ratio_to_segment_best
+    FROM {{ ref('int_qualifying_push_laps') }} AS p
+    INNER JOIN {{ ref('stg_laps_qualifying') }} AS q
+        ON p.lap_id = q.lap_id
     WHERE
-        q.is_valid_lap = TRUE
-        AND q.lap_time_s IS NOT NULL
+        p.is_push_lap = TRUE
+        AND p.lap_time_s IS NOT NULL
 ),
 
 fuel AS (
@@ -47,17 +61,20 @@ fuel AS (
     FROM {{ ref('int_lap_fuel_state_qualifying') }}
 ),
 
--- Session median as the field pace baseline (no lap-number smoothing needed for
--- quali)
+-- Segment median push lap as the field-pace baseline (no lap-number smoothing
+-- needed for quali). Per segment, not per session: Q3 is both a faster track
+-- and a self-selected top-10 field, so a session-wide median is the wrong
+-- reference for a Q1 lap in either direction.
 field_pace AS (
     SELECT
         race_year,
         race_id,
+        quali_segment,
         PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY lap_time_s)
-        FILTER (WHERE is_valid_lap = TRUE AND lap_time_s IS NOT NULL)
-            AS session_median_s
-    FROM {{ ref('stg_laps_qualifying') }}
-    GROUP BY race_year, race_id
+        FILTER (WHERE is_push_lap = TRUE AND lap_time_s IS NOT NULL)
+            AS segment_median_s
+    FROM {{ ref('int_qualifying_push_laps') }}
+    GROUP BY race_year, race_id, quali_segment
 ),
 
 constructor_coef AS (
@@ -81,6 +98,7 @@ weather_proxy AS (
         race_id,
         COALESCE(rubber_component_s, 0.0) AS rubber_component_s,
         COALESCE(ambient_component_s, 0.0) AS ambient_component_s,
+        COALESCE(unexplained_residual_s, 0.0) AS track_unexplained_s,
         track_temp_c
     FROM {{ ref('int_track_evolution') }}
     ORDER BY race_year, race_id
@@ -99,11 +117,18 @@ combined AS (
         q.tyre_life,
         q.compound,
         q.is_personal_best,
+        q.quali_segment,
+        q.segment_best_s,
+        q.driver_segment_best_s,
+        q.ratio_to_segment_best,
         f.fuel_mass_kg,
         f.fuel_component_s,
-        fp.session_median_s AS base_track_pace_s,
+        fp.segment_median_s AS base_track_pace_s,
         COALESCE(w.rubber_component_s, 0.0) AS rubber_component_s,
         COALESCE(w.ambient_component_s, 0.0) AS ambient_component_s,
+        -- Informational, exactly as on the race side: the track-evolution
+        -- model's own residual, carried but deliberately not in the identity.
+        COALESCE(w.track_unexplained_s, 0.0) AS track_unexplained_s,
         w.track_temp_c,
         -- Constructor qualifying-mode coefficient
         COALESCE(cc.constructor_structural_pace_s, 0.0)
@@ -125,7 +150,10 @@ combined AS (
     LEFT JOIN fuel AS f ON q.lap_id = f.lap_id
     LEFT JOIN
         field_pace AS fp
-        ON q.race_year = fp.race_year AND q.race_id = fp.race_id
+        ON
+            q.race_year = fp.race_year
+            AND q.race_id = fp.race_id
+            AND q.quali_segment = fp.quali_segment
     LEFT JOIN constructor_coef AS cc
         ON
             q.race_year = cc.race_year
@@ -181,6 +209,10 @@ SELECT
     tyre_life,
     compound,
     is_personal_best,
+    quali_segment,
+    segment_best_s,
+    driver_segment_best_s,
+    ratio_to_segment_best,
     base_track_pace_s,
     quali_pace_delta_s,
     fuel_mass_kg,
@@ -196,6 +228,7 @@ SELECT
     dirty_air_tax_se_s,
     total_explained_s,
     quali_driver_skill_residual_s,
+    track_unexplained_s,
     track_temp_c
 FROM with_residual
 ORDER BY race_year, race_id, driver_id, lap_number

@@ -2,8 +2,9 @@
 
 Static dimension tables, reused across the DAG as lookup and join targets. Two
 (`dim_circuits`, `dim_compounds_season`) lift a committed dbt seed into a typed dimension;
-the other two (`dim_drivers`, `dim_constructors`) derive live from `stg_laps` on every build,
-with no seed involved. All four materialise as **tables**.
+the other three (`dim_drivers`, `dim_constructors`, `dim_corners`) derive live on every build
+from `stg_laps` and, for the corner windows, FastF1's own corner table in `stg_circuit_info`.
+All five materialise as **tables**.
 
 ---
 
@@ -15,6 +16,7 @@ with no seed involved. All four materialise as **tables**.
 | `dim_drivers` | driver | Driver identity, team history, and era membership |
 | `dim_constructors` | constructor × season | Constructor identity with season-level metadata |
 | `dim_compounds_season` | compound × season | Tyre compound assignments per season with hardness classification |
+| `dim_corners` | race × circuit turn | Telemetry distance window each corner owns (apex ± the configured entry/exit margins, clipped at the neighbouring apexes), derived per session from FastF1 corner geometry |
 
 ---
 

@@ -23,7 +23,8 @@ WITH geom AS (
         lap_number,
         lap_in_stint,
         is_safety_car_lap,
-        is_vsc_lap
+        is_vsc_lap,
+        is_red_flag_lap
     FROM {{ ref('int_stint_geometry') }}
     -- Deliberately no is_valid_lap filter: this model consumes the full
     -- chronological sequence (SC/VSC/pit laps included) so the EWMA thermal
@@ -176,18 +177,21 @@ with_stint AS (
         g.lap_number,
         g.lap_in_stint,
         CASE
-            WHEN g.is_safety_car_lap OR g.is_vsc_lap THEN 0.0
+            WHEN g.is_safety_car_lap OR g.is_vsc_lap OR g.is_red_flag_lap
+                THEN 0.0
             ELSE COALESCE(a.dirty_air_share_lap, 0.0)
         END AS dirty_air_share_lap,
         COALESCE(a.tow_benefit_lap_s, 0.0) AS tow_benefit_lap_s,
         CASE
-            WHEN g.is_safety_car_lap OR g.is_vsc_lap THEN 0.0
+            WHEN g.is_safety_car_lap OR g.is_vsc_lap OR g.is_red_flag_lap
+                THEN 0.0
             ELSE COALESCE(a.dirty_air_intensity, 0.0)
         END AS dirty_air_intensity,
         COALESCE(a.air_state_dominant, 'free_air') AS air_state_dominant,
         a.min_gap_s,
         CASE
-            WHEN g.is_safety_car_lap OR g.is_vsc_lap THEN 0.0
+            WHEN g.is_safety_car_lap OR g.is_vsc_lap OR g.is_red_flag_lap
+                THEN 0.0
             ELSE COALESCE(t.time_in_dirty_air_s, 0.0)
         END AS time_in_dirty_air_s
     FROM geom AS g

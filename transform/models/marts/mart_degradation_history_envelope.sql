@@ -69,6 +69,7 @@ WITH clean AS (
         AND COALESCE(lrd.correction_weight, 0) = 1
         AND NOT lrd.is_safety_car_lap
         AND NOT lrd.is_vsc_lap
+        AND NOT lrd.is_red_flag_lap
         AND NOT lrd.is_major_outlier_lap
 ),
 

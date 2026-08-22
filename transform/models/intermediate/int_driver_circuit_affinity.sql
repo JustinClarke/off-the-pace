@@ -11,8 +11,12 @@
 -- separates
 -- systematic circuit affinity from single-race variance.
 --
--- Output grain: (driver_id, circuit_key). One row per driver-circuit pair.
+-- Output grain: (driver_id, circuit_id). One row per driver-circuit pair.
 -- PK: driver_circuit_id (surrogate hash).
+-- circuit_id is the physical-circuit identifier (slug of circuit_name), so
+-- renamed events and double-headers at one venue (e.g. mexican_grand_prix /
+-- mexico_city_grand_prix) pool into a single track record instead of
+-- appearing as separate event-keyed rows.
 --
 -- Sign convention: negative _s = faster than driver's mean (same as
 -- driver_skill_residual_s).
@@ -22,36 +26,52 @@
 
 {{ config(materialized='table', tags=['driver_rating', 'driver_affinity']) }}
 
-WITH driver_race AS (
+{# Map event slug (circuit_key) -> physical circuit_id + a canonical display name. #}
+WITH circuit_map AS (
+    SELECT
+        circuit_key,
+        {{ circuit_id_from_name('circuit_name') }} AS circuit_id,
+        circuit_name
+    FROM {{ ref('circuit_reference') }}
+),
+
+circuit_name_map AS (
+    SELECT circuit_id, MIN(circuit_name) AS circuit_name
+    FROM circuit_map
+    GROUP BY circuit_id
+),
+
+driver_race AS (
     -- De-confounded LORO equal-car skill (was
     -- fct_driver_skill_features.driver_residual_mean_s). Aliased to the old
     -- name so the
     -- shrinkage logic below is unchanged. See int_driver_race_skill_loro.
     SELECT
-        driver_id,
-        circuit_key,
-        race_year,
-        race_id,
-        driver_skill_loro_s AS driver_residual_mean_s,
-        clean_lap_count
-    FROM {{ ref('int_driver_race_skill_loro') }}
+        f.driver_id,
+        COALESCE(cm.circuit_id, f.circuit_key) AS circuit_id,
+        f.race_year,
+        f.race_id,
+        f.driver_skill_loro_s AS driver_residual_mean_s,
+        f.clean_lap_count
+    FROM {{ ref('int_driver_race_skill_loro') }} AS f
+    LEFT JOIN circuit_map AS cm ON f.circuit_key = cm.circuit_key
     WHERE
-        driver_skill_loro_s IS NOT NULL
-        AND circuit_key IS NOT NULL
+        f.driver_skill_loro_s IS NOT NULL
+        AND f.circuit_key IS NOT NULL
 ),
 
 -- Per (driver, circuit): observed mean and sample count
 driver_circuit_obs AS (
     SELECT
         driver_id,
-        circuit_key,
+        circuit_id,
         COUNT(*) AS n_obs,
         COUNT(DISTINCT race_year) AS seasons_observed_n,
         AVG(driver_residual_mean_s) AS raw_affinity_s,
         STDDEV(driver_residual_mean_s) AS within_cell_stddev_s,
         SUM(clean_lap_count) AS total_clean_laps
     FROM driver_race
-    GROUP BY driver_id, circuit_key
+    GROUP BY driver_id, circuit_id
 ),
 
 -- Per driver: global mean across all circuits (the prior mean for each cell)
@@ -78,7 +98,7 @@ variance_components AS (
 with_shrinkage AS (
     SELECT
         dco.driver_id,
-        dco.circuit_key,
+        dco.circuit_id,
         dco.n_obs,
         dco.seasons_observed_n,
         dco.raw_affinity_s,
@@ -110,10 +130,11 @@ with_shrinkage AS (
 )
 
 SELECT
-    {{ dbt_utils.generate_surrogate_key(['driver_id', 'circuit_key']) }}
+    {{ dbt_utils.generate_surrogate_key(['ws.driver_id', 'ws.circuit_id']) }}
         AS driver_circuit_id,
-    driver_id,
-    circuit_key,
+    ws.driver_id,
+    ws.circuit_id,
+    cnm.circuit_name,
     n_obs,
     seasons_observed_n,
     raw_affinity_s,
@@ -132,5 +153,6 @@ SELECT
     LEAST(raw_affinity_s, global_driver_mean_s) AS _shrinkage_lower_bound,
     GREATEST(raw_affinity_s, global_driver_mean_s) AS _shrinkage_upper_bound
 
-FROM with_shrinkage
-ORDER BY driver_id, circuit_key
+FROM with_shrinkage AS ws
+INNER JOIN circuit_name_map AS cnm ON ws.circuit_id = cnm.circuit_id
+ORDER BY ws.driver_id, ws.circuit_id

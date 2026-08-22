@@ -20,6 +20,7 @@ WITH laps AS (
         track_status,
         is_safety_car_lap,
         is_vsc_lap,
+        is_red_flag_lap,
         is_pit_lap,
         is_deleted,
         is_accurate,
@@ -49,13 +50,15 @@ sc_windows AS (
         lap_number,
         is_safety_car_lap,
         is_vsc_lap,
-        -- SC/VSC lap on the preceding lap number (restart anomaly)
-        LAG(is_safety_car_lap OR is_vsc_lap) OVER (
+        is_red_flag_lap,
+        -- Neutralised lap (SC/VSC/red) on the preceding lap number
+        -- (restart anomaly)
+        LAG(is_safety_car_lap OR is_vsc_lap OR is_red_flag_lap) OVER (
             PARTITION BY race_year, race_id, driver_id
             ORDER BY lap_number
         ) AS prev_lap_was_controlled,
-        -- SC/VSC lap on the following lap (entry anomaly-bunching)
-        LEAD(is_safety_car_lap OR is_vsc_lap) OVER (
+        -- Neutralised lap on the following lap (entry anomaly-bunching)
+        LEAD(is_safety_car_lap OR is_vsc_lap OR is_red_flag_lap) OVER (
             PARTITION BY race_year, race_id, driver_id
             ORDER BY lap_number
         ) AS next_lap_is_controlled
@@ -86,6 +89,7 @@ classified AS (
         -- Primary control flags (from stg_laps)
         l.is_safety_car_lap,
         l.is_vsc_lap,
+        l.is_red_flag_lap,
         l.is_pit_lap,
         l.is_deleted,
         l.is_accurate,
@@ -192,6 +196,7 @@ SELECT
 
     is_safety_car_lap,
     is_vsc_lap,
+    is_red_flag_lap,
     is_local_yellow_lap,
     is_restart_lap,
     is_pre_controlled_lap,
@@ -213,6 +218,7 @@ SELECT
         WHEN
             is_safety_car_lap
             OR is_vsc_lap
+            OR is_red_flag_lap
             OR is_restart_lap
             OR is_pre_controlled_lap
             THEN 'neutralisation'
@@ -233,7 +239,7 @@ SELECT
             THEN manual_weight
         WHEN is_deleted OR is_major_outlier_lap OR is_fastf1_generated
             THEN 0.0
-        WHEN is_safety_car_lap OR is_vsc_lap
+        WHEN is_safety_car_lap OR is_vsc_lap OR is_red_flag_lap
             THEN 0.0
         WHEN is_restart_lap OR is_pre_controlled_lap
             THEN 0.3

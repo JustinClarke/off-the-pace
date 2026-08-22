@@ -10,14 +10,14 @@
 --
 -- Design note: the cliff features are computed LAP-INTERNALLY (local speed
 -- minima, brake-onset
--- events, sample-level accel) rather than via the dim_corners catalogue.
--- dim_corners is a partial,
--- inconsistently-named seed that joins for only ~5 circuits (~6% of laps); the
+-- events, sample-level accel) rather than via the dim_corners catalogue. The
 -- lap-internal
--- formulation gives full telemetry coverage and is faithful to the intent
--- (mid-corner =
--- the lap's slow points). Missingness is explicit (LEFT JOIN, NULLs preserved →
--- XGBoost native).
+-- formulation needs no named-corner mapping at all and is faithful to the
+-- intent (mid-corner =
+-- the lap's slow points); dim_corners now covers 34 of 36 event slugs, so the
+-- choice is about
+-- what the feature measures, not about coverage. Missingness is explicit (LEFT
+-- JOIN, NULLs preserved → XGBoost native).
 --
 -- Sample stream is filtered to source_channel='car' (the genuine channel
 -- cadence); the merged

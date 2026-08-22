@@ -8,7 +8,7 @@ description: "One row per stint."
 
 <Note>Part of the [Strategy](/transform/families/strategy) family.</Note>
 
-One row per stint. Evaluates pit strategy: what was the optimal pit lap vs actual? Computes opportunity_cost_s (seconds lost by pitting late), optimal_pit_lap, and verdict (optimal / overran / undercut_forced / early). Counterfactual assumes cliff model degradation trajectory. Pit-loss constant per circuit (~21 s average); missing circuits imputed at 21.0 s.
+One row per stint. Evaluates pit strategy: what was the optimal pit lap vs actual? Computes opportunity_cost_s (seconds lost by pitting late), optimal_pit_lap, and verdict (optimal / overran / undercut_forced / early). Counterfactual assumes cliff model degradation trajectory. Pit-loss is per circuit from int_pit_loss_circuit's empirical, EB-shrunk estimate (19.3–29.6 s over the 147 races that resolve one), falling back to the circuit_reference seed and then 21.0 s; pit_loss_source records which was used.
 
 ## Lineage
 
@@ -16,6 +16,7 @@ One row per stint. Evaluates pit strategy: what was the optimal pit lap vs actua
 flowchart LR
   int_compound_cliff_predicted --> int_pit_strategy_value
   int_lap_air_state --> int_pit_strategy_value
+  int_pit_loss_circuit --> int_pit_strategy_value
   int_stint_geometry --> int_pit_strategy_value
   stg_pits --> int_pit_strategy_value
   int_pit_strategy_value --> fct_stint_features
@@ -30,9 +31,9 @@ flowchart LR
 | Family | [Strategy](/transform/families/strategy) |
 | Contract enforced | No |
 | Tags | `simulation`, `strategy` |
-| Upstream | [`int_stint_geometry`](./int_stint_geometry), [`int_compound_cliff_predicted`](./int_compound_cliff_predicted), [`stg_pits`](../stg/stg_pits), [`int_lap_air_state`](./int_lap_air_state) |
+| Upstream | [`int_stint_geometry`](./int_stint_geometry), [`int_compound_cliff_predicted`](./int_compound_cliff_predicted), [`int_pit_loss_circuit`](./int_pit_loss_circuit), [`stg_pits`](../stg/stg_pits), [`int_lap_air_state`](./int_lap_air_state) |
 
-**5 tests** [guard](/transform/ci/overview) this model  -  5 generic, 0 singular.
+**10 tests** [guard](/transform/ci/overview) this model  -  10 generic, 0 singular.
 
 ## Columns
 
@@ -45,3 +46,6 @@ flowchart LR
 | `opportunity_cost_s` |   | Yes | [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Cumulative degradation penalty from overrunning optimal. Non-negative. |
 | `strategy_verdict` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Strategy classification. |
 | `optimal_pit_lap_confidence` |   | Yes | [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Confidence in optimal lap estimate [0, 1]. Degrades when cliff onset is NULL. |
+| `pit_lane_loss_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Pit-lane loss used for this stint's undercut-threat scan, in seconds. Empirical where int_pit_loss_circuit resolves the venue, else the circuit_reference seed, else 21.0. |
+| `pit_loss_source` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Which pit-loss estimate this row used - empirical / seed / default. |
+| `pit_loss_imputed_flag` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when nothing was measured on either side - no empirical stops resolved and the seed row was itself a guess. |

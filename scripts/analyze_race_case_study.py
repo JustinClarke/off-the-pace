@@ -37,7 +37,7 @@ def load_race(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
                dirty_air_tax_s,
                total_explained_s,
                correction_weight,
-               is_safety_car_lap, is_vsc_lap
+               is_safety_car_lap, is_vsc_lap, is_red_flag_lap
         FROM fct_lap_residuals
         WHERE race_year = ? AND race_id = ?
         ORDER BY driver_id, lap_number

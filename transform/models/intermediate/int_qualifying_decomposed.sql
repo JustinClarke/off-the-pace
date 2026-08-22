@@ -7,7 +7,7 @@
 --   specialist)
 --   negative = driver is stronger in races than in qualifying
 --
--- Grain: lap_id one row per valid qualifying lap.
+-- Grain: lap_id one row per qualifying push lap.
 -- PK: lap_id (FK to stg_laps_qualifying).
 --
 -- Validation gate:
@@ -32,6 +32,10 @@ WITH quali_residuals AS (
         tyre_life,
         compound,
         is_personal_best,
+        quali_segment,
+        segment_best_s,
+        driver_segment_best_s,
+        ratio_to_segment_best,
         base_track_pace_s,
         quali_pace_delta_s,
         fuel_component_s,
@@ -46,21 +50,43 @@ WITH quali_residuals AS (
         dirty_air_tax_se_s,
         total_explained_s,
         quali_driver_skill_residual_s,
+        track_unexplained_s,
         track_temp_c
     FROM {{ ref('int_lap_residual_decomposed_qualifying') }}
 ),
 
--- Session-mean driver skill in qualifying (best lap per session per driver)
+-- Driver skill for the session: one observation per segment   the residual of
+-- the driver's best push lap in that segment   averaged over the segments the
+-- driver contested.
+--
+-- It used to be the mean of every lap FastF1 flagged IsPersonalBest, which
+-- fires on *every* improving lap and not once (4.58 per driver-race on average,
+-- up to 15). That averaged a Q1 first effort with a Q3 final lap across ~1s of
+-- track evolution, and the penalty scaled with how many improving laps the
+-- driver happened to set: monotone in PB count, up to ~4s of pure aggregation
+-- artefact for a driver who built up incrementally.
+quali_driver_segment_best AS (
+    SELECT
+        race_year,
+        race_id,
+        driver_id,
+        quali_segment,
+        MIN(quali_driver_skill_residual_s) AS segment_skill_residual_s
+    FROM quali_residuals
+    WHERE
+        driver_segment_best_s IS NOT NULL
+        AND lap_time_s = driver_segment_best_s
+    GROUP BY race_year, race_id, driver_id, quali_segment
+),
+
 quali_driver_session_avg AS (
     SELECT
         race_year,
         race_id,
         driver_id,
-        AVG(quali_driver_skill_residual_s) FILTER (
-            WHERE is_personal_best = TRUE
-        )
-            AS quali_skill_session_avg_s
-    FROM quali_residuals
+        AVG(segment_skill_residual_s) AS quali_skill_session_avg_s,
+        COUNT(*) AS quali_segments_contested_n
+    FROM quali_driver_segment_best
     GROUP BY race_year, race_id, driver_id
 ),
 
@@ -93,6 +119,10 @@ SELECT
     q.tyre_life,
     q.compound,
     q.is_personal_best,
+    q.quali_segment,
+    q.segment_best_s,
+    q.driver_segment_best_s,
+    q.ratio_to_segment_best,
     q.base_track_pace_s,
     q.quali_pace_delta_s,
     q.fuel_component_s,
@@ -108,12 +138,14 @@ SELECT
     q.total_explained_s,
     -- Per-lap qualifying driver skill signal
     q.quali_driver_skill_residual_s AS quali_skill_residual_s,
-    -- Session-aggregate skill (best lap only)
+    -- Session-aggregate skill: mean over the driver's per-segment best laps
     qs.quali_skill_session_avg_s,
+    qs.quali_segments_contested_n,
     -- Quali vs race differential (positive = single-lap pace specialist)
     qs.quali_skill_session_avg_s
     - COALESCE(rd.race_skill_race_avg_s, 0.0)
         AS quali_vs_race_skill_delta_s,
+    q.track_unexplained_s,
     q.track_temp_c,
     -- Traffic flag: NULL until qualifying telemetry sector-classification is
     -- available.

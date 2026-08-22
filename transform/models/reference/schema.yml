@@ -149,3 +149,86 @@ models:
         description: Power-unit family grouping (e.g. mercedes_pu, honda_pu, ferrari_pu, renault_pu); 'unknown_pu' when unmapped.
         data_type: varchar
         tests: [not_null]
+
+  - name: dim_corners
+    description: >
+      One row per race × circuit turn: the telemetry distance window each corner owns, derived
+      from FastF1's own corner table (stg_circuit_info) rather than maintained by hand. Windows
+      run from the apex minus corner_entry_margin_m to the apex plus corner_exit_margin_m, each
+      end clipped at the neighbouring apex, so consecutive corners overlap only in the stretch
+      between them   which is both the exit of one and the approach to the next. Keyed per race
+      because FastF1 publishes geometry per event and venues re-profile mid-history; a race whose
+      corner table is missing borrows the nearest season of the same event slug and says so in
+      geometry_source.
+    meta:
+      family: reference
+    columns:
+      - name: corner_key
+        description: PK, race_id || '_' || corner_name.
+        data_type: varchar
+        tests: [not_null, unique]
+      - name: race_year
+        description: Season year of the race the window applies to.
+        data_type: integer
+        tests: [not_null]
+      - name: race_id
+        description: Numeric FastF1 event id, the join key into stg_telemetry.
+        data_type: varchar
+        tests: [not_null]
+      - name: track_id
+        description: >
+          Event slug for the race (bahrain_grand_prix). Carried through int_corner_metrics as a
+          label; nothing in this model pools across slugs.
+        data_type: varchar
+        tests: [not_null]
+      - name: circuit_id
+        description: >
+          Physical-circuit identifier from dim_circuits. Several event slugs can share one
+          circuit_id (renamed events, double-headers), so it is non-unique here.
+        data_type: varchar
+      - name: corner_name
+        description: Turn label, 'Turn_' || corner_number || corner_letter (e.g. Turn_7, Turn_7A).
+        data_type: varchar
+        tests: [not_null]
+      - name: corner_number
+        description: FastF1 corner number, ordered by distance along the lap.
+        data_type: integer
+        tests: [not_null]
+      - name: corner_letter
+        description: Suffix FastF1 uses where one numbered turn has several apexes; NULL otherwise.
+        data_type: varchar
+      - name: apex_distance_m
+        description: >
+          Distance of the corner apex from the start line, on the same reference as
+          stg_telemetry.distance_m. Validated against the measured speed minimum on slow corners
+          (median offset 2 m).
+        data_type: double
+        tests: [not_null]
+      - name: start_distance_m
+        description: >
+          Window start: apex − corner_entry_margin_m, floored at the previous apex and at 0.
+          Wide enough to contain the braking zone on corners with a clear approach.
+        data_type: double
+        tests: [not_null]
+      - name: end_distance_m
+        description: >
+          Window end: apex + corner_exit_margin_m, capped at the next apex so a corner never
+          reaches past its neighbour.
+        data_type: double
+        tests: [not_null]
+      - name: geometry_race_id
+        description: Race whose FastF1 corner table produced this window (self, or the borrowed session).
+        data_type: varchar
+        tests: [not_null]
+      - name: geometry_source
+        description: >
+          'session' where the race has its own corner table, 'nearest_season' where it borrows
+          the closest season at the same event slug. 143 of 149 races carry their own geometry
+          and four borrow; the two that cannot (2020 Sakhir and Tuscan, one-offs with no sibling
+          event at the same slug) have no geometry anywhere and carry no rows.
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['session', 'nearest_season']

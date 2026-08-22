@@ -188,6 +188,61 @@ sources:
           - name: session_time_s
             description: Session elapsed time of the status change (seconds)
 
+      - name: raw_results_qualifying
+        meta:
+          external_location: "{{ var('bronze_base', '../data/bronze') }}/results/*/*/session=Q/*.parquet"
+        description: >
+          FastF1 session.results for the qualifying session, sourced separately
+          from raw_results because of the extra session=Q Hive partition. Carries
+          the official Q1/Q2/Q3 best lap per driver   populated only on the
+          qualifying session's own results, null on the race session's   plus
+          the qualifying classification. A null segment time means the driver
+          was eliminated before that segment or set no time in it.
+        columns:
+          - name: race_id
+            description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps_qualifying.race_id
+          - name: race
+            description: Hive partition race name slug; exposed as race_slug
+          - name: season
+            description: Calendar year
+          - name: session_type
+            description: Always 'Q' for qualifying sessions
+          - name: Abbreviation
+            description: Three-letter driver code (e.g. VER, HAM)
+          - name: Position
+            description: Official qualifying classification (1..20)
+          - name: Q1
+            description: Best Q1 lap in nanoseconds; null if the driver set no Q1 time
+          - name: Q2
+            description: Best Q2 lap in nanoseconds; null if eliminated in Q1
+          - name: Q3
+            description: Best Q3 lap in nanoseconds; null if eliminated in Q1 or Q2
+
+      - name: raw_session_status_qualifying
+        meta:
+          external_location: "{{ var('bronze_base', '../data/bronze') }}/session_status/*/*/session=Q/*.parquet"
+        description: >
+          FastF1 session.session_status for qualifying sessions. Sourced
+          separately from raw_session_status because of the extra session=Q
+          Hive partition (same split as raw_laps_qualifying). One row per
+          lifecycle change (Inactive / Started / Aborted / Finished /
+          Finalised / Ends). The three 'Finished' events are the ends of Q1, Q2
+          and Q3 respectively   the only place the segment structure is
+          recorded, since the qualifying lap table has no segment column.
+        columns:
+          - name: race_id
+            description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps_qualifying.race_id
+          - name: race
+            description: Hive partition race name slug; exposed as race_slug
+          - name: season
+            description: Calendar year
+          - name: session_type
+            description: Always 'Q' for qualifying sessions
+          - name: Status
+            description: Session status (Inactive / Started / Aborted / Finished / Finalised / Ends)
+          - name: session_time_s
+            description: Session elapsed time of the status change (seconds)
+
       - name: raw_circuit_info
         meta:
           # union_by_name tolerates degenerate files: a few circuit_info parquets

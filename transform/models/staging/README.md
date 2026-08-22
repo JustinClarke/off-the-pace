@@ -11,7 +11,7 @@ normalise compound labels. No joins, no aggregations.
 | `stg_weather` | `bronze_f1.raw_weather` | `session_time_s`, `ambient_temp_c`, `track_temp_c`, `rainfall_flag` |
 | `stg_telemetry` | `bronze_f1.raw_telemetry` | `distance_m`, `speed_kph`, `throttle_pct`, `brake`, `n_gear` |
 | `stg_sector_times` | derived from `stg_laps` | Unpivoted sector times  -  one row per lap × sector |
-| `stg_pits` | derived from `stg_laps` | One row per pit stop; `pit_duration_s` where both in/out times recorded |
+| `stg_pits` | derived from `stg_laps` | One row per pit stop (the in-lap); exit side resolved by LEAD onto the out-lap row, so `pit_duration_s` is pit entry → pit exit |
 | `stg_results` | `bronze_f1.raw_results` | Classified finishing results; DNF source for the ghost-car finish model |
 | `stg_track_status` | `bronze_f1.raw_track_status` | SC/VSC/yellow/red timeline; decoded `status_label`, `is_safety_car`, `is_vsc` |
 | `stg_session_status` | `bronze_f1.raw_session_status` | Session start/stop/finish timeline (red-flag stoppages) |

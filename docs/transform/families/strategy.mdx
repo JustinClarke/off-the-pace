@@ -22,7 +22,8 @@ flowchart LR
     int_compound_cliff_predicted --> int_pit_strategy_value
     stg_pits --> int_pit_strategy_value
     int_lap_air_state["int_lap_air_state (Physics)"] --> int_pit_strategy_value
-    circuit_reference["circuit_reference (seed, via int_pit_strategy_value's own join)"] -.->|pit_lane_loss_s constant, NOT int_pit_loss_circuit| int_pit_strategy_value
+    int_pit_loss_circuit -->|pit_loss_s_shrunk| int_pit_strategy_value
+    circuit_reference["circuit_reference (seed)"] -.->|pit_lane_loss_s, fallback only| int_pit_strategy_value
 
     stg_track_status --> int_sc_hazard_history
     stg_laps --> int_sc_hazard_history
@@ -31,22 +32,22 @@ flowchart LR
     stg_results --> int_pit_loss_circuit
     stg_laps --> int_pit_loss_circuit
     stg_pits --> int_pit_loss_circuit
+    dim_circuits["dim_circuits (Reference)"] --> int_pit_loss_circuit
 
     int_constructor_deg_sensitivity --> fct_ghost_car_pace["fct_ghost_car_pace (Marts)"]
     int_pit_strategy_value --> fct_stint_features["fct_stint_features (Marts)"]
     int_pit_strategy_value -.->|app export| AppExport["Pit Strategy feature"]
     int_sc_hazard_history -.->|no dbt or app consumer| Nothing["(leaf)"]
-    int_pit_loss_circuit -.->|no dbt or app consumer| Nothing
 
     classDef strat fill:#111827,stroke:#e40404,color:#fff;
     classDef src fill:#1f2937,stroke:#6b7280,color:#d1d5db;
     classDef downstream fill:#1f2937,stroke:#6b7280,color:#d1d5db,stroke-dasharray: 3 3;
     class int_constructor_deg_sensitivity,int_pit_strategy_value,int_sc_hazard_history,int_pit_loss_circuit strat;
-    class int_lap_residual_decomposed,int_compound_cliff_predicted,dim_compounds_season,int_stint_geometry,int_lap_air_state,stg_pits,stg_track_status,stg_laps,stg_results,circuit_reference src;
+    class int_lap_residual_decomposed,int_compound_cliff_predicted,dim_compounds_season,int_stint_geometry,int_lap_air_state,stg_pits,stg_track_status,stg_laps,stg_results,circuit_reference,dim_circuits src;
     class fct_ghost_car_pace,fct_stint_features,AppExport,Nothing downstream;
 ```
 
-**A genuine schema/SQL mismatch found here, not assumed**: `int_pit_loss_circuit`'s own description says it exists "to replace the largely-imputed constant... used by `int_pit_strategy_value`" and even claims to be "consumed by `int_pit_strategy_value`" but `manifest.json` shows no `ref()` from `int_pit_strategy_value` to `int_pit_loss_circuit` at all. Reading `int_pit_strategy_value.sql` directly confirms it: the pit-lane-loss join still goes straight to `circuit_reference.pit_lane_loss_s` (the seed constant, defaulting to 21.0 s for missing circuits), not to this model's empirically-fitted, EB-shrunk value. `int_pit_loss_circuit` and `int_sc_hazard_history` are both, today, leaves in the model DAG built, tested by their own singular tests, but read by nothing else in dbt and exported to no app feature (verified by grepping every `app/src/features/*/queries.ts`). This page states the verified current wiring, not the aspirational one in the model's own description; flagging the description text for the same Part 8 sweep Part 3 and Part 4 already flagged similar overclaims for.
+**The mismatch this page used to record is now closed.** `int_pit_loss_circuit`'s description said it existed "to replace the largely-imputed constant... used by `int_pit_strategy_value`", but for as long as both models existed no `ref()` connected them and the pit-lane-loss join went straight to `circuit_reference.pit_lane_loss_s`. `int_pit_strategy_value` now reads `pit_loss_s_shrunk` and falls back to the seed only for a circuit that resolves no clean stops — one race in seven seasons, 2018 round 14, whose `race_to_track` row has a NULL `track_id`. A `pit_loss_source` column on every stint records which of the two was used. `int_sc_hazard_history` remains a genuine leaf: built, tested by its own singular test, read by nothing else in dbt and exported to no app feature.
 
 ## How it works
 
@@ -88,10 +89,10 @@ WHEN ap.actual_pit_lap < occ.optimal_pit_lap_number - 1
 
     Two different empirical-Bayes shrinkage shapes coexist in this family for a reason, not by accident: the circuit base-rate models (SC hazard, pit loss) shrink a *rate* toward a global pooled rate with a pseudo-count prior, the natural conjugate form for a count-over-exposure problem. The degradation slope shrinks a *deviation* (already field-centred, so its prior mean is exactly 0 by construction) using a DerSimonian-Laird between-group variance estimate, the standard random-effects meta-analysis form, appropriate because the thing being pooled across constructors is itself a fitted estimate with its own standard error, not a raw count.
 
-    `int_sc_hazard_history` and `int_pit_loss_circuit` exist as base-rate building blocks even though nothing downstream reads them yet today: a per-lap hazard estimate and an empirical (rather than imputed) pit-loss prior are exactly the two inputs a lap-by-lap race simulation would need to draw a Safety Car or model pit-loss uncertainty, neither of which the deterministic `int_pit_strategy_value` counterfactual currently does.
+    `int_pit_loss_circuit` now feeds `int_pit_strategy_value`, but only as a point estimate: the stint's `pit_lane_loss_s` and the undercut-threat scan use it, while the optimal-pit-lap search itself does not. That search approximates the argmin as "first lap in the cliff window where expected wear exceeds 0.5 s", a threshold with no pit-loss term in it — so a longer pit lane does not yet push the modelled optimum later, which it physically should. `int_sc_hazard_history` remains an unconsumed base-rate building block: a per-lap hazard estimate is exactly what a lap-by-lap race simulation would need to draw a Safety Car, which the deterministic `int_pit_strategy_value` counterfactual does not do.
   </Tab>
   <Tab title="Other approaches">
-    Wiring `int_pit_loss_circuit`'s empirical, EB-shrunk pit-loss value into `int_pit_strategy_value` in place of the flat `circuit_reference` seed constant is the credible next step the model's own description already names as its purpose it would tighten the opportunity-cost estimate for circuits whose real pit-lane loss diverges from the imputed 21 s default, at the cost of one more join and one more place precision can be lost for thin-data circuits.
+    Carrying pit loss into the optimal-pit-lap search — solving the full `Total_Cost(L)` minimisation the model's own header writes down, rather than the 0.5 s wear-threshold approximation standing in for it — is the credible next step now that a real per-circuit loss is available. It is what would make the empirical value move `strategy_verdict`, which today it does not: swapping the flat constant for the fitted one changed `pit_lane_loss_s` on 7,094 of 7,129 stints and `undercut_threat_lap` on 37, and left every verdict identical. The cost is a per-lap counterfactual summation SQL is poorly shaped for.
 
     A fitted hazard model (logistic or Cox, conditioning on lap number, weather, and grid spread) is the credible alternative to `int_sc_hazard_history`'s flat per-circuit empirical rate it would let a simulation vary the SC probability within a race instead of treating every lap at a venue as equally hazardous, at the cost of needing more than the circuit-level grain this model currently estimates at.
 
@@ -112,6 +113,6 @@ WHEN ap.actual_pit_lap < occ.optimal_pit_lap_number - 1
     Per-circuit Safety Car / VSC hazard rate per racing lap, EB-shrunk toward the global pooled rate. Currently a leaf no dbt or app consumer yet.
   </Card>
   <Card title="int_pit_loss_circuit" icon="circle-parking" href="/reference/models/int/int_pit_loss_circuit">
-    Empirical per-circuit pit-lane loss from real in-lap/out-lap deltas, EB-shrunk. Not yet wired into int_pit_strategy_value despite its stated purpose.
+    Empirical per-circuit pit-lane loss from real green-flag in-lap/out-lap deltas, pooled per physical venue and EB-shrunk. Read by int_pit_strategy_value.
   </Card>
 </CardGroup>

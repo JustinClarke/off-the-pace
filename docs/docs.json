@@ -263,6 +263,7 @@
                   "reference/models/int/int_lap_telemetry_aggregates",
                   "reference/models/int/int_lap_thermal_proxy",
                   "reference/models/int/int_pit_loss_circuit",
+                  "reference/models/int/int_pit_strategy_cost_curve",
                   "reference/models/int/int_pit_strategy_value",
                   "reference/models/int/int_qualifying_decomposed",
                   "reference/models/int/int_sc_hazard_history",

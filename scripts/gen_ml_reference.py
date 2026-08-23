@@ -50,8 +50,21 @@ def _fmt(v) -> str:
     return f"{v:.4f}" if isinstance(v, float) else str(v)
 
 
-def _arrow(metric: str) -> str:
-    return "↓ lower better" if metric in ("pinball", "rmse") else "↑ higher better"
+def _arrow(model: dict) -> str:
+    """Direction marker, from the card's explicit flag.
+
+    Never infer this from the metric name. The previous implementation tested
+    against a hardcoded ("pinball", "rmse") tuple and fell through to "higher
+    better" for everything else, which labelled aft_nloglik -- a negative log
+    likelihood, emphatically lower-better -- as higher-better, and said so with
+    no error. Missing flag raises rather than guesses.
+    """
+    if "higher_is_better" not in model:
+        raise KeyError(
+            f"model card block for {model.get('name')!r} has no 'higher_is_better'; "
+            "regenerate it with: make ml-card"
+        )
+    return "↑ higher better" if model["higher_is_better"] else "↓ lower better"
 
 
 def render_mdx(card: dict) -> str:
@@ -86,7 +99,7 @@ def render_mdx(card: dict) -> str:
     for m in card["models"]:
         beats = "✅" if m["beats_baseline"] else "⚠️"
         L.append(
-            f"| `{m['name']}` | {m['kind']} | {m['headline_metric']} ({_arrow(m['headline_metric'])}) "
+            f"| `{m['name']}` | {m['kind']} | {m['headline_metric']} ({_arrow(m)}) "
             f"| {_fmt(m['cv_headline'])} | {_fmt(m['eval_headline'])} | {_fmt(m['baseline_headline'])} | {beats} |")
     L += ["",
           f"_Eval headline on the {card['data']['evaluation_mode']} "

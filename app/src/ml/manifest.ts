@@ -28,6 +28,29 @@ export interface ScalarOutput {
   postprocess?: string
 }
 
+/**
+ * Survival (AFT) output: the graph emits a shifted log-scale margin, not laps.
+ * Laps are exp(x + margin_offset) - label_shift, and any percentile of the fitted
+ * log-normal is exp(x + margin_offset + aft_scale * probit(q)) - label_shift.
+ *
+ * Every constant here is measured at export time and read from the manifest --
+ * none of it is hardcoded in the app. The margin_offset in particular is recovered
+ * from the booster during `make ml-onnx` and proven constant across the parity
+ * sample before it ships; see ml/src/export_onnx.py.
+ */
+export interface SurvivalOutput {
+  index: number
+  meaning: string
+  postprocess: string
+  margin_offset: number
+  label_shift: number
+  aft_distribution: 'normal'
+  aft_scale: number
+  quantiles: Record<string, number>
+  censored_share_train: number | null
+  c_index_cv: number | null
+}
+
 /** Classifier output: probabilities tensor at `probabilities_index`, mapped to `class_order`. */
 export interface ClassifierOutput {
   probabilities_index: number
@@ -36,7 +59,7 @@ export interface ClassifierOutput {
   meaning: string
 }
 
-export type ModelKind = 'quantile' | 'classification' | 'regression'
+export type ModelKind = 'quantile' | 'classification' | 'regression' | 'survival'
 
 export interface ModelSpec {
   name: string
@@ -49,7 +72,7 @@ export interface ModelSpec {
   cv_headline: number
   headline_metric: string
   quantile_alpha?: number
-  output: ScalarOutput | ClassifierOutput
+  output: ScalarOutput | ClassifierOutput | SurvivalOutput
 }
 
 export interface ModelManifest {
@@ -78,8 +101,16 @@ export interface ModelManifest {
   related: { model_card: string; encoders: string }
 }
 
-export function isClassifierOutput(o: ScalarOutput | ClassifierOutput): o is ClassifierOutput {
+export function isClassifierOutput(
+  o: ScalarOutput | ClassifierOutput | SurvivalOutput,
+): o is ClassifierOutput {
   return 'probabilities_index' in o
+}
+
+export function isSurvivalOutput(
+  o: ScalarOutput | ClassifierOutput | SurvivalOutput,
+): o is SurvivalOutput {
+  return 'margin_offset' in o
 }
 
 import { DATA_CDN_BASE } from '../data/manifest'

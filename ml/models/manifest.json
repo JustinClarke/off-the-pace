@@ -1,8 +1,8 @@
 {
   "manifest_schema_version": 1,
   "name": "Off the Pace-Tyre Degradation Predictors",
-  "model_version": "v5",
-  "generated_at": "2026-08-23T06:31:34.608810+00:00",
+  "model_version": "v6",
+  "generated_at": "2026-08-23T15:37:02.841250+00:00",
   "input": {
     "tensor_name": "input",
     "dtype": "float32",
@@ -125,8 +125,8 @@
       "family": "degradation_regressor",
       "kind": "quantile",
       "objective": "reg:quantileerror",
-      "onnx": "degradation_regressor_p10_v5.onnx",
-      "onnx_sha256": "6d48f2d23d7a72c65268cf3b0ebe2cba0c6a7ff317ef2a29a5d7b96d15aab3cf",
+      "onnx": "degradation_regressor_p10_v6.onnx",
+      "onnx_sha256": "3327295f3b5b15291e5dd35013aa094c31176496109ecf331614f6bd296d8fe5",
       "booster_sha256": "c06cfbf1971a4fcc12312ff76416dbf6cd5b9532e95deae021b9af2b0ba50214",
       "cv_headline": 0.10672515470327679,
       "headline_metric": "pinball",
@@ -145,8 +145,8 @@
       "family": "degradation_regressor",
       "kind": "quantile",
       "objective": "reg:quantileerror",
-      "onnx": "degradation_regressor_p50_v5.onnx",
-      "onnx_sha256": "6d6e317c06b042d32f0063da6283cd2ec13b670f80505410b3045adc55059c8d",
+      "onnx": "degradation_regressor_p50_v6.onnx",
+      "onnx_sha256": "3f4ee58ec575c902f2c669260de3e1015be9465c668283921ff8925080d43953",
       "booster_sha256": "197841c12bbe6c9707e58007de853c64e348d5576113882e4d0c1b3a0f46084b",
       "cv_headline": 0.22242241798676896,
       "headline_metric": "pinball",
@@ -165,8 +165,8 @@
       "family": "degradation_regressor",
       "kind": "quantile",
       "objective": "reg:quantileerror",
-      "onnx": "degradation_regressor_p90_v5.onnx",
-      "onnx_sha256": "7207e65ee77e4bbf2aabfb6d8443d7d1637c8a51b214cb095c12c3e98797e420",
+      "onnx": "degradation_regressor_p90_v6.onnx",
+      "onnx_sha256": "db0ff644b5a9e1aadf71f918ea265aabdfa41d58d1e57c59ddc74360ec4a0c83",
       "booster_sha256": "3b9a482a8c44bc63e513d26625bf57d2587b5c3c8b303ff9ab35bd872feb5a38",
       "cv_headline": 0.13996205207305684,
       "headline_metric": "pinball",
@@ -185,10 +185,10 @@
       "family": "cliff_classifier",
       "kind": "classification",
       "objective": "multi:softprob",
-      "onnx": "cliff_classifier_v5.onnx",
-      "onnx_sha256": "a27d882dcf74b3f549ba780f61682f8f023c75a2d5eb51371f0f926ebcc67f0c",
-      "booster_sha256": "cd0ac82b2f0c85e3c6a1d7ba96717823aaeb03110852e1fbcee76aaf2d1ada69",
-      "cv_headline": 0.3888780469101918,
+      "onnx": "cliff_classifier_v6.onnx",
+      "onnx_sha256": "54b8f58e1ca601ab282f0e5dec4028c4f6fd3c284e1ea34d6ccee730decb20f1",
+      "booster_sha256": "8669eedfb576e0f14a64a8b1e1dea032f7cb395207edb781f00f2900ec0aa74c",
+      "cv_headline": 0.39180933500942566,
       "headline_metric": "macro_f1",
       "output": {
         "probabilities_index": 1,
@@ -205,17 +205,28 @@
     {
       "name": "stint_life_regressor",
       "family": "stint_life_regressor",
-      "kind": "regression",
-      "objective": "reg:squarederror",
-      "onnx": "stint_life_regressor_v5.onnx",
-      "onnx_sha256": "f80fa53a35be4799e33f4b741dcc26a453ecaf2bbd9b9decdff413d756834dc3",
-      "booster_sha256": "bb81394250abe7989f74db479c3fb018fdeac4e09205ad45ec160b7c3fe70251",
-      "cv_headline": 7.3347910027734855,
-      "headline_metric": "rmse",
+      "kind": "survival",
+      "objective": "survival:aft",
+      "onnx": "stint_life_regressor_v6.onnx",
+      "onnx_sha256": "2f18671c2027a3d5866138432cd010a30bc8b67353ab0d9eae8a60b2fbb01915",
+      "booster_sha256": "b9fa3c669d2046f5089b7f38b3120026e925df7692e0332d93795ded6239ec52",
+      "cv_headline": 2.0905031817220476,
+      "headline_metric": "aft_nloglik",
       "output": {
         "index": 0,
-        "meaning": "remaining_stint_life_laps",
-        "postprocess": "clip(>=0)"
+        "meaning": "aft_margin (log remaining_stint_life_laps + shift)",
+        "postprocess": "exp(x + margin_offset) - label_shift, clip(>=0)",
+        "margin_offset": -0.6931474208831787,
+        "label_shift": 1.0,
+        "aft_distribution": "normal",
+        "aft_scale": 0.800000012,
+        "quantiles": {
+          "p10": 0.1,
+          "p50": 0.5,
+          "p90": 0.9
+        },
+        "censored_share_train": 0.4624505928853755,
+        "c_index_cv": 0.7579988663305178
       }
     }
   ],
@@ -241,6 +252,8 @@
     "prob_6_plus",
     "prob_none_in_stint",
     "predicted_remaining_stint_life_laps",
+    "predicted_remaining_stint_life_p10_laps",
+    "predicted_remaining_stint_life_p90_laps",
     "model_version",
     "predicted_at"
   ],
@@ -269,8 +282,8 @@
         "degradation_regressor_p10": 5.245208740234375e-06,
         "degradation_regressor_p50": 2.384185791015625e-06,
         "degradation_regressor_p90": 5.245208740234375e-06,
-        "cliff_classifier": 2.980232238769531e-07,
-        "stint_life_regressor": 2.288818359375e-05
+        "cliff_classifier": 5.364418029785156e-07,
+        "stint_life_regressor": 0.00028288658239716824
       },
       "all_pass": true
     }

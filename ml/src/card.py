@@ -74,6 +74,10 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
             "objective": spec.objective,
             "quantile_alpha": spec.quantile_alpha,
             "headline_metric": em["headline_metric"],
+            # Direction is a property of the metric, not of its name. Carried
+            # explicitly so downstream renderers never re-derive it from a
+            # hardcoded name list -- that guess silently mislabelled aft_nloglik.
+            "higher_is_better": em["higher_is_better"],
             "cv_headline": round(log["headline_cv"], 5),
             "eval_headline": round(em["headline"], 5),
             "baseline_headline": round(em["baseline_headline"], 5),
@@ -85,6 +89,11 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                 "booster": f"ml/models/{spec.name}_{version}.bst",
                 "onnx": f"ml/models/{spec.name}_{version}.onnx",
             },
+            # Stint life only: the censored and uncensored populations, reported apart,
+            # plus the C-index. A single headline cannot describe a fit where 46% of the
+            # rows are lower bounds, so the card carries the split rather than a number
+            # that averages two different questions.
+            **({"survival": em["survival"]} if "survival" in em else {}),
         })
 
     underperformers = [u for m in ev["models"].values() for u in m["underperforming_cohorts"]]
@@ -152,13 +161,14 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
             "validation": {
                 "scheme": "season-grouped TimeSeriesSplit (expanding window, n_splits=5); whole "
                           "seasons move together, the final fold validates on 2024",
-                "headline_metric_direction": "pinball ↓ (quantiles), macro-F1 ↑ (classifier), RMSE ↓ (stint-life)",
+                "headline_metric_direction": "pinball ↓ (quantiles), macro-F1 ↑ (classifier), "
+                                             "censored AFT NLL ↓ (stint-life)",
                 "all_models_beat_baseline": ev["all_models_beat_baseline"],
                 "baselines": {
                     "degradation_p50": "group-mean over (compound, circuit, age-bucket) cells, compound→global fallback",
                     "degradation_p10_p90": "empirical 10th/90th percentile in the same cells",
                     "cliff_classifier": "majority-class prior (none_in_stint)",
-                    "stint_life": "cell group-mean of remaining stint life over (compound, circuit, age-bucket), compound→global fallback (non-leakage)",
+                    "stint_life": "cell group-mean of remaining stint life over (compound, circuit, age-bucket), compound→global fallback (non-leakage); scored under the same censored likelihood as the model, never against uncensored rows alone",
                 },
                 "calibration": ev.get("calibration", {}),
                 "leakage_probe": ev.get("leakage_probe", {}),

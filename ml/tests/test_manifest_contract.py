@@ -129,3 +129,79 @@ def test_app_onnx_files_match_the_manifest_hashes(manifest):
             mismatched.append(f"{entry['onnx']}: sha256 {digest[:12]}… ≠ manifest "
                               f"{entry['onnx_sha256'][:12]}…")
     assert not mismatched, f"app ONNX copies differ from the manifest: {mismatched}"
+
+
+# ─── Survival output block (Phase 3c) ───────────────────────────────────────────
+# The stint-life graph does not emit laps. It emits a shifted log-scale margin, and
+# the browser turns it into laps using constants that only exist in the manifest. If
+# any of them goes missing or arrives null, app/src/ml/survival.ts produces numbers
+# that look like laps and are not — the same silent-wrongness shape as Corrections
+# §5–§8. These assert the constants are present, sane, and actually correct.
+def _survival_entry(manifest: dict) -> dict:
+    return next(m for m in manifest["models"] if m["name"] == "stint_life_regressor")
+
+
+def test_stint_life_ships_as_a_survival_model(manifest):
+    e = _survival_entry(manifest)
+    assert e["kind"] == "survival"
+    assert e["objective"] == "survival:aft"
+    assert e["headline_metric"] == "aft_nloglik", (
+        "the stint-life headline must not be an RMSE: ml_headroom_ii.md #3 shows "
+        "RMSE-on-uncensored crowns the worst model on the page")
+
+
+def test_survival_output_block_is_complete(manifest):
+    out = _survival_entry(manifest)["output"]
+    for key in ("margin_offset", "label_shift", "aft_scale", "aft_distribution", "quantiles"):
+        assert out.get(key) is not None, f"survival output block is missing {key}"
+    assert out["label_shift"] == S.AFT_LABEL_SHIFT
+    assert out["aft_distribution"] == S.AFT_DISTRIBUTION
+    assert 0.0 < out["aft_scale"] < 5.0
+    assert set(out["quantiles"]) >= {"p10", "p90"}, (
+        "the gauge renders a band; without these the app falls back to guessing it")
+
+
+def test_survival_margin_offset_actually_reconstructs_the_booster(manifest):
+    """The end-to-end proof, from the shipped artefacts only.
+
+    export_onnx measures the offset and asserts it is constant, but that check runs
+    inside the process that wrote it. This one re-reads the .onnx and the .bst off
+    disk and shows that the manifest's constants really do turn one into the other —
+    the property the browser depends on and nothing else re-verifies.
+    """
+    import numpy as np
+    import onnxruntime as ort
+
+    from ml.src import export_onnx as E
+    from ml.src import survival as SV
+
+    version = manifest["model_version"]
+    spec = S.TARGET_BY_NAME["stint_life_regressor"]
+    bst_path, onnx_path = E._paths(spec, version)
+    if not (bst_path.exists() and onnx_path.exists()):
+        pytest.skip(f"no stint-life artefact pair at '{version}'")
+
+    out = _survival_entry(manifest)["output"]
+    sample = E.nan_bearing_sample(200)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        booster = SV.load_booster(bst_path)
+
+    expected = SV.predict_laps(booster, sample, out["aft_scale"])
+    sess = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
+    raw = np.asarray(sess.run(None, {"input": sample})[0]).reshape(-1).astype(np.float64)
+    got = SV.laps_from_margin(raw + out["margin_offset"], out["aft_scale"])
+
+    assert np.allclose(expected, got, atol=E.ATOL, rtol=E.RTOL), (
+        f"manifest margin_offset={out['margin_offset']} does not reconstruct the "
+        f"booster: max|diff|={np.max(np.abs(expected - got)):.3e}")
+
+
+def test_predictions_schema_carries_the_life_band(manifest):
+    """The parquet and the browser must describe the same object. If the app renders
+    a band the mart does not store, verifyParity has nothing to compare it against."""
+    cols = manifest["predictions_schema"]
+    for c in ("predicted_remaining_stint_life_laps",
+              "predicted_remaining_stint_life_p10_laps",
+              "predicted_remaining_stint_life_p90_laps"):
+        assert c in cols, f"predictions schema is missing {c}"

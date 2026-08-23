@@ -11,28 +11,28 @@ The pit strategy Gantt lays every driver's race out as a row of coloured stint b
 Each stint is a horizontal bar spanning its actual race laps:
 
 - **Bar fill**: the tyre compound for that stint.
-- **Border colour the verdict**: <span style={{color: '#34d399'}}>optimal</span>, <span style={{color: '#f87171'}}>overran</span>, or unknown (below the confidence threshold; shown explicitly rather than as a silent null).
+- **Border colour the verdict**: <span style={{color: '#34d399'}}>optimal</span>, <span style={{color: '#f87171'}}>overran</span>, <span style={{color: '#60a5fa'}}>early</span>, <span style={{color: '#fbbf24'}}>undercut forced</span>, or unknown (no fitted degradation curve for that compound; shown explicitly rather than as a silent null).
 - **Cliff onset** (dashed line inside the bar): `fct_stint_features.cliff_lap_in_stint`, the lap within the stint where the compound crossed the degradation threshold.
-- **Optimal pit window** (triangle below the bar): `int_pit_strategy_value.optimal_pit_lap_in_stint`, the lap at which stopping would have minimised total race time given the degradation model and the undercut-threat window.
-- **Opportunity cost**: the estimated time lost by pitting later than optimal, in seconds.
+- **Optimal pit window** (triangle below the bar): `int_pit_strategy_value.optimal_pit_lap_in_stint`, the argmin of `Total_Cost(L)` over every candidate lap in the horizon wear on the set you are on, wear on the next set, and the pit-lane loss discounted by the chance a safety car has already appeared. Not stopping at all is one of the candidates.
+- **Opportunity cost**: `Total_Cost(actual)` minus `Total_Cost(optimal)`, in seconds so stopping too early carries a cost too, not only overrunning.
 
 <Note>
-  Verdicts require a minimum confidence threshold. A stint whose estimate falls below it shows as **unknown** rather than being forced into optimal or overran.
+  **unknown** means the stint's compound has no fitted degradation curve at that circuit and season, so there is nothing to minimise over 266 stints of 7,129. It is shown explicitly rather than being forced into a verdict.
 </Note>
 
 ## How to use it
 
 1. **Select a race** from the filter bar; every driver's stint sequence loads as Gantt rows.
 2. **Find the dashed cliff line inside each bar** if it sits well before the bar's end, the driver ran deep into degradation.
-3. **Compare the cliff line to the optimal-window triangle** a triangle far left of the actual stop end signals a late stop.
+3. **Compare the cliff line to the optimal-window triangle** a triangle far left of the actual stop end signals a late stop; far right signals a stop taken earlier than degradation alone justified.
 4. **Read the opportunity cost** on overran stints to size the loss; sort drivers to see who left the most time on track.
 
 ## Reading the signal correctly
 
-The optimal lap is a **model counterfactual** computed from the degradation curve and undercut window it assumes the rest of the race plays out as observed. A stop that looks "late" may have been the correct defensive response to track position the single-stint model does not price.
+The optimal lap is a **model counterfactual** computed from the fitted degradation curve, the circuit's pit-lane loss and its safety-car rate it assumes the rest of the race plays out as observed, and that exactly one stop happens inside the horizon. The horizon is this stint plus the next, so the verdict grades the lap the stop landed on, not the number of stops the team chose. Across seven seasons the median stop comes **one lap earlier** than the model's optimum, which is roughly what track position is worth: a stop that looks early may have been the correct response to something a degradation-only model does not price.
 
 <Warning>
-  An **overran** verdict is not automatically a mistake: teams trade lap-time loss for track position, safety-car optionality, or tyre-offset at the end. Read the opportunity cost as the pace price paid, not as proof of an error.
+  Neither **overran** nor **early** is automatically a mistake: teams trade lap-time loss for track position, safety-car optionality, or tyre-offset at the end. Read the opportunity cost as the pace price paid, not as proof of an error.
 </Warning>
 
 ## Data source
@@ -42,9 +42,9 @@ The chart joins `fct_stint_features` (stint windows and cliff lap), `fct_lap_res
 | Column | Meaning |
 |---|---|
 | `cliff_lap_in_stint` | Lap within the stint where the compound crossed the cliff (`fct_stint_features`) |
-| `optimal_pit_lap_in_stint` | Model-optimal stop lap (`int_pit_strategy_value`) |
-| `opportunity_cost_s` | Estimated time lost by stopping later than optimal |
-| `strategy_verdict` | optimal / overran / unknown, gated on a confidence threshold |
+| `optimal_pit_lap_in_stint` | Model-optimal stop lap, in valid laps on the set (`int_pit_strategy_value`) |
+| `opportunity_cost_s` | `Total_Cost(actual)` - `Total_Cost(optimal)`; median 5.5 s, p95 83 s |
+| `strategy_verdict` | optimal / overran / early / undercut_forced / unknown |
 
 This is a **single-race** view across **2018–2024** data.
 

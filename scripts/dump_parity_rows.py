@@ -24,6 +24,7 @@ import pandas as pd
 import xgboost as xgb
 
 from ml.src import schema as S
+from ml.src import survival as SV
 
 DATA = Path("app/public/data")
 MODELS = Path("ml/models")
@@ -84,7 +85,15 @@ def main() -> int:
     p50 = _load("degradation_regressor_p50").predict(X)
     p90 = _load("degradation_regressor_p90").predict(X)
     trio = np.clip(np.sort(np.vstack([p10, p50, p90]).T, axis=1), -10, 10)
-    life = np.clip(_load("stint_life_regressor").predict(X), 0, None)
+    # Stint life is an AFT booster: the ground truth is the same post-transform
+    # predict.py applies, read off the artefact rather than reimplemented here.
+    life_bst = SV.load_booster(
+        MODELS / f"stint_life_regressor_{S.MODEL_VERSION_DEFAULT}.bst")
+    life_scale = SV.aft_params(life_bst)["scale"]
+    life_margin = SV.margin(life_bst, X)
+    life = SV.laps_from_margin(life_margin, life_scale)
+    life_p10 = SV.laps_from_margin(life_margin, life_scale, S.STINT_LIFE_QUANTILES[0])
+    life_p90 = SV.laps_from_margin(life_margin, life_scale, S.STINT_LIFE_QUANTILES[2])
     proba = _load("cliff_classifier").predict_proba(X)
     labels = np.asarray(S.CLIFF_CLASS_LABELS)[proba.argmax(axis=1)]
 
@@ -94,6 +103,8 @@ def main() -> int:
         r["m_p50"] = float(trio[i, 1])
         r["m_p90"] = float(trio[i, 2])
         r["m_life"] = float(life[i])
+        r["m_life_p10"] = float(life_p10[i])
+        r["m_life_p90"] = float(life_p90[i])
         r["m_cliff"] = str(labels[i])
 
     Path(args.out).write_text(json.dumps(recs))

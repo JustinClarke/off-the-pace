@@ -33,8 +33,8 @@ STUDIES_DIR = Path("ml/models/optuna_studies")
 MODELS_DIR = Path("ml/models")
 
 
-def _suggest(trial: optuna.Trial) -> dict:
-    return {
+def _suggest(trial: optuna.Trial, spec: S.TargetSpec | None = None) -> dict:
+    params = {
         "n_estimators": trial.suggest_int("n_estimators", 200, 700, step=100),
         "max_depth": trial.suggest_int("max_depth", 3, 8),
         "learning_rate": trial.suggest_float("learning_rate", 0.02, 0.2, log=True),
@@ -45,6 +45,14 @@ def _suggest(trial: optuna.Trial) -> dict:
         "reg_lambda": trial.suggest_float("reg_lambda", 1e-3, 5.0, log=True),
         "gamma": trial.suggest_float("gamma", 1e-3, 5.0, log=True),
     }
+    if spec is not None and spec.kind == "survival":
+        # The AFT scale is a fitted parameter of the likelihood, not a tree knob, and
+        # the headline moves a lot with it: at the current production params the CV
+        # NLL runs 3.06 at 0.30, 2.09 at 0.80 and back to 2.11 at 1.00. Leaving it
+        # fixed would search the trees against the wrong noise model.
+        params["aft_loss_distribution_scale"] = trial.suggest_float(
+            "aft_loss_distribution_scale", 0.3, 1.2)
+    return params
 
 
 def tune_one(target: str, *, trials: int, folds: int, version: str, subsample_rows: int = 0) -> dict:
@@ -53,20 +61,39 @@ def tune_one(target: str, *, trials: int, folds: int, version: str, subsample_ro
     X, y = bundle.X_train, bundle.y_train.to_numpy()
     seasons = bundle.groups_train.to_numpy()
     # Optional row subsample for the SEARCH only (the final refit uses full data).
+    meta = bundle.meta_train
     if subsample_rows and subsample_rows < len(X):
         rng = np.random.default_rng(S.RANDOM_STATE)
         idx = np.sort(rng.choice(len(X), size=subsample_rows, replace=False))
         X, y, seasons = X.iloc[idx].reset_index(drop=True), y[idx], seasons[idx]
+        meta = meta.iloc[idx].reset_index(drop=True)
     maximize = spec.kind == "classification"
     folds_idx = list(T._season_folds(seasons, bundle.training_seasons, folds))
+    # Censoring flags for the survival target, subsampled in step with X/y above.
+    cens = (meta[S.STINT_LIFE_CENSOR_COLUMN].to_numpy(dtype=bool)
+            if spec.kind == "survival" else None)
 
     def objective(trial: optuna.Trial) -> float:
-        params = _suggest(trial)
+        params = _suggest(trial, spec)
+        scale = params.get("aft_loss_distribution_scale", S.AFT_SCALE_DEFAULT)
         scores = []
         for step, (tr, val) in enumerate(folds_idx):
             model = T._make_model(spec, params)
-            model.fit(X.iloc[tr], y[tr], sample_weight=T._sample_weight(spec, y[tr]))
-            _, value = T._headline(spec, y[val], model.predict(X.iloc[val]))
+            if spec.kind == "survival":
+                model.fit(X.iloc[tr], y[tr],
+                          sample_weight=T._sample_weight(spec, y[tr]),
+                          is_censored=cens[tr])
+                _, value = T._headline(spec, y[val], model.predict(X.iloc[val]),
+                                       meta.iloc[val], scale)
+            else:
+                # NOTE: meta is deliberately NOT passed here. _sample_weight would then
+                # apply the quantile models' IPW survival weights, which train.py:_fit
+                # does apply -- so the search and the refit disagree for p10/p50/p90.
+                # That mismatch is a real defect (ml_execution_plan.md, Phase 2 finding
+                # 1) and fixing it re-opens the quantile params, so it is left alone
+                # here rather than changed as a side effect of the survival work.
+                model.fit(X.iloc[tr], y[tr], sample_weight=T._sample_weight(spec, y[tr]))
+                _, value = T._headline(spec, y[val], model.predict(X.iloc[val]))
             scores.append(value)
             trial.report(float(np.mean(scores)), step=step)
             if trial.should_prune():

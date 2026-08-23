@@ -14,6 +14,10 @@ function pred(p10: number, p50: number, p90: number, life: number, probs: Record
     degradation_jump_s: p50,
     degradation_jump_p90_s: p90,
     remaining_stint_life_laps: life,
+    // A nominal band around the median; the simulator transform only reads these
+    // through to the gauge, so the exact width is not what these tests are about.
+    remaining_stint_life_p10_laps: Math.max(0, life * 0.6),
+    remaining_stint_life_p90_laps: life * 1.6,
     cliff: { label, probabilities: probs },
   }
 }

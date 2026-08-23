@@ -26,7 +26,7 @@ def table(tmp_path_factory):
 def test_output_schema(table):
     assert table.schema.equals(S.PREDICTIONS_ARROW_SCHEMA), (
         f"schema drift:\nGOT  {table.schema}\nWANT {S.PREDICTIONS_ARROW_SCHEMA}")
-    assert table.num_columns == 17
+    assert table.num_columns == len(S.PREDICTIONS_ARROW_SCHEMA) == 19
 
 
 def test_holdout_and_envelope_flags(table):

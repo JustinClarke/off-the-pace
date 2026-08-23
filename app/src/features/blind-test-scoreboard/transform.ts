@@ -39,6 +39,30 @@ export interface RugEntry {
   inEnvelope: boolean
 }
 
+/**
+ * Stint-life accuracy for one population of laps. Censored and uncensored laps get
+ * one of these each and are never pooled: on a censored lap the observed life is a
+ * lower bound (the race ended before the tyre did), so an "error" against it is not
+ * the same quantity as an error against an observed retirement. Pooling them is how
+ * ml_headroom_ii.md #3's spurious "+12.4%" was produced.
+ */
+export interface StintLifeStat {
+  n: number
+  /** Median |predicted median - actual|, in laps. Uncensored only: on a censored
+   *  lap this would measure the distance to a bound, not to the truth. */
+  medianAbsErrorLaps: number | null
+  /** Uncensored: share of laps where actual fell inside [p10, p90].
+   *  Censored: share where p90 >= actual, i.e. the band is consistent with the
+   *  tyre having lasted AT LEAST as long as we observed. */
+  bandConsistentShare: number
+}
+
+export interface StintLifeReport {
+  uncensored: StintLifeStat
+  censored: StintLifeStat
+  censoredShare: number
+}
+
 export interface ScoreboardResult {
   scatter: ScatterPoint[]
   confusion: ConfusionCell[]
@@ -50,6 +74,7 @@ export interface ScoreboardResult {
   }
   compoundFilter: string[]  // distinct compounds present
   circuitFilter: string[]   // distinct circuit keys present
+  stintLife: StintLifeReport
 }
 
 export function transform(
@@ -109,11 +134,53 @@ export function transform(
     n: rug.length,
   }
 
+  // Stint life, split by censoring.
+  const lifeRows = filtered.filter(r => r.actual_remaining_stint_life_laps !== null)
+  const stintLife = buildStintLifeReport(lifeRows)
+
   // Filter options (always over unfiltered rows)
   const compoundFilter_ = [...new Set(rows.map(r => r.compound))].filter(Boolean).sort()
   const circuitFilter_ = [...new Set(rows.map(r => r.circuit_key))].sort()
 
-  return { scatter, confusion, rug, coverageStat, compoundFilter: compoundFilter_, circuitFilter: circuitFilter_ }
+  return {
+    scatter, confusion, rug, coverageStat,
+    compoundFilter: compoundFilter_, circuitFilter: circuitFilter_, stintLife,
+  }
+}
+
+function median(xs: number[]): number | null {
+  if (xs.length === 0) return null
+  const a = [...xs].sort((x, y) => x - y)
+  const m = a.length >> 1
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2
+}
+
+function buildStintLifeReport(rows: ScoreboardRow[]): StintLifeReport {
+  const stat = (pop: ScoreboardRow[], censored: boolean): StintLifeStat => {
+    if (pop.length === 0) return { n: 0, medianAbsErrorLaps: null, bandConsistentShare: 0 }
+    const consistent = pop.filter(r => {
+      const actual = r.actual_remaining_stint_life_laps as number
+      return censored
+        // Censored: the tyre lasted at least `actual`, so the band only has to reach it.
+        ? r.predicted_remaining_stint_life_p90_laps >= actual
+        // Uncensored: the life was observed, so the band should contain it.
+        : actual >= r.predicted_remaining_stint_life_p10_laps
+          && actual <= r.predicted_remaining_stint_life_p90_laps
+    }).length
+    return {
+      n: pop.length,
+      medianAbsErrorLaps: censored ? null : median(pop.map(r =>
+        Math.abs(r.predicted_remaining_stint_life_laps - (r.actual_remaining_stint_life_laps as number)))),
+      bandConsistentShare: consistent / pop.length,
+    }
+  }
+  const censoredRows = rows.filter(r => r.is_censored_stint)
+  const uncensoredRows = rows.filter(r => !r.is_censored_stint)
+  return {
+    uncensored: stat(uncensoredRows, false),
+    censored: stat(censoredRows, true),
+    censoredShare: rows.length > 0 ? censoredRows.length / rows.length : 0,
+  }
 }
 
 export function toCsvRows(result: ScoreboardResult): Record<string, unknown>[] {

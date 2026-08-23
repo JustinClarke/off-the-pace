@@ -34,7 +34,9 @@
 | Domain Constraint | `assert_no_future_leakage.sql` | Active | `int_lap_thermal_proxy` |
 | Domain Constraint | `assert_p_beats_next_geq_half.sql` | Active | `fct_ghost_race_finish` |
 | Domain Constraint | `assert_pace_delta_flat_by_race_fifth.sql` | Active | `int_field_pace_curve`, `int_lap_air_state`, `int_lap_fuel_state`, `int_stint_geometry` |
+| Domain Constraint | `assert_pit_discount_monotone.sql` | Active | `int_pit_strategy_cost_curve` |
 | Domain Constraint | `assert_pit_loss_excludes_neutralised.sql` | Active | `dim_circuits`, `int_pit_loss_circuit`, `stg_laps`, `stg_pits`, `stg_results`, `stg_track_status` |
+| Domain Constraint | `assert_pit_loss_pushes_optimum_later.sql` | Active | `int_pit_strategy_cost_curve` |
 | Domain Constraint | `assert_pit_stop_grain.sql` | Active | `stg_pits` |
 | Domain Constraint | `assert_quali_segment_matches_official.sql` | Active | `int_qualifying_push_laps`, `stg_results_qualifying` |
 | Domain Constraint | `assert_rating_confidence.sql` | Active | `int_driver_season_ratings` |
@@ -43,6 +45,7 @@
 | Domain Constraint | `assert_sc_hazard_probability_bounds.sql` | Active | `int_sc_hazard_history` |
 | Domain Constraint | `assert_stint_boundaries_correct.sql` | Active | `int_lap_residual_decomposed` |
 | Domain Constraint | `assert_stint_boundary_integrity.sql` | Active | `int_lap_air_state`, `int_lap_fuel_state`, `int_lap_thermal_proxy` |
+| Domain Constraint | `assert_stint_censoring_partition.sql` | Active | `fct_stint_features` |
 | Domain Constraint | `assert_synthetic_teammate_identity.sql` | Active | `int_stint_geometry`, `int_synthetic_teammate` |
 | Domain Constraint | `assert_thermal_variance_positive.sql` | Active | `int_track_evolution` |
 | Domain Constraint | `assert_track_evolution_monotone.sql` | Active | `int_track_evolution` |

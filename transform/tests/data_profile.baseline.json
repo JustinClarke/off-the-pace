@@ -2004,13 +2004,20 @@
           "mean": -0.588214,
           "null_rate": 0.181207
         },
+        "is_censored_stint": {
+          "category_shares": {
+            "false": 0.643226,
+            "true": 0.356774
+          },
+          "null_rate": 0.0
+        },
         "pit_decision_class": {
           "category_shares": {
-            "early": 0.00012,
-            "optimal": 0.00096,
-            "overran": 0.227169,
-            "undercut_forced": 0.00048,
-            "unknown": 0.267731
+            "early": 0.215409,
+            "optimal": 0.085803,
+            "overran": 0.146166,
+            "undercut_forced": 0.017161,
+            "unknown": 0.031921
           },
           "null_rate": 0.50354
         },
@@ -2042,8 +2049,8 @@
           "null_rate": 0.0
         },
         "tyre_management_score": {
-          "mean": -0.287865,
-          "null_rate": 0.772831
+          "mean": -1.082085,
+          "null_rate": 0.580823
         }
       },
       "row_count": 8333

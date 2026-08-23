@@ -9,6 +9,8 @@ export const methodologyContent = (
       laps. Bar fill reflects the tyre compound; the border colour shows the strategy
       verdict (<span className="text-emerald-400 font-mono">optimal</span> /
       {' '}<span className="text-red-400 font-mono">overran</span> /
+      {' '}<span className="text-blue-400 font-mono">early</span> /
+      {' '}<span className="text-amber-400 font-mono">undercut forced</span> /
       {' '}<span className="font-mono">unknown</span>).
     </p>
     <p>
@@ -21,14 +23,17 @@ export const methodologyContent = (
       <strong className="text-[rgb(var(--color-text))]">Optimal pit window</strong>{' '}
       (triangle below bar) comes from{' '}
       <code className="text-xs">int_pit_strategy_value.optimal_pit_lap_in_stint</code>{' '}
-     -the lap at which stopping would have minimised total race time given the
-      degradation model and undercut threat window.
+     -the argmin of Total_Cost(L) over every candidate lap in the horizon: wear
+      on the set you are on, wear on the next set, and the pit-lane loss
+      discounted by the chance a safety car has already appeared. Not stopping
+      at all is one of the candidates.
     </p>
     <p>
       <strong className="text-[rgb(var(--color-text))]">Opportunity cost</strong> is
-      the estimated time lost by pitting later than optimal, in seconds.
-      Verdicts require a minimum confidence threshold; stints below it show as
-      &ldquo;unknown&rdquo; rather than silent null.
+      Total_Cost(actual) minus Total_Cost(optimal), in seconds-so stopping too
+      early carries a cost too, not only overrunning.
+      &ldquo;unknown&rdquo; means the compound has no fitted degradation curve
+      to minimise over, shown explicitly rather than as a silent null.
     </p>
     <p className="text-xs">
       Source:{' '}

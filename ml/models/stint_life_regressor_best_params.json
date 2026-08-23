@@ -1,4 +1,5 @@
 {
+  "aft_loss_distribution_scale": 0.8,
   "colsample_bytree": 0.849893616236758,
   "gamma": 0.0013846541929909116,
   "learning_rate": 0.026307490821070707,

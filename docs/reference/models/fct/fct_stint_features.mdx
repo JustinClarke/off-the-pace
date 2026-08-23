@@ -34,7 +34,7 @@ flowchart LR
 | Tags | `feature_engineering`, `simulation` |
 | Upstream | [`int_stint_geometry`](../int/int_stint_geometry), [`stg_laps`](../stg/stg_laps), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_dirty_air_tax_component`](../int/int_dirty_air_tax_component), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_pit_strategy_value`](../int/int_pit_strategy_value) |
 
-**8 tests** [guard](/transform/ci/overview) this model  -  8 generic, 0 singular.
+**11 tests** [guard](/transform/ci/overview) this model  -  10 generic, 1 singular.
 
 ## Columns
 
@@ -54,3 +54,4 @@ flowchart LR
 | `end_of_stint_pace_falloff_s_per_lap` |   | Yes |   | OLS slope of driver_skill_residual_s over last 3 laps. NULL when short_stint_flag = TRUE. |
 | `short_stint_flag` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when stint_length_laps &lt; 3 (slope is NULL/unreliable) |
 | `pit_decision_class` |   | Yes |   | Pit strategy decision verdict from int_pit_strategy_value (optimal / overran / undercut_forced / early). |
+| `is_censored_stint` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | TRUE when this is the driver's last stint of the race, so it ended at the flag or at retirement rather than at a tyre change. Remaining stint life on these laps is a lower bound, not an observation. Consumed by the stint-life survival model (ml/src/features.py) to set the AFT upper bound to +inf, and by the blind-test scoreboard to report censored and uncensored stints apart. Never a model feature. |

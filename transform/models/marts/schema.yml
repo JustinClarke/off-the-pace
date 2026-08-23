@@ -417,7 +417,18 @@ models:
       - name: cliff_lap_in_stint
         description: Lap position within stint where cliff is first detected (NULL if no cliff)
       - name: tyre_management_score
-        description: "Tyre management score: actual end-of-stint driver residual normalised against the optimal pit opportunity cost. Low score = good management."
+        description: >
+          Tyre management score: actual end-of-stint driver residual normalised against the
+          optimal pit opportunity cost. Low score = good management. Clamped to [-3, 3] - it
+          is a ratio, and its denominator can be arbitrarily small, so it is unbounded in
+          whichever direction that happens from. Only the ceiling existed until 2026-08-23.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: -3.0
+                max_value: 3.0
+              config:
+                where: "tyre_management_score IS NOT NULL"
       - name: end_of_stint_pace_falloff_s_per_lap
         description: OLS slope of driver_skill_residual_s over last 3 laps. NULL when short_stint_flag = TRUE.
       - name: short_stint_flag
@@ -425,6 +436,19 @@ models:
         tests: [not_null]
       - name: pit_decision_class
         description: "Pit strategy decision verdict from int_pit_strategy_value (optimal / overran / undercut_forced / early)."
+      - name: is_censored_stint
+        description: >
+          TRUE when this is the driver's last stint of the race, so it ended at the flag or at
+          retirement rather than at a tyre change. Remaining stint life on these laps is a lower
+          bound, not an observation. Consumed by the stint-life survival model (ml/src/features.py)
+          to set the AFT upper bound to +inf, and by the blind-test scoreboard to report censored
+          and uncensored stints apart. Never a model feature.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
 
   - name: fct_ghost_car_pace
     description: >

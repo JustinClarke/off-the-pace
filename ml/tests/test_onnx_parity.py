@@ -17,11 +17,13 @@ MODELS_DIR = Path("ml/models")
 
 
 def _present_version() -> str | None:
-    # v5 = current production (v4's 42-feature frame, repaired cliff label).
-    # v4…v1 onnx are kept for diffing; v3 and earlier have different feature counts so
-    # are never the parity target. MODEL_VERSION_DEFAULT is the canonical production
-    # version and is always tried first.
-    for version in (S.MODEL_VERSION_DEFAULT, "v4", "v3", "v2", "v1", "smoke"):
+    # v6 = current production (v5's frame and cliff label, stint life moved to
+    # survival:aft). v5…v1 onnx are kept for diffing and rollback; v3 and earlier have
+    # different feature counts so are never really the parity target.
+    # MODEL_VERSION_DEFAULT is tried first. Note the explicit list below must keep
+    # naming every retained version: when MODEL_VERSION_DEFAULT moved v5 -> v6, v5 fell
+    # out of this tuple entirely and the fallback silently skipped the rollback target.
+    for version in (S.MODEL_VERSION_DEFAULT, "v5", "v4", "v3", "v2", "v1", "smoke"):
         if all((MODELS_DIR / f"{S.artefact_name(t, version)}.onnx").exists()
                for t in S.PRODUCTION_TARGETS):
             return version

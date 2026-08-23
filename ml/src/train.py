@@ -35,6 +35,7 @@ from sklearn.utils.class_weight import compute_class_weight
 
 from ml.src import features as F
 from ml.src import schema as S
+from ml.src import survival as SV
 
 MODELS_DIR = Path("ml/models")
 LOGS_DIR = MODELS_DIR / "training_logs"
@@ -51,15 +52,87 @@ def rmse(y, pred) -> float:
     return float(np.sqrt(np.mean((y-pred) ** 2)))
 
 
-def _headline(spec: S.TargetSpec, y, pred) -> tuple[str, float]:
+def _headline(spec: S.TargetSpec, y, pred, meta=None, scale: float | None = None) -> tuple[str, float]:
     if spec.kind == "quantile":
         return "pinball", pinball_loss(y, pred, spec.quantile_alpha)
     if spec.kind == "classification":
         return "macro_f1", float(f1_score(y, pred, average="macro"))
+    if spec.kind == "survival":
+        cens = meta[S.STINT_LIFE_CENSOR_COLUMN].to_numpy(dtype=bool)
+        return "aft_nloglik", SV.aft_nloglik(y, pred, cens, scale or S.AFT_SCALE_DEFAULT)
     return "rmse", rmse(y, pred)
 
 
 # ─── Model construction ──────────────────────────────────────────────────────────
+class AFTBooster:
+    """xgb.train wrapper exposing the slice of the sklearn surface train.py uses.
+
+    survival:aft reads its labels from the DMatrix (label_lower_bound /
+    label_upper_bound), and the sklearn API has no way to set them --
+    XGBRegressor(objective="survival:aft").fit(X, y) raises
+    `Check failed: info.labels_lower_bound_.Size() == ndata (0 vs N)` the moment
+    it runs. So this owns a Booster directly and speaks fit / predict /
+    save_model, and train_one does not have to care which API it got.
+
+    predict() returns the MEDIAN remaining life in laps: for a log-normal the
+    median is exp(margin), and the AFT_LABEL_SHIFT is subtracted back off here so
+    callers see laps. predict_quantile() gives any other percentile from the same
+    fit -- the scale is the only extra number needed.
+    """
+
+    def __init__(self, spec: S.TargetSpec, params: dict):
+        p = dict(params)
+        # n_estimators is a sklearn-ism; xgb.train takes it as num_boost_round.
+        self.num_boost_round = int(p.pop("n_estimators", 100))
+        self.scale = float(p.pop("aft_loss_distribution_scale", S.AFT_SCALE_DEFAULT))
+        self.params = {
+            "objective": spec.objective,
+            "eval_metric": "aft-nloglik",
+            "aft_loss_distribution": S.AFT_DISTRIBUTION,
+            "aft_loss_distribution_scale": self.scale,
+            "tree_method": "hist",
+            "seed": S.RANDOM_STATE,
+            "nthread": os.cpu_count(),
+            **p,
+        }
+        self.booster: xgb.Booster | None = None
+        self.feature_names: list[str] | None = None
+
+    def _dmatrix(self, X, y=None, is_censored=None, sample_weight=None) -> xgb.DMatrix:
+        d = xgb.DMatrix(X, feature_names=list(X.columns), missing=np.nan)
+        if y is not None:
+            lower, upper = SV.aft_bounds(y, is_censored)
+            d.set_float_info("label_lower_bound", lower)
+            d.set_float_info("label_upper_bound", upper)
+        if sample_weight is not None:
+            d.set_weight(sample_weight)
+        return d
+
+    def fit(self, X, y, sample_weight=None, is_censored=None):
+        if is_censored is None:
+            raise ValueError(
+                "AFTBooster.fit needs is_censored: without it every row would be "
+                "treated as an observed death and the survival framing is inert.")
+        self.feature_names = list(X.columns)
+        d = self._dmatrix(X, y, is_censored, sample_weight)
+        self.booster = xgb.train(self.params, d, num_boost_round=self.num_boost_round)
+        return self
+
+    def predict_margin(self, X) -> np.ndarray:
+        return self.booster.predict(self._dmatrix(X), output_margin=True).astype(np.float64)
+
+    def predict(self, X) -> np.ndarray:
+        """Median remaining stint life, in laps, clipped at 0."""
+        return SV.laps_from_margin(self.predict_margin(X), self.scale)
+
+    def predict_quantile(self, X, q: float) -> np.ndarray:
+        """q-th percentile of the fitted log-normal, in laps, clipped at 0."""
+        return SV.laps_from_margin(self.predict_margin(X), self.scale, q)
+
+    def save_model(self, path: str) -> None:
+        self.booster.save_model(path)
+
+
 def _make_model(spec: S.TargetSpec, params: dict):
     common = dict(tree_method="hist", random_state=S.RANDOM_STATE,
                   n_jobs=os.cpu_count(), **params)
@@ -68,7 +141,19 @@ def _make_model(spec: S.TargetSpec, params: dict):
                                 quantile_alpha=spec.quantile_alpha, **common)
     if spec.kind == "classification":
         return xgb.XGBClassifier(objective="multi:softprob", **common)
+    if spec.kind == "survival":
+        return AFTBooster(spec, params)
     return xgb.XGBRegressor(objective="reg:squarederror", **common)
+
+
+def _fit(model, spec: S.TargetSpec, X, y, meta):
+    """One fit call whichever API `model` came from. The survival path needs the
+    censoring flag, which lives in meta and has no sklearn equivalent."""
+    w = _sample_weight(spec, y, meta)
+    if spec.kind == "survival":
+        return model.fit(X, y, sample_weight=w,
+                         is_censored=meta[S.STINT_LIFE_CENSOR_COLUMN].to_numpy(dtype=bool))
+    return model.fit(X, y, sample_weight=w)
 
 
 def _sample_weight(spec: S.TargetSpec, y, meta=None) -> np.ndarray | None:
@@ -77,6 +162,10 @@ def _sample_weight(spec: S.TargetSpec, y, meta=None) -> np.ndarray | None:
     Classifier: balanced class weights for minority cliff-window recall.
     Quantile regressors (C2): IPW survival weights from meta["survival_weight"]
     so early-pitted (degraded) stints are not under-counted at high lap_in_stint.
+
+    Survival (stint life): deliberately None. The censoring that the IPW weights
+    approximate for the quantile models is now represented exactly, as an interval
+    label -- weighting on top of that would count it twice.
     """
     if spec.kind == "classification":
         classes = np.unique(y)
@@ -119,22 +208,32 @@ def train_one(target: str, *, version: str, params: dict | None,
     fit_params = dict(SMOKE_DEFAULTS) if (smoke or not params) else dict(params)
     t0 = time.time()
 
+    scale = float(fit_params.get("aft_loss_distribution_scale", S.AFT_SCALE_DEFAULT))
+
     fold_metrics = []
     for k, (tr, val) in enumerate(_season_folds(seasons, bundle.training_seasons, n_splits)):
         model = _make_model(spec, fit_params)
-        model.fit(X.iloc[tr], y[tr],
-                  sample_weight=_sample_weight(spec, y[tr], bundle.meta_train.iloc[tr]))
+        _fit(model, spec, X.iloc[tr], y[tr], bundle.meta_train.iloc[tr])
         pred = model.predict(X.iloc[val])
-        name, value = _headline(spec, y[val], pred)
-        fold_metrics.append({"fold": k, "val_season": int(seasons[val][0]), name: value})
+        meta_val = bundle.meta_train.iloc[val]
+        name, value = _headline(spec, y[val], pred, meta_val, scale)
+        fold = {"fold": k, "val_season": int(seasons[val][0]), name: value}
+        if spec.kind == "survival":
+            # The headline is a likelihood, which says nothing about ranking. C is
+            # reported beside it every fold so a fit that improves the NLL while
+            # scrambling the order cannot pass unnoticed.
+            cens = meta_val[S.STINT_LIFE_CENSOR_COLUMN].to_numpy(dtype=bool)
+            fold["c_index"] = SV.c_index(y[val], pred, cens)
+            fold["censored_share"] = float(cens.mean())
+        fold_metrics.append(fold)
 
-    headline_name = fold_metrics[0].keys()-{"fold", "val_season"}
+    headline_name = fold_metrics[0].keys()-{"fold", "val_season", "c_index", "censored_share"}
     headline_name = next(iter(headline_name))
     headline = float(np.mean([m[headline_name] for m in fold_metrics]))
 
     # Refit on the full training set → the shipped booster.
     final = _make_model(spec, fit_params)
-    final.fit(X, y, sample_weight=_sample_weight(spec, y, bundle.meta_train))
+    _fit(final, spec, X, y, bundle.meta_train)
     fit_seconds = round(time.time()-t0, 2)
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -145,6 +244,12 @@ def train_one(target: str, *, version: str, params: dict | None,
     log = {
         "target": target, "version": version, "smoke": smoke,
         "objective": spec.objective, "quantile_alpha": spec.quantile_alpha,
+        **({"aft": {"distribution": S.AFT_DISTRIBUTION, "scale": scale,
+                    "label_shift": S.AFT_LABEL_SHIFT,
+                    "c_index_cv": float(np.mean([m["c_index"] for m in fold_metrics])),
+                    "censored_share": float(
+                        bundle.meta_train[S.STINT_LIFE_CENSOR_COLUMN].mean())}}
+           if spec.kind == "survival" else {}),
         "headline_metric": headline_name, "headline_cv": headline,
         "fold_metrics": fold_metrics, "params": fit_params,
         "n_train_rows": int(len(X)), "n_features": len(bundle.feature_columns),

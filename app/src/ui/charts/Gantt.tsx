@@ -1,6 +1,12 @@
 import { useRef, useState } from 'react'
 
-export type StrategyVerdict = 'optimal' | 'overran' | 'unknown' | null
+export type StrategyVerdict =
+  | 'optimal'
+  | 'overran'
+  | 'early'
+  | 'undercut_forced'
+  | 'unknown'
+  | null
 
 export interface GanttStint {
   /** y-axis identity */
@@ -39,6 +45,8 @@ const PADDING = { top: 8, right: 20, bottom: 36, left: LABEL_W + 8 }
 function verdictLabel(v: StrategyVerdict): string {
   if (v === 'optimal') return 'Optimal'
   if (v === 'overran') return 'Overran'
+  if (v === 'early') return 'Early'
+  if (v === 'undercut_forced') return 'Undercut forced'
   return 'Unknown'
 }
 

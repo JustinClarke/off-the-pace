@@ -70,16 +70,35 @@ The two circuit base-rate models (SC hazard, pit loss) share one empirical-Bayes
 
 600 laps of prior weight (roughly a handful of races) keeps a circuit with one or two race-years of history from reading a hazard of exactly 0 or an extreme outlier; `int_pit_loss_circuit` does the same blend with a 15-stop prior instead of a lap-count prior, since its unit of exposure is pit stops, not laps.
 
-Strategy verdicts on pit timing are a plain ordered `CASE`, not a regression a stop within one lap of the modelled optimum is `'optimal'`; later is `'overran'`; earlier counts as `'undercut_forced'` only if a rival's predicted gap closed below the pit-loss threshold within two laps of the actual stop, otherwise it's `'early'`:
+The optimum itself is an argmin, not a rule of thumb. `int_pit_strategy_cost_curve` prices every candidate pit lap in the horizon and `int_pit_strategy_value` takes the minimum:
 
 ```sql
-WHEN ABS(ap.actual_pit_lap - occ.optimal_pit_lap_number) <= 1 THEN 'optimal'
-WHEN ap.actual_pit_lap > occ.optimal_pit_lap_number + 1 THEN 'overran'
-WHEN ap.actual_pit_lap < occ.optimal_pit_lap_number - 1
-     AND mgps.first_undercut_threat_lap IS NOT NULL
-     AND ap.actual_pit_lap >= mgps.first_undercut_threat_lap - 2
+Total_Cost(L) = old_wear_cost_s      -- L laps on the set you are on
+              + new_wear_cost_s      -- the rest of the horizon on the next set
+              + baseline_cost_s      -- per-lap pace offset between the compounds
+              + pit_lane_loss_s * pit_discount_factor
+```
+
+`L = H` is the no-stop candidate and pays no pit term, which is what makes a stop justify itself. The discount is the part that matters:
+
+```sql
+pit_discount(L) = 1 - (1 - m) * (1 - (1 - h)^L)
+```
+
+Under a fixed one-stop the pit-lane loss is the same whenever you take it, so it adds a constant to every candidate and drops out of the argmin entirely — a longer pit lane would move nothing. Discounting it by the chance a caution has already appeared (`h` from `int_sc_hazard_history`, `m` the SC cost multiplier) is what makes waiting pay, and it is why a longer pit lane pushes the optimum later. `assert_pit_loss_pushes_optimum_later` re-minimises the same curve at a pit lane 15 s longer and fails if the answer retreats.
+
+Strategy verdicts on pit timing are then a plain ordered `CASE`, not a regression a stop within one lap of the modelled optimum is `'optimal'`; later is `'overran'`; earlier counts as `'undercut_forced'` only if the stop landed inside the window where the undercut threat opened, otherwise it's `'early'`:
+
+```sql
+WHEN ABS(r.actual_offset - r.pick_offset) <= 1 THEN 'optimal'
+WHEN r.actual_offset > r.pick_offset + 1 THEN 'overran'
+WHEN r.first_undercut_threat_lap IS NOT NULL
+     AND r.actual_pit_lap BETWEEN r.first_undercut_threat_lap - 2
+                              AND r.first_undercut_threat_lap + 3
      THEN 'undercut_forced'
 ```
+
+Laps are compared as offsets in valid laps rather than lap numbers, so an invalid lap before the stop cannot skew the comparison.
 
 ## Design notes
 
@@ -89,10 +108,14 @@ WHEN ap.actual_pit_lap < occ.optimal_pit_lap_number - 1
 
     Two different empirical-Bayes shrinkage shapes coexist in this family for a reason, not by accident: the circuit base-rate models (SC hazard, pit loss) shrink a *rate* toward a global pooled rate with a pseudo-count prior, the natural conjugate form for a count-over-exposure problem. The degradation slope shrinks a *deviation* (already field-centred, so its prior mean is exactly 0 by construction) using a DerSimonian-Laird between-group variance estimate, the standard random-effects meta-analysis form, appropriate because the thing being pooled across constructors is itself a fitted estimate with its own standard error, not a raw count.
 
-    `int_pit_loss_circuit` now feeds `int_pit_strategy_value`, but only as a point estimate: the stint's `pit_lane_loss_s` and the undercut-threat scan use it, while the optimal-pit-lap search itself does not. That search approximates the argmin as "first lap in the cliff window where expected wear exceeds 0.5 s", a threshold with no pit-loss term in it — so a longer pit lane does not yet push the modelled optimum later, which it physically should. `int_sc_hazard_history` remains an unconsumed base-rate building block: a per-lap hazard estimate is exactly what a lap-by-lap race simulation would need to draw a Safety Car, which the deterministic `int_pit_strategy_value` counterfactual does not do.
+    Both circuit base-rate models are now consumed by the optimum itself, not just displayed next to it. `int_pit_loss_circuit` sets the size of the pit term and `int_sc_hazard_history` sets how fast that term decays with waiting — the two together are what give the search a pit-loss gradient at all. Until 2026-08-23 neither reached the search: it approximated the argmin as "first lap in the cliff window where expected wear exceeds 0.5 s", a threshold with no pit-loss term in it, which returned `'optimal'` on 8 stints of 7,129 and `'unknown'` on 2,231 — more than half of every stint that ended in a stop. The argmin returns 715 and 266.
+
+    Two horizons are reported because they answer different questions. The verdict follows the **two-stint window** — this stint's first lap through the next stint's last — which grades the stop inside the strategy the team actually ran. That is the only framing well posed for the 61% of stints belonging to a 2-stop or longer race; a race-remainder one-stop counterfactual scores every 2-stopper's first stint as `'early'` for a reason that has nothing to do with the stint. The race-remainder optimum is carried alongside as `optimal_pit_lap_race`, asking the harsher unconditional question.
   </Tab>
   <Tab title="Other approaches">
-    Carrying pit loss into the optimal-pit-lap search — solving the full `Total_Cost(L)` minimisation the model's own header writes down, rather than the 0.5 s wear-threshold approximation standing in for it — is the credible next step now that a real per-circuit loss is available. It is what would make the empirical value move `strategy_verdict`, which today it does not: swapping the flat constant for the fitted one changed `pit_lane_loss_s` on 7,094 of 7,129 stints and `undercut_threat_lap` on 37, and left every verdict identical. The cost is a per-lap counterfactual summation SQL is poorly shaped for.
+    Letting the compound *pace* offset move the optimum is the open judgement call, exposed as `pit_strategy_baseline_delta`. `baseline_cost_s` carries the per-lap difference between the old and new compound, built from `compound_grip_peak` and the optimal-temperature bounds — and both of those are per-compound **constants** in `compound_cliff_params`, one distinct value each across all 403 seed rows, never fitted. As typed, `grip_peak` prices SOFT (1.03) slower than HARD (0.97). Over a 20-lap arm that is roughly 1.2 s of unmeasured offset pushing against fitted wear effects of the same magnitude. The var is `true` today; setting it `false` drops the term and leaves the argmin to fitted wear, cliff onset and severity alone. Fitting a real per-compound pace baseline is the change that would settle it.
+
+    A fixed number of stops is the other standing simplification: the cost function prices exactly one stop inside its horizon. Choosing the *number* of stops needs a different search — over strategies rather than over laps — and is what a full race simulation would add.
 
     A fitted hazard model (logistic or Cox, conditioning on lap number, weather, and grid spread) is the credible alternative to `int_sc_hazard_history`'s flat per-circuit empirical rate it would let a simulation vary the SC probability within a race instead of treating every lap at a venue as equally hazardous, at the cost of needing more than the circuit-level grain this model currently estimates at.
 

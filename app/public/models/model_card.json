@@ -1,8 +1,8 @@
 {
   "model_card": {
     "name": "Off the Pace-Tyre Degradation Predictors",
-    "version": "v5",
-    "generated_at": "2026-08-23T06:31:45.215533+00:00",
+    "version": "v6",
+    "generated_at": "2026-08-23T15:38:15.574859+00:00",
     "summary": "Five XGBoost models predicting next-lap tyre-degradation pace loss (quantile trio p10/p50/p90), laps-until-cliff class, and remaining stint life, from per-lap thermal, dirty-air, powertrain, weather and compound-prior features. Trained on 2018–2024 F1 laps; every model beats a strong per-cohort baseline.",
     "intended_use": "Race-strategy analysis and the Off the Pace web app (application layer): surfacing when a stint is about to fall off the degradation cliff and how much pace a driver is leaving on track. Not a betting or safety system.",
     "data": {
@@ -171,12 +171,13 @@
         "objective": "reg:quantileerror",
         "quantile_alpha": 0.1,
         "headline_metric": "pinball",
+        "higher_is_better": false,
         "cv_headline": 0.10673,
         "eval_headline": 0.09338,
         "baseline_headline": 0.16359,
         "beats_baseline": true,
         "n_train_rows": 114270,
-        "fit_seconds": 39.75,
+        "fit_seconds": 39.71,
         "hyperparameters": {
           "colsample_bytree": 0.8047002686470622,
           "gamma": 0.1650384951853549,
@@ -189,8 +190,8 @@
           "subsample": 0.9138877364644629
         },
         "artefacts": {
-          "booster": "ml/models/degradation_regressor_p10_v5.bst",
-          "onnx": "ml/models/degradation_regressor_p10_v5.onnx"
+          "booster": "ml/models/degradation_regressor_p10_v6.bst",
+          "onnx": "ml/models/degradation_regressor_p10_v6.onnx"
         }
       },
       {
@@ -200,12 +201,13 @@
         "objective": "reg:quantileerror",
         "quantile_alpha": 0.5,
         "headline_metric": "pinball",
+        "higher_is_better": false,
         "cv_headline": 0.22242,
         "eval_headline": 0.19948,
         "baseline_headline": 0.28865,
         "beats_baseline": true,
         "n_train_rows": 114270,
-        "fit_seconds": 48.43,
+        "fit_seconds": 49.03,
         "hyperparameters": {
           "colsample_bytree": 0.6573577757386964,
           "gamma": 0.7863904862139618,
@@ -218,8 +220,8 @@
           "subsample": 0.9812031103145763
         },
         "artefacts": {
-          "booster": "ml/models/degradation_regressor_p50_v5.bst",
-          "onnx": "ml/models/degradation_regressor_p50_v5.onnx"
+          "booster": "ml/models/degradation_regressor_p50_v6.bst",
+          "onnx": "ml/models/degradation_regressor_p50_v6.onnx"
         }
       },
       {
@@ -229,12 +231,13 @@
         "objective": "reg:quantileerror",
         "quantile_alpha": 0.9,
         "headline_metric": "pinball",
+        "higher_is_better": false,
         "cv_headline": 0.13996,
         "eval_headline": 0.12351,
         "baseline_headline": 0.15562,
         "beats_baseline": true,
         "n_train_rows": 114270,
-        "fit_seconds": 47.49,
+        "fit_seconds": 48.8,
         "hyperparameters": {
           "colsample_bytree": 0.8139728964601125,
           "gamma": 0.6148248720878129,
@@ -247,8 +250,8 @@
           "subsample": 0.9979933219097051
         },
         "artefacts": {
-          "booster": "ml/models/degradation_regressor_p90_v5.bst",
-          "onnx": "ml/models/degradation_regressor_p90_v5.onnx"
+          "booster": "ml/models/degradation_regressor_p90_v6.bst",
+          "onnx": "ml/models/degradation_regressor_p90_v6.onnx"
         }
       },
       {
@@ -258,42 +261,45 @@
         "objective": "multi:softprob",
         "quantile_alpha": null,
         "headline_metric": "macro_f1",
-        "cv_headline": 0.38888,
-        "eval_headline": 0.39487,
+        "higher_is_better": true,
+        "cv_headline": 0.39181,
+        "eval_headline": 0.40375,
         "baseline_headline": 0.22413,
         "beats_baseline": true,
         "n_train_rows": 114270,
-        "fit_seconds": 56.59,
+        "fit_seconds": 111.91,
         "hyperparameters": {
-          "colsample_bytree": 0.62803831639132,
-          "gamma": 0.08644886334946138,
-          "learning_rate": 0.020206948627565842,
+          "colsample_bytree": 0.9549024450259136,
+          "gamma": 1.0541966575833017,
+          "learning_rate": 0.02411763832244701,
           "max_depth": 8,
-          "min_child_weight": 5,
-          "n_estimators": 400,
-          "reg_alpha": 0.0010479348128786838,
-          "reg_lambda": 0.06838051227790198,
-          "subsample": 0.6925569126934085
+          "min_child_weight": 3,
+          "n_estimators": 700,
+          "reg_alpha": 1.3579191574010774,
+          "reg_lambda": 0.06566006916248184,
+          "subsample": 0.6238327095852775
         },
         "artefacts": {
-          "booster": "ml/models/cliff_classifier_v5.bst",
-          "onnx": "ml/models/cliff_classifier_v5.onnx"
+          "booster": "ml/models/cliff_classifier_v6.bst",
+          "onnx": "ml/models/cliff_classifier_v6.onnx"
         }
       },
       {
         "name": "stint_life_regressor",
         "family": "stint_life_regressor",
-        "kind": "regression",
-        "objective": "reg:squarederror",
+        "kind": "survival",
+        "objective": "survival:aft",
         "quantile_alpha": null,
-        "headline_metric": "rmse",
-        "cv_headline": 7.33479,
-        "eval_headline": 7.72782,
-        "baseline_headline": 9.39921,
+        "headline_metric": "aft_nloglik",
+        "higher_is_better": false,
+        "cv_headline": 2.0905,
+        "eval_headline": 1.93974,
+        "baseline_headline": 2.18697,
         "beats_baseline": true,
         "n_train_rows": 120934,
-        "fit_seconds": 10.53,
+        "fit_seconds": 12.38,
         "hyperparameters": {
+          "aft_loss_distribution_scale": 0.8,
           "colsample_bytree": 0.849893616236758,
           "gamma": 0.0013846541929909116,
           "learning_rate": 0.026307490821070707,
@@ -305,20 +311,40 @@
           "subsample": 0.8462988772079394
         },
         "artefacts": {
-          "booster": "ml/models/stint_life_regressor_v5.bst",
-          "onnx": "ml/models/stint_life_regressor_v5.onnx"
+          "booster": "ml/models/stint_life_regressor_v6.bst",
+          "onnx": "ml/models/stint_life_regressor_v6.onnx"
+        },
+        "survival": {
+          "scale": 0.8,
+          "label_shift": 1.0,
+          "distribution": "normal",
+          "censored_share": 0.4830052784766415,
+          "c_index": 0.786341433735973,
+          "baseline_c_index": 0.6292931220843306,
+          "uncensored": {
+            "n": 10480,
+            "aft_nloglik": 3.3907960489236575,
+            "baseline_aft_nloglik": 3.4027203270316284,
+            "median_abs_error_laps": 4.983661892274549
+          },
+          "censored": {
+            "n": 9791,
+            "aft_nloglik": 0.38658009741044974,
+            "baseline_aft_nloglik": 0.8856687438067565,
+            "median_abs_error_laps": null
+          }
         }
       }
     ],
     "validation": {
       "scheme": "season-grouped TimeSeriesSplit (expanding window, n_splits=5); whole seasons move together, the final fold validates on 2024",
-      "headline_metric_direction": "pinball ↓ (quantiles), macro-F1 ↑ (classifier), RMSE ↓ (stint-life)",
+      "headline_metric_direction": "pinball ↓ (quantiles), macro-F1 ↑ (classifier), censored AFT NLL ↓ (stint-life)",
       "all_models_beat_baseline": true,
       "baselines": {
         "degradation_p50": "group-mean over (compound, circuit, age-bucket) cells, compound→global fallback",
         "degradation_p10_p90": "empirical 10th/90th percentile in the same cells",
         "cliff_classifier": "majority-class prior (none_in_stint)",
-        "stint_life": "cell group-mean of remaining stint life over (compound, circuit, age-bucket), compound→global fallback (non-leakage)"
+        "stint_life": "cell group-mean of remaining stint life over (compound, circuit, age-bucket), compound→global fallback (non-leakage); scored under the same censored likelihood as the model, never against uncensored rows alone"
       },
       "calibration": {
         "nominal": 0.8,
@@ -364,27 +390,27 @@
             "compound_cliff_onset_laps",
             "push_residual",
             "expected_compound_pace_s",
-            "lap_number",
-            "age_in_stint"
+            "cliff_onset_passed",
+            "lap_number"
           ],
-          "agreement_note": "top-5 differ on: compound_cliff_onset_laps, expected_compound_pace_s, fuel_mass_kg, lap_in_stint, push_residual-likely correlated features or leakage pressure"
+          "agreement_note": "top-5 differ on: age_in_stint, cliff_onset_passed, compound_cliff_onset_laps, expected_compound_pace_s, fuel_mass_kg, lap_in_stint, push_residual-likely correlated features or leakage pressure"
         },
         "stint_life_regressor": {
           "shap_top5": [
             "fuel_mass_kg",
             "expected_compound_pace_s",
-            "compound",
             "lap_number",
-            "track_energy_index"
+            "surface_bulk_ratio",
+            "compound"
           ],
           "permutation_top5": [
             "fuel_mass_kg",
-            "track_energy_index",
+            "lap_number",
             "expected_compound_pace_s",
             "cumulative_push_load_bulk",
-            "lap_number"
+            "push_residual"
           ],
-          "agreement_note": "top-5 differ on: compound, cumulative_push_load_bulk-likely correlated features or leakage pressure"
+          "agreement_note": "top-5 differ on: compound, cumulative_push_load_bulk, push_residual, surface_bulk_ratio-likely correlated features or leakage pressure"
         }
       },
       "underperforming_cohorts": [
@@ -441,50 +467,29 @@
           "dimension": "is_rain_lap",
           "cohort": "_other",
           "n": 15,
-          "model": 0.041666666666666664,
+          "model": 0.03333333333333333,
           "baseline": 0.041666666666666664
         },
         {
           "dimension": "compound",
           "cohort": "_other",
           "n": 12,
-          "model": 4.073659266948299,
-          "baseline": 2.2570482198364012
-        },
-        {
-          "dimension": "circuit_key",
-          "cohort": "bahrain_grand_prix",
-          "n": 881,
-          "model": 5.011245015827276,
-          "baseline": 3.700494053804926
+          "model": 2.3972592289551273,
+          "baseline": 2.356012904753335
         },
         {
           "dimension": "circuit_key",
           "cohort": "british_grand_prix",
           "n": 632,
-          "model": 6.29799769314965,
-          "baseline": 6.240628189624067
-        },
-        {
-          "dimension": "circuit_key",
-          "cohort": "dutch_grand_prix",
-          "n": 1208,
-          "model": 8.80335842384106,
-          "baseline": 8.322029218088963
-        },
-        {
-          "dimension": "circuit_key",
-          "cohort": "japanese_grand_prix",
-          "n": 676,
-          "model": 6.831233793820338,
-          "baseline": 5.891950915388028
+          "model": 2.650206049467684,
+          "baseline": 2.5252638571929378
         },
         {
           "dimension": "circuit_key",
           "cohort": "las_vegas_grand_prix",
           "n": 692,
-          "model": 8.815151582380059,
-          "baseline": 5.295696590231441
+          "model": 2.138106750656459,
+          "baseline": 2.0166335399301083
         }
       ],
       "underperforming_cohorts_note": "Surfaced, never dropped. Specific circuit/constructor cells where the model trails its non-leakage cohort-mean baseline; the model wins comfortably overall."
@@ -518,7 +523,7 @@
       }
     ],
     "limitations": [
-      "The cliff classifier (macro-F1 ≈ 0.39 on 4-class cliff timing) is the weakest model-it decisively beats the majority prior, but absolute skill on the minority cliff windows is modest.",
+      "The cliff classifier (macro-F1 ≈ 0.40 on 4-class cliff timing) is the weakest model-it decisively beats the majority prior, but absolute skill on the minority cliff windows is modest.",
       "Hyperparameters come from a 50-trial / season-fold Optuna search per target (ml/models/<target>_best_params.json); `make ml-retrain` refits at those params without re-searching. A target whose data has moved should be re-tuned, not just refit.",
       "No live 2025 holdout yet-headline numbers are time-series CV until 2025 ingests.",
       "Cliff-onset priors are NULL for ~45% of laps (legacy compounds, un-fit circuits); XGBoost native-NaN carries them, documented rather than imputed."

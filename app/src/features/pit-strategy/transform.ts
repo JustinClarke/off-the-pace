@@ -11,7 +11,15 @@ export interface GanttResult {
 }
 
 function coerceVerdict(v: string | null): StrategyVerdict {
-  if (v === 'optimal' || v === 'overran' || v === 'unknown') return v
+  if (
+    v === 'optimal' ||
+    v === 'overran' ||
+    v === 'early' ||
+    v === 'undercut_forced' ||
+    v === 'unknown'
+  ) {
+    return v
+  }
   return null
 }
 
@@ -31,7 +39,13 @@ export function transform(rows: PitGanttRow[], totalLaps: number): GanttResult {
     tyreManagementScore: r.tyre_management_score,
   }))
 
-  const verdictCounts: Record<string, number> = { optimal: 0, overran: 0, unknown: 0 }
+  const verdictCounts: Record<string, number> = {
+    optimal: 0,
+    overran: 0,
+    early: 0,
+    undercut_forced: 0,
+    unknown: 0,
+  }
   let totalOpportunityCostS = 0
 
   for (const s of stints) {

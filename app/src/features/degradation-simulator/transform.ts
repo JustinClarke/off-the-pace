@@ -143,8 +143,13 @@ export interface SimulatorResult {
   cliffBars: CliffBar[]
   /** Argmax cliff label at the current lap. */
   cliffLabel: string
-  /** Remaining stint life (laps) predicted at the current lap. */
+  /** AFT log-normal median remaining stint life (laps) at the current lap. */
   remainingLifeLaps: number
+  /** 10th/90th percentile of the same fitted distribution. The gauge renders the
+   *  median against this band because remaining life is censored on 46% of the
+   *  training rows -- a lone number to one decimal claims more than the fit has. */
+  remainingLifeP10: number
+  remainingLifeP90: number
   /** p50 predicted jump at the current lap (headline number). */
   currentJumpP50: number
   /** Stint length swept. */
@@ -217,6 +222,8 @@ export function transform(
     cliffBars,
     cliffLabel: current ? prettyCliff(current.cliff.label) : '',
     remainingLifeLaps: current ? current.remaining_stint_life_laps : 0,
+    remainingLifeP10: current ? current.remaining_stint_life_p10_laps : 0,
+    remainingLifeP90: current ? current.remaining_stint_life_p90_laps : 0,
     currentJumpP50: current ? current.degradation_jump_s : 0,
     stintLength: n,
     currentLap: lap,

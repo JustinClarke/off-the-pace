@@ -124,15 +124,21 @@ def load_features(
             f"SELECT * FROM {S.MART} WHERE race_year = {holdout_season}"
         ).df()
         stint_len = con.execute(
-            f"SELECT stint_id, stint_length_laps FROM {S.STINT_FEATURES}"
+            f"SELECT stint_id, stint_length_laps, {S.STINT_LIFE_CENSOR_COLUMN} "
+            f"FROM {S.STINT_FEATURES}"
         ).df()
     finally:
         con.close()
 
     # Synthesise the stint-life target (full coverage verified: 0 unmatched).
+    # is_censored_stint rides along: the target alone cannot say whether a 0 means
+    # "the tyre was done" or "the race was". It is meta, never a feature -- it is
+    # not in FEATURE_COLUMNS and test_features.py asserts that it never becomes one.
     for d in (train_df, holdout_df):
         merged = d.merge(stint_len, on="stint_id", how="left")
         d["stint_length_laps"] = merged["stint_length_laps"].to_numpy()
+        d[S.STINT_LIFE_CENSOR_COLUMN] = (
+            merged[S.STINT_LIFE_CENSOR_COLUMN].fillna(False).to_numpy(dtype=bool))
         d[S.STINT_LIFE_TARGET] = np.clip(
             d["stint_length_laps"]-d["lap_in_stint"], 0, None)
 
@@ -155,7 +161,8 @@ def load_features(
     y_train = _resolve_target(train_df, target)
     y_holdout = _resolve_target(holdout_df, target)
 
-    meta_cols = list(S.IDENTIFIER_COLUMNS) + [S.STINT_LIFE_TARGET, "stint_length_laps"]
+    meta_cols = list(S.IDENTIFIER_COLUMNS) + [
+        S.STINT_LIFE_TARGET, "stint_length_laps", S.STINT_LIFE_CENSOR_COLUMN]
     meta_train = train_df[meta_cols].reset_index(drop=True)
     meta_holdout = holdout_df[meta_cols].reset_index(drop=True)
     groups_train = train_df["race_year"].reset_index(drop=True)

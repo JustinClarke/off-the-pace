@@ -37,6 +37,46 @@ vars:
   pit_loss_min_s: 8
   pit_loss_max_s: 60
   pit_loss_prior_stops: 15
+  # int_pit_strategy_cost_curve: a stop taken under a safety car costs this
+  # fraction of a green-flag stop, because the field is slowed with you. This
+  # is the only term that makes pit-lane loss enter the argmin at all: under a
+  # fixed one-stop the loss is the same whenever you take it, so it adds a
+  # constant to every candidate lap and cancels. With the discount, waiting
+  # buys a shot at a cheap stop, and a longer pit lane pushes the optimum
+  # later -- which assert_pit_loss_pushes_optimum_later checks rather than
+  # trusts. 0.5 is the conventional figure; it has not been fitted here.
+  pit_sc_loss_multiplier: 0.5
+  # int_pit_strategy_cost_curve: whether the per-lap pace offset between the
+  # old and new compound (compound_grip_peak plus the optimal-temperature
+  # term) is allowed to move the optimum. Both are per-compound CONSTANTS in
+  # compound_cliff_params -- one distinct value each across all 403 seed rows,
+  # never fitted -- and grip_peak as typed says SOFT (1.03) is slower than
+  # HARD (0.97), which is backwards. Over a 20-lap arm that is ~1.2 s of
+  # unmeasured offset pushing against fitted wear effects of the same size.
+  # TRUE keeps the full curve; FALSE drops the term and leaves the argmin to
+  # the fitted wear, cliff onset and severity alone.
+  pit_strategy_baseline_delta: true
+  # int_pit_strategy_cost_curve: how far the tyre-age grid runs. Must cover
+  # the oldest set a stint can open on plus the longest horizon (Monaco, 78
+  # laps); candidates past it are dropped by the curve join.
+  pit_strategy_max_age_laps: 160
+  # int_pit_strategy_value: half-width, in laps, of the band around the
+  # modelled optimum that still counts as 'optimal'. The argmin is a point
+  # estimate off a fitted wear curve, so grading it to the exact lap would be
+  # reading precision the curve does not have.
+  pit_strategy_optimal_band_laps: 1
+  # int_pit_strategy_value: an early stop counts as undercut_forced only if it
+  # landed within [threat - 2, threat + this] of the lap the undercut window
+  # opened. Without a window the branch fires on "a car was ever within a pit
+  # stop of you", true for 95.5% of stints, and undercut_forced becomes the
+  # bucket every early stop falls into.
+  pit_strategy_undercut_window_laps: 3
+  # int_pit_strategy_cost_curve: ceiling on per-lap wear cost, in seconds.
+  # The cliff polynomial is unbounded -- 136 s/lap extrapolated to age 80, and
+  # already 93 s/lap in-sample -- which is not a car that is still racing.
+  # Real cliff falloff runs 1-3 s/lap, so 10 is generous and bounds the tail
+  # without flattening the region the pit decision actually lives in.
+  pit_strategy_max_wear_s_per_lap: 10.0
   # dim_corners: each corner's telemetry window runs from its apex minus
   # corner_entry_margin_m to its apex plus corner_exit_margin_m, with both ends
   # clipped at the neighbouring apex so no corner reaches past its neighbours.

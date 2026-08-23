@@ -16,7 +16,7 @@ import { join } from 'node:path'
 import * as ort from 'onnxruntime-web'
 import { buildFeatureVector, type FeatureRow } from './featureVector'
 import { postProcessScalars, classifyProbs } from './infer'
-import type { ModelManifest, ScalarOutput, ClassifierOutput } from './manifest'
+import type { ModelManifest, ScalarOutput, ClassifierOutput, SurvivalOutput } from './manifest'
 
 const ROWS_PATH = '/tmp/parity_rows.json'
 const run = process.env.RUN_PARITY === '1' && existsSync(ROWS_PATH)
@@ -53,11 +53,12 @@ describe.runIf(run)('in-browser ONNX parity vs booster ground truth', () => {
     const classOrder = cOut.class_order
     const k = classOrder.length
     const bounds = (spec.degradation_regressor_p50.output as ScalarOutput).bounds
+    const lifeOut = spec.stint_life_regressor.output as SurvivalOutput
 
     let maxAbs = 0
     let cliffMiss = 0
     for (let i = 0; i < n; i++) {
-      const s = postProcessScalars(o10[i], o50[i], o90[i], olife[i], bounds)
+      const s = postProcessScalars(o10[i], o50[i], o90[i], olife[i], lifeOut, bounds)
       const cliff = classifyProbs(oprob.subarray(i * k, i * k + k), classOrder)
       const r = rows[i]
       for (const [b, m] of [
@@ -65,6 +66,8 @@ describe.runIf(run)('in-browser ONNX parity vs booster ground truth', () => {
         [s.degradation_jump_p10_s, Number(r.m_p10)],
         [s.degradation_jump_p90_s, Number(r.m_p90)],
         [s.remaining_stint_life_laps, Number(r.m_life)],
+        [s.remaining_stint_life_p10_laps, Number(r.m_life_p10)],
+        [s.remaining_stint_life_p90_laps, Number(r.m_life_p90)],
       ] as const) {
         maxAbs = Math.max(maxAbs, Math.abs(b-m))
       }

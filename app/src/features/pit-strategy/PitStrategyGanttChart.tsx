@@ -10,7 +10,17 @@ interface Props {
 const VERDICT_COLORS: Record<string, string> = {
   optimal: 'rgb(52, 211, 153)',
   overran: 'rgb(248, 113, 113)',
+  early: 'rgb(96, 165, 250)',
+  undercut_forced: 'rgb(251, 191, 36)',
   unknown: 'rgb(100, 116, 139)',
+}
+
+const VERDICT_LABELS: Record<string, string> = {
+  optimal: 'optimal',
+  overran: 'overran',
+  early: 'early',
+  undercut_forced: 'undercut forced',
+  unknown: 'unknown',
 }
 
 export default function PitStrategyGanttChart({ result }: Props) {
@@ -24,7 +34,7 @@ export default function PitStrategyGanttChart({ result }: Props) {
           <div key={v} className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm" style={{ background: VERDICT_COLORS[v] }} />
             <span className="font-mono font-medium text-[rgb(var(--color-text))]">{n}</span>
-            <span className="text-muted capitalize">{v}</span>
+            <span className="text-muted capitalize">{VERDICT_LABELS[v] ?? v}</span>
           </div>
         ))}
         {totalOpportunityCostS > 0 && (

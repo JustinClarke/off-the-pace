@@ -124,6 +124,58 @@ function CoverageBadge({ stat }: CoverageBadgeProps) {
   )
 }
 
+/**
+ * Stint life, censored and uncensored side by side.
+ *
+ * The two columns are deliberately not combined into one score. A censored lap is
+ * one where the race ended before the tyre did, so its observed remaining life is a
+ * lower bound; an error measured against it is a different quantity from an error
+ * against an observed retirement. Averaging the two produces the flattering,
+ * meaningless number that ml_headroom_ii.md #3 caught.
+ */
+function StintLifePanel({ report }: { report: ScoreboardResult['stintLife'] }) {
+  const { uncensored, censored, censoredShare } = report
+  if (uncensored.n === 0 && censored.n === 0) return null
+  const pct = (x: number) => `${(x * 100).toFixed(1)}%`
+  return (
+    <div>
+      <h3 className="text-sm font-medium mb-3">Remaining stint life</h3>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-border bg-white/[0.02] p-3.5">
+          <div className="text-[10px] font-medium uppercase tracking-widest text-muted">
+            Uncensored - tyre change observed
+          </div>
+          <div className="mt-2 font-mono text-2xl tabular-nums">
+            {uncensored.medianAbsErrorLaps === null ? '-' : uncensored.medianAbsErrorLaps.toFixed(1)}
+            <span className="ml-1 text-xs text-muted">laps median error</span>
+          </div>
+          <div className="mt-1 text-[11px] text-muted">
+            {pct(uncensored.bandConsistentShare)} inside p10-p90 - n={uncensored.n.toLocaleString()}
+          </div>
+        </div>
+        <div className="rounded-xl border border-border bg-white/[0.02] p-3.5">
+          <div className="text-[10px] font-medium uppercase tracking-widest text-muted">
+            Censored - race ended first
+          </div>
+          <div className="mt-2 font-mono text-2xl tabular-nums">
+            {pct(censored.bandConsistentShare)}
+            <span className="ml-1 text-xs text-muted">band reaches the bound</span>
+          </div>
+          <div className="mt-1 text-[11px] text-muted">
+            no error reported - life is a lower bound - n={censored.n.toLocaleString()}
+          </div>
+        </div>
+      </div>
+      <p className="text-xs text-muted mt-2">
+        {pct(censoredShare)} of these laps sit on a stint that ended at the flag or at
+        retirement. Those are scored on whether the predicted band reaches the life we
+        actually saw, not on the distance to it - the tyre had more left, and we never
+        found out how much.
+      </p>
+    </div>
+  )
+}
+
 interface Props {
   result: ScoreboardResult
 }
@@ -201,6 +253,9 @@ export default function BlindTestScoreboardChart({ result }: Props) {
         <h3 className="text-sm font-medium mb-3">Cliff class confusion matrix</h3>
         <ConfusionMatrix cells={result.confusion} />
       </div>
+
+      {/* Stint life, split by censoring */}
+      <StintLifePanel report={result.stintLife} />
     </div>
   )
 }

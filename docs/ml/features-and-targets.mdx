@@ -23,10 +23,10 @@ The `ml-features` stage (`ml/src/features.py`) is where a mart row becomes a row
 
     | Class | Meaning | Approx. share |
     |---|---|---|
-    | `0_to_2` | Cliff within the next two laps | ~15% |
-    | `3_to_5` | Cliff three to five laps away | ~15% |
-    | `6_plus` | Cliff not yet close | ~58% |
-    | `none_in_stint` | No cliff expected in this stint | ~12% |
+    | `0_to_2` | Cliff within the next two laps | ~9% |
+    | `3_to_5` | Cliff three to five laps away | ~7% |
+    | `6_plus` | Cliff six or more laps away, but still inside this stint | ~9% |
+    | `none_in_stint` | No cliff anywhere in the remaining stint | ~76% |
 
     The class order is fixed (`CLIFF_CLASS_LABELS` in `ml/src/schema.py`) so XGBoost label integers are stable across builds.
 
@@ -37,7 +37,7 @@ The `ml-features` stage (`ml/src/features.py`) is where a mart row becomes a row
 
     **Why synthesised:** `stint_length_laps` is available at join time (the full stint is already in the database), but it is not a feature knowing the final stint length would memorise the target. The synthesis happens inside `load_features`; the mask `PER_TARGET_FEATURE_MASK["stint_life_regressor"]` ensures `stint_length_laps` never enters `X` for this model.
 
-    The training population is wider than for the degradation/cliff targets (**119,876 laps** vs 113,309) because a lap can have a valid `remaining_stint_life_laps` even where the next-lap degradation target is undefined.
+    The training population is wider than for the degradation/cliff targets (**120,934 laps** vs 114,270) because a lap can have a valid `remaining_stint_life_laps` even where the next-lap degradation target is undefined.
 
     **Models that use it:** `stint_life_regressor` (squared-error regression, clipped ≥ 0).
   </Tab>
@@ -87,7 +87,9 @@ Booleans map `True → 1.0`, `False → 0.0`, `NULL → NaN`.
     The card gates on the fingerprint: if the mart changes and the fingerprint changes, the card is out of date and must be regenerated.
   </Accordion>
   <Accordion title="The forward-window leakage audit" icon="search">
-    The SQL from which the mart is built lives in `transform/models/**`. Before any model trains, `audit_forward_window` walks the dbt manifest's SQL with `sqlglot` and rejects any query that contains a `LEAD` or `FOLLOWING` window function the two SQL constructs that can see the future.
+    The SQL from which the mart is built lives in `transform/models/**`. Before any model trains, `audit_forward_window` resolves every feature back to its defining expression with `sqlglot` and rejects three things: a `LEAD` or `FOLLOWING` window function, the two window constructs that can see the future; a forward self-join, where the reach lives in a `JOIN ... ON a.lap_in_stint < f.lap_in_stint` predicate rather than in a window (this is how the cliff scan is built, and a feature built the same way would once have passed silently); and its own blindness — if any lineage model fails to parse, or any feature resolves to no definition at all, that is reported as a violation rather than as a clean run.
+
+    That last check is not decorative. The audit reads `compiled_code` from the dbt manifest, which is only populated by a command that compiles; against a `dbt parse` manifest it fell back to un-parseable Jinja and inspected **0 of 21 models and 0 of 42 features** while returning `[]`. An audit that resolves nothing returns exactly what a clean audit returns, so coverage is asserted before the result is trusted.
 
     ```bash
     # Runs automatically as part of ml-features
@@ -112,6 +114,41 @@ def resolve_holdout_season(con) -> int:
 
 Today the holdout season is 2025 (no data yet). The final `TimeSeriesSplit` fold (2024) stands in as the evaluation holdout until 2025 ingests at which point the reveal happens with zero code change.
 
+## Measured and rejected
+
+Two obvious expansions of the 42-feature set have been measured and **both were rejected**. They are recorded here so a later pass does not re-derive them. Both were run on the project's own harness: expanding-window season CV (train 2018 to season *k*−1, test season *k*, six folds), XGBoost at 300 trees / depth 6 / lr 0.08, `S.RANDOM_STATE`, `is_training_eligible` rows only. Measured 2026-08-22.
+
+<AccordionGroup>
+  <Accordion title="17 unused warehouse signals add nothing" icon="circle-minus">
+    The warehouse stages a number of signals no model reads: `track_position`, `min_gap_s`, `tow_benefit_lap_s`, `time_in_dirty_air_s`, `track_temp_c`, `humidity_pct`, `wind_speed_ms`, the track-minus-ambient delta, `grid_position`, the four `speed_i1/i2/fl/st_kph` columns, `laps_remaining_in_race`, `race_distance_laps`, `sc_hazard_per_lap_shrunk` and `any_hazard_per_lap_shrunk`. Coverage runs 83 to 100% on all of them except `allocated_sets_per_driver`, which is 0%.
+
+    Joined onto the mart and tested as a block:
+
+    | Target | 42 features | + candidates | change |
+    |---|---|---|---|
+    | degradation p50 (RMSE, lower better) | 0.8271 | 0.8272 | **−0.01%** |
+    | cliff classifier (macro-F1, higher better) | 0.2850 | 0.2823 | **−0.95%** |
+
+    Nothing, in both directions of "nothing": no gain, and no loss worth calling a loss. This agrees with the project's own ablation artefacts, which already score `weather_air` and `track` as net-negative groups for the cliff classifier (removing `track` *improves* macro-F1 by 0.0047). The feature set is not starved. If anything it is slightly over-fed.
+
+    The one target the block did move is stint life (+3.25%), and that is race-distance information the model already has through fuel mass.
+  </Accordion>
+  <Accordion title="Air density is not worth building" icon="wind">
+    `pressure_hpa` sits in bronze, 100% non-null across all seven seasons, and `stg_weather` drops it in a 12-column projection. Staging it would unblock a proper air-density feature: dry-air plus vapour partial pressures via Tetens gives 0.902 to 1.241 kg/m³ across the calendar, a 37.6% spread driven by Mexico City's altitude. Downforce, drag and thermal load all scale with it, so the physics argument is a good one.
+
+    It does not survive measurement. Both features added to the 42:
+
+    | Target | base | + air density | change |
+    |---|---|---|---|
+    | degradation p50 (RMSE) | 0.8299 | 0.8326 | **−0.33%** |
+    | cliff classifier (macro-F1) | 0.2834 | 0.2854 | **+0.70%** |
+
+    Both sit inside the harness noise, and the reason is structural: air density is very nearly a per-circuit constant, and circuit identity already enters the feature set three times over through `track_energy_index`, `circuit_abrasiveness_index`, and the per-circuit-per-season compound cliff parameters. The model already knows Mexico is Mexico.
+
+    Staging `pressure_hpa` remains cheap and defensible for completeness. It should not be sold as an ML win.
+  </Accordion>
+</AccordionGroup>
+
 ## Relationships
 
 <CardGroup cols={2}>
@@ -122,7 +159,7 @@ Today the holdout season is 2025 (no data yet). The final `TimeSeriesSplit` fold
     How each target is used objective function, loss, and weighting.
   </Card>
   <Card title="Leakage spine" href="/ml/ci/leakage-spine" icon="shield">
-    The 12 CI guards that enforce the exclusions and the forward-window audit every build.
+    The 14 CI guards that enforce the exclusions and the forward-window audit every build.
   </Card>
   <Card title="Pipeline" href="/ml/pipeline" icon="workflow">
     Where this stage fits in the full `make ml-all` DAG.

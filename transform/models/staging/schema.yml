@@ -297,6 +297,15 @@ models:
       - name: distance_m
         description: Distance along the lap from start/finish (m); samples filtered to 0–6500 m.
         data_type: double
+      - name: session_time_s
+        description: >
+          Session clock of the sample (s), from the FastF1 SessionTime nanosecond field.
+          Present so that (race, driver, lap, distance_m, session_time_s) is a total order:
+          distance_m alone ties on 982,303 car-channel samples (a stationary car keeps
+          sampling while distance does not advance), which made any LAG/LEAD ordered on
+          distance alone pick an arbitrary neighbour. Unique across all 59.5M samples, zero
+          nulls.
+        data_type: double
       - name: speed_kph
         description: Instantaneous car speed (kph).
         data_type: double
@@ -470,6 +479,13 @@ models:
       - name: wind_direction
         description: Wind direction (degrees, 0–359).
         data_type: integer
+      - name: pressure_hpa
+        description: >
+          Station air pressure (hPa). 100% non-null in bronze across 2018–2024; range
+          778–1024 hPa (the low end is Mexico City's altitude, not a defect). Staged for
+          contract completeness — air density derived from it was measured as a degradation
+          feature and rejected as inside harness noise.
+        data_type: double
 
   - name: stg_events
     description: >

@@ -58,13 +58,21 @@ def _bronze_seasons_and_races() -> tuple[int, int, int, int]:
 
 
 def _targeted_count(label: str) -> int:
+    """Read one headline count out of README.md using docs_facts' anchored patterns.
+
+    Each label carries a list of patterns (a fact can be phrased several ways), and
+    every match must agree -- README disagreeing with itself is a fact worth failing on,
+    not one to resolve by taking the first hit."""
     text = README.read_text(encoding="utf-8", errors="ignore")
-    for tlabel, pattern in TARGETED:
-        if tlabel == label:
-            found = pattern.findall(text)
-            if not found:
-                raise ValueError(f"README.md has no match for {label!r}")
-            return int(found[0])
+    for tlabel, patterns in TARGETED:
+        if tlabel != label:
+            continue
+        found = {m for pattern in patterns for m in pattern.findall(text)}
+        if not found:
+            raise ValueError(f"README.md has no match for {label!r}")
+        if len(found) > 1:
+            raise ValueError(f"README.md disagrees with itself on {label!r}: {sorted(found)}")
+        return int(next(iter(found)))
     raise ValueError(f"no TARGETED pattern named {label!r} in docs_facts.py")
 
 

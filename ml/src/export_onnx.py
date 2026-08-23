@@ -2,7 +2,7 @@
 
 CLI:
   python -m ml.src.export_onnx --target degradation_regressor_p50 --version smoke
-  python -m ml.src.export_onnx --all --version v1
+  python -m ml.src.export_onnx --all            # MODEL_VERSION_DEFAULT, writes manifest.json
 
 Parity is checked on a NaN-bearing sample (R9/L0-3-the missing-value default
 directions must round-trip, not just clean rows). Any failure → nothing ships;
@@ -222,7 +222,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", choices=[t.name for t in S.PRODUCTION_TARGETS])
     ap.add_argument("--all", action="store_true")
-    ap.add_argument("--version", default="v1")
+    ap.add_argument("--version", default=S.MODEL_VERSION_DEFAULT,
+                    help="artefact version to convert (default: MODEL_VERSION_DEFAULT, "
+                         "matching predict.py / evaluate.py / card.py). CI passes --version smoke.")
     ap.add_argument("--no-manifest", action="store_true",
                     help="skip writing manifest.json (e.g. single-target debug runs)")
     args = ap.parse_args()

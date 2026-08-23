@@ -136,9 +136,9 @@ flowchart TD
 </Steps>
 
 <Accordion title="Smoke vs production artefacts" icon="flask">
-  Each booster is named `{target}_{version}.bst`. The `smoke` version is a fast fixture trained on a 1,000-row subsample it exists only for CI speed; its metrics are meaningless. The production artefacts are named `v4` (the current version). When the pipeline produces a new version, the old `.bst` and `.onnx` files are kept for diffing.
+  Each booster is named `{target}_{version}.bst`. The `smoke` version is a fast fixture trained on a 1,000-row subsample it exists only for CI speed; its metrics are meaningless. The production artefacts are named `v5` (the current version). When the pipeline produces a new version, the old `.bst` and `.onnx` files are kept for diffing.
 
-  The distinction matters for the parity tests: `test_onnx_parity.py` runs against the current `MODEL_VERSION_DEFAULT` (`v4`), not against the smoke fixture.
+  The distinction matters for the parity tests: `test_onnx_parity.py` runs against the current `MODEL_VERSION_DEFAULT` (`v5`), not against the smoke fixture.
 </Accordion>
 
 ## Relationships

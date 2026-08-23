@@ -39,6 +39,7 @@ flowchart LR
 | `driver_id` | `varchar` | Yes |   | FastF1 three-letter driver code. |
 | `lap_number` | `integer` | Yes |   | Lap index the sample belongs to. |
 | `distance_m` | `double` | Yes |   | Distance along the lap from start/finish (m); samples filtered to 0–6500 m. |
+| `session_time_s` | `double` | Yes |   | Session clock of the sample (s), from the FastF1 SessionTime nanosecond field. Present so that (race, driver, lap, distance_m, session_time_s) is a total order: distance_m alone ties on 982,303 car-channel samples (a stationary car keeps sampling while distance does not advance), which made any LAG/LEAD ordered on distance alone pick an arbitrary neighbour. Unique across all 59.5M samples, zero nulls. |
 | `speed_kph` | `double` | Yes |   | Instantaneous car speed (kph). |
 | `throttle_pct` | `double` | Yes |   | Throttle application (0–100%). |
 | `brake_applied` | `boolean` | Yes |   | TRUE when the brake pedal was applied at the sample. |

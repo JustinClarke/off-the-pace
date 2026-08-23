@@ -36,7 +36,7 @@ These factors interact. A linear correction per dimension cannot capture "Soft, 
 All five models read from a single contracted mart: `fct_cliff_prediction_features`. The models consume 42 features across ten physics-grouped families nothing is hand-engineered inside the ML layer. The physics lives in the dbt transform layer; the machine layer reads it.
 
 <Info>
-  **One mart, two target spans.** The quantile trio and the cliff classifier train on **113,309 laps** that carry the degradation and cliff targets; the stint-life regressor trains on **119,876 laps** the spans differ because a lap can have a usable stint-life count even where its next-lap jump is undefined. All seven seasons (2018–2024) feed in, and the **19,067-lap 2024 fold** stands in as the evaluation holdout until 2025 ingests.
+  **One mart, two target spans.** The quantile trio and the cliff classifier train on **114,270 laps** that carry the degradation and cliff targets; the stint-life regressor trains on **120,934 laps** the spans differ because a lap can have a usable stint-life count even where its next-lap jump is undefined. All seven seasons (2018–2024) feed in, and the **19,144-lap 2024 fold** stands in as the evaluation holdout until 2025 ingests.
 </Info>
 
 ## Three question families, five models
@@ -46,7 +46,7 @@ All five models read from a single contracted mart: `fct_cliff_prediction_featur
     Three quantile regressors p10, p50, and p90 predict `next_lap_degradation_jump_s`. Together they form a calibrated 80% prediction interval: p50 is the best single guess; p10 and p90 bound it. The target is legitimately negative roughly 44% of the time a tyre coming into its working window genuinely gains pace.
   </Card>
   <Card title="How close is the cliff?" icon="triangle-exclamation">
-    A 4-class classifier predicts `laps_until_cliff_class`: `0_to_2`, `3_to_5`, `6_plus`, or `none_in_stint`. The class balance is roughly 58 / 15 / 15 / 12 percent, so the model trains with balanced class weights to keep the rare imminent-cliff windows from being drowned out.
+    A 4-class classifier predicts `laps_until_cliff_class`: `0_to_2`, `3_to_5`, `6_plus`, or `none_in_stint`. Most laps have no cliff ahead at all-the balance is roughly 9 / 7 / 9 / 76 percent-so the model trains with balanced class weights to keep the cliff-window classes from being drowned out by `none_in_stint`.
   </Card>
 </CardGroup>
 
@@ -87,7 +87,7 @@ make ml-all   # features → tune → train → evaluate → predict → onnx �
 ```
 
 ```bash Test
-make ml-test  # 28 tests: leakage spine, ONNX parity, output schema, beats-baseline
+make ml-test  # 40 tests: leakage spine, ONNX parity, version contract, output schema, beats-baseline
 ```
 
 </CodeGroup>
@@ -105,7 +105,7 @@ make ml-test  # 28 tests: leakage spine, ONNX parity, output schema, beats-basel
     Season-grouped time-series cross-validation, the leakage spine, calibration coverage, and the `MAX+1`-derived holdout policy.
   </Card>
   <Card title="The CI Contract" href="/ml/ci/overview" icon="vial">
-    All 28 tests 12 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 7 evaluation gates, 1 target bound grouped and explained.
+    All 40 tests 14 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 7 evaluation gates, 1 target bound, 10 version-contract grouped and explained.
   </Card>
   <Card title="Model Reference" href="/reference/ml/degradation-model" icon="database">
     The generated model card: per-model hyperparameters, headline metrics, calibration, cohorts, and reproducibility.

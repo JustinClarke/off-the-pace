@@ -123,7 +123,6 @@ make dbt-dev-full
 2. `dbt run`  -  the `*/*/*/*.parquet` glob picks it up automatically
 3. `make coefficients-fit`  -  re-fit cliff params on the expanded data window
 4. `dbt test` to confirm quality
-5. Update `seeds/tyre_allocations.csv` if new compounds were introduced
 
 ---
 

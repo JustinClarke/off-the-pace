@@ -31,6 +31,7 @@ WITH tel AS (
         driver_id,
         lap_number,
         distance_m,
+        session_time_s,
         speed_kph,
         throttle_pct,
         brake_applied,
@@ -41,7 +42,12 @@ WITH tel AS (
     WHERE source_channel = 'car'
 ),
 
--- Sample-level derivatives within each lap, distance-ordered.
+-- Sample-level derivatives within each lap, distance-ordered with the sample
+-- clock as tie-break. distance_m alone is not a total order (see
+-- stg_telemetry):
+-- ordering on it alone let LAG/LEAD pick an arbitrary neighbour inside a tied
+-- block, so two builds of this identical SQL disagreed on ~500 laps -- up to 20
+-- gear changes and 355 m of braking-point drift apart.
 sample_derived AS (
     SELECT
         race_id,
@@ -65,7 +71,10 @@ sample_derived AS (
         MAX(rpm) OVER lap AS lap_max_rpm
     FROM tel
     WINDOW
-        w AS (PARTITION BY race_id, driver_id, lap_number ORDER BY distance_m),
+        w AS (
+            PARTITION BY race_id, driver_id, lap_number
+            ORDER BY distance_m, session_time_s
+        ),
         lap AS (PARTITION BY race_id, driver_id, lap_number)
 ),
 

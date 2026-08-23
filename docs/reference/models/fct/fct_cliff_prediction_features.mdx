@@ -41,7 +41,7 @@ flowchart LR
 | Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_compound_cliff_predicted`](../int/int_compound_cliff_predicted), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_lap_air_state`](../int/int_lap_air_state), [`int_event_corrections`](../int/int_event_corrections), [`int_lap_residual_stint_detrend`](../int/int_lap_residual_stint_detrend), [`int_lap_telemetry_aggregates`](../int/int_lap_telemetry_aggregates), [`dim_compounds_season`](../dim/dim_compounds_season), [`dim_circuits`](../dim/dim_circuits) |
 | Model-level tests | `expect_column_values_to_be_between`, `expect_column_values_to_be_between` |
 
-**2 tests** [guard](/transform/ci/overview) this model  -  2 generic, 0 singular.
+**3 tests** [guard](/transform/ci/overview) this model  -  2 generic, 1 singular.
 
 ## Columns
 
@@ -98,7 +98,7 @@ flowchart LR
 | `survival_weight` | `double` | Yes |   | C2 metadata (not a feature): IPW weight = 1 / P(stint reaches lap_in_stint \| compound), clipped to [0.25, 4]. Used by train.py for quantile regressor sample weighting to correct for survivorship bias (degraded stints pitted early are under-represented at high lap_in_stint values). |
 | `next_lap_degradation_jump_detrended_s` | `double` | Yes |   | C1 PRIMARY target: per-lap change in driver skill residual with per-stint linear drift removed. drift_s_per_lap (OLS slope on pre-cliff laps, Step 0 median -0.072 s/lap) is subtracted so fuel-lightening and track-evolution leaks are cancelled. Bounded [-10, 10]. NULL on last lap of each stint. |
 | `next_lap_degradation_jump_s` | `double` | Yes |   | Legacy target (undetrended): change in driver skill residual on the next lap, bounded [-10, 10]. Kept alongside the detrended primary for gate comparison. NULL on last lap. |
-| `next_3_lap_cumulative_jump_s` | `double` | Yes |   | Cumulative degradation jump over the next 3 laps (sum of residuals k=1..3 minus current residual). NULL when fewer than 3 laps remain in stint. GREATEST floored at 0. |
-| `next_5_lap_cumulative_jump_s` | `double` | Yes |   | Cumulative degradation jump over the next 5 laps. NULL when fewer than 5 remain. |
-| `laps_until_cliff_class` | `varchar` | Yes |   | Bucket: 0_to_2, 3_to_5, 6_plus, none_in_stint. Based on &gt;1.0s cumulative jump threshold looking ahead up to 6 laps. NULL on last lap. |
+| `next_3_lap_cumulative_jump_s` | `double` | Yes |   | Cumulative detrended degradation jump over the next 3 laps: SUM over i=1..3 of (residual(t+i) - residual(t) - i * drift_s_per_lap), i.e. the current residual is subtracted once per horizon step and per-stint drift is removed on the same schedule as next_lap_degradation_jump_detrended_s. Signed and bounded [-30, 30] (the per-lap +/-10 s bound scaled by the horizon). NULL unless laps t+1..t+3 are all present in the stint -- the guard is on true lap offsets, not row offsets. |
+| `next_5_lap_cumulative_jump_s` | `double` | Yes |   | As next_3_lap_cumulative_jump_s over a 5-lap horizon: SUM over i=1..5 of (residual(t+i) - residual(t) - i * drift_s_per_lap). Signed and bounded [-50, 50]. NULL unless laps t+1..t+5 are all present in the stint. |
+| `laps_until_cliff_class` | `varchar` | Yes |   | Bucket: 0_to_2, 3_to_5, 6_plus, none_in_stint. Laps until the FIRST crossing of the &gt;1.0s detrended jump threshold, scanned over every remaining lap of the stint at true lap offsets. The buckets partition the horizon exactly as their names read -- 6_plus is 6-or-more, not exactly 6, and none_in_stint means no crossing anywhere in the remaining stint. NULL on the last lap of a stint, where there is no horizon to scan. |
 | `is_training_eligible` | `boolean` | No |   | TRUE if this lap is suitable for model training (age_in_stint &gt; 3, no anomaly) |

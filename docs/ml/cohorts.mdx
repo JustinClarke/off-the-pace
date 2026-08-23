@@ -18,35 +18,34 @@ The cell count comes from the model card it updates on every `make ml-card` run.
 
 | Dimension | Cohort | n | Model score | Baseline | Δ |
 |---|---|---|---|---|---|
-| `compound` | `_other` (p10) | 9 | 0.078 | 0.003 | −0.075 |
-| `is_rain_lap` | `_other` (p10) | 15 | 0.571 | 0.555 | −0.016 |
-| `compound` | `_other` (p50) | 9 | 0.069 | 0.021 | −0.048 |
-| `is_rain_lap` | `_other` (p50) | 15 | 2.452 | 2.220 | −0.232 |
-| `compound` | `_other` (p90) | 9 | 0.071 | 0.003 | −0.068 |
-| `circuit_key` | Canadian GP | 820 | 0.124 | 0.123 | −0.001 |
-| `compound` | `INTERMEDIATE` | 1,057 | 0.323 | 0.325 | −0.002 |
+| `compound` | `_other` (p10) | 9 | 0.045 | 0.005 | −0.040 |
+| `is_rain_lap` | `_other` (p10) | 15 | 0.544 | 0.534 | −0.010 |
+| `compound` | `_other` (p50) | 9 | 0.081 | 0.016 | −0.066 |
+| `is_rain_lap` | `_other` (p50) | 15 | 2.216 | 2.206 | −0.010 |
+| `compound` | `_other` (p90) | 9 | 0.056 | 0.004 | −0.052 |
+| `circuit_key` | Canadian GP | 843 | 0.136 | 0.126 | −0.010 |
 | `compound` | `_other` (classifier) | 9 | 1.000 | 1.000 | 0 |
-| `circuit_key` | Miami GP | 786 | 0.213 | 0.233 | +0.020 |
-| `compound` | `_other` (stint-life) | 12 | 5.744 | 2.413 | −3.331 |
-| `circuit_key` | Azerbaijan GP | 796 | 8.533 | 8.219 | −0.314 |
-| `circuit_key` | Bahrain GP | 847 | 4.089 | 3.944 | −0.145 |
-| `circuit_key` | Dutch GP | 1,221 | 9.708 | 8.724 | −0.984 |
-| `circuit_key` | Japanese GP | 626 | 6.697 | 5.987 | −0.710 |
-| `circuit_key` | Las Vegas GP | 705 | 6.829 | 5.409 | −1.420 |
+| `is_rain_lap` | `_other` (classifier) | 15 | 0.042 | 0.042 | 0 |
+| `compound` | `_other` (stint-life) | 12 | 4.074 | 2.257 | −1.817 |
+| `circuit_key` | Bahrain GP | 881 | 5.011 | 3.700 | −1.311 |
+| `circuit_key` | British GP | 632 | 6.298 | 6.241 | −0.057 |
+| `circuit_key` | Dutch GP | 1,208 | 8.803 | 8.322 | −0.481 |
+| `circuit_key` | Japanese GP | 676 | 6.831 | 5.892 | −0.939 |
+| `circuit_key` | Las Vegas GP | 692 | 8.815 | 5.296 | −3.520 |
 
-*Model score and Baseline are the headline metric for each family: pinball ↓ for p10/p50/p90, macro-F1 for the classifier (higher is better, so this row's Δ is positive), RMSE ↓ for stint-life.*
+*Model score and Baseline are the headline metric for each family: pinball ↓ for p10/p50/p90, macro-F1 ↑ for the classifier, RMSE ↓ for stint-life. Δ is signed so that negative always means the model trails, whichever direction its metric runs; a Δ of exactly 0 is a tie on a cell too small to separate them.*
 
 ## What the losses mean
 
 **The `_other` compound cells (n = 9, 12).** The `_other` bucket covers legacy or unrecognised compound codes. With nine training rows, the baseline has nothing to learn it is essentially the global mean. These losses are structural artefacts of the small cell size rather than evidence the model has a problem with any real compound.
 
-**The `INTERMEDIATE` compound (n = 1,057).** The cliff classifier trails the baseline on Intermediate compounds by a tiny margin (0.323 vs 0.325 macro-F1). Intermediate compounds behave differently from slicks; the baseline, which knows the cell distribution, edges out the model here. Margin is essentially zero.
+**The cliff classifier's two cells are ties, not losses.** Both are degenerate: nine `_other`-compound rows and fifteen rain laps, where model and baseline score identically. The classifier no longer trails on `INTERMEDIATE` compounds or at the Miami GP, which it did before the `laps_until_cliff_class` label was repaired.
 
-**The `is_rain_lap` = false cells (n = 15 rain laps).** Fifteen laps in the evaluation set. Another low-n artefact.
+**The `is_rain_lap` cells (n = 15 rain laps).** Fifteen laps in the evaluation set. A low-n artefact.
 
-**Circuit-level losses (stint-life regressor).** The stint-life regressor's per-cohort baseline is **near-oracle**: it uses the true final stint length known only once the stint is over as its "prediction." On circuits where stint lengths are highly predictable (the Dutch GP historically runs long stints, the Las Vegas circuit tends toward specific strategic windows), that oracle baseline is genuinely hard to beat. The model wins globally (RMSE 8.09 vs 9.50) because the baseline is not available in real-time, but in the retrospective evaluation on those circuits the oracle wins.
+**Circuit-level losses (stint-life regressor).** The stint-life regressor's per-cohort baseline is **near-oracle**: it uses the true final stint length known only once the stint is over as its "prediction." On circuits where stint lengths are highly predictable (the Dutch GP historically runs long stints, the Las Vegas circuit tends toward specific strategic windows), that oracle baseline is genuinely hard to beat. The model wins globally (RMSE 7.73 vs 9.40) because the baseline is not available in real-time, but in the retrospective evaluation on those circuits the oracle wins. Las Vegas is the widest cell (8.82 vs 5.30).
 
-The losses on Canadian GP (pinball), Bahrain GP, Azerbaijan GP, and Japanese GP (stint-life) are smaller and mix of sample-size effects and track-specific behaviour the model does not fully capture.
+The losses on Canadian GP (pinball) and on Bahrain, British and Japanese GPs (stint-life) are smaller, and mix sample-size effects with track-specific behaviour the model does not fully capture.
 
 ## The CI contract
 

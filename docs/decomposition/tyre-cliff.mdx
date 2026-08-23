@@ -54,7 +54,7 @@ The ML layer turns the population prior into a per-lap, per-stint prediction. On
 
 **`next_lap_degradation_jump_s`** The fuel-corrected pace change the next lap will show, in seconds. This is modelled as a quantile trio (p10 / p50 / p90) so strategy sees a median estimate and a calibrated uncertainty band. Note that this target is legitimately negative roughly 44% of the time: a tyre coming into its working window, or recovering after an out-lap, genuinely gains pace.
 
-**`laps_until_cliff_class`** A 4-way classification bucket: `0_to_2`, `3_to_5`, `6_plus`, or `none_in_stint`. The rare imminent-cliff windows (the `0_to_2` bucket) are the highest-value prediction for race strategy, so the classifier trains with balanced class weights to prevent those windows from being drowned out by the majority class.
+**`laps_until_cliff_class`** A 4-way classification bucket: `0_to_2`, `3_to_5`, `6_plus`, or `none_in_stint`, set by the first lap in the remaining stint where the detrended pace jump crosses 1.0s. About 76% of laps carry `none_in_stint`, so the classifier trains with balanced class weights to prevent the rare imminent-cliff windows-the highest-value prediction for race strategy-from being drowned out by the majority class.
 
 **`remaining_stint_life_laps`** A synthesised, non-negative count of usable laps remaining in the stint. This feeds the strategy view's "this set is done in approximately N laps" readout.
 

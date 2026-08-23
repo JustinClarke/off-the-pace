@@ -78,7 +78,7 @@ describe('buildFeatureVector', () => {
     const vec = buildFeatureVector(row, input)
     expect(vec).toBeInstanceOf(Float32Array)
     expect(vec.length).toBe(input.n_features)
-    expect(vec.length).toBe(42) // v4 frame (v3's 41 telemetry/air features + surface_bulk_ratio, Route C)
+    expect(vec.length).toBe(42) // v5 frame (v4's 42-feature frame, unchanged; the repaired label moved no feature)
   })
 
   it('places each encoded value at its feature_order index', () => {

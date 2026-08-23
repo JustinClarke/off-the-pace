@@ -89,6 +89,9 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
 
     underperformers = [u for m in ev["models"].values() for u in m["underperforming_cohorts"]]
 
+    # Metric quoted in `limitations` below; read back from the card, never typed.
+    _cliff_f1 = next(m["eval_headline"] for m in models if m["name"] == "cliff_classifier")
+
     # ── Dual importance (headline model of each family carries it) ──
     importance = {}
     for spec in S.PRODUCTION_TARGETS:
@@ -182,10 +185,14 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
             ],
 
             "limitations": [
-                "The cliff classifier (macro-F1 ≈ 0.33 on 4-class cliff timing) is the weakest model-"
-                "it decisively beats the majority prior but absolute skill on minority cliff windows is modest.",
-                "v1 hyperparameters come from a reduced session tuning budget; a canonical 50-trial / "
-                "5-fold search should precede a production blessing.",
+                # Read the number back from this card's own models block-a hardcoded metric here
+                # is the "hand-edited metrics" failure this module exists to prevent.
+                f"The cliff classifier (macro-F1 ≈ {_cliff_f1:.2f} on 4-class cliff timing) is the "
+                "weakest model-it decisively beats the majority prior, but absolute skill on the "
+                "minority cliff windows is modest.",
+                "Hyperparameters come from a 50-trial / season-fold Optuna search per target "
+                "(ml/models/<target>_best_params.json); `make ml-retrain` refits at those params "
+                "without re-searching. A target whose data has moved should be re-tuned, not just refit.",
                 "No live 2025 holdout yet-headline numbers are time-series CV until 2025 ingests.",
                 "Cliff-onset priors are NULL for ~45% of laps (legacy compounds, un-fit circuits); "
                 "XGBoost native-NaN carries them, documented rather than imputed.",

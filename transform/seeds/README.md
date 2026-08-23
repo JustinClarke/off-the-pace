@@ -9,7 +9,6 @@ column tests and descriptions.
 | `compound_cliff_params.csv` | 401 groups | KM survival fitter (`fit_compound_cliff.py`) | `make coefficients-fit` |
 | `race_to_track.csv` | 148 races | Manual | When new seasons are ingested (2018_14 is missing from it; models that need corner geometry read dim_corners, which resolves that race from its own FastF1 corner table) |
 | `raw_dim_events.csv` | ~30 events | Manual (2021 season only) | Expand as automated detection is built |
-| `tyre_allocations.csv` | stub | Not yet populated | When Pirelli allocation sheets are scraped |
 
 ## Promotion workflow
 

@@ -51,7 +51,7 @@ Every model in the pipeline is tuned by Optuna before its final fit. Tuning and 
 <img src="/images/ml/learning-curve-degradation-regressor-p50.png" alt="Learning curve for degradation_regressor_p50: train vs validation pinball loss by n_estimators" />
 
 <Accordion title="Reproducible and resumable studies" icon="rotate">
-  Every study is keyed by `{target}_{version}` (e.g. `cliff_classifier_v4`) so a fresh tuning run for a new version gets its own namespace without overwriting the existing study. The `TPESampler` is seeded by `RANDOM_STATE = 20260528`, so two runs with the same data and the same budget produce the same parameter sequence.
+  Every study is keyed by `{target}_{version}` (e.g. `cliff_classifier_v5`) so a fresh tuning run for a new version gets its own namespace without overwriting the existing study. The `TPESampler` is seeded by `RANDOM_STATE = 20260528`, so two runs with the same data and the same budget produce the same parameter sequence.
 
   The `.db` files are SQLite they can be inspected with `optuna-dashboard` or the `scripts/inspect_trials.py` utility. CI does not run `ml-tune` (it is too slow for pull requests); it runs `ml-test` against the committed `.bst` artefacts.
 </Accordion>

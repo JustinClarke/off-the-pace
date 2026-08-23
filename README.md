@@ -2,7 +2,7 @@
 
 > **When a car is off the pace, why?**
 
-**A browser-native, full-stack F1 analytics platform.** It ingests 7 seasons of telemetry, models it through a 60-table dbt warehouse, trains 5 ML models, and serves 30 interactive analytics features with **no server, no login, and no cost to serve**.
+**A browser-native, full-stack F1 analytics platform.** It ingests 7 seasons of telemetry, models it through a 67-table dbt warehouse, trains 5 ML models, and serves 30 interactive analytics features with **no server, no login, and no cost to serve**.
 
 Under the hood, every lap is decomposed into seven additive, physically-grounded components, so lost time is attributed to an exact, named cause rather than a vibe.
 
@@ -20,7 +20,7 @@ Under the hood, every lap is decomposed into seven additive, physically-grounded
 
 ![Off The Pace: browser-native F1 analytics dashboard decomposing every lap into named causes](docs/images/off-the-pace-home.png)
 
-**137,447** laps decomposed · **149** races · **40** drivers · **44** circuits · **60** dbt models · **443** tests · **5/5** ML models beat baseline · **30** browser features · **0** servers
+**137,447** laps decomposed · **149** races · **40** drivers · **44** circuits · **67** dbt models · **553** tests · **5/5** ML models beat baseline · **30** browser features · **0** servers
 
 ---
 
@@ -61,7 +61,7 @@ Trained on 2018–2024. The 2025 season is held out as a reproducible out-of-sam
 ```mermaid
 flowchart LR
     A["FastF1 + OpenF1"] --> B["Bronze<br/>Hive-partitioned Parquet<br/>7 seasons · 149 races"]
-    B --> C["Transform<br/>dbt + DuckDB<br/>60 models · 443 tests"]
+    B --> C["Transform<br/>dbt + DuckDB<br/>67 models · 553 tests"]
     C --> D["ML<br/>5 XGBoost models<br/>→ ONNX, 42 features"]
     C --> E["GCS CDN<br/>parquet + models"]
     D --> E
@@ -91,8 +91,8 @@ Requires Python 3.11+.
 git clone https://github.com/justinclarke/off-the-pace
 cd off-the-pace
 make setup           # build venv + install Python/dbt deps
-make dbt-dev         # build the transform layer (60 models)
-make dbt-test        # run 443 tests including assert_additive_identity
+make dbt-dev         # build the transform layer (67 models)
+make dbt-test        # run 553 tests including assert_additive_identity
 ```
 
 No cloud credentials required. DuckDB runs locally at `data/dev.duckdb`.
@@ -144,9 +144,9 @@ If you want to run the React app or the documentation site locally, you'll also 
 | Subsystem | State | Evidence |
 |---|---|---|
 | Ingestion (Bronze) | ✅ Built | `ingestion/src/`: FastF1 + OpenF1 → Hive-partitioned Parquet, 7 seasons / 149 races |
-| Transform (60 models, 443 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
+| Transform (67 models, 553 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
 | Coefficients (KM tyre cliff) | ✅ Fitted | `transform/tasks/coefficients/`: seeds |
-| ML (5 XGBoost models, 28 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life; ONNX parity; v4 model (42 features) |
+| ML (5 XGBoost models, 40 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life; ONNX parity; v5 model (42 features) |
 | Frontend (React + DuckDB-Wasm) | ✅ Built | [`app/`](app/): 30 interactive features, zero server, sub-10ms queries; deployed to Firebase Hosting |
 | Docs | ✅ Built | [`docs/`](docs/): Mintlify site with 6 tabs (Overview, Data, Transform, ML, App, Platform) |
 | Platform | ✅ Built | CI/CD, security scanning, observability (Sentry), E2E tests (Playwright), IaC (Terraform) |
@@ -171,7 +171,7 @@ Reproduce end-to-end (one venv, warehouse read-only, nothing written to `app/`):
 ```bash
 make ml-setup        # install ml/requirements.txt
 make ml-all          # features → tune → train → evaluate → predict → onnx → card → docs
-make ml-test         # 28 tests: leakage spine, ONNX parity, output schema, beats-baseline
+make ml-test         # 40 tests: leakage spine, ONNX parity, version contract, output schema, beats-baseline
 ```
 
 Full auto-generated **[model card](docs/reference/ml/degradation-model.mdx)** (metrics, baselines, calibration, dual feature importance, limitations) is built from `ml/model_card.yml`.
@@ -200,8 +200,8 @@ The app runs entirely in the browser: DuckDB-Wasm for sub-10ms SQL and ONNX Runt
 | Layer | Tech |
 |---|---|
 | Ingestion | FastF1 + OpenF1 → Hive-partitioned Parquet |
-| Transform | dbt-core (DuckDB local, 60 models, 443 tests) |
-| ML | XGBoost (degradation quantile trio, cliff classifier, remaining life) → ONNX v4 (42 features) |
+| Transform | dbt-core (DuckDB local, 67 models, 553 tests) |
+| ML | XGBoost (degradation quantile trio, cliff classifier, remaining life) → ONNX v5 (42 features) |
 | Frontend | React + DuckDB-Wasm (sub-10ms queries, zero compute cost) |
 | Hosting | Firebase Hosting (frontend) + GCS CDN `gs://off-the-pace-cdn` (data + models) |
 | Docs | Mintlify (offthepace.mintlify.app) |

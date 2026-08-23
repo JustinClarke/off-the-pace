@@ -4,6 +4,14 @@ CLI:
   python -m ml.src.train --target degradation_regressor_p50 --smoke
   python -m ml.src.train --all --smoke
   python -m ml.src.train --target cliff_classifier --version v1 --params <best_params.json>
+  python -m ml.src.train --all --tuned          # production retrain (see --tuned below)
+
+Note on --params: without it (and without --smoke) this trains at SMOKE_DEFAULTS, which
+is *not* a production model. There is no implicit fallback to the tuned parameters, so
+`--all` on its own writes five untuned boosters. `--tuned` is the production path: it
+resolves each target's own ml/models/<target>_best_params.json and defaults the version
+to S.MODEL_VERSION_DEFAULT, retraining at the params tune.py already found without
+paying for a fresh 50-trial search.
 
 Builds a season-grouped expanding-window CV (TimeSeriesSplit over whole seasons -
 never row-level), reports the per-target headline metric, then refits on the full
@@ -158,12 +166,19 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", choices=[t.name for t in S.PRODUCTION_TARGETS])
     ap.add_argument("--all", action="store_true")
-    ap.add_argument("--version", default="v1")
+    ap.add_argument("--version", default=None,
+                    help="artefact version (default: v1, or MODEL_VERSION_DEFAULT with --tuned)")
     ap.add_argument("--params", help="best_params.json from tune.py")
+    ap.add_argument("--tuned", action="store_true",
+                    help="retrain each target at its own ml/models/<target>_best_params.json, "
+                         "at MODEL_VERSION_DEFAULT. The production retrain path.")
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--n-estimators", type=int)
     ap.add_argument("--max-depth", type=int)
     args = ap.parse_args()
+
+    if args.tuned and (args.smoke or args.params):
+        ap.error("--tuned resolves params per target; do not combine it with --smoke or --params")
 
     params = json.loads(Path(args.params).read_text()) if args.params else None
     if args.n_estimators or args.max_depth:  # CI tiny-smoke overrides
@@ -173,12 +188,26 @@ def main() -> int:
         if args.max_depth:
             params["max_depth"] = args.max_depth
 
-    version = "smoke" if args.smoke else args.version
+    if args.smoke:
+        version = "smoke"
+    elif args.version:
+        version = args.version
+    else:
+        version = S.MODEL_VERSION_DEFAULT if args.tuned else "v1"
+
     targets = [t.name for t in S.PRODUCTION_TARGETS] if args.all else [args.target]
     if not targets or targets == [None]:
         ap.error("pass --target <name> or --all")
+
+    if args.tuned:  # resolve every path up front: a missing file must not half-train the set
+        tuned_paths = {t: MODELS_DIR / f"{t}_best_params.json" for t in targets}
+        missing = sorted(str(p) for p in tuned_paths.values() if not p.exists())
+        if missing:
+            ap.error("--tuned needs tuned params for every target; missing: " + ", ".join(missing))
+
     for t in targets:
-        train_one(t, version=version, params=params, smoke=args.smoke)
+        target_params = json.loads(tuned_paths[t].read_text()) if args.tuned else params
+        train_one(t, version=version, params=target_params, smoke=args.smoke)
     return 0
 
 

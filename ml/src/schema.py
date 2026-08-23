@@ -131,6 +131,32 @@ AUDIT_FEATURES: tuple[str, ...] = ("cliff_candidate_flag", "anomaly_class")
 DEGRADATION_TARGET = "next_lap_degradation_jump_detrended_s"  # C1: detrended (was next_lap_degradation_jump_s)
 CLIFF_TARGET = "laps_until_cliff_class"
 STINT_LIFE_TARGET = "remaining_stint_life_laps"  # synthesised in features.py
+STINT_LIFE_CENSOR_COLUMN = "is_censored_stint"  # from fct_stint_features; TRUE => right-censored
+
+# ─── Stint-life survival (AFT) contract ─────────────────────────────────────────
+# Remaining stint life is right-censored on 46.2% of training rows (55,926 of
+# 120,934): a driver's last
+# stint of a race ends at the flag or at retirement, so the observed life is a LOWER
+# bound on the life the tyre had. Squared error against that lower bound trains the
+# model to predict the pit wall's decision, not the tyre's limit.
+#
+# survival:aft over the interval [y+1, y+1] (uncensored) / [y+1, +inf) (censored)
+# fits log(life+1) ~ Normal(margin, scale), i.e. life+1 is log-normal. The +1 shift
+# exists because log(0) is -inf and 2,264 training rows have zero remaining life --
+# 2,236 of them (98.8%) censored, i.e. final laps of final stints. Subtract it back
+# at predict time.
+AFT_LABEL_SHIFT = 1.0             # log(0) guard; predict returns exp(margin) - SHIFT
+AFT_DISTRIBUTION = "normal"       # normal on the log scale == log-normal in laps
+# Swept at the production params, season-grouped CV, 5 folds: NLL runs 3.062 (0.30),
+# 2.483 (0.40), 2.237 (0.50), 2.140 (0.60), 2.101 (0.70), 2.0905 (0.80), 2.094 (0.85),
+# 2.115 (1.00) -- an interior optimum at 0.80, not a boundary. The plan carried ~0.5
+# from a sweep at different params; against 0.5 the move is -6.54% NLL, 5/5 folds,
+# paired t=10.254 p=0.0005. Production reads it from
+# ml/models/stint_life_regressor_best_params.json; this is the smoke/fallback value.
+AFT_SCALE_DEFAULT = 0.8
+# Reported band. A log-normal median is exp(margin); quantile q is
+# exp(margin + scale * Phi^-1(q)). One extra scalar buys the whole distribution.
+STINT_LIFE_QUANTILES: tuple[float, ...] = (0.10, 0.50, 0.90)
 
 # Fixed class order (matches accepted_values in marts/schema.yml). Index == XGBoost label.
 CLIFF_CLASS_LABELS: tuple[str, ...] = ("0_to_2", "3_to_5", "6_plus", "none_in_stint")
@@ -142,7 +168,7 @@ class TargetSpec:
     name: str            # artefact base name, e.g. "degradation_regressor_p50"
     family: str          # degradation_regressor | cliff_classifier | stint_life_regressor
     source_column: str   # mart column or synthesised name
-    kind: str            # "quantile" | "classification" | "regression"
+    kind: str            # "quantile" | "classification" | "survival"
     objective: str
     quantile_alpha: float | None = None
     num_class: int | None = None
@@ -158,7 +184,7 @@ PRODUCTION_TARGETS: tuple[TargetSpec, ...] = (
     TargetSpec("cliff_classifier", "cliff_classifier", CLIFF_TARGET,
                "classification", "multi:softprob", num_class=len(CLIFF_CLASS_LABELS)),
     TargetSpec("stint_life_regressor", "stint_life_regressor", STINT_LIFE_TARGET,
-               "regression", "reg:squarederror"),
+               "survival", "survival:aft"),
 )
 TARGET_BY_NAME: dict[str, TargetSpec] = {t.name: t for t in PRODUCTION_TARGETS}
 
@@ -181,7 +207,7 @@ def optuna_study_name(target: str, version: str) -> str:
     return f"{target}_{version}"
 
 
-# ─── Predictions output schema (17 columns) ─────────────────────────────────────
+# ─── Predictions output schema (19 columns) ─────────────────────────────────────
 # Validated at write time by predict.py and by tests/test_predict.py.
 PROB_COLUMNS: tuple[str, ...] = tuple(f"prob_{c}" for c in CLIFF_CLASS_LABELS)
 
@@ -200,13 +226,25 @@ PREDICTIONS_ARROW_SCHEMA = pa.schema([
     (PROB_COLUMNS[1], pa.float64()),
     (PROB_COLUMNS[2], pa.float64()),
     (PROB_COLUMNS[3], pa.float64()),
-    ("predicted_remaining_stint_life_laps", pa.float64()),
+    # AFT log-normal median, in laps, with the 10th/90th percentile of the same
+    # fitted distribution. The median is the headline the gauge renders; the band
+    # is what stops one decimal place claiming more than a 45.8%-censored fit can.
+    ("predicted_remaining_stint_life_laps", pa.float64()),      # median
+    ("predicted_remaining_stint_life_p10_laps", pa.float64()),
+    ("predicted_remaining_stint_life_p90_laps", pa.float64()),
     ("model_version", pa.string()),
     ("predicted_at", pa.timestamp("us")),
 ])
-assert len(PREDICTIONS_ARROW_SCHEMA) == 17, "predictions schema must be 17 columns"
+assert len(PREDICTIONS_ARROW_SCHEMA) == 19, "predictions schema must be 19 columns"
 
-MODEL_VERSION_DEFAULT = "v5"  # v5 = v4's 42 features, unchanged, against the repaired
+MODEL_VERSION_DEFAULT = "v6"  # v6 = v5's features and cliff label, unchanged, with the
+# stint-life model moved from reg:squarederror to survival:aft over an interval label.
+# The contract changed, not just the weights: the booster emits a log-scale margin, the
+# predictions parquet gained p10/p90 life columns (17 -> 19), and the ONNX graph needs a
+# post-transform the app reads from the manifest. v5 is kept for rollback and is the
+# floor v6 has to clear. Prior version note follows.
+#
+# v5 = v4's 42 features, unchanged, against the repaired
 # laps_until_cliff_class label (first threshold crossing scanned over the whole remaining
 # stint at true lap offsets, so 6_plus is 6-or-more rather than exactly 6). The feature
 # matrix is byte-identical to v4's; only the classifier's target moved. v4 kept for diff

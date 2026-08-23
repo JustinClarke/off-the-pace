@@ -16,6 +16,7 @@ Safety-Car / Virtual-Safety-Car base rate per circuit (venue slug), as a hazard 
 flowchart LR
   stg_laps --> int_sc_hazard_history
   stg_track_status --> int_sc_hazard_history
+  int_sc_hazard_history --> int_pit_strategy_cost_curve
   style int_sc_hazard_history fill:#e40404,stroke:#e40404,color:#fff
 ```
 

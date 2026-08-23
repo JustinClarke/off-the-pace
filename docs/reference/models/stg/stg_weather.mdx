@@ -16,6 +16,7 @@ Weather snapshot nearest each lap start. Bronze weather samples (≈1 Hz) are ma
 flowchart LR
   stg_laps --> stg_weather
   stg_weather --> int_compound_cliff_predicted
+  stg_weather --> int_pit_strategy_cost_curve
   stg_weather --> int_track_evolution
   style stg_weather fill:#e40404,stroke:#e40404,color:#fff
 ```

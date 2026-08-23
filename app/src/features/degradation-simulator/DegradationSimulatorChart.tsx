@@ -163,22 +163,58 @@ function CliffBars({ result }: { result: SimulatorResult }) {
   )
 }
 
-function LifeGauge({ laps }: { laps: number }) {
-  // Gauge scaled against a generous 40-lap stint horizon.
-  const pct = Math.min(100, (laps / 40) * 100)
-  const color = laps <= 3 ? '#f87171' : laps <= 8 ? '#fbbf24' : '#34d399'
+const LIFE_HORIZON_LAPS = 40
+
+/**
+ * Urgency colour is taken from p10, not the median: "how soon could this tyre be
+ * done" is the decision the colour is used for, and the pessimistic end of the
+ * fitted distribution is the honest answer to it. Colouring the median would let a
+ * wide, uncertain fit read as calmly green.
+ */
+function lifeColorFrom(p10: number): string {
+  return p10 <= 3 ? '#f87171' : p10 <= 8 ? '#fbbf24' : '#34d399'
+}
+
+/**
+ * Remaining stint life as a median against its 10th-90th percentile band.
+ *
+ * The model is an AFT survival fit, so what it yields is a log-normal median, not a
+ * conditional mean. It used to be rendered to one decimal place against a
+ * three-colour band, which overclaimed twice over: 46% of the rows it was fitted on
+ * are right-censored (the race ended before the tyre did), and a tenth of a lap is
+ * far finer than a censored fit can resolve. The median is now shown to the lap,
+ * and the band is shown next to it rather than left implicit.
+ */
+function LifeGauge({ median, p10, p90 }: { median: number; p10: number; p90: number }) {
+  const color = lifeColorFrom(p10)
+  const pos = (v: number) => Math.max(0, Math.min(100, (v / LIFE_HORIZON_LAPS) * 100))
+  const left = pos(p10)
+  const width = Math.max(1.5, pos(p90) - left)   // keep a hairline visible when p10≈p90
   return (
     <div className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold">Remaining stint life</h3>
       <div className="flex items-end gap-2">
-        <span className="text-4xl font-bold tabular-nums" style={{ color }}>{laps.toFixed(1)}</span>
-        <span className="text-sm text-muted mb-1">laps</span>
+        <span className="text-4xl font-bold tabular-nums" style={{ color }}>{Math.round(median)}</span>
+        <span className="text-sm text-muted mb-1">laps (median)</span>
       </div>
-      <div className="h-2.5 rounded-full bg-white/5 overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+      <div className="relative h-2.5 rounded-full bg-white/5 overflow-hidden">
+        <div
+          className="absolute inset-y-0 rounded-full transition-all"
+          style={{ left: `${left}%`, width: `${width}%`, background: color, opacity: 0.45 }}
+        />
+        <div
+          className="absolute inset-y-0 w-[2px] transition-all"
+          style={{ left: `${pos(median)}%`, background: color }}
+        />
+      </div>
+      <div className="flex justify-between text-[11px] tabular-nums text-muted/70">
+        <span>p10 {Math.round(p10)}</span>
+        <span>p90 {Math.round(p90)}</span>
       </div>
       <p className="text-xs text-muted/70">
-        Predicted laps before the tyre must be retired (stint_life_regressor, clipped at 0).
+        Log-normal AFT median, with the 10th-90th percentile of the same fitted
+        distribution. Right-censored stints (the race ended before the tyre did) are
+        fitted as "at least this long", not as observed retirements.
       </p>
     </div>
   )
@@ -222,7 +258,9 @@ function ResultHero({ result, onnxReady, tyreColor }: { result: SimulatorResult;
   const cliff = CLIFF_META[cliffRaw] ?? { label: result.cliffLabel || ' ', color: '#94a3b8' }
   const cliffProb = result.cliffBars[0]?.prob ?? 0
   const life = result.remainingLifeLaps
-  const lifeColor = life <= 3 ? '#f87171' : life <= 8 ? '#fbbf24' : '#34d399'
+  const lifeP10 = result.remainingLifeP10
+  const lifeP90 = result.remainingLifeP90
+  const lifeColor = lifeColorFrom(lifeP10)
 
   // Physical laps-to-cliff from the headline model (responsive to every slider; independent of ONNX).
   const onset = result.cliffOnsetLap
@@ -258,9 +296,12 @@ function ResultHero({ result, onnxReady, tyreColor }: { result: SimulatorResult;
           </span>
         </span>
       </MetricCell>
-      <MetricCell label="Remaining tyre life" sub={onnxReady ? 'laps before retirement' : 'model offline'}>
+      <MetricCell
+        label="Remaining tyre life"
+        sub={onnxReady ? `median · p10-p90 ${Math.round(lifeP10)}-${Math.round(lifeP90)}` : 'model offline'}
+      >
         <span className="font-mono text-[26px] font-bold tabular-nums" style={{ color: onnxReady ? lifeColor : '#64748b' }}>
-          {onnxReady ? life.toFixed(1) : ' '}
+          {onnxReady ? Math.round(life) : ' '}
         </span>
         {onnxReady && <span className="ml-1 text-sm text-muted">laps</span>}
       </MetricCell>
@@ -388,7 +429,9 @@ export default function DegradationSimulatorChart({ result, onnxLoading, onnxErr
           {onnxReady ? <CliffBars result={result} /> : <OnnxNote error={onnxError} loading={onnxLoading} />}
         </div>
         <div className="rounded-xl border border-border bg-white/[0.02] p-4">
-          {onnxReady ? <LifeGauge laps={result.remainingLifeLaps} /> : <OnnxNote error={onnxError} loading={onnxLoading} />}
+          {onnxReady
+            ? <LifeGauge median={result.remainingLifeLaps} p10={result.remainingLifeP10} p90={result.remainingLifeP90} />
+            : <OnnxNote error={onnxError} loading={onnxLoading} />}
         </div>
       </div>
     </div>

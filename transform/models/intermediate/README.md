@@ -34,7 +34,8 @@ All models are materialised as **views** (no storage cost; recomputed on demand)
 | `int_lap_residual_decomposed` | lap | Full additive decomposition (race) |
 | `int_lap_residual_decomposed_qualifying` | lap | Full additive decomposition (qualifying) |
 | `int_sector_residual_decomposed` | lap × sector | Sector-grain decomposition |
-| `int_pit_strategy_value` | stint | Undercut/overcut strategy value estimate |
+| `int_pit_strategy_cost_curve` | stint × horizon × candidate lap | `Total_Cost(L)` surface: wear on each set, plus SC-discounted pit loss |
+| `int_pit_strategy_value` | stint | Optimal pit lap (argmin of the cost curve) and the verdict on the actual one |
 | `int_qualifying_decomposed` | lap | Qualifying pace decomposition |
 | `int_lap_anomaly_flags` | lap | Anomaly classification (mistake, conditions, etc.) |
 | `int_event_corrections` | lap | Manual correction weights from `stg_events` |

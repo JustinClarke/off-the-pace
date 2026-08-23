@@ -41,6 +41,24 @@ describe('transform', () => {
     expect(result.verdictCounts.unknown).toBe(1)
   })
 
+  it('keeps early and undercut_forced as themselves, not null', () => {
+    // The SQL has always been able to emit these two, but coerceVerdict used to
+    // drop anything outside optimal/overran/unknown to null. It went unnoticed
+    // while the threshold-based model produced 5 such stints across 7 seasons;
+    // the Total_Cost(L) argmin produces 1,938, so a silent coercion here would
+    // grey out a quarter of the chart.
+    const rows = [
+      baseRow({ verdict: 'early' }),
+      baseRow({ driver_id: 'LEC', verdict: 'undercut_forced' }),
+    ]
+    const result = transform(rows, 57)
+    expect(result.stints[0].verdict).toBe('early')
+    expect(result.stints[1].verdict).toBe('undercut_forced')
+    expect(result.verdictCounts.early).toBe(1)
+    expect(result.verdictCounts.undercut_forced).toBe(1)
+    expect(result.verdictCounts.unknown).toBe(0)
+  })
+
   it('sums opportunity cost', () => {
     const rows = [
       baseRow({ opportunity_cost_s: 4.2 }),

@@ -23,7 +23,9 @@ import { loadModelManifest } from './manifest'
 
 export interface ParityRow {
   lap_id: string
-  field: 'degradation_jump_s' | 'degradation_jump_p10_s' | 'degradation_jump_p90_s' | 'remaining_stint_life_laps' | 'cliff_class'
+  field: 'degradation_jump_s' | 'degradation_jump_p10_s' | 'degradation_jump_p90_s'
+    | 'remaining_stint_life_laps' | 'remaining_stint_life_p10_laps'
+    | 'remaining_stint_life_p90_laps' | 'cliff_class'
   browser: number | string
   mart: number | string
   absDiff: number // 0/1 for the categorical cliff_class
@@ -48,6 +50,8 @@ interface JoinedRow extends FeatureRow {
   m_p10: number
   m_p90: number
   m_life: number
+  m_life_p10: number
+  m_life_p90: number
   m_cliff: string
 }
 
@@ -106,8 +110,10 @@ export async function verifyParity(season = 2024, limit = 64, tolerance = DEFAUL
       m.predicted_degradation_jump_s        AS m_p50,
       m.predicted_degradation_jump_p10_s    AS m_p10,
       m.predicted_degradation_jump_p90_s    AS m_p90,
-      m.predicted_remaining_stint_life_laps AS m_life,
-      m.predicted_cliff_class               AS m_cliff
+      m.predicted_remaining_stint_life_laps     AS m_life,
+      m.predicted_remaining_stint_life_p10_laps AS m_life_p10,
+      m.predicted_remaining_stint_life_p90_laps AS m_life_p90,
+      m.predicted_cliff_class                   AS m_cliff
     FROM fct_cliff_prediction_features f
     JOIN mart_degradation_predictions m USING (lap_id)
     ORDER BY f.lap_id
@@ -143,7 +149,13 @@ export async function verifyParity(season = 2024, limit = 64, tolerance = DEFAUL
     pushNum(j.lap_id, 'degradation_jump_s', b.degradation_jump_s, Number(j.m_p50))
     pushNum(j.lap_id, 'degradation_jump_p10_s', b.degradation_jump_p10_s, Number(j.m_p10))
     pushNum(j.lap_id, 'degradation_jump_p90_s', b.degradation_jump_p90_s, Number(j.m_p90))
+    // All three life columns are checked, not just the median. The band is derived
+    // in the browser from the AFT scale and in Python from the same scale, by two
+    // separate implementations of probit -- if those ever disagree the median alone
+    // would still match and the band would silently drift.
     pushNum(j.lap_id, 'remaining_stint_life_laps', b.remaining_stint_life_laps, Number(j.m_life))
+    pushNum(j.lap_id, 'remaining_stint_life_p10_laps', b.remaining_stint_life_p10_laps, Number(j.m_life_p10))
+    pushNum(j.lap_id, 'remaining_stint_life_p90_laps', b.remaining_stint_life_p90_laps, Number(j.m_life_p90))
     if (b.cliff.label !== j.m_cliff) {
       cliffClassMismatches++
       diffs.push({ lap_id: j.lap_id, field: 'cliff_class', browser: b.cliff.label, mart: j.m_cliff, absDiff: 1 })

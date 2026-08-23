@@ -24,9 +24,38 @@ WITH stint_aggregates AS (
         driver_id,
         MAX(lap_in_stint) AS stint_length_laps,
         MAX(compound_in_stint) AS compound,
-        MIN(age_in_stint) - 1 AS starting_tyre_age_laps
+        MIN(age_in_stint) - 1 AS starting_tyre_age_laps,
+        -- Functionally determined by stint_id (which encodes it); MAX is just
+        -- the aggregate that carries it past the GROUP BY.
+        MAX(stint_number) AS stint_number
     FROM {{ ref('int_stint_geometry') }}
     GROUP BY stint_id, race_year, race_id, driver_id
+),
+
+-- Right-censoring for stint-life modelling. A driver's last stint of a race
+-- ends at the chequered flag or at retirement, not at a tyre change: the tyre
+-- still had life we never observed, so remaining_stint_life_laps on those laps
+-- is a LOWER BOUND, not the truth. 46.2% of training rows sit on such a stint,
+-- which is why the stint-life model is fitted with survival:aft over an
+-- interval rather than squared error against a point. Anything that fits or
+-- scores stint life must read this flag -- see ml/src/features.py.
+censoring AS (
+    SELECT
+        stint_id,
+        -- COALESCE, not a bare comparison: 325 stints in 2018 carry a NULL
+        -- stint_number (343 laps FastF1 never assigned to a stint, 338 of them
+        -- already invalid). CONCAT folds the NULL to '' when stint_id is built,
+        -- so a driver-race has at most one such stint, and sorting it below
+        -- every real stint says the true thing -- an unassigned lap is not the
+        -- stint the driver finished on. Two drivers (2018_2 RIC, 2018_10 HAR)
+        -- have no other stint, so theirs is both first and last and is marked
+        -- censored, which keeps the flag a total partition. Left NULL instead,
+        -- the flag would be neither TRUE nor FALSE and every join downstream
+        -- would quietly drop those rows.
+        COALESCE(stint_number, -1)
+        = MAX(COALESCE(stint_number, -1)) OVER (PARTITION BY race_id, driver_id)
+            AS is_censored_stint
+    FROM stint_aggregates
 ),
 
 constructor_per_stint AS (
@@ -170,16 +199,29 @@ SELECT
     -- opportunity cost.
     -- Low score = good management (held pace well). NULL when no pit strategy
     -- data.
+    -- Clamped on BOTH sides. The ceiling was always here; the floor was not,
+    -- and a ratio is unbounded in whichever direction its denominator
+    -- approaches zero from. Once int_pit_strategy_value started returning a
+    -- real argmin, small positive opportunity costs became ordinary (median
+    -- 5.5 s where the overrun-only definition returned 0), and the score
+    -- reached -3321.9 on a stint whose cost rounded to a few hundredths.
+    -- Nothing tested it, because a one-sided clamp looks like a clamp.
     CASE
         WHEN ps.opportunity_cost_s IS NOT NULL AND ps.opportunity_cost_s > 0
             THEN
-                LEAST(
-                    llr.end_residual_s / NULLIF(ps.opportunity_cost_s, 0), 3.0
+                GREATEST(
+                    LEAST(
+                        llr.end_residual_s
+                        / NULLIF(ps.opportunity_cost_s, 0),
+                        3.0
+                    ),
+                    -3.0
                 )
     END AS tyre_management_score,
     sc.end_of_stint_pace_falloff_s_per_lap,
     sa.stint_length_laps < 3 AS short_stint_flag,
-    ps.pit_decision_class
+    ps.pit_decision_class,
+    cen.is_censored_stint
 FROM stint_aggregates AS sa
 LEFT JOIN constructor_per_stint AS cs ON sa.stint_id = cs.stint_id
 LEFT JOIN thermal_last AS ta ON sa.stint_id = ta.stint_id
@@ -188,4 +230,5 @@ LEFT JOIN cliff_agg AS ca ON sa.stint_id = ca.stint_id
 LEFT JOIN slope_calc AS sc ON sa.stint_id = sc.stint_id
 LEFT JOIN last_lap_residual AS llr ON sa.stint_id = llr.stint_id
 LEFT JOIN pit_strategy AS ps ON sa.stint_id = ps.stint_id
+INNER JOIN censoring AS cen ON sa.stint_id = cen.stint_id
 ORDER BY sa.race_year, sa.race_id, sa.driver_id

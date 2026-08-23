@@ -3,9 +3,12 @@
 CLI:
   python -m ml.src.predict --out data/marts/mart_degradation_predictions.parquet [--version v1|smoke]
 
-Output columns and dtypes are pinned by schema.PREDICTIONS_ARROW_SCHEMA (17). The quantile
+Output columns and dtypes are pinned by schema.PREDICTIONS_ARROW_SCHEMA (19). The quantile
 trio is row-sorted (no p10>p50>p90 crossing); a crossing rate > 1% is logged. Mismatch
 against the Arrow schema aborts the write.
+
+Stint life is an AFT fit, so it is written as a median plus the 10th/90th percentile
+of the same log-normal rather than as a lone point estimate -- see ml/src/survival.py.
 """
 from __future__ import annotations
 
@@ -20,6 +23,7 @@ import xgboost as xgb
 
 from ml.src import features as F
 from ml.src import schema as S
+from ml.src import survival as SV
 
 MODELS_DIR = Path("ml/models")
 CROSSING_WARN_THRESHOLD = 0.01
@@ -57,7 +61,18 @@ def run(out: str, version: str = S.MODEL_VERSION_DEFAULT) -> pa.Table:
     argmax = proba.argmax(axis=1)
     labels = np.asarray(S.CLIFF_CLASS_LABELS)
 
-    life = np.clip(_load_model(spec["stint_life_regressor"], version).predict(Xv), 0, None)
+    # Stint life: raw Booster, not the sklearn wrapper. The AFT margin has to be
+    # post-transformed here in exactly the way infer.ts does it in the browser, and
+    # the scale comes off the artefact itself so the two cannot drift apart.
+    life_path = MODELS_DIR / f"{S.artefact_name(spec['stint_life_regressor'], version)}.bst"
+    if not life_path.exists():
+        raise FileNotFoundError(f"missing booster {life_path}-run `make ml-train` (or --version smoke)")
+    life_bst = SV.load_booster(life_path)
+    life_scale = SV.aft_params(life_bst)["scale"]
+    life_margin = SV.margin(life_bst, Xv)
+    life = SV.laps_from_margin(life_margin, life_scale)
+    life_p10 = SV.laps_from_margin(life_margin, life_scale, S.STINT_LIFE_QUANTILES[0])
+    life_p90 = SV.laps_from_margin(life_margin, life_scale, S.STINT_LIFE_QUANTILES[2])
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     cols = {
@@ -75,6 +90,8 @@ def run(out: str, version: str = S.MODEL_VERSION_DEFAULT) -> pa.Table:
     for i, pc in enumerate(S.PROB_COLUMNS):
         cols[pc] = proba[:, i].astype("float64")
     cols["predicted_remaining_stint_life_laps"] = life.astype("float64")
+    cols["predicted_remaining_stint_life_p10_laps"] = life_p10.astype("float64")
+    cols["predicted_remaining_stint_life_p90_laps"] = life_p90.astype("float64")
     cols["model_version"] = np.full(len(meta), version, dtype=object)
     cols["predicted_at"] = np.full(len(meta), np.datetime64(now, "us"))
 

@@ -53,15 +53,17 @@ TEST_GROUPS = [
     ("ONNX Parity",      "test_onnx_parity.py",  5,
      "Each booster round-trips to ONNX within `atol=1e-5`, including a NaN-bearing sample (the ~47% null-prior laps)."),
     ("Predict Schema",   "test_predict.py",       3,
-     "Scored predictions parquet carries the declared 17-column schema; Arrow-validated."),
+     "Scored predictions parquet carries the declared 19-column schema (17 + the p10/p90 stint-life band); Arrow-validated."),
     ("Evaluation Gates", "test_evaluate.py",      7,
      "Every model beats its per-cohort baseline; calibration coverage computed; cohorts surfaced not dropped; metrics match the card."),
-    ("Targets",          "test_targets.py",       1,
-     "Degradation target ∈ [−10, 10]; no NULL-target row enters training."),
-    ("Version Contract", "test_manifest_contract.py", 10,
+    ("Targets",          "test_targets.py",       3,
+     "Stint-life target is synthesised without leaking `stint_length_laps`; the censoring flag rides in metadata and never becomes a feature; AFT bounds encode censoring as a point vs a half-line."),
+    ("Survival",         "test_survival.py",     18,
+     "The AFT contract itself: the +1 shift keeps zero-life stints off log(0), margins round-trip to laps, quantiles bracket the median and widen with scale, censored rows are not punished for over-prediction, and C-index ranks. `aft_params` refuses a non-AFT booster."),
+    ("Version Contract", "test_manifest_contract.py", 14,
      "The manifest names a version whose artefacts exist, declares the input width the boosters actually take, and matches the copy the browser loads."),
 ]
-EXPECTED_TOTAL = sum(t[2] for t in TEST_GROUPS)  # 40
+EXPECTED_TOTAL = sum(t[2] for t in TEST_GROUPS)  # 64
 
 
 def load_card() -> dict:

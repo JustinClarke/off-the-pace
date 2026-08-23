@@ -39,6 +39,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 from ml.src import features as F  # noqa: E402
 from ml.src import schema as S  # noqa: E402
+from ml.src import survival as SV  # noqa: E402
 from ml.src import train as T  # noqa: E402
 
 warnings.filterwarnings("ignore")
@@ -77,11 +78,25 @@ def _is_better(model_val: float, base_val: float, higher_is_better: bool) -> boo
 
 
 def _headline_metric_name(spec: S.TargetSpec) -> str:
-    return {"quantile": "pinball", "classification": "macro_f1"}.get(spec.kind, "rmse")
+    return {"quantile": "pinball", "classification": "macro_f1",
+            "survival": "aft_nloglik"}.get(spec.kind, "rmse")
 
 
-def _score(spec: S.TargetSpec, y_true: np.ndarray, pred: np.ndarray) -> float:
-    """Model/baseline headline on a row set. pred is class-index for the classifier."""
+def _score(spec: S.TargetSpec, y_true: np.ndarray, pred: np.ndarray,
+           cens: np.ndarray | None = None, scale: float | None = None) -> float:
+    """Model/baseline headline on a row set. pred is class-index for the classifier,
+    and the median remaining life for the survival model -- which also needs `cens`,
+    because scoring a censored row as an observed death is the exact mistake the AFT
+    framing exists to avoid. Passing cens=None for a survival spec is a programming
+    error, not a default: it is raised rather than silently scored."""
+    if spec.kind == "survival":
+        if cens is None:
+            raise ValueError(
+                "_score on a survival target needs the censoring flags; without them "
+                "the likelihood is computed over the wrong population")
+        meta = pd.DataFrame({S.STINT_LIFE_CENSOR_COLUMN: np.asarray(cens, dtype=bool)})
+        _, value = T._headline(spec, y_true, pred, meta, scale)
+        return value
     _, value = T._headline(spec, y_true, pred)
     return value
 
@@ -90,7 +105,7 @@ def _score(spec: S.TargetSpec, y_true: np.ndarray, pred: np.ndarray) -> float:
 class EvalSplit:
     def __init__(self, mode: str, eval_season: int | None,
                  X_tr, y_tr, seasons_tr, lap_ids_tr,
-                 X_ev, y_ev, lap_ids_ev):
+                 X_ev, y_ev, lap_ids_ev, cens_tr=None, cens_ev=None):
         self.mode = mode                  # "holdout" | "cv_final_fold"
         self.eval_season = eval_season
         self.X_tr, self.y_tr = X_tr, y_tr
@@ -98,10 +113,20 @@ class EvalSplit:
         self.lap_ids_tr = np.asarray(lap_ids_tr)
         self.X_ev, self.y_ev = X_ev, y_ev
         self.lap_ids_ev = np.asarray(lap_ids_ev)
+        # Right-censoring flags, aligned row-for-row with y_tr / y_ev. None for every
+        # target except stint life -- the survival model cannot be fitted or scored
+        # without them, and everything else ignores them.
+        self.cens_tr = None if cens_tr is None else np.asarray(cens_tr, dtype=bool)
+        self.cens_ev = None if cens_ev is None else np.asarray(cens_ev, dtype=bool)
 
 
 def _evaluation_split(bundle: F.FeatureBundle) -> EvalSplit:
     """Live holdout when 2025 has ingested; until then the final TimeSeriesSplit fold (2024)."""
+    is_survival = S.TARGET_BY_NAME[bundle.target_name].kind == "survival" \
+        if bundle.target_name else False
+    cc = S.STINT_LIFE_CENSOR_COLUMN
+    cens_all_tr = (bundle.meta_train[cc].to_numpy(dtype=bool) if is_survival else None)
+
     holdout_live = (len(bundle.X_holdout) > 0 and bundle.y_holdout is not None
                     and bundle.y_holdout.notna().any())
     if holdout_live:
@@ -112,7 +137,10 @@ def _evaluation_split(bundle: F.FeatureBundle) -> EvalSplit:
             bundle.groups_train.to_numpy(), bundle.meta_train["lap_id"].to_numpy(),
             bundle.X_holdout[keep].reset_index(drop=True),
             bundle.y_holdout[keep].to_numpy(),
-            bundle.meta_holdout[keep]["lap_id"].to_numpy())
+            bundle.meta_holdout[keep]["lap_id"].to_numpy(),
+            cens_tr=cens_all_tr,
+            cens_ev=(bundle.meta_holdout[keep][cc].to_numpy(dtype=bool)
+                     if is_survival else None))
 
     seasons = bundle.groups_train.to_numpy()
     folds = list(T._season_folds(seasons, bundle.training_seasons, n_splits=5))
@@ -123,7 +151,9 @@ def _evaluation_split(bundle: F.FeatureBundle) -> EvalSplit:
         "cv_final_fold", int(seasons[ev][0]),
         bundle.X_train.iloc[tr].reset_index(drop=True), y[tr],
         seasons[tr], lap_ids[tr],
-        bundle.X_train.iloc[ev].reset_index(drop=True), y[ev], lap_ids[ev])
+        bundle.X_train.iloc[ev].reset_index(drop=True), y[ev], lap_ids[ev],
+        cens_tr=(cens_all_tr[tr] if cens_all_tr is not None else None),
+        cens_ev=(cens_all_tr[ev] if cens_all_tr is not None else None))
 
 
 # ─── Cohort dimension table (raw, keyed by lap_id) ──────────────────────────────
@@ -190,10 +220,56 @@ def baseline_predictions(spec: S.TargetSpec, train_dims: pd.DataFrame,
     return np.clip(base, 0, None)
 
 
+# ─── Survival report: the two populations, never pooled ─────────────────────────
+def survival_report(y_true, model_pred, base_pred, cens, scale: float) -> dict:
+    """Stint-life quality, censored and uncensored reported apart.
+
+    They are kept apart because pooling them is how this model was previously
+    flattered. ml_headroom_ii.md #3 measured a "+12.4% improvement" from training
+    on uncensored stints only; that gain is the selection effect scoring itself,
+    since the stints that end in a tyre change are exactly the ones the pit wall
+    chose to end. An uncensored-only number is therefore reported as one of two
+    populations and never as the headline.
+
+    C-index is computed over all rows -- it is defined on censored data, and
+    ranking is the property the gauge's colour band actually depends on.
+    """
+    c = np.asarray(cens, dtype=bool)
+    y = np.asarray(y_true, dtype=np.float64)
+    mp = np.asarray(model_pred, dtype=np.float64)
+    bp = np.asarray(base_pred, dtype=np.float64)
+
+    def pop(mask: np.ndarray) -> dict:
+        if not mask.any():
+            return {"n": 0, "aft_nloglik": None, "baseline_aft_nloglik": None,
+                    "median_abs_error_laps": None}
+        d = {"n": int(mask.sum()),
+             "aft_nloglik": SV.aft_nloglik(y[mask], mp[mask], c[mask], scale),
+             "baseline_aft_nloglik": SV.aft_nloglik(y[mask], bp[mask], c[mask], scale)}
+        # A median absolute error is meaningful only where the life was observed;
+        # on a censored row the "error" is against a lower bound, so it is omitted
+        # rather than reported as if it meant the same thing.
+        d["median_abs_error_laps"] = (
+            float(np.median(np.abs(mp[mask] - y[mask]))) if not c[mask].any() else None)
+        return d
+
+    return {
+        "scale": float(scale),
+        "label_shift": S.AFT_LABEL_SHIFT,
+        "distribution": S.AFT_DISTRIBUTION,
+        "censored_share": float(c.mean()),
+        "c_index": SV.c_index(y, mp, c),
+        "baseline_c_index": SV.c_index(y, bp, c),
+        "uncensored": pop(~c),
+        "censored": pop(c),
+    }
+
+
 # ─── Cohort metric breakdown ────────────────────────────────────────────────────
 def _cohort_table(spec: S.TargetSpec, dim_name: str, dims: pd.DataFrame,
                   y_true: np.ndarray, model_pred: np.ndarray,
-                  base_pred: np.ndarray) -> tuple[dict, list]:
+                  base_pred: np.ndarray, cens: np.ndarray | None = None,
+                  scale: float | None = None) -> tuple[dict, list]:
     """Per-cohort model-vs-baseline headline; cells with n<30 fold into '_other'. Returns
     (table, underperformers)."""
     hib = _higher_is_better(spec)
@@ -207,8 +283,9 @@ def _cohort_table(spec: S.TargetSpec, dim_name: str, dims: pd.DataFrame,
         m = keys == key
         if m.sum() == 0:
             continue
-        mv = _score(spec, y_true[m], model_pred[m])
-        bv = _score(spec, y_true[m], base_pred[m])
+        cm = None if cens is None else cens[m]
+        mv = _score(spec, y_true[m], model_pred[m], cm, scale)
+        bv = _score(spec, y_true[m], base_pred[m], cm, scale)
         beats = _is_better(mv, bv, hib)
         table[str(key)] = {"n": int(m.sum()), "model": mv, "baseline": bv, "beats_baseline": beats}
         if not beats:
@@ -261,13 +338,15 @@ def _calibration_plot(y, p10, p90, path: Path) -> None:
 
 # ─── Dual importance: SHAP + permutation ─────────────────────────────────────────
 def dual_importance(model, spec: S.TargetSpec, X_explain: pd.DataFrame,
-                    X_perm: pd.DataFrame, y_perm: np.ndarray) -> dict:
+                    X_perm: pd.DataFrame, y_perm: np.ndarray,
+                    cens_perm=None, scale=None) -> dict:
     import shap
     from sklearn.inspection import permutation_importance
     from sklearn.metrics import make_scorer, mean_pinball_loss
 
     feats = list(X_explain.columns)
-    expl = shap.TreeExplainer(model)
+    # AFTBooster is not a sklearn estimator; SHAP reads the raw Booster fine.
+    expl = shap.TreeExplainer(model.booster if spec.kind == "survival" else model)
     sv = expl.shap_values(X_explain)
     sv = np.asarray(sv)
     # multiclass → (n, f, c) or list; collapse classes + rows to mean|.|
@@ -276,17 +355,38 @@ def dual_importance(model, spec: S.TargetSpec, X_explain: pd.DataFrame,
     shap_rank = sorted(zip(feats, [float(v) for v in np.ravel(shap_imp)]),
                        key=lambda t: t[1], reverse=True)
 
-    if spec.kind == "classification":
-        scoring = "f1_macro"
-    elif spec.kind == "quantile":
-        scoring = make_scorer(mean_pinball_loss, alpha=spec.quantile_alpha,
-                              greater_is_better=False)
+    if spec.kind == "survival":
+        # sklearn's permutation_importance wants an estimator it can score, and the
+        # AFT wrapper is not one. Doing the shuffle directly against the censored
+        # NLL is both simpler and the metric we actually care about -- going through
+        # a sklearn scorer here would have meant scoring the survival model on
+        # something that ignores censoring, which is the whole defect being fixed.
+        rng = np.random.default_rng(S.RANDOM_STATE)
+        c = np.asarray(cens_perm, dtype=bool)
+        ref = SV.aft_nloglik(y_perm, model.predict(X_perm), c, scale)
+        imp = []
+        for f in feats:
+            deltas = []
+            for _ in range(PERM_REPEATS):
+                Xp = X_perm.copy()
+                Xp[f] = rng.permutation(Xp[f].to_numpy())
+                # NLL is lower-is-better, so a feature that matters makes it rise;
+                # sign it so "larger = more important", matching the other families.
+                deltas.append(SV.aft_nloglik(y_perm, model.predict(Xp), c, scale) - ref)
+            imp.append(float(np.mean(deltas)))
+        perm_rank = sorted(zip(feats, imp), key=lambda t: t[1], reverse=True)
     else:
-        scoring = "neg_root_mean_squared_error"
-    perm = permutation_importance(model, X_perm, y_perm, n_repeats=PERM_REPEATS,
-                                  random_state=S.RANDOM_STATE, scoring=scoring, n_jobs=-1)
-    perm_rank = sorted(zip(feats, [float(v) for v in perm.importances_mean]),
-                       key=lambda t: t[1], reverse=True)
+        if spec.kind == "classification":
+            scoring = "f1_macro"
+        elif spec.kind == "quantile":
+            scoring = make_scorer(mean_pinball_loss, alpha=spec.quantile_alpha,
+                                  greater_is_better=False)
+        else:
+            scoring = "neg_root_mean_squared_error"
+        perm = permutation_importance(model, X_perm, y_perm, n_repeats=PERM_REPEATS,
+                                      random_state=S.RANDOM_STATE, scoring=scoring, n_jobs=-1)
+        perm_rank = sorted(zip(feats, [float(v) for v in perm.importances_mean]),
+                           key=lambda t: t[1], reverse=True)
 
     shap_top = [f for f, _ in shap_rank[:5]]
     perm_top = [f for f, _ in perm_rank[:5]]
@@ -300,23 +400,24 @@ def dual_importance(model, spec: S.TargetSpec, X_explain: pd.DataFrame,
 
 # ─── Ablation + learning curve ────────────────────────────────────────────────────
 def ablation(spec: S.TargetSpec, params: dict, X_tr, y_tr, X_ev, y_ev,
-             target: str) -> list[dict]:
-    full = _fit(spec, params, X_tr, y_tr)
-    base = _score(spec, y_ev, _predict_index(spec, full, X_ev))
+             target: str, cens_tr=None, cens_ev=None, scale=None) -> list[dict]:
+    full = _fit(spec, params, X_tr, y_tr, cens_tr)
+    base = _score(spec, y_ev, _predict_index(spec, full, X_ev), cens_ev, scale)
     rows = [{"group": "<none>", "headline": base, "delta_vs_full": 0.0}]
     for grp, cols in S.FEATURE_GROUPS.items():
         keep = [c for c in X_tr.columns if c not in cols]
         if not keep:
             continue
-        m = _fit(spec, params, X_tr[keep], y_tr)
-        val = _score(spec, y_ev, _predict_index(spec, m, X_ev[keep]))
+        m = _fit(spec, params, X_tr[keep], y_tr, cens_tr)
+        val = _score(spec, y_ev, _predict_index(spec, m, X_ev[keep]), cens_ev, scale)
         rows.append({"group": grp, "headline": val, "delta_vs_full": val-base})
     pd.DataFrame(rows).to_parquet(ARTEFACTS_DIR / f"ablation_{target}.parquet", index=False)
     return rows
 
 
 def learning_curve(spec: S.TargetSpec, params: dict, X_tr, y_tr, seasons_tr,
-                   X_ev, y_ev, target: str) -> list[dict]:
+                   X_ev, y_ev, target: str, cens_tr=None, cens_ev=None,
+                   scale=None) -> list[dict]:
     seasons = sorted(set(int(s) for s in seasons_tr))
     rows = []
     for i in range(len(seasons)):
@@ -324,8 +425,9 @@ def learning_curve(spec: S.TargetSpec, params: dict, X_tr, y_tr, seasons_tr,
         m = np.isin(seasons_tr, used)
         if m.sum() < 100:
             continue
-        model = _fit(spec, params, X_tr[m], y_tr[m])
-        val = _score(spec, y_ev, _predict_index(spec, model, X_ev))
+        model = _fit(spec, params, X_tr[m], y_tr[m],
+                     None if cens_tr is None else np.asarray(cens_tr)[m])
+        val = _score(spec, y_ev, _predict_index(spec, model, X_ev), cens_ev, scale)
         rows.append({"train_seasons": used, "n_train": int(m.sum()), "headline": val})
     if rows:
         fig, ax = plt.subplots(figsize=(6, 4))
@@ -348,6 +450,14 @@ def behaviour_audit(model, spec: S.TargetSpec, X_ev: pd.DataFrame,
     # multi-class PDP requires a target class; explain the imminent-cliff class (0_to_2).
     pdp_kwargs = {"target": 0} if spec.kind == "classification" else {}
     try:
+        if spec.kind == "survival":
+            # AFTBooster is not a sklearn estimator, and PartialDependenceDisplay
+            # only takes one. Stated as a skip rather than left to raise into
+            # pdp_error, so "no PDP for stint life" reads as a decision instead of
+            # looking like a transient failure nobody has looked at.
+            raise NotImplementedError(
+                "PDP skipped: survival model is a raw Booster, not a sklearn estimator; "
+                "the monotonicity probe below covers the same question")
         fig, ax = plt.subplots(figsize=(9, 3))
         PartialDependenceDisplay.from_estimator(model, X_ev, top3, ax=ax, **pdp_kwargs)
         fig.suptitle(f"PDP top-3-{target}", fontsize=9)
@@ -422,8 +532,14 @@ def biggest_misses(model, X_ev: pd.DataFrame, y_ev: np.ndarray,
 
 
 # ─── Eval-model fit/predict helpers (refit on the honest split; not the shipped v1) ─
-def _fit(spec: S.TargetSpec, params: dict, X, y):
+def _fit(spec: S.TargetSpec, params: dict, X, y, cens=None):
     model = T._make_model(spec, params)
+    if spec.kind == "survival":
+        if cens is None:
+            raise ValueError("_fit on a survival target needs the censoring flags")
+        model.fit(X, y, sample_weight=T._sample_weight(spec, y),
+                  is_censored=np.asarray(cens, dtype=bool))
+        return model
     model.fit(X, y, sample_weight=T._sample_weight(spec, y))
     return model
 
@@ -451,8 +567,11 @@ def evaluate_target(target: str, version: str, dims_all: pd.DataFrame,
     params = _params_for(target, version)
 
     # Eval model: refit on the honest training side of the split.
-    model = _fit(spec, params, split.X_tr, split.y_tr)
+    model = _fit(spec, params, split.X_tr, split.y_tr, split.cens_tr)
     model_pred = _predict_index(spec, model, split.X_ev)
+    # The AFT scale is a term in the likelihood, so it has to be the scale this
+    # model was actually fitted at, not the module default.
+    scale = getattr(model, "scale", None) if spec.kind == "survival" else None
 
     # Cohort/baseline dims aligned to the eval rows (and the training side, for the lookup).
     train_dims = dims_all.loc[split.lap_ids_tr].reset_index()
@@ -464,12 +583,13 @@ def evaluate_target(target: str, version: str, dims_all: pd.DataFrame,
     base_pred = baseline_predictions(spec, train_dims, eval_dims)
 
     hib = _higher_is_better(spec)
-    headline = _score(spec, split.y_ev, model_pred)
-    baseline = _score(spec, split.y_ev, base_pred)
+    headline = _score(spec, split.y_ev, model_pred, split.cens_ev, scale)
+    baseline = _score(spec, split.y_ev, base_pred, split.cens_ev, scale)
 
     cohorts, under = {}, []
     for dim_name in ("compound", "circuit_key", "constructor_id", "is_rain_lap", "race_year"):
-        tbl, u = _cohort_table(spec, dim_name, eval_dims, split.y_ev, model_pred, base_pred)
+        tbl, u = _cohort_table(spec, dim_name, eval_dims, split.y_ev, model_pred,
+                               base_pred, split.cens_ev, scale)
         cohorts[f"by_{dim_name}"] = tbl
         under.extend(u)
 
@@ -482,9 +602,20 @@ def evaluate_target(target: str, version: str, dims_all: pd.DataFrame,
         "n_eval_rows": int(len(split.y_ev)),
         "cohorts": cohorts, "underperforming_cohorts": under,
     }
+    if spec.kind == "survival":
+        out["survival"] = survival_report(split.y_ev, model_pred, base_pred,
+                                          split.cens_ev, scale)
+
     print(f"[{target}] {out['headline_metric']}: model={headline:.4f} "
           f"baseline={baseline:.4f}  beats={out['beats_baseline']}  "
           f"(mode={split.mode}, eval_season={split.eval_season}, n={len(split.y_ev)})")
+    if spec.kind == "survival":
+        sr = out["survival"]
+        print(f"[{target}] c_index={sr['c_index']:.4f}  "
+              f"nll_uncensored={sr['uncensored']['aft_nloglik']:.4f} "
+              f"(n={sr['uncensored']['n']})  "
+              f"nll_censored={sr['censored']['aft_nloglik']:.4f} "
+              f"(n={sr['censored']['n']})")
 
     # Stash the degradation trio predictions for the family-level calibration report.
     if spec.family == "degradation_regressor":
@@ -499,17 +630,20 @@ def evaluate_target(target: str, version: str, dims_all: pd.DataFrame,
             perm_n = min(PERM_SAMPLE, len(split.X_ev))
             idx = np.random.default_rng(S.RANDOM_STATE).choice(len(split.X_ev), perm_n, replace=False)
             out["importance"] = dual_importance(
-                model, spec, Xs, split.X_ev.iloc[idx], split.y_ev[idx])
+                model, spec, Xs, split.X_ev.iloc[idx], split.y_ev[idx],
+                None if split.cens_ev is None else split.cens_ev[idx], scale)
         except Exception as e:
             out["importance_error"] = str(e)
         try:
             out["ablation"] = ablation(spec, params, split.X_tr, split.y_tr,
-                                       split.X_ev, split.y_ev, target)
+                                       split.X_ev, split.y_ev, target,
+                                       split.cens_tr, split.cens_ev, scale)
         except Exception as e:
             out["ablation_error"] = str(e)
         try:
             out["learning_curve"] = learning_curve(spec, params, split.X_tr, split.y_tr,
-                                                    split.seasons_tr, split.X_ev, split.y_ev, target)
+                                                    split.seasons_tr, split.X_ev, split.y_ev,
+                                                    target, split.cens_tr, split.cens_ev, scale)
         except Exception as e:
             out["learning_curve_error"] = str(e)
         try:

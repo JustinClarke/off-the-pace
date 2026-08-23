@@ -24,6 +24,7 @@ from onnxmltools.convert.common.data_types import FloatTensorType
 
 from ml.src import features as F
 from ml.src import schema as S
+from ml.src import survival as SV
 
 MODELS_DIR = Path("ml/models")
 LOGS_DIR = MODELS_DIR / "training_logs"
@@ -38,6 +39,16 @@ MANIFEST_SCHEMA_VERSION = 1  # bump if the manifest shape changes (application l
 ATOL = 1e-5
 RTOL = 1e-5
 PARITY_ROWS = 500
+# The AFT margin offset must be the SAME number on every row, not the mean of a
+# scatter. The threshold discriminates float32 noise from a structural error, and
+# is set from measurement rather than from taste: on the production sample the
+# observed spread is 2.1e-6 about a margin of magnitude 4.1 (relative ~5e-7), which
+# is ordinary float32 tree-sum reordering. A real dispatch failure -- the
+# unretagged LOGISTIC graph, a wrong base_score, a post-transform left on -- moves
+# the offset by O(0.1) to O(10). 1e-4 sits ~50x above the noise floor and three to
+# five orders below any genuine break, so it can fail for a real reason and cannot
+# fail for a fake one.
+OFFSET_CONSTANT_TOL = 1e-4
 
 
 def _load_sklearn(spec: S.TargetSpec, path: Path):
@@ -56,9 +67,69 @@ def _paths(spec: S.TargetSpec, version: str) -> tuple[Path, Path]:
     return MODELS_DIR / f"{base}.bst", MODELS_DIR / f"{base}.onnx"
 
 
+# ─── AFT export: retag the objective, then recover the offset ───────────────────
+# onnxmltools dispatches on the booster's objective string, and it has no case for
+# survival:aft. Handed one it produces a TreeEnsembleCLASSIFIER with a LOGISTIC
+# post-transform and label/probabilities outputs -- a graph whose output is not the
+# margin, not the prediction, and not even the right shape. (ml_execution_plan.md
+# Phase 3c expected "the raw margin, exp(onnx - 1.193147)". It is not the raw
+# margin; that constant was ln(2) + the 0.5 base_score, conflating two different
+# extraction points.)
+#
+# So the objective is retagged to reg:squarederror for export only. The trees are
+# untouched -- only the tag the converter dispatches on, and base_score, which is
+# zeroed so the graph emits the bare tree sum. That leaves a constant offset
+# between the graph and the AFT margin (AFT applies log(base_score) as its
+# intercept, so with base_score 0.5 the gap is exactly -ln 2), and rather than
+# hardcode it we measure it and assert it is actually constant.
+def _retagged_regressor(bst_path: Path) -> xgb.Booster:
+    """The same trees, tagged so onnxmltools emits a TreeEnsembleRegressor."""
+    src = SV.load_booster(bst_path)
+    raw = json.loads(src.save_raw(raw_format="json").decode("utf-8"))
+    raw["learner"]["objective"] = {"name": "reg:squarederror",
+                                   "reg_loss_param": {"scale_pos_weight": "1"}}
+    raw["learner"]["learner_model_param"]["base_score"] = "0E0"
+    out = xgb.Booster()
+    out.load_model(bytearray(json.dumps(raw), "utf-8"))
+    out.feature_names = None
+    return out
+
+
+def _aft_margin_offset(bst_path: Path, sess, sample: np.ndarray) -> float:
+    """Recover `margin - onnx_output` and prove it is a constant, not an average.
+
+    The plan says to take the constant from a row rather than hardcoding it. Taking
+    it from one row is exactly what happens -- row 0 -- but a single row can only
+    ever agree with itself, so the spread across the whole parity sample is checked
+    before the number is allowed to ship. That check is the difference between a
+    calibration and a coincidence.
+    """
+    aft = SV.load_booster(bst_path)
+    m = SV.margin(aft, sample)
+    onx = np.asarray(sess.run(None, {"input": sample})[0]).reshape(-1).astype(np.float64)
+    diffs = m - onx
+    offset = float(diffs[0])                    # from a row, per the plan
+    spread = float(np.max(np.abs(diffs - offset)))
+    if spread > OFFSET_CONSTANT_TOL:
+        raise ValueError(
+            f"AFT margin offset is not constant across the parity sample: "
+            f"spread={spread:.3e} > {OFFSET_CONSTANT_TOL:.0e}. The ONNX graph is not "
+            f"a fixed shift of the AFT margin, so exp(onnx + offset) cannot be "
+            f"parity-correct -- do not ship this conversion.")
+    return offset
+
+
 def convert(target: str, version: str) -> Path:
     spec = S.TARGET_BY_NAME[target]
     bst_path, onnx_path = _paths(spec, version)
+    if spec.kind == "survival":
+        booster = _retagged_regressor(bst_path)
+        n_features = int(json.loads(booster.save_config())
+                         ["learner"]["learner_model_param"]["num_feature"])
+        onx = onnxmltools.convert_xgboost(
+            booster, initial_types=[("input", FloatTensorType([None, n_features]))])
+        onnx_path.write_bytes(onx.SerializeToString())
+        return onnx_path
     model = _load_sklearn(spec, bst_path)
     n_features = int(getattr(model, "n_features_in_", len(S.FEATURE_COLUMNS)))
     onx = onnxmltools.convert_xgboost(
@@ -82,14 +153,27 @@ def _onnx_proba(sess, sample, n_classes: int) -> np.ndarray:
 
 def parity(target: str, version: str, sample: np.ndarray) -> dict:
     spec = S.TARGET_BY_NAME[target]
-    _, onnx_path = _paths(spec, version)
-    model = _load_sklearn(spec, _paths(spec, version)[0])
+    bst_path, onnx_path = _paths(spec, version)
     sess = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
+    extra: dict = {}
 
-    if spec.kind == "classification":
+    if spec.kind == "survival":
+        # Parity is measured on LAPS -- the number the gauge renders -- not on the
+        # graph's raw output. Checking the raw output would pass happily while the
+        # post-transform was wrong, which is the failure this whole phase is about.
+        aft = SV.load_booster(bst_path)
+        aft_scale = SV.aft_params(aft)["scale"]
+        offset = _aft_margin_offset(bst_path, sess, sample)
+        onnx_raw = np.asarray(sess.run(None, {"input": sample})[0]).reshape(-1)
+        bst = SV.predict_laps(aft, sample, aft_scale)
+        onx = SV.laps_from_margin(onnx_raw.astype(np.float64) + offset, aft_scale)
+        extra = {"aft_margin_offset": offset, "aft_scale": aft_scale}
+    elif spec.kind == "classification":
+        model = _load_sklearn(spec, bst_path)
         bst = model.predict_proba(sample)
         onx = _onnx_proba(sess, sample, n_classes=len(S.CLIFF_CLASS_LABELS))
     else:
+        model = _load_sklearn(spec, bst_path)
         bst = model.predict(sample).reshape(-1)
         onx = _onnx_regression(sess, sample)
 
@@ -99,7 +183,7 @@ def parity(target: str, version: str, sample: np.ndarray) -> dict:
     ok = bool(np.allclose(a, b, atol=ATOL, rtol=RTOL))
     return {"target": target, "max_abs_diff": max_abs, "max_rel_diff": max_rel,
             "atol": ATOL, "rtol": RTOL, "pass": ok,
-            "n_rows": int(sample.shape[0]), "kind": spec.kind}
+            "n_rows": int(sample.shape[0]), "kind": spec.kind, **extra}
 
 
 def nan_bearing_sample(n: int = PARITY_ROWS, seed: int = S.RANDOM_STATE) -> np.ndarray:
@@ -167,6 +251,24 @@ def build_manifest(version: str, parities: dict[str, dict]) -> dict:
             entry["output"] = {"probabilities_index": 1, "zipmap": True,
                                "class_order": list(S.CLIFF_CLASS_LABELS),
                                "meaning": "laps_until_cliff_class softprob"}
+        elif spec.kind == "survival":
+            # Everything the browser needs to turn the graph output into laps. The
+            # offset and scale are measured/read at export, never hardcoded in the
+            # app -- app/src/ml/survival.ts reads them from here.
+            par = parities.get(spec.name, {})
+            entry["output"] = {
+                "index": 0,
+                "meaning": "aft_margin (log remaining_stint_life_laps + shift)",
+                "postprocess": "exp(x + margin_offset) - label_shift, clip(>=0)",
+                "margin_offset": par.get("aft_margin_offset"),
+                "label_shift": S.AFT_LABEL_SHIFT,
+                "aft_distribution": S.AFT_DISTRIBUTION,
+                "aft_scale": par.get("aft_scale"),
+                # quantile q = exp(margin + aft_scale * probit(q)) - label_shift
+                "quantiles": {f"p{int(q*100)}": q for q in S.STINT_LIFE_QUANTILES},
+                "censored_share_train": (log.get("aft") or {}).get("censored_share"),
+                "c_index_cv": (log.get("aft") or {}).get("c_index_cv"),
+            }
         else:
             entry["output"] = {"index": 0, "meaning": "remaining_stint_life_laps",
                                "postprocess": "clip(>=0)"}

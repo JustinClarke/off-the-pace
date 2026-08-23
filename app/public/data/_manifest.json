@@ -1,12 +1,12 @@
 {
-  "version": "6b741cdc51c5306c",
-  "generatedAt": "2026-08-23T06:32:14.427915+00:00",
+  "version": "15a491f5366d5763",
+  "generatedAt": "2026-08-23T17:53:38.457252+00:00",
   "stats": {
     "total_laps": 137447,
     "total_drivers": 40,
     "total_events": 6,
     "total_circuits": 44,
-    "dbt_models": 67,
+    "dbt_models": 68,
     "ml_models": 5,
     "seasons": "2018\u20132024",
     "seasons_list": [

@@ -993,8 +993,15 @@ models:
   - name: int_pit_strategy_value
     description: >
       One row per stint. Evaluates pit strategy: what was the optimal pit lap vs actual?
-      Computes opportunity_cost_s (seconds lost by pitting late), optimal_pit_lap, and verdict
-      (optimal / overran / undercut_forced / early). Counterfactual assumes cliff model degradation trajectory.
+      The argmin of int_pit_strategy_cost_curve's Total_Cost(L) over every candidate lap in
+      the horizon, replacing the "first lap where expected wear exceeds 0.5 s" threshold that
+      stood here until 2026-08-23 and had no pit-loss term in it. That threshold returned
+      'optimal' on 8 stints of 7,129 and 'unknown' on 2,231; the argmin returns 715 and 266.
+      Two horizons are reported. The verdict follows the two-stint window (this stint's first
+      lap through the next stint's last), the only framing well posed for the 61% of stints in
+      a 2-stop or longer race; the race-remainder optimum is carried alongside as a diagnostic.
+      opportunity_cost_s is now Total_Cost(actual) - Total_Cost(optimal), so pitting early
+      carries a cost too, which the overrun-only definition could not express.
       Pit-loss is per circuit from int_pit_loss_circuit's empirical, EB-shrunk estimate
       (19.3–29.6 s over the 147 races that resolve one), falling back to the circuit_reference
       seed and then 21.0 s; pit_loss_source records which was used.
@@ -1006,13 +1013,28 @@ models:
         description: PK, FK to int_stint_geometry
         tests: [not_null, unique]
       - name: optimal_pit_lap
-        description: Optimal pit lap number (absolute race lap). NULL when cliff onset unknown.
+        description: >
+          Optimal pit lap number (absolute race lap) - the lap the car enters the pit lane,
+          i.e. one after the last lap run on the set, matching stg_pits.pit_in_lap_number.
+          NULL when the compound has no fitted curve to minimise over.
+      - name: optimal_pit_lap_in_stint
+        description: >
+          Optimal laps to run on the set before boxing, counted in VALID laps. Not a
+          chronological lap_in_stint: SC and pit laps do not age a tyre the way a racing lap
+          does, and the cost curve is indexed on tyre age.
       - name: actual_pit_lap
         description: Actual pit lap number from stg_pits. NULL for last stint of race.
       - name: overrun_laps
-        description: actual_pit_lap minus optimal_pit_lap. Negative = pitted early. NULL when either is NULL.
+        description: >
+          Actual laps run on the set minus optimal, in valid laps. Negative = pitted early.
+          Compared as offsets rather than lap numbers so an invalid lap before the stop cannot
+          skew it. NULL when either side is NULL. Median -1 across seven seasons: teams stop
+          slightly earlier than a degradation-only optimum, which is what track position buys.
       - name: opportunity_cost_s
-        description: Cumulative degradation penalty from overrunning optimal. Non-negative.
+        description: >
+          Total_Cost(actual) - Total_Cost(optimal), in seconds. Non-negative by construction:
+          the optimum is a minimum over the same curve. Zero for a stint that never stopped,
+          which had no pit decision to grade. Median 5.5 s, p95 83 s.
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
@@ -1029,7 +1051,12 @@ models:
               config:
                 where: "strategy_verdict IS NOT NULL"
       - name: optimal_pit_lap_confidence
-        description: Confidence in optimal lap estimate [0, 1]. Degrades when cliff onset is NULL.
+        description: >
+          How sharply identified the optimum is: the share of candidate laps whose total cost
+          is more than a second worse than it. 1.0 = one lap stands out; near 0 = the curve is
+          flat and the exact lap barely matters. 0.0 where no curve exists. Replaces the
+          0.0/0.1/0.8 sentinel ladder, which encoded whether cliff onset was NULL rather than
+          anything about the estimate.
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
@@ -1057,6 +1084,136 @@ models:
         description: >
           TRUE when nothing was measured on either side - no empirical stops resolved and the
           seed row was itself a guess.
+        tests: [not_null]
+      - name: horizon_source
+        description: >
+          Which horizon the verdict's argmin used - two_stint (4,014 stints) or the
+          race_remainder fallback for a stint with no successor (2,642). NULL where no fitted
+          compound curve exists to minimise over (473).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['two_stint', 'race_remainder']
+              config:
+                where: "horizon_source IS NOT NULL"
+      - name: horizon_laps
+        description: Length of that horizon in valid laps.
+      - name: optimal_pit_lap_race_in_stint
+        description: >
+          The race-remainder optimum, in valid laps on the set. Diagnostic: asks the harsher
+          unconditional question "if they had stopped only once more all race, when?" rather
+          than grading the stop inside the strategy the team actually ran.
+      - name: optimal_pit_lap_race
+        description: Absolute race lap for optimal_pit_lap_race_in_stint.
+      - name: opportunity_cost_race_s
+        description: >
+          The same actual-minus-optimal difference measured on the race-remainder horizon.
+          Systematically larger than opportunity_cost_s for a 2-stopper, because a one-stop
+          counterfactual charges them for a stop they were never going to skip.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 6000.0
+              config:
+                where: "opportunity_cost_race_s IS NOT NULL"
+
+  - name: int_pit_strategy_cost_curve
+    description: >
+      One row per (stint_id, horizon_scope, candidate_pit_lap_offset): the Total_Cost(L)
+      surface int_pit_strategy_value's header described for two years and never computed.
+      Cost of pitting after L laps on the current set = wear on the old set over those laps
+      + wear on the next set over the rest of the horizon + a compound baseline offset
+      + pit-lane loss discounted by the chance a safety car has already appeared.
+      L = H is the no-stop candidate, which pays no pit term and is what makes a stop have to
+      justify itself. THE SC DISCOUNT IS LOAD-BEARING: under a fixed one-stop the pit loss is
+      the same whenever you take it, so it adds a constant to every candidate and cancels out
+      of the argmin entirely - a longer pit lane would move nothing. Discounting it by
+      1 - (1 - m)(1 - (1 - h)^L), with h from int_sc_hazard_history, is what makes waiting pay
+      and gives the model the property assert_pit_loss_pushes_optimum_later checks.
+      Per-lap wear is capped at var('pit_strategy_max_wear_s_per_lap'): the cliff polynomial
+      is unbounded, reaching 136 s/lap extrapolated to age 80 and already 93 s/lap in-sample.
+    tags: [intermediate, simulation, strategy]
+    meta:
+      family: strategy
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              [stint_id, horizon_scope, candidate_pit_lap_offset]
+    columns:
+      - name: stint_id
+        description: FK to int_stint_geometry. Part of the compound PK.
+        tests: [not_null]
+      - name: horizon_scope
+        description: >
+          window = this stint's first lap through the next stint's last; race = through the
+          driver's last lap of the race. Both are emitted for every stint that has them.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['window', 'race']
+      - name: horizon_laps
+        description: Length of the horizon in valid laps.
+        tests: [not_null]
+      - name: candidate_pit_lap_offset
+        description: >
+          Laps run on the current set before boxing, in valid laps. Runs 1..horizon_laps;
+          the last value is the no-stop candidate. Part of the compound PK.
+        tests: [not_null]
+      - name: laps_on_new_set
+        description: horizon_laps minus the offset. Zero for the no-stop candidate.
+        tests: [not_null]
+      - name: old_wear_cost_s
+        description: >
+          Cumulative wear over the laps run on the current set, evaluated on its own fitted
+          curve from the age the stint opened on - a stint started on a used set begins
+          part-way up that curve rather than at zero.
+        tests: [not_null]
+      - name: new_wear_cost_s
+        description: Cumulative wear over the rest of the horizon on the next set, from age 1.
+        tests: [not_null]
+      - name: baseline_cost_s
+        description: >
+          Per-lap pace offset between the two compounds (compound_grip_peak plus the
+          optimal-temperature term) over the laps on the new set. Both inputs are per-compound
+          CONSTANTS in compound_cliff_params, never fitted, and grip_peak as typed prices SOFT
+          slower than HARD. var('pit_strategy_baseline_delta') decides whether this term is
+          allowed to move the argmin; setting it FALSE zeroes this column.
+        tests: [not_null]
+      - name: sc_hazard_per_lap
+        description: >
+          Per-racing-lap SC/VSC hazard for the circuit, EB-shrunk, from int_sc_hazard_history.
+          0.0 for a circuit with no ingested track_status timeline, which makes the discount
+          constant and returns the model to the pit-loss-cancels case.
+        tests: [not_null]
+      - name: sc_probability
+        description: P(a caution has appeared within the candidate's laps) = 1 - (1 - h)^L.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: pit_discount_factor
+        description: >
+          Fraction of the green-flag pit-lane loss this candidate expects to pay. Non-increasing
+          in the candidate lap - asserted by assert_pit_discount_monotone - and a hard 0 for the
+          no-stop candidate.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: wear_cost_s
+        description: >
+          Everything that does not scale with pit_lane_loss_s. Split out so a consumer - or
+          assert_pit_loss_pushes_optimum_later - can re-minimise at a different pit loss
+          without rebuilding the curve.
+        tests: [not_null]
+      - name: total_cost_s
+        description: wear_cost_s + pit_lane_loss_s x pit_discount_factor. The argmin target.
         tests: [not_null]
 
   - name: int_circuit_x_constructor_interaction

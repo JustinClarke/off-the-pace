@@ -2,14 +2,21 @@
 // per the manifest contract:
 //   degradation_regressor_p10/p50/p90 → scalar at output index 0, clamp [-10, 10]
 //   cliff_classifier                  → probabilities tensor (output index 1), argmax → label
-//   stint_life_regressor              → scalar at output index 0, clip(>=0)
+//   stint_life_regressor              → AFT margin at output index 0; laps are
+//                                       exp(x + margin_offset) - label_shift, and the
+//                                       p10/p90 band comes off the same scalar via the
+//                                       fitted scale (see ./survival.ts)
 //
 // The quantile trio is row-sorted (p10 ≤ p50 ≤ p90) to match predict.py's crossing guard,
 // so a browser score lines up byte-for-byte with mart_degradation_predictions.
 
-import { loadModelManifest, getModelSpec, isClassifierOutput, ModelManifest, ScalarOutput } from './manifest'
+import {
+  loadModelManifest, getModelSpec, isClassifierOutput, isSurvivalOutput,
+  ModelManifest, ScalarOutput, SurvivalOutput,
+} from './manifest'
 import { buildFeatureMatrix, FeatureRow } from './featureVector'
 import { getSession, runSerial, ort } from './session'
+import { stintLifeBand } from './survival'
 
 const QUANTILE_MODELS = ['degradation_regressor_p10', 'degradation_regressor_p50', 'degradation_regressor_p90'] as const
 const CLASSIFIER_MODEL = 'cliff_classifier'
@@ -26,7 +33,11 @@ export interface LapPrediction {
   degradation_jump_s: number // p50
   degradation_jump_p90_s: number
   cliff: CliffPrediction
+  /** AFT log-normal median remaining stint life, in laps. */
   remaining_stint_life_laps: number
+  /** 10th/90th percentile of the same fitted distribution. */
+  remaining_stint_life_p10_laps: number
+  remaining_stint_life_p90_laps: number
 }
 
 function clamp(x: number, lo: number, hi: number): number {
@@ -35,18 +46,27 @@ function clamp(x: number, lo: number, hi: number): number {
 
 /**
  * Pure post-processing for the four scalar outputs of one lap (exported for unit tests):
- * row-sort the quantile trio, clamp each to bounds, clip stint-life at 0. Mirrors predict.py.
+ * row-sort the quantile trio, clamp each to bounds, and turn the AFT margin into a
+ * median + band. Mirrors predict.py, which writes the same three life columns.
+ *
+ * `lifeOut` is the manifest's survival output block, and it is required rather than
+ * defaulted: guessing the offset and scale would produce plausible-looking laps
+ * instead of an error, which is the failure mode this phase exists to remove.
  */
 export function postProcessScalars(
-  p10: number, p50: number, p90: number, life: number,
+  p10: number, p50: number, p90: number, lifeMargin: number,
+  lifeOut: SurvivalOutput,
   bounds: [number, number] = [-10, 10],
 ): Omit<LapPrediction, 'cliff'> {
   const sorted = [p10, p50, p90].sort((a, b) => a-b)
+  const band = stintLifeBand(lifeMargin, lifeOut)
   return {
     degradation_jump_p10_s: clamp(sorted[0], bounds[0], bounds[1]),
     degradation_jump_s: clamp(sorted[1], bounds[0], bounds[1]),
     degradation_jump_p90_s: clamp(sorted[2], bounds[0], bounds[1]),
-    remaining_stint_life_laps: Math.max(0, life),
+    remaining_stint_life_laps: band.median,
+    remaining_stint_life_p10_laps: band.p10,
+    remaining_stint_life_p90_laps: band.p90,
   }
 }
 
@@ -94,10 +114,20 @@ export async function predictLaps(rows: FeatureRow[]): Promise<LapPrediction[]> 
   ])
 
   const degBounds = (getModelSpec(manifest, QUANTILE_MODELS[1]).output as ScalarOutput).bounds ?? [-10, 10]
+  const lifeOutput = getModelSpec(manifest, STINT_LIFE_MODEL).output
+  if (!isSurvivalOutput(lifeOutput)) {
+    throw new Error(
+      'stint_life_regressor manifest output is not a survival output: the model ships as ' +
+      'survival:aft and its graph emits a log-scale margin, so scoring it as a plain scalar ' +
+      'would render exp-scale nonsense as laps. Re-run `make ml-onnx`.')
+  }
 
   const out: LapPrediction[] = new Array(nRows)
   for (let r = 0; r < nRows; r++) {
-    out[r] = { ...postProcessScalars(p10[r], p50[r], p90[r], life[r], degBounds), cliff: cliff[r] }
+    out[r] = {
+      ...postProcessScalars(p10[r], p50[r], p90[r], life[r], lifeOutput, degBounds),
+      cliff: cliff[r],
+    }
   }
   return out
 }

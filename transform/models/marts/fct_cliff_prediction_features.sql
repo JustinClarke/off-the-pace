@@ -270,6 +270,41 @@ base AS (
         ON r.compound = ss.compound AND r.lap_in_stint = ss.lap_in_stint
 ),
 
+-- Forward scan for the cliff bucket class.
+-- Scans EVERY remaining lap of the stint at TRUE lap offsets and takes the
+-- first crossing of the >1.0s detrended threshold. The previous formulation
+-- tested a fixed set of LEAD offsets -- {1,2} -> 0_to_2, {3,5} -> 3_to_5,
+-- {6} -> 6_plus -- which had three defects: offset 4 was never tested;
+-- nothing past 6 was tested, so `6_plus` meant "exactly 6"; and LEAD steps
+-- rows, not laps, so the horizon drifts wherever
+-- int_lap_residual_decomposed has dropped a lap (1.7% of steps at horizon 1,
+-- 9.0% at horizon 6). A cliff 4 laps out, or 7+ laps out, fell through to
+-- 'none_in_stint'.
+cliff_horizon AS (
+    SELECT
+        stint_id,
+        MAX(lap_in_stint) AS last_lap_in_stint
+    FROM base
+    GROUP BY stint_id
+),
+
+cliff_scan AS (
+    SELECT
+        a.lap_id,
+        MIN(f.lap_in_stint - a.lap_in_stint) AS laps_until_cliff
+    FROM base AS a
+    INNER JOIN base AS f
+        ON
+            a.stint_id = f.stint_id
+            AND a.lap_in_stint < f.lap_in_stint
+            AND (
+                f.driver_skill_residual_s
+                - a.driver_skill_residual_s
+                - (f.lap_in_stint - a.lap_in_stint) * a.drift_s_per_lap
+            ) > 1.0
+    GROUP BY a.lap_id
+),
+
 -- Compute targets: single-lap and multi-horizon degradation jumps.
 with_target AS (
     SELECT
@@ -307,90 +342,75 @@ with_target AS (
             )
         END AS next_lap_degradation_jump_detrended_s,
 
-        -- 3-lap cumulative target: sum of next 3 laps minus current
+        -- Multi-horizon cumulative targets: the sum of the next k detrended
+        -- single-lap jumps, i.e. SUM over i=1..k of
+        --   (residual(t+i) - residual(t) - i * drift_s_per_lap)
+        -- = SUM(LEAD(residual, i)) - k * residual - drift * k(k+1)/2.
+        -- The current residual is subtracted k times, once per horizon step,
+        -- and the per-stint drift is removed on the same schedule the
+        -- single-lap detrended target uses. Bounded symmetrically at k * 10.0
+        -- s, the per-lap bound scaled by the horizon; there is deliberately no
+        -- floor at zero, because a cumulative jump is signed -- laps that
+        -- recover pace are as real as laps that lose it.
+        --
+        -- The guard is `LEAD(lap_in_stint, k) = lap_in_stint + k`, not
+        -- `IS NOT NULL`: LEAD steps rows, not laps, and 4.1% (k=3) / 5.8%
+        -- (k=5) of rows sit on a stint whose lap numbering has a hole. Summing
+        -- across one silently measures a longer horizon than the column name
+        -- claims. Same defect class as the cliff label repair.
         CASE
-            WHEN LEAD(lap_in_stint, 3) OVER w IS NOT NULL
+            WHEN LEAD(lap_in_stint, 3) OVER w = lap_in_stint + 3
                 THEN GREATEST(
-                    LEAD(driver_skill_residual_s, 1) OVER w
-                    + LEAD(driver_skill_residual_s, 2) OVER w
-                    + LEAD(driver_skill_residual_s, 3) OVER w
-                    - driver_skill_residual_s,
-                    0
+                    LEAST(
+                        LEAD(driver_skill_residual_s, 1) OVER w
+                        + LEAD(driver_skill_residual_s, 2) OVER w
+                        + LEAD(driver_skill_residual_s, 3) OVER w
+                        - 3 * driver_skill_residual_s
+                        - 6 * drift_s_per_lap,
+                        30.0
+                    ),
+                    -30.0
                 )
         END AS next_3_lap_cumulative_jump_s,
 
-        -- 5-lap cumulative target: sum of next 5 laps minus current
         CASE
-            WHEN LEAD(lap_in_stint, 5) OVER w IS NOT NULL
+            WHEN LEAD(lap_in_stint, 5) OVER w = lap_in_stint + 5
                 THEN GREATEST(
-                    LEAD(driver_skill_residual_s, 1) OVER w
-                    + LEAD(driver_skill_residual_s, 2) OVER w
-                    + LEAD(driver_skill_residual_s, 3) OVER w
-                    + LEAD(driver_skill_residual_s, 4) OVER w
-                    + LEAD(driver_skill_residual_s, 5) OVER w
-                    - driver_skill_residual_s,
-                    0
+                    LEAST(
+                        LEAD(driver_skill_residual_s, 1) OVER w
+                        + LEAD(driver_skill_residual_s, 2) OVER w
+                        + LEAD(driver_skill_residual_s, 3) OVER w
+                        + LEAD(driver_skill_residual_s, 4) OVER w
+                        + LEAD(driver_skill_residual_s, 5) OVER w
+                        - 5 * driver_skill_residual_s
+                        - 15 * drift_s_per_lap,
+                        50.0
+                    ),
+                    -50.0
                 )
-        END AS next_5_lap_cumulative_jump_s,
-
-        -- Cliff bucket class: laps until >1.0s DETRENDED jump, or none in
-        -- stint.
-        -- Uses detrended thresholds: subtract k×drift_s_per_lap from k-lap
-        -- cumulative change
-        -- so fuel-lightening drift cannot trigger a false cliff classification.
-        CASE
-            WHEN LEAD(lap_in_stint, 1) OVER w IS NULL
-                THEN NULL
-            WHEN
-                (
-                    LEAD(driver_skill_residual_s, 1) OVER w
-                    - driver_skill_residual_s
-                    - drift_s_per_lap
-                )
-                > 1.0
-                THEN '0_to_2'
-            WHEN
-                LEAD(lap_in_stint, 2) OVER w IS NOT NULL
-                AND (
-                    LEAD(driver_skill_residual_s, 2) OVER w
-                    - driver_skill_residual_s
-                    - 2.0 * drift_s_per_lap
-                )
-                > 1.0
-                THEN '0_to_2'
-            WHEN
-                LEAD(lap_in_stint, 3) OVER w IS NOT NULL
-                AND (
-                    LEAD(driver_skill_residual_s, 3) OVER w
-                    - driver_skill_residual_s
-                    - 3.0 * drift_s_per_lap
-                )
-                > 1.0
-                THEN '3_to_5'
-            WHEN
-                LEAD(lap_in_stint, 5) OVER w IS NOT NULL
-                AND (
-                    LEAD(driver_skill_residual_s, 5) OVER w
-                    - driver_skill_residual_s
-                    - 5.0 * drift_s_per_lap
-                )
-                > 1.0
-                THEN '3_to_5'
-            WHEN
-                LEAD(lap_in_stint, 6) OVER w IS NOT NULL
-                AND (
-                    LEAD(driver_skill_residual_s, 6) OVER w
-                    - driver_skill_residual_s
-                    - 6.0 * drift_s_per_lap
-                )
-                > 1.0
-                THEN '6_plus'
-            WHEN LEAD(lap_in_stint, 1) OVER w IS NOT NULL
-                THEN 'none_in_stint'
-        END AS laps_until_cliff_class
+        END AS next_5_lap_cumulative_jump_s
 
     FROM base
     WINDOW w AS (PARTITION BY stint_id ORDER BY lap_in_stint)
+),
+
+-- Bucket the first-crossing offset. The buckets partition the horizon exactly
+-- as their names read: 6_plus is 6-or-more, not exactly 6, and none_in_stint
+-- means no crossing anywhere in the remaining stint. NULL on a stint's last
+-- lap, which has no horizon to scan.
+with_cliff_class AS (
+    SELECT
+        wt.*,
+        CASE
+            WHEN ch.last_lap_in_stint <= wt.lap_in_stint THEN NULL
+            WHEN cs.laps_until_cliff <= 2 THEN '0_to_2'
+            WHEN cs.laps_until_cliff <= 5 THEN '3_to_5'
+            WHEN cs.laps_until_cliff IS NOT NULL THEN '6_plus'
+            ELSE 'none_in_stint'
+        END AS laps_until_cliff_class
+    FROM with_target AS wt
+    LEFT JOIN cliff_scan AS cs ON wt.lap_id = cs.lap_id
+    LEFT JOIN cliff_horizon AS ch ON wt.stint_id = ch.stint_id
 )
 
 SELECT
@@ -479,5 +499,5 @@ SELECT
         FALSE
     ) AS is_training_eligible
 
-FROM with_target
+FROM with_cliff_class
 ORDER BY race_year, race_id, driver_id, stint_id, lap_in_stint

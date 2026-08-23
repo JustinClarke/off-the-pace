@@ -16,7 +16,13 @@ WITH weather_raw AS (
         CAST(rainfall_flag AS BOOLEAN) AS rainfall_flag,
         CAST(humidity_pct AS DOUBLE) AS humidity_pct,
         CAST(wind_speed_ms AS DOUBLE) AS wind_speed_ms,
-        CAST(wind_direction AS INTEGER) AS wind_direction
+        CAST(wind_direction AS INTEGER) AS wind_direction,
+        -- Station pressure, 100% non-null in bronze across all seasons.
+        -- Staged for completeness of the weather contract, not as a model
+        -- input: air density derived from it was measured as a degradation
+        -- feature and rejected (-0.33% / +0.70%, inside harness noise --
+        -- see ml/src/schema.py).
+        CAST(pressure_hpa AS DOUBLE) AS pressure_hpa
     FROM {{ source('bronze_f1', 'raw_weather') }}
 ),
 
@@ -110,7 +116,8 @@ SELECT
     w.rainfall_flag,
     w.humidity_pct,
     w.wind_speed_ms,
-    w.wind_direction
+    w.wind_direction,
+    w.pressure_hpa
 FROM combined_matches AS m
 INNER JOIN weather_raw AS w
     ON

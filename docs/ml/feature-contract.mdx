@@ -55,7 +55,7 @@ Every feature has a physics interpretation. The grouping below matches `FEATURE_
 ## The read-only contract in practice
 
 <Info>
-  **Two target spans.** The quantile trio and cliff classifier train on **113,309 laps** that carry the degradation and cliff targets; the stint-life regressor trains on **119,876 laps** the spans differ because a lap can have a valid stint-life count even where its next-lap jump is undefined.
+  **Two target spans.** The quantile trio and cliff classifier train on **114,270 laps** that carry the degradation and cliff targets; the stint-life regressor trains on **120,934 laps** the spans differ because a lap can have a valid stint-life count even where its next-lap jump is undefined.
 </Info>
 
 Ordinal encoding handles categoricals: the training map assigns each seen value an integer; NULL or unseen values get `−1` (the `MISSING_ORDINAL` sentinel). Continuous features keep `NaN` as `NaN` XGBoost learns the best split direction for missing values natively.

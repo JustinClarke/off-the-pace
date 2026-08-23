@@ -28,7 +28,7 @@
 	dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs query \
 	lint lint-fix lint-oracle-snapshot lint-oracle-check \
 	test-all test-fast transform-check data-profile-snapshot data-profile-check dq-test \
-	ml-features ml-tune ml-train ml-evaluate ml-predict ml-onnx ml-card ml-reference ml-all ml-test ml-clean ml-docs-images \
+	ml-features ml-tune ml-train ml-retrain ml-evaluate ml-predict ml-onnx ml-card ml-reference ml-all ml-test ml-clean ml-docs-images \
 	app-data app-data-wave0 app-data-check app-models app-dev app-dev-local app-build app-parity app-coverage app-bundle app-bundle-budget-update app-e2e app-e2e-install app-lighthouse app-publish app-publish-staging app-publish-dry app-smoke app-promote app-rollback verify-published bucket-lifecycle app-deploy \
 	tf-init tf-validate tf-plan tf-apply tf-import \
 	docs-reference docs-coverage docs-coverage-check project-graph watch-graph docs-audit docs-facts docs-app-audit lint-comments docs-site docs-install \
@@ -197,8 +197,11 @@ ml-features:  ## Validate the ML feature contract against the warehouse
 ml-tune:  ## Hyperparameter search (Optuna, 50 trials) → chains production-version refit
 	./.venv/bin/python -m ml.src.tune --target all --trials 50
 
-ml-train:  ## Train all XGBoost degradation models
+ml-train:  ## Train all five at SMOKE_DEFAULTS as version v1 (experiments only - NOT a production retrain, use ml-retrain)
 	./.venv/bin/python -m ml.src.train --all
+
+ml-retrain:  ## Production retrain: all five at their own *_best_params.json, at MODEL_VERSION_DEFAULT (no new search)
+	./.venv/bin/python -m ml.src.train --all --tuned
 
 ml-evaluate:  ## Evaluate models (metrics + leakage checks)
 	./.venv/bin/python -m ml.src.evaluate --all
@@ -215,7 +218,9 @@ ml-card:  ## Write the model card (ml/models/model_card.json)
 ml-reference:  ## Regenerate the ML reference docs
 	./.venv/bin/python scripts/gen_ml_reference.py
 
-ml-all: ml-features ml-tune ml-train ml-evaluate ml-predict ml-onnx ml-card ml-reference  ## Full ML pipeline end-to-end
+# ml-tune already chains a production-version refit at the params it just found, so the
+# chain does not call ml-train (which would write untuned v1 artefacts nothing reads).
+ml-all: ml-features ml-tune ml-evaluate ml-predict ml-onnx ml-card ml-reference  ## Full ML pipeline end-to-end
 
 ml-test:  ## ML unit tests (leakage, parity, schema)
 	./.venv/bin/python -m pytest ml/tests -q

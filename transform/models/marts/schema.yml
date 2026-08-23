@@ -330,17 +330,26 @@ models:
         data_type: double
       - name: next_3_lap_cumulative_jump_s
         description: >
-          Cumulative degradation jump over the next 3 laps (sum of residuals k=1..3 minus
-          current residual). NULL when fewer than 3 laps remain in stint. GREATEST floored at 0.
+          Cumulative detrended degradation jump over the next 3 laps: SUM over i=1..3 of
+          (residual(t+i) - residual(t) - i * drift_s_per_lap), i.e. the current residual is
+          subtracted once per horizon step and per-stint drift is removed on the same
+          schedule as next_lap_degradation_jump_detrended_s. Signed and bounded [-30, 30]
+          (the per-lap +/-10 s bound scaled by the horizon). NULL unless laps t+1..t+3 are
+          all present in the stint -- the guard is on true lap offsets, not row offsets.
         data_type: double
       - name: next_5_lap_cumulative_jump_s
         description: >
-          Cumulative degradation jump over the next 5 laps. NULL when fewer than 5 remain.
+          As next_3_lap_cumulative_jump_s over a 5-lap horizon: SUM over i=1..5 of
+          (residual(t+i) - residual(t) - i * drift_s_per_lap). Signed and bounded [-50, 50].
+          NULL unless laps t+1..t+5 are all present in the stint.
         data_type: double
       - name: laps_until_cliff_class
         description: >
-          Bucket: 0_to_2, 3_to_5, 6_plus, none_in_stint. Based on >1.0s cumulative jump threshold
-          looking ahead up to 6 laps. NULL on last lap.
+          Bucket: 0_to_2, 3_to_5, 6_plus, none_in_stint. Laps until the FIRST crossing of the
+          >1.0s detrended jump threshold, scanned over every remaining lap of the stint at true
+          lap offsets. The buckets partition the horizon exactly as their names read -- 6_plus is
+          6-or-more, not exactly 6, and none_in_stint means no crossing anywhere in the remaining
+          stint. NULL on the last lap of a stint, where there is no horizon to scan.
         data_type: varchar
       - name: is_training_eligible
         description: TRUE if this lap is suitable for model training (age_in_stint > 3, no anomaly)

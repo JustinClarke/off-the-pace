@@ -1,12 +1,12 @@
 ---
-title: "The CI contract: 28 tests across five groups"
+title: "The CI contract: 40 tests across six groups"
 sidebarTitle: "CI Overview"
-description: "28 tests 12 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 7 evaluation gates, 1 target bound. Run them all with make ml-test."
+description: "40 tests 14 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 7 evaluation gates, 1 target bound, 10 version-contract checks. Run them all with make ml-test."
 ---
 
 import MLTests from '/snippets/ml-inventory-tests.mdx';
 
-The ML layer's 28 tests are load-bearing, not box-ticking. The leakage spine is the only thing standing between a model that looks good on paper and one that silently inflates every offline number by memorising the season. The ONNX parity gate is the only thing that ensures the browser scores what the Python booster trained. Every test has a unique idea; none is decorative.
+The ML layer's 40 tests are load-bearing, not box-ticking. The leakage spine is the only thing standing between a model that looks good on paper and one that silently inflates every offline number by memorising the season. The ONNX parity gate is the only thing that ensures the browser scores what the Python booster trained. Every test has a unique idea; none is decorative.
 
 <CodeGroup>
 
@@ -24,15 +24,17 @@ make ml-test
 
 </CodeGroup>
 
-## The 28 tests, grouped
+## The 40 tests, grouped
 
 <MLTests />
 
 ```mermaid
 graph TD
-    subgraph "Leakage Spine (12)"
+    subgraph "Leakage Spine (14)"
         L1["no leaked columns"]
         L2["no forward window"]
+        L2b["forward-window audit has coverage"]
+        L2c["self-join horizon detected"]
         L3["no AUDIT feature leakage"]
         L4["mart contract ⊆ live mart"]
         L5["holdout purity"]
@@ -60,19 +62,29 @@ graph TD
     subgraph "Targets (1)"
         T1["stint-life synthesis ≥ 0"]
     end
+    subgraph "Version Contract (10)"
+        V1["manifest version has a full artefact set"]
+        V2["manifest ships MODEL_VERSION_DEFAULT"]
+        V3["declared input width == booster width (×5)"]
+        V4["input block self-consistent"]
+        V5["app manifest + onnx sha256 match ml/"]
+    end
 ```
 
 ## Go deeper
 
 <CardGroup cols={2}>
   <Card title="Leakage Spine" href="/ml/ci/leakage-spine" icon="shield">
-    The 12 guards in detail one idea each, with the assertion and why it matters.
+    The 14 guards in detail one idea each, with the assertion and why it matters.
   </Card>
   <Card title="Parity & Schema" href="/ml/ci/parity-and-schema" icon="check-check">
     The 5 ONNX parity + 3 predict-schema + 1 target tests the mechanical contracts.
   </Card>
   <Card title="Evaluation Gates" href="/ml/ci/evaluation-gates" icon="trophy">
     The 7 evaluation gates beats-baseline, calibration computed, cohorts surfaced.
+  </Card>
+  <Card title="Version Contract" href="/ml/onnx" icon="tag">
+    The 10 checks that the manifest names the version it shipped, declares the input width the boosters actually take, and matches the copy the browser loads.
   </Card>
   <Card title="Validation" href="/ml/validation" icon="chart-bar">
     The methodology behind the metrics these gates enforce.

@@ -6,7 +6,7 @@
     "dim_corners": "a2eaa0a784af9b33eaa23e8e62fb2466",
     "dim_drivers": "19301568ce10070dcfd4b8403f3ef097",
     "dim_events": "2d70fc68a1317a1812f4016c48c3a2e3",
-    "fct_cliff_prediction_features": "9a626230fbff6c34570ec25cd0a07077",
+    "fct_cliff_prediction_features": "c46cfac22bd4b033de9357a88313aa3b",
     "fct_driver_skill_features": "da6d3bebbc00ed784de87d9d94442970",
     "fct_ghost_car_pace": "552a6be2927c32cead355260712c0fa1",
     "fct_ghost_race_finish": "832aca2d714fe86280351ee0f4c49389",
@@ -63,10 +63,10 @@
     "stg_sector_times": "6fac5496845b989dc0ea19332a31964a",
     "stg_session_status": "ba3d4e5eeab9d448db97057d6c3e44eb",
     "stg_session_status_qualifying": "8511dbbc9e6e9cd6eafef739c39d7dbe",
-    "stg_telemetry": "711725e5a673d3bf805d9d9c63f98b08",
+    "stg_telemetry": "b1f49751decb610bf2634a8d0e7f49f1",
     "stg_track_status": "ca57ab202583a9a2eb1c6810ebf86c43",
     "stg_tyre_allocations": null,
-    "stg_weather": "0de3fa05e4dea12286ae6d56b441390a"
+    "stg_weather": "974eb4ca3920f6ecc1f66b788be3f5a4"
   },
   "missing": [],
   "rowcounts": {

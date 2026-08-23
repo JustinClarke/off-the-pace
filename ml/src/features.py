@@ -222,21 +222,92 @@ def _expr_is_forward_looking(node: exp.Expression) -> bool:
     return False
 
 
-def _alias_definitions(compiled_sql_by_model: dict[str, str]) -> dict[str, list[exp.Expression]]:
-    """Map every output alias → list of defining expressions across all lineage models."""
-    defs: dict[str, list[exp.Expression]] = {}
-    for sql in compiled_sql_by_model.values():
+_INEQUALITIES = (exp.GT, exp.GTE, exp.LT, exp.LTE)
+
+
+def _self_join_inequality(select: exp.Select) -> str | None:
+    """Describe a row-ordering self-join in this SELECT's scope, else None.
+
+    A window is not the only way to see another row. `FROM mart f JOIN mart a ON
+    f.stint_id = a.stint_id AND f.lap_in_stint > a.lap_in_stint` scans a whole
+    horizon with no LEAD() and no FOLLOWING frame anywhere in the projection — the
+    forward reach lives in the join predicate, which the expression walker never
+    reads. That is exactly how fct_cliff_prediction_features builds its cliff scan,
+    and a *feature* built the same way would have passed this audit silently.
+
+    Signature: an inequality between two columns of the SAME name under DIFFERENT
+    qualifiers, in a JOIN ON or the WHERE clause. Direction is deliberately not
+    inferred — which alias is "the current row" is a naming convention, not
+    something the tree says — so both `f.x > a.x` and `f.x < a.x` are reported and
+    a human decides. A backward self-join is not leakage, but it is a
+    row-referencing definition that this audit exists to surface.
+    """
+    predicates = [j.args["on"] for j in select.args.get("joins") or [] if j.args.get("on")]
+    where = select.args.get("where")
+    if where is not None:
+        predicates.append(where)
+    for pred in predicates:
+        for cmp_type in _INEQUALITIES:
+            for node in pred.find_all(cmp_type):
+                left, right = node.this, node.expression
+                if not (isinstance(left, exp.Column) and isinstance(right, exp.Column)):
+                    continue
+                if left.name != right.name or not left.name:
+                    continue
+                lq, rq = left.table, right.table
+                if lq and rq and lq != rq:
+                    return f"self-join inequality {lq}.{left.name} {node.key.upper()} {rq}.{right.name}"
+    return None
+
+
+def _alias_definitions(
+    compiled_sql_by_model: dict[str, str],
+) -> tuple[dict[str, list[tuple[exp.Expression, str | None]]], list[str]]:
+    """Map every output alias → list of (defining expression, enclosing-scope note),
+    plus the models whose SQL would not parse.
+
+    The note is a self-join description when the SELECT that produced the alias
+    reaches across rows through its join predicate rather than through a window,
+    and None otherwise. Unparsed models are returned rather than swallowed: a model
+    this walker cannot read is a hole in the audit, and the caller turns it into a
+    violation instead of letting it read as clean."""
+    defs: dict[str, list[tuple[exp.Expression, str | None]]] = {}
+    unparsed: list[str] = []
+    for uid, sql in compiled_sql_by_model.items():
         try:
             tree = sqlglot.parse_one(sql, dialect="duckdb")
         except Exception:
+            unparsed.append(uid.split(".")[-1])
             continue
         for select in tree.find_all(exp.Select):
+            scope_note = _self_join_inequality(select)
             for proj in select.expressions:
                 alias = proj.alias_or_name
                 inner = proj.this if isinstance(proj, exp.Alias) else proj
                 if alias:
-                    defs.setdefault(alias, []).append(inner)
-    return defs
+                    defs.setdefault(alias, []).append((inner, scope_note))
+    return defs, unparsed
+
+
+def _model_sql(node: dict, target_dir: Path) -> str:
+    """Compiled SQL for one dbt model node.
+
+    `manifest.json` only carries `compiled_code` when it was written by a command
+    that compiled (`dbt run` / `dbt build` / `dbt compile`); a `dbt parse` manifest
+    leaves it null. Falling straight through to `raw_code` looks harmless and is
+    not: raw_code is Jinja (`{{ config(...) }}`, `{{ ref(...) }}`), sqlglot cannot
+    parse it, and every model then lands in the caller's `except: continue`. So the
+    on-disk compiled file is tried before that fallback."""
+    code = node.get("compiled_code")
+    if code:
+        return code
+    for rel in (node.get("compiled_path"),
+                f"compiled/{node.get('package_name')}/{node.get('original_file_path')}"):
+        if rel:
+            path = target_dir / rel
+            if path.exists():
+                return path.read_text()
+    return node.get("raw_code") or ""
 
 
 def audit_forward_window(manifest_path: str = MANIFEST_PATH) -> list[str]:
@@ -245,6 +316,7 @@ def audit_forward_window(manifest_path: str = MANIFEST_PATH) -> list[str]:
     column passthroughs/renames), and reject any forward-looking window.
     Returns a list of violation strings ([] == clean)."""
     manifest = json.loads(Path(manifest_path).read_text())
+    target_dir = Path(manifest_path).parent
     nodes = manifest["nodes"]
     mart_uid = next(uid for uid, n in nodes.items()
                     if n.get("name") == S.MART and n.get("resource_type") == "model")
@@ -259,32 +331,51 @@ def audit_forward_window(manifest_path: str = MANIFEST_PATH) -> list[str]:
         lineage.add(uid)
         frontier.extend(parent_map.get(uid, []))
     compiled = {
-        uid: nodes[uid].get("compiled_code") or nodes[uid].get("raw_code") or ""
+        uid: _model_sql(nodes[uid], target_dir)
         for uid in lineage if nodes[uid].get("resource_type") == "model"
     }
 
-    defs = _alias_definitions(compiled)
+    defs, unparsed = _alias_definitions(compiled)
+
+    # Coverage first. An audit that resolved nothing returns [] — indistinguishable
+    # from an audit that resolved everything and found nothing wrong. That is not a
+    # hypothetical: while `compiled_code` was null in a `dbt parse` manifest this
+    # walker parsed zero of 21 lineage models, resolved 0 of 42 features, and
+    # reported CLEAN on every run. Coverage is asserted before the finding is
+    # trusted, so an unreadable lineage fails loudly instead of passing silently.
     violations: list[str] = []
+    if unparsed:
+        violations.append(
+            f"audit could not parse {len(unparsed)} lineage model(s): {sorted(unparsed)} "
+            f"— the audit is blind to them, so a CLEAN result would be meaningless")
+    undefined = [c for c in S.FEATURE_COLUMNS if c not in defs]
+    if undefined:
+        violations.append(
+            f"audit resolved no definition for {len(undefined)}/{len(S.FEATURE_COLUMNS)} "
+            f"features: {undefined} — check that transform/target/ holds compiled SQL "
+            f"(dbt run / dbt build / dbt compile), not just a parse manifest")
+
     for col in S.FEATURE_COLUMNS:
         seen: set[str] = set()
         frontier = [col]
-        forward_hit = False
-        while frontier:
+        reason: str | None = None
+        while frontier and reason is None:
             name = frontier.pop()
             if name in seen:
                 continue
             seen.add(name)
-            for expr in defs.get(name, []):
+            for expr, scope_note in defs.get(name, []):
                 if _expr_is_forward_looking(expr):
-                    forward_hit = True
+                    reason = f"forward window in the definition of '{name}'"
+                    break
+                if scope_note is not None:
+                    reason = f"'{name}' is defined in a scope with a {scope_note}"
                     break
                 # follow bare column ref / rename chains one hop at a time
                 if isinstance(expr, exp.Column) and expr.name and expr.name != name:
                     frontier.append(expr.name)
-            if forward_hit:
-                break
-        if forward_hit:
-            violations.append(f"forward-looking definition for feature '{col}'")
+        if reason is not None:
+            violations.append(f"forward-looking definition for feature '{col}': {reason}")
     return violations
 
 

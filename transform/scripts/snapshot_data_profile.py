@@ -2,11 +2,16 @@
 """Build-over-build data-profile diff.
 
 The byte-stability oracle (snapshot_model_hashes.py) proves fct_* output is *byte-identical*
-across builds perfect for catching cosmetic refactors, but it says nothing about *how* data
+across builds  perfect for catching cosmetic refactors, but it says nothing about *how* data
 drifted when it legitimately changes. This profiles each mart at a coarser, semantic grain 
-row count, per-column null-rate, and the mean of numeric columns and diffs against a committed
-baseline with tolerances. It surfaces volume drift (rows dropped/exploded), null-rate spikes, and
-target-mean shift between two builds, complementing the dbt anomaly tests.
+row count, per-column null-rate, the mean of numeric columns, and the category-share vector of
+low-cardinality categorical columns  and diffs against a committed baseline with tolerances. It
+surfaces volume drift (rows dropped/exploded), null-rate spikes, target-mean shift, and
+class-distribution shift between two builds, complementing the dbt anomaly tests.
+
+The categorical half exists because the numeric half is blind to it: a relabel that moved 9,405
+rows of `laps_until_cliff_class` between classes changed no row count, no null-rate and no
+numeric mean, so the gate passed clean on a mart whose target had been redefined.
 
 Like the byte oracle, the baseline is an approval artefact: regenerate + commit it when the data
 *should* have changed (e.g. a season was added); the --check then guards against unintended drift.
@@ -35,6 +40,11 @@ REPO_ROOT = TRANSFORM_ROOT.parent
 DEFAULT_DB = REPO_ROOT / "data" / "dev.duckdb"
 DEFAULT_BASELINE = TRANSFORM_ROOT / "tests" / "data_profile.baseline.json"
 
+# Bumped when the profile gains a dimension. A --check against an older baseline is
+# refused rather than silently skipped: a baseline that predates a dimension is blind
+# to it, and a blind gate that reports PASS is worse than no gate.
+PROFILE_SCHEMA_VERSION = 2
+
 # Mart prefixes worth profiling (the published, analytics-facing grain).
 TABLE_PREFIXES = ("fct_", "mart_", "dim_")
 
@@ -42,12 +52,20 @@ TABLE_PREFIXES = ("fct_", "mart_", "dim_")
 ROW_TOL = 0.0       # relative row-count drift allowed (0 = exact, like the oracle)
 NULL_TOL = 0.02     # absolute null-rate drift allowed
 MEAN_TOL = 0.02     # relative drift allowed on a column mean
+SHARE_TOL = 0.01    # absolute drift allowed on any one category's share of the table
+DISTINCT_TOL = 0.02  # relative drift allowed on n_distinct (high-cardinality columns)
+
+# Above this many distinct values a column is an identifier, not a class: record the
+# cardinality and skip the share vector, which would otherwise dominate the baseline.
+MAX_CATEGORIES = 40
 
 NUMERIC_TYPES = {
     "TINYINT", "SMALLINT", "INTEGER", "BIGINT", "HUGEINT",
     "UTINYINT", "USMALLINT", "UINTEGER", "UBIGINT",
     "FLOAT", "DOUBLE", "DECIMAL", "REAL",
 }
+
+CATEGORICAL_TYPES = {"VARCHAR", "BOOLEAN", "ENUM"}
 
 
 def _tables(con: duckdb.DuckDBPyConnection) -> list[str]:
@@ -56,6 +74,22 @@ def _tables(con: duckdb.DuckDBPyConnection) -> list[str]:
         "WHERE table_schema = 'main' ORDER BY table_name"
     ).fetchall()
     return [r[0] for r in rows if r[0].startswith(TABLE_PREFIXES)]
+
+
+def _category_shares(
+    con: duckdb.DuckDBPyConnection, table: str, column: str, n: int
+) -> dict | None:
+    """Share-of-table for each distinct value, or {'n_distinct': k} once the column is
+    too wide to be a class. NULL is not a category  it is already the null_rate, so the
+    shares sum to 1 - null_rate by construction."""
+    rows = con.execute(
+        f'SELECT CAST("{column}" AS VARCHAR) AS v, COUNT(*) AS c FROM "{table}" '
+        f'WHERE "{column}" IS NOT NULL GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT {MAX_CATEGORIES + 1}'
+    ).fetchall()
+    if len(rows) > MAX_CATEGORIES:
+        k = con.execute(f'SELECT COUNT(DISTINCT "{column}") FROM "{table}"').fetchone()[0]
+        return {"n_distinct": int(k)}
+    return {"category_shares": {str(v): round(c / n, 6) for v, c in rows}}
 
 
 def _profile_table(con: duckdb.DuckDBPyConnection, table: str) -> dict:
@@ -71,30 +105,73 @@ def _profile_table(con: duckdb.DuckDBPyConnection, table: str) -> dict:
         return profile
 
     # One pass: null-rate for every column, mean for numeric columns.
-    selects, meta = [], []
+    selects, meta, categorical = [], [], []
     for name, dtype in cols:
         base = dtype.split("(")[0].upper()
         selects.append(f'SUM(CASE WHEN "{name}" IS NULL THEN 1 ELSE 0 END)')
-        meta.append((name, "null", None))
+        meta.append((name, "null"))
         if base in NUMERIC_TYPES:
             selects.append(f'AVG(CAST("{name}" AS DOUBLE))')
-            meta.append((name, "mean", None))
+            meta.append((name, "mean"))
+        elif base in CATEGORICAL_TYPES:
+            categorical.append(name)
     row = con.execute(f'SELECT {", ".join(selects)} FROM "{table}"').fetchone()
 
-    for (name, kind, _), val in zip(meta, row):
+    for (name, kind), val in zip(meta, row):
         entry = profile["columns"].setdefault(name, {})
         if kind == "null":
             entry["null_rate"] = round((val or 0) / n, 6)
         elif kind == "mean" and val is not None:
             entry["mean"] = round(float(val), 6)
+
+    # Second pass, one GROUP BY per categorical column.
+    for name in categorical:
+        profile["columns"].setdefault(name, {}).update(_category_shares(con, table, name, n))
     return profile
 
 
 def snapshot(con: duckdb.DuckDBPyConnection) -> dict:
-    return {t: _profile_table(con, t) for t in _tables(con)}
+    return {
+        "profile_schema_version": PROFILE_SCHEMA_VERSION,
+        "tables": {t: _profile_table(con, t) for t in _tables(con)},
+    }
 
 
-def check(current: dict, baseline: dict, row_tol: float, null_tol: float, mean_tol: float) -> list[str]:
+def _check_categories(table: str, col: str, bstats: dict, cstats: dict,
+                      share_tol: float, distinct_tol: float) -> list[str]:
+    drift: list[str] = []
+    if "n_distinct" in bstats:
+        if "n_distinct" not in cstats:
+            drift.append(f"{table}.{col}: was high-cardinality ({bstats['n_distinct']} distinct), "
+                         f"now a {len(cstats.get('category_shares', {}))}-value category vector")
+        else:
+            b, c = bstats["n_distinct"], cstats["n_distinct"]
+            if abs(c - b) / (b or 1) > distinct_tol:
+                drift.append(f"{table}.{col}.n_distinct: {b} → {c}")
+        return drift
+
+    if "category_shares" not in bstats:
+        return drift
+    bshares = bstats["category_shares"]
+    cshares = cstats.get("category_shares")
+    if cshares is None:
+        drift.append(f"{table}.{col}: category vector gone (now high-cardinality, "
+                     f"{cstats.get('n_distinct')} distinct)")
+        return drift
+    for value in sorted(set(bshares) | set(cshares)):
+        b, c = bshares.get(value, 0.0), cshares.get(value, 0.0)
+        if abs(c - b) > share_tol:
+            if value not in bshares:
+                drift.append(f"{table}.{col}: NEW category '{value}' at share {c}")
+            elif value not in cshares:
+                drift.append(f"{table}.{col}: category '{value}' GONE (was {b})")
+            else:
+                drift.append(f"{table}.{col}.share['{value}']: {b} → {c} ({c - b:+.4f})")
+    return drift
+
+
+def check(current: dict, baseline: dict, row_tol: float, null_tol: float, mean_tol: float,
+          share_tol: float = SHARE_TOL, distinct_tol: float = DISTINCT_TOL) -> list[str]:
     drift: list[str] = []
     for table, base in baseline.items():
         if table not in current:
@@ -119,10 +196,27 @@ def check(current: dict, baseline: dict, row_tol: float, null_tol: float, mean_t
                 denom = abs(bstats["mean"]) or 1.0
                 if abs(cstats["mean"] - bstats["mean"]) / denom > mean_tol:
                     drift.append(f"{table}.{col}.mean: {bstats['mean']} → {cstats['mean']}")
+            drift += _check_categories(table, col, bstats, cstats, share_tol, distinct_tol)
     new = set(current) - set(baseline)
     for table in sorted(new):
         drift.append(f"{table}: NEW table not in baseline")
     return drift
+
+
+def _load_baseline(path: Path) -> dict:
+    """Return the {table: profile} map, refusing a baseline older than the current
+    profile schema  it would be blind to whatever dimension the bump added."""
+    raw = json.loads(path.read_text())
+    version = raw.get("profile_schema_version") if isinstance(raw, dict) else None
+    if version != PROFILE_SCHEMA_VERSION:
+        found = version if version is not None else "1 (pre-versioning)"
+        raise SystemExit(
+            f"❌  baseline at {path} is profile_schema_version {found}, this script writes "
+            f"{PROFILE_SCHEMA_VERSION}.\n    It cannot see every dimension the gate now checks, so "
+            f"PASS would be meaningless. Regenerate it:\n"
+            f"      make data-profile-snapshot"
+        )
+    return raw["tables"]
 
 
 def main() -> int:
@@ -133,6 +227,10 @@ def main() -> int:
     ap.add_argument("--row-tol", type=float, default=ROW_TOL)
     ap.add_argument("--null-tol", type=float, default=NULL_TOL)
     ap.add_argument("--mean-tol", type=float, default=MEAN_TOL)
+    ap.add_argument("--share-tol", type=float, default=SHARE_TOL,
+                    help="absolute drift allowed on any one category's share of the table")
+    ap.add_argument("--distinct-tol", type=float, default=DISTINCT_TOL,
+                    help="relative drift allowed on n_distinct for high-cardinality columns")
     args = ap.parse_args()
 
     if not args.db.exists():
@@ -145,14 +243,15 @@ def main() -> int:
     if not args.check:
         args.baseline.parent.mkdir(parents=True, exist_ok=True)
         args.baseline.write_text(json.dumps(current, indent=2, sort_keys=True) + "\n")
-        print(f"  ✅  Profiled {len(current)} tables → {args.baseline}")
+        print(f"  ✅  Profiled {len(current['tables'])} tables → {args.baseline}")
         return 0
 
     if not args.baseline.exists():
-        print(f"❌  no baseline at {args.baseline} run without --check first", file=sys.stderr)
+        print(f"❌  no baseline at {args.baseline}  run without --check first", file=sys.stderr)
         return 1
-    baseline = json.loads(args.baseline.read_text())
-    drift = check(current, baseline, args.row_tol, args.null_tol, args.mean_tol)
+    baseline = _load_baseline(args.baseline)
+    drift = check(current["tables"], baseline, args.row_tol, args.null_tol, args.mean_tol,
+                  args.share_tol, args.distinct_tol)
     if drift:
         print(f"❌  data-profile drift ({len(drift)}):")
         for d in drift:

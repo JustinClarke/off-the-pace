@@ -68,9 +68,14 @@ IDENTIFIER_COLUMNS: tuple[str, ...] = (
 # The `powertrain` (6) and `telemetry_cliff` (5) groups land with telemetry ingestion
 # Per-lap aggregates projected by int_lap_telemetry_aggregates →
 # fct_cliff_prediction_features; included because they beat the baseline (see ml/artefacts/ablation_*).
-# The air-density weather features (air_density_kgm3 / density_ratio_to_ref) remain
-# DEFERRED pending air-density enrichment; the export-time guard
-# (test_feature_contract) asserts contract ⊆ mart so nothing can be referenced before it lands.
+# The air-density weather features (air_density_kgm3 / density_ratio_to_ref) were
+# DEFERRED here pending enrichment. Closed 2026-08-23 as a measured negative result, not
+# as unrealised value: built properly (Tetens, off the bronze pressure_hpa that
+# stg_weather drops) they move degradation p50 RMSE -0.33% and cliff macro-F1 +0.70%,
+# both inside harness noise, because air density is near a per-circuit constant and
+# circuit identity already enters the set three times over. Do not re-open it as an ML
+# win; see docs/ml/features-and-targets.mdx. The export-time guard (test_feature_contract)
+# asserts contract ⊆ mart so nothing can be referenced before it lands.
 # C3 (Route C): surface_bulk_ratio added as 42nd feature to the thermal group so the
 # model can attribute early-stint surface vs bulk thermal loading (warm-up vs real deg).
 FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
@@ -165,7 +170,7 @@ PER_TARGET_FEATURE_MASK: dict[str, frozenset[str]] = {
 
 
 def artefact_name(spec: TargetSpec, version: str) -> str:
-    """version ∈ {"smoke", "v1", "v2", "v3"} → e.g. degradation_regressor_p50_v3."""
+    """version ∈ {"smoke", "v1"…"v5"} → e.g. degradation_regressor_p50_v5."""
     return f"{spec.name}_{version}"
 
 
@@ -201,4 +206,8 @@ PREDICTIONS_ARROW_SCHEMA = pa.schema([
 ])
 assert len(PREDICTIONS_ARROW_SCHEMA) == 17, "predictions schema must be 17 columns"
 
-MODEL_VERSION_DEFAULT = "v4"  # v4 = 42-feature (+ surface_bulk_ratio), detrended target (Route C); v3 kept for diff
+MODEL_VERSION_DEFAULT = "v5"  # v5 = v4's 42 features, unchanged, against the repaired
+# laps_until_cliff_class label (first threshold crossing scanned over the whole remaining
+# stint at true lap offsets, so 6_plus is 6-or-more rather than exactly 6). The feature
+# matrix is byte-identical to v4's; only the classifier's target moved. v4 kept for diff
+# and rollback, and its metrics are the floor v5 has to clear.

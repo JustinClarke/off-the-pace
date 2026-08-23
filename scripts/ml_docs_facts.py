@@ -48,8 +48,8 @@ SNIPPET_CALIBRATION = ROOT / "docs" / "snippets" / "ml-inventory-calibration.mdx
 # Test-group breakdown group name, source file, count, what it guarantees
 # Counts are from the live pytest collection; the check sub-command validates them.
 TEST_GROUPS = [
-    ("Leakage Spine",    "test_features.py",    12,
-     "No target, skill, or season column enters `X`; forward-window SQL audit; holdout purity; `MAX+1`-derived split; bounded & non-null targets."),
+    ("Leakage Spine",    "test_features.py",    14,
+     "No target, skill, or season column enters `X`; forward-window SQL audit (including its own coverage, and self-join horizons); holdout purity; `MAX+1`-derived split; bounded & non-null targets."),
     ("ONNX Parity",      "test_onnx_parity.py",  5,
      "Each booster round-trips to ONNX within `atol=1e-5`, including a NaN-bearing sample (the ~47% null-prior laps)."),
     ("Predict Schema",   "test_predict.py",       3,
@@ -58,8 +58,10 @@ TEST_GROUPS = [
      "Every model beats its per-cohort baseline; calibration coverage computed; cohorts surfaced not dropped; metrics match the card."),
     ("Targets",          "test_targets.py",       1,
      "Degradation target ∈ [−10, 10]; no NULL-target row enters training."),
+    ("Version Contract", "test_manifest_contract.py", 10,
+     "The manifest names a version whose artefacts exist, declares the input width the boosters actually take, and matches the copy the browser loads."),
 ]
-EXPECTED_TOTAL = sum(t[2] for t in TEST_GROUPS)  # 28
+EXPECTED_TOTAL = sum(t[2] for t in TEST_GROUPS)  # 40
 
 
 def load_card() -> dict:
@@ -93,12 +95,35 @@ def _parse_schema_constants():
 
     ns = Namespace()
     for node in ast.walk(tree):
+        # AnnAssign as well as Assign: `FEATURE_GROUPS: dict[...] = {...}` is an
+        # annotated assignment, and matching only ast.Assign silently left it empty —
+        # which is how the headline card came to read "0 features in 0 groups".
         if isinstance(node, ast.Assign):
-            for t in node.targets:
-                if isinstance(t, ast.Name) and t.id == "FEATURE_GROUPS":
-                    ns.FEATURE_GROUPS = ast.literal_eval(node.value)
-                if isinstance(t, ast.Name) and t.id == "EXCLUDED_LEAKAGE_COLUMNS":
-                    ns.EXCLUDED_LEAKAGE_COLUMNS = frozenset(ast.literal_eval(node.value))
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            targets = [node.target]
+        else:
+            continue
+        for t in targets:
+            if isinstance(t, ast.Name) and t.id == "FEATURE_GROUPS":
+                ns.FEATURE_GROUPS = ast.literal_eval(node.value)
+            if isinstance(t, ast.Name) and t.id == "EXCLUDED_LEAKAGE_COLUMNS":
+                # Declared as `frozenset({...})`, a Call — literal_eval only handles
+                # the set literal inside it.
+                value = node.value
+                if (isinstance(value, ast.Call) and isinstance(value.func, ast.Name)
+                        and value.func.id in {"frozenset", "set"} and value.args):
+                    value = value.args[0]
+                ns.EXCLUDED_LEAKAGE_COLUMNS = frozenset(ast.literal_eval(value))
+
+    # Refuse to emit a snippet built from nothing. Both constants are annotated
+    # assignments and one is wrapped in frozenset(); each mismatch previously failed
+    # silently to an empty container, and the docs shipped "0 features in 0 groups".
+    if not ns.FEATURE_GROUPS:
+        raise SystemExit("ml_docs_facts: parsed no FEATURE_GROUPS from ml/src/schema.py")
+    if not ns.EXCLUDED_LEAKAGE_COLUMNS:
+        raise SystemExit("ml_docs_facts: parsed no EXCLUDED_LEAKAGE_COLUMNS from "
+                         "ml/src/schema.py")
     return ns
 
 
@@ -131,6 +156,9 @@ def generate_headline(card: dict, schema) -> str:
     n_groups = len(schema.FEATURE_GROUPS)
     n_models = len(card["models"])
     n_tests = EXPECTED_TOTAL
+    # Built from TEST_GROUPS so the breakdown cannot drift from the taxonomy table.
+    test_breakdown = " + ".join(
+        f"{count} {label}" for label, _, count, _ in TEST_GROUPS)
     n_rows = card["data"]["n_training_rows"]
     seasons = card["data"]["training_seasons"]
 
@@ -147,8 +175,7 @@ def generate_headline(card: dict, schema) -> str:
     never re-derived in ML.
   </Card>
   <Card title="{n_tests} tests" icon="shield-check">
-    12 leakage-spine + 5 ONNX parity + 3 predict-schema + 7 evaluation gates
-    + 1 target bound every build.
+    {test_breakdown} every build.
   </Card>
   <Card title="{n_rows:,} training laps" icon="database">
     {seasons[0]}–{seasons[-1]} F1 seasons; holdout is `MAX(race_year) + 1`
@@ -266,6 +293,23 @@ def main(argv: list[str] | None = None) -> int:
     card = load_card()
     schema = load_schema()
     fresh = generate(card, schema)
+
+    # Reconcile the hardcoded taxonomy against what pytest actually collects. Without
+    # this, TEST_GROUPS is a number nothing cross-checks: the snippet, README and
+    # docs/ml/overview.mdx all quote EXPECTED_TOTAL, so they agree with each other
+    # while disagreeing with the suite. `live_pytest_count` existed for exactly this
+    # and was never called.
+    live = live_pytest_count()
+    if live < 0:
+        print("  WARN   could not collect the live pytest count; taxonomy unverified")
+    elif live != EXPECTED_TOTAL:
+        print(f"  ERROR  TEST_GROUPS totals {EXPECTED_TOTAL} but `pytest ml/tests "
+              f"--collect-only` finds {live}. Update TEST_GROUPS in this script, and "
+              f"the count quoted in README.md + docs/ml/overview.mdx.")
+        if not args.write:
+            return 1
+    else:
+        print(f"  OK   test taxonomy totals {EXPECTED_TOTAL}, matching live collection")
 
     if args.write:
         for path, content in fresh.items():

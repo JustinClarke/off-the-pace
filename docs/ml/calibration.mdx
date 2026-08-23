@@ -12,7 +12,7 @@ The degradation quantile trio (`p10`, `p50`, `p90`) makes a specific, falsifiabl
 
 <MLCalibration />
 
-The raw quantiles are **already calibrated**: empirical coverage (0.814) lands within ~0.014 of the nominal target (0.800), marginally on the conservative (over-wide) side. The split-conformal correction pulls it to 0.805 essentially nominal via a small **negative** offset ($\hat{q} \approx -0.014$) that tightens the slightly-too-wide raw band. In plain terms:
+The raw quantiles are **already calibrated**: empirical coverage (0.810) lands within ~0.010 of the nominal target (0.800), marginally on the conservative (over-wide) side. The split-conformal correction pulls it to 0.802 essentially nominal via a small **negative** offset ($\hat{q} \approx -0.014$) that tightens the slightly-too-wide raw band. In plain terms:
 
 > When the model says "pace loss next lap will fall between A and B seconds," it is right approximately **four times in five**. The interval averages **~1.24 seconds wide** on held-out data.
 
@@ -45,7 +45,7 @@ $$\big[\,p_{10}(x) - \hat{q},\;\; p_{90}(x) + \hat{q}\,\big]$$
 When $\hat{q}>0$ (the raw quantiles were too narrow), the band widens. When $\hat{q}<0$ (the raw quantiles were already conservative), the band tightens. The finite-sample guarantee is that coverage on the test half is $\ge 1-\alpha = 0.80$.
 
 <Accordion title="Confirms, not rescues" icon="circle-check">
-  Here $\hat{q} \approx -0.014$ a negative offset. The raw quantiles were already conservative (0.814 > 0.800), and the conformal step tightens the band slightly to bring coverage closer to nominal. The CQR step is doing its job of **confirming** calibration, not of rescuing a miscalibrated model.
+  Here $\hat{q} \approx -0.014$ a negative offset. The raw quantiles were already conservative (0.810 > 0.800), and the conformal step tightens the band slightly to bring coverage closer to nominal. The CQR step is doing its job of **confirming** calibration, not of rescuing a miscalibrated model.
 
   If the raw quantiles had produced 0.65 empirical coverage, the conformal step would have widened the band substantially until the guarantee was met but it would also have flagged that the underlying quantile model was poorly calibrated. The fact that $\hat{q}$ is tiny and negative here is evidence that the pinball-loss training objective already produces well-calibrated quantiles.
 </Accordion>

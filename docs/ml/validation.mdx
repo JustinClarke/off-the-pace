@@ -58,7 +58,7 @@ The final fold trains on 2018–2023 and validates on **2024** the most recent, 
 
 ## The adversarial leakage probe
 
-The two most consequential exclusions `driver_id` and `race_year` are justified by **demonstration, not assertion**. A throwaway XGBoost model is trained to recover `race_year` from the remaining features. It succeeds at **0.987 accuracy** against a majority-class baseline of 0.168 a lift of 0.82.
+The two most consequential exclusions `driver_id` and `race_year` are justified by **demonstration, not assertion**. A throwaway XGBoost model is trained to recover `race_year` from the remaining features. It succeeds at **0.998 accuracy** against a majority-class baseline of 0.168 a lift of 0.83.
 
 That is the point. Constructor identities and compound generations carry such a strong residual temporal signal that `race_year` is almost perfectly recoverable from them. Including `race_year` as a feature would create a backdoor to the season, and through it to outcomes the model should not know. The same logic applies to `driver_id`, which would let the trees relearn per-driver skill the very signal the decomposition works to isolate into `driver_skill_residual_s`. Both are correctly excluded.
 
@@ -100,7 +100,7 @@ Each model family is judged on a single headline metric, computed directly from 
 
 ## Calibration
 
-The degradation quantile trio claims an 80% prediction interval from `[p10, p90]`. The raw quantiles are **already calibrated** empirical coverage lands within ~0.014 of nominal on the 2024 evaluation fold. A split-conformal (CQR) correction is computed post-hoc and confirms calibration with a finite-sample guarantee. In plain terms: the model is right approximately four times in five, and the interval averages ~1.24 seconds wide.
+The degradation quantile trio claims an 80% prediction interval from `[p10, p90]`. The raw quantiles are **already calibrated** empirical coverage lands within ~0.010 of nominal on the 2024 evaluation fold. A split-conformal (CQR) correction is computed post-hoc and confirms calibration with a finite-sample guarantee. In plain terms: the model is right approximately four times in five, and the interval averages ~1.24 seconds wide.
 
 The full LaTeX derivation of the conformity score, the CQR quantile formula, and the coverage table live on the [Calibration page](/ml/calibration).
 
@@ -122,6 +122,6 @@ The full cohort table and the context for each loss live on the [Cohorts page](/
   **No live 2025 holdout yet.** Evaluation headlines are the final time-series CV fold (2024). They become a true out-of-sample reveal automatically when 2025 data ingests but until that moment, they are cross-validation, not a held-out season.
 </Warning>
 
-- **The cliff classifier is the weakest model.** Macro-F1 ≈ 0.33 decisively beats the majority prior but is modest in absolute terms; skill on the rare imminent-cliff windows is limited. The 100 most-confident misses are exported for study and inform the v2 roadmap.
+- **The cliff classifier is the weakest model.** Macro-F1 ≈ 0.40 decisively beats the majority prior but is modest in absolute terms; skill on the rare imminent-cliff windows is limited. The 100 most-confident misses are exported for study and inform the v2 roadmap.
 - **v1 hyperparameters come from a reduced tuning budget.** Running `make ml-tune` (50 trials / 5 folds / full data) only improves them no code change required and should precede any production blessing.
 - **~47% of laps have a null cliff-onset prior** (2018 legacy compounds, un-fit circuits). XGBoost handles the missingness natively via default-direction splits rather than imputation this is documented and its ONNX parity is proven but those laps lean less on the strongest prior feature.

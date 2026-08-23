@@ -1,18 +1,18 @@
 ---
-title: "The leakage spine: 12 guards, one idea each"
+title: "The leakage spine: 14 guards, one idea each"
 sidebarTitle: "Leakage Spine"
-description: "The 12 tests in test_features.py that make temporal leakage structurally impossible from column exclusions to the sqlglot forward-window audit to the MAX+1-derived holdout."
+description: "The 14 tests in test_features.py that make temporal leakage structurally impossible from column exclusions to the sqlglot forward-window audit to the MAX+1-derived holdout."
 ---
 
 import MLLeakage from '/snippets/ml-inventory-leakage.mdx';
 
-Temporal leakage is silent. It never throws an error. It inflates every offline metric and collapses the moment the model meets a season it has not memorised. The leakage spine is a set of 12 CI guards that make leakage structurally impossible not just "unlikely" or "checked once."
+Temporal leakage is silent. It never throws an error. It inflates every offline metric and collapses the moment the model meets a season it has not memorised. The leakage spine is a set of 14 CI guards that make leakage structurally impossible not just "unlikely" or "checked once."
 
 <Warning>
   A model that accidentally sees the future looks better on paper than a model that does not. There is no natural corrective: the offline metrics reward the leak, the model ships, and the live numbers disagree. The only reliable defence is to make the leak structurally impossible and then test that impossibility.
 </Warning>
 
-## The 12 guards
+## The 14 guards
 
 <AccordionGroup>
   <Accordion title="1. No leaked columns (×3 targets)" icon="columns">
@@ -31,44 +31,51 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
 
     **Why it matters:** The mart is built from SQL. A `LEAD` or `FOLLOWING` window function in any upstream query would project the *next* lap's value into the *current* row an invisible look-ahead. `audit_forward_window` walks the compiled dbt manifest with `sqlglot` and rejects any such clause. An empty return means zero forward-window constructs in the entire mart lineage.
 
-    The audit runs the full SQL AST, not just a text search it catches `LEAD` inside CTEs, subqueries, and aliases.
+    The audit runs the full SQL AST, not just a text search it catches `LEAD` inside CTEs, subqueries, and aliases. It also reads the *enclosing scope*: a self-join whose `ON` clause compares a lap index across two aliases of the same table walks a whole forward horizon without a window function anywhere, and is rejected on the same footing.
   </Accordion>
-  <Accordion title="3. Audit features clear the forward window" icon="search">
+  <Accordion title="3. The forward-window audit can still see" icon="eye">
+    **Source:** `test_features.py::test_forward_window_audit_actually_reads_the_lineage`
+
+    **Assertion:** every lineage model parses, and all 42 features resolve to a SQL definition
+
+    **Why it matters:** Coverage, not cleanliness. `audit_forward_window` returns `[]` both when it has inspected every feature and found nothing, and when it inspected nothing at all — and for as long as the manifest carried a null `compiled_code`, it was the second: 0 of 21 models parsed, 0 of 42 features resolved, `CLEAN` on every run. This test is what makes gate 2 mean something. The failure mode of a gate is silence, and silence is indistinguishable from success.
+  </Accordion>
+  <Accordion title="4. Audit features clear the forward window" icon="search">
     **Source:** `test_features.py::test_audit_features_clear_forward_window`
 
     **Assertion:** No `AUDIT_FEATURES` (`cliff_candidate_flag`, `anomaly_class`) appear in any `audit_forward_window` violation
 
     **Why it matters:** `cliff_candidate_flag` and `anomaly_class` are "label-adjacent" features they are predictive precisely because they encode information that co-moves with the cliff. The test asserts that this predictiveness comes from the mart's temporal conditioning, not from a forward-window leak. If they ever look ahead in the SQL, they must move to `EXCLUDED_LEAKAGE_COLUMNS`.
   </Accordion>
-  <Accordion title="4. Mart contract ⊆ live mart columns" icon="database">
+  <Accordion title="5. Mart contract ⊆ live mart columns" icon="database">
     **Source:** `test_features.py::test_feature_contract_subset_of_mart`
 
     **Assertion:** Every column in `FEATURE_COLUMNS ∪ IDENTIFIER_COLUMNS ∪ mart_target_cols` exists in `fct_cliff_prediction_features`
 
     **Why it matters:** If the transform layer drops or renames a feature column and the ML schema is not updated, the model will silently train on a missing column. This test makes the drift visible immediately the build fails before any training runs. It is the "never again" guard following a previous incident where the mart dropped `circuit_key` and the ML layer continued loading silently because pandas drops missing columns without warning.
   </Accordion>
-  <Accordion title="5. Holdout purity" icon="lock">
+  <Accordion title="6. Holdout purity" icon="lock">
     **Source:** `test_features.py::test_holdout_purity`
 
     **Assertion:** `holdout_season not in training_seasons` AND `(groups_train < holdout_season).all()`
 
     **Why it matters:** If any row from the holdout season appears in any training fold, every metric computed on that season is overstated. This test checks both that the season is not in the training set list and that no training row's `race_year` equals or exceeds the holdout season. Both are necessary: the first catches a metadata error; the second catches a data-construction bug.
   </Accordion>
-  <Accordion title="6. No hard-coded holdout year" icon="code">
+  <Accordion title="7. No hard-coded holdout year" icon="code">
     **Source:** `test_features.py::test_no_hardcoded_holdout`
 
     **Assertion:** No numeric literal `2024` or `2025` appears as a code token (not a comment or docstring) in any `ml/src/*.py` file
 
     **Why it matters:** The holdout season is `MAX(race_year) + 1`. If a developer hard-codes the year, the guard fails silently when the season rolls over 2025 ingests, the literal still says 2025, and the "holdout" is now in-sample. The test tokenizes the source files rather than string-searching, so it distinguishes code from comments correctly.
   </Accordion>
-  <Accordion title="7. Degradation target bounded [−10, 10]" icon="ruler">
+  <Accordion title="8. Degradation target bounded [−10, 10]" icon="ruler">
     **Source:** `test_features.py::test_target_bounded`
 
     **Assertion:** `y_train.between(-10, 10).all()` AND `(y_train < 0).mean() > 0.2`
 
     **Why it matters:** The target `next_lap_degradation_jump_detrended_s` is bounded by physics: a tyre cannot gain or lose more than 10 seconds per lap in a single step. The upper bound guards against catastrophic outliers that would dominate the loss. The lower bound (`> 0.2` fraction negative) checks that the training data still contains enough negative examples if detrending went wrong, the target could become artificially non-negative and the model would never learn tyre recovery.
   </Accordion>
-  <Accordion title="8–10. No NULL targets in training (×3 targets)" icon="ban">
+  <Accordion title="9–11. No NULL targets in training (×3 targets)" icon="ban">
     **Source:** `test_features.py::test_no_null_targets_in_training` (parametrized × 3)
 
     **Assertion:** `y_train.notna().all()` for each of the three model families
@@ -88,12 +95,12 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
     The forward-window audit in context and why `features.py` owns this responsibility.
   </Card>
   <Card title="Validation" href="/ml/validation" icon="shield-check">
-    The adversarial probe that demonstrates the exclusions are non-negotiable `race_year` is recoverable at 0.987 accuracy.
+    The adversarial probe that demonstrates the exclusions are non-negotiable `race_year` is recoverable at 0.998 accuracy.
   </Card>
   <Card title="Feature contract" href="/ml/feature-contract" icon="list">
     The full list of 42 features and why each is allowed into `X`.
   </Card>
   <Card title="CI overview" href="/ml/ci/overview" icon="vial">
-    All 28 tests where the spine sits in the full contract.
+    All 40 tests where the spine sits in the full contract.
   </Card>
 </CardGroup>

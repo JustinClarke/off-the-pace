@@ -29,6 +29,15 @@ renamed AS (
         CAST(lap_number AS INTEGER) AS lap_number,
 
         CAST(distance_m AS DOUBLE) AS distance_m,
+        -- Sample clock. distance_m alone is NOT a total order within a lap:
+        -- 982,303 car-channel samples (1.6%) share a
+        -- (race, driver, lap, distance) key, because a stationary or crawling
+        -- car keeps sampling at 10 Hz while distance does not advance. Any
+        -- LAG/LEAD ordered on distance alone therefore picks an arbitrary
+        -- neighbour, and the choice moves with DuckDB's scan parallelism.
+        -- Adding this column makes (distance_m, session_time_s) unique across
+        -- all 59.5M rows, with zero NULLs.
+        CAST(sessiontime AS DOUBLE) / 1e9 AS session_time_s,
         CAST(speed_kph AS DOUBLE) AS speed_kph,
         CAST(throttle_pct AS DOUBLE) AS throttle_pct,
         CAST(brake AS BOOLEAN) AS brake_applied,

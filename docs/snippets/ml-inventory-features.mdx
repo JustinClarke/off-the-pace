@@ -1,3 +1,13 @@
 | Group | Count | Features |
 |---|---|---|
-| **Total** | **0** | |
+| `stint_position` | 4 | `lap_number`, `lap_in_stint`, `age_in_stint`, `fuel_mass_kg` |
+| `compound` | 7 | `compound`, `compound_grip_peak`, `compound_wear_gradient`, `compound_optimal_temp_low`, `compound_optimal_temp_high`, `compound_cliff_onset_laps`, `compound_cliff_severity` |
+| `cliff_prior` | 5 | `expected_compound_pace_s`, `expected_degradation_rate_s_per_lap`, `cliff_onset_passed`, `laps_past_cliff`, `cliff_candidate_flag` |
+| `thermal` | 4 | `push_residual`, `cumulative_push_load_surface`, `cumulative_push_load_bulk`, `surface_bulk_ratio` |
+| `dirty_air` | 4 | `dirty_air_share_lap`, `dirty_air_thermal_load_surface`, `dirty_air_thermal_load_bulk`, `air_state_dominant` |
+| `powertrain` | 6 | `n_gear_changes`, `mean_rpm`, `max_rpm`, `pct_full_throttle`, `pct_drs_active`, `short_shift_index` |
+| `telemetry_cliff` | 5 | `mid_corner_speed_loss_kph`, `traction_wheelspin_proxy`, `throttle_trace_decay`, `braking_point_drift_m`, `lift_coast_share` |
+| `weather_air` | 2 | `ambient_temp_delta`, `is_rain_lap` |
+| `track` | 2 | `track_energy_index`, `circuit_abrasiveness_index` |
+| `context` | 3 | `constructor_id`, `event_flag_any`, `anomaly_class` |
+| **Total** | **42** | |

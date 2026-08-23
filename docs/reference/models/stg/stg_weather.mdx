@@ -47,3 +47,4 @@ flowchart LR
 | `humidity_pct` | `double` | Yes |   | Relative humidity (%). |
 | `wind_speed_ms` | `double` | Yes |   | Wind speed (m/s). |
 | `wind_direction` | `integer` | Yes |   | Wind direction (degrees, 0–359). |
+| `pressure_hpa` | `double` | Yes |   | Station air pressure (hPa). 100% non-null in bronze across 2018–2024; range 778–1024 hPa (the low end is Mexico City's altitude, not a defect). Staged for contract completeness — air density derived from it was measured as a degradation feature and rejected as inside harness noise. |

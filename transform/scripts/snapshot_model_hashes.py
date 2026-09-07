@@ -10,10 +10,15 @@ Two modes:
   snapshot (default)  write target/model_hashes.baseline.json
   --check             recompute and diff vs the baseline; exit 1 on any fct_* drift
 
-Hashing: each row is hashed as its struct-cast-to-text, then the per-row hashes are
-aggregated with `string_agg(... ORDER BY ...)` so row order never affects the result.
-Relations in the manifest but absent from the DB are recorded as "missing" (e.g.
-fct_ghost_race_finish does not build on CI fixtures) rather than treated as drift.
+Hashing: each row is hashed as its struct-cast-to-text (`md5_number`, a 128-bit value),
+then the per-row hashes are combined with `bit_xor` — commutative and associative, so row
+order never affects the result and the combine runs as an O(1)-memory streaming aggregate.
+(An earlier version used `string_agg(... ORDER BY ...)`, which sorts and concatenates every
+row hash into one string; on `stg_telemetry`'s 118M rows that intermediate exceeded this
+machine's DuckDB memory_limit. `bit_xor` needs no sort and never materializes more than one
+running accumulator, fixing the OOM at the root rather than tuning around it.) Relations in
+the manifest but absent from the DB are recorded as "missing" (e.g. fct_ghost_race_finish
+does not build on CI fixtures) rather than treated as drift.
 
 Usage:
   python scripts/snapshot_model_hashes.py                       # snapshot ci.duckdb
@@ -86,7 +91,11 @@ def relation_columns(con: duckdb.DuckDBPyConnection, schema: str, identifier: st
 
 
 def hash_relation(con: duckdb.DuckDBPyConnection, schema: str, identifier: str) -> str:
-    """Order-independent md5 of a relation's contents, excluding volatile columns."""
+    """Order-independent md5 of a relation's contents, excluding volatile columns.
+
+    Combines per-row `md5_number` hashes with `bit_xor` (commutative, associative,
+    O(1)-memory) rather than sorting and concatenating them — see module docstring.
+    """
     quoted = f'"{schema}"."{identifier}"'
     exclude = VOLATILE_COLS & set(relation_columns(con, schema, identifier))
     if exclude:
@@ -95,8 +104,8 @@ def hash_relation(con: duckdb.DuckDBPyConnection, schema: str, identifier: str) 
     else:
         source = quoted
     sql = (
-        "SELECT md5(string_agg(rh, '' ORDER BY rh)) FROM ("
-        f"SELECT md5(CAST(t AS VARCHAR)) AS rh FROM {source} t)"
+        "SELECT md5(CAST(bit_xor(md5_number(CAST(t AS VARCHAR))) AS VARCHAR)) "
+        f"FROM {source} t"
     )
     return con.execute(sql).fetchone()[0]
 
@@ -124,6 +133,8 @@ def do_check(current: dict, baseline_path: Path) -> int:
     baseline = json.loads(baseline_path.read_text())
     base_hashes = baseline["hashes"]
     cur_hashes = current["hashes"]
+    base_rows = baseline.get("rowcounts", {})
+    cur_rows = current.get("rowcounts", {})
 
     drift_mandatory: list[str] = []
     drift_other: list[str] = []
@@ -135,7 +146,12 @@ def do_check(current: dict, baseline_path: Path) -> int:
             new_models.append(name)
             continue
         base = base_hashes[name]
-        if base == cur:
+        # Row count is checked alongside the hash, not just for display: `hash_relation`
+        # combines row hashes with `bit_xor` (see its docstring) so that a row can be added
+        # or removed in exact-duplicate pairs without changing the combined hash. Row count
+        # can't miss that same case, so comparing both closes the gap.
+        rows_match = name not in base_rows or name not in cur_rows or base_rows[name] == cur_rows[name]
+        if base == cur and rows_match:
             continue
         # baseline had a hash, now None (or vice versa) is also drift.
         if name.startswith(MANDATORY_PREFIX):
@@ -154,7 +170,10 @@ def do_check(current: dict, baseline_path: Path) -> int:
         print(f"FAIL: byte-stable fct_* models drifted ({len(drift_mandatory)}): "
               f"{', '.join(sorted(drift_mandatory))}", file=sys.stderr)
         for name in sorted(drift_mandatory):
-            print(f"  {name}: {base_hashes[name]} -> {cur_hashes[name]}", file=sys.stderr)
+            rows_note = ""
+            if name in base_rows and name in cur_rows and base_rows[name] != cur_rows[name]:
+                rows_note = f" (rows {base_rows[name]} -> {cur_rows[name]})"
+            print(f"  {name}: {base_hashes[name]} -> {cur_hashes[name]}{rows_note}", file=sys.stderr)
         return 1
 
     print(f"OK: all {sum(1 for n in cur_hashes if n.startswith(MANDATORY_PREFIX))} "

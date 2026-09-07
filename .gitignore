@@ -114,9 +114,7 @@ web/.docusaurus/
 .user.yml
 
 # Local-only not published (kept in author working tree, excluded from repo)
-_roadmap/
 agents/
 data/dev.duckdb.tmp/
 graphify-out/
 docs/project-graph.html
-_improvements/

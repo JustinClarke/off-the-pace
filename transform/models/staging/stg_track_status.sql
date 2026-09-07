@@ -9,10 +9,15 @@ WITH source AS (
 ),
 
 renamed AS (
-    SELECT
+    SELECT DISTINCT
+        -- status_code is part of the key, not just race_id + session_time_s:
+        -- some races log two distinct status codes at the identical
+        -- session_time_s (see status_duration_s below), and without it those
+        -- two genuinely different rows would collide on the same id.
         CONCAT(
             CAST(race_id AS VARCHAR), '_',
-            CAST(session_time_s AS VARCHAR)
+            CAST(session_time_s AS VARCHAR), '_',
+            CAST(status AS VARCHAR)
         ) AS track_status_id,
 
         -- race_id = numeric FastF1 event id (matches stg_laps.race_id);
@@ -51,8 +56,15 @@ SELECT
     *,
     -- Duration this status was in effect: until the next change in the same
     -- race
-    -- (NULL for the final, open-ended event).
+    -- (NULL for the final, open-ended event). Some races log two distinct
+    -- status codes at the identical session_time_s (a same-instant
+    -- transition, e.g. all_clear and yellow both stamped at 819.841s in
+    -- 2024_17) — ORDER BY session_time_s alone leaves LEAD() to break that
+    -- tie arbitrarily, which is non-deterministic across query plans.
+    -- status_code as a secondary key makes the choice of which simultaneous
+    -- event is "first" stable and reproducible; it does not claim that
+    -- ordering is domain-meaningful.
     LEAD(session_time_s) OVER (
-        PARTITION BY race_year, race_id ORDER BY session_time_s
+        PARTITION BY race_year, race_id ORDER BY session_time_s, status_code
     ) - session_time_s AS status_duration_s
 FROM renamed

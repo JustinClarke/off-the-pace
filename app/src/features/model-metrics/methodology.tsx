@@ -6,7 +6,7 @@ export const methodologyContent = (
   <div className="flex flex-col gap-3 text-sm text-muted leading-relaxed">
     <p>
       Five XGBoost 3.3.0 models predict next-lap tyre degradation (p10/p50/p90 quantile trio),
-      laps-until-cliff class (4-class), and remaining stint life. All are trained on 42 per-lap
+      laps-until-cliff class (4-class), and remaining stint life. All are trained on 24 per-lap
       features from <code>fct_cliff_prediction_features</code> covering 2018-2024.
     </p>
     <p>

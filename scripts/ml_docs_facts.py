@@ -48,22 +48,30 @@ SNIPPET_CALIBRATION = ROOT / "docs" / "snippets" / "ml-inventory-calibration.mdx
 # Test-group breakdown group name, source file, count, what it guarantees
 # Counts are from the live pytest collection; the check sub-command validates them.
 TEST_GROUPS = [
-    ("Leakage Spine",    "test_features.py",    14,
-     "No target, skill, or season column enters `X`; forward-window SQL audit (including its own coverage, and self-join horizons); holdout purity; `MAX+1`-derived split; bounded & non-null targets."),
+    ("Leakage Spine",    "test_features.py",    21,
+     "No target, skill, or season column enters `X`; forward-window SQL audit (including its own coverage, and self-join horizons); holdout purity; `MAX+1`-derived split; targets bounded by the clip their own column carries, non-null, and never also features at any horizon."),
     ("ONNX Parity",      "test_onnx_parity.py",  5,
      "Each booster round-trips to ONNX within `atol=1e-5`, including a NaN-bearing sample (the ~47% null-prior laps)."),
     ("Predict Schema",   "test_predict.py",       3,
      "Scored predictions parquet carries the declared 19-column schema (17 + the p10/p90 stint-life band); Arrow-validated."),
-    ("Evaluation Gates", "test_evaluate.py",      7,
-     "Every model beats its per-cohort baseline; calibration coverage computed; cohorts surfaced not dropped; metrics match the card."),
+    ("Evaluation Gates", "test_evaluate.py",     19,
+     "Every model beats its per-cohort baseline; calibration coverage computed; cohorts surfaced not dropped; every model carries an attainable ceiling and every beats-baseline claim an interval."),
     ("Targets",          "test_targets.py",       3,
      "Stint-life target is synthesised without leaking `stint_length_laps`; the censoring flag rides in metadata and never becomes a feature; AFT bounds encode censoring as a point vs a half-line."),
     ("Survival",         "test_survival.py",     18,
      "The AFT contract itself: the +1 shift keeps zero-life stints off log(0), margins round-trip to laps, quantiles bracket the median and widen with scale, censored rows are not punished for over-prediction, and C-index ranks. `aft_params` refuses a non-AFT booster."),
-    ("Version Contract", "test_manifest_contract.py", 14,
-     "The manifest names a version whose artefacts exist, declares the input width the boosters actually take, and matches the copy the browser loads."),
+    ("Version Contract", "test_manifest_contract.py", 18,
+     "The manifest names a version whose artefacts exist, declares the input width the boosters actually take, and matches the copy the browser loads; every `beats_baseline` on the card carries an interval, and that gate is proven to fire."),
+    ("Attainable Ceilings", "test_ceiling.py",   19,
+     "The between-stint variance estimator recovers a known ICC where the naive one inflates it; rolling-window overlap is detected and thinned; the in-sample stint oracle really is the optimum over stint-constant predictors; clustered intervals are wider than lap-grain ones."),
+    ("Within-stint Attribution", "test_attribution.py", 33,
+     "The flatten is a pure within-stint operation; a planted per-lap driver and a planted stint-level one separate under it where a drop cannot tell them apart; the causal summary over laps 1..t provably never reads a later lap; a planted look-ahead result is named unreachable."),
+    ("Fit Parity",       "test_fit_parity.py",   24,
+     "The search, the evaluation refit and the production refit fit the same model: the quantile trio's IPW survival weights and the AFT censoring flag reach every fold of every path, sliced to that fold's own rows; a quantile fit offered no weights raises instead of defaulting; and a refit that would replace a version fitted on a different target column is refused."),
+    ("Search Space",     "test_search_space.py", 14,
+     "The hyperparameter space is declared once and `_suggest` builds from it, so no suggestion can leave the bounds the pin detector reads; `boundary_params` names a best-params set that stopped on an edge, and is proven to fire at each ceiling, at each floor, and to stay silent in the interior."),
 ]
-EXPECTED_TOTAL = sum(t[2] for t in TEST_GROUPS)  # 64
+EXPECTED_TOTAL = sum(t[2] for t in TEST_GROUPS)  # 177
 
 
 def load_card() -> dict:
@@ -171,8 +179,8 @@ def generate_headline(card: dict, schema) -> str:
     one training engine, one pipeline.
   </Card>
   <Card title="{n_features} features in {n_groups} groups" icon="layers">
-    Per-lap thermal, dirty-air, powertrain, telemetry-cliff, compound-prior,
-    weather, track, and context signals all read from
+    Per-lap stint-position, compound-prior, cliff-prior, thermal, and
+    dirty-air signals all read from
     [`fct_cliff_prediction_features`](/reference/models/fct/fct_cliff_prediction_features),
     never re-derived in ML.
   </Card>

@@ -198,10 +198,66 @@ def _season_folds(seasons: np.ndarray, training_seasons: list[int], n_splits: in
 
 
 # ─── Train one target ──────────────────────────────────────────────────────────
+def _latest_log_for(target: str, version: str) -> dict | None:
+    """The newest training log at this version, or None if the version is unbuilt."""
+    logs = sorted(LOGS_DIR.glob(f"{target}_{version}_*.json"))
+    return json.loads(logs[-1].read_text()) if logs else None
+
+
+def _guard_target_change(target: str, version: str, spec: S.TargetSpec,
+                         fingerprint: str, allow_target_change: bool) -> None:
+    """Refuse to silently republish a version under a different target column.
+
+    `make ml-retrain` refits every target at MODEL_VERSION_DEFAULT from its
+    `*_best_params.json`, and it does not know or check what column those params were
+    searched against. Phase 7 moved DEGRADATION_TARGET, so from that moment the same
+    command would overwrite the shipped v6 boosters -- the ones ONNX-exported into
+    `app/public/models/` and the rollback point for everything after them -- with
+    models of a DIFFERENT QUANTITY under the same name, the same artefact path and an
+    unchanged manifest. Nothing downstream would notice: the file exists, the input
+    width matches, parity passes, and the app renders a five-lap number in a next-lap
+    sentence.
+
+    So the version's own history is the authority. Overwriting across a target change
+    has to be asked for.
+    """
+    log = _latest_log_for(target, version)
+    if log is None:
+        return
+    existing = log.get("target_column")
+    if existing is None:
+        # Logs written before Phase 7 do not name the column, which is exactly the
+        # case that matters: v6 is the shipped version. The fingerprint is the next
+        # best witness -- it is a hash over the encoded matrix, the season list and
+        # the feature list, and a target change moves it because the NULL-target rows
+        # dropped move with the target (114,274 -> 82,315 for this one). It also moves
+        # for legitimate reasons (new data, a feature change), so this warns and does
+        # not refuse. Say precisely what is and is not known.
+        if log.get("fingerprint") not in (None, fingerprint):
+            print(f"[{target}] WARNING {version} was fitted on a different feature/row "
+                  f"set (fingerprint {str(log.get('fingerprint'))[:12]}... vs "
+                  f"{fingerprint[:12]}...) and its log predates target_column, so "
+                  f"whether it was the same target CANNOT be checked. Current target: "
+                  f"'{spec.source_column}'.")
+        return
+    if existing == spec.source_column:
+        return
+    msg = (f"{target} at version {version} was last fitted on '{existing}', not "
+           f"'{spec.source_column}'. Refitting would replace that artefact with a model "
+           f"of a different quantity under the same name. Use a new --version for the "
+           f"new target (and promote it deliberately), or pass --allow-target-change if "
+           f"replacing {version} in place is genuinely what you mean.")
+    if not allow_target_change:
+        raise SystemExit(f"[{target}] refusing to overwrite: {msg}")
+    print(f"[{target}] WARNING overwriting across a target change: {msg}")
+
+
 def train_one(target: str, *, version: str, params: dict | None,
-              smoke: bool, n_splits: int = 5) -> dict:
+              smoke: bool, n_splits: int = 5,
+              allow_target_change: bool = False) -> dict:
     spec = S.TARGET_BY_NAME[target]
     bundle = F.load_features(target=target, persist_encoders=True)
+    _guard_target_change(target, version, spec, bundle.fingerprint, allow_target_change)
     X, y = bundle.X_train, bundle.y_train.to_numpy()
     seasons = bundle.groups_train.to_numpy()
 
@@ -243,6 +299,14 @@ def train_one(target: str, *, version: str, params: dict | None,
 
     log = {
         "target": target, "version": version, "smoke": smoke,
+        # The COLUMN, not just the artefact name. Phase 7 moved the degradation family
+        # from the 1-lap column to the 5-lap one without renaming a single artefact, so
+        # "degradation_regressor_p50" alone no longer identifies what was fitted: a v6
+        # booster and a v8 booster carry the same target name and model different
+        # quantities. Anything comparing versions, or rolling one back, needs this.
+        "target_column": spec.source_column,
+        "target_horizon_laps": S.TARGET_HORIZON_LAPS.get(spec.source_column),
+        **({"target_bound": S.TARGET_BOUND} if spec.kind == "quantile" else {}),
         "objective": spec.objective, "quantile_alpha": spec.quantile_alpha,
         **({"aft": {"distribution": S.AFT_DISTRIBUTION, "scale": scale,
                     "label_shift": S.AFT_LABEL_SHIFT,
@@ -278,6 +342,9 @@ def main() -> int:
                     help="retrain each target at its own ml/models/<target>_best_params.json, "
                          "at MODEL_VERSION_DEFAULT. The production retrain path.")
     ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--allow-target-change", action="store_true",
+                    help="permit refitting a version whose artefacts were trained on a "
+                         "different target column (replaces them in place)")
     ap.add_argument("--n-estimators", type=int)
     ap.add_argument("--max-depth", type=int)
     args = ap.parse_args()
@@ -312,7 +379,8 @@ def main() -> int:
 
     for t in targets:
         target_params = json.loads(tuned_paths[t].read_text()) if args.tuned else params
-        train_one(t, version=version, params=target_params, smoke=args.smoke)
+        train_one(t, version=version, params=target_params, smoke=args.smoke,
+                  allow_target_change=args.allow_target_change)
     return 0
 
 

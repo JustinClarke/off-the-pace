@@ -5,9 +5,10 @@
 -- Carries the FULL chronological lap sequence (SC/VSC/pit/invalid laps
 -- included) so downstream LAG/EWMA windows decay correctly across those
 -- gaps instead of treating the lap before/after a gap as adjacent.
--- `lap_in_stint` is the chronological ordinal (total laps); `valid_lap_in_stint`
--- is the ordinal among valid laps only (NULL on invalid laps) for consumers
--- that fit pace/regression models and need SC/pit laps excluded.
+-- `lap_in_stint` is the chronological ordinal (total laps);
+-- `valid_lap_in_stint` is the ordinal among valid laps only (NULL on invalid
+-- laps) for consumers that fit pace/regression models and need SC/pit laps
+-- excluded.
 {{ config(materialized='table') }}
 
 WITH laps AS (

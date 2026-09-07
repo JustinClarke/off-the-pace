@@ -36,16 +36,16 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
   <Accordion title="3. The forward-window audit can still see" icon="eye">
     **Source:** `test_features.py::test_forward_window_audit_actually_reads_the_lineage`
 
-    **Assertion:** every lineage model parses, and all 42 features resolve to a SQL definition
+    **Assertion:** every lineage model parses, and all 33 features resolve to a SQL definition
 
     **Why it matters:** Coverage, not cleanliness. `audit_forward_window` returns `[]` both when it has inspected every feature and found nothing, and when it inspected nothing at all — and for as long as the manifest carried a null `compiled_code`, it was the second: 0 of 21 models parsed, 0 of 42 features resolved, `CLEAN` on every run. This test is what makes gate 2 mean something. The failure mode of a gate is silence, and silence is indistinguishable from success.
   </Accordion>
   <Accordion title="4. Audit features clear the forward window" icon="search">
     **Source:** `test_features.py::test_audit_features_clear_forward_window`
 
-    **Assertion:** No `AUDIT_FEATURES` (`cliff_candidate_flag`, `anomaly_class`) appear in any `audit_forward_window` violation
+    **Assertion:** No `AUDIT_FEATURES` (`cliff_candidate_flag`) appear in any `audit_forward_window` violation
 
-    **Why it matters:** `cliff_candidate_flag` and `anomaly_class` are "label-adjacent" features they are predictive precisely because they encode information that co-moves with the cliff. The test asserts that this predictiveness comes from the mart's temporal conditioning, not from a forward-window leak. If they ever look ahead in the SQL, they must move to `EXCLUDED_LEAKAGE_COLUMNS`.
+    **Why it matters:** `cliff_candidate_flag` is a "label-adjacent" feature it is predictive precisely because it encodes information that co-moves with the cliff. The test asserts that this predictiveness comes from the mart's temporal conditioning, not from a forward-window leak. If it ever looks ahead in the SQL, it must move to `EXCLUDED_LEAKAGE_COLUMNS`. (`anomaly_class` carried the same guard until Phase 9 (2026-09-05) dropped it from the feature contract along with the rest of the `context` group.)
   </Accordion>
   <Accordion title="5. Mart contract ⊆ live mart columns" icon="database">
     **Source:** `test_features.py::test_feature_contract_subset_of_mart`
@@ -98,7 +98,7 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
     The adversarial probe that demonstrates the exclusions are non-negotiable `race_year` is recoverable at 0.998 accuracy.
   </Card>
   <Card title="Feature contract" href="/ml/feature-contract" icon="list">
-    The full list of 42 features and why each is allowed into `X`.
+    The full list of 33 features and why each is allowed into `X`.
   </Card>
   <Card title="CI overview" href="/ml/ci/overview" icon="vial">
     All 40 tests where the spine sits in the full contract.

@@ -225,6 +225,51 @@ models:
         data_type: varchar
         constraints:
           - type: not_null
+      # ── Phase 10a: proximity, from the position channel ────────────────────
+      # Present in the mart, deliberately not yet in the ML feature contract --
+      # the contract moves only if the ablation earns it. The five share/time
+      # columns are not_null (zeroed at source on neutralised laps and on the
+      # 1.22% of laps with no position telemetry); the four gap/identity
+      # columns are nullable on purpose, because NULL there means "no car
+      # within a full lap" and defaulting it would invent a car that was not
+      # there.
+      - name: share_lap_within_1s
+        description: Share of the lap's 100 track bins with a car within 1 s ahead on track (position channel; mean 0.2011)
+        data_type: double
+        constraints:
+          - type: not_null
+      - name: share_lap_within_2s
+        description: Share of the lap's track bins with a car within 2 s ahead on track (mean 0.4063)
+        data_type: double
+        constraints:
+          - type: not_null
+      - name: share_lap_in_train
+        description: Share of the lap in a train rather than a single tow - within 1 s of the car ahead AND that car within 1 s of its own car ahead (mean 0.0800)
+        data_type: double
+        constraints:
+          - type: not_null
+      - name: share_lap_behind_within_1s
+        description: Share of the lap's track bins with a car within 1 s BEHIND. The half of traffic DistanceToDriverAhead structurally cannot see (mean 0.2012)
+        data_type: double
+        constraints:
+          - type: not_null
+      - name: time_within_1s
+        description: Seconds of the lap spent within 1 s of the car ahead, time-weighted by real bin duration rather than counted in bins (mean 18.36 s)
+        data_type: double
+        constraints:
+          - type: not_null
+      - name: gap_ahead_min_s
+        description: Closest the car ahead on track came this lap (s). NULL = a full lap of clear air; median 0.92 s
+        data_type: double
+      - name: gap_ahead_median_s
+        description: Median gap to the car ahead on track across the lap's bins (s). NULL = clear air; median 2.26 s
+        data_type: double
+      - name: ahead_identity_stability
+        description: Share of the lap's within-3 s bins held by the single most frequent car ahead. 1.0 = a settled follow, low = the car ahead rotated. NULL on the 27.3% of laps with no car within 3 s
+        data_type: double
+      - name: n_distinct_cars_ahead_3s
+        description: How many distinct cars were within 3 s ahead at some point in the lap (mean 1.348)
+        data_type: integer
       - name: expected_compound_pace_s
         description: Model-expected compound pace contribution from int_compound_cliff_predicted
         data_type: double

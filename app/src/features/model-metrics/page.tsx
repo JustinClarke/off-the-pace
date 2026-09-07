@@ -39,7 +39,7 @@ export default function ModelMetricsPage() {
   return (
     <FeaturePage
       title="ML Model Metrics"
-      hook="Every number here is read from model_card.json a machine-generated audit trail. Five XGBoost models, all beating their per-cohort baseline, trained on 110k laps of real F1 data."
+      hook="Every number here is read from model_card.json a machine-generated audit trail. Five XGBoost models trained on 110k laps of real F1 data, each reported against two things a strong per-cohort baseline, and the ceiling of what is actually reachable."
       badges={[
         {
           label: 'What It Means',
@@ -47,11 +47,11 @@ export default function ModelMetricsPage() {
         },
         {
           label: 'Why It Matters',
-          content: "Every fitted number traces to a tracked artefact and beats a strong baseline. The 2025 season is the true held-out blind test this page shows results on the 2024 CV fold until that data ingests.",
+          content: "Every fitted number traces to a tracked artefact, beats a strong baseline, and carries an interval on that margin laps inside one stint are not independent draws, so a point estimate alone overstates certainty. The 2025 season is the true held-out blind test this page shows results on the 2024 CV fold until that data ingests.",
         },
         {
           label: "How It's Calculated",
-          content: "Season-grouped TimeSeriesSplit (5 folds, expanding window). Final fold = 2024 data. Baselines are per-cohort group-means / majority-class priors. Calibration: conformal coverage targeting 80% at nominal.",
+          content: "Season-grouped TimeSeriesSplit (5 folds, expanding window). Final fold = 2024 data. Baselines are per-cohort group-means / majority-class priors. Intervals: paired t across the five folds, plus a bootstrap resampling whole stints. Ceilings: the improvement a predictor with perfect stint-level knowledge could reach. Calibration: conformal coverage targeting 80% at nominal.",
         },
       ]}
       methodology={methodologyContent}

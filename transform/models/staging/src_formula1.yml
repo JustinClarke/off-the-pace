@@ -169,6 +169,40 @@ sources:
           - name: session_time_s
             description: Session elapsed time of the status change (seconds)
 
+      - name: raw_race_control
+        meta:
+          external_location: "{{ var('bronze_base', '../data/bronze') }}/race_control/*/*/*.parquet"
+        description: >
+          FastF1 session.race_control_messages: the FIA's own message feed for
+          the session. One row per message. 12,814 rows across 149 races, of
+          which 4,909 are waved blue flags. Ingested since the beginning and
+          staged by nothing until Phase 10a, which needs the blue flags as a
+          traffic label that is NOT derived from the telemetry the proximity
+          features are built from.
+        columns:
+          - name: race_id
+            description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps.race_id (the downstream join key)
+          - name: race
+            description: Hive partition race name slug; exposed as race_slug
+          - name: season
+            description: Calendar year
+          - name: Flag
+            description: Flag colour where the message is a flag (BLUE / YELLOW / DOUBLE YELLOW / GREEN / CLEAR / RED / CHEQUERED / BLACK AND WHITE); NULL for non-flag messages
+          - name: category
+            description: Message category (Flag / Drs / SafetyCar / CarEvent / Other)
+          - name: message
+            description: Raw FIA message text
+          - name: Scope
+            description: Whom the message applies to (Track / Driver / Sector)
+          - name: Sector
+            description: Marshal sector, when Scope = 'Sector'
+          - name: RacingNumber
+            description: Car number the message applies to, when Scope = 'Driver'. A car NUMBER, not the three-letter code driver_id uses
+          - name: Lap
+            description: Lap number the message was issued on
+          - name: session_time_s
+            description: Session clock of the message. NOT on the same origin as the telemetry SessionTime column - do not join the two on it; join on Lap
+
       - name: raw_session_status
         meta:
           external_location: "{{ var('bronze_base', '../data/bronze') }}/session_status/*/*/*.parquet"

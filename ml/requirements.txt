@@ -10,6 +10,11 @@ pandas>=2,<3
 numpy>=2,<2.5
 pyarrow>=24.0.0,<25
 scikit-learn>=1.9.0,<2
+# Direct dependency since Phase 6: ml/src/intervals.py uses scipy.stats.t for the
+# paired-t interval on every beats_baseline claim. It arrived transitively via
+# scikit-learn before that; an undeclared import is a gate that fails on someone
+# else's machine, so it is pinned here rather than assumed.
+scipy>=1.14,<2
 matplotlib>=3.11.0,<4
 PyYAML>=6.0.3,<7
 

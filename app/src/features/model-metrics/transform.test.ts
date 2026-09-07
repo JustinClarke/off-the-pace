@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { transform, metricDirectionLabel, modelBeatsBaselineDescription } from './transform'
+import {
+  transform, metricDirectionLabel, modelBeatsBaselineDescription,
+  attainableLabel, intervalLabel,
+} from './transform'
 
 const MINIMAL_CARD = {
   model_card: {
@@ -134,6 +137,9 @@ describe('modelBeatsBaselineDescription', () => {
     const desc = modelBeatsBaselineDescription({
       ...m,
       kind: 'quantile',
+      attainable: null,
+      interval: null,
+      beats_baseline_significant: null,
     })
     // (0.22-0.19) / 0.22 * 100 = 13.6%
     expect(desc).toMatch(/13\.6%/)
@@ -144,8 +150,85 @@ describe('modelBeatsBaselineDescription', () => {
     const desc = modelBeatsBaselineDescription({
       ...m,
       kind: 'classification',
+      attainable: null,
+      interval: null,
+      beats_baseline_significant: null,
     })
     // (0.37-0.18) / 0.18 * 100 = 105.6%
     expect(desc).toMatch(/105\.6%/)
+  })
+})
+
+// ── Phase 6: attainable ceilings and intervals ────────────────────────────────
+// A card written before Phase 6 carries none of these fields. The transform must render
+// that as "not measured" rather than as a zero or a false, because a model page that
+// shows 0% attainable for an unmeasured model is worse than one that shows nothing.
+const row = (over: Partial<Parameters<typeof attainableLabel>[0]> = {}) => ({
+  name: 'x', family: 'x', kind: 'quantile' as const, headline_metric: 'pinball',
+  cv_headline: 0.2, eval_headline: 0.2, baseline_headline: 0.3, beats_baseline: true,
+  n_train_rows: 10, quantile_alpha: 0.5,
+  attainable: null, interval: null, beats_baseline_significant: null,
+  ...over,
+})
+
+describe('attainableLabel', () => {
+  it('returns null when the card carries no ceiling', () => {
+    expect(attainableLabel(row())).toBeNull()
+  })
+
+  it('renders a fraction at or below the ceiling as a percentage', () => {
+    const label = attainableLabel(row({
+      attainable: { fraction: 0.902, scope: 'stint_level', isBinding: true, verdict: null, betweenStintShare: 0.195 },
+    }))
+    expect(label).toBe('90.2% of attainable')
+  })
+
+  it('renders a fraction above the ceiling as a multiple, never as a percentage', () => {
+    const label = attainableLabel(row({
+      attainable: { fraction: 20.01, scope: 'stint_level', isBinding: false, verdict: null, betweenStintShare: 0.029 },
+    }))
+    expect(label).toBe('20.0× the stint-level ceiling')
+    expect(label).not.toMatch(/%/)
+  })
+
+  it('names an absolute bound as such', () => {
+    expect(attainableLabel(row({
+      attainable: { fraction: 0.768, scope: 'absolute', isBinding: true, verdict: null, betweenStintShare: null },
+    }))).toBe('76.8% of an absolute bound')
+  })
+})
+
+describe('intervalLabel', () => {
+  it('says so loudly when a claim carries no interval', () => {
+    expect(intervalLabel(row())).toBe('no interval')
+  })
+
+  it('reports a claim that clears its interval', () => {
+    const label = intervalLabel(row({
+      interval: { meanDelta: 0.09, ciLow: 0.06, ciHigh: 0.12, pValue: 0.0005, nFolds: 5, foldsWon: 5, significant: true },
+      beats_baseline_significant: true,
+    }))
+    expect(label).toMatch(/clears its interval/)
+    expect(label).toMatch(/5\/5 folds/)
+  })
+
+  it('reports a claim that does not, rather than hiding it', () => {
+    const label = intervalLabel(row({
+      interval: { meanDelta: 0.003, ciLow: -0.002, ciHigh: 0.008, pValue: 0.24, nFolds: 5, foldsWon: 3, significant: false },
+      beats_baseline_significant: false,
+    }))
+    expect(label).toMatch(/inside noise/)
+  })
+})
+
+describe('transform: Phase 6 fields', () => {
+  it('carries an empty claims list rather than undefined on a pre-Phase-6 card', () => {
+    expect(transform(MINIMAL_CARD as never).claimsInsideNoise).toEqual([])
+  })
+
+  it('leaves attainable and interval null when the card has neither', () => {
+    const m = transform(MINIMAL_CARD as never).models[0]
+    expect(m.attainable).toBeNull()
+    expect(m.interval).toBeNull()
   })
 })

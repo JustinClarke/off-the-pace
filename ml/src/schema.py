@@ -38,12 +38,15 @@ EXCLUDED_LEAKAGE_COLUMNS: frozenset[str] = frozenset({
     "lap_id", "stint_id", "race_id", "race_year", "driver_id", "circuit_key",
     # the training gate
     "is_training_eligible",
-    # targets: next-lap (modelled), alt-horizon (forward-looking, never features),
-    # the classifier label, and the synthesised / join-time stint-life columns
+    # targets: the modelled one, the alt-horizon ones (forward-looking, never
+    # features), the classifier label, and the synthesised / join-time stint-life
+    # columns. Every horizon stays barred whichever one DEGRADATION_TARGET names --
+    # Phase 7 moved the modelled column from the 1-lap to the 5-lap one and this set
+    # did not have to move with it, which is the property test_feature_contract keeps.
     "next_lap_degradation_jump_s",            # legacy (undetrended)
-    "next_lap_degradation_jump_detrended_s",  # C1 primary target
+    "next_lap_degradation_jump_detrended_s",  # C1 target; alt-horizon since Phase 7
     "next_3_lap_cumulative_jump_s",
-    "next_5_lap_cumulative_jump_s",
+    "next_5_lap_cumulative_jump_s",           # Phase 7 primary target
     "laps_until_cliff_class",
     "remaining_stint_life_laps",   # synthesised target
     "stint_length_laps",           # join-time only → synthesises the target, never a feature
@@ -64,10 +67,18 @@ IDENTIFIER_COLUMNS: tuple[str, ...] = (
     "survival_weight",
 )
 
-# ─── Feature set (42) verified members, grouped for ablation ────────────────────
-# The `powertrain` (6) and `telemetry_cliff` (5) groups land with telemetry ingestion
-# Per-lap aggregates projected by int_lap_telemetry_aggregates →
-# fct_cliff_prediction_features; included because they beat the baseline (see ml/artefacts/ablation_*).
+# ─── Feature set (24) verified members, grouped for ablation ────────────────────
+# Phase 9 (2026-09-05): dropped `powertrain` (6), `telemetry_cliff` (5), `weather_air` (2),
+# `track` (2) and `context` (3) -- 18 of the prior 42 columns -- on a noise-floor group
+# ablation re-run against the v8 mart (5-lap target, repaired cliff label) across all three
+# ablation-bearing families (degradation p50, cliff classifier, stint life). A group was kept
+# only if its drop delta was positive and cleared that family's own seed-refit floor
+# (2*sqrt(2)*sd over 5 reseeds) in at least one of the three; every dropped group cleared in
+# none. `powertrain` and `telemetry_cliff` were the mart's entire consumption of
+# int_lap_telemetry_aggregates -- dropping them removes every telemetry-aggregate feature
+# from the contract, not the ingestion or model behind it (Phase 10 reads the same data for a
+# different channel). See the plan's Phase 9 section for the full ablation table and the
+# aggregation rule. Kept: `stint_position`, `compound`, `cliff_prior`, `thermal`, `dirty_air`.
 # The air-density weather features (air_density_kgm3 / density_ratio_to_ref) were
 # DEFERRED here pending enrichment. Closed 2026-08-23 as a measured negative result, not
 # as unrealised value: built properly (Tetens, off the bronze pressure_hpa that
@@ -76,8 +87,8 @@ IDENTIFIER_COLUMNS: tuple[str, ...] = (
 # circuit identity already enters the set three times over. Do not re-open it as an ML
 # win; see docs/ml/features-and-targets.mdx. The export-time guard (test_feature_contract)
 # asserts contract ⊆ mart so nothing can be referenced before it lands.
-# C3 (Route C): surface_bulk_ratio added as 42nd feature to the thermal group so the
-# model can attribute early-stint surface vs bulk thermal loading (warm-up vs real deg).
+# C3 (Route C): surface_bulk_ratio added to the thermal group so the model can attribute
+# early-stint surface vs bulk thermal loading (warm-up vs real deg); survives Phase 9's prune.
 FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     "stint_position": ("lap_number", "lap_in_stint", "age_in_stint", "fuel_mass_kg"),
     "compound": (
@@ -97,17 +108,54 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "dirty_air_share_lap", "dirty_air_thermal_load_surface",
         "dirty_air_thermal_load_bulk", "air_state_dominant",
     ),
-    "powertrain": (
-        "n_gear_changes", "mean_rpm", "max_rpm",
-        "pct_full_throttle", "pct_drs_active", "short_shift_index",
+    # Phase 10a (2026-09-05). The first group in either series sourced from a
+    # DIFFERENT SENSOR rather than from a further transform of the car channel or
+    # of lap times -- which is the specific thing the plan's "Not recommended"
+    # list says a 43rd feature has to be in order to add information rather than
+    # variance. Built in int_lap_proximity from the position channel's ~369
+    # samples/lap/driver: each lap is cut into 100 fractions of relative_distance,
+    # the session clock at which a driver first enters a fraction is a crossing
+    # time of a fixed point on track, and the gap to the car ahead is the
+    # difference between two crossings of the same point. Every incumbent traffic
+    # feature (the `dirty_air` group above) instead divides FastF1's
+    # DistanceToDriverAhead by point speed, which assumes the car ahead is at the
+    # same speed as the car behind -- false in exactly the situation the feature
+    # describes.
+    #
+    # ADMITTED ON A MEASUREMENT, not on the argument. Add-ablation on the v10
+    # split, same _fit/_score as the production headline, each delta against that
+    # family's own 5-reseed floor (2*sqrt(2)*sd):
+    #   p50   pinball  1.034661 -> 1.012128  (-0.022532, 1.54x floor)  CLEARS
+    #   cliff macro-F1 0.372960 -> 0.380950  (+0.007990, 2.17x floor)  CLEARS
+    #   life  AFT NLL  1.956152 -> 1.952005  (-0.004146, 0.59x floor)  inside
+    # All nine are kept because reduced arms are strictly worse, not on taste: the
+    # gain is monotone in group size on both families that clear -- p50 runs
+    # 0.40x (3 cols) / 0.91x (5) / 1.54x (9), cliff 1.44x / 2.07x / 2.17x.
+    #
+    # And they are ADDITIVE, not a replacement. The plan's checklist called for
+    # replacing the DistanceToDriverAhead inputs; the swap arm (drop `dirty_air`,
+    # keep `proximity`) lands inside noise on all three families (0.15x / 0.67x /
+    # 0.39x) and on the classifier is actually WORSE than the 24-feature baseline.
+    # The two groups carry different things and both stay.
+    #
+    # AND THE GAIN IS INFORMATION, NOT NINE EXTRA SPLIT CANDIDATES -- checked,
+    # because a tree model handed more columns can score better on an eval fold
+    # without those columns knowing anything. Permutation-null arm: same 33-wide
+    # matrix, same params, proximity columns row-shuffled in train and eval, so
+    # capacity is preserved exactly and the signal is destroyed.
+    #   cliff  capacity -0.000416 (0.11x, nil)  information +0.008406 (2.28x) CLEARS
+    #   p50    capacity -0.011286 (0.77x)       information -0.011247 (0.77x)
+    #   life   capacity +0.001218 (0.17x)       information -0.005365 (0.77x)
+    # So the classifier's win is unambiguously the traffic signal. **p50's is
+    # not cleanly attributable**: its total clears the floor but splits about
+    # 50/50 between information and capacity, and neither half clears on its own.
+    # Recorded rather than rounded up -- see the plan's Phase 10a checkpoint.
+    "proximity": (
+        "share_lap_within_1s", "share_lap_within_2s", "share_lap_in_train",
+        "share_lap_behind_within_1s", "time_within_1s", "gap_ahead_min_s",
+        "gap_ahead_median_s", "ahead_identity_stability",
+        "n_distinct_cars_ahead_3s",
     ),
-    "telemetry_cliff": (
-        "mid_corner_speed_loss_kph", "traction_wheelspin_proxy",
-        "throttle_trace_decay", "braking_point_drift_m", "lift_coast_share",
-    ),
-    "weather_air": ("ambient_temp_delta", "is_rain_lap"),
-    "track": ("track_energy_index", "circuit_abrasiveness_index"),
-    "context": ("constructor_id", "event_flag_any", "anomaly_class"),
 }
 
 # Flat, ordered feature list (group order preserved → deterministic column order).
@@ -118,20 +166,50 @@ assert len(FEATURE_COLUMNS) == len(set(FEATURE_COLUMNS)), "duplicate feature col
 
 # ─── Categorical handling ─────────────────────────────────────────────────────────
 # String categoricals → ordinal-encoded from the TRAINING map; NULL/unseen → MISSING_ORDINAL.
-CATEGORICAL_COLUMNS: tuple[str, ...] = ("compound", "air_state_dominant", "constructor_id", "anomaly_class")
+CATEGORICAL_COLUMNS: tuple[str, ...] = ("compound", "air_state_dominant")
 # Booleans → float (True=1.0, False=0.0, NULL=NaN → native-NaN).
-BOOLEAN_COLUMNS: tuple[str, ...] = ("cliff_onset_passed", "event_flag_any", "cliff_candidate_flag", "is_rain_lap")
+BOOLEAN_COLUMNS: tuple[str, ...] = ("cliff_onset_passed", "cliff_candidate_flag")
 # Continuous features keep NaN as NaN (XGBoost native missing). Reserved ordinal for missing categoricals:
 MISSING_ORDINAL = -1.0
 
 # Label-adjacent features that must clear the forward-window audit before they stay in.
-AUDIT_FEATURES: tuple[str, ...] = ("cliff_candidate_flag", "anomaly_class")
+# anomaly_class dropped by Phase 9 (2026-09-05): it left FEATURE_COLUMNS with the `context`
+# group, and leaving it here would point the forward-window audit at a column no longer in
+# the contract -- a gate asserting over nothing (Corrections §6's shape).
+AUDIT_FEATURES: tuple[str, ...] = ("cliff_candidate_flag",)
 
 # ─── Targets / model families ───────────────────────────────────────────────────
-DEGRADATION_TARGET = "next_lap_degradation_jump_detrended_s"  # C1: detrended (was next_lap_degradation_jump_s)
+# Phase 7: the modelled degradation column is the 5-lap cumulative jump, not the
+# next-lap one. Both are detrended at source; the 5-lap column subtracts 5x the current
+# residual and 15x the per-stint drift from the sum of the next five leads, and Phase 4
+# verified that closed form to max |diff| 3.2e-14. Three consequences live in this file:
+# TARGET_HORIZON_LAPS (below) makes the ceiling arithmetic thin overlapping windows,
+# TARGET_BOUND_BY_COLUMN carries the +/-50 s clip the SQL applies to it rather than the
+# +/-10 s of the 1-lap column, and every horizon stays in EXCLUDED_LEAKAGE_COLUMNS.
+# The cost is rows: the column is NULL unless five consecutive laps follow in the same
+# stint, which drops 114,274 -> 82,315 training rows, and drops them from the END of
+# stints (18.9% of laps 1-5 vs 50.4% of lap 31+). See the Phase 7 checkpoint.
+DEGRADATION_TARGET = "next_5_lap_cumulative_jump_s"  # was next_lap_degradation_jump_detrended_s (C1)
 CLIFF_TARGET = "laps_until_cliff_class"
 STINT_LIFE_TARGET = "remaining_stint_life_laps"  # synthesised in features.py
 STINT_LIFE_CENSOR_COLUMN = "is_censored_stint"  # from fct_stint_features; TRUE => right-censored
+
+# Forward horizon of each target column, in laps. Phase 6 (attainable ceilings) needs it:
+# a rolling-window target overlaps itself, so consecutive rows share `h - 1` of their `h`
+# terms and any within-stint independence assumption is false by construction. Two things
+# key off this and both are silently wrong without it -- the between-stint variance share
+# (ml/src/ceiling.py thins to non-overlapping windows when h > 1) and the reading of the
+# within-stint lag-1 autocorrelation (white-noise increments already give (h-1)/h).
+# Phase 7 flips DEGRADATION_TARGET to the 5-lap column; this map is what makes that a
+# one-line change rather than a silent regression in the ceiling arithmetic.
+TARGET_HORIZON_LAPS: dict[str, int] = {
+    "next_lap_degradation_jump_detrended_s": 1,
+    "next_lap_degradation_jump_s": 1,
+    "next_3_lap_cumulative_jump_s": 3,
+    "next_5_lap_cumulative_jump_s": 5,
+    CLIFF_TARGET: 1,
+    STINT_LIFE_TARGET: 1,
+}
 
 # ─── Stint-life survival (AFT) contract ─────────────────────────────────────────
 # Remaining stint life is right-censored on 46.2% of training rows (55,926 of
@@ -160,7 +238,21 @@ STINT_LIFE_QUANTILES: tuple[float, ...] = (0.10, 0.50, 0.90)
 
 # Fixed class order (matches accepted_values in marts/schema.yml). Index == XGBoost label.
 CLIFF_CLASS_LABELS: tuple[str, ...] = ("0_to_2", "3_to_5", "6_plus", "none_in_stint")
-TARGET_BOUND = 10.0  # next_lap_degradation_jump_s ∈ [-TARGET_BOUND, +TARGET_BOUND] (D5)
+# D5: the degradation target is clipped at source, and the clip is per-column -- the
+# 1-lap columns at +/-10 s, the 3-lap at +/-30 s, the 5-lap at +/-50 s (see
+# fct_cliff_prediction_features.sql). Phase 7's checklist called for reconciling the two
+# deliberately rather than inheriting either: the bound follows the column, because it
+# is the SQL that enforces it and a bound that disagreed with the SQL would be a claim
+# about the data rather than a fact about it. TARGET_BOUND stays as the name every
+# consumer already reads (test_features, export_onnx's manifest) and now resolves
+# through the map, so flipping DEGRADATION_TARGET moves it automatically.
+TARGET_BOUND_BY_COLUMN: dict[str, float] = {
+    "next_lap_degradation_jump_s": 10.0,
+    "next_lap_degradation_jump_detrended_s": 10.0,
+    "next_3_lap_cumulative_jump_s": 30.0,
+    "next_5_lap_cumulative_jump_s": 50.0,
+}
+TARGET_BOUND = TARGET_BOUND_BY_COLUMN[DEGRADATION_TARGET]
 
 
 @dataclass(frozen=True)
@@ -237,7 +329,32 @@ PREDICTIONS_ARROW_SCHEMA = pa.schema([
 ])
 assert len(PREDICTIONS_ARROW_SCHEMA) == 19, "predictions schema must be 19 columns"
 
-MODEL_VERSION_DEFAULT = "v6"  # v6 = v5's features and cliff label, unchanged, with the
+MODEL_VERSION_DEFAULT = "v11"  # v11 = Phase 10a: the `proximity` group (9 columns) joins the
+# contract, 24 -> 33. It is the first version in either series whose feature change comes from
+# a DIFFERENT SENSOR -- the position channel of the telemetry stream, whose ~58.8M rows had no
+# consumer at all before Phase 10 (stg_telemetry projected them and int_lap_telemetry_aggregates
+# filtered them out). Everything else is held fixed: same targets, same labels, same
+# hyperparameters, same split. Nothing was re-tuned, so v10 -> v11 is attributable to the nine
+# columns and to nothing else, which is the property the group ablation above needs in order to
+# mean anything. See the FEATURE_GROUPS["proximity"] note for the acceptance numbers and
+# ml/src/schema.py's Phase 9 note for what the contract looked like before. **v10 is the
+# rollback floor** and the last shipped set before this one. Prior version notes follow.
+#
+# v10 = Phase 9's pruned feature contract: FEATURE_GROUPS drops
+# `powertrain`, `telemetry_cliff`, `weather_air`, `track` and `context` (18 of 42 columns),
+# leaving 24. It is the first version fitted against the two target/label changes that were
+# already live in the mart SQL and this file's constants but had never been shipped through a
+# retrain -- DEGRADATION_TARGET is Phase 7's 5-lap cumulative jump
+# (next_5_lap_cumulative_jump_s), and CLIFF_TARGET's underlying laps_until_cliff_class is
+# scored against Phase 8's source-bounded driver_skill_residual_s (6,825 rows changed class).
+# Both were already the code's truth under the stale "v6" label; v10 is the first artefact set
+# that actually reflects them. v9 is not in this lineage -- it is an abandoned 42-feature
+# search-space-widening probe (open item 21) run on only 2 of the 5 targets and explicitly
+# "not worth shipping." **v6 is the rollback floor**: it is the last version actually exported
+# to `app/public/models/` (v7/v8 never left `ml/models/` as shipped artefacts), so it is what
+# v10 has to clear and what a revert falls back to. Prior version notes follow.
+#
+# v6 = v5's features and cliff label, unchanged, with the
 # stint-life model moved from reg:squarederror to survival:aft over an interval label.
 # The contract changed, not just the weights: the booster emits a log-scale margin, the
 # predictions parquet gained p10/p90 life columns (17 -> 19), and the ONNX graph needs a

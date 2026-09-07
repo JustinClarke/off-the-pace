@@ -45,7 +45,7 @@ The `ml-features` stage (`ml/src/features.py`) is where a mart row becomes a row
 
 ## Ordinal encoding
 
-Categoricals (`compound`, `air_state_dominant`, `constructor_id`, `anomaly_class`) are encoded from the training map a deterministic integer assignment built once from the training set and persisted to `ml/models/encoders.json`.
+Categoricals (`compound`, `air_state_dominant`) are encoded from the training map a deterministic integer assignment built once from the training set and persisted to `ml/models/encoders.json`. (`constructor_id` and `anomaly_class` were also ordinal-encoded categoricals before Phase 9 (2026-09-05) dropped both, with the rest of the `context` group, from the feature contract.)
 
 ```python
 # Characteristic clause from ml/src/features.py _build_encoders
@@ -116,7 +116,18 @@ Today the holdout season is 2025 (no data yet). The final `TimeSeriesSplit` fold
 
 ## Measured and rejected
 
-Two obvious expansions of the 42-feature set have been measured and **both were rejected**. They are recorded here so a later pass does not re-derive them. Both were run on the project's own harness: expanding-window season CV (train 2018 to season *k*−1, test season *k*, six folds), XGBoost at 300 trees / depth 6 / lr 0.08, `S.RANDOM_STATE`, `is_training_eligible` rows only. Measured 2026-08-22.
+Two obvious expansions of the (then-)42-feature set have been measured and **both were rejected**. They are recorded here so a later pass does not re-derive them. Both were run on the project's own harness: expanding-window season CV (train 2018 to season *k*−1, test season *k*, six folds), XGBoost at 300 trees / depth 6 / lr 0.08, `S.RANDOM_STATE`, `is_training_eligible` rows only. Measured 2026-08-22.
+
+<Note>
+**Read against the current contract, not the one these were measured on.** Phase 9 (2026-09-05)
+subsequently dropped `weather_air` and `track` themselves (along with `powertrain`,
+`telemetry_cliff` and `context`) from the live feature set on a noise-floor ablation see
+[Feature contract](/ml/feature-contract). The two write-ups below still stand as the record of
+what was measured at the time, but a claim like "circuit identity already enters the feature
+set three times over through `track_energy_index`, `circuit_abrasiveness_index`, and the
+per-circuit-per-season compound cliff parameters" now describes a 42-feature set that no
+longer exists two of those three paths were removed by the prune.
+</Note>
 
 <AccordionGroup>
   <Accordion title="17 unused warehouse signals add nothing" icon="circle-minus">
@@ -153,7 +164,7 @@ Two obvious expansions of the 42-feature set have been measured and **both were 
 
 <CardGroup cols={2}>
   <Card title="Feature contract" href="/ml/feature-contract" icon="layers">
-    The full 42-feature table, physics group descriptions, and the read-only mart contract.
+    The full 33-feature table, physics group descriptions, and the read-only mart contract.
   </Card>
   <Card title="Models" href="/ml/models" icon="microchip">
     How each target is used objective function, loss, and weighting.

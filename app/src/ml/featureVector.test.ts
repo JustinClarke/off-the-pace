@@ -24,30 +24,30 @@ describe('encodeValue categorical', () => {
 
   it('maps an unseen categorical level to the missing ordinal', () => {
     expect(encodeValue('compound', 'PLASTIC', enc)).toBe(enc.missing_ordinal)
-    expect(encodeValue('constructor_id', 'Brawn GP', enc)).toBe(enc.missing_ordinal)
+    expect(encodeValue('air_state_dominant', 'plasma_air', enc)).toBe(enc.missing_ordinal)
   })
 
   it('coerces non-string keys via String()', () => {
-    // constructor_id keys are strings; a numeric lookalike should still resolve by string key.
+    // air_state_dominant keys are strings; a lookalike should still resolve by string key.
     expect(encodeValue('air_state_dominant', 'free_air', enc)).toBe(enc.encoders.air_state_dominant.free_air)
   })
 })
 
 describe('encodeValue boolean', () => {
   it('maps true/false to 1/0', () => {
-    expect(encodeValue('is_rain_lap', true, enc)).toBe(1)
-    expect(encodeValue('is_rain_lap', false, enc)).toBe(0)
+    expect(encodeValue('cliff_candidate_flag', true, enc)).toBe(1)
+    expect(encodeValue('cliff_candidate_flag', false, enc)).toBe(0)
     expect(encodeValue('cliff_onset_passed', true, enc)).toBe(1)
   })
 
   it('tolerates string/number truthiness from a DB', () => {
-    expect(encodeValue('event_flag_any', 'true', enc)).toBe(1)
-    expect(encodeValue('event_flag_any', 0, enc)).toBe(0)
-    expect(encodeValue('event_flag_any', '1', enc)).toBe(1)
+    expect(encodeValue('cliff_candidate_flag', 'true', enc)).toBe(1)
+    expect(encodeValue('cliff_candidate_flag', 0, enc)).toBe(0)
+    expect(encodeValue('cliff_candidate_flag', '1', enc)).toBe(1)
   })
 
   it('preserves NULL boolean as NaN (native-missing)', () => {
-    expect(encodeValue('is_rain_lap', null, enc)).toBeNaN()
+    expect(encodeValue('cliff_onset_passed', null, enc)).toBeNaN()
   })
 })
 
@@ -74,11 +74,11 @@ describe('encodeValue continuous', () => {
 
 describe('buildFeatureVector', () => {
   it('produces a Float32Array of exactly n_features in feature_order', () => {
-    const row = { lap_number: 5, compound: 'MEDIUM', is_rain_lap: false }
+    const row = { lap_number: 5, compound: 'MEDIUM', cliff_onset_passed: false }
     const vec = buildFeatureVector(row, input)
     expect(vec).toBeInstanceOf(Float32Array)
     expect(vec.length).toBe(input.n_features)
-    expect(vec.length).toBe(42) // v5 frame (v4's 42-feature frame, unchanged; the repaired label moved no feature)
+    expect(vec.length).toBe(33) // v11 frame (Phase 9 pruned v8's 42 -> 24; Phase 10a added 9 proximity columns)
   })
 
   it('places each encoded value at its feature_order index', () => {
@@ -94,9 +94,9 @@ describe('buildFeatureVector', () => {
     const vec = buildFeatureVector({}, input)
     const compoundIdx = input.feature_order.indexOf('compound') // categorical → missing ordinal
     const fuelIdx = input.feature_order.indexOf('fuel_mass_kg') // continuous → NaN
-    const rainIdx = input.feature_order.indexOf('is_rain_lap') // boolean → NaN
+    const cliffFlagIdx = input.feature_order.indexOf('cliff_candidate_flag') // boolean → NaN
     expect(vec[compoundIdx]).toBe(enc.missing_ordinal)
     expect(vec[fuelIdx]).toBeNaN()
-    expect(vec[rainIdx]).toBeNaN()
+    expect(vec[cliffFlagIdx]).toBeNaN()
   })
 })

@@ -28,7 +28,7 @@
 	dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs query \
 	lint lint-fix lint-oracle-snapshot lint-oracle-check \
 	test-all test-fast transform-check data-profile-snapshot data-profile-check dq-test \
-	ml-features ml-tune ml-train ml-retrain ml-evaluate ml-predict ml-onnx ml-card ml-reference ml-all ml-test ml-clean ml-docs-images \
+	ml-features ml-tune ml-train ml-retrain ml-evaluate ml-attribution ml-predict ml-onnx ml-card ml-reference ml-all ml-test ml-clean ml-docs-images \
 	app-data app-data-wave0 app-data-check app-models app-dev app-dev-local app-build app-parity app-coverage app-bundle app-bundle-budget-update app-e2e app-e2e-install app-lighthouse app-publish app-publish-staging app-publish-dry app-smoke app-promote app-rollback verify-published bucket-lifecycle app-deploy \
 	tf-init tf-validate tf-plan tf-apply tf-import \
 	docs-reference docs-coverage docs-coverage-check project-graph watch-graph docs-audit docs-facts docs-app-audit lint-comments docs-site docs-install \
@@ -129,7 +129,7 @@ deg-iso-fit:  ## Fit isotonic tyre-deg curves + modulation coefs → data/fits/d
 ##@ 4. Transform
 
 ##   Build targets
-dbt-dev:  ## Build all 60 dbt models → data/dev.duckdb
+dbt-dev:  ## Build all 71 dbt models → data/dev.duckdb
 	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
 
 dbt-dev-full: coefficients-check car-fe-fit  ## Seed check → car-FE refit → full dbt run
@@ -145,7 +145,7 @@ query:  ## Open the warehouse in the Harlequin SQL IDE
 	./.venv/bin/harlequin data/dev.duckdb
 
 ##   Test targets
-dbt-test:  ## Run all 443 dbt tests (schema + singular + assert_* invariants)
+dbt-test:  ## Run all 594 dbt tests (schema + singular + assert_* invariants)
 	cd transform && ../.venv/bin/dbt test --profiles-dir profiles
 
 test-all:  ## CI-equivalent: full dbt build on fixtures + coefficient tests
@@ -205,6 +205,9 @@ ml-retrain:  ## Production retrain: all five at their own *_best_params.json, at
 
 ml-evaluate:  ## Evaluate models (metrics + leakage checks)
 	./.venv/bin/python -m ml.src.evaluate --all
+
+ml-attribution:  ## Evaluate + within-stint attribution, drop/flatten/causal. Slow: ~50 refits/target
+	./.venv/bin/python -m ml.src.evaluate --all --attribution
 
 ml-predict:  ## Score → data/marts/mart_degradation_predictions.parquet
 	./.venv/bin/python -m ml.src.predict --out data/marts/mart_degradation_predictions.parquet

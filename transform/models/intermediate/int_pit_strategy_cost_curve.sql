@@ -173,17 +173,25 @@ compound_wear_per_age AS (
         -- tail down: extrapolated to age 80 it reaches 136 s/lap, and it is
         -- not only an extrapolation artefact -- the fitted curve already
         -- emits up to 93 s/lap on laps that were actually run (p99 30.8).
-        -- A car losing more than pit_strategy_max_wear_s_per_lap against its
-        -- own compound baseline is not making a strategy decision any more,
-        -- and letting the tail run turns opportunity_cost_s into a number
-        -- with no physical reading. Real cliff falloff is 1-3 s/lap, so the
-        -- default sits well clear of the region the decision lives in.
+        -- A car losing more than the bound against its own compound baseline
+        -- is not making a strategy decision any more, and letting the tail run
+        -- turns opportunity_cost_s into a number with no physical reading.
+        -- Real cliff falloff is 1-3 s/lap, so the default sits well clear of
+        -- the region the decision lives in.
+        --
+        -- Reads the SHARED bound as of Phase 8. int_compound_cliff_predicted
+        -- now applies the identical LEAST() to the identical three terms, so
+        -- capping here alone no longer leaves the source curve unbounded --
+        -- which is what shipped between Phase 5 and Phase 8, and is why both
+        -- ML targets were still standing on the 93 s/lap tail.
+        -- pit_strategy_max_wear_s_per_lap remains defined as this model's own
+        -- name for the bound; set it to diverge from the source curve.
         LEAST(
             p.compound_wear_gradient * a.age_laps
             + 0.002 * POWER(a.age_laps, 2)
             + p.compound_cliff_severity
             * GREATEST(a.age_laps - p.compound_cliff_onset_laps, 0.0),
-            {{ var('pit_strategy_max_wear_s_per_lap', 10.0) }}
+            {{ var('compound_wear_max_s_per_lap', 10.0) }}
         ) AS wear_s
     FROM {{ ref('dim_compounds_season') }} AS p
     CROSS JOIN ages AS a

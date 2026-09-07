@@ -4,7 +4,7 @@
 
 - This is the documentation site for **Off The Pace**, an F1 causal lap-time decomposition and performance-analysis project. It is built on [Mintlify](https://mintlify.com).
 - Pages are MDX files with YAML frontmatter. Navigation and configuration live in `docs.json`.
-- The site has five tabs, one per pipeline layer plus an Overview: **Overview** (recruiter-facing, what the system does), **Data** (sources, Bronze schemas, ingestion how-to), **Transform** (the model DAG by family, the CI test suite, and macros), **Machine Learning** (Concepts, Pipeline, Validation & Trust, CI Contract, Model Reference five groups covering the 42-feature contract, the leakage spine, quantile calibration, ONNX parity, and 28 CI tests), and **App** (React feature pages). Each layer tab folds in its own generated reference schemas, dbt models/macros, ML models there's no separate Reference tab.
+- The site has five tabs, one per pipeline layer plus an Overview: **Overview** (recruiter-facing, what the system does), **Data** (sources, Bronze schemas, ingestion how-to), **Transform** (the model DAG by family, the CI test suite, and macros), **Machine Learning** (Concepts, Pipeline, Validation & Trust, CI Contract, Model Reference six groups covering the 33-feature contract, the leakage spine, quantile calibration, ONNX parity, and 28 CI tests), and **App** (React feature pages). Each layer tab folds in its own generated reference schemas, dbt models/macros, ML models there's no separate Reference tab.
 
 ## Terminology
 

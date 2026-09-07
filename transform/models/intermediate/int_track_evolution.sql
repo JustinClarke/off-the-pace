@@ -38,7 +38,12 @@ weather_per_lap AS (
         humidity_pct,
         rainfall_flag
     FROM {{ ref('stg_weather') }}
-    ORDER BY race_year, race_id, lap_number, weather_session_time_s DESC, driver_id
+    ORDER BY
+        race_year ASC,
+        race_id ASC,
+        lap_number ASC,
+        weather_session_time_s DESC,
+        driver_id ASC
 ),
 
 combined AS (

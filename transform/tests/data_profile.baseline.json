@@ -633,11 +633,11 @@
         },
         "anomaly_class": {
           "category_shares": {
-            "clean_cliff": 0.000866,
+            "clean_cliff": 0.006526,
             "conditions": 0.024628,
             "event_driven": 0.064883,
-            "mistake": 0.046556,
-            "normal": 0.863067
+            "mistake": 0.046563,
+            "normal": 0.8574
           },
           "null_rate": 0.0
         },
@@ -692,8 +692,8 @@
         },
         "cliff_candidate_flag": {
           "category_shares": {
-            "false": 0.998989,
-            "true": 0.001011
+            "false": 0.992754,
+            "true": 0.007246
           },
           "null_rate": 0.0
         },
@@ -837,8 +837,8 @@
           "null_rate": 0.0
         },
         "expected_compound_pace_s": {
-          "mean": 4.328669,
-          "null_rate": 3.6e-05
+          "mean": 3.540987,
+          "null_rate": 0.0
         },
         "expected_degradation_rate_s_per_lap": {
           "mean": 0.901996,
@@ -857,8 +857,8 @@
         },
         "is_training_eligible": {
           "category_shares": {
-            "false": 0.120141,
-            "true": 0.879859
+            "false": 0.120112,
+            "true": 0.879888
           },
           "null_rate": 0.0
         },
@@ -880,10 +880,10 @@
         },
         "laps_until_cliff_class": {
           "category_shares": {
-            "0_to_2": 0.093963,
-            "3_to_5": 0.065822,
-            "6_plus": 0.087808,
-            "none_in_stint": 0.700794
+            "0_to_2": 0.105772,
+            "3_to_5": 0.082475,
+            "6_plus": 0.108747,
+            "none_in_stint": 0.651393
           },
           "null_rate": 0.051613
         },
@@ -908,19 +908,19 @@
           "null_rate": 0.011575
         },
         "next_3_lap_cumulative_jump_s": {
-          "mean": -1.210737,
+          "mean": -0.64634,
           "null_rate": 0.192823
         },
         "next_5_lap_cumulative_jump_s": {
-          "mean": -3.048659,
+          "mean": -1.705659,
           "null_rate": 0.306307
         },
         "next_lap_degradation_jump_detrended_s": {
-          "mean": -0.195088,
+          "mean": -0.092216,
           "null_rate": 0.051613
         },
         "next_lap_degradation_jump_s": {
-          "mean": -0.245507,
+          "mean": -0.142593,
           "null_rate": 0.051613
         },
         "pct_drs_active": {
@@ -1026,7 +1026,7 @@
           "null_rate": 0.0
         },
         "clean_lap_count": {
-          "mean": 41.536723,
+          "mean": 41.534958,
           "null_rate": 0.0
         },
         "constructor_aero_pace_index_final": {
@@ -1118,27 +1118,27 @@
           "null_rate": 0.0
         },
         "driver_residual_mean_s": {
-          "mean": -4.223264,
+          "mean": -3.48605,
           "null_rate": 0.002825
         },
         "driver_residual_median_s": {
-          "mean": -3.186219,
+          "mean": -2.939395,
           "null_rate": 0.002825
         },
         "driver_residual_stddev_s": {
-          "mean": 3.410247,
+          "mean": 2.386427,
           "null_rate": 0.004944
         },
         "driver_skill_proxy_mean_s": {
-          "mean": 0.071421,
+          "mean": 0.069073,
           "null_rate": 0.039548
         },
         "ml_eligible_lap_share": {
-          "mean": 0.771525,
+          "mean": 0.768947,
           "null_rate": 0.0
         },
         "pair_quality_weight_mean": {
-          "mean": 0.612006,
+          "mean": 0.616752,
           "null_rate": 0.039548
         },
         "pu_family": {
@@ -1167,7 +1167,7 @@
           "null_rate": 0.0
         },
         "strategic_divergence_share": {
-          "mean": 0.320119,
+          "mean": 0.320138,
           "null_rate": 0.0
         },
         "teammate_available_flag": {
@@ -1211,7 +1211,7 @@
           "null_rate": 0.0
         },
         "cliff_interaction_s": {
-          "mean": 0.00605,
+          "mean": -0.025625,
           "null_rate": 0.0
         },
         "compound_cliff_severity": {
@@ -1219,15 +1219,15 @@
           "null_rate": 0.0
         },
         "compound_component_s": {
-          "mean": 4.298025,
-          "null_rate": 3.8e-05
+          "mean": 3.544667,
+          "null_rate": 0.0
         },
         "deg_interaction_s": {
-          "mean": 0.002329,
+          "mean": 0.002309,
           "null_rate": 0.0
         },
         "delta_vs_actual_lap_s": {
-          "mean": 0.036705,
+          "mean": 0.00501,
           "null_rate": 0.0
         },
         "dirty_air_tax_s": {
@@ -1235,19 +1235,19 @@
           "null_rate": 0.0
         },
         "driver_skill_residual_s": {
-          "mean": -4.189104,
+          "mean": -3.43591,
           "null_rate": 0.0
         },
         "ego_cliff_active": {
-          "mean": 0.240166,
+          "mean": 0.245956,
           "null_rate": 0.0
         },
         "ego_cliff_shift_laps": {
-          "mean": 0.231098,
+          "mean": -0.022988,
           "null_rate": 0.0
         },
         "ego_cliff_shift_se_laps": {
-          "mean": 0.16305,
+          "mean": 0.170262,
           "null_rate": 0.0
         },
         "ego_constructor_id": {
@@ -1339,15 +1339,15 @@
           "null_rate": 0.0
         },
         "host_cliff_active": {
-          "mean": 0.240257,
+          "mean": 0.245048,
           "null_rate": 0.0
         },
         "host_cliff_shift_laps": {
-          "mean": 0.210374,
+          "mean": 0.035503,
           "null_rate": 0.0
         },
         "host_cliff_shift_se_laps": {
-          "mean": 0.163423,
+          "mean": 0.170264,
           "null_rate": 0.0
         },
         "host_constructor_id": {
@@ -1382,7 +1382,7 @@
           "null_rate": 0.0
         },
         "host_deg_slope_s_per_lap": {
-          "mean": 0.001674,
+          "mean": 0.001673,
           "null_rate": 0.0
         },
         "host_deg_slope_sd_s_per_lap": {
@@ -1394,11 +1394,11 @@
           "null_rate": 0.0
         },
         "predicted_lap_time_s": {
-          "mean": 88.823377,
+          "mean": 88.791681,
           "null_rate": 0.0
         },
         "predicted_residual_pace_s": {
-          "mean": 87.324224,
+          "mean": 87.292528,
           "null_rate": 0.0
         },
         "race_id": {
@@ -1458,7 +1458,7 @@
           "null_rate": 0.0
         },
         "delta_vs_actual_position": {
-          "mean": 0.510061,
+          "mean": 0.51861,
           "null_rate": 0.098284
         },
         "ego_driver_id": {
@@ -1513,7 +1513,7 @@
           "null_rate": 0.0
         },
         "finish_pos_se": {
-          "mean": 1.252944,
+          "mean": 1.248959,
           "null_rate": 0.0
         },
         "ghost_race_id": {
@@ -1566,7 +1566,7 @@
           "null_rate": 0.0
         },
         "p_beats_next": {
-          "mean": 0.625663,
+          "mean": 0.626051,
           "null_rate": 0.051923
         },
         "predicted_finish_position": {
@@ -1574,19 +1574,19 @@
           "null_rate": 0.0
         },
         "predicted_mean_lap_s": {
-          "mean": 90.327176,
+          "mean": 90.304678,
           "null_rate": 0.0
         },
         "predicted_mean_lap_se_s": {
-          "mean": 0.322143,
+          "mean": 0.326346,
           "null_rate": 0.0
         },
         "predicted_mean_residual_pace_s": {
-          "mean": 88.790436,
+          "mean": 88.767938,
           "null_rate": 0.0
         },
         "predicted_total_race_time_s": {
-          "mean": 4088.922765,
+          "mean": 4087.473111,
           "null_rate": 0.0
         },
         "race_distance_laps": {
@@ -1639,8 +1639,8 @@
           "null_rate": 3.6e-05
         },
         "compound_component_s": {
-          "mean": 4.328669,
-          "null_rate": 3.6e-05
+          "mean": 3.540987,
+          "null_rate": 0.0
         },
         "constructor_component_ci_high_s": {
           "mean": 0.234738,
@@ -1757,7 +1757,7 @@
           "null_rate": 0.0
         },
         "driver_skill_residual_s": {
-          "mean": -4.232267,
+          "mean": -3.444742,
           "null_rate": 0.0
         },
         "expected_degradation_rate_s_per_lap": {
@@ -1887,7 +1887,7 @@
           "null_rate": 0.0
         },
         "total_explained_s": {
-          "mean": 5.909593,
+          "mean": 5.122068,
           "null_rate": 0.0
         },
         "track_temp_c": {
@@ -1908,8 +1908,8 @@
     "fct_stint_features": {
       "columns": {
         "cliff_lap_in_stint": {
-          "mean": 20.746269,
-          "null_rate": 0.983919
+          "mean": 31.331551,
+          "null_rate": 0.932677
         },
         "compound": {
           "category_shares": {
@@ -2001,7 +2001,7 @@
           "null_rate": 0.0
         },
         "end_of_stint_pace_falloff_s_per_lap": {
-          "mean": -0.588214,
+          "mean": -0.354572,
           "null_rate": 0.181207
         },
         "is_censored_stint": {
@@ -2049,7 +2049,7 @@
           "null_rate": 0.0
         },
         "tyre_management_score": {
-          "mean": -1.082085,
+          "mean": -1.05264,
           "null_rate": 0.580823
         }
       },
@@ -2265,17 +2265,17 @@
             "Alpine": 0.056738,
             "Aston Martin": 0.056738,
             "Ferrari": 0.099291,
-            "Force India": 0.007092,
+            "Force India": 0.014184,
             "Haas F1 Team": 0.099291,
             "Kick Sauber": 0.014184,
             "McLaren": 0.099291,
             "Mercedes": 0.099291,
             "RB": 0.014184,
-            "Racing Point": 0.035461,
-            "Red Bull Racing": 0.099291,
+            "Racing Point": 0.028369,
+            "Red Bull Racing": 0.106383,
             "Renault": 0.042553,
             "Sauber": 0.014184,
-            "Toro Rosso": 0.028369,
+            "Toro Rosso": 0.021277,
             "Williams": 0.099291
           },
           "null_rate": 0.0

@@ -33,7 +33,7 @@ These factors interact. A linear correction per dimension cannot capture "Soft, 
 
 ## The feature source
 
-All five models read from a single contracted mart: `fct_cliff_prediction_features`. The models consume 42 features across ten physics-grouped families nothing is hand-engineered inside the ML layer. The physics lives in the dbt transform layer; the machine layer reads it.
+All five models read from a single contracted mart: `fct_cliff_prediction_features`. The models consume 33 features across six physics-grouped families (pruned from 42 across ten by Phase 9's noise-floor ablation, then joined by Phase 10a's `proximity` group — the first features in the project sourced from the position channel rather than from lap times or the car channel) nothing is hand-engineered inside the ML layer. The physics lives in the dbt transform layer; the machine layer reads it.
 
 <Info>
   **One mart, two target spans.** The quantile trio and the cliff classifier train on **114,270 laps** that carry the degradation and cliff targets; the stint-life regressor trains on **120,934 laps** the spans differ because a lap can have a usable stint-life count even where its next-lap jump is undefined. All seven seasons (2018–2024) feed in, and the **19,144-lap 2024 fold** stands in as the evaluation holdout until 2025 ingests.
@@ -63,7 +63,7 @@ All five models read from a single contracted mart: `fct_cliff_prediction_featur
 
 ```mermaid
 flowchart TD
-    A["Physics decomposition<br/>(seven-term identity)"] --> B["fct_cliff_prediction_features<br/>42 features · 2018–2024"]
+    A["Physics decomposition<br/>(seven-term identity)"] --> B["fct_cliff_prediction_features<br/>33 features · 2018–2024"]
     B --> C1["degradation p10"]
     B --> C2["degradation p50"]
     B --> C3["degradation p90"]
@@ -87,7 +87,7 @@ make ml-all   # features → tune → train → evaluate → predict → onnx �
 ```
 
 ```bash Test
-make ml-test  # 64 tests: leakage spine, ONNX parity, survival/AFT contract, version contract, output schema, beats-baseline
+make ml-test  # 177 tests: leakage spine, ONNX parity, survival/AFT contract, version contract, output schema, beats-baseline, attainable ceilings + intervals
 ```
 
 </CodeGroup>
@@ -96,7 +96,7 @@ make ml-test  # 64 tests: leakage spine, ONNX parity, survival/AFT contract, ver
 
 <CardGroup cols={2}>
   <Card title="Feature contract" href="/ml/feature-contract" icon="layers">
-    The 42 features across 10 physics groups, where each comes from in the mart, and the read-only contract that keeps physics and ML cleanly separated.
+    The 33 features across 6 physics groups, where each comes from in the mart, and the read-only contract that keeps physics and ML cleanly separated.
   </Card>
   <Card title="The pipeline" href="/ml/pipeline" icon="workflow">
     The eight-stage `make ml-all` DAG features → tune → train → evaluate → predict → onnx → card → reference and what each stage reads, writes, and guarantees.
@@ -105,7 +105,7 @@ make ml-test  # 64 tests: leakage spine, ONNX parity, survival/AFT contract, ver
     Season-grouped time-series cross-validation, the leakage spine, calibration coverage, and the `MAX+1`-derived holdout policy.
   </Card>
   <Card title="The CI Contract" href="/ml/ci/overview" icon="vial">
-    All 64 tests 14 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 7 evaluation gates, 3 target/censoring, 18 survival/AFT, 14 version-contract grouped and explained.
+    All 177 tests 21 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 19 evaluation gates, 3 target/censoring, 18 survival/AFT, 18 version-contract, 19 attainable-ceiling, 33 within-stint attribution, 24 fit-parity, 14 search-space grouped and explained.
   </Card>
   <Card title="Model Reference" href="/reference/ml/degradation-model" icon="database">
     The generated model card: per-model hyperparameters, headline metrics, calibration, cohorts, and reproducibility.

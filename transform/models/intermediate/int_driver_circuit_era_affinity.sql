@@ -165,7 +165,7 @@ with_shrinkage AS (
                     'dg.global_driver_mean_s',
                     '5'
                 ) }}
-        END                                AS shrunk_affinity_s,
+        END AS shrunk_affinity_s,
 
         -- Posterior variance (σ²_residual / n and σ²_prior, per era). Gated
         -- with shrunk_affinity_s so shrunk_affinity_se_s is NULL, not just
@@ -177,7 +177,7 @@ with_shrinkage AS (
                     'NULLIF(vc.sigma2_residual, 0)',
                     'NULLIF(POWER(vc.sigma_prior_approx, 2), 0)'
                 ) }}
-        END                                AS posterior_var_s2,
+        END AS posterior_var_s2,
 
         dg.global_driver_mean_s,
 

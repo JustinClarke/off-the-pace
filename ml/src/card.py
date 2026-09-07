@@ -36,6 +36,13 @@ CARD_JSON = Path("ml/models/model_card.json")
 # training_seasons field; the holdout year itself is always derived as MAX(race_year)+1.
 DATA_EPOCH_SEASON = 2018
 
+# The degradation family's horizon, as a phrase the summary can drop in. One lap reads
+# "next-lap"; anything longer has to say so, because "pace loss" over five laps and over
+# one are different quantities in the same units.
+_DEG_HORIZON = S.TARGET_HORIZON_LAPS.get(S.DEGRADATION_TARGET, 1)
+_DEG_HORIZON_PHRASE = ("next-lap" if _DEG_HORIZON == 1
+                       else f"cumulative {_DEG_HORIZON}-lap")
+
 HOLDOUT_NOTE = (
     "2025 is the designated holdout, ingested post-launch; until then the model trains on all "
     "ingested seasons (2018–2024) and selection rests on time-series CV-there is no live holdout. "
@@ -54,6 +61,103 @@ def _require(path: Path) -> dict:
     if not path.exists():
         raise FileNotFoundError(f"required artefact missing: {path}-run the pipeline first")
     return json.loads(path.read_text())
+
+
+def _attainable_block(em: dict) -> dict | None:
+    """Flatten evaluate.py's ceiling into the shape the docs render.
+
+    `fraction_of_attainable` is the headline re-anchored: skill as a share of what a
+    predictor with perfect stint-level information could reach, rather than as a share
+    of 1.0. Above 1.0 is legitimate and means the model is using within-stint signal --
+    see ml/src/evaluate.py::metric_native_ceiling.
+    """
+    att = em.get("attainable") or {}
+    var, mn = att.get("variance") or {}, att.get("metric_native") or {}
+    if not var and not mn:
+        return None
+    basis = mn.get("basis")
+    frac = mn.get("fraction_of_attainable")
+    if frac is None:
+        frac = mn.get("fraction_of_attainable_in_sample")
+    # What kind of ceiling this is decides how to read a fraction above 1. A
+    # perfect-prediction bound is absolute and cannot be exceeded; a stint-level ceiling
+    # bounds only predictors that are constant within a stint, and a model that clears
+    # it has not broken anything -- it has demonstrated that the bound does not describe it.
+    scope = "absolute" if basis == "perfect_prediction" else "stint_level"
+    binding = None if frac is None else bool(frac <= 1.0)
+    if frac is None:
+        verdict = "no usable denominator - the oracle was not better than the floor"
+    elif scope == "absolute":
+        verdict = f"{frac:.1%} of a bound nothing can exceed"
+    elif binding:
+        verdict = (f"{frac:.1%} of what stint-level information can deliver; the "
+                   f"stint-level ceiling is the binding constraint")
+    else:
+        verdict = (f"{frac:.1f}x the stint-level ceiling - this model is NOT bounded by "
+                   f"stint-level information and is reaching into within-stint variation, "
+                   f"so no ceiling has been established for it")
+    return {
+        "target_column": var.get("target_column"),
+        "between_stint_share": var.get("between_stint_share"),
+        "between_stint_share_naive": var.get("between_stint_share_naive"),
+        "within_stint_lag1_autocorr": var.get("within_stint_lag1_autocorr"),
+        "basis": basis,
+        "ceiling_scope": scope,
+        "ceiling_is_binding": binding,
+        "verdict": verdict,
+        "floor_metric": mn.get("floor_metric"),
+        "fraction_of_attainable": frac,
+        "fraction_of_attainable_in_sample_oracle": mn.get("fraction_of_attainable_in_sample"),
+        "in_sample_oracle_is_exact_optimum": mn.get("in_sample_oracle_is_exact_optimum"),
+        "note": mn.get("note"),
+    }
+
+
+def _interval_block(em: dict) -> dict | None:
+    """The interval on `beats_baseline`. Absent => the card refuses to write (below)."""
+    iv = em.get("interval") or {}
+    fp, cb = iv.get("fold_paired") or {}, iv.get("cluster_bootstrap") or {}
+    sg = cb.get("stint_grain") or {}
+    if not fp:
+        return {"error": iv.get("error", "no interval computed")} if iv else None
+    return {
+        "method": fp.get("method"),
+        "n_folds": fp.get("n_folds"), "folds_won": fp.get("folds_won"),
+        "mean_delta": fp.get("mean_delta"),
+        "ci_low": fp.get("ci_low"), "ci_high": fp.get("ci_high"),
+        "ci_level": fp.get("ci_level"), "p_value": fp.get("p_value"),
+        "significant": fp.get("significant"),
+        "stint_bootstrap_ci_low": sg.get("ci_low"),
+        "stint_bootstrap_ci_high": sg.get("ci_high"),
+        "stint_bootstrap_significant": sg.get("significant"),
+        "stint_vs_lap_width_ratio": cb.get("width_ratio_stint_over_lap"),
+    }
+
+
+def assert_claims_carry_intervals(card: dict) -> None:
+    """A `beats_baseline: true` with no interval is not a claim -- Phase 6, §15.
+
+    Enforced at write time rather than only in the test suite, for the same reason
+    `write()` already refuses a card containing "TBD": the failure mode of a gate is
+    silence, and a card that ships a bare True reads exactly like a card that earned it.
+    `beats_baseline_significant: false` passes here on purpose -- a claim that fails its
+    own interval is recorded and kept, never deleted.
+    """
+    missing = []
+    for m in card["model_card"]["models"]:
+        if not m.get("beats_baseline"):
+            continue
+        iv = m.get("interval") or {}
+        if iv.get("error"):
+            missing.append(f"{m['name']}: interval failed to compute ({iv['error']})")
+        elif any(iv.get(k) is None for k in ("ci_low", "ci_high", "p_value")):
+            missing.append(f"{m['name']}: beats_baseline=true with no interval on it")
+        elif "beats_baseline_significant" not in m:
+            missing.append(f"{m['name']}: no significance verdict recorded")
+    if missing:
+        raise ValueError(
+            "model card carries un-intervalled beats_baseline claims: "
+            + "; ".join(missing) + " -- re-run `make ml-evaluate`")
 
 
 def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
@@ -94,12 +198,21 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
             # rows are lower bounds, so the card carries the split rather than a number
             # that averages two different questions.
             **({"survival": em["survival"]} if "survival" in em else {}),
+            # Phase 6. Two numbers the card was missing and could not be read without:
+            # what fraction of the *reachable* quantity this headline is, and whether the
+            # margin over the baseline survives an interval. `beats_baseline` alone is a
+            # ratio against 1.0 and a point estimate against a clustered sample.
+            "attainable": _attainable_block(em),
+            "interval": _interval_block(em),
+            "beats_baseline_significant": em.get("beats_baseline_significant"),
         })
 
     underperformers = [u for m in ev["models"].values() for u in m["underperforming_cohorts"]]
 
-    # Metric quoted in `limitations` below; read back from the card, never typed.
-    _cliff_f1 = next(m["eval_headline"] for m in models if m["name"] == "cliff_classifier")
+    # Metrics quoted in `limitations` below; read back from the card, never typed.
+    _cliff = next(m for m in models if m["name"] == "cliff_classifier")
+    _cliff_f1 = _cliff["eval_headline"]
+    _cliff_frac = ((_cliff.get("attainable") or {}).get("fraction_of_attainable"))
 
     # ── Dual importance (headline model of each family carries it) ──
     importance = {}
@@ -118,7 +231,12 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
             "version": version,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "summary": (
-                "Five XGBoost models predicting next-lap tyre-degradation pace loss "
+                # The horizon is read from the schema, not written here: Phase 7 moved the
+                # degradation family from the next-lap column to the 5-lap cumulative one
+                # without renaming a model, so a hardcoded "next-lap" would be a false
+                # sentence attached to correct numbers -- the exact failure this module
+                # exists to prevent, in prose rather than in metrics.
+                f"Five XGBoost models predicting {_DEG_HORIZON_PHRASE} tyre-degradation pace loss "
                 "(quantile trio p10/p50/p90), laps-until-cliff class, and remaining stint life, "
                 "from per-lap thermal, dirty-air, powertrain, weather and compound-prior features. "
                 "Trained on 2018–2024 F1 laps; every model beats a strong per-cohort baseline."),
@@ -170,6 +288,29 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                     "cliff_classifier": "majority-class prior (none_in_stint)",
                     "stint_life": "cell group-mean of remaining stint life over (compound, circuit, age-bucket), compound→global fallback (non-leakage); scored under the same censored likelihood as the model, never against uncensored rows alone",
                 },
+                # Phase 6. Every headline above is now reported twice: against the
+                # baseline, and against what is reachable. The second is the one that can
+                # answer "keep going or stop"; the first never could.
+                "attainable_note": (
+                    "Skill is reported as a fraction of the ATTAINABLE quantity, not of "
+                    "1.0. For the quantile trio the denominator is analytic -- under a "
+                    "Gaussian shape a predictor that knew the stint could remove at most "
+                    "1 - sqrt(1 - ICC) of the expected pinball, where ICC is the "
+                    "between-stint variance share estimated by one-way ANOVA. For the "
+                    "classifier it is a per-stint majority-class oracle; for stint life "
+                    "it is the censored AFT likelihood at a perfect prediction, which is "
+                    "a hard bound. A fraction above 1.0 means the model reaches past "
+                    "stint identity into within-stint variation."),
+                "interval_note": (
+                    "Every beats_baseline claim carries a paired-t interval over the "
+                    "season-grouped CV folds (n=5) plus a percentile bootstrap that "
+                    "resamples whole STINTS on the evaluation fold. Laps inside a stint "
+                    "share a compound, a car, a circuit, a fuel load and a driver, so a "
+                    "lap-grain interval understates the standard error; the ratio between "
+                    "the two is published per model rather than assumed."),
+                "stint_grain": ev.get("stint_grain", {}),
+                "claims_inside_noise": ev.get("claims_inside_noise", []),
+                "all_claims_significant": ev.get("all_claims_significant"),
                 "calibration": ev.get("calibration", {}),
                 "leakage_probe": ev.get("leakage_probe", {}),
                 "dual_importance": importance,
@@ -198,12 +339,27 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                 # Read the number back from this card's own models block-a hardcoded metric here
                 # is the "hand-edited metrics" failure this module exists to prevent.
                 f"The cliff classifier (macro-F1 ≈ {_cliff_f1:.2f} on 4-class cliff timing) is the "
-                "weakest model-it decisively beats the majority prior, but absolute skill on the "
-                "minority cliff windows is modest.",
+                "weakest model by headline, and the headline is the wrong way to read it: 1.0 is "
+                "not reachable on a label where laps inside a stint share a compound, a car, a "
+                "circuit and a driver. Against an oracle handed the stint id and nothing else it "
+                + (f"reaches {_cliff_frac:.0%} of the ceiling. "
+                   if _cliff_frac is not None else "is measured in the attainable block. ")
+                + "What limits it is not established. The label was the leading candidate and "
+                  "has been tested: laps_until_cliff_class is a first-crossing scan over "
+                  "int_compound_cliff_predicted, which was unbounded until Phase 8 bounded it at "
+                  "source (compound_wear_max_s_per_lap). Repairing it moved 4.97% of rows and did "
+                  "not lift macro-F1, and a fresh 50-trial search on the repaired label did not "
+                  "beat the params tuned on the contaminated one. Neither the label nor the "
+                  "hyperparameters explain the number.",
                 "Hyperparameters come from a 50-trial / season-fold Optuna search per target "
                 "(ml/models/<target>_best_params.json); `make ml-retrain` refits at those params "
                 "without re-searching. A target whose data has moved should be re-tuned, not just refit.",
                 "No live 2025 holdout yet-headline numbers are time-series CV until 2025 ingests.",
+            "Skill is reported as a fraction of the ATTAINABLE quantity. A fraction above 1.0 "
+            "means the model is not bounded by stint-level information, so no ceiling has been "
+            "established for it - not that it is near-perfect.",
+            "Every beats_baseline margin carries an interval over the season folds and over a "
+            "stint-resampled bootstrap. The effective sample is ~7,100 stints, not ~137,000 laps.",
                 "Cliff-onset priors are NULL for ~45% of laps (legacy compounds, un-fit circuits); "
                 "XGBoost native-NaN carries them, documented rather than imputed.",
             ],
@@ -213,14 +369,20 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
 
 
 def write(card: dict) -> None:
+    assert_claims_carry_intervals(card)
     CARD_YAML.write_text(yaml.safe_dump(card, sort_keys=False, allow_unicode=True, width=100))
     CARD_JSON.parent.mkdir(parents=True, exist_ok=True)
     CARD_JSON.write_text(json.dumps(card, indent=2, ensure_ascii=False))
     # Hard guarantee: a completed card carries no placeholder.
     assert "TBD" not in CARD_YAML.read_text(), "model card still contains TBD"
+    v = card["model_card"]["validation"]
     print(f"wrote {CARD_YAML} + {CARD_JSON}  "
           f"({len(card['model_card']['models'])} models, "
-          f"all_beat_baseline={card['model_card']['validation']['all_models_beat_baseline']})")
+          f"all_beat_baseline={v['all_models_beat_baseline']}, "
+          f"all_claims_significant={v.get('all_claims_significant')})")
+    if v.get("claims_inside_noise"):
+        print("  claims inside noise (kept on the card): "
+              + ", ".join(v["claims_inside_noise"]))
 
 
 def main() -> int:

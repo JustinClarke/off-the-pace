@@ -1,14 +1,14 @@
 {
   "manifest_schema_version": 1,
   "name": "Off the Pace-Tyre Degradation Predictors",
-  "model_version": "v6",
-  "generated_at": "2026-08-23T15:37:02.841250+00:00",
+  "model_version": "v11",
+  "generated_at": "2026-09-05T15:05:40.980846+00:00",
   "input": {
     "tensor_name": "input",
     "dtype": "float32",
     "shape": [
       "batch",
-      42
+      33
     ],
     "feature_order": [
       "lap_number",
@@ -35,38 +35,25 @@
       "dirty_air_thermal_load_surface",
       "dirty_air_thermal_load_bulk",
       "air_state_dominant",
-      "n_gear_changes",
-      "mean_rpm",
-      "max_rpm",
-      "pct_full_throttle",
-      "pct_drs_active",
-      "short_shift_index",
-      "mid_corner_speed_loss_kph",
-      "traction_wheelspin_proxy",
-      "throttle_trace_decay",
-      "braking_point_drift_m",
-      "lift_coast_share",
-      "ambient_temp_delta",
-      "is_rain_lap",
-      "track_energy_index",
-      "circuit_abrasiveness_index",
-      "constructor_id",
-      "event_flag_any",
-      "anomaly_class"
+      "share_lap_within_1s",
+      "share_lap_within_2s",
+      "share_lap_in_train",
+      "share_lap_behind_within_1s",
+      "time_within_1s",
+      "gap_ahead_min_s",
+      "gap_ahead_median_s",
+      "ahead_identity_stability",
+      "n_distinct_cars_ahead_3s"
     ],
-    "n_features": 42,
+    "n_features": 33,
     "encoding": {
       "categorical_columns": [
         "compound",
-        "air_state_dominant",
-        "constructor_id",
-        "anomaly_class"
+        "air_state_dominant"
       ],
       "boolean_columns": [
         "cliff_onset_passed",
-        "event_flag_any",
-        "cliff_candidate_flag",
-        "is_rain_lap"
+        "cliff_candidate_flag"
       ],
       "missing_ordinal": -1.0,
       "boolean_true_false": [
@@ -81,11 +68,6 @@
           "free_air": 2,
           "tow_zone": 3
         },
-        "anomaly_class": {
-          "clean_cliff": 0,
-          "event_driven": 1,
-          "normal": 2
-        },
         "compound": {
           "HARD": 0,
           "HYPERSOFT": 1,
@@ -95,26 +77,6 @@
           "SUPERSOFT": 5,
           "ULTRASOFT": 6,
           "WET": 7
-        },
-        "constructor_id": {
-          "Alfa Romeo": 0,
-          "Alfa Romeo Racing": 1,
-          "AlphaTauri": 2,
-          "Alpine": 3,
-          "Aston Martin": 4,
-          "Ferrari": 5,
-          "Force India": 6,
-          "Haas F1 Team": 7,
-          "Kick Sauber": 8,
-          "McLaren": 9,
-          "Mercedes": 10,
-          "RB": 11,
-          "Racing Point": 12,
-          "Red Bull Racing": 13,
-          "Renault": 14,
-          "Sauber": 15,
-          "Toro Rosso": 16,
-          "Williams": 17
         }
       }
     }
@@ -125,18 +87,20 @@
       "family": "degradation_regressor",
       "kind": "quantile",
       "objective": "reg:quantileerror",
-      "onnx": "degradation_regressor_p10_v6.onnx",
-      "onnx_sha256": "3327295f3b5b15291e5dd35013aa094c31176496109ecf331614f6bd296d8fe5",
-      "booster_sha256": "c06cfbf1971a4fcc12312ff76416dbf6cd5b9532e95deae021b9af2b0ba50214",
-      "cv_headline": 0.10672515470327679,
+      "onnx": "degradation_regressor_p10_v11.onnx",
+      "onnx_sha256": "1dc828d06849dcdb215c8646df6876e9a5fefe9d509ccf0d5a6c48f37400dfce",
+      "booster_sha256": "fe73b4e1af709f24e9434b4398a5ee7bc2aa766fb1854c5c23df4c64a39d24a6",
+      "cv_headline": 0.5940250253331565,
       "headline_metric": "pinball",
       "quantile_alpha": 0.1,
       "output": {
         "index": 0,
-        "meaning": "degradation_jump_seconds",
+        "meaning": "cumulative_degradation_jump_seconds_over_next_5_laps",
+        "target_column": "next_5_lap_cumulative_jump_s",
+        "horizon_laps": 5,
         "bounds": [
-          -10.0,
-          10.0
+          -50.0,
+          50.0
         ]
       }
     },
@@ -145,18 +109,20 @@
       "family": "degradation_regressor",
       "kind": "quantile",
       "objective": "reg:quantileerror",
-      "onnx": "degradation_regressor_p50_v6.onnx",
-      "onnx_sha256": "3f4ee58ec575c902f2c669260de3e1015be9465c668283921ff8925080d43953",
-      "booster_sha256": "197841c12bbe6c9707e58007de853c64e348d5576113882e4d0c1b3a0f46084b",
-      "cv_headline": 0.22242241798676896,
+      "onnx": "degradation_regressor_p50_v11.onnx",
+      "onnx_sha256": "abc4bdbfd4917f8946b61db2c2a5dedf0d7137eb226dcac98ffb9fa7e5fdbd85",
+      "booster_sha256": "3307f4e66376e98ceceea6ffb04e7966fedf19a498e647d2069277e461185e53",
+      "cv_headline": 1.146443051424582,
       "headline_metric": "pinball",
       "quantile_alpha": 0.5,
       "output": {
         "index": 0,
-        "meaning": "degradation_jump_seconds",
+        "meaning": "cumulative_degradation_jump_seconds_over_next_5_laps",
+        "target_column": "next_5_lap_cumulative_jump_s",
+        "horizon_laps": 5,
         "bounds": [
-          -10.0,
-          10.0
+          -50.0,
+          50.0
         ]
       }
     },
@@ -165,18 +131,20 @@
       "family": "degradation_regressor",
       "kind": "quantile",
       "objective": "reg:quantileerror",
-      "onnx": "degradation_regressor_p90_v6.onnx",
-      "onnx_sha256": "db0ff644b5a9e1aadf71f918ea265aabdfa41d58d1e57c59ddc74360ec4a0c83",
-      "booster_sha256": "3b9a482a8c44bc63e513d26625bf57d2587b5c3c8b303ff9ab35bd872feb5a38",
-      "cv_headline": 0.13996205207305684,
+      "onnx": "degradation_regressor_p90_v11.onnx",
+      "onnx_sha256": "0143f576074712a9cee0f564603f896c4ade380a978296f17886d753345e08bc",
+      "booster_sha256": "af8caa1c6a83d389f3f947075a5ac017ebb2ae3b119a6deb964d63d68e84bc1f",
+      "cv_headline": 0.6362787858660514,
       "headline_metric": "pinball",
       "quantile_alpha": 0.9,
       "output": {
         "index": 0,
-        "meaning": "degradation_jump_seconds",
+        "meaning": "cumulative_degradation_jump_seconds_over_next_5_laps",
+        "target_column": "next_5_lap_cumulative_jump_s",
+        "horizon_laps": 5,
         "bounds": [
-          -10.0,
-          10.0
+          -50.0,
+          50.0
         ]
       }
     },
@@ -185,10 +153,10 @@
       "family": "cliff_classifier",
       "kind": "classification",
       "objective": "multi:softprob",
-      "onnx": "cliff_classifier_v6.onnx",
-      "onnx_sha256": "54b8f58e1ca601ab282f0e5dec4028c4f6fd3c284e1ea34d6ccee730decb20f1",
-      "booster_sha256": "8669eedfb576e0f14a64a8b1e1dea032f7cb395207edb781f00f2900ec0aa74c",
-      "cv_headline": 0.39180933500942566,
+      "onnx": "cliff_classifier_v11.onnx",
+      "onnx_sha256": "26c314ccad051093c327639b459173ec7f3fe65f34307556103aab752cf29605",
+      "booster_sha256": "178bedb0e20b54c33d381ccd7958bce78e15b032770bb174696b34492bf83523",
+      "cv_headline": 0.37882915888460406,
       "headline_metric": "macro_f1",
       "output": {
         "probabilities_index": 1,
@@ -207,16 +175,16 @@
       "family": "stint_life_regressor",
       "kind": "survival",
       "objective": "survival:aft",
-      "onnx": "stint_life_regressor_v6.onnx",
-      "onnx_sha256": "2f18671c2027a3d5866138432cd010a30bc8b67353ab0d9eae8a60b2fbb01915",
-      "booster_sha256": "b9fa3c669d2046f5089b7f38b3120026e925df7692e0332d93795ded6239ec52",
-      "cv_headline": 2.0905031817220476,
+      "onnx": "stint_life_regressor_v11.onnx",
+      "onnx_sha256": "bbcd24684c21498478b36392fc0046c18beb6c4fcb66889a77eae3b96fab2601",
+      "booster_sha256": "d2d4b0f88e7895b10fe3fd312878cf98d635bc4d6563b94b146d70020ccb93e7",
+      "cv_headline": 2.1148697485614916,
       "headline_metric": "aft_nloglik",
       "output": {
         "index": 0,
         "meaning": "aft_margin (log remaining_stint_life_laps + shift)",
         "postprocess": "exp(x + margin_offset) - label_shift, clip(>=0)",
-        "margin_offset": -0.6931474208831787,
+        "margin_offset": -0.6931470632553101,
         "label_shift": 1.0,
         "aft_distribution": "normal",
         "aft_scale": 0.800000012,
@@ -225,8 +193,8 @@
           "p50": 0.5,
           "p90": 0.9
         },
-        "censored_share_train": 0.4624505928853755,
-        "c_index_cv": 0.7579988663305178
+        "censored_share_train": 0.4624601035241198,
+        "c_index_cv": 0.7467189222051567
       }
     }
   ],
@@ -269,7 +237,7 @@
       2024
     ],
     "holdout_season": 2025,
-    "dataset_fingerprint": "05aca16f1dc5a9e04bc3ebeb9a3220b2bb66db39fe5aee1ec8b0e3e12261b1d9",
+    "dataset_fingerprint": "3b23214bd28c729df2e5db954160236650941f80cfc24a8feee2ce7e9ca55501",
     "random_state": 20260528,
     "library_versions": {
       "xgboost": "3.3.0",
@@ -279,11 +247,11 @@
       "atol": 1e-05,
       "rtol": 1e-05,
       "max_abs_diff": {
-        "degradation_regressor_p10": 5.245208740234375e-06,
-        "degradation_regressor_p50": 2.384185791015625e-06,
-        "degradation_regressor_p90": 5.245208740234375e-06,
-        "cliff_classifier": 5.364418029785156e-07,
-        "stint_life_regressor": 0.00028288658239716824
+        "degradation_regressor_p10": 2.09808349609375e-05,
+        "degradation_regressor_p50": 1.71661376953125e-05,
+        "degradation_regressor_p90": 8.58306884765625e-06,
+        "cliff_classifier": 4.76837158203125e-07,
+        "stint_life_regressor": 0.0002232323224546917
       },
       "all_pass": true
     }

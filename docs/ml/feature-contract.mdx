@@ -1,7 +1,7 @@
 ---
-title: "Feature contract: the 42 features and the read-only mart"
+title: "Feature contract: the 33 features and the read-only mart"
 sidebarTitle: "Feature Contract"
-description: "42 features across 10 physics groups, all read from fct_cliff_prediction_features. The machine layer never re-derives physics it reads the decomposition's output and writes nothing back."
+description: "33 features across 6 physics groups, all read from fct_cliff_prediction_features. The machine layer never re-derives physics it reads the decomposition's output and writes nothing back."
 ---
 
 import MLFeatures from '/snippets/ml-inventory-features.mdx';
@@ -13,9 +13,49 @@ The physics lives in the dbt transform layer. The machine layer reads it. That s
 **Read-only mart contract.** The ML layer reads `fct_cliff_prediction_features` read-only. It never writes to the warehouse or the application. `driver_skill_residual_s` the decomposition's closure is **excluded** from the feature matrix; the models must not relearn what the skill layer already attributed.
 </Warning>
 
-## 42 features across 10 physics groups
+## 33 features across 6 physics groups
 
 Every feature has a physics interpretation. The grouping below matches `FEATURE_GROUPS` in `ml/src/schema.py` and the `features.groups` section of the model card the exact same ordering used during training.
+
+<Note>
+**Phase 9 (2026-09-05): pruned from 42 to 24.** `powertrain`, `telemetry_cliff`, `weather_air`,
+`track` and `context` (18 columns) were dropped on a noise-floor group ablation across all
+three ablation-bearing model families each dropped group's contribution to headline accuracy
+fell inside the seed-refit noise floor in every family scored, so it costs ONNX size and
+browser payload without a measured accuracy return. `powertrain` and `telemetry_cliff` were
+the mart's entire consumption of `int_lap_telemetry_aggregates`; the ingestion and the
+telemetry data itself are unaffected, only their use as model features. See the execution
+plan's Phase 9 section for the full ablation table.
+</Note>
+
+<Note>
+**Phase 10a (2026-09-05): 24 → 33, and the nine come from a different sensor.** Every
+traffic feature before this one descends from FastF1's `DistanceToDriverAhead`, which
+`int_lap_air_state` divides by point speed to get a gap in seconds an approximation that
+assumes the car ahead is travelling at the same speed as the car behind, which is exactly
+false in the situation the feature exists to describe. The `proximity` group instead
+measures a time: each lap is cut into 100 fractions of `relative_distance`, the session
+clock at which a driver first enters a fraction is a crossing time of a fixed point on
+track, and the gap is the difference between two crossings of the same point. The source
+is the telemetry stream's **position channel**, 58.8M rows that had no consumer at all
+before this phase.
+
+Admitted on an add-ablation, not on the argument: p50 pinball 1.034661 → 1.012128 (1.54× its
+seed-refit noise floor), cliff macro-F1 0.372960 → 0.380950 (2.17×), stint-life AFT NLL
+1.956152 → 1.952005 (0.59×, inside noise). The `dirty_air` group **stays** a swap arm that
+drops it and keeps `proximity` lands inside noise on all three families, so the two are
+carrying different things. Validated independently of the telemetry it is built from,
+against the FIA's own 4,909 waved blue flags
+(`assert_proximity_agrees_with_blue_flags`).
+
+A permutation-null arm separates information from capacity nine more columns is nine more
+split candidates, which can flatter an eval fold on its own. With the proximity columns
+row-shuffled (capacity preserved, signal destroyed), the classifier's gain is **+0.008406,
+2.28× its floor, entirely information**, with a capacity effect of 0.11× floor. The p50
+regressor's total gain clears its floor but splits roughly evenly between information and
+capacity, with **neither half clearing on its own** so the quantile trio's improvement is
+real on this fold but is not cleanly attributable to traffic.
+</Note>
 
 <MLFeatures />
 
@@ -30,25 +70,13 @@ Every feature has a physics interpretation. The grouping below matches `FEATURE_
     Expected pace, degradation rate, whether the onset lap has passed, laps past the cliff, and a cliff candidate flag. The Kaplan-Meier survival prior from the physics layer ML's starting point, not its conclusion.
   </Card>
   <Card title="thermal (4)" icon="thermometer">
-    Push residual, cumulative surface and bulk thermal load, and the surface-to-bulk ratio (42nd feature, Route C). Encodes how hard the tyre has been working at each of the two thermal layers.
+    Push residual, cumulative surface and bulk thermal load, and the surface-to-bulk ratio (added under Route C, C3). Encodes how hard the tyre has been working at each of the two thermal layers.
   </Card>
   <Card title="dirty_air (4)" icon="wind">
-    Dirty-air share per lap, surface and bulk thermal load attributed to following traffic, and the dominant air-state label. Encodes the aerodynamic heat penalty from following another car.
+    Dirty-air share per lap, surface and bulk thermal load attributed to following traffic, and the dominant air-state label. Encodes the aerodynamic heat penalty from following another car, derived from FastF1's `DistanceToDriverAhead`.
   </Card>
-  <Card title="powertrain (6)" icon="zap">
-    Gear changes, RPM mean and max, full-throttle share, DRS active share, short-shift index. Per-lap telemetry aggregates projected by `int_lap_telemetry_aggregates`.
-  </Card>
-  <Card title="telemetry_cliff (5)" icon="chart-line">
-    Mid-corner speed loss, traction wheelspin proxy, throttle trace decay, braking point drift, lift-coast share. Cliff-sensitive telemetry signatures from the same aggregation.
-  </Card>
-  <Card title="weather_air (2)" icon="cloud">
-    Ambient temperature delta and rain flag. The environmental overlay on every prediction.
-  </Card>
-  <Card title="track (2)" icon="map">
-    Track energy index and circuit abrasiveness index. Circuit-level physics constants from the Reference family.
-  </Card>
-  <Card title="context (3)" icon="tag">
-    Constructor ID, event anomaly flag, and anomaly class. Encodes team and race-weekend context not captured by physics alone.
+  <Card title="proximity (9)" icon="car">
+    True pairwise track gaps from the position channel: share of the lap within 1 s / 2 s of the car ahead, share spent in a train rather than a single tow, share with a car within 1 s **behind**, seconds within 1 s, closest and median gap ahead, how stable the car ahead's identity was, and how many distinct cars came within 3 s. The same physical hypothesis as `dirty_air` measured from a different sensor and both are kept, because the swap arm says they carry different things.
   </Card>
 </CardGroup>
 

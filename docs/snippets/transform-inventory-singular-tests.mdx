@@ -20,6 +20,7 @@
 | Domain Constraint | `assert_cliff_predictions_valid.sql` | Active | `int_compound_cliff_predicted` |
 | Domain Constraint | `assert_cliff_seed_severity_bounded.sql` | Active |   |
 | Domain Constraint | `assert_cliff_stints_have_falloff.sql` | Placeholder |   |
+| Domain Constraint | `assert_compound_wear_bounded.sql` | Active | `int_compound_cliff_predicted` |
 | Domain Constraint | `assert_constructor_coefficient_signs.sql` | Active | `int_constructor_structural_pace` |
 | Domain Constraint | `assert_constructor_confidence_monotone.sql` | Placeholder |   |
 | Domain Constraint | `assert_corner_skill_cell_winsorized.sql` | Active | `mart_corner_skill_driver` |
@@ -38,6 +39,9 @@
 | Domain Constraint | `assert_pit_loss_excludes_neutralised.sql` | Active | `dim_circuits`, `int_pit_loss_circuit`, `stg_laps`, `stg_pits`, `stg_results`, `stg_track_status` |
 | Domain Constraint | `assert_pit_loss_pushes_optimum_later.sql` | Active | `int_pit_strategy_cost_curve` |
 | Domain Constraint | `assert_pit_stop_grain.sql` | Active | `stg_pits` |
+| Domain Constraint | `assert_proximity_agrees_with_blue_flags.sql` | Active | `int_lap_proximity`, `stg_race_control` |
+| Domain Constraint | `assert_proximity_crossing_total_order.sql` | Active | `stg_telemetry_position` |
+| Domain Constraint | `assert_proximity_train_subset_of_within1s.sql` | Active | `int_lap_proximity` |
 | Domain Constraint | `assert_quali_segment_matches_official.sql` | Active | `int_qualifying_push_laps`, `stg_results_qualifying` |
 | Domain Constraint | `assert_rating_confidence.sql` | Active | `int_driver_season_ratings` |
 | Domain Constraint | `assert_rating_top_season_well_supported.sql` | Active | `int_era_normalized_driver_rating` |

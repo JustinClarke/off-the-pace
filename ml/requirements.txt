@@ -4,7 +4,7 @@
 # silently break the onnxmltools quantile round-trip proven in M2.
 
 # Already present via root requirements.txt (listed to document the ML contract):
-xgboost>=3,<4
+xgboost>=3.4.0,<4
 duckdb>=1,<2
 pandas>=2,<3
 numpy>=2,<2.5

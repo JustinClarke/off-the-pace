@@ -26,6 +26,17 @@ vars:
   # always a push lap regardless of the ratio, so nobody drops out of the
   # decomposition entirely.
   quali_push_lap_ratio: 1.07
+  # int_lap_proximity: a track gap larger than this is not a car ahead, it is
+  # clear air, and is nulled rather than carried. The model's self-match guard
+  # already removes the ordinary case (the previous crossing of a point being
+  # the same driver a lap earlier); this bound exists for RED FLAGS, where the
+  # session clock runs on through a stoppage of tens of minutes and the
+  # previous crossing is a *different* driver from before the stoppage. The
+  # arithmetic is right and the answer is meaningless. Measured 2026-09-05:
+  # exactly one lap in 162,729 exceeds 300 s (2023 São Paulo, VER lap 3,
+  # 1484.5 s), 23 exceed 120 s, p99.99 is 125.4 s -- so this bound is not
+  # doing routine work, it is catching a specific artefact.
+  proximity_max_gap_s: 300.0
   # int_pit_loss_circuit: a stop's measured loss must land inside
   # [pit_loss_min_s, pit_loss_max_s] to count. The floor drops stops where the
   # reference lap was itself compromised; the ceiling drops what the SC/VSC/red
@@ -71,11 +82,27 @@ vars:
   # stop of you", true for 95.5% of stints, and undercut_forced becomes the
   # bucket every early stop falls into.
   pit_strategy_undercut_window_laps: 3
-  # int_pit_strategy_cost_curve: ceiling on per-lap wear cost, in seconds.
-  # The cliff polynomial is unbounded -- 136 s/lap extrapolated to age 80, and
-  # already 93 s/lap in-sample -- which is not a car that is still racing.
-  # Real cliff falloff runs 1-3 s/lap, so 10 is generous and bounds the tail
-  # without flattening the region the pit decision actually lives in.
+  # Shared ceiling on the compound wear curve's cumulative per-lap cost, in
+  # seconds. The hockey-stick polynomial is unbounded -- 136 s/lap extrapolated
+  # to age 80, and already 93 s/lap on laps that were actually run (p99 30.8) --
+  # which is not a car that is still racing. Real cliff falloff runs 1-3 s/lap,
+  # so 10 is generous and bounds the tail without flattening the region either
+  # consumer's decision lives in.
+  #
+  # This is the bound's own name because two models apply it to the same terms
+  # and neither owns it: int_compound_cliff_predicted (the source curve, per
+  # observed lap) and int_pit_strategy_cost_curve (the same curve recomputed
+  # over a synthetic age grid). Bounding only the second one -- which is what
+  # shipped before -- leaves driver_skill_residual_s, and therefore both ML
+  # targets built on it, standing on the unbounded curve.
+  #
+  # Sensitivity, measured 2026-08-25 by re-deriving laps_until_cliff_class at
+  # each value: 10.0 moves 4.97% of labels, 5.0 moves 11.09%, 3.0 moves 18.11%.
+  # 10.0 is the conservative choice and the one continuous with Phase 5.
+  compound_wear_max_s_per_lap: 10.0
+  # Retained as an alias of the above so the pit-strategy model keeps a name of
+  # its own; both default to the same value and the cost curve reads the shared
+  # bound. Set this alone to diverge the strategy ceiling from the source curve.
   pit_strategy_max_wear_s_per_lap: 10.0
   # dim_corners: each corner's telemetry window runs from its apex minus
   # corner_entry_margin_m to its apex plus corner_exit_margin_m, with both ends

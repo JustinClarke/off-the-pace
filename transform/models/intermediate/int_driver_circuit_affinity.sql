@@ -26,7 +26,8 @@
 
 {{ config(materialized='table', tags=['driver_rating', 'driver_affinity']) }}
 
-{# Map event slug (circuit_key) -> physical circuit_id + a canonical display name. #}
+{# Map event slug (circuit_key) -> physical circuit_id + a canonical display #}
+{# name. #}
 WITH circuit_map AS (
     SELECT
         circuit_key,
@@ -135,23 +136,24 @@ SELECT
     ws.driver_id,
     ws.circuit_id,
     cnm.circuit_name,
-    n_obs,
-    seasons_observed_n,
-    raw_affinity_s,
-    shrunk_affinity_s,
+    ws.n_obs,
+    ws.seasons_observed_n,
+    ws.raw_affinity_s,
+    ws.shrunk_affinity_s,
 
     -- Posterior SE and 95% CI
-    SQRT(NULLIF(posterior_var_s2, 0)) AS shrunk_affinity_se_s,
-    shrunk_affinity_s - 1.96 * SQRT(NULLIF(posterior_var_s2, 0))
+    SQRT(NULLIF(ws.posterior_var_s2, 0)) AS shrunk_affinity_se_s,
+    ws.shrunk_affinity_s - 1.96 * SQRT(NULLIF(ws.posterior_var_s2, 0))
         AS shrunk_affinity_ci_low_s,
-    shrunk_affinity_s + 1.96 * SQRT(NULLIF(posterior_var_s2, 0))
+    ws.shrunk_affinity_s + 1.96 * SQRT(NULLIF(ws.posterior_var_s2, 0))
         AS shrunk_affinity_ci_high_s,
 
-    affinity_confidence,
+    ws.affinity_confidence,
 
     -- Shrinkage bounds identity check columns (for singular test)
-    LEAST(raw_affinity_s, global_driver_mean_s) AS _shrinkage_lower_bound,
-    GREATEST(raw_affinity_s, global_driver_mean_s) AS _shrinkage_upper_bound
+    LEAST(ws.raw_affinity_s, ws.global_driver_mean_s) AS _shrinkage_lower_bound,
+    GREATEST(ws.raw_affinity_s, ws.global_driver_mean_s)
+        AS _shrinkage_upper_bound
 
 FROM with_shrinkage AS ws
 INNER JOIN circuit_name_map AS cnm ON ws.circuit_id = cnm.circuit_id

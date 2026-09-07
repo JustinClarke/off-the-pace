@@ -2,7 +2,7 @@
 
 > **When a car is off the pace, why?**
 
-**A browser-native, full-stack F1 analytics platform.** It ingests 7 seasons of telemetry, models it through a 68-table dbt warehouse, trains 5 ML models, and serves 30 interactive analytics features with **no server, no login, and no cost to serve**.
+**A browser-native, full-stack F1 analytics platform.** It ingests 7 seasons of telemetry, models it through a 71-table dbt warehouse, trains 5 ML models, and serves 30 interactive analytics features with **no server, no login, and no cost to serve**.
 
 Under the hood, every lap is decomposed into seven additive, physically-grounded components, so lost time is attributed to an exact, named cause rather than a vibe.
 
@@ -20,7 +20,7 @@ Under the hood, every lap is decomposed into seven additive, physically-grounded
 
 ![Off The Pace: browser-native F1 analytics dashboard decomposing every lap into named causes](docs/images/off-the-pace-home.png)
 
-**137,447** laps decomposed · **149** races · **40** drivers · **44** circuits · **68** dbt models · **577** tests · **5/5** ML models beat baseline · **30** browser features · **0** servers
+**137,447** laps decomposed · **149** races · **40** drivers · **44** circuits · **71** dbt models · **594** tests · **5/5** ML models beat baseline · **30** browser features · **0** servers
 
 ---
 
@@ -61,8 +61,8 @@ Trained on 2018–2024. The 2025 season is held out as a reproducible out-of-sam
 ```mermaid
 flowchart LR
     A["FastF1 + OpenF1"] --> B["Bronze<br/>Hive-partitioned Parquet<br/>7 seasons · 149 races"]
-    B --> C["Transform<br/>dbt + DuckDB<br/>68 models · 577 tests"]
-    C --> D["ML<br/>5 XGBoost models<br/>→ ONNX, 42 features"]
+    B --> C["Transform<br/>dbt + DuckDB<br/>71 models · 594 tests"]
+    C --> D["ML<br/>5 XGBoost models<br/>→ ONNX, 33 features"]
     C --> E["GCS CDN<br/>parquet + models"]
     D --> E
     E --> F["Browser App<br/>React · DuckDB-Wasm · ONNX Runtime<br/>30 features · zero server"]
@@ -91,8 +91,8 @@ Requires Python 3.11+.
 git clone https://github.com/justinclarke/off-the-pace
 cd off-the-pace
 make setup           # build venv + install Python/dbt deps
-make dbt-dev         # build the transform layer (68 models)
-make dbt-test        # run 577 tests including assert_additive_identity
+make dbt-dev         # build the transform layer (71 models)
+make dbt-test        # run 594 tests including assert_additive_identity
 ```
 
 No cloud credentials required. DuckDB runs locally at `data/dev.duckdb`.
@@ -144,9 +144,9 @@ If you want to run the React app or the documentation site locally, you'll also 
 | Subsystem | State | Evidence |
 |---|---|---|
 | Ingestion (Bronze) | ✅ Built | `ingestion/src/`: FastF1 + OpenF1 → Hive-partitioned Parquet, 7 seasons / 149 races |
-| Transform (68 models, 577 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
+| Transform (71 models, 594 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
 | Coefficients (KM tyre cliff) | ✅ Fitted | `transform/tasks/coefficients/`: seeds |
-| ML (5 XGBoost models, 64 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life survival (AFT); ONNX parity; v6 model (42 features) |
+| ML (5 XGBoost models, 177 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life survival (AFT); ONNX parity; v11 model (33 features) |
 | Frontend (React + DuckDB-Wasm) | ✅ Built | [`app/`](app/): 30 interactive features, zero server, sub-10ms queries; deployed to Firebase Hosting |
 | Docs | ✅ Built | [`docs/`](docs/): Mintlify site with 6 tabs (Overview, Data, Transform, ML, App, Platform) |
 | Platform | ✅ Built | CI/CD, security scanning, observability (Sentry), E2E tests (Playwright), IaC (Terraform) |
@@ -164,14 +164,14 @@ Five XGBoost models score every lap from the feature mart [`fct_cliff_prediction
 - **Cliff classifier** laps-until-cliff bucket (`0_to_2` / `3_to_5` / `6_plus` / `none_in_stint`).
 - **Stint-life regressor** remaining laps of usable life.
 
-Every model **beats a strong per-cohort baseline** on the headline metric (season-grouped `TimeSeriesSplit`; the 2024 fold stands in as a holdout until 2025 ingests). Each booster round-trips to **ONNX within `atol=1e-5`** for in-browser scoring. The leakage spine (no forward-looking features, `driver_id`/`race_year` excluded) is enforced by tests and CI.
+Every model **beats a strong per-cohort baseline** on the headline metric (season-grouped `TimeSeriesSplit`; the 2024 fold stands in as a holdout until 2025 ingests) and every one of those claims **carries an interval** the effective sample is ~7,100 stints, not ~137,000 laps, so a lap-grain point estimate overstates certainty. Headlines are also reported as a fraction of what is **attainable** rather than of 1.0, which is not a score anything could reach on this data. Each booster round-trips to **ONNX within `atol=1e-5`** for in-browser scoring. The leakage spine (no forward-looking features, `driver_id`/`race_year` excluded) is enforced by tests and CI.
 
 Reproduce end-to-end (one venv, warehouse read-only, nothing written to `app/`):
 
 ```bash
 make ml-setup        # install ml/requirements.txt
 make ml-all          # features → tune → train → evaluate → predict → onnx → card → docs
-make ml-test         # 64 tests: leakage spine, ONNX parity, survival/AFT contract, version contract, output schema, beats-baseline
+make ml-test         # 177 tests: leakage spine, ONNX parity, survival/AFT contract, version contract, output schema, beats-baseline, attainable ceilings + intervals
 ```
 
 Full auto-generated **[model card](docs/reference/ml/degradation-model.mdx)** (metrics, baselines, calibration, dual feature importance, limitations) is built from `ml/model_card.yml`.
@@ -200,8 +200,8 @@ The app runs entirely in the browser: DuckDB-Wasm for sub-10ms SQL and ONNX Runt
 | Layer | Tech |
 |---|---|
 | Ingestion | FastF1 + OpenF1 → Hive-partitioned Parquet |
-| Transform | dbt-core (DuckDB local, 68 models, 577 tests) |
-| ML | XGBoost (degradation quantile trio, cliff classifier, remaining life) → ONNX v5 (42 features) |
+| Transform | dbt-core (DuckDB local, 71 models, 594 tests) |
+| ML | XGBoost (degradation quantile trio, cliff classifier, remaining life) → ONNX v11 (33 features) |
 | Frontend | React + DuckDB-Wasm (sub-10ms queries, zero compute cost) |
 | Hosting | Firebase Hosting (frontend) + GCS CDN `gs://off-the-pace-cdn` (data + models) |
 | Docs | Mintlify (offthepace.mintlify.app) |

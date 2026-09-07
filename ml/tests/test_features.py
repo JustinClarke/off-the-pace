@@ -150,14 +150,62 @@ def test_no_hardcoded_holdout():
 
 
 def test_target_bounded(load):
-    """D5: degradation target is bounded [-10, 10] (negatives legitimate). Only
+    """D5: the degradation target is bounded at source (negatives legitimate). Only
     stint-life is non-negative."""
     deg = load("degradation_regressor_p50").y_train
-    assert deg.between(-S.TARGET_BOUND, S.TARGET_BOUND).all(), "degradation target out of [-10, 10]"
-    assert (deg < 0).mean() > 0.2, "expected a substantial negative fraction (~44%)-D5"
+    b = S.TARGET_BOUND
+    assert deg.between(-b, b).all(), f"degradation target out of [-{b}, {b}]"
+    assert (deg < 0).mean() > 0.2, "expected a substantial negative fraction-D5"
 
     life = load("stint_life_regressor").y_train
     assert (life >= 0).all(), "remaining_stint_life_laps must be >= 0"
+
+
+def test_target_bound_follows_the_target_column():
+    """Phase 7: the bound is a fact about the SQL clip on whichever column
+    DEGRADATION_TARGET names, not a constant that happens to fit the 1-lap one.
+
+    Inheriting +/-10 after the flip to the 5-lap column would have been silent: the
+    5-lap target is clipped at +/-50 in the mart, so a +/-10 assertion would fail
+    honestly, but the manifest export_onnx writes would have carried a bound five times
+    tighter than the data - a claim about the model's range that nothing checks
+    downstream."""
+    assert S.TARGET_BOUND == S.TARGET_BOUND_BY_COLUMN[S.DEGRADATION_TARGET]
+    for t in S.PRODUCTION_TARGETS:
+        if t.kind == "quantile":
+            assert t.source_column in S.TARGET_BOUND_BY_COLUMN, (
+                f"{t.source_column} is modelled but carries no source clip")
+
+
+def test_target_bound_is_the_clip_the_warehouse_applies(load):
+    """The bound must be tight against the real column, not merely not-violated.
+
+    A bound loose by 5x passes `test_target_bounded` forever. This asserts the data
+    actually reaches the bound, which is what makes it the SQL's clip rather than an
+    arbitrary envelope drawn around it."""
+    deg = load("degradation_regressor_p50").y_train
+    reach = max(abs(float(deg.min())), abs(float(deg.max()))) / S.TARGET_BOUND
+    assert reach > 0.9, (
+        f"target reaches only {reach:.1%} of TARGET_BOUND={S.TARGET_BOUND} - "
+        "the bound does not describe this column")
+
+
+@pytest.mark.parametrize("target", PROD_TARGETS)
+def test_target_columns_are_never_features(target):
+    """No column is ever both a target and a feature, at any horizon.
+
+    Phase 7 moves the modelled column between horizons, and the failure it invites is
+    the alt-horizon column that has just been vacated quietly becoming available as a
+    predictor. Both directions are asserted: the target of every production model is
+    barred, and every alt-horizon degradation column stays barred whether or not it is
+    the one being modelled."""
+    spec = S.TARGET_BY_NAME[target]
+    assert spec.source_column not in S.FEATURE_COLUMNS
+    if spec.source_column != S.STINT_LIFE_TARGET:
+        assert spec.source_column in S.EXCLUDED_LEAKAGE_COLUMNS
+
+    for col in S.TARGET_HORIZON_LAPS:
+        assert col not in S.FEATURE_COLUMNS, f"{col} is a forward-looking target column"
 
 
 @pytest.mark.parametrize("target", ["degradation_regressor_p50", "stint_life_regressor", "cliff_classifier"])

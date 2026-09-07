@@ -33,26 +33,88 @@ STUDIES_DIR = Path("ml/models/optuna_studies")
 MODELS_DIR = Path("ml/models")
 
 
+# ─── The search space ───────────────────────────────────────────────────────────
+# Declared as data so `boundary_params` reads the same numbers `_suggest` searches.
+# Every search from Phase 2 to Phase 7 stopped with `max_depth` on its ceiling and
+# none of them said so, because a search that ends on its own edge prints a best
+# value like any other: the bound is invisible in the output, and "the learner is
+# saturated" cannot be told apart from "the learner was never allowed to ask for
+# more". `tune_one` now names the pinned parameters at the end of every search.
+#
+# The ranges below are the widened ones (open item 21); the bound each replaced is in
+# the comment beside it. What the widening bought, measured: a 50-trial p50 search in
+# this space lands on max_depth 9 / min_child_weight 42 / n_estimators 900 -- INTERIOR
+# on all three axes, where the incumbent was pinned on two edges of the old space. So
+# the old bounds really were truncating the optimum. They were truncating it by 0.33%
+# (fold-paired +0.0038, p=0.198, 4/5), which is why the params did not move and the
+# bounds did: a space that contains its own optimum is worth having even when what it
+# contains is not worth shipping. Note the coordinate probe in the same checkpoint says
+# the opposite, and is the weaker instrument -- stepping one axis past the bound cannot
+# see a move that needs three axes at once.
+SEARCH_SPACE: dict[str, dict] = {
+    "n_estimators":     {"type": "int",   "low": 200,  "high": 1200, "step": 100},   # was 700
+    "max_depth":        {"type": "int",   "low": 3,    "high": 12},                  # was 8
+    "learning_rate":    {"type": "float", "low": 0.02, "high": 0.2, "log": True},
+    "subsample":        {"type": "float", "low": 0.6,  "high": 1.0},
+    "colsample_bytree": {"type": "float", "low": 0.6,  "high": 1.0},
+    "min_child_weight": {"type": "int",   "low": 1,    "high": 60, "log": True},     # was 20, linear
+    "reg_alpha":        {"type": "float", "low": 1e-3, "high": 5.0, "log": True},
+    "reg_lambda":       {"type": "float", "low": 1e-3, "high": 5.0, "log": True},
+    "gamma":            {"type": "float", "low": 1e-3, "high": 5.0, "log": True},
+}
+
+# The AFT scale is a fitted parameter of the likelihood, not a tree knob, and the
+# headline moves a lot with it: at the current production params the CV NLL runs
+# 3.06 at 0.30, 2.09 at 0.80 and back to 2.11 at 1.00. Leaving it fixed would search
+# the trees against the wrong noise model.
+SURVIVAL_SPACE: dict[str, dict] = {
+    "aft_loss_distribution_scale": {"type": "float", "low": 0.3, "high": 1.2},
+}
+
+
+def _space_for(spec: S.TargetSpec | None) -> dict[str, dict]:
+    survival = spec is not None and spec.kind == "survival"
+    return {**SEARCH_SPACE, **(SURVIVAL_SPACE if survival else {})}
+
+
 def _suggest(trial: optuna.Trial, spec: S.TargetSpec | None = None) -> dict:
-    params = {
-        "n_estimators": trial.suggest_int("n_estimators", 200, 700, step=100),
-        "max_depth": trial.suggest_int("max_depth", 3, 8),
-        "learning_rate": trial.suggest_float("learning_rate", 0.02, 0.2, log=True),
-        "subsample": trial.suggest_float("subsample", 0.6, 1.0),
-        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
-        "min_child_weight": trial.suggest_int("min_child_weight", 1, 20),
-        "reg_alpha": trial.suggest_float("reg_alpha", 1e-3, 5.0, log=True),
-        "reg_lambda": trial.suggest_float("reg_lambda", 1e-3, 5.0, log=True),
-        "gamma": trial.suggest_float("gamma", 1e-3, 5.0, log=True),
-    }
-    if spec is not None and spec.kind == "survival":
-        # The AFT scale is a fitted parameter of the likelihood, not a tree knob, and
-        # the headline moves a lot with it: at the current production params the CV
-        # NLL runs 3.06 at 0.30, 2.09 at 0.80 and back to 2.11 at 1.00. Leaving it
-        # fixed would search the trees against the wrong noise model.
-        params["aft_loss_distribution_scale"] = trial.suggest_float(
-            "aft_loss_distribution_scale", 0.3, 1.2)
+    params = {}
+    for name, d in _space_for(spec).items():
+        if d["type"] == "int":
+            params[name] = trial.suggest_int(name, d["low"], d["high"],
+                                             step=d.get("step", 1), log=d.get("log", False))
+        else:
+            params[name] = trial.suggest_float(name, d["low"], d["high"], log=d.get("log", False))
     return params
+
+
+def boundary_params(best: dict, spec: S.TargetSpec | None = None,
+                    rel_tol: float = 1e-6) -> dict[str, str]:
+    """Which of `best` sit on an edge of the space that produced them: name -> low|high.
+
+    An int is on the edge when it equals the bound. A float is on the edge when it is
+    within `rel_tol` of one -- a continuous suggestion practically never returns its
+    bound exactly, and a value 1e-9 inside it is pinned in every sense that matters.
+
+    A pin is a fact about the search, not a verdict on the model: it says the optimum
+    of the trials run sits where the space ran out, which happens both when the
+    learner wants more capacity and when the optimum genuinely lives at the edge.
+    Phase 8 and open item 21 are one of each. Telling them apart takes a probe past
+    the bound, so this reports rather than fails.
+    """
+    out: dict[str, str] = {}
+    for name, d in _space_for(spec).items():
+        if name not in best:
+            continue
+        value, low, high = float(best[name]), float(d["low"]), float(d["high"])
+        if d["type"] == "int":
+            hit_low, hit_high = value == low, value == high
+        else:
+            hit_low = abs(value - low) <= rel_tol * max(abs(low), 1.0)
+            hit_high = abs(value - high) <= rel_tol * max(abs(high), 1.0)
+        if hit_low or hit_high:
+            out[name] = "low" if hit_low else "high"
+    return out
 
 
 def tune_one(target: str, *, trials: int, folds: int, version: str, subsample_rows: int = 0) -> dict:
@@ -69,9 +131,6 @@ def tune_one(target: str, *, trials: int, folds: int, version: str, subsample_ro
         meta = meta.iloc[idx].reset_index(drop=True)
     maximize = spec.kind == "classification"
     folds_idx = list(T._season_folds(seasons, bundle.training_seasons, folds))
-    # Censoring flags for the survival target, subsampled in step with X/y above.
-    cens = (meta[S.STINT_LIFE_CENSOR_COLUMN].to_numpy(dtype=bool)
-            if spec.kind == "survival" else None)
 
     def objective(trial: optuna.Trial) -> float:
         params = _suggest(trial, spec)
@@ -79,21 +138,18 @@ def tune_one(target: str, *, trials: int, folds: int, version: str, subsample_ro
         scores = []
         for step, (tr, val) in enumerate(folds_idx):
             model = T._make_model(spec, params)
-            if spec.kind == "survival":
-                model.fit(X.iloc[tr], y[tr],
-                          sample_weight=T._sample_weight(spec, y[tr]),
-                          is_censored=cens[tr])
-                _, value = T._headline(spec, y[val], model.predict(X.iloc[val]),
-                                       meta.iloc[val], scale)
-            else:
-                # NOTE: meta is deliberately NOT passed here. _sample_weight would then
-                # apply the quantile models' IPW survival weights, which train.py:_fit
-                # does apply -- so the search and the refit disagree for p10/p50/p90.
-                # That mismatch is a real defect (ml_execution_plan.md, Phase 2 finding
-                # 1) and fixing it re-opens the quantile params, so it is left alone
-                # here rather than changed as a side effect of the survival work.
-                model.fit(X.iloc[tr], y[tr], sample_weight=T._sample_weight(spec, y[tr]))
-                _, value = T._headline(spec, y[val], model.predict(X.iloc[val]))
+            # The fold fit goes through train.py's own _fit, so the objective is
+            # measured under exactly the weights the production refit applies:
+            # IPW survival weights for the quantile trio, balanced class weights for
+            # the classifier, none for AFT (which carries censoring in the label).
+            # Until Phase 2 finding 1 was fixed this path called model.fit directly
+            # without meta, so the quantile search silently dropped the IPW weights
+            # that train.py:_fit applies -- p10/p50/p90 were selected against an
+            # objective the refit does not use. Do not reintroduce a second fit call
+            # here: one code path is what keeps search and refit in agreement.
+            T._fit(model, spec, X.iloc[tr], y[tr], meta.iloc[tr])
+            _, value = T._headline(spec, y[val], model.predict(X.iloc[val]),
+                                   meta.iloc[val], scale)
             scores.append(value)
             trial.report(float(np.mean(scores)), step=step)
             if trial.should_prune():
@@ -116,6 +172,14 @@ def tune_one(target: str, *, trials: int, folds: int, version: str, subsample_ro
     best_path.write_text(json.dumps(study.best_params, indent=2, sort_keys=True))
     print(f"[{target}] best {('macro_f1' if maximize else 'pinball/rmse')}={study.best_value:.4f} "
           f"({len(study.trials)} trials) -> {best_path.name}")
+
+    # A search that ends on its own edge prints a best value like any other. Say so.
+    pinned = boundary_params(study.best_params, spec)
+    if pinned:
+        named = ", ".join(f"{k}={study.best_params[k]} ({side})" for k, side in sorted(pinned.items()))
+        print(f"[{target}] stopped on a search-space boundary: {named}. The optimum of "
+              f"these {len(study.trials)} trials is where the space ran out, which is not "
+              f"the same as convergence -- probe past the bound before reading it either way.")
 
     # Chain the production refit on the FULL training set (train.py runs its own 5-fold CV log).
     T.train_one(target, version=version, params=study.best_params, smoke=False)

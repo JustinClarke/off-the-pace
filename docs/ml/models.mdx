@@ -8,7 +8,7 @@ import MLMetrics from '/snippets/ml-inventory-metrics.mdx';
 
 <CardGroup cols={2}>
   <Card title="Features & Targets" href="/ml/features-and-targets" icon="layers">
-    The 42-feature input matrix, encoding, the three targets, and the dataset fingerprint.
+    The 33-feature input matrix, encoding, the three targets, and the dataset fingerprint.
   </Card>
   <Card title="Tuning" href="/ml/tuning" icon="sliders">
     The 9-dimensional Optuna search, CV selection, and full refit.
@@ -117,7 +117,11 @@ The cliff classifier is a 4-class model over `laps_until_cliff_class`, trained w
 **When to rely on it:** use the classifier's output as a yellow/amber/red alert for pit-stop timing, not as a lap-precise countdown. The probability scores for each class are surfaced a high probability on `0_to_2` is a stronger signal than a marginal one.
 
 <Warning>
-  **Limits read this.** The model's macro-F1 of 0.404 comfortably beats the majority-class prior (0.224), and the balanced weighting earns its keep on the minority imminent-cliff windows. But **macro-F1 ≈ 0.40 is modest in absolute terms** this is the weakest of the five models. It decisively beats chance, but absolute skill on rare cliff windows is limited, so treat `0_to_2` calls as a strong prompt to look at the degradation band, not a certainty. The largest confident misses are reviewed continuously to inform the v2 roadmap. See also [Tyre cliff](/decomposition/tyre-cliff).
+  **Limits read this.** The model's macro-F1 of 0.404 comfortably beats the majority-class prior (0.224), and the balanced weighting earns its keep on the minority imminent-cliff windows. It is still the model to be most careful with, but **not for the reason this page used to give.**
+
+  The old reading was "macro-F1 ≈ 0.40 is modest in absolute terms". That compares 0.404 against 1.0, and 1.0 is not a score anything could reach on this label: laps inside a stint share a compound, a car, a circuit, a fuel load and a driver, so a large part of the class is fixed before the lap is run. Measured against an oracle that is handed the stint id and nothing else, the model reaches **114% of that ceiling** it is not the ceiling that is holding it back. The real limit is upstream: `laps_until_cliff_class` is a first-crossing scan over a polynomial cliff curve that is unbounded, so part of what the model is being asked to reproduce is an artefact of the label's construction rather than a fact about the tyre.
+
+  Treat `0_to_2` calls as a strong prompt to look at the degradation band, not a lap-precise certainty. The largest confident misses are reviewed continuously. See also [Tyre cliff](/decomposition/tyre-cliff).
 </Warning>
 
 <Accordion title="Why this is not a survival model" icon="chart-line">

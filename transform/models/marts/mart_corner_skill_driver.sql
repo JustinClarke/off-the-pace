@@ -273,18 +273,29 @@ standardized AS (
         mapped_corners,
         CASE
             WHEN braking_cells_n >= {{ phase_min_cells }}
-                THEN braking_skill_s
-                / NULLIF(STDDEV(braking_skill_s) OVER (PARTITION BY race_year), 0)
+                THEN
+                    braking_skill_s
+                    / NULLIF(
+                        STDDEV(braking_skill_s) OVER (PARTITION BY race_year), 0
+                    )
         END AS braking_skill_z,
         CASE
             WHEN mid_cells_n >= {{ phase_min_cells }}
-                THEN mid_corner_skill_s
-                / NULLIF(STDDEV(mid_corner_skill_s) OVER (PARTITION BY race_year), 0)
+                THEN
+                    mid_corner_skill_s
+                    / NULLIF(
+                        STDDEV(mid_corner_skill_s)
+                            OVER (PARTITION BY race_year),
+                        0
+                    )
         END AS mid_corner_skill_z,
         CASE
             WHEN exit_cells_n >= {{ phase_min_cells }}
-                THEN exit_skill_s
-                / NULLIF(STDDEV(exit_skill_s) OVER (PARTITION BY race_year), 0)
+                THEN
+                    exit_skill_s
+                    / NULLIF(
+                        STDDEV(exit_skill_s) OVER (PARTITION BY race_year), 0
+                    )
         END AS exit_skill_z
     FROM driver_season
 )

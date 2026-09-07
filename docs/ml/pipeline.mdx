@@ -13,7 +13,7 @@ make ml-all   # features → tune → train → evaluate → predict → onnx �
 ```
 
 ```bash Test
-make ml-test  # 28 tests: leakage spine, ONNX parity, output schema, beats-baseline
+make ml-test  # 99 tests: leakage spine, ONNX parity, output schema, beats-baseline, attainable ceilings + intervals
 ```
 
 </CodeGroup>
@@ -22,7 +22,7 @@ The eight stages run in dependency order. Walking them top to bottom is the same
 
 ```mermaid
 flowchart TD
-    A["fct_cliff_prediction_features\n(42 features, read-only)"]
+    A["fct_cliff_prediction_features\n(33 features, read-only)"]
     A --> S1["ml-features\nValidate contract + fingerprint"]
     S1 --> S2["ml-tune\nOptuna search → best_params.json"]
     S2 --> S3["ml-train\n5 × .bst booster"]
@@ -46,7 +46,7 @@ flowchart TD
 
     **What it writes:** `ml/models/encoders.json` (the ordinal encoding map) and a dataset fingerprint logged to stdout.
 
-    **What it guarantees:** the 42-column feature contract is a subset of the mart's actual columns; the forward-window SQL audit finds no `LEAD`/`FOLLOWING` clauses; and the leakage exclusion list is non-overlapping with the feature list. The fingerprint makes the run reproducible: given the same mart rows, every downstream artefact is byte-for-byte identical.
+    **What it guarantees:** the 24-column feature contract is a subset of the mart's actual columns; the forward-window SQL audit finds no `LEAD`/`FOLLOWING` clauses; and the leakage exclusion list is non-overlapping with the feature list. The fingerprint makes the run reproducible: given the same mart rows, every downstream artefact is byte-for-byte identical.
 
     ```bash
     make ml-features

@@ -36,9 +36,9 @@ telemetry AS (
         CAST(t.season AS INTEGER) AS race_year,
         r.track_id,
         t.distance_m,
-        t.X AS x,
-        t.Y AS y,
-        t.Z AS z,
+        t.x,
+        t.y,
+        t.z,
         t.speed_kph
     FROM {{ source('bronze_f1', 'raw_telemetry') }} AS t
     INNER JOIN race_map AS r ON t.race_id = r.race_id

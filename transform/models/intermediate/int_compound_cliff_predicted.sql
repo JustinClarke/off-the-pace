@@ -46,7 +46,12 @@ weather AS (
         lap_number,
         track_temp_c
     FROM {{ ref('stg_weather') }}
-    ORDER BY race_year, race_id, lap_number, weather_session_time_s DESC, driver_id
+    ORDER BY
+        race_year ASC,
+        race_id ASC,
+        lap_number ASC,
+        weather_session_time_s DESC,
+        driver_id ASC
 ),
 
 combined AS (
@@ -123,16 +128,45 @@ SELECT
     -- onset (laps) and post-onset severity (s/lap^2) from dim_compounds_season.
     COALESCE(compound_cliff_onset_laps, 999.0) AS compound_cliff_onset_laps,
     COALESCE(compound_cliff_severity, 0.0) AS compound_cliff_severity,
+    -- The age-dependent wear portion, bounded. Exposed as its own column so
+    -- the bound is assertable without re-deriving it from the pace total.
+    LEAST(
+        COALESCE(compound_wear_gradient, 0.0) * age_in_stint
+        + 0.002 * POWER(age_in_stint, 2)
+        + COALESCE(compound_cliff_severity, 0.0) * laps_past_cliff,
+        {{ var('compound_wear_max_s_per_lap', 10.0) }}
+    ) AS compound_wear_s,
     -- Hockey-stick pace model:
     -- grip_peak baseline + linear wear + quadratic age term (rubber
     -- accumulation)
     -- + cliff_severity * laps_past_cliff (linear post-cliff
     -- acceleration-severity
     --   is the empirically fitted average s/lap rate of post-cliff degradation)
+    --
+    -- BOUNDED at var('compound_wear_max_s_per_lap') on the age-dependent terms
+    -- only -- grip_peak and the temperature offset are per-lap constants and do
+    -- not run away. Unbounded, this polynomial emitted up to 93.5 s/lap on laps
+    -- that were actually run (p99 30.8, 12,575 rows over the bound across 1,604
+    -- of 7,094 stints, mean excess 8.6 s).
+    --
+    -- This is not a cosmetic bound. expected_compound_pace_s is subtracted into
+    -- driver_skill_residual_s in int_lap_residual_decomposed, so an over-large
+    -- wear term over-explains the lap and *depresses* the residual. Both ML
+    -- targets are built on that residual as a forward difference:
+    --   * laps_until_cliff_class scans for the residual RISING > 1.0 s, so a
+    --     depressed future lap hides a crossing that happened. Re-deriving the
+    --     label under this bound moves 6,825 rows (4.97%), and 99.5% of them
+    --     move out of 'none_in_stint' into a real cliff class -- the tail was
+    --     erasing cliffs into the majority class, not inventing them.
+    --   * next_lap_degradation_jump_detrended_s moves on 9.05% of rows, max
+    --     9.08 s, and its sd falls 2.5321 -> 2.4948.
     COALESCE(compound_grip_peak, 0.0)
-    + COALESCE(compound_wear_gradient, 0.0) * age_in_stint
-    + 0.002 * POWER(age_in_stint, 2)
-    + COALESCE(compound_cliff_severity, 0.0) * laps_past_cliff
+    + LEAST(
+        COALESCE(compound_wear_gradient, 0.0) * age_in_stint
+        + 0.002 * POWER(age_in_stint, 2)
+        + COALESCE(compound_cliff_severity, 0.0) * laps_past_cliff,
+        {{ var('compound_wear_max_s_per_lap', 10.0) }}
+    )
     + 0.005 * ambient_temp_delta AS expected_compound_pace_s,
     -- First derivative: rate of pace loss at current age
     COALESCE(compound_wear_gradient, 0.0)

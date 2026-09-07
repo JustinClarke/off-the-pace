@@ -6,7 +6,15 @@ Narrative docs: [Machine Learning section](../docs/ml/overview.mdx) · auto-gene
 
 ## Production artefacts
 
-- `degradation_regressor_p10` / `_p50` / `_p90` quantile trio for next-lap fuel-corrected pace jump (s).
+- `degradation_regressor_p10` / `_p50` / `_p90` quantile trio for the **cumulative fuel-corrected
+  pace jump over the next five laps** (s, `next_5_lap_cumulative_jump_s`). Phase 7 moved the trio off
+  the next-lap column; Phase 9 (2026-09-05) promoted `MODEL_VERSION_DEFAULT` to `v10`, so the
+  published artefacts now match — the 5-lap fit against the pruned 24-feature contract. Phase 10a
+  (2026-09-05) then took it to `v11`, adding the 9-column `proximity` group (33 features): true
+  pairwise track gaps measured from the telemetry stream's position channel, which is the first
+  feature family in the project sourced from a different sensor rather than from a further
+  transform of lap times or the car channel (see `src/schema.py`, `DEGRADATION_TARGET` /
+  `FEATURE_GROUPS`).
 - `cliff_classifier` `laps_until_cliff_class` ∈ {`0_to_2`, `3_to_5`, `6_plus`, `none_in_stint`}.
 - `stint_life_regressor` `remaining_stint_life_laps` (synthesised; ≥ 0).
 
@@ -34,7 +42,11 @@ make ml-test        # leakage spine · ONNX parity · schema · beats-baseline
 
 ```
 src/      schema.py · features.py · train.py · tune.py · predict.py · export_onnx.py · evaluate.py · card.py
+          survival.py (AFT) · ceiling.py + intervals.py (attainable denominators)
+          attribution.py (what the within-stint signal is, and whether a feature could carry it)
 tests/    test_features.py · test_targets.py · test_predict.py · test_onnx_parity.py · test_evaluate.py
+          test_survival.py · test_manifest_contract.py · test_ceiling.py · test_attribution.py
+          test_fit_parity.py (search == evaluation == production refit)
 models/   *.bst/*.onnx (gitignored) · encoders.json / manifest.json / model_card.json (tracked) · training_logs/ optuna_studies/
 artefacts/ PNGs + eval parquets (gitignored, regen-able)
 ```
@@ -46,6 +58,16 @@ artefacts/ PNGs + eval parquets (gitignored, regen-able)
 - **Feature contract ⊆ live mart** `test_feature_contract_subset_of_mart` fails the build on schema drift in either direction.
 - **Determinism** `RANDOM_STATE` everywhere; dataset SHA256 fingerprint logged in the card.
 - **ONNX parity** every `.onnx` must match its `.bst` within `atol=1e-5`; the tolerance is never loosened.
+- **Every claim carries an interval** a `beats_baseline: true` with no interval on it is not a claim, and
+  `card.py` refuses to write one. The effective sample is ~7,100 stints, not ~137,000 laps, so each margin is
+  reported both as a paired t over the season folds and as a bootstrap resampling whole stints.
+- **A flatten is a measurement, never feature guidance** replacing a feature with its per-stint mean says what
+  the model *uses*; on a forward-looking target it also hands the model laps that had not run. `make ml-attribution`
+  re-runs any group that clears the noise floor over laps 1..t (`causal_delta`) and over laps t..N (`future_delta`)
+  and publishes a `causally_reachable` verdict. Act on that, not on `flatten_delta`.
+- **Every headline carries a denominator** skill is published as a fraction of the *attainable* quantity
+  (`ceiling.py`), never as a fraction of 1.0. A pinball of 0.20 means nothing until you know what a predictor
+  with perfect stint-level knowledge could reach.
 
 ## Tracked vs generated
 

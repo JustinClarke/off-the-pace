@@ -592,6 +592,97 @@ models:
               config:
                 where: "dnf_cause IS NOT NULL"
 
+  - name: stg_telemetry_position
+    description: >
+      Phase 10c, the channel split. The POSITION channel of raw_telemetry -- 58.8M
+      of its 118.7M rows -- projected to the positional columns. Until Phase 10 these
+      rows had no consumer at all: stg_telemetry projects all three FastF1 sample
+      provenances un-filtered and int_lap_telemetry_aggregates then filters to 'car'.
+      This model is the only reader of source_channel = 'pos', and int_lap_proximity
+      is its only consumer.
+
+      Deliberately NOT a copy of stg_telemetry with a different WHERE clause: it
+      carries relative_distance / pos_x / pos_y, which the car-channel path never
+      references, and it omits the car-channel's `distance_m BETWEEN 0 AND 6500`
+      guard because its position column is a 0..1 lap fraction that carries its own
+      bound.
+    meta:
+      family: staging
+    columns:
+      - name: session_time_s
+        description: >
+          Session clock of the sample (s). The one column that makes a cross-driver
+          comparison possible: a gap between two cars is a difference of two readings
+          of THIS column at the same point on track, never a difference of two
+          distances.
+        data_type: double
+      - name: relative_distance
+        description: >
+          Lap fraction in [0, 1). Clamped rather than filtered - FastF1 emits a
+          handful of samples at -3e-6 and 1.0000004 from float error at the lap
+          boundary, and dropping them would punch a hole in exactly the bin (the
+          start/finish line) where the gap matters most.
+        data_type: double
+      - name: pos_x
+        description: Track-frame X coordinate (1/10 m). Carried for Phase 10b (racing-line deviation); no current consumer.
+        data_type: double
+      - name: pos_y
+        description: Track-frame Y coordinate (1/10 m). Carried for Phase 10b (racing-line deviation); no current consumer.
+        data_type: double
+      - name: driver_ahead_number
+        description: >
+          FastF1's own answer to "who is ahead". A car NUMBER, not the three-letter
+          code driver_id uses; int_lap_proximity resolves it through stg_results.
+          Kept so the incumbent measure can be scored against the new one rather
+          than replaced by assertion.
+        data_type: varchar
+      - name: distance_to_ahead_m
+        description: >
+          FastF1's DistanceToDriverAhead (m). The single number every incumbent
+          traffic feature in this warehouse descends from. Diagnostic here.
+        data_type: double
+
+  - name: stg_race_control
+    description: >
+      The FIA race-control message feed. One row per message; 12,814 rows across 149
+      races, of which 4,909 are waved blue flags. Ingested since the beginning of the
+      project and consumed by nothing until Phase 10a (plan open item 13, now closed).
+
+      Staged for one reason: the blue flags are a traffic label produced by race
+      control rather than by the position channel, which makes them the only
+      supervised check available for the proximity features that is not derived from
+      the same sensor. The car number is resolved to driver_id here so consumers join
+      on the key the rest of the warehouse uses.
+    meta:
+      family: staging
+    columns:
+      - name: race_id
+        description: Numeric FastF1 event id; matches stg_laps.race_id.
+        data_type: varchar
+        tests: [not_null]
+      - name: message_time_s
+        description: >
+          Session clock of the message. NOT on the same origin as the telemetry
+          SessionTime column (it runs to ~55,000 s on a two-hour race, i.e. it is a
+          wall-clock derivative). Join on lap_number, not on this.
+        data_type: double
+      - name: flag
+        description: Flag colour, upper-cased, NULL for non-flag messages (BLUE / YELLOW / DOUBLE YELLOW / GREEN / CLEAR / RED / CHEQUERED / BLACK AND WHITE).
+        data_type: varchar
+      - name: driver_id
+        description: >
+          Three-letter code resolved from RacingNumber via stg_results. NULL where the
+          message is not driver-scoped, or where the number did not resolve.
+        data_type: varchar
+      - name: is_blue_flag_event
+        description: >
+          TRUE when this row is a blue flag whose driver identity and lap both
+          resolved - "this driver was being lapped on this lap". All 4,909 blue flags
+          resolve (verified 2026-09-05). A flag whose number failed to resolve would
+          be a data gap, not a negative, which is why this is a flag and not a filter.
+        data_type: boolean
+        tests: [not_null]
+
   - name: stg_track_status
     description: >
       SC/VSC/yellow/red timeline from FastF1 session.track_status. One row per status-change
@@ -603,9 +694,9 @@ models:
       family: staging
     columns:
       - name: track_status_id
-        description: Surrogate key   {race_id}_{session_time_s}.
+        description: Surrogate key   {race_id}_{session_time_s}_{status_code}.
         data_type: varchar
-        tests: [not_null]
+        tests: [not_null, unique]
       - name: race_year
         description: Season year.
         data_type: integer

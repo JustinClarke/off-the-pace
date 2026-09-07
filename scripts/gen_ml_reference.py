@@ -50,6 +50,37 @@ def _fmt(v) -> str:
     return f"{v:.4f}" if isinstance(v, float) else str(v)
 
 
+def _pct(v) -> str:
+    return "—" if v is None else f"{v:.1%}"
+
+
+def _attainable_cell(m: dict) -> str:
+    """Skill as a share of what is reachable, not of 1.0 (Phase 6, Corrections §12).
+
+    A value above 1.0 renders as a multiple rather than a percentage, because "2824%"
+    reads as a broken metric and "28x the stint-level ceiling" reads as what it is: the
+    ceiling does not bound this model.
+    """
+    att = m.get("attainable") or {}
+    frac = att.get("fraction_of_attainable")
+    if frac is None:
+        return "—"
+    if frac > 1.0:
+        return f"**{frac:.1f}× stint-level** ⚑"
+    scope = "" if att.get("ceiling_scope") == "stint_level" else " of absolute"
+    return f"{frac:.1%}{scope}"
+
+
+def _interval_cell(m: dict) -> str:
+    """The paired-t verdict. A claim without an interval renders as one, loudly."""
+    iv = m.get("interval") or {}
+    if not iv or iv.get("p_value") is None:
+        return "⚠️ none"
+    mark = "✅" if m.get("beats_baseline_significant") else "⚠️ inside noise"
+    return (f"{mark} p={iv['p_value']:.4f} "
+            f"({iv.get('folds_won')}/{iv.get('n_folds')} folds)")
+
+
 def _arrow(model: dict) -> str:
     """Direction marker, from the card's explicit flag.
 
@@ -93,17 +124,30 @@ def render_mdx(card: dict) -> str:
         "Every model is evaluated against a strong per-cohort baseline; all five beat it. "
         f"Validation: {escape_mdx(card['validation']['scheme'])}.",
         "",
-        "| Model | Kind | Metric | CV | Eval | Baseline | Beats |",
-        "|---|---|---|---|---|---|---|",
+        "| Model | Kind | Metric | CV | Eval | Baseline | Beats | Of attainable | Interval |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for m in card["models"]:
         beats = "✅" if m["beats_baseline"] else "⚠️"
         L.append(
             f"| `{m['name']}` | {m['kind']} | {m['headline_metric']} ({_arrow(m)}) "
-            f"| {_fmt(m['cv_headline'])} | {_fmt(m['eval_headline'])} | {_fmt(m['baseline_headline'])} | {beats} |")
+            f"| {_fmt(m['cv_headline'])} | {_fmt(m['eval_headline'])} | {_fmt(m['baseline_headline'])} "
+            f"| {beats} | {_attainable_cell(m)} | {_interval_cell(m)} |")
     L += ["",
           f"_Eval headline on the {card['data']['evaluation_mode']} "
           f"(season {card['data']['evaluation_season']}); CV is the season-grouped TimeSeriesSplit mean._",
+          "",
+          "_**Of attainable** is the column to read._ A pinball of 0.20 or a macro-F1 of "
+          "0.40 says nothing on its own, because neither is a ratio against anything "
+          "reachable — 1.0 is not a target any model of this data could hit. The column "
+          "divides each headline's improvement over an uninformed floor by the "
+          "improvement a predictor with perfect stint-level knowledge could achieve.",
+          "",
+          "A ⚑ marks a model that scores **past** that ceiling. It is not an error and "
+          "not a broken metric: laps inside a stint share a compound, a car, a circuit, a "
+          "fuel load and a driver, so a stint-level ceiling bounds only predictors that "
+          "are constant within a stint. Clearing it is proof that the model is using "
+          "within-stint variation — and that no ceiling has yet been established for it.",
           ""]
 
     # ── Per-model detail ──
@@ -140,6 +184,56 @@ def render_mdx(card: dict) -> str:
           "| Family | Baseline |", "|---|---|"]
     for fam, desc in v["baselines"].items():
         L.append(f"| {fam} | {escape_mdx(desc)} |")
+
+    # ── Attainable ceilings + intervals (Phase 6) ──
+    if v.get("attainable_note"):
+        L += ["", "### Attainable ceilings", "", escape_mdx(v["attainable_note"]), "",
+              "| Model | Target column | Between-stint share | Naive estimate | "
+              "Within-stint lag-1 | Of attainable |", "|---|---|---|---|---|---|"]
+        for m in card["models"]:
+            a = m.get("attainable") or {}
+            L.append(
+                f"| `{m['name']}` | `{a.get('target_column')}` "
+                f"| {_pct(a.get('between_stint_share'))} "
+                f"| {_pct(a.get('between_stint_share_naive'))} "
+                f"| {_fmt(a['within_stint_lag1_autocorr']) if a.get('within_stint_lag1_autocorr') is not None else '—'} "
+                f"| {_attainable_cell(m)} |")
+        L += ["",
+              "_Between-stint share is a one-way random-effects (ANOVA) estimate. The "
+              "naive column is `var(per-stint means) / var(column)`, which counts "
+              "within-stint scatter as between-stint signal at ~19 laps per stint; it is "
+              "shown so the correction stays visible rather than silently applied._", ""]
+    if v.get("interval_note"):
+        sg = v.get("stint_grain") or {}
+        L += ["### Intervals on every claim", "", escape_mdx(v["interval_note"]), "",
+              "| Model | Win margin | 95% CI (paired t, folds) | p | Stint-grain CI | "
+              "Widening vs lap grain |", "|---|---|---|---|---|---|"]
+        for m in card["models"]:
+            iv = m.get("interval") or {}
+            if not iv or iv.get("p_value") is None:
+                L.append(f"| `{m['name']}` | — | ⚠️ no interval | — | — | — |")
+                continue
+            wr = iv.get("stint_vs_lap_width_ratio")
+            L.append(
+                f"| `{m['name']}` | {_fmt(iv['mean_delta'])} "
+                f"| [{_fmt(iv['ci_low'])}, {_fmt(iv['ci_high'])}] "
+                f"| {iv['p_value']:.4f} "
+                f"| [{_fmt(iv['stint_bootstrap_ci_low'])}, {_fmt(iv['stint_bootstrap_ci_high'])}] "
+                f"| {f'{wr:.2f}×' if wr else '—'} |")
+        inside = v.get("claims_inside_noise") or []
+        L += ["",
+              (f"**{len(inside)} claim(s) do not clear their own interval and are kept "
+               f"on the card anyway: {', '.join(f'`{c}`' for c in inside)}.** A claim "
+               "that fails its interval is more useful than one that was never tested."
+               if inside else
+               "**Every `beats_baseline` claim clears its own interval.**"), ""]
+        if sg:
+            L += [f"_Effective sample: {sg.get('n_stints'):,} stints over "
+                  f"{sg.get('n_rows'):,} laps "
+                  f"({sg.get('mean_laps_per_stint', 0):.1f} laps per stint). "
+                  f"{sg.get('stints_straddling_a_season_fold')} stints straddle a season "
+                  f"fold boundary, so the CV split was never the problem — every interval "
+                  f"computed at lap grain was._", ""]
     if cal:
         L += ["", "### Calibration (quantile interval)", "",
               f"Nominal coverage **{cal.get('nominal')}** → raw [p10,p90] empirical "

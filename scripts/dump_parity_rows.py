@@ -84,7 +84,7 @@ def main() -> int:
     p10 = _load("degradation_regressor_p10").predict(X)
     p50 = _load("degradation_regressor_p50").predict(X)
     p90 = _load("degradation_regressor_p90").predict(X)
-    trio = np.clip(np.sort(np.vstack([p10, p50, p90]).T, axis=1), -10, 10)
+    trio = np.clip(np.sort(np.vstack([p10, p50, p90]).T, axis=1), -S.TARGET_BOUND, S.TARGET_BOUND)
     # Stint life is an AFT booster: the ground truth is the same post-transform
     # predict.py applies, read off the artefact rather than reimplemented here.
     life_bst = SV.load_booster(

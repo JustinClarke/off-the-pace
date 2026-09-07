@@ -67,6 +67,27 @@ air AS (
     FROM {{ ref('int_lap_air_state') }}
 ),
 
+-- Phase 10a: the position channel's per-lap scalars. Carried ALONGSIDE the
+-- `air` block above, not in place of it, so the ablation can be run against
+-- both measures rather than the new one asserted better. The two describe the
+-- same physical situation from different sensors: `air` divides FastF1's
+-- DistanceToDriverAhead by point speed, `proximity` measures a time interval
+-- between two crossings of the same point on track.
+proximity AS (
+    SELECT
+        lap_id,
+        share_lap_within_1s,
+        share_lap_within_2s,
+        share_lap_in_train,
+        gap_ahead_min_s,
+        gap_ahead_median_s,
+        ahead_identity_stability,
+        n_distinct_cars_ahead_3s,
+        share_lap_behind_within_1s,
+        time_within_1s
+    FROM {{ ref('int_lap_proximity') }}
+),
+
 corrections AS (
     SELECT
         lap_id,
@@ -203,6 +224,25 @@ base AS (
             AS dirty_air_thermal_load_bulk,
         COALESCE(ai.air_state_dominant, 'free_air') AS air_state_dominant,
 
+        -- Phase 10a proximity predictors (position channel).
+        -- The three share_* / time_* columns are already zeroed on
+        -- neutralised laps at source and COALESCE only covers the 1.22% of
+        -- laps with no position telemetry, matching how the dirty-air block
+        -- above treats its own missingness. The gap_* and identity columns are
+        -- deliberately NOT coalesced: NULL there means "no car within a full
+        -- lap", which is free air, and XGBoost reads it natively. Defaulting
+        -- them to a number would invent a car that was not there.
+        COALESCE(px.share_lap_within_1s, 0.0) AS share_lap_within_1s,
+        COALESCE(px.share_lap_within_2s, 0.0) AS share_lap_within_2s,
+        COALESCE(px.share_lap_in_train, 0.0) AS share_lap_in_train,
+        COALESCE(px.share_lap_behind_within_1s, 0.0)
+            AS share_lap_behind_within_1s,
+        COALESCE(px.time_within_1s, 0.0) AS time_within_1s,
+        px.gap_ahead_min_s,
+        px.gap_ahead_median_s,
+        px.ahead_identity_stability,
+        px.n_distinct_cars_ahead_3s,
+
         -- Event flag: any event contamination on this lap
         COALESCE(cor.correction_weight < 1.0, FALSE) AS event_flag_any,
 
@@ -255,6 +295,7 @@ base AS (
     LEFT JOIN cliff AS c ON r.lap_id = c.lap_id
     LEFT JOIN thermal AS th ON r.lap_id = th.lap_id
     LEFT JOIN air AS ai ON r.lap_id = ai.lap_id
+    LEFT JOIN proximity AS px ON r.lap_id = px.lap_id
     LEFT JOIN corrections AS cor ON r.lap_id = cor.lap_id
     LEFT JOIN telemetry AS tel ON r.lap_id = tel.lap_id
     LEFT JOIN race_to_track AS rtt ON r.race_id = rtt.race_id
@@ -445,6 +486,19 @@ SELECT
     dirty_air_thermal_load_surface,
     dirty_air_thermal_load_bulk,
     air_state_dominant,
+
+    -- Proximity predictors (Phase 10a, position channel). Present in the mart
+    -- and not yet in the ML feature contract: the contract moves only if the
+    -- ablation says it should, which is the phase's own acceptance rule.
+    share_lap_within_1s,
+    share_lap_within_2s,
+    share_lap_in_train,
+    share_lap_behind_within_1s,
+    time_within_1s,
+    gap_ahead_min_s,
+    gap_ahead_median_s,
+    ahead_identity_stability,
+    n_distinct_cars_ahead_3s,
 
     -- Cliff prediction features
     expected_compound_pace_s,

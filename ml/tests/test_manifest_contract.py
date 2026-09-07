@@ -205,3 +205,82 @@ def test_predictions_schema_carries_the_life_band(manifest):
               "predicted_remaining_stint_life_p10_laps",
               "predicted_remaining_stint_life_p90_laps"):
         assert c in cols, f"predictions schema is missing {c}"
+
+
+# ─── Interval contract (Phase 6) ────────────────────────────────────────────────
+# `beats_baseline: true` was published five times in this repo and not one of those
+# claims carried an interval (ml_execution_plan.md Corrections §15). The effective
+# sample is 7,094 stints, not 137,447 laps, so a lap-grain point estimate is the same
+# shape of failure as the version gate above: something reporting success while
+# inspecting nothing. These assert the claim cannot ship bare again.
+CARD_JSON_PATH = MODELS_DIR / "model_card.json"
+
+
+@pytest.fixture(scope="module")
+def card() -> dict:
+    if not CARD_JSON_PATH.exists():
+        pytest.skip(f"no {CARD_JSON_PATH} (run `make ml-card`)")
+    return json.loads(CARD_JSON_PATH.read_text())
+
+
+def test_every_beats_baseline_claim_carries_an_interval(card):
+    """The gate itself, run against the card that is actually on disk."""
+    from ml.src.card import assert_claims_carry_intervals
+
+    assert_claims_carry_intervals(card)
+
+
+def test_the_interval_gate_can_fail(card):
+    """Liveness. Per the §5/§6/§8 standing rule a gate ships with a proof that it fires:
+    strip the interval off a claiming model and the writer must refuse the card.
+
+    Three ways a card can go quiet are checked, because they are three different bugs:
+    an interval that never computed, one whose bounds came back null, and a model with
+    no significance verdict recorded at all.
+    """
+    import copy
+
+    from ml.src.card import assert_claims_carry_intervals
+
+    claiming = [m for m in card["model_card"]["models"] if m.get("beats_baseline")]
+    if not claiming:
+        pytest.skip("no beats_baseline=true claims on this card to strip")
+
+    for mutate, label in (
+        (lambda m: m.update(interval={"error": "boom"}), "interval failed to compute"),
+        (lambda m: m.update(interval={**(m.get("interval") or {}), "ci_low": None,
+                                      "ci_high": None, "p_value": None}), "null bounds"),
+        (lambda m: m.pop("beats_baseline_significant", None), "no verdict"),
+    ):
+        broken = copy.deepcopy(card)
+        target = next(m for m in broken["model_card"]["models"] if m.get("beats_baseline"))
+        mutate(target)
+        with pytest.raises(ValueError, match="un-intervalled"):
+            assert_claims_carry_intervals(broken)
+
+
+def test_claims_inside_noise_are_recorded_not_deleted(card):
+    """A claim that fails its own interval is the most useful line in the card, so the
+    field must exist even when it is empty -- an absent key and 'nothing failed' must not
+    look the same."""
+    v = card["model_card"]["validation"]
+    assert "claims_inside_noise" in v, (
+        "validation block has no claims_inside_noise list; a card with no such key "
+        "cannot distinguish 'every claim survived' from 'nobody checked'")
+    assert isinstance(v["claims_inside_noise"], list)
+    names = {m["name"] for m in card["model_card"]["models"]}
+    assert set(v["claims_inside_noise"]) <= names
+
+
+def test_attainable_ceiling_is_published_per_model(card):
+    """Corrections §12: every headline in this repo is a ratio against 1.0. The card is
+    where that stops."""
+    for m in card["model_card"]["models"]:
+        att = m.get("attainable")
+        assert att, f"{m['name']} carries no attainable ceiling"
+        assert att.get("basis"), f"{m['name']}'s ceiling does not say what it is a ceiling of"
+        frac = (att.get("fraction_of_attainable")
+                or att.get("fraction_of_attainable_in_sample_oracle"))
+        assert frac is not None, (
+            f"{m['name']}: no fraction_of_attainable -- the headline is still anchored "
+            f"to 1.0, which is the whole finding of Corrections §12")

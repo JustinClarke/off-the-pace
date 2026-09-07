@@ -2,7 +2,9 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell, Legend,
 } from 'recharts'
 import type { ModelMetricsResult, ModelSummaryRow } from './transform'
-import { metricDirectionLabel, modelBeatsBaselineDescription } from './transform'
+import {
+  metricDirectionLabel, modelBeatsBaselineDescription, attainableLabel, intervalLabel,
+} from './transform'
 
 const COLOR_BEAT = '#34d399'   // emerald-400
 const COLOR_MISS = '#f87171'   // red-400
@@ -42,6 +44,12 @@ function BaselineGrid({ models }: { models: ModelSummaryRow[] }) {
     <div className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold text-[rgb(var(--color-text))]">Model vs Baseline</h3>
       <p className="text-xs text-muted">All five models beat their per-cohort baseline on the 2024 CV fold. Bar = % improvement over baseline.</p>
+      <p className="text-xs text-muted/80">
+        Beating a baseline is only half a claim. Each card below also carries the interval on that
+        margin  a paired t over the season folds, since laps inside one stint are not independent
+        draws  and the share of the <em>attainable</em> quantity the headline represents. A ceiling
+        multiple above 1× means the model is not bounded by stint-level information at all.
+      </p>
       <div className="h-44">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ left: 120, right: 40, top: 4, bottom: 4 }}>
@@ -71,6 +79,19 @@ function BaselineGrid({ models }: { models: ModelSummaryRow[] }) {
             <span className={m.beats_baseline ? 'text-emerald-400' : 'text-red-400'}>
               {m.beats_baseline ? '✓' : '✗'} {modelBeatsBaselineDescription(m)}
             </span>
+            <span
+              className={
+                m.interval == null ? 'text-amber-400'
+                  : m.beats_baseline_significant ? 'text-muted' : 'text-amber-400'
+              }
+            >
+              {intervalLabel(m)}
+            </span>
+            {attainableLabel(m) && (
+              <span className={m.attainable?.isBinding === false ? 'text-sky-400' : 'text-muted'}>
+                {attainableLabel(m)}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -192,6 +213,34 @@ function CohortTable({ cohorts }: { cohorts: ModelMetricsResult['cohorts'] }) {
   )
 }
 
+// ------- Claims that do not clear their own interval -------
+// Surfaced rather than dropped, for the same reason the cohort table surfaces the cells
+// the model loses on: a claim that fails its interval is more informative than one that
+// was never tested, and hiding it is how a page ends up reading greener than the data.
+function ClaimsInsideNoise({ claims, total }: { claims: string[]; total: number }) {
+  if (!claims.length) {
+    return (
+      <p className="text-xs text-emerald-400">
+        All {total} beats-baseline claims clear their own interval (paired t over season folds,
+        plus a bootstrap resampling whole stints).
+      </p>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <h3 className="text-sm font-semibold text-amber-400">Claims inside noise</h3>
+      <p className="text-xs text-muted">
+        {claims.length} of {total} models beat their baseline by a margin that does not clear its
+        own interval. Listed, not removed  the margin is real in the point estimate and not
+        separable from fold-to-fold variation.
+      </p>
+      <ul className="text-xs text-amber-400/90 list-disc pl-4">
+        {claims.map(c => <li key={c}><code>{c}</code></li>)}
+      </ul>
+    </div>
+  )
+}
+
 // ------- Limitations -------
 function LimitationsSection({ limitations }: { limitations: string[] }) {
   if (!limitations.length) return null
@@ -213,6 +262,7 @@ export default function ModelMetricsChart({ result }: { result: ModelMetricsResu
       <ImportanceSection importance={result.importance} />
       <CalibrationSection cal={result.calibration} />
       <CohortTable cohorts={result.cohorts} />
+      <ClaimsInsideNoise claims={result.claimsInsideNoise} total={result.models.length} />
       <LimitationsSection limitations={result.limitations} />
     </div>
   )

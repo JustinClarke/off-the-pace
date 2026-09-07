@@ -91,6 +91,106 @@ models:
                 # real wall-clock minutes, well past a normal green-flag lap.
                 max_value: 900
 
+  - name: int_lap_proximity
+    description: >
+      Phase 10a. True pairwise track gaps from the POSITION channel, reduced to
+      per-lap scalars. One row per race lap, on the same spine as
+      int_lap_air_state (162,729 rows, verified equal 2026-09-05).
+
+      This is the first feature family in the project built from a different
+      sensor rather than from a further transform of the car channel or of lap
+      times. Every incumbent traffic signal descends from FastF1's
+      DistanceToDriverAhead, which int_lap_air_state divides by point speed to
+      get a gap in seconds - a conversion that assumes the car ahead is
+      travelling at the same speed as the car behind, which is exactly false in
+      the situation the feature exists to describe. This model measures the
+      time directly: each lap is cut into 100 fractions of relative_distance,
+      the session clock at which each driver first enters each fraction is a
+      crossing time of a fixed point on track, and the gap is the difference
+      between two crossings of the same point. It needs no speed assumption and
+      it is correct for lapped traffic.
+
+      Validated against the FIA's own blue flags, which are not derived from
+      telemetry - see assert_proximity_agrees_with_blue_flags.
+    tags: [intermediate]
+    meta:
+      family: physics
+    columns:
+      - name: lap_id
+        description: Foreign key to stg_laps
+        tests: [not_null, unique]
+      - name: proximity_bin_count
+        description: >
+          How many of the 100 track bins this driver-lap produced a crossing
+          for. Mean 99.8. NULL on the 1.22% of laps with no position telemetry
+          (1,982 of 162,729) - left NULL rather than zeroed so "no data" stays
+          distinguishable from "no traffic".
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 100
+      - name: gap_ahead_min_s
+        description: >
+          Closest the car ahead on track came, this lap (seconds). NULL when no
+          other car crossed any of this lap's bins between this driver's own
+          consecutive crossings, i.e. a full lap of clear air. Median 0.92 s.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                # A gap larger than this is a full lap of clear air at any
+                # circuit on the calendar; the self-match guard in the model
+                # should have nulled it instead.
+                max_value: 300
+                row_condition: "gap_ahead_min_s is not null"
+      - name: share_lap_within_1s
+        description: >
+          Share of the lap's track bins with a car within 1 s ahead. Mean
+          0.2011. Zeroed on SC/VSC/red-flag laps for the same reason
+          int_lap_air_state zeroes its dirty-air terms - the field bunches at
+          a pace that generates no aero load.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: share_lap_in_train
+        description: >
+          Share of the lap in a train rather than a single tow: this car within
+          1 s of the car ahead AND that car within 1 s of the car ahead of it.
+          Mean 0.0800. Must never exceed share_lap_within_1s, which is its own
+          first conjunct - asserted by assert_proximity_train_subset_of_within1s.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: ahead_identity_stability
+        description: >
+          Of the lap's bins that had a car within 3 s ahead, the share held by
+          the single most frequent car. 1.0 = one car held the whole lap (a
+          settled follow); low = the car ahead rotated (traffic being passed, or
+          being lapped). Mean 0.9271. NULL on the 27.3% of laps with no car
+          within 3 s at any point, which is "free air", not "unstable identity".
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+                row_condition: "ahead_identity_stability is not null"
+      - name: ff_ahead_identity_agreement
+        description: >
+          Diagnostic, never a feature. Share of the lap's bins where FastF1's
+          own DriverAhead names the same car this model derives. 0.8704 across
+          all seasons. Kept at lap grain so the incumbent and the new measure
+          can be compared rather than one asserted better (Phase 10a: "run the
+          ablation against both"). Where they disagree, FastF1's own
+          DistanceToDriverAhead is roughly twice as large, i.e. it is naming a
+          car further away than the one actually ahead on track.
+
   - name: int_lap_normalized_pace
     description: >
       Phase C: lap pace with the dirty-air cost removed, so laps run in traffic
@@ -296,6 +396,27 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: compound_wear_s
+        description: >
+          The age-dependent portion of the hockey-stick curve
+          (wear_gradient*age + 0.002*age^2 + severity*laps_past_cliff), bounded
+          at var('compound_wear_max_s_per_lap'). Exposed as its own column so
+          the bound is assertable directly -- see
+          assert_compound_wear_bounded.sql. expected_compound_pace_s is this
+          plus grip_peak plus the temperature offset, so the pace total
+          legitimately exceeds the bound while this column may not.
+        tests: [not_null]
+      - name: expected_compound_pace_s
+        description: >
+          Expected pace loss vs compound baseline, in seconds. Bounded as of
+          Phase 8 (2026-08-25): the wear portion is capped, having previously
+          reached 93.5 s/lap on laps that were actually run. This column is
+          subtracted into driver_skill_residual_s, so the unbounded tail was
+          depressing the residual on 12,575 post-onset laps and, through it,
+          corrupting both ML targets -- it hid 6,825 cliff-label crossings
+          (99.5% of them into 'none_in_stint') and moved the degradation
+          target on 9.05% of rows.
+        tests: [not_null]
 
   - name: int_field_pace_curve
     description: >
@@ -1131,7 +1252,8 @@ models:
       of the argmin entirely - a longer pit lane would move nothing. Discounting it by
       1 - (1 - m)(1 - (1 - h)^L), with h from int_sc_hazard_history, is what makes waiting pay
       and gives the model the property assert_pit_loss_pushes_optimum_later checks.
-      Per-lap wear is capped at var('pit_strategy_max_wear_s_per_lap'): the cliff polynomial
+      Per-lap wear is capped at var('compound_wear_max_s_per_lap') -- the shared bound, which
+      int_compound_cliff_predicted now applies to the same three terms as of Phase 8. The cliff polynomial
       is unbounded, reaching 136 s/lap extrapolated to age 80 and already 93 s/lap in-sample.
     tags: [intermediate, simulation, strategy]
     meta:

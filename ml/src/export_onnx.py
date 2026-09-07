@@ -245,8 +245,21 @@ def build_manifest(version: str, parities: dict[str, dict]) -> dict:
         }
         if spec.kind == "quantile":
             entry["quantile_alpha"] = spec.quantile_alpha
-            entry["output"] = {"index": 0, "meaning": "degradation_jump_seconds",
-                               "bounds": [-S.TARGET_BOUND, S.TARGET_BOUND]}
+            horizon = S.TARGET_HORIZON_LAPS.get(spec.source_column, 1)
+            # The horizon is IN the meaning string, because that string is what the app
+            # renders a sentence from. Phase 7 moved the family to the 5-lap cumulative
+            # column: same output index, same units, different quantity. A manifest that
+            # still said "degradation_jump_seconds" would leave the app describing a
+            # next-lap prediction while scoring a five-lap one -- correct number, wrong
+            # sentence, and nothing in the pipeline able to tell.
+            entry["output"] = {
+                "index": 0,
+                "meaning": ("degradation_jump_seconds" if horizon == 1 else
+                            f"cumulative_degradation_jump_seconds_over_next_{horizon}_laps"),
+                "target_column": spec.source_column,
+                "horizon_laps": horizon,
+                "bounds": [-S.TARGET_BOUND, S.TARGET_BOUND],
+            }
         elif spec.kind == "classification":
             entry["output"] = {"probabilities_index": 1, "zipmap": True,
                                "class_order": list(S.CLIFF_CLASS_LABELS),

@@ -4,10 +4,13 @@
 // precomputed mart_degradation_predictions within tolerance. This is the browser
 // analogue of the Python ONNX-parity test (manifest.provenance.onnx_parity).
 //
-// The 42-feature vector is read straight from fct_cliff_prediction_features, which carries the
-// full v5 feature set (the 8 telemetry/air columns that once lived in int_lap_powertrain_signature
-// and int_air_density were folded into this mart). predict.py scores the same single
-// frame, so the browser vector and the stored mart line up column-for-column.
+// The 33-feature vector (Phase 9 pruned 42 -> 24; Phase 10a added the 9-column
+// `proximity` group from the position channel) is read straight from
+// fct_cliff_prediction_features, which carries the full feature set (the 8 telemetry/air
+// columns that once lived in int_lap_powertrain_signature and int_air_density were folded
+// into this mart, before five of the resulting ten groups were later dropped from the model
+// contract on a noise-floor ablation). predict.py scores the same single frame, so the
+// browser vector and the stored mart line up column-for-column.
 //
 // The inference layer itself is independently proven against booster ground truth in
 // app/src/ml/parity.node.test.ts (1.05e-5 maxAbs); this badge additionally proves the *shipped*
@@ -95,7 +98,7 @@ export async function verifyParity(season = 2024, limit = 64, tolerance = DEFAUL
   const modelManifest = await loadModelManifest()
   const featureCols = modelManifest.input.feature_order
 
-  // All 42 features live in fct_cliff_prediction_features (v5); guard that the mart and the
+  // All 33 features (v11) live in fct_cliff_prediction_features; guard that the mart and the
   // model's feature_order haven't drifted before building the query, so a mismatch fails loud
   // instead of as a DuckDB "column not found" mid-scoring.
   await assertFeatureColumns(featureCols)

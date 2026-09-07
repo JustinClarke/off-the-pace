@@ -4,16 +4,16 @@
     the cliff (4-class), and remaining stint life. One shared feature matrix,
     one training engine, one pipeline.
   </Card>
-  <Card title="42 features in 10 groups" icon="layers">
-    Per-lap thermal, dirty-air, powertrain, telemetry-cliff, compound-prior,
-    weather, track, and context signals all read from
+  <Card title="33 features in 6 groups" icon="layers">
+    Per-lap stint-position, compound-prior, cliff-prior, thermal, and
+    dirty-air signals all read from
     [`fct_cliff_prediction_features`](/reference/models/fct/fct_cliff_prediction_features),
     never re-derived in ML.
   </Card>
-  <Card title="64 tests" icon="shield-check">
-    14 Leakage Spine + 5 ONNX Parity + 3 Predict Schema + 7 Evaluation Gates + 3 Targets + 18 Survival + 14 Version Contract every build.
+  <Card title="177 tests" icon="shield-check">
+    21 Leakage Spine + 5 ONNX Parity + 3 Predict Schema + 19 Evaluation Gates + 3 Targets + 18 Survival + 18 Version Contract + 19 Attainable Ceilings + 33 Within-stint Attribution + 24 Fit Parity + 14 Search Space every build.
   </Card>
-  <Card title="114,270 training laps" icon="database">
+  <Card title="82,315 training laps" icon="database">
     2018–2024 F1 seasons; holdout is `MAX(race_year) + 1`
     (no data yet the final CV fold stands in until it ingests).
   </Card>

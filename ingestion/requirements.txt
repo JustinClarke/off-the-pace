@@ -1,7 +1,7 @@
 # Core dependencies F1 ingestion
 fastf1==3.8.3
 pandas==2.1.4
-pyarrow==14.0.1
+pyarrow==25.0.0
 requests==2.34.2
 
 # Environment and configuration

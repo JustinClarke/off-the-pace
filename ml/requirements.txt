@@ -6,7 +6,7 @@
 # Already present via root requirements.txt (listed to document the ML contract):
 xgboost>=3,<4
 duckdb>=1,<2
-pandas>=2,<3
+pandas>=2.3.3,<3
 numpy>=2,<2.5
 pyarrow>=24.0.0,<25
 scikit-learn>=1.9.0,<2
@@ -14,7 +14,7 @@ scikit-learn>=1.9.0,<2
 # paired-t interval on every beats_baseline claim. It arrived transitively via
 # scikit-learn before that; an undeclared import is a gate that fails on someone
 # else's machine, so it is pinned here rather than assumed.
-scipy>=1.14,<2
+scipy>=1.18.1,<2
 matplotlib>=3.11.0,<4
 PyYAML>=6.0.3,<7
 

@@ -1,0 +1,1080 @@
+{
+  "schema_version": 1,
+  "project": "off-the-pace ML/transform programme",
+  "updated": "2026-09-09",
+  "pointer": "08g",
+  "stage_vocabulary": {
+    "SPEC": "Written. Nothing run.",
+    "PROBED": "Feasibility measured. The method may have changed as a result - re-read the leaf doc before building.",
+    "BUILDING": "In progress.",
+    "MEASURED": "Numbers exist; the standing gate has not been run.",
+    "GATED": "Passed foundations/gates.md. Eligible to land.",
+    "LANDED": "In the contract, warehouse or app.",
+    "BLOCKED": "Waiting on a dependency or an open decision.",
+    "CLOSED": "Terminal, with reason recorded. Do not re-open without new evidence named in the reason."
+  },
+  "model_vocabulary": {
+    "fable-5.1": "claude-fable-5-1. Novel statistical construction where a wrong derivation is expensive and hard to detect from the output - estimators, identification arguments, inference machinery. Reach for it when the failure mode is a plausible-looking number, not an error.",
+    "opus-5": "claude-opus-5. The default. Anything that makes a ruling, designs an aggregation, moves the feature contract, or turns a measurement into a claim.",
+    "sonnet-5": "claude-sonnet-5. The method is already written down and the judgment call is made - ingest, enumeration, a named refit, a declared schema note. Step back up to opus-5 the moment the leaf doc leaves a choice open.",
+    "haiku-4-5": "claude-haiku-4-5. Throughput work with a mechanical check on the output. Nothing in the tree currently qualifies: every live item either writes into the contract, rules on leakage, or produces a claim."
+  },
+  "groups": [
+    {
+      "id": "08",
+      "title": "Foundations repair",
+      "doc": "work/08-foundations-repair.md",
+      "summary": "Runs before everything: anything that changes what you would measure goes before the measurements.",
+      "parallel": false
+    },
+    {
+      "id": "09",
+      "title": "Scoring instruments",
+      "doc": "work/09-scoring-instruments.md",
+      "summary": "CRPS and e-values. Both change how later results are read, so both land before the measurements.",
+      "parallel": false
+    },
+    {
+      "id": "04",
+      "title": "Campaign audit",
+      "doc": "work/04-campaign-audit.md",
+      "summary": "Runs before 01/02 by design: it is pre-registration for every test those items add.",
+      "parallel": false
+    },
+    {
+      "id": "01",
+      "title": "Ceiling instrument",
+      "doc": "work/01-ceiling-instrument.md",
+      "summary": "Prices 02 and 05. 01b carries five unresolved defects - read the leaf doc first.",
+      "parallel": false
+    },
+    {
+      "id": "10",
+      "title": "Competing risks in stint life",
+      "doc": "work/10-competing-risks.md",
+      "summary": "28.8% of uncensored stints end under SC/VSC/red. Shares its end-regime label with 02d.",
+      "parallel": false
+    },
+    {
+      "id": "02",
+      "title": "Feature expansion",
+      "doc": "work/02-feature-expansion.md",
+      "summary": "Four tiers ranked by channel novelty against Phase 10a's admission rule.",
+      "parallel": false
+    },
+    {
+      "id": "03",
+      "title": "Driver vs car",
+      "doc": "work/03-driver-vs-car.md",
+      "summary": "The finding that needs the panel rather than the model.",
+      "parallel": false
+    },
+    {
+      "id": "05",
+      "title": "Model family",
+      "doc": "work/05-model-family.md",
+      "summary": "Lowest expected value unless 01 shows real headroom remains.",
+      "parallel": false
+    },
+    {
+      "id": "07",
+      "title": "Causal pit timing (SC natural experiment)",
+      "doc": "work/07-causal-pit-timing.md",
+      "summary": "The safety car as an instrument for pit timing. Upgrades 06a from a distribution to a causal claim.",
+      "parallel": true
+    },
+    {
+      "id": "06",
+      "title": "Publication track",
+      "doc": "work/06-publication.md",
+      "summary": "Independent of the ML ladder - neither blocks nor is blocked by 01-05.",
+      "parallel": true
+    },
+    {
+      "id": "11",
+      "title": "Parallel surfaces",
+      "doc": "work/11-parallel-surfaces.md",
+      "summary": "Conformal recalibration and the pit-timing DP. Touch no model, block nothing.",
+      "parallel": true
+    },
+    {
+      "id": "00",
+      "title": "Standing corrections",
+      "doc": "work/00-corrections.md",
+      "summary": "Stale facts found 2026-09-07 that other items cite. Hours, not days.",
+      "parallel": false
+    }
+  ],
+  "items": [
+    {
+      "id": "00a",
+      "group": "00",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Feature count is 33, not 24, everywhere it is quoted",
+      "note": "Closed 2026-09-07. Contract verified at 33 (FEATURE_GROUPS sums 4+7+5+4+4+9; FEATURE_COLUMNS len 33). Five live sites corrected; ml_execution_plan.md's dated checkpoints deliberately left at 24 as historical record, with supersession notes added at its two forward-looking sites only."
+    },
+    {
+      "id": "00b",
+      "group": "00",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Falsify research_program 1a's 'no SC signal exists' claim",
+      "note": "Closed 2026-09-07. Clause falsified and replaced with measurement: 26.87% of uncensored stint ends fall on an SC/VSC lap (vs 6.49% of censored), every season. int_sc_hazard_history cited. The 0.80-0.85 cap is now stated OPEN rather than replaced with a new number - an event share is not an NLL cap."
+    },
+    {
+      "id": "00c",
+      "group": "00",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "LORO leakage ruling - barred; 'LORO' was leave-one-DRIVER-out, not leave-one-race-out",
+      "note": "Ruled 2026-09-07. D1's premise was false: int_driver_race_skill_loro is leave-one-DRIVER-out (teammate baseline within the same race), so the focal race is never excluded and the column is contemporaneous with the target. Barred, plus its two siblings. Guard gap closed: the leakage test intersects on names, and none of the three were listed."
+    },
+    {
+      "id": "04a",
+      "group": "04",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Enumerate the real test family",
+      "note": "grep -c CLEARS returns 8 but counts lines, not tests: 4348/4363, 4783/4794, 4920/4929 are each one experiment reported twice. Distinct claims nearer 5. Denominator understated in the other direction by best-of-N subset selection and Optuna searches that never earned a CLEARS line.",
+      "cost": "1d",
+      "model": "sonnet-5"
+    },
+    {
+      "id": "04b",
+      "group": "04",
+      "stage": "CLOSED",
+      "depends_on": [
+        "04a"
+      ],
+      "title": "Decide the floor-ratio to p-value conversion",
+      "note": "CLOSED 2026-09-07 as DISSOLVED, not solved (research round R1). BH is the wrong instrument for this family: it assumes a fixed, pre-registered family, and this campaign's arms were chosen adaptively and stopped adaptively. An e-value is built directly from the reseed distribution by a betting or likelihood-ratio construction - no p-value, no distributional assumption, no df on n=5 - and e-BH controls FDR under ARBITRARY dependence, which the arithmetically-linked add-ablation totals and permutation-null halves require. Work moved to 09b. See research/R1-instruments.md section 2. Do not re-open without a reason that survives the e-value argument.",
+      "cost": null,
+      "closed": "2026-09-07"
+    },
+    {
+      "id": "04c",
+      "group": "04",
+      "stage": "SPEC",
+      "depends_on": [
+        "04b"
+      ],
+      "title": "Apply BH (or BY) at campaign level; report which CLEARS survive",
+      "note": "Add-ablation totals and their permutation-null halves are arithmetically dependent, so choose BH vs BY deliberately and say why.",
+      "cost": "0.5d",
+      "model": "sonnet-5"
+    },
+    {
+      "id": "01a",
+      "group": "01",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Learning curves - loss vs training-set size, extrapolated",
+      "note": "LANDED 2026-09-08. Gate 1 passed for ALL FIVE families -- the row arm's 100% point is the published refit and reproduced the v11 headline bit-identically (abs delta 0.000e+00 on p10/p50/p90/cliff/stint life). HEADLINE 1: no family is still gaining from ROWS at 100% -- every family's 75->100% leg is inside its floor. The degradation trio did gain over the full 4x range (1.9-4.5x floor) and is exhausted by 75%; the cliff classifier gained NOTHING across the whole range (0.05x floor). HEADLINE 2: the extrapolated intercept does not bind for any family -- p90 and cliff pin b at the upper bound 3.0 (a restatement of the plateau, not an extrapolation), stint life pins b at the lower bound 0.02 leaving c unidentifiable (LOO range 0.9722-1.7783 against a claimed headroom of 0.2865), and p10/p50 have leave-one-fraction-out spreads 3.0x and 3.3x the headroom they claim. The learning-curve instrument returns the same verdict ceiling.py already returns: it does not bind. That strengthens 01b rather than weakening it. HEADLINE 3, from a THIRD ARM added mid-item and logged in the leaf doc: the two specified arms cannot separate regime coverage from recency, so the season ladder was rerun from the newest end and read at matched n. Recency wins -- for p50, cliff and stint life the newer window beats the older at EVERY matched n (stint life by 14-57x its floor). The one unambiguous result: the CLIFF CLASSIFIER IS BETTER TRAINED ON 2021-2023 THAN ON 2018-2023, 0.39318 vs 0.38027 macro-F1, +0.01291 = 3.71x its own reseed floor, by deleting 46% of its training rows. NOT ACTED ON -- filed as 05d. Mechanism verified: HYPERSOFT/SUPERSOFT/ULTRASOFT are three of the eight ordinal `compound` levels, occur only in 2018 (8,777 rows, over half that season) and in no 2024 eval row. METHOD CORRECTION carried in the leaf doc: the reseed floor alone is the WRONG denominator for a last-leg gain, because the 75% point carries subsample variance the reseed floor never measures; under the correct composite 2*sqrt(sd_75^2/3 + sd_reseed^2) stint life's last leg is inside noise, where the reseed floor alone reads it as a real gain. Reseed floors computed for p10 and p90 for the first time: p10 0.00805, p50 0.01332, p90 0.00773, cliff 0.00349, stint life 0.00281. Probe throwaway, scratchpad only; nothing committed, no model or warehouse touched.",
+      "cost": "0.5d",
+      "model": "sonnet-5"
+    },
+    {
+      "id": "01b",
+      "group": "01",
+      "stage": "CLOSED",
+      "depends_on": [
+        "00a",
+        "01a"
+      ],
+      "title": "Empirical noise floor - difference-based, stratified, bracketed",
+      "note": "CLOSED 2026-09-09. Built as the difference-based / matched-cell estimator R1 specified, pre-registered in full, and it fails its own falsification gate at the headline level on 2 of 3 heads. Two method findings survive it. (1) DEFECT 1'S PROPOSED FIX WAS NOT IDENTIFIED: d = y1 - y2 is exactly symmetric for every eps, so fitting a skew-capable family to d returns zero skew by construction -- the leaf doc has been corrected. The construction defect 1 rejects (centre-and-pool) is the one that works, with Sum(c^2)=1-1/m, Sum(c^3)=0 at m=2 and 2/9 at m=3, Sum(c^4)>0 always: tail weight is identified from pairs, skew needs m>=3. (2) THE SYNTHETIC ARM CAUGHT TWO REAL RULE DEFECTS before any floor was quoted -- a row-selection rule that selected on the coordinate the noise is heteroscedastic in (-40% at L0/L1), and a shape standardisation on strata so fine it destroyed the tails it existed to preserve (-37% on excess kurtosis; the unstandardised pooled version was +68% the other way). Three instruments now agree that the trio's remaining headroom is smaller than anything the programme can resolve.",
+      "cost": "1-2d",
+      "model": "fable-5.1",
+      "closed": "CLOSED 2026-09-09 as a completed measurement, not as a failure. Every clause of the definition of done was delivered: the synthetic recovery passed at the claimed shape (sigma^2 -1.98% +/- 2.14%, end-to-end p50 floor +3.4%), the admissible-neighbour distance was measured (median 4.275 vs 6.829 for random pairs, ratio 0.626, distribution nowhere near zero), the floor was published as a bracket with the metric, NaN treatment and weighting rule stated, the falsification gate was checked at all 18 ladder x quantile points and every violation reported as an instrument failure, and the result was reconciled against 01a. THE ANSWER IS THAT THE INSTRUMENT DOES NOT BIND on p10 or p50: at the three-coordinate headline level the floor comes back ABOVE the loss it is meant to bound (0.5654 vs 0.5188; 1.0641 vs 1.0163). The mechanism is measured, not guessed -- the conditioning ladder is still falling at L3 (-10.4% to L4, a further -13.3% to L5), so the residual mean-function bias at three matched coordinates is larger than the headroom being resolved. R1's dimension constraint therefore binds harder than it was stated to: it is not only that 33-D is outside the regime, it is that the <=3-D fallback lacks the resolution to answer the question either. p90 is the only head where floor and achieved separate (0.4914 vs 0.5600, +12.3%), and the separation is about the size of its own error bar once the 4.5% race component is added back -- handed to 11a as directional, not established. DO NOT RE-OPEN without one of: (a) an eval population with repeated circuits inside a season, which would restore the different-race constraint this one had to drop because every 2024 circuit hosts exactly one race; (b) 08d's C1-C5 identity, which would make a cross-season same-circuit match well defined; or (c) a lower-dimensional target. A better fitter is not new evidence -- unit.py shows the arithmetic recovers to +/-0.5%."
+    },
+    {
+      "id": "02a",
+      "group": "02",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Tier 2 leakage ruling - the 5-lap field-median bucket (NOT the centred/backward binary)",
+      "note": "RULED 2026-09-08. Barred as constructed. The item's binary (centred vs backward) fits neither: FLOOR(lap/5)*5 is a fixed BLOCK bucket. Measured over all 2,206,939 rows by reconstructing corners_with_keys - mean forward reach 1.877 laps (R5 estimated 'about two'), 77.83% of lap-groups reach forward, 38.45% of the average median's rows are drawn from laps that had not yet run; by block position 0/1/2/3/4 the forward share is 76.00/56.44/40.00/20.67/0.00%. What decides it: DEGRADATION_TARGET is next_5_lap_cumulative_jump_s (t+1..t+5) and max forward reach is 4 laps, so every contaminating lap sits INSIDE the label's own window - and at block position 0, 95.55% of rows are scored against a baseline holding a mean 3.351 of that driver's OWN future laps. Not point-in-time correct. Materiality measured too, and reported as suggestive not decisive: isolating delta = block - trailing, corr(delta,label) = +0.0344 [+0.0047,+0.0667] at positions 0-3 vs +0.0083 [-0.0143,+0.0324] at the zero-reach position-4 control, paired race-clustered difference +0.0261 [-0.0008,+0.0531], one-sided p=0.027; the control is imperfectly matched, so the ruling rests on the deterministic construction, not on this. The rebuild costs no signal - trailing's marginal |corr| with the label is equal or higher at every block position - and costs 2.22pp of lap-grain coverage, essentially all of it lap 2, which has no predecessor. Bar is scoped to ML admission: mart_corner_skill_driver consumes the same columns descriptively with no forward label and is NOT barred. Confirms 08b's premise - the reach lives entirely in a GROUP BY scope, so audit_forward_window read this model as clean the whole time. Fix is 02g; 02c now depends on 02g, not on 02a.",
+      "cost": "hours",
+      "model": "opus-5",
+      "order_hint": 2
+    },
+    {
+      "id": "02b",
+      "group": "02",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Tier 1 - qualifying",
+      "note": "14,165 decomposed quali laps 2018-2024, already fuel-corrected. Zero leakage treatment needed. Stint-invariant, so expect cliff_classifier and stint_life_regressor to move, not the degradation trio.",
+      "cost": "1d",
+      "model": "sonnet-5"
+    },
+    {
+      "id": "02g",
+      "group": "02",
+      "stage": "SPEC",
+      "depends_on": [
+        "02a"
+      ],
+      "title": "Rebuild the corner field median as a trailing window",
+      "note": "Created 2026-09-08 by 02a's ruling. Replace FLOOR(lap/5)*5 in int_corner_skill_residuals with a backward-only field median - quantile_cont(...) OVER (PARTITION BY race_year,race_id,corner_name ORDER BY lap_number RANGE BETWEEN 5 PRECEDING AND 1 PRECEDING). RANGE not ROWS (it must stay a FIELD median across drivers); 1 PRECEDING is what makes it backward-only. Formulae, NULL rules and the sample_n<5 gate are unchanged. Two decisions the item must record: trailing-5 vs expanding (trailing-5 recommended - expanding pools early and late track state, the same defect 02d is fixing in int_sc_hazard_history), and lap 2, which has no predecessor and must go NULL rather than be back-filled from the block median. Per R5 recommendation 2, write it as a dbt macro since 02d needs the same shape. Measured in 02a: costs no signal, costs 2.22pp lap-grain coverage. Gates 02c.",
+      "cost": "0.5-1d",
+      "model": "opus-5"
+    },
+    {
+      "id": "02c",
+      "group": "02",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "02g"
+      ],
+      "title": "Tier 2 - corner-level driver inputs",
+      "note": "int_corner_skill_residuals, 2,206,939 rows at lap x corner, never read by the ML. The only lap-varying candidate, so the only one that can reach the degradation trio's 99% within-stint variance. Risk is in the aggregation, not the sensor. BLOCKED ON 02g, not 02a: 02a ruled the field-median bucket leaky (forward reach inside the label window), so these columns must be rebuilt on a trailing window before they are ablated.",
+      "cost": "2-3d",
+      "model": "opus-5"
+    },
+    {
+      "id": "02d",
+      "group": "02",
+      "stage": "SPEC",
+      "depends_on": [
+        "00b"
+      ],
+      "title": "Tier 3 - SC hazard, with the expanding-window rebuild",
+      "note": "Pooled historical rate as-is puts 2024 races into what a 2018 row sees. Rebuild as season-lagged or it is a textbook temporal leak.",
+      "cost": "1d",
+      "model": "opus-5"
+    },
+    {
+      "id": "02e",
+      "group": "02",
+      "stage": "CLOSED",
+      "depends_on": [],
+      "closed": "2026-08-23",
+      "title": "Weather / air density features",
+      "note": "Measured negative, not unrealised value: -0.33% p50 RMSE, +0.70% cliff macro-F1, both inside harness noise. Air density is near a per-circuit constant and circuit identity already enters the set three times.",
+      "cost": null
+    },
+    {
+      "id": "02f",
+      "group": "02",
+      "stage": "CLOSED",
+      "depends_on": [],
+      "closed": "2026-09-07",
+      "title": "FP1/2/3 ingest (Phase 10c)",
+      "note": "No fuel-load estimation method for FP long runs; engine mode has no FastF1 channel. See reference/ml_research_program.md section 4. Do not resurface without a genuine fuel-load or engine-mode proxy in hand.",
+      "cost": null
+    },
+    {
+      "id": "03a",
+      "group": "03",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Mover panel; exclude the Force India rename; confirm the connected set survives",
+      "note": "Go/no-go for 03c. 21 movers, 76 driver-constructor spells, 158 driver x constructor x season cells. OCO and PER 2018 are the Force India to Racing Point administration rename, not mobility.",
+      "cost": "1d",
+      "model": "sonnet-5"
+    },
+    {
+      "id": "03b",
+      "group": "03",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Jolpica ingest 2011-2017",
+      "note": "Pit stops exist from 2011 so stints are recoverable, and refuelling was already banned. Roughly doubles the panel. Pre-2011 is pace-only: refuelling confounds any degradation slope.",
+      "cost": "2d",
+      "model": "sonnet-5"
+    },
+    {
+      "id": "03c",
+      "group": "03",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "03a",
+        "03b"
+      ],
+      "title": "AKM two-way FE on degradation slope + Kline-Saggio-Solvsten leave-out",
+      "note": "Raw AKM at 21 movers has limited-mobility bias (Andrews et al. 2008): driver-effect variance biased up, driver-car covariance biased down. Validate against the GAS/ALB 2019 mid-season crossover.",
+      "cost": "1-2w",
+      "model": "fable-5.1"
+    },
+    {
+      "id": "05a",
+      "group": "05",
+      "stage": "SPEC",
+      "depends_on": [
+        "01a",
+        "01b"
+      ],
+      "title": "GBT vs hierarchical / GAM",
+      "note": "Seventeen-plus checkpoints of hyperparameter search inside one model class. A hierarchical model's variance components would themselves answer part of the headroom question. REFRAMED 2026-09-07 (proposed, not yet written into the leaf doc): judge these families on whether they yield a PUBLISHABLE coefficient with an interval, not on pinball loss alone. XGBoost cannot hand you a parameter with uncertainty, so it cannot produce a finding - which is the binding constraint now that 06/07 lead the order. SPLIT 2026-09-07 (research round R1): 05b (monotone constraints, hours) and 05c (GPBoost variance-components probe, measurement-only) are extracted and do NOT inherit this block. 05a remains the shipping-class decision and stays lowest-EV.",
+      "cost": "days-weeks",
+      "model": "opus-5"
+    },
+    {
+      "id": "06a",
+      "group": "06",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Pit-timing tail, by constructor",
+      "note": "int_pit_strategy_value, 7,129 stints. Median cost 0.0s, mean 10.15s - all the loss is in a tail. Ferrari best (7.32s), Alfa Romeo Racing worst (12.71s). Scores tyre-optimal timing, NOT race-context timing; that distinction is the finding.",
+      "cost": "1d",
+      "model": "sonnet-5"
+    },
+    {
+      "id": "06b",
+      "group": "06",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Dirty-air coefficient per season - the 2022 regulation question",
+      "note": "int_dirty_air_tax_component fits a single global theta, so it currently assumes the cost of following never changed. Refit per season to convert an assumption into a measurement. Bundled treatment (aero + 18in tyres + porpoising), so claim the bundle.",
+      "cost": "1-2d",
+      "model": "opus-5"
+    },
+    {
+      "id": "06c",
+      "group": "06",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Corner-phase skill, incl. the Verstappen braking anomaly",
+      "note": "mart_corner_skill_driver, 139 driver-seasons. NOR 2024 index -3.22, nearly all exit (-0.275s). VER shows braking +0.076 (weak) against received wisdom - post as an open question, since it is either a finding or a baseline bug.",
+      "cost": "1d",
+      "model": "opus-5"
+    },
+    {
+      "id": "07a",
+      "group": "07",
+      "stage": "SPEC",
+      "depends_on": [
+        "00b"
+      ],
+      "title": "Feasibility - does the first stage survive conditioning?",
+      "note": "Count matched pairs (same circuit/era, similar tyre age and pre-SC state) with one arm SC-assigned. Go/no-go before any estimator, same shape as 03a.",
+      "cost": "hours",
+      "model": "opus-5"
+    },
+    {
+      "id": "07b",
+      "group": "07",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "07a"
+      ],
+      "title": "The IV estimator, with the exclusion restriction argued per outcome",
+      "note": "Design written only once the first stage is known to survive. Pre-register the arms before running them.",
+      "cost": "1-2w",
+      "model": "fable-5.1"
+    },
+    {
+      "id": "08a",
+      "group": "08",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Backfill dim_compounds_season for SUPERSOFT / ULTRASOFT / HYPERSOFT",
+      "note": "Landed 2026-09-08. Fitted, not inherited: extended tasks/coefficients/fit_compound_cliff.py to include SUPERSOFT/ULTRASOFT/HYPERSOFT (2018-only pre-2019 names) in its existing cox_km_survival machinery, with three new COMPOUND_DEFAULTS/OPTIMAL_TEMP_RANGES entries (extrapolated from SOFT along Pirelli's softness ordering) for the thin-data fallback. Chose fit over inherit because 2018 has real lap data for all three names and 31 of 35 circuit x compound groups clear MIN_STINTS=8; 30 got a genuine cox_km_survival fit, 5 fell to compound_class_default with a recorded reason, same pattern as the rest of the seed. All 403 pre-existing rows verified byte-identical on every value column after refit (only shared provenance columns move, as on every fitter run); 35 new rows added, 0 dropped. Promoted, dbt seed + dbt run + dbt test all green (595/595) after also fixing seeds/schema.yml -- its accepted_values test on compound_code did not list the three new codes. Null sweep: all six compound_* columns on training-eligible rows 6.30% -> 0.00% (was 7,622/120,938 NULL, all 2018). Found a second, more severe bug in the process: int_compound_cliff_predicted COALESCEs a missing dim_compounds_season match to grip_peak=0.0 and cliff_onset=999 laps (never), so these 7,622 rows were not just NULL on the raw feature -- expected_compound_pace_s silently dropped the ~1.0s grip_peak baseline and all wear/cliff dynamics, biasing driver_skill_residual_s (the core metric) for a whole season of soft-compound laps, worse than R7 characterized it as inert missingness. Now sits at 4.4-5.6s mean, in line with 2018 SOFT (4.32) and MEDIUM (4.58). is_training_eligible on fct_cliff_prediction_features shifted 120,938 -> 121,193 as a real consequence of the corrected residual, not noise."
+    },
+    {
+      "id": "08b",
+      "group": "08",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Extend audit_forward_window to aggregation scope",
+      "note": "LANDED 2026-09-09. ml/src/features.py gains audit_aggregation_scope() (gate) and survey_aggregation_scope() (report-only), wired into `make ml-features`; 7 tests in ml/tests/test_features.py, four of them synthetic-SQL falsifications that reproduce both known shapes plus a negative control and the aliased-bucket hole. THE RULE, made precise: a GROUP BY passes iff its key set confines a group to at most one lap (label grain is lap_id) -- lap_id, or a race key + lap ordinal, or stint_id + lap ordinal; extra keys only shrink a group so the test is monotone. race_id pins a race WITHOUT a season key (verified globally unique: 147/149 distinct ids, zero reused across seasons, in three tables); venue keys never pin a race even beside a season key (2020 ran two races each at Red Bull Ring and Silverstone). FOUND: 31 aggregation scopes in the mart lineage, 17 do not pin a lap, all 17 now declared in schema.yml under meta.aggregation_scope_exemptions (16 entries; int_track_evolution repeats a key set) with keys/status/reason, and fixed_by when status is known_leak. FIVE ARE REAL LEAKS. The worst reaching X: int_lap_thermal_proxy's stint_baseline_pace (GROUP BY stint_id) -- 55.92% of 137,447 mart rows are scored against a median containing laps that had not yet run, mean reach 4.65 laps, max 45, and at lap_in_stint=2 it is 100% of rows at mean 11.83; worse, the cutoff is CEIL(stint_length_actual*0.60) and stint_length_actual is IDENTICAL to fct_stint_features.stint_length_laps (8,333/8,333 stints, r=1.0), the numerator of the stint-life target, so for that family the baseline window's WIDTH is set by the label. It reaches push_residual, cumulative_push_load_surface, cumulative_push_load_bulk, surface_bulk_ratio -- 4 of 33 -- and assert_no_future_leakage has been passing throughout because it re-derives the EWMA over push_residual and never checks push_residual itself. -> 08e. The other four are cross-season pools: the survival-IPW curve (GROUP BY compound and compound+lap_in_stint) which weights both the fit (train.py:175) and the metric (evaluate.py:613), and int_circuit_x_constructor_interaction (GROUP BY constructor_id+circuit_id, and race_year+constructor_id) which reaches cliff_candidate_flag through constructor_component_s -> driver_skill_residual_s -> int_lap_anomaly_flags; 522 cells, mean 2.79 seasons pooled, 57.4% of pre-2024 panel rows sit in a cell holding a 2024 observation. -> 08f. TWELVE ACCEPTED, and eleven of those are ONE decision, recorded as a method finding: the warehouse decomposes a COMPLETED race, so the residual spine is race-scoped throughout and nothing downstream of driver_skill_residual_s is point-in-time correct for live mid-race prediction. It is correct for post-hoc analysis, which is what the app does. That had never been written down. DEVIATION from the spec, logged and the leaf doc corrected: the two known instances are in the SURVEY, not the gate, because neither int_corner_skill_residuals nor int_sc_hazard_history is in the mart lineage today -- enforcing over every int_/stg_ model to reach them would have forced 56 declarations asserting nothing anyone must honour. They enter the gate automatically when 02c/02d wire them into a feature. Materiality of the five leaks is NOT measured; the constructions are.",
+      "cost": "2-3d",
+      "model": "opus-5",
+      "closed": "2026-09-09"
+    },
+    {
+      "id": "08c",
+      "group": "08",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Two silent assumptions, written down",
+      "note": "(1) 325 of 343 NULL age_in_stint rows (94.8%) sit on lap 1 of a stint - a pattern, not scatter, and lap 1 is where starting_tyre_age_laps is derived. Explain or bound it. (2) ahead_identity_stability is 31.0% NULL, stable 28.6-32.2% every season, and only 1,449 of 36,044 nulls are 'no car ahead' - the rest are UNDEFINED, not absent. Declare that in schema.yml so no consumer reads NULL as zero.",
+      "cost": "hours",
+      "model": "sonnet-5"
+    },
+    {
+      "id": "09a",
+      "group": "09",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "CRPS alongside the pinball trio, with its decomposition",
+      "note": "Landed 2026-09-08. ml/src/crps.py: CRPS as a 3-point trapezoidal approximation of 2*integral pinball_alpha dalpha over the trio's {0.10,0.50,0.90}, flat-extended to [0,1]; exact in the point-forecast limit (ml/tests/test_crps.py, 5/5 passing). Decomposition (mcb/dsc/unc) uses equal-frequency binning of the raw forecast as the recalibration step rather than full isotonic/PAV (Arnold et al.) -- logged as a deviation in work/09-scoring-instruments.md, since that changes what's guaranteed: dsc>=0 is provable under binning, mcb is not. Wired into evaluate.py's run() (report['crps'], right beside the existing calibration block) and card.py (validation.crps). Verified end-to-end against real warehouse data via `make ml-evaluate`, not just synthetic tests.",
+      "cost": "hours",
+      "order_hint": 1
+    },
+    {
+      "id": "09b",
+      "group": "09",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "e-value pre-registration per arm, and campaign-level e-BH",
+      "note": "Replaces 04b (CLOSED). An e-value has expectation <= 1 under the null; e-BH controls FDR under arbitrary dependence, and stopped e-BH is anytime-valid at any data-dependent stopping time - the literal shape of a campaign that stops when it stops. Each new arm declares its construction in its leaf doc BEFORE running, which makes gates.md step 6 mechanically useful rather than advisory. Deliverable: a seventh gate step plus one worked construction for the reseed-floor setting as a template.",
+      "cost": "0.5d",
+      "model": "fable-5.1"
+    },
+    {
+      "id": "10a",
+      "group": "10",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Stint end-regime label - why did this stint end?",
+      "note": "Closed 2026-09-08. transform/models/intermediate/int_stint_end_regime.sql, one row per stint_id (8,333). Two facets: end_regime {green, safety_car, vsc, red_flag} on the stint's final lap for EVERY stint, which crossed with is_censored_stint reproduces R3's 2x4 table cell-for-cell; and stint_end_cause {green_pit, sc_pit, vsc_pit, red, race_end, retirement}, the six-class answer. Declared precedence: (1) censoring outranks regime - a censored stint did not end in a tyre change whatever was flying, so 2021 Belgium comes out race_end with end_regime='red_flag'; (2) within uncensored, severity red_flag > safety_car > vsc > green, which is load-bearing because 346 final laps carry more than one code (276 red+SC, 53 SC+VSC, 17 red+VSC); (3) within censored, status decides ('Finished'/'+N Lap(s)'/'Lapped' = race_end), with disqualification resolved on distance because it is a post-race ruling, not a reason a stint ended. end_cause_confidence carries the 'how confidently' half of the definition of done: observed 7,593, inferred 415, unassigned_stint 325. The model OWNS is_censored_stint - the definition moved down out of fct_stint_features, which now reads it back, bit-identical (8,333/8,333, 2,973 censored). fct_stint_features gains end_regime, stint_end_cause, end_cause_confidence, so 10b is a label-construction change in ml/src and nothing else. Corrects R3: 325 'stints' are 2018 laps FastF1 never assigned a stint number, 127 of them non-green, so the headline is 1,416/5,037 = 28.1% not 1,543/5,360 = 28.8%, and 2018 is 495 stints / 17.4% / 24.0 green / 15.5 non-green, not 818 / 26.0% / 16.6 / 6.9.",
+      "cost": "hours",
+      "model": "opus-5",
+      "order_hint": 2
+    },
+    {
+      "id": "10b",
+      "group": "10",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "10a",
+        "09b"
+      ],
+      "title": "Cause-specific AFT arm - non-green endings treated as censored",
+      "note": "Keep survival:aft; change only the label construction, which the interval label already supports. That fit estimates the TYRE-LIMIT distribution, which is what the app's gauge claims to show. Compare under gates.md against the family's own reseed floor. A genuine two-way test: if it does not move NLL beyond the floor, the reframing closes on a measurement. Declare the e-value construction first (09b). Corroboration to carry as ASSUMED, not Verified: age_in_stint is in NEITHER top-5 for stint_life_regressor while fuel_mass_kg and lap_number (near-collinear - the race clock) lead both, which is the fingerprint a tyre-limit/deployment mixture predicts. Dependency corrected 2026-09-08: 09b added to depends_on, which this note and work/10-competing-risks.md already required in prose ('declare the e-value construction before running') while the log left 10b depending on 10a alone.",
+      "cost": "days",
+      "model": "opus-5"
+    },
+    {
+      "id": "10c",
+      "group": "10",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "10b"
+      ],
+      "title": "Competing-risks evaluation, with the dependent-censoring caveat stated",
+      "note": "AFT NLL on a mixture is not a meaningful headline. Report cause-specific IPCW-Brier and time-dependent AUC plus a calibration check (D-calibration, or 2025's A-calibration which handles censoring less conservatively). SC arrival correlates with race state which correlates with tyre state, so censoring is NOT independent - under which IPCW-Brier and the concordance index are themselves biased. Bracket it with a copula-based sensitivity band rather than claiming to have fixed it; that is ceiling.py's existing house style.",
+      "cost": "days",
+      "model": "fable-5.1"
+    },
+    {
+      "id": "05b",
+      "group": "05",
+      "stage": "CLOSED",
+      "depends_on": [],
+      "title": "Monotone constraints arm",
+      "note": "CLOSED 2026-09-08 as a measured negative result. Add-ablation on cv_final_fold (v11 params, 5-reseed floor): degradation_regressor_p50 pinball 1.016339 -> 1.104032 (-0.087693, 6.58x floor, CLEARS worse); stint_life_regressor AFT NLL 1.948723 -> 1.961266 (-0.012542, 4.46x floor, CLEARS worse). Adapted capacity/information split (columns shuffled, not dropped, since nothing new is added) attributes both to real information, not capacity. Mechanism check on synthetic toys: monotone_constraints is NOT enforced under reg:quantileerror (degradation_regressor's objective) in xgboost 3.3.0, and under multi:softprob (cliff_classifier) it constrains per-class margins, not the softmax-normalized probability the physical claim is about -- so cliff_classifier was not run on real data. behaviour_audit's monotonicity probe stays; cannot be retired. Full numbers in work/05-model-family.md. Landed alongside: behaviour_audit's monotonicity direction was hardcoded non-decreasing for every family, which was backwards for stint_life_regressor -- now keyed off spec.family (evaluate.py::behaviour_audit).",
+      "cost": "hours",
+      "model": "sonnet-5",
+      "order_hint": 2,
+      "closed": "2026-09-08"
+    },
+    {
+      "id": "05c",
+      "group": "05",
+      "stage": "MEASURED",
+      "depends_on": [],
+      "title": "GPBoost variance-components probe - measurement only, ships nothing",
+      "note": "MEASURED 2026-09-08. Ships nothing, as specified. Pre-registration + full results in work/05-model-family.md. HEADLINE: degradation_regressor_p50 sits AT its model-based noise floor to within +/-1.5% -- arm 2's Error_var 9.8103 implies a p50 pinball floor of 1.0024 against the achieved 1.0163386 (1.4% headroom), and the optimism-corrected 10.3865 implies 1.0314, i.e. above achieved. Evidence toward closing 05a, deliberately NOT acted on: this is one leg of a three-leg bracket and 01a/01b have not run. For 01b to close the bracket it must return an eval-population irreducible-noise estimate; this leg's value is sigma = 2.8335 s -> pinball 1.0024, and it is a LOWER bound. Gate 4 passed decisively (information 22.9325 vs capacity 0.5762, ~40:1). GATE 3 DID NOT DELIVER -- the GPBoost config has no bagging/feature_fraction so the fit is deterministic and the 5-reseed floor came back exactly 0.0000; arm 0c's sampling distribution is the substitute. Second finding: the between-stint variance in this target is almost entirely a 5-lap-window-overlap artifact (REML stint 5.3388 -> 0.0004, ceiling.py ANOVA ICC 0.1748 -> 0.0213 on non-overlapping rows). Third: driver and constructor carry no measurable variance in this target. Cannot go terminal until 01a/01b supply the other bracket legs. SESSION 2026-09-08 (late) \u2014 repair pass, three changes. (1) The IPW sensitivity arm had never run: the original arm2.py passed sample weights to gpb.Dataset(weight=), which gpboost 1.7.4 rejects (they belong on GPModel(weights=)), and it died there before its json.dump, losing arms 2/2b/3/3b to the log. Rerun with the weights NORMALISED to mean 1 \u2014 raw survival_weight averages 1.7126 and gpboost divides the nugget by weights[i], so raw weights would have rescaled Error_var against arm 2 for reasons unrelated to the reweighting. Result: race 1.1826 \u00b7 stint 3.0516 \u00b7 driver 0.0004 \u00b7 constructor 0.0154 \u00b7 Error_var 9.2769, TOTAL 13.5269 against arm 2's 13.5343. The total is invariant but the composition is not \u2014 reweighting moves ~0.53 out of Error_var into race and stint, so the floor leg is weight-sensitive: 0.9747 (4.1% headroom) against arm 2's 1.0024 (1.4%). Report both; the headline's +/-1.5% understates the modelling-choice spread. (2) 2024 eval sanity check, also never run: rmse 3.4726 and 0.5*MAE of the conditional MEAN 1.1428 on 13,896 rows against the achieved 1.0163386. The probe's mean fit is ~12% worse than production at alpha=0.5, as expected for a mean fit on a skewed target, but it confirms these components come from a WEAKER model than the one whose headroom they bound. (3) A thin-2 arm was run to try to rescue arm 3b. It does NOT: every 2nd lap is position-locked in exactly the way arm 3b already documents (always keeps stint position 0), so var(y) is 43.4841 against 40.1149 on all rows \u2014 the same population bias at half strength, plus the same unmeasured capacity-per-row optimism. stint survives at 1.2714 (it did not collapse) and Error_var is 12.8627, whose eval-population floor 1.1478 sits ABOVE the achieved 1.0163 and is therefore self-falsifying. Thinning is monotone across 1/2/5 \u2014 stint 2.7022/1.2714/0.0000, Error_var 9.8103/12.8627/17.3058, floor 1.0024/1.1478/1.3313 \u2014 which is consistent with arm 3c but adds nothing to it. ARM 3C REMAINS THE ANSWER TO THE OVERLAP QUESTION; no tree-fitted thinned arm is quotable at any thinning level. GATE 3 SUBSTITUTE, now COMPLETE: a cluster bootstrap over races (5 draws, races resampled with replacement, race and stint ids re-labelled per draw so a duplicated race acts as an independent draw rather than doubling one group; rounds fixed at 1,499) as a REAL gate-3 substitute \u2014 arm 0c measures estimator noise at a fixed synthetic truth, whereas this perturbs which races were actually observed, which is the gate-3 question. First draw alone moved Error_var 9.8103 -> 7.3782 and stint 2.7022 -> 4.3017, so the spread looks WIDE and may well disqualify quoting any headroom percentage. Script and running checklist: /private/tmp/claude-501/-Users-justin-github-off-the-pace/045b3d75-f4c9-4629-9680-c535ddef5e12/scratchpad/{arm5.py,arm5.json,arm5.log,CHECKLIST.md}. Nothing from this session is committed and nothing lands in the repo; the probe stays throwaway per foundations/epistemics.md. CAVEAT on the in-flight bootstrap: use its sd as the error bar, never its mean as a point estimate \u2014 draws 0 and 1 gave Error_var 7.3782 and 7.8434 against the full-data 9.8103, biased down because a draw holds only ~63% distinct races while rounds stay fixed at 1,499, raising capacity per distinct row above arm 2's. BOOTSTRAP RESULT (complete): Error_var draws 7.3782 / 7.8434 / 9.0440 / 7.2143 / 8.6362, sd 0.7938, which propagates to a floor sd of 0.0446 and a gate-style 2*sqrt(2)*sd of 0.1263. The 1.4% headroom is 0.0140 in absolute pinball \u2014 0.31x that sd and 0.11x the 2*sqrt(2)*sd threshold \u2014 and the floor's +/-1.96sd interval 0.9149..1.0899 CONTAINS the achieved 1.0163386. The IPW variant's larger 4.1% headroom (0.0416) is still only 0.93x the sd, so the 1.4%-vs-4.1% modelling-choice spread is itself inside the noise and is not a real disagreement. GATE 3 THEREFORE FAILS on the programme's own convention. The headline must be restated: degradation_regressor_p50's achieved loss is INDISTINGUISHABLE from its model-based noise floor, and NO headroom percentage \u2014 not 1.4%, not +/-1.5% \u2014 is quotable from this probe. Direction only. 05c stays MEASURED.",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "order_hint": 2
+    },
+    {
+      "id": "05d",
+      "group": "05",
+      "stage": "SPEC",
+      "depends_on": [
+        "01a"
+      ],
+      "title": "The training window - is a proper subset of seasons better than all of them?",
+      "note": "Raised by 01a 2026-09-08, deliberately not acted on there. The cliff classifier scores 0.39318 macro-F1 trained on 2021-2023 against 0.38027 on the full 2018-2023 -- +0.01291, 3.71x its own reseed floor, by deleting 46% of its training rows. Larger than most feature-group deltas the programme has shipped on, and it is a change to what production trains on. The confound 01a could not close: load_features fits the ordinal encoder on the full 2018-2023 frame BEFORE the split, and 01a subset rows of the already-encoded matrix -- so 01a's arms are internally clean, but a real window change would refit the encoder and drop HYPERSOFT/SUPERSOFT/ULTRASOFT (2018-only, absent from every 2024 eval row), renumbering the rest. So +0.01291 is NOT what a production window change returns. Arms in work/05-model-family.md: encoder refit inside each fit, multi-seed, more than one eval season, and a compound-level-only arm to separate the encoding effect from the regime effect. Check against 08d first -- if the mechanism is compound identity, the real C1-C5 mapping may recover the dropped rows' value rather than confirm they should be dropped.",
+      "cost": "1-2d",
+      "model": "opus-5"
+    },
+    {
+      "id": "11a",
+      "group": "11",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Mondrian-conformal recalibration of the degradation band, keyed on circuit",
+      "note": "Verified 2026-09-07 (IN-SAMPLE - production v11 trains on every season, holdout 2025 unpopulated, and load_scoring_frame scores every lap): pooled coverage 80.38% against nominal 80 with symmetric tails, and by lap-in-stint band 79.9-81.2% (1.3 pts) - but by circuit 72.4-85.6% across 36 circuits with n>=300 (13.2 pts). The band is right on the axes the model reasons about and wrong on circuit identity. Split-conformal over the CQR score with a per-circuit taxonomy; touches no model, needs no refit, cannot regress the headline. Report coverage AND width, before and after, OUT OF SAMPLE - the in-sample figures are the hypothesis, not the baseline. 36 groups were scanned and the two worst reported, so declare the e-value construction (09b).",
+      "cost": "1-2d",
+      "model": "opus-5"
+    },
+    {
+      "id": "11b",
+      "group": "11",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Assemble the stochastic DP over pit timing",
+      "note": "int_pit_strategy_cost_curve (386,036), int_pit_strategy_value (7,129), int_pit_loss_circuit, int_sc_hazard_history (whose own header says it exists 'so a Monte Carlo race simulator could draw an interruption on each simulated lap', and which ml_headroom.md records as consumed by NOTHING) plus the five models are the transition costs, stochastic event process and state dynamics of a published DP formulation (Carrasco Heine & Thraves, CEJOR 2022, incl. the yellow-flag stochastic extension). Assembly, not research. It also changes what the models are SCORED on: expected race time of the induced policy, and a model-vs-oracle policy gap in SECONDS alongside ceiling.py's statistical denominator.",
+      "cost": "days",
+      "model": "opus-5"
+    },
+    {
+      "id": "08d",
+      "group": "08",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Real Pirelli C1-C5 compound identity per race (2019-present), hand-sourced from press.pirelli.com",
+      "note": "Opened 2026-09-08, out of a user question about whether SOFT/MEDIUM/HARD naming (relative since 2019) needs the underlying C-number tracked anywhere. It doesn't currently. Not a repair like 08a -- dim_compounds_season's circuit x compound x season grain already avoids pooling different physical rubber under one label, so nothing is broken. This is new information: the absolute C1-C5 scale, which would let compound severity be compared across circuits and cross-check the fitted grip_peak/wear_gradient ordering. stg_tyre_allocations.sql already exists as an empty stub with the right shape, built for exactly this and never filled in. Two LLM-generated attempts at this table were rejected this session as fabricated -- both invented a compound called 'Ice Hard' (not real, no season), one was internally self-contradictory (a compound named as both present and skipped for the same race), and one asserted Monaco/Singapore 2025 raced on C6 when the sourced fact is that C6 was a limited test at Mexico City and Abu Dhabi in 2024, not raced at those two circuits in 2025. This item must be sourced from real press.pirelli.com nomination posts or season-recap articles, cited per season, not regenerated from a model's prior knowledge -- see work/08-foundations-repair.md.",
+      "cost": "1-2d",
+      "model": "opus-5"
+    },
+    {
+      "id": "08e",
+      "group": "08",
+      "stage": "GATED",
+      "depends_on": [],
+      "title": "Thermal-proxy stint baseline reaches forward - rebuild as a trailing window",
+      "note": "Opened 2026-09-09 by 08b's new audit. int_lap_thermal_proxy.stint_baseline_agg is MEDIAN(lap_time_s) FILTER (lap_in_stint <= CEIL(stint_length_actual*0.60)) GROUP BY stint_id. Two verified reaches: 55.92% of 137,447 mart rows are scored against laps that had not yet run (mean 4.65, max 45; 100% at lap_in_stint=2 at mean 11.83), and the cutoff is a function of stint_length_actual, which equals fct_stint_features.stint_length_laps exactly (8,333/8,333, r=1.0) -- the stint-life target's numerator. Reaches push_residual, cumulative_push_load_surface, cumulative_push_load_bulk, surface_bulk_ratio. DEGRADATION_TARGET is next_5_lap_cumulative_jump_s so the mean reach sits inside the label's own window, the same thing that decided 02a. Rebuild as a trailing/expanding median over strictly-prior laps with a min-observation floor; share the trailing-median macro with 02g (R5 recommendation 2). Measure materiality first, 02a's template. Also extend assert_no_future_leakage to check push_residual itself, not only the EWMA over it. MATERIALITY MEASURED 2026-09-09 (work/08-foundations-repair.md, '08e materiality'). Probe reproduces production exactly (162,729/162,729 rows, stint_baseline_pace and push_residual bit-for-bit). Defect 2 is exact: baseline_cutoff_lap == GREATEST(CEIL(stint_length_laps*0.60),3) on 121,193/121,193 training-eligible mart rows, corr(cutoff, remaining_stint_life_laps)=+0.5644. Position-matched on lap_in_stint (21 strata, n=85,693) the BLOCK->TRAILING swing clears in ALL THREE families: degradation -0.0350 [-0.0633,-0.0073] p=0.010, cliff P(0-2) -0.0357 [-0.0518,-0.0230] p=0.000, stint-life +0.1055 [+0.0361,+0.1776] p=0.001. Two independent SIGN INVERSIONS: corr(push_residual, remaining_stint_life) is -0.1231 under production but +0.0315 under trailing on contaminated rows (control positive under both); corr(push_residual, next_5_lap_cumulative_jump_s) on lap_in_stint<=4 is -0.1191 block vs +0.1197 trailing. Unlike 02a this is NOT the cheap case -- the contamination inverts the feature, it does not merely add noise. Rebuild priced: floor n>=1 costs 1.41pp coverage (98.28% vs 99.69%) and RAISES marginal corr on all three targets. Open hazard: the NULLs are deterministic on count-of-valid-prior-laps, NOT a contract axis (02a's declarability argument does not carry over) -- ship the observation count as a companion column. Still to do: the rebuild itself, the shared trailing-median macro with 02g, assert_no_future_leakage extended to push_residual, and gates.md. REBUILD BUILT 2026-09-09 (work/08-foundations-repair.md, '08e rebuild'). stint_baseline_pace is now trailing_median(lap_time_s, [stint_id], [lap_in_stint], min_observations=1, valid_condition=is_valid_lap) -- expanding over strictly-prior valid laps; stint_length_actual is gone from the model entirely, so the label-derived window width is gone by construction. The dbt model reproduces the priced probe EXACTLY on all four numbers (coverage 99.688->98.275%, deg corr +0.0867->+0.2031, life -0.1041->+0.0738, cliff P(0-2) -0.0239->+0.0354), so the materiality measurement applies to what shipped. baseline_observations_n ships in the enforced mart contract and is deliberately NOT in FEATURE_COLUMNS -- entering X is an add-ablation someone has to gate. Loads are NULL where the current lap's residual is NULL (GREATEST(NULL,0)=0 in DuckDB would have fabricated 'no thermal load'); a NULL residual on a PRIOR lap still contributes 0. assert_no_future_leakage now re-derives the baseline by SELF-JOIN on strictly-prior laps (independent of the macro) and is verified to FIRE: 145,934/162,729 rows against the old definition, 0 against the rebuild. assert_stint_boundary_integrity re-anchored from lap_in_stint=1 (now always NULL) to the stint's first scored lap, and the two EWMA checks made NULL-strict -- both would otherwise have gone quiet rather than failed. Shared macro trailing_median/trailing_observation_count written for 02g and 02d to call. STILL TO DO: gates.md steps 1-4. No headline claim exists. GATE STEP 1 RUN 2026-09-09 as a RE-BASELINE (work/08-foundations-repair.md, 'gate step 1'). True A/B on one warehouse through evaluate.py's own run()/_fit/_score with ARTEFACTS_DIR redirected to scratch -- no retrain needed and nothing in ml/models or ml/artefacts written, because evaluate.run() refits from best_params and never loads a shipped booster. INSTRUMENT CHECK PASSES: with 08e+08f reverted, all five headlines reproduce the published v11 artefact to better than 1e-9. Headline A-B (pinball and AFT nloglik lower-is-better, macro F1 higher-is-better): p10 0.5187980 -> 0.5353710 (+0.0165730), p50 1.0163386 -> 1.0407823 (+0.0244437), p90 0.5600310 -> 0.5660356 (+0.0060047), cliff macro F1 0.3802680 -> 0.3704769 (-0.0097912), stint-life AFT nloglik 1.9487233 -> 1.9900697 (+0.0413464). ALL FIVE MOVE THE WRONG WAY: removing the leakage costs headline, so part of what v11 published was bought with the contamination. Steps 2-4 NOT run, so no delta here may be called significant or quoted against a floor. GATE STEPS 2-4 RUN 2026-09-09 (work/08-foundations-repair.md, 'gate steps 2-4'). Add-ablation on cv_final_fold through evaluate.py's own _fit/_score, one common baseline arm A = the 33-column contract minus BOTH families, then A+T, A+C, full; permutation-null arms row-shuffle the family block as a unit in train AND eval over 3 draws; floors are 5 seed-only refits via attribution.py::refit_noise_floor on both the full and the baseline arm, every ratio quoted against the LARGER. Families fixed by lineage: T = the four thermal columns (int_lap_air_state does NOT ref int_lap_thermal_proxy, checked), C = cliff_candidate_flag (the interaction reaches the contract only via int_lap_residual_decomposed -> int_lap_anomaly_flags; its other mart consumer is the C1 detrending, which differences a stint-constant shift out - which is WHY step 1 found the labels bit-identical). FAMILY T CLEARS ON ALL FIVE AND IT IS INFORMATION, NOT CAPACITY: p10 -0.0530055 (4.21x, info 5.27x), p50 -0.0808530 (8.98x, info 8.77x), p90 -0.0170216 (1.07x, info 1.35x), cliff macro F1 +0.0141401 (2.41x, info 2.43x), life AFT nloglik -0.0336961 (4.37x, info 3.93x). So the rebuilt thermal block is not a degraded remnant - it is the largest single block in the contract on the degradation median, and what step 1 priced was the loss of the CONTAMINATED portion, not of the family. Recorded rather than rounded up: p90's total is 1.07x, barely over, carried by its information term; and p10's CAPACITY term is +0.0133784 (1.06x its own floor) - four shuffled columns measurably hurt p10, so it is not nil there. FAMILY C CARRIES NOTHING IN ANY FAMILY: every total inside floor (0.10x-0.79x) and every information term inside by more (0.00x-0.41x; +0.0000009 on p50). cliff_candidate_flag is TRUE on 0.854% of the 137,447 mart rows. STEPS 5-6: step 5 re-run this session, features.py --check reports forward-window CLEAN, aggregation-scope CLEAN, leakage guard CLEAN (33 features), fingerprint 26345ce7; step 6 was satisfied in advance because the step 1 section named these three arms before they were run. ALL SIX GATE STEPS NOW RUN -> GATED. WHAT THIS DOES NOT DO: it is the AFTER substrate only, so it does NOT split step 1's regression between 08e and 08f-2. 'C carries nothing now' and 'C carried nothing before' are different claims and only the first is measured. Opened 08g for that. One piece does follow: arm A excludes both families and takes no weights, so for cliff and life it is substrate-invariant, and against it the two families were jointly worth +0.0234932 / -0.0737232 before and +0.0137021 / -0.0323768 after - the rebuild removed 56% of their joint contribution on stint life. Nothing committed.",
+      "cost": "1-2d",
+      "model": "opus-5"
+    },
+    {
+      "id": "08f",
+      "group": "08",
+      "stage": "GATED",
+      "depends_on": [],
+      "title": "Cross-season pooled statistics in the feature lineage - season-lag or rule",
+      "note": "Opened 2026-09-09 by 08b's new audit. Two instances. (1) The survival-IPW curve in fct_cliff_prediction_features: total_per_compound (GROUP BY compound) and stints_reaching (GROUP BY compound, lap_in_stint) carry no season key, so the weight applied to a 2018 row is estimated partly from 2024. survival_weight is not a feature but train.py:175 uses it as the XGBoost sample weight and evaluate.py:613 weights the scores with it, so eval-season information reaches both fit and metric. (2) int_circuit_x_constructor_interaction: GROUP BY constructor_id, circuit_id pools every season (522 cells, mean 2.79 seasons, 57.4% of pre-2024 panel rows in a cell holding a 2024 observation, mean weight 0.35 per season), and GROUP BY race_year, constructor_id averages a whole season so round 3 is measured against round 22. (2) reaches a live feature and (1) does not, so (2) goes first: circuit_constructor_interaction_s -> constructor_component_s (int_lap_residual_decomposed:224) -> driver_skill_residual_s (:299-314) -> int_lap_anomaly_flags -> cliff_candidate_flag. Season-lag both; the weights change, so gates.md step 1 must be re-run and the headline re-baselined. REBUILT 2026-09-09 (work/08-foundations-repair.md, '08f rebuild'), both instances. 08f-2: int_circuit_x_constructor_interaction has no GROUP BY left -- season average is an expanding mean over the constructor's strictly-prior races in the season, circuit pool is an expanding count/mean/stddev over that pairing's PRIOR visits, ordered by (race_year, round_n). round_n = CAST(SPLIT_PART(race_id,'_',2) AS INTEGER) because race_id is 'YYYY_R' AS A STRING and sorts 2023_10 before 2023_2 -- ordering on it directly would have reintroduced the defect inside the fix. pace_circuit_deviation_s is NULL, not COALESCE 0.0, where there is no season-to-date average, else the constructor's raw pace level feeds the circuit pool as if it were a circuit effect. Grain unchanged (1,456 rows, PK unique). CONSEQUENCE: 2018 has no prior visit, so circuit_constructor_interaction_s is identically 0 across all 197 of its rows, against mean |value| ~0.08-0.11s in later seasons. 08f-1: the survival curve cumulates seasons strictly before the row's own, numerator and denominator lagged together; 2018 survival_prob is NULL so those rows get weight 1.0 via the existing COALESCE. Both int_ known_leak exemptions DELETED (no GROUP BY left to describe); the mart's two re-declared as `accepted` on [race_year, compound] and [race_year, compound, lap_in_stint], since the only reader is a strictly-prior-season window. STILL TO DO: gates.md step 1 re-baseline, jointly with 08e. GATE STEP 1 RUN 2026-09-09 as a RE-BASELINE (work/08-foundations-repair.md, 'gate step 1'). True A/B on one warehouse through evaluate.py's own run()/_fit/_score with ARTEFACTS_DIR redirected to scratch -- no retrain needed and nothing in ml/models or ml/artefacts written, because evaluate.run() refits from best_params and never loads a shipped booster. INSTRUMENT CHECK PASSES: with 08e+08f reverted, all five headlines reproduce the published v11 artefact to better than 1e-9. Headline A-B (pinball and AFT nloglik lower-is-better, macro F1 higher-is-better): p10 0.5187980 -> 0.5353710 (+0.0165730), p50 1.0163386 -> 1.0407823 (+0.0244437), p90 0.5600310 -> 0.5660356 (+0.0060047), cliff macro F1 0.3802680 -> 0.3704769 (-0.0097912), stint-life AFT nloglik 1.9487233 -> 1.9900697 (+0.0413464). ALL FIVE MOVE THE WRONG WAY: removing the leakage costs headline, so part of what v11 published was bought with the contamination. Steps 2-4 NOT run, so no delta here may be called significant or quoted against a floor. GATE STEPS 2-4 RUN 2026-09-09 (work/08-foundations-repair.md, 'gate steps 2-4'). Add-ablation on cv_final_fold through evaluate.py's own _fit/_score, one common baseline arm A = the 33-column contract minus BOTH families, then A+T, A+C, full; permutation-null arms row-shuffle the family block as a unit in train AND eval over 3 draws; floors are 5 seed-only refits via attribution.py::refit_noise_floor on both the full and the baseline arm, every ratio quoted against the LARGER. Families fixed by lineage: T = the four thermal columns (int_lap_air_state does NOT ref int_lap_thermal_proxy, checked), C = cliff_candidate_flag (the interaction reaches the contract only via int_lap_residual_decomposed -> int_lap_anomaly_flags; its other mart consumer is the C1 detrending, which differences a stint-constant shift out - which is WHY step 1 found the labels bit-identical). FAMILY T CLEARS ON ALL FIVE AND IT IS INFORMATION, NOT CAPACITY: p10 -0.0530055 (4.21x, info 5.27x), p50 -0.0808530 (8.98x, info 8.77x), p90 -0.0170216 (1.07x, info 1.35x), cliff macro F1 +0.0141401 (2.41x, info 2.43x), life AFT nloglik -0.0336961 (4.37x, info 3.93x). So the rebuilt thermal block is not a degraded remnant - it is the largest single block in the contract on the degradation median, and what step 1 priced was the loss of the CONTAMINATED portion, not of the family. Recorded rather than rounded up: p90's total is 1.07x, barely over, carried by its information term; and p10's CAPACITY term is +0.0133784 (1.06x its own floor) - four shuffled columns measurably hurt p10, so it is not nil there. FAMILY C CARRIES NOTHING IN ANY FAMILY: every total inside floor (0.10x-0.79x) and every information term inside by more (0.00x-0.41x; +0.0000009 on p50). cliff_candidate_flag is TRUE on 0.854% of the 137,447 mart rows. STEPS 5-6: step 5 re-run this session, features.py --check reports forward-window CLEAN, aggregation-scope CLEAN, leakage guard CLEAN (33 features), fingerprint 26345ce7; step 6 was satisfied in advance because the step 1 section named these three arms before they were run. ALL SIX GATE STEPS NOW RUN -> GATED. WHAT THIS DOES NOT DO: it is the AFTER substrate only, so it does NOT split step 1's regression between 08e and 08f-2. 'C carries nothing now' and 'C carried nothing before' are different claims and only the first is measured. Opened 08g for that. One piece does follow: arm A excludes both families and takes no weights, so for cliff and life it is substrate-invariant, and against it the two families were jointly worth +0.0234932 / -0.0737232 before and +0.0137021 / -0.0323768 after - the rebuild removed 56% of their joint contribution on stint life. Nothing committed.",
+      "cost": "2-3d",
+      "model": "opus-5"
+    },
+    {
+      "id": "08g",
+      "group": "08",
+      "stage": "SPEC",
+      "depends_on": [
+        "08e",
+        "08f"
+      ],
+      "title": "Decompose the 08e/08f regression on the BEFORE substrate; rule cliff_candidate_flag dead or damaged",
+      "note": "Opened 2026-09-09 by 08e/08f gate steps 2-4. Those steps ran on the AFTER substrate only, so they measure what each family is worth NOW and cannot split step 1's regression between 08e and 08f-2. The fork that needs the split: cliff_candidate_flag is inside its floor on all five families with an information term of 0.00-0.41x. Either it carried nothing before either (a dead column since it was written - the follow-up is a prune arm) or the rebuild emptied it (08f-2 destroyed a real feature - the follow-up is a better anomaly threshold, since int_lap_anomaly_flags' MAD/z-score is calibrated against a driver_skill_residual_s whose level moved). Nothing in the AFTER arm distinguishes them. Unattributed mechanism to check first: cliff_candidate_flag is TRUE on 1.835% of 2018 rows vs 0.470-1.258% for 2019-2024, and 2018 is exactly the season whose circuit_constructor_interaction_s the rebuild set identically to 0 - but 2019 sits at 1.258% with a full interaction value, so the ordering attributes nothing on its own. METHOD: reproduce step 1's A/B (revert both in place, rebuild the two subtrees), re-run the same four arms plus both permutation-nulls and both floors. INSTRUMENT CHECK: arm A takes no weights and excludes both families, so on cliff and life it must come back bit-identical to 0.3567748 / 2.0224465; if A moves, something outside the two families moved and the decomposition is void. THE QUANTILE TRIO NEEDS A THIRD ARM: 08f-1 moves the IPW survival_weight, which is not a column, so A is NOT invariant for p10/p50/p90 and no column ablation can see it - measure AFTER columns with BEFORE weights and the reverse, or the trio's regression has three causes and two measurements. Restore the tree to the AFTER substrate with dbt test green afterwards, as step 1 did.",
+      "cost": "1d",
+      "model": "opus-5"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "raised": "2026-09-07",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Does leave-one-race-out construction lift the EXCLUDED_LEAKAGE_COLUMNS bar on driver-skill features?",
+      "context": "int_driver_race_skill_loro.driver_skill_loro_s is LORO, which is the construction that makes a skill term admissible in principle. But schema.py bars driver_skill_residual_s and relatives under 'causal leakage' with no LORO carve-out. Whichever way it goes, write the ruling into schema.py beside the list.",
+      "resolved": "2026-09-07",
+      "resolution": "Not answered as posed - the question rested on a false premise. Its example column is leave-one-DRIVER-out, not leave-one-race-out, so it never was an instance of the construction under debate. Ruled barred on the trace: driver_skill_loro_s = the focal driver's own P20 clean-lap pace delta IN THE FOCAL RACE minus his teammates' median. Whether a genuine leave-one-race-out skill term would be admissible remains open and unbuilt; it needs its own decision if anyone builds one."
+    },
+    {
+      "id": "D2",
+      "raised": "2026-09-06",
+      "blocking": [],
+      "status": "OPEN",
+      "question": "CDN publish / app deploy - v11 is committed but production still serves v6.",
+      "context": "Carried over from ml_execution_plan.md as its last open item. Explicitly the user's call, not a default action, and no work item depends on it. STAKES RAISED 2026-09-07 (research round R7): if production is on v6 it is serving a DIFFERENT TARGET (the 1-lap column; Phase 7 moved DEGRADATION_TARGET to the 5-lap cumulative jump) and a DIFFERENT CLIFF LABEL (v6 predates Phase 8's source-bounded driver_skill_residual_s, which changed 6,825 rows' class) from everything the model card documents. Local app/public/models and app/dist/models both hold v11 built 2026-09-05. That production is still on v6 is ASSUMED from this decision's own text and was not re-checked against the live CDN."
+    },
+    {
+      "id": "D3",
+      "raised": "2026-09-09",
+      "blocking": [],
+      "status": "OPEN",
+      "question": "Land 08e + 08f? It supersedes the published v11 headline on all five targets.",
+      "context": "08e and 08f are GATED - all six gates.md steps run - which is 'eligible to land', not landed. Landing is a human call because it retires a published number: the warehouse now returns p10 0.5353710 / p50 1.0407823 / p90 0.5660356 / cliff 0.3704769 / life 1.9900697, while ml/artefacts/evaluation_metrics.json still holds v11's 0.5187980 / 1.0163386 / 0.5600310 / 0.3802680 / 1.9487233. They DISAGREE BY DESIGN and that file was deliberately left untouched. Landing means accepting that the v11 numbers were partly bought with the contamination 08e and 08f describe, re-running evaluation so the artefact matches the warehouse, and deciding what happens to the model card, the docs snippets that quote the headline, and the exported models. Not landing means the working tree keeps a warehouse that disagrees with the shipped artefact, which is safe only while someone remembers why. Interacts with D2: production is assumed to still serve v6, which is a different target again. Nothing is committed either way without being asked."
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-09-07",
+      "session": "tree restructure; two documents added; three stale facts found",
+      "landed": "_improvements/ reorganised from six flat notebooks into status/ + foundations/ + work/ + reference/, after DataScope/_implementation/. Nothing deleted: the six notebooks moved to reference/ intact and are cited by section rather than copied. ml_execution_plan.md and ml_research_program.md both stop being trackers as of this entry. Two documents written before the restructure: work/02-feature-expansion.md (read-only inventory of the warehouse tables the contract does not read) and a review of research_program 3b folded into work/01-ceiling-instrument.md.",
+      "verified": [
+        "Shipped feature contract is 33 columns, not 24. ml/src/schema.py FEATURE_GROUPS sums 4+7+5+4+4+9; MODEL_VERSION_DEFAULT records the v11 move '24 -> 33'. Every reference/ doc still says 24.",
+        "int_sc_hazard_history exists (36 circuits, sc_hazard_per_lap / vsc_hazard_per_lap plus shrunk variants), falsifying research_program 1a's clause that safety-car timing carries no signal in any feature this warehouse could build.",
+        "stg_tyre_allocations and tyre_allocations are EMPTY - 0 rows. Staging model and columns exist; nothing populates them. Ingestion gap, not a modelling one.",
+        "The grep -c CLEARS count of 8 counts lines, not tests. Distinct-claim numerator nearer 5; denominator understated by best-of-N subset selection. Section 5's 'the denominator is on the page' is false in both directions.",
+        "Panel for 03, from fct_lap_residuals: 40 drivers, 18 constructors, 7 seasons, 137,447 clean laps, 76 driver-constructor spells, 158 driver x constructor x season cells, 21 movers, 6 apparent mid-season switches - of which OCO and PER 2018 are the Force India to Racing Point rename, leaving GAS<->ALB 2019, RUS 2020, BEA 2024.",
+        "Bronze timing/telemetry covers 2018-2024 only. ingestion/src/jolpica_client.py exists and pulls standings and classified pit stops today."
+      ],
+      "assumed": [
+        "That qualifying carries signal for any of the three families. Nothing ablated.",
+        "That corner-phase residuals carry signal beyond the incumbent thermal group.",
+        "That the AKM decomposition is estimable at 21 movers once limited-mobility bias is corrected. 03a exists to test this before 03c is attempted."
+      ],
+      "gates_run": "None. No fit, refit, ablation or contract change. Every number is a row count, a column list, or a figure read from an existing artefact with its source named. data/dev.duckdb opened read-only throughout.",
+      "method_findings": [
+        "research_program 3b is not safe to build as written. Fix 1 (centre within matched groups, pool centred residuals) yields Var(r) = sigma^2 (1 - 1/m); at the m ~= 2 the probe found, that is sigma^2/2, and for m=2 the pooled set is +/-(e1-e2)/2, symmetric by construction. The estimator understates the floor and destroys the skew the separate p10/p50/p90 floors depend on. Its falsification gate (floor <= model loss) is one-sided and passes trivially under that bias."
+      ],
+      "decisions_open": [
+        "D1",
+        "D2"
+      ],
+      "next_command": "grep -rn \"24 features\\|24-feature\\|24 columns\" _improvements/reference/ docs/",
+      "next_action": "Run 00a. Correct each hit to 33 and check whether the surrounding argument still holds - in research_program 3b fix 2 it does not, because matching in the model's own feature space is pointless if the space is built from the wrong column list."
+    },
+    {
+      "date": "2026-09-07",
+      "session": "00a - feature count corrected to 33 across all live sites; historical record preserved",
+      "landed": "Five live sites corrected 24 -> 33: ml_research_program.md L208 (also dropped 'throttle decay, braking drift' - racing_line candidates measured and never shipped, so not in the contract - and replaced the parenthetical with the six real groups), L245 (3b fix 2's k-NN matching space, the load-bearing one for 01b), L403 (its closing command); docs/ml/pipeline.mdx L49 (shipped docs, and internally inconsistent - L25 of the same file already said 33); ml/src/schema.py L70 header comment (the contract file contradicted its own FEATURE_GROUPS). Three supersession notes added rather than edits: ml_execution_plan.md's Assumed at L5565 and its 'first command the next session should run' at L5597, plus ml_research_program.md's closing-command section - all three would otherwise have sent a session to build a 24-dim instrument that 01b has since disproven.",
+      "verified": [
+        "Contract is 33 columns. ml/src/schema.py FEATURE_GROUPS sums stint_position 4 + compound 7 + cliff_prior 5 + thermal 4 + dirty_air 4 + proximity 9 = 33; len(FEATURE_COLUMNS) == 33, executed against the venv.",
+        "ml/tests/test_features.py 21/21 pass after the schema.py comment edit - the edit is a comment header only, no contract change.",
+        "docs/ already said 33 in nine places (overview, feature-contract, models, ci/leakage-spine, ml-inventory, the autogenerated degradation-model.mdx). pipeline.mdx L49 was the single stale survivor, contradicting L25 of its own file.",
+        "'throttle decay' and 'braking drift' appear in no feature group in schema.py; they are racing_line candidates that were measured and not shipped.",
+        "ml_execution_plan.md's remaining 24-references (L1530-L4669) are all dated Phase 9/10a checkpoint content where 24 is the correct historical referent - the Phase 10a ablation is literally 24-col baseline vs 33-col arm, so rewriting them would destroy the measurement.",
+        "ml/README.md L12 and ml/src/schema.py L138 state the correct historical sequence (v10 = 24, v11 adds proximity -> 33); left unchanged."
+      ],
+      "assumed": [
+        "That the six group names now in research_program L208 ('stint position, compound priors, cliff priors, thermal loads, dirty air, and the nine proximity columns') read as intended to a future session. They are FEATURE_GROUPS' keys rendered as prose, not a quoted identifier list.",
+        "That no consumer outside ml/, docs/, app/src, transform/ and _improvements/ quotes the contract width. The sweep covered those five trees only; app/public/, notebooks and any published CDN artefact were not searched.",
+        "That correcting L245's matching space to 33 is sufficient for 01b's benefit. It is necessary, not sufficient - 01b's defect 4 (metric, NaN treatment, weighting) is untouched by this item, and defect 4 gets harder at 33 dims, not easier."
+      ],
+      "gates_run": "ml/tests/test_features.py (21 passed). No warehouse read, no model refit, no artefact written, nothing committed.",
+      "next_command": "grep -n 'safety-car\\|safety car\\|0.80\\|0.85' _improvements/reference/ml_research_program.md | head -20",
+      "next_action": "Run 00b. Find 1a's stint-life cap paragraph and either delete the 0.80-0.85 range or replace it with a measured SC/VSC share of stint ends off stg_track_status - the clause 'carries no signal in any feature this warehouse could build' is falsified by int_sc_hazard_history. Closing 00b unblocks 02d.",
+      "method_findings": "00a's own prescribed grep was incomplete, and the two sites it missed were the two that mattered most operationally. Pattern '24 features|24-feature|24 columns|24 -> 33|42 columns' over _improvements/reference/ and docs/ missed (a) ml/src/schema.py L70 'Feature set (24)' - different phrasing, and ml/ was not in the search path at all, so the contract file's own header contradicted its own FEATURE_GROUPS for two versions; and (b) docs/ml/pipeline.mdx L49 '24-column', a hyphenation the pattern did not cover. Lesson for any future contract-wide sweep: search the code tree as well as the doc trees, and match the number before the noun ('24[ -]' + column|feature) rather than enumerating phrasings."
+    },
+    {
+      "date": "2026-09-07",
+      "session": "00b - safety-car claim falsified and replaced with a measurement; cap reopened",
+      "landed": "ml_research_program.md 1a rewritten. The clause 'events that are not a tyre-degradation question at all and carry no signal in any feature this warehouse could build' is deleted as false, and the 0.80-0.85 fraction-of-attainable cap it justified is withdrawn rather than replaced with a new number. In its place: a measured SC/VSC share of stint ends broken out by censoring, a per-season arm, a citation of int_sc_hazard_history, and an explicit statement that the cap is OPEN. 02d is unblocked by this. ALSO THIS SESSION, not part of 00b: BUILD-ORDER.md gained a generated ordered task list (17 live items, dependency-sorted) written by a new `board.py --write-order`; `--order` prints it to stdout; `--check` now fails when the block drifts from the log, and `--write-order` refuses to run from an otherwise-invalid log. Generated rather than typed because BUILD-ORDER.md's own rules forbid a hand-written checklist - this keeps the log the single source of truth while still giving the file a readable plan. README.md updated for both that exception and the git-tracking correction below.",
+      "verified": [
+        "26.87% of UNCENSORED stint ends (a real pit decision, n=5,360) fall on a lap flagged is_safety_car_lap or is_vsc_lap; 22.01% SC and 5.75% VSC. Widening to the final 3 laps moves it only to 27.69%.",
+        "The censoring split is 4x: 26.87% uncensored vs 6.49% censored (n=2,973, ends at flag/retirement). All stints 19.60%. n=8,333 total, matching fct_stint_features row count exactly.",
+        "The effect is present in all seven seasons independently (uncensored, 3-lap window): 26.2 / 22.1 / 36.2 / 31.5 / 28.6 / 29.4 / 21.1% for 2018-2024. No season is near zero.",
+        "int_sc_hazard_history exists: 36 circuits, 149 races, 119 SC onsets, carrying sc/vsc/any hazard per lap plus empirical-Bayes-shrunk variants. This is the table whose existence falsifies the clause.",
+        "The shrunk any-hazard spread across all 36 circuits is 0.01661 (spanish_grand_prix) to 0.02955 (saudi_arabian_grand_prix) - a 1.8x ratio, not an order of magnitude.",
+        "Measured with production tables only (int_stint_geometry, fct_stint_features, int_sc_hazard_history) via a read-only connection. Probe is scratchpad-only; no artefact, warehouse or git state touched.",
+        "_improvements/ IS tracked by git, contrary to README.md's opening paragraph. .gitignore:122 is 'docs/project-graph.html'; `git check-ignore -v _improvements/README.md` reports no match; `git ls-files _improvements/` returns 8 tracked files. Paragraph corrected in place.",
+        "The BUILD-ORDER staleness guard was tested by tampering with item 06c's title in the log: `board.py --check` failed with the stale message and exited 1. Tamper reverted, check clean."
+      ],
+      "assumed": [
+        "That 'stint end under SC/VSC' is well proxied by the flag on the stint's final lap. int_stint_geometry's per-lap flags come from FastF1's track_status; a deployment starting mid-lap flags the whole lap, so the exact-lap figure may over-count slightly. The 3-lap window arm (27.69%) bounds the sensitivity at under one point, which is why both are reported.",
+        "That the recoverable share of the 26.87% is materially below 26.87%, because the hazard table is a per-circuit BASE RATE (1.8x spread) and cannot time a deployment within a race. This is an argument from what the table contains, not a measurement of what a model could extract - stated as such in the correction.",
+        "That censoring in fct_stint_features (is_censored_stint) cleanly separates pit decisions from flag/retirement ends. Taken from the column's contract, not re-derived.",
+        "That dependency-order plus declared group order is the right reading of 'build order' for the generated list. The log records depends_on but no explicit priority, so the group sequence in the JSON is taken as intentional; parallel groups are sunk to the bottom on the same reasoning."
+      ],
+      "gates_run": "None. This item is a documentation correction backed by a read-only probe; no model was fitted, so no gate in foundations/gates.md applies. ml/tests/test_features.py was run under 00a earlier this session (21 passed).",
+      "next_command": "sed -n '1,60p' _improvements/work/04-campaign-audit.md",
+      "next_action": "Run 04a. Enumerate the real test family across the whole campaign - every CLEARS/inside verdict quoted in ml_execution_plan.md - so 04b can convert floor ratios to p-values and 04c can apply BH at campaign level. 00c is the only correction left and it is blocked on decision D1, which is the user's call, not a task.",
+      "method_findings": "Every stg_* view in dev.duckdb resolves its parquet glob RELATIVE to transform/ ('../data/bronze/...'), so any probe connecting from the repo root dies on 'No files found that match the pattern' and looks like missing data when the data is present. It is not: all seven seasons of track_status are in data/bronze/. Probes that read staging views must chdir to transform/ first. Cost this session ~3 wasted queries; worth knowing before 04a, which reads across the campaign."
+    },
+    {
+      "date": "2026-09-07",
+      "session": "00c / D1 - LORO ruled barred; the decision's premise was false; a leakage-guard gap closed",
+      "landed": "D1 resolved and 00c closed. User chose 'defer and measure'; the first and cheapest step of that audit - trace the SQL - was decisive on its own, so the remaining steps (leak-back correlation, add-ablation) were not needed and were not run. ml/src/schema.py: driver_skill_loro_s, driver_skill_field_s and driver_skill_loro_mean_s added to EXCLUDED_LEAKAGE_COLUMNS with the full trace recorded beside them. work/00-corrections.md 00c rewritten from a blocked decision into a recorded ruling, keeping the false premise visible because the error is instructive. FEATURE_COLUMNS untouched at 33.",
+      "verified": [
+        "int_driver_race_skill_loro is LEAVE-ONE-DRIVER-OUT, not leave-one-race-out. Its own first line: 'De-confounded absolute driver skill: leave-one-driver-out (LORO) car baseline.' loro_car_baseline_s = (sum of the car's driver medians - the focal driver's median) / (n_car_drivers - 1), computed within one (race_year, race_id, constructor_id).",
+        "The focal race is never excluded. driver_skill_loro_s = driver_p20_pace_delta_s - loro_car_baseline_s, where the P20 is over clean_panel rows filtered to that same race. Every CTE in the model groups by (race_year, race_id, ...); the file contains no cross-race window.",
+        "Proof independent of reading the SQL: drivers with exactly ONE race in the table still get non-NULL values - DOO (2024_24) 0.0468 from 45 clean laps, AIT (2020_16) -1.3164 from 61. Under leave-one-race-out both would necessarily be NULL.",
+        "Guard gap: ml/tests/test_features.py:45 is `set(X.columns) & EXCLUDED_LEAKAGE_COLUMNS`, a name intersection. None of the three LORO columns were in that frozenset before this session, so all three would have passed the leakage guard silently.",
+        "Nothing has leaked to date: fct_cliff_prediction_features is 64 columns and carries no column matching 'skill' or 'loro'. The safety was accidental (the mart does not join the rating chain), not designed.",
+        "The bar is a contract-guard change, not a feature change: FEATURE_COLUMNS is still 33 after the edit and ml/tests/test_features.py passes 21/21."
+      ],
+      "assumed": [
+        "That barring driver_skill_field_s and driver_skill_loro_mean_s alongside driver_skill_loro_s is right. Both are built off the same clean_panel and the same focal race - field_s uses the constructor FE and loro_mean_s the median rather than P20 - so the contemporaneity argument carries. Neither was traced line-by-line the way driver_skill_loro_s was.",
+        "That no OTHER model in the rating chain reaches the mart by a path I did not check. The check was a column-name scan of fct_cliff_prediction_features for 'skill'/'loro', not a full lineage trace of its 64 columns.",
+        "That gates.md steps 1-4 do not apply to this change. They measure a delta against a noise floor; adding a name to an exclusion list removes a candidate rather than adding one, changes no X, no fingerprint and no model, so there is no delta to measure. Reasoned, not ruled by the document."
+      ],
+      "gates_run": "gates.md steps 1-4 inapplicable and recorded as such (no contract or model delta - see assumed). ml/tests/test_features.py 21/21 pass. No model fitted, no artefact written, no warehouse write, nothing committed.",
+      "next_command": "sed -n '1,60p' _improvements/work/04-campaign-audit.md",
+      "next_action": "Run 04a. Group 00 is now fully terminal and no decision blocks anything. 04a enumerates the real test family across the campaign so 04b can convert floor ratios to p-values and 04c can apply BH."
+    },
+    {
+      "date": "2026-09-07",
+      "session": "programme reordered by impact; causal pit-timing (07) added as a new group",
+      "landed": "Group order changed from the internal-rigour ladder (00, 04, 01, 02, 03, 05, 06) to impact order: 06 publication, 07 causal pit timing, 03 driver vs car, 04 campaign audit, 01 ceiling, 02 features, 05 model family, 00 corrections (terminal, sunk). New group 07 with work/07-causal-pit-timing.md and two items - 07a feasibility (hours), 07b the estimator (blocked on 07a). Pointer moved 04a -> 06a. board.py's plan() no longer sinks `parallel` groups: group declaration order now encodes impact deliberately, and sinking parallel would have buried the publication track at the bottom. `parallel` is still recorded and displayed. BUILD-ORDER.md regenerated at 18 live items.",
+      "verified": [
+        "Both hard sequencing constraints survive the reorder: 04 (campaign audit) still precedes 02 (feature expansion), which gates.md step 6 requires because 02 runs ablations and pre-registration must come first; and 01 (ceiling) still precedes 02 and 05, which it prices. Confirmed by reading the regenerated order, positions 4/5/6/7.",
+        "07's identification rests on a number verified earlier this session under 00b: 26.87% of uncensored stint ends fall on an SC/VSC lap vs 6.49% of censored, in all seven seasons. That is the first stage, and it is large.",
+        "board.py --check passes after the restructure; --write-order regenerated 18 live items (16 before, +2 from group 07).",
+        "The publication items that now lead the order (06a, 06c) run NO new model tests - they are descriptive statistics over existing warehouse tables - so promoting them ahead of 04 does not add to the uncorrected multiplicity problem that 04 exists to fix. This is what makes the reorder safe rather than merely convenient."
+      ],
+      "assumed": [
+        "That external findings outrank internal instrument quality right now. This is a stated priority call from the user (an F1-practitioner audience), not a measurement. If the goal changes back to model accuracy, the old order is the better one and this entry is the record of why it moved.",
+        "That 07a's conditioning set (circuit, era, rainfall, tyre age, pre-SC degradation state) is rich enough to make SC arrival conditionally exogenous. This is the whole design risk and 07a exists to measure it before 07b is written.",
+        "That 05a's reframe (judge model families on publishable coefficients, not pinball loss) is right. Recorded in the item note only - work/05-model-family.md has NOT been rewritten, so the leaf doc and this note currently disagree and the leaf doc should be corrected before 05a is run."
+      ],
+      "gates_run": "None. Documentation and ordering only; no model fitted, no warehouse write, no artefact touched, nothing committed.",
+      "next_command": "sed -n '/^## 06a/,/^---/p' _improvements/work/06-publication.md",
+      "next_action": "Run 06a. Draft the pit-timing post: headline the distribution (median 0.0 s, 51.0% of stints exactly optimal, 68.6% of all lost time in the worst decile), make the tyre-error vs race-context distinction the payload, show per-constructor n, and put the caveats in the body. Note the constructor table's middle reorders under a different join, so publish the distribution and not a ranking."
+    },
+    {
+      "date": "2026-09-07",
+      "session": "order reverted to rigour-first at the user's direction; 02a pulled forward; order_hint added",
+      "landed": "The impact reorder made earlier this session is REVERTED. Group order is back to rigour-first - 04 campaign audit, 01 ceiling, 02 features, 03 driver vs car, 05 model family, 07 causal pit timing, 06 publication, 00 terminal - on the user's explicit direction that publication should not lead and that time is not the binding constraint. Group 07 and its leaf doc are KEPT; only their position moved. board.py's plan() gained an optional item-level `order_hint` that sorts ahead of group order, and 02a is the only item using it. Pointer moved 06a -> 02a. BUILD-ORDER.md regenerated, still 18 live items.",
+      "verified": [
+        "02a is a read of a SQL window definition (is int_corner_skill_residuals' 5-lap field-median bucket centred or backward-looking?), not a model test. It runs no ablation and quotes no delta, so pulling it ahead of 04 does not add to the multiplicity problem 04 exists to correct - which is what makes the order_hint safe here and would not make it safe for 02b or 02d.",
+        "The sequencing constraints hold in the reverted order: 04 (positions 2-4) precedes every item in 02 that runs an ablation (7-9), and 01 (5-6) precedes 02's ablations and 05 (13).",
+        "02c is BLOCKED on 02a in the log, so the highest-ceiling feature item cannot start before the leakage check resolves - the dependency, not just the ordering, enforces it.",
+        "board.py --check passes; --write-order regenerated 18 live items with 02a at position 1."
+      ],
+      "assumed": [
+        "That the feature work will move the cliff classifier and stint-life families rather than the degradation trio. This is work/02's own argument, not a new one: 99.06% of the trio's variance is within-stint, and three of the four tiers are stint-invariant or weekend-grain. Recorded here because 'extract the most from the data' will look like a failure if it is measured against the trio's headline.",
+        "That 01b is worth its 2-3 days at all. It carries five known defects, four of which its own falsification gate cannot detect, and k-NN at 33 dimensions on 82k rows is thin. 01a (0.5d, no estimator risk) may settle the noise-limited-vs-data-limited question well enough that 01b can be scoped down or dropped - that call belongs after 01a, not now.",
+        "That order_hint stays rare. It is a second sequencing axis, and if more than a couple of items carry one it becomes an unreadable second group order. No check enforces this."
+      ],
+      "gates_run": "None. Ordering and tooling only; no model fitted, no warehouse write, no artefact touched, nothing committed.",
+      "next_command": "grep -rn '5-lap\\|field_median\\|bucket' transform/models/intermediate/int_corner_skill_residuals.sql | head -20",
+      "next_action": "Run 02a. Read int_corner_skill_residuals' bucket definition and decide whether the 5-lap field-median window is centred (reaches forward -> leaks -> Tier 2 needs a rebuild before an ablation) or backward-looking (safe -> 02c unblocks as specified). Hours, and the answer reorders Tier 2."
+    },
+    {
+      "date": "2026-09-07",
+      "session": "research round R1 + promotion",
+      "landed": "Research round R1: 11 tracks searched, 8 docs in _improvements/research/, 1 note in _improvements/notes/. Then promoted into this log: new groups 08 (foundations repair), 09 (scoring instruments), 10 (competing risks) and 11 (parallel surfaces) with 12 new items; 04b CLOSED as dissolved; 01b rescoped to difference-based estimation; 05b/05c extracted from 05a's block; 02a's acceptance criterion corrected; pointer moved 02a -> 08a. Four new leaf docs written, four existing ones edited.",
+      "verified": [
+        "End-regime decomposition, 8,333 stints: 1,543 of 5,360 uncensored (28.8%) end under SC/VSC/red; mean length 11.14 (SC) / 5.34 (red) / 17.04 (VSC) vs green 19.44. Stable every season (19.2-38.9% non-green).",
+        "dim_compounds_season has no SUPERSOFT/ULTRASOFT/HYPERSOFT rows, so 7,622 training rows (6.30%), all 2018, are NULL on all six compound parameters. compound_cliff_onset_laps is the #1 feature on degradation p50 by both SHAP and permutation.",
+        "Band coverage IN-SAMPLE: pooled 80.38% (nominal 80); by circuit 72.4-85.6% over 36 circuits at n>=300 (13.2 pts); by lap-in-stint band 79.9-81.2% (1.3 pts).",
+        "features.py:115-121 trains on race_year < holdout_season, holdout = MAX(race_year)+1 = 2025 and unpopulated; load_scoring_frame scores every lap. Every coverage figure above is therefore in-sample.",
+        "Neither int_corner_skill_residuals (FLOOR(lap/5)*5 + GROUP BY) nor int_sc_hazard_history (GROUP BY to one row per circuit, all seasons) contains a LEAD, a FOLLOWING frame or a self-join inequality, so neither is visible to features.py::audit_forward_window.",
+        "age_in_stint is FastF1 TyreLife passed through untouched (src_formula1.yml:52 -> stg_laps.sql:35 -> int_stint_geometry.sql:65), no COALESCE or imputation anywhere; 0.21% NULL; all 154,378 within-stint steps are exactly +1; 2,137 of 8,333 stints open above 1 (scrubbed sets), which a locally-derived count would get wrong.",
+        "Degradation target shape, n=82,315: skewness -0.829, excess kurtosis 5.218.",
+        "predict.py:53 row-sorts the quantile trio before writing, so parquet crossing counts say nothing about the models.",
+        "app/public/models and app/dist/models both carry model_version v11, built 2026-09-05; the .onnx files are gitignored (app/.gitignore:16)."
+      ],
+      "assumed": [
+        "That non-green stint endings contribute materially to the 1.9520 AFT NLL headline. Share and length gap are measured; the loss attribution is 10b/02d's arithmetic.",
+        "That the stint_life_regressor importance pattern (age_in_stint absent from both top-5s, fuel_mass_kg and lap_number leading) reflects the mixture rather than collinearity. Importance rankings are not causal and lap_number correlates with tyre age by construction.",
+        "That circuit-level heteroscedasticity outside the 33-column contract drives the coverage spread; the traffic/deployment-regime alternative is not excluded.",
+        "That production still serves v6 (D2's own text, not re-checked against the live CDN).",
+        "That a signature or FPCA representation would clear gates.md where the scalar telemetry aggregates did not."
+      ],
+      "gates_run": "None. The round measured and read only - nothing fitted, no artefact, warehouse object or git state touched. The promotion edited this log and the work/ leaf docs only.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Run 08a - backfill dim_compounds_season for the three 2018 compound names, so every measurement after it sits on repaired data. See work/08-foundations-repair.md."
+    },
+    {
+      "date": "2026-09-08",
+      "session": "08a landed: 2018 legacy-compound backfill",
+      "landed": "dim_compounds_season repaired for SUPERSOFT/ULTRASOFT/HYPERSOFT (2018-only). Seed fitter extended and re-run (30/35 groups cox_km_survival-fitted, 5 compound_class_default); seed promoted (438 rows, was 403); seeds/schema.yml accepted_values fixed to match; dbt seed + run + test all green (595/595, incl. assert_compound_wear_bounded). All six compound_* columns on training-eligible rows: 6.30% -> 0.00% NULL.",
+      "verified": [
+        "2018 has real lap data for the three legacy names: 64/222/204 stints (HYPERSOFT/SUPERSOFT/ULTRASOFT) across 37 circuits, 31 of 35 circuit x compound groups clearing the fitter's MIN_STINTS=8, so fitting is real evidence here, not a thin-data workaround.",
+        "All 403 pre-existing seed rows are byte-identical on every value column (grip_peak, wear_gradient, both temp bounds, onset, severity, fit_source, n_stints, notes) before vs. after the refit; only the run-level provenance columns (fit_date/git_sha/fit_timestamp) moved, which is true of every fitter run, not something this change introduced.",
+        "int_compound_cliff_predicted (transform/models/intermediate/int_compound_cliff_predicted.sql:78-136) COALESCEs an unmatched dim_compounds_season join to grip_peak=0.0, wear_gradient=0.0, cliff_severity=0.0, cliff_onset_laps=999.0 -- so before this fix, expected_compound_pace_s for the 7,622 affected rows was missing its baseline entirely and never modeled cliff/wear, not merely NULL on the raw column as R7 stated. After the fix these rows average 4.4-5.6s, in line with 2018 SOFT (4.32s) and MEDIUM (4.58s) from the same model.",
+        "assert_compound_wear_bounded and all 595 dbt tests pass post-rebuild; the one failure hit along the way (seeds/schema.yml accepted_values on compound_code) was a stale enum list, fixed by adding the three new codes."
+      ],
+      "assumed": [
+        "The three COMPOUND_DEFAULTS/OPTIMAL_TEMP_RANGES fallback entries (used on 5 of 35 groups) are extrapolated from SOFT along Pirelli's published softness ordering (HARD<MEDIUM<SOFT<SUPERSOFT<ULTRASOFT<HYPERSOFT), not independently fitted -- reasonable given the ordering is documented Pirelli fact, but not verified against held-out 2018 stints the way the 30 genuine fits were.",
+        "The is_training_eligible shift (120,938 -> 121,193) and the driver_skill_residual_s change it comes from are treated as a correction, not a regression -- consistent with the mechanism traced above, but no downstream model was retrained or re-evaluated against it in this session; that is for 01a onward, which now measures on the repaired base per the leaf doc's \"why it is first\"."
+      ],
+      "gates_run": "None, and gates.md does not apply -- this changes values feeding an existing feature, not the feature contract or a model (33 columns unchanged, no model touched).",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Run 09a - add CRPS alongside the pinball trio, with its decomposition. See work/09-scoring-instruments.md."
+    },
+    {
+      "date": "2026-09-08",
+      "session": "09a landed: CRPS + calibration/resolution/uncertainty decomposition",
+      "landed": "ml/src/crps.py (new module): CRPS for the degradation quantile trio via 3-point trapezoidal integration of pinball loss over alpha in {0.10,0.50,0.90}, flat-extended to [0,1]; plus a Murphy-style calibration/resolution/uncertainty decomposition using equal-frequency binning of the raw forecast as the recalibration step (not full isotonic/PAV -- logged as a deviation in work/09-scoring-instruments.md). Wired into ml/src/evaluate.py::run() (report['crps'], beside the existing family-level calibration block, using the same shared['degradation'] eval predictions the trio's calibration_report already assumes are row-aligned) and ml/src/card.py (validation.crps). ml/tests/test_crps.py: 5 tests on synthetic data, no warehouse/skips.",
+      "verified": [
+        "CRPS reduces EXACTLY to MAE for a point forecast (all three quantiles equal), not just approximately -- the pinball loss is linear in alpha for fixed q (no kink, since y>=q is alpha-independent), so the 3-point trapezoid integrates it exactly regardless of grid spacing; ml/tests/test_crps.py::test_crps_reduces_to_mae_for_a_point_forecast checks this to rel=1e-9.",
+        "mcb - dsc + unc reconstructs crps to float precision by pure algebra (unconditional on how `recal` is defined); dsc >= 0 always holds for the binned method because the K-bin per-bin-optimal fit is a strict relaxation of the 1-bin global-constant fit `unc` uses. mcb carries NO such guarantee under binning (only under full isotonic/PAV recalibration, which this is not) -- confirmed against real data, not just theory: the first real run (degradation trio, cv_final_fold, n=13,896, eval_season=2024) landed mcb=-0.0049, dsc=1.2994, unc=2.7647, crps=1.4604 -- a negative mcb happened on the first real try, meaning the trio carries real within-bin information a bin constant cannot capture, not a defect in the arithmetic.",
+        "Ran `python -m ml.src.evaluate` on the live degradation trio against data/dev.duckdb (real models, real cv_final_fold split) and confirmed report['crps'] is emitted with the expected shape; then ran the full `make ml-evaluate` (all 4 targets) to leave ml/artefacts/evaluation_metrics.json in its normal complete state rather than the partial one the targeted check produced."
+      ],
+      "assumed": [
+        "That equal-frequency binning (ROWS_PER_BIN_TARGET=500, 5-40 bins) is a reasonable per-bin sample size for the reliability curve at this eval-fold size (~14k rows/target) -- not tuned or cross-validated against an alternative bin count.",
+        "That flat-extending the trio's p10/p90 to cover alpha in [0,0.10) and (0.90,1] is an acceptable approximation for the CRPS headline; it is not a tail estimate and would need real tail quantiles to improve.",
+        "That report['crps']['decomposition']['unc'] and 01b's eventual floor should be compared side by side rather than reconciled into one number -- per foundations/epistemics.md they are different, non-interchangeable constructions (this arm is the CRPS-native unconditional pinball loss; 01b is difference-based/U-statistic variance estimation). No comparison is possible yet: 01a and 01b have not run."
+      ],
+      "gates_run": "None, and gates.md does not apply -- this is a scoring instrument (how existing predictions are read), not a change to the feature contract or a model. No feature added, no model refit for production, no leakage surface.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Run 10a - stint end-regime label (why did this stint end?), the parallel entry point for both 10 (competing risks) and 02d (SC hazard rebuild). See work/10-competing-risks.md."
+    },
+    {
+      "date": "2026-09-08",
+      "session": "10a landed: stint end-regime label, and a correction to R3's 2018 row",
+      "landed": "transform/models/intermediate/int_stint_end_regime.sql (new, family strategy, 8,333 rows): end_regime / stint_end_cause / end_cause_confidence plus provenance (end_lap_id, end_lap_number, end_lap_in_stint, is_multi_regime_end, ended_on_pit_lap, was_running_at_flag), and is_censored_stint, whose definition moved down out of fct_stint_features so the mart and 02d share one copy. fct_stint_features rewired to read it and now exposes the three label columns. transform/tests/assert_stint_end_cause_partition.sql: an independent re-derivation (different route to the final lap, censoring window and running-at-the-flag test rebuilt from staging) so the precedence rule fails on drift rather than moving with it. 24 new schema tests. model_hashes.baseline.json re-snapshotted. Counts corrected to 72 models / 620 tests in Makefile, README.md and the generated docs snippets; docs/reference regenerated; docs/transform/families/strategy.mdx gains the model. work/10 and research/R3 carry the correction below.",
+      "verified": [
+        "The label reproduces R3's 2x4 end-regime decomposition EXACTLY -- all eight cells, counts and mean stint lengths both: uncensored green 3,817/19.44, SC 913/11.14, red 387/5.34, VSC 243/17.04; censored green 2,754/25.28, SC 129/10.78, VSC 55/18.80, red 35/2.31. Run against data/dev.duckdb after `dbt run --select int_stint_end_regime+`.",
+        "Moving is_censored_stint out of fct_stint_features left it bit-identical: 8,333/8,333 rows agree with an independent recomputation of the original window expression, 2,973 censored, matching the value measured from the pre-change table.",
+        "The six-class cause partitions the population: green_pit 3,621 (mean 20.44) + sc_pit 806 (12.48) + vsc_pit 223 (18.47) + red 387 (5.34) = 5,037 uncensored labelled, + 323 artefact rows = 5,360; race_end 2,533 (26.35) + retirement 438 (12.29) = 2,971, + 2 artefact = 2,973.",
+        "The severity precedence is load-bearing, not cosmetic: 346 stint-final laps carry more than one TrackStatus code -- 276 red+SC, 53 SC+VSC, 17 red+VSC -- so reordering the CASE moves 276 stints between classes. assert_stint_end_cause_partition.sql re-derives the whole label independently and returns 0 rows.",
+        "R3 correction: 325 of the 8,333 rows are 2018 laps FastF1 never assigned a stint number (mean length 1.06), which fct_stint_features sorts below every real stint and therefore reports as uncensored. 127 of them are non-green (196 green, 107 SC, 20 VSC, all uncensored). Excluding them the headline is 1,416/5,037 = 28.1% (not 28.8%) and 2018 is 495 stints / 17.4% non-green / 24.0 laps green / 15.5 non-green (not 818 / 26.0% / 16.6 / 6.9). 2019-2024 contain no such row and are unchanged.",
+        "stg_results joins 8,333/8,333 stints with no fanout. The running-at-the-flag test is on status, not is_classified: 23 'Retired' rows are classified (driver covered 90% of the distance) and did stop; 'Disqualified' appears both ways (classified_position 'D' seven times, numeric three) and 9 of its 10 driver-races ran to the final lap or one short, so it is resolved on distance and marked inferred.",
+        "Full CI-fixture build green: `make test-all` = 700 PASS / 0 ERROR over 703 nodes, plus 66 coefficient pytests. sqlfluff clean on all three new/changed SQL files. `make docs-facts` and the transform half of `make docs-coverage-check` pass."
+      ],
+      "assumed": [
+        "That censoring should outrank regime in the CAUSE label -- i.e. that a censored stint ending under a red flag is race_end/retirement rather than 'red'. The taxonomy's own shape argues for it (four uncensored causes + two censored = six) and end_regime keeps the regime fact, but it is a modelling choice, not a measurement. The case that pays for it is 2021 Belgium: 20 drivers classified after 3 laps behind the safety car, race abandoned under red flag.",
+        "That the 328 uncensored stints whose final lap carries no pit marker really did end in a tyre change (inferred from the existence of a later stint) and that the regime read on that lap is the right one. Marked inferred rather than resolved.",
+        "That excluding the 325 unassigned-lap rows from every share is right rather than counting them. They are a FastF1 artefact with no ending to have a cause, but they are still rows in fct_stint_features and anything that does not read stint_end_cause IS NOT NULL will keep counting them.",
+        "That family 'strategy' is the right home. transform_docs_facts.py fixes the intermediate vocabulary at five families and int_sc_hazard_history -- the model 02d rebuilds -- already sits there, so a sixth 'survival' family would have meant changing the docs generator and the family pages as part of this item."
+      ],
+      "gates_run": "None, and gates.md does not apply -- this is a warehouse label, not a model refit or a feature-contract change. No feature added (the label is never a model feature), no model retrained, no leakage surface: stint_end_cause is a stint-grain fact about the stint's own final lap, in the same position as is_censored_stint, which the leakage spine already bars. The gates land on 10b, which is the fit.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer moved to 02a (Tier 2 leakage ruling) per the log's own ordering. 10b is now unblocked on 10a but its depends_on was corrected to include 09b, which its note and leaf doc already required; 02d can also start whenever -- it is the second consumer this label was built for, and reads stint_end_cause from fct_stint_features."
+    },
+    {
+      "date": "2026-09-08",
+      "session": "02a ruled: the corner field-median bucket reaches into the label window - barred as constructed",
+      "landed": "No code change. A ruling, written into work/02-feature-expansion.md as a new '02a - the 5-lap field-median bucket - RULED 2026-09-08' section replacing R5's provisional CORRECTED note, plus a new 02g section carrying the rebuild's definition of done, plus a rewrite of the doc's \u00a78 item 1 to reflect that the leakage check landed and moved the ordering. build-log.json: 02a LANDED, 02g added (BLOCKED on 02a), 02c repointed from 02a to 02g.",
+      "verified": [
+        "The bucket is a fixed block, not a window: FLOOR(CAST(lap_number AS DOUBLE)/5.0)*5.0 then GROUP BY (race_year, race_id, corner_name, lap_window). No LEAD, no FOLLOWING frame, no self-join inequality.",
+        "Forward reach measured over all 2,206,939 rows, reconstructing corners_with_keys from int_corner_metrics join int_stint_geometry (is_valid_lap) against data/dev.duckdb. Mean reach 1.877 laps; 77.83% of lap-groups reach forward; 38.45% of the mean median's ~70 rows come from laps not yet run. By block position 0-4: reach 3.739/2.814/1.909/0.968/0.000 laps and future share 76.00/56.44/40.00/20.67/0.00%. R5's 'about two laps' estimate is confirmed.",
+        "Own-driver contamination: at block position 0, 95.55% of rows are scored against a baseline containing that driver's own future laps, mean 3.351 of them; positions 1-3 are 95.00/92.04/90.67%; position 4 is 0.",
+        "Total containment in the label window: DEGRADATION_TARGET = next_5_lap_cumulative_jump_s spans t+1..t+5 and measured max forward reach is 4 laps, so every contaminating lap is inside the label's own window.",
+        "Materiality, two arms rebuilt from identical source differing only in the window (BLOCK read from the model's own table; TRAILING = median over t-5..t-1, same race+corner, all drivers, n>=5), aggregated to lap grain and joined to the real label on is_training_eligible (n=80,381). corr(delta,label) where delta = block-trailing: +0.0344 [+0.0047,+0.0667] at positions 0-3, +0.0083 [-0.0143,+0.0324] at the position-4 control; paired race-clustered bootstrap of the difference +0.0261 [-0.0008,+0.0531], one-sided p=0.027.",
+        "The rebuild costs no signal: trailing's marginal |corr| with the label is equal or slightly higher at every block position (position 0 total-residual mean: -0.0666 trailing vs -0.0485 block).",
+        "Coverage cost of the rebuild: lap-grain non-null 92.79% -> 90.57%, concentrated at race start - laps<=6 go 92.11% -> 70.68%, laps 7-11 92.61% -> 91.59%, laps>11 92.87% -> 92.35%. It is lap 2, the first lap in the table, which has no predecessor to build a backward median from.",
+        "No ML result is invalidated: ml/src/schema.py has zero references to braking_loss_s / mid_corner_residual_s / exit_residual_s / corner_residual_*. The only downstream consumer is mart_corner_skill_driver."
+      ],
+      "assumed": [
+        "That the materiality half is suggestive rather than decisive, and that the ruling should therefore rest on the deterministic construction instead. The position-4 control is imperfectly matched - its block and trailing windows overlap heavily, so its delta is a smaller contrast (sd 0.043 vs 0.116 at position 0) - which could depress the control's correlation for a reason other than the absence of forward reach.",
+        "That the lap-2 NULL is declarable rather than hazardous. It is deterministic on lap_number, an axis already in the contract via age_in_stint, so it is not the outcome-correlated sparsity \u00a73 warns about - but no test of that was run.",
+        "That mart_corner_skill_driver is unaffected in kind. It aggregates per driver with no forward label, so the block bucket is a measurement-consistency question there and not leakage. Its residuals are still taken against a partly-future baseline and 02g will move its outputs; the size of that move was not measured."
+      ],
+      "gates_run": "None, and gates.md does not apply - nothing was built, no feature entered the contract and no model was refit. This is the leakage ruling that decides whether 02c is allowed to run the gate at all. The gate lands on 02c, after 02g rebuilds the model.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer moved to 02g - the trailing-window rebuild 02a's ruling requires, and the thing 02c now waits on. It is small (a RANGE window replacing a FLOOR bucket) but it must decide trailing-5 vs expanding and declare the lap-2 NULL, and R5 recommendation 2 asks for it as a macro because 02d needs the same shape. 02b (Tier 1, qualifying) is untouched by the ruling and can run in parallel."
+    },
+    {
+      "date": "2026-09-08",
+      "session": "05b closed: monotone constraints arm is a measured negative result on both testable families",
+      "landed": "work/05-model-family.md: new '05b - CLOSED 2026-09-08' section with pre-registered arms and full gate results. build-log.json: 05b moved SPEC -> CLOSED. ml/src/evaluate.py::behaviour_audit: monotonicity direction fixed to be per-family (spec.family) instead of hardcoded non-decreasing; output key renamed monotone_non_decreasing -> monotone_as_expected with an explicit expected_direction.",
+      "verified": [
+        "Instrument check: unconstrained refit via evaluate.py's own _fit/_score reproduces the published v11 cv_final_fold headline to 6dp for both degradation_regressor_p50 (1.0163386141079709) and stint_life_regressor (1.9487233293052475).",
+        "Add-ablation, same split/params, monotone_constraints=+1 on age_in_stint/lap_in_stint/laps_past_cliff/cumulative_push_load_surface/_bulk for degradation_regressor (-1 for stint_life_regressor): pinball 1.016339 -> 1.104032 (-0.087693); AFT NLL 1.948723 -> 1.961266 (-0.012542). Both far outside their own 5-reseed 2*sqrt(2)*sd floor (0.013317 and 0.002811 -- 6.58x and 4.46x).",
+        "Adapted permutation-null (columns row-shuffled independently in train/eval, not dropped, since no new column is added): capacity -0.004043 / -0.000246 (both inside floor), information -0.083650 / -0.012296 (both well outside) -- the worsening is real information, not a capacity/regularization artifact.",
+        "Mechanism check on synthetic toys (not production data): xgboost 3.3.0's monotone_constraints holds exactly under reg:squarederror (0/199 violations) but is NOT enforced under reg:quantileerror (2/199 violations, magnitude -0.139) -- the objective every degradation_regressor quantile head uses. Under multi:softprob (cliff_classifier), a 3-class toy built so P(class 2)=x/10 exactly still shows 32-54/199 violations per class after constraining: the mechanism restricts each class's raw margin independently and does not constrain the softmax-normalized probability the physical claim needs.",
+        "behaviour_audit's monotonicity probe on the unconstrained production models: degradation_regressor_p50 3/19 violations (non-decreasing expected); stint_life_regressor 1/19 (non-increasing expected, post-fix). Grepped the repo for the old monotone_non_decreasing / monotonicity_laps_past_cliff key names -- no reader outside evaluate.py itself depends on them, so the rename is safe.",
+        "With the constraint applied, behaviour_audit's own probe: degradation_regressor_p50 2/19 violations (still fails); stint_life_regressor 0/19 (fully monotone -- the guarantee DOES mechanically hold for the survival:aft objective, unlike the quantile heads)."
+      ],
+      "assumed": [
+        "That the monotone direction per candidate feature (all +1 for degradation_regressor, all -1 for stint_life_regressor) is the correct physical reading. Derived from the leaf doc's own stated argument, not independently re-derived per feature -- e.g. cumulative_push_load_surface/_bulk assumed monotone in the same direction as age_in_stint rather than checked against a domain source.",
+        "That the gate-4 adaptation (shuffle the 5 candidate columns rather than drop new ones, since this arm adds no column) is a faithful analog of the standing capacity/information split rather than a different question. Logged as a deliberate deviation per foundations/gates.md's own rule, not run without comment.",
+        "That cliff_classifier's mechanism check on a synthetic toy generalizes to the real 33-feature contract -- not verified by actually fitting the real classifier with the constraint, on the judgment that a toy built to be exactly monotone by construction is the more, not less, favorable case for the constraint, so a real fit could not have shown a cleaner result.",
+        "That closing 05b does not require moving the pointer: 05b was extracted from 05a's block in the 2026-09-07 split and never depended on or blocked anything on the main ladder (05a stays BLOCKED on 01a/01b; 05c is untouched). Pointer left on 02g."
+      ],
+      "gates_run": "gates.md 1 (instrument check) full; 2 (add-ablation, identical cv_final_fold split, evaluate.py's own _fit/_score) full; 3 (delta vs the family's own reseed floor, AT.refit_noise_floor) full; 4 (permutation-null) adapted -- no new column exists to shuffle, so the 5 existing candidate columns were row-shuffled instead and the capacity/information split computed the same way; 5 (forward-window audit) N/A, no label-adjacent column is introduced; 6 (pre-register the arms) arms and directions were written into work/05-model-family.md before the fits were run, but after this session had already derived them from the leaf doc's own argument rather than a separate independent pass -- logged rather than claimed clean.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer is unchanged at 02g (the trailing-window rebuild 02a's ruling requires). 05b closing frees nothing on the ladder -- 05a still waits on 01a/01b and 05c is untouched -- so the next actual move is still 02g, or 02b (Tier 1 qualifying) in parallel, exactly as the prior session's handoff said."
+    },
+    {
+      "date": "2026-09-08",
+      "session": "05c GPBoost variance-components probe - the degradation model is at its model-based noise floor to within +/-1.5%",
+      "landed": "No code change and no artefact -- 05c ships nothing by design. work/05-model-family.md gains three sections: '05c - PRE-REGISTRATION' (gates.md step 6, written before any fit) and results parts 1 and 2. build-log.json: 05c SPEC -> MEASURED, pointer moved 02g -> 01a because 05c's result makes the other two bracket legs the highest-value next move. gpboost 1.7.4 installed to a scratchpad directory on sys.path only -- NOT into the repo venv, NOT into ml/requirements.txt.",
+      "verified": [
+        "Arm 0a, gate 1: evaluate.py::_fit/_score at v11 params on cv_final_fold reproduces the published degradation_regressor_p50 headline 1.0163386141079709 bit-identically (absolute difference 0.000e+00). The harness has not moved since 05b.",
+        "Arm 0b: GPBoost recovers known variance components on the real group design at early-stopped rounds (1,077) -- Error_var -2.8%, race +2.3%, stint +3.8%, driver +2.5%, constructor -34.0% against true 8.00/1.50/3.00/0.40/0.25.",
+        "Arm 0b, method finding: the SAME fit at a fixed 300 rounds inflated every component ~20% (Error_var 9.456 vs true 8.000, race +21.9%, stint +22.6%). An underfit F(X) leaks into the variance components, so boosting-round count is part of the instrument.",
+        "Arm 0c, 40 replicates intercept-only on the real design: Error_var bias -0.1% / rel sd 0.6%; stint +0.3% / 3.0%; race +5.4% / 20.6%; driver -8.8% / 31.8%; constructor +125.3% / 215.6% (p05-p95 0.090-1.563 for a true 0.250). sqrt(2/(k-1)) is 0.365 at k=16, so the pre-registered +/-20% on constructor was unmeetable by any estimator.",
+        "Arm 0c null arm: with driver and constructor variance set to exactly zero the instrument returns driver 0.000 +/- 0.000 and constructor 0.009 +/- 0.008 -- it does not manufacture components.",
+        "Arm 1, raw intercept-only decomposition on 68,574 train rows: race 3.3704 (8.0%), stint 5.3388 (12.7%), driver 0.0000, constructor 0.0052, Error_var 33.3190 (79.3%), total 42.0334 against var(y) 40.1149.",
+        "Bug found and fixed mid-arm: GPModel.fit(y=...) fits NO intercept unless X is passed, so the first arm-1 fit decomposed E[y^2] not Var(y), absorbing mean(y)^2 = 4.372 (fitted total 45.583). Refit with an explicit intercept, fitted at -2.071 against a sample mean of -2.091.",
+        "The pre-registered ANOVA cross-check FAILED its declared ~2dp tolerance: ceiling.py::variance_components gives a stint ICC of 0.174836 on the identical rows against REML's 0.199020, gap +0.024183.",
+        "Cause traced by simulation on the real stint design at a known ICC of 0.195122: gaussian noise gives a gap of -0.000497, target-shaped (skew -0.81, excess kurtosis 5.02) +0.000312, heteroscedastic -0.001547, but AR(1) at rho=0.60 gives +0.018586. Only serial correlation splits the two estimators, and rho=0.60 is the lag-1 autocorrelation ceiling.py already measures (within_stint_lag1_autocorr 0.6044) from the 5-lap window overlap.",
+        "Under that AR(1) both estimators inflate hard: a true ICC of 0.195122 is read as 0.326886 (ANOVA) and 0.345472 (REML), ~70% overstatement of the between-stint share. This is the mechanism behind ceiling.py's existing non_overlapping correction.",
+        "The degradation target's variance falls monotonically by season: 2018 47.94, 2019 40.75, 2020 42.26, 2021 39.64, 2022 36.74, 2023 33.46, 2024 32.83. Train pools at 40.1149, eval 2024 is 32.8307, ratio 0.818.",
+        "The Gaussian shape factor the pinball bridge assumes (sqrt(2/pi) = 0.79788) is wrong for this target: measured E|z - median(z)| on within-stint deviations is 0.688 (train) and 0.711 (eval), so a Gaussian bridge overstates the implied floor by ~14%. ceiling.py's analytic_from_icc denominator rests on the same assumption.",
+        "Arm 2 (33 contract columns, 1,499 early-stopped rounds) printed race 1.0106, stint 2.7022, driver 0.0000, constructor 0.0112, Error_var 9.8103, total 13.5343.",
+        "Arm 2 (33 contract columns, 1,499 early-stopped rounds): race 1.0106, stint 2.7022, driver 0.0000, constructor 0.0112, Error_var 9.8103, total 13.5343 -- against arm 1's intercept-only 3.3704 / 5.3388 / 0.0000 / 0.0052 / 33.3190.",
+        "Arm 2b, gate 4: all 33 columns row-shuffled under one joint permutation at identical capacity gives Error_var 32.7428. Capacity = 33.3190 - 32.7428 = 0.5762 (1.7% of the intercept-only residual); information = 32.7428 - 9.8103 = 22.9325. Ratio ~40:1 -- the residual drop is signal, not capacity.",
+        "Arm 3, gate 3: all five reseeds at S.RANDOM_STATE + 0..4 returned byte-identical components (Error_var 9.8103 at every seed), so 2*sqrt(2)*sd = 0.0000 exactly. Cause verified by reading the parameter dict: no bagging_fraction, feature_fraction, bagging_freq or subsample, so the fit is fully deterministic and seed cannot move it. No reseed floor exists for this instrument.",
+        "Arm 3c (intercept-only, added after arm 3b proved unusable): on non-overlapping rows the stint component collapses from 5.3388 to 0.0004 while race stays stable at 3.3704 -> 3.8351, and ceiling.py's one-way ANOVA stint ICC collapses from 0.174836 to 0.021334 on the same rows. Two independent estimators agree that the between-stint variance is a 5-lap-window-overlap artifact.",
+        "Arm 3b's tree-fitted non-overlapping fit (race 1.3645, stint 0.0000, Error_var 17.3058) is not quotable: 1,057 rounds against 12,985 training rows with no matching permutation null, and the 'every 5th lap from the first' subsample is position-locked, giving var(y) 51.2947 against 40.1149 on all rows.",
+        "Arm 4 inputs measured, not assumed: population ratio var(eval)/var(train) = 32.8307/40.1149 = 0.81841; shape factor E|z - median(z)| = 0.68605 (train) and 0.70751 (eval) against the Gaussian 0.79788.",
+        "Arm 4 headline: arm 2's Error_var 9.8103 implies a p50 pinball floor of 1.0024 on the eval population with the eval shape factor, against the achieved 1.0163386 -- 1.4% headroom. Optimism-corrected (10.3865) implies 1.0314, which is ABOVE the achieved loss and therefore falsifies its own assumptions. Every train-population and every Gaussian-shape leg also lands above achieved.",
+        "IPW sensitivity, re-run correctly: race 1.1829, stint 3.0553, driver 0.0000, constructor 0.0153, Error_var 15.8951 -- 62% above the unweighted 9.8103. The unweighted fit is the one quoted because evaluate.py::_score applies no weights, so the published 1.0163386 describes the unweighted eval population.",
+        "GPBoost library behaviour, both hit in this run: GPModel.fit(y=...) fits no intercept unless X is passed (it silently decomposes E[y^2] not Var(y)); and sample weights must go to the GPModel() constructor, with passing them on Dataset(weight=) as well rejected by the C++ layer at train() time even though the Python constructor accepts the kwarg either way."
+      ],
+      "assumed": [
+        "That driver and constructor carrying no measurable variance reflects the TARGET'S CONSTRUCTION rather than the absence of driver skill. next_5_lap_cumulative_jump_s is a within-stint change, so a driver's persistent pace level is differenced out and only a driver-constant difference in degradation RATE could appear. Nothing was run to separate the two, and 03 must not read arm 1 as 'no driver effect exists'.",
+        "That arm 2's Error_var of 9.8103 is a LOWER bound on irreducible noise rather than an estimate of it. Both the 1,499-round tree fit and the 5,173-level stint random effect are fitted on the very rows the components are read from, so both deflate it. Arm 2b measures the tree half of that optimism; nothing yet measures the random-effect half.",
+        "That the season-to-season variance decline can be handled by proportional scaling of a train-fitted component to the eval population (ratio 0.818). It is a scale adjustment applied to a quantity whose shape may also be drifting, and no test of that was run.",
+        "That arm 0c's intercept-only sampling distribution transfers to the boosted fit. The replicates omit F(X) to stay cheap, so they characterise the random-effect estimation but not any extra variability the joint tree/covariance optimisation adds.",
+        "That arm 3c's stint component of 0.0004 is absence rather than low power. At 3.07 rows per stint the design is weak; arm 0c's null arm shows the estimator returns exactly 0.000 when a component is truly absent and the ANOVA agrees at 0.0213, but no power calculation was run at that rows-per-stint.",
+        "That the 'unseen race' floor's falsification (resid+race+stint = 13.5231 implies 1.1769 against an achieved 1.0163386) is caused by the season-variance decline and/or by in-sample RE fitting inflating the race and stint components. Both are plausible, neither was tested, and the item does not pick between them.",
+        "That the optimism correction transfers. Arm 2b bounds the TREE half of in-sample optimism at identical capacity, but nothing measures the random-effect half -- a 5,173-level stint effect is also fitted on the rows the components are read from, so Error_var remains a lower bound by an unmeasured amount."
+      ],
+      "gates_run": "Gate 6 (pre-registration) run in full before any fit. Gate 1 adapted and PASSED (arm 0a bit-identical; arms 0b/0c synthetic recovery). Gate 4 adapted and PASSED decisively (arm 2b, ~40:1 information to capacity). Gates 2 and 5 N/A by construction -- nothing is added, no delta is claimed, no new feature enters the contract. GATE 3 DID NOT DELIVER: the adapted reseed floor is degenerate on a deterministic fit and returned 0.0000. The standing gate was therefore not passed end to end, so 05c is MEASURED and never GATED.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer moved to 01a (learning curves, 0.5d, sonnet-5) rather than back to 02g, because 05c returned a near-zero-headroom result on one leg of a three-leg bracket and 01a is both cheap and the gate on 01b, which is the leg that would corroborate or contradict it. 01b must return an irreducible-noise estimate on the cv_final_fold EVAL population; 05c's leg is sigma = 2.8335 s -> pinball 1.0024 and is a lower bound. 02g remains unblocked and available if the corner-median rebuild is preferred first. Three findings from 05c are flagged for other groups and were NOT acted on unilaterally: ceiling.py's analytic_from_icc denominator rests on the Gaussian shape factor 0.79788 where the measured value is 0.688-0.708 (for 01); ceiling.py's non_overlapping subsample is position-locked and shifts var(y) from 40.1149 to 51.2947 (for 01); and the degradation trio is trained on an IPW population whose residual variance is 62% above the population it is scored on (for 01 and 09)."
+    },
+    {
+      "date": "2026-09-08",
+      "session": "01a learning curves - the row curve is flat, the intercept does not bind, and the binding constraint is recency not data volume",
+      "landed": "No code change, no artefact, nothing committed -- 01a is a measurement and the probe is throwaway per foundations/epistemics.md. work/01-ceiling-instrument.md gains '01a - RESULT (2026-09-08), and one logged deviation' (the third arm, the corrected denominator, three result tables, the 2018 compound mechanism, and two stated limits) and 'What 01a hands 01b - read before designing the strata'. work/05-model-family.md gains '05d - The training window. Raised by 01a, not acted on.' build-log.json: 01a SPEC -> LANDED; new item 05d (SPEC, depends_on 01a, 1-2d, opus-5); pointer 01a -> 01b.",
+      "verified": [
+        "Gate 1, all five families: the row arm's 100% point IS the published refit, and it reproduces the v11 headline bit-identically -- absolute delta 0.000e+00 for degradation p10/p50/p90, cliff classifier and stint life. cv_final_fold, train 2018-2023 (68,574 rows for the trio, 95,362 cliff, 100,921 stint life), eval 2024, 33 feature columns.",
+        "Row arm sampled by WHOLE STINTS, not rows, as the item requires: the 5-lap target's consecutive rows share 4 of their 5 terms, so a row-wise subsample would leak across its own boundary. Three draws at each of 25/50/75%, one at 100% (deterministic).",
+        "Row arm, last leg (75%->100%) against the composite floor: p10 +0.00242 vs 0.00731; p50 +0.00450 vs 0.00948; p90 -0.00090 vs 0.00690; cliff +0.00127 vs 0.00437; stint life +0.00655 vs 0.00887. All five INSIDE their floor -- no family is still gaining from rows at 100%.",
+        "Row arm, full range (25%->100%): p10 +0.0284 (3.9x floor), p50 +0.0424 (4.5x), p90 +0.0132 (1.9x), stint life +0.0115 (1.3x), cliff +0.00023 (0.05x). The degradation trio's row curve is real and exhausted by 75%; the cliff classifier's is flat end to end, not merely flat at the top.",
+        "METHOD: the reseed floor alone is the wrong denominator for a last-leg gain. It is the sd of the headline under seed-only refits of the SAME rows; the last leg differs in its rows too. The 100% point has no subsample variance, the 75% point is a mean over three draws carrying sd_75/sqrt(3), so the floor is 2*sqrt(sd_75^2/3 + sd_reseed^2). It changes a verdict: stint life's last leg reads as a real gain against the reseed floor (+0.00655 vs 0.00281) and is inside noise against the correct one (0.00887), because stint life has the largest subsample sd of the five. The composite is LOCAL TO 01a and is not refit_noise_floor's published floor.",
+        "Reseed floors on cv_final_fold via attribution.py::refit_noise_floor, 5 seeds at S.RANDOM_STATE+0..4, computed for p10 and p90 for the first time: p10 sd 0.0028444 floor 0.00805; p50 sd 0.0047084 floor 0.01332; p90 sd 0.0027345 floor 0.00773; cliff sd 0.0012322 floor 0.00349; stint life sd 0.0009939 floor 0.00281.",
+        "The extrapolated intercept does not bind for ANY family. y(n) = c + a*n^(-b) fitted to all ten row-arm points, c re-estimated leave-one-fraction-out: p10 c=0.4930 LOO span 0.077 against claimed headroom 0.0258 (3.0x); p50 c=0.9638 span 0.175 against 0.0526 (3.3x); p90 c=0.5586 with b pinned at the upper bound 3.0 and a~7.4e10; cliff c=0.3774 with b pinned at 3.0 and headroom NEGATIVE (-0.0028); stint life c=1.6623 with b pinned at the lower bound 0.02, LOO range 0.9722-1.7783 (span 0.806) against a claimed headroom of 0.2865.",
+        "Two distinct degeneracies, both diagnostic rather than fitter defects. b->3 (p90, cliff) means the fitter set c to the last observed point -- a restatement of the plateau. b->0.02 (stint life) leaves c unidentifiable because it trades off freely against a.",
+        "DEVIATION, logged in the leaf doc: a third arm was added. The two specified arms cannot separate regime coverage from recency -- the season arm's final step adds 2023, which is simultaneously the sixth season of coverage and the season adjacent to the 2024 eval, and a uniform stint draw at 75% already contains ~75% of 2023. The same ladder was run from the newest end (most-recent-k, growing backwards) and read against the expanding arm at matched n.",
+        "Recency, not coverage. Newer-window advantage in units of each family's own reseed floor, at k=1..5: p50 +5.63/+3.83/+1.95/+3.22/+1.62; cliff +9.33/+9.08/+8.98/+7.59/+1.56; stint life +57.5/+27.0/+42.0/+20.0/+13.8. p10 is indifferent (-0.86/-0.10/-2.83/+0.26/+1.60) and p90 mixed (+0.90/+3.03/+1.73/+0.22/-0.96).",
+        "THE ONE UNAMBIGUOUS RESULT: the cliff classifier is better trained on 2021-2023 (n=51,156) than on the full 2018-2023 (n=95,362) -- macro-F1 0.39318 against 0.38027, +0.01291 = 3.71x its own reseed floor of 0.00349, by deleting 44,206 rows (46%). The other four families' best subsets are inside noise: stint life 2020-2023 +0.00191 (0.68x), p50 2019-2023 +0.00095 (0.07x), and for p10 and p90 the full set is best.",
+        "Mechanism, read from the warehouse rather than assumed: HYPERSOFT, SUPERSOFT and ULTRASOFT occur in 2018 and in NO other season, and in no 2024 eval row -- 8,777 of 2018's ~17,380 mart rows, over half the season. The production compound encoder is {HARD:0, HYPERSOFT:1, INTERMEDIATE:2, MEDIUM:3, SOFT:4, SUPERSOFT:5, ULTRASOFT:6, WET:7}, so three of its eight levels are 2018-only. 2018 is the last season before the C1-C5 naming that 08d exists to source and that 08a has just backfilled into dim_compounds_season.",
+        "features.py::load_features fits the encoder on the full 2018-2023 training frame BEFORE any split (line order: _build_encoders(train_df) then _encode_frame then the split), and every arm here subsets rows of the already-encoded matrix. So the encoding was held fixed across all three arms and none of them is confounded by it -- but a production window change would refit the encoder, and 01a's +0.01291 is therefore NOT the number such a change would return."
+      ],
+      "assumed": [
+        "That the recency effect is regime drift rather than an artefact of the single eval season. The eval side is 2024 alone, so 'recent seasons train better' could be partly 2024-specific. The same ladder against the other fold eval seasons was not run; 05d carries it.",
+        "That each recency-arm cell is comparable with the others despite being a SINGLE fit rather than a multi-seed mean. Each carries unfloored reseed noise. The cliff result at 3.71x survives that comfortably; the p50 and stint-life subset gains at 0.07x and 0.68x do not, and are reported as inside noise rather than as small wins.",
+        "That the cliff classifier's 2018 penalty is caused by the compound-identity mismatch rather than by regulation-era drift in the label itself. The two are confounded in this design -- dropping 2018 removes rows, compound levels and a regulation era in one move. The compound-level-only arm that would separate them is specified in 05d and was not run. 'Drop the season' and 'fix the compound identity' are very different production changes and this item cannot pick between them.",
+        "That the composite last-leg floor's subsample and reseed variances are independent and add. They are estimated from the same fits and no covariance term was measured; the floor is treated as approximate, and it is used only to decide inside/outside, never quoted as an interval.",
+        "That the power law y = c + a*n^(-b) is the right extrapolation form at all. It is the conventional one, but with four fractions over a 4x range of n the item cannot distinguish it from alternatives -- which is part of why the intercept is reported as not binding rather than as a headroom estimate."
+      ],
+      "gates_run": "Gate 1 (instrument check) PASSED for all five families -- bit-identical reproduction of the published v11 headlines, abs delta 0.000e+00. Gate 3 (own-family reseed floor) run and used as the denominator throughout, and CORRECTED mid-item: the reseed floor alone understates the last-leg floor because the 75% point carries subsample variance it does not measure. Gate 2 N/A -- no feature is added, so there is no add-ablation; the split is nonetheless cv_final_fold via evaluate.py's own _fit/_score for every arm. Gate 4 (permutation null) N/A -- capacity is not held fixed here, it is the variable under study. Gate 5 (forward-window audit) N/A -- no new column. Gate 6 (pre-registration): the two specified arms were pre-registered in the leaf doc before running; THE THIRD ARM WAS NOT -- it was added after seeing the first two disagree, is logged as a deviation in the leaf doc, and its result is therefore the item's weakest epistemic leg despite being its largest number. 05d re-runs it under full pre-registration.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer moved 01a -> 01b, which 01a has now unblocked and was always the gate on. 01a's verdict makes 01b load-bearing rather than corroborative: the learning-curve instrument does not bind, so the difference-based floor is the only remaining instrument, not a third opinion. Read 'What 01a hands 01b' in work/01-ceiling-instrument.md before designing the strata -- three things changed. (1) Defect 2's third check has already fired: the row curve is FLAT, so a floor claiming material headroom now owes an explanation for why more of the same data cannot reach it. (2) The compound leg of the compound x lap-in-stint band x circuit stratification carries a live confound -- HYPERSOFT/SUPERSOFT/ULTRASOFT are 2018-only and absent from every eval row, so a stratum keyed on any of them has no eval-population counterpart; exclude them explicitly or key on 08d's C1-C5 identity. (3) 01b's floor must be estimated on the cv_final_fold EVAL rows, not the training pool -- 05c found a 62% IPW population mismatch and 01a now finds a temporal one, and both point the same way. ALSO OPEN: 05d is filed and unblocked, carrying the cliff classifier's +0.01291 at 3.71x floor from dropping 2018-2020. It is NOT actioned and must not be until its encoder-refit confound is closed; 08d ordering matters, because if the mechanism is compound identity then the real C1-C5 mapping may recover those rows rather than confirm they should be dropped."
+    },
+    {
+      "date": "2026-09-09",
+      "session": "01b empirical noise floor - the instrument fails its own falsification gate at the headline level, and three instruments now agree there is no resolvable headroom",
+      "landed": "No code change and no artefact -- 01b ships nothing by design, and the probe is throwaway per foundations/epistemics.md. work/01-ceiling-instrument.md gains '01b - PRE-REGISTRATION 2026-09-09' (written before any fit, gates.md step 6) and '01b - RESULT (2026-09-09)' with the ladder, the sweep, the shape, the per-stratum table, the bracket and the 01a reconciliation; its defect 1 'Fix' paragraph is corrected in place and marked SUPERSEDED, per the standing rule that a deviation is logged AND the leaf doc corrected. work/11-parallel-surfaces.md gains 'What 01b hands 11a'. build-log.json: 01b SPEC -> CLOSED with reason; 05a BLOCKED -> SPEC (01b was its only unmet dependency); pointer 01b -> 08b, the ladder's own next item. Nothing was installed into the repo venv and no production file was touched.",
+      "verified": [
+        "Gate 1, all three quantile heads: evaluate.py's own _fit/_score at v11 params on the cv_final_fold split reproduces the published v11 headline bit-identically -- absolute delta 0.000e+00 on 0.5187979725350818 (p10), 1.0163386141079709 (p50) and 0.5600310001217083 (p90). 68,574 train / 13,896 eval, 33 feature columns, eval season 2024.",
+        "IDENTIFICATION: the pairwise difference d = y1 - y2 is exactly symmetric for every eps, because (eps1,eps2) =d (eps2,eps1) implies d =d -d. Demonstrated numerically as well as derived -- unit.py, 400k rows of clean synthetic cells with arbitrary cell means and a known Johnson SU noise, returns sum-of-centred-cubes = -4.7e-12 at m=2 with denominator exactly 0. So defect 1's proposed fix ('fit a skew-capable family to d and back out eps's quantiles') recovers zero skew by construction and reproduces the p10=p90 collapse it was written to remove.",
+        "The same unit test validates the replacement arithmetic: sigma^2 recovered to +/-0.5% at m = 2/3/5/10/20 in the presence of arbitrary cell means; gamma1 to within +/-4.4% at m>=3 and undefined at m=2; gamma2 to within +/-6.4% at every m INCLUDING m=2, so tail weight is identified from pairs while skew is not.",
+        "Arm 1 diagnostics on the eval population: L3 covers 13,678 of 13,896 rows (98.4%) in 1,276 cells, median 10 members, max 36; 1,152 cells hold m>=3 (13,430 rows). Of the 30 unmatched feature columns only two carry any NaN (ahead_identity_stability 28.4%, surface_bulk_ratio 10.8%). Admissible-neighbour distance over those 30 columns, standardised: p05 1.466 / median 4.275 / p95 9.187 against 3.477 / 6.829 / 12.166 for random pairs -- a 37% reduction that nowhere approaches zero, so no extrapolation to zero distance was run and defect 5's own stated rule is the reason.",
+        "THE PRE-REGISTERED NULL ARM FAILED ON ITS FIRST PASS (-39.7%/-39.5%/-21.9% at L0/L1/L2) AND FOUND TWO REAL DEFECTS IN THE RULES AROUND THE ESTIMATOR, not in the estimator. (a) The one-row-per-stint admissibility rule took the lowest lap_in_stint, which wherever the rule binds selects early-stint rows -- and the noise is heteroscedastic in lap_in_stint. Repaired by drawing the row at random over 8 seeds; at L3 the rule binds on nothing and the repair moves L3 by exactly 0.0000. (b) Standardising the shape on circuit x compound x lap_band (259 strata, ~24 rows each) normalises each small group by a scale its own outlier inflated and returned excess kurtosis 37.3% LOW; the unstandardised pooled version returned it 67.5% HIGH on the scale mixture; the coarse compound x lap_band (22 strata) recovers it to +0.5%. After both repairs the null arm passes at every ladder level, worst +4.13%.",
+        "Arm 6 re-run at the shape actually claimed (gamma1 -0.5935, gamma2 +5.1086), 5 repetitions on the real X and the real cell structure with skewed heteroscedastic noise: null arm sigma^2 -1.98% +/- 2.14%, end-to-end p50 floor +3.4%. The full arm (real mean function present) reads +16.96% on sigma^2 and +15.0% on the p50 floor, with gamma1 attenuated to x0.601 and gamma2 to x0.514 of truth.",
+        "Arm 2, the conditioning ladder on the eval rows: sigma^2 = 30.028 (L0, race) / 26.688 (L1, +compound) / 14.848 (L2, +lap band) / 8.704 (L3, +lap_in_stint, the headline) / 7.803 (L4, +air state) / 6.767 (L5, +fuel bucket), at coverage 0.074 / 0.074 / 0.250 / 0.984 / 0.934 / 0.835.",
+        "THE FALSIFICATION GATE, checked at all 18 ladder x quantile points: L0/L1/L2 violate on all three heads (expected -- looser matching raises sigma^2), and L3 VIOLATES ON p10 (floor 0.5654 vs achieved 0.5188, ratio 1.090) AND p50 (1.0641 vs 1.0163, ratio 1.047). p90 does not (0.4914 vs 0.5600, ratio 0.877). L4 violates on p10 only; L5 passes on all three. Reported as an instrument failure and left in the table, as pre-registered.",
+        "Arm 3, the |delta lap_in_stint| sweep at fixed (race, compound), row-weighted: sigma^2 = 8.779 / 11.116 / 14.232 / 17.745 / 22.207 / 26.968 at delta = 0..5. delta=0 reproduces L3 to +0.87%, which is the consistency check between the pair form and the centred form. A first pass weighted by pairs instead of anchors returned 7.510 at delta=0 -- pair weighting weights a cell by m(m-1)/2 and over-represents large cells; the correction is logged in the leaf doc.",
+        "Arm 4, the shape from 1,152 m>=3 cells standardised on 22 coarse strata, df 12,402: gamma1 = -0.5935, gamma2 = +5.1086. Johnson SU fitted on that pair gives lambda = 0.19164 / 0.36070 / 0.16657 against the Gaussian phi(z_alpha) = 0.17550 / 0.39894 / 0.17550. Using the Gaussian factor would inflate the p50 floor by 11% -- the same correction 05c made with its 0.70751-against-0.79788 shape factor, arrived at independently.",
+        "Arm 5, the downward bias leg: ceiling.py::variance_components on the production p50 eval residuals grouped by race_id gives sigma_b2 = 0.4738 against sigma_w2 = 9.9969, ICC = 0.0452 over 24 races. Adding it back moves the floors to 0.5806 / 1.0927 / 0.5046 (ratios 1.119 / 1.075 / 0.901) -- the correction makes the p10 and p50 violations WORSE, not better.",
+        "Race-cluster bootstrap, 200 draws over the 24 races, on the L3 floor: sigma 2.9502, sd 0.1854, 95% [2.6028, 3.3017]. Floors and bands: p10 0.5654 [0.4988, 0.6327], p50 1.0641 [0.9388, 1.1909] -- both contain their achieved loss, so neither violation is itself resolvable. p90 0.4914 [0.4336, 0.5500] EXCLUDES its achieved 0.5600.",
+        "Arm 7, the bracket, legs never differenced: leg A (L3) 0.5654 / 1.0641 / 0.4914; leg A (L5) 0.4985 / 0.9383 / 0.4333; leg B (parametric, scale from the model's OWN predicted q90-q10) 0.5549 / 1.0445 / 0.4823; leg C (05c, quoted) 1.0024 on p50. Legs A and B agree to within 2% on all three heads from entirely different inputs. With leg C a lower bound and leg A an upper one, the p50 answer is L* in [1.0024, 1.0641] with the achieved 1.0163 inside it.",
+        "THE LEAVE-ONE-OUT CELL-QUANTILE PREDICTOR APPEARS TO BEAT THE PRODUCTION p90 HEAD AND DOES NOT. On the identical 13,430 rows it scores 0.5350 against production's 0.5555. A reseed floor is the wrong instrument for that comparison (epistemics.md -- it prices same-config-different-seed, and this is two predictors on one row set), so a paired race-cluster bootstrap was run: -0.02045, sd 0.04201, 95% [-0.10688, +0.05342]. It straddles zero and the finding is WITHDRAWN. p10 and p50 go the other way (+0.09412, +0.06575) and also straddle.",
+        "Per-stratum, compound x lap-in-stint band x circuit: 259 strata, 172 at n>=30 covering 12,560 of 13,896 rows. n-weighted aggregate floor/achieved = 1.063 (p10), 1.013 (p50), 0.845 (p90); per-stratum ratio median 1.32 / 1.14 / 0.99 with p10-p90 spread running about 0.7 to 1.8 on every head, and 127 / 119 / 82 of the 172 strata violating. One global floor for this target would have been false, exactly as the leaf doc's own caveat guessed."
+      ],
+      "assumed": [
+        "That the +17.0% mean-function bias the full synthetic arm measures at L3 transfers to the real data in MAGNITUDE. It does not transfer and is not used as one -- only the DIRECTION is used, and the direction is a theorem (Var(y|cell) = Var(f|cell) + E[sigma^2|cell] >= E[sigma^2|cell]) rather than a simulation result. The synthetic f is invented and its within-cell variation was never calibrated against the real residual's.",
+        "That conditioning the estimator on the race is acceptable, quantified only through arm 5's ICC on the PRODUCTION MODEL'S residuals. Every 2024 circuit hosts exactly one race, so the different-race half of defect 5's independence constraint was unavailable and was dropped rather than faked; arm 5 prices it at 4.5% using the incumbent's own residuals, which is a model-dependent read on a bias affecting a floor meant to bound that same model.",
+        "That the standardised shape (gamma1 -0.5935, gamma2 +5.1086) describes the NOISE rather than the noise plus the mean-function bias's own shape. The full synthetic arm measures the attenuation at x0.601 and x0.514, so the true noise is more skewed and heavier-tailed than reported; de-attenuating by those factors moves the floors by only +1.8% / -4.0% / -3.5%, which is why the shape is treated as a second-order term rather than corrected.",
+        "That a Johnson SU is the right two-parameter shape family for this noise. It was chosen because it covers the (skew, kurtosis) region this target sits in and has a tested ppf in scipy, not because anything was fitted against an alternative. No competing family (skew-t, two-piece normal, NIG) was run, so the lambda values carry an unmeasured family-choice component.",
+        "That the L4 and L5 rungs are informative about the residual bias at L3 despite being 4- and 5-coordinate matches outside the regime R1's dimension constraint permits, and despite their coverage falling to 0.934 and 0.835. They are read only as a direction (the ladder is still falling), never as floors.",
+        "That the p90 result is a conditional-shape finding for 11a rather than a model-family one for 05a. The argument is 01a's -- p90's row arm was the weakest of the trio and its recency signal the only mixed one of the five -- but nothing was run to separate 'the upper tail is mis-shaped' from 'the upper tail needs a different model'.",
+        "That the per-stratum aggregate's achieved column (0.4894 / 0.9667 / 0.5348) differing from the published headline (0.5188 / 1.0163 / 0.5600) is population and not disagreement. It is the 1,336 rows in sub-30 strata being harder than average; the two were never differenced, per protocol anchoring."
+      ],
+      "gates_run": "Gate 6 (pre-registration) run in full before any fit -- the arms, the strata, the falsification rules and both identification results were written into the leaf doc first, and the one thing added afterwards (a distance-graded extrapolation) was NOT run, because arm 1's pre-registered diagnostic ruled it out on the leaf doc's own stated criterion. Gate 1 (instrument check) PASSED bit-identically on all three heads. Gate 3 ADAPTED: refit_noise_floor prices a same-config reseed delta and there is no refit delta in this item, so the analogous instrument -- a race-cluster bootstrap over the 24 eval races, plus a paired cluster bootstrap for the two-predictor comparison -- was run in its place and reported with its bands. Logged as a deviation rather than claimed as gate 3. Gates 2, 4 and 5 N/A by construction: nothing is added to the feature contract, no delta is claimed, no label-adjacent column is introduced. The standing gate was therefore not run end to end, which is why 01b never claims GATED.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer moved 01b -> 08b, which is the ladder's OWN next item rather than a judgment override -- unlike the last two moves, no item now gates anything cheap and high-value. 05a is unblocked by 01b closing, and it should be re-read before it is run rather than started: 01b has substantially deflated it, because the ceiling question 05a was waiting on now has an answer and the answer is that p10 and p50 have no resolvable headroom for a different model family to capture. Three findings are flagged for other groups and were NOT acted on unilaterally. (1) 11a now carries the p90 result -- it is the only head where floor and achieved separate, the two band edges are not in the same state, and a Mondrian scheme that recalibrates the band symmetrically would correct the edge with nothing to give alongside the edge that has something; 'What 01b hands 11a' is written into work/11-parallel-surfaces.md. (2) 08d matters to 01 after all, in a way 01a did not anticipate: a real C1-C5 identity would make a cross-season same-circuit match well defined and is the only named route to restoring the different-race constraint this item had to drop. (3) 05d remains filed and unblocked with its encoder-refit confound still open, unchanged by this session."
+    },
+    {
+      "date": "2026-09-09",
+      "session": "08b aggregation-scope audit - the GROUP BY blind spot is closed, and it found five live leaks, one of them in four of the 33 features",
+      "landed": "ml/src/features.py gains audit_aggregation_scope() (the gate, over the mart's model lineage) and survey_aggregation_scope() (report-only, over the int_/stg_ models outside it), plus _declared_known_leaks() so the accepted leaks are printed on every run rather than resting in a YAML file. Both wired into `make ml-features`, which now fails on an undeclared aggregation scope, on a malformed declaration, and on a declaration that no longer matches any aggregation in its model. audit_forward_window's inlined lineage BFS is replaced by the shared _mart_lineage() helper (behaviour unchanged; its own tests still pass). 7 new tests in ml/tests/test_features.py -- 189 ML tests pass. 16 exemption entries covering all 17 findings land in transform/models/{intermediate,marts}/schema.yml under meta.aggregation_scope_exemptions. work/08-foundations-repair.md: 08b gains 'Corrections to this spec, made while building it', 'What it found' and 'The race-scoped spine', and two new items 08e and 08f are written in full. build-log.json: 08b SPEC -> LANDED; 08e and 08f added as SPEC; pointer 08b -> 08e. Nothing committed.",
+      "verified": [
+        "The gate works in both directions. With all declarations suppressed, features.py --check returns exit code 1 and enumerates all 17 findings; with them in place it returns 0. A declaration whose key set matches no aggregation in its model is reported as a stale exemption. Both proved by throwaway probe, scratchpad only.",
+        "The detector sees the two shapes it was built for. int_sc_hazard_history's GROUP BY circuit_slug is reported as 'pools every ingested season - this crosses the train/eval split' and int_corner_skill_residuals' (corner_name, lap_window, race_id, race_year) is reported too; both are in survey_aggregation_scope()'s output today and both are asserted by name in test_aggregation_survey_names_the_two_known_instances. Four synthetic-SQL tests reproduce the shapes independently of the warehouse, including the aliased-bucket hole (FLOOR(lap_number/5)*5 AS lap_number) and a negative control.",
+        "Coverage: 31 aggregation scopes in the 24-model mart lineage, 17 of which do not pin a lap; 58 scopes in the 36 int_/stg_ models outside it, 56 of which do not. 0 models unparsed in either pass.",
+        "int_lap_thermal_proxy: 55.92% of the 137,447 mart rows carry a stint_baseline_pace whose median window includes laps that had not yet run; mean forward reach 4.65 laps, max 45; by position in stint 1.00/1.00/0.974/0.973/0.945 at laps 1-5 with mean reach 11.10/11.83/11.07/10.25/9.37. Query over int_stint_geometry joined to fct_cliff_prediction_features, warehouse opened read_only.",
+        "int_stint_geometry.stint_length_actual == fct_stint_features.stint_length_laps on 8,333 of 8,333 stints, r = 1.0. stint_length_laps is what features.py:143 subtracts lap_in_stint from to synthesise remaining_stint_life_laps, so the thermal baseline's cutoff is a function of the stint-life label.",
+        "assert_no_future_leakage.sql re-derives cumulative_push_load_surface/bulk from push_residual with backward LAGs and never checks push_residual itself. Its own comment calls it 'the definitive future-leakage guard'. Read directly.",
+        "The circuit x constructor chain to a live feature, traced in SQL: int_circuit_x_constructor_interaction.circuit_constructor_interaction_s -> constructor_component_s (int_lap_residual_decomposed:223-225) -> driver_skill_residual_s (:299-314) -> int_lap_anomaly_flags -> cliff_candidate_flag (int_lap_anomaly_flags:247-252). 522 cells, mean 2.79 seasons pooled, 57.4% of pre-2024 panel rows in a cell that also holds a 2024 observation.",
+        "survival_weight is used as the XGBoost sample weight for the quantile regressors (train.py:175) and to weight the scores (evaluate.py:613); it is in IDENTIFIER_COLUMNS, not FEATURE_COLUMNS.",
+        "int_lap_anomaly_flags' per-race z-score is diagnostic: cliff_candidate_flag is (mad_score > 3.0 AND cliff_onset_passed AND driver_skill_residual_s > trailing_median_s), both mad_score inputs come from the backward-only trailing window, and the mart reads only lap_id, anomaly_class, cliff_candidate_flag and is_rain_lap from that model.",
+        "race_id is globally unique across ingested seasons: 147 distinct ids in fct_lap_residuals, 149 in int_stint_geometry and in fct_stint_features, zero reused across seasons in any of them. The audit relies on this to avoid a false positive on int_lap_telemetry_aggregates.",
+        "make ml-features passes: forward-window CLEAN, aggregation-scope CLEAN, 5 declared known_leaks printed, leakage guard CLEAN at 33 features, fingerprint 7e004db5cda951d00a5f67818c1e971cdf819a2f0e27b5f8040958c8d44fe670. make ml-test: 189 passed."
+      ],
+      "assumed": [
+        "MATERIALITY OF ALL FIVE LEAKS IS UNMEASURED. Every number above is about construction and reach, not about how much the models gain from it. 02a's ruling is the template for what a materiality measurement looks like and none of it has been done here. No claim that any headline number is inflated by any amount.",
+        "The race-scoped ruling on eleven findings rests on the judgment that the deployed use is post-hoc race analysis, not live mid-race prediction. That is inferred from what the app does and from load_scoring_frame() reading the whole mart; it is not written down anywhere as a product decision, and if a live surface is ever proposed the eleven acceptances have to be re-opened together.",
+        "int_lap_fuel_state's MAX(lap_number) is accepted on the argument that it stands for the scheduled race distance, a pre-race known. The two differ where a race is stopped early and that divergence has NOT been counted.",
+        "The audit is model-level, not column-level: a flagged aggregation is attributed to a model that reaches a feature, not proven to reach one through that specific column. Deliberate over-approximation. Where a chain is claimed in the notes above it was traced by hand and is listed under verified; the rest are not.",
+        "The 56 survey findings outside the lineage have not been triaged at all. They are an advance notice list, not a ruling.",
+        "Whether 08e or 08f should run first is a judgment call, not a dependency. 08e is cheaper and does not move the headline; 08f changes the sample weights and therefore re-baselines it."
+      ],
+      "gates_run": "Gate 5 (forward-window audit) only, and it is the gate this session extended -- both audits CLEAN under `make ml-features`. Gates 1-4 were NOT run: nothing was refit, no delta was measured, and no number in this session is a model score. Gate 6 does not apply.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer moved 08b -> 08e, which is a JUDGMENT OVERRIDE of the ladder's own next item (08c) and is flagged as one. The grounds are group 08's own opening rule -- anything that changes what you would measure goes before the measurements -- and 08e is a forward reach into four of the 33 features in the headline model. Run 08e's materiality measurement BEFORE the rebuild, on 02a's template, because the construction is enough to bar a claim but not enough to price the fix. Then run 08f immediately after and re-run gates.md step 1 ONCE across both, rather than re-baselining the headline twice. 08c and 08d are unchanged and still cheap. Nothing in this session touched a model, a warehouse table or git state."
+    },
+    {
+      "date": "2026-09-09",
+      "session": "08e materiality - the thermal baseline's forward reach is decisive, not suggestive, and it inverts the feature's sign",
+      "landed": "No code, no warehouse table, no model touched. work/08-foundations-repair.md gains '08e materiality - MEASURED 2026-09-09, and it is not the cheap case': the instrument check, defect 2 proved exact against the mart's own label column, the 02a-template delta table, a POSITION-MATCHED control table that removes the confound 02a flagged in its own control and could not fix, the two sign-inversion tables, the minimum-observation floor pricing, the declarability hazard, and the method. build-log.json: 08e SPEC -> MEASURED with the numbers in its note; pointer held on 08e, whose rebuild half is still open. Probe scripts are scratchpad-only and not committed.",
+      "verified": [
+        "Instrument check. The probe's BLOCK arm rebuilt from int_stint_geometry x stg_laps reproduces int_lap_thermal_proxy exactly: stint_baseline_pace and push_residual bit-for-bit on 162,729 of 162,729 rows, max abs diff 0.0. Warehouse opened read_only from transform/.",
+        "Defect 2 is exact, and stronger than 08b recorded. baseline_cutoff_lap == GREATEST(CEIL(stint_length_laps*0.60),3) on 121,193 of 121,193 training-eligible mart rows -- the cutoff is re-derivable from the mart's own stint-life label numerator, not merely equal to a column that happens to match it. corr(baseline_cutoff_lap, remaining_stint_life_laps) = +0.5644.",
+        "Materiality, 02a's template, race-clustered bootstrap 2000 resamples, n=109,904. delta = BLOCK - TRAILING vs label, control = lap_in_stint >= baseline_cutoff_lap (zero forward reach). Degradation: contaminated -0.0501 [-0.0845,-0.0055], control +0.0561 [+0.0284,+0.0873], paired difference -0.1062 [-0.1540,-0.0554], one-sided p=0.000. Stint-life paired difference -0.0703 [-0.1807,+0.0303] p=0.082. Cliff P(0-2) +0.0184 [-0.0161,+0.0546] p=0.147; P(any) -0.0239 p=0.212.",
+        "The position-matched control, which 02a could not build. At a fixed lap_in_stint, contamination status depends only on the stint's own cutoff, so both arms coexist at the same stint position; 21 strata (laps 6-26, >=300 rows both sides), n=85,693. Matched difference in the BLOCK->TRAILING swing: degradation -0.0350 [-0.0633,-0.0073] p=0.010; cliff P(0-2) -0.0357 [-0.0518,-0.0230] p=0.000; stint-life +0.1055 [+0.0361,+0.1776] p=0.001. All three clear, including the cliff family, which did NOT clear unmatched.",
+        "Two independent sign inversions. corr(push_residual, remaining_stint_life_laps) on contaminated rows: -0.1231 [-0.1504,-0.0943] under production, +0.0315 [-0.0231,+0.0897] under trailing; on control rows both positive (+0.0945 / +0.1251). Swing on contaminated rows +0.1546 [+0.0800,+0.2268], five times the control's +0.0305 [+0.0217,+0.0392]. Separately, corr(push_residual, next_5_lap_cumulative_jump_s) on lap_in_stint<=4 (n=7,701) is -0.1191 under production and +0.1197 under trailing, against +0.1984 / +0.2490 on lap_in_stint>=5.",
+        "The rebuild is priced and it is cheaper than 02a's. Over all 121,193 training-eligible rows, BLOCK coverage is 99.69%; a trailing floor of n>=1 gives 98.28% (-1.41pp) and raises marginal corr on all three targets (deg +0.0867 -> +0.2031, cliff -0.0239 -> +0.0354, life -0.1041 -> +0.0738). Floors 2/3/5 cost 3.49/8.82/19.09pp. 02a's rebuild cost -2.22pp.",
+        "Where the floor=1 loss sits: 2,018 rows, 41.8% at lap_in_stint 2, 16.7% at 4, 14.4% at 5, tail to lap 15. Cause traced: lap 1 of a stint is an out-lap with is_valid_lap=FALSE, so lap 2's only predecessor contributes no observation to a valid-lap median."
+      ],
+      "assumed": [
+        "EVERY MATERIALITY NUMBER IS A FLOOR. The delta-defined arm requires TRAILING to exist, which excludes lap_in_stint <= 4. 83.5% of contaminated training-eligible rows are kept and the dropped ones carry HIGHER mean forward reach (9.84 vs 7.34 laps), so the measurement is taken on the low-reach half of the contamination.",
+        "NO CLAIM ABOUT THE HEADLINE. Nothing here is a model score. No model was refit, no ablation was run, no delta against any reseed floor exists. The correlation contrasts say the contamination carries label signal and inverts the feature; they do not say what the published numbers do when it is removed. That needs the rebuild and gates.md.",
+        "The recommended floor of n>=1 is a recommendation, not a gated choice. Floors above 1 buy more degradation signal for several points of coverage and that trade has not been run through the gate.",
+        "The declarability of the rebuild's NULLs is an open hazard, not a settled question. 02a could call its NULLs declarable because they were deterministic on lap_number, already in the contract via age_in_stint. These are deterministic on the count of valid prior laps in the stint, which is not a contract axis and which rises with SC and pit disruption -- plausibly correlated with the outcome. The proposed companion column is untested.",
+        "The cliff target is a 4-way categorical scored here as two binaries (P(0-2) and P(any)). That is a reasonable encoding of what the classifier is asked but it is not the multi:softprob loss the model actually optimises.",
+        "The control arm's own swing is non-zero (+0.003 to +0.026) and is attributed to BLOCK and TRAILING differing even at zero forward reach (BLOCK is laps 1..cutoff, TRAILING is laps 1..t-1, a superset). The matched difference subtracts it; the attribution itself is reasoning about the construction, not a separate measurement."
+      ],
+      "gates_run": "None. No model was fit, so gates 1-4 do not apply and were not run; gate 5's audit is what opened this item and its verdict is unchanged; gate 6 does not apply to a measurement. Per gates.md the item is MEASURED, never GATED. Statistical protocol: race-clustered bootstrap correlation contrasts, 02a's instrument, the same one in both arms -- NOT intervals.py::paired_t and NOT attribution.py::refit_noise_floor, so no number here may be diffed against a floor ratio or a CV p-value.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer HELD on 08e: the materiality half is done and the rebuild half is not. The measurement changed the case for the rebuild from hygiene to correction -- the production feature's sign reverses across the leak boundary in two independent tests, so this is not 02a's 'contamination behaves as noise' outcome and the four features cannot be ablated or quoted as they stand. The rebuild is now the cheapest it will ever look: floor n>=1 costs 1.41pp coverage and raises marginal correlation on all three targets. Build it as the shared trailing-median dbt macro so 02g is a call rather than a rediscovery, carry the valid-prior-lap count as a companion column because 02a's declarability argument does NOT carry over, extend assert_no_future_leakage to push_residual itself, and do it JOINTLY WITH 08f so gates.md step 1 re-baselines the headline once rather than twice. Nothing in this session touched a model, a warehouse table or git state."
+    },
+    {
+      "date": "2026-09-09",
+      "session": "08e + 08f rebuilds built and green -- the substrate is point-in-time, and nothing is gated yet",
+      "landed": "transform/macros/trailing_median.sql (new): trailing_median, trailing_observation_count and the shared trailing_window_frame, whose frame always ends at 1 PRECEDING and has no CURRENT ROW variant by design. int_lap_thermal_proxy rebuilt on it (08e), int_circuit_x_constructor_interaction rebuilt as two point-in-time windows (08f-2), fct_cliff_prediction_features' survival curve season-lagged (08f-1) and carrying the new baseline_observations_n column in its enforced contract. assert_no_future_leakage extended to the baseline itself, the floor rule and the residual identity; assert_stint_boundary_integrity re-anchored. Three known_leak exemptions removed and two re-declared as accepted. macros/README.md, both schema.yml files and the leaf doc updated; docs/reference regenerated; transform/tests/model_hashes.baseline.json re-snapshotted from a fresh CI fixture build. NOTHING COMMITTED.",
+      "verified": [
+        "The rebuilt dbt model reproduces the priced 08e probe exactly on training-eligible mart rows (n=121,193): push_residual coverage 99.688% -> 98.275%; corr with next_5_lap_cumulative_jump_s +0.0867 -> +0.2031; with remaining_stint_life_laps -0.1041 -> +0.0738; with P(cliff 0-2) on non-NULL class rows (n=114,507) -0.0239 -> +0.0354. Priced numbers were 99.69->98.28, +0.0867->+0.2031, -0.1041->+0.0738, -0.0239->+0.0354. Lost rows 2,018, 41.8% at lap_in_stint 2 -- the priced distribution.",
+        "The extended assert_no_future_leakage FIRES on the defect it was written for: run against the old block-median definition it returns 145,934 of 162,729 rows; against the rebuild, 0. It re-derives the baseline by self-join on strictly-prior laps, not with the macro the model uses.",
+        "dbt run green on all 72 models; dbt test green on all 622; the CI fixture build (--target ci) green on 705. The CI fixtures hold three seasons (2020, 2023, 2024), so the season-lagged survival curve is genuinely exercised -- only 30 of 2,562 rows sit at the unity weight.",
+        "ml/src/features.py --check: forward-window audit CLEAN, aggregation-scope audit CLEAN, leakage guard CLEAN at 33 features, and NO declared known_leak line at all -- the first run in which the feature lineage carries zero known leaks.",
+        "int_circuit_x_constructor_interaction grain unchanged: 1,456 rows, 1,456 distinct constructor_race_id. Prior-visit counts behave as expected (mean 0.00 in 2018 rising to 2.93 in 2024), and circuit_constructor_interaction_s is identically 0 across all 197 2018 rows against mean |value| 0.065-0.105s in 2019-2024.",
+        "race_id is 'YYYY_R' as a string in every row (0 of 147 distinct ids fail '^[0-9]{4}_[0-9]+$'), and (race_year, round_n) identifies all 147 races -- checked before using round_n as a window ordering key.",
+        "DuckDB GREATEST(NULL, 0) returns 0, checked directly. That is why the EW loads carry an explicit CASE rather than relying on NULL propagation."
+      ],
+      "assumed": [
+        "NO CLAIM ABOUT THE HEADLINE, and none is available yet. No model was refit. gates.md steps 1-4 have not been run. The correlation table says the rebuilt feature carries label signal the contaminated one inverted; it does not say what the published numbers do.",
+        "THE DATA-PROFILE DRIFT IS CONFOUNDED AND MUST NOT BE ATTRIBUTED TO 08e/08f. The full dbt run also applied other uncommitted working-tree changes (fct_stint_features.sql, the int_stint_end_regime model from 10a, an 841-line compound_cliff_params.csv refit and fit_compound_cliff.py). snapshot_data_profile --check against dev shows moves in ambient_temp_delta, compound_component_s and driver_skill_residual_s that 08e and 08f cannot explain. Attribution belongs to the gate's add-ablation on a fixed split, not to a profile diff.",
+        "The re-snapshotted model_hashes.baseline.json therefore also carries those other pending changes, not only this session's.",
+        "The declarability hazard is made VISIBLE, not closed. baseline_observations_n ships so a consumer can condition on the missingness; whether the missingness itself carries outcome signal into XGBoost's native-NaN default direction is unmeasured, and whether the column belongs in X is an ungated add-ablation.",
+        "Expanding-vs-trailing-N for the stint baseline is a judgment from the stint's length (~20 laps), not a measurement. Only the expanding arm was priced.",
+        "The floor of 1 is what was priced, not what was gated. Floors 2/3/5 buy more degradation signal for 3.49/8.82/19.09pp of coverage and that trade has not been run through the gate.",
+        "The two `accepted` mart exemptions rest on reasoning about the construction -- that the only reader of the per-season counts is a strictly-prior-season window -- not on a separate measurement.",
+        "Making the loads NULL where the current lap's residual is NULL, while prior-lap NULLs still contribute 0, is a deliberate asymmetry chosen for consistency with the pre-stint-boundary convention. It is a choice, not a measurement, and it changes what the four thermal features look like on early-stint rows.",
+        "2018's now-zero circuit interaction and unity survival weights are correct-by-construction but unpriced: an entire training season loses that feature's variation and gains unweighted rows, and only the gate can say what that costs."
+      ],
+      "gates_run": "None. gates.md step 1 (instrument check) was deliberately NOT run: the substrate moved on purpose, so a refit cannot reproduce the v11 headline to six decimals and the step is a re-baseline rather than a reproduction -- which needs a production retrain that would overwrite ml/models/*, and that is the user's call. Steps 2-4 need that baseline first. Step 5's audit is the one that opened both items and it now reports CLEAN with zero known_leaks. Step 6 does not apply -- no arms were run.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer HELD on 08e, now jointly with 08f: both rebuilds are in the warehouse and green, and neither is gated. The next move is gates.md step 1 as a RE-BASELINE, not a reproduction -- refit at the tuned params on the rebuilt substrate and record the new headline with v11 named beside it -- then steps 2-4 for the four thermal features and the circuit-interaction chain. Two things to settle before that refit: it overwrites ml/models/* so it needs the user's go-ahead, and the working tree carries unrelated uncommitted changes (10a's stint-end-regime model, the compound_cliff seed refit) that the rebuilt warehouse already contains -- so the new headline will price those too unless they are committed or reverted first, and it must be recorded as pricing them."
+    },
+    {
+      "date": "2026-09-09",
+      "session": "08e + 08f gate step 1 - the substrate is clean, the confound is closed by measurement, and every headline gets worse",
+      "landed": "No new code beyond the previous entry's. What is new is a measurement: gates.md step 1 run as a re-baseline, as a true BEFORE/AFTER A/B on one warehouse, plus the leaf doc section 'gate step 1' recording it. Both arms went through evaluate.py's own run()/_fit/_score with ARTEFACTS_DIR redirected to a scratch directory, so ml/models/* and ml/artefacts/* are untouched and no retrain was run. The working tree is back in its intended state (the A/B's reverted arm was restored from backups and rebuilt; dbt test green on 622 afterwards). NOTHING COMMITTED.",
+      "verified": [
+        "GATE STEP 1 INSTRUMENT CHECK PASSES. With 08e and 08f reverted in place and the two subtrees rebuilt, all five headlines reproduce the published v11 artefact to better than 1e-9: 0.5187980 / 1.0163386 / 0.5600310 / 0.3802680 / 1.9487233. The harness has not moved and neither has anything else in this mart's lineage.",
+        "The headline delta, same warehouse, only 08e+08f differing. Pinball and AFT nloglik are lower-is-better, macro F1 higher-is-better: degradation p10 +0.0165730, p50 +0.0244437, p90 +0.0060047, cliff macro F1 -0.0097912, stint-life AFT nloglik +0.0413464. All five move in the WORSE direction.",
+        "The confound is closed by measurement, not by argument. (a) The BEFORE arm reproduces v11 exactly on five independent metrics, which no other pending working-tree change could survive if it touched this lineage. (b) The compound_cliff_params refit is NOT in the warehouse: dbt run does not seed, and the seeded table still differs from the CSV on disk (same 438x17 shape, different values). (c) fct_cliff_prediction_features does not ref fct_stint_features or int_stint_end_regime -- checked against its ref list.",
+        "Protocol anchoring holds: n_eval_rows and the constant-predictor baseline_headline are bit-identical across both arms on all five targets (13,896 / 19,145 / 20,272 rows; 1.464425 / 2.177660 / 0.890801 / 0.218654 / 2.186889). Population, split and labels did not move, so the two headlines are comparable.",
+        "The dev build is reproducible at the headline. The AFTER evaluation was re-run against a second independent full dbt run of the same SQL and all five came back bit-identical (0.535371003 / 1.040782333 / 0.566035645 / 0.370476863 / 1.990069681, zero difference). This was checked because the ci profile pins DuckDB's internal threads to 1 for byte-reproducibility and the dev profile does not.",
+        "evaluate.run() never calls load_model -- it refits from {target}_best_params.json and writes only under ARTEFACTS_DIR. That is why the re-baseline needed no production retrain, and it is what let both arms run without touching a shipped artefact.",
+        "After restoring the rebuilt models: dbt run green on all 72, dbt test green on all 622, push_residual coverage back to 98.275% and all 197 of 2018's circuit-interaction rows at 0 -- the warehouse matches the AFTER arm it was measured on."
+      ],
+      "assumed": [
+        "THE MAGNITUDE IS NOT YET INTERPRETABLE. Gate steps 2-4 have not been run: no add-ablation isolating the four thermal columns from the circuit-interaction chain, no attribution.py::refit_noise_floor reseed floor for any family, no permutation-null arm. The DIRECTION is established; no delta above may be called significant, and none may be quoted as clearing or missing a floor.",
+        "The five deltas are the JOINT effect of 08e and 08f. Nothing here separates the thermal rebuild from the season-lagging, and the two reach the targets by different paths.",
+        "That the headline got worse is consistent with removing label information from features, but 'the leak was worth this much' is an interpretation, not a measurement. An alternative reading -- that the rebuilt features are noisier for reasons unrelated to the leak, e.g. 2018's now-zero interaction term and its unity survival weights -- is not excluded by anything run so far, and the permutation-null arm is what would separate them.",
+        "The dev/ci thread-pinning asymmetry is real in the profile and showed no cost at the headline across the runs made here. That is not proof it never drifts; it is one reproduction on one measurement.",
+        "Everything from the previous entry's `assumed` list still stands, in particular the declarability hazard around baseline_observations_n and the ungated floor of 1."
+      ],
+      "gates_run": "Step 1 (instrument check) RUN, and passed in the form that applies here: the BEFORE arm reproduces published v11 to better than 1e-9, so the harness is unmoved and the headline is re-baselined rather than reproduced. Step 5 (forward-window audit) CLEAN with zero declared known_leaks. Steps 2 (add-ablation), 3 (reseed floor) and 4 (permutation null) NOT RUN. Step 6 does not apply -- no arms were pre-registered because none were run. Per gates.md an item that skips a step is MEASURED, never GATED: 08e and 08f remain BUILDING.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer HELD on 08e with 08f alongside. The substrate is built, green, audited clean and now re-baselined, and the direction is known: all five headlines get worse without the leak. What is missing is the only thing that makes the magnitude mean anything -- gates.md steps 2-4. Run the add-ablation on cv_final_fold separating the four thermal columns from the circuit-interaction chain, get each family's own reseed floor from attribution.py::refit_noise_floor, and run the permutation-null arm. READ THIS BEFORE MEASURING ANYTHING: data/dev.duckdb ALREADY HOLDS THE REBUILT SUBSTRATE (08e + 08f applied, uncommitted), so any evaluation run now returns the NEW headline (p50 1.0407823), not v11's 1.0163386. ml/artefacts/evaluation_metrics.json was deliberately left untouched and still holds the OLD v11 numbers, so the shipped artefact and the warehouse DISAGREE by design -- do not treat that file as the current baseline and do not overwrite it to 'fix' the mismatch without deciding to land 08e/08f first. The baseline every step 2-4 delta is measured against is the AFTER column in work/08-foundations-repair.md's 'gate step 1' table, not that file. The v11 numbers stop being comparable to anything the moment this substrate is committed. Nothing is committed and ml/models/* is untouched."
+    },
+    {
+      "date": "2026-09-09",
+      "session": "08e + 08f gate steps 2-4 - the rebuilt thermal block is a large information win, and cliff_candidate_flag carries nothing",
+      "landed": "No production code changed. What is new is a measurement and the tree entries for it: gates.md steps 2-4 run for 08e + 08f on the rebuilt substrate, gate step 5 re-run rather than carried over, the leaf doc section 'gate steps 2-4' recording all of it, a new work item 08g with its own leaf doc section, and decision D3 on whether to land. 08e and 08f move BUILDING -> GATED. The probe was scratchpad-only and reused evaluate.py's own _fit/_score and attribution.py::refit_noise_floor; nothing was written to ml/models, ml/artefacts, the warehouse or git. NOTHING COMMITTED.",
+      "verified": [
+        "FAMILY T (the four thermal columns, 08e) CLEARS ITS FLOOR ON ALL FIVE FAMILIES AND THE PERMUTATION-NULL ATTRIBUTES IT TO INFORMATION EVERY TIME. Add-delta against arm A (contract minus both families), x-floor against the larger of the full and baseline 5-reseed floors: p10 -0.0530055 (4.21x, information 5.27x), p50 -0.0808530 (8.98x, information 8.77x), p90 -0.0170216 (1.07x, information 1.35x), cliff macro F1 +0.0141401 (2.41x, information 2.43x), stint life AFT nloglik -0.0336961 (4.37x, information 3.93x).",
+        "FAMILY C (cliff_candidate_flag, the only contract column 08f-2 reaches) IS INSIDE ITS FLOOR ON ALL FIVE AND ITS INFORMATION TERM IS INSIDE BY MORE. Totals 0.10x-0.79x, information 0.00x-0.41x, the largest being +0.0031380 on stint life and +0.0000009 on p50. Whatever it moves, it moves as split capacity. The column is TRUE on 0.854% of the 137,447 mart rows (1.835% in 2018 against 0.470-1.258% for 2019-2024).",
+        "THE FAMILY DEFINITIONS ARE LINEAGE, NOT TASTE. int_lap_thermal_proxy has exactly three consumers (this mart, fct_stint_features, int_tyre_surface_vs_bulk_decoupling) and dirty_air_thermal_load_surface/bulk come from int_lap_air_state, which does NOT ref it - so 08e reaches exactly the four thermal columns. int_circuit_x_constructor_interaction reaches the contract only through int_lap_residual_decomposed -> int_lap_anomaly_flags.",
+        "circuit_constructor_interaction_s is identically 0 across all 197 of 2018's rows and runs mean |value| 0.0648-0.1050 for 2019-2024, read directly from dev.duckdb read-only - the leaf doc's stated consequence of the 08f-2 rebuild, confirmed.",
+        "GATE STEP 5 RE-RUN THIS SESSION rather than carried forward: features.py --check reports forward-window audit CLEAN, aggregation-scope audit CLEAN, leakage guard CLEAN (33 features), fingerprint 26345ce72330791acc8803fa7b3e00929cdf63a29c6516899a8642ba100d0906.",
+        "The harness is on the same instrument as step 1: the full arm reproduces the AFTER headline 1.0407823 on p50 before any ablation arm was fitted."
+      ],
+      "assumed": [
+        "THE SPLIT OF STEP 1'S REGRESSION BETWEEN 08e AND 08f-2 IS NOT MEASURED. Steps 2-4 ran on the AFTER substrate only. 'C carries nothing now' and 'C carried nothing before' are different claims and a leak-removal that emptied the column would look exactly like the former. Do not read family C's null result as evidence that 08f-2 cost nothing. 08g exists to measure it.",
+        "The joint-contribution arithmetic for cliff and stint life (before +0.0234932 / -0.0737232, after +0.0137021 / -0.0323768, so the rebuild removed 56% of the joint contribution on stint life) rests on arm A being substrate-invariant for those two targets. That follows from lineage - A excludes both families and _row_weights returns None for classification and survival - but it was NOT measured, because measuring it needs the BEFORE substrate. It is 08g's instrument check for exactly that reason.",
+        "08f-1 IS IN NEITHER FAMILY AND IS UNMEASURED. It moves the IPW survival_weight, which is not a column, so no column ablation can see it, and it is live for the quantile trio only. The trio's step-1 regression therefore has three possible causes and two measurements.",
+        "2018's elevated cliff_candidate_flag rate is a MECHANISM, not an attribution: the zeroed interaction now flows into driver_skill_residual_s in front of a threshold calibrated without it. But 2019 sits at 1.258% with a full interaction value, so the season-rate ordering does not attribute anything on its own.",
+        "Whether GATED should become LANDED is not a measurement and was not taken. It retires a published headline, so it is D3 and it is the user's call."
+      ],
+      "gates_run": "gates.md steps 2, 3 and 4 for 08e + 08f (add-ablation on cv_final_fold via evaluate.py's _fit/_score; per-family 5-reseed floors via attribution.py::refit_noise_floor on both the full and baseline arms; permutation-null over 3 draws with the family block row-shuffled in train and eval). Step 5 re-run and CLEAN. Step 1 was run last session and step 6 was satisfied in advance by that session naming these three arms before they were run, so all six steps are now run for both items.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Pointer moves to 08g: run the same add-ablation on the BEFORE substrate so step 1's regression is split between 08e and 08f-2 rather than inferred, and so cliff_candidate_flag is ruled dead (prune arm) or damaged (rebuild the anomaly threshold). Its instrument check is that arm A comes back bit-identical to 0.3567748 (cliff) and 2.0224465 (life). Add the weights arm for the quantile trio - 08f-1 is a third channel no column ablation can see. Restore the tree to the AFTER substrate with dbt test green afterwards. Separately, D3 is open and is the user's call: 08e and 08f are GATED and eligible to land, and landing retires the published v11 headline."
+    }
+  ]
+}

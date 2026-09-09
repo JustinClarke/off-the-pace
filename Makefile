@@ -129,7 +129,7 @@ deg-iso-fit:  ## Fit isotonic tyre-deg curves + modulation coefs → data/fits/d
 ##@ 4. Transform
 
 ##   Build targets
-dbt-dev:  ## Build all 71 dbt models → data/dev.duckdb
+dbt-dev:  ## Build all 72 dbt models → data/dev.duckdb
 	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
 
 dbt-dev-full: coefficients-check car-fe-fit  ## Seed check → car-FE refit → full dbt run
@@ -145,7 +145,7 @@ query:  ## Open the warehouse in the Harlequin SQL IDE
 	./.venv/bin/harlequin data/dev.duckdb
 
 ##   Test targets
-dbt-test:  ## Run all 594 dbt tests (schema + singular + assert_* invariants)
+dbt-test:  ## Run all 620 dbt tests (schema + singular + assert_* invariants)
 	cd transform && ../.venv/bin/dbt test --profiles-dir profiles
 
 test-all:  ## CI-equivalent: full dbt build on fixtures + coefficient tests

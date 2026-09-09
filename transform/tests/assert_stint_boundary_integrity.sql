@@ -1,6 +1,24 @@
 -- Stint boundary integrity test.
--- At lap_in_stint = 1 the EW windows partition by stint_id, so no prior-stint data bleeds in.
+-- At the stint's FIRST SCORED lap the EW windows partition by stint_id, so no
+-- prior-stint data bleeds in: every lagged term is either outside the partition or
+-- inside it with a NULL push_residual, and both contribute 0. So the load must equal
+-- GREATEST(push_residual, 0) exactly.
+--
+-- The anchor used to be lap_in_stint = 1. Since 08e rebuilt the baseline as a trailing
+-- window, lap 1 has no prior valid lap and its push_residual is NULL, which would make
+-- that check pass on a NULL comparison without testing anything. The anchor is now the
+-- first lap of the stint that HAS a push_residual, which is the same boundary the test
+-- was always about.
+--
 -- Three checks across three models:
+
+WITH first_scored AS (
+    SELECT
+        *,
+        lap_in_stint = MIN(CASE WHEN push_residual IS NOT NULL THEN lap_in_stint END)
+            OVER (PARTITION BY stint_id) AS is_first_scored_lap
+    FROM {{ ref('int_lap_thermal_proxy') }}
+)
 
 -- 1. Thermal proxy: cumulative_push_load_surface = GREATEST(push_residual,0) exactly at lap 1.
 SELECT
@@ -9,8 +27,8 @@ SELECT
     lap_in_stint,
     cumulative_push_load_surface AS actual,
     GREATEST(push_residual, 0)    AS expected
-FROM {{ ref('int_lap_thermal_proxy') }}
-WHERE lap_in_stint = 1
+FROM first_scored
+WHERE is_first_scored_lap
   AND ABS(cumulative_push_load_surface-GREATEST(push_residual, 0)) > 0.0001
 
 UNION ALL
@@ -22,8 +40,8 @@ SELECT
     lap_in_stint,
     cumulative_push_load_bulk     AS actual,
     GREATEST(push_residual, 0)    AS expected
-FROM {{ ref('int_lap_thermal_proxy') }}
-WHERE lap_in_stint = 1
+FROM first_scored
+WHERE is_first_scored_lap
   AND ABS(cumulative_push_load_bulk-GREATEST(push_residual, 0)) > 0.0001
 
 UNION ALL

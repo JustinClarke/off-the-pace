@@ -1,12 +1,12 @@
 ---
 title: "Strategy family: pit-stop and safety-car decision support"
 sidebarTitle: "Strategy"
-description: "Four counterfactual and base-rate models built on top of the closed residual and the cliff prediction one already shipped to the app, two built ahead of any consumer."
+description: "Counterfactual, base-rate and stint-ending models built on top of the closed residual and the cliff prediction one already shipped to the app, others built ahead of any consumer."
 ---
 
 ## What this family does
 
-Strategy answers decision-support questions the rest of the pipeline doesn't: was a pit stop early, late, or undercut-forced; how often does a given circuit see a Safety Car per racing lap; and which constructors degrade their tyres faster or hit the cliff later than the field. All four models are counterfactual or base-rate estimates built on top of earlier families, not new physics terms none of them feeds back into the residual identity.
+Strategy answers decision-support questions the rest of the pipeline doesn't: was a pit stop early, late, or undercut-forced; how often does a given circuit see a Safety Car per racing lap; which constructors degrade their tyres faster or hit the cliff later than the field; and why a given stint ended at all. These are counterfactual, base-rate or labelling estimates built on top of earlier families, not new physics terms none of them feeds back into the residual identity.
 
 Upstream spans three families: Pace Baselines (`int_compound_cliff_predicted`, the cliff model every strategy counterfactual assumes is correct), Residual Decomposition (`int_lap_residual_decomposed`, for the deg-sensitivity slope), and Staging directly (`stg_track_status`, `stg_results`, `stg_pits`, `stg_laps` for the two circuit base-rate models, which don't need any physics decomposition first). Downstream is thin and uneven: only two of the four models are read by anything else in dbt at all.
 
@@ -28,6 +28,9 @@ flowchart LR
     stg_track_status --> int_sc_hazard_history
     stg_laps --> int_sc_hazard_history
 
+    int_stint_geometry --> int_stint_end_regime
+    stg_results --> int_stint_end_regime
+
     stg_track_status --> int_pit_loss_circuit
     stg_results --> int_pit_loss_circuit
     stg_laps --> int_pit_loss_circuit
@@ -36,13 +39,14 @@ flowchart LR
 
     int_constructor_deg_sensitivity --> fct_ghost_car_pace["fct_ghost_car_pace (Marts)"]
     int_pit_strategy_value --> fct_stint_features["fct_stint_features (Marts)"]
+    int_stint_end_regime -->|is_censored_stint, stint_end_cause| fct_stint_features
     int_pit_strategy_value -.->|app export| AppExport["Pit Strategy feature"]
     int_sc_hazard_history -.->|no dbt or app consumer| Nothing["(leaf)"]
 
     classDef strat fill:#111827,stroke:#e40404,color:#fff;
     classDef src fill:#1f2937,stroke:#6b7280,color:#d1d5db;
     classDef downstream fill:#1f2937,stroke:#6b7280,color:#d1d5db,stroke-dasharray: 3 3;
-    class int_constructor_deg_sensitivity,int_pit_strategy_value,int_sc_hazard_history,int_pit_loss_circuit strat;
+    class int_constructor_deg_sensitivity,int_pit_strategy_value,int_sc_hazard_history,int_pit_loss_circuit,int_stint_end_regime strat;
     class int_lap_residual_decomposed,int_compound_cliff_predicted,dim_compounds_season,int_stint_geometry,int_lap_air_state,stg_pits,stg_track_status,stg_laps,stg_results,circuit_reference,dim_circuits src;
     class fct_ghost_car_pace,fct_stint_features,AppExport,Nothing downstream;
 ```
@@ -137,5 +141,8 @@ Laps are compared as offsets in valid laps rather than lap numbers, so an invali
   </Card>
   <Card title="int_pit_loss_circuit" icon="circle-parking" href="/reference/models/int/int_pit_loss_circuit">
     Empirical per-circuit pit-lane loss from real green-flag in-lap/out-lap deltas, pooled per physical venue and EB-shrunk. Read by int_pit_strategy_value.
+  </Card>
+  <Card title="int_stint_end_regime" icon="flag-triangle-right" href="/reference/models/int/int_stint_end_regime">
+    Why each stint ended, at stint grain: green_pit / sc_pit / vsc_pit / red / race_end / retirement, under a declared precedence. Owns is_censored_stint. 28.8% of the stints the survival target calls completed tyre lives ended under a deployment instead.
   </Card>
 </CardGroup>

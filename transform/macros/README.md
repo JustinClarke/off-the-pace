@@ -76,6 +76,42 @@ FROM fitted_panel
 
 ---
 
+### `trailing_median(value_col, partition_by, order_by, lookback=none, frame='rows', min_observations=1, valid_condition=none)`
+
+Median of `value_col` over observations **strictly before** the current row. The canonical
+point-in-time baseline.
+
+The frame always ends at `1 PRECEDING`, and there is deliberately no variant that ends at
+`CURRENT ROW`: a baseline that includes the lap it scores is a different statistic and must not
+share the name. `min_observations` floors the window — below it the result is NULL rather than a
+median over one or two observations. `frame='range'` counts values of the ORDER BY column instead
+of rows, which is what a *field* statistic pooled across several entities at the same time index
+needs.
+
+Both of the leaks that opened work item `08` were a baseline built with a `GROUP BY` over a block
+that included the row it scored. This macro exists so the next one is a call rather than a
+rediscovery.
+
+**Ship `trailing_observation_count()` beside it** in any model feeding the ML contract. The
+median's NULLs are deterministic on the count of valid prior observations, which is not a feature
+contract axis — the count is what makes that missingness visible to a consumer instead of silent.
+
+**Used by:** `int_lap_thermal_proxy` (`stint_baseline_pace`, expanding, floor 1). Written for two
+more callers with the same shape: `int_corner_skill_residuals` (`02g`, trailing-5 with
+`frame='range'`) and `int_sc_hazard_history` (`02d`).
+
+**Example:**
+```sql
+SELECT
+  {{ trailing_median('lap_time_s', ['stint_id'], ['lap_in_stint'],
+                     valid_condition='is_valid_lap') }} AS stint_baseline_pace,
+  {{ trailing_observation_count('lap_time_s', ['stint_id'], ['lap_in_stint'],
+                     valid_condition='is_valid_lap') }} AS baseline_observations_n
+FROM combined
+```
+
+---
+
 ### `clean_lap_filter()`
 
 Reusable WHERE clause predicate filtering to "clean" laps suitable for driver skill extraction.

@@ -1,3 +1,9 @@
+> **ARCHIVED 2026-09-07 — this file is a record, not a tracker.**
+> Stage now lives only in `_improvements/status/build-log.json`; run
+> `python3 _improvements/status/board.py` for the current board. Superseded as a tracker: §3/§3a → `work/01-ceiling-instrument.md` (**read that first — §3b is not safe to build as written**), §5 → `work/04-campaign-audit.md`, §6 → `work/05-model-family.md`. §4 stays closed.
+> Paths written inside this file predate the restructure — every `_improvements/<name>.md`
+> is now `_improvements/reference/<name>.md`. See `_improvements/README.md`.
+
 # ML Research Program — What the Ceiling Actually Permits, and What It Would Take
 
 Sixth document in the `_improvements/` series, after `PLAN.md`, `transform_gaps.md`,
@@ -77,10 +83,42 @@ The entire remaining headroom is **0.0996 NLL**. The oracle is non-zero because 
 log-normal scale is a fitted term, so even exact prediction of every stint's end lap
 scores 1.8524.
 
-**Inference, not measurement:** the last fraction of that 28% is probably unreachable in
-principle. Remaining stint life is set partly by pit-wall strategy calls and safety-car
-timing — events that are not a tyre-degradation question at all and carry no signal in any
-feature this warehouse could build. A realistic target is 0.80–0.85 of attainable, not 1.0.
+**Corrected 2026-09-07 (`work/00-corrections.md` 00b). The original text asserted that
+safety-car timing "carries no signal in any feature this warehouse could build". That clause is
+false, and the 0.80–0.85 cap it justified was never measured. Both are replaced below.**
+
+Remaining stint life is set partly by pit-wall strategy calls and safety-car timing, and those
+are not tyre-degradation questions. That much stands. Three things are now measured rather than
+inferred:
+
+**Verified — SC/VSC ends a quarter of all stints.** Flagging each stint's final lap from
+`int_stint_geometry`'s `is_safety_car_lap` / `is_vsc_lap` (n=8,333 stints, 2018–2024):
+
+| population | SC on final lap | VSC on final lap | either | either, final 3 laps |
+| :--- | ---: | ---: | ---: | ---: |
+| all stints (8,333) | 15.82% | 4.42% | 19.60% | 21.29% |
+| **uncensored — a real pit decision** (5,360) | **22.01%** | **5.75%** | **26.87%** | **27.69%** |
+| censored — ends at flag/retirement (2,973) | 4.64% | 2.02% | 6.49% | 9.75% |
+
+The split is the point: a stint that ends in an actual pit stop is **four times** more likely to
+end under a deployment than one that runs to the flag. Present in every season (uncensored,
+3-lap window): 26.2 / 22.1 / 36.2 / 31.5 / 28.6 / 29.4 / 21.1% for 2018–2024.
+
+**Verified — a hazard feature exists.** `int_sc_hazard_history` holds `sc_hazard_per_lap`,
+`vsc_hazard_per_lap`, `any_hazard_per_lap` and empirical-Bayes-shrunk variants for 36 circuits,
+over 149 races and 119 SC onsets. So the "no signal in any feature this warehouse could build"
+clause is falsified by a table that already exists.
+
+**But do not over-read it in the other direction.** The shrunk per-lap hazard spans only
+0.01661 (Spanish GP) to 0.02955 (Saudi Arabian GP) — a **1.8×** spread across all 36 circuits.
+That is a per-circuit *base rate*: it says Jeddah interrupts more often per lap than Barcelona.
+It cannot say a safety car is coming on lap 32 of this race. So the recoverable share of that
+26.87% is bounded well below 26.87%, and nothing here measures where.
+
+**The cap is therefore OPEN, not 0.80–0.85.** The old range was inference resting on a false
+premise; deleting the premise does not license a new number. Converting an event share into an
+NLL cap needs the loss actually attributable to deployment-ended stints, which is a
+measurement nobody has run — see `work/02d`, which this unblocks.
 
 ### 1b. `cliff_classifier` — the ceiling does not bind
 
@@ -199,8 +237,13 @@ variance at their strictest, so a floor built on them would report that ~87% of 
 SD is irreducible and conclude the program is finished. That is exactly the "match on too
 few → genuine signal counted as noise → wrongly retire the whole program" risk this section
 already named — and it is not hypothetical, it is what these keys do. The model conditions
-on 24 features (thermal loads, push residual, throttle decay, braking drift, gap-ahead);
-circuit/compound/driver/age/fuel/temp proxies almost none of that conditioning power.
+on 33 features (stint position, compound priors, cliff priors, thermal loads, dirty air,
+and the nine `proximity` columns); circuit/compound/driver/age/fuel/temp proxies almost none
+of that conditioning power. [Corrected 2026-09-07 by `work/00-corrections.md` 00a: the count
+was 24, and the parenthetical named "throttle decay, braking drift" — `racing_line` candidates
+that were measured and never shipped, so they are not in the contract at all. The argument is
+unchanged in direction and **strengthened**: the wider the space the model conditions on, the
+less of it six hand-picked keys can proxy.]
 
 Secondary defect visible in the same table: the levels are **not comparable to each other**,
 because each survives on a different row population (26k / 17k / 10k / 22k / 16k). A sweep
@@ -236,7 +279,7 @@ Four changes, each aimed at a demonstrated failure rather than an anticipated on
    likely wider near the cliff and in traffic — so stratify the pool (age band, or predicted
    risk decile) and report a conditional noise model rather than a single scalar.
 2. **Match in the model's own feature space, not hand-picked keys.** k-NN over the scaled
-   24-feature vector, which is the space the model actually conditions on. This is what
+   33-feature vector, which is the space the model actually conditions on. This is what
    kills failure mode 1. **Not circular:** the neighbour structure is defined on X only,
    never on y and never on the model's predictions. (A leaf-index or prediction-conditioned
    metric *would* be circular — it would measure the model's own resolution and return the
@@ -385,6 +428,12 @@ could actually claim it.
 
 ## The first command the next session should run
 
+> **Superseded 2026-09-07.** The live handoff is `_improvements/status/build-log.json`; run
+> `status/board.py` for the current pointer. §3b's estimator **must not be built as written** —
+> `work/01-ceiling-instrument.md` 01b carries five defects in it, four of which §3b's own
+> falsification gate cannot detect. The feature-space figure below was corrected 24 → 33 by
+> `work/00-corrections.md` 00a; the rest of the section is kept as the record of what it asked for.
+
 `ml_execution_plan.md` is closed — its only remaining open item is the CDN publish/app-deploy
 decision, which is explicitly the user's call and not work this program depends on. **This
 program is open.** §4 is closed as not viable, so the ladder is §3 → then §5 and §6 priced by
@@ -394,7 +443,7 @@ Start with **§3b, not §3's original sketch** — the sketch is disproven, not 
 and §3a carries the numbers. Concretely, the first artefact this program should produce is:
 
 > a curve of estimated irreducible **pinball loss** (p10/p50/p90, in the headline units, not
-> in variance) against **mean k-NN distance in the scaled 24-feature space**, for
+> in variance) against **mean k-NN distance in the scaled 33-feature space**, for
 > `next_5_lap_cumulative_jump_s`, on `data/dev.duckdb`, **read-only** — with the d→0
 > extrapolated intercept reported alongside the curve, never instead of it.
 

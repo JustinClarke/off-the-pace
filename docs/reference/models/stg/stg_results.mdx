@@ -15,7 +15,10 @@ Official classified race results from FastF1 session.results. One row per driver
 ```mermaid
 flowchart LR
   stg_results --> fct_ghost_race_finish
+  stg_results --> int_lap_proximity
   stg_results --> int_pit_loss_circuit
+  stg_results --> int_stint_end_regime
+  stg_results --> stg_race_control
   style stg_results fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -27,7 +30,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**10 tests** [guard](/transform/ci/overview) this model  -  8 generic, 2 singular.
+**11 tests** [guard](/transform/ci/overview) this model  -  8 generic, 3 singular.
 
 ## Columns
 

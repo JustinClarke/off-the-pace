@@ -19,6 +19,7 @@ flowchart LR
   int_lap_residual_decomposed --> fct_stint_features
   int_lap_thermal_proxy --> fct_stint_features
   int_pit_strategy_value --> fct_stint_features
+  int_stint_end_regime --> fct_stint_features
   int_stint_geometry --> fct_stint_features
   stg_laps --> fct_stint_features
   style fct_stint_features fill:#e40404,stroke:#e40404,color:#fff
@@ -32,9 +33,9 @@ flowchart LR
 | Family | [Marts](/transform/families/marts) |
 | Contract enforced | No |
 | Tags | `feature_engineering`, `simulation` |
-| Upstream | [`int_stint_geometry`](../int/int_stint_geometry), [`stg_laps`](../stg/stg_laps), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_dirty_air_tax_component`](../int/int_dirty_air_tax_component), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_pit_strategy_value`](../int/int_pit_strategy_value) |
+| Upstream | [`int_stint_geometry`](../int/int_stint_geometry), [`int_stint_end_regime`](../int/int_stint_end_regime), [`stg_laps`](../stg/stg_laps), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_dirty_air_tax_component`](../int/int_dirty_air_tax_component), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_pit_strategy_value`](../int/int_pit_strategy_value) |
 
-**11 tests** [guard](/transform/ci/overview) this model  -  10 generic, 1 singular.
+**17 tests** [guard](/transform/ci/overview) this model  -  16 generic, 1 singular.
 
 ## Columns
 
@@ -50,8 +51,11 @@ flowchart LR
 | `cumulative_thermal_load_end` |   | Yes |   | EW cumulative thermal load at the end of the stint |
 | `cumulative_dirty_air_tax_s` |   | Yes |   | Sum of dirty air tax across all laps in the stint |
 | `cliff_lap_in_stint` |   | Yes |   | Lap position within stint where cliff is first detected (NULL if no cliff) |
-| `tyre_management_score` |   | Yes |   | Tyre management score: actual end-of-stint driver residual normalised against the optimal pit opportunity cost. Low score = good management. |
+| `tyre_management_score` |   | Yes | [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Tyre management score: actual end-of-stint driver residual normalised against the optimal pit opportunity cost. Low score = good management. Clamped to [-3, 3] - it is a ratio, and its denominator can be arbitrarily small, so it is unbounded in whichever direction that happens from. Only the ceiling existed until 2026-08-23. |
 | `end_of_stint_pace_falloff_s_per_lap` |   | Yes |   | OLS slope of driver_skill_residual_s over last 3 laps. NULL when short_stint_flag = TRUE. |
 | `short_stint_flag` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when stint_length_laps &lt; 3 (slope is NULL/unreliable) |
 | `pit_decision_class` |   | Yes |   | Pit strategy decision verdict from int_pit_strategy_value (optimal / overran / undercut_forced / early). |
-| `is_censored_stint` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | TRUE when this is the driver's last stint of the race, so it ended at the flag or at retirement rather than at a tyre change. Remaining stint life on these laps is a lower bound, not an observation. Consumed by the stint-life survival model (ml/src/features.py) to set the AFT upper bound to +inf, and by the blind-test scoreboard to report censored and uncensored stints apart. Never a model feature. |
+| `is_censored_stint` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Passed through from int_stint_end_regime, which owns the definition. TRUE when this is the driver's last stint of the race, so it ended at the flag or at retirement rather than at a tyre change. Remaining stint life on these laps is a lower bound, not an observation. Consumed by the stint-life survival model (ml/src/features.py) to set the AFT upper bound to +inf, and by the blind-test scoreboard to report censored and uncensored stints apart. Never a model feature. |
+| `end_regime` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Passed through from int_stint_end_regime. Track regime in force on the stint's final lap (green / safety_car / vsc / red_flag), severity precedence red_flag &gt; safety_car &gt; vsc. Recorded for censored stints too, where it is a fact about the lap rather than the reason the stint ended - read stint_end_cause for that. |
+| `stint_end_cause` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Passed through from int_stint_end_regime. Why the stint ended: green_pit, sc_pit, vsc_pit, red (the four uncensored causes) or race_end, retirement (the two censored ones). 28.8% of uncensored stints are sc_pit / vsc_pit / red, i.e. the pit wall taking a free stop rather than the tyre reaching its limit, so anything fitting or scoring stint life reads this alongside is_censored_stint. NULL on the 325 2018 stints built from laps FastF1 never assigned a stint number. Never a model feature. |
+| `end_cause_confidence` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Passed through from int_stint_end_regime. 'observed', 'inferred' (severity precedence had to choose, the pit marker is missing, or disqualification hides whether the driver was running) or 'unassigned_stint' (the row is not a stint). |

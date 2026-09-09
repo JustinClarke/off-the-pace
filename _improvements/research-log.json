@@ -1,0 +1,1169 @@
+{
+  "round": "R1 - state-of-the-art scan",
+  "opened": "2026-09-07",
+  "closed": "2026-09-07",
+  "status": "COMPLETE. Nine tracks searched, six docs written, all load-bearing claims reconciled against the repo. Findings await triage into status/build-log.json. Nothing was fitted, shipped, or committed.",
+  "purpose": "One-off R&D round asking a question none of the reference notebooks asked: what does the CURRENT literature offer that this data could carry? Across ML, statistics, causal inference, the transform layer, and the published F1 field. Commissioned to test whether the transform layer has been outgrown and whether the model class is right.",
+  "relationship_to_build_log": "This file records the RESEARCH ROUND only. It holds NO work-item state. status/build-log.json remains the single source of work-item stage, and its 2026-09-07 history entry is this session's protocol handoff. A finding here becomes real work only when promoted into build-log.json with a stage, an id, depends_on and a cost. See proposed_build_log_items below - they are drafted, NOT applied.",
+  "how_to_resume": {
+    "first_command": "python3 _improvements/status/board.py",
+    "read_order": [
+      "1. Run the board. The pointer is STILL on 02a - this round did not move it and did not run it.",
+      "2. _improvements/research/README.md - the ranked findings table. That is the round's answer in one page.",
+      "3. This file's `findings` array for the same list machine-readable, and `verified_measurements` for the numbers plus the exact query that produced each.",
+      "4. Only then the individual R1-R6 docs, and only the one you are acting on.",
+      "5. foundations/epistemics.md before quoting any number from here - the in-sample caveat on VM-04 is the one that bites."
+    ],
+    "what_this_session_did_not_do": [
+      "Did not run 02a (the pointer item). It flagged that 02a's binary acceptance criterion may not fit its own SQL - see finding F12 - but did not rule.",
+      "Did not fit, retrain, tune or export any model.",
+      "Did not modify status/build-log.json items, stages, decisions or pointer. Only appended the mandated session history entry.",
+      "Did not modify any transform model, ml/src file, or ml/models artefact.",
+      "Did not commit anything. Standing repo rule, unchanged.",
+      "Did not run any gate from foundations/gates.md."
+    ],
+    "single_highest_value_next_action": "Triage `findings` and apply the `proposed_build_log_items` you accept. F01 (competing risks) and F02 (auditor gap) are the two that change what the programme is doing; F07 (monotone constraints) is hours and should not wait."
+  },
+  "output_dir": "_improvements/research/",
+  "index": "_improvements/research/README.md",
+  "conventions": {
+    "verdict_vocabulary": [
+      "UNREAD",
+      "SEARCHED",
+      "DRAFTED",
+      "RECONCILED",
+      "PROMOTED",
+      "REJECTED"
+    ],
+    "rule": "A track is RECONCILED only once its claims have been checked against what this repo actually has (schema.py, the transform models, the artefacts) rather than against what the literature assumes.",
+    "measurement_constraints_observed": [
+      "All warehouse reads duckdb.connect(..., read_only=True).",
+      "Probe scripts were scratchpad-only and are not committed. Reproduction SQL is embedded in verified_measurements instead, which is documentation rather than a committed script.",
+      "No ml/models/*.json, warehouse table or git state was touched."
+    ]
+  },
+  "tracks": [
+    {
+      "id": "T1",
+      "title": "Irreducible-noise / Bayes-error estimation",
+      "stage": "RECONCILED",
+      "doc": "research/R1-instruments.md",
+      "prices": [
+        "01a",
+        "01b",
+        "05a"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "Model family: hierarchical, distributional, shape-constrained",
+      "stage": "RECONCILED",
+      "doc": "research/R2-model-family.md",
+      "prices": [
+        "05a",
+        "01b"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "Survival: competing risks, discrete-time hazard, censoring",
+      "stage": "RECONCILED",
+      "doc": "research/R3-competing-risks.md",
+      "prices": [
+        "02d",
+        "05a"
+      ]
+    },
+    {
+      "id": "T4",
+      "title": "Uncertainty: conformal prediction under shift",
+      "stage": "RECONCILED",
+      "doc": "research/R4-conditional-coverage.md",
+      "prices": [
+        "06",
+        "app"
+      ]
+    },
+    {
+      "id": "T5",
+      "title": "Multiplicity: e-values, anytime-valid, online FDR",
+      "stage": "DRAFTED",
+      "doc": "research/R1-instruments.md",
+      "prices": [
+        "04a",
+        "04b",
+        "04c"
+      ],
+      "why_not_reconciled": "The e-value construction for THIS repo's reseed protocol was not worked through. The literature is clear; the mapping onto attribution.py::refit_noise_floor's 5 reseeds is a design step nobody has done."
+    },
+    {
+      "id": "T6",
+      "title": "Telemetry representation: signatures, FDA, SSL",
+      "stage": "RECONCILED",
+      "doc": "research/R5-representation-and-transform.md",
+      "prices": [
+        "02c",
+        "transform"
+      ]
+    },
+    {
+      "id": "T7",
+      "title": "Causal: DML/CATE, modern DiD, IV, AKM leave-out",
+      "stage": "DRAFTED",
+      "doc": "research/R6-causal-decision-and-the-field.md",
+      "prices": [
+        "03c",
+        "07a",
+        "07b"
+      ],
+      "why_not_reconciled": "The mover-panel connected set was NOT measured. 03a's leave-one-out connected set size is asserted as necessary, not shown to survive."
+    },
+    {
+      "id": "T8",
+      "title": "Transform layer: point-in-time correctness as architecture",
+      "stage": "RECONCILED",
+      "doc": "research/R5-representation-and-transform.md",
+      "prices": [
+        "02a",
+        "02d",
+        "transform"
+      ]
+    },
+    {
+      "id": "T9",
+      "title": "Motorsport-specific literature and decision layer",
+      "stage": "RECONCILED",
+      "doc": "research/R6-causal-decision-and-the-field.md",
+      "prices": [
+        "07",
+        "app"
+      ]
+    },
+    {
+      "id": "T10",
+      "title": "Data quality and the shipped app surface",
+      "prices": [
+        "D2",
+        "01a",
+        "06b"
+      ],
+      "stage": "RECONCILED",
+      "doc": "research/R7-data-quality-and-shipped-surface.md"
+    },
+    {
+      "id": "T11",
+      "title": "Build-order proposal arising from the round",
+      "prices": [
+        "all"
+      ],
+      "stage": "DRAFTED",
+      "doc": "research/R8-build-order-proposal.md"
+    }
+  ],
+  "verified_measurements": [
+    {
+      "id": "VM-01",
+      "claim": "The stint-life target is a competing-risks problem. 1,543 of 5,360 uncensored stints (28.8%) end under safety car, VSC or red flag, and they are far shorter than green-ended stints.",
+      "population": "8,333 stints, 2018-2024, data/dev.duckdb",
+      "numbers": {
+        "uncensored_green": {
+          "n": 3817,
+          "mean_stint_length_laps": 19.44
+        },
+        "uncensored_sc": {
+          "n": 913,
+          "mean_stint_length_laps": 11.14
+        },
+        "uncensored_red": {
+          "n": 387,
+          "mean_stint_length_laps": 5.34
+        },
+        "uncensored_vsc": {
+          "n": 243,
+          "mean_stint_length_laps": 17.04
+        },
+        "censored_green": {
+          "n": 2754,
+          "mean_stint_length_laps": 25.28
+        },
+        "censored_sc": {
+          "n": 129,
+          "mean_stint_length_laps": 10.78
+        },
+        "censored_vsc": {
+          "n": 55,
+          "mean_stint_length_laps": 18.8
+        },
+        "censored_red": {
+          "n": 35,
+          "mean_stint_length_laps": 2.31
+        },
+        "total_stints": 8333,
+        "uncensored_total": 5360,
+        "uncensored_non_green": 1543,
+        "uncensored_non_green_share": 0.288
+      },
+      "reproduce": "with last_lap as (select stint_id, max(lap_in_stint) L from int_stint_geometry group by 1), endflags as (select g.stint_id, case when g.is_red_flag_lap then 'red' when g.is_safety_car_lap then 'sc' when g.is_vsc_lap then 'vsc' else 'green' end regime from int_stint_geometry g join last_lap l on g.stint_id=l.stint_id and g.lap_in_stint=l.L) select s.is_censored_stint, e.regime, count(*) n, round(avg(s.stint_length_laps),2) mean_len from fct_stint_features s join endflags e using (stint_id) group by 1,2 order by 1,3 desc",
+      "source_tables": [
+        "fct_stint_features",
+        "int_stint_geometry"
+      ],
+      "why_it_matters": "schema.py frames stint life as single-event right-censored survival (survival:aft). 'Uncensored' is treated as one event. It is not - it is a mixture of a tyre-wear process and an exogenous-interruption process whose components differ by ~2x in mean, and ~4x for red flags."
+    },
+    {
+      "id": "VM-02",
+      "claim": "VM-01 is not a one-season or pandemic-calendar artefact. The competing-event share is present in every season and the length gap is large in every season.",
+      "population": "uncensored stints only",
+      "numbers_by_season": [
+        {
+          "season": 2018,
+          "n": 818,
+          "pct_non_green_end": 26.0,
+          "mean_len_green": 16.6,
+          "mean_len_non_green": 6.9
+        },
+        {
+          "season": 2019,
+          "n": 647,
+          "pct_non_green_end": 19.2,
+          "mean_len_green": 20.5,
+          "mean_len_non_green": 13.4
+        },
+        {
+          "season": 2020,
+          "n": 594,
+          "pct_non_green_end": 38.9,
+          "mean_len_green": 20.8,
+          "mean_len_non_green": 12.6
+        },
+        {
+          "season": 2021,
+          "n": 795,
+          "pct_non_green_end": 34.3,
+          "mean_len_green": 22.5,
+          "mean_len_non_green": 7.3
+        },
+        {
+          "season": 2022,
+          "n": 770,
+          "pct_non_green_end": 29.9,
+          "mean_len_green": 18.6,
+          "mean_len_non_green": 14.4
+        },
+        {
+          "season": 2023,
+          "n": 912,
+          "pct_non_green_end": 30.9,
+          "mean_len_green": 18.8,
+          "mean_len_non_green": 10.0
+        },
+        {
+          "season": 2024,
+          "n": 824,
+          "pct_non_green_end": 23.1,
+          "mean_len_green": 19.5,
+          "mean_len_non_green": 11.5
+        }
+      ],
+      "reproduce": "same CTEs as VM-01, then: select s.race_year, count(*) n, round(100.0*sum(case when e.regime<>'green' then 1 else 0 end)/count(*),1) pct_non_green, round(avg(case when e.regime='green' then s.stint_length_laps end),1) len_green, round(avg(case when e.regime<>'green' then s.stint_length_laps end),1) len_nongreen from fct_stint_features s join endflags e using (stint_id) where not s.is_censored_stint group by 1 order by 1"
+    },
+    {
+      "id": "VM-03",
+      "claim": "The degradation target is left-skewed and heavy-tailed. This corroborates, from data, the skew-capable distributional family the published state-space F1 paper reached for independently.",
+      "population": "next_5_lap_cumulative_jump_s, is_training_eligible, non-null, n=82,315",
+      "numbers": {
+        "n": 82315,
+        "mean": -1.9777,
+        "sd": 6.0833,
+        "p01": -20.079,
+        "p10": -10.313,
+        "p50": -0.777,
+        "p90": 3.171,
+        "p99": 13.915,
+        "skewness": -0.829,
+        "excess_kurtosis": 5.218
+      },
+      "reproduce": "select count(*) n, avg(next_5_lap_cumulative_jump_s), stddev(...), quantile_cont(...,0.01/0.10/0.50/0.90/0.99), skewness(...), kurtosis(...) from fct_cliff_prediction_features where next_5_lap_cumulative_jump_s is not null and is_training_eligible",
+      "why_it_matters": "Rules out a Gaussian distributional family if R2's Tier-2 move is taken. Also supports work/01 defect 1's argument that centre-and-pool destroys the very asymmetry being measured - the asymmetry is real and large."
+    },
+    {
+      "id": "VM-04",
+      "claim": "The p10-p90 band is near-perfectly calibrated MARGINALLY and materially miscalibrated CONDITIONALLY on circuit. The failure axis is circuit identity, not tyre age, not cliff state, not compound.",
+      "population": "mart_degradation_predictions.parquet (v11, 137,447 rows) joined to fct_cliff_prediction_features on lap_id, restricted to non-null target and is_training_eligible => n=82,315",
+      "CRITICAL_CAVEAT": "IN-SAMPLE. features.load_features trains on race_year < holdout_season; resolve_holdout_season returns MAX(race_year)+1 = 2025, which is NOT ingested. So the production v11 boosters were fitted on every season 2018-2024, and load_scoring_frame scores every lap. These figures are NOT comparable to a cv_final_fold number and must never be diffed against one. Use one-directionally only: an in-sample conditional spread is a LOWER BOUND on the out-of-sample spread.",
+      "numbers": {
+        "marginal": {
+          "nominal": 80.0,
+          "pooled_coverage_pct": 80.38,
+          "below_p10_pct": 9.75,
+          "above_p90_pct": 9.88
+        },
+        "by_season_range_pct": [
+          78.54,
+          83.13
+        ],
+        "conditional_spreads": [
+          {
+            "variable": "lap_in_stint band (1-5/6-10/11-20/21-30/31+)",
+            "groups": 5,
+            "range_pct": [
+              79.9,
+              81.2
+            ],
+            "spread_pts": 1.3,
+            "verdict": "excellent"
+          },
+          {
+            "variable": "cliff_onset_passed",
+            "groups": 2,
+            "range_pct": [
+              80.3,
+              80.8
+            ],
+            "spread_pts": 0.5,
+            "verdict": "excellent"
+          },
+          {
+            "variable": "compound",
+            "groups": 8,
+            "range_pct": [
+              73.9,
+              86.7
+            ],
+            "spread_pts": 12.8,
+            "verdict": "small-n artefact - HYPERSOFT n=295, WET n=60; the four compounds carrying 96% of rows sit at 80.0-81.5"
+          },
+          {
+            "variable": "circuit_key (n>=300)",
+            "groups": 36,
+            "range_pct": [
+              72.4,
+              85.6
+            ],
+            "spread_pts": 13.2,
+            "verdict": "REAL - this is the finding"
+          }
+        ],
+        "worst_circuits": [
+          [
+            "mexican_grand_prix",
+            1491,
+            72.4
+          ],
+          [
+            "qatar_grand_prix",
+            1349,
+            72.7
+          ],
+          [
+            "hungarian_grand_prix",
+            5253,
+            76.4
+          ],
+          [
+            "singapore_grand_prix",
+            2831,
+            76.5
+          ]
+        ],
+        "best_circuits": [
+          [
+            "tuscan_grand_prix",
+            306,
+            85.6
+          ],
+          [
+            "brazilian_grand_prix",
+            1538,
+            84.7
+          ],
+          [
+            "chinese_grand_prix",
+            1101,
+            84.5
+          ]
+        ]
+      },
+      "reproduce": "join read_parquet('data/marts/mart_degradation_predictions.parquet') to fct_cliff_prediction_features on lap_id; coverage = avg(y between predicted_degradation_jump_p10_s and predicted_degradation_jump_p90_s); group by compound / circuit_key / lap_in_stint band / cliff_onset_passed",
+      "pre_registration_warning": "36 circuit groups were scanned and the extremes reported. That is a garden-of-forking-paths problem. The OUT-OF-SAMPLE re-measurement is the test; this table is the hypothesis."
+    },
+    {
+      "id": "VM-05",
+      "claim": "The quantile trio shows zero crossings in the shipped parquet, but this says NOTHING about the models - predict.py row-sorts before writing.",
+      "numbers": {
+        "rows": 137447,
+        "cross_p10_gt_p50": 0,
+        "cross_p50_gt_p90": 0,
+        "cross_p10_gt_p90": 0,
+        "life_p10_gt_p50": 0,
+        "life_p50_gt_p90": 0
+      },
+      "source_code": "ml/src/predict.py:53 - `trio = np.sort(np.vstack([p10, p50, p90]).T, axis=1)`; CROSSING_WARN_THRESHOLD = 0.01 only logs a warning above 1%.",
+      "why_it_matters": "Removes the usual first argument for distributional regression. The raw crossing rate is UNMEASURED. If anyone wants it, it is one line in predict.py's write-time log.",
+      "status": "NEGATIVE RESULT - recorded so it is not re-derived as evidence."
+    },
+    {
+      "id": "VM-06",
+      "claim": "features.py::audit_forward_window is blind to aggregation-scope leakage, and BOTH of the programme's known live leakage suspects sit precisely in that gap.",
+      "what_the_auditor_detects": [
+        "_expr_is_forward_looking: a LEAD(), or a window frame with a FOLLOWING bound (ml/src/features.py:221-229)",
+        "_self_join_inequality: an inequality between same-named columns under different qualifiers, in a JOIN ON or WHERE (ml/src/features.py:234-265)",
+        "unparsed models are returned as violations rather than swallowed (good design)"
+      ],
+      "the_two_suspects": [
+        {
+          "model": "int_corner_skill_residuals",
+          "construct": "FLOOR(CAST(cm.lap_number AS DOUBLE) / 5.0) * 5.0 AS lap_window (line 76), then GROUP BY race_year, race_id, corner_name, lap_window (line 104)",
+          "has_LEAD": false,
+          "has_FOLLOWING_frame": false,
+          "has_self_join_inequality": false,
+          "detected_by_auditor": false
+        },
+        {
+          "model": "int_sc_hazard_history",
+          "construct": "GROUP BY race_year, race_id then aggregated to one row per circuit_slug, pooling every season. Output grain has no time key at all.",
+          "has_LEAD": false,
+          "has_FOLLOWING_frame": false,
+          "has_self_join_inequality": false,
+          "detected_by_auditor": false
+        }
+      ],
+      "the_gap_named": "The audit detects ROW-REFERENCING leakage and is blind to AGGREGATION-SCOPE leakage. An aggregate whose grouping key carries no time ordering, or whose scope spans the label's future, passes silently. This is a class, not two instances - every int_* model computing a rate, median or baseline by GROUP BY is in it.",
+      "reproduce": "sed -n '215,300p' ml/src/features.py ; grep -n 'OVER|PARTITION|FLOOR|GROUP BY' transform/models/intermediate/int_corner_skill_residuals.sql ; sed -n '1,60p' transform/models/intermediate/int_sc_hazard_history.sql"
+    },
+    {
+      "id": "VM-07",
+      "claim": "Warehouse scale, for sizing any proposed representation work.",
+      "numbers": {
+        "fct_telemetry_deltas": 24501520,
+        "int_corner_metrics": 2593635,
+        "int_corner_skill_residuals": 2206939,
+        "fct_ghost_car_pace": 1283006,
+        "int_pit_strategy_cost_curve": 386036,
+        "int_lap_proximity": 162729,
+        "int_stint_geometry": 162729,
+        "fct_cliff_prediction_features": 137447,
+        "int_lap_telemetry_aggregates": 137447,
+        "fct_stint_features": 8333,
+        "int_pit_strategy_value": 7129,
+        "int_sc_hazard_history": 36,
+        "dim_corners": 2441
+      },
+      "reproduce": "select schema_name, table_name, estimated_size from duckdb_tables() order by estimated_size desc"
+    },
+    {
+      "id": "VM-08",
+      "claim": "The Phase 9 ablation already answered the transform-representation question, and the campaign has not read it as such.",
+      "evidence_source": "ml/src/schema.py FEATURE_GROUPS docstrings (Phase 9 and Phase 10a notes) - repo's own record, not a new measurement",
+      "the_chain": [
+        "Phase 9 dropped 18 of 42 feature columns on a noise-floor group ablation; every dropped group 'cleared in none' of the three families.",
+        "Among the dropped: `powertrain` (6) and `telemetry_cliff` (5) - which schema.py records as 'the mart's entire consumption of int_lap_telemetry_aggregates'.",
+        "Phase 10a added the 9-column `proximity` group and it CLEARED: p50 pinball 1.034661 -> 1.012128 (1.54x floor); cliff macro-F1 0.372960 -> 0.380950 (2.17x floor); life AFT NLL inside noise (0.59x).",
+        "schema.py names why: proximity is 'the first group in either series sourced from a DIFFERENT SENSOR rather than from a further transform of the car channel or of lap times.'"
+      ],
+      "the_reading": "24.5M rows of telemetry, reduced to eleven summary statistics, all eleven dropped as adding no information. The only group that ever cleared came from a channel that had never been aggregated. The natural conclusion is that the channel is not information-poor - the scalar AGGREGATION is lossy."
+    }
+  ],
+  "assumed": [
+    {
+      "id": "A-01",
+      "claim": "The loss currently attributable to non-green stint endings is material in AFT NLL terms.",
+      "status": "The share (28.8%) and the length gap (11.1 vs 19.4) are measured. The loss attribution is not. That arithmetic is work item 02d's.",
+      "how_to_settle": "Decompose the 1.9520 AFT NLL headline by end regime."
+    },
+    {
+      "id": "A-02",
+      "claim": "Circuit-level heteroscedasticity the 33-column contract cannot express is the mechanism behind the coverage spread.",
+      "status": "Plausible, unproven. circuit_key is deliberately excluded from X as an identifier and the contract reaches circuit identity only indirectly.",
+      "competing_explanation": "Differing traffic and deployment regimes per venue. Not excluded by anything measured."
+    },
+    {
+      "id": "A-03",
+      "claim": "A path-signature or FPCA representation would clear gates.md where the scalar telemetry aggregates did not.",
+      "status": "The aggregates' failure is measured (VM-08). The replacement's success is a hypothesis and must go through the same gate."
+    },
+    {
+      "id": "A-04",
+      "claim": "Monotone constraints on age_in_stint / lap_in_stint / laps_past_cliff will not cost fit.",
+      "status": "Untested. Physics argues monotone; warm-up, track evolution and fuel effects argue non-monotone early in a stint. The constraint may not clear its own reseed floor, and that is a legitimate result."
+    }
+  ],
+  "findings": [
+    {
+      "rank": 1,
+      "id": "F01",
+      "title": "The stint-life target is a competing-risks problem and is not modelled as one",
+      "cost": "days",
+      "kind": "measured defect",
+      "doc": "research/R3-competing-risks.md",
+      "evidence": [
+        "VM-01",
+        "VM-02"
+      ],
+      "summary": "1,543 of 5,360 uncensored stints (28.8%) end under SC/VSC/red flag at mean 11.1/17.0/5.3 laps against green's 19.4. The AFT model is told each is a completed tyre life. Stable across all 7 seasons.",
+      "what_the_literature_offers": [
+        "Discrete-time competing-risks hazard at lap grain - cheapest, fits the warehouse grain, unifies with the cliff classifier which is already lap-grain multiclass",
+        "Cause-specific AFT: refit treating non-green endings as CENSORED, giving the tyre-limit distribution the app's gauge claims to show. One CASE expression.",
+        "Neural Fine-Gray / copula deep competing risks - NOT recommended first, costs the ONNX path",
+        "Evaluation must change regardless: cause-specific IPCW-Brier, time-dependent AUC, D-calibration or A-calibration"
+      ],
+      "complication": "The censoring is DEPENDENT - SC arrival correlates with race state which correlates with tyre state. Under dependent censoring, IPCW-Brier and concordance are themselves biased. Treatment is copula-based sensitivity bands, not a fix.",
+      "honest_counter_argument": "From the app's point of view the pit wall's realised decision may be what a user wants. But the current model answers NEITHER question cleanly - it answers the contaminated mixture. Splitting lets the app choose, and int_sc_hazard_history is exactly the term needed to recombine them."
+    },
+    {
+      "rank": 2,
+      "id": "F02",
+      "title": "audit_forward_window is blind to aggregation-scope leakage; both known live leaks sit in the gap",
+      "cost": "days",
+      "kind": "prevention",
+      "doc": "research/R5-representation-and-transform.md",
+      "evidence": [
+        "VM-06"
+      ],
+      "summary": "The SQL-AST auditor catches LEAD, FOLLOWING frames and self-join inequalities. Neither int_corner_skill_residuals nor int_sc_hazard_history contains any of them. The forward reach lives in GROUP BY scope, which the walker never inspects.",
+      "why_ranked_second_not_lower": "It is the only item in the round that PREVENTS future defects rather than measuring past ones. Cost-adjusted it is arguably first.",
+      "the_fix": "For every GROUP BY in a model feeding FEATURE_COLUMNS, require the grouping key set to either (a) include a time key at or below the label's grain, or (b) be declared exempt in schema.yml with a written reason. A walker over exp.Group plus a meta property."
+    },
+    {
+      "rank": 3,
+      "id": "F03",
+      "title": "The prediction band is conditionally miscalibrated on circuit",
+      "cost": "1-2d",
+      "kind": "measured defect",
+      "doc": "research/R4-conditional-coverage.md",
+      "evidence": [
+        "VM-04"
+      ],
+      "summary": "72.4% at Mexico to 85.6% at Mugello, 13.2 points across 36 circuits, IN-SAMPLE - while marginal coverage is 80.38% against nominal 80 and tyre-age conditional spread is 1.3 points.",
+      "the_fix": "Mondrian conformal / CQR recalibration keyed on circuit_key. Does not touch the model - no refit, no contract change, no ONNX re-export. Finite-sample distribution-free guarantee. 36 groups at n>=300 is comfortably enough calibration data.",
+      "the_wrinkle": "Conformal needs exchangeability and seasons are not exchangeable. Use weighted conformal (Barber/Candes/Ramdas/Tibshirani) or the Gibbs-Cherian-Candes conditional-guarantee framework, which recovers Mondrian as a special case.",
+      "must_report": "Interval WIDTH alongside coverage. A conformal fix that buys Mexico's coverage by doubling its band width is a real cost the app pays."
+    },
+    {
+      "rank": 4,
+      "id": "F04",
+      "title": "The stochastic DP over pit timing is ~80% built and never assembled",
+      "cost": "days",
+      "kind": "assembly",
+      "doc": "research/R6-causal-decision-and-the-field.md",
+      "evidence": [
+        "VM-07"
+      ],
+      "summary": "int_pit_strategy_cost_curve (386,036 rows), int_pit_loss_circuit, int_sc_hazard_history (36 circuits, EB-shrunk, which schema.py records as 'unconsumed today') and the five models are the transition costs, stochastic event process and state dynamics of the published Heine-Thraves DP formulation.",
+      "why_it_matters_beyond_a_feature": "A DP converts a predictive distribution into a decision, and changes what the models are SCORED on - from pinball loss to expected race time of the induced policy. That gives the p10/p90 arms a job, gives the app a surface, and gives the programme a headroom denominator IN SECONDS OF RACE TIME rather than in pinball units.",
+      "note": "int_sc_hazard_history's own header says it exists 'so a Monte Carlo race simulator could draw an interruption on each simulated lap.' It was built for this and never wired."
+    },
+    {
+      "rank": 5,
+      "id": "F05",
+      "title": "01b should be rebuilt as difference-based variance estimation; three of its five defects dissolve",
+      "cost": "rescope, not new work",
+      "kind": "method",
+      "doc": "research/R1-instruments.md",
+      "evidence": [],
+      "summary": "Estimating irreducible noise without first estimating the mean function IS nonparametric variance estimation - Rice 1984, Hall-Kay-Titterington 1990, and the minimax-optimal random-design U-statistic local-polynomial estimator of Shen/Gao/Witten/Ma (AoS 2020).",
+      "defect_disposition": {
+        "defect_1_m_bias": "DISSOLVED as a bug, kept as arithmetic. The (1-1/m) factor is the defining property of the family and is corrected in closed form. work/01's own proposed fix - model d = y1 - y2 as eps convolved with -eps - IS the m=2 difference-based estimator, independently rederived.",
+        "defect_2_one_sided_gate": "STILL REAL. The bracket (bias-corrected floor below, leave-one-out kNN predictor's own loss above) has no substitute.",
+        "defect_3_opposite_sign_biases": "DISSOLVED. The mean-function bias is handled by smoothing pairwise differences with local polynomial regression at a known rate. There is no d->0 step, so no surviving constant lands in an intercept.",
+        "defect_4_metric": "SHARPENED, and becomes binding. See the dimension warning.",
+        "defect_5_d_to_zero_unreachable": "DISSOLVED. Nothing needs to reach zero. Measure admissible neighbour distances as a diagnostic, not a go/no-go."
+      },
+      "the_dimension_warning": "Bayes Error Rate Estimation in Difficult Situations (2025, 2500 MC sims/scenario) found kNN the most accurate non-parametric estimator BUT requiring 1,000 samples/class minimum and 2,500/class at only FOUR features, with all estimators failing as dimension grows. A kNN floor over 33 scaled columns on 82,315 rows is outside the validated regime, and 01b's one-sided gate cannot detect that failure.",
+      "the_recommendation": "Do not estimate one global floor in 33-D. Estimate STRATIFIED floors in <=3 deliberately-chosen dimensions (compound x lap-in-stint band x circuit - all three already in the mart). Report a floor per stratum with its n. Never pool."
+    },
+    {
+      "rank": 6,
+      "id": "F06",
+      "title": "e-values / e-BH replace the retrospective BH plan and dissolve 04b",
+      "cost": "0.5d + a gates.md change",
+      "kind": "method",
+      "doc": "research/R1-instruments.md",
+      "evidence": [],
+      "summary": "BH assumes a fixed, pre-specified family. This campaign's family was chosen adaptively across 22 checkpoints and stopped when it stopped. Retrospective BH over that produces a number shaped like an FDR statement.",
+      "the_answer": "e-BH (Wang & Ramdas) controls FDR at alpha under ARBITRARY dependence between e-values. Stopped e-BH (2025) controls FDR at any data-dependent stopping time - exactly the shape of a 22-checkpoint campaign.",
+      "why_it_dissolves_04b": "04b asks how to convert a floor-ratio into a p-value - a hard problem needing a distributional assumption and a df on n=5. An e-value is built DIRECTLY from the reseed distribution via a betting or likelihood-ratio construction. No conversion needed. 04b stops being a decision.",
+      "two_part_recommendation": [
+        "Run 04a and 04c as specified but LABEL the output a descriptive audit, not an FDR-controlled statement. 04b becomes a one-paragraph 'why no valid retrospective conversion exists'.",
+        "Install an e-value protocol going forward: each arm declares its e-value construction in its leaf doc before running. This is a change to gates.md and is the single highest-leverage change to the programme's epistemics."
+      ]
+    },
+    {
+      "rank": 7,
+      "id": "F07",
+      "title": "Monotone constraints are free and answer half of work/05's structural case",
+      "cost": "hours",
+      "kind": "cheap win",
+      "doc": "research/R2-model-family.md",
+      "evidence": [
+        "A-04"
+      ],
+      "summary": "XGBoost supports monotone_constraints natively. work/05's argument that a tree ensemble 'spends capacity rediscovering' a monotone physical curve and can produce non-monotone artefacts is an argument for turning the constraint ON, not for changing model class.",
+      "candidates": [
+        "age_in_stint",
+        "lap_in_stint",
+        "laps_past_cliff",
+        "cumulative_push_load_surface",
+        "cumulative_push_load_bulk"
+      ],
+      "consequence": "behaviour_audit's monotonicity probe becomes a test of a GUARANTEE rather than a hope. ONNX export unaffected.",
+      "must_not": "Must not be blocked behind 01. 05a's block is a SHIPPING decision about model class; this is not that decision."
+    },
+    {
+      "rank": 8,
+      "id": "F08",
+      "title": "Hand-crafted telemetry aggregation is measured to add nothing; signatures and FPCA are the untried representations",
+      "cost": "days-weeks",
+      "kind": "representation",
+      "doc": "research/R5-representation-and-transform.md",
+      "evidence": [
+        "VM-08",
+        "VM-07"
+      ],
+      "options": {
+        "A_path_signatures": "RECOMMENDED. A lap is a path in (distance, speed, throttle, brake, gear, DRS). Truncated log-signature at depth 3-4 over 5-6 channels is ~100 numbers, computed deterministically with no fitting, no training loop, no checkpoint. Reparameterisation-invariant, handles irregular sampling natively. Goes in the transform layer as columns; .bst/.onnx path, parity gate and behaviour_audit all untouched. Testable under gates.md unchanged.",
+        "B_FPCA": "NEARLY FREE. A lap is a curve speed(relative_distance). int_lap_proximity ALREADY cuts each lap into 100 fractions of relative_distance - that is a registered functional grid, and registration is the step that usually sinks FPCA on this data. More interpretable output than signatures, better fit for the publication track 06.",
+        "C_SSL_embeddings": "NOT YET. TS2Vec/T-Rep/TimesURL would likely win on raw predictive power but require a training pipeline, a checkpoint to version, an embedding to export, and they break the 'a feature is a column computed by SQL' contract the transform layer rests on."
+      }
+    },
+    {
+      "rank": 9,
+      "id": "F09",
+      "title": "The published state-space tyre-degradation model exists at ONE-RACE scale; this is the only public dataset that can generalise it",
+      "cost": "days",
+      "kind": "publication + feature",
+      "doc": "research/R6-causal-decision-and-the-field.md",
+      "evidence": [
+        "VM-03"
+      ],
+      "the_paper": "arXiv 2512.00640 - Bayesian state-space model, tyre degradation as a LATENT process observed indirectly through lap times, pit stops as state resets, observation equation a function of fuel mass and latent tyre condition, skewed-t for asymmetric driver errors, beats ARIMA(2,1,2).",
+      "its_limitation": "Case study is ONE driver in ONE race - Hamilton, 2025 Austrian GP, from FastF1. The paper's own stated limitation is that it needs generalising to multi-race, multi-driver.",
+      "this_repo_has": "137,447 laps, 8,333 stints, 7 seasons, 36 circuits, with fuel state (int_lap_fuel_state), stint geometry, compound parameters and pit loss all already modelled.",
+      "corroboration": "The paper reaches for a skewed t; VM-03 measures skewness -0.829 and excess kurtosis 5.218. Two routes, same conclusion.",
+      "why_it_is_the_honest_physics": "ml_research_program.md section 2 rules out physics VALIDATION and is right to. A latent SSM is not a claim to have measured tyre temperature - it is an explicit statement that the state is unobserved and inferred, with the inference's uncertainty carried through. And the filtered latent state drops into the feature contract as a column, testable under gates.md - which makes this a Tier-2 cost, not a rewrite."
+    },
+    {
+      "rank": 10,
+      "id": "F10",
+      "title": "GPBoost is a third bracket leg for 01, not just a candidate for 05a",
+      "cost": "1-2d for a measurement-only probe",
+      "kind": "instrument",
+      "doc": "research/R2-model-family.md",
+      "evidence": [],
+      "summary": "GPBoost (Sigrist, JMLR 2022 / TPAMI 2023) fits y = F(X) + Zb + eps where F is a boosted tree ensemble (LightGBM under the hood) and Zb are grouped random effects, learning trees and (co)variance parameters jointly.",
+      "the_inversion": "work/05 blocks 05a on 01a/01b because a class change cannot claim headroom not shown to exist. But a GPBoost fit RETURNS sigma^2_stint, sigma^2_race, sigma^2_driver, sigma^2_residual as fitted parameters - a model-based irreducible-noise estimate that fails in DIFFERENT directions from a neighbourhood-based one. It is an instrument for 01, not just a candidate for 05a. A measurement-only probe ships nothing and costs a day or two.",
+      "cheaper_first_try": "MERF / REEMtree - same idea, less machinery."
+    },
+    {
+      "rank": 11,
+      "id": "F11",
+      "title": "CRPS should sit beside the pinball trio",
+      "cost": "hours",
+      "kind": "instrument",
+      "doc": "research/R1-instruments.md",
+      "evidence": [],
+      "summary": "Averaged quantile loss over a refining grid converges to CRPS - the strictly proper scoring rule for the whole predictive distribution, in the target's units, reducing to MAE for a point forecast so it is directly comparable to existing baselines.",
+      "buys": [
+        "One number to gate on instead of an ad hoc rule for when p50 clears and p90 does not.",
+        "Makes any distributional model directly comparable to the incumbent trio - which they currently are not.",
+        "The Murphy / calibration-resolution decomposition splits a proper score into calibration + resolution + UNCERTAINTY, and that third term is an empirical irreducible-difficulty term - an independent read on the same quantity 01b is chasing, from arithmetic on predictions that already exist."
+      ]
+    },
+    {
+      "rank": 12,
+      "id": "F12",
+      "title": "FLAG, NOT A RULING: 02a's binary acceptance criterion may not fit its own SQL",
+      "cost": "n/a",
+      "kind": "flag",
+      "doc": "research/R5-representation-and-transform.md",
+      "evidence": [
+        "VM-06"
+      ],
+      "summary": "02a asks whether the 5-lap field-median bucket is CENTRED (reaches forward, leaks) or BACKWARD-LOOKING (safe). The SQL is neither: FLOOR(lap_number/5.0)*5.0 is a FIXED BLOCK. A lap at block position 0 is compared against a median including up to four laps that had not yet run; a lap at position 4 includes none. The forward reach is position-dependent within the block and averages about two laps.",
+      "scope_discipline": "This is NOT a ruling. 02a is the pointer item and running it is the next session's job. This is notice that the item admits a third answer, and that whichever way it lands the fix is likely 'recompute as a trailing window' rather than either branch as written.",
+      "action": "Correct 02a's leaf doc to admit the third case before running it."
+    }
+  ],
+  "negative_results": [
+    {
+      "id": "N-01",
+      "claim": "Do NOT 'fix' marginal calibration.",
+      "evidence": "VM-04 - pooled coverage 80.38% against nominal 80, symmetric tails (9.75/9.88), on a target with skew -0.83. The problem is conditional, not marginal."
+    },
+    {
+      "id": "N-02",
+      "claim": "Quantile crossing is NOT available as an argument for distributional regression here.",
+      "evidence": "VM-05 - predict.py:53 row-sorts before writing. The raw rate is unmeasured."
+    },
+    {
+      "id": "N-03",
+      "claim": "The compound-conditional coverage spread is a small-n artefact, not a finding.",
+      "evidence": "VM-04 - HYPERSOFT n=295 at 73.9%, WET n=60 at 86.7%; the four compounds carrying 96% of rows sit at 80.0-81.5%."
+    },
+    {
+      "id": "N-04",
+      "claim": "Do NOT migrate off dbt/DuckDB to SQLMesh.",
+      "reason": "SQLMesh's incremental-by-time-range semantics with explicit @start_ds/@end_ds would prevent some leakage structurally, and its column-level lineage is better. But F02 buys that property directly for a fraction of the cost of re-earning 70 models, a .sqlfluff config, a test suite and a working SQL-AST auditor. VERDICT: the transform layer has NOT been outgrown as infrastructure. It has been outgrown as a REPRESENTATION (F08) and has one fixable hole in its guard (F02)."
+    },
+    {
+      "id": "N-05",
+      "claim": "Modern staggered-adoption DiD (Callaway-Sant'Anna, Sun-Abraham, de Chaisemartin-D'Haultfoeuille) does NOT apply to work item 07.",
+      "reason": "A safety car is not an absorbing treatment - units are not permanently absorbed into treatment. Worth knowing for 03c's two-way FE where the critique partly bites; not an estimator for the SC experiment."
+    },
+    {
+      "id": "N-06",
+      "claim": "Tabular foundation models (TabPFN v2/2.5, TabICLv2) are an INSTRUMENT, not a shipping candidate.",
+      "reason": "Reported win rates are over i.i.d. benchmark suites, not panels with season-grouped CV and an overlapping 5-lap target whose consecutive rows share four of five terms. No ONNX path; app/public/models/ cannot carry them. BUT as a bounded ceiling probe they are excellent - if a foundation model with no feature engineering cannot beat v11 on cv_final_fold, that is meaningful evidence about what the 33-column contract is leaving."
+    },
+    {
+      "id": "N-07",
+      "claim": "This project's evaluation protocol is AHEAD of the published field. Do not spend to catch up on rigour.",
+      "evidence": "The nearest peer-reviewed competitor (Frontiers in AI 2025, same FastF1 data, 2020-2024, 99,928 laps) wins with a BIDIRECTIONAL LSTM on a forecasting problem - the representation of lap t is built partly from laps t+1..t+9, which is forward-window leakage of exactly the shape audit_forward_window bars - applies SMOTE across a temporal split, and leads with ROC-AUC 0.988 on a 3.5%-positive target. Its own stated limitation independently rediscovers ml_research_program.md section 2's external wall. The gap is model class and assembly, not rigour."
+    }
+  ],
+  "proposed_build_log_items": {
+    "status": "DRAFTED, NOT APPLIED. board.py --check passes on the untouched log. Apply only what you accept, then run `python3 _improvements/status/board.py --check && python3 _improvements/status/board.py --write-order`.",
+    "note_on_groups": "08 and 09 are NEW group ids and would need entries in `groups` plus a leaf doc in work/ before their items are runnable. board.py cannot catch a missing leaf doc for you.",
+    "items": [
+      {
+        "id": "08a",
+        "group": "08",
+        "stage": "SPEC",
+        "depends_on": [],
+        "cost": "days",
+        "title": "Recode the stint-life label by end cause; fit the cause-specific arm",
+        "note": "Non-green endings (SC/VSC/red, 28.8% of uncensored) treated as CENSORED, giving the tyre-limit distribution. Compare against incumbent under gates.md with the family's own reseed floor. Report cause-specific IPCW-Brier and a calibration check alongside AFT NLL, and state the dependent-censoring caveat rather than assuming it away. Source: research/R3.",
+        "unblocks": "the 02d NLL-cap arithmetic"
+      },
+      {
+        "id": "08b",
+        "group": "08",
+        "stage": "SPEC",
+        "depends_on": [
+          "08a"
+        ],
+        "cost": "days",
+        "title": "Discrete-time competing-risks hazard at lap grain",
+        "note": "Per-lap multinomial over {continues, ends-green, ends-SC/VSC, ends-red, ends-retirement}. Unifies with the cliff classifier's existing lap-grain multiclass shape. Only if 08a shows the reframing buys something. Source: research/R3."
+      },
+      {
+        "id": "09a",
+        "group": "09",
+        "stage": "SPEC",
+        "depends_on": [],
+        "cost": "days",
+        "title": "Extend audit_forward_window to aggregation scope",
+        "note": "For every GROUP BY in a model feeding FEATURE_COLUMNS, require the grouping key set to include a time key at or below the label's grain, or be declared exempt in schema.yml with a written reason. Walker over exp.Group plus a meta property. Converts a silent bug class into a build failure. Source: research/R5 Part 2, VM-06.",
+        "priority_note": "Highest value on a cost-adjusted basis - the only item that prevents future defects."
+      },
+      {
+        "id": "09b",
+        "group": "09",
+        "stage": "SPEC",
+        "depends_on": [
+          "09a"
+        ],
+        "cost": "0.5d",
+        "title": "Trailing-window / expanding-rate dbt macro",
+        "note": "02d needs int_sc_hazard_history rebuilt as a season-lagged expanding rate; 02a may need the same for the corner medians. Write it once so the third instance is a call, and so 09a's auditor has one shape to whitelist. Source: research/R5 Part 2."
+      },
+      {
+        "id": "09c",
+        "group": "09",
+        "stage": "SPEC",
+        "depends_on": [],
+        "cost": "1-2d",
+        "title": "Mondrian-conformal recalibration of the degradation band, keyed on circuit",
+        "note": "Hold out a calibration split by season (or by race within season, stated explicitly). Per-circuit conformal quantiles over the CQR score. Report coverage marginally and per circuit, before and after, OUT OF SAMPLE - VM-04's figures are in-sample and are the motivation, not the baseline. Report interval WIDTH alongside coverage. Pre-registered caution: 36 groups were scanned and the extremes reported; the out-of-sample re-measurement is the test. Source: research/R4.",
+        "touches_model": false
+      },
+      {
+        "id": "05b",
+        "group": "05",
+        "stage": "SPEC",
+        "depends_on": [],
+        "cost": "hours",
+        "title": "Monotone constraints on the physically monotone coordinates",
+        "note": "XGBoost monotone_constraints on age_in_stint / lap_in_stint / laps_past_cliff / cumulative_push_load_*. Add-ablation under gates.md; the constraint may not clear its own reseed floor and that is a result. behaviour_audit's monotonicity probe becomes a test of a guarantee. Deliberately NOT depends_on 01 - 05a's block is a shipping decision about model class and this is not that decision. Source: research/R2 Tier 1."
+      },
+      {
+        "id": "01c",
+        "group": "01",
+        "stage": "SPEC",
+        "depends_on": [],
+        "cost": "1-2d",
+        "title": "GPBoost variance-components probe (measurement only, ships nothing)",
+        "note": "Fit y = F(X) + Zb with grouped random effects on stint/race/driver; read the fitted variance components as a model-based irreducible-noise estimate. Third leg of 01's bracket, failing in different directions from a neighbourhood estimator. Never exported, never shipped. Source: research/R2 Tier 3."
+      },
+      {
+        "id": "01d",
+        "group": "01",
+        "stage": "SPEC",
+        "depends_on": [],
+        "cost": "hours",
+        "title": "Report CRPS alongside the pinball trio, with the calibration/resolution/uncertainty decomposition",
+        "note": "Arithmetic over predictions that already exist. Prerequisite for comparing any distributional fit to the incumbent trio at all, and the uncertainty term is an independent read on 01b's quantity. Source: research/R1 section 3."
+      },
+      {
+        "id": "07c",
+        "group": "07",
+        "stage": "SPEC",
+        "depends_on": [
+          "07a"
+        ],
+        "cost": "days",
+        "title": "Assemble the stochastic DP over pit timing",
+        "note": "int_pit_strategy_cost_curve + int_pit_loss_circuit + int_sc_hazard_history + the five models = transition costs, stochastic event process, state dynamics. Published formulation: Heine & Thraves CEJOR 2022. Yields a headroom metric in SECONDS OF RACE TIME. Assembly, not research. Source: research/R6 Part 3.",
+        "note_2": "int_sc_hazard_history's own header says it was built for exactly this and schema.py records it as 'unconsumed today'."
+      }
+    ],
+    "amendments_to_existing_items": [
+      {
+        "item": "01b",
+        "change": "RESCOPE, not block. Rebuild as difference-based / U-statistic variance estimation, stratified in <=3 dimensions (compound x lap-in-stint band x circuit), bracketed against a distributional fit's closed-form floor. Defects 1, 3 and 5 in work/01 stop existing; defect 2's bracket stays; defect 4 becomes binding via the dimension warning. Source: research/R1 section 1."
+      },
+      {
+        "item": "04b",
+        "change": "CLOSE with a written reason rather than solve. An e-value is built directly from the reseed distribution, so the floor-ratio-to-p-value conversion is not needed. Source: research/R1 section 2."
+      },
+      {
+        "item": "04a, 04c",
+        "change": "Run as specified but LABEL the output a descriptive audit, not an FDR-controlled statement. The family was chosen adaptively; retrospective BH over that does not control FDR."
+      },
+      {
+        "item": "02a",
+        "change": "Correct the leaf doc to admit a THIRD case before running: the SQL is a fixed FLOOR(lap/5)*5 block, neither centred nor backward-looking, with position-dependent forward reach averaging ~2 laps. Source: F12."
+      },
+      {
+        "item": "03a",
+        "change": "Report the LEAVE-ONE-OUT connected set size, not just the connected set. The KSS correction is only defined on the former."
+      },
+      {
+        "item": "03c",
+        "change": "Label the output a variance decomposition under an exogenous-mobility assumption, not a causal driver share. In F1 that assumption is strained - good drivers move to good cars because they are good."
+      },
+      {
+        "item": "07a/07b",
+        "change": "Use DML with cross-fitting (DoubleML / EconML) rather than a hand-specified first stage - the conditioning set is 33-dimensional. For heterogeneity use a causal forest AND run its calibration test; the 2025 Int Stat Review methodological review finds systematic misuse in applied work."
+      },
+      {
+        "item": "gates.md",
+        "change": "ADD an e-value pre-registration step: each arm declares its e-value construction in its leaf doc before it runs, and the campaign carries a running e-BH decision valid however many arms are added and whenever it stops. Source: research/R1 section 2."
+      }
+    ]
+  },
+  "citations": {
+    "note": "Collected so a resuming session does not repeat the search round.",
+    "noise_floor_and_bayes_error": [
+      {
+        "title": "Optimal estimation of variance in nonparametric regression with random design",
+        "authors": "Shen, Gao, Witten, Ma",
+        "venue": "Annals of Statistics 48(6), 2020",
+        "url": "https://arxiv.org/abs/1902.10822",
+        "why": "U-statistic local-polynomial variance estimator; minimax rate n^(-8ab/(4ab+2a+b)) v n^(-2b/(2b+1)); no smoothness assumption on the design density. The modern reference for F05."
+      },
+      {
+        "title": "Bayes Error Rate Estimation in Difficult Situations",
+        "venue": "2025",
+        "url": "https://arxiv.org/abs/2506.03159",
+        "why": "2500 MC sims/scenario. kNN most accurate non-parametric estimator BUT needs 1000 samples/class min, 2500/class at 4 features. The dimension warning against 01b as scoped."
+      },
+      {
+        "title": "Nonparametric Error Variance Estimation in Regression: A Review",
+        "url": "https://link.springer.com/chapter/10.1007/978-3-032-07178-1_19",
+        "why": "Survey of the difference-based family. Rice 1984, Gasser-Sroka-Jennen-Steinmetz, Hall-Kay-Titterington 1990."
+      },
+      {
+        "title": "Variance estimation in nonparametric regression via the difference sequence method",
+        "url": "https://arxiv.org/pdf/0712.0898"
+      }
+    ],
+    "multiplicity_and_anytime_valid": [
+      {
+        "title": "Online multiple testing with e-values",
+        "authors": "Wang & Ramdas et al.",
+        "url": "https://arxiv.org/pdf/2311.06412",
+        "why": "e-BH controls FDR under ARBITRARY dependence."
+      },
+      {
+        "title": "Anytime-valid FDR control with the stopped e-BH procedure",
+        "venue": "2025",
+        "url": "https://arxiv.org/abs/2502.08539",
+        "why": "FDR control at any data-dependent stopping time. The exact shape of a 22-checkpoint campaign."
+      },
+      {
+        "title": "Game-theoretic statistics and safe anytime-valid inference",
+        "authors": "Ramdas et al.",
+        "url": "https://arxiv.org/pdf/2210.01948",
+        "why": "The framing survey."
+      },
+      {
+        "title": "Admissible online closed testing must employ e-values",
+        "url": "https://arxiv.org/pdf/2407.15733"
+      }
+    ],
+    "conformal": [
+      {
+        "title": "Conformalized Quantile Regression",
+        "authors": "Romano, Patterson, Candes",
+        "venue": "NeurIPS 2019",
+        "url": "https://arxiv.org/abs/1905.03222",
+        "why": "Specified over exactly the object this repo already produces: fitted conditional quantiles."
+      },
+      {
+        "title": "Conformal Prediction Beyond Exchangeability",
+        "authors": "Barber, Candes, Ramdas, Tibshirani",
+        "url": "https://www.stat.cmu.edu/~ryantibs/papers/nexcp.pdf",
+        "why": "Weighted conformal with a coverage gap bounded by TV drift - quantifies degradation under shift rather than assuming it away."
+      },
+      {
+        "title": "Conformal Inference for Online Prediction with Arbitrary Distribution Shifts",
+        "authors": "Gibbs & Candes",
+        "url": "https://arxiv.org/pdf/2208.08401"
+      },
+      {
+        "title": "Conformal Prediction with Conditional Guarantees",
+        "authors": "Gibbs, Cherian, Candes",
+        "url": "https://arxiv.org/pdf/2305.12616",
+        "why": "General framework recovering Mondrian as a special case; extends to continuous covariate shifts."
+      },
+      {
+        "title": "Mondrian conformal - theoretical description",
+        "url": "https://mapie.readthedocs.io/en/v0.9.0/theoretical_description_mondrian.html",
+        "why": "The group-conditional construction, practically stated."
+      }
+    ],
+    "survival_and_competing_risks": [
+      {
+        "title": "A review on competing risks methods for survival analysis",
+        "url": "https://arxiv.org/pdf/2212.05157",
+        "why": "Cause-specific vs subdistribution (Fine-Gray) hazard, stated cleanly."
+      },
+      {
+        "title": "Neural Fine-Gray: Monotonic neural networks for competing risks",
+        "url": "https://arxiv.org/abs/2305.06703"
+      },
+      {
+        "title": "Overcoming Dependent Censoring in the Evaluation of Survival Models",
+        "venue": "2025",
+        "url": "https://arxiv.org/pdf/2502.19460",
+        "why": "IPCW-Brier and concordance are BIASED under dependent censoring. Copula-based sensitivity bands. Code: github.com/thecml/DependentEVAL. Directly applies - SC arrival correlates with tyre state."
+      },
+      {
+        "title": "A-calibration: assessment of prediction models for survival data under censoring",
+        "venue": "BMC Med Res Methodol 2025",
+        "url": "https://link.springer.com/article/10.1186/s12874-025-02671-6"
+      },
+      {
+        "title": "Copula-Based Deep Learning Models for Competing Risks",
+        "venue": "2025",
+        "url": "https://onlinelibrary.wiley.com/doi/10.1002/sam.70051"
+      },
+      {
+        "title": "Tabular Foundation Models Can Do Survival Analysis",
+        "url": "https://arxiv.org/pdf/2601.22259"
+      }
+    ],
+    "model_family": [
+      {
+        "title": "GPBoost: Tree-Boosting, Gaussian Processes, and Mixed-Effects Models",
+        "authors": "Sigrist, JMLR 2022 / TPAMI 2023",
+        "url": "https://github.com/fabsig/GPBoost",
+        "why": "y = F(X) + Zb, trees via LightGBM, variance components via Fisher scoring. Returns fitted variance components - an instrument for 01."
+      },
+      {
+        "title": "Multi-Target XGBoostLSS Regression",
+        "authors": "Marz",
+        "url": "https://arxiv.org/pdf/2210.06831",
+        "why": "GAMLSS via boosting - location, scale AND shape."
+      },
+      {
+        "title": "TreeFlow / Distributional Random Forests",
+        "url": "https://arxiv.org/pdf/2206.04140"
+      },
+      {
+        "title": "NRGBoost: Energy-Based Generative Boosted Trees",
+        "url": "https://arxiv.org/pdf/2410.03535",
+        "why": "Finds non-parametric approaches beating NGBoost on CRPS - parametric families need domain expertise to avoid a poor fit. Relevant given VM-03's skew."
+      },
+      {
+        "title": "TabPFN-2.5",
+        "url": "https://arxiv.org/abs/2511.08667",
+        "why": "85% win rate vs default XGBoost for regression on larger datasets. See N-06 for why it is an instrument, not a candidate."
+      },
+      {
+        "title": "A Closer Look at TabPFN v2",
+        "url": "https://arxiv.org/pdf/2502.17361"
+      },
+      {
+        "title": "On some extensions of shape-constrained generalized additive modelling in R (scam)",
+        "url": "https://arxiv.org/html/2403.09438v1",
+        "why": "Monotonicity AND convexity/concavity constraints with automatic smoothing-parameter selection."
+      },
+      {
+        "title": "Block-Additive Gaussian Processes under Monotonicity Constraints",
+        "venue": "Stat & Computing 2025",
+        "url": "https://link.springer.com/article/10.1007/s11222-025-10791-8"
+      }
+    ],
+    "representation": [
+      {
+        "title": "A Generalised Signature Method for Multivariate Time Series Feature Extraction",
+        "authors": "Morrill et al.",
+        "url": "https://arxiv.org/pdf/2006.00873",
+        "why": "THE practical recipe - enumerates augmentation/window/transform/rescaling choices and gives a defensible default. Start here for F08 option A."
+      },
+      {
+        "title": "Scalable Machine Learning Algorithms using Path Signatures",
+        "venue": "2025",
+        "url": "https://arxiv.org/abs/2506.17634"
+      },
+      {
+        "title": "Path Signatures for Feature Extraction",
+        "venue": "2025",
+        "url": "https://arxiv.org/pdf/2506.01815"
+      },
+      {
+        "title": "The path to a goal: Understanding soccer possessions via path signatures",
+        "url": "https://arxiv.org/pdf/2508.12930",
+        "why": "Closest sport-domain analogue."
+      },
+      {
+        "title": "A functional analysis of speed profiles: smoothing using derivative information, curve registration, and functional boxplot",
+        "url": "https://arxiv.org/pdf/1312.2252",
+        "why": "Almost exactly F08 option B on road vehicles."
+      },
+      {
+        "title": "TS2Vec / T-Rep / TimesURL",
+        "urls": [
+          "https://arxiv.org/pdf/2310.04486",
+          "https://arxiv.org/pdf/2312.15709"
+        ],
+        "why": "Option C, not yet."
+      }
+    ],
+    "transform_and_leakage": [
+      {
+        "title": "A taxonomy for detecting and preventing temporal data leakage in ML-based build prediction",
+        "venue": "PLOS One 2026",
+        "url": "https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0340167",
+        "why": "Three types: direct outcome encoding / execution-dependent metrics / future information leakage. Maps onto this repo: driver_skill_* is type 1, 02a and 02d are type 3, and TYPE 2 HAS NEVER BEEN AUDITED HERE - it would live in is_training_eligible and the anomaly flags."
+      },
+      {
+        "title": "Leakage and the reproducibility crisis in machine-learning-based science",
+        "authors": "Kapoor & Narayanan",
+        "url": "https://www.sciencedirect.com/science/article/pii/S2666389923001599"
+      },
+      {
+        "title": "DuckDB ASOF joins",
+        "url": "https://duckdb.org/docs/sql/query_syntax/from#asof-joins",
+        "why": "Point-in-time correctness is first-class in the engine already in use. No infrastructure cost."
+      }
+    ],
+    "causal": [
+      {
+        "title": "Leave-Out Estimation of Variance Components",
+        "authors": "Kline, Saggio, Solvsten (2020)",
+        "url": "https://eml.berkeley.edu/~pkline/papers/KSS2020.pdf",
+        "why": "Already named in work/03. Corrects limited mobility bias. Only defined on the LEAVE-ONE-OUT connected set."
+      },
+      {
+        "title": "How Do Applied Researchers Use the Causal Forest? A Methodological Review",
+        "venue": "International Statistical Review 2025",
+        "url": "https://onlinelibrary.wiley.com/doi/full/10.1111/insr.12610",
+        "why": "Finds systematic misuse - CATE read as discovery without honest splitting and calibration tests. Run test_calibration and report it."
+      },
+      {
+        "title": "Inference for Heterogeneous Treatment Effects with Efficient Instruments and Machine Learning",
+        "venue": "2025",
+        "url": "https://arxiv.org/pdf/2503.03530",
+        "why": "DML for the IV case - directly applies to 07."
+      },
+      {
+        "title": "Two-Way Fixed Effects and DiD with Heterogeneous Treatment Effects: A Survey",
+        "url": "https://arxiv.org/pdf/2112.04565",
+        "why": "Relevant to 03c's two-way FE. NOT relevant to 07 - see N-05."
+      }
+    ],
+    "motorsport": [
+      {
+        "title": "A State-Space Approach to Modeling Tire Degradation in Formula 1 Racing",
+        "url": "https://arxiv.org/abs/2512.00640",
+        "why": "THE most important find. Bayesian SSM, latent degradation via lap times, pit stops as state resets, fuel in the observation equation, skewed-t errors, beats ARIMA(2,1,2). ONE driver, ONE race (Hamilton, 2025 Austrian GP). Its stated limitation is the generalisation this repo can uniquely do. See F09."
+      },
+      {
+        "title": "Data-driven pit stop decision support for Formula 1 using deep learning models",
+        "venue": "Frontiers in AI 2025",
+        "url": "https://www.frontiersin.org/journals/artificial-intelligence/articles/10.3389/frai.2025.1673148/full",
+        "why": "The direct competitor. FastF1 2020-2024, 99,928 laps, Bi-LSTM, ROC-AUC 0.988. See N-07 for why that number is not comparable."
+      },
+      {
+        "title": "Explainable Time Series Prediction of Tyre Energy in Formula One Race Strategy",
+        "authors": "Todd, Jiang, Russo, Winkler, Sale, McMillan, Rago",
+        "venue": "SAC 2025",
+        "url": "https://arxiv.org/abs/2501.04067",
+        "why": "Uses Mercedes-AMG PETRONAS' OWN telemetry. Tyre energy is not in the public feed - the concrete instance of ml_research_program.md section 2's wall. Also: with the right target, XGBoost was competitive with deep models."
+      },
+      {
+        "title": "On the optimization of pit stop strategies via dynamic programming",
+        "authors": "Carrasco Heine & Thraves",
+        "venue": "CEJOR 2022",
+        "url": "https://link.springer.com/article/10.1007/s10100-022-00806-4",
+        "why": "The DP formulation for F04, INCLUDING a stochastic DP extension for yellow flags and rain - which is what int_sc_hazard_history is shaped to feed."
+      },
+      {
+        "title": "Optimizing pit stop strategies in Formula 1 with dynamic programming and game theory",
+        "venue": "EJOR 2024",
+        "url": "https://www.sciencedirect.com/science/article/abs/pii/S0377221724005484",
+        "why": "Competitive extension as a zero-sum feedback Stackelberg game."
+      },
+      {
+        "title": "Explainable Reinforcement Learning for Formula One Race Strategy",
+        "venue": "2025",
+        "url": "https://arxiv.org/pdf/2501.04068"
+      }
+    ],
+    "scoring_rules": [
+      {
+        "title": "Evaluating Probabilistic Forecasts with scoringRules",
+        "authors": "Jordan, Krueger, Lerch",
+        "url": "https://arxiv.org/pdf/1709.04743",
+        "why": "Standard reference. Averaged quantile loss -> CRPS as the grid refines."
+      },
+      {
+        "title": "The Murphy Decomposition and the Calibration-Resolution Principle",
+        "url": "https://arxiv.org/pdf/2005.01835",
+        "why": "calibration + resolution + UNCERTAINTY. The third term is an empirical irreducible-difficulty read."
+      },
+      {
+        "title": "Decompositions of the mean continuous ranked probability score",
+        "url": "https://arxiv.org/pdf/2311.14122"
+      }
+    ]
+  },
+  "history": [
+    {
+      "date": "2026-09-07",
+      "landed": "Research round R1 opened, executed and closed. Nine tracks searched against current literature; six docs written under _improvements/research/ (R1-instruments, R2-model-family, R3-competing-risks, R4-conditional-coverage, R5-representation-and-transform, R6-causal-decision-and-the-field) plus a ranked-findings index at research/README.md. Eight verified measurements taken read-only, all recorded in this file with reproduction SQL. Twelve findings ranked by value-per-day; seven negative results recorded; nine build-log items and eight amendments drafted but NOT applied.",
+      "verified": [
+        "VM-01: 1,543 of 5,360 uncensored stints (28.8%) end under SC/VSC/red; mean length 11.14 (SC) / 5.34 (red) / 17.04 (VSC) vs 19.44 (green). n=8,333 total.",
+        "VM-02: stable across all 7 seasons, 19.2-38.9% non-green, length gap present in every season.",
+        "VM-03: target skewness -0.829, excess kurtosis 5.218, n=82,315.",
+        "VM-04: band coverage IN-SAMPLE pooled 80.38% (nominal 80); circuit-conditional 72.4-85.6% over 36 circuits (13.2 pts); lap-in-stint-conditional 79.9-81.2% (1.3 pts).",
+        "VM-04 protocol: production v11 trains on race_year < holdout_season, holdout = MAX(race_year)+1 = 2025 and unpopulated (features.py:115-121); load_scoring_frame scores every lap (features.py:195-213). All coverage figures are in-sample.",
+        "VM-05: predict.py:53 row-sorts the quantile trio before writing; parquet crossing counts are uninformative about the models.",
+        "VM-06: int_corner_skill_residuals buckets via FLOOR(lap_number/5.0)*5.0 + GROUP BY; int_sc_hazard_history aggregates to one row per circuit across all seasons. Neither contains a LEAD, a FOLLOWING frame or a self-join inequality, so neither is visible to features.py::audit_forward_window.",
+        "VM-08: Phase 9 dropped all eleven int_lap_telemetry_aggregates columns as clearing in no family; the only group that ever cleared (proximity) came from a different sensor. Read from schema.py's own notes."
+      ],
+      "assumed": [
+        "A-01: that non-green stint endings contribute materially to the 1.9520 AFT NLL headline. Share and length gap measured; loss attribution is 02d's arithmetic.",
+        "A-02: that circuit-level heteroscedasticity outside the 33-column contract is the mechanism behind the coverage spread. The traffic/deployment-regime alternative is not excluded.",
+        "A-03: that a signature or FPCA representation would clear gates.md where the scalar aggregates did not.",
+        "A-04: that monotone constraints will not cost fit. Untested; early-stint warm-up and fuel effects argue against."
+      ],
+      "gates_run": "None. Measurement and reading only; nothing fitted, nothing shipped, nothing committed.",
+      "next_command": "python3 _improvements/status/board.py",
+      "next_action": "Decide on research/R8-build-order-proposal.md. If accepted: write leaf docs work/08-10 (+11), rescope 01b and 05a in their leaf docs, CLOSE 04b with its reason, then board.py --check and --write-order. Nothing has been written to build-log.json yet."
+    }
+  ]
+}

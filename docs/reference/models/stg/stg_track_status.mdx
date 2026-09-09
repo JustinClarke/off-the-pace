@@ -27,13 +27,13 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**5 tests** [guard](/transform/ci/overview) this model  -  4 generic, 1 singular.
+**6 tests** [guard](/transform/ci/overview) this model  -  5 generic, 1 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
-| `track_status_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Surrogate key   &#123;race_id&#125;_&#123;session_time_s&#125;. |
+| `track_status_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate key   &#123;race_id&#125;_&#123;session_time_s&#125;_&#123;status_code&#125;. |
 | `race_year` | `integer` | Yes |   | Season year. |
 | `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Numeric FastF1 event id cast to string; matches stg_laps.race_id. |
 | `race_slug` | `varchar` | Yes |   | Human-readable event name. |

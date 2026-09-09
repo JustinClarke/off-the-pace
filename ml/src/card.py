@@ -312,6 +312,7 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                 "claims_inside_noise": ev.get("claims_inside_noise", []),
                 "all_claims_significant": ev.get("all_claims_significant"),
                 "calibration": ev.get("calibration", {}),
+                "crps": ev.get("crps", {}),
                 "leakage_probe": ev.get("leakage_probe", {}),
                 "dual_importance": importance,
                 "underperforming_cohorts": underperformers,

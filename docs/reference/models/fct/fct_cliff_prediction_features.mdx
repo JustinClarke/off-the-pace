@@ -24,6 +24,7 @@ flowchart LR
   int_event_corrections --> fct_cliff_prediction_features
   int_lap_air_state --> fct_cliff_prediction_features
   int_lap_anomaly_flags --> fct_cliff_prediction_features
+  int_lap_proximity --> fct_cliff_prediction_features
   int_lap_residual_decomposed --> fct_cliff_prediction_features
   int_lap_residual_stint_detrend --> fct_cliff_prediction_features
   int_lap_telemetry_aggregates --> fct_cliff_prediction_features
@@ -38,7 +39,7 @@ flowchart LR
 | Layer | `marts` |
 | Family | [Marts](/transform/families/marts) |
 | Contract enforced | ✅ Yes |
-| Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_compound_cliff_predicted`](../int/int_compound_cliff_predicted), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_lap_air_state`](../int/int_lap_air_state), [`int_event_corrections`](../int/int_event_corrections), [`int_lap_residual_stint_detrend`](../int/int_lap_residual_stint_detrend), [`int_lap_telemetry_aggregates`](../int/int_lap_telemetry_aggregates), [`dim_compounds_season`](../dim/dim_compounds_season), [`dim_circuits`](../dim/dim_circuits) |
+| Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_compound_cliff_predicted`](../int/int_compound_cliff_predicted), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_lap_air_state`](../int/int_lap_air_state), [`int_lap_proximity`](../int/int_lap_proximity), [`int_event_corrections`](../int/int_event_corrections), [`int_lap_residual_stint_detrend`](../int/int_lap_residual_stint_detrend), [`int_lap_telemetry_aggregates`](../int/int_lap_telemetry_aggregates), [`dim_compounds_season`](../dim/dim_compounds_season), [`dim_circuits`](../dim/dim_circuits) |
 | Model-level tests | `expect_column_values_to_be_between`, `expect_column_values_to_be_between` |
 
 **3 tests** [guard](/transform/ci/overview) this model  -  2 generic, 1 singular.
@@ -64,13 +65,23 @@ flowchart LR
 | `compound_optimal_temp_high` | `double` | Yes |   | Upper bound of optimal operating temperature window (°C) |
 | `compound_cliff_onset_laps` | `double` | Yes |   | Expected lap age at cliff onset for this compound × circuit × season |
 | `compound_cliff_severity` | `double` | Yes |   | Fitted cliff severity (s/lap post-cliff) for this compound × circuit × season |
-| `push_residual` | `double` | Yes |   | Lap-level push load residual from int_lap_thermal_proxy |
+| `push_residual` | `double` | Yes |   | Lap pace against the stint's point-in-time baseline, from int_lap_thermal_proxy. NULL until the stint has one valid prior lap (08e); the NULL is deterministic on baseline_observations_n below. |
 | `cumulative_push_load_surface` | `double` | Yes |   | EW cumulative push load (τ≈3 laps) for tyre surface |
 | `cumulative_push_load_bulk` | `double` | Yes |   | EW cumulative push load (τ≈5 laps) for tyre bulk |
+| `baseline_observations_n` | `bigint` | Yes |   | Valid prior laps behind this stint's baseline. NOT a feature -- it is not in ml/src/schema.py's FEATURE_COLUMNS, and putting it in X is an add-ablation someone has to gate. It ships in the contract because the four thermal columns are NULL exactly where it is 0, and unlike 02a's rebuild that missingness is not declarable from any other contract column: it rises with SC and pit disruption, so it is plausibly correlated with the outcome. |
 | `dirty_air_share_lap` | `decimal(2,1)` | No |   | Fraction of this lap spent in dirty air (sector 2) |
 | `dirty_air_thermal_load_surface` | `double` | No |   | EW dirty air thermal load on tyre surface |
 | `dirty_air_thermal_load_bulk` | `double` | No |   | EW dirty air thermal load on tyre bulk |
 | `air_state_dominant` | `varchar` | No |   | Dominant air state this lap (free_air, tow_zone, drs_train, dirty_air) |
+| `share_lap_within_1s` | `double` | No |   | Share of the lap's 100 track bins with a car within 1 s ahead on track (position channel; mean 0.2011) |
+| `share_lap_within_2s` | `double` | No |   | Share of the lap's track bins with a car within 2 s ahead on track (mean 0.4063) |
+| `share_lap_in_train` | `double` | No |   | Share of the lap in a train rather than a single tow - within 1 s of the car ahead AND that car within 1 s of its own car ahead (mean 0.0800) |
+| `share_lap_behind_within_1s` | `double` | No |   | Share of the lap's track bins with a car within 1 s BEHIND. The half of traffic DistanceToDriverAhead structurally cannot see (mean 0.2012) |
+| `time_within_1s` | `double` | No |   | Seconds of the lap spent within 1 s of the car ahead, time-weighted by real bin duration rather than counted in bins (mean 18.36 s) |
+| `gap_ahead_min_s` | `double` | Yes |   | Closest the car ahead on track came this lap (s). NULL = a full lap of clear air; median 0.92 s |
+| `gap_ahead_median_s` | `double` | Yes |   | Median gap to the car ahead on track across the lap's bins (s). NULL = clear air; median 2.26 s |
+| `ahead_identity_stability` | `double` | Yes |   | Share of the lap's within-3 s bins held by the single most frequent car ahead. 1.0 = a settled follow, low = the car ahead rotated. NULL on the 27.3% of laps with no car within 3 s |
+| `n_distinct_cars_ahead_3s` | `integer` | Yes |   | How many distinct cars were within 3 s ahead at some point in the lap (mean 1.348) |
 | `expected_compound_pace_s` | `double` | Yes |   | Model-expected compound pace contribution from int_compound_cliff_predicted |
 | `expected_degradation_rate_s_per_lap` | `double` | Yes |   | Model-expected degradation rate (s/lap) at current tyre age |
 | `cliff_onset_passed` | `boolean` | Yes |   | TRUE if tyre has passed its fitted cliff onset lap |

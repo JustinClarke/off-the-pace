@@ -1,3 +1,9 @@
+> **ARCHIVED 2026-09-07 — this file is a record, not a tracker.**
+> Stage now lives only in `_improvements/status/build-log.json`; run
+> `python3 _improvements/status/board.py` for the current board. Closed as a tracker: 22 checkpoints, both Series complete.
+> Paths written inside this file predate the restructure — every `_improvements/<name>.md`
+> is now `_improvements/reference/<name>.md`. See `_improvements/README.md`.
+
 # ML Layer — Consolidated Execution Plan
 
 Fifth document in the `_improvements/` series. It folds `ml_headroom.md` (2026-08-22, six
@@ -5561,6 +5567,12 @@ mode 1. It is the right space in principle, being the space the model conditions
 untested and 24 dimensions at 82k rows is where nearest-neighbour methods get thin. This is why
 §3b mandates a synthetic recovery test before the instrument is trusted on real data.
 
+> **Corrected 2026-09-07 (`work/00-corrections.md` 00a).** The space is **33** columns, not 24 —
+> it has been since v11. The count is the only thing that changes; the concern above does not
+> soften, it **sharpens**, since 33 dimensions at 82k rows is thinner than 24. The k-NN design
+> itself is separately superseded — see `work/01-ceiling-instrument.md` 01b, which carries five
+> defects in §3b that this entry did not know about.
+
 **Assumed** — that pooling centred within-group residuals fixes failure mode 2. It removes the
 m ≈ 2 estimation problem by construction, but it substitutes a homoscedasticity assumption that
 is probably false (noise is likely wider near the cliff and in traffic). §3b carries the caveat
@@ -5583,6 +5595,11 @@ and requires stratified pooling rather than a single scalar.
    and it is now the only thing gating §5 and §6.
 
 ### The first command the next session should run
+
+> **Superseded 2026-09-07.** This instruction is no longer the next command — the live handoff is
+> `_improvements/status/build-log.json`, and §3b's estimator **must not be built as written**
+> (`work/01-ceiling-instrument.md` 01b, five defects). The path below also names the *24*-feature
+> space; the contract is **33**. Kept unedited as the record of what this checkpoint instructed.
 
 Read `_improvements/ml_research_program.md` §3a and §3b in full before writing any code — §3a
 is the reason §3's original method must not be built, and a session that skips it will rebuild

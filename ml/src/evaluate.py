@@ -50,6 +50,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 from ml.src import attribution as AT  # noqa: E402
 from ml.src import ceiling as CE  # noqa: E402
+from ml.src import crps as CR  # noqa: E402
 from ml.src import features as F  # noqa: E402
 from ml.src import intervals as IV  # noqa: E402
 from ml.src import schema as S  # noqa: E402
@@ -504,8 +505,16 @@ def behaviour_audit(model, spec: S.TargetSpec, X_ev: pd.DataFrame,
         result["pdp_error"] = str(e)
 
     # Monotonicity sanity (regressors only a class index has no ordered magnitude):
-    # holding others at the median, predicted degradation should not DECREASE as
-    # laps_past_cliff grows (more laps past the cliff ⇒ ≥ the pace penalty).
+    # holding others at the median, more laps past the cliff should make the pace
+    # penalty WORSE. The sign of "worse" is target-dependent -- degradation predicts a
+    # time-loss magnitude (worse = higher, non-decreasing) but stint_life_regressor
+    # predicts REMAINING LIFE (worse = lower, non-increasing), and applying the
+    # degradation direction to both meant this probe reported stint_life_regressor's
+    # correctly-decreasing predictions as "violations" while a model that wrongly held
+    # remaining life flat or rising past the cliff would have passed clean. Fixed as
+    # part of `05b` (see work/05-model-family.md) when the monotone_constraints arm
+    # needed this probe's verdict to be trustworthy per family.
+    expect_non_decreasing = spec.family != "stint_life_regressor"
     if spec.kind != "classification" and "laps_past_cliff" in X_ev.columns:
         base = X_ev.median(numeric_only=True)
         grid = np.linspace(float(X_ev["laps_past_cliff"].quantile(0.05)),
@@ -514,10 +523,12 @@ def behaviour_audit(model, spec: S.TargetSpec, X_ev: pd.DataFrame,
         probe["laps_past_cliff"] = grid
         preds = _predict_index(spec, model, probe).astype(float)
         diffs = np.diff(preds)
+        violations = (diffs < -1e-6) if expect_non_decreasing else (diffs > 1e-6)
         result["monotonicity_laps_past_cliff"] = {
-            "violations": int((diffs < -1e-6).sum()),
+            "expected_direction": "non_decreasing" if expect_non_decreasing else "non_increasing",
+            "violations": int(violations.sum()),
             "n_steps": int(len(diffs)),
-            "monotone_non_decreasing": bool((diffs >= -1e-6).all()),
+            "monotone_as_expected": bool(not violations.any()),
         }
     return result
 
@@ -1266,6 +1277,20 @@ def run(targets: list[str], version: str = S.MODEL_VERSION_DEFAULT) -> dict:
             _calibration_plot(y, lo, hi, ARTEFACTS_DIR / "calibration_degradation.png")
         except Exception as e:
             report["calibration_error"] = str(e)
+
+        # 09a: CRPS alongside the trio, plus its calibration/resolution/uncertainty
+        # decomposition (ml/src/crps.py). Same row set as the calibration block above.
+        try:
+            alpha_preds = {
+                S.TARGET_BY_NAME[name].quantile_alpha: deg[name]["pred"]
+                for name in ("degradation_regressor_p10", "degradation_regressor_p50",
+                            "degradation_regressor_p90")}
+            report["crps"] = CR.crps_report(y, alpha_preds)
+            d = report["crps"]["decomposition"]
+            print(f"[degradation trio] CRPS={report['crps']['crps']:.4f}  "
+                  f"mcb={d['mcb']:.4f} dsc={d['dsc']:.4f} unc={d['unc']:.4f}")
+        except Exception as e:
+            report["crps_error"] = str(e)
 
     # Adversarial leakage probe (once, on the p50 training split).
     try:

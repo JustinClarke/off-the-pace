@@ -13,12 +13,15 @@ seeds:
         tests:
           - not_null
       - name: compound_code
-        description: Tyre compound identifier (SOFT, MEDIUM, HARD, INTERMEDIATE, WET).
+        description: >
+          Tyre compound identifier (SOFT, MEDIUM, HARD, INTERMEDIATE, WET), plus the
+          pre-2019 legacy names SUPERSOFT/ULTRASOFT/HYPERSOFT, fitted 2018-only (see
+          work item 08a).
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET']
+                values: ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
       - name: season
         description: F1 season year this fit applies to.
         tests:

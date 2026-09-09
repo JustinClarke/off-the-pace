@@ -8,7 +8,7 @@ description: "One row per (race_year, race_id, constructor_id)."
 
 <Note>Part of the [Pace Baselines](/transform/families/pace-baselines) family.</Note>
 
-One row per (race_year, race_id, constructor_id). Circuit-specific car advantage beyond season-average. E.g., Red Bull faster at high-downforce tracks. The shrinkage pool is keyed on the physical-circuit id, so a renamed event or double-header (e.g. mexican_grand_prix / mexico_city_grand_prix) shares one pool rather than splitting into two thinner cells. Shrunk toward 0 (Bayesian prior). Positive = slower at this circuit than season average.
+One row per (race_year, race_id, constructor_id). Circuit-specific car advantage beyond the constructor's season-TO-DATE average. E.g., Red Bull faster at high-downforce tracks. The shrinkage pool is keyed on the physical-circuit id, so a renamed event or double-header (e.g. mexican_grand_prix / mexico_city_grand_prix) shares one pool rather than splitting into two thinner cells. Shrunk toward 0 (Bayesian prior). Positive = slower at this circuit than the season so far. Point-in-time since 08f-2: both the season average and the shrinkage pool are expanding windows over races STRICTLY BEFORE this one, where both used to be GROUP BYs that pooled the whole season and every ingested season respectively. Consequence to know before reading the column: 2018 is the first ingested season, so no 2018 row has a prior visit and the interaction is identically 0 across it.
 
 ## Lineage
 

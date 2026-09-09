@@ -34,6 +34,28 @@ RACE_TO_TRACK = "race_to_track"
 EXCLUDED_LEAKAGE_COLUMNS: frozenset[str] = frozenset({
     # causal leakage (absent from the mart by design; pinned anyway)
     "driver_skill_residual_s", "driver_skill_proxy_s", "driver_skill_residual_proxy_s",
+    # D1 RULED 2026-09-07. int_driver_race_skill_loro's columns are barred too, and the
+    # reason is the opposite of the one that was assumed. "LORO" in that model means
+    # leave-one-DRIVER-out -- a driver is graded against the OTHER same-car drivers in the
+    # SAME race (its header: "leave-one-driver-out (LORO) car baseline"). It is NOT
+    # leave-one-race-out. The focal race is never excluded: driver_skill_loro_s is
+    # `driver_p20_pace_delta_s - loro_car_baseline_s`, and that P20 is the focal driver's
+    # own clean laps in the race being predicted. Every CTE in the model groups by
+    # (race_year, race_id, ...); no cross-race window exists anywhere in it.
+    #
+    # Proof, not reading: a driver with exactly ONE race in the whole table still gets a
+    # non-NULL value (DOO 2024_24 = 0.0468 off 45 clean laps; AIT 2020_16 = -1.3164 off 61).
+    # Under leave-one-race-out there would be no other race to estimate from and the value
+    # would have to be NULL. So the column is contemporaneous with the target by
+    # construction -- textbook leakage for a model predicting that same race's degradation.
+    #
+    # Pinned here because the guard is a set intersection on NAMES
+    # (tests/test_features.py: `set(X.columns) & EXCLUDED_LEAKAGE_COLUMNS`), so an
+    # unlisted column passes straight through. These three were unlisted; the mart simply
+    # does not carry them today, which made the safety accidental rather than designed.
+    # This does NOT settle whether a genuine leave-one-race-out skill term would be
+    # admissible -- no such column has been built. See _improvements/work/00-corrections.md 00c.
+    "driver_skill_loro_s", "driver_skill_field_s", "driver_skill_loro_mean_s",
     # identifiers / keys
     "lap_id", "stint_id", "race_id", "race_year", "driver_id", "circuit_key",
     # the training gate
@@ -67,7 +89,7 @@ IDENTIFIER_COLUMNS: tuple[str, ...] = (
     "survival_weight",
 )
 
-# ─── Feature set (24) verified members, grouped for ablation ────────────────────
+# ─── Feature set (33) verified members, grouped for ablation ────────────────────
 # Phase 9 (2026-09-05): dropped `powertrain` (6), `telemetry_cliff` (5), `weather_air` (2),
 # `track` (2) and `context` (3) -- 18 of the prior 42 columns -- on a noise-floor group
 # ablation re-run against the v8 mart (5-lap target, repaired cliff label) across all three

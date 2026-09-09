@@ -49,6 +49,114 @@ models:
         description: Carried through from stg_laps. TRUE when the TrackStatus string contains a 5 (red flag).
         tests: [not_null]
 
+  - name: int_stint_end_regime
+    description: >
+      Why did this stint end? One row per stint. The stint-life survival target
+      treats every uncensored stint as a completed tyre life, but 28.8% of them
+      end under a safety car, VSC or red flag - the moment the pit wall was
+      handed a free stop, not the moment the tyre ran out. This model names the
+      cause so a consumer can separate the tyre-limit process from the
+      interruption process instead of fitting their mixture. It also owns
+      is_censored_stint, which fct_stint_features reads from here, so "the
+      driver's last stint of the race" has one definition. Precedence is
+      declared in the model header: censoring outranks regime, and within an
+      uncensored stint red_flag > safety_car > vsc > green.
+    tags: [intermediate]
+    meta:
+      family: strategy
+    columns:
+      - name: stint_id
+        description: PK from int_stint_geometry. One row per stint.
+        tests: [not_null, unique]
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: race_id
+        description: Race identifier (numeric FastF1 event id cast to string).
+        tests: [not_null]
+      - name: driver_id
+        description: FastF1 three-letter driver code (e.g. VER, HAM).
+        tests: [not_null]
+      - name: stint_number
+        description: >
+          Stint ordinal within the driver's race. NULL for the 325 stints in
+          2018 built from laps FastF1 never assigned to a stint; those carry
+          stint_end_cause NULL and end_cause_confidence 'unassigned_stint'.
+      - name: end_lap_id
+        description: Foreign key to stg_laps - the lap the stint ended on, chronologically. For an uncensored stint this is the in-lap.
+        tests: [not_null]
+      - name: end_lap_number
+        description: Race lap number of the stint's final lap.
+        tests: [not_null]
+      - name: end_lap_in_stint
+        description: Chronological ordinal of the stint's final lap within the stint (equals stint_length_actual).
+        tests: [not_null]
+      - name: is_censored_stint
+        description: >
+          TRUE when this is the driver's last stint of the race, so it ended at
+          the flag or at retirement rather than at a tyre change. Remaining
+          stint life on these laps is a lower bound, not an observation.
+          Consumed by the stint-life survival model (ml/src/features.py) to set
+          the AFT upper bound to +inf, and by the blind-test scoreboard to
+          report censored and uncensored stints apart. Never a model feature.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
+      - name: end_regime
+        description: >
+          Track regime in force on the stint's final lap, for every stint
+          including censored ones. Severity precedence red_flag > safety_car >
+          vsc > green, because one TrackStatus string can carry several codes
+          at once. Crossed with is_censored_stint this reproduces the measured
+          end-regime decomposition.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [green, safety_car, vsc, red_flag]
+      - name: is_multi_regime_end
+        description: TRUE when the final lap carried more than one of red/SC/VSC, so severity precedence had to choose which one names the ending.
+        tests: [not_null]
+      - name: ended_on_pit_lap
+        description: TRUE when the stint's final lap carries a pit marker. FALSE on an uncensored stint means the tyre change is known from the existence of a later stint but is not visible on the lap itself.
+        tests: [not_null]
+      - name: was_running_at_flag
+        description: >
+          TRUE when the driver's classified status says the car was still
+          circulating at the chequered flag ('Finished', '+N Lap(s)',
+          'Lapped'). Disqualification is resolved on distance instead, because
+          it is a post-race ruling rather than a reason a stint ended. Only
+          meaningful on a censored stint.
+        tests: [not_null]
+      - name: stint_end_cause
+        description: >
+          Six-class answer to "why did this stint end": green_pit, sc_pit,
+          vsc_pit, red for the four uncensored causes, race_end and retirement
+          for the two censored ones. NULL where stint_number is NULL - the row
+          is an artefact of unassigned laps, not a stint that ended.
+        tests:
+          - not_null:
+              config:
+                where: "stint_number IS NOT NULL"
+          - accepted_values:
+              arguments:
+                values: [green_pit, sc_pit, vsc_pit, red, race_end, retirement]
+      - name: end_cause_confidence
+        description: >
+          How confidently the cause is known. 'observed' where every input was
+          read; 'inferred' where severity precedence had to choose, where the
+          pit marker is missing on an uncensored stint, or where
+          disqualification hides whether the driver was running;
+          'unassigned_stint' where the row is not a stint.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [observed, inferred, unassigned_stint]
+
   - name: int_lap_fuel_state
     description: >
       Fuel burnoff and weight correction. One row per valid lap.
@@ -57,6 +165,19 @@ models:
     tags: [intermediate]
     meta:
       family: physics
+      aggregation_scope_exemptions:
+        - keys: [race_year, race_id]
+          status: accepted
+          reason: >
+            race_lap_counts takes MAX(lap_number) per race to set the starting fuel
+            load. The quantity it stands for -- the scheduled race distance -- is a
+            PRE-RACE known; the warehouse has no scheduled-distance column, so the
+            observed lap count is the available proxy. It sets the starting mass
+            only: the per-lap burn slope is dim_circuits'
+            fuel_consumption_rate_kg_per_lap, a circuit constant. Proxy and pre-race
+            known diverge only where a race is stopped early, and that divergence has
+            NOT been measured. Adding a scheduled-distance column to dim_events would
+            remove this exemption outright.
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
@@ -247,9 +368,15 @@ models:
 
   - name: int_lap_thermal_proxy
     description: >
-      Cumulative push load from engine thermal management. One row per lap.
-      Models engine braking and thermal duty via cumulative exponential moving average,
-      aggregated to lap-level push load on braking.
+      Cumulative push load from tyre thermal management. One row per lap.
+      push_residual is the lap's pace against a POINT-IN-TIME stint baseline -- the
+      expanding median of this stint's valid laps strictly before the scored lap
+      (macro: trailing_median) -- and the two EW loads are backward sums over it.
+      Rebuilt by 08e: the baseline was a MEDIAN over laps 1..CEIL(stint_length*0.60)
+      per stint, which both pooled laps the scored lap had not yet run (55.92% of
+      mart rows, mean 4.65 laps) and took its window width from stint_length_actual,
+      the stint-life target's own numerator. That contamination did not merely add
+      noise -- it inverted push_residual's sign against two of the three targets.
     tags: [intermediate]
     meta:
       family: physics
@@ -257,6 +384,42 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: stint_baseline_pace
+        description: >
+          Median lap_time_s over this stint's VALID laps strictly before this one.
+          Expanding, not trailing-N: a stint is short enough that the window stays
+          local, and capping it would let the baseline drift with the degradation it
+          measures. NULL until one valid prior lap exists -- usually laps 1-2, since
+          lap 1 of a stint is an out-lap and not valid. Costs 1.41pp of
+          training-eligible coverage against the old block median.
+      - name: baseline_observations_n
+        description: >
+          How many valid prior laps stint_baseline_pace was computed from. Ships as a
+          feature-contract column precisely because the baseline's NULLs are
+          deterministic on it and on nothing else the contract carries: unlike 02a's
+          rebuild, whose NULLs were declarable from age_in_stint, this count rises
+          with SC and pit disruption and is plausibly correlated with the outcome. A
+          consumer conditions on it; it must not be imputed away.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+      - name: push_residual
+        description: >
+          stint_baseline_pace - lap_time_s. Positive = faster than the stint's own
+          prior pace = pushing. NULL wherever the baseline is NULL: unknown, not zero.
+      - name: cumulative_push_load_surface
+        description: >
+          EW sum of positive push_residual, tau~3 laps, 5-lap lookback. A NULL
+          residual on a PRIOR lap contributes 0 (the same convention as laps before
+          the stint began); a NULL residual on THIS lap makes the load NULL rather
+          than 0, since GREATEST(NULL, 0) = 0 in DuckDB would fabricate "no thermal
+          load" for a lap whose load is simply unknown.
+      - name: cumulative_push_load_bulk
+        description: >
+          EW sum of positive push_residual, tau~5 laps, 8-lap lookback. Same NULL
+          rule as cumulative_push_load_surface.
 
   - name: int_track_geometry
     description: >
@@ -426,6 +589,15 @@ models:
     tags: [intermediate]
     meta:
       family: pace-baselines
+      aggregation_scope_exemptions:
+        - keys: [race_year, race_id]
+          status: accepted
+          reason: >
+            race_fastest supplies the 107% eligibility threshold for the field pace
+            curve. The curve itself groups (race_year, race_id, lap_number) and pins
+            a lap; only the threshold is race-scoped. Accepted with the spine, and
+            recorded as its narrowest instance -- a pre-race reference time, e.g.
+            pole or a circuit benchmark, would remove it entirely.
     columns:
       - name: race_year
         description: Race year
@@ -445,6 +617,23 @@ models:
     tags: [intermediate]
     meta:
       family: pace-baselines
+      aggregation_scope_exemptions:
+        - keys: [race_year, race_id]
+          status: accepted
+          reason: >
+            Race-level track-evolution baselines: the reference lap and reference
+            pace that a race's rubber and ambient components are measured against.
+            Race-scoped with the rest of the decomposition spine.
+        - keys: [race_year, race_id, mean_lap, mean_pace]
+          status: accepted
+          reason: >
+            The same race-level baseline carried through a join and grouped on the
+            aggregate values to re-key, not to aggregate further. Accepted with the
+            baseline it carries.
+        - keys: [race_year, race_id, mean_track_temp]
+          status: accepted
+          reason: >
+            As above, for the track-temperature baseline behind ambient_component_s.
     columns:
       - name: race_year
         description: Race year
@@ -485,6 +674,15 @@ models:
     tags: [intermediate]
     meta:
       family: residual
+      aggregation_scope_exemptions:
+        - keys: [race_year, race_id]
+          status: accepted
+          reason: >
+            race_fastest is MIN(lap_time_s) over the race, the reference for the
+            outlier and correction classification. A race's fastest lap is not known
+            until the race has run, so this is race-scoped in the same sense as the
+            rest of the decomposition spine, and accepted on the same grounds and at
+            the same price.
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
@@ -540,6 +738,19 @@ models:
     tags: [intermediate]
     meta:
       family: residual
+      aggregation_scope_exemptions:
+        - keys: [race_year, race_id, driver_id]
+          status: accepted
+          reason: >
+            residual_stats computes a per-driver-per-race mean and standard deviation
+            of driver_skill_residual_s. Diagnostic only, and verified so: the model's
+            own comment says the global z-score is "traceability only; not used for
+            anomaly_class", and it is not. cliff_candidate_flag is (mad_score > 3.0
+            AND cliff_onset_passed AND driver_skill_residual_s > trailing_median_s),
+            and both mad_score inputs come from the trailing window (w.lap_number
+            BETWEEN r.lap_number - 6 AND r.lap_number), which is backward-only. The
+            mart reads lap_id, anomaly_class, cliff_candidate_flag and is_rain_lap
+            from this model, and none of the z-score columns.
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
@@ -589,6 +800,25 @@ models:
     tags: [intermediate, causal_decomposition]
     meta:
       family: pace-baselines
+      aggregation_scope_exemptions:
+        - keys: [race_year, race_id, constructor_id]
+          status: accepted
+          reason: >
+            constructor_agg is the per-race constructor coefficient: the median pace
+            delta over that constructor's laps in that race. Race-scoped by design --
+            this warehouse decomposes a COMPLETED race into additive components, and
+            a coefficient fitted on part of a race is a different quantity. It does
+            not cross the season split. See "the race-scoped spine" in
+            _improvements/work/08-foundations-repair.md: the price of this ruling is
+            that nothing downstream of driver_skill_residual_s is point-in-time
+            correct for live mid-race prediction.
+        - keys: [race_year, race_id]
+          status: accepted
+          reason: >
+            race_mean re-centres those coefficients on the race average so they sum
+            to zero, which is what makes them pace RELATIVE TO THE FIELD rather than
+            absolute. Same race-scoped ruling as the coefficient it centres; centring
+            on a subset of the race would not be a zero-sum decomposition.
     columns:
       - name: constructor_race_id
         description: Surrogate PK = hash(race_year, race_id, constructor_id)
@@ -1341,10 +1571,16 @@ models:
   - name: int_circuit_x_constructor_interaction
     description: >
       One row per (race_year, race_id, constructor_id). Circuit-specific car advantage beyond
-      season-average. E.g., Red Bull faster at high-downforce tracks. The shrinkage pool is keyed
-      on the physical-circuit id, so a renamed event or double-header (e.g. mexican_grand_prix /
-      mexico_city_grand_prix) shares one pool rather than splitting into two thinner cells.
-      Shrunk toward 0 (Bayesian prior). Positive = slower at this circuit than season average.
+      the constructor's season-TO-DATE average. E.g., Red Bull faster at high-downforce tracks.
+      The shrinkage pool is keyed on the physical-circuit id, so a renamed event or double-header
+      (e.g. mexican_grand_prix / mexico_city_grand_prix) shares one pool rather than splitting
+      into two thinner cells. Shrunk toward 0 (Bayesian prior). Positive = slower at this circuit
+      than the season so far.
+      Point-in-time since 08f-2: both the season average and the shrinkage pool are expanding
+      windows over races STRICTLY BEFORE this one, where both used to be GROUP BYs that pooled
+      the whole season and every ingested season respectively. Consequence to know before reading
+      the column: 2018 is the first ingested season, so no 2018 row has a prior visit and the
+      interaction is identically 0 across it.
     tags: [intermediate, simulation, ghost_car]
     meta:
       family: pace-baselines
@@ -1842,6 +2078,15 @@ models:
     tags: [intermediate, simulation]
     meta:
       family: residual
+      aggregation_scope_exemptions:
+        - keys: [stint_id]
+          status: accepted
+          reason: >
+            REGR_SLOPE over a stint's pre-cliff laps produces drift_s_per_lap, which
+            exists to detrend the target. It is in EXCLUDED_LEAKAGE_COLUMNS ("C1:
+            per-stint drift slope carried in base; causally encodes the target"), and
+            this model is not an ancestor of any model that defines a FEATURE_COLUMN.
+            Label construction, barred from X by name.
     columns:
       - name: stint_id
         description: Surrogate key combining race_year, race_id, driver_id, stint_number (grain).

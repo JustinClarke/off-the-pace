@@ -60,6 +60,14 @@ COMPOUND_DEFAULTS = {
     "HARD":         {"cliff_onset_laps": 50, "cliff_severity": 1.20, "wear_gradient": 0.022, "grip_peak": 0.97},
     "INTERMEDIATE": {"cliff_onset_laps": 25, "cliff_severity": 1.30, "wear_gradient": 0.055, "grip_peak": 0.98},
     "WET":          {"cliff_onset_laps": 20, "cliff_severity": 1.45, "wear_gradient": 0.080, "grip_peak": 0.95},
+    # Pre-2019 legacy names (2018 only): softer than SOFT in Pirelli's
+    # naming order (HARD < MEDIUM < SOFT < SUPERSOFT < ULTRASOFT < HYPERSOFT).
+    # Extrapolated from the SOFT row along that same ordering -- more grip,
+    # faster wear, earlier onset. Severity is already at the 1.5 winsorization
+    # cap for SOFT, so these cap there too rather than exceeding it.
+    "SUPERSOFT":    {"cliff_onset_laps": 18, "cliff_severity": 1.50, "wear_gradient": 0.085, "grip_peak": 1.05},
+    "ULTRASOFT":    {"cliff_onset_laps": 14, "cliff_severity": 1.50, "wear_gradient": 0.100, "grip_peak": 1.07},
+    "HYPERSOFT":    {"cliff_onset_laps": 10, "cliff_severity": 1.50, "wear_gradient": 0.115, "grip_peak": 1.09},
 }
 
 OPTIMAL_TEMP_RANGES = {
@@ -68,6 +76,11 @@ OPTIMAL_TEMP_RANGES = {
     "HARD":         (76, 108),
     "INTERMEDIATE": (15,  50),
     "WET":          (10,  40),
+    # Same slick rubber family as SOFT; no independent evidence for a
+    # different operating window, so inherit SOFT's.
+    "SUPERSOFT":    (82, 108),
+    "ULTRASOFT":    (82, 108),
+    "HYPERSOFT":    (82, 108),
 }
 
 
@@ -151,7 +164,11 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
           ON rtt.track_id = dc.circuit_key
         LEFT JOIN int_lap_normalized_pace np ON sg.lap_id = np.lap_id
         WHERE sg.race_year IN ({season_filter})
-          AND l.compound IN ('SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET')
+          AND l.compound IN (
+              'SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET',
+              -- Pre-2019 legacy naming, 2018 only (see COMPOUND_DEFAULTS).
+              'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT'
+          )
           -- Phase C: green-flag laps, not is_valid_lap. The dropped condition
           -- is is_accurate only -- every other component of is_valid_lap is
           -- restated below (SC/VSC via the two flags, which between them cover

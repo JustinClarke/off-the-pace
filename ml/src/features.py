@@ -7,10 +7,12 @@ Public API:
     resolve_holdout_season(con) -> int
     load_features(duckdb_path, target=None, *, persist_encoders=False) -> FeatureBundle
     audit_forward_window(manifest_path) -> list[str]      # [] == clean
+    audit_aggregation_scope(manifest_path) -> list[str]   # [] == clean
+    survey_aggregation_scope(manifest_path) -> list[str]  # report-only, off-lineage
 
 CLI (`python -m ml.src.features --check`): audit-only mode for CI-runs the
-forward-window audit, asserts the leakage guards, prints the season split, and
-exits non-zero on any violation.
+forward-window and aggregation-scope audits, asserts the leakage guards, prints
+the season split, and exits non-zero on any violation.
 """
 from __future__ import annotations
 
@@ -325,22 +327,8 @@ def audit_forward_window(manifest_path: str = MANIFEST_PATH) -> list[str]:
     manifest = json.loads(Path(manifest_path).read_text())
     target_dir = Path(manifest_path).parent
     nodes = manifest["nodes"]
-    mart_uid = next(uid for uid, n in nodes.items()
-                    if n.get("name") == S.MART and n.get("resource_type") == "model")
-
-    # BFS the mart's model ancestors via parent_map; collect compiled SQL.
-    parent_map = manifest.get("parent_map", {})
-    lineage, frontier = set(), [mart_uid]
-    while frontier:
-        uid = frontier.pop()
-        if uid in lineage or uid not in nodes:
-            continue
-        lineage.add(uid)
-        frontier.extend(parent_map.get(uid, []))
-    compiled = {
-        uid: _model_sql(nodes[uid], target_dir)
-        for uid in lineage if nodes[uid].get("resource_type") == "model"
-    }
+    compiled = {uid: _model_sql(nodes[uid], target_dir)
+                for uid in _mart_lineage(manifest)}
 
     defs, unparsed = _alias_definitions(compiled)
 
@@ -386,6 +374,286 @@ def audit_forward_window(manifest_path: str = MANIFEST_PATH) -> list[str]:
     return violations
 
 
+# ─── Aggregation-scope audit ────────────────────────────────────────────────────
+# A forward reach does not need a window function, and it does not need a join
+# predicate either. It can live in the SCOPE OF A GROUP BY, where neither of the
+# two checks above looks: `GROUP BY circuit_slug` over every ingested season pools
+# 2024 into what a 2018 row sees, and `GROUP BY stint_id` hands a lap the median of
+# laps that had not yet run. Neither construct has a LEAD, a FOLLOWING frame or a
+# self-join inequality anywhere in it, so `audit_forward_window` read both as clean
+# -- which it did, for as long as they existed.
+#
+# The rule: every GROUP BY in a model feeding FEATURE_COLUMNS must pin the time
+# coordinate to at most one lap -- the label's grain, since the mart is one row per
+# valid race lap -- or be declared in that model's `schema.yml`. Extra keys only
+# ever shrink a group, so the test is monotone: adding keys never breaks pinning.
+#
+# The declaration is data, not a comment. The checker reads it, refuses a blank
+# reason, refuses a `known_leak` with no item to fix it, and fails on an exemption
+# that no longer matches any aggregation in the model -- so an exemption cannot rot
+# quietly while the SQL moves under it.
+
+# `race_id` pins a race on its own, with no season key alongside it. VERIFIED, not
+# assumed: across the ingested 2018-2024 seasons it is globally unique -- 147 ids in
+# fct_lap_residuals, 149 in int_stint_geometry and fct_stint_features, zero reused
+# across seasons in any of the three. `circuit_id` / `circuit_key` / `circuit_slug` /
+# `track_id` are deliberately NOT race keys even beside a season key: 2020 ran two
+# races at the Red Bull Ring and two at Silverstone, so (season, venue) does not
+# identify a race.
+_LAP_ID_KEYS = frozenset({"lap_id"})
+_RACE_KEYS = frozenset({"race_id", "race_key"})
+_STINT_KEYS = frozenset({"stint_id"})
+_LAP_ORDINAL_KEYS = frozenset({"lap_number", "lap_in_stint"})
+_SEASON_KEYS = frozenset({"race_year", "season"})
+_TIME_KEYS = _LAP_ID_KEYS | _RACE_KEYS | _STINT_KEYS | _LAP_ORDINAL_KEYS | _SEASON_KEYS
+
+_EXEMPTION_META_KEY = "aggregation_scope_exemptions"
+_EXEMPTION_STATUSES = ("accepted", "known_leak")
+
+
+def _pins_one_lap(names: set[str]) -> bool:
+    """True if this grouping key set confines a group to at most one lap."""
+    if names & _LAP_ID_KEYS:
+        return True
+    if (names & _RACE_KEYS) and (names & _LAP_ORDINAL_KEYS):
+        return True
+    if (names & _STINT_KEYS) and (names & _LAP_ORDINAL_KEYS):
+        return True
+    return False
+
+
+def _scope_width(names: set[str]) -> str:
+    """How far a non-pinning group reaches, narrowest first. This is the severity:
+    the last case crosses the season split itself and so contaminates the CV folds,
+    while the first two are point-in-time defects inside one race."""
+    if names & _STINT_KEYS:
+        return "pools the laps of one stint"
+    if names & _RACE_KEYS:
+        return "pools the laps of one race"
+    if names & _SEASON_KEYS:
+        return "pools the races of one season"
+    return "pools every ingested season — this crosses the train/eval split"
+
+
+def _passthrough_column(node: exp.Expression) -> exp.Column | None:
+    """The column a projection passes through, after stripping wrappers that do not
+    change which rows share a value: parentheses and casts. `CAST(lap_number AS
+    INTEGER) AS lap_number` is the same key; `FLOOR(lap_number / 5.0) * 5.0` is not.
+    Returns None when the projection computes something. (A cast that genuinely
+    coarsens -- a float lap index truncated to int -- would be missed here; no time
+    key in this warehouse is stored as a float, so the case does not arise.)"""
+    while isinstance(node, (exp.Paren, exp.Alias, exp.Cast, exp.TryCast)):
+        node = node.this
+    return node if isinstance(node, exp.Column) else None
+
+
+def _derived_aliases(tree: exp.Expression) -> set[str]:
+    """Aliases in this model that are computed, not passed through.
+
+    `FLOOR(lap_number / 5.0) * 5.0 AS lap_window` is a *coarsened* lap key: the
+    group it makes spans five laps, four of which are in the future at the first
+    one. Grouping on it must not count as grouping on a lap. The set is used to
+    disqualify vocabulary names too, so aliasing a bucket back onto the name
+    `lap_number` does not buy a pass.
+
+    Model-wide rather than resolved per CTE, deliberately: a coarsened key anywhere
+    in a model disqualifies that name in every GROUP BY in it. That over-flags if
+    one CTE buckets a name another CTE passes through cleanly -- an over-flag costs
+    a declaration, an under-flag costs the guard."""
+    derived: set[str] = set()
+    for select in tree.find_all(exp.Select):
+        for proj in select.expressions:
+            if isinstance(proj, exp.Alias) and _passthrough_column(proj.this) is None:
+                derived.add(proj.alias_or_name)
+    return derived
+
+
+def _group_key_names(select: exp.Select, group: exp.Group) -> tuple[set[str], list[str]]:
+    """(key names, printable keys) for one GROUP BY, with positional references
+    (`GROUP BY 1, 2, 3`) resolved back to the projections they stand for."""
+    names: set[str] = set()
+    printable: list[str] = []
+    projections = select.expressions
+    for key in group.expressions:
+        node = key
+        if isinstance(key, exp.Literal) and key.is_int:
+            index = int(key.name) - 1
+            if 0 <= index < len(projections):
+                node = projections[index]
+        name = node.alias_or_name
+        if name:
+            names.add(name)
+            printable.append(name)
+        else:
+            printable.append(node.sql(dialect="duckdb"))
+    return names, sorted(printable)
+
+
+def _aggregation_findings(
+    name: str, sql: str,
+) -> tuple[list[tuple[frozenset[str], str]], str | None]:
+    """Every non-pinning GROUP BY in one model, as (key set, description) pairs.
+    Second element is a parse error message, or None."""
+    try:
+        tree = sqlglot.parse_one(sql, dialect="duckdb")
+    except Exception:
+        return [], (f"aggregation-scope audit could not parse '{name}' — the audit is "
+                    f"blind to it, so a CLEAN result would be meaningless")
+    derived = _derived_aliases(tree)
+    findings: list[tuple[frozenset[str], str]] = []
+    for select in tree.find_all(exp.Select):
+        group = select.args.get("group")
+        if group is None:
+            continue
+        names, printable = _group_key_names(select, group)
+        effective = {n for n in names if n not in derived}
+        if _pins_one_lap(effective):
+            continue
+        note = ""
+        coarsened = sorted((names & _TIME_KEYS) & derived)
+        if coarsened:
+            note = (f"; {', '.join(coarsened)} is a derived key here, not a "
+                    f"pass-through time column, so it does not pin a lap")
+        findings.append((
+            frozenset(names),
+            f"{name}: GROUP BY ({', '.join(printable)}) {_scope_width(effective)}{note}",
+        ))
+    return findings, None
+
+
+def _exemptions(node: dict, model: str) -> tuple[dict[frozenset[str], dict], list[str]]:
+    """Declared aggregation-scope exemptions for one model, keyed by grouping key
+    set, plus the malformed ones. A declaration that does not say what it is
+    accepting, or claims a known leak with nothing scheduled to fix it, is itself a
+    violation -- the point of putting these in `schema.yml` is that someone signed
+    them."""
+    meta = (node.get("config") or {}).get("meta") or node.get("meta") or {}
+    declared = meta.get(_EXEMPTION_META_KEY) or []
+    parsed: dict[frozenset[str], dict] = {}
+    problems: list[str] = []
+    for entry in declared:
+        keys = frozenset(entry.get("keys") or [])
+        where = f"{model} exemption for GROUP BY ({', '.join(sorted(keys)) or '<no keys>'})"
+        if not keys:
+            problems.append(f"{where}: names no grouping keys")
+            continue
+        status = entry.get("status")
+        if status not in _EXEMPTION_STATUSES:
+            problems.append(f"{where}: status must be one of {list(_EXEMPTION_STATUSES)}, "
+                            f"got {status!r}")
+        if not (entry.get("reason") or "").strip():
+            problems.append(f"{where}: needs a written reason")
+        if status == "known_leak" and not (entry.get("fixed_by") or "").strip():
+            problems.append(f"{where}: status 'known_leak' needs `fixed_by` naming the "
+                            f"work item that repairs it")
+        parsed[keys] = entry
+    return parsed, problems
+
+
+def _mart_lineage(manifest: dict) -> set[str]:
+    """Model uids the mart is built from, the mart included."""
+    nodes = manifest["nodes"]
+    mart_uid = next(uid for uid, n in nodes.items()
+                    if n.get("name") == S.MART and n.get("resource_type") == "model")
+    parent_map = manifest.get("parent_map", {})
+    lineage, frontier = set(), [mart_uid]
+    while frontier:
+        uid = frontier.pop()
+        if uid in lineage or uid not in nodes:
+            continue
+        lineage.add(uid)
+        frontier.extend(parent_map.get(uid, []))
+    return {uid for uid in lineage if nodes[uid].get("resource_type") == "model"}
+
+
+def audit_aggregation_scope(manifest_path: str = MANIFEST_PATH) -> list[str]:
+    """Every GROUP BY in the mart's lineage must pin the time coordinate to at most
+    one lap, or be declared in the model's `schema.yml` under
+    `meta.aggregation_scope_exemptions`. Returns a list of violation strings
+    ([] == clean).
+
+    Scope is the whole model lineage rather than the models that define a feature's
+    expression, deliberately. Resolving a feature to the models that build it means
+    following the definition chain, and that chain stops at the first computed
+    expression -- so a model reached only through arithmetic (`int_field_pace_curve`
+    feeds `push_residual` by subtraction) would drop out of scope. Over-approximating
+    costs a few declarations; under-approximating costs the guard."""
+    manifest = json.loads(Path(manifest_path).read_text())
+    target_dir = Path(manifest_path).parent
+    nodes = manifest["nodes"]
+
+    violations: list[str] = []
+    for uid in sorted(_mart_lineage(manifest), key=lambda u: nodes[u]["name"]):
+        node = nodes[uid]
+        model = node["name"]
+        findings, unparsed = _aggregation_findings(model, _model_sql(node, target_dir))
+        if unparsed:
+            violations.append(unparsed)
+            continue
+        declared, problems = _exemptions(node, model)
+        violations += problems
+        found_keys = {keys for keys, _ in findings}
+        for keys, description in findings:
+            if keys in declared:
+                continue
+            violations.append(
+                f"undeclared aggregation scope — {description}. Add a lap key, or "
+                f"declare it in schema.yml under meta.{_EXEMPTION_META_KEY} with "
+                f"keys/status/reason")
+        for keys in declared:
+            if keys not in found_keys:
+                violations.append(
+                    f"stale exemption — {model} declares GROUP BY "
+                    f"({', '.join(sorted(keys))}), which no longer appears in the "
+                    f"model or now pins a lap. Delete it rather than leaving it to rot")
+    return violations
+
+
+def survey_aggregation_scope(manifest_path: str = MANIFEST_PATH) -> list[str]:
+    """The same walk over the int_/stg_ models the mart does NOT currently read.
+
+    Report-only, and separate from the gate on purpose. These models feed no feature
+    today, so failing the build on them would force ~56 declarations that assert
+    nothing anyone has to honour, and an exemption file that is mostly noise is worse
+    than no exemption file. What this list is for: `int_corner_skill_residuals` and
+    `int_sc_hazard_history` are both in it, and both are scheduled to enter the
+    feature contract (items 02c and 02d). When they do, they arrive in
+    `audit_aggregation_scope`'s scope automatically and the build stops until someone
+    rules on them -- this survey is the advance notice that the ruling is coming."""
+    manifest = json.loads(Path(manifest_path).read_text())
+    target_dir = Path(manifest_path).parent
+    nodes = manifest["nodes"]
+    lineage = _mart_lineage(manifest)
+
+    outside = [uid for uid, n in nodes.items()
+               if n.get("resource_type") == "model" and uid not in lineage
+               and n["name"].startswith(("int_", "stg_"))]
+    findings: list[str] = []
+    for uid in sorted(outside, key=lambda u: nodes[u]["name"]):
+        node = nodes[uid]
+        model_findings, unparsed = _aggregation_findings(
+            node["name"], _model_sql(node, target_dir))
+        if unparsed:
+            findings.append(unparsed)
+            continue
+        findings += [description for _, description in model_findings]
+    return findings
+
+def _declared_known_leaks(manifest_path: str = MANIFEST_PATH) -> list[str]:
+    """Exemptions in the feature lineage whose status is `known_leak`, one line each."""
+    manifest = json.loads(Path(manifest_path).read_text())
+    nodes = manifest["nodes"]
+    leaks: list[str] = []
+    for uid in sorted(_mart_lineage(manifest), key=lambda u: nodes[u]["name"]):
+        node = nodes[uid]
+        declared, _ = _exemptions(node, node["name"])
+        for keys, entry in declared.items():
+            if entry.get("status") == "known_leak":
+                leaks.append(f"{node['name']} GROUP BY ({', '.join(sorted(keys))}) "
+                             f"— fixed_by {entry.get('fixed_by')}")
+    return leaks
+
+
 # ─── CLI: --check (CI audit mode) ────────────────────────────────────────────────
 def _check(duckdb_path: str, manifest_path: str) -> int:
     problems: list[str] = []
@@ -393,6 +661,27 @@ def _check(duckdb_path: str, manifest_path: str) -> int:
     fw = audit_forward_window(manifest_path)
     problems += fw
     print(f"[forward-window audit] {'CLEAN' if not fw else 'VIOLATIONS: ' + '; '.join(fw)}")
+
+    agg = audit_aggregation_scope(manifest_path)
+    problems += agg
+    print(f"[aggregation-scope audit] {'CLEAN' if not agg else 'VIOLATIONS:'}")
+    for violation in agg:
+        print(f"  - {violation}")
+
+    # Declared, not clean. A `known_leak` is a reach someone has ruled real and
+    # scheduled, and it should stay visible every run rather than resting quietly in
+    # a YAML file -- the count is the number of leaks currently shipping.
+    leaks = _declared_known_leaks(manifest_path)
+    if leaks:
+        print(f"[aggregation-scope audit] {len(leaks)} declared known_leak(s) still in "
+              f"the feature lineage:")
+        for leak in leaks:
+            print(f"  ! {leak}")
+
+    survey = survey_aggregation_scope(manifest_path)
+    print(f"[aggregation-scope survey] {len(survey)} non-pinning aggregation(s) in "
+          f"int_/stg_ models outside the mart lineage (report-only; they enter the "
+          f"audit above if a feature ever reads them)")
 
     bundle = load_features(duckdb_path, target="degradation_regressor_p50", persist_encoders=True)
     leaked = sorted(set(bundle.X_train.columns) & S.EXCLUDED_LEAKAGE_COLUMNS)

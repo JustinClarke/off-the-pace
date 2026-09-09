@@ -46,7 +46,7 @@ flowchart TD
 
     **What it writes:** `ml/models/encoders.json` (the ordinal encoding map) and a dataset fingerprint logged to stdout.
 
-    **What it guarantees:** the 24-column feature contract is a subset of the mart's actual columns; the forward-window SQL audit finds no `LEAD`/`FOLLOWING` clauses; and the leakage exclusion list is non-overlapping with the feature list. The fingerprint makes the run reproducible: given the same mart rows, every downstream artefact is byte-for-byte identical.
+    **What it guarantees:** the 33-column feature contract is a subset of the mart's actual columns; the forward-window SQL audit finds no `LEAD`/`FOLLOWING` clauses; and the leakage exclusion list is non-overlapping with the feature list. The fingerprint makes the run reproducible: given the same mart rows, every downstream artefact is byte-for-byte identical.
 
     ```bash
     make ml-features

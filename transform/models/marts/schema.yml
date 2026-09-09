@@ -129,6 +129,37 @@ models:
     tags: [marts]
     meta:
       family: marts
+      aggregation_scope_exemptions:
+        - keys: [race_year, compound]
+          status: accepted
+          reason: >
+            season_compound_totals is the denominator of the empirical stint-survival
+            curve behind survival_weight, counted PER SEASON. It does not pin a lap,
+            and it is accepted rather than pinned because of what consumes it: the
+            only reader is a window cumulating seasons STRICTLY BEFORE the row's own
+            (ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING over race_year), so no
+            row is ever weighted by a count drawn from its own season, let alone a
+            later one. Before 08f-1 this was GROUP BY compound with no season key at
+            all, and the weight applied to a 2018 training row was estimated partly
+            from the 2024 evaluation season -- through train.py's XGBoost sample
+            weight and evaluate.py's score weighting, never through a column in X,
+            which is why nothing caught it.
+        - keys: [race_year, compound, lap_in_stint]
+          status: accepted
+          reason: >
+            season_stints_reaching is the numerator of the same curve, per season,
+            and is lagged by the same window as the denominator above. Accepted on
+            the same grounds and ruled together with it: a fix that season-lags one
+            without the other stops the ratio being a probability.
+        - keys: [stint_id]
+          status: accepted
+          reason: >
+            cliff_horizon takes MAX(lap_in_stint) per stint to bound the forward
+            cliff scan. This is label construction, not a feature -- it produces
+            laps_until_cliff / laps_until_cliff_class, and nothing on that path is in
+            FEATURE_COLUMNS. A label is allowed to see the whole stint; that is what
+            makes it a label. assert_cliff_class_horizon_partition covers the
+            partition it defines.
     columns:
       - name: lap_id
         description: Surrogate PK from stg_laps
@@ -197,7 +228,10 @@ models:
         description: Fitted cliff severity (s/lap post-cliff) for this compound × circuit × season
         data_type: double
       - name: push_residual
-        description: Lap-level push load residual from int_lap_thermal_proxy
+        description: >
+          Lap pace against the stint's point-in-time baseline, from
+          int_lap_thermal_proxy. NULL until the stint has one valid prior lap
+          (08e); the NULL is deterministic on baseline_observations_n below.
         data_type: double
       - name: cumulative_push_load_surface
         description: EW cumulative push load (τ≈3 laps) for tyre surface
@@ -205,6 +239,16 @@ models:
       - name: cumulative_push_load_bulk
         description: EW cumulative push load (τ≈5 laps) for tyre bulk
         data_type: double
+      - name: baseline_observations_n
+        description: >
+          Valid prior laps behind this stint's baseline. NOT a feature -- it is not
+          in ml/src/schema.py's FEATURE_COLUMNS, and putting it in X is an
+          add-ablation someone has to gate. It ships in the contract because the
+          four thermal columns are NULL exactly where it is 0, and unlike 02a's
+          rebuild that missingness is not declarable from any other contract column:
+          it rises with SC and pit disruption, so it is plausibly correlated with
+          the outcome.
+        data_type: bigint
       - name: dirty_air_share_lap
         description: Fraction of this lap spent in dirty air (sector 2)
         data_type: decimal(2,1)
@@ -483,6 +527,7 @@ models:
         description: "Pit strategy decision verdict from int_pit_strategy_value (optimal / overran / undercut_forced / early)."
       - name: is_censored_stint
         description: >
+          Passed through from int_stint_end_regime, which owns the definition.
           TRUE when this is the driver's last stint of the race, so it ended at the flag or at
           retirement rather than at a tyre change. Remaining stint life on these laps is a lower
           bound, not an observation. Consumed by the stint-life survival model (ml/src/features.py)
@@ -494,6 +539,39 @@ models:
               arguments:
                 values: [true, false]
                 quote: false
+      - name: end_regime
+        description: >
+          Passed through from int_stint_end_regime. Track regime in force on the stint's final
+          lap (green / safety_car / vsc / red_flag), severity precedence red_flag > safety_car >
+          vsc. Recorded for censored stints too, where it is a fact about the lap rather than the
+          reason the stint ended - read stint_end_cause for that.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [green, safety_car, vsc, red_flag]
+      - name: stint_end_cause
+        description: >
+          Passed through from int_stint_end_regime. Why the stint ended: green_pit, sc_pit,
+          vsc_pit, red (the four uncensored causes) or race_end, retirement (the two censored
+          ones). 28.8% of uncensored stints are sc_pit / vsc_pit / red, i.e. the pit wall taking
+          a free stop rather than the tyre reaching its limit, so anything fitting or scoring
+          stint life reads this alongside is_censored_stint. NULL on the 325 2018 stints built
+          from laps FastF1 never assigned a stint number. Never a model feature.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [green_pit, sc_pit, vsc_pit, red, race_end, retirement]
+      - name: end_cause_confidence
+        description: >
+          Passed through from int_stint_end_regime. 'observed', 'inferred' (severity precedence
+          had to choose, the pit marker is missing, or disqualification hides whether the driver
+          was running) or 'unassigned_stint' (the row is not a stint).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [observed, inferred, unassigned_stint]
 
   - name: fct_ghost_car_pace
     description: >

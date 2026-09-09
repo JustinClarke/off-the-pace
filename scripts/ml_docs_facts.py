@@ -48,14 +48,16 @@ SNIPPET_CALIBRATION = ROOT / "docs" / "snippets" / "ml-inventory-calibration.mdx
 # Test-group breakdown group name, source file, count, what it guarantees
 # Counts are from the live pytest collection; the check sub-command validates them.
 TEST_GROUPS = [
-    ("Leakage Spine",    "test_features.py",    21,
-     "No target, skill, or season column enters `X`; forward-window SQL audit (including its own coverage, and self-join horizons); holdout purity; `MAX+1`-derived split; targets bounded by the clip their own column carries, non-null, and never also features at any horizon."),
+    ("Leakage Spine",    "test_features.py",    28,
+     "No target, skill, or season column enters `X`; forward-window SQL audit (including its own coverage, and self-join horizons); aggregation-scope audit, which rejects a `GROUP BY` that does not pin a lap unless the model declares it in `schema.yml` with a reason, and is itself falsified against both known shapes; holdout purity; `MAX+1`-derived split; targets bounded by the clip their own column carries, non-null, and never also features at any horizon."),
     ("ONNX Parity",      "test_onnx_parity.py",  5,
      "Each booster round-trips to ONNX within `atol=1e-5`, including a NaN-bearing sample (the ~47% null-prior laps)."),
     ("Predict Schema",   "test_predict.py",       3,
      "Scored predictions parquet carries the declared 19-column schema (17 + the p10/p90 stint-life band); Arrow-validated."),
     ("Evaluation Gates", "test_evaluate.py",     19,
      "Every model beats its per-cohort baseline; calibration coverage computed; cohorts surfaced not dropped; every model carries an attainable ceiling and every beats-baseline claim an interval."),
+    ("CRPS",             "test_crps.py",          5,
+     "The proper-score arithmetic, on synthetic data: a collapsed trio integrates exactly to MAE, the `mcb - dsc + unc` decomposition reconstructs CRPS on imperfectly-calibrated predictions, `unc` matches the unconditional pinball loss at each alpha, and a single quantile level is refused."),
     ("Targets",          "test_targets.py",       3,
      "Stint-life target is synthesised without leaking `stint_length_laps`; the censoring flag rides in metadata and never becomes a feature; AFT bounds encode censoring as a point vs a half-line."),
     ("Survival",         "test_survival.py",     18,

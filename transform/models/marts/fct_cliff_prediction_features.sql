@@ -52,6 +52,7 @@ thermal AS (
     SELECT
         lap_id,
         push_residual,
+        baseline_observations_n,
         cumulative_push_load_surface,
         cumulative_push_load_bulk
     FROM {{ ref('int_lap_thermal_proxy') }}
@@ -108,28 +109,79 @@ detrend AS (
 -- stints
 -- of that compound. IPW = 1/P clipped to [0.25, 4] to control variance in the
 -- tail.
-total_per_compound AS (
-    SELECT compound, COUNT(DISTINCT stint_id) AS n_total
+--
+-- SEASON-LAGGED since 08f-1: both counts are cumulated over seasons STRICTLY
+-- BEFORE the row's own. They used to be GROUP BY compound and GROUP BY (compound,
+-- lap_in_stint) with no season key at all, so the weight applied to a 2018
+-- training row was estimated partly from the 2024 evaluation season. The weight
+-- is not a feature and never enters X, which is exactly why it went unnoticed:
+-- train.py passes it to XGBoost as the sample weight and evaluate.py weights the
+-- scores with it, so eval-season information reached both the fit and the metric
+-- through the weights rather than through a column.
+--
+-- Numerator and denominator are lagged TOGETHER. Lagging one alone would stop the
+-- ratio being a probability.
+--
+-- 2018 is the first ingested season, so it has no prior season and its
+-- survival_prob is NULL. The COALESCE at the point of use turns that into a
+-- weight of 1.0 -- unweighted, which is the honest estimate when there is no
+-- prior curve, and the same fallback the model already applied to an unmatched
+-- (compound, lap) cell.
+season_compound_totals AS (
+    SELECT
+        race_year,
+        compound,
+        COUNT(DISTINCT stint_id) AS n_total_season
     FROM {{ ref('int_lap_residual_decomposed') }}
-    GROUP BY compound
+    GROUP BY race_year, compound
+),
+
+season_stints_reaching AS (
+    SELECT
+        d.race_year,
+        d.compound,
+        d.lap_in_stint,
+        COUNT(DISTINCT d.stint_id) AS n_reaching_season
+    FROM {{ ref('int_lap_residual_decomposed') }} AS d
+    GROUP BY d.race_year, d.compound, d.lap_in_stint
+),
+
+-- Expanding over prior seasons. One row per season per partition by construction
+-- above, so the ROWS frame is a season frame.
+total_per_compound AS (
+    SELECT
+        race_year,
+        compound,
+        SUM(n_total_season) OVER (
+            PARTITION BY compound
+            ORDER BY race_year
+            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ) AS n_total
+    FROM season_compound_totals
 ),
 
 stints_reaching AS (
     SELECT
-        d.compound,
-        d.lap_in_stint,
-        COUNT(DISTINCT d.stint_id) AS n_reaching
-    FROM {{ ref('int_lap_residual_decomposed') }} AS d
-    GROUP BY d.compound, d.lap_in_stint
+        race_year,
+        compound,
+        lap_in_stint,
+        SUM(n_reaching_season) OVER (
+            PARTITION BY compound, lap_in_stint
+            ORDER BY race_year
+            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+        ) AS n_reaching
+    FROM season_stints_reaching
 ),
 
 stint_survival AS (
     SELECT
+        sr.race_year,
         sr.compound,
         sr.lap_in_stint,
-        sr.n_reaching * 1.0 / tp.n_total AS survival_prob
+        sr.n_reaching * 1.0 / NULLIF(tp.n_total, 0) AS survival_prob
     FROM stints_reaching AS sr
-    INNER JOIN total_per_compound AS tp ON sr.compound = tp.compound
+    INNER JOIN total_per_compound AS tp
+        ON sr.compound = tp.compound AND sr.race_year = tp.race_year
 ),
 
 -- Per-lap telemetry features: powertrain + within-stint-drift
@@ -213,6 +265,7 @@ base AS (
 
         -- Thermal predictors
         th.push_residual,
+        th.baseline_observations_n,
         th.cumulative_push_load_surface,
         th.cumulative_push_load_bulk,
 
@@ -308,7 +361,9 @@ base AS (
     LEFT JOIN detrend AS det ON r.stint_id = det.stint_id
     LEFT JOIN
         stint_survival AS ss
-        ON r.compound = ss.compound AND r.lap_in_stint = ss.lap_in_stint
+        ON r.compound = ss.compound
+        AND r.lap_in_stint = ss.lap_in_stint
+        AND r.race_year = ss.race_year
 ),
 
 -- Forward scan for the cliff bucket class.
@@ -480,6 +535,13 @@ SELECT
     cumulative_push_load_surface,
     cumulative_push_load_bulk,
     surface_bulk_ratio,
+
+    -- 08e companion column, NOT a feature: it is not in ml/src/schema.py's
+    -- FEATURE_COLUMNS and entering X is an add-ablation someone has to gate. It
+    -- ships here because the four thermal columns above are NULL exactly where
+    -- this is 0, and that missingness is not declarable from any other column in
+    -- the contract.
+    baseline_observations_n,
 
     -- Dirty air predictors
     dirty_air_share_lap,

@@ -37,10 +37,12 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`int_stint_geometry`](./int_stint_geometry), [`dim_compounds_season`](../dim/dim_compounds_season), [`stg_weather`](../stg/stg_weather) |
 
-**3 tests** [guard](/transform/ci/overview) this model  -  2 generic, 1 singular.
+**6 tests** [guard](/transform/ci/overview) this model  -  4 generic, 2 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `lap_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Foreign key to stg_laps |
+| `compound_wear_s` |   | Yes | [`not_null`](/transform/ci/structural) | The age-dependent portion of the hockey-stick curve (wear_gradient*age + 0.002*age^2 + severity*laps_past_cliff), bounded at var('compound_wear_max_s_per_lap'). Exposed as its own column so the bound is assertable directly -- see assert_compound_wear_bounded.sql. expected_compound_pace_s is this plus grip_peak plus the temperature offset, so the pace total legitimately exceeds the bound while this column may not. |
+| `expected_compound_pace_s` |   | Yes | [`not_null`](/transform/ci/structural) | Expected pace loss vs compound baseline, in seconds. Bounded as of Phase 8 (2026-08-25): the wear portion is capped, having previously reached 93.5 s/lap on laps that were actually run. This column is subtracted into driver_skill_residual_s, so the unbounded tail was depressing the residual on 12,575 post-onset laps and, through it, corrupting both ML targets -- it hid 6,825 cliff-label crossings (99.5% of them into 'none_in_stint') and moved the degradation target on 9.05% of rows. |

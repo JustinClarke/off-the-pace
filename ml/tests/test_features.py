@@ -89,6 +89,106 @@ def test_audit_features_clear_forward_window():
     assert not flagged, f"label-adjacent feature peeks forward-exclude it: {flagged}"
 
 
+# ─── Aggregation-scope audit (08b) ──────────────────────────────────────────────
+# A forward reach can live in the scope of a GROUP BY, where neither the window
+# walker nor the self-join walker looks. These tests do for the aggregation audit
+# what test_forward_window_audit_catches_a_self_join_horizon does for the window
+# one: prove it sees the shapes it was built for, rather than only that it is quiet.
+
+def test_no_undeclared_aggregation_scope():
+    violations = F.audit_aggregation_scope()
+    assert violations == [], f"undeclared aggregation scopes: {violations}"
+
+
+def test_aggregation_audit_catches_a_cross_season_pooled_rate():
+    """int_sc_hazard_history's shape: a per-circuit rate with no season key, so every
+    season is pooled and a 2018 row's feature is computed partly from 2024. No LEAD,
+    no FOLLOWING frame, no self-join -- invisible to the other two walkers."""
+    sql = """
+        SELECT circuit_slug, SUM(n_onsets) / SUM(racing_laps) AS sc_hazard_per_lap
+        FROM per_race GROUP BY circuit_slug
+    """
+    findings, unparsed = F._aggregation_findings("probe", sql)
+    assert not unparsed
+    assert len(findings) == 1
+    assert "pools every ingested season" in findings[0][1]
+
+
+def test_aggregation_audit_catches_a_bucketed_lap_key():
+    """int_corner_skill_residuals' shape: FLOOR(lap_number / 5.0) * 5.0 AS lap_window,
+    then GROUP BY it. The bucket spans five laps, four of them in the future at the
+    first one, and the reach lives entirely in the grouping key."""
+    sql = """
+        WITH b AS (
+            SELECT race_year, race_id, corner_name, braking_point_m,
+                   FLOOR(CAST(lap_number AS DOUBLE) / 5.0) * 5.0 AS lap_window
+            FROM corners
+        )
+        SELECT race_year, race_id, corner_name, lap_window,
+               MEDIAN(braking_point_m) AS field_median
+        FROM b GROUP BY race_year, race_id, corner_name, lap_window
+    """
+    findings, unparsed = F._aggregation_findings("probe", sql)
+    assert not unparsed
+    assert len(findings) == 1
+
+
+def test_aggregation_audit_rejects_a_bucket_aliased_onto_a_lap_key():
+    """The hole a name-based check would leave: alias the bucket back onto
+    `lap_number` and the key set looks like it pins a lap. It does not."""
+    sql = """
+        WITH b AS (
+            SELECT race_id, lap_time_s, FLOOR(lap_number / 5.0) * 5.0 AS lap_number
+            FROM laps
+        )
+        SELECT race_id, lap_number, MEDIAN(lap_time_s) AS m
+        FROM b GROUP BY race_id, lap_number
+    """
+    findings, _ = F._aggregation_findings("probe", sql)
+    assert len(findings) == 1
+    assert "derived key here" in findings[0][1]
+
+
+def test_aggregation_audit_passes_a_lap_pinned_group():
+    """The negative control. A cast is not a coarsening, and (race_id, lap_number)
+    confines a group to one lap of one race -- no forward reach to have."""
+    sql = """
+        SELECT race_id, CAST(lap_number AS INTEGER) AS lap_number,
+               AVG(lap_time_s) AS field_pace
+        FROM laps GROUP BY race_id, lap_number
+    """
+    findings, unparsed = F._aggregation_findings("probe", sql)
+    assert not unparsed
+    assert findings == [], f"lap-pinned group wrongly flagged: {findings}"
+
+
+def test_aggregation_survey_names_the_two_known_instances():
+    """08b's premise. Both of the programme's known leakage suspects sit outside the
+    mart's lineage today and are scheduled to enter it (02c, 02d). The survey is the
+    advance notice; when they are wired into a feature they move into
+    audit_aggregation_scope's scope and stop the build until someone rules on them."""
+    survey = F.survey_aggregation_scope()
+    assert any(f.startswith("int_corner_skill_residuals:") for f in survey)
+    assert any(f.startswith("int_sc_hazard_history:") and "pools every ingested season" in f
+               for f in survey)
+
+
+def test_declared_exemptions_are_well_formed():
+    """A blank reason, an unknown status, or a `known_leak` with nothing scheduled to
+    fix it is itself a violation -- the point of putting these in schema.yml is that
+    someone signed them. Covered by the audit above; asserted separately so a
+    malformed declaration is not mistaken for a new aggregation."""
+    import json
+
+    manifest = json.loads(Path(F.MANIFEST_PATH).read_text())
+    nodes = manifest["nodes"]
+    problems = []
+    for uid in F._mart_lineage(manifest):
+        _, malformed = F._exemptions(nodes[uid], nodes[uid]["name"])
+        problems += malformed
+    assert not problems, f"malformed aggregation-scope exemptions: {problems}"
+
+
 def test_feature_contract_subset_of_mart():
     """Column contract guard: every column the ml layer reads features,
     identifiers/metadata, and target source columns must exist in the live mart.

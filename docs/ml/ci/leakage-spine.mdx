@@ -1,18 +1,18 @@
 ---
-title: "The leakage spine: 14 guards, one idea each"
+title: "The leakage spine: 28 guards, one idea each"
 sidebarTitle: "Leakage Spine"
-description: "The 14 tests in test_features.py that make temporal leakage structurally impossible from column exclusions to the sqlglot forward-window audit to the MAX+1-derived holdout."
+description: "The 28 tests in test_features.py that make temporal leakage structurally impossible from column exclusions to the sqlglot forward-window and aggregation-scope audits to the MAX+1-derived holdout."
 ---
 
 import MLLeakage from '/snippets/ml-inventory-leakage.mdx';
 
-Temporal leakage is silent. It never throws an error. It inflates every offline metric and collapses the moment the model meets a season it has not memorised. The leakage spine is a set of 14 CI guards that make leakage structurally impossible not just "unlikely" or "checked once."
+Temporal leakage is silent. It never throws an error. It inflates every offline metric and collapses the moment the model meets a season it has not memorised. The leakage spine is a set of 28 CI guards that make leakage structurally impossible not just "unlikely" or "checked once."
 
 <Warning>
   A model that accidentally sees the future looks better on paper than a model that does not. There is no natural corrective: the offline metrics reward the leak, the model ships, and the live numbers disagree. The only reliable defence is to make the leak structurally impossible and then test that impossibility.
 </Warning>
 
-## The 14 guards
+## The guards
 
 <AccordionGroup>
   <Accordion title="1. No leaked columns (×3 targets)" icon="columns">
@@ -47,35 +47,67 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
 
     **Why it matters:** `cliff_candidate_flag` is a "label-adjacent" feature it is predictive precisely because it encodes information that co-moves with the cliff. The test asserts that this predictiveness comes from the mart's temporal conditioning, not from a forward-window leak. If it ever looks ahead in the SQL, it must move to `EXCLUDED_LEAKAGE_COLUMNS`. (`anomaly_class` carried the same guard until Phase 9 (2026-09-05) dropped it from the feature contract along with the rest of the `context` group.)
   </Accordion>
-  <Accordion title="5. Mart contract ⊆ live mart columns" icon="database">
+  <Accordion title="5. No undeclared aggregation scope" icon="layer-group">
+    **Source:** `test_features.py::test_no_undeclared_aggregation_scope`
+
+    **Assertion:** `audit_aggregation_scope() == []`
+
+    **Why it matters:** A forward reach does not need a window function, and it does not need a join predicate either. It can live in the **scope of a `GROUP BY`**, where guards 2 and 4 do not look: `GROUP BY circuit_slug` over every ingested season pools 2024 into what a 2018 row sees, and `GROUP BY stint_id` hands a lap the median of laps that had not yet run. Neither construct has a `LEAD`, a `FOLLOWING` frame or a self-join inequality anywhere in it, so the forward-window audit read both as clean — which it did, for as long as they existed.
+
+    The rule: every `GROUP BY` in the mart's lineage must confine a group to **at most one lap** (the label's grain — the mart is one row per valid race lap), or be declared in that model's `schema.yml`. A key set pins a lap if it holds `lap_id`, or a race key beside a lap ordinal, or `stint_id` beside a lap ordinal. Extra keys only ever shrink a group, so the test is monotone.
+  </Accordion>
+  <Accordion title="6. The aggregation audit catches both known shapes" icon="crosshairs">
+    **Source:** `test_features.py::test_aggregation_audit_catches_a_cross_season_pooled_rate`, `::test_aggregation_audit_catches_a_bucketed_lap_key`, `::test_aggregation_audit_passes_a_lap_pinned_group`
+
+    **Assertion:** synthetic SQL reproducing each shape is flagged, with the right severity; a lap-pinned group is not
+
+    **Why it matters:** Falsification, not silence. Two live constructs motivated this audit — a per-circuit rate with no season key, and `FLOOR(lap_number / 5.0) * 5.0 AS lap_window` grouped as if it were a lap. Both are reproduced as synthetic SQL so the guard is tested against the shapes rather than against the warehouse, and the third test is the negative control: `(race_id, lap_number)` confines a group to one lap of one race, and a `CAST` is not a coarsening, so neither may be flagged.
+  </Accordion>
+  <Accordion title="7. A bucket cannot be aliased onto a lap key" icon="mask">
+    **Source:** `test_features.py::test_aggregation_audit_rejects_a_bucket_aliased_onto_a_lap_key`
+
+    **Assertion:** `FLOOR(lap_number / 5.0) * 5.0 AS lap_number`, then grouped, is still a violation
+
+    **Why it matters:** The hole a name-based check would leave. If the audit trusted the *name* of a grouping key, aliasing a five-lap bucket back onto `lap_number` would buy a pass, and the key set would look like it pins a lap when it spans five — four of them in the future at the first one. The audit resolves each key to what it is computed from, so a derived key is disqualified whatever it is called.
+  </Accordion>
+  <Accordion title="8. Declared exemptions are signed, and cannot rot" icon="file-signature">
+    **Source:** `test_features.py::test_declared_exemptions_are_well_formed`, `::test_aggregation_survey_names_the_two_known_instances`
+
+    **Assertion:** every declaration carries a known status and a written reason; a `known_leak` names the item that fixes it; a declaration matching no aggregation in its model is a violation
+
+    **Why it matters:** An exemption is a signature, not a mute button. Declarations live in `schema.yml` under `meta.aggregation_scope_exemptions` as data the checker reads — `keys`, `status` (`accepted` or `known_leak`), `reason`, and `fixed_by` when something is still broken — and `make ml-features` prints the open `known_leak`s on every run rather than letting them rest quietly in a YAML file. Because a declaration is keyed on the grouping key set, editing the SQL out from under one turns it into a **stale exemption** and fails the build, instead of silently exempting an aggregation nobody looked at.
+
+    A second, report-only pass covers the `int_*`/`stg_*` models the mart does not read yet. Nothing can leak through a model no feature reads, so failing the build on those would force dozens of declarations that assert nothing — but when one of them is wired into a feature it enters the gate above **automatically**, and the build stops until someone rules on it.
+  </Accordion>
+  <Accordion title="9. Mart contract ⊆ live mart columns" icon="database">
     **Source:** `test_features.py::test_feature_contract_subset_of_mart`
 
     **Assertion:** Every column in `FEATURE_COLUMNS ∪ IDENTIFIER_COLUMNS ∪ mart_target_cols` exists in `fct_cliff_prediction_features`
 
     **Why it matters:** If the transform layer drops or renames a feature column and the ML schema is not updated, the model will silently train on a missing column. This test makes the drift visible immediately the build fails before any training runs. It is the "never again" guard following a previous incident where the mart dropped `circuit_key` and the ML layer continued loading silently because pandas drops missing columns without warning.
   </Accordion>
-  <Accordion title="6. Holdout purity" icon="lock">
+  <Accordion title="10. Holdout purity" icon="lock">
     **Source:** `test_features.py::test_holdout_purity`
 
     **Assertion:** `holdout_season not in training_seasons` AND `(groups_train < holdout_season).all()`
 
     **Why it matters:** If any row from the holdout season appears in any training fold, every metric computed on that season is overstated. This test checks both that the season is not in the training set list and that no training row's `race_year` equals or exceeds the holdout season. Both are necessary: the first catches a metadata error; the second catches a data-construction bug.
   </Accordion>
-  <Accordion title="7. No hard-coded holdout year" icon="code">
+  <Accordion title="11. No hard-coded holdout year" icon="code">
     **Source:** `test_features.py::test_no_hardcoded_holdout`
 
     **Assertion:** No numeric literal `2024` or `2025` appears as a code token (not a comment or docstring) in any `ml/src/*.py` file
 
     **Why it matters:** The holdout season is `MAX(race_year) + 1`. If a developer hard-codes the year, the guard fails silently when the season rolls over 2025 ingests, the literal still says 2025, and the "holdout" is now in-sample. The test tokenizes the source files rather than string-searching, so it distinguishes code from comments correctly.
   </Accordion>
-  <Accordion title="8. Degradation target bounded [−10, 10]" icon="ruler">
+  <Accordion title="12. Degradation target bounded [−10, 10]" icon="ruler">
     **Source:** `test_features.py::test_target_bounded`
 
     **Assertion:** `y_train.between(-10, 10).all()` AND `(y_train < 0).mean() > 0.2`
 
     **Why it matters:** The target `next_lap_degradation_jump_detrended_s` is bounded by physics: a tyre cannot gain or lose more than 10 seconds per lap in a single step. The upper bound guards against catastrophic outliers that would dominate the loss. The lower bound (`> 0.2` fraction negative) checks that the training data still contains enough negative examples if detrending went wrong, the target could become artificially non-negative and the model would never learn tyre recovery.
   </Accordion>
-  <Accordion title="9–11. No NULL targets in training (×3 targets)" icon="ban">
+  <Accordion title="13–15. No NULL targets in training (×3 targets)" icon="ban">
     **Source:** `test_features.py::test_no_null_targets_in_training` (parametrized × 3)
 
     **Assertion:** `y_train.notna().all()` for each of the three model families

@@ -173,11 +173,189 @@ aggregation design, which is where it should be stated:
   coverage gap before building**, because a feature that is NULL on a biased subset of laps
   is a leakage-shaped hazard, not just a sparse column.
 
-**Leakage: must verify, not verified.** Values are contemporaneous with lap *t* and the
-target spans *t+1…t+5*, so the construction is prima facie safe. But `int_corner_skill_residuals`
-computes residuals against *"5-lap-bucket field medians"*, and whether that bucket is
-backward-looking or centred has not been checked. **A centred window reaches forward and
-would leak.** Check `int_corner_metrics` and the bucket definition before anything else.
+**Leakage: RULED 2026-09-08 — barred as constructed.** See `02a` below. Values are
+contemporaneous with lap *t* and the target spans *t+1…t+5*, so the construction is prima facie
+safe — and it is not. The residuals are taken against a *"5-lap-bucket field median"* whose
+bucket reaches into the target window.
+
+---
+
+### `02a` — the 5-lap field-median bucket · RULED 2026-09-08
+
+**The item asked a binary — centred or backward-looking — and the SQL answers neither.**
+`int_corner_skill_residuals` computes `FLOOR(CAST(cm.lap_number AS DOUBLE) / 5.0) * 5.0 AS
+lap_window` and then `GROUP BY race_year, race_id, corner_name, lap_window`. That is a **fixed
+block bucket**, not a window function: no `LEAD`, no `FOLLOWING` frame, no self-join inequality.
+R5 flagged this shape and estimated the reach at "about two laps"; measured, it is **1.877**.
+
+**Verified — the forward reach, measured over all 2,206,939 rows** by reconstructing the
+`corners_with_keys` CTE from `int_corner_metrics` ⋈ `int_stint_geometry` (valid laps only) and
+counting, for every focal lap, the rows in its own median group drawn from laps that had not yet
+run:
+
+| block position | mean forward reach | % of the median drawn from the future | mean own-driver future laps in own baseline | % of rows seeing their own future |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 3.739 laps | **76.00%** | 3.351 | **95.55%** |
+| 1 | 2.814 | 56.44% | 2.558 | 95.00% |
+| 2 | 1.909 | 40.00% | 1.751 | 92.04% |
+| 3 | 0.968 | 20.67% | 0.907 | 90.67% |
+| 4 | 0.000 | 0.00% | 0.000 | 0.00% |
+| **all** | **1.877** | **38.45%** | — | — |
+
+77.83% of lap-groups have some forward reach. Mean group size is ~70 rows.
+
+**Method**, so the number is re-derivable rather than quoted. Run from `transform/` — `stg_laps`
+and `stg_sector_times` are parquet-backed views with paths relative to it:
+
+```sql
+-- corners_with_keys, as the model builds it
+CREATE OR REPLACE TEMP VIEW ck AS
+SELECT cm.race_year, cm.race_id, cm.corner_name, cm.driver_id, cm.lap_number,
+       cm.braking_point_m, FLOOR(CAST(cm.lap_number AS DOUBLE)/5.0)*5.0 AS lap_window
+FROM int_corner_metrics cm
+JOIN (SELECT race_year, race_id, driver_id, lap_number
+      FROM int_stint_geometry WHERE is_valid_lap = TRUE) lk
+  USING (race_year, race_id, driver_id, lap_number);
+
+-- for every focal lap: rows in its own median group drawn from laps that had not yet run
+WITH lapagg AS (
+  SELECT race_year, race_id, corner_name, lap_window, lap_number,
+         COUNT(*) FILTER (WHERE braking_point_m IS NOT NULL) AS n_lap
+  FROM ck GROUP BY ALL),
+gtot AS (
+  SELECT race_year, race_id, corner_name, lap_window,
+         SUM(n_lap) AS n_group, MAX(lap_number) AS max_lap
+  FROM lapagg GROUP BY ALL),
+reach AS (
+  SELECT l.lap_number, g.n_group,
+         g.max_lap - l.lap_number AS forward_reach_laps,
+         g.n_group - SUM(l.n_lap) OVER (
+           PARTITION BY l.race_year, l.race_id, l.corner_name, l.lap_window
+           ORDER BY l.lap_number ROWS UNBOUNDED PRECEDING) AS n_future_rows
+  FROM lapagg l JOIN gtot g USING (race_year, race_id, corner_name, lap_window))
+SELECT lap_number % 5 AS block_pos,
+       ROUND(AVG(forward_reach_laps), 3) AS mean_forward_reach_laps,
+       ROUND(100.0*AVG(n_future_rows*1.0/n_group), 2) AS pct_from_future
+FROM reach WHERE n_group >= 5 GROUP BY ALL ORDER BY 1;
+```
+
+The own-driver column is the same view self-joined on `(race_year, race_id, corner_name,
+lap_window, driver_id)` with `b.lap_number > a.lap_number`. The materiality arms are the
+`TRAILING` window given under `02g` below, aggregated to lap grain and joined to
+`fct_cliff_prediction_features` on `lap_id`.
+
+**The fact that decides it.** `DEGRADATION_TARGET` is `next_5_lap_cumulative_jump_s` — laps
+*t+1…t+5*. Maximum forward reach is **4 laps**. So every future lap entering the median falls
+*inside the label's own window*; the overlap is total containment, not partial. And it is not
+only the field's future: at block position 0, **95.55% of rows are scored against a baseline
+containing that driver's own future laps** — a mean of 3.351 of the 5 laps the label integrates.
+The feature is not point-in-time correct.
+
+**Verified — the contamination carries label signal, weakly.** Both arms were rebuilt from
+identical source with identical formulae, differing only in the window: BLOCK (production, read
+from the model's own table) and TRAILING (median over laps *t−5…t−1*, same race and corner, all
+drivers, `n ≥ 5`). Aggregated to lap grain as §3 proposes (mean/sd across the lap's corners) and
+joined to the real label on `is_training_eligible` rows (n = 80,381). Isolating the contamination
+as `delta = BLOCK − TRAILING`, with block position 4 — zero forward reach — as the control:
+
+| arm | n | corr(delta, label) | 95% CI (race-clustered bootstrap) |
+| :--- | ---: | ---: | :--- |
+| contaminated, positions 0–3 | 58,283 | **+0.0344** | [+0.0047, +0.0667] |
+| control, position 4 | 15,055 | +0.0083 | [−0.0143, +0.0324] |
+| paired difference | — | **+0.0261** | [−0.0008, +0.0531], one-sided *p* = 0.027 |
+
+**Stated honestly: this half is suggestive, not decisive.** The contaminated arm's interval
+excludes zero and the control's does not, and the paired difference is one-sided significant, but
+its two-sided interval touches zero. The control is also imperfectly matched — at position 4 the
+block and trailing windows overlap heavily, so its delta is a smaller contrast (sd 0.043 vs
+0.116 at position 0). **The ruling does not rest on this table.** It rests on the row above it,
+which is deterministic: the baseline contains the label's own laps, by construction, for 77.83%
+of the data.
+
+**The rebuild costs no signal.** Marginal |corr| with the label is equal or slightly *higher* for
+the trailing arm at every block position (e.g. total-residual mean at position 0: −0.0666
+trailing vs −0.0485 block). Contamination is behaving as noise on the baseline, not as a free
+win — so nothing is lost by removing it, which is the cheap case.
+
+**The rebuild's real cost is coverage, and it is concentrated and explainable.** Lap-grain
+non-null falls 92.79% → 90.57% (−2.22pp), and the loss is almost entirely **lap 2** — the first
+lap present in the table, which has no prior lap to build a backward median from:
+
+| phase | non-null, block | non-null, trailing |
+| :--- | ---: | ---: |
+| lap ≤ 6 | 92.11% | **70.68%** |
+| lap 7–11 | 92.61% | 91.59% |
+| lap > 11 | 92.87% | 92.35% |
+
+§3 warns that a feature NULL on a biased subset is "a leakage-shaped hazard, not just a sparse
+column". This loss is deterministic on `lap_number` — an axis already in the contract via
+`age_in_stint` — not correlated with the outcome, so the model can condition on it. It is
+declarable, not hazardous. An expanding trailing window does not rescue lap 2 either; nothing
+precedes it.
+
+**Ruling.** **Barred as constructed.** `02c` must not ablate these columns as they stand. The fix
+is the one R5 predicted — recompute the field median as a trailing window — and it is now `02g`,
+which `02c` depends on instead of `02a`.
+
+**Scope of the bar.** `mart_corner_skill_driver` consumes `braking_loss_s` /
+`mid_corner_residual_s` / `exit_residual_s` today. That is a descriptive per-driver aggregate with
+no forward label, so this is **not** leakage there and the mart is not barred. Its residuals are
+still measured against a partly-future baseline, which is a measurement-consistency question
+worth its own item — it is not this ruling.
+
+**Confirms `08b`'s premise.** The reach lives in the scope of a `GROUP BY` and nowhere else, so
+`audit_forward_window` sees nothing: no `LEAD`, no `FOLLOWING`, no self-join inequality. The
+guard was clean on this model the whole time it was wrong.
+
+Evidence: [`../research/R5-representation-and-transform.md`](../research/R5-representation-and-transform.md)
+Part 2 for the shape; the measurements above are this item's, run against `data/dev.duckdb`.
+
+
+### `02g` — rebuild the corner field median as a trailing window
+
+**Created 2026-09-08 by `02a`'s ruling.** `02c` depends on this, not on `02a`.
+
+**Objective.** Replace the `FLOOR(lap/5)*5` block bucket in `int_corner_skill_residuals` with a
+backward-only field median, so the residual at lap *t* is measured against laps strictly before
+*t*. Formulae, NULL rules and the `field_corner_sample_n < 5` gate stay exactly as they are; only
+the window moves.
+
+**The shape, already measured to work** (`02a`'s trailing arm):
+
+```sql
+quantile_cont(braking_point_m, 0.5) OVER (
+  PARTITION BY race_year, race_id, corner_name
+  ORDER BY lap_number RANGE BETWEEN 5 PRECEDING AND 1 PRECEDING)
+```
+
+`RANGE` (not `ROWS`) is load-bearing — it takes every driver's rows in the lap interval, which is
+what makes it a *field* median rather than a per-driver one. `1 PRECEDING` excludes lap *t*
+itself, which is what makes it backward-only.
+
+**Two decisions this item must make and record, because `02a` did not.**
+
+1. **Trailing-5 or expanding.** `02a` measured trailing-5 to keep the window width comparable to
+   the block it replaces. An expanding window (all prior laps, `n ≥ 5`) is more stable late in a
+   race but mixes early-race and late-race track states into one baseline, which is the same
+   pooling defect `02d` is fixing in `int_sc_hazard_history`. Trailing-5 is the recommendation;
+   whichever is chosen, record why.
+2. **What to do about lap 2.** It has no predecessor and must go NULL — a 21.4pp coverage loss on
+   laps ≤ 6, all of it that one lap. Declare it in `schema.yml` rather than back-filling it from
+   the block median, which would reintroduce the leak on precisely the rows that cannot be built
+   cleanly.
+
+**R5's recommendation 2 applies here.** `02d` needs the same pattern for
+`int_sc_hazard_history`. Write it once as a dbt macro (`{{ trailing_median(...) }}`) so the
+second instance is a call, and so `08b`'s auditor has one shape to whitelist rather than two to
+discover.
+
+**Definition of done.** `int_corner_skill_residuals` uses a backward-only median; a test asserts
+no row's baseline draws on `lap_number >= ` its own; the lap-2 NULL rule is declared in
+`schema.yml` with the coverage figure; `mart_corner_skill_driver` is re-run and the change to its
+outputs is reported, not assumed to be nil; `model_hashes.baseline.json` re-snapshotted.
+
+**Cost:** ~0.5–1 day. The window is a two-line change; the test, the schema note and re-reading
+the mart are the rest.
 
 **Cost:** ~2–3 days, most of it in the aggregation design and the leakage check.
 
@@ -299,9 +477,12 @@ re-reading `ml_execution_plan.md`:
 
 ## 8. Recommended order
 
-1. **Tier 2 leakage check** (hours). Determine whether the 5-lap field-median bucket in
-   `int_corner_skill_residuals` is backward-looking or centred. If centred, Tier 2 needs a
-   rebuild before it needs an ablation, and that changes the whole ordering.
+1. ~~**Tier 2 leakage check** (hours).~~ **Done 2026-09-08 — and it reached forward.** The
+   bucket is a fixed `FLOOR(lap/5)*5` block; mean forward reach 1.877 laps, entirely inside the
+   label's own *t+1…t+5* window, with the driver's own future laps in their own baseline on
+   95.55% of block-position-0 rows. Barred as constructed. Per this list's own contingency, that
+   changes the ordering: **`02g` (the trailing-window rebuild) now comes before Tier 2's
+   ablation**, and `02c` depends on it. See §3.
 2. **Tier 1, qualifying** (~1 day). Cleanest join in the document, zero leakage treatment,
    and it tests §4's "no remaining data source" conclusion directly. Expect cliff and stint
    life to move, not the trio.

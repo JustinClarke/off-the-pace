@@ -8,13 +8,13 @@ scikit-learn==1.9.0
 pandas==2.3.3
 numpy==2.4.6
 pyarrow==24.0.0
-scipy==1.18.0
+scipy==1.18.1
 lifelines==0.30.3
 duckdb==1.5.2
 
 # dbt
-dbt-core>=1.11.11,<2.0
-dbt-duckdb==1.10.1
+dbt-core>=1.12.3,<2.0
+dbt-duckdb==1.11.0
 
 # Validation notebook runner
 # papermill not yet installed; add version pin once confirmed:

@@ -30,10 +30,14 @@ WITH lap_source AS (
 -- Strictly-prior is the join predicate (lap_in_stint <), not a window frame.
 -- FILTER in a plain GROUP BY, which is legal where FILTER in an ordered-set
 -- aggregate inside a window function is not -- a second axis of independence.
+-- Apply the same min_observations=2 floor the model uses.
 prior_agg AS (
     SELECT
         cur.lap_id,
-        MEDIAN(prv.lap_time_s) FILTER (WHERE prv.is_valid_lap) AS expected_baseline,
+        CASE
+            WHEN COUNT(prv.lap_time_s) FILTER (WHERE prv.is_valid_lap) >= 2
+            THEN MEDIAN(prv.lap_time_s) FILTER (WHERE prv.is_valid_lap)
+        END AS expected_baseline,
         COUNT(prv.lap_time_s) FILTER (WHERE prv.is_valid_lap)  AS expected_n_prior
     FROM lap_source AS cur
     LEFT JOIN lap_source AS prv
@@ -60,9 +64,10 @@ WHERE t.stint_baseline_pace IS DISTINCT FROM p.expected_baseline
 
 UNION ALL
 
--- floor check: the baseline is NULL exactly where no valid prior lap exists, and
--- baseline_observations_n reports that count honestly. The NULLs are deterministic
--- on this column and on nothing else in the contract, which is why it ships.
+-- floor check: the baseline is NULL exactly where fewer than 2 valid prior laps
+-- exist, and baseline_observations_n reports that count honestly. The NULLs are
+-- deterministic on this column and on nothing else in the contract, which is why
+-- it ships.
 SELECT
     t.lap_id,
     'baseline_observations_n' AS check_name,
@@ -71,7 +76,7 @@ SELECT
 FROM {{ ref('int_lap_thermal_proxy') }} AS t
 INNER JOIN prior_agg AS p ON p.lap_id = t.lap_id
 WHERE t.baseline_observations_n IS DISTINCT FROM p.expected_n_prior
-   OR (t.stint_baseline_pace IS NULL) <> (p.expected_n_prior = 0)
+   OR (t.stint_baseline_pace IS NULL) <> (p.expected_n_prior < 2)
 
 UNION ALL
 

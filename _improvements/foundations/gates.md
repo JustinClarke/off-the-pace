@@ -60,8 +60,30 @@ pre-registration costs nothing.
 Write the arms into the leaf doc, then run them. This is why work item `04` sits ahead of
 `01` and `02` in the build order rather than after them.
 
+## 7. Declare the e-value construction before running the arm
+
+Step 6 says *what* you will test. This says *how the result will be scored for multiplicity*, and
+it has to be written down before the arm runs or it is worth nothing afterwards.
+
+Name the null as the information contrast step 4 already isolates (real vs row-shuffled, not
+arm vs baseline — capacity is a nuisance), then declare the construction, its parameters and the
+seeds. [`reference/e_value_construction.md`](../reference/e_value_construction.md) carries three
+worked constructions for the reseed-floor setting and a fill-in block; take one, substitute your
+numbers, paste it into the leaf doc.
+
+Report `E` whatever it comes out as, `E < 1` included, and count the arm in the campaign family
+either way. The family is the set of *declared* hypotheses; dropping the ones that failed is the
+selection problem this step exists to remove. Campaign-level decisions run **e-BH**, which holds
+under arbitrary dependence and at any stopping time — the two properties `04b` closed on and
+retrospective BH does not have.
+
 ## What "clears" means
 
 A delta that clears its own family's floor, in the direction of improvement, **with the
 permutation-null arm attributing it to information rather than capacity**. A total that
 clears while neither half does is recorded as exactly that — ambiguous — and never rounded up.
+
+Clearing the floor and returning a large `E` are **two instruments, not one**. A delta below the
+floor can still return `E > 1`, and a delta well above it can still fail e-BH once the family is
+counted. Step 3 rules on whether the arm beat its own noise; step 7 rules on what that is worth
+across the campaign. Report both numbers and let them disagree in public.

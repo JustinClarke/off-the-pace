@@ -111,6 +111,7 @@ def load_features(
     target: str | None = None,
     *,
     persist_encoders: bool = False,
+    censoring_variant: str = "standard",
 ) -> FeatureBundle:
     con = duckdb.connect(duckdb_path, read_only=True)
     try:
@@ -125,9 +126,12 @@ def load_features(
         holdout_df = con.execute(
             f"SELECT * FROM {S.MART} WHERE race_year = {holdout_season}"
         ).df()
+        # Load stint_end_cause if using 10b (cause-specific) censoring variant
+        stint_cols = "stint_id, stint_length_laps, is_censored_stint"
+        if censoring_variant == "10b":
+            stint_cols += ", stint_end_cause"
         stint_len = con.execute(
-            f"SELECT stint_id, stint_length_laps, {S.STINT_LIFE_CENSOR_COLUMN} "
-            f"FROM {S.STINT_FEATURES}"
+            f"SELECT {stint_cols} FROM {S.STINT_FEATURES}"
         ).df()
     finally:
         con.close()
@@ -136,11 +140,27 @@ def load_features(
     # is_censored_stint rides along: the target alone cannot say whether a 0 means
     # "the tyre was done" or "the race was". It is meta, never a feature -- it is
     # not in FEATURE_COLUMNS and test_features.py asserts that it never becomes one.
+    #
+    # 10b variant (work/10-competing-risks.md): treat non-green endings as censored
+    # to isolate the tyre-limit distribution from the deployment-timing distribution.
     for d in (train_df, holdout_df):
         merged = d.merge(stint_len, on="stint_id", how="left")
         d["stint_length_laps"] = merged["stint_length_laps"].to_numpy()
-        d[S.STINT_LIFE_CENSOR_COLUMN] = (
-            merged[S.STINT_LIFE_CENSOR_COLUMN].fillna(False).to_numpy(dtype=bool))
+
+        if censoring_variant == "10b":
+            # Treat only 'green_pit' as uncensored; everything else (sc_pit, vsc_pit, red,
+            # race_end, retirement) is censored. NULL stint_end_cause: preserve original
+            # is_censored_stint (2 stints have NULL cause but is_censored_stint=TRUE).
+            d[S.STINT_LIFE_CENSOR_COLUMN] = (
+                ((merged["stint_end_cause"] != "green_pit") &
+                 merged["stint_end_cause"].notna())
+                | merged[S.STINT_LIFE_CENSOR_COLUMN].fillna(False)
+            ).to_numpy(dtype=bool)
+        else:
+            # Standard censoring: race_end and retirement (already marked in original)
+            d[S.STINT_LIFE_CENSOR_COLUMN] = (
+                merged[S.STINT_LIFE_CENSOR_COLUMN].fillna(False).to_numpy(dtype=bool))
+
         d[S.STINT_LIFE_TARGET] = np.clip(
             d["stint_length_laps"]-d["lap_in_stint"], 0, None)
 

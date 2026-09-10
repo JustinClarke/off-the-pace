@@ -88,3 +88,26 @@ arm; one worked construction exists for the reseed-floor setting so the next arm
 
 **Definition of done.** The next item that runs an arm declares its e-value before running, and
 `04c`'s output is labelled a descriptive audit rather than an FDR-controlled statement.
+
+**Landed 2026-09-10.** [`gates.md`](../foundations/gates.md) carries step 7;
+[`../reference/e_value_construction.md`](../reference/e_value_construction.md) carries the worked
+constructions and the fill-in pre-registration block; `04c` is relabelled a descriptive audit.
+
+Three constructions rather than one, because the cheap one has a hole worth naming. **A** is the
+single-delta betting e-value `exp(lambda*delta/s - lambda^2/2)`, which reduces to `exp((2/c^2)(z-1))` under
+the gate's own floor as the declared alternative — one line, but valid only with a scale fixed
+*independently of* the five reseeds being scored, since `sd/sigma ~ sqrt(chi2_4/4)` puts a ~16% chance
+on those five understating `sigma` by 40%. **B** is the paired safe-t e-value on five paired
+real-vs-shuffled deltas (Grünwald–de Heide–Koolen), exact for unknown `sigma`, and is the recommended
+default at a price of 10 refits where step 4 spends 2. **C** is the shuffle-rank e-value, assumption-free
+and capped at `K+1`.
+
+The null is the **information contrast** (real vs row-shuffled), not arm vs baseline — under
+arm-vs-baseline the delta is not mean-zero under H₀, because capacity moves whether or not the
+columns carry signal, which is the Phase 10a failure step 4 already exists to catch.
+
+Two calibration facts the doc states explicitly, both uncomfortable and both correct: `E > 1` does
+not mean "clears" (a 0.8× floor delta returns `E = 3.3` at `c = 1`), and a lone rejection at
+`alpha = 0.05` in a family of 30 needs `E >= 600`, i.e. ~2.1× the floor. A paired arm at `t = 7.3`
+returns `E = 17` and does not clear e-BH alone. That is the price of arbitrary dependence plus
+optional stopping, not a defect in the construction.

@@ -383,7 +383,11 @@ models:
         constraints:
           - type: not_null
       - name: cliff_candidate_flag
-        description: TRUE if this lap shows a MAD-score cliff spike consistent with tyre cliff
+        description: >
+          TRUE if this lap shows a MAD-score cliff spike consistent with tyre cliff.
+          Removed from ML feature contract by 08j (2026-09-09): ruled dead on both
+          substrates by 08g (carried no information in any family). Retained in mart for
+          audit and historical reference; not consumed by current ML features.
         data_type: boolean
       - name: anomaly_class
         description: Anomaly classification (clean_cliff, mistake, event_driven, conditions, normal)

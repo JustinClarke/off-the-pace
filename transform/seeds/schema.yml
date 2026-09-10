@@ -63,6 +63,58 @@ seeds:
               config:
                 severity: warn
 
+  - name: tyre_allocations
+    description: >
+      Pirelli weekend compound nominations, 2019-2024, one row per race (128 rows covering
+      every ingested race in that span). Maps the relative hard/medium/soft badging back to the
+      absolute C1-C5 scale, which compound_label alone cannot express since Pirelli picks 3 of 5
+      physical compounds per weekend.
+
+      PROVENANCE - USER-SUPPLIED AND SELF-VERIFIED, not machine-sourced. source_url attributes
+      each row to a Pirelli per-race preview, but only 47 of the 128 URLs resolve; the live press
+      site no longer serves its pre-2025 archive. Accepted on the user's authority to unblock
+      08d's consumers, and expected to be re-sourced later. A URL here is an attribution, not
+      evidence. See _improvements/work/08-foundations-repair.md section 08d.
+    columns:
+      - name: race_year
+        description: Season year, 2019-2024.
+        tests:
+          - not_null
+      - name: circuit_key
+        description: >
+          FK to dim_circuits.circuit_key. Event-level, not venue-level, so double-headers at one
+          venue are separate keys (british_grand_prix vs 70th_anniversary_grand_prix).
+        tests:
+          - not_null
+      - name: hard_code
+        description: C-code badged as P Zero White hard for this race.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['C1', 'C2', 'C3', 'C4', 'C5']
+      - name: medium_code
+        description: C-code badged as P Zero Yellow medium for this race.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['C1', 'C2', 'C3', 'C4', 'C5']
+      - name: soft_code
+        description: >
+          C-code badged as P Zero Red soft for this race. Usually one step softer than
+          medium_code, but not always: 2022 Australia is C2/C3/C5, a deliberate C4 skip
+          verified at source.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['C1', 'C2', 'C3', 'C4', 'C5']
+      - name: source_url
+        description: Pirelli press URL this row is attributed to. Mostly non-resolving; see description.
+        tests:
+          - not_null
+
   - name: circuit_reference
     description: >
       Per-circuit physical parameters including weight_penalty_factor.

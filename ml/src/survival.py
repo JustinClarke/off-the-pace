@@ -119,3 +119,207 @@ def c_index(y, pred_median, is_censored) -> float:
     return float(concordance_index(np.asarray(y, dtype=np.float64),
                                    np.asarray(pred_median, dtype=np.float64),
                                    event_observed=~np.asarray(is_censored, dtype=bool)))
+
+
+# ─── 10c: Cause-specific evaluation metrics ──────────────────────────────────────
+def ipcw_brier(y, pred_median, is_censored, scale: float, times: np.ndarray | None = None) -> tuple[float, np.ndarray]:
+    """IPCW-Brier score for censored survival data.
+
+    Computes Brier score (mean squared error of predicted vs observed indicator)
+    weighted by inverse probabilities of being censored (IPCW) at specified times.
+
+    Args:
+        y: observed times (laps)
+        pred_median: predicted median remaining life (laps)
+        is_censored: boolean censoring flags
+        scale: AFT scale parameter
+        times: time points at which to compute Brier. If None, uses deciles of y.
+
+    Returns:
+        (mean_brier, per_time_brier) where mean_brier is the IPCW-weighted mean
+        and per_time_brier is a vector of Brier scores at each time.
+    """
+    from lifelines import KaplanMeierFitter
+
+    y_arr = np.asarray(y, dtype=np.float64)
+    pred_arr = np.asarray(pred_median, dtype=np.float64)
+    cens_arr = np.asarray(is_censored, dtype=bool)
+
+    if times is None:
+        times = np.percentile(y_arr[~cens_arr], np.linspace(10, 90, 9))
+
+    # Fit KM on censoring times to get G(t) = P(C > t)
+    kmf = KaplanMeierFitter()
+    kmf.fit(y_arr, event_observed=cens_arr, label="censoring")
+
+    # Graf et al. IPCW weighting. The weight depends on the horizon t, not only on
+    # the row's own time: rows with an event before t are weighted 1/G(T_i), rows
+    # still at risk at t are weighted 1/G(t), and rows censored before t drop out
+    # (their status at t is unknown and must not be scored as an event).
+    G_MIN = 0.01  # clamp: caps any single row's weight at 100x
+    g_at_own_time = np.array([max(float(kmf.predict(ti)), G_MIN) for ti in y_arr])
+
+    mu_log = np.log(np.maximum(pred_arr + S.AFT_LABEL_SHIFT, 1e-12))
+
+    brier_scores = []
+    for t in times:
+        # Predicted survival probability at time t
+        z_t = (np.log(t + S.AFT_LABEL_SHIFT) - mu_log) / scale
+        pred_surv = norm.sf(z_t)
+
+        g_at_t = max(float(kmf.predict(t)), G_MIN)
+
+        at_risk = y_arr > t                      # survived past t -> indicator 1
+        event_by_t = (~cens_arr) & (y_arr <= t)   # observed event by t -> indicator 0
+        # censored & y <= t: unknown at t, contributes nothing
+
+        w = np.zeros(len(y_arr))
+        w[event_by_t] = 1.0 / g_at_own_time[event_by_t]
+        w[at_risk] = 1.0 / g_at_t
+
+        contrib = np.zeros(len(y_arr))
+        contrib[event_by_t] = (0.0 - pred_surv[event_by_t]) ** 2
+        contrib[at_risk] = (1.0 - pred_surv[at_risk]) ** 2
+
+        # Plain mean over all rows: dropped rows contribute 0, which is what makes
+        # this consistent for the uncensored Brier score.
+        brier_scores.append(float(np.mean(w * contrib)))
+
+    return float(np.mean(brier_scores)), np.array(brier_scores)
+
+
+def time_dependent_auc(y, pred_median, is_censored, scale: float, times: np.ndarray | None = None) -> tuple[float, np.ndarray]:
+    """Time-dependent AUC for censored survival data.
+
+    Computes the C-index-like AUC at specific time horizons, accounting for censoring.
+    At time t, AUC measures discrimination: among pairs where one observed event by t,
+    and one is still at risk at t, the model should rank the event as shorter survival.
+
+    Args:
+        y: observed times (laps)
+        pred_median: predicted median remaining life (laps)
+        is_censored: boolean censoring flags
+        scale: AFT scale parameter
+        times: time points at which to compute AUC. If None, uses deciles of y.
+
+    Returns:
+        (mean_auc, per_time_auc) where mean_auc is the mean across times
+        and per_time_auc is a vector of AUC values at each time.
+    """
+    y_arr = np.asarray(y, dtype=np.float64)
+    pred_arr = np.asarray(pred_median, dtype=np.float64)
+    cens_arr = np.asarray(is_censored, dtype=bool)
+
+    if times is None:
+        times = np.percentile(y_arr[~cens_arr], np.linspace(10, 90, 9))
+
+    auc_scores = []
+    for t in times:
+        # At-risk set: strictly past t, so a row sitting exactly at t cannot land in
+        # both sets. The two sets are then disjoint by construction.
+        at_risk = y_arr > t
+
+        # Events by time t: uncensored and y <= t
+        event_by_t = (~cens_arr) & (y_arr <= t)
+
+        if np.sum(event_by_t) < 2 or np.sum(at_risk) < 2:
+            auc_scores.append(np.nan)
+            continue
+
+        ev = pred_arr[event_by_t]
+        ar = np.sort(pred_arr[at_risk])
+
+        # Concordant when the event's predicted life is shorter than the at-risk
+        # row's; ties take half credit rather than counting as discordant.
+        lo = np.searchsorted(ar, ev, side="left")
+        hi = np.searchsorted(ar, ev, side="right")
+        n_greater = len(ar) - hi
+        n_equal = hi - lo
+
+        concordant = float(np.sum(n_greater) + 0.5 * np.sum(n_equal))
+        total_pairs = float(len(ev) * len(ar))
+
+        auc_scores.append(concordant / total_pairs if total_pairs > 0 else np.nan)
+
+    valid_aucs = np.array([a for a in auc_scores if not np.isnan(a)])
+    if len(valid_aucs) > 0:
+        return float(np.mean(valid_aucs)), np.array(auc_scores)
+    else:
+        return np.nan, np.array(auc_scores)
+
+
+def d_calibration(y, pred_median, is_censored, scale: float, n_bins: int = 5) -> dict:
+    """D-calibration: expected vs observed event rates by predicted risk.
+
+    Groups observations by predicted quantile and compares expected vs observed
+    event rates (KM estimate on uncensored), accounting for censoring.
+
+    Args:
+        y: observed times (laps)
+        pred_median: predicted median remaining life (laps)
+        is_censored: boolean censoring flags
+        scale: AFT scale parameter
+        n_bins: number of risk groups
+
+    Returns:
+        dict with keys: pred_quantiles, obs_event_rates, exp_event_rates, calibration_slope
+    """
+    from lifelines import KaplanMeierFitter
+
+    y_arr = np.asarray(y, dtype=np.float64)
+    pred_arr = np.asarray(pred_median, dtype=np.float64)
+    cens_arr = np.asarray(is_censored, dtype=bool)
+
+    # Predicted risk at a COMMON horizon. Evaluating each row's survival curve at
+    # its own predicted median gives 0.5 identically - a tautology, not a risk score.
+    # The horizon has to be shared for the score to vary across rows.
+    t0 = float(np.median(y_arr))
+    mu_log = np.log(np.maximum(pred_arr + S.AFT_LABEL_SHIFT, 1e-12))
+    z_t0 = (np.log(t0 + S.AFT_LABEL_SHIFT) - mu_log) / scale
+    pred_risk = 1.0 - norm.sf(z_t0)
+
+    # Bin by predicted risk
+    bins = np.percentile(pred_risk, np.linspace(0, 100, n_bins + 1))
+    bin_indices = np.digitize(pred_risk, bins) - 1
+    bin_indices = np.clip(bin_indices, 0, n_bins - 1)
+
+    pred_quantiles = []
+    obs_rates = []
+    exp_rates = []
+
+    for bin_idx in range(n_bins):
+        mask = bin_indices == bin_idx
+        if np.sum(mask) < 2:
+            continue
+
+        pred_quantiles.append(np.mean(pred_risk[mask]))
+        exp_rates.append(np.mean(pred_risk[mask]))
+
+        # Observed rate via KM at the SAME shared horizon t0. Using each bin's own
+        # median puts every bin near KM(median)~0.5 by construction, which flattens
+        # the observed axis and drags the slope toward zero.
+        y_bin = y_arr[mask]
+        cens_bin = cens_arr[mask]
+
+        kmf = KaplanMeierFitter()
+        kmf.fit(y_bin, event_observed=~cens_bin)
+        obs_rates.append(1.0 - float(kmf.predict(t0)))
+
+    # Calibration slope: regression of observed on expected. With no uncensored rows
+    # the KM curve never drops, so every observed rate is 0 and the regression returns
+    # a degenerate slope of exactly 0. That is unassessable, not calibrated - so say so.
+    n_events = int(np.sum(~cens_arr))
+    if n_events < 2:
+        slope = np.nan
+    elif len(pred_quantiles) > 2:
+        from scipy.stats import linregress
+        slope, intercept, r_value, p_value, std_err = linregress(exp_rates, obs_rates)
+    else:
+        slope = np.nan
+
+    return {
+        "pred_quantiles": np.array(pred_quantiles),
+        "exp_event_rates": np.array(exp_rates),
+        "obs_event_rates": np.array(obs_rates),
+        "calibration_slope": slope,
+    }

@@ -67,8 +67,9 @@ combined AS (
 -- (mean ~20 laps) so the window is local by construction, and the statistic is
 -- meant to be "this stint's own pace so far" -- capping it at N laps would make
 -- the baseline itself drift with the degradation it is supposed to measure.
--- The floor is 1 valid prior lap; floors of 2/3/5 buy more degradation signal
--- for 3.49/8.82/19.09pp of coverage and that trade has not been through the gate.
+-- The floor is 2 valid prior laps (adopted by 08i). Floors of 2/3/5 buy
+-- more degradation signal for 3.49/8.82/19.09pp of coverage; floors 2 and 3
+-- were gated through steps 1-4 and showed identical signal, so floor 2 is optimal.
 -- Baseline is computed from valid laps only (SC/pit laps would drag the
 -- median pace down and distort the push-residual signal).
 with_baseline AS (
@@ -76,7 +77,7 @@ with_baseline AS (
         *,
         {{ trailing_median(
             'lap_time_s', ['stint_id'], ['lap_in_stint'],
-            min_observations=1, valid_condition='is_valid_lap') }}
+            min_observations=2, valid_condition='is_valid_lap') }}
             AS stint_baseline_pace,
         {{ trailing_observation_count(
             'lap_time_s', ['stint_id'], ['lap_in_stint'],

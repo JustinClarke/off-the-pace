@@ -96,9 +96,11 @@ PER_LAP_ICC_MAX = 0.50
 CHANNELS: dict[str, tuple[str, ...]] = {
     # Where the stint is in its own life. Tyre-intrinsic, and the thing a degradation
     # model is *supposed* to be reading.
+    # 08j (2026-09-09) pruned `cliff_candidate_flag` from the contract (ruled dead on
+    # both substrates by 08g); it no longer has a channel to carry.
     "tyre_age": (
         "lap_in_stint", "age_in_stint", "laps_past_cliff", "cliff_onset_passed",
-        "cliff_candidate_flag", "expected_degradation_rate_s_per_lap",
+        "expected_degradation_rate_s_per_lap",
         "expected_compound_pace_s", "compound", "compound_grip_peak",
         "compound_wear_gradient", "compound_optimal_temp_low",
         "compound_optimal_temp_high", "compound_cliff_onset_laps",

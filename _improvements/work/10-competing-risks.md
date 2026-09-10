@@ -188,7 +188,105 @@ style `ceiling.py` already uses for its oracle.
 
 **Definition of done.** The stint-life headline says which cause it is about.
 
+### Verdict — MEASURED 2026-09-10
+
+Full results and the per-horizon tables: [`../reference/10c_evaluation_framework.md`](../reference/10c_evaluation_framework.md).
+
+**The headline, and it names its cause:** tyre-limit survival on green-pit endings is predicted
+with **time-dependent AUC 0.844** and **IPCW-Brier 0.141** (9,270 eval-fold laps, 2024).
+
+**The finding worth acting on is the calibration, not the discrimination.** Green-pit calibration
+slope is **1.23** — observed risk exceeds predicted in 4 of 5 risk bins and the gap widens as risk
+rises (at the top bin, predicted 0.78 against observed 0.95). The model **over-predicts stint
+life, and is worst on the stints it already flags as fragile**. That is a live defect in the
+quantity the app's gauge shows, and it is a better lead than 10b's -0.028 NLL.
+
+**Three things this item did not deliver, stated plainly:**
+
+1. **No per-cause comparison.** Under the 10b variant green-pit is the only uncensored cause, so
+   the other five strata have no events to score and their metrics are undefined. 10c produced one
+   clean stratum and five empty ones. Comparing survival *across* causes needs a cause-specific
+   hazard treating each cause as its own event in turn — which 10b did not train.
+2. **The dependence band is not quantified.** Only stated. An earlier draft's "dependence strength
+   1.2×" is **withdrawn**: cause determines censoring status under 10b, so cause-specific censoring
+   rates are 0/1 by construction and their spread measures the definition, not the dependence.
+   Quantifying it needs an instrument for SC arrival — which is what `07a` is building.
+3. **The `overall` row is not a headline and must not be quoted** (Brier 0.093, AUC 0.924). It
+   scores green-pit events against an at-risk pool that is 54% non-green, and the causes differ in
+   length by construction (`race_end` 26.4 laps mean, `green_pit` 20.4, `red` 5.3). A model scores
+   well there by separating *cause membership* — the same mixture artefact this item exists to
+   remove, in a new metric. It is kept as a diagnostic and labelled as one in the artefact.
+
+**Metric repairs were needed first.** Three of the metrics did not measure what they claimed;
+`d_calibration` was a tautology returning 0.5 for every row, `ipcw_brier` ignored the horizon in
+its weights, and `time_dependent_auc` counted ties as discordant. All fixed in `ml/src/survival.py`
+and the item re-run before any number was used downstream. Superseded figures: green-pit AUC 0.829,
+overall Brier 0.116, overall AUC 0.916, and the unsupported "calibration slope ≈1 (unbiased)".
+Detail in the reference doc's § Metric corrections.
+
 ---
+
+---
+
+## 10d — Fix the stint-life calibration defect
+
+**Objective.** The model over-predicts how long tyres last. Fix that, in the model.
+
+**Depends on** [`10c`](#10c--evaluation-that-fits-the-framing) for the finding, and
+[`08k`](08-foundations-repair.md#08k--rebuild-the-model-artefacts-against-the-post-08j-32-feature-contract)
+because this item retrains and re-exports `stint_life_regressor` and that cannot be validated
+against a red ONNX-parity and manifest-contract suite.
+
+**The finding.** Green-pit calibration slope **1.232**. Observed risk exceeds predicted in 4 of 5
+risk bins and the gap widens as risk rises:
+
+| model says stint is this likely to be over | it actually is, this often |
+| ---: | ---: |
+| 0.110 | 0.169 |
+| 0.282 | 0.237 |
+| 0.442 | 0.490 |
+| 0.603 | 0.737 |
+| **0.781** | **0.946** |
+
+The bottom row is the problem. On stints the model has already flagged as fragile it is wrong in
+the dangerous direction — it reports life left in a tyre that is essentially finished. This is the
+quantity the app's gauge shows, so the defect is user-visible.
+
+**It is the model's, not the sample's.** This had to be settled first, because green-pit is a
+*filtered* stratum — a stint only becomes green-pit if no safety car diverted it — and
+recalibrating a model to match a filtered sample would bake that filter's bias in permanently.
+Races with **zero SC/VSC endings** had no diversion, so green-pit within them is unfiltered. The
+slope does not move:
+
+| stratum | n (laps) | slope | AUC |
+| :--- | ---: | ---: | ---: |
+| Zero-SC races (no diversion possible) | 6,822 | **1.224** | 0.845 |
+| SC races (diversion occurred) | 2,448 | 1.267 | 0.844 |
+| All races | 9,270 | 1.232 | 0.844 |
+
+Race-level cluster bootstrap on the zero-SC stratum (200 draws, per `05c`'s gate-3 substitute):
+mean 1.222, sd 0.0714, 95% interval **[1.098, 1.363]**, 0 of 200 draws below 1.0. That stratum
+holds only **14 races** and cluster bootstraps on so few clusters run anti-conservative, so treat
+the interval as indicative — the finding rests on the point estimate being unmoved across a split
+that would have to move it if selection were the cause.
+
+**Method — the constraint, not the recipe.** Fix the fit. Do **not** post-hoc recalibrate against
+the green-pit evaluation sample, for the reason above. Candidate directions, none of them ruled on
+yet: the AFT scale parameter, the label construction 10b introduced, or a distributional
+assumption that does not fit a target with skewness −0.829 and excess kurtosis 5.218 (`R2`).
+Re-measure with `ml/src/evaluate_10c.py`, whose metrics are now under regression test.
+
+**Acceptance.** Gates 1–7 per [`../foundations/gates.md`](../foundations/gates.md). The 1.23 is a
+**measurement** and has not been gated; the fix that follows from it must be. Report the slope with
+its bootstrap interval, not as a point.
+
+**Definition of done.** A written verdict on whether the slope moves toward 1.0 without costing
+discrimination (AUC 0.844 is the incumbent), and either a landed fix or a recorded reason the
+defect is not addressable at this model class.
+
+**Note for [`02b`](02-feature-expansion.md).** Its pre-flight requires 5-reseed noise floors for
+`stint_life_regressor`. Those must be measured **after** this lands, or they are measured against a
+model that is about to change.
 
 ## The product question this does not settle
 

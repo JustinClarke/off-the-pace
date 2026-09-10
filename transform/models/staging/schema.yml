@@ -922,26 +922,62 @@ models:
 
   - name: stg_tyre_allocations
     description: >
-      STUB   source not yet ingested. Returns an empty result set with the correct schema so
-      downstream models (dim_compounds_season) can reference it without build errors. FastF1
-      already exposes HARD/MEDIUM/SOFT labels directly in the Compound column, so this model is
-      low priority for 2018+ seasons. Activate when Pirelli allocation sheets are scraped to map
-      compound codes (C1–C5) to hard/medium/soft per circuit.
+      Pirelli weekend compound nominations for 2019-2024: which C-code each of hard/medium/soft
+      actually was, per race. compound_label has been RELATIVE since 2019 (Pirelli picks 3 of 5
+      physical compounds per weekend), so "SOFT" at one circuit is not the same rubber as "SOFT"
+      at another; this model supplies the absolute scale that makes them comparable.
+      One row per (race, label): 128 races x 3 = 384 rows.
+
+      PROVENANCE - READ BEFORE QUOTING ANYTHING FROM THIS TABLE. The seed is USER-SUPPLIED AND
+      SELF-VERIFIED, not machine-sourced. source_url names the Pirelli per-race preview each row
+      is attributed to, but only 47 of the 128 URLs resolve; the rest 404 against the live press
+      site, which no longer serves its pre-2025 archive. Values were accepted on the user's
+      authority to unblock downstream work (08d) and are expected to be replaced once an archival
+      source is available. Spot-checks that DID verify at source: 2022 Australia C2/C3/C5
+      (the deliberate C4 skip), 2022 Emilia-Romagna C2/C3/C4, and the 2024 Americas trio
+      (Austin C2/C3/C4, Mexico City C3/C4/C5, Sao Paulo C3/C4/C5).
+      See _improvements/work/08-foundations-repair.md section 08d.
     meta:
       family: staging
     columns:
       - name: race_year
-        description: Season year (always NULL in the stub).
+        description: Season year, 2019-2024.
         data_type: integer
+        tests:
+          - not_null
       - name: circuit_key
-        description: Event/grand-prix key (always NULL in the stub).
+        description: >
+          Event/grand-prix key, matching dim_circuits.circuit_key. Event-level, not venue-level:
+          2020 Silverstone is british_grand_prix AND 70th_anniversary_grand_prix, and the
+          Red Bull Ring / Bahrain double-headers split the same way.
         data_type: varchar
+        tests:
+          - not_null
       - name: compound_code
-        description: Pirelli compound code C1–C5 (always NULL in the stub).
+        description: Pirelli compound code. C1 hardest, C5 softest.
         data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['C1', 'C2', 'C3', 'C4', 'C5']
       - name: compound_label
-        description: hard/medium/soft label the code maps to (always NULL in the stub).
+        description: The relative label this code was badged as for that weekend.
         data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['hard', 'medium', 'soft']
       - name: allocated_sets_per_driver
-        description: Number of sets of this compound each driver is allocated (always NULL in the stub).
+        description: >
+          NULL by construction. FIA technical allocation data, not carried by Pirelli's
+          compound announcements - left unpopulated rather than invented.
         data_type: integer
+      - name: source_url
+        description: >
+          Pirelli press URL this row is attributed to. See the model description: most of these
+          do not currently resolve. Presence of a URL is not evidence the row is sourced.
+        data_type: varchar
+        tests:
+          - not_null

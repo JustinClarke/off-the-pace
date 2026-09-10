@@ -48,6 +48,39 @@ models:
       - name: is_red_flag_lap
         description: Carried through from stg_laps. TRUE when the TrackStatus string contains a 5 (red flag).
         tests: [not_null]
+      - name: age_in_stint
+        description: >
+          Tyre age in laps at this lap. Directly from FastF1 TyreLife (no imputation, no
+          reconstruction). 343 rows (0.21%) carry NULL: 325 of them (94.8%) sit on lap 1 of a
+          stint, where tyre-life occasionally arrives without a reading. This is a pattern, not
+          random scatter, and occurs at the exact position where starting_tyre_age_laps is
+          derived. For stints opening on lap 1: if age_in_stint is NULL at the stint start and
+          you need a starting age, the column is missing; do not assume the tyre is fresh (a
+          used/scrubbed set starting a stint will have age_in_stint > 1 or NULL, but never 0).
+          Consumers should carry this column forward or declare how NULLs are handled.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 100
+                row_condition: "age_in_stint is not null"
+      - name: compound_code
+        description: >
+          Tyre compound code (HARD, MEDIUM, SOFT, INTERMEDIATE, WET, SUPERSOFT, ULTRASOFT,
+          HYPERSOFT). Joined from dim_compounds_season, which carries physical parameters
+          (grip, wear rate) keyed on (season, circuit, compound_code).
+      - name: compound_label
+        description: >
+          Tyre compound label (hard, medium, soft) assigned by Pirelli for this race. Relative
+          to the circuit - Pirelli picks 3 compounds per weekend and calls them hard/medium/soft,
+          so "soft" at one circuit is not the same rubber as "soft" at another. The compound_code
+          is the absolute identifier; this label is the relative one.
+      - name: race_year
+        description: Season year.
+      - name: race_id
+        description: Race identifier.
+      - name: driver_id
+        description: FastF1 three-letter driver code (e.g. VER, HAM).
 
   - name: int_stint_end_regime
     description: >
@@ -294,8 +327,12 @@ models:
           Of the lap's bins that had a car within 3 s ahead, the share held by
           the single most frequent car. 1.0 = one car held the whole lap (a
           settled follow); low = the car ahead rotated (traffic being passed, or
-          being lapped). Mean 0.9271. NULL on the 27.3% of laps with no car
-          within 3 s at any point, which is "free air", not "unstable identity".
+          being lapped). Mean 0.9271. 31.0% NULL overall, stable at 28.6–32.2% per
+          season. NULL semantics: only 1,449 of 36,044 nulls represent "no car ahead"
+          (free air). The remaining 34,595 nulls mean the statistic is UNDEFINED — the
+          proximity calculation cannot settle on a single car ahead, which happens on
+          disrupted/bunched laps (SC/VSC/red flag). Do not treat NULL as zero or as
+          "free air". A later consumer must condition on this distinction.
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:

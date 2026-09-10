@@ -778,6 +778,76 @@ was produced by asking a model to fill in the pattern.
 columns, accepted_values on compound_label); the history entry names the source article(s) used
 per season.
 
+### `08d` — BUILT 2026-09-10 on user-supplied data, and NOT sourced
+
+**Status: `BUILDING`, deliberately not `LANDED`.** The table is in the warehouse and every
+mechanical clause of the definition of done is met. The **acceptance** clause is not: "each row
+traceable to a cited Pirelli source… no row's value was produced by asking a model to fill in the
+pattern." That clause is unmet and the item stays open until it is.
+
+**What is in the warehouse.** `transform/seeds/tyre_allocations.csv`, 128 rows — one per race,
+wide (`race_year, circuit_key, hard_code, medium_code, soft_code, source_url`).
+`stg_tyre_allocations` unpivots it to 384 rows at (race, label) grain. 16 dbt tests pass.
+**All 127 mart races in 2019–2024 match**, so the join is total, not partial. The 128th row is
+`(2021, belgian_grand_prix)` — the rain-shortened race, present in `int_stint_geometry`
+(race `2021_12`, 60 laps) but absent from the mart.
+
+It does the job the item exists for: 2024 `SOFT` resolves to **C3** at Bahrain, Silverstone,
+Zandvoort, Suzuka, Qatar and Barcelona but **C4** at Spa and Shanghai — the relativity that
+`compound_label` alone cannot express.
+
+**Provenance — the reason this is not `LANDED`.** The data is **user-supplied and self-verified**,
+accepted on the user's explicit instruction to unblock downstream work. It was **not** obtained by
+the sourcing method this spec requires. Measured, not asserted: **only 47 of the 128 `source_url`
+values resolve; 81 return 404** against the live press site, which no longer serves its pre-2025
+archive. A URL in that column is an *attribution*, not evidence.
+
+Three prior revisions of this table were rejected before this one, and the audit trail matters
+because it shows what the checks caught:
+
+- **Rev 1** asserted Monaco/Singapore/Baku/Montreal 2025 on C6 — the exact fabrication this spec
+  already names as previously rejected — and carried **zero** citations across ~30 venues.
+- **Rev 2** added citations but 59% were unusable: all 21 of 2019 cited a *search results page*
+  (fetched and confirmed to name no compounds at all); all 17 of 2020 cited a 404; all 22 of 2021
+  cited a **pre-season nomination list** which — fetched and read — contains the originally
+  scheduled 23 rounds including four that were cancelled, omits Styria, Turkey and Qatar (three
+  rows citing it), and gives Austria C2/C3/C4 against the row's claimed C3/C4/C5. It also used
+  nine keys absent from the warehouse (`sao_paulo_grand_prix` for `são_paulo_grand_prix`,
+  `mexican_grand_prix` for `mexico_city_grand_prix` from 2021 on).
+- **Rev 3** (the one that landed) fixed every key and switched to per-race previews. One compound
+  value changed silently between rev 2 and rev 3 — **2024 Monza C3/C4/C5 → C2/C3/C4** — in the
+  eval season, and that change is **unresolved**: it was not checked at source before the build
+  was stopped.
+
+**Three rows verified at source, and they held.** Worth recording because two were flags raised
+against the data that turned out to be wrong:
+
+- **2022 Australia C2/C3/C5** — the preview states *"the P Zero White hard is the C2 compound"* …
+  *"it's the softest C5 compound as the P Zero Red soft."* The non-consecutive C4 skip is real.
+- **2022 Emilia-Romagna** — cited to a URL slugged `2022-italian-grand-prix---preview`, which
+  looked like a mis-citation and is not: Pirelli's own slug is wrong, the page is the Imola
+  preview, and it states C2/C3/C4 for Emilia-Romagna.
+- **2024 Americas** — Austin C2/C3/C4, Mexico City C3/C4/C5, São Paulo C3/C4/C5, all confirmed.
+
+**What must happen before this can be `LANDED`.** Re-source 2019–2022 from an archival route
+(FIA event documents are the obvious candidate — regulator-issued, per-event, and they cover the
+span); resolve the 2024 Monza discrepancy; then either replace the values or confirm them and
+record which. Until then **nothing measured against this table may be quoted as a claim** — that
+is [`../foundations/epistemics.md`](../foundations/epistemics.md)'s line, and a table whose
+provenance is "accepted to keep moving" sits on the wrong side of it.
+
+**Warehouse state.** `dbt seed --full-refresh` + `dbt run` on the one model + 16 tests, all green.
+A full `dbt build` was started and **interrupted at model 215 of 723** at the user's request. No
+damage: the mart anchors are unchanged — `fct_cliff_prediction_features` 137,447 rows, 121,193
+training-eligible, `push_residual` coverage 98.275%, all three matching the `08e`/`08f` baselines
+exactly. **A full `dbt build` should still be run before any measurement is taken.** Nothing
+committed.
+
+A stale `tyre_allocations` table from an earlier agent run was found in `dev.duckdb` carrying a
+5-column `season` schema, which dbt was silently inheriting as the seed's column spec; it was
+dropped via `--full-refresh`. It could not have pre-existed this session — the stub had no
+`ref()`.
+
 ---
 
 ## 08g — Decompose the `08e`/`08f` regression on the BEFORE substrate, and rule on `cliff_candidate_flag`
@@ -832,3 +902,269 @@ substrates → opens a prune arm, which is itself an add-ablation someone gates)
 (cleared its floor before, does not now → opens a reconstruction of the anomaly threshold), with
 the number behind the ruling; and the working tree is restored to the AFTER substrate with
 `dbt test` green, as step 1 restored it.
+
+### 08g — RESULT 2026-09-09: `cliff_candidate_flag` is dead, not damaged
+
+**Method, and a change from step 1's own.** Step 1 reverted `08e`/`08f` in place on
+`data/dev.duckdb` itself and restored it from backups afterward. Here the BEFORE substrate was
+built into an **isolated warehouse copy** instead: a `gate_before` dbt target
+(`data/gate_before.duckdb`, added to `transform/profiles/profiles.yml` for the duration of this
+session and removed afterward) built from the same bronze source files dev uses — sources are
+`external_location` parquet paths, independent of which `.duckdb` file a target materialises into,
+so a full `dbt seed && dbt run --target gate_before` reproduces dev's lineage from scratch without
+ever opening dev.duckdb for write. `int_lap_thermal_proxy.sql` and
+`int_circuit_x_constructor_interaction.sql` were reverted wholesale to their pre-`08e`/pre-`08f-2`
+content (`git show c7c8509:<path>`, each confirmed a clean, self-contained diff against HEAD before
+reverting); `fct_cliff_prediction_features.sql` and its mart `schema.yml` contract entry were
+hand-edited to remove only the `08e` companion column and un-lag the `08f-1` survival curve, because
+the file also carries three unrelated rebuilds from the same squashed commit (the Phase 10a
+proximity block, the cliff-bucket forward-scan fix, the multi-horizon target rework) that had to
+stay. Built once with the unedited (AFTER) tree first as a pipeline sanity check — row count
+137,447 both sides, zero-row diff on every family-relevant column against dev.duckdb, the sole
+exception being `next_5_lap_cumulative_jump_s` at max abs diff 8.17e-14, the same
+non-associative-float-under-threading noise step 1 already named. Then rebuilt with the BEFORE
+edits in place. `dev.duckdb`'s mtime was checked before and after (unchanged; no dbt process ran
+against `--target dev` at any point) and its training-eligible push_residual coverage re-verified
+at 98.275% afterward, confirming it never left the AFTER state. The working tree was restored via
+`git checkout HEAD --` on the four touched files immediately after the BEFORE build succeeded, and
+`data/gate_before.duckdb` plus the profile block were deleted once the probe finished reading it —
+nothing from this session persists on disk. **This method is available to `08h`/`08i` too** and is
+cheaper to reason about than step 1's in-place revert: dev.duckdb is categorically never at risk,
+so there is no restore step to get wrong.
+
+**Instrument check passes on both targets, to better than 1e-6.** Arm `A` (contract minus both
+families) on the BEFORE substrate: `cliff_classifier` 0.3567747940075294 against the AFTER run's
+0.3567748 (|Δ| 6.0e-9); `stint_life_regressor` 2.022446495893194 against 2.0224465 (|Δ| 4.1e-9).
+Nothing outside the two families moved. As an unplanned second instrument check, the quantile
+trio's native BEFORE cell (BEFORE columns, BEFORE weights) and native AFTER cell were also refit
+independently here and reproduce the already-published v11 and re-baseline numbers to
+1.5e-8 / 4.2e-10 or better on all three heads (table below) — the harness is confirmed stable
+across a third, independently-built copy of the warehouse.
+
+**Family T (the four thermal columns, `08e`) on the BEFORE substrate — still clears, at roughly
+half the AFTER-substrate size.** Add-delta against arm `A`, x-floor against
+`max(floor(A), floor(full))`:
+
+| target | add-delta (BEFORE) | x-floor | information | x-floor | AFTER-substrate add-delta (gate steps 2-4) |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| `cliff_classifier` (macro F1) | **+0.0230359** | 4.38x | +0.0264612 | 5.03x CLEARS | +0.0141401 (2.41x) |
+| `stint_life_regressor` (AFT nloglik) | **−0.0735218** | 9.53x | −0.0702188 | 9.10x CLEARS | −0.0336961 (4.37x) |
+
+Both clear on the BEFORE substrate too, so family T was never *only* a leakage artifact — but its
+own marginal contribution is **roughly halved** by the `08e`/`08f-2` rebuild on both targets (macro
+F1: 4.38x → 2.41x; AFT nloglik: 9.53x → 4.37x). That is consistent with, and adds a second
+instrument to, `08e`'s own materiality finding that the contaminated baseline inflated
+`push_residual`'s apparent relationship with the label: part of what family T was "worth" before the
+rebuild was the leak itself, and the rebuild removed that part while leaving a real, smaller signal
+behind.
+
+**Family C (`cliff_candidate_flag`, the only column the `08f-2` chain reaches) is inside its floor
+on the BEFORE substrate too, on both totals and information:**
+
+| target | add-delta (BEFORE) | x-floor | information | x-floor |
+| :--- | ---: | ---: | ---: | ---: |
+| `cliff_classifier` | −0.0005112 | 0.10x | −0.0033409 | 0.64x |
+| `stint_life_regressor` | −0.0014948 | 0.19x | −0.0000307 | 0.004x |
+
+**Ruling: DEAD, not damaged.** `cliff_candidate_flag` does not clear its floor before the `08f-2`
+rebuild any more than after it — the column has carried nothing since it was written, and `08f-2`'s
+zeroing of 2018's `circuit_constructor_interaction_s` is not what emptied it, because there was
+nothing to empty. This resolves the fork `08g` exists to resolve: `08j` runs the **prune arm**, not
+a threshold reconstruction.
+
+**Additivity check.** `A + (A+T − A) + (A+C − A)` against the measured `full` arm: cliff
+0.3792996 implied vs 0.3802680 actual, residual +0.0009685 (0.28x `full`'s own floor); stint life
+1.9474299 implied vs 1.9487233 actual, residual +0.0012934 (0.46x `full`'s own floor). Both
+residuals are inside `full`'s own reseed floor, so `T` and `C` combine ~additively on the BEFORE
+substrate — consistent with `C` carrying nothing: a dead column has little room to interact with a
+live one.
+
+**The quantile trio's weight channel is separated from its column channel.** `08f-1` moves the IPW
+`survival_weight`, invisible to any column ablation, so arm `A` is not the right instrument here;
+instead this runs the full 2×2 (BEFORE/AFTER columns) × (BEFORE/AFTER weights), aligned by
+`lap_id` (row sets verified identical between the BEFORE and AFTER builds on all three heads — the
+degradation target depends only on `driver_skill_residual_s` and `drift_s_per_lap`, neither of
+which either family touches). Two of the four cells reproduce already-published numbers (validation
+column) and the other two are new:
+
+| target | BEFORE cols / BEFORE w | AFTER cols / AFTER w | AFTER cols / BEFORE w | BEFORE cols / AFTER w | column channel | weight channel |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| p10 pinball | 0.5187980 | 0.5353710 | 0.5314593 | 0.5186341 | +0.0146991 (89%) | +0.0018739 (11%) |
+| p50 pinball | 1.0163386 | 1.0407823 | 1.0275016 | 1.0199334 | +0.0160059 (65%) | +0.0084378 (35%) |
+| p90 pinball | 0.5600310 | 0.5660356 | 0.5690087 | 0.5545901 | +0.0102116 (170%) | −0.0042070 (−70%) |
+
+(column channel = mean of the two same-weight cross-differences; weight channel = mean of the two
+same-column cross-differences; the two sum to the total AFTER−BEFORE delta exactly, by
+construction, on all three heads — 0.0165730 / 0.0244437 / 0.0060046, matching gate step 1.) The
+column rebuild (`08e` + `08f-2` together — this design cannot separate them further) accounts for
+most or all of the regression on every head. The weight channel (`08f-1` alone) moves the same
+direction as the total on p10/p50 but **the opposite direction on p90** — season-lagging the IPW
+curve would, on its own, have been a small p90 *improvement* (−0.0042070); it is the column changes
+that cost more than the total and the weight channel claws a third of it back.
+
+**Verified.** All headline figures above via `evaluate.py`'s own `_fit`/`_score`/`_predict_index`
+and `attribution.py::refit_noise_floor` (5 reseeds, `RANDOM_STATE`..`RANDOM_STATE+4`), on
+`cv_final_fold`, exactly as gates.md steps 1-3 specify. Permutation-null: gates.md step 4, one row
+permutation per family per split (train and eval shuffled independently), applied jointly across a
+family's columns so its own cross-column correlation survives and only row alignment to the label is
+destroyed. Row-set identity between the BEFORE and AFTER builds for the quantile trio (68,574
+train / 13,896 eval both sides) and the resulting `y` alignment (max abs diff 2.5e-14 train, 6.8e-14
+eval — float noise, not a mismatch).
+
+**Assumed.** The floor denominator convention (`max(floor(A), floor(full))`, shared across both
+families) is this session's reading of the AFTER-substrate note's "x-floor against the larger of
+the full and baseline 5-reseed floor" — the alternative reading (a separate `floor(A+T)` /
+`floor(A+C)` denominator per family) was not what was used; both `A+T`'s and `A+C`'s own floors were
+computed anyway (0.0050677 / 0.0042533 cliff, 0.0024979 / 0.0104361 life) and are smaller than
+`floor(A)` on three of four, so this choice is conservative (produces smaller x-floor ratios,
+never larger) rather than favourable to CLEARS. The permutation-null's random seeds (`RANDOM_STATE`,
+`RANDOM_STATE+1` for train; `+100`, `+101` for eval, one pair per family) are a single draw each, not
+resampled — gates.md step 4 does not call for repetition, and none of the four totals/information
+readings sit close enough to their floor to be seed-sensitive at the level this decomposition
+reports to.
+
+**Gates run.** Steps 1-4 for both families on the BEFORE substrate, step 1's instrument check
+additionally cross-validated on the quantile trio. Step 5 not re-run (unchanged since gate steps
+2-4; nothing in this session touches the feature contract). Step 6 satisfied in advance — the four
+arms, the permutation-null, and the weight/column split were all named in the `08g` spec before this
+session ran them.
+
+---
+
+## 08h — `baseline_observations_n` as a feature: the add-ablation `08e` deferred
+
+**Objective.** `08e` shipped `baseline_observations_n` into the enforced mart contract and
+deliberately kept it out of `FEATURE_COLUMNS`, on the stated ground that putting it in `X` is an
+add-ablation someone has to gate. Run that gate.
+
+**Why it is the first thing to try.** The trailing rebuild replaced one baseline of uniform
+provenance with baselines of wildly varying evidence: the column runs 0–75 with a mean of 12.5
+over the 137,447 mart rows, so a lap-3 row's baseline rests on two prior laps and a lap-30 row's on
+twenty. The model currently cannot tell those apart, and the difference is exactly the uncertainty
+the rebuild introduced. This is the cheapest candidate for recovering part of what step 1 priced,
+and unlike a new sensor it costs no new ingestion.
+
+**It is not free, and the hazard is named in `08e`.** The NULLs are deterministic on
+count-of-valid-prior-laps, which is **not a contract axis** — `02a`'s declarability argument does
+not carry over. Shipping the count so a consumer can condition on the missingness is one thing;
+putting it in `X` makes the model's behaviour depend on an axis nothing declares. That is the
+trade this item has to price, not assume.
+
+**Method.** Add-ablation on `cv_final_fold`, 33 columns → 34, through `evaluate.py`'s own
+`_fit`/`_score`, against each family's own 5-reseed floor, with the permutation-null arm — the same
+three arms `08e`/`08f` just went through. Also run it as a **pair** with `push_residual`: a count of
+evidence is only meaningful beside the estimate it qualifies, so a joint arm distinguishes "the
+model wants the uncertainty" from "the model wants another counter" (`attribution.py`'s
+counter-like channel note is the relevant prior — prefix means of counters are rank-equivalent to
+the counter).
+
+**Ordering — this must run AFTER `08g`.** It changes the feature contract, and `08g`'s instrument
+check is that arm `A` (contract minus both families) returns bit-identical to 0.3567748 and
+2.0224465. A 34-column contract makes arm `A` a different arm and voids that check.
+
+**Definition of done.** The column is either in `FEATURE_COLUMNS` with a delta that cleared its
+floor and was attributed to information by the permutation-null, or it is recorded as measured and
+rejected with the number, and the declarability hazard is ruled on either way.
+
+---
+
+## 08i — The `min_observations` floor: the trade `08e` priced and did not take
+
+**Objective.** `08e`'s rebuild took `min_observations=1`. Floors of 2/3/5 were priced at the same
+time — they buy more degradation signal for **3.49 / 8.82 / 19.09pp** of coverage — and that trade
+was explicitly not taken because it had not been through the gate. Take it through the gate.
+
+**Why it is worth revisiting now rather than then.** When the floor was chosen, nothing was known
+about what the rebuilt thermal block was worth. Gate steps 2–4 now say it is worth **8.98× its own
+floor on p50**, the largest single block in the contract on that family. A column that valuable
+changes the arithmetic of trading rows for signal per row: at floor 1 the opening laps of every
+stint carry a baseline built on one observation, which is the noisiest possible estimate of the
+quantity the whole block rests on.
+
+**Method.** Rebuild `int_lap_thermal_proxy` at floors 2 and 3 (5 is priced at 19.09pp and is almost
+certainly too expensive to be worth a build), and run each as a full gate step 1–4 against the
+current substrate as the BEFORE arm. Floor 5 only if 3 is still improving. The macro already takes
+`min_observations`, so each arm is a parameter change rather than a rewrite.
+
+**The measurement that decides it is not the headline alone.** Coverage loss falls entirely on
+early-stint rows, which are over-represented in the cliff classifier's positive class. Report the
+delta per family *and* the change in eval-row count per family, because a headline that improves by
+deleting the hard rows is not an improvement.
+
+**Ordering — after `08g`.** It moves `push_residual` itself, so it moves the substrate every number
+recorded in this document is measured against.
+
+**Definition of done.** A floor is chosen with the gate behind it, the rejected floors are recorded
+with their numbers, and if floor 1 survives it survives as a measured result rather than as the
+value that happened to be built first.
+
+---
+
+## 08j — Rule on `cliff_candidate_flag`: prune it or rebuild its threshold
+
+**Objective.** Act on whatever `08g` rules. Gate steps 2–4 found the column carries no information
+in any of the five families; `08g` says whether it ever did.
+
+**The two branches, and they are not the same work.**
+
+- **Dead** (inside floor on both substrates) → prune arm. Drop it from `FEATURE_COLUMNS` and
+  measure: on p10 its capacity term was **+0.0096350**, so removing it may be a small *gain* rather
+  than a neutral tidy-up. A prune is a contract change and gets the same three arms as an addition.
+- **Damaged** (cleared before, does not now) → the flag is not the problem, the threshold is.
+  `int_lap_anomaly_flags` fires on a MAD/z-score calibrated against a `driver_skill_residual_s`
+  whose level moved when `08f-2` landed, and 2018 is the acute case: its
+  `circuit_constructor_interaction_s` is identically 0, so the constructor-circuit effect now
+  arrives in front of a threshold that was never calibrated to receive it. Recalibrate per season,
+  or per (season, constructor), and re-gate.
+
+**Do not run the prune arm before `08g`.** It is answerable now, but its answer does not tell you
+which branch you are on — a column that is merely broken measures identically to one that is dead,
+and pruning a repairable feature is the expensive mistake of the two.
+
+**Definition of done.** `cliff_candidate_flag` is either out of the contract with the prune arm's
+numbers behind the removal, or still in it with a rebuilt threshold that clears its floor — and the
+`cliff_prior` group's description in `schema.py` says which happened, so the next reader meets the
+result where the column is defined.
+
+---
+
+## 08k — Rebuild the model artefacts against the post-08j 32-feature contract
+
+**Objective.** Make the shipped artefacts agree with the contract `08j` landed. Right now they do
+not, and the disagreement is on a surface the browser reads.
+
+**What happened.** `08j` pruned `cliff_candidate_flag` and landed the contract change in
+`schema.py` — `FEATURE_GROUPS["cliff_prior"]` went from five members to four and
+`BOOLEAN_COLUMNS` lost the column, taking the contract from **33 to 32**. The models,
+manifests and ONNX exports under `ml/models/` were never rebuilt, so every one of them still
+declares 33.
+
+**Why this is not only a test-suite problem.** The manifest is what the browser builds its
+feature vector from. A manifest declaring a feature the booster no longer takes is a shipped
+inconsistency, and it is being caught here only because the contract test happens to assert it:
+
+> `manifest declares a 33-feature input; stint_life_regressor at 'v11' takes 32.`
+
+**Blast radius — 21 failures across 5 modules**, all the same root cause:
+
+| module | failures |
+| :--- | ---: |
+| `test_onnx_parity.py` | 5 |
+| `test_evaluate.py` | 9 |
+| `test_manifest_contract.py` | 2 |
+| `test_predict.py` | 3 (errors) |
+| `test_attribution.py` | 1 |
+
+**Method.** Retrain every affected target against the 32-feature contract, re-export the ONNX
+artefacts and regenerate the manifests. No modelling decisions live here — this is the mechanical
+completion of a change that already has its ruling in `08j`. If any target cannot be reproduced,
+that is a finding and belongs in the log rather than in a workaround.
+
+**Acceptance.** `python -m pytest ml/tests -q` is green.
+
+**Definition of done.** No artefact under `ml/models/` declares a feature the contract does not
+carry, and the suite passes without a skip or an xfail standing in for the drift.
+
+**This gates [`10d`](10-competing-risks.md).** The calibration fix means retraining and
+re-exporting `stint_life_regressor`; that cannot be validated while ONNX parity and the manifest
+contract are already red for an unrelated reason.

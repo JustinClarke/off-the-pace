@@ -125,3 +125,120 @@ def test_aft_params_rejects_a_non_aft_booster(tmp_path):
                   xgb.DMatrix(X, label=np.arange(50.0)), num_boost_round=2)
     with pytest.raises(ValueError, match="not an AFT booster"):
         SV.aft_params(b)
+
+
+# ─── Cause-specific metrics (10c) ───────────────────────────────────────────────
+# These three went into a measurement run untested, and two of them were not
+# computing what their names claimed. The regressions below are the checks that
+# would have caught it.
+
+def test_d_calibration_risk_score_is_not_constant():
+    """The original bug: predicted risk was read off each row's survival curve at
+    that row's OWN predicted median, which is 0.5 by definition. Every row scored
+    0.5, all five bins collapsed into one, and the slope came back nan. A risk
+    score that does not vary with the prediction is not a risk score."""
+    rng = np.random.default_rng(S.RANDOM_STATE)
+    n = 600
+    pred = rng.uniform(4, 35, n)
+    y = rng.uniform(1, 40, n)
+    cens = rng.random(n) < 0.3
+
+    cal = SV.d_calibration(y, pred, cens, scale=0.8)
+    assert len(cal["pred_quantiles"]) >= 3, "bins collapsed - risk score is degenerate"
+    assert np.ptp(cal["exp_event_rates"]) > 0.05, "expected event rates barely vary"
+
+
+def test_d_calibration_recovers_a_slope_near_one_when_well_specified():
+    """Draw survival times FROM the model the metric assumes, so calibration is
+    correct by construction and the slope has a known target."""
+    rng = np.random.default_rng(S.RANDOM_STATE)
+    n, scale = 4000, 0.6
+    pred = rng.uniform(4, 30, n)
+    # lognormal AFT: log(T + shift) ~ Normal(log(pred + shift), scale)
+    mu = np.log(pred + S.AFT_LABEL_SHIFT)
+    y = np.exp(rng.normal(mu, scale)) - S.AFT_LABEL_SHIFT
+    y = np.maximum(y, 0.0)
+    cens = np.zeros(n, dtype=bool)
+
+    cal = SV.d_calibration(y, pred, cens, scale=scale)
+    assert cal["calibration_slope"] == pytest.approx(1.0, abs=0.25)
+
+
+def test_d_calibration_slope_is_nan_without_events():
+    """An all-censored stratum has no events, so KM never drops and every observed
+    rate is 0 - which regresses to a slope of exactly 0. That is unassessable, and
+    reporting 0.0 would read as catastrophic miscalibration instead of no data."""
+    rng = np.random.default_rng(S.RANDOM_STATE)
+    n = 300
+    cal = SV.d_calibration(
+        rng.uniform(1, 30, n), rng.uniform(4, 25, n), np.ones(n, dtype=bool), scale=0.8
+    )
+    assert np.isnan(cal["calibration_slope"])
+
+
+def test_ipcw_brier_weights_depend_on_the_horizon():
+    """The original bug: the weight for a row was 1/G(its own time) at every
+    horizon, and both branches of the censored/uncensored conditional were
+    identical. Under real censoring the per-horizon scores must not be reproducible
+    by any single fixed reweighting, so check they respond to censoring at all."""
+    rng = np.random.default_rng(S.RANDOM_STATE)
+    n = 800
+    y = rng.uniform(1, 30, n)
+    pred = np.full(n, 12.0)
+
+    _, per_time_light = SV.ipcw_brier(y, pred, rng.random(n) < 0.05, scale=0.8)
+    _, per_time_heavy = SV.ipcw_brier(y, pred, rng.random(n) < 0.60, scale=0.8)
+
+    assert not np.allclose(per_time_light, per_time_heavy, atol=1e-3)
+
+
+def test_ipcw_brier_rewards_the_better_prediction():
+    rng = np.random.default_rng(S.RANDOM_STATE)
+    n, scale = 1500, 0.6
+    truth = 15.0
+    y = np.exp(rng.normal(np.log(truth + S.AFT_LABEL_SHIFT), scale, size=n)) - S.AFT_LABEL_SHIFT
+    y = np.maximum(y, 0.0)
+    cens = rng.random(n) < 0.25
+
+    near, _ = SV.ipcw_brier(y, np.full(n, truth), cens, scale)
+    far, _ = SV.ipcw_brier(y, np.full(n, truth * 4), cens, scale)
+    assert near < far
+
+
+def test_time_dependent_auc_gives_ties_half_credit():
+    """A constant prediction ties every pair. Counting ties in the denominator but
+    never in the numerator scored that as 0.0 - perfectly wrong - when the honest
+    answer for an uninformative model is chance."""
+    rng = np.random.default_rng(S.RANDOM_STATE)
+    n = 400
+    y = rng.uniform(1, 30, n)
+    cens = rng.random(n) < 0.3
+
+    mean_auc, _ = SV.time_dependent_auc(y, np.full(n, 9.0), cens, scale=0.8)
+    assert mean_auc == pytest.approx(0.5, abs=1e-9)
+
+
+def test_time_dependent_auc_ranks_a_perfect_model_above_an_inverted_one():
+    rng = np.random.default_rng(S.RANDOM_STATE)
+    n = 500
+    y = rng.uniform(1, 30, n)
+    cens = rng.random(n) < 0.2
+
+    good, _ = SV.time_dependent_auc(y, y.copy(), cens, scale=0.8)
+    bad, _ = SV.time_dependent_auc(y, -y, cens, scale=0.8)
+    assert good > 0.9
+    assert bad < 0.1
+
+
+def test_time_dependent_auc_risk_sets_are_disjoint():
+    """at-risk was y >= t while events were y <= t, so a row sitting exactly on a
+    horizon was compared against itself. Ties at t are common in lap data because
+    the horizons are percentiles of observed lap counts."""
+    y = np.array([5.0, 5.0, 5.0, 5.0, 10.0, 10.0, 15.0, 15.0, 20.0, 20.0])
+    cens = np.zeros(len(y), dtype=bool)
+    mean_auc, per_time = SV.time_dependent_auc(
+        y, y.copy(), cens, scale=0.8, times=np.array([5.0, 10.0, 15.0])
+    )
+    # A perfect prediction on disjoint sets is 1.0 at every horizon that has both
+    # an event set and an at-risk set; self-comparison would drag it below 1.
+    assert np.nanmax(per_time) == pytest.approx(1.0)

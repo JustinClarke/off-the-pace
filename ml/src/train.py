@@ -254,9 +254,11 @@ def _guard_target_change(target: str, version: str, spec: S.TargetSpec,
 
 def train_one(target: str, *, version: str, params: dict | None,
               smoke: bool, n_splits: int = 5,
-              allow_target_change: bool = False) -> dict:
+              allow_target_change: bool = False,
+              censoring_variant: str = "standard") -> dict:
     spec = S.TARGET_BY_NAME[target]
-    bundle = F.load_features(target=target, persist_encoders=True)
+    bundle = F.load_features(target=target, persist_encoders=True,
+                             censoring_variant=censoring_variant)
     _guard_target_change(target, version, spec, bundle.fingerprint, allow_target_change)
     X, y = bundle.X_train, bundle.y_train.to_numpy()
     seasons = bundle.groups_train.to_numpy()
@@ -299,6 +301,7 @@ def train_one(target: str, *, version: str, params: dict | None,
 
     log = {
         "target": target, "version": version, "smoke": smoke,
+        "censoring_variant": censoring_variant,
         # The COLUMN, not just the artefact name. Phase 7 moved the degradation family
         # from the 1-lap column to the 5-lap one without renaming a single artefact, so
         # "degradation_regressor_p50" alone no longer identifies what was fitted: a v6
@@ -345,6 +348,9 @@ def main() -> int:
     ap.add_argument("--allow-target-change", action="store_true",
                     help="permit refitting a version whose artefacts were trained on a "
                          "different target column (replaces them in place)")
+    ap.add_argument("--censoring-variant", default="standard",
+                    choices=["standard", "10b"],
+                    help="censoring scheme for stint-life target (default: standard)")
     ap.add_argument("--n-estimators", type=int)
     ap.add_argument("--max-depth", type=int)
     args = ap.parse_args()
@@ -380,7 +386,8 @@ def main() -> int:
     for t in targets:
         target_params = json.loads(tuned_paths[t].read_text()) if args.tuned else params
         train_one(t, version=version, params=target_params, smoke=args.smoke,
-                  allow_target_change=args.allow_target_change)
+                  allow_target_change=args.allow_target_change,
+                  censoring_variant=args.censoring_variant)
     return 0
 
 

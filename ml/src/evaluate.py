@@ -1075,9 +1075,9 @@ def stint_fold_purity(bundle: F.FeatureBundle) -> dict:
 
 # ─── Per-target orchestration ───────────────────────────────────────────────────
 def evaluate_target(target: str, version: str, dims_all: pd.DataFrame,
-                    shared: dict) -> dict:
+                    shared: dict, censoring_variant: str = "standard") -> dict:
     spec = S.TARGET_BY_NAME[target]
-    bundle = F.load_features(target=target)
+    bundle = F.load_features(target=target, censoring_variant=censoring_variant)
     split = _evaluation_split(bundle)
     params = _params_for(target, version)
 
@@ -1240,25 +1240,27 @@ def evaluate_target(target: str, version: str, dims_all: pd.DataFrame,
 
 
 # ─── Top-level run ──────────────────────────────────────────────────────────────
-def run(targets: list[str], version: str = S.MODEL_VERSION_DEFAULT) -> dict:
+def run(targets: list[str], version: str = S.MODEL_VERSION_DEFAULT,
+        censoring_variant: str = "standard") -> dict:
     ARTEFACTS_DIR.mkdir(parents=True, exist_ok=True)
     dims_all = load_cohort_dims()
     shared: dict = {}
 
     models: dict[str, dict] = {}
     for t in targets:
-        models[t] = evaluate_target(t, version, dims_all, shared)
+        models[t] = evaluate_target(t, version, dims_all, shared, censoring_variant)
 
     report: dict = {
         "evaluated_at": datetime.now(timezone.utc).isoformat(),
         "version": version,
-        "holdout_season": int(F.load_features().holdout_season),
+        "censoring_variant": censoring_variant,
+        "holdout_season": int(F.load_features(censoring_variant=censoring_variant).holdout_season),
         "evaluation_mode": next(iter(
             {m for m in [models[t].get("kind") for t in models]}), None) and "see_models",
         "models": models,
     }
     # Re-derive the split mode from any model run (uniform across targets today).
-    sample_bundle = F.load_features(target=targets[0])
+    sample_bundle = F.load_features(target=targets[0], censoring_variant=censoring_variant)
     sample_split = _evaluation_split(sample_bundle)
     report["evaluation_mode"] = sample_split.mode
     report["eval_season"] = sample_split.eval_season
@@ -1294,7 +1296,7 @@ def run(targets: list[str], version: str = S.MODEL_VERSION_DEFAULT) -> dict:
 
     # Adversarial leakage probe (once, on the p50 training split).
     try:
-        b = F.load_features(target="degradation_regressor_p50")
+        b = F.load_features(target="degradation_regressor_p50", censoring_variant=censoring_variant)
         report["leakage_probe"] = leakage_probe(b.X_train, b.groups_train.to_numpy())
     except Exception as e:
         report["leakage_probe_error"] = str(e)
@@ -1342,6 +1344,9 @@ def main() -> int:
     ap.add_argument("--target", choices=[t.name for t in S.PRODUCTION_TARGETS])
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--version", default=S.MODEL_VERSION_DEFAULT)
+    ap.add_argument("--censoring-variant", default="standard",
+                    choices=["standard", "10b"],
+                    help="censoring scheme for stint-life target (default: standard)")
     ap.add_argument("--attribution", action="store_true",
                     help="also run the within-stint attribution (open item 15): "
                          "drop-vs-flatten over groups, channels and per-lap features. "
@@ -1353,7 +1358,7 @@ def main() -> int:
         ap.error("pass --target <name> or --all")
     global RUN_ATTRIBUTION
     RUN_ATTRIBUTION = bool(args.attribution)
-    report = run(targets, args.version)
+    report = run(targets, args.version, args.censoring_variant)
     return 0 if all(m["beats_baseline"] for m in report["models"].values()) else 1
 
 

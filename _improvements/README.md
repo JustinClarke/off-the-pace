@@ -80,4 +80,8 @@ Nothing was deleted. A work item cites its source notebook by section; it does n
   never committed, and must not touch `ml/models/*.json`, warehouse data, or git state.
   Reuse the production paths (`ml/src/{train,features,evaluate,attribution,intervals}.py`)
   rather than reimplementing fit/score/CV logic.
+- **Running an item is a delegation, not a switch.** The interactive session (by standing
+  convention, `haiku-4-5`) never executes a live item itself — it spawns an agent at the
+  item's own `model` field, then independently verifies what comes back before the log is
+  touched. See `BUILD-ORDER.md`'s rules section.
 - **Nothing is committed without being asked.** Standing rule for this repo, unchanged.

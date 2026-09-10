@@ -12,6 +12,7 @@ reader, so a malformed edit surfaces as a failed check rather than as silent dri
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -119,6 +120,31 @@ def plan(log: dict) -> list[dict]:
     return ordered
 
 
+DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _terminal_row(i: dict) -> tuple[str | None, str]:
+    """(date, note) for a terminal item's `closed` field.
+
+    `closed` is either a bare date, a long freeform rationale (leading with a
+    date), or absent (an undated LANDED item). The note is trimmed to a
+    summary -- the full rationale stays in build-log.json, the one authoritative
+    copy, rather than being duplicated at length in the generated doc.
+    """
+    raw = i.get("closed")
+    if not raw:
+        return None, "—"
+    m = DATE_RE.search(raw)
+    date = m.group(0) if m else None
+    rest = raw[m.end():].strip() if m else raw
+    rest = re.sub(r"^(?:CLOSED\s+[\d-]+\s*)?as\s+", "", rest, flags=re.I).strip()
+    if not rest:
+        return date, "—"
+    if len(rest) > 120:
+        rest = rest[:117].rsplit(" ", 1)[0] + "… (full rationale in build-log.json)"
+    return date, rest
+
+
 def render_order(log: dict) -> str:
     """The generated task list. Derived from the log; never hand-edited."""
     items = {i["id"]: i for i in log["items"]}
@@ -171,9 +197,17 @@ def render_order(log: dict) -> str:
     if done:
         out.append("### Terminal")
         out.append("")
-        for i in done:
-            why = i.get("closed") or "landed"
-            out.append(f"- `{i['id']}` **{i['stage']}** — {i['title']} ({why})")
+        out.append("Chronological, most recent first; undated `LANDED` items sink to the bottom.")
+        out.append("")
+        out.append("| Item | Group | Stage | Date | Task | Note |")
+        out.append("| :--- | :--- | :--- | :--- | :--- | :--- |")
+        rows = [(i, *_terminal_row(i)) for i in done]
+        dated = sorted((r for r in rows if r[1]), key=lambda r: r[1], reverse=True)
+        undated = sorted((r for r in rows if not r[1]), key=lambda r: r[0]["id"])
+        for i, date, note in dated + undated:
+            g = groups[i["group"]]
+            out.append(f"| `{i['id']}` | {g['id']} | {i['stage']} | {date or '—'} "
+                       f"| {i['title']} | {note} |")
         out.append("")
     out.append(END)
     return "\n".join(out)

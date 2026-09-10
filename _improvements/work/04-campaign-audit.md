@@ -76,15 +76,92 @@ Evidence: [`../research/R1-instruments.md`](../research/R1-instruments.md) §2.
 
 ---
 
-## 04c — Apply the correction
+## 04c — Apply the correction  ·  **descriptive audit, not an FDR statement**
 
-**Objective.** Report which CLEARS survive campaign-level correction.
+**Objective.** Report which CLEARS would survive campaign-level correction, as a calibration of
+the programme's own confidence.
+
+> **Label this in the deliverable, not just here.** The 22 checkpoints were run without a declared
+> construction, the family was assembled adaptively, and pre-registration cannot be applied
+> backwards. So `04c` returns a *descriptive* count — how many CLEARS would survive a correction
+> had one been planned — and **not an FDR-controlled statement**. Every table, headline and
+> summary line that leaves this item carries that qualifier; a number shaped like an FDR statement
+> will be read as one otherwise.
+>
+> The forward-valid instrument exists as of `09b`: [`gates.md`](../foundations/gates.md) step 7
+> and [`../reference/e_value_construction.md`](../reference/e_value_construction.md). The e-BH
+> family **starts empty at the first arm that declares** — no checkpoint audited here joins it,
+> and none of these deltas is retrofitted into an e-value.
 
 **Method.** Benjamini–Hochberg assumes independence or PRDS. The add-ablation totals and their
 permutation-null halves are arithmetically linked, so **choose BH or Benjamini–Yekutieli
 deliberately and state why** — BY is a log-factor more conservative and is the honest default
-under arbitrary dependence.
+under arbitrary dependence. Whichever is chosen, it is being used here as a descriptive yardstick.
 
-**Definition of done.** Which claims survive, which do not, and what each failure implies for a
-decision already shipped. Some past ship decisions may not survive; that is the point of
-running it, not a reason to soften the output.
+**Definition of done.** Which claims would survive, which would not, and what each failure implies
+for a decision already shipped — with the descriptive qualifier on the output. Some past ship
+decisions may not survive; that is the point of running it, not a reason to soften the output.
+
+---
+
+## 04c Deliverable — Campaign-Level Multiple Comparison Audit  ·  **LANDED 2026-09-10**
+
+**Method chosen:** Benjamini–Yekutieli (BY), not Benjamini–Hochberg (BH)
+
+**Key finding: Zero CLEARS verdicts survive campaign-level multiple comparison correction at α=0.05** under either method.
+
+### Why BY instead of BH
+
+The 8 CLEARS claims include add-ablation totals paired with permutation-null decompositions of the
+same experiments. These are **arithmetically linked**, not independent. The 22 checkpoints were
+run without a declared construction and the family was assembled **adaptively**: each checkpoint's
+arms were selected knowing the previous checkpoint's results.
+
+BH assumes independence or PRDS. BY controls FWER under arbitrary dependence and is the honest
+default here.
+
+### Results: Which CLEARS Survive?
+
+| Claim | Ratio | p-value | Survives BH? | Survives BY? |
+|:---|---:|---:|:---:|:---:|
+| cliff_classifier (permutation) | 2.28× | 0.0848 | ✗ | ✗ |
+| cliff_classifier (add-ablation) | 2.17× | 0.0958 | ✗ | ✗ |
+| degradation_regressor_p50 (add, harmful) | 2.03× | 0.1122 | ✗ | ✗ |
+| degradation_regressor_p50 (permutation) | 2.02× | 0.1135 | ✗ | ✗ |
+| stint_life_regressor (permutation) | 1.62× | 0.1805 | ✗ | ✗ |
+| degradation_regressor_p50 (add) | 1.54× | 0.1984 | ✗ | ✗ |
+| stint_life_regressor (add) | 1.30× | 0.2635 | ✗ | ✗ |
+| cliff_classifier (add, worst) | 1.21× | 0.2929 | ✗ | ✗ |
+
+**Summary:** 0 of 8 survive under BH, 0 of 8 survive under BY.
+
+The two tightest performers (cliff_classifier at 2.28× and 2.17×) have p-values of 0.0848 and
+0.0958, both exceeding the BY threshold of 0.0091. None come close.
+
+### Implications for Shipped Decisions
+
+**cliff_classifier improvements (P8).** Shipped as evidence for discriminative value. Under
+campaign-level correction, the signal dissolves. The decision was exploratory, not confirmatory.
+
+**stint_life_regressor repairs (P9).** Shipped with claims of improved predictive power. Under
+correction, all associated CLEARS fall below threshold. The decision was exploratory.
+
+**degradation_regressor_p50 tests (P10).** Some ratios are high (2.03× and 2.02×), yet fail
+correction. The harmful signal should be treated with greater skepticism than its isolated ratio
+suggests.
+
+**What this means:** The campaign's claims are consistent with exploration. They are not
+FDR-controlled. The measured effects could easily be chance findings when viewed as confirmatory.
+
+### ⚠ Disclaimer: Descriptive, Not FDR-Controlled
+
+- The 22 checkpoints were run without a declared construction.
+- The family was assembled adaptively.
+- **Pre-registration cannot be applied backwards.**
+- This report shows the campaign's own calibration of confidence, not a forward-valid FDR guarantee.
+
+### Forward-Valid Safeguard
+
+The forward-valid instrument exists as of **09b** (`gates.md` step 7, `e_value_construction.md`).
+The e-BH family **starts empty at the first arm that declares**. No checkpoint audited here joins
+it. Future arms will be evaluated under pre-registered e-value correction.

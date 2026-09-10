@@ -89,7 +89,7 @@ IDENTIFIER_COLUMNS: tuple[str, ...] = (
     "survival_weight",
 )
 
-# ─── Feature set (33) verified members, grouped for ablation ────────────────────
+# ─── Feature set (32) verified members, grouped for ablation ────────────────────
 # Phase 9 (2026-09-05): dropped `powertrain` (6), `telemetry_cliff` (5), `weather_air` (2),
 # `track` (2) and `context` (3) -- 18 of the prior 42 columns -- on a noise-floor group
 # ablation re-run against the v8 mart (5-lap target, repaired cliff label) across all three
@@ -111,6 +111,11 @@ IDENTIFIER_COLUMNS: tuple[str, ...] = (
 # asserts contract ⊆ mart so nothing can be referenced before it lands.
 # C3 (Route C): surface_bulk_ratio added to the thermal group so the model can attribute
 # early-stint surface vs bulk thermal loading (warm-up vs real deg); survives Phase 9's prune.
+# Foundations 08j (2026-09-09): dropped `cliff_candidate_flag` from `cliff_prior` (5 -> 4).
+# Ruled dead on both substrates by 08g; gate steps 2-4 found it carries no information in any
+# family. p10 capacity term measured at +0.0096350, so removing it may be a small gain rather
+# than neutral. Contract: 33 -> 32. Three-arm prune verification (add-ablation, reseed floor,
+# permutation-null) on AFTER substrate confirms the cost. See build-log.json 08j RESULT.
 FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     "stint_position": ("lap_number", "lap_in_stint", "age_in_stint", "fuel_mass_kg"),
     "compound": (
@@ -120,7 +125,7 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     ),
     "cliff_prior": (
         "expected_compound_pace_s", "expected_degradation_rate_s_per_lap",
-        "cliff_onset_passed", "laps_past_cliff", "cliff_candidate_flag",
+        "cliff_onset_passed", "laps_past_cliff",
     ),
     "thermal": (
         "push_residual", "cumulative_push_load_surface", "cumulative_push_load_bulk",
@@ -190,7 +195,7 @@ assert len(FEATURE_COLUMNS) == len(set(FEATURE_COLUMNS)), "duplicate feature col
 # String categoricals → ordinal-encoded from the TRAINING map; NULL/unseen → MISSING_ORDINAL.
 CATEGORICAL_COLUMNS: tuple[str, ...] = ("compound", "air_state_dominant")
 # Booleans → float (True=1.0, False=0.0, NULL=NaN → native-NaN).
-BOOLEAN_COLUMNS: tuple[str, ...] = ("cliff_onset_passed", "cliff_candidate_flag")
+BOOLEAN_COLUMNS: tuple[str, ...] = ("cliff_onset_passed",)
 # Continuous features keep NaN as NaN (XGBoost native missing). Reserved ordinal for missing categoricals:
 MISSING_ORDINAL = -1.0
 
@@ -198,7 +203,9 @@ MISSING_ORDINAL = -1.0
 # anomaly_class dropped by Phase 9 (2026-09-05): it left FEATURE_COLUMNS with the `context`
 # group, and leaving it here would point the forward-window audit at a column no longer in
 # the contract -- a gate asserting over nothing (Corrections §6's shape).
-AUDIT_FEATURES: tuple[str, ...] = ("cliff_candidate_flag",)
+# cliff_candidate_flag pruned by 08j (2026-09-09): ruled dead on both substrates by 08g,
+# p10 capacity term +0.0096350 suggests removing it is a small gain, contract 33 -> 32.
+AUDIT_FEATURES: tuple[str, ...] = ()
 
 # ─── Targets / model families ───────────────────────────────────────────────────
 # Phase 7: the modelled degradation column is the 5-lap cumulative jump, not the

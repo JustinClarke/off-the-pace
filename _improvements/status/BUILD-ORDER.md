@@ -57,6 +57,16 @@ than an error. The choice belongs to the item, not to the session — a step dow
 for one item is not a licence for the next, and a model that turned out to be the wrong call
 gets corrected in the log like any other field.
 
+**Running an item is a delegation, not a switch.** The interactive session orchestrates at
+whatever model it happens to be running — by standing convention, `haiku-4-5` — and does not
+execute a live item itself. It spawns an agent at the item's own `model` field to do the work,
+then reviews what comes back before touching the log: re-reads the diff, re-runs the leaf
+doc's definition of done and `board.py --check`, and only then records the result. The agent's
+own summary of what it did is not verification — an agent's report describes what it intended,
+not necessarily what it produced. A stage only advances once the orchestrating session has
+checked the work independently, the same way any other tool output gets checked before it is
+trusted.
+
 **Order.** Dependency order. `board.py` prints unmet blockers after each item; don't start
 one that shows any. A group marked `parallel` has no dependency on the ML ladder and may run
 at any time.
@@ -96,23 +106,23 @@ because nothing on the ladder waits for them, not because they matter less.
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-09`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-10`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
 
-**27 live items** (5 blocked), **14 terminal**. The pointer is on **08g** — that is the one to run next; the rest of the order is what becomes runnable after it.
+**27 live items** (3 blocked), **19 terminal**. The pointer is on **08k** — that is the one to run next; the rest of the order is what becomes runnable after it.
 
 | # | Item | Group | Stage | Cost | Model | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | `05c` | [05](../work/05-model-family.md) | MEASURED | 1-2d | `opus-5` | GPBoost variance-components probe - measurement only, ships nothing | — |
-| 2 | `08c` | [08](../work/08-foundations-repair.md) | SPEC | hours | `sonnet-5` | Two silent assumptions, written down | — |
-| 3 | `08d` | [08](../work/08-foundations-repair.md) | SPEC | 1-2d | `opus-5` | Real Pirelli C1-C5 compound identity per race (2019-present), hand-sourced from press.pirelli.com | — |
-| 4 | `08e` | [08](../work/08-foundations-repair.md) | GATED | 1-2d | `opus-5` | Thermal-proxy stint baseline reaches forward - rebuild as a trailing window | — |
-| 5 | `08f` | [08](../work/08-foundations-repair.md) | GATED | 2-3d | `opus-5` | Cross-season pooled statistics in the feature lineage - season-lag or rule | — |
-| 6 | `08g` ▶ | [08](../work/08-foundations-repair.md) | SPEC | 1d | `opus-5` | Decompose the 08e/08f regression on the BEFORE substrate; rule cliff_candidate_flag dead or damaged | — |
-| 7 | `09b` | [09](../work/09-scoring-instruments.md) | SPEC | 0.5d | `fable-5.1` | e-value pre-registration per arm, and campaign-level e-BH | — |
-| 8 | `04a` | [04](../work/04-campaign-audit.md) | SPEC | 1d | `sonnet-5` | Enumerate the real test family | — |
-| 9 | `04c` | [04](../work/04-campaign-audit.md) | SPEC | 0.5d | `sonnet-5` | Apply BH (or BY) at campaign level; report which CLEARS survive | — |
-| 10 | `10b` | [10](../work/10-competing-risks.md) | BLOCKED | days | `opus-5` | Cause-specific AFT arm - non-green endings treated as censored | 09b |
-| 11 | `10c` | [10](../work/10-competing-risks.md) | BLOCKED | days | `fable-5.1` | Competing-risks evaluation, with the dependent-censoring caveat stated | 10b |
+| 2 | `08d` | [08](../work/08-foundations-repair.md) | MEASURED | 0d | `opus-5` | Real Pirelli C1-C5 compound identity per race (2019-present), hand-sourced from press.pirelli.com | — |
+| 3 | `08e` | [08](../work/08-foundations-repair.md) | GATED | 1-2d | `opus-5` | Thermal-proxy stint baseline reaches forward - rebuild as a trailing window | — |
+| 4 | `08f` | [08](../work/08-foundations-repair.md) | GATED | 2-3d | `opus-5` | Cross-season pooled statistics in the feature lineage - season-lag or rule | — |
+| 5 | `08h` | [08](../work/08-foundations-repair.md) | MEASURED | 0.5d | `opus-5` | baseline_observations_n as a feature - the add-ablation 08e deferred | — |
+| 6 | `08i` | [08](../work/08-foundations-repair.md) | GATED | 1-2d | `opus-5` | The min_observations floor - the trade 08e priced and did not take | — |
+| 7 | `08k` ▶ | [08](../work/08-foundations-repair.md) | SPEC | 0.5d | `sonnet-5` | Rebuild model artefacts against the post-08j 32-feature contract | — |
+| 8 | `04a` | [04](../work/04-campaign-audit.md) | MEASURED | 1d | `sonnet-5` | Enumerate the real test family | — |
+| 9 | `10b` | [10](../work/10-competing-risks.md) | MEASURED | days | `opus-5` | Cause-specific AFT arm - non-green endings treated as censored | — |
+| 10 | `10c` | [10](../work/10-competing-risks.md) | MEASURED | days | `fable-5.1` | Competing-risks evaluation, with the dependent-censoring caveat stated | 10b |
+| 11 | `10d` | [10](../work/10-competing-risks.md) | SPEC | 1-2d | `opus-5` | Fix the stint-life calibration defect - the model over-predicts tyre life | 10c, 08k |
 | 12 | `02b` | [02](../work/02-feature-expansion.md) | SPEC | 1d | `sonnet-5` | Tier 1 - qualifying | — |
 | 13 | `02d` | [02](../work/02-feature-expansion.md) | SPEC | 1d | `opus-5` | Tier 3 - SC hazard, with the expanding-window rebuild | — |
 | 14 | `02g` | [02](../work/02-feature-expansion.md) | SPEC | 0.5-1d | `opus-5` | Rebuild the corner field median as a trailing window | — |
@@ -146,19 +156,28 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 ### Terminal
 
-- `00a` **LANDED** — Feature count is 33, not 24, everywhere it is quoted (landed)
-- `00b` **LANDED** — Falsify research_program 1a's 'no SC signal exists' claim (landed)
-- `00c` **LANDED** — LORO leakage ruling - barred; 'LORO' was leave-one-DRIVER-out, not leave-one-race-out (landed)
-- `04b` **CLOSED** — Decide the floor-ratio to p-value conversion (2026-09-07)
-- `01a` **LANDED** — Learning curves - loss vs training-set size, extrapolated (landed)
-- `01b` **CLOSED** — Empirical noise floor - difference-based, stratified, bracketed (CLOSED 2026-09-09 as a completed measurement, not as a failure. Every clause of the definition of done was delivered: the synthetic recovery passed at the claimed shape (sigma^2 -1.98% +/- 2.14%, end-to-end p50 floor +3.4%), the admissible-neighbour distance was measured (median 4.275 vs 6.829 for random pairs, ratio 0.626, distribution nowhere near zero), the floor was published as a bracket with the metric, NaN treatment and weighting rule stated, the falsification gate was checked at all 18 ladder x quantile points and every violation reported as an instrument failure, and the result was reconciled against 01a. THE ANSWER IS THAT THE INSTRUMENT DOES NOT BIND on p10 or p50: at the three-coordinate headline level the floor comes back ABOVE the loss it is meant to bound (0.5654 vs 0.5188; 1.0641 vs 1.0163). The mechanism is measured, not guessed -- the conditioning ladder is still falling at L3 (-10.4% to L4, a further -13.3% to L5), so the residual mean-function bias at three matched coordinates is larger than the headroom being resolved. R1's dimension constraint therefore binds harder than it was stated to: it is not only that 33-D is outside the regime, it is that the <=3-D fallback lacks the resolution to answer the question either. p90 is the only head where floor and achieved separate (0.4914 vs 0.5600, +12.3%), and the separation is about the size of its own error bar once the 4.5% race component is added back -- handed to 11a as directional, not established. DO NOT RE-OPEN without one of: (a) an eval population with repeated circuits inside a season, which would restore the different-race constraint this one had to drop because every 2024 circuit hosts exactly one race; (b) 08d's C1-C5 identity, which would make a cross-season same-circuit match well defined; or (c) a lower-dimensional target. A better fitter is not new evidence -- unit.py shows the arithmetic recovers to +/-0.5%.)
-- `02a` **LANDED** — Tier 2 leakage ruling - the 5-lap field-median bucket (NOT the centred/backward binary) (landed)
-- `02e` **CLOSED** — Weather / air density features (2026-08-23)
-- `02f` **CLOSED** — FP1/2/3 ingest (Phase 10c) (2026-09-07)
-- `08a` **LANDED** — Backfill dim_compounds_season for SUPERSOFT / ULTRASOFT / HYPERSOFT (landed)
-- `08b` **LANDED** — Extend audit_forward_window to aggregation scope (2026-09-09)
-- `09a` **LANDED** — CRPS alongside the pinball trio, with its decomposition (landed)
-- `10a` **LANDED** — Stint end-regime label - why did this stint end? (landed)
-- `05b` **CLOSED** — Monotone constraints arm (2026-09-08)
+Chronological, most recent first; undated `LANDED` items sink to the bottom.
+
+| Item | Group | Stage | Date | Task | Note |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `09b` | 09 | LANDED | 2026-09-10 | e-value pre-registration per arm, and campaign-level e-BH | — |
+| `01b` | 01 | CLOSED | 2026-09-09 | Empirical noise floor - difference-based, stratified, bracketed | a completed measurement, not as a failure. Every clause of the definition of done was delivered: the synthetic… (full rationale in build-log.json) |
+| `08b` | 08 | LANDED | 2026-09-09 | Extend audit_forward_window to aggregation scope | — |
+| `08g` | 08 | CLOSED | 2026-09-09 | Decompose the 08e/08f regression on the BEFORE substrate; rule cliff_candidate_flag dead or damaged | a completed decomposition, not a partial one -- every clause of the definition of done was delivered: the ruling… (full rationale in build-log.json) |
+| `08j` | 08 | LANDED | 2026-09-09 | Rule on cliff_candidate_flag - prune it or rebuild its threshold | — |
+| `05b` | 05 | CLOSED | 2026-09-08 | Monotone constraints arm | — |
+| `04b` | 04 | CLOSED | 2026-09-07 | Decide the floor-ratio to p-value conversion | — |
+| `02f` | 02 | CLOSED | 2026-09-07 | FP1/2/3 ingest (Phase 10c) | — |
+| `02e` | 02 | CLOSED | 2026-08-23 | Weather / air density features | — |
+| `00a` | 00 | LANDED | — | Feature count is 33, not 24, everywhere it is quoted | — |
+| `00b` | 00 | LANDED | — | Falsify research_program 1a's 'no SC signal exists' claim | — |
+| `00c` | 00 | LANDED | — | LORO leakage ruling - barred; 'LORO' was leave-one-DRIVER-out, not leave-one-race-out | — |
+| `01a` | 01 | LANDED | — | Learning curves - loss vs training-set size, extrapolated | — |
+| `02a` | 02 | LANDED | — | Tier 2 leakage ruling - the 5-lap field-median bucket (NOT the centred/backward binary) | — |
+| `04c` | 04 | LANDED | — | Apply BH (or BY) at campaign level; report which CLEARS survive | Campaign correction applied: BY (arbitrary dependence, log factor more conservative). Result: 0 of 8 CLEARS survive… (full rationale in build-log.json) |
+| `08a` | 08 | LANDED | — | Backfill dim_compounds_season for SUPERSOFT / ULTRASOFT / HYPERSOFT | — |
+| `08c` | 08 | LANDED | — | Two silent assumptions, written down | — |
+| `09a` | 09 | LANDED | — | CRPS alongside the pinball trio, with its decomposition | — |
+| `10a` | 10 | LANDED | — | Stint end-regime label - why did this stint end? | — |
 
 <!-- END GENERATED TASKS -->

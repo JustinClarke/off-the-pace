@@ -8,7 +8,9 @@ description: "One row per lap per named corner."
 
 <Note>Part of the [Residual](/transform/families/residual) family.</Note>
 
-One row per lap per named corner. Decomposes corner skill into braking, mid-corner, and exit phases relative to field median (5-lap rolling window). Grain: (lap_id, corner_name). Null when field sample &lt; 5 drivers. Enables high-res corner-by-corner skill profiling.
+One row per lap per named corner. Decomposes corner skill into braking, mid-corner, and exit phases relative to field median (backward-only trailing-5 window, rebuilt 02g). Grain: (lap_id, corner_name). Null when field sample &lt; 5 drivers. Enables high-res corner-by-corner skill profiling.
+WINDOW CHANGE (rebuilt 02g): field medians now use RANGE BETWEEN 5 PRECEDING AND 1 PRECEDING (trailing-5, all drivers at each lap level, excluding the focal lap). Previous construction used FLOOR(lap/5)*5 block buckets which reached forward 1.877 laps on average (38.45% of the median drawn from future, up to 76% at block position 0), placing future label signals in the baseline. Rebuild eliminated reach; contamination signal was weak (corr +0.0344 vs +0.0083 control, marginal; sd 0.116 vs 0.043 block, noise-shaped).
+COVERAGE: Lap-2 coverage loss (21.4pp on laps ≤ 6) is deterministic and non-leaking—lap 2 has no predecessor, so trailing window returns NULL. This loss sits on lap_number (already in contract via age_in_stint) and is declarable, not a hazard. No expanding window rescue attempted: lap 1 never reaches any lap to base a median on. An expanding window would pool early and late race track states (2026-09-08, measured trailing-5 vs expanding, identical formula, identical coverage loss on lap 2 in both cases). Trailing-5 kept for consistency with its width replacing the old block.
 
 ## Lineage
 
@@ -18,6 +20,7 @@ flowchart LR
   int_stint_geometry --> int_corner_skill_residuals
   stg_laps --> int_corner_skill_residuals
   stg_sector_times --> int_corner_skill_residuals
+  int_corner_skill_residuals --> int_lap_corner_inputs
   int_corner_skill_residuals --> mart_corner_skill_driver
   style int_corner_skill_residuals fill:#e40404,stroke:#e40404,color:#fff
 ```
@@ -32,7 +35,7 @@ flowchart LR
 | Tags | `feature_engineering` |
 | Upstream | [`int_corner_metrics`](./int_corner_metrics), [`int_stint_geometry`](./int_stint_geometry), [`stg_laps`](../stg/stg_laps), [`stg_sector_times`](../stg/stg_sector_times) |
 
-**7 tests** [guard](/transform/ci/overview) this model  -  6 generic, 1 singular.
+**9 tests** [guard](/transform/ci/overview) this model  -  6 generic, 3 singular.
 
 ## Columns
 
@@ -41,5 +44,5 @@ flowchart LR
 | `corner_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | PK = lap_id \|\| '_C_' \|\| corner_name |
 | `lap_id` |   | Yes | [`not_null`](/transform/ci/structural) | FK to stg_laps |
 | `corner_name` |   | Yes | [`not_null`](/transform/ci/structural) | Named corner from dim_corners |
-| `field_corner_sample_n` |   | Yes | [`not_null`](/transform/ci/structural) | Number of drivers in the field median for this corner/lap_window |
+| `field_corner_sample_n` |   | Yes | [`not_null`](/transform/ci/structural) | Number of field observations behind this corner/lap's median. Trailing-5 window (laps t-5 to t-1, RANGE frame): counts valid, non-NULL braking_point_m rows across ALL drivers in that lap interval. Reported UNFLOORED and never NULL, which is the trailing_observation_count contract: the count is what the &gt;= 5 floor is applied to, so flooring it here would make "no prior lap at all" and "four prior laps" indistinguishable and leave the residual NULLs unexplainable. 0 on lap 2, which has no predecessor. The residuals themselves NULL out through trailing_median's own min_observations=5, and corner_unmapped_flag carries the gate. |
 | `corner_unmapped_flag` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when field_corner_sample_n &lt; 5 (residuals are NULL) |

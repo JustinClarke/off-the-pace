@@ -51,6 +51,39 @@ def pit_stops_payload():
     }]}}}
 
 
+@pytest.fixture
+def multi_constructor_driver_standings_payload():
+    """GAS 2019: a genuine mid-season switch, red_bull -> toro_rosso."""
+    return {"MRData": {"total": "1", "StandingsTable": {"StandingsLists": [{
+        "season": "2019", "round": "21",
+        "DriverStandings": [
+            {"position": "10", "positionText": "10", "points": "63", "wins": "0",
+             "Driver": {"driverId": "gasly", "permanentNumber": "10",
+                        "code": "GAS", "givenName": "Pierre", "familyName": "Gasly"},
+             "Constructors": [{"constructorId": "red_bull", "name": "Red Bull"},
+                               {"constructorId": "toro_rosso", "name": "Toro Rosso"}]},
+        ],
+    }]}}}
+
+
+@pytest.fixture
+def laps_payload():
+    """Ergast splits a lap's driver list across pages; this page holds one
+    full lap (1) plus the tail of a following lap (2)."""
+    return {"MRData": {"total": "3", "RaceTable": {"Races": [{
+        "raceName": "Australian Grand Prix",
+        "Laps": [
+            {"number": "1", "Timings": [
+                {"driverId": "vettel", "position": "1", "time": "1:38.109"},
+                {"driverId": "hamilton", "position": "2", "time": "1:40.573"},
+            ]},
+            {"number": "2", "Timings": [
+                {"driverId": "vettel", "position": "1", "time": "1:35.221"},
+            ]},
+        ],
+    }]}}}
+
+
 def _mock_response(payload):
     resp = MagicMock()
     resp.json.return_value = payload
@@ -86,6 +119,38 @@ def test_flatten_pit_stops(pit_stops_payload):
     assert df["duration_s"].iloc[0] == 22.4
     assert df["lap"].iloc[1] == 16
     assert df["race_name"].iloc[0] == "Bahrain Grand Prix"
+
+
+def test_flatten_driver_standings_keeps_full_constructor_list(multi_constructor_driver_standings_payload):
+    """GAS 2019 changed constructor mid-season; the mover panel needs both,
+    not just the first-listed one."""
+    df = jc._flatten_standings(multi_constructor_driver_standings_payload["MRData"], kind="driver", season=2019)
+    assert len(df) == 1
+    assert df["constructor_id"].iloc[0] == "red_bull"  # first-listed, kept for compat
+    assert df["constructor_ids"].iloc[0] == "red_bull;toro_rosso"
+
+
+def test_flatten_laps(laps_payload):
+    df = jc._flatten_laps(laps_payload["MRData"], season=2011, round_num=1)
+    assert len(df) == 3
+    assert df["race_name"].iloc[0] == "Australian Grand Prix"
+    assert df.loc[df["driver_id"] == "vettel", "lap_number"].tolist() == [1, 2]
+    assert df["lap_time_s"].iloc[0] == pytest.approx(98.109)
+    assert df["lap_time_raw"].iloc[0] == "1:38.109"
+
+
+def test_flatten_empty_laps():
+    df = jc._flatten_laps({"RaceTable": {"Races": []}}, season=2011, round_num=1)
+    assert df.empty
+    assert "lap_time_s" in df.columns
+
+
+def test_parse_lap_time_s():
+    assert jc._parse_lap_time_s("1:38.109") == pytest.approx(98.109)
+    assert jc._parse_lap_time_s("58.109") == pytest.approx(58.109)
+    assert jc._parse_lap_time_s(None) is None
+    assert jc._parse_lap_time_s("") is None
+    assert jc._parse_lap_time_s("garbage:time") is None
 
 
 def test_flatten_empty_standings():
@@ -128,6 +193,14 @@ def test_get_pit_stops_round_path(pit_stops_payload):
     assert mget.call_args.args[0].endswith("/2024/1/pitstops.json")
 
 
+def test_get_laps_round_path(laps_payload):
+    client = jc.JolpicaClient(min_interval_s=0.0)
+    with patch.object(jc.requests, "get", return_value=_mock_response(laps_payload)) as mget:
+        df = client.get_laps(2011, 1)
+    assert len(df) == 3
+    assert mget.call_args.args[0].endswith("/2011/1/laps.json")
+
+
 def test_get_retries_on_failure(driver_standings_payload):
     client = jc.JolpicaClient(min_interval_s=0.0)
     good = _mock_response(driver_standings_payload)
@@ -164,3 +237,14 @@ def test_write_pit_stops_partition(tmp_path, monkeypatch, pit_stops_payload):
     path = jc.write_pit_stops(df, 2024, 5)
     assert path.parent.name == "round=5"
     assert pd.read_parquet(path)["stop"].iloc[0] == 1
+
+
+def test_write_laps_partition(tmp_path, monkeypatch, laps_payload):
+    monkeypatch.setattr(jc, "JOLPICA_DIR", tmp_path / "jolpica")
+    df = jc._flatten_laps(laps_payload["MRData"], season=2011, round_num=1)
+    path = jc.write_laps(df, 2011, 1)
+    assert path.parent.name == "round=1"
+    assert path.parent.parent.name == "season=2011"
+    written = pd.read_parquet(path)
+    assert len(written) == 3
+    assert written["lap_time_s"].iloc[0] == pytest.approx(98.109)

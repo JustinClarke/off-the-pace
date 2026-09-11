@@ -8,6 +8,34 @@
 > the existing pipeline.** They are now `05b` and `05c` at the bottom of this doc. Neither
 > inherits `05a`'s block; `05b` in particular should never have been behind a "days-weeks" item.
 
+> **OPEN QUESTION — decision `D8`, raised 2026-09-11. Do not close or start `05a` before it is
+> resolved.** The three-leg pinball-loss/headroom bracket this section asks for (`01a`, `01b`,
+> `05c`) is now complete and converges on "no material headroom": `01a`'s learning curves are
+> flat end to end for all five families and its extrapolated intercept does not bind on any of
+> them; `01b`'s difference-based floor comes back *above* achieved loss on p10 and p50 (no
+> measurable headroom, per its own falsification gate) and separates from it by only ~10-12% on
+> p90 — a signal that does not survive the arm-5 race-component correction and that
+> [`01-ceiling-instrument.md`](01-ceiling-instrument.md)'s own reconciliation section routes to
+> `11a`'s conformal recalibration, not to a model-class change; `05c` finds
+> `degradation_regressor_p50` sitting at its model-based noise floor, with its final repair-pass
+> conclusion (in `build-log.json`'s `05c` note, not yet folded into this doc's results section
+> below) that no headroom percentage is quotable at all, direction only. **That evidence would
+> close `05a` cleanly as this section currently scopes it** — a shipping-class change judged on
+> predictive headroom against the incumbent.
+>
+> But `build-log.json`'s `05a` item note separately carries a 2026-09-07 proposal, explicitly
+> marked "proposed, not yet written into the leaf doc": judge model families on whether they
+> yield a **publishable coefficient with an interval**, not on pinball loss alone, because
+> XGBoost cannot hand you a parameter with uncertainty. The same 2026-09-07 session's own history
+> entry already flagged that this doc "should be corrected before `05a` is run," and no session
+> since has done that or ruled the proposal out. The headroom bracket above answers a predictive
+> question; it says nothing about an interpretability/publishability question, and nothing in
+> `01a`, `01b` or `05c` was designed to. Closing this item on headroom grounds alone, or starting
+> it as a days-weeks shipping-class build, would each resolve that open disagreement in one
+> direction without the human ever having reconciled it. See `D8` in
+> [`../status/build-log.json`](../status/build-log.json) for the two paths and what each would do
+> to this item's scope and cost.
+
 Twenty-two checkpoints of hyperparameter search inside **one model class**. Whether
 gradient-boosted trees are the right class for this data has not been tested once.
 
@@ -650,3 +678,9 @@ the family's own reseed floor, with the permutation-null arm where a capacity/in
 split is meaningful — plus a written verdict on whether the class change is worth the loss of
 the existing tooling (ONNX export, parity verification, `behaviour_audit`, the calibration
 gates), which is a real cost and not a footnote.
+
+**This defines "done" purely in pinball-loss/headroom terms.** See the open-question callout at
+the top of this doc and decision `D8` in `build-log.json`: a proposed 2026-09-07 reframe toward
+"a publishable coefficient with an interval" would make this section's definition of done the
+wrong one, and that proposal has never been reconciled into this doc. Do not treat the headroom
+bracket below as having settled that question — it wasn't designed to.

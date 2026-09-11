@@ -46,6 +46,9 @@ closure checks are built on the [`assert_additive_identity`](../macros/assert_ad
 | `assert_mad_floor.sql` | MAD scale estimator is floored at 0.10s (prevents cliff self-masking) | `int_lap_anomaly_flags` | ✅ Active |
 | `assert_track_evolution_monotone.sql` | Rubber-in evolution is monotonically non-negative within a race | `int_track_evolution` | ✅ Active |
 | `assert_sc_hazard_probability_bounds.sql` | Per-lap SC/VSC/any hazard rates are valid probabilities in [0, 1] and `any` ≥ each component | `int_sc_hazard_history` | ✅ Active |
+| `assert_sc_hazard_no_forward_leakage.sql` | The season-`S` hazard is built from seasons `< S` only: trailing totals re-derived with an inequality join must match, each rate must equal its own numerator/denominator, and prior exposure must be non-decreasing in season | `int_sc_hazard_history` | ✅ Active |
+| `assert_corner_trailing_window_no_forward_reach.sql` | The corner field median at lap `t` draws on no lap `>= t` (the `02g` rebuild of the `FLOOR(lap/5)*5` block bucket) | `int_corner_skill_residuals` | ✅ Active |
+| `assert_corner_inputs_lap_grain_closure.sql` | The lap-grain roll-up is faithful to the corner grain it summarises, so an upstream fan-out cannot reach the feature contract silently | `int_lap_corner_inputs`, `int_corner_skill_residuals` | ✅ Active |
 | `assert_driver_skill_residual_reasonable.sql` | Driver-skill residual per race is centred near 0 (mean < ±1s) | `fct_lap_residuals` | ✅ Active |
 | `assert_raw_laps_has_both_sessions.sql` | Both race (`stg_laps`) and qualifying (`stg_laps_qualifying`) laps are present with data | `stg_laps`, `stg_laps_qualifying` | ✅ Active |
 | `assert_p_beats_next_geq_half.sql` | Pairwise consistency: `p_beats_next` ≥ 0.5 for adjacently-ranked drivers (ranked by ascending predicted pace) | `fct_ghost_race_finish` | ✅ Active |

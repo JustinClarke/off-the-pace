@@ -96,9 +96,8 @@ rediscovery.
 median's NULLs are deterministic on the count of valid prior observations, which is not a feature
 contract axis — the count is what makes that missingness visible to a consumer instead of silent.
 
-**Used by:** `int_lap_thermal_proxy` (`stint_baseline_pace`, expanding, floor 1). Written for two
-more callers with the same shape: `int_corner_skill_residuals` (`02g`, trailing-5 with
-`frame='range'`) and `int_sc_hazard_history` (`02d`).
+**Used by:** `int_lap_thermal_proxy` (`stint_baseline_pace`, expanding, floor 1) and
+`int_corner_skill_residuals` (`02g`, trailing-5 with `frame='range'`).
 
 **Example:**
 ```sql
@@ -108,6 +107,42 @@ SELECT
   {{ trailing_observation_count('lap_time_s', ['stint_id'], ['lap_in_stint'],
                      valid_condition='is_valid_lap') }} AS baseline_observations_n
 FROM combined
+```
+
+---
+
+### `trailing_sum(value_col, partition_by, order_by, lookback=none, frame='rows', min_observations=1, valid_condition=none)`
+
+Sum of `value_col` over observations **strictly before** the current row, over the identical
+frame as `trailing_median`. Same frame by design: `08b`'s forward-window auditor gets one shape
+to whitelist rather than one per aggregate.
+
+This is the aggregate a point-in-time **rate** needs. A rate is not a median of per-period rates
+— it is `sum(numerator) / sum(denominator)` over the window, so a 78-lap race carries more
+weight than a 44-lap one. Build one from two `trailing_sum` calls sharing a frame, never from a
+`trailing_median` of a ratio column.
+
+An empty window returns NULL, not 0, which is what separates *"no prior history"* (unknowable)
+from *"prior history with no events"* (a real measurement of zero). Apply `COALESCE` at the
+model's output boundary for companion **count** columns — they should read 0 and never NULL, per
+`02g`'s defect 2 — and let the NULL travel on the **rate** instead, via `NULLIF` on the
+denominator.
+
+`partition_by=none` emits an **unpartitioned** window, for a series with no entity axis (the
+pooled shrinkage prior in `int_sc_hazard_history` is a rate across all circuits). That is
+different from omitting the argument; it is a deliberate "the whole table is one series".
+
+**Used by:** `int_sc_hazard_history` (`02d`, expanding season-lagged hazard, `frame='range'`) —
+both the per-circuit rate and the pooled EB prior it shrinks toward.
+
+**Example:**
+```sql
+-- hazard as of the START of season S, using seasons < S only
+SELECT
+  {{ trailing_sum('season_any_onsets', ['circuit_slug'], ['season'], frame='range') }}
+  / NULLIF({{ trailing_sum('season_racing_laps', ['circuit_slug'], ['season'],
+                           frame='range') }}, 0) AS any_hazard_per_lap
+FROM per_circuit_season
 ```
 
 ---

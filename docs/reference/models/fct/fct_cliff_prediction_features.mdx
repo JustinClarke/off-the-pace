@@ -24,6 +24,7 @@ flowchart LR
   int_event_corrections --> fct_cliff_prediction_features
   int_lap_air_state --> fct_cliff_prediction_features
   int_lap_anomaly_flags --> fct_cliff_prediction_features
+  int_lap_corner_inputs --> fct_cliff_prediction_features
   int_lap_proximity --> fct_cliff_prediction_features
   int_lap_residual_decomposed --> fct_cliff_prediction_features
   int_lap_residual_stint_detrend --> fct_cliff_prediction_features
@@ -39,7 +40,7 @@ flowchart LR
 | Layer | `marts` |
 | Family | [Marts](/transform/families/marts) |
 | Contract enforced | ✅ Yes |
-| Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_compound_cliff_predicted`](../int/int_compound_cliff_predicted), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_lap_air_state`](../int/int_lap_air_state), [`int_lap_proximity`](../int/int_lap_proximity), [`int_event_corrections`](../int/int_event_corrections), [`int_lap_residual_stint_detrend`](../int/int_lap_residual_stint_detrend), [`int_lap_telemetry_aggregates`](../int/int_lap_telemetry_aggregates), [`dim_compounds_season`](../dim/dim_compounds_season), [`dim_circuits`](../dim/dim_circuits) |
+| Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_compound_cliff_predicted`](../int/int_compound_cliff_predicted), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_lap_air_state`](../int/int_lap_air_state), [`int_lap_proximity`](../int/int_lap_proximity), [`int_lap_corner_inputs`](../int/int_lap_corner_inputs), [`int_event_corrections`](../int/int_event_corrections), [`int_lap_residual_stint_detrend`](../int/int_lap_residual_stint_detrend), [`int_lap_telemetry_aggregates`](../int/int_lap_telemetry_aggregates), [`dim_compounds_season`](../dim/dim_compounds_season), [`dim_circuits`](../dim/dim_circuits) |
 | Model-level tests | `expect_column_values_to_be_between`, `expect_column_values_to_be_between` |
 
 **3 tests** [guard](/transform/ci/overview) this model  -  2 generic, 1 singular.
@@ -82,6 +83,16 @@ flowchart LR
 | `gap_ahead_median_s` | `double` | Yes |   | Median gap to the car ahead on track across the lap's bins (s). NULL = clear air; median 2.26 s |
 | `ahead_identity_stability` | `double` | Yes |   | Share of the lap's within-3 s bins held by the single most frequent car ahead. 1.0 = a settled follow, low = the car ahead rotated. NULL on the 27.3% of laps with no car within 3 s |
 | `n_distinct_cars_ahead_3s` | `integer` | Yes |   | How many distinct cars were within 3 s ahead at some point in the lap (mean 1.348) |
+| `corner_input_coverage` | `double` | No |   | 02c. Share of the lap's measured corners that cleared int_corner_skill_residuals' field_corner_sample_n &gt;= 5 gate, so carry a residual at all (mean 0.794 over mart rows, 0.799 over the training-eligible ones; 0.813 over int_lap_corner_inputs, which is the same column before the COALESCE below adds the uncovered laps. Laps average 16.35 corners measured, 13.27 of them mapped). COALESCE-d to 0.0 on the 2.5% of mart laps with no corner row, because a lap with no mapped corner genuinely has zero coverage. NOT a nuisance column: coverage is correlated with the label (the 4.15% of training-eligible rows with no braking mean average +1.393 s of 5-lap jump against -2.330 s for covered rows, sd 10.196 vs 5.938), so it is admitted explicitly and ablated separately rather than left to XGBoost as an implicit NaN pattern. |
+| `corner_braking_loss_mean_s` | `double` | Yes |   | 02c. Mean braking_loss_s across the lap's corners that have a braking point (mean -0.0065 s). Distance-of-first-brake-application vs the backward-only trailing-5 field median (02g), converted to seconds at s2 trap speed. NULL, never 0.0, where the lap has no measured braking corner - 0.0 would assert the driver braked exactly at the field median. |
+| `corner_braking_loss_sd_s` | `double` | Yes |   | 02c. Sample sd of braking_loss_s across the lap's corners (mean 0.3289 s; NULL on 2.57% of corner-covered laps, which have fewer than two measured braking corners). The tyre-management statistic of the three: a driver even across the lap loads the tyre differently from one spiking in two corners and coasting the rest, at equal mean. |
+| `corner_braking_loss_max_s` | `double` | Yes |   | 02c. Largest (most positive) braking_loss_s on the lap - the single hardest corner (mean 0.5459 s). |
+| `corner_mid_residual_mean_s` | `double` | Yes |   | 02c. Mean mid_corner_residual_s across the lap's corners (mean -0.0102 s). Apex-speed deficit vs the trailing-5 field median, in seconds. Highest-coverage of the three phases (81.12% of corner rows, and 100% of the mapped ones) because every corner has an apex, while not every corner has a discrete braking zone or a clean full-throttle point. |
+| `corner_mid_residual_sd_s` | `double` | Yes |   | 02c. Sample sd of mid_corner_residual_s across the lap's corners (mean 0.1439 s; NULL on 2.39% of corner-covered laps). |
+| `corner_mid_residual_max_s` | `double` | Yes |   | 02c. Largest mid_corner_residual_s on the lap - the corner with the biggest apex-speed deficit (mean 0.2543 s). |
+| `corner_exit_residual_mean_s` | `double` | Yes |   | 02c. Mean exit_residual_s across the lap's corners that reach full throttle (mean 0.0589 s). Distance-to-full-throttle vs the trailing-5 field median, in seconds. Sparsest of the three phases (47.00% of corner rows, 57.94% of the mapped ones): throttle_point_m is NULL where the driver never reaches 100% throttle before the next apex, which is a real answer about a corner sequence rather than missing data. |
+| `corner_exit_residual_sd_s` | `double` | Yes |   | 02c. Sample sd of exit_residual_s across the lap's corners (mean 0.2115 s; NULL on 9.78% of corner-covered laps, the sparsest phase). |
+| `corner_exit_residual_max_s` | `double` | Yes |   | 02c. Largest exit_residual_s on the lap - the corner the driver was slowest back to power in (mean 0.4367 s). |
 | `expected_compound_pace_s` | `double` | Yes |   | Model-expected compound pace contribution from int_compound_cliff_predicted |
 | `expected_degradation_rate_s_per_lap` | `double` | Yes |   | Model-expected degradation rate (s/lap) at current tyre age |
 | `cliff_onset_passed` | `boolean` | Yes |   | TRUE if tyre has passed its fitted cliff onset lap |
@@ -102,7 +113,7 @@ flowchart LR
 | `lift_coast_share` | `double` | Yes |   | Off-throttle, non-braking, decelerating share of the lap (0–1). CONFOUND with fuel-saving   consumed alongside int_lap_fuel_state, not equated with degradation. |
 | `fuel_mass_kg` | `double` | Yes |   | Estimated fuel mass on board at this lap |
 | `event_flag_any` | `boolean` | No |   | TRUE if any race event contaminated this lap (SC, VSC, restart, etc.) |
-| `cliff_candidate_flag` | `boolean` | Yes |   | TRUE if this lap shows a MAD-score cliff spike consistent with tyre cliff |
+| `cliff_candidate_flag` | `boolean` | Yes |   | TRUE if this lap shows a MAD-score cliff spike consistent with tyre cliff. Removed from ML feature contract by 08j (2026-09-09): ruled dead on both substrates by 08g (carried no information in any family). Retained in mart for audit and historical reference; not consumed by current ML features. |
 | `anomaly_class` | `varchar` | Yes |   | Anomaly classification (clean_cliff, mistake, event_driven, conditions, normal) |
 | `is_rain_lap` | `boolean` | Yes |   | TRUE if rainfall was detected on this lap |
 | `surface_bulk_ratio` | `double` | Yes |   | C3 feature (42nd): ratio of surface thermal load to total thermal load (cumulative_push_load_surface / (surface + bulk)). NULL when both loads are zero. Helps the model distinguish early-stint surface-dominated warming from bulk-driven structural degradation. |

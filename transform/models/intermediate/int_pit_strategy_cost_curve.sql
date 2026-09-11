@@ -244,6 +244,10 @@ stint_base AS (
         COALESCE(s.next_compound, s.compound) AS next_compound,
         rm.circuit_key,
         COALESCE(cpl.pit_lane_loss_s, 21.0) AS pit_lane_loss_s,
+        -- 0.0 where the hazard is unknowable: season 2018 has no prior season
+        -- to estimate from (02d). That makes the SC discount term vanish for
+        -- 2018 rather than back-filling it from a later-season rate, which is
+        -- the leak this join key was changed to close.
         COALESCE(sc.any_hazard_per_lap_shrunk, 0.0) AS sc_hazard_per_lap,
         st.track_temp_c,
         CASE
@@ -259,8 +263,13 @@ stint_base AS (
             AND s.driver_id = ds.driver_id
     INNER JOIN race_map AS rm ON s.race_id = rm.race_id
     LEFT JOIN circuit_pit_loss AS cpl ON rm.circuit_key = cpl.circuit_key
+    -- int_sc_hazard_history is point-in-time as of the start of a season (02d),
+    -- so the season is HALF THE KEY. Joining on circuit alone would hand a 2018
+    -- stint a hazard estimated partly from 2024 races.
     LEFT JOIN {{ ref('int_sc_hazard_history') }} AS sc
-        ON rm.circuit_key = sc.circuit_slug
+        ON
+            rm.circuit_key = sc.circuit_slug
+            AND s.race_year = sc.season
     LEFT JOIN stint_temp AS st ON s.stint_id = st.stint_id
 ),
 

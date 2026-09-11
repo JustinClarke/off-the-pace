@@ -42,7 +42,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`stg_laps`](../stg/stg_laps) |
 
-**14 tests** [guard](/transform/ci/overview) this model  -  10 generic, 4 singular.
+**15 tests** [guard](/transform/ci/overview) this model  -  11 generic, 4 singular.
 
 ## Columns
 
@@ -59,3 +59,9 @@ flowchart LR
 | `is_safety_car_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains a 4 (full SC). |
 | `is_vsc_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains a 6 or 7 (VSC). |
 | `is_red_flag_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains a 5 (red flag). |
+| `age_in_stint` |   | Yes | [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Tyre age in laps at this lap. Directly from FastF1 TyreLife (no imputation, no reconstruction). 343 rows (0.21%) carry NULL: 325 of them (94.8%) sit on lap 1 of a stint, where tyre-life occasionally arrives without a reading. This is a pattern, not random scatter, and occurs at the exact position where starting_tyre_age_laps is derived. For stints opening on lap 1: if age_in_stint is NULL at the stint start and you need a starting age, the column is missing; do not assume the tyre is fresh (a used/scrubbed set starting a stint will have age_in_stint &gt; 1 or NULL, but never 0). Consumers should carry this column forward or declare how NULLs are handled. |
+| `compound_code` |   | Yes |   | Tyre compound code (HARD, MEDIUM, SOFT, INTERMEDIATE, WET, SUPERSOFT, ULTRASOFT, HYPERSOFT). Joined from dim_compounds_season, which carries physical parameters (grip, wear rate) keyed on (season, circuit, compound_code). |
+| `compound_label` |   | Yes |   | Tyre compound label (hard, medium, soft) assigned by Pirelli for this race. Relative to the circuit - Pirelli picks 3 compounds per weekend and calls them hard/medium/soft, so "soft" at one circuit is not the same rubber as "soft" at another. The compound_code is the absolute identifier; this label is the relative one. |
+| `race_year` |   | Yes |   | Season year. |
+| `race_id` |   | Yes |   | Race identifier. |
+| `driver_id` |   | Yes |   | FastF1 three-letter driver code (e.g. VER, HAM). |

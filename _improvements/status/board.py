@@ -224,7 +224,8 @@ def board(log: dict) -> None:
         print()
 
     last = log["history"][-1]
-    print(f"  Last session {last['date']} -- {last['session']}")
+    session = last.get("session") or (f"landed {last['landed']}" if last.get("landed") else "")
+    print(f"  Last session {last['date']} -- {session}")
     print(f"  Next: {last.get('next_action', '')}")
     print(f"  $ {last['next_command']}\n")
 

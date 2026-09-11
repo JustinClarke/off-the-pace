@@ -18,7 +18,8 @@ Builds the OVER(...) frame shared by trailing_median and trailing_observation_co
 
 | Argument | Description |
 |---|---|
-| `partition_by` | list of column names, or a raw string |
+| `partition_by` | list of column names, or a raw string, or none for an UNPARTITIONED window (one global series -- e.g. the pooled shrinkage prior in int_sc_hazard_history, which is a rate across all circuits and so has no entity to partition by). `none` is not the same as omitting the |
+| `argument` | it is a deliberate "the whole table is one series". |
 | `order_by` | list of column names, or a raw string (the time axis) |
 | `lookback` | integer N for `N PRECEDING`, or none for `UNBOUNDED PRECEDING` |
-| `frame` | 'rows' or 'range'. ROWS counts rows; RANGE counts values of the ORDER BY column, which is what a FIELD statistic across several entities at the same time index needs (see 02g). |
+| `frame` | 'rows' or 'range'. ROWS counts rows; RANGE counts values of the ORDER BY column, which is what a FIELD statistic across several entities at the same time index needs (see 02g), and what a SEASON-lagged statistic needs when a season may hold many rows (02d). |

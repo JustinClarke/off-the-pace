@@ -1,5 +1,6 @@
 """
-JolpicaClient   reference-data client for official standings and classified pit stops.
+JolpicaClient   reference-data client for official standings, classified pit
+stops, and (2011+) lap times.
 
 Ergast (https://ergast.com) shut down after the 2024 season. Jolpica
 (https://api.jolpi.ca) is its drop-in successor with an Ergast-compatible JSON
@@ -8,6 +9,13 @@ schema, so the flattening logic here doubles as an Ergast client if ever needed.
 Scope (ingestion-v0.2 step 9): driver standings, constructor standings, and
 classified pit stops → `data/bronze/reference/jolpica/`. This is *reference*
 data, not timing data: it never feeds the live path, only historical marts.
+
+Scope (03b, 2026-09): lap times → `data/bronze/reference/jolpica/laps/`, added
+to widen the driver-vs-car mover panel into 2011-2017, where FastF1 bronze has
+no coverage. Ergast/Jolpica exposes lap times back to 2011 via
+`/{season}/{round}/laps.json`; combined with pit stops, stints are recoverable
+without telemetry (no compound data exists before 2018, so this never feeds
+the ML feature contract  see `_improvements/work/03-driver-vs-car.md`).
 
 Politeness: Jolpica publishes a sustained limit of ~4 req/s and a burst cap.
 Every request goes through `_get`, which sleeps `min_interval_s` between calls
@@ -52,13 +60,15 @@ class JolpicaClient:
             time.sleep(self.min_interval_s - elapsed)
         self._last_request_at = time.monotonic()
 
-    def _get(self, path: str, max_attempts: int = 4) -> dict[str, Any]:
+    def _get(self, path: str, max_attempts: int = 4, offset: int = 0) -> dict[str, Any]:
         """
         GET `{base_url}/{path}.json`, returning the parsed `MRData` envelope.
 
         Retries up to max_attempts with exponential backoff (1s, 2s, 4s). A 429
         honours the `Retry-After` header when present. Raises the last exception
-        if every attempt fails.
+        if every attempt fails. `offset` pages into a multi-page result; every
+        page goes through this same retry path (see `_get_paginated`) rather
+        than the first page only.
         """
         url = f"{self.base_url}/{path.strip('/')}.json"
         last_exc: Optional[Exception] = None
@@ -67,7 +77,7 @@ class JolpicaClient:
             try:
                 resp = requests.get(
                     url,
-                    params={"limit": PAGE_LIMIT, "offset": 0},
+                    params={"limit": PAGE_LIMIT, "offset": offset},
                     timeout=15,
                 )
                 resp.raise_for_status()
@@ -87,25 +97,25 @@ class JolpicaClient:
                 if attempt < max_attempts - 1:
                     logger.warning(f"  Attempt {attempt + 1}/{max_attempts} failed: {exc}")
                     time.sleep(2 ** attempt)
-        logger.error(f"Jolpica GET failed after {max_attempts} attempts: {url}")
+        logger.error(f"Jolpica GET failed after {max_attempts} attempts: {url} (offset={offset})")
         raise last_exc
 
     def _get_paginated(self, path: str) -> list[dict[str, Any]]:
         """
         Fetch every page for an endpoint, returning the list of `MRData`
         envelopes. Most standings/pit-stop queries fit one page, but a full
-        season's pit stops can exceed 100 rows.
+        season's pit stops -- and routinely a single race's lap times, which
+        can span 10+ pages -- can exceed 100 rows. Every page (not just the
+        first) goes through `_get`'s retry/backoff, since a 429 on a later
+        page is exactly as likely as on the first and previously wasn't
+        retried at all -- it would abort the whole multi-page fetch.
         """
-        first = self._get(path)
+        first = self._get(path, offset=0)
         total = int(first.get("total", 0))
         envelopes = [first]
         offset = PAGE_LIMIT
         while offset < total:
-            url = f"{self.base_url}/{path.strip('/')}.json"
-            self._throttle()
-            resp = requests.get(url, params={"limit": PAGE_LIMIT, "offset": offset}, timeout=15)
-            resp.raise_for_status()
-            envelopes.append(resp.json()["MRData"])
+            envelopes.append(self._get(path, offset=offset))
             offset += PAGE_LIMIT
         return envelopes
 
@@ -134,6 +144,21 @@ class JolpicaClient:
         frames = [f for f in frames if not f.empty]
         return pd.concat(frames, ignore_index=True) if frames else _empty_pit_stops()
 
+    def get_laps(self, season: int, round_num: int) -> pd.DataFrame:
+        """
+        Every driver's lap times for one race (lap number, driver, time,
+        position). One row per driver-lap. Ergast paginates at 100 rows,
+        which can split a single lap's driver list across two pages (a lap
+        with 22 cars can start on one page and finish on the next) -- each
+        page is flattened independently to rows and the frames are
+        concatenated, so a split lap just becomes two contributions to the
+        same lap_number and nothing is lost or double-counted.
+        """
+        envelopes = self._get_paginated(f"{season}/{round_num}/laps")
+        frames = [_flatten_laps(env, season=season, round_num=round_num) for env in envelopes]
+        frames = [f for f in frames if not f.empty]
+        return pd.concat(frames, ignore_index=True) if frames else _empty_laps()
+
 
 # ----------------------------------------------------------------------
 # Flatteners   Ergast nests deeply; bronze wants one tidy row per entity
@@ -151,6 +176,19 @@ def _flatten_standings(mrdata: dict[str, Any], kind: str, season: int) -> pd.Dat
         for s in standings_list.get("DriverStandings", []):
             driver = s.get("Driver", {})
             constructors = s.get("Constructors", [{}])
+            # Ergast lists every constructor a driver scored points with that
+            # season, in order (GAS 2019: ['red_bull', 'toro_rosso']). A
+            # same-season entity rename that keeps the car unchanged (Force
+            # India -> Racing Point, 2018) does NOT appear here as a second
+            # entry -- Ergast's own season standings already collapse it to
+            # one constructor_id, so no explicit exclusion is needed at this
+            # grain (see mover_panel.py). constructor_id/_name below keep the
+            # single first-listed constructor for backward compatibility;
+            # constructor_ids carries the full ';'-joined list for consumers
+            # (like the 03b mover panel) that need every constructor a driver
+            # actually raced for that season, including genuine mid-season
+            # switches.
+            constructor_ids = [c.get("constructorId") for c in constructors if c.get("constructorId")]
             rows.append({
                 "season":           season,
                 "round":            int(round_num) if round_num else None,
@@ -165,6 +203,7 @@ def _flatten_standings(mrdata: dict[str, Any], kind: str, season: int) -> pd.Dat
                 "family_name":      driver.get("familyName"),
                 "constructor_id":   constructors[0].get("constructorId") if constructors else None,
                 "constructor_name": constructors[0].get("name") if constructors else None,
+                "constructor_ids":  ";".join(constructor_ids) if constructor_ids else None,
             })
     else:  # constructor
         for s in standings_list.get("ConstructorStandings", []):
@@ -207,6 +246,59 @@ def _empty_pit_stops() -> pd.DataFrame:
         "season", "round", "race_name", "driver_id",
         "stop", "lap", "time_of_day", "duration_s",
     ])
+
+
+def _flatten_laps(mrdata: dict[str, Any], season: int, round_num: int) -> pd.DataFrame:
+    """
+    One row per driver-lap. `Laps` is a list of {number, Timings: [{driverId,
+    position, time}]} -- the per-lap driver list, not per-driver lap list, so
+    this pivots to the flat driver-lap grain the rest of bronze uses.
+    """
+    races = mrdata.get("RaceTable", {}).get("Races", [])
+    if not races:
+        return _empty_laps()
+    race = races[0]
+    race_name = race.get("raceName")
+    rows: list[dict[str, Any]] = []
+    for lap in race.get("Laps", []):
+        lap_number = _to_int(lap.get("number"))
+        for t in lap.get("Timings", []):
+            rows.append({
+                "season":       season,
+                "round":        round_num,
+                "race_name":    race_name,
+                "driver_id":    t.get("driverId"),
+                "lap_number":   lap_number,
+                "position":     _to_int(t.get("position")),
+                "lap_time_raw": t.get("time"),
+                "lap_time_s":   _parse_lap_time_s(t.get("time")),
+            })
+    return pd.DataFrame(rows) if rows else _empty_laps()
+
+
+def _empty_laps() -> pd.DataFrame:
+    return pd.DataFrame(columns=[
+        "season", "round", "race_name", "driver_id",
+        "lap_number", "position", "lap_time_raw", "lap_time_s",
+    ])
+
+
+def _parse_lap_time_s(raw: Optional[str]) -> Optional[float]:
+    """
+    Ergast lap times are 'M:SS.sss' (e.g. '1:38.109') or occasionally bare
+    seconds. Returns None for missing/unparseable values rather than raising
+    -- a handful of malformed entries should not fail the whole page.
+    """
+    if not raw:
+        return None
+    try:
+        parts = raw.split(":")
+        if len(parts) == 2:
+            minutes, seconds = parts
+            return int(minutes) * 60 + float(seconds)
+        return float(parts[0])
+    except (ValueError, TypeError):
+        return None
 
 
 def _to_int(v: Any) -> Optional[int]:
@@ -258,15 +350,37 @@ def write_pit_stops(df: pd.DataFrame, season: int, round_num: int) -> Path:
     return path
 
 
+def write_laps(df: pd.DataFrame, season: int, round_num: int) -> Path:
+    sub = JOLPICA_DIR / "laps" / f"season={season}" / f"round={round_num}"
+    os.makedirs(sub, exist_ok=True)
+    path = sub / "laps.parquet"
+    df.to_parquet(path, index=False, compression="snappy")
+    logger.info(f"  laps → {path} ({len(df)} rows)")
+    return path
+
+
 # ----------------------------------------------------------------------
 # CLI
 # ----------------------------------------------------------------------
 
-def ingest_season(client: JolpicaClient, season: int, n_rounds: int) -> None:
-    """End-of-season standings + per-round pit stops for one season."""
-    logger.info(f"Jolpica: season {season} ({n_rounds} rounds)")
-    write_driver_standings(client.get_driver_standings(season), season)
-    write_constructor_standings(client.get_constructor_standings(season), season)
+def ingest_season(client: JolpicaClient, season: int, n_rounds: int, with_laps: bool = False) -> None:
+    """
+    End-of-season standings + per-round pit stops for one season.
+    `with_laps=True` additionally pulls per-round lap times (03b, 2011-2017 -
+    off by default so the existing 2018-2024 `make ingest-jolpica` target,
+    which never needed lap times from this client, doesn't silently grow from
+    a ~2-3 min run into a much longer one).
+    """
+    logger.info(f"Jolpica: season {season} ({n_rounds} rounds, laps={with_laps})")
+    try:
+        write_driver_standings(client.get_driver_standings(season), season)
+        write_constructor_standings(client.get_constructor_standings(season), season)
+    except Exception as exc:
+        # Observed in practice (03b, 2026-09): a transient DNS/connection
+        # blip here previously killed the whole multi-season run instead of
+        # just costing this season's standings. Log and keep going -- the
+        # per-round loop below has its own retry/backoff per request anyway.
+        logger.warning(f"  Standings failed for {season}: {exc}")
     for rnd in range(1, n_rounds + 1):
         try:
             stops = client.get_pit_stops(season, rnd)
@@ -277,13 +391,27 @@ def ingest_season(client: JolpicaClient, season: int, n_rounds: int) -> None:
         except Exception as exc:
             logger.warning(f"  Pit stops failed {season} Rd{rnd}: {exc}")
 
+        if with_laps:
+            try:
+                laps = client.get_laps(season, rnd)
+                if not laps.empty:
+                    write_laps(laps, season, rnd)
+                else:
+                    logger.warning(f"  No laps for {season} Rd{rnd} (skipping)")
+            except Exception as exc:
+                logger.warning(f"  Laps failed {season} Rd{rnd}: {exc}")
+
 
 def _build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Jolpica reference-data ingest (standings, pit stops)")
+    p = argparse.ArgumentParser(description="Jolpica reference-data ingest (standings, pit stops, laps)")
     p.add_argument("--start-season", type=int, default=2018)
     p.add_argument("--end-season", type=int, default=2024)
     p.add_argument("--rounds", type=int, default=24, help="Max rounds to probe per season")
     p.add_argument("--min-interval", type=float, default=0.30, help="Seconds between requests")
+    p.add_argument(
+        "--with-laps", action="store_true",
+        help="Also pull per-round lap times (03b: 2011-2017 widening). Off by default.",
+    )
     return p
 
 
@@ -292,7 +420,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(name)s | %(levelname)s | %(message)s")
     client = JolpicaClient(min_interval_s=args.min_interval)
     for season in range(args.start_season, args.end_season + 1):
-        ingest_season(client, season, args.rounds)
+        ingest_season(client, season, args.rounds, with_laps=args.with_laps)
 
 
 if __name__ == "__main__":

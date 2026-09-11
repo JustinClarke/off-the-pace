@@ -621,6 +621,19 @@ SELECT
     -- the pre-registered ablation in _improvements/work/02-feature-expansion.md
     -- §3 `02c` says it should. Shipping the columns here is what makes that
     -- ablation runnable; it is not a claim that they carry anything.
+    --
+    -- ARMS RUN 2026-09-11 (scripts/arms_02c_corner_inputs.py ->
+    -- ml/artefacts/02c_corner_inputs_arms.json). The nine residual aggregates
+    -- (arm B) clear their family's 5-reseed floor on p10 (1.30x), p50 (1.63x) and
+    -- the cliff classifier (2.17x), with the permutation arm attributing the gain
+    -- to information rather than capacity in all three; on p90 they do not clear
+    -- and their information delta is negative. corner_input_coverage (arm C) is a
+    -- SEPARATE channel that clears on p50, p90 and cliff, and on p90 it is the only
+    -- one of the two that does -- which is the confound the column was emitted to
+    -- make visible. Campaign-level e-BH rejects nothing (the pre-registered e-value
+    -- construction caps at E = 36 against a threshold of 240). So the columns stay
+    -- here and out of the contract: moving them is a version bump with a retrain
+    -- behind it, and the arms do not settle which set to move.
     corner_input_coverage,
     corner_braking_loss_mean_s,
     corner_braking_loss_sd_s,

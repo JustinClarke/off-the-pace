@@ -68,8 +68,9 @@ def test_no_suggestion_ever_leaves_the_declared_space(spec):
 
 
 def test_stepped_and_log_integers_stay_integral():
+    step = TU.SEARCH_SPACE["n_estimators"]["step"]
     for params in _sampled(QUANTILE):
-        assert isinstance(params["n_estimators"], int) and params["n_estimators"] % 100 == 0
+        assert isinstance(params["n_estimators"], int) and params["n_estimators"] % step == 0
         assert isinstance(params["min_child_weight"], int)
 
 
@@ -131,3 +132,16 @@ def test_the_widened_bounds_are_past_every_pin_the_series_recorded():
     assert TU.SEARCH_SPACE["max_depth"]["high"] > 8
     assert TU.SEARCH_SPACE["min_child_weight"]["high"] > 20
     assert TU.SEARCH_SPACE["n_estimators"]["high"] > 700
+
+
+def test_the_low_bounds_are_past_the_pins_10e_recorded():
+    """The other end of the same subject, and it took a second item to find it.
+
+    Every pin item 21 chased was a CEILING, so both widenings went upward and nobody
+    looked down. 10e's two stint-life searches then stopped on `n_estimators = 200 (low)`
+    with `learning_rate` at 0.0205 against a bound of 0.02 -- a search asking for a
+    weaker fit than the space could express. `max_depth` was the same story one item
+    earlier: 10d's best arm sat at depth 2, outside a space whose floor was 3.
+    """
+    assert TU.SEARCH_SPACE["n_estimators"]["low"] < 200
+    assert TU.SEARCH_SPACE["max_depth"]["low"] < 3

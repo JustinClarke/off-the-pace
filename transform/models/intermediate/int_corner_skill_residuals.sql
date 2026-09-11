@@ -3,15 +3,20 @@
 -- PK: corner_id = lap_id || '_C_' || corner_name
 --
 -- Decomposes corner performance into braking_loss_s, mid_corner_residual_s,
--- and exit_residual_s relative to 5-lap-bucket field medians.
+-- and exit_residual_s relative to backward-only (trailing-5) field medians.
 -- All residuals are NULL when field_corner_sample_n < 5 (insufficient
 -- comparison set).
+--
+-- Field medians use RANGE frame to include all drivers at the same lap number,
+-- looking back exactly 5 laps (excluding current lap, t-5...t-1).
+-- Lap 2 returns NULL for all fields (no prior lap), consistent with trailing
+-- window design: deterministic loss (21.4pp coverage on laps ≤ 6),
+-- recoverable and non-leaking (documented in schema.yml).
 --
 -- Speed proxy: sector 2 speed trap (speed_i2_kph) used as dt_per_dm
 -- denominator.
 -- Note: int_corner_metrics has no lap_id joined via (race_year, race_id,
--- driver_id, lap_number)
--- composite key through int_stint_geometry.
+-- driver_id, lap_number) composite key through int_stint_geometry.
 
 {{ config(materialized='table', tags=['intermediate', 'feature_engineering']) }}
 
@@ -41,7 +46,7 @@ lap_keys AS (
     FROM {{ ref('int_stint_geometry') }} AS sg
     INNER JOIN {{ ref('stg_laps') }} AS sl ON sg.lap_id = sl.lap_id
     -- int_stint_geometry now carries SC/pit/invalid laps too; exclude them
-    -- here or their braking/speed metrics pollute the 5-lap windowed field
+    -- here or their braking/speed metrics pollute the trailing windowed field
     -- medians below.
     WHERE sg.is_valid_lap = TRUE
 ),
@@ -72,8 +77,7 @@ corners_with_keys AS (
         lk.stint_id,
         lk.constructor_id,
         s2.s2_speed_trap_kph,
-        1.0 / NULLIF(s2.s2_speed_trap_kph * (1000.0 / 3600.0), 0) AS dt_per_dm,
-        FLOOR(CAST(cm.lap_number AS DOUBLE) / 5.0) * 5.0 AS lap_window
+        1.0 / NULLIF(s2.s2_speed_trap_kph * (1000.0 / 3600.0), 0) AS dt_per_dm
     FROM corner_metrics AS cm
     INNER JOIN lap_keys AS lk
         ON
@@ -89,19 +93,66 @@ field_medians AS (
         race_year,
         race_id,
         corner_name,
-        lap_window,
-        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY braking_point_m)
-        FILTER (WHERE braking_point_m IS NOT NULL)
-            AS field_corner_braking_point_m,
-        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY v_min_kph)
-        FILTER (WHERE v_min_kph IS NOT NULL) AS field_corner_v_min_kph,
-        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY throttle_point_m)
-        FILTER (WHERE throttle_point_m IS NOT NULL)
-            AS field_corner_throttle_point_m,
-        COUNT(*) FILTER (WHERE braking_point_m IS NOT NULL)
-            AS field_corner_sample_n
+        lap_number,
+        {{ trailing_median(
+            'braking_point_m',
+            ['race_year', 'race_id', 'corner_name'],
+            ['lap_number'],
+            lookback=5,
+            frame='range',
+            min_observations=5
+        ) }} AS field_corner_braking_point_m,
+        {{ trailing_median(
+            'v_min_kph',
+            ['race_year', 'race_id', 'corner_name'],
+            ['lap_number'],
+            lookback=5,
+            frame='range',
+            min_observations=5
+        ) }} AS field_corner_v_min_kph,
+        {{ trailing_median(
+            'throttle_point_m',
+            ['race_year', 'race_id', 'corner_name'],
+            ['lap_number'],
+            lookback=5,
+            frame='range',
+            min_observations=5
+        ) }} AS field_corner_throttle_point_m,
+        -- Reported UNFLOORED, which is the macro's documented contract: "the count
+        -- is what the floor is applied to, so it is reported unfloored". 02g wrapped
+        -- this in a CASE that returned NULL below 5, which destroyed the only thing
+        -- the companion column is for -- it made "no prior laps at all" and "four
+        -- prior laps, one short of the gate" indistinguishable, and it contradicted
+        -- this column's own `not_null` test in schema.yml (416,639 failing rows).
+        -- The residuals do not need it to NULL out anyway: trailing_median already
+        -- carries min_observations=5 and returns NULL on its own, and with_residuals
+        -- gates on `< 5` below.
+        {{ trailing_observation_count(
+            'braking_point_m',
+            ['race_year', 'race_id', 'corner_name'],
+            ['lap_number'],
+            lookback=5,
+            frame='range'
+        ) }} AS field_corner_sample_n
     FROM corners_with_keys
-    GROUP BY race_year, race_id, corner_name, lap_window
+    -- GRAIN GUARD (02c, repairing 02g). corners_with_keys is at DRIVER grain, and
+    -- the block bucket this CTE replaced collapsed it with a GROUP BY. The window
+    -- functions above do not: they return one row per input row, so every
+    -- (race, corner, lap) emits one copy of its medians per driver on track. The
+    -- LEFT JOIN below then fans the model out by the field size -- measured
+    -- 2,206,939 -> 38,444,069 rows (17.4x), breaking the corner_id PK that
+    -- schema.yml declares unique.
+    --
+    -- Deduplicating here is value-preserving, not a choice of representative: the
+    -- RANGE frame orders by lap_number, so every driver row at the same lap_number
+    -- is a peer and sees an IDENTICAL frame. Verified on the fanned-out build --
+    -- zero corner_ids carried more than one distinct value of any median or of
+    -- field_corner_sample_n. ROWS would NOT have this property, which is the other
+    -- reason `frame='range'` is load-bearing here.
+    QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY race_year, race_id, corner_name, lap_number
+        ORDER BY driver_id
+    ) = 1
 ),
 
 with_residuals AS (
@@ -155,7 +206,7 @@ with_residuals AS (
             ck.race_year = fm.race_year
             AND ck.race_id = fm.race_id
             AND ck.corner_name = fm.corner_name
-            AND ck.lap_window = fm.lap_window
+            AND ck.lap_number = fm.lap_number
 )
 
 SELECT

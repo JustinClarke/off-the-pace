@@ -89,6 +89,32 @@ proximity AS (
     FROM {{ ref('int_lap_proximity') }}
 ),
 
+-- 02c (Tier 2): corner-level driver inputs, aggregated to lap grain in
+-- int_lap_corner_inputs. Carried ALONGSIDE `thermal` for the same reason
+-- `proximity` is carried alongside `air`: the two describe the same physical
+-- quantity from opposite ends. `thermal` INFERS push load from lap-time
+-- residuals; this MEASURES the braking, rotation and throttle inputs that put
+-- the energy into the tyre in the first place. The ablation decides whether the
+-- measurement adds anything over the inference; nothing here asserts that it does.
+--
+-- This is the only lap-varying candidate in item 02, and so the only one that can
+-- address the 99.06% of degradation variance that lives within a stint.
+corner_inputs AS (
+    SELECT
+        lap_id,
+        corner_input_coverage,
+        corner_braking_loss_mean_s,
+        corner_braking_loss_sd_s,
+        corner_braking_loss_max_s,
+        corner_mid_residual_mean_s,
+        corner_mid_residual_sd_s,
+        corner_mid_residual_max_s,
+        corner_exit_residual_mean_s,
+        corner_exit_residual_sd_s,
+        corner_exit_residual_max_s
+    FROM {{ ref('int_lap_corner_inputs') }}
+),
+
 corrections AS (
     SELECT
         lap_id,
@@ -296,6 +322,32 @@ base AS (
         px.ahead_identity_stability,
         px.n_distinct_cars_ahead_3s,
 
+        -- 02c corner-input predictors (corner-windowed telemetry).
+        -- NULL POLICY, and it is the opposite of the share_* block above. A NULL
+        -- residual mean means "this lap's corner inputs were not measured", not
+        -- "this driver sat exactly on the field median". COALESCE-ing to 0.0 would
+        -- invent a lap that was driven precisely at the reference, on 4.15% of
+        -- training rows whose mean label is +1.393 s against -2.330 s for the
+        -- covered ones -- inventing the reference value on exactly the rows that
+        -- degrade worst. So the nine residual aggregates stay NULL and XGBoost
+        -- reads them as native missing.
+        --
+        -- corner_input_coverage IS coalesced, to 0.0, and that is not the same
+        -- decision: a lap with no mapped corner genuinely has zero coverage, so 0.0
+        -- is the measured value rather than an invented one. Carrying it explicitly
+        -- is what lets the ablation separate "the driver-input signal" from "the
+        -- model learned to split on the NaN pattern" -- see the leaf doc's arm C.
+        COALESCE(ci.corner_input_coverage, 0.0) AS corner_input_coverage,
+        ci.corner_braking_loss_mean_s,
+        ci.corner_braking_loss_sd_s,
+        ci.corner_braking_loss_max_s,
+        ci.corner_mid_residual_mean_s,
+        ci.corner_mid_residual_sd_s,
+        ci.corner_mid_residual_max_s,
+        ci.corner_exit_residual_mean_s,
+        ci.corner_exit_residual_sd_s,
+        ci.corner_exit_residual_max_s,
+
         -- Event flag: any event contamination on this lap
         COALESCE(cor.correction_weight < 1.0, FALSE) AS event_flag_any,
 
@@ -349,6 +401,7 @@ base AS (
     LEFT JOIN thermal AS th ON r.lap_id = th.lap_id
     LEFT JOIN air AS ai ON r.lap_id = ai.lap_id
     LEFT JOIN proximity AS px ON r.lap_id = px.lap_id
+    LEFT JOIN corner_inputs AS ci ON r.lap_id = ci.lap_id
     LEFT JOIN corrections AS cor ON r.lap_id = cor.lap_id
     LEFT JOIN telemetry AS tel ON r.lap_id = tel.lap_id
     LEFT JOIN race_to_track AS rtt ON r.race_id = rtt.race_id
@@ -561,6 +614,23 @@ SELECT
     gap_ahead_median_s,
     ahead_identity_stability,
     n_distinct_cars_ahead_3s,
+
+    -- 02c corner-input predictors (Tier 2, corner-windowed telemetry). Same
+    -- standing as the proximity block above when it landed: present in the mart,
+    -- NOT yet in ml/src/schema.py's FEATURE_COLUMNS. The contract moves only if
+    -- the pre-registered ablation in _improvements/work/02-feature-expansion.md
+    -- §3 `02c` says it should. Shipping the columns here is what makes that
+    -- ablation runnable; it is not a claim that they carry anything.
+    corner_input_coverage,
+    corner_braking_loss_mean_s,
+    corner_braking_loss_sd_s,
+    corner_braking_loss_max_s,
+    corner_mid_residual_mean_s,
+    corner_mid_residual_sd_s,
+    corner_mid_residual_max_s,
+    corner_exit_residual_mean_s,
+    corner_exit_residual_sd_s,
+    corner_exit_residual_max_s,
 
     -- Cliff prediction features
     expected_compound_pace_s,

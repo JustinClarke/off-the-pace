@@ -1,8 +1,49 @@
 # 10c Evaluation Framework — Cause-specific metrics without the mixture artefact
 
 **Item:** 10c  
-**Status:** MEASURED (run 2026-09-10; metrics corrected and re-run same day — see § Metric corrections)  
-**Objective:** Stop quoting AFT NLL on a mixture as though it were a headline. Evaluate the 10b-trained model with metrics that don't have the scoring-artefact problem.
+**Status:** MEASURED, and **every number below the § Result summary heading is SUPERSEDED** — see the correction block immediately following.  
+**Objective:** Stop quoting AFT NLL on a mixture as though it were a headline. Evaluate the model with metrics that don't have the scoring-artefact problem.
+
+> ## ⚠ Correction — 2026-09-10, by `10d`. The results in this document were measured in-sample.
+>
+> `evaluate_10c.py` loaded the shipped `ml/models/stint_life_regressor_v11.bst` and scored it on
+> the `cv_final_fold` eval rows. `train.py` refits the shipped booster on **every** training
+> season and `training_seasons` is 2018–2024; **the eval fold is 2024**. The eval set was inside
+> the booster's own training data, so every metric in § Result summary measures memorisation.
+>
+> Reproduced exactly before anything was built on the repair: an all-seasons refit under the 10b
+> label, scored on the 2024 rows, returns green-pit Brier **0.141216**, AUC **0.844167**, slope
+> **1.231641** — this document's 0.1412159702194419 / 0.8441673881692147 / 1.2316409494909957 to
+> six decimal places, with the 5-bin table matching row for row.
+>
+> | green-pit | published here (in-sample) | honest refit (2018–2023 → 2024) |
+> |---|---:|---:|
+> | time-dependent AUC | 0.844 | **0.691** |
+> | IPCW-Brier | 0.141 | **0.206** |
+> | calibration slope | 1.232 | **0.666**, 95% [0.463, 0.906] |
+>
+> **The slope does not merely shrink — it crosses 1.0, so this document reported the
+> miscalibration with the wrong sign.** "The model over-predicts stint life" survives; "observed
+> risk exceeds predicted and the gap widens *as risk rises*" does not — out of sample the gap is
+> widest at the *low*-risk end and the risk score is over-dispersed, not compressed.
+>
+> **What survives.** The § Metric corrections are real repairs to `survival.py` and stand
+> unchanged — the metrics were never the problem, the model being scored was, and their 26
+> regression tests still pass. § Do not quote the overall row stands. The § Is the 1.23 slope a
+> model defect, or an SC-selection artefact? conclusion stands on a re-run: out of sample,
+> zero-SC races 0.6555 (n=7,588) vs SC races 0.7823 (n=1,682) vs all races 0.6664 — both strata
+> well below 1.0, so selection still does not explain the defect. Only its sign changed.
+>
+> **What does not survive.** The headline (0.844 / 0.141 / 1.23), the per-horizon tables, the
+> D-calibration table, the zero-SC/SC table's numbers, and the description of the artefact as
+> "the 10b-trained model" — the `.bst` was rewritten by a `standard`-variant retrain
+> (`stint_life_regressor_v11_20260910T092333.json`) after this ran, so re-running the script
+> afterwards scored a different model again.
+>
+> **Repaired.** `evaluate_10c.py` now refits on the training side by default and keeps the
+> shipped-booster path only as a labelled `in_sample` diagnostic, printed beside the headline as
+> an optimism gap. Full working: [`../work/10-competing-risks.md`](../work/10-competing-risks.md)
+> § 10d — Verdict.
 
 ## The problem
 
@@ -83,9 +124,15 @@ From `10a`:
 
 ## Result summary
 
-Model `stint_life_regressor_v11` (the 10b-trained model), `cv_final_fold` — train 2018-2023, eval 2024. Counts are **eval-fold laps**, not stints (the 10a stint counts in § Causes are all-seasons and are not the same denominator).
+> **SUPERSEDED — read the correction block at the top of this file first.** Everything from here
+> to § Metric corrections was measured with the 2024 eval rows inside the scored booster's
+> training set. Kept as the record of what was published and how far off it was; **do not quote
+> any figure below as a headline.** The honest replacements are in the correction block and in
+> [`../work/10-competing-risks.md`](../work/10-competing-risks.md) § 10d.
 
-### Headline
+Model `stint_life_regressor_v11`, `cv_final_fold` — the split says train 2018-2023, eval 2024, but the booster that was scored had been fitted on 2018-**2024**, which is the defect. Counts are **eval-fold laps**, not stints (the 10a stint counts in § Causes are all-seasons and are not the same denominator).
+
+### Headline (in-sample — superseded)
 
 > **Tyre-limit survival (green-pit endings) is predicted with time-dependent AUC 0.844 and IPCW-Brier 0.141**, on 9,270 eval-fold laps. Calibration slope is **1.23** — the model systematically over-predicts stint life, and does so more at the high-risk end.
 
@@ -114,7 +161,7 @@ Green-pit D-calibration (5 risk bins, shared horizon = median observed time):
 
 Observed risk exceeds predicted in 4 of 5 bins and the gap widens with risk — consistent with slope 1.23. **This is a real miscalibration, not noise**, and it is the most actionable thing 10c produced: the model is too optimistic about how long stints last, worst for the stints it already flags as fragile.
 
-*Why 1.23 is trustworthy rather than an artefact of the repaired estimator:* fed data drawn from the lognormal AFT the metric assumes — so calibration is correct by construction — the fixed `d_calibration` returns slope **1.03** at 0% censoring, 0.98 at 20%, 0.93 at 40% (`ml/tests/test_survival.py::test_d_calibration_recovers_a_slope_near_one_when_well_specified`). The green-pit stratum has **no censoring within it**, which is the 1.03 case. The estimator is unbiased where it is being applied, so the 1.23 is the model's, not the metric's.
+*Why 1.23 is trustworthy rather than an artefact of the repaired estimator* — **the reasoning below is sound and the conclusion drawn from it was still wrong.** The estimator is unbiased where it is applied, so the 1.23 is not the metric's. It is the *scoring set's*: the rows were in the booster's training data. An unbiased estimator applied to an in-sample prediction returns an honest measurement of memorisation. This paragraph ruled out the metric and then read that as having ruled in the model, which does not follow. Original text follows: fed data drawn from the lognormal AFT the metric assumes — so calibration is correct by construction — the fixed `d_calibration` returns slope **1.03** at 0% censoring, 0.98 at 20%, 0.93 at 40% (`ml/tests/test_survival.py::test_d_calibration_recovers_a_slope_near_one_when_well_specified`). The green-pit stratum has **no censoring within it**, which is the 1.03 case. The estimator is unbiased where it is being applied, so the 1.23 is the model's, not the metric's.
 
 ### Do not quote the overall row
 
@@ -146,6 +193,16 @@ A stint only *becomes* green-pit if no safety car diverted it first, so the gree
 | **Zero-SC races (no diversion possible)** | 6,822 | **1.224** | 0.845 | 0.139 |
 | SC races (diversion occurred) | 2,448 | 1.267 | 0.844 | 0.146 |
 | All races (headline) | 9,270 | 1.232 | 0.844 | 0.141 |
+
+**The conclusion of this section survives; the numbers in the table above do not.** Re-run out of
+sample by 10d, the same argument still goes through — both strata sit far below 1.0, so a filter
+that was supposed to explain the miscalibration does not:
+
+| green-pit stratum | n (laps) | races | cal slope (honest) | AUC (honest) |
+|---|---:|---:|---:|---:|
+| **Zero-SC races (no diversion possible)** | 7,588 | 16 | **0.6555** | 0.6917 |
+| SC races (diversion occurred) | 1,682 | 8 | 0.7823 | 0.6902 |
+| All races | 9,270 | 24 | 0.6664 | 0.6914 |
 
 The slope is flat across the split, and discrimination is identical to three decimals. Cluster bootstrap over races on the zero-SC stratum (races as the resampling unit, 200 draws, per 05c's gate-3 substitute): **mean 1.222, sd 0.071, 95% interval [1.098, 1.363], 0 of 200 draws below 1.0.** The interval excludes 1.0.
 

@@ -1,21 +1,37 @@
 """10c evaluation: cause-specific metrics with dependent-censoring sensitivity band.
 
-The 10b-trained AFT model predicts tyre-limit survival under cause-specific censoring.
-This script evaluates it with metrics that don't have the NLL scoring-mixture artefact:
+An AFT model fitted under cause-specific censoring predicts tyre-limit survival. This
+script evaluates it with metrics that don't have the NLL scoring-mixture artefact:
 IPCW-Brier and time-dependent AUC, with a sensitivity band for dependent censoring.
 
+**The headline is the honest refit, and that is not a preference.** As first written this
+script loaded the SHIPPED `stint_life_regressor_v11.bst` and scored it on the
+`cv_final_fold` eval rows. `train.py` refits the shipped booster on EVERY training season
+-- 2018 through 2024 -- and that fold's eval rows are 2024, so the eval set sat inside the
+booster's own training data and every number the script produced was in-sample. It is not
+a small effect: green-pit time-dependent AUC reads 0.844 in-sample and 0.691 out of it, and
+the calibration slope does not merely shrink, it crosses 1.0 (1.232 in-sample, 0.666 out),
+so the in-sample run reported the miscalibration with the wrong SIGN. 10c's published
+headline was measured that way; 10d found it and this is the repair.
+
+So `default_mode="honest"` refits on the training side of the split only -- the same thing
+`evaluate.py::evaluate_target` already does, through the same `EV._fit` -- and the
+shipped-booster path survives only as a labelled `in_sample` diagnostic that main() prints
+beside the headline as a gap, never on its own.
+
 CLI:
-  python -m ml.src.evaluate_10c
+  python -m ml.src.evaluate_10c                       # honest headline + in-sample gap
+  python -m ml.src.evaluate_10c --variant standard    # the other label construction
 """
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import duckdb
-from scipy.stats import linregress
 
 from ml.src import features as F
 from ml.src import schema as S
@@ -23,44 +39,80 @@ from ml.src import survival as SV
 from ml.src import evaluate as EV
 
 RESULTS_PATH = Path("ml/artefacts/10c_evaluation_results.json")
+SHIPPED_BOOSTER = "ml/models/stint_life_regressor_v11.bst"
+
+_BUNDLES: dict[str, F.FeatureBundle] = {}
 
 
-def load_10b_model_and_data():
-    """Load the 10b-trained model and evaluation data."""
-    # Load the 10b model (cause-specific censoring)
-    booster_path = "ml/models/stint_life_regressor_v11.bst"
-    booster = SV.load_booster(booster_path)
-    params = SV.aft_params(booster)
-    scale = params["scale"]
+def _bundle(censoring_variant: str) -> F.FeatureBundle:
+    """Feature load is the expensive part; both modes score the identical eval rows."""
+    if censoring_variant not in _BUNDLES:
+        _BUNDLES[censoring_variant] = F.load_features(
+            target="stint_life_regressor", censoring_variant=censoring_variant)
+    return _BUNDLES[censoring_variant]
 
-    # Load features and evaluation split
-    bundle = F.load_features(target="stint_life_regressor", censoring_variant="10b")
+
+def load_model_and_data(censoring_variant: str = "10b", mode: str = "honest") -> dict:
+    """Predictions on the eval fold, and how they were produced.
+
+    mode="honest"    -- refit on split.X_tr (2018-2023) and score 2024. The headline.
+    mode="in_sample" -- load the shipped booster, which was fitted on 2018-2024, and
+                        score 2024. Diagnostic only: the eval rows are in its training
+                        set, so it measures memorisation, not generalisation.
+    """
+    if mode not in ("honest", "in_sample"):
+        raise ValueError(f"mode must be 'honest' or 'in_sample', got {mode!r}")
+
+    bundle = _bundle(censoring_variant)
     spec = S.TARGET_BY_NAME["stint_life_regressor"]
+    split = EV._evaluation_split(bundle)   # cv_final_fold: train 2018-2023, eval 2024
 
-    # Use cv_final_fold (train 2018-2023, eval 2024)
-    split = EV._evaluation_split(bundle)
+    if mode == "honest":
+        params = EV._params_for("stint_life_regressor", S.MODEL_VERSION_DEFAULT)
+        model = EV._fit(spec, params, split.X_tr, split.y_tr, split.cens_tr, split.w_tr)
+        scale = model.scale
+        pred_median = model.predict(split.X_ev)
+        provenance = {
+            "mode": "honest",
+            "fitted_on": "training side of the split only (2018-2023)",
+            "n_fit_rows": int(len(split.y_tr)),
+            "params_source": f"ml/models/stint_life_regressor_best_params.json ({S.MODEL_VERSION_DEFAULT})",
+        }
+    else:
+        booster = SV.load_booster(SHIPPED_BOOSTER)
+        scale = SV.aft_params(booster)["scale"]
+        pred_median = SV.laps_from_margin(SV.margin(booster, split.X_ev), scale, q=None)
+        provenance = {
+            "mode": "in_sample",
+            "fitted_on": f"whatever wrote {SHIPPED_BOOSTER} -- train.py fits every "
+                         f"training season, 2018-2024, so the 2024 eval rows are inside it",
+            "n_fit_rows": int(len(bundle.X_train)),
+            "params_source": SHIPPED_BOOSTER,
+            "warning": "IN-SAMPLE. Diagnostic only; never quote as a headline.",
+        }
 
-    # Get predictions
-    pred_margin = SV.margin(booster, split.X_ev)
-    pred_median = SV.laps_from_margin(pred_margin, scale, q=None)
-
-    y_ev = split.y_ev
-    cens_ev = split.cens_ev
     lap_ids_ev = split.lap_ids_ev
-
-    # Get eval metadata from training meta (since eval comes from train split)
-    meta_ev = bundle.meta_train.loc[bundle.meta_train["lap_id"].isin(lap_ids_ev)].reset_index(drop=True)
+    meta_ev = bundle.meta_train.loc[
+        bundle.meta_train["lap_id"].isin(lap_ids_ev)].reset_index(drop=True)
 
     return {
         "spec": spec,
-        "scale": scale,
-        "y": y_ev,
+        "scale": float(scale),
+        "y": split.y_ev,
         "pred": pred_median,
-        "cens": cens_ev,
+        "cens": split.cens_ev,
         "lap_ids": lap_ids_ev,
         "X": split.X_ev,
         "meta": meta_ev,
+        "censoring_variant": censoring_variant,
+        "provenance": provenance,
     }
+
+
+def load_10b_model_and_data():
+    """Back-compat shim. Returns the HONEST refit, not the shipped booster the original
+    name implied -- see the module docstring for why the original behaviour was a defect."""
+    return load_model_and_data(censoring_variant="10b", mode="honest")
 
 
 def get_cause_labels(lap_ids: np.ndarray, meta: pd.DataFrame) -> np.ndarray:
@@ -190,33 +242,78 @@ def dependent_censoring_sensitivity_band(
     }
 
 
-def main():
-    """Run 10c evaluation."""
-    print("Loading 10b model and evaluation data...")
-    data = load_10b_model_and_data()
+def evaluate_mode(censoring_variant: str, mode: str, cause_labels=None) -> tuple[dict, np.ndarray]:
+    """Every cause-specific metric for one (variant, mode) pair."""
+    data = load_model_and_data(censoring_variant, mode)
+    y, pred, cens, scale = data["y"], data["pred"], data["cens"], data["scale"]
 
-    y = data["y"]
-    pred = data["pred"]
-    cens = data["cens"]
-    scale = data["scale"]
-    lap_ids = data["lap_ids"]
-    meta = data["meta"]
-
-    print(f"Evaluation set size: {len(y)} laps across {len(np.unique(data['meta']['stint_id']))} stints")
-
-    # Get cause labels
-    cause_labels = get_cause_labels(lap_ids, meta)
+    if cause_labels is None:
+        cause_labels = get_cause_labels(data["lap_ids"], data["meta"])
     causes = [c for c in np.unique(cause_labels) if pd.notna(c)]
 
-    print(f"Causes: {causes}")
+    out = {
+        "mode": mode,
+        "censoring_variant": censoring_variant,
+        "provenance": data["provenance"],
+        "scale": scale,
+        "n_eval_laps": int(len(y)),
+        "overall": compute_cause_specific_metrics(
+            y, pred, cens, scale, np.ones(len(y), dtype=bool), "overall"),
+        "by_cause": [],
+    }
+    out["overall"]["interpretation"] = "diagnostic_only_conflates_causes"
+    for cause in causes:
+        mask = get_causes_mask(cause_labels, cause)
+        if np.sum(mask) >= 10:
+            out["by_cause"].append(
+                compute_cause_specific_metrics(y, pred, cens, scale, mask, cause))
+    out["dependent_censoring_sensitivity"] = dependent_censoring_sensitivity_band(
+        y, pred, cens, scale, cause_labels)
+    return out, cause_labels
+
+
+def _green_pit(block: dict) -> dict:
+    for row in block["by_cause"]:
+        if row["cause"] == "green_pit":
+            return row
+    return {}
+
+
+def main(censoring_variant: str = "10b"):
+    """Run 10c evaluation: the honest headline, with the in-sample gap beside it."""
+    print(f"Evaluating stint_life_regressor, censoring_variant={censoring_variant}")
+    print("  headline  = refit on 2018-2023, scored on 2024 (out of sample)")
+    print(f"  diagnostic = shipped {SHIPPED_BOOSTER}, which contains 2024 (IN SAMPLE)\n")
+
+    honest, cause_labels = evaluate_mode(censoring_variant, "honest")
+    in_sample, _ = evaluate_mode(censoring_variant, "in_sample", cause_labels)
+
+    print(f"Evaluation set size: {honest['n_eval_laps']} laps")
     print(f"Cause distribution:\n{pd.Series(cause_labels).value_counts()}")
 
-    # Overall metrics
+    gh, gi = _green_pit(honest), _green_pit(in_sample)
+    optimism = {
+        "time_dependent_auc": (gi.get("time_dependent_auc") or 0) - (gh.get("time_dependent_auc") or 0),
+        "ipcw_brier": (gi.get("ipcw_brier") or 0) - (gh.get("ipcw_brier") or 0),
+        "calibration_slope": (gi.get("calibration_slope") or 0) - (gh.get("calibration_slope") or 0),
+    }
+
     results = {
         "timestamp": pd.Timestamp.now().isoformat(),
-        "model": "stint_life_regressor_v11",
+        "model": "stint_life_regressor",
         "framework": "cause-specific AFT with IPCW-Brier and time-dependent AUC",
         "headline_cause": "green_pit",
+        "headline_mode": "honest",
+        "headline": honest,
+        "in_sample_diagnostic": in_sample,
+        "in_sample_optimism_green_pit": optimism,
+        "in_sample_optimism_note": (
+            "Shipped-booster minus honest-refit on the identical eval rows. This is the "
+            "gap that made 10c's published headline wrong: the shipped booster is fitted "
+            "on 2018-2024 and the eval fold IS 2024, so its numbers measure memorisation. "
+            "The calibration slope does not merely shrink across the gap, it crosses 1.0, "
+            "so the in-sample run reported the miscalibration with the wrong sign."
+        ),
         "headline_note": (
             "The green_pit row is the headline. Under the 10b variant green_pit is the "
             "only uncensored cause, so the 'overall' row scores green-pit events against "
@@ -225,58 +322,47 @@ def main():
             "discrimination is therefore part cause-membership, which is the same "
             "mixture artefact 10c exists to remove. Diagnostic only."
         ),
-        "overall": compute_cause_specific_metrics(
-            y, pred, cens, scale, np.ones(len(y), dtype=bool), "overall"
-        ),
-        "by_cause": [],
     }
-    results["overall"]["interpretation"] = "diagnostic_only_conflates_causes"
 
-    # Per-cause metrics
-    for cause in causes:
-        mask = get_causes_mask(cause_labels, cause)
-        if np.sum(mask) >= 10:
-            cause_results = compute_cause_specific_metrics(
-                y, pred, cens, scale, mask, cause
-            )
-            results["by_cause"].append(cause_results)
-
-    # Dependent-censoring sensitivity band
-    results["dependent_censoring_sensitivity"] = dependent_censoring_sensitivity_band(
-        y, pred, cens, scale, cause_labels
-    )
-
-    # Save results
     print(f"\nSaving results to {RESULTS_PATH}...")
     RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(RESULTS_PATH, "w") as f:
         json.dump(results, f, indent=2)
 
-    # Print summary
-    print("\n" + "=" * 60)
-    print("10c EVALUATION SUMMARY")
-    print("=" * 60)
-    print(f"\nOverall metrics:")
-    if "ipcw_brier" in results["overall"]:
-        print(f"  IPCW-Brier: {results['overall']['ipcw_brier']:.4f}")
-    if "time_dependent_auc" in results["overall"]:
-        print(f"  Time-dependent AUC: {results['overall']['time_dependent_auc']:.4f}")
+    print("\n" + "=" * 74)
+    print("10c EVALUATION SUMMARY  (headline = honest refit; in-sample shown for the gap)")
+    print("=" * 74)
+    print(f"\n{'green_pit':<22}{'HONEST (headline)':>20}{'in-sample (diag)':>20}{'optimism':>12}")
+    for key, fmt in (("time_dependent_auc", "{:.4f}"), ("ipcw_brier", "{:.4f}"),
+                     ("calibration_slope", "{:.4f}")):
+        h, i = gh.get(key), gi.get(key)
+        print(f"  {key:<20}" + f"{fmt.format(h) if h is not None else 'n/a':>20}"
+              + f"{fmt.format(i) if i is not None else 'n/a':>20}"
+              + f"{optimism[key]:>+12.4f}")
 
-    print(f"\nPer-cause metrics (n={len(results['by_cause'])} causes):")
-    for cause_result in results["by_cause"]:
-        print(f"\n  {cause_result['cause']} (n={cause_result['n']}):")
-        if "ipcw_brier" in cause_result:
-            print(f"    IPCW-Brier: {cause_result['ipcw_brier']:.4f}")
-        if "time_dependent_auc" in cause_result:
-            print(f"    Time-dependent AUC: {cause_result['time_dependent_auc']:.4f}")
-        if "calibration_slope" in cause_result and cause_result["calibration_slope"] is not None:
-            print(f"    Calibration slope: {cause_result['calibration_slope']:.4f}")
+    print(f"\n{'overall (DIAGNOSTIC ONLY -- do not quote)':<42}")
+    for key in ("ipcw_brier", "time_dependent_auc"):
+        print(f"  {key:<20}{honest['overall'].get(key, float('nan')):>20.4f}"
+              f"{in_sample['overall'].get(key, float('nan')):>20.4f}")
+
+    print(f"\nPer-cause (honest), n={len(honest['by_cause'])} causes:")
+    for row in honest["by_cause"]:
+        bits = [f"n={row['n']}"]
+        for key, label in (("ipcw_brier", "Brier"), ("time_dependent_auc", "AUC"),
+                           ("calibration_slope", "slope")):
+            if row.get(key) is not None:
+                bits.append(f"{label} {row[key]:.4f}")
+        print(f"  {row['cause']:<12} " + "  ".join(bits))
 
     print(f"\nDependent censoring sensitivity:")
-    print(f"  {results['dependent_censoring_sensitivity']['sensitivity_interpretation']}")
+    print(f"  {honest['dependent_censoring_sensitivity']['sensitivity_interpretation']}")
 
     return results
 
 
 if __name__ == "__main__":
-    results = main()
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--variant", default="10b", choices=["standard", "10b"],
+                    help="censoring variant for the stint-life label (default: 10b)")
+    args = ap.parse_args()
+    results = main(censoring_variant=args.variant)

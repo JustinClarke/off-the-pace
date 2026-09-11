@@ -357,7 +357,189 @@ outputs is reported, not assumed to be nil; `model_hashes.baseline.json` re-snap
 **Cost:** ~0.5–1 day. The window is a two-line change; the test, the schema note and re-reading
 the mart are the rest.
 
-**Cost:** ~2–3 days, most of it in the aggregation design and the leakage check.
+**Three defects found in `02g` when `02c` picked it up, 2026-09-11.** Recorded here rather than
+silently repaired, because two of them were invisible to the checks `02g` reported passing.
+
+1. **The rebuild fanned the model out 17.4×.** The block bucket collapsed `field_medians` with a
+   `GROUP BY`; the window functions that replaced it do not. `corners_with_keys` is at *driver*
+   grain, so every `(race, corner, lap)` emitted one copy of its medians per driver on track, and
+   the `LEFT JOIN` back onto `(race_year, race_id, corner_name, lap_number)` multiplied the table
+   by the field size: **2,206,939 → 38,444,069 rows**, against a `corner_id` that `schema.yml`
+   declares `unique`. Every duplicate carried identical values — verified, zero `corner_id`s with
+   more than one distinct value of any median — so no `MEAN` or `MEDIAN` downstream moved and
+   nothing looked wrong. What moved were the `COUNT`s: `mart_corner_skill_driver`'s
+   `HAVING COUNT(*) >= 100` admission floor and its `PHASE_MIN_CELLS = 30` gate were both being
+   cleared ~17× too easily, and its LORO baseline `(sum − focal)/(n − n_focal)` silently became
+   field-size weighted rather than unweighted. Fixed by a `QUALIFY ROW_NUMBER() ... = 1` on
+   `(race_year, race_id, corner_name, lap_number)`. The dedupe is value-preserving rather than a
+   choice of representative: the `RANGE` frame orders by `lap_number`, so every driver row at the
+   same lap is a peer and sees an identical frame. `ROWS` would not have this property, which is a
+   second reason `frame='range'` is load-bearing.
+2. **`field_corner_sample_n` was floored to NULL below 5**, which contradicted its own `not_null`
+   test in the same `schema.yml` block (416,639 failing rows) and destroyed the only thing the
+   companion column is for — it made "no prior lap at all" and "four prior laps, one short of the
+   gate" indistinguishable, so the residual NULLs became unexplainable from the data. The
+   `trailing_observation_count` macro's docstring is explicit that the count "is reported
+   unfloored". Now unfloored and never NULL; the residuals still NULL out through
+   `trailing_median`'s own `min_observations=5`.
+3. **`model_hashes.baseline.json` was re-snapshotted against `data/dev.duckdb`.** The byte-stability
+   oracle is defined over `data/ci.duckdb` built with `--target ci` and the committed fixtures;
+   `snapshot_model_hashes.py`'s own default is `ci.duckdb`. The committed baseline was replaced
+   with dev-warehouse hashes for every model, which fails CI Gate 1c on all seven mandatory `fct_*`
+   marts. Needs regenerating from a CI build.
+
+**How they got through.** `02g` reported "test passes" on the strength of one singular test. Neither
+`dbt test` nor `dbt build` was run on the model, so the `unique` and `not_null` generic tests — which
+name defects 1 and 2 directly, and which is where they were found — never executed. This is the
+same shape as `08b`'s finding one level down: the guard existed and was correct, and nobody pointed
+it at the model.
+
+---
+
+### `02c` — Tier 2, corner-level driver inputs · BUILT 2026-09-11, ARMS PRE-REGISTERED, NOT YET RUN
+
+**What was built.**
+
+* `int_lap_corner_inputs` (new, lap grain, 134,948 rows) rolls `int_corner_skill_residuals` up from
+  (lap × corner) to lap grain: mean / sd / max of each of the three phase residuals, plus coverage.
+* `fct_cliff_prediction_features` carries the ten resulting columns. They are **in the mart and not
+  in `ml/src/schema.py`'s `FEATURE_COLUMNS`** — the same standing `proximity` had between Phase 10's
+  build and its ablation. The contract moves only if the arms below say it should.
+* Tests: `assert_corner_inputs_lap_grain_closure` (ties the lap aggregate back to the corner grain;
+  would have caught the 17.4× fan-out) and a rewritten
+  `assert_corner_trailing_window_no_forward_reach`.
+
+**Each phase is aggregated over the corners where THAT phase is measurable**, not over the
+intersection of all three. Corner-grain availability is braking 69.9%, mid-corner 97.6%, exit 60.9%,
+because `braking_point_m` is NULL where a corner is taken flat and `throttle_point_m` is NULL where
+the driver never reaches full throttle before the next apex — both real answers about a corner,
+not missing data. `corner_residual_total_s` is exactly that intersection and is non-null on only
+38.6% of corner rows, which is why it is not used.
+
+**The corner-type split: considered, declined for the primary arm, recorded so it is not
+re-derived.** §3 suggests splitting by corner type via `dim_corners`. Two grounds. (1) The only
+within-warehouse measure of corner speed is apex speed, and a per-(race, corner) speed class pooled
+over the race reaches forward into the label window — *the exact defect `02a` ruled on in this same
+model*. A point-in-time classifier would have to be trailing, which makes a corner's type vary lap
+to lap, which is not what a corner-type split means. (2) `dim_corners` carries only geometry (apex
+distance, neighbour spacing), a weak proxy for how a corner loads a tyre. It stays available as arm
+D below, conditional on the primary clearing.
+
+**Verified — the coverage gap, counted before building as §3 requires.** Measured on the rebuilt
+mart's 121,193 training-eligible rows:
+
+| column | non-null on training-eligible rows |
+| :--- | ---: |
+| `corner_mid_residual_mean_s` | 96.03% |
+| `corner_braking_loss_mean_s` | 95.85% |
+| `corner_exit_residual_mean_s` | 89.85% |
+
+**And the gap is NOT a random subset — this is the item's main finding so far.** §3 warned that a
+feature NULL on a biased subset is "a leakage-shaped hazard, not just a sparse column". It is
+biased, and measurably:
+
+| rows | n | mean `next_5_lap_cumulative_jump_s` | sd |
+| :--- | ---: | ---: | ---: |
+| `corner_braking_loss_mean_s` present | 78,787 | **−2.3295** | 5.9377 |
+| `corner_braking_loss_mean_s` NULL | 3,683 | **+1.3926** | 10.1960 |
+
+The missing rows degrade worse and are far more variable. **It is not forward leakage** — a lap is
+uncovered because its own telemetry is absent, or because the trailing baseline over *t−5…t−1* held
+fewer than five valid observations, and both are settled strictly before *t+1*. But a model handed
+these columns as bare NaNs is free to split on "corner inputs missing" and score a win that has
+nothing to do with driver inputs.
+
+**So coverage is admitted as its own column and ablated separately.** `corner_input_coverage`
+(mapped corners / measured corners, mean 0.799) is in the group. Its marginal correlation with the
+label is **−0.0904**, larger in magnitude than *any* of the nine residual aggregates (the largest of
+those is `corner_braking_loss_mean_s` at +0.0627, and the three sd columns run −0.030 to −0.058).
+**A naive nine-column arm would very likely have cleared on the coverage channel and been read as
+the driver-input mechanism.** Arm C exists to prevent exactly that reading, and note that the
+permutation-null arm does *not* catch it on its own: row-shuffling moves the NaNs with the values,
+so a missingness-driven win is destroyed by the shuffle and reports as "information".
+
+**Verified — both leakage audits are clean on the new lineage.** `02c` is the event
+`ml/src/features.py::survey_aggregation_scope` was written to anticipate: wiring this model into a
+feature moves it from the report-only survey into `audit_aggregation_scope`'s scope. Both audits
+return CLEAN. `int_corner_skill_residuals` has no non-pinning `GROUP BY` left after `02g`, and
+`int_lap_corner_inputs` groups on `lap_id`, which pins one lap. `ml/tests/test_features.py`'s
+advance-notice test has been split accordingly — one half still holds `02d`'s instance under
+notice, the other asserts the corner instance left the survey *by being fixed and entering the
+lineage*, not merely by dropping out of a walk.
+
+#### Pre-registered arms — written before any arm is run (gates.md step 6)
+
+Baseline is the shipped 32-column contract on `cv_final_fold`, train 2018–2023, eval 2024, using
+`evaluate.py`'s own `_fit`/`_score`. Families: `degradation_regressor` p10/p50/p90,
+`cliff_classifier`, `stint_life_regressor`. Each delta is judged against **that family's own**
+5-reseed floor `2*sqrt(2)*sd` from `attribution.py::refit_noise_floor`, seeds
+`RANDOM_STATE + 0…4` = 20260528…20260532.
+
+| arm | columns added | what it tests |
+| :--- | ---: | :--- |
+| **A — full** | 10 | The group as designed: nine residual aggregates + `corner_input_coverage`. |
+| **B — residuals only** | 9 | Arm A minus `corner_input_coverage`. Isolates the driver-input channel from the coverage channel. |
+| **C — coverage only** | 1 | `corner_input_coverage` alone. **The confound control.** If C ≈ A, the group is a track-state/telemetry-availability proxy and the driver-input mechanism is unsupported. |
+| **P — permutation null** | 10 | Arm A's columns row-shuffled in train *and* eval. Capacity = shuffled − baseline; information = real − shuffled, reported separately (gates.md step 4). |
+| **D — corner-type split** | TBD | **Conditional.** Runs only if B clears. Declared now so that running it later is not a new selection; if B does not clear, D is not run and is not counted. |
+
+**Primary hypothesis:** arm B clears its floor on at least one of the three degradation quantiles.
+Tier 2 is the only lap-varying candidate in this document, so it is the only one that can address
+the 99.06% within-stint variance — a Tier 2 that moves only `cliff_classifier` has not done the
+thing it was admitted to attempt.
+
+**Declared in advance as the reading of each outcome**, so no result can be reinterpreted after the
+fact:
+
+* **B clears, C does not** → the driver-input mechanism is supported. This is the only outcome that
+  admits the group on its stated grounds.
+* **C clears, B does not** → the channel is telemetry availability, not driver inputs. Do not ship
+  as Tier 2; raise coverage as a separate candidate on its own merits, with its own registration.
+* **A clears but neither B nor C does** → ambiguous, recorded as ambiguous. This is Phase 10a's
+  p50 outcome and it is not rounded up.
+* **Nothing clears** → Tier 2 is closed, and with it the last lap-varying candidate in item 02.
+  That is a substantive result about the degradation ceiling, not a null to bury: it would say the
+  remaining within-stint variance is not reachable from the corner channel.
+
+**One sequencing constraint, inherited from `10d`.** `02b`'s note bars measuring
+`stint_life_regressor`'s 5-reseed floor until `10e` resolves — `10d` showed the shipped booster was
+tuned under the wrong label, on the mixture NLL, with 2024 in the validation folds. That bar applies
+here unchanged. **Arms A–C may be run now on the degradation trio and the cliff classifier; the
+stint-life column of every arm must wait for `10e`.** Running it now measures against a model that
+is about to change.
+
+#### E-value pre-registration — `02c`
+
+```
+H0                : the ten 02c columns carry no information (real vs row-shuffled, gates.md step 4)
+Statistic         : per family — p10/p50/p90 pinball, cliff macro-F1, AFT NLL;
+                    cv_final_fold, train 2018-2023, eval 2024
+Delta orientation : delta = score(shuffled) - score(real) for losses (pinball, NLL);
+                    delta = score(real) - score(shuffled) for macro-F1. Positive = improvement.
+Construction      : B (paired safe-t), the reference's default. Chosen over A because no prior
+                    separate reseed study of this substrate exists at the 32-column contract, so
+                    A's scale would be a plug-in from the same five seeds it scores -- the hole
+                    §3 of the reference names. B is exact for any unknown sigma.
+Seeds             : 20260528, 20260529, 20260530, 20260531, 20260532  (RANDOM_STATE + 0..4,
+                    the same five as the floor study)
+Parameters        : n = 5, g = 1  (a one-sd effect; the reference's default, no better number
+                    is available for this channel)
+Formula           : E = (1 + 5g)^(-1/2) * [ (1 + t^2/4) / (1 + t^2/((1+5g)*4)) ]^(5/2),
+                    t = sqrt(5) * d_bar / s_d     ->  at g = 1:
+                    E = 6^(-1/2) * [ (1 + t^2/4) / (1 + t^2/24) ]^(5/2)
+Declared alt      : delta* = the family's own floor 2*sqrt(2)*sd. The floor is the smallest
+                    effect the programme has ever shipped on, so it is the smallest one worth
+                    shipping here.
+Family            : every arm declared above is counted in the campaign family whatever E comes
+                    out as, E < 1 included. Arm D is conditional and is counted only if run.
+                    Campaign-level decision is e-BH per 04c, not per-arm.
+Validity check    : before trusting the implementation, push 100k draws of five i.i.d. N(0, sigma)
+                    deltas through it at several sigma and confirm mean(E) = 1.00 to Monte Carlo
+                    error. Required by the reference; costs a minute.
+```
+
+**Cost:** ~2–3 days, most of it in the aggregation design and the leakage check. The build and the
+audits are done; what remains is the arms above and `10e`'s resolution for the stint-life column.
 
 ---
 

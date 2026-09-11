@@ -396,7 +396,7 @@ it at the model.
 
 ---
 
-### `02c` — Tier 2, corner-level driver inputs · BUILT 2026-09-11, ARMS PRE-REGISTERED, NOT YET RUN
+### `02c` — Tier 2, corner-level driver inputs · BUILT 2026-09-11, ARMS RUN 2026-09-11
 
 **What was built.**
 
@@ -410,11 +410,15 @@ it at the model.
   `assert_corner_trailing_window_no_forward_reach`.
 
 **Each phase is aggregated over the corners where THAT phase is measurable**, not over the
-intersection of all three. Corner-grain availability is braking 69.9%, mid-corner 97.6%, exit 60.9%,
-because `braking_point_m` is NULL where a corner is taken flat and `throttle_point_m` is NULL where
-the driver never reaches full throttle before the next apex — both real answers about a corner,
-not missing data. `corner_residual_total_s` is exactly that intersection and is non-null on only
-38.6% of corner rows, which is why it is not used.
+intersection of all three. Corner-grain availability, re-measured on the shipped table 2026-09-11
+over all 2,206,939 rows, is braking **69.94%**, mid-corner **81.12%**, exit **47.00%** — 18.88% of
+corner rows are unmapped outright (`field_corner_sample_n < 5` under the trailing window), and among
+the mapped rows the three run 86.21% / 100% / 57.94%. `braking_point_m` is NULL where a corner is
+taken flat and `throttle_point_m` is NULL where the driver never reaches full throttle before the
+next apex — both real answers about a corner, not missing data. `corner_residual_total_s` is exactly
+that intersection and is non-null on only 38.59% of corner rows, which is why it is not used.
+*(This paragraph first read "mid-corner 97.6%, exit 60.9%". Those two do not reproduce against the
+table; see the corrections note at the end of this item.)*
 
 **The corner-type split: considered, declined for the primary arm, recorded so it is not
 re-derived.** §3 suggests splitting by corner type via `dim_corners`. Two grounds. (1) The only
@@ -450,13 +454,16 @@ these columns as bare NaNs is free to split on "corner inputs missing" and score
 nothing to do with driver inputs.
 
 **So coverage is admitted as its own column and ablated separately.** `corner_input_coverage`
-(mapped corners / measured corners, mean 0.799) is in the group. Its marginal correlation with the
-label is **−0.0904**, larger in magnitude than *any* of the nine residual aggregates (the largest of
-those is `corner_braking_loss_mean_s` at +0.0627, and the three sd columns run −0.030 to −0.058).
-**A naive nine-column arm would very likely have cleared on the coverage channel and been read as
-the driver-input mechanism.** Arm C exists to prevent exactly that reading, and note that the
-permutation-null arm does *not* catch it on its own: row-shuffling moves the NaNs with the values,
-so a missingness-driven win is destroyed by the shuffle and reports as "information".
+(mapped corners / measured corners, mean 0.799 over the mart's training-eligible rows) is in the
+group. Its marginal correlation with the label is **−0.0904**, which is larger in magnitude than
+`corner_braking_loss_mean_s` (+0.0627) and than the three sd columns (−0.030 to −0.058) — **but not
+larger than every residual aggregate, as this paragraph originally claimed**: the full set was
+re-measured 2026-09-11 and `corner_mid_residual_max_s` is −0.1635 and `corner_mid_residual_mean_s`
+−0.1556. The worry the arm was built on still stands — **a naive nine-column arm could have cleared
+on the coverage channel and been read as the driver-input mechanism**, and the permutation-null arm
+does *not* catch that on its own, because row-shuffling moves the NaNs with the values, so a
+missingness-driven win is destroyed by the shuffle and reports as "information". Arm C exists to
+prevent that reading, and on p90 it is exactly what happened. See the results below.
 
 **Verified — both leakage audits are clean on the new lineage.** `02c` is the event
 `ml/src/features.py::survey_aggregation_scope` was written to anticipate: wiring this model into a
@@ -481,7 +488,7 @@ Baseline is the shipped 32-column contract on `cv_final_fold`, train 2018–2023
 | **B — residuals only** | 9 | Arm A minus `corner_input_coverage`. Isolates the driver-input channel from the coverage channel. |
 | **C — coverage only** | 1 | `corner_input_coverage` alone. **The confound control.** If C ≈ A, the group is a track-state/telemetry-availability proxy and the driver-input mechanism is unsupported. |
 | **P — permutation null** | 10 | Arm A's columns row-shuffled in train *and* eval. Capacity = shuffled − baseline; information = real − shuffled, reported separately (gates.md step 4). |
-| **D — corner-type split** | TBD | **Conditional.** Runs only if B clears. Declared now so that running it later is not a new selection; if B does not clear, D is not run and is not counted. |
+| **D — corner-type split** | TBD | **Conditional.** Runs only if B clears. Declared now so that running it later is not a new selection; if B does not clear, D is not run and is not counted. **Unlocked 2026-09-11 — B cleared on p10, p50 and cliff. Still unrun, so still uncounted.** |
 
 **Primary hypothesis:** arm B clears its floor on at least one of the three degradation quantiles.
 Tier 2 is the only lap-varying candidate in this document, so it is the only one that can address
@@ -538,8 +545,154 @@ Validity check    : before trusting the implementation, push 100k draws of five 
                     error. Required by the reference; costs a minute.
 ```
 
-**Cost:** ~2–3 days, most of it in the aggregation design and the leakage check. The build and the
-audits are done; what remains is the arms above and `10e`'s resolution for the stint-life column.
+#### Arms run 2026-09-11 — results
+
+**Command, artefact, log.** `python scripts/arms_02c_corner_inputs.py` →
+`ml/artefacts/02c_corner_inputs_arms.json` (every fit's headline, per seed) and
+`ml/artefacts/02c_corner_inputs_arms.log`. Nothing below was computed by hand.
+
+**Step 1 first, and it passed on all four families.** The 32-column refit reproduces the published
+v11 headline to ten decimal places, not six: p10 0.5320213274, p50 1.0467899119, p90 0.5785136178,
+cliff macro-F1 0.3718655272. That is a result in its own right — `02g` rewrote
+`int_corner_skill_residuals` and `02c` added ten columns to the mart, and the incumbent feature
+matrix did not move by a float.
+
+**The arms.** Positive = improvement on every metric. `x floor` is against **that family's own**
+5-reseed floor (`2*sqrt(2)*sd`, seeds 20260528…20260532): p10 0.004311, p50 0.010431, p90 0.009347,
+cliff 0.005772. `capacity` = shuffled − baseline and `info` = real − shuffled, per gates.md step 4.
+
+| family | arm | delta | ×floor | clears | capacity | info | info ×floor | E |
+| :--- | :--- | ---: | ---: | :---: | ---: | ---: | ---: | ---: |
+| p10 | A — full (10) | +0.001926 | 0.45 | no | −0.003621 | +0.005547 | 1.29 | 27.2 |
+| p10 | **B — residuals (9)** | +0.005585 | **1.30** | **yes** | −0.005597 | +0.011183 | **2.59** | 13.0 |
+| p10 | C — coverage (1) | +0.003004 | 0.70 | no | +0.002094 | +0.000910 | 0.21 | 4.53 |
+| p50 | A — full | +0.014205 | **1.36** | **yes** | +0.000041 | +0.014165 | **1.36** | 22.7 |
+| p50 | **B — residuals** | +0.016971 | **1.63** | **yes** | −0.003894 | +0.020865 | **2.00** | **34.0** |
+| p50 | C — coverage | +0.012785 | **1.23** | **yes** | +0.002208 | +0.010577 | **1.01** | 18.8 |
+| p90 | A — full | +0.015457 | **1.65** | **yes** | +0.008475 | +0.006982 | 0.75 | 7.41 |
+| p90 | B — residuals | +0.004619 | 0.49 | no | +0.006182 | **−0.001563** | −0.17 | 0.628 |
+| p90 | **C — coverage** | +0.024241 | **2.59** | **yes** | +0.001442 | +0.022800 | **2.44** | 9.13 |
+| cliff | A — full | +0.014940 | **2.59** | **yes** | +0.003955 | +0.010986 | **1.90** | 29.3 |
+| cliff | **B — residuals** | +0.012536 | **2.17** | **yes** | +0.000799 | +0.011737 | **2.03** | 19.3 |
+| cliff | C — coverage | +0.006295 | **1.09** | **yes** | +0.002520 | +0.003775 | 0.65 | 21.3 |
+
+**The primary hypothesis holds.** It was: *arm B clears its floor on at least one of the three
+degradation quantiles.* B clears on **two** — p10 at 1.30× and p50 at 1.63× — and on both the
+permutation arm attributes the whole of it to information (2.59× and 2.00× floor) with a *negative*
+capacity term, i.e. the nine columns as noise make the model slightly worse and only help when they
+carry their real values. Tier 2 was admitted as the only lap-varying candidate, the only one that
+could reach the 99.06% within-stint variance; it reached it.
+
+**Applying the declared readings, one family at a time, including where they run out.**
+
+* **p10 — "B clears, C does not."** The declared reading is *the driver-input mechanism is
+  supported*, and it is the only outcome that admits the group on its stated grounds. p10 is that
+  outcome exactly.
+* **p90 — "C clears, B does not."** The declared reading is *the channel is telemetry availability,
+  not driver inputs*. Taken at its word here: B's information delta is **negative** (−0.17× floor)
+  while C's is +2.44×. On the p90 quantile the corner channel is a coverage channel.
+* **p50 and cliff — both B and C clear. This outcome was not declared.** Recorded as an
+  undeclared cell rather than assimilated to the nearest declared one, because the reading table was
+  built on the assumption that B and C were competing explanations and they are not: on p50 B's
+  information is 2.00× floor and C's is 1.01×, on cliff 2.03× and 0.65×, and both are positive in
+  the same fit. The honest reading is the additive one — the driver-input channel and the
+  coverage channel each carry information, on different rows.
+* **Arm A is not the sum of its halves, and on p90 it is the Phase 10a shape.** A clears on p50,
+  p90 and cliff but not p10, and on p90 its gain splits +0.91× capacity / +0.75× information with
+  neither half clearing alone — the pattern gates.md step 4 exists to catch. A is also *worse than
+  B* on p10 and p50: adding `corner_input_coverage` to the nine residuals costs signal there.
+
+**The confound arm earned its place.** `02c` built arm C on the argument that a naive nine-column
+arm might clear on telemetry availability and be read as driver inputs. That worry was justified on
+p90, where exactly that happens — and the permutation arm alone would not have caught it, because
+shuffling moves the NaNs with the values. C is also the arm that shows the cost of *not* separating
+them: on p10, C alone does not clear and dilutes B when bundled with it.
+
+**Negative control, run because a pipeline can produce evidence out of nothing.** A fifth set of
+fits per family scores shuffle against a *second independent shuffle* of the same ten columns — H0
+true by construction. E came back 0.451 / 0.539 / 0.581 / 0.470 on p10 / p50 / p90 / cliff, all
+below 1, with mean deltas at or under a tenth of the floor. The instrument returns nothing when
+there is nothing.
+
+#### The e-values, and the thing they say that the floor ratios do not
+
+The declared Construction B was implemented as pre-registered and checked before use: 100k draws of
+five i.i.d. `N(0, sigma)` deltas return mean `E` = 1.0016 / 0.9992 / 1.0108 / 1.0014 at sigma =
+0.001 / 0.01 / 0.1 / 1.0, each within Monte Carlo error of 1.00, and the reference's §4 worked
+example reproduces at `E = 17.0` to three figures.
+
+**e-BH rejects nothing, and it is structurally unable to reject anything here.** Sorted descending
+the twelve E-values run 34.0, 29.3, 27.2, 22.7, 21.3, 19.3, 18.8, 13.0, 9.13, 7.41, 4.53, 0.628. At
+α = 0.05 and n = 12, `k*` = max{k : E_[k] ≥ 12/(0.05k)} — that is 240 for a lone rejection, 120 for
+two, 20 even if all twelve rejected together. **k\* = 0.**
+
+**Why that was decided before any arm ran, not by the data.** The safe-t statistic at n = 5, g = 1
+is bounded: as `t → ∞` it converges to `(1 + ng)^((n-1)/2)` = **36**. So the pre-registered
+construction could never have produced a lone rejection in a family of 12 — the ceiling is 36 and
+the threshold is 240 — and p50's arm B at E = 34.0 is not a near miss but a number pressed against
+the cap. **This is a defect in the pre-registration, found by executing it, and it is recorded here
+rather than repaired after the fact:** more seeds (n = 10 lifts the cap to 11^4.5 ≈ 4.6×10⁴) or a
+larger `g` would have bought the headroom, and neither may be chosen now that the deltas are known.
+Any future item declaring Construction B should price the cap against the family size it expects.
+
+The two instruments therefore disagree in public, which is what gates.md's closing paragraph says
+to do: **step 3 says B cleared on p10, p50 and cliff; step 7 says that is not yet worth a
+campaign-level rejection.** Neither number is the other's correction.
+
+**Family accounting.** Twelve declared hypotheses are counted (A/B/C × four families), every one
+reported including p90's `E = 0.628`. The pre-registration's Family line can also be read to count
+arm P per family, which would make n = 16; `k*` is 0 either way, and the ambiguity is flagged so a
+later reader does not have to guess which convention the campaign used. The stint-life column of
+every arm is still **unrun and barred** (below), so the 02c family will grow by three when `10e`
+resolves — legitimate under stopped e-BH, which is anytime-valid, and the reason that property was
+chosen in the first place.
+
+#### What this item does and does not conclude
+
+* **Verified.** The nine residual aggregates carry information the 32-column contract does not
+  have, on p10, p50 and the cliff classifier, with the permutation arm attributing it to
+  information and not capacity.
+* **Verified.** `corner_input_coverage` is a separate channel that also carries information, and on
+  p90 it is the only one of the two that does.
+* **Not done here, and deliberately.** The contract is unchanged: the ten columns are in the mart
+  and still absent from `ml/src/schema.py`'s `FEATURE_COLUMNS`. Moving it is a version bump with a
+  retrain, artefact rebuild, ONNX export and model card behind it — `08k`'s shape, not this item's —
+  and the arms above do not settle *which* set to move, since A is not uniformly better than B.
+* **Follow-ons, named so they are scheduled rather than assumed.** (1) Ship arm B's nine columns as
+  its own item, with the coverage question answered separately; per the declared reading for a
+  clearing C, coverage gets **its own registration** rather than riding in on this one. (2) Arm D
+  (corner-type split) is now unlocked — it was conditional on B clearing and B cleared — and it
+  stays unrun and uncounted until it is. (3) The stint-life arms when `10e` lands.
+
+**One sequencing constraint honoured.** The runner refuses `stint_life_regressor` outright rather
+than leaving the bar to a reader's memory: `10d` showed the shipped booster was tuned under the
+wrong label, on the mixture NLL, with 2024 in the validation folds, so a floor measured now is
+measured against a model about to change.
+
+#### Two figures in this section's build notes were wrong, and are corrected
+
+Both were found by re-measuring against the shipped table while writing the results up.
+
+1. **Corner-grain availability.** The build note said braking 69.9%, mid-corner 97.6%, exit 60.9%.
+   Measured over all 2,206,939 rows of the rebuilt `int_corner_skill_residuals`: braking **69.94%**,
+   mid-corner **81.12%**, exit **47.00%**, intersection (`corner_residual_total_s`) **38.59%**.
+   Braking and the intersection reproduce; mid-corner and exit do not. 18.88% of corner rows are
+   unmapped outright — `field_corner_sample_n < 5` under the trailing window, which the block bucket
+   used to hide — and among the mapped rows the three phases run 86.21% / 100% / 57.94%. The
+   aggregation decision is unaffected (intersecting still throws away most of the channel), but the
+   exit phase is sparser than the note claimed. Corrected in `int_lap_corner_inputs.sql` and both
+   `schema.yml` files.
+2. **The marginal-correlation claim.** The note said `corner_input_coverage`'s |corr| with the label
+   (0.0904) is *"larger in magnitude than any of the nine residual aggregates"*. It is not:
+   `corner_mid_residual_max_s` is **−0.1635** and `corner_mid_residual_mean_s` **−0.1556**, both
+   larger. The three sd columns (−0.030 to −0.058) and `corner_braking_loss_mean_s` (+0.0627) were
+   quoted correctly; the mid-corner pair was not checked. The arms make the correction moot in the
+   direction that matters — B beats C on three of four families — but the sentence as written
+   overstated the confound and understated the channel.
+
+**Cost:** ~2–3 days, most of it in the aggregation design and the leakage check. **Spent.** The
+build, the audits, the twelve arms, the four negative controls and the e-values are done; what
+remains of the pre-registered family is the stint-life column, barred until `10e`.
 
 ---
 
@@ -668,8 +821,14 @@ re-reading `ml_execution_plan.md`:
 2. **Tier 1, qualifying** (~1 day). Cleanest join in the document, zero leakage treatment,
    and it tests §4's "no remaining data source" conclusion directly. Expect cliff and stint
    life to move, not the trio.
-3. **Tier 2, corner inputs** (~2–3 days). Highest ceiling, because it is the only lap-varying
-   candidate and therefore the only one that can reach the degradation trio's 99%.
+3. ~~**Tier 2, corner inputs** (~2–3 days).~~ **Arms run 2026-09-11 — and it reached the trio.**
+   The nine residual aggregates clear their family floor on p10 (1.30×), p50 (1.63×) and the cliff
+   classifier (2.17×), with the permutation arm attributing the gain to information rather than
+   capacity in all three. Coverage is a genuinely separate channel and is the only one of the two
+   that clears on p90. Nothing survives campaign-level e-BH, which the pre-registered construction
+   made impossible before the first fit — see §3 `02c`'s results. The contract has **not** moved;
+   the ten columns are still mart-only. Remaining: the stint-life arms (barred until `10e`), arm D
+   (now unlocked), and a shipping item for arm B's nine columns.
 4. **Tier 3, SC hazard** (~1 day), with the expanding-window rebuild, aimed at stint life —
    and at §1a's capping assumption.
 5. **Raise `tyre_allocations` as an ingestion item**, separately from all of the above.

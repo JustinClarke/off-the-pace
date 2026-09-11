@@ -110,7 +110,7 @@ because nothing on the ladder waits for them, not because they matter less.
 
 _Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-11`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
 
-**26 live items** (1 blocked). The pointer is on **02c** — that is the one to run next; the rest of the order is what becomes runnable after it. 21 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
+**26 live items** (1 blocked). The pointer is on **02d** — that is the one to run next; the rest of the order is what becomes runnable after it. 21 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
 
 | # | Item | Group | Stage | Cost | Model | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -126,8 +126,8 @@ _Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-11`. Run
 | 10 | `10d` | [10](../work/10-competing-risks.md) | MEASURED | 1-2d | `opus-5` | Fix the stint-life calibration defect - the model over-predicts tyre life | 10c |
 | 11 | `10e` | [10](../work/10-competing-risks.md) | MEASURED | 1-2d | `opus-5` | Re-tune stint_life_regressor under the honest split and a non-mixture metric | 10d |
 | 12 | `02b` | [02](../work/02-feature-expansion.md) | SPEC | 1d | `sonnet-5` | Tier 1 - qualifying | 10e |
-| 13 | `02c` ▶ | [02](../work/02-feature-expansion.md) | BUILDING | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | **D7** (human call) |
-| 14 | `02d` | [02](../work/02-feature-expansion.md) | SPEC | 1d | `opus-5` | Tier 3 - SC hazard, with the expanding-window rebuild | — |
+| 13 | `02c` | [02](../work/02-feature-expansion.md) | MEASURED | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | — |
+| 14 | `02d` ▶ | [02](../work/02-feature-expansion.md) | SPEC | 1d | `opus-5` | Tier 3 - SC hazard, with the expanding-window rebuild | — |
 | 15 | `02g` | [02](../work/02-feature-expansion.md) | GATED | 0.5-1d | `opus-5` | Rebuild the corner field median as a trailing window | — |
 | 16 | `03a` | [03](../work/03-driver-vs-car.md) | SPEC | 1d | `sonnet-5` | Mover panel; exclude the Force India rename; confirm the connected set survives | — |
 | 17 | `03b` | [03](../work/03-driver-vs-car.md) | SPEC | 2d | `sonnet-5` | Jolpica ingest 2011-2017 | — |
@@ -155,6 +155,5 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 - **D2** (blocks nothing) — CDN publish / app deploy - v11 is committed but production still serves v6.
 - **D3** (blocks nothing) — Land 08e + 08f? It supersedes the published v11 headline on all five targets.
 - **D4** (blocks nothing) — Land 10d's capacity fix (max_depth 8 -> 3, or 2) now, or wait for 10e's re-search?
-- **D7** (blocks `02c`) — Run 02c's arms on the degradation trio + cliff_classifier now and hold the stint_life_regressor column until 10e resolves, or wait and run all five targets together?
 
 <!-- END GENERATED TASKS -->

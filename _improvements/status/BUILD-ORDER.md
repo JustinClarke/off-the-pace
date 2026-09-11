@@ -16,6 +16,8 @@ python3 _improvements/status/board.py --order        # the ordered task list, to
 python3 _improvements/status/board.py --write-order  # ...and spliced into this file
 ```
 
+**Quick start:** Say `proceed` to spawn an agent on the current pointer item and skip all explanation. That's it.
+
 `board.py` never writes to the log — it is a reader, so a malformed edit surfaces as a failed
 check rather than as silent drift. `--write-order` writes only to this file, and refuses to
 run at all while the log is invalid. Run `--check` after every edit to the JSON.
@@ -106,9 +108,9 @@ because nothing on the ladder waits for them, not because they matter less.
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-10`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-11`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
 
-**27 live items** (3 blocked), **19 terminal**. The pointer is on **08k** — that is the one to run next; the rest of the order is what becomes runnable after it.
+**26 live items** (1 blocked). The pointer is on **02c** — that is the one to run next; the rest of the order is what becomes runnable after it. 21 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
 
 | # | Item | Group | Stage | Cost | Model | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -118,27 +120,26 @@ _Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-10`. Run
 | 4 | `08f` | [08](../work/08-foundations-repair.md) | GATED | 2-3d | `opus-5` | Cross-season pooled statistics in the feature lineage - season-lag or rule | — |
 | 5 | `08h` | [08](../work/08-foundations-repair.md) | MEASURED | 0.5d | `opus-5` | baseline_observations_n as a feature - the add-ablation 08e deferred | — |
 | 6 | `08i` | [08](../work/08-foundations-repair.md) | GATED | 1-2d | `opus-5` | The min_observations floor - the trade 08e priced and did not take | — |
-| 7 | `08k` ▶ | [08](../work/08-foundations-repair.md) | SPEC | 0.5d | `sonnet-5` | Rebuild model artefacts against the post-08j 32-feature contract | — |
-| 8 | `04a` | [04](../work/04-campaign-audit.md) | MEASURED | 1d | `sonnet-5` | Enumerate the real test family | — |
-| 9 | `10b` | [10](../work/10-competing-risks.md) | MEASURED | days | `opus-5` | Cause-specific AFT arm - non-green endings treated as censored | — |
-| 10 | `10c` | [10](../work/10-competing-risks.md) | MEASURED | days | `fable-5.1` | Competing-risks evaluation, with the dependent-censoring caveat stated | 10b |
-| 11 | `10d` | [10](../work/10-competing-risks.md) | SPEC | 1-2d | `opus-5` | Fix the stint-life calibration defect - the model over-predicts tyre life | 10c, 08k |
-| 12 | `02b` | [02](../work/02-feature-expansion.md) | SPEC | 1d | `sonnet-5` | Tier 1 - qualifying | — |
-| 13 | `02d` | [02](../work/02-feature-expansion.md) | SPEC | 1d | `opus-5` | Tier 3 - SC hazard, with the expanding-window rebuild | — |
-| 14 | `02g` | [02](../work/02-feature-expansion.md) | SPEC | 0.5-1d | `opus-5` | Rebuild the corner field median as a trailing window | — |
-| 15 | `02c` | [02](../work/02-feature-expansion.md) | BLOCKED | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | 02g |
+| 7 | `04a` | [04](../work/04-campaign-audit.md) | MEASURED | 1d | `sonnet-5` | Enumerate the real test family | — |
+| 8 | `10b` | [10](../work/10-competing-risks.md) | MEASURED | days | `opus-5` | Cause-specific AFT arm - non-green endings treated as censored | — |
+| 9 | `10c` | [10](../work/10-competing-risks.md) | MEASURED | days | `fable-5.1` | Competing-risks evaluation, with the dependent-censoring caveat stated | 10b |
+| 10 | `10d` | [10](../work/10-competing-risks.md) | MEASURED | 1-2d | `opus-5` | Fix the stint-life calibration defect - the model over-predicts tyre life | 10c |
+| 11 | `10e` | [10](../work/10-competing-risks.md) | MEASURED | 1-2d | `opus-5` | Re-tune stint_life_regressor under the honest split and a non-mixture metric | 10d |
+| 12 | `02b` | [02](../work/02-feature-expansion.md) | SPEC | 1d | `sonnet-5` | Tier 1 - qualifying | 10e |
+| 13 | `02c` ▶ | [02](../work/02-feature-expansion.md) | BUILDING | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | **D7** (human call) |
+| 14 | `02d` | [02](../work/02-feature-expansion.md) | SPEC | 1d | `opus-5` | Tier 3 - SC hazard, with the expanding-window rebuild | — |
+| 15 | `02g` | [02](../work/02-feature-expansion.md) | GATED | 0.5-1d | `opus-5` | Rebuild the corner field median as a trailing window | — |
 | 16 | `03a` | [03](../work/03-driver-vs-car.md) | SPEC | 1d | `sonnet-5` | Mover panel; exclude the Force India rename; confirm the connected set survives | — |
 | 17 | `03b` | [03](../work/03-driver-vs-car.md) | SPEC | 2d | `sonnet-5` | Jolpica ingest 2011-2017 | — |
 | 18 | `03c` | [03](../work/03-driver-vs-car.md) | BLOCKED | 1-2w | `fable-5.1` | AKM two-way FE on degradation slope + Kline-Saggio-Solvsten leave-out | 03a, 03b |
 | 19 | `05a` | [05](../work/05-model-family.md) | SPEC | days-weeks | `opus-5` | GBT vs hierarchical / GAM | — |
 | 20 | `05d` | [05](../work/05-model-family.md) | SPEC | 1-2d | `opus-5` | The training window - is a proper subset of seasons better than all of them? | — |
-| 21 | `07a` | [07](../work/07-causal-pit-timing.md) | SPEC | hours | `opus-5` | Feasibility - does the first stage survive conditioning? | — |
-| 22 | `07b` | [07](../work/07-causal-pit-timing.md) | BLOCKED | 1-2w | `fable-5.1` | The IV estimator, with the exclusion restriction argued per outcome | 07a |
-| 23 | `06a` | [06](../work/06-publication.md) | SPEC | 1d | `sonnet-5` | Pit-timing tail, by constructor | — |
-| 24 | `06b` | [06](../work/06-publication.md) | SPEC | 1-2d | `opus-5` | Dirty-air coefficient per season - the 2022 regulation question | — |
-| 25 | `06c` | [06](../work/06-publication.md) | SPEC | 1d | `opus-5` | Corner-phase skill, incl. the Verstappen braking anomaly | — |
-| 26 | `11a` | [11](../work/11-parallel-surfaces.md) | SPEC | 1-2d | `opus-5` | Mondrian-conformal recalibration of the degradation band, keyed on circuit | — |
-| 27 | `11b` | [11](../work/11-parallel-surfaces.md) | SPEC | days | `opus-5` | Assemble the stochastic DP over pit timing | — |
+| 21 | `07b` | [07](../work/07-causal-pit-timing.md) | SPEC | 1-2w | `fable-5.1` | The IV estimator, with the exclusion restriction argued per outcome | — |
+| 22 | `06a` | [06](../work/06-publication.md) | SPEC | 1d | `sonnet-5` | Pit-timing tail, by constructor | — |
+| 23 | `06b` | [06](../work/06-publication.md) | SPEC | 1-2d | `opus-5` | Dirty-air coefficient per season - the 2022 regulation question | — |
+| 24 | `06c` | [06](../work/06-publication.md) | SPEC | 1d | `opus-5` | Corner-phase skill, incl. the Verstappen braking anomaly | — |
+| 25 | `11a` | [11](../work/11-parallel-surfaces.md) | SPEC | 1-2d | `opus-5` | Mondrian-conformal recalibration of the degradation band, keyed on circuit | — |
+| 26 | `11b` | [11](../work/11-parallel-surfaces.md) | SPEC | days | `opus-5` | Assemble the stochastic DP over pit timing | — |
 
 ### Which model to run it on
 
@@ -153,31 +154,7 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 - **D2** (blocks nothing) — CDN publish / app deploy - v11 is committed but production still serves v6.
 - **D3** (blocks nothing) — Land 08e + 08f? It supersedes the published v11 headline on all five targets.
-
-### Terminal
-
-Chronological, most recent first; undated `LANDED` items sink to the bottom.
-
-| Item | Group | Stage | Date | Task | Note |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `09b` | 09 | LANDED | 2026-09-10 | e-value pre-registration per arm, and campaign-level e-BH | — |
-| `01b` | 01 | CLOSED | 2026-09-09 | Empirical noise floor - difference-based, stratified, bracketed | a completed measurement, not as a failure. Every clause of the definition of done was delivered: the synthetic… (full rationale in build-log.json) |
-| `08b` | 08 | LANDED | 2026-09-09 | Extend audit_forward_window to aggregation scope | — |
-| `08g` | 08 | CLOSED | 2026-09-09 | Decompose the 08e/08f regression on the BEFORE substrate; rule cliff_candidate_flag dead or damaged | a completed decomposition, not a partial one -- every clause of the definition of done was delivered: the ruling… (full rationale in build-log.json) |
-| `08j` | 08 | LANDED | 2026-09-09 | Rule on cliff_candidate_flag - prune it or rebuild its threshold | — |
-| `05b` | 05 | CLOSED | 2026-09-08 | Monotone constraints arm | — |
-| `04b` | 04 | CLOSED | 2026-09-07 | Decide the floor-ratio to p-value conversion | — |
-| `02f` | 02 | CLOSED | 2026-09-07 | FP1/2/3 ingest (Phase 10c) | — |
-| `02e` | 02 | CLOSED | 2026-08-23 | Weather / air density features | — |
-| `00a` | 00 | LANDED | — | Feature count is 33, not 24, everywhere it is quoted | — |
-| `00b` | 00 | LANDED | — | Falsify research_program 1a's 'no SC signal exists' claim | — |
-| `00c` | 00 | LANDED | — | LORO leakage ruling - barred; 'LORO' was leave-one-DRIVER-out, not leave-one-race-out | — |
-| `01a` | 01 | LANDED | — | Learning curves - loss vs training-set size, extrapolated | — |
-| `02a` | 02 | LANDED | — | Tier 2 leakage ruling - the 5-lap field-median bucket (NOT the centred/backward binary) | — |
-| `04c` | 04 | LANDED | — | Apply BH (or BY) at campaign level; report which CLEARS survive | Campaign correction applied: BY (arbitrary dependence, log factor more conservative). Result: 0 of 8 CLEARS survive… (full rationale in build-log.json) |
-| `08a` | 08 | LANDED | — | Backfill dim_compounds_season for SUPERSOFT / ULTRASOFT / HYPERSOFT | — |
-| `08c` | 08 | LANDED | — | Two silent assumptions, written down | — |
-| `09a` | 09 | LANDED | — | CRPS alongside the pinball trio, with its decomposition | — |
-| `10a` | 10 | LANDED | — | Stint end-regime label - why did this stint end? | — |
+- **D4** (blocks nothing) — Land 10d's capacity fix (max_depth 8 -> 3, or 2) now, or wait for 10e's re-search?
+- **D7** (blocks `02c`) — Run 02c's arms on the degradation trio + cliff_classifier now and hold the stint_life_regressor column until 10e resolves, or wait and run all five targets together?
 
 <!-- END GENERATED TASKS -->

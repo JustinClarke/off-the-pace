@@ -20,11 +20,11 @@ Every model is evaluated against a strong per-cohort baseline; all five beat it.
 
 | Model | Kind | Metric | CV | Eval | Baseline | Beats | Of attainable | Interval |
 |---|---|---|---|---|---|---|---|---|
-| `degradation_regressor_p10` | quantile | pinball (↓ lower better) | 0.5940 | 0.5209 | 1.4644 | ✅ | **124.2× stint-level** ⚑ | ✅ p=0.0012 (5/5 folds) |
-| `degradation_regressor_p50` | quantile | pinball (↓ lower better) | 1.1464 | 1.0121 | 2.1776 | ✅ | **102.6× stint-level** ⚑ | ✅ p=0.0001 (5/5 folds) |
-| `degradation_regressor_p90` | quantile | pinball (↓ lower better) | 0.6363 | 0.5592 | 0.8908 | ✅ | **61.4× stint-level** ⚑ | ✅ p=0.0001 (5/5 folds) |
-| `cliff_classifier` | classification | macro_f1 (↑ higher better) | 0.3788 | 0.3810 | 0.2187 | ✅ | **1.0× stint-level** ⚑ | ✅ p=0.0000 (5/5 folds) |
-| `stint_life_regressor` | survival | aft_nloglik (↓ lower better) | 2.1149 | 1.9520 | 2.1869 | ✅ | 71.9% of absolute | ✅ p=0.0054 (5/5 folds) |
+| `degradation_regressor_p10` | quantile | pinball (↓ lower better) | 0.6042 | 0.5320 | 1.4644 | ✅ | **141.8× stint-level** ⚑ | ✅ p=0.0013 (5/5 folds) |
+| `degradation_regressor_p50` | quantile | pinball (↓ lower better) | 1.1708 | 1.0468 | 2.1777 | ✅ | **114.7× stint-level** ⚑ | ✅ p=0.0001 (5/5 folds) |
+| `degradation_regressor_p90` | quantile | pinball (↓ lower better) | 0.6434 | 0.5785 | 0.8908 | ✅ | **65.1× stint-level** ⚑ | ✅ p=0.0003 (5/5 folds) |
+| `cliff_classifier` | classification | macro_f1 (↑ higher better) | 0.3717 | 0.3719 | 0.2187 | ✅ | 98.1% | ✅ p=0.0000 (5/5 folds) |
+| `stint_life_regressor` | survival | aft_nloglik (↓ lower better) | 2.1481 | 1.9878 | 2.1869 | ✅ | 61.8% of absolute | ✅ p=0.0130 (5/5 folds) |
 
 _Eval headline on the cv_final_fold (season 2024); CV is the season-grouped TimeSeriesSplit mean._
 
@@ -38,7 +38,7 @@ A ⚑ marks a model that scores **past** that ceiling. It is not an error and no
 
 - **Family / kind:** degradation_regressor / quantile
 - **Objective:** `reg:quantileerror` (α=0.1)
-- **Train rows:** 82,315 · **fit:** 18.79s
+- **Train rows:** 82,470 · **fit:** 19.71s
 - **Artefacts:** `ml/models/degradation_regressor_p10_v11.bst` + parity-tested `ml/models/degradation_regressor_p10_v11.onnx`
 
 <details>
@@ -64,7 +64,7 @@ A ⚑ marks a model that scores **past** that ceiling. It is not an error and no
 
 - **Family / kind:** degradation_regressor / quantile
 - **Objective:** `reg:quantileerror` (α=0.5)
-- **Train rows:** 82,315 · **fit:** 34.86s
+- **Train rows:** 82,470 · **fit:** 35.72s
 - **Artefacts:** `ml/models/degradation_regressor_p50_v11.bst` + parity-tested `ml/models/degradation_regressor_p50_v11.onnx`
 
 <details>
@@ -90,7 +90,7 @@ A ⚑ marks a model that scores **past** that ceiling. It is not an error and no
 
 - **Family / kind:** degradation_regressor / quantile
 - **Objective:** `reg:quantileerror` (α=0.9)
-- **Train rows:** 82,315 · **fit:** 14.71s
+- **Train rows:** 82,470 · **fit:** 14.96s
 - **Artefacts:** `ml/models/degradation_regressor_p90_v11.bst` + parity-tested `ml/models/degradation_regressor_p90_v11.onnx`
 
 <details>
@@ -116,7 +116,7 @@ A ⚑ marks a model that scores **past** that ceiling. It is not an error and no
 
 - **Family / kind:** cliff_classifier / classification
 - **Objective:** `multi:softprob`
-- **Train rows:** 114,274 · **fit:** 89.84s
+- **Train rows:** 114,507 · **fit:** 97.4s
 - **Artefacts:** `ml/models/cliff_classifier_v11.bst` + parity-tested `ml/models/cliff_classifier_v11.onnx`
 
 <details>
@@ -142,7 +142,7 @@ A ⚑ marks a model that scores **past** that ceiling. It is not an error and no
 
 - **Family / kind:** stint_life_regressor / survival
 - **Objective:** `survival:aft`
-- **Train rows:** 120,938 · **fit:** 10.7s
+- **Train rows:** 121,193 · **fit:** 10.46s
 - **Artefacts:** `ml/models/stint_life_regressor_v11.bst` + parity-tested `ml/models/stint_life_regressor_v11.onnx`
 
 <details>
@@ -167,22 +167,22 @@ A ⚑ marks a model that scores **past** that ceiling. It is not an error and no
 
 ## Features
 
-33 features in 6 ablation groups. Categoricals are ordinal-encoded from the training map (NULL/unseen → −1).
+32 features in 6 ablation groups. Categoricals are ordinal-encoded from the training map (NULL/unseen → −1).
 
 | Group | Features |
 |---|---|
 | `stint_position` | `lap_number`, `lap_in_stint`, `age_in_stint`, `fuel_mass_kg` |
 | `compound` | `compound`, `compound_grip_peak`, `compound_wear_gradient`, `compound_optimal_temp_low`, `compound_optimal_temp_high`, `compound_cliff_onset_laps`, `compound_cliff_severity` |
-| `cliff_prior` | `expected_compound_pace_s`, `expected_degradation_rate_s_per_lap`, `cliff_onset_passed`, `laps_past_cliff`, `cliff_candidate_flag` |
+| `cliff_prior` | `expected_compound_pace_s`, `expected_degradation_rate_s_per_lap`, `cliff_onset_passed`, `laps_past_cliff` |
 | `thermal` | `push_residual`, `cumulative_push_load_surface`, `cumulative_push_load_bulk`, `surface_bulk_ratio` |
 | `dirty_air` | `dirty_air_share_lap`, `dirty_air_thermal_load_surface`, `dirty_air_thermal_load_bulk`, `air_state_dominant` |
 | `proximity` | `share_lap_within_1s`, `share_lap_within_2s`, `share_lap_in_train`, `share_lap_behind_within_1s`, `time_within_1s`, `gap_ahead_min_s`, `gap_ahead_median_s`, `ahead_identity_stability`, `n_distinct_cars_ahead_3s` |
 
 ### Leakage guards
 
-driver_id and race_year are deliberately excluded: an adversarial probe recovers race_year from the remaining features at 0.996 accuracy (majority baseline 0.169)-constructor identity and compound generation encode the season, so race_year would be a backdoor. driver_id would let the trees relearn per-driver skill, the exact signal the mart strips via driver_skill_residual_s.
+driver_id and race_year are deliberately excluded: an adversarial probe recovers race_year from the remaining features at 0.997 accuracy (majority baseline 0.168)-constructor identity and compound generation encode the season, so race_year would be a backdoor. driver_id would let the trees relearn per-driver skill, the exact signal the mart strips via driver_skill_residual_s.
 
-Excluded (identity / target / leakage): `circuit_key`, `drift_s_per_lap`, `driver_id`, `driver_skill_proxy_s`, `driver_skill_residual_proxy_s`, `driver_skill_residual_s`, `is_training_eligible`, `lap_id`, `laps_until_cliff_class`, `next_3_lap_cumulative_jump_s`, `next_5_lap_cumulative_jump_s`, `next_lap_degradation_jump_detrended_s`, `next_lap_degradation_jump_s`, `race_id`, `race_year`, `remaining_stint_life_laps`, `stint_id`, `stint_length_laps`, `survival_weight`
+Excluded (identity / target / leakage): `circuit_key`, `drift_s_per_lap`, `driver_id`, `driver_skill_field_s`, `driver_skill_loro_mean_s`, `driver_skill_loro_s`, `driver_skill_proxy_s`, `driver_skill_residual_proxy_s`, `driver_skill_residual_s`, `is_training_eligible`, `lap_id`, `laps_until_cliff_class`, `next_3_lap_cumulative_jump_s`, `next_5_lap_cumulative_jump_s`, `next_lap_degradation_jump_detrended_s`, `next_lap_degradation_jump_s`, `race_id`, `race_year`, `remaining_stint_life_laps`, `stint_id`, `stint_length_laps`, `survival_weight`
 
 ## Validation
 
@@ -201,11 +201,11 @@ Skill is reported as a fraction of the ATTAINABLE quantity, not of 1.0. For the 
 
 | Model | Target column | Between-stint share | Naive estimate | Within-stint lag-1 | Of attainable |
 |---|---|---|---|---|---|
-| `degradation_regressor_p10` | `next_5_lap_cumulative_jump_s` | 0.9% | 32.7% | 0.5887 | **124.2× stint-level** ⚑ |
-| `degradation_regressor_p50` | `next_5_lap_cumulative_jump_s` | 0.9% | 32.7% | 0.5887 | **102.6× stint-level** ⚑ |
-| `degradation_regressor_p90` | `next_5_lap_cumulative_jump_s` | 0.9% | 32.7% | 0.5887 | **61.4× stint-level** ⚑ |
-| `cliff_classifier` | `laps_until_cliff_class` | 19.4% | 22.7% | — | **1.0× stint-level** ⚑ |
-| `stint_life_regressor` | `remaining_stint_life_laps` | 30.1% | 29.2% | 0.9994 | 71.9% of absolute |
+| `degradation_regressor_p10` | `next_5_lap_cumulative_jump_s` | 0.8% | 33.9% | 0.6044 | **141.8× stint-level** ⚑ |
+| `degradation_regressor_p50` | `next_5_lap_cumulative_jump_s` | 0.8% | 33.9% | 0.6044 | **114.7× stint-level** ⚑ |
+| `degradation_regressor_p90` | `next_5_lap_cumulative_jump_s` | 0.8% | 33.9% | 0.6044 | **65.1× stint-level** ⚑ |
+| `cliff_classifier` | `laps_until_cliff_class` | 19.3% | 22.7% | — | 98.1% |
+| `stint_life_regressor` | `remaining_stint_life_laps` | 30.1% | 29.2% | 0.9994 | 61.8% of absolute |
 
 _Between-stint share is a one-way random-effects (ANOVA) estimate. The naive column is `var(per-stint means) / var(column)`, which counts within-stint scatter as between-stint signal at ~19 laps per stint; it is shown so the correction stays visible rather than silently applied._
 
@@ -215,63 +215,66 @@ Every beats_baseline claim carries a paired-t interval over the season-grouped C
 
 | Model | Win margin | 95% CI (paired t, folds) | p | Stint-grain CI | Widening vs lap grain |
 |---|---|---|---|---|---|
-| `degradation_regressor_p10` | 0.9258 | [0.6106, 1.2409] | 0.0012 | [0.8827, 1.0076] | 1.71× |
-| `degradation_regressor_p50` | 1.1067 | [0.9338, 1.2796] | 0.0001 | [1.0977, 1.2319] | 2.11× |
-| `degradation_regressor_p90` | 0.4151 | [0.3380, 0.4922] | 0.0001 | [0.2982, 0.3605] | 1.90× |
-| `cliff_classifier` | 0.1663 | [0.1416, 0.1910] | 0.0000 | [0.1478, 0.1765] | 1.63× |
-| `stint_life_regressor` | 0.1434 | [0.0707, 0.2161] | 0.0054 | [0.2043, 0.2653] | 3.13× |
+| `degradation_regressor_p10` | 0.9156 | [0.6011, 1.2302] | 0.0013 | [0.8672, 0.9947] | 1.68× |
+| `degradation_regressor_p50` | 1.0826 | [0.9037, 1.2615] | 0.0001 | [1.0635, 1.1918] | 1.92× |
+| `degradation_regressor_p90` | 0.4080 | [0.3107, 0.5053] | 0.0003 | [0.2738, 0.3437] | 2.05× |
+| `cliff_classifier` | 0.1592 | [0.1355, 0.1829] | 0.0000 | [0.1394, 0.1682] | 1.72× |
+| `stint_life_regressor` | 0.1102 | [0.0384, 0.1820] | 0.0130 | [0.1670, 0.2274] | 3.25× |
 
 **Every `beats_baseline` claim clears its own interval.**
 
-_Effective sample: 6,200 stints over 82,315 laps (13.3 laps per stint). 0 stints straddle a season fold boundary, so the CV split was never the problem — every interval computed at lap grain was._
+_Effective sample: 6,200 stints over 82,470 laps (13.3 laps per stint). 0 stints straddle a season fold boundary, so the CV split was never the problem — every interval computed at lap grain was._
 
 
 ### Calibration (quantile interval)
 
-Nominal coverage **0.8** → raw [p10,p90] empirical **0.7767**, split-conformal **0.8034** (mean interval width 6.3760s).
+Nominal coverage **0.8** → raw [p10,p90] empirical **0.7886**, split-conformal **0.8018** (mean interval width 6.9107s).
 
 ### Adversarial leakage probe
 
-A throwaway model recovers `race_year` from the features at **0.9964** vs a majority baseline of 0.1688-X carries strong residual temporal signal-race_year recoverable far above chance; race_year is correctly excluded from features.
+A throwaway model recovers `race_year` from the features at **0.9967** vs a majority baseline of 0.1685-X carries strong residual temporal signal-race_year recoverable far above chance; race_year is correctly excluded from features.
 
 ### Feature importance (SHAP vs permutation)
 
 | Model | SHAP top-5 | Permutation top-5 |
 |---|---|---|
-| `degradation_regressor_p50` | `compound_cliff_onset_laps`, `push_residual`, `expected_compound_pace_s`, `cliff_onset_passed`, `age_in_stint` | `compound_cliff_onset_laps`, `push_residual`, `cliff_onset_passed`, `age_in_stint`, `expected_compound_pace_s` |
-| `cliff_classifier` | `fuel_mass_kg`, `age_in_stint`, `lap_number`, `lap_in_stint` | `compound_cliff_onset_laps`, `push_residual`, `expected_compound_pace_s`, `fuel_mass_kg`, `share_lap_behind_within_1s` |
-| `stint_life_regressor` | `fuel_mass_kg`, `lap_number`, `expected_compound_pace_s`, `surface_bulk_ratio`, `compound_wear_gradient` | `fuel_mass_kg`, `lap_number`, `expected_compound_pace_s`, `push_residual`, `cumulative_push_load_bulk` |
+| `degradation_regressor_p50` | `compound_cliff_onset_laps`, `expected_compound_pace_s`, `cliff_onset_passed`, `push_residual`, `age_in_stint` | `compound_cliff_onset_laps`, `age_in_stint`, `cliff_onset_passed`, `push_residual`, `expected_compound_pace_s` |
+| `cliff_classifier` | `fuel_mass_kg`, `age_in_stint`, `lap_number`, `lap_in_stint` | `compound_cliff_onset_laps`, `push_residual`, `fuel_mass_kg`, `expected_compound_pace_s`, `lap_number` |
+| `stint_life_regressor` | `lap_number`, `expected_compound_pace_s`, `fuel_mass_kg`, `compound`, `compound_wear_gradient` | `fuel_mass_kg`, `lap_number`, `expected_compound_pace_s`, `compound`, `cumulative_push_load_surface` |
 
 ### Underperforming cohorts
 
 Surfaced, never dropped. Specific circuit/constructor cells where the model trails its non-leakage cohort-mean baseline; the model wins comfortably overall.
 
-**11** cohort cells lose to baseline (surfaced, never dropped):
+**14** cohort cells lose to baseline (surfaced, never dropped):
 
 | Dimension | Cohort | n | Model | Baseline |
 |---|---|---|---|---|
-| compound | _other | 3 | 0.3067 | 0.0485 |
-| compound | _other | 3 | 0.2749 | 0.2161 |
-| compound | INTERMEDIATE | 669 | 0.8260 | 0.8149 |
-| compound | _other | 3 | 0.2672 | 0.0185 |
-| circuit_key | british_grand_prix | 380 | 1.2745 | 1.2367 |
-| circuit_key | canadian_grand_prix | 494 | 0.8393 | 0.5597 |
-| compound | INTERMEDIATE | 1070 | 0.2171 | 0.2408 |
+| compound | _other | 3 | 0.3821 | 0.0485 |
+| compound | _other | 3 | 0.4655 | 0.2161 |
+| compound | INTERMEDIATE | 669 | 1.2024 | 0.8149 |
+| compound | _other | 3 | 0.1696 | 0.0185 |
+| circuit_key | british_grand_prix | 380 | 1.2983 | 1.2367 |
+| circuit_key | canadian_grand_prix | 494 | 1.2685 | 0.5597 |
+| compound | INTERMEDIATE | 1070 | 0.1866 | 0.2408 |
 | compound | _other | 9 | 1.0000 | 1.0000 |
+| circuit_key | canadian_grand_prix | 843 | 0.1944 | 0.2317 |
 | is_rain_lap | _other | 15 | 0.0417 | 0.0417 |
-| circuit_key | british_grand_prix | 632 | 2.7303 | 2.5252 |
-| circuit_key | las_vegas_grand_prix | 692 | 2.2605 | 2.0166 |
+| compound | _other | 12 | 2.4044 | 2.3560 |
+| circuit_key | british_grand_prix | 632 | 2.7502 | 2.5252 |
+| circuit_key | canadian_grand_prix | 902 | 2.6516 | 2.5377 |
+| circuit_key | las_vegas_grand_prix | 692 | 2.1457 | 2.0166 |
 
 ## Reproducibility
 
-- **Seed:** `20260528` · **dataset fingerprint:** `3b23214bd28c729d…`
+- **Seed:** `20260528` · **dataset fingerprint:** `0e8700ec6f620abb…`
 - **Libraries:** xgboost 3.3.0, sklearn 1.9.0
 - **ONNX parity:** all 5 boosters round-trip to ONNX within atol=1e-5 on a NaN-bearing sample (M2/M4)
 - **Reproduce:** `make ml-all`
 
 ## Limitations
 
-- The cliff classifier (macro-F1 ≈ 0.38 on 4-class cliff timing) is the weakest model by headline, and the headline is the wrong way to read it: 1.0 is not reachable on a label where laps inside a stint share a compound, a car, a circuit and a driver. Against an oracle handed the stint id and nothing else it reaches 104% of the ceiling. What limits it is not established. The label was the leading candidate and has been tested: laps_until_cliff_class is a first-crossing scan over int_compound_cliff_predicted, which was unbounded until Phase 8 bounded it at source (compound_wear_max_s_per_lap). Repairing it moved 4.97% of rows and did not lift macro-F1, and a fresh 50-trial search on the repaired label did not beat the params tuned on the contaminated one. Neither the label nor the hyperparameters explain the number.
+- The cliff classifier (macro-F1 ≈ 0.37 on 4-class cliff timing) is the weakest model by headline, and the headline is the wrong way to read it: 1.0 is not reachable on a label where laps inside a stint share a compound, a car, a circuit and a driver. Against an oracle handed the stint id and nothing else it reaches 98% of the ceiling. What limits it is not established. The label was the leading candidate and has been tested: laps_until_cliff_class is a first-crossing scan over int_compound_cliff_predicted, which was unbounded until Phase 8 bounded it at source (compound_wear_max_s_per_lap). Repairing it moved 4.97% of rows and did not lift macro-F1, and a fresh 50-trial search on the repaired label did not beat the params tuned on the contaminated one. Neither the label nor the hyperparameters explain the number.
 - Hyperparameters come from a 50-trial / season-fold Optuna search per target (ml/models/&lt;target&gt;_best_params.json); `make ml-retrain` refits at those params without re-searching. A target whose data has moved should be re-tuned, not just refit.
 - No live 2025 holdout yet-headline numbers are time-series CV until 2025 ingests.
 - Skill is reported as a fraction of the ATTAINABLE quantity. A fraction above 1.0 means the model is not bounded by stint-level information, so no ceiling has been established for it - not that it is near-perfect.

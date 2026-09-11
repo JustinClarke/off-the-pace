@@ -12,7 +12,6 @@ reader, so a malformed edit surfaces as a failed check rather than as silent dri
 from __future__ import annotations
 
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -120,31 +119,6 @@ def plan(log: dict) -> list[dict]:
     return ordered
 
 
-DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
-
-
-def _terminal_row(i: dict) -> tuple[str | None, str]:
-    """(date, note) for a terminal item's `closed` field.
-
-    `closed` is either a bare date, a long freeform rationale (leading with a
-    date), or absent (an undated LANDED item). The note is trimmed to a
-    summary -- the full rationale stays in build-log.json, the one authoritative
-    copy, rather than being duplicated at length in the generated doc.
-    """
-    raw = i.get("closed")
-    if not raw:
-        return None, "—"
-    m = DATE_RE.search(raw)
-    date = m.group(0) if m else None
-    rest = raw[m.end():].strip() if m else raw
-    rest = re.sub(r"^(?:CLOSED\s+[\d-]+\s*)?as\s+", "", rest, flags=re.I).strip()
-    if not rest:
-        return date, "—"
-    if len(rest) > 120:
-        rest = rest[:117].rsplit(" ", 1)[0] + "… (full rationale in build-log.json)"
-    return date, rest
-
-
 def render_order(log: dict) -> str:
     """The generated task list. Derived from the log; never hand-edited."""
     items = {i["id"]: i for i in log["items"]}
@@ -158,9 +132,12 @@ def render_order(log: dict) -> str:
     out.append("")
     done = [i for i in log["items"] if i["stage"] in TERMINAL]
     blocked = sum(1 for i in seq if i["stage"] == "BLOCKED")
-    out.append(f"**{len(seq)} live items** ({blocked} blocked), **{len(done)} terminal**. "
+    out.append(f"**{len(seq)} live items** ({blocked} blocked). "
                f"The pointer is on **{ptr}** — that is the one to run next; the rest of the "
-               f"order is what becomes runnable after it.")
+               f"order is what becomes runnable after it. "
+               f"{len(done)} terminal items are finished and not listed here — "
+               f"run `board.py` for the per-group view, or read their `closed` field in "
+               f"[`build-log.json`](build-log.json) for why each one ended as it did.")
     out.append("")
     out.append("| # | Item | Group | Stage | Cost | Model | Task | Waiting on |")
     out.append("| ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
@@ -194,21 +171,10 @@ def render_order(log: dict) -> str:
             out.append(f"- **{d['id']}** (blocks {blocks}) — {d['question']}")
         out.append("")
 
-    if done:
-        out.append("### Terminal")
-        out.append("")
-        out.append("Chronological, most recent first; undated `LANDED` items sink to the bottom.")
-        out.append("")
-        out.append("| Item | Group | Stage | Date | Task | Note |")
-        out.append("| :--- | :--- | :--- | :--- | :--- | :--- |")
-        rows = [(i, *_terminal_row(i)) for i in done]
-        dated = sorted((r for r in rows if r[1]), key=lambda r: r[1], reverse=True)
-        undated = sorted((r for r in rows if not r[1]), key=lambda r: r[0]["id"])
-        for i, date, note in dated + undated:
-            g = groups[i["group"]]
-            out.append(f"| `{i['id']}` | {g['id']} | {i['stage']} | {date or '—'} "
-                       f"| {i['title']} | {note} |")
-        out.append("")
+    # Terminal items are deliberately NOT listed here. This file answers "what do I
+    # run next"; a finished item is not an answer to that. Their reasons live in
+    # build-log.json's `closed` field, which is the authoritative copy, and
+    # `board.py` (no args) shows them per group as `[x]` rows for progress.
     out.append(END)
     return "\n".join(out)
 

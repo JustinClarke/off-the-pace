@@ -6,6 +6,7 @@ no hardcoded holdout year, bounded target (D5), and no NULL targets in training 
 from __future__ import annotations
 
 import io
+import json
 import tokenize
 from pathlib import Path
 
@@ -162,15 +163,51 @@ def test_aggregation_audit_passes_a_lap_pinned_group():
     assert findings == [], f"lap-pinned group wrongly flagged: {findings}"
 
 
-def test_aggregation_survey_names_the_two_known_instances():
-    """08b's premise. Both of the programme's known leakage suspects sit outside the
-    mart's lineage today and are scheduled to enter it (02c, 02d). The survey is the
-    advance notice; when they are wired into a feature they move into
-    audit_aggregation_scope's scope and stop the build until someone rules on them."""
+def test_aggregation_survey_still_names_the_outstanding_instance():
+    """08b's premise, half discharged. The survey lists non-pinning aggregations in
+    models the mart does NOT read, as advance notice that they are scheduled to enter
+    the contract. It named two: int_corner_skill_residuals (02c) and
+    int_sc_hazard_history (02d).
+
+    02d has not run, so its instance must still be under notice -- and the notice must
+    still say what is wrong with it, not merely name the model."""
     survey = F.survey_aggregation_scope()
-    assert any(f.startswith("int_corner_skill_residuals:") for f in survey)
     assert any(f.startswith("int_sc_hazard_history:") and "pools every ingested season" in f
                for f in survey)
+
+
+def test_the_corner_instance_left_the_survey_by_being_fixed_not_by_being_hidden():
+    """The other half, discharged by 02c, and asserted in a shape that a regression
+    cannot satisfy by accident.
+
+    int_corner_skill_residuals is gone from the survey for TWO reasons that had to hold
+    together, and checking only one of them would let the guard rot:
+
+      1. 02g removed the aggregation itself. The FLOOR(lap/5)*5 block bucket that 02a
+         ruled on -- mean forward reach 1.877 laps, every contaminating lap inside the
+         label's own t+1..t+5 window -- is now a trailing RANGE window, so the model has
+         no non-pinning GROUP BY left to report.
+      2. 02c wired it into the mart through int_lap_corner_inputs, so it is no longer
+         OUTSIDE the lineage the survey walks. The survey is defined over models the
+         mart does not read; entering the contract is itself an exit from it.
+
+    Reason 2 alone would be an alarming way to leave a survey -- a model can drop off it
+    by being read by a feature while still carrying the defect, which is exactly the
+    hand-off the survey exists to flag. So assert both: it is IN the lineage, and the
+    real audit over that lineage is clean on it."""
+    survey = F.survey_aggregation_scope()
+    assert not any(f.startswith("int_corner_skill_residuals:") for f in survey), (
+        "int_corner_skill_residuals is back in the survey — it should be in the mart "
+        "lineage via int_lap_corner_inputs (02c)")
+
+    manifest = json.loads(Path(F.MANIFEST_PATH).read_text())
+    lineage_names = {manifest["nodes"][uid]["name"] for uid in F._mart_lineage(manifest)}
+    assert "int_corner_skill_residuals" in lineage_names
+    assert "int_lap_corner_inputs" in lineage_names
+
+    violations = F.audit_aggregation_scope()
+    assert not any("int_corner_skill_residuals" in v for v in violations), violations
+    assert not any("int_lap_corner_inputs" in v for v in violations), violations
 
 
 def test_declared_exemptions_are_well_formed():

@@ -1,6 +1,6 @@
 # 05 — Model family
 
-**Group:** 05 · **`05a` depends on:** `01a`, `01b` · **Cost:** days to weeks · **Lowest EV on the ladder**
+**Group:** 05 · **`05a`:** CLOSED 2026-09-11, unstarted (see below) · depended on `01a`, `01b`
 
 > **SPLIT 2026-09-07 (research round R1).** "Model family" is not one decision. `05a` — the
 > *shipping* class change — stays blocked and stays lowest-EV. But two pieces that were sitting
@@ -8,33 +8,11 @@
 > the existing pipeline.** They are now `05b` and `05c` at the bottom of this doc. Neither
 > inherits `05a`'s block; `05b` in particular should never have been behind a "days-weeks" item.
 
-> **OPEN QUESTION — decision `D8`, raised 2026-09-11. Do not close or start `05a` before it is
-> resolved.** The three-leg pinball-loss/headroom bracket this section asks for (`01a`, `01b`,
-> `05c`) is now complete and converges on "no material headroom": `01a`'s learning curves are
-> flat end to end for all five families and its extrapolated intercept does not bind on any of
-> them; `01b`'s difference-based floor comes back *above* achieved loss on p10 and p50 (no
-> measurable headroom, per its own falsification gate) and separates from it by only ~10-12% on
-> p90 — a signal that does not survive the arm-5 race-component correction and that
-> [`01-ceiling-instrument.md`](01-ceiling-instrument.md)'s own reconciliation section routes to
-> `11a`'s conformal recalibration, not to a model-class change; `05c` finds
-> `degradation_regressor_p50` sitting at its model-based noise floor, with its final repair-pass
-> conclusion (in `build-log.json`'s `05c` note, not yet folded into this doc's results section
-> below) that no headroom percentage is quotable at all, direction only. **That evidence would
-> close `05a` cleanly as this section currently scopes it** — a shipping-class change judged on
-> predictive headroom against the incumbent.
->
-> But `build-log.json`'s `05a` item note separately carries a 2026-09-07 proposal, explicitly
-> marked "proposed, not yet written into the leaf doc": judge model families on whether they
-> yield a **publishable coefficient with an interval**, not on pinball loss alone, because
-> XGBoost cannot hand you a parameter with uncertainty. The same 2026-09-07 session's own history
-> entry already flagged that this doc "should be corrected before `05a` is run," and no session
-> since has done that or ruled the proposal out. The headroom bracket above answers a predictive
-> question; it says nothing about an interpretability/publishability question, and nothing in
-> `01a`, `01b` or `05c` was designed to. Closing this item on headroom grounds alone, or starting
-> it as a days-weeks shipping-class build, would each resolve that open disagreement in one
-> direction without the human ever having reconciled it. See `D8` in
-> [`../status/build-log.json`](../status/build-log.json) for the two paths and what each would do
-> to this item's scope and cost.
+> **CLOSED 2026-09-11 — decision `D8` ruled by the user.** `05a` is closed, unstarted. The
+> reframe proposal described below (judge model families on a publishable coefficient with an
+> interval, not pinball loss) was **rejected/deferred**, not adopted. Full ruling and reasoning
+> in the `05a — CLOSED 2026-09-11` section after the Definition of done, and in `D8`'s
+> `resolution` field in [`../status/build-log.json`](../status/build-log.json).
 
 Twenty-two checkpoints of hyperparameter search inside **one model class**. Whether
 gradient-boosted trees are the right class for this data has not been tested once.
@@ -670,6 +648,149 @@ family's own reseed floor, measured with the encoder refit inside the fit and on
 eval season; and a stated verdict on whether the effect is regime, encoding, or both. A window
 change to production is a separate human call and is not in this item's scope.
 
+### `05d` — RESULT (2026-09-15). The recommendation is the full window, for every family.
+
+Arms pre-registered in `scripts/arms_05d_training_window.py`'s docstring before any of them ran
+(gate 6); every fit's headline, per seed, is in `ml/artefacts/05d_training_window_arms.json`.
+900 fits, 59 minutes. **Gate 1 passed on all four unbarred families** — the full-window cell at
+the canonical seed reproduced the published headline bit-identically (p10 `0.5320213273637161`,
+p50 `1.0467899119026969`, p90 `0.578513617807211`, cliff `0.37186552717207966`).
+
+**The confound `01a` could not close is closed, and it was not the problem.** Every arm here
+refits the encoder on its own window's rows. One piece of luck made the comparison exact: 2024
+introduces no categorical level that 2018–2023 does not already carry, so `encoder(2018–2023)`
+and the production `encoder(2018–2024)` are the same map, and the full-window cell is directly
+comparable to the published number rather than merely close to it.
+
+#### The recommendation, per family
+
+Read as a production rule — *train on the most recent k seasons* against the incumbent *train on
+all of them* — aggregated over the five season-fold eval seasons where that rule is a proper
+subset. Positive is improvement on every metric.
+
+| family | best rule | eval seasons it wins | mean delta | × reseed floor | recommendation |
+| :--- | :--- | ---: | ---: | ---: | :--- |
+| degradation p10 | — | 0 / 15 cells | — | — | **full window** |
+| degradation p50 | k=5 | 1 / 15 cells | +0.00707 | 0.68× | **full window** |
+| degradation p90 | k=4 | 3 / 15 cells | −0.00123 | — | **full window** |
+| **cliff** | **k=4** | **2 / 2** | **+0.00593** | **1.06×** | **full window** (see below) |
+| stint life (shipped) | none stable | 2 / 5 at k=3 | — | — | barred, see below |
+| **stint life (`S1x`)** | — | **0 / 15 cells** | — | — | **full window** |
+
+For p10 and for stint life under `10e`'s `S1x` the result is not merely negative, it is monotone:
+every season you delete costs you, at every rung, on every eval season. Those two families want
+all the data there is.
+
+#### `01a`'s cell replicates. `01a`'s rule does not.
+
+The exact cell `01a` reported — eval 2024, train 2021–2023 — comes back **larger**, with the
+encoder refit inside the fit and five seeds under it:
+
+| | delta | floor | × floor |
+| :--- | ---: | ---: | ---: |
+| `01a` (pre-`08e`/`08f` substrate, encoder held fixed, single fit) | +0.01291 | 0.00349 | 3.71× |
+| `05d` (current substrate, encoder refit inside, 5 seeds) | **+0.01484** | 0.00577 | **2.57×** |
+
+t-interval on the five paired deltas `[+0.0114, +0.0183]`, p=0.0003. So the finding is real and it
+is not an encoding artefact. **It is, however, an eval-season artefact.** The same k=3 rule applied
+to the other eval seasons where it is a proper subset:
+
+| eval season | delta at k=3 | × reseed floor | p |
+| ---: | ---: | ---: | ---: |
+| 2022 | −0.00219 | −0.45× | 0.111 |
+| 2023 | **−0.00307** | −0.60× | **0.013** |
+| 2024 | **+0.01484** | +2.57× | **0.0003** |
+
+On 2023 the rule is significantly *worse*. That is precisely the limit `01a` stated it could not
+test — "a 'recent seasons train better' result measured against 2024 alone could be partly
+2024-specific" — and under test it does not survive.
+
+The most defensible cliff rule is **k=4**, which wins on both eval seasons where it is a proper
+subset (2023 +0.00329 p=0.022; 2024 +0.00858 p=0.0025). Its aggregate is **+0.00593, about 1.06×
+the family's own reseed floor.** Consistent in sign, and at one floor it is not a shipping-grade
+delta by this programme's own convention. **It does not move production.**
+
+#### The verdict the item asks for: neither regime nor encoding, as `01a` framed them
+
+**Encoding is ruled out.** Arm B keeps 2018's rows and 2018's regime and removes only its compound
+identity — HYPERSOFT / SUPERSOFT / ULTRASOFT (7,880 rows, 55% of 2018) collapsed to one shared
+code. In the cell where the entire finding lives, cliff on eval 2024, arm B moves the headline by
+**−0.00004, −0.03× its own floor.** Arm C, the renumbering null — same levels, encoder integers
+permuted per seed — moves it *more* (+0.00028). Folding the compound identity buys nothing, and
+what little it does is indistinguishable from the integers being reshuffled. Arm B clears its floor
+nowhere that matters, on any family.
+
+**2018 is ruled out as the season that hurts.** Dropping 2018 alone (k = pool−1) gives cliff on
+2024 only **+0.00240, 0.42× the reseed floor, p=0.106, CI straddling zero** — against +0.01484 for
+k=3. And on the three earliest eval seasons dropping 2018 is strongly *harmful*: −8.35×, −3.95×,
+−1.02× its paired floor on 2020, 2021, 2022. `01a`'s "why 2018 is the season that hurts" section
+described a mechanism that the multi-season ladder does not support.
+
+**What is actually there is family-specific window saturation.** Best window *size* against pool
+size, `*` marking a best-k pinned at the pool (so the true optimum may be larger):
+
+| family | E=2020 | E=2021 | E=2022 | E=2023 | E=2024 |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| p10 | 2/2* | 3/3* | 4/4* | 5/5* | 6/6* |
+| p50 | 2/2* | 3/3* | 4/4* | 5/5* | 5/6 |
+| p90 | 2/2* | 3/3* | 4/4* | 4/5 | 3/6 |
+| cliff | 2/2* | 3/3* | 4/4* | 4/5 | 3/6 |
+| stint life `S1x` | 2/2* | 3/3* | 4/4* | 5/5* | 6/6* |
+
+p10 and `S1x` are pinned at the pool at every rung — they never saturate. p90 and cliff come off the
+pin the moment the pool exceeds four seasons. The honest description is **"cliff and p90 stop
+gaining past roughly four seasons," not "2018 is bad"** — and a saturation that costs about one
+reseed floor to exploit is not worth a production change.
+
+#### Stint life: `01a`'s strongest recency finding was a hyperparameter artefact
+
+`01a` reported stint life as the most recency-driven family of the five, the newer window beating
+the older at matched n by **14–57× its floor**. `02b` bars the family until `10e` lands, so it was
+run twice here rather than dropped: under the shipped params, and under `10e`'s declared winner
+`S1x` (which `D4` has since ruled to ship).
+
+Under the shipped params the ladder is incoherent — best k = 1, 3, 2, 1, 4 across the five eval
+seasons, with subset gains up to 9.5× the paired floor for one- and two-season windows. Under
+`S1x` **the full window wins on all five eval seasons, 0 wins for any subset rule at any rung, and
+the ladder is monotone.** The window effect was the mis-tuned booster, exactly the defect `10d`
+diagnosed and `10e` fixed. Nothing here asks for a stint-life window change.
+
+#### Two mechanisms this item was sent to check, both void
+
+- **`08d` is not on this path, and could not be.** `stg_tyre_allocations` holds 2019–2024 (384 rows,
+  6 seasons). The C1–C5 scale did not exist in 2018. So the ordering worry in the spec above —
+  "`08d` before a production window change, not after" — is **moot for the one season the question
+  is about**: the real Pirelli mapping structurally cannot recover 2018's compound identity. Arm B
+  makes it doubly moot by showing compound identity is not the mechanism anyway.
+- **The `08f-2` mechanism in `build-log.json`'s item note is void.** It argued 2018 should be excluded
+  because `circuit_constructor_interaction_s` is identically 0 across 2018's panel rows. That column
+  reaches a model only through `cliff_candidate_flag`, which **`08j` pruned**. On the live 32-feature
+  contract every feature has non-zero sd in 2018 and none has an anomalous 2018 null rate. The
+  mechanism died with the flag; the note predates the prune.
+
+#### Limits of this result, stated
+
+- The paired floor is `2·sd/√5` over five seeds. With 4 df that is a touch optimistic against a
+  t-interval, so every headline claim above is quoted with the t-interval and p-value beside it,
+  and the verdict rests on the **reseed floor**, which is the programme's standard and is the
+  denominator `01a` used.
+- Arm B collapses three levels to one arbitrary code string, whose sort position sets its ordinal.
+  Arm C is the control for exactly that, and it bounds the sensitivity: the numbering moving is worth
+  under half a floor. A finding resting on arm B alone would need the code string varied.
+- The eval seasons are the five season-grouped fold seasons. 2020 is a shortened, calendar-scrambled
+  season and its ladder is only two rungs deep; it carries the least weight of the five.
+
+#### Stage
+
+**`CLOSED`.** Every clause of the definition of done is delivered — a window recommendation per
+family with its delta against that family's own reseed floor, the encoder refit inside the fit, five
+eval seasons rather than one, and a stated verdict on mechanism. The answer is **no window change,
+for any family**, so there is no candidate for `gates.md` to run end-to-end and nothing is left for
+the human call the spec reserved. Gate 1 passed; gate 6 was honoured; the renumbering null is the
+gate-4-shaped arm for the encoding hypothesis. **Do not reopen** on a fresh single-eval-season
+recency result — that is the shape this item falsified. Reopening needs a *multi-eval-season* subset
+gain clearing its family's reseed floor.
+
 ## Definition of done — `05a`
 
 Not "a GAM was fitted". A comparison against the incumbent under
@@ -679,8 +800,62 @@ split is meaningful — plus a written verdict on whether the class change is wo
 the existing tooling (ONNX export, parity verification, `behaviour_audit`, the calibration
 gates), which is a real cost and not a footnote.
 
-**This defines "done" purely in pinball-loss/headroom terms.** See the open-question callout at
+**This defines "done" purely in pinball-loss/headroom terms.** See the closure callout at
 the top of this doc and decision `D8` in `build-log.json`: a proposed 2026-09-07 reframe toward
-"a publishable coefficient with an interval" would make this section's definition of done the
-wrong one, and that proposal has never been reconciled into this doc. Do not treat the headroom
-bracket below as having settled that question — it wasn't designed to.
+"a publishable coefficient with an interval" would have made this section's definition of done
+the wrong one. It was ruled out — see below.
+
+---
+
+## 05a — CLOSED 2026-09-11. Unstarted, per its own pre-written exit condition. `D8` ruled:
+reframe rejected/deferred.
+
+**The ruling.** Decision `D8` (raised 2026-09-11, same day) asked whether `05a` should be judged
+on predictive headroom, as this doc has always scoped it, or reframed around producing a
+publishable coefficient with an interval — a proposal that had sat unreconciled in
+`build-log.json`'s `05a` item note since 2026-09-07, flagged there as needing correction into
+this doc "before `05a` is run," and never actioned across four intervening sessions. **The user
+ruled: reject/defer the reframe.** `05a` stays exactly as this doc scopes it above — a
+shipping-class model change, judged on predictive headroom against the incumbent under
+[`../foundations/gates.md`](../foundations/gates.md).
+
+**Why the evidence was already decisive on that scoping.** The three-leg bracket this section's
+"Blocked deliberately" note asked for — `01a`, `01b`, `05c` — completed and converged before `D8`
+was even raised, verified independently rather than taken on a prior summary's word:
+
+- `01a`'s row-arm learning curves are flat end to end for all five families (last-leg gains
+  0.05×–4.5× the reseed floor) and its extrapolated intercept does not bind for any of them (LOO
+  spreads 3.0–3.3× the claimed headroom on p10/p50; `b` pinned at its fit bound on p90 and cliff;
+  `c` unidentifiable for stint life). No family shows real, actionable headroom.
+- `01b`'s difference-based floor comes back **above** achieved loss on p10 (0.5654 vs 0.5188) and
+  p50 (1.0641 vs 1.0163) — "no headroom measurable," per its own pre-registered falsification
+  gate — and separates from achieved by only ~10–12% on p90, a signal that does not survive the
+  arm-5 race-component correction (corrected band top 0.5618 just covers the achieved 0.5600) and
+  that [`01-ceiling-instrument.md`](01-ceiling-instrument.md)'s own reconciliation section routes
+  to `11a`'s Mondrian-conformal recalibration, explicitly **not** to a model-class change.
+- `05c` finds `degradation_regressor_p50` at its model-based noise floor to within ±1.5%, and its
+  later repair-pass finding (cluster bootstrap over races, `build-log.json`'s `05c` note) goes
+  further: no headroom percentage is quotable at all — direction only, and the direction is
+  "none."
+
+Three independent instruments, three different failure modes, one answer: **no material headroom
+remains for a model-class change to claim.** That is precisely the condition this doc's own
+"Blocked deliberately" note named in advance as the one under which "this item closes unstarted."
+
+**What happens to the reframe.** It is not discarded. It is **shelved**: a future session or the
+user may open it as a new item under group `06` (publication track), where it belongs alongside
+`06a`/`06b`/`06c`'s other publishable-finding work — a hierarchical/GAM fit whose purpose is a
+coefficient with an interval, not a pinball-loss delta against the incumbent. `05c`'s own fitted
+variance components (`σ²_race`, `σ²_stint`, `σ²_driver`, `σ²_constructor`, with arm 0c's
+sampling-uncertainty distribution around each) already come closest to what the reframe was
+reaching for, at the 1–2 days of measurement-only cost already spent — so a group-06 item
+building on that footing would likely cost far less than `05a`'s original days-weeks,
+shipping-class estimate. **This is a new item, not a reopening of `05a`**: `05a`'s definition of
+done, as scoped above, is fully answered and spent by this closure.
+
+**Do not reopen `05a`** without evidence that changes the headroom bracket itself (e.g. a new
+ceiling instrument finding real headroom `01a`/`01b`/`05c` missed). A desire for a publishable
+coefficient is not such evidence — it is a different question, and it has a home in group `06`.
+
+Full ruling text: `D8` in [`../status/build-log.json`](../status/build-log.json)'s `decisions`
+array. Full closure bookkeeping: the `05a` item in the same file's `items` array.

@@ -108,9 +108,9 @@ because nothing on the ladder waits for them, not because they matter less.
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-11`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-15`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
 
-**26 live items** (1 blocked). The pointer is on **05a** — that is the one to run next; the rest of the order is what becomes runnable after it. 21 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
+**23 live items** (1 blocked). The pointer is on **11a** — that is the one to run next; the rest of the order is what becomes runnable after it. 24 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
 
 | # | Item | Group | Stage | Cost | Model | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -125,21 +125,18 @@ _Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-11`. Run
 | 9 | `10c` | [10](../work/10-competing-risks.md) | MEASURED | days | `fable-5.1` | Competing-risks evaluation, with the dependent-censoring caveat stated | 10b |
 | 10 | `10d` | [10](../work/10-competing-risks.md) | MEASURED | 1-2d | `opus-5` | Fix the stint-life calibration defect - the model over-predicts tyre life | 10c |
 | 11 | `10e` | [10](../work/10-competing-risks.md) | MEASURED | 1-2d | `opus-5` | Re-tune stint_life_regressor under the honest split and a non-mixture metric | 10d |
-| 12 | `02b` | [02](../work/02-feature-expansion.md) | SPEC | 1d | `sonnet-5` | Tier 1 - qualifying | 10e |
+| 12 | `02b` | [02](../work/02-feature-expansion.md) | MEASURED | 1d | `sonnet-5` | Tier 1 - qualifying | 10e |
 | 13 | `02c` | [02](../work/02-feature-expansion.md) | MEASURED | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | — |
 | 14 | `02d` | [02](../work/02-feature-expansion.md) | MEASURED | 1d | `opus-5` | Tier 3 - SC hazard, with the expanding-window rebuild | — |
 | 15 | `02g` | [02](../work/02-feature-expansion.md) | GATED | 0.5-1d | `opus-5` | Rebuild the corner field median as a trailing window | — |
 | 16 | `03a` | [03](../work/03-driver-vs-car.md) | MEASURED | 1d | `sonnet-5` | Mover panel; exclude the Force India rename; confirm the connected set survives | — |
 | 17 | `03b` | [03](../work/03-driver-vs-car.md) | MEASURED | 2d | `sonnet-5` | Jolpica ingest 2011-2017 | — |
 | 18 | `03c` | [03](../work/03-driver-vs-car.md) | BLOCKED | 1-2w | `fable-5.1` | AKM two-way FE on degradation slope + Kline-Saggio-Solvsten leave-out | 03a, 03b |
-| 19 | `05a` ▶ | [05](../work/05-model-family.md) | SPEC | days-weeks | `opus-5` | GBT vs hierarchical / GAM | **D8** (human call) |
-| 20 | `05d` | [05](../work/05-model-family.md) | SPEC | 1-2d | `opus-5` | The training window - is a proper subset of seasons better than all of them? | — |
-| 21 | `07b` | [07](../work/07-causal-pit-timing.md) | SPEC | 1-2w | `fable-5.1` | The IV estimator, with the exclusion restriction argued per outcome | — |
-| 22 | `06a` | [06](../work/06-publication.md) | SPEC | 1d | `sonnet-5` | Pit-timing tail, by constructor | — |
-| 23 | `06b` | [06](../work/06-publication.md) | SPEC | 1-2d | `opus-5` | Dirty-air coefficient per season - the 2022 regulation question | — |
-| 24 | `06c` | [06](../work/06-publication.md) | SPEC | 1d | `opus-5` | Corner-phase skill, incl. the Verstappen braking anomaly | — |
-| 25 | `11a` | [11](../work/11-parallel-surfaces.md) | SPEC | 1-2d | `opus-5` | Mondrian-conformal recalibration of the degradation band, keyed on circuit | — |
-| 26 | `11b` | [11](../work/11-parallel-surfaces.md) | SPEC | days | `opus-5` | Assemble the stochastic DP over pit timing | — |
+| 19 | `06a` | [06](../work/06-publication.md) | MEASURED | 1d | `sonnet-5` | Pit-timing tail, by constructor | — |
+| 20 | `06b` | [06](../work/06-publication.md) | MEASURED | 1-2d | `opus-5` | Dirty-air coefficient per season - the 2022 regulation question | — |
+| 21 | `06c` | [06](../work/06-publication.md) | MEASURED | 1d | `opus-5` | Corner-phase skill, incl. the Verstappen braking anomaly | — |
+| 22 | `11a` ▶ | [11](../work/11-parallel-surfaces.md) | SPEC | 1-2d | `opus-5` | Mondrian-conformal recalibration of the degradation band, keyed on circuit | — |
+| 23 | `11b` | [11](../work/11-parallel-surfaces.md) | SPEC | days | `opus-5` | Assemble the stochastic DP over pit timing | — |
 
 ### Which model to run it on
 
@@ -154,7 +151,5 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 - **D2** (blocks nothing) — CDN publish / app deploy - v11 is committed but production still serves v6.
 - **D3** (blocks nothing) — Land 08e + 08f? It supersedes the published v11 headline on all five targets.
-- **D4** (blocks nothing) — Land 10d's capacity fix (max_depth 8 -> 3, or 2) now, or wait for 10e's re-search?
-- **D8** (blocks `05a`) — 05a's pinball-loss/headroom bracket (01a + 01b + 05c) is now complete and converges on 'no material headroom'. Does that settle 05a - close it unstarted, exactly as this doc's own pre-written exit condition says - or does the unresolved 2026-09-07 REFRAME (judge model families on a publishable coefficient with an interval, not pinball loss) mean the bracket is answering the wrong question?
 
 <!-- END GENERATED TASKS -->

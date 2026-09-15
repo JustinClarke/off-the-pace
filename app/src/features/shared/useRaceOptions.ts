@@ -34,13 +34,13 @@ const queryRaceOptionsBySeason = registerQuery<{ season: number }, RaceOption[]>
 
     return rawQuery<RaceOption>(`
       SELECT
-        substr(CAST(rt.race_id AS VARCHAR), 1, 4) || '_' || substr(CAST(rt.race_id AS VARCHAR), 5) AS race_id,
-        COALESCE(dc.circuit_name, substr(CAST(rt.race_id AS VARCHAR), 1, 4) || '_' || substr(CAST(rt.race_id AS VARCHAR), 5)) AS circuit_name,
-        CAST(substr(CAST(rt.race_id AS VARCHAR), 5) AS INTEGER) AS round_number
+        rt.race_id AS race_id,
+        COALESCE(dc.circuit_name, rt.race_id) AS circuit_name,
+        CAST(split_part(rt.race_id, '_', 2) AS INTEGER) AS round_number
       FROM race_to_track rt
       LEFT JOIN dim_circuits dc ON rt.track_id = dc.circuit_key
-      WHERE CAST(substr(CAST(rt.race_id AS VARCHAR), 1, 4) AS INTEGER) = ?
-      ORDER BY rt.race_id
+      WHERE CAST(split_part(rt.race_id, '_', 1) AS INTEGER) = ?
+      ORDER BY round_number
     `, [season])
   }
 )

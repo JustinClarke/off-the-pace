@@ -35,15 +35,14 @@ describe('encodeValue categorical', () => {
 
 describe('encodeValue boolean', () => {
   it('maps true/false to 1/0', () => {
-    expect(encodeValue('cliff_candidate_flag', true, enc)).toBe(1)
-    expect(encodeValue('cliff_candidate_flag', false, enc)).toBe(0)
     expect(encodeValue('cliff_onset_passed', true, enc)).toBe(1)
+    expect(encodeValue('cliff_onset_passed', false, enc)).toBe(0)
   })
 
   it('tolerates string/number truthiness from a DB', () => {
-    expect(encodeValue('cliff_candidate_flag', 'true', enc)).toBe(1)
-    expect(encodeValue('cliff_candidate_flag', 0, enc)).toBe(0)
-    expect(encodeValue('cliff_candidate_flag', '1', enc)).toBe(1)
+    expect(encodeValue('cliff_onset_passed', 'true', enc)).toBe(1)
+    expect(encodeValue('cliff_onset_passed', 0, enc)).toBe(0)
+    expect(encodeValue('cliff_onset_passed', '1', enc)).toBe(1)
   })
 
   it('preserves NULL boolean as NaN (native-missing)', () => {
@@ -78,7 +77,7 @@ describe('buildFeatureVector', () => {
     const vec = buildFeatureVector(row, input)
     expect(vec).toBeInstanceOf(Float32Array)
     expect(vec.length).toBe(input.n_features)
-    expect(vec.length).toBe(33) // v11 frame (Phase 9 pruned v8's 42 -> 24; Phase 10a added 9 proximity columns)
+    expect(vec.length).toBe(32) // v11 frame, per the shipped manifest's input.n_features
   })
 
   it('places each encoded value at its feature_order index', () => {
@@ -94,7 +93,7 @@ describe('buildFeatureVector', () => {
     const vec = buildFeatureVector({}, input)
     const compoundIdx = input.feature_order.indexOf('compound') // categorical → missing ordinal
     const fuelIdx = input.feature_order.indexOf('fuel_mass_kg') // continuous → NaN
-    const cliffFlagIdx = input.feature_order.indexOf('cliff_candidate_flag') // boolean → NaN
+    const cliffFlagIdx = input.feature_order.indexOf('cliff_onset_passed') // boolean → NaN
     expect(vec[compoundIdx]).toBe(enc.missing_ordinal)
     expect(vec[fuelIdx]).toBeNaN()
     expect(vec[cliffFlagIdx]).toBeNaN()

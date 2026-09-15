@@ -134,6 +134,210 @@ is wrong before the ablation runs.
 
 ---
 
+### `02b` — Tier 1, qualifying: built 2026-09-14, arms pre-registered — definition of done
+
+**What was built.**
+
+* `int_qualifying_driver_summary` (new, grain `(race_year, race_id, driver_id)`, 2,912 rows)
+  rolls `int_qualifying_decomposed`'s push-lap rows up to one row per driver-weekend: MEAN of
+  `constructor_component_s` (+ SE), MIN of `quali_pace_delta_s` and `ratio_to_segment_best`
+  (both "higher = slower" by construction, so MIN is the driver's best), MAX of
+  `quali_skill_session_avg_s` and `quali_segments_contested_n` (already constant at this grain
+  one level up, so MAX is a value-preserving collapse, not a real aggregation), plus
+  `COUNT(*)` as `quali_push_laps_n`. `quali_vs_race_skill_delta_s` is deliberately **not**
+  carried — it is the forward-reach construct `int_qualifying_decomposed`'s own
+  `aggregation_scope_exemptions` entry names (a same-race average of
+  `driver_skill_residual_s`, not knowable until the race has finished, the same shape `02a`
+  ruled on one grain coarser).
+* `fct_cliff_prediction_features` carries the resulting seven columns, joined on
+  `(race_year, race_id, driver_id)` and broadcast onto every lap of that driver's race. They
+  are **in the mart and not in `ml/src/schema.py`'s `FEATURE_COLUMNS`** — same standing as
+  `02c`'s ten columns and Phase 10a's `proximity` group before their ablations. The contract
+  moves only if the arms below say it should.
+* `schema.yml`: an `aggregation_scope_exemptions` entry for `int_qualifying_driver_summary`'s
+  one `GROUP BY` (accepted — every input row is a qualifying push lap, strictly prior to the
+  race it will be joined onto, and the one column with a forward-reach defect is excluded from
+  the `SELECT`), plus a full `columns:` block; a `dbt_utils.unique_combination_of_columns` test
+  on the grain key; and the seven columns added to the mart's enforced dbt contract in
+  `transform/models/marts/schema.yml`.
+* `dbt run --select int_qualifying_driver_summary+ fct_cliff_prediction_features --target dev`
+  — both models materialize clean. `dbt test` on the same selection — **8/8 pass** (the new
+  model's `unique_combination_of_columns` and three `not_null`s, plus the mart's pre-existing
+  cliff-horizon and bound tests, unaffected by the join).
+* `python3 -m ml.src.features --check` — **CLEAN** end-to-end: forward-window audit clean,
+  aggregation-scope audit clean (the new exemption is honoured), leakage guard clean at 32
+  features (the contract has not moved), fingerprint recomputed.
+
+**Coverage/missingness, measured on the mart's 121,193 training-eligible rows.**
+`quali_push_laps_n` is never NULL — 0, not NULL, for a driver-weekend with no row in
+`int_qualifying_driver_summary` at all, matching `corner_input_coverage`'s "measured zero, not
+missing" convention from `02c`. The other six columns are NULL on exactly 2,360 rows
+(**1.947%**), and verified NULL **if and only if** `quali_push_laps_n = 0` (checked both
+directions: every one of the 2,360 NULL rows has `quali_push_laps_n = 0`, and zero rows with
+`quali_push_laps_n = 0` carry a non-NULL pace/skill value). So `quali_push_laps_n` is a
+**perfect** NULL indicator for the group — cleaner than `02c`'s `corner_input_coverage`, which
+was continuous and only correlated with its group's missingness.
+
+**The gap is not a random subset, and it has two distinct shapes.**
+
+By season:
+
+| season | n | NULL | % NULL |
+| ---: | ---: | ---: | ---: |
+| 2018 | 15,110 | 1,206 | **7.981** |
+| 2019 | 17,722 | 358 | 2.020 |
+| 2020 | 13,833 | 59 | 0.427 |
+| 2021 | 18,585 | 301 | 1.620 |
+| 2022 | 16,915 | 142 | 0.839 |
+| 2023 | 18,756 | 145 | 0.773 |
+| 2024 | 20,272 | 149 | 0.735 |
+
+2018 alone carries 51.1% of all NULLs on 12.5% of the rows. Five 2018 races drive most of it —
+`2018_1` (Australian GP) is **51.4%** NULL, `2018_11` 29.7%, `2018_8` 29.1%, `2018_7` 22.8%,
+`2018_5` 21.7% — against a 147-race median of exactly 0.0% and a mean of 2.18%. **This is an
+ingestion gap, not a DNQ pattern.** In `2018_1`, ten of the nineteen drivers on track have no
+row in `int_qualifying_driver_summary` at all, and they include LEC, OCO, PER, ALO and BOT —
+none of whom failed to qualify for the 2018 Australian GP. Within 2018, the NULL rate is
+roughly uniform across the grid (STR 20.4%, VAN 18.2%, down to VER 7.6%, LEC 6.1%, HAM 2.7%,
+SAI 0.0%) rather than concentrated on backmarkers, which is the signature of a season-wide
+`int_qualifying_decomposed`/upstream ingestion defect, consistent with 2018 already being
+flagged elsewhere in this warehouse as the first ingested season with known gaps (e.g.
+`int_stint_geometry`'s 325 stints FastF1 never assigned).
+
+Outside 2018, the shape flips to genuinely driver-concentrated and small: SAR (Sargeant) 15.1%,
+KUB (Kubica) 7.5%, MSC (Mick Schumacher) 6.9%, GRO (Grosjean, 2019+) 4.5%, all other regulars
+under 3%. These four are specifically the grid's weakest / part-season / substitute drivers in
+their seasons, which reads as genuine per-session incidents (a Q1 exit with no representative
+time, a red-flagged session) rather than a pipeline defect — but this is not verified row by
+row, only inferred from the concentration pattern.
+
+**The missingness is not label-neutral, though the effect is modest.** Same check `02c` ran on
+its own coverage gap:
+
+| rows | n | mean `next_5_lap_cumulative_jump_s` | sd | share `laps_until_cliff_class = 0_to_2` |
+| :--- | ---: | ---: | ---: | ---: |
+| pace/skill columns present | 118,833 | −2.1715 | 6.225 | 0.0923 |
+| pace/skill columns NULL | 2,360 | **−1.7831** | 6.805 | **0.1288** |
+
+Missing rows degrade slightly worse (less negative = closer to worsening) and are 39% more
+likely to be within 2 laps of a cliff crossing. Smaller than `02c`'s gap (which ran
++1.393 vs −2.330 s) but the same direction. **Not forward leakage** — a driver-weekend's
+qualifying record is settled before the race starts, full stop — but a model handed the six
+columns as bare NaNs could still partly split on "this driver-weekend has no qualifying
+record" rather than on the pace/skill values themselves. Because `quali_push_laps_n` is a
+*perfect* indicator of that missingness (not merely correlated, as `corner_input_coverage`
+was), it is carried in Arm A precisely so that channel is explicit rather than an implicit NaN
+pattern, mirroring `02c`'s reasoning for admitting `corner_input_coverage` alongside its
+residuals.
+
+#### Pre-registered arms — written before any arm is run (gates.md step 6)
+
+Baseline is the shipped 32-column contract on `cv_final_fold`, train 2018–2023, eval 2024,
+using `evaluate.py`'s own `_fit`/`_score` — identical protocol to `02c`. Families:
+`degradation_regressor` p10/p50/p90, `cliff_classifier`. Each delta is judged against that
+family's own 5-reseed floor `2*sqrt(2)*sd` from `attribution.py::refit_noise_floor`, seeds
+`RANDOM_STATE + 0…4` = 20260528…20260532 — the same five `02c` used, so the floors are
+identical numbers already on record (p10 0.004311, p50 0.010431, p90 0.009347, cliff
+0.005772) and do not need refitting.
+
+| arm | columns | what it tests |
+| :--- | :--- | :--- |
+| **A — full** | 7 (all) | The group as designed: constructor pace + driver form + the coverage indicator. |
+| **B — constructor pace** | 2 — `quali_constructor_pace_mean_s`, `quali_constructor_pace_se_mean_s` | A car's one-lap aero/power level at low fuel, near-zero traffic — a genuinely different measurement than anything in the 32-column contract, which carries no quali-session car term at all. |
+| **C — driver form** | 4 — `quali_pace_delta_best_s`, `quali_ratio_to_segment_best_min`, `quali_skill_session_avg_s`, `quali_segments_contested_n` | A driver's one-lap pace and consistency this weekend — the safe proxy left after `quali_vs_race_skill_delta_s` was excluded for its forward-reach defect. |
+| **P — permutation null** | 7 (Arm A's columns) | Arm A's columns row-shuffled in train *and* eval. Capacity = shuffled − baseline; information = real − shuffled, reported separately (gates.md step 4). |
+
+`quali_push_laps_n` sits in Arm A only — it is not split into its own confound arm the way
+`02c`'s `corner_input_coverage` was. That is a deliberate asymmetry, named here so it is not
+mistaken for an oversight: `02c` needed a coverage-only arm because `corner_input_coverage` was
+*continuous* and could plausibly carry a track-state signal of its own (and did, on p90).
+`quali_push_laps_n` is a *binary-in-effect* indicator (0 vs a tight cluster of push-lap counts)
+whose only measured job is marking exactly the six-column NULL pattern above — there is no
+comparable hypothesis under which it is an independent channel. If B and C together clear
+without A clearing by more, that would itself be evidence the indicator is inert, which is
+checked in the readings below rather than pre-empted with a fourth arm.
+
+**Primary hypothesis:** per §1, this group's grain is stint-invariant (every lap of a driver's
+race sees the same value), so it can only address the 0.94% of the degradation target's
+variance that is between-stint. The primary hypothesis is therefore that **Arm B and/or Arm C
+clears its floor on `cliff_classifier`**, not on the degradation trio. A result on the trio
+would be surprising enough to double-check the split before trusting it.
+
+**Declared in advance as the reading of each outcome**, so no result can be reinterpreted after
+the fact:
+
+* **Only cliff clears (B and/or C), the trio does not.** This is what §1's argument predicts.
+  Admits the group on `cliff_classifier`, closes the degradation-trio question for this
+  channel.
+* **B clears, C does not, on cliff.** Constructor pace is the carrying signal; driver form adds
+  nothing beyond the car term. Ship B alone if either clears.
+* **C clears, B does not, on cliff.** Driver form (this-weekend pace/consistency) is the
+  carrying signal, not the car term. The mirror image of the case above.
+* **A clears but neither B nor C does.** Ambiguous, recorded as ambiguous — `02c`'s p50 outcome
+  on that item, not rounded up here either.
+* **Any family clears on the degradation trio.** Recorded as a genuine surprise against §1's own
+  argument, re-examined rather than assimilated to the qualifying reading before it is trusted
+  — a stint-invariant feature moving lap-to-lap variance would mean something is wrong with the
+  join (e.g. it is not actually constant within a stint) or with §1's own between-stint-share
+  measurement, and that gets checked before the result gets celebrated.
+* **Nothing clears.** Tier 1 is closed on the degradation-trio and cliff families. The
+  stint-life family (below) is the only one left for this channel, and it remains barred until
+  `10e`.
+
+**One sequencing constraint, inherited from `10d` and unchanged since `02c`'s own copy of it.**
+`10d` showed the shipped stint-life booster was tuned under the wrong label (the mixture NLL,
+with 2024 in the validation folds), so a floor measured against it now would be measured
+against a model about to change. **`10e` has NOT landed** as of 2026-09-14 — production
+`ml/models/stint_life_regressor_best_params.json` is unchanged from its pre-S1x state (build-log
+2026-09-11 D4: the landing agent hit a rate limit and never executed the retrain). `02b`'s arms
+run only on the degradation trio and `cliff_classifier`; **`stint_life_regressor` is BARRED and
+is not part of this pre-registration.** No arm above names it, and the runner script refuses it
+outright rather than leaving the bar to a reader's memory, the same way `02c`'s did. When `10e`
+lands, the stint-life column of every arm here becomes its own follow-on registration — it does
+not retroactively join this one.
+
+#### E-value pre-registration — `02b`
+
+```
+H0                : the seven 02b columns (per arm) carry no information (real vs
+                    row-shuffled, gates.md step 4)
+Statistic         : per family -- p10/p50/p90 pinball, cliff macro-F1;
+                    cv_final_fold, train 2018-2023, eval 2024
+Delta orientation : delta = score(shuffled) - score(real) for losses (pinball);
+                    delta = score(real) - score(shuffled) for macro-F1. Positive = improvement.
+Construction      : B (paired safe-t), identical to 02c's choice and for the same reason --
+                    no separate reseed study of this substrate exists at the 32-column
+                    contract, so Construction A's scale would be a plug-in from the same five
+                    seeds it scores. B is exact for any unknown sigma.
+Seeds             : 20260528, 20260529, 20260530, 20260531, 20260532  (RANDOM_STATE + 0..4,
+                    the same five 02c used and the same five the floors above are quoted from)
+Parameters        : n = 5, g = 1  (a one-sd effect; 02c's default, no better number available)
+Formula           : E = (1 + 5g)^(-1/2) * [ (1 + t^2/4) / (1 + t^2/((1+5g)*4)) ]^(5/2),
+                    t = sqrt(5) * d_bar / s_d   ->  at g = 1, max attainable E = 36 (n=5)
+Declared alt      : delta* = the family's own floor 2*sqrt(2)*sd, reusing 02c's measured
+                    floors (p10 0.004311, p50 0.010431, p90 0.009347, cliff 0.005772) since
+                    the baseline contract and split are unchanged.
+Family            : four arms (A/B/C/P) x four families = 16 declared hypotheses, every one
+                    reported whatever E comes out as. Campaign-level decision is e-BH per 04c,
+                    same convention 02c used. 02c's own family-size ambiguity (12 vs 16,
+                    depending whether P counts per family) applies here identically and is not
+                    re-litigated.
+Validity check    : before trusting the implementation, push 100k draws of five i.i.d.
+                    N(0, sigma) deltas through it at several sigma and confirm mean(E) = 1.00
+                    to Monte Carlo error. Required by the reference; 02c's script already
+                    implements this check and 02b's reuses the same function.
+```
+
+**Not yet run.** `scripts/arms_02b_qualifying.py` implements the protocol above, modeled
+directly on `scripts/arms_02c_corner_inputs.py` (same `_fit`/`_score` calls, same permutation
+and paired-seed machinery, same `safe_t_e_value` implementation, same refusal to run
+`stint_life_regressor`). It has not been executed. Running it is the next step, expected
+~15–20 minutes on 8 cores (three seven-or-fewer-column arms plus the permutation arm, against
+`02c`'s four arms up to ten columns — fewer columns, same four families, same five-seed
+protocol).
+
+---
+
 ## 3. Tier 2 — Corner-level driver inputs: the only lap-varying candidate
 
 **What exists:**

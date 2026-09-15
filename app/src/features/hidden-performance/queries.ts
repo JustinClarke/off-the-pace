@@ -54,7 +54,7 @@ const WITH_BASE = `
   ),
   race_circuits AS (
     SELECT
-      substr(CAST(rt.race_id AS VARCHAR), 1, 4) || '_' || substr(CAST(rt.race_id AS VARCHAR), 5) AS race_id,
+      rt.race_id,
       dc.circuit_id,
       dc.circuit_name
     FROM race_to_track rt

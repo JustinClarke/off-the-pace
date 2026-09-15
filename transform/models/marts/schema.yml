@@ -376,6 +376,39 @@ models:
       - name: corner_exit_residual_max_s
         description: 02c. Largest exit_residual_s on the lap - the corner the driver was slowest back to power in (mean 0.4367 s).
         data_type: double
+      # ── 02b: qualifying, from int_qualifying_driver_summary ────────────────
+      # Weekend-grain (race_year, race_id, driver_id), broadcast onto every lap of
+      # that driver's race - stint-invariant, so per the leaf doc's §1 it can only
+      # address the 0.94% of the degradation target's variance that is
+      # between-stint. Present in the mart, deliberately not yet in the ML
+      # feature contract - the contract moves only if 02b's pre-registered arms
+      # earn it. quali_push_laps_n is COALESCE-d to 0 (a genuine "no qualifying
+      # record" value); the other six are left NULL on purpose - NULL means "no
+      # qualifying record for this driver-weekend", not "drove exactly at the
+      # field reference", so XGBoost reads them as native missing.
+      - name: quali_push_laps_n
+        description: Push laps this driver set across Q1/Q2/Q3 this weekend. 0, not NULL, when the driver has no row in int_qualifying_driver_summary.
+        data_type: bigint
+        constraints:
+          - type: not_null
+      - name: quali_constructor_pace_mean_s
+        description: Mean constructor_component_s over the driver's qualifying push laps this weekend - car pace at low fuel, new tyres, near-zero traffic.
+        data_type: double
+      - name: quali_constructor_pace_se_mean_s
+        description: Mean estimation SE of constructor_component_s over the same push laps.
+        data_type: double
+      - name: quali_pace_delta_best_s
+        description: Driver's single best qualifying push lap this weekend (MIN of quali_pace_delta_s, which is higher = slower by construction).
+        data_type: double
+      - name: quali_ratio_to_segment_best_min
+        description: How close the driver's best lap in any segment came to that segment's own fastest push lap (MIN of ratio_to_segment_best).
+        data_type: double
+      - name: quali_skill_session_avg_s
+        description: Driver's one-lap qualifying skill for the weekend - the residual of their best push lap per segment, averaged over segments contested.
+        data_type: double
+      - name: quali_segments_contested_n
+        description: Segments (1-3) in which the driver set a best qualifying push lap this weekend.
+        data_type: bigint
       - name: expected_compound_pace_s
         description: Model-expected compound pace contribution from int_compound_cliff_predicted
         data_type: double

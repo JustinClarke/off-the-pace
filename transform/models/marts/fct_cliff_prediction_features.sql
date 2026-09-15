@@ -123,6 +123,25 @@ corrections AS (
     FROM {{ ref('int_event_corrections') }}
 ),
 
+-- 02b (Tier 1): driver-weekend qualifying summary. Grain (race_year, race_id,
+-- driver_id) -- stint-invariant, broadcast onto every lap of that driver's race.
+-- quali_vs_race_skill_delta_s is deliberately NOT among the source columns; see
+-- int_qualifying_driver_summary.sql's header for the forward-reach ruling.
+qualifying AS (
+    SELECT
+        race_year,
+        race_id,
+        driver_id,
+        quali_push_laps_n,
+        quali_constructor_pace_mean_s,
+        quali_constructor_pace_se_mean_s,
+        quali_pace_delta_best_s,
+        quali_ratio_to_segment_best_min,
+        quali_skill_session_avg_s,
+        quali_segments_contested_n
+    FROM {{ ref('int_qualifying_driver_summary') }}
+),
+
 -- C1: per-stint linear drift of driver_skill_residual_s (pre-cliff only).
 -- Used to produce next_lap_degradation_jump_detrended_s.
 detrend AS (
@@ -348,6 +367,22 @@ base AS (
         ci.corner_exit_residual_sd_s,
         ci.corner_exit_residual_max_s,
 
+        -- 02b qualifying predictors (Tier 1, weekend-grain, stint-invariant).
+        -- NULL POLICY mirrors corner_inputs above for the pace/skill terms: a NULL
+        -- means "no qualifying record for this driver-weekend" (DNQ or a data
+        -- gap), not "drove exactly at the field reference", so XGBoost reads them
+        -- as native missing. quali_push_laps_n IS coalesced to 0 -- a
+        -- driver-weekend with no row in int_qualifying_driver_summary genuinely
+        -- set zero recorded push laps, which is the measured value, not an
+        -- invented one (same reasoning as corner_input_coverage above).
+        COALESCE(qs.quali_push_laps_n, 0) AS quali_push_laps_n,
+        qs.quali_constructor_pace_mean_s,
+        qs.quali_constructor_pace_se_mean_s,
+        qs.quali_pace_delta_best_s,
+        qs.quali_ratio_to_segment_best_min,
+        qs.quali_skill_session_avg_s,
+        qs.quali_segments_contested_n,
+
         -- Event flag: any event contamination on this lap
         COALESCE(cor.correction_weight < 1.0, FALSE) AS event_flag_any,
 
@@ -402,6 +437,11 @@ base AS (
     LEFT JOIN air AS ai ON r.lap_id = ai.lap_id
     LEFT JOIN proximity AS px ON r.lap_id = px.lap_id
     LEFT JOIN corner_inputs AS ci ON r.lap_id = ci.lap_id
+    LEFT JOIN qualifying AS qs
+        ON
+            r.race_year = qs.race_year
+            AND r.race_id = qs.race_id
+            AND r.driver_id = qs.driver_id
     LEFT JOIN corrections AS cor ON r.lap_id = cor.lap_id
     LEFT JOIN telemetry AS tel ON r.lap_id = tel.lap_id
     LEFT JOIN race_to_track AS rtt ON r.race_id = rtt.race_id
@@ -644,6 +684,21 @@ SELECT
     corner_exit_residual_mean_s,
     corner_exit_residual_sd_s,
     corner_exit_residual_max_s,
+
+    -- 02b qualifying predictors (Tier 1, an entire session the contract has never
+    -- read). Weekend-grain, stint-invariant: present in the mart, NOT yet in
+    -- ml/src/schema.py's FEATURE_COLUMNS. Per the leaf doc's §1, a stint-invariant
+    -- feature can only address the 0.94% of the degradation target's variance that
+    -- is between-stint, so this group is expected to move cliff_classifier and/or
+    -- stint_life_regressor, not the degradation trio -- the pre-registered arms in
+    -- _improvements/work/02-feature-expansion.md §2 `02b` test that expectation.
+    quali_push_laps_n,
+    quali_constructor_pace_mean_s,
+    quali_constructor_pace_se_mean_s,
+    quali_pace_delta_best_s,
+    quali_ratio_to_segment_best_min,
+    quali_skill_session_avg_s,
+    quali_segments_contested_n,
 
     -- Cliff prediction features
     expected_compound_pace_s,

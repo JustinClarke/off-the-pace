@@ -410,3 +410,479 @@ this item is exactly the kind of flexible design that multiplicity punishes.
 **Definition of done.** An effect with an interval, the exclusion restriction argued for the
 specific outcome chosen, all four threats above addressed in the write-up, and a stated
 falsification test.
+
+### 07b pre-registration — written 2026-09-15, before any instrument-outcome contrast was run
+
+Per [`../foundations/gates.md`](../foundations/gates.md) step 6, following 07a's own precedent:
+everything below was fixed and saved to this file before `Z` and `Y` were ever compared. What
+*was* computed first — matching 07a's move of establishing coverage facts before writing the
+design — are pure structural/coverage numbers (row counts, join resolution, missingness): no
+number below depends on how the instrument relates to the outcome. Scripts:
+`scratchpad/b0_structural_checks.py` through `b3_boundary_flags.py`, throwaway, not in the repo
+after this session.
+
+**Gate 1 substitute, run first.** 07a's headline reproduces exactly before anything is built on
+it: 5,360 uncensored / 2,973 censored stints, 26.87% / 6.49% SC-or-VSC stint ends, panel of
+90,597 (stint, lap) moments, 6,967 carrying `Z=1`, 5,360 pit moments — all four numbers match
+07a's own `p0_instrument_check.py` / `p2_ladder.py` figures to the digit. **Verified.**
+
+**What 07b inherits from 07a, cited not re-derived.** The RR 7.42 first-stage at L5a (2,059
+matched pairs, 31.1% retention), the GO verdict, the independent verification's boundary-lap
+finding (30.2% of treated pit moments sit on a mixed-status slice; the conservative `Z` reading
+is "already running at lap start", not "onset"), and the five items the leaf doc and build-log
+hand to 07b. Nothing in that record is re-measured here except where a number needs to be
+re-derived to build on it (the panel itself, for instance, is rebuilt rather than loaded from a
+throwaway artefact that no longer exists).
+
+#### Population
+
+Uncensored stints only (07a's threat-4 discharge, carried over unchanged): `int_stint_end_regime
+.is_censored_stint = FALSE`. Unit of observation: the (stint, lap) risk-set moment, identical to
+07a, built from every lap of every uncensored stint in `int_stint_geometry` (90,597 rows,
+**verified** against 07a's own count).
+
+Three exclusions applied, each resolving one inherited item, each logged as a population
+restriction rather than a covariate:
+
+1. **Item 1 (red-flag control-arm contamination).** Drop the 103 moments that are
+   `is_red_flag_lap AND NOT (is_safety_car_lap OR is_vsc_lap)` — **verified**: all 103 are stint
+   ends, matching 07a's figure exactly. Chosen over folding red flag into `Z`: a red flag is not
+   an encouragement, it is closer to compulsion (hazard 1.000, deterministic), and mixing a
+   deterministic sub-instrument into a probabilistic one would let 0.15% of the panel dominate a
+   stratified or regression-weighted estimator out of proportion to its size. Dropped, not
+   recoded to control — recoding would put 103 true near-certain-hazard moments in the `Z=0` arm,
+   which is the contamination this step exists to remove. (**Note, logged rather than acted on**:
+   moments that are both red-flag AND SC/VSC — 284 of them — are left in the `Z=1` arm unchanged;
+   the item only names the control-arm contamination, and these are already correctly classified
+   there.)
+2. **Item 2 (`race_to_track` misses `2018_14`).** Excluded explicitly rather than fixed: 531
+   uncensored risk-set moments drop, **verified** to be exactly the 2018_14 rows (no other race is
+   affected; `race_to_track` resolves 148 of the 149 (year, race) pairs the geometry table
+   carries, confirmed by direct query). The join is not "fixed" because `race_to_track` keys on
+   `race_id` alone and that column already encodes the year (`race_id` values look like
+   `"2018_14"`), so there is no year-ambiguity to repair — the seed table is simply missing that
+   one row, and there is no other source in this warehouse to backfill it from without leaving
+   the read-only boundary.
+3. **Item 3 (degradation-state missingness costs treated decisions non-randomly).** Accepted as a
+   restricted estimand rather than built around: `deg_state_s(ℓ)` must be defined, which requires
+   ≥4 valid laps strictly before ℓ in the stint (07a's own rule, reproduced below). This is a
+   **LATE over stints past their fifth lap**, stated plainly rather than smoothed over. The
+   alternative the item offers — a degradation measure defined from lap 2 — is not built here;
+   time is spent instead on the estimator (item 4) and the exclusion argument (threat 3), which
+   are 07b's actual mandate.
+
+**`deg_state_s(ℓ)`, reproduced exactly from 07a's definition:** `mean(driver_skill_residual_s)`
+over the last 3 available (valid) laps strictly before ℓ, minus the mean over the stint's own
+first 3 available laps, from `int_lap_residual_decomposed`. Requires ≥4 valid laps strictly
+before ℓ or the moment is dropped. **Verified as an exact reproduction**: this session's
+independent implementation returns 63,047 covariate-defined moments out of 90,597 — the identical
+count 07a reports, to the digit, computed from a from-scratch pandas implementation rather than
+07a's SQL. This is the strongest available cross-check that both sessions read `int_stint_geometry`
+/ `int_lap_residual_decomposed` the same way.
+
+**Fourth restriction, new to 07b, not one of the inherited items but required by the outcome
+choice below.** The forward-outcome window (next section) must find at least one valid lap after
+ℓ; 773 of 90,597 moments (0.85%) have none (end-of-race / retirement within the window) and are
+dropped. Coverage is otherwise near-total: 89,367 of 90,597 moments (98.6%) find the full 3 laps,
+220 find 2, 220... (220 find 2, 237 find 1) — **verified**, `scratchpad/b2_covariates_outcome.py`.
+
+**Net analytic population, all four restrictions applied:** **n = 62,889** moments, of which
+**2,130 carry `Z=1`** and **4,037 are pit moments**. Of the 1,421 SC-driven pit decisions that
+survive exclusions 1–2, **710 (50.0%) survive into this population** — close to, and slightly
+below, 07a's reported 52.1%/750, because this population also requires the forward-outcome
+window (item absent from 07a's L5a, which only needed `deg_state_s`). **Verified**,
+`scratchpad/b3_boundary_flags.py`. Minimum `lap_in_stint` in the final population is 5, confirming
+the restricted estimand is literally "past the stint's fifth lap" and not merely "usually late in
+the stint."
+
+#### Instrument `Z`
+
+**Headline** — identical to 07a's cleared definition: `Z = 1` iff `is_safety_car_lap OR
+is_vsc_lap`, `Z = 0` otherwise, computed on the population above (red-flag-only and 2018_14
+already excluded, so there is no remaining red-flag ambiguity in either arm of the headline
+definition).
+
+**Two robustness variants of `Z`, addressing item 5 (the boundary-lap channel) from both sides
+the independent-verification section named:**
+
+- **R1 — unanimous-slice-only** (the leaf doc's suggested headline robustness row). Drop every
+  moment sitting on a non-unanimous (race, lap_number) slice — a slice where, among ≥10 cars
+  observed on that lap, some carry the flag and some do not, which is the observable signature of
+  a status change falling inside that lap for only some of the field. **Verified** reproduction of
+  the independent-verification session's own number: 8,866 slices with ≥10 cars, 8,590 unanimous
+  (96.89%), to the digit. Population after this cut: n = 61,351, `Z=1` on 1,409 moments, 3,724 pit
+  moments.
+- **R2 — conservative `Z`** ("already running at lap start", the independent-verification
+  section's own stated conservative choice, not the onset restriction 07a's Ladder B used). A
+  moment's *previous chronological lap for the same driver, in the same race, regardless of
+  stint* is checked: if that lap also carried `Z=1`, the neutralisation was already running when
+  this lap began and the moment is conservative-`Z=1`; if this lap is flagged but the previous one
+  was not (an **onset** lap — 3,201 of 11,656 total `Z=1` laps across the full field, **verified**),
+  it is dropped from this variant entirely, not recoded to control, for the same reason item 1's
+  red-flag moments are dropped rather than recoded. Population after dropping onset moments: n =
+  61,791, conservative-`Z=1` on 1,032 moments, 3,555 pit moments.
+
+Both robustness rows are run and reported below the headline; neither replaces it, per the
+research judgement logged under "Deviations" at the end of this pre-registration.
+
+#### Treatment `D`
+
+`D = 1` iff the moment is the stint's chronologically final lap (the discrete-time pit hazard),
+identical to 07a.
+
+#### Outcome `Y` — the design's answer to threat 2 (common shock)
+
+**`Y(ℓ) = mean(driver_skill_residual_s)` over the next *up to* 3 valid laps strictly after ℓ,
+crossing the stint boundary freely** — i.e., on whichever tyre the driver is actually running once
+green-flag racing resumes. For a moment where `D = 1` this is the *new* stint's opening pace; for
+a moment where `D = 0` it is the *continuing* stint's next laps. Both arms get an outcome measured
+at the same forward horizon from the same decision point; nothing about which arm gets which tyre
+is baked into how `Y` is defined.
+
+**Why this outcome, and why it is the design's answer to threat 2.** 07a's verdict named the
+common-shock threat in concrete terms: under an SC the whole field pits *and* the pit-lane time
+loss itself falls, so a race-time or finishing-position outcome cannot separate "pitted earlier"
+from "pitted more cheaply." `Y` is a **per-lap pace residual over laps that start only once the
+car is back at racing speed** — `is_pit_lap` (both the in-lap and the out-lap) is excluded from
+`is_valid_lap` by construction (`stg_laps.sql:132-138`), and `int_lap_fuel_state`, which
+`int_lap_residual_decomposed` is built on, is itself filtered to `is_valid_lap = TRUE`
+(`int_lap_fuel_state.sql:18-20`) — **verified** by reading both files. The one-time pit-lane
+transit cost, cheap or expensive, never enters a lap that appears in `Y` at all. Threat 2's
+mechanism has no channel into this outcome by construction, not by assumption.
+
+**Why `driver_skill_residual_s` specifically, and not a coarser pace measure.** Six of the seven
+terms `int_lap_residual_decomposed` subtracts before writing down the residual are exactly the
+channels through which a race-wide SC state could move pace for *every* car, treated or not:
+`fuel_component_s`, `compound_component_s` (the age-conditional expected pace for whatever tyre
+the car is on — so a car on lap 2 of a stint post-SC-pit is not being unfairly compared to a car
+on lap 30 of its stint), `rubber_component_s` and `ambient_component_s` (the exact terms
+`int_track_evolution` builds to capture a cooling, less-rubbered track after a full-course
+caution), `constructor_component_s`, and `dirty_air_tax_s` (the exact term built to capture the
+bunched-field traffic a restart produces). Using the raw `pace_delta_s` or `lap_time_s` instead
+would leave every one of those channels live in `Y`; using `driver_skill_residual_s` closes five
+of the six by construction (fuel, compound-age, rubber, ambient, constructor) and the sixth
+(dirty air / restart traffic) by an explicit modelled term rather than an assumption that it
+washes out. What is *not* closed by this construction is argued honestly under "Exclusion
+restriction" below — it is a real remaining threat, not a solved one.
+
+#### Falsification outcome `Y_placebo`
+
+**`Y_placebo(ℓ) = mean(driver_skill_residual_s)` over the (up to) 3 valid laps strictly *before*
+ℓ** — the mirror-image construction of `Y`, pointed backward instead of forward. Defined
+identically to the trailing-mean component already computed inside `deg_state_s(ℓ)`, so it is
+available on exactly the same 63,047 covariate-defined moments (**verified**, exact match). This
+is not a second outcome for the headline estimate; it exists solely for the falsification test
+below and is declared here, before running, for the same reason the headline outcome is.
+
+#### Conditioning / estimator — the design's answer to item 4 (thin-cell matching)
+
+**Regression-adjusted stratification**, not exact-cell matching, chosen for the reason item 4
+states plainly: 07a's own L5a tercile grid put 19.2% of retained treated mass in cells with
+`min(n1,n0) < 5`, and building a 939-cell (or finer) grid for 07b would inherit the same problem
+one rung earlier, since `deg_state_s` is now the *only* remaining covariate beyond what 07a's L4
+already discharged cleanly (L4: 97.6% retention, 6,620 pairs, RR 6.56 in 07a's own table — not
+thin anywhere near the degree L5a is).
+
+**The fix: keep `deg_state_s` continuous rather than binning it into terciles, and use L4's
+circuit × era × wet-race × tyre-age-bin cell as a fixed effect rather than as a matching stratum.**
+Concretely, via the Frisch–Waugh–Lovell theorem: demean `D`, `Y`, `Z` and `deg_state_s` within
+each L4 cell (subtract the cell's own mean from each), then run
+
+```
+first stage:  D_tilde ~ Z_tilde + deg_state_s_tilde        (OLS, no intercept, demeaned already)
+reduced form: Y_tilde ~ Z_tilde + deg_state_s_tilde
+LATE         = coef(Z_tilde) in reduced form / coef(Z_tilde) in first stage      (Wald / 2SLS)
+```
+
+which is algebraically identical to running the same regressions with a full set of L4 cell
+dummies plus a linear `deg_state_s` control, and is what "regression-adjusted stratification"
+concretely means here. **Verified that this resolves item 4's stated problem**: on the final
+population (n = 62,889), there are 353 L4 cells, of which 176 are identifying (hold both `Z=1`
+and `Z=0`), and **99.86% of `Z=1` mass (2,127 / 2,130) sits in an identifying cell** —
+`scratchpad/b3_boundary_flags.py`. A singleton or non-identifying cell contributes exactly zero
+to `Z_tilde`'s variance after demeaning (its residual is 0 for every variable), so it is
+automatically and gracefully dropped from the estimator rather than needing to be matched,
+imputed, or hand-excluded. This is the direct resolution of the "sample-size problem to shrug
+at" the item warns against: at L4 granularity with a continuous covariate, there is effectively
+no thin-cell problem left to solve.
+
+**Robustness on the linearity assumption (R3):** add `deg_state_s_tilde^2` (also demeaned within
+cell) as a second control in both stages, checking whether the linear-in-`deg_state_s` assumption
+drives the headline number.
+
+**Robustness cross-check against 07a's own coarser design (R4):** replace the continuous
+`deg_state_s` control with a fixed effect for its own tercile — i.e., cell = L4 × deg-tercile,
+reproducing something close to 07a's L5a cell structure (939-cell scale) as a *regression* rather
+than a *matching* design. This is run purely to confirm the continuous-covariate resolution is not
+hiding a result the coarser cross-cut would contradict; it inherits L5a's own thinness and is
+reported with that caveat rather than as an equally-trusted number.
+
+#### Interval — reused production code, not a new protocol
+
+`ml/src/intervals.py::cluster_bootstrap`, unmodified, called as
+`cluster_bootstrap(score, race_key, n_rows, resamples=400, seed=S.RANDOM_STATE)` where `score(idx)`
+recomputes the *entire* FWL-demeaned Wald/2SLS pipeline (cell means, demeaning, both regressions,
+the ratio) on the resampled rows — cell means must be recomputed per resample, not fixed from the
+original data, since resampling changes cell composition. `race_key` (`race_year` + `race_id`, 147
+distinct races in the final population) is the cluster: an SC is a race-wide event, so a race is
+the coarsest honest cluster here, exactly the logic `intervals.py`'s own docstring already uses to
+justify season-level clustering elsewhere ("a whole season moves together"). `resamples=400`
+matches the module's own default (`BOOTSTRAP_RESAMPLES`); `seed=20260528` is
+`ml/src/schema.py::RANDOM_STATE`, "imported everywhere; any other seed is a defect."
+
+**This is a new statistical protocol, named as such per `epistemics.md`'s hard line, not
+conflated with either `paired_t` or `refit_noise_floor`.** It is not compared against a floor from
+either of those, and no delta computed under it will be quoted against a threshold computed under
+a different protocol.
+
+#### Exclusion restriction, argued for this specific outcome
+
+Threat 3, 07a's own text: the exclusion is "far more defensible for a pace/degradation outcome
+than for finishing position." Argued concretely for `Y` as defined above, not in the abstract:
+
+**What is closed.** An SC/VSC lap could move `Y` through channels other than "did this car pit
+now" via: (a) fuel state — closed, `fuel_component_s` subtracted; (b) the tyre's own
+age-conditional expected pace — closed, `compound_component_s` subtracted, so a fresh tyre is not
+mechanically "faster" in `Y`, only faster or slower than its *own* age-conditional model
+prediction; (c) track-wide state (a cooling, de-rubbered track after the caution) — closed,
+`rubber_component_s` and `ambient_component_s` subtracted, and these are literally the terms
+`int_track_evolution` was built to isolate this exact effect; (d) restart traffic / bunched-field
+dirty air — closed by an explicit modelled term, `dirty_air_tax_s`, rather than by assumption;
+(e) constructor-level structural pace shifts across the caution — closed, `constructor_component_s`
+subtracted.
+
+**What is not closed, stated plainly rather than assumed away.** A **restart-psychology / track-
+position channel**: a car that does *not* pit under the SC still experiences the restart itself —
+a bunched pack, defensive driving, cars on old tyres running exposed next to cars on new ones — and
+that could move its own subsequent pace independent of its own pit decision. `dirty_air_tax_s`
+models proximity-based drag/downforce loss from *following* a car; it is not built to model
+race-craft caution specific to a restart, and there is no restart-specific term in this
+decomposition to subtract. This is a genuine, outcome-specific residual threat to the exclusion
+restriction, and it is the reason a **falsification test and a supporting diagnostic** are
+pre-registered below rather than the exclusion argument resting on the six closed channels alone.
+
+**Supporting diagnostic (not the pre-registered falsification test, but declared here so it is
+not added after the result is known): the reduced form restricted to `D = 0` moments only.** If
+the restart-psychology channel is operating, `Z` should predict `Y` even among moments that did
+not pit — since, by definition, nothing about *their own* treatment status changed. A reduced-form
+`Y ~ Z` (same L4 + `deg_state_s` controls) computed on the `D = 0` subset only is reported
+alongside the headline as a direct, if heuristic, exclusion diagnostic. (Heuristic because `D = 0`
+at this specific moment does not mean "never-taker" in the Angrist–Imbens sense — a driver who
+does not pit on lap ℓ may still pit two laps later — so this is suggestive, not dispositive.)
+
+#### Falsification test — pre-registered, one test, stated before running
+
+**`Y_placebo ~ Z`, with the identical L4 + `deg_state_s` controls used in the headline reduced
+form, on the identical 62,889-moment population.** `Y_placebo` is realised strictly *before* ℓ;
+`Z` is realised *at* ℓ. Under correct identification, `Z` cannot cause something that already
+happened, so the reduced-form coefficient on `Z` in this regression should be statistically
+indistinguishable from zero. **What a failure would mean:** a nonzero coefficient here says the
+conditioning set (circuit, era, wet-race, tyre-age bin, `deg_state_s`) has not fully purged
+whatever selects an SC's timing relative to a given car's *pre-existing* state — a threat-1-style
+failure that would also cast doubt on reading any headline `Z → Y(forward)` relationship as pure
+`D`-mediated causation, since the same unpurged channel could reach forward as easily as it
+reaches into this backward-looking placebo.
+
+#### Gate 7 — e-value construction, declared before the arm runs
+
+**Construction C (shuffle-rank, assumption-free)**, reusing 07a's own gate-4 permutation
+machinery — within-L4-cell shuffles of `Z`, preserving each cell's size and `Z=1` count exactly —
+extended from 07a's first-stage-only statistic to the full LATE.
+
+```
+H0                : Z carries no information about (D, Y) beyond what the L4 cell and
+                    deg_state_s already explain (the within-cell exchangeability null,
+                    the same one 07a's gate-4 substitute used for the first stage alone)
+Statistic         : LATE_hat, the headline Wald/2SLS ratio defined above
+Construction      : C (shuffle-rank)
+K                 : 999 within-cell permutations of Z (cell sizes and each cell's Z=1
+                    count held exactly fixed, matching 07a's gate-4 substitute)
+Ranking           : two-sided, by |LATE|, rank of |LATE_hat| among {|LATE_hat|} union
+                    {|LATE_perm_1|, ..., |LATE_perm_999|}
+k                 : 1 (the sharpest)
+E                 : (K+1)/rank = 1000/rank
+Seed              : 20260528 (ml/src/schema.py::RANDOM_STATE)
+Declared alt      : no directional prior -- unlike a model-beats-baseline claim, there is
+                    no a priori "improvement" sign for whether SC-forced pit timing helps
+                    or hurts next-stint pace, so this deviates from e_value_construction.md
+                    section 2's one-sided-by-direction default and ranks on |LATE| instead.
+                    Logged here as a deviation, not discovered after the fact.
+Hypothesis count  : this adds 1 hypothesis to the campaign family -- the headline LATE
+                    (R0). R1-R4 and the D=0 diagnostic are robustness views of the same
+                    estimate, not independent bets, and are not separately declared, on
+                    the same logic 07a used for its own ladder rungs (one feasibility
+                    count, not seven campaign entries).
+Reported          : E, whatever it comes out as, including E < 1.
+```
+
+#### Deviations logged before running (per `epistemics.md`, stated not discovered)
+
+1. The leaf doc's boundary-lap item offered "restrict `Z` to already-running-at-lap-start" or
+   "carry the unanimous-slice cut as the headline robustness row" as alternatives. Both are run
+   (R1, R2); the headline estimator itself keeps 07a's cleared `Z` definition unchanged, for
+   continuity with the GO verdict's own pre-registered thresholds, and the boundary-lap concern is
+   fully carried in the robustness rows rather than folded into the headline definition.
+2. Item 3 is resolved by accepting the restricted LATE rather than building a from-lap-2
+   degradation measure — a scope decision, logged rather than silently taken.
+3. The e-value's ranking is two-sided (by `|LATE|`) rather than one-sided by a pre-registered
+   improvement direction, because this hypothesis has no natural "improvement" orientation the
+   way a model-beats-baseline claim does. Stated here, before the permutation is run.
+4. `Y` and `Y_placebo` both use "up to 3" available laps rather than requiring exactly 3, decided
+   from the coverage check (0.85% have zero, 98.6% have the full 3) rather than from any
+   Z-conditional pattern — the decision was made looking at missingness alone, the same posture
+   07a took toward `deg_state_s` missingness.
+
+### 07b results — 2026-09-15
+
+Every number below was computed on `data/dev.duckdb` read-only, on the population and
+specification fixed in the pre-registration above with nothing changed after the fact.
+Scripts: `scratchpad/b1_build_panel.py` through `b4_estimate.py`, throwaway, not in the repo.
+
+**Headline population, reproduced exactly as pre-registered.** n = 62,889 moments, `Z=1` on
+2,130, 4,037 pit moments, 147 distinct races. **Verified.**
+
+**First-stage strength.** Z coefficient on `D` (FE(L4) + `deg_state_s`, demeaned): **0.2898**,
+cluster-robust SE (clustered by race) 0.0288, race-clustered **F = 101.5**. No weak-instrument
+concern on the headline specification — this is the same first stage 07a already established at
+L5a (RR 7.42), read here as a linear-probability coefficient instead of a risk ratio. **Verified**.
+
+**The five pre-registered specifications, none dropped, none added after seeing a result:**
+
+| Spec | Population | n | Z̄=1 | First stage (Z) | Reduced form (Z) | LATE | 95% cluster-boot CI | Excludes 0? |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: | :--- | :--- |
+| **R0 headline** — FE(L4) + linear `deg_state_s` | pop3 | 62,889 | 2,130 | 0.2898 | 0.5416 | **+1.869** | [−0.216, 3.375] | No |
+| R1 — unanimous-slice only | popB | 61,351 | 1,409 | 0.2736 | 0.3670 | +1.341 | [−1.986, 3.559] | No |
+| **R2 — conservative Z (onset dropped)** | popA | 61,791 | 1,032 | 0.1706 | −0.0387 | **−0.227** | [−6.418, 3.884] | No |
+| R3 — quadratic `deg_state_s` | pop3 | 62,889 | 2,130 | 0.2905 | 0.5631 | +1.939 | [−0.213, 3.406] | No |
+| R4 — tercile-FE cross-check (≈ L5a cell structure) | pop3 | 62,889 | 2,130 | 0.2962 | 0.5835 | +1.970 | **[0.455, 3.336]** | **Yes** |
+
+`LATE` is seconds of forward degradation-adjusted pace per unit of SC-induced pit probability;
+positive means an SC-induced pit produces a *slower*-than-model-expected next stint. R4's
+939-cell-scale tercile structure inherits 07a's own L5a thinness (299 of 936 cells identifying,
+99.1% of `Z=1` mass retained in them — **verified**, `scratchpad/b4_estimate.py`), reported
+alongside rather than as an equally-trusted number, exactly as pre-registered.
+
+**The result is not robust across the pre-registered specifications, and the disagreement is
+informative rather than noise to average away.** R0, R3 and R4 — which all keep 07a's cleared
+`Z` definition and so all still include onset-boundary moments — cluster around a LATE of
+roughly +1.9 to +2.0 seconds, and R4's narrower cell structure happens to produce a CI that
+excludes zero. **R2 is the one specification built to remove exactly the contamination the
+independent-verification session flagged** ("the conservative restriction is `Z` = SC already
+deployed at lap start", not onset), and it does not merely attenuate the effect — the reduced-form
+coefficient **flips sign** (0.542 → −0.039) and the point estimate collapses to essentially zero
+(−0.227) with the widest interval of the five. Because R2 targets a *named, mechanistically
+argued* contamination rather than being one arbitrary cut among many, this session reads the
+disagreement as R2 overturning R0/R3/R4 rather than as R0/R3/R4 outvoting R2: the moments that
+carry the apparent effect are disproportionately the ones where a car's own pit stop made it
+mechanically more likely to still be flagged when the SC status changed mid-lap — precisely the
+channel 07a's independent verification described as capable of inflating the first stage, now
+shown to inflate (or manufacture) the *reduced form* on this outcome as well, which 07a's own
+first-stage-only boundary check (RR 7.42 → 6.95, a 6% attenuation) did not have the outcome data
+to see.
+
+**Bottom line: no reliable evidence of an effect in either direction.** The headline point
+estimate (R0, +1.869s) is not small, but its interval spans zero, three of five specifications
+have intervals spanning zero, and the one specification built to close the boundary-lap gap
+collapses to near-zero with the widest interval of all. This is reported as the finding, not
+smoothed into either "the effect is +1.9s" or "there is no effect" — the honest read is that this
+design, even resolved to L4-plus-continuous-covariate regression adjustment, is not powered to
+distinguish a real effect from the boundary-lap-driven artefact at this outcome and sample size.
+
+#### Exclusion-restriction diagnostics
+
+**Falsification test (pre-registered): `Y_placebo ~ Z`, identical controls, identical
+population.** Coefficient **−0.188**, cluster-robust SE 0.110, t = −1.70, p ≈ 0.091 (n = 62,889,
+147 race clusters). Does not reach conventional significance, and — more informative than the
+p-value alone — it is **opposite in sign and about a third the magnitude** of the headline
+reduced-form coefficient (+0.542). A confound that leaked into the headline result through
+unpurged pre-existing state would be expected to show up in `Y_placebo` with a similar sign and
+comparable size to what it produces in `Y`, since the same pre-ℓ state would bias both a backward-
+and forward-looking pace measure the same way; this pattern does not look like that. **This is
+mild reassurance, not a clean pass** — p = 0.091 does not license calling threat 1 fully closed at
+this outcome, and it is reported as exactly that: a test that did not fail, not a test that
+strongly passed. **Verified**, `scratchpad/b4_estimate.py`.
+
+**Supporting diagnostic (pre-registered, not the falsification test): reduced form among `D=0`
+moments only.** Coefficient **−0.158**, cluster-robust SE 0.334, t = −0.47, p ≈ 0.637 (n = 58,852).
+No detectable direct effect of `Z` on `Y` among moments where no pit happened — consistent with
+(though, per the pre-registration's own caveat, not proof of) the exclusion restriction holding,
+since a car that did not change its own timing this lap shows no reduced-form pace effect from the
+SC's presence. **Verified.**
+
+**Exclusion restriction verdict for this outcome.** The six closed channels named in the
+pre-registration (fuel, compound-age-expected pace, rubber, ambient, constructor, dirty-air/
+traffic) are closed by construction, not by assumption — traced to the specific columns each
+subtracts. The one open channel (restart psychology / track-position effects not mediated by the
+driver's own pit decision) is not closed, but the two diagnostics available point the same
+direction: no detectable `Z`→`Y` effect among non-pitters, and a placebo test that does not fail.
+Neither diagnostic can rule out a small residual leak — that would need a study built around it
+specifically — but neither finds one either.
+
+#### Gate 7 — e-value, as declared
+
+**The declared statistic (LATE ratio) returns E = 1.15 — essentially no evidence beyond noise —
+and this is the number that counts for the campaign family, exactly as pre-registered.** 999
+within-L4-cell permutations of `Z` (cell sizes and each cell's `Z=1` count held exactly fixed,
+seed 20260528): observed `|LATE| = 1.869` ranks 871st (by absolute value) among the 1,000
+statistics {999 permuted LATEs, the observed one}, giving `E = 1000/871 = 1.15`.
+
+**A methodological finding surfaced while running the pre-registered arm, reported because it
+explains the weak `E` rather than because it improves it.** The permutation-null *first-stage*
+coefficient is centred at 0.0002 with sd 0.0060 — 91% of permutations land inside ±0.01, nowhere
+near the real first stage's 0.290. Dividing a reduced-form coefficient (itself well-behaved:
+permutation-null mean 0.0006, sd 0.051) by a first-stage coefficient that is frequently near zero
+produces a ratio with a heavy, near-Cauchy tail — the permuted-LATE distribution observed here
+has range **[−63,155, 20,906]** against an observed value of 1.87. Construction C's validity does
+not depend on the null being well-behaved (it is exact by exchangeability alone, regardless of
+tail shape), so `E = 1.15` is a legitimate e-value — but it has **very low power for a ratio
+statistic whose denominator's null distribution has mass near zero**, because a handful of
+division-by-near-zero permutations inflate the comparison set with enormous, uninformative
+values that outrank the real (well-identified) effect on magnitude alone.
+
+**Diagnostic-only, explicitly not a declared or counted e-value:** ranking the observed
+*reduced-form* coefficient alone (0.542) against its own permutation null (999 draws, none
+exceeding |0.167|) gives rank 1/1000. This is **not** reported as `E = 1000` for this item — it
+was not pre-registered, computing it after seeing the ratio's weak result is exactly the
+after-the-fact statistic-shopping gate 7 exists to prevent, and it does not enter the campaign
+family. It is recorded here only as the explanation for *why* the declared `E` is weak: the first
+stage and the reduced form are each individually far from their own null distributions (which is
+consistent with 07a's already-cleared first stage and with the headline reduced-form coefficient
+being real rather than noise on its own terms) — it is specifically the **ratio's** permutation
+null that is degenerate. **A lesson for the next ratio-statistic gate-7 in this programme:**
+Construction C ranked on a Wald/2SLS ratio directly is likely to under-power whenever the
+first-stage permutation null has mass near zero; ranking the reduced form (or a weak-IV-robust
+statistic such as Anderson–Rubin) instead would be the better-powered pre-registered choice next
+time. Recorded here rather than acted on retroactively.
+
+#### The four threats, addressed in full
+
+| Threat | Status | Evidence |
+| :--- | :--- | :--- |
+| **1. SCs not unconditionally random** | Discharged at 07a's rungs (circuit, era, wet, tyre-age); not re-litigated here. The falsification test (p ≈ 0.091, wrong-signed relative to the headline) gives mild further support at 07b's own conditioning set, not a clean pass. | 07a L1–L4; this item's falsification test |
+| **2. Common shock (timing bundled with cost-of-stop)** | **Discharged by outcome construction.** `Y` excludes both pit-lane laps by construction (`is_valid_lap` excludes `is_pit_lap`) and the mechanical channels an SC could move pace through for the whole field (fuel, compound-age, rubber, ambient, constructor, dirty-air) are each subtracted out of `driver_skill_residual_s` before it is used. | `stg_laps.sql:132-138`, `int_lap_fuel_state.sql:18-20`, `int_lap_residual_decomposed.sql` |
+| **3. Exclusion restriction (outcome-specific)** | **Argued for this outcome, not fully closed.** Six channels closed by construction; the restart-psychology/track-position channel is named, not closed, and two diagnostics (D=0 reduced form null; placebo test does not fail) point toward it being small, without proving it is zero. | This item's exclusion-restriction section and diagnostics |
+| **4. Censoring** | Discharged at the population level, inherited from 07a unchanged (uncensored stints only). | 07a population definition |
+
+**One threat 07a did not have to face and 07b does: fragility to the boundary-lap channel on the
+*outcome* side.** 07a found the first stage attenuates mildly (RR 7.42 → 6.95) when boundary laps
+are stripped. 07b finds the *treatment-effect* estimate on next-stint pace does not merely
+attenuate under the equivalent cut (R2) — it reverses sign and loses all of its apparent
+precision. This is the headline empirical finding of this item, not a caveat appended to one.
+
+### What remains open
+
+- **The restart-psychology exclusion channel** is named and diagnosed but not closed by a
+  dedicated instrument. A future item could isolate it directly — e.g. comparing `Z`'s
+  reduced-form effect on cars separated by post-restart running order — but that is new design
+  work, not a gap in this one.
+- **R2's own power is low** (1,032 treated moments, CI width 10.3s) — this session cannot
+  distinguish "the true effect is zero" from "R2 is simply underpowered to detect the same +1.9s
+  effect R0/R3/R4 see." Both readings are consistent with the numbers reported above; the
+  write-up above states why this session leans toward reading R2 as the more trustworthy
+  specification rather than claiming the point is settled.
+- **Item 3's restricted estimand** (a LATE over stints past their fifth lap) means this result
+  says nothing about the 47.9%-of-treated-decisions population 07a identified as excluded by
+  construction — an early-stint degradation measure remains unbuilt.
+- No go/no-go fork requiring a human decision was hit in this item. Every choice above (outcome,
+  estimator, which robustness cut to trust more, the e-value construction and its stated
+  limitation) is a research judgement, made and justified in place.

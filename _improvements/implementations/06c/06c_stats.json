@@ -1,0 +1,35 @@
+{
+  "total_driver_seasons": 20,
+  "driver_seasons_with_index": 20,
+  "nor": {
+    "driver_id": "NOR",
+    "corner_skill_index": -3.17,
+    "braking_skill_s": -0.0424,
+    "braking_skill_se_s": 0.0114,
+    "braking_cells_n": 305,
+    "mid_corner_skill_s": -0.0085,
+    "mid_corner_skill_se_s": 0.0049,
+    "mid_cells_n": 358,
+    "exit_skill_s": -0.2669,
+    "exit_skill_se_s": 0.0392,
+    "exit_cells_n": 76
+  },
+  "ver": {
+    "driver_id": "VER",
+    "corner_skill_index": -0.37,
+    "braking_skill_s": 0.0745,
+    "braking_skill_se_s": 0.0151,
+    "braking_cells_n": 282,
+    "mid_corner_skill_s": -0.0745,
+    "mid_corner_skill_se_s": 0.0067,
+    "mid_cells_n": 323,
+    "exit_skill_s": 0.0556,
+    "exit_skill_se_s": 0.0083,
+    "exit_cells_n": 246
+  },
+  "phase_se_means": {
+    "braking": 0.015090000000000001,
+    "mid_corner": 0.005830000000000001,
+    "exit": 0.016450000000000003
+  }
+}

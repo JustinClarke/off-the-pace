@@ -1324,6 +1324,21 @@ models:
     tags: [intermediate, simulation, qualifying]
     meta:
       family: pace-baselines
+      aggregation_scope_exemptions:
+        - keys: [driver_id, race_id, race_year]
+          status: accepted
+          reason: >
+            q1_anchor / q2_anchor / q3_anchor each resolve the one lap that matched a
+            driver's official segment time, from stg_laps_qualifying and
+            stg_results_qualifying. Both sources are the qualifying session's own
+            timeline; race_id identifies which weekend, not a race-lap sequence.
+        - keys: [race_id, race_year, segment_index]
+          status: accepted
+          reason: >
+            anchors / bracket_chequered / green_choice resolve one segment's opening
+            and closing session-clock times from stg_session_status_qualifying's green
+            lights and chequered flags. Entirely internal to the qualifying session's
+            wall clock, strictly prior to the race.
     columns:
       - name: quali_segment_id
         description: Surrogate PK = concat(race_id, '_Q', segment_index).
@@ -1381,6 +1396,18 @@ models:
     tags: [intermediate, simulation, qualifying]
     meta:
       family: pace-baselines
+      aggregation_scope_exemptions:
+        - keys: [quali_segment, race_id, race_year]
+          status: accepted
+          reason: >
+            segment_best takes MIN(lap_time_s) per (race, segment) over qualifying push
+            laps only, to build the segment field-pace baseline. Qualifying-session
+            internal; race_id identifies the weekend, not a race-lap sequence.
+        - keys: [driver_id, quali_segment, race_id, race_year]
+          status: accepted
+          reason: >
+            driver_segment_best is the same MIN(lap_time_s), narrowed to one driver.
+            Same qualifying-only argument as the segment-grain exemption above.
     columns:
       - name: lap_id
         description: PK, FK to stg_laps_qualifying.
@@ -1437,6 +1464,28 @@ models:
     tags: [intermediate, simulation, qualifying]
     meta:
       family: pace-baselines
+      aggregation_scope_exemptions:
+        - keys: [quali_segment, race_id, race_year]
+          status: accepted
+          reason: >
+            segment_pace (the segment field-pace baseline) and segment_centre
+            (re-centring pace deltas within a segment before pooling to the
+            constructor) both group push laps within one qualifying session. Neither
+            reads or produces anything race-session-scoped; race_id identifies the
+            weekend, not a race-lap sequence.
+        - keys: [constructor_id, race_id, race_year]
+          status: accepted
+          reason: >
+            The final pooling of re-centred, qualifying-only pace deltas to one
+            constructor-weekend coefficient. Same argument as above, one level up.
+        - keys: [race_id, race_year]
+          status: accepted
+          reason: >
+            race_mean averages the per-constructor qualifying medians (constructor_agg,
+            itself qualifying-only) to re-centre constructor_structural_pace_s on the
+            weekend's field average. No race-session column enters this model anywhere
+            -- see int_constructor_structural_pace for the race-session mirror, which
+            is a separate model.
     columns:
       - name: constructor_race_id
         description: Surrogate PK = concat(race_year, race_id, constructor_id, '_Q')
@@ -1456,6 +1505,14 @@ models:
     tags: [intermediate, simulation, qualifying]
     meta:
       family: residual
+      aggregation_scope_exemptions:
+        - keys: [quali_segment, race_id, race_year]
+          status: accepted
+          reason: >
+            base_track_pace_s reads the segment field-pace baseline (a segment median
+            over qualifying push laps -- see int_lap_fuel_state_qualifying /
+            int_qualifying_push_laps). Qualifying-session internal; race_id identifies
+            the weekend, not a race-lap sequence.
     columns:
       - name: lap_id
         description: PK, FK to stg_laps_qualifying
@@ -1490,6 +1547,36 @@ models:
     tags: [intermediate, simulation, qualifying]
     meta:
       family: residual
+      aggregation_scope_exemptions:
+        - keys: [driver_id, quali_segment, race_id, race_year]
+          status: accepted
+          reason: >
+            quali_driver_segment_best (the residual of the driver's best push lap per
+            Q1/Q2/Q3 segment). Every input row is a qualifying push lap, all of which
+            precede the race in wall-clock time; race_id here identifies the weekend's
+            session, not a race-lap sequence, so this key set never pools laps that a
+            race-lap feature would need to be point-in-time correct against.
+        - keys: [driver_id, race_id, race_year]
+          status: accepted
+          reason: >
+            This key set covers TWO different CTEs that happen to group on the same
+            columns. quali_driver_session_avg averages the per-segment personal bests
+            computed above -- qualifying-only, same argument as the segment-grain
+            exemption. race_driver_race_avg is the one that needs the careful reading:
+            it averages driver_skill_residual_s from int_lap_residual_decomposed over
+            the driver's laps in THIS race (a genuine race-session aggregate), to build
+            quali_vs_race_skill_delta_s. That average is not knowable until the race has
+            finished, so quali_vs_race_skill_delta_s is a real forward-reach construct
+            with respect to any race-lap label -- the same shape 02a ruled on in
+            int_corner_skill_residuals, one grain coarser (the whole race instead of a
+            5-lap bucket). It is accepted here, not declared a known_leak, because
+            nothing in the mart's lineage reads it: int_qualifying_driver_summary (item
+            02b) is the only model that selects FROM int_qualifying_decomposed for
+            feature purposes, and its own SELECT deliberately omits
+            quali_vs_race_skill_delta_s -- see that model's header for the ruling. If
+            any future model reads this column into the mart's lineage, this exemption
+            must be revisited (split into its own key-set entry with status
+            known_leak) rather than assumed to still cover it.
     columns:
       - name: lap_id
         description: PK, FK to stg_laps_qualifying
@@ -1513,6 +1600,106 @@ models:
       - name: quali_segment
         description: Q1/Q2/Q3 segment the lap was set in (FK to int_qualifying_segments).
         tests: [not_null]
+
+  - name: int_qualifying_driver_summary
+    description: >
+      02b (Tier 1). Driver-weekend qualifying summary, one row per (race_year, race_id,
+      driver_id), read off int_qualifying_decomposed's push-lap rows and rolled up to
+      the whole qualifying session. The first channel in the feature contract's lineage
+      sourced from a strictly-prior SESSION rather than a further transform of race-lap
+      residuals -- qualifying runs before the race, so no lag/expanding-window treatment
+      is needed, PROVIDED (as here) every input column is itself scoped to the
+      qualifying session.
+
+      quali_vs_race_skill_delta_s is DELIBERATELY NOT CARRIED. int_qualifying_decomposed
+      computes it by subtracting a same-race average of driver_skill_residual_s
+      (race_driver_race_avg) -- a race-session aggregate not knowable until the race has
+      finished, the same forward-reach shape 02a ruled on in int_corner_skill_residuals,
+      one grain coarser (the whole race instead of a 5-lap bucket). See this model's own
+      SQL header and int_qualifying_decomposed's own aggregation_scope_exemptions entry
+      above for the full ruling.
+
+      HONEST CEILING. This grain is stint-invariant: every lap of a driver's race sees
+      the same value. Per the leaf doc's §1, 99.06% of the degradation target's variance
+      is within-stint, so this group can only ever address the other 0.94%. Expected to
+      move cliff_classifier and/or stint_life_regressor, not the degradation trio -- 02b's
+      pre-registered arms test that expectation, they do not assume it.
+    tags: [intermediate, feature_engineering, qualifying]
+    meta:
+      family: pace-baselines
+      aggregation_scope_exemptions:
+        - keys: [race_year, race_id, driver_id]
+          status: accepted
+          reason: >
+            The model's only GROUP BY, rolling int_qualifying_decomposed's push-lap rows
+            up to one row per driver-weekend. Every input row is a qualifying push lap,
+            strictly prior in wall-clock time to every lap of the race it will later be
+            joined onto -- the same "qualifying precedes the race" argument
+            int_lap_fuel_state's race-level starting-fuel constant is declared on, one
+            level narrower (a session, not a whole race). Unlike
+            int_qualifying_decomposed's race_driver_race_avg (grouped on this same key
+            set, in a DIFFERENT CTE, one model upstream), no column this model SELECTs
+            reads anything race-scoped: the list is constructor_component_s (+ SE),
+            quali_pace_delta_s, ratio_to_segment_best, quali_skill_session_avg_s and
+            quali_segments_contested_n, all qualifying-session columns.
+            quali_vs_race_skill_delta_s -- the one column with the forward-reach defect
+            -- is deliberately excluded from the SELECT above; see the model description.
+            Confirmed mechanically: ml/src/features.py::audit_aggregation_scope returns
+            CLEAN with this exemption in place.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id]
+    columns:
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: race_id
+        description: Race identifier.
+        tests: [not_null]
+      - name: driver_id
+        description: FastF1 three-letter driver code.
+        tests: [not_null]
+      - name: quali_push_laps_n
+        description: >
+          Push laps this driver set across Q1/Q2/Q3 this weekend (COUNT(*) over
+          int_qualifying_decomposed's push-lap rows for this driver-weekend). The mart
+          COALESCEs this to 0 for a driver-weekend with no row here at all -- a genuine
+          "no qualifying record" (DNQ or a data gap), not an invented value.
+        tests: [not_null]
+      - name: quali_constructor_pace_mean_s
+        description: >
+          Mean constructor_component_s over the driver's push laps this weekend: a car's
+          one-lap aero/power level, measured with fuel, strategy and traffic all
+          near-absent. MEAN smooths Q1/Q2/Q3 segment-to-segment noise in a term expected
+          to be near-stable across one weekend.
+      - name: quali_constructor_pace_se_mean_s
+        description: >
+          Mean of constructor_component_se_s over the same push laps -- the average
+          estimation uncertainty on the pace term above.
+      - name: quali_pace_delta_best_s
+        description: >
+          MIN(quali_pace_delta_s) over the weekend, i.e. the driver's single best push
+          lap: quali_pace_delta_s is positive/higher = slower by construction (see
+          int_lap_residual_decomposed_qualifying's header), so MIN is the fastest lap.
+      - name: quali_ratio_to_segment_best_min
+        description: >
+          MIN(ratio_to_segment_best) over the weekend -- how close the driver's best lap
+          in any segment came to that segment's own fastest push lap. Same
+          "higher = slower" orientation as quali_pace_delta_best_s above.
+      - name: quali_skill_session_avg_s
+        description: >
+          MAX(quali_skill_session_avg_s) over the driver's push-lap rows. Already
+          computed at this exact (race_year, race_id, driver_id) grain one level up in
+          int_qualifying_decomposed and repeated on every push-lap row there, so MAX is a
+          value-preserving collapse of an already-constant column, not a real
+          aggregation -- the same property 02c's QUALIFY ROW_NUMBER() dedupe relies on
+          for its own repeated-value rows.
+      - name: quali_segments_contested_n
+        description: >
+          MAX(quali_segments_contested_n) over the driver's push-lap rows -- same
+          value-preserving collapse as quali_skill_session_avg_s above. Segments (1-3) in
+          which the driver set a best push lap.
 
   - name: int_pit_strategy_value
     description: >

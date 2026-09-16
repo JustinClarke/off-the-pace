@@ -1,0 +1,70 @@
+{
+  "item": "11a",
+  "frozen_from": "calibration seasons 2021-2022 only; test seasons never read",
+  "alpha": 0.2,
+  "alpha_per_edge": 0.1,
+  "calib": {
+    "rows": 23551,
+    "races": 43,
+    "circuits": 27,
+    "pooled_coverage": 0.7706254511485712,
+    "below_p10": 0.11944291112903911,
+    "above_p90": 0.1099316377223897,
+    "mean_width": 7.165591239929199,
+    "per_race_coverage_sd": 0.07497361083353414,
+    "per_race_coverage_var": 0.0056210423214182285
+  },
+  "e_value_E1_confirmatory": {
+    "construction": "betting e-value on bounded per-race coverage rates",
+    "formula": "E = prod_r [1 + lambda * (mu0 - c_r)]",
+    "unit": "race (NOT lap - within-race dependence would void a lap-level bet)",
+    "H0": "race-level coverage at this circuit has mean mu0 = 0.80",
+    "declared_alternative_mu1": 0.75,
+    "mu0": 0.8,
+    "sigma2_source": "per-race coverage variance on CALIB races",
+    "sigma2": 0.0056210423214182285,
+    "lambda_unclipped": 6.1568451463590215,
+    "lambda_cap_hard": 5.000000000000001,
+    "capital_fraction": 0.5,
+    "lambda": 2.5000000000000004,
+    "lambda_note": "the GRO bet exceeds the hard cap because the per-race coverage variance is small; betting at the cap is degenerate (one 100%-covered race zeroes E forever), so the capital-preserving truncation binds",
+    "circuits": [
+      "mexico_city_grand_prix",
+      "qatar_grand_prix"
+    ],
+    "named_by": "R4-conditional-coverage.md worst-two (Mexico 72.4%, Qatar 72.7%)",
+    "hypotheses_added": 3,
+    "one_sided": "under-coverage only",
+    "declared_power": {
+      "test_races_per_prereg_circuit": {
+        "mexico_city_grand_prix": 2,
+        "qatar_grand_prix": 2
+      },
+      "max_attainable_E_per_circuit_at_the_alternative": {
+        "mexico_city_grand_prix": 1.2656250000000004,
+        "qatar_grand_prix": 1.2656250000000004
+      },
+      "max_attainable_E_pooled_at_the_alternative": 1.6018066406250013,
+      "verdict": "DECLARED IN ADVANCE: E1 cannot clear e-BH on its own. With ~2 test races per circuit the product of bounded bets is capped near 1.3-1.7, against the E>=600 that a lone rejection in a family of 30 needs. E1 is a DIRECTIONAL reading; E2 is the instrument carrying power."
+    }
+  },
+  "e_value_E2_scan": {
+    "construction": "shuffle-rank e-value (construction C), capped at K+1",
+    "formula": "E = (K+1) / (1 + #{perm stat >= observed stat})",
+    "H0": "circuit identity carries no information about race-level coverage",
+    "statistic": "max over test circuits of (mu0_hat_marginal - coverage_c)",
+    "permutation": "shuffle the circuit label across the 46 test races, preserving each circuit's race count and each race's rows",
+    "K": 999,
+    "cap": 1000,
+    "hypotheses_added": 1,
+    "note": "this is the honest answer to the 36-circuit scan: the max statistic absorbs the multiplicity instead of ignoring it"
+  },
+  "e_value_E3_variance_decomposition": {
+    "not_a_test": "reported as an effect size, not an e-value",
+    "construction": "ceiling.py::variance_components on per-race coverage rates, grouped by circuit",
+    "question": "R4 screened circuits at n >= 300 LAPS. Laps within a race are not independent, so the effective sample size per circuit is the number of RACES (~7 pooled over all seasons), not 300+. This decomposition asks how much of the between-circuit coverage spread is a circuit component at all, and how much is race-to-race noise within circuits.",
+    "consequence": "if the circuit component is near zero, a Mondrian scheme keyed on circuit is calibrating against noise and will not transfer out of sample"
+  },
+  "hypothesis_count_total": 4,
+  "reported": "E is reported whatever its value, including E < 1"
+}

@@ -153,11 +153,19 @@ The warehouse already holds:
 
 | table | rows | what it is |
 | :--- | ---: | :--- |
-| `int_pit_strategy_cost_curve` | 386,036 | cost of stopping at each lap |
+| `int_pit_strategy_cost_curve` | ~~386,036~~ **414,289** | cost of stopping at each lap — but its running cost is `dim_compounds_season`, a lift of the `compound_cliff_params` **seed**, *not* a model prediction |
 | `int_pit_strategy_value` | 7,129 | realised strategy value per stint |
-| `int_pit_loss_circuit` | — | empirical pit loss per venue |
-| `int_sc_hazard_history` | 36 | per-lap SC/VSC hazard per circuit, EB-shrunk — **`schema.py` notes it is "exported for downstream consumers (unconsumed today)"** |
+| `int_pit_loss_circuit` | 36 | empirical pit loss per venue |
+| `int_sc_hazard_history` | ~~36~~ **149** | ~~per-lap~~ **per-racing-lap** SC/VSC hazard per circuit **× season** (`02d` point-in-time rebuild), EB-shrunk — ~~"unconsumed today"~~ **consumed by `int_pit_strategy_cost_curve.sql` as `pit_discount_factor`**, and it has **no lap axis** |
 | the five ML models | — | degradation quantiles, cliff class, stint life |
+
+> **CORRECTED 2026-09-16 by the [`11b`](../work/11-parallel-surfaces.md) run**, which verified every
+> row of this table against the warehouse. Three of the four claims were stale. Two further
+> premises below do not hold either: `next_compound` in the cost curve is fixed to the realised
+> choice (max 1 distinct value per stint × scope over all 414,289 rows), so *"which compounds to
+> fit"* is **not enumerable** from this table; and track position has **no transition kernel**.
+> The seed finding is now item [`08l`](../work/08-foundations-repair.md); whether the cost curve
+> should consume `mart_degradation_predictions` is decision `D9`.
 
 Those are, precisely, the transition costs, the stochastic event process and the state dynamics of
 a **stochastic dynamic program over pit timing**. The published formulation exists and is not

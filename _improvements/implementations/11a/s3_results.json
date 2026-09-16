@@ -1,0 +1,246 @@
+{
+  "item": "11a",
+  "stage": "s3_shrinkage_sweep",
+  "shrinkage_info": {
+    "available": true,
+    "sigma_b2_quantile": 0.8521597246117335,
+    "sigma_w2_quantile": 0.4763124381681293,
+    "icc_quantile": 0.6414584727380113,
+    "mean_weight": 0.7244883371106877,
+    "min_weight": 0.6414584727380113,
+    "max_weight": 0.7815713688669025
+  },
+  "arm_A_temporal_split": {
+    "raw": {
+      "marginal_coverage": 0.8110509456985967,
+      "per_circuit_rmse_dev_pts": 6.633048574060665,
+      "per_circuit_spread_pts": 28.904163538577045,
+      "mean_width": 7.506662368774414,
+      "n_circuits": 24
+    },
+    "pooled": {
+      "marginal_coverage": 0.8371720561317877,
+      "per_circuit_rmse_dev_pts": 7.405520729927978,
+      "per_circuit_spread_pts": 26.971311828486332,
+      "mean_width": 7.956932544708252,
+      "n_circuits": 24
+    },
+    "mondrian": {
+      "marginal_coverage": 0.8422437461866992,
+      "per_circuit_rmse_dev_pts": 8.98478425397773,
+      "per_circuit_spread_pts": 37.75875928511421,
+      "mean_width": 8.493432293281051,
+      "n_circuits": 24
+    },
+    "mondrian_shrunk": {
+      "marginal_coverage": 0.8424725442342892,
+      "per_circuit_rmse_dev_pts": 8.631574412225811,
+      "per_circuit_spread_pts": 35.19700458740549,
+      "mean_width": 8.301652531276059,
+      "n_circuits": 24
+    }
+  },
+  "arm_B_sweep": [
+    {
+      "calib_share": 0.25,
+      "calib_races": 22,
+      "mean_calib_races_per_circuit": 0.7586206896551724,
+      "scheme": "raw",
+      "per_circuit_rmse_dev_pts": 5.610476654860807,
+      "per_circuit_spread_pts": 27.970091124615465,
+      "marginal_coverage": 0.7914180409004347,
+      "mean_width": 7.336447613239288
+    },
+    {
+      "calib_share": 0.25,
+      "calib_races": 22,
+      "mean_calib_races_per_circuit": 0.7586206896551724,
+      "scheme": "pooled",
+      "per_circuit_rmse_dev_pts": 5.812475184888747,
+      "per_circuit_spread_pts": 27.37463985203794,
+      "marginal_coverage": 0.7976101830064295,
+      "mean_width": 7.439110488891601
+    },
+    {
+      "calib_share": 0.25,
+      "calib_races": 22,
+      "mean_calib_races_per_circuit": 0.7586206896551724,
+      "scheme": "mondrian",
+      "per_circuit_rmse_dev_pts": 8.05664909905696,
+      "per_circuit_spread_pts": 38.22011969768757,
+      "marginal_coverage": 0.7910265152521676,
+      "mean_width": 7.515315830834042
+    },
+    {
+      "calib_share": 0.25,
+      "calib_races": 22,
+      "mean_calib_races_per_circuit": 0.7586206896551724,
+      "scheme": "mondrian_shrunk",
+      "per_circuit_rmse_dev_pts": 6.50110086654273,
+      "per_circuit_spread_pts": 30.68871986696797,
+      "marginal_coverage": 0.7967404570846475,
+      "mean_width": 7.49408369253248
+    },
+    {
+      "calib_share": 0.4,
+      "calib_races": 36,
+      "mean_calib_races_per_circuit": 1.2413793103448276,
+      "scheme": "raw",
+      "per_circuit_rmse_dev_pts": 6.14189913231911,
+      "per_circuit_spread_pts": 29.4585563123263,
+      "marginal_coverage": 0.7915593440582418,
+      "mean_width": 7.344614129066468
+    },
+    {
+      "calib_share": 0.4,
+      "calib_races": 36,
+      "mean_calib_races_per_circuit": 1.2413793103448276,
+      "scheme": "pooled",
+      "per_circuit_rmse_dev_pts": 6.308983348633969,
+      "per_circuit_spread_pts": 28.916058829357517,
+      "marginal_coverage": 0.7987618620764962,
+      "mean_width": 7.460668890476227
+    },
+    {
+      "calib_share": 0.4,
+      "calib_races": 36,
+      "mean_calib_races_per_circuit": 1.2413793103448276,
+      "scheme": "mondrian",
+      "per_circuit_rmse_dev_pts": 8.798937664388802,
+      "per_circuit_spread_pts": 40.56672124925928,
+      "marginal_coverage": 0.7916522805279425,
+      "mean_width": 7.60046335744064
+    },
+    {
+      "calib_share": 0.4,
+      "calib_races": 36,
+      "mean_calib_races_per_circuit": 1.2413793103448276,
+      "scheme": "mondrian_shrunk",
+      "per_circuit_rmse_dev_pts": 6.729550132091268,
+      "per_circuit_spread_pts": 30.92984433193268,
+      "marginal_coverage": 0.7984126657822905,
+      "mean_width": 7.516566820756165
+    },
+    {
+      "calib_share": 0.5,
+      "calib_races": 44,
+      "mean_calib_races_per_circuit": 1.5172413793103448,
+      "scheme": "raw",
+      "per_circuit_rmse_dev_pts": 6.315557442818131,
+      "per_circuit_spread_pts": 29.563824132614027,
+      "marginal_coverage": 0.7915490046892458,
+      "mean_width": 7.347587094306946
+    },
+    {
+      "calib_share": 0.5,
+      "calib_races": 44,
+      "mean_calib_races_per_circuit": 1.5172413793103448,
+      "scheme": "pooled",
+      "per_circuit_rmse_dev_pts": 6.418519636836337,
+      "per_circuit_spread_pts": 29.110020562260523,
+      "marginal_coverage": 0.7990557265956465,
+      "mean_width": 7.4652407932281495
+    },
+    {
+      "calib_share": 0.5,
+      "calib_races": 44,
+      "mean_calib_races_per_circuit": 1.5172413793103448,
+      "scheme": "mondrian",
+      "per_circuit_rmse_dev_pts": 8.883872054072556,
+      "per_circuit_spread_pts": 39.89919106820841,
+      "marginal_coverage": 0.7912472139309594,
+      "mean_width": 7.61283678189918
+    },
+    {
+      "calib_share": 0.5,
+      "calib_races": 44,
+      "mean_calib_races_per_circuit": 1.5172413793103448,
+      "scheme": "mondrian_shrunk",
+      "per_circuit_rmse_dev_pts": 6.8536844263311005,
+      "per_circuit_spread_pts": 31.028445149285652,
+      "marginal_coverage": 0.7986754819310401,
+      "mean_width": 7.523372546683687
+    },
+    {
+      "calib_share": 0.65,
+      "calib_races": 58,
+      "mean_calib_races_per_circuit": 2.0,
+      "scheme": "raw",
+      "per_circuit_rmse_dev_pts": 6.7481019183827335,
+      "per_circuit_spread_pts": 29.033768196293057,
+      "marginal_coverage": 0.7936747389390445,
+      "mean_width": 7.311714489459991
+    },
+    {
+      "calib_share": 0.65,
+      "calib_races": 58,
+      "mean_calib_races_per_circuit": 2.0,
+      "scheme": "pooled",
+      "per_circuit_rmse_dev_pts": 6.845597579986388,
+      "per_circuit_spread_pts": 28.488506792517782,
+      "marginal_coverage": 0.8025583980750335,
+      "mean_width": 7.449066994190216
+    },
+    {
+      "calib_share": 0.65,
+      "calib_races": 58,
+      "mean_calib_races_per_circuit": 2.0,
+      "scheme": "mondrian",
+      "per_circuit_rmse_dev_pts": 9.179312915032273,
+      "per_circuit_spread_pts": 38.70121092873947,
+      "marginal_coverage": 0.7947908509748614,
+      "mean_width": 7.6277417416438755
+    },
+    {
+      "calib_share": 0.65,
+      "calib_races": 58,
+      "mean_calib_races_per_circuit": 2.0,
+      "scheme": "mondrian_shrunk",
+      "per_circuit_rmse_dev_pts": 7.16692384382357,
+      "per_circuit_spread_pts": 30.091661811129015,
+      "marginal_coverage": 0.8026084768728241,
+      "mean_width": 7.506605925664029
+    },
+    {
+      "calib_share": 0.8,
+      "calib_races": 71,
+      "mean_calib_races_per_circuit": 2.4482758620689653,
+      "scheme": "raw",
+      "per_circuit_rmse_dev_pts": 7.061794278621928,
+      "per_circuit_spread_pts": 25.84342141812772,
+      "marginal_coverage": 0.7940307291954628,
+      "mean_width": 7.383450930118561
+    },
+    {
+      "calib_share": 0.8,
+      "calib_races": 71,
+      "mean_calib_races_per_circuit": 2.4482758620689653,
+      "scheme": "pooled",
+      "per_circuit_rmse_dev_pts": 7.16856994191193,
+      "per_circuit_spread_pts": 25.475646647706913,
+      "marginal_coverage": 0.8022758571193335,
+      "mean_width": 7.512046508789062
+    },
+    {
+      "calib_share": 0.8,
+      "calib_races": 71,
+      "mean_calib_races_per_circuit": 2.4482758620689653,
+      "scheme": "mondrian",
+      "per_circuit_rmse_dev_pts": 8.886686128032288,
+      "per_circuit_spread_pts": 32.438543312842846,
+      "marginal_coverage": 0.7963936700046041,
+      "mean_width": 7.655632848678606
+    },
+    {
+      "calib_share": 0.8,
+      "calib_races": 71,
+      "mean_calib_races_per_circuit": 2.4482758620689653,
+      "scheme": "mondrian_shrunk",
+      "per_circuit_rmse_dev_pts": 7.303599232480779,
+      "per_circuit_spread_pts": 26.13461471263402,
+      "marginal_coverage": 0.8028196296342758,
+      "mean_width": 7.544125305634225
+    }
+  ],
+  "guarantee_note": "the shrunk scheme is a heuristic recalibration, NOT a conformal one - the shrunk value is not an order statistic of the calibration scores, so the finite-sample distribution-free coverage guarantee does not apply to it"
+}

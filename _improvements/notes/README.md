@@ -10,3 +10,4 @@ gets promoted into [`../status/build-log.json`](../status/build-log.json) like a
 | Note | Question it answers |
 | :--- | :--- |
 | [`tyre-life-provenance.md`](tyre-life-provenance.md) | Is tyre age real source data, or something the pipeline calculates? |
+| [`green-lap-caution-flags.md`](green-lap-caution-flags.md) | Why are `fct_lap_residuals`'s safety-car / VSC / red-flag columns FALSE on every row? |

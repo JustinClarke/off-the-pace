@@ -1,0 +1,55 @@
+{
+  "item": "11a",
+  "stage": "s0_build_panel",
+  "holdout_season_resolved": 2025,
+  "production_is_in_sample": true,
+  "production_training_seasons": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "shadow_fit_seasons": [
+    2018,
+    2019,
+    2020
+  ],
+  "shadow_calib_seasons": [
+    2021,
+    2022
+  ],
+  "shadow_test_seasons": [
+    2023,
+    2024
+  ],
+  "shadow_fit_rows": 32695,
+  "eligible_with_target": {
+    "calib_rows": 23551,
+    "test_rows": 26224,
+    "calib_races": 43,
+    "test_races": 46,
+    "calib_circuits": 27,
+    "test_circuits": 24,
+    "test_circuits_with_2plus_races": 22,
+    "test_circuits_with_1_race": 2,
+    "test_circuits_absent_from_calib": [
+      "chinese_grand_prix",
+      "las_vegas_grand_prix"
+    ],
+    "test_rows_with_no_calib_circuit": 1184,
+    "calib_n_per_circuit_min": 31,
+    "calib_n_per_circuit_median": 803.0,
+    "calib_n_per_circuit_max": 1734
+  },
+  "shadow_raw_crossing_rate": 0.0009272578133358694,
+  "feature_contract_n": 32,
+  "target": "next_5_lap_cumulative_jump_s",
+  "shadow_rows": 84119,
+  "shadow_rows_with_target": 57225,
+  "production_rows": 137447,
+  "production_rows_ineligible_with_target": 12876,
+  "wrote_production_artefact": false
+}

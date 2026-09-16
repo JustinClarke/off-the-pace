@@ -1168,3 +1168,68 @@ carry, and the suite passes without a skip or an xfail standing in for the drift
 **This gates [`10d`](10-competing-risks.md).** The calibration fix means retraining and
 re-exporting `stint_life_regressor`; that cannot be validated while ONNX parity and the manifest
 contract are already red for an unrelated reason.
+
+## 08l — The seed compound curve that defines the degradation target
+
+**Objective.** `compound_cliff_params` is a 438-row hand-written seed. It is not only the running
+cost of the pit-strategy surface — it is subtracted before the ML target is formed, so the
+degradation trio is trained to predict **the seed's error**. Establish how much of the tree's
+measured signal is that error, and rule on whether the seed is refit.
+
+**How it was found.** `11b` (2026-09-16) went looking for the DP's running cost and found no model
+prediction in it at all. Tracing back:
+
+```
+compound_cliff_params (seed, 438 rows)
+  └→ dim_compounds_season            -- "All β coefficients sourced from dim_compounds_season
+       └→ int_compound_cliff_predicted      (placeholder values)" — the SQL's own header, line 4
+            └→ int_lap_residual_decomposed  -- subtracts it to form driver_skill_residual_s
+                 └→ fct_cliff_prediction_features.next_5_lap_cumulative_jump_s  ← THE ML TARGET
+```
+
+**The size of it.** `next_5_lap_cumulative_jump_s` means **−1.88 s** per 5-lap window over the
+95,346 non-null rows of `fct_cliff_prediction_features` (`11b` measured −2.163 s on its own
+82,470-row panel — different population, same sign and order). A target whose mean is
+systematically negative is a target whose baseline over-charges: roughly **0.14 s/lap** of the
+signal the degradation models carry is spent undoing the seed rather than predicting tyre wear.
+
+**Why this is foundations and not a group-11 footnote.** It moves the *definition* of the target,
+not a feature. Every degradation number in the tree — `02`'s feature arms, `08e`/`08f`/`08i`'s
+gated deltas, `10`'s stint-life work, `11a`'s coverage table — is measured against this curve. If
+the seed is wrong, those numbers are not wrong *relative to each other*, but none of them means
+what its name says. That is precisely the class this group exists to catch: *anything that changes
+what you would measure goes before the measurements.*
+
+**The trap, and the reason this item is `fable-5.1` rather than `opus-5`.** The obvious refit is
+circular and will return a plausible number. `driver_skill_residual_s` is formed by subtracting the
+seeded curve from `pace_delta_s`; fitting the curve to minimise a criterion computed on that
+residual is fitting it to its own leftovers, and the degenerate solution is available. The
+identification argument — what independent quantity the refit is anchored to, and why that anchor
+is not itself downstream of the seed — is the hard part of this item and the part whose failure
+mode is a number that looks fine. Derive it before fitting anything.
+
+**Method.**
+1. **Quantify first, refit second.** Decompose the target into (seed bias) + (residual wear signal)
+   and report what fraction of each model's measured skill is attributable to each. This is worth
+   having even if the refit is then declined.
+2. **State the anchor.** Name the observable the refit identifies against, and show it is not
+   formed by subtracting the seed. Write this before fitting.
+3. **Refit `compound_cliff_params` against observed wear**, per compound-season.
+4. **Price the blast radius.** Rebuild the target and report which published deltas in `02`, `08`,
+   `10` and `11` move, by how much, and whether any change sign.
+
+**Interactions.** `08d` (real Pirelli C1–C5 identity per race, `MEASURED`, hand-sourced and not
+independently sourced) is what a per-compound refit would ideally key on — read its caveats before
+relying on it. `D9` (should `int_pit_strategy_cost_curve` consume `mart_degradation_predictions`)
+is deliberately sequenced *after* this item, because the +3.59 s/stint that motivates it is
+measured against the unrefit seed.
+
+**Acceptance.** The seed-bias fraction of the degradation target is reported with an interval,
+race-clustered. If a refit is taken, the identification anchor is written down and argued before
+any fit, and the blast-radius table is produced.
+
+**Definition of done.** A ruling: refit, or keep the seed with its bias documented as a known
+property of the target. Either way the tree stops describing `next_5_lap_cumulative_jump_s` as tyre
+degradation without qualification.
+
+**Raised by** [`11b`](11-parallel-surfaces.md).

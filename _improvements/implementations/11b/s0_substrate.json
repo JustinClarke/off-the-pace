@@ -1,0 +1,273 @@
+{
+  "db": "/Users/justin/github/off-the-pace/data/dev.duckdb",
+  "claimed": {
+    "int_pit_strategy_cost_curve": {
+      "rows": 386036,
+      "what": "cost of stopping at each lap"
+    },
+    "int_pit_strategy_value": {
+      "rows": 7129,
+      "what": "realised strategy value per stint"
+    },
+    "int_pit_loss_circuit": {
+      "rows": null,
+      "what": "empirical pit loss per venue"
+    },
+    "int_sc_hazard_history": {
+      "rows": 36,
+      "what": "per-lap SC/VSC hazard per circuit, EB-shrunk"
+    }
+  },
+  "tables": {
+    "int_pit_strategy_cost_curve": {
+      "rows": 414289,
+      "claimed_rows": 386036,
+      "columns": {
+        "stint_id": "VARCHAR",
+        "race_year": "INTEGER",
+        "race_id": "VARCHAR",
+        "driver_id": "VARCHAR",
+        "horizon_scope": "VARCHAR",
+        "horizon_laps": "BIGINT",
+        "stint_valid_laps": "BIGINT",
+        "candidate_pit_lap_offset": "BIGINT",
+        "laps_on_new_set": "BIGINT",
+        "compound": "VARCHAR",
+        "next_compound": "VARCHAR",
+        "candidate_lap_number": "INTEGER",
+        "old_wear_cost_s": "DOUBLE",
+        "new_wear_cost_s": "DOUBLE",
+        "baseline_cost_s": "DOUBLE",
+        "pit_lane_loss_s": "DOUBLE",
+        "sc_hazard_per_lap": "DOUBLE",
+        "sc_probability": "DOUBLE",
+        "pit_discount_factor": "DOUBLE",
+        "pit_cost_s": "DOUBLE",
+        "wear_cost_s": "DOUBLE",
+        "total_cost_s": "DOUBLE"
+      },
+      "grain": [
+        "stint_id",
+        "horizon_scope",
+        "candidate_pit_lap_offset"
+      ],
+      "grain_unique": true
+    },
+    "int_pit_strategy_value": {
+      "rows": 7129,
+      "claimed_rows": 7129,
+      "columns": {
+        "stint_id": "VARCHAR",
+        "race_year": "INTEGER",
+        "race_id": "VARCHAR",
+        "driver_id": "VARCHAR",
+        "compound": "VARCHAR",
+        "cliff_onset_lap_in_stint": "BIGINT",
+        "stint_length_laps": "BIGINT",
+        "optimal_pit_lap_in_stint": "BIGINT",
+        "optimal_pit_lap": "INTEGER",
+        "actual_pit_lap": "INTEGER",
+        "overrun_laps": "BIGINT",
+        "opportunity_cost_s": "DOUBLE",
+        "optimal_pit_lap_confidence": "DOUBLE",
+        "undercut_threat_lap": "INTEGER",
+        "pit_lane_loss_s": "DOUBLE",
+        "pit_loss_source": "VARCHAR",
+        "pit_loss_imputed_flag": "BOOLEAN",
+        "horizon_source": "VARCHAR",
+        "horizon_laps": "BIGINT",
+        "optimal_pit_lap_race_in_stint": "BIGINT",
+        "optimal_pit_lap_race": "INTEGER",
+        "opportunity_cost_race_s": "DOUBLE",
+        "strategy_verdict": "VARCHAR"
+      },
+      "grain": [
+        "stint_id"
+      ],
+      "grain_unique": true
+    },
+    "int_pit_loss_circuit": {
+      "rows": 36,
+      "claimed_rows": null,
+      "columns": {
+        "circuit_slug": "VARCHAR",
+        "circuit_id": "VARCHAR",
+        "n_stops": "BIGINT",
+        "pit_loss_s_empirical": "DOUBLE",
+        "global_pit_loss_s": "DOUBLE",
+        "pit_loss_s_shrunk": "DOUBLE"
+      },
+      "grain": [
+        "circuit_slug"
+      ],
+      "grain_unique": true
+    },
+    "int_sc_hazard_history": {
+      "rows": 149,
+      "claimed_rows": 36,
+      "columns": {
+        "circuit_slug": "VARCHAR",
+        "season": "INTEGER",
+        "season_races_n": "BIGINT",
+        "prior_seasons_n": "BIGINT",
+        "prior_races_n": "HUGEINT",
+        "prior_sc_onsets": "HUGEINT",
+        "prior_vsc_onsets": "HUGEINT",
+        "prior_any_onsets": "HUGEINT",
+        "prior_racing_laps": "HUGEINT",
+        "sc_hazard_per_lap": "DOUBLE",
+        "vsc_hazard_per_lap": "DOUBLE",
+        "any_hazard_per_lap": "DOUBLE",
+        "sc_hazard_per_lap_shrunk": "DOUBLE",
+        "vsc_hazard_per_lap_shrunk": "DOUBLE",
+        "any_hazard_per_lap_shrunk": "DOUBLE"
+      },
+      "grain": [
+        "circuit_slug",
+        "season"
+      ],
+      "grain_unique": true
+    }
+  },
+  "findings": [
+    "int_pit_strategy_cost_curve: leaf doc says 386036 rows, warehouse has 414289",
+    "int_sc_hazard_history: leaf doc says 36 rows, warehouse has 149"
+  ],
+  "sc_hazard_by_season": [
+    {
+      "season": 2018,
+      "rows": 21,
+      "non_null_shrunk": 0,
+      "min": null,
+      "mean": null,
+      "max": null
+    },
+    {
+      "season": 2019,
+      "rows": 21,
+      "non_null_shrunk": 21,
+      "min": 0.021189283872836043,
+      "mean": 0.023702363867378822,
+      "max": 0.025660222770004446
+    },
+    {
+      "season": 2020,
+      "rows": 17,
+      "non_null_shrunk": 17,
+      "min": 0.018926520567209656,
+      "mean": 0.021697831379034707,
+      "max": 0.02414090405222318
+    },
+    {
+      "season": 2021,
+      "rows": 22,
+      "non_null_shrunk": 22,
+      "min": 0.019511992351498524,
+      "mean": 0.022783055233316654,
+      "max": 0.02609316706813413
+    },
+    {
+      "season": 2022,
+      "rows": 22,
+      "non_null_shrunk": 22,
+      "min": 0.01852005237914931,
+      "mean": 0.022445838118332603,
+      "max": 0.028378036437246967
+    },
+    {
+      "season": 2023,
+      "rows": 22,
+      "non_null_shrunk": 22,
+      "min": 0.02022322433993788,
+      "mean": 0.02493933163798788,
+      "max": 0.03258228376591747
+    },
+    {
+      "season": 2024,
+      "rows": 24,
+      "non_null_shrunk": 24,
+      "min": 0.01850286919219966,
+      "mean": 0.024259523402557406,
+      "max": 0.031238476953907815
+    }
+  ],
+  "sc_hazard_has_lap_axis": false,
+  "sc_hazard_dbt_consumers": [
+    "transform/models/intermediate/int_pit_strategy_cost_curve.sql",
+    "transform/models/staging/stg_track_status.sql"
+  ],
+  "cost_curve_running_cost_source": {
+    "reads_dim_compounds_season": true,
+    "reads_mart_degradation_predictions": false,
+    "reads_any_ml_prediction": false
+  },
+  "compound_cliff_params_rows": 438,
+  "dim_compounds_season_is_seed_lift": true,
+  "cost_curve_action_space": {
+    "rows": 414289,
+    "rows_with_next_compound": 414289,
+    "distinct_next_compound_values": 8,
+    "max_next_compounds_offered_per_stint_scope": 1,
+    "note": "1 means the table fixes next_compound to the realised choice; the DP's 'compound on stop' action is not enumerated here"
+  },
+  "cost_curve_scopes": [
+    {
+      "scope": "race",
+      "rows": 253749,
+      "stints": 7089
+    },
+    {
+      "scope": "window",
+      "rows": 160540,
+      "stints": 4257
+    }
+  ],
+  "state_dimensions": {
+    "lap": true,
+    "compound": true,
+    "tyre_age": true,
+    "track_position_observed": true,
+    "track_position_transition_kernel": false,
+    "note": "position is recorded per lap in fct_lap_residuals, but nothing in the warehouse maps (stop at lap L) -> (position after the stop). That needs the whole field's pace and an overtaking model; neither exists."
+  },
+  "mart": {
+    "path": "data/marts/mart_degradation_predictions.parquet",
+    "rows": 137447,
+    "columns": [
+      "lap_id",
+      "stint_id",
+      "race_year",
+      "circuit_key",
+      "is_holdout",
+      "is_in_envelope",
+      "predicted_degradation_jump_s",
+      "predicted_degradation_jump_p10_s",
+      "predicted_degradation_jump_p90_s",
+      "predicted_cliff_class",
+      "prob_0_to_2",
+      "prob_3_to_5",
+      "prob_6_plus",
+      "prob_none_in_stint",
+      "predicted_remaining_stint_life_laps",
+      "predicted_remaining_stint_life_p10_laps",
+      "predicted_remaining_stint_life_p90_laps",
+      "model_version",
+      "predicted_at"
+    ],
+    "versions": [
+      {
+        "version": "v11",
+        "rows": 137447,
+        "predicted_at_min": "2026-09-16 07:10:33.439664",
+        "predicted_at_max": "2026-09-16 07:10:33.439664"
+      }
+    ]
+  },
+  "offpolicy_coverage": {
+    "window_stints": 4257,
+    "window_candidates_total": 160540,
+    "stints_whose_actual_L_is_in_grid": 4257,
+    "candidates_fully_observed_per_stint": 1,
+    "note": "Exactly ONE candidate per stint (L = the realised stop) has both arms run on real laps. Every other candidate needs one arm extrapolated past the age that tyre actually reached."
+  }
+}

@@ -56,7 +56,7 @@ experiments because different joins retain different rows.
 | 3 | 17 unused warehouse signals add nothing to the degradation model | **closes a thread** | **−0.01%** (and −0.95% on the cliff classifier) |
 | 4 | Air density — the ML schema's explicit `DEFERRED` item — is not worth building | **closes a thread** | 37.6% physical spread, **−0.33% / +0.70%** marginal value |
 | 5 | `tyre_allocations` seed is loaded, consumed by nothing, and contradicted by its own stub model | **orphan** | 44 rows, 2023–24, absolute C1–C5 codes |
-| 6 | `int_sc_hazard_history` is a leaf (already documented as one) | **orphan** | no dbt consumer, no app consumer |
+| 6 | `int_sc_hazard_history` is a leaf (already documented as one) | ~~**orphan**~~ **SUPERSEDED 2026-09-16** | ~~no dbt consumer~~ — `int_pit_strategy_cost_curve.sql` reads it as `pit_discount_factor`; 149 rows on (circuit, season) since `02d`, no lap axis |
 
 Findings 3 and 4 are negative results. They are ranked as highly as the defects because
 each one closes a plausible, expensive-looking thread that would otherwise be the
@@ -301,6 +301,18 @@ declares it missing is the trap this series keeps finding.
 ---
 
 ## 6. `int_sc_hazard_history` is a leaf (already known)
+
+> **SUPERSEDED 2026-09-16 — it is no longer a leaf.**
+> [`int_pit_strategy_cost_curve.sql`](../../transform/models/intermediate/int_pit_strategy_cost_curve.sql)
+> joins it and reads its shrunk hazard as `pit_discount_factor`, so the "read by nothing else in
+> dbt" statement below, and the orphan verdict in the finding table, are both out of date. The
+> table has also been rebuilt since: **149 rows keyed on (circuit_slug, season)** after `02d`'s
+> point-in-time rebuild, not 36 keyed on circuit, with every 2018 row NULL on every rate. And it
+> still has **no lap axis** — it is a flat per-racing-lap rate (0.0243/lap on 2023–24), not the
+> lap-varying profile the "right consumer" paragraph below imagines. Verified against the
+> warehouse by the [`11b`](../work/11-parallel-surfaces.md) run, which measured the stochastic arm
+> built on it as *not paying for itself*: switching the hazard off was worth **+1.01 s/stint
+> [0.45–1.72]**. The text below is kept as the 2026-08-22 record.
 
 Recorded for completeness, not as a discovery — `docs/transform/families/strategy.mdx`
 already states it plainly:

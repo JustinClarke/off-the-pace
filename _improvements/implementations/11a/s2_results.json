@@ -1,0 +1,272 @@
+{
+  "item": "11a",
+  "stage": "s2_measure",
+  "pooled_conformal_quantiles": {
+    "pooled_sym": 0.22513497566154617,
+    "pooled_lo": 0.28143787656387786,
+    "pooled_hi": 0.1734579389874802
+  },
+  "schemes": {
+    "raw": {
+      "n": 26224,
+      "coverage": 0.8110509456985967,
+      "below_lo": 0.11028065893837706,
+      "above_hi": 0.07866839536302624,
+      "mean_width": 7.506662368774414,
+      "median_width": 6.409185409545898,
+      "coverage_ci95_race_clustered": [
+        0.7799065448914838,
+        0.8350481772562254
+      ],
+      "per_circuit_n_ge_300": 24,
+      "per_circuit_coverage_min": 0.6591448931116389,
+      "per_circuit_coverage_max": 0.9481865284974094,
+      "per_circuit_spread_pts": 28.904163538577045,
+      "per_circuit_worst_abs_dev_pts": 14.818652849740932,
+      "per_circuit_rmse_dev_pts": 6.633048574060665,
+      "per_circuit_width_min": 5.530547142028809,
+      "per_circuit_width_max": 11.86283016204834,
+      "variance_decomposition": {
+        "available": true,
+        "n_race_units": 46,
+        "n_circuits": 24,
+        "mean_races_per_circuit": 1.9166666666666667,
+        "sigma_b2_circuit": 0.0014783078416023394,
+        "sigma_w2_race_within_circuit": 0.0052048236428773285,
+        "icc_circuit_share": 0.22119987389675555,
+        "icc_naive_biased_up": 0.6489133464397797,
+        "sd_per_race_coverage": 0.08155800706163618
+      },
+      "per_stratum_n_ge_30": 237,
+      "per_stratum_coverage_p10_p50_p90": [
+        0.6883333333333334,
+        0.839572192513369,
+        0.9401194029850746
+      ],
+      "per_stratum_rmse_dev_pts": 11.96445056794784
+    },
+    "pooled_sym": {
+      "n": 26224,
+      "coverage": 0.8371720561317877,
+      "below_lo": 0.09517998779743746,
+      "above_hi": 0.06764795607077487,
+      "mean_width": 7.956932544708252,
+      "median_width": 6.859455108642578,
+      "coverage_ci95_race_clustered": [
+        0.806297481992747,
+        0.8604382844960734
+      ],
+      "per_circuit_n_ge_300": 24,
+      "per_circuit_coverage_min": 0.6888361045130641,
+      "per_circuit_coverage_max": 0.9585492227979274,
+      "per_circuit_spread_pts": 26.971311828486332,
+      "per_circuit_worst_abs_dev_pts": 15.854922279792738,
+      "per_circuit_rmse_dev_pts": 7.405520729927978,
+      "per_circuit_width_min": 5.98081636428833,
+      "per_circuit_width_max": 12.31309986114502,
+      "variance_decomposition": {
+        "available": true,
+        "n_race_units": 46,
+        "n_circuits": 24,
+        "mean_races_per_circuit": 1.9166666666666667,
+        "sigma_b2_circuit": 0.001331753206166055,
+        "sigma_w2_race_within_circuit": 0.004764088367852721,
+        "icc_circuit_share": 0.21846913014310448,
+        "icc_naive_biased_up": 0.6395005802144096,
+        "sd_per_race_coverage": 0.07789437576872792
+      },
+      "per_stratum_n_ge_30": 237,
+      "per_stratum_coverage_p10_p50_p90": [
+        0.7208333333333333,
+        0.8620689655172413,
+        0.9558128469468676
+      ],
+      "per_stratum_rmse_dev_pts": 11.811390623851779
+    },
+    "pooled_asym": {
+      "n": 26224,
+      "coverage": 0.8377440512507627,
+      "below_lo": 0.09235814521049421,
+      "above_hi": 0.06989780353874314,
+      "mean_width": 7.9615583419799805,
+      "median_width": 6.864081382751465,
+      "coverage_ci95_race_clustered": [
+        0.8080544006114249,
+        0.8601906491217574
+      ],
+      "per_circuit_n_ge_300": 24,
+      "per_circuit_coverage_min": 0.6888361045130641,
+      "per_circuit_coverage_max": 0.961139896373057,
+      "per_circuit_spread_pts": 27.230379185999286,
+      "per_circuit_worst_abs_dev_pts": 16.113989637305693,
+      "per_circuit_rmse_dev_pts": 7.415457967861933,
+      "per_circuit_width_min": 5.985442638397217,
+      "per_circuit_width_max": 12.317726135253906,
+      "variance_decomposition": {
+        "available": true,
+        "n_race_units": 46,
+        "n_circuits": 24,
+        "mean_races_per_circuit": 1.9166666666666667,
+        "sigma_b2_circuit": 0.001262065448822746,
+        "sigma_w2_race_within_circuit": 0.00479075132934579,
+        "icc_circuit_share": 0.2085087811305966,
+        "icc_naive_biased_up": 0.6370202646193586,
+        "sd_per_race_coverage": 0.0776272520846441
+      },
+      "per_stratum_n_ge_30": 237,
+      "per_stratum_coverage_p10_p50_p90": [
+        0.7282328882473235,
+        0.8663101604278075,
+        0.9574181981174362
+      ],
+      "per_stratum_rmse_dev_pts": 11.817548732424253
+    },
+    "mondrian_sym": {
+      "n": 26224,
+      "coverage": 0.8422437461866992,
+      "below_lo": 0.0914810860280659,
+      "above_hi": 0.0662751677852349,
+      "mean_width": 8.493432293281051,
+      "median_width": 7.2177574689381,
+      "coverage_ci95_race_clustered": [
+        0.811899999259553,
+        0.8674199889836625
+      ],
+      "per_circuit_n_ge_300": 24,
+      "per_circuit_coverage_min": 0.6211401425178147,
+      "per_circuit_coverage_max": 0.9987277353689568,
+      "per_circuit_spread_pts": 37.75875928511421,
+      "per_circuit_worst_abs_dev_pts": 19.87277353689567,
+      "per_circuit_rmse_dev_pts": 8.98478425397773,
+      "per_circuit_width_min": 5.734595401249354,
+      "per_circuit_width_max": 19.369606054568074,
+      "variance_decomposition": {
+        "available": true,
+        "n_race_units": 46,
+        "n_circuits": 24,
+        "mean_races_per_circuit": 1.9166666666666667,
+        "sigma_b2_circuit": 0.004096036138758538,
+        "sigma_w2_race_within_circuit": 0.004009408452557216,
+        "icc_circuit_share": 0.5053437960882575,
+        "icc_naive_biased_up": 0.7610099566167633,
+        "sd_per_race_coverage": 0.08954540238811474
+      },
+      "per_stratum_n_ge_30": 237,
+      "per_stratum_coverage_p10_p50_p90": [
+        0.7208333333333333,
+        0.8676470588235294,
+        0.9711801242236024
+      ],
+      "per_stratum_rmse_dev_pts": 12.878938148417863
+    },
+    "mondrian_asym": {
+      "n": 26224,
+      "coverage": 0.8290497254423429,
+      "below_lo": 0.09151921903599756,
+      "above_hi": 0.07943105552165955,
+      "mean_width": 8.439534146714434,
+      "median_width": 7.118961757914648,
+      "coverage_ci95_race_clustered": [
+        0.7978747086842264,
+        0.8545785339849794
+      ],
+      "per_circuit_n_ge_300": 24,
+      "per_circuit_coverage_min": 0.6187648456057007,
+      "per_circuit_coverage_max": 0.9936386768447837,
+      "per_circuit_spread_pts": 37.4873831239083,
+      "per_circuit_worst_abs_dev_pts": 19.363867684478365,
+      "per_circuit_rmse_dev_pts": 8.38967333347547,
+      "per_circuit_width_min": 5.826231716582763,
+      "per_circuit_width_max": 20.248176872612834,
+      "variance_decomposition": {
+        "available": true,
+        "n_race_units": 46,
+        "n_circuits": 24,
+        "mean_races_per_circuit": 1.9166666666666667,
+        "sigma_b2_circuit": 0.00346385421574227,
+        "sigma_w2_race_within_circuit": 0.004784255632926411,
+        "icc_circuit_share": 0.41995733317026174,
+        "icc_naive_biased_up": 0.7445087404967222,
+        "sd_per_race_coverage": 0.09041284217184029
+      },
+      "per_stratum_n_ge_30": 237,
+      "per_stratum_coverage_p10_p50_p90": [
+        0.7031491136600626,
+        0.8588235294117647,
+        0.9754761904761905
+      ],
+      "per_stratum_rmse_dev_pts": 12.5855774223723
+    }
+  },
+  "E1_confirmatory": {
+    "mexico_city_grand_prix": {
+      "n": 1544,
+      "races": 2,
+      "coverage": 0.8588082901554405,
+      "e_value": 0.7276129108040309
+    },
+    "qatar_grand_prix": {
+      "n": 786,
+      "races": 2,
+      "coverage": 0.8180661577608143,
+      "e_value": 0.9489579952396411
+    },
+    "__POOLED_PREREG__": {
+      "n": 2330,
+      "races": 4,
+      "coverage": 0.8450643776824034,
+      "e_value": 0.6904740891470729
+    }
+  },
+  "E2_scan": {
+    "observed_max_under_coverage": 0.15190605258695777,
+    "n_perm_ge_observed": 965,
+    "e_value": 1.0351966873706004,
+    "perm_stat_median": 0.19993983458748554,
+    "perm_stat_p95": 0.2826503477912723
+  },
+  "split_R_race_randomised": {
+    "raw": {
+      "marginal_coverage_mean": 0.7922258998813743,
+      "marginal_coverage_sd": 0.010181937643578033,
+      "per_circuit_spread_mean_pts": 29.624557350693447,
+      "per_circuit_spread_sd_pts": 8.54985993727755
+    },
+    "pooled_sym": {
+      "marginal_coverage_mean": 0.8002041197602268,
+      "marginal_coverage_sd": 0.02033183125794696,
+      "per_circuit_spread_mean_pts": 29.111712314771925,
+      "per_circuit_spread_sd_pts": 8.63937324809295
+    },
+    "mondrian_sym": {
+      "marginal_coverage_mean": 0.7921117549609025,
+      "marginal_coverage_sd": 0.02305058610577407,
+      "per_circuit_spread_mean_pts": 40.411445286606636,
+      "per_circuit_spread_sd_pts": 12.693333941475963
+    },
+    "mondrian_asym": {
+      "marginal_coverage_mean": 0.7807355994333611,
+      "marginal_coverage_sd": 0.02262224105893574,
+      "per_circuit_spread_mean_pts": 41.53701801995612,
+      "per_circuit_spread_sd_pts": 14.694301079860688
+    }
+  },
+  "split_T_temporal": {
+    "raw": {
+      "marginal_coverage": 0.8110509456985967,
+      "per_circuit_spread_pts": 28.904163538577045
+    },
+    "pooled_sym": {
+      "marginal_coverage": 0.8371720561317877,
+      "per_circuit_spread_pts": 26.971311828486332
+    },
+    "mondrian_sym": {
+      "marginal_coverage": 0.8422437461866992,
+      "per_circuit_spread_pts": 37.75875928511421
+    },
+    "mondrian_asym": {
+      "marginal_coverage": 0.8290497254423429,
+      "per_circuit_spread_pts": 37.4873831239083
+    }
+  }
+}

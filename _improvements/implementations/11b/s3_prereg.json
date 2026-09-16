@@ -1,0 +1,60 @@
+{
+  "item": "11b",
+  "written": "2026-09-16",
+  "written_before_reading": "seasons 2023 and 2024 (the TEST half). Every number quoted in this block comes from the DEV half, seasons 2018-2022, s2_stints_dev_full.parquet.",
+  "split": {
+    "dev": [2018, 2019, 2020, 2021, 2022],
+    "test": [2023, 2024],
+    "why": "Matches 11a. Two test seasons, not one, because every 2024 circuit hosts exactly one race, so a single test season confounds circuit with race. The DP arms are not fitted objects, but the SHADOW forecast arm is: 11a's shadow booster trains on 2018-2020, so 2023-24 is out of sample for it. The production v11 arm is in-sample on every row and is reported as such."
+  },
+  "clustering_unit": "RACE. Laps are not independent within a race and stints are not independent within a race; 11a measured a 13x overstatement from using the lap as the unit. Every interval and every betting factor below uses the race.",
+  "hypotheses": {
+    "E1": {
+      "null": "On the held-out half-sample truth surface, the policy induced by the v11 degradation forecast is no better than the policy induced by the seed-only production surface (int_pit_strategy_cost_curve). Formally: P(a race's mean regret is lower under model_nodrift than under seed) = mu0 = 0.50.",
+      "statistic": "W_r = 1{ mean_over_stints(regret_model_nodrift_x) < mean_over_stints(regret_seed_x) } per race r",
+      "orientation": "one-sided; W_r = 1 counts as evidence for the model",
+      "construction": "betting e-value on bounded per-race indicators (A-family)",
+      "formula": "E1 = prod_r [ 1 + lambda * (W_r - 0.50) ]",
+      "mu0": 0.5,
+      "mu1": 0.65,
+      "mu1_source": "dev half: 66 of 101 races = 0.6535",
+      "sigma2": 0.228713,
+      "sigma2_source": "dev-half sample variance of W_r, ddof=1",
+      "lambda_GRO": 0.6559,
+      "lambda_hard_cap": 2.0,
+      "lambda_wsr_truncation": 1.0,
+      "lambda": 0.6559,
+      "declared_power": "46 test races at the alternative mu1=0.65 gives expected log-growth 0.0452/race, so E1 ~ exp(2.08) ~ 8.0. Against the E >= 600 a lone rejection in a family of 30 costs, E1 CANNOT clear e-BH by construction. It is declared in advance as a directional reading only.",
+      "reported_whatever_the_value": true
+    },
+    "E2": {
+      "null": "The DP's chosen pit lap carries no information about the realised pit lap. Under H0 the pairing between DP calls and realised calls is exchangeable within a horizon-length bucket.",
+      "statistic": "reproduction rate = fraction of stints with |L_model_nodrift - L_actual| <= 2 valid laps",
+      "construction": "Construction C, shuffle-rank, assumption-free",
+      "K": 999,
+      "k": 1,
+      "cap": 1000,
+      "permutation": "L_actual is permuted among stints sharing the same horizon-length bucket (H rounded to the nearest 5), so the permuted call is drawn from calls that faced a comparable candidate range",
+      "formula": "E2 = (K+1) / (1 + #{permuted rate >= observed rate})",
+      "dev_observed_rate": 0.3854,
+      "reported_whatever_the_value": true
+    },
+    "E3": {
+      "null": "Same as E1 but for the OUT-OF-SAMPLE shadow forecast (11a's 2018-2020 booster) rather than the in-sample production v11 forecast. P(W_r = 1) = 0.50.",
+      "statistic": "W_r = 1{ mean(regret_shadow_nodrift_x) < mean(regret_seed_x) } per race",
+      "construction": "identical to E1, same lambda",
+      "lambda": 0.6559,
+      "note": "The shadow booster does not exist for the dev half in 11a's panel (it starts at 2021), so no dev estimate of its win rate is available and mu1 is carried over from E1. Declared power is therefore the same ~8.0 ceiling.",
+      "reported_whatever_the_value": true
+    }
+  },
+  "hypothesis_count": "this adds 3 hypotheses to the campaign e-BH family",
+  "acceptance_reporting": {
+    "reproduction_rate": "reported for every arm at |dL| <= 0, 1, 2, 3 valid laps, each with a 95% race-clustered bootstrap CI (n = 2000 resamples of races)",
+    "policy_gap_seconds": "reported as pairwise differences in mean per-stint cost on the held-out half-sample truth surface, with 95% race-clustered bootstrap CIs. Differences, not regrets against the minimum, because the minimum of ~50 candidate costs on a noisy realised surface is biased low and that bias cancels in a difference."
+  },
+  "declared_in_advance_as_a_risk": [
+    "The oracle arm minimises the realised cost surface, which contains lap-to-lap noise no forecast can or should chase. Its apparent regret of ~0 on the surface it was chosen on is a winner's curse, not headroom. The half-sample (odd/even lap) split is the pre-declared remedy; if the oracle's held-out regret is not the lowest of the arms, the oracle term of the acceptance criterion is declared UNIDENTIFIED rather than reported as a headroom number.",
+    "Extrapolation policy 'flat' is the pre-declared default: beyond the age a tyre actually reached, the unmodelled-degradation path is held constant and the seed curve carries the extrapolation alone. 'persist' is a declared sensitivity, not a headline."
+  ]
+}

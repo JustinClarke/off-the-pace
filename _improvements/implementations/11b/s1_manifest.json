@@ -1,0 +1,11 @@
+{
+  "cost_curve_window_rows": 160540,
+  "cost_curve_window_stints": 4257,
+  "lap_rows": 137447,
+  "lap_rows_with_model_forecast": 137447,
+  "lap_rows_with_realised_target": 95346,
+  "lap_rows_with_rho": 137447,
+  "stints_with_successor": 4262,
+  "horizon_k": 5,
+  "triangular_constant": 15
+}

@@ -1,0 +1,62 @@
+{
+  "production_in_sample_eligible": {
+    "label": "production v11, IN-SAMPLE (R4's rows)",
+    "n": 82470,
+    "races": 147,
+    "circuits": 36,
+    "pooled_coverage": 0.8048987510609918,
+    "below_p10": 0.09734448890505638,
+    "above_p90": 0.09775676003395174,
+    "mean_width": 6.544859409332275,
+    "circuits_n_ge_300": 36,
+    "per_circuit_spread_pts": 13.392152017713432,
+    "n_race_units": 147,
+    "n_circuits_vc": 36,
+    "mean_races_per_circuit": 4.083333333333333,
+    "sigma_b2_circuit": 5.419472294813939e-05,
+    "sigma_w2_race_within_circuit": 0.002160483743719194,
+    "icc_circuit_share": 0.02447069575282053,
+    "icc_naive_biased_up": 0.31294910405512105,
+    "sd_circuit_effect_pts": 0.7361706524178983,
+    "sd_race_noise_pts": 4.648100411694216
+  },
+  "production_out_of_sample_ineligible": {
+    "label": "production v11, OUT-OF-SAMPLE (never trained on these rows)",
+    "n": 12876,
+    "races": 147,
+    "circuits": 36,
+    "pooled_coverage": 0.7524075799937869,
+    "below_p10": 0.1337371854613234,
+    "above_p90": 0.11385523454488972,
+    "mean_width": 9.888262748718262,
+    "circuits_n_ge_300": 17,
+    "per_circuit_spread_pts": 26.113233172056695,
+    "n_race_units": 147,
+    "n_circuits_vc": 36,
+    "mean_races_per_circuit": 4.083333333333333,
+    "sigma_b2_circuit": 0.004918957381576583,
+    "sigma_w2_race_within_circuit": 0.012328923750826244,
+    "icc_circuit_share": 0.28519198061584256,
+    "icc_naive_biased_up": 0.4678670724176687,
+    "sd_circuit_effect_pts": 7.013527915091365,
+    "sd_race_noise_pts": 11.103568683457695
+  },
+  "races_needed_shadow": {
+    "sigma_b_circuit_effect_pts": 3.844876905184793,
+    "sigma_w_race_noise_pts": 7.214446370219497,
+    "noise_to_signal_ratio": 1.8763790228214747,
+    "races_for_SE_equal_to_effect": 3.520798237284472,
+    "races_for_SE_half_the_effect": 14.083192949137889,
+    "races_for_SE_third_the_effect": 31.687184135560244,
+    "calendar_note": "a circuit hosts ~1 race per season, so races-per-circuit is seasons-of-history-per-circuit"
+  },
+  "races_needed_production_oos": {
+    "sigma_b_circuit_effect_pts": 7.013527915091365,
+    "sigma_w_race_noise_pts": 11.103568683457695,
+    "noise_to_signal_ratio": 1.58316453828687,
+    "races_for_SE_equal_to_effect": 2.506409955289078,
+    "races_for_SE_half_the_effect": 10.025639821156313,
+    "races_for_SE_third_the_effect": 22.5576895976017,
+    "calendar_note": "a circuit hosts ~1 race per season, so races-per-circuit is seasons-of-history-per-circuit"
+  }
+}

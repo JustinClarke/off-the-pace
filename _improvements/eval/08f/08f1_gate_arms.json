@@ -1,0 +1,559 @@
+{
+  "item": "08f-1",
+  "purpose": "gate the survival-weight season-lag in isolation",
+  "ran_at": "2026-09-17T09:13:17.218344+00:00",
+  "published_artefact_version": "v12",
+  "seeds": [
+    20260528,
+    20260529,
+    20260530,
+    20260531,
+    20260532
+  ],
+  "e_value_construction": {
+    "name": "B (paired safe-t)",
+    "n": 5,
+    "g": 1.0,
+    "null": "information contrast: real AFTER vs its own shuffle"
+  },
+  "e_value_validity_check": {
+    "sigma=0.001": {
+      "mean_E": 1.0016225677942483,
+      "mc_se": 0.005120981370446466,
+      "p_E_gt_20": 0.001
+    },
+    "sigma=0.01": {
+      "mean_E": 0.9992179050949962,
+      "mc_se": 0.005121699813693495,
+      "p_E_gt_20": 0.00107
+    },
+    "sigma=0.1": {
+      "mean_E": 1.0107906970784877,
+      "mc_se": 0.005287590833768377,
+      "p_E_gt_20": 0.00115
+    },
+    "sigma=1.0": {
+      "mean_E": 1.0013591708671465,
+      "mc_se": 0.005267324118285729,
+      "p_E_gt_20": 0.00129
+    }
+  },
+  "instrument_row_diff": {
+    "degradation_regressor_p10": {
+      "train_X_max_abs_diff_by_col": {},
+      "train_n_rows": 67907,
+      "eval_X_max_abs_diff_by_col": {},
+      "eval_n_rows": 13712,
+      "y_tr_max_abs_diff": 8.615330671091215e-14,
+      "y_ev_max_abs_diff": 6.750155989720952e-14,
+      "clean": false
+    },
+    "degradation_regressor_p50": {
+      "train_X_max_abs_diff_by_col": {},
+      "train_n_rows": 67907,
+      "eval_X_max_abs_diff_by_col": {},
+      "eval_n_rows": 13712,
+      "y_tr_max_abs_diff": 8.615330671091215e-14,
+      "y_ev_max_abs_diff": 6.750155989720952e-14,
+      "clean": false
+    },
+    "degradation_regressor_p90": {
+      "train_X_max_abs_diff_by_col": {},
+      "train_n_rows": 67907,
+      "eval_X_max_abs_diff_by_col": {},
+      "eval_n_rows": 13712,
+      "y_tr_max_abs_diff": 8.615330671091215e-14,
+      "y_ev_max_abs_diff": 6.750155989720952e-14,
+      "clean": false
+    },
+    "cliff_classifier": {
+      "train_X_max_abs_diff_by_col": {},
+      "train_n_rows": 94360,
+      "eval_X_max_abs_diff_by_col": {},
+      "eval_n_rows": 18866,
+      "y_tr_max_abs_diff": 0.0,
+      "y_ev_max_abs_diff": 0.0,
+      "clean": true
+    },
+    "stint_life_regressor": {
+      "train_X_max_abs_diff_by_col": {},
+      "train_n_rows": 99849,
+      "eval_X_max_abs_diff_by_col": {},
+      "eval_n_rows": 19973,
+      "y_tr_max_abs_diff": 0.0,
+      "y_ev_max_abs_diff": 0.0,
+      "cens_tr_n_diff": 0,
+      "cens_ev_n_diff": 0,
+      "clean": true
+    }
+  },
+  "targets": {
+    "degradation_regressor_p10": {
+      "target": "degradation_regressor_p10",
+      "metric": "pinball",
+      "higher_is_better": false,
+      "n_train": 67907,
+      "n_eval": 13712,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532
+      ],
+      "w_after_summary": {
+        "mean": 1.9704457521438599,
+        "sd": 1.140946626663208,
+        "min": 1.0,
+        "max": 4.0
+      },
+      "w_before_summary": {
+        "mean": 1.710771083831787,
+        "sd": 0.8680597543716431,
+        "min": 1.0265957117080688,
+        "max": 4.0
+      },
+      "w_max_abs_diff": 2.9734044075012207,
+      "w_n_changed": 63344,
+      "after_headline": 0.4764640777905714,
+      "published_v12_headline": 0.4764640777905714,
+      "instrument_check_6dp": true,
+      "before_headline": 0.4802231706206677,
+      "uniform_A_headline": 0.4711254462982115,
+      "refit_noise_after": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.4764640777905714,
+          0.47516922765476993,
+          0.4758843462485332,
+          0.47565024879067197,
+          0.47608247992405744
+        ],
+        "headline_mean": 0.4758500760817208,
+        "headline_sd": 0.00048365008411739726,
+        "headline_min": 0.47516922765476993,
+        "headline_max": 0.4764640777905714,
+        "delta_noise_1sd": 0.0006839845084017115,
+        "delta_noise_2sd": 0.001367969016803423,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_before": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.4802231706206677,
+          0.48088919403188546,
+          0.476468192231659,
+          0.4840580534311953,
+          0.4803432078203386
+        ],
+        "headline_mean": 0.4803963636271492,
+        "headline_sd": 0.0026978790696826527,
+        "headline_min": 0.476468192231659,
+        "headline_max": 0.4840580534311953,
+        "delta_noise_1sd": 0.003815377169987716,
+        "delta_noise_2sd": 0.007630754339975432,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.007630754339975432,
+      "floor_quoted_from": "before",
+      "gate_question_after_vs_before": {
+        "delta": 0.003759092830096289,
+        "floor_ratio": 0.492624013644815,
+        "clears_floor": false,
+        "direction": "AFTER improves on BEFORE"
+      },
+      "after_vs_uniform_A": {
+        "delta": -0.005338631492359913,
+        "floor_ratio": -0.6996204116272339
+      },
+      "before_vs_uniform_A": {
+        "delta": -0.009097724322456202,
+        "floor_ratio": -1.192244425272049
+      },
+      "permutation_null_after": {
+        "headline_shuffled": 0.466559014528094,
+        "capacity_delta": 0.004566431770117507,
+        "capacity_floor_ratio": 0.5984246860359823,
+        "information_delta": -0.00990506326247742,
+        "information_floor_ratio": -1.298045097663216
+      },
+      "permutation_null_before": {
+        "headline_shuffled": 0.4721344808574102,
+        "capacity_delta": -0.001009034559198707,
+        "capacity_floor_ratio": -0.13223260954852803,
+        "information_delta": -0.008088689763257495,
+        "information_floor_ratio": -1.0600118157235208
+      },
+      "paired_seeds": {
+        "real_by_seed": [
+          0.4764640777905714,
+          0.47516922765476993,
+          0.4758843462485332,
+          0.47565024879067197,
+          0.47608247992405744
+        ],
+        "shuffled_by_seed": [
+          0.466559014528094,
+          0.4705841945278348,
+          0.4687136282511005,
+          0.47556765743018337,
+          0.475601866940647
+        ],
+        "information_deltas": [
+          -0.00990506326247742,
+          -0.004585033126935145,
+          -0.007170717997432685,
+          -8.259136048860416e-05,
+          -0.00048061298341045555
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": -0.004444803746148862,
+          "s_d": 0.004242888522906088,
+          "t": -2.3424804279861497,
+          "E": 2.1138050548257246,
+          "direction_is_improvement": false,
+          "max_attainable_E": 36.0
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          0.001010272742055618,
+          -0.003939061861666926,
+          0.0007195343984901514,
+          0.0021170858679279703,
+          -0.0031675785539468926
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": -0.0006519494814280158,
+          "s_d": 0.002713162589577124,
+          "t": -0.5373077765295278,
+          "E": 0.47163488410306015,
+          "direction_is_improvement": false,
+          "max_attainable_E": 36.0
+        }
+      }
+    },
+    "degradation_regressor_p50": {
+      "target": "degradation_regressor_p50",
+      "metric": "pinball",
+      "higher_is_better": false,
+      "n_train": 67907,
+      "n_eval": 13712,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532
+      ],
+      "w_after_summary": {
+        "mean": 1.9704457521438599,
+        "sd": 1.140946626663208,
+        "min": 1.0,
+        "max": 4.0
+      },
+      "w_before_summary": {
+        "mean": 1.710771083831787,
+        "sd": 0.8680597543716431,
+        "min": 1.0265957117080688,
+        "max": 4.0
+      },
+      "w_max_abs_diff": 2.9734044075012207,
+      "w_n_changed": 63344,
+      "after_headline": 0.9823587335698977,
+      "published_v12_headline": 0.9823587335698977,
+      "instrument_check_6dp": true,
+      "before_headline": 0.984043828641629,
+      "uniform_A_headline": 0.9817102187207262,
+      "refit_noise_after": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.9823587335698977,
+          0.9743735107963608,
+          0.9815981008238803,
+          0.9811168428134867,
+          0.9850127304214367
+        ],
+        "headline_mean": 0.9808919836850125,
+        "headline_sd": 0.003942447232751164,
+        "headline_min": 0.9743735107963608,
+        "headline_max": 0.9850127304214367,
+        "delta_noise_1sd": 0.0055754623454969746,
+        "delta_noise_2sd": 0.011150924690993949,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_before": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.984043828641629,
+          0.9814687644012551,
+          0.979498997457846,
+          0.9764373321004411,
+          0.9763389839633483
+        ],
+        "headline_mean": 0.9795575813129039,
+        "headline_sd": 0.0033120157006801313,
+        "headline_min": 0.9763389839633483,
+        "headline_max": 0.984043828641629,
+        "delta_noise_1sd": 0.004683897522694471,
+        "delta_noise_2sd": 0.009367795045388943,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.011150924690993949,
+      "floor_quoted_from": "after",
+      "gate_question_after_vs_before": {
+        "delta": 0.001685095071731313,
+        "floor_ratio": 0.15111707041589842,
+        "clears_floor": false,
+        "direction": "AFTER improves on BEFORE"
+      },
+      "after_vs_uniform_A": {
+        "delta": -0.0006485148491714998,
+        "floor_ratio": -0.05815794359146495
+      },
+      "before_vs_uniform_A": {
+        "delta": -0.0023336099209028127,
+        "floor_ratio": -0.20927501400736337
+      },
+      "permutation_null_after": {
+        "headline_shuffled": 0.9780458298694196,
+        "capacity_delta": 0.003664388851306599,
+        "capacity_floor_ratio": 0.32861748714580996,
+        "information_delta": -0.004312903700478099,
+        "information_floor_ratio": -0.38677543073727494
+      },
+      "permutation_null_before": {
+        "headline_shuffled": 0.9871601145095447,
+        "capacity_delta": -0.005449895788818493,
+        "capacity_floor_ratio": -0.4887393592766441,
+        "information_delta": 0.00311628586791568,
+        "information_floor_ratio": 0.2794643452692807
+      },
+      "paired_seeds": {
+        "real_by_seed": [
+          0.9823587335698977,
+          0.9743735107963608,
+          0.9815981008238803,
+          0.9811168428134867,
+          0.9850127304214367
+        ],
+        "shuffled_by_seed": [
+          0.9780458298694196,
+          0.9765203020983946,
+          0.9768784092014937,
+          0.9774682640264573,
+          0.9774765850466194
+        ],
+        "information_deltas": [
+          -0.004312903700478099,
+          0.002146791302033768,
+          -0.0047196916223866126,
+          -0.0036485787870293995,
+          -0.007536145374817282
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": -0.003614105636535525,
+          "s_d": 0.003545495619439667,
+          "t": -2.2793388424594276,
+          "E": 2.004203529772561,
+          "direction_is_improvement": false,
+          "max_attainable_E": 36.0
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          0.005927874405483702,
+          0.009784964211003166,
+          0.005025799125706998,
+          0.0025537550039567147,
+          0.00468782017452174
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.005596042584134464,
+          "s_d": 0.0026487136510679166,
+          "t": 4.724229672038412,
+          "E": 8.76125608427952,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        }
+      }
+    },
+    "degradation_regressor_p90": {
+      "target": "degradation_regressor_p90",
+      "metric": "pinball",
+      "higher_is_better": false,
+      "n_train": 67907,
+      "n_eval": 13712,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532
+      ],
+      "w_after_summary": {
+        "mean": 1.9704457521438599,
+        "sd": 1.140946626663208,
+        "min": 1.0,
+        "max": 4.0
+      },
+      "w_before_summary": {
+        "mean": 1.710771083831787,
+        "sd": 0.8680597543716431,
+        "min": 1.0265957117080688,
+        "max": 4.0
+      },
+      "w_max_abs_diff": 2.9734044075012207,
+      "w_n_changed": 63344,
+      "after_headline": 0.5128462338042992,
+      "published_v12_headline": 0.5128462338042992,
+      "instrument_check_6dp": true,
+      "before_headline": 0.512284019708006,
+      "uniform_A_headline": 0.5093926910144326,
+      "refit_noise_after": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.5128462338042992,
+          0.5089800159703232,
+          0.507044825467685,
+          0.5129983248482949,
+          0.5138678466203865
+        ],
+        "headline_mean": 0.5111474493421977,
+        "headline_sd": 0.0029682259102097445,
+        "headline_min": 0.507044825467685,
+        "headline_max": 0.5138678466203865,
+        "delta_noise_1sd": 0.004197705338405845,
+        "delta_noise_2sd": 0.00839541067681169,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_before": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.512284019708006,
+          0.511099022487579,
+          0.5121148443863774,
+          0.5167260444667463,
+          0.5120345341260532
+        ],
+        "headline_mean": 0.5128516930349524,
+        "headline_sd": 0.00221446385633748,
+        "headline_min": 0.511099022487579,
+        "headline_max": 0.5167260444667463,
+        "delta_noise_1sd": 0.0031317248190174895,
+        "delta_noise_2sd": 0.006263449638034979,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.00839541067681169,
+      "floor_quoted_from": "after",
+      "gate_question_after_vs_before": {
+        "delta": -0.000562214096293201,
+        "floor_ratio": -0.06696683675594914,
+        "clears_floor": false,
+        "direction": "AFTER costs vs BEFORE"
+      },
+      "after_vs_uniform_A": {
+        "delta": -0.003453542789866537,
+        "floor_ratio": -0.4113607925584032
+      },
+      "before_vs_uniform_A": {
+        "delta": -0.0028913286935733362,
+        "floor_ratio": -0.344393955802454
+      },
+      "permutation_null_after": {
+        "headline_shuffled": 0.5184358513804302,
+        "capacity_delta": -0.009043160365997616,
+        "capacity_floor_ratio": -1.0771552118319863,
+        "information_delta": 0.0055896175761310785,
+        "information_floor_ratio": 0.6657944192735831
+      },
+      "permutation_null_before": {
+        "headline_shuffled": 0.5175787628392142,
+        "capacity_delta": -0.008186071824781593,
+        "capacity_floor_ratio": -0.9750650849507224,
+        "information_delta": 0.005294743131208257,
+        "information_floor_ratio": 0.6306711291482684
+      },
+      "paired_seeds": {
+        "real_by_seed": [
+          0.5128462338042992,
+          0.5089800159703232,
+          0.507044825467685,
+          0.5129983248482949,
+          0.5138678466203865
+        ],
+        "shuffled_by_seed": [
+          0.5184358513804302,
+          0.5133718599104311,
+          0.5104865147214778,
+          0.5141397513259506,
+          0.5125241401496407
+        ],
+        "information_deltas": [
+          0.0055896175761310785,
+          0.004391843940107942,
+          0.0034416892537927346,
+          0.0011414264776556937,
+          -0.0013437064707458868
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.0026441741553883125,
+          "s_d": 0.002762583004392316,
+          "t": 2.1402264280913217,
+          "E": 1.7779336856873744,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          0.012067272592828027,
+          0.01473147131057262,
+          0.0006051534130395719,
+          0.00043714461513277847,
+          -0.0028685433038974084
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.0049944997255351176,
+          "s_d": 0.007853279951971954,
+          "t": 1.4220861815955355,
+          "E": 0.927573431646386,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        }
+      }
+    },
+    "cliff_classifier": {
+      "target": "cliff_classifier",
+      "metric": "macro_f1",
+      "headline": 0.35246609791814365,
+      "published_v12_headline": 0.35246609791814365,
+      "instrument_check_6dp": true,
+      "survival_weight_reaches_this_target": false,
+      "before_vs_after_delta": 0.0,
+      "note": "structurally invariant to 08f-1: train.py::_sample_weight ignores meta['survival_weight'] for classification/survival kinds; not re-fit under BEFORE weights because there is no code path for them to differ -- confirmed by the row-level instrument check."
+    },
+    "stint_life_regressor": {
+      "target": "stint_life_regressor",
+      "metric": "aft_nloglik",
+      "headline": 1.9913358778933028,
+      "published_v12_headline": 1.9913358778933028,
+      "instrument_check_6dp": true,
+      "survival_weight_reaches_this_target": false,
+      "before_vs_after_delta": 0.0,
+      "note": "structurally invariant to 08f-1: train.py::_sample_weight ignores meta['survival_weight'] for classification/survival kinds; not re-fit under BEFORE weights because there is no code path for them to differ -- confirmed by the row-level instrument check."
+    }
+  }
+}

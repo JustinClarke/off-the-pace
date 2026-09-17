@@ -143,6 +143,17 @@ at which the question could be reopened.
 
 Scripts and artefacts: [`../implementations/11a/`](../implementations/11a/).
 
+> **STALE AS OF `08m` (2026-09-16).** This result's band, coverage and pinball numbers are all
+> computed on `next_5_lap_cumulative_jump_s` as it stood **before** `08m` fixed the compound
+> seed's consumption and rebuilt the warehouse. The target is now a different quantity (mean
+> −1.8793 s → −0.3946 s; population 82,470 → 81,619 rows), so the n = 82,470 population this
+> section names no longer exists and every absolute number below is on the superseded target.
+> The **negative recommendation survives** — it rests on out-of-sample behaviour of the conformal
+> variants relative to each other on a common target, not on the target's absolute scale — but
+> the coverage table would have to be rebuilt before any of its figures are quoted again, and the
+> "mostly a measurement artefact" diagnosis should be re-checked, since `08m` removed a genuine
+> systematic distortion from the very band this item was recalibrating. `08m` did not re-run it.
+
 #### R4's table reproduces — once the predictions are not read from the stale parquet
 
 Re-scoring the current v11 boosters on the current mart, on R4's exact population

@@ -188,6 +188,16 @@ ONNX path for the random-effects term — which is `05a`'s problem, not this ite
 **Definition of done.** Four variance components with their fit diagnostics, reconciled against
 `01a`'s learning curves and `01b`'s bracket, with disagreements reported rather than averaged.
 
+> **SUBSTRATE BANNER — read before quoting any number from the 2026-09-08 sections below.**
+> Everything in the pre-registration and in results parts 1–2 was measured on the **v11**
+> substrate: 33 feature columns and the **pre-`08m` target**. `08m` rebuilt
+> `next_5_lap_cumulative_jump_s` and `08n` shipped the refit as **v12**, under the explicit
+> ruling that v11 and v12 headlines are *different quantities and are not compared*. The v11
+> target's variance is roughly twice v12's (40.11 against 19.64 on the training rows), so every
+> component, every bridge and the `±1.5%` headline below describe a quantity production no
+> longer predicts. They are kept as the record of what was measured, not retracted — but the
+> live answer is in **`05c` — RERUN 2026-09-17** and **`05c` — RECONCILIATION**, after part 2.
+
 ---
 
 ### 05c — PRE-REGISTRATION 2026-09-08. Arms written before any of them were run.
@@ -590,13 +600,570 @@ already known to be a *lower* bound (both the 1,499-round tree fit and the 5,173
 random effect are fitted on the rows the components are read from). Report the spread; do not
 average it.
 
-#### Stage
+#### Stage (as recorded 2026-09-08 — superseded, see the end of this item)
 
 **`MEASURED`, not `GATED`.** Gate 1 passed (arm 0a bit-identical, plus synthetic recovery), gate
 4 passed decisively (arm 2b), gate 6 was run in full, gates 2 and 5 are N/A by construction — and
 **gate 3 did not deliver**, so the standing gate has not been passed end-to-end. Per
 [`../status/BUILD-ORDER.md`](../status/BUILD-ORDER.md), a number that has not been through
 `gates.md` is `MEASURED`, however good it looks.
+
+---
+
+### 05c — RESULTS 2026-09-08 (part 3: the repair pass, written into this doc 2026-09-17)
+
+This session ran after part 2 and its findings reached `build-log.json`'s `05c` note but never
+this doc, which is the divergence the standing rule forbids. Recorded here as the record has it,
+and marked where this session's own re-derivation disagrees with the arithmetic in that note.
+
+**The IPW sensitivity arm was re-run, because part 2's version of it was not interpretable.** The
+original script passed sample weights to `gpb.Dataset(weight=)`, which `gpboost` 1.7.4 rejects —
+they belong on `GPModel(weights=)` — and it died there before its `json.dump`, losing arms
+2/2b/3/3b to the log. Re-run with the weights
+**normalised to mean 1** (raw `survival_weight` averaged 1.7126 and gpboost divides the nugget by
+`weights[i]`, so raw weights would have rescaled `Error_var` against arm 2 for reasons unrelated
+to the reweighting): `race` 1.1826 · `stint` 3.0516 · `driver` 0.0004 · `constructor` 0.0154 ·
+**`Error_var` 9.2769**, total 13.5269 against arm 2's 13.5343. **The total is invariant; the
+composition is not** — reweighting moves ~0.53 out of `Error_var` into `race` and `stint`, so the
+floor leg is weight-sensitive: 0.9747 (4.1%) against arm 2's 1.0024 (1.4%).
+
+*Why part 2's 15.8951 must not be read, verified rather than asserted.* `15.8951 / 9.2769 =
+1.7134`, which is the mean raw `survival_weight` (**1.7126**) to within 0.05%. gpboost divides the
+nugget by `weights[i]`, so part 2's number is the *same fit* with `Error_var` rescaled by the
+weight mean — an artefact of not normalising, not a second result. It is not comparable to arm 2's
+9.8103 and the 62%-higher-residual reading in part 2 is withdrawn.
+
+**A 2024 sanity check, also never run in part 2.** rmse 3.4726 and `0.5*MAE` of the conditional
+*mean* 1.1428 on the 13,896 eval rows against the achieved 1.0163386 — the probe's mean fit is
+~12% worse than production at α=0.5, as expected for a mean fit on a skewed target. It confirms
+these components come from a **weaker model** than the one whose headroom they bound.
+
+**A thin-2 arm did not rescue arm 3b.** Every 2nd lap is position-locked exactly as arm 3b
+documents, `var(y)` 43.4841 against 40.1149, and `Error_var` 12.8627 implies 1.1478 — above the
+achieved 1.0163 and therefore self-falsifying. Thinning is monotone across 1/2/5 (`stint`
+2.7022/1.2714/0.0000, `Error_var` 9.8103/12.8627/17.3058, floor 1.0024/1.1478/1.3313), which adds
+nothing to arm 3c. **No tree-fitted thinned arm is quotable at any thinning level.**
+
+#### Gate 3, the real substitute: a cluster bootstrap over races — and it FAILS
+
+Arm 0c measures estimator noise at a fixed synthetic truth. The gate-3 question is different:
+what if the races actually observed had been different ones. Five draws, races resampled with
+replacement, `race` and `stint` ids re-labelled per draw so a duplicated race acts as an
+independent draw, rounds fixed at 1,499.
+
+`Error_var` draws **7.3782 / 7.8434 / 9.0440 / 7.2143 / 8.6362**, sd **0.7938**.
+
+- The 1.4% headroom is **0.0140** in absolute pinball. Against a floor sd of ≈0.041 that is
+  **0.34× one sd**, and ≈0.12× a gate-style `2*sqrt(2)*sd` threshold.
+- The floor's ±1.96 sd interval, ≈**0.923 – 1.082**, **contains the achieved 1.0163386**.
+- The IPW variant's larger 4.1% headroom (0.0416) is still only ≈1.0× the sd, so the
+  1.4%-vs-4.1% modelling-choice spread is itself inside the noise and is not a real disagreement.
+
+*Arithmetic note, logged 2026-09-17.* `build-log.json` records the floor sd as 0.0446 and the
+gate threshold as 0.1263, giving 0.31× and 0.11×. Re-deriving from the same recorded inputs
+(`sd(Error_var)` 0.7938, `Error_var` 9.8103, shape 0.70751, population ratio 0.81841) gives
+**0.0406 / 0.1147** and 0.34× / 0.12× — the note's propagation omitted the `sqrt(population
+ratio)` factor that its own floor includes. **The verdict is identical either way** and nothing
+downstream changes; it is recorded so the numbers reconcile.
+
+**Use the bootstrap's sd, never its mean.** Draws come back biased low (a draw holds only ~63%
+distinct races while rounds stay fixed at 1,499, so capacity per distinct row rises above arm 2's).
+
+**Consequence, and it is the headline.** `degradation_regressor_p50`'s achieved loss is
+**indistinguishable from its model-based noise floor**, and **no headroom percentage — not 1.4%,
+not ±1.5% — is quotable from this probe.** Direction only. Part 2's `±1.5%` phrasing is retracted
+by this section.
+
+---
+
+### 05c — RERUN 2026-09-17 on the v12 substrate. The probe no longer binds, and the reason is measurable.
+
+Part 2's answer describes a target that `08m` has since rebuilt. This section re-runs the same
+instrument against what production predicts today, adds the three arms the 2026-09-08 run did not
+have, and closes the definition of done's reconciliation clause in the section after it.
+
+**Environment.** `gpboost` 1.7.4, installed to a scratchpad directory appended to `sys.path`
+(*after* the repo's own entries, so the repo's `numpy`/`pandas` win) — never into the repo venv,
+never into `ml/requirements.txt`. Warehouse read `read_only=True` through
+`features.py::load_features`. Split cached once and reused so every arm below runs on identical
+rows. Probe throwaway, scratchpad only; nothing committed, no model artefact, no warehouse write,
+no git state touched.
+
+**A footgun found on the first run, worth more than the arm that found it.**
+`evaluate.py`'s `MODELS_DIR` and `ARTEFACTS_DIR` are **relative** (`Path("ml/models")`). Run a
+probe from anywhere but the repo root and `_params_for` finds no `*_best_params.json`, **silently
+returns `train.SMOKE_DEFAULTS`, and fits a completely different model with no warning.** Arm 0a
+failed at `5.258e-03` against the published headline until the probe was made to `chdir` to the
+repo root, after which it is bit-identical. Any probe that reports a near-miss on gate 1 should
+check its working directory before it checks its arithmetic.
+
+#### The substrate, measured rather than assumed
+
+| | v11 (2026-09-08) | v12 (2026-09-17) |
+| :--- | ---: | ---: |
+| train rows / eval rows | 68,574 / 13,896 | 67,907 / 13,712 |
+| feature columns | 33 | 32 |
+| races / stints / drivers / constructors | 123 / 5,173 / 37 / 16 | 123 / 5,176 / 37 / 16 |
+| `var(y)` train / eval | 40.1149 / 32.8307 | 19.6415 / 12.9192 |
+| population ratio `var(ev)/var(tr)` | 0.81841 | **0.65775** |
+| achieved p50 pinball | 1.0163386141079709 | **0.9823587335698977** |
+| mean IPW `survival_weight` | 1.7126 | 1.9704 |
+| within-stint lag-1 autocorrelation | 0.6044 | **0.3501** (train) / 0.4000 (eval) |
+| shape factor, eval (Gaussian = 0.79788) | 0.70751 | 0.59308 |
+
+**Arm 0a passes bit-identically**: `evaluate.py::_fit`/`_score` at v12 params on `cv_final_fold`
+returns `0.9823587335698977` against the published `0.9823587335698977`, absolute difference
+`0.000e+00`.
+
+#### Arm 1 — the raw decomposition, and arm 2 — the fitted one
+
+Intercept-only fitted with an explicit `X` column, per the library trap recorded in part 1.
+Arm 2 uses the 32 contract columns at **630 rounds**, chosen by early stopping (50) on a
+race-grouped 80/20 hold-out of the training rows, because part 1 established that the round count
+is part of this instrument. Booster params declared before fitting: `regression_l2`, lr 0.05,
+`max_depth` 6, `num_leaves` 31, `min_data_in_leaf` 20, **no bagging or feature subsampling**.
+
+| component | arm 1 (no features) | share | arm 2 (32 columns) | share | v11 arm 2, for contrast |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| `race` | 0.6490 | 3.3% | 0.4998 | 3.7% | 1.0106 |
+| `stint` | 1.4109 | 7.1% | 1.9618 | 14.5% | 2.7022 |
+| `driver` | 0.0000 | 0.0% | 0.0006 | 0.0% | 0.0000 |
+| `constructor` | 0.0014 | 0.0% | 0.0169 | 0.1% | 0.0112 |
+| **`Error_var`** | **17.8914** | **89.7%** | **11.0308** | **81.7%** | 9.8103 |
+| total | 19.9527 | | 13.5098 | | 13.5343 |
+
+**The residual share rose from v11's 79.3% to 89.7% before features and from 72.5% to 81.7%
+after them.** Consistent with — though not independently established by — `08m`'s own measurement
+that the target's seed-echo share fell from 88.6/92.6/89.0% to 39.69/49.90/23.54%: what the repair
+removed was structured, so what is left is proportionally more noise. Read that as a corroboration
+of `08m`, not as a second measurement of it.
+
+**Driver and constructor identity again carry no measurable variance**, and the same caveat
+applies unchanged: `next_5_lap_cumulative_jump_s` is a within-stint *change*, so a driver's
+persistent pace level is differenced out by construction. `03` must not read this as "no driver
+effect exists".
+
+#### Arm 2b — gate 4 (permutation null): PASSES
+
+All 32 columns row-shuffled under one joint permutation (capacity preserved exactly), refit at the
+identical 630 rounds: `race` 0.6285 · `stint` 1.3946 · `driver` 0.0000 · `constructor` 0.0003 ·
+**`Error_var` 17.7058**.
+
+- **capacity** `17.8914 − 17.7058 = 0.1857`, 1.0% of the intercept-only residual;
+- **information** `17.7058 − 11.0308 = 6.6750`.
+
+A ratio of **36:1**, against v11's ~40:1. The drop in residual variance is real signal.
+
+#### Arm 0c — the instrument does not manufacture components, at the v12 scale
+
+The sampling result from 2026-09-08 is a property of the *design* (a variance from `k` groups
+carries ≈`sqrt(2/(k-1))` relative sd on its own — 12.8% at `k=123`, 2.0% at 5,176, 23.6% at 37,
+**36.5% at 16**) and the design is unchanged, so it carries without re-measurement. The null arm
+does not, because the residual it sits against has halved. Re-run at the v12 scale, 8 replicates
+each, truth for `race`/`stint`/`Error` taken from arm 1's own fit:
+
+| condition | `driver` fitted | `constructor` fitted |
+| :--- | :--- | :--- |
+| null (`driver` = `constructor` = 0) | **0.0000 ± 0.0000** | **0.0026 ± 0.0018** |
+| alt (`driver` 0.200, `constructor` 0.125 — the same *share* the v11 arm's 0.400/0.250 were) | 0.1514, p05–p95 0.113–0.181 | 0.1262, p05–p95 0.051–0.255 |
+
+Arm 1's fitted `driver` 0.0000 and `constructor` 0.0014 sit **inside the null distribution and
+below the 5th percentile of the alternative**, so those magnitudes are *excluded*, not merely
+unresolved. Recovery of the other three under the null: `Error_var` 17.8911 against a true
+17.8914 (sd 0.6%), `stint` 1.4088 against 1.4109 (sd 5.0%), `race` 0.5898 against 0.6490
+(−9.1%, sd 11.3% — the analytic 12.8%).
+
+#### The ANOVA cross-check now PASSES, which corroborates part 1's mechanism finding
+
+Part 1 declared that a stint-only REML fit should reproduce `ceiling.py::variance_components`'
+one-way ANOVA ICC on identical rows, found a gap of **+0.024183** on v11, and traced it — on
+simulated data — to serial correlation from the overlapping 5-lap window, showing the two
+estimators agree to <0.002 under every other departure and split only under AR(1).
+
+On v12, with the same rows and the same two estimators: **ANOVA 0.098616 against REML 0.093663,
+gap −0.004953** — five times smaller and the other sign. And the lag-1 autocorrelation that the
+mechanism blamed has fallen from **0.6044 to 0.3501**. The 2026-09-08 diagnosis predicted exactly
+this, on a substrate that did not exist when it was written.
+
+#### Arm 3c — the overlap finding replicates
+
+Intercept-only on both row sets, no trees to confound it:
+
+| | all rows | non-overlapping (every 5th lap in stint) |
+| :--- | ---: | ---: |
+| n / rows per stint | 67,907 / 13.12 | 15,775 / 3.05 |
+| `race` | 0.6490 | 1.7012 |
+| **`stint`** | **1.4109** | **0.0004** |
+| `Error_var` | 17.8914 | 29.7644 |
+| `ceiling.py` one-way ANOVA stint ICC | 0.098616 | 0.055711 |
+
+The `stint` component again collapses to ~0 on non-overlapping rows, so **the between-stint
+variance in this target remains largely an artefact of the overlapping window** even after `08m`.
+The position-lock caveat from part 2 not only survives but is *worse* on v12: `var(y)` on the
+thinned rows is 30.9557 against 19.6415 on all rows, a ratio of 1.58 against v11's 1.28. Race
+structure is again the stable one across the two row sets.
+
+#### Sensitivity — the IPW-weighted fit
+
+Weights normalised to mean 1, identical 630 rounds: `race` 0.5333 · `stint` 2.3039 · `driver`
+0.0003 · `constructor` 0.0184 · **`Error_var` 10.4003**, total 13.2562. Reweighting takes 0.6305
+out of `Error_var`, of which 0.3771 reappears in `stint` and `race` and 0.2536 leaves the total —
+the same direction as v11's ~0.53, on a target of half the variance. Unlike v11, where the total
+was invariant (13.5269 against 13.5343), here the total moves by 1.9%, so the v12 reweighting is
+not a pure reallocation. The unweighted fit stays the quoted one for the reason
+part 2 found by running it: **the production headline is scored unweighted** (`_score` applies no
+weights), so only the unweighted component bridges to it.
+
+#### Arm 6 — the out-of-sample check part 2 never ran
+
+Every component in arms 1 and 2 is fitted *in sample*, which part 2 correctly flagged as the
+reason its floor is a lower bound. This arm puts a number on that from the other side. The
+**production v12 p50 model's own residuals on the 2024 eval rows** are a genuinely out-of-sample
+read on the same unexplained variance, and `ceiling.py::variance_components` decomposes them with
+a second, independent estimator. Extraction verified: `0.5·E|r|` on those residuals is
+**0.982359**, the published headline to 6dp.
+
+| | `var(resid)` | `race` σ²_b (ICC) | `stint` σ²_b (ICC) | `driver` ICC | `constructor` ICC |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| 2024 eval, **out of sample** | **9.1686** | 0.4524 (0.0492) | 1.2974 (0.1415) | 0.0069 | 0.0036 |
+| 2018–23 train, in sample | 9.1995 | 0.0856 (0.0093) | 0.9068 (0.0986) | 0.0033 | 0.0022 |
+
+Two cross-instrument agreements fall out, neither of them arranged:
+
+- **`01b`'s arm 5 measured the race ICC of the v11 production eval residuals at 0.0452.** The same
+  quantity on v12 is **0.0492**. Two substrates, two sessions, the same number to within its own
+  sampling error at `k=24`.
+- **Arm 2's `stint` component, rescaled to the eval population, is 1.9618 × 0.65775 = 1.2905
+  against this arm's 1.2974** — a REML variance component and a one-way ANOVA on a different
+  model's residuals, agreeing to **0.5%**. `race` agrees less well (0.3288 against 0.4524, 27%
+  apart) which is exactly where the sampling sd is largest.
+
+The generalisation gap is the finding, though. The same `F(X)` leaves 47% of the target's variance
+unexplained in sample on the training rows and **71% out of sample on 2024**.
+
+#### Arm 7 — the eval population measured directly, instead of rescaled
+
+Arm 4's bridge carries one assumption that is not about shape: that `σ²_residual` transfers from
+the 2018–2023 population to 2024 in proportion to `var(y)`. On v11 that rescale was 0.818 and
+forgiving. On v12 it is **0.658 and it decides the answer.** So it was removed rather than
+defended — the same decomposition fitted **directly on the 13,712 eval rows**, no transfer.
+
+| | `race` | `stint` | `Error_var` | total |
+| :--- | ---: | ---: | ---: | ---: |
+| 7a intercept-only, on 2024 | 0.4327 | 0.6519 | 11.9144 | 12.9996 |
+| 7b + 32 columns @ 71 rounds | 0.3846 | 0.7533 | **9.6674** | 10.8054 |
+| 7b-null, permutation null @ 71 rounds | 0.4405 | 0.6547 | 11.7923 | 12.8876 |
+
+capacity 0.1221, information 2.1250 — a 17:1 ratio, so gate 4 passes on this row set too. The
+derived optimism-corrected leg (`7c` in arm 4's table) is `9.6674 + 0.1221 = 9.7895`.
+The cost is stated: 13,712 rows and 1,027 stints against
+67,907 and 5,176, fitted in sample on the very rows the headline is scored on, so **this leg is a
+lower bound by more than arm 2 is, not less.**
+
+**The obvious objection, and why it does not carry the conclusion.** 71 rounds against arm 2's 630
+is a much weaker `F(X)`, and part 1 established that an underfit `F(X)` has nowhere to put its
+error but the variance components — so arm 7b's 9.6674 is plausibly inflated by underfitting
+rather than by the population. That objection is real, and it is why **arm 6 rather than arm 7
+carries the argument**: arm 6's `F(X)` is the fully-trained production booster, 630-equivalent on
+all 67,907 rows, and applied out of sample to 2024 it still leaves **9.1686**. A strong `F(X)` and
+a weak one land 5% apart, and both land far above the 7.2555 the rescale predicts.
+
+#### Arm 8 — is the rescale true? Half of it is, and it is the wrong half
+
+The intercept-only four-level decomposition, refitted season by season. No trees, so nothing is
+confounded by capacity-per-row.
+
+| season | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `var(y)` | 22.832 | 21.711 | 24.655 | 22.158 | 15.207 | 11.774 | 12.919 |
+| `Error_var` | 19.351 | 19.737 | 23.558 | 21.320 | 12.894 | 10.713 | 11.914 |
+| **residual share** | 0.848 | 0.909 | 0.956 | 0.962 | 0.848 | 0.910 | **0.922** |
+
+**The raw rescale is supported**: the residual share is 0.908 ± 0.046 across seven seasons and
+2024's 0.922 sits well inside that. Note also that the season-variance decline part 1 reported as
+monotone on v11 is **not monotone on v12** — 2023 (11.77) is lower than 2024 (12.92).
+
+**What is not supported is the rescale of the *fitted* residual**, which is what arm 4 actually
+transports. Arm 2's `Error_var` rescaled to the eval population is `11.0308 × 0.65775 = 7.2555`.
+Arm 6 measures the production model's genuine out-of-sample residual variance on those same rows
+at **9.1686** — **26.4% higher than the rescaled leg, and that 9.1686 already contains model
+error**, so the true noise is below it. The transfer assumes `F(X)` removes the same *share* of
+variance on both populations; arm 6 measures that it removes 53% in sample and 29% out of sample.
+
+**The sharpest version, and the one to quote.** Arm 6 gives the fitted residual on both
+populations for the same `F(X)`: **9.1995 on the training rows (in sample) against 9.1686 on 2024
+(out of sample), a ratio of 0.997.** The *fitted* residual is very nearly invariant across the two
+populations, while `var(y)` falls by 34%. Arm 4 transports it by 0.658. Solving for the transfer
+ratio at which arm 2's leg would exactly equal the achieved loss gives **`r* = 0.832`**:
+
+| transfer ratio | source | implied p50 floor | |
+| ---: | :--- | ---: | :--- |
+| 0.658 | `var(y_eval)/var(y_train)` — what arm 4 assumes | 0.8736 | survives |
+| **0.997** | **measured, production's own fitted residual on both** | **1.0754** | **falsifies** |
+| 1.000 | no transfer at all | 1.0772 | falsifies |
+
+**The surviving leg requires the fitted residual to shrink by more than 17% between the two
+populations. The only direct measurement of that shrinkage says it shrinks by 0.3%.** The caveat
+that keeps this from being conclusive is stated: 9.1995 is in sample on the training rows and is
+therefore optimistically low, so the true ratio is below 0.997 — but it would have to fall past
+0.832 to rescue the leg, and nothing here suggests in-sample optimism of that size.
+
+#### Arm 4 — the bridge, and what it now says
+
+`σ_residual` converted to the p50 pinball under an explicit shape, reported as an *implied floor*
+and never as a measurement. Three shapes, because the choice matters more than it did on v11:
+the Gaussian `sqrt(2/π)` = 0.79788; the within-stint `y`-deviation shape 0.59308 that part 2 used;
+and — new here, and the best anchored of the three — **0.64868, the shape of production's own 2024
+residuals**, which is the distribution the published pinball is actually computed over. Legs on
+the training population are rescaled by 0.65775; legs already on the eval population are not.
+
+| `σ²_resid` source | value | gaussian | `y`-shape | **residual shape** |
+| :--- | ---: | ---: | ---: | ---: |
+| arm 1, no features *(train pop)* | 17.8914 | 1.3686 ✗ | 1.0173 ✗ | 1.1126 ✗ |
+| **arm 2, 32 columns** *(train pop)* | 11.0308 | 1.0746 ✗ | 0.7988 | **0.8736** |
+| arm 2c, optimism-corrected *(train pop)* | 11.2164 | 1.0836 ✗ | 0.8055 | 0.8810 |
+| IPW sensitivity *(train pop)* | 10.4003 | 1.0434 ✗ | 0.7756 | 0.8483 |
+| unseen-race, resid+race+stint *(train pop)* | 13.4923 | 1.1885 ✗ | 0.8834 | 0.9662 |
+| arm 7a, intercept-only **on 2024** | 11.9144 | 1.3770 ✗ | 1.0236 ✗ | 1.1195 ✗ |
+| **arm 7b, 32 columns on 2024** | 9.6674 | 1.2404 ✗ | 0.9220 | **1.0084 ✗** |
+| arm 7c, optimism-corrected **on 2024** | 9.7895 | 1.2482 ✗ | 0.9278 | 1.0148 ✗ |
+| arm 6, production OOS residual **on 2024** | 9.1686 | 1.2080 ✗ | 0.8979 | 0.9821 |
+
+✗ marks a leg landing **above** the achieved 0.9823587 — no predictor can beat an irreducible
+floor, so such a leg falsifies its own assumptions rather than bounding anything.
+
+**Read the table by what each leg assumes, not by which number is smallest.**
+
+- **Every leg measured directly on the eval population falsifies** under the best-anchored shape.
+  Arm 7b's 1.0084 is the sharp one: the probe's own estimate of irreducible noise on 2024
+  (`σ²` 9.6674) is **larger than the production model's actual out-of-sample residual variance on
+  the same rows** (9.1686). A real predictor beats it, so it is not a floor. The comparison is
+  doubly unfavourable to production and it still wins: production is a **median** fit, and the
+  conditional mean is what minimises squared error, so a median predictor's residual variance can
+  only be larger than a mean fit's on the same conditional distribution — and production is also
+  the one being scored **out of sample**, where the probe is in sample.
+- **The only legs that survive are the rescaled training-population ones** — and arm 8 measures
+  that this is the rescale that does not hold.
+- **Arm 6's 0.9821 is circular** and is printed only as a consistency check: it uses the very
+  residuals the shape factor is taken from, so it reproduces the achieved loss by construction.
+- **The CRPS leg falsifies everywhere**, at every source: implied CRPS runs 1.4756–1.9474 against
+  `09a`'s achieved 1.3795 (and its `unc` 1.6850). The CRPS bridge `σ/sqrt(π)` has no
+  empirical-shape correction available, and at a measured shape 19–26% below Gaussian it is simply
+  not usable on this target. Recorded so the next probe does not spend a day on it.
+
+**So the v12 answer is not part 2's answer.** On v11 one leg survived and read 1.4% headroom; here
+the surviving legs and the falsifying legs **straddle the achieved loss**, and the spread across
+the table under a single shape — 0.7988 to 1.1195 — is about **33% of the headline**, an order of
+magnitude larger than any headroom anyone would want to claim from it.
+
+#### Gate 3 on v12 — degenerate as pre-registered, and the substitute fails it by a hair
+
+**As pre-registered it is degenerate again, and this was verified rather than assumed.** Five
+reseeds at `S.RANDOM_STATE + i` return **byte-identical** components — `Error_var`
+`11.030768189898309` at every one of the five — so `2*sqrt(2)*sd` is exactly **0.0000000000** and
+every floor ratio is infinite. The cause is the same one part 2 diagnosed: the parameter dict
+carries no `bagging_fraction`, `feature_fraction` or `subsample`, so the fit has **no stochastic
+component** and `seed` cannot move it. A floor of 0.0000 must never be read as "extremely stable".
+Bagging was again **not** added to manufacture a non-degenerate seed floor.
+
+**The substitute, run at ten draws rather than the 2026-09-08 pass's five.** Races resampled with
+replacement; `race` and `stint` ids re-labelled per draw so a duplicated race acts as an
+independent draw; `driver` and `constructor` labels left alone because they are the crossing
+levels; rounds fixed at arm 2's 630.
+
+`Error_var` draws **8.9603 · 11.0062 · 11.9382 · 9.9973 · 9.4785 · 11.6573 · 11.0976 · 10.5993 ·
+9.5268 · 11.3305** — mean 10.5592, **sd 1.0165**. Draws hold 73–84 of the 123 races distinct, and
+the mean comes back 4.3% below the full-data 11.0308 exactly as the construction predicts, so the
+**sd is the error bar and the mean is not a point estimate** — the same caveat as v11, at a fifth
+of the v11 pass's bias.
+
+| | value |
+| :--- | ---: |
+| arm 2 rescaled leg, implied floor | 0.8736 |
+| floor sd, propagated from `sd(Error_var)` = 1.0165 | 0.0403 |
+| gate-style `2*sqrt(2)*sd` threshold | 0.1139 |
+| headroom against the achieved 0.9823587 | **+0.1087** |
+| headroom in sd | 2.70× |
+| **headroom against the gate threshold** | **0.95× — FAILS, narrowly** |
+| floor ±1.96 sd | 0.7947 – 0.9525 (does **not** contain achieved) |
+
+**Gate 3 fails, and the near-miss is the least interesting thing in this table.** On v11 the same
+construction put the headroom at 0.12× the threshold — deep inside noise. On v12 it is 0.95×,
+*just* short. A reader could be forgiven for thinking one more draw would settle it. It would not,
+because **this gate prices only sampling variability, and sampling variability is not the dominant
+error on this leg.** Arm 8 measures the other one: moving the transfer ratio from the assumed
+0.658 to the measured 0.997 moves this same leg from 0.8736 to 1.0754, a shift of **0.2018 — 5.0×
+the floor sd and 1.77× the gate threshold**, and it moves it from "10.9% headroom" to "falsified".
+
+**So the gate-3 verdict and the arm-8 verdict point the same way for different reasons**, and the
+larger of the two errors is the one the gate cannot see. `gates.md` step 3 is the right instrument
+for a delta between two fits on one population; it has nothing to say about a leg that transports a
+quantity between two populations, and that is where this leg's uncertainty actually lives.
+
+---
+
+### 05c — RECONCILIATION 2026-09-17. The definition of done's last clause, closed.
+
+The definition of done asks for the four components **reconciled against `01a`'s learning curves
+and `01b`'s bracket, with disagreements reported rather than averaged.** Part 2 could not do it —
+neither had run. Both have since finished (`01a` `LANDED` 2026-09-08, `01b` `CLOSED` 2026-09-09).
+This section is that reconciliation. Per [`../foundations/epistemics.md`](../foundations/epistemics.md)
+the legs sit beside each other and are never differenced or averaged.
+
+#### The three-leg bracket exists on v11, and only on v11
+
+`01a` and `01b` were both measured against the **pre-`08m` target**, and neither has been re-run
+since. `08n`'s ruling is that v11 and v12 headlines are different quantities, so the bracket is
+stated where its legs actually live.
+
+| leg | construction | p50 value | own error bar | bias direction |
+| :--- | :--- | ---: | :--- | :--- |
+| `01a` learning curves | extrapolated intercept of `y(n) = c + a·n^(−b)` over ten row fractions | 0.9638 | LOO 0.8353 – 1.0106 | not identified |
+| `01b` difference-based floor (L3) | matched-cell on 3 coordinates, eval rows | 1.0641 | 0.9388 – 1.1909 | **up** by theorem; **down** by a 4.5% race ICC |
+| `05c` GPBoost (this item) | model-based `σ²_residual`, shape bridge, proportional rescale | 1.0024 | ≈0.9229 – 1.0819 | **down** — in sample on both the tree and the 5,173-level stint effect |
+| — | **achieved** | **1.0163386** | | |
+
+**The disagreement is larger than the quantity.** The three point estimates span **0.9638 to
+1.0641 — 0.1003, or 9.9% of the headline** — against the largest headroom any of them claims
+(`01a`'s 5.2%). Every leg's own interval contains the achieved loss, or its spread exceeds its own
+claim. Averaging them would manufacture a precision that none of them has.
+
+**They agree on direction, and on nothing finer.** `01a`'s intercept is the only leg whose point
+estimate suggests material headroom, and `01a` itself declares it unusable — the leave-one-out
+span is 3.3× the 0.0526 it claims. `01b`'s floor comes back *above* achieved, which is its own
+pre-registered falsification condition. `05c`'s comes back below by 1.4%, which its own cluster
+bootstrap then shows is 0.34× one sd. **Three instruments, three different failure modes, one
+answer: no headroom that any of them can resolve.**
+
+**The pairing `01b` already drew is confirmed.** `01b`'s arm 7 recorded leg C (this item) at 5.8%
+below leg A (its own L3) and, since C is a lower bound where A is an upper one, read the p50 answer
+as `L* ∈ [1.0024, 1.0641]` with the achieved 1.0163 inside it. Re-derived here from the two
+published numbers: `1.0024 / 1.0641 = 0.94202`, i.e. 5.8%. That bracket stands as `01b` stated it.
+
+#### Two reconciliations that are not with `01`, and both moved
+
+- **`ceiling.py`'s one-way ANOVA.** Part 1's declared cross-check *failed* on v11 (ANOVA 0.174836
+  against REML 0.199020) and part 1 traced the gap to serial correlation from the overlapping
+  window. On v12 the same check **passes** — 0.098616 against 0.093663, gap −0.004953 — and the
+  lag-1 autocorrelation it blamed has fallen from 0.6044 to 0.3501. A prediction made on one
+  substrate, confirmed on another.
+- **`09a`'s CRPS.** Part 2 bridged `σ` to CRPS as `σ/sqrt(π)` and reported it beside `09a`'s
+  achieved. On v12 that bridge **falsifies at every source** (1.4756–1.9474 against an achieved
+  1.3795), because it has no empirical-shape correction and the measured shape is 19–26% below
+  Gaussian. The CRPS leg is withdrawn rather than quoted.
+
+#### There is no three-leg bracket on the substrate production actually runs
+
+This is the part worth carrying forward. **The bracket that `05a`'s closure rests on is entirely
+on a retired target.** `01a`'s curves, `01b`'s floor and `05c`'s v11 components all describe
+`next_5_lap_cumulative_jump_s` as it was before `08m` repaired it. On the live v12 target only
+this item has a leg, and **this item's v12 leg does not bind.**
+
+**What `01b` would have to return for a v12 bracket to exist:** an irreducible-noise estimate on
+the `cv_final_fold` **2024 eval population of the v12 target**, as a residual sd in seconds or
+directly as a p50 pinball floor. This item's v12 values for that comparison, with the spread
+reported rather than collapsed:
+
+| leg | `σ²` | `σ` | implied p50 floor | what it rests on |
+| :--- | ---: | ---: | ---: | :--- |
+| arm 2, rescaled to eval | 7.2555 | 2.6936 | 0.8736 | a fitted-residual rescale **arm 8 contradicts** |
+| arm 7b, fitted on eval | 9.6674 | 3.1093 | 1.0084 ✗ | no transfer assumption at all — but a real predictor beats it, so it is not a floor |
+| arm 6, production OOS residual | 9.1686 | 3.0280 | 0.9821 | circular; an upper bound only |
+
+**Do not average these.** The honest statement of this item's v12 leg is a direction and a
+refusal: **the achieved 0.9823587 cannot be separated from the model-based noise floor by this
+instrument, and no headroom percentage is quotable in either direction.**
+
+#### What this does and does not do to `05a`
+
+`05a` was closed unstarted on 2026-09-11 under decision `D8`, and one of the three planks was this
+item's v11 finding. **That closure is not disturbed and is deliberately not revisited here.** Its
+own do-not-reopen clause requires *evidence that changes the headroom bracket itself — a ceiling
+instrument finding real headroom that `01a`/`01b`/`05c` missed.* This rerun finds no such thing:
+it finds that the instrument **cannot resolve** headroom on the repaired target, which is the same
+direction as before and a weaker claim, not a contrary one. The closure also already rested on the
+repair pass's *"no percentage is quotable, direction only, and the direction is none"* rather than
+on the retracted `±1.5%`.
+
+**What is flagged, and left for `01` and `11` rather than acted on here:** the statement *"the
+floor is where the model already is"* was a v11 statement and **does not reproduce on v12**. On
+the repaired target the model explains materially less of the target (arm 6: 29% of the eval
+variance, against 53% in sample on train), and the instrument that used to pin it to its floor no
+longer resolves the question.
+
+**And there is a conflict here that this item cannot settle and should not paper over.** The
+natural next move — re-run `01b` against the v12 target so the bracket has a second live leg —
+runs into `01b`'s own do-not-reopen clause, which admits exactly three triggers: an eval population
+with repeated circuits inside a season, `08d`'s C1–C5 identity, or a lower-dimensional target.
+**A target rebuild is none of the three**, because the clause was written before `08m` existed and
+could not contemplate it. Whether that counts as new evidence is a judgement about `01b`'s scope,
+not a measurement, so it is **raised here and left for the orchestrating session or a human call**
+rather than assumed either way. What this item can say is the factual half: `01a` and `01b` both
+describe a target that production no longer predicts.
+
+#### Stage — this item's verdict, 2026-09-17
+
+**`CLOSED`**, as a completed measurement whose answer is a refusal rather than a number — which is
+the programme working, not failing. *The stage change in [`../status/build-log.json`](../status/build-log.json)
+is the orchestrating session's to make; this section records the item's own verdict against its own
+definition of done.*
+
+**Every clause of the definition of done is delivered.** Four variance components — on the retired
+v11 target (parts 1–3) and on the live v12 target (this rerun). Their fit diagnostics: an
+instrument check that reproduces the published headline bit-identically, a null/alternative
+recovery study that shows the estimator neither manufactures nor resolves the small-`k` levels, a
+permutation null on two independent row sets, a ten-draw cluster bootstrap over races, an
+out-of-sample cross-check against the production model's own residuals, a direct fit on the eval
+population, and a season-by-season test of the one assumption the bridge cannot avoid. Reconciled
+against `01a`'s learning curves and `01b`'s bracket in the section above, **with the disagreement
+quantified (a 9.9%-of-headline spread against a largest claim of 5.2%) and explicitly not
+averaged**. And it **shipped nothing**, as specified — no artefact, no contract change, no ONNX,
+no entry in `ml/requirements.txt`.
+
+**Gates.**
+
+| gate | verdict |
+| :--- | :--- |
+| 1 | **PASSED** — arm 0a reproduces `0.9823587335698977` bit-identically (`0.000e+00`), once the relative-path footgun was found |
+| 2 | **N/A** — nothing is added and no delta is claimed |
+| 3 | **FAILS** — degenerate as pre-registered (five reseeds byte-identical, `2*sqrt(2)*sd` exactly 0.0000), and the cluster-bootstrap substitute puts the surviving leg's headroom at 0.95× the threshold |
+| 4 | **PASSED twice** — 36:1 on the training rows (arm 2b), 17:1 on the eval rows (arm 7b-null) |
+| 5 | **N/A** — no new features; the 32 contract columns cleared their own forward-window checks when admitted |
+| 6 | **HONOURED** — the 2026-09-08 pre-registration above is unedited, and every deviation from it is logged beside the arm that deviated |
+
+There is no candidate change for `gates.md` to price end-to-end, because **the item ships nothing
+by construction** — the same structure under which `05d` closed. `CLOSED` here means the question
+was answered, not that a number passed a gate.
+
+**Deviations from the pre-registration, logged.** (i) Arm 3 as written is degenerate on both
+substrates and was replaced by the cluster bootstrap, as the 2026-09-08 pass first did. (ii) Arms
+6, 7 and 8 are **new** and were not pre-registered — they were added after arm 4's v12 legs
+disagreed, to test the bridge's population assumption rather than to produce a headline, and each
+is reported with what it can and cannot support. (iii) The CRPS bridge declared in the
+pre-registration's arm 4 is **withdrawn**, not merely reported, because it falsifies at every
+source. (iv) Arm 0c's ±20% / ±10% tolerances were already shown unmeetable on a 16-level design by
+the 2026-09-08 pass; this rerun does not re-apply them and uses the null/alternative comparison
+instead.
+
+**What would reopen this item.** Not a better fitter, and not more bootstrap draws — the dominant
+error is the population transfer, not the estimator. It reopens on either: **(a)** a defensible
+measurement of how the *fitted* residual transfers between the training and eval populations
+(arm 8 measures the raw residual's transfer at 0.908 ± 0.046 and the fitted residual's at ~0.997,
+and the bridge needs below 0.832 to survive); or **(b)** a second live leg on the v12 target from a
+different construction, at which point the three-leg bracket this item's definition of done is
+built around would exist on the substrate production actually runs. Neither is in this item's gift.
+
+**Reusable findings, so the next probe does not rediscover them.** In addition to part 2's two
+gpboost traps (`GPModel.fit(y=...)` fits no intercept unless `X` is passed; sample weights go to
+the `GPModel()` constructor, not `Dataset(weight=)`), this rerun adds three:
+
+- **`evaluate.MODELS_DIR` and `ARTEFACTS_DIR` are relative paths.** A probe run outside the repo
+  root silently fits `SMOKE_DEFAULTS`. Check the working directory before the arithmetic.
+- **`gpboost` 1.7.4 rejects `params={"std_dev": ...}`** — standard errors moved onto `summary()`,
+  `get_cov_pars()` and `get_coef()` as a `std_err` argument.
+- **Sample weights must be normalised to mean 1** before they are compared against an unweighted
+  fit, because gpboost divides the nugget by `weights[i]`; the un-normalised `Error_var` differs
+  from the normalised one by exactly the weight mean, as part 3 verifies to 0.05%.
 
 ---
 
@@ -836,7 +1403,10 @@ was even raised, verified independently rather than taken on a prior summary's w
 - `05c` finds `degradation_regressor_p50` at its model-based noise floor to within ±1.5%, and its
   later repair-pass finding (cluster bootstrap over races, `build-log.json`'s `05c` note) goes
   further: no headroom percentage is quotable at all — direction only, and the direction is
-  "none."
+  "none." *(Annotated 2026-09-17, not rewritten: the `±1.5%` in the first clause is **retracted**
+  — see `05c` results part 3. The plank this ruling actually stands on is the second clause, and
+  that one is unchanged. `05c`'s v12 rerun does not disturb it; see "What this does and does not
+  do to `05a`".)*
 
 Three independent instruments, three different failure modes, one answer: **no material headroom
 remains for a model-class change to claim.** That is precisely the condition this doc's own

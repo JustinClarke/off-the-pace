@@ -82,7 +82,8 @@ WITH ego_laps AS (
         lr.rainfall_flag,
         -- Field hockey-stick parameters for this lap (cliff interaction)
         cp.compound_cliff_onset_laps,
-        cp.compound_cliff_severity
+        cp.compound_cliff_severity,
+        cp.compound_wear_gradient
     FROM {{ ref('int_lap_residual_decomposed') }} AS lr
     LEFT JOIN {{ ref('int_compound_cliff_predicted') }} AS cp
         ON lr.lap_id = cp.lap_id
@@ -194,31 +195,40 @@ ghost_recombined AS (
         ) * COALESCE(el.age_in_stint, 0) AS deg_interaction_s,
         COALESCE(deg_host.cliff_onset_shift_laps, 0.0) AS host_cliff_shift_laps,
         COALESCE(deg_ego.cliff_onset_shift_laps, 0.0) AS ego_cliff_shift_laps,
-        -- Cliff interaction: host-vs-ego difference in the field's
-        -- LINEAR
-        -- post-onset penalty, each constructor's onset moved by its own shift.
-        -- severity * [ hinge(host) - hinge(ego) ], hinge(c) = GREATEST(0, age -
-        -- onset - shift(c)).
-        -- ego == host => 0 exactly. Guardrail clip to +/-2.0 s: in the
-        -- asymmetric zone
-        -- (one car past its shifted onset, the other not) the term grows with
-        -- age, and a
-        -- few high-severity circuits (severity up to ~3.3 s/lap) could
-        -- otherwise let a
-        -- cliff-timing refinement dwarf the field pace. +/-2 s keeps it a
-        -- refinement.
+        -- Cliff interaction: host-vs-ego difference in the field's post-onset
+        -- penalty, each constructor's onset moved by its own shift.
+        -- plateau * [ ramp(hinge(host)) - ramp(hinge(ego)) ],
+        -- hinge(c) = GREATEST(0, age - onset - shift(c)).
+        -- ego == host => 0 exactly.
+        --
+        -- 08m: this was the FIFTH site consuming compound_cliff_severity as a
+        -- per-lap rate -- severity * hinge, growing without limit in the
+        -- asymmetric zone. severity is fitted as a LEVEL SHIFT over a ~5.5-lap
+        -- window (survival.py::estimate_cliff_severity), so it now goes through
+        -- the same de-double-counted, moment-matched saturating ramp as every
+        -- other site; see macros/compound_cliff_wear.sql.
+        --
+        -- The +/-2.0 s guardrail clip is KEPT but is now nearly inert by
+        -- construction: ramp() is in [0,1], so the whole term is bounded by the
+        -- plateau (median 0.94 s, max 3.13 s across the 438-row seed) instead of
+        -- growing with age. The clip's original justification cited "severity up
+        -- to ~3.3 s/lap"; the seed's severity max is 1.5 (winsorised by the
+        -- fitter), so that figure was stale as well as mis-united.
         LEAST(GREATEST(
-            COALESCE(el.compound_cliff_severity, 0.0) * (
-                GREATEST(
+            {{ cliff_plateau_s('el.compound_cliff_severity',
+                               'el.compound_wear_gradient') }} * (
+                {{ cliff_ramp_frac(
+                    'GREATEST(
                     CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE)
                     - COALESCE(el.compound_cliff_onset_laps, 999.0)
                     - COALESCE(deg_host.cliff_onset_shift_laps, 0.0), 0.0
-                )
-                - GREATEST(
+                )') }}
+                - {{ cliff_ramp_frac(
+                    'GREATEST(
                     CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE)
                     - COALESCE(el.compound_cliff_onset_laps, 999.0)
                     - COALESCE(deg_ego.cliff_onset_shift_laps, 0.0), 0.0
-                )
+                )') }}
             ), -2.0
         ), 2.0) AS cliff_interaction_s,
         -- SE-propagation ingredients (per lap; aggregated in

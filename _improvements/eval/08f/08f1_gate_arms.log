@@ -1,0 +1,48 @@
+published artefact version v12
+e-value validity check (mean E under H0 must be 1.00):
+  sigma=0.001    mean_E=1.0016 +/- 0.0102  P(E>20)=0.0010
+  sigma=0.01     mean_E=0.9992 +/- 0.0102  P(E>20)=0.0011
+  sigma=0.1      mean_E=1.0108 +/- 0.0106  P(E>20)=0.0011
+  sigma=1.0      mean_E=1.0014 +/- 0.0105  P(E>20)=0.0013
+
+=== Step 1(b): instrument check -- row-level diff outside survival_weight ===
+  [degradation_regressor_p10] instrument row-diff: clean=False (train X cols differing=0, eval X cols differing=0, y_tr Δ=8.62e-14, y_ev Δ=6.75e-14)
+  [degradation_regressor_p50] instrument row-diff: clean=False (train X cols differing=0, eval X cols differing=0, y_tr Δ=8.62e-14, y_ev Δ=6.75e-14)
+  [degradation_regressor_p90] instrument row-diff: clean=False (train X cols differing=0, eval X cols differing=0, y_tr Δ=8.62e-14, y_ev Δ=6.75e-14)
+  [cliff_classifier] instrument row-diff: clean=True (train X cols differing=0, eval X cols differing=0, y_tr Δ=0, y_ev Δ=0)
+  [stint_life_regressor] instrument row-diff: clean=True (train X cols differing=0, eval X cols differing=0, y_tr Δ=0, y_ev Δ=0)
+
+=== degradation_regressor_p10 ===
+  [degradation_regressor_p10] AFTER=0.4764640778 published_v12=0.4764640778 instrument_check=True (4s)
+  [degradation_regressor_p10] BEFORE=0.4802231706 uniform_A=0.4711254463  AFTER-vs-BEFORE delta=+0.00375909  AFTER-vs-A=-0.00533863  BEFORE-vs-A=-0.00909772 (8s)
+  [degradation_regressor_p10] floor 2*sqrt(2)*sd = 0.00763075 (from before; after=0.00136797, before=0.00763075) (40s)
+  [degradation_regressor_p10] AFTER: shuffled=0.4665590145 capacity=+0.00456643 (+0.60x) information=-0.00990506 (-1.30x)
+  [degradation_regressor_p10] BEFORE: shuffled=0.4721344809 capacity=-0.00100903 (-0.13x) information=-0.00808869 (-1.06x) (8s)
+  [degradation_regressor_p10] E(information, AFTER real-vs-shuffle) = 2.114 (d_bar=-0.00444480) (39s)
+  [degradation_regressor_p10] control(shuffle vs shuffle) E=0.4716 (39s)
+
+=== degradation_regressor_p50 ===
+  [degradation_regressor_p50] AFTER=0.9823587336 published_v12=0.9823587336 instrument_check=True (7s)
+  [degradation_regressor_p50] BEFORE=0.9840438286 uniform_A=0.9817102187  AFTER-vs-BEFORE delta=+0.00168510  AFTER-vs-A=-0.00064851  BEFORE-vs-A=-0.00233361 (14s)
+  [degradation_regressor_p50] floor 2*sqrt(2)*sd = 0.01115092 (from after; after=0.01115092, before=0.00936780) (71s)
+  [degradation_regressor_p50] AFTER: shuffled=0.9780458299 capacity=+0.00366439 (+0.33x) information=-0.00431290 (-0.39x)
+  [degradation_regressor_p50] BEFORE: shuffled=0.9871601145 capacity=-0.00544990 (-0.49x) information=+0.00311629 (+0.28x) (14s)
+  [degradation_regressor_p50] E(information, AFTER real-vs-shuffle) = 2.004 (d_bar=-0.00361411) (72s)
+  [degradation_regressor_p50] control(shuffle vs shuffle) E=8.761 (72s)
+
+=== degradation_regressor_p90 ===
+  [degradation_regressor_p90] AFTER=0.5128462338 published_v12=0.5128462338 instrument_check=True (4s)
+  [degradation_regressor_p90] BEFORE=0.5122840197 uniform_A=0.5093926910  AFTER-vs-BEFORE delta=-0.00056221  AFTER-vs-A=-0.00345354  BEFORE-vs-A=-0.00289133 (7s)
+  [degradation_regressor_p90] floor 2*sqrt(2)*sd = 0.00839541 (from after; after=0.00839541, before=0.00626345) (33s)
+  [degradation_regressor_p90] AFTER: shuffled=0.5184358514 capacity=-0.00904316 (-1.08x) information=+0.00558962 (+0.67x)
+  [degradation_regressor_p90] BEFORE: shuffled=0.5175787628 capacity=-0.00818607 (-0.98x) information=+0.00529474 (+0.63x) (6s)
+  [degradation_regressor_p90] E(information, AFTER real-vs-shuffle) = 1.778 (d_bar=+0.00264417) (32s)
+  [degradation_regressor_p90] control(shuffle vs shuffle) E=0.9276 (32s)
+
+=== cliff_classifier (structurally invariant to 08f-1) ===
+  [cliff_classifier] headline=0.3524660979 published_v12=0.3524660979 instrument_check=True (18s)
+
+=== stint_life_regressor (structurally invariant to 08f-1) ===
+  [stint_life_regressor] headline=1.9913358779 published_v12=1.9913358779 instrument_check=True (2s)
+
+wrote /tmp/08f1_gate_arms.json

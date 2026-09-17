@@ -161,6 +161,28 @@ columns.
 
 ## 08e — The thermal-proxy stint baseline reaches forward
 
+> **STALE AS OF `08m` (2026-09-16) — every pinball number below is on the OLD target.**
+> `08m` fixed how `int_compound_cliff_predicted.sql` consumes `compound_cliff_severity` and
+> dropped the unfitted `0.002*age^2` term, then rebuilt the warehouse.
+> `next_5_lap_cumulative_jump_s` is now **a different quantity**: its mean moved
+> −1.8793 s → −0.3946 s, and `is_training_eligible` moved 82,470 → 81,619 rows. The absolute
+> pinball losses, baselines and reseed floors in this section are therefore **not comparable to
+> anything measured after that rebuild**, and the add-ablation *deltas* are not directly
+> comparable either — both arms would have to be re-run on the rebuilt target. They were **not**
+> re-measured by `08m`, which re-measured only the two acceptance numbers in its own RESULT.
+> What is NOT invalidated: these deltas remain valid *relative to each other*, because every arm
+> in the comparison was scored on the same (old) target. The leakage/forward-window rulings and
+> the qualitative conclusions stand; only the numbers are on a superseded quantity.
+>
+> **SUPERSEDED FOR FAMILY T (2026-09-17).** Family T's gate has been **re-run on the `v12`/`08m`
+> substrate** — see [`08e` — family T re-read](#08e--family-t-re-read-on-the-v1208m-substrate-2026-09-17)
+> at the end of the `08e`/`08f` gate sections. All five targets clear their own floor on the
+> rebuilt target, information-attributed, with the instrument check passing exactly against the
+> published `v12` headline. Quote **that** table, not this one. The stale banner still governs
+> `08f`, which was not re-read.
+
+
+
 **Objective.** `push_residual` and the three features built on it are measured against a baseline
 computed from laps that had not yet run, in a window whose width is set by the stint-life label.
 Rebuild the baseline so it is available at the lap it scores.
@@ -463,6 +485,26 @@ not been run, so **no claim about the headline exists yet**, and nothing is comm
 
 ## 08f — Cross-season pooled statistics in the feature lineage
 
+> **STALE AS OF `08m` (2026-09-16) — every pinball number below is on the OLD target.**
+> `08m` fixed how `int_compound_cliff_predicted.sql` consumes `compound_cliff_severity` and
+> dropped the unfitted `0.002*age^2` term, then rebuilt the warehouse.
+> `next_5_lap_cumulative_jump_s` is now **a different quantity**: its mean moved
+> −1.8793 s → −0.3946 s, and `is_training_eligible` moved 82,470 → 81,619 rows. The absolute
+> pinball losses, baselines and reseed floors in this section are therefore **not comparable to
+> anything measured after that rebuild**, and the add-ablation *deltas* are not directly
+> comparable either — both arms would have to be re-run on the rebuilt target. They were **not**
+> re-measured by `08m`, which re-measured only the two acceptance numbers in its own RESULT.
+> What is NOT invalidated: these deltas remain valid *relative to each other*, because every arm
+> in the comparison was scored on the same (old) target. The leakage/forward-window rulings and
+> the qualitative conclusions stand; only the numbers are on a superseded quantity.
+>
+> **RE-READ COMPLETE, both halves (2026-09-17).** This banner still applies to every number
+> *below*, which is left as history. The current numbers are in two new sections near the end of
+> this item (after the `08e` re-read): `` `08f-2` — closed by measurement, not re-gated`` and
+> `` `08f-1` — gate RESULT, isolated, on the v12/08m substrate``. `08f` stays `GATED`.
+
+
+
 **Objective.** Three aggregations in the lineage pool every ingested season into one statistic, so a
 2018 training row's value is estimated partly from the 2024 evaluation season. Season-lag them, or
 rule the pooling acceptable with a measurement rather than an assumption.
@@ -476,6 +518,20 @@ rule the pooling acceptable with a measurement rather than an assumption.
 sample weight for the quantile regressors and `evaluate.py:613` uses it again to weight the scores.
 So eval-season information reaches both the fit and the metric, through the weights rather than
 through a column.
+
+> **Correction (2026-09-17), from the 08f-1 gate.** `evaluate.py:613` (`_row_weights`) supplies
+> `survival_weight` only as the **training** weight passed to `_fit` — `EvalSplit` carries `w_tr`
+> only, no `w_ev`, and `_score`'s quantile branch calls `T._headline(spec, y_true, pred)` with no
+> `meta` at all, so `pinball_loss` is unweighted at eval time (`grep -n "pinball_loss(" ml/src/*.py`
+> shows exactly two call sites, both unweighted). So the channel this paragraph describes as
+> "reaches both the fit and the metric" is, in the code as it stands today, **fit-only** — the
+> metric reads eval-season information only insofar as a differently-weighted fit predicts
+> differently on it, not through any direct reweighting of the eval loss. Whether this was accurate
+> when written and changed in a later refactor, or was already the fit-only shape and mischaracterised
+> here, was not traced — flagged as a correction either way, per BUILD-ORDER.md's deviation rule. It
+> does not change the defect (a 2018 row's training weight is still partly estimated from 2024 data
+> pre-08f-1) or the fix; it narrows how that defect reaches the headline. See the 08f-1 gate result
+> below.
 
 **08f-2 — the circuit × constructor interaction.** `int_circuit_x_constructor_interaction`
 shrinks a constructor's per-circuit deviation over all seasons at once (`GROUP BY constructor_id,
@@ -713,6 +769,236 @@ v11 numbers and the warehouse still disagrees with it by design, and nothing is 
 
 ---
 
+### `08e` — family T re-read on the `v12`/`08m` substrate (2026-09-17)
+
+**Why this section exists.** The table above is on the target `08m` superseded, and the banner at
+the head of `08e` says so. Decision `D3` ("Land `08e` + `08f`?") is explicitly waiting on those
+deltas being **re-read**, not re-argued. This is the re-read: gate steps 1–4 and 7, re-run for
+family T alone, on the warehouse as it stands today.
+
+**One line of the Status paragraph above has itself gone stale and is left standing as history:**
+`ml/artefacts/evaluation_metrics.json` no longer holds the v11 numbers. `08n` regenerated it, and
+it is `v12` — which is what makes the instrument check below possible at all.
+
+**What was NOT re-run, and why that is not a gap.** `08e`'s materiality half — the BLOCK vs
+TRAILING correlation contrast, the position-matched swing table, the two sign inversions — was not
+re-measured. `08m` moved the *label*; it did not touch the *leak*. The construction argument
+(`baseline_cutoff_lap` is a deterministic function of the stint-life label's own numerator) and the
+forward-reach census are both properties of the pre-rebuild SQL, which no longer exists. The
+leakage ruling stands on its own evidence and does not depend on any number in this section.
+
+**Design, and the one deliberate difference from the 2026-09-09 run.**
+
+    baseline A  = the 32-column contract MINUS family T   (28 columns)
+    arm    A+T  = the full 32-column contract
+
+The 2026-09-09 run used a joint baseline excluding family T *and* family C
+(`cliff_candidate_flag`), so one reference served both `08e` and `08f`. **`08j` has since pruned
+`cliff_candidate_flag` from the contract outright** (ruled dead on both substrates by `08g`), so
+"contract minus T" **is** the direct analogue of that run's `A`, and no family C arm exists to run.
+The contract is 32 columns here rather than 33 for exactly that reason.
+
+**Instrument check (gate step 1) — passes on all five, exactly.** The full-contract refit
+reproduces the published `v12` headline on every target, to well inside six decimal places:
+0.4764640778 / 0.9823587336 / 0.5128462338 / 0.3524660979 / 1.9913358779. The harness has not
+moved, so every delta below is measured against a faithful reproduction of what is published.
+
+**Family T on the rebuilt target — clears on all five, and it is information every time.**
+`cv_final_fold`, train 2018–2023, eval 2024, through `evaluate.py`'s own `_fit`/`_predict_index`/
+`_score`. Floors are 5 seed-only refits via `attribution.py::refit_noise_floor`, computed on **both**
+arms, with every ratio quoted against the **larger** of the two — the conservative call, and the one
+the 2026-09-09 run made.
+
+| target | metric | A (28 cols) | A+T (32) | delta | ×floor | capacity | information | ×floor | E |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `degradation_regressor_p10` | pinball | 0.5429193 | 0.4764641 | **+0.0664552** | 9.95× | −0.0031177 (−0.47×) | +0.0695730 | **10.42×** | 35.91 |
+| `degradation_regressor_p50` | pinball | 1.0499831 | 0.9823587 | **+0.0676244** | 6.06× | −0.0028325 (−0.25×) | +0.0704569 | **6.32×** | 35.46 |
+| `degradation_regressor_p90` | pinball | 0.5440975 | 0.5128462 | **+0.0312513** | 3.39× | −0.0036515 (−0.40×) | +0.0349028 | **3.79×** | 31.16 |
+| `cliff_classifier` | macro F1 | 0.3357970 | 0.3524661 | **+0.0166691** | 3.84× | +0.0018800 (+0.43×) | +0.0147892 | **3.41×** | 30.03 |
+| `stint_life_regressor` | AFT nloglik | 2.0186246 | 1.9913359 | **+0.0272887** | 4.46× | +0.0028524 (+0.47×) | +0.0244363 | **4.00×** | 33.36 |
+
+Deltas are oriented so **positive is improvement on every metric**. Five for five over their own
+floors, and on every one of them the **information** term is larger than the total while the
+**capacity** term sits inside the floor (|0.25×| to |0.47×|). On the three quantile targets capacity
+is *negative* — four shuffled columns measurably hurt — so the family's whole contribution, and
+slightly more, is its alignment with the label.
+
+**NONE of these numbers may be subtracted from the 2026-09-09 table.** Both runs score a different
+quantity; that is the entire reason this section exists. Two qualitative changes are worth naming
+as **separate measurements read side by side**, never as a delta:
+
+- p90 was the narrow case before (1.07× total, carried by a 1.35× information term). On the
+  rebuilt target it is **not narrow** — 3.39× total, 3.79× information.
+- p10's capacity term was the recorded anomaly before (+1.06× its own floor; shuffled columns
+  hurt p10 enough to matter). On the rebuilt target p10's capacity is **−0.47×, inside the floor**.
+
+**Gate step 7 — e-values, and the multiplicity reading.** Construction B (paired safe-t), n = 5
+seeds, g = 1, declared on the **information** contrast (real vs its own per-seed shuffle) — the null
+step 4 isolates, with capacity as a nuisance. The Monte Carlo validity check `e_value_construction.md`
+§4 requires was run at four sigmas: mean `E` = 1.0016 / 0.9992 / 1.0108 / 1.0014 (±0.010), so the
+construction is a valid e-value at this n. Max attainable `E` at n = 5, g = 1 is **36.0**, and four
+of the five sit within 15% of that ceiling.
+
+Within **this item's declared family of five**, e-BH at α = 0.05 rejects **all five** (sorted `E`
+35.91 / 35.46 / 33.36 / 31.16 / 30.03 against thresholds `m/(αk)` = 100 / 50 / 33.33 / 25 / 20;
+k\* = 5). **Stated with its limit:** that is a within-item count. The campaign-level family is
+larger and `04a` owns enumerating it, and because the threshold scales with family size while this
+construction caps at `E` = 36, these five cannot carry an arbitrarily large campaign family on their
+own. The within-item result is reported as what it is and handed to `04a`.
+
+**The negative controls, reported rather than rounded up.** Shuffle-vs-shuffle on family T, where H0
+is true by construction: `E` = 0.493 / 0.458 / 1.220 / 1.097 — and **3.282 on p10**. Under H0 `E`
+has mean 1 with a heavy right tail, so one control of five at 3.28 is unremarkable (it is nowhere
+near the 20 that a rejection needs), but it is the largest control in the set and it sits on the
+same target as the largest headline `E`, so it is recorded rather than omitted.
+
+**Verified.**
+
+- All five instrument checks against `ml/artefacts/evaluation_metrics.json` (`version: v12`).
+- `features.py --check` on this substrate: `[forward-window audit] CLEAN`,
+  `[aggregation-scope audit] CLEAN`, `[leakage guard] CLEAN (32 features)`, train rows **81,619** —
+  i.e. `08m`'s row count, confirming the measurement is on the rebuilt target and not a stale build.
+- `dbt test --select assert_no_future_leakage assert_stint_boundary_integrity` — **PASS, PASS** on
+  the post-`08m` warehouse. The guard `08e` rewrote still holds after the target rebuild.
+- **Zero `known_leak` entries remain anywhere in `transform/models/`**, and `int_lap_thermal_proxy`
+  carries no `aggregation_scope_exemptions` block at all — the "no finding" branch of the definition
+  of done, not the "accepted" one.
+- `best_params` files are not version-keyed and are unmodified, so v11 and v12 refit from identical
+  tuned params.
+
+**Assumed.**
+
+- `stint_life_regressor`'s arm is measured with the params `10d`/`10e` are expected to move (`02c`
+  bars this family from its own arms for that reason). Its family-T result is reported because
+  `08e`'s definition of done names three families; it should be re-read after `10e`, like every
+  other stint-life number.
+- `08n` verified `stint_life_regressor`'s target *values* are unchanged by `08m`, which would make
+  its old and new family-T numbers nominally comparable — **the subtraction is still declined**,
+  because its row set moved 121,193 → 119,822 via `anomaly_class` → `is_training_eligible`. That is
+  population, not disagreement.
+- That family T is still exactly these four columns was re-checked against the contract, not
+  re-traced through the lineage; `int_lap_thermal_proxy`'s consumer set was last traced 2026-09-09.
+
+**Gates run.** 1 (instrument check, all five), 2 (add-ablation, identical split), 3 (each arm's own
+reseed floor, larger of the two quoted), 4 (permutation null, capacity and information separate),
+5 (`features.py --check`, re-run this session), 7 (e-value declared before the arm ran, with its MC
+validity check). Step 6 is satisfied by this section naming the design before the table.
+
+**What this does and does not settle.** It settles that family T earns its place in the contract on
+the target the warehouse actually computes today: the `08e` rebuild is not a degraded remnant of a
+leaky feature, it is the largest single block in the contract on the degradation quantiles. It does
+**not** re-price `08f`, whose deltas carry the same stale banner and whose family C column no longer
+exists to ablate — `D3` bundles the two, and only the `08e` half is re-read here. Nothing was
+committed and `build-log.json` was not touched.
+
+**Artefact.** `ml/artefacts/08e_thermal_family_arms.json` — every fit's headline, per seed, so any
+ratio or e-value above can be recomputed without refitting. Produced by
+`scripts/arms_08e_thermal_family.py`.
+
+---
+
+### `08f-2` — closed by measurement, not re-gated (2026-09-17)
+
+**Why this is closure, not a new gate run.** `08f-2`'s only live-feature path was
+`cliff_candidate_flag`, already ruled dead on both substrates (`08g`, pruned by `08j`) — that
+ablation target no longer exists. The 2026-09-17 probe asked the one question left: does `08f-2`
+move the model's actual **targets**, since `driver_skill_residual_s` — barred as a feature input —
+still feeds several of them (`next_5_lap_cumulative_jump_s`/`DEGRADATION_TARGET`,
+`next_3_lap_cumulative_jump_s`, `drift_s_per_lap`, `laps_until_cliff_class`/`CLIFF_TARGET`).
+Isolated-warehouse before/after diff, over the full 137,447-row population: `circuit_constructor_interaction_s`
+changes on all 1,456 (race, constructor) cells (mean |Δ| 0.086s) and `driver_skill_residual_s` moves
+1:1 on 99.8% of rows — but every target is unchanged to float noise (max |Δ| 1.8e-15 to 2.5e-14; 0
+of 137,447 rows cross a `laps_until_cliff_class` boundary; 0 of 7,064 stints' `drift_s_per_lap`
+moves). Proven algebraically, not just measured: the shift is an exact constant within every
+`(race_year, race_id, constructor_id)` group (max within-group stddev 6.7e-16, machine-epsilon
+scale), and every target checked is built from within-stint differences or a per-stint OLS slope,
+so the constant cancels exactly. Full detail: `_improvements/eval/08f/README.md` and
+`MEASUREMENTS.md`. **No add-ablation gate is meaningful for a change proven to touch zero live
+features and zero targets** — that is the definition of done for this half, met by measurement
+rather than by a floor ratio.
+
+---
+
+### `08f-1` — gate RESULT, isolated, on the v12/08m substrate (2026-09-17)
+
+**Why this exists.** `08f-1` had never been gated alone. The one prior measurement touching it (the
+2026-09-09 "gate step 1 re-baseline" above) reverted `08e` **and** both `08f` halves together in one
+combined A/B — it cannot isolate `08f-1`'s own marginal effect, and it predates both `08j` (contract
+33→32 features) and `08m`/`08n` (target rebuilt, v11→v12). This is that isolation, run fresh against
+the current substrate.
+
+**The commit, independently verified.** `git log --follow` on `fct_cliff_prediction_features.sql`'s
+own history names `bbe3e48` (2026-09-09) as the commit introducing the season-lag rewrite; its
+immediate predecessor `c7de693` is the pre-08f-1 content. `git diff c7de693 bbe3e48 -- <path>` shows
+exactly that rewrite plus one unrelated bundled addition (`baseline_observations_n`, `08e`'s
+companion column) — so the correct isolation is a hand revert of the three survival-weight CTEs
+only, not `git show c7de693:<path>` wholesale. `bbe3e48` is also the commit that introduced `08f-2`
+in the interaction model (see the correction above `08g`'s citation) — both halves of `08f` landed
+in one squashed commit with an unrelated message.
+
+**Because `survival_weight` is a sample weight, never a `FEATURE_COLUMNS` member, gates.md's
+add/drop-a-column framework does not apply literally.** Translated: baseline arm `A` = uniform
+weights (w=1, the zero point a weight-scheme ablation drops *to*); arm `BEFORE` = the season-pooled
+IPW (pre-fix); arm `AFTER` = the season-lagged IPW (shipped). Full translation of all seven gate
+steps, pre-registered before the arms ran, is in `scripts/gate_08f1_survival_weight.py`'s docstring
+and `_improvements/eval/08f/README.md`.
+
+**Headline: every one of the five deltas is inside its own reseed floor.**
+
+| target | metric | AFTER (=published v12) | BEFORE (pooled) | delta | floor | ratio |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: |
+| `degradation_regressor_p10` | pinball | 0.4764640778 | 0.4802231706 | +0.00375909 | 0.00763075 | 0.49× |
+| `degradation_regressor_p50` | pinball | 0.9823587336 | 0.9840438286 | +0.00168510 | 0.01115092 | 0.15× |
+| `degradation_regressor_p90` | pinball | 0.5128462338 | 0.5122840197 | −0.00056221 | 0.00839541 | −0.07× |
+| `cliff_classifier` | macro F1 | 0.3524660979 | = AFTER, 0 by construction | 0.0 | n/a | n/a |
+| `stint_life_regressor` | AFT nloglik | 1.9913358779 | = AFTER, 0 by construction | 0.0 | n/a | n/a |
+
+AFTER's three quantile headlines reproduce `08e`'s own independent v12 re-read (`A+T` cell) to the
+digits shown — a second, independently-built isolated warehouse reproducing the same numbers.
+`cliff_classifier`/`stint_life_regressor` invariance is Verified two ways: code trace
+(`train.py::_sample_weight` never reads `survival_weight` for these kinds) and a row-level warehouse
+diff (0 of 32 `FEATURE_COLUMNS` differ, target columns differ by exactly 0.0, between the AFTER and
+BEFORE snapshots).
+
+**The weight vector moves substantially — this is not a null for lack of a real change.** 93.3% of
+training rows (63,344/67,907) get a different `survival_weight`; mean shifts 1.711→1.970, max
+per-row |Δ| 2.97. 08f-1 does exactly what it is meant to do to the training weights; that
+substantial reweighting still does not move any of the three quantile headlines past noise on
+`eval_season` 2024.
+
+**Secondary finding, out of scope for 08f-1's own ruling, recorded because it fell out of the same
+arms.** Both IPW schemes underperform *uniform* (no reweighting at all) on all three quantile heads
+— AFTER is closer to uniform than BEFORE on p10/p50, marginally further on p90 — and on p10 the
+permutation null's information term clears its floor as a real cost for **both** schemes alike
+(AFTER −1.30×, BEFORE −1.06×). This says something about IPW reweighting as a mechanism, not about
+the season-lag specifically (the sign and rough magnitude match whichever scheme is used), so it is
+named here and not ruled on.
+
+**Verdict.** `08f-1` is a real, substantial correctness fix (a 2018 row's training weight is no
+longer partly estimated from 2024) whose effect on every headline metric this tree scores is not
+distinguishable from refit noise, on the current substrate. Different from `08e` (a genuine,
+floor-clearing win) and from the original combined step-1 finding (removing `08e`+`08f`'s
+contamination cost headline performance, on the pre-08m target) — `08f-1` measured alone, on the
+current target, costs nothing and wins nothing detectable. A clean null is the correct, complete
+outcome of this gate, not a failure to run it.
+
+**Gates run.** 1 (instrument check: published-v12 reproduction + row-level diff outside
+`survival_weight`), 2 (the weight-scheme A/B), 3 (each arm's own 5-reseed floor, larger quoted), 4
+(permutation null, translated to a weight-vector shuffle), 5 (`features.py --check`, this session —
+unaffected, 32 features), 6 (design pre-registered in the script docstring before the arms ran), 7
+(e-value on the information contrast, Construction B, with its MC validity check and negative
+controls — largest E in the whole gate is a negative control, p50 shuffle-vs-shuffle at 8.76, out of
+a max attainable 36.0). Full tables: `_improvements/eval/08f/MEASUREMENTS.md`. Artefact:
+`_improvements/eval/08f/08f1_gate_arms.json` / `.log`, produced by
+`scripts/gate_08f1_survival_weight.py`.
+
+**Status.** Both `08f` halves are now complete on the v12/08m substrate. `08f` stays `GATED` (it
+already was, from the 2026-09-09 run whose gates genuinely ran) — this re-read replaces the stale
+numbers rather than changing the stage. Landing remains bundled with `08e` under decision `D3`,
+which is not decided here.
+
+---
+
 ---
 
 ## 08c — Two silent assumptions, written down
@@ -915,7 +1201,25 @@ so a full `dbt seed && dbt run --target gate_before` reproduces dev's lineage fr
 ever opening dev.duckdb for write. `int_lap_thermal_proxy.sql` and
 `int_circuit_x_constructor_interaction.sql` were reverted wholesale to their pre-`08e`/pre-`08f-2`
 content (`git show c7c8509:<path>`, each confirmed a clean, self-contained diff against HEAD before
-reverting); `fct_cliff_prediction_features.sql` and its mart `schema.yml` contract entry were
+reverting).
+
+> **Correction (2026-09-17), per BUILD-ORDER.md's deviation rule.** `c7c8509` is correct for
+> `int_lap_thermal_proxy.sql` (08e) but **wrong** for isolating `int_circuit_x_constructor_interaction.sql`
+> (08f-2) **alone**: `git log --follow` on that file shows `c7c8509` predates an unrelated later fix
+> to the same file (pooling on the physical `circuit_id` rather than the event-slug `circuit_key`),
+> so reverting to it for an 08f-2-only isolation would silently revert that too. The commit that
+> actually introduced 08f-2's point-in-time rewrite in this file is `bbe3e48` (2026-09-09, despite an
+> unrelated commit message); its immediate predecessor in the file's own history, `e5bcd35`, is the
+> correct pre-08f-2 content — confirmed with `git diff e5bcd35 bbe3e48 -- <path>` showing exactly the
+> `GROUP BY` → window-function rewrite and nothing else. This note does not re-litigate 08g's own
+> ruling below (out of scope for this correction, and 08g is terminal) — it flags only that `c7c8509`
+> is the wrong citation for anyone who needs to isolate 08f-2 **by itself** in this file, which
+> nobody had needed to do until the 2026-09-17 probe — see `_improvements/eval/08f/README.md` and
+> `scripts/measure_08f2_label_impact.py`. `bbe3e48` also turns out to be the same commit that
+> introduced `08f-1`'s season-lag rewrite in `fct_cliff_prediction_features.sql` (see `08f`'s own
+> section below) — both halves of `08f` landed in one squashed commit with an unrelated message.
+
+`fct_cliff_prediction_features.sql` and its mart `schema.yml` contract entry were
 hand-edited to remove only the `08e` companion column and un-lag the `08f-1` survival curve, because
 the file also carries three unrelated rebuilds from the same squashed commit (the Phase 10a
 proximity block, the cliff-bucket forward-scan fix, the multi-horizon target rework) that had to
@@ -1033,6 +1337,21 @@ session ran them.
 
 ## 08h — `baseline_observations_n` as a feature: the add-ablation `08e` deferred
 
+> **STALE AS OF `08m` (2026-09-16) — every pinball number below is on the OLD target.**
+> `08m` fixed how `int_compound_cliff_predicted.sql` consumes `compound_cliff_severity` and
+> dropped the unfitted `0.002*age^2` term, then rebuilt the warehouse.
+> `next_5_lap_cumulative_jump_s` is now **a different quantity**: its mean moved
+> −1.8793 s → −0.3946 s, and `is_training_eligible` moved 82,470 → 81,619 rows. The absolute
+> pinball losses, baselines and reseed floors in this section are therefore **not comparable to
+> anything measured after that rebuild**, and the add-ablation *deltas* are not directly
+> comparable either — both arms would have to be re-run on the rebuilt target. They were **not**
+> re-measured by `08m`, which re-measured only the two acceptance numbers in its own RESULT.
+> What is NOT invalidated: these deltas remain valid *relative to each other*, because every arm
+> in the comparison was scored on the same (old) target. The leakage/forward-window rulings and
+> the qualitative conclusions stand; only the numbers are on a superseded quantity.
+
+
+
 **Objective.** `08e` shipped `baseline_observations_n` into the enforced mart contract and
 deliberately kept it out of `FEATURE_COLUMNS`, on the stated ground that putting it in `X` is an
 add-ablation someone has to gate. Run that gate.
@@ -1069,6 +1388,21 @@ rejected with the number, and the declarability hazard is ruled on either way.
 ---
 
 ## 08i — The `min_observations` floor: the trade `08e` priced and did not take
+
+> **STALE AS OF `08m` (2026-09-16) — every pinball number below is on the OLD target.**
+> `08m` fixed how `int_compound_cliff_predicted.sql` consumes `compound_cliff_severity` and
+> dropped the unfitted `0.002*age^2` term, then rebuilt the warehouse.
+> `next_5_lap_cumulative_jump_s` is now **a different quantity**: its mean moved
+> −1.8793 s → −0.3946 s, and `is_training_eligible` moved 82,470 → 81,619 rows. The absolute
+> pinball losses, baselines and reseed floors in this section are therefore **not comparable to
+> anything measured after that rebuild**, and the add-ablation *deltas* are not directly
+> comparable either — both arms would have to be re-run on the rebuilt target. They were **not**
+> re-measured by `08m`, which re-measured only the two acceptance numbers in its own RESULT.
+> What is NOT invalidated: these deltas remain valid *relative to each other*, because every arm
+> in the comparison was scored on the same (old) target. The leakage/forward-window rulings and
+> the qualitative conclusions stand; only the numbers are on a superseded quantity.
+
+
 
 **Objective.** `08e`'s rebuild took `min_observations=1`. Floors of 2/3/5 were priced at the same
 time — they buy more degradation signal for **3.49 / 8.82 / 19.09pp** of coverage — and that trade
@@ -1171,10 +1505,25 @@ contract are already red for an unrelated reason.
 
 ## 08l — The seed compound curve that defines the degradation target
 
-**Objective.** `compound_cliff_params` is a 438-row hand-written seed. It is not only the running
-cost of the pit-strategy surface — it is subtracted before the ML target is formed, so the
-degradation trio is trained to predict **the seed's error**. Establish how much of the tree's
-measured signal is that error, and rule on whether the seed is refit.
+**CORRECTION, 2026-09-16 (this item's own RESULT below).** The premise below — that
+`compound_cliff_params` is "hand-written" and its coefficients are "placeholder values" — is
+**stale, not current**. `git log` shows the seed was rewritten from a real fit
+(`transform/tasks/coefficients/fit_compound_cliff.py` + `survival.py`, KM survival + wind-controlled
+OLS on `normalized_pace_s`) on 2026-07-30 and again on 2026-09-08/09, **before** this item was even
+opened by `11b`'s 2026-09-16 session; `dev.duckdb`'s built `compound_cliff_params` table matches the
+2026-09-08 seed CSV exactly (`fit_date`, `fit_source` columns checked directly). 337 of 438 rows carry
+`fit_source = cox_km_survival`, 77 `cross_season_fallback`, 24 `compound_class_default`. The
+`int_compound_cliff_predicted.sql` header comment quoted two paragraphs below was last touched
+2026-09-07, one day *before* that refit landed, and nobody updated it afterward — it describes a
+state the warehouse was in only briefly. **The −1.88 s/5-lap bias this item exists to quantify
+survives an already-applied, legitimate, non-circular refit.** See the RESULT section at the end of
+this item for why, and for the ruling that follows from it.
+
+**Objective.** `compound_cliff_params` is a 438-row seed, fitted (see correction above, not
+hand-written). It is not only the running cost of the pit-strategy surface — it is subtracted before
+the ML target is formed, so the degradation trio is trained to predict **the seed's error**.
+Establish how much of the tree's measured signal is that error, and rule on whether the seed is
+refit.
 
 **How it was found.** `11b` (2026-09-16) went looking for the DP's running cost and found no model
 prediction in it at all. Tracing back:
@@ -1183,6 +1532,10 @@ prediction in it at all. Tracing back:
 compound_cliff_params (seed, 438 rows)
   └→ dim_compounds_season            -- "All β coefficients sourced from dim_compounds_season
        └→ int_compound_cliff_predicted      (placeholder values)" — the SQL's own header, line 4
+            │                                [STALE as of 2026-09-16 — see correction above; the
+            │                                 seed was refit 2026-07-30/09-08, before this comment
+            │                                 was last touched (2026-09-07) and before this item
+            │                                 was opened]
             └→ int_lap_residual_decomposed  -- subtracts it to form driver_skill_residual_s
                  └→ fct_cliff_prediction_features.next_5_lap_cumulative_jump_s  ← THE ML TARGET
 ```
@@ -1233,3 +1586,970 @@ property of the target. Either way the tree stops describing `next_5_lap_cumulat
 degradation without qualification.
 
 **Raised by** [`11b`](11-parallel-surfaces.md).
+
+### `08l` — RESULT 2026-09-16: the seed is already fit and independently anchored; the bias survives anyway because the SQL formula, not the seed, misuses one of its own fitted parameters. Ruling: keep the seed, decline the refit, fix the formula (flagged, not made).
+
+**0. The premise correction, restated precisely.** `compound_cliff_params` is not hand-written.
+`transform/tasks/coefficients/fit_compound_cliff.py` (driven by `survival.py`) fits it per
+`(circuit_key, compound_code, season)` from real stint data, and the fit is **already anchored to an
+observable independent of the seed** — see §2. `dev.duckdb`'s built table matches the 2026-09-08
+seed CSV row-for-row (`fit_date`, `fit_source` verified directly against the warehouse, not just the
+CSV on disk). The tree-wide description of this seed as "hand-written placeholder values" (this leaf
+doc, the `08l` build-log note, and `11b`'s 2026-09-16 history entry) is corrected by this result.
+
+**1. Quantify — the seed-bias fraction of the target, race-clustered.** `next_5_lap_cumulative_jump_s
+= Σ_{i=1..5}[driver_skill_residual(t+i) − driver_skill_residual(t)] − 15·drift(t)`, and
+`driver_skill_residual = pace_delta − fuel − compound − rubber − ambient − constructor − dirty_air`.
+Because every term except `compound` cancels out of this decomposition at the *target's own
+definition*, the target splits exactly into
+
+```
+target(t) = seed_bias(t) + rest(t)
+seed_bias(t) = −Σ_{i=1..5}[expected_compound_pace_s(t+i) − expected_compound_pace_s(t)]
+rest(t)      = target(t) − seed_bias(t)
+```
+
+computed by self-joining `fct_cliff_prediction_features` to itself at lap offsets +1..+5 within each
+stint via the identical `LEAD(...) OVER (PARTITION BY stint_id ORDER BY lap_in_stint)` window the
+mart's own target uses (so the row set and gap-handling are exactly the mart's, not a
+reimplementation). On the 95,346 non-null rows:
+
+| | mean | race-clustered 95% CI (147 races, 2000 resamples, `intervals.py::cluster_bootstrap`) |
+| :--- | ---: | :--- |
+| `target` (reproduces the prior reads) | **−1.8793 s** | [−2.1163, −1.6499] |
+| `seed_bias` | **−3.5853 s** | [−3.7792, −3.3957] |
+| `rest` | **+1.7059 s** | [1.5772, 1.8335] |
+| `seed_bias / target` | **1.9077×** | [1.7638, 2.0825] |
+
+On the 82,470 training-eligible rows the models actually train on: target −2.1633 s, seed_bias
+−3.7970 s, rest +1.6337 s, fraction **1.7552×**, race-clustered CI **[1.6378, 1.8984]**.
+
+**The seed doesn't just bias the target — it inverts its sign.** `seed_bias` is *larger in magnitude*
+than `target` and carries the *same* sign, which forces `rest` — the target with the compound seed's
+own forward contribution held out — to carry the **opposite** sign, and a materially different
+magnitude. Read literally: net of what the compound curve itself assumes, lap-relative pace *rises*
+by about +1.7 s over a 5-lap window (real degradation, positive, plausible in size), and it is the
+seed's own assumed forward wear (≈3.6–3.8 s over the same window, ≈0.72 s/lap) that drags the
+published target negative. **ACCEPTANCE is met**: the seed-bias fraction is reported with a
+race-clustered interval, on both the full non-null population and the training-eligible subset.
+
+**2. State the anchor.** `fit_compound_cliff.py` fits on `normalized_pace_s`
+(`int_lap_normalized_pace`, dirty-air-corrected raw driven pace), not on `driver_skill_residual_s`.
+Traced its full dependency chain (`int_lap_air_state`, `stg_laps`, `int_lap_fuel_state`,
+`int_field_pace_curve`, `int_event_corrections`, `int_track_evolution`) — **none of it references
+`compound_cliff_params`, `dim_compounds_season`, `int_compound_cliff_predicted` or
+`int_lap_residual_decomposed`.** This is a legitimate, non-circular anchor: cliff onset by
+Kaplan-Meier survival (correcting for the fact that most stints are right-censored — drivers pit
+*before* the cliff, precisely to avoid it), wear gradient by wind-controlled OLS on fresh-tyre,
+pre-cliff, uncensored laps, cliff severity by a pre/post window pace difference on uncensored stints
+only. **This anchor was already applied**, twice (2026-07-30, 2026-09-08) — so §1's bias is not
+evidence of an un-anchored seed; it is evidence that anchoring the seed did not fix it.
+
+**3. Why the already-anchored fit didn't fix it — decomposed, not asserted.** `expected_compound_pace_s
+= grip_peak + LEAST(wear_gradient·age + 0.002·age² + severity·laps_past_cliff, 10.0) + 0.005·ambient_temp_delta`
+(`int_compound_cliff_predicted.sql:133–170`). `grip_peak`, `wear_gradient`, `severity` are constant
+within a stint (same `circuit×compound×season` cell throughout), so they cancel from `seed_bias`'s
+forward difference and only the age-varying terms carry it. Reconstructing `seed_bias` from its four
+additive pieces (unbounded, then checked against the actual `LEAST(...,10)`-bounded column — the two
+diverge by >0.01 s on 7.59% of rows, i.e. the bound is genuinely binding in the tail but is not the
+main story):
+
+| piece | mean contribution to `seed_bias` | share |
+| :--- | ---: | ---: |
+| fitted `wear_gradient·age` (linear) | −1.0819 s | 20.7% |
+| **hardcoded** `0.002·age²` (never fit — a literal constant in the SQL, same everywhere) | −0.9900 s | 18.9% |
+| fitted `severity·laps_past_cliff` | **−3.1569 s** | **60.4%** |
+| hardcoded `0.005·ambient_temp_delta` | ≈0 | ≈0% |
+| **sum (unbounded reconstruction)** | **−5.2288 s** | 100% |
+
+**Only ~21% of the bias is the correctly-scaled, correctly-anchored linear wear term.** ~79% is
+either a formula constant that was never fit against anything (`0.002·age²`, identical across every
+circuit/compound/season) or the dominant term, `severity·laps_past_cliff` — and that one is a **units
+bug, not a seed-value problem**. `survival.py::estimate_cliff_severity`'s own docstring: *"seconds of
+pace loss at onset + 5 laps post-cliff"* — it is fit as `post.mean() − pre.mean()` over two ~5-lap
+windows, i.e. a **level shift**, median 0.77 s across the 438-row seed (min 0.19, capped at the
+fitter's own 1.5 s winsorisation ceiling). `int_compound_cliff_predicted.sql`'s inline comment then
+calls this same number *"the empirically fitted average **s/lap rate** of post-cliff degradation"*
+and multiplies it by `laps_past_cliff` **uncapped** — which reaches 48 in the observed data (19.4% of
+rows are past onset at all; median `laps_past_cliff` among those is 6, p75 is 12). A quantity fit as
+a total shift over roughly 5 laps is being charged again for every one of up to 48 laps past onset.
+**The SQL model's own comments already half-document this failure mode** — lines 146–162 of the same
+file record that, pre-bound, this exact formula emitted up to 93.5 s/lap and that the `LEAST(...,10)`
+clip was added specifically because "an over-large wear term over-explains the lap and *depresses*
+the residual." The clip caps the extreme tail; it does not touch the median-case overcharge
+quantified above, which lives comfortably inside it.
+
+**This is not local to the ML target.** `transform/models/intermediate/int_pit_strategy_cost_curve.sql`
+(lines 189–194) **independently reimplements the identical formula** —
+`wear_gradient·age + 0.002·age² + severity·GREATEST(age−onset,0)` — as the running cost for `11b`'s
+DP. `11b`'s own finding — "the seed over-charges degradation by ~0.14 s/lap," the input to the
+deferred `D9` decision — is the same bug, measured from a different lineage path.
+
+> **ORCHESTRATION CORRECTION, 2026-09-16 (review of this item's own run).** The paragraph above
+> originally said the cost curve applies the formula *"without the `LEAST(...,10)` clip"* and called
+> the second path *uncapped* and *worse*. **That is wrong.** `int_pit_strategy_cost_curve.sql:189–194`
+> applies `LEAST(…, {{ var('compound_wear_max_s_per_lap', 10.0) }})` — the *same shared bound*, on the
+> same three terms. The "extrapolated to age 80 it reaches 136 s/lap" line quoted as evidence is from
+> the comment **explaining why the cap is there**, and that same comment block states explicitly that
+> `int_compound_cliff_predicted` "now applies the identical `LEAST()` to the identical three terms, so
+> capping here alone no longer leaves the source curve unbounded." The two lineage paths are
+> **equivalent**, not one-worse-than-the-other. The ruling is unaffected — the severity units misuse is
+> real and present in both, and a 10 s/lap cap does not repair a per-lap/level-shift unit error — but
+> any `08m` scoped from this result should treat the second path as a duplicate of the same bug, not
+> as a more severe variant.
+
+**4. Ruling: decline the seed refit; keep the seed; flag the formula fix.** Re-running
+`fit_compound_cliff.py` (item `08l`'s literal step 3) can only move the ~21% of the bias carried by
+the linear `wear_gradient·age` term — the anchor is legitimate and was already applied there. It
+cannot touch the ~79% majority, because that majority is generated by how
+`int_compound_cliff_predicted.sql` (and, identically, `int_pit_strategy_cost_curve.sql`) **consumes** the
+seed's parameters, not by the parameters' values. Refitting the seed harder against a formula that
+misreads one of its own outputs relocates where the optimiser compensates for a bug it cannot see; it
+does not remove the bug. So: **the seed stays as-is.** Its bias is documented here — §1's numbers —
+as a known, quantified property of `next_5_lap_cumulative_jump_s` (and of `int_pit_strategy_cost_curve`'s
+running cost). This satisfies the definition of done's second branch: *"keep the seed with its bias
+documented as a known property of the target."*
+
+**Flagged for a human, not made (HARD CONSTRAINT: no dbt model write from this item).** The actual
+fix is a `int_compound_cliff_predicted.sql` (and `int_pit_strategy_cost_curve.sql`) change, not a
+seed change: (a) re-derive `compound_cliff_severity`'s consumption as a genuine per-lap slope over
+`laps_past_cliff` (e.g. refit it as a regression coefficient on laps-past-onset in the post-cliff
+region, the same way `wear_gradient` is already a slope) instead of a single ~5-lap window level
+difference multiplied by an uncapped lap count — or, more conservatively, cap `laps_past_cliff`'s
+multiplier or apply decay past some horizon; and (b) either fit the `0.002` quadratic coefficient
+from data (it is currently identical across all 438 seed rows, contradicting the SQL comment's own
+"rubber accumulation" framing, which should vary by compound) or drop it if unsupported once (a) is
+fixed. This is a dbt model change and a re-derived seed-consumption rule — exactly the kind of
+production-artefact write this item's constraints bar it from making. Recommended as a new,
+well-scoped follow-on item (candidate id `08m`) rather than opened here, since opening a new tree item
+is an orchestration-level call, not this item's to make.
+
+**5. The "worth having even if the refit is declined" extra: how much of the trio's *measured skill*
+is the seed's own arithmetic.** Built a zero-fit "seed-echo" predictor — `seed_bias(t)` plus one
+constant (the `alpha`-quantile of `rest` on the training fold only, so nothing eval-side leaks in) —
+and scored it with `train.py::pinball_loss` on the **exact same `cv_final_fold` eval split**
+`evaluate.py::_evaluation_split` builds (season 2024 holdout, `n_train=68,574` / `n_eval=13,896`,
+matching `model_card.yml`'s `n_train_rows=82,470` exactly). `seed_bias(t)` is not a leak: a real
+model has `age_in_stint`, `compound`, `circuit_key`, `season` (hence every compound-curve parameter)
+and `expected_compound_pace_s` itself at prediction time, and `age` increments by exactly 1 lap on
+every row this target is defined for by construction — so extrapolating the seed's own known formula
+5 laps forward is pure arithmetic on already-available inputs, not a forecast.
+
+| model | `baseline_headline` | `eval_headline` (v11, `model_card.yml`) | trivial seed-echo | skill gain, full | skill gain, trivial | **fraction of skill from the seed-echo** |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `degradation_regressor_p10` | 1.46443 | 0.53202 | 0.63828 | 0.93241 | 0.82615 | **88.6%** |
+| `degradation_regressor_p50` | 2.17766 | 1.04679 | 1.13022 | 1.13087 | 1.04744 | **92.6%** |
+| `degradation_regressor_p90` | 0.89080 | 0.57851 | 0.61292 | 0.31229 | 0.27788 | **89.0%** |
+
+**Only 7–11% of the trio's entire published margin over the non-leakage baseline is anything beyond
+reconstructing the compound seed's own deterministic forward arithmetic.** This is a materially
+larger and more consequential number than §1's mean-bias finding, and it holds regardless of whether
+the seed's mean is biased: it is a statement about how much of every "beats baseline" claim for this
+family is redundant with a feature (`expected_compound_pace_s` / the `compound` group) the trio
+already has, not new information the boosted trees found. It is reported here as the requested extra
+("worth having even if the refit is declined") rather than folded into the ACCEPTANCE interval, which
+is specifically about the target's own mean.
+
+**6. Blast radius — what this changes and does not, since no refit was taken.** No new target was
+built, so there is no rebuild-and-diff table against `02`/`08`/`10`/`11`'s published deltas in the
+form the spec's step 4 describes; declining the refit removes that action's object. What is delivered
+instead:
+
+- **Directly implicated** (measured against `next_5_lap_cumulative_jump_s` / `degradation_regressor`
+  p10/p50/p90, or against `dim_compounds_season` as a running cost): `11a` (the Mondrian band is p10/p90
+  of this exact target), `11b` (already self-documented, corroborated and sharpened by §3 above), and
+  the `degradation_regressor`-family arms inside `08e`/`08f`/`08h`/`08i` and `02b`/`02c`/`02d`/`02g`
+  (per their own leaf-doc framing of a family ablation across degradation/cliff/life — **not**
+  individually re-verified per item this session; **ASSUMED**, not verified). None of these numbers
+  are *wrong relative to each other* — every add-ablation compares two arms on the identical,
+  unchanged target — but §5 means their absolute "beats baseline" framing substantially overstates
+  how much of that margin is new signal versus seed-echo, for the `degradation_regressor` heads
+  specifically.
+- **Partially implicated, not quantified (flagged risk, ASSUMED).** `cliff_classifier`'s label
+  (`laps_until_cliff_class`) is also downstream of `driver_skill_residual_s`, via a threshold-crossing
+  forward scan rather than the fixed 5-lap sum — a related but structurally different exposure to the
+  same seed. Not quantified here; time-boxed out of scope for this item.
+- **Not implicated — verified.** Group `10` (`10a`–`10e`, `stint_life_regressor`). Traced
+  `STINT_LIFE_TARGET = stint_length_laps − lap_in_stint`, sourced from `int_stint_geometry` /
+  `fct_stint_features`; no dependency on `driver_skill_residual_s` or the compound seed anywhere in
+  its construction.
+
+**Verified.** The seed's current `fit_date`/`fit_source` provenance, both in the seed CSV and in
+`dev.duckdb`'s built table (queried directly, not assumed from the CSV on disk); the git history
+placing the 2026-07-30 and 2026-09-08/09 refits before this item's 2026-09-16 opening and before the
+SQL header comment's last edit (2026-09-07); `normalized_pace_s`'s full upstream dependency chain
+carries no reference to the compound/residual lineage; the target's mean reproduces the prior session's
+number to full precision (−1.8793 s); the seed-bias/rest decomposition's arithmetic identity (the four
+reconstructed pieces sum exactly to the reconstructed `seed_bias`, and the reconstructed value matches
+the mart-column value to within the measured 7.59%-of-rows bound-clipping); the exact formulas in both
+`int_compound_cliff_predicted.sql` and `int_pit_strategy_cost_curve.sql` (same hockey-stick, same
+severity misuse, and — per the orchestration correction above — the same shared `LEAST(…,10)` bound,
+not one bounded and one not); the `severity`/`laps_past_cliff` distributions behind the
+units-mismatch argument; the model-skill decomposition against `model_card.yml`'s own published
+`eval_headline`/`baseline_headline` numbers, on the identical split `evaluate.py::_evaluation_split`
+constructs (not reimplemented).
+
+**Assumed.** Which specific published deltas inside `08e`/`08f`/`08h`/`08i` and
+`02b`/`02c`/`02d`/`02g` are `degradation_regressor`-family (inferred from their leaf-doc framing, not
+individually re-opened and re-read this session); `cliff_classifier`'s degree of exposure to the same
+mechanism (flagged, not measured); that the recommended formula fix (§4) would remove the bulk of the
+bias without introducing a new one — a natural conjecture from the diagnosis, not tested, since testing
+it means making the dbt change this item is barred from making.
+
+**Gates run.** None of the six standing-gate steps apply in their literal sense — this item changes
+no feature contract, fits no model, and admits no new arm to the campaign; it is a decomposition and
+identification-anchor argument on the existing target and formula. In their place: the target-mean
+reproduction to the previously-published precision, and the exact-sum reconciliation of the component
+decomposition, serve as this item's arithmetic-fidelity check.
+
+---
+
+## 08m — The severity units bug: fix how the SQL consumes the seed it was given
+
+**Opened 2026-09-16** by the orchestrating session, out of [`08l`](#08l--the-seed-compound-curve-that-defines-the-degradation-target)'s
+ruling. `08l` declined the seed refit and flagged this fix rather than making it (its own hard
+constraints barred a dbt model write). This item is that write, plus the re-measurement it forces.
+
+**Objective.** `compound_cliff_severity` is **fitted as a level shift** —
+`survival.py::estimate_cliff_severity`, own docstring: *"seconds of pace loss at onset + 5 laps
+post-cliff"*, computed as `post.mean() − pre.mean()` over two ~5-lap windows, median ~~0.77~~
+**0.85** s across the 438-row seed *(**CORRECTED by this item's RESULT**: 0.77 s is the median of
+the HARD rows only; the whole-seed median is 0.8500, mean 0.8996. Inherited from `08l`.)*. It is
+**consumed as a per-lap rate**: `int_compound_cliff_predicted.sql:133–170`
+multiplies it by `laps_past_cliff`, which reaches 48 in the observed data. That single term is
+**60.4%** of the seed's contribution to the ML target. A second term, `0.002·age²`, is a literal
+constant in the SQL that was never fitted against anything, and carries a further **18.9%**. Fix
+both, and re-measure everything that was measured against the old target.
+
+**Why it is worth the blast radius.** `08l` measured what the current formula costs: a zero-fit
+predictor that re-emits the seed's own arithmetic plus a constant captures **88.6% / 92.6% / 89.0%**
+of `degradation_regressor` p10/p50/p90's entire published skill margin over baseline. Only 7–11% of
+the trio's "beats baseline" claim is signal the models learned. And the seed's forward contribution
+(−3.59 s) exceeds the target's own mean (−1.88 s) with the same sign, so the published target's
+**sign is an artefact**: net of the seed, lap-relative pace over a 5-lap window *rises* by +1.71 s.
+
+**The sites.** ~~All four~~ **CORRECTED by this item's RESULT: there are SIX, and one of the four
+listed here was not needed.** Sites 5 and 6 — `fct_ghost_car_pace.sql`'s `cliff_interaction_s` and
+`int_constructor_deg_sensitivity.sql`'s `severity_used` — consume the same number under the same
+per-lap reading and appear in neither `08l`'s diagnosis nor this table. Site 4 (`survival.py`) was
+**not** touched, because the shape ruling came back (A). Neither site 5 nor 6 is in
+`fct_cliff_prediction_features`' 40-model upstream closure, so neither could contaminate this item's
+acceptance measurement. See the RESULT's own site table for what was done at each.
+
+The four originally listed, which do consume the same three terms:
+
+| site | what it does | note |
+| :--- | :--- | :--- |
+| `int_compound_cliff_predicted.sql:133–170` | `expected_compound_pace_s` — the term subtracted into `driver_skill_residual_s` | the ML target's lineage |
+| `int_compound_cliff_predicted.sql` (`expected_degradation_rate_s_per_lap`) | first derivative — adds bare `severity` as a rate | same bug, derivative form |
+| `int_pit_strategy_cost_curve.sql:189–194` | the DP's running cost | **a duplicate of the same bug, not a worse one** — it applies the *identical* shared `LEAST(…, 10.0)` bound; `08l`'s claim that this path is unbounded was wrong and is corrected in its RESULT |
+| `survival.py::estimate_cliff_severity` | produces the number | only if the fix is (B) below |
+
+**Method.**
+1. **Rule on the fix's shape before writing SQL.** Two candidates, and they are not equivalent:
+   **(A)** keep the seed as-is and correct the *consumption* — `severity` applied once as a step at
+   onset, with post-cliff slope carried by a term that is actually fitted as a slope; or **(B)**
+   refit `compound_cliff_severity` in `survival.py` as a genuine per-lap post-cliff gradient and
+   leave the SQL's shape alone. State which, and why, before touching either file. (B) changes the
+   seed's meaning and therefore `dim_compounds_season`'s contract; (A) does not.
+2. **Fit the quadratic, or drop it.** `0.002·age²` is hardcoded and identical across every
+   circuit/compound/season. Either fit it per cell off the same anchor the rest of the seed uses
+   (`normalized_pace_s` — `08l` §2 established it is not downstream of the seed), or remove it and
+   say what the linear term absorbs.
+3. **Apply the fix at every site in the table above**, including the derivative column and the
+   cost-curve duplicate. A fix at one site and not the others re-creates the split lineage.
+4. **Rebuild and re-decompose.** Re-run `08l`'s exact decomposition against the rebuilt target and
+   report the new `seed_bias` / `rest` / fraction with the same race-clustered interval. **This is
+   ~~the acceptance test**: the fraction must move toward 1.0 or the fix did not do what it
+   claims.~~ **CORRECTED by this item's RESULT — this acceptance test is ill-posed and is not a
+   valid criterion.** `seed_bias / target` carries the target's own mean in its denominator, and a
+   successful fix drives that denominator toward zero; the ratio therefore diverges *precisely*
+   when the fix works, and cannot distinguish success from failure in the regime it was written to
+   test. It came back **3.4518×** [2.7323, 4.5800] — further from 1.0 — while both un-normalised
+   quantities moved sharply in the intended direction (`seed_bias` −3.5853 → −1.3620 s; target
+   −1.8793 → −0.3946 s). The load-bearing acceptance test is step 5's seed-echo share, which is
+   scale-free by construction.
+5. **Re-run `08l`'s seed-echo probe on the rebuilt target.** If a zero-fit seed-echo predictor still
+   captures ~90% of the trio's margin, the bias was relocated, not removed — say so.
+6. **Retrain and re-price the blast radius**: the degradation trio, `cliff_classifier`
+   (`laps_until_cliff_class` is a threshold scan over the same residual — `08l` flagged it as
+   exposed and explicitly did not quantify it), and the published deltas in `02`, `08e`/`08f`/`08h`/`08i`
+   and `11a`.
+
+**THE TRAP — read this before reporting any improvement.** After step 4 **the target is a different
+quantity**, so *pinball losses before and after are not comparable*, and neither are any of the
+tree's published deltas. A retrained model scoring 0.9 against the new target has not beaten the
+1.047 in `model_card.yml`. Anything claiming improvement must be a comparison **at fixed target** —
+model vs. its own baseline on the same target, or the seed-echo share from step 5, which is
+scale-free by construction. `foundations/epistemics.md`'s hard line applies with full force here.
+The failure mode of this item is a report of a large improvement that is a change of units.
+
+**Interactions.** `D9` (should `int_pit_strategy_cost_curve` consume `mart_degradation_predictions`)
+should be decided **after** this lands — its motivating +3.59 s/stint is measured through the buggy
+term and is expected to move. `D3` (land `08e`+`08f`) is measured against the old target; if it has
+not landed before this item, its deltas need re-reading afterward. `08d`'s hand-sourced Pirelli
+identity is what a per-cell refit would key on — read its caveats.
+
+**Acceptance.** The rebuilt target's `seed_bias / target` fraction, race-clustered, reported
+alongside `08l`'s 1.9077× [1.7638, 2.0825]; the step-5 seed-echo share on the rebuilt target
+alongside `08l`'s 88.6/92.6/89.0%; and a table of which published numbers in `02`/`08`/`11a` are now
+stale, with the ones re-measured this session marked as such.
+
+**Definition of done.** The four sites are consistent, the fix's shape is argued in writing before
+it was applied, the rebuilt target is decomposed and the seed-echo share re-measured, and every
+number the fix invalidated is either re-measured or explicitly marked stale in its own leaf doc.
+
+**Raised by** [`08l`](#08l--the-seed-compound-curve-that-defines-the-degradation-target).
+
+### `08m` — RULING ON THE FIX SHAPE, written 2026-09-16 before any SQL was edited
+
+**Ruling: (A) — keep the seed, correct the consumption.** `compound_cliff_severity`'s 438 fitted
+values are not touched, `dim_compounds_season`'s contract is unchanged, and `survival.py` is not
+edited. Five reasons, in descending weight:
+
+1. **`compound_cliff_severity` is itself a published ML feature**, not only a curve parameter —
+   `ml/src/schema.py:124`, `ml/src/attribution.py:107`, `ml/model_card.yml:43` (and again at :78, in
+   the `compound` ablation group). Option (B) changes its units from seconds to seconds-per-lap
+   *without changing its name*. That is a feature-contract change: it silently re-defines a column
+   the 32-feature contract, the ablation groups and the model card all name, and it would need the
+   full six-step gate plus a model-card relabel to be legitimate. (A) leaves every value and every
+   meaning intact.
+2. **The estimator cannot identify what (B) needs.** A genuine per-lap post-cliff gradient must be
+   fit on the post-onset region, which is short (`laps_past_cliff > 0` on 19.4% of rows; median 6
+   among those) and *selection-biased in the direction that matters*: drivers pit to escape the
+   cliff, so the stints that run deep past onset are disproportionately the ones where the cliff did
+   not bite. Kaplan-Meier handles exactly this censoring for **onset**; nothing in `survival.py`
+   handles it for a post-cliff **slope**. (B) would therefore replace a units bug with a
+   downward-biased new estimate — a plausible-looking number, which `foundations/epistemics.md`
+   names as the failure mode to avoid inventing mid-item.
+3. **(B) also has a double-counting trap of its own.** The SQL adds `wear_gradient*age` *and* the
+   severity term, so a severity refit as the *total* post-cliff slope would double-charge the linear
+   wear it already contains; it would have to be fit as the *excess* slope. That is a second
+   derivation with its own identification argument, for the smaller of the two available gains.
+4. **`08l` already ruled "keep the seed".** (A) is consistent with that ruling; (B) reverses it
+   without any new evidence about the seed's *values* — and 08l's evidence was that the values are
+   fine and the formula is not.
+5. **Six consumers, one contract.** `dim_compounds_season` is read by
+   `int_compound_cliff_predicted`, `int_pit_strategy_cost_curve`, `int_constructor_deg_sensitivity`,
+   `fct_ghost_car_pace`, `fct_ghost_race_finish` and `fct_cliff_prediction_features`. (B) changes
+   what the column means for all six at once; (A) changes only how each one consumes it, site by
+   site, reviewably.
+
+**What the estimator actually licenses.** `survival.py::estimate_cliff_severity` computes
+`post.mean() − pre.mean()` with `pre = age ∈ [onset−5, onset−1]` (5 laps, centroid `onset−3.0`) and
+`post = age ∈ [onset, onset+5]` (6 laps, centroid `onset+2.5`). So the measured number is **the
+total pace change across the onset between two window centroids 5.5 laps apart**. Three consequences:
+
+- It is a **magnitude over ~5.5 laps**, not a rate. Charging it once per lap for up to 48 laps is
+  the bug.
+- It is **agnostic between a step and a ramp** inside that window — a two-window mean difference
+  cannot distinguish them — so either is within the estimator's resolution, and neither may be
+  extrapolated past `onset+5`, where the fitter measured nothing at all.
+- **~48.7% of it is ordinary wear, not cliff.** The formula already contains `wear_gradient*age`,
+  which rises by `5.5 × wear_gradient` across the very same centroid separation. Mean
+  `5.5 × wear_gradient` is 0.4385 s against mean severity 0.8996 s. The cliff-attributable **excess**
+  is `GREATEST(severity − 5.5·wear_gradient, 0)`, mean 0.4829 s; it floors at zero on 41 of 438 cells
+  (9.4%), where the measured "cliff" is no worse than the compound's own linear wear continuing.
+
+**The replacement term — a moment-matched saturating ramp.**
+
+```
+excess   = GREATEST(severity − W·wear_gradient, 0)        W = 5.5  (pre+post centroid separation)
+plateau  = (W / P) · excess = 2.2 · excess                P = 2.5  (post-window centroid past onset)
+term(k)  = plateau · LEAST(k, W) / W                      k = laps_past_cliff
+```
+
+Ramps linearly from 0 at onset to `plateau` at `onset+5.5`, then holds flat. The `W/P` gain is not a
+fudge: it is what makes the *fixed* curve reproduce the fitter's own measurement exactly — the model's
+predicted pace change from `onset−3.0` to `onset+2.5` is `W·wear_gradient + plateau·(P/W)`, which
+equals `severity` by construction. So the seed's number is consumed in the units it was measured in,
+over the horizon it was measured over, and not again. Chosen over a pure step because it is
+continuous at onset (the derivative column and the residual both consume this curve) and because it
+moment-matches; a step would have required its own `6/5` occupancy correction for the `age = onset`
+lap, where `laps_past_cliff = 0`.
+
+Sanity check, median cell (`wear_gradient` 0.070, `severity` 0.850): plateau **1.023 s**. The
+cost-curve model's own comment states "real cliff falloff is 1-3 s/lap". The fix lands at the bottom
+of the range the codebase already believed; the formula it replaces charged **40.8 s** at
+`laps_past_cliff = 48`.
+
+**The quadratic: dropped, not fitted.** `0.002·age²` is removed at every site. Why dropped rather
+than fitted per cell: (i) it has no provenance anywhere — one literal constant, identical across all
+438 circuit×compound×season cells, which directly contradicts the "rubber accumulation" mechanism its
+own comment claims (that would vary by compound and circuit); (ii) **the linear term already absorbs
+it** — `survival.py::_fit_wear_slope_with_wind` fits `pace ~ [1, age, wind]`, with **no quadratic in
+the design matrix**, by OLS over the pre-cliff region, so the fitted slope already absorbs, in a
+least-squares sense, whatever average curvature exists over the window it was fit on; adding a second
+curvature term on top of a slope that already absorbed it is double-counting by construction, exactly
+as with severity; (iii) fitting it per cell would require a new seed column and therefore (B)'s
+contract change, for the smaller of the two terms. At age 30 the dropped term was charging 1.8 s, at
+age 50 4.5 s, identically for a HARD and a HYPERSOFT tyre.
+
+**The sites — the spec's table said four; there are six.** Corrected in the spec block above.
+Sites 5 and 6 were not in `08l`'s diagnosis or in this item's opening scope; both consume the same
+number under the same per-lap reading, and `fct_cliff_prediction_features`' 40-model upstream closure
+contains **neither** (verified via `dbt ls --select +fct_cliff_prediction_features`), so fixing them
+cannot contaminate this item's acceptance measurement.
+
+### `08m` — RESULT 2026-09-16: the fix landed at five of six sites and the target was rebuilt. The scale-free acceptance test passes decisively — the zero-fit seed-echo share falls 88.6/92.6/89.0% → 39.7/49.9/23.5%, so the bias was **removed, not relocated**. The spec's *other* acceptance test failed, because that test is ill-posed: it divides by the very quantity a successful fix drives to zero.
+
+**Read this first — the two acceptance tests disagree, and one of them is broken.** The
+pre-registered `seed_bias / target` ratio moved **away** from 1.0 (1.9077× → 3.4518×). Taken at face
+value that reads as a failed item. It is not, and the reason is not a judgement call: the ratio's
+denominator is the target's own mean, which the fix drives toward zero, so the statistic diverges
+exactly when the fix succeeds. Both un-normalised quantities moved hard in the intended direction,
+and the scale-free test the spec itself called "scale-free by construction" moved from ~90% to
+24–50%. The spec block above is corrected accordingly. The ratio is reported in full below anyway,
+because suppressing a pre-registered number that came back wrong is the failure this tree exists to
+prevent.
+
+#### 1. The shape ruling: **(A)**, argued in writing before any SQL was edited
+
+See the RULING section immediately above, written and committed to the doc before the first edit.
+In one line: `compound_cliff_severity` is itself a **published ML feature** (`ml/src/schema.py:124`,
+`ml/src/attribution.py:107`, `ml/model_card.yml:43` and `:78`), so **(B)** would have silently
+re-defined a contract column's units without changing its name; and the post-cliff region **(B)**
+would have to fit on is short and censored in the one direction that biases it (drivers pit to
+escape the cliff, so deep-past-onset stints are selected for cliffs that did not bite — KM handles
+exactly this for *onset*, and nothing in `survival.py` handles it for a *slope*). The seed's 438
+values, `dim_compounds_season`'s contract and `survival.py` are all untouched.
+
+**The replacement term**, defined once in the new `transform/macros/compound_cliff_wear.sql`:
+
+```
+excess  = GREATEST(severity − W·wear_gradient, 0)     W = 5.5   (pre+post centroid separation)
+plateau = (W/P)·excess = 2.2·excess                   P = 2.5   (post-window centroid past onset)
+term(k) = plateau · LEAST(k, W)/W                     k = laps_past_cliff
+```
+
+Two corrections, both forced by what the estimator actually measures (`pre = age ∈ [onset−5,
+onset−1]`, centroid `onset−3.0`; `post = age ∈ [onset, onset+5]`, centroid `onset+2.5`):
+**de-double-counting** — the curve already charges `wear_gradient·age`, which rises by
+`5.5·wear_gradient` across that same separation, so **48.7%** of the measured severity (mean 0.4385 s
+of 0.8996 s) was ordinary wear being charged twice; and **moment-matching, then saturation** — the
+`W/P` gain makes the corrected curve reproduce the fitter's own two-window difference *exactly*, and
+past `onset+5.5` the curve holds flat because the fitter measured nothing there. The `0.002·age²`
+quadratic is **dropped** at every site: never fitted, identical across all 438 cells, and already
+absorbed by the linear term, since `survival.py::_fit_wear_slope_with_wind` fits `pace ~ [1, age,
+wind]` with **no quadratic in its design matrix**.
+
+Median cell (`wear_gradient` 0.070, `severity` 0.850): the severity term at `laps_past_cliff = 48`
+goes from **40.8 s** to a **1.023 s** plateau — which sits at the bottom of the "real cliff falloff
+is 1–3 s/lap" range `int_pit_strategy_cost_curve.sql`'s own comment already asserted. The excess
+floors at zero on **41 of 438 cells (9.4%)**, where the measured "cliff" is no worse than the
+compound's linear wear continuing.
+
+#### 2. The sites — six, not the four the spec listed
+
+| # | site | in the spec's table? | what was done |
+| :--- | :--- | :--- | :--- |
+| 1 | `int_compound_cliff_predicted.sql` → `compound_wear_s` / `expected_compound_pace_s` | yes | **FIXED** via macro. The ML target's lineage. |
+| 2 | `int_compound_cliff_predicted.sql` → `expected_degradation_rate_s_per_lap` | yes | **FIXED** via macro — and it carried a **third defect `08l` never reported**: it added the full `compound_cliff_severity` on *every* lap with **no hinge at all**, so a fresh tyre on lap 1 was charged the whole cliff severity as its current degradation rate. It is now the actual derivative of the curve above. This column is a published ML feature. |
+| 3 | `int_pit_strategy_cost_curve.sql:189–194` | yes | **FIXED** via the same macro. Confirmed a duplicate, not a worse variant — the orchestration correction to `08l` was right. |
+| 4 | `survival.py::estimate_cliff_severity` | yes | **NOT TOUCHED** — correct under ruling (A); the spec made it conditional on (B). |
+| 5 | `fct_ghost_car_pace.sql:211` `cliff_interaction_s` | **no** | **FIXED** via macro. Required exposing `compound_wear_gradient` from site 1 (additive; no contract is enforced on that model). Its ±2.0 s guardrail clip is kept but is now near-inert: `ramp() ∈ [0,1]`, so the term is bounded by the plateau instead of growing with age. The clip's stated justification cited "severity up to ~3.3 s/lap"; the seed's severity max is **1.5** (the fitter winsorises), so that figure was stale as well as mis-united. |
+| 6 | `int_constructor_deg_sensitivity.sql:380` `severity_used` | **no** | **DELIBERATELY NOT FIXED, and marked in the code.** It uses severity as an s/lap² *divisor*. The correct replacement is `plateau/5.5`, median **~0.17** against severity's **~0.85** — so the `GREATEST(…, 0.30)` floor on that same line, calibrated to the old scale and currently almost never binding, would bind on nearly every cell and clamp `cliff_onset_shift_laps` for the whole field. Swapping the numerator without re-deriving that floor would replace a units bug with a saturated constant. Re-deriving it is a measurement with its own acceptance test, not a line edit. **Carried to the handoff as a candidate item.** |
+
+The arithmetic now lives in **one** macro, so sites 1/2/3/5 cannot drift apart — which is
+`macros/README.md`'s own stated reason for the macro directory, and the exact failure that produced
+this bug.
+
+#### 3. ACCEPTANCE 1 — the decomposition, `08l`'s method unchanged
+
+Same script, same `LEAD(...) OVER (PARTITION BY stint_id ORDER BY lap_in_stint)` window, same
+`intervals.py::cluster_bootstrap` (147 races, 2000 resamples, seed 0). **Instrument check:** run
+against the pre-fix warehouse it reproduced `08l` to six decimals on every figure *including both CI
+bounds*, so the two columns below are the same instrument.
+
+| | `08l` (old target) | `08m` (rebuilt target) | move |
+| :--- | ---: | ---: | :--- |
+| `target` mean | −1.8793 s | **−0.3946 s** | **79% closer to zero** |
+| `seed_bias` mean | −3.5853 s | **−1.3620 s** | **62% smaller** |
+| `rest` mean | +1.7059 s | +0.9674 s | — |
+| `seed_bias / target` | 1.9077× [1.7638, 2.0825] | **3.4518× [2.7323, 4.5800]** | **away from 1.0** |
+| training-eligible fraction | 1.7552× [1.6378, 1.8984] | 2.9909× [2.4377, 3.8260] | away from 1.0 |
+| training-eligible rows | 82,470 | **81,619** | −851 |
+
+**The ratio failed and the criterion was wrong.** `target = seed_bias + rest`, so the ratio is
+`seed_bias / (seed_bias + rest)` — unbounded as the denominator passes through zero. The fix shrank
+the numerator by 62% and the denominator by 79%, which is success on both, and the ratio rose anyway.
+It cannot be used as a pass/fail test in this regime and should not have been pre-registered as one.
+
+**What genuinely survives from `08l`'s qualitative finding:** `|seed_bias|` still exceeds `|target|`
+with the same sign, so `rest` still carries the **opposite** sign (+0.967 against a target of
+−0.395). The seed's forward contribution still determines the target's sign. **The bias is
+substantially reduced, not eliminated** — and what remains is now mostly legitimate:
+
+| post-fix `seed_bias` component | mean | share |
+| :--- | ---: | ---: |
+| fitted `wear_gradient·age` (legitimate, unchanged by this item) | −1.0819 s | **79.4%** |
+| cliff ramp + temperature | −0.2801 s | 20.6% |
+
+That **inverts `08l`'s attribution**. Before: only ~21% of the bias was the correctly-scaled fitted
+term and ~79% was the two unfounded terms. After: **79.4% is the fitted linear term** and the two
+unfounded terms are gone. The `−1.0819 s` matches `08l`'s independently-measured figure for that
+term exactly, which is a clean cross-check that the fix left the legitimate term alone.
+
+#### 4. ACCEPTANCE 2 — the seed-echo share, at **fixed target**. This is the load-bearing test.
+
+`08l` compared its trivial predictor against `model_card.yml`'s *published* headline. That is a
+different instrument (a fully-tuned production pipeline) from an in-memory refit, so this item ran
+the identical probe against **both** warehouses — the scratchpad rollback copy (old target) and the
+rebuilt one — through the production path only (`F.load_features` → `E._evaluation_split` →
+`E.baseline_predictions` → `E._fit` → `E._score`), writing nothing.
+
+**Instrument check (gate step 1):** on the old warehouse the in-memory refit reproduced
+`model_card.yml`'s published `eval_headline` and `baseline_headline` to five decimals
+(0.53202 / 1.04679 / 0.57851 and 1.46443 / 2.17766 / 0.89080) and `08l`'s trivial-predictor scores
+exactly. The harness did not move.
+
+| | old target (n_tr 68,574 / n_ev 13,896) | rebuilt target (n_tr 67,907 / n_ev 13,712) |
+| :--- | :--- | :--- |
+| | baseline / model / seed-echo → **share** | baseline / model / seed-echo → **share** |
+| `p10` | 1.46443 / 0.53202 / 0.63828 → **88.60%** | 0.73368 / 0.47646 / 0.63159 → **39.69%** |
+| `p50` | 2.17766 / 1.04679 / 1.13022 → **92.62%** | 1.26289 / 0.98236 / 1.12291 → **49.90%** |
+| `p90` | 0.89080 / 0.57851 / 0.61292 → **88.98%** | 0.64268 / 0.51285 / 0.61212 → **23.54%** |
+
+**The bias was removed, not relocated.** A zero-fit predictor that re-emits the seed's own forward
+arithmetic plus one train-fold constant used to account for **88.6–92.6%** of the trio's entire
+margin over its non-leakage baseline; it now accounts for **23.5–49.9%**. The share is scale-free —
+every term in it is scored on one common target — so this comparison is legitimate across the
+rebuild in a way that no loss comparison is. On the rebuilt target the models are doing **2–4×
+more of their own work**.
+
+**Caveat, stated rather than buried:** the rebuilt-target models were refit with the **published v11
+hyperparameters** (`_params_for(target, 'v11')`), not re-searched against the new target. A
+re-tuned model would score better, which would push the seed-echo share **lower** still — so
+23.5–49.9% is a conservative (high) estimate of the remaining share.
+
+#### 5. THE TRAP — the comparison this result does **not** make
+
+`model_card.yml`'s 1.04679 (p50) and this item's 0.98236 are **not comparable and are not compared
+here.** They are losses on two different quantities: the target's mean moved −1.8793 → −0.3946 s and
+its population moved 82,470 → 81,619 rows. A smaller pinball loss against a target with a smaller
+spread is arithmetic, not skill. **No claim of model improvement is made by this item.** The only
+performance claims made are (i) model-vs-its-own-baseline *within* each column of the table above,
+and (ii) the seed-echo share, which is a ratio of differences on one target. Every pre-existing
+number in the tree measured against `next_5_lap_cumulative_jump_s` is now on a superseded quantity;
+see §7.
+
+#### 6. Blast radius — `cliff_classifier` quantified, which `08l` flagged and explicitly did not measure
+
+Old vs new labels joined on `lap_id` across both warehouses:
+
+- **14,833 of 137,447 labels changed class — 10.79%.**
+- The majority class shrank and real cliff classes grew: `none_in_stint` **69.3% → 63.6%**,
+  `6_plus` **11.1% → 15.5%**, `3_to_5` 8.6% → 9.2%, `0_to_2` 11.1% → 11.7%.
+- Direction confirms the mechanism: the over-charged curve was **depressing the forward residual and
+  erasing cliff crossings into the majority class**, exactly as `int_compound_cliff_predicted.sql`'s
+  own bound-comment described for the 93.5 s/lap tail. `08l` listed this exposure as ASSUMED; it is
+  now **measured**, and it is material.
+- `is_training_eligible`: 1,747 rows lost, 376 gained, **net −1,371** (82,470 → 81,619). This makes
+  `model_card.yml`'s `n_training_rows: 82470` stale.
+
+#### 7. Which published numbers are now stale, and which were re-measured
+
+| where | what | status |
+| :--- | :--- | :--- |
+| `08l` §1 / §3 / §5 | seed-bias decomposition, four-piece attribution, seed-echo share | **RE-MEASURED this session** — §3 and §4 above |
+| `cliff_classifier` exposure (`08l` §6, ASSUMED) | degree of exposure | **RE-MEASURED this session** — §6 above |
+| `08e`, `08f`, `08h`, `08i` | every pinball/baseline/reseed-floor number | **STALE** — banners added to each section in this doc. Not re-measured. Deltas remain valid *relative to each other* (both arms shared the old target); the leakage rulings stand. |
+| `02` (`02b`/`02c`/`02d`/`02g`) | Phase 10a p50 pinball, the target-mean population tables | **STALE** — banner added to `02-feature-expansion.md`. Not re-measured. `02a`'s leakage ruling and the admission rule are unaffected. |
+| `11a` | band, coverage table, the n = 82,470 population | **STALE** — banner added to `11-parallel-surfaces.md`. The negative recommendation survives (it rests on variants' relative out-of-sample behaviour); its "mostly a measurement artefact" diagnosis should be re-checked, since this item removed a real systematic distortion from the band it was recalibrating. |
+| `11b` / `D9` | the +3.59 s/stint that motivates `D9` | **STALE** — it rides on the buggy term through `int_pit_strategy_cost_curve`, which this item changed. `D9` should be decided after re-measuring it. Not re-measured. |
+| `10a`–`10e` (`stint_life_regressor`) | — | **NOT AFFECTED** — `08l` verified the target is `stint_length_laps − lap_in_stint`, with no dependency on the seed. Re-confirmed: group 10's models are not in this item's rebuild set. |
+| `ml/models/*`, `ml/model_card.yml`, `data/marts/mart_degradation_predictions.parquet` | all five production artefacts | **STALE AND UNTOUCHED — BARRED.** See §8. |
+
+#### 8. The production artefacts, which this item was barred from rebuilding
+
+Every published artefact is now **inconsistent with the warehouse**: the v11 boosters were trained
+on the old target, and `mart_degradation_predictions.parquet` holds predictions of a quantity the
+warehouse no longer computes. This item retrained **only in memory**, wrote nothing to `ml/models/`,
+and left `model_card.yml` alone, per its constraints. The published artefacts therefore remain
+self-consistent with the published *contract*, which is the correct state until a human decides to
+relabel them. **Carried to the handoff as a candidate follow-on item** (`08k` did exactly this job
+after `08j`, and is the model for it): retrain and re-export all five targets against the rebuilt
+target, regenerate `model_card.yml` (including `n_training_rows` 82,470 → 81,619), re-run
+`scripts/gen_ml_reference.py`, and re-version — with the explicit note that the new headline numbers
+are **not** comparable to v11's and must not be presented as an improvement over them.
+
+#### 9. A pre-existing test failure this item exposed but did not cause
+
+`ml/tests/test_features.py::test_aggregation_survey_still_names_the_outstanding_instance` fails
+(198 passed, 1 failed). **Not caused by this item** — it touches neither `int_sc_hazard_history.sql`
+nor `ml/tests/`. The test asserts the aggregation survey *still* reports
+`int_sc_hazard_history` as "pools every ingested season", i.e. it asserts `02d`'s defect is still
+outstanding. That model's own header records it was rebuilt as a season-lagged point-in-time rate on
+**2026-09-11** (`02d`), and its file mtime confirms it. `transform/target/` is gitignored, and the
+manifest on disk predated that rebuild — so the stale manifest had been masking the stale test until
+this item's `dbt run` regenerated it. **Left unfixed deliberately**: updating an assertion about
+another item's defect belongs to `02d`, not here. Flagged in the handoff.
+
+#### 10. What was run
+
+`dbt run --select int_compound_cliff_predicted+ int_pit_strategy_cost_curve+` — **20/20 models
+built**, `data/dev.duckdb` mutated. `dbt test` on the same selection — **225/225 pass**, including
+`assert_compound_wear_bounded` and `assert_cliff_seed_severity_bounded`. Full `dbt compile` clean.
+`pytest ml/tests` — 198 pass, 1 pre-existing failure (§9). Rollback point: `data/dev.duckdb` was
+1.4 GB (under the 5 GB threshold), so it was **copied to the scratchpad before the first `dbt run`**
+and both acceptance probes were run against that copy to produce the "old" columns above.
+
+**Verified.** The ruling's premises: `compound_cliff_severity` appears in `ml/src/schema.py:124`,
+`ml/src/attribution.py:107`, `ml/model_card.yml:43`/`:78`; `_fit_wear_slope_with_wind`'s design
+matrix is `[1, age, wind]` with no quadratic; `estimate_cliff_severity`'s two windows and their
+centroids. The seed's own statistics (n=438, severity median 0.8500 / mean 0.8996 / max 1.50, 22
+rows at the winsorisation ceiling; mean `5.5·wear_gradient` 0.4385; excess floors on 41 cells).
+The pre-fix decomposition reproducing `08l` to six decimals including both CI bounds. The in-memory
+refit reproducing `model_card.yml`'s published headline and baseline to five decimals on the old
+warehouse. Both acceptance measurements on the rebuilt target. The post-fix four-way attribution,
+whose linear term matches `08l`'s independent figure exactly. The `cliff_classifier` label movement
+and `is_training_eligible` deltas, joined `lap_id`-to-`lap_id` across the two warehouses. That
+`fct_cliff_prediction_features`' upstream closure is 40 models and contains none of
+ghost/constructor/pit-strategy (`dbt ls`). The compiled SQL at every fixed site. That
+`int_sc_hazard_history.sql` is not among this session's modified files (`git status`).
+
+**Assumed.** That the six sites are *all* the sites — found by grepping `compound_cliff_severity`
+across `*.sql`/`*.py`/`*.yml`, so a consumer that reads the column under an alias or via `SELECT *`
+would not have been caught. That the `W = 5.5` / `P = 2.5` centroids are the *effective* ones — they
+are exact for a stint with every lap present in both windows, and censoring or missing laps would
+shift them slightly per cell; not re-derived per cell from the fitter's own row sets. That dropping
+the quadratic is better than fitting it — argued from the design matrix, not tested against a fitted
+alternative. That the rebuilt-target models would rank the same way after a hyperparameter
+re-search (they were refit with v11 params). That the `08e`/`08f`/`08h`/`08i`/`02` deltas remain
+valid relative to each other — inherited from their shared-target construction, not re-run.
+Site 6's floor-binding argument (median ~0.17 vs a 0.30 floor) is computed from the seed, not from
+a trial rebuild of `int_constructor_deg_sensitivity`.
+
+**Gates run.** Step 1 (instrument check) — **run, and it is the reason the old/new comparison is
+admissible**: the probe reproduced `08l` to six decimals and `model_card.yml` to five. Step 2
+(add-ablation on the identical split) — **not applicable**: this item adds no feature and admits no
+arm; it changes an existing column's definition. Steps 3, 4, 6, 7 (reseed floor, permutation null,
+pre-registration, e-value) — **not run**; no arm was admitted to the campaign family and no delta is
+claimed against a floor. Step 5 (forward-window audit) — **not run as a fresh audit**, but the fix
+is itself the repair of a forward-facing defect, and `dbt test`'s 225 invariants (which include the
+bound assertions on this exact curve) passed. **This item is therefore `MEASURED`, not `GATED`.**
+
+---
+
+## 08n — Rebuild the shipped artefacts against the fixed target
+
+**Opened 2026-09-16** by the orchestrating session, out of [`08m`](#08m--the-severity-units-bug-fix-how-the-sql-consumes-the-seed)'s
+ruling. `08m` was barred from writing production artefacts; this is that write. It is the same job
+[`08k`](#08k--rebuild-the-model-artefacts-against-the-post-08j-32-feature-contract) did after `08j`
+— mechanical completion of a change whose ruling is already made — with one decision in it and one
+way to get it badly wrong.
+
+**Objective.** `ml/models/*`, `ml/model_card.yml`, `app/public/models/*` and
+`data/marts/mart_degradation_predictions.parquet` currently predict a quantity the warehouse no
+longer computes. `08m` changed how `expected_compound_pace_s` is formed, so
+`next_5_lap_cumulative_jump_s` — the degradation trio's target — and `laps_until_cliff_class` —
+`cliff_classifier`'s label, 10.79% of which changed class — are both different quantities than the
+shipped artefacts were fitted to. Retrain, re-export, regenerate, re-evaluate.
+
+**THE TRAP, and the reason this item exists as its own item rather than a step inside `08m`.** The
+rebuilt model card's numbers are **not comparable to v11's**, and the temptation to present them as
+an improvement will be strong because they will look like one. `v11`'s `eval_headline` for
+`degradation_regressor_p50` is 1.04679 **against the old target**; a rebuilt p50 scoring ~0.98 has
+not improved on it, because the two numbers measure different quantities on different row sets
+(`n_train_rows` also moves 82,470 → 81,619). The only admissible statements are at fixed target:
+model vs its own baseline on the rebuilt target, and the seed-echo share `08m` reports
+(39.69 / 49.90 / 23.54%). **Any sentence of the form "the fix improved the model" is wrong** unless
+it names the fixed-target comparison it rests on. `foundations/epistemics.md`'s hard line applies.
+
+**The one decision: does this ship as `v11` or as a new version?** Argue it in writing before
+rebuilding. `MODEL_VERSION_DEFAULT` is `"v11"` (`ml/src/schema.py:361`) and 11 artefacts under
+`ml/models/` carry that tag. Overwriting `v11` in place makes the published `v11` label ambiguous —
+the same name for artefacts fitted to two different targets, with `model_card.yml`'s old numbers
+already quoted elsewhere in this tree. Cutting `v12` keeps the history readable but touches
+`app/public/models/` naming and interacts with `D2` (production still serves `v6`). State which,
+and why, before any retrain.
+
+**Scope — deliberately closed, so this stays mechanical.**
+- **No hyperparameter re-tuning.** Reuse the `v11` hyperparameters. `08m` showed re-tuning would
+  push the seed-echo share lower, which makes the un-tuned result the conservative one; a re-tune is
+  its own item with its own acceptance test.
+- **No modelling decisions.** If a target no longer beats its baseline on the rebuilt target, that
+  is a **finding for the log and a candidate item** — not something to repair here by tuning,
+  reweighting, or changing the baseline.
+- ~~`stint_life_regressor` is **not** implicated (`08l` verified its target is built from
+  `int_stint_geometry`, not the residual) — but it shares the manifest and the contract, so confirm
+  rather than assume its artefacts are still valid.~~ **CORRECTED by this item's RESULT §4: it IS
+  implicated, on two counts, and its `v11` artefacts were NOT still valid.** `08l`'s ruling holds
+  for the target's *values* only (verified again here: `remaining_stint_life_laps` is synthesised in
+  `features.py:165` as `clip(stint_length_laps − lap_in_stint, 0, None)`, neither input downstream
+  of the seed). But (i) two of its 32 **inputs** — `expected_compound_pace_s` and
+  `expected_degradation_rate_s_per_lap`, both in `FEATURE_GROUPS["cliff_prior"]` — were rewritten by
+  `08m`, and (ii) its **row set** moved 121,193 → 119,822, because `features.py:124` filters every
+  target by `is_training_eligible`, which is built from `anomaly_class`, which is computed from
+  `driver_skill_residual_s`. It was retrained with the rest, and it is the one target whose
+  `v11`/`v12` headlines are comparable in kind. The instruction to "confirm rather than assume" was
+  the right instruction and is what caught this.
+
+**Method.** Retrain the affected targets ~~(the degradation trio and `cliff_classifier`)~~ — **CORRECTED
+by this item's RESULT: all FIVE, `stint_life_regressor` included, for the two reasons in the
+corrected scope bullet above; and the manifest names one version for all five, so a partial rebuild
+could not have satisfied `test_manifest_version_has_a_complete_artefact_set` anyway** — at the chosen
+version tag, re-export ONNX, regenerate the manifests and `model_card.yml`, re-run the evaluation
+report, regenerate `data/marts/mart_degradation_predictions.parquet` (`python -m ml.src.predict`),
+and sync the browser-read copies under `app/public/models/`. Back up every artefact to the session
+scratchpad before overwriting it. `08k`'s history entry records the verification steps that caught
+drift last time — sha256 of each `.bst`/`.onnx` against what `manifest.json` declares, and a
+byte-for-content diff of the `app/public/models/` copies against `ml/models/`; repeat both.
+
+**Acceptance.** `python -m pytest ml/tests -q` is green apart from
+`test_aggregation_survey_still_names_the_outstanding_instance`, which is a **known pre-existing
+failure belonging to `02d`** (it asserts a defect `02d` fixed on 2026-09-11; a stale dbt manifest
+masked it until `08m`'s rebuild) — do not repair it here and do not let it be quietly absorbed into
+this item's result. Every artefact's declared feature count and sha256 matches its manifest. The
+model card's new numbers are reported **with an explicit statement that they are not comparable to
+v11's**, and each target's beats-baseline verdict is stated on the rebuilt target.
+
+**Definition of done.** No artefact predicts the superseded target; the version decision is argued
+in writing; the card carries its non-comparability statement; and nothing in this item's write-up
+claims an improvement over `v11`.
+
+**Raised by** [`08m`](#08m--the-severity-units-bug-fix-how-the-sql-consumes-the-seed).
+
+### `08n` — THE VERSION RULING, written 2026-09-16 before any retrain was run
+
+**Ruling: cut `v12`. Do not overwrite `v11` in place.** `MODEL_VERSION_DEFAULT` moves `"v11"` →
+`"v12"`; the eleven `v11` artefacts under `ml/models/` are left on disk untouched. Five reasons, in
+descending weight.
+
+1. **The codebase already has this policy written down, in the guard built for exactly this
+   failure.** `ml/src/train.py::_guard_target_change`'s docstring: refitting across a target change
+   would overwrite *"the ones ONNX-exported into `app/public/models/` and the rollback point for
+   everything after them — with models of a DIFFERENT QUANTITY under the same name, the same
+   artefact path and an unchanged manifest. Nothing downstream would notice."* Its remedy, in its
+   own words: *"Use a new `--version` for the new target (and promote it deliberately)."* That is
+   this item, verbatim. Shipping `v11` in place is the thing the guard exists to refuse.
+2. **The guard cannot fire here, which strengthens the case rather than weakening it.** It compares
+   the training log's `target_column` against `spec.source_column` — both are the *string*
+   `next_5_lap_cumulative_jump_s` before and after `08m`, because `08m` changed the column's
+   **definition** upstream in SQL, not its name. Verified: the latest `v11` logs record
+   `target_column: next_5_lap_cumulative_jump_s` (trio) and `laps_until_cliff_class`
+   (`cliff_classifier`), so `_guard_target_change` returns at its `existing == spec.source_column`
+   early-out and prints nothing. The fingerprint warning is unreachable on this path — it is gated
+   behind `target_column is None`. **So the automatic protection against precisely this mistake is
+   blind to a definitional change under a stable column name**, and the only thing standing between
+   this item and the failure the guard describes is the version decision being made deliberately.
+   (Recorded as a finding; see the RESULT.)
+3. **Direct precedent in this project, and it went the other way once already.**
+   `MODEL_VERSION_DEFAULT`'s own lineage note on `v10`: *"It is the first version fitted against the
+   two target/label changes that were already live in the mart SQL … Both were already the code's
+   truth under the stale `v6` label; v10 is the first artefact set that actually reflects them."*
+   The tree has already been bitten by one label spanning two target definitions, and the recorded
+   fix was to cut a new version. Repeating the mistake under a different number is not an option
+   this item gets to take quietly.
+4. **`v11`'s numbers are load-bearing citations all over this tree.** `model_card.yml`'s
+   1.04679/0.53202/0.57851, `D3`'s decision text, the STALE banners `08m` just added to
+   `08e`/`08f`/`08h`/`08i`/`02`/`11a`, and `docs/reference/ml/degradation-model.mdx` all quote `v11`
+   figures. Overwrite `v11` and every one of those citations silently points at a label whose
+   artefacts no longer produce those numbers — the citations become unfalsifiable rather than
+   merely stale. Cut `v12` and each stale citation stays attached to a label that still means what
+   it meant when the citation was written, which is what makes the staleness *checkable*.
+5. **Rollback, and `D2`.** `v11` is the current rollback floor. Overwriting it destroys the only
+   artefact set on disk fitted to the old target, so there would be nothing to roll back *to* and
+   nothing to diff against. And `D2` — production still serves `v6` — is a decision whose own text
+   turns on "production is serving a DIFFERENT TARGET from what the card documents". `v12` makes
+   that conversation tractable (`v6` → `v12`, with `v11` intact in between); an in-place `v11`
+   rewrite makes it unanswerable.
+
+**The argument against, stated and weighed rather than skipped.** `08k` (2026-09-10) rebuilt the
+`v11` artefacts **in place** after `08j`, so there is an in-place precedent eleven days old, and
+`v11` has never actually reached production (`D2`), so its label is arguably not yet externally
+load-bearing. Both are real and neither survives the distinction the codebase itself draws: `08j`
+changed the **feature contract** (33 → 32), and a model refitted on a different feature set is
+still predicting the same quantity, so the card's numbers stay comparable *in kind*. `08m` changed
+the **target**. `_guard_target_change` guards the target and not the feature set — that asymmetry is
+the project's own line, deliberately drawn, and it puts `08k` on the legitimate side of it and an
+in-place rebuild here on the wrong side. The cost of `v12` is churn (`app/public/models/` filenames,
+one retained-version tuple in `test_onnx_parity.py`, regenerated docs), and churn is the cheaper
+error.
+
+**What `v12` means, so the label is not itself ambiguous.** `v12` = `v11`'s 32-feature contract and
+`v11`'s hyperparameters, refitted against the post-`08m` warehouse. Nothing else moves: no
+re-tuning, no contract change, no split change. `v11` → `v12` is attributable to `08m`'s change of
+the compound wear curve and to nothing else — the same "hold everything else fixed" property the
+`v10` → `v11` note claims for itself, and the property that makes the label mean something.
+
+**Two consequences of the target change that the version bump does NOT resolve, flagged here so
+they are not read as resolved:** the `v11` and `v12` headline numbers are *not comparable* for the
+degradation trio and `cliff_classifier` (different quantity, different row set), and no amount of
+version hygiene makes them comparable. And `stint_life_regressor` is a *third* case, neither
+"unaffected" nor "target changed" — see the RESULT.
+
+### `08n` — RESULT 2026-09-16: shipped as **`v12`**; all five targets beat their own baseline on the rebuilt target, all five significantly. **No comparison with `v11` is made, and none is available for four of the five targets.**
+
+**The headline is a version, not a number.** `MODEL_VERSION_DEFAULT` is `"v12"`, all five targets are
+refitted at `v11`'s hyperparameters against the post-`08m` warehouse, every shipped surface is
+rebuilt and consistent, and `v11` is retained intact on disk as the rollback floor. The ruling that
+got there is the section immediately above, written before the first booster was trained.
+
+#### 1. What was run, in order
+
+`train --all --tuned` (exit 0, all five) → `evaluate --all` (exit 0) → `predict` → `export_onnx --all`
+→ `card --write` → `gen_ml_reference.py` → `make app-models`. Then the card was regenerated a second
+time after `card.py` gained its non-comparability limitation, and the app sync, both verification
+checks and the full suite were re-run against that final state — `08k`'s drift lesson, applied.
+
+#### 2. BEATS-BASELINE, ON THE REBUILT TARGET. This is the only performance table in this item.
+
+Each model against **its own baseline in the same run, on the same target**. `eval_season` 2024,
+`cv_final_fold`, from `ml/artefacts/evaluation_metrics.json`.
+
+| target | metric | model | its baseline | margin | beats | significant |
+| :--- | :--- | ---: | ---: | ---: | :--- | :--- |
+| `degradation_regressor_p10` | pinball | 0.47646 | 0.73368 | 0.25722 | **yes** | yes |
+| `degradation_regressor_p50` | pinball | 0.98236 | 1.26289 | 0.28053 | **yes** | yes |
+| `degradation_regressor_p90` | pinball | 0.51285 | 0.64268 | 0.12983 | **yes** | yes |
+| `cliff_classifier` | macro-F1 | 0.35247 | 0.20667 | 0.14580 | **yes** | yes |
+| `stint_life_regressor` | AFT NLL | 1.99134 | 2.18868 | 0.19735 | **yes** | yes |
+
+`all_models_beat_baseline: true`, `all_claims_significant: true`, `claims_inside_noise: []`.
+**No target regressed against its own baseline**, so the spec's "a target that no longer beats its
+baseline is a finding" branch did not fire and nothing was tuned, reweighted or re-based.
+
+**Instrument check, and it is a strong one.** The trio's production numbers reproduce `08m`'s
+in-memory probe **to five decimals on all six cells** (model 0.47646 / 0.98236 / 0.51285, baseline
+0.73368 / 1.26289 / 0.64268). `08m` ran that probe through the production functions in memory
+against a rebuilt warehouse; this item ran the real pipeline and wrote artefacts. They agree
+exactly, so `08m`'s seed-echo shares (**39.69 / 49.90 / 23.54%**, down from 88.6 / 92.6 / 89.0%)
+carry over to the shipped `v12` artefacts without re-measurement.
+
+#### 3. THE TRAP — the comparison this item does **not** make
+
+`v11`'s headlines were measured against the **superseded** target. They are recorded here only to be
+ruled out as a baseline:
+
+| | v11 (OLD target) | v12 (rebuilt target) |
+| :--- | :--- | :--- |
+| `p50` model | 1.04679 | 0.98236 |
+| `p50` **baseline** | 2.17766 | **1.26289** |
+| trio `n_train` | 82,470 | 81,619 |
+| trio `n_eval` | 13,896 | 13,712 |
+
+**`v12`'s p50 has not beaten `v11`'s.** The target's mean moved −1.8793 → −0.3946 s and its spread
+collapsed with it — which is why the *baseline* fell 2.17766 → 1.26289, a 42% drop on a predictor
+that learns nothing at all. A pinball loss measured against a narrower target is a smaller number
+for arithmetic reasons. **No improvement-over-v11 claim is made anywhere in this item**, and the
+model card now carries the same statement as its first limitation, so the claim cannot be made
+downstream from the card either.
+
+#### 4. `stint_life_regressor` — the spec said "not implicated". It is a THIRD case, and the spec block is corrected above.
+
+The spec (and `08l`) treated it as unaffected because its target is not built from the residual.
+That is true of the **target** and false of the **model**, on two independent counts, both traced
+this session rather than inherited:
+
+1. **Two of its 32 inputs changed meaning.** `FEATURE_GROUPS["cliff_prior"]` contains
+   `expected_compound_pace_s` and `expected_degradation_rate_s_per_lap` — both rewritten by `08m`
+   (the second one had `08m`'s third defect, no hinge at all). Every target reads the same
+   32-column contract, so `stint_life_regressor`'s `v11` booster was fitted on input values the
+   warehouse no longer computes. Its artefacts were **not** still valid.
+2. **Its row set moved, 121,193 → 119,822 (−1,371).** Fully traced:
+   `features.py:124` filters every target by `is_training_eligible`;
+   `fct_cliff_prediction_features.sql:749-754` defines that as
+   `age_in_stint > 3 AND anomaly_class NOT IN ('mistake','conditions')`; and `anomaly_class`
+   (`int_lap_anomaly_flags.sql:245`) is computed from `driver_skill_residual_s` via `mad_score`,
+   `trailing_median_s` and `cliff_onset_passed`. `08m` changed what is subtracted into that
+   residual, so it changed which laps count as anomalies, and therefore the training population of
+   **all five** targets. This also reconciles `08m`'s note, which reports "net −1,371" beside
+   "82,470 → 81,619" (−851): both are right and they are **different populations** — −1,371 is the
+   `is_training_eligible` flag count (121,193 → 119,822, which is `stint_life_regressor`'s
+   population), −851 is the trio's, which additionally requires a non-null target.
+
+**What its target genuinely is, verified not assumed:** `remaining_stint_life_laps` is synthesised in
+`ml/src/features.py:165` as `clip(stint_length_laps − lap_in_stint, 0, None)`. Neither input is
+downstream of the compound wear curve, so the target's **values** are unchanged. `08l`'s ruling
+holds for the quantity; it did not hold for the model.
+
+**So `stint_life_regressor` is the one target where a before/after statement is admissible in kind** —
+same target quantity, both sides scored on it — and it should be read with the caveat that the row
+set is *near*-fixed rather than fixed:
+
+| | v11 | v12 |
+| :--- | ---: | ---: |
+| AFT NLL | 1.98784 | 1.99134 |
+| baseline | 2.18689 | 2.18868 |
+| **margin over baseline** | **0.19905** | **0.19735** |
+| `n_eval` | 20,272 | 19,973 |
+
+Its skill is **materially unchanged** (margin 0.199 → 0.197 on a ~1.5% smaller eval set). Stated
+plainly: `08m`'s repair neither helped nor hurt this model, which is the expected result for a model
+whose target never moved. This is *not* evidence about the other four, whose targets did.
+
+#### 5. FINDING (no item opened, per scope): `_guard_target_change` cannot see a definition change
+
+`ml/src/train.py::_guard_target_change` exists precisely to refuse "models of a DIFFERENT QUANTITY
+under the same name". **It did not fire, and could not have.** It compares the training log's
+`target_column` **string** against `spec.source_column`; `08m` changed the column's *definition* in
+SQL and left its *name* alone, so the comparison passes and the function returns at its
+`existing == spec.source_column` early-out. The fingerprint check that would have caught it — and
+the fingerprint **did** move, `0e8700ec…` → `7852405c…` — is unreachable on this path, because it is
+gated behind `target_column is None` (the pre-Phase-7 logs that do not name a column at all).
+
+So a retrain-in-place across this change would have been **silent**: no error, no warning, correct
+input width, passing parity, and a manifest that still looked right. The only thing that prevented
+it was a human-made version ruling. **The guard's protection is nominal, not actual, for any change
+that redefines a column without renaming it** — and `08m`-style SQL repairs are exactly that shape.
+A candidate fix is named in the handoff (a target *fingerprint* stored in the training log and
+compared, so a name collision cannot hide a definition change); the item is **not** opened here,
+because opening items is the orchestrating session's call.
+
+#### 6. Artefacts rebuilt, and the two verification checks
+
+`ml/models/`: five `.bst` + five `.onnx` at `v12`, `manifest.json` (5 models, **32 features**,
+`version=v12`), `model_card.json`, `encoders.json`. `ml/model_card.yml` at `v12` with
+`n_training_rows` **81,619** (`08m` flagged 82,470 as stale; it is now correct) and `feature_count`
+32. `data/marts/mart_degradation_predictions.parquet` regenerated — 137,447 rows,
+`in_envelope=119,822`, `crossing=0.08%`, `version=v12`. `docs/reference/ml/degradation-model.mdx`
+regenerated; `gen_ml_reference.py --check` passes. `app/public/models/` holds the five `v12` ONNX
+plus manifest/encoders/card, with the `v11` ONNX removed by `make app-models`'s own `rm -f`.
+
+- **CHECK 1 (sha256 + declared width vs manifest):** all 10 artefacts match the sha256
+  `manifest.json` declares, and all five boosters report **32** features against the manifest's
+  declared 32. `n_features`, `shape[1]`, `len(feature_order)` and `len(S.FEATURE_COLUMNS)` all 32.
+- **CHECK 2 (app copies vs `ml/models/`):** all five ONNX identical by sha256; `manifest.json`,
+  `model_card.json`, `encoders.json` JSON-equal; **no non-`v12` ONNX left** in `app/public/models/`.
+
+Both checks were run twice — once after the first sync, and again after the card was regenerated —
+and pass in both states.
+
+**The contract did not move.** 32 features before and after; `v11` → `v12` is `08m`'s warehouse
+change and nothing else. ONNX parity passed on all five at export (`abs` ≤ 1.7e-4, `rel` ≤ 1.6e-4,
+within `atol`/`rtol` 1e-5 combined).
+
+#### 7. Test suite
+
+`python -m pytest ml/tests -q` → **198 passed, 1 failed**, both runs. The single failure is
+`test_features.py::test_aggregation_survey_still_names_the_outstanding_instance` — **the known
+pre-existing failure belonging to `02d`**, unchanged in count and identity from what `08m` reported
+before this item started. It asserts `int_sc_hazard_history` *still* pools every ingested season,
+i.e. it asserts the presence of a defect `02d` fixed on 2026-09-11; a stale dbt manifest masked it
+until `08m`'s rebuild. **Not repaired here, not absorbed into this item's result, and still open
+against `02d`.** This session modified neither `int_sc_hazard_history.sql` nor
+`ml/tests/test_features.py` (`git status`).
+
+One test file *was* touched, deliberately and not to make anything pass:
+`ml/tests/test_onnx_parity.py`'s retained-version tuple gains `"v11"`, following that file's own
+standing comment that the tuple "must keep naming every retained version" — when
+`MODEL_VERSION_DEFAULT` last moved, `v5` fell out of it and the rollback target silently stopped
+being parity-tested. `v11` is now the rollback floor and is fitted to the pre-`08m` target, so it is
+the one version that most needs to stay in that tuple. The parity target itself is unchanged: the
+tuple is tried in order and `MODEL_VERSION_DEFAULT` (`v12`) is still first.
+
+#### 8. Scope held
+
+No hyperparameter re-tuning — every target refitted from its own unchanged
+`ml/models/<target>_best_params.json`, which is what `--tuned` resolves. No modelling decisions: no
+target needed one, since none regressed against its baseline. No feature-contract change. Nothing
+committed; `git` state untouched apart from working-tree file contents.
+
+**Backups** (every artefact this item was authorised to overwrite, taken before the first write):
+`<session scratchpad>/backup-08n/` — `ml_models/` (the eleven `v11` artefacts, `manifest.json`,
+`model_card.json`, `encoders.json`, all five `*_best_params.json`, and the full `training_logs/`),
+`app_public_models/`, `data_marts/mart_degradation_predictions.parquet`,
+`ml_artefacts/evaluation_metrics.json`, `model_card.yml`, `degradation-model.mdx`, `schema.py.orig`.
+123 MB. Note that `v11`'s `.bst`/`.onnx` also remain in `ml/models/` — the backup is belt-and-braces,
+not the only copy.

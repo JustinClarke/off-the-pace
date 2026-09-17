@@ -1,11 +1,25 @@
 -- Layer 04: Expected compound pace and cliff prediction.
--- Hockey-stick polynomial: β₀ + β₁×age + β₂×age² + β₃×GREATEST(0,
--- age-cliff_onset)²
--- All β coefficients sourced from dim_compounds_season (placeholder values
--- until
--- Python RANSAC estimation rewrites the seed).
+-- Hockey-stick pace model: grip_peak + linear wear + a SATURATING post-onset
+-- cliff ramp, bounded, + a temperature offset.
+--
+-- All coefficients are sourced from dim_compounds_season, which is FITTED by
+-- transform/tasks/coefficients/fit_compound_cliff.py + survival.py (Kaplan-Meier
+-- survival for cliff onset, wind-controlled OLS for the wear gradient, a pre/post
+-- window mean difference for severity). The header note that stood here until
+-- 2026-09-16 -- "placeholder values until Python RANSAC estimation rewrites the
+-- seed" -- was stale: the seed was refit on 2026-07-30 and again on 2026-09-08,
+-- and nobody updated the comment. Removed per work item 08l's correction.
 -- ambient_temp_delta = track_temp-compound_optimal_temp_low, clipped [0,30].
 {{ config(materialized='table') }}
+
+-- 08m. compound_cliff_severity is FIT as a level shift, not as a rate:
+-- survival.py::estimate_cliff_severity returns post.mean() - pre.mean() over
+--   pre  = age in [onset-5, onset-1]  (5 laps, centroid onset - 3.0)
+--   post = age in [onset,   onset+5]  (6 laps, centroid onset + 2.5)
+-- i.e. the TOTAL pace change across onset between two centroids 5.5 laps apart.
+-- Until 08m this model multiplied that number by laps_past_cliff -- unbounded,
+-- reaching 48 -- which charged a ~5.5-lap magnitude once per lap. That single
+-- term was 60.4% of the seed's contribution to the ML target (08l).
 
 WITH geom AS (
     SELECT
@@ -124,24 +138,41 @@ SELECT
     compound,
     cliff_onset_passed,
     -- Field cliff parameters exposed for the ghost-car cliff interaction term
-    -- (host/ego onset shift):
-    -- onset (laps) and post-onset severity (s/lap^2) from dim_compounds_season.
+    -- (host/ego onset shift): onset (laps) and severity from dim_compounds_season.
+    -- NOTE (08m): compound_cliff_severity is in SECONDS -- a level shift across
+    -- the onset, measured over a ~5.5-lap window. It is NOT s/lap^2, as this
+    -- comment claimed until 2026-09-16, and consumers must not multiply it by a
+    -- lap count. See the with_cliff CTE above for the licensed consumption.
     COALESCE(compound_cliff_onset_laps, 999.0) AS compound_cliff_onset_laps,
     COALESCE(compound_cliff_severity, 0.0) AS compound_cliff_severity,
+    -- 08m: exposed deliberately alongside severity. Any consumer that needs a
+    -- post-onset RATE needs BOTH -- severity alone is a level shift and the
+    -- de-double-count against wear_gradient is what turns it into one. Use the
+    -- cliff_ramp_slope_s_per_lap() macro rather than re-deriving it.
+    COALESCE(compound_wear_gradient, 0.0) AS compound_wear_gradient,
     -- The age-dependent wear portion, bounded. Exposed as its own column so
     -- the bound is assertable without re-deriving it from the pace total.
     LEAST(
         COALESCE(compound_wear_gradient, 0.0) * age_in_stint
-        + 0.002 * POWER(age_in_stint, 2)
-        + COALESCE(compound_cliff_severity, 0.0) * laps_past_cliff,
+        + {{ cliff_severity_term('compound_cliff_severity',
+                                 'compound_wear_gradient',
+                                 'laps_past_cliff') }},
         {{ var('compound_wear_max_s_per_lap', 10.0) }}
     ) AS compound_wear_s,
     -- Hockey-stick pace model:
-    -- grip_peak baseline + linear wear + quadratic age term (rubber
-    -- accumulation)
-    -- + cliff_severity * laps_past_cliff (linear post-cliff
-    -- acceleration-severity
-    --   is the empirically fitted average s/lap rate of post-cliff degradation)
+    -- grip_peak baseline + linear wear + the saturating post-onset cliff ramp.
+    --
+    -- 08m removed two terms that were never entitled to be here:
+    --   * the 0.002*age^2 quadratic -- a literal constant, identical across all
+    --     438 circuit x compound x season cells, never fitted against anything,
+    --     and 18.9% of the seed's contribution to the ML target. It is already
+    --     absorbed by the linear term: _fit_wear_slope_with_wind fits
+    --     pace ~ [1, age, wind] with NO quadratic in the design matrix, so the
+    --     fitted slope carries whatever average curvature its window contains.
+    --     Charging a second curvature term on top double-counts by construction.
+    --     It was worth 1.8 s at age 30 and 4.5 s at age 50, identically for a
+    --     HARD and a HYPERSOFT tyre.
+    --   * cliff_severity * laps_past_cliff -- see macros/compound_cliff_wear.sql.
     --
     -- BOUNDED at var('compound_wear_max_s_per_lap') on the age-dependent terms
     -- only -- grip_peak and the temperature offset are per-lap constants and do
@@ -163,16 +194,28 @@ SELECT
     COALESCE(compound_grip_peak, 0.0)
     + LEAST(
         COALESCE(compound_wear_gradient, 0.0) * age_in_stint
-        + 0.002 * POWER(age_in_stint, 2)
-        + COALESCE(compound_cliff_severity, 0.0) * laps_past_cliff,
+        + {{ cliff_severity_term('compound_cliff_severity',
+                                 'compound_wear_gradient',
+                                 'laps_past_cliff') }},
         {{ var('compound_wear_max_s_per_lap', 10.0) }}
     )
     + 0.005 * ambient_temp_delta AS expected_compound_pace_s,
-    -- First derivative: rate of pace loss at current age
+    -- First derivative: rate of pace loss at current age.
+    -- 08m: this column carried a THIRD defect 08l did not report -- it added the
+    -- full compound_cliff_severity on EVERY lap, with no hinge at all, so a
+    -- fresh tyre on lap 1 was charged the whole cliff severity as its current
+    -- degradation rate. It is now the actual derivative of the pace curve above:
+    -- the wear gradient, plus the ramp's slope only while the ramp is climbing
+    -- (0 before onset, 0 once it has saturated at onset + sev_span).
     COALESCE(compound_wear_gradient, 0.0)
-    + 0.004 * age_in_stint
-    + COALESCE(compound_cliff_severity, 0.0)
-        AS expected_degradation_rate_s_per_lap,
+    + CASE
+        WHEN
+            laps_past_cliff > 0.0
+            AND laps_past_cliff < {{ cliff_severity_span() }}
+            THEN {{ cliff_ramp_slope_s_per_lap('compound_cliff_severity',
+                                               'compound_wear_gradient') }}
+        ELSE 0.0
+    END AS expected_degradation_rate_s_per_lap,
     ambient_temp_delta,
     laps_past_cliff
 FROM with_pace

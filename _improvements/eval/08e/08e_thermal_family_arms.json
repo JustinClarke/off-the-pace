@@ -1,0 +1,704 @@
+{
+  "item": "08e",
+  "purpose": "re-read of family T's gate on the v12 / 08m substrate, because 08m made next_5_lap_cumulative_jump_s a different quantity and every 08e number was measured on the old one (decision D3)",
+  "ran_at": "2026-09-17T07:22:09.980343+00:00",
+  "contract_version": "v12",
+  "published_artefact_version": "v12",
+  "n_contract_features": 32,
+  "family_T_columns": [
+    "push_residual",
+    "cumulative_push_load_surface",
+    "cumulative_push_load_bulk",
+    "surface_bulk_ratio"
+  ],
+  "baseline_design": "full contract minus family T. The 2026-09-09 run's baseline also excluded cliff_candidate_flag; 08j has since pruned that column from the contract, so minus-T is the direct analogue and no third arm is needed.",
+  "not_comparable_to": "the 2026-09-09 08e gate table -- it scores a different target. Read side by side, never subtracted.",
+  "seeds": [
+    20260528,
+    20260529,
+    20260530,
+    20260531,
+    20260532
+  ],
+  "e_value_construction": {
+    "name": "B (paired safe-t)",
+    "n": 5,
+    "g": 1.0,
+    "null": "information contrast: real vs its own shuffle",
+    "max_attainable_E": 36.0
+  },
+  "e_value_validity_check": {
+    "sigma=0.001": {
+      "mean_E": 1.0016225677942483,
+      "mc_se": 0.005120981370446466,
+      "p_E_gt_20": 0.001
+    },
+    "sigma=0.01": {
+      "mean_E": 0.9992179050949962,
+      "mc_se": 0.005121699813693495,
+      "p_E_gt_20": 0.00107
+    },
+    "sigma=0.1": {
+      "mean_E": 1.0107906970784877,
+      "mc_se": 0.005287590833768377,
+      "p_E_gt_20": 0.00115
+    },
+    "sigma=1.0": {
+      "mean_E": 1.0013591708671465,
+      "mc_se": 0.005267324118285729,
+      "p_E_gt_20": 0.00129
+    }
+  },
+  "families": {
+    "degradation_regressor_p10": {
+      "target": "degradation_regressor_p10",
+      "metric": "pinball",
+      "higher_is_better": false,
+      "n_train": 67907,
+      "n_eval": 13712,
+      "n_contract_features": 32,
+      "n_baseline_features": 28,
+      "family_T_columns": [
+        "push_residual",
+        "cumulative_push_load_surface",
+        "cumulative_push_load_bulk",
+        "surface_bulk_ratio"
+      ],
+      "split_mode": "cv_final_fold",
+      "eval_season": 2024,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532
+      ],
+      "full_contract_headline": 0.4764640777905714,
+      "published_v12_headline": 0.4764640777905714,
+      "instrument_check_6dp": true,
+      "baseline_A_headline": 0.5429192990003221,
+      "refit_noise_baseline_A": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.5429192990003221,
+          0.5486754136098771,
+          0.5446110712452448,
+          0.5443917360251438,
+          0.5429084170627101
+        ],
+        "headline_mean": 0.5447011873886597,
+        "headline_sd": 0.002360482302051638,
+        "headline_min": 0.5429084170627101,
+        "headline_max": 0.5486754136098771,
+        "delta_noise_1sd": 0.0033382260853030915,
+        "delta_noise_2sd": 0.006676452170606183,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_full_contract": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.4764640777905714,
+          0.4751692276547699,
+          0.47588434624853315,
+          0.47565024879067197,
+          0.4760824799240574
+        ],
+        "headline_mean": 0.4758500760817207,
+        "headline_sd": 0.00048365008411740913,
+        "headline_min": 0.4751692276547699,
+        "headline_max": 0.4764640777905714,
+        "delta_noise_1sd": 0.0006839845084017283,
+        "delta_noise_2sd": 0.0013679690168034565,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.006676452170606183,
+      "floor_quoted_from": "baseline_A",
+      "add_ablation": {
+        "delta_vs_baseline": 0.06645522120975067,
+        "floor_ratio": 9.953672925618656,
+        "clears_floor": true
+      },
+      "permutation_null": {
+        "headline_shuffled": 0.5460370432578988,
+        "capacity_delta": -0.0031177442575767156,
+        "capacity_floor_ratio": -0.46697619902122994,
+        "information_delta": 0.06957296546732739,
+        "information_floor_ratio": 10.420649124639885,
+        "information_clears_floor": true
+      },
+      "paired_seeds": {
+        "real_by_seed": [
+          0.4764640777905714,
+          0.4751692276547699,
+          0.47588434624853315,
+          0.47565024879067197,
+          0.4760824799240574
+        ],
+        "shuffled_by_seed": [
+          0.5460370432578988,
+          0.5454378468064628,
+          0.5484227984475714,
+          0.5468600637434492,
+          0.5464413726514638
+        ],
+        "information_deltas": [
+          0.06957296546732739,
+          0.07026861915169291,
+          0.0725384521990382,
+          0.07120981495277723,
+          0.07035889272740636
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.07078974889964842,
+          "s_d": 0.0011371228929651955,
+          "t": 139.2028000043085,
+          "E": 35.907295000466924,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          -0.00024517945288149434,
+          -0.00026396785006344015,
+          -0.0026342037458488843,
+          -0.0020596635971322774,
+          -0.0021662185563217085
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": -0.001473846640449561,
+          "s_d": 0.0011338450879539025,
+          "t": -2.9065886614211767,
+          "E": 3.2816742378231036,
+          "direction_is_improvement": false,
+          "max_attainable_E": 36.0
+        },
+        "note": "both arms are shuffles of the same four columns, so H0 is true by construction; a large E here would indict the harness."
+      }
+    },
+    "degradation_regressor_p50": {
+      "target": "degradation_regressor_p50",
+      "metric": "pinball",
+      "higher_is_better": false,
+      "n_train": 67907,
+      "n_eval": 13712,
+      "n_contract_features": 32,
+      "n_baseline_features": 28,
+      "family_T_columns": [
+        "push_residual",
+        "cumulative_push_load_surface",
+        "cumulative_push_load_bulk",
+        "surface_bulk_ratio"
+      ],
+      "split_mode": "cv_final_fold",
+      "eval_season": 2024,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532
+      ],
+      "full_contract_headline": 0.9823587335698977,
+      "published_v12_headline": 0.9823587335698977,
+      "instrument_check_6dp": true,
+      "baseline_A_headline": 1.0499831473714973,
+      "refit_noise_baseline_A": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          1.0499831473714973,
+          1.0494610605106485,
+          1.051723829523547,
+          1.0509256669164044,
+          1.0524509875310333
+        ],
+        "headline_mean": 1.050908938370626,
+        "headline_sd": 0.0012243041207096184,
+        "headline_min": 1.0494610605106485,
+        "headline_max": 1.0524509875310333,
+        "delta_noise_1sd": 0.0017314274919768093,
+        "delta_noise_2sd": 0.0034628549839536187,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_full_contract": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.9823587335698977,
+          0.9743735107963608,
+          0.9815981008238803,
+          0.9811168428134867,
+          0.9850127304214368
+        ],
+        "headline_mean": 0.9808919836850125,
+        "headline_sd": 0.003942447232751193,
+        "headline_min": 0.9743735107963608,
+        "headline_max": 0.9850127304214368,
+        "delta_noise_1sd": 0.005575462345497016,
+        "delta_noise_2sd": 0.011150924690994032,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.011150924690994032,
+      "floor_quoted_from": "full_contract",
+      "add_ablation": {
+        "delta_vs_baseline": 0.06762441380159967,
+        "floor_ratio": 6.064466909745706,
+        "clears_floor": true
+      },
+      "permutation_null": {
+        "headline_shuffled": 1.0528156018020576,
+        "capacity_delta": -0.0028324544305602384,
+        "capacity_floor_ratio": -0.2540107218953645,
+        "information_delta": 0.07045686823215991,
+        "information_floor_ratio": 6.318477631641071,
+        "information_clears_floor": true
+      },
+      "paired_seeds": {
+        "real_by_seed": [
+          0.9823587335698977,
+          0.9743735107963608,
+          0.9815981008238803,
+          0.9811168428134867,
+          0.9850127304214368
+        ],
+        "shuffled_by_seed": [
+          1.0528156018020576,
+          1.0474805555071494,
+          1.0482898812512762,
+          1.0501570998895844,
+          1.0517280941332035
+        ],
+        "information_deltas": [
+          0.07045686823215991,
+          0.07310704471078855,
+          0.06669178042739587,
+          0.06904025707609773,
+          0.06671536371176667
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.06920226283164174,
+          "s_d": 0.0027080800963974233,
+          "t": 57.140467925675814,
+          "E": 35.45522006446778,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          -0.0021135955495612535,
+          0.004728088848463541,
+          0.002408359858224296,
+          -0.0022485744120530615,
+          0.0013737487157097217
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.0008296054921566487,
+          "s_d": 0.0030051769319862053,
+          "t": 0.6172862087502377,
+          "E": 0.49273730008690725,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        },
+        "note": "both arms are shuffles of the same four columns, so H0 is true by construction; a large E here would indict the harness."
+      }
+    },
+    "degradation_regressor_p90": {
+      "target": "degradation_regressor_p90",
+      "metric": "pinball",
+      "higher_is_better": false,
+      "n_train": 67907,
+      "n_eval": 13712,
+      "n_contract_features": 32,
+      "n_baseline_features": 28,
+      "family_T_columns": [
+        "push_residual",
+        "cumulative_push_load_surface",
+        "cumulative_push_load_bulk",
+        "surface_bulk_ratio"
+      ],
+      "split_mode": "cv_final_fold",
+      "eval_season": 2024,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532
+      ],
+      "full_contract_headline": 0.5128462338042992,
+      "published_v12_headline": 0.5128462338042992,
+      "instrument_check_6dp": true,
+      "baseline_A_headline": 0.5440974885688998,
+      "refit_noise_baseline_A": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.5440974885688998,
+          0.5503524133750317,
+          0.5485227779628056,
+          0.5491454233350899,
+          0.543010774305206
+        ],
+        "headline_mean": 0.5470257755094066,
+        "headline_sd": 0.003259430234530735,
+        "headline_min": 0.543010774305206,
+        "headline_max": 0.5503524133750317,
+        "delta_noise_1sd": 0.004609530443282284,
+        "delta_noise_2sd": 0.009219060886564568,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_full_contract": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.5128462338042992,
+          0.5089800159703232,
+          0.507044825467685,
+          0.5129983248482949,
+          0.5138678466203865
+        ],
+        "headline_mean": 0.5111474493421977,
+        "headline_sd": 0.0029682259102097445,
+        "headline_min": 0.507044825467685,
+        "headline_max": 0.5138678466203865,
+        "delta_noise_1sd": 0.004197705338405845,
+        "delta_noise_2sd": 0.00839541067681169,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.009219060886564568,
+      "floor_quoted_from": "baseline_A",
+      "add_ablation": {
+        "delta_vs_baseline": 0.03125125476460067,
+        "floor_ratio": 3.3898523015662905,
+        "clears_floor": true
+      },
+      "permutation_null": {
+        "headline_shuffled": 0.5477489835729656,
+        "capacity_delta": -0.003651495004065808,
+        "capacity_floor_ratio": -0.3960810161680706,
+        "information_delta": 0.034902749768666474,
+        "information_floor_ratio": 3.785933317734361,
+        "information_clears_floor": true
+      },
+      "paired_seeds": {
+        "real_by_seed": [
+          0.5128462338042992,
+          0.5089800159703232,
+          0.507044825467685,
+          0.5129983248482949,
+          0.5138678466203865
+        ],
+        "shuffled_by_seed": [
+          0.5477489835729656,
+          0.5477130851651951,
+          0.5489193160601362,
+          0.5459198455887017,
+          0.5448839853649734
+        ],
+        "information_deltas": [
+          0.034902749768666474,
+          0.03873306919487196,
+          0.041874490592451186,
+          0.03292152074040677,
+          0.031016138744586863
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.03588959380819665,
+          "s_d": 0.004399949571981715,
+          "t": 18.239202547005185,
+          "E": 31.16354280574515,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          -0.0004587809205482962,
+          -0.0019544523243253398,
+          -0.0002286422404531585,
+          0.0024210791743337623,
+          0.00222062029522041
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.0003999647968454756,
+          "s_d": 0.0018758705156272464,
+          "t": 0.4767645031481974,
+          "E": 0.4578240081386071,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        },
+        "note": "both arms are shuffles of the same four columns, so H0 is true by construction; a large E here would indict the harness."
+      }
+    },
+    "cliff_classifier": {
+      "target": "cliff_classifier",
+      "metric": "macro_f1",
+      "higher_is_better": true,
+      "n_train": 94360,
+      "n_eval": 18866,
+      "n_contract_features": 32,
+      "n_baseline_features": 28,
+      "family_T_columns": [
+        "push_residual",
+        "cumulative_push_load_surface",
+        "cumulative_push_load_bulk",
+        "surface_bulk_ratio"
+      ],
+      "split_mode": "cv_final_fold",
+      "eval_season": 2024,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532
+      ],
+      "full_contract_headline": 0.35246609791814365,
+      "published_v12_headline": 0.35246609791814365,
+      "instrument_check_6dp": true,
+      "baseline_A_headline": 0.3357969721602504,
+      "refit_noise_baseline_A": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.3357969721602504,
+          0.33652946610593315,
+          0.3383786407314572,
+          0.33587878838325813,
+          0.3371410881022204
+        ],
+        "headline_mean": 0.3367449910966238,
+        "headline_sd": 0.0010631559190930823,
+        "headline_min": 0.3357969721602504,
+        "headline_max": 0.3383786407314572,
+        "delta_noise_1sd": 0.0015035295196986701,
+        "delta_noise_2sd": 0.0030070590393973403,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_full_contract": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          0.35246609791814365,
+          0.3528095016147098,
+          0.3498388176682755,
+          0.3518927918591978,
+          0.35401792075226757
+        ],
+        "headline_mean": 0.35220502596251885,
+        "headline_sd": 0.0015343214074816708,
+        "headline_min": 0.3498388176682755,
+        "headline_max": 0.35401792075226757,
+        "delta_noise_1sd": 0.0021698581434999547,
+        "delta_noise_2sd": 0.0043397162869999095,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.0043397162869999095,
+      "floor_quoted_from": "full_contract",
+      "add_ablation": {
+        "delta_vs_baseline": 0.016669125757893255,
+        "floor_ratio": 3.841063483303604,
+        "clears_floor": true
+      },
+      "permutation_null": {
+        "headline_shuffled": 0.3376769311041724,
+        "capacity_delta": 0.001879958943922011,
+        "capacity_floor_ratio": 0.4331985824865169,
+        "information_delta": 0.014789166813971244,
+        "information_floor_ratio": 3.407864900817087,
+        "information_clears_floor": true
+      },
+      "paired_seeds": {
+        "real_by_seed": [
+          0.35246609791814365,
+          0.3528095016147098,
+          0.3498388176682755,
+          0.3518927918591978,
+          0.35401792075226757
+        ],
+        "shuffled_by_seed": [
+          0.3376769311041724,
+          0.33850464420888626,
+          0.33813734715435695,
+          0.33470338522939524,
+          0.3381680407035767
+        ],
+        "information_deltas": [
+          0.014789166813971244,
+          0.014304857405823546,
+          0.011701470513918566,
+          0.01718940662980256,
+          0.015849880048690868
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.014766956282441356,
+          "s_d": 0.0020403566627820546,
+          "t": 16.18340492651091,
+          "E": 30.03057839917217,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          0.0016478315987871195,
+          0.002823064455981461,
+          0.0007874938021654732,
+          -0.0013388695219938573,
+          0.002483438939410665
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.0012805918548701722,
+          "s_d": 0.0016632536981728268,
+          "t": 1.7216197637606023,
+          "E": 1.220353566442041,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        },
+        "note": "both arms are shuffles of the same four columns, so H0 is true by construction; a large E here would indict the harness."
+      }
+    },
+    "stint_life_regressor": {
+      "target": "stint_life_regressor",
+      "metric": "aft_nloglik",
+      "higher_is_better": false,
+      "n_train": 99849,
+      "n_eval": 19973,
+      "n_contract_features": 32,
+      "n_baseline_features": 28,
+      "family_T_columns": [
+        "push_residual",
+        "cumulative_push_load_surface",
+        "cumulative_push_load_bulk",
+        "surface_bulk_ratio"
+      ],
+      "split_mode": "cv_final_fold",
+      "eval_season": 2024,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532
+      ],
+      "full_contract_headline": 1.9913358778933028,
+      "published_v12_headline": 1.9913358778933028,
+      "instrument_check_6dp": true,
+      "baseline_A_headline": 2.0186246095774876,
+      "refit_noise_baseline_A": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          2.0186246095774876,
+          2.0178382922127454,
+          2.017166739704971,
+          2.0175338567121868,
+          2.0171417760330983
+        ],
+        "headline_mean": 2.0176610548480975,
+        "headline_sd": 0.0006103335387653901,
+        "headline_min": 2.0171417760330983,
+        "headline_max": 2.0186246095774876,
+        "delta_noise_1sd": 0.0008631419680931798,
+        "delta_noise_2sd": 0.0017262839361863597,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_full_contract": {
+        "n_seeds": 5,
+        "headline_by_seed": [
+          1.9913358778933028,
+          1.992913745350326,
+          1.9913582748241703,
+          1.9884366984001043,
+          1.9878070116156106
+        ],
+        "headline_mean": 1.9903703216167028,
+        "headline_sd": 0.002161412249991496,
+        "headline_min": 1.9878070116156106,
+        "headline_max": 1.992913745350326,
+        "delta_noise_1sd": 0.0030566985178173203,
+        "delta_noise_2sd": 0.006113397035634641,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.006113397035634641,
+      "floor_quoted_from": "full_contract",
+      "add_ablation": {
+        "delta_vs_baseline": 0.027288731684184775,
+        "floor_ratio": 4.463759105636412,
+        "clears_floor": true
+      },
+      "permutation_null": {
+        "headline_shuffled": 2.0157721698902344,
+        "capacity_delta": 0.0028524396872531277,
+        "capacity_floor_ratio": 0.4665883257093266,
+        "information_delta": 0.024436291996931647,
+        "information_floor_ratio": 3.9971707799270852,
+        "information_clears_floor": true
+      },
+      "paired_seeds": {
+        "real_by_seed": [
+          1.9913358778933028,
+          1.992913745350326,
+          1.9913582748241703,
+          1.9884366984001043,
+          1.9878070116156106
+        ],
+        "shuffled_by_seed": [
+          2.0157721698902344,
+          2.014293854715571,
+          2.0146637163093817,
+          2.0156119843543263,
+          2.0128158958185014
+        ],
+        "information_deltas": [
+          0.024436291996931647,
+          0.021380109365245037,
+          0.02330544148521141,
+          0.027175285954222028,
+          0.025008884202890824
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.02426120260090019,
+          "s_d": 0.002138676191447991,
+          "t": 25.366017748941115,
+          "E": 33.363413980236345,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          -0.00028265825865414484,
+          0.0003777786614054257,
+          0.0039919175736780055,
+          0.0004879615582829011,
+          0.001443198921137867
+        ],
+        "e_value": {
+          "n": 5,
+          "g": 1.0,
+          "d_bar": 0.0012036396911700108,
+          "s_d": 0.001675947896025869,
+          "t": 1.6059092148718292,
+          "E": 1.0973589754789375,
+          "direction_is_improvement": true,
+          "max_attainable_E": 36.0
+        },
+        "note": "both arms are shuffles of the same four columns, so H0 is true by construction; a large E here would indict the harness."
+      }
+    }
+  }
+}

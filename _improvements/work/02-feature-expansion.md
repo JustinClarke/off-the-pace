@@ -17,6 +17,18 @@ or warehouse object was touched. Nothing here has been ablated, so nothing here 
 that any of it works — only that it exists, that it is a different channel, and that the
 repo's own admission rule has not yet been pointed at it.
 
+> **STALE AS OF `08m` (2026-09-16) — every number in this document that is measured against
+> `next_5_lap_cumulative_jump_s` is on the OLD target.** `08m` fixed how the compound seed's
+> `compound_cliff_severity` is consumed (it is fitted as a ~5.5-lap level shift and was being
+> charged once per lap, up to 48 times) and dropped the never-fitted `0.002*age^2` term, then
+> rebuilt the warehouse. The target's mean moved **−1.8793 s → −0.3946 s** and
+> `is_training_eligible` moved **82,470 → 81,619** rows. Specifically affected here: the Phase 10a
+> p50 pinball figures in §"Where the contract stands", and the `mean next_5_lap_cumulative_jump_s`
+> columns in the §2 and §3 population tables. The *rulings* in this document — `02a`'s leakage
+> ruling, the admission rule, the tier structure — are unaffected. Any arm in `02b`/`02c`/`02d`/`02g`
+> that has already been scored must be re-scored on the rebuilt target before its delta is quoted
+> again; `08m` did **not** re-measure them.
+
 ---
 
 ## 0. The admission rule this document is written against

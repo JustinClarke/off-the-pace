@@ -358,7 +358,35 @@ PREDICTIONS_ARROW_SCHEMA = pa.schema([
 ])
 assert len(PREDICTIONS_ARROW_SCHEMA) == 19, "predictions schema must be 19 columns"
 
-MODEL_VERSION_DEFAULT = "v11"  # v11 = Phase 10a: the `proximity` group (9 columns) joins the
+MODEL_VERSION_DEFAULT = "v12"  # v12 = work item 08m's repair of the compound wear curve. NOT a
+# feature-contract change and NOT a re-tune: the contract is v11's 32 columns unchanged and every
+# target keeps its own `*_best_params.json`, i.e. v11's hyperparameters. What moved is what two of
+# those columns MEAN. `int_compound_cliff_predicted.sql` was multiplying `compound_cliff_severity`
+# -- fitted by `survival.py::estimate_cliff_severity` as a ~5.5-lap LEVEL SHIFT -- by
+# `laps_past_cliff`, i.e. consuming a magnitude as a per-lap rate (48.7% of it was ordinary wear
+# already charged by `wear_gradient*age`), and adding a hardcoded `0.002*age^2` that was never
+# fitted against anything. 08m replaced both with a moment-matched saturating ramp defined once in
+# `transform/macros/compound_cliff_wear.sql`.
+#
+# **Why this is a new version rather than a v11 rebuild.** `expected_compound_pace_s` is subtracted
+# into `driver_skill_residual_s`, so the degradation trio's target
+# (`next_5_lap_cumulative_jump_s`, mean -1.8793 -> -0.3946 s, training-eligible rows 82,470 ->
+# 81,619) and `cliff_classifier`'s label (`laps_until_cliff_class`, 10.79% of rows changed class)
+# are DIFFERENT QUANTITIES UNDER UNCHANGED COLUMN NAMES. That is the exact hazard
+# `train.py::_guard_target_change` was written to refuse -- and note that the guard CANNOT catch
+# this one, because it compares target column *names*, which did not change. It is caught here, by
+# the version, or not at all.
+#
+# **v11's numbers are therefore not a baseline for v12's.** v11's eval headline
+# (p10 0.53202 / p50 1.04679 / p90 0.57851) was measured against the superseded target; a smaller
+# v12 pinball loss is a smaller target spread, not skill. The only admissible comparisons are at
+# fixed target: each model against its own baseline on the rebuilt target. `stint_life_regressor`
+# is the one exception -- its target (`remaining_stint_life_laps`, from `int_stint_geometry`) is
+# untouched by 08m and only its INPUTS moved, so its v11/v12 headlines ARE comparable, as a
+# feature-definition change on a fixed target. **v11 is the rollback floor** and is retained on
+# disk in full. See `_improvements/work/08-foundations-repair.md` -> 08m and 08n.
+#
+# v11 = Phase 10a: the `proximity` group (9 columns) joins the
 # contract, 24 -> 33. It is the first version in either series whose feature change comes from
 # a DIFFERENT SENSOR -- the position channel of the telemetry stream, whose ~58.8M rows had no
 # consumer at all before Phase 10 (stg_telemetry projected them and int_lap_telemetry_aggregates

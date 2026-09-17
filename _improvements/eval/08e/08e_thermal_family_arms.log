@@ -1,0 +1,48 @@
+contract v12, 32 features; published artefact version v12
+family T = push_residual, cumulative_push_load_surface, cumulative_push_load_bulk, surface_bulk_ratio
+e-value validity check (mean E under H0 must be 1.00):
+  sigma=0.001    mean_E=1.0016 +/- 0.0102  P(E>20)=0.0010
+  sigma=0.01     mean_E=0.9992 +/- 0.0102  P(E>20)=0.0011
+  sigma=0.1      mean_E=1.0108 +/- 0.0106  P(E>20)=0.0011
+  sigma=1.0      mean_E=1.0014 +/- 0.0105  P(E>20)=0.0013
+  max attainable E at n=5, g=1.0: 36.0
+
+=== degradation_regressor_p10 (degradation_regressor) ===
+  [degradation_regressor_p10] full-contract=0.4764640778 published_v12=0.4764640778 instrument_check=True (4s)
+  [degradation_regressor_p10] baseline_A(28 cols)=0.5429192990  add-ablation delta=+0.06645522 (4s)
+  [degradation_regressor_p10] floor 2*sqrt(2)*sd = 0.00667645 (from baseline_A; A=0.00667645, full=0.00136797) (39s)
+  [degradation_regressor_p10] shuffled=0.5460370433  capacity=-0.00311774 (-0.47x)  information=+0.06957297 (+10.42x) (4s)
+  [degradation_regressor_p10] E(information) = 35.91  (d_bar=+0.07078975, improvement=True) (42s)
+  [degradation_regressor_p10] control(shuffle vs shuffle) E=3.282 (47s)
+
+=== degradation_regressor_p50 (degradation_regressor) ===
+  [degradation_regressor_p50] full-contract=0.9823587336 published_v12=0.9823587336 instrument_check=True (9s)
+  [degradation_regressor_p50] baseline_A(28 cols)=1.0499831474  add-ablation delta=+0.06762441 (9s)
+  [degradation_regressor_p50] floor 2*sqrt(2)*sd = 0.01115092 (from full_contract; A=0.00346285, full=0.01115092) (81s)
+  [degradation_regressor_p50] shuffled=1.0528156018  capacity=-0.00283245 (-0.25x)  information=+0.07045687 (+6.32x) (8s)
+  [degradation_regressor_p50] E(information) = 35.46  (d_bar=+0.06920226, improvement=True) (81s)
+  [degradation_regressor_p50] control(shuffle vs shuffle) E=0.4927 (72s)
+
+=== degradation_regressor_p90 (degradation_regressor) ===
+  [degradation_regressor_p90] full-contract=0.5128462338 published_v12=0.5128462338 instrument_check=True (3s)
+  [degradation_regressor_p90] baseline_A(28 cols)=0.5440974886  add-ablation delta=+0.03125125 (3s)
+  [degradation_regressor_p90] floor 2*sqrt(2)*sd = 0.00921906 (from baseline_A; A=0.00921906, full=0.00839541) (31s)
+  [degradation_regressor_p90] shuffled=0.5477489836  capacity=-0.00365150 (-0.40x)  information=+0.03490275 (+3.79x) (3s)
+  [degradation_regressor_p90] E(information) = 31.16  (d_bar=+0.03588959, improvement=True) (32s)
+  [degradation_regressor_p90] control(shuffle vs shuffle) E=0.4578 (32s)
+
+=== cliff_classifier (cliff_classifier) ===
+  [cliff_classifier] full-contract=0.3524660979 published_v12=0.3524660979 instrument_check=True (18s)
+  [cliff_classifier] baseline_A(28 cols)=0.3357969722  add-ablation delta=+0.01666913 (16s)
+  [cliff_classifier] floor 2*sqrt(2)*sd = 0.00433972 (from full_contract; A=0.00300706, full=0.00433972) (174s)
+  [cliff_classifier] shuffled=0.3376769311  capacity=+0.00187996 (+0.43x)  information=+0.01478917 (+3.41x) (18s)
+  [cliff_classifier] E(information) = 30.03  (d_bar=+0.01476696, improvement=True) (199s)
+  [cliff_classifier] control(shuffle vs shuffle) E=1.22 (189s)
+
+=== stint_life_regressor (stint_life_regressor) ===
+  [stint_life_regressor] full-contract=1.9913358779 published_v12=1.9913358779 instrument_check=True (2s)
+  [stint_life_regressor] baseline_A(28 cols)=2.0186246096  add-ablation delta=+0.02728873 (2s)
+  [stint_life_regressor] floor 2*sqrt(2)*sd = 0.00611340 (from full_contract; A=0.00172628, full=0.00611340) (19s)
+  [stint_life_regressor] shuffled=2.0157721699  capacity=+0.00285244 (+0.47x)  information=+0.02443629 (+4.00x) (2s)
+  [stint_life_regressor] E(information) = 33.36  (d_bar=+0.02426120, improvement=True) (20s)
+  [stint_life_regressor] control(shuffle vs shuffle) E=1.097 (21s)

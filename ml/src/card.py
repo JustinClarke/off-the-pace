@@ -337,6 +337,62 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
             ],
 
             "limitations": [
+                # ── NON-COMPARABILITY WITH v11 (work item 08m/08n, 2026-09-16) ──────────────
+                # Deliberately first, and deliberately prose rather than a metric field: the
+                # v11 figures below are HISTORICAL and cannot be read back off any current
+                # artefact, so quoting them here is not the "hand-edited metrics" failure this
+                # module prevents - it is the only way to stop the comparison being made.
+                "NOT COMPARABLE TO v11. Work item 08m changed how `expected_compound_pace_s` "
+                "is formed (`compound_cliff_severity` was fitted as a ~5.5-lap level shift and "
+                "was being consumed as a per-lap rate, plus an unfitted 0.002*age^2 term). That "
+                "column is subtracted into `driver_skill_residual_s`, so the degradation trio's "
+                "target `next_5_lap_cumulative_jump_s` and the classifier's label "
+                "`laps_until_cliff_class` are DIFFERENT QUANTITIES under unchanged column names: "
+                "the target's mean moved -1.8793 -> -0.3946 s, 10.79% of cliff labels changed "
+                "class, and the trio's training population moved 82,470 -> 81,619 rows. v11's "
+                "published headlines (p10 0.53202 / p50 1.04679 / p90 0.57851 pinball, cliff "
+                "macro-F1 0.37187) were measured against the SUPERSEDED target. A smaller "
+                "pinball loss here is a smaller target spread, not more skill - the non-leakage "
+                "baseline moved too (p50 2.17766 -> 1.26289). NO IMPROVEMENT OVER v11 IS CLAIMED "
+                "OR IMPLIED. The only admissible readings of this card are each model against "
+                "its own baseline in this same run. The one exception is stint_life_regressor, "
+                "whose target (`remaining_stint_life_laps`) 08m did not touch - only two of its "
+                "32 inputs changed meaning - though even there the eligible row set moved "
+                "121,193 -> 119,822, so it is a near-fixed rather than fixed comparison.",
+                # ── THERMAL-PROXY / CROSS-SEASON LEAKAGE FIXES (work items 08e/08f, landed
+                # 2026-09-17) ─────────────────────────────────────────────────────────────
+                # Disclosure, not a delta: both fixes' SQL was already in the warehouse when
+                # this v12 card's numbers were produced (08e/08f predate 08m/08n), so nothing
+                # on this card moved today - only the bookkeeping (build-log.json stage) did.
+                # Historical gate numbers hardcoded for the same reason the v11 bullet above
+                # is: they describe a superseded substrate's A/B, not something this artefact
+                # can read back.
+                "THERMAL-PROXY AND CROSS-SEASON LEAKAGE FIXES (work items 08e/08f, landed "
+                "2026-09-17; disclosure only - both fixes' SQL predates this card's numbers, "
+                "so nothing here moved today). 08e: `int_lap_thermal_proxy`'s stint baseline "
+                "used to pool laps up to `CEIL(stint_length_actual*0.60)`, reaching forward "
+                "into laps not yet run (55.92% of mart rows, mean 4.65 laps) and inverting "
+                "`push_residual`'s sign against two targets; rebuilt as an expanding median "
+                "over strictly-prior valid laps. Re-read on this card's own v12 substrate: "
+                "the rebuilt thermal family (`push_residual` + the two cumulative push-load "
+                "columns + `surface_bulk_ratio`) clears all five targets as an information "
+                "gain, not leakage recovered - p10 +0.0665 pinball at 9.95x its own noise "
+                "floor, p50 +0.0676 at 6.06x, p90 +0.0313 at 3.39x, cliff macro-F1 +0.0167 at "
+                "3.84x, stint-life AFT nloglik +0.0273 at 4.46x. 08f-1: the quantile trio's "
+                "`survival_weight` (an XGBoost sample weight, never a feature) used to pool "
+                "`total_per_compound`/`stints_reaching` across every ingested season, so a "
+                "2018 row's weight was partly estimated from 2024; rebuilt as an expanding "
+                "sum over strictly-prior seasons. Gated in isolation for the first time on "
+                "this substrate: the weight vector changes substantially (93.3% of training "
+                "rows), but every quantile headline delta stays inside its own 5-reseed noise "
+                "floor (p10 0.49x, p50 0.15x, p90 -0.07x) - a real fix, a clean null on the "
+                "headline; `cliff_classifier`/`stint_life_regressor` never consume this weight "
+                "and are structurally unaffected. 08f-2: `int_circuit_x_constructor_interaction`'s "
+                "two season-pooling `GROUP BY`s were rebuilt the same way. Proven algebraically, "
+                "not merely measured within noise, to move zero live targets: its whole effect "
+                "on a stint is a constant per (race, constructor), and every target this model "
+                "is scored against differences laps within one stint, which cancels an exact "
+                "constant. Full writeup: `_improvements/eval/08e/` and `_improvements/eval/08f/`.",
                 # Read the number back from this card's own models block-a hardcoded metric here
                 # is the "hand-edited metrics" failure this module exists to prevent.
                 f"The cliff classifier (macro-F1 ≈ {_cliff_f1:.2f} on 4-class cliff timing) is the "

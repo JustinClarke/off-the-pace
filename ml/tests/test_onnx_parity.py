@@ -23,7 +23,10 @@ def _present_version() -> str | None:
     # MODEL_VERSION_DEFAULT is tried first. Note the explicit list below must keep
     # naming every retained version: when MODEL_VERSION_DEFAULT moved v5 -> v6, v5 fell
     # out of this tuple entirely and the fallback silently skipped the rollback target.
-    for version in (S.MODEL_VERSION_DEFAULT, "v5", "v4", "v3", "v2", "v1", "smoke"):
+    # v11 added when MODEL_VERSION_DEFAULT moved v11 -> v12 (work item 08n), per this
+    # comment's own standing instruction: v11 is the rollback floor and is fitted to the
+    # PRE-08m target, so it must not fall out of the tuple the way v5 silently did.
+    for version in (S.MODEL_VERSION_DEFAULT, "v11", "v5", "v4", "v3", "v2", "v1", "smoke"):
         if all((MODELS_DIR / f"{S.artefact_name(t, version)}.onnx").exists()
                for t in S.PRODUCTION_TARGETS):
             return version

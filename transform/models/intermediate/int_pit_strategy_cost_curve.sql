@@ -180,19 +180,29 @@ compound_wear_per_age AS (
         -- the region the decision lives in.
         --
         -- Reads the SHARED bound as of Phase 8. int_compound_cliff_predicted
-        -- now applies the identical LEAST() to the identical three terms, so
-        -- capping here alone no longer leaves the source curve unbounded --
-        -- which is what shipped between Phase 5 and Phase 8, and is why both
-        -- ML targets were still standing on the 93 s/lap tail.
+        -- applies the identical LEAST() to the identical terms, so capping here
+        -- alone no longer leaves the source curve unbounded -- which is what
+        -- shipped between Phase 5 and Phase 8, and is why both ML targets were
+        -- still standing on the 93 s/lap tail.
         -- pit_strategy_max_wear_s_per_lap remains defined as this model's own
         -- name for the bound; set it to diverge from the source curve.
-        LEAST(
-            p.compound_wear_gradient * a.age_laps
-            + 0.002 * POWER(a.age_laps, 2)
-            + p.compound_cliff_severity
-            * GREATEST(a.age_laps - p.compound_cliff_onset_laps, 0.0),
-            {{ var('compound_wear_max_s_per_lap', 10.0) }}
-        ) AS wear_s
+        --
+        -- 08m: this model is the SECOND of six sites that consumed
+        -- compound_cliff_severity as a per-lap rate. It is fitted as a LEVEL
+        -- SHIFT across the onset over a ~5.5-lap window (survival.py::
+        -- estimate_cliff_severity), so multiplying it by laps-past-onset charged
+        -- a ~5.5-lap magnitude once per lap. Replaced with the identical
+        -- de-double-counted, moment-matched saturating ramp
+        -- int_compound_cliff_predicted now uses -- the two curves must stay
+        -- equivalent or the DP's running cost diverges from the ML target's
+        -- lineage, which is exactly the split this item exists to close. The
+        -- 0.002*age^2 quadratic is dropped here too: never fitted, identical
+        -- across all 438 seed cells, already absorbed by the linear term.
+        {{ compound_cliff_wear_s(
+               'p.compound_wear_gradient',
+               'p.compound_cliff_severity',
+               'a.age_laps',
+               'GREATEST(a.age_laps - p.compound_cliff_onset_laps, 0.0)') }} AS wear_s
     FROM {{ ref('dim_compounds_season') }} AS p
     CROSS JOIN ages AS a
 ),

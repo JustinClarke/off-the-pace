@@ -1,12 +1,12 @@
 {
-  "aft_loss_distribution_scale": 0.8,
-  "colsample_bytree": 0.849893616236758,
-  "gamma": 0.0013846541929909116,
-  "learning_rate": 0.026307490821070707,
+  "aft_loss_distribution_scale": 0.7537929016487691,
+  "colsample_bytree": 0.7022777269179408,
+  "gamma": 0.00526088099298953,
+  "learning_rate": 0.021917329940077092,
   "max_depth": 8,
-  "min_child_weight": 5,
-  "n_estimators": 200,
-  "reg_alpha": 0.009107831834843637,
-  "reg_lambda": 0.24251495812504203,
-  "subsample": 0.8462988772079394
+  "min_child_weight": 3,
+  "n_estimators": 100,
+  "reg_alpha": 2.6396744208969904,
+  "reg_lambda": 0.016254068532870026,
+  "subsample": 0.6740434973007393
 }

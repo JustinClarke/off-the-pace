@@ -2,7 +2,7 @@
   "model_card": {
     "name": "Off the Pace-Tyre Degradation Predictors",
     "version": "v12",
-    "generated_at": "2026-09-16T15:44:18.006029+00:00",
+    "generated_at": "2026-09-19T08:43:35.048346+00:00",
     "summary": "Five XGBoost models predicting cumulative 5-lap tyre-degradation pace loss (quantile trio p10/p50/p90), laps-until-cliff class, and remaining stint life, from per-lap thermal, dirty-air, powertrain, weather and compound-prior features. Trained on 2018–2024 F1 laps; every model beats a strong per-cohort baseline.",
     "intended_use": "Race-strategy analysis and the Off the Pace web app (application layer): surfacing when a stint is about to fall off the degradation cliff and how much pace a driver is leaving on track. Not a betting or safety system.",
     "data": {
@@ -389,45 +389,45 @@
         "quantile_alpha": null,
         "headline_metric": "aft_nloglik",
         "higher_is_better": false,
-        "cv_headline": 2.15525,
-        "eval_headline": 1.99134,
-        "baseline_headline": 2.18868,
+        "cv_headline": 2.22908,
+        "eval_headline": 2.15315,
+        "baseline_headline": 2.20099,
         "beats_baseline": true,
         "n_train_rows": 119822,
-        "fit_seconds": 9.74,
+        "fit_seconds": 4.95,
         "hyperparameters": {
-          "aft_loss_distribution_scale": 0.8,
-          "colsample_bytree": 0.849893616236758,
-          "gamma": 0.0013846541929909116,
-          "learning_rate": 0.026307490821070707,
+          "aft_loss_distribution_scale": 0.7537929016487691,
+          "colsample_bytree": 0.7022777269179408,
+          "gamma": 0.00526088099298953,
+          "learning_rate": 0.021917329940077092,
           "max_depth": 8,
-          "min_child_weight": 5,
-          "n_estimators": 200,
-          "reg_alpha": 0.009107831834843637,
-          "reg_lambda": 0.24251495812504203,
-          "subsample": 0.8462988772079394
+          "min_child_weight": 3,
+          "n_estimators": 100,
+          "reg_alpha": 2.6396744208969904,
+          "reg_lambda": 0.016254068532870026,
+          "subsample": 0.6740434973007393
         },
         "artefacts": {
           "booster": "ml/models/stint_life_regressor_v12.bst",
           "onnx": "ml/models/stint_life_regressor_v12.onnx"
         },
         "survival": {
-          "scale": 0.8,
+          "scale": 0.7537929016487691,
           "label_shift": 1.0,
           "distribution": "normal",
           "censored_share": 0.4826015120412557,
-          "c_index": 0.75977960088365,
+          "c_index": 0.74537563316187,
           "baseline_c_index": 0.6295301619344961,
           "uncensored": {
             "n": 10334,
-            "aft_nloglik": 3.446184741070477,
-            "baseline_aft_nloglik": 3.4044254406079544,
-            "median_abs_error_laps": 5.770237954014114
+            "aft_nloglik": 3.310770077629197,
+            "baseline_aft_nloglik": 3.4036890021662254,
+            "median_abs_error_laps": 4.318889070549023
           },
           "censored": {
             "n": 9639,
-            "aft_nloglik": 0.4315881704472067,
-            "baseline_aft_nloglik": 0.8852807681954087,
+            "aft_nloglik": 0.9120657071335136,
+            "baseline_aft_nloglik": 0.9115784503581059,
             "median_abs_error_laps": null
           }
         },
@@ -439,9 +439,9 @@
           "basis": "perfect_prediction",
           "ceiling_scope": "absolute",
           "ceiling_is_binding": true,
-          "verdict": "61.5% of a bound nothing can exceed",
-          "floor_metric": 2.208723370383524,
-          "fraction_of_attainable": 0.6151964638194616,
+          "verdict": "18.2% of a bound nothing can exceed",
+          "floor_metric": 2.2262492500943583,
+          "fraction_of_attainable": 0.1819837060962472,
           "fraction_of_attainable_in_sample_oracle": null,
           "in_sample_oracle_is_exact_optimum": null,
           "note": "floor = global mean remaining life; oracle = the censored AFT likelihood at a perfect prediction, which is non-zero because the log-normal scale is a fitted term. A hard bound, not an estimate -- nothing can score past it, so this fraction cannot exceed 1."
@@ -449,19 +449,19 @@
         "interval": {
           "method": "paired t over season-grouped CV folds (whole seasons move together)",
           "n_folds": 5,
-          "folds_won": 5,
-          "mean_delta": 0.10592720971905081,
-          "ci_low": 0.033662790784754926,
-          "ci_high": 0.1781916286533467,
+          "folds_won": 4,
+          "mean_delta": 0.042133879730158696,
+          "ci_low": -0.0415402804632902,
+          "ci_high": 0.1258080399236076,
           "ci_level": 0.95,
-          "p_value": 0.015225564379416948,
-          "significant": true,
-          "stint_bootstrap_ci_low": 0.16633981782460525,
-          "stint_bootstrap_ci_high": 0.2274253427001798,
+          "p_value": 0.23463513500647368,
+          "significant": false,
+          "stint_bootstrap_ci_low": 0.021130700056825505,
+          "stint_bootstrap_ci_high": 0.07606193041225327,
           "stint_bootstrap_significant": true,
-          "stint_vs_lap_width_ratio": 3.039528312544155
+          "stint_vs_lap_width_ratio": 2.74393445071468
         },
-        "beats_baseline_significant": true
+        "beats_baseline_significant": false
       }
     ],
     "validation": {
@@ -484,8 +484,10 @@
         "effective_sample_ratio": 3.6273941156550067,
         "note": "season-grouped folds are already stint-pure; the clustering damage was never in the split, it was in every interval computed at lap grain over it (Corrections §15)."
       },
-      "claims_inside_noise": [],
-      "all_claims_significant": true,
+      "claims_inside_noise": [
+        "stint_life_regressor"
+      ],
+      "all_claims_significant": false,
       "calibration": {
         "nominal": 0.8,
         "raw_empirical_coverage": 0.7850787631271878,
@@ -585,19 +587,19 @@
         "stint_life_regressor": {
           "shap_top5": [
             "lap_number",
-            "fuel_mass_kg",
             "expected_compound_pace_s",
+            "fuel_mass_kg",
             "age_in_stint",
             "compound"
           ],
           "permutation_top5": [
-            "lap_number",
             "fuel_mass_kg",
+            "lap_number",
             "expected_compound_pace_s",
-            "compound",
-            "push_residual"
+            "cliff_onset_passed",
+            "cumulative_push_load_surface"
           ],
-          "agreement_note": "top-5 differ on: age_in_stint, push_residual-likely correlated features or leakage pressure"
+          "agreement_note": "top-5 differ on: age_in_stint, cliff_onset_passed, compound, cumulative_push_load_surface-likely correlated features or leakage pressure"
         }
       },
       "underperforming_cohorts": [
@@ -682,29 +684,50 @@
           "dimension": "compound",
           "cohort": "_other",
           "n": 12,
-          "model": 2.443445269269471,
-          "baseline": 2.356012904753335
+          "model": 2.3351872416913486,
+          "baseline": 2.3234374120478947
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "abu_dhabi_grand_prix",
+          "n": 835,
+          "model": 1.8569032300430037,
+          "baseline": 1.796568947687326
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "azerbaijan_grand_prix",
+          "n": 770,
+          "model": 2.288063184202516,
+          "baseline": 2.184193927819538
         },
         {
           "dimension": "circuit_key",
           "cohort": "british_grand_prix",
           "n": 628,
-          "model": 2.7374049683385437,
-          "baseline": 2.5343270661319752
+          "model": 2.7403623874782315,
+          "baseline": 2.528739969342529
         },
         {
           "dimension": "circuit_key",
-          "cohort": "canadian_grand_prix",
-          "n": 865,
-          "model": 2.5269859281545806,
-          "baseline": 2.521587778449485
+          "cohort": "dutch_grand_prix",
+          "n": 1196,
+          "model": 2.2161644295078022,
+          "baseline": 2.1562466805099487
         },
         {
           "dimension": "circuit_key",
-          "cohort": "las_vegas_grand_prix",
-          "n": 682,
-          "model": 2.150136248603332,
-          "baseline": 2.018423972398026
+          "cohort": "mexico_city_grand_prix",
+          "n": 968,
+          "model": 2.3287841546264905,
+          "baseline": 2.201158161284345
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "monaco_grand_prix",
+          "n": 1065,
+          "model": 3.2309895823858286,
+          "baseline": 2.7558220946028524
         }
       ],
       "underperforming_cohorts_note": "Surfaced, never dropped. Specific circuit/constructor cells where the model trails its non-leakage cohort-mean baseline; the model wins comfortably overall."
@@ -735,10 +758,16 @@
       {
         "id": "E3",
         "note": "Heavy elevations (ablation/learning-curve/SHAP/PDP) run on the headline model of each family; quantile siblings share p50's structure."
+      },
+      {
+        "id": "E4",
+        "note": "stint_life_regressor's hyperparameters are work item 10e's S1x, landed on decision D4 rather than on a cleared gate: the green-pit accuracy gain is significant, the calibration-slope gain is not, and this card's own mixture headline for the family regresses by design. See the limitations entry."
       }
     ],
     "limitations": [
+      "STINT-LIFE HYPERPARAMETERS ARE WORK ITEM 10e's S1x, AND THEY WERE LANDED ON A DECISION (D4), NOT ON A CLEARED GATE. What changed: n_estimators 200 -> 100, learning_rate 0.02631 -> 0.02192, aft_loss_distribution_scale 0.80 -> 0.754, plus reg_alpha/min_child_weight/subsample/colsample_bytree. max_depth stayed at 8 - this is a SHRINKAGE change, not the capacity change the earlier diagnosis (10d) predicted. Why: the superseded params were selected on the MIXTURE AFT NLL with the 2024 evaluation season inside the validation folds, which is three defects in the search rather than a property of the model. WHAT IS ESTABLISHED AT 95%: on the green-flag-pit stratum - 9,149 eval laps over 24 races, zero censoring, refit on 2018-2023 and scored on 2024 - IPCW-Brier improves 0.19039 -> 0.16888, paired race-cluster bootstrap +0.0226 95% [+0.0073, +0.0353] with 200 of 200 draws improving and ~15x the family's own 5-reseed noise floor; time-dependent AUC 0.6896 -> 0.7096; and the mean log bias moves -0.2741 -> +0.0680, so the level error CHANGES SIGN - the gauge stops over-predicting remaining tyre life (the dangerous direction for a number read as safe laps remaining) and starts under-predicting it slightly. WHAT IS NOT ESTABLISHED: the calibration slope, which moves 0.6736 -> 0.8754 but at paired-bootstrap P(improves) = 0.945 with an interval straddling zero - the fourth time 24 evaluation races have failed to resolve this quantity at 95%. THE CALIBRATION DEFECT IS NOT FIXED. Accuracy improves and the known dangerous bias direction is inverted; the calibration-slope gain remains statistically unresolved on the current 24-race evaluation set. THE COST, STATED: this family's headline on this card is the mixture AFT NLL, and this change makes it WORSE - 1.99134 -> the value above, against a baseline that also moved (2.18868 -> 2.20099, because the AFT baseline is computed at the model's own fitted scale), and `beats_baseline_significant` for this family flips True -> False. That is the expected direction and it was taken deliberately: work item 10c ruled the mixture the wrong headline for this target because it scores tyre-limit endings and exogenous SC/VSC/red interruptions in one likelihood, and these parameters were selected on the green-pit stratum instead. On that stratum's own NLL the new parameters win (3.4377 -> 3.2922). Anyone reading this family's headline as a quality signal is reading the metric the application does not use. Full evidence, all seven gates and the e-values: `_improvements/work/10-competing-risks.md` under 10e, artefacts in `_improvements/eval/10e/`.",
       "NOT COMPARABLE TO v11. Work item 08m changed how `expected_compound_pace_s` is formed (`compound_cliff_severity` was fitted as a ~5.5-lap level shift and was being consumed as a per-lap rate, plus an unfitted 0.002*age^2 term). That column is subtracted into `driver_skill_residual_s`, so the degradation trio's target `next_5_lap_cumulative_jump_s` and the classifier's label `laps_until_cliff_class` are DIFFERENT QUANTITIES under unchanged column names: the target's mean moved -1.8793 -> -0.3946 s, 10.79% of cliff labels changed class, and the trio's training population moved 82,470 -> 81,619 rows. v11's published headlines (p10 0.53202 / p50 1.04679 / p90 0.57851 pinball, cliff macro-F1 0.37187) were measured against the SUPERSEDED target. A smaller pinball loss here is a smaller target spread, not more skill - the non-leakage baseline moved too (p50 2.17766 -> 1.26289). NO IMPROVEMENT OVER v11 IS CLAIMED OR IMPLIED. The only admissible readings of this card are each model against its own baseline in this same run. The one exception is stint_life_regressor, whose target (`remaining_stint_life_laps`) 08m did not touch - only two of its 32 inputs changed meaning - though even there the eligible row set moved 121,193 -> 119,822, so it is a near-fixed rather than fixed comparison.",
+      "THERMAL-PROXY AND CROSS-SEASON LEAKAGE FIXES (work items 08e/08f, landed 2026-09-17; disclosure only - both fixes' SQL predates this card's numbers, so nothing here moved today). 08e: `int_lap_thermal_proxy`'s stint baseline used to pool laps up to `CEIL(stint_length_actual*0.60)`, reaching forward into laps not yet run (55.92% of mart rows, mean 4.65 laps) and inverting `push_residual`'s sign against two targets; rebuilt as an expanding median over strictly-prior valid laps. Re-read on this card's own v12 substrate: the rebuilt thermal family (`push_residual` + the two cumulative push-load columns + `surface_bulk_ratio`) clears all five targets as an information gain, not leakage recovered - p10 +0.0665 pinball at 9.95x its own noise floor, p50 +0.0676 at 6.06x, p90 +0.0313 at 3.39x, cliff macro-F1 +0.0167 at 3.84x, stint-life AFT nloglik +0.0273 at 4.46x. 08f-1: the quantile trio's `survival_weight` (an XGBoost sample weight, never a feature) used to pool `total_per_compound`/`stints_reaching` across every ingested season, so a 2018 row's weight was partly estimated from 2024; rebuilt as an expanding sum over strictly-prior seasons. Gated in isolation for the first time on this substrate: the weight vector changes substantially (93.3% of training rows), but every quantile headline delta stays inside its own 5-reseed noise floor (p10 0.49x, p50 0.15x, p90 -0.07x) - a real fix, a clean null on the headline; `cliff_classifier`/`stint_life_regressor` never consume this weight and are structurally unaffected. 08f-2: `int_circuit_x_constructor_interaction`'s two season-pooling `GROUP BY`s were rebuilt the same way. Proven algebraically, not merely measured within noise, to move zero live targets: its whole effect on a stint is a constant per (race, constructor), and every target this model is scored against differences laps within one stint, which cancels an exact constant. Full writeup: `_improvements/eval/08e/` and `_improvements/eval/08f/`.",
       "The cliff classifier (macro-F1 ≈ 0.35 on 4-class cliff timing) is the weakest model by headline, and the headline is the wrong way to read it: 1.0 is not reachable on a label where laps inside a stint share a compound, a car, a circuit and a driver. Against an oracle handed the stint id and nothing else it reaches 66% of the ceiling. What limits it is not established. The label was the leading candidate and has been tested: laps_until_cliff_class is a first-crossing scan over int_compound_cliff_predicted, which was unbounded until Phase 8 bounded it at source (compound_wear_max_s_per_lap). Repairing it moved 4.97% of rows and did not lift macro-F1, and a fresh 50-trial search on the repaired label did not beat the params tuned on the contaminated one. Neither the label nor the hyperparameters explain the number.",
       "Hyperparameters come from a 50-trial / season-fold Optuna search per target (ml/models/<target>_best_params.json); `make ml-retrain` refits at those params without re-searching. A target whose data has moved should be re-tuned, not just refit.",
       "No live 2025 holdout yet-headline numbers are time-series CV until 2025 ingests.",

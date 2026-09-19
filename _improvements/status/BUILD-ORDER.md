@@ -110,23 +110,22 @@ because nothing on the ladder waits for them, not because they matter less.
 
 _Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-18`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
 
-**13 live items** (1 blocked). The pointer is on **10e** — that is the one to run next; the rest of the order is what becomes runnable after it. 39 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
+**12 live items** (1 blocked). The pointer is on **09c** — that is the one to run next; the rest of the order is what becomes runnable after it. 40 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
 
 | # | Item | Group | Stage | Cost | Model | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | 1 | `08i` | [08](../work/08-foundations-repair.md) | GATED | 1-2d | `opus-5` | The min_observations floor - the trade 08e priced and did not take | **D10** (human call) |
-| 2 | `09c` | [09](../work/09-scoring-instruments.md) | SPEC | 0.5d | `fable-5.1` | Construction B cannot reject in any family larger than one - raise the e-value ceiling before the next arm | — |
+| 2 | `09c` ▶ | [09](../work/09-scoring-instruments.md) | SPEC | 0.5d | `fable-5.1` | Construction B cannot reject in any family larger than one - raise the e-value ceiling before the next arm | — |
 | 3 | `10d` | [10](../work/10-competing-risks.md) | GATED | 1-2d | `opus-5` | Fix the stint-life calibration defect - the model over-predicts tyre life | — |
-| 4 | `10e` ▶ | [10](../work/10-competing-risks.md) | MEASURED | 1-2d | `opus-5` | Re-tune stint_life_regressor under the honest split and a non-mixture metric | — |
-| 5 | `02b` | [02](../work/02-feature-expansion.md) | MEASURED | 1d | `sonnet-5` | Tier 1 - qualifying | 10e, 09c |
-| 6 | `02c` | [02](../work/02-feature-expansion.md) | MEASURED | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | 09c |
-| 7 | `02d` | [02](../work/02-feature-expansion.md) | MEASURED | 1d | `opus-5` | Tier 3 - SC hazard, with the expanding-window rebuild | 09c |
-| 8 | `02g` | [02](../work/02-feature-expansion.md) | GATED | 0.5-1d | `opus-5` | Rebuild the corner field median as a trailing window | — |
-| 9 | `03c` | [03](../work/03-driver-vs-car.md) | BLOCKED | 1-2w | `fable-5.1` | AKM two-way FE on degradation slope + Kline-Saggio-Solvsten leave-out | **D11** (human call) |
-| 10 | `06a` | [06](../work/06-publication.md) | MEASURED | hours | `sonnet-5` | Pit-timing tail, by constructor | — |
-| 11 | `06b` | [06](../work/06-publication.md) | MEASURED | hours | `opus-5` | Dirty-air coefficient per season - the 2022 regulation question | — |
-| 12 | `00d` | [00](../work/00-corrections.md) | SPEC | 0.5d | `opus-5` | corner_skill_index counts braking earlier as skill - the braking term's sign is inverted | — |
-| 13 | `06c` | [06](../work/06-publication.md) | MEASURED | 0.5d | `opus-5` | Corner-phase skill, incl. the Verstappen braking anomaly | 00d |
+| 4 | `02b` | [02](../work/02-feature-expansion.md) | MEASURED | 1d | `sonnet-5` | Tier 1 - qualifying | 09c |
+| 5 | `02c` | [02](../work/02-feature-expansion.md) | MEASURED | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | 09c |
+| 6 | `02d` | [02](../work/02-feature-expansion.md) | MEASURED | 1d | `opus-5` | Tier 3 - SC hazard, with the expanding-window rebuild | 09c |
+| 7 | `02g` | [02](../work/02-feature-expansion.md) | GATED | 0.5-1d | `opus-5` | Rebuild the corner field median as a trailing window | — |
+| 8 | `03c` | [03](../work/03-driver-vs-car.md) | BLOCKED | 1-2w | `fable-5.1` | AKM two-way FE on degradation slope + Kline-Saggio-Solvsten leave-out | **D11** (human call) |
+| 9 | `06a` | [06](../work/06-publication.md) | MEASURED | hours | `sonnet-5` | Pit-timing tail, by constructor | — |
+| 10 | `06b` | [06](../work/06-publication.md) | MEASURED | hours | `opus-5` | Dirty-air coefficient per season - the 2022 regulation question | — |
+| 11 | `00d` | [00](../work/00-corrections.md) | SPEC | 0.5d | `opus-5` | corner_skill_index counts braking earlier as skill - the braking term's sign is inverted | — |
+| 12 | `06c` | [06](../work/06-publication.md) | MEASURED | 0.5d | `opus-5` | Corner-phase skill, incl. the Verstappen braking anomaly | 00d |
 
 ### Which model to run it on
 

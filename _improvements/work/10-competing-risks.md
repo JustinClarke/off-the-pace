@@ -1657,6 +1657,19 @@ improvement is reported with its own paired-bootstrap `P` and is **not** a leg o
 (P = 0.930). A third failure is the standing ceiling, not a new finding, and it cannot be
 reinterpreted afterwards as a pass.
 
+**The boundary probe, declared when the pin appeared and before it was run.** S2 came back on
+`n_estimators = 50 (low)` — the same axis and the same side its 2026-09-10 counterpart pinned on,
+one widening later. The declared probe is a **coordinate ladder in `n_estimators` at S2's other
+selected parameters**, over {10, 25, 50, 100, 200, 400, 800}, on the same four inner folds and
+through `tune._green_pit_objective`, reported as **S2p**, a declared extension of S2 and not folded
+into it. What it can settle is `boundary_params`' own distinction: a ladder that improves below 50
+means the learner wants a weaker fit than the space allows and the bound must move again; a ladder
+that worsens below 50 means the optimum lives at the edge and the bound is not binding. It is a
+**coordinate** probe and cannot see a joint move ([`../foundations/epistemics.md`](../foundations/epistemics.md));
+it is read for one axis only, which is the question a pin asks. S2p enters the e-value family if
+and only if it is scored on 2024 as an arm — if the ladder says the bound is not binding, it is a
+diagnostic and the family stays at three.
+
 **The landing rule, which is not this session's to invent.** D4 is resolved: ship S1x, flagged
 rather than presented as an established fix. The log's audit note of 2026-09-18 makes that
 conditional on exactly one thing — that S1x still improves green-pit Brier on v12 **with the paired
@@ -1665,7 +1678,351 @@ caveat wording. If it does not, nothing ships and the question goes back to the 
 rested on a measurement that no longer holds. **A fresh arm (S1 or S2) that beats X1 is reported and
 raised, not shipped** — D4 ruled on S1x, and a different parameter set is a different decision.
 
-### Verdict — MEASURED 2026-09-10
+### Verdict — MEASURED 2026-09-19
+
+**The parameter set this item found on 2026-09-10 survives a warehouse rebuild, a target repair and
+a fresh independent search — and the fresh search cannot beat it.** Re-scored on v12, S1x (here the
+declared arm **X1**) improves green-pit IPCW-Brier by **+0.0226**, paired race-cluster bootstrap 95%
+**[+0.0073, +0.0353]**, **200 of 200 draws improving**, ~15× its own reseed floor. A 50-trial search
+run from scratch on this substrate, against the same objective and the same folds, returns a
+configuration whose **own inner-fold objective is worse than X1's** (0.1805 against 0.1780) and
+which is worse out of sample on both Brier and slope. The re-search reproduces the 2026-09-10
+finding without improving on it, which is a stronger result than finding something new.
+
+**And the slope lands on P = 0.945 for the third time.** `10d` measured +0.173 at P = 0.945 on
+2026-09-10, 0.855 at its best arm on 2026-09-18, and this item measured +0.173 at P = 0.930 on
+2026-09-10. X1 on v12 returns **+0.179 at P = 0.945**. Four attempts, four numbers below 0.95, on
+the same 24 races. That is the ceiling, not the model, and it was written down before this run.
+
+#### 1. Gate 1 — the instrument
+
+Anchored on what can be reproduced. The 2026-09-10 figures cannot be: `08m` rebuilt the warehouse
+and `08n` shipped v12 on 2026-09-16, so the eval fold is **19,973 laps / 9,149 green-pit / 24
+races** against the 20,272 / 9,270 / 24 that verdict was measured on.
+
+| gate | anchor | result |
+| :--- | :--- | :--- |
+| 1a | today's published v12 headline, through `E._fit`/`E._score` | `1.9913358778933028` — **exact** |
+| 1b | `10b` §4's A0 row, all 7 stored figures | **exact, every digit** |
+| 1c | substrate drift against 2026-09-10 | reproduction impossible, and stated as such |
+| 1d | the optimism gap, re-measured | slope **0.674 honest / 1.229 in-sample** |
+
+Gate 1d is `10d`'s original finding, alive on v12 eight days and a rebuild later: the shipped
+booster's eval rows sit inside its own training set, and across that gap the calibration slope does
+not merely shrink — it crosses 1.0, so an in-sample reading reports the miscalibration with the
+wrong **sign**. Green-pit AUC reads 0.831 in-sample against 0.690 honest.
+
+The green-pit stratum carries **zero censoring** under `standard`, so every IPCW weight in it is 1
+and the Brier is an ordinary proper score on realised endings.
+
+#### 2. What the searches did, and where one of them stopped
+
+| arm | objective | selected | inner-fold value | boundary |
+| :--- | :--- | :--- | ---: | :--- |
+| **S1** | green-pit IPCW-Brier ↓ | depth **11**, **100** trees, lr 0.0265, scale 0.524, `min_child_weight` 6, subsample 0.835, colsample 0.625 | 0.1805 | **interior on every axis** |
+| **S2** | \|slope − 1\| ↓ | depth 6, **50** trees, lr 0.0318, scale 0.748, `gamma` 0.898, `min_child_weight` 14 | 0.1057 | **pinned** `n_estimators` low |
+
+**Both searches cut shrinkage, and neither reached for depth.** `n_estimators × learning_rate` runs
+5.26 at the incumbent, **2.65** at S1 and **1.59** at S2. That is the same axis the 2026-09-10 run
+moved (to 2.19) and it is now the third independent search to move it. `10d`'s prediction that the
+search would land on low depth is wrong again: S1 went to depth **11**, one step below the ceiling.
+
+**S2 pinned, so the pin was probed and not read.** The declared coordinate ladder in `n_estimators`
+at S2's other selected parameters, on the same four inner folds:
+
+| `n_estimators` | 10 | 25 | **50** | 100 | 200 | 400 | 800 |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| objective \|slope−1\| | 183.48 | 3.82 | **0.106** | 0.392 | 0.414 | 0.456 | 0.485 |
+| pooled slope | 189.26 | 4.75 | 0.915 | 0.562 | 0.534 | 0.504 | 0.475 |
+| inner Brier | 0.450 | 0.324 | 0.190 | 0.194 | 0.210 | 0.213 | 0.217 |
+| pooled margin sd | 0.105 | 0.218 | 0.353 | 0.498 | 0.587 | 0.652 | 0.702 |
+
+**The optimum lives at the edge and the bound is not binding on it.** One step below 50 the
+objective is 36× worse, because the risk score becomes under-dispersed and the slope overshoots to
+4.75 and then 189. That is `boundary_params`' own distinction — "the learner wants more" versus
+"the optimum sits at the edge" — settled the only way it can be, by the probe. It is a
+**coordinate** probe and cannot see a joint move ([`../foundations/epistemics.md`](../foundations/epistemics.md));
+it is read for one axis, which is the question a pin asks. The 2026-09-10 ladder reached the same
+verdict on different rows. **S2p is therefore a diagnostic, not an arm, and the family stays at
+three** — as the addendum declared it would if the ladder came back this way.
+
+**The inner folds rank X1 first, and that is the finding.** Fold-mean over the four training-side
+folds, nothing here having seen a 2024 row:
+
+| | A0 | S1 | S2 | **X1** |
+| :--- | ---: | ---: | ---: | ---: |
+| green-pit Brier (S1's objective) | 0.2098 | 0.1805 | 0.1899 | **0.1780** |
+| \|slope − 1\| (S2's objective) | 0.4155 | 0.3760 | **0.1057** | 0.2745 |
+| mixture AFT NLL (selected on by nobody here) | **2.1852** | 2.2674 | 2.4320 | 2.2663 |
+
+S1 is the winner of a 50-trial search against green-pit Brier and **X1 beats it on that search's own
+objective**, on that search's own folds, having been selected on a different substrate eight days
+earlier. Either 50 TPE trials under-explore this space, or X1 sits in a basin robust to a target
+repair; the two are not exclusive and this item does not have to choose between them to report the
+fact.
+
+#### 3. The arms, on the 2024 eval fold
+
+Green-pit stratum, n = 9,149, 24 races, zero censoring. Every configuration refit on 2018–2023
+through `evaluate._fit` on the identical split; only the hyperparameters differ. Canonical seed
+20260528.
+
+| arm | slope | boot 95% | AUC | Brier | boot 95% | mean log bias | intercept | margin sd |
+| :--- | ---: | :--- | ---: | ---: | :--- | ---: | ---: | ---: |
+| **A0** incumbent v12 | 0.6736 | [0.431, 0.911] | 0.6896 | 0.1904 | [0.174, 0.211] | −0.2741 | +0.2319 | 0.5818 |
+| S1 brier | 0.6280 | [0.453, 0.824] | 0.7120 | 0.1756 | [0.161, 0.193] | −0.0305 | +0.1897 | 0.4730 |
+| S2 slope | 1.1919 | [0.866, 1.589] | 0.7095 | 0.1838 | [0.169, 0.200] | +0.3402 | −0.3064 | 0.3488 |
+| **X1** = S1x | **0.8754** | **[0.619, 1.147]** | 0.7096 | **0.1689** | **[0.159, 0.184]** | +0.0680 | +0.0229 | 0.4363 |
+
+Gate 3, five seeds 20260528–20260532 with XGBoost's `seed` varied, **each arm against its own
+floor** (`2*sqrt(2)*sd`), never a borrowed one:
+
+| arm | Δ\|slope−1\| | × floor | ΔBrier | × floor | ΔAUC | × floor |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| S1 | **−0.0283** | −0.94× | +0.0168 | 6.66× | +0.0272 | 2.90× |
+| S2 | +0.1235 | 2.33× | +0.0080 | 6.70× | +0.0217 | 7.00× |
+| **X1** | **+0.2118** | **6.52×** | **+0.0226** | **14.98×** | +0.0209 | 3.27× |
+
+A0's own floors, which `02b` needs and which are measured here under `standard`, this family's own
+label: slope sd 0.008848 (floor 0.025025), Brier sd 0.000736 (floor 0.002082), AUC floor 0.006012.
+
+#### 4. The paired race-cluster bootstrap — the instrument that matches the estimand
+
+200 draws, seed 20260910, races the resampling unit, both arms scored on the **same** resampled
+races so the shared race-draw noise cancels. `10d` §4 ruled this authoritative where the floor, the
+e-value and the bootstrap disagree; this item does not re-litigate that after seeing its numbers.
+
+| arm | ΔBrier | 95% | P | Δ\|slope−1\| | 95% | P |
+| :--- | ---: | :--- | ---: | ---: | :--- | ---: |
+| S1 | +0.0150 | [+0.0040, +0.0246] | **1.000** | −0.0362 | [−0.107, +0.049] | 0.175 |
+| S2 | +0.0088 | [−0.0166, +0.0313] | 0.730 | +0.0962 | [−0.450, +0.478] | 0.650 |
+| **X1** | **+0.0226** | **[+0.0073, +0.0353]** | **1.000** | +0.1792 | [−0.040, +0.270] | **0.945** |
+
+**Against the declared three-leg criterion: S1 and X1 pass, S2 fails on leg 2.** X1 passes with the
+larger margin on every leg it is judged by.
+
+**The slope is where it has always been.** +0.179, interval straddling zero, P = 0.945 — the fourth
+measurement of this quantity in this campaign and the fourth below the bar. A proper score evaluated
+per row has far less sampling variance than a slope fitted through five binned points, which is why
+the same 24 races resolve the Brier and cannot resolve the slope. Nothing here is a new limit.
+
+**S2 is the arm that shows what the two objectives are worth.** It is selected on \|slope − 1\| and
+it buys the best slope of the three on the training folds (0.106) — then lands at **1.19** out of
+sample, overshooting past 1.0, with the widest interval of any arm [0.866, 1.589] and a Brier gain
+the bootstrap cannot resolve (P = 0.730). Optimising the slope alone selects a configuration whose
+slope is unstable, because the quantity being optimised is itself the noisiest thing measured here.
+
+#### 5. The level bias — the prediction, and where it broke, again
+
+The 2026-09-10 verdict predicted that a slope-only search leaves the level where it is, and found
+that Brier selection breaks the pattern. **Both halves reproduce on v12, and the slope-only arm is
+worse than "unchanged" — it overshoots.**
+
+| | 5 bins, predicted risk → observed risk | mean log bias | intercept |
+| :--- | :--- | ---: | ---: |
+| A0 | 0.108→0.287 · 0.250→0.410 · 0.409→0.535 · 0.566→0.597 · 0.766→0.744 | −0.2741 | +0.2319 |
+| S2 | 0.460→0.225 · 0.604→0.445 · 0.706→0.565 · 0.789→0.563 · 0.885→0.776 | **+0.3402** | −0.3064 |
+| S1 | 0.133→0.200 · 0.319→0.444 · 0.517→0.598 · 0.714→0.596 · 0.905→0.735 | **−0.0305** | +0.1897 |
+| **X1** | 0.266→0.223 · 0.433→0.450 · 0.579→0.540 · 0.697→0.607 · 0.834→0.753 | +0.0680 | +0.0229 |
+
+A0 predicts **below** observed risk in all five bins — the gauge says a tyre has life it does not
+have. S2 predicts **above** it in all five and by more than the incumbent was wrong the other way:
+\|mean log bias\| 0.274 → 0.340. X1 flips the sign and cuts the magnitude **75%**, to +0.068. And
+the arm that gets closest to zero on the level is **S1**, at −0.0305, an 89% reduction that keeps
+the incumbent's sign — the only arm here that reduces the level error without inverting it.
+
+That matters for the product question and it is worth stating plainly, because it is the one axis on
+which the fresh search beats X1: **S1 errs conservatively-by-almost-nothing, X1 errs conservatively
+by a little, A0 errs dangerously by a lot.** S1's price for it is the worst calibration slope of the
+four (0.628, below even the incumbent) and a Brier gain a third smaller than X1's.
+
+#### 6. Gates 2 and 4 — inapplicable in their literal form, stated rather than skipped
+
+**Gate 2** is an add-ablation and nothing is added: all four arms are the same 32-column matrix
+under the same `standard` label, fitted differently. The substituted requirement — one split, one
+label construction, one set of eval rows for every arm, through `evaluate.py`'s own `_fit` — is met
+exactly.
+
+**Gate 4** row-shuffles new columns and there are none. The reseed null is the declared substitute
+and its floors are in §3. The correction this item made to `10d`'s phrasing on 2026-09-10 stands and
+is repeated because it is easy to lose: for a hyperparameter re-search, **capacity is not a
+nuisance held constant — it is the entire content of the arm**, so there is no
+information-versus-capacity decomposition available and the e-value's null below is stated as what
+it is, "no difference beyond refit noise", not as an information null it cannot be. Both
+substitutions are why this item is **MEASURED, never GATED**.
+
+#### 7. Gate 7 — the e-values, the family, and an instrument that must be read with its sign
+
+Construction B as declared (`g = 1`, `n = 5` paired reseed deltas), **verified before use**: 100k
+simulated draws of five i.i.d. `N(0, σ)` deltas return mean `E` = 0.999–1.011 at every σ tested, and
+the reference's own worked example returns **17.05** against its published 17.0.
+
+| arm | Δ\|slope−1\| | `E_B` slope | `E_A` slope | ΔBrier | `E_B` Brier | `E_A` Brier |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| S1 | −0.0283 | 13.74 *(wrong direction)* | 0.055 | +0.0168 | 34.25 | 7.1 × 10⁵ |
+| S2 | +0.1235 | 25.64 | 2.7 × 10³ | +0.0080 | 31.77 | 3.7 × 10² |
+| X1 | +0.2118 | **34.38** | 1.4 × 10⁶ | +0.0226 | **35.57** | 9.8 × 10⁷ |
+
+**e-BH at α = 0.05 over the three declared arms rejects all three on Brier, and none on slope.** The
+family is three, so the ladder is `E ≥ 60` for a lone rejection, `≥ 30` for two, `≥ 20` for all
+three; the Brier column clears the three-arm rung and the slope column clears no rung. This is, as
+far as this tree records, **the first e-BH rejection in the campaign** — and it happens not because
+the evidence is stronger than `10e`'s was on 2026-09-10 but because **the family is three instead of
+four**. The best arm's `E` is 35.57 against 35.9 then. That is the honest reading and it is
+uncomfortable: the multiplicity verdict here turned on how many hypotheses were declared, which is
+what multiplicity correction is, and it is also why `09c` exists.
+
+**Three things must be read alongside that number, none of them flattering.**
+
+1. **Construction B's ceiling is 36 and the winner is at 35.57.** `E` is pinned against the
+   arithmetic limit of the construction, so it is not measuring how strong this evidence is any
+   more — it is measuring that the evidence is strong enough to saturate a bounded instrument.
+   Declared in advance (addendum, gate 7) precisely so this could not be discovered afterwards.
+2. **The e-value's null is refit noise; the estimand's uncertainty is sampling noise.** e-BH rejects
+   **S2** on Brier at `E_B` = 31.77 while the paired bootstrap on the same arm returns
+   **P = 0.730** with an interval straddling zero. Two declared instruments, one public
+   disagreement, and `10d` §4's standing ruling decides it: **the bootstrap is the one to believe**,
+   so S2's Brier gain is not established whatever e-BH says about it.
+3. **Construction B as implemented here is two-sided in `t`**, so it scores "there is a difference",
+   not "there is an improvement". S1's slope `E_B` = 13.74 comes from `t = −6.21` — a delta in the
+   **wrong** direction — and is marked as such in the table rather than being quietly counted as
+   evidence for S1. No rejection depends on it (the slope column rejects nothing at any rung), so
+   the two-sidedness changes no conclusion here, but an `E` from this harness must never be quoted
+   without the sign of its delta. The 2026-09-10 run declared a one-sided truncation and this one
+   did not; that is a difference between the two runs' instruments and it is logged in §10 rather
+   than smoothed over.
+
+Construction A is inflated again — 9.8 × 10⁷ for X1 — for the reason `10d` diagnosed and this item
+confirmed: its scale is five-seed refit noise where the bootstrap puts sampling noise an order of
+magnitude higher. Reported because it was declared. Not believed.
+
+#### 8. The metric the incumbent was tuned on
+
+On the training folds' own mixture AFT NLL — the objective that selected the shipped parameters —
+the incumbent is **best** (2.1852, against 2.2663–2.4320 for the three arms). On the green-pit
+stratum it is **worst** (eval-fold green-pit NLL 3.4377, against X1's 3.2922). The two metrics rank
+these four models in opposite orders, and the mixture is the one the app does not care about. That
+is `10c`'s ruling restated in this item's own numbers, for the second time and on a rebuilt
+substrate.
+
+#### 9. Answering the definition of done, and D4
+
+**A tuned parameter set selected under a split and a metric that both match the estimand:** yes, and
+it is the one this item already had. **X1 = S1x** — `censoring_variant=standard` (D5's realised
+stint ending), folds confined to 2018–2023, green-pit IPCW-Brier as the objective. Against the
+honest incumbent on v12 (slope 0.674 / AUC 0.690 / Brier 0.190): slope → **0.875**, \|slope−1\| −62%
+at 6.5× floor; Brier → **0.169**, 15.0× floor and the only gain any instrument here resolves at 95%;
+AUC → **0.710**, +0.021 at 3.3× floor, an increase; mean log bias −0.274 → **+0.068**.
+
+**What it costs:** the level error changes sign rather than closing, and the calibration-slope gain
+remains unresolved at 95% on 24 races for the fourth time.
+
+**D4's landing condition is met.** D4 was resolved on 2026-09-11 — ship S1x, flagged clearly rather
+than presented as an established fix — and the landing never executed; the session hit a usage
+limit, and `08n` then shipped v12 on 2026-09-16 carrying v11's hyperparameters, so production is
+**not** S1x. The log's audit note of 2026-09-18 made the landing conditional on exactly one thing:
+that S1x still improves green-pit Brier on v12 with the paired interval excluding zero. It does —
+**+0.0226 [+0.0073, +0.0353]**. The condition was written before this run and this run met it.
+
+**The fresh search did not produce a better candidate, so no new decision is raised.** The
+addendum's branch for that case — report and raise, never ship — does not fire. S1 loses to X1 on
+Brier (0.1756 vs 0.1689), loses on slope (0.628 vs 0.875, and 0.628 is worse than the incumbent's
+0.674), and wins only on \|mean log bias\| (0.031 vs 0.068) and by 0.0024 of AUC, which is inside
+the AUC floor. **S1's level advantage is recorded here as the one thing the fresh search found that
+X1 does not have**, so that whoever reopens the level-direction product question has it in hand.
+
+#### 10. Deviations from the declared method, logged
+
+- **The e-value instrument differs from the 2026-09-10 run's.** That run declared and applied a
+  one-sided truncation to Construction B (validated at null mean `E` = 0.70); this run reused
+  `10d`'s harness, which is two-sided (validated at null mean `E` = 1.00). Both are valid
+  e-values against their own nulls. The difference is stated in §7, the direction is printed beside
+  every `E`, and no rejection here turns on it. It was not noticed at declaration time, which is
+  why it is a deviation and not a design choice.
+- **The harness was dry-run once before the real arms**, on placeholder parameter files (the
+  incumbent's own params, and the incumbent at depth 3) with the bootstrap skipped, to catch a
+  crash before an hour of compute rather than after. Its outputs were deleted, no figure from it
+  appears anywhere, and the run is named here rather than left out.
+- **S2p, the declared boundary ladder, was run as a diagnostic and not scored on 2024.** The
+  addendum said it would enter the family if and only if it became an arm, and the ladder's answer —
+  the bound is not binding — is what kept it out. Had the ladder gone the other way the family
+  would be four and the e-BH rungs 80/40/26.7.
+- **Trial count 50, not the 60 the 2026-09-10 pre-registration named.** 50 is what that run's own
+  recorded command used and what this addendum declared before running. Named because the two
+  numbers are both in this document.
+- **The mixture AFT NLL is reported on the inner folds and on the green-pit stratum, not as a
+  whole-eval-fold headline per arm.** That number exists only for A0 (gate 1a, 1.9913) because
+  producing it for the arms means a fit whose only purpose is a metric `10c` ruled out. §8 makes its
+  point with the two figures that were already computed.
+
+### Landing note — LANDED 2026-09-19, on D4's ruling
+
+**What shipped.** `ml/models/stint_life_regressor_best_params.json` now carries X1/S1x, and
+`stint_life_regressor_v12.bst` is retrained on it. `max_depth` stays at **8** — the shipped value —
+and the fit is bought back on the shrinkage axis: `n_estimators` 200 → **100**, `learning_rate`
+0.02631 → **0.02192**, `aft_loss_distribution_scale` 0.80 → **0.754**, with `reg_alpha`,
+`min_child_weight`, `subsample` and `colsample_bytree` moving too. `n_estimators × learning_rate`
+falls 5.26 → 2.19.
+
+**Why it is a landing and not a gate pass.** [D4](../status/build-log.json) was resolved on
+2026-09-11 — ship S1x, flagged clearly rather than presented as an established fix — as a deliberate
+human override of the normal `GATED` prerequisite, logged then and logged again here. The landing
+did not execute that day (the session hit a usage limit) and `08n` shipped v12 on 2026-09-16
+carrying v11's hyperparameters, so production was never S1x. The log's audit of 2026-09-18 made
+re-execution conditional on one measurement, which §9 above reports as met.
+
+**The verification D4 asked for, run after the landing.** `evaluate_10c --variant standard` on the
+shipped configuration returns green-pit **AUC 0.7096, Brier 0.1689, slope 0.8754** — X1's row above,
+to four decimals. The landing landed the parameter set it was supposed to land.
+
+**One thing the landing improved that nothing predicted.** The optimism gap — gate 1d, the defect
+`10d` found — **shrinks by more than half**: AUC optimism +0.1415 → **+0.0834**, Brier +0.0484 →
+**+0.0056**, slope +0.5557 → **+0.3066**. Less shrinkage means less memorisation of the training
+seasons, which is the mechanism, and it means an in-sample reading of this model is now much less
+wrong than an in-sample reading of the old one. It still crosses 1.0 in sample (1.182 against 0.875
+honest), so the rule that produced `10c`'s original error stands: **never read this model's
+calibration in sample.**
+
+**The cost, which D4 did not have in front of it.** This family's *published headline* is the
+mixture AFT NLL, and landing S1x makes it worse: **1.99134 → 2.15315**, against a baseline that also
+moves (2.18868 → 2.20099, because the AFT baseline is computed at the model's own fitted scale).
+`beats_baseline` stays **True**; `beats_baseline_significant` flips **True → False**, and
+`evaluation_metrics.json` now lists `stint_life_regressor` under `claims_inside_noise`. This is the
+expected direction — `10c` ruled the mixture the wrong headline for this target, and §8 above shows
+the two metrics ranking these models in opposite orders — but it is a real consequence that was not
+weighed when D4 was ruled, and it is recorded here, on the model card (deviation `E4` and its
+limitations entry) and in the log rather than left for someone to discover. On the green-pit
+stratum's own NLL the new parameters win, 3.4377 → 3.2922.
+
+**What else moved, and what did not.** `evaluate --all` was re-run so the published metrics match
+the shipped artefacts — a step D4's recorded nine-step sequence omits, and without it every future
+gate 1a would reproduce a headline no artefact carries. The other four families reproduce **to
+every digit** across that re-run, which is its own small instrument check. ONNX parity passes for
+all five (stint-life abs 2.98e-05). `ml/models/encoders.json` is unchanged. The warehouse was not
+touched.
+
+**Test suite: 209 passed, 1 failed, and the failure is not this item's.**
+`test_aggregation_survey_still_names_the_outstanding_instance` asserts that
+`int_sc_hazard_history` still appears in the aggregation survey with the wording "pools every
+ingested season". It appears, but `02d`'s rebuild changed what it pools, so the survey now says
+"pools the laps of one race" and "pools the races of one season". Both the SQL and the test are
+unmodified against `HEAD`, and nothing in this landing can reach `survey_aggregation_scope` — so
+this is red at `HEAD`, it belongs to `02d`, and it is reported rather than fixed here because
+re-wording another item's advance notice is that item's call.
+
+**Reverting, if D4 is reconsidered.** `ml/models/stint_life_regressor_best_params.json`,
+`ml/models/manifest.json`, `ml/models/model_card.json`, `ml/model_card.yml`, `ml/src/card.py` and
+`app/public/models/{manifest,model_card}.json` are tracked and revert with `git checkout`. The
+`.bst`/`.onnx` artefacts and `ml/artefacts/evaluation_metrics.json` are gitignored; the pre-landing
+copies were kept for the session and the durable route back is `make ml-retrain ml-evaluate ml-onnx
+ml-card app-models` once the params file is reverted. Nothing was committed.
+
+### Verdict — MEASURED 2026-09-10 — **superseded on the v12 substrate**, see the verdict above
+
+Every figure below was measured on the pre-`08m` warehouse (eval fold 20,272 laps / 9,270 green-pit)
+and none of them reproduces today. The finding did survive: the 2026-09-19 re-run re-scored this
+verdict's winner on v12 and it still wins. Read this section for its reasoning, never for its
+numbers.
 
 **The search moves the numbers, and it moves the half `10d` said would not move.** Re-run under the
 `standard` label, on the training side only, selecting on green-pit IPCW-Brier, the search returns a

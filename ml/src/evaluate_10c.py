@@ -20,8 +20,17 @@ shipped-booster path survives only as a labelled `in_sample` diagnostic that mai
 beside the headline as a gap, never on its own.
 
 CLI:
-  python -m ml.src.evaluate_10c                       # honest headline + in-sample gap
-  python -m ml.src.evaluate_10c --variant standard    # the other label construction
+  python -m ml.src.evaluate_10c                   # honest headline + in-sample gap
+  python -m ml.src.evaluate_10c --variant 10b    # the label 10b proposed and lost on
+
+The default variant is `standard` -- D5's ruling, which `10b`'s 2026-09-18 verdict then
+confirmed statistically (green-pit NLL -6.22x the arm's own floor, 0 of 200 bootstrap
+draws favouring `10b`). It defaulted to `10b` until `10c`'s refresh, so anyone who
+re-ran this script with defaults after 2026-09-10 measured the rejected label.
+
+The richer cause-specific evaluation -- three framings, the dependence band, and real
+D-calibration -- lives in `scripts/eval_10c_cause_specific_framework.py`; this module
+remains the single-framing instrument that `10d` repaired and `10e` selected against.
 """
 from __future__ import annotations
 
@@ -52,7 +61,7 @@ def _bundle(censoring_variant: str) -> F.FeatureBundle:
     return _BUNDLES[censoring_variant]
 
 
-def load_model_and_data(censoring_variant: str = "10b", mode: str = "honest") -> dict:
+def load_model_and_data(censoring_variant: str = "standard", mode: str = "honest") -> dict:
     """Predictions on the eval fold, and how they were produced.
 
     mode="honest"    -- refit on split.X_tr (2018-2023) and score 2024. The headline.
@@ -279,7 +288,7 @@ def _green_pit(block: dict) -> dict:
     return {}
 
 
-def main(censoring_variant: str = "10b"):
+def main(censoring_variant: str = "standard"):
     """Run 10c evaluation: the honest headline, with the in-sample gap beside it."""
     print(f"Evaluating stint_life_regressor, censoring_variant={censoring_variant}")
     print("  headline  = refit on 2018-2023, scored on 2024 (out of sample)")
@@ -362,7 +371,10 @@ def main(censoring_variant: str = "10b"):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--variant", default="10b", choices=["standard", "10b"],
-                    help="censoring variant for the stint-life label (default: 10b)")
+    ap.add_argument("--variant", default="standard", choices=["standard", "10b"],
+                    help="censoring variant for the stint-life label (default: standard "
+                         "-- D5's ruling, and the label 10b's 2026-09-18 verdict kept. "
+                         "The default was '10b' until 10c's refresh; anyone re-running "
+                         "with the old default measured the REJECTED label.")
     args = ap.parse_args()
     results = main(censoring_variant=args.variant)

@@ -1,0 +1,708 @@
+{
+  "item": "10b",
+  "generated_at": "2026-09-17T21:27:27.481112+00:00",
+  "substrate": {
+    "model_version": "v12",
+    "n_feature_columns": 32,
+    "params": {
+      "aft_loss_distribution_scale": 0.8,
+      "colsample_bytree": 0.849893616236758,
+      "gamma": 0.0013846541929909116,
+      "learning_rate": 0.026307490821070707,
+      "max_depth": 8,
+      "min_child_weight": 5,
+      "n_estimators": 200,
+      "reg_alpha": 0.009107831834843637,
+      "reg_lambda": 0.24251495812504203,
+      "subsample": 0.8462988772079394
+    },
+    "params_source": "ml/models/stint_life_regressor_best_params.json"
+  },
+  "arms": {
+    "A0": "standard",
+    "A1": "10b"
+  },
+  "seeds": [
+    20260528,
+    20260529,
+    20260530,
+    20260531,
+    20260532
+  ],
+  "e_value_g": 1.0,
+  "hypotheses": [
+    "green_pit_nll",
+    "green_pit_ipcw_brier"
+  ],
+  "gate_5": {
+    "label_columns_in_feature_contract": [],
+    "pass": true
+  },
+  "gate_2_substitute": {
+    "X_tr_identical": true,
+    "X_ev_identical": true,
+    "y_tr_identical": true,
+    "y_ev_identical": true,
+    "lap_ids_tr_identical": true,
+    "lap_ids_ev_identical": true,
+    "split_mode": "cv_final_fold",
+    "eval_season": 2024,
+    "train_seasons": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023
+    ],
+    "cens_tr_rows_differing": 9135,
+    "cens_ev_rows_differing": 1185,
+    "pass": true
+  },
+  "green_pit_stratum": {
+    "n_green_pit": 9149,
+    "n_eval_races": 24,
+    "n_green_pit_races": 24,
+    "censored_under_standard": 0.0,
+    "censored_under_10b": 0.0,
+    "y_identical_on_stratum": true,
+    "eval_cause_counts": {
+      "race_end": 9385,
+      "green_pit": 9149,
+      "sc_pit": 884,
+      "vsc_pit": 282,
+      "retirement": 254,
+      "red": 19
+    },
+    "train_cause_counts": {
+      "green_pit": 45022,
+      "race_end": 42458,
+      "sc_pit": 5710,
+      "retirement": 3234,
+      "vsc_pit": 2575,
+      "red": 850
+    }
+  },
+  "step_1b_substrate_drift": {
+    "published_n_eval_laps": 20272,
+    "today_n_eval_laps": 19973,
+    "published_n_green_pit": 9270,
+    "today_n_green_pit": 9149,
+    "published_n_eval_races": 24,
+    "today_n_eval_races": 24,
+    "six_decimal_reproduction_of_published_figures_possible": false,
+    "why": "08m rebuilt the warehouse and 08n shipped v12 on 2026-09-16, after 10b/10c/10d/10e ran. The eval rows are not the same rows, so no figure those items published can be reproduced to six decimals; gate 1 is anchored on today's published v12 headline instead."
+  },
+  "step_1a_instrument": {
+    "published_headline": 1.9913358778933028,
+    "published_censoring_variant": "standard",
+    "published_version": "v12",
+    "reproduced_headline": 1.9913358778933028,
+    "abs_difference": 0.0,
+    "matches_to_six_decimals": true
+  },
+  "step_1e_modes": {
+    "honest": {
+      "A0": {
+        "n": 9149,
+        "n_censored": 0,
+        "green_pit_nll": 3.4376675618143007,
+        "green_pit_ipcw_brier": 0.1903917717687864,
+        "green_pit_auc": 0.6895774514309989,
+        "calibration_slope": 0.6735936337052354,
+        "calibration_intercept": 0.23187910000373496,
+        "calibration_bins": {
+          "predicted": [
+            0.10832224692151124,
+            0.25001751625715163,
+            0.4091372940951021,
+            0.5655659757026281,
+            0.7663246997312004
+          ],
+          "observed": [
+            0.2868852459016389,
+            0.41038251366120204,
+            0.5347184253690541,
+            0.5972677595628415,
+            0.7442622950819671
+          ]
+        },
+        "mean_log_bias": -0.27413700814322794,
+        "margin_sd": 0.5818239268804684,
+        "full_fold_nll_scored_under_standard": 1.9913358778933028,
+        "full_fold_nll_scored_under_10b": 1.8284516664661703,
+        "scale": 0.8,
+        "n_fit_rows": 99849
+      },
+      "A1": {
+        "n": 9149,
+        "n_censored": 0,
+        "green_pit_nll": 3.536060028665521,
+        "green_pit_ipcw_brier": 0.2031370643446226,
+        "green_pit_auc": 0.6987008739773595,
+        "calibration_slope": 0.6993322076789888,
+        "calibration_intercept": 0.26014278436454763,
+        "calibration_bins": {
+          "predicted": [
+            0.06218841010772485,
+            0.18863242269163408,
+            0.3392503527158524,
+            0.5018886304385538,
+            0.7280458414642182
+          ],
+          "observed": [
+            0.30546448087431666,
+            0.3950819672131145,
+            0.5095680699835978,
+            0.5775956284153003,
+            0.785792349726776
+          ]
+        },
+        "mean_log_bias": -0.4328740537264119,
+        "margin_sd": 0.6305819865213744,
+        "full_fold_nll_scored_under_standard": 1.9697966357429082,
+        "full_fold_nll_scored_under_10b": 1.7892810041463065,
+        "scale": 0.8,
+        "n_fit_rows": 99849
+      },
+      "delta_A0_minus_A1": {
+        "green_pit_nll": -0.09839246685122038,
+        "green_pit_ipcw_brier": -0.012745292575836176,
+        "green_pit_auc": 0.00912342254636056,
+        "abs_calibration_slope_minus_1": 0.025738573973753454
+      },
+      "delta_full_fold_nll_scored_under_10b": 0.03917066231986377,
+      "delta_full_fold_nll_scored_under_standard": 0.0215392421503946,
+      "mismatched_scoring_delta": 0.20205487374699627
+    },
+    "in_sample": {
+      "A0": {
+        "n": 9149,
+        "n_censored": 0,
+        "green_pit_nll": 3.217687819441768,
+        "green_pit_ipcw_brier": 0.14200632243147923,
+        "green_pit_auc": 0.8310325814075534,
+        "calibration_slope": 1.2293370456935344,
+        "calibration_intercept": -0.05660392663409752,
+        "calibration_bins": {
+          "predicted": [
+            0.13328295630024053,
+            0.3122777737766814,
+            0.46731343456529056,
+            0.6174415463015608,
+            0.7932881066689191
+          ],
+          "observed": [
+            0.17049180327868863,
+            0.2683060109289618,
+            0.45489338436304017,
+            0.7431693989071038,
+            0.9366120218579235
+          ]
+        },
+        "mean_log_bias": -0.16769974576224875,
+        "margin_sd": 0.5783172219046134,
+        "full_fold_nll_scored_under_standard": 1.7701471000018465,
+        "full_fold_nll_scored_under_10b": 1.6153274695679873,
+        "scale": 0.8,
+        "n_fit_rows": 119822
+      },
+      "A1": {
+        "n": 9149,
+        "n_censored": 0,
+        "green_pit_nll": 3.234455087760909,
+        "green_pit_ipcw_brier": 0.14299391777463757,
+        "green_pit_auc": 0.8396405699683115,
+        "calibration_slope": 1.219160369379277,
+        "calibration_intercept": -0.022311678074126484,
+        "calibration_bins": {
+          "predicted": [
+            0.10901174718889944,
+            0.28173576461914424,
+            0.4371178838997226,
+            0.5972370116038969,
+            0.7771934225317889
+          ],
+          "observed": [
+            0.17396061269146568,
+            0.25382096069869,
+            0.4696555494805905,
+            0.7333333333333332,
+            0.9426229508196722
+          ]
+        },
+        "mean_log_bias": -0.23474225975511617,
+        "margin_sd": 0.6067112413156083,
+        "full_fold_nll_scored_under_standard": 1.787338591989516,
+        "full_fold_nll_scored_under_10b": 1.588156085504495,
+        "scale": 0.8,
+        "n_fit_rows": 119822
+      },
+      "delta_A0_minus_A1": {
+        "green_pit_nll": -0.016767268319140882,
+        "green_pit_ipcw_brier": -0.0009875953431583429,
+        "green_pit_auc": 0.008607988560758062,
+        "abs_calibration_slope_minus_1": 0.010176676314257449
+      },
+      "delta_full_fold_nll_scored_under_10b": 0.0271713840634924,
+      "delta_full_fold_nll_scored_under_standard": -0.01719149198766945,
+      "mismatched_scoring_delta": 0.18199101449735156
+    }
+  },
+  "step_1e_optimism_A1": {
+    "green_pit_nll": {
+      "honest": 3.536060028665521,
+      "in_sample": 3.234455087760909,
+      "optimism": -0.3016049409046122
+    },
+    "green_pit_ipcw_brier": {
+      "honest": 0.2031370643446226,
+      "in_sample": 0.14299391777463757,
+      "optimism": -0.06014314656998501
+    },
+    "green_pit_auc": {
+      "honest": 0.6987008739773595,
+      "in_sample": 0.8396405699683115,
+      "optimism": 0.14093969599095202
+    },
+    "calibration_slope": {
+      "honest": 0.6993322076789888,
+      "in_sample": 1.219160369379277,
+      "optimism": 0.5198281617002881
+    }
+  },
+  "step_1f_full_fold_decomposition": {
+    "A0": {
+      "mean_pred_median_laps": 20.68019550451715,
+      "median_pred_median_laps": 17.25780233804846,
+      "scored_under_standard": {
+        "censored_share": 0.4826015120412557,
+        "nll_all": 1.9913358778933028,
+        "nll_uncensored_rows": 3.446184741070477,
+        "nll_censored_rows": 0.4315881704472067
+      },
+      "scored_under_10b": {
+        "censored_share": 0.541931607670355,
+        "nll_all": 1.8284516664661703,
+        "nll_uncensored_rows": 3.4376675618143007,
+        "nll_censored_rows": 0.46825984952788086
+      }
+    },
+    "A1": {
+      "mean_pred_median_laps": 25.99550819260626,
+      "median_pred_median_laps": 21.442777066774212,
+      "scored_under_standard": {
+        "censored_share": 0.4826015120412557,
+        "nll_all": 1.9697966357429082,
+        "nll_uncensored_rows": 3.546557989561571,
+        "nll_censored_rows": 0.27934619167588365
+      },
+      "scored_under_10b": {
+        "censored_share": 0.541931607670355,
+        "nll_all": 1.7892810041463065,
+        "nll_uncensored_rows": 3.536060028665521,
+        "nll_censored_rows": 0.31281377434897734
+      }
+    },
+    "delta_under_standard": {
+      "uncensored_rows": -0.10037324849109375,
+      "censored_rows": 0.15224197877132306
+    },
+    "delta_under_10b": {
+      "uncensored_rows": -0.09839246685122038,
+      "censored_rows": 0.15544607517890352
+    }
+  },
+  "step_2_arms_canonical_seed": {
+    "note": "the canonical fit is E._fit, whose AFTBooster default seed is S.RANDOM_STATE = 20260528 -- i.e. the first reseed. Values therefore coincide with seed 20260528 below, by construction and not by luck.",
+    "arms": {
+      "A0": {
+        "n": 9149,
+        "n_censored": 0,
+        "green_pit_nll": 3.4376675618143007,
+        "green_pit_ipcw_brier": 0.1903917717687864,
+        "green_pit_auc": 0.6895774514309989,
+        "calibration_slope": 0.6735936337052354,
+        "calibration_intercept": 0.23187910000373496,
+        "calibration_bins": {
+          "predicted": [
+            0.10832224692151124,
+            0.25001751625715163,
+            0.4091372940951021,
+            0.5655659757026281,
+            0.7663246997312004
+          ],
+          "observed": [
+            0.2868852459016389,
+            0.41038251366120204,
+            0.5347184253690541,
+            0.5972677595628415,
+            0.7442622950819671
+          ]
+        },
+        "mean_log_bias": -0.27413700814322794,
+        "margin_sd": 0.5818239268804684,
+        "full_fold_nll_scored_under_standard": 1.9913358778933028,
+        "full_fold_nll_scored_under_10b": 1.8284516664661703,
+        "scale": 0.8,
+        "n_fit_rows": 99849
+      },
+      "A1": {
+        "n": 9149,
+        "n_censored": 0,
+        "green_pit_nll": 3.536060028665521,
+        "green_pit_ipcw_brier": 0.2031370643446226,
+        "green_pit_auc": 0.6987008739773595,
+        "calibration_slope": 0.6993322076789888,
+        "calibration_intercept": 0.26014278436454763,
+        "calibration_bins": {
+          "predicted": [
+            0.06218841010772485,
+            0.18863242269163408,
+            0.3392503527158524,
+            0.5018886304385538,
+            0.7280458414642182
+          ],
+          "observed": [
+            0.30546448087431666,
+            0.3950819672131145,
+            0.5095680699835978,
+            0.5775956284153003,
+            0.785792349726776
+          ]
+        },
+        "mean_log_bias": -0.4328740537264119,
+        "margin_sd": 0.6305819865213744,
+        "full_fold_nll_scored_under_standard": 1.9697966357429082,
+        "full_fold_nll_scored_under_10b": 1.7892810041463065,
+        "scale": 0.8,
+        "n_fit_rows": 99849
+      }
+    },
+    "delta_A0_minus_A1": {
+      "green_pit_nll": -0.09839246685122038,
+      "green_pit_ipcw_brier": -0.012745292575836176,
+      "green_pit_auc": 0.00912342254636056,
+      "abs_calibration_slope_minus_1": 0.025738573973753454
+    }
+  },
+  "step_3_reseed_floors": {
+    "A0": {
+      "green_pit_nll": {
+        "n_seeds": 5,
+        "by_seed": [
+          3.4376675618143007,
+          3.4447721505533444,
+          3.4424914495142636,
+          3.442459405202135,
+          3.4387170724050655
+        ],
+        "mean": 3.4412215278978224,
+        "sd": 0.002943422099035641,
+        "delta_noise_1sd": 0.004162627452244887,
+        "delta_noise_2sd": 0.008325254904489774
+      },
+      "green_pit_ipcw_brier": {
+        "n_seeds": 5,
+        "by_seed": [
+          0.1903917717687864,
+          0.19231862832379176,
+          0.191629936733658,
+          0.19125553815156987,
+          0.19085942798309719
+        ],
+        "mean": 0.19129106059218065,
+        "sd": 0.0007360403221298278,
+        "delta_noise_1sd": 0.0010409182060094643,
+        "delta_noise_2sd": 0.0020818364120189286
+      },
+      "green_pit_auc": {
+        "n_seeds": 5,
+        "by_seed": [
+          0.6895774514309989,
+          0.685463476568341,
+          0.6878788898125487,
+          0.6901661651275384,
+          0.6907048247078067
+        ],
+        "mean": 0.6887581615294467,
+        "sd": 0.002125516134382439,
+        "delta_noise_1sd": 0.0030059337442864794,
+        "delta_noise_2sd": 0.006011867488572959
+      },
+      "calibration_slope": {
+        "n_seeds": 5,
+        "by_seed": [
+          0.6735936337052354,
+          0.651667055326134,
+          0.6652596959449074,
+          0.6720493748626882,
+          0.6697356292471853
+        ],
+        "mean": 0.6664610778172301,
+        "sd": 0.008847761359539198,
+        "delta_noise_1sd": 0.01251262411130095,
+        "delta_noise_2sd": 0.0250252482226019
+      }
+    },
+    "A1": {
+      "green_pit_nll": {
+        "n_seeds": 5,
+        "by_seed": [
+          3.536060028665521,
+          3.5509273414983102,
+          3.5494870042664477,
+          3.547491328381086,
+          3.5487025700684494
+        ],
+        "mean": 3.5465336545759625,
+        "sd": 0.00598633720250409,
+        "delta_noise_1sd": 0.008465959260719897,
+        "delta_noise_2sd": 0.016931918521439795,
+        "attribution_py_cross_check": {
+          "delta_noise_2sd": 0.016931918521439795,
+          "agrees": true
+        }
+      },
+      "green_pit_ipcw_brier": {
+        "n_seeds": 5,
+        "by_seed": [
+          0.2031370643446226,
+          0.20583447248852027,
+          0.20586374653986403,
+          0.20528922805831135,
+          0.2060843551539919
+        ],
+        "mean": 0.20524177331706203,
+        "sd": 0.0012124498918293736,
+        "delta_noise_1sd": 0.0017146630807228923,
+        "delta_noise_2sd": 0.0034293261614457846
+      },
+      "green_pit_auc": {
+        "n_seeds": 5,
+        "by_seed": [
+          0.6987008739773595,
+          0.6934336048109867,
+          0.6935699649497571,
+          0.6940261562439669,
+          0.6900851872734648
+        ],
+        "mean": 0.693963157451107,
+        "sd": 0.0030791072477053343,
+        "delta_noise_1sd": 0.0043545152297061775,
+        "delta_noise_2sd": 0.008709030459412355
+      },
+      "calibration_slope": {
+        "n_seeds": 5,
+        "by_seed": [
+          0.6993322076789888,
+          0.6744571320183634,
+          0.6963454833995337,
+          0.6750444937345229,
+          0.6691846838244598
+        ],
+        "mean": 0.6828728001311737,
+        "sd": 0.01389150522914601,
+        "delta_noise_1sd": 0.01964555509683506,
+        "delta_noise_2sd": 0.03929111019367012
+      }
+    }
+  },
+  "step_3_paired_reseed_deltas": {
+    "green_pit_nll": {
+      "deltas_by_seed": [
+        -0.09839246685122038,
+        -0.10615519094496584,
+        -0.10699555475218414,
+        -0.10503192317895094,
+        -0.10998549766338384
+      ],
+      "mean": -0.10531212667814102,
+      "sd": 0.004282093235948994,
+      "floor_of_record_A1": 0.016931918521439795,
+      "floor_A0": 0.008325254904489774,
+      "x_floor_of_record": -6.219739750388657,
+      "x_floor_A0": -12.649717982970905,
+      "clears_own_floor": false
+    },
+    "green_pit_ipcw_brier": {
+      "deltas_by_seed": [
+        -0.012745292575836176,
+        -0.013515844164728508,
+        -0.014233809806206033,
+        -0.014033689906741476,
+        -0.015224927170894714
+      ],
+      "mean": -0.013950712724881381,
+      "sd": 0.0009155326352630259,
+      "floor_of_record_A1": 0.0034293261614457846,
+      "floor_A0": 0.0020818364120189286,
+      "x_floor_of_record": -4.068062373804607,
+      "x_floor_A0": -6.701157038247891,
+      "clears_own_floor": false
+    },
+    "green_pit_auc": {
+      "deltas_by_seed": [
+        0.00912342254636056,
+        0.007970128242645758,
+        0.005691075137208346,
+        0.0038599911164285405,
+        -0.000619637434341902
+      ],
+      "mean": 0.005204995921660261,
+      "sd": 0.0038396513066766913,
+      "floor_of_record_A1": 0.008709030459412355,
+      "floor_A0": 0.006011867488572959,
+      "x_floor_of_record": 0.5976550370236585,
+      "x_floor_A0": 0.8657868676503006,
+      "clears_own_floor": false
+    },
+    "calibration_slope": {
+      "deltas_by_seed": [
+        0.025738573973753454,
+        0.022790076692229433,
+        0.031085787454626312,
+        0.002995118871834679,
+        -0.0005509454227254906
+      ],
+      "mean": 0.016411722313943677,
+      "sd": 0.014236740312300591,
+      "floor_of_record_A1": 0.03929111019367012,
+      "floor_A0": 0.0250252482226019,
+      "x_floor_of_record": 0.4176955609818233,
+      "x_floor_A0": 0.6558065745426335,
+      "clears_own_floor": false
+    }
+  },
+  "step_3_note": "The two DECLARED hypotheses are green_pit_nll and green_pit_ipcw_brier. green_pit_auc and calibration_slope are floored and bootstrapped here as diagnostics so that any gain on them is quoted with a floor under it, but they are NOT counted in the e-value family: promoting a diagnostic to a hypothesis after seeing its value is what gate 6 exists to prevent.",
+  "step_7_validity_check": {
+    "sigma=0.0001": {
+      "mean_E": 1.001622567794248,
+      "mc_se": 0.005120981370446465
+    },
+    "sigma=0.001": {
+      "mean_E": 0.9992179050949962,
+      "mc_se": 0.005121699813693495
+    },
+    "sigma=0.01": {
+      "mean_E": 1.010790697078488,
+      "mc_se": 0.005287590833768377
+    },
+    "sigma=0.1": {
+      "mean_E": 1.0013591708671465,
+      "mc_se": 0.005267324118285729
+    },
+    "sigma=1.0": {
+      "mean_E": 0.994226329450447,
+      "mc_se": 0.005085188580314087
+    },
+    "reference_worked_example": {
+      "t": 7.306308988110774,
+      "E": 17.046788254653784,
+      "published": 17.0
+    }
+  },
+  "step_7_e_values": {
+    "green_pit_nll": {
+      "n": 5,
+      "g": 1.0,
+      "d_bar": -0.10531212667814102,
+      "s_d": 0.004282093235948994,
+      "t": -54.99298150036765,
+      "E": 35.41239563427375,
+      "direction_is_improvement": false,
+      "max_attainable_E": 36.0
+    },
+    "green_pit_ipcw_brier": {
+      "n": 5,
+      "g": 1.0,
+      "d_bar": -0.013950712724881381,
+      "s_d": 0.0009155326352630259,
+      "t": -34.07277991618952,
+      "E": 34.50012907833896,
+      "direction_is_improvement": false,
+      "max_attainable_E": 36.0
+    }
+  },
+  "step_7_ebh": {
+    "n_declared_hypotheses": 2,
+    "alpha": 0.05,
+    "k_star": 2,
+    "rejected": [
+      "green_pit_nll",
+      "green_pit_ipcw_brier"
+    ],
+    "ladder": [
+      {
+        "rank": 1,
+        "hypothesis": "green_pit_nll",
+        "E": 35.41239563427375,
+        "threshold": 40.0,
+        "qualifies": false,
+        "direction_is_improvement": false
+      },
+      {
+        "rank": 2,
+        "hypothesis": "green_pit_ipcw_brier",
+        "E": 34.50012907833896,
+        "threshold": 20.0,
+        "qualifies": true,
+        "direction_is_improvement": false
+      }
+    ],
+    "threshold_for_a_lone_rejection": 40.0,
+    "max_attainable_E": 36.0,
+    "note": "item-level e-BH over this item's own declared hypotheses. The campaign family is larger, so this is a CEILING on what this item could claim, never a floor. A rejection is a statement about exchangeability, not about the direction of the effect -- see direction_is_improvement."
+  },
+  "bootstrap_paired_race_cluster": {
+    "draws": 200,
+    "seed": 20260910,
+    "n_races": 24,
+    "unit": "race_id",
+    "note": "both arms scored on the SAME resampled races, so the shared race-draw noise cancels. 10d section 4 ruled this the instrument to believe where the floor, the e-value and the bootstrap disagree, and this item does not re-litigate that.",
+    "deltas": {
+      "green_pit_nll": {
+        "n_draws": 200,
+        "mean": -0.10039638495429046,
+        "ci95_low": -0.15563057710609518,
+        "ci95_high": -0.05356373421173144,
+        "p_improves": 0.0
+      },
+      "green_pit_ipcw_brier": {
+        "n_draws": 200,
+        "mean": -0.013108402381575925,
+        "ci95_low": -0.02190691596766238,
+        "ci95_high": -0.005311391349298375,
+        "p_improves": 0.005
+      },
+      "green_pit_auc": {
+        "n_draws": 200,
+        "mean": 0.010542562519887383,
+        "ci95_low": -0.00625249109916067,
+        "ci95_high": 0.02655339835626666,
+        "p_improves": 0.905
+      },
+      "calibration_slope": {
+        "n_draws": 200,
+        "mean": 0.031195089950513757,
+        "ci95_low": -0.028545789607589397,
+        "ci95_high": 0.09469319724094932,
+        "p_improves": 0.815
+      }
+    }
+  },
+  "verdict": {
+    "declared_criterion": "positive green-pit NLL delta, above A1's own reseed floor, with paired-bootstrap P(improves) >= 0.95 and H2 not contradicting it",
+    "h1_delta": -0.10531212667814102,
+    "h1_x_own_floor": -6.219739750388657,
+    "h1_positive": false,
+    "h1_clears_own_floor": false,
+    "h1_bootstrap_p_improves": 0.0,
+    "h2_delta": -0.013950712724881381,
+    "h2_x_own_floor": -4.068062373804607,
+    "h2_positive": false,
+    "hypotheses_agree_in_sign": true,
+    "passes": false
+  },
+  "runtime_s": 920.0
+}

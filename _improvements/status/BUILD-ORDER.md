@@ -108,34 +108,25 @@ because nothing on the ladder waits for them, not because they matter less.
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-17`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-18`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
 
-**22 live items** (1 blocked). The pointer is on **08e** — that is the one to run next; the rest of the order is what becomes runnable after it. 28 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
+**13 live items** (1 blocked). The pointer is on **10e** — that is the one to run next; the rest of the order is what becomes runnable after it. 39 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
 
 | # | Item | Group | Stage | Cost | Model | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | `08e` ▶ | [08](../work/08-foundations-repair.md) | GATED | 1-2d | `opus-5` | Thermal-proxy stint baseline reaches forward - rebuild as a trailing window | — |
-| 2 | `08f` | [08](../work/08-foundations-repair.md) | GATED | 2-3d | `opus-5` | Cross-season pooled statistics in the feature lineage - season-lag or rule | — |
-| 3 | `08h` | [08](../work/08-foundations-repair.md) | MEASURED | 0.5d | `opus-5` | baseline_observations_n as a feature - the add-ablation 08e deferred | — |
-| 4 | `08i` | [08](../work/08-foundations-repair.md) | GATED | 1-2d | `opus-5` | The min_observations floor - the trade 08e priced and did not take | — |
-| 5 | `08m` | [08](../work/08-foundations-repair.md) | MEASURED | 2-3d | `opus-5` | The severity units bug - fix how the SQL consumes the seed, rebuild the target, re-price everything measured against the old one | — |
-| 6 | `04a` | [04](../work/04-campaign-audit.md) | MEASURED | 1d | `sonnet-5` | Enumerate the real test family | — |
-| 7 | `10b` | [10](../work/10-competing-risks.md) | MEASURED | days | `opus-5` | Cause-specific AFT arm - non-green endings treated as censored | — |
-| 8 | `10c` | [10](../work/10-competing-risks.md) | MEASURED | days | `fable-5.1` | Competing-risks evaluation, with the dependent-censoring caveat stated | 10b |
-| 9 | `10d` | [10](../work/10-competing-risks.md) | MEASURED | 1-2d | `opus-5` | Fix the stint-life calibration defect - the model over-predicts tyre life | 10c |
-| 10 | `10e` | [10](../work/10-competing-risks.md) | MEASURED | 1-2d | `opus-5` | Re-tune stint_life_regressor under the honest split and a non-mixture metric | 10d |
-| 11 | `02b` | [02](../work/02-feature-expansion.md) | MEASURED | 1d | `sonnet-5` | Tier 1 - qualifying | 10e |
-| 12 | `02c` | [02](../work/02-feature-expansion.md) | MEASURED | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | — |
-| 13 | `02d` | [02](../work/02-feature-expansion.md) | MEASURED | 1d | `opus-5` | Tier 3 - SC hazard, with the expanding-window rebuild | — |
-| 14 | `02g` | [02](../work/02-feature-expansion.md) | GATED | 0.5-1d | `opus-5` | Rebuild the corner field median as a trailing window | — |
-| 15 | `03a` | [03](../work/03-driver-vs-car.md) | MEASURED | 1d | `sonnet-5` | Mover panel; exclude the Force India rename; confirm the connected set survives | — |
-| 16 | `03b` | [03](../work/03-driver-vs-car.md) | MEASURED | 2d | `sonnet-5` | Jolpica ingest 2011-2017 | — |
-| 17 | `03c` | [03](../work/03-driver-vs-car.md) | BLOCKED | 1-2w | `fable-5.1` | AKM two-way FE on degradation slope + Kline-Saggio-Solvsten leave-out | 03a, 03b |
-| 18 | `06a` | [06](../work/06-publication.md) | MEASURED | 1d | `sonnet-5` | Pit-timing tail, by constructor | — |
-| 19 | `06b` | [06](../work/06-publication.md) | MEASURED | 1-2d | `opus-5` | Dirty-air coefficient per season - the 2022 regulation question | — |
-| 20 | `06c` | [06](../work/06-publication.md) | MEASURED | 1d | `opus-5` | Corner-phase skill, incl. the Verstappen braking anomaly | — |
-| 21 | `11a` | [11](../work/11-parallel-surfaces.md) | MEASURED | 1-2d | `opus-5` | Mondrian-conformal recalibration of the degradation band, keyed on circuit | — |
-| 22 | `11b` | [11](../work/11-parallel-surfaces.md) | MEASURED | days | `opus-5` | Assemble the stochastic DP over pit timing | — |
+| 1 | `08i` | [08](../work/08-foundations-repair.md) | GATED | 1-2d | `opus-5` | The min_observations floor - the trade 08e priced and did not take | **D10** (human call) |
+| 2 | `09c` | [09](../work/09-scoring-instruments.md) | SPEC | 0.5d | `fable-5.1` | Construction B cannot reject in any family larger than one - raise the e-value ceiling before the next arm | — |
+| 3 | `10d` | [10](../work/10-competing-risks.md) | GATED | 1-2d | `opus-5` | Fix the stint-life calibration defect - the model over-predicts tyre life | — |
+| 4 | `10e` ▶ | [10](../work/10-competing-risks.md) | MEASURED | 1-2d | `opus-5` | Re-tune stint_life_regressor under the honest split and a non-mixture metric | — |
+| 5 | `02b` | [02](../work/02-feature-expansion.md) | MEASURED | 1d | `sonnet-5` | Tier 1 - qualifying | 10e, 09c |
+| 6 | `02c` | [02](../work/02-feature-expansion.md) | MEASURED | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | 09c |
+| 7 | `02d` | [02](../work/02-feature-expansion.md) | MEASURED | 1d | `opus-5` | Tier 3 - SC hazard, with the expanding-window rebuild | 09c |
+| 8 | `02g` | [02](../work/02-feature-expansion.md) | GATED | 0.5-1d | `opus-5` | Rebuild the corner field median as a trailing window | — |
+| 9 | `03c` | [03](../work/03-driver-vs-car.md) | BLOCKED | 1-2w | `fable-5.1` | AKM two-way FE on degradation slope + Kline-Saggio-Solvsten leave-out | **D11** (human call) |
+| 10 | `06a` | [06](../work/06-publication.md) | MEASURED | hours | `sonnet-5` | Pit-timing tail, by constructor | — |
+| 11 | `06b` | [06](../work/06-publication.md) | MEASURED | hours | `opus-5` | Dirty-air coefficient per season - the 2022 regulation question | — |
+| 12 | `00d` | [00](../work/00-corrections.md) | SPEC | 0.5d | `opus-5` | corner_skill_index counts braking earlier as skill - the braking term's sign is inverted | — |
+| 13 | `06c` | [06](../work/06-publication.md) | MEASURED | 0.5d | `opus-5` | Corner-phase skill, incl. the Verstappen braking anomaly | 00d |
 
 ### Which model to run it on
 
@@ -150,5 +141,7 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 - **D2** (blocks nothing) — CDN publish / app deploy - v12 is now the local default and production still serves v6.
 - **D9** (blocks nothing) — Should int_pit_strategy_cost_curve consume mart_degradation_predictions - i.e. may a dbt intermediate depend on an ML artefact?
+- **D10** (blocks `08i`) — 08i measured the min_observations floor through the full gate and recommends reverting int_lap_thermal_proxy from the built floor 2 to floor 1. Landing that costs a dbt rebuild of int_lap_thermal_proxy and everything downstream, plus a retrain and re-export of all five model artefacts (a v12 -> v13 bump), plus moving the hard-coded '>= 2' in transform/tests/assert_no_future_leakage.sql and fixing schema.yml's stint_baseline_pace description. Is that cost worth paying for a change that clears its floor on one family of five?
+- **D11** (blocks `03c`) — Spend 1-2 weeks of fable-5.1 on 03c (AKM two-way FE on degradation slope with the Kline-Saggio-Solvsten leave-out correction), or close it unstarted?
 
 <!-- END GENERATED TASKS -->

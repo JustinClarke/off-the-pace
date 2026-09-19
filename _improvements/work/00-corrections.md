@@ -113,3 +113,64 @@ ever built, it needs its own decision and its own trace.
 **Definition of done.** Met: ruling written into `schema.py` beside `EXCLUDED_LEAKAGE_COLUMNS`;
 the three columns barred; `int_synthetic_teammate` stays barred regardless, since
 `driver_skill_proxy_s` is not leave-anything-out.
+
+---
+
+## 00d — `corner_skill_index` counts braking earlier as skill
+
+**Found 2026-09-18** by the build-order audit, which ran the falsification `06c`'s own checklist
+named and left unrun ("inspect SQL for braking z-score sign convention"). `06b` supplied the
+candidate.
+
+**Verified from source.**
+
+- `int_corner_skill_residuals.sql:170-178` — `braking_loss_s = (own braking_point_m − field
+  median) × dt_per_dm`. `braking_point_m` is the first braking sample's distance along the lap, so
+  **positive = braking later = faster**.
+- The other two phases are built the other way round: `mid_corner_residual_s = (field v_min − own
+  v_min)` scaled by the field's apex speed, and `exit_residual_s = (own throttle_point_m − field
+  median) × dt_per_dm`. **Positive = worse** for both.
+- `mart_corner_skill_driver.sql:316-317` — `corner_skill_index = braking_skill_z +
+  mid_corner_skill_z + exit_skill_z`, ordered `ASC` (lower = better). Nothing in `standardized`
+  or upstream negates the braking term.
+
+So the braking phase enters the index with the wrong sign. `06b` reached the same conclusion
+independently, from a treatment whose physical direction is known a priori: dirty air produces
+negative `braking_loss_s` in every corner class and both eras, and dirty air can only make a driver
+brake earlier.
+
+**Blast radius.**
+
+- **The app.** `app/src/features/corner-phase-skill/queries.ts:37` ranks drivers by
+  `corner_skill_index ASC`, and `transform.ts` passes the values through unchanged. The shipped
+  leaderboard is built on the inverted term.
+- **`06c`.** Its headline anomaly — VER braking `+0.0745` against PER — reads as *braking later
+  than the same-car baseline*: the received wisdom, not a contradiction of it.
+- **`corner_residual_total_s`** sums the three phases with one sign, so it is not "seconds lost"
+  either. `06b` noticed and moved its headline to the mid phase.
+- **`02c`'s mart-only braking aggregates** in `int_lap_corner_inputs` inherit the convention. A
+  monotone sign flip leaves a tree's predictions unchanged, so `02c`'s arm results are unaffected in
+  substance. Only how they read changes.
+
+**The ruling this item makes — not made here.** There are two places to fix it. (a) At the
+source: redefine `braking_loss_s` as `(field median − own) × dt_per_dm`, so all three phases read
+"positive = loss" and `corner_residual_total_s` means what its name says. (b) In the mart only:
+negate the braking z inside the index. (a) is the cleaner contract but touches `02c`'s columns and
+the residual total. (b) is one line, but it leaves a column named "loss" that measures a gain.
+Argue it in writing before editing, as `08m` did.
+
+**Definition of done.**
+
+- The sign convention is ruled and argued in writing.
+- All three phases share one convention in whatever the index sums.
+- `mart_corner_skill_driver` is rebuilt and its before/after reported, at minimum the 2024 rank
+  changes, since that is the season the app shows. This also discharges `02g`'s one outstanding
+  clause: the mart re-run whose output change was never reported.
+- A dbt test pins the direction. For example, a driver who brakes later than the field median at
+  every corner must score better, not worse.
+- The `schema.yml` descriptions of `braking_loss_s` and `corner_skill_index` state the direction.
+- The app page is re-checked against the rebuilt mart.
+
+`06c`'s post is rewritten after this lands, not before.
+
+**Cost:** ~0.5 day.

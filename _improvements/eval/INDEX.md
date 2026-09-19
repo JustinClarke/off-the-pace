@@ -9,10 +9,11 @@ Each folder holds a self-contained section ready for independent decision and la
 | **08e** | ✅ GATED, def-of-done complete | 🟡 Awaiting human call | Split from D3? Land 08e now (thermal family clears v12 on all five targets) |
 | **08f** | ✅ GATED, both halves complete on v12/08m (2026-09-17) | 🟡 Awaiting human call (bundled with 08e under D3) | 08f-2 closed (zero effect on every live target, proven algebraically). 08f-1 gated in isolation for the first time: a real fix (93.3% of training-row IPW weights change) whose effect on all five headline metrics is inside noise on every target — clean null, not a win or a cost. See `08f/README.md`. |
 | **08g** | 🟡 CLOSED (decomposition) | ✅ Closed | Already landed in prior session |
-| **08h** | MEASURED (future add-ablation) | ❌ No | Deferred from 08e; price when ready |
+| **08h** | ✅ MEASURED and **REJECTED** on v12/08m (2026-09-17) | ✅ Closed — nothing to land | `baseline_observations_n` stays out of `FEATURE_COLUMNS`; contract stays 32. 0 of 5 families clear their floor (best 0.98×). Rejection pinned by a test. See `08h/README.md` |
 | **08i** | GATED (min obs floor) | ❌ No | Trade not taken in 08e rebuild (priced separately) |
 | **08m** | MEASURED (target rebuild) | ✅ Already landed | Prior session completed; v12 substrate now live |
 | **08n** | LANDED (artefact rebuild) | ✅ Already landed | Prior session completed; model artefacts exported |
+| **10c** | ✅ MEASURED on v12/08m (2026-09-18) — verdict refreshed, replaces 2026-09-10 | ✅ Closed — nothing to land (no arm) | Cause-specific metrics now reported **with a dependence band, never as a point**. The band on green-pit IPCW-Brier is **19.7× the reseed floor and wider than 24-race sampling noise**, so the level is dominated by an unidentifiable parameter while the ranking is not. Headline names its cause; product limitation stated. See `10c/README.md` |
 
 ---
 
@@ -66,21 +67,48 @@ Decompose the 08e/08f regression. Already landed; reference only.
 
 ---
 
-### 08h/ — baseline_observations_n as a feature
-*(Placeholder for future add-ablation)*
+### 08h/ — `baseline_observations_n` as a feature
 
-- **State:** MEASURED
-- **What it is:** The minimum-observation floor that 08e deferred
-- **Next step:** Price as an add-ablation when ready; populate this folder with results
+- **State:** **MEASURED and REJECTED, 2026-09-17, on the v12/08m substrate.** Terminal.
+- **What it is:** The add-ablation `08e` deferred — does the model want the count of valid prior
+  laps behind each row's thermal baseline? (Note: this is *not* the min-observations floor; that
+  is `08i`, a different item.)
+- **Contents:**
+  - `README.md` — the question, the two spec corrections, the method, why the first pass misread
+    the pair arm
+  - `MEASUREMENTS.md` — per-family tables, the pair-arm decomposition, the declarability ruling
+  - `../../../ml/artefacts/08h_baseline_observations_n_arms.json` / `.log`
+- **Result:** 0 of 5 families clear their own 5-reseed floor (best: p50 at 0.98×). 0 of 5 clear on
+  information. `stint_life_regressor`'s information delta is negative. No synergy with
+  `push_residual` on any family — the pair arm's size is `push_residual`'s own signal. The column
+  is ρ = 0.97 with `lap_in_stint`, already in the contract.
+- **Ruling:** stays out of `FEATURE_COLUMNS`; stays in the mart as the companion column consumers
+  need to condition on the thermal NULLs. The declarability hazard is **declined**, not deferred.
+- **Next step:** none. Pinned by
+  `ml/tests/test_features.py::test_baseline_observations_n_is_never_a_feature`.
 
 ---
 
 ### 08i/ — The min_observations floor
-*(Placeholder for trade pricing)*
 
-- **State:** GATED (priced but not taken in 08e)
-- **What it is:** Floors of 2/3/5 buy more degradation signal (priced at −3.49pp / −8.82pp / −19.09pp coverage)
-- **Next step:** Run through gates if taking the higher floor; populate with results
+- **State:** GATED 2026-09-18 — gate steps 1–7 run on floors 1/2/3/5, all five families, on the
+  v12/`08m` substrate. Step 1a reproduces the published v12 headline to `0.00e+00`; step 1b's
+  floor-parameterised replica reproduces the **built** thermal block bit-for-bit (137,447 rows).
+- **Premise correction:** the substrate was **already floor 2**, not floor 1 — set 2026-09-10 and
+  carried into git inside commit `c49473a`, whose message does not mention it. The BEFORE arm is
+  floor 2 and floor 1 is a revert. The 2026-09-10 session left no artefact, and its "floors 2 and
+  3 give identical headlines in all five families" claim is refuted.
+- **Result:** **the trade does not exist.** Higher floors cost coverage *and* signal. Floors 3
+  and 5 clear their own floor **in the wrong direction** on p10, p90 and cliff (−2.10× / −1.44× /
+  −1.11× and −2.29× / −1.57× / −1.00×), with every missingness-only control small — destroyed
+  information, not NaN density. Coverage: 98.20 / 96.05 / 90.70 / 80.35%.
+- **Ruling:** floors 3 and 5 **rejected**. **Floor 1 recommended** over the built floor 2 — best
+  on all three degradation heads, clears on p50 at +1.25× (`E`=13.5), never worse than its own
+  floor anywhere, +2.15pp coverage. Recorded honestly as a *preference*, not a majority clear:
+  the pre-registered rule asked for a majority and floor 1 clears on one of five.
+- **Next step:** decision **D10** — landing floor 1 costs a warehouse rebuild plus a retrain and
+  re-export of all five artefacts. Also two live defects: `assert_no_future_leakage.sql`
+  hard-codes the floor at 2, and `schema.yml` still documents floor 1.
 
 ---
 
@@ -98,6 +126,27 @@ Model artefacts exported against v12 contract (32 features).
 
 ---
 
+### 10c/ — Competing-risks evaluation, with the dependent-censoring caveat quantified
+
+- **State:** **MEASURED, 2026-09-18, on v12/08m.** Replaces the 2026-09-10 verdict, which `10b`
+  §10 had already ruled doubly superseded (in-sample, *and* measured under the rejected `10b`
+  label). Gates 1, 2 (substituted), 3 and 5 run; 4 and 7 inapplicable and stated.
+- **Contents:**
+  - `README.md` — the three framings, the band, the three widths, D-calibration, what landed
+  - `eval_10c_cause_specific_framework.json` / `.log` — every framing, every τ, floors, bootstrap
+- **Headline:** on the tyre-limit set, the *realised* green-pit ending is predicted with IPCW-Brier
+  **0.1904** / AUC **0.6896** [0.639, 0.734]; the same model read as the *latent* tyre limit scores
+  **0.1452**, bracketed **[0.1367, 0.1729]** across Kendall's τ ∈ [−0.5, +0.5].
+- **Why it matters beyond the item:** the framing choice is worth 0.045 Brier and the dependence
+  band a further 0.036 — both larger than `10e`'s S1x, the biggest model improvement this campaign
+  has measured (0.023). `10d` and `10e`'s *comparisons* stand (the band is common-mode within a
+  fixed framing and cancels); their *levels* should not be quoted without the framing named.
+- **Decision required:** none. No arm, nothing to land. The open work is an instrument for SC
+  arrival (`02d` / `07a`), a τ-aware D-calibration, and `R3`'s option 1 — a model that actually
+  targets the cause-specific hazard.
+
+---
+
 ## How to Use This Structure
 
 **When you decide to land 08e:**
@@ -110,7 +159,8 @@ Model artefacts exported against v12 contract (32 features).
 2. Decide the remaining 08f-1 scope (see options above)
 3. Same handoff procedure
 
-**For 08h / 08i:** Same pattern — work lives in its folder until ready to land, then folds into the project.
+**For 08i:** Same pattern — work lives in its folder until ready to land, then folds into the
+project. (**08h is done** — measured, rejected, and terminal; nothing to land.)
 
 ---
 

@@ -25,7 +25,15 @@ down.
 
 ---
 
-## 04a — Enumerate the real test family
+## 04a — Enumerate the real test family  ·  **CLOSED 2026-09-18, deliverable not produced**
+
+> **Closed without its table, and on purpose.** The definition of done below (a table of distinct
+> tests, plus the selection events listed separately) was never produced. `04c` then ran BY over the
+> 8-line family this section says is double-counted. Closed because no recount can change a
+> decision: `04c`'s smallest p-value is 0.0848, which fails α = 0.05 *uncorrected* in a family of
+> one. So "zero survive" holds at any family size, whichever way the count moves. The *forward*
+> family (declared e-values, `gates.md` step 7) is a separate problem and has not been enumerated
+> either. See `09c`.
 
 **Objective.** Establish the numerator and denominator. `reference/ml_research_program.md` §5
 instructs a session to re-count with `grep -c "^## Checkpoint"` and `grep -c CLEARS`. **That

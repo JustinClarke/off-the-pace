@@ -2,6 +2,28 @@
 
 **Item:** 10c  
 **Status:** MEASURED, and **every number below the § Result summary heading is SUPERSEDED** — see the correction block immediately following.  
+
+> ## ⛔ Superseded twice. 2026-09-18: `10c` was re-measured on the v12/`08m` substrate.
+>
+> The 2026-09-10 correction below (by `10d`) established that this document's numbers were
+> **in-sample**. `10b`'s 2026-09-18 verdict then established that they were also measured under
+> the **`10b` label, which is rejected** — so they are superseded on two independent grounds and
+> must not be quoted for either reason.
+>
+> **The current verdict is [`../work/10-competing-risks.md`](../work/10-competing-risks.md) § 10c —
+> Verdict — MEASURED 2026-09-18**, with the artefact in [`../eval/10c/`](../eval/10c/). It delivers
+> the two things this document admitted it had not: a **per-cause comparison** (three causes carry
+> one under the `standard` label, where under `10b` only green-pit did) and a **quantified
+> dependence band** (Clayton copula-graphic, τ ∈ [−0.5, +0.5]) in place of the qualitative caveat.
+>
+> Headline, replacing this document's 0.844 / 0.141 / 1.23: on the green-pit tyre-limit set, the
+> **realised** ending is predicted with IPCW-Brier **0.1904** and time-dependent AUC **0.6896**
+> (95% [0.639, 0.734]); read as the **latent** tyre limit the same model scores **0.1452**,
+> bracketed **[0.1367, 0.1729]** across the dependence grid.
+>
+> What survives from here is unchanged: the § Metric corrections are real repairs to
+> `survival.py` and stand, and the 2026-09-18 run neither touched nor needed to touch them.
+
 **Objective:** Stop quoting AFT NLL on a mixture as though it were a headline. Evaluate the model with metrics that don't have the scoring-artefact problem.
 
 > ## ⚠ Correction — 2026-09-10, by `10d`. The results in this document were measured in-sample.

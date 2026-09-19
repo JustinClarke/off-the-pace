@@ -482,3 +482,24 @@ on the same scale.
 **Definition of done.** Post drafted with the phase split, the cell counts and SEs shown, the
 teammate-relative baseline stated plainly, and the VER anomaly framed as an open question with
 the two candidate explanations named.
+
+#### Audit 2026-09-18 — Explanation 1 is confirmed; do not publish the draft as written
+
+The falsification the checklist named ("inspect SQL for braking z-score sign convention") was run.
+**The braking term enters `corner_skill_index` with the wrong sign**: positive `braking_loss_s`
+means braking *later*, while the other two phases are positive when *worse*, and the index sums
+all three and ranks ascending. The full trace is in
+[`00-corrections.md`](00-corrections.md) §`00d`.
+
+- **The VER anomaly dissolves.** `+0.0745` means braking later than PER, which is the received
+  wisdom.
+- **The NOR leaderboard** (index −3.17) is computed from an index with one of its three terms
+  inverted. Re-read it after `00d`. The exit-phase figure (−0.2669 s) comes from the exit phase
+  alone and does not depend on the braking sign.
+- **The draft is not in the repo.** It exists only in a per-session temp directory
+  (`/private/tmp/claude-501/…/747de893-…/scratchpad/06c_blog_post_draft.md`).
+  `implementations/06c/` holds the checklist, stats and analysis, but not the post.
+
+`06c` now depends on `00d`. The post is rewritten once the index is fixed. The more interesting
+story may be the defect itself: a published skill index that rewarded braking early, caught by an
+unrelated regression on dirty air.

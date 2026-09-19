@@ -111,3 +111,55 @@ not mean "clears" (a 0.8× floor delta returns `E = 3.3` at `c = 1`), and a lone
 `alpha = 0.05` in a family of 30 needs `E >= 600`, i.e. ~2.1× the floor. A paired arm at `t = 7.3`
 returns `E = 17` and does not clear e-BH alone. That is the price of arbitrary dependence plus
 optional stopping, not a defect in the construction.
+
+---
+
+## 09c — Construction B cannot reject in any family larger than one
+
+**Found 2026-09-18** by the build-order audit. `02c` hit the symptom first and recorded it as "a
+defect in the pre-registration found by executing it". No item owned it after that.
+
+**The arithmetic.** Construction B (`e_value_construction.md` §4, the recommended default) is
+bounded above at the pre-registered `n = 5`, `g = 1`. As `t → ∞`,
+`E → (1 + n·g)^((n−1)/2) = 6² = 36`. e-BH (§6) rejects the largest `E` only if `E ≥ m / alpha`,
+which is `20·m` at `alpha = 0.05`. So a single rejection can only happen in a family of **one**.
+At `m = 2` the threshold is 40, and no data can reach it. Checked numerically: `t = 10⁶` returns
+36.0000.
+
+**Every "e-BH rejects nothing" in the tree is this ceiling, not the data.**
+
+- `02c`: 12 hypotheses, threshold 240.
+- `10e`: 4 arms, threshold 80. Its best arm, `E_B = 35.9`, sits at the ceiling.
+- `08i`: 35 declared arms, not yet counted. They could not clear even if they were.
+
+`09b`'s landing note quotes a family-of-30 threshold (`E ≥ 600`) for Construction A, which is
+unbounded. It does not state B's ceiling.
+
+**Options — for this item to rule on.** The ceiling is `(1 + n·g)^((n−1)/2)`. `08i`, `02c` and
+`10e` alone declare at least 51 hypotheses, which puts the threshold at **≥ 1,020**.
+
+| `n` reseeds | `g` | ceiling | clears ≥ 1,020? | cost |
+| ---: | ---: | ---: | :---: | :--- |
+| 5 | 1 | 36 | no | today |
+| 5 | 4 | 441 | no | same refits; bets on a 2-sd effect, so less power against small ones |
+| 10 | 1 | ~48,600 | yes | 20 refits per arm instead of 10 |
+
+Another option is to narrow what the family is: per item rather than per campaign. That is the
+selection problem step 7 exists to prevent, so it has to be argued, not assumed. Sizing any option
+needs the declared forward family enumerated. Nothing in the tree does that yet (`04a` was about
+the retrospective family and closed without its table).
+
+**What this item must not do.** It must not re-score any arm already run under a new `g` or `n`.
+Those `E`s were declared and stand as declared. Changing the construction after seeing them is
+exactly what declaration exists to prevent. The new construction applies to arms declared *after*
+it lands.
+
+**Definition of done.**
+
+- A construction whose ceiling clears the e-BH threshold at the enumerated family size, stated with
+  its power cost.
+- The ceiling formula added to `e_value_construction.md` §4, next to the worked example.
+- `gates.md` step 7 says to check the ceiling against the family size before declaring.
+- The 100k-draw null check re-run on the new parameters.
+
+**Cost:** ~0.5 day. **Blocks** every future arm: `02b`, `02c` and `02d` depend on it in the log.

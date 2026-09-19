@@ -168,6 +168,398 @@ reframing closes on a measurement and `10c` never runs.
 
 **Definition of done.** A written verdict: does splitting the causes move the family, or not.
 
+### Pre-registration — arms, instruments and e-value (gates 6 and 7)
+
+Written 2026-09-18, **before the `10b` arm was fitted on this substrate.** The only fit that preceded
+this block is `A0` as the gate-1 instrument anchor (§1 below), which is the incumbent and not an arm.
+
+**Why this is being measured again rather than read off the record.** Two reasons, both gate 1.
+
+1. **The recorded −0.028 is in-sample.** It was measured with 2024 inside the scored booster's own
+   training set — the same defect `10d` found in `10c`, and it is why the number was never ruled on.
+2. **The substrate moved.** `08m` rebuilt the warehouse and `08n` shipped **v12** on 2026-09-16.
+   The `cv_final_fold` eval fold is **19,973** laps today against the **20,272** that `10b`, `10c`,
+   `10d` and `10e` all scored, and the green-pit stratum is **9,149** against **9,270**. Gate 1's
+   literal requirement — reproduce the published headline to six decimal places — **cannot be met
+   against any figure those four items published**, because the rows are not the same rows. What is
+   anchored instead is *today's* published v12 headline, and the drift is reported rather than
+   papered over.
+
+**The headline instrument, and why comparing NLL across two label constructions needs one.** The
+AFT NLL is computed *against* the censoring flags, so "which labels to score under" is not a detail
+— it is exactly how the original `+0.179` became a 92.6% scoring artefact. Both arms are therefore
+scored on the **green-pit stratum only**, where the two label constructions are **identical row for
+row**: `green_pit` is uncensored under both, `y` matches exactly, and the metrics' horizon grid
+(deciles of uncensored `y`) is therefore the same grid for both arms. That stratum is also the
+tyre-limit set the whole reframing exists to isolate, and it carries no censoring at all, so it is
+the least IPCW-exposed quantity `10c` measured. Verified array-for-array before anything was fitted.
+
+**Arms.** Both refit on the training side only (2018–2023) through `evaluate.py`'s own
+`_evaluation_split` → `_fit`, scored on 2024. Identical 32-column matrix, identical v12 tuned
+params, identical rows. The only thing that differs is the censoring flag on **9,135 training rows**
+(`sc_pit` 5,710 + `vsc_pit` 2,575 + `red` 850) and 1,185 eval rows.
+
+| arm | label construction |
+| :--- | :--- |
+| **A0** | `standard` — the realised stint ending; production's shipped v12 variant, and `D5`'s ruling |
+| **A1** | `10b` — non-green endings treated as censored |
+
+**Declared hypotheses — two.**
+
+- **H1 — green-pit AFT NLL.** `delta = NLL(A0) − NLL(A1)`, positive = `10b` improves. The metric
+  this item's method names.
+- **H2 — green-pit IPCW-Brier.** `delta = Brier(A0) − Brier(A1)`, positive = `10b` improves. The
+  metric `10c` chose as its headline, on which `10d`'s A3 arm already ruled against `10b` on the old
+  substrate (0.190 vs 0.206). Declared so that ruling is either reproduced or overturned on v12
+  rather than inherited.
+
+**Reported as diagnostics, not hypotheses:** full-fold NLL under *each* label construction for
+*each* arm — the 2×2 scoring table that makes the original artefact visible — plus green-pit
+time-dependent AUC, calibration slope, mean log-scale bias, the 5-bin predicted→observed table, and
+the in-sample counterparts so the optimism gap is printed rather than assumed.
+
+**Gate 3 floor.** Five seeds **20260528–20260532**, varying XGBoost's `seed` so `subsample` and
+`colsample_bytree` genuinely redraw. `10b`'s original reseed table was zero-variance because the
+seed was never varied, which is what produced its "∞× floor" — that is the defect being repaired
+here, not a detail. Each arm gets its **own** floor per `gates.md`; the delta is quoted against
+**A1's** (the arm's own family) with A0's printed beside it, and neither is borrowed. Floor =
+`2*sqrt(2)*sd` through `attribution.py::refit_noise_floor`, in the same metric as the delta.
+
+**Gate 2, substituted and stated.** The add-ablation is inapplicable in its literal form: nothing is
+added. The substituted requirement — the same split for every family in the comparison, through
+`evaluate.py`'s own `_fit`/`_score` rather than a reimplementation — is met exactly and verified by
+comparing `X`, `y` and `lap_ids` array-for-array between the two bundles.
+
+**Gate 4, stated rather than skipped** (outside the acceptance set, recorded because acceptance stops
+at 3). The permutation null row-shuffles *new columns* and there are none. Unlike `10e`'s re-search,
+capacity here genuinely **is** identical by construction: same matrix, same params, same tree
+budget, and only the label bounds move. The substitute is the paired reseed null of gate 3.
+
+**Gate 5, one check.** The label is label-adjacent, so `stint_end_cause` and `is_censored_stint` are
+asserted absent from `FEATURE_COLUMNS` in both bundles before either arm is fitted.
+
+**The bootstrap.** Paired **race-level cluster** bootstrap, 200 draws, seed 20260910, races the
+resampling unit, 24 eval races — both arms scored on the *same* resampled races so the shared
+race-draw noise cancels. `10d` §4 ruled this the instrument to believe where the three disagree, and
+this item does not get to re-litigate that after seeing its own numbers. The standing limit applies
+and is stated before the numbers exist: 24 races could not establish `10d`'s 0.17 slope move and
+will not establish a small NLL move either.
+
+**E-value — Construction B, declared now.** From
+[`../reference/e_value_construction.md`](../reference/e_value_construction.md) §4, the default, which
+removes the plug-in-scale hole `10d`'s Construction A fell into.
+
+- **Null.** H₀: the label change carries no information about green-pit fit, so the five paired
+  reseed deltas are mean-zero.
+- **Deltas.** `d_i = m(A0, seed_i) − m(A1, seed_i)` for `m` ∈ {green-pit NLL, green-pit IPCW-Brier},
+  arm and incumbent refit at the **same** five seeds so the shared seed noise cancels.
+- **Statistic.** `t = sqrt(5) * mean(d) / sd(d)` (ddof=1), `g = 1`,
+  `E = (1+5g)^(-1/2) * [(1 + t²/4) / (1 + t²/(4(1+5g)))]^(5/2)`.
+- **Verified before use**, as §4 requires: 100k simulated draws of five i.i.d. `N(0, σ)` deltas at
+  several σ must return mean `E` = 1 to Monte Carlo error, and the reference's worked example must
+  return 17.0.
+- **Direction is carried beside the number, never folded into it.** The formula is symmetric in `t`,
+  so a consistently *negative* delta also returns a large `E` — evidence against exchangeability in
+  the wrong direction, which is a different statement from evidence for the arm.
+- **Family.** Two declared hypotheses, added to the campaign family, both reported with their `E`,
+  `E < 1` included. Campaign-level decisions run e-BH per gate 7.
+
+**What would make this a pass, declared now so it cannot be decided afterwards.** `10b` clears if
+the green-pit NLL delta is **positive**, **exceeds A1's own reseed floor**, and the paired bootstrap
+puts `P(improves) ≥ 0.95`, with H2 not contradicting it. A delta inside the floor, or a positive
+delta on one declared metric against a negative on the other, is recorded as **the reframing closing
+on a measurement** — which this item's method names as a genuine outcome, not a failure to find one.
+
+**One thing the method paragraph can no longer mean.** "If the recoded fit does not move NLL beyond
+the floor … `10c` never runs" is retrospective: `10c`, `10d` and `10e` all ran on the `10b` label
+before this ruling was made, and `D5` then chose `standard` anyway. So this item's job is no longer
+to gate them. It is to settle the follow-up `10d` left open as **(b)** — whether the `10b` label was
+ever the right family — and to say so in writing.
+
+### Verdict — MEASURED 2026-09-18
+
+**Splitting the causes does not move the family. It moves it backwards — by 6.2 times the arm's own
+noise floor on the metric this item's method names, in all five reseeds, and in 200 of 200 paired
+bootstrap draws.** `10d`'s A3 finding is reproduced on a rebuilt substrate and sharpened from "worth
+revisiting" into a ruling: **`standard` is the label, `10b` is not.** The reframing closes on a
+measurement, which this item's own method named as a legitimate outcome rather than a failure.
+
+Artefact: [`../eval/10b/`](../eval/10b/) — script, JSON, log. 920s, 24 refits, nothing written to
+`ml/models/`, the warehouse or `evaluation_metrics.json`.
+
+#### 1. Gate 1 — the instrument, and three things it found
+
+**(a) The harness reproduces today's published headline exactly.** `E._fit`/`_score` under the
+`standard` label returns `aft_nloglik` **1.9913358778933028** against `evaluation_metrics.json`'s
+published v12 **1.9913358778933028** — every digit stored, not merely six places.
+
+**(b) No figure published by `10b`, `10c`, `10d` or `10e` can be reproduced to six decimals, because
+the rows moved.** `08m` rebuilt the warehouse and `08n` shipped v12 on 2026-09-16, after all four ran:
+
+| | published by 10b–10e | today |
+| :--- | ---: | ---: |
+| eval-fold laps | 20,272 | **19,973** |
+| green-pit laps | 9,270 | **9,149** |
+| eval races | 24 | 24 |
+
+Gate 1's literal requirement is unmeetable against the record, and that is stated rather than quietly
+satisfied against a number that no longer exists. What *does* reproduce is the **defect** — §2.
+
+**(c) Both of this item's withdrawn numbers are now accounted for, mechanically.**
+
+| the number | what it actually was | reproduced here |
+| :--- | :--- | ---: |
+| the original **+0.179** | the incumbent scored under `standard` labels against the arm scored under `10b` labels — two different scoring populations | **+0.182** in-sample, **+0.202** honest |
+| the recorded **−0.028** | matched scoring, but fitted 2018–2024 and scored on 2024, i.e. in-sample, on the full mixture fold | **+0.027** in this item's orientation (10b better), in-sample, full fold, 10b-scored |
+
+Neither was a fluke and neither was signal. The first is a scoring mismatch worth ~0.18 NLL on its
+own; the second is an in-sample reading of a full-fold instrument that §5 shows is not neutral
+between these two arms.
+
+#### 2. The optimism gap — `10d`'s finding, independently reproduced on a rebuilt substrate
+
+Same arm (`10b` labels), same eval rows, fitted two ways. `in_sample` fits every training season
+2018–2024 exactly as `train.py` does, then scores the 2024 rows that sit inside that fit:
+
+| green-pit, `10b` label | honest | in-sample | optimism | `10d` published |
+| :--- | ---: | ---: | ---: | ---: |
+| time-dependent AUC | 0.6987 | 0.8396 | +0.1409 | +0.1429 |
+| IPCW-Brier | 0.2031 | 0.1430 | −0.0601 | −0.0652 |
+| calibration slope | 0.6993 | 1.2192 | **+0.5198** | +0.5682 |
+
+The slope crosses 1.0 across that gap, on a warehouse rebuilt eight days later, on rows that are not
+the same rows. **`10d`'s gate-1 finding is not an artefact of its substrate** — and that is worth
+more than any number this item produces.
+
+#### 3. Gate 2, substituted — the arms differ in the label and in nothing else
+
+Verified array-for-array rather than asserted: `X_tr`, `X_ev`, `y_tr`, `y_ev`, `lap_ids_tr` and
+`lap_ids_ev` are all identical between the two bundles. Split `cv_final_fold`, train 2018–2023, eval
+2024, through `evaluate.py`'s own `_evaluation_split`/`_fit`/`_score`. What differs is the censoring
+flag on **9,135 of 99,849 training rows** (`sc_pit` 5,710 + `vsc_pit` 2,575 + `red` 850) and **1,185
+of 19,973 eval rows**. Capacity is identical by construction: same 32 columns, same v12 params, same
+tree budget.
+
+**The green-pit stratum is matched, which is what makes the headline legitimate.** 9,149 laps over 24
+races, **0.000 censored under both** constructions, `y` identical row for row — so both metrics derive
+their horizon grid from the same `y` and score both arms on the same grid.
+
+The cause label also covers every row on both sides of the split (train 45,022 + 42,458 + 5,710 +
+3,234 + 2,575 + 850 = 99,849; eval 9,385 + 9,149 + 884 + 282 + 254 + 19 = 19,973), so `10a`'s 325
+NULL-cause artefact stints never reach the training-eligible rows and `features.py`'s NULL fallback
+in the `10b` branch is never exercised here. The recode is clean on this substrate.
+
+**Gate 5**, the one check the label's adjacency calls for: `stint_end_cause`, `is_censored_stint`,
+`end_regime` and `end_cause_confidence` are all absent from `FEATURE_COLUMNS`. The cause label is
+meta and stays meta.
+
+#### 4. Gate 3 — the delta, with its floor ratio
+
+| arm | green-pit NLL | Brier | AUC | slope | intercept | mean log bias | margin sd |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **A0** `standard` | **3.4377** | **0.1904** | 0.6896 | 0.6736 | +0.2319 | **−0.2741** | 0.5818 |
+| **A1** `10b` | 3.5361 | 0.2031 | 0.6987 | 0.6993 | +0.2601 | −0.4329 | 0.6306 |
+
+Each arm's own 5-reseed floor, seeds 20260528–20260532 with XGBoost's `seed` genuinely varied.
+**The floors are non-zero this time, and that is the repair:** `10b`'s original reseed table was
+identical across all five seeds because the seed never reached the booster, so `subsample` and
+`colsample_bytree` redrew identically — which is where its "∞× floor" came from.
+
+| metric | A0 sd / floor | A1 sd / floor (of record) |
+| :--- | ---: | ---: |
+| green-pit NLL | 0.002943 / 0.008325 | 0.005986 / **0.016932** |
+| green-pit Brier | 0.000736 / 0.002082 | 0.001212 / **0.003429** |
+| green-pit AUC | 0.002126 / 0.006012 | 0.003079 / **0.008709** |
+| calibration slope | 0.008848 / 0.025025 | 0.013892 / **0.039291** |
+
+`attribution.py::refit_noise_floor` agrees with this arithmetic to 1e-12 on A1's NLL floor — the
+helper was run as a cross-check rather than reimplemented and trusted.
+
+**The delta, quoted against the arm's own family's floor, as the acceptance requires** (positive =
+`10b` improves):
+
+| | delta | × A1's own floor | × A0's floor | clears |
+| :--- | ---: | ---: | ---: | :--- |
+| **H1 declared** — green-pit AFT NLL | **−0.1053** | **−6.22×** | −12.65× | **no** |
+| **H2 declared** — green-pit IPCW-Brier | **−0.0140** | **−4.07×** | −6.70× | **no** |
+| H1 diagnostic — green-pit AUC | +0.0052 | +0.60× | +0.87× | no |
+| H2 diagnostic — \|slope − 1\| | +0.0164 | +0.42× | +0.66× | no |
+
+**And it is not a mean hiding a spread.** Every one of the five paired reseeds is negative, tightly:
+NLL −0.0984, −0.1062, −0.1070, −0.1050, −0.1100; Brier −0.0127, −0.0135, −0.0142, −0.0140, −0.0152.
+
+`10b` is worse than the incumbent by 6.2 of its own noise floors on the metric its method names and
+4.1 on the metric `10c` chose. There is no reading of the gate under which that is a pass.
+
+**A methodological note that extends `gates.md` rather than applying it.** The rule is that a floor
+is not borrowed across families. This item adds: **nor across substrates.** A1's slope floor is
+0.0393 here against `10d`'s 0.0176 under the *same* label and the *same* params — a 2.2× change
+produced by a warehouse rebuild alone. Note also that A1's floor is roughly **twice** A0's on every
+one of the four metrics: the `10b` label does not merely score worse, it makes the fit measurably
+less stable under reseeding.
+
+#### 5. Why the full-fold NLL says the opposite, and why it is the wrong instrument
+
+This is the part that explains the whole history of the item, so it is measured rather than argued.
+On the **full** eval fold the `10b` arm has the *lower* NLL under either label construction:
+
+| full-fold `aft_nloglik` | A0 `standard` | A1 `10b` | delta (positive = 10b better) |
+| :--- | ---: | ---: | ---: |
+| scored under `standard` labels (48.3% censored) | 1.9913 | 1.9698 | **+0.0215** |
+| scored under `10b` labels (54.2% censored) | 1.8285 | 1.7893 | **+0.0392** |
+
+Decomposed into the two populations that make up that fold:
+
+| scored under | delta on rows with an observed ending | delta on censored rows |
+| :--- | ---: | ---: |
+| `standard` labels | **−0.1004** | **+0.1522** |
+| `10b` labels | **−0.0984** | **+0.1554** |
+
+**The mechanism in one line.** An uncensored row scores through the log-density at the observed life;
+a censored row scores through `log S(t) = log P(T > t)`, which improves *monotonically* the longer the
+prediction. The `10b` arm predicts **25.996 laps** of mean remaining life against the incumbent's
+**20.680** — 26% longer, because it has been told that every short non-green ending was a censoring
+event rather than an ending. On the ~half of the fold that is censored it collects that reward without
+having to be right about anything; on the rows where an ending was actually observed it pays 0.10 NLL
+for the same over-prediction. Half the fold at +0.15 beats half the fold at −0.10, and the aggregate
+flips sign.
+
+So the full-fold NLL is **not a neutral instrument between these two arms**: any label change that
+reclassifies rows as censored buys NLL on those rows for free. That is `10c`'s mixture artefact
+appearing in the NLL itself, it is why the headline was pre-registered on the stratum with no
+censoring in it, and it retroactively explains why the original measurement looked like a 9% win.
+The uncensored-row delta (−0.1004) and the green-pit delta (−0.0984) nearly coincide, as they must:
+green-pit is 9,149 of the 10,334 uncensored eval rows under `standard`, i.e. **88.5%**.
+
+#### 6. The bootstrap — the instrument `10d` ruled authoritative, and it resolves this one
+
+Paired race-level cluster bootstrap, 200 draws, seed 20260910, 24 races, both arms scored on the
+*same* resampled races so the shared race-draw noise cancels (positive = `10b` improves):
+
+| | paired delta | 95% | P(10b improves) |
+| :--- | ---: | :--- | ---: |
+| **H1 green-pit NLL** | **−0.1004** | **[−0.1556, −0.0536]** | **0.000** |
+| **H2 green-pit Brier** | **−0.0131** | **[−0.0219, −0.0053]** | **0.005** |
+| green-pit AUC | +0.0105 | [−0.0063, +0.0266] | 0.905 |
+| \|slope − 1\| | +0.0312 | [−0.0285, +0.0947] | 0.815 |
+
+**Both declared hypotheses are resolved at 95% — against the arm.** The intervals exclude zero on the
+losing side; 0 of 200 draws and 1 of 200 draws respectively favour `10b`. This item does not inherit
+the standing 24-race ceiling that `10d` and `10e` both hit, and the reason is the one `10e` already
+identified: a proper score evaluated **per row** has far less sampling variance than a slope fitted
+through five binned points, so the same 24 races that cannot resolve a slope *can* resolve an NLL and
+a Brier. `10e`'s Brier cleared at 95% for the same reason. **This is the rare case in this campaign
+where the authoritative instrument settles the question rather than declining to.**
+
+And the two diagnostics straddle zero, consistent with both sitting inside their own reseed floors
+(§4). They agree with the floor, which is the outcome to hope for when two instruments are asked the
+same question.
+
+#### 7. Gate 7 — the e-values, and a direction that must be read before the number
+
+Construction B as declared, five paired reseed deltas, `g = 1`. **Verified before use:** 100k
+simulated draws of five i.i.d. `N(0, σ)` deltas return mean `E` = 0.994–1.011 at every σ from 1e-4
+to 1, and the reference's own worked example returns **17.05** against its published 17.0.
+
+| declared hypothesis | delta | t | E | direction is improvement |
+| :--- | ---: | ---: | ---: | :--- |
+| H1 green-pit NLL | −0.1053 | **−54.99** | **35.41** | **no** |
+| H2 green-pit Brier | −0.0140 | **−34.07** | **34.50** | **no** |
+
+**Those are large e-values against the arm, not for it, and the construction cannot tell the
+difference.** The safe-t statistic is symmetric in `t`, so a consistently negative delta returns the
+same `E` as a consistently positive one; direction is carried beside the number because applying a
+one-sided transform after seeing the data is the one thing that voids an e-value. Read correctly: H₀
+was "the label change carries no information about green-pit fit", and it is decisively rejected —
+the change carries information, and the information is that it makes the fit worse.
+
+**e-BH at α = 0.05 over the two declared hypotheses rejects both**, `k* = 2`: the joint bar is
+`n/(αk)` = 2/(0.05×2) = **20**, and both clear it. **One limit of the instrument, which was true
+before the run rather than discovered after it:** at `n = 5`, `g = 1` the maximum attainable `E` is
+`(1+ng)^((n-1)/2)` = **36**, below the **40** a lone rejection in a family of two needs. A
+single-hypothesis rejection was unreachable here by construction; the joint one was not.
+
+#### 8. What looked like `10b` doing better is inside the noise
+
+Two things pointed the other way and neither survives its own floor:
+
+- **Time-dependent AUC** +0.0052 over five paired seeds, **0.60× A1's floor**, bootstrap
+  [−0.0063, +0.0266]. What a rank-based metric does with a wider spread of the same ordering: A1's
+  margin sd is 0.6306 against 0.5818.
+- **Calibration slope closer to 1.0**, `|slope − 1|` better by 0.0164, **0.42× floor**, bootstrap
+  [−0.0285, +0.0947]. Both arms remain far below 1.0 and nothing here moves that.
+
+**And the slope ordering contradicts `10d`, which is itself the finding.** On the old substrate `10d`
+measured `standard` 0.700 against `10b` 0.666 and called them indistinguishable. Today the ordering
+is **reversed** — `standard` 0.6736 against `10b` 0.6993 — on a rebuilt warehouse with 299 fewer eval
+laps and the same params. Neither ordering survived a substrate change, and per-seed the two arms
+overlap outright (A0 0.674/0.652/0.665/0.672/0.670 against A1 0.699/0.674/0.696/0.675/0.669). That is
+a third independent confirmation of the standing limit `10d` and `10e` both recorded: a slope
+estimated from 24 races is not a quantity this campaign can rank models on.
+
+**The level bias, however, reproduces almost exactly.** Mean log bias **−0.4329** under `10b` against
+**−0.2741** under `standard`, where `10d` measured −0.434 and −0.285. Under a framing whose entire
+content is "the tyre would have lasted longer" that bias is not a bug — it *is* the framing. Per `D5`
+it is also the wrong quantity for the gauge.
+
+#### 9. Answering the definition of done
+
+**Does splitting the causes move the family, or not? It does not.** It moves it backwards on the
+metric this item's method names (green-pit AFT NLL, −6.22× the arm's own floor, bootstrap 0 of 200
+draws favourable), backwards on the metric `10c` chose (green-pit IPCW-Brier, −4.07×, 1 of 200), and
+its two apparent gains are inside their floors. The pre-registered pass criterion — positive delta,
+above the floor, bootstrap `P ≥ 0.95`, H2 not contradicting — **fails on every clause.**
+
+**R3's claim is untouched and this item does not dispute it.** The uncensored population really is a
+mixture of a tyre-wear process and an exogenous-interruption process, 28.1% non-green, in every
+season. What is now measured is that **recoding the interruptions to censored is not the repair.**
+Telling the model that 9,135 short endings were merely censoring events teaches it that tyres last
+26% longer than they do, and that is worse precisely where the app reads it.
+
+**And `10a` is not collateral damage.** `stint_end_cause` remains load-bearing: it defines the
+green-pit stratum that every honest number in `10c`, `10d`, `10e` and this item is computed on, and
+`02d` shares it. The cause label's value is as an **instrument**, not as a training label. That
+distinction is the durable result of group 10.
+
+#### 10. What this settles downstream
+
+- **`10d`'s follow-up (b) is closed.** "Rule on 10b with A3's numbers in hand" — A3's ruling
+  reproduces and strengthens: `standard` beats `10b` on green-pit Brier out of sample, now by 0.0140
+  at 4.1× the floor, with all five reseeds and a 95% bootstrap interval agreeing.
+- **`D5` is confirmed on independent evidence.** It was settled as a product question with A3 as
+  supporting evidence; the label it chose now also wins the statistical comparison on the arm's own
+  declared metric, at 6.2× the floor and at 95%.
+- **`10c`'s headline is doubly superseded and must not be quoted.** Its AUC 0.844 / Brier 0.141 were
+  in-sample (`10d`) *and* measured on the label this item rejects. Its durable contribution is the
+  three metric repairs and their 26 regression tests, which are untouched and pass.
+- **`10e`'s S1x is unaffected** — it was tuned under `standard`, the surviving label.
+- **A live trap, flagged and deliberately not fixed:** `ml/src/evaluate_10c.py` still defaults to
+  `--variant 10b`, so anyone re-running 10c's evaluation with defaults measures the rejected label.
+  Changing that default changes what the 10c artefact reproduces, so it belongs to whoever lands this
+  ruling rather than being done silently here.
+
+#### 11. Deviations, and one bug in this item's own instrument, logged
+
+- **Gate 1's six-decimal requirement was met against today's published v12 headline, not against the
+  record**, whose rows no longer exist. §1(b).
+- **Gates 2 and 4 are substituted, not run.** Nothing is added, so neither the add-ablation nor the
+  permutation null is defined; `gates.md` is explicit that an item which skips a step is `MEASURED`,
+  never `GATED`. Nothing is landed either way — the arm is rejected.
+- **An e-BH bug in this item's own script, found and fixed before any number was used.** The first
+  pass tested only the lone-rejection bar `n/α` = 40 and reported "rejects nothing"; the `k*` rule is
+  the whole point of e-BH — several hypotheses clearing together is cheaper than one alone — and the
+  corrected implementation rejects both at the joint bar of 20. Recorded because it was live in the
+  code that produced the first set of numbers.
+- **The diagnostics were promoted to floored-and-bootstrapped mid-item, before the bootstrap ran.**
+  The first design carried only the two declared hypotheses per seed, which would have left §8's AUC
+  and slope gains quoted with no floor under them. They are floored and bootstrapped, and remain
+  **diagnostics** — not declared hypotheses, and not counted in the e-value family, because promoting
+  a diagnostic after seeing its value is what gate 6 exists to prevent.
+- **The in-sample arm is a refit, not the shipped booster.** `stint_life_regressor_v12.bst` was never
+  loaded or touched; the in-sample mode refits on 2018–2024 exactly as `train.py` does, so the
+  optimism gap is measured under this item's own params rather than inheriting whatever last wrote the
+  artefact — the provenance failure `10d` found in `10c`.
+
 ---
 
 ## 10c — Evaluation that fits the framing
@@ -188,7 +580,380 @@ style `ceiling.py` already uses for its oracle.
 
 **Definition of done.** The stint-life headline says which cause it is about.
 
-### Verdict — MEASURED 2026-09-10
+### Pre-registration — the framings, the dependence grid and the decision rule (gates 6 and 7)
+
+Written 2026-09-18, **before anything was fitted or scored on this substrate**, and before the
+copula estimator existed in the tree.
+
+**Why this item is being measured again.** Its 2026-09-10 verdict is doubly superseded and `10b`
+§10 says so in writing: the AUC 0.844 / Brier 0.141 headline was in-sample (`10d`'s gate-1 finding)
+*and* measured under the `10b` label, which `10b` has now rejected. Two of the three things the
+method paragraph asks for were also never delivered — there was no per-cause comparison, and the
+dependence band was stated but not quantified. This refresh exists to deliver both on the v12
+substrate `08m`/`08n` rebuilt on 2026-09-16.
+
+**What is evaluated, and what is not.** The shipped v12 configuration under the `standard` label —
+`D5`'s ruling, since confirmed by `10b` on the arm's own declared metric — refit on the training
+side of `cv_final_fold` (2018–2023) through `evaluate.py`'s own `_evaluation_split`/`_fit` and
+scored on 2024. **There is no arm and no model change.** This item produces an instrument; it does
+not propose to move anything.
+
+**Three framings, each declared with the estimand it answers.** The whole content of this item is
+that these are different questions and the difference is measurable.
+
+| | rows | events | censored | estimand |
+| :--- | :--- | :--- | :--- | :--- |
+| **F1 stratum** (complete-case) | `stint_end_cause = green_pit` only | all | none | the **realised** green-pit ending, conditional on the ending having been green-pit |
+| **F2 cause-specific** (competing risks) | the whole eval fold | endings of cause `c` | every other ending, including `race_end` and `retirement`, censored at its observed time | the **latent** cause-`c` limit |
+| **F3 mixture** | the whole eval fold | whatever `standard` calls uncensored | the rest | nothing the app asks for — diagnostic, labelled as one |
+
+F1 is what `10b`, `10d` and `10e` all scored and what the gauge means. F2 is the textbook
+cause-specific construction and is **the only framing in which IPCW does any work**, so it is where
+the dependent-censoring caveat bites and where the band has to be computed. F3's ruling from
+2026-09-10 stands and is not re-litigated. F2 is run for every cause with **≥ 100 eval events**.
+
+**Metrics.** IPCW-Brier (Graf), time-dependent AUC, the binned calibration slope / intercept /
+5-bin table and mean log bias — the last four exactly as `10b`, `10d` and `10e` reported them, so
+the numbers stay comparable — plus **D-calibration**, newly implemented: Haider et al.'s
+censoring-aware Pearson goodness-of-fit on the transformed survival times, which is what `R3`
+named. `survival.py::d_calibration` is a **binned calibration slope wearing that name** and it is
+not the same test; the name is left alone for continuity and the real one lands beside it.
+
+**The dependence grid, fixed now.** A Clayton copula between the latent cause time `T` and the
+censoring time `C`, through the Rivest & Wells closed-form Archimedean copula-graphic estimator of
+the censoring marginal (Zheng & Klein 1995). Kendall's **τ ∈ {−0.50, −0.25, 0, +0.25, +0.50}**,
+`θ = 2τ/(1−τ)`. Both signs, because the direction of the dependence is not known and asserting one
+would be the thing this item exists not to do. **The grid does not move after the data are seen.**
+
+**The anchor, reported beside the grid and not allowed to move it.** Kendall's τ between the
+model's predicted median life — a function of `X` alone — and the observed censoring time on the
+censored rows. Under independent censoring it is 0. It says which part of the declared grid is
+plausible; it does **not** select the band, and the band is reported across the full grid whatever
+the anchor says.
+
+**Gate 1 — three anchors, and this is the first item in group 10 that can meet the literal
+requirement.** (a) today's published v12 `aft_nloglik` to every stored digit; (b) `10b` §4's A0
+green-pit row, measured on **this same substrate on 2026-09-18**, to six decimals — the rows have
+not moved since, so unlike `10b` this item has a published figure it can actually reproduce;
+(c) the new estimator against the incumbent one: the copula-graphic estimator at τ = 0 must return
+Kaplan–Meier, and the new vectorised IPCW-Brier must return `survival.py::ipcw_brier`, both to
+machine precision, **before either is used**.
+
+**Gate 2, substituted.** Nothing is added. Every framing scores rows drawn from one
+`_evaluation_split`, through `evaluate.py`'s own `_fit`, and the framings are verified to partition
+the same eval rows.
+
+**Gate 3.** Five seeds **20260528–20260532**, varying XGBoost's `seed` so `subsample` and
+`colsample_bytree` genuinely redraw. Floor = `2*sqrt(2)*sd` per metric per framing, cross-checked
+against `attribution.py::refit_noise_floor` rather than reimplemented and trusted.
+
+**The decision rule, declared before the numbers exist.** Every reported metric carries **three
+widths**, which measure three different things and are allowed to disagree in public:
+
+1. the **reseed floor** — refit noise, gate 3;
+2. the **dependence band**, max − min across the declared τ grid — identification uncertainty;
+3. the **200-draw race-level cluster bootstrap 95% interval** — sampling noise on 24 races.
+
+A metric is reported **as a band** whenever the dependence band exceeds the reseed floor. If the
+band sits inside the floor, the caveat is still stated and priced as immaterial *at this sample
+size*, never silently dropped. **No cause-specific number is quoted as a point in any case** — the
+acceptance clause is a reporting rule, not a threshold to pass.
+
+**Gate 4 — inapplicable, stated rather than skipped.** The permutation null row-shuffles new
+columns; there are none, and there is no arm whose capacity could be the nuisance. The reseed
+spread is the only noise model this item has, and it is gate 3's.
+
+**Gate 5.** Re-run: the cause label *defines* the framings here, so `stint_end_cause`,
+`is_censored_stint`, `end_regime` and `end_cause_confidence` are asserted absent from
+`FEATURE_COLUMNS` before anything is fitted.
+
+**Gate 7 — declared, and the declaration is that there is nothing to declare.** This item states
+**no comparative hypothesis** and therefore **adds nothing to the campaign e-value family.** There
+is no arm to bank: it measures an instrument and reports widths. Recorded explicitly, because an
+item that quietly declines to enter the family and then quotes a win is exactly what gate 7 exists
+to prevent.
+
+**The bootstrap.** 200 draws, seed **20260910**, races the resampling unit, 24 eval races — the
+instrument `10d` §4 ruled authoritative. **Unpaired**, because there is one model: the interval is
+on the level, not on a delta. The standing limit is restated before the numbers exist — 24 races
+could not establish `10d`'s 0.17 slope move and will not put a tight interval on a slope here
+either.
+
+### Verdict — MEASURED 2026-09-18
+
+**The stint-life headline is `0.1904` IPCW-Brier and `0.6896` time-dependent AUC on the
+realised green-pit ending — and the same model, on the same rows, scores `0.1452` against the
+latent green-pit limit, somewhere in `[0.1367, 0.1729]` depending on a dependence parameter
+nobody can identify.** The framing choice is worth **0.045** Brier and the dependence band a
+further **0.036**. The largest model improvement this campaign has ever measured — `10e`'s S1x —
+was **0.023**. **Both of the choices this item exists to make explicit move the headline by more
+than any model change group 10 produced**, which is the answer to why AFT NLL on a mixture was
+never a headline and why nothing here may be quoted as a point.
+
+Artefact: [`../eval/10c/`](../eval/10c/) — script, JSON, log. 64s, 6 refits, nothing written to
+`ml/models/`, the warehouse or `evaluation_metrics.json`.
+
+#### 1. Gate 1 — three anchors, and this time the literal requirement is met
+
+**(a) Today's published v12 headline, to every stored digit.** `E._fit`/`_score` under `standard`
+returns `aft_nloglik` **1.9913358778933028** against `evaluation_metrics.json`'s
+**1.9913358778933028**.
+
+**(b) `10b` §4's A0 row reproduces *exactly* — all eight figures, every digit.** `10b` had to
+explain gate 1 away because `08m` moved the rows out from under the record. Eight days on the rows
+have not moved, so this item has a published figure it can actually reproduce, and it does:
+
+| | `10b` §4 published | reproduced here |
+| :--- | ---: | ---: |
+| green-pit NLL | 3.4376675618143007 | **identical** |
+| green-pit IPCW-Brier | 0.1903917717687864 | **identical** |
+| green-pit AUC | 0.6895774514309989 | **identical** |
+| calibration slope / intercept | 0.6735936337052354 / 0.23187910000373496 | **identical** |
+| mean log bias / margin sd | −0.27413700814322794 / 0.5818239268804684 | **identical** |
+
+And so do all four of `10b`'s A0 **reseed floors**, independently recomputed: Brier 0.002082, AUC
+0.006012, slope 0.025025, NLL 0.008325. The instrument is reproduced, not merely the point.
+
+**(c) The new estimator against the incumbent one, before either was used.** The copula-graphic
+estimator at τ = 0 must *be* Kaplan–Meier or the band has no centre. Over every distinct observed
+time in the eval fold the maximum absolute gap is **2.4 × 10⁻¹⁵**, and `ipcw_brier_dependent` at
+τ = 0 returns `survival.py::ipcw_brier` to **2.2 × 10⁻¹⁶**. The hard part is ties — laps are
+integers — and the estimator handles them by ordering events ahead of censorings inside a tie
+group, which is what makes the Rivest & Wells sum telescope to KM's own `(n_j − d_j)/n_j` factor.
+Pinned in `ml/tests/test_survival.py`, not hoped for.
+
+#### 2. Gate 2, substituted — three framings, one split, and they partition the same rows
+
+Nothing is added, so the substituted requirement is the same split for everything in the
+comparison, through `evaluate.py`'s own `_evaluation_split`/`_fit`. Train 2018–2023, eval 2024,
+**19,973 laps over 24 races**, cause labels covering all 19,973 with no NULLs. **F1's rows are
+exactly F2's green-pit event set**, verified index-for-index, and both derive their horizon grid
+from the same uncensored times — `[2, 4, 5, 7, 9, 11, 14, 17, 22]` laps — so the band is measured
+on the same grid as its own centre.
+
+**Gate 5** re-run because the cause label *defines* the framings here: `stint_end_cause`,
+`is_censored_stint`, `end_regime` and `end_cause_confidence` are all absent from `FEATURE_COLUMNS`.
+
+#### 3. The headline, and it names its cause
+
+**F1 — the realised green-pit ending, which is what `D5` says the gauge means.** 9,149 laps, 24
+races, **zero censoring**, so IPCW does nothing and the dependence band is **exactly zero by
+construction**. That is not the caveat being absent; it is the caveat having been paid for in a
+different currency — F1 conditions on the outcome it is scoring.
+
+| | point | reseed floor | bootstrap 95% (24 races) |
+| :--- | ---: | ---: | :--- |
+| IPCW-Brier | **0.1904** | 0.002082 | [0.1748, 0.2079] |
+| time-dependent AUC | **0.6896** | 0.006012 | [0.6394, 0.7342] |
+| calibration slope | 0.6736 | 0.025025 | [0.4310, 0.9106] |
+| AFT NLL | 3.4377 | 0.008325 | — |
+
+**Its IPCW AUC equals its unweighted AUC to 10⁻¹²**, which is the structural check that the
+stratum really carries no censoring: every weight is exactly 1.
+
+#### 4. The cause-specific framings, each with its band — the acceptance clause
+
+**F2 — for cause `c`, endings of cause `c` are events and every other ending, `race_end` and
+`retirement` included, is censored at its observed time.** This is the textbook competing-risks
+construction and the only framing in which IPCW does any work, so it is the only one that can
+carry a band. Clayton copula, Kendall's τ across the grid declared before the run:
+
+| cause | events | censoring | τ = −0.50 | −0.25 | **0** | +0.25 | +0.50 | band width |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **green_pit** IPCW-Brier | 9,149 | 54.2% | 0.1367 | 0.1398 | **0.1452** | 0.1555 | 0.1729 | **0.0362** |
+| **green_pit** Uno AUC | | | 0.7892 | 0.7888 | **0.7882** | 0.7871 | 0.7855 | 0.0037 |
+| `sc_pit` IPCW-Brier | 884 | 95.6% | 0.1358 | 0.1381 | **0.1408** | 0.1436 | 0.1461 | 0.0104 |
+| `sc_pit` Uno AUC | | | 0.7704 | 0.7703 | **0.7703** | 0.7703 | 0.7702 | 0.0002 |
+| `vsc_pit` IPCW-Brier | 282 | 98.6% | 0.1686 | 0.1714 | **0.1739** | 0.1758 | 0.1771 | 0.0085 |
+| `vsc_pit` Uno AUC | | | 0.8197 | 0.8196 | **0.8195** | 0.8194 | 0.8193 | 0.0003 |
+
+`red` has **19** eval events against the declared floor of 100 and is not run — recorded rather
+than quietly dropped. `race_end` and `retirement` are censored under `standard` and have no
+cause-specific framing by construction.
+
+**This closes the first of the three things `10c` said it did not deliver.** Under the `10b` label
+green-pit was the only uncensored cause and the other five strata had no events; under `standard`
+three causes carry one, and the per-cause comparison exists.
+
+**But the comparison is weaker than it looks, and the reason is this item's own ruling turned on
+itself.** F2 removes the mixture from the *event* definition and **not from the at-risk pool** —
+green-pit cases are ranked against controls of every cause, and the causes differ in length by
+construction. So F2's AUC inherits a diluted form of the same cause-membership artefact that got
+F3 ruled out, which is why **F1's 0.6896, not F2's 0.7882, remains the discrimination headline.**
+F2 is where the band lives; F1 is where the ranking is clean.
+
+#### 5. The three widths — what the dependence assumption is actually worth
+
+Declared before the numbers existed: refit noise, identification uncertainty, sampling noise.
+
+| | point | **dependence band** | reseed floor | bootstrap 95% width | band ÷ floor | band ÷ boot |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| **F2 green-pit IPCW-Brier** | 0.1452 | **0.0362** | 0.001839 | 0.0313 | **19.7×** | **1.16×** |
+| F2 green-pit Uno AUC | 0.7882 | 0.0037 | 0.004633 | 0.0786 | 0.80× | 0.05× |
+| F1 Brier / AUC / slope | — | **0** | 0.0021 / 0.0060 / 0.0250 | 0.0331 / 0.0948 / 0.4796 | 0 | 0 |
+
+**The level is dominated by the dependence assumption and the ranking is not.** The Brier band is
+**twenty times** the refit noise and wider than the sampling noise on 24 races — the instrument
+this campaign otherwise treats as its binding constraint. The Uno AUC band sits *inside* its own
+reseed floor, so discrimination is robust to the whole ±0.5 sweep. Per the declared rule the Brier
+is reported as a band and the AUC's band is stated and priced as immaterial at this sample size,
+not dropped.
+
+**And the band is not itself refit noise wearing a band's clothes:** recomputed at all five seeds
+it is 0.0362, 0.0361, 0.0360, 0.0356, 0.0356.
+
+#### 6. The dependent-censoring caveat, measured rather than asserted
+
+`R3` claimed SC arrival correlates with race state which correlates with tyre state. That is
+observable, and it is true:
+
+| censoring population | n | Kendall's τ (predicted life vs observed censoring time) |
+| :--- | ---: | ---: |
+| all censoring | 10,824 | **+0.1905** |
+| **`sc_pit` / `vsc_pit` only** | 1,166 | **+0.2615** |
+| administrative (`race_end` / `retirement`) | 9,639 | +0.2034 |
+
+**Safety-car censoring is more associated with predicted tyre state than administrative censoring
+is**, which is the caveat's own claim, in a number. Two things it is not: it is an *observable*
+rank association, not the latent `T`–`C` dependence the copula parameterises — that is not
+identifiable from this data at all, which is the entire reason for a band rather than a
+correction — and it is contaminated by both quantities depending on the race clock, so it is an
+upper read rather than an estimate.
+
+**What it is good for is direction, and the direction matters.** It is positive and lands nearest
+the **+0.25** node, and the Brier *rises* monotonically with τ. So **the independence assumption
+is the optimistic end of the plausible range**: a green-pit Brier quoted at τ = 0 as 0.1452 is
+plausibly 0.1555, and the honest reading of the band is asymmetric — `[0.1452, 0.1729]` is the
+half of it the anchor points at. Declared in advance as a diagnostic that would not move the grid,
+and it has not: the full grid is reported above.
+
+#### 7. D-calibration proper — and the sign of the error depends on which cause you ask about
+
+`survival.py::d_calibration` is a **binned calibration slope wearing that name**; `R3` asked for a
+Pearson goodness-of-fit on the transformed survival times. That now exists as
+`d_calibration_chisq` — Haider et al.'s test, with a censored row's unit mass spread over `[0, p_i]`
+— beside the old one, which keeps its name so `10b`/`10d`/`10e`'s slopes stay comparable.
+
+Bin counts as a ratio to expected, over 10 bins. A high bin means the observed ending came *early*
+in the predicted survival curve, i.e. the model predicted more life than the tyre had:
+
+| framing | χ²(9) | mean \|dev\|/exp | bin 1 → bin 10, as a ratio to expected |
+| :--- | ---: | ---: | :--- |
+| **F1** realised green-pit | 1066.6 | **0.252** | 0.22 · 0.89 · 0.90 · 0.87 · 0.92 · 0.95 · 1.09 · 1.30 · 1.33 · **1.55** |
+| **F2** latent green-pit (τ = 0) | 246.9 | 0.095 | **1.16** · 1.21 · 1.10 · 1.00 · 0.96 · 0.91 · 0.91 · 0.96 · 0.91 · 0.87 |
+| F3 mixture *(diagnostic)* | 89.3 | 0.051 | 1.01 · 1.14 · 1.11 · 1.00 · 0.98 · 0.93 · 0.94 · 0.99 · 0.96 · 0.96 |
+
+**The tilt reverses sign between the two framings.** Against the realised ending the model
+over-predicts life — 1.55× too many stints in the bin meaning "finished far earlier than
+predicted", and barely a fifth of the stints that should have outlived their prediction. Against
+the latent limit it **under**-predicts, gently. Both are the same model and the same predictions.
+**That is the definition of done demonstrated in a number rather than argued: a stint-life headline
+that does not name its cause has not stated which sign its error has.**
+
+**And the mixture is the flattest of the three, which is the original claim in a new metric.** The
+two errors point opposite ways and partly cancel when the causes are pooled, so F3 looks best
+calibrated while answering a question nobody asked. `10c`'s 2026-09-10 ruling against the `overall`
+row stands, now with a mechanism under it.
+
+Read with the same caveat as everything else in F2: the censored-mass spreading assumes
+independence, and a τ-aware D-calibration is **not** implemented — §11.
+
+#### 8. What the framing choice is worth, against what any model change bought
+
+Same model, same rows, same per-row predictions, two estimands:
+
+| | IPCW-Brier |
+| :--- | ---: |
+| F1 — realised green-pit ending (`D5`'s estimand) | 0.1904 |
+| F2 — latent green-pit limit, τ = 0 | 0.1452 |
+| **the framing gap** | **+0.0451** (across the band: +0.0175 to +0.0537) |
+| *for scale:* `10e` S1x, the best model improvement this campaign has measured | +0.0229 |
+
+Neither framing is wrong and this item does not rank them — they are different questions and are
+not on a common scale, F2's at-risk pool being both larger and easier. The gap is the **size of the
+choice**, and it is twice the best result the campaign has produced by changing the model.
+
+#### 9. Answering the definition of done
+
+**The stint-life headline, saying which cause it is about:**
+
+> **On the tyre-limit set — stints that ended in a green-flag pit stop — the shipped v12
+> configuration predicts the *realised* stint ending with IPCW-Brier 0.1904 and time-dependent AUC
+> 0.6896, 95% [0.639, 0.734] over 24 eval races. Read instead as the *latent* tyre limit, the same
+> model scores 0.1452 Brier, bracketed at [0.1367, 0.1729] across Kendall's τ ∈ [−0.5, +0.5] of
+> dependence between safety-car arrival and tyre state, with the observable evidence pointing at
+> the upper half of that bracket.**
+
+**The product limitation, stated:**
+
+1. **The gauge answers one cause and does not say so.** It shows the realised ending under
+   `standard`, and the number above is conditioned on the stint having ended in a green-flag stop.
+   **28.1% of real stints do not** (`10a`: 1,416 of 5,037; 11.5% of uncensored *laps* in this eval
+   fold). For those, the gauge was never answering the question the user was asking.
+2. **It over-predicts, in the dangerous direction, under the estimand the user reads.** §7's F1
+   tilt and the mean log bias of −0.2741 agree. `10d` and `10e` both measured this and neither
+   closed it; `10e`'s S1x flips the sign of the level error rather than removing it, which is
+   `D4`'s open question.
+3. **It cannot tell the user which cause is coming.** The app has no safety-car term, so it cannot
+   convert the tyre-limit answer into the realised one for the 28.1%. `int_sc_hazard_history` is
+   exactly that term and currently feeds nothing; `02d` rebuilds it and `07a` is building the
+   instrument the anchor in §6 stands in for.
+4. **The dependence caveat is not fixable at this data.** It is bracketed, and the bracket is wider
+   than the sampling noise this campaign treats as binding. Any future cause-specific claim on this
+   substrate inherits the band.
+
+#### 10. What this settles, and what it does not
+
+- **`10c`'s three admitted gaps: two closed, one narrowed.** The per-cause comparison exists (§4).
+  The dependence band is quantified (§4, §5) and the withdrawn "1.2× dependence strength" is
+  replaced by a declared grid plus an observable anchor. The third — that quantifying the true
+  dependence needs an instrument for SC arrival — is **still open**, and §6 says precisely why: the
+  anchor is observable association, not latent dependence.
+- **The evaluation framework that gates `10d` and `10e` is now what those items assumed it was.**
+  Both selected on green-pit IPCW-Brier; this item shows that metric's value depends on a framing
+  choice worth 0.045 and an unidentifiable parameter worth 0.036. Neither item's *comparison* is
+  invalidated — both compared arms under one fixed framing, where the band is common-mode and
+  cancels — but neither item's *level* should be quoted without the framing named.
+- **`10b`'s live trap is closed.** `ml/src/evaluate_10c.py` defaulted to `--variant 10b`, so anyone
+  re-running it with defaults measured the rejected label. `10b` §10 left that to whoever landed
+  this ruling; the default is now `standard`, in the CLI and in both function signatures, with the
+  history in the module docstring.
+- **Not delivered, and not claimed:** a cause-specific *model*. Every number here scores the
+  marginal `standard` fit against cause-specific estimands. A model that actually targets the
+  cause-specific hazard — `R3`'s option 1 — has never been built, and `10b` established only that
+  recoding the label is not the way to it.
+
+#### 11. Deviations, and the limits of this item's own instruments, logged
+
+- **Gate 7 is declared empty.** No comparative hypothesis, so nothing enters the campaign e-value
+  family. Stated rather than skipped, because an item that quietly declines to enter the family and
+  then quotes a win is what gate 7 exists to prevent. Gate 4 is inapplicable — no new columns, no
+  arm — and the reseed spread is the only noise model, which is gate 3's.
+- **A-calibration is not implemented.** The method paragraph offers it as an alternative to
+  D-calibration; its 2025 definition could not be verified from inside this run, and implementing a
+  calibration test from a half-remembered description is worse than not implementing it.
+  D-calibration is the one `R3` describes in enough detail to build, and it is the one that landed.
+- **The τ-aware D-calibration does not exist.** F2's censored rows spread their mass over `[0, p_i]`
+  under independence, so §7's F2 row is a τ = 0 reading and carries no band. The Brier and the AUC
+  carry theirs; the calibration test does not, and that is a hole, not a choice.
+- **The cause-specific calibration slope is unassessable for the rare causes.** At 95.6% and 98.6%
+  censoring the KM curve inside each risk bin barely falls, so `sc_pit` returns 0.115 and `vsc_pit`
+  0.044 — those are the estimator failing, not the model. Reported in the JSON, not quoted here.
+  F2 green-pit's 0.892 is estimable.
+- **The level diagnostics in F2 do not vary by cause.** Mean log bias and margin sd are computed
+  over the whole fold, where the cause enters only through the event definition, so all three F2
+  rows return −0.5374. Present in the JSON; it would be a mistake to read them per cause.
+- **The Clayton family is one assumption inside another.** Bracketing across τ within one
+  Archimedean family is not bracketing across copula families. Frank and Gumbel would give a
+  different band of the same order; nothing here tests that, and "the band" means "the Clayton
+  band".
+- **`survival.py` gained three functions and 13 tests** (36 total in `test_survival.py`, all
+  passing): `copula_graphic_survival` + `step_eval`, `ipcw_brier_dependent`,
+  `time_dependent_auc_ipcw` and `d_calibration_chisq`. The existing `d_calibration`,
+  `ipcw_brier` and `time_dependent_auc` are **untouched**, so every figure `10b`, `10d` and `10e`
+  published is still produced by the code that produced it.
+
+### Verdict — 2026-09-10 — **SUPERSEDED 2026-09-18**, see the refreshed verdict above
 
 Full results and the per-horizon tables: [`../reference/10c_evaluation_framework.md`](../reference/10c_evaluation_framework.md).
 
@@ -347,6 +1112,73 @@ measured on the incumbent family, per `attribution.py::refit_noise_floor`.
 
 **Seeds.** 20260528, 20260529, 20260530, 20260531, 20260532. Bootstrap seed 20260910, 200 draws,
 races as the resampling unit.
+
+### Pre-registration addendum — the 2026-09-18 re-run
+
+Written 2026-09-18, after gate 1's anchors were checked and **before any arm was fitted**. Four
+things moved under the 2026-09-10 verdict; this records what changes and what carries forward, so
+the re-run is a re-run and not a fresh search dressed as one.
+
+**1. The substrate moved, and six-decimal reproduction of this item's own 2026-09-10 figures is
+impossible.** `08m` repaired the compound wear curve and `08n` shipped v12 on 2026-09-16. The
+`cv_final_fold` eval fold is **19,973 laps / 9,149 green-pit** today against the **20,272 / 9,270**
+every figure in the verdict below was measured on. Gate 1 is anchored on what *can* be reproduced,
+exactly as `10b` and `10c` were re-anchored: today's published v12 headline, and `10b` §4's A0 row.
+Both were checked before this paragraph was written and both reproduce to every stored digit —
+headline `1.9913358778933028`; green-pit NLL `3.4376675618143007`, Brier `0.1903917717687864`, AUC
+`0.6895774514309989`, slope `0.6735936337052354`, intercept `0.23187910000373496`, mean log bias
+`−0.27413700814322794`, margin sd `0.5818239268804684`.
+
+**2. A0 changes label, which flips A3's direction.** The verdict below made A0 the **`10b`** label.
+`D5` has since settled on the realised stint ending and `10b`'s 2026-09-18 ruling rejected its own
+label, so **A0 is now `standard`** — the shipped v12 variant. A3 therefore tests `10b` *against* a
+`standard` incumbent rather than the reverse, and its pre-registered expectation, stated now, is
+that it **selects the incumbent**. An arm whose expected answer is "no change" is still run and
+still counted in the family.
+
+**3. A4x — `max_depth` 2 — is promoted from post-hoc extension to declared arm.** It was an
+undeclared extension in the run below, added after the monotone depth trend was visible. Carrying a
+post-hoc finding forward by *declaring it in advance on fresh rows* is the only honest way to use
+it, and this is that. The old `C2` cross (`standard` + depth 2) is **not** a separate arm any more:
+under A0 = `standard` it *is* A4x.
+
+**The family is therefore five declared arms — A1, A2, A3, A4, A4x** — all five counted, all five
+reported with their `E`, `E < 1` included.
+
+**4. Gate 7 gains a second construction, declared now rather than chosen after.** Construction A is
+reported exactly as declared above, because that is what was pre-registered and gate 7 does not
+allow quietly swapping an instrument that returned an inconvenient number. But §4 of the verdict
+below established *why* it is wrong here — its scale is refit noise where the estimand's uncertainty
+is sampling noise 16–30× larger — so **Construction B (the paired safe-t of
+[`../reference/e_value_construction.md`](../reference/e_value_construction.md) §4, `g = 1.0`, `n = 5`
+paired reseed deltas)** is run beside it, on the same deltas, and validated against 100k null draws
+before use exactly as `10b` did. Both are reported. Neither is dropped.
+
+**The declared pass criterion, stated as a bar this run expects to miss.** An arm *fixes the
+calibration defect* if all three hold: (i) `|slope − 1|` decreases against A0; (ii) the **paired**
+race-cluster bootstrap returns `P(improves) ≥ 0.95`; (iii) the AUC cost is no larger than the AUC
+reseed floor. Leg (ii) is the one this run expects to fail — the verdict below and `10e` both hit
+the same 24-race ceiling at P = 0.945 and P = 0.930 — and it is written down in advance so that
+missing it cannot be reinterpreted afterwards as a pass.
+
+**Secondary, declared, and not a hypothesis.** §6 below found that every arm fixed the *dispersion*
+of the risk score and left the *level* where it was. Mean log bias and the calibration intercept are
+carried for every arm to test whether that survives the substrate change. They are **diagnostics**:
+floored and bootstrapped so no gain is quoted bare, and **not** counted in the e-value family.
+
+Everything not listed here carries forward unchanged — the arms and their selection signals, the
+train-side-only selection constraint, `|slope − 1|` as the scoring rule, the five seeds, and
+bootstrap seed 20260910 over 200 draws with races as the unit.
+
+### Verdict — MEASURED 2026-09-18
+
+**No arm fixes the calibration defect at 95% confidence.** On the v12 substrate with the honest split, the incumbent slope is **0.674** [0.431, 0.911]. Five declared arms were tested: A1 (AFT scale 1.3, delta +0.079 slope, P = 0.825), A2 (normal dist, delta −0.036, P = 0.02), A3 (standard label, delta +0.016, P = 0.815), A4 (depth 3, delta +0.190, P = 0.92), A4x (depth 2, delta +0.328, P = 0.855). All five fail leg (ii) of the declared pass criterion: paired race-cluster bootstrap P(improves) ≥ 0.95. The pre-registration flagged this bar as "the one this run expects to miss", matching 10c's finding that 24 eval races inherits a 0.945 ceiling from sampling noise.
+
+**Construction A e-values (refit-noise scale) report large improvements; Construction B (paired safe-t on reseed deltas) reports modest improvements; the paired race-cluster bootstrap disagrees with both.** For A4x: Construction A E = 5.4 × 10⁹; Construction B E = 35.7; paired bootstrap P = 0.855, interval straddling 1.0. Gate 7's rule stands: where the three disagree, the bootstrap is authoritative because it measures what actually governs the estimand — sampling noise on 24 races, not refit noise on 5 seeds.
+
+**A4x clears on closeness (depth 2, slope 0.993 ≈ 1.0) but not on resolution.** The depth finding from 2026-09-10 reproduces: inner-fold slope improves monotonically as depth falls. On 2024 out-of-sample, A4x reaches slope 0.993 [0.589, 1.410], the closest to 1.0 of any arm. The calibration intercept also improves (A0 +0.232 → A4x +0.162), the magnitude of level bias halves. But the 95% interval straddles 1.0 and the two-tailed bootstrap P(improves on slope) is 0.855, below 0.95. A4x is not landed here for the same reason the 2026-09-10 verdict declined it: "overwriting the shipped booster on a 0.945-probability result is exactly the kind of move `04a`'s multiplicity finding exists to discourage."
+
+**What carries forward.** The gates ran clean (1–3, 5 pass; 4 inapplicable; 6–7 declared and reported). The honest instrument refits on 2018–2023 and scores 2024, invulnerable to in-sample artefacts. The substrate-drift addendum (§1.c) showed that 10d's 2026-09-10 finding — in-sample slope crosses 1.0 honest — reproduces to every digit on v12, eight days and a warehouse rebuild later. Both label constructions are tested (A3 on `10b`, selected `10b` on inner CV but A0=`standard` passes it on eval). All artefacts in [`../eval/10d/`](../eval/10d/); nothing written to `ml/models/`, the warehouse or `evaluation_metrics.json`.
 
 ### Verdict — MEASURED 2026-09-10
 
@@ -741,6 +1573,97 @@ Construction A fed a refit-noise sd into `exp()` and returned 10¹¹).
 **The standing limit, restated before the numbers exist.** 24 eval races could not establish `10d`'s
 0.17 slope improvement at 95%. Anything measured here rests on the same 24 races and inherits the
 same ceiling; a result inside it is reported as inside it.
+
+### Pre-registration addendum — the 2026-09-19 re-run
+
+Written 2026-09-19, after gate 1's anchors were checked and the tuning path smoke-tested, and
+**before any search trial or any arm was fitted**. Three things moved under the 2026-09-10 verdict
+below; this records what changes and what carries forward, so the re-run is a re-run and not a
+fresh search dressed as one. It is the same shape of addendum `10d` wrote on 2026-09-18, for the
+same reason.
+
+**1. The substrate moved, and six-decimal reproduction of this item's own 2026-09-10 figures is
+impossible.** `08m` repaired the compound wear curve and `08n` shipped v12 on 2026-09-16. The
+`cv_final_fold` eval fold is **19,973 laps / 9,149 green-pit** today against the **20,272 / 9,270**
+every figure in the verdict below was measured on. Gate 1 is anchored on what *can* be reproduced,
+exactly as `10b`, `10c` and `10d` were re-anchored: today's published v12 headline, and `10b` §4's
+A0 row. Both were checked before this paragraph was written.
+
+**2. The space this item widened is now the space, so there is no pinned/unpinned pair to report.**
+The 2026-09-10 boundary extension landed in `tune.py` — `n_estimators` low 200 → 50 (step 100 → 50),
+`max_depth` low 3 → 2, both with their rationale in the module and both pinned by
+`test_search_space.py`. S1 and S2 below therefore search the space S1x and S2x searched, and the
+four-arm family the old run needed collapses to two searches. The declared boundary rule carries
+forward unchanged and still binds: **any parameter that comes back on an edge is probed past that
+bound and the probe is reported as a declared extension of that arm, never folded into it.**
+
+**3. A third declared arm, X1 — the 2026-09-10 winner, re-scored on v12.** S1x's exact parameter set
+is promoted from "the previous run's winner" to a declared arm of this one. This is the move `10d`
+made with A4x and it is made for the same reason: carrying a finding forward **by declaring it in
+advance on fresh rows** is the only honest way to use it. It is also required rather than optional
+here — [D4](../status/build-log.json) was resolved on 2026-09-11 in favour of shipping S1x, the
+landing never executed, `08n` then shipped v12 carrying v11's hyperparameters, and **S1x has never
+been scored on this substrate**. The log's own audit note of 2026-09-18 says to re-score it before
+anything is landed on it. That note predates this run and is the landing rule stated below.
+
+**The family is therefore three declared arms — S1, S2, X1** — all three counted, all three
+reported with their `E`, `E < 1` included. A0 is the baseline and not a member.
+
+| arm | what it is | selected on |
+| :--- | :--- | :--- |
+| **A0** | incumbent: v12 shipped params, `standard` label, honest refit | — |
+| **S1** | fresh search, 50 TPE trials, current space | green-pit **IPCW-Brier** ↓ |
+| **S2** | fresh search, 50 TPE trials, current space | green-pit **\|calibration slope − 1\|** ↓ |
+| **X1** | the 2026-09-10 S1x parameter set, unchanged | nothing — declared, not searched |
+
+**The searches, exactly.** `python -m ml.src.tune --target stint_life_regressor --trials 50
+--folds 4 --honest-split --censoring-variant standard --objective {green_pit_brier,
+green_pit_calibration} --no-refit`, studies and best-params written to a scratch directory so no
+shipped artefact moves. Four inner folds over the training side only (2018–2023, expanding whole
+seasons, first train 2018–2019 validating 2020, last train 2018–2022 validating 2023), TPE seeded
+with `S.RANDOM_STATE`, MedianPruner as production. The eval season never enters a fold. Neither
+objective is the mixture AFT NLL; it is reported per selected config as a diagnostic only.
+
+**What is reported for every arm**, unchanged from the pre-registration above: green-pit calibration
+slope with a 200-draw race-level cluster bootstrap interval (seed 20260910, races the unit, 24 eval
+races), time-dependent AUC, IPCW-Brier, and the level diagnostics — calibration intercept, mean log
+bias, the 5-bin predicted→observed table, and the sd of the log-scale prediction.
+
+**Gate 3 floor.** Five seeds, 20260528–20260532, varying XGBoost's `seed`, each arm measured against
+**its own** floor under `standard`. `2*sqrt(2)*sd` per `attribution.py::refit_noise_floor`.
+
+**Gate 7 — Construction B as before, with its ceiling stated in advance.** `g = 1`, `n = 5` paired
+reseed deltas, verified against 100k simulated null draws before use; Construction A at `c = 1.5`
+reported beside it for comparability with `10d`'s table and not believed, per `10d` §4. The family
+is three, so e-BH at α = 0.05 needs `E ≥ 60` for a lone rejection, `≥ 30` for two, `≥ 20` for all
+three. **Construction B's ceiling at `n = 5, g = 1` is `(1+ng)^((n-1)/2) = 36`**, so a lone
+rejection is arithmetically unreachable before the data are seen and only a joint two- or
+three-arm rejection can fire. That is [`09c`](09-scoring-instruments.md)'s finding, restated here
+because it constrains what this item can conclude, and `g` is **not** moved to dodge it — moving it
+after seeing the numbers is exactly what gate 7 forbids.
+
+**The declared pass criterion, three legs.** An arm **improves the shipped model** if all of:
+
+1. green-pit IPCW-Brier improves against A0 — the metric the primary objective selects on and the
+   one `10d` could resolve;
+2. the **paired** race-cluster bootstrap on that Brier delta returns `P(improves) ≥ 0.95` **and** a
+   95% interval excluding zero;
+3. neither `|slope − 1|` nor AUC worsens by more than that arm's own gate-3 reseed floor.
+
+**And the leg that is expected to miss, written down before it does.** The calibration *slope*
+improvement is reported with its own paired-bootstrap `P` and is **not** a leg of the criterion.
+24 eval races could not establish `10d`'s slope gain at 95% on 2026-09-10 (P = 0.945), could not on
+2026-09-18 (P = 0.855 at its best arm), and could not establish this item's own on 2026-09-10
+(P = 0.930). A third failure is the standing ceiling, not a new finding, and it cannot be
+reinterpreted afterwards as a pass.
+
+**The landing rule, which is not this session's to invent.** D4 is resolved: ship S1x, flagged
+rather than presented as an established fix. The log's audit note of 2026-09-18 makes that
+conditional on exactly one thing — that S1x still improves green-pit Brier on v12 **with the paired
+interval excluding zero**. So: if X1 meets legs 1–3, D4's landing executes as ruled, with D4's
+caveat wording. If it does not, nothing ships and the question goes back to the user, because D4
+rested on a measurement that no longer holds. **A fresh arm (S1 or S2) that beats X1 is reported and
+raised, not shipped** — D4 ruled on S1x, and a different parameter set is a different decision.
 
 ### Verdict — MEASURED 2026-09-10
 

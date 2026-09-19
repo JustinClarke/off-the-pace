@@ -1337,6 +1337,13 @@ session ran them.
 
 ## 08h — `baseline_observations_n` as a feature: the add-ablation `08e` deferred
 
+> **RE-MEASURED ON THE `v12`/`08m` SUBSTRATE (2026-09-17), and RULED. The column is measured
+> and REJECTED — it is not in `FEATURE_COLUMNS` and the contract stays at 32 columns.** The
+> stale-target banner that used to sit here is gone because the arms were re-run on the rebuilt
+> target, not because it stopped applying: the `2026-09-09` numbers were on the pre-`08m`
+> quantity and are **superseded**. See the RESULT at the end of this section.
+
+<!-- superseded banner, kept for the record:
 > **STALE AS OF `08m` (2026-09-16) — every pinball number below is on the OLD target.**
 > `08m` fixed how `int_compound_cliff_predicted.sql` consumes `compound_cliff_severity` and
 > dropped the unfitted `0.002*age^2` term, then rebuilt the warehouse.
@@ -1349,8 +1356,7 @@ session ran them.
 > What is NOT invalidated: these deltas remain valid *relative to each other*, because every arm
 > in the comparison was scored on the same (old) target. The leakage/forward-window rulings and
 > the qualitative conclusions stand; only the numbers are on a superseded quantity.
-
-
+-->
 
 **Objective.** `08e` shipped `baseline_observations_n` into the enforced mart contract and
 deliberately kept it out of `FEATURE_COLUMNS`, on the stated ground that putting it in `X` is an
@@ -1369,6 +1375,21 @@ not carry over. Shipping the count so a consumer can condition on the missingnes
 putting it in `X` makes the model's behaviour depend on an axis nothing declares. That is the
 trade this item has to price, not assume.
 
+> **Two corrections to this spec, found before the arms ran (2026-09-17).**
+>
+> 1. **The contract is 32 columns, not 33.** "33 → 34" below predates `08j` (which pruned
+>    `cliff_candidate_flag`) and `08k` (which rebuilt the artefacts against the resulting
+>    32-feature contract). The arms actually run are **32 → 33**. The ordering note's premise is
+>    unaffected — see below.
+> 2. **`baseline_observations_n` has no NULLs.** It is non-NULL on all 137,447 mart rows; it is
+>    `0`, not NULL, where there is no evidence. The NULLs that are deterministic on it are
+>    `push_residual`'s and the three other thermal columns'. Verified: `push_residual` is NULL on
+>    **100.0%** of rows where the count is `0`, in both train and eval. (The implication runs one
+>    way only — 2.3% of train rows with a non-zero count also have a NULL `push_residual`,
+>    because the *current* lap can be invalid too. `marts/schema.yml`'s "NULL exactly where it is
+>    0" is therefore slightly overstated.) This does not soften the hazard, which is about the
+>    **axis**, not about a NULL pattern.
+
 **Method.** Add-ablation on `cv_final_fold`, 33 columns → 34, through `evaluate.py`'s own
 `_fit`/`_score`, against each family's own 5-reseed floor, with the permutation-null arm — the same
 three arms `08e`/`08f` just went through. Also run it as a **pair** with `push_residual`: a count of
@@ -1381,9 +1402,139 @@ the counter).
 check is that arm `A` (contract minus both families) returns bit-identical to 0.3567748 and
 2.0224465. A 34-column contract makes arm `A` a different arm and voids that check.
 
+> **Satisfied, and moot in the end.** `08g` is `CLOSED`. And because this item **rejects** the
+> column, the contract never moved: `08g`'s arm `A` is still the arm it was. Nothing downstream
+> of `08g` needs re-running on account of `08h`.
+
 **Definition of done.** The column is either in `FEATURE_COLUMNS` with a delta that cleared its
 floor and was attributed to information by the permutation-null, or it is recorded as measured and
 rejected with the number, and the declarability hazard is ruled on either way.
+
+### `08h` — RESULT 2026-09-17: measured and **REJECTED** on the `v12`/`08m` substrate. No family clears its own floor (best **0.98×**, `p50`), no family clears on information, and the pair arm with `push_residual` shows no synergy above a floor anywhere. The declarability hazard is **declined**, and the measurement makes that an easy call rather than a close one.
+
+Full tables in [`../eval/08h/MEASUREMENTS.md`](../eval/08h/MEASUREMENTS.md); artefact at
+`ml/artefacts/08h_baseline_observations_n_arms.json`.
+
+**Gate steps 2–3 — add-ablation (32 → 33) against each family's own 5-reseed floor.** Positive
+delta means improvement on every metric; floor quoted against the larger of the baseline-arm and
+add-arm floor, the `08g` convention.
+
+| family | metric | baseline (32) | add (33) | delta | floor | x-floor | clears |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: | :---: |
+| `degradation_regressor_p10` | pinball | 0.476464 | 0.474687 | +0.001777 | 0.006343 | **0.28×** | NO |
+| `degradation_regressor_p50` | pinball | 0.982359 | 0.971406 | +0.010953 | 0.011151 | **0.98×** | NO |
+| `degradation_regressor_p90` | pinball | 0.512846 | 0.508681 | +0.004165 | 0.008395 | **0.50×** | NO |
+| `cliff_classifier` | macro F1 | 0.352466 | 0.355676 | +0.003209 | 0.005083 | **0.63×** | NO |
+| `stint_life_regressor` | AFT nloglik | 1.991336 | 1.991175 | +0.000161 | 0.006113 | **0.03×** | NO |
+
+Every delta points the right way — the column is not harmful on the headline, it is just smaller
+than the noise the refit already carries. `p50` misses by one part in fifty, which is exactly the
+case the floor exists to refuse.
+
+**Gate step 4 — permutation null.** Capacity (`shuffled − baseline`) and information
+(`real − shuffled`), shuffled in train *and* eval:
+
+| family | capacity | x-floor | information | x-floor | info clears | E(info) |
+| :--- | ---: | ---: | ---: | ---: | :---: | ---: |
+| `degradation_regressor_p10` | +0.001331 | 0.21× | +0.000446 | **0.07×** | NO | 0.549 |
+| `degradation_regressor_p50` | +0.005601 | 0.50× | +0.005352 | **0.48×** | NO | **6.729** |
+| `degradation_regressor_p90` | +0.001224 | 0.15× | +0.002941 | **0.35×** | NO | 0.412 |
+| `cliff_classifier` | −0.001302 | −0.26× | +0.004511 | **0.89×** | NO | 0.851 |
+| `stint_life_regressor` | +0.002477 | 0.41× | **−0.002316** | **−0.38×** | NO | 2.414 (dir −) |
+
+On `p10`/`p50` capacity is as large as information — a third column of anything gives the booster
+room. On `stint_life_regressor` the headline gain is **entirely** capacity and the information
+term is negative; both are inside the floor, so it is a direction rather than a finding, but it is
+the opposite direction from the one that would justify the column.
+
+**The pair arm with `push_residual` — and the reference arm that makes it readable.** A joint
+shuffle of `{baseline_observations_n, push_residual}` destroys `push_residual` too, and that is an
+already-gated column carrying real signal, so the joint arm's size is mostly its. `push_residual`
+shuffled **alone**, on the same permutation streams, is the missing comparator:
+
+| family | info(cand) | info(`push_residual`) | sum | info(pair) | synergy | x-floor | E(pair) | E(`push_res`) |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `degradation_regressor_p10` | +0.000787 | +0.050047 | +0.050834 | +0.050961 | +0.000126 | 0.02× | 35.67 | **34.70** |
+| `degradation_regressor_p50` | +0.006960 | +0.055799 | +0.062759 | +0.068317 | +0.005558 | 0.50× | 33.49 | **34.77** |
+| `degradation_regressor_p90` | +0.000270 | +0.006865 | +0.007135 | +0.014007 | +0.006872 | 0.82× | 12.07 | **6.44** |
+| `cliff_classifier` | +0.001968 | −0.001106 | +0.000862 | +0.001694 | +0.000831 | 0.16× | 0.72 | **0.47** |
+| `stint_life_regressor` | −0.000945 | +0.000894 | −0.000051 | −0.000802 | −0.000751 | −0.12× | 0.45 | **0.48** |
+
+E(pair) 35.67 against E(`push_residual` alone) 34.70 on `p10`: **the pair arm is
+`push_residual`.** On `p50` the pair is weaker than `push_residual` alone. **Synergy clears no
+floor on any family** (largest `p90`, 0.82×), so the count is not functioning as the uncertainty
+that qualifies the estimate — whatever it carries is a separate, additive channel. That is the
+leaf doc's question answered, and answered against the column.
+
+> **This overturns a first pass at this item run earlier the same day**, which compared E(pair)
+> against E(candidate) (35.67 vs 0.549) and called the column a "correlation artifact" exploiting
+> its correlation with `push_residual` on 3 of 5 families. Two checks kill that reading: the two
+> columns' rank correlation is **+0.07**, so there is almost nothing to exploit; and the synergy
+> is **positive** on four of five families, which is complementarity — the opposite of the
+> redundancy the artifact story needs. The bottom line (REJECT) is unchanged; the reason is not,
+> and the reason is what a later session would have inherited. That pass also recorded gate
+> step 1 as "not applicable" and scored the item against invented "≥3 of 5 families" criteria
+> that appear nowhere in [`../foundations/gates.md`](../foundations/gates.md).
+
+**"Another counter", asked directly.** `attribution.py`'s `RANK_DEGENERATE_RHO = 0.99` is the
+prior: above it a tree sees the same feature, because XGBoost splits on global thresholds and a
+monotone relabelling induces the same partitions. Max abs Spearman against any contract column, on
+the eval split: **+0.9745** (quantile trio), **+0.9789** (cliff), **+0.9801** (stint life), all
+against `lap_in_stint`; next is `age_in_stint` at +0.964–0.970, everything else below +0.63. So it
+sits **just under** the threshold — not formally degenerate, which is what makes the null a real
+measurement rather than a foregone one: a distinguishable signal was available and did not amount
+to anything.
+
+**Declarability — the ruling, and a correction to how the hazard was written.**
+`baseline_observations_n` has **no NULLs** (137,447/137,447 non-NULL; it is `0`, not NULL, where
+there is no evidence). The NULLs deterministic on it are `push_residual`'s and the three other
+thermal columns' — verified, `push_residual` is NULL on **100.0%** of rows where the count is 0,
+in both train and eval. That does not soften the hazard, which was never about a NULL pattern but
+about the **axis**.
+
+Ruling: **DECLINED.** The trade has a measurable shape now. `lap_in_stint − baseline_observations_n`
+is the count of invalidated prior laps: it is 2 on 64.37% of training-eligible rows (the
+structural out-lap case) and **≥ 3 on 34.50%** — so about a third of rows carry something
+`lap_in_stint` does not, and that something is "how disrupted was this stint", i.e. the safety-car
+and pit-disruption channel. **The declarable part of the column (ρ ≈ 0.97 with `lap_in_stint`) is
+redundant, and the non-redundant part is the undeclared axis itself.** There is no split that
+gives the model the uncertainty without the undeclared axis. A large gain might have been worth
+that; the gain is 0 of 5 above the floor. Declined on the numbers, not deferred a third time.
+
+**Acceptance.** The column does **not** enter `FEATURE_COLUMNS`. The contract stays at **32**
+columns on `v12`; no warehouse model, no model artefact and no line of `ml/src/schema.py` changes.
+It stays in the mart, which is what `08e` shipped it for — `08e`'s call to ship it and not feature
+it is now measured rather than assumed. The rejection is pinned by
+`ml/tests/test_features.py::test_baseline_observations_n_is_never_a_feature`, so re-adding it
+requires re-running this gate rather than an edit.
+
+**Verified.** Gate step 1 — the 32-column baseline reproduces the published `v12` headline to
+`0.00e+00` on all five families. The whole suite was run twice from independent invocations and
+every per-seed score matched bit-for-bit. Row alignment of the candidate column verified
+independently of the fit, via a relation the SQL contract guarantees and a shuffle would break:
+`push_residual` NULL on 100.0% of count-0 rows in both splits (a misaligned column would show
+~2%). All headline figures via `evaluate.py`'s own `_fit`/`_score`/`_predict_index` and
+`attribution.py::refit_noise_floor`, 5 reseeds (`RANDOM_STATE`..`RANDOM_STATE+4`), on
+`cv_final_fold`. E-value validity checked at four sigmas (mean `E` 0.999–1.011). Negative control
+(shuffle vs shuffle, H0 true by construction) returns `E` = 0.42–1.71 on the five families.
+
+**Assumed.** That the synergy contrast
+`info(pair) − info(cand) − info(push_residual)` is a fair read of interaction. It is a
+permutation-null difference, not a variance decomposition, and the three arms share one
+permutation draw per seed (common random numbers) to keep the contrast low-variance — so the sign
+is trustworthy and the magnitude is indicative. Nothing in the ruling turns on its magnitude:
+every synergy is inside its floor. Also assumed, as in `08g`, the `max(floor(baseline), floor(add))`
+denominator convention; the per-arm floors are both recorded in the artefact.
+
+**Gates run.** Steps 1 (instrument check — run, and it passes, contrary to the first pass's "not
+applicable"), 2 (add-ablation, identical split, all five families), 3 (each family's own 5-reseed
+floor), 4 (permutation null, train and eval, with a negative control and a `push_residual`
+reference arm), 7 (e-value construction declared in advance, validity-checked, all five reported
+including `E < 1`, and counted in the campaign family). Step 5 not applicable — the candidate is
+an existing mart column already covered by `assert_no_future_leakage`, and the contract did not
+move. Step 6 satisfied — the three arms and the `push_residual` pair were named in this spec
+before any of them ran; the reference arm is an addition that makes the pre-registered pair arm
+interpretable, not a new hypothesis.
 
 ---
 
@@ -1401,6 +1552,12 @@ rejected with the number, and the declarability hazard is ruled on either way.
 > What is NOT invalidated: these deltas remain valid *relative to each other*, because every arm
 > in the comparison was scored on the same (old) target. The leakage/forward-window rulings and
 > the qualitative conclusions stand; only the numbers are on a superseded quantity.
+
+> **SUPERSEDED, 2026-09-18.** The banner above applies to the *spec* text below and to the
+> 2026-09-10 session's claims. It does **not** apply to the **`08i` — RESULT 2026-09-18** section
+> at the end of this item: that was measured on the current v12/`08m` substrate, and its step-1a
+> instrument check reproduces the published v12 headline on all five families to `0.00e+00`.
+> Read the RESULT, not the objective — the objective's premise is wrong (see the pre-registration).
 
 
 
@@ -1431,6 +1588,262 @@ recorded in this document is measured against.
 **Definition of done.** A floor is chosen with the gate behind it, the rejected floors are recorded
 with their numbers, and if floor 1 survives it survives as a measured result rather than as the
 value that happened to be built first.
+
+---
+
+### 08i pre-registration (gate step 6) — written 2026-09-17, before any arm was run
+
+**Correction to this item's own premise, found before the arms were written.** The objective above
+says "`08e`'s rebuild took `min_observations=1`". **That has not been true since 2026-09-10.** A
+prior `08i` session set `int_lap_thermal_proxy.sql` to `min_observations=2` and it rode into git
+inside `c49473a` ("Add campaign-level multiple comparison audit and analysis scripts"), a commit
+whose message does not mention it. `08m` then rebuilt the warehouse on 2026-09-16, so **the live
+v12 substrate is floor 2, not floor 1** — every v12 number in this tree, including `08h`'s and
+`08n`'s shipped artefacts, was measured on a floor-2 thermal block. The BEFORE arm here is
+therefore floor 2, and "revert to floor 1" is a live option rather than the status quo.
+
+That prior session's result is also **not carried forward**, for two independent reasons: it was
+measured on the pre-`08m` target (this section's STALE banner), and its headline claim — floors 2
+and 3 give "IDENTICAL headline results ... across all five families" — is a claim this
+re-measurement has to reproduce or retract, because two floors that differ on 6,414 eligible rows
+producing bit-identical headlines in five families is the signature of an arm that never varied.
+
+**Arms.** Four: `min_observations` ∈ {1, 2, 3, 5}. Floor 5 is run rather than assumed too
+expensive, because the whole point of the item is that the trade was priced and not taken.
+
+**What varies and what does not.** Only the four `thermal` columns — `push_residual`,
+`cumulative_push_load_surface`, `cumulative_push_load_bulk`, `surface_bulk_ratio`. The contract
+stays 32 columns wide at every floor and **the row set is identical at every floor**:
+`is_training_eligible` is `age_in_stint > 3 AND anomaly_class NOT IN ('mistake','conditions')`,
+which does not reference the thermal block, so raising the floor turns values into NaN and never
+deletes a row. The leaf doc's "a headline that improves by deleting the hard rows" hazard is
+therefore **structurally absent here**, and the eval-row count is reported per family per floor to
+show it rather than to assert it.
+
+**Declared consequence:** the cross-floor contrast is **capacity-neutral by construction** — same
+column count, same rows, same split — so a cross-floor delta cannot be a capacity artefact. Step 4
+is still run, because "not capacity" is not the same as "not noise".
+
+**Instrument (step 1), two parts, both required before any arm is read.**
+
+1. `E._fit`/`_score` on `cv_final_fold` must reproduce the published **v12** headline in
+   `ml/artefacts/evaluation_metrics.json` for all five families.
+2. A floor-parameterised replica of `int_lap_thermal_proxy`'s window logic, run read-only against
+   the warehouse, must reproduce the **built** floor-2 columns bit-for-bit on all 137,447 mart
+   rows — NULL pattern included. Floors 1/3/5 are then that same query with one integer changed,
+   which is what makes them comparable to the built arm rather than to a reimplementation.
+
+**Steps 2–4, per family, per floor.** Add-ablation on `cv_final_fold` (train 2018–2023, eval 2024)
+through `evaluate.py`'s own `_fit`/`_score`; each floor arm gets its own 5-reseed floor from
+`attribution.py::refit_noise_floor`, and every cross-floor delta is quoted against the **larger**
+of the two arms' floors; permutation null row-shuffles the four thermal columns **jointly** in
+train and eval, giving `capacity = shuffled − baseline` and `information = real − shuffled` within
+each floor.
+
+**One extra control, declared here.** `shuffled(F) − shuffled(2)` isolates the cost of the extra
+missingness *with the signal already destroyed*. If a floor's headline moves but its shuffled arm
+moves by the same amount, the floor changed the NaN density and not the information.
+
+**Step 7, declared before running.** Null = the within-floor information contrast (real vs its own
+row-shuffle), not floor-vs-floor — capacity is a nuisance parameter. Construction **B (paired
+safe-t)** from `reference/e_value_construction.md`, `n = 5` seeds
+(`RANDOM_STATE + 0..4`, `RANDOM_STATE = 20260528`), `g = 1.0` (a one-sd effect, as in `02c` and
+`08h`). Reported for every arm including `E < 1`, and a second e-value is declared on the
+**cross-floor** paired contrast `headline(F, seed s) − headline(2, seed s)` — that is the shipping
+question, and it is declared now so it cannot be selected afterwards. Direction is carried beside
+each `E`, never folded into it.
+
+**Decision rule, fixed in advance.** Ship the floor whose cross-floor delta against floor 2 clears
+the larger of the two reseed floors, in the direction of improvement, on a majority of the five
+families, with no family moved against by more than its own floor. If no floor clears anywhere,
+the ruling is that the floor does not matter at this substrate and the cheapest-coverage option
+(floor 1) is preferred on coverage grounds alone — stated as a coverage argument, not as a
+signal win.
+
+---
+
+### 08i — RESULT 2026-09-18 (gate steps 1–7 on the v12/`08m` substrate)
+
+**Artefacts.** `ml/artefacts/08i_min_observations_floor_arms.json` and its `.log`; the arms script
+is `scripts/arms_08i_min_observations_floor.py`. 240 refits, all through `evaluate.py`'s own
+`_fit`/`_score`/`_predict_index`. Nothing written to `ml/models/`, to
+`ml/artefacts/evaluation_metrics.json`, to the warehouse or to git.
+
+#### The one-line answer
+
+**The trade does not exist.** `08e` priced floors above 1 as buying degradation signal for
+coverage. Measured through the gate, **floors 3 and 5 cost coverage *and* signal** — they are
+dominated on both axes, and they clear their own floor *in the wrong direction* on three of the
+five families. **Floor 1 is the best-performing floor**, and the floor the warehouse is actually
+built at — **floor 2** — is beaten by floor 1 on all three degradation heads.
+
+#### Step 1 — instrument, both halves
+
+| family | published v12 | floor-2 arm | abs diff |
+| :--- | ---: | ---: | ---: |
+| `degradation_regressor_p10` | 0.4764640778 | 0.4764640778 | `0.00e+00` |
+| `degradation_regressor_p50` | 0.9823587336 | 0.9823587336 | `0.00e+00` |
+| `degradation_regressor_p90` | 0.5128462338 | 0.5128462338 | `0.00e+00` |
+| `cliff_classifier` | 0.3524660979 | 0.3524660979 | `0.00e+00` |
+| `stint_life_regressor` | 1.9913358779 | 1.9913358779 | `0.00e+00` |
+
+Exact, not merely inside 1e-6. And the floor-parameterised replica reproduces the **built**
+thermal block bit-for-bit — `push_residual`, both loads and `surface_bulk_ratio`, 137,447/137,447
+rows each, NULL counts identical (14,017 / 14,017 / 14,017 / 27,287). Per family the floor-2
+splice is *identical* to the split it replaces, train and eval, on all four columns. Floors 1/3/5
+are that same query with one integer changed.
+
+#### Coverage, on the training-eligible panel
+
+| floor | coverage | thermal-NaN rows | pp vs floor 1 | pp vs floor 2 (built) |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 98.20% | 2,156 / 119,822 | — | +2.15 |
+| **2 (built)** | **96.05%** | 4,727 / 119,822 | −2.15 | — |
+| 3 | 90.70% | 11,141 / 119,822 | −7.50 | −5.35 |
+| 5 | 80.35% | 23,549 / 119,822 | −17.85 | −15.71 |
+
+These are **not** `08e`'s 1.41 / 3.49 / 8.82 / 19.09pp. `08e` measured against the old block
+median on the pre-`08m` mart; this is the eligible panel on the v12 substrate. Different
+population — reported, not diffed.
+
+#### Headline per floor (bold = best in family)
+
+| family | metric | floor 1 | floor 2 (built) | floor 3 | floor 5 |
+| :--- | :--- | ---: | ---: | ---: | ---: |
+| p10 | pinball ↓ | **0.4753878** | 0.4764641 | 0.4873281 | 0.5008968 |
+| p50 | pinball ↓ | **0.9684060** | 0.9823587 | 0.9821650 | 0.9874394 |
+| p90 | pinball ↓ | **0.5072930** | 0.5128462 | 0.5249556 | 0.5274265 |
+| cliff | macro F1 ↑ | 0.3509052 | **0.3524661** | 0.3474381 | 0.3454120 |
+| life | AFT nloglik ↓ | 1.9926008 | 1.9913359 | **1.9880619** | 1.9909305 |
+
+**All three degradation heads prefer floor 1.** Cliff prefers floor 2 and stint-life floor 3, both
+by less than their own floor (below).
+
+#### Steps 2–4 — the gate table, every floor against the built substrate
+
+Delta is signed so **positive = improvement** on every metric. Floor is `2*sqrt(2)*sd` over 5
+reseeds, quoted against the **larger** of the two arms' floors (`08g`'s convention). The
+missingness-only control is `shuffled(F) − shuffled(2)`: both sides row-shuffled, so only NaN
+density differs.
+
+| family | floor | delta vs built | floor | ×floor | missingness-only control | E (cross-floor) | verdict |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | :--- |
+| p10 | 1 | +0.0010763 | 0.0066994 | +0.16× | +0.0021707 (+0.32×) | 4.63 ↑ | inside |
+| p10 | 3 | −0.0108640 | 0.0051848 | **−2.10×** | +0.0012840 (+0.25×) | 29.5 ↓ | **CLEARS AGAINST** |
+| p10 | 5 | −0.0244327 | 0.0106539 | **−2.29×** | +0.0018590 (+0.17×) | 28.5 ↓ | **CLEARS AGAINST** |
+| p50 | 1 | +0.0139527 | 0.0111509 | **+1.25×** | +0.0021132 (+0.19×) | 13.5 ↑ | **CLEARS** |
+| p50 | 3 | +0.0001937 | 0.0111509 | +0.02× | −0.0016318 (−0.15×) | 0.495 ↓ | inside |
+| p50 | 5 | −0.0050807 | 0.0111509 | −0.46× | +0.0034435 (+0.31×) | 4.64 ↓ | inside |
+| p90 | 1 | +0.0055532 | 0.0146013 | +0.38× | +0.0020495 (+0.14×) | 0.413 ↓ | inside |
+| p90 | 3 | −0.0121094 | 0.0083954 | **−1.44×** | +0.0021644 (+0.26×) | 21.4 ↓ | **CLEARS AGAINST** |
+| p90 | 5 | −0.0145802 | 0.0092795 | **−1.57×** | −0.0008123 (−0.09×) | 30.8 ↓ | **CLEARS AGAINST** |
+| cliff | 1 | −0.0015609 | 0.0043397 | −0.36× | −0.0003929 (−0.09×) | 0.527 ↓ | inside |
+| cliff | 3 | −0.0050280 | 0.0045279 | **−1.11×** | −0.0005838 (−0.13×) | 3.23 ↓ | **CLEARS AGAINST** |
+| cliff | 5 | −0.0070541 | 0.0070406 | **−1.00×** | −0.0021774 (−0.31×) | 6.00 ↓ | **AGAINST, at the floor** |
+| life | 1 | −0.0012650 | 0.0068296 | −0.19× | +0.0011063 (+0.16×) | 0.430 ↓ | inside |
+| life | 3 | +0.0032740 | 0.0061134 | +0.54× | +0.0023664 (+0.39×) | 1.02 ↑ | inside |
+| life | 5 | +0.0004054 | 0.0090994 | +0.04× | −0.0013209 (−0.15×) | 0.502 ↑ | inside |
+
+`cliff`/floor 5 is −1.0019× its own floor. Recorded as marginal rather than rounded either way.
+
+**Every missingness-only control is small** (|0.09×| to |0.39×|, all inside their floors). The
+damage at floors 3 and 5 is therefore **destroyed information, not NaN density** — which is the
+specific thing this control was declared to separate.
+
+#### Step 4 — how much information the thermal block carries *at* each floor
+
+`information = real − shuffled`, within each floor. Eval rows are constant across floors by
+construction; the NaN column is what actually varies.
+
+| family | floor 1 | floor 2 | floor 3 | floor 5 |
+| :--- | ---: | ---: | ---: | ---: |
+| p10 | +0.0684786 | +0.0695730 | +0.0574250 | +0.0432813 |
+| p50 | **+0.0822964** | +0.0704569 | +0.0722824 | +0.0619327 |
+| p90 | **+0.0384065** | +0.0349027 | +0.0206290 | +0.0211348 |
+| cliff | +0.0136212 | +0.0147892 | +0.0103450 | +0.0099124 |
+| life | +0.0220650 | +0.0244363 | +0.0253439 | **+0.0261626** |
+| **sum** (indicative only) | **0.2249** | 0.2142 | 0.1859 | 0.1624 |
+
+Every arm's information clears its own floor (+1.41× to +50.86×) with `E` between 18.5 and 35.9 —
+**the thermal block carries real information at every floor**, consistent with `08e`'s finding
+that family T is the largest single block in the contract. What the floor changes is *how much*.
+The sum is across different metrics and is indicative, not a statistic; the per-family columns are
+the evidence. Read either way, **more floor means less information**, with `stint_life_regressor`
+the single exception — it is the one family where a higher floor genuinely carries more, and its
+headline delta still never clears.
+
+Eval-row counts, the leaf doc's stated worry: **13,712 / 13,712 / 18,866 / 19,973 — identical at
+every floor**, because `is_training_eligible` never references the thermal block.
+
+#### Where the coverage actually goes
+
+The leaf doc's hazard — "coverage loss falls entirely on early-stint rows, over-represented in the
+cliff classifier's positive class" — is **confirmed, and it gets worse with the floor**. The
+`0_to_2` class is 10.05% of eligible rows. Its share of the NaN rows and its within-class blind
+rate:
+
+| floor | `0_to_2` share of all NaN rows | over-representation | blind rate *within* `0_to_2` |
+| ---: | ---: | ---: | ---: |
+| 1 | 60.3% | 6.0× | 10.48% |
+| 2 | 31.6% | 3.1× | 12.13% |
+| 3 | 19.2% | 1.9× | 17.44% |
+| 5 | 13.6% | 1.4× | **26.13%** |
+
+The *concentration* falls as the floor rises only because everything else starts going blind too.
+The number that matters — how much of the hardest class the model has no thermal reading for —
+rises monotonically, and at floor 5 it is **a quarter of the positive class**. That is the
+mechanism behind cliff's −1.11× and −1.00×.
+
+#### Ruling
+
+1. **Floors 3 and 5 are rejected with the gate behind them.** Dominated on both axes: they cost
+   5.35pp and 15.71pp of coverage *and* clear against on p10, p90 and cliff. `08e`'s "floors above
+   1 buy a little more degradation signal" is **false on this substrate** — they sell it. Do not
+   re-open without new evidence named in the reason.
+2. **Floor 1 is recommended over the built floor 2**, on: all three degradation heads prefer it;
+   p50 — the headline degradation model, and the family the thermal block is worth most to —
+   clears at **+1.25×** with `E = 13.46` in the improvement direction; no family is moved against
+   by more than its own floor (worst is cliff at −0.36×); it carries the most information on 2 of
+   5 families and the most in total; and it buys **+2.15pp** of coverage while cutting the blind
+   rate on the hardest cliff class from 12.13% to 10.48%.
+3. **Stated honestly: this is a preference, not a majority CLEAR.** The pre-registered rule above
+   asked for a clear on a *majority* of the five families. Floor 1 clears on **one**. The rule's
+   two branches — "clears on a majority" and "clears nowhere" — did not anticipate this case, and
+   that gap is recorded rather than resolved by re-reading the rule after seeing the data. What
+   the evidence supports is: floor 1 ≥ floor 2 everywhere that matters, strictly better on the
+   degradation trio, and cheaper in coverage. What it does not support is calling that a gate pass
+   on its own terms.
+4. **Floor 1 survives as a measured result.** The leaf doc's definition of done asked that if
+   floor 1 survives, it survive as a measurement rather than as the value that happened to be
+   built first. It did not even have that status going in — it had been silently replaced by
+   floor 2 — and it now has the measurement.
+
+#### Two defects in the tree this item found, both still live
+
+- **`transform/tests/assert_no_future_leakage.sql`** hard-codes `>= 2` in its independent
+  re-derivation of the baseline ("Apply the same min_observations=2 floor the model uses"). It is
+  a second copy of the parameter, and it must move with any floor change or it fires spuriously.
+- **`transform/models/intermediate/schema.yml`** still documents **floor 1** for
+  `stint_baseline_pace` — "NULL until *one* valid prior lap exists … Costs 1.41pp of
+  training-eligible coverage" — while the SQL runs floor 2 at a measured 3.95pp. The 2026-09-10
+  session changed the parameter and the inline SQL comment but not the column's own description.
+
+#### Step 7 bookkeeping for the campaign family
+
+**15 declared cross-floor hypotheses** (5 families × 3 non-reference floors) plus 20 within-floor
+information arms, every `E` reported above including those below 1. Construction B (paired
+safe-t), `n = 5`, `g = 1.0`, validity checked at four σ (mean `E` = 1.0016 / 0.9992 / 1.0108 /
+1.0014, max attainable 36.0). These belong in `04c`'s campaign-level e-BH; **they have not been
+counted there yet**, and no claim above is adjusted for multiplicity.
+
+#### What this does NOT establish
+
+- It does not re-price the thermal block itself. Arm-vs-arm only; `08e`'s family-T numbers are
+  not re-measured here.
+- It does not test floor 4, or a floor that varies by stint length or by `baseline_observations_n`.
+  The four priced floors are the four that were priced.
+- Landing floor 1 requires a warehouse rebuild and a retrain/re-export of all five artefacts —
+  a cost this measurement does not pay and does not authorise. Raised as **D10**.
 
 ---
 
@@ -2184,6 +2597,37 @@ outstanding. That model's own header records it was rebuilt as a season-lagged p
 manifest on disk predated that rebuild — so the stale manifest had been masking the stale test until
 this item's `dbt run` regenerated it. **Left unfixed deliberately**: updating an assertion about
 another item's defect belongs to `02d`, not here. Flagged in the handoff.
+
+##### §9 addendum — re-verified 2026-09-18, and a *second* failure that is a false positive
+
+A later session re-opened this item (the pointer was still on `08m`), found the work already
+complete and committed at `fb546b4`, and re-ran the checks rather than redoing them. Nothing in the
+item was changed. What the re-run established:
+
+- **The fix is live in the warehouse and reproduces §3.** `fct_cliff_prediction_features`:
+  `AVG(next_5_lap_cumulative_jump_s) = −0.394565` over 95,346 non-null rows and **81,619**
+  `is_training_eligible` rows — §3's `−0.3946` and `81,619` to the digits reported. `dbt test
+  --select int_compound_cliff_predicted+ int_pit_strategy_cost_curve+` — **225/225 pass**, matching
+  §10 exactly. All five fixed sites still call the macro and site 6 still carries its declined-and-
+  marked comment; `transform/` is clean against `HEAD`.
+- **`pytest ml/tests` now reports 199 passed, 1 failed** — the count moved only because an
+  uncommitted `08h` test (`test_baseline_observations_n_is_never_a_feature`) was added since. The one
+  failure is still §9's, still `02d`'s to fix.
+- **The trap.** On a stale `transform/target/`,
+  `test_features.py::test_no_undeclared_aggregation_scope` *also* fails, naming
+  `fct_cliff_prediction_features` GROUP BY `(compound)` and `(compound, lap_in_stint)` as undeclared
+  and its two `race_year` exemptions as stale. **This is a false positive and the source is
+  correct**: the committed model groups by `race_year, compound` and `d.race_year, d.compound,
+  d.lap_in_stint` (lines 181/191, identical at `HEAD` and in the working tree), which is exactly what
+  the exemptions declare. `audit_aggregation_scope` reads *compiled* SQL out of the gitignored
+  `transform/target/`, and `features.py::_model_sql` falls back to the on-disk compiled file when the
+  manifest carries no `compiled_code` — which is the state a `dbt test`/`dbt parse` manifest leaves
+  behind. The compiled artefact on disk predated the season-lagging, so the audit was grading last
+  week's SQL. **`dbt compile` clears it**, and it did: 199 passed, 1 failed. Anyone who meets this
+  failure should regenerate `transform/target/` *before* touching the model or deleting an exemption
+  — the cheap "fix" here is to delete two correct declarations and re-open a real leak. This is the
+  same gitignored-artefact failure mode as §9 itself, pointing the other way: §9 was a stale artefact
+  *masking* a true failure, this is a stale artefact *manufacturing* a false one.
 
 #### 10. What was run
 

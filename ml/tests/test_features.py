@@ -259,6 +259,28 @@ def test_feature_contract_subset_of_mart():
     )
 
 
+def test_baseline_observations_n_is_never_a_feature():
+    """08h: measured as an add-ablation, rejected, and pinned so it stays rejected.
+
+    `baseline_observations_n` ships in the mart on purpose -- it is the column the four
+    thermal features' NULLs are deterministic on, so a consumer needs it to condition on
+    that missingness. It is NOT a feature. 08h ran the add-ablation (32 -> 33 columns) on
+    `cv_final_fold` through `evaluate.py`'s own `_fit`/`_score`: no family cleared its own
+    5-reseed floor (best 0.98x, on p50), and the declarability hazard 08e named is real --
+    the count is not derivable from any contract column, and it rises with SC and pit
+    disruption.
+
+    The reason this is a test and not just a note: the column is sitting in the mart
+    looking like a feature, its rank correlation with `lap_in_stint` is 0.97, and the
+    cheapest way for a later session to "improve" the contract is to add it back without
+    re-running the gate. If a future item wants it in `X`, it re-runs 08h's arms and
+    deletes this test deliberately."""
+    assert "baseline_observations_n" not in S.FEATURE_COLUMNS, (
+        "baseline_observations_n was measured and rejected by 08h; adding it to "
+        "FEATURE_COLUMNS requires re-running the add-ablation gate, not just an edit."
+    )
+
+
 def test_holdout_purity(degradation):
     b = degradation
     # Holdout season is strictly after every training season (derived as MAX+1).

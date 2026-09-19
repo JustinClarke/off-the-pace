@@ -248,6 +248,233 @@ def time_dependent_auc(y, pred_median, is_censored, scale: float, times: np.ndar
         return np.nan, np.array(auc_scores)
 
 
+# ─── 10c refresh: dependent censoring, and the calibration test R3 actually named ────
+def clayton_theta(tau: float) -> float:
+    """Clayton's association parameter from Kendall's tau. tau=0 -> theta=0 -> the
+    independence copula, which is the case every estimator below must reduce to."""
+    tau = float(tau)
+    if not -1.0 < tau < 1.0:
+        raise ValueError(f"Kendall's tau must lie in (-1, 1), got {tau}")
+    return 2.0 * tau / (1.0 - tau)
+
+
+def _clayton_generator(theta: float):
+    """(phi, phi_inverse) for the Clayton family, with the theta -> 0 limit written
+    out rather than approached numerically. phi is decreasing with phi(1) = 0."""
+    if abs(theta) < 1e-12:
+        return (lambda v: -np.log(np.maximum(v, 0.0)),
+                lambda s: np.exp(-s))
+
+    def phi(v):
+        v = np.maximum(np.asarray(v, dtype=np.float64), 0.0)
+        with np.errstate(divide="ignore", over="ignore"):
+            return (np.power(v, -theta) - 1.0) / theta
+
+    def phi_inv(s):
+        s = np.asarray(s, dtype=np.float64)
+        base = 1.0 + theta * s
+        if theta < 0:
+            base = np.maximum(base, 0.0)      # the generator hits 0 at finite s
+        with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
+            out = np.power(base, -1.0 / theta)
+        return np.nan_to_num(out, nan=0.0, posinf=0.0)
+
+    return phi, phi_inv
+
+
+def copula_graphic_survival(y, event, tau: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
+    """Zheng-Klein copula-graphic estimator of ONE marginal under dependent censoring.
+
+    Rivest & Wells' closed form for an Archimedean copula: with H the empirical
+    survival of the observed times and phi the generator,
+
+        S(t) = phi^-1( sum over event rows with Y <= t of [phi(H(Y_i)) - phi(H(Y_i-))] )
+
+    At tau = 0 the generator is -log and the sum telescopes to the Kaplan-Meier
+    product-limit estimator **exactly**, ties included, provided event rows are ordered
+    before censored rows inside a tie group: the product over the d event positions of
+    a group collapses to (n_j - d_j)/n_j, which is KM's own factor. That equivalence is
+    this function's instrument check and it is asserted in the tests, not hoped for.
+
+    Pass `event` = the censoring indicator to estimate G(t) = P(C > t), which is what
+    IPCW weights divide by; pass the event indicator to estimate the event marginal.
+
+    Returns (times, surv), a right-continuous step function evaluated with `step_eval`.
+    """
+    y = np.asarray(y, dtype=np.float64)
+    event = np.asarray(event, dtype=bool)
+    n = len(y)
+    if n == 0:
+        return np.array([0.0]), np.array([1.0])
+
+    phi, phi_inv = _clayton_generator(clayton_theta(tau))
+    # Ties: events first. lexsort's LAST key is primary, so sort on y, then on ~event.
+    order = np.lexsort((~event, y))
+    ys, es = y[order], event[order]
+
+    i = np.arange(1, n + 1, dtype=np.float64)
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        inc = phi((n - i) / n) - phi((n - i + 1.0) / n)
+    inc = np.where(es, inc, 0.0)
+    inc = np.nan_to_num(inc, nan=0.0, posinf=np.inf)
+    with np.errstate(over="ignore", invalid="ignore"):
+        surv = phi_inv(np.cumsum(inc))
+    surv = np.clip(np.nan_to_num(surv, nan=0.0), 0.0, 1.0)
+    surv = np.minimum.accumulate(surv)      # monotone by construction; enforced anyway
+
+    return np.concatenate(([-np.inf], ys)), np.concatenate(([1.0], surv))
+
+
+def step_eval(times: np.ndarray, surv: np.ndarray, t) -> np.ndarray:
+    """Right-continuous step lookup: the value after every jump at or before t.
+    Matches lifelines' `survival_function_.asof(t)`, which is what makes the tau = 0
+    arm of the band reproduce the incumbent IPCW-Brier to machine precision."""
+    idx = np.searchsorted(times, np.asarray(t, dtype=np.float64), side="right") - 1
+    return surv[np.clip(idx, 0, len(surv) - 1)]
+
+
+def ipcw_brier_dependent(y, pred_median, is_censored, scale: float, tau: float = 0.0,
+                         times: np.ndarray | None = None) -> tuple[float, np.ndarray]:
+    """`ipcw_brier`, with the censoring marginal estimated under an assumed dependence.
+
+    Identical to `ipcw_brier` in every other respect -- same Graf weighting, same
+    G_MIN = 0.01 clamp, same default horizon grid -- so that tau = 0 returns that
+    function's value exactly. The ONLY thing tau changes is which estimator produced
+    G. That is deliberate: a band whose ends differ in two things at once measures
+    neither.
+    """
+    y_arr = np.asarray(y, dtype=np.float64)
+    pred_arr = np.asarray(pred_median, dtype=np.float64)
+    cens_arr = np.asarray(is_censored, dtype=bool)
+
+    if times is None:
+        times = np.percentile(y_arr[~cens_arr], np.linspace(10, 90, 9))
+    times = np.asarray(times, dtype=np.float64)
+
+    G_MIN = 0.01
+    gt, gs = copula_graphic_survival(y_arr, cens_arr, tau)
+    g_own = np.maximum(step_eval(gt, gs, y_arr), G_MIN)
+    g_t = np.maximum(step_eval(gt, gs, times), G_MIN)
+
+    mu_log = np.log(np.maximum(pred_arr + S.AFT_LABEL_SHIFT, 1e-12))
+    out = np.empty(len(times), dtype=np.float64)
+    for k, t in enumerate(times):
+        pred_surv = norm.sf((np.log(t + S.AFT_LABEL_SHIFT) - mu_log) / scale)
+        at_risk = y_arr > t
+        event_by_t = (~cens_arr) & (y_arr <= t)
+        w = np.zeros(len(y_arr))
+        w[event_by_t] = 1.0 / g_own[event_by_t]
+        w[at_risk] = 1.0 / g_t[k]
+        contrib = np.zeros(len(y_arr))
+        contrib[event_by_t] = pred_surv[event_by_t] ** 2
+        contrib[at_risk] = (1.0 - pred_surv[at_risk]) ** 2
+        out[k] = float(np.mean(w * contrib))
+    return float(np.mean(out)), out
+
+
+def time_dependent_auc_ipcw(y, pred_median, is_censored, scale: float, tau: float = 0.0,
+                            times: np.ndarray | None = None) -> tuple[float, np.ndarray]:
+    """Uno's IPCW time-dependent AUC, which -- unlike `time_dependent_auc` -- depends
+    on the censoring distribution and therefore carries a dependence band.
+
+    Cases (an event by t) are weighted 1/G(T_i); controls (still at risk past t) are
+    unweighted, their sampling being unaffected by censoring before t. `time_dependent_auc`
+    is the unweighted version and is kept as the continuity figure with 10b/10d/10e --
+    the two answer the same question under different assumptions and are reported side
+    by side rather than one silently replacing the other.
+    """
+    y_arr = np.asarray(y, dtype=np.float64)
+    pred_arr = np.asarray(pred_median, dtype=np.float64)
+    cens_arr = np.asarray(is_censored, dtype=bool)
+
+    if times is None:
+        times = np.percentile(y_arr[~cens_arr], np.linspace(10, 90, 9))
+    times = np.asarray(times, dtype=np.float64)
+
+    G_MIN = 0.01
+    gt, gs = copula_graphic_survival(y_arr, cens_arr, tau)
+    g_own = np.maximum(step_eval(gt, gs, y_arr), G_MIN)
+
+    out = np.full(len(times), np.nan, dtype=np.float64)
+    for k, t in enumerate(times):
+        at_risk = y_arr > t
+        event_by_t = (~cens_arr) & (y_arr <= t)
+        if at_risk.sum() < 2 or event_by_t.sum() < 2:
+            continue
+        ev, w_ev = pred_arr[event_by_t], 1.0 / g_own[event_by_t]
+        ar = np.sort(pred_arr[at_risk])
+        lo = np.searchsorted(ar, ev, side="left")
+        hi = np.searchsorted(ar, ev, side="right")
+        # A case is concordant with a control when its predicted life is SHORTER.
+        conc = (len(ar) - hi) + 0.5 * (hi - lo)
+        out[k] = float(np.sum(w_ev * conc) / (np.sum(w_ev) * len(ar)))
+
+    valid = out[~np.isnan(out)]
+    return (float(valid.mean()) if len(valid) else np.nan), out
+
+
+def d_calibration_chisq(y, pred_median, is_censored, scale: float,
+                        n_bins: int = 10) -> dict:
+    """D-calibration proper: Haider et al.'s Pearson goodness-of-fit on the transformed
+    survival times -- the test `R3` named and that `d_calibration` (a binned calibration
+    SLOPE, despite its name) does not perform.
+
+    If the fitted survival function is right, S_i(T_i) is Uniform(0,1) over uncensored
+    rows. Each uncensored row drops 1 unit into the bin holding its p_i. A row censored
+    at p_i contributes its unit spread over [0, p_i], which is where the true p must
+    lie: (p_i - lower_edge)/p_i to the bin holding p_i and (1/B)/p_i to every bin below
+    it. Pearson's statistic over the B bins then has B-1 degrees of freedom.
+
+    Reported rather than thresholded. With ~9k rows the test rejects on departures far
+    too small to matter, so the statistic is read beside the bin counts, not as a verdict.
+    """
+    from scipy.stats import chi2
+
+    y_arr = np.asarray(y, dtype=np.float64)
+    pred_arr = np.asarray(pred_median, dtype=np.float64)
+    cens_arr = np.asarray(is_censored, dtype=bool)
+    n = len(y_arr)
+    if n == 0:
+        return {"n": 0, "statistic": np.nan, "p_value": np.nan, "bins": []}
+
+    mu_log = np.log(np.maximum(pred_arr + S.AFT_LABEL_SHIFT, 1e-12))
+    p = norm.sf((np.log(y_arr + S.AFT_LABEL_SHIFT) - mu_log) / scale)
+    p = np.clip(p, 0.0, 1.0)
+
+    edges = np.linspace(0.0, 1.0, n_bins + 1)
+    counts = np.zeros(n_bins, dtype=np.float64)
+
+    obs = p[~cens_arr]
+    b = np.clip(np.searchsorted(edges, obs, side="right") - 1, 0, n_bins - 1)
+    np.add.at(counts, b, 1.0)
+
+    for pi in p[cens_arr]:
+        if pi <= 0.0:
+            counts[0] += 1.0
+            continue
+        k = int(np.clip(np.searchsorted(edges, pi, side="right") - 1, 0, n_bins - 1))
+        counts[k] += (pi - edges[k]) / pi
+        if k > 0:
+            counts[:k] += (1.0 / n_bins) / pi
+
+    expected = counts.sum() / n_bins
+    stat = float(np.sum((counts - expected) ** 2) / expected) if expected > 0 else np.nan
+    return {
+        "n": int(n),
+        "n_bins": int(n_bins),
+        "n_censored": int(cens_arr.sum()),
+        "statistic": stat,
+        "dof": int(n_bins - 1),
+        "p_value": float(chi2.sf(stat, n_bins - 1)) if np.isfinite(stat) else np.nan,
+        "bin_counts": counts.tolist(),
+        "expected_per_bin": float(expected),
+        # Scale-free read: mean |observed - expected| / expected. Unlike the statistic
+        # it does not grow with n, so it is comparable across strata of different size.
+        "mean_abs_deviation_ratio": (float(np.mean(np.abs(counts - expected)) / expected)
+                                     if expected > 0 else np.nan),
+    }
+
+
 def d_calibration(y, pred_median, is_censored, scale: float, n_bins: int = 5) -> dict:
     """D-calibration: expected vs observed event rates by predicted risk.
 

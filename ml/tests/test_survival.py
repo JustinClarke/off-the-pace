@@ -242,3 +242,117 @@ def test_time_dependent_auc_risk_sets_are_disjoint():
     # A perfect prediction on disjoint sets is 1.0 at every horizon that has both
     # an event set and an at-risk set; self-comparison would drag it below 1.
     assert np.nanmax(per_time) == pytest.approx(1.0)
+
+
+# ─── 10c refresh: dependent-censoring band and D-calibration ────────────────────
+def _toy(n=400, seed=7):
+    rng = np.random.default_rng(seed)
+    y = np.round(rng.gamma(4.0, 3.0, size=n))          # integer laps, heavy ties
+    cens = rng.random(n) < 0.45
+    pred = np.clip(y * rng.lognormal(0.0, 0.4, size=n), 0.0, None)
+    return y, pred, cens
+
+
+def test_clayton_theta_maps_tau_zero_to_independence():
+    assert SV.clayton_theta(0.0) == 0.0
+    assert SV.clayton_theta(0.5) == pytest.approx(2.0)
+    assert SV.clayton_theta(-0.5) == pytest.approx(-2.0 / 3.0)
+    with pytest.raises(ValueError):
+        SV.clayton_theta(1.0)
+
+
+def test_copula_graphic_at_tau_zero_is_kaplan_meier():
+    """The instrument check for the whole dependence band. If tau=0 is not KM, the
+    band's centre is not the incumbent estimate and nothing either side of it means
+    anything. Ties are the hard part -- laps are integers -- so the toy has many."""
+    from lifelines import KaplanMeierFitter
+    y, _, cens = _toy()
+    kmf = KaplanMeierFitter().fit(y, event_observed=cens)
+    t, s = SV.copula_graphic_survival(y, cens, tau=0.0)
+    grid = np.unique(y)
+    mine = SV.step_eval(t, s, grid)
+    theirs = np.asarray(kmf.survival_function_.asof(grid)).ravel()
+    assert np.allclose(mine, theirs, atol=1e-12, rtol=0)
+
+
+def test_copula_graphic_is_monotone_and_ordered_in_tau():
+    y, _, cens = _toy()
+    grid = np.unique(y)
+    curves = {}
+    for tau in (-0.5, -0.25, 0.0, 0.25, 0.5):
+        t, s = SV.copula_graphic_survival(y, cens, tau=tau)
+        v = SV.step_eval(t, s, grid)
+        assert np.all(np.diff(v) <= 1e-12), f"not monotone at tau={tau}"
+        assert v.min() >= 0.0 and v.max() <= 1.0
+        curves[tau] = v
+    # Positive dependence pushes the censoring marginal one way and negative the other,
+    # consistently across the grid -- that ordering is what makes the band a bracket.
+    assert not np.allclose(curves[-0.5], curves[0.5])
+
+
+def test_ipcw_brier_dependent_reproduces_the_incumbent_at_tau_zero():
+    y, pred, cens = _toy()
+    base, base_per = SV.ipcw_brier(y, pred, cens, scale=0.8)
+    band, band_per = SV.ipcw_brier_dependent(y, pred, cens, scale=0.8, tau=0.0)
+    assert band == pytest.approx(base, abs=1e-12)
+    assert np.allclose(band_per, base_per, atol=1e-12, rtol=0)
+
+
+def test_ipcw_brier_dependent_moves_with_tau():
+    y, pred, cens = _toy()
+    vals = [SV.ipcw_brier_dependent(y, pred, cens, 0.8, tau=t)[0]
+            for t in (-0.5, 0.0, 0.5)]
+    assert len({round(v, 10) for v in vals}) == 3
+
+
+def test_uno_auc_is_a_probability_and_moves_with_tau():
+    y, pred, cens = _toy()
+    for tau in (-0.5, 0.0, 0.5):
+        a, per = SV.time_dependent_auc_ipcw(y, pred, cens, 0.8, tau=tau)
+        assert 0.0 <= a <= 1.0
+        assert np.all((per[~np.isnan(per)] >= 0.0) & (per[~np.isnan(per)] <= 1.0))
+    lo = SV.time_dependent_auc_ipcw(y, pred, cens, 0.8, tau=-0.5)[0]
+    hi = SV.time_dependent_auc_ipcw(y, pred, cens, 0.8, tau=0.5)[0]
+    assert lo != hi
+
+
+def test_uno_auc_ranks_a_perfect_model_above_a_random_one():
+    rng = np.random.default_rng(3)
+    y = np.round(rng.gamma(4.0, 3.0, size=500))
+    cens = np.zeros(len(y), dtype=bool)
+    good = SV.time_dependent_auc_ipcw(y, y.astype(float), cens, 0.8)[0]
+    bad = SV.time_dependent_auc_ipcw(y, rng.permutation(y).astype(float), cens, 0.8)[0]
+    assert good > 0.9 and abs(bad - 0.5) < 0.1
+
+
+def test_d_calibration_chisq_passes_on_a_correctly_specified_fit():
+    """Draw the truth FROM the model the test then scores. A D-calibration that
+    cannot pass here is measuring its own arithmetic, which is what the incumbent
+    `d_calibration` was doing when it returned 0.5 for every row."""
+    rng = np.random.default_rng(11)
+    n, scale = 20000, 0.5
+    mu = rng.normal(2.5, 0.4, size=n)
+    t = np.exp(mu + scale * rng.normal(size=n)) - S.AFT_LABEL_SHIFT
+    pred = np.exp(mu) - S.AFT_LABEL_SHIFT
+    out = SV.d_calibration_chisq(np.clip(t, 0, None), np.clip(pred, 0, None),
+                                 np.zeros(n, dtype=bool), scale)
+    assert out["p_value"] > 0.01
+    assert out["mean_abs_deviation_ratio"] < 0.05
+
+
+def test_d_calibration_chisq_fails_on_a_biased_fit():
+    rng = np.random.default_rng(12)
+    n, scale = 20000, 0.5
+    mu = rng.normal(2.5, 0.4, size=n)
+    t = np.exp(mu + scale * rng.normal(size=n)) - S.AFT_LABEL_SHIFT
+    pred = np.exp(mu + 0.6) - S.AFT_LABEL_SHIFT          # over-predicts life
+    out = SV.d_calibration_chisq(np.clip(t, 0, None), np.clip(pred, 0, None),
+                                 np.zeros(n, dtype=bool), scale)
+    assert out["p_value"] < 1e-6
+
+
+def test_d_calibration_chisq_conserves_mass_under_censoring():
+    y, pred, cens = _toy()
+    out = SV.d_calibration_chisq(y, pred, cens, 0.8)
+    assert sum(out["bin_counts"]) == pytest.approx(len(y), abs=1e-9)
+    assert out["n_censored"] == int(cens.sum())

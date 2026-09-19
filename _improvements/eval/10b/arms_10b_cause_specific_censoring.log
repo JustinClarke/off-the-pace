@@ -1,0 +1,122 @@
+==============================================================================
+10b -- the cause-specific arm: non-green endings treated as censored
+substrate v12, 32 feature columns
+==============================================================================
+
+[step 1c] gate 5 -- label-adjacency: the cause label must not be a feature
+  columns leaking into FEATURE_COLUMNS: none  -> PASS
+
+[setup] loading both label constructions
+  A0 (standard): n_tr=99849 n_ev=19973 cens_tr=0.4576 cens_ev=0.4826
+  A1 (10b): n_tr=99849 n_ev=19973 cens_tr=0.5491 cens_ev=0.5419
+
+[step 1d] gate 2 substitute -- the two arms differ in the LABEL and nothing else
+  X_tr_identical: True
+  X_ev_identical: True
+  y_tr_identical: True
+  y_ev_identical: True
+  lap_ids_tr_identical: True
+  lap_ids_ev_identical: True
+  censoring flags differing: train 9135, eval 1185  <- the entire content of the arm
+
+[setup] the headline instrument -- the green-pit stratum
+  n=9149 laps over 24 races; censoring 0.000 (standard) / 0.000 (10b); y identical: True
+
+[step 1b] substrate drift since 10b/10c/10d/10e ran
+  eval laps    20272 published -> 19973 today
+  green-pit    9270 published -> 9149 today
+  eval races   24 published -> 24 today
+
+[step 1a] gate 1 -- reproduce the published v12 headline through E._fit/_score
+  published  (v12, variant=standard): 1.9913358778933028
+  reproduced (E._fit/_score, A0/standard):                 1.9913358778933028
+  matches to six decimals: True  -> PASS
+
+[step 1e] gate 1 -- the optimism gap, and the 2x2 scoring table
+  -- honest --
+     A0 (standard): green-pit NLL 3.437668  Brier 0.190392  AUC 0.689577  slope 0.673594
+     A1 (10b): green-pit NLL 3.536060  Brier 0.203137  AUC 0.698701  slope 0.699332
+     full-fold NLL under 10b labels:      A0 1.828452  A1 1.789281  delta +0.039171
+     full-fold NLL under standard labels: A0 1.991336  A1 1.969797  delta +0.021539
+     MISMATCHED (A0 under standard vs A1 under 10b): +0.202055  <- the original artefact's shape
+  -- in_sample --
+     A0 (standard): green-pit NLL 3.217688  Brier 0.142006  AUC 0.831033  slope 1.229337
+     A1 (10b): green-pit NLL 3.234455  Brier 0.142994  AUC 0.839641  slope 1.219160
+     full-fold NLL under 10b labels:      A0 1.615327  A1 1.588156  delta +0.027171
+     full-fold NLL under standard labels: A0 1.770147  A1 1.787339  delta -0.017191
+     MISMATCHED (A0 under standard vs A1 under 10b): +0.181991  <- the original artefact's shape
+
+[step 1f] why the full-fold NLL reverses the stratum's ruling
+  scored under standard labels (0.483 censored): delta on uncensored rows -0.100373, on censored rows +0.152242
+  scored under 10b labels (0.542 censored): delta on uncensored rows -0.098392, on censored rows +0.155446
+  mean predicted median life: A0 20.680 laps, A1 25.996 laps
+
+[step 2 + 3] the arms, and each arm's OWN 5-reseed floor
+  A0 seed 20260528: NLL 3.437668  Brier 0.190392  AUC 0.689577  slope 0.673594  (3.9s)
+  A0 seed 20260529: NLL 3.444772  Brier 0.192319  AUC 0.685463  slope 0.651667  (3.9s)
+  A0 seed 20260530: NLL 3.442491  Brier 0.191630  AUC 0.687879  slope 0.665260  (4.0s)
+  A0 seed 20260531: NLL 3.442459  Brier 0.191256  AUC 0.690166  slope 0.672049  (4.0s)
+  A0 seed 20260532: NLL 3.438717  Brier 0.190859  AUC 0.690705  slope 0.669736  (4.0s)
+  A1 seed 20260528: NLL 3.536060  Brier 0.203137  AUC 0.698701  slope 0.699332  (4.0s)
+  A1 seed 20260529: NLL 3.550927  Brier 0.205834  AUC 0.693434  slope 0.674457  (4.1s)
+  A1 seed 20260530: NLL 3.549487  Brier 0.205864  AUC 0.693570  slope 0.696345  (4.0s)
+  A1 seed 20260531: NLL 3.547491  Brier 0.205289  AUC 0.694026  slope 0.675044  (4.0s)
+  A1 seed 20260532: NLL 3.548703  Brier 0.206084  AUC 0.690085  slope 0.669185  (4.0s)
+
+[step 3] floors (2*sqrt(2)*sd), each arm its own -- never borrowed
+  A0 green_pit_nll: sd 0.002943  floor 0.008325
+  A0 green_pit_ipcw_brier: sd 0.000736  floor 0.002082
+  A0 green_pit_auc: sd 0.002126  floor 0.006012
+  A0 calibration_slope: sd 0.008848  floor 0.025025
+  A1 green_pit_nll: sd 0.005986  floor 0.016932
+  A1 green_pit_ipcw_brier: sd 0.001212  floor 0.003429
+  A1 green_pit_auc: sd 0.003079  floor 0.008709
+  A1 calibration_slope: sd 0.013892  floor 0.039291
+
+[step 3] the delta, with its floor ratio (positive = 10b improves)
+  [DECLARED  ] green_pit_nll: delta -0.105312  x A1 floor -6.22  x A0 floor -12.65  clears: False
+  [DECLARED  ] green_pit_ipcw_brier: delta -0.013951  x A1 floor -4.07  x A0 floor -6.70  clears: False
+  [diagnostic] green_pit_auc: delta +0.005205  x A1 floor +0.60  x A0 floor +0.87  clears: False
+  [diagnostic] calibration_slope: delta +0.016412  x A1 floor +0.42  x A0 floor +0.66  clears: False
+
+[step 7] gate 7 -- Construction B on the paired reseed deltas
+  validity: worked example t=7.31 E=17.05 (published 17.0)
+  null mean E at sigma=0.0001: 1.0016 (+/- 0.0051)
+  null mean E at sigma=0.001: 0.9992 (+/- 0.0051)
+  null mean E at sigma=0.01: 1.0108 (+/- 0.0053)
+  null mean E at sigma=0.1: 1.0014 (+/- 0.0053)
+  null mean E at sigma=1.0: 0.9942 (+/- 0.0051)
+  green_pit_nll: t -54.993  E 35.41  direction_is_improvement False
+  green_pit_ipcw_brier: t -34.073  E 34.5  direction_is_improvement False
+  item-level e-BH at alpha=0.05 over 2 declared hypotheses: k* = 2, rejects ['green_pit_nll', 'green_pit_ipcw_brier']
+    rank 1: green_pit_nll  E 35.41  needs 40.0 -> no
+    rank 2: green_pit_ipcw_brier  E 34.5  needs 20.0 -> qualifies
+  max attainable E at n=5, g=1.0 is 36.0; a LONE rejection needed 40.0
+  NOTE: the rejections' DIRECTION is carried separately -- improvement=[False, False]
+
+[boot] paired race-level cluster bootstrap, 200 draws, seed 20260910, races the unit
+  25/200 draws (108s)
+  50/200 draws (215s)
+  75/200 draws (323s)
+  100/200 draws (430s)
+  125/200 draws (537s)
+  150/200 draws (641s)
+  175/200 draws (747s)
+  200/200 draws (854s)
+
+[boot] paired deltas (positive = 10b improves)
+  green_pit_nll: -0.100396  95% [-0.155631, -0.053564]  P(improves) 0.000
+  green_pit_ipcw_brier: -0.013108  95% [-0.021907, -0.005311]  P(improves) 0.005
+  green_pit_auc: +0.010543  95% [-0.006252, +0.026553]  P(improves) 0.905
+  calibration_slope: +0.031195  95% [-0.028546, +0.094693]  P(improves) 0.815
+
+==============================================================================
+VERDICT against the pre-registered criterion
+  H1 green-pit NLL   delta -0.105312  (-6.22x own floor)  positive False  clears floor False  boot P 0.0
+  H2 green-pit Brier delta -0.013951  (-4.07x own floor)  positive False
+  hypotheses agree in sign: True
+  PASSES: False
+==============================================================================
+
+wrote _improvements/eval/10b/arms_10b_cause_specific_censoring.json
+wrote _improvements/eval/10b/arms_10b_cause_specific_censoring.log

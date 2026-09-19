@@ -1,0 +1,127 @@
+================================================================================
+10c -- competing-risks evaluation, with the dependence band quantified
+substrate v12, 32 features, label=standard (D5)
+================================================================================
+
+[gate 5] label adjacency -- the cause label DEFINES the framings, so it must not be a feature
+  leaking into FEATURE_COLUMNS: none -> PASS
+
+[setup] loading the standard label construction
+  split cv_final_fold: train n=99849 eval n=19973 (season 2024), eval censoring 0.4826
+  eval cause counts: {'race_end': 9385, 'green_pit': 9149, 'sc_pit': 884, 'vsc_pit': 282, 'retirement': 254, 'red': 19}
+
+[gate 1a] reproduce today's published v12 headline through E._fit/_score
+  published  : 1.9913358778933028
+  reproduced : 1.9913358778933028
+  identical to every stored digit: True
+
+[setup] uncensored causes present: ['green_pit', 'red', 'sc_pit', 'vsc_pit']
+  cause-specific framings with >= 100 events: ['green_pit', 'sc_pit', 'vsc_pit']
+
+[gate 2, substituted] one split, one set of eval rows, framings that partition it
+  cause labels cover every eval row: 19973 of 19973; F1 rows == F2 green-pit events: True; green-pit censoring 0
+  horizon grid (deciles of uncensored y): [2.0, 4.0, 5.0, 7.0, 9.0, 11.0, 14.0, 17.0, 22.0];  F1 and F2 share it: True
+
+[gate 1c] the new estimator vs the incumbent, on the real eval rows
+  copula-graphic(tau=0) vs Kaplan-Meier, max |gap| over 75 times: 2.442e-15
+  ipcw_brier incumbent 0.14524743157446698  vs new(tau=0) 0.1452474315744672  |gap| 2.220e-16
+
+[F1] the green-pit stratum -- zero censoring, therefore zero band, at the price of conditioning on the outcome
+  n=9149 (0 censored)  Brier 0.1904  AUC(unw) 0.6896  AUC(ipcw) 0.6896  slope 0.6736  NLL 3.4377
+  D-calibration chi2 1066.6 (dof 9, p 7.64e-224), mean |dev|/expected 0.252
+
+[gate 1b] reproduce 10b §4's A0 green-pit row (same substrate, 2026-09-18)
+  green_pit_nll            10b 3.4376675618143007
+                           now 3.4376675618143007  six-dp True  exact True
+  green_pit_ipcw_brier     10b 0.1903917717687864
+                           now 0.1903917717687864  six-dp True  exact True
+  green_pit_auc            10b 0.6895774514309989
+                           now 0.6895774514309989  six-dp True  exact True
+  calibration_slope        10b 0.6735936337052354
+                           now 0.6735936337052354  six-dp True  exact True
+  calibration_intercept    10b 0.23187910000373496
+                           now 0.23187910000373496  six-dp True  exact True
+  mean_log_bias            10b -0.27413700814322794
+                           now -0.27413700814322794  six-dp True  exact True
+  margin_sd                10b 0.5818239268804684
+                           now 0.5818239268804684  six-dp True  exact True
+  full_fold_nll            10b 1.9913358778933028
+                           now 1.9913358778933028  six-dp True  exact True
+  gate 1 literal requirement (six decimal places): PASS
+
+[F2] cause-specific framings across the declared dependence grid
+  green_pit  events  9149  censoring 0.542
+             Brier    0.1452  band [0.1367, 0.1729]  width 0.0362
+             AUC ipcw 0.7882  band [0.7855, 0.7892]  width 0.0037
+  sc_pit     events   884  censoring 0.956
+             Brier    0.1408  band [0.1358, 0.1461]  width 0.0104
+             AUC ipcw 0.7703  band [0.7702, 0.7704]  width 0.0002
+  vsc_pit    events   282  censoring 0.986
+             Brier    0.1739  band [0.1686, 0.1771]  width 0.0085
+             AUC ipcw 0.8195  band [0.8193, 0.8197]  width 0.0003
+
+[framing gap] F1 Brier 0.1904 vs F2(tau=0) 0.1452  gap +0.0451  (across the band: +0.0175 to +0.0537)
+  F1 IPCW AUC == unweighted AUC (no censoring in the stratum): True
+
+[F3] mixture (DIAGNOSTIC ONLY): Brier 0.1482  AUC(unw) 0.7925  NLL 1.9913
+
+[anchor] observable association between predicted tyre state and censoring arrival
+  all_censoring        n= 10824  Kendall tau +0.1905 (p 1.44e-188)
+  sc_or_vsc_only       n=  1166  Kendall tau +0.2615 (p 2.14e-39)
+  administrative_only  n=  9639  Kendall tau +0.2034 (p 1.65e-191)
+
+[gate 3] reseed floors, seeds 20260528-20260532, XGBoost's seed varied
+  seed 20260528: F1 Brier 0.190392  slope 0.673594  F2gp Brier 0.145247  band 0.036205
+  seed 20260529: F1 Brier 0.192319  slope 0.651667  F2gp Brier 0.145712  band 0.036101
+  seed 20260530: F1 Brier 0.191630  slope 0.665260  F2gp Brier 0.145255  band 0.035969
+  seed 20260531: F1 Brier 0.191256  slope 0.672049  F2gp Brier 0.144242  band 0.035605
+  seed 20260532: F1 Brier 0.190859  slope 0.669736  F2gp Brier 0.144296  band 0.035614
+
+[gate 3] floors (2*sqrt(2)*sd)
+  F1_aft_nloglik             sd 0.002943  floor 0.008325
+  F1_auc_ipcw                sd 0.002126  floor 0.006012
+  F1_auc_unweighted          sd 0.002126  floor 0.006012
+  F1_calibration_slope       sd 0.008848  floor 0.025025
+  F1_d_cal_mad               sd 0.004282  floor 0.012111
+  F1_ipcw_brier              sd 0.000736  floor 0.002082
+  F2gp_auc_ipcw              sd 0.001638  floor 0.004633
+  F2gp_ipcw_brier            sd 0.000650  floor 0.001839
+
+[boot] race-level cluster bootstrap, 200 draws, seed 20260910, races the unit (UNPAIRED: one model, so the interval is on the level)
+  50/200 draws (8s)
+  100/200 draws (16s)
+  150/200 draws (25s)
+  200/200 draws (33s)
+
+[boot] 95% intervals on the level
+  F1_auc_ipcw                      0.6877  [0.6394, 0.7342]  width 0.0948
+  F1_auc_unweighted                0.6877  [0.6394, 0.7342]  width 0.0948
+  F1_calibration_slope             0.6696  [0.4310, 0.9106]  width 0.4796
+  F1_ipcw_brier                    0.1920  [0.1748, 0.2079]  width 0.0331
+  F2gp_auc_ipcw_tau-0.25           0.7897  [0.7507, 0.8294]  width 0.0786
+  F2gp_auc_ipcw_tau-0.5            0.7901  [0.7509, 0.8297]  width 0.0788
+  F2gp_auc_ipcw_tau0.0             0.7891  [0.7502, 0.8288]  width 0.0786
+  F2gp_auc_ipcw_tau0.25            0.7880  [0.7493, 0.8280]  width 0.0787
+  F2gp_auc_ipcw_tau0.5             0.7864  [0.7478, 0.8265]  width 0.0787
+  F2gp_ipcw_brier_tau-0.25         0.1402  [0.1262, 0.1559]  width 0.0297
+  F2gp_ipcw_brier_tau-0.5          0.1371  [0.1234, 0.1526]  width 0.0291
+  F2gp_ipcw_brier_tau0.0           0.1457  [0.1308, 0.1622]  width 0.0313
+  F2gp_ipcw_brier_tau0.25          0.1560  [0.1389, 0.1749]  width 0.0360
+  F2gp_ipcw_brier_tau0.5           0.1734  [0.1529, 0.1964]  width 0.0435
+
+================================================================================
+THE THREE WIDTHS -- refit noise, identification, sampling noise
+================================================================================
+  F2 green_pit IPCW-Brier    point 0.1452  band 0.0362  floor 0.0018  boot95 0.0313
+                             band/floor 19.68   band/boot 1.16   -> report as a band: True
+  F2 green_pit Uno AUC       point 0.7882  band 0.0037  floor 0.0046  boot95 0.0786
+                             band/floor 0.8   band/boot 0.05   -> report as a band: False
+  F1 stratum IPCW-Brier      point 0.1904  band 0.0000  floor 0.0021  boot95 0.0331
+                             band/floor 0.0   band/boot 0.0   -> report as a band: False
+  F1 stratum Uno AUC         point 0.6896  band 0.0000  floor 0.006  boot95 0.0948
+                             band/floor 0.0   band/boot 0.0   -> report as a band: False
+  F1 stratum calib slope     point 0.6736  band 0.0000  floor 0.025  boot95 0.4796
+                             band/floor 0.0   band/boot 0.0   -> report as a band: False
+
+wrote _improvements/eval/10c/eval_10c_cause_specific_framework.json
+wrote _improvements/eval/10c/eval_10c_cause_specific_framework.log

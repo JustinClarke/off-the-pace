@@ -28,6 +28,13 @@ repo's own admission rule has not yet been pointed at it.
 > ruling, the admission rule, the tier structure — are unaffected. Any arm in `02b`/`02c`/`02d`/`02g`
 > that has already been scored must be re-scored on the rebuilt target before its delta is quoted
 > again; `08m` did **not** re-measure them.
+>
+> **`02b` was re-scored 2026-09-19 — see its Verdict.** Two things that run found are not local
+> to it: the reseed floors moved by up to **3.2×** (p10 0.004311 → 0.00136797), so any
+> pre-registration saying to *reuse* a floor across `08m` is void; and §1's
+> `between_stint_share = 0.0094` is **0.0643** on the rebuilt target, so §1's cap on Tiers 1/3/4
+> is 6.8× looser than this document states. `02c`, `02d` and `02g` remain unre-measured and
+> inherit both corrections.
 
 ---
 
@@ -340,13 +347,312 @@ Validity check    : before trusting the implementation, push 100k draws of five 
                     implements this check and 02b's reuses the same function.
 ```
 
-**Not yet run.** `scripts/arms_02b_qualifying.py` implements the protocol above, modeled
-directly on `scripts/arms_02c_corner_inputs.py` (same `_fit`/`_score` calls, same permutation
-and paired-seed machinery, same `safe_t_e_value` implementation, same refusal to run
-`stint_life_regressor`). It has not been executed. Running it is the next step, expected
-~15–20 minutes on 8 cores (three seven-or-fewer-column arms plus the permutation arm, against
-`02c`'s four arms up to ten columns — fewer columns, same four families, same five-seed
-protocol).
+**Run 2026-09-14, and that run is superseded.** `scripts/arms_02b_qualifying.py` implements
+the protocol above, modeled directly on `scripts/arms_02c_corner_inputs.py` (same
+`_fit`/`_score` calls, same permutation and paired-seed machinery, same `safe_t_e_value`
+implementation). It executed 2026-09-14 16:22–16:53 UTC. **Every delta it produced is on the
+pre-`08m` target and none of them may be quoted** — see the STALE banner at the head of this
+document. `08m` did not re-measure them; this item does, below.
+
+#### Follow-on registration — `stint_life_regressor` · written 2026-09-19, before the arm ran
+
+The original pre-registration barred `stint_life_regressor` outright and said why: `10d` had
+shown the shipped booster was tuned under the wrong label, so a floor measured against it
+would be measured against a model about to change. It also said what happens when that
+changes — *"when `10e` lands, the stint-life column of every arm here becomes its own
+follow-on registration — it does not retroactively join this one."*
+
+**`10e` landed 2026-09-19** (commit `a17f147`; `ml/models/stint_life_regressor_best_params.json`
+now carries S1x's parameters). The bar is discharged. This is that follow-on registration,
+written before the arm was run, and it is deliberately a *separate* family — the four arms
+below are four new declared hypotheses, not a fifth column bolted onto the sixteen already
+declared.
+
+| field | value |
+| :--- | :--- |
+| Family | `stint_life_regressor`, headline `aft_nloglik` (**lower is better**) |
+| Columns | identical to Arms A / B / C / P above — the same seven columns, same three subsets |
+| Split | `cv_final_fold`, train 2018–2023, eval 2024 — 99,849 train / 19,973 eval rows, 32 baseline features |
+| Instrument anchor | `evaluation_metrics.json`'s current stint-life headline **2.153151721488012**, not any figure quoted before 2026-09-19 (the headline moved with `08m`/`08n` and again with `10e`'s landing) |
+| Floor | measured in-run by `attribution.py::refit_noise_floor` over seeds 20260528–20260532. **Not borrowed from `10e`** — `10e`'s §3 floors are for `slope`, `Brier` and `AUC`, and gates.md step 3 forbids borrowing a floor across metrics as firmly as across families. The seed is injected into `AFTBooster`'s own params dict (it has no `set_params`), exactly as `arms_10d_calibration_arms.fit_seeded` does it. |
+| E-value | Construction B (paired safe-t), n = 5, g = 1, same five seeds, cap **36** — unchanged from the block above |
+| Family size | four more declared hypotheses (A/B/C/P × one family), every one reported whatever `E` comes out as |
+
+**Primary hypothesis.** §1's table predicts stint life is the *other* family a weekend-constant
+feature can reach — its target is a different shape from the degradation trio's, and a
+stint-invariant covariate is not automatically inert against it the way it is against
+within-stint variance. But this is a genuinely open prediction, not a dressed-up expectation:
+qualifying measures one lap at low fuel on new tyres, and remaining stint life is a quantity
+about the *end* of a long run. The mechanism connecting them is not obvious, and if nothing
+clears that is the honest answer.
+
+**Declared readings, before the numbers exist:**
+
+* **B and/or C clears on stint life.** Admits the group on a second family. Which arm clears
+  says whether it is the car's one-lap level or the driver's one-lap form doing the work.
+* **A clears but neither B nor C does.** Ambiguous, recorded as ambiguous — the same treatment
+  `02c`'s p50 got and the same treatment the block above declares.
+* **Nothing clears.** Tier 1 closes on stint life too, and — with the degradation trio and
+  cliff results below — the qualifying channel is closed on every production family.
+
+**Re-scoring the original sixteen is a re-measurement, not a new registration.** The arms,
+columns, families, split, seeds, construction and declared readings are all unchanged from
+what was written down on 2026-09-14. Only the substrate moved, and it moved underneath the
+item rather than being chosen by it. Re-running a declared hypothesis on a corrected target is
+what the STALE banner *instructs*; treating it as a fresh registration would be the error,
+because it would let the 2026-09-14 numbers quietly drop out of the family.
+
+---
+
+### Verdict — `02b` · MEASURED 2026-09-19
+
+**Qualifying carries real, non-trivial information about tyre cliff onset, and the carrying
+channel is the driver's one-lap form rather than the car's one-lap level.** It carries
+nothing usable about remaining stint life, and nothing about the median or optimistic tail
+of degradation. Run: `scripts/arms_02b_qualifying.py --allow-stint-life`, 2026-09-19
+09:05–09:38 UTC (~33 min). Artefacts: `ml/artefacts/02b_qualifying_arms.json` (per-seed
+headlines, e-value components, instrument checks) and `.log`.
+
+#### 1. Gate 1 — instrument check: PASS, all five families
+
+Every family's 32-column refit reproduced today's published headline to six decimals.
+Anchored on the **current** `evaluation_metrics.json` as the 2026-09-19 build-log note
+requires, not on any pre-`08m` figure.
+
+| family | refit baseline | published | metric |
+| :--- | ---: | ---: | :--- |
+| `degradation_regressor_p10` | 0.4764640778 | 0.4764640778 | pinball |
+| `degradation_regressor_p50` | 0.9823587336 | 0.9823587336 | pinball |
+| `degradation_regressor_p90` | 0.5128462338 | 0.5128462338 | pinball |
+| `cliff_classifier` | 0.3524660979 | 0.3524660979 | macro-F1 |
+| `stint_life_regressor` | 2.1531517215 | 2.1531517215 | `aft_nloglik` |
+
+The stint-life row is doing double duty: it confirms `10e`'s S1x parameters are the ones in
+production, and it confirms the survival plumbing added to the runner for this item
+(censoring flags and the model's *fitted* AFT scale threaded through both fit and score) is
+correct. Scoring at the module-default scale would have produced a plausible wrong number
+rather than an error, which is precisely the failure mode this gate exists to catch.
+
+#### 2. Gate 2 — add-ablation on the identical split
+
+`cv_final_fold`, train 2018–2023, eval 2024, `evaluate.py`'s own `_fit`/`_score`, 32 baseline
+features, contract `v12`. Degradation/cliff bundle and the stint-life bundle each built once
+and shared across their arms. Stint life: 99,849 train / 19,973 eval — the post-`08m`/`08n`
+fold the build-log note flags.
+
+#### 3. Gates 3 + 4 — every delta, with its floor ratio
+
+Floors are each family's **own**, measured in-run over seeds 20260528–20260532. "raw" is the
+add-ablation delta over floor; "info" is the permutation-corrected delta (`real − shuffled`)
+over the same floor. Positive is improvement on every metric. **Clears** requires both,
+per gates.md's "What clears means".
+
+| family | floor `2√2·sd` | arm | raw ×floor | info ×floor | E | clears |
+| :--- | ---: | :--- | ---: | ---: | ---: | :--- |
+| p10 | 0.00136797 | A full | −0.22 | +0.03 | 2.86 ↓ | no |
+| | | B constructor pace | +0.56 | +0.20 | 4.56 ↓ | no |
+| | | C driver form | −2.93 | −2.38 | 4.07 ↓ | no |
+| p50 | 0.01115092 | A full | +0.79 | +0.16 | 3.88 | no |
+| | | B constructor pace | +0.73 | +0.16 | 0.709 | no |
+| | | C driver form | +0.52 | +0.10 | 1.52 | no |
+| **p90** | 0.00839541 | A full | +1.41 | +0.95 | 17.1 | **no** — raw clears, information misses |
+| | | **B constructor pace** | **+1.90** | **+1.42** | 19.7 | **YES** |
+| | | **C driver form** | **+1.04** | **+1.20** | 12.4 | **YES** |
+| **cliff** | 0.00433972 | **A full** | **+7.27** | **+7.47** | 32.4 | **YES** |
+| | | **B constructor pace** | **+4.60** | **+4.67** | 32.4 | **YES** |
+| | | **C driver form** | **+6.80** | **+6.56** | 32.6 | **YES** |
+| stint life | 0.00808138 | A full | +0.87 | +0.94 | 20.7 | no |
+| | | B constructor pace | +0.67 | +0.36 | 3.28 | no |
+| | | C driver form | +0.58 | **+0.00** | 2.7 | no |
+
+↓ = `direction_is_improvement = false`; the E is evidence *against* exchangeability in the
+wrong direction and must not be read as support. The declared formula is symmetric in `t`
+and is reported as declared.
+
+**Harness is clean.** The shuffle-vs-shuffle negative control returned `E` < 1 in all five
+families (0.474–0.676), and the Monte-Carlo validity check returned mean `E` = 1.0016 /
+0.9992 / 1.0108 / 1.0014 at σ = 0.001 / 0.01 / 0.1 / 1.0 over 100k draws.
+
+**Headline deltas for the clearing arms**, in their own units:
+
+* `cliff_classifier` macro-F1 **0.35247 → 0.38404** (Arm A, +0.03157), **→ 0.37245** (B,
+  +0.01998), **→ 0.38196** (C, +0.02949).
+* `degradation_regressor_p90` pinball **0.51285 → 0.49693** (B, −0.01592 = improvement),
+  **→ 0.50415** (C, −0.00869).
+
+#### 4. Two of this document's own premises were wrong, and both are corrected here
+
+**(a) The floors moved, so the pre-registration's instruction to reuse them is void.** The
+`02b` block above says to reuse `02c`'s floors "since the baseline contract and split are
+unchanged". After `08m` they are not unchanged. Measured against reused floors, this item
+would have mis-ruled on two families:
+
+| family | floor quoted in the pre-registration | floor measured 2026-09-19 | ratio |
+| :--- | ---: | ---: | ---: |
+| p10 | 0.004311 | **0.00136797** | 0.32× |
+| p50 | 0.010431 | 0.01115092 | 1.07× |
+| p90 | 0.009347 | 0.00839541 | 0.90× |
+| cliff | 0.005772 | **0.00433972** | 0.75× |
+
+p10's floor is **3.2× tighter** than the reused number. Gates step 3 says each family gets
+its own floor; it now also has to mean *on the substrate being scored*. The runner measures
+floors in-run, so the numbers above are safe — but the text was wrong and is corrected.
+
+**(b) §1's governing constraint is off by 6.8×, and it is the reason a "surprise" is not a
+surprise.** §1 caps three of four tiers on `between_stint_share = 0.0094` — "99.06% of the
+degradation target's variance is within stint". Re-measured on the rebuilt target with the
+production estimator (`evaluate.variance_ceiling`, `anova_icc_oneway_non_overlapping`):
+
+| target | §1's figure | measured 2026-09-19 | estimator |
+| :--- | ---: | ---: | :--- |
+| `next_5_lap_cumulative_jump_s` | 0.0094 | **0.0643** | `anova_icc_oneway_non_overlapping`, n = 81,619, 6,203 stints |
+| `laps_until_cliff_class` | 0.1943 | **0.2688** | `gini_anova_icc_oneway`, n = 113,226, 6,782 stints |
+
+So it is **93.6% within-stint, not 99.06%**. The estimator's own `n_rows = 81,619` matches
+`08m`'s banner figure exactly, which cross-checks the substrate. §1's cap is real but far
+looser than stated, and a weekend-constant feature reaching the p90 tail is no longer the
+contradiction §1 says it would be.
+
+**This check was run before the p90 result existed, not after it.** The pre-registration
+declared that any clear on the degradation trio "gets checked before the result gets
+celebrated", naming two suspects. Both were tested in advance:
+
+1. *Is the join actually constant within a stint?* **Yes** — zero stints and zero
+   driver-weekends in the 119,822 training-eligible rows carry more than one distinct value
+   of `quali_constructor_pace_mean_s`. Not the explanation.
+2. *Is §1's between-stint-share measurement wrong?* **Yes**, by 6.8×. That is the
+   explanation, and it is a defect in this document rather than in the result.
+
+#### 5. Reading each declared outcome
+
+Against the block above, outcome by outcome:
+
+* **"Only cliff clears (B and/or C), the trio does not"** — half right. Cliff clears on all
+  three arms, decisively. But the trio is not uniformly closed: p90 clears on B and C.
+* **"B clears, C does not" / "C clears, B does not"** — neither. On cliff both clear, and
+  **C (+6.80/+6.56) beats B (+4.60/+4.67)**, so the carrying channel is the driver's one-lap
+  form, not the car term. On p90 both clear, with B ahead. The pre-registered either/or does
+  not describe the data.
+* **"A clears but neither B nor C does" → ambiguous** — did not occur. The inverse did, on
+  p90: **both halves clear and the 7-column union does not** (A raw +1.41, information
+  +0.95). Recorded as exactly that. It is the mirror image of the Phase 10a trap gate 4 was
+  written for, and it says the full set pays more capacity than the combination earns back.
+* **"Any family clears on the degradation trio" → genuine surprise, re-examined** — occurred
+  on p90; both named checks run in advance; resolved to §4(b), a stale constraint rather
+  than a broken join.
+* **Follow-on, "nothing clears" → Tier 1 closes on stint life** — occurred. Nothing reaches
+  the floor (best raw +0.87×). Arm C is the cleanest negative in the whole item: capacity
+  +0.00462, information **+0.00003**, i.e. the four driver-form columns do precisely nothing
+  for remaining stint life once capacity is accounted for.
+
+#### 6. What it is worth — the floor and the e-value disagree, as gates.md says to report
+
+Gate 3 says B and C clear on p90 and all three clear on cliff. **Gate 7 cannot reject
+anything, for reasons that have nothing to do with these numbers.** Under the declared
+Construction B at n = 5, g = 1, `E` is capped at **36**; e-BH needs `E ≥ 20·m`. This item
+declares **20 hypotheses** (the original 16, plus 4 for the stint-life follow-on), putting
+the threshold at **400**. The best E here is 32.6. No arm could pass whatever it measured.
+
+That ceiling is `09c`'s, not this item's, and `09c` forbids re-scoring any already-run arm
+under a new `n` or `g` — so these E's stand as declared and the campaign-level question stays
+open until `09c` lands. **The item therefore remains `MEASURED`, not `GATED`**, which is what
+the build order's `02b → 09c` dependency has been encoding all along.
+
+#### 7. Coverage, re-verified on the rebuilt substrate
+
+The built-section figures were measured on 121,193 mart rows pre-`08m`. Re-measured on the
+current 119,822 training-eligible rows, every claim reproduces:
+
+* Six columns NULL on **2,325 rows (1.9404%)**; `quali_push_laps_n` never NULL.
+* Still a **perfect** indicator, checked both directions: zero rows NULL-with-`n`≠0, zero
+  rows present-with-`n`=0.
+* 2018 still carries the gap — 7.983% vs 0.410–2.021% elsewhere; `2018_1` **51.39%** NULL
+  (claimed 51.4%) with the same ten drivers missing, including LEC, OCO, PER, ALO and BOT.
+* Outside 2018 still small and driver-concentrated: SAR 14.85%, KUB 7.46%, MSC 6.92%,
+  GRO 4.33%.
+* Missingness still not label-neutral, same direction: NULL rows mean
+  `next_5_lap_cumulative_jump_s` **−0.2506** vs **−0.4652** present, and 0.1394 vs 0.0998
+  share in the `0_to_2` cliff bucket.
+
+#### 8. The written verdict: which drivers, and how much does it matter
+
+**A caveat on the question as posed.** The brief for this run asked for "top drivers on
+straights". **`02b` contains no straight-line channel** — its seven columns are whole-lap
+qualifying pace and skill. Straight-line speed is a different measurement and is not in this
+item, so the ranking below is *one-lap qualifying pace*, which is what was actually built and
+measured. The straight-line question is answered separately, and negatively, in §9.
+
+**`quali_skill_session_avg_s` cannot be ranked raw.** It averages a driver's best-lap skill
+residual across the segments they contested, and which segments you contest is itself a
+function of pace: mean residual runs −0.5861 (1 segment) → −0.6132 (2) → −0.6754 (3). A raw
+leaderboard puts ALB, RUS and ZHO above VER and HAM, which is a composition artefact.
+Restricted to Q3 weekends (3 segments, ≥30 weekends per driver) the confound is removed:
+
+| driver | Q3 weekends | skill residual (s) | SE | gap to VER |
+| :--- | ---: | ---: | ---: | ---: |
+| **VER** | 132 | **−0.9114** | 0.0495 | — |
+| ALO | 64 | −0.8488 | 0.0867 | 0.0626 |
+| RUS | 65 | −0.7867 | 0.0857 | 0.1247 |
+| LEC | 113 | −0.7392 | 0.0526 | 0.1722 |
+| PIA | 36 | −0.7359 | 0.1195 | 0.1755 |
+| HAM | 129 | −0.7281 | 0.0665 | 0.1833 |
+
+**How much it matters, stated honestly.** Verstappen is top, and he is separably ahead of the
+*middle* of the grid — 0.2043 s on the median driver, about 4 SE. He is **not** separably
+ahead of Alonso: the 0.0626 s gap is smaller than Alonso's own SE (0.0867). The grid-wide sd
+of driver means is 0.1101 s against a median per-driver SE of 0.0671 s, a ratio of roughly
+1.6:1. **So a coarse top group is supportable and a fine-grained leaderboard is not.** Any
+ordering below about third place is inside the noise.
+
+**And it matters to the models, on two families.** This is the part that is not a descriptive
+ranking: adding these columns moves `cliff_classifier` macro-F1 by **+0.0295** (Arm C, 6.6×
+its own noise floor after the permutation correction) and `p90` pinball by **−0.0159**
+(Arm B, 1.4×). Cliff onset is the prediction that matters operationally — it is the one a pit
+wall acts on — and one-lap qualifying form is a genuine, previously unread input to it.
+
+#### 9. The straight-line question, answered
+
+The warehouse **does** hold a straight-line channel that nothing reads:
+`stg_laps_qualifying.speed_st_kph` (speed trap), non-null on **45,272 of 46,234** qualifying
+push laps (97.9%), 2018–2024, alongside `speed_i1_kph`, `speed_i2_kph` and `speed_fl_kph`.
+Grepped across `transform/models/` and `ml/src/`, these appear **only** in staging —
+`stg_laps.sql`, `stg_laps_qualifying.sql`, `stg_sector_times.sql` and their `schema.yml`. No
+intermediate, no mart, no feature contract.
+
+**But the driver signal in it is negligible.** Teammate-differenced (same car, same weekend,
+best trap speed per driver-weekend, ≥40 pairings):
+
+| driver | pairings | mean Δ vs teammate (kph) |
+| :--- | ---: | ---: |
+| ALB | 96 | +1.875 |
+| ALO | 106 | +1.085 |
+| HAM | 146 | +0.568 |
+| LEC | 145 | +0.538 |
+| VER | 144 | +0.319 |
+
+The **entire grid spans under 2 kph on roughly 320 kph — below 1%** — and what spread exists
+is best explained by tow and rear-wing level rather than driver input. This is the expected
+answer physically: a driver does not drive a straight, the car does. **Recommendation: do not
+raise a Tier 1 straight-line item on the strength of driver skill.** `speed_st_kph` may still
+be worth an item as a *car* channel — it is a genuinely new sensor reading in the §0 sense,
+which is the kind with a track record of clearing — but that is a different hypothesis and it
+is not registered here. Folding it into `02b`'s arms after seeing these results is exactly the
+post-hoc arm-adding gates step 6 exists to prevent.
+
+#### 10. Standing
+
+**`MEASURED`.** Gates 1–5 run and passed; gate 6 satisfied for the original family on
+2026-09-14 and for the stint-life follow-on before it ran; gate 7 declared and reported but
+**structurally unable to reject** until `09c` raises the e-value ceiling.
+
+What a later session may quote from this item: the gate-3 floor ratios, on the post-`08m`
+substrate, as measured above. What it may **not** quote: any 2026-09-14 delta, and §1's
+`between_stint_share = 0.0094` as a live constraint.
+
+Recommended next, none of it done here: (i) `09c`, which gates whether any of this survives
+campaign-level correction; (ii) a decision on admitting B and C to `FEATURE_COLUMNS` for
+`cliff_classifier` — the contract is unmoved at 32 and this item does not move it; (iii) §1's
+tier table re-derived against 0.0643, since three tiers were sized against 0.0094.
 
 ---
 

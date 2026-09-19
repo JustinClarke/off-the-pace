@@ -334,9 +334,51 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                 {"id": "D5", "note": "Degradation target is bounded [−10,10]; the majority of jumps are legitimate negatives (fuel burn / track evolution / out-lap recovery), so the contract's y>0 floor was a spec bug that degenerated the p10 quantile."},
                 {"id": "E1", "note": "Evaluation uses the final CV fold (2024) as a holdout stand-in; 2025 not yet ingested."},
                 {"id": "E3", "note": "Heavy elevations (ablation/learning-curve/SHAP/PDP) run on the headline model of each family; quantile siblings share p50's structure."},
+                {"id": "E4", "note": "stint_life_regressor's hyperparameters are work item 10e's S1x, landed on decision D4 rather than on a cleared gate: the green-pit accuracy gain is significant, the calibration-slope gain is not, and this card's own mixture headline for the family regresses by design. See the limitations entry."},
             ],
 
             "limitations": [
+                # ── STINT-LIFE HYPERPARAMETERS LANDED ON A RULING (10e / D4, 2026-09-19) ────
+                # Hardcoded A/B figures for the same reason the v11 bullet below is: the
+                # "before" side is a superseded artefact this card cannot read back, and the
+                # green-pit figures live in _improvements/eval/10e/, not in any metrics file
+                # this module loads. The "after" headline IS readable above - deliberately not
+                # repeated here as a number.
+                "STINT-LIFE HYPERPARAMETERS ARE WORK ITEM 10e's S1x, AND THEY WERE LANDED ON A "
+                "DECISION (D4), NOT ON A CLEARED GATE. What changed: n_estimators 200 -> 100, "
+                "learning_rate 0.02631 -> 0.02192, aft_loss_distribution_scale 0.80 -> 0.754, "
+                "plus reg_alpha/min_child_weight/subsample/colsample_bytree. max_depth stayed "
+                "at 8 - this is a SHRINKAGE change, not the capacity change the earlier "
+                "diagnosis (10d) predicted. Why: the superseded params were selected on the "
+                "MIXTURE AFT NLL with the 2024 evaluation season inside the validation folds, "
+                "which is three defects in the search rather than a property of the model. "
+                "WHAT IS ESTABLISHED AT 95%: on the green-flag-pit stratum - 9,149 eval laps "
+                "over 24 races, zero censoring, refit on 2018-2023 and scored on 2024 - "
+                "IPCW-Brier improves 0.19039 -> 0.16888, paired race-cluster bootstrap "
+                "+0.0226 95% [+0.0073, +0.0353] with 200 of 200 draws improving and ~15x the "
+                "family's own 5-reseed noise floor; time-dependent AUC 0.6896 -> 0.7096; and "
+                "the mean log bias moves -0.2741 -> +0.0680, so the level error CHANGES SIGN - "
+                "the gauge stops over-predicting remaining tyre life (the dangerous direction "
+                "for a number read as safe laps remaining) and starts under-predicting it "
+                "slightly. WHAT IS NOT ESTABLISHED: the calibration slope, which moves "
+                "0.6736 -> 0.8754 but at paired-bootstrap P(improves) = 0.945 with an interval "
+                "straddling zero - the fourth time 24 evaluation races have failed to resolve "
+                "this quantity at 95%. THE CALIBRATION DEFECT IS NOT FIXED. Accuracy improves "
+                "and the known dangerous bias direction is inverted; the calibration-slope gain "
+                "remains statistically unresolved on the current 24-race evaluation set. "
+                "THE COST, STATED: this family's headline on this card is the mixture AFT "
+                "NLL, and this change makes it WORSE - 1.99134 -> the value above, against a "
+                "baseline that also moved (2.18868 -> 2.20099, because the AFT baseline is "
+                "computed at the model's own fitted scale), and `beats_baseline_significant` "
+                "for this family flips True -> False. That is the expected direction and it "
+                "was taken deliberately: work item 10c ruled the mixture the wrong headline "
+                "for this target because it scores tyre-limit endings and exogenous SC/VSC/red "
+                "interruptions in one likelihood, and these parameters were selected on the "
+                "green-pit stratum instead. On that stratum's own NLL the new parameters win "
+                "(3.4377 -> 3.2922). Anyone reading this family's headline as a quality signal "
+                "is reading the metric the application does not use. Full evidence, all seven "
+                "gates and the e-values: `_improvements/work/10-competing-risks.md` under 10e, "
+                "artefacts in `_improvements/eval/10e/`.",
                 # ── NON-COMPARABILITY WITH v11 (work item 08m/08n, 2026-09-16) ──────────────
                 # Deliberately first, and deliberately prose rather than a metric field: the
                 # v11 figures below are HISTORICAL and cannot be read back off any current

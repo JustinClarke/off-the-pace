@@ -6,12 +6,19 @@ section before any of them was run, on the families that are not barred:
     degradation_regressor p10 / p50 / p90   (pinball, lower better)
     cliff_classifier                        (macro-F1, higher better)
 
-`stint_life_regressor` is BARRED here until 10e resolves (10d showed the shipped
-booster was tuned under the wrong label; 10e has NOT landed as of 2026-09-14 --
-production ml/models/stint_life_regressor_best_params.json is unchanged). The
-pre-registration says so explicitly and this script refuses to run it rather than
-leaving the bar to a reader's memory -- the same guard scripts/arms_02c_corner_inputs.py
-uses.
+`stint_life_regressor` was BARRED here until 10e resolved (10d showed the shipped
+booster was tuned under the wrong label). **10e LANDED 2026-09-19** (commit a17f147;
+production ml/models/stint_life_regressor_best_params.json is now S1x's), so the bar is
+discharged. It is still not a default family: the leaf doc says stint life becomes a
+FOLLOW-ON registration of its own rather than joining the original A/B/C/P x 4 family
+retroactively, so it runs only under --allow-stint-life, and only once that
+registration is written down.
+
+Re-run note (2026-09-19): the 2026-09-14 execution of this script scored every arm on
+the PRE-08m target. 08m rebuilt that target (mean -1.8793 -> -0.3946 s), and the leaf
+doc's STALE banner bars quoting any of those deltas until they are re-scored. This run
+re-scores them on the rebuilt substrate; the hypotheses are unchanged, so this is a
+re-measurement of the same pre-registration, not a new one.
 
 Protocol, in the order gates.md numbers it (identical to 02c's):
 
@@ -135,18 +142,44 @@ def shuffled(X: pd.DataFrame, cols: tuple[str, ...], rng: np.random.Generator) -
 
 
 # ─── Fit / score ────────────────────────────────────────────────────────────────
-def fit_seeded(spec: S.TargetSpec, params: dict, X, y, w, seed: int):
+def fit_seeded(spec: S.TargetSpec, params: dict, X, y, w, seed: int, cens=None):
     """evaluate.py's fit with the seed overridden -- the same override
     `within_stint_attribution.fit_seeded` and `arms_02c_corner_inputs.fit_seeded` use,
     for the same reason: random_state is fixed inside T._make_model and cannot be
-    passed through `params`."""
+    passed through `params`.
+
+    The survival branch takes a different route because `AFTBooster` is not an sklearn
+    estimator and has no `set_params`: it carries `seed` inside its own params dict,
+    where `**p` merges AFTER the default, so injecting it there is the supported route.
+    This is exactly `arms_10d_calibration_arms.fit_seeded`, reused rather than
+    re-derived -- varying the seed redraws `subsample` and `colsample_bytree`, which is
+    what makes the five refits genuinely differ.
+    """
+    if spec.kind == "survival":
+        if cens is None:
+            raise ValueError("fit_seeded on a survival target needs the censoring flags")
+        m = T._make_model(spec, {**params, "seed": int(seed)})
+        weights = w if w is not None else T._sample_weight(spec, y)
+        return m.fit(X, y, sample_weight=weights,
+                     is_censored=np.asarray(cens, dtype=bool))
     m = T._make_model(spec, params)
     weights = w if w is not None else T._sample_weight(spec, y)
     m.set_params(random_state=seed)
     return m.fit(X, y, sample_weight=weights)
 
 
-def score(spec: S.TargetSpec, model, X_ev, y_ev) -> float:
+def score(spec: S.TargetSpec, model, X_ev, y_ev, cens_ev=None) -> float:
+    """Headline on the eval rows.
+
+    The survival branch must hand `_score` both the censoring flags and the scale the
+    model was ACTUALLY fitted at -- `_score` raises without the former, and the AFT
+    scale is a term in the likelihood, so scoring at the module default when the fit
+    used a tuned scale silently compares two different likelihoods. This mirrors
+    evaluate.py's own `scale = getattr(model, "scale", None)` line.
+    """
+    if spec.kind == "survival":
+        return E._score(spec, y_ev, E._predict_index(spec, model, X_ev),
+                        cens=cens_ev, scale=getattr(model, "scale", None))
     return E._score(spec, y_ev, E._predict_index(spec, model, X_ev))
 
 
@@ -227,6 +260,18 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
     w_tr = split.w_tr
     X_tr, X_ev = split.X_tr, split.X_ev
     y_tr, y_ev = split.y_tr, split.y_ev
+    # None for every family except stint_life_regressor; the survival fit and score
+    # both raise rather than silently proceed without them.
+    c_tr, c_ev = split.cens_tr, split.cens_ev
+
+    def _fit_canon(Xm):
+        return E._fit(spec, params, Xm, y_tr, cens=c_tr, w=w_tr)
+
+    def _fit_seed(Xm, s):
+        return fit_seeded(spec, params, Xm, y_tr, w_tr, s, cens=c_tr)
+
+    def _sc(model, Xe):
+        return score(spec, model, Xe, y_ev, cens_ev=c_ev)
 
     res: dict = {
         "target": target,
@@ -239,8 +284,8 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
 
     # ── Step 1: instrument check ────────────────────────────────────────────────
     t0 = time.time()
-    base_model = E._fit(spec, params, X_tr, y_tr, w=w_tr)
-    baseline = score(spec, base_model, X_ev, y_ev)
+    base_model = _fit_canon(X_tr)
+    baseline = _sc(base_model, X_ev)
     res["baseline_headline"] = baseline
     res["published_headline"] = published
     res["instrument_check_6dp"] = bool(abs(baseline - published) < 5e-7)
@@ -255,8 +300,8 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
     # ── Step 3: this family's own reseed floor ──────────────────────────────────
     t0 = time.time()
     floor = AT.refit_noise_floor(
-        lambda s: fit_seeded(spec, params, X_tr, y_tr, w_tr, s),
-        lambda yt, m, X: score(spec, m, X, yt),
+        lambda s: _fit_seed(X_tr, s),
+        lambda yt, m, X: score(spec, m, X, yt, cens_ev=c_ev),
         X_ev, y_ev, SEEDS)
     res["refit_noise"] = floor
     F2 = floor["delta_noise_2sd"]
@@ -271,7 +316,7 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
         Xa_ev = attach(X_ev, split.lap_ids_ev, extra, cols)
 
         # Canonical-seed add-ablation (the delta the floor judges).
-        real_c = score(spec, E._fit(spec, params, Xa_tr, y_tr, w=w_tr), Xa_ev, y_ev)
+        real_c = _sc(_fit_canon(Xa_tr), Xa_ev)
         d_real = delta(real_c, baseline, hib)
 
         # Permutation null at the canonical seed: capacity and information, separately.
@@ -279,7 +324,7 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
         rng_ev = np.random.default_rng([S.RANDOM_STATE, 1])
         Xs_tr = shuffled(Xa_tr, cols, rng_tr)
         Xs_ev = shuffled(Xa_ev, cols, rng_ev)
-        shuf_c = score(spec, E._fit(spec, params, Xs_tr, y_tr, w=w_tr), Xs_ev, y_ev)
+        shuf_c = _sc(_fit_canon(Xs_tr), Xs_ev)
         capacity = delta(shuf_c, baseline, hib)
         information = delta(real_c, shuf_c, hib)
 
@@ -288,13 +333,11 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
         # sharing one permutation draw.
         reals, shufs = [], []
         for s in SEEDS:
-            reals.append(score(spec, fit_seeded(spec, params, Xa_tr, y_tr, w_tr, s),
-                               Xa_ev, y_ev))
+            reals.append(_sc(_fit_seed(Xa_tr, s), Xa_ev))
             r_tr = np.random.default_rng([int(s), 0])
             r_ev = np.random.default_rng([int(s), 1])
-            shufs.append(score(spec, fit_seeded(spec, params,
-                                                shuffled(Xa_tr, cols, r_tr), y_tr, w_tr, s),
-                               shuffled(Xa_ev, cols, r_ev), y_ev))
+            shufs.append(_sc(_fit_seed(shuffled(Xa_tr, cols, r_tr), s),
+                             shuffled(Xa_ev, cols, r_ev)))
         reals, shufs = np.asarray(reals), np.asarray(shufs)
         d_paired = np.asarray([delta(r, sh, hib) for r, sh in zip(reals, shufs)])
         ev = safe_t_e_value(d_paired)
@@ -331,14 +374,10 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
     XA_ev = attach(X_ev, split.lap_ids_ev, extra, colsA)
     d_ctrl = []
     for s in SEEDS:
-        a = score(spec, fit_seeded(spec, params,
-                                   shuffled(XA_tr, colsA, np.random.default_rng([int(s), 0])),
-                                   y_tr, w_tr, s),
-                  shuffled(XA_ev, colsA, np.random.default_rng([int(s), 1])), y_ev)
-        b = score(spec, fit_seeded(spec, params,
-                                   shuffled(XA_tr, colsA, np.random.default_rng([int(s), 2])),
-                                   y_tr, w_tr, s),
-                  shuffled(XA_ev, colsA, np.random.default_rng([int(s), 3])), y_ev)
+        a = _sc(_fit_seed(shuffled(XA_tr, colsA, np.random.default_rng([int(s), 0])), s),
+                shuffled(XA_ev, colsA, np.random.default_rng([int(s), 1])))
+        b = _sc(_fit_seed(shuffled(XA_tr, colsA, np.random.default_rng([int(s), 2])), s),
+                shuffled(XA_ev, colsA, np.random.default_rng([int(s), 3])))
         d_ctrl.append(delta(a, b, hib))
     res["negative_control_shuffle_vs_shuffle"] = {
         "paired_deltas": d_ctrl,
@@ -358,15 +397,23 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--families", nargs="*", default=list(FAMILIES))
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--allow-stint-life", action="store_true",
+                    help="Lift 10d's bar on stint_life_regressor. Legal only because 10e "
+                         "LANDED 2026-09-19 (commit a17f147) and the production params "
+                         "are now S1x's. Runs the FOLLOW-ON registration, which the leaf "
+                         "doc says is a registration of its own and not a retroactive "
+                         "member of the original A/B/C/P x 4 family.")
     args = ap.parse_args()
 
-    if "stint_life_regressor" in args.families:
+    if "stint_life_regressor" in args.families and not args.allow_stint_life:
         raise SystemExit(
-            "stint_life_regressor is BARRED until 10e resolves (10d: the shipped "
-            "booster was tuned under the wrong label, on the mixture NLL, with 2024 in "
-            "the validation folds; 10e has NOT landed as of 2026-09-14 -- production "
-            "params are unchanged). Measuring its floor now measures a model that is "
-            "about to change. See 02b's note and pre-registration in the leaf doc.")
+            "stint_life_regressor was BARRED by 10d (the shipped booster was tuned "
+            "under the wrong label, on the mixture NLL, with 2024 in the validation "
+            "folds), so a floor measured against it would be measured against a model "
+            "about to change. 10e LANDED 2026-09-19 and discharges that bar -- but the "
+            "leaf doc is explicit that stint life is then a FOLLOW-ON registration, not "
+            "a retroactive member of the original family. Pass --allow-stint-life to "
+            "run it, having first written that registration into the leaf doc.")
 
     lines: list[str] = []
 
@@ -386,8 +433,15 @@ def main() -> int:
         "seeds": list(SEEDS),
         "e_value_construction": {"name": "B (paired safe-t)", "n": len(SEEDS), "g": E_VALUE_G},
         "e_value_validity_check": e_value_validity_check(),
-        "barred": {"stint_life_regressor": "until 10e resolves (10d's finding); 10e has "
-                                            "not landed as of 2026-09-14"},
+        "barred": ({} if args.allow_stint_life else
+                   {"stint_life_regressor": "10d's bar; discharged by 10e (landed "
+                                            "2026-09-19) but not requested in this run"}),
+        "stint_life_status": ("follow-on registration, run under --allow-stint-life; "
+                              "10d's bar discharged by 10e landing 2026-09-19 (a17f147)"
+                              if args.allow_stint_life else "not run"),
+        "substrate_note": ("scored on the POST-08m rebuilt target. Every 02b delta "
+                           "measured 2026-09-14 is on the OLD target and is superseded "
+                           "by this run, per the leaf doc's STALE banner."),
         "families": {},
     }
     log("e-value validity check (mean E under H0 must be 1.00):")

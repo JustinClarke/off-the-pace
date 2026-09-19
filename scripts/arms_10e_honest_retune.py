@@ -161,6 +161,28 @@ def inner_cv(split, gp_tr: np.ndarray, params: dict, n_splits: int = SEARCH_FOLD
     }
 
 
+# The declared boundary probe (leaf doc, addendum of 2026-09-19). A ladder in the pinned
+# axis at the arm's OTHER selected parameters, on the same inner folds, read for one axis
+# only -- a coordinate probe cannot see a joint move, and is not asked to.
+LADDER_N_ESTIMATORS = (10, 25, 50, 100, 200, 400, 800)
+
+
+def boundary_ladder(split, gp_tr: np.ndarray, params: dict, param: str,
+                    values: tuple) -> list[dict]:
+    rows = []
+    for v in values:
+        r = inner_cv(split, gp_tr, {**params, param: int(v)})
+        rows.append({param: int(v),
+                     "fold_mean_green_pit_brier": r["fold_mean_green_pit_brier"],
+                     "fold_mean_abs_slope_minus_1": r["fold_mean_abs_slope_minus_1"],
+                     "pooled_slope": r["pooled_oof"]["calibration_slope"],
+                     "pooled_auc": r["pooled_oof"]["green_pit_auc"],
+                     "pooled_brier": r["pooled_oof"]["green_pit_ipcw_brier"],
+                     "pooled_margin_sd": r["pooled_oof"]["margin_sd"],
+                     "xgb_aft_nloglik_mean": r["xgb_aft_nloglik_mean"]})
+    return rows
+
+
 def study_summary(studies_dir: Path, version: str) -> dict:
     """What the search did, read out of its own study DB rather than its stdout."""
     try:
@@ -356,6 +378,42 @@ def main() -> int:
             f"scale {sel.get('aft_loss_distribution_scale'):.4f}")
         log(f"     boundary: {pinned or 'interior on every axis'}; "
             f"best inner value {summ.get('best_value')}")
+    # The declared probe, run only where a search actually stopped on an edge.
+    ladders: dict[str, dict] = {}
+    for arm in ("S1", "S2"):
+        pinned = searches[arm]["boundary_pinned"]
+        if "n_estimators" not in pinned:
+            continue
+        log(f"\n[gate 6] {arm} pinned on n_estimators (low): the declared coordinate "
+            f"ladder, at {arm}'s other selected parameters")
+        t0 = time.time()
+        rows = boundary_ladder(sp, gp_tr, arms[arm]["params"], "n_estimators",
+                               LADDER_N_ESTIMATORS)
+        obj_key = ("fold_mean_green_pit_brier" if searches[arm]["objective"] == "green_pit_brier"
+                   else "fold_mean_abs_slope_minus_1")
+        at_bound = next(r for r in rows if r["n_estimators"] == arms[arm]["params"]["n_estimators"])
+        below = [r for r in rows if r["n_estimators"] < arms[arm]["params"]["n_estimators"]]
+        improves_below = any(r[obj_key] < at_bound[obj_key] for r in below)
+        ladders[arm] = {
+            "param": "n_estimators", "values": list(LADDER_N_ESTIMATORS),
+            "objective_read": obj_key, "rows": rows,
+            "value_at_bound": int(arms[arm]["params"]["n_estimators"]),
+            "objective_at_bound": at_bound[obj_key],
+            "any_value_below_the_bound_improves": bool(improves_below),
+            "reading": ("the learner wants a weaker fit than the space allows and the "
+                        "bound must move again" if improves_below else
+                        "the optimum lives at the edge; the bound is not binding on it"),
+            "caveat": ("a coordinate probe cannot see a joint move (epistemics.md); it "
+                       "is read for one axis, which is the question a pin asks."),
+        }
+        for r in rows:
+            log(f"  n_estimators {r['n_estimators']:4d}: |slope-1| "
+                f"{r['fold_mean_abs_slope_minus_1']:8.4f}  Brier "
+                f"{r['fold_mean_green_pit_brier']:.4f}  pooled slope "
+                f"{r['pooled_slope']:8.4f}  margin sd {r['pooled_margin_sd']:.4f}")
+        log(f"  -> {ladders[arm]['reading']}  ({time.time()-t0:.0f}s)")
+    report["gate_6_boundary_ladders"] = ladders
+
     report["gate_6_searches"] = {
         "declared": ("selection on the training side only (2018-2023), 50 TPE trials, "
                      f"{SEARCH_FOLDS} expanding season folds, MedianPruner, seeded "

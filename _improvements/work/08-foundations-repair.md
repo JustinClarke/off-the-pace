@@ -1818,7 +1818,7 @@ mechanism behind cliff's −1.11× and −1.00×.
    built first. It did not even have that status going in — it had been silently replaced by
    floor 2 — and it now has the measurement.
 
-#### Two defects in the tree this item found, both still live
+#### Two defects in the tree this item found — both FIXED 2026-09-21 when D10 landed
 
 - **`transform/tests/assert_no_future_leakage.sql`** hard-codes `>= 2` in its independent
   re-derivation of the baseline ("Apply the same min_observations=2 floor the model uses"). It is
@@ -1827,6 +1827,26 @@ mechanism behind cliff's −1.11× and −1.00×.
   `stint_baseline_pace` — "NULL until *one* valid prior lap exists … Costs 1.41pp of
   training-eligible coverage" — while the SQL runs floor 2 at a measured 3.95pp. The 2026-09-10
   session changed the parameter and the inline SQL comment but not the column's own description.
+
+**Both fixed 2026-09-21 (D10 landed, dbt layer only).** `int_lap_thermal_proxy.sql` is at
+`min_observations=1`; the test's re-derivation moved with it — note it held **two** copies of the
+parameter, not the one the bullet above names (`>= 2` in the baseline CASE *and* `expected_n_prior
+< 2` in the floor check), and both now read 1; `schema.yml` states the floor explicitly and carries
+the 08i provenance. `dbt build --select int_lap_thermal_proxy+` = **PASS=39 ERROR=0**, and
+`assert_no_future_leakage` **PASSES** — it has to be selected explicitly, because it also refs
+`int_stint_geometry` and so falls outside the `int_lap_thermal_proxy+` graph.
+
+**The rebuild reproduces 08i's floor-1 prediction exactly**: 137,447 mart rows, 119,822
+training-eligible, **2,156** thermal-NaN — 08i's predicted floor-1 figure to the row, against
+floor 2's 4,727. The +2.15pp coverage is realised. `stint_baseline_pace IS NULL` matches
+`baseline_observations_n < 1` on 0 violating rows across all 162,729 intermediate rows.
+
+**Not yet done, and owed to the v12→v13 bundle:** no retrain, no re-export — 08i's ruling is now
+in the warehouse but not in any artefact. `transform/tests/data_profile.baseline.json` is an
+approval artefact that must be re-snapshotted once the bundle is complete; it was **already
+failing before this change** (last committed 2026-09-07, so it predates 08e, 08f-2 and 08m — 53 of
+its 90 drift entries are in models this change never rebuilt, and it records the thermal loads at
+a 0.0 null-rate, i.e. the pre-08e block median).
 
 #### Step 7 bookkeeping for the campaign family
 

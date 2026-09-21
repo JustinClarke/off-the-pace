@@ -30,7 +30,14 @@ MODELS_DIR = Path("ml/models")
 LOGS_DIR = MODELS_DIR / "training_logs"
 ENCODERS_PATH = MODELS_DIR / "encoders.json"
 MANIFEST_PATH = MODELS_DIR / "manifest.json"
-MANIFEST_SCHEMA_VERSION = 1  # bump if the manifest shape changes (application layer reads this)
+MANIFEST_SCHEMA_VERSION = 2  # bump if the manifest shape changes (application layer reads this)
+# 2 (v13, 02b/D12): the feature contract went per-model. `feature_order`, `n_features` and
+# `shape` left the global `input` block and now live on each entry in `models`; `input` keeps
+# only what is genuinely shared (tensor name, dtype, encoders). See build_manifest().
+# The browser layer has NOT been migrated -- app/src/ml/{manifest,featureVector,infer}.ts still
+# read `manifest.input.feature_order` and hand ONE matrix to all five sessions, so v13 must not
+# be copied to app/public/models until they take a per-model order. Production serves v6 (D2),
+# so nothing is live against this yet.
 # Faithful-round-trip tolerance. atol guards near-zero outputs; rtol covers float32
 # magnitude scaling (stint-life predicts 0–40 laps, so a pure-atol 1e-5 would demand
 # sub-ULP agreement on 120-tree float32 sums). Relative error is reported alongside as
@@ -186,10 +193,19 @@ def parity(target: str, version: str, sample: np.ndarray) -> dict:
             "n_rows": int(sample.shape[0]), "kind": spec.kind, **extra}
 
 
-def nan_bearing_sample(n: int = PARITY_ROWS, seed: int = S.RANDOM_STATE) -> np.ndarray:
+def nan_bearing_sample(n: int = PARITY_ROWS, seed: int = S.RANDOM_STATE,
+                       target: str = "degradation_regressor_p50") -> np.ndarray:
     """500-row float32 sample guaranteed to contain NaN (R9). Sourced from training
-    today; the NaN concern is orthogonal to season."""
-    bundle = F.load_features(target="degradation_regressor_p50")
+    today; the NaN concern is orthogonal to season.
+
+    `target` selects the feature contract the sample is built against, because since
+    02b/D12 there is no longer one contract: `cliff_classifier` takes 39 columns and
+    every other family takes 32 (see S.feature_columns_for). The default keeps the
+    32-wide contract every previous caller assumed. A sample built for the wrong
+    target does not silently mis-score -- XGBoost refuses it with a shape mismatch --
+    but it does stop the export dead, which is how this surfaced at the v13 export.
+    """
+    bundle = F.load_features(target=target)
     X = bundle.X_train.to_numpy(dtype=np.float32)
     rng = np.random.default_rng(seed)
     nan_rows = np.where(np.isnan(X).any(axis=1))[0]
@@ -242,6 +258,17 @@ def build_manifest(version: str, parities: dict[str, dict]) -> dict:
             "booster_sha256": _sha256(bst_path) if bst_path.exists() else None,
             "cv_headline": log.get("headline_cv"),
             "headline_metric": log.get("headline_metric"),
+            # Per-model feature contract (manifest schema 2, v13 onward). Since 02b/D12 the
+            # contract is no longer one width -- cliff_classifier takes 39 columns and every
+            # other family takes 32 -- so the feature order a consumer must build is a
+            # property of THE MODEL, not of the manifest. Read from feature_columns_for(),
+            # the same function features.py fits through and predict.py scores through, so
+            # the order here is the order the booster was fitted in. Positional: DO NOT
+            # reorder. The width is asserted against the actual booster in
+            # tests/test_manifest_contract.py.
+            "feature_order": list(S.feature_columns_for(spec.name)),
+            "n_features": len(S.feature_columns_for(spec.name)),
+            "shape": ["batch", len(S.feature_columns_for(spec.name))],
         }
         if spec.kind == "quantile":
             entry["quantile_alpha"] = spec.quantile_alpha
@@ -295,9 +322,17 @@ def build_manifest(version: str, parities: dict[str, dict]) -> dict:
         "input": {
             "tensor_name": "input",
             "dtype": "float32",
-            "shape": ["batch", len(S.FEATURE_COLUMNS)],
-            "feature_order": list(S.FEATURE_COLUMNS),   # positional-DO NOT reorder
-            "n_features": len(S.FEATURE_COLUMNS),
+            # NO feature_order / n_features / shape HERE -- they moved to each entry in
+            # `models` at manifest schema 2. Until v13 the contract was one width for all
+            # five targets and this block could declare it once; 02b/D12 made the contract
+            # per-model (cliff_classifier 39, everything else 32), so a single global
+            # declaration could only be right about one target and silently wrong about
+            # four. Removing the keys rather than leaving the superset here is deliberate:
+            # a consumer that has not been updated now fails loudly on a missing key
+            # instead of confidently building a 39-wide vector for a 32-wide booster.
+            # `feature_union` is provenance for humans, NOT a vector to build from.
+            "feature_union": list(S.FEATURE_COLUMNS),
+            "per_model_feature_order": True,
             "encoding": {
                 "categorical_columns": list(S.CATEGORICAL_COLUMNS),
                 "boolean_columns": list(S.BOOLEAN_COLUMNS),
@@ -328,8 +363,9 @@ def build_manifest(version: str, parities: dict[str, dict]) -> dict:
 def write_manifest(version: str, parities: dict[str, dict]) -> Path:
     manifest = build_manifest(version, parities)
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
+    widths = sorted({m["n_features"] for m in manifest["models"]})
     print(f"wrote {MANIFEST_PATH}  ({len(manifest['models'])} models, "
-          f"{manifest['input']['n_features']} features, version={version})")
+          f"features per model: {'/'.join(str(w) for w in widths)}, version={version})")
     return MANIFEST_PATH
 
 
@@ -345,11 +381,23 @@ def main() -> int:
     args = ap.parse_args()
 
     targets = [t.name for t in S.PRODUCTION_TARGETS] if args.all else [args.target]
-    sample = nan_bearing_sample()
+    # One parity sample PER FEATURE CONTRACT, not one for the whole run. Before v13 every
+    # target took the same 32 columns and a single sample served all five; 02b/D12 made the
+    # contract per-model, so a shared sample is a 39-wide booster's shape error waiting to
+    # happen. Cached on the column tuple rather than the target name, so the four 32-wide
+    # families still share one DuckDB load and this stays a 2-load export, not a 5-load one.
+    _sample_cache: dict[tuple[str, ...], np.ndarray] = {}
+
+    def sample_for(target: str) -> np.ndarray:
+        key = tuple(S.feature_columns_for(target))
+        if key not in _sample_cache:
+            _sample_cache[key] = nan_bearing_sample(target=target)
+        return _sample_cache[key]
+
     failed, parities = [], {}
     for t in targets:
         convert(t, args.version)
-        r = parity(t, args.version, sample)
+        r = parity(t, args.version, sample_for(t))
         parities[t] = r
         flag = "OK " if r["pass"] else "FAIL"
         print(f"[{flag}] {t:30s} abs={r['max_abs_diff']:.2e} rel={r['max_rel_diff']:.2e} "

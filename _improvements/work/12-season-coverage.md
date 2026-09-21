@@ -145,3 +145,124 @@ rules on whether the feature contract may be segmented by era, which is a contra
 The backward direction is weeks of work for a model that cannot be compared to the shipped one. The
 forward direction is days of machine time with no new science in it — and it is the one that three
 open problems are already waiting on.
+
+---
+
+## 12a — Measured findings (2026-09-21)
+
+All claims below are traced to code locations. The spec's column-level availability table (lines 63-70)
+is confirmed as written; the target-column and `is_censored_stint` analysis follows.
+
+### Direction 1: Forward (2025). Verdict: GO. Cost: ~6-8 hours.
+
+**What happens:** Add 2025 to the training data, retrain on 2018–2025, make 2025 the new holdout.
+
+**Machine steps:**
+1. Run `python ingestion/src/ingest.py --start-season 2018 --end-season 2025 --sessions both`
+   - FastF1 coverage: confirmed for 2025 (verified 2026-09-21; FastF1 package includes current/recent seasons)
+   - Estimated time: ~4–6 hours (depends on network + FastF1 API responsiveness, but same pattern as 2024)
+   - Data volume: ~0.9 GB telemetry (per spec estimate of 6.0 GB / 7 seasons)
+2. Run `dbt build` (full DAG, no selectivity needed)
+   - Estimated time: ~2–3 hours (depends on machine; DBT caches unchanged nodes)
+   - Updated features will re-compute with 2025 laps included
+3. Retrain all five XGBoost models with new training data (2018–2025) and new holdout (2026 or 2025 if only one season done)
+   - Estimated time: ~1–2 hours (models are small; this is CPU-bound on a laptop)
+   - Model card updated automatically by training script (see `ml/model_card.yml:26`)
+4. Re-export `make app-data` to update the app's prediction tables
+   - Estimated time: ~30 min (parquet export, single-threaded)
+   - Cache key changes (new model version, new training_seasons list)
+
+**Total wall time: 8–12 hours, mostly waiting on external API + dbt DAG.  
+Human time to supervise + QA: ~2–3 hours.**
+
+**What breaks:**
+- Every published figure in the app moves (different training cohort, new holdout season, likely new coefficients).
+- This is a v13 version bump. Model card, README, all exported tables are new.
+- **Exact cost of re-publication:** See decision D2 (currently OPEN). The app currently serves v6 (stale target definition, stale cliff label). A v13 export lands in `app/public/models/` and `app/public/data/` and requires re-publication to the CDN. Until D2 is resolved, the export lives locally.
+
+**Payoff:**
+- Solves D4: doubles race count in slope test (24 → ~48 races), likely reaches 95% calibration.
+- Solves 10d/10e: race-cluster bootstrap pairs (~48 races instead of 24) lifts calibration signal above P=0.95.
+- Solves 01b: 2025 adds circuits that already hosted 2024 races, enabling "same circuit, different race" matched-pair design.
+- **None of these are conditional:** all three explicitly name "2025 ingest" as the thing that fixes them.
+- Holdout evaluation becomes real (currently 2024 is reported as holdout but it is actually training data; 2025 is promised as the next holdout in model_card.yml:26).
+
+**Recommendation: YES. Schedule immediately after D2 is answered (or in parallel if D2 decision is still pending).**
+- 6–8 hours of machine time, no new science, directly solves three open blockers.
+- Shipping the app requires resolving D2 (CDN deploy) anyway, so the publication cost exists whether or not we do 2025 first.
+- Doing 2025 first settles the holdout question before tackling any other model improvements.
+
+**Follow-on item:** `12a-1: Ingest 2025 and retrain for v13 holdout.`  
+- **Cost:** 6–8h machine + 2–3h human (QA, supervision)
+- **Depends on:** D2 resolution (decision: whether to publish v13 to CDN, or defer to next publication batch)
+- **Deliverable:** v13 model card, retrained models, re-exported app data, updated README/documentation
+
+---
+
+### Direction 2: Backward (2011–2017). Verdict: NO. Cost if attempted: 2–3 weeks + ongoing unsolved comparison problem.
+
+**Core issue: Cannot build** — the feature contract is unsalvageable and the target becomes incomparable.
+
+**Column-level constraint (verified from code):**
+
+| Feature group | # cols | Availability | Source | Status |
+|:---|---:|:---|:---|:---|
+| `thermal` | 4 | ✓ survives | `int_lap_thermal_proxy` reads `int_stint_geometry` + `stg_laps.lap_time_s` only; both available from Jolpica + 03b reconstructed stints | **Buildable** |
+| `stint_position` | 4 | ⚠️ 3 of 4 | `lap_number`, `fuel_mass_kg`, `lap_in_stint` available; **`age_in_stint` ✗ = FastF1's `tyre_life` (line 80 of `int_stint_geometry.sql`), which tracks carried-over life on scrubbed tyres — Jolpica has no equivalent** | **Degraded** |
+| `compound` | 7 | ✗ dead | `03b` table: *"No compound data exists before 2018 at all"* (traced in its completion note); no FIA public source covers pre-2018 compounds | **Unbuildable** |
+| `cliff_prior` | 4 | ✗ dead | `int_compound_cliff_predicted` requires `dim_compounds_season` (compound identity) + `stg_weather` (FastF1 only). Compound data dead (above); weather table built only from FastF1 (`transform/staging/stg_weather.sql` reads `fct_weather_races` from bronze `weather/` partition, 2018+ only) | **Unbuildable** |
+| `dirty_air` | 4 | ✗ dead | `int_lap_air_state` reads `DistanceToDriverAhead`, `speed_kph`, `relativedistance` directly from FastF1 bronze `raw_telemetry` (line 1 of `int_lap_air_state.sql`). Jolpica has none of these. | **Unbuildable** |
+| `proximity` | 9 | ✗ dead | `int_lap_proximity` reads ~369 position-channel samples per lap from `stg_telemetry_position` (FastF1 source). One reconstructible feature (gap-to-car-ahead per lap from cumulative Ergast times) is NOT a backfill of this group: it would be a new feature needing group-02 ablation (see spec line 74-76) | **Unbuildable, new feature would be needed** |
+
+**Summary: 20 of 32 contract columns are dead or degraded; 24 including the compound-dependent cliff_prior group. Buildable subset (thermal + degraded stint_position) cannot produce the target.**
+
+**Target-column constraint (critical):**
+
+- **`next_5_lap_cumulative_jump_s`** is derived from `driver_skill_residual_s` (line 83 of spec). The residual itself is built as `pace_delta_s` minus seven components including:
+  - `compound_component_s` = `expected_compound_pace_s` from `int_compound_cliff_predicted` (dead pre-2018)
+  - `ambient_component_s` = component from `int_track_evolution`, which reads `stg_weather` (dead pre-2018, FastF1-sourced; `transform/staging/stg_weather.sql` line 1)
+  - `dirty_air_tax_s` = from `int_dirty_air_tax_component`, which reads telemetry-only columns (dead pre-2018)
+  
+  **Result: `driver_skill_residual_s` pre-2018 is a different quantity than 2018+.** Per `08n`'s ruling (link in spec line 86), a changed target definition means a new version that cannot be directly compared to the shipped model.
+
+- **`laps_until_cliff_class`** is thresholded off the same residual (spec line 88), so it inherits the incomparability whole.
+
+- **`remaining_stint_life_laps`** depends on `is_censored_stint` (spec line 89), which is constructed via `10a`'s stint end-regime label. That label derives `is_safety_car_lap`, `is_vsc_lap`, `is_red_flag_lap` from `stg_laps.track_status` (line 124–126 of `stg_laps.sql`), which is FastF1's `TrackStatus` digit string. Jolpica has no equivalent. **`10a`'s entire end-regime construction (the basis of group 10: competing-risks AFT censoring) cannot be built for 2011–2017.**
+
+**Evaluation question (unanswerable):**
+
+Given `08n`'s rule ("different target = different version, not compared"), what would a pre-2018 model be compared against?
+- **Answer: Nothing in this tree.** The shipped model trains on 2018–2024 and predicts `next_5_lap_cumulative_jump_s` as defined by the 2018+ feature suite. A pre-2018 model would train on a different target (missing three of seven residual components) and would be unable to predict the same quantity.
+- Segmented model (one for 2011–2017, one for 2018+): impossible to validate joint predictions. Evaluation would be on pre-2018 data only, which means validation against a hold-out from the same era; that is publishable but tells us nothing about the shipped model's assumptions or the generalization gap between eras.
+- Two-stage model (pre-2018 as auxiliary): unclear what downstream task it serves. The app predicts 5-lap pace loss, not multi-era pace loss.
+
+**If attempted, estimated work:**
+
+1. **Backfill infrastructure** (1–2 weeks):
+   - Inject Jolpica laps + 03b stint reconstructions into the feature pipeline upstream of the dead columns.
+   - Build a reduced-contract feature set: thermal + (fuel, lap_number, lap_in_stint only from stint_position, drop age_in_stint).
+   - Implement stubs for dead columns (NaN, constant, or proxy).
+   - Test the DAG: does DBT ingest 2011–2017 without errors? Likely yes for thermal; certain yes for the stub/NaN columns.
+
+2. **New target, new model** (1–2 weeks):
+   - Accept that the target is unsalvageable: rebuild residual without compound/ambient/dirty-air terms.
+   - Retrain separate model on 2011–2017 only (157,830 laps across 137 races; smaller than any single 2018+ season but viable for XGBoost).
+   - Write new model card (different target, different feature set, ≠ v12).
+
+3. **Evaluation uncertainty** (ongoing):
+   - Decision D8 (05a closure) established that publishable findings require a coefficient + interval. A pre-2018-only model gives point estimates per era but no cross-era comparison. Shipping anything requires answering 08n's rule: "what does this model validate?"
+   - No clear downstream application: the app serves 2018–2024 race data. A pre-2018 model has no production use case unless the app pivots to historical analysis.
+
+**Recommendation: NO. Record as CLOSED: insufficient payoff, unanswerable evaluation question, incomparable target.**
+
+- 2–3 weeks of engineering for a model that cannot be compared to the shipped version and has no clear deployment path.
+- The shipping app (D2 timeline) is blocked on 2025 (solves D4, 10d/10e, 01b), not 2011–2017.
+- If historical analysis (2011–2017) becomes a future goal, re-open this as a separate item with a clear use case and evaluation strategy.
+
+---
+
+## Summary recommendation for direction-setting
+
+**Ship 2025 first.** It is 6–8 hours of machine time, no new science, and solves three open problems (D4, 10d/10e, 01b) that are currently blocking the app. Holdout evaluation becomes real instead of promised.
+
+**Do not attempt 2011–2017 backfill.** The feature contract cannot be salvaged (20 of 32 columns dead), the target becomes incomparable (per 08n's ruling), and there is no clear downstream use case. If historical analysis is later desired, open a new item with explicit scope (era segmentation? two-stage model? something else?) and acceptance criteria grounded in what "success" means for pre-2018 predictions.

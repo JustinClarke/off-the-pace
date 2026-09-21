@@ -265,13 +265,15 @@ def tune_one(target: str, *, trials: int, folds: int, version: str, subsample_ro
             model = T._make_model(spec, params)
             # The fold fit goes through train.py's own _fit, so the objective is
             # measured under exactly the weights the production refit applies:
-            # IPW survival weights for the quantile trio, balanced class weights for
-            # the classifier, none for AFT (which carries censoring in the label).
+            # balanced class weights for the classifier, none for AFT (which carries
+            # censoring in the label), and -- since 08o dropped the IPW survival
+            # weights -- none for the quantile trio either.
             # Until Phase 2 finding 1 was fixed this path called model.fit directly
             # without meta, so the quantile search silently dropped the IPW weights
-            # that train.py:_fit applies -- p10/p50/p90 were selected against an
-            # objective the refit does not use. Do not reintroduce a second fit call
-            # here: one code path is what keeps search and refit in agreement.
+            # train.py:_fit applied at the time -- p10/p50/p90 were selected against an
+            # objective the refit did not use. Do not reintroduce a second fit call
+            # here: one code path is what keeps search and refit in agreement, and it is
+            # why 08o's removal needed no change on this side at all.
             T._fit(model, spec, X.iloc[tr], y[tr], meta.iloc[tr])
             pred = model.predict(X.iloc[val])
             name, headline = T._headline(spec, y[val], pred, meta.iloc[val], scale)

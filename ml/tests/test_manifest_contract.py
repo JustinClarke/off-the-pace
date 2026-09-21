@@ -79,23 +79,56 @@ def test_manifest_ships_the_version_the_system_expects(manifest):
         f"manifest version, so this is what reaches the browser.")
 
 
+def _model_entry(manifest: dict, target: str) -> dict:
+    return next(m for m in manifest["models"] if m["name"] == target)
+
+
 @pytest.mark.parametrize("target", [t.name for t in S.PRODUCTION_TARGETS])
 def test_manifest_input_width_matches_the_actual_booster(manifest, target):
-    """`shape[1]` is written from `len(S.FEATURE_COLUMNS)`, never read back off the
-    booster — so it is a claim, not a measurement, until something checks it here."""
+    """The declared width is written from `feature_columns_for()`, never read back off the
+    booster — so it is a claim, not a measurement, until something checks it here.
+
+    At manifest schema 2 the claim is per-model, because 02b/D12 made the contract
+    per-model: cliff_classifier 39, every other family 32. Before that this assertion read
+    one global `input.shape[1]`, which after v13 could only have been right about one of
+    the five targets.
+    """
     version = manifest["model_version"]
-    declared = manifest["input"]["shape"][1]
+    declared = _model_entry(manifest, target)["n_features"]
     actual = _booster_n_features(target, version)
     assert declared == actual, (
-        f"manifest declares a {declared}-feature input; {target} at '{version}' takes "
-        f"{actual}. The browser builds its feature vector from this manifest.")
+        f"manifest declares a {declared}-feature input for {target}; the booster at "
+        f"'{version}' takes {actual}. The browser builds its feature vector from this.")
 
 
-def test_manifest_input_block_is_self_consistent(manifest):
-    inp = manifest["input"]
-    assert inp["n_features"] == inp["shape"][1] == len(inp["feature_order"]), (
-        f"n_features={inp['n_features']}, shape[1]={inp['shape'][1]}, "
-        f"len(feature_order)={len(inp['feature_order'])}")
+@pytest.mark.parametrize("target", [t.name for t in S.PRODUCTION_TARGETS])
+def test_manifest_per_model_input_block_is_self_consistent(manifest, target):
+    e = _model_entry(manifest, target)
+    assert e["n_features"] == e["shape"][1] == len(e["feature_order"]), (
+        f"{target}: n_features={e['n_features']}, shape[1]={e['shape'][1]}, "
+        f"len(feature_order)={len(e['feature_order'])}")
+
+
+@pytest.mark.parametrize("target", [t.name for t in S.PRODUCTION_TARGETS])
+def test_manifest_feature_order_matches_the_masked_contract(manifest, target):
+    """The shipped order must be exactly what training fits through, including the mask.
+
+    A width check alone would pass on any 32 columns; this pins the identity and the
+    order, which is what positional scoring actually depends on.
+    """
+    assert manifest["models"][0] is not None
+    assert list(_model_entry(manifest, target)["feature_order"]) == list(
+        S.feature_columns_for(target)), (
+        f"{target}: manifest feature_order differs from S.feature_columns_for()")
+
+
+def test_manifest_does_not_declare_a_global_feature_order(manifest):
+    """Schema 2 removed it on purpose — a single global order cannot describe a
+    per-model contract, and leaving the 39-wide superset there would let an
+    un-migrated consumer build the wrong vector for four of the five boosters."""
+    assert manifest["manifest_schema_version"] >= 2
+    assert "feature_order" not in manifest["input"]
+    assert "n_features" not in manifest["input"]
 
 
 @pytest.mark.skipif(not APP_MODELS_DIR.is_dir(), reason="app/public/models/ not present")

@@ -260,7 +260,17 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
             },
 
             "features": {
+                # Since 02b/D12 (v13) the contract is per-model, so `columns` is the UNION
+                # and is not the vector any single booster takes. `per_model` is the real
+                # contract: cliff_classifier 39 columns, every other family 32. Anything
+                # building a feature vector must use the per-model list, not this union.
                 "columns": list(S.FEATURE_COLUMNS),
+                "per_model": {t.name: {"n_features": len(S.feature_columns_for(t.name)),
+                                       "columns": list(S.feature_columns_for(t.name))}
+                              for t in S.PRODUCTION_TARGETS},
+                "per_model_masked": {t.name: sorted(set(S.FEATURE_COLUMNS)
+                                                    - set(S.feature_columns_for(t.name)))
+                                     for t in S.PRODUCTION_TARGETS},
                 "groups": {g: list(cols) for g, cols in S.FEATURE_GROUPS.items()},
                 "categorical": {c: len(encoders.get(c, {})) for c in S.CATEGORICAL_COLUMNS},
                 "excluded_leakage": sorted(S.EXCLUDED_LEAKAGE_COLUMNS),
@@ -429,7 +439,15 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                 "rows), but every quantile headline delta stays inside its own 5-reseed noise "
                 "floor (p10 0.49x, p50 0.15x, p90 -0.07x) - a real fix, a clean null on the "
                 "headline; `cliff_classifier`/`stint_life_regressor` never consume this weight "
-                "and are structurally unaffected. 08f-2: `int_circuit_x_constructor_interaction`'s "
+                "and are structurally unaffected. 08o (2026-09-21) then removed the weight from "
+                "the training path altogether, so the sentence above about the other two families "
+                "now holds for all five: uniform weights beat IPW on every head, though each "
+                "headline delta sits INSIDE its own reseed floor (p10 0.70x, p50 0.06x, p90 "
+                "0.41x) - the ruling rests on the permutation-null information cost at p10, which "
+                "does clear its floor at -1.30x, and not on the headline. `survival_weight` is "
+                "still built by the mart and still carried in `IDENTIFIER_COLUMNS`; it is now "
+                "neither a feature nor a weight, and reaches no model. 08f-2: "
+                "`int_circuit_x_constructor_interaction`'s "
                 "two season-pooling `GROUP BY`s were rebuilt the same way. Proven algebraically, "
                 "not merely measured within noise, to move zero live targets: its whole effect "
                 "on a stint is a constant per (race, constructor), and every target this model "

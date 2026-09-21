@@ -42,12 +42,21 @@ def _load_model(spec: S.TargetSpec, version: str):
 
 def run(out: str, version: str = S.MODEL_VERSION_DEFAULT) -> pa.Table:
     X_all, meta, _, holdout_season = F.load_scoring_frame()
-    Xv = X_all.to_numpy(dtype=np.float32)
+
+    # 02b/D12: the contract is no longer one width. `load_scoring_frame` returns the FULL
+    # FEATURE_COLUMNS frame, so each model has to be handed its OWN masked matrix -- the
+    # qualifying columns belong to cliff_classifier and nothing else. Scoring is positional
+    # (feature_names is cleared in _load_model), so the column ORDER here has to be the order
+    # the booster was fitted in; S.feature_columns_for preserves FEATURE_COLUMNS order, which
+    # is what features.py fits in. Handing every model one shared matrix, as this did before,
+    # now raises a shape mismatch on the four 32-wide families.
+    def _mat(target: str) -> np.ndarray:
+        return X_all[list(S.feature_columns_for(target))].to_numpy(dtype=np.float32)
 
     spec = {s.name: s for s in S.PRODUCTION_TARGETS}
-    p10 = _load_model(spec["degradation_regressor_p10"], version).predict(Xv)
-    p50 = _load_model(spec["degradation_regressor_p50"], version).predict(Xv)
-    p90 = _load_model(spec["degradation_regressor_p90"], version).predict(Xv)
+    p10 = _load_model(spec["degradation_regressor_p10"], version).predict(_mat("degradation_regressor_p10"))
+    p50 = _load_model(spec["degradation_regressor_p50"], version).predict(_mat("degradation_regressor_p50"))
+    p90 = _load_model(spec["degradation_regressor_p90"], version).predict(_mat("degradation_regressor_p90"))
 
     # Quantile crossing guard: row-sort the trio so p10 ≤ p50 ≤ p90.
     trio = np.sort(np.vstack([p10, p50, p90]).T, axis=1)
@@ -57,7 +66,7 @@ def run(out: str, version: str = S.MODEL_VERSION_DEFAULT) -> pa.Table:
     s_p10, s_p50, s_p90 = trio[:, 0], trio[:, 1], trio[:, 2]
 
     clf = _load_model(spec["cliff_classifier"], version)
-    proba = clf.predict_proba(Xv)  # [n, 4] in CLIFF_CLASS_LABELS order
+    proba = clf.predict_proba(_mat("cliff_classifier"))  # [n, 4] in CLIFF_CLASS_LABELS order
     argmax = proba.argmax(axis=1)
     labels = np.asarray(S.CLIFF_CLASS_LABELS)
 
@@ -69,7 +78,7 @@ def run(out: str, version: str = S.MODEL_VERSION_DEFAULT) -> pa.Table:
         raise FileNotFoundError(f"missing booster {life_path}-run `make ml-train` (or --version smoke)")
     life_bst = SV.load_booster(life_path)
     life_scale = SV.aft_params(life_bst)["scale"]
-    life_margin = SV.margin(life_bst, Xv)
+    life_margin = SV.margin(life_bst, _mat("stint_life_regressor"))
     life = SV.laps_from_margin(life_margin, life_scale)
     life_p10 = SV.laps_from_margin(life_margin, life_scale, S.STINT_LIFE_QUANTILES[0])
     life_p90 = SV.laps_from_margin(life_margin, life_scale, S.STINT_LIFE_QUANTILES[2])

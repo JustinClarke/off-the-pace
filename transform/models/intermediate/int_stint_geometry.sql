@@ -15,6 +15,10 @@ WITH laps AS (
     SELECT * FROM {{ ref('stg_laps') }}
 ),
 
+tyre_allocations AS (
+    SELECT * FROM {{ ref('stg_tyre_allocations') }}
+),
+
 with_stint_id AS (
     SELECT
         *,
@@ -50,6 +54,17 @@ with_stint_length AS (
                 )
         END AS valid_lap_in_stint
     FROM with_stint_id
+),
+
+with_compound_code AS (
+    SELECT
+        wsl.*,
+        ta.compound_code
+    FROM with_stint_length wsl
+    LEFT JOIN tyre_allocations ta
+        ON wsl.race_year = ta.race_year
+        AND wsl.circuit_key = ta.circuit_key
+        AND LOWER(wsl.compound) = ta.compound_label
 )
 
 SELECT
@@ -64,9 +79,7 @@ SELECT
     valid_lap_in_stint,
     tyre_life AS age_in_stint,
     compound AS compound_in_stint,
-    -- compound_code (C1–C5) is circuit-specific; populated once
-    -- stg_tyre_allocations is ingested
-    CAST(NULL AS VARCHAR) AS compound_code,
+    compound_code,
     stint_length_actual,
     stint_length_valid,
     is_valid_lap,
@@ -75,4 +88,4 @@ SELECT
     is_vsc_lap,
     is_red_flag_lap,
     CAST(NULL AS BOOLEAN) AS planned_vs_actual_flag
-FROM with_stint_length
+FROM with_compound_code

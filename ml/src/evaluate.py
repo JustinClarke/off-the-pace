@@ -146,9 +146,10 @@ class EvalSplit:
         # without them, and everything else ignores them.
         self.cens_tr = None if cens_tr is None else np.asarray(cens_tr, dtype=bool)
         self.cens_ev = None if cens_ev is None else np.asarray(cens_ev, dtype=bool)
-        # Training-side row weights (IPW), aligned row-for-row with y_tr. None for
-        # every target except the quantile trio. Carried here for the same reason the
-        # censoring flags are: the fit is wrong without them and nothing else says so.
+        # Training-side row weights, aligned row-for-row with y_tr. None for every
+        # production target since 08o dropped the quantile trio's IPW (see
+        # `_row_weights`); carried, and still sliced with the rows, because the
+        # plumbing is what lets a weight-scheme arm fit one on purpose.
         self.w_tr = None if w_tr is None else np.asarray(w_tr, dtype=np.float32)
 
 
@@ -583,20 +584,29 @@ def _fit(spec: S.TargetSpec, params: dict, X, y, cens=None, w=None):
 
     The split is honest and the booster is refit rather than loaded -- that part is
     deliberate. What must NOT differ from production is the fit itself, and until this
-    carried `w` it did: `T._sample_weight` returns the quantile trio's IPW survival
-    weights only when handed `meta`, and this had none, so every degradation number in
-    the report described an UNWEIGHTED model while `train.py:_fit` ships a weighted one.
-    That is Phase 2 finding 1 in the place where it reaches the model card.
+    carried `w` it did: `T._sample_weight` returned the quantile trio's IPW survival
+    weights when handed `meta`, and this had none, so every degradation number in
+    the report described an UNWEIGHTED model while `train.py:_fit` shipped a weighted one.
+    That is Phase 2 finding 1 in the place where it reaches the model card. (08o then
+    dropped that weight from production, so the two paths now agree on unweighted --
+    which is the same contract, not an excuse to stop carrying `w`.)
 
-    `w` carries only the row-wise weights (IPW). Balanced class weights stay computed
+    `w` carries only the row-wise weights. Balanced class weights stay computed
     from the rows being fitted, exactly as train.py computes them, because they are a
     property of the label mix in those rows rather than of the rows themselves.
+
+    **08o removed the guard that used to sit here**, which raised if a quantile fit
+    arrived with `w is None`. That guard encoded "production fits the trio weighted", and
+    production no longer does: `train.py::_sample_weight` returns None for every quantile
+    head. Keeping it would have made the unweighted fit -- the one that now ships -- the
+    only fit this function refuses. `w=None` on a quantile target is therefore the
+    production path, and the parity it protected is instead asserted directly, in
+    `test_fit_parity.py`, by recording both paths' weights on identical rows.
+
+    Passing `w` explicitly is still honoured, and is how a weight-scheme arm fits a
+    non-production weighting on purpose.
     """
     model = T._make_model(spec, params)
-    if spec.kind == "quantile" and w is None:
-        raise ValueError(
-            "_fit on a quantile target needs the IPW survival weights production fits "
-            "with; pass w=<row weights> (see _row_weights)")
     weights = np.asarray(w, dtype=np.float32) if w is not None else T._sample_weight(spec, y)
     if spec.kind == "survival":
         if cens is None:
@@ -609,9 +619,21 @@ def _fit(spec: S.TargetSpec, params: dict, X, y, cens=None, w=None):
 
 def _row_weights(spec: S.TargetSpec, meta: pd.DataFrame) -> np.ndarray | None:
     """The per-ROW training weights, sliceable alongside y (unlike balanced class
-    weights, which are a per-FIT statistic). Today that is the quantile trio's IPW."""
-    if spec.kind == "quantile" and "survival_weight" in meta.columns:
-        return meta["survival_weight"].to_numpy(dtype=np.float32)
+    weights, which are a per-FIT statistic).
+
+    **No production target carries one today.** Until 08o this returned the quantile
+    trio's IPW `survival_weight`; that weight was dropped from the training path
+    (`train.py::_sample_weight`), so returning it here would recreate the exact defect
+    this module was written to close, with the sign reversed: the eval refit weighted,
+    the shipped booster uniform. The rule is parity with `train.py::_sample_weight`, not
+    the presence of the column -- `survival_weight` is still carried in
+    `IDENTIFIER_COLUMNS` and still built by the mart, and neither fact makes it a
+    training weight any more.
+
+    The mechanism stays (the `w` plumbing through `EvalSplit` and `_fit`) because a
+    weight-scheme arm has to be able to pass one explicitly, and because the classifier's
+    weights being per-fit rather than per-row is still a distinction this function holds.
+    """
     return None
 
 

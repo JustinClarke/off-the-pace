@@ -1,0 +1,83 @@
+---
+title: "When did the race stop being a race?"
+sidebarTitle: "Race Control Timeline"
+description: "Every safety car, VSC and red flag in a race, on the lap it happened and for as long as it lasted plus an honest account of why there is no per-circuit safety-car probability anywhere on the page."
+---
+
+A caution resets a Formula 1 race. It erases gaps built over twenty laps, halves the price of a pit stop, and hands the lead to whoever had not stopped yet. This page puts the neutralisations of a single race on its lap axis, so the strategy story underneath can be read against them.
+
+It also refuses to answer the question everyone asks first "what are the chances of a safety car here?" and the second half of this page is why.
+
+## What it shows
+
+**The timeline strip** is one race, lap 1 at the left edge and the chequered flag at the right. Green is racing. Each coloured block is a run of laps that were run under a neutralisation:
+
+- <span style={{color: '#fbbf24'}}>Safety Car</span> the field is bunched behind the car, nobody is racing, and a pit stop costs roughly half of normal.
+- <span style={{color: '#facc15'}}>Virtual Safety Car</span> no physical car; every driver holds a delta time. Cheaper than a safety car for whoever has already stopped.
+- <span style={{color: '#ef4444'}}>Red Flag</span> the session is stopped. Tyres can often be changed for free.
+
+**The event table** below the strip gives each window its lap range, its duration in laps, and its share of the race distance. Duration is reported in laps rather than seconds because laps are the unit a strategist and a viewer both count in.
+
+**The pooled frequency block** gives how often a caution happens at all, across all 149 races in the warehouse, with a Wilson 95% interval on every rate and the race count beside it.
+
+## How to use it
+
+1. **Pick a race.** The strip and the event table load for that race alone.
+2. **Read the block positions, not just their count.** A safety car on lap 4 and one on lap 48 are different races: the early one costs whoever had already stopped, the late one is a free pit stop for whoever had not.
+3. **Open the [Pit Strategy Gantt](/app/pit-strategy) for the same race** and lay the two lap axes side by side. A stop that lands on the first lap of a caution window is the cheapest stop in the race; the same stop three laps earlier is a strategist who guessed wrong.
+4. **Check the per-season table** before reading any single race as typical. The rate moves more by season than it does by venue.
+
+## Reading the signal correctly
+
+<Warning>
+  **There is no per-circuit safety-car probability on this page, and that is the finding, not an omission.**
+
+  The warehouse holds about 4.1 races per circuit. A one-way variance decomposition of the per-race caution rate grouped by circuit puts the between-circuit share at **0.000** for both "did this race have a safety car" and "did this race have any caution" the naive estimator reads 0.31 and 0.29, but the between-circuit mean square falls *below* the within-circuit one, so no circuit component is detectable at all.
+
+  The arithmetic of the scan says the same thing. A per-circuit estimate at 4.1 races carries a standard error of **22 points**. Thirty-six circuits of pure noise would spread about **95 points** from best to worst. The observed spread is **100 points**: eight circuits sit at exactly 100% and one at 0%. Printing "Baku: 100% chance of a safety car" would be reporting six coin flips as a forecast.
+</Warning>
+
+So the only caution probability shown is **pooled** across every circuit and season, and it never appears without its denominator and interval:
+
+| | races | rate | 95% CI |
+|---|---:|---:|---|
+| Any caution | 110 / 149 | 73.8% | 66.2 80.2 |
+| Safety car | 85 / 149 | 57.0% | 49.0 64.7 |
+| Virtual safety car | 65 / 149 | 43.6% | 35.9 51.6 |
+| Red flag | 19 / 149 | 12.8% | 8.3 19.1 |
+
+8.97% of all race laps between 2018 and 2024 were run under a caution.
+
+The one real movement in the data is seasonal, not spatial 90.5% of 2018 races had a caution against 58.3% of 2024 races and the per-season table on the page shows it rather than averaging it away.
+
+### The per-circuit strip, and what it actually is
+
+`int_sc_hazard_history` carries two per-circuit hazard columns, and the page reads only one of them.
+
+The **raw** rate spans 0.000 to 0.100 onsets per racing lap. That spread is the noise described above rendered to five decimal places, and it is never read into this app.
+
+The **shrunk** rate spans 0.019 to 0.033, and the reason it is narrow is stated on the page rather than hidden by it. The empirical-Bayes prior is 600 laps, so the weight a circuit's own history carries is `L / (L + 600)`, which averages **0.178** across the 128 rows that have a prior season and never exceeds 0.413. **Roughly four fifths of the value shown is the all-circuits pooled rate wearing a circuit's name.** That is the correct answer at this data volume the estimator has already conceded the question and the page prints the weight beside the number so a moving bar cannot imply a circuit signal that is not there.
+
+### Why 2018 is blank
+
+The hazard model is season-lagged: the row for a circuit in season S uses races at that venue in seasons *before* S and nothing else. 2018 is the first season in the warehouse, so all 21 of its rows are null on every rate, raw and shrunk.
+
+The page prints **not measurable** and draws no bar. A `COALESCE(..., 0)` would assert a *measured zero hazard* at every 2018 venue, which is a strictly stronger claim than the data supports "unknowable" and "measured, no events" are different statements. Fifteen later rows are null on the raw rate for the same reason (a circuit's debut season) but do carry a shrunk rate, because a venue with no history shrinks all the way to the pooled prior.
+
+### How a "window" is counted
+
+Contiguous caution laps merge into one block, so two deployments with no green lap between them read as a single window. Measured against the event log in `stg_track_status`, this reconstruction produces **112 safety-car windows from 119 logged onsets**, agreeing exactly on **76 of the 85** races that have safety-car laps. The strip is therefore an accurate account of *which laps were neutralised* and a slight undercount of *how many times race control acted*.
+
+## Data source
+
+| Table | What it contributes |
+|---|---|
+| `race_caution_timeline` | One row per (race, lap): the three caution flags, a precedence-resolved `caution_status`, and the race's lap count. Derived in `scripts/export_app_data.py` from `int_stint_geometry`. |
+| `int_sc_hazard_history` | Per (circuit, season) hazard per racing lap, season-lagged and EB-shrunk. Only the `*_shrunk` columns and `prior_races_n` are read. |
+| `race_to_track` | Maps a race to its venue slug, which is the hazard table's key. |
+
+The per-lap status originates in the FIA track-status channel, decoded in `stg_laps` and carried into `int_stint_geometry`. A lap counts as neutralised if any car's lap carried that status code, which is the correct reading when a deployment lands mid-lap.
+
+<Note>
+  `fct_lap_residuals` carries the same three column names `is_safety_car_lap`, `is_vsc_lap`, `is_red_flag_lap` and they are `FALSE` on all 137,447 of its rows, because that mart is built from green racing laps only. It is not a caution source, and any query filtering on those columns there is performing a no-op.
+</Note>

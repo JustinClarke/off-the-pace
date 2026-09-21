@@ -1194,6 +1194,21 @@ models:
       early and late race track states (2026-09-08, measured trailing-5 vs expanding, identical
       formula, identical coverage loss on lap 2 in both cases). Trailing-5 kept for consistency
       with its width replacing the old block.
+
+      SIGN CONVENTION (00d, 2026-09-20): all three phases are POSITIVE = SECONDS LOST vs the
+      field median, negative = seconds gained, and corner_residual_total_s is their straight sum
+      and therefore a real "seconds lost at this corner". The direction of the underlying measure
+      decides the subtraction: braking_point_m and v_min_kph are higher-is-faster so their
+      residuals are (field - own); throttle_point_m is higher-is-slower (on power later) so its
+      residual is (own - field). Before 00d, braking_loss_s alone was built as (own - field), so
+      positive meant braking LATER = faster, while mart_corner_skill_driver summed all three
+      z-scores into corner_skill_index and ordered ASC with no negation in between -- one of three
+      terms entered a shipped public leaderboard inverted, and corner_residual_total_s summed a
+      gain with two losses. Fixed at the source rather than negated in the mart (the ruling and the
+      full consumer trace are in _improvements/work/00-corrections.md, 00d). The direction is now
+      pinned against the raw geometry by transform/tests/assert_corner_skill_sign_convention.sql,
+      which no sign-agnostic closure or count test could catch -- that is how the defect survived
+      both the 02g and 02c rebuilds of this model.
     tags: [intermediate, feature_engineering]
     meta:
       family: residual
@@ -1207,6 +1222,36 @@ models:
       - name: corner_name
         description: Named corner from dim_corners
         tests: [not_null]
+      - name: braking_loss_s
+        description: >
+          Seconds lost on corner entry vs the backward-only trailing-5 field median, as
+          (field median - own braking_point_m) * dt_per_dm at the sector-2 trap speed.
+          POSITIVE = braked EARLIER than the field = time LOST. Negative = braked later = time
+          gained. NULL when field_corner_sample_n < 5 or the corner is taken flat (no
+          braking_point_m), both real answers rather than missing data. The (field - own)
+          orientation is the fix 00d made and matches the house convention already in the feature
+          contract (int_lap_telemetry_aggregates' braking_point_drift_m is base - lap).
+      - name: mid_corner_residual_s
+        description: >
+          Seconds lost at the apex vs the trailing-5 field median, as (field v_min - own v_min)
+          converted at the field apex speed. POSITIVE = carried LESS speed than the field = time
+          LOST. Highest-coverage of the three phases: every corner has an apex.
+      - name: exit_residual_s
+        description: >
+          Seconds lost on exit vs the trailing-5 field median, as (own throttle_point_m - field
+          median) * dt_per_dm. POSITIVE = regained full throttle LATER than the field = time LOST.
+          Note the subtraction runs the other way round from the other two phases because
+          throttle_point_m is higher-is-slower while braking_point_m and v_min_kph are
+          higher-is-faster; all three still read positive = loss.
+      - name: corner_residual_total_s
+        description: >
+          braking_loss_s + mid_corner_residual_s + exit_residual_s: total seconds lost at this
+          corner vs the field median. Non-NULL only where all three phases are measurable (the
+          intersection, 38.59% of corner rows), which is why int_lap_corner_inputs aggregates each
+          phase over its own measurable corners instead of using this column. Only a meaningful
+          total since 00d gave the three phases one sign convention -- before that it summed a gain
+          with two losses, which is why 06b moved its headline off it. Closure pinned by
+          transform/tests/assert_corner_closure.sql.
       - name: field_corner_sample_n
         description: >
           Number of field observations behind this corner/lap's median. Trailing-5 window
@@ -1313,14 +1358,22 @@ models:
         description: Corners on this lap with a measured full-throttle point. Companion column, not a feature.
         tests: [not_null]
       - name: corner_braking_loss_mean_s
-        description: Mean braking_loss_s across the lap's braking corners (mean -0.0065 s). NULL, never 0.0, when unmeasured.
+        description: >
+          Mean braking_loss_s across the lap's braking corners; positive = braked earlier than the
+          field = time lost (mean +0.0065 s since 00d fixed the sign; it read -0.0065 s before).
+          NULL, never 0.0, when unmeasured.
       - name: corner_braking_loss_sd_s
         description: >
-          Sample sd of braking_loss_s across the lap's corners (mean 0.3289 s). NULL on 2.57%
-          of rows here -- laps with fewer than two measured braking corners, where a sample sd
-          is undefined rather than zero.
+          Sample sd of braking_loss_s across the lap's corners (mean 0.3289 s, unchanged by 00d's
+          sign fix: a sample sd is invariant to negation). NULL on 2.57% of rows here -- laps with
+          fewer than two measured braking corners, where a sample sd is undefined rather than zero.
       - name: corner_braking_loss_max_s
-        description: Largest braking_loss_s on the lap, the single hardest corner (mean 0.5459 s).
+        description: >
+          Largest braking_loss_s on the lap: the corner where the driver lost the most time on
+          entry (mean +0.6475 s). NOT a sign flip of its pre-00d self -- MAX does not commute with
+          negation, so this column changed from "the corner braked latest" to "the corner braked
+          earliest relative to the field", which is what a column named max loss should mean.
+          Pre-00d mean was +0.5459 s and corr(old, new) = 0.080 over 131,482 laps.
       - name: corner_mid_residual_mean_s
         description: Mean mid_corner_residual_s across the lap's corners (mean -0.0102 s). Highest-coverage phase.
       - name: corner_mid_residual_sd_s
@@ -2374,8 +2427,53 @@ models:
       season 2018, the earliest season in the warehouse. Both NULL sets are
       deterministic on (circuit_slug, season) and readable off the companion
       prior_seasons_n / prior_racing_laps columns, which are never NULL.
+
+
+      ENTERED THE FEATURE LINEAGE 2026-09-20 (02d). Five columns are read by
+      fct_cliff_prediction_features on the (circuit_key, race_year) join. That
+      moves this model out of features.py's report-only survey and into
+      audit_aggregation_scope's enforced scope, which is why the four exemptions
+      below now exist: they were the advance notice the survey was written to
+      give, and this is the ruling arriving. The columns are mart-only and are
+      NOT in ml/src/schema.py's FEATURE_COLUMNS pending 02d's arms.
     meta:
       family: strategy
+      aggregation_scope_exemptions:
+        - keys: [race_year, race_id]
+          status: accepted
+          reason: >
+            Two CTEs group on this key set, and both pin a RACE, which is the
+            grain the quantity is defined at. `onsets` counts SC/VSC deployment
+            messages per race; `exposure` takes MAX(lap_number) per race as the
+            racing-lap count. Neither reaches across races, so neither can reach
+            forward past the season boundary the lag enforces. The forward-reach
+            question for this model is settled one level up, at the season frame,
+            not here: see assert_sc_hazard_no_forward_leakage, which re-derives
+            the whole window with an inequality join rather than a window frame.
+            MAX(lap_number) is the same race-distance proxy already accepted in
+            int_lap_fuel_state, and is a within-race observable, not a forward one.
+        - keys: [circuit_slug, race_year]
+          status: accepted
+          reason: >
+            per_circuit_season rolls the races of one venue in one season into a
+            single row. This is deliberately the COARSEST grain in the model and
+            the reason it is safe: 02g's fan-out defect was a window frame
+            evaluated at a finer grain than the key it was later joined on, and
+            pre-aggregating to exactly (circuit, season) before the trailing
+            window runs is what forecloses it. The group cannot span seasons, so
+            it cannot pull a later season into an earlier row.
+        - keys: [season]
+          status: accepted
+          reason: >
+            per_season_global totals every circuit within one season, the input
+            to the season-lagged pooled EB prior. Pooling ACROSS CIRCUITS is the
+            point of a pooled prior; pooling across seasons is what would leak,
+            and this group cannot do it because season is the key. The lag is
+            applied afterwards, in global_prior, which ends at 1 PRECEDING on the
+            season axis -- so the prior a season-S row shrinks toward is itself
+            built from seasons < S. Shrinking toward an all-time pooled rate is
+            the back-door version of the leak this whole model was rebuilt to
+            close, and this exemption is the record that it was considered.
     columns:
       - name: circuit_slug
         description: Venue identifier (race name slug, e.g. monaco_grand_prix); recurs across seasons.

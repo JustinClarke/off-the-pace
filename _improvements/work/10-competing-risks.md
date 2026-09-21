@@ -681,6 +681,45 @@ either.
 
 ### Verdict — MEASURED 2026-09-18
 
+> **THE CONFIGURATION THIS VERDICT SCORES WAS RETIRED THE NEXT DAY. Added 2026-09-19 by the
+> build-order audit.** Everything below scores *"the shipped `v12` configuration"* — `v12` carrying
+> `v11`'s stint-life hyperparameters. On **2026-09-19** `10e` landed `S1x`, and
+> `ml/artefacts/evaluation_metrics.json` (`evaluated_at 2026-09-19T08:41:44Z`) now describes a
+> different booster. `10e`'s own post-landing check, on the config that actually ships:
+>
+> | on the green-pit stratum | this verdict (`A0`, retired) | shipped since 2026-09-19 (`S1x`) |
+> | :--- | ---: | ---: |
+> | IPCW-Brier | **0.1904** | **0.1689** |
+> | time-dependent AUC | **0.6896** | **0.7096** |
+> | calibration slope | 0.6736 | 0.8754 |
+> | mean log bias | **−0.2741** | **+0.0680** |
+>
+> Three specific consequences, so they are not rediscovered:
+>
+> 1. **The headline two numbers below (`0.1904` / `0.6896`) are no longer the gauge's accuracy.**
+>    `reference/10c_evaluation_framework.md` line 20 repeats them and carries no banner.
+> 2. **Product limitation (2) has inverted for the shipped model.** It reads *"it over-predicts in
+>    the dangerous direction under the estimand the user reads (mean log bias −0.2741)"*. `S1x`
+>    moves that to **+0.0680** — the gauge now slightly *under*-predicts. This section anticipated
+>    the possibility (*"`10e`'s S1x flips the sign of the level error rather than removing it"*) but
+>    states the limitation unconditionally, and `ml/model_card.yml`'s own limitations entry now says
+>    the opposite: *"the gauge stops over-predicting remaining tyre life … and starts
+>    under-predicting it slightly."*
+> 3. **The framing arithmetic in the next paragraph moves.** *"The framing choice is worth 0.045
+>    Brier … the largest model improvement this campaign has ever measured — `10e`'s S1x — was
+>    0.023"* was computed against `A0`. Against the model that ships, the realised-vs-latent gap is
+>    `0.1689 − 0.1452` on the old latent figure, and the latent leg, the dependence band
+>    (`0.0362`), the F1/F2 tables and every D-calibration row below were all computed on the
+>    retired booster and have not been recomputed.
+>
+> **The rulings are not retracted.** F1-not-F3 as the estimand, F1's `0.6896`-not-F2's `0.7882` as
+> the discrimination reading, "independence is the optimistic end", the copula-graphic/KM
+> equivalence checks and the `d_calibration_chisq` implementation are all structural and survive a
+> hyperparameter change. **The levels have not been re-measured.** Re-running this item against the
+> shipped config is cheap — `evaluate_10c --variant standard`, 64 s and 6 refits by this item's own
+> accounting — and is the only way the band and the D-calibration tables become statements about
+> the model in production.
+
 **The stint-life headline is `0.1904` IPCW-Brier and `0.6896` time-dependent AUC on the
 realised green-pit ending — and the same model, on the same rows, scores `0.1452` against the
 latent green-pit limit, somewhere in `[0.1367, 0.1729]` depending on a dependence parameter
@@ -2016,6 +2055,27 @@ re-wording another item's advance notice is that item's call.
 `.bst`/`.onnx` artefacts and `ml/artefacts/evaluation_metrics.json` are gitignored; the pre-landing
 copies were kept for the session and the durable route back is `make ml-retrain ml-evaluate ml-onnx
 ml-card app-models` once the params file is reverted. Nothing was committed.
+
+> **CORRECTION 2026-09-19 (build-order audit): the last sentence and the `git checkout` route are
+> both out of date.** All seven of those files were committed later the same day in **`44bb0ba`**
+> ("Add log for re-tuning stint_life_regressor under honest split for v12 evaluation",
+> 2026-09-19 15:46), which is the commit the log's own next history entry records as *"S1x
+> hyperparameters and model card deployed to production."* `git status` is clean on every one of
+> them, so **`git checkout <path>` now restores S1x, not the pre-landing state** — the instruction
+> is inverted. The route back is `git checkout 44bb0ba~1 -- <paths>` (or `git revert 44bb0ba`),
+> then the `make ml-retrain ml-evaluate ml-onnx ml-card app-models` chain, which is unchanged and
+> is still the durable part.
+>
+> **Also worth recording, because nothing else in the tree does.** `stint_life_regressor_v12.bst`
+> was retrained **in place** (mtime 2026-09-19 12:32, `aft_scale 0.753792882` in
+> `ml/models/manifest.json`). The booster `08n` shipped as v12 on 2026-09-16 no longer exists on
+> disk under any name. It is reconstructible — the refit is deterministic from the reverted params
+> — but until it is reconstructed, `"the published v12 headline"` names **two different stint-life
+> numbers** depending on date, and the gate-1a anchor `1.9913358778933028` recorded by `08e`
+> (2026-09-17), `08h` (2026-09-17), `08i` (2026-09-18) and `10c` (2026-09-18) reproduces against
+> **no** artefact now on disk. Three of those four are terminal; **`08i` is not** — it is `GATED`
+> behind `D10`, and its stint-life column across all four thermal floors was measured on the
+> retired booster.
 
 ### Verdict — MEASURED 2026-09-10 — **superseded on the v12 substrate**, see the verdict above
 

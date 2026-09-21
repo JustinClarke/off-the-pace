@@ -17,18 +17,102 @@ sentence on what would falsify it.** What does not: driver rankings without unce
 
 Every item below must ship with its limitations stated in the post itself, not in a reply.
 
+> **REPRIORITISED 2026-09-20 — this group stopped being the parallel track.** The user stated the
+> success definition this programme is judged against: *winning is making the most of the data by
+> giving F1 fans stats and insights they can use to (a) settle arguments and (b) have something to
+> watch or track live during a race* — explicitly **not** publication for its own sake and **not**
+> rigour for its own sake, which are means. Under that definition these three posts are the
+> deliverable, not a nicety alongside the ML ladder, and the order reflects it: `06a` → `order_hint`
+> 2, `06c` → 4, `06b` → 5, ahead of every remaining ML item except `00d` (which `06c` waits on) and
+> `11c`.
+>
+> **Two things came out of that pass that belong here.**
+>
+> 1. ~~**`06a`'s and `06c`'s drafts exist only in per-session temp scratchpads** and can be
+>    garbage-collected at any time. Moving them into `../implementations/06a/` and
+>    `../implementations/06c/` is minutes of work against the loss of a measured analysis, and it is
+>    **not** gated on the publish decision. Do it first.~~ **TOO LATE — struck 2026-09-20 by the
+>    clubbing pass.** Both temp directories have been collected:
+>    `/private/tmp/claude-501/-Users-justin-github-off-the-pace/` holds three session directories and
+>    neither `899bdf7b-…` (`06a`'s) nor `747de893-…` (`06c`'s) is among them, and a filename search
+>    over `/private/tmp` and `/tmp` finds no copy of either draft. **Both posts are now written, not
+>    moved.** `06c` barely notices — `00d` already required a rewrite and `../implementations/06c/`
+>    holds the analysis, stats, findings summary and checklist, so its cost stays 0.5 d. `06a` does:
+>    its cost is revised **hours → 0.5 d**, and it must first reconcile the two disagreeing figure
+>    sets this tree holds for it (the `06a` section below, headed *Verified 2026-09-07*, against the
+>    post-join-key-fix numbers in `build-log.json`'s `06a` note — see the warning under that
+>    section).
+> 2. **Publishing is now a tracked decision, `D15`.** All three items recorded "the remaining step
+>    is publishing, which is the user's call" in prose with nothing in `decisions[]` holding it.
+>    `D15` asks for a go *and a publish order*, since `06c` cannot precede `00d` and `06b`'s own
+>    subject — `theta_air` — is a number the app is still showing wrong (`08q`, raised the same
+>    day). `06b` alone carries `blocked_by_decision: D15`, because it is the only one of the three
+>    with no work left in it.
+
 ---
 
 ## 06a — The pit-timing tail
 
 **Objective.** Publish the distribution, not the average.
 
-**Verified 2026-09-07** from `int_pit_strategy_value` (7,129 stints): **median opportunity cost
+> **✅ RESOLVED 2026-09-20.** The contested-figures flag below is resolved — both prior figure
+> sets were stale, for two *different* reasons, and neither is quoted in the post. Full
+> reconciliation:
+>
+> 1. **The two historical figures used different columns, and both are legitimate outputs of
+>    the model, not a bug.** `int_pit_strategy_value` reports two horizons "both reported" per
+>    its own header: `opportunity_cost_s` (the two-stint window — the horizon
+>    `strategy_verdict` actually uses, because it is "the only framing that is well posed" for
+>    the 61% of stints in a 2-stop-or-longer race) and `opportunity_cost_race_s` (the
+>    race-remainder horizon, an explicitly harsher, unconditional diagnostic "carried alongside").
+>    The leaf-doc block below (*Verified 2026-09-07*) tracks `opportunity_cost_s` in shape —
+>    same 14 constructors above n > 150, same Ferrari-best / Toro-Rosso-and-Alfa-Romeo-Racing-worst
+>    pattern. `build-log.json`'s `06a` note names `opportunity_cost_race_s` explicitly, and its
+>    47%-exactly-zero figure matches that column's current 46.9% almost exactly (see point 2 for
+>    why that share barely moved while the mean did). **This post uses `opportunity_cost_s`** —
+>    the model's own "well-posed" horizon, the one `strategy_verdict` is graded on.
+> 2. **Both historical figures also predate a real change to the underlying cost surface**, not
+>    just the SC-hazard join-key fix (`81b8bc6`, 2026-09-11) the note already knew about. `fb546b4`
+>    (2026-09-17) rewrote `int_compound_cliff_predicted`'s wear model, removing an unfitted
+>    quadratic age term and an unbounded `severity × laps_past_cliff` term that was "60.4% of the
+>    seed's contribution to the ML target" — see that model's header. `int_pit_strategy_cost_curve`
+>    argmins over exactly that model's output, so every pit-timing cost figure downstream moved.
+>    The doc's *Verified 2026-09-07* block predates **both** fixes. The build-log note (measured
+>    sometime between 2026-09-11 and its 2026-09-18 audit) predates only the second. Neither
+>    predates nothing — that is why re-measuring today produces a **third**, different pair of
+>    numbers rather than confirming either.
+> 3. **Re-measured 2026-09-20** by rebuilding the full lineage (`dbt build --select
+>    +int_pit_strategy_value`, 162/162 pass, profile `dev` → `data/dev.duckdb`) off HEAD
+>    (`44bb0ba`) and querying the freshly built table directly — see *Verified 2026-09-20* below,
+>    which replaces this block as the citable figure. The per-constructor list keeps the same 14
+>    teams at n > 150 and a broadly similar ranking shape to 2026-09-07's, at roughly 55–65% of
+>    the old magnitudes, consistent with the wear-model fix shrinking the cost surface rather than
+>    reordering it.
+
+~~**Verified 2026-09-07** from `int_pit_strategy_value` (7,129 stints): **median opportunity cost
 0.0 s, mean 10.15 s.** Teams hit the tyre-optimal pit lap most of the time; all the lost time
 sits in a tail. By constructor (n > 150), mean seconds lost per stint: Ferrari 7.32, Red Bull
 9.00, Alpine 9.09, Aston Martin 9.93, Haas 10.05, Renault 10.11, McLaren 10.15, Racing Point
 10.30, Alfa Romeo 10.37, Mercedes 10.62, AlphaTauri 10.79, Toro Rosso 12.36, Williams 12.53,
-Alfa Romeo Racing 12.71.
+Alfa Romeo Racing 12.71.~~ **Superseded — see Verified 2026-09-20 below.**
+
+**Verified 2026-09-20** from `int_pit_strategy_value.opportunity_cost_s`, rebuilt off HEAD
+`44bb0ba` (7,129 stints, 2018–2024, all 7 seasons): **median 0.12 s, mean 5.33 s, 47.3% of
+stints score exactly 0.0.** That zero share is not all skill: 42.0% of all stints (2,992) never
+pit again in that race and score a structural 0 by construction (no decision to grade), leaving
+5.4% (383 stints) that pitted and hit the modelled optimum exactly. Teams hit the tyre-optimal
+pit lap, or come very close, most of the time the decision is live; essentially all the lost
+time sits in a right tail — **the worst 10% of stints (713 of 7,129) account for 61% of all
+seconds lost across the whole table** (p90 = 17.0 s, p95 = 23.7 s, p99 = 59.0 s, max = 240.7 s
+on a single stint). By constructor (n > 150), mean seconds lost per stint: Ferrari 4.24 (n=701),
+Red Bull Racing 4.62 (n=733), Renault 4.62 (n=250, 2018–2020), Aston Martin 4.74 (n=453,
+2021–2024), Alpine 5.26 (n=425, 2021–2024), Racing Point 5.41 (n=212, 2018–2020), AlphaTauri
+5.50 (n=413, 2020–2023), Haas 5.56 (n=705), Williams 5.59 (n=715), McLaren 5.69 (n=718),
+Mercedes 5.83 (n=758), Alfa Romeo 6.17 (n=219, 2022–2023), Alfa Romeo Racing 6.45 (n=291,
+2019–2021), Toro Rosso 7.26 (n=175, 2018–2019). The race-remainder horizon
+(`opportunity_cost_race_s`) — the harsher, unconditional diagnostic the model carries alongside
+— gives a higher mean at every team (median 0.19 s, mean 7.61 s overall) but does not reorder
+the ranking materially; it is reported in the post as the robustness check, not the headline.
 
 **The finding is the nuance, not the ranking.** `int_pit_strategy_value` scores the pit lap
 against the **tyre** optimum — its own header says "counterfactual cost calculation, not causal
@@ -42,7 +126,9 @@ as a decision input; the optimum is an argmin over a modelled cost surface, so i
 model's assumptions.
 
 **Definition of done.** Post drafted with the distribution as the headline, the tyre-vs-context
-distinction stated, per-constructor n shown, and the caveats above in the body.
+distinction stated, per-constructor n shown, and the caveats above in the body. **Done
+2026-09-20** — draft at `../implementations/06a/06a_pit_timing_tail.md`, reproducible from
+`../implementations/06a/query.sql`. Publishing itself is `D15`, the user's call.
 
 ---
 
@@ -464,15 +550,18 @@ Not done, and deliberately: the post is drafted, not published, and
 
 **Objective.** Publish the phase decomposition, and publish the anomaly.
 
-**Verified 2026-09-07** from `mart_corner_skill_driver` (139 driver-seasons with a populated
+~~**Verified 2026-09-07** from `mart_corner_skill_driver` (139 driver-seasons with a populated
 index). 2024 leader **NOR at index −3.22, and it is nearly all exit** (exit −0.275 s vs braking
-−0.041 s). "Norris's 2024 edge was traction, not braking" is specific and checkable.
+−0.041 s). "Norris's 2024 edge was traction, not braking" is specific and checkable.~~
 
-**The anomaly, which is the more valuable half.** VER shows braking **+0.076 (weak)** and
+~~**The anomaly, which is the more valuable half.** VER shows braking **+0.076 (weak)** and
 mid-corner −0.078 (strong), against near-universal received wisdom about his braking. The
 baseline is leave-one-race-out over same-car drivers, so for 2024 it is measured against PER.
 **Post it as an open question, not a finding** — it is either something real or a baseline bug,
-and working that out in public is worth more than another leaderboard.
+and working that out in public is worth more than another leaderboard.~~
+
+*Struck 2026-09-20: both blocks were computed on the pre-`00d` index and the leaderboard claim is
+false. The citable block is "Verified 2026-09-20" below.*
 
 **Required caveats.** The index is a sum of z-scores over winsorized (driver, race, corner)
 cells with a `PHASE_MIN_CELLS = 30` floor; only 139 driver-seasons clear it; and the baseline
@@ -503,3 +592,66 @@ all three and ranks ascending. The full trace is in
 `06c` now depends on `00d`. The post is rewritten once the index is fixed. The more interesting
 story may be the defect itself: a published skill index that rewarded braking early, caught by an
 unrelated regression on dirty air.
+
+#### Verified 2026-09-20 — post rewritten against the corrected index
+
+`00d` landed; the mart was rebuilt and the parquets re-exported. Every number below was re-read
+from the post-fix parquets, and the race-clustered figures were computed for this item from
+`int_corner_skill_residuals` and `int_corner_metrics`. **This is the citable block.**
+
+**The post is written, not merely drafted**, and is in the repo at
+[`implementations/06c/06c_blog_post.md`](../implementations/06c/06c_blog_post.md) — "Does Verstappen
+actually brake later? Yes — and finding out cost us our leaderboard". `06c_findings_summary.md` and
+`06c_stats.json` were rewritten and regenerated post-fix; `06c_analysis.py` is marked superseded in
+its own docstring and its outputs must not be re-quoted.
+
+**The headline reverses and survives.** VER 2024 braking is `braking_skill_s = −0.0745 s`
+(`z = −1.30`, `se ±0.0151`, 282 cells) — negative is faster, so he brakes **later** than PER. It
+holds across seven seasons and four teammates: negative in 2019–2024, and indistinguishable from
+zero only in 2018 against RIC (`+0.0036, se ±0.0189`).
+
+**The mart SE is unclustered** (`STDDEV(cells)/SQRT(N cells)`, `mart_corner_skill_driver.sql:238`),
+and ~280 corner-cells nest inside ~22 races, so it is optimistic. Every load-bearing claim was
+restated at race level: pooled 2019–2024, **−0.0814 s, race-clustered se ±0.0185, t = −4.39 over 119
+races**, and VER braked later in **97 of 119 races** (sign test p ≈ 2 × 10⁻¹²). In metres, **+5.6 m
+±1.3**.
+
+**VER's largest 2024 edge is mid-corner, not braking** — −0.0795 s, se ±0.0126, t = −6.33, ahead in
+20 of 22 races — and he **concedes on exit** (+0.0483, t = +3.90, behind in 17 of 22).
+
+**The NOR leaderboard claim is dead; the traction claim sharpens.** NOR falls 1st → 4th
+(−3.17 → −1.69); GAS leads 2024 at −3.76. NOR's exit z of −2.19 is still the largest single phase
+term in the 2024 table (−0.2669 s, ±0.0392, 76 cells, 6.3× his braking term), but race-clustered he
+**braked earlier than PIA in 18 of 24 shared races** (+0.0502, t = +3.13) — the most solid line in
+the McLaren comparison. The exit magnitude is the least solid thing in the post (14 paired races,
+se ±0.1056), though the direction holds at 12 of 14.
+
+**The index is a pure teammate differential, verified numerically.** Summing `braking_skill_s`
+within constructor over 2024 gives exactly **0.00000** for Aston Martin, Kick Sauber, McLaren,
+Mercedes and Red Bull; the five non-zero teams are exactly those that ran a third driver. GAS topping
+2024 means he swept OCO in all three phases (t = −3.43 / −3.93 / −4.51), not that he is the best
+corner driver in F1. No cross-team comparison exists in this mart.
+
+**Explanation 2 was falsified, not merely dropped.** Its own named falsification (VER against
+non-Pérez teammates) was run: the pattern holds against ALB and the GAS/ALB pairing and is absent
+only against RIC. The "perfect sign symmetry" previously read as evidence of a bug is real but is
+just the arithmetic of a two-driver LORO baseline.
+
+**Index identity checked:** `corner_skill_index = braking_skill_z + mid_corner_skill_z +
+exit_skill_z` on every 2024 row, max absolute deviation **0.0**.
+
+#### Definition of done
+
+| Requirement | Status |
+| :--- | :--- |
+| Post drafted with the phase split | **Done** — phase table up front, splits for VER, NOR and GAS |
+| Cell counts and SEs shown | **Done** — mart SEs with cell counts, plus race-clustered SEs with race counts |
+| Teammate-relative baseline stated plainly | **Done** — own section, antisymmetry demonstrated numerically |
+| VER anomaly as an open question, two explanations named | **Adapted** — both named, one confirmed, the other falsified |
+
+The one deliberate departure: the spec asked for the anomaly "as an open question". `00d` closed the
+question before the post was written, so the post reports the resolution rather than staging a
+question whose answer it knows. The requirement's purpose — do not publish a bug as a finding — is
+met more fully than its literal wording.
+
+Not done, and deliberately: the post is **not published**. Publishing is **D15**, the user's call.

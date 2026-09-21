@@ -85,6 +85,10 @@ TABLES: list[tuple[str, str, str | None, bool]] = [
     ("int_track_evolution",                       "intermediates", None, False),
     ("int_field_pace_curve",                      "intermediates", None, False),
     ("int_pit_strategy_value",                    "intermediates", None, False),
+    # 149 rows, one per (circuit_slug, season). Season-lagged, so every 2018 row
+    # is NULL on every rate: see DERIVED_TABLES below and the race-control
+    # feature's methodology for the ruling on which columns may be rendered.
+    ("int_sc_hazard_history",                     "intermediates", None, False),
 
     # ── Large intermediates (partition by season) ──────────────────────────
     ("int_corner_metrics",         "intermediates", "race_year", False),
@@ -107,6 +111,60 @@ TABLES: list[tuple[str, str, str | None, bool]] = [
 ENRICHED_TABLES: list[tuple[str, str]] = [
     ("int_dirty_air_tax_component", "intermediates"),
     ("int_coast_tax_component",     "intermediates"),
+]
+
+# ─── Derived exports ──────────────────────────────────────────────────────────
+# Aggregates computed here rather than in dbt, for tables the app needs at a
+# coarser grain than any materialised model carries. Same precedent as
+# export_enriched / export_telemetry_deltas: the SQL reads live warehouse
+# tables, so it cannot drift from them.
+#
+# race_caution_timeline collapses int_stint_geometry's per-driver lap flags to
+# one row per (race, lap). int_stint_geometry is the table that carries real
+# caution flags; fct_lap_residuals carries the same three column NAMES and they
+# are FALSE on every one of its 137,447 rows, because that mart is pre-filtered
+# to green racing laps. stg_track_status holds the event log but has no lap
+# axis (session_time_s only) and, like every staging view, resolves its bronze
+# parquet path relative to transform/, which is why stg_pits is already an
+# optional export. 8,929 rows, 801 of them caution laps.
+DERIVED_TABLES: list[tuple[str, str, str]] = [
+    (
+        "race_caution_timeline",
+        "marts",
+        """
+        WITH race_lap AS (
+            SELECT
+                race_year,
+                race_id,
+                lap_number,
+                BOOL_OR(is_safety_car_lap) AS is_safety_car_lap,
+                BOOL_OR(is_vsc_lap)        AS is_vsc_lap,
+                BOOL_OR(is_red_flag_lap)   AS is_red_flag_lap
+            FROM int_stint_geometry
+            GROUP BY 1, 2, 3
+        )
+        SELECT
+            rl.race_year,
+            rl.race_id,
+            rt.track_id AS circuit_slug,
+            rl.lap_number,
+            rl.is_safety_car_lap,
+            rl.is_vsc_lap,
+            rl.is_red_flag_lap,
+            -- Precedence for a lap carrying more than one status: a red flag
+            -- outranks a safety car, which outranks a VSC.
+            CASE
+                WHEN rl.is_red_flag_lap    THEN 'red_flag'
+                WHEN rl.is_safety_car_lap  THEN 'safety_car'
+                WHEN rl.is_vsc_lap         THEN 'vsc'
+                ELSE 'green'
+            END AS caution_status,
+            MAX(rl.lap_number) OVER (PARTITION BY rl.race_id) AS race_laps
+        FROM race_lap AS rl
+        LEFT JOIN race_to_track AS rt ON rl.race_id = rt.race_id
+        ORDER BY rl.race_year, rl.race_id, rl.lap_number
+        """,
+    ),
 ]
 
 # Optional tables that may be unavailable (stg_ depends on raw bronze files
@@ -309,6 +367,25 @@ def export_enriched(conn, name: str, dest_dir: Path, size_report: list) -> dict:
         "partitioned": True,
         "partitionKey": "race_year",
         "partitions": partitions,
+    }
+
+
+def export_derived(conn, name: str, dest_dir: Path, sql: str, size_report: list) -> dict:
+    """Export the result of a derived query as a single parquet."""
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    out = dest_dir / f"{name}.parquet"
+    conn.execute(f"""
+        COPY ({sql})
+        TO '{out}'
+        (FORMAT PARQUET, COMPRESSION ZSTD)
+    """)
+    size_report.append((name, out.stat().st_size))
+    _check_size(out, name)
+    _progress(f"{name} (derived)  →  {out.relative_to(OUT_ROOT_GLOBAL.parent)}  ({_size_str(out)})")
+    return {
+        "name": name,
+        "path": f"/data/{out.relative_to(OUT_ROOT_GLOBAL)}",
+        "partitioned": False,
     }
 
 
@@ -558,6 +635,14 @@ def _run_export_to(
             else:
                 print(f"\n  ❌  FAILED: {name}: {e}")
                 sys.exit(1)
+
+    for name, subdir, sql in DERIVED_TABLES:
+        if target_table and name != target_table:
+            continue
+        if canary_only:
+            continue
+        entry = export_derived(conn, name, out_root / subdir, sql, size_report)
+        manifest_entries.append(entry)
 
     if not canary_only and not target_table:
         for name, subdir in ENRICHED_TABLES:

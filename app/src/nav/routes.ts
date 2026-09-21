@@ -43,13 +43,13 @@ export const routes: RouteConfig[] = [
   { path: '/aero/track-evolution', pillar: 'aero', featureId: 38, label: 'Track Evolution' },
   { path: '/aero/field-pace', pillar: 'aero', featureId: 39, label: 'Field Pace Curve' },
 
-  // Race Craft (pillar retired from nav-all features unshipped; see /roadmap)
-  { path: '/race-craft', pillar: 'race-craft', label: 'Race Craft', shipped: false },
+  // Race Craft (Race Control Timeline is shipped; the rest await car-position telemetry)
+  { path: '/race-craft', pillar: 'race-craft', label: 'Race Craft' },
   { path: '/race-craft/overtakes', pillar: 'race-craft', featureId: 29, label: 'Overtake Graph', shipped: false },
   { path: '/race-craft/stewarding', pillar: 'race-craft', featureId: 32, label: 'Penalty Impact', shipped: false },
   { path: '/race-craft/drs', pillar: 'race-craft', featureId: 35, label: 'DRS Dependency', shipped: false },
   { path: '/race-craft/pass-location', pillar: 'race-craft', featureId: 42, label: 'Pass-Location Heatmap', shipped: false },
-  { path: '/race-craft/race-control', pillar: 'race-craft', featureId: 43, label: 'Race Control Timeline', shipped: false },
+  { path: '/race-craft/race-control', pillar: 'race-craft', featureId: 43, label: 'Race Control Timeline' },
 
   // Drivers
   { path: '/drivers', pillar: 'drivers', label: 'Drivers' },

@@ -71,6 +71,15 @@ seeds. [`reference/e_value_construction.md`](../reference/e_value_construction.m
 worked constructions for the reseed-floor setting and a fill-in block; take one, substitute your
 numbers, paste it into the leaf doc.
 
+**Before you fix `n` and `g`, check the construction's ceiling against the declared family size.**
+Construction B is bounded: `E_max(n, g) = (1 + n*g)^((n-1)/2)` (`e_value_construction.md` §4). A
+construction whose ceiling sits below `20 * (m + 1)`, where `m` is the campaign's current declared
+family size, cannot produce a lone rejection whatever the data show — that is arithmetic, not
+evidence, and it is `09c`'s finding. Look up `m` before choosing `n` and `g`, size the construction
+so its ceiling clears that bar, and record which `m` you sized against beside the pre-registration
+block. This check does not apply retroactively — arms already declared keep the `E` they were
+given under the parameters declared at the time.
+
 Report `E` whatever it comes out as, `E < 1` included, and count the arm in the campaign family
 either way. The family is the set of *declared* hypotheses; dropping the ones that failed is the
 selection problem this step exists to remove. Campaign-level decisions run **e-BH**, which holds

@@ -52,7 +52,9 @@ Pick a driver who looked unusually slow (or fast) in a race. Open the Lap Waterf
 The waterfall makes this decomposition explicit and arithmetic, not interpretive.
 
 <Note>
-  Safety-car laps and major-outlier laps are excluded before the averages are computed. The filter applied in the query is `NOT is_safety_car_lap AND NOT is_major_outlier_lap AND fuel_component_s IS NOT NULL`. Laps removed by this filter are not shown in the `n_laps` provenance count.
+  Neutralised laps (safety car, VSC, red flag) never reach this chart: `fct_lap_residuals` is built from green racing laps only, so the exclusion happens upstream in the warehouse. The filter applied in the query itself is `NOT is_major_outlier_lap AND fuel_component_s IS NOT NULL`. Laps removed by that filter are not shown in the `n_laps` provenance count.
+
+  The mart does carry `is_safety_car_lap`, `is_vsc_lap` and `is_red_flag_lap` columns, and they are `FALSE` on all 137,447 of its rows for the reason above. The table with live caution flags is `int_stint_geometry`, surfaced in the app as the [Race Control Timeline](/app/race-control).
 </Note>
 
 ## Data source

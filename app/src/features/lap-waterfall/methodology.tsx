@@ -34,7 +34,8 @@ export const methodologyContent = (
       or aggregation bug.
     </p>
     <p className="mt-3 text-muted/70">
-      Source: <code>fct_lap_residuals</code>. Safety-car and major-outlier laps excluded.
+      Source: <code>fct_lap_residuals</code>, which is built from green racing laps only-
+      neutralised laps never enter it. Major-outlier laps are excluded in this query.
     </p>
   </>
 )

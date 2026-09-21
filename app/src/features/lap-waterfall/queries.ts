@@ -1,3 +1,10 @@
+// fct_lap_residuals is already filtered to green racing laps upstream: its
+// is_safety_car_lap / is_vsc_lap / is_red_flag_lap columns are FALSE on all
+// 137,447 rows (re-measured 2026-09-20). Filtering on them here changed no row
+// and implied a neutralisation exclusion this query was not performing, so the
+// three predicates are gone and the fact is recorded instead. The table with
+// live caution flags is int_stint_geometry; the app surfaces it through
+// race_caution_timeline on the Race Control Timeline.
 import { registerQuery, rawQuery } from '../../data/hooks/useQuery'
 import { loadManifest, getTablePath } from '../../data/manifest'
 import { registerParquet } from '../../data/duckdb/register'
@@ -56,9 +63,6 @@ export const queryLapWaterfall = registerQuery<Params, LapResidualRow[]>(
         FROM fct_lap_residuals_${season}
         WHERE race_year = ?
           AND race_id = ?
-          AND NOT is_safety_car_lap
-          AND NOT is_vsc_lap
-          AND NOT is_red_flag_lap
           AND NOT is_major_outlier_lap
           AND fuel_component_s IS NOT NULL
         GROUP BY driver_id, race_id, race_year
@@ -87,9 +91,6 @@ export const queryLapWaterfall = registerQuery<Params, LapResidualRow[]>(
         COUNT(*)                                    AS n_laps
       FROM fct_lap_residuals_${season}
       WHERE race_year = ?
-        AND NOT is_safety_car_lap
-        AND NOT is_vsc_lap
-        AND NOT is_red_flag_lap
         AND NOT is_major_outlier_lap
         AND fuel_component_s IS NOT NULL
       GROUP BY driver_id, race_year

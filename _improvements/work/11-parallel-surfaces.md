@@ -2,8 +2,10 @@
 
 **Group:** 11 · **Depends on:** nothing · **`parallel`** — nothing on the ML ladder waits for these
 
-Two items from research round R1 that touch no model and block nothing, so they can run at any
-time. Both convert work that already exists into something a user can read.
+Three items that touch no model and block nothing, so they can run at any time. All three convert
+work that already exists into something a user can read. `11a` and `11b` came from research round
+R1 and are both closed; `11c` was raised 2026-09-20 by the fan-value reprioritisation and is the
+only live one.
 
 ---
 
@@ -762,3 +764,288 @@ the original argument for a decision-layer metric.
 - **`int_pit_strategy_value`'s window-scope argmin is exactly reproducible** from the cost curve —
   4,257/4,257. Anyone re-minimising at a different pit loss or a different hazard can do it off the
   published columns, as that model's header promises.
+
+---
+
+## 11c — The caution data is all in the warehouse and none of it reaches the app
+
+**Raised 2026-09-20** by the fan-value reprioritisation, against the success definition the user
+stated that day: *winning is giving F1 fans stats they can use to settle arguments and something to
+track live during a race.* Measured against that, this is the largest gap in the repo between what
+the warehouse holds and what a fan can see. Every claim below was traced to source in the same pass.
+
+**Objective.** Get the safety-car / VSC / red-flag lineage onto a page — as a per-race caution
+timeline a fan can read during a race, and as whatever per-circuit hazard statement this item rules
+is defensible — without touching a model, a feature column or an ML artefact.
+
+### The data exists
+
+| what | where | state |
+| :--- | :--- | :--- |
+| SC / VSC / red-flag **events** | [`stg_track_status.sql:38-46`](../../transform/models/staging/stg_track_status.sql) | one row per status change; `4=safety_car`, `5=red_flag`, `6=vsc`, `7=vsc_ending`, ground-truthed against the bronze `Message` column |
+| SC / VSC / red-flag **per lap** | [`stg_laps.sql:123-126`](../../transform/models/staging/stg_laps.sql) → [`int_stint_geometry.sql:74-76`](../../transform/models/intermediate/int_stint_geometry.sql) | `is_safety_car_lap` / `is_vsc_lap` / `is_red_flag_lap` at lap grain |
+| per-circuit **hazard per racing lap** | [`int_sc_hazard_history`](../../transform/models/intermediate/int_sc_hazard_history.sql) | keyed `(circuit_slug, season)`, **season-lagged** since `02d`'s 2026-09-11 rebuild; its header records **148 of 148 races**, 100% of 2018–2024 |
+
+### And none of it reaches the app
+
+`grep -rn "track_status\|int_stint_geometry\|stg_track_status\|int_sc_hazard" app/src` returns
+**zero matches**, and [`scripts/export_app_data.py`](../../scripts/export_app_data.py)'s export list
+names none of the three — so no parquet carrying a caution flag or a hazard rate is ever registered
+in the browser. `10c` said the same thing from the modelling side and it is still true:
+
+> *"it cannot tell the user which cause is coming — the app has no SC term, and
+> `int_sc_hazard_history`, which is exactly that term, feeds nothing."*
+> — [`10-competing-risks.md`](10-competing-risks.md), lines 937–938
+
+**And a live page tells users the opposite.**
+[`app/src/routes/race-craft/race-control.tsx`](../../app/src/routes/race-craft/race-control.tsx)
+ships today with *"This feature requires the FIA race control message feed … That event log is not
+yet ingested into the pipeline."* That sentence is **false**: `raw_track_status` is ingested, staged
+and consumed. Whatever this item decides to build, that page's stated reason must stop being wrong.
+It is the same class of defect as `00d` one level up — a wrong *explanation* rather than a wrong
+number.
+
+### Why this is a ruling, not a wiring job
+
+1. **The number a fan wants is the number `11a` says is hardest to defend.** "How likely is a safety
+   car here" is a per-circuit statement, and at roughly **4.1 races per circuit** in this warehouse
+   `11a` measured `ceiling.py::variance_components` putting the circuit ICC of per-race coverage at
+   **0.024** in sample against a naive **0.313** — and ruled that a per-circuit effect exists and is
+   *unestimable at this data volume*. `int_sc_hazard_history` anticipates exactly this and carries
+   empirical-Bayes-shrunk variants beside the raw rates. **Rule in writing which column the page
+   shows, and how the uncertainty is expressed, before exporting anything.** A raw per-circuit rate
+   rendered as a bare percentage is the failure `11a` exists to prevent.
+2. **Every 2018 row is NULL on every rate, by construction.** Season-lagged with no prior season.
+   The model's header is explicit that *"unknowable"* and *"measured, no events"* are different
+   statements, and that `prior_races_n` / `prior_racing_laps` are what let a consumer tell them
+   apart. A `COALESCE` to zero on the display side erases precisely that. Declare it; do not fill it.
+3. **Two shipped queries already filter on flags that never fire.**
+   [`race-lost/queries.ts:57-58`](../../app/src/features/race-lost/queries.ts) and
+   [`lap-waterfall/queries.ts:59`](../../app/src/features/lap-waterfall/queries.ts) and `:90` apply
+   `NOT is_safety_car_lap` / `NOT is_vsc_lap` to `fct_lap_residuals`, and `11b`'s incidental
+   verification measured all three flags **FALSE on all 137,447 rows** of that mart, because it is
+   already filtered to green racing laps (`11b`'s *Incidental verifications*, above). The rows on
+   screen are genuinely green, so **no displayed number is
+   wrong** — but the filter is a no-op and the surrounding methodology text implies it is doing
+   work. Re-measure `11b`'s claim first (it has not been re-checked since 2026-09-16), then fix both
+   queries against `int_stint_geometry`, which is the table with the real flags.
+
+### Method
+
+1. **Rule first, in writing** — which hazard column (raw or shrunk), what interval or hedge goes
+   beside it, and whether a per-circuit number is shown at all given `11a`'s finding. Cite `11a`.
+2. **Export.** Add whatever minimal table the ruling needs to `scripts/export_app_data.py`. The
+   caution event log is small; the hazard table is ~149 rows. Neither is a data-budget question the
+   way telemetry is.
+3. **The timeline page.** Replace `race-craft/race-control.tsx`'s stub with a lap-by-lap SC / VSC /
+   red-flag timeline per race. Its own stub text already describes the useful version — *"overlaid
+   with the pit-strategy decisions drivers made in response"* — and `int_pit_strategy_value` is
+   already exported and already on the Gantt.
+4. **The two no-op filters**, per point 3 above, in the same pass.
+5. **Report coverage per season**, including the 2018 all-NULL band, on the page and not only in a
+   schema comment.
+
+### Scope guard
+
+Touches **no model, no `FEATURE_COLUMNS` entry, no ML artefact** — group 11's charter.
+
+- It does **not** run `02d`'s ablation and does not pre-empt it. Whether the hazard helps
+  `stint_life_regressor` is `02d`'s question, and it is independent of whether the hazard can be
+  *displayed*. The two share a table and block each other in neither direction.
+- It does **not** build the FIA incident / penalty log that `race-craft/stewarding.tsx` asks for.
+  That one genuinely is not ingested.
+- It does **not** revive `11b`'s DP as a *"what would an optimal strategist do here"* overlay.
+  `11b`'s own verdict, reason 6 of six: *"It grades the strategists as worse than an argmin over a
+  seed. Every arm loses to the human by 4.10 s/stint."* Shipping that as live advice would ship a
+  claim this tree has already refuted. The part of `11b` that **is** worth shipping — the cost curve
+  consuming the ML forecast, worth 33.9% → 53.0% realised-call reproduction — is `D9`, not a second
+  surface.
+
+### Definition of done
+
+1. A written ruling on which hazard column the app shows and how its uncertainty is stated, citing
+   `11a`'s ICC measurement, made **before** the export.
+2. `race-craft/race-control.tsx` no longer claims the event log is un-ingested, and shows a real
+   per-race caution timeline.
+3. The 2018 all-NULL band is declared on the page, not `COALESCE`d away.
+4. `11b`'s "all three flags FALSE" claim re-measured on today's warehouse, and the two no-op filters
+   in `race-lost` and `lap-waterfall` either fixed against `int_stint_geometry` or left with a
+   written reason.
+5. `python3 -m ml.src.features --check` clean and the contract unmoved at 32 columns — this item
+   must be able to prove it touched nothing on the ML side.
+
+**Cost:** 1 – 2 days. **Model:** `opus-5` — the load-bearing part is a ruling on whether a
+per-circuit rate estimated from ~4 races may be shown to a user as a probability, which is a claim,
+not a wiring task.
+
+---
+
+### `11c` — RULING (2026-09-20, written before any export or wiring)
+
+**The short version.** The app shows the **observed caution timeline** as the headline, because it
+is a record rather than an estimate. It shows **one pooled caution frequency** beside it, with a
+Wilson interval and the race count. It shows **no per-circuit probability at all** — not the raw
+rate, not as a bare percentage, not anywhere. The `*_shrunk` columns are exported and rendered only
+as a **strip against the pooled reference line**, labelled with how little of each value is its own
+circuit's data. Season 2018 is printed as *"not measurable"* and never `COALESCE`d.
+
+The rest of this section is why, measured on `data/dev.duckdb` today.
+
+#### The per-circuit hazard is not weakly identified — it is not identified
+
+`11a` ruled that circuit identity was **unestimable at this data volume** for conformal coverage:
+`ceiling.py::variance_components` put the circuit ICC at **0.024** against a naive **0.313**, a
+circuit-effect sd of **0.74 pts** against **4.65 pts** of race-to-race noise, at ~4.1 races per
+circuit. That was for a *different* quantity, so this item re-ran the same instrument on the
+quantity it actually proposes to display: the per-race caution rate, grouped by circuit, 149 races
+over 36 circuits (**4.14 races per circuit** — the same volume `11a` had).
+
+| quantity displayed to a fan | circuit ICC | naive (biased up) | sd(circuit effect) | sd(race noise) |
+| :--- | ---: | ---: | ---: | ---: |
+| share of race laps under caution | **0.005** | 0.403 | 0.62 pts | 8.57 pts |
+| **P(race has a safety car)** | **0.000** | 0.306 | **0.00 pts** | 50.55 pts |
+| **P(race has any caution)** | **0.000** | 0.285 | **0.00 pts** | 45.33 pts |
+
+**The two rows a fan would actually read come back at ICC 0.000.** The between-circuit mean square
+is *below* the within-circuit mean square, so the ANOVA estimator clamps the circuit variance
+component to zero: on this warehouse there is no detectable circuit component in whether a race
+gets a safety car. This is a stronger negative than `11a`'s — `11a` found an effect too small to
+estimate, this finds no effect to estimate.
+
+The scan makes it concrete. A per-circuit estimate at 4.14 races carries **SE = 22.3 points**. Over
+36 circuits, pure noise alone produces an expected max-minus-min of **94.7 points**. The observed
+max-minus-min is **100.0 points** — eight circuits read exactly 100% and one reads 0%:
+
+| circuit | races | with a caution | the number a page would print |
+| :--- | ---: | ---: | ---: |
+| Azerbaijan | 6 | 6 | **100%** |
+| Mexico City | 4 | 4 | **100%** |
+| Saudi Arabia | 4 | 4 | **100%** |
+| São Paulo | 4 | 4 | **100%** |
+| Qatar | 3 | 3 | **100%** |
+| … | | | |
+| Spain | 7 | 3 | 42.9% |
+| Hungary | 7 | 3 | 42.9% |
+| 70th Anniversary | 1 | 0 | **0%** |
+
+"Baku: 100% chance of a safety car" is the single most fan-facing number in this table and it is
+the one with the least behind it. A user reads a percentage as a forecast; this one is a run of six
+coin flips. **That sentence is not shippable and this ruling exists to stop it.**
+
+#### Which column: `*_shrunk`, and never the raw rate
+
+`int_sc_hazard_history` carries both. Over the 128 rows with a prior season:
+
+| column | min | max | ratio | sd |
+| :--- | ---: | ---: | ---: | ---: |
+| `any_hazard_per_lap` (raw) | 0.00000 | 0.10000 | unbounded (a zero) | 0.01469 |
+| `any_hazard_per_lap_shrunk` | 0.01850 | 0.03258 | 1.8× | 0.00259 |
+
+The raw column's spread is the ICC-0.000 noise above, rendered at five decimal places. **It must
+not reach a display surface**, and the fact that it is exported in the same 149-row parquet is not
+a licence — withholding a column from a file is not a safety mechanism, so the binding constraint
+is this ruling, enforced in the query and restated in the methodology panel.
+
+The shrunk column is safe to show for a reason worth stating plainly rather than hiding: **it is
+mostly not a per-circuit number.** The empirical-Bayes pseudo-count is 600 laps, so the weight a
+row puts on its own circuit is `L / (L + 600)`, which over those 128 rows averages **0.178** and
+never exceeds **0.413**. **On average 82% of the value shown is the all-circuits pooled rate
+wearing a circuit's name.** That is the correct EB answer at this volume — the estimator has
+already conceded the question the ICC settles — and the page says so in those words rather than
+letting the reader infer a circuit signal from a varying bar.
+
+#### Per-circuit or pooled: pooled, as the only number given a probability reading
+
+Pooled over all 149 races, 2018–2024, Wilson 95%:
+
+| | races | rate | 95% CI |
+| :--- | ---: | ---: | :--- |
+| **any caution (SC, VSC or red)** | 110 / 149 | **73.8%** | 66.2 – 80.2 |
+| safety car | 85 / 149 | 57.0% | 49.0 – 64.7 |
+| virtual safety car | 65 / 149 | 43.6% | 35.9 – 51.6 |
+| red flag | 19 / 149 | 12.8% | 8.3 – 19.1 |
+| share of all race laps run under caution | — | 8.97% | — |
+
+One caveat is carried on the page with the number, because it is the one real movement in the data
+and it is not circuit identity: **the pooled rate itself drifts by season**, 90.5% (2018) and 90.9%
+(2022) against 58.3% (2024).
+
+| season | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| races with a caution | 90.5% | 66.7% | 76.5% | 72.7% | 90.9% | 63.6% | 58.3% |
+
+A 32-point season range against a zero circuit component is the honest summary of where the
+variation in this dataset lives, and it is stated rather than averaged away.
+
+#### How uncertainty is expressed — the four rules the page obeys
+
+1. **No bare percentage anywhere.** Every rate is rendered with its denominator (`n` races) and,
+   where it is a probability of an event per race, its Wilson 95% interval.
+2. **The timeline carries no interval, because it is not an estimate.** Lap 24 was under safety car
+   or it was not. Observation and estimation are visually separated on the page for this reason.
+3. **Sample size is printed beside every per-circuit value**, as `prior_races_n`, and the strip is
+   drawn against the pooled rate as a reference line so the reader sees the shrinkage rather than
+   being told about it.
+4. **"Unknowable" and "measured zero" stay different statements.** See below.
+
+#### The 2018 band: declared, not filled
+
+Every rate in `int_sc_hazard_history` is season-lagged, so of its 149 rows:
+
+- **21 rows (all of 2018) are NULL on every rate, raw and shrunk** — there is no prior season for
+  the circuit and none for the pooled prior either. `prior_races_n = 0` on all 21.
+- **36 rows are NULL on the raw rate** (2018's 21, plus 15 circuit debuts: 8 in 2020's one-off
+  calendar, 5 in 2021, 1 each in 2022 and 2023).
+- **Only those 21 are NULL on the shrunk rate**, because a debut circuit shrinks all the way to the
+  pooled prior, which is the correct EB answer and exists from 2019 on.
+
+The page prints **"not measurable — 2018 is the first season in the warehouse, so there is no prior
+season to estimate from"** and renders no bar. A `COALESCE(..., 0)` here would claim a *measured
+zero hazard* at every 2018 venue, which is the exact confusion the model's own header was written
+to prevent. The per-season coverage table above ships on the page, not only in a schema comment.
+
+#### What the timeline is built from, and the cross-check that says it is right
+
+The timeline reads the **lap-status channel** — `stg_laps` → `int_stint_geometry`'s
+`is_safety_car_lap` / `is_vsc_lap` / `is_red_flag_lap`, aggregated with `BOOL_OR` to one row per
+(race, lap). That is 8,929 race-laps over 149 races, of which **801 are caution laps** (572 SC,
+256 VSC, 33 red). It is chosen over `stg_track_status` for three reasons: it is materialised (the
+staging models are views over bronze parquet on a path relative to `transform/`, which is why
+`stg_pits` is already an optional export that skips), it carries **lap numbers** where
+`stg_track_status` carries only `session_time_s`, and duration in laps is what a fan reads.
+
+Two independent channels corroborate it:
+
+- **`stg_track_status` events.** Contiguous SC lap-runs reconstruct **112 segments** against
+  **119 SC onsets** in the event log, with **76 of 85 races agreeing exactly**. The gap is
+  explained and not a defect: two deployments with no green lap between them merge into one lap-run.
+- **`stg_race_control`, the FIA message feed** (see the correction below). Races flagged by the two
+  channels agree on **146 of 149**; the three exceptions (one 2021, two 2024) have caution laps but
+  no `SafetyCar`-category message, so the lap channel is the superset.
+
+#### A correction this item owes the tree: the FIA message feed IS ingested
+
+`11c`'s own scope guard says the FIA incident log *"genuinely is not ingested"*, and
+`race-craft/stewarding.tsx` and `/roadmap` both say the same. **It is ingested.**
+`transform/models/staging/stg_race_control.sql` stages `data/bronze/race_control/` — **12,814
+messages over all 149 races, 2018–2024**, with `message_category` (383 `SafetyCar`, 457 `Drs`, 246
+`CarEvent`), `flag` (26 `RED`, 4,909 `BLUE`), `message_text`, `driver_id` and **a lap number on
+every safety-car message**. Its own header says it has been *"consumed by nothing"*, and
+`grep` confirms it: no model and no export reads it.
+
+What is *not* ingested is a **structured penalty/outcome log** — the stewarding decisions exist
+only as free text inside `message_text`. So `stewarding.tsx`'s feature remains unbuilt, but its
+stated reason is wrong in the same way `race-control.tsx`'s was, and `/roadmap`'s
+*"Structured race-control feed … has not been ingested yet"* is wrong twice over. This item fixes
+the two sentences it can reach honestly and does **not** build the penalty log.
+
+#### What this ruling deliberately does not do
+
+- It ships **no** *"chance of a safety car at this circuit"* number, which is the most requested
+  and least defensible thing in the table. The reason is on the page, not only here.
+- It does not run `02d`'s ablation and takes no position on whether the hazard helps
+  `stint_life_regressor`. Whether a quantity can be *displayed* and whether it is *predictive* are
+  separate questions over a shared table.
+- It does not revive `11b`'s DP as live advice. `11b`'s verdict stands: every arm loses to the
+  human by 4.10 s/stint.
+

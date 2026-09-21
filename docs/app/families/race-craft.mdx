@@ -1,0 +1,51 @@
+---
+title: "Race Craft: the race as it actually unfolded"
+sidebarTitle: "Overview"
+description: "The events that interrupt a race rather than the pace that decides it safety cars, virtual safety cars and red flags, on the lap each one happened."
+---
+
+## What this pillar does
+
+Every other pillar in this app measures **pace**: how fast a car was, and why. Race Craft
+measures the things that suspend pace altogether.
+
+A neutralisation is the single largest exogenous shock in a Grand Prix. It erases the gaps
+that twenty laps of degradation management built, it halves the price of a pit stop for
+whoever has not yet taken one, and it routinely decides the result. A strategy call graded
+without it is graded against the wrong race.
+
+- **[Race Control Timeline](/app/race-control)** puts every safety car, VSC and red flag of a
+  single race on its lap axis, with each window's duration in laps. Read alongside the
+  [Pit Strategy Gantt](/app/pit-strategy) for the same race, it separates a strategist who
+  called a caution correctly from one who was standing in the right place when it happened.
+
+## What this pillar deliberately does not claim
+
+The obvious next question "how likely is a safety car at this circuit?" is not answered
+anywhere in this app, and the reason is measured rather than asserted. The warehouse holds
+about 4.1 races per circuit, and at that volume the between-circuit variance component of
+the per-race caution rate measures **zero**. Eight circuits in the naive table read exactly
+100% and one reads 0%, which is what 36 estimates each carrying a 22-point standard error
+look like. The [Race Control Timeline](/app/race-control) page carries the full argument, and
+shows a pooled rate with an interval in place of a per-venue percentage.
+
+## Every feature in this pillar
+
+<CardGroup cols={2}>
+  <Card title="Race Control Timeline" icon="flag" href="/app/race-control">
+    Safety cars, VSCs and red flags per race, on the lap and for the duration, with the
+    pooled caution frequency and its interval.
+  </Card>
+</CardGroup>
+
+## Data lineage
+
+The per-lap status originates in the FIA track-status channel, decoded in `stg_laps` and
+carried into `int_stint_geometry`. The app reads it through `race_caution_timeline`, an
+export-time aggregate at one row per (race, lap). Per-circuit hazard context comes from
+`int_sc_hazard_history`, season-lagged and empirical-Bayes shrunk.
+
+The FIA race-control **message** feed is also ingested (`stg_race_control`, 12,814 messages
+across all 149 races) but is not yet consumed by any model or export. What it lacks is
+structure: penalties and DRS windows live inside the message text, not as fields, which is
+why Penalty Impact and DRS Dependency remain on the [roadmap](https://offthepace.dev/roadmap).

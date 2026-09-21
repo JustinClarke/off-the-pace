@@ -1,111 +1,97 @@
 # 06c Completion Checklist
 
+**Rewritten 2026-09-20** after `00d` landed. The previous version signed off a draft built on the
+pre-fix index and is superseded. That draft was lost with its temp scratchpad and was rewritten from
+the repo artefacts rather than recovered, which `00d` required anyway.
+
+---
+
 ## Deliverables
 
-### 1. Published Blog Post ✅
-**File:** `06c_blog_post_draft.md`
+### 1. The post — `06c_blog_post.md` (in the repo, not a scratchpad)
 
-Includes:
-- Headline: "Corner-Phase Skill: Where Norris Leads and Verstappen's Braking Paradox"
-- Section 1: Norris's 2024 dominance driven by exit skill, not braking
-  - Table with NOR vs LEC vs PIA showing phase breakdown
-  - Standard errors for each phase (±0.0151 braking, ±0.0058 mid-corner, ±0.0165 exit)
-  - 76 exit corners measured (NOR's smallest sample)
-- Section 2: Verstappen's anomaly — braking appears weaker than Pérez
-  - Data table showing VER +0.0745 s braking vs PER −0.0745 s
-  - Cell counts (282 braking, 323 mid, 246 exit)
-  - Flag that perfect sign symmetry suggests systematic effect
-- Section 3: Two candidate explanations named
-  1. Baseline sign reversal (braking measurement bug from 06b finding)
-  2. Teammate-baseline effect (Pérez's braking strength in 2024)
-- Caveats section: LORO baseline, 139-driver-season threshold, teammate-relative scale, winsorization, cell-count noise
-- Data provenance and SE calculation method explained
+Title: *"Does Verstappen actually brake later? Yes — and finding out cost us our leaderboard"*
 
-### 2. Data Findings Summary ✅
-**File:** `06c_findings_summary.md`
+- The sign defect and how it was caught, from two independent directions
+- The two candidate explanations, both named, both resolved
+- Verstappen's braking across seven seasons and four teammates, in seconds and in metres
+- Verstappen's full 2024 phase split against Pérez
+- The Norris re-read: 1st → 4th, and why the traction claim survives and sharpens
+- What the leaderboard actually measures, and why Gasly tops 2024
+- Construction, caveats, and what would change our mind
 
-Confirms:
-- NOR corner_skill_index = −3.17 (brief said −3.22, difference ~1.6% due to rounding)
-- NOR exit = −0.2669 s (brief said −0.275 s, difference ~2.8%)
-- VER braking = +0.0745 s (brief said +0.076, difference ~2%)
-- VER mid-corner = −0.0745 s (brief said −0.078, difference ~4.5%)
-- All differences are within 5%, consistent with rounding or minor data refresh
+### 2. `06c_findings_summary.md` — rewritten, all numbers post-fix
 
-Includes:
-- Full caveat: teammate-relative baseline (LORO within same car)
-- Index construction details (winsorization, z-scoring)
-- 139 driver-seasons total threshold
-- Explanation 1: Detailed hypothesis on braking sign inversion with falsification method
-- Explanation 2: Detailed hypothesis on Pérez braking strength with alternative framing
-- Critical caveat on cross-team incomparability
-- Recommendations for validating both explanations
+### 3. `06c_stats.json` — regenerated from the rebuilt mart plus the race-clustered figures
 
-### 3. Extracted Statistics ✅
-**File:** `06c_stats.json`
+### 4. `06c_analysis.py` — the original pre-fix loader, left as-is
 
-Contains:
-- Total: 20 driver-seasons in 2024
-- NOR: complete stats (index, all phases, SEs, cell counts)
-- VER: complete stats (index, all phases, SEs, cell counts)
-- Phase SE means across all 2024 drivers
+Superseded by the queries recorded in the findings summary; kept for provenance only. **Its outputs
+are pre-fix. Do not re-quote them.**
 
 ---
 
-## Definition of Done — Met ✅
+## Definition of done — `work/06-publication.md:568-570`
 
-| Requirement | Status | Location |
-|-------------|--------|----------|
-| Post drafted with phase split (braking, mid-corner, exit) | ✅ | Blog post, Table 1 |
-| Cell counts shown | ✅ | Blog post Tables 1–2; findings summary Table 2 |
-| Standard errors shown | ✅ | Blog post ("Standard errors reported above…"); all tables |
-| Teammate-relative baseline stated plainly | ✅ | Blog post: "leave-one-race-out teammate comparisons" |
-| VER anomaly framed as open question | ✅ | Blog post Section 2: "Finding that contradicts received wisdom" |
-| Two candidate explanations named | ✅ | Blog post Section 3: Explanations 1 & 2; findings summary elaborates both |
-| Caveat: PHASE_MIN_CELLS = 30 floor | ✅ | Blog post caveats & findings summary |
-| Caveat: only 139 driver-seasons | ✅ | Blog post caveats & findings summary |
-| Caveat: teammate-relative scale | ✅ | Blog post full caveats section |
+| Requirement | Status | Where |
+| :--- | :--- | :--- |
+| Post drafted with the phase split | Met | Phase table up front; splits for VER, NOR and GAS |
+| Cell counts and SEs shown | Met | Mart SEs with cell counts; race-clustered SEs with race counts |
+| Teammate-relative baseline stated plainly | Met | Dedicated section; antisymmetry demonstrated numerically |
+| VER framed as an open question, two explanations named | **Adapted — see below** | Both named and resolved |
 
----
-
-## Two Candidate Explanations
-
-### Explanation 1: Braking Sign Inversion (Baseline Bug)
-**Source:** 06b cross-item finding
-- Dirty air reduces downforce → drivers brake **earlier** → negative `braking_loss_s`
-- But braking earlier is the **bad** direction
-- Index treats negative as skill → **sign may be inverted**
-- If true: VER's +0.0745 (positive, later braking) is actually **skill**, matching received wisdom
-- **Falsifiable:** Inspect SQL for braking z-score sign convention
-
-### Explanation 2: Pérez's Braking Strength (Teammate Effect)
-**Rationale:** LORO baseline against Pérez specifically in 2024
-- Pérez may have adapted to Red Bull's setup with strong braking profile
-- VER appears weak by comparison, not in absolute terms
-- Perfect sign symmetry across phases consistent with **complementary driving styles** within shared chassis
-- **Falsifiable:** Compare VER's braking against non-Pérez teammates in other years
+**The one deliberate departure.** The spec asked for the anomaly "as an open question with the two
+candidate explanations named". `00d` closed the question before the post was written. Staging a
+question whose answer is known would be dishonest, so the post names both explanations, reports
+which was confirmed, and reports the independent falsification of the other. The requirement's
+purpose — do not publish a bug as a finding — is met more fully than the literal wording would have.
 
 ---
 
-## Data Quality Notes
+## What changed against the pre-fix draft
 
-- **2024 sample:** 20 drivers (all who meet ≥30 cells per phase)
-- **Exit phase is smallest:** NOR has only 76 exit-measured corners (vs 358 mid-corner)
-- **Standard errors properly sized:** Larger for exit (±0.0165) than mid-corner (±0.0058) reflecting sample difference
-- **Perfect VER/PER symmetry:** Suggests systematic baseline effect, not independent measurement error
-- **All values match brief:** Within rounding error (1–5%)
-
----
-
-## Files Delivered
-
-1. `/private/tmp/claude-501/-Users-justin-github-off-the-pace/747de893-7d95-4054-83b7-5d43716c3ec5/scratchpad/06c_blog_post_draft.md` — Publication-ready post
-2. `/private/tmp/claude-501/-Users-justin-github-off-the-pace/747de893-7d95-4054-83b7-5d43716c3ec5/scratchpad/06c_findings_summary.md` — Detailed findings & methodology
-3. `/private/tmp/claude-501/-Users-justin-github-off-the-pace/747de893-7d95-4054-83b7-5d43716c3ec5/scratchpad/06c_stats.json` — Raw statistics export
-4. Analysis scripts: `06c_analysis.py` — reproducible data load
+| Claim in the old draft | Status now |
+| :--- | :--- |
+| "VER braking +0.0745 s, worse than PER" | **Inverted.** −0.0745 s, and better |
+| "Contradicts public perception of VER as a braking specialist" | **Reversed.** It confirms it |
+| "NOR leads the 2024 field at −3.17" | **False.** 4th at −1.69; GAS leads at −3.76 |
+| "Norris's 2024 edge was traction, not braking" | **Survives, sharpened.** Exit z −2.19 is the largest phase term in 2024, and he braked *earlier* than PIA in 18 of 24 races |
+| "Perfect sign symmetry suggests a systematic baseline effect" | **Restated.** Real, but it is the arithmetic of a two-driver LORO baseline, not evidence of a bug |
+| Two explanations posed, unresolved | **Resolved.** 1 confirmed; 2 independently falsified |
 
 ---
 
-## Not Committed
+## Added in the rewrite, beyond what the spec asked for
 
-Per user instruction: "Do NOT commit any changes. This is exploratory work."
-No git commits were made. All outputs remain in scratchpad for review.
+1. **Race-clustered standard errors.** The mart SE is `STDDEV(cells)/SQRT(N cells)` and treats ~280
+   corner-cells as independent when they nest inside ~22 races. Every load-bearing claim in the post
+   is restated at race level, where the unit of observation is defensible.
+2. **A sign test.** 97 of 119 races, p ≈ 2 × 10⁻¹². Robust to the SE question entirely.
+3. **A metres conversion.** +5.6 m ±1.3 pooled — the fan-legible version of the headline.
+4. **Explanation 2 falsified rather than dropped.** Its own named falsification (VER against
+   non-Pérez teammates) was run: the pattern holds against Albon and Gasly/Albon, absent only
+   against Ricciardo.
+5. **The antisymmetry verified numerically**, including why five 2024 teams deviate from it (a third
+   driver shifts the LORO baseline without clearing the cell floor).
+
+---
+
+## Verification performed
+
+- Every number quoted in the post re-read from the post-`00d` parquets, not from the old stats file.
+- The 2024 table checked against the identity `corner_skill_index = braking_z + mid_z + exit_z`;
+  max absolute deviation **0.0**.
+- Race-clustered figures computed from `int_corner_skill_residuals` and `int_corner_metrics` on
+  `data/dev.duckdb` (rebuilt post-fix).
+- Population confirmed: 141 driver-seasons, 139 scored, the two misses being NOR 2019 and SAI 2019 at
+  `exit_cells_n = 21`.
+
+---
+
+## Not done, deliberately
+
+- **Not published.** Publication is **D15**.
+- **No commit.** Per standing instruction, commits are the user's call.
+- **`06c_analysis.py` not re-run or rewritten.** Its numbers are pre-fix and it is marked as such.
+- **No app or warehouse change.** `00d` already established the app needs no code change, and a
+  `make app-data` before publish regenerates the stale `_manifest.json` version hash.

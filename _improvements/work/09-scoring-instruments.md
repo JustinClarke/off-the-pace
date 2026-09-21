@@ -163,3 +163,136 @@ it lands.
 - The 100k-draw null check re-run on the new parameters.
 
 **Cost:** ~0.5 day. **Blocks** every future arm: `02b`, `02c` and `02d` depend on it in the log.
+
+**Landed 2026-09-19.**
+
+**1. The forward family, enumerated — and the ≥ 51 figure above was itself an undercount.**
+`04a` closed without producing this table (see its closing note) and handed the job here. Swept
+every leaf doc that has declared a gate-7 e-value since `09b` landed (2026-09-10) — not just the
+three this section opened with:
+
+| item | declared hypotheses | source |
+| :--- | ---: | :--- |
+| `02b` | 20 | "declares 20 hypotheses (the original 16, plus 4 for the stint-life follow-on)" |
+| `02c` | 12 | "Twelve declared hypotheses are counted (A/B/C × four families)" — the doc itself flags a 16-count alternative reading (P per family included); unresolved, see §3 below |
+| `07` | 1 | "this adds 1 hypothesis to the campaign family" |
+| `08e` | 5 | "Within this item's declared family of five, e-BH ... rejects all five" |
+| `08f-1` | 3 | AFTER-vs-BEFORE on the three continuous families; cliff/stint-life move 0.0 by construction and are not live tests |
+| `08h` | 10 | 2 declared arms (candidate alone, candidate+`push_residual` pair) × 5 families, confirmed against `ml/artefacts/08h_baseline_observations_n_arms.json`'s `families` block |
+| `08i` | 35 | "15 declared cross-floor hypotheses ... plus 20 within-floor information arms" |
+| `10b` | 2 | "Two declared hypotheses, added to the campaign family" |
+| `10d` | 5 | "The family is therefore five declared arms — A1, A2, A3, A4, A4x" |
+| `10e` | 3 | "The family is therefore three declared arms — S1, S2, X1" (2026-09-19 re-run; supersedes the "4 arms" this section's opening note cited from the pre-rerun state) — flagged alternative reading of 6 below |
+| `11a` | 4 | "this adds 4 hypotheses to the campaign family" |
+| `11b` | 3 | "this adds 3 hypotheses to the campaign family" |
+| **total** | **103** | |
+
+The threshold for a lone rejection at `m = 103` is `20 × (103 + 1) ≈ 2,080`. **Not ≥ 1,020** — this
+section's own opening estimate summed three of twelve contributing items and undercounted by
+roughly half.
+
+**2. Two counting-convention inconsistencies found while enumerating, not resolved here.**
+`02c`'s own doc flags 12 vs 16 (whether the permutation-null arm `P` counts as its own declared
+hypothesis per family) and leaves it open. `10e`'s doc reports both a Brier `E` and a slope `E` per
+arm but states "the family is therefore three," implicitly not counting Brier and slope as separate
+hypotheses — inconsistent with `02c`'s own "arms × families" convention, which would make it 6.
+Both read the same either way for `09c`'s purpose (36 clears neither reading of either item's
+threshold, 48,559 clears both), so the table above uses each item's own literal headline number
+and does not adjudicate the ambiguity. Whoever runs `04c` next needs a single resolved convention
+before computing an authoritative total; this note is not it.
+
+**3. Family boundary ruled: campaign-wide, not per-item.** The fourth option this section named —
+narrowing "the family" to per-item — is **rejected**. `04c`'s own "Forward-Valid Safeguard" section
+states the design directly: *"The e-BH family starts empty at the first arm that declares... Future
+arms will be evaluated under pre-registered e-value correction"* — one family, not one per item.
+Several items have nonetheless been computing and reporting a **local** e-BH read using only their
+own arm count as `n` (`08e`'s "within this item's declared family of five... rejects all five,"
+`10b`'s "over the two declared hypotheses rejects both," `10e`'s "over the three declared arms
+rejects all three on Brier") — `08e`'s own text already flags this as a within-item preview, not
+the campaign verdict, and hands enumeration to `04a`. Narrowing to per-item would make every
+family's size a matter of where a session happens to draw its leaf-doc boundary, which is exactly
+the adaptive-family problem `04a`/`09b` closed the retrospective door on; it is not reopened here to
+buy a smaller denominator. **Consequence, stated plainly:** none of `08e`'s, `10b`'s or `10e`'s
+"rejects" statements are the campaign's actual e-BH verdict — each was computed against a family far
+smaller than the 103 already declared at the time. `04c` has not been re-run against the union
+since `09b` landed (its last run predates every row in the table above); doing so, correctly, is
+follow-on work this item does not do — recomputing a true `k*` needs every declared `E`, not just
+its per-item count, assembled in one place, which is `04c`'s job and remains undone.
+
+**4. Construction ruled: `n = 10, g = 1`, for every arm declared after this lands.**
+`E_max(10, 1) = 11^4.5 = 48,558.70`, clearing the `≈2,080` bar with a **~23.3×** margin, and does not
+need revisiting again until the declared family approaches `E_max / 20 ≈ 2,428` hypotheses — the
+family has taken about nine days to reach 103, so this is not assumed to be forever, but it is not
+"before the next arm" fragile either. `g = 5·4 = 441`-style options (`n = 5, g = 4`) are ruled out:
+441 does not clear 2,080 (nor the original, wrong, 1,020), and no `g` at `n = 5` can — the exponent
+`(n-1)/2 = 2` is what caps it, not `g`. Construction A (unbounded) is not chosen instead: it is
+still valid only for a scale fixed independently of the reseeds being scored (§3's stated hole),
+which `n = 10, g = 1` does not need.
+
+**Power cost, stated without hedging.** Raising `n` from 5 to 10 costs **20 refits per arm instead
+of 10** (10 real + 10 shuffled, at ten paired seeds instead of five) — pure compute, paid once per
+arm. It is **not** a power cost against small effects the way raising `g` would be: for a fixed true
+effect size, `t` scales with `sqrt(n)`, so the same population delta produces a *larger* `t` at
+`n = 10` than at `n = 5`, not a smaller one — a bigger `n` buys ceiling headroom and tightens the
+estimate of the paired mean at the same time. The genuine operational cost not covered by "20
+refits": `gates.md` step 3's reseed floor (`2*sqrt(2)*sd`) is defined over 5 reseeds, and
+Construction B's efficiency (`10` refits, not `15`) came from *reusing* the floor study's five
+seeds for the paired real/shuffled arms. At `n = 10` that reuse needs the floor study to also run
+at ten seeds, or the arm pays 5 (floor) + 20 (paired) = 25 refits rather than 20. This item does not
+change `gates.md` step 3's "5 reseeds" language — that is a separate step, out of this item's four
+definition-of-done bullets — and flags it here as the thing whoever runs the next arm at `n = 10`
+has to decide (reuse ten seeds for both, or pay the extra five).
+
+**Not re-scored, per this item's own constraint.** `02c`'s `E ∈ {34.0, ..., 0.628}`, `08i`'s 35
+`E`s, `10e`'s `E_B = 35.9` / `35.57`, `02b`'s `E` up to `32.6`, `08e`'s `30.03–35.91`, `08h`'s,
+`08f-1`'s, `10b`'s `35.41`/`34.50`, `10d`'s, `07`'s, `11a`'s and `11b`'s — every `E` already declared
+above under `n = 5, g = 1` (or whatever each item's own construction was) stands as declared. `09c`
+does not touch any of them. `n = 10, g = 1` applies only to an arm whose pre-registration is written
+after this landing note exists.
+
+**5. Ceiling formula landed in `e_value_construction.md` §4**, next to the worked example:
+`E_max(n, g) = (1 + n*g)^((n-1)/2)`, with the sizing rule ("check `E_max` against `20*(m+1)` before
+fixing `n`, `g`") and a cross-reference back here for the current `m`.
+
+**6. `gates.md` step 7 updated** to require looking up the current declared family size and sizing
+`n`/`g` against `E_max(n, g) >= 20*(m+1)` before declaring, with the same non-retroactivity
+statement as here.
+
+**7. The 100k-draw null check, re-run at `n = 10, g = 1`.** Reimplemented the existing
+`safe_t_e_value` / `e_value_validity_check` pair (verbatim formula from
+`scripts/arms_08i_min_observations_floor.py:254-303`, which every `arms_*` script in the tree
+copies) in a scratchpad probe, seeded at `S.RANDOM_STATE = 20260528` matching every existing arm
+script, `n_draws = 100,000`, i.i.d. `N(0, sigma)` deltas:
+
+| `sigma` | mean `E` (`n=5,g=1`, reproduced as a harness check) | mean `E` (`n=10,g=1`) | MC SE (`n=10,g=1`) |
+| ---: | ---: | ---: | ---: |
+| 0.001 | 1.0016 | 0.9896 | 0.0270 |
+| 0.01  | 0.9992 | 1.0314 | 0.0464 |
+| 0.1   | 1.0108 | 0.9525 | 0.0227 |
+| 1.0   | 1.0014 | 0.9962 | 0.0332 |
+
+The `n=5,g=1` column reproduces the numbers already on record in `08e`/`08i`/`08h` exactly,
+confirming the reimplementation is faithful. At `n=10,g=1`, mean `E` sits within 1–2 MC SE of 1.00
+at every `sigma`, but the MC SE itself is **4–9× larger** than at `n=5` — expected, not a defect:
+the cap is 1,349× higher (48,559 vs 36), so the null distribution of `E` has a heavier right tail
+and 100k draws resolves its mean less tightly. Re-run at 1,000,000 draws across three independent
+seeds to confirm this is Monte Carlo noise and not a broken construction: mean `E` ranged
+**0.976–1.033** (MC SE 0.010–0.021) across all twelve (seed × sigma) cells — consistent with a true
+null mean of 1.00 throughout. The `t = 10^6`-style boundary check (`09c`'s opening arithmetic)
+reproduces analogously at the new parameters: a synthetic near-zero-variance delta set at
+`n = 10, g = 1` returns `E = 48558.7036`, matching `E_max(10, 1)` to the digits shown. The worked
+example in `e_value_construction.md` §4 (`n=5,g=1`, `t=7.31`) reproduces at `E = 17.0468`, matching
+its published `17.0` to three figures. Scratch script, not committed, per the standing ad-hoc-probe
+rule.
+
+**Definition-of-done check.** All four bullets met: (a) `n=10, g=1` ruled, ceiling `48,558.70`
+clears the enumerated `≈2,080` bar with its refit cost stated plainly; (b) the ceiling formula is in
+`e_value_construction.md` §4 beside the worked example; (c) `gates.md` step 7 now requires the
+ceiling-vs-family-size check before declaring; (d) the 100k-draw null check re-ran at the new
+parameters, table above, real output. **Left undone, named rather than hidden:** the `02c` 12-vs-16
+and `10e` 3-vs-6 counting-convention ambiguities (§2); whether `gates.md` step 3's reseed floor
+moves to 10 seeds alongside Construction B (§4's power-cost paragraph); and `04c` re-running the
+*authoritative* union e-BH over all 103 (or more, once those ambiguities resolve) declared `E`s,
+which would retroactively correct `08e`'s, `10b`'s and `10e`'s local "rejects" readings (§3). None
+of these are this item's four bullets; all three are logged so the next session does not have to
+re-discover them.

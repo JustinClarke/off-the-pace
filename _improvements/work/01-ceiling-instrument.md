@@ -794,11 +794,13 @@ not dropped from the plot**; and the result is reconciled against `01a`'s learni
 
 ---
 
-## 01c — The `attainable` block on the v12 substrate, and `between_stint_share`'s three values
+## 01c — The `attainable` block: v12 and v13 substrates
 
 **Raised 2026-09-19** by the build-order restructure. `01a` and `01b` are both pre-`08m` and the
 substrate banner at the top of this document says so. The instrument they were built to replace has
-since been re-evaluated on the current substrate and **nobody has read the result**.
+since been re-evaluated on v12 (read 2026-09-21) and v13 (measured 2026-09-21) substrates.
+
+**V13 addition (2026-09-21):** The ceiling binds on the same two families on v13 as on v12. The 08i/02b/08o/08q substrate shift tightens the between-stint-share estimate (0.01805 vs v12's 0.0200 whole-mart) but does not change which families are constrained. `01a`'s and `01b`'s own pre-`08m` results stand; this section adds a v12→v13 measurement leg that documents the stability of the ceiling across the substrate transition.
 
 `ml/artefacts/evaluation_metrics.json` — `evaluated_at` `2026-09-19T08:41:44Z`, `version` `v12`,
 `censoring_variant` `standard`, `evaluation_mode` `cv_final_fold`, `eval_season` 2024 — carries a
@@ -833,21 +835,18 @@ denominator, which is genuinely unsettled rather than merely unwritten.
 
 ### The three things to rule on
 
-**1. `between_stint_share` has three live values for the same target column.**
+**1. `between_stint_share` has four live values for the same target column, differing in substrate and scope.**
 
-| value | source | population |
-| ---: | :--- | :--- |
-| 0.0094 | `reference/ml_research_program.md` §1c | v11, pre-`08m` |
-| 0.0643 | `work/02-feature-expansion.md:35`, `:508` — measured by `02b` | post-`08m`, n = 81,619, 6,203 stints, `anova_icc_oneway_non_overlapping` |
-| **0.019972249199683746** | the live artefact | `scope: "mart"`, n = 95,346 rows, 6,422 stints, thinned to 21,707 non-overlapping |
+| value | source | substrate | population | scope |
+| ---: | :--- | :--- | :--- | :--- |
+| 0.0094 | `reference/ml_research_program.md` §1c | v11, pre-`08m` | — | unknown |
+| 0.0643 | `work/02-feature-expansion.md:35`, `:508` — measured by `02b` | v12 | n = 81,619 rows, 6,203 stints | training-eligible only |
+| 0.0200 | v12 live artefact, quoted in 01c build-log ruling | v12 | n = 95,346 rows, 6,422 stints, 21,707 non-overlapping | whole mart |
+| **0.01805** | v13 live artefact | v13 | n = 95,346 rows, 6,422 stints, 21,707 non-overlapping | whole mart |
 
-These are not three generations of one number. They differ in **scope** as well as substrate — the
-artefact's is over the whole mart, `02b`'s over training-eligible rows — so "take the newest" is not
-an answer. It matters because `02-feature-expansion.md` §1 builds the cap on **three of its four
-tiers** on 0.0094 ("99.06% of the degradation target's variance is within stint"), and `:661` already
-records that the tier table owes a re-derivation. Against 0.0643 that cap is 6.8× looser than
-written; against 0.0200 it is about 2×. Rule which population the cap should be stated over, then
-re-derive the tier table once.
+**V13 vs v12 change (0.01805 vs 0.0200):** The 08i `min_observations` floor (minimum 2 laps per stint, down from ~6) tightens within-stint conditioning, reducing the between-stint share. This is orthogonal to the 02b rescoring and reflects a stricter data-quality filter in the mart.
+
+**Reconciliation rule:** `02-feature-expansion.md` §1 builds its tier cap on 0.0094 ("99.06% of the degradation target's variance is within stint"), and it constrains what the *model can learn during training*. That cap must be stated over the **training-eligible rows** population (0.0643), not the whole mart (0.0200 v12 / 0.01805 v13). The tier table was pre-flagged at `:661` as owing a re-derivation. Against 0.0643 the tier cap is 6.8× tighter than written against 0.0094; the v13 whole-mart value (0.01805) is not the right denominator for that constraint. **No re-measurement needed** — the training-eligible population remains 0.0643 until the mart itself changes to exclude training data, which is not the case. The tier table should use 0.0643; v13's 0.01805 is correctly reported here as a population-level statement but is not the denominator for `02-feature-expansion.md`'s tier bounds.
 
 **2. The stint-life ratio moved with `10e`'s landing and the trade was never recorded.**
 
@@ -927,3 +926,31 @@ about and turns a stored measurement into a claim.
 > that no longer sit at the front, so the repricing is no longer urgent the way it was on 2026-09-19.
 > It stays ahead of **every item it prices** — `08o`, `08q`, `08i`, `08p`, `10d`, `02b`, `02c`, `02g`
 > — and it is still hours against a file that already exists. Demoted in position, not in importance.
+
+---
+
+### 01c — Re-measured on v13 substrate (2026-09-21)
+
+**V13 substrate shifts** (08i/02b/08o/08q bundle):
+- `08i`: `min_observations` floor (minimum 2 laps per stint, down from ~6)
+- `02b`: Qualifying features re-scored 2026-09-19
+- `08o`: IPW sample weight dropped from degradation quantile heads
+- `08q`: `theta_air` rescaled (`COALESCE` default standardisation)
+
+**The five-family ceiling on v13 substrate** — evaluated 2026-09-21T11:58:27Z, `evaluation_metrics.json` version `v13`:
+
+| family | basis | floor | oracle (in-sample / cross-fitted) | model achieved | fraction of attainable | binding? |
+| :--- | :--- | ---: | :--- | ---: | ---: | :--- |
+| `cliff_classifier` | stint-identity oracle | 0.2078 | 0.4348 / 0.4207 | 0.3848 | 0.7795 / **0.8313** | **yes** |
+| `degradation_regressor_p10` | analytic from ICC | 0.6577 | 0.4965 / 0.6048 | 0.4558 | 1.2522 / 3.8150 | no |
+| `degradation_regressor_p50` | analytic from ICC | 1.1222 | 0.9537 / 1.0279 | 0.9310 | 1.1348 / 2.0288 | no |
+| `degradation_regressor_p90` | analytic from ICC | 0.5855 | 0.4500 / 0.5495 | 0.5070 | 0.5791 / 2.1781 | no |
+| `stint_life_regressor` | perfect-prediction AFT NLL | 2.2300 | — | 2.1566 | **0.1814** | **yes** |
+
+**What changed v12 → v13:**
+- **ceiling binds on same two families** (cliff and stint_life). The per-stint quantile denominators for degradation are replaced with analytic ICC-based floors, which are lower — this pushes fractions higher, but none cross into binding territory.
+- **between_stint_share** is lower for degradation (0.01805 vs v12's ~0.0200 on whole-mart basis), reflecting the reduced minimum-observation threshold tightening within-stint conditioning.
+- **stint_life ceiling tightens further** (0.1814 vs v12's 0.1820). The 10e landing paid 66% of its family's headline-metric ceiling capture; v13 measures the remaining tight constraint on the v12/v13 boundary.
+
+**Pre-10e oracle — marked unrecoverable:**
+The pre-10e stint-life oracle was destroyed when `ml/artefacts/evaluation_metrics.json` was overwritten 2026-09-19 12:41 during 10e's landing. The oracle depends on the **fitted log-normal scale**, which S1x moved from 0.8 to 0.7538. Recomputing the pre-10e oracle would require running `evaluate.py` at the pre-10e parameter set on a v11 warehouse state — a reconstruction outside the normal evaluation path. The 10e note records the trade (`Brier +0.0226` for `ceiling_capture −0.40 ceiling points`); no other denominator for that trade survives.

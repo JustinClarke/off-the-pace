@@ -48,9 +48,9 @@ flowchart LR
 | `corner_braking_n` |   | Yes | [`not_null`](/transform/ci/structural) | Corners on this lap with a measured braking point. Companion column, not a feature. |
 | `corner_mid_n` |   | Yes | [`not_null`](/transform/ci/structural) | Corners on this lap with a measured apex speed. Companion column, not a feature. |
 | `corner_exit_n` |   | Yes | [`not_null`](/transform/ci/structural) | Corners on this lap with a measured full-throttle point. Companion column, not a feature. |
-| `corner_braking_loss_mean_s` |   | Yes |   | Mean braking_loss_s across the lap's braking corners (mean -0.0065 s). NULL, never 0.0, when unmeasured. |
-| `corner_braking_loss_sd_s` |   | Yes |   | Sample sd of braking_loss_s across the lap's corners (mean 0.3289 s). NULL on 2.57% of rows here -- laps with fewer than two measured braking corners, where a sample sd is undefined rather than zero. |
-| `corner_braking_loss_max_s` |   | Yes |   | Largest braking_loss_s on the lap, the single hardest corner (mean 0.5459 s). |
+| `corner_braking_loss_mean_s` |   | Yes |   | Mean braking_loss_s across the lap's braking corners; positive = braked earlier than the field = time lost (mean +0.0065 s since 00d fixed the sign; it read -0.0065 s before). NULL, never 0.0, when unmeasured. |
+| `corner_braking_loss_sd_s` |   | Yes |   | Sample sd of braking_loss_s across the lap's corners (mean 0.3289 s, unchanged by 00d's sign fix: a sample sd is invariant to negation). NULL on 2.57% of rows here -- laps with fewer than two measured braking corners, where a sample sd is undefined rather than zero. |
+| `corner_braking_loss_max_s` |   | Yes |   | Largest braking_loss_s on the lap: the corner where the driver lost the most time on entry (mean +0.6475 s). NOT a sign flip of its pre-00d self -- MAX does not commute with negation, so this column changed from "the corner braked latest" to "the corner braked earliest relative to the field", which is what a column named max loss should mean. Pre-00d mean was +0.5459 s and corr(old, new) = 0.080 over 131,482 laps. |
 | `corner_mid_residual_mean_s` |   | Yes |   | Mean mid_corner_residual_s across the lap's corners (mean -0.0102 s). Highest-coverage phase. |
 | `corner_mid_residual_sd_s` |   | Yes |   | Sample sd of mid_corner_residual_s across the lap's corners (mean 0.1439 s; NULL on 2.39%). |
 | `corner_mid_residual_max_s` |   | Yes |   | Largest mid_corner_residual_s on the lap (mean 0.2543 s). |

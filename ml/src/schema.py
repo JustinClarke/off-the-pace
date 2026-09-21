@@ -89,7 +89,11 @@ IDENTIFIER_COLUMNS: tuple[str, ...] = (
     "survival_weight",
 )
 
-# ─── Feature set (32) verified members, grouped for ablation ────────────────────
+# ─── Feature set (39) verified members, grouped for ablation ────────────────────
+# 02b / D12 (2026-09-21): 32 -> 39. The seven `qualifying` columns join the contract
+# GLOBALLY but are MASKED from every family except cliff_classifier -- see
+# PER_TARGET_FEATURE_MASK below. The effective width is 39 for cliff_classifier and 32
+# for the degradation trio and stint life, which is the shape D12 ruled.
 # Phase 9 (2026-09-05): dropped `powertrain` (6), `telemetry_cliff` (5), `weather_air` (2),
 # `track` (2) and `context` (3) -- 18 of the prior 42 columns -- on a noise-floor group
 # ablation re-run against the v8 mart (5-lap target, repaired cliff label) across all three
@@ -182,6 +186,64 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "share_lap_behind_within_1s", "time_within_1s", "gap_ahead_min_s",
         "gap_ahead_median_s", "ahead_identity_stability",
         "n_distinct_cars_ahead_3s",
+    ),
+    # 02b, Tier 1 -- qualifying. ADMITTED 2026-09-21 by D12, for `cliff_classifier`
+    # ONLY; the degradation trio and stint life are masked back to 32 below. Weekend
+    # grain (race_year, race_id, driver_id) from int_qualifying_driver_summary,
+    # broadcast onto every lap of that driver's race, so every member is
+    # stint-invariant by construction (verified: zero stints and zero driver-weekends
+    # in the 119,822 training-eligible rows carry more than one distinct value).
+    #
+    # Re-scored 2026-09-19 on the post-08m substrate (`scripts/arms_02b_qualifying.py`;
+    # `ml/artefacts/02b_qualifying_arms.json`). Add-ablation on cv_final_fold, train
+    # 2018-2023, eval 2024, each delta over that family's OWN in-run 5-reseed floor
+    # (2*sqrt(2)*sd), "raw" = add-ablation, "info" = permutation-corrected (real -
+    # shuffled). Clearing needs both, per gates.md:
+    #   cliff  A full  raw +7.27x  info +7.47x  CLEARS   macro-F1 0.35247 -> 0.38404
+    #          B car   raw +4.60x  info +4.67x  CLEARS            -> 0.37245
+    #          C form  raw +6.80x  info +6.56x  CLEARS            -> 0.38196
+    #   p90    B car   raw +1.90x  info +1.42x  clears   pinball  0.51285 -> 0.49693
+    #          C form  raw +1.04x  info +1.20x  clears            -> 0.50415
+    #          A full  raw +1.41x  info +0.95x  MISSES (dilution: the union pays more
+    #                  capacity than the halves earn back -- Phase 10a's trap, mirrored)
+    #   p10/p50/stint life -- nothing reaches its floor on any arm.
+    # C beats B on cliff, so the carrying channel is the DRIVER's one-lap form, not the
+    # car term. All 7 are admitted together (Arm A) rather than B or C alone: A is the
+    # best cliff arm, and the pre-registration carries `quali_push_laps_n` in A only,
+    # as the explicit coverage indicator for the other six.
+    #
+    # WHY p90 IS NOT ADMITTED THOUGH B AND C CLEARED IT. Not a reading of the evidence
+    # -- a ruling (D12) taken against a machinery constraint. features.py:178 keys
+    # PER_TARGET_FEATURE_MASK by TargetSpec.family, and p10/p50/p90 share the single
+    # family `degradation_regressor`, so "p90 only" is INEXPRESSIBLE by masking: it
+    # means all three quantile heads (p10 measurably worse, C at raw -2.93x) or a code
+    # change keying the mask by target name. D12 chose neither and closed the trio at
+    # 32. Re-opening p90 is a code change first, not an edit to this dict.
+    #
+    # Gate 7 (e-BH) rejects NOTHING here, and that is structural, not a weak result:
+    # under the declared Construction B at n=5, g=1, E is capped at 36 while e-BH needs
+    # E >= 20*m = 400 for this item's 20 declared hypotheses. Best measured E is 32.6.
+    # The admission rests on gates 3 + 4 (floor + information split), which is what
+    # D12 ruled on. See 02-feature-expansion.md sec.11 and 09c.
+    #
+    # Missingness is a measured 1.947% on six of the seven, NOT forward leakage (a
+    # driver-weekend's qualifying record is settled before the race starts). It is
+    # concentrated in 2018 (7.98%, an upstream ingestion gap -- LEC/OCO/PER/ALO/BOT all
+    # qualified for 2018_1 and all lack rows) and it is not label-neutral: NULL rows are
+    # 39% likelier to sit within 2 laps of a cliff crossing. `quali_push_laps_n` is
+    # COALESCE-d to 0 at source and is a PERFECT indicator of that pattern (verified
+    # both directions), so the channel is explicit rather than an implicit NaN pattern a
+    # tree could split on. The other six stay NULL -> XGBoost native missing.
+    #
+    # `quali_vs_race_skill_delta_s` exists upstream and is deliberately NOT carried: it
+    # is a same-race average of driver_skill_residual_s, unknowable until the race has
+    # finished -- the forward-reach defect int_qualifying_decomposed's own
+    # aggregation_scope_exemptions entry names.
+    "qualifying": (
+        "quali_push_laps_n",
+        "quali_constructor_pace_mean_s", "quali_constructor_pace_se_mean_s",
+        "quali_pace_delta_best_s", "quali_ratio_to_segment_best_min",
+        "quali_skill_session_avg_s", "quali_segments_contested_n",
     ),
 }
 
@@ -309,11 +371,61 @@ PRODUCTION_TARGETS: tuple[TargetSpec, ...] = (
 )
 TARGET_BY_NAME: dict[str, TargetSpec] = {t.name: t for t in PRODUCTION_TARGETS}
 
-# stint_length_laps is masked from the stint-life model's X (would memorise the answer).
-# It is never in FEATURE_COLUMNS; the mask is a belt-and-braces guard applied in features.py.
+# Per-FAMILY feature mask, applied in features.py:176-179.
+#
+# READ THE KEY CAREFULLY: it is `TargetSpec.family`, NOT `TargetSpec.name`. features.py
+# looks up `S.TARGET_BY_NAME[target].family`, so a key spelled `degradation_regressor_p10`
+# would never be read and would mask NOTHING -- it would sit here looking like a guard
+# while every quantile head kept seeing the columns. p10, p50 and p90 share the single
+# family `degradation_regressor` (see PRODUCTION_TARGETS above), so they cannot be masked
+# apart without keying this dict by target name instead, which is a code change in
+# features.py and not an edit here.
+#
+# Two entries, two different reasons:
+#
+# 1. `stint_length_laps` is masked from stint life because it would memorise the answer
+#    (the target is stint_length_laps - lap_in_stint). It is never in FEATURE_COLUMNS, so
+#    that half is belt-and-braces.
+#
+# 2. The seven `qualifying` columns (02b) ARE in FEATURE_COLUMNS, so for them this mask is
+#    load-bearing, not belt-and-braces -- it is the only thing implementing D12's
+#    "cliff_classifier only". Removing either entry silently widens a family that did not
+#    earn the columns. Measured on the post-08m substrate: the degradation trio clears
+#    nothing at p10/p50 (p10 is actively worse, Arm C at raw -2.93x floor) and stint life
+#    clears nothing on any arm (best raw +0.87x; Arm C's information term is +0.00003,
+#    i.e. the driver-form columns do precisely nothing for remaining stint life once
+#    capacity is accounted for). p90 DID clear on arms B and C individually but is masked
+#    anyway, because it shares a family with p10 and p50 -- see the FEATURE_GROUPS
+#    ["qualifying"] note.
+#
+# Effective contract width: cliff_classifier 39, everything else 32.
+#
+# NOTE FOR THE v13 EXPORT (not fixed here, no retrain in this change): this is the first
+# mask that actually removes a FEATURE_COLUMNS member, so the feature vector is now
+# per-model. export_onnx.py:298-300 still writes ONE global `input` block from
+# len(S.FEATURE_COLUMNS), and tests/test_manifest_contract.py
+# ::test_manifest_input_width_matches_the_actual_booster is parametrized over all five
+# targets against that single declared width. Once v13 artefacts exist, four of those five
+# boosters will be 32-wide against a 39-wide declaration. The manifest needs a per-model
+# feature_order before the browser scores v13, or it will build the wrong vector.
 PER_TARGET_FEATURE_MASK: dict[str, frozenset[str]] = {
-    "stint_life_regressor": frozenset({"stint_length_laps"}),
+    "stint_life_regressor": frozenset({"stint_length_laps"}) | frozenset(FEATURE_GROUPS["qualifying"]),
+    "degradation_regressor": frozenset(FEATURE_GROUPS["qualifying"]),
 }
+
+
+def feature_columns_for(target: str) -> tuple[str, ...]:
+    """The effective, ordered feature contract for one target, after PER_TARGET_FEATURE_MASK.
+
+    Since 02b/D12 the contract is no longer one width: `cliff_classifier` takes 39 columns
+    and every other family takes 32. Anything that builds a feature matrix or declares a
+    feature order must go through here rather than through FEATURE_COLUMNS directly, or it
+    will hand a 39-wide matrix to a 32-wide booster. Order is FEATURE_COLUMNS order with the
+    masked members removed, which is the order features.py fits in and therefore the order
+    positional scoring requires.
+    """
+    masked = PER_TARGET_FEATURE_MASK.get(TARGET_BY_NAME[target].family, frozenset())
+    return tuple(c for c in FEATURE_COLUMNS if c not in masked)
 
 
 def artefact_name(spec: TargetSpec, version: str) -> str:
@@ -358,7 +470,44 @@ PREDICTIONS_ARROW_SCHEMA = pa.schema([
 ])
 assert len(PREDICTIONS_ARROW_SCHEMA) == 19, "predictions schema must be 19 columns"
 
-MODEL_VERSION_DEFAULT = "v12"  # v12 = work item 08m's repair of the compound wear curve. NOT a
+MODEL_VERSION_DEFAULT = "v13"  # v13 = the four-item bundle (08i, 02b, 08o, 08q), landed as ONE
+# version bump per D16. Four independent changes ride it; the union touches all five fits, which is
+# why it is one bump and not four (D16's trace: a version EXISTS only when all five .bst files exist
+# at it, since predict.py loads the set at one version and raises if any is missing).
+#
+#   08i (D10) - `int_lap_thermal_proxy` min_observations 2 -> 1. Reverts a floor nobody chose on
+#     evidence: it was set on 2026-09-10 by a session that left no artefact and rode into git inside
+#     a commit about something else. Measured through the full gate on the v12/08m substrate, floor 1
+#     is better on all three degradation heads and uniformly better than floor 2 across families;
+#     floors 3 and 5 lose coverage AND signal and are dead. Moves the four thermal columns, which are
+#     unmasked, so it moves all five fits.
+#   02b (D12) - the seven `qualifying` columns join FEATURE_COLUMNS for `cliff_classifier` ONLY
+#     (clears at 4.6x-6.8x its floor on all three arms). The degradation trio and stint life stay at
+#     32 columns. **This is the first version whose feature contract is not one width**: 39 for the
+#     classifier, 32 for everything else, implemented by PER_TARGET_FEATURE_MASK above and readable
+#     only through `feature_columns_for()`. p90 cleared on arms B and C individually but is masked
+#     anyway, because the mask is family-level and p90 shares a family with p10 and p50.
+#   08o - the IPW survival sample weight comes off the degradation quantile heads
+#     (`train.py::_sample_weight` now returns None for kind == "quantile"). 08f-1 measured uniform as
+#     better on all three heads, every delta inside its own reseed floor, with one floor-clearing
+#     permutation-null information cost on p10. Touches three of five fits. Recorded as a null-shaped
+#     result that tidies a mechanism, NOT as a headline win - see 08o's leaf doc before quoting it.
+#   08q - `theta_air` stops being a COALESCE default. The hardcoded 0.5 s/lap was 3.8x the estimate
+#     (+0.1310 s/lap, 95% CI [+0.1144, +0.1476]). Confined to `int_dirty_air_tax_component.sql`, so
+#     it moves the label for the trio and the classifier (four of five on substance); stint life's
+#     target is synthesised in features.py and does not carry it.
+#
+# **What is comparable across v12 -> v13.** Nothing, head-to-head, without care. 08q moves the LABEL
+# for four of five families, so - exactly as at 08m - `next_5_lap_cumulative_jump_s` and
+# `laps_until_cliff_class` are different quantities under unchanged column names, and
+# `_guard_target_change` cannot catch it because it compares target column NAMES. A smaller v13
+# pinball loss is not automatically skill. The admissible comparisons are the per-arm, fixed-target
+# measurements already recorded in each item's leaf doc, not the v12/v13 eval headlines.
+# **v12 is the rollback floor, with one caveat**: 08o's measurement session on 2026-09-21 refit and
+# re-exported the three degradation v12 artefacts IN PLACE (14:13-14:14), so the trio's v12 files on
+# disk are 08o's uniform-weight arm, not the published v12 fit. v11 is intact and is the clean floor.
+#
+# v12 = work item 08m's repair of the compound wear curve. NOT a
 # feature-contract change and NOT a re-tune: the contract is v11's 32 columns unchanged and every
 # target keeps its own `*_best_params.json`, i.e. v11's hyperparameters. What moved is what two of
 # those columns MEAN. `int_compound_cliff_predicted.sql` was multiplying `compound_cliff_severity`

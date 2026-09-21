@@ -39,12 +39,27 @@ pytestmark = pytest.mark.skipif(
 
 
 @pytest.fixture(scope="module")
-def sample():
-    return E.nan_bearing_sample()
+def samples():
+    """One NaN-bearing sample PER FEATURE CONTRACT, not one for the whole module.
+
+    Before v13 every target took the same 32 columns and a single sample served all
+    five. 02b/D12 made the contract per-model (cliff_classifier 39, the rest 32), so a
+    shared sample hands the classifier a 32-wide matrix and XGBoost refuses it. Cached
+    on the column tuple, so the four 32-wide families still share one load.
+    """
+    cache: dict[tuple[str, ...], object] = {}
+
+    def get(target: str):
+        key = tuple(S.feature_columns_for(target))
+        if key not in cache:
+            cache[key] = E.nan_bearing_sample(target=target)
+        return cache[key]
+
+    return get
 
 
 @pytest.mark.parametrize("target", [t.name for t in S.PRODUCTION_TARGETS])
-def test_onnx_parity(target, sample):
-    r = E.parity(target, VERSION, sample)
+def test_onnx_parity(target, samples):
+    r = E.parity(target, VERSION, samples(target))
     assert r["pass"], (f"{target}: ONNX≠bst (abs={r['max_abs_diff']:.2e}, "
                        f"rel={r['max_rel_diff']:.2e})-do NOT loosen atol; escalate R1.")

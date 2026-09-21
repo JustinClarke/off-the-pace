@@ -7,10 +7,17 @@ shipped are three different models wearing one name. Both disagreements this fil
 down were live in the tree until Phase 7.
 
 **The search.** `tune.py`'s objective used to call `model.fit` directly, and deliberately did not pass
-`meta`. `train._sample_weight` needs `meta` to produce the quantile trio's IPW survival
-weights, so the search scored p10/p50/p90 **unweighted** while `train._fit` refits them
+`meta`. `train._sample_weight` needed `meta` to produce the quantile trio's IPW survival
+weights, so the search scored p10/p50/p90 **unweighted** while `train._fit` refitted them
 **weighted** -- the params in `ml/models/degradation_regressor_p*_best_params.json` were
-selected against an objective the refit does not use.
+selected against an objective the refit did not use.
+
+**08o dropped that weight from the training path**, so the trio is now fitted uniformly
+everywhere. That changes the *value* these tests assert and not one word of the contract:
+the search, the refit and the eval must still agree, and the way they are held to it is
+still recording all three on identical rows rather than reading any of them. The tests
+below were flipped, not deleted, because a weighting contract with no weights in it is
+exactly the state in which the next weighting change slips through unnoticed.
 
 The repair is that the fold fit goes through `train._fit`, the same function the refit
 calls. These tests assert the resulting property rather than the call: for every
@@ -27,7 +34,7 @@ refuses that, and the last tests here hold it.
 **The evaluation.** `evaluate._fit` had the identical hole, one layer further on, and
 it is the one that reaches print: the eval models behind every headline, ablation,
 learning curve and `beats_baseline` interval were refit UNWEIGHTED against shipped
-boosters that are weighted. Measured on the 1-lap target the gap is 0.15%/0.45%/-0.22%
+boosters that were weighted. Measured on the 1-lap target the gap is 0.15%/0.45%/-0.22%
 pinball (p10/p50/p90) and on the 5-lap target it is +4.42% at p10 -- small, and small is
 not the point: the number in the card described a model nobody trained.
 
@@ -152,18 +159,19 @@ def test_search_fits_with_the_weights_the_refit_applies(search, target):
 @pytest.mark.parametrize("target", ["degradation_regressor_p10",
                                     "degradation_regressor_p50",
                                     "degradation_regressor_p90"])
-def test_quantile_search_carries_the_ipw_weights(search, target):
-    """The regression itself: the trio searches under IPW, per-row, per fold.
+def test_quantile_search_carries_no_row_weights(search, target):
+    """The regression itself, post-08o: the trio searches UNWEIGHTED, per fold.
 
-    `survival_weight` is the C2 correction for early-pitted stints being
-    under-counted at high lap_in_stint. Searching without it optimises a different
-    population from the one the refit is fitted to."""
+    08o measured IPW against uniform and dropped it, so the search must stop applying
+    it too -- and this is the assertion that says so on the fold's own rows, rather
+    than trusting that one shared code path implies one shared weighting.
+
+    Pinned as `is None` and not merely "not the IPW vector": a constant weight vector
+    would fit identically and still mean the search had grown a weighting scheme of its
+    own that nothing downstream knows about."""
     calls, bundle, fold_idx = search(target)
     for call, (tr, _) in zip(calls, fold_idx):
-        w = call["sample_weight"]
-        assert w is not None
-        np.testing.assert_allclose(
-            w, bundle.meta_train["survival_weight"].to_numpy()[tr], rtol=0, atol=0)
+        assert call["sample_weight"] is None, "08o dropped the trio's IPW weights"
 
 
 def test_survival_search_passes_the_censoring_flag(search):
@@ -188,20 +196,31 @@ def test_classifier_search_carries_balanced_class_weights(search):
         assert len(np.unique(call["sample_weight"])) > 1, "balanced weights are not constant"
 
 
-def test_the_defect_was_real(search):
-    """Keeps the tests above from being vacuous.
+def test_the_drop_is_a_decision_not_a_missing_column(search):
+    """Keeps the tests above from being vacuous, in the direction that now matters.
 
-    The old objective called `_sample_weight(spec, y)` with no meta. If that returned
-    the same thing as the refit's call, none of this would be a contract worth
-    asserting -- so assert that it does not, on the exact rows the search fits."""
+    Before 08o the anti-vacuity risk was that the two paths agreed by accident. After
+    it, every weight assertion in this file is `is None`, and `is None` is also what you
+    get if `survival_weight` quietly stopped reaching `meta` -- a mart change, a rename,
+    a dropped IDENTIFIER_COLUMN. Those are different failures with identical test
+    output, and only one of them is the ruling 08o took.
+
+    So assert the column is still there, still varies row to row, still reaches
+    `train._fit` as meta, and is still ignored. That is the difference between "we
+    decided not to weight" and "we lost the weights"."""
     spec = S.TARGET_BY_NAME["degradation_regressor_p50"]
     _, bundle, fold_idx = search("degradation_regressor_p50")
     y = bundle.y_train.to_numpy()
     tr = fold_idx[0][0]
-    old = T._sample_weight(spec, y[tr])                       # the pre-fix search path
-    new = T._sample_weight(spec, y[tr], bundle.meta_train.iloc[tr])  # what train._fit uses
-    assert old is None and new is not None
-    assert float(np.std(new)) > 0, "an IPW vector that is constant would make the two equivalent"
+    meta_tr = bundle.meta_train.iloc[tr]
+
+    assert "survival_weight" in meta_tr.columns, "the column still reaches train._fit"
+    assert float(np.std(meta_tr["survival_weight"].to_numpy())) > 0, \
+        "a constant column would make 'ignored' and 'absent' indistinguishable"
+    assert T._sample_weight(spec, y[tr], meta_tr) is None, "handed the weights, declines them"
+    assert T._sample_weight(spec, y[tr]) is None, "and does not depend on meta to decline"
+    assert "survival_weight" in S.IDENTIFIER_COLUMNS, "08o DoD 4: the contract does not move"
+    assert "survival_weight" not in S.FEATURE_COLUMNS, "never a predictor, under any outcome"
 
 
 # ─── The evaluation path ────────────────────────────────────────────────────────
@@ -232,42 +251,76 @@ def test_evaluate_refits_with_the_weights_production_ships(monkeypatch, target):
 @pytest.mark.parametrize("target", ["degradation_regressor_p10",
                                     "degradation_regressor_p50",
                                     "degradation_regressor_p90"])
-def test_evaluate_refuses_to_fit_a_quantile_model_unweighted(target):
-    """The guard is loud, not defaulted.
+def test_evaluate_fits_a_quantile_model_unweighted_like_production(monkeypatch, target):
+    """The old guard here raised on `w is None` for a quantile target. 08o made that
+    the production path, so the guard is gone and this asserts the replacement: a
+    quantile eval fit with no weights passed fits with no weights, rather than raising
+    or reaching for `meta['survival_weight']` on its own.
 
-    A silent fallback to unweighted is precisely how this survived: every call site
-    read as if it were complete. A caller that forgets the weights now fails rather
-    than quietly measuring a model that is not the one shipped."""
+    The guard's purpose -- no silent fallback to a fit production does not use -- is
+    now carried by `test_evaluate_refits_with_the_weights_production_ships`, which
+    compares the two paths directly instead of hard-coding which of them is weighted."""
     spec = S.TARGET_BY_NAME[target]
     bundle = _bundle(spec)
-    with pytest.raises(ValueError, match="IPW"):
-        E._fit(spec, {}, bundle.X_train, bundle.y_train.to_numpy())
+    calls: list[dict] = []
+    monkeypatch.setattr(T, "_make_model", lambda spec, params: _Recorder(calls))
+
+    E._fit(spec, {}, bundle.X_train, bundle.y_train.to_numpy())
+    assert len(calls) == 1 and calls[0]["sample_weight"] is None
 
 
-def test_the_eval_split_carries_the_weights_row_for_row():
-    """The weights ride on EvalSplit like the censoring flags, sliced with the rows.
+@pytest.mark.parametrize("target", ["degradation_regressor_p10",
+                                    "degradation_regressor_p50",
+                                    "degradation_regressor_p90"])
+def test_the_trio_really_trains_with_no_weights(target):
+    """A real booster, not a recorder: 08o removed an argument that XGBoost was being
+    handed, and `sample_weight=None` has to reach a live `fit` without a shape or dtype
+    complaint before any of the parity assertions above mean anything."""
+    spec = S.TARGET_BY_NAME[target]
+    bundle = _bundle(spec)
+    model = T._fit(T._make_model(spec, {"n_estimators": 4, "max_depth": 2}), spec,
+                   bundle.X_train, bundle.y_train.to_numpy(), bundle.meta_train)
+    pred = model.predict(bundle.X_train)
+    assert pred.shape == (len(bundle.X_train),)
+    assert np.isfinite(pred).all()
 
-    The split's training side is a season-fold subset, so a weight vector that was not
-    sliced with it would still have the wrong length -- but one sliced with the WRONG
-    index would not, which is what this checks."""
+
+def test_the_eval_split_still_slices_weights_row_for_row(monkeypatch):
+    """The slicing MECHANISM, asserted with no production target that uses it.
+
+    08o left `_row_weights` returning None for everything, which would make a test of
+    "the weights ride on EvalSplit, sliced with the rows" pass trivially for the rest of
+    time -- and then fail to catch a mis-sliced vector the day a weight comes back. So
+    the weight is injected here and the slicing is checked as it always was: the split's
+    training side is a season-fold subset, so a vector that was not sliced would have
+    the wrong length, but one sliced with the WRONG index would not."""
     spec = S.TARGET_BY_NAME["degradation_regressor_p50"]
     bundle = _bundle(spec)
+    monkeypatch.setattr(
+        E, "_row_weights",
+        lambda spec, meta: meta["survival_weight"].to_numpy(dtype=np.float32))
+
     split = E._evaluation_split(bundle)
     assert split.w_tr is not None and len(split.w_tr) == len(split.y_tr)
-
     by_lap = dict(zip(bundle.meta_train["lap_id"], bundle.meta_train["survival_weight"]))
     expected = np.asarray([by_lap[i] for i in split.lap_ids_tr], dtype="float32")
     np.testing.assert_allclose(split.w_tr, expected, rtol=0, atol=0)
 
 
-def test_non_quantile_targets_carry_no_row_weights():
-    """The classifier's balanced weights are a per-FIT statistic over the rows being
-    fitted, not a per-row property, so they must not be hoisted onto the split and
-    sliced -- balancing a fold against the full training set's class mix would be a
-    different, quieter version of the same bug."""
-    for target in ("cliff_classifier", "stint_life_regressor"):
-        spec = S.TARGET_BY_NAME[target]
-        assert E._row_weights(spec, _bundle(spec).meta_train) is None
+@pytest.mark.parametrize("target", [t.name for t in S.PRODUCTION_TARGETS])
+def test_no_production_target_carries_row_weights(target):
+    """Post-08o this covers all five, and it says two different things at once.
+
+    For the quantile trio it is 08o's ruling: the IPW weight is gone from the eval path
+    too, so the refit behind every published degradation number is the fit that ships.
+
+    For the classifier it is the older statement, unchanged: balanced weights are a
+    per-FIT statistic over the rows being fitted, not a per-row property, so they must
+    not be hoisted onto the split and sliced -- balancing a fold against the full
+    training set's class mix would be a quieter version of the same bug. `stint_life`
+    carries its censoring in the label and must not be weighted on top of it."""
+    spec = S.TARGET_BY_NAME[target]
+    assert E._row_weights(spec, _bundle(spec).meta_train) is None
 
 
 # ─── The identity of a fit ──────────────────────────────────────────────────────

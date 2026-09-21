@@ -16,8 +16,30 @@
 --   partial_residual = lap_time_s-field_pace_smoothed_s-fuel_component_s
 --   This avoids the circular reference: int_dirty_air_tax_component cannot ref
 --   int_lap_residual_decomposed because that model refs this one.
+--   The calibration panel carries BOTH arms (treated and untreated laps).
+--   See 08q below: filtering it to the treated arm left the regressor constant
+--   and the slope unidentified, so θ_air was never actually fitted.
 -- Part 2: Apply per lap
 --   dirty_air_tax_s = CLAMP(θ_air × dirty_air_share_lag1, 0, 5.0)
+--
+-- 08q (2026-09-21): θ_air is now an ESTIMATE, not a default.
+--   Until this item, `calibration_panel` filtered to `dirty_air_share_lag1 > 0`.
+--   dirty_air_share_lap is one bit per lap (S2-only, int_lap_air_state:144-152),
+--   so filtering to its treated arm left the regressor constant at 1.0 →
+--   VAR_POP = 0 → NULLIF → NULL → the COALESCE fell through to the literal 0.5
+--   on every build. dirty_air_tax_s was therefore exactly 0.5 s on every dirty-
+--   air lap and 0.0 otherwise: a lap counter with a unit attached, which the
+--   app's dirty-air-cost leaderboard presented as measured seconds.
+--   Removing the filter restores both arms and identifies the slope. Measured
+--   on the v12 substrate over the full 123,993-row panel (23.0% treated):
+--     θ_air = +0.1310 s/lap  [95% CI +0.1144, +0.1476], SE 0.0085
+--   The shipped 0.5 was 3.8x too high and sits outside that CI.
+--   Global pooled θ is used rather than per-season (06b/08q ruling): per-season
+--   θ ranges +0.418 (2018) to -0.011 (2024) and is indistinguishable from zero
+--   on 2021 and 2024, but a seven-way seasonal conditional is not carried into
+--   the ML label without its own gate ladder. See work/08-foundations-repair.md
+--   section 08q for the identification argument and the open ruling on what the
+--   app should show for seasons where θ is not distinguishable from zero.
 
 {{ config(materialized='table', tags=['causal_decomposition', 'dirty_air']) }}
 
@@ -149,6 +171,9 @@ panel AS (
 ),
 
 calibration_panel AS (
+    -- BOTH ARMS. Do not re-add a `dirty_air_share_lag1 > 0` filter here: the
+    -- regressor is binary, so restricting it to the treated arm makes it a
+    -- constant and the slope below is no longer identified (08q).
     SELECT
         race_year,
         race_id,
@@ -157,20 +182,26 @@ calibration_panel AS (
         partial_residual_s,
         dirty_air_share_lag1
     FROM panel
-    WHERE
-        dirty_air_share_lag1 > 0
-        AND partial_residual_s IS NOT NULL
+    WHERE partial_residual_s IS NOT NULL
 ),
 
--- Global θ_air: weighted regression slope Σ(x·y)/Σ(x²)
--- In production this is a pyfixest HDFE regression; here a SQL OLS
--- approximation.
+-- Global θ_air: OLS slope COV(y, x) / VAR(x) over the two-arm panel, which for
+-- a binary x is the treated-minus-untreated difference in mean partial
+-- residual. Identified by the one-lap lag: the air state that prices this lap
+-- is the previous lap's, so the causal arrow runs prior-position → current-cost.
+-- In production this would be a pyfixest HDFE regression (06b's F2 adds stint
+-- FE and tyre-age bins); this is the SQL OLS approximation, which reproduces
+-- +0.1310 s/lap on the v12 substrate.
 theta_air_estimate AS (
     SELECT
+        -- The COALESCE is a defensive guard, NOT the operating path: with both
+        -- arms present VAR_POP(x) > 0 and the fitted slope is what ships. Its
+        -- literal is the 08q measured global estimate so that a degenerate
+        -- panel falls back to a measured number rather than to a made-up one.
         COALESCE(
             COVAR_POP(partial_residual_s, dirty_air_share_lag1)
             / NULLIF(VAR_POP(dirty_air_share_lag1), 0),
-            0.5
+            0.1310
         ) AS theta_air,
         COUNT(*) AS calibration_sample_n
     FROM calibration_panel

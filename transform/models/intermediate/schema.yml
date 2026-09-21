@@ -66,9 +66,18 @@ models:
                 row_condition: "age_in_stint is not null"
       - name: compound_code
         description: >
-          Tyre compound code (HARD, MEDIUM, SOFT, INTERMEDIATE, WET, SUPERSOFT, ULTRASOFT,
-          HYPERSOFT). Joined from dim_compounds_season, which carries physical parameters
-          (grip, wear rate) keyed on (season, circuit, compound_code).
+          Tyre compound code (C1–C5) assigned by Pirelli for this race, joined from
+          stg_tyre_allocations on (race_year, circuit_key, compound_label). Absolute
+          identifier, unlike compound_in_stint which is relative. Enables cross-circuit
+          compound comparison and physical-parameters lookup in dim_compounds_season.
+
+          PROVISOS: (1) Data starts at 2019-01-20 (first Pirelli 2019 season race).
+          2018 rows carry NULL by construction — Pirelli's relative naming began in 2019,
+          and 08d's sourcing covers 2019-2024 only. (2) Sourced from user verification
+          (2026-09-17) of a 128-row Pirelli allocation table covering 127 mart races
+          2019–2024 (100% join coverage). Sourcing caveat: only 47 of 128 source URLs
+          resolve; see _improvements/work/08-foundations-repair.md (08d) for the full
+          provenance and epistemics ruling.
       - name: compound_label
         description: >
           Tyre compound label (hard, medium, soft) assigned by Pirelli for this race. Relative
@@ -426,9 +435,16 @@ models:
           Median lap_time_s over this stint's VALID laps strictly before this one.
           Expanding, not trailing-N: a stint is short enough that the window stays
           local, and capping it would let the baseline drift with the degradation it
-          measures. NULL until one valid prior lap exists -- usually laps 1-2, since
-          lap 1 of a stint is an out-lap and not valid. Costs 1.41pp of
-          training-eligible coverage against the old block median.
+          measures. NULL until one valid prior lap exists (min_observations=1) --
+          usually laps 1-2, since lap 1 of a stint is an out-lap and not valid.
+          Costs 1.41pp of training-eligible coverage against the old block median.
+          The floor is 1 by measurement, not by default: a 2026-09-10 session
+          silently raised it to 2, and 08i (RESULT 2026-09-18) gated all four
+          priced floors {1,2,3,5} on the v12/08m substrate and reverted to 1.
+          Floors 3 and 5 are rejected -- dominated on coverage AND signal. On the
+          v12 training-eligible panel floor 1 leaves 2,156/119,822 rows (1.80%)
+          thermal-NaN, +2.15pp of coverage against floor 2, and cuts the blind
+          rate on the hardest cliff class (0_to_2) from 12.13% to 10.48%.
       - name: baseline_observations_n
         description: >
           How many valid prior laps stint_baseline_pace was computed from. Ships as a
@@ -778,6 +794,10 @@ models:
         description: >
           Per-lap dirty-air slowdown cost from int_dirty_air_tax_component.
           Non-negative seconds. Zero when not in dirty air.
+          Subtracted into driver_skill_residual_s, so θ_air sits inside the ML label: this column
+          feeds DEGRADATION_TARGET and CLIFF_TARGET. 08q (2026-09-21) moved θ_air from an unfitted
+          0.5 literal to the fitted +0.1310 s/lap, which changes this component on the ~23% of panel
+          laps that are dirty-air laps and requires a target rebuild plus a model version bump.
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -1089,6 +1109,17 @@ models:
       One row per lap. Cost of driving in dirty air (turbulent wake) following another car.
       Uses prior-lap dirty-air intensity to establish causality: current lap slowdown → prior lap's position.
       Avoids reverse causality. Seconds lost = θ_air × dirty_air_intensity_lag1, capped [0, 5.0] seconds.
+      θ_air IS FITTED FROM THE DATA, not configured: it is the OLS slope of partial residual on the
+      lagged dirty-air bit over the full two-arm calibration panel (treated and untreated laps).
+      Before 08q (2026-09-21) the panel was filtered to `dirty_air_share_lag1 > 0`, which left the
+      binary regressor constant and unidentified, so θ_air silently fell through a COALESCE to the
+      literal 0.5 s/lap on every build and dirty_air_tax_s was 0.5 on every dirty-air lap and 0.0
+      otherwise. Measured on the v12 substrate the fitted value is +0.1310 s/lap
+      [95% CI +0.1144, +0.1476] over 123,993 laps — the shipped 0.5 was 3.8x too high. The COALESCE
+      literal is now that measured estimate and serves only as a degenerate-panel guard.
+      A global pooled θ is used deliberately; per-season θ runs +0.418 (2018) to -0.011 (2024) and is
+      not distinguishable from zero on 2021 and 2024, which is an open ruling for any fan-facing
+      surface that reports per-driver seconds (see work/08-foundations-repair.md section 08q).
     tags: [intermediate, causal_decomposition]
     meta:
       family: physics
@@ -1103,6 +1134,13 @@ models:
         description: >
           Per-lap dirty-air slowdown in seconds. θ_air × dirty_air_intensity_lag1.
           Positive (slower cost). Bounded [0, 5.0].
+          θ_air is estimated from the two-arm calibration panel, not defaulted (08q). Because
+          dirty_air_intensity_lag1 is one bit per lap, this column still takes two values per build —
+          0.0 on a clean-air lap and θ_air on a dirty-air lap — but θ_air is now the fitted
+          +0.1310 s/lap rather than the unfitted 0.5 literal it was through v12. A dose-response on
+          the measured gap (int_lap_air_state.min_gap_s / stg_telemetry_position.distance_to_ahead_m)
+          is the standing follow-up; removing the treated-arm filter is the identification fix, not
+          the measurement fix.
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -1114,8 +1152,12 @@ models:
         tests: [not_null]
       - name: tax_calibration_confidence
         description: >
-          Confidence in the tax [0, 1]. Degrades when calibration sample <1000 or
-          intensity is extreme (>2.5).
+          Confidence in the tax [0, 1], as n / (n + 500) over the calibration sample n.
+          Since 08q restored both arms to that panel, n is the full 123,993-lap panel rather than
+          the 28,523 treated laps it was through v12, so this reads ~0.996 rather than ~0.983.
+          It measures calibration SAMPLE SIZE ONLY and is not a statement about whether θ_air is
+          distinguishable from zero in a given season — it is near 1.0 on every season including
+          2021 and 2024, where the per-season estimate straddles zero.
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:

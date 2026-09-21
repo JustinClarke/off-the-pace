@@ -1399,7 +1399,7 @@ some seasons"*. Establish which seasons before trusting a per-circuit rate.
 
 ---
 
-### `02d` — Tier 3, SC hazard · REBUILT 2026-09-11, WIRED + ARMS PRE-REGISTERED 2026-09-20
+### `02d` — Tier 3, SC hazard · REBUILT 2026-09-11, WIRED + ARMS PRE-REGISTERED 2026-09-20, CONCLUDED 2026-09-21
 
 **Status of the two halves.** The expensive half — the expanding, season-lagged rebuild of
 `int_sc_hazard_history` — was built 2026-09-11 and is verified. The second half, wiring it
@@ -1569,7 +1569,7 @@ borrowed from a pre-`08m` run is void. Nothing in this section quotes one.
 | 4 — permutation null | arm P, capacity and information split |
 | **5 — forward-window audit** | **CLEAN.** See below. |
 | 6 — pre-registration | this section, written before the arms ran |
-| 7 — e-value | Construction B, n=5, g=1 |
+| 7 — e-value | Construction B, n=10, g=1 |
 
 **Step 5 is fully discharged and is the item's headline result.** `gates.md` step 5 names
 `02d` by name as one of two live instances of "a pooled historical rate leaks the future
@@ -1618,6 +1618,211 @@ next reader does not mistake "02d is closed" for "the shape is gone from the war
 caveat was stale. Timelines are thin on incident-free races (19 carry ≤3 messages), which is
 an absence of *events*, not of ingestion, and the numerator counts onsets so it reads those
 correctly as zero.
+
+### Verdict — `02d` · MEASURED 2026-09-21
+
+**Tier 3, SC hazard, is ruled out for `stint_life_regressor`.** All four arms make the model
+*worse* than the 32-column baseline, and the mechanism arm — the three shrunk hazard rates,
+the columns this whole item exists to test — is among them at **−1.86× its own floor**.
+Nothing moves into `FEATURE_COLUMNS`. Run: `python3 scripts/arms_02d_sc_hazard.py`,
+2026-09-21 10:04 UTC, ~2 minutes. Artefacts: `ml/artefacts/02d_sc_hazard_arms.json`
+(per-seed headlines, e-value components, the Monte-Carlo validity check) and `.log`.
+
+This is a null result and it is written up as one. The pre-registration above was built to be
+able to say no, and this is it saying no.
+
+#### 1. Gates 1 and 2 — instrument and split
+
+**Gate 1 PASS.** The 32-column refit reproduced the published `v12` headline to six decimals:
+`aft_nloglik` **2.1531517215** against **2.1531517215**. That anchors on the model actually
+shipping — `10e`'s S1x parameters, landed 2026-09-19 — which is what discharged `10d`'s bar on
+this family. The survival branch threads the censoring flags and the model's *fitted* AFT
+scale through both fit and score, as `02b`'s runner does; scoring at the module-default scale
+would have produced a plausible wrong number rather than an error.
+
+**Gate 2.** `cv_final_fold`, train 2018–2023 (**99,849** rows), eval 2024 (**19,973**),
+through `evaluate.py`'s own `_fit`/`_score`, one bundle shared across all four arms and the
+control, contract `v12`. The unknowable mask covered **17,380 of 137,447** mart rows
+(12.645%), the same channel the confound section above measures as 14,982 of 119,822
+*training-eligible* rows (12.504%) — two row sets, one season.
+
+**Only the primary family ran.** The four secondary families declared on 2026-09-20
+(`cliff_classifier` and the `p10`/`p50`/`p90` trio) are **unrun**. Four of this item's twenty
+declared hypotheses are reported below; sixteen stay open and uncounted, which is legitimate
+under stopped e-BH for the same anytime-valid reason `02c` relied on. The ruling below is
+scoped to the family that ran and says nothing about the other four.
+
+#### 2. Gates 3 + 4 — every arm, against this family's own floor
+
+Floor measured **fresh in-run**, seeds 20260528–20260532, per this section's own instruction
+not to borrow one: headline sd **0.00285720**, `2√2·sd` = **0.00808138** on `aft_nloglik`.
+Positive is improvement, i.e. lower NLL. "raw" is the add-ablation delta over that floor,
+"capacity" is `shuffled − baseline`, "info" is `real − shuffled`.
+
+| arm | cols | headline (AFT NLL) | raw Δ | raw ×floor | capacity ×floor | info ×floor | E | clears |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :--- |
+| **A_full** | 5 | 2.2246344 | −0.0714827 | **−8.85** | +0.24 | **−9.09** | 42,705 ↓ | no |
+| **B_hazard** | 3 | 2.1682181 | −0.0150664 | **−1.86** | +0.04 | **−1.91** | 6,593 ↓ | no |
+| **C_exposure** | 2 | 2.2337204 | −0.0805687 | **−9.97** | +0.22 | **−10.19** | 41,169 ↓ | no |
+| **D_unknowable_mask** | 1 | 2.1554744 | −0.0023227 | −0.29 | −0.27 | −0.02 | 55.2 ↓ | no |
+
+Baseline for every row is 2.1531517. ↓ = `direction_is_improvement: false`.
+
+**Every delta in the table is negative**, and on three of the four arms the permutation split
+puts the damage in *information*, not capacity. Row-shuffled, the same columns leave the
+headline where it was — capacity +0.24× / +0.04× / +0.22× floor on A / B / C, every one of
+them inside the floor and therefore indistinguishable from a reseed. The loss appears only
+when the columns carry their real values. That is the mirror image of the failure mode gate 4
+was written to catch: these are not inert columns the booster wastes splits on, they are
+learnable, and what it learns from them on 2018–2023 does not transfer to 2024.
+
+**The harness is clean.** The shuffle-vs-shuffle negative control on A's five columns —
+H0 true by construction — returned **E = 1.52** (`d̄` = −0.000703, |t| = 1.98), three orders
+of magnitude below the rejection bar and an unremarkable draw from a distribution with null
+mean 1. The construction's own validity check returned mean `E` = 0.9896 / 1.0314 / 0.9525 /
+0.9962 at σ = 0.001 / 0.01 / 0.1 / 1.0 over 100k draws, each within Monte-Carlo error of 1.00,
+with `P(E > 20)` ≈ 0.0035–0.0039.
+
+#### 3. Gate 7 — three e-values clear the bar, and all of them point away from the feature
+
+At the pre-registered `n=10, g=1`, `E_max = 11^4.5 = 48,558.70` and the lone-rejection bar is
+`20·(123+1) = 2,480`. **A (42,705), B (6,593) and C (41,169) all clear that bar. D (55.2) does
+not.** Per `09c`'s non-retroactive landing note, every `E` declared before it was drawn at
+`n=5, g=1` and capped at 36, so these are the first arms in the campaign with the headroom to
+clear a campaign bar at all — and the rejection is worthless to this item, because **the
+direction is against the feature**.
+
+`09c`'s Construction B is symmetric in `t`: a delta that is consistently *negative* across ten
+paired seeds produces the same large `E` as a consistently positive one. What these numbers
+say is "these columns are not exchangeable with their own shuffle" — and the sign of `d̄` says
+which way. A's `d̄` = −0.0795 with `s_d` = 0.0043 over ten seeds, i.e. `t` = −58.7: the
+worsening is about as reproducible as anything this campaign has measured. **Reading these E's
+as support for `02d` would be a misreading**, and the direction flag is carried beside the
+number rather than folded into it because applying a one-sided transform now would be changing
+the construction after seeing the data — the one thing that voids an e-value.
+
+So `09c`'s headroom did its job in an unexpected way. `02b` and `02c` could not reject
+anything whatever they measured; `02d` at `n=10` can, and what it rejects is its own
+hypothesis.
+
+#### 4. The mechanism arm, stated plainly
+
+**B_hazard is the arm this item was built to run, and it is unsupported.** The three shrunk
+per-circuit rates — the actual safety-car signal, empirical-Bayes shrunk, season-lagged,
+leakage-audited — score **−1.86× floor raw and −1.91× on information**, with capacity at
++0.04× floor. They do not help, and the permutation arm says the harm is in their values.
+
+And B is *not* explainable by the support problem that explains A and C. Its columns are
+bounded rates, measured on training-eligible rows:
+
+| column | 2018–2023 range | 2024 range | % of 2024 outside the training range |
+| :--- | :--- | :--- | ---: |
+| `circuit_sc_hazard_per_lap` | [0.009908, 0.018534] | [0.009232, 0.018288] | 5.51% |
+| `circuit_vsc_hazard_per_lap` | [0.006565, 0.017617] | [0.007040, 0.016016] | **0.00%** |
+| `circuit_any_hazard_per_lap` | [0.018520, 0.032582] | [0.018503, 0.031239] | 5.08% |
+
+2024's rates sit inside the training envelope, and the small excursions are *below* the
+training minimum on two columns, where a tree clamps to its lowest bin. **B is a clean
+measurement, and it came back negative.** §4's correction to `ml_research_program.md` §1a
+stands as a correction — the warehouse does hold a per-circuit safety-car rate, and the §1a
+clause claiming no feature could carry that signal is still false — but the corrected claim
+buys nothing for this model. A circuit × season constant, at most 36 distinct values per
+season, is too coarse an instrument for a per-stint decision even when the mechanism behind it
+is real. Whether a lap-varying or race-varying hazard would do better is a different feature
+and a different item; it is not registered here, and folding it in now is the post-hoc
+arm-adding gate 6 exists to prevent.
+
+#### 5. A and C fail hardest, and that is a support mismatch, not a finding about tenure
+
+**A (−8.85×) and C (−9.97×) are mechanically contaminated and must not be read as evidence
+about venue tenure.** Both carry `circuit_hazard_prior_racing_laps` and
+`circuit_hazard_prior_seasons_n`. Both of those columns are **monotone non-decreasing in
+calendar time by construction** — they count what has already happened at a venue — and the
+split is chronological, train 2018–2023, eval 2024. So the eval fold is systematically off the
+end of the training support:
+
+| column | 2018–2023 max | 2024 max | % of 2024 eval rows above the training max |
+| :--- | ---: | ---: | ---: |
+| `circuit_hazard_prior_racing_laps` | 352 | 423 | **21.50%** |
+| `circuit_hazard_prior_seasons_n` | 5 | 6 | **34.89%** |
+| either | — | — | **40.28%** |
+
+A gradient-boosted tree cannot extrapolate past a split threshold: every 2024 row above the
+training maximum lands in the same terminal region as the training maximum, so more than a
+fifth of the eval fold on one column and more than a third on the other are collapsed onto the
+boundary and predicted as if 2024 were 2023. **This is a sufficient explanation for A's and
+C's anti-clearing on its own**, and it is a property of the feature's shape crossed with the
+split, not a measurement of whether venue tenure carries information about stint life. That
+question is not answered by this run and should not be quoted from it.
+
+(Support figures re-measured 2026-09-21 on the split as it stands today, which is 19,991 eval
+rows against the run's 19,973 — the warehouse moved by 18 rows, 0.09%, after the arms ran. A
+difference that size cannot move a 21% or a 35%.)
+
+**This also disposes of a premise the pre-registration built on.** The confound section above
+argues C deserves its own arm because `prior_seasons_n` varies within a season and is
+therefore "genuinely a venue-tenure variable" rather than a season dummy. That is true and it
+is still the right reason to have built the arm — but it is not sufficient. Varying within a
+season does not make a column *in support* across a chronological split, and this arm cannot
+distinguish "tenure is uninformative" from "tenure is unmeasurable on this split".
+
+#### 6. The pre-registered decision rule: none of its four cases fired
+
+Applying the rule as written, case by case, including where it runs out:
+
+* **1 — "B clears and D does not"** → did not occur. B does not clear; it anti-clears.
+* **2 — "D clears on its own"** → did not occur, and this is the one genuinely reassuring
+  line in the item. D is the flattest arm in the table (raw −0.29×, information −0.02×, and
+  the only `E` below the rejection bar). The 2018 season channel that arrives free through the
+  missingness pattern does **nothing** for stint life. `02c` found the analogous confound
+  carrying real signal on p90; this one does not, so the NULL-not-0.0 choice recorded above
+  cost nothing here.
+* **3 — "C clears and B does not"** → did not occur, and §5 is why the rule could not have
+  reached it. The rule's case 3 assumed the only way the exposure columns could matter was by
+  *clearing*. It never anticipated C failing for a structural reason, which is the outcome
+  that actually happened, and so the case is unreachable on this split rather than resolved
+  against.
+* **4 — "A clears while B, C and D all fail"** → did not occur. A is the second-worst arm.
+
+**The outcome is the undeclared fifth cell: everything moves the wrong way.** It is recorded
+as undeclared rather than assimilated to the nearest declared case, which is how `02c` handled
+its own undeclared cell. The honest summary is that the rule was written to arbitrate between
+three competing *positive* explanations and the data offered none.
+
+#### 7. The contract is unmoved
+
+**`FEATURE_COLUMNS` was not changed by this item and none of the five columns is in it.**
+Verified after the run: no column matching `hazard` appears in `ml/src/schema.py`'s
+`FEATURE_COLUMNS`. The contract did move on 2026-09-21 — 32 → 39 — but that is `02b`/D12
+admitting the seven qualifying columns for `cliff_classifier` only, and
+`PER_TARGET_FEATURE_MASK` masks `stint_life_regressor` back to **32**, which is the width this
+run's baseline was measured at. The five sc-hazard columns stay in
+`fct_cliff_prediction_features` and out of the contract, with this Verdict as the reason.
+
+#### 8. Ruling
+
+**`MEASURED` — Tier 3, SC hazard, is ruled out for `stint_life_regressor`.**
+
+Gates 1–5 run and clean: instrument check to 6 dp; identical `cv_final_fold` split; fresh
+per-family floor; permutation null on every arm; and the forward-window work above —
+22/22 dbt tests, `features --check` clean on the forward-window, aggregation-scope and leakage
+audits. Gate 6 satisfied: the arms were written 2026-09-20 21:55 and ran 2026-09-21 10:04 UTC.
+Gate 7 declared at `n=10, g=1` per `09c` and reported in full, including the direction that
+makes three bar-clearing e-values count against the item rather than for it.
+
+What a later session may quote from this: B's `−1.86×` as a measurement that the per-circuit
+safety-car rate does not help remaining stint life. What it may **not** quote: A's or C's
+ratios as evidence about venue tenure, and none of the four e-values as support for anything.
+
+**`gates.md` step 5's `02d` instance is closed** — the pooled-rate leak is rebuilt, audited and
+in the enforced lineage — **and that closure is independent of this null result.** The rebuild
+was worth doing whether or not the feature cleared; a leaking feature that had cleared would
+have been the expensive outcome.
+
+Left open on purpose: the four secondary families, unrun and uncounted. §1's within-stint
+argument caps them — a circuit × season constant can reach only the between-stint share of the
+degradation target's variance — so a clear there would be the surprise. They are not scheduled
+by this Verdict.
 
 ---
 

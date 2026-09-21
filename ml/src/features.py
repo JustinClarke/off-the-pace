@@ -175,8 +175,7 @@ def load_features(
     # PER_TARGET_FEATURE_MASK (belt & braces masked cols are not in FEATURE_COLUMNS).
     feature_cols = list(S.FEATURE_COLUMNS)
     if target is not None:
-        masked = S.PER_TARGET_FEATURE_MASK.get(S.TARGET_BY_NAME[target].family, frozenset())
-        feature_cols = [c for c in feature_cols if c not in masked]
+        feature_cols = list(S.feature_columns_for(target))
     X_train = X_train_full[feature_cols].copy()
     X_holdout = X_holdout_full[feature_cols].copy()
 

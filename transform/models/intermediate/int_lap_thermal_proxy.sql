@@ -67,9 +67,21 @@ combined AS (
 -- (mean ~20 laps) so the window is local by construction, and the statistic is
 -- meant to be "this stint's own pace so far" -- capping it at N laps would make
 -- the baseline itself drift with the degradation it is supposed to measure.
--- The floor is 2 valid prior laps (adopted by 08i). Floors of 2/3/5 buy
--- more degradation signal for 3.49/8.82/19.09pp of coverage; floors 2 and 3
--- were gated through steps 1-4 and showed identical signal, so floor 2 is optimal.
+-- The floor is 1 valid prior lap. 08e built floor 1; a 2026-09-10 session
+-- silently raised it to 2; 08i (RESULT 2026-09-18) took all four priced floors
+-- {1,2,3,5} through gate steps 1-7 on the v12/08m substrate and reverted to 1.
+-- Floors 3 and 5 are REJECTED: they are dominated on both axes -- they cost
+-- 5.35pp/15.71pp of eligible coverage AND clear against their own reseed floor
+-- on p10, p90 and cliff (destroyed information, not NaN density: every
+-- missingness-only control landed inside its floor). Floor 1 beats the built
+-- floor 2 on all three degradation heads; p50 clears at +1.25x its floor with
+-- E = 13.46 in the improvement direction, no family is moved against by more
+-- than its own floor (worst: cliff at -0.36x), and it buys +2.15pp of coverage
+-- while cutting the blind rate on the hardest cliff class (0_to_2) from 12.13%
+-- to 10.48%. Recorded honestly as a preference, not a majority gate CLEAR --
+-- floor 1 clears on one family of five. Do not re-open without new evidence.
+-- NOTE: this parameter has a SECOND copy in tests/assert_no_future_leakage.sql,
+-- which re-derives the baseline independently. Both must move together.
 -- Baseline is computed from valid laps only (SC/pit laps would drag the
 -- median pace down and distort the push-residual signal).
 with_baseline AS (
@@ -77,7 +89,7 @@ with_baseline AS (
         *,
         {{ trailing_median(
             'lap_time_s', ['stint_id'], ['lap_in_stint'],
-            min_observations=2, valid_condition='is_valid_lap') }}
+            min_observations=1, valid_condition='is_valid_lap') }}
             AS stint_baseline_pace,
         {{ trailing_observation_count(
             'lap_time_s', ['stint_id'], ['lap_in_stint'],

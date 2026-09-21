@@ -145,6 +145,32 @@ CHANNELS: dict[str, tuple[str, ...]] = {
     # was exhaustive rather than for what it showed. Phase 9 dropped every member
     # (`weather_air`, `track`, `context`) -- kept empty rather than removed, see above.
     "environment": (),
+    # 02b's seven qualifying columns, admitted to the contract 2026-09-21 by D12. A NEW
+    # channel rather than a home in an existing one, for two reasons. (a) None of the
+    # four hypotheses above describes it: this is not tyre state, not what the driver did
+    # on this lap, not another car's wake and not fuel -- it is the car's and the driver's
+    # one-lap BASELINE, measured in a different session, before the race started. (b) The
+    # whole channel is stint-invariant by construction (weekend grain broadcast onto every
+    # lap), so it sits above `PER_LAP_ICC_MAX` for every member.
+    #
+    # That second point has a consequence worth naming before anyone reads a roll-up:
+    # `within_stint_ablation` flattens a feature to its per-stint summary, and these
+    # columns ALREADY equal their per-stint summary. Flattening them is a no-op, so the
+    # pass will report ~0 flatten_delta for all seven and `flatten_is_noop` should be true
+    # on each. That is the instrument working, NOT a finding that qualifying carries
+    # nothing -- 02b measured its cliff signal by add-ablation (+7.47x floor on the
+    # information term), which is a different instrument asking a different question.
+    #
+    # Second caveat: this taxonomy is global over FEATURE_COLUMNS, while the columns
+    # themselves are masked to cliff_classifier only (schema.PER_TARGET_FEATURE_MASK). An
+    # attribution pass run on a degradation or stint-life model is reading a matrix these
+    # seven are not in. Channel shares from such a pass are over 32 columns, not 39.
+    "qualifying_form": (
+        "quali_push_laps_n",
+        "quali_constructor_pace_mean_s", "quali_constructor_pace_se_mean_s",
+        "quali_pace_delta_best_s", "quali_ratio_to_segment_best_min",
+        "quali_skill_session_avg_s", "quali_segments_contested_n",
+    ),
 }
 
 

@@ -42,7 +42,7 @@ next reader meets it there too.
 ## 5. Forward-window audit
 
 For anything label-adjacent, plus the per-item leakage checks named in the leaf docs. Two
-shapes to watch for, both of which have live instances in the current backlog:
+shapes to watch for, each of which has had a live instance in the current backlog:
 
 - **A centred window reaches forward.** Work item `02a` exists because
   `int_corner_skill_residuals` computes residuals against "5-lap-bucket field medians" and
@@ -50,6 +50,17 @@ shapes to watch for, both of which have live instances in the current backlog:
 - **A pooled historical rate leaks the future into the past.** Work item `02d` must rebuild
   `int_sc_hazard_history` as a season-lagged expanding rate, because as built it puts 2024
   races into what a 2018 row sees.
+  **CLOSED 2026-09-21 by `02d`.** The model is rebuilt as a season-lagged expanding rate
+  keyed `(circuit_slug, season)`, with the empirical-Bayes prior lagged alongside it;
+  `assert_sc_hazard_no_forward_leakage` re-derives the window with an inequality join rather
+  than a frame, so a frame ending at `CURRENT ROW` surfaces as a count mismatch; 22/22 dbt
+  tests pass, and `python3 -m ml.src.features --check` is clean on the forward-window,
+  aggregation-scope and leakage audits with the model inside the audited lineage. The closure
+  is independent of the feature's own ablation, which came back **negative** — see
+  `work/02-feature-expansion.md`, "Verdict — `02d`". Four other models still carry the
+  all-time-pooled shape (`int_driver_circuit_affinity`, `int_driver_circuit_era_affinity`,
+  `int_era_normalized_driver_rating`, `int_pit_loss_circuit`); none feeds a feature today, and
+  each enters `audit_aggregation_scope` automatically if ever wired in.
 
 ## 6. Pre-register the arms before running them
 

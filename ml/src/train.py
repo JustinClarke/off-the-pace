@@ -160,8 +160,9 @@ def _sample_weight(spec: S.TargetSpec, y, meta=None) -> np.ndarray | None:
     """Return per-row training weights.
 
     Classifier: balanced class weights for minority cliff-window recall.
-    Quantile regressors (C2): IPW survival weights from meta["survival_weight"]
-    so early-pitted (degraded) stints are not under-counted at high lap_in_stint.
+    Quantile regressors (C2): uniform weights (None). IPW survival weights were measured
+    against uniform in 08o and found to underperform on all three heads (p10/p50/p90),
+    with the information term on p10 clearing its floor in the *wrong* direction.
 
     Survival (stint life): deliberately None. The censoring that the IPW weights
     approximate for the quantile models is now represented exactly, as an interval
@@ -172,8 +173,6 @@ def _sample_weight(spec: S.TargetSpec, y, meta=None) -> np.ndarray | None:
         w = compute_class_weight("balanced", classes=classes, y=y)
         lut = dict(zip(classes, w))
         return np.asarray([lut[v] for v in y], dtype=np.float32)
-    if spec.kind == "quantile" and meta is not None and "survival_weight" in meta.columns:
-        return meta["survival_weight"].to_numpy(dtype=np.float32)
     return None
 
 

@@ -388,9 +388,14 @@ models:
       # Weekend-grain (race_year, race_id, driver_id), broadcast onto every lap of
       # that driver's race - stint-invariant, so per the leaf doc's §1 it can only
       # address the 0.94% of the degradation target's variance that is
-      # between-stint. Present in the mart, deliberately not yet in the ML
-      # feature contract - the contract moves only if 02b's pre-registered arms
-      # earn it. quali_push_laps_n is COALESCE-d to 0 (a genuine "no qualifying
+      # between-stint. (That 0.94% figure is itself wrong and is corrected to
+      # 6.43% in 02-feature-expansion.md sec.4(b); the cap is real but looser
+      # than stated.) IN THE ML FEATURE CONTRACT SINCE 2026-09-21 (02b, decision
+      # D12), for `cliff_classifier` ONLY: all three pre-registered arms cleared
+      # their floor on cliff (raw +4.60x to +7.27x, permutation-corrected
+      # information +4.67x to +7.47x), and the degradation trio and stint life
+      # are masked back to 32 columns in ml/src/schema.py's
+      # PER_TARGET_FEATURE_MASK. quali_push_laps_n is COALESCE-d to 0 (a genuine "no qualifying
       # record" value); the other six are left NULL on purpose - NULL means "no
       # qualifying record for this driver-weekend", not "drove exactly at the
       # field reference", so XGBoost reads them as native missing.

@@ -15,6 +15,7 @@ Foundation for all downstream window functions. One row per race lap (the FULL c
 ```mermaid
 flowchart LR
   stg_laps --> int_stint_geometry
+  stg_tyre_allocations --> int_stint_geometry
   int_stint_geometry --> fct_stint_features
   int_stint_geometry --> int_compound_cliff_predicted
   int_stint_geometry --> int_constructor_structural_pace
@@ -40,9 +41,9 @@ flowchart LR
 | Layer | `intermediate` |
 | Family | [Physics](/transform/families/physics) |
 | Contract enforced | No |
-| Upstream | [`stg_laps`](../stg/stg_laps) |
+| Upstream | [`stg_laps`](../stg/stg_laps), [`stg_tyre_allocations`](../stg/stg_tyre_allocations) |
 
-**15 tests** [guard](/transform/ci/overview) this model  -  11 generic, 4 singular.
+**16 tests** [guard](/transform/ci/overview) this model  -  11 generic, 5 singular.
 
 ## Columns
 
@@ -60,7 +61,7 @@ flowchart LR
 | `is_vsc_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains a 6 or 7 (VSC). |
 | `is_red_flag_lap` |   | Yes | [`not_null`](/transform/ci/structural) | Carried through from stg_laps. TRUE when the TrackStatus string contains a 5 (red flag). |
 | `age_in_stint` |   | Yes | [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Tyre age in laps at this lap. Directly from FastF1 TyreLife (no imputation, no reconstruction). 343 rows (0.21%) carry NULL: 325 of them (94.8%) sit on lap 1 of a stint, where tyre-life occasionally arrives without a reading. This is a pattern, not random scatter, and occurs at the exact position where starting_tyre_age_laps is derived. For stints opening on lap 1: if age_in_stint is NULL at the stint start and you need a starting age, the column is missing; do not assume the tyre is fresh (a used/scrubbed set starting a stint will have age_in_stint &gt; 1 or NULL, but never 0). Consumers should carry this column forward or declare how NULLs are handled. |
-| `compound_code` |   | Yes |   | Tyre compound code (HARD, MEDIUM, SOFT, INTERMEDIATE, WET, SUPERSOFT, ULTRASOFT, HYPERSOFT). Joined from dim_compounds_season, which carries physical parameters (grip, wear rate) keyed on (season, circuit, compound_code). |
+| `compound_code` |   | Yes |   | Tyre compound code (C1–C5) assigned by Pirelli for this race, joined from stg_tyre_allocations on (race_year, circuit_key, compound_label). Absolute identifier, unlike compound_in_stint which is relative. Enables cross-circuit compound comparison and physical-parameters lookup in dim_compounds_season. PROVISOS: (1) Data starts at 2019-01-20 (first Pirelli 2019 season race). 2018 rows carry NULL by construction — Pirelli's relative naming began in 2019, and 08d's sourcing covers 2019-2024 only. (2) Sourced from user verification (2026-09-17) of a 128-row Pirelli allocation table covering 127 mart races 2019–2024 (100% join coverage). Sourcing caveat: only 47 of 128 source URLs resolve; see _improvements/work/08-foundations-repair.md (08d) for the full provenance and epistemics ruling. |
 | `compound_label` |   | Yes |   | Tyre compound label (hard, medium, soft) assigned by Pirelli for this race. Relative to the circuit - Pirelli picks 3 compounds per weekend and calls them hard/medium/soft, so "soft" at one circuit is not the same rubber as "soft" at another. The compound_code is the absolute identifier; this label is the relative one. |
 | `race_year` |   | Yes |   | Season year. |
 | `race_id` |   | Yes |   | Race identifier. |

@@ -16,12 +16,15 @@ TRACK-STATUS COVERAGE, measured against data/dev.duckdb on 2026-09-11. The old h
 
 MISSINGNESS, deterministic and declarable. The raw rates are NULL where a circuit has no prior exposure -- its debut season -- because "unknowable" and "measured, no onsets" are different statements: 36 rows of 149, one per circuit. The shrunk rates survive a circuit debut (zero prior exposure shrinks fully to the pooled prior, the correct EB answer) and are NULL only where the pooled prior is itself unknowable: all 21 rows of season 2018, the earliest season in the warehouse. Both NULL sets are deterministic on (circuit_slug, season) and readable off the companion prior_seasons_n / prior_racing_laps columns, which are never NULL.
 
+ENTERED THE FEATURE LINEAGE 2026-09-20 (02d). Five columns are read by fct_cliff_prediction_features on the (circuit_key, race_year) join. That moves this model out of features.py's report-only survey and into audit_aggregation_scope's enforced scope, which is why the four exemptions below now exist: they were the advance notice the survey was written to give, and this is the ruling arriving. The columns are mart-only and are NOT in ml/src/schema.py's FEATURE_COLUMNS pending 02d's arms.
+
 ## Lineage
 
 ```mermaid
 flowchart LR
   stg_laps --> int_sc_hazard_history
   stg_track_status --> int_sc_hazard_history
+  int_sc_hazard_history --> fct_cliff_prediction_features
   int_sc_hazard_history --> int_pit_strategy_cost_curve
   style int_sc_hazard_history fill:#e40404,stroke:#e40404,color:#fff
 ```

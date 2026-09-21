@@ -163,17 +163,94 @@ def test_aggregation_audit_passes_a_lap_pinned_group():
     assert findings == [], f"lap-pinned group wrongly flagged: {findings}"
 
 
-def test_aggregation_survey_still_names_the_outstanding_instance():
-    """08b's premise, half discharged. The survey lists non-pinning aggregations in
-    models the mart does NOT read, as advance notice that they are scheduled to enter
-    the contract. It named two: int_corner_skill_residuals (02c) and
-    int_sc_hazard_history (02d).
+def test_the_sc_hazard_instance_left_the_survey_by_being_fixed_not_by_being_hidden():
+    """08b's premise, now FULLY discharged -- and this test is the record of the second
+    half closing.
 
-    02d has not run, so its instance must still be under notice -- and the notice must
-    still say what is wrong with it, not merely name the model."""
+    WHAT THIS TEST USED TO ASSERT, and why it was wrong to keep asserting it. Until
+    2026-09-20 this was `test_aggregation_survey_still_names_the_outstanding_instance`,
+    and it required the survey to keep reporting int_sc_hazard_history with the words
+    "pools every ingested season". That was correct when written: the model was one row
+    per circuit over all time, so a 2018 consumer read a hazard estimated partly from
+    2024 races. 02d rebuilt it as an expanding, season-lagged rate on 2026-09-11 and the
+    test went red the same day -- it was asserting the continued presence of a defect
+    that had been fixed. A red test that means "the bug is gone" is worse than no test,
+    because the next reader cannot tell it from a regression. It is replaced here by the
+    shape 02c used for the corner instance.
+
+    int_sc_hazard_history is gone from the survey for TWO reasons that had to hold
+    together, and checking only one of them would let the guard rot:
+
+      1. 02d removed the defect itself. The model is keyed (circuit_slug, season) and
+         every aggregate ends at 1 PRECEDING on the season axis, so the groups it still
+         has pin a race or a season rather than pooling all of time. The survey's
+         "pools every ingested season" finding therefore cannot be produced from this
+         model any more -- which is why asserting its ABSENCE by that exact string is
+         the meaningful half of reason 1.
+      2. 02d wired five of its columns into fct_cliff_prediction_features, so it is no
+         longer OUTSIDE the lineage the survey walks. The survey is defined over models
+         the mart does not read; entering the contract is itself an exit from it.
+
+    Reason 2 alone would be an alarming way to leave a survey -- a model can drop off it
+    by being read by a feature while still carrying the defect, which is exactly the
+    hand-off the survey exists to flag. So assert both: it is IN the lineage, and the
+    real audit over that lineage is clean on it. That audit is not vacuous here: the
+    model's four GROUP BYs are all non-pinning, so they are clean only because 02d wrote
+    rulings for them into schema.yml, and `test_declared_exemptions_are_well_formed`
+    plus the stale-exemption check in `audit_aggregation_scope` both bear on them."""
     survey = F.survey_aggregation_scope()
-    assert any(f.startswith("int_sc_hazard_history:") and "pools every ingested season" in f
-               for f in survey)
+    assert not any(f.startswith("int_sc_hazard_history:") for f in survey), (
+        "int_sc_hazard_history is back in the survey — it should be in the mart "
+        "lineage, read directly by fct_cliff_prediction_features (02d)")
+    assert not any("pools every ingested season" in f and "int_sc_hazard_history" in f
+                   for f in survey), (
+        "int_sc_hazard_history's all-time pooled-rate shape is back; 02d's ruling was "
+        "that it is a temporal leak the moment it reaches a feature")
+
+    # Scoped to this model ON PURPOSE. The same "pools every ingested season" shape is
+    # still reported for four OTHER models outside the lineage, measured 2026-09-20:
+    # int_driver_circuit_affinity (3 groups), int_driver_circuit_era_affinity (4),
+    # int_era_normalized_driver_rating (2) and int_pit_loss_circuit (1). None feeds a
+    # feature today, so none is a live leak -- they are the survey's advance notice,
+    # working as designed, and asserting the string is absent survey-wide would fail on
+    # them and say nothing about 02d. If one of those is ever wired into the mart it
+    # arrives in audit_aggregation_scope automatically and the build stops until someone
+    # rules on it, which is the same route 02d took here.
+
+    manifest = json.loads(Path(F.MANIFEST_PATH).read_text())
+    lineage_names = {manifest["nodes"][uid]["name"] for uid in F._mart_lineage(manifest)}
+    assert "int_sc_hazard_history" in lineage_names
+
+    violations = F.audit_aggregation_scope()
+    assert not any("int_sc_hazard_history" in v for v in violations), violations
+
+
+def test_the_sc_hazard_join_key_still_carries_the_season():
+    """The one regression that would silently reinstate 02d's leak without tripping any
+    audit above.
+
+    int_sc_hazard_history is point-in-time as of the start of a season, so the season is
+    HALF THE KEY. A consumer that joins on circuit_slug alone gets a 5-7x fan-out AND a
+    2018 row estimated partly from 2024 -- and neither the forward-window walker nor the
+    aggregation-scope walker looks at join keys, so both would stay green. The dbt test
+    assert_sc_hazard_no_forward_leakage checks the MODEL's own window; this checks that
+    the mart reading it did not drop half the key on the way in.
+
+    Asserted structurally rather than by row count, so it fails on the edit that causes
+    the bug rather than on the rebuild that reveals it."""
+    manifest = json.loads(Path(F.MANIFEST_PATH).read_text())
+    node = next(n for n in manifest["nodes"].values()
+                if n["name"] == "fct_cliff_prediction_features")
+    sql = F._model_sql(node, Path(F.MANIFEST_PATH).parent)
+    normalised = " ".join(sql.split()).lower()
+
+    assert "sch.circuit_slug" in normalised, (
+        "the mart no longer joins int_sc_hazard_history on circuit_slug")
+    assert "r.race_year = sch.season" in normalised, (
+        "fct_cliff_prediction_features joins int_sc_hazard_history WITHOUT the season "
+        "half of its key. That is 02d's original leak reinstated: the hazard a 2018 "
+        "training row reads would be estimated partly from the 2024 evaluation season, "
+        "and the join would fan the mart out 5-7x besides.")
 
 
 def test_the_corner_instance_left_the_survey_by_being_fixed_not_by_being_hidden():

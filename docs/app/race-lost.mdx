@@ -17,7 +17,7 @@ For each component the chart sums the per-lap value across all classified laps:
 - **Track noise**: unexplained lap-to-lap variation, shown as informational; it is **not** additive to the seven-term identity and should not be added into the total.
 
 <Note>
-  Laps under safety car, virtual safety car, and major outlier laps are excluded from the sum, so the totals reflect representative racing laps only.
+  Laps under safety car, virtual safety car and red flag never reach this sum: `fct_lap_residuals` is built from green racing laps only, so the exclusion happens upstream in the warehouse rather than in this query. Major-outlier laps are excluded in the query itself. The totals reflect representative racing laps only.
 </Note>
 
 ## How to use it

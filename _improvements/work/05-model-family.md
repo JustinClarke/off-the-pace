@@ -1217,6 +1217,34 @@ change to production is a separate human call and is not in this item's scope.
 
 ### `05d` — RESULT (2026-09-15). The recommendation is the full window, for every family.
 
+> **SUBSTRATE BANNER, added 2026-09-19 by the build-order audit.** This result ran on
+> **2026-09-15, the day before `08m`**. Every one of its 900 fits is on the **pre-`08m` target**,
+> and its gate-1 anchors are the **v11** headlines — `p10 0.5320213273637161`,
+> `p50 1.0467899119026969`, `p90 0.578513617807211`, `cliff 0.37186552717207966`. Today's published
+> headlines are v12's `0.47646 / 0.98237 / 0.51285 / 0.35247`
+> (`ml/artefacts/evaluation_metrics.json`). The phrase *"`05d` (current substrate…)"* in the
+> `01a`-reconciliation table below was true on 2026-09-15 and is not true now.
+>
+> A second drift on the stint-life row: its `S1x` arm used the parameter set `D4` had ruled to
+> ship, on the pre-`08m` warehouse. `10e` landed `S1x` on **2026-09-19** after re-running it on
+> v12 — same parameters, different substrate and a different eval fold (19,973 laps / 9,149
+> green-pit).
+>
+> **The verdict is not retracted.** "Full window for every family" rests on within-run subset-vs-
+> full comparisons that shared one target, across five eval seasons; the mechanism findings
+> (encoding ruled out, 2018 ruled out, family-specific window saturation) are relative throughout.
+> **The numbers have not been re-measured** and the ×-reseed-floor ratios in the tables below are
+> against floors that `02b`'s 2026-09-19 re-run found moved by up to **3.2×** across `08m`
+> (p10 0.004311 → 0.00136797). The near-miss cells — cliff `k=4` at **1.06×** and the `01a`
+> replication at **2.57×** — are the ones where that matters; neither is shipping-grade either way
+> on this item's own convention.
+>
+> `08m`'s §7 staleness table lists `08e`/`08f`/`08h`/`08i`, `02`, `11a`, `11b` and the production
+> artefacts. **It does not list `05d`**, whose result landed one day earlier — which is why this
+> banner did not exist until now. `08m`'s definition of done ("every number the fix invalidated is
+> either re-measured or explicitly marked stale in its own leaf doc") is not met for this section
+> or for [`01-ceiling-instrument.md`](01-ceiling-instrument.md).
+
 Arms pre-registered in `scripts/arms_05d_training_window.py`'s docstring before any of them ran
 (gate 6); every fit's headline, per seed, is in `ml/artefacts/05d_training_window_arms.json`.
 900 fits, 59 minutes. **Gate 1 passed on all four unbarred families** — the full-window cell at

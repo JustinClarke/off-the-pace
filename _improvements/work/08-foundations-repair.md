@@ -2997,3 +2997,332 @@ committed; `git` state untouched apart from working-tree file contents.
 `ml_artefacts/evaluation_metrics.json`, `model_card.yml`, `degradation-model.mdx`, `schema.py.orig`.
 123 MB. Note that `v11`'s `.bst`/`.onnx` also remain in `ml/models/` — the backup is belt-and-braces,
 not the only copy.
+
+---
+
+## 08o — Drop the IPW survival sample weight from the degradation quantile heads
+
+**Raised 2026-09-19** by the build-order restructure, off a finding `08f-1` recorded and explicitly
+declined to rule on: *"Not gated here — recorded because it fell out of the same arms"*
+([`../eval/08f/MEASUREMENTS.md`](../eval/08f/MEASUREMENTS.md), section "Uniform-weight comparison").
+
+**What is shipped today.** `ml/src/train.py:175-176`:
+
+```python
+if spec.kind == "quantile" and meta is not None and "survival_weight" in meta.columns:
+    return meta["survival_weight"].to_numpy(dtype=np.float32)
+```
+
+Every degradation quantile head is fitted under IPW survival weights. The docstring's stated reason
+is *"so early-pitted (degraded) stints are not under-counted at high `lap_in_stint`"* — a
+plausible-sounding correction that has never been tested against **not doing it at all**.
+
+**What `08f-1` measured, by accident.** Its baseline arm `A` was uniform weights (`w = 1`), because a
+weight-scheme ablation has to drop *to* something:
+
+| head | uniform `A` | shipped v12 | AFTER − A | `08f-1` floor | ×floor |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| p10 | 0.4711254463 | 0.4764640778 | −0.00533863 | 0.00763075 | 0.70× |
+| p50 | 0.9817102187 | 0.9823587336 | −0.00064851 | 0.01115092 | 0.06× |
+| p90 | 0.5093926910 | 0.5128462338 | −0.00345354 | 0.00839541 | 0.41× |
+
+**Uniform is better on all three heads. Every one of those deltas is inside its own reseed floor.**
+Both halves of that sentence are load-bearing and neither may be dropped when this item is quoted.
+
+**The one thing that does clear a floor** is the permutation-null information term on p10: the real
+weight vector costs **−0.00990506, −1.30× the floor**, against the same weight *values* randomly
+reassigned across training rows — and the pre-`08f-1` scheme shows the same sign at −1.06×. So the
+cost belongs to IPW reweighting as a mechanism, not to the season-lag. p10's capacity term (0.60×)
+and p90's (≈ −1.0× on both schemes) also sit at or near their floors, which `08f-1` reads as
+*"reweighting by itself, independent of alignment, measurably moves p10 and p90."*
+
+> **This item may well close as a null, and that is a complete outcome.** The honest prior is a
+> consistent three-for-three direction and one floor-clearing information cost, not a demonstrated
+> headline win. Do not write it up as a free win; `08f-1`'s own clean null is the precedent for how
+> to record it if it comes back that way.
+
+### Method
+
+**Arms.** `A` = uniform (`w = 1`), `B` = shipped IPW, `P` = permutation null (the weight vector
+shuffled across training rows, so the weight *distribution* is preserved and only the row alignment
+is destroyed — `08f-1`'s translation of gate step 4 for a weight scheme, reused unchanged).
+Degradation trio only. `cliff_classifier` uses balanced class weights and
+`stint_life_regressor` deliberately takes `None` (`train.py::_sample_weight`), so neither is touched
+and both are asserted invariant by code trace rather than re-run.
+
+**Pre-register before anything refits** (gates.md step 6), in the script docstring, as
+`scripts/gate_08f1_survival_weight.py` did: the three arms, the families, the floors, the expected
+direction, and the e-value construction.
+
+**e-values under the post-`09c` construction.** `09c`'s non-retroactivity rule cuts *for* this item:
+its arms are declared **after** that landing, so Construction B at n = 10, g = 1 applies
+(`E_max` = 11^4.5 = 48,558.70) instead of the n = 5 ceiling of 36 that makes `02b`'s and `02c`'s
+gate-7 non-rejection categorical. `09c` also flags the unresolved cost — 20 refits per arm, and an
+open question about whether gate step 3's 5-reseed floor study has to move to 10 seeds with it.
+Decide that here, in writing, before running, and record which way.
+
+**The eval side is a separate statement and must be made, not assumed.** `evaluate.py:613`
+(`_row_weights`) supplies `survival_weight` only as the **training** weight; the 2026-09-17
+correction above establishes that `pinball_loss` is unweighted at eval time and names the two call
+sites. So dropping the training weight does not silently move the metric — say so with the trace.
+
+### Acceptance
+
+- Gate 1 reproduces the published v12 headline on all three heads before any arm runs.
+- All three arms scored through `evaluate.py`'s own `_fit`/`_score`, nothing reimplemented.
+- Negative control reported whatever it comes out as, and every E reported including `E < 1`.
+- Nothing written to `ml/models/`, `ml/artefacts/`, the warehouse or git.
+
+### Definition of done
+
+1. A written ruling on whether the IPW sample weight should be dropped from the quantile heads,
+   with the deltas quoted against their own floors and the permutation-null split reported beside
+   them — **not** a headline delta alone, because the headline deltas are inside noise and the
+   information term is not.
+2. The eval-side question answered explicitly: dropping the training weight does or does not move
+   the scoring path, traced to the call sites.
+3. The landing cost priced: it changes what three of five production models are fitted on, so it is
+   a retrain and re-export of the trio plus a version bump on `08n`'s own argument. The ruling must
+   say whether it should ride along with the `D10`/`D12` bundle (both of which already require a
+   retrain) or go alone — that is a recommendation to the user, not a decision this item takes.
+   **`D16` (raised 2026-09-20) is where that recommendation lands**: it asks whether `08o`, `08q`,
+   `08i` (`D10`) and `02b` (`D12`) should land as one `v12 → v13` rebuild. Two facts for the pricing,
+   both traced from source 2026-09-20: this item's own footprint is **three of five**, because
+   `train.py::_sample_weight` returns `survival_weight` only when `spec.kind == "quantile"`; and the
+   *version* is set-wide regardless, because `S.MODEL_VERSION_DEFAULT` is a single constant
+   (`schema.py:361`) and `predict.py:43-76` loads **all five** artefacts at one version.
+4. `survival_weight` stays in `IDENTIFIER_COLUMNS` and barred from `FEATURE_COLUMNS` under every
+   outcome; the feature contract does not move.
+5. If the answer is "no detectable difference", the item **closes** on that, with the numbers, and
+   `train.py`'s docstring is corrected to say the correction is untested-no-longer rather than
+   silently keeping a rationale the measurement does not support.
+
+**Cost:** 0.5 – 1 day. **Model:** `opus-5` — the judgment call is open (the evidence is inside noise
+with one floor-clearing counter-signal) and the outcome changes what three shipped models are fitted
+on.
+
+---
+
+## 08p — `int_stint_geometry` still hardcodes `compound_code` to NULL
+
+**Raised 2026-09-19** by the build-order restructure.
+`transform/models/intermediate/int_stint_geometry.sql:67-69`:
+
+```sql
+-- compound_code (C1–C5) is circuit-specific; populated once
+-- stg_tyre_allocations is ingested
+CAST(NULL AS VARCHAR) AS compound_code,
+```
+
+**`stg_tyre_allocations` has been ingested since 2026-09-10.** `08d` is `LANDED`:
+`transform/seeds/tyre_allocations.csv` holds 128 rows (one per race, wide —
+`race_year, circuit_key, hard_code, medium_code, soft_code, source_url`), `stg_tyre_allocations`
+unpivots them to 384 rows at `(race_year, circuit_key, compound_label)` grain, 16 dbt tests pass, and
+all 127 mart races in 2019–2024 join. So the comment names a precondition that has been satisfied for
+nine days, and the column is still a typed NULL every downstream consumer inherits.
+
+**Why group 08 and not group 02.** This is a transform-layer correctness fix in the same compound
+lineage as `08a` (the 2018 compound backfill) and `08d` (the seed itself). Filing it under 02 would
+frame it as feature expansion, which is the one thing it must not do on its own authority.
+
+### The constraint that makes this a ruling rather than a wiring job
+
+`08d`'s own record contains two statements in tension, and this item has to say which governs a
+column that would sit in the **feature lineage** rather than in a side table:
+
+- **2026-09-10** — *"accept current table as NON-QUOTABLE convenience for internal use, allowing
+  measurement to proceed without citing these rows as claims (`epistemics.md` line)… Until proper
+  sourcing, nothing measured against this table may be quoted as a claim."* Taken on a measurement:
+  **only 47 of 128 `source_url` values resolve; 81 return 404** against a press site that no longer
+  serves its pre-2025 archive. `stg_tyre_allocations.sql`'s own header still carries this warning.
+- **2026-09-17** — *"user confirms full correctness of 128-row mapping table across 2019–2024.
+  Landed as is."*
+
+A user attestation is evidence under this repo's rules; a dead URL is not evidence either way. But
+"non-quotable convenience" and "in the lineage of a published feature" are not compatible states, and
+[`../foundations/epistemics.md`](../foundations/epistemics.md) is where that is settled — not here,
+and not by whoever writes the `JOIN`.
+
+**Second constraint, measured not guessed.** The seed starts at **2019**, because Pirelli's relative
+hard/medium/soft labelling starts at 2019 and `08d`'s acceptance clause puts 2018's
+HYPERSOFT/SUPERSOFT/ULTRASOFT out of scope (they are already `dim_compounds_season`'s own
+`compound_code`). So `compound_code` is NULL for **all of 2018** under every possible ruling — a
+season-shaped missingness pattern, which is exactly the shape `02b` measured as *not* label-neutral
+for the qualifying columns (2018 carried 51% of all NULLs on 12.5% of rows; NULL rows averaged
+−1.7831 s of 5-lap jump against −2.1715 s for present rows). That has to be declared, not `COALESCE`d
+away.
+
+### Method
+
+1. Rule the provenance question first, in writing, before touching SQL — the pattern `08m` set.
+2. If admitted: join `stg_tyre_allocations` on `(race_year, circuit_key, compound_label)` in
+   `int_stint_geometry`, replacing the NULL cast; `schema.yml` gains a `compound_code` column block
+   stating the 2019 start, the 2018 NULL rule and the provenance caveat verbatim; a dbt test pins the
+   2018-is-NULL rule so it cannot be silently back-filled later.
+3. If not admitted: **delete the column and the comment.** A typed NULL that promises a future
+   population, with no item behind it, is the same defect in a different shape.
+4. Report row-level coverage after the change: how many `int_stint_geometry` rows resolve a
+   `compound_code`, by season, and which `compound_label` values fail to join.
+
+### Scope guard
+
+**Land the column mart-only at most. `FEATURE_COLUMNS` is not touched by this item.** Whether
+`compound_code` should become a 33rd feature — it would be a third `CATEGORICAL_COLUMNS` member, and
+unlike `compound` an ordinal encoding of C1…C5 is at least *physically* ordered — is a separate
+ablation under group 02's admission rule. Named here so it does not happen by accident.
+
+And leave the negative outcome genuinely open: `dim_compounds_season` already sidesteps the
+relativity problem by keying on `circuit_key × compound_code × season`, which is exactly why `08d`
+says *"this item is not a repair; it's new information."* It is entirely possible that wiring the
+column buys nothing any consumer needs and the right answer is (3).
+
+### Definition of done
+
+1. A written ruling on whether a table `08d` declared non-quotable may sit in the feature lineage,
+   citing `epistemics.md`, and naming which of the two 2026-09-1x statements governs.
+2. Either the column is populated with its coverage reported per season and its 2018 NULL rule
+   tested and documented in `schema.yml`, **or** the column and its comment are deleted — no third
+   state where the comment survives the decision.
+3. `python3 -m ml.src.features --check` clean and the contract unmoved at 32 columns, whichever
+   branch is taken.
+4. `dbt run` + `dbt test` green on the touched models, with the counts quoted.
+
+**Cost:** 0.5 – 1 day. **Model:** `opus-5` — it rules on whether a provenance-flagged table may enter
+the lineage of a published feature, which is an epistemics call, not a wiring task.
+
+---
+
+## 08q — `theta_air` is a `COALESCE` default, not an estimate
+
+**Raised 2026-09-20** by the fan-value reprioritisation. This is the follow-up `06b` proposed and
+never created — `06b` called it `08l`, that id has since been used for the seed compound curve, so
+it is created here as `08q`. The 2026-09-19 history entry lists it under `assumed` as *"a live,
+unscheduled finding"*. It is now scheduled.
+
+### The defect, re-traced from source 2026-09-20
+
+Not taken from `06b`'s write-up — re-read line by line, because the whole item turns on it.
+
+1. [`int_lap_air_state.sql:144-152`](../../transform/models/intermediate/int_lap_air_state.sql)
+   builds `dirty_air_share_lap` as
+   `MAX(CASE WHEN sector = 2 AND sector_air_state = 'dirty_air' THEN 1.0 ELSE 0.0 END)`.
+   **One bit per lap** — there is one S2 per lap, and the code comment says so.
+2. [`int_dirty_air_tax_component.sql:82`](../../transform/models/intermediate/int_dirty_air_tax_component.sql)
+   lags it into `dirty_air_share_lag1`, which is therefore also one bit.
+3. `:160-162` filters `calibration_panel` to `WHERE dirty_air_share_lag1 > 0` — leaving a regressor
+   **constant at 1.0**.
+4. `:168-177` is
+
+   ```sql
+   COALESCE(
+       COVAR_POP(partial_residual_s, dirty_air_share_lag1)
+       / NULLIF(VAR_POP(dirty_air_share_lag1), 0),
+       0.5
+   ) AS theta_air
+   ```
+
+   Zero variance → `NULLIF` returns NULL → the `COALESCE` falls through to the literal **0.5**.
+
+`theta_air` is not a fitted slope. It is a default that has never once been overwritten by data.
+
+### Why it is a fan-facing defect, not only a modelling one
+
+[`app/src/features/dirty-air-cost/queries.ts:34-36`](../../app/src/features/dirty-air-cost/queries.ts)
+selects `MAX(d.cumulative_dirty_air_tax_race_s)`, `AVG(d.dirty_air_tax_s)` and a count of laps where
+`dirty_air_tax_s > 0` straight out of `int_dirty_air_tax_component`, and ranks drivers by the total.
+
+With θ at 0.5 and the treatment one bit, `dirty_air_tax_s` is **exactly 0.5 on every dirty-air lap
+and 0.0 otherwise**. So the page's "dirty air cost" is `0.5 × (a lap count)`, presented as measured
+seconds. **The leaderboard is a lap counter with a unit attached.**
+
+`06b` measured what the number should be — per-season θ, F2 (stint FE + tyre-age bins,
+race-clustered):
+
+| 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| +0.396 | +0.151 | +0.170 | +0.083 | +0.011 | +0.045 | −0.036 |
+
+**0.5 sits outside the 95% CI in six of the seven seasons.** This is the same shape as `00d` — a
+live public page built on a number this tree has already proved wrong — except that until now
+nothing was tracking it.
+
+### Why it is not cheap, said up front
+
+`06b`'s **decision was to keep the global θ in production**, and the reason is structural rather
+than timid. `int_lap_residual_decomposed` subtracts `dirty_air_tax_s` when forming
+`driver_skill_residual_s`, and `fct_cliff_prediction_features` builds the regression target as a
+lead-difference of that column. **The tax is inside the label.**
+
+`06b` priced the footprint: a ±0.5 s step on **14.3% of panel laps**, against a training-label sd of
+**0.988 s** and a median absolute value of **0.363 s** — half a standard deviation on one lap in
+seven.
+
+So re-estimating θ rewrites the target for all five families: a full gate ladder plus a v12 → v13
+bump, on the same argument `08n` made. It collides with three things already on the board:
+
+- **`D10`** — a floor-1 revert retrains all five artefacts anyway.
+- **`D12`** — a `FEATURE_COLUMNS` bump retrains at least the classifier.
+- **`08o`** — drops the IPW weight from the degradation trio.
+
+**This leaf doc must say whether `08q` rides that bundle or goes alone**, the same clause `08o`
+carries. Four items now want one version bump; deciding that once is cheaper than four times.
+
+> **`D16` is where that answer lands — raised 2026-09-20 by the clubbing pass.** It asks exactly
+> that question for all four (`08i`/`D10`, `02b`/`D12`, `08o`, `08q`) and it blocks nothing. Two
+> corrections to the pricing above, both traced from source that day. (1) **This item's footprint is
+> four of five, not five.** `grep -rn theta_air transform/models` returns
+> `int_dirty_air_tax_component.sql` and nothing else, so θ moves `dirty_air_tax_s` →
+> `driver_skill_residual_s` → `DEGRADATION_TARGET` and `CLIFF_TARGET`, while `STINT_LIFE_TARGET` is
+> synthesised in `ml/src/features.py` from `stint_length_laps − lap_in_stint` and carries no
+> dirty-air term. No `FEATURE_COLUMNS` entry moves either: `dirty_air_share_lap` and
+> `dirty_air_thermal_load_surface`/`_bulk` come from `int_lap_air_state`, which never reads θ. (2)
+> **The fifth artefact is re-cut anyway**, by the version convention rather than by a changed fit —
+> `S.MODEL_VERSION_DEFAULT` is one constant (`schema.py:361`) and `predict.py:43-76` loads all five
+> boosters at it, so a `v13` exists only once all five `.bst` files exist at `v13`.
+
+### Two things `06b` says this item must not repeat
+
+- **A binary regressor filtered to its treated arm identifies nothing.** Removing the
+  `dirty_air_share_lag1 > 0` filter from `calibration_panel` is the minimum, not the fix.
+- **`dirty_air_share_lap` is a one-bit, S2-only measure.** The natural repair is a **dose-response
+  on the gap**, not a better-fitted constant. The gap is available: `int_lap_air_state` already
+  computes `min_gap_s` and `dirty_air_intensity` off the same sectors, and
+  [`stg_telemetry_position.sql:65`](../../transform/models/staging/stg_telemetry_position.sql)
+  carries `distance_to_ahead_m` per sample.
+
+### Method
+
+1. Write the identification argument **first**, before touching SQL — the pattern `08m` and `00d`
+   set. State what the treatment variable is, why it identifies θ, and what the estimand means when
+   the treatment is a dose rather than a bit.
+2. Pre-register per `gates.md` step 6 before any refit, including the global-vs-per-season choice.
+3. Run the full gate ladder, because the label moves. Gate 1 reproduction is the rebuilt panel
+   against `int_dirty_air_tax_component`'s **123,993 rows** and per-season treatment mean to 1e-9 —
+   `06b` already did this once and it passed.
+4. Price the landing explicitly: which artefacts, which published figures move, and whether it
+   bundles with `D10` / `D12` / `08o`.
+5. Re-check the app page against whatever ships, per `00d`'s last DoD clause.
+
+### The negative outcome must stay open
+
+`06b`'s per-season fit puts θ at **+0.011 to −0.036** across 2022–2024, and its lead placebo **fails
+on 2021–2024**, which `06b` published as *"no detectable directional cost"*. If the estimated θ is
+indistinguishable from zero on recent seasons, the right answer may be that the dirty-air-cost page
+**should not show a per-driver seconds total for those seasons at all**. Ruling on that is part of
+this item. Do not assume the fix is simply a better number.
+
+### Definition of done
+
+1. A written identification argument and a pre-registration, both before any refit.
+2. θ estimated rather than defaulted, with the global-vs-per-season choice made on the evidence and
+   the dose-vs-bit treatment ruled on explicitly.
+3. The label footprint re-measured on the v12 substrate — `06b`'s 14.3% / 0.988 s figures are
+   pre-`08m` and must not be re-quoted without re-measuring.
+4. A written statement of whether `08q` rides the `D10` / `D12` / `08o` version bump or goes alone.
+5. A written ruling on what `app/src/features/dirty-air-cost` should show, including the option that
+   it shows nothing for the seasons where θ is indistinguishable from zero.
+
+**Cost:** 1 – 2 days **for the estimation and the ruling** — *not* for the landing, which is a
+target rebuild plus a retrain and re-export of all five artefacts and is the same cost `D10` is
+being weighed against. **Model:** `opus-5` — it rules on an identification strategy and moves the
+ML target, which is the definition of the default.

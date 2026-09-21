@@ -142,6 +142,45 @@ qualifying AS (
     FROM {{ ref('int_qualifying_driver_summary') }}
 ),
 
+-- 02d (Tier 3): per-circuit safety-car / virtual-safety-car hazard per racing
+-- lap, from int_sc_hazard_history. This is the marshalling channel -- neither a
+-- transform of lap times nor of the car channel -- and it is the reason
+-- ml_research_program.md §1a's "safety-car timing ... carries no signal in any
+-- feature this warehouse could build" is false (item 00b).
+--
+-- THE SEASON IS HALF THE KEY. int_sc_hazard_history is an EXPANDING,
+-- SEASON-LAGGED rate since 02d's rebuild: the row for (circuit_slug, season S)
+-- is estimated from races at that venue in seasons strictly before S. Joining
+-- on circuit alone would hand a 2018 training row a hazard estimated partly
+-- from the 2024 evaluation season -- the exact leak the rebuild closed, and the
+-- same shape 08f-1 found in this mart's own survival weights.
+--
+-- Only the EB-SHRUNK rates are carried. The raw rates are NULL on a venue's
+-- debut season, which would put a SECOND missingness pattern in the block on a
+-- different axis from the first; shrinkage is also what the existing consumer
+-- (int_pit_strategy_cost_curve) already uses, so the two read the same estimator.
+--
+-- any = sc + vsc EXACTLY, raw and shrunk alike: the onset counts add and the
+-- shrinkage priors add with them. It is carried anyway because a tree cannot
+-- form the sum itself, so it is a basis rotation rather than new information.
+--
+-- prior_racing_laps / prior_seasons_n are the EXPOSURE behind the estimate --
+-- how much evidence the rate rests on. They are carried as their own channel so
+-- the ablation can separate "safety-car risk" from "how long this venue has
+-- been on the calendar", which is a tenure variable with no SC mechanism in it.
+-- See the leaf doc's arm C.
+sc_hazard AS (
+    SELECT
+        circuit_slug,
+        season,
+        sc_hazard_per_lap_shrunk,
+        vsc_hazard_per_lap_shrunk,
+        any_hazard_per_lap_shrunk,
+        prior_racing_laps,
+        prior_seasons_n
+    FROM {{ ref('int_sc_hazard_history') }}
+),
+
 -- C1: per-stint linear drift of driver_skill_residual_s (pre-cliff only).
 -- Used to produce next_lap_degradation_jump_detrended_s.
 detrend AS (
@@ -383,6 +422,44 @@ base AS (
         qs.quali_skill_session_avg_s,
         qs.quali_segments_contested_n,
 
+        -- 02d SC/VSC hazard (Tier 3, circuit x season grain, stint-invariant).
+        --
+        -- NULL POLICY, and it is the load-bearing decision in this block. The
+        -- three rates are left NULL rather than coalesced, because a NULL here
+        -- means UNKNOWABLE, not zero: season 2018 is the earliest in the
+        -- warehouse, so no 2018 row has a prior season to estimate from and none
+        -- has a prior-season pooled rate to shrink toward either. Writing 0.0
+        -- would assert "this venue never throws a safety car", which is a
+        -- measurement nobody made. XGBoost reads the NULL as native missing.
+        --
+        -- THE COST OF THAT, STATED BEFORE THE ABLATION RUNS: the NaN mask of
+        -- these three columns is EXACTLY `race_year = 2018` -- 100% NULL in
+        -- 2018, 100% present in every other season -- and `race_year` is NOT in
+        -- ml/src/schema.py's FEATURE_COLUMNS. So this block hands the model a
+        -- free season indicator it does not currently have, through its
+        -- missingness rather than through a value, and a row-shuffle permutation
+        -- null cannot destroy it because the shuffle moves the NaNs with the
+        -- values (02c found the same shape in corner_input_coverage). That is
+        -- what the leaf doc's arm D isolates and what its decision rule is
+        -- written against.
+        --
+        -- The two exposure counts are COALESCEd to 0: every mart row matches a
+        -- hazard row (137,447 of 137,447, verified 2026-09-20), and the source
+        -- already reports them unfloored and never NULL, so a 0 here is the
+        -- measured "no prior exposure" rather than an invented value.
+        sch.sc_hazard_per_lap_shrunk AS circuit_sc_hazard_per_lap,
+        sch.vsc_hazard_per_lap_shrunk AS circuit_vsc_hazard_per_lap,
+        sch.any_hazard_per_lap_shrunk AS circuit_any_hazard_per_lap,
+        -- CAST to BIGINT: the source cumulates into HUGEINT, which the mart's
+        -- enforced contract has no reason to carry for a count that peaks in the
+        -- low thousands.
+        CAST(
+            COALESCE(sch.prior_racing_laps, 0) AS BIGINT
+        ) AS circuit_hazard_prior_racing_laps,
+        CAST(
+            COALESCE(sch.prior_seasons_n, 0) AS BIGINT
+        ) AS circuit_hazard_prior_seasons_n,
+
         -- Event flag: any event contamination on this lap
         COALESCE(cor.correction_weight < 1.0, FALSE) AS event_flag_any,
 
@@ -445,6 +522,15 @@ base AS (
     LEFT JOIN corrections AS cor ON r.lap_id = cor.lap_id
     LEFT JOIN telemetry AS tel ON r.lap_id = tel.lap_id
     LEFT JOIN race_to_track AS rtt ON r.race_id = rtt.race_id
+    -- 02d: (circuit, season), never circuit alone -- see the sc_hazard CTE
+    -- header. rtt.circuit_key IS int_sc_hazard_history.circuit_slug (the
+    -- race-name slug, which recurs across seasons); all 36 mart circuits match,
+    -- and the join is verified one-to-one -- 137,447 mart rows in, 137,447 out,
+    -- 0 unmatched, no duplicate (circuit_slug, season) keys.
+    LEFT JOIN sc_hazard AS sch
+        ON
+            rtt.circuit_key = sch.circuit_slug
+            AND r.race_year = sch.season
     LEFT JOIN dim_circuits AS dc ON rtt.circuit_key = dc.circuit_key
     LEFT JOIN compound_params AS cp
         ON
@@ -699,6 +785,22 @@ SELECT
     quali_ratio_to_segment_best_min,
     quali_skill_session_avg_s,
     quali_segments_contested_n,
+
+    -- 02d SC/VSC hazard (Tier 3, the marshalling channel -- the one candidate in
+    -- item 02 sourced from neither lap times nor the car channel). Circuit x
+    -- season grain, so stint-invariant: per the leaf doc's §1 it can address only
+    -- the 0.94% of the degradation target's variance that is between-stint, and
+    -- the family it is aimed at is stint_life_regressor, where stint ends are set
+    -- by pit-wall calls and safety-car probability is the largest exogenous input
+    -- to those calls. Present in the mart, NOT in ml/src/schema.py's
+    -- FEATURE_COLUMNS -- the same standing 02b's seven and 02c's ten hold until
+    -- their arms rule. The pre-registered arms are in
+    -- _improvements/work/02-feature-expansion.md §4 `02d`.
+    circuit_sc_hazard_per_lap,
+    circuit_vsc_hazard_per_lap,
+    circuit_any_hazard_per_lap,
+    circuit_hazard_prior_racing_laps,
+    circuit_hazard_prior_seasons_n,
 
     -- Cliff prediction features
     expected_compound_pace_s,

@@ -8,6 +8,43 @@ on the cliff classifier — the instrument does not bind, and the gate says so a
 
 Full diagnosis: `reference/ml_research_program.md` §1. Do not re-derive it.
 
+> **SUBSTRATE BANNER, added 2026-09-19 by the build-order audit — read before quoting any number
+> in this document.** Both items ran on the **v11** substrate: the **33-column** contract (`08j`
+> pruned it to 32 on 2026-09-09) and the **pre-`08m`** degradation target. `08m` (2026-09-16)
+> rebuilt `next_5_lap_cumulative_jump_s` — mean **−1.8793 s → −0.3946 s**, training-eligible rows
+> **82,470 → 81,619**, 10.79% of cliff labels changed class — and `08n` shipped the refit as
+> **v12** under the explicit ruling that v11 and v12 headlines are *different quantities and are
+> not compared*.
+>
+> So every absolute figure below is on a quantity production no longer predicts: `01a`'s five
+> reseed floors (p10 0.00805 / p50 0.01332 / p90 0.00773 / cliff 0.00349 / stint life 0.00281),
+> its learning curves and its 2021–2023 cliff finding; `01b`'s L3 floors (0.5654 vs 0.5188;
+> 1.0641 vs 1.0163; 0.4914 vs 0.5600) and its bracket. `05c`'s 2026-09-17 rerun states the same
+> thing from the other side: *"`01a`'s curves, `01b`'s floor and `05c`'s v11 components all
+> describe `next_5_lap_cumulative_jump_s` as it was before `08m` repaired it … On the live v12
+> target only this item has a leg, and this item's v12 leg does not bind."*
+>
+> **The rulings are not retracted** — `01a`'s "no family is still gaining from rows",
+> `01b`'s "the instrument does not bind", and the method findings in both, rest on relative
+> comparisons whose two sides shared one target. Neither has been re-measured.
+>
+> Two consequences carried here rather than left to be rediscovered:
+>
+> - **`01a`'s stint-life recency finding is superseded**, not merely stale. `05d` (2026-09-15)
+>   traced it to the mis-tuned booster `10d` diagnosed and `10e` fixed: *"01a had stint life most
+>   recency-driven of the five (14–57× floor at matched n). Under the shipped pre-`10e` params the
+>   ladder is incoherent … under S1x the full window wins all five eval seasons monotonically."*
+> - **`01b`'s do-not-reopen clause has an unresolved question against it.** `05c`'s reconciliation
+>   raises it explicitly and leaves it open: the clause admits three triggers, *"a target rebuild
+>   is none of the three, because the clause was written before `08m` existed and could not
+>   contemplate it."* `05c` routed that to *"the orchestrating session or a human call"*; as of
+>   2026-09-19 it is in neither the `decisions` array nor any history entry of
+>   [`../status/build-log.json`](../status/build-log.json).
+>
+> `08m`'s own §7 staleness table ("which published numbers are now stale") lists `08e`/`08f`/`08h`/
+> `08i`, `02`, `11a`, `11b` and the production artefacts. **It does not list `01`**, which is why
+> this banner did not exist until now.
+
 ---
 
 ## 01a — Learning curves
@@ -754,3 +791,139 @@ neighbour-distance distribution is measured and reported; the floor is published
 with the metric, NaN treatment and weighting rule stated; every point on the curve is checked
 against the falsification gate and a violating point is **reported as an instrument failure,
 not dropped from the plot**; and the result is reconciled against `01a`'s learning curves.
+
+---
+
+## 01c — The `attainable` block on the v12 substrate, and `between_stint_share`'s three values
+
+**Raised 2026-09-19** by the build-order restructure. `01a` and `01b` are both pre-`08m` and the
+substrate banner at the top of this document says so. The instrument they were built to replace has
+since been re-evaluated on the current substrate and **nobody has read the result**.
+
+`ml/artefacts/evaluation_metrics.json` — `evaluated_at` `2026-09-19T08:41:44Z`, `version` `v12`,
+`censoring_variant` `standard`, `evaluation_mode` `cv_final_fold`, `eval_season` 2024 — carries a
+per-model `attainable` block produced by `ml/src/ceiling.py` through the production `evaluate.py`
+path. Read out of the live file, not from a summary:
+
+| family | basis | floor | oracle | model | fraction of attainable | binding? |
+| :--- | :--- | ---: | ---: | ---: | ---: | :--- |
+| `cliff_classifier` | stint-identity oracle | 0.20666708128614963 | 0.42885582146362833 (in-sample) | 0.35246609791814365 | **0.6561944431366481** in-sample · 0.6896137138829647 cross-fitted | **yes** |
+| `degradation_regressor_p10` | per-stint empirical quantile | 0.6681460878194588 | 0.5090079267410107 | — | **1.2045005970277398** | no |
+| `degradation_regressor_p50` | per-stint empirical quantile | 1.1636904902330087 | 0.995340647775722 | — | **1.0771127196576855** | no |
+| `degradation_regressor_p90` | per-stint empirical quantile | 0.6016301309367883 | 0.4710000983431646 | — | **0.6796591516491961** | no |
+| `stint_life_regressor` | perfect-prediction AFT NLL | 2.2262492500943583 | 1.8245785171789248 | 2.153151721488012 | **0.1819837060962472** | **yes** |
+
+`ceiling_is_binding` is `ml/models/model_card.json`'s own flag, not a reading imposed here.
+
+**What is new since `01a`/`01b`, and it is not just a re-run.** The quantile trio now carries
+`fraction_of_attainable_in_sample` against the **per-stint empirical α-quantile**, which
+`ceiling.py`'s own note describes as *"the EXACT minimiser of pinball over all stint-constant
+predictors on these very rows, so an out-of-sample model scoring below it has provably used
+within-stint information."* That is a **bound with no shape assumption**, unlike the
+`analytic_from_icc` denominator that produced the 102× figures this document opens by calling a
+statement about the instrument. On that bound **p10 and p50 are already past what any stint-constant
+predictor can do** — the artefact's own note says *"Above 1 on either is a finding, not a defect"* —
+and **p90 sits at 0.68**. p90 is the only degradation head with measurable room left, and it is the
+head `02b`'s arms B and C moved.
+
+### Objective
+
+State what the current instrument says, on the current substrate, in one place — and rule on the
+denominator, which is genuinely unsettled rather than merely unwritten.
+
+### The three things to rule on
+
+**1. `between_stint_share` has three live values for the same target column.**
+
+| value | source | population |
+| ---: | :--- | :--- |
+| 0.0094 | `reference/ml_research_program.md` §1c | v11, pre-`08m` |
+| 0.0643 | `work/02-feature-expansion.md:35`, `:508` — measured by `02b` | post-`08m`, n = 81,619, 6,203 stints, `anova_icc_oneway_non_overlapping` |
+| **0.019972249199683746** | the live artefact | `scope: "mart"`, n = 95,346 rows, 6,422 stints, thinned to 21,707 non-overlapping |
+
+These are not three generations of one number. They differ in **scope** as well as substrate — the
+artefact's is over the whole mart, `02b`'s over training-eligible rows — so "take the newest" is not
+an answer. It matters because `02-feature-expansion.md` §1 builds the cap on **three of its four
+tiers** on 0.0094 ("99.06% of the degradation target's variance is within stint"), and `:661` already
+records that the tier table owes a re-derivation. Against 0.0643 that cap is 6.8× looser than
+written; against 0.0200 it is about 2×. Rule which population the cap should be stated over, then
+re-derive the tier table once.
+
+**2. The stint-life ratio moved with `10e`'s landing and the trade was never recorded.**
+
+`10e` shipped S1x on 2026-09-19 and the published mixture AFT NLL went **1.99134 → 2.15315**
+(`work/10-competing-risks.md:2026`), flipping `beats_baseline_significant` `True → False`. Holding
+today's floor and oracle fixed:
+
+```
+(2.2262492500943583 − 1.9913358778933028) / (2.2262492500943583 − 1.8245785171789248) = 0.5848
+```
+
+against today's 0.1820. So the landing bought a real green-pit Brier gain (+0.0226, paired
+race-cluster bootstrap 200/200 draws) and paid about two thirds of the family's ceiling capture on
+its own published headline metric.
+
+> **Do not publish that as a before/after without recomputing it.** The oracle is the censored AFT
+> likelihood at a *perfect* prediction, which depends on the **fitted** log-normal scale — and S1x
+> moved the scale from 0.8 to 0.7537929016487691. The pre-`10e` artefact is unrecoverable:
+> `ml/artefacts/` is gitignored (`.gitignore:77`) and the file was overwritten 2026-09-19 12:41. So
+> 0.5848 is "today's denominator against yesterday's numerator", which is exactly the kind of
+> mixed-substrate ratio this tree bans elsewhere. Either recompute the pre-`10e` oracle through
+> `evaluate.py` at the recorded pre-`10e` params, or state plainly that it cannot be recovered.
+
+**3. What this changes for the items priced off the old answer.** `01`'s framing is *"the instrument
+does not bind"*; on v12 it binds on two of five families. `05a` closed unstarted on a three-leg
+bracket (`01a` + `01b` + `05c`) every leg of which is pre-`08m`. `D14` asks whether a target rebuild
+reopens `01b`. Say what the current instrument implies for each — **without** reopening `05a` or
+ruling `D14`, both of which are outside this item.
+
+### Method
+
+Read-and-rule over an artefact that already exists. No refit, no warehouse touch, no gate run:
+`ceiling.py`'s numbers came out of the production `evaluate.py` path on 2026-09-19 and are not
+re-derived here. The one permitted computation is a single scoring pass through `evaluate.py` at
+recorded pre-`10e` params, in scratch, if the pre-`10e` oracle is to be recovered rather than
+disclaimed.
+
+Trace `ceiling.py`'s three bases before quoting any of them — `analytic_from_icc`,
+`stint_identity_oracle`, `perfect_prediction` are different constructions with different bias
+directions, and the module's docstring states each one. Quote the bracket (in-sample **and**
+cross-fitted) wherever both exist, per this repo's house style; a single end is the unanchored-number
+failure `ceiling.py` exists to fix.
+
+### Acceptance
+
+- Every figure traced to `ml/artefacts/evaluation_metrics.json` by key path, with `evaluated_at` and
+  `version` quoted beside it, so a later session can tell whether the block has moved under it.
+- The three `between_stint_share` values reproduced from their own sources and reconciled by a
+  **stated rule** about population and scope, not by preference.
+- Nothing said about pre-`10e` stint-life capture that is not either recomputed or explicitly marked
+  unrecoverable.
+
+### Definition of done
+
+1. A section in this document states, for all five families on the **v12** substrate, what fraction
+   of the attainable quantity the shipped model captures, with the basis and bias direction of each
+   denominator named.
+2. `between_stint_share` is ruled to **one** value for the purpose `02-feature-expansion.md` §1 uses
+   it for, with the population and scope stated, and `§1`'s tier cap is corrected or explicitly
+   flagged as owing a re-derivation with the new number named.
+3. The `10e` ceiling-capture trade is recorded — recomputed if recoverable, marked unrecoverable if
+   not — on `10e` as well as here, because it is `10e`'s trade and `10e`'s note does not mention it.
+4. The substrate banner at the top of this document gains a line saying that `01` now has a v12 leg,
+   and what it does and does not cover. `01a`'s and `01b`'s own results are **not** retracted or
+   rewritten; this item adds a leg, it does not re-open one.
+5. The history entry states plainly which families the ceiling binds on and which it does not.
+
+**Cost:** hours – 1 day. **Model:** `opus-5` — it rules on a denominator three documents disagree
+about and turns a stored measurement into a claim.
+
+> **REPRIORITISED 2026-09-20 by the fan-value reprioritisation: `order_hint` 1 → 7, and off the
+> pointer.** Nothing above is refuted or withdrawn. The `attainable` block is still live, still
+> unread by this tree, and `between_stint_share` still has three values. What changed is the queue
+> behind it. `01c`'s value is that it **reprices** `02c`, `02d` and the rest of the
+> degradation-headroom ladder — and under the success definition the user stated that day (fan-usable
+> stats that settle arguments or give someone something to track live), those are exactly the items
+> that no longer sit at the front, so the repricing is no longer urgent the way it was on 2026-09-19.
+> It stays ahead of **every item it prices** — `08o`, `08q`, `08i`, `08p`, `10d`, `02b`, `02c`, `02g`
+> — and it is still hours against a file that already exists. Demoted in position, not in importance.

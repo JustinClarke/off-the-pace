@@ -44,6 +44,13 @@ export const pillars: Pillar[] = [
     description: 'Dirty air cost, track evolution, wind, altitude, field pace',
   },
   {
+    id: 'race-craft',
+    label: 'Race Craft',
+    icon: '⚑',
+    path: '/race-craft',
+    description: 'Safety cars, VSCs and red flags on the lap they happened',
+  },
+  {
     id: 'drivers',
     label: 'Drivers',
     icon: '◈',

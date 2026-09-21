@@ -7,6 +7,20 @@
 -- All residuals are NULL when field_corner_sample_n < 5 (insufficient
 -- comparison set).
 --
+-- SIGN CONVENTION (one for all three phases, 00d): POSITIVE = SECONDS LOST vs
+-- the field median, NEGATIVE = seconds gained. The direction of the underlying
+-- measure decides the subtraction, not habit:
+--   braking_point_m   higher is FASTER (braking later)  -> (field - own)
+--   v_min_kph         higher is FASTER (carrying speed) -> (field - own)
+--   throttle_point_m  higher is SLOWER (on power later) -> (own - field)
+-- corner_residual_total_s is their straight sum and is therefore a real
+-- "seconds lost at this corner".
+-- Before 00d, braking_loss_s alone was (own - field) -- positive meant braking
+-- LATER, i.e. faster -- and mart_corner_skill_driver summed all three z-scores
+-- and ordered ASC, so one of three terms entered the shipped leaderboard
+-- inverted. transform/tests/assert_corner_skill_sign_convention.sql pins the
+-- direction from the raw geometry so it cannot regress silently.
+--
 -- Field medians use RANGE frame to include all drivers at the same lap number,
 -- looking back exactly 5 laps (excluding current lap, t-5...t-1).
 -- Lap 2 returns NULL for all fields (no prior lap), consistent with trailing
@@ -167,13 +181,24 @@ with_residuals AS (
         ck.track_id,
         ck.lap_number,
         fm.field_corner_sample_n,
+        -- SIGN: (field - own), so POSITIVE = braking EARLIER than the field
+        -- median = time LOST. 00d: this was built as (own - field), which made
+        -- it the only one of the three phases where positive meant faster,
+        -- while mart_corner_skill_driver summed all three z-scores and ordered
+        -- ASC. Fixed at the source rather than negated in the mart so the
+        -- column means what its name says, corner_residual_total_s becomes a
+        -- real "seconds lost" total, and every downstream consumer inherits one
+        -- convention. Matches the house convention already in the feature
+        -- contract: int_lap_telemetry_aggregates' braking_point_drift_m is
+        -- (baseline - own) for the same reason.
+        -- Pinned by transform/tests/assert_corner_skill_sign_convention.sql.
         CASE
             WHEN
                 fm.field_corner_sample_n < 5
                 OR fm.field_corner_braking_point_m IS NULL
                 THEN NULL
             ELSE
-                (ck.braking_point_m - fm.field_corner_braking_point_m)
+                (fm.field_corner_braking_point_m - ck.braking_point_m)
                 * ck.dt_per_dm
         END AS braking_loss_s,
         CASE

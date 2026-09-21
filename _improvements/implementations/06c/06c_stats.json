@@ -1,35 +1,382 @@
 {
-  "total_driver_seasons": 20,
-  "driver_seasons_with_index": 20,
-  "nor": {
-    "driver_id": "NOR",
-    "corner_skill_index": -3.17,
-    "braking_skill_s": -0.0424,
-    "braking_skill_se_s": 0.0114,
-    "braking_cells_n": 305,
+  "generated": "2026-09-20",
+  "basis": "post-00d sign fix; mart rebuilt and parquets re-exported",
+  "sign_convention": "negative = faster (time gained); positive = seconds lost. Applies to all three phases.",
+  "population": {
+    "driver_seasons_total": 141,
+    "driver_seasons_scored": 139,
+    "unscored": [
+      "NOR 2019",
+      "SAI 2019"
+    ],
+    "unscored_reason": "exit_cells_n = 21, below PHASE_MIN_CELLS = 30"
+  },
+  "index_identity_check": "corner_skill_index == braking_skill_z + mid_corner_skill_z + exit_skill_z, max abs deviation 0.0 on 2024",
+  "leaderboard_2024_top5": [
+    {
+      "driver_id": "GAS",
+      "constructor_id": "Alpine",
+      "idx": -3.76,
+      "braking_z": -2.18,
+      "mid_z": -1.15,
+      "exit_z": -0.43
+    },
+    {
+      "driver_id": "VER",
+      "constructor_id": "Red Bull Racing",
+      "idx": -2.96,
+      "braking_z": -1.3,
+      "mid_z": -2.12,
+      "exit_z": 0.46
+    },
+    {
+      "driver_id": "ZHO",
+      "constructor_id": "Kick Sauber",
+      "idx": -2.22,
+      "braking_z": -0.8,
+      "mid_z": -1.15,
+      "exit_z": -0.27
+    },
+    {
+      "driver_id": "NOR",
+      "constructor_id": "McLaren",
+      "idx": -1.69,
+      "braking_z": 0.74,
+      "mid_z": -0.24,
+      "exit_z": -2.19
+    },
+    {
+      "driver_id": "RUS",
+      "constructor_id": "Mercedes",
+      "idx": -1.41,
+      "braking_z": -0.89,
+      "mid_z": -0.16,
+      "exit_z": -0.36
+    }
+  ],
+  "season_leaders_after_fix": {
+    "2018": "HUL",
+    "2019": "VER",
+    "2020": "VER",
+    "2021": "ALO",
+    "2022": "ALO",
+    "2023": "GAS",
+    "2024": "GAS"
+  },
+  "ver_by_season": {
+    "2018": {
+      "braking_skill_s": 0.0036,
+      "mid_corner_skill_s": -0.0055,
+      "exit_skill_s": 0.0548,
+      "braking_skill_se_s": 0.0189,
+      "mid_corner_skill_se_s": 0.0102,
+      "exit_skill_se_s": 0.0135,
+      "braking_skill_z": 0.08,
+      "mid_corner_skill_z": -0.23,
+      "exit_skill_z": 0.58,
+      "corner_skill_index": 0.42,
+      "braking_cells_n": 211,
+      "mid_cells_n": 251,
+      "exit_cells_n": 183,
+      "constructor_id": "Red Bull Racing"
+    },
+    "2019": {
+      "braking_skill_s": -0.0492,
+      "mid_corner_skill_s": -0.0545,
+      "exit_skill_s": -0.0497,
+      "braking_skill_se_s": 0.014,
+      "mid_corner_skill_se_s": 0.0081,
+      "exit_skill_se_s": 0.0119,
+      "braking_skill_z": -1.23,
+      "mid_corner_skill_z": -1.6,
+      "exit_skill_z": -0.44,
+      "corner_skill_index": -3.28,
+      "braking_cells_n": 253,
+      "mid_cells_n": 281,
+      "exit_cells_n": 205,
+      "constructor_id": "Red Bull Racing"
+    },
+    "2020": {
+      "braking_skill_s": -0.1566,
+      "mid_corner_skill_s": -0.0596,
+      "exit_skill_s": -0.2126,
+      "braking_skill_se_s": 0.022,
+      "mid_corner_skill_se_s": 0.0154,
+      "exit_skill_se_s": 0.0163,
+      "braking_skill_z": -1.89,
+      "mid_corner_skill_z": -1.18,
+      "exit_skill_z": -2.54,
+      "corner_skill_index": -5.61,
+      "braking_cells_n": 182,
+      "mid_cells_n": 205,
+      "exit_cells_n": 157,
+      "constructor_id": "Red Bull Racing"
+    },
+    "2021": {
+      "braking_skill_s": -0.077,
+      "mid_corner_skill_s": -0.0495,
+      "exit_skill_s": 0.0154,
+      "braking_skill_se_s": 0.0148,
+      "mid_corner_skill_se_s": 0.0061,
+      "exit_skill_se_s": 0.0099,
+      "braking_skill_z": -1.78,
+      "mid_corner_skill_z": -1.44,
+      "exit_skill_z": 0.13,
+      "corner_skill_index": -3.09,
+      "braking_cells_n": 241,
+      "mid_cells_n": 271,
+      "exit_cells_n": 211,
+      "constructor_id": "Red Bull Racing"
+    },
+    "2022": {
+      "braking_skill_s": -0.0426,
+      "mid_corner_skill_s": -0.0397,
+      "exit_skill_s": 0.0174,
+      "braking_skill_se_s": 0.0127,
+      "mid_corner_skill_se_s": 0.0067,
+      "exit_skill_se_s": 0.0098,
+      "braking_skill_z": -0.92,
+      "mid_corner_skill_z": -1.87,
+      "exit_skill_z": 0.23,
+      "corner_skill_index": -2.57,
+      "braking_cells_n": 293,
+      "mid_cells_n": 330,
+      "exit_cells_n": 245,
+      "constructor_id": "Red Bull Racing"
+    },
+    "2023": {
+      "braking_skill_s": -0.0403,
+      "mid_corner_skill_s": -0.0775,
+      "exit_skill_s": 0.0449,
+      "braking_skill_se_s": 0.0152,
+      "mid_corner_skill_se_s": 0.0067,
+      "exit_skill_se_s": 0.0087,
+      "braking_skill_z": -0.58,
+      "mid_corner_skill_z": -1.97,
+      "exit_skill_z": 0.46,
+      "corner_skill_index": -2.1,
+      "braking_cells_n": 273,
+      "mid_cells_n": 320,
+      "exit_cells_n": 256,
+      "constructor_id": "Red Bull Racing"
+    },
+    "2024": {
+      "braking_skill_s": -0.0745,
+      "mid_corner_skill_s": -0.0745,
+      "exit_skill_s": 0.0556,
+      "braking_skill_se_s": 0.0151,
+      "mid_corner_skill_se_s": 0.0067,
+      "exit_skill_se_s": 0.0083,
+      "braking_skill_z": -1.3,
+      "mid_corner_skill_z": -2.12,
+      "exit_skill_z": 0.46,
+      "corner_skill_index": -2.96,
+      "braking_cells_n": 282,
+      "mid_cells_n": 323,
+      "exit_cells_n": 246,
+      "constructor_id": "Red Bull Racing"
+    }
+  },
+  "nor_2024": {
+    "braking_skill_s": 0.0424,
     "mid_corner_skill_s": -0.0085,
-    "mid_corner_skill_se_s": 0.0049,
-    "mid_cells_n": 358,
     "exit_skill_s": -0.2669,
+    "braking_skill_se_s": 0.0114,
+    "mid_corner_skill_se_s": 0.0049,
     "exit_skill_se_s": 0.0392,
-    "exit_cells_n": 76
+    "braking_skill_z": 0.74,
+    "mid_corner_skill_z": -0.24,
+    "exit_skill_z": -2.19,
+    "corner_skill_index": -1.69,
+    "braking_cells_n": 305,
+    "mid_cells_n": 358,
+    "exit_cells_n": 76,
+    "constructor_id": "McLaren"
   },
-  "ver": {
-    "driver_id": "VER",
-    "corner_skill_index": -0.37,
+  "pia_2024": {
+    "braking_skill_s": -0.0424,
+    "mid_corner_skill_s": 0.0085,
+    "exit_skill_s": 0.2669,
+    "braking_skill_se_s": 0.0114,
+    "mid_corner_skill_se_s": 0.0049,
+    "exit_skill_se_s": 0.0392,
+    "braking_skill_z": -0.74,
+    "mid_corner_skill_z": 0.24,
+    "exit_skill_z": 2.19,
+    "corner_skill_index": 1.69,
+    "braking_cells_n": 305,
+    "mid_cells_n": 358,
+    "exit_cells_n": 76,
+    "constructor_id": "McLaren"
+  },
+  "gas_2024": {
+    "braking_skill_s": -0.125,
+    "mid_corner_skill_s": -0.0405,
+    "exit_skill_s": -0.0522,
+    "braking_skill_se_s": 0.0201,
+    "mid_corner_skill_se_s": 0.0055,
+    "exit_skill_se_s": 0.0104,
+    "braking_skill_z": -2.18,
+    "mid_corner_skill_z": -1.15,
+    "exit_skill_z": -0.43,
+    "corner_skill_index": -3.76,
+    "braking_cells_n": 264,
+    "mid_cells_n": 290,
+    "exit_cells_n": 207,
+    "constructor_id": "Alpine"
+  },
+  "per_2024": {
     "braking_skill_s": 0.0745,
+    "mid_corner_skill_s": 0.0745,
+    "exit_skill_s": -0.0556,
     "braking_skill_se_s": 0.0151,
-    "braking_cells_n": 282,
-    "mid_corner_skill_s": -0.0745,
     "mid_corner_skill_se_s": 0.0067,
-    "mid_cells_n": 323,
-    "exit_skill_s": 0.0556,
     "exit_skill_se_s": 0.0083,
-    "exit_cells_n": 246
+    "braking_skill_z": 1.3,
+    "mid_corner_skill_z": 2.12,
+    "exit_skill_z": -0.46,
+    "corner_skill_index": 2.96,
+    "braking_cells_n": 282,
+    "mid_cells_n": 323,
+    "exit_cells_n": 246,
+    "constructor_id": "Red Bull Racing"
   },
-  "phase_se_means": {
-    "braking": 0.015090000000000001,
-    "mid_corner": 0.005830000000000001,
-    "exit": 0.016450000000000003
+  "race_clustered_2024": {
+    "VER_vs_PER": {
+      "braking": {
+        "races": 22,
+        "mean_diff_s": -0.0816,
+        "race_clustered_se_s": 0.0197,
+        "t": -4.13,
+        "races_first_driver_faster": 18
+      },
+      "mid_corner": {
+        "races": 22,
+        "mean_diff_s": -0.0795,
+        "race_clustered_se_s": 0.0126,
+        "t": -6.33,
+        "races_first_driver_faster": 20
+      },
+      "exit": {
+        "races": 22,
+        "mean_diff_s": 0.0483,
+        "race_clustered_se_s": 0.0124,
+        "t": 3.9,
+        "races_first_driver_faster": 5
+      }
+    },
+    "NOR_vs_PIA": {
+      "braking": {
+        "races": 24,
+        "mean_diff_s": 0.0502,
+        "race_clustered_se_s": 0.016,
+        "t": 3.13,
+        "races_first_driver_faster": 6
+      },
+      "mid_corner": {
+        "races": 24,
+        "mean_diff_s": -0.0108,
+        "race_clustered_se_s": 0.0086,
+        "t": -1.25,
+        "races_first_driver_faster": 12
+      },
+      "exit": {
+        "races": 14,
+        "mean_diff_s": -0.193,
+        "race_clustered_se_s": 0.1056,
+        "t": -1.83,
+        "races_first_driver_faster": 12
+      }
+    },
+    "GAS_vs_OCO": {
+      "braking": {
+        "races": 19,
+        "mean_diff_s": -0.1483,
+        "race_clustered_se_s": 0.0433,
+        "t": -3.43,
+        "races_first_driver_faster": 16
+      },
+      "mid_corner": {
+        "races": 19,
+        "mean_diff_s": -0.0368,
+        "race_clustered_se_s": 0.0094,
+        "t": -3.93,
+        "races_first_driver_faster": 16
+      },
+      "exit": {
+        "races": 19,
+        "mean_diff_s": -0.055,
+        "race_clustered_se_s": 0.0122,
+        "t": -4.51,
+        "races_first_driver_faster": 16
+      }
+    }
+  },
+  "ver_braking_race_clustered_by_season": {
+    "2018": {
+      "races": 17,
+      "mean_diff_s": 0.0056,
+      "race_clustered_se_s": 0.0346,
+      "t": 0.16,
+      "races_first_driver_faster": 7
+    },
+    "2019": {
+      "races": 20,
+      "mean_diff_s": -0.047,
+      "race_clustered_se_s": 0.0252,
+      "t": -1.87,
+      "races_first_driver_faster": 17
+    },
+    "2020": {
+      "races": 15,
+      "mean_diff_s": -0.2592,
+      "race_clustered_se_s": 0.123,
+      "t": -2.11,
+      "races_first_driver_faster": 14
+    },
+    "2021": {
+      "races": 19,
+      "mean_diff_s": -0.0623,
+      "race_clustered_se_s": 0.0292,
+      "t": -2.13,
+      "races_first_driver_faster": 14
+    },
+    "2022": {
+      "races": 22,
+      "mean_diff_s": -0.0503,
+      "race_clustered_se_s": 0.0139,
+      "t": -3.62,
+      "races_first_driver_faster": 18
+    },
+    "2023": {
+      "races": 21,
+      "mean_diff_s": -0.0366,
+      "race_clustered_se_s": 0.026,
+      "t": -1.41,
+      "races_first_driver_faster": 16
+    },
+    "2024": {
+      "races": 22,
+      "mean_diff_s": -0.0816,
+      "race_clustered_se_s": 0.0197,
+      "t": -4.13,
+      "races_first_driver_faster": 18
+    }
+  },
+  "ver_braking_pooled_2019_2024": {
+    "races": 119,
+    "mean_diff_s": -0.0814,
+    "race_clustered_se_s": 0.0185,
+    "t": -4.39,
+    "races_ver_braked_later": 97,
+    "sign_test_p": 2e-12,
+    "metres_later": 5.6,
+    "metres_se": 1.3
+  },
+  "caveats": {
+    "mart_se": "STDDEV(cells)/SQRT(N cells); unclustered, so optimistic. Race-clustered figures provided alongside.",
+    "winsorization": "each (driver,race,corner) cell clipped to +/-1.0 s before averaging",
+    "baseline": "leave-one-race-out same-car; with two drivers per team the pairs are exactly antisymmetric",
+    "exit_phase": "weakest measurement: fewest cells, widest SEs (2024: 76 cells McLaren vs 262 Kick Sauber)"
   }
 }

@@ -8,8 +8,10 @@ export const methodologyContent = (
     </p>
     <p className="mt-3">
       For each component (fuel, tyres, ambient, constructor, dirty air, driver skill, track
-      noise), the value shown is the <strong>sum across all classified laps</strong> laps under
-      safety car, virtual safety car, and major outlier laps are excluded. The result answers:
+      noise), the value shown is the <strong>sum across all classified laps</strong>. Laps under
+      safety car, virtual safety car and red flag are already absent: <code>fct_lap_residuals</code>{' '}
+      is built from green racing laps only, so the exclusion happens upstream in the warehouse
+      rather than in this query. Major-outlier laps are excluded here. The result answers:
       "across the full race, how many seconds did dirty air cost this driver vs the per-lap field
       median?"
     </p>

@@ -332,20 +332,28 @@ models:
       - name: corner_braking_loss_mean_s
         description: >
           02c. Mean braking_loss_s across the lap's corners that have a braking point (mean
-          -0.0065 s). Distance-of-first-brake-application vs the backward-only trailing-5 field
-          median (02g), converted to seconds at s2 trap speed. NULL, never 0.0, where the lap
-          has no measured braking corner - 0.0 would assert the driver braked exactly at the
-          field median.
+          +0.0065 s since 00d; -0.0065 s before). Distance-of-first-brake-application vs the
+          backward-only trailing-5 field median (02g), converted to seconds at s2 trap speed,
+          signed (field - own) so POSITIVE = braked earlier than the field = time lost. NULL,
+          never 0.0, where the lap has no measured braking corner - 0.0 would assert the driver
+          braked exactly at the field median.
         data_type: double
       - name: corner_braking_loss_sd_s
         description: >
           02c. Sample sd of braking_loss_s across the lap's corners (mean 0.3289 s; NULL on
           2.57% of corner-covered laps, which have fewer than two measured braking corners).
-          The tyre-management statistic of the three: a driver even across the lap loads the
-          tyre differently from one spiking in two corners and coasting the rest, at equal mean.
+          Unchanged by 00d's sign fix - a sample sd is invariant to negation. The tyre-management
+          statistic of the three: a driver even across the lap loads the tyre differently from
+          one spiking in two corners and coasting the rest, at equal mean.
         data_type: double
       - name: corner_braking_loss_max_s
-        description: 02c. Largest (most positive) braking_loss_s on the lap - the single hardest corner (mean 0.5459 s).
+        description: >
+          02c. Largest (most positive) braking_loss_s on the lap - the corner where the driver
+          lost the most time on entry (mean +0.6475 s). 00d: this is the one corner-input column
+          that is NOT a sign flip of its pre-00d self, because MAX does not commute with negation.
+          It changed from "the corner braked latest" to "the corner braked earliest relative to
+          the field". Pre-00d mean +0.5459 s, corr(old, new) = 0.080 over 131,482 laps. Mart-only
+          and outside FEATURE_COLUMNS, and 02c's arms over it are already void and must re-run.
         data_type: double
       - name: corner_mid_residual_mean_s
         description: >
@@ -408,6 +416,47 @@ models:
         data_type: double
       - name: quali_segments_contested_n
         description: Segments (1-3) in which the driver set a best qualifying push lap this weekend.
+        data_type: bigint
+      - name: circuit_sc_hazard_per_lap
+        description: >
+          02d. Per-racing-lap safety-car hazard for this circuit, empirical-Bayes shrunk,
+          from int_sc_hazard_history joined on (circuit_key, race_year) -- POINT-IN-TIME as
+          of the start of the season, estimated from races at this venue in seasons strictly
+          earlier. Circuit x season grain, so constant across every lap of the weekend.
+          NULL, never 0.0, where the hazard is unknowable: season 2018 is the earliest in the
+          warehouse, so no 2018 row has a prior season to estimate from nor a prior-season
+          pooled rate to shrink toward. 0.0 would assert a venue never throws a safety car,
+          which is a measurement nobody made. The NaN mask is therefore EXACTLY
+          race_year = 2018 (14,982 of 119,822 training-eligible rows, 12.5%), and race_year
+          is not itself in FEATURE_COLUMNS -- see the leaf doc's arm D, which isolates that
+          channel rather than letting it ride inside the hazard block.
+        data_type: double
+      - name: circuit_vsc_hazard_per_lap
+        description: >
+          02d. As circuit_sc_hazard_per_lap, for virtual-safety-car onsets (status_code 6).
+          Not collinear with the SC rate -- corr(sc onsets, vsc onsets) = 0.125 per race over
+          149 races -- so the two are separate channels rather than one measured twice.
+        data_type: double
+      - name: circuit_any_hazard_per_lap
+        description: >
+          02d. SC or VSC. EXACTLY circuit_sc_hazard_per_lap + circuit_vsc_hazard_per_lap:
+          the onset counts add and the shrinkage priors add with them, so this carries no
+          information the other two lack. Retained because a tree cannot form the sum itself,
+          which makes it a basis rotation rather than a redundant column.
+        data_type: double
+      - name: circuit_hazard_prior_racing_laps
+        description: >
+          02d. Racing laps of prior-season exposure the hazard estimate rests on, at this
+          venue, seasons strictly before this one. 0 on a venue's debut season. Never NULL --
+          the source reports it unfloored, and 0 is the measured "no prior exposure" rather
+          than an invented value. Carried as its own channel so the ablation can separate
+          safety-car risk from calendar tenure, which has no SC mechanism in it (arm C).
+        data_type: bigint
+      - name: circuit_hazard_prior_seasons_n
+        description: >
+          02d. Distinct prior seasons in which this venue appears, strictly before this one.
+          0 on a debut season. The companion count to circuit_hazard_prior_racing_laps and
+          the second half of arm C.
         data_type: bigint
       - name: expected_compound_pace_s
         description: Model-expected compound pace contribution from int_compound_cliff_predicted
@@ -880,6 +929,21 @@ models:
       corner_skill_index. SC / VSC / pit / inaccurate / non-push (corrected or
       rain-affected) laps are excluded before car averages are formed. Negative
       values = faster. corner_skill_index = sum of three z-scores; lower = faster.
+
+      SIGN FIX (00d, 2026-09-20). Until this date the braking phase entered the
+      index inverted: int_corner_skill_residuals built braking_loss_s as
+      (own - field median), so positive meant braking LATER = faster, while the
+      mid and exit phases were positive = worse, and this model summed all three
+      z-scores and ordered ASC. The fix was made at the SOURCE (braking_loss_s is
+      now (field - own)), not by negating the braking z here, so that every
+      column in this model shares one convention and corner_skill_index stays the
+      plain sum of the three published z-scores - the identity the app prints
+      beside them. braking_skill_s, braking_skill_se_s and braking_skill_z are
+      therefore an exact sign flip of their pre-00d values (every step from the
+      residual to the z is linear or odd; the STDDEV divisor and the cell counts
+      are invariant), and corner_skill_index moved by exactly -2 * the old
+      braking_skill_z. Both the direction and the sum identity are now pinned by
+      transform/tests/assert_corner_skill_sign_convention.sql.
     tags: [marts]
     meta:
       family: marts
@@ -896,8 +960,10 @@ models:
       - name: braking_skill_s
         description: >
           Mean winsorized LORO-adjusted braking-phase residual (seconds).
-          Negative = faster than the equal-car benchmark. Bounded to [-1, 1] by
-          the cell winsorization (convexity of the mean).
+          Negative = faster than the equal-car benchmark, i.e. braking LATER than
+          the same-car reference. Bounded to [-1, 1] by the cell winsorization
+          (convexity of the mean). 00d flipped this column's sign at the source;
+          a pre-2026-09-20 value of +0.0745 for VER 2024 is now -0.0745.
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -932,8 +998,12 @@ models:
       - name: braking_skill_z
         description: >
           braking_skill_s standardised within season (zero mean, unit variance).
-          NULL below PHASE_MIN_CELLS=30 braking_cells_n -- the mean is still
-          published, only the standardized score is withheld as unreliable.
+          Negative = faster on entry than the equal-car benchmark, the same
+          direction as mid_corner_skill_z and exit_skill_z -- that agreement is
+          what 00d fixed, and it is enforced upstream at braking_loss_s rather
+          than by a negation here. NULL below PHASE_MIN_CELLS=30 braking_cells_n
+          -- the mean is still published, only the standardized score is withheld
+          as unreliable.
         tests:
           - not_null:
               config:
@@ -952,11 +1022,16 @@ models:
                 where: "exit_cells_n >= 30"
       - name: corner_skill_index
         description: >
-          Sum of the three z-scores. Lower = faster driver in corner skill. NULL
-          if any one phase is withheld by its cell floor (see braking_skill_z).
-          Mid-season replacements with few races can reach ±9 because the car
-          baseline is dominated by the full-season driver; this is expected
-          behaviour.
+          Plain sum of the three published z-scores, all three signed the same
+          way (negative = faster than the equal-car benchmark for that phase), so
+          LOWER = faster driver in corner skill. No phase is negated or
+          reweighted at summation -- 00d ruled the braking sign be fixed at the
+          source instead, precisely so this stays the sum the app prints beside
+          the three columns; assert_corner_skill_sign_convention.sql pins it.
+          NULL if any one phase is withheld by its cell floor (see
+          braking_skill_z). Mid-season replacements with few races can reach ±9
+          because the car baseline is dominated by the full-season driver; this
+          is expected behaviour.
         tests:
           - not_null:
               config:

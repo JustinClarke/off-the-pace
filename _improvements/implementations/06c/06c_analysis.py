@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
 """
+SUPERSEDED 2026-09-20 -- PRE-FIX. DO NOT RE-QUOTE ITS OUTPUT.
+
+This script was written before 00d corrected the braking sign in
+int_corner_skill_residuals.sql. Everything it "confirms" below is either
+inverted or false against the rebuilt mart:
+  - NOR does not lead 2024 (4th at -1.69; GAS leads at -3.76)
+  - VER's braking is -0.0745, not +0.076, and it means braking LATER
+  - there is no anomaly to confirm
+Kept for provenance only. The current numbers are in 06c_stats.json and
+06c_findings_summary.md, and the queries behind them are recorded there.
+
+---- original docstring ----
 Load and analyze mart_corner_skill_driver for 2024 season.
 Focus on:
 1. Confirm NOR's leadership (index ~ -3.22)

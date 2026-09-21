@@ -43,11 +43,10 @@ const GROUPS: RoadmapGroup[] = [
     ],
   },
   {
-    blocker: 'Structured race-control feed',
-    detail: 'Penalties, DRS-enable windows and race-control messages need a structured stewarding feed that has not been ingested yet.',
+    blocker: 'Structured stewarding outcomes',
+    detail: 'The race-control message feed is ingested-12,814 messages across all 149 races. What it does not carry is structure: penalties and DRS-enable windows exist inside the message prose, not as decisions with a driver, a time cost and an outcome attached. The Race Control Timeline ships off this same lineage; these two need the decisions parsed out.',
     items: [
       { title: 'Penalty Impact', blurb: 'What every stewarding decision actually cost on track-the real gap a five-second penalty opened up.' },
-      { title: 'Race Control Timeline', blurb: 'Safety cars, VSCs, flags and investigations on one timeline, aligned to the pace story unfolding underneath.' },
       { title: 'DRS Dependency', blurb: "How much of a driver's overtaking leans on the DRS flap versus raw racecraft." },
     ],
   },

@@ -165,6 +165,31 @@ family of 30** (§5). That gap is the price of arbitrary dependence and optional
 is the honest calibration of what a single strong-looking arm is worth in this campaign. Do not
 read it as a bug in the construction.
 
+**The ceiling — this construction cannot reject unboundedly.** As `t -> infinity` the bracketed
+term tends to 1 and
+
+```
+E_max(n, g) = (1 + n*g)^((n-1)/2)
+```
+
+is the largest `E` this construction can return, whatever the data show. At the pre-registered
+`n = 5, g = 1` that is **36** (checked numerically: `t = 10^6` returns `36.0000`). e-BH needs
+`E >= m/alpha` for a lone rejection in a family of `m` (`20m` at `alpha = 0.05`), so `n = 5, g = 1`
+can only ever produce a lone rejection in a family of **one** — found independently by `02c`, `08i`
+and `10e`, and ruled on in
+[`../work/09-scoring-instruments.md`](../work/09-scoring-instruments.md) `09c`.
+
+**Before fixing `n` and `g` for a new arm, compute `E_max(n, g)` against the campaign's current
+declared family size** (`gates.md` step 7 requires this check). `20 * (m + 1)` is the bar a new
+arm's own lone rejection needs once it joins a family already at `m` declared hypotheses. Raising
+`n` costs refits (`2n` per arm: `n` real plus `n` shuffled) and does not cost power against a fixed
+effect size — a larger `n` shrinks the standard error of the paired mean at the same time as it
+raises the cap. Raising `g` costs nothing extra to run but bets on a bigger effect: it buys ceiling
+headroom against a `sqrt(g)`-sized effect at the price of power against anything smaller. `09c`'s
+landing note has the campaign's enumerated family size as of the date it ran and the construction
+ruled for arms declared after it landed. **It does not re-score any arm already declared under
+`n = 5, g = 1`** — those `E`s stand as declared, per `09c`.
+
 **Verify before you trust it.** Simulate 100k draws of five i.i.d. `N(0, sigma)` deltas at a few `sigma`,
 push them through your implementation, and confirm the mean of `E` is 1.00 to Monte Carlo error at
 every `sigma`. A construction whose null mean is not 1 is not an e-value, and this check costs a

@@ -6,9 +6,36 @@ before any of them was run, on the families that are not barred:
     degradation_regressor p10 / p50 / p90   (pinball, lower better)
     cliff_classifier                        (macro-F1, higher better)
 
-`stint_life_regressor` is BARRED here until 10e resolves (10d showed the shipped
-booster was tuned under the wrong label); the pre-registration says so explicitly and
-this script refuses to run it rather than leaving the bar to a reader's memory.
+`stint_life_regressor` is BARRED here. 10d showed the shipped booster was tuned under
+the wrong label; 10e LANDED 2026-09-19 and discharges that bar, but the leaf doc is
+explicit that stint life then becomes a FOLLOW-ON registration of its own rather than a
+retroactive member of the original A/B/C/P x 4 family. This script refuses it rather
+than leaving the bar to a reader's memory.
+
+RE-RUN NOTE (2026-09-22). The 2026-09-11 execution of this script scored every arm on
+the PRE-08m target against a uniform 32-column v12 contract. Two substrate rebuilds have
+landed since, and BOTH move the denominator:
+
+  * 08m (2026-09-16) rebuilt the degradation target; 02b re-measured the floors on
+    2026-09-19 and found p10's 3.2x tighter than the number 02c's table divides by.
+  * v13 (commit e341152, 2026-09-21) bundled 02b, 08o and 08q. 08q moves the LABEL for
+    the trio and the classifier (theta_air 0.5 -> 0.1310 s/lap), 08o drops the IPW
+    sample weight from the three quantile heads, and 02b admits seven qualifying columns
+    to `cliff_classifier` ONLY.
+
+So the floors quoted in the 02c pre-registration AND the floors 02b measured on
+2026-09-19 are both stale here. This script measures every floor IN-RUN on the substrate
+it is scoring, which is 02b's own §4(a) ruling ("gates step 3 says each family gets its
+own floor; it now also has to mean *on the substrate being scored*") applied one
+generation later. The declared floors are recorded beside the measured ones so the drift
+is visible in the artefact rather than asserted in prose.
+
+v13 is the first contract that is not one width. `schema.feature_columns_for()` gives the
+degradation trio 32 columns and `cliff_classifier` 39. That is not this script's choice
+and it is not overridden here: the instrument check below requires reproducing the
+PUBLISHED headline, and the published headline is the shipped per-family width. The
+consequence is stated rather than hidden -- on cliff the arms now measure the corner
+channel's INCREMENTAL value over qualifying, which is a harder test than 2026-09-11's.
 
 Protocol, in the order gates.md numbers it:
 
@@ -31,9 +58,10 @@ Usage:  python -m scripts.arms_02c_corner_inputs
         (or  PYTHONPATH=. ./.venv/bin/python scripts/arms_02c_corner_inputs.py)
 
 Writes ml/artefacts/02c_corner_inputs_arms.json -- every fit's headline, per seed, so a
-reader can recompute any delta, floor ratio or e-value in the leaf doc without refitting.
-The run that produced the committed artefact took ~35 minutes on 8 cores; its console
-output is ml/artefacts/02c_corner_inputs_arms.log.
+reader can recompute any delta, floor ratio or e-value in the leaf doc without refitting
+-- and ml/artefacts/02c_corner_inputs_arms.log, the run transcript. The log is written by
+this script rather than captured by a shell redirect, so the artefact exists whether or
+not the caller remembered to tee.
 """
 from __future__ import annotations
 
@@ -70,6 +98,25 @@ E_VALUE_G = 1.0          # pre-registered: a one-sd effect
 FAMILIES = ("degradation_regressor_p10", "degradation_regressor_p50",
             "degradation_regressor_p90", "cliff_classifier")
 OUT = Path("ml/artefacts/02c_corner_inputs_arms.json")
+LOG_OUT = Path("ml/artefacts/02c_corner_inputs_arms.log")
+
+# Floors this item has been handed at one time or another, recorded so the artefact shows
+# the drift instead of a later reader having to reconstruct it. NEITHER is used as a
+# denominator: every ratio below divides by the floor measured in-run on the substrate
+# actually being scored. See the RE-RUN NOTE in the module docstring.
+DECLARED_FLOORS: dict[str, dict[str, float]] = {
+    # The 2026-09-11 run's own floors, measured pre-08m on the uniform v12 contract.
+    "2026-09-11 (pre-08m, v12)": {
+        "degradation_regressor_p10": 0.004311, "degradation_regressor_p50": 0.010431,
+        "degradation_regressor_p90": 0.009347, "cliff_classifier": 0.005772,
+    },
+    # 02b's re-score, measured post-08m but still on the uniform 32-column v12 contract
+    # and before 08q moved the label and 08o retrained the quantile heads.
+    "2026-09-19 (02b re-score, post-08m, v12)": {
+        "degradation_regressor_p10": 0.00136797, "degradation_regressor_p50": 0.01115092,
+        "degradation_regressor_p90": 0.00839541, "cliff_classifier": 0.00433972,
+    },
+}
 
 
 # ─── Column plumbing ────────────────────────────────────────────────────────────
@@ -223,6 +270,12 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
         "higher_is_better": hib,
         "n_train": int(len(X_tr)), "n_eval": int(len(X_ev)),
         "n_baseline_features": int(X_tr.shape[1]),
+        # v13 is the first contract that is not one width. Recorded per family so a
+        # reader can see WHICH baseline each delta is incremental to without re-deriving
+        # PER_TARGET_FEATURE_MASK.
+        "baseline_columns": list(X_tr.columns),
+        "baseline_includes_02b_qualifying": bool(
+            any(c.startswith("quali_") for c in X_tr.columns)),
         "seeds": list(SEEDS),
     }
 
@@ -235,6 +288,9 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
     res["instrument_check_6dp"] = bool(abs(baseline - published) < 5e-7)
     log(f"  [{target}] baseline={baseline:.10f} published={published:.10f} "
         f"instrument_check={res['instrument_check_6dp']} ({time.time()-t0:.0f}s)")
+    log(f"  [{target}] baseline width {X_tr.shape[1]} cols "
+        f"(02b qualifying present: {res['baseline_includes_02b_qualifying']}), "
+        f"{len(X_tr)} train / {len(X_ev)} eval")
     if not res["instrument_check_6dp"]:
         res["aborted"] = ("instrument check failed: the 32-column refit does not "
                           "reproduce the published headline, so no delta below it "
@@ -249,8 +305,18 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
         X_ev, y_ev, SEEDS)
     res["refit_noise"] = floor
     F2 = floor["delta_noise_2sd"]
+    # Every ratio below divides by F2, measured just now on this substrate. The declared
+    # floors are carried alongside ONLY to make the drift auditable.
+    res["declared_floors_not_used"] = {
+        label: {"floor": d[target], "measured_over_declared": (F2 / d[target])
+                if d.get(target) else None}
+        for label, d in DECLARED_FLOORS.items() if target in d
+    }
     log(f"  [{target}] floor 2*sqrt(2)*sd = {F2:.8f}  (sd={floor['headline_sd']:.8f}, "
         f"{time.time()-t0:.0f}s)")
+    for label, cmp in res["declared_floors_not_used"].items():
+        log(f"      vs declared {label}: {cmp['floor']:.8f} "
+            f"-> measured is {cmp['measured_over_declared']:.2f}x it")
 
     # ── Steps 2 + 4 + 7, per arm ────────────────────────────────────────────────
     arm_rows: dict[str, dict] = {}
@@ -347,14 +413,18 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--families", nargs="*", default=list(FAMILIES))
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--log-out", default=str(LOG_OUT))
     args = ap.parse_args()
 
     if "stint_life_regressor" in args.families:
         raise SystemExit(
-            "stint_life_regressor is BARRED until 10e resolves (10d: the shipped "
+            "stint_life_regressor is NOT part of this run. 10d barred it (the shipped "
             "booster was tuned under the wrong label, on the mixture NLL, with 2024 in "
-            "the validation folds). Measuring its floor now measures a model that is "
-            "about to change. See 02b's note and the 02c pre-registration.")
+            "the validation folds) and 10e LANDED 2026-09-19, which discharges that "
+            "bar -- but the leaf doc is explicit that stint life is then a FOLLOW-ON "
+            "registration of its own, not a retroactive member of the original "
+            "A/B/C/P x 4 family. Write that registration into the leaf doc first, then "
+            "run it as its own item. See 02b's note and the 02c pre-registration.")
 
     lines: list[str] = []
 
@@ -374,7 +444,21 @@ def main() -> int:
         "seeds": list(SEEDS),
         "e_value_construction": {"name": "B (paired safe-t)", "n": len(SEEDS), "g": E_VALUE_G},
         "e_value_validity_check": e_value_validity_check(),
-        "barred": {"stint_life_regressor": "until 10e resolves (10d's finding)"},
+        "barred": {"stint_life_regressor":
+                   "10d's bar, discharged by 10e (landed 2026-09-19); still excluded "
+                   "because the leaf doc makes stint life a follow-on registration of "
+                   "its own rather than a retroactive member of this family"},
+        "substrate_note": (
+            "Scored on the v13 substrate (commit e341152, 2026-09-21), which bundles "
+            "02b, 08o and 08q. 08q moves the LABEL for the trio and the classifier; "
+            "08o drops the IPW sample weight from the three quantile heads; 02b admits "
+            "seven qualifying columns to cliff_classifier ONLY. Every 02c delta "
+            "measured 2026-09-11 is on the pre-08m target at a uniform 32-column v12 "
+            "contract and is superseded by this run. Floors are measured in-run; the "
+            "2026-09-11 and 2026-09-19 floors are carried per family under "
+            "declared_floors_not_used for audit only."),
+        "contract_widths": {t: len(S.feature_columns_for(t)) for t in FAMILIES},
+        "declared_floors_not_used": DECLARED_FLOORS,
         "families": {},
     }
     log("e-value validity check (mean E under H0 must be 1.00):")
@@ -401,6 +485,9 @@ def main() -> int:
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(out, indent=2, default=float))
     log(f"\nwrote {args.out}")
+    Path(args.log_out).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.log_out).write_text("\n".join(lines) + "\n")
+    print(f"wrote {args.log_out}", flush=True)
     return 0
 
 

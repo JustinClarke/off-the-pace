@@ -115,6 +115,30 @@ corner_inputs AS (
     FROM {{ ref('int_lap_corner_inputs') }}
 ),
 
+-- 02h (Tier 2 follow-on): corner drift from the driver's own early-stint
+-- baseline, aggregated to lap grain in int_lap_corner_drift. Built because 02c's
+-- audit found the nine PACE residual aggregates do not persist lap-to-lap
+-- (lag-1 within-stint autocorrelation 0.032-0.176) while every column that
+-- survived ablation elsewhere in the contract sits at .27-.42. DRIFT against a
+-- fixed early-stint (valid_lap_in_stint 1-6) baseline is a within-stint STATE
+-- that should persist by construction, unlike a pace residual against a
+-- backward-only field median.
+corner_drift AS (
+    SELECT
+        lap_id,
+        corner_drift_coverage,
+        corner_braking_drift_mean_s,
+        corner_braking_drift_sd_s,
+        corner_braking_drift_max_s,
+        corner_mid_drift_mean_s,
+        corner_mid_drift_sd_s,
+        corner_mid_drift_max_s,
+        corner_exit_drift_mean_s,
+        corner_exit_drift_sd_s,
+        corner_exit_drift_max_s
+    FROM {{ ref('int_lap_corner_drift') }}
+),
+
 corrections AS (
     SELECT
         lap_id,
@@ -406,6 +430,24 @@ base AS (
         ci.corner_exit_residual_sd_s,
         ci.corner_exit_residual_max_s,
 
+        -- 02h corner-drift predictors (drift from the driver's own early-stint
+        -- baseline). Same NULL policy shape as the 02c block above:
+        -- corner_drift_coverage is a measured zero/fraction, not an invented
+        -- one, so it is COALESCEd; the nine drift aggregates are left NULL on a
+        -- lap with no valid drift value (unmapped corner, inside the baseline
+        -- window, or a stint shorter than 7 valid laps) so XGBoost reads them as
+        -- native missing rather than "drifted exactly zero from baseline".
+        COALESCE(cd.corner_drift_coverage, 0.0) AS corner_drift_coverage,
+        cd.corner_braking_drift_mean_s,
+        cd.corner_braking_drift_sd_s,
+        cd.corner_braking_drift_max_s,
+        cd.corner_mid_drift_mean_s,
+        cd.corner_mid_drift_sd_s,
+        cd.corner_mid_drift_max_s,
+        cd.corner_exit_drift_mean_s,
+        cd.corner_exit_drift_sd_s,
+        cd.corner_exit_drift_max_s,
+
         -- 02b qualifying predictors (Tier 1, weekend-grain, stint-invariant).
         -- NULL POLICY mirrors corner_inputs above for the pace/skill terms: a NULL
         -- means "no qualifying record for this driver-weekend" (DNQ or a data
@@ -514,6 +556,7 @@ base AS (
     LEFT JOIN air AS ai ON r.lap_id = ai.lap_id
     LEFT JOIN proximity AS px ON r.lap_id = px.lap_id
     LEFT JOIN corner_inputs AS ci ON r.lap_id = ci.lap_id
+    LEFT JOIN corner_drift AS cd ON r.lap_id = cd.lap_id
     LEFT JOIN qualifying AS qs
         ON
             r.race_year = qs.race_year
@@ -770,6 +813,23 @@ SELECT
     corner_exit_residual_mean_s,
     corner_exit_residual_sd_s,
     corner_exit_residual_max_s,
+
+    -- 02h corner-drift predictors (Tier 2 follow-on, drift from the driver's
+    -- own early-stint corner baseline instead of 02c's instantaneous pace
+    -- residual). Present in the mart, NOT in ml/src/schema.py's
+    -- FEATURE_COLUMNS -- the contract moves only if the pre-registered
+    -- ablation in _improvements/work/02-feature-expansion.md's `02h` section
+    -- says it should.
+    corner_drift_coverage,
+    corner_braking_drift_mean_s,
+    corner_braking_drift_sd_s,
+    corner_braking_drift_max_s,
+    corner_mid_drift_mean_s,
+    corner_mid_drift_sd_s,
+    corner_mid_drift_max_s,
+    corner_exit_drift_mean_s,
+    corner_exit_drift_sd_s,
+    corner_exit_drift_max_s,
 
     -- 02b qualifying predictors (Tier 1, an entire session the contract has never
     -- read). Weekend-grain, stint-invariant: present in the mart, NOT yet in

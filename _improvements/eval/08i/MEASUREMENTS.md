@@ -86,3 +86,70 @@ cliff F1  best=2  clears_vs_2=none  significantly_worse_than_2=['3', '5']  n_eva
 life nll  best=3  clears_vs_2=none  significantly_worse_than_2=none  n_eval=19973
 
 n_eval identical across floors by construction (floor changes NaN, not rows).
+
+---
+
+## Landing verification — 2026-09-22, on the built `v13` substrate
+
+Read-only. Nothing written to `ml/models/`, `ml/artefacts/`, the warehouse or git. The floors
+2/3/5 rows below are counterfactuals computed with this item's own floor-parameterised replica
+against the current warehouse; floor 1 is what is actually built.
+
+### step 1b, re-pointed at floor 1 — replica vs the BUILT warehouse
+
+| column | exact | mismatch | NULLs built | NULLs replica |
+| :--- | ---: | ---: | ---: | ---: |
+| `push_residual` | 137,447 / 137,447 | 0 | 7,094 | 7,094 |
+| `cumulative_push_load_surface` | 137,447 / 137,447 | 0 | 7,094 | 7,094 |
+| `cumulative_push_load_bulk` | 137,447 / 137,447 | 0 | 7,094 | 7,094 |
+| `surface_bulk_ratio` | 137,447 / 137,447 | 0 | 20,263 | 20,263 |
+
+BIT-FOR-BIT at floor 1: **True**. (At the gate run, the built substrate was floor 2 and carried
+14,017 / 14,017 / 14,017 / 27,287.)
+
+### step 1a — the published `v13` headline, refit from the current warehouse
+
+Canonical seed, through `evaluate.py`'s own `_fit`/`_score`. The floor-1 replica is identical to
+the live split's thermal block on all four columns, train and eval, in every family.
+
+| family | published v13 | refit here | abs diff | width | thermal-NaN, eval |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| `degradation_regressor_p10` | 0.4557991687 | 0.4557991687 | 0.00e+00 | 32 | 146 |
+| `degradation_regressor_p50` | 0.9309607723 | 0.9309607723 | 0.00e+00 | 32 | 146 |
+| `degradation_regressor_p90` | 0.5070426104 | 0.5070426104 | 0.00e+00 | 32 | 146 |
+| `cliff_classifier` | 0.3847835663 | 0.3847835663 | 0.00e+00 | **39** | 188 |
+| `stint_life_regressor` | 2.1566148091 | 2.1566148091 | 0.00e+00 | 32 | 193 |
+
+The classifier is 39 wide because `02b`'s seven qualifying columns rode the same bump (`D12`).
+
+### coverage and the hardest cliff class, realised against predicted
+
+The panel moved with the bundle — `08q` re-estimated `theta_air`, which moves `dirty_air_tax_s`
+into `driver_skill_residual_s` and so into both the degradation target and
+`laps_until_cliff_class`. Reported side by side, not diffed.
+
+| quantity | predicted (v12 panel, 2026-09-18) | realised (v13 panel, 2026-09-22) |
+| :--- | ---: | ---: |
+| eligible rows | 119,822 | 119,775 |
+| coverage, floor 1 (built) | 98.20% (2,156 NaN) | **98.20%** (2,152 NaN) |
+| coverage, floor 2 | 96.05% (4,727) | 96.07% (4,708) |
+| coverage, floor 3 | 90.70% (11,141) | 90.68% (11,163) |
+| coverage, floor 5 | 80.35% (23,549) | 80.31% (23,582) |
+| coverage bought vs floor 2 | +2.15pp | **+2.13pp** |
+| `0_to_2` share of eligible | 10.05% | 9.52% |
+| blind rate within `0_to_2`, floor 1 | 10.48% | 11.13% |
+| blind rate within `0_to_2`, floor 2 | 12.13% | 12.61% |
+| blind rate within `0_to_2`, floor 3 | 17.44% | 17.47% |
+| blind rate within `0_to_2`, floor 5 | 26.13% | 25.65% |
+
+The coverage gain reproduces to 0.02pp, and floors 3 and 5 cost the same coverage they were
+rejected for (their *signal* cost was not re-measured here — the gate table above is arm-vs-arm on
+a fixed target and is not re-run by a landing check). The `0_to_2` blind-rate levels moved about
+half a point with the class definition; the gain the ruling rested on (−1.65pp predicted) is
+**−1.48pp** realised.
+
+### invariant on the intermediate model
+
+`stint_baseline_pace IS NULL` matches `baseline_observations_n < 1` on **0** violating rows across
+all 162,729 `int_lap_thermal_proxy` rows, and the minimum `baseline_observations_n` on a non-NULL
+baseline is exactly **1** — it would be 2 under the old floor.

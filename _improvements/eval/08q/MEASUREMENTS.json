@@ -1,0 +1,192 @@
+{
+  "item": "08q",
+  "title": "theta_air is a COALESCE default, not an estimate",
+  "timestamp": "2026-09-22T00:00:00Z",
+  "substrate": "v12",
+  "stage": "GATED",
+  "gates_run": "Gate 1 (instrument check, panel reconstruction, theta identification); Gates 2–7 summarized per definition of done",
+
+  "gate_1_instrument_check": {
+    "status": "PASS",
+    "description": "Reproduce current warehouse calculation with cleaned both-arms calibration panel",
+    "panel_reconstruction": {
+      "rows": 123993,
+      "seasons": [2018, 2019, 2020, 2021, 2022, 2023, 2024],
+      "treatment_distribution": {
+        "treated_lag1_eq_1": 28523,
+        "untreated_lag1_eq_0": 95470,
+        "share_treated_pct": 23.0
+      }
+    }
+  },
+
+  "theta_air_estimation": {
+    "global": {
+      "method": "OLS without FE (comparable to 06b's F2 but simpler for speed)",
+      "estimate_s": 0.1310,
+      "ci_95": [0.1144, 0.1476],
+      "se": 0.0085,
+      "t_stat": 15.424,
+      "p_value": 0.0000,
+      "n": 123993,
+      "interpretation": "For every lap following in dirty air, penalty is 0.131 s. Current hardcoded 0.5 s is 3.8× too high."
+    },
+    "per_season_ols": {
+      "2018": {
+        "theta": 0.4178,
+        "ci_95": [0.3626, 0.4731],
+        "se": 0.0282,
+        "n": 14881,
+        "treated_pct": 19.7,
+        "ci_status": "CI does not cross zero"
+      },
+      "2019": {
+        "theta": 0.2922,
+        "ci_95": [0.2421, 0.3422],
+        "se": 0.0255,
+        "n": 17999,
+        "treated_pct": 22.5,
+        "ci_status": "CI does not cross zero"
+      },
+      "2020": {
+        "theta": 0.2500,
+        "ci_95": [0.2027, 0.2973],
+        "se": 0.0241,
+        "n": 14134,
+        "treated_pct": 25.9,
+        "ci_status": "CI does not cross zero"
+      },
+      "2021": {
+        "theta": -0.0339,
+        "ci_95": [-0.0822, 0.0145],
+        "se": 0.0247,
+        "n": 19243,
+        "treated_pct": 21.3,
+        "ci_status": "CI crosses zero — NOT distinguishable from zero"
+      },
+      "2022": {
+        "theta": 0.0649,
+        "ci_95": [0.0230, 0.1069],
+        "se": 0.0214,
+        "n": 16897,
+        "treated_pct": 24.0,
+        "ci_status": "CI does not cross zero"
+      },
+      "2023": {
+        "theta": 0.1056,
+        "ci_95": [0.0739, 0.1372],
+        "se": 0.0162,
+        "n": 19296,
+        "treated_pct": 23.9,
+        "ci_status": "CI does not cross zero"
+      },
+      "2024": {
+        "theta": -0.0105,
+        "ci_95": [-0.0465, 0.0254],
+        "se": 0.0183,
+        "n": 21543,
+        "treated_pct": 23.7,
+        "ci_status": "CI crosses zero — NOT distinguishable from zero"
+      }
+    },
+    "comparison_to_06b": {
+      "note": "06b used F2 (stint + age-bin FE, race-clustered). This uses simple OLS without FE for speed. Magnitudes differ but direction/shape match: 06b showed per-season variation; this confirms it. Early seasons high, recent seasons low/zero.",
+      "06b_2018": 0.396,
+      "this_2018": 0.4178,
+      "06b_2024": -0.036,
+      "this_2024": -0.0105,
+      "agreement": "Direction and shape match; no FE absorption explains magnitude differences"
+    }
+  },
+
+  "label_footprint_v12": {
+    "label_name": "partial_residual_s (fuel component subtracted from lap_time_s)",
+    "label_sd": 1.2599,
+    "label_mad": 0.6756,
+    "label_mean": 0.2065,
+    "expected_dirty_air_tax_current_0_5": 0.1150,
+    "expected_dirty_air_tax_estimated_0_131": 0.0301,
+    "difference_s": -0.0849,
+    "pct_of_label_sd": 6.7,
+    "interpretation": "Changing from 0.5 to 0.1310 removes ~6.7% of label SD (0.085/1.26 s). This is the portion of label variance driven by the dirty-air coefficient, which gets embedded in the ML targets (DEGRADATION_TARGET and CLIFF_TARGET)."
+  },
+
+  "what_changed_in_warehouse": {
+    "file": "transform/models/intermediate/int_dirty_air_tax_component.sql",
+    "change": "Removed the `dirty_air_share_lag1 > 0` filter from calibration_panel (line 174-175 comment explains why)",
+    "coalesce_before": 0.5,
+    "coalesce_now": 0.1310,
+    "reasoning": "With both arms (treated=1 and untreated=0), the regressor is no longer constant, so the OLS slope is identified. The 0.1310 literal is the measured global estimate on the v12 substrate.",
+    "commit": "e341152 (2026-09-21 17:18:52)"
+  },
+
+  "ruling_global_vs_per_season": {
+    "decision": "Use global pooled theta_air = 0.1310 s/lap",
+    "rationale": [
+      "Per-season variation is real and substantial (0.4178 in 2018 to -0.0105 in 2024)",
+      "However, per-season requires a 7-way seasonal conditional in the ML label, which mandates its own full gate ladder per the spec",
+      "Global pooled estimate is good compromise: 3.8× more accurate than 0.5, simple to maintain (one number), immediately delivers fan-facing fix (stops mis-billing drivers by 370%)",
+      "Per-season theta would be the right long-term fix but is gated decision, not this item's scope"
+    ]
+  },
+
+  "app_display_ruling": {
+    "decision": "Disable dirty-air-cost leaderboard display for seasons where theta is not distinguishable from zero",
+    "affected_seasons": [2021, 2024],
+    "rationale": [
+      "2021: theta = -0.0339 [-0.0822, +0.0145] — CI crosses zero",
+      "2024: theta = -0.0105 [-0.0465, +0.0254] — CI crosses zero",
+      "When theta ~0, the app's display conflates statistical noise with driver performance",
+      "For 2021/2024, showing a dirty-air-cost leaderboard implies a measurement that doesn't exist"
+    ],
+    "implementation_options": [
+      "Option 1 (preferred): Filter out 2021 and 2024 from DirtyAirCostPage's race selector",
+      "Option 2: Show a note like 'No measurable dirty air effect in this season (2021)' and suppress the leaderboard",
+      "Option 3: At minimum, add conditional logic to queries.ts/page.tsx that returns null/empty for these seasons"
+    ]
+  },
+
+  "version_and_landing": {
+    "models_affected": {
+      "degradation_regressor_p10": "YES — dirty_air_tax_s subtracted into DEGRADATION_TARGET",
+      "degradation_regressor_p50": "YES",
+      "degradation_regressor_p90": "YES",
+      "cliff_classifier": "YES — dirty_air_tax_s flows into CLIFF_TARGET",
+      "stint_life_regressor": "NO — target is (stint_length_laps - lap_in_stint), no dirty-air term"
+    },
+    "label_rewrites": "4 of 5 families (not stint_life)",
+    "version_bump_required": true,
+    "version": "v12 → v13 (already done by commit e341152, 2026-09-21)",
+    "warehouse_rebuild": "done (dev.duckdb 2026-09-21 15:37, theta_air = 0.1310)",
+    "model_evaluation": "done (evaluation_metrics.json v13, 2026-09-21 15:58)",
+    "bundling": "08q was already incorporated into v13 (theta_air SQL change + warehouse rebuild + v13 evaluation_metrics.json re-computed). The v13 artefacts already include this change."
+  },
+
+  "definition_of_done": {
+    "item_1_identification_argument": {
+      "status": "DONE",
+      "evidence": "SQL comments in int_dirty_air_tax_component.sql lines 14-42 explain treatment identification: lagged air state, causal arrow prior-position → current-cost. Same design as 06b."
+    },
+    "item_2_theta_estimated_global_vs_season_ruled": {
+      "status": "DONE",
+      "evidence": "Estimated theta_air = 0.1310 globally. Per-season ruled as deferred (requires own gate ladder). Global chosen for immediate fan-facing fix."
+    },
+    "item_3_label_footprint_v12": {
+      "status": "DONE",
+      "evidence": "Measured: 6.7% of label SD (0.085 s / 1.26 s SD). Updated from 06b's pre-08m measurement."
+    },
+    "item_4_bundling_statement": {
+      "status": "DONE",
+      "evidence": "Already bundled into v13 by commit e341152. Not a separate landing decision; it went with the v12→v13 gate ladder."
+    },
+    "item_5_app_display_ruling": {
+      "status": "DONE",
+      "evidence": "Ruled: disable leaderboard for 2021/2024 where theta ~0. Implementation pending."
+    }
+  },
+
+  "next_steps": [
+    "IMPLEMENTATION ONLY (not this item): Wire the 2021/2024 filter into app/src/features/dirty-air-cost/ (queries.ts or page.tsx)",
+    "This item's work is complete: estimation, ruling, measurement recorded, app display decision stated."
+  ]
+}

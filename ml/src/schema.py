@@ -470,7 +470,19 @@ PREDICTIONS_ARROW_SCHEMA = pa.schema([
 ])
 assert len(PREDICTIONS_ARROW_SCHEMA) == 19, "predictions schema must be 19 columns"
 
-MODEL_VERSION_DEFAULT = "v13"  # v13 = the four-item bundle (08i, 02b, 08o, 08q), landed as ONE
+MODEL_VERSION_DEFAULT = "v14"  # v14 = 12a-1: 2025 ingested, retrained on the wider window with a
+# real holdout. No feature-contract, target-definition or hyperparameter change from v13 -- the
+# only mover is the data. Training seasons go 2018-2024 -> 2018-2025 (2025 folds into training as
+# ordinary rows) and `resolve_holdout_season()` (MAX(race_year)+1 over fct_cliff_prediction_features)
+# now returns 2026, i.e. there is no 2026 data yet so the holdout is effectively empty; see this
+# version's training log for what `ml.src.train` actually resolved at run time -- do not assume the
+# comment above predicts it correctly, read the log. **v14 IS comparable to v13 head-to-head at
+# fixed target**, unlike most of the version jumps documented below: 08q's target-moving change
+# already shipped in v13, so nothing about the label definition moves here, only the row count and
+# (if the holdout resolved to a real season) which rows are held out. See `_improvements/work/
+# 12-season-coverage.md` (12a-1) for the ingest/rebuild trace.
+#
+# v13 = the four-item bundle (08i, 02b, 08o, 08q), landed as ONE
 # version bump per D16. Four independent changes ride it; the union touches all five fits, which is
 # why it is one bump and not four (D16's trace: a version EXISTS only when all five .bst files exist
 # at it, since predict.py loads the set at one version and raises if any is missing).

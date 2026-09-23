@@ -1836,17 +1836,95 @@ the 08i provenance. `dbt build --select int_lap_thermal_proxy+` = **PASS=39 ERRO
 `assert_no_future_leakage` **PASSES** — it has to be selected explicitly, because it also refs
 `int_stint_geometry` and so falls outside the `int_lap_thermal_proxy+` graph.
 
-**The rebuild reproduces 08i's floor-1 prediction exactly**: 137,447 mart rows, 119,822
+**The rebuild reproduces 08i's floor-1 prediction exactly** — *measured 2026-09-21, on the panel as
+it stood before the rest of the bundle landed; see the realised-against-predicted table in the next
+subsection for the same quantities on the v13 panel*: 137,447 mart rows, 119,822
 training-eligible, **2,156** thermal-NaN — 08i's predicted floor-1 figure to the row, against
 floor 2's 4,727. The +2.15pp coverage is realised. `stint_baseline_pace IS NULL` matches
 `baseline_observations_n < 1` on 0 violating rows across all 162,729 intermediate rows.
 
-**Not yet done, and owed to the v12→v13 bundle:** no retrain, no re-export — 08i's ruling is now
-in the warehouse but not in any artefact. `transform/tests/data_profile.baseline.json` is an
-approval artefact that must be re-snapshotted once the bundle is complete; it was **already
-failing before this change** (last committed 2026-09-07, so it predates 08e, 08f-2 and 08m — 53 of
-its 90 drift entries are in models this change never rebuilt, and it records the thermal loads at
-a 0.0 null-rate, i.e. the pre-08e block median).
+#### LANDED — the retrain and re-export shipped, verified independently 2026-09-22
+
+The paragraph that stood here said *"not yet done, and owed to the v12→v13 bundle: no retrain, no
+re-export"*. That was true when it was written (2026-09-21, dbt layer only) and stopped being true
+the same day. `D10` resolved **YES** on 2026-09-21 and was executed as **one** `v12 → v13` bump
+together with `02b`/`D12`, `08o` and `08q`, exactly as `D16` asked for.
+`S.MODEL_VERSION_DEFAULT = "v13"` (`ml/src/schema.py:473`, with all four members of the bundle
+written up beside it); all five `.bst` and `.onnx` exist at `v13`;
+`ml/artefacts/evaluation_metrics.json` reads `version: v13`, evaluated `2026-09-21T11:58:27Z`;
+`ml/models/manifest.json` and `model_card.json` are at `v13`; the docs and the model card were
+re-quoted in commit `e341152`.
+
+**The 2026-09-22 verification was run because the log could not tell.** The 2026-09-22 handoff
+entry recorded 08i and 02b as *unlanded* bundle members, and flagged in its own `assumed` field
+that it had not checked `ml/models/` or `S.MODEL_VERSION_DEFAULT` before saying so. Checked
+directly, the opposite is the case — both landed with the bundle. Everything below is read-only:
+nothing was written to `ml/models/`, `ml/artefacts/`, the warehouse or git.
+
+1. **The revert is genuinely in the warehouse, not merely in the SQL.** This item's own
+   floor-parameterised replica, re-pointed at floor 1, reproduces the **built** thermal block
+   bit-for-bit — `push_residual`, both cumulative loads and `surface_bulk_ratio`, 137,447/137,447
+   rows each, NULL counts identical at **7,094 / 7,094 / 7,094 / 20,263**, against the
+   14,017 / 14,017 / 14,017 / 27,287 the floor-2 substrate carried when the RESULT above was
+   measured.
+2. **The floor is 1 by direct invariant too.** Across all 162,729 `int_lap_thermal_proxy` rows,
+   `stint_baseline_pace IS NULL` matches `baseline_observations_n < 1` on **0** violating rows, and
+   the minimum `baseline_observations_n` on a non-NULL baseline is exactly **1** — it would be 2
+   under the old floor.
+3. **The shipped artefacts are fitted on that substrate**, not merely coexisting with it. Refitting
+   the live split at the canonical seed through `evaluate.py`'s own `_fit`/`_score` reproduces every
+   published `v13` headline **exactly** (`|diff| = 0.00e+00`): p10 `0.4557991687` (32 cols), p50
+   `0.9309607723` (32), p90 `0.5070426104` (32), `cliff_classifier` `0.3847835663` (**39** — `02b`'s
+   seven qualifying columns rode the same bump), `stint_life_regressor` `2.1566148091` (32). The
+   floor-1 replica is identical to the live split's thermal block on all four columns, train and
+   eval, in all five families.
+4. **The lineage is green.** `dbt test --select int_lap_thermal_proxy+` = **PASS=35 ERROR=0**;
+   `assert_no_future_leakage` **PASSES** (still has to be selected explicitly, for the reason given
+   above); `python3 -m ml.src.features --check` CLEAN on all three audits.
+
+**Realised against predicted.** The panel itself moved with the rest of the bundle — `08q`
+re-estimated `theta_air`, which moves `dirty_air_tax_s` → `driver_skill_residual_s` → both the
+degradation target and `laps_until_cliff_class` — so the eligible row count and the cliff-class
+shares are not the ones the RESULT above was measured against. Reported side by side rather than
+diffed:
+
+| quantity | 08i predicted (v12 panel) | realised (v13 panel, 2026-09-22) |
+| :--- | ---: | ---: |
+| eligible rows | 119,822 | 119,775 |
+| coverage at floor 1 | 98.20% (2,156 NaN) | **98.20%** (2,152 NaN) |
+| floor-2 counterfactual | 96.05% (4,727) | 96.07% (4,708) |
+| coverage bought | +2.15pp | **+2.13pp** |
+| `0_to_2` share of eligible | 10.05% | 9.52% |
+| blind rate within `0_to_2`, floor 1 | 10.48% | 11.13% |
+| blind rate within `0_to_2`, floor 2 | 12.13% | 12.61% |
+
+The coverage gain reproduces to 0.02pp. The blind-rate *levels* moved about half a point with the
+class definition, and the gain the ruling rested on (−1.65pp predicted, **−1.48pp** realised) holds
+in direction and size.
+
+**Do not diff the v12 and v13 headlines** to score this. `08q` moved the label for four of five
+families inside the same bump, so `next_5_lap_cumulative_jump_s` and `laps_until_cliff_class` are
+different quantities under unchanged column names — the same trap `08m` set, and
+`ml/src/schema.py:500-505` states it at the version constant. The admissible evidence for the floor
+is the fixed-target, arm-vs-arm gate table above.
+
+**Two things the bundle still owes, neither of them 08i's to take alone.** Named here so they are
+not lost with this item:
+
+- `transform/tests/data_profile.baseline.json` is still un-re-snapshotted. `make data-profile-check`
+  now reports **95** drift entries, against the 90 the note above recorded on 2026-09-21, and
+  re-snapshotting accepts drift from
+  `08a`, `08e`, `08f-2`, `08m`, `08q` and `02b`/`02c`/`02h` as well as this item — a repo-level
+  approval, not a floor ruling. Unchanged from the original note: it was already failing before any
+  of this (last committed 2026-09-07) and it still records the thermal loads at a 0.0 null-rate,
+  i.e. the pre-`08e` block median.
+- `app/public/models/` still holds the **v12** ONNX set and manifest, copied 2026-09-19 — before
+  `08o` re-exported the v12 trio in place, so it is not even the published v12. That is the only red
+  in `make ml-test` (**226 passed, 2 failed**):
+  `test_manifest_contract.py::test_app_manifest_matches_ml_manifest` and
+  `::test_app_onnx_files_match_the_manifest_hashes`, whose own failure message names the remedy,
+  `make app-models`. Not run here: it re-points the app's model copies at `v13`, which is the deploy
+  surface `D2` governs.
 
 #### Step 7 bookkeeping for the campaign family
 
@@ -1863,7 +1941,8 @@ counted there yet**, and no claim above is adjusted for multiplicity.
 - It does not test floor 4, or a floor that varies by stint length or by `baseline_observations_n`.
   The four priced floors are the four that were priced.
 - Landing floor 1 requires a warehouse rebuild and a retrain/re-export of all five artefacts —
-  a cost this measurement does not pay and does not authorise. Raised as **D10**.
+  a cost this measurement does not pay and does not authorise. Raised as **D10**. *(`D10` resolved
+  **YES** 2026-09-21 and the cost was paid by the `v13` bundle — see the LANDED subsection above.)*
 
 ---
 
@@ -3209,6 +3288,159 @@ column buys nothing any consumer needs and the right answer is (3).
 
 **Cost:** 0.5 – 1 day. **Model:** `opus-5` — it rules on whether a provenance-flagged table may enter
 the lineage of a published feature, which is an epistemics call, not a wiring task.
+
+### `08p` — RULING, written 2026-09-22 before any SQL was edited
+
+**Outcome: ADMITTED, mart-only, as a declared-`assumed` input. Branch A.**
+
+#### Which of the two 2026-09-1x statements governs: the 2026-09-10 one
+
+The item frames the two statements as a contradiction to be broken in favour of one. They are not
+in contradiction — they answer different questions, and only one of them is addressed to *this*
+question.
+
+[`../foundations/epistemics.md`](../foundations/epistemics.md)'s operative distinction is
+**Verified vs Assumed**, and it is a *labelling* rule, not an *admission* rule. Read literally:
+
+> **Verified** — you traced the actual code path and can cite the number, with the artefact or
+> query that produced it. **Assumed** — anything generalised from one example, inferred from a
+> mechanism, or carried over from a previous session without re-checking. **It must say so.**
+
+The sanction attached to `assumed` is *declaration*, not *exclusion*. Nowhere does `epistemics.md`
+bar an `assumed` input from a code path; what it bars is an `assumed` input **quoted as
+verified**. The whole handoff protocol is built on the premise that `assumed` items travel forward
+in the work — "an entry with an empty `assumed` list is usually a session that did not look hard
+enough" is an instruction to *carry* assumptions, not to purge them.
+
+So the 2026-09-10 decision governs, and read at its own words it **already permits this use**:
+
+> accept current table as NON-QUOTABLE convenience for internal use, **allowing measurement to
+> proceed without citing these rows as claims** … Until proper sourcing, nothing **measured against
+> this table may be quoted as a claim.**
+
+That is a bar on *quotation*, explicitly scoped, with *use* explicitly permitted in the same
+sentence. "Non-quotable convenience for internal use" and "in the lineage" are therefore not the
+incompatible states the item's framing assumed. The incompatible pair would be *non-quotable* and
+*published as a claim* — and the scope guard already forbids that by keeping the column out of
+`FEATURE_COLUMNS`, so nothing this item lands can reach a published figure.
+
+#### What the 2026-09-17 attestation does and does not do
+
+It raises confidence in the **values**. It does **not** convert the table to `Verified` under the
+definition above: a user attestation is not a traced code path with a citable artefact. It is
+strong evidence of correctness from a named authority, which is a different thing, and under this
+repo's rules it is admissible evidence — the item is right that "a dead URL is not evidence either
+way". But 08d's own outstanding clause ("re-source 2019–2022 from an archival route") is **not
+discharged** by it, and the non-quotability bar therefore **stands unchanged**. Anyone later
+tempted to read `08d`'s `LANDED` stage as sourcing having happened should read this paragraph
+instead.
+
+#### Conditions the admission is granted under
+
+1. **Mart-only.** `FEATURE_COLUMNS` untouched, contract unmoved at 32. (Re-verified below.)
+2. **The caveat travels with the column.** `schema.yml`'s `compound_code` block carries the
+   provenance flag so every downstream consumer inherits it rather than re-deriving it.
+3. **No published claim rests on it** until 08d's archival re-source lands.
+4. **The 2018 NULL rule is pinned by a test**, not by a comment, so it cannot be silently
+   back-filled.
+
+### `08p` — IMPLEMENTATION 2026-09-22: the join committed on 2026-09-21 was inert, and is fixed here
+
+**A prior session (commit `e341152`, 2026-09-21) already wrote the `JOIN`, the `schema.yml` block
+and the 2018 test — without the ruling this item exists to make, and the join it wrote produced
+`compound_code` NULL on 100% of rows in every season.** Measured, not inferred:
+
+```
+int_stint_geometry as built 2026-09-22, before this fix
+2018 22,336 rows / 0 coded    2022 23,577 / 0
+2019 23,677 rows / 0 coded    2023 24,431 / 0
+2020 18,343 rows / 0 coded    2024 26,606 / 0
+2021 23,759 rows / 0 coded    -> 162,729 rows, 0 non-NULL
+```
+
+**Root cause — a name collision, not a data gap.** The join was written on
+`(race_year, circuit_key, compound_label)` exactly as the item's method clause specifies, but
+`circuit_key` does not mean the same thing on the two sides:
+
+- `stg_laps.circuit_key` is `stg_laps.sql:22` → `CAST(race_id AS VARCHAR) AS circuit_key`, i.e. the
+  **race** key `'2024_24'`. The column is misnamed at source.
+- `stg_tyre_allocations.circuit_key` is a **circuit slug**, `'abu_dhabi_grand_prix'`.
+
+The two domains are disjoint, so the `LEFT JOIN` matched nothing and failed silently — a
+`LEFT JOIN` that matches zero rows is indistinguishable from the `CAST(NULL AS VARCHAR)` it
+replaced. `08d`'s "all 127 mart races join" was true and remains true; it was measured at
+`fct_cliff_prediction_features`, whose `circuit_key` **is** the slug because the mart resolves it
+through the `race_to_track` seed (`fct_cliff_prediction_features.sql:317-320`). That resolution
+step was the part `int_stint_geometry` was missing.
+
+**Fix.** `int_stint_geometry` now resolves the slug the same way the mart does, via
+`ref('race_to_track')` (`race_id → track_id`), then joins `stg_tyre_allocations` on
+`(race_year, track_id, compound_label)`.
+
+**Coverage after the fix, per season, measured on the rebuilt table:**
+
+| Season | Rows | `compound_code` resolved | % | Slick laps | Slick resolved |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 2018 | 22,336 | 0 | 0.00% | 10,785 | 0 (by rule) |
+| 2019 | 23,677 | 22,915 | 96.78% | 22,915 | 100% |
+| 2020 | 18,343 | 17,210 | 93.82% | 17,210 | 100% |
+| 2021 | 23,759 | 21,937 | 92.33% | 21,937 | 100% |
+| 2022 | 23,577 | 22,003 | 93.32% | 22,003 | 100% |
+| 2023 | 24,431 | 23,659 | 96.84% | 23,659 | 100% |
+| 2024 | 26,606 | 24,389 | 91.67% | 24,389 | 100% |
+
+**Which `compound_label` values fail to join, 2019–2024 — all three are correct failures:**
+
+| Value | Rows | Why no C-code |
+| :--- | ---: | :--- |
+| `INTERMEDIATE` | 7,750 | Cinturato Green. Not on the C1–C5 slick scale at all. |
+| `WET` | 489 | Cinturato Blue. Same. |
+| `NULL` | 41 | `compound` itself is NULL in `stg_laps`. Nothing to join on. |
+
+**Every slick lap in 2019–2024 resolves: 132,113 of 132,113, exactly 100%.** The sub-100% season
+percentages above are wet-weather rows, not sourcing gaps, and the two numbers are different
+measurements — the season column is *all* laps, the slick column is the population the seed
+actually covers. Quoting the first where the second is meant would be exactly the protocol-anchoring
+error `epistemics.md` names.
+
+**Second failure the inert join concealed.** The 2018 test
+(`transform/tests/assert_stint_geometry_2018_compound_code_null.sql`) passed on 2026-09-21 **and
+would have passed against a completely broken model**, because a column that is NULL everywhere
+satisfies "2018 is NULL" vacuously. It has been extended to assert both directions — 2018 NULL
+**and** 2019+ slick laps non-NULL — so the silent-inert-join failure mode is now caught rather than
+rewarded. This is the same defect shape the item names in clause 3: a test that promises something
+it does not deliver.
+
+**Third, minor.** The same commit documented a `compound_label` column on `int_stint_geometry` in
+`schema.yml`. The model has never emitted that column (it emits `compound_in_stint`). Removed.
+
+**Fourth, minor.** The same commit also left the model failing `sqlfluff` (`AL01` implicit table
+aliases on the new join, `LT02` indent on its `ON` clause). The rest of the project lints clean, so
+this was a regression, not a pre-existing standard. Fixed; `sqlfluff lint` now passes on both
+touched files.
+
+**Blast radius: nil, traced not assumed.** `compound_code` has **no downstream consumer**. Every
+other model that names a `compound_code` — `int_compound_cliff_predicted.sql:96`,
+`int_pit_strategy_cost_curve.sql:167`, `int_constructor_deg_sensitivity.sql:396` — takes it from
+`dim_compounds_season`, not from here. The one model that does `SELECT *` off this one
+(`int_lap_fuel_state.sql:8`) has an explicit final projection and does not emit the column; the
+built table has no `compound_code`. So filling the column is strictly additive and cannot move a
+mart value.
+
+**Verification.**
+
+- `dbt run --select int_stint_geometry`: **PASS=1, ERROR=0**. 162,729 rows.
+- `dbt test --select int_stint_geometry`: **PASS=16, WARN=0, ERROR=0, SKIP=0**, including
+  `assert_stint_geometry_2018_compound_code_null` in its two-rule form.
+- **Negative control on the new rule 2**, because a test that has never failed is not yet a test:
+  run against a simulated inert join (`compound_code` forced NULL) it returns **132,113** violating
+  rows, i.e. it fails loudly against exactly the state that shipped on 2026-09-21.
+- `python3 -m ml.src.features --check`: **clean, 32 features**, forward-window and
+  aggregation-scope audits CLEAN, `train=81,558 / holdout=0`.
+- `dataset_fingerprint` after the change is
+  `0d0e85065735bec751b356915ee7fce3139d556fcb150309b1e629ac724cb1b8`, **byte-identical** to the one
+  recorded in `ml/model_card.yml:914`, `ml/models/model_card.json:972` and
+  `ml/models/manifest.json:443`. The training substrate is provably unmoved.
 
 ---
 

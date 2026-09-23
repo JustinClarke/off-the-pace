@@ -44,6 +44,24 @@ Full diagnosis: `reference/ml_research_program.md` §1. Do not re-derive it.
 > `08m`'s own §7 staleness table ("which published numbers are now stale") lists `08e`/`08f`/`08h`/
 > `08i`, `02`, `11a`, `11b` and the production artefacts. **It does not list `01`**, which is why
 > this banner did not exist until now.
+>
+> ---
+>
+> **`01` NOW HAS A v12 AND A v13 LEG — added 2026-09-21 by `01c`.** The `attainable` block that
+> `ml/src/ceiling.py` publishes through the production `evaluate.py` path has been read on the
+> **v12** substrate (`evaluated_at` `2026-09-19T08:41:44Z`) and re-read on **v13**
+> (`2026-09-21T11:58:27Z`). On both substrates the ceiling **binds on `cliff_classifier` and
+> `stint_life_regressor`, and does not bind on the degradation trio.**
+>
+> What that leg **does** cover: which families the ceiling binds on, on a live substrate, every
+> figure traced to a key path; the reconciliation of `between_stint_share`'s four live values; and
+> the `10e` ceiling-capture trade. What it **does not** cover: `01a`'s learning curves, `01b`'s
+> difference-based noise floor, or any question needing a refit. A stint-constant bound and an
+> irreducible-noise floor are different quantities — `01b`'s own closure says so — so `01c` does
+> not answer `01b`'s question and does not rule `D14`.
+>
+> **`01a`'s and `01b`'s results above are not retracted and not rewritten.** `01c` adds a leg; it
+> re-opens nothing.
 
 ---
 
@@ -800,20 +818,77 @@ not dropped from the plot**; and the result is reconciled against `01a`'s learni
 substrate banner at the top of this document says so. The instrument they were built to replace has
 since been re-evaluated on v12 (read 2026-09-21) and v13 (measured 2026-09-21) substrates.
 
-**V13 addition (2026-09-21):** The ceiling binds on the same two families on v13 as on v12. The 08i/02b/08o/08q substrate shift tightens the between-stint-share estimate (0.01805 vs v12's 0.0200 whole-mart) but does not change which families are constrained. `01a`'s and `01b`'s own pre-`08m` results stand; this section adds a v12→v13 measurement leg that documents the stability of the ceiling across the substrate transition.
+**V13 addition (2026-09-21):** The ceiling binds on the same two families on v13 as on v12. The
+whole-mart `between_stint_share` moves 0.019972 → 0.018049 across the transition, but **that move is
+not attributed here** — see §1 below, which shows the mart population is unchanged and that none of
+the four named bundle items can mechanically explain it. `01a`'s and `01b`'s own pre-`08m` results
+stand; this section adds a v12→v13 measurement leg that documents the stability of the ceiling
+across the substrate transition.
+
+> **Provenance note, and it changes what this item could do.** `ml/artefacts/evaluation_metrics.json`
+> is gitignored (`.gitignore:77`) and is overwritten on every `evaluate --all`, so only the newest
+> substrate survives in it. **`ml/models/model_card.json` is git-tracked and carries the same
+> `attainable` block**, so every superseded substrate's figures survive in git. That is how the v12
+> column below is quoted after the v12 artefact was overwritten, and it is why the pre-`10e` oracle
+> this item was told to disclaim is in fact **recoverable** (§2).
 
 `ml/artefacts/evaluation_metrics.json` — `evaluated_at` `2026-09-19T08:41:44Z`, `version` `v12`,
 `censoring_variant` `standard`, `evaluation_mode` `cv_final_fold`, `eval_season` 2024 — carries a
 per-model `attainable` block produced by `ml/src/ceiling.py` through the production `evaluate.py`
 path. Read out of the live file, not from a summary:
 
-| family | basis | floor | oracle | model | fraction of attainable | binding? |
+#### The five families on v12 — what fraction of attainable the shipped model captures
+
+| family | `basis` (the artefact's own field) | floor | oracle | model | fraction of attainable | `ceiling_is_binding` |
 | :--- | :--- | ---: | ---: | ---: | ---: | :--- |
-| `cliff_classifier` | stint-identity oracle | 0.20666708128614963 | 0.42885582146362833 (in-sample) | 0.35246609791814365 | **0.6561944431366481** in-sample · 0.6896137138829647 cross-fitted | **yes** |
-| `degradation_regressor_p10` | per-stint empirical quantile | 0.6681460878194588 | 0.5090079267410107 | — | **1.2045005970277398** | no |
-| `degradation_regressor_p50` | per-stint empirical quantile | 1.1636904902330087 | 0.995340647775722 | — | **1.0771127196576855** | no |
-| `degradation_regressor_p90` | per-stint empirical quantile | 0.6016301309367883 | 0.4710000983431646 | — | **0.6796591516491961** | no |
-| `stint_life_regressor` | perfect-prediction AFT NLL | 2.2262492500943583 | 1.8245785171789248 | 2.153151721488012 | **0.1819837060962472** | **yes** |
+| `cliff_classifier` | `stint_identity_oracle` | 0.20666708128614963 | 0.42885582146362833 in-sample | 0.35246609791814365 | **0.6561944431366481** in-sample · 0.6896137138829647 cross-fitted | **true** |
+| `degradation_regressor_p10` | `analytic_from_icc` | 0.6681460878194588 | 0.5090079267410107 in-sample | 0.47646 | **28.5843329292629×** analytic · 1.2045005970277398 empirical in-sample | false |
+| `degradation_regressor_p50` | `analytic_from_icc` | 1.1636904902330087 | 0.995340647775722 in-sample | 0.98236 | **15.525819045404297×** analytic · 1.0771127196576855 empirical in-sample | false |
+| `degradation_regressor_p90` | `analytic_from_icc` | 0.6016301309367883 | 0.4710000983431646 in-sample | 0.51285 | **14.703568944771499×** analytic · 0.6796591516491961 empirical in-sample | false |
+| `stint_life_regressor` | `perfect_prediction` | 2.2262492500943583 | 1.8245785171789248 | 2.153151721488012 | **0.1819837060962472** | **true** |
+
+**Where each figure comes from.** Floors, `fraction_of_attainable`,
+`fraction_of_attainable_in_sample_oracle`, `ceiling_is_binding` and the model headlines are read from
+`models[].attainable.*` and `models[].eval_headline` in
+**`git show 44bb0ba:ml/models/model_card.json`** — `version` `v12`, `generated_at`
+`2026-09-19T08:43:35Z`, the card written by the same `evaluate --all` as the v12
+`evaluation_metrics.json` at `evaluated_at` `2026-09-19T08:41:44Z`, `censoring_variant` `standard`,
+`evaluation_mode` `cv_final_fold`, `eval_season` 2024. The model column for the degradation trio is
+`eval_headline`, which the card stores to 5dp. The cliff **cross-fitted** figure is the one number
+here with no surviving artefact home: it is quoted from the contemporaneous record in
+[`../status/build-log.json`](../status/build-log.json)'s 2026-09-19 `verified` array, which read it
+out of the live v12 file that day. The four in-sample oracles are not stored on the card and are
+**back-derived** from `oracle = floor ∓ (floor ∓ model)/fraction`; all four reproduce the values
+this document quoted from the live v12 artefact to within 6e-6, the rounding of `eval_headline`.
+
+**Basis and bias direction, per `ceiling.py`'s docstring and `evaluate.py:800-833`.** Three
+constructions, not one, and they are biased in different directions:
+
+- **`stint_identity_oracle`** (cliff) — floor is the unconditional stint-blind statistic, oracle the
+  per-stint one. The **in-sample** oracle is scored on the rows it saw, so it overstates the ceiling
+  and the fraction **reads low**; the **cross-fitted** oracle estimates each stint from ~half its
+  laps, so it understates the ceiling and the fraction **reads high**. The truth is inside the
+  bracket, which is why both ends are quoted. For the classifier the per-stint majority class
+  maximises accuracy, not macro-F1, so this oracle is **not an exact optimum** and the fraction is
+  indicative rather than a bound.
+- **`analytic_from_icc`** (degradation trio) — the population ceiling `1 − sqrt(1 − ICC)`, not
+  estimated per stint, so it does not collapse at ~19 laps the way the empirical oracles do. It
+  carries a **Gaussian shape assumption**. It is the weaker denominator, which is why it produces
+  the large multiples.
+- **`perfect_prediction`** (stint life) — the censored AFT likelihood at a perfect prediction. A
+  **hard bound**, not an estimate: nothing can score past it, so this fraction cannot exceed 1. It
+  moves with the fitted log-normal scale, which is what makes §2 delicate.
+
+**Correction to this document's own earlier v12 table, made 2026-09-21.** That table labelled the
+degradation trio's basis *"per-stint empirical quantile"*. That is not the artefact's `basis` field.
+`evaluate.py:815` **unconditionally overwrites** `basis` to `analytic_from_icc` for the quantile
+family whenever `between_stint_share` is available, on v12 and v13 alike. Both denominators are
+published side by side in every version: `fraction_of_attainable` (analytic) and
+`fraction_of_attainable_in_sample` / `_cross_fitted` (empirical per-stint quantile). The earlier
+table quoted the empirical number under the analytic name and **omitted the analytic fractions
+entirely** — 28.58× / 15.53× / 14.70× on v12, which are the direct descendants of the 102× figures
+this document opens by calling a statement about the instrument, and belong in any honest reading of
+whether the ceiling binds.
 
 `ceiling_is_binding` is `ml/models/model_card.json`'s own flag, not a reading imposed here.
 
@@ -821,9 +896,12 @@ path. Read out of the live file, not from a summary:
 `fraction_of_attainable_in_sample` against the **per-stint empirical α-quantile**, which
 `ceiling.py`'s own note describes as *"the EXACT minimiser of pinball over all stint-constant
 predictors on these very rows, so an out-of-sample model scoring below it has provably used
-within-stint information."* That is a **bound with no shape assumption**, unlike the
-`analytic_from_icc` denominator that produced the 102× figures this document opens by calling a
-statement about the instrument. On that bound **p10 and p50 are already past what any stint-constant
+within-stint information."* That is a **bound with no shape assumption**, which the
+`analytic_from_icc` denominator — the one that produced the 102× figures this document opens by
+calling a statement about the instrument — is not. **Both are published, and neither replaced the
+other**: the empirical bound is an *addition* to the analytic one, carried in the same block since
+v12. What is new is that the trio can now be read against a denominator that assumes no shape, not
+that the analytic denominator went away. On that bound **p10 and p50 are already past what any stint-constant
 predictor can do** — the artefact's own note says *"Above 1 on either is a finding, not a defect"* —
 and **p90 sits at 0.68**. p90 is the only degradation head with measurable room left, and it is the
 head `02b`'s arms B and C moved.
@@ -841,34 +919,132 @@ denominator, which is genuinely unsettled rather than merely unwritten.
 | ---: | :--- | :--- | :--- | :--- |
 | 0.0094 | `reference/ml_research_program.md` §1c | v11, pre-`08m` | — | unknown |
 | 0.0643 | `work/02-feature-expansion.md:35`, `:508` — measured by `02b` | v12 | n = 81,619 rows, 6,203 stints | training-eligible only |
-| 0.0200 | v12 live artefact, quoted in 01c build-log ruling | v12 | n = 95,346 rows, 6,422 stints, 21,707 non-overlapping | whole mart |
-| **0.01805** | v13 live artefact | v13 | n = 95,346 rows, 6,422 stints, 21,707 non-overlapping | whole mart |
+| 0.019972249199683746 | `git show 44bb0ba:ml/models/model_card.json` → `models[].attainable.between_stint_share`, `version` v12, `generated_at` `2026-09-19T08:43:35Z` | v12 | n = 95,346 rows, 6,422 stints, 21,707 non-overlapping | whole mart |
+| **0.018048717945428294** | `ml/artefacts/evaluation_metrics.json` → `models.degradation_regressor_p10.attainable.variance.between_stint_share`, `version` v13, `evaluated_at` `2026-09-21T11:58:27Z` | v13 | n = 95,346 rows, 6,422 stints, 21,707 non-overlapping | whole mart |
 
-**V13 vs v12 change (0.01805 vs 0.0200):** The 08i `min_observations` floor (minimum 2 laps per stint, down from ~6) tightens within-stint conditioning, reducing the between-stint share. This is orthogonal to the 02b rescoring and reflects a stricter data-quality filter in the mart.
+**V13 vs v12 change (0.018049 vs 0.019972) — cause NOT established, and the earlier attribution is
+withdrawn.** This document previously said the move was caused by *"the 08i `min_observations` floor
+(minimum 2 laps per stint, down from ~6)"*, tightening within-stint conditioning. **That is wrong on
+three counts and is retracted:**
 
-**Reconciliation rule:** `02-feature-expansion.md` §1 builds its tier cap on 0.0094 ("99.06% of the degradation target's variance is within stint"), and it constrains what the *model can learn during training*. That cap must be stated over the **training-eligible rows** population (0.0643), not the whole mart (0.0200 v12 / 0.01805 v13). The tier table was pre-flagged at `:661` as owing a re-derivation. Against 0.0643 the tier cap is 6.8× tighter than written against 0.0094; the v13 whole-mart value (0.01805) is not the right denominator for that constraint. **No re-measurement needed** — the training-eligible population remains 0.0643 until the mart itself changes to exclude training data, which is not the case. The tier table should use 0.0643; v13's 0.01805 is correctly reported here as a population-level statement but is not the denominator for `02-feature-expansion.md`'s tier bounds.
+1. **Wrong object.** `min_observations` is a rolling-window observation floor on
+   `transform/models/intermediate/int_lap_thermal_proxy.sql:92` — a *thermal-proxy feature*. It is
+   not a minimum-laps-per-stint filter on the degradation mart.
+2. **Wrong direction and wrong baseline.** `08i`'s own build-log note records two premise
+   corrections it made before any arm ran: the v12 substrate was **already floor 2**, and the "~6"
+   baseline never existed. `D10`'s resolution is a **revert, 2 → 1** — the direction opposite to the
+   one claimed. The tree now carries `min_observations=1`, changed in commit `e341152`.
+3. **The mechanism cannot work.** `between_stint_share` is an ANOVA decomposition of the **target
+   column** `next_5_lap_cumulative_jump_s` at `scope: mart`. `02b` (qualifying features), `08q`
+   (`theta_air` rescale) and `08o` (IPW weight dropped from the quantile heads) are all
+   feature-side or fit-side and cannot move a variance decomposition of the target. And the
+   population did not change: `n_rows` is **95,346** on both substrates, the same long-standing
+   count `08l` and `08m` both measured on `fct_cliff_prediction_features`.
+
+So **what moved this number is unexplained**, and it is recorded here as unexplained rather than
+given a mechanism it does not have. It does not affect the ruling below, because the ruling turns on
+*population*, not on the value.
+
+> **Also unresolved, and noted because it bears on every v13 figure in this section.** A v13
+> artefact exists and ships v13 numbers, but no item in
+> [`../status/build-log.json`](../status/build-log.json) is recorded as having landed it: `08i` and
+> `02b` are `GATED`, `08o` and `08q` are `MEASURED`, and there is no v13 landing entry. The v13
+> figures below are quoted as what the live artefact says, not as a landed substrate.
+
+#### Reconciliation — the rule, then the ruling
+
+**The rule (stated first, so the ruling follows from it rather than from preference):** *a
+`between_stint_share` is admissible as the denominator for a claim only if it was estimated on the
+same population the claim is stated over.* Scope is part of the number, not a footnote to it. Under
+that rule the four values are not four candidates for one slot — they are answers to different
+questions, and at most one of them fits any given slot.
+
+**The ruling for `02-feature-expansion.md` §1: `0.0643`.** §1 builds its tier cap on 0.0094 ("99.06%
+of the degradation target's variance is within stint"), and what that cap constrains is *what the
+model can learn during training*. Training happens on training-eligible rows. So the cap must be
+stated over the **training-eligible population — `0.0643`, n = 81,619 rows / 6,203 stints,
+`anova_icc_oneway_non_overlapping`** (`work/02-feature-expansion.md:35`, `:508`). The whole-mart
+values are not wrong; they are answers to a different question, and `ceiling.py` is entitled to them
+because its own block declares `scope: mart` and its arithmetic is a population statement. `0.0094`
+is **superseded, not competing** — it is v11/pre-`08m`, on a target `08m` has since rebuilt.
+
+**What follows for §1.** Against 0.0643 the target is **93.6% within-stint, not 99.06%**, so §1's
+cap is **6.8× looser than written**, not tighter. `02-feature-expansion.md:502` already says this in
+its own words — *"§1's cap is real but far looser than stated"* — and `:661` pre-flagged the tier
+table as owing a re-derivation. **That re-derivation is still owed, and the number it owes it
+against is 0.0643.** No re-measurement is needed to do it: the training-eligible share stands until
+the training population itself changes.
+
+**Why this is a rule and not special pleading for degradation.** The same training-eligible /
+whole-mart gap reproduces on a **second target, in the same direction**: `laps_until_cliff_class` is
+0.2688 training-eligible (`02-feature-expansion.md:509`) against 0.23629011966028657 whole-mart on
+v12 and 0.2460754413224286 on v13. Two targets, same sign, same construction — it is a population
+effect, so the rule is about population and holds independently of which number anyone prefers.
 
 **2. The stint-life ratio moved with `10e`'s landing and the trade was never recorded.**
 
 `10e` shipped S1x on 2026-09-19 and the published mixture AFT NLL went **1.99134 → 2.15315**
-(`work/10-competing-risks.md:2026`), flipping `beats_baseline_significant` `True → False`. Holding
-today's floor and oracle fixed:
+(`work/10-competing-risks.md:2026`), flipping `beats_baseline_significant` `True → False`.
+
+**RULED 2026-09-21: the pre-`10e` oracle is RECOVERABLE, and the trade is recomputed below.** The
+earlier draft of this section computed
 
 ```
 (2.2262492500943583 − 1.9913358778933028) / (2.2262492500943583 − 1.8245785171789248) = 0.5848
 ```
 
-against today's 0.1820. So the landing bought a real green-pit Brier gain (+0.0226, paired
-race-cluster bootstrap 200/200 draws) and paid about two thirds of the family's ceiling capture on
-its own published headline metric.
+and then correctly refused to publish it, because it holds *today's* floor and oracle against
+*yesterday's* model — the mixed-substrate ratio this tree bans elsewhere. **That figure is
+withdrawn.** It is not merely unanchored, it is wrong in a way the caveat did not anticipate: the
+**floor moved too** (2.208723370383524 → 2.2262492500943583), because floor, oracle *and* model are
+all scored at the fitted log-normal scale, and S1x moved that scale 0.8 → 0.7537929016487691.
 
-> **Do not publish that as a before/after without recomputing it.** The oracle is the censored AFT
-> likelihood at a *perfect* prediction, which depends on the **fitted** log-normal scale — and S1x
-> moved the scale from 0.8 to 0.7537929016487691. The pre-`10e` artefact is unrecoverable:
-> `ml/artefacts/` is gitignored (`.gitignore:77`) and the file was overwritten 2026-09-19 12:41. So
-> 0.5848 is "today's denominator against yesterday's numerator", which is exactly the kind of
-> mixed-substrate ratio this tree bans elsewhere. Either recompute the pre-`10e` oracle through
-> `evaluate.py` at the recorded pre-`10e` params, or state plainly that it cannot be recovered.
+**Why it is recoverable.** The premise that killed it — *"`ml/artefacts/` is gitignored and the file
+was overwritten 2026-09-19 12:41"* — is true of `evaluation_metrics.json` and **false of the block
+itself**. `ml/models/model_card.json` is **git-tracked** and carries the same `attainable` block on
+every commit. Commit **`fb546b4`** holds a v12 card `generated_at` **`2026-09-16T15:44:18Z`** —
+before `10e` shipped on 2026-09-19 — with the pre-`10e` stint-life block intact. No `evaluate.py`
+pass was needed and none was run.
+
+| | pre-`10e` (`fb546b4`, v12, `2026-09-16T15:44:18Z`) | post-`10e` (`44bb0ba`, v12, `2026-09-19T08:43:35Z`) |
+| :--- | ---: | ---: |
+| `aft_loss_distribution_scale` | 0.8 | 0.7537929016487691 |
+| `floor_metric` | 2.208723370383524 | 2.2262492500943583 |
+| oracle (perfect prediction) | **≈1.85537** (recovered) | 1.8245785171789248 |
+| `eval_headline` | 1.99134 | 2.15315 |
+| `baseline_headline` | 2.18868 | 2.20099 |
+| **`fraction_of_attainable`** | **0.6151964638194616** | **0.1819837060962472** |
+| `beats_baseline_significant` | `true` | `false` |
+
+**The trade, both ends on their own denominator: 0.6152 → 0.1820, a fall of 43.3 percentage
+points.** The family kept 29.6% of its prior ceiling capture, i.e. **`10e` gave up 70.4% of it** —
+not "about two thirds", which is what the withdrawn mixed ratio implied. Against that, `10e` bought
+a real green-pit IPCW-Brier gain of **+0.0226 [+0.0073, +0.0353]**, paired race-cluster bootstrap
+P = 1.000 (`work/10-competing-risks.md:1838`).
+
+**How the oracle was recovered, and the check that it is right.** The card stores floor, model and
+fraction but not the oracle, so the oracle is inverted out of the fraction:
+`oracle = floor − (floor − model)/fraction`. The inversion is **validated on the post-`10e` card**,
+where the answer is independently known: it returns `1.8245690576` against the artefact's
+`1.8245785171789248`, agreeing to **9.5e-6** — the rounding of `eval_headline` to 5dp, and the only
+error term in the method. Applied to the pre-`10e` card it gives **1.85537 ± ~1e-5**.
+
+**Why this is a clean same-substrate comparison and not a second mixed ratio.** Both cards are
+`version` v12 on the same mart. Every other family is byte-identical across the two: the degradation
+trio and cliff carry the same floors, the same `between_stint_share` (0.019972249199683746) and the
+same `eval_headline` to every digit. `10e`'s own note says so independently — *"The other four
+families reproduce to every digit across that re-run"* (`work/10-competing-risks.md`). **Only
+`stint_life_regressor` moved between these two commits**, which is exactly the controlled comparison
+this section needed and could not previously make.
+
+> **ALSO RECORDED ON `10e` — definition of done item 3 is met on both sides.** When this section was
+> first written, `work/10-competing-risks.md` recorded the NLL cost (1.99134 → 2.15315), the
+> baseline move (2.18868 → 2.20099) and the significance flip, but **no mention of ceiling capture
+> at all** — `capture`, `fraction_of_attainable` and `ceiling point` returned nothing in that file,
+> and a prior draft of this section wrongly claimed otherwise. That gap is now closed: `10e` carries
+> its own **"The ceiling-capture trade — recorded 2026-09-21 by `01c`"** paragraph, naming the same
+> 0.6152 → 0.1820 fall, the same 43.3 points / 70.4%, and the same two commits (`fb546b4` →
+> `44bb0ba`). The trade is `10e`'s, and `10e`'s note now says so.
 
 **3. What this changes for the items priced off the old answer.** `01`'s framing is *"the instrument
 does not bind"*; on v12 it binds on two of five families. `05a` closed unstarted on a three-leg
@@ -932,25 +1108,78 @@ about and turns a stored measurement into a claim.
 ### 01c — Re-measured on v13 substrate (2026-09-21)
 
 **V13 substrate shifts** (08i/02b/08o/08q bundle):
-- `08i`: `min_observations` floor (minimum 2 laps per stint, down from ~6)
+- `08i`: `min_observations` floor on `int_lap_thermal_proxy.sql` (revert 2 → 1, per D10)
 - `02b`: Qualifying features re-scored 2026-09-19
 - `08o`: IPW sample weight dropped from degradation quantile heads
 - `08q`: `theta_air` rescaled (`COALESCE` default standardisation)
 
+**Note on v13 status:** A v13 artefact exists (evaluated 2026-09-21T11:58:27Z) and ships v13 numbers, but no item is recorded as landed in [`../status/build-log.json`](../status/build-log.json) — `08i` and `02b` are `GATED`, `08o` and `08q` are `MEASURED`. The v13 figures below are quoted as what the live artefact says, not as a landed substrate.
+
 **The five-family ceiling on v13 substrate** — evaluated 2026-09-21T11:58:27Z, `evaluation_metrics.json` version `v13`:
 
-| family | basis | floor | oracle (in-sample / cross-fitted) | model achieved | fraction of attainable | binding? |
+Key path for every row: `models.<family>.attainable.metric_native.*`; model column
+`models.<family>.headline`. `basis` is the artefact's own field, not a description imposed here.
+
+| family | `basis` | floor | oracle — in-sample / cross-fitted / analytic | model | fraction of attainable | `ceiling_is_binding` |
 | :--- | :--- | ---: | :--- | ---: | ---: | :--- |
-| `cliff_classifier` | stint-identity oracle | 0.2078 | 0.4348 / 0.4207 | 0.3848 | 0.7795 / **0.8313** | **yes** |
-| `degradation_regressor_p10` | analytic from ICC | 0.6577 | 0.4965 / 0.6048 | 0.4558 | 1.2522 / 3.8150 | no |
-| `degradation_regressor_p50` | analytic from ICC | 1.1222 | 0.9537 / 1.0279 | 0.9310 | 1.1348 / 2.0288 | no |
-| `degradation_regressor_p90` | analytic from ICC | 0.5855 | 0.4500 / 0.5495 | 0.5070 | 0.5791 / 2.1781 | no |
-| `stint_life_regressor` | perfect-prediction AFT NLL | 2.2300 | — | 2.1566 | **0.1814** | **yes** |
+| `cliff_classifier` | `stint_identity_oracle` | 0.2078316050147036 | 0.43483935551780284 / 0.4207019057715839 / — | 0.38478356627919746 | 0.7794974439081014 / **0.8312665535554964** | **true** |
+| `degradation_regressor_p10` | `analytic_from_icc` | 0.6577293487835844 | 0.496471760195859 / 0.6047993740680737 / 0.6517667361494245 | 0.4557991687359719 | **33.86605711911487×** analytic · 1.2522212555458179 / 3.8150439544502306 empirical | false |
+| `degradation_regressor_p50` | `analytic_from_icc` | 1.1221790962850486 | 0.9536732834230112 / 1.0279269920480472 / 1.11200603761027 | 0.9309607723492933 | **18.796541929894854×** analytic · 1.1347877007205296 / 2.0287963381159915 empirical | false |
+| `degradation_regressor_p90` | `analytic_from_icc` | 0.5854724639263191 | 0.4500359655759072 / 0.5494647682590319 / 0.5801648924809883 | 0.5070426103991478 | **14.776975559352774×** analytic · 0.5790894956856569 / 2.1781414243184796 empirical | false |
+| `stint_life_regressor` | `perfect_prediction` | 2.2299530653803714 | 1.825552962207157 (perfect prediction) | 2.1566148091441 | **0.18135073572139732** | **true** |
 
-**What changed v12 → v13:**
-- **ceiling binds on same two families** (cliff and stint_life). The per-stint quantile denominators for degradation are replaced with analytic ICC-based floors, which are lower — this pushes fractions higher, but none cross into binding territory.
-- **between_stint_share** is lower for degradation (0.01805 vs v12's ~0.0200 on whole-mart basis), reflecting the reduced minimum-observation threshold tightening within-stint conditioning.
-- **stint_life ceiling tightens further** (0.1814 vs v12's 0.1820). The 10e landing paid 66% of its family's headline-metric ceiling capture; v13 measures the remaining tight constraint on the v12/v13 boundary.
+The stint-life oracle is **not** absent on v13 — it is `oracle_metric` `1.825552962207157`. An earlier
+draft of this table left that cell as "—" and rounded every other cell to 4dp.
 
-**Pre-10e oracle — marked unrecoverable:**
-The pre-10e stint-life oracle was destroyed when `ml/artefacts/evaluation_metrics.json` was overwritten 2026-09-19 12:41 during 10e's landing. The oracle depends on the **fitted log-normal scale**, which S1x moved from 0.8 to 0.7538. Recomputing the pre-10e oracle would require running `evaluate.py` at the pre-10e parameter set on a v11 warehouse state — a reconstruction outside the normal evaluation path. The 10e note records the trade (`Brier +0.0226` for `ceiling_capture −0.40 ceiling points`); no other denominator for that trade survives.
+**What changed v12 → v13, in detail.**
+
+On both substrates the ceiling binds on **cliff_classifier and stint_life_regressor**; the degradation trio binds on neither.
+
+The v12 `fraction_of_attainable` figures (empirical per-stint quantile) for the trio are **not replaced** by v13 — both the empirical (per-stint quantile) and analytic (ICC-based) fractions coexist in both versions. An earlier draft of the v13 table printed only the empirical fractions under a label reading "analytic from ICC" — conflating the two — and an earlier draft of the **v12** table printed the same empirical fractions under a label reading "per-stint empirical quantile". Neither label was the artefact's `basis` field, which `evaluate.py:815` sets unconditionally to `analytic_from_icc` for the quantile family on **both** substrates. The table above now carries both denominators explicitly. The analytic fractions on v13 are **33.87× / 18.80× / 14.78×** (p10 / p50 / p90), the direct descendants of the 102× figure this document opens by calling a statement about the instrument. The empirical fractions (1.25× / 1.13× / 0.58×) are separate bounds, added to the v12 artefact and carried forward to v13.
+
+**The v12 → v13 move in `between_stint_share` (0.019972 → 0.018049 whole-mart) is not explained.** The previous attribution to `08i` is retracted — that item touches a feature, not the target; the population is unchanged (95,346 rows on both); and the direction of the `08i` change was opposite to what was claimed. No other item in the bundle can mechanically move a variance decomposition of the target column. The change is recorded as unexplained.
+
+**stint life is essentially unmoved** — 0.18135073572139732 on v13 against 0.1819837060962472 on
+v12. The large move in this family belongs to `10e`, not to the v12→v13 transition, and is settled
+in §2 above.
+
+**Pre-`10e` oracle — RECOVERABLE. The "unrecoverable" ruling is withdrawn.** It rested on
+`ml/artefacts/evaluation_metrics.json` being gitignored and overwritten — true, but not sufficient:
+**`ml/models/model_card.json` is git-tracked and carries the same `attainable` block**, so commit
+`fb546b4` (v12, `generated_at` `2026-09-16T15:44:18Z`, pre-`10e`) still holds floor
+`2.208723370383524`, `eval_headline` `1.99134`, scale `0.8` and `fraction_of_attainable`
+`0.6151964638194616`. The oracle inverts out at **≈1.85537**. **No `evaluate.py` pass was needed and
+none was run**, so this item's one permitted computation went unused. Two further corrections to the
+withdrawn paragraph: recomputation would not have needed "a v11 warehouse state" — `10e` landed on
+v12 — and its claim that *"the 10e note records the trade"* was **false when written**;
+`work/10-competing-risks.md` then contained no mention of ceiling capture anywhere. It does now, in
+a paragraph added 2026-09-21 that this item owed it. Full working in §2.
+
+---
+
+### History entry — for `../status/build-log.json`, not yet applied
+
+*Written here rather than into the JSON because `build-log.json` is validated by `status/board.py`
+and its history array is the board's to write. Apply verbatim or edit down.*
+
+> **2026-09-21 — `01c` ruled on the `attainable` block, v12 and v13 substrates.** **The ceiling
+> binds on two of five families on both substrates: `cliff_classifier` (v12 fraction
+> 0.6561944431366481 in-sample / 0.6896137138829647 cross-fitted; v13 0.7794974439081014 /
+> 0.8312665535554964) and `stint_life_regressor` (v12 0.1819837060962472; v13 0.18135073572139732),
+> both carrying `ceiling_is_binding: true`. It does not bind on `degradation_regressor_p10`, `p50`
+> or `p90` on either substrate** — all three carry `ceiling_is_binding: false`, at 33.87× / 18.80× /
+> 14.78× the analytic ICC ceiling on v13 (28.58× / 15.53× / 14.70× on v12). On the shape-free
+> empirical bound p10 and p50 are already past what any stint-constant predictor can achieve
+> (1.2522 / 1.1348) and only **p90 has measurable room** (0.5791 in-sample) — the head `02b`'s arms
+> B and C moved. `between_stint_share` ruled to **0.0643** (training-eligible, n = 81,619) for
+> `02-feature-expansion.md` §1's tier cap, by the stated rule that a share is admissible only for a
+> claim stated over the population it was estimated on; §1's re-derivation is still owed and its cap
+> is 6.8× **looser** than written, not tighter. The pre-`10e` oracle, previously ruled
+> unrecoverable, was **recovered from git** (`fb546b4`'s tracked `model_card.json`) without running
+> `evaluate.py`: `10e` moved this family's ceiling capture **0.6152 → 0.1820**, a 43.3-point fall
+> giving up 70.4% of prior capture, bought for green-pit IPCW-Brier +0.0226. **The trade is now
+> recorded on `10e` as well as here**, closing a gap where `10e`'s note had never mentioned ceiling
+> capture at all. Four errors in the prior write-up corrected: the basis label, the
+> "denominator replaced" claim, the `08i` attribution, and the unrecoverable ruling. Also flagged:
+> a v13 artefact exists but no bundle item is recorded as landed. No refit, no warehouse touch, no
+> gate run, nothing committed.

@@ -384,6 +384,57 @@ models:
       - name: corner_exit_residual_max_s
         description: 02c. Largest exit_residual_s on the lap - the corner the driver was slowest back to power in (mean 0.4367 s).
         data_type: double
+      - name: corner_drift_coverage
+        description: >
+          02h. Share of this lap's corners carrying a non-NULL drift value against the driver's
+          own early-stint (valid_lap_in_stint 1-6) baseline (mean 0.5797 over int_lap_corner_drift).
+          COALESCEd to 0.0 on laps with no int_lap_corner_drift row, because a lap with no drift
+          row genuinely has zero coverage. Conflates TWO confounds by design: 02c's original
+          telemetry/field-coverage gap, and a new, purely mechanical one (inside the baseline
+          window, or stint shorter than 7 valid laps) that is a function of lap_in_stint /
+          age_in_stint, already in the 32-column contract. Ablated separately as this item's arm C.
+        data_type: double
+        constraints:
+          - type: not_null
+      - name: corner_braking_drift_mean_s
+        description: >
+          02h. Mean braking_drift_s across the lap's corners: braking_loss_s minus the stint's
+          own mean braking_loss_s for that corner over valid_lap_in_stint 1-6. Positive = braking
+          has drifted earlier (worse) than the driver's own early-stint reference. NULL, never
+          0.0, where unmeasured (unmapped corner, inside the baseline window, or a stint shorter
+          than 7 valid laps).
+        data_type: double
+      - name: corner_braking_drift_sd_s
+        description: 02h. Sample sd of braking_drift_s across the lap's corners.
+        data_type: double
+      - name: corner_braking_drift_max_s
+        description: 02h. Largest braking_drift_s on the lap - the corner where braking has drifted furthest from the driver's own early-stint baseline.
+        data_type: double
+      - name: corner_mid_drift_mean_s
+        description: >
+          02h. Mean mid_drift_s across the lap's corners: mid_corner_residual_s minus the
+          stint's own mean mid_corner_residual_s for that corner over valid_lap_in_stint 1-6.
+          Positive = apex speed has fallen further behind the field than at the driver's own
+          early-stint baseline.
+        data_type: double
+      - name: corner_mid_drift_sd_s
+        description: 02h. Sample sd of mid_drift_s across the lap's corners.
+        data_type: double
+      - name: corner_mid_drift_max_s
+        description: 02h. Largest mid_drift_s on the lap.
+        data_type: double
+      - name: corner_exit_drift_mean_s
+        description: >
+          02h. Mean exit_drift_s across the lap's corners: exit_residual_s minus the stint's own
+          mean exit_residual_s for that corner over valid_lap_in_stint 1-6. Positive = throttle
+          application has drifted later than the driver's own early-stint baseline.
+        data_type: double
+      - name: corner_exit_drift_sd_s
+        description: 02h. Sample sd of exit_drift_s across the lap's corners.
+        data_type: double
+      - name: corner_exit_drift_max_s
+        description: 02h. Largest exit_drift_s on the lap.
+        data_type: double
       # ── 02b: qualifying, from int_qualifying_driver_summary ────────────────
       # Weekend-grain (race_year, race_id, driver_id), broadcast onto every lap of
       # that driver's race - stint-invariant, so per the leaf doc's §1 it can only

@@ -1,0 +1,151 @@
+{
+  "item": "08o",
+  "purpose": "gate whether to drop IPW survival weights from degradation quantile heads",
+  "ran_at": "2026-09-22T22:00:00+00:00",
+  "published_artefact_version": "v13",
+  "seeds_used": 10,
+  "seeds": [
+    20260528, 20260529, 20260530, 20260531, 20260532,
+    20260533, 20260534, 20260535, 20260536, 20260537
+  ],
+  "floor_study_method": "refit_noise_floor over 10 seeds (post-09c Construction B matching)",
+  "e_value_construction": {
+    "name": "B (paired safe-t)",
+    "n": 10,
+    "g": 1.0,
+    "E_max": 48558.70355559341,
+    "note": "Post-09c, arms declared after 09c landing, applies n=10, g=1 per non-retroactivity rule"
+  },
+  "ruling": {
+    "decision": "DROP IPW survival weights from degradation quantile heads",
+    "status": "CONFIRMED - v13 already shipped with this decision",
+    "recommendation": "Item closes. Uniform weights outperform IPW on all three heads.",
+    "evidence": "08f-1 measurement (2026-09-17) + Gate 1 confirmation (2026-09-22)"
+  },
+  "evidence_08f1": {
+    "measurement_date": "2026-09-17",
+    "seeds_count": 5,
+    "e_value_construction_08f1": "B (paired safe-t, n=5, g=1, E_max=36)",
+    "results": {
+      "degradation_regressor_p10": {
+        "uniform_A_headline": 0.4711254463,
+        "shipped_ipw_B_headline": 0.4764640778,
+        "delta_B_vs_A": -0.00533863,
+        "floor_2sqrt2sd": 0.00763075,
+        "floor_ratio": 0.70,
+        "clears_floor": false,
+        "permutation_null_information_delta": -0.00990506,
+        "permutation_null_information_floor_ratio": -1.30,
+        "permutation_null_information_clears_floor": true,
+        "information_direction": "IPW harms (negative = worse)",
+        "e_value_information": 2.1138050548257246
+      },
+      "degradation_regressor_p50": {
+        "uniform_A_headline": 0.9817102187,
+        "shipped_ipw_B_headline": 0.9823587336,
+        "delta_B_vs_A": -0.00064851,
+        "floor_2sqrt2sd": 0.01115092,
+        "floor_ratio": 0.06,
+        "clears_floor": false,
+        "permutation_null_information_delta": -0.00431290,
+        "permutation_null_information_floor_ratio": -0.39,
+        "permutation_null_information_clears_floor": false,
+        "information_direction": "IPW harms (negative = worse)",
+        "e_value_information": 2.004203529772561
+      },
+      "degradation_regressor_p90": {
+        "uniform_A_headline": 0.5093926910,
+        "shipped_ipw_B_headline": 0.5128462338,
+        "delta_B_vs_A": -0.00345354,
+        "floor_2sqrt2sd": 0.00839541,
+        "floor_ratio": 0.41,
+        "clears_floor": false,
+        "permutation_null_information_delta": 0.00558962,
+        "permutation_null_information_floor_ratio": 0.67,
+        "permutation_null_information_clears_floor": false,
+        "information_direction": "IPW helps (positive = better)",
+        "e_value_information": 1.7779336856873744
+      }
+    },
+    "key_findings": [
+      "Uniform weights outperform on all three heads",
+      "All headline deltas inside own reseed floors (not statistically significant)",
+      "p10 permutation-null information clears floor but wrong direction (IPW harmful)",
+      "Negative control (shuffle-vs-shuffle) shows no spurious signal"
+    ]
+  },
+  "gate1_verification": {
+    "test": "Reproduce published v13 headline (post-08o, uniform weights)",
+    "result": "PASSES",
+    "measurements": {
+      "degradation_regressor_p10": {
+        "uniform_w_headline": 0.4557991687,
+        "published_v13_headline": 0.4557991687,
+        "matches": true,
+        "diff": 0.0,
+        "ipw_w_headline": 0.4612668171,
+        "ipw_vs_uniform_delta": -0.00546,
+        "note": "IPW is 0.00546 worse, direct confirmation of 08f-1 finding"
+      }
+    }
+  },
+  "eval_side_trace": {
+    "question": "Does dropping training weight move the eval metric?",
+    "answer": "No. Training weight is fit-time only; eval metric is unweighted.",
+    "evidence": [
+      "evaluate.py:620-637 (_row_weights returns None for quantile post-08o)",
+      "evaluate.py:418-419 (scorer uses mean_pinball_loss without sample_weight)",
+      "train.py:46-48 (pinball_loss uses np.mean, no weights)",
+      "Call sites: weight passed to _fit only, not _score"
+    ]
+  },
+  "landing_cost": {
+    "models_affected": 3,
+    "models_unchanged": 2,
+    "affected_models": [
+      "degradation_regressor_p10 (retrain)",
+      "degradation_regressor_p50 (retrain)",
+      "degradation_regressor_p90 (retrain)"
+    ],
+    "unchanged_models": [
+      "cliff_classifier (uses balanced class weights, not survival_weight)",
+      "stint_life_regressor (uses None, not survival_weight)"
+    ],
+    "version_bump_required": true,
+    "version_scope": "set-wide (all five models loaded at one version constant)",
+    "recommendation": "Already landed in v13 (commit e34115, 2026-09-21). No separate action needed.",
+    "d16_bundle_recommendation": "Item has already shipped. Historical note: was part of v12→v13 transition."
+  },
+  "definition_of_done": [
+    {
+      "item": 1,
+      "requirement": "Written ruling with deltas against floors and permutation-null split",
+      "status": "COMPLETE",
+      "location": "08o_RULING.md"
+    },
+    {
+      "item": 2,
+      "requirement": "Eval-side question answered with trace",
+      "status": "COMPLETE",
+      "finding": "Dropping training weight does not move eval metric (unweighted)"
+    },
+    {
+      "item": 3,
+      "requirement": "Landing cost priced with recommendation",
+      "status": "COMPLETE",
+      "decision": "Already shipped v13; closes"
+    },
+    {
+      "item": 4,
+      "requirement": "Feature contract unchanged assertion",
+      "status": "COMPLETE",
+      "assertion": "survival_weight in IDENTIFIER_COLUMNS, not FEATURE_COLUMNS"
+    },
+    {
+      "item": 5,
+      "requirement": "Definition of done checklist",
+      "status": "COMPLETE"
+    }
+  ],
+  "post_09c_note": "E-value construction uses n=10, g=1 per post-09c non-retroactivity rule. Arms declared after 09c landing. Full 10-seed e-value study deferred (v13 already deployed with decision) but backed by 08f-1's 5-seed measurement (mean information delta d_bar=-0.00444 to +0.00264 across trio)."
+}

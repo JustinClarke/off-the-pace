@@ -11,6 +11,12 @@
 the built floor 2 — but as a preference, not a majority clear. Landing it needs a warehouse
 rebuild plus an artefact retrain, raised as decision **D10**.
 
+**LANDED — `D10` resolved YES 2026-09-21; shipped inside the one `v12 → v13` bundle `D16` asked
+for, with `02b`/`D12`, `08o` and `08q`. Verified independently 2026-09-22** — see *Landing
+verification* at the foot of this file and in `MEASUREMENTS.md`. The floor-1 revert is in the built
+warehouse bit-for-bit, all five shipped `v13` artefacts reproduce their published headline exactly
+from it, and the two defects listed below are fixed.
+
 ## The question
 
 `08e` rebuilt `stint_baseline_pace` as an expanding median over valid laps strictly before the
@@ -112,13 +118,40 @@ The `0_to_2` cliff class is 10.05% of eligible rows. Its blind rate rises monoto
 floor: **10.48% → 12.13% → 17.44% → 26.13%**. At floor 5 a quarter of the hardest class has no
 thermal reading at all. That is the mechanism behind cliff's −1.11× and −1.00×.
 
-## Two live defects this item found
+## Two live defects this item found — both fixed 2026-09-21
 
 - `transform/tests/assert_no_future_leakage.sql` hard-codes `>= 2` — a second copy of the
-  parameter that must move with any floor change or it fires spuriously.
+  parameter that must move with any floor change or it fires spuriously. **Fixed**; it held *two*
+  copies (`>= 2` in the baseline CASE and `expected_n_prior < 2` in the floor check) and both now
+  read 1. The test passes on the built warehouse.
 - `transform/models/intermediate/schema.yml` still documents **floor 1** for
   `stint_baseline_pace` ("NULL until *one* valid prior lap exists … Costs 1.41pp") while the SQL
-  runs floor 2 at a measured 3.95pp.
+  runs floor 2 at a measured 3.95pp. **Fixed**; the description now states the floor explicitly,
+  carries this item's provenance and both the v12 and the realised v13 coverage figures.
+
+## Landing verification — 2026-09-22, read-only
+
+Run because the build log could not answer it: the 2026-09-22 handoff entry recorded 08i as an
+*unlanded* member of the v13 bundle and flagged in its own `assumed` field that it had not checked
+`ml/models/` or `S.MODEL_VERSION_DEFAULT`. Checked directly, it had landed.
+
+1. **The revert is in the warehouse.** This item's floor-parameterised replica, re-pointed at
+   floor 1, reproduces the **built** thermal block bit-for-bit: 137,447/137,447 rows on all four
+   columns, NULL counts **7,094 / 7,094 / 7,094 / 20,263** — against floor 2's
+   14,017 / 14,017 / 14,017 / 27,287 at the time of the gate run.
+2. **The floor is 1 by direct invariant.** 0 violating rows of 162,729 on
+   `stint_baseline_pace IS NULL ⟺ baseline_observations_n < 1`, and the minimum
+   `baseline_observations_n` on a non-NULL baseline is exactly 1.
+3. **The shipped artefacts are fitted on it.** All five published `v13` headlines reproduce to
+   `0.00e+00` from the current warehouse through `evaluate.py`'s own `_fit`/`_score`
+   (table in `MEASUREMENTS.md`).
+4. **Lineage green.** `dbt test --select int_lap_thermal_proxy+` PASS=35 ERROR=0;
+   `assert_no_future_leakage` PASS; `python3 -m ml.src.features --check` CLEAN.
+
+**Still owed by the bundle, not by this item:** `transform/tests/data_profile.baseline.json` is
+un-re-snapshotted (95 drift entries, most of them other items'), and `app/public/models/` still
+holds the v12 ONNX set — the only two failures in `make ml-test` (226 passed, 2 failed), remedied
+by `make app-models`, which touches the deploy surface `D2` governs.
 
 ## Artefacts
 

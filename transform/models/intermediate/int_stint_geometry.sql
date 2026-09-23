@@ -19,6 +19,17 @@ tyre_allocations AS (
     SELECT * FROM {{ ref('stg_tyre_allocations') }}
 ),
 
+-- stg_laps.circuit_key is `CAST(race_id AS VARCHAR)` (stg_laps.sql:22) - a
+-- RACE key like '2024_24', NOT a circuit slug. By contrast
+-- stg_tyre_allocations.circuit_key is a circuit slug like
+-- 'abu_dhabi_grand_prix'. The two domains are disjoint, so joining them
+-- directly matches zero rows and fails silently (see 08p). The mart resolves
+-- the slug through this seed and so does this model.
+race_to_track AS (
+    SELECT race_id, track_id AS circuit_slug
+    FROM {{ ref('race_to_track') }}
+),
+
 with_stint_id AS (
     SELECT
         *,
@@ -56,15 +67,24 @@ with_stint_length AS (
     FROM with_stint_id
 ),
 
+-- 08p: absolute Pirelli C1-C5 identity for the relative hard/medium/soft
+-- label. NULL for all of 2018 by construction (the seed starts at 2019) and
+-- for INTERMEDIATE/WET laps in every season (wets are not on the C-scale).
+-- Every slick lap 2019-2024 resolves. Provenance is flagged in schema.yml:
+-- the seed is user-attested, not archivally sourced, and is NON-QUOTABLE
+-- per 08d/08p.
 with_compound_code AS (
     SELECT
         wsl.*,
         ta.compound_code
-    FROM with_stint_length wsl
-    LEFT JOIN tyre_allocations ta
-        ON wsl.race_year = ta.race_year
-        AND wsl.circuit_key = ta.circuit_key
-        AND LOWER(wsl.compound) = ta.compound_label
+    FROM with_stint_length AS wsl
+    LEFT JOIN race_to_track AS rtt
+        ON wsl.race_id = rtt.race_id
+    LEFT JOIN tyre_allocations AS ta
+        ON
+            wsl.race_year = ta.race_year
+            AND rtt.circuit_slug = ta.circuit_key
+            AND LOWER(wsl.compound) = ta.compound_label
 )
 
 SELECT

@@ -1,8 +1,8 @@
 {
   "model_card": {
     "name": "Off the Pace-Tyre Degradation Predictors",
-    "version": "v12",
-    "generated_at": "2026-09-19T08:43:35.048346+00:00",
+    "version": "v14",
+    "generated_at": "2026-09-22T19:39:58.331804+00:00",
     "summary": "Five XGBoost models predicting cumulative 5-lap tyre-degradation pace loss (quantile trio p10/p50/p90), laps-until-cliff class, and remaining stint life, from per-lap thermal, dirty-air, powertrain, weather and compound-prior features. Trained on 2018–2024 F1 laps; every model beats a strong per-cohort baseline.",
     "intended_use": "Race-strategy analysis and the Off the Pace web app (application layer): surfacing when a stint is about to fall off the degradation cliff and how much pace a driver is leaving on track. Not a betting or safety system.",
     "data": {
@@ -14,16 +14,17 @@
         2021,
         2022,
         2023,
-        2024
-      ],
-      "holdout_seasons": [
+        2024,
         2025
       ],
+      "holdout_seasons": [
+        2026
+      ],
       "holdout_note": "2025 is the designated holdout, ingested post-launch; until then the model trains on all ingested seasons (2018–2024) and selection rests on time-series CV-there is no live holdout. The evaluation headline is reported on the final TimeSeriesSplit fold (2024); it switches to a true-holdout reveal the moment 2025 ingests, with no code change.",
-      "n_training_rows": 81619,
+      "n_training_rows": 95513,
       "feature_count": 32,
       "evaluation_mode": "cv_final_fold",
-      "evaluation_season": 2024
+      "evaluation_season": 2025
     },
     "features": {
       "columns": [
@@ -58,8 +59,248 @@
         "gap_ahead_min_s",
         "gap_ahead_median_s",
         "ahead_identity_stability",
-        "n_distinct_cars_ahead_3s"
+        "n_distinct_cars_ahead_3s",
+        "quali_push_laps_n",
+        "quali_constructor_pace_mean_s",
+        "quali_constructor_pace_se_mean_s",
+        "quali_pace_delta_best_s",
+        "quali_ratio_to_segment_best_min",
+        "quali_skill_session_avg_s",
+        "quali_segments_contested_n"
       ],
+      "per_model": {
+        "degradation_regressor_p10": {
+          "n_features": 32,
+          "columns": [
+            "lap_number",
+            "lap_in_stint",
+            "age_in_stint",
+            "fuel_mass_kg",
+            "compound",
+            "compound_grip_peak",
+            "compound_wear_gradient",
+            "compound_optimal_temp_low",
+            "compound_optimal_temp_high",
+            "compound_cliff_onset_laps",
+            "compound_cliff_severity",
+            "expected_compound_pace_s",
+            "expected_degradation_rate_s_per_lap",
+            "cliff_onset_passed",
+            "laps_past_cliff",
+            "push_residual",
+            "cumulative_push_load_surface",
+            "cumulative_push_load_bulk",
+            "surface_bulk_ratio",
+            "dirty_air_share_lap",
+            "dirty_air_thermal_load_surface",
+            "dirty_air_thermal_load_bulk",
+            "air_state_dominant",
+            "share_lap_within_1s",
+            "share_lap_within_2s",
+            "share_lap_in_train",
+            "share_lap_behind_within_1s",
+            "time_within_1s",
+            "gap_ahead_min_s",
+            "gap_ahead_median_s",
+            "ahead_identity_stability",
+            "n_distinct_cars_ahead_3s"
+          ]
+        },
+        "degradation_regressor_p50": {
+          "n_features": 32,
+          "columns": [
+            "lap_number",
+            "lap_in_stint",
+            "age_in_stint",
+            "fuel_mass_kg",
+            "compound",
+            "compound_grip_peak",
+            "compound_wear_gradient",
+            "compound_optimal_temp_low",
+            "compound_optimal_temp_high",
+            "compound_cliff_onset_laps",
+            "compound_cliff_severity",
+            "expected_compound_pace_s",
+            "expected_degradation_rate_s_per_lap",
+            "cliff_onset_passed",
+            "laps_past_cliff",
+            "push_residual",
+            "cumulative_push_load_surface",
+            "cumulative_push_load_bulk",
+            "surface_bulk_ratio",
+            "dirty_air_share_lap",
+            "dirty_air_thermal_load_surface",
+            "dirty_air_thermal_load_bulk",
+            "air_state_dominant",
+            "share_lap_within_1s",
+            "share_lap_within_2s",
+            "share_lap_in_train",
+            "share_lap_behind_within_1s",
+            "time_within_1s",
+            "gap_ahead_min_s",
+            "gap_ahead_median_s",
+            "ahead_identity_stability",
+            "n_distinct_cars_ahead_3s"
+          ]
+        },
+        "degradation_regressor_p90": {
+          "n_features": 32,
+          "columns": [
+            "lap_number",
+            "lap_in_stint",
+            "age_in_stint",
+            "fuel_mass_kg",
+            "compound",
+            "compound_grip_peak",
+            "compound_wear_gradient",
+            "compound_optimal_temp_low",
+            "compound_optimal_temp_high",
+            "compound_cliff_onset_laps",
+            "compound_cliff_severity",
+            "expected_compound_pace_s",
+            "expected_degradation_rate_s_per_lap",
+            "cliff_onset_passed",
+            "laps_past_cliff",
+            "push_residual",
+            "cumulative_push_load_surface",
+            "cumulative_push_load_bulk",
+            "surface_bulk_ratio",
+            "dirty_air_share_lap",
+            "dirty_air_thermal_load_surface",
+            "dirty_air_thermal_load_bulk",
+            "air_state_dominant",
+            "share_lap_within_1s",
+            "share_lap_within_2s",
+            "share_lap_in_train",
+            "share_lap_behind_within_1s",
+            "time_within_1s",
+            "gap_ahead_min_s",
+            "gap_ahead_median_s",
+            "ahead_identity_stability",
+            "n_distinct_cars_ahead_3s"
+          ]
+        },
+        "cliff_classifier": {
+          "n_features": 39,
+          "columns": [
+            "lap_number",
+            "lap_in_stint",
+            "age_in_stint",
+            "fuel_mass_kg",
+            "compound",
+            "compound_grip_peak",
+            "compound_wear_gradient",
+            "compound_optimal_temp_low",
+            "compound_optimal_temp_high",
+            "compound_cliff_onset_laps",
+            "compound_cliff_severity",
+            "expected_compound_pace_s",
+            "expected_degradation_rate_s_per_lap",
+            "cliff_onset_passed",
+            "laps_past_cliff",
+            "push_residual",
+            "cumulative_push_load_surface",
+            "cumulative_push_load_bulk",
+            "surface_bulk_ratio",
+            "dirty_air_share_lap",
+            "dirty_air_thermal_load_surface",
+            "dirty_air_thermal_load_bulk",
+            "air_state_dominant",
+            "share_lap_within_1s",
+            "share_lap_within_2s",
+            "share_lap_in_train",
+            "share_lap_behind_within_1s",
+            "time_within_1s",
+            "gap_ahead_min_s",
+            "gap_ahead_median_s",
+            "ahead_identity_stability",
+            "n_distinct_cars_ahead_3s",
+            "quali_push_laps_n",
+            "quali_constructor_pace_mean_s",
+            "quali_constructor_pace_se_mean_s",
+            "quali_pace_delta_best_s",
+            "quali_ratio_to_segment_best_min",
+            "quali_skill_session_avg_s",
+            "quali_segments_contested_n"
+          ]
+        },
+        "stint_life_regressor": {
+          "n_features": 32,
+          "columns": [
+            "lap_number",
+            "lap_in_stint",
+            "age_in_stint",
+            "fuel_mass_kg",
+            "compound",
+            "compound_grip_peak",
+            "compound_wear_gradient",
+            "compound_optimal_temp_low",
+            "compound_optimal_temp_high",
+            "compound_cliff_onset_laps",
+            "compound_cliff_severity",
+            "expected_compound_pace_s",
+            "expected_degradation_rate_s_per_lap",
+            "cliff_onset_passed",
+            "laps_past_cliff",
+            "push_residual",
+            "cumulative_push_load_surface",
+            "cumulative_push_load_bulk",
+            "surface_bulk_ratio",
+            "dirty_air_share_lap",
+            "dirty_air_thermal_load_surface",
+            "dirty_air_thermal_load_bulk",
+            "air_state_dominant",
+            "share_lap_within_1s",
+            "share_lap_within_2s",
+            "share_lap_in_train",
+            "share_lap_behind_within_1s",
+            "time_within_1s",
+            "gap_ahead_min_s",
+            "gap_ahead_median_s",
+            "ahead_identity_stability",
+            "n_distinct_cars_ahead_3s"
+          ]
+        }
+      },
+      "per_model_masked": {
+        "degradation_regressor_p10": [
+          "quali_constructor_pace_mean_s",
+          "quali_constructor_pace_se_mean_s",
+          "quali_pace_delta_best_s",
+          "quali_push_laps_n",
+          "quali_ratio_to_segment_best_min",
+          "quali_segments_contested_n",
+          "quali_skill_session_avg_s"
+        ],
+        "degradation_regressor_p50": [
+          "quali_constructor_pace_mean_s",
+          "quali_constructor_pace_se_mean_s",
+          "quali_pace_delta_best_s",
+          "quali_push_laps_n",
+          "quali_ratio_to_segment_best_min",
+          "quali_segments_contested_n",
+          "quali_skill_session_avg_s"
+        ],
+        "degradation_regressor_p90": [
+          "quali_constructor_pace_mean_s",
+          "quali_constructor_pace_se_mean_s",
+          "quali_pace_delta_best_s",
+          "quali_push_laps_n",
+          "quali_ratio_to_segment_best_min",
+          "quali_segments_contested_n",
+          "quali_skill_session_avg_s"
+        ],
+        "cliff_classifier": [],
+        "stint_life_regressor": [
+          "quali_constructor_pace_mean_s",
+          "quali_constructor_pace_se_mean_s",
+          "quali_pace_delta_best_s",
+          "quali_push_laps_n",
+          "quali_ratio_to_segment_best_min",
+          "quali_segments_contested_n",
+          "quali_skill_session_avg_s"
+        ]
+      },
       "groups": {
         "stint_position": [
           "lap_number",
@@ -104,6 +345,15 @@
           "gap_ahead_median_s",
           "ahead_identity_stability",
           "n_distinct_cars_ahead_3s"
+        ],
+        "qualifying": [
+          "quali_push_laps_n",
+          "quali_constructor_pace_mean_s",
+          "quali_constructor_pace_se_mean_s",
+          "quali_pace_delta_best_s",
+          "quali_ratio_to_segment_best_min",
+          "quali_skill_session_avg_s",
+          "quali_segments_contested_n"
         ]
       },
       "categorical": {
@@ -134,7 +384,7 @@
         "stint_length_laps",
         "survival_weight"
       ],
-      "excluded_note": "driver_id and race_year are deliberately excluded: an adversarial probe recovers race_year from the remaining features at 0.997 accuracy (majority baseline 0.168)-constructor identity and compound generation encode the season, so race_year would be a backdoor. driver_id would let the trees relearn per-driver skill, the exact signal the mart strips via driver_skill_residual_s."
+      "excluded_note": "driver_id and race_year are deliberately excluded: an adversarial probe recovers race_year from the remaining features at 0.937 accuracy (majority baseline 0.146)-constructor identity and compound generation encode the season, so race_year would be a backdoor. driver_id would let the trees relearn per-driver skill, the exact signal the mart strips via driver_skill_residual_s."
     },
     "models": [
       {
@@ -145,12 +395,12 @@
         "quantile_alpha": 0.1,
         "headline_metric": "pinball",
         "higher_is_better": false,
-        "cv_headline": 0.54659,
-        "eval_headline": 0.47646,
-        "baseline_headline": 0.73368,
+        "cv_headline": 0.45614,
+        "eval_headline": 0.38809,
+        "baseline_headline": 0.60316,
         "beats_baseline": true,
-        "n_train_rows": 81619,
-        "fit_seconds": 18.34,
+        "n_train_rows": 95513,
+        "fit_seconds": 21.08,
         "hyperparameters": {
           "colsample_bytree": 0.8054380728542049,
           "gamma": 0.2622291627294689,
@@ -163,21 +413,21 @@
           "subsample": 0.7145777126911342
         },
         "artefacts": {
-          "booster": "ml/models/degradation_regressor_p10_v12.bst",
-          "onnx": "ml/models/degradation_regressor_p10_v12.onnx"
+          "booster": "ml/models/degradation_regressor_p10_v14.bst",
+          "onnx": "ml/models/degradation_regressor_p10_v14.onnx"
         },
         "attainable": {
           "target_column": "next_5_lap_cumulative_jump_s",
-          "between_stint_share": 0.019972249199683746,
-          "between_stint_share_naive": 0.2793466130311407,
-          "within_stint_lag1_autocorr": 0.285249613822073,
+          "between_stint_share": 0.012249823506808399,
+          "between_stint_share_naive": 0.2745606072487334,
+          "within_stint_lag1_autocorr": 0.289241550725718,
           "basis": "analytic_from_icc",
           "ceiling_scope": "stint_level",
           "ceiling_is_binding": false,
-          "verdict": "28.6x the stint-level ceiling - this model is NOT bounded by stint-level information and is reaching into within-stint variation, so no ceiling has been established for it",
-          "floor_metric": 0.6681460878194588,
-          "fraction_of_attainable": 28.5843329292629,
-          "fraction_of_attainable_in_sample_oracle": 1.2045005970277398,
+          "verdict": "53.3x the stint-level ceiling - this model is NOT bounded by stint-level information and is reaching into within-stint variation, so no ceiling has been established for it",
+          "floor_metric": 0.5770799187590241,
+          "fraction_of_attainable": 53.305906739367714,
+          "fraction_of_attainable_in_sample_oracle": 1.0881465358633706,
           "in_sample_oracle_is_exact_optimum": true,
           "note": "primary denominator is analytic: under a Gaussian shape, knowing the stint scales sigma from sqrt(sigma_b^2 + sigma_w^2) to sigma_w, so a stint-constant predictor can remove at most 1 - sqrt(1 - ICC) of the expected pinball. It is the population ceiling and it is not estimated per stint, so it does not collapse at ~19 laps the way the empirical oracles do. fraction_of_attainable_in_sample carries a stronger property and no shape assumption: the per-stint empirical alpha-quantile is the EXACT minimiser of pinball over all stint-constant predictors on these very rows, so an out-of-sample model scoring below it has provably used within-stint information. Above 1 on either is a finding, not a defect."
         },
@@ -185,16 +435,16 @@
           "method": "paired t over season-grouped CV folds (whole seasons move together)",
           "n_folds": 5,
           "folds_won": 5,
-          "mean_delta": 0.28550733652541344,
-          "ci_low": 0.1496118022903591,
-          "ci_high": 0.4214028707604678,
+          "mean_delta": 0.3081448192892621,
+          "ci_low": 0.19829938112168666,
+          "ci_high": 0.4179902574568375,
           "ci_level": 0.95,
-          "p_value": 0.004304356984421236,
+          "p_value": 0.0014656217573456678,
           "significant": true,
-          "stint_bootstrap_ci_low": 0.22832199080429613,
-          "stint_bootstrap_ci_high": 0.28377734568734364,
+          "stint_bootstrap_ci_low": 0.19363388030677764,
+          "stint_bootstrap_ci_high": 0.23546532413772797,
           "stint_bootstrap_significant": true,
-          "stint_vs_lap_width_ratio": 1.3313928568450446
+          "stint_vs_lap_width_ratio": 1.3574573874973845
         },
         "beats_baseline_significant": true
       },
@@ -206,12 +456,12 @@
         "quantile_alpha": 0.5,
         "headline_metric": "pinball",
         "higher_is_better": false,
-        "cv_headline": 1.09409,
-        "eval_headline": 0.98236,
-        "baseline_headline": 1.26289,
+        "cv_headline": 0.96615,
+        "eval_headline": 0.86128,
+        "baseline_headline": 1.12383,
         "beats_baseline": true,
-        "n_train_rows": 81619,
-        "fit_seconds": 33.37,
+        "n_train_rows": 95513,
+        "fit_seconds": 37.98,
         "hyperparameters": {
           "colsample_bytree": 0.6623180491757136,
           "gamma": 0.021527555949566145,
@@ -224,21 +474,21 @@
           "subsample": 0.9587957555910661
         },
         "artefacts": {
-          "booster": "ml/models/degradation_regressor_p50_v12.bst",
-          "onnx": "ml/models/degradation_regressor_p50_v12.onnx"
+          "booster": "ml/models/degradation_regressor_p50_v14.bst",
+          "onnx": "ml/models/degradation_regressor_p50_v14.onnx"
         },
         "attainable": {
           "target_column": "next_5_lap_cumulative_jump_s",
-          "between_stint_share": 0.019972249199683746,
-          "between_stint_share_naive": 0.2793466130311407,
-          "within_stint_lag1_autocorr": 0.285249613822073,
+          "between_stint_share": 0.012249823506808399,
+          "between_stint_share_naive": 0.2745606072487334,
+          "within_stint_lag1_autocorr": 0.289241550725718,
           "basis": "analytic_from_icc",
           "ceiling_scope": "stint_level",
           "ceiling_is_binding": false,
-          "verdict": "15.5x the stint-level ceiling - this model is NOT bounded by stint-level information and is reaching into within-stint variation, so no ceiling has been established for it",
-          "floor_metric": 1.1636904902330087,
-          "fraction_of_attainable": 15.525819045404297,
-          "fraction_of_attainable_in_sample_oracle": 1.0771127196576855,
+          "verdict": "30.1x the stint-level ceiling - this model is NOT bounded by stint-level information and is reaching into within-stint variation, so no ceiling has been established for it",
+          "floor_metric": 1.057044908781054,
+          "fraction_of_attainable": 30.14354604340062,
+          "fraction_of_attainable_in_sample_oracle": 1.1016967766135266,
           "in_sample_oracle_is_exact_optimum": true,
           "note": "primary denominator is analytic: under a Gaussian shape, knowing the stint scales sigma from sqrt(sigma_b^2 + sigma_w^2) to sigma_w, so a stint-constant predictor can remove at most 1 - sqrt(1 - ICC) of the expected pinball. It is the population ceiling and it is not estimated per stint, so it does not collapse at ~19 laps the way the empirical oracles do. fraction_of_attainable_in_sample carries a stronger property and no shape assumption: the per-stint empirical alpha-quantile is the EXACT minimiser of pinball over all stint-constant predictors on these very rows, so an out-of-sample model scoring below it has provably used within-stint information. Above 1 on either is a finding, not a defect."
         },
@@ -246,16 +496,16 @@
           "method": "paired t over season-grouped CV folds (whole seasons move together)",
           "n_folds": 5,
           "folds_won": 5,
-          "mean_delta": 0.32688449031645817,
-          "ci_low": 0.2164509145752521,
-          "ci_high": 0.4373180660576642,
+          "mean_delta": 0.33824974531181884,
+          "ci_low": 0.22569110507546497,
+          "ci_high": 0.4508083855481727,
           "ci_level": 0.95,
-          "p_value": 0.0011948846351645566,
+          "p_value": 0.001127907084029439,
           "significant": true,
-          "stint_bootstrap_ci_low": 0.25340514468127695,
-          "stint_bootstrap_ci_high": 0.3069220224557369,
+          "stint_bootstrap_ci_low": 0.23671475236900788,
+          "stint_bootstrap_ci_high": 0.28392839627214117,
           "stint_bootstrap_significant": true,
-          "stint_vs_lap_width_ratio": 1.6479725804131287
+          "stint_vs_lap_width_ratio": 1.2705812478803749
         },
         "beats_baseline_significant": true
       },
@@ -267,12 +517,12 @@
         "quantile_alpha": 0.9,
         "headline_metric": "pinball",
         "higher_is_better": false,
-        "cv_headline": 0.60272,
-        "eval_headline": 0.51285,
-        "baseline_headline": 0.64268,
+        "cv_headline": 0.54117,
+        "eval_headline": 0.4831,
+        "baseline_headline": 0.61841,
         "beats_baseline": true,
-        "n_train_rows": 81619,
-        "fit_seconds": 14.98,
+        "n_train_rows": 95513,
+        "fit_seconds": 18.09,
         "hyperparameters": {
           "colsample_bytree": 0.6844966183589957,
           "gamma": 0.15557268873435742,
@@ -285,21 +535,21 @@
           "subsample": 0.9585397528578296
         },
         "artefacts": {
-          "booster": "ml/models/degradation_regressor_p90_v12.bst",
-          "onnx": "ml/models/degradation_regressor_p90_v12.onnx"
+          "booster": "ml/models/degradation_regressor_p90_v14.bst",
+          "onnx": "ml/models/degradation_regressor_p90_v14.onnx"
         },
         "attainable": {
           "target_column": "next_5_lap_cumulative_jump_s",
-          "between_stint_share": 0.019972249199683746,
-          "between_stint_share_naive": 0.2793466130311407,
-          "within_stint_lag1_autocorr": 0.285249613822073,
+          "between_stint_share": 0.012249823506808399,
+          "between_stint_share_naive": 0.2745606072487334,
+          "within_stint_lag1_autocorr": 0.289241550725718,
           "basis": "analytic_from_icc",
           "ceiling_scope": "stint_level",
           "ceiling_is_binding": false,
-          "verdict": "14.7x the stint-level ceiling - this model is NOT bounded by stint-level information and is reaching into within-stint variation, so no ceiling has been established for it",
-          "floor_metric": 0.6016301309367883,
-          "fraction_of_attainable": 14.703568944771499,
-          "fraction_of_attainable_in_sample_oracle": 0.6796591516491961,
+          "verdict": "30.4x the stint-level ceiling - this model is NOT bounded by stint-level information and is reaching into within-stint variation, so no ceiling has been established for it",
+          "floor_metric": 0.5938836887244278,
+          "fraction_of_attainable": 30.36120629403571,
+          "fraction_of_attainable_in_sample_oracle": 0.6632345966217466,
           "in_sample_oracle_is_exact_optimum": true,
           "note": "primary denominator is analytic: under a Gaussian shape, knowing the stint scales sigma from sqrt(sigma_b^2 + sigma_w^2) to sigma_w, so a stint-constant predictor can remove at most 1 - sqrt(1 - ICC) of the expected pinball. It is the population ceiling and it is not estimated per stint, so it does not collapse at ~19 laps the way the empirical oracles do. fraction_of_attainable_in_sample carries a stronger property and no shape assumption: the per-stint empirical alpha-quantile is the EXACT minimiser of pinball over all stint-constant predictors on these very rows, so an out-of-sample model scoring below it has provably used within-stint information. Above 1 on either is a finding, not a defect."
         },
@@ -307,16 +557,16 @@
           "method": "paired t over season-grouped CV folds (whole seasons move together)",
           "n_folds": 5,
           "folds_won": 5,
-          "mean_delta": 0.18654673409608052,
-          "ci_low": 0.13599032511593445,
-          "ci_high": 0.2371031430762266,
+          "mean_delta": 0.1700510819144437,
+          "ci_low": 0.11350867374821977,
+          "ci_high": 0.22659349008066765,
           "ci_level": 0.95,
-          "p_value": 0.000511746066079654,
+          "p_value": 0.0011244763990252665,
           "significant": true,
-          "stint_bootstrap_ci_low": 0.11200446927127693,
-          "stint_bootstrap_ci_high": 0.14954346829115445,
+          "stint_bootstrap_ci_low": 0.11390244747448511,
+          "stint_bootstrap_ci_high": 0.15516002649907082,
           "stint_bootstrap_significant": true,
-          "stint_vs_lap_width_ratio": 1.6220681105174197
+          "stint_vs_lap_width_ratio": 1.1117143172525628
         },
         "beats_baseline_significant": true
       },
@@ -328,12 +578,12 @@
         "quantile_alpha": null,
         "headline_metric": "macro_f1",
         "higher_is_better": true,
-        "cv_headline": 0.35367,
-        "eval_headline": 0.35247,
-        "baseline_headline": 0.20667,
+        "cv_headline": 0.37579,
+        "eval_headline": 0.37112,
+        "baseline_headline": 0.2134,
         "beats_baseline": true,
-        "n_train_rows": 113226,
-        "fit_seconds": 88.9,
+        "n_train_rows": 132265,
+        "fit_seconds": 120.83,
         "hyperparameters": {
           "colsample_bytree": 0.9549024450259136,
           "gamma": 1.0541966575833017,
@@ -346,21 +596,21 @@
           "subsample": 0.6238327095852775
         },
         "artefacts": {
-          "booster": "ml/models/cliff_classifier_v12.bst",
-          "onnx": "ml/models/cliff_classifier_v12.onnx"
+          "booster": "ml/models/cliff_classifier_v14.bst",
+          "onnx": "ml/models/cliff_classifier_v14.onnx"
         },
         "attainable": {
           "target_column": "laps_until_cliff_class",
-          "between_stint_share": 0.23629011966028657,
-          "between_stint_share_naive": 0.25780424228116205,
+          "between_stint_share": 0.24705867601117637,
+          "between_stint_share_naive": 0.2650008114792527,
           "within_stint_lag1_autocorr": null,
           "basis": "stint_identity_oracle",
           "ceiling_scope": "stint_level",
           "ceiling_is_binding": true,
-          "verdict": "65.6% of what stint-level information can deliver; the stint-level ceiling is the binding constraint",
-          "floor_metric": 0.20666708128614963,
-          "fraction_of_attainable": 0.6561944431366481,
-          "fraction_of_attainable_in_sample_oracle": 0.6561944431366481,
+          "verdict": "68.5% of what stint-level information can deliver; the stint-level ceiling is the binding constraint",
+          "floor_metric": 0.2133976033876926,
+          "fraction_of_attainable": 0.6851582489153611,
+          "fraction_of_attainable_in_sample_oracle": 0.6851582489153611,
           "in_sample_oracle_is_exact_optimum": false,
           "note": "floor = the unconditional statistic (stint-blind); oracle = the per-stint statistic. The in-sample oracle is scored on rows it saw and overstates the ceiling; the cross-fitted one estimates each stint from ~half its laps and understates it. Note the per-stint majority class maximises ACCURACY, not macro-F1, so unlike the quantile family this oracle is not an exact optimum and the fraction is indicative rather than a bound. A null fraction means that oracle's advantage over the floor was too small to divide by, not that the model failed."
         },
@@ -368,16 +618,16 @@
           "method": "paired t over season-grouped CV folds (whole seasons move together)",
           "n_folds": 5,
           "folds_won": 5,
-          "mean_delta": 0.15165579147642963,
-          "ci_low": 0.12310185556293729,
-          "ci_high": 0.18020972738992197,
+          "mean_delta": 0.16997514980171957,
+          "ci_low": 0.1454304660008205,
+          "ci_high": 0.19451983360261865,
           "ci_level": 0.95,
-          "p_value": 0.00012309039080685854,
+          "p_value": 4.312126468664774e-05,
           "significant": true,
-          "stint_bootstrap_ci_low": 0.1315270135212722,
-          "stint_bootstrap_ci_high": 0.15914785957149033,
+          "stint_bootstrap_ci_low": 0.1422517609854101,
+          "stint_bootstrap_ci_high": 0.17209276570012774,
           "stint_bootstrap_significant": true,
-          "stint_vs_lap_width_ratio": 1.856103221917288
+          "stint_vs_lap_width_ratio": 1.8170616853823822
         },
         "beats_baseline_significant": true
       },
@@ -389,12 +639,12 @@
         "quantile_alpha": null,
         "headline_metric": "aft_nloglik",
         "higher_is_better": false,
-        "cv_headline": 2.22908,
-        "eval_headline": 2.15315,
-        "baseline_headline": 2.20099,
+        "cv_headline": 2.25005,
+        "eval_headline": 2.34661,
+        "baseline_headline": 2.36672,
         "beats_baseline": true,
-        "n_train_rows": 119822,
-        "fit_seconds": 4.95,
+        "n_train_rows": 139947,
+        "fit_seconds": 5.71,
         "hyperparameters": {
           "aft_loss_distribution_scale": 0.7537929016487691,
           "colsample_bytree": 0.7022777269179408,
@@ -408,40 +658,40 @@
           "subsample": 0.6740434973007393
         },
         "artefacts": {
-          "booster": "ml/models/stint_life_regressor_v12.bst",
-          "onnx": "ml/models/stint_life_regressor_v12.onnx"
+          "booster": "ml/models/stint_life_regressor_v14.bst",
+          "onnx": "ml/models/stint_life_regressor_v14.onnx"
         },
         "survival": {
           "scale": 0.7537929016487691,
           "label_shift": 1.0,
           "distribution": "normal",
-          "censored_share": 0.4826015120412557,
-          "c_index": 0.74537563316187,
-          "baseline_c_index": 0.6295301619344961,
+          "censored_share": 0.42772129928093233,
+          "c_index": 0.7042941663883905,
+          "baseline_c_index": 0.6314431507112156,
           "uncensored": {
-            "n": 10334,
-            "aft_nloglik": 3.310770077629197,
-            "baseline_aft_nloglik": 3.4036890021662254,
-            "median_abs_error_laps": 4.318889070549023
+            "n": 11540,
+            "aft_nloglik": 3.493510801707251,
+            "baseline_aft_nloglik": 3.486928574655574,
+            "median_abs_error_laps": 5.127935409254828
           },
           "censored": {
-            "n": 9639,
-            "aft_nloglik": 0.9120657071335136,
-            "baseline_aft_nloglik": 0.9115784503581059,
+            "n": 8625,
+            "aft_nloglik": 0.8120897363397845,
+            "baseline_aft_nloglik": 0.8679083314378302,
             "median_abs_error_laps": null
           }
         },
         "attainable": {
           "target_column": "remaining_stint_life_laps",
-          "between_stint_share": 0.3005077601029187,
-          "between_stint_share_naive": 0.2924234220393596,
-          "within_stint_lag1_autocorr": 0.9993749462271412,
+          "between_stint_share": 0.29694651694723007,
+          "between_stint_share_naive": 0.29300124324693894,
+          "within_stint_lag1_autocorr": 0.9993653574632052,
           "basis": "perfect_prediction",
           "ceiling_scope": "absolute",
           "ceiling_is_binding": true,
-          "verdict": "18.2% of a bound nothing can exceed",
-          "floor_metric": 2.2262492500943583,
-          "fraction_of_attainable": 0.1819837060962472,
+          "verdict": "4.3% of a bound nothing can exceed",
+          "floor_metric": 2.3625965901436845,
+          "fraction_of_attainable": 0.043476763110150175,
           "fraction_of_attainable_in_sample_oracle": null,
           "in_sample_oracle_is_exact_optimum": null,
           "note": "floor = global mean remaining life; oracle = the censored AFT likelihood at a perfect prediction, which is non-zero because the log-normal scale is a fitted term. A hard bound, not an estimate -- nothing can score past it, so this fraction cannot exceed 1."
@@ -450,16 +700,16 @@
           "method": "paired t over season-grouped CV folds (whole seasons move together)",
           "n_folds": 5,
           "folds_won": 4,
-          "mean_delta": 0.042133879730158696,
-          "ci_low": -0.0415402804632902,
-          "ci_high": 0.1258080399236076,
+          "mean_delta": 0.036620483978936844,
+          "ci_low": -0.04365247969074959,
+          "ci_high": 0.11689344764862328,
           "ci_level": 0.95,
-          "p_value": 0.23463513500647368,
+          "p_value": 0.2740268139789743,
           "significant": false,
-          "stint_bootstrap_ci_low": 0.021130700056825505,
-          "stint_bootstrap_ci_high": 0.07606193041225327,
-          "stint_bootstrap_significant": true,
-          "stint_vs_lap_width_ratio": 2.74393445071468
+          "stint_bootstrap_ci_low": -0.007188337100749474,
+          "stint_bootstrap_ci_high": 0.046528307133896406,
+          "stint_bootstrap_significant": false,
+          "stint_vs_lap_width_ratio": 3.351867339116487
         },
         "beats_baseline_significant": false
       }
@@ -477,11 +727,11 @@
       "attainable_note": "Skill is reported as a fraction of the ATTAINABLE quantity, not of 1.0. For the quantile trio the denominator is analytic -- under a Gaussian shape a predictor that knew the stint could remove at most 1 - sqrt(1 - ICC) of the expected pinball, where ICC is the between-stint variance share estimated by one-way ANOVA. For the classifier it is a per-stint majority-class oracle; for stint life it is the censored AFT likelihood at a perfect prediction, which is a hard bound. A fraction above 1.0 means the model reaches past stint identity into within-stint variation.",
       "interval_note": "Every beats_baseline claim carries a paired-t interval over the season-grouped CV folds (n=5) plus a percentile bootstrap that resamples whole STINTS on the evaluation fold. Laps inside a stint share a compound, a car, a circuit, a fuel load and a driver, so a lap-grain interval understates the standard error; the ratio between the two is published per model rather than assumed.",
       "stint_grain": {
-        "n_stints": 6203,
-        "n_rows": 81619,
-        "mean_laps_per_stint": 13.15798807028857,
+        "n_stints": 7197,
+        "n_rows": 95513,
+        "mean_laps_per_stint": 13.271224121161595,
         "stints_straddling_a_season_fold": 0,
-        "effective_sample_ratio": 3.6273941156550067,
+        "effective_sample_ratio": 3.642969135356707,
         "note": "season-grouped folds are already stint-pure; the clustering damage was never in the split, it was in every interval computed at lap grain over it (Corrections §15)."
       },
       "claims_inside_noise": [
@@ -490,14 +740,14 @@
       "all_claims_significant": false,
       "calibration": {
         "nominal": 0.8,
-        "raw_empirical_coverage": 0.7850787631271878,
-        "conformal_empirical_coverage": 0.800904317386231,
-        "conformal_q": 0.11005151377564903,
-        "mean_interval_width": 5.9543070793151855,
-        "n": 13712
+        "raw_empirical_coverage": 0.8152103791842878,
+        "conformal_empirical_coverage": 0.7960149082568807,
+        "conformal_q": -0.10989203832619188,
+        "mean_interval_width": 5.698132514953613,
+        "n": 13951
       },
       "crps": {
-        "crps": 1.3794731738128407,
+        "crps": 1.2117427031580625,
         "grid_alphas": [
           0.0,
           0.1,
@@ -508,65 +758,65 @@
         "per_alpha": {
           "0.1": {
             "alpha": 0.1,
-            "n": 13712,
+            "n": 13951,
             "n_bins": 27,
-            "score": 0.4764640777905714,
-            "mcb": -0.009372168768670475,
-            "dsc": 0.1791147701966172,
-            "unc": 0.6649510167558591
+            "score": 0.38808623409235854,
+            "mcb": -0.004896157461769912,
+            "dsc": 0.17366842849313818,
+            "unc": 0.5666508200472666
           },
           "0.5": {
             "alpha": 0.5,
-            "n": 13712,
+            "n": 13951,
             "n_bins": 27,
-            "score": 0.9823587335698977,
-            "mcb": -0.012077598569174008,
-            "dsc": 0.16850276527590213,
-            "unc": 1.1629390974149738
+            "score": 0.8612849906835823,
+            "mcb": -0.022307616436715083,
+            "dsc": 0.1723606830876131,
+            "unc": 1.0559532902079105
           },
           "0.9": {
             "alpha": 0.9,
-            "n": 13712,
+            "n": 13951,
             "n_bins": 27,
-            "score": 0.5128462338042992,
-            "mcb": -0.011730382164600983,
-            "dsc": 0.06827864925122418,
-            "unc": 0.5928552652201243
+            "score": 0.48310495025963596,
+            "mcb": -0.022687560639371163,
+            "dsc": 0.07738401897502245,
+            "unc": 0.5831765298740296
           }
         },
         "decomposition": {
-          "mcb": -0.022323609415302082,
-          "dsc": 0.2832382638894266,
-          "unc": 1.6850350471175692,
-          "reconstructed_crps": 1.3794731738128405,
+          "mcb": -0.03439632401005671,
+          "dsc": 0.2885200149509869,
+          "unc": 1.5346590421191064,
+          "reconstructed_crps": 1.2117427031580628,
           "method": "binned Murphy calibration-resolution-uncertainty split at each available quantile level, trapezoidal-integrated over the same alpha grid as `crps` -- mcb - dsc + unc reproduces `crps` by construction (see reconstructed_crps); it is not a second, weaker estimate of it."
         },
         "note": "flat-extended at alpha=0 and alpha=1 from the trio's own p10/p90, not a tail estimate. `decomposition.unc` is an independent read on the target's irreducible spread, in the SAME units as `crps` but from a different construction than 01b's difference-based floor -- report them side by side, never as a difference (foundations/epistemics.md)."
       },
       "leakage_probe": {
-        "accuracy": 0.9965204606714041,
-        "majority_class_accuracy": 0.16800078413434835,
-        "lift_over_chance": 0.8285196765370557,
-        "n_seasons": 7,
+        "accuracy": 0.9370157879308179,
+        "majority_class_accuracy": 0.14606192590110842,
+        "lift_over_chance": 0.7909538620297094,
+        "n_seasons": 8,
         "note": "X carries strong residual temporal signal-race_year recoverable far above chance; race_year is correctly excluded from features"
       },
       "dual_importance": {
         "degradation_regressor_p50": {
           "shap_top5": [
             "push_residual",
-            "lap_number",
-            "dirty_air_thermal_load_surface",
             "compound_cliff_onset_laps",
-            "fuel_mass_kg"
+            "lap_number",
+            "fuel_mass_kg",
+            "cumulative_push_load_surface"
           ],
           "permutation_top5": [
             "push_residual",
-            "dirty_air_thermal_load_surface",
-            "dirty_air_thermal_load_bulk",
+            "compound_cliff_onset_laps",
             "cumulative_push_load_surface",
-            "compound_cliff_onset_laps"
+            "lap_number",
+            "fuel_mass_kg"
           ],
-          "agreement_note": "top-5 differ on: cumulative_push_load_surface, dirty_air_thermal_load_bulk, fuel_mass_kg, lap_number-likely correlated features or leakage pressure"
+          "agreement_note": "SHAP and permutation top-5 agree"
         },
         "cliff_classifier": {
           "shap_top5": [
@@ -580,161 +830,196 @@
             "fuel_mass_kg",
             "share_lap_behind_within_1s",
             "lap_number",
-            "dirty_air_thermal_load_surface"
+            "lap_in_stint"
           ],
-          "agreement_note": "top-5 differ on: age_in_stint, dirty_air_thermal_load_surface, lap_in_stint, push_residual, share_lap_behind_within_1s-likely correlated features or leakage pressure"
+          "agreement_note": "top-5 differ on: age_in_stint, push_residual, share_lap_behind_within_1s-likely correlated features or leakage pressure"
         },
         "stint_life_regressor": {
           "shap_top5": [
-            "lap_number",
             "expected_compound_pace_s",
+            "lap_number",
             "fuel_mass_kg",
-            "age_in_stint",
-            "compound"
+            "compound",
+            "age_in_stint"
           ],
           "permutation_top5": [
             "fuel_mass_kg",
-            "lap_number",
             "expected_compound_pace_s",
-            "cliff_onset_passed",
-            "cumulative_push_load_surface"
+            "lap_number",
+            "age_in_stint",
+            "lap_in_stint"
           ],
-          "agreement_note": "top-5 differ on: age_in_stint, cliff_onset_passed, compound, cumulative_push_load_surface-likely correlated features or leakage pressure"
+          "agreement_note": "top-5 differ on: compound, lap_in_stint-likely correlated features or leakage pressure"
         }
       },
       "underperforming_cohorts": [
         {
-          "dimension": "compound",
-          "cohort": "_other",
-          "n": 3,
-          "model": 0.3460303019436926,
-          "baseline": 0.03142852813852872
-        },
-        {
-          "dimension": "compound",
-          "cohort": "_other",
-          "n": 3,
-          "model": 0.36473666923877107,
-          "baseline": 0.04442826626418056
-        },
-        {
           "dimension": "circuit_key",
           "cohort": "british_grand_prix",
-          "n": 377,
-          "model": 1.9152965079196358,
-          "baseline": 1.7919697571414197
+          "n": 237,
+          "model": 0.687693805537944,
+          "baseline": 0.5676176950667683
         },
         {
           "dimension": "compound",
           "cohort": "INTERMEDIATE",
-          "n": 657,
-          "model": 0.6646372761331654,
-          "baseline": 0.5807275781231673
-        },
-        {
-          "dimension": "compound",
-          "cohort": "_other",
-          "n": 3,
-          "model": 0.1493729799039433,
-          "baseline": 0.003930914575621205
+          "n": 570,
+          "model": 0.8946337455561633,
+          "baseline": 0.5680309129398717
         },
         {
           "dimension": "circuit_key",
           "cohort": "british_grand_prix",
-          "n": 377,
-          "model": 1.089085135754476,
-          "baseline": 0.9407121616478954
+          "n": 237,
+          "model": 1.2297506150406885,
+          "baseline": 0.7882133895956611
         },
         {
           "dimension": "circuit_key",
-          "cohort": "canadian_grand_prix",
-          "n": 485,
-          "model": 0.6320514811357554,
-          "baseline": 0.5337500858463871
+          "cohort": "belgian_grand_prix",
+          "n": 410,
+          "model": 1.2391182029893684,
+          "baseline": 1.2097321349928305
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "são_paulo_grand_prix",
+          "n": 681,
+          "model": 0.398429048993523,
+          "baseline": 0.2975946478564008
         },
         {
           "dimension": "compound",
           "cohort": "INTERMEDIATE",
-          "n": 1041,
-          "model": 0.18501839420260308,
-          "baseline": 0.24000999000999002
-        },
-        {
-          "dimension": "compound",
-          "cohort": "_other",
-          "n": 9,
-          "model": 1.0,
+          "n": 878,
+          "model": 0.4942396313364055,
           "baseline": 1.0
         },
         {
           "dimension": "circuit_key",
-          "cohort": "canadian_grand_prix",
-          "n": 813,
-          "model": 0.2051423282232185,
-          "baseline": 0.23043766578249336
+          "cohort": "australian_grand_prix",
+          "n": 508,
+          "model": 0.246,
+          "baseline": 1.0
         },
         {
           "dimension": "is_rain_lap",
           "cohort": "_other",
-          "n": 15,
-          "model": 0.041666666666666664,
-          "baseline": 0.041666666666666664
-        },
-        {
-          "dimension": "compound",
-          "cohort": "_other",
           "n": 12,
-          "model": 2.3351872416913486,
-          "baseline": 2.3234374120478947
+          "model": 0.12121212121212122,
+          "baseline": 0.19607843137254902
         },
         {
           "dimension": "circuit_key",
-          "cohort": "abu_dhabi_grand_prix",
-          "n": 835,
-          "model": 1.8569032300430037,
-          "baseline": 1.796568947687326
+          "cohort": "australian_grand_prix",
+          "n": 554,
+          "model": 3.0393984896601,
+          "baseline": 2.9675311786209804
         },
         {
           "dimension": "circuit_key",
           "cohort": "azerbaijan_grand_prix",
-          "n": 770,
-          "model": 2.288063184202516,
-          "baseline": 2.184193927819538
+          "n": 795,
+          "model": 2.1098473051717255,
+          "baseline": 2.038670071106955
         },
         {
           "dimension": "circuit_key",
-          "cohort": "british_grand_prix",
-          "n": 628,
-          "model": 2.7403623874782315,
-          "baseline": 2.528739969342529
+          "cohort": "canadian_grand_prix",
+          "n": 1012,
+          "model": 3.5930241493081114,
+          "baseline": 3.539405885614074
         },
         {
           "dimension": "circuit_key",
           "cohort": "dutch_grand_prix",
-          "n": 1196,
-          "model": 2.2161644295078022,
-          "baseline": 2.1562466805099487
+          "n": 959,
+          "model": 2.691802521860244,
+          "baseline": 2.6703830481657223
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "hungarian_grand_prix",
+          "n": 1147,
+          "model": 2.324532499215439,
+          "baseline": 2.1596444374084065
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "italian_grand_prix",
+          "n": 816,
+          "model": 3.0542251694668785,
+          "baseline": 2.89686169304116
         },
         {
           "dimension": "circuit_key",
           "cohort": "mexico_city_grand_prix",
-          "n": 968,
-          "model": 2.3287841546264905,
-          "baseline": 2.201158161284345
+          "n": 1059,
+          "model": 2.5426084285932964,
+          "baseline": 2.319050533134179
         },
         {
           "dimension": "circuit_key",
-          "cohort": "monaco_grand_prix",
-          "n": 1065,
-          "model": 3.2309895823858286,
-          "baseline": 2.7558220946028524
+          "cohort": "miami_grand_prix",
+          "n": 469,
+          "model": 1.2759287005563136,
+          "baseline": 1.2689274252750566
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "spanish_grand_prix",
+          "n": 838,
+          "model": 2.832147689907241,
+          "baseline": 2.7505236440867797
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "Aston Martin",
+          "n": 1958,
+          "model": 2.4373239175989267,
+          "baseline": 2.424558410731383
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "Haas F1 Team",
+          "n": 2127,
+          "model": 2.310502006006364,
+          "baseline": 2.3087026319556503
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "Kick Sauber",
+          "n": 1878,
+          "model": 2.386179886019648,
+          "baseline": 2.373171462934538
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "McLaren",
+          "n": 2138,
+          "model": 2.442223452823326,
+          "baseline": 2.42633457741558
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "Racing Bulls",
+          "n": 2028,
+          "model": 2.214106784511457,
+          "baseline": 2.204089680063765
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "Williams",
+          "n": 1879,
+          "model": 2.3902087071295335,
+          "baseline": 2.3794013129970386
         }
       ],
       "underperforming_cohorts_note": "Surfaced, never dropped. Specific circuit/constructor cells where the model trails its non-leakage cohort-mean baseline; the model wins comfortably overall."
     },
     "reproducibility": {
       "random_state": 20260528,
-      "dataset_fingerprint": "7852405cfa4abd474db3a658beb883b8e2b72acda475298867b9b2584d55d8f1",
+      "dataset_fingerprint": "87e1d013e877c578fd730b0e2e3997e8855739c13bbf09b65747943eff93e727",
       "library_versions": {
         "xgboost": "3.3.0",
         "sklearn": "1.9.0"
@@ -767,8 +1052,8 @@
     "limitations": [
       "STINT-LIFE HYPERPARAMETERS ARE WORK ITEM 10e's S1x, AND THEY WERE LANDED ON A DECISION (D4), NOT ON A CLEARED GATE. What changed: n_estimators 200 -> 100, learning_rate 0.02631 -> 0.02192, aft_loss_distribution_scale 0.80 -> 0.754, plus reg_alpha/min_child_weight/subsample/colsample_bytree. max_depth stayed at 8 - this is a SHRINKAGE change, not the capacity change the earlier diagnosis (10d) predicted. Why: the superseded params were selected on the MIXTURE AFT NLL with the 2024 evaluation season inside the validation folds, which is three defects in the search rather than a property of the model. WHAT IS ESTABLISHED AT 95%: on the green-flag-pit stratum - 9,149 eval laps over 24 races, zero censoring, refit on 2018-2023 and scored on 2024 - IPCW-Brier improves 0.19039 -> 0.16888, paired race-cluster bootstrap +0.0226 95% [+0.0073, +0.0353] with 200 of 200 draws improving and ~15x the family's own 5-reseed noise floor; time-dependent AUC 0.6896 -> 0.7096; and the mean log bias moves -0.2741 -> +0.0680, so the level error CHANGES SIGN - the gauge stops over-predicting remaining tyre life (the dangerous direction for a number read as safe laps remaining) and starts under-predicting it slightly. WHAT IS NOT ESTABLISHED: the calibration slope, which moves 0.6736 -> 0.8754 but at paired-bootstrap P(improves) = 0.945 with an interval straddling zero - the fourth time 24 evaluation races have failed to resolve this quantity at 95%. THE CALIBRATION DEFECT IS NOT FIXED. Accuracy improves and the known dangerous bias direction is inverted; the calibration-slope gain remains statistically unresolved on the current 24-race evaluation set. THE COST, STATED: this family's headline on this card is the mixture AFT NLL, and this change makes it WORSE - 1.99134 -> the value above, against a baseline that also moved (2.18868 -> 2.20099, because the AFT baseline is computed at the model's own fitted scale), and `beats_baseline_significant` for this family flips True -> False. That is the expected direction and it was taken deliberately: work item 10c ruled the mixture the wrong headline for this target because it scores tyre-limit endings and exogenous SC/VSC/red interruptions in one likelihood, and these parameters were selected on the green-pit stratum instead. On that stratum's own NLL the new parameters win (3.4377 -> 3.2922). Anyone reading this family's headline as a quality signal is reading the metric the application does not use. Full evidence, all seven gates and the e-values: `_improvements/work/10-competing-risks.md` under 10e, artefacts in `_improvements/eval/10e/`.",
       "NOT COMPARABLE TO v11. Work item 08m changed how `expected_compound_pace_s` is formed (`compound_cliff_severity` was fitted as a ~5.5-lap level shift and was being consumed as a per-lap rate, plus an unfitted 0.002*age^2 term). That column is subtracted into `driver_skill_residual_s`, so the degradation trio's target `next_5_lap_cumulative_jump_s` and the classifier's label `laps_until_cliff_class` are DIFFERENT QUANTITIES under unchanged column names: the target's mean moved -1.8793 -> -0.3946 s, 10.79% of cliff labels changed class, and the trio's training population moved 82,470 -> 81,619 rows. v11's published headlines (p10 0.53202 / p50 1.04679 / p90 0.57851 pinball, cliff macro-F1 0.37187) were measured against the SUPERSEDED target. A smaller pinball loss here is a smaller target spread, not more skill - the non-leakage baseline moved too (p50 2.17766 -> 1.26289). NO IMPROVEMENT OVER v11 IS CLAIMED OR IMPLIED. The only admissible readings of this card are each model against its own baseline in this same run. The one exception is stint_life_regressor, whose target (`remaining_stint_life_laps`) 08m did not touch - only two of its 32 inputs changed meaning - though even there the eligible row set moved 121,193 -> 119,822, so it is a near-fixed rather than fixed comparison.",
-      "THERMAL-PROXY AND CROSS-SEASON LEAKAGE FIXES (work items 08e/08f, landed 2026-09-17; disclosure only - both fixes' SQL predates this card's numbers, so nothing here moved today). 08e: `int_lap_thermal_proxy`'s stint baseline used to pool laps up to `CEIL(stint_length_actual*0.60)`, reaching forward into laps not yet run (55.92% of mart rows, mean 4.65 laps) and inverting `push_residual`'s sign against two targets; rebuilt as an expanding median over strictly-prior valid laps. Re-read on this card's own v12 substrate: the rebuilt thermal family (`push_residual` + the two cumulative push-load columns + `surface_bulk_ratio`) clears all five targets as an information gain, not leakage recovered - p10 +0.0665 pinball at 9.95x its own noise floor, p50 +0.0676 at 6.06x, p90 +0.0313 at 3.39x, cliff macro-F1 +0.0167 at 3.84x, stint-life AFT nloglik +0.0273 at 4.46x. 08f-1: the quantile trio's `survival_weight` (an XGBoost sample weight, never a feature) used to pool `total_per_compound`/`stints_reaching` across every ingested season, so a 2018 row's weight was partly estimated from 2024; rebuilt as an expanding sum over strictly-prior seasons. Gated in isolation for the first time on this substrate: the weight vector changes substantially (93.3% of training rows), but every quantile headline delta stays inside its own 5-reseed noise floor (p10 0.49x, p50 0.15x, p90 -0.07x) - a real fix, a clean null on the headline; `cliff_classifier`/`stint_life_regressor` never consume this weight and are structurally unaffected. 08f-2: `int_circuit_x_constructor_interaction`'s two season-pooling `GROUP BY`s were rebuilt the same way. Proven algebraically, not merely measured within noise, to move zero live targets: its whole effect on a stint is a constant per (race, constructor), and every target this model is scored against differences laps within one stint, which cancels an exact constant. Full writeup: `_improvements/eval/08e/` and `_improvements/eval/08f/`.",
-      "The cliff classifier (macro-F1 ≈ 0.35 on 4-class cliff timing) is the weakest model by headline, and the headline is the wrong way to read it: 1.0 is not reachable on a label where laps inside a stint share a compound, a car, a circuit and a driver. Against an oracle handed the stint id and nothing else it reaches 66% of the ceiling. What limits it is not established. The label was the leading candidate and has been tested: laps_until_cliff_class is a first-crossing scan over int_compound_cliff_predicted, which was unbounded until Phase 8 bounded it at source (compound_wear_max_s_per_lap). Repairing it moved 4.97% of rows and did not lift macro-F1, and a fresh 50-trial search on the repaired label did not beat the params tuned on the contaminated one. Neither the label nor the hyperparameters explain the number.",
+      "THERMAL-PROXY AND CROSS-SEASON LEAKAGE FIXES (work items 08e/08f, landed 2026-09-17; disclosure only - both fixes' SQL predates this card's numbers, so nothing here moved today). 08e: `int_lap_thermal_proxy`'s stint baseline used to pool laps up to `CEIL(stint_length_actual*0.60)`, reaching forward into laps not yet run (55.92% of mart rows, mean 4.65 laps) and inverting `push_residual`'s sign against two targets; rebuilt as an expanding median over strictly-prior valid laps. Re-read on this card's own v12 substrate: the rebuilt thermal family (`push_residual` + the two cumulative push-load columns + `surface_bulk_ratio`) clears all five targets as an information gain, not leakage recovered - p10 +0.0665 pinball at 9.95x its own noise floor, p50 +0.0676 at 6.06x, p90 +0.0313 at 3.39x, cliff macro-F1 +0.0167 at 3.84x, stint-life AFT nloglik +0.0273 at 4.46x. 08f-1: the quantile trio's `survival_weight` (an XGBoost sample weight, never a feature) used to pool `total_per_compound`/`stints_reaching` across every ingested season, so a 2018 row's weight was partly estimated from 2024; rebuilt as an expanding sum over strictly-prior seasons. Gated in isolation for the first time on this substrate: the weight vector changes substantially (93.3% of training rows), but every quantile headline delta stays inside its own 5-reseed noise floor (p10 0.49x, p50 0.15x, p90 -0.07x) - a real fix, a clean null on the headline; `cliff_classifier`/`stint_life_regressor` never consume this weight and are structurally unaffected. 08o (2026-09-21) then removed the weight from the training path altogether, so the sentence above about the other two families now holds for all five: uniform weights beat IPW on every head, though each headline delta sits INSIDE its own reseed floor (p10 0.70x, p50 0.06x, p90 0.41x) - the ruling rests on the permutation-null information cost at p10, which does clear its floor at -1.30x, and not on the headline. `survival_weight` is still built by the mart and still carried in `IDENTIFIER_COLUMNS`; it is now neither a feature nor a weight, and reaches no model. 08f-2: `int_circuit_x_constructor_interaction`'s two season-pooling `GROUP BY`s were rebuilt the same way. Proven algebraically, not merely measured within noise, to move zero live targets: its whole effect on a stint is a constant per (race, constructor), and every target this model is scored against differences laps within one stint, which cancels an exact constant. Full writeup: `_improvements/eval/08e/` and `_improvements/eval/08f/`.",
+      "The cliff classifier (macro-F1 ≈ 0.37 on 4-class cliff timing) is the weakest model by headline, and the headline is the wrong way to read it: 1.0 is not reachable on a label where laps inside a stint share a compound, a car, a circuit and a driver. Against an oracle handed the stint id and nothing else it reaches 69% of the ceiling. What limits it is not established. The label was the leading candidate and has been tested: laps_until_cliff_class is a first-crossing scan over int_compound_cliff_predicted, which was unbounded until Phase 8 bounded it at source (compound_wear_max_s_per_lap). Repairing it moved 4.97% of rows and did not lift macro-F1, and a fresh 50-trial search on the repaired label did not beat the params tuned on the contaminated one. Neither the label nor the hyperparameters explain the number.",
       "Hyperparameters come from a 50-trial / season-fold Optuna search per target (ml/models/<target>_best_params.json); `make ml-retrain` refits at those params without re-searching. A target whose data has moved should be re-tuned, not just refit.",
       "No live 2025 holdout yet-headline numbers are time-series CV until 2025 ingests.",
       "Skill is reported as a fraction of the ATTAINABLE quantity. A fraction above 1.0 means the model is not bounded by stint-level information, so no ceiling has been established for it - not that it is near-perfect.",

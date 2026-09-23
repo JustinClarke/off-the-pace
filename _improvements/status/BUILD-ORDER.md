@@ -108,23 +108,14 @@ because nothing on the ladder waits for them, not because they matter less.
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-21T16:51:28.853036`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-22T19:30:00Z`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
 
-**11 live items** (1 blocked). The pointer is on **01c** — that is the one to run next; the rest of the order is what becomes runnable after it. 47 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
+**2 live items** (0 blocked). The pointer is on **02c** — that is the one to run next; the rest of the order is what becomes runnable after it. 58 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
 
 | # | Item | Group | Stage | Cost | Model | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | `06b` | [06](../work/06-publication.md) | MEASURED | hours | `opus-5` | Dirty-air coefficient per season - the 2022 regulation question | — |
-| 2 | `01c` ▶ | [01](../work/01-ceiling-instrument.md) | GATED | hours-1d | `opus-5` | The attainable block already answers 01's question on v12 - write it up, and reconcile between_stint_share's three live values | — |
-| 3 | `08o` | [08](../work/08-foundations-repair.md) | MEASURED | 0.5-1d | `opus-5` | Drop the IPW survival sample weight from the degradation quantile heads - the arm 08f-1 measured and declined to rule on | — |
-| 4 | `08q` | [08](../work/08-foundations-repair.md) | MEASURED | 1-2d | `opus-5` | theta_air is a COALESCE default, not an estimate - and the app bills drivers 0.5 s/lap off it | — |
-| 5 | `08i` | [08](../work/08-foundations-repair.md) | GATED | 1-2d | `opus-5` | The min_observations floor - the trade 08e priced and did not take | — |
-| 6 | `02b` | [02](../work/02-feature-expansion.md) | GATED | 1d | `sonnet-5` | Tier 1 - qualifying | — |
-| 7 | `08p` | [08](../work/08-foundations-repair.md) | SPEC | 0.5-1d | `opus-5` | int_stint_geometry still hardcodes compound_code to NULL - wire stg_tyre_allocations in, or delete the column and its promise | — |
-| 8 | `02c` | [02](../work/02-feature-expansion.md) | MEASURED | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | — |
-| 9 | `02g` | [02](../work/02-feature-expansion.md) | GATED | 0.5-1d | `opus-5` | Rebuild the corner field median as a trailing window | — |
-| 10 | `03c` | [03](../work/03-driver-vs-car.md) | BLOCKED | 1-2w | `fable-5.1` | AKM two-way FE on degradation slope + Kline-Saggio-Solvsten leave-out | **D11** (human call) |
-| 11 | `12a` | [12](../work/12-season-coverage.md) | MEASURED | 1-2d (scope only) | `opus-5` | Price the two directions of 'more seasons' - 2025 forward (no inference gap) against 2011-2017 backward (a real one) | — |
+| 1 | `02c` ▶ | [02](../work/02-feature-expansion.md) | GATED | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | **D17** (human call) |
+| 2 | `12a` | [12](../work/12-season-coverage.md) | MEASURED | 1-2d (scope only) | `opus-5` | Price the two directions of 'more seasons' - 2025 forward (no inference gap) against 2011-2017 backward (a real one) | — |
 
 ### Which model to run it on
 
@@ -139,7 +130,6 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 - **D2** (blocks nothing) — CDN publish / app deploy - v12 is now the local default and production still serves v6.
 - **D9** (blocks nothing) — Should int_pit_strategy_cost_curve consume mart_degradation_predictions - i.e. may a dbt intermediate depend on an ML artefact?
-- **D11** (blocks `03c`) — Spend 1-2 weeks of fable-5.1 on 03c (AKM two-way FE on degradation slope with the Kline-Saggio-Solvsten leave-out correction), or close it unstarted?
 - **D13** (blocks nothing) — May a declared-but-disowned e-value be withdrawn from the campaign's e-BH family before 04c's authoritative union run, or does 09c's non-retroactivity rule bind it in regardless?
 - **D14** (blocks nothing) — Does a target/label rebuild (08m) count as grounds to reopen 01b's noise-floor bracket, even though 01b's own do-not-reopen clause only names three triggers and a target rebuild isn't one of them?
 

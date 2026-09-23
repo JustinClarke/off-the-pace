@@ -66,24 +66,43 @@ models:
                 row_condition: "age_in_stint is not null"
       - name: compound_code
         description: >
-          Tyre compound code (C1–C5) assigned by Pirelli for this race, joined from
-          stg_tyre_allocations on (race_year, circuit_key, compound_label). Absolute
-          identifier, unlike compound_in_stint which is relative. Enables cross-circuit
-          compound comparison and physical-parameters lookup in dim_compounds_season.
+          Tyre compound code (C1-C5) nominated by Pirelli for this race. The ABSOLUTE
+          identifier, unlike compound_in_stint which is relative - Pirelli picks 3 of 5
+          physical compounds per weekend and calls them hard/medium/soft, so "SOFT" at one
+          circuit is not the same rubber as "SOFT" at another. Enables cross-circuit
+          compound comparison and physical-parameter lookup in dim_compounds_season.
 
-          PROVISOS: (1) Data starts at 2019-01-20 (first Pirelli 2019 season race).
-          2018 rows carry NULL by construction — Pirelli's relative naming began in 2019,
-          and 08d's sourcing covers 2019-2024 only. (2) Sourced from user verification
-          (2026-09-17) of a 128-row Pirelli allocation table covering 127 mart races
-          2019–2024 (100% join coverage). Sourcing caveat: only 47 of 128 source URLs
-          resolve; see _improvements/work/08-foundations-repair.md (08d) for the full
-          provenance and epistemics ruling.
-      - name: compound_label
-        description: >
-          Tyre compound label (hard, medium, soft) assigned by Pirelli for this race. Relative
-          to the circuit - Pirelli picks 3 compounds per weekend and calls them hard/medium/soft,
-          so "soft" at one circuit is not the same rubber as "soft" at another. The compound_code
-          is the absolute identifier; this label is the relative one.
+          JOIN PATH (08p, corrected 2026-09-22): stg_tyre_allocations on
+          (race_year, race_to_track.track_id, LOWER(compound)). NOT on this model's own
+          upstream `circuit_key` - stg_laps.circuit_key is CAST(race_id AS VARCHAR), a RACE
+          key like '2024_24', while stg_tyre_allocations.circuit_key is a circuit slug like
+          'abu_dhabi_grand_prix'. The domains are disjoint; joining them directly matches
+          zero rows and fails silently. That is exactly the bug 08p found and fixed, and the
+          reason the resolution goes through the race_to_track seed as the mart's does.
+
+          NULL RULES, both by construction, neither a sourcing gap:
+          (1) ALL of 2018 is NULL. Pirelli's relative hard/medium/soft naming begins in 2019
+          and 08d's seed covers 2019-2024 only; 2018's HYPERSOFT/SUPERSOFT/ULTRASOFT are
+          dim_compounds_season's own compound_code, out of scope here. Pinned by
+          tests/assert_stint_geometry_2018_compound_code_null.sql. This is a SEASON-SHAPED
+          missingness pattern - the same shape 02b measured as NOT label-neutral - so a
+          consumer must DECLARE its handling rather than COALESCE it away.
+          (2) INTERMEDIATE and WET laps are NULL in every season (7,750 + 489 rows
+          2019-2024). Cinturato wets are not on the C1-C5 slick scale at all.
+          Every slick (HARD/MEDIUM/SOFT) lap in 2019-2024 resolves: 132,113 of 132,113,
+          100.000%. Per-season all-lap coverage runs 91.67%-96.84%; the shortfall is
+          wet-weather rows only. Do not quote the all-lap figure where the slick figure is
+          meant - they are different populations.
+
+          PROVENANCE - READ BEFORE QUOTING. The underlying seed is USER-ATTESTED
+          (2026-09-17, full correctness of the 128-row mapping across 2019-2024), NOT
+          archivally sourced: only 47 of 128 source_url values resolve, the other 81 are 404
+          against a press site that no longer serves its pre-2025 archive. 08p's ruling
+          (2026-09-22) admits the table into this lineage as a declared-`assumed` input,
+          MART-ONLY, on the 2026-09-10 decision's own terms - it bars QUOTATION, not USE.
+          This column is deliberately NOT in FEATURE_COLUMNS. Nothing published may rest on
+          it until 08d's archival re-source lands. See
+          _improvements/work/08-foundations-repair.md (08d, 08p).
       - name: race_year
         description: Season year.
       - name: race_id
@@ -445,6 +464,12 @@ models:
           v12 training-eligible panel floor 1 leaves 2,156/119,822 rows (1.80%)
           thermal-NaN, +2.15pp of coverage against floor 2, and cuts the blind
           rate on the hardest cliff class (0_to_2) from 12.13% to 10.48%.
+          LANDED in the v13 bundle (D10, 2026-09-21) and re-measured on the built
+          v13 panel 2026-09-22: 2,152/119,775 rows (1.80%) thermal-NaN, +2.13pp
+          against the floor-2 counterfactual on the same panel, and the 0_to_2
+          blind rate 12.61% -> 11.13%. The levels differ from the v12 figures
+          above because 08q moved the label inside the same bump; the gain does
+          not.
       - name: baseline_observations_n
         description: >
           How many valid prior laps stint_baseline_pace was computed from. Ships as a
@@ -1428,6 +1453,138 @@ models:
         description: Sample sd of exit_residual_s across the lap's corners (mean 0.2115 s; NULL on 9.78%).
       - name: corner_exit_residual_max_s
         description: Largest exit_residual_s on the lap (mean 0.4367 s).
+
+  - name: int_corner_drift_from_early_stint
+    description: >
+      Item 02h. int_corner_skill_residuals residualized a SECOND time: for each (stint_id,
+      corner_name), the mean of the three phase residuals over the stint's own first 6 valid
+      laps (valid_lap_in_stint 1-6) is taken as a BASELINE, and every later lap's residual minus
+      that baseline is DRIFT. Grain: (lap_id, corner_name), same as int_corner_skill_residuals.
+
+      WHY. 02c's residuals do not persist lap-to-lap (measured lag-1 within-stint
+      autocorrelation 0.032-0.176) because (field trailing-5 median - own) is a relative-PACE
+      construct, and the columns that survive ablation elsewhere in the contract all sit at
+      .27-.42 (proximity .421, thermal's push_residual .343, dirty_air .266). A driver who is
+      steadily 0.05s worse than the field all race has zero drift and is captured by pace
+      already three times over; a driver who opens that gap from 0.05s to 0.35s across the
+      stint has +0.30s of drift, which is the tyre-degradation signal a pace residual cannot
+      distinguish from a driver who is simply slow-but-stable.
+
+      LEAKAGE. The baseline window is FIXED at valid_lap_in_stint 1-6, not trailing relative to
+      the query lap. Every row with a non-NULL drift value has valid_lap_in_stint >= 7, strictly
+      after the baseline window, so the baseline never draws on the lap it is subtracted from or
+      any lap after it. Rows with valid_lap_in_stint <= 6 -- the baseline-defining window -- get
+      drift = NULL by construction (verified: zero exceptions). Stints with fewer than 7 valid
+      laps get NULL throughout (no lap to report a drift value for). A (stint, corner, phase)
+      baseline additionally requires >= 3 non-NULL observations inside the 6-lap window.
+    tags: [intermediate, feature_engineering]
+    meta:
+      family: residual
+      aggregation_scope_exemptions:
+        - keys: [stint_id, corner_name]
+          status: accepted
+          reason: >
+            The `baseline` CTE's GROUP BY (stint_id, corner_name) does not pin a lap on its
+            own, but the FILTER clause fixes its input to valid_lap_in_stint <= 6 regardless
+            of which lap later reads the result, and the final SELECT NULLs every row with
+            valid_lap_in_stint <= 6 (the window that defines the baseline) so no row ever
+            reads a baseline drawn even partly from itself or its own future. Verified before
+            the 02h ablation ran: 0 of the rows with valid_lap_in_stint <= 6 carry a non-NULL
+            drift value, and every non-NULL drift row has valid_lap_in_stint >= 7. Same shape
+            as int_lap_residual_stint_detrend's exemption in spirit (a stint-grain
+            aggregate), but this one is a live FEATURE_COLUMNS candidate rather than
+            label-construction-only, which is why the leakage argument is carried in full
+            here rather than by reference to EXCLUDED_LEAKAGE_COLUMNS.
+    columns:
+      - name: corner_id
+        description: PK = lap_id || '_C_' || corner_name
+        tests: [not_null, unique]
+      - name: lap_id
+        description: FK to stg_laps
+        tests: [not_null]
+      - name: stint_id
+        description: FK to int_stint_geometry
+        tests: [not_null]
+      - name: corner_name
+        description: Named corner from dim_corners
+        tests: [not_null]
+      - name: valid_lap_in_stint
+        description: Ordinal among valid laps only within this stint (from int_stint_geometry). Drift is NULL for values 1-6, the baseline-defining window.
+        tests: [not_null]
+      - name: drift_in_baseline_window
+        description: >
+          TRUE when this row sits inside the baseline window (valid_lap_in_stint <= 6) or the
+          stint never reached 7 valid laps -- i.e. TRUE whenever all three drift columns are
+          necessarily NULL for a reason other than a missing corner residual. Diagnostic, not a
+          feature.
+        tests: [not_null]
+      - name: braking_drift_s
+        description: >
+          braking_loss_s minus the stint's own early-stint (valid_lap_in_stint 1-6) mean
+          braking_loss_s for this corner. NULL inside the baseline window, on stints shorter
+          than 7 valid laps, on a baseline with fewer than 3 usable observations, or where this
+          lap's own braking_loss_s is NULL.
+      - name: mid_drift_s
+        description: mid_corner_residual_s minus the stint's own early-stint mean mid_corner_residual_s for this corner. Same NULL policy as braking_drift_s.
+      - name: exit_drift_s
+        description: exit_residual_s minus the stint's own early-stint mean exit_residual_s for this corner. Same NULL policy as braking_drift_s.
+
+  - name: int_lap_corner_drift
+    description: >
+      Item 02h. int_corner_drift_from_early_stint aggregated from (lap x corner) grain to lap
+      grain -- the same mean/sd/max-per-phase shape int_lap_corner_inputs (02c) uses, applied to
+      DRIFT instead of PACE. One row per race lap that has at least one corner row in the
+      upstream model.
+
+      COVERAGE IS TWO CONFOUNDS AT ONCE, named so it is not mistaken for one. A lap's drift can
+      be NULL because its own corner telemetry / field baseline is unmapped (02c's confound), OR
+      because the lap sits inside the baseline window or its stint is shorter than 7 valid laps
+      (a new, purely mechanical confound: a function of lap_in_stint / age_in_stint, both already
+      in the 32-column contract). corner_drift_coverage is admitted as its own column, same
+      reasoning as 02c's corner_input_coverage, and ablated separately as this item's arm C.
+    tags: [intermediate, feature_engineering]
+    meta:
+      family: residual
+    columns:
+      - name: lap_id
+        description: PK, FK to stg_laps.
+        tests: [not_null, unique]
+      - name: corners_total_n
+        description: Corners the lineage placed on this lap.
+        tests: [not_null]
+      - name: corners_drift_mapped_n
+        description: Corners on this lap with at least one non-NULL phase drift value.
+        tests: [not_null]
+      - name: corner_drift_coverage
+        description: corners_drift_mapped_n / corners_total_n. The contract column -- see model description.
+        tests: [not_null]
+      - name: corner_braking_drift_n
+        description: Corners on this lap with a measured braking drift. Companion column, not a feature.
+        tests: [not_null]
+      - name: corner_mid_drift_n
+        description: Corners on this lap with a measured mid-corner drift. Companion column, not a feature.
+        tests: [not_null]
+      - name: corner_exit_drift_n
+        description: Corners on this lap with a measured exit drift. Companion column, not a feature.
+        tests: [not_null]
+      - name: corner_braking_drift_mean_s
+        description: Mean braking_drift_s across the lap's corners. Positive = braking has drifted earlier (worse) than the driver's own early-stint baseline.
+      - name: corner_braking_drift_sd_s
+        description: Sample sd of braking_drift_s across the lap's corners.
+      - name: corner_braking_drift_max_s
+        description: Largest braking_drift_s on the lap.
+      - name: corner_mid_drift_mean_s
+        description: Mean mid_drift_s across the lap's corners. Positive = apex speed has drifted down from the driver's own early-stint baseline.
+      - name: corner_mid_drift_sd_s
+        description: Sample sd of mid_drift_s across the lap's corners.
+      - name: corner_mid_drift_max_s
+        description: Largest mid_drift_s on the lap.
+      - name: corner_exit_drift_mean_s
+        description: Mean exit_drift_s across the lap's corners. Positive = throttle application has drifted later than the driver's own early-stint baseline.
+      - name: corner_exit_drift_sd_s
+        description: Sample sd of exit_drift_s across the lap's corners.
+      - name: corner_exit_drift_max_s
+        description: Largest exit_drift_s on the lap.
 
   # ──────────────────────────────────────────────────────────
   # Simulation   Surface expansion

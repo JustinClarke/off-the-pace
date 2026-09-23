@@ -35,6 +35,24 @@ repo's own admission rule has not yet been pointed at it.
 > `between_stint_share = 0.0094` is **0.0643** on the rebuilt target, so §1's cap on Tiers 1/3/4
 > is 6.8× looser than this document states. `02c`, `02d` and `02g` remain unre-measured and
 > inherit both corrections.
+>
+> **`02d` was concluded 2026-09-21 and `02c` was re-run 2026-09-22 — see their Verdicts.** A third
+> substrate has landed since the paragraph above was written: **`v13` (`e341152`, 2026-09-21)**
+> bundles `02b`, `08o` and `08q`. `08q` moves the **label** again (`theta_air` 0.5 → 0.1310 s/lap),
+> `08o` drops the IPW sample weight from the three quantile heads, and `02b` admits seven
+> qualifying columns to `cliff_classifier` **only** — so the feature contract is no longer one
+> width (39 for the classifier, 32 for everything else, via `schema.feature_columns_for()`). The
+> floors moved a *second* time: `02c`'s 2026-09-22 re-run measured p10 at **0.00593**, which is
+> **4.33×** the 2026-09-19 figure quoted just above. **Any floor in this document is a reading on a
+> named substrate, never a constant to reuse** — measure it in the same process that measures the
+> delta.
+>
+> **`02h` ran and closed 2026-09-22 on that same `v13` substrate — see its Verdict.** It
+> re-measured all four floors independently and reproduced `02c`'s to **8 dp**, which is the
+> cross-check that makes the two items' ratios directly comparable. Its own result is negative:
+> drift against the driver's early-stint baseline is **less** persistent than `02c`'s pace
+> residuals (0.0169–0.1397 against 0.0267–0.1756), and its mechanism arms clear nothing on any
+> family. Tier 2's scalar-aggregation line is finished; R5 Option A/B is what remains.
 
 ---
 
@@ -748,6 +766,62 @@ undone, per (c), and could in principle produce a joint rejection touching other
 arms elsewhere in the campaign — it cannot touch `02b` specifically, but it is real unfinished
 work this ruling does not do and does not claim to have done.
 
+#### 12. LANDED — the decision was taken and executed, verified independently 2026-09-22
+
+The open item §11(d) left pending — "(i) ... is a separate landing decision that this ruling
+does not make" — is no longer open. `D12` resolved **YES** on 2026-09-21: admit the seven
+`02b` columns into `FEATURE_COLUMNS` for `cliff_classifier` only (arms B/C on the degradation
+trio did not clear sufficiently to also move `degradation_regressor_p90`). It was executed the
+same day as **one** `v12 → v13` bump together with `08i`/`D10`, `08o` and `08q`, exactly as
+`D16` asked for — not as a standalone `02b` rebuild.
+
+**The 2026-09-22 handoff pass flagged `02b` as an unverified bundle member** (its own `assumed`
+field said it had not checked `ml/models/` or `S.MODEL_VERSION_DEFAULT`). This session checked
+directly, mirroring the same cross-check `08i`'s landing note ran for itself the same day.
+Everything below is read-only — nothing was written to `ml/models/`, `ml/artefacts/`, the
+warehouse or git.
+
+1. **The contract split is real in code, not just described in prose.** `ml/src/schema.py:243-246`
+   lists the seven qualifying columns inside `FEATURE_COLUMNS` (now **39** wide, was 32);
+   `feature_columns_for('cliff_classifier')` returns all **39**; `feature_columns_for()` for
+   `degradation_regressor_p10`/`p50`/`p90` and `stint_life_regressor` returns **32** — the
+   qualifying group is masked out of exactly the four families `D12` ruled it should not touch.
+   This is `D12`'s resolution text implemented exactly, not approximated.
+2. **The shipped artefacts are fitted on that split.** `S.MODEL_VERSION_DEFAULT = "v13"`
+   (`schema.py:473`, comment names all four bundle members); all five `.bst`/`.onnx` pairs exist
+   in `ml/models/` at `v13` (dated 2026-09-21); `ml/artefacts/evaluation_metrics.json` reads
+   `version: "v13"`, `evaluated_at: 2026-09-21T11:58:27Z`, and its `cliff_classifier` block
+   carries `headline: 0.38478356627919746` (macro-F1) against `baseline_headline: 0.20783`,
+   `beats_baseline: true`, `n_eval_rows: 18877` — a live production number, not a staged one.
+   `08i`'s own 2026-09-22 landing verification independently refit `cliff_classifier` through
+   `evaluate.py`'s own `_fit`/`_score` at **39** columns and reproduced this exact headline to
+   10 dp (`0.3847835663`), which is the cross-check that the shipped booster is actually trained
+   on the widened contract rather than merely coexisting with it.
+3. **The warehouse layer re-verified directly by this session, 2026-09-22.**
+   `cd transform && ../.venv/bin/dbt test --profiles-dir profiles --target dev --select
+   int_qualifying_driver_summary+ fct_cliff_prediction_features` → **PASS=8 WARN=0 ERROR=0
+   SKIP=0**, unchanged from the original build. `PYTHONPATH=. ./.venv/bin/python -m
+   ml.src.features --check` → forward-window audit CLEAN, aggregation-scope audit CLEAN,
+   leakage guard CLEAN, fingerprint recomputed — the audits pass with the per-family mask in
+   place, exactly as the original build-and-check section above reported before the mask
+   existed.
+4. **Do not re-score `02b`'s own pre-registered arms against the `v13` headline above.** `08q`
+   moved the label in the same bump (the same caveat `08i`'s landing note gives for its own
+   item), so `0.38478` is not comparable to the `0.35247 → 0.38404` (Arm A) delta §3's gate
+   table reports — that table's admissible evidence is the fixed-`v12`-target arm-vs-arm
+   comparison it was measured under, and stands as declared. This note confirms execution of
+   the `D12` decision, not a re-measurement of the effect.
+
+**Stage.** Per `build-log.json`'s own vocabulary, `LANDED` = "In the contract, warehouse or
+app." All three are true here: the contract (`FEATURE_COLUMNS` / `feature_columns_for`), the
+warehouse (`int_qualifying_driver_summary`, dbt-tested clean), and the app (the shipped `v13`
+`cliff_classifier` booster, evaluated and carrying a beats-baseline macro-F1). `02b` should be
+read as `LANDED`, not `GATED`, from 2026-09-21 forward. `build-log.json` is the authoritative
+state store and is intentionally not edited by this note — its `stage` field for `02b` should
+be updated to `LANDED` by whichever pass is authorized to write it (mirroring how `08i`'s
+equivalent confirmation was recorded in `08-foundations-repair.md` without touching
+`build-log.json` either).
+
 ---
 
 ## 3. Tier 2 — Corner-level driver inputs: the only lap-varying candidate
@@ -1060,7 +1134,7 @@ it at the model.
 
 ---
 
-### `02c` — Tier 2, corner-level driver inputs · BUILT 2026-09-11, ARMS RUN 2026-09-11
+### `02c` — Tier 2, corner-level driver inputs · BUILT 2026-09-11, ARMS RE-RUN 2026-09-22
 
 **What was built.**
 
@@ -1211,6 +1285,15 @@ Validity check    : before trusting the implementation, push 100k draws of five 
 
 #### Arms run 2026-09-11 — results
 
+> **SUPERSEDED 2026-09-22 — every delta, floor ratio and `E` in this subsection is void.** These
+> arms scored a pre-`08m` target against a uniform 32-column `v12` contract. `08m` rebuilt the
+> target, and `v13` (`e341152`, 2026-09-21) then moved the label again (`08q`), retrained the
+> quantile heads (`08o`) and widened the cliff baseline to 39 columns (`02b`). The floors moved by
+> up to **4.33×** and seven of these twelve cells change their ruling. **Read
+> "Verdict — `02c` · MEASURED 2026-09-22" below instead.** This block is kept unedited because the
+> pre-registration, the declared readings and the two self-corrections at the end of it are the
+> record the re-run was judged against — but nothing numeric in it may be re-quoted or re-scaled.
+
 **Command, artefact, log.** `python scripts/arms_02c_corner_inputs.py` →
 `ml/artefacts/02c_corner_inputs_arms.json` (every fit's headline, per seed) and
 `ml/artefacts/02c_corner_inputs_arms.log`. Nothing below was computed by hand.
@@ -1357,6 +1440,787 @@ Both were found by re-measuring against the shipped table while writing the resu
 **Cost:** ~2–3 days, most of it in the aggregation design and the leakage check. **Spent.** The
 build, the audits, the twelve arms, the four negative controls and the e-values are done; what
 remains of the pre-registered family is the stint-life column, barred until `10e`.
+
+### Verdict — `02c` · MEASURED 2026-09-22
+
+**Re-run on the rebuilt substrate. The corner channel survives, but far more weakly than the
+2026-09-11 table says, and on a different set of families.** The one outcome that admits the
+group on its stated grounds — arm B clearing where arm C does not — now occurs on **p50 alone**.
+On p10 and cliff the *bundle* clears while **neither half does**, which is the Phase 10a shape
+`gates.md` step 4 exists to catch and is recorded as ambiguous, not rounded up. On p90 nothing
+clears at all. Run: `PYTHONPATH=. ./.venv/bin/python scripts/arms_02c_corner_inputs.py`,
+2026-09-22 05:03–05:33 UTC (~30 min). Artefacts: `ml/artefacts/02c_corner_inputs_arms.json`
+(per-seed headlines, e-value components, instrument checks) and `.log`.
+
+#### 0. What changed under this item since it last ran, and what that forced
+
+The 2026-09-11 arms scored a pre-`08m` target against a uniform 32-column `v12` contract. **Two
+rebuilds have landed since, and both move the denominator.**
+
+* `08m` (2026-09-16) rebuilt the degradation target. `02b` re-measured the floors 2026-09-19.
+* **`v13` (commit `e341152`, 2026-09-21) bundled `02b`, `08o` and `08q`** — and this Verdict is
+  the first `02c` text written against it. `08q` moves the **label** for the trio and the
+  classifier (`theta_air` 0.5 → 0.1310 s/lap); `08o` drops the IPW sample weight from the three
+  quantile heads; `02b` admits seven qualifying columns to `cliff_classifier` **only**.
+
+Three consequences, each a deviation from the brief this run was commissioned under, recorded
+rather than quietly absorbed:
+
+1. **The floors handed to this run were stale, and using them would have mis-ruled p10 by 4.3×.**
+   The brief specified `02b`'s 2026-09-19 floors as measured values to reuse. They are measured —
+   on a substrate two rebuilds back. Every ratio below divides by a floor measured **in-run** on
+   the substrate actually scored, which is `02b`'s own §4(a) ruling applied one generation later.
+2. **The baseline is `v13`, not `v12`, and it is no longer one width.** `schema.feature_columns_for()`
+   gives the degradation trio **32** columns and `cliff_classifier` **39**. The brief said "32
+   features, contract `v12`, do not add the `02b` qualifying columns". For the trio that is exactly
+   what ran — the qualifying columns are masked out by `PER_TARGET_FEATURE_MASK` and the baseline
+   is the same 32. For cliff it could not be: gate 1 requires reproducing the **published**
+   headline, and the published cliff headline is the 39-column one. **So on cliff these arms
+   measure the corner channel's *incremental* value over qualifying** — a strictly harder test
+   than 2026-09-11's, and the reason cliff falls furthest.
+3. **`00d` landed 2026-09-20 and inverted the braking phase at the source.** The marginal
+   correlation of `corner_braking_loss_mean_s` with the label moves **+0.0627 → −0.1054**. The
+   build-order audit predicted this: a monotone flip leaves a tree's predictions unchanged, so it
+   is not why the arms moved — but arm B's *deliverable* is a per-phase attribution, and that
+   reading was inverted on a third of it before `00d`.
+
+#### 1. Gate 1 — instrument check: PASS, all four families
+
+Every family's refit reproduces the **current** `evaluation_metrics.json` headline to ten decimal
+places, anchored on `v13` (evaluated 2026-09-21), not on any `v12` or pre-`08m` figure.
+
+| family | refit baseline | published | metric | baseline width |
+| :--- | ---: | ---: | :--- | ---: |
+| `degradation_regressor_p10` | 0.4557991687 | 0.4557991687 | pinball | 32 |
+| `degradation_regressor_p50` | 0.9309607723 | 0.9309607723 | pinball | 32 |
+| `degradation_regressor_p90` | 0.5070426104 | 0.5070426104 | pinball | 32 |
+| `cliff_classifier` | 0.3847835663 | 0.3847835663 | macro-F1 | **39** |
+
+The cliff row is doing double duty: it confirms `v13`'s per-family mask is the one in production,
+and it confirms this runner feeds the classifier a 39-wide matrix rather than silently handing a
+39-wide contract to a 32-wide booster. That would have produced a plausible wrong number rather
+than an error — the failure mode gate 1 exists to catch.
+
+#### 2. Gate 2 — add-ablation on the identical split
+
+`cv_final_fold`, train 2018–2023, eval 2024, `evaluate.py`'s own `_fit`/`_score`, contract `v13`.
+Degradation trio: **67,847 train / 13,711 eval**, one bundle shared across p10/p50/p90. Cliff:
+**94,294 train / 18,877 eval**. No arm adds a column to the baseline other than its own.
+
+#### 3. The floors moved again — a third set of numbers for the same four families
+
+Measured in-run over seeds 20260528–20260532, beside the two sets this item has previously been
+handed. **Neither earlier set is used as a denominator anywhere below.**
+
+| family | `02c` 2026-09-11 (pre-`08m`, v12) | `02b` 2026-09-19 (post-`08m`, v12) | **measured 2026-09-22 (v13)** | vs 09-19 |
+| :--- | ---: | ---: | ---: | ---: |
+| p10 | 0.004311 | 0.00136797 | **0.00592996** | **4.33×** |
+| p50 | 0.010431 | 0.01115092 | **0.00765339** | 0.69× |
+| p90 | 0.009347 | 0.00839541 | **0.00809109** | 0.96× |
+| cliff | 0.005772 | 0.00433972 | **0.00681449** | 1.57× |
+
+p10's floor is **4.33× looser** than the number the brief said to reuse. Had it been reused, arm A
+would have read **+9.28×** instead of +2.14× and arm B **+3.48×** instead of +0.80× — i.e. B would
+have been reported as a clear when it is not one. This is the second consecutive re-run in which a
+reused floor would have inverted a ruling, and it is the strongest available argument for measuring
+the floor in the same process that measures the delta.
+
+#### 4. Gates 3 + 4 — every delta, with its floor ratio
+
+"raw" is the add-ablation delta over floor; "info" is the permutation-corrected delta
+(`real − shuffled`) over the same floor. Positive is improvement on every metric. **Clears**
+requires both, per `gates.md`'s "What clears means".
+
+| family | floor `2√2·sd` | arm | raw ×floor | info ×floor | capacity | E | clears |
+| :--- | ---: | :--- | ---: | ---: | ---: | ---: | :--- |
+| **p10** | 0.00592996 | **A full (10)** | **+2.14** | **+2.51** | −0.00218 | 21.8 | **YES** — but see §5 |
+| | | B residuals (9) | +0.80 | +1.13 | −0.00195 | 2.59 | no — raw misses |
+| | | C coverage (1) | +1.03 | +0.78 | +0.00150 | 23.5 | no — information misses |
+| **p50** | 0.00765339 | **A full** | **+2.04** | **+2.01** | +0.00022 | 4.31 | **YES** |
+| | | **B residuals** | **+1.19** | **+1.82** | −0.00482 | 2.21 | **YES** |
+| | | C coverage | +0.62 | +0.87 | −0.00191 | 0.946 | no |
+| p90 | 0.00809109 | A full | +0.92 | +0.26 | +0.00528 | 4.26 | no |
+| | | B residuals | +0.46 | +0.41 | +0.00041 | 7.71 | no |
+| | | C coverage | +0.21 | +0.38 | −0.00134 | 3.67 | no |
+| **cliff** | 0.00681449 | **A full** | **+1.02** | **+1.42** | −0.00273 | 11.4 | **YES** — but see §5 |
+| | | B residuals | +0.43 | +0.78 | −0.00244 | 27.7 | no |
+| | | C coverage | +0.06 | +0.48 | −0.00285 | 8.01 | no |
+
+**Harness is clean.** The shuffle-vs-shuffle negative control returned `E` = **0.445 / 0.413 /
+0.410 / 1.05** on p10 / p50 / p90 / cliff. Three sit well below 1; cliff's 1.05 is unremarkable
+under a null whose mean is exactly 1 (`d̄` = −0.00184, direction *against*), and it is two orders
+of magnitude away from anything this table reads as evidence. The Monte-Carlo validity check
+returned mean `E` = **1.0016 / 0.9992 / 1.0108 / 1.0014** at σ = 0.001 / 0.01 / 0.1 / 1.0 over
+100k draws each, every one within Monte-Carlo error (±2·SE ≈ 0.010) of 1.00.
+
+**Headline deltas for the clearing arms**, in their own units:
+
+* `degradation_regressor_p10` pinball **0.455799 → 0.443107** (A, −0.012692 = improvement).
+* `degradation_regressor_p50` pinball **0.930961 → 0.915338** (A, −0.015623), **→ 0.921828**
+  (B, −0.009132).
+* `cliff_classifier` macro-F1 **0.384784 → 0.391743** (A, +0.006959).
+
+#### 5. Two of the three clears are the Phase 10a shape, and are not rounded up
+
+On **p10** and **cliff**, arm A clears on both raw and information while **neither B nor C clears
+on raw**. `gates.md`: *"A total that clears while neither half does is recorded as exactly that —
+ambiguous — and never rounded up."* Both are recorded as ambiguous.
+
+This is a reversal of 2026-09-11, which found the opposite and said so: *"A is also worse than B on
+p10 and p50: adding `corner_input_coverage` to the nine residuals costs signal there."* On the
+rebuilt substrate **A beats B on all four families**, and C alone is feeble everywhere (raw +1.03,
++0.62, +0.21, +0.06). So the coverage column is not a competing explanation and it is not a
+dilutant — the two blocks are only worth anything **together**, which is an interaction and not a
+mechanism claim. Neither the 2026-09-11 reading ("B beats C on three of four families") nor its
+confound worry ("a naive nine-column arm could have cleared on the coverage channel") survives.
+
+**p50 is the only family that produces a declared, non-ambiguous outcome.** B clears (+1.19 raw,
++1.82 info) and C does not (+0.62). That is the pre-registration's *"B clears, C does not → the
+driver-input mechanism is supported"*, and it is the only cell in the table that admits the group
+on its stated grounds.
+
+#### 6. The declared readings, applied family by family
+
+* **p10 — "A clears but neither B nor C does" → ambiguous.** Declared in advance as *"this is Phase
+  10a's p50 outcome and it is not rounded up"*. Recorded as ambiguous.
+* **p50 — "B clears, C does not" → the driver-input mechanism is supported.** The only family where
+  it fires.
+* **p90 — "Nothing clears."** The declared reading is *"Tier 2 is closed, and with it the last
+  lap-varying candidate in item 02 … a substantive result about the degradation ceiling."* It fires
+  on p90 alone, not on the trio, so Tier 2 does not close — but the p90 tail is now the second
+  family (after 2026-09-11's p90) to return nothing from this channel, and C's collapse there from
+  **+2.59× to +0.21×** retires the 2026-09-11 claim that *"on the p90 quantile the corner channel
+  is a coverage channel."*
+* **cliff — "A clears but neither B nor C does" → ambiguous.** Same as p10. Note this is the family
+  where the baseline gained `02b`'s seven qualifying columns, and the fall is the largest in the
+  table (A 2.59× → 1.02×, B 2.17× → 0.43×). The straightforward reading is that **qualifying and
+  the corner channel are substitutes for cliff onset**: once the classifier has the driver's
+  one-lap form, the corner aggregates have much less left to add.
+
+#### 7. The primary hypothesis holds, and it holds much more narrowly than before
+
+It was: *"arm B clears its floor on at least one of the three degradation quantiles."* **B clears
+on one — p50, at +1.19× raw and +1.82× information, with a negative capacity term (−0.00482), so
+the nine columns as noise make the model slightly worse and help only when they carry real
+values.** Tier 2 is still the only lap-varying candidate in this document and it still reaches the
+within-stint variance. But the 2026-09-11 write-up recorded B clearing on **two** quantiles at
+1.30× and 1.63×; on the rebuilt substrate p10 reverses to **+0.80×** and p50 falls to **+1.19×**.
+
+Arm-by-arm against the superseded table, so the size of the move is visible:
+
+| family | arm | 2026-09-11 ×floor | 2026-09-22 ×floor |
+| :--- | :--- | ---: | ---: |
+| p10 | A / B / C | 0.45 / **1.30** / 0.70 | **2.14** / 0.80 / 1.03 |
+| p50 | A / B / C | **1.36** / **1.63** / **1.23** | **2.04** / **1.19** / 0.62 |
+| p90 | A / B / C | **1.65** / 0.49 / **2.59** | 0.92 / 0.46 / 0.21 |
+| cliff | A / B / C | **2.59** / **2.17** / **1.09** | **1.02** / 0.43 / 0.06 |
+
+Seven of twelve cells cleared on 2026-09-11; **four** do now, and only one of those four is a
+half rather than a bundle.
+
+#### 8. Gate 7 — the e-values, and the ceiling that was already known to bind
+
+Construction B (paired safe-t), n = 5, g = 1, seeds 20260528–20260532, exactly as pre-registered
+2026-09-11. Sorted descending the twelve `E`s run **27.7, 23.5, 21.8, 11.4, 8.01, 7.71, 4.31,
+4.26, 3.67, 2.59, 2.21, 0.946**. Every one is in the improvement direction
+(`direction_is_improvement = true`), so no wrong-direction caveat applies here — unlike `02d`.
+
+**e-BH rejects nothing, and could not have.** At α = 0.05 and m = 12, `k* = max{k : E_[k] ≥
+12/(0.05k)}` needs 240 for a lone rejection; the construction's ceiling is
+`(1 + ng)^((n−1)/2)` = **36**. **k\* = 0.** Against the campaign family `09c` enumerated (103 as of
+2026-09-19, ≈123 after `02d`) the bar is ≈2,480 and the conclusion only widens.
+
+**The parameters were not re-sized, deliberately.** `09c` raised the ceiling to `n = 10, g = 1`
+but ruled **non-retroactively**: *"every `E` already declared under `n=5,g=1` (`02b`, `02c`, …)
+stands as declared."* These twelve arms were declared 2026-09-11, before `09c` landed. Re-running
+them at `n = 10` to chase a clearer read is barred by `09c`'s own ruling and is not done here.
+Gate 7 therefore returns a permanent, structural non-rejection for all twelve — the same
+categorical result `02b` §11 reached, for the same reason.
+
+**Family accounting.** This is a **re-measurement of the same twelve declared hypotheses**, not
+twelve new ones: the hypotheses, arms, construction and seeds are the 2026-09-11 pre-registration
+unchanged, and only the substrate moved. The campaign family does not grow. `09c` §2's open
+12-vs-16 counting question (whether the permutation arm `P` counts per family) is untouched and
+still unresolved; `k*` is 0 under either reading. The stint-life column of every arm remains
+**unrun and uncounted** — `10e` landed 2026-09-19 and discharges `10d`'s bar, but this item's own
+text makes stint life a follow-on registration of its own rather than a retroactive family member,
+and the runner refuses it rather than leaving that to a reader's memory.
+
+#### 9. Coverage and the missingness bias, re-verified on the rebuilt substrate
+
+Corner-grain availability over all 2,206,939 rows of `int_corner_skill_residuals` reproduces the
+corrected 2026-09-11 figures exactly — braking **69.94%**, mid-corner **81.12%**, exit **47.00%**,
+intersection **38.59%** — which is expected, since those are telemetry-presence facts and neither
+`08q` nor `08o` touches them.
+
+At the mart, on the **95,346** training-eligible rows (was 121,193 pre-`08m`):
+
+| column | non-null | marginal corr with label |
+| :--- | ---: | ---: |
+| `corner_input_coverage` | 100.00% | **−0.2548** |
+| `corner_braking_loss_mean_s` | 94.68% | −0.1054 *(was +0.0627 pre-`00d`)* |
+| `corner_mid_residual_mean_s` | 94.83% | −0.2126 |
+| `corner_mid_residual_max_s` | 94.83% | **−0.2553** |
+| `corner_exit_residual_mean_s` | 88.75% | −0.0555 |
+
+**The missingness bias is still there and is larger than before.** Rows where
+`corner_braking_loss_mean_s` is NULL average **+5.6723 s** of 5-lap jump (sd 10.2945, n = 5,071)
+against **−0.7378 s** for covered rows (sd 4.1326, n = 90,275). It remains a coverage artefact and
+not forward leakage — a lap is uncovered because its own telemetry is absent or the trailing
+*t−5…t−1* baseline held fewer than five valid observations, both settled strictly before *t+1* —
+and it remains the reason arm C exists. What has changed is the conclusion: C no longer clears
+anywhere, so the confound the arm was built to catch **did not fire on this substrate**.
+
+#### 10. What this item does and does not conclude
+
+* **Verified.** The ten columns as a bundle carry information the contract does not have, on p10,
+  p50 and cliff, with the permutation arm attributing it to information and a negative capacity
+  term on three of those four bundles.
+* **Verified, and much weaker than previously recorded.** The nine residual aggregates *on their
+  own* clear on **p50 only**. The 2026-09-11 statement that they clear on p10, p50 and cliff is
+  superseded and must not be re-quoted.
+* **Retired.** "On p90 the corner channel is a coverage channel" (C: 2.59× → 0.21×), and "arm A is
+  worse than B on p10 and p50" (A now beats B everywhere).
+* **Not done here, and deliberately.** The contract is unchanged: the ten columns are in the mart
+  and still absent from `ml/src/schema.py`'s `FEATURE_COLUMNS`. Nothing in this table settles
+  *which* set to move — A is uniformly the better arm but is ambiguous by gate 4 on two of its
+  three clears, and B, the arm with the mechanism story, clears once.
+* **The R5 cap stands and is now better evidenced.** This is the third hand-crafted scalar
+  aggregation of a telemetry channel; Phase 9 dropped eleven such summary statistics of the same
+  table for clearing in none of three families. `02c` clears more than that, but its one
+  unambiguous mechanism cell out of twelve is a thin return for a 30-minute, 208-fit campaign, and
+  it is consistent with R5's reading that *the aggregation is lossy, not the channel*. R5's Option
+  A (path signatures) and Option B (FPCA on the existing 100-fraction `relative_distance` grid)
+  remain the standing argument against a fourth scalar attempt.
+
+#### 11. Standing
+
+**`MEASURED`.** Gates 1–4 ran and are reported with no skips; gate 5's two leakage audits were
+re-verified clean when the lineage was wired in; gate 6 was satisfied 2026-09-11 and this run adds
+no arm to it; gate 7 is declared and reported and is **structurally unable to reject**, permanently,
+under `09c`'s non-retroactivity.
+
+What a later session may quote from this item: the gate-3 and gate-4 ratios in §4, on the `v13`
+substrate, as measured above. What it may **not** quote: any 2026-09-11 delta or floor ratio, and
+any `02b`-2026-09-19 floor as a denominator for `02c`.
+
+Arm D (corner-type split) was unlocked 2026-09-11 conditional on B clearing. B still clears — on
+p50 — so D stays unlocked, **unrun and uncounted**.
+
+Recommended next, none of it done here: (i) a decision on whether an ambiguous bundle clear is
+grounds to move anything into `FEATURE_COLUMNS`, which this item declines to make on its own;
+(ii) the stint-life follow-on registration, if it is wanted, written before it runs; (iii) R5
+Option A/B rather than arm D, if the corner channel is to be pursued at all.
+
+---
+
+### `02h` — Corner drift as persistence measurement · BUILT + ARMS PRE-REGISTERED 2026-09-22, ARMS RUN 2026-09-22, CLOSED
+
+**Written 2026-09-22, from `audit_02c_corner_telemetry_underperformance.md`.** `02e` was
+requested for this item but is already `CLOSED` (weather / air-density features, unrelated,
+closed 2026-08-23) and `02f` is also taken (FP1/2/3 ingest); `02h` is the next free id in
+group `02`, used throughout this section and in `build-log.json`.
+
+**(a) Why instantaneous corner inputs failed.** The audit measured *persistent lap-varying
+variance* (within-stint share × lag-1 within-stint autocorrelation) across every candidate
+channel in the contract. `02c`'s nine residual aggregates sit at **.032–.176**; every column
+that survives ablation elsewhere sits at **.266–.421** (proximity's `share_lap_in_train`
+.421, thermal's `push_residual` .343, `dirty_air_share_lap` .266) — and even the
+**degradation label itself** is only .241. `02c`'s own 2026-09-22 Verdict already shows the
+consequence: arm B clears **one** quantile (p50) of three, down from the two the original
+2026-09-11 run claimed. `(field trailing-5 median − own)`, what `int_corner_skill_residuals`
+measures, is a **relative-pace** construct — a driver/car trait the contract already holds
+three ways (qualifying, constructor pace, thermal push) — and pace has no reason to persist
+lap-to-lap the way a **state** does.
+
+**(b) Why drift should persist.** Residualizing the residual a second time — against the
+driver's own early-stint level for that same corner and phase, not the field's — turns a pace
+measurement into a state measurement. A driver steadily 0.05s off the field all race has zero
+drift (pace, already captured three times over). A driver who opens that gap from 0.05s to
+0.35s across the stint has +0.30s of drift, which should accumulate roughly monotonically as
+the tyre degrades and therefore correlate with itself lap-to-lap by construction, the way
+`age_in_stint` already does.
+
+**(c) Hypothesis.** At least one of arms A/B clears its floor on the degradation trio, with
+the effect more likely on p50/p90 (laps further into the stint, where drift has had time to
+accumulate) than on p10.
+
+**What was built.** `int_corner_drift_from_early_stint` (new, grain `(lap_id, corner_name)`,
+2,206,939 rows — same grain and row count as `int_corner_skill_residuals`, which it
+residualizes a second time). For each `(stint_id, corner_name)`, the mean of
+`braking_loss_s` / `mid_corner_residual_s` / `exit_residual_s` over the stint's own first six
+**valid** laps (`valid_lap_in_stint` 1–6) is taken as a baseline (requiring ≥ 3 non-NULL
+observations in that window); every row with `valid_lap_in_stint ≤ 6` or
+`stint_length_valid < 7` gets `NULL` — those rows define the baseline rather than measuring a
+departure from it. `int_lap_corner_drift` aggregates to lap grain (mean/sd/max per phase +
+`corner_drift_coverage`), mirroring `int_lap_corner_inputs`'s own shape exactly. Ten columns
+wired into `fct_cliff_prediction_features`, mart-only — **in the mart and not in
+`ml/src/schema.py`'s `FEATURE_COLUMNS`**, the same standing every prior item in this group held
+before its ablation.
+
+**Leakage, verified before anything else.** The baseline window is *fixed* per stint, not
+trailing relative to the query lap. Measured directly on the built table: **zero** of the
+1,552,813 non-baseline-window corner rows with a non-NULL drift value have
+`valid_lap_in_stint ≤ 6`, and the **minimum** `valid_lap_in_stint` carrying a non-NULL value
+of any of the three drift columns is exactly **7** — strictly after the window that defines
+the baseline it is compared against. `python3 -m ml.src.features --check`: forward-window
+audit CLEAN, aggregation-scope audit CLEAN (the new model's `(stint_id, corner_name)` GROUP BY
+is declared in `schema.yml`'s `aggregation_scope_exemptions`, argued in full in that model's
+header and exemption entry), leakage guard CLEAN at 32 features (contract unmoved).
+`ml/tests/test_features.py`: 31/31 pass, unaffected. `dbt test` on both new models: 15/15
+pass; on the rebuilt mart: 3/3 pass.
+
+**Coverage, measured on the mart's 119,775 training-eligible rows** (same row count the
+audit itself measured against). Mean `corner_drift_coverage` **0.6020**, well below `02c`'s
+`corner_input_coverage` (0.7986) because this column now also gates on stint length and the
+baseline window: 23.70% of stints never reach 7 valid laps at all. Per-phase non-null share at
+lap grain: braking **73.17%**, mid **73.28%**, exit **67.36%**. Of the 32,140 training-eligible
+rows with `corner_braking_drift_mean_s` NULL, **92.4%** (29,705) are NULL purely mechanically
+— inside the baseline window or on a too-short stint, both already reachable from
+`age_in_stint`/`lap_in_stint` — and only 7.6% (2,435) from the same corner-unmapped /
+thin-baseline reasons `02c`'s coverage column exists for. **The missingness is not
+label-neutral, same direction as every prior item in this group**: covered rows average
+**−0.5552 s** of 5-lap jump (sd 3.827) against **−0.2158 s** (sd 5.130) for NULL rows —
+missing rows degrade worse. Marginal correlation with the label is weaker than `02c`'s
+residuals at every phase (braking mean **−0.118** vs `02c`'s −0.105 — comparable; mid mean
+**−0.196** vs −0.213; mid max **−0.192** vs −0.255; `corner_drift_coverage` **−0.035** vs
+`02c`'s −0.255, much weaker, consistent with 92.4% of its NULLs being mechanical rather than
+telemetry-driven).
+
+**(d) Three pre-registered arms**, on `corner_drift_coverage` and the nine mean/sd/max columns
+of `int_lap_corner_drift`:
+
+| arm | columns | what it tests |
+| :--- | :--- | :--- |
+| **A — full drift** | 10 (9 drift stats + `corner_drift_coverage`) | the group as designed |
+| **B — drift by phase** | 3 (the three phase **means** only: `corner_braking_drift_mean_s`, `corner_mid_drift_mean_s`, `corner_exit_drift_mean_s`) | the mechanism at its coarsest — does the per-phase drift *level* alone carry signal, without arm A's sd/max elaboration |
+| **C — coverage indicator** | 1 (`corner_drift_coverage`) | the confound control — 92.4% of this column's NULLs are mechanical (inside the baseline window or a stint shorter than 7 valid laps), a pattern already reachable from `age_in_stint`/`lap_in_stint` |
+| **P — permutation null** | each arm's own columns, row-shuffled jointly in train *and* eval | gate step 4 — capacity and information reported separately |
+
+**Declared readings, so no result can be reinterpreted after the fact** — the same shape
+`02c`'s own pre-registration used:
+
+* **A and/or B clears on the degradation trio, C does not** → the drift mechanism is
+  supported: residualizing against the driver's own early-stint baseline recovers persistence
+  `02c`'s pace residuals lacked.
+* **C clears, A/B do not** → the group is a stint-progress/coverage proxy, not a driver-input
+  drift signal — the same reading `02c`'s pre-registration gave a clearing coverage arm.
+* **A clears but neither B nor C does** → ambiguous, recorded as exactly that and not rounded
+  up — `02c`'s own p10/cliff outcome on the rebuilt substrate.
+* **Nothing clears** → the audit's proposed fix does not rescue the corner channel either, and
+  Tier 2 is closed for good: R5's Option A/B (path signatures, FPCA) become the only standing
+  proposal for this sensor.
+
+**E-value pre-registration.** Construction B (paired safe-t), **`n = 10, g = 1`** — per `09c`
+(LANDED 2026-09-19), which sets `n = 10` for every arm pre-registered *after* that date; this
+registration is written 2026-09-22, so it applies here, unlike `02b`'s and `02c`'s `n = 5`
+arms, which `09c` ruled non-retroactive. Seeds `RANDOM_STATE + 0..9`; the floor stays at
+**five** reseeds (gates.md step 3's own wording) and nests inside the ten e-value seeds,
+exactly the choice `02d` made for the same open question `09c` left unresolved. Cap
+`E_max(10,1) = 11^4.5 = 48,558.70`. Family size sized against: `09c`'s 103 (as of
+2026-09-19) + `02d`'s 20 (declared 2026-09-20) + this item's 3 arms × 4 families = 12, giving
+`m = 135` and a lone-rejection bar of `20*(135+1) = 2,720` — not an independent re-audit of
+the full campaign, the same count-forward convention `02d` used. Declared alt: each family's
+own floor, `2·√2·sd`. Validity check: 100k draws of ten i.i.d. `N(0,σ)` deltas must return
+mean `E` = 1.00 before any arm's result is trusted.
+
+**(e) Cost:** 2–3d, opus-5 — design + build + ablation, simpler than a path-signature/FPCA
+rebuild (R5 Options A/B) because it reuses `int_corner_skill_residuals` rather than
+re-deriving corner shape from raw telemetry.
+
+**(f) Definition of done:** dbt models built, tested and leakage-verified (done, above); arms
+pre-registered here before any arm runs (gates.md step 6, done, above);
+`scripts/arms_02h_corner_drift.py` written following `arms_02c_corner_inputs.py`'s pattern at
+`n=10,g=1` (done); gates 1–4 and 7 run and reported, whatever they show (**not done in this
+session — see the standing note below**); a Verdict section written in `02b`/`02c`'s format;
+`build-log.json` updated with the outcome.
+
+> **SUPERSEDED 2026-09-22 — the arms have now run.** The standing paragraph below was written
+> before any arm was executed and is kept unedited because it is the pre-registration's own
+> record of what had and had not been done at that moment. The item is no longer `SPEC`:
+> see **"Verdict — `02h` · CLOSED 2026-09-22"** immediately below.
+
+**Standing, 2026-09-22: `SPEC`. Arms are pre-registered and the runner is written; no arm has
+been executed.** Per `02b`'s own precedent for this exact shape of readiness ("`02b`'s item
+stage is left at `SPEC`... because no ablation delta exists yet — only the build, tests, and
+diagnostic coverage numbers... the numbers that matter for this item are the arm deltas,
+which do not exist until the script runs"), this item stays `SPEC` despite the dbt build,
+tests and coverage measurements above being complete. Running
+`PYTHONPATH=. ./.venv/bin/python scripts/arms_02h_corner_drift.py` and writing the Verdict
+section is left to a subsequent session, deliberately — nothing above should be read as a
+result.
+
+---
+
+### Verdict — `02h` · CLOSED 2026-09-22
+
+**The audit's proposed fix does not work, and it fails on the exact axis it was built to
+repair.** Residualizing `02c`'s corner residuals a second time against the driver's own
+early-stint baseline was supposed to convert a *pace* measurement into a persistent *state*
+measurement. Measured directly with the audit's own statistic, the nine drift columns are
+**less** persistent than the nine `02c` residuals they replace — **0.0169–0.1397** against
+`02c`'s **0.0267–0.1756** — and the ablation agrees: **arms A and B clear nothing, on any of
+the four families.** The single cell of twelve that clears is **arm C, the confound control**,
+on `degradation_regressor_p10` — and the pre-registration declared in advance that exactly this
+pattern means *"the group is a stint-progress/coverage proxy, not a driver-input drift
+signal."* Run: `PYTHONPATH=. ./.venv/bin/python scripts/arms_02h_corner_drift.py`, 2026-09-22
+07:28–08:32 UTC (~64 min, **368 fits**). Artefacts: `ml/artefacts/02h_corner_drift_arms.json`
+(per-seed headlines, e-value components, instrument checks) and `.log`.
+
+#### 0. The one measurement that answers the item, taken before the arms are read
+
+`02h` exists because of a single number in `audit_02c_corner_telemetry_underperformance.md`:
+*persistent lap-varying variance* = within-stint variance share × lag-1 within-stint
+autocorrelation. The item's whole premise, written into both new models' headers, is that drift
+against a fixed early-stint baseline *"persists by construction, because it accumulates with
+tyre wear across the remainder of the stint."* **That premise is testable without fitting
+anything, and it is false.**
+
+Recomputed here on the **119,775** training-eligible mart rows (6,916 stints), with the lag-1
+term taken on strictly consecutive `lap_in_stint` pairs within a stint, no gap bridging. The
+method reproduces the audit's published anchors to three decimals — `share_lap_in_train`
+**0.4211** (audit 0.421), `push_residual` **0.3426** (0.343), `dirty_air_share_lap` **0.2656**
+(0.266), the degradation label itself **0.2406** (0.241) — so it is the audit's instrument, not
+a near neighbour of it.
+
+| channel | within-stint share | lag-1 autocorr | **persistent lap-varying variance** |
+| :--- | ---: | ---: | ---: |
+| `age_in_stint` (contract, pure stint clock) | 0.6226 | 1.0000 | 0.6226 |
+| **`corner_drift_coverage`** (`02h`, arm C) | 0.7334 | 0.8271 | **0.6066** |
+| `share_lap_in_train` (contract, proximity) | 0.6193 | 0.6799 | 0.4211 |
+| `push_residual` (contract, thermal) | 0.6873 | 0.4985 | 0.3426 |
+| `dirty_air_share_lap` (contract) | 0.6632 | 0.4005 | 0.2656 |
+| **the degradation label** | 0.8328 | 0.2889 | **0.2406** |
+| `02c`'s nine residual aggregates | — | — | **0.0267 – 0.1756** (median 0.0550) |
+| **`02h`'s nine drift aggregates** | — | — | **0.0169 – 0.1397** (median 0.0471) |
+
+**The drift construction moved persistence in the wrong direction.** Phase by phase, on the
+three mechanism columns that arm B is made of:
+
+| phase mean | `02c` residual | **`02h` drift** | moved |
+| :--- | ---: | ---: | :--- |
+| braking | 0.1075 | **0.0990** | worse |
+| mid-corner | 0.1756 | **0.1397** | worse |
+| exit | 0.0550 | **0.0749** | better |
+
+Two of three worse, the best drift column (mid, 0.1397) below `02c`'s best (mid, 0.1756), and
+the whole set still **3–4× below** the 0.266–0.421 band of every column that survives ablation
+elsewhere in the contract, and below the label's own 0.2406. The second residualization removes
+the stable driver/corner offset — which is most of what was autocorrelated in the first place —
+and what it leaves behind is closer to lap-to-lap noise than what it started from. **The one
+column in the group that does persist (`corner_drift_coverage`, 0.6066) persists because it is
+a stint clock**, not because it is a tyre state; §5 takes that apart.
+
+#### 1. Gate 1 — instrument check: PASS, all four families
+
+Every family's refit reproduces the live `evaluation_metrics.json` headline to **ten** decimal
+places, anchored on `v13` (`e341152`, evaluated 2026-09-21) — the same substrate `02c`'s
+2026-09-22 re-run scored against.
+
+| family | refit baseline | published | metric | baseline width |
+| :--- | ---: | ---: | :--- | ---: |
+| `degradation_regressor_p10` | 0.4557991687 | 0.4557991687 | pinball | 32 |
+| `degradation_regressor_p50` | 0.9309607723 | 0.9309607723 | pinball | 32 |
+| `degradation_regressor_p90` | 0.5070426104 | 0.5070426104 | pinball | 32 |
+| `cliff_classifier` | 0.3847835663 | 0.3847835663 | macro-F1 | **39** |
+
+As in `02c`, `v13` is not one width: `schema.feature_columns_for()` gives the degradation trio
+32 columns and `cliff_classifier` 39 (`02b`'s seven qualifying columns, admitted to the
+classifier only). **On cliff these arms therefore measure the corner-drift channel's
+*incremental* value over qualifying**, the same strictly-harder test `02c`'s re-run faced, and
+for the same reason: gate 1 requires reproducing the *published* headline.
+
+#### 2. Gate 2 — add-ablation on the identical split
+
+`cv_final_fold`, train 2018–2023, eval 2024, `evaluate.py`'s own `_fit`/`_score`, contract
+`v13`. Degradation trio: **67,847 train / 13,711 eval**, one bundle shared across p10/p50/p90.
+Cliff: **94,294 train / 18,877 eval**. No arm adds a column to the baseline other than its own.
+Identical row counts to `02c`'s re-run, as they must be — the two items differ only in which
+ten mart columns are attached.
+
+#### 3. Gate 3 — the floors, measured in-run, and an exact reproduction of `02c`'s
+
+Measured fresh over seeds 20260528–20260532, per `02b` §4(a) and `02c`'s own finding that a
+reused floor had inverted a ruling by 4.33×. No floor is borrowed here either.
+
+| family | `02c` in-run 2026-09-22 | **`02h` in-run 2026-09-22** | agreement |
+| :--- | ---: | ---: | :--- |
+| p10 | 0.00592996 | **0.00592996** | identical to 8 dp |
+| p50 | 0.00765339 | **0.00765339** | identical to 8 dp |
+| p90 | 0.00809109 | **0.00809109** | identical to 8 dp |
+| cliff | 0.00681449 | **0.00681449** | identical to 8 dp |
+
+This is a free and rather strong instrument check that neither item was designed to provide.
+The reseed floor depends only on the family, the split and the seeds — never on the candidate
+columns — so two independently written runners, executed eleven hours apart against the same
+substrate, **must** agree to full precision, and they do. Any disagreement would have meant one
+of the two runners was not scoring the baseline it claimed to.
+
+#### 4. Gates 3 + 4 — every delta, with its floor ratio
+
+"raw" is the add-ablation delta over floor; "info" is the permutation-corrected delta
+(`real − shuffled`) over the same floor; "capacity" is `shuffled − baseline` in headline units.
+Positive is improvement on every metric. **Clears** requires both raw and information, per
+`gates.md`'s *"What clears means"*. `↓` marks an `E` whose direction is *against* the arm.
+
+| family | floor `2√2·sd` | arm | raw ×floor | info ×floor | capacity | E | clears |
+| :--- | ---: | :--- | ---: | ---: | ---: | ---: | :--- |
+| **p10** | 0.00592996 | A full (10) | +0.86 | +0.67 | +0.00112669 | 209 | no — both miss |
+| | | B drift-by-phase (3) | −0.19 | −0.18 | −0.00003926 | 5.21 ↓ | no |
+| | | **C coverage (1)** | **+2.00** | **+1.59** | +0.00247718 | **743** | **YES** — see §5 |
+| **p50** | 0.00765339 | A full | −0.03 | +0.34 | −0.00283571 | 2.63 | no |
+| | | B drift-by-phase | +0.34 | **+1.23** | −0.00681136 | 1.01 | no — raw misses |
+| | | C coverage | −0.74 | −0.21 | −0.00405083 | 0.740 | no |
+| **p90** | 0.00809109 | A full | −0.27 | −0.35 | +0.00064674 | 2.88 ↓ | no |
+| | | B drift-by-phase | −0.58 | −0.79 | +0.00173229 | 2.90 ↓ | no |
+| | | C coverage | +0.12 | −0.22 | +0.00276999 | 35.3 ↓ | no |
+| **cliff** | 0.00681449 | A full | −0.42 | −0.20 | −0.00152652 | 1.28 | no |
+| | | B drift-by-phase | −0.39 | +0.47 | −0.00583284 | 0.859 | no |
+| | | C coverage | −0.10 | +0.34 | −0.00302288 | 0.351 | no |
+
+**One cell of twelve clears.** Seven of the twelve raw deltas are *negative* — the columns make
+the model worse — and on p90 all three arms carry an `E` pointing against the feature.
+
+**Harness is clean.** The shuffle-vs-shuffle negative control, where H0 is true by construction,
+returned `E` = **0.509 / 0.314 / 0.348 / 0.817** on p10 / p50 / p90 / cliff — every one below 1
+and three orders of magnitude from anything this table reads as evidence. The Monte-Carlo
+validity check returned mean `E` = **0.9896 / 1.0314 / 0.9525 / 0.9962** at σ = 0.001 / 0.01 /
+0.1 / 1.0 over 100k draws each, every one within Monte-Carlo error of 1.00, with
+`P(E > 20)` ≈ 0.0035–0.0039.
+
+**Headline values for the one clearing cell**: `degradation_regressor_p10` pinball
+**0.455799 → 0.443910** (arm C, −0.011889 = improvement); its permutation arm lands at
+0.453322, so **79%** of the raw gain survives the shuffle correction.
+
+#### 5. The cell that clears is the confound arm, and the build session predicted it in writing
+
+`int_lap_corner_drift.sql`'s own header, written 2026-09-22 *before* any arm ran:
+
+> *"a model handed `corner_drift_coverage` as a bare number is free to relearn 'how far into the
+> stint am I' through it rather than through the drift values themselves. That is exactly the
+> shape `02c`'s confound arm (arm C) existed to isolate, and this item's own arm C repeats the
+> test against the new confound."*
+
+It is the only arm that clears anything. Taken apart on the 119,775 training-eligible rows:
+
+* The mart `COALESCE`s the column to **0.0**, not NULL. It is **0.0 on 31,999 rows**, of which
+  **29,705 (92.8%)** sit at `valid_lap_in_stint ≤ 6` — inside the baseline-defining window — and
+  only **2,294 (7.2%)** are zero for the telemetry reason `02c`'s coverage column exists for.
+* It is **> 0 only at `valid_lap_in_stint ≥ 7`**, minimum exactly 7. **No forward reach**: a row
+  at valid lap ≥ 7 is in a stint that has already had ≥ 7 valid laps, so the column never
+  discloses the stint's eventual length. Gate 5 is re-confirmed at the arm level, not merely at
+  build time.
+* It correlates **+0.5608** with `valid_lap_in_stint`, **+0.5232** with `age_in_stint` and
+  **+0.5374** with `lap_in_stint` — against `02c`'s `corner_input_coverage` at **+0.0779** and
+  **+0.0876**. Regressed on `age_in_stint` + `lap_in_stint`, `corner_drift_coverage` gives
+  **R² = 0.290**; `02c`'s gives **R² = 0.010**. It is roughly thirty times more of a stint clock
+  than the column it was modelled on.
+
+**So what is the residual 71% that the contract does not already hold?** A *green-flag* lap
+count. `valid_lap_in_stint` excludes safety-car, pit and out-laps; the contract carries
+`lap_in_stint`, `age_in_stint` and `lap_number` but **no valid-lap count at all**. Regressing
+`valid_lap_in_stint` on those three gives **R² = 0.95 with a residual sd of 2.281 laps**, and
+the raw and valid counts differ on **98.87%** of rows (mean absolute gap **2.089 laps**). Arm C
+is a one-column proxy for *how many racing laps this stint has actually run*, which is a
+**stint-interruption channel, not a corner-telemetry channel** — its corner content is the 7.2%
+of zeros that are telemetry-driven, and that is the part `02c` already tested and found weak.
+
+Its marginal correlation with the label is **−0.0352**, against `corner_input_coverage`'s
+**−0.1327** on the same population. The clear is not coming from the corner sensor.
+
+#### 6. The declared readings, applied family by family
+
+The pre-registration's four cases, applied as written:
+
+* **"A and/or B clears on the degradation trio, C does not → the drift mechanism is
+  supported."** **Did not occur, on any family.** A and B clear **0 of 8** trio cells and 0 of
+  12 overall. This was the item's primary hypothesis and it is the case that did not fire.
+* **"C clears, A/B do not → the group is a stint-progress/coverage proxy, not a driver-input
+  drift signal."** **This is the case that fired**, on p10. It is a pre-declared reading and it
+  is negative for the item: the arm that clears is the one built to catch the confound, and §5
+  identifies the confound concretely.
+* **"A clears but neither B nor C does → ambiguous."** Did not occur. A clears nowhere, and on
+  p10 — the one family with a clear — it is C that clears and A that misses, which is the
+  *opposite* of the Phase 10a bundle shape. **Nothing in this item is recorded as ambiguous**,
+  unlike `02c`, where two of three clears were bundle-clears with neither half clearing.
+* **"Nothing clears → Tier 2 is closed for good."** Did not fire literally — one cell clears —
+  but it clears on the confound arm, so the *substantive* conclusion this branch draws is
+  reached anyway by the branch that did fire. §11 records that distinction rather than
+  collapsing it.
+
+The one cell not covered by any declared case is **p50 arm B: information +1.23× with raw
++0.34×.** Information without raw is not a clear under `gates.md`, and it is recorded as a
+miss, not promoted. It is worth one line only because it is the same family and the same arm
+shape that produced `02c`'s single unambiguous mechanism clear — and here the raw delta is a
+quarter of what it needs to be.
+
+#### 7. Gate 7 — the e-values, and the first non-barred e-BH reading in group `02`
+
+Construction B (paired safe-t), **n = 10, g = 1**, seeds 20260528–20260537, the ten nesting the
+floor's five, exactly as pre-registered 2026-09-22 under `09c`'s post-2026-09-19 rule.
+`E_max(10,1) = 11^4.5 = 48,558.70`. Sorted descending the twelve `E`s run **743, 209, 35.3,
+5.21, 2.90, 2.88, 2.63, 1.28, 1.01, 0.859, 0.740, 0.351**.
+
+**Four of the twelve point against the feature** and must not be read as support: p90 C
+(35.3, `d̄` = −0.00264), p10 B (5.21, `d̄` = −0.00108), p90 B (2.90), p90 A (2.88). Construction
+B is symmetric in `t`, so a consistently negative delta returns a large `E` too; the direction
+flag is carried beside the number rather than folded into it, per `02d`'s handling.
+
+**Against the pre-registered family, e-BH rejects nothing.** The registration declared
+`m = 135` (`09c`'s 103 + `02d`'s 20 + this item's 12) and a lone-rejection bar of
+`20·(135+1) = 2,720`. `k* = max{k : E_[k] ≥ 135/(0.05k)}` needs **2,700** at k = 1 and 1,350 at
+k = 2; the largest `E` observed is **743**. **`k* = 0`.**
+
+Reported for completeness and *not* as the declared family: taken against this item's own twelve
+hypotheses alone, `k* = max{k : E_[k] ≥ 12/(0.05k)}` gives **k\* = 2** (743 ≥ 240, 209 ≥ 120,
+35.3 < 80) — rejecting p10 C and p10 A. **This is the first time an item in group `02` has
+produced a non-zero `k*` at all**: `02b` and `02c` were capped at `E_max(5,1) = 36` and were
+structurally unable to reject whatever they measured, and `02d`'s three bar-clearing `E`s all
+pointed the wrong way. `09c`'s headroom is real and it worked. But the family this item declared
+in advance is 135, not 12, and **the operative answer is `k* = 0`** — choosing the smaller family
+after seeing which numbers came out large is precisely the selection the gate exists to remove.
+
+Note also that **p10 arm A returns `E` = 209 while failing its floor on both raw (+0.86×) and
+information (+0.67×)**. That is `gates.md`'s *"two instruments, not one"* in its cleanest form:
+ten paired seeds agree the arm is not exchangeable with its own shuffle (`d̄` = +0.00509,
+`s_d` = 0.00266, `t` = +6.05), and the effect is still smaller than a reseed of the same model.
+Reproducible and too small to matter are not in conflict.
+
+**Family accounting.** These are **twelve newly declared hypotheses** (3 arms × 4 families),
+declared 2026-09-22 and counted, bringing the count-forward convention's running total to
+**m = 135** as the registration states. This is not an independent re-audit of the campaign
+family — `04c`'s recount over every declared `E` remains undone, per `02b` §11(c) and `09c`.
+`09c` §2's open question of whether the permutation arm counts separately is untouched; `k*` is
+0 under either reading. Arm D (corner-type split) was never registered for this item and remains
+non-existent, not merely unrun.
+
+#### 8. Head to head: does drift beat `02c`'s instantaneous residuals?
+
+**No, on both instruments, and the comparison is like-for-like** — same substrate, same split,
+same floors to 8 dp, same four families, same arm shapes, eleven hours apart.
+
+| | `02c` instantaneous residuals | **`02h` early-stint drift** |
+| :--- | :--- | :--- |
+| persistence of the 9 aggregates | 0.0267 – 0.1756 | **0.0169 – 0.1397** (worse) |
+| cells clearing, of 12 | 4 | **1** |
+| of which mechanism arms (A/B) | 3 (p10 A, p50 A, p50 B) | **0** |
+| of which unambiguous mechanism cells | 1 (p50 B, +1.19× raw) | **0** |
+| of which the confound arm C | 0 | **1** (p10, +2.00× raw) |
+| e-BH `k*` vs declared family | 0 (structurally barred, cap 36) | **0** (cap 48,558; 743 observed) |
+
+`02c`'s nine residuals clear on their own on p50. `02h`'s three phase-mean drifts clear nowhere,
+and its full ten-column bundle clears nowhere. **The one thing `02h` adds over `02c` is a better
+stint clock, which is not what it was built to add.**
+
+One honest qualification in the other direction, since the pre-registration made a
+cross-population comparison that this run can tighten. Marginal `|corr|` with the label,
+recomputed for both column sets on the **same** 119,775-row population (the `02c` Verdict §9
+figures are on a different, 95,346-row population and are not comparable to these):
+
+| phase | `02h` drift | `02c` residual |
+| :--- | ---: | ---: |
+| braking mean | **−0.1182** | −0.0729 |
+| mid mean | **−0.1959** | −0.1709 |
+| mid max | −0.1920 | **−0.2264** |
+| exit mean | **−0.0817** | −0.0460 |
+| coverage | −0.0352 | **−0.1327** |
+
+So drift is *marginally* the slightly better-correlated construct on three of four phase
+columns. **It buys nothing once a booster already holds the 32-column contract** — which is the
+whole point of an add-ablation, and the reason a marginal correlation was never the test.
+
+#### 9. Coverage and the missingness bias, on the arms' own population
+
+Re-confirming the pre-registration's build-time numbers on the population the arms scored:
+mean `corner_drift_coverage` **0.6020** (vs `02c`'s `corner_input_coverage` **0.7986**);
+per-phase non-null share at lap grain braking **73.17%**, mid **73.28%**, exit **67.36%**,
+against `02c`'s 95.84% / 96.01% / 89.84%. The drift columns are missing on roughly a quarter of
+training-eligible laps where `02c`'s are missing on 4% — 23.70% of stints never reach 7 valid
+laps, and every stint loses its first six.
+
+The missingness remains **not label-neutral**, the same direction every prior item in this group
+found: covered rows average **−0.5552 s** of 5-lap jump (sd 3.827) against **−0.2158 s**
+(sd 5.130) for NULL rows. That is a coverage artefact, not forward leakage — the baseline window
+is fixed at valid laps 1–6 and settles strictly before any lap it is later subtracted from, and
+§5 re-verified the minimum at exactly 7 — and it is the reason arm C exists. **Unlike `02c`,
+where the confound arm did not fire, here it is the only thing that does.**
+
+#### 10. What this item does and does not conclude
+
+* **Verified, and it is the item's own hypothesis being falsified.** Residualizing against the
+  driver's own early-stint baseline does **not** recover the persistence `02c`'s pace residuals
+  lacked. It reduces it: 0.0169–0.1397 against 0.0267–0.1756, on the audit's own statistic,
+  reproduced to its published anchors.
+* **Verified.** The drift columns carry nothing the `v13` contract does not already have, on any
+  of four families, in either the 10-column or the 3-column form. Seven of twelve raw deltas are
+  negative.
+* **Verified, and it is a confound, not a finding about corners.** `corner_drift_coverage`
+  clears on p10 (+2.00× raw, +1.59× information, `E` = 743) because it is a green-flag lap
+  counter, correlating +0.5608 with `valid_lap_in_stint` — a quantity the contract holds only to
+  R² 0.95 with a 2.281-lap residual.
+* **Not established, and deliberately not pursued here.** Whether a *properly built*
+  `valid_lap_in_stint` / stint-interruption column belongs in the contract. Arm C is evidence
+  that something in that channel is live on p10, and it is evidence on one family of four with
+  the other three flat-to-negative (p50 −0.74×, p90 +0.12×, cliff −0.10×). If that channel is
+  wanted it should be registered and built as what it is — a stint-geometry feature from
+  `int_stint_geometry` — not admitted as a corner-telemetry coverage fraction that happens to
+  encode it. **That is a new item, not this one**, and nothing here pre-registers it.
+* **Not done here.** The contract is unchanged. All ten columns are in the mart and absent from
+  `ml/src/schema.py`'s `FEATURE_COLUMNS`, where they were before this session and where this
+  item leaves them.
+* **The R5 cap stands, and this is the fourth data point for it.** Phase 9 dropped eleven scalar
+  summaries of this table for clearing in none of three families; `02c` returned one unambiguous
+  mechanism cell of twelve; `02h` returns **zero** of twelve, for a 64-minute, 368-fit campaign.
+  R5's reading that *the aggregation is lossy, not the channel* now survives a test specifically
+  designed to rescue the aggregation by changing its reference point. R5 Option A (path
+  signatures) and Option B (FPCA on the existing 100-fraction `relative_distance` grid) remain
+  the only standing proposals for this sensor.
+* **Correction owed to two model headers.** `int_corner_drift_from_early_stint.sql` and
+  `int_lap_corner_drift.sql` both assert that drift *"persists by construction."* §0 measures
+  that claim false. The SQL is left untouched by this session — it is correct as built and the
+  claim is in a comment, not in logic — but the assertion must not be re-quoted, and a later
+  session touching either model should strike it.
+
+#### 11. Ruling — `CLOSED`
+
+**`CLOSED` 2026-09-22. The corner-drift line of work is finished, and it is a clean negative.**
+
+Gates 1–4 and 7 ran with no skips and are reported in full above. Gate 1 PASS on all four
+families to 10 dp. Gate 3 floors measured in-run and reproducing `02c`'s to 8 dp. Gate 4
+permutation nulls on every arm, capacity and information separated, plus a shuffle-vs-shuffle
+negative control per family, all four below `E` = 1. Gate 5 was clean at build time and is
+re-confirmed at the arm level in §5 (coverage > 0 only at valid lap ≥ 7). Gate 6 was satisfied
+2026-09-22 before the runner executed, and **no arm was added, dropped or reinterpreted after
+the fact** — the declared reading that fired is the one recorded. Gate 7 declared at `n=10,g=1`
+and reported against the family it was sized against: `k* = 0`.
+
+This closes on a **measurement**, not on a landing, in the same shape `08o` and `08q` closed:
+there is nothing to rebuild, nothing to bump and nothing to retrain, because the contract never
+moved. The two dbt models and ten mart columns remain built, tested and lineage-clean; they are
+left in place as the evidence base for this ruling and as the substrate any future
+stint-interruption item would want to read `valid_lap_in_stint` from, but nothing consumes them.
+
+What a later session may quote from this item: §0's persistence numbers as a measurement that
+double residualization does not manufacture persistence; §4's ratios; §5's identification of
+`corner_drift_coverage` as a green-flag lap counter. What it may **not** quote: arm C's p10 clear
+as evidence that corner telemetry helps `degradation_regressor_p10` — it is not a corner result —
+and none of the four wrong-direction `E`s as support for anything.
+
+**`02c`'s open question is untouched by this item and still stands**: whether its ambiguous
+bundle clears (p10 A, cliff A) justify moving any of *its* ten columns into `FEATURE_COLUMNS`,
+given its only unambiguous mechanism cell is p50 arm B. Nothing measured here bears on it —
+different columns, different item — and `02c` remains `MEASURED` with the contract unmoved.
+
+**HANDOFF 2026-09-22.** At the user's request, `02c`'s leftover question above is now tracked
+as **`D17`** in `build-log.json`'s `decisions[]` — same shape as `D12` for `02b`'s sibling
+question — rather than living only in this prose and in three consecutive history
+`next_action` fields. `02c` gains `blocked_by_decision: D17`. This item's negative result
+means there is nothing cheaper left to measure before ruling `D17`; the only standing
+alternative to a straight yes/no is the `R5` Option A/B rebuild `02c`'s own note already names.
+The pointer moved off `02c` onto `08i` — the min_observations floor revert, already ruled `YES`
+under `D10` and only awaiting execution, first of two `D16`-bundle members (`08i`, `02b`) that
+never actually landed despite `08o` and `08q` shipping from the same decision. `D17` does not
+block either.
 
 ---
 

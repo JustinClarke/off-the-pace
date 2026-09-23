@@ -2033,6 +2033,8 @@ weighed when D4 was ruled, and it is recorded here, on the model card (deviation
 limitations entry) and in the log rather than left for someone to discover. On the green-pit
 stratum's own NLL the new parameters win, 3.4377 → 3.2922.
 
+**The ceiling-capture trade — recorded 2026-09-21 by `01c`.** The `fraction_of_attainable` on the v12 substrate fell from pre-`10e` 0.6152 to post-`10e` 0.1820 — a decline of **43.3 percentage points**, or **70.4% of prior capture**. The trade was `01c`'s job to record and is documented there with full traceability; this note links it: landing S1x bought the green-pit Brier gain (`+0.0226, 95% [+0.0073, +0.0353]`) and paid ~70% of this family's attainable ceiling capture, measured on the same v12 substrate and same two timestamps (pre-`10e`: commit `fb546b4`; post-`10e`: commit `44bb0ba`).
+
 **What else moved, and what did not.** `evaluate --all` was re-run so the published metrics match
 the shipped artefacts — a step D4's recorded nine-step sequence omits, and without it every future
 gate 1a would reproduce a headline no artefact carries. The other four families reproduce **to

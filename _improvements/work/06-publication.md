@@ -490,7 +490,80 @@ constant.
 Per-season fits are therefore **published separately, not shipped** — exactly the second branch
 the DoD allows.
 
-#### The post — draft
+> **RESOLVED 2026-09-21 — the follow-up item was created, ran, and landed.** The item proposed
+> above as `08l` became **`08q`**, which is now `CLOSED`. It did exactly what this section asked:
+> the `dirty_air_share_lag1 > 0` filter is gone from `calibration_panel`
+> (`int_dirty_air_tax_component.sql`, which now carries a *do not re-add this filter* comment
+> naming `08q`), θ_air is fitted rather than defaulted, and global-vs-per-season was ruled
+> **global** with per-season deferred to its own gate ladder. The shipped coefficient is
+> **0.1310 s/lap** [0.1144, 0.1476], which landed in **v13** (`e341152`, 2026-09-21).
+>
+> Verified from the built warehouse on 2026-09-22: `int_dirty_air_tax_component` holds 123,993
+> rows — 28,523 with `dirty_air_intensity_lag1 = 1`, every one taxed at exactly **0.131 s**, and
+> 95,470 untreated at 0.0. The 0.5 s constant is no longer in production anywhere.
+>
+> **This section's decision stands unchanged in substance**: `06b` did not touch the warehouse,
+> and its per-season fits are still published rather than shipped. What changed is that the
+> *defect* `06b` found is fixed, by the gated item this section asked for, through the gate this
+> section said it needed. The post is revised accordingly — see the post's postscript.
+
+#### The post — written 2026-09-21, revised 2026-09-22
+
+**The post is written, not merely drafted**, and is in the repo at
+[`implementations/06b/06b_dirty_air_per_season.md`](../implementations/06b/06b_dirty_air_per_season.md)
+— *"F1 said the 2022 cars would be easier to follow. Following did get cheaper — but it started
+getting cheaper in 2019"*. Every figure in it was re-checked against
+[`implementations/06b/06b_dirty_air_per_season.json`](../implementations/06b/06b_dirty_air_per_season.json)
+(93 fits) and
+[`implementations/06b/06b_diagnostics.json`](../implementations/06b/06b_diagnostics.json) on
+2026-09-22 and all of them reproduce. The scripts and both panel parquets are committed alongside
+them, so the post is recomputable without a refit.
+
+**Four corrections made to the 2026-09-21 draft in the 2026-09-22 revision**, each a factual error
+rather than a matter of framing:
+
+1. **The production status was stale.** The draft's closing caveat said "the warehouse still ships
+   a 0.5 s constant". It did not: `e341152` (2026-09-21 13:19 UTC) already carried the both-arms
+   calibration panel, about eight hours before the draft was written at 21:08 UTC, and `08q`'s
+   item record closed at 21:34 UTC the same evening. The post now carries a postscript that states
+   what the defect was, that it is fixed, and that the shipped value is a fitted 0.1310 s/lap —
+   and that the per-season fits are still not shipped, with the label-lineage reason.
+2. **The treatment definition was stated backwards.** The draft said a lap counts as following
+   when "the median gap to the leader in S2 **exceeded** 1.5 seconds". Both halves are wrong:
+   `int_lap_air_state.sql:123` classifies sector 2 as `dirty_air` when `gap_median_s < 1.5`, and
+   the gap is `gap_to_ahead_s` — the car ahead, not the leader.
+3. **The tyre-age bins were miscounted** as five. The pre-registration declares six (1–5, 6–10,
+   11–15, 16–20, 21–25, 26+).
+4. **The corner classes were described as "corner entry speed".** They are cut on each (race ×
+   corner) cell's field-median `v_min_kph` — apex speed.
+
+**Three things the draft omitted that the outline below asks for, now present:** the four-rung
+estimator ladder as a table (the DoD row claims four rungs and the draft showed one); confidence
+intervals on the placebo-boundary table; and per-class `n` on the corner table.
+
+**The "say by how much" clause in body item 4 is now answered numerically.** The fast-corner Δ is
+−0.0114 [−0.0316, +0.0089] against a pre-2022 level of +0.0226, so the interval runs from
+eliminating that deficit outright to making it 40% worse; the half-width is **1.78×** the point
+estimate, which puts the sample needed to resolve an effect of the estimated size at **≈3.2×** the
+fast-corner rows this calendar provides.
+
+> **One measured correction to falsification 3 below, found while re-checking the post's
+> figures.** Both of its shares reproduce exactly from the built warehouse (over all of
+> `int_lap_air_state`, 35,419 treated laps: 48.1% enter the clean-air baseline, 65.1% carry a
+> non-`dirty_air` dominant state, with the latter ranging 63.1–66.1% by season). But **they are
+> two different quantities and only the second is flat.** Per season, the share of treated laps
+> that *enter the baseline* runs 50.0 / 47.2 / 50.5 / 54.8 / 50.2 / 45.8 / **40.9** — a ~9pp
+> drift, not a constant. Falsification 3's "the attenuation is close to a common factor and the
+> season contrast survives it" is argued from the flat statistic while the drifting one is the
+> one that describes the baseline. The post states both shares, labels which is which, and
+> reports the drift rather than repeating the two numbers side by side as the draft did. Whether
+> that drift actually biases the contrast is **not settled here** — under a common per-(race, lap)
+> baseline shift the contamination cancels out of a treated-minus-untreated difference
+> algebraically, which would make falsification 3's attenuation mechanism weaker than stated in
+> either direction. Flagged, not resolved: it is an identification question, not a publication
+> one.
+
+#### The post — outline as pre-registered
 
 **Headline.** *"F1's 2022 regulations were sold as making cars easier to follow. In this data
 the cost of following did fall — by about two thirds since 2018 — but it was already falling
@@ -529,20 +602,36 @@ before the new cars arrived, and a placebo test fires at every season boundary, 
   backward-looking. The treatment is lagged, so the future is not in the treatment.
 - **The 2021–2024 estimates failed the lead placebo** and are reported as "no detectable
   directional cost", not as measured costs.
-- **The warehouse still ships the 0.5 s constant**, and the post should say so rather than
-  imply the production model was fixed.
+- ~~**The warehouse still ships the 0.5 s constant**, and the post should say so rather than
+  imply the production model was fixed.~~ **Superseded 2026-09-21 by `08q`.** The constant is
+  gone; the shipped coefficient is a fitted 0.1310 s/lap. The post must now say *that*, and must
+  still not imply the per-season fits were shipped — they were not. The replacement clause is:
+  **the warehouse ships a fitted global θ, not a per-season one**, and the post carries it as a
+  postscript rather than a caveat, because the defect being fixed is itself part of the story.
 
 #### Definition of done
 
 | Requirement | Status |
 | :--- | :--- |
-| Per-season θ with confidence intervals | **Done** — table above, four estimator rungs, race-clustered |
-| The corner-type breakdown | **Done** — era × class, per-season × class, phase decomposition, two robustness cuts; reported as underpowered, which is the honest result |
-| Bundled-treatment caveat stated in the post | **Done** — first caveat in the draft |
-| Warehouse model updated, or a written decision | **Done** — written decision to keep the global θ, with the label-lineage reason and a measured footprint, plus a proposed follow-up item |
+| Per-season θ with confidence intervals | **Done** — table in the post, four estimator rungs shown as a table, race-clustered; all values re-verified against `06b_dirty_air_per_season.json` 2026-09-22 |
+| The corner-type breakdown | **Done** — era × class with per-class n, per-season × class, phase decomposition, two robustness cuts; reported as underpowered, and the shortfall now quantified (half-width 1.78× the estimate, ≈3.2× the sample needed) |
+| Bundled-treatment caveat stated in the post | **Done** — first caveat in the post body |
+| Warehouse model updated, or a written decision | **Done** — written decision to keep the global θ in this item, with the label-lineage reason and a measured footprint. The follow-up it asked for was created as `08q`, ran, and landed the estimated coefficient in v13; `06b` itself still changed nothing |
 
-Not done, and deliberately: the post is drafted, not published, and
-`int_dirty_air_tax_component` is unchanged.
+Not done, and deliberately: the post is **written and in the repo**
+([`implementations/06b/06b_dirty_air_per_season.md`](../implementations/06b/06b_dirty_air_per_season.md))
+but **not published**, and `06b` made no warehouse change of its own. Publishing is the user's
+call; it is no longer tracked by a decision record, since `D15` was retired on 2026-09-21 as a
+scheduling flag rather than a technical gate.
+
+> **Two pieces of staleness in this group that `06b` cannot fix from inside itself**, recorded
+> here so the next pass over group 06 meets them. (1) `06a`'s and `06c`'s posts both carry a
+> status line citing **`D15`** as the tracking decision for publishing; `D15` no longer exists in
+> `build-log.json`. (2) `06b`'s post is the only one of the three whose subject the app now
+> displays differently from the post — `08q`'s app-side ruling (suppress the dirty-air-cost
+> leaderboard for 2021 and 2024, where θ's interval crosses zero) is recorded as **pending
+> implementation**, so publishing `06b` before that lands would point readers at a leaderboard
+> the same analysis says should not be shown for two of its seven seasons.
 
 ---
 

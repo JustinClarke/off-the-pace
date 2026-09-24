@@ -6,6 +6,13 @@
 changes, not label changes, so they go through the standard feature-contract process, not a version
 bump.
 
+**Executed as two board items.** `WI-15a` = F43 + F48's coding side (the traffic half) and `WI-15b` =
+F47 + F49 (the thermal half, which carries the ablation). Only `WI-15a` has to land before `WI-01`'s
+θ_air re-estimate — this doc's Definition of done says "this file's fixes", which is broader than
+needed: checked 2026-09-24 that `int_lap_air_state.sql` takes its gaps from raw telemetry (not from
+`int_lap_proximity`, which F43 fixes) and that `int_dirty_air_tax_component.sql`'s `ref()` list contains
+no thermal or proximity model, so the thermal half cannot move θ.
+
 **Findings folded in:** F43 (Low-Med), F47 (Low-Med), F48 feature-coding side (Low-Med), F49 (Low,
 also an ML contract feature).
 

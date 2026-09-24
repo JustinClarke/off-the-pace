@@ -108,7 +108,9 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
             sg.stint_length_actual,
             -- stg_laps.circuit_key is the raw race_id ("YYYY_N"); resolve to friendly
             -- name via race_to_track (both race_id columns are VARCHAR "YYYY_N"; the
-            -- fallback is defensive only -- 2018_14 is a known, unrelated seed gap)
+            -- fallback is defensive only -- race_to_track's one gap, 2018_14, was
+            -- filled by WI-05/F8 and assert_race_to_track_covers_all_races keeps it
+            -- complete)
             COALESCE(rtt.track_id, l.circuit_key) AS circuit_key,
             -- Physical-venue id (dim_circuits collapses renamed-event/double-header
             -- keys, e.g. mexican_grand_prix + mexico_city_grand_prix, onto one venue).
@@ -339,8 +341,8 @@ def run_fit(
     log.info("Fitting %d circuit/compound/season groups...", len(groups))
 
     # circuit_key -> circuit_id (physical venue), for cross-season pooling below.
-    # A circuit_key absent from dim_circuits (e.g. the known 2018_14 race_to_track
-    # gap) has no circuit_id and pools on itself only, same as before this fix.
+    # A circuit_key absent from dim_circuits (a race missing from race_to_track,
+    # as 2018_14 was until WI-05/F8) has no circuit_id and pools on itself only.
     circuit_id_by_key = (
         stints_df.dropna(subset=["circuit_id"])
         .drop_duplicates("circuit_key")

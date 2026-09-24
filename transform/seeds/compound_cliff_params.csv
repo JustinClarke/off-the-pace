@@ -1,7 +1,7 @@
 circuit_key,compound_code,season,compound_grip_peak,compound_wear_gradient,compound_optimal_temp_low,compound_optimal_temp_high,compound_cliff_onset_laps,compound_cliff_severity,fit_date,data_window,fit_method,git_sha,fit_timestamp,fit_source,n_stints,notes
-2018_14,MEDIUM,2018,1.0,0.04,78,105,33.0,1.4,2026-09-08,2018_to_2024,km_survival_v1,c7de693,2026-09-08T03:34:04Z,compound_class_default,1,insufficient data (1 stints); used class defaults
-2018_14,SOFT,2018,1.03,0.159,82,108,9.5,0.83,2026-09-08,2018_to_2024,km_survival_v1,c7de693,2026-09-08T03:34:04Z,cox_km_survival,15,fitted from 15 stints via cox_km_survival
-2018_14,SUPERSOFT,2018,1.05,0.0876,82,108,23.8,0.52,2026-09-08,2018_to_2024,km_survival_v1,c7de693,2026-09-08T03:34:04Z,cox_km_survival,19,fitted from 19 stints via cox_km_survival
+italian_grand_prix,MEDIUM,2018,1.0,0.04,78,105,33.0,1.4,2026-09-08,2018_to_2024,km_survival_v1,c7de693,2026-09-08T03:34:04Z,compound_class_default,1,insufficient data (1 stints); used class defaults
+italian_grand_prix,SOFT,2018,1.03,0.159,82,108,9.5,0.83,2026-09-08,2018_to_2024,km_survival_v1,c7de693,2026-09-08T03:34:04Z,cox_km_survival,15,fitted from 15 stints via cox_km_survival
+italian_grand_prix,SUPERSOFT,2018,1.05,0.0876,82,108,23.8,0.52,2026-09-08,2018_to_2024,km_survival_v1,c7de693,2026-09-08T03:34:04Z,cox_km_survival,19,fitted from 19 stints via cox_km_survival
 70th_anniversary_grand_prix,HARD,2020,0.97,0.116,76,108,14.0,1.02,2026-09-08,2018_to_2024,km_survival_v1,c7de693,2026-09-08T03:34:04Z,cox_km_survival,35,fitted from 35 stints via cox_km_survival
 70th_anniversary_grand_prix,MEDIUM,2020,1.0,0.0494,78,105,14.0,1.01,2026-09-08,2018_to_2024,km_survival_v1,c7de693,2026-09-08T03:34:04Z,cox_km_survival,25,fitted from 25 stints via cox_km_survival
 70th_anniversary_grand_prix,SOFT,2020,1.03,0.1125,82,108,15.8,0.92,2026-09-08,2018_to_2024,km_survival_v1,c7de693,2026-09-08T03:34:04Z,cross_season_fallback,89,insufficient season stints (1); used 89 cross-season stints

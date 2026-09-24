@@ -1,6 +1,6 @@
 // Public surface of the ONNX inference layer.
-export { loadModelManifest, getModelSpec, isClassifierOutput, MODELS_BASE } from './manifest'
-export type { ModelManifest, ModelSpec, ManifestInput, ScalarOutput, ClassifierOutput, ModelKind } from './manifest'
+export { loadModelManifest, getModelSpec, getModelInput, isClassifierOutput, MODELS_BASE } from './manifest'
+export type { ModelManifest, ModelSpec, ManifestInput, ModelInputSpec, ScalarOutput, ClassifierOutput, ModelKind } from './manifest'
 export { buildFeatureVector, buildFeatureMatrix, encodeValue } from './featureVector'
 export type { FeatureRow, FeatureValue } from './featureVector'
 export { getSession, resetSessions } from './session'

@@ -1,8 +1,10 @@
 # WI-01 — Label spine: one version bump, not four
 
-**Group:** 08 foundations · **Depends on:** nothing · **Blocks:** any v15 retrain, WI-12
-**Blocker:** a human ruling on what the field base should contain (see below) — the measurement work
-is done; a design decision is what's outstanding.
+**Group:** 08 foundations · **Depends on:** `WI-15a` (F48's feature-coding fix must land before θ_air
+is re-estimated — step 4 below; this header used to say "nothing") · **Blocks:** any v15 retrain, WI-12
+**Blocker:** a human ruling on what the field base should contain (see below, board decision `FD1`)
+and a small one on F51, exclude vs. weight (`FD2`) — the measurement work is done; two design
+decisions are what's outstanding.
 
 **Findings folded in:** F1 (Critical), F22 (High), F23 (High), F38 (High), F35 (Low), F42 (Low), F5
 (Medium), F48-θ-part (Low-Med), **F51** (new, Medium).
@@ -45,7 +47,7 @@ side land** — not once per fix.
 **F51 (new):** `event_driven` laps (SC/VSC/red-flag/restart — 6.4% of the currently-eligible
 population) are never excluded from `is_training_eligible`, and `correction_weight` (built for
 exactly this) is computed but never applied anywhere in `ml/src/`. This sits in the same files being
-touched here and should be decided in the same pass. Full write-up: `NEW-FINDINGS.md`.
+touched here and should be decided in the same pass. Full write-up: `../reference/new-findings.md`.
 
 ---
 
@@ -97,7 +99,7 @@ it's the reading that makes F1's "drop the COALESCE" fix (below) mean the same t
    stop drawing a spurious per-team, per-circuit shift.
 6. **F51.** Exclude `anomaly_class = 'event_driven'` from `is_training_eligible` (mirroring
    `'mistake'`/`'conditions'`) or apply `correction_weight` as an XGBoost sample weight — this needs
-   its own small ruling (exclude vs. weight; see `NEW-FINDINGS.md`), but either choice touches the
+   its own small ruling (exclude vs. weight; see `../reference/new-findings.md`), but either choice touches the
    same eligibility CTE already being edited for step 1.
 
 ## Acceptance

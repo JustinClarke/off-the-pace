@@ -4,8 +4,14 @@
 `WI-05`'s bronze QA landing first (F2's fits consume stint boundaries F24/F25 show are wrong in 3+
 races) · **Blocks:** `WI-08` (shares the seed)
 **Blocker:** existing human ruling needed — 00c's leakage standard vs. the spine's same-race
-exemption, applied to this specific case (see below). The magnitude is already measured, so this is
-a decision, not more measurement.
+exemption, applied to this specific case (see below; board decision `FD3`). The magnitude is
+already measured, so this is a decision, not more measurement.
+
+**Executed as two board items**, because only half of this doc waits on that ruling:
+`WI-02a` = F41, F7, F39 (provenance and the NULL-safe wear cap; no ruling needed, do F41 first) and
+`WI-02b` = F2, F9 (the refit and the eligibility decoupling; needs `FD3`, `WI-02a` and `WI-05` —
+the board treats `WI-05` as a hard dependency here, since refitting on stint boundaries F24/F25
+show are wrong would just have to be redone).
 
 **Findings folded in:** F2 (High), F7 (Medium), F9 (Medium→Medium, reclassified up), F39
 (Low-Medium), F41 (Medium-Low).

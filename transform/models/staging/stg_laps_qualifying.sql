@@ -142,10 +142,19 @@ flagged AS (
         REGEXP_MATCHES(track_status, '.*[67].*') AS is_vsc_lap,
         REGEXP_MATCHES(track_status, '.*5.*') AS is_red_flag_lap,
 
+        -- WI-05 (F33): IsAccurate is FastF1's lap-start/end SYNC flag, not a
+        -- lap-time check -- its own docs say an inaccurate lap's time is still
+        -- correct. 2019-2025 populate it (99.6-100% of timed non-pit quali
+        -- laps accurate); 2018 largely does not (73.6% overall, 11.9% at
+        -- 2018_1, where 11 of 20 drivers were left with no valid lap), so
+        -- gating on it zeroed out 2018 qualifying on a sync-flag technicality.
+        -- It is required only from 2019, the first season that populates it.
+        -- assert_quali_valid_share_consistent_across_seasons (T25) catches the
+        -- next season that doesn't.
         lap_time_s > 0
         AND NOT is_pit_lap
         AND NOT is_deleted
-        AND is_accurate
+        AND (is_accurate OR race_year < 2019)
         AND NOT REGEXP_MATCHES(track_status, '.*[4567].*')
         AND lap_number > 1
             AS is_valid_lap

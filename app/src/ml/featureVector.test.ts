@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { buildFeatureVector, encodeValue } from './featureVector'
-import type { ManifestInput, ModelManifest } from './manifest'
+import { getModelInput } from './manifest'
+import type { ManifestInput, ModelInputSpec, ModelManifest } from './manifest'
 
 // Use the real shipped manifest so the encoding rules are tested against the true contract.
 const manifest = JSON.parse(
@@ -10,6 +11,10 @@ const manifest = JSON.parse(
 ) as ModelManifest
 const input: ManifestInput = manifest.input
 const enc = input.encoding
+
+// A representative model's input spec (32-wide) for the encodeValue/single-model tests below,
+// which only care about feature ORDER and encoding, not which model owns it.
+const p50Model: ModelInputSpec = getModelInput(manifest, 'degradation_regressor_p50')
 
 describe('encodeValue categorical', () => {
   it('maps a known compound level to its ordinal', () => {
@@ -72,30 +77,67 @@ describe('encodeValue continuous', () => {
 })
 
 describe('buildFeatureVector', () => {
-  it('produces a Float32Array of exactly n_features in feature_order', () => {
+  it('produces a Float32Array of exactly the model\'s n_features in its own feature_order', () => {
     const row = { lap_number: 5, compound: 'MEDIUM', cliff_onset_passed: false }
-    const vec = buildFeatureVector(row, input)
+    const vec = buildFeatureVector(row, p50Model)
     expect(vec).toBeInstanceOf(Float32Array)
-    expect(vec.length).toBe(input.n_features)
-    expect(vec.length).toBe(32) // v11 frame, per the shipped manifest's input.n_features
+    expect(vec.length).toBe(p50Model.n_features)
+    expect(vec.length).toBe(32) // degradation_regressor family, per the shipped manifest's models[i].n_features
   })
 
   it('places each encoded value at its feature_order index', () => {
     const row = { compound: 'SOFT', lap_number: 9 }
-    const vec = buildFeatureVector(row, input)
-    const compoundIdx = input.feature_order.indexOf('compound')
-    const lapIdx = input.feature_order.indexOf('lap_number')
+    const vec = buildFeatureVector(row, p50Model)
+    const compoundIdx = p50Model.feature_order.indexOf('compound')
+    const lapIdx = p50Model.feature_order.indexOf('lap_number')
     expect(vec[compoundIdx]).toBe(enc.encoders.compound.SOFT)
     expect(vec[lapIdx]).toBe(9)
   })
 
   it('treats missing keys as NULL per column role', () => {
-    const vec = buildFeatureVector({}, input)
-    const compoundIdx = input.feature_order.indexOf('compound') // categorical → missing ordinal
-    const fuelIdx = input.feature_order.indexOf('fuel_mass_kg') // continuous → NaN
-    const cliffFlagIdx = input.feature_order.indexOf('cliff_onset_passed') // boolean → NaN
+    const vec = buildFeatureVector({}, p50Model)
+    const compoundIdx = p50Model.feature_order.indexOf('compound') // categorical → missing ordinal
+    const fuelIdx = p50Model.feature_order.indexOf('fuel_mass_kg') // continuous → NaN
+    const cliffFlagIdx = p50Model.feature_order.indexOf('cliff_onset_passed') // boolean → NaN
     expect(vec[compoundIdx]).toBe(enc.missing_ordinal)
     expect(vec[fuelIdx]).toBeNaN()
     expect(vec[cliffFlagIdx]).toBeNaN()
+  })
+})
+
+// T7 (WI-04/F3): a manifest-shape regression guard. Runs buildFeatureVector per model against
+// the ACTUAL shipped manifest (not a fixture), so the next contract change -- a model dropped, a
+// width changed, feature_order renamed -- fails this build immediately instead of shipping a
+// Degradation Simulator that throws for every user. This is what F3 exploited: featureVector.ts
+// kept reading a retired top-level input.n_features/feature_order and nothing caught it because
+// no test ran buildFeatureVector against the real, current manifest.json.
+describe('T7: per-model feature vector shape regression guard', () => {
+  const EXPECTED_WIDTHS: Record<string, number> = {
+    degradation_regressor_p10: 32,
+    degradation_regressor_p50: 32,
+    degradation_regressor_p90: 32,
+    cliff_classifier: 39,
+    stint_life_regressor: 32,
+  }
+
+  it('ships exactly the five expected models', () => {
+    expect(manifest.models.map(m => m.name).sort()).toEqual(Object.keys(EXPECTED_WIDTHS).sort())
+  })
+
+  it.each(manifest.models.map(m => m.name))('%s: builds a vector of its declared width from the real manifest', (name) => {
+    const model = getModelInput(manifest, name)
+    expect(model.feature_order.length).toBe(model.n_features)
+    expect(model.n_features).toBe(EXPECTED_WIDTHS[name])
+
+    const vec = buildFeatureVector({}, model)
+    expect(vec).toBeInstanceOf(Float32Array)
+    expect(vec.length).toBe(EXPECTED_WIDTHS[name])
+  })
+
+  it('cliff_classifier\'s feature_union superset matches manifest.input.feature_union', () => {
+    // feature_union is what verifyParity.ts fetches one raw row on; it must stay the union
+    // of every model's own feature_order, or a caller will under-fetch a column some model needs.
+    const union = new Set(manifest.models.flatMap(m => m.feature_order))
+    expect([...union].sort()).toEqual([...input.feature_union].sort())
   })
 })

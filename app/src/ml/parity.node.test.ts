@@ -16,6 +16,7 @@ import { join } from 'node:path'
 import * as ort from 'onnxruntime-web'
 import { buildFeatureVector, type FeatureRow } from './featureVector'
 import { postProcessScalars, classifyProbs } from './infer'
+import { getModelInput } from './manifest'
 import type { ModelManifest, ScalarOutput, ClassifierOutput, SurvivalOutput } from './manifest'
 
 const ROWS_PATH = '/tmp/parity_rows.json'
@@ -37,19 +38,27 @@ describe.runIf(run)('in-browser ONNX parity vs booster ground truth', () => {
       load('degradation_regressor_p90'), load('stint_life_regressor'), load('cliff_classifier'),
     ])
 
-    const nf = manifest.input.n_features
     const n = rows.length
-    const mat = new Float32Array(n * nf)
-    rows.forEach((r, i) => mat.set(buildFeatureVector(r as FeatureRow, manifest.input), i * nf))
-    const runSess = async (s: ort.InferenceSession) =>
-      (await s.run({ [s.inputNames[0]]: new ort.Tensor('float32', mat, [n, nf]) }))
+    // Each model has its own feature_order/width since v13 (cliff_classifier is 39-wide, the
+    // other four are 32-wide), so each gets its own feature matrix built from the same raw rows
+    // rather than one shared matrix sized for a single retired global width.
+    const matrixFor = (name: string): { mat: Float32Array; nf: number } => {
+      const model = getModelInput(manifest, name)
+      const mat = new Float32Array(n * model.n_features)
+      rows.forEach((r, i) => mat.set(buildFeatureVector(r as FeatureRow, model), i * model.n_features))
+      return { mat, nf: model.n_features }
+    }
+    const runSess = async (s: ort.InferenceSession, name: string) => {
+      const { mat, nf } = matrixFor(name)
+      return s.run({ [s.inputNames[0]]: new ort.Tensor('float32', mat, [n, nf]) })
+    }
 
-    const o10 = (await runSess(p10s))[p10s.outputNames[0]].data as Float32Array
-    const o50 = (await runSess(p50s))[p50s.outputNames[0]].data as Float32Array
-    const o90 = (await runSess(p90s))[p90s.outputNames[0]].data as Float32Array
-    const olife = (await runSess(lifes))[lifes.outputNames[0]].data as Float32Array
+    const o10 = (await runSess(p10s, 'degradation_regressor_p10'))[p10s.outputNames[0]].data as Float32Array
+    const o50 = (await runSess(p50s, 'degradation_regressor_p50'))[p50s.outputNames[0]].data as Float32Array
+    const o90 = (await runSess(p90s, 'degradation_regressor_p90'))[p90s.outputNames[0]].data as Float32Array
+    const olife = (await runSess(lifes, 'stint_life_regressor'))[lifes.outputNames[0]].data as Float32Array
     const cOut = spec.cliff_classifier.output as ClassifierOutput
-    const oprob = (await runSess(clf))[clf.outputNames[cOut.probabilities_index]].data as Float32Array
+    const oprob = (await runSess(clf, 'cliff_classifier'))[clf.outputNames[cOut.probabilities_index]].data as Float32Array
     const classOrder = cOut.class_order
     const k = classOrder.length
     const bounds = (spec.degradation_regressor_p50.output as ScalarOutput).bounds

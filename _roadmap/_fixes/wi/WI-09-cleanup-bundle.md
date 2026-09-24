@@ -82,7 +82,7 @@ thing it describes changes).
 
 ## F54 (new) — `dim_constructors.pu_mapping` has no completeness test
 
-Full write-up in `NEW-FINDINGS.md`. The concrete guard F17's slow-rot flag needs: a warn-level dbt
+Full write-up in `../reference/new-findings.md`. The concrete guard F17's slow-rot flag needs: a warn-level dbt
 test asserting `unknown_pu` share doesn't increase build-over-build, or (better, matching F17's own
 recommended ruling) keying `pu_family` on the constructor *entity* using the same alias pattern
 `macros/circuit_id_from_name.sql` already uses for circuits — rename-proof rather than

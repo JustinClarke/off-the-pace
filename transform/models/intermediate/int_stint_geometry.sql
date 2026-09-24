@@ -9,10 +9,36 @@
 -- `valid_lap_in_stint` is the ordinal among valid laps only (NULL on invalid
 -- laps) for consumers that fit pace/regression models and need SC/pit laps
 -- excluded.
+--
+-- WI-05 (F24, F25): stint_number, tyre_life (-> age_in_stint) and compound
+-- come from stg_lap_tyre_qa, not raw bronze. That model fills the 2018 lap-1
+-- stint gap (and the one-lap TyreLife shortfall it causes), cross-checks every
+-- race's stint numbering against the pit record, and for a quarantined race or
+-- driver-race serves the pit record's stint ordinal with NULL compound and age
+-- instead of a boundary that contradicts it. tyre_qa_status and stint_source
+-- say which applied to each lap.
 {{ config(materialized='table') }}
 
 WITH laps AS (
-    SELECT * FROM {{ ref('stg_laps') }}
+    SELECT
+        l.lap_id,
+        l.race_year,
+        l.race_id,
+        l.driver_id,
+        l.lap_number,
+        l.is_valid_lap,
+        l.is_pit_lap,
+        l.is_safety_car_lap,
+        l.is_vsc_lap,
+        l.is_red_flag_lap,
+        q.stint_number,
+        q.tyre_life,
+        q.compound,
+        q.stint_source,
+        q.tyre_qa_status
+    FROM {{ ref('stg_laps') }} AS l
+    INNER JOIN {{ ref('stg_lap_tyre_qa') }} AS q
+        ON l.lap_id = q.lap_id
 ),
 
 tyre_allocations AS (
@@ -107,5 +133,7 @@ SELECT
     is_safety_car_lap,
     is_vsc_lap,
     is_red_flag_lap,
-    CAST(NULL AS BOOLEAN) AS planned_vs_actual_flag
+    CAST(NULL AS BOOLEAN) AS planned_vs_actual_flag,
+    stint_source,
+    tyre_qa_status
 FROM with_compound_code

@@ -11,7 +11,7 @@
 // so a browser score lines up byte-for-byte with mart_degradation_predictions.
 
 import {
-  loadModelManifest, getModelSpec, isClassifierOutput, isSurvivalOutput,
+  loadModelManifest, getModelSpec, getModelInput, isClassifierOutput, isSurvivalOutput,
   ModelManifest, ScalarOutput, SurvivalOutput,
 } from './manifest'
 import { buildFeatureMatrix, FeatureRow } from './featureVector'
@@ -81,12 +81,18 @@ export function classifyProbs(probsRow: ArrayLike<number>, classOrder: string[])
   return { label: classOrder[argmax], probabilities }
 }
 
-/** Run one single-output model over a feature matrix; returns the scalar per row at output index 0. */
-async function runScalar(modelName: string, matrix: Float32Array, nRows: number, nFeatures: number): Promise<Float32Array> {
+/**
+ * Run one single-output model: builds ITS OWN feature matrix from `model.feature_order`/width
+ * (which differs per model since v13 -- see manifest.ts:getModelInput) rather than sharing a
+ * matrix built for a different model's contract. Returns the scalar per row at output index 0.
+ */
+async function runScalar(manifest: ModelManifest, modelName: string, rows: FeatureRow[]): Promise<Float32Array> {
+  const model = getModelInput(manifest, modelName)
+  const matrix = buildFeatureMatrix(rows, model)
   const session = await getSession(modelName)
-  const input = new ort.Tensor('float32', matrix, [nRows, nFeatures])
+  const input = new ort.Tensor('float32', matrix, [rows.length, model.n_features])
   const out = await runSerial(modelName, session, { [session.inputNames[0]]: input })
-  const spec = getModelSpec(await loadModelManifest(), modelName)
+  const spec = getModelSpec(manifest, modelName)
   const idx = (spec.output as ScalarOutput).index
   const tensor = out[session.outputNames[idx]]
   return tensor.data as Float32Array
@@ -95,22 +101,23 @@ async function runScalar(modelName: string, matrix: Float32Array, nRows: number,
 /**
  * Score N rows. Returns one LapPrediction per row, post-processed per the manifest.
  * All five models run; the quantile trio is sorted then clamped.
+ *
+ * Each model builds its own feature vector from its own declared feature_order/width
+ * (cliff_classifier is 39-wide, the other four families are 32-wide since v13/02b) --
+ * there is no shared feature matrix any more, since one no longer fits all five models.
  */
 export async function predictLaps(rows: FeatureRow[]): Promise<LapPrediction[]> {
   const manifest = await loadModelManifest()
-  const { n_features } = manifest.input
   const nRows = rows.length
   if (nRows === 0) return []
 
-  const matrix = buildFeatureMatrix(rows, manifest.input)
-
   // Quantile trio + stint-life run as plain scalar models; classifier handled separately.
   const [p10, p50, p90, life, cliff] = await Promise.all([
-    runScalar(QUANTILE_MODELS[0], matrix, nRows, n_features),
-    runScalar(QUANTILE_MODELS[1], matrix, nRows, n_features),
-    runScalar(QUANTILE_MODELS[2], matrix, nRows, n_features),
-    runScalar(STINT_LIFE_MODEL, matrix, nRows, n_features),
-    runClassifier(manifest, matrix, nRows, n_features),
+    runScalar(manifest, QUANTILE_MODELS[0], rows),
+    runScalar(manifest, QUANTILE_MODELS[1], rows),
+    runScalar(manifest, QUANTILE_MODELS[2], rows),
+    runScalar(manifest, STINT_LIFE_MODEL, rows),
+    runClassifier(manifest, rows),
   ])
 
   const degBounds = (getModelSpec(manifest, QUANTILE_MODELS[1]).output as ScalarOutput).bounds ?? [-10, 10]
@@ -137,13 +144,19 @@ export async function predictLap(row: FeatureRow): Promise<LapPrediction> {
   return (await predictLaps([row]))[0]
 }
 
-async function runClassifier(manifest: ModelManifest, matrix: Float32Array, nRows: number, nFeatures: number): Promise<CliffPrediction[]> {
+async function runClassifier(manifest: ModelManifest, rows: FeatureRow[]): Promise<CliffPrediction[]> {
   const spec = getModelSpec(manifest, CLASSIFIER_MODEL)
   if (!isClassifierOutput(spec.output)) throw new Error('cliff_classifier manifest output is not a classifier output')
   const { probabilities_index, class_order } = spec.output
 
+  // cliff_classifier is the one 39-wide model (the other four are 32-wide): its own
+  // feature_order, built from the same raw rows the scalar models score.
+  const model = getModelInput(manifest, CLASSIFIER_MODEL)
+  const matrix = buildFeatureMatrix(rows, model)
+  const nRows = rows.length
+
   const session = await getSession(CLASSIFIER_MODEL)
-  const input = new ort.Tensor('float32', matrix, [nRows, nFeatures])
+  const input = new ort.Tensor('float32', matrix, [nRows, model.n_features])
   const out = await runSerial(CLASSIFIER_MODEL, session, { [session.inputNames[0]]: input })
 
   // The v1 export emits a plain [batch, nClasses] float tensor at the probabilities output

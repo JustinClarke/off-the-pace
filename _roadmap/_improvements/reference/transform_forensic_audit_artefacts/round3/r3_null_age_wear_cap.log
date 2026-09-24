@@ -1,0 +1,30 @@
+
+## Part 1: DuckDB LEAST/GREATEST skip NULL arguments
+ least_null_10  greatest_null_0
+          10.0              0.0
+
+## Part 2: spine laps with NULL tyre age get the 10 s cap as compound wear
+race_id  n_spine  age_null  age_null_at_cap  of_which_compound_null  mean_cc_age_null  mean_cc_other  mean_resid_age_null  mean_resid_other
+ 2025_6      857       306              306                     306             10.09           1.56               -10.16             -1.55
+2025_13      734        70               70                      53             10.25           2.43               -10.67             -2.81
+ 2025_1      563         2                2                       0             11.00           2.61               -11.76             -4.01
+2018_17      806         1                1                       1             10.10           2.52               -12.25             -2.32
+ 2018_9     1149         1                1                       1             10.14           2.03               -12.22             -1.87
+2018_16      886         1                1                       1             10.04           2.50               -11.38             -2.15
+ 2018_6     1401         1                1                       1             10.07           4.58               -13.34             -4.31
+2018_10      681         1                1                       1             10.15           1.98               -11.79             -1.92
+
+## Part 2b: totals (training eligibility requires age > 3, so none train)
+ total_age_null_spine_laps  at_cap  training_eligible
+                       383     383                  0
+
+## Part 3: the app's per-driver-race skill (fct_driver_skill_features) in the affected races
+race_id  affected_driver_races  mean_resid_affected  mean_resid_unaffected
+ 2025_6                     15                -5.90                  -2.10
+2025_13                      5                -5.76                  -3.11
+2018_10                      1                -1.67                  -1.91
+ 2018_6                      1                -5.44                  -4.67
+ 2025_1                      1                -4.13                  -4.20
+2018_16                      1                -2.66                  -2.31
+2018_17                      1                -2.99                  -2.50
+ 2018_9                      1                -1.85                  -1.82

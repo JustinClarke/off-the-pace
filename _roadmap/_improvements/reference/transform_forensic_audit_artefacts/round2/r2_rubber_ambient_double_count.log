@@ -1,0 +1,42 @@
+
+## Part 1: base_track_pace_s == race mean + rubber + ambient + unexplained
+ n_spine_laps_with_evolution_row  max_abs_identity_error  mean_abs_rubber  mean_abs_ambient  p90_abs_ambient  max_abs_ambient
+                          135655            2.842171e-14           0.0259            0.1167            0.311            1.358
+
+## Part 2: label with the second subtraction removed vs as built (eligible labelled rows)
+ n_labelled_eligible  reproduction_max_abs_err  mean_abs_label_shift_s  median_abs_shift_s  p90_abs_shift_s  share_moved_gt_50ms  share_moved_gt_250ms  label_sd  corr_fixed_vs_built
+               95513              7.105427e-15                     0.3              0.1289           0.7867               0.6897                0.3449      4.15              0.99127
+
+## Part 2 by season
+ race_year     n  mean_abs_shift  share_gt_250ms
+      2018 10755          0.3991          0.4123
+      2019 12477          0.2650          0.2909
+      2020  9122          0.2766          0.3181
+      2021 13145          0.2998          0.3625
+      2022 10172          0.3210          0.4024
+      2023 12179          0.2416          0.3380
+      2024 13712          0.2774          0.3083
+      2025 13951          0.3285          0.3424
+
+## Part 3: cliff class with the second subtraction removed
+ n_cliff_labelled_eligible  reproduction_mismatch  class_flips  share_flipped
+                    132265                      0         4927         0.0373
+
+## Part 3 transition matrix
+        built         fixed     n
+       0_to_2        0_to_2 12155
+       0_to_2        3_to_5   153
+       0_to_2        6_plus    85
+       0_to_2 none_in_stint   393
+       3_to_5        0_to_2   112
+       3_to_5        3_to_5 10830
+       3_to_5        6_plus   243
+       3_to_5 none_in_stint   561
+       6_plus        0_to_2    77
+       6_plus        3_to_5   207
+       6_plus        6_plus 17803
+       6_plus none_in_stint  1444
+none_in_stint        0_to_2   259
+none_in_stint        3_to_5   350
+none_in_stint        6_plus  1043
+none_in_stint none_in_stint 86550

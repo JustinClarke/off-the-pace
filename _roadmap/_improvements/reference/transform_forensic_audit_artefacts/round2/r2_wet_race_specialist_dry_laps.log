@@ -1,0 +1,24 @@
+
+## wet-flagged races and how much of them was wet
+ wet_races  races  median_rain_lap_share_in_wet_races  wet_races_with_lt10pct_rain_laps  rain_laps_in_proxy
+        17    171                               0.108                                 8                   0
+
+## every wet-flagged race (valid laps only)
+race_id  valid_laps  rain_laps  rain_share
+ 2025_6         857         12       0.014
+2024_10        1192         20       0.017
+ 2022_7         954         18       0.019
+2020_11         815         17       0.021
+2023_12         708         37       0.052
+ 2021_2         885         50       0.056
+2018_21         798         48       0.060
+2023_13        1013         76       0.075
+2024_12         841         91       0.108
+ 2018_6        1401        175       0.125
+2018_11         556        111       0.200
+2019_11         655        143       0.218
+2022_13        1190        267       0.224
+2024_21         924        500       0.541
+2022_18         370        257       0.695
+ 2019_6        1348       1025       0.760
+ 2018_5         842        642       0.762

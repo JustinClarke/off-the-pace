@@ -1,0 +1,45 @@
+[forward-window audit] CLEAN
+[aggregation-scope audit] CLEAN
+[known_leaks] 0
+[survey] 36 off-lineage non-pinning aggregations
+   ~ int_constructor_deg_sensitivity: GROUP BY (compound, constructor_id, race_year) pools the races of one season
+   ~ int_constructor_deg_sensitivity: GROUP BY (compound, race_year) pools the races of one season
+   ~ int_constructor_deg_sensitivity: GROUP BY (compound, race_year) pools the races of one season
+   ~ int_constructor_deg_sensitivity: GROUP BY (compound, constructor_id, race_year) pools the races of one season
+   ~ int_constructor_deg_sensitivity: GROUP BY (compound, race_year) pools the races of one season
+   ~ int_constructor_deg_sensitivity: GROUP BY (compound, race_year) pools the races of one season
+   ~ int_constructor_deg_sensitivity: GROUP BY (compound_code, season) pools the races of one season
+   ~ int_constructor_deg_sensitivity: GROUP BY (compound, race_year) pools the races of one season
+   ~ int_driver_circuit_affinity: GROUP BY (circuit_id) pools every ingested season — this crosses the train/eval split
+   ~ int_driver_circuit_affinity: GROUP BY (circuit_id, driver_id) pools every ingested season — this crosses the train/eval split
+   ~ int_driver_circuit_affinity: GROUP BY (driver_id) pools every ingested season — this crosses the train/eval split
+   ~ int_driver_circuit_era_affinity: GROUP BY (circuit_id) pools every ingested season — this crosses the train/eval split
+   ~ int_driver_circuit_era_affinity: GROUP BY (circuit_id, driver_id, era_key) pools every ingested season — this crosses the train/eval split
+   ~ int_driver_circuit_era_affinity: GROUP BY (driver_id, era_key) pools every ingested season — this crosses the train/eval split
+   ~ int_driver_circuit_era_affinity: GROUP BY (era_key) pools every ingested season — this crosses the train/eval split
+   ~ int_driver_race_skill_loro: GROUP BY (constructor_id, driver_id, race_id, race_year) pools the laps of one race
+   ~ int_driver_race_skill_loro: GROUP BY (constructor_id, race_id, race_year) pools the laps of one race
+   ~ int_driver_season_ratings: GROUP BY (driver_id, race_year) pools the races of one season
+   ~ int_driver_season_ratings: GROUP BY (race_year) pools the races of one season
+   ~ int_era_normalized_driver_rating: GROUP BY (driver_id) pools every ingested season — this crosses the train/eval split
+   ~ int_era_normalized_driver_rating: GROUP BY (driver_id) pools every ingested season — this crosses the train/eval split
+   ~ int_pit_loss_circuit: GROUP BY (driver_id, race_id, race_year) pools the laps of one race
+   ~ int_pit_loss_circuit: GROUP BY (circuit_id) pools every ingested season — this crosses the train/eval split
+   ~ int_pit_strategy_cost_curve: GROUP BY (driver_id, race_id, race_year, stint_id, stint_number) pools the laps of one stint
+   ~ int_pit_strategy_cost_curve: GROUP BY (driver_id, race_id, race_year) pools the laps of one race
+   ~ int_pit_strategy_cost_curve: GROUP BY (stint_id) pools the laps of one stint
+   ~ int_pit_strategy_value: GROUP BY (stint_id) pools the laps of one stint
+   ~ int_pit_strategy_value: GROUP BY (stint_id) pools the laps of one stint
+   ~ int_pit_strategy_value: GROUP BY (horizon_scope, stint_id) pools the laps of one stint
+   ~ int_pit_strategy_value: GROUP BY (driver_id, race_id, race_year, stint_id) pools the laps of one stint
+   ~ int_pit_strategy_value: GROUP BY (driver_id, race_id, race_year, stint_id) pools the laps of one stint
+   ~ int_pit_strategy_value: GROUP BY (stint_id) pools the laps of one stint
+   ~ int_pit_strategy_value: GROUP BY (stint_id) pools the laps of one stint
+   ~ int_stint_end_regime: GROUP BY (driver_id, race_id, race_year, stint_id) pools the laps of one stint
+   ~ int_stint_end_regime: GROUP BY (race_id, race_year) pools the laps of one race
+   ~ int_track_geometry: GROUP BY (FLOOR(distance_m / 25) * 25, race_year, track_id) pools the races of one season
+[leakage guard] CLEAN (32 features)
+[season split] train=[2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025] holdout=2026 rows train=95513 holdout=0
+[fingerprint] 87e1d013e877c578fd730b0e2e3997e8855739c13bbf09b65747943eff93e727
+[encoders equal to ml/models/encoders.json?] True
+encoders: {'compound': {'HARD': 0, 'HYPERSOFT': 1, 'INTERMEDIATE': 2, 'MEDIUM': 3, 'SOFT': 4, 'SUPERSOFT': 5, 'ULTRASOFT': 6, 'WET': 7}, 'air_state_dominant': {'dirty_air': 0, 'drs_train': 1, 'free_air': 2, 'tow_zone': 3}}

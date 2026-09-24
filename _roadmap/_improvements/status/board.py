@@ -36,7 +36,10 @@ def check(log: dict) -> list[str]:
     bad: list[str] = []
 
     ptr = log.get("pointer")
-    if ptr not in items:
+    if ptr is None:
+        # All work is terminal; no active item
+        pass
+    elif ptr not in items:
         bad.append(f"pointer {ptr!r} names no item")
     elif items[ptr]["stage"] in TERMINAL:
         bad.append(f"pointer {ptr} sits on a terminal item ({items[ptr]['stage']})")

@@ -1,0 +1,31 @@
+
+## IsAccurate on timed, non-pit qualifying laps
+ race_year  timed_non_pit_laps  accurate_share
+      2018                2669           0.736
+      2019                2539           0.998
+      2020                2272           0.999
+      2021                3005           0.996
+      2022                3231           0.998
+      2023                3350           0.999
+      2024                3115           1.000
+      2025                2803           1.000
+
+## consequence: NULL qualifying features on training rows
+ race_year  eligible_rows  quali_feature_null_share
+      2018          14955                     0.080
+      2019          17503                     0.020
+      2020          13682                     0.004
+      2021          18406                     0.016
+      2022          16732                     0.008
+      2023          18510                     0.008
+      2024          19994                     0.007
+      2025          20165                     0.008
+
+## worst 2018 sessions
+race_id  timed_non_pit  accurate  drivers  drivers_with_a_valid_lap
+ 2018_1            118        14       20                         9
+ 2018_8            166        36       20                        15
+2018_11            145        46       20                        13
+ 2018_7            141        59       19                        15
+ 2018_3             91        65       20                        20
+2018_17             66        66       20                        20

@@ -1,0 +1,47 @@
+
+## races where rain flag or wet-tyre use exceeds 5% of laps (all laps, stg)
+race_id                 race_slug  laps  rain_share  inter_wet_share
+ 2019_6         monaco_grand_prix  1490       0.835            0.000
+ 2018_5        spanish_grand_prix  1021       0.825            0.000
+2021_12        belgian_grand_prix    60       0.667            0.350
+2022_13      hungarian_grand_prix  1383       0.294            0.000
+2019_11         german_grand_prix  1060       0.987            0.719
+ 2022_7         monaco_grand_prix  1179       0.383            0.127
+2024_12        british_grand_prix   961       0.422            0.243
+2018_11         german_grand_prix  1252       0.199            0.028
+2018_14        italian_grand_prix   927       0.157            0.000
+ 2018_6         monaco_grand_prix  1516       0.144            0.000
+2023_12        belgian_grand_prix   816       0.121            0.000
+2018_21      abu_dhabi_grand_prix   943       0.058            0.000
+2021_15        russian_grand_prix  1025       0.097            0.065
+2021_11      hungarian_grand_prix   985       0.052            0.052
+2023_13          dutch_grand_prix  1343       0.212            0.244
+2022_18       japanese_grand_prix   507       0.903            1.000
+ 2023_6         monaco_grand_prix  1515       0.191            0.293
+ 2021_2 emilia_romagna_grand_prix  1127       0.321            0.442
+2025_13        belgian_grand_prix   879       0.000            0.273
+2024_21      são_paulo_grand_prix  1135       0.722            1.000
+ 2022_4 emilia_romagna_grand_prix  1132       0.000            0.291
+ 2024_9       canadian_grand_prix  1272       0.275            0.665
+ 2025_1     australian_grand_prix   927       0.296            0.809
+2022_17      singapore_grand_prix   945       0.000            0.622
+2025_12        british_grand_prix   825       0.104            0.737
+2021_16        turkish_grand_prix  1147       0.000            0.999
+2020_14        turkish_grand_prix  1077       0.000            1.000
+
+## weather while 'raining' (a 45 C track in rain is not plausible)
+race_id  min_track_c  max_track_c  track_c_when_raining  humidity_when_raining
+ 2018_5         28.8         36.7                  31.9                   52.4
+ 2019_6         30.4         34.6                  32.3                   52.7
+2022_18         18.1         21.3                  18.6                   90.0
+2024_21         23.2         25.6                  24.8                   83.2
+
+## training eligibility in false-positive (2018_5, 2019_6) and wet-no-flag races
+race_id  spine_rows  conditions_rows  eligible_rows  eligible_on_inter_wet
+ 2018_5         842              631            196                      0
+ 2019_6        1348             1025            301                      0
+2020_14         910                0            827                    827
+2021_16        1088                0            983                    983
+2022_17         676                0            607                    363
+ 2022_4         998                0            923                    229
+2025_13         734                0            619                    127

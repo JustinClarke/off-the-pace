@@ -1,0 +1,16 @@
+
+## context: ghost pace = actual + (host - ego constructor) + deg/cliff interaction, exactly
+ ghost_laps  max_abs_identity_err
+    1501422          5.684342e-14
+
+## (a) self-scenario rows the page shows (queries.ts:79-83 filters)
+ self_rows_on_page  delta_zero  share_violating_stated_identity  mean_abs_delta_places  off_by_3plus
+              2921         193                            0.934                   5.53          2071
+
+## (b) published rank (fuel-inclusive mean) vs the declared ranking key (fuel-adjusted mean)
+ scenario_rows  rank_differs  differs_3plus  page_rows_differ_3plus
+         32075         16832           2934                    1299
+
+## (b) assert_ghost_self_scenario_rank's statistic under each key: the test passes either way, so it cannot tell them apart
+ races  mean_rho_published_key  mean_rho_declared_key
+   170                   0.865                  0.861

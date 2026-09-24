@@ -1,0 +1,15 @@
+
+## Part 1: residual (neg = faster) vs proxy
+ corr_residual_vs_proxy
+                  -0.34
+
+## Part 2: page ranking vs sign-consistent ranking, per season
+ race_year  drivers  spearman_page_vs_consistent  sign_flips
+      2018       20                        0.414          20
+      2019       20                       -0.053          17
+      2020       20                       -0.000          17
+      2021       20                        0.317          18
+      2022       20                        0.214          19
+      2023       22                       -0.050          19
+      2024       23                        0.018          23
+      2025       21                       -0.077          19

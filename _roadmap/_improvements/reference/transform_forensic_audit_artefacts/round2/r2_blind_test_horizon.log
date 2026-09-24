@@ -1,0 +1,4 @@
+
+## page's actual (1-lap) vs the model's trained target (5-lap), same rows
+model_version  n_rows_on_page  mae_vs_page_actual_1lap  mae_vs_trained_target_5lap  band_coverage_page  band_coverage_true_target  sd_page_actual  sd_trained_target
+          v14          111255                    1.578                       1.772               0.908                      0.794           0.956              4.764

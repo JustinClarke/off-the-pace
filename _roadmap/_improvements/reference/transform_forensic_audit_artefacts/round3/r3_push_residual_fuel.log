@@ -1,0 +1,12 @@
+
+## Part 1: compiled production SQL reproduces int_lap_thermal_proxy
+     n  mismatches
+189418           0
+
+## Part 2: training-eligible rows, raw vs fuel-corrected lap time
+lap_in_stint      n  push_built_s  push_fuel_corrected_s  share_pushing_built  share_pushing_fuel_corrected  bulk_load_built  bulk_load_fuel_corrected
+       a 1-5  13572         0.543                  0.462                0.617                         0.555            1.687                     1.603
+      b 6-10  32262         0.209                  0.055                0.589                         0.462            1.773                     1.547
+     c 11-20  50772         0.153                 -0.162                0.588                         0.351            1.599                     1.062
+       d 21+  40826         0.265                 -0.378                0.677                         0.308            2.167                     0.803
+        None 137432         0.238                 -0.114                0.617                         0.384            1.817                     1.152

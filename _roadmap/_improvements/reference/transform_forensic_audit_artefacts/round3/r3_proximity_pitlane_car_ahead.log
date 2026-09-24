@@ -1,0 +1,24 @@
+
+## Part 1: compiled production SQL reproduces int_lap_proximity
+     n  d_share1  d_gapmin  d_time1
+189418         0         0        0
+
+## Part 2a: crossing level
+ crossings  crossings_in_pit_lane  within_1s  within_1s_of_a_pit_lane_car
+  18698474                  45329    4232733                         7466
+
+## Part 2b: training-eligible laps, built vs pit-lane crossings removed
+ race_year  n_eligible  gap_min_changed  within1s_only_from_pit_lane  mean_abs_d_share1
+      2018       14955              561                          258            0.00025
+      2019       17503              843                          406            0.00034
+      2020       13682              670                          330            0.00035
+      2021       18406              861                          383            0.00031
+      2022       16732              742                          333            0.00032
+      2023       18510              837                          386            0.00033
+      2024       19994              959                          424            0.00032
+      2025       20165              882                          412            0.00032
+      <NA>      139947             6355                         2932            0.00032
+
+## Part 2c: gap_ahead_min_s on the changed laps (a contract feature, all five families)
+ n_changed  median_built_s  median_on_track_s  median_shift_s  p90_shift_s  crosses_1s_threshold
+      6355            0.88               3.32            1.76        8.312                  2932

@@ -1,0 +1,22 @@
+
+## surface load never exceeds bulk load
+ laps_with_loads  surface_exceeds_bulk
+          164030                     0
+
+## classes produced (threshold for 'surface_driven' is > 0.65)
+degradation_source     n  min_ratio  max_ratio
+       bulk_driven 11617       0.00       0.35
+             mixed 30142       0.35       0.50
+
+## contract feature #19 range
+ max_contract_feature
+                  0.5
+
+## the page's own query (queries.ts:22-33): methodology says ~86-89%
+ compound  post_cliff_laps  recovery_rate_pct
+     HARD            17411               59.1
+HYPERSOFT              173               60.7
+   MEDIUM            12438               57.7
+     SOFT             6229               57.8
+SUPERSOFT             2052               58.6
+ULTRASOFT             1238               62.7

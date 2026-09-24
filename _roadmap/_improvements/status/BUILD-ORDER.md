@@ -108,14 +108,12 @@ because nothing on the ladder waits for them, not because they matter less.
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-22T19:30:00Z`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-24T00:00:00Z`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
 
-**2 live items** (0 blocked). The pointer is on **02c** — that is the one to run next; the rest of the order is what becomes runnable after it. 58 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
+**0 live items** (0 blocked). The pointer is on **None** — that is the one to run next; the rest of the order is what becomes runnable after it. 60 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
 
 | # | Item | Group | Stage | Cost | Model | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | `02c` ▶ | [02](../work/02-feature-expansion.md) | GATED | 2-3d | `opus-5` | Tier 2 - corner-level driver inputs | **D17** (human call) |
-| 2 | `12a` | [12](../work/12-season-coverage.md) | MEASURED | 1-2d (scope only) | `opus-5` | Price the two directions of 'more seasons' - 2025 forward (no inference gap) against 2011-2017 backward (a real one) | — |
 
 ### Which model to run it on
 

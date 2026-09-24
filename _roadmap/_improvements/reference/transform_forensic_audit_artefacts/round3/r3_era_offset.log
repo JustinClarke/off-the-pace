@@ -1,0 +1,23 @@
+
+## the applied offset
+ era_shift_global_s  era_shift_se_s  n_bridge_drivers  low_anchor_sample_flag
+            -0.1153        0.077079                20                   False
+
+## Part 1: robustness of the bridge-driver mean
+ mean_shift  median_shift  t_stat  leave_one_out_min  leave_one_out_max most_influential  its_shift
+    -0.1153       -0.0398    -1.5            -0.1494            -0.0719              MSC     -0.941
+
+## Part 2: the between-era gap in field-mean rating, before and after the offset
+ field_gap_pre_minus_post_before  field_gap_pre_minus_post_after
+                         -0.0442                          0.0711
+
+## Part 2b: field means by season (no step at 2022 before adjustment; a +0.115 s step after)
+ season  n  field_mean_unadjusted  field_mean_adjusted
+   2018 20                 -0.852               -0.737
+   2019 20                 -0.976               -0.861
+   2020 23                 -0.916               -0.800
+   2021 21                 -0.998               -0.883
+   2022 22                 -0.857               -0.857
+   2023 22                 -0.901               -0.901
+   2024 24                 -0.913               -0.913
+   2025 21                 -0.893               -0.893

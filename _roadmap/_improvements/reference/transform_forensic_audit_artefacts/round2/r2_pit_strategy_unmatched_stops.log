@@ -1,0 +1,21 @@
+
+## pit-ended stints that lost their stop
+stint_end_cause  stints  actual_pit_lap_null  share_null  verdict_null
+      green_pit    4061                  105       0.026           105
+       race_end    2884                 2861       0.992          2861
+         sc_pit     644                  191       0.297           191
+     retirement     328                  153       0.466           153
+        vsc_pit     230                   38       0.165            38
+            red     115                   96       0.835            96
+           None      20                   18       0.900            18
+
+## examples: the in-lap sits beyond last valid lap + 1
+          stint_id stint_end_cause  in_lap_per_regime  last_valid_lap driver_pit_laps
+2018_2018_10_VAN_2          sc_pit                 33              31        [21, 33]
+2018_2018_11_HAR_2          sc_pit                 52              50        [28, 52]
+2018_2018_11_RAI_2          sc_pit                 53              51        [14, 53]
+2018_2018_11_VAN_2          sc_pit                 52              49        [29, 52]
+2018_2018_17_ERI_1          sc_pit                  5               3             [5]
+ 2018_2018_1_LEC_2          sc_pit                 27              24        [20, 27]
+2019_2019_10_KVY_2          sc_pit                 21              19        [12, 21]
+2019_2019_10_LEC_2          sc_pit                 21              19        [13, 21]

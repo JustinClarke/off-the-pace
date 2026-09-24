@@ -1,0 +1,14 @@
+cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py --check
+note: 2 model(s) not materialized in ci.duckdb: int_corner_drift_from_early_stint, int_lap_corner_drift
+FAIL: byte-stable fct_* models drifted (6): fct_cliff_prediction_features, fct_driver_skill_features, fct_ghost_car_pace, fct_ghost_race_finish, fct_lap_residuals, fct_stint_features
+  fct_cliff_prediction_features: 78e033240a97d22d86c79394ab6e2347 -> 2ac731038f4096d233a2558b607b5438
+  fct_driver_skill_features: 715708419041938c6f1b93b5a1254143 -> 788e27658f63d970e4720edf90212d64
+  fct_ghost_car_pace: bf31a146c60f2fcfb709db393055790b -> 67f3379d3927874e6e2ae33f70d0278f
+  fct_ghost_race_finish: 26ff695ad60c0fc7e7875d8dff18b399 -> 217b29c21fcc27cf289babd2fb3801dd
+  fct_lap_residuals: cf6f52ef2ba34f17b217de50fa416327 -> 084f57d520f6ea4597facc5f5560abca
+  fct_stint_features: bd038b3b57e6c07642ac7a66d39aaaf0 -> 1fca4909311a1d326ce309ef7c039f18
+NEW models (not in baseline): int_corner_drift_from_early_stint, int_lap_corner_drift, int_qualifying_driver_summary
+WARNING: non-fct model output changed (13): int_compound_cliff_predicted, int_constructor_deg_sensitivity, int_corner_skill_residuals, int_lap_anomaly_flags, int_lap_corner_inputs, int_lap_residual_decomposed, int_lap_residual_stint_detrend, int_pit_strategy_cost_curve, int_pit_strategy_value, int_qualifying_decomposed, int_sector_residual_decomposed, int_synthetic_teammate, int_tyre_surface_vs_bulk_decoupling
+make: *** [lint-oracle-check] Error 1
+make lint-oracle-check  7.41s user 0.19s system 223% cpu 3.395 total
+exit=2

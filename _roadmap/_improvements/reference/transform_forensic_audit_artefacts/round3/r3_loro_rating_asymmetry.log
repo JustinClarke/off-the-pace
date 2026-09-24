@@ -1,0 +1,28 @@
+
+## Part 1: compiled production SQL reproduces int_driver_race_skill_loro
+   n  max_abs_err
+3284          0.0
+
+## Part 1b: rating = spread term [P20 - own median] + teammate term [own median - teammate median]
+ driver_races  mean_rating_s  share_negative  mean_spread_term_s  sd_spread_term_s  mean_teammate_term_s  sd_teammate_term_s  corr_rating_with_spread
+         3158         -0.916           0.885              -0.916              0.51                   0.0               0.795                    0.433
+
+## Part 2: a teammate-relative rating must sum to ~0 per pair
+ two_driver_cars  mean_pair_sum_s  both_rated_faster_than_each_other
+            1579           -1.831                               1252
+
+## Part 2b: Era Translator population (n_races >= 5): share shown as 'faster than the field average'
+ driver_seasons_on_era_pages  share_negative
+                         163             1.0
+
+## Part 3: season rankings, as built vs symmetric ceiling (P20 vs teammates' P20)
+ race_year  drivers  spearman_built_vs_symmetric  moved_3plus_places  mean_built_s  mean_symmetric_s
+      2018       20                        0.923                   5        -0.853            -0.000
+      2019       20                        0.937                   5        -0.976            -0.000
+      2020       20                        0.904                   7        -0.913            -0.007
+      2021       20                        0.877                   7        -1.006            -0.003
+      2022       20                        0.902                   6        -0.861            -0.002
+      2023       21                        0.974                   2        -0.896             0.002
+      2024       22                        0.822                  10        -0.930            -0.017
+      2025       20                        0.795                   6        -0.911            -0.005
+      <NA>      163                        0.891                  48        -0.918            -0.004

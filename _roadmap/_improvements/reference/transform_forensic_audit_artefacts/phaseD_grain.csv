@@ -1,0 +1,41 @@
+model,key,declared,rows,distinct_keys,dup_rows,null_key_rows
+stg_laps,lap_id,one row per recorded race lap,189418,189418,0,0
+stg_laps_qualifying,lap_id,one row per qualifying lap,53690,53690,0,0
+stg_results,"race_year, race_id, driver_id",one row per driver x race,3458,3458,0,0
+stg_results_qualifying,"race_year, race_id, driver_id",one row per driver x quali,3459,3459,0,0
+stg_weather,lap_id,one row per lap_id (per-driver),189418,189418,0,0
+stg_sector_times,sector_id,sector_id unique (schema test),563294,563294,0,0
+stg_pits,"race_year, race_id, driver_id, pit_in_lap_number",one row per pit stop,6177,6177,0,0
+int_stint_geometry,lap_id,lap grain,189418,189418,0,0
+int_lap_residual_decomposed,lap_id,lap grain (mart spine),160207,160207,0,0
+int_lap_anomaly_flags,lap_id,lap grain,160207,160207,0,0
+int_compound_cliff_predicted,lap_id,lap grain,160207,160207,0,0
+int_lap_thermal_proxy,lap_id,lap grain,189418,189418,0,0
+int_lap_air_state,lap_id,lap grain,189418,189418,0,0
+int_lap_proximity,lap_id,lap grain,189418,189418,0,0
+int_lap_corner_inputs,lap_id,lap grain,157699,157699,0,0
+int_lap_corner_drift,lap_id,lap grain,157699,157699,0,0
+int_event_corrections,lap_id,lap grain,189418,189418,0,0
+int_lap_telemetry_aggregates,lap_id,lap grain,160207,160207,0,0
+int_lap_fuel_state,lap_id,lap grain,160207,160207,0,0
+int_field_pace_curve,"race_year, race_id, lap_number",race x lap,8470,8470,0,0
+int_track_evolution,"race_year, race_id, lap_number",race x lap,7818,7818,0,0
+int_qualifying_driver_summary,"race_year, race_id, driver_id",driver-weekend (broadcast),3387,3387,0,0
+int_sc_hazard_history,"circuit_slug, season",circuit x season (broadcast),173,173,0,0
+int_lap_residual_stint_detrend,stint_id,stint,8177,8177,0,0
+int_constructor_structural_pace,"race_year, race_id, constructor_id",constructor x race,1694,1694,0,0
+race_to_track,race_id,seed: race -> track,172,172,0,0
+dim_circuits,circuit_key,circuit_key,44,44,0,0
+dim_compounds_season,"circuit_key, compound_code, season",circuit x compound x season,510,510,0,0
+dim_constructors,constructor_id,constructor,19,19,0,0
+dim_drivers,driver_id,driver,43,43,0,0
+dim_events,"race_year, race_id, driver_id, event_type",per header,ERR,"Binder Error: Referenced column ""race_year"" not found in FROM clause!
+Candidate bindings: ",,
+fct_cliff_prediction_features,lap_id,one row per valid race lap,160207,160207,0,0
+fct_stint_features,stint_id,one row per stint,9643,9643,0,0
+fct_lap_residuals,lap_id,lap grain,160207,160207,0,0
+fct_ghost_car_pace,"host_constructor_id, race_id, driver_id, lap_number",scenario x lap?,ERR,"Binder Error: Referenced column ""driver_id"" not found in FROM clause!
+Candidate bindings: ",,
+fct_ghost_race_finish,"host_constructor_id, race_id, driver_id","(host constructor, race, driver)",ERR,"Binder Error: Referenced column ""driver_id"" not found in FROM clause!
+Candidate bindings: ",,
+fct_driver_skill_features,"race_year, race_id, driver_id",driver x race,3293,3293,0,0

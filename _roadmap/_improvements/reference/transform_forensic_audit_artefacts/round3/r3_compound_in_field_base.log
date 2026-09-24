@@ -1,0 +1,49 @@
+
+## Part 1: production field base rebuilt exactly; the field-average compound cost inside it
+ n_race_laps  rebuild_max_abs_err  mean_field_cc_s  sd_field_cc_s  mean_base_minus_neutral_base_B
+        8470         2.842171e-14            2.292          1.082                           2.285
+
+## Part 1b: how much field_cc moves across a 5-lap label window
+ mean_abs_change_over_5_laps_s  p90_s  max_s
+                         0.348  0.719  8.307
+
+## Part 2: residual LEVEL (the app's skill numbers are ~2 s 'faster than the field' from this term alone)
+ spine_laps_with_base  mean_residual_built_s  mean_residual_neutral_A_s  mean_residual_neutral_B_s
+               145315                 -1.957                      0.338                      0.331
+
+## Part 2b: what the app tables show (fct_lap_residuals feeds Lap Waterfall / Race Lost; fct_driver_skill_features the skill pages)
+ waterfall_compound_bar_mean_s  waterfall_skill_bar_mean_s  share_laps_skill_negative  share_driver_races_negative
+                         2.297                      -2.136                      0.945                         0.99
+
+## Part 3 (A): 5-lap label, compound-neutral base vs as built (eligible labelled rows)
+ n_labelled_eligible  reproduction_max_abs_err  mean_abs_label_shift_s  median_abs_shift_s  p90_abs_shift_s  share_moved_gt_250ms  label_sd  corr_neutral_vs_built
+               95513              8.881784e-15                  1.1374              0.5727           2.7365                0.7232      4.15                 0.9252
+
+## Part 3 (A): cliff class
+ n_cliff_labelled_eligible  reproduction_mismatch  class_flips  share_flipped
+                    132265                      0        14278         0.1079
+
+## Part 3 (B): 5-lap label, compound-neutral base vs as built (eligible labelled rows)
+ n_labelled_eligible  reproduction_max_abs_err  mean_abs_label_shift_s  median_abs_shift_s  p90_abs_shift_s  share_moved_gt_250ms  label_sd  corr_neutral_vs_built
+               95513              8.881784e-15                  1.1205              0.5493            2.699                0.7182      4.15                 0.9254
+
+## Part 3 (B): cliff class
+ n_cliff_labelled_eligible  reproduction_mismatch  class_flips  share_flipped
+                    132265                      0        13920         0.1052
+
+## Part 3 by season (arm B)
+ race_year     n  mean_abs_shift_B  share_gt_250ms
+      2018 10755             1.462           0.803
+      2019 12477             1.126           0.738
+      2020  9122             1.275           0.713
+      2021 13145             1.210           0.732
+      2022 10172             1.037           0.683
+      2023 12179             1.123           0.695
+      2024 13712             0.902           0.726
+      2025 13951             0.941           0.663
+
+## Part 4: where the shift lives -- label windows that span the field's pit cycle
+                        window_kind     n  mean_abs_shift_B  mean_signed_shift_B
+a field cc falls >0.5 s (pit cycle)  2743             3.260               -3.153
+                  b within +/-0.5 s 73889             0.887               -0.245
+                     c rises >0.5 s 14827             1.405                0.846

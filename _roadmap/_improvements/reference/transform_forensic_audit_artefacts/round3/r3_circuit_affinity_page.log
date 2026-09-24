@@ -1,0 +1,12 @@
+
+## page population (n_obs >= 2, queries.ts:36)
+ cells_on_page  drivers  share_green_as_drawn  share_green_relative_to_own_mean  mean_value_drawn_s  mean_relative_s
+           667       32                   1.0                             0.478              -0.913            0.001
+
+## per driver row of the heatmap
+ drivers  drivers_all_green_as_drawn  drivers_all_green_relative
+      32                          32                           1
+
+## methodology.tsx:27 says 'All seasons 2018-2024'
+ max_season_in_source
+                 2025

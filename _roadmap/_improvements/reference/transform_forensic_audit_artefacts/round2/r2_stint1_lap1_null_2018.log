@@ -1,0 +1,28 @@
+
+## lap-1 NULL stint by season (lap_in_stint at lap 2 should be 2)
+ race_year  races_lap1_null  races  mean_lap_in_stint_at_lap2
+      2018               17     21                   1.217765
+      2019                0     21                   2.000000
+      2020                0     17                   2.000000
+      2021                0     22                   2.000000
+      2022                0     22                   2.000000
+      2023                0     22                   2.000000
+      2024                0     24                   2.000000
+      2025                1     24                   2.000000
+
+## tyre age at lap 2, stint 1 (independent check: same Q2-tyre rule 2018-2021)
+ race_year  r2018_early  top10   n  age_at_lap2  mode_age
+      2018        False  False  37         2.08         2
+      2018        False   True  39         5.23         5
+      2018         True  False 136         1.12         1
+      2018         True   True 137         3.89         4
+      2019        False  False 196         2.15         2
+      2019        False   True 202         4.93         5
+      2020        False  False 149         2.24         2
+      2020        False   True 150         4.85         5
+      2021        False  False 202         2.22         2
+      2021        False   True 202         4.46         5
+
+## blast radius in the ML mart
+ rows_affected  eligible_affected  eligible_2018  at_eligibility_boundary
+          4257               3667          14955                       36

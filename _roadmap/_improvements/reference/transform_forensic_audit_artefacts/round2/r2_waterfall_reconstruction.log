@@ -1,0 +1,8 @@
+
+## per lap
+  laps  max_err_true_identity  mean_abs_page_error_per_lap  p90_abs_page_error
+135655           7.105427e-15                        0.228              0.4816
+
+## per driver-race, as the page aggregates it
+ driver_races  mean_abs_err_s  max_abs_err_s
+         3293          0.0194          1.357

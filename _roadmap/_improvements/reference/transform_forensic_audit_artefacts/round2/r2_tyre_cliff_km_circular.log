@@ -1,0 +1,15 @@
+
+## Part 1: page event == seed rule
+ stints  page_events  mismatch_vs_seed_rule
+   7544         3997                      0
+
+## Part 2: page event vs an observed >1 s detrended jump anywhere in the stint
+ page_event  observed_jump_in_stint  stints
+      False                   False     926
+      False                    True    2538
+      False                    <NA>      81
+       True                   False     785
+       True                    True    3209
+       True                    <NA>       3
+       <NA>                    True       1
+       <NA>                    <NA>       1

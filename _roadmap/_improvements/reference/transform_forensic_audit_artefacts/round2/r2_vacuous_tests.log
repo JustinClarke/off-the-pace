@@ -1,0 +1,20 @@
+## 1. Placeholders: body is `SELECT 1 WHERE FALSE` (always 0 rows, counted as PASS)
+   assert_cliff_stints_have_falloff.sql
+   assert_constructor_confidence_monotone.sql
+   assert_sector_aggregates_to_lap.sql
+
+## 2. Pass by construction
+  assert_aero_penalty_negative: WHERE dirty_air_tax_s < 0, but the model clamps the tax: 'THEN 0.0' clamp present = True -> an inverted (negative) theta zeroes every tax and the test still passes
+  assert_track_evolution_monotone: rubber = LEAST(slope, 0.0) * (lap - mean_lap); clamp present = True -> monotone non-increasing by construction
+
+## 3. Named for a defect they cannot see
+
+## assert_stint_boundaries_correct ('laps assigned to wrong stint near pit stops') on the three races where stint numbering ignores the pit stops (R2-E): empty result = test passes
+Empty DataFrame
+Columns: [race_id, test_failures_in_race]
+Index: []
+
+## assert_cliff_predictions_valid ('seed parameters failed to join') vs round-1 F7 rows, where the seed did fail to join: default is temperature term only, never exactly 0 or 0.5
+race_id  rows_with_no_seed_cell  rows_the_test_flags  min_pace  max_pace
+2025_21                    1048                    0     0.050     0.059
+ 2025_4                     444                    0     0.051     0.060

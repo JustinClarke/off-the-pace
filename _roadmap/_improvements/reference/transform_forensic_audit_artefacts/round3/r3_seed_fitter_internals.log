@@ -1,0 +1,30 @@
+
+## (a) cells whose notes say 'fitted ... via cox_km_survival': parameters exactly equal to the class default
+ cox_km_cells  onset_is_default  gradient_is_default  severity_is_default  any_default
+          337                70                   77                   19          124
+
+## (a) the two most common 'fitted' onsets per slick (class defaults: SOFT 22, MEDIUM 33, HARD 50)
+compound_code  onset  n_cells
+         HARD   50.0       12
+         HARD   32.0        5
+       MEDIUM   33.0       26
+       MEDIUM   15.0        7
+         SOFT   22.0       19
+         SOFT   16.0        5
+
+## (a) training-eligible rows sitting on those cells
+ eligible_rows_on_cox_km_cells  onset_default  gradient_default  severity_default  any_default
+                        116385          15256             25217              4136        35377
+
+## (b) wear gradient (s/lap), production estimator, seed onset per cox_km cell
+cells: 337; rebuilt == seed to 4 dp: 107
+           seed   rebuilt  fuelcorr  fuel_gain
+count  337.0000  337.0000  337.0000   334.0000
+mean     0.0780    0.0783    0.0911     0.0508
+std      0.0559    0.0562    0.0572     0.0096
+min      0.0072    0.0060    0.0094     0.0357
+25%      0.0400    0.0400    0.0510     0.0425
+50%      0.0640    0.0647    0.0773     0.0494
+75%      0.1000    0.1000    0.1160     0.0546
+max      0.2961    0.2968    0.2944     0.0736
+median ratio fuel-corrected / seed: 1.232; / rebuilt: 1.228; cells where the fuel-corrected gradient is higher: 226 / 337

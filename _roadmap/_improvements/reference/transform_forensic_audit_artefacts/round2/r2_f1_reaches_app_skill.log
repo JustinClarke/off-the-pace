@@ -1,0 +1,8 @@
+
+## Part 1: fabricated laps inside the app's clean-lap filter
+ clean_laps  fabricated_clean_laps  share_fabricated  driver_races_touched  driver_races
+     137356                  10026             0.073                  2952          3293
+
+## Part 2: per driver-race mean and stddev, with vs without fabricated laps
+ mean_abs_shift_in_mean_s  max_shift_mean_s  mean_stddev_inflation_s  max_stddev_inflation_s
+                    0.173             3.695                   0.1298                    3.09

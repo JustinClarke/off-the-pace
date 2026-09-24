@@ -1,0 +1,427 @@
+transform/models/staging/stg_circuit_info.sql:17:        COALESCE(CAST(letter AS VARCHAR), '')
+transform/models/staging/stg_circuit_info.sql:27:    NULLIF(CAST(letter AS VARCHAR), '') AS corner_letter,
+transform/models/staging/stg_telemetry_position.sql:64:        NULLIF(TRIM(CAST(driverahead AS VARCHAR)), '') AS driver_ahead_number,
+transform/models/staging/stg_laps.sql:95:        COALESCE(pitouttime IS NOT NULL OR pitintime IS NOT NULL, FALSE)
+transform/models/staging/stg_race_control.sql:58:        UPPER(NULLIF(TRIM(CAST(s.flag AS VARCHAR)), '')) AS flag,
+transform/models/staging/stg_race_control.sql:62:        NULLIF(TRIM(CAST(s.racingnumber AS VARCHAR)), '') AS driver_number,
+transform/models/staging/stg_race_control.sql:68:            AND NULLIF(TRIM(CAST(s.racingnumber AS VARCHAR)), '')
+transform/models/staging/stg_race_control.sql:97:        COALESCE(flag, '') = 'BLUE'
+transform/models/staging/stg_laps_qualifying.sql:95:        COALESCE(pitouttime IS NOT NULL OR pitintime IS NOT NULL, FALSE)
+transform/models/marts/fct_stint_features.sql:171:                / NULLIF(SUM(POWER(l.valid_lap_in_stint - sm.mean_x, 2)), 0)
+transform/models/marts/fct_stint_features.sql:188:    COALESCE(da.cumulative_dirty_air_tax_s, 0.0) AS cumulative_dirty_air_tax_s,
+transform/models/marts/fct_stint_features.sql:207:                        / NULLIF(ps.opportunity_cost_s, 0),
+transform/models/marts/fct_ghost_race_finish.sql:146:        COALESCE(rf.is_dnf, FALSE)              AS actual_is_dnf,
+transform/models/marts/fct_ghost_race_finish.sql:187:        COALESCE(STDDEV_SAMP(predicted_lap_time_s), 0.0) AS lap_pace_sd
+transform/models/marts/fct_ghost_race_finish.sql:197:            / NULLIF(rd.race_distance_laps, 0)  AS lap_coverage,
+transform/models/marts/fct_ghost_race_finish.sql:199:            / NULLIF(rd.race_distance_laps, 0))
+transform/models/marts/fct_ghost_race_finish.sql:205:                / NULLIF(rd.race_distance_laps, 0)))        AS avg_recombination_confidence,
+transform/models/marts/fct_ghost_race_finish.sql:214:            + POWER(rt.lap_pace_sd, 2) / NULLIF(rt.laps_counted, 0) AS var_self
+transform/models/marts/fct_ghost_race_finish.sql:334:    COALESCE(pa.finish_pos_se, 0.0)             AS finish_pos_se
+transform/models/marts/fct_telemetry_deltas.sql:42:        ROUND(COALESCE(m_a.braking_point_m - m_b.braking_point_m, 0), 1)
+transform/models/marts/fct_telemetry_deltas.sql:45:        ROUND(COALESCE(m_a.v_min_kph - m_b.v_min_kph, 0), 2)
+transform/models/marts/fct_telemetry_deltas.sql:48:        ROUND(COALESCE(m_a.throttle_point_m - m_b.throttle_point_m, 0), 1)
+transform/models/marts/mart_corner_skill_driver.sql:96:        AND COALESCE(cor.correction_weight, 1.0) = 1.0
+transform/models/marts/mart_corner_skill_driver.sql:97:        AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+transform/models/marts/mart_corner_skill_driver.sql:153:                    (ca.sum_braking_s - COALESCE(dca.driver_sum_braking_s, 0))
+transform/models/marts/mart_corner_skill_driver.sql:154:                    / NULLIF(ca.n_braking - dca.n_braking, 0)
+transform/models/marts/mart_corner_skill_driver.sql:159:                    (ca.sum_mid_s - COALESCE(dca.driver_sum_mid_s, 0))
+transform/models/marts/mart_corner_skill_driver.sql:160:                    / NULLIF(ca.n_mid - dca.n_mid, 0)
+transform/models/marts/mart_corner_skill_driver.sql:165:                    (ca.sum_exit_s - COALESCE(dca.driver_sum_exit_s, 0))
+transform/models/marts/mart_corner_skill_driver.sql:166:                    / NULLIF(ca.n_exit - dca.n_exit, 0)
+transform/models/marts/mart_corner_skill_driver.sql:169:        / NULLIF(dca.n_braking, 0) AS driver_mean_braking_s,
+transform/models/marts/mart_corner_skill_driver.sql:170:        dca.driver_sum_mid_s / NULLIF(dca.n_mid, 0) AS driver_mean_mid_s,
+transform/models/marts/mart_corner_skill_driver.sql:171:        dca.driver_sum_exit_s / NULLIF(dca.n_exit, 0) AS driver_mean_exit_s
+transform/models/marts/mart_corner_skill_driver.sql:239:        / SQRT(NULLIF(COUNT(deconf_braking_s), 0)) AS braking_skill_se_s,
+transform/models/marts/mart_corner_skill_driver.sql:241:        / SQRT(NULLIF(COUNT(deconf_mid_s), 0)) AS mid_corner_skill_se_s,
+transform/models/marts/mart_corner_skill_driver.sql:243:        / SQRT(NULLIF(COUNT(deconf_exit_s), 0)) AS exit_skill_se_s,
+transform/models/marts/mart_corner_skill_driver.sql:278:                    / NULLIF(
+transform/models/marts/mart_corner_skill_driver.sql:286:                    / NULLIF(
+transform/models/marts/mart_corner_skill_driver.sql:296:                    / NULLIF(
+transform/models/intermediate/int_lap_telemetry_aggregates.sql:118:                brake_applied AND NOT COALESCE(prev_brake, FALSE)
+transform/models/marts/fct_driver_skill_features.sql:99:        BOOL_OR(COALESCE(rainfall_flag, FALSE)) AS race_wet_flag,
+transform/models/marts/fct_driver_skill_features.sql:103:            / NULLIF(COUNT(*), 0),
+transform/models/marts/fct_driver_skill_features.sql:118:        / NULLIF(AVG(st.pair_quality_weight), 0) AS driver_skill_proxy_mean_s,
+transform/models/marts/fct_driver_skill_features.sql:127:            / NULLIF(COUNT(*), 0),
+transform/models/marts/fct_driver_skill_features.sql:213:    COALESCE(ta.teammate_available_flag, FALSE) AS teammate_available_flag,
+transform/models/marts/fct_driver_skill_features.sql:214:    COALESCE(ta.strategic_divergence_share, 0.0) AS strategic_divergence_share,
+transform/models/marts/fct_cliff_prediction_features.sql:289:        sr.n_reaching * 1.0 / NULLIF(tp.n_total, 0) AS survival_prob
+transform/models/marts/fct_cliff_prediction_features.sql:381:        COALESCE(ai.dirty_air_share_lap, 0.0) AS dirty_air_share_lap,
+transform/models/marts/fct_cliff_prediction_features.sql:382:        COALESCE(ai.dirty_air_thermal_load_surface, 0.0)
+transform/models/marts/fct_cliff_prediction_features.sql:384:        COALESCE(ai.dirty_air_thermal_load_bulk, 0.0)
+transform/models/marts/fct_cliff_prediction_features.sql:386:        COALESCE(ai.air_state_dominant, 'free_air') AS air_state_dominant,
+transform/models/marts/fct_cliff_prediction_features.sql:396:        COALESCE(px.share_lap_within_1s, 0.0) AS share_lap_within_1s,
+transform/models/marts/fct_cliff_prediction_features.sql:397:        COALESCE(px.share_lap_within_2s, 0.0) AS share_lap_within_2s,
+transform/models/marts/fct_cliff_prediction_features.sql:398:        COALESCE(px.share_lap_in_train, 0.0) AS share_lap_in_train,
+transform/models/marts/fct_cliff_prediction_features.sql:399:        COALESCE(px.share_lap_behind_within_1s, 0.0)
+transform/models/marts/fct_cliff_prediction_features.sql:401:        COALESCE(px.time_within_1s, 0.0) AS time_within_1s,
+transform/models/marts/fct_cliff_prediction_features.sql:422:        COALESCE(ci.corner_input_coverage, 0.0) AS corner_input_coverage,
+transform/models/marts/fct_cliff_prediction_features.sql:440:        COALESCE(cd.corner_drift_coverage, 0.0) AS corner_drift_coverage,
+transform/models/marts/fct_cliff_prediction_features.sql:459:        COALESCE(qs.quali_push_laps_n, 0) AS quali_push_laps_n,
+transform/models/marts/fct_cliff_prediction_features.sql:499:            COALESCE(sch.prior_racing_laps, 0) AS BIGINT
+transform/models/marts/fct_cliff_prediction_features.sql:502:            COALESCE(sch.prior_seasons_n, 0) AS BIGINT
+transform/models/marts/fct_cliff_prediction_features.sql:506:        COALESCE(cor.correction_weight < 1.0, FALSE) AS event_flag_any,
+transform/models/marts/fct_cliff_prediction_features.sql:535:        COALESCE(det.drift_s_per_lap, 0.0) AS drift_s_per_lap,
+transform/models/marts/fct_cliff_prediction_features.sql:539:        COALESCE(
+transform/models/marts/fct_cliff_prediction_features.sql:540:            GREATEST(0.25, LEAST(4.0, 1.0 / NULLIF(ss.survival_prob, 0.0))),
+transform/models/marts/fct_cliff_prediction_features.sql:545:        COALESCE(th.cumulative_push_load_surface, 0.0)
+transform/models/marts/fct_cliff_prediction_features.sql:546:        / NULLIF(
+transform/models/marts/fct_cliff_prediction_features.sql:547:            COALESCE(th.cumulative_push_load_surface, 0.0)
+transform/models/marts/fct_cliff_prediction_features.sql:548:            + COALESCE(th.cumulative_push_load_bulk, 0.0),
+transform/models/marts/fct_cliff_prediction_features.sql:912:    COALESCE(
+transform/models/marts/fct_cliff_prediction_features.sql:914:        AND COALESCE(anomaly_class, 'normal') NOT IN ('mistake', 'conditions'),
+transform/models/marts/mart_degradation_history_envelope.sql:69:        AND COALESCE(lrd.correction_weight, 0) = 1
+transform/models/marts/mart_degradation_history_envelope.sql:151:    COALESCE(iso.dirty_air_deg_mult, 1.0) AS dirty_air_deg_mult,
+transform/models/marts/mart_degradation_history_envelope.sql:152:    COALESCE(iso.temp_headroom_c, 8.0) AS temp_headroom_c,
+transform/models/marts/mart_degradation_history_envelope.sql:153:    COALESCE(iso.temp_penalty_s_per_deg, 0.010) AS temp_penalty_s_per_deg
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:231:        COALESCE(
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:254:        COALESCE(s.next_compound, s.compound) AS next_compound,
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:256:        COALESCE(cpl.pit_lane_loss_s, 21.0) AS pit_lane_loss_s,
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:261:        COALESCE(sc.any_hazard_per_lap_shrunk, 0.0) AS sc_hazard_per_lap,
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:354:        old_c.cum_wear_s - COALESCE(old_0.cum_wear_s, 0.0) AS old_wear_cost_s,
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:355:        COALESCE(new_c.cum_wear_s, 0.0) AS new_wear_cost_s,
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:362:            COALESCE(new_c0.compound_grip_peak, old_c0.compound_grip_peak, 0.0)
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:363:            - COALESCE(old_c0.compound_grip_peak, 0.0)
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:367:                        COALESCE(c.track_temp_c, 30.0)
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:368:                        - COALESCE(new_c0.compound_optimal_temp_low, 20.0),
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:375:                        COALESCE(c.track_temp_c, 30.0)
+transform/models/intermediate/int_pit_strategy_cost_curve.sql:376:                        - COALESCE(old_c0.compound_optimal_temp_low, 20.0),
+transform/models/intermediate/int_compound_cliff_predicted.sql:110:                COALESCE(track_temp_c, 30.0)
+transform/models/intermediate/int_compound_cliff_predicted.sql:111:                - COALESCE(compound_optimal_temp_low, 20.0),
+transform/models/intermediate/int_compound_cliff_predicted.sql:120:            - COALESCE(compound_cliff_onset_laps, 999.0),
+transform/models/intermediate/int_compound_cliff_predicted.sql:124:        age_in_stint > COALESCE(compound_cliff_onset_laps, 999.0)
+transform/models/intermediate/int_compound_cliff_predicted.sql:146:    COALESCE(compound_cliff_onset_laps, 999.0) AS compound_cliff_onset_laps,
+transform/models/intermediate/int_compound_cliff_predicted.sql:147:    COALESCE(compound_cliff_severity, 0.0) AS compound_cliff_severity,
+transform/models/intermediate/int_compound_cliff_predicted.sql:152:    COALESCE(compound_wear_gradient, 0.0) AS compound_wear_gradient,
+transform/models/intermediate/int_compound_cliff_predicted.sql:156:        COALESCE(compound_wear_gradient, 0.0) * age_in_stint
+transform/models/intermediate/int_compound_cliff_predicted.sql:194:    COALESCE(compound_grip_peak, 0.0)
+transform/models/intermediate/int_compound_cliff_predicted.sql:196:        COALESCE(compound_wear_gradient, 0.0) * age_in_stint
+transform/models/intermediate/int_compound_cliff_predicted.sql:210:    COALESCE(compound_wear_gradient, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:96:    AND COALESCE(lr.rainfall_flag, FALSE) = FALSE
+transform/models/marts/fct_ghost_car_pace.sql:179:        COALESCE(hcp.constructor_structural_pace_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:181:        COALESCE(hcp.constructor_structural_pace_se_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:183:        COALESCE(hi.circuit_constructor_interaction_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:190:        COALESCE(deg_host.deg_slope_s_per_lap, 0.0) AS host_deg_slope_s_per_lap,
+transform/models/marts/fct_ghost_car_pace.sql:191:        COALESCE(deg_ego.deg_slope_s_per_lap, 0.0) AS ego_deg_slope_s_per_lap,
+transform/models/marts/fct_ghost_car_pace.sql:193:            COALESCE(deg_host.deg_slope_s_per_lap, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:194:            - COALESCE(deg_ego.deg_slope_s_per_lap, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:195:        ) * COALESCE(el.age_in_stint, 0) AS deg_interaction_s,
+transform/models/marts/fct_ghost_car_pace.sql:196:        COALESCE(deg_host.cliff_onset_shift_laps, 0.0) AS host_cliff_shift_laps,
+transform/models/marts/fct_ghost_car_pace.sql:197:        COALESCE(deg_ego.cliff_onset_shift_laps, 0.0) AS ego_cliff_shift_laps,
+transform/models/marts/fct_ghost_car_pace.sql:222:                    CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE)
+transform/models/marts/fct_ghost_car_pace.sql:223:                    - COALESCE(el.compound_cliff_onset_laps, 999.0)
+transform/models/marts/fct_ghost_car_pace.sql:224:                    - COALESCE(deg_host.cliff_onset_shift_laps, 0.0), 0.0
+transform/models/marts/fct_ghost_car_pace.sql:228:                    CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE)
+transform/models/marts/fct_ghost_car_pace.sql:229:                    - COALESCE(el.compound_cliff_onset_laps, 999.0)
+transform/models/marts/fct_ghost_car_pace.sql:230:                    - COALESCE(deg_ego.cliff_onset_shift_laps, 0.0), 0.0
+transform/models/marts/fct_ghost_car_pace.sql:242:        COALESCE(deg_host.deg_slope_posterior_sd_s_per_lap, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:244:        COALESCE(deg_ego.deg_slope_posterior_sd_s_per_lap, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:246:        COALESCE(deg_host.cliff_onset_shift_se_laps, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:248:        COALESCE(deg_ego.cliff_onset_shift_se_laps, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:250:        CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE) AS age_in_stint,
+transform/models/marts/fct_ghost_car_pace.sql:251:        COALESCE(el.compound_cliff_severity, 0.0) AS compound_cliff_severity,
+transform/models/marts/fct_ghost_car_pace.sql:259:                CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE)
+transform/models/marts/fct_ghost_car_pace.sql:260:                - COALESCE(el.compound_cliff_onset_laps, 999.0)
+transform/models/marts/fct_ghost_car_pace.sql:261:                - COALESCE(deg_host.cliff_onset_shift_laps, 0.0) > 0.0
+transform/models/marts/fct_ghost_car_pace.sql:267:                CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE)
+transform/models/marts/fct_ghost_car_pace.sql:268:                - COALESCE(el.compound_cliff_onset_laps, 999.0)
+transform/models/marts/fct_ghost_car_pace.sql:269:                - COALESCE(deg_ego.cliff_onset_shift_laps, 0.0) > 0.0
+transform/models/marts/fct_ghost_car_pace.sql:273:        COALESCE(hcp.panel_observations_n, 0) AS host_constructor_obs_n,
+transform/models/marts/fct_ghost_car_pace.sql:274:        COALESCE(hi.interaction_obs_n, 0) AS interaction_obs_n,
+transform/models/marts/fct_ghost_car_pace.sql:284:            CAST(COALESCE(hcp.panel_observations_n, 0) AS DOUBLE)
+transform/models/marts/fct_ghost_car_pace.sql:285:            / NULLIF(COALESCE(hcp.panel_observations_n, 0) + 50, 0)
+transform/models/marts/fct_ghost_car_pace.sql:323:    COALESCE(base_track_pace_s, actual_lap_time_s)
+transform/models/marts/fct_ghost_car_pace.sql:324:    + COALESCE(fuel_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:325:    + COALESCE(driver_skill_residual_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:326:    + COALESCE(host_constructor_pace_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:327:    + COALESCE(circuit_interaction_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:328:    + COALESCE(dirty_air_tax_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:329:    + COALESCE(compound_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:330:    + COALESCE(rubber_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:331:    + COALESCE(ambient_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:332:    + COALESCE(deg_interaction_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:333:    + COALESCE(cliff_interaction_s, 0.0) AS predicted_lap_time_s,
+transform/models/marts/fct_ghost_car_pace.sql:341:    COALESCE(base_track_pace_s, actual_lap_time_s)
+transform/models/marts/fct_ghost_car_pace.sql:342:    + COALESCE(driver_skill_residual_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:343:    + COALESCE(host_constructor_pace_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:344:    + COALESCE(circuit_interaction_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:345:    + COALESCE(dirty_air_tax_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:346:    + COALESCE(compound_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:347:    + COALESCE(rubber_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:348:    + COALESCE(ambient_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:349:    + COALESCE(deg_interaction_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:350:    + COALESCE(cliff_interaction_s, 0.0) AS predicted_residual_pace_s,
+transform/models/marts/fct_ghost_car_pace.sql:351:    actual_lap_time_s - COALESCE(fuel_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:355:        COALESCE(base_track_pace_s, actual_lap_time_s)
+transform/models/marts/fct_ghost_car_pace.sql:356:        + COALESCE(fuel_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:357:        + COALESCE(driver_skill_residual_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:358:        + COALESCE(host_constructor_pace_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:359:        + COALESCE(circuit_interaction_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:360:        + COALESCE(dirty_air_tax_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:361:        + COALESCE(compound_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:362:        + COALESCE(rubber_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:363:        + COALESCE(ambient_component_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:364:        + COALESCE(deg_interaction_s, 0.0)
+transform/models/marts/fct_ghost_car_pace.sql:365:        + COALESCE(cliff_interaction_s, 0.0)
+transform/models/intermediate/int_circuit_x_constructor_interaction.sql:73:        COALESCE(cm.circuit_id, rm.circuit_key) AS circuit_id
+transform/models/intermediate/int_circuit_x_constructor_interaction.sql:135:        / NULLIF(n_obs + 3.0, 0) AS shrunk_interaction_s
+transform/models/intermediate/int_circuit_x_constructor_interaction.sql:154:    COALESCE(shrunk_interaction_s, 0.0) AS circuit_constructor_interaction_s,
+transform/models/intermediate/int_circuit_x_constructor_interaction.sql:155:    COALESCE(n_obs, 0) AS interaction_obs_n,
+transform/models/intermediate/int_circuit_x_constructor_interaction.sql:156:    COALESCE(observed_std_s, 0.0) AS interaction_se_s
+transform/models/intermediate/int_pit_strategy_value.sql:110:        COALESCE(
+transform/models/intermediate/int_pit_strategy_value.sql:124:            AND COALESCE(CAST(cr.pit_loss_imputed_flag AS BOOLEAN), TRUE)
+transform/models/intermediate/int_pit_strategy_value.sql:149:        MIN(COALESCE(la.min_gap_s, 999.0)) AS min_gap_in_window_s,
+transform/models/intermediate/int_pit_strategy_value.sql:155:            WHEN la.min_gap_s < COALESCE(cpl.pit_lane_loss_s, 21.0) + 1.0
+transform/models/intermediate/int_pit_strategy_value.sql:364:        COALESCE(a.optimal_offset, a.optimal_offset_race) AS pick_offset,
+transform/models/intermediate/int_pit_strategy_value.sql:365:        COALESCE(a.optimal_pit_lap, a.optimal_pit_lap_race) AS pick_pit_lap,
+transform/models/intermediate/int_pit_strategy_value.sql:366:        COALESCE(a.horizon_laps, a.race_horizon_laps) AS pick_horizon_laps,
+transform/models/intermediate/int_pit_strategy_value.sql:367:        COALESCE(
+transform/models/intermediate/int_pit_strategy_value.sql:370:        COALESCE(
+transform/models/intermediate/int_pit_strategy_value.sql:414:    COALESCE(r.optimal_pit_lap_confidence, 0.0) AS optimal_pit_lap_confidence,
+transform/models/intermediate/int_pit_strategy_value.sql:418:    COALESCE(r.pit_lane_loss_s, 21.0) AS pit_lane_loss_s,
+transform/models/intermediate/int_pit_strategy_value.sql:419:    COALESCE(r.pit_loss_source, 'default') AS pit_loss_source,
+transform/models/intermediate/int_pit_strategy_value.sql:420:    COALESCE(r.pit_loss_imputed_flag, TRUE) AS pit_loss_imputed_flag,
+transform/models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql:78:        COALESCE(th.cumulative_push_load_surface, 0.0) AS push_load_surface,
+transform/models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql:79:        COALESCE(th.cumulative_push_load_bulk, 0.0) AS push_load_bulk
+transform/models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql:90:        / NULLIF(push_load_surface + push_load_bulk, 0.0) AS surface_bulk_ratio,
+transform/models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql:114:        COALESCE(surface_bulk_ratio, 0.5) AS surface_bulk_ratio,
+transform/models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql:118:            WHEN COALESCE(surface_bulk_ratio, 0.5) > 0.65 THEN 'surface_driven'
+transform/models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql:119:            WHEN COALESCE(surface_bulk_ratio, 0.5) < 0.35 THEN 'bulk_driven'
+transform/models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql:140:        COALESCE(surface_bulk_ratio, 0.5)
+transform/models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql:141:        * COALESCE(compound_component_s, 0.0) AS thermal_attribution_s,
+transform/models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql:151:                / (1.0 + EXP(-2.0 * (COALESCE(surface_bulk_ratio, 0.5) - 0.5)))
+transform/models/intermediate/int_pit_loss_circuit.sql:79:        COALESCE(cm.circuit_id, m.race_slug) AS circuit_id,
+transform/models/intermediate/int_qualifying_segments.sql:149:        AND l.lap_start_time_s > COALESCE(a1.anchor_s, -1.0)
+transform/models/intermediate/int_qualifying_segments.sql:173:        AND l.lap_start_time_s > COALESCE(a2.anchor_s, -1.0)
+transform/models/intermediate/int_qualifying_segments.sql:246:            AND f.session_time_s > COALESCE(b.prev_first_anchor_s, -1.0)
+transform/models/intermediate/int_qualifying_segments.sql:268:            AND g.green_s > COALESCE(b.prev_last_anchor_s, -1.0)
+transform/models/intermediate/int_qualifying_segments.sql:289:                THEN COALESCE(gc.first_green_s, b.first_anchor_s)
+transform/models/intermediate/int_qualifying_segments.sql:290:            ELSE COALESCE(
+transform/models/intermediate/int_qualifying_segments.sql:321:                COALESCE(
+transform/models/intermediate/int_constructor_structural_pace_qualifying.sql:139:    COALESCE(
+transform/models/intermediate/int_constructor_structural_pace_qualifying.sql:143:    COALESCE(
+transform/models/intermediate/int_constructor_structural_pace_qualifying.sql:148:    COALESCE(
+transform/models/intermediate/int_lap_residual_decomposed.sql:215:        COALESCE(e.rubber_component_s, 0.0) AS rubber_component_s,
+transform/models/intermediate/int_lap_residual_decomposed.sql:216:        COALESCE(e.ambient_component_s, 0.0) AS ambient_component_s,
+transform/models/intermediate/int_lap_residual_decomposed.sql:223:        COALESCE(cs.constructor_structural_pace_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed.sql:224:        + COALESCE(cci.circuit_constructor_interaction_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed.sql:228:            POWER(COALESCE(cs.constructor_structural_pace_se_s, 0.0), 2)
+transform/models/intermediate/int_lap_residual_decomposed.sql:229:            + POWER(COALESCE(cci.interaction_se_s, 0.0), 2)
+transform/models/intermediate/int_lap_residual_decomposed.sql:232:        + COALESCE(cci.circuit_constructor_interaction_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed.sql:235:        + COALESCE(cci.circuit_constructor_interaction_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed.sql:241:        COALESCE(da.dirty_air_tax_s, 0.0) AS dirty_air_tax_s,
+transform/models/intermediate/int_lap_residual_decomposed.sql:242:        COALESCE(da.dirty_air_tax_se_s, 0.0) AS dirty_air_tax_se_s,
+transform/models/intermediate/int_lap_residual_decomposed.sql:244:        COALESCE(da.tax_calibration_confidence, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed.sql:246:        COALESCE(da.cumulative_dirty_air_tax_race_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed.sql:248:        COALESCE(da.dirtiest_air_lap_in_race_flag, FALSE)
+transform/models/intermediate/int_lap_residual_decomposed.sql:294:        lap_time_s - COALESCE(base_track_pace_s, lap_time_s) AS pace_delta_s,
+transform/models/intermediate/int_lap_residual_decomposed.sql:300:        + COALESCE(compound_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed.sql:309:        (lap_time_s - COALESCE(base_track_pace_s, lap_time_s))
+transform/models/intermediate/int_lap_residual_decomposed.sql:311:        - COALESCE(compound_component_s, 0.0)
+transform/models/intermediate/int_lap_corner_inputs.sql:80:    / NULLIF(CAST(COUNT(*) AS DOUBLE), 0) AS corner_input_coverage,
+transform/models/intermediate/int_driver_season_ratings.sql:62:        AVG(POWER(COALESCE(residual_stddev_s, 0), 2)) AS sigma2_residual,
+transform/models/intermediate/int_driver_season_ratings.sql:89:            'NULLIF(vc.sigma2_residual, 0)',
+transform/models/intermediate/int_driver_season_ratings.sql:90:            'NULLIF(POWER(vc.sigma_prior_approx, 2), 0)'
+transform/models/intermediate/int_driver_season_ratings.sql:95:        / NULLIF(dso.n_races + 5, 0) AS rating_confidence
+transform/models/intermediate/int_driver_season_ratings.sql:117:    SQRT(NULLIF(posterior_var_s2, 0)) AS shrunk_residual_se_s,
+transform/models/intermediate/int_driver_season_ratings.sql:118:    shrunk_residual_s - 1.96 * SQRT(NULLIF(posterior_var_s2, 0))
+transform/models/intermediate/int_driver_season_ratings.sql:120:    shrunk_residual_s + 1.96 * SQRT(NULLIF(posterior_var_s2, 0))
+transform/models/intermediate/int_synthetic_teammate.sql:161:        1.0 / (1.0 + COALESCE(
+transform/models/intermediate/int_driver_circuit_affinity.sql:52:        COALESCE(cm.circuit_id, f.circuit_key) AS circuit_id,
+transform/models/intermediate/int_driver_circuit_affinity.sql:94:        AVG(POWER(COALESCE(within_cell_stddev_s, 0), 2)) AS sigma2_residual,
+transform/models/intermediate/int_driver_circuit_affinity.sql:118:            'NULLIF(vc.sigma2_residual, 0)',
+transform/models/intermediate/int_driver_circuit_affinity.sql:119:            'NULLIF(POWER(vc.sigma_prior_approx, 2), 0)'
+transform/models/intermediate/int_driver_circuit_affinity.sql:126:        / NULLIF(dco.n_obs + 5, 0) AS affinity_confidence
+transform/models/intermediate/int_driver_circuit_affinity.sql:145:    SQRT(NULLIF(ws.posterior_var_s2, 0)) AS shrunk_affinity_se_s,
+transform/models/intermediate/int_driver_circuit_affinity.sql:146:    ws.shrunk_affinity_s - 1.96 * SQRT(NULLIF(ws.posterior_var_s2, 0))
+transform/models/intermediate/int_driver_circuit_affinity.sql:148:    ws.shrunk_affinity_s + 1.96 * SQRT(NULLIF(ws.posterior_var_s2, 0))
+transform/models/intermediate/int_sc_hazard_history.sql:78:        COALESCE(o.n_sc_onsets, 0) AS n_sc_onsets,
+transform/models/intermediate/int_sc_hazard_history.sql:79:        COALESCE(o.n_vsc_onsets, 0) AS n_vsc_onsets,
+transform/models/intermediate/int_sc_hazard_history.sql:130:        / NULLIF({{ trailing_sum(
+transform/models/intermediate/int_sc_hazard_history.sql:136:        / NULLIF({{ trailing_sum(
+transform/models/intermediate/int_sc_hazard_history.sql:142:        / NULLIF({{ trailing_sum(
+transform/models/intermediate/int_sc_hazard_history.sql:192:    COALESCE(c.prior_races_n, 0) AS prior_races_n,
+transform/models/intermediate/int_sc_hazard_history.sql:193:    COALESCE(c.prior_sc_onsets, 0) AS prior_sc_onsets,
+transform/models/intermediate/int_sc_hazard_history.sql:194:    COALESCE(c.prior_vsc_onsets, 0) AS prior_vsc_onsets,
+transform/models/intermediate/int_sc_hazard_history.sql:195:    COALESCE(c.prior_any_onsets, 0) AS prior_any_onsets,
+transform/models/intermediate/int_sc_hazard_history.sql:196:    COALESCE(c.prior_racing_laps, 0) AS prior_racing_laps,
+transform/models/intermediate/int_sc_hazard_history.sql:201:    CAST(COALESCE(c.prior_sc_onsets, 0) AS DOUBLE)
+transform/models/intermediate/int_sc_hazard_history.sql:202:    / NULLIF(c.prior_racing_laps, 0) AS sc_hazard_per_lap,
+transform/models/intermediate/int_sc_hazard_history.sql:203:    CAST(COALESCE(c.prior_vsc_onsets, 0) AS DOUBLE)
+transform/models/intermediate/int_sc_hazard_history.sql:204:    / NULLIF(c.prior_racing_laps, 0) AS vsc_hazard_per_lap,
+transform/models/intermediate/int_sc_hazard_history.sql:205:    CAST(COALESCE(c.prior_any_onsets, 0) AS DOUBLE)
+transform/models/intermediate/int_sc_hazard_history.sql:206:    / NULLIF(c.prior_racing_laps, 0) AS any_hazard_per_lap,
+transform/models/intermediate/int_sc_hazard_history.sql:217:        COALESCE(c.prior_sc_onsets, 0)
+transform/models/intermediate/int_sc_hazard_history.sql:221:        COALESCE(c.prior_racing_laps, 0)
+transform/models/intermediate/int_sc_hazard_history.sql:225:        COALESCE(c.prior_vsc_onsets, 0)
+transform/models/intermediate/int_sc_hazard_history.sql:229:        COALESCE(c.prior_racing_laps, 0)
+transform/models/intermediate/int_sc_hazard_history.sql:233:        COALESCE(c.prior_any_onsets, 0)
+transform/models/intermediate/int_sc_hazard_history.sql:237:        COALESCE(c.prior_racing_laps, 0)
+transform/models/intermediate/int_lap_normalized_pace.sql:121:        (l.lap_time_s - COALESCE(fp.field_pace_smoothed_s, l.lap_time_s))
+transform/models/intermediate/int_lap_normalized_pace.sql:141:        AND COALESCE(c.correction_weight, 1.0) = 1.0
+transform/models/intermediate/int_lap_normalized_pace.sql:142:        AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+transform/models/intermediate/int_lap_normalized_pace.sql:150:        COALESCE(
+transform/models/intermediate/int_lap_normalized_pace.sql:152:            / NULLIF(VAR_POP(time_in_dirty_air_s), 0),
+transform/models/intermediate/int_lap_normalized_pace.sql:182:                tt.theta_time * COALESCE(a.time_in_dirty_air_s, 0.0)
+transform/models/intermediate/int_qualifying_push_laps.sql:60:        COALESCE(s.quali_segment, 'Q') AS quali_segment,
+transform/models/intermediate/int_qualifying_push_laps.sql:119:    a.lap_time_s / NULLIF(sb.segment_best_s, 0) AS ratio_to_segment_best,
+transform/models/intermediate/int_qualifying_push_laps.sql:123:    COALESCE(
+transform/models/intermediate/int_lap_corner_drift.sql:57:    ) / NULLIF(CAST(COUNT(*) AS DOUBLE), 0) AS corner_drift_coverage,
+transform/models/intermediate/int_driver_circuit_era_affinity.sql:91:        COALESCE(cm.circuit_id, f.circuit_key) AS circuit_id,
+transform/models/intermediate/int_driver_circuit_era_affinity.sql:141:        AVG(POWER(COALESCE(within_cell_stddev_s, 0), 2)) AS sigma2_residual,
+transform/models/intermediate/int_driver_circuit_era_affinity.sql:177:                    'NULLIF(vc.sigma2_residual, 0)',
+transform/models/intermediate/int_driver_circuit_era_affinity.sql:178:                    'NULLIF(POWER(vc.sigma_prior_approx, 2), 0)'
+transform/models/intermediate/int_driver_circuit_era_affinity.sql:186:        / NULLIF(dco.n_obs + 5, 0) AS affinity_confidence
+transform/models/intermediate/int_driver_circuit_era_affinity.sql:215:    SQRT(NULLIF(posterior_var_s2, 0)) AS shrunk_affinity_se_s,
+transform/models/intermediate/int_driver_circuit_era_affinity.sql:216:    shrunk_affinity_s - 1.96 * SQRT(NULLIF(posterior_var_s2, 0))
+transform/models/intermediate/int_driver_circuit_era_affinity.sql:218:    shrunk_affinity_s + 1.96 * SQRT(NULLIF(posterior_var_s2, 0))
+transform/models/intermediate/int_corner_skill_residuals.sql:94:        1.0 / NULLIF(s2.s2_speed_trap_kph * (1000.0 / 3600.0), 0) AS dt_per_dm
+transform/models/intermediate/int_corner_skill_residuals.sql:214:                    / NULLIF(fm.field_corner_v_min_kph * (1000.0 / 3600.0), 0)
+transform/models/intermediate/int_qualifying_decomposed.sql:104:            AND COALESCE(rainfall_flag, FALSE) = FALSE
+transform/models/intermediate/int_qualifying_decomposed.sql:146:    - COALESCE(rd.race_skill_race_avg_s, 0.0)
+transform/models/intermediate/int_track_evolution.sql:90:            / NULLIF(SUM(POWER(c.lap_number - rm.mean_lap, 2)), 0),
+transform/models/intermediate/int_track_evolution.sql:139:        / NULLIF(SUM(POWER(r.track_temp_c - tm.mean_track_temp, 2)), 0)
+transform/models/intermediate/int_track_evolution.sql:156:    COALESCE(
+transform/models/intermediate/int_track_evolution.sql:162:    - COALESCE(
+transform/models/intermediate/int_event_corrections.sql:99:        COALESCE(sc.prev_lap_was_controlled, FALSE) AS is_restart_lap,
+transform/models/intermediate/int_event_corrections.sql:100:        COALESCE(sc.next_lap_is_controlled, FALSE) AS is_pre_controlled_lap,
+transform/models/intermediate/int_event_corrections.sql:103:        COALESCE(y.is_local_yellow_lap, FALSE) AS is_local_yellow_lap,
+transform/models/intermediate/int_event_corrections.sql:171:        COALESCE(m_lap.manual_event_type, m_all.manual_event_type)
+transform/models/intermediate/int_event_corrections.sql:173:        COALESCE(m_lap.manual_weight, m_all.manual_weight) AS manual_weight
+transform/models/intermediate/int_dirty_air_tax_component.sql:104:        LAG(COALESCE(a.dirty_air_share_lap, 0.0), 1, 0.0) OVER (
+transform/models/intermediate/int_dirty_air_tax_component.sql:146:        (f.lap_time_s - COALESCE(fp.field_pace_smoothed_s, f.lap_time_s))
+transform/models/intermediate/int_dirty_air_tax_component.sql:169:        AND COALESCE(c.correction_weight, 1.0) = 1.0
+transform/models/intermediate/int_dirty_air_tax_component.sql:170:        AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+transform/models/intermediate/int_dirty_air_tax_component.sql:201:        COALESCE(
+transform/models/intermediate/int_dirty_air_tax_component.sql:203:            / NULLIF(VAR_POP(dirty_air_share_lag1), 0),
+transform/models/intermediate/int_dirty_air_tax_component.sql:226:                ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) < 0
+transform/models/intermediate/int_dirty_air_tax_component.sql:229:                ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) > 5.0
+transform/models/intermediate/int_dirty_air_tax_component.sql:231:            ELSE ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0)
+transform/models/intermediate/int_dirty_air_tax_component.sql:233:        ABS(ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) * 0.15)
+transform/models/intermediate/int_dirty_air_tax_component.sql:244:                    ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) < 0
+transform/models/intermediate/int_dirty_air_tax_component.sql:247:                    ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) > 5.0
+transform/models/intermediate/int_dirty_air_tax_component.sql:249:                ELSE ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0)
+transform/models/intermediate/int_dirty_air_tax_component.sql:268:    COALESCE(dirty_air_tax_s = MAX(dirty_air_tax_s) OVER (
+transform/models/intermediate/int_stint_end_regime.sql:88:        COALESCE(stint_number, -1)
+transform/models/intermediate/int_stint_end_regime.sql:89:        = MAX(COALESCE(stint_number, -1)) OVER (PARTITION BY race_id, driver_id)
+transform/models/intermediate/int_stint_end_regime.sql:165:            COALESCE(res.status, '') = 'Finished'
+transform/models/intermediate/int_stint_end_regime.sql:166:            OR COALESCE(res.status, '') LIKE '%Lap%'
+transform/models/intermediate/int_stint_end_regime.sql:168:                COALESCE(res.status, '') = 'Disqualified'
+transform/models/intermediate/int_stint_end_regime.sql:173:        COALESCE(res.status, '') = 'Disqualified'
+transform/models/intermediate/int_track_geometry.sql:103:                / NULLIF(
+transform/models/intermediate/int_lap_residual_stint_detrend.sql:23:                COALESCE(REGR_SLOPE(driver_skill_residual_s, lap_in_stint), 0.0)
+transform/models/intermediate/int_driver_race_skill_loro.sql:122:        - COALESCE(fp.field_pace_smoothed_s, f.lap_time_s) AS pace_delta_s
+transform/models/intermediate/int_driver_race_skill_loro.sql:138:        AND COALESCE(cor.correction_weight, 1.0) = 1.0
+transform/models/intermediate/int_driver_race_skill_loro.sql:139:        AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:99:        COALESCE(rubber_component_s, 0.0) AS rubber_component_s,
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:100:        COALESCE(ambient_component_s, 0.0) AS ambient_component_s,
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:101:        COALESCE(unexplained_residual_s, 0.0) AS track_unexplained_s,
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:127:        COALESCE(w.rubber_component_s, 0.0) AS rubber_component_s,
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:128:        COALESCE(w.ambient_component_s, 0.0) AS ambient_component_s,
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:131:        COALESCE(w.track_unexplained_s, 0.0) AS track_unexplained_s,
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:134:        COALESCE(cc.constructor_structural_pace_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:136:        COALESCE(cc.constructor_structural_pace_se_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:144:        COALESCE(cp.compound_wear_gradient, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:179:        - COALESCE(base_track_pace_s, lap_time_s) AS quali_pace_delta_s,
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:182:        COALESCE(fuel_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:183:        + COALESCE(compound_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:184:        + COALESCE(rubber_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:185:        + COALESCE(ambient_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:186:        + COALESCE(constructor_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:187:        + COALESCE(dirty_air_tax_s, 0.0) AS total_explained_s,
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:190:        (lap_time_s - COALESCE(base_track_pace_s, lap_time_s))
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:191:        - COALESCE(fuel_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:192:        - COALESCE(compound_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:193:        - COALESCE(rubber_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:194:        - COALESCE(ambient_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:195:        - COALESCE(constructor_component_s, 0.0)
+transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql:196:        - COALESCE(dirty_air_tax_s, 0.0) AS quali_driver_skill_residual_s
+transform/models/intermediate/int_lap_anomaly_flags.sql:216:    COALESCE(rainfall_flag, FALSE) AS is_rain_lap,
+transform/models/intermediate/int_lap_anomaly_flags.sql:230:        WHEN COALESCE(rainfall_flag, FALSE)
+transform/models/intermediate/int_lap_anomaly_flags.sql:257:        WHEN COALESCE(rainfall_flag, FALSE) THEN FALSE
+transform/models/intermediate/int_lap_proximity.sql:204:            COALESCE(
+transform/models/intermediate/int_lap_proximity.sql:406:        ELSE COALESCE(share_lap_within_1s, 0.0)
+transform/models/intermediate/int_lap_proximity.sql:410:        ELSE COALESCE(share_lap_within_2s, 0.0)
+transform/models/intermediate/int_lap_proximity.sql:414:        ELSE COALESCE(share_lap_within_3s, 0.0)
+transform/models/intermediate/int_lap_proximity.sql:418:        ELSE COALESCE(time_within_1s, 0.0)
+transform/models/intermediate/int_lap_proximity.sql:422:        ELSE COALESCE(share_lap_in_train, 0.0)
+transform/models/intermediate/int_lap_proximity.sql:426:        ELSE COALESCE(share_lap_behind_within_1s, 0.0)
+transform/models/intermediate/int_lap_proximity.sql:436:        WHEN COALESCE(bins_with_any_car_ahead, 0) > 0
+transform/models/intermediate/int_era_normalized_driver_rating.sql:119:        / NULLIF(SQRT(COUNT(*)), 0) AS era_shift_se_s,
+transform/models/intermediate/int_era_normalized_driver_rating.sql:149:                THEN COALESCE(eo.era_shift_global_s, 0)
+transform/models/intermediate/int_era_normalized_driver_rating.sql:159:                    POWER(COALESCE(sr.shrunk_residual_se_s, 0), 2)
+transform/models/intermediate/int_era_normalized_driver_rating.sql:160:                    + POWER(COALESCE(eo.era_shift_se_s, 0), 2)
+transform/models/intermediate/int_era_normalized_driver_rating.sql:162:            ELSE COALESCE(sr.shrunk_residual_se_s, 0)
+transform/models/intermediate/int_constructor_structural_pace.sql:92:        - COALESCE(fp.field_pace_smoothed_s, f.lap_time_s) AS pace_delta_s,
+transform/models/intermediate/int_constructor_structural_pace.sql:110:        AND COALESCE(cor.correction_weight, 1.0) = 1.0
+transform/models/intermediate/int_constructor_structural_pace.sql:111:        AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+transform/models/intermediate/int_constructor_structural_pace.sql:160:    COALESCE(
+transform/models/intermediate/int_constructor_structural_pace.sql:164:    COALESCE(
+transform/models/intermediate/int_constructor_structural_pace.sql:169:    COALESCE(
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:142:      AND COALESCE(rainfall_flag, FALSE) = FALSE
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:145:      AND COALESCE(cliff_onset_passed, FALSE) = FALSE
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:170:        SUM(dx * dy) / NULLIF(SUM(dx * dx), 0) AS slope_raw,
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:193:                / NULLIF(sxx, 0)
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:229:            COALESCE(
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:231:                / NULLIF(SUM(w) - SUM(w * w) / SUM(w), 0),
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:261:      AND COALESCE(lr.rainfall_flag, FALSE) = FALSE
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:325:                * (sxx / NULLIF(det, 0))
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:363:            COALESCE(
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:365:                / NULLIF(SUM(hw) - SUM(hw * hw) / SUM(hw), 0),
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:433:                THEN c.hinge_dev * t.htau2 / NULLIF(t.htau2 + c.b_hinge_se * c.b_hinge_se, 0)
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:436:        SQRT(COALESCE(t.htau2, 0))               AS hinge_tau
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:456:            THEN c.dev * t.tau2 / NULLIF(t.tau2 + c.slope_se * c.slope_se, 0)
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:464:        WHEN NOT c.qualifies                THEN SQRT(COALESCE(t.tau2, 0))
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:465:        WHEN COALESCE(t.tau2, 0) <= 0       THEN 0.0
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:470:            THEN t.tau2 / NULLIF(t.tau2 + c.slope_se * c.slope_se, 0)
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:473:    SQRT(COALESCE(t.tau2, 0))               AS tau_s_per_lap,
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:481:        -COALESCE(cs.hinge_dev_shrunk, 0.0) * cs.ref_depth
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:482:            / NULLIF(cs.severity_used, 0),
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:487:         THEN cs.b_hinge_se * cs.ref_depth / NULLIF(cs.severity_used, 0) END
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:494:    COALESCE(cs.n_post, 0)                  AS n_post_cliff_laps,
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:495:    COALESCE(cs.n_deep, 0)                  AS n_deep_cliff_laps,
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:496:    COALESCE(cs.n_stints_cliff, 0)          AS n_stints_cliff,
+transform/models/intermediate/int_constructor_deg_sensitivity.sql:497:    NOT COALESCE(cs.cliff_qualifies, FALSE) AS is_low_sample_cliff,
+transform/models/reference/dim_constructors.sql:42:    COALESCE(p.pu_family, 'unknown_pu') AS pu_family
+transform/models/intermediate/int_lap_thermal_proxy.sql:124:            + 0.717 * GREATEST(COALESCE(LAG(push_residual, 1) OVER w, 0), 0)
+transform/models/intermediate/int_lap_thermal_proxy.sql:125:            + 0.514 * GREATEST(COALESCE(LAG(push_residual, 2) OVER w, 0), 0)
+transform/models/intermediate/int_lap_thermal_proxy.sql:126:            + 0.369 * GREATEST(COALESCE(LAG(push_residual, 3) OVER w, 0), 0)
+transform/models/intermediate/int_lap_thermal_proxy.sql:127:            + 0.264 * GREATEST(COALESCE(LAG(push_residual, 4) OVER w, 0), 0),
+transform/models/intermediate/int_lap_thermal_proxy.sql:134:            + 0.819 * GREATEST(COALESCE(LAG(push_residual, 1) OVER w, 0), 0)
+transform/models/intermediate/int_lap_thermal_proxy.sql:135:            + 0.670 * GREATEST(COALESCE(LAG(push_residual, 2) OVER w, 0), 0)
+transform/models/intermediate/int_lap_thermal_proxy.sql:136:            + 0.549 * GREATEST(COALESCE(LAG(push_residual, 3) OVER w, 0), 0)
+transform/models/intermediate/int_lap_thermal_proxy.sql:137:            + 0.449 * GREATEST(COALESCE(LAG(push_residual, 4) OVER w, 0), 0)
+transform/models/intermediate/int_lap_thermal_proxy.sql:138:            + 0.368 * GREATEST(COALESCE(LAG(push_residual, 5) OVER w, 0), 0)
+transform/models/intermediate/int_lap_thermal_proxy.sql:139:            + 0.301 * GREATEST(COALESCE(LAG(push_residual, 6) OVER w, 0), 0)
+transform/models/intermediate/int_lap_thermal_proxy.sql:140:            + 0.247 * GREATEST(COALESCE(LAG(push_residual, 7) OVER w, 0), 0),
+transform/models/intermediate/int_sector_residual_decomposed.sql:55:        COALESCE(air.dirty_air_share_lap, 0.0) AS dirty_air_share_lap
+transform/models/intermediate/int_sector_residual_decomposed.sql:143:        sector_time_s / NULLIF(lap_time_s, 0) AS sector_time_share,
+transform/models/intermediate/int_sector_residual_decomposed.sql:146:        * (sector_time_s / NULLIF(lap_time_s, 0)) AS sector_fuel_component_s,
+transform/models/intermediate/int_sector_residual_decomposed.sql:147:        COALESCE(compound_component_s, 0.0)
+transform/models/intermediate/int_sector_residual_decomposed.sql:148:        * (sector_time_s / NULLIF(lap_time_s, 0))
+transform/models/intermediate/int_sector_residual_decomposed.sql:151:        * (sector_time_s / NULLIF(lap_time_s, 0)) AS sector_rubber_component_s,
+transform/models/intermediate/int_sector_residual_decomposed.sql:153:        * (sector_time_s / NULLIF(lap_time_s, 0)) AS sector_ambient_component_s,
+transform/models/intermediate/int_sector_residual_decomposed.sql:155:        * (sector_time_s / NULLIF(lap_time_s, 0))
+transform/models/intermediate/int_sector_residual_decomposed.sql:158:            WHEN COALESCE(dirty_air_share_lap, 0.0) > 0
+transform/models/intermediate/int_sector_residual_decomposed.sql:159:                THEN dirty_air_tax_s * (sector_time_s / NULLIF(lap_time_s, 0))
+transform/models/intermediate/int_lap_air_state.sql:182:            ELSE COALESCE(a.dirty_air_share_lap, 0.0)
+transform/models/intermediate/int_lap_air_state.sql:184:        COALESCE(a.tow_benefit_lap_s, 0.0) AS tow_benefit_lap_s,
+transform/models/intermediate/int_lap_air_state.sql:188:            ELSE COALESCE(a.dirty_air_intensity, 0.0)
+transform/models/intermediate/int_lap_air_state.sql:190:        COALESCE(a.air_state_dominant, 'free_air') AS air_state_dominant,
+transform/models/intermediate/int_lap_air_state.sql:195:            ELSE COALESCE(t.time_in_dirty_air_s, 0.0)
+transform/models/intermediate/int_lap_air_state.sql:220:            + 0.240 * COALESCE(LAG(dirty_air_intensity, 1) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:221:            + 0.096 * COALESCE(LAG(dirty_air_intensity, 2) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:222:            + 0.038 * COALESCE(LAG(dirty_air_intensity, 3) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:223:            + 0.015 * COALESCE(LAG(dirty_air_intensity, 4) OVER w, 0),
+transform/models/intermediate/int_lap_air_state.sql:230:            + 0.1875 * COALESCE(LAG(dirty_air_intensity, 1) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:231:            + 0.1406 * COALESCE(LAG(dirty_air_intensity, 2) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:232:            + 0.1055 * COALESCE(LAG(dirty_air_intensity, 3) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:233:            + 0.0791 * COALESCE(LAG(dirty_air_intensity, 4) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:234:            + 0.0593 * COALESCE(LAG(dirty_air_intensity, 5) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:235:            + 0.0445 * COALESCE(LAG(dirty_air_intensity, 6) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:236:            + 0.0334 * COALESCE(LAG(dirty_air_intensity, 7) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:237:            + 0.0250 * COALESCE(LAG(dirty_air_intensity, 8) OVER w, 0)
+transform/models/intermediate/int_lap_air_state.sql:238:            + 0.0188 * COALESCE(LAG(dirty_air_intensity, 9) OVER w, 0),
+transform/models/reference/dim_corners.sql:62:            COALESCE(corner_letter, '')
+transform/models/reference/dim_corners.sql:126:        COALESCE(res.track_id, res.race_slug) AS track_id,
+transform/models/reference/dim_corners.sql:148:        COALESCE(w.prev_apex_m, 0),
+transform/models/reference/dim_corners.sql:153:        COALESCE(

@@ -1,0 +1,126 @@
+model,alias,func,partition,order,frame,lead,following,whole_partition,default_frame_range_to_current
+dim_corners,,w,res.race_id,ORDER BY g.corner_distance_m NULLS LAST,,False,False,False,True
+dim_corners,candidate_rank,ROW_NUMBER(),r.race_id,"ORDER BY CASE WHEN g.race_id = r.race_id THEN 0 ELSE 1 END ASC NULLS LAST, ABS(g.race_year - r.race_year) ASC NULLS LAST, g.race_year DESC",,False,False,False,True
+dim_corners,prev_apex_m,LAG(g.corner_distance_m),,,named window w,False,False,False,False
+dim_corners,next_apex_m,LEAD(g.corner_distance_m),,,named window w,True,False,False,False
+fct_cliff_prediction_features,,w,stint_id,ORDER BY lap_in_stint NULLS LAST,,False,False,False,True
+fct_cliff_prediction_features,n_total,SUM(n_total_season),compound,ORDER BY race_year NULLS LAST,ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+fct_cliff_prediction_features,n_reaching,SUM(n_reaching_season),"compound,lap_in_stint",ORDER BY race_year NULLS LAST,ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+fct_cliff_prediction_features,next_lap_degradation_jump_s,"LEAD(driver_skill_residual_s, 1)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_lap_degradation_jump_detrended_s,"LEAD(driver_skill_residual_s, 1)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_3_lap_cumulative_jump_s,"LEAD(lap_in_stint, 3)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_5_lap_cumulative_jump_s,"LEAD(lap_in_stint, 5)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_lap_degradation_jump_s,"LEAD(driver_skill_residual_s, 1)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_lap_degradation_jump_detrended_s,"LEAD(driver_skill_residual_s, 1)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_3_lap_cumulative_jump_s,"LEAD(driver_skill_residual_s, 3)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_5_lap_cumulative_jump_s,"LEAD(driver_skill_residual_s, 5)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_3_lap_cumulative_jump_s,"LEAD(driver_skill_residual_s, 1)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_3_lap_cumulative_jump_s,"LEAD(driver_skill_residual_s, 2)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_5_lap_cumulative_jump_s,"LEAD(driver_skill_residual_s, 4)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_5_lap_cumulative_jump_s,"LEAD(driver_skill_residual_s, 3)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_5_lap_cumulative_jump_s,"LEAD(driver_skill_residual_s, 1)",,,named window w,True,False,False,False
+fct_cliff_prediction_features,next_5_lap_cumulative_jump_s,"LEAD(driver_skill_residual_s, 2)",,,named window w,True,False,False,False
+int_circuit_x_constructor_interaction,,w,"constructor_id,circuit_id","ORDER BY race_year NULLS LAST, round_n NULLS LAST",ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_circuit_x_constructor_interaction,season_avg_pace_s,AVG(constructor_structural_pace_s),"race_year,constructor_id",ORDER BY round_n NULLS LAST,ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_circuit_x_constructor_interaction,n_obs,COUNT(pace_circuit_deviation_s),,,named window w,False,False,False,False
+int_circuit_x_constructor_interaction,observed_mean_s,AVG(pace_circuit_deviation_s),,,named window w,False,False,False,False
+int_circuit_x_constructor_interaction,observed_std_s,STDDEV_POP(pace_circuit_deviation_s),,,named window w,False,False,False,False
+int_corner_skill_residuals,field_corner_sample_n,COUNT(braking_point_m),"race_year,race_id,corner_name",ORDER BY lap_number NULLS LAST,RANGE BETWEEN 5 PRECEDING AND 1 PRECEDING,False,False,False,False
+int_corner_skill_residuals,,ROW_NUMBER(),"race_year,race_id,corner_name,lap_number",ORDER BY driver_id NULLS LAST,,False,False,False,True
+int_corner_skill_residuals,field_corner_braking_point_m,MEDIAN(braking_point_m),"race_year,race_id,corner_name",ORDER BY lap_number NULLS LAST,RANGE BETWEEN 5 PRECEDING AND 1 PRECEDING,False,False,False,False
+int_corner_skill_residuals,field_corner_v_min_kph,MEDIAN(v_min_kph),"race_year,race_id,corner_name",ORDER BY lap_number NULLS LAST,RANGE BETWEEN 5 PRECEDING AND 1 PRECEDING,False,False,False,False
+int_corner_skill_residuals,field_corner_throttle_point_m,MEDIAN(throttle_point_m),"race_year,race_id,corner_name",ORDER BY lap_number NULLS LAST,RANGE BETWEEN 5 PRECEDING AND 1 PRECEDING,False,False,False,False
+int_corner_skill_residuals,field_corner_braking_point_m,COUNT(braking_point_m),"race_year,race_id,corner_name",ORDER BY lap_number NULLS LAST,RANGE BETWEEN 5 PRECEDING AND 1 PRECEDING,False,False,False,False
+int_corner_skill_residuals,field_corner_v_min_kph,COUNT(v_min_kph),"race_year,race_id,corner_name",ORDER BY lap_number NULLS LAST,RANGE BETWEEN 5 PRECEDING AND 1 PRECEDING,False,False,False,False
+int_corner_skill_residuals,field_corner_throttle_point_m,COUNT(throttle_point_m),"race_year,race_id,corner_name",ORDER BY lap_number NULLS LAST,RANGE BETWEEN 5 PRECEDING AND 1 PRECEDING,False,False,False,False
+int_dirty_air_tax_component,dirtiest_air_lap_in_race_flag,MAX(dirty_air_tax_s),"race_year,race_id,driver_id",,,False,False,True,False
+int_dirty_air_tax_component,dirty_air_share_lag1,"LAG(COALESCE(a.dirty_air_share_lap, 0.0), 1, 0.0)",g.stint_id,ORDER BY g.lap_in_stint NULLS LAST,,False,False,False,True
+int_dirty_air_tax_component,cumulative_dirty_air_tax_race_s,"SUM(CASE WHEN ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) < ","wl.race_year,wl.race_id,wl.driver_id",ORDER BY wl.lap_number NULLS LAST,ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW,False,False,False,False
+int_event_corrections,prev_lap_was_controlled,LAG(is_safety_car_lap OR is_vsc_lap OR is_red_flag_lap),"race_year,race_id,driver_id",ORDER BY lap_number NULLS LAST,,False,False,False,True
+int_event_corrections,next_lap_is_controlled,LEAD(is_safety_car_lap OR is_vsc_lap OR is_red_flag_lap),"race_year,race_id,driver_id",ORDER BY lap_number NULLS LAST,,True,False,False,True
+int_field_pace_curve,pct_rank,PERCENT_RANK(),"race_year,race_id,lap_number",ORDER BY weight_corrected_lap_time NULLS LAST,,False,False,False,True
+int_field_pace_curve,field_pace_smoothed_s,AVG(field_pace_trimmed_mean_s),"race_year,race_id",ORDER BY lap_number NULLS LAST,ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING,False,True,False,False
+int_lap_air_state,,w,"race_year,race_id,driver_id,lap_number",ORDER BY sample_ts NULLS LAST,,False,False,False,True
+int_lap_air_state,,w,stint_id,ORDER BY lap_in_stint NULLS LAST,ROWS BETWEEN 10 PRECEDING AND CURRENT ROW,False,False,False,False
+int_lap_air_state,dt_s,LAG(sample_ts),,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_surface,"LAG(dirty_air_intensity, 4)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_bulk,"LAG(dirty_air_intensity, 9)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_surface,"LAG(dirty_air_intensity, 3)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_bulk,"LAG(dirty_air_intensity, 8)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_surface,"LAG(dirty_air_intensity, 2)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_bulk,"LAG(dirty_air_intensity, 7)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_surface,"LAG(dirty_air_intensity, 1)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_bulk,"LAG(dirty_air_intensity, 6)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_bulk,"LAG(dirty_air_intensity, 5)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_bulk,"LAG(dirty_air_intensity, 4)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_bulk,"LAG(dirty_air_intensity, 3)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_bulk,"LAG(dirty_air_intensity, 2)",,,named window w,False,False,False,False
+int_lap_air_state,dirty_air_thermal_load_bulk,"LAG(dirty_air_intensity, 1)",,,named window w,False,False,False,False
+int_lap_proximity,,w,"race_id,track_bin","ORDER BY crossing_time_s NULLS LAST, driver_id NULLS LAST",,False,False,False,True
+int_lap_proximity,,wd,"race_id,driver_id","ORDER BY crossing_time_s NULLS LAST, lap_number NULLS LAST, track_bin NULLS LAST",,False,False,False,True
+int_lap_proximity,ahead_driver_id,LAG(driver_id),,,named window w,False,False,False,False
+int_lap_proximity,ahead_crossing_s,LAG(crossing_time_s),,,named window w,False,False,False,False
+int_lap_proximity,ahead2_driver_id,"LAG(driver_id, 2)",,,named window w,False,False,False,False
+int_lap_proximity,ahead2_crossing_s,"LAG(crossing_time_s, 2)",,,named window w,False,False,False,False
+int_lap_proximity,behind_driver_id,LEAD(driver_id),,,named window w,True,False,False,False
+int_lap_proximity,behind_crossing_s,LEAD(crossing_time_s),,,named window w,True,False,False,False
+int_lap_proximity,bin_duration_s,LEAD(crossing_time_s),,,named window wd,True,False,False,False
+int_lap_telemetry_aggregates,,w,"race_id,driver_id,lap_number","ORDER BY distance_m NULLS LAST, session_time_s NULLS LAST",,False,False,False,True
+int_lap_telemetry_aggregates,,lap,"race_id,driver_id,lap_number",,,False,False,True,False
+int_lap_telemetry_aggregates,,stint,stint_id,,,False,False,True,False
+int_lap_telemetry_aggregates,prev_speed_kph,LAG(speed_kph),,,named window w,False,False,False,False
+int_lap_telemetry_aggregates,next_speed_kph,LEAD(speed_kph),,,named window w,True,False,False,False
+int_lap_telemetry_aggregates,prev_brake,LAG(brake_applied),,,named window w,False,False,False,False
+int_lap_telemetry_aggregates,prev_gear,LAG(n_gear),,,named window w,False,False,False,False
+int_lap_telemetry_aggregates,prev_rpm,LAG(rpm),,,named window w,False,False,False,False
+int_lap_telemetry_aggregates,lap_max_speed_kph,MAX(speed_kph),,,named window lap,False,False,False,False
+int_lap_telemetry_aggregates,lap_max_rpm,MAX(rpm),,,named window lap,False,False,False,False
+int_lap_telemetry_aggregates,base_corner_min_speed_kph,AVG(CASE WHEN lap_in_stint BETWEEN 2 AND 5 AND NOT is_out_lap AND NOT ,,,named window stint,False,False,False,False
+int_lap_telemetry_aggregates,base_pct_full_throttle,AVG(CASE WHEN lap_in_stint BETWEEN 2 AND 5 AND NOT is_out_lap AND NOT ,,,named window stint,False,False,False,False
+int_lap_telemetry_aggregates,base_brake_onset_m,AVG(CASE WHEN lap_in_stint BETWEEN 2 AND 5 AND NOT is_out_lap AND NOT ,,,named window stint,False,False,False,False
+int_lap_telemetry_aggregates,dv_kph,LAG(speed_kph),,,named window w,False,False,False,False
+int_lap_telemetry_aggregates,dx_m,LAG(distance_m),,,named window w,False,False,False,False
+int_lap_thermal_proxy,,w,stint_id,ORDER BY lap_in_stint NULLS LAST,ROWS BETWEEN 8 PRECEDING AND CURRENT ROW,False,False,False,False
+int_lap_thermal_proxy,baseline_observations_n,COUNT(CASE WHEN is_valid_lap THEN lap_time_s END),stint_id,ORDER BY lap_in_stint NULLS LAST,ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_lap_thermal_proxy,stint_baseline_pace,MEDIAN(CASE WHEN is_valid_lap THEN lap_time_s END),stint_id,ORDER BY lap_in_stint NULLS LAST,ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_lap_thermal_proxy,stint_baseline_pace,COUNT(CASE WHEN is_valid_lap THEN lap_time_s END),stint_id,ORDER BY lap_in_stint NULLS LAST,ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_surface,"LAG(push_residual, 4)",,,named window w,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_bulk,"LAG(push_residual, 7)",,,named window w,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_surface,"LAG(push_residual, 3)",,,named window w,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_bulk,"LAG(push_residual, 6)",,,named window w,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_surface,"LAG(push_residual, 2)",,,named window w,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_bulk,"LAG(push_residual, 5)",,,named window w,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_surface,"LAG(push_residual, 1)",,,named window w,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_bulk,"LAG(push_residual, 4)",,,named window w,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_bulk,"LAG(push_residual, 3)",,,named window w,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_bulk,"LAG(push_residual, 2)",,,named window w,False,False,False,False
+int_lap_thermal_proxy,cumulative_push_load_bulk,"LAG(push_residual, 1)",,,named window w,False,False,False,False
+int_qualifying_segments,next_segment_start_s,LEAD(segment_start_s),"race_year,race_id",ORDER BY segment_index NULLS LAST,,True,False,False,True
+int_sc_hazard_history,prior_seasons_n,COUNT(season_races_n),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_races_n,COUNT(season_races_n),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_races_n,SUM(season_races_n),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_sc_onsets,COUNT(season_sc_onsets),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_sc_onsets,SUM(season_sc_onsets),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_vsc_onsets,COUNT(season_vsc_onsets),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_vsc_onsets,SUM(season_vsc_onsets),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_any_onsets,COUNT(season_any_onsets),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_any_onsets,SUM(season_any_onsets),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_racing_laps,COUNT(season_racing_laps),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_racing_laps,SUM(season_racing_laps),circuit_slug,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_sc_rate,COUNT(season_sc_onsets),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_sc_rate,SUM(season_sc_onsets),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_vsc_rate,COUNT(season_vsc_onsets),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_vsc_rate,SUM(season_vsc_onsets),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_any_rate,COUNT(season_any_onsets),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_any_rate,SUM(season_any_onsets),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_sc_rate,COUNT(season_racing_laps),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_sc_rate,SUM(season_racing_laps),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_vsc_rate,COUNT(season_racing_laps),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_vsc_rate,SUM(season_racing_laps),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_any_rate,COUNT(season_racing_laps),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_sc_hazard_history,prior_global_any_rate,SUM(season_racing_laps),,ORDER BY season NULLS LAST,RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING,False,False,False,False
+int_stint_geometry,lap_in_stint,ROW_NUMBER(),"race_year,race_id,driver_id,stint_number",ORDER BY lap_number NULLS LAST,,False,False,False,True
+int_stint_geometry,stint_length_actual,COUNT(*),stint_id,,,False,False,True,False
+int_stint_geometry,stint_length_valid,COUNT(*) FILTER(WHERE is_valid_lap),stint_id,,,False,False,True,False
+int_stint_geometry,valid_lap_in_stint,COUNT(*) FILTER(WHERE is_valid_lap),stint_id,ORDER BY lap_number NULLS LAST,ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW,False,False,False,False
+stg_track_status,status_duration_s,LEAD(session_time_s),"race_year,race_id","ORDER BY session_time_s NULLS LAST, status_code NULLS LAST",,True,False,False,True

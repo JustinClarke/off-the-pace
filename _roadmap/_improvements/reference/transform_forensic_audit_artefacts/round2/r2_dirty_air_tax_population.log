@@ -1,0 +1,33 @@
+
+## Part 1: spine laps with no tax row but a non-zero lagged dirty-air share
+ spine_laps_without_tax_row  n_should_be_taxed_but_zero  of_which_training_eligible  mean_missing_tax_s_at_theta_built  max_missing_tax_s
+                      14664                        3504                        1980                             0.1521             0.1521
+
+## Why no row (correction_weight, rain)
+ correction_weight  rain    n
+               0.6 False 5639
+               0.3 False 5391
+               1.0  True 3262
+               0.0 False  145
+               0.6  True  123
+               0.3  True  104
+
+## Part 2: theta with F1's fabricated-base laps excluded from the calibration panel
+ n_panel  n_fabricated_base  theta_as_built  theta_excluding_fabricated
+  145543              10407        0.152123                    0.415821
+
+## Part 2b: fabricated laps are y = -fuel (large negative) and disproportionately treated
+ base_null      n  share_treated  mean_y  treated_minus_untreated
+     False 135136          0.223   0.325                   0.4158
+      True  10407          0.391  -1.436                  -1.1649
+
+## Part 2c: per-season (diagnostic; production theta is pooled, see round-1 F5)
+ race_year  theta_built_by_season  theta_measured_only
+      2018                 0.4178               0.4964
+      2019                 0.2922               0.5396
+      2020                 0.2500               0.4987
+      2021                -0.0339               0.3495
+      2022                 0.0649               0.3783
+      2023                 0.1056               0.2985
+      2024                -0.0105               0.3318
+      2025                 0.2713               0.5076

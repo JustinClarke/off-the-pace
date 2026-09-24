@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "project": "off-the-pace ML/transform programme",
-  "updated": "2026-09-22T19:30:00Z",
-  "pointer": "02c",
+  "updated": "2026-09-24T00:00:00Z",
+  "pointer": null,
   "stage_vocabulary": {
     "SPEC": "Written. Nothing run.",
     "PROBED": "Feasibility measured. The method may have changed as a result - re-read the leaf doc before building.",
@@ -256,7 +256,7 @@
     {
       "id": "02c",
       "group": "02",
-      "stage": "GATED",
+      "stage": "CLOSED",
       "depends_on": [
         "02g",
         "09c",
@@ -267,7 +267,8 @@
       "cost": "2-3d",
       "model": "opus-5",
       "gates_run": "Gates 1-4 run with no skips, plus gate 7. Gate 1 PASS all four families (10dp). Gate 2 add-ablation on cv_final_fold. Gate 3 floors measured in-run on the v13 substrate. Gate 4 permutation null, capacity and information reported separately, plus a shuffle-vs-shuffle negative control per family. Gate 5 leakage audits were verified clean when the lineage was wired in (unchanged). Gate 6 satisfied 2026-09-11; no arm added. Gate 7 declared and reported; e-BH k* = 0, structurally unable to reject under 09c's non-retroactivity.",
-      "blocked_by_decision": "D17"
+      "blocked_by_decision": "D17",
+      "closed": "D17 verdict overturned on v14 substrate (0 of 12 cells clear vs D17 YES on 4 cells, v13). Per 02c pre-registration: nothing clears \u2192 Tier 2 closed. Columns remain mart-only."
     },
     {
       "id": "02d",
@@ -854,14 +855,15 @@
     {
       "id": "12a",
       "group": "12",
-      "stage": "MEASURED",
+      "stage": "CLOSED",
       "depends_on": [
         "03b"
       ],
       "title": "Price the two directions of 'more seasons' - 2025 forward (no inference gap) against 2011-2017 backward (a real one)",
       "note": "RAISED 2026-09-19 by the build-order restructure, against the user's stated long-horizon goal: 'close the data inference gap so that we can ingest more years' data in and actually ship this'. SCOPING ONLY - this item measures, prices and rules; it ingests nothing and builds nothing. It sits at the BOTTOM of the generated order because group 12 is declared last, and that placement is deliberate: it is the next horizon, not the next step.\n\nTRACED FROM SOURCE 2026-09-19. The headline is that 'more seasons' is two different questions with two different answers, and the tree has never separated them.\n\nFORWARD (2025, and 2026 when it finishes) - THERE IS NO INFERENCE GAP AT ALL. FastF1 covers 2025 exactly as it covers 2018-2024; ingestion/src/ingest.py is already season-parameterised (its own usage line is `--start-season 2018 --end-season 2024`); and ml/src/features.py:54-57 resolves holdout_season as `SELECT MAX(race_year) + 1 FROM fct_cliff_prediction_features`, so ingesting 2025 makes 2025 the holdout and folds 2024 into training with NO code change. The repo already advertises this in four places: ml/model_card.yml:26 ('reveal the moment 2025 ingests, with no code change'), ml/model_card.yml:787 ('No live 2025 holdout yet'), README.md:167 ('the 2024 fold stands in as a holdout until 2025 ingests') and ml/tests/test_predict.py:36 ('no holdout rows expected before 2025 ingests'). THREE LIVE PROBLEMS IN THIS TREE NAME IT AS THE FIX: D4's own text ('what would change the answer: a second eval season (2025 ingest) giving the slope test more than 24 races to work with'); 10d/10e's paired race-cluster bootstrap, which cannot establish the calibration-slope gain at 95% on 24 eval races; and 01b's pre-registration finding that 'every 2024 circuit hosts exactly one race, so same circuit, different race does not exist inside the eval population', which forced it to drop half of defect 5's independence constraint. Cost is real but mechanical: bronze telemetry is 6.0 GB for seven seasons (~0.9 GB/season) plus the FastF1 pull, a full dbt build, a retrain and a re-export - and every published figure moves, so it is a v13 carrying the same re-quoting cost D10 is currently being weighed against.\n\nBACKWARD (2011-2017) - THE GAP IS REAL, AND IT IS NOT A FEATURE-SUBSET PROBLEM. 03b already ingested the data (CLOSED: 137/137 races, 157,830 lap rows, 6,251 pit stops, 9,121 reconstructed stints, 84.2% exact stint-boundary match against 2018 FastF1) for 03c's mover panel, and it is not wired to the ML pipeline. The wall is FastF1's coverage: data/bronze/laps/ and data/bronze/telemetry/ hold season=2018 through season=2024 and nothing earlier, and Jolpica's /laps and /pitstops endpoints carry driver_id, lap_number, position and lap_time_s and nothing else (ingestion/src/jolpica_client.py::_flatten_laps). COLUMN-LEVEL AGAINST THE 32-COLUMN CONTRACT: THERMAL (4) SURVIVES - int_lap_thermal_proxy refs only int_stint_geometry and stg_laps.lap_time_s, so push_residual, cumulative_push_load_surface/_bulk and surface_bulk_ratio are all computable from Jolpica lap times plus 03b's reconstructed stints. STINT_POSITION (4) MOSTLY SURVIVES - lap_number is direct, fuel_mass_kg is fine (int_lap_fuel_state is race_lap_count x a seeded consumption rate and refuelling was banned in 2010), lap_in_stint comes from 03b's reconstruction, but age_in_stint is FastF1's `tyre_life`, which counts carried-over life on a scrubbed set and has no Jolpica equivalent. COMPOUND (7) AND CLIFF_PRIOR (4) ARE DEAD - there is no compound identity of any kind before 2018 in any source this repo reads (03b's own table: 'No compound data exists before 2018 at all'), and int_compound_cliff_predicted additionally needs stg_weather, which is FastF1. DIRTY_AIR (4) AND PROXIMITY (9) ARE DEAD - int_lap_air_state reads bronze raw_telemetry's DistanceToDriverAhead / speed_kph / relativedistance directly, and int_lap_proximity reads stg_telemetry_position's ~369 position-channel samples per lap. So 24 of 32 contract columns are unavailable or degraded. A lap-grain gap-to-car-ahead reconstructed from cumulative Ergast lap times is possible and is NOT a backfill of these thirteen: it is one sample per lap against a group whose whole content is sub-lap dwell time (share_lap_within_1s, time_within_1s, ahead_identity_stability), so it would be a new feature needing its own build and its own ablation.\n\nAND THE TARGET IS THE BIGGER HALF, which a features-only reading misses entirely. next_5_lap_cumulative_jump_s is built off driver_skill_residual_s, whose seven-term identity (int_lap_residual_decomposed.sql:290-320) subtracts compound_component_s (dead pre-2018), ambient_component_s (stg_weather, dead) and dirty_air_tax_s (telemetry, dead) among others - so the TARGET is a different quantity before 2018, and 08n's own ruling is that a changed target is a new version and not a comparable number. laps_until_cliff_class is thresholded off the same residual and inherits it. remaining_stint_life_laps needs is_censored_stint, which comes through 10a's stint end-regime label - and int_stint_geometry derives is_safety_car_lap / is_vsc_lap / is_red_flag_lap from stg_laps.track_status, i.e. FastF1's TrackStatus digit string, which has no Jolpica equivalent. So 10a's entire end-regime construction, which the whole of group 10 rests on, cannot be built for those seasons at all.\n\nWHAT THIS ITEM DECIDES, rather than asserts. (a) Whether the backward extension is worth anything given that it can only support a reduced-contract, differently-targeted, separately-versioned model - and if so, whether the shape is a segmented model, a two-stage model, or nothing. (b) Whether 2025 should be ingested FIRST and, if so, what it costs and what it invalidates, since it is the direction with no inference gap and three open problems waiting on it. (c) What 'shipping' actually requires, which may be (b) and not (a) at all. The honest prior going in, recorded so the item is not read as enthusiasm: the backward direction is weeks of work for a model that cannot be compared to the shipped one, and the forward direction is days of machine time with no new science in it.\n\nLeaf doc: work/12-season-coverage.md, 12a.\n\nMEASURED 2026-09-21: Forward direction (2025): GO, ~6-8 hours machine time, solves D4/10d/10e/01b. Backward direction (2011-2017): NO, feature contract unsalvageable (20 of 32 columns dead), target becomes incomparable per 08n's ruling, no clear deployment use case. Full analysis with column-level table and target decomposition in work/12-season-coverage.md, section 12a\u2014Measured findings.",
       "cost": "1-2d (scope only)",
-      "model": "opus-5"
+      "model": "opus-5",
+      "closed": "MEASURED 2026-09-21: Forward (2025) GO \u2014 6\u20138h machine, no new science, solves D4/10d/10e/01b. Backward (2011\u20132017) NO \u2014 feature contract unsalvageable (20 of 32 columns dead), target incomparable per 08n ruling, no deployment path. Full analysis in work/12-season-coverage.md. Follow-on item: 12a-1 (ingest 2025 and retrain for v13)."
     },
     {
       "id": "12a-1",

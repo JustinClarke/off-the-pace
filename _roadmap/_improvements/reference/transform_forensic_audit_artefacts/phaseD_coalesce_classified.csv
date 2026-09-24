@@ -1,0 +1,429 @@
+model,line,fn,kind,in_ml_lineage,first_arg,fallback
+int_circuit_x_constructor_interaction,73,COALESCE,column_or_expr_fallback,True,cm.circuit_id,rm.circuit_key
+int_circuit_x_constructor_interaction,135,NULLIF,nullif_guard,True,n_obs + 3.0,0
+int_circuit_x_constructor_interaction,154,COALESCE,numeric_zero,True,shrunk_interaction_s,0.0
+int_circuit_x_constructor_interaction,155,COALESCE,numeric_zero,True,n_obs,0
+int_circuit_x_constructor_interaction,156,COALESCE,numeric_zero,True,observed_std_s,0.0
+int_compound_cliff_predicted,110,COALESCE,numeric_sentinel:30.0,True,track_temp_c,30.0
+int_compound_cliff_predicted,111,COALESCE,numeric_sentinel:20.0,True,compound_optimal_temp_low,20.0
+int_compound_cliff_predicted,120,COALESCE,numeric_sentinel:999.0,True,compound_cliff_onset_laps,999.0
+int_compound_cliff_predicted,124,COALESCE,numeric_sentinel:999.0,True,compound_cliff_onset_laps,999.0
+int_compound_cliff_predicted,146,COALESCE,numeric_sentinel:999.0,True,compound_cliff_onset_laps,999.0
+int_compound_cliff_predicted,147,COALESCE,numeric_zero,True,compound_cliff_severity,0.0
+int_compound_cliff_predicted,152,COALESCE,numeric_zero,True,compound_wear_gradient,0.0
+int_compound_cliff_predicted,156,COALESCE,numeric_zero,True,compound_wear_gradient,0.0
+int_compound_cliff_predicted,194,COALESCE,numeric_zero,True,compound_grip_peak,0.0
+int_compound_cliff_predicted,196,COALESCE,numeric_zero,True,compound_wear_gradient,0.0
+int_compound_cliff_predicted,210,COALESCE,numeric_zero,True,compound_wear_gradient,0.0
+int_constructor_deg_sensitivity,142,COALESCE,bool:FALSE,False,rainfall_flag,FALSE
+int_constructor_deg_sensitivity,145,COALESCE,bool:FALSE,False,cliff_onset_passed,FALSE
+int_constructor_deg_sensitivity,170,NULLIF,nullif_guard,False,SUM(dx * dx),0
+int_constructor_deg_sensitivity,193,NULLIF,nullif_guard,False,sxx,0
+int_constructor_deg_sensitivity,229,COALESCE,numeric_zero,False,(SUM(w * dev * dev) - (COUNT(*) - 1)) / NULLIF(SUM(w) - SUM(w * w) / S,0
+int_constructor_deg_sensitivity,231,NULLIF,nullif_guard,False,SUM(w) - SUM(w * w) / SUM(w),0
+int_constructor_deg_sensitivity,261,COALESCE,bool:FALSE,False,lr.rainfall_flag,FALSE
+int_constructor_deg_sensitivity,325,NULLIF,nullif_guard,False,det,0
+int_constructor_deg_sensitivity,363,COALESCE,numeric_zero,False,(SUM(hw * hinge_dev * hinge_dev) - (COUNT(*) - 1)) / NULLIF(SUM(hw) - ,0
+int_constructor_deg_sensitivity,365,NULLIF,nullif_guard,False,SUM(hw) - SUM(hw * hw) / SUM(hw),0
+int_constructor_deg_sensitivity,433,NULLIF,nullif_guard,False,t.htau2 + c.b_hinge_se * c.b_hinge_se,0
+int_constructor_deg_sensitivity,436,COALESCE,numeric_zero,False,t.htau2,0
+int_constructor_deg_sensitivity,456,NULLIF,nullif_guard,False,t.tau2 + c.slope_se * c.slope_se,0
+int_constructor_deg_sensitivity,464,COALESCE,numeric_zero,False,t.tau2,0
+int_constructor_deg_sensitivity,465,COALESCE,numeric_zero,False,t.tau2,0
+int_constructor_deg_sensitivity,470,NULLIF,nullif_guard,False,t.tau2 + c.slope_se * c.slope_se,0
+int_constructor_deg_sensitivity,473,COALESCE,numeric_zero,False,t.tau2,0
+int_constructor_deg_sensitivity,481,COALESCE,numeric_zero,False,cs.hinge_dev_shrunk,0.0
+int_constructor_deg_sensitivity,482,NULLIF,nullif_guard,False,cs.severity_used,0
+int_constructor_deg_sensitivity,487,NULLIF,nullif_guard,False,cs.severity_used,0
+int_constructor_deg_sensitivity,494,COALESCE,numeric_zero,False,cs.n_post,0
+int_constructor_deg_sensitivity,495,COALESCE,numeric_zero,False,cs.n_deep,0
+int_constructor_deg_sensitivity,496,COALESCE,numeric_zero,False,cs.n_stints_cliff,0
+int_constructor_deg_sensitivity,497,COALESCE,bool:FALSE,False,cs.cliff_qualifies,FALSE
+int_constructor_structural_pace,92,COALESCE,column_or_expr_fallback,True,fp.field_pace_smoothed_s,f.lap_time_s
+int_constructor_structural_pace,110,COALESCE,numeric_sentinel:1.0,True,cor.correction_weight,1.0
+int_constructor_structural_pace,111,COALESCE,bool:FALSE,True,e.rainfall_flag,FALSE
+int_constructor_structural_pace,160,COALESCE,numeric_zero,True,ca.stddev_pace_delta / SQRT(CAST(ca.n_obs AS DOUBLE)),0.0
+int_constructor_structural_pace,164,COALESCE,column_or_expr_fallback,True,(ca.median_pace_delta - rm.race_avg_pace_delta) - 1.96 * (ca.stddev_pa,ca.median_pace_delta - rm.race_avg_pace_delta
+int_constructor_structural_pace,169,COALESCE,column_or_expr_fallback,True,(ca.median_pace_delta - rm.race_avg_pace_delta) + 1.96 * (ca.stddev_pa,ca.median_pace_delta - rm.race_avg_pace_delta
+int_constructor_structural_pace_qualifying,139,COALESCE,numeric_zero,True,ca.stddev_pace_delta / SQRT(CAST(ca.n_obs AS DOUBLE)),0.0
+int_constructor_structural_pace_qualifying,143,COALESCE,column_or_expr_fallback,True,(ca.median_pace_delta - rm.race_avg_pace_delta) - 1.96 * (ca.stddev_pa,ca.median_pace_delta - rm.race_avg_pace_delta
+int_constructor_structural_pace_qualifying,148,COALESCE,column_or_expr_fallback,True,(ca.median_pace_delta - rm.race_avg_pace_delta) + 1.96 * (ca.stddev_pa,ca.median_pace_delta - rm.race_avg_pace_delta
+int_corner_skill_residuals,94,NULLIF,nullif_guard,True,s2.s2_speed_trap_kph * (1000.0 / 3600.0),0
+int_corner_skill_residuals,214,NULLIF,nullif_guard,True,fm.field_corner_v_min_kph * (1000.0 / 3600.0),0
+int_dirty_air_tax_component,104,COALESCE,numeric_zero,True,a.dirty_air_share_lap,0.0
+int_dirty_air_tax_component,146,COALESCE,column_or_expr_fallback,True,fp.field_pace_smoothed_s,f.lap_time_s
+int_dirty_air_tax_component,169,COALESCE,numeric_sentinel:1.0,True,c.correction_weight,1.0
+int_dirty_air_tax_component,170,COALESCE,bool:FALSE,True,e.rainfall_flag,FALSE
+int_dirty_air_tax_component,201,COALESCE,numeric_sentinel:0.1310,True,"COVAR_POP(partial_residual_s, dirty_air_share_lag1) / NULLIF(VAR_POP(d",0.1310
+int_dirty_air_tax_component,203,NULLIF,nullif_guard,True,VAR_POP(dirty_air_share_lag1),0
+int_dirty_air_tax_component,226,COALESCE,numeric_zero,True,wl.dirty_air_share_lag1,0.0
+int_dirty_air_tax_component,229,COALESCE,numeric_zero,True,wl.dirty_air_share_lag1,0.0
+int_dirty_air_tax_component,231,COALESCE,numeric_zero,True,wl.dirty_air_share_lag1,0.0
+int_dirty_air_tax_component,233,COALESCE,numeric_zero,True,wl.dirty_air_share_lag1,0.0
+int_dirty_air_tax_component,244,COALESCE,numeric_zero,True,wl.dirty_air_share_lag1,0.0
+int_dirty_air_tax_component,247,COALESCE,numeric_zero,True,wl.dirty_air_share_lag1,0.0
+int_dirty_air_tax_component,249,COALESCE,numeric_zero,True,wl.dirty_air_share_lag1,0.0
+int_dirty_air_tax_component,268,COALESCE,bool:FALSE,True,"dirty_air_tax_s = MAX(dirty_air_tax_s) OVER ( PARTITION BY race_year, ",FALSE
+int_driver_circuit_affinity,52,COALESCE,column_or_expr_fallback,False,cm.circuit_id,f.circuit_key
+int_driver_circuit_affinity,94,COALESCE,numeric_zero,False,within_cell_stddev_s,0
+int_driver_circuit_affinity,118,NULLIF,nullif_guard,False,vc.sigma2_residual,0
+int_driver_circuit_affinity,119,NULLIF,nullif_guard,False,"POWER(vc.sigma_prior_approx, 2)",0
+int_driver_circuit_affinity,126,NULLIF,nullif_guard,False,dco.n_obs + 5,0
+int_driver_circuit_affinity,145,NULLIF,nullif_guard,False,ws.posterior_var_s2,0
+int_driver_circuit_affinity,146,NULLIF,nullif_guard,False,ws.posterior_var_s2,0
+int_driver_circuit_affinity,148,NULLIF,nullif_guard,False,ws.posterior_var_s2,0
+int_driver_circuit_era_affinity,91,COALESCE,column_or_expr_fallback,False,cm.circuit_id,f.circuit_key
+int_driver_circuit_era_affinity,141,COALESCE,numeric_zero,False,within_cell_stddev_s,0
+int_driver_circuit_era_affinity,177,NULLIF,nullif_guard,False,vc.sigma2_residual,0
+int_driver_circuit_era_affinity,178,NULLIF,nullif_guard,False,"POWER(vc.sigma_prior_approx, 2)",0
+int_driver_circuit_era_affinity,186,NULLIF,nullif_guard,False,dco.n_obs + 5,0
+int_driver_circuit_era_affinity,215,NULLIF,nullif_guard,False,posterior_var_s2,0
+int_driver_circuit_era_affinity,216,NULLIF,nullif_guard,False,posterior_var_s2,0
+int_driver_circuit_era_affinity,218,NULLIF,nullif_guard,False,posterior_var_s2,0
+int_driver_race_skill_loro,122,COALESCE,column_or_expr_fallback,False,fp.field_pace_smoothed_s,f.lap_time_s
+int_driver_race_skill_loro,138,COALESCE,numeric_sentinel:1.0,False,cor.correction_weight,1.0
+int_driver_race_skill_loro,139,COALESCE,bool:FALSE,False,e.rainfall_flag,FALSE
+int_driver_season_ratings,62,COALESCE,numeric_zero,False,residual_stddev_s,0
+int_driver_season_ratings,89,NULLIF,nullif_guard,False,vc.sigma2_residual,0
+int_driver_season_ratings,90,NULLIF,nullif_guard,False,"POWER(vc.sigma_prior_approx, 2)",0
+int_driver_season_ratings,95,NULLIF,nullif_guard,False,dso.n_races + 5,0
+int_driver_season_ratings,117,NULLIF,nullif_guard,False,posterior_var_s2,0
+int_driver_season_ratings,118,NULLIF,nullif_guard,False,posterior_var_s2,0
+int_driver_season_ratings,120,NULLIF,nullif_guard,False,posterior_var_s2,0
+int_era_normalized_driver_rating,119,NULLIF,nullif_guard,False,SQRT(COUNT(*)),0
+int_era_normalized_driver_rating,149,COALESCE,numeric_zero,False,eo.era_shift_global_s,0
+int_era_normalized_driver_rating,159,COALESCE,numeric_zero,False,sr.shrunk_residual_se_s,0
+int_era_normalized_driver_rating,160,COALESCE,numeric_zero,False,eo.era_shift_se_s,0
+int_era_normalized_driver_rating,162,COALESCE,numeric_zero,False,sr.shrunk_residual_se_s,0
+int_event_corrections,99,COALESCE,bool:FALSE,True,sc.prev_lap_was_controlled,FALSE
+int_event_corrections,100,COALESCE,bool:FALSE,True,sc.next_lap_is_controlled,FALSE
+int_event_corrections,103,COALESCE,bool:FALSE,True,y.is_local_yellow_lap,FALSE
+int_event_corrections,171,COALESCE,column_or_expr_fallback,True,m_lap.manual_event_type,m_all.manual_event_type
+int_event_corrections,173,COALESCE,column_or_expr_fallback,True,m_lap.manual_weight,m_all.manual_weight
+int_lap_air_state,182,COALESCE,numeric_zero,True,a.dirty_air_share_lap,0.0
+int_lap_air_state,184,COALESCE,numeric_zero,True,a.tow_benefit_lap_s,0.0
+int_lap_air_state,188,COALESCE,numeric_zero,True,a.dirty_air_intensity,0.0
+int_lap_air_state,190,COALESCE,string:'free_air',True,a.air_state_dominant,'free_air'
+int_lap_air_state,195,COALESCE,numeric_zero,True,t.time_in_dirty_air_s,0.0
+int_lap_air_state,220,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 1) OVER w",0
+int_lap_air_state,221,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 2) OVER w",0
+int_lap_air_state,222,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 3) OVER w",0
+int_lap_air_state,223,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 4) OVER w",0
+int_lap_air_state,230,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 1) OVER w",0
+int_lap_air_state,231,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 2) OVER w",0
+int_lap_air_state,232,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 3) OVER w",0
+int_lap_air_state,233,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 4) OVER w",0
+int_lap_air_state,234,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 5) OVER w",0
+int_lap_air_state,235,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 6) OVER w",0
+int_lap_air_state,236,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 7) OVER w",0
+int_lap_air_state,237,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 8) OVER w",0
+int_lap_air_state,238,COALESCE,numeric_zero,True,"LAG(dirty_air_intensity, 9) OVER w",0
+int_lap_anomaly_flags,216,COALESCE,bool:FALSE,True,rainfall_flag,FALSE
+int_lap_anomaly_flags,230,COALESCE,bool:FALSE,True,rainfall_flag,FALSE
+int_lap_anomaly_flags,257,COALESCE,bool:FALSE,True,rainfall_flag,FALSE
+int_lap_corner_drift,57,NULLIF,nullif_guard,True,CAST(COUNT(*) AS DOUBLE),0
+int_lap_corner_inputs,80,NULLIF,nullif_guard,True,CAST(COUNT(*) AS DOUBLE),0
+int_lap_normalized_pace,121,COALESCE,column_or_expr_fallback,False,fp.field_pace_smoothed_s,l.lap_time_s
+int_lap_normalized_pace,141,COALESCE,numeric_sentinel:1.0,False,c.correction_weight,1.0
+int_lap_normalized_pace,142,COALESCE,bool:FALSE,False,e.rainfall_flag,FALSE
+int_lap_normalized_pace,150,COALESCE,numeric_sentinel:0.004,False,"COVAR_POP(partial_residual_s, time_in_dirty_air_s) / NULLIF(VAR_POP(ti",0.004
+int_lap_normalized_pace,152,NULLIF,nullif_guard,False,VAR_POP(time_in_dirty_air_s),0
+int_lap_normalized_pace,182,COALESCE,numeric_zero,False,a.time_in_dirty_air_s,0.0
+int_lap_proximity,204,COALESCE,numeric_sentinel:1.0,True,LEAD(crossing_time_s) OVER wd - crossing_time_s,1.0
+int_lap_proximity,406,COALESCE,numeric_zero,True,share_lap_within_1s,0.0
+int_lap_proximity,410,COALESCE,numeric_zero,True,share_lap_within_2s,0.0
+int_lap_proximity,414,COALESCE,numeric_zero,True,share_lap_within_3s,0.0
+int_lap_proximity,418,COALESCE,numeric_zero,True,time_within_1s,0.0
+int_lap_proximity,422,COALESCE,numeric_zero,True,share_lap_in_train,0.0
+int_lap_proximity,426,COALESCE,numeric_zero,True,share_lap_behind_within_1s,0.0
+int_lap_proximity,436,COALESCE,numeric_zero,True,bins_with_any_car_ahead,0
+int_lap_residual_decomposed,215,COALESCE,numeric_zero,True,e.rubber_component_s,0.0
+int_lap_residual_decomposed,216,COALESCE,numeric_zero,True,e.ambient_component_s,0.0
+int_lap_residual_decomposed,223,COALESCE,numeric_zero,True,cs.constructor_structural_pace_s,0.0
+int_lap_residual_decomposed,224,COALESCE,numeric_zero,True,cci.circuit_constructor_interaction_s,0.0
+int_lap_residual_decomposed,228,COALESCE,numeric_zero,True,cs.constructor_structural_pace_se_s,0.0
+int_lap_residual_decomposed,229,COALESCE,numeric_zero,True,cci.interaction_se_s,0.0
+int_lap_residual_decomposed,232,COALESCE,numeric_zero,True,cci.circuit_constructor_interaction_s,0.0
+int_lap_residual_decomposed,235,COALESCE,numeric_zero,True,cci.circuit_constructor_interaction_s,0.0
+int_lap_residual_decomposed,241,COALESCE,numeric_zero,True,da.dirty_air_tax_s,0.0
+int_lap_residual_decomposed,242,COALESCE,numeric_zero,True,da.dirty_air_tax_se_s,0.0
+int_lap_residual_decomposed,244,COALESCE,numeric_zero,True,da.tax_calibration_confidence,0.0
+int_lap_residual_decomposed,246,COALESCE,numeric_zero,True,da.cumulative_dirty_air_tax_race_s,0.0
+int_lap_residual_decomposed,248,COALESCE,bool:FALSE,True,da.dirtiest_air_lap_in_race_flag,FALSE
+int_lap_residual_decomposed,294,COALESCE,column_or_expr_fallback,True,base_track_pace_s,lap_time_s
+int_lap_residual_decomposed,300,COALESCE,numeric_zero,True,compound_component_s,0.0
+int_lap_residual_decomposed,309,COALESCE,column_or_expr_fallback,True,base_track_pace_s,lap_time_s
+int_lap_residual_decomposed,311,COALESCE,numeric_zero,True,compound_component_s,0.0
+int_lap_residual_decomposed_qualifying,99,COALESCE,numeric_zero,True,rubber_component_s,0.0
+int_lap_residual_decomposed_qualifying,100,COALESCE,numeric_zero,True,ambient_component_s,0.0
+int_lap_residual_decomposed_qualifying,101,COALESCE,numeric_zero,True,unexplained_residual_s,0.0
+int_lap_residual_decomposed_qualifying,127,COALESCE,numeric_zero,True,w.rubber_component_s,0.0
+int_lap_residual_decomposed_qualifying,128,COALESCE,numeric_zero,True,w.ambient_component_s,0.0
+int_lap_residual_decomposed_qualifying,131,COALESCE,numeric_zero,True,w.track_unexplained_s,0.0
+int_lap_residual_decomposed_qualifying,134,COALESCE,numeric_zero,True,cc.constructor_structural_pace_s,0.0
+int_lap_residual_decomposed_qualifying,136,COALESCE,numeric_zero,True,cc.constructor_structural_pace_se_s,0.0
+int_lap_residual_decomposed_qualifying,144,COALESCE,numeric_zero,True,cp.compound_wear_gradient,0.0
+int_lap_residual_decomposed_qualifying,179,COALESCE,column_or_expr_fallback,True,base_track_pace_s,lap_time_s
+int_lap_residual_decomposed_qualifying,182,COALESCE,numeric_zero,True,fuel_component_s,0.0
+int_lap_residual_decomposed_qualifying,183,COALESCE,numeric_zero,True,compound_component_s,0.0
+int_lap_residual_decomposed_qualifying,184,COALESCE,numeric_zero,True,rubber_component_s,0.0
+int_lap_residual_decomposed_qualifying,185,COALESCE,numeric_zero,True,ambient_component_s,0.0
+int_lap_residual_decomposed_qualifying,186,COALESCE,numeric_zero,True,constructor_component_s,0.0
+int_lap_residual_decomposed_qualifying,187,COALESCE,numeric_zero,True,dirty_air_tax_s,0.0
+int_lap_residual_decomposed_qualifying,190,COALESCE,column_or_expr_fallback,True,base_track_pace_s,lap_time_s
+int_lap_residual_decomposed_qualifying,191,COALESCE,numeric_zero,True,fuel_component_s,0.0
+int_lap_residual_decomposed_qualifying,192,COALESCE,numeric_zero,True,compound_component_s,0.0
+int_lap_residual_decomposed_qualifying,193,COALESCE,numeric_zero,True,rubber_component_s,0.0
+int_lap_residual_decomposed_qualifying,194,COALESCE,numeric_zero,True,ambient_component_s,0.0
+int_lap_residual_decomposed_qualifying,195,COALESCE,numeric_zero,True,constructor_component_s,0.0
+int_lap_residual_decomposed_qualifying,196,COALESCE,numeric_zero,True,dirty_air_tax_s,0.0
+int_lap_residual_stint_detrend,23,COALESCE,numeric_zero,True,"REGR_SLOPE(driver_skill_residual_s, lap_in_stint)",0.0
+int_lap_telemetry_aggregates,118,COALESCE,bool:FALSE,True,prev_brake,FALSE
+int_lap_thermal_proxy,124,COALESCE,numeric_zero,True,"LAG(push_residual, 1) OVER w",0
+int_lap_thermal_proxy,125,COALESCE,numeric_zero,True,"LAG(push_residual, 2) OVER w",0
+int_lap_thermal_proxy,126,COALESCE,numeric_zero,True,"LAG(push_residual, 3) OVER w",0
+int_lap_thermal_proxy,127,COALESCE,numeric_zero,True,"LAG(push_residual, 4) OVER w",0
+int_lap_thermal_proxy,134,COALESCE,numeric_zero,True,"LAG(push_residual, 1) OVER w",0
+int_lap_thermal_proxy,135,COALESCE,numeric_zero,True,"LAG(push_residual, 2) OVER w",0
+int_lap_thermal_proxy,136,COALESCE,numeric_zero,True,"LAG(push_residual, 3) OVER w",0
+int_lap_thermal_proxy,137,COALESCE,numeric_zero,True,"LAG(push_residual, 4) OVER w",0
+int_lap_thermal_proxy,138,COALESCE,numeric_zero,True,"LAG(push_residual, 5) OVER w",0
+int_lap_thermal_proxy,139,COALESCE,numeric_zero,True,"LAG(push_residual, 6) OVER w",0
+int_lap_thermal_proxy,140,COALESCE,numeric_zero,True,"LAG(push_residual, 7) OVER w",0
+int_pit_loss_circuit,79,COALESCE,column_or_expr_fallback,False,cm.circuit_id,m.race_slug
+int_pit_strategy_cost_curve,231,COALESCE,numeric_sentinel:21.0,False,pl.pit_loss_s_shrunk,21.0
+int_pit_strategy_cost_curve,254,COALESCE,column_or_expr_fallback,False,s.next_compound,s.compound
+int_pit_strategy_cost_curve,256,COALESCE,numeric_sentinel:21.0,False,cpl.pit_lane_loss_s,21.0
+int_pit_strategy_cost_curve,261,COALESCE,numeric_zero,False,sc.any_hazard_per_lap_shrunk,0.0
+int_pit_strategy_cost_curve,354,COALESCE,numeric_zero,False,old_0.cum_wear_s,0.0
+int_pit_strategy_cost_curve,355,COALESCE,numeric_zero,False,new_c.cum_wear_s,0.0
+int_pit_strategy_cost_curve,362,COALESCE,numeric_zero,False,new_c0.compound_grip_peak,0.0
+int_pit_strategy_cost_curve,363,COALESCE,numeric_zero,False,old_c0.compound_grip_peak,0.0
+int_pit_strategy_cost_curve,367,COALESCE,numeric_sentinel:30.0,False,c.track_temp_c,30.0
+int_pit_strategy_cost_curve,368,COALESCE,numeric_sentinel:20.0,False,new_c0.compound_optimal_temp_low,20.0
+int_pit_strategy_cost_curve,375,COALESCE,numeric_sentinel:30.0,False,c.track_temp_c,30.0
+int_pit_strategy_cost_curve,376,COALESCE,numeric_sentinel:20.0,False,old_c0.compound_optimal_temp_low,20.0
+int_pit_strategy_value,110,COALESCE,numeric_sentinel:21.0,False,pl.pit_loss_s_shrunk,21.0
+int_pit_strategy_value,124,COALESCE,bool:TRUE,False,CAST(cr.pit_loss_imputed_flag AS BOOLEAN),TRUE
+int_pit_strategy_value,149,COALESCE,numeric_sentinel:999.0,False,la.min_gap_s,999.0
+int_pit_strategy_value,155,COALESCE,numeric_sentinel:21.0,False,cpl.pit_lane_loss_s,21.0
+int_pit_strategy_value,364,COALESCE,column_or_expr_fallback,False,a.optimal_offset,a.optimal_offset_race
+int_pit_strategy_value,365,COALESCE,column_or_expr_fallback,False,a.optimal_pit_lap,a.optimal_pit_lap_race
+int_pit_strategy_value,366,COALESCE,column_or_expr_fallback,False,a.horizon_laps,a.race_horizon_laps
+int_pit_strategy_value,367,COALESCE,column_or_expr_fallback,False,a.actual_total_cost_s,a.actual_total_cost_race_s
+int_pit_strategy_value,370,COALESCE,column_or_expr_fallback,False,a.optimal_total_cost_s,a.optimal_total_cost_race_s
+int_pit_strategy_value,414,COALESCE,numeric_zero,False,r.optimal_pit_lap_confidence,0.0
+int_pit_strategy_value,418,COALESCE,numeric_sentinel:21.0,False,r.pit_lane_loss_s,21.0
+int_pit_strategy_value,419,COALESCE,string:'default',False,r.pit_loss_source,'default'
+int_pit_strategy_value,420,COALESCE,bool:TRUE,False,r.pit_loss_imputed_flag,TRUE
+int_qualifying_decomposed,104,COALESCE,bool:FALSE,True,rainfall_flag,FALSE
+int_qualifying_decomposed,146,COALESCE,numeric_zero,True,rd.race_skill_race_avg_s,0.0
+int_qualifying_push_laps,60,COALESCE,string:'Q',True,s.quali_segment,'Q'
+int_qualifying_push_laps,119,NULLIF,nullif_guard,True,sb.segment_best_s,0
+int_qualifying_push_laps,123,COALESCE,bool:FALSE,True,a.is_valid_lap AND a.lap_time_s IS NOT NULL AND ( a.lap_time_s <= {{ v,FALSE
+int_qualifying_segments,149,COALESCE,numeric_sentinel:-1.0,True,a1.anchor_s,-1.0
+int_qualifying_segments,173,COALESCE,numeric_sentinel:-1.0,True,a2.anchor_s,-1.0
+int_qualifying_segments,246,COALESCE,numeric_sentinel:-1.0,True,b.prev_first_anchor_s,-1.0
+int_qualifying_segments,268,COALESCE,numeric_sentinel:-1.0,True,b.prev_last_anchor_s,-1.0
+int_qualifying_segments,289,COALESCE,column_or_expr_fallback,True,gc.first_green_s,b.first_anchor_s
+int_qualifying_segments,290,COALESCE,column_or_expr_fallback,True,gc.green_after_chequered_s,b.first_anchor_s
+int_qualifying_segments,321,COALESCE,column_or_expr_fallback,True,MIN(e.session_time_s) FILTER (WHERE e.status = 'finished'),MIN(e.session_time_s) FILTER (WHERE e.status = 'fi
+int_sc_hazard_history,78,COALESCE,numeric_zero,True,o.n_sc_onsets,0
+int_sc_hazard_history,79,COALESCE,numeric_zero,True,o.n_vsc_onsets,0
+int_sc_hazard_history,130,NULLIF,nullif_guard,True,"{{ trailing_sum( 'season_racing_laps', none, ['season'], frame='range'",0
+int_sc_hazard_history,136,NULLIF,nullif_guard,True,"{{ trailing_sum( 'season_racing_laps', none, ['season'], frame='range'",0
+int_sc_hazard_history,142,NULLIF,nullif_guard,True,"{{ trailing_sum( 'season_racing_laps', none, ['season'], frame='range'",0
+int_sc_hazard_history,192,COALESCE,numeric_zero,True,c.prior_races_n,0
+int_sc_hazard_history,193,COALESCE,numeric_zero,True,c.prior_sc_onsets,0
+int_sc_hazard_history,194,COALESCE,numeric_zero,True,c.prior_vsc_onsets,0
+int_sc_hazard_history,195,COALESCE,numeric_zero,True,c.prior_any_onsets,0
+int_sc_hazard_history,196,COALESCE,numeric_zero,True,c.prior_racing_laps,0
+int_sc_hazard_history,201,COALESCE,numeric_zero,True,c.prior_sc_onsets,0
+int_sc_hazard_history,202,NULLIF,nullif_guard,True,c.prior_racing_laps,0
+int_sc_hazard_history,203,COALESCE,numeric_zero,True,c.prior_vsc_onsets,0
+int_sc_hazard_history,204,NULLIF,nullif_guard,True,c.prior_racing_laps,0
+int_sc_hazard_history,205,COALESCE,numeric_zero,True,c.prior_any_onsets,0
+int_sc_hazard_history,206,NULLIF,nullif_guard,True,c.prior_racing_laps,0
+int_sc_hazard_history,217,COALESCE,numeric_zero,True,c.prior_sc_onsets,0
+int_sc_hazard_history,221,COALESCE,numeric_zero,True,c.prior_racing_laps,0
+int_sc_hazard_history,225,COALESCE,numeric_zero,True,c.prior_vsc_onsets,0
+int_sc_hazard_history,229,COALESCE,numeric_zero,True,c.prior_racing_laps,0
+int_sc_hazard_history,233,COALESCE,numeric_zero,True,c.prior_any_onsets,0
+int_sc_hazard_history,237,COALESCE,numeric_zero,True,c.prior_racing_laps,0
+int_sector_residual_decomposed,55,COALESCE,numeric_zero,False,air.dirty_air_share_lap,0.0
+int_sector_residual_decomposed,143,NULLIF,nullif_guard,False,lap_time_s,0
+int_sector_residual_decomposed,146,NULLIF,nullif_guard,False,lap_time_s,0
+int_sector_residual_decomposed,147,COALESCE,numeric_zero,False,compound_component_s,0.0
+int_sector_residual_decomposed,148,NULLIF,nullif_guard,False,lap_time_s,0
+int_sector_residual_decomposed,151,NULLIF,nullif_guard,False,lap_time_s,0
+int_sector_residual_decomposed,153,NULLIF,nullif_guard,False,lap_time_s,0
+int_sector_residual_decomposed,155,NULLIF,nullif_guard,False,lap_time_s,0
+int_sector_residual_decomposed,158,COALESCE,numeric_zero,False,dirty_air_share_lap,0.0
+int_sector_residual_decomposed,159,NULLIF,nullif_guard,False,lap_time_s,0
+int_stint_end_regime,88,COALESCE,numeric_sentinel:-1,False,stint_number,-1
+int_stint_end_regime,89,COALESCE,numeric_sentinel:-1,False,stint_number,-1
+int_stint_end_regime,165,COALESCE,string:'',False,res.status,''
+int_stint_end_regime,166,COALESCE,string:'',False,res.status,''
+int_stint_end_regime,168,COALESCE,string:'',False,res.status,''
+int_stint_end_regime,173,COALESCE,string:'',False,res.status,''
+int_synthetic_teammate,161,COALESCE,numeric_sentinel:0.5,False,"STDDEV(driver_skill_proxy_s) OVER ( PARTITION BY race_year, race_id, e",0.5
+int_track_evolution,90,NULLIF,nullif_guard,True,"SUM(POWER(c.lap_number - rm.mean_lap, 2))",0
+int_track_evolution,139,NULLIF,nullif_guard,True,"SUM(POWER(r.track_temp_c - tm.mean_track_temp, 2))",0
+int_track_evolution,156,COALESCE,numeric_zero,True,a.ambient_slope_s_per_c * (r.track_temp_c - a.mean_track_temp),0.0
+int_track_evolution,162,COALESCE,numeric_zero,True,a.ambient_slope_s_per_c * (r.track_temp_c - a.mean_track_temp),0.0
+int_track_geometry,103,NULLIF,nullif_guard,False,"SQRT(POW(bin_x - prev_x, 2) + POW(bin_y - prev_y, 2)) * SQRT(POW(next_",0
+int_tyre_surface_vs_bulk_decoupling,78,COALESCE,numeric_zero,False,th.cumulative_push_load_surface,0.0
+int_tyre_surface_vs_bulk_decoupling,79,COALESCE,numeric_zero,False,th.cumulative_push_load_bulk,0.0
+int_tyre_surface_vs_bulk_decoupling,90,NULLIF,nullif_guard,False,push_load_surface + push_load_bulk,0.0
+int_tyre_surface_vs_bulk_decoupling,114,COALESCE,numeric_sentinel:0.5,False,surface_bulk_ratio,0.5
+int_tyre_surface_vs_bulk_decoupling,118,COALESCE,numeric_sentinel:0.5,False,surface_bulk_ratio,0.5
+int_tyre_surface_vs_bulk_decoupling,119,COALESCE,numeric_sentinel:0.5,False,surface_bulk_ratio,0.5
+int_tyre_surface_vs_bulk_decoupling,140,COALESCE,numeric_sentinel:0.5,False,surface_bulk_ratio,0.5
+int_tyre_surface_vs_bulk_decoupling,141,COALESCE,numeric_zero,False,compound_component_s,0.0
+int_tyre_surface_vs_bulk_decoupling,151,COALESCE,numeric_sentinel:0.5,False,surface_bulk_ratio,0.5
+fct_cliff_prediction_features,289,NULLIF,nullif_guard,True,tp.n_total,0
+fct_cliff_prediction_features,381,COALESCE,numeric_zero,True,ai.dirty_air_share_lap,0.0
+fct_cliff_prediction_features,382,COALESCE,numeric_zero,True,ai.dirty_air_thermal_load_surface,0.0
+fct_cliff_prediction_features,384,COALESCE,numeric_zero,True,ai.dirty_air_thermal_load_bulk,0.0
+fct_cliff_prediction_features,386,COALESCE,string:'free_air',True,ai.air_state_dominant,'free_air'
+fct_cliff_prediction_features,396,COALESCE,numeric_zero,True,px.share_lap_within_1s,0.0
+fct_cliff_prediction_features,397,COALESCE,numeric_zero,True,px.share_lap_within_2s,0.0
+fct_cliff_prediction_features,398,COALESCE,numeric_zero,True,px.share_lap_in_train,0.0
+fct_cliff_prediction_features,399,COALESCE,numeric_zero,True,px.share_lap_behind_within_1s,0.0
+fct_cliff_prediction_features,401,COALESCE,numeric_zero,True,px.time_within_1s,0.0
+fct_cliff_prediction_features,422,COALESCE,numeric_zero,True,ci.corner_input_coverage,0.0
+fct_cliff_prediction_features,440,COALESCE,numeric_zero,True,cd.corner_drift_coverage,0.0
+fct_cliff_prediction_features,459,COALESCE,numeric_zero,True,qs.quali_push_laps_n,0
+fct_cliff_prediction_features,499,COALESCE,numeric_zero,True,sch.prior_racing_laps,0
+fct_cliff_prediction_features,502,COALESCE,numeric_zero,True,sch.prior_seasons_n,0
+fct_cliff_prediction_features,506,COALESCE,bool:FALSE,True,cor.correction_weight < 1.0,FALSE
+fct_cliff_prediction_features,535,COALESCE,numeric_zero,True,det.drift_s_per_lap,0.0
+fct_cliff_prediction_features,539,COALESCE,numeric_sentinel:1.0,True,"GREATEST(0.25, LEAST(4.0, 1.0 / NULLIF(ss.survival_prob, 0.0)))",1.0
+fct_cliff_prediction_features,540,NULLIF,nullif_guard,True,ss.survival_prob,0.0
+fct_cliff_prediction_features,545,COALESCE,numeric_zero,True,th.cumulative_push_load_surface,0.0
+fct_cliff_prediction_features,546,NULLIF,nullif_guard,True,"COALESCE(th.cumulative_push_load_surface, 0.0) + COALESCE(th.cumulativ",0.0
+fct_cliff_prediction_features,547,COALESCE,numeric_zero,True,th.cumulative_push_load_surface,0.0
+fct_cliff_prediction_features,548,COALESCE,numeric_zero,True,th.cumulative_push_load_bulk,0.0
+fct_cliff_prediction_features,912,COALESCE,bool:FALSE,True,"age_in_stint > 3 AND COALESCE(anomaly_class, 'normal') NOT IN ('mistak",FALSE
+fct_cliff_prediction_features,914,COALESCE,string:'normal',True,anomaly_class,'normal'
+fct_driver_skill_features,99,COALESCE,bool:FALSE,False,rainfall_flag,FALSE
+fct_driver_skill_features,103,NULLIF,nullif_guard,False,COUNT(*),0
+fct_driver_skill_features,118,NULLIF,nullif_guard,False,AVG(st.pair_quality_weight),0
+fct_driver_skill_features,127,NULLIF,nullif_guard,False,COUNT(*),0
+fct_driver_skill_features,213,COALESCE,bool:FALSE,False,ta.teammate_available_flag,FALSE
+fct_driver_skill_features,214,COALESCE,numeric_zero,False,ta.strategic_divergence_share,0.0
+fct_ghost_car_pace,96,COALESCE,bool:FALSE,False,lr.rainfall_flag,FALSE
+fct_ghost_car_pace,179,COALESCE,numeric_zero,False,hcp.constructor_structural_pace_s,0.0
+fct_ghost_car_pace,181,COALESCE,numeric_zero,False,hcp.constructor_structural_pace_se_s,0.0
+fct_ghost_car_pace,183,COALESCE,numeric_zero,False,hi.circuit_constructor_interaction_s,0.0
+fct_ghost_car_pace,190,COALESCE,numeric_zero,False,deg_host.deg_slope_s_per_lap,0.0
+fct_ghost_car_pace,191,COALESCE,numeric_zero,False,deg_ego.deg_slope_s_per_lap,0.0
+fct_ghost_car_pace,193,COALESCE,numeric_zero,False,deg_host.deg_slope_s_per_lap,0.0
+fct_ghost_car_pace,194,COALESCE,numeric_zero,False,deg_ego.deg_slope_s_per_lap,0.0
+fct_ghost_car_pace,195,COALESCE,numeric_zero,False,el.age_in_stint,0
+fct_ghost_car_pace,196,COALESCE,numeric_zero,False,deg_host.cliff_onset_shift_laps,0.0
+fct_ghost_car_pace,197,COALESCE,numeric_zero,False,deg_ego.cliff_onset_shift_laps,0.0
+fct_ghost_car_pace,222,COALESCE,numeric_zero,False,el.age_in_stint,0
+fct_ghost_car_pace,223,COALESCE,numeric_sentinel:999.0,False,el.compound_cliff_onset_laps,999.0
+fct_ghost_car_pace,224,COALESCE,numeric_zero,False,deg_host.cliff_onset_shift_laps,0.0
+fct_ghost_car_pace,228,COALESCE,numeric_zero,False,el.age_in_stint,0
+fct_ghost_car_pace,229,COALESCE,numeric_sentinel:999.0,False,el.compound_cliff_onset_laps,999.0
+fct_ghost_car_pace,230,COALESCE,numeric_zero,False,deg_ego.cliff_onset_shift_laps,0.0
+fct_ghost_car_pace,242,COALESCE,numeric_zero,False,deg_host.deg_slope_posterior_sd_s_per_lap,0.0
+fct_ghost_car_pace,244,COALESCE,numeric_zero,False,deg_ego.deg_slope_posterior_sd_s_per_lap,0.0
+fct_ghost_car_pace,246,COALESCE,numeric_zero,False,deg_host.cliff_onset_shift_se_laps,0.0
+fct_ghost_car_pace,248,COALESCE,numeric_zero,False,deg_ego.cliff_onset_shift_se_laps,0.0
+fct_ghost_car_pace,250,COALESCE,numeric_zero,False,el.age_in_stint,0
+fct_ghost_car_pace,251,COALESCE,numeric_zero,False,el.compound_cliff_severity,0.0
+fct_ghost_car_pace,259,COALESCE,numeric_zero,False,el.age_in_stint,0
+fct_ghost_car_pace,260,COALESCE,numeric_sentinel:999.0,False,el.compound_cliff_onset_laps,999.0
+fct_ghost_car_pace,261,COALESCE,numeric_zero,False,deg_host.cliff_onset_shift_laps,0.0
+fct_ghost_car_pace,267,COALESCE,numeric_zero,False,el.age_in_stint,0
+fct_ghost_car_pace,268,COALESCE,numeric_sentinel:999.0,False,el.compound_cliff_onset_laps,999.0
+fct_ghost_car_pace,269,COALESCE,numeric_zero,False,deg_ego.cliff_onset_shift_laps,0.0
+fct_ghost_car_pace,273,COALESCE,numeric_zero,False,hcp.panel_observations_n,0
+fct_ghost_car_pace,274,COALESCE,numeric_zero,False,hi.interaction_obs_n,0
+fct_ghost_car_pace,284,COALESCE,numeric_zero,False,hcp.panel_observations_n,0
+fct_ghost_car_pace,285,NULLIF,nullif_guard,False,"COALESCE(hcp.panel_observations_n, 0) + 50",0
+fct_ghost_car_pace,285,COALESCE,numeric_zero,False,hcp.panel_observations_n,0
+fct_ghost_car_pace,323,COALESCE,column_or_expr_fallback,False,base_track_pace_s,actual_lap_time_s
+fct_ghost_car_pace,324,COALESCE,numeric_zero,False,fuel_component_s,0.0
+fct_ghost_car_pace,325,COALESCE,numeric_zero,False,driver_skill_residual_s,0.0
+fct_ghost_car_pace,326,COALESCE,numeric_zero,False,host_constructor_pace_s,0.0
+fct_ghost_car_pace,327,COALESCE,numeric_zero,False,circuit_interaction_s,0.0
+fct_ghost_car_pace,328,COALESCE,numeric_zero,False,dirty_air_tax_s,0.0
+fct_ghost_car_pace,329,COALESCE,numeric_zero,False,compound_component_s,0.0
+fct_ghost_car_pace,330,COALESCE,numeric_zero,False,rubber_component_s,0.0
+fct_ghost_car_pace,331,COALESCE,numeric_zero,False,ambient_component_s,0.0
+fct_ghost_car_pace,332,COALESCE,numeric_zero,False,deg_interaction_s,0.0
+fct_ghost_car_pace,333,COALESCE,numeric_zero,False,cliff_interaction_s,0.0
+fct_ghost_car_pace,341,COALESCE,column_or_expr_fallback,False,base_track_pace_s,actual_lap_time_s
+fct_ghost_car_pace,342,COALESCE,numeric_zero,False,driver_skill_residual_s,0.0
+fct_ghost_car_pace,343,COALESCE,numeric_zero,False,host_constructor_pace_s,0.0
+fct_ghost_car_pace,344,COALESCE,numeric_zero,False,circuit_interaction_s,0.0
+fct_ghost_car_pace,345,COALESCE,numeric_zero,False,dirty_air_tax_s,0.0
+fct_ghost_car_pace,346,COALESCE,numeric_zero,False,compound_component_s,0.0
+fct_ghost_car_pace,347,COALESCE,numeric_zero,False,rubber_component_s,0.0
+fct_ghost_car_pace,348,COALESCE,numeric_zero,False,ambient_component_s,0.0
+fct_ghost_car_pace,349,COALESCE,numeric_zero,False,deg_interaction_s,0.0
+fct_ghost_car_pace,350,COALESCE,numeric_zero,False,cliff_interaction_s,0.0
+fct_ghost_car_pace,351,COALESCE,numeric_zero,False,fuel_component_s,0.0
+fct_ghost_car_pace,355,COALESCE,column_or_expr_fallback,False,base_track_pace_s,actual_lap_time_s
+fct_ghost_car_pace,356,COALESCE,numeric_zero,False,fuel_component_s,0.0
+fct_ghost_car_pace,357,COALESCE,numeric_zero,False,driver_skill_residual_s,0.0
+fct_ghost_car_pace,358,COALESCE,numeric_zero,False,host_constructor_pace_s,0.0
+fct_ghost_car_pace,359,COALESCE,numeric_zero,False,circuit_interaction_s,0.0
+fct_ghost_car_pace,360,COALESCE,numeric_zero,False,dirty_air_tax_s,0.0
+fct_ghost_car_pace,361,COALESCE,numeric_zero,False,compound_component_s,0.0
+fct_ghost_car_pace,362,COALESCE,numeric_zero,False,rubber_component_s,0.0
+fct_ghost_car_pace,363,COALESCE,numeric_zero,False,ambient_component_s,0.0
+fct_ghost_car_pace,364,COALESCE,numeric_zero,False,deg_interaction_s,0.0
+fct_ghost_car_pace,365,COALESCE,numeric_zero,False,cliff_interaction_s,0.0
+fct_ghost_race_finish,146,COALESCE,bool:FALSE,False,rf.is_dnf,FALSE
+fct_ghost_race_finish,187,COALESCE,numeric_zero,False,STDDEV_SAMP(predicted_lap_time_s),0.0
+fct_ghost_race_finish,197,NULLIF,nullif_guard,False,rd.race_distance_laps,0
+fct_ghost_race_finish,199,NULLIF,nullif_guard,False,rd.race_distance_laps,0
+fct_ghost_race_finish,205,NULLIF,nullif_guard,False,rd.race_distance_laps,0
+fct_ghost_race_finish,214,NULLIF,nullif_guard,False,rt.laps_counted,0
+fct_ghost_race_finish,334,COALESCE,numeric_zero,False,pa.finish_pos_se,0.0
+fct_stint_features,171,NULLIF,nullif_guard,False,"SUM(POWER(l.valid_lap_in_stint - sm.mean_x, 2))",0
+fct_stint_features,188,COALESCE,numeric_zero,False,da.cumulative_dirty_air_tax_s,0.0
+fct_stint_features,207,NULLIF,nullif_guard,False,ps.opportunity_cost_s,0
+fct_telemetry_deltas,42,COALESCE,numeric_zero,False,m_a.braking_point_m - m_b.braking_point_m,0
+fct_telemetry_deltas,45,COALESCE,numeric_zero,False,m_a.v_min_kph - m_b.v_min_kph,0
+fct_telemetry_deltas,48,COALESCE,numeric_zero,False,m_a.throttle_point_m - m_b.throttle_point_m,0
+mart_corner_skill_driver,96,COALESCE,numeric_sentinel:1.0,False,cor.correction_weight,1.0
+mart_corner_skill_driver,97,COALESCE,bool:FALSE,False,e.rainfall_flag,FALSE
+mart_corner_skill_driver,153,COALESCE,numeric_zero,False,dca.driver_sum_braking_s,0
+mart_corner_skill_driver,154,NULLIF,nullif_guard,False,ca.n_braking - dca.n_braking,0
+mart_corner_skill_driver,159,COALESCE,numeric_zero,False,dca.driver_sum_mid_s,0
+mart_corner_skill_driver,160,NULLIF,nullif_guard,False,ca.n_mid - dca.n_mid,0
+mart_corner_skill_driver,165,COALESCE,numeric_zero,False,dca.driver_sum_exit_s,0
+mart_corner_skill_driver,166,NULLIF,nullif_guard,False,ca.n_exit - dca.n_exit,0
+mart_corner_skill_driver,169,NULLIF,nullif_guard,False,dca.n_braking,0
+mart_corner_skill_driver,170,NULLIF,nullif_guard,False,dca.n_mid,0
+mart_corner_skill_driver,171,NULLIF,nullif_guard,False,dca.n_exit,0
+mart_corner_skill_driver,239,NULLIF,nullif_guard,False,COUNT(deconf_braking_s),0
+mart_corner_skill_driver,241,NULLIF,nullif_guard,False,COUNT(deconf_mid_s),0
+mart_corner_skill_driver,243,NULLIF,nullif_guard,False,COUNT(deconf_exit_s),0
+mart_corner_skill_driver,278,NULLIF,nullif_guard,False,STDDEV(braking_skill_s) OVER (PARTITION BY race_year),0
+mart_corner_skill_driver,286,NULLIF,nullif_guard,False,STDDEV(mid_corner_skill_s) OVER (PARTITION BY race_year),0
+mart_corner_skill_driver,296,NULLIF,nullif_guard,False,STDDEV(exit_skill_s) OVER (PARTITION BY race_year),0
+mart_degradation_history_envelope,69,COALESCE,numeric_zero,False,lrd.correction_weight,0
+mart_degradation_history_envelope,151,COALESCE,numeric_sentinel:1.0,False,iso.dirty_air_deg_mult,1.0
+mart_degradation_history_envelope,152,COALESCE,numeric_sentinel:8.0,False,iso.temp_headroom_c,8.0
+mart_degradation_history_envelope,153,COALESCE,numeric_sentinel:0.010,False,iso.temp_penalty_s_per_deg,0.010
+dim_constructors,42,COALESCE,string:'unknown_pu',False,p.pu_family,'unknown_pu'
+dim_corners,62,COALESCE,string:'',True,corner_letter,''
+dim_corners,126,COALESCE,column_or_expr_fallback,True,res.track_id,res.race_slug
+dim_corners,148,COALESCE,numeric_zero,True,w.prev_apex_m,0
+dim_corners,153,COALESCE,column_or_expr_fallback,True,w.next_apex_m,w.apex_distance_m + {{ var('corner_exit_margin_m')
+stg_circuit_info,17,COALESCE,string:'',True,CAST(letter AS VARCHAR),''
+stg_circuit_info,27,NULLIF,nullif_other,True,CAST(letter AS VARCHAR),''
+stg_laps,95,COALESCE,bool:FALSE,True,pitouttime IS NOT NULL OR pitintime IS NOT NULL,FALSE
+stg_laps_qualifying,95,COALESCE,bool:FALSE,True,pitouttime IS NOT NULL OR pitintime IS NOT NULL,FALSE
+stg_race_control,58,NULLIF,nullif_other,False,TRIM(CAST(s.flag AS VARCHAR)),''
+stg_race_control,62,NULLIF,nullif_other,False,TRIM(CAST(s.racingnumber AS VARCHAR)),''
+stg_race_control,68,NULLIF,nullif_other,False,TRIM(CAST(s.racingnumber AS VARCHAR)),''
+stg_race_control,97,COALESCE,string:'',False,flag,''
+stg_telemetry_position,64,NULLIF,nullif_other,True,TRIM(CAST(driverahead AS VARCHAR)),''

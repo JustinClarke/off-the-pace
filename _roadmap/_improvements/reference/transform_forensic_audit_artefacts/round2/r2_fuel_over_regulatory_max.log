@@ -1,0 +1,27 @@
+
+## races whose modelled starting fuel exceeds the regulatory maximum
+ race_year  races  n_over_max  median_initial_kg  max_initial_kg
+      2018     20          20              118.3           127.3
+      2019     21          14              117.6           126.0
+      2020     17          12              117.3           147.9
+      2021     21          16              119.7           126.0
+      2022     22          15              118.3           126.0
+      2023     22          17              118.5           126.0
+      2024     24          20              118.5           126.0
+      2025     24          20              118.3           126.0
+      <NA>    171         134              117.8           147.9
+
+## worst races
+ race_year race_id             track_id  initial_kg  rate  laps
+      2020 2020_16    sakhir_grand_prix       147.9   1.7    87
+      2018 2018_11    german_grand_prix       127.3   1.9    67
+      2023 2023_11 hungarian_grand_prix       126.0   1.8    70
+      2024 2024_13 hungarian_grand_prix       126.0   1.8    70
+      2022  2022_9  canadian_grand_prix       126.0   1.8    70
+      2019  2019_7  canadian_grand_prix       126.0   1.8    70
+      2025 2025_14 hungarian_grand_prix       126.0   1.8    70
+      2020  2020_3 hungarian_grand_prix       126.0   1.8    70
+      2023  2023_8  canadian_grand_prix       126.0   1.8    70
+      2018  2018_7  canadian_grand_prix       126.0   1.8    70
+      2022 2022_13 hungarian_grand_prix       126.0   1.8    70
+      2024  2024_9  canadian_grand_prix       126.0   1.8    70

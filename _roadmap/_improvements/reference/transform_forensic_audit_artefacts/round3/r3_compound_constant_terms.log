@@ -1,0 +1,38 @@
+
+## seed: one hand-set grip_peak and operating-window floor per compound
+compound_code  n_distinct_grip  grip_peak  opt_low_c
+          WET                1       0.95       10.0
+         HARD                1       0.97       76.0
+ INTERMEDIATE                1       0.98       15.0
+       MEDIUM                1       1.00       78.0
+         SOFT                1       1.03       82.0
+    SUPERSOFT                1       1.05       82.0
+    ULTRASOFT                1       1.07       82.0
+    HYPERSOFT                1       1.09       82.0
+
+## stg_weather track temperature (surface)
+ min_c  p99_c  max_c
+  13.8   54.0   57.5
+
+## spine: grip charged in seconds; how often the temperature term is non-zero
+    compound  n_spine  grip_s_charged  mean_compound_component_s  grip_share  share_temp_term_nonzero
+        HARD    61694            0.97                      2.209       0.439                    0.001
+      MEDIUM    55265            1.00                      2.153       0.464                    0.023
+        SOFT    26732            1.03                      2.314       0.445                    0.007
+INTERMEDIATE     7137            0.98                      2.476       0.396                    0.911
+   SUPERSOFT     4877            1.05                      3.286       0.320                    0.000
+   ULTRASOFT     3171            1.07                      3.349       0.320                    0.000
+   HYPERSOFT      729            1.09                      3.371       0.323                    0.000
+        None      364             NaN                     10.080         NaN                    1.000
+         WET      238            0.95                      1.698       0.559                    1.000
+
+## temperature term fires only where there is no cell or the tyre is wet
+        cell      tyre      n  share_temp_nonzero
+no seed cell inter/wet    132               1.000
+no seed cell     slick   1492               1.000
+   seed cell inter/wet   7243               0.913
+   seed cell     slick 150976               0.000
+
+## Synthetic teammate: the grip term in cross-compound adjustments (sign: a softer ego makes the teammate slower)
+ pair_laps  cross_compound_pair_laps  mean_abs_grip_term_s  ego_softer_credited_for_it
+    139772                     42596                 0.032                       21086

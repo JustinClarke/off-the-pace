@@ -1,0 +1,7 @@
+off_the_pace:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: '/private/tmp/claude-501/-Users-justin-github-off-the-pace/a20b3a7b-0089-474d-8e4a-d20ca67bbc81/scratchpad/transform_audit/dbcopy/dev.duckdb'
+      threads: 4

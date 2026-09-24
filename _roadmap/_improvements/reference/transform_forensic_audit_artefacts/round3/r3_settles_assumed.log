@@ -1,0 +1,63 @@
+
+## A1: rebuild reproduces int_lap_anomaly_flags
+     n  mismatches
+160207           0
+
+## A2: class changes
+      built with_f1_fixed    n
+    mistake        normal 1026
+clean_cliff        normal  230
+     normal       mistake  203
+     normal   clean_cliff    6
+
+## A3: training eligibility flips
+ eligible_built  eligible_f1_fixed  flips  flips_on_measured_laps  flips_measured_with_label
+         139947             140512    943                     697                        558
+
+## B: ghost recombination is an identity; F1/F22/F35 level terms cancel in every swap
+ ghost_laps  max_abs_err
+    1501422 5.684342e-14
+
+## C1: rebuild reproduces int_constructor_structural_pace
+ team_races  rebuild_err
+       1694          0.0
+
+## C2: structural pace with F1's fabricated laps excluded (a per-race constant: cancels from the ML label)
+ team_races  mean_abs_shift_s  p90_s  max_s
+       1656            0.0707 0.1465  1.899
+
+## D: Degradation Simulator circuit picker (GROUP BY circuit_id over dim_circuits)
+ picker_venues  venues_never_raced
+            39                   7
+
+## D2: the never-raced venues it offers
+                 circuit_name
+ Autodromo Juan Manuel Fangio
+Buriram International Circuit
+         Hanoi Street Circuit
+     Hellenic Motorsport Park
+               Jyllandsringen
+              Kyalami Circuit
+         Pertamina Grand Prix
+
+## E1: season ratings shrink toward the SEASON mean -- the floor binds hardest on reserves
+driver_career_in_window  drivers  season_rating_mean_abs_shrink_s  season_rating_confidence
+             a <5 races        3                            0.392                     0.249
+                 b 5-19        6                            0.081                     0.671
+                  c 20+       34                            0.057                     0.775
+
+## E2: circuit affinity shrinks toward the DRIVER's own mean -- a reserve's level is never pulled to the field
+driver_career_in_window  cells  affinity_mean_abs_shrink_s  cells_not_shrunk_at_all
+             a <5 races      7                       0.139                        1
+                 b 5-19     95                       0.493                        0
+                  c 20+    931                       0.307                        0
+
+## F1: race-depth lap files with no telemetry file
+ season race_id                  slug
+   2018  2018_1 australian_grand_prix
+   2018  2018_2    bahrain_grand_prix
+
+## F2: what their laps get -- all free air, zero proximity (round 1 F12)
+ no_telemetry_race  eligible_2018  share_gap_null  mean_dirty_air_share  mean_share_within_1s  free_air_rows
+             False          13505             0.0                 0.215                  0.17          11267
+              True           1450             1.0                 0.000                  0.00           1450

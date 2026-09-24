@@ -1,0 +1,18 @@
+
+## Part 2: how S2 laps are coded (training-eligible)
+ eligible_laps_with_s2  s2_median_gap_under_1s  coded_drs_train_share_0  s2_gap_1_to_1_5s_all_coded_dirty  share_of_sub_1s_coded_clean
+                138483                   25927                    11657                             16303                         0.45
+
+## Part 1: compiled production SQL reproduces int_lap_air_state
+     n  mismatches
+189418           0
+
+## Part 2b: training rows whose dirty_air_share_lap changes when S2 < 1 s counts as dirty air
+ eligible  eligible_share_changes
+   139947                   11657
+
+## Part 3: theta_air (s per lap behind a car) under each coding
+as built panel,   S2 DRS coded clean : 0.152123   (shipped value 0.152123)
+as built panel,   S2 < 1 s = dirty   : 0.257401
+measured laps,    S2 DRS coded clean : 0.415821   (round 2 F23a: 0.415821)
+measured laps,    S2 < 1 s = dirty   : 0.443167

@@ -113,6 +113,41 @@ vars:
   # (p50 75 m), the next apex clipping most of what a wider margin would add.
   corner_entry_margin_m: 250
   corner_exit_margin_m: 150
+  # int_lap_fuel_state (WI-05: F6, F32, F52): the most race fuel a car may start
+  # with, in kg, keyed by the first season each limit applies from (FIA Sporting
+  # Regulations: 105 kg 2014-2018, 110 kg from 2019). The fuel model assumes a car
+  # starts at the limit and burns it evenly over the race's SCHEDULED laps
+  # (race_scheduled_laps seed), so the per-lap rate is limit / scheduled_laps and
+  # the starting load can never exceed the limit. A season before the earliest key
+  # gets NULL fuel, which assert_fuel_load_matches_scheduled_distance fails on --
+  # add a key when a season with a new fuel rule (2026's energy-based limit) lands.
+  fuel_regulatory_max_kg_by_season: {2018: 105.0, 2019: 110.0}
+  # stg_weather (WI-05: F26): the wet-conditions flag is a two-of-three vote over
+  # independent signals -- bronze Rainfall (precipitation now), humidity at or
+  # above this threshold, and at least this share of the running field on
+  # INTERMEDIATE/WET tyres on that lap. 70% sits between the humidity of bronze's
+  # false-positive "raining" laps (~52%: 2018 Spain, 2019 Monaco) and the bulk of
+  # genuinely wet laps (70-97%); 0.5 is a field majority, so one team's tyre gamble
+  # cannot flip a lap on its own.
+  wet_humidity_min_pct: 70.0
+  wet_field_tyre_share_min: 0.5
+  # stg_lap_tyre_qa (WI-05: F24, F25): bronze stint numbering cross-checked
+  # against the pit record.
+  # - A bronze stint change counts as explained if an in-lap sits within this many
+  #   laps before it (bronze often moves the stint one or two laps after the stop).
+  tyre_qa_boundary_window_laps: 3
+  # - F25: at most this many leading laps with no bronze stint are filled into the
+  #   driver's first stint (the 2018 lap-1 gap is 1 lap, 2 for one car a race);
+  #   longer unassigned runs are not F25's pattern and go to quarantine.
+  tyre_qa_max_unassigned_leading_laps: 2
+  # - A race's whole tyre feed is quarantined when bronze shows at least this many
+  #   stint changes with no pit stop behind them...
+  tyre_qa_race_unexplained_boundaries_min: 5
+  # - ...or when at least this share of its racing pit stops (car rejoined and ran
+  #   3+ more laps, no red flag) has no bronze stint change after it. Drive-throughs
+  #   legitimately land here, but they are one or two a race; the broken feeds miss
+  #   43-97% of stops.
+  tyre_qa_race_unmatched_pit_share_min: 0.3
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -172,3 +207,16 @@ seeds:
     race_to_track:
       +column_types:
         race_id: varchar
+    # race_id must be typed: '2021_10' is otherwise sniffed as the digit-separated
+    # integer 202110 (F13's defect on raw_dim_events).
+    race_scheduled_laps:
+      +column_types:
+        race_id: varchar
+        race_year: integer
+        round_number: integer
+        event_name: varchar
+        scheduled_laps: integer
+        total_laps_final: integer
+        max_current_lap: integer
+        source: varchar
+        note: varchar

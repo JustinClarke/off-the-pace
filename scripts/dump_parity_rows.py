@@ -63,12 +63,15 @@ def main() -> int:
     path = SOURCE.format(season=args.season)
     con = duckdb.connect()
     available = {r[0] for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{path}')").fetchall()}
-    order = list(S.FEATURE_COLUMNS)
-    missing = [c for c in order if c not in available]
+    # Fetch the UNION of every target's feature columns (== S.FEATURE_COLUMNS, the
+    # cliff_classifier superset) so the dumped rows carry everything the app's per-model
+    # FeatureRow needs; each booster below is then scored on its OWN narrower order/width.
+    union_order = list(S.FEATURE_COLUMNS)
+    missing = [c for c in union_order if c not in available]
     if missing:
         raise SystemExit(f"feature columns missing from fct_cliff_prediction_features: {missing}")
 
-    select = ",\n      ".join(f'f."{c}" AS "{c}"' for c in order)
+    select = ",\n      ".join(f'f."{c}" AS "{c}"' for c in union_order)
     df = con.execute(f"""
       SELECT f.lap_id AS lap_id,
       {select}
@@ -78,23 +81,28 @@ def main() -> int:
     """).df()
 
     encoders = json.loads((MODELS / "encoders.json").read_text())
-    X = _encode(df, encoders, order)
+
+    # Since 02b/D12 the contract is per-model width (cliff_classifier 39, everything else 32:
+    # see S.feature_columns_for). Scoring every booster off one shared union-width matrix raises
+    # "Feature shape mismatch" for the four 32-wide boosters, so each is encoded on its own order.
+    def encode_for(target: str) -> np.ndarray:
+        return _encode(df, encoders, list(S.feature_columns_for(target)))
 
     # Ground truth via the boosters, post-processed exactly like predict.py / the app's infer.ts.
-    p10 = _load("degradation_regressor_p10").predict(X)
-    p50 = _load("degradation_regressor_p50").predict(X)
-    p90 = _load("degradation_regressor_p90").predict(X)
+    p10 = _load("degradation_regressor_p10").predict(encode_for("degradation_regressor_p10"))
+    p50 = _load("degradation_regressor_p50").predict(encode_for("degradation_regressor_p50"))
+    p90 = _load("degradation_regressor_p90").predict(encode_for("degradation_regressor_p90"))
     trio = np.clip(np.sort(np.vstack([p10, p50, p90]).T, axis=1), -S.TARGET_BOUND, S.TARGET_BOUND)
     # Stint life is an AFT booster: the ground truth is the same post-transform
     # predict.py applies, read off the artefact rather than reimplemented here.
     life_bst = SV.load_booster(
         MODELS / f"stint_life_regressor_{S.MODEL_VERSION_DEFAULT}.bst")
     life_scale = SV.aft_params(life_bst)["scale"]
-    life_margin = SV.margin(life_bst, X)
+    life_margin = SV.margin(life_bst, encode_for("stint_life_regressor"))
     life = SV.laps_from_margin(life_margin, life_scale)
     life_p10 = SV.laps_from_margin(life_margin, life_scale, S.STINT_LIFE_QUANTILES[0])
     life_p90 = SV.laps_from_margin(life_margin, life_scale, S.STINT_LIFE_QUANTILES[2])
-    proba = _load("cliff_classifier").predict_proba(X)
+    proba = _load("cliff_classifier").predict_proba(encode_for("cliff_classifier"))
     labels = np.asarray(S.CLIFF_CLASS_LABELS)[proba.argmax(axis=1)]
 
     recs = json.loads(df.to_json(orient="records"))  # NaN → null

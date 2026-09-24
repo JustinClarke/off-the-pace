@@ -70,7 +70,7 @@ async function registerParityViews(manifest: DataManifest, season: number): Prom
 
 /**
  * Assert every feature column exists in fct_cliff_prediction_features (the single source view).
- * Fails loud listing the missing columns if the mart and the model's feature_order drift,
+ * Fails loud listing the missing columns if the mart and the models' feature_union drift,
  * rather than letting DuckDB error on `f."col"` for an absent column mid-query.
  */
 async function assertFeatureColumns(cols: string[]): Promise<void> {
@@ -96,10 +96,13 @@ export async function verifyParity(season = 2024, limit = 64, tolerance = DEFAUL
   await registerParityViews(dataManifest, season)
 
   const modelManifest = await loadModelManifest()
-  const featureCols = modelManifest.input.feature_order
+  // The union of every model's own feature_order (cliff_classifier is 39-wide, the other four
+  // families 32-wide since v13/02b): fetch one raw row wide enough for whichever model scores
+  // it. predictLaps below then builds each model's own narrower vector from this superset row.
+  const featureCols = modelManifest.input.feature_union
 
-  // All 33 features (v11) live in fct_cliff_prediction_features; guard that the mart and the
-  // model's feature_order haven't drifted before building the query, so a mismatch fails loud
+  // All feature columns live in fct_cliff_prediction_features; guard that the mart and the
+  // models' feature_union haven't drifted before building the query, so a mismatch fails loud
   // instead of as a DuckDB "column not found" mid-scoring.
   await assertFeatureColumns(featureCols)
   const featureSelect = featureCols

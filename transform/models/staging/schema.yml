@@ -267,7 +267,12 @@ models:
         data_type: boolean
         tests: [not_null]
       - name: is_valid_lap
-        description: Clean-lap flag (timed, not pit/deleted, accurate, no SC/VSC, lap_number > 1).
+        description: >
+          Clean-lap flag (timed, not pit/deleted, no SC/VSC/red, lap_number > 1, and -- from
+          2019 only -- accurate). WI-05 (F33): IsAccurate is FastF1's lap start/end sync flag,
+          not a lap-time check, and 2018 largely leaves it unset (73.6% of timed quali laps
+          accurate vs >= 99.6% in 2019-2025), so it is not required for 2018.
+          assert_quali_valid_share_consistent_across_seasons (T25) guards the next season.
         data_type: boolean
 
   - name: stg_telemetry
@@ -433,6 +438,107 @@ models:
           60 s — so consumers wanting a green-flag service time must filter.
         data_type: double
 
+  - name: stg_lap_tyre_qa
+    description: >
+      Bronze tyre QA (WI-05: F24, F25), one row per race lap; int_stint_geometry reads
+      stint_number / tyre_life / compound from here instead of raw bronze. (1) F25 repair:
+      a driver's first unassigned laps (<= var('tyre_qa_max_unassigned_leading_laps'), the
+      2018 lap-1 gap) join the first stint, and that stint's TyreLife is offset by the laps
+      filled, since bronze counted it from the first assigned lap; laps up to a stop taken
+      inside the gap are the stint before, with unknown tyres. (2) F24 cross-check: every
+      race's stint numbering is compared with stg_pits. A race is quarantined when it has
+      >= var('tyre_qa_race_unexplained_boundaries_min') stint changes with no in-lap in the
+      var('tyre_qa_boundary_window_laps') laps before them (and no red flag) or whose in-lap
+      an earlier change already claimed (one stop, one change), or when >=
+      var('tyre_qa_race_unmatched_pit_share_min') of its racing stops (>= 3) have no stint
+      change after them; outside those races a driver-race is quarantined on any such
+      unexplained change or on laps bronze never assigned. A quarantined unit serves the
+      pit record's stint ordinal and NULL compound / tyre_life, never a boundary that
+      contradicts the pit record. As built on the 2018-2025 warehouse the quarantined races
+      are 2018_3, 2022_7, 2022_11 and 2025_6 (see tyre_qa_status).
+    meta:
+      family: staging
+      aggregation_scope_exemptions:
+        - keys: [race_year, race_id, driver_id]
+          status: accepted
+          reason: >
+            Two per-driver-race aggregates. (a) The F25 repair reads the driver's first
+            bronze-assigned lap (ARG_MIN over the race) to fill the one or two laps before
+            it; the only forward reach is those leading laps (lap 1 is never a valid lap)
+            taking the stint, compound and TyreLife of lap 2-3, i.e. the same tyre set a
+            lap later. The TyreLife offset on the rest of the stint depends only on how
+            many EARLIER laps were unassigned. (b) The quarantine counts a driver-race's
+            unexplained stint changes and unassigned laps: a whole-race data-quality
+            verdict that can only NULL tyre columns (never produce a value) and so removes
+            rows from training (is_training_eligible needs age_in_stint > 3). A live race
+            is scored on its own feed without this check.
+        - keys: [race_year, race_id]
+          status: accepted
+          reason: >
+            The race-level quarantine gate counts the race's unexplained stint changes and
+            unmatched racing stops across all its laps. Same argument as the driver-race
+            verdict: it decides whether the race's bronze tyre feed agrees with the pit
+            record, can only NULL tyre columns, and quarantined rows leave training.
+    columns:
+      - name: lap_id
+        description: Foreign key to stg_laps.
+        data_type: varchar
+        tests: [not_null, unique]
+      - name: stint_number
+        description: >
+          Served stint number: bronze (lap-1 gap filled) where tyre_qa_status = 'ok', else
+          the pit record's ordinal (1 + stops the car exited from before the lap + bronze's
+          red-flag stint changes). NULL only for the few driver-races bronze never assigned
+          any stint to (two cars retired on laps 1-2 in 2018).
+        data_type: integer
+      - name: tyre_life
+        description: >
+          Served tyre age (laps on the set, bronze TyreLife): offset by the filled laps on a
+          repaired first stint; NULL when quarantined.
+        data_type: integer
+      - name: compound
+        description: Served compound (bronze); NULL when quarantined.
+        data_type: varchar
+      - name: stint_source
+        description: Where stint_number came from.
+        data_type: varchar
+        tests:
+          - accepted_values:
+              arguments:
+                values: [bronze, bronze_lap1_repaired, pit_record]
+      - name: tyre_life_offset_laps
+        description: Laps added to bronze TyreLife by the F25 repair (0, 1 or 2).
+        data_type: integer
+      - name: tyre_qa_status
+        description: The quarantine list. 'ok' serves bronze; the other two serve the pit record.
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [ok, quarantined_race, quarantined_driver]
+      - name: n_unexplained_stint_changes
+        description: Race-level count of bronze stint changes with no in-lap in the window before and no red flag.
+        data_type: bigint
+      - name: n_racing_stops
+        description: Race-level count of stops the car rejoined from and ran 3+ more laps after, no red flag.
+        data_type: bigint
+      - name: n_unmatched_racing_stops
+        description: Racing stops with no bronze stint change in the window after them.
+        data_type: bigint
+      - name: is_unexplained_stint_change
+        description: TRUE on a lap where bronze starts a stint the pit record cannot explain.
+        data_type: boolean
+      - name: bronze_stint_number
+        description: Bronze Stint, as ingested.
+        data_type: integer
+      - name: bronze_tyre_life
+        description: Bronze TyreLife, as ingested.
+        data_type: integer
+      - name: bronze_compound
+        description: Bronze compound (normalised in stg_laps), as ingested.
+        data_type: varchar
+
   - name: stg_weather
     description: >
       Weather snapshot nearest each lap start. Bronze weather samples (≈1 Hz) are matched to
@@ -468,11 +574,35 @@ models:
         description: Track-surface temperature (°C).
         data_type: double
       - name: rainfall_flag
-        description: TRUE when rainfall was detected at the sample.
+        description: >
+          WET-CONDITIONS flag, the one every consumer filters on (WI-05, F26). Not bronze
+          Rainfall: TRUE when at least two of three independent signals say wet -- bronze
+          Rainfall, humidity_pct >= var('wet_humidity_min_pct'), and field_wet_tyre_share >=
+          var('wet_field_tyre_share_min'). Bronze Rainfall alone read the dry 2018 Spanish and
+          2019 Monaco GPs as 83% raining and never fired at the fully wet 2020/2021 Turkish
+          GPs. Raw value in rainfall_flag_bronze.
         data_type: boolean
+        tests:
+          - not_null
       - name: humidity_pct
         description: Relative humidity (%).
         data_type: double
+      - name: rainfall_flag_bronze
+        description: Bronze Rainfall (precipitation detected at the sample), as ingested.
+        data_type: boolean
+      - name: field_wet_tyre_share
+        description: >
+          Share of the cars with a recorded compound on this race-lap that are on
+          INTERMEDIATE or WET tyres (bronze compound). NULL when no car has one.
+        data_type: double
+      - name: wet_signal_votes
+        description: How many of the three wet signals fired on this lap (0-3); rainfall_flag is votes >= 2.
+        data_type: integer
+      - name: rain_signal_disagreement
+        description: >
+          TRUE where bronze Rainfall and the two-of-three verdict differ -- the laps the
+          F26 correction changed, kept so it stays auditable.
+        data_type: boolean
       - name: wind_speed_ms
         description: Wind speed (m/s).
         data_type: double

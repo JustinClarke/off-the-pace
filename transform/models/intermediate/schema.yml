@@ -48,16 +48,28 @@ models:
       - name: is_red_flag_lap
         description: Carried through from stg_laps. TRUE when the TrackStatus string contains a 5 (red flag).
         tests: [not_null]
+      - name: stint_source
+        description: >
+          Where stint_number came from (stg_lap_tyre_qa): 'bronze', 'bronze_lap1_repaired'
+          (the F25 lap-1 gap filled, TyreLife offset) or 'pit_record' (quarantined, F24).
+      - name: tyre_qa_status
+        description: >
+          Bronze tyre-feed verdict from the pit-record cross-check (stg_lap_tyre_qa): 'ok',
+          'quarantined_race' or 'quarantined_driver'. Quarantined laps carry the pit record's
+          stint ordinal and NULL compound_in_stint / age_in_stint.
+        tests: [not_null]
       - name: age_in_stint
         description: >
-          Tyre age in laps at this lap. Directly from FastF1 TyreLife (no imputation, no
-          reconstruction). 343 rows (0.21%) carry NULL: 325 of them (94.8%) sit on lap 1 of a
-          stint, where tyre-life occasionally arrives without a reading. This is a pattern, not
-          random scatter, and occurs at the exact position where starting_tyre_age_laps is
-          derived. For stints opening on lap 1: if age_in_stint is NULL at the stint start and
-          you need a starting age, the column is missing; do not assume the tyre is fresh (a
-          used/scrubbed set starting a stint will have age_in_stint > 1 or NULL, but never 0).
-          Consumers should carry this column forward or declare how NULLs are handled.
+          Tyre age in laps at this lap: FastF1 TyreLife after stg_lap_tyre_qa (WI-05). Two
+          changes from raw bronze. F25: where bronze left a driver's first one or two laps
+          with no stint (17 of 21 2018 races), those laps join the first stint and its
+          TyreLife -- counted by bronze from the first assigned lap -- is offset by the laps
+          filled. F24: in a quarantined race or driver-race (tyre_qa_status <> 'ok') bronze's
+          tyre data contradicts the pit record, so age is NULL there rather than served, and
+          the row leaves training (is_training_eligible needs age_in_stint > 3). Otherwise
+          NULL only where bronze has no reading; do not assume a NULL-age tyre is fresh (a
+          used/scrubbed set starting a stint will have age_in_stint > 1 or NULL, but never
+          0). Consumers should carry this column forward or declare how NULLs are handled.
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
@@ -140,9 +152,10 @@ models:
         tests: [not_null]
       - name: stint_number
         description: >
-          Stint ordinal within the driver's race. NULL for the 325 stints in
-          2018 built from laps FastF1 never assigned to a stint; those carry
-          stint_end_cause NULL and end_cause_confidence 'unassigned_stint'.
+          Stint ordinal within the driver's race. NULL for stints built from laps
+          FastF1 never assigned to a stint -- two since WI-05 filled the 2018 lap-1
+          gap (2018_2 RIC, 2018_10 HAR; 325 before); those carry stint_end_cause NULL
+          and end_cause_confidence 'unassigned_stint'.
       - name: end_lap_id
         description: Foreign key to stg_laps - the lap the stint ended on, chronologically. For an uncensored stint this is the in-lap.
         tests: [not_null]
@@ -222,27 +235,28 @@ models:
     description: >
       Fuel burnoff and weight correction. One row per valid lap.
       Calculates fuel_mass_kg based on consumption rate and weight_corrected_lap_time
-      by applying weight penalty from fuel load.
+      by applying weight penalty from fuel load. WI-05 (F6, F32, F52): the load is priced
+      from the race's SCHEDULED distance (race_scheduled_laps seed) at the season's FIA
+      race-fuel limit (105 kg 2018, 110 kg from 2019), burned evenly over the scheduled
+      laps. It no longer aggregates over the race's own laps, so the aggregation-scope
+      exemption this model used to carry (MAX(lap_number) over valid laps as a proxy for the
+      scheduled distance) is gone with the aggregation.
     tags: [intermediate]
     meta:
       family: physics
-      aggregation_scope_exemptions:
-        - keys: [race_year, race_id]
-          status: accepted
-          reason: >
-            race_lap_counts takes MAX(lap_number) per race to set the starting fuel
-            load. The quantity it stands for -- the scheduled race distance -- is a
-            PRE-RACE known; the warehouse has no scheduled-distance column, so the
-            observed lap count is the available proxy. It sets the starting mass
-            only: the per-lap burn slope is dim_circuits'
-            fuel_consumption_rate_kg_per_lap, a circuit constant. Proxy and pre-race
-            known diverge only where a race is stopped early, and that divergence has
-            NOT been measured. Adding a scheduled-distance column to dim_events would
-            remove this exemption outright.
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: race_lap_count
+        description: The race's scheduled distance in laps (race_scheduled_laps.scheduled_laps), a pre-race known.
+        tests: [not_null]
+      - name: initial_fuel_kg
+        description: Starting race fuel = the season's FIA limit (macro fuel_regulatory_max_kg).
+        tests: [not_null]
+      - name: fuel_consumption_rate_kg_per_lap
+        description: initial_fuel_kg / race_lap_count -- the limit burned evenly over the scheduled distance.
+        tests: [not_null]
 
   - name: int_lap_air_state
     description: >

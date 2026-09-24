@@ -11,10 +11,22 @@ export interface ModelEncoding {
   encoders: Record<string, Record<string, number>>
 }
 
+// Since v13 (D12/02b) the feature contract is per-model, not global: cliff_classifier
+// takes 39 columns and the other four families take 32 (see ml/src/schema.py:feature_columns_for).
+// `input` therefore carries only what's shared across every model (the tensor name, dtype and
+// encoders) plus `feature_union`, the union of every model's feature_order -- useful for a
+// caller that needs to fetch/assemble one raw row wide enough for whichever model scores it
+// (see verifyParity.ts). The per-model width/order lives on each ModelSpec (feature_order/n_features).
 export interface ManifestInput {
   tensor_name: string
   dtype: 'float32'
-  shape: [string, number]
+  feature_union: string[]
+  per_model_feature_order: true
+  encoding: ModelEncoding
+}
+
+/** Everything buildFeatureVector needs for ONE model: its own order/width plus the shared encoding. */
+export interface ModelInputSpec {
   feature_order: string[]
   n_features: number
   encoding: ModelEncoding
@@ -71,6 +83,9 @@ export interface ModelSpec {
   booster_sha256: string
   cv_headline: number
   headline_metric: string
+  feature_order: string[]
+  n_features: number
+  shape: [string, number]
   quantile_alpha?: number
   output: ScalarOutput | ClassifierOutput | SurvivalOutput
 }
@@ -132,6 +147,17 @@ export function getModelSpec(manifest: ModelManifest, name: string): ModelSpec {
   const spec = manifest.models.find(m => m.name === name)
   if (!spec) throw new Error(`Model not found in manifest: ${name}`)
   return spec
+}
+
+/**
+ * The feature order/width for ONE named model, paired with the shared encoding -- everything
+ * buildFeatureVector/buildFeatureMatrix need. Reads `models[i].feature_order`/`n_features`,
+ * never the retired top-level `input.feature_order`/`input.n_features` (those keys don't exist
+ * since v13; see the ManifestInput comment above).
+ */
+export function getModelInput(manifest: ModelManifest, name: string): ModelInputSpec {
+  const spec = getModelSpec(manifest, name)
+  return { feature_order: spec.feature_order, n_features: spec.n_features, encoding: manifest.input.encoding }
 }
 
 /** Test-only: inject a manifest so unit tests don't fetch. */

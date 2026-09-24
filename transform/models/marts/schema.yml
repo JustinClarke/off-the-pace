@@ -760,8 +760,9 @@ models:
           vsc_pit, red (the four uncensored causes) or race_end, retirement (the two censored
           ones). 28.8% of uncensored stints are sc_pit / vsc_pit / red, i.e. the pit wall taking
           a free stop rather than the tyre reaching its limit, so anything fitting or scoring
-          stint life reads this alongside is_censored_stint. NULL on the 325 2018 stints built
-          from laps FastF1 never assigned a stint number. Never a model feature.
+          stint life reads this alongside is_censored_stint. NULL on stints built from laps
+          FastF1 never assigned a stint number (two since WI-05's lap-1 repair; 325 in 2018
+          before it). Never a model feature.
         tests:
           - accepted_values:
               arguments:

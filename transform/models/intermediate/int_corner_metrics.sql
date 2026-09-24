@@ -6,8 +6,9 @@
 --
 -- Corner windows come from dim_corners, which is keyed per race, so the join is
 -- on race_id and every session is measured against its own corner geometry.
--- race_to_track has left the path with it: its event-slug key dropped 2018_14,
--- the one race missing from that map, out of the chain entirely.
+-- race_to_track has left the path with it: its event-slug key once dropped
+-- 2018_14, the one race that was missing from that map (filled by WI-05/F8),
+-- out of the chain entirely.
 --
 -- throttle_point_m is the first full-throttle sample at or after the apex --
 -- where the driver gets back on power, which is what the column is documented

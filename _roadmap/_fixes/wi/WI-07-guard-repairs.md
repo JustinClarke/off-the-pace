@@ -50,7 +50,7 @@ suite's PASS count, indefinitely, with a comment admitting it.
 
 ## F53 (new) — no safe re-run path exists
 
-Documented fully in `NEW-FINDINGS.md`. Two instances that block a clean fix for F11 and for
+Documented fully in `../reference/new-findings.md`. Two instances that block a clean fix for F11 and for
 reproducing this audit's own reverification:
 
 1. `verify_findings.py`'s `_db.py` resolves `REPO` one directory short of the real repo root when run

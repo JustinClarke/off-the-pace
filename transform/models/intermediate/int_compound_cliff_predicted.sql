@@ -87,6 +87,10 @@ combined AS (
         cp.compound_grip_peak,
         cp.compound_optimal_temp_low
     FROM geom AS g
+    -- INNER on purpose, and never a silent drop (F8): a race with no track
+    -- slug has no seed cell to price. assert_race_to_track_covers_all_races
+    -- (T4) fails the build if any stg_laps race is missing from race_to_track
+    -- -- as 2018_14 (927 laps) was until WI-05.
     INNER JOIN race_map AS rm
         ON g.race_id = rm.race_id
     LEFT JOIN compound_params AS cp

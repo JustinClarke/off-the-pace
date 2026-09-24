@@ -73,13 +73,18 @@ per_race as (
   from seq group by 1)
 select count(*) from per_race where b >= 5"""
 
+# The burn rate is read from int_lap_fuel_state itself: the rate the model actually
+# priced each lap with. Until WI-05 that was dim_circuits' per-slug constant, which is
+# what this query joined; WI-05 (F6/F32/F52) moved the rate onto the model
+# (FIA limit / scheduled laps) and dim_circuits' column no longer feeds fuel_mass_kg,
+# so reading it here would measure a number the model does not use. The arithmetic
+# (implied starting load, implied race length) is unchanged.
 FUEL_INITIAL_SQL = r"""
 with r as (
   select f.race_year, f.race_id,
-    max(f.fuel_mass_kg + d.fuel_consumption_rate_kg_per_lap * (f.lap_number - 1)) initial_kg,
-    max(f.fuel_mass_kg / nullif(d.fuel_consumption_rate_kg_per_lap, 0) + f.lap_number - 1) implied_race_laps
-  from int_lap_fuel_state f join race_to_track rt using (race_id)
-  join dim_circuits d on d.circuit_key = rt.track_id group by all)
+    max(f.fuel_mass_kg + f.fuel_consumption_rate_kg_per_lap * (f.lap_number - 1)) initial_kg,
+    max(f.fuel_mass_kg / nullif(f.fuel_consumption_rate_kg_per_lap, 0) + f.lap_number - 1) implied_race_laps
+  from int_lap_fuel_state f group by all)
 select {expr} from r"""
 
 CHECKS: list[Check] = [

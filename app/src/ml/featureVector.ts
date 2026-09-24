@@ -6,9 +6,12 @@
 //   continuous    → numeric; NULL / non-numeric → NaN (XGBoost native-missing; never impute)
 //
 // The feature object is a raw row (DuckDB result or simulator state): keys are the warehouse
-// column names in manifest.input.feature_order; values may be string | number | boolean | null.
+// column names in a model's own feature_order (models[i].feature_order); values may be
+// string | number | boolean | null. Width/order differ per model since v13 (cliff_classifier
+// is 39-wide, the other four families are 32-wide), so every builder here takes a single
+// model's ModelInputSpec (see manifest.ts:getModelInput), never the shared manifest top level.
 
-import { ManifestInput } from './manifest'
+import { ManifestInput, ModelInputSpec } from './manifest'
 
 export type FeatureValue = string | number | boolean | bigint | null | undefined
 
@@ -50,24 +53,27 @@ export function encodeValue(col: string, value: FeatureValue, encoding: Manifest
 }
 
 /**
- * Build the positional Float32Array in exact feature_order. Missing keys on the row are
- * treated as NULL (continuous → NaN, categorical → missing_ordinal, boolean → NaN).
+ * Build the positional Float32Array in exact feature_order for ONE model (`model.feature_order`,
+ * `model.n_features` -- see manifest.ts:getModelInput). Missing keys on the row are treated as
+ * NULL (continuous → NaN, categorical → missing_ordinal, boolean → NaN). The row may carry keys
+ * beyond this model's own feature_order (e.g. another model's columns); anything not in
+ * feature_order is simply ignored.
  */
-export function buildFeatureVector(row: FeatureRow, input: ManifestInput): Float32Array {
-  const vec = new Float32Array(input.n_features)
-  for (let i = 0; i < input.feature_order.length; i++) {
-    const col = input.feature_order[i]
-    vec[i] = encodeValue(col, row[col], input.encoding)
+export function buildFeatureVector(row: FeatureRow, model: ModelInputSpec): Float32Array {
+  const vec = new Float32Array(model.n_features)
+  for (let i = 0; i < model.feature_order.length; i++) {
+    const col = model.feature_order[i]
+    vec[i] = encodeValue(col, row[col], model.encoding)
   }
   return vec
 }
 
-/** Stack N rows into a single [N * n_features] Float32Array for a batched inference run. */
-export function buildFeatureMatrix(rows: FeatureRow[], input: ManifestInput): Float32Array {
-  const mat = new Float32Array(rows.length * input.n_features)
+/** Stack N rows into a single [N * model.n_features] Float32Array for one model's batched inference run. */
+export function buildFeatureMatrix(rows: FeatureRow[], model: ModelInputSpec): Float32Array {
+  const mat = new Float32Array(rows.length * model.n_features)
   for (let r = 0; r < rows.length; r++) {
-    const vec = buildFeatureVector(rows[r], input)
-    mat.set(vec, r * input.n_features)
+    const vec = buildFeatureVector(rows[r], model)
+    mat.set(vec, r * model.n_features)
   }
   return mat
 }

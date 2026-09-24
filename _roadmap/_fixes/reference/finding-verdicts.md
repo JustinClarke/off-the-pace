@@ -1,9 +1,14 @@
-# Status board — reverification of F1–F49, plus F50–F54
+# Finding verdicts — reverification of F1–F49, plus F50–F54
+
+A static record of what the reverification concluded about each finding. It does **not** say
+whether a fix has been done: execution state lives only in
+[`../status/build-log.json`](../status/build-log.json) (run `python3 _roadmap/_fixes/status/board.py`).
+The "Fix file" column names the doc in [`../wi/`](../wi/) that carries the fix.
 
 Reverified 2026-09-24 against the same `data/dev.duckdb` build the audit used (v14, fingerprint
 `87e1d013…`), by five independent read-only passes that re-read cited source directly rather than
 trusting the audit's own probes. `verify_findings.py` (patched copy) also confirms **51/51**
-mechanical checks PRESENT live — see `README.md`.
+mechanical checks PRESENT live — see [`../README.md`](../README.md).
 
 **Verdict legend:** CONFIRMED = matches as stated. ARGUABLE = mechanism holds, some part of the
 characterization (severity, cost framing, or fix) is debatable — see the linked WI file for detail.

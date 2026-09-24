@@ -65,6 +65,11 @@ T7.
 ## Definition of done
 
 `make app-parity` passes against the current shipped manifest; T7 is wired into app CI;
-`verify_findings.py`'s F3 check flips to CLEARED. Before landing, check whether the production CDN
-(`MODELS_BASE`) is already serving the v14 manifest or a pre-v13 one — if it's still pre-v13,
-production works today and this fix should ship before the next manifest publish, not after.
+`verify_findings.py`'s F3 check flips to CLEARED.
+
+**CDN check (done 2026-09-24):** `https://storage.googleapis.com/off-the-pace-cdn/models/manifest.json`
+(`MODELS_BASE`) currently serves **v11** with the old top-level `input.n_features` / `input.feature_order`
+shape. Production works today; the defect is latent. **This fix must land before the v14 manifest is
+published to the CDN, not after** — publishing first would make the Degradation Simulator throw
+`TypeError` for every user. Also confirmed locally: 3 of 14 tests in `featureVector.test.ts` fail
+against the shipped v14 manifest today.

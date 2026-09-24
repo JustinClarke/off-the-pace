@@ -2,7 +2,13 @@
 
 **Group:** 06 publication · **Depends on:** each item consumes the one before it (F40 → F44 → F45);
 F28 and F50 are independent sign-convention bugs on different pages, fix in any order.
-**Blocker:** a ruling — P20-vs-P20 or median-vs-median for the equal-car rating (F40).
+**Blocker:** a ruling — P20-vs-P20 or median-vs-median for the equal-car rating (F40; board
+decision `FD5`).
+
+**Executed as two board items**, so the unblocked half doesn't wait on the ruling: `WI-14a` = F50,
+F28, F46 (F46's fixes — the rank key and the self-scenario text — read `fct_ghost_race_finish`, not
+the F40 rating, so they ride with the independent group) and `WI-14b` = F40 → F44 → F45 (the
+chain `FD5` gates).
 
 **Findings folded in:** F28 (Med-High, fan), F40 (Medium, fan), F44 (Medium→High for this page,
 fan), F45 (Low-Med, fan), F46 (Low, fan, split severity), **F50** (new, High, fan).
@@ -15,7 +21,7 @@ three audit rounds caught, despite round 1 explicitly saying it read that page.
 
 ## F50 (new) — Synthetic Teammate's own sign inversion (read this one first)
 
-Full write-up: `NEW-FINDINGS.md`. `int_synthetic_teammate.sql:131-133` defines
+Full write-up: `../reference/new-findings.md`. `int_synthetic_teammate.sql:131-133` defines
 `driver_skill_proxy_s = teammate_pace_adjusted_s − ego_wc_lap_time_s` — **positive = ego faster**,
 confirmed against the file's own header and matching `fct_driver_skill_features.sql:14`'s
 convention. But `synthetic-teammate/methodology.tsx:14`, `page.tsx:36,69`, and `transform.ts:21` all

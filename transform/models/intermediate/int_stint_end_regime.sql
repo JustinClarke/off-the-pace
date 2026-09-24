@@ -42,9 +42,12 @@
 -- CONFIDENCE. end_cause_confidence is 'observed' only where every input was
 -- read rather than inferred. It steps down to 'inferred' where precedence had
 -- to choose, where the pit marker is missing, or where disqualification hides
--- whether the driver was running; and to 'unassigned_stint' for the 325 2018
--- stints FastF1 never assigned a stint number to, whose cause is left NULL
--- because the row is an artefact of unassigned laps, not a stint that ended.
+-- whether the driver was running; and to 'unassigned_stint' for stints FastF1
+-- never assigned a stint number to, whose cause is left NULL because the row is
+-- an artefact of unassigned laps, not a stint that ended. Since WI-05's
+-- stg_lap_tyre_qa filled the 2018 lap-1 gap (F25) that is two stints, 3 laps:
+-- 2018_2 RIC and 2018_10 HAR, who retired before bronze assigned any stint
+-- (it was 325 stints before).
 --
 -- Owns is_censored_stint, which fct_stint_features reads from here. One
 -- definition of "the driver's last stint of the race", used by the mart and by
@@ -75,9 +78,10 @@ WITH stint_grain AS (
 censoring AS (
     SELECT
         stint_id,
-        -- COALESCE, not a bare comparison: 325 stints in 2018 carry a NULL
-        -- stint_number (343 laps FastF1 never assigned to a stint, 338 of them
-        -- already invalid). CONCAT folds the NULL to '' when stint_id is built,
+        -- COALESCE, not a bare comparison: a stint can carry a NULL
+        -- stint_number (laps FastF1 never assigned to a stint; 325 stints in
+        -- 2018 until WI-05's lap-1 repair, two now). CONCAT folds the NULL to
+        -- '' when stint_id is built,
         -- so a driver-race has at most one such stint, and sorting it below
         -- every real stint says the true thing -- an unassigned lap is not the
         -- stint the driver finished on. Two drivers (2018_2 RIC, 2018_10 HAR)

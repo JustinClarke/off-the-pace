@@ -1,0 +1,457 @@
+{
+  "schema_version": 1,
+  "project": "off-the-pace fixes (transform forensic audit, F1-F54)",
+  "updated": "2026-09-24T18:09:00Z",
+  "pointer": "WI-05",
+  "stage_vocabulary": {
+    "SPEC": "Reverified and specced in its WI doc. Nothing run.",
+    "BUILDING": "In progress.",
+    "MEASURED": "Fix applied and its acceptance numbers exist; the orchestrator has not yet re-run the doc's definition of done.",
+    "LANDED": "Definition of done re-run by the orchestrator and passing, in the working tree. Committing or publishing is the user's call and is not part of the stage.",
+    "BLOCKED": "Waiting on an open decision, or on a dependency that has hit a problem. Plain unmet dependencies are not BLOCKED - dependency order already handles those.",
+    "CLOSED": "Terminal, with reason recorded (won't fix / superseded). Do not re-open without new evidence named in the reason."
+  },
+  "model_vocabulary": {
+    "fable-5.1": "claude-fable-5-1. Novel statistical construction where a wrong derivation is expensive and hard to detect from the output - estimators, identification arguments, inference machinery. Reach for it when the failure mode is a plausible-looking number, not an error.",
+    "opus-5": "claude-opus-5. The default. Anything that makes a ruling, designs an aggregation, moves the feature contract, or turns a measurement into a claim.",
+    "sonnet-5": "claude-sonnet-5. The method is already written down and the judgment call is made - ingest, enumeration, a named refit, a declared schema note. Step back up to opus-5 the moment the leaf doc leaves a choice open.",
+    "haiku-4-5": "claude-haiku-4-5. Throughput work with a mechanical check on the output. Nothing in the tree currently qualifies: every live item either writes into the contract, rules on leakage, or produces a claim."
+  },
+  "groups": [
+    {
+      "id": "12",
+      "title": "Season coverage - the multi-year data gap",
+      "parallel": false,
+      "ref": "_improvements/work/12-season-coverage.md",
+      "summary": "Bronze QA, seed coverage and the holdout policy: what a new season must satisfy before anything trains on it."
+    },
+    {
+      "id": "08",
+      "title": "Foundations repair",
+      "parallel": false,
+      "ref": "_improvements/work/08-foundations-repair.md",
+      "summary": "Anything that changes what you would measure goes before the measurements: the label, the compound seed, the cleanup."
+    },
+    {
+      "id": "09",
+      "title": "Scoring instruments",
+      "parallel": false,
+      "ref": "_improvements/work/09-scoring-instruments.md",
+      "summary": "Guards that can actually fail, and audit tooling that does not mutate what it audits."
+    },
+    {
+      "id": "02",
+      "title": "Feature expansion",
+      "parallel": false,
+      "ref": "_improvements/work/02-feature-expansion.md",
+      "summary": "Features that must mean what their names and pages claim, and the qualifying chain's leakage."
+    },
+    {
+      "id": "07",
+      "title": "Causal pit timing (SC natural experiment)",
+      "parallel": true,
+      "ref": "_improvements/work/07-causal-pit-timing.md",
+      "summary": "Pit-stop matching under SC/VSC/red-flag conditions."
+    },
+    {
+      "id": "06",
+      "title": "Publication track",
+      "parallel": true,
+      "ref": "_improvements/work/06-publication.md",
+      "summary": "Fan-facing pages and the browser: what users see and what the model scores in the browser."
+    }
+  ],
+  "items": [
+    {
+      "id": "WI-05",
+      "group": "12",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Season-onboarding completeness gate: bronze QA + seed/fit coverage",
+      "findings": [
+        "F6",
+        "F8",
+        "F21",
+        "F24",
+        "F25",
+        "F26",
+        "F32",
+        "F33",
+        "F52"
+      ],
+      "doc": "wi/WI-05-season-onboarding.md",
+      "cost": "2-3d",
+      "model": "opus-5",
+      "note": "Runs early because two items wait on it: WI-02b's refit consumes the stint boundaries F24/F25 correct, and WI-11's F27 needs F26's wet-flag fix. F52 is a test-design note, not a separate defect: fold F6 and F32 into ONE combined fuel-plausibility test (T6/T24) against the new scheduled-laps column."
+    },
+    {
+      "id": "WI-03",
+      "group": "12",
+      "stage": "BLOCKED",
+      "depends_on": [],
+      "title": "Holdout policy: pin a season that can hold rows, retire the tautological test",
+      "findings": [
+        "F4"
+      ],
+      "doc": "wi/WI-03-holdout-policy.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "The audit's top-priority process finding: resolve_holdout_season returns MAX(race_year)+1, so the holdout can never hold rows (confirmed: 2026, 0 rows). The code fix is small; the decision is FD4. Any claim about v14's 'holdout' needs a permanent caveat: 02c's admission gate already spent 2025 as a selection fold. The WI doc's step 5 asks for that in a build-log decision - record it in FD4's resolution and flag it in `landed` so a human can mirror it into _improvements/status/build-log.json (this item does not edit that log).",
+      "blocked_by_decision": "FD4"
+    },
+    {
+      "id": "WI-02a",
+      "group": "08",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Compound seed provenance: per-parameter source columns, fuel-corrected wear gradient, NULL-safe wear cap",
+      "findings": [
+        "F41",
+        "F7",
+        "F39"
+      ],
+      "doc": "wi/WI-02-compound-seed-provenance.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "Do F41 first, then F7 and F39. F41 is why WI-02b can exist: 124 of 337 'fitted' compound cells (30.4% of training rows) silently hold a class default, so a 'point-in-time' fit is only honest once provenance is recorded per parameter (onset/gradient/severity _source). F41(b) also re-runs estimate_wear_gradient on fuel-corrected pace and adds the censoring filter its docstring already claims. F39: copy the NULL-guard pattern int_lap_thermal_proxy.sql:116-117 already uses, and add the LEAST/GREATEST lint (T29). Split from WI-02 along the doc's own 'F41 first' sequencing."
+    },
+    {
+      "id": "WI-02b",
+      "group": "08",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "WI-02a",
+        "WI-05"
+      ],
+      "title": "Compound seed refit under the FD3 ruling, plus F9 eligibility decoupling",
+      "findings": [
+        "F2",
+        "F9"
+      ],
+      "doc": "wi/WI-02-compound-seed-provenance.md",
+      "cost": "2-3d",
+      "model": "opus-5",
+      "note": "Run a proper floor (not a single reseed) on stint-life specifically: arm C's cost there is -0.0761 AFT NLL (~3.8% relative), an order of magnitude above the ~0.7% headlined for the trio and cliff, and stint-life is the family _improvements' D5 gauge decision tunes against. Measure F9 with the seed-decoupled arm the audit proposed but never ran. Record FD3's ruling and the measured cost in this log's decision, not only in the WI doc. Waits on WI-05 because the fits consume the stint boundaries F24/F25 correct.",
+      "blocked_by_decision": "FD3"
+    },
+    {
+      "id": "WI-09",
+      "group": "08",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Cleanup bundle: identity, contract text, bronze-scoped low-severity items",
+      "findings": [
+        "F12",
+        "F13",
+        "F14",
+        "F17",
+        "F18",
+        "F19",
+        "F20",
+        "F54"
+      ],
+      "doc": "wi/WI-09-cleanup-bundle.md",
+      "cost": "1-2d",
+      "model": "sonnet-5",
+      "note": "Eight Low findings, none blocking anything. Two age worse than 'Low' implies: F17 (pu_family is unmapped for 3 of 19 constructors; harmless only while nothing consumes it) and F54 (nothing asserts it stays that way). Step up to opus-5 if F17's entity-keyed pu_family fix leaves a design choice open."
+    },
+    {
+      "id": "WI-01",
+      "group": "08",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "WI-15a"
+      ],
+      "title": "Label spine: one version bump for F1, F22, F23, F35, F38, F42, F5, F48(θ), F51",
+      "findings": [
+        "F1",
+        "F5",
+        "F22",
+        "F23",
+        "F35",
+        "F38",
+        "F42",
+        "F48 (θ)",
+        "F51"
+      ],
+      "doc": "wi/WI-01-label-spine.md",
+      "cost": "2-3d",
+      "model": "fable-5.1",
+      "note": "The pacing item: every v15 retrain and WI-12 wait on it. Ships as ONE label version bump - fixing F1 alone already moves θ_air 2.7x (0.152 -> 0.416), and F22/F38 are the same defect class on different components. Method order in the WI doc: F1 -> F22+F38 together (Option A) -> F42a -> re-estimate θ_air exactly ONCE -> F35 -> F51 (F51 shares the eligibility CTE with F1's repair). Depends on WI-15a because θ_air must be re-estimated after F48's coding fix; the WI doc's header said 'nothing', its own step 4 says otherwise. Acceptance includes: every v13/v14 comparison after this is annotated 'not fixed-target', and any new headline is compared against a v14 REBUILT on the new label (F38 alone moves 72% of labels by more than 250 ms).",
+      "blocked_by_decision": [
+        "FD1",
+        "FD2"
+      ]
+    },
+    {
+      "id": "WI-07",
+      "group": "09",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Guard repairs: read-only audit tooling, blocking drift baselines, tests that can fail",
+      "findings": [
+        "F11",
+        "F34",
+        "F53"
+      ],
+      "doc": "wi/WI-07-guard-repairs.md",
+      "cost": "1d",
+      "model": "sonnet-5",
+      "note": "Do F53 first: it is the prerequisite for F11's T11 (ml/src/features.py has no read-only mode at all - add --persist-encoders, default False). UNTIL THIS LANDS, `ml.src.features --check` (Makefile:195, ml-ci.yml:135) OVERWRITES the shipped ml/models/encoders.json when run locally: no agent should run it. F34: three of the seven named tests are literal dead-code stubs (`SELECT 1 WHERE FALSE`) counted in the green PASS total."
+    },
+    {
+      "id": "WI-15a",
+      "group": "02",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Traffic feature semantics: pit-lane cars are not traffic (F43); dirty-air coding monotone in the gap (F48)",
+      "findings": [
+        "F43",
+        "F48 (coding)"
+      ],
+      "doc": "wi/WI-15-traffic-thermal-feature-semantics.md",
+      "cost": "1d",
+      "model": "opus-5",
+      "note": "Split from WI-15 because WI-01's θ_air re-estimate needs F48's coding fixed first, while the thermal half (WI-15b) does not feed θ - checked: int_lap_air_state.sql takes gaps from raw telemetry, and int_dirty_air_tax_component.sql reads no thermal or proximity model. F43 (int_lap_proximity, which feeds only the mart's gap_ahead_min_s) rides along as the other traffic-side fix. Both change what contract features MEAN, so they go through foundations/gates.md's feature-contract process, not a version bump. F48: base exposure on the gap alone and carry drs_active as a separate column."
+    },
+    {
+      "id": "WI-15b",
+      "group": "02",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Thermal feature semantics: fuel-neutral push proxy (F47), reachable surface/bulk ratio (F49)",
+      "findings": [
+        "F47",
+        "F49"
+      ],
+      "doc": "wi/WI-15-traffic-thermal-feature-semantics.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "F47 first, then re-derive F49's bound on the corrected feature (F49 depends entirely on F47's push_residual). Both are live contract features used by all five model families (contract feature #19 is byte-identical to F49's expression), so the thermal ablation (08e/08i, gates.md) is part of this item: confirm the contract still benefits after the fix. Fix the Tyre Recovery page text in the same pass (it quotes 86-89% recovery against its own query's 57.7-62.7%)."
+    },
+    {
+      "id": "WI-08",
+      "group": "02",
+      "stage": "SPEC",
+      "depends_on": [
+        "WI-02b"
+      ],
+      "title": "Qualifying chain stops reading race-day data",
+      "findings": [
+        "F10"
+      ],
+      "doc": "wi/WI-08-qualifying-chain.md",
+      "cost": "0.5-1d",
+      "model": "opus-5",
+      "note": "Shares the in-race compound seed with WI-02b, so it waits for the seed to settle. int_lap_residual_decomposed_qualifying.sql:92-94 admits it in its own comment: same-event weather via race-day int_track_evolution. The WI doc's method offers a choice of substitutes, hence opus-5."
+    },
+    {
+      "id": "WI-13",
+      "group": "07",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Pit-strategy stop matching: join on int_stint_end_regime.end_lap_number",
+      "findings": [
+        "F31"
+      ],
+      "doc": "wi/WI-13-pit-strategy.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "A JOIN-clause swap - the correct key already exists. Affects 29.7% of SC-ended and 83.5% of red-flag-ended pit stints (verdict NULL, opportunity cost forced to 0.0, Gantt bar drawn to the chequered flag). Remove the app's NULLS LAST / COALESCE(..., tl.n) fallback in the same change; it exists only to mask this gap. T23."
+    },
+    {
+      "id": "WI-04",
+      "group": "06",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Browser inference builds one feature vector per model",
+      "findings": [
+        "F3"
+      ],
+      "doc": "wi/WI-04-browser-inference-contract.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "MUST LAND BEFORE the v14 manifest is published to the CDN: the CDN serves v11 today (checked 2026-09-24), so production works and the defect is latent, but publishing v14 first makes the Degradation Simulator throw a TypeError for everyone (that publish is _improvements' D2). Not just a key rename: predictLaps builds one shared matrix, and the models now have two widths (32/32/32/39/32) so it needs one vector per model. 3 of 14 tests in featureVector.test.ts fail against the shipped manifest today. T7.",
+      "order_hint": 0
+    },
+    {
+      "id": "WI-14a",
+      "group": "06",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Sign-convention truth pass: Synthetic Teammate verdict (F50), the F28 page, Hidden Performance (F46)",
+      "findings": [
+        "F50",
+        "F28",
+        "F46"
+      ],
+      "doc": "wi/WI-14-rating-chain.md",
+      "cost": "0.5-1d",
+      "model": "sonnet-5",
+      "note": "F50 first: highest severity here and independent. int_synthetic_teammate.sql defines driver_skill_proxy_s as positive = ego faster, and the app reads it backwards at transform.ts:21, page.tsx:36, page.tsx:69 and methodology.tsx:14, so the page's 'ahead'/'behind' verdicts are inverted (125 of 166 driver-seasons are non-'even'). Add a fixture test that would fail against the pre-fix code. Then F28 (swap to the warehouse's own correct column, fix the aggregation grain), then F46 (a: correct the self-scenario text; b: ORDER BY the declared ranking key predicted_mean_residual_pace_s). Split from WI-14: none of these needs the F40 ruling."
+    },
+    {
+      "id": "WI-14b",
+      "group": "06",
+      "stage": "BLOCKED",
+      "depends_on": [],
+      "title": "Rating chain: equal-car rating symmetry (F40), affinity as deviation (F44), era offset (F45)",
+      "findings": [
+        "F40",
+        "F44",
+        "F45"
+      ],
+      "doc": "wi/WI-14-rating-chain.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "Each step consumes the one before (F40 -> F44 -> F45). F40: mean teammate pair sum is -1.83s and 79% of two-driver cars show both teammates rated faster than each other. F44: the Driver Circuit Affinity heatmap is 667 of 667 cells green, so it carries no colour information today. F45: the era offset turns a -0.044s gap into +0.071s. Re-check the 'field average' wording on at least four pages.",
+      "blocked_by_decision": "FD5"
+    },
+    {
+      "id": "WI-11",
+      "group": "06",
+      "stage": "SPEC",
+      "depends_on": [
+        "WI-05"
+      ],
+      "title": "Fan-page truth pass: pages must state what their SQL computes",
+      "findings": [
+        "F15",
+        "F16",
+        "F27",
+        "F29",
+        "F30",
+        "F36",
+        "F37"
+      ],
+      "doc": "wi/WI-11-fan-page-truth-pass.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "Fan value is the product (2026-09-20 win-definition decision), which is why several of these are rated UNDERSTATED in the reverification. F29 is the model's own trust/credibility page and structurally flatters the model - do not soften it. Only F27 needs WI-05 (F26's wet-flag fix); if WI-05 slips, split F27 off into its own item rather than idling the other six."
+    },
+    {
+      "id": "WI-12",
+      "group": "06",
+      "stage": "SPEC",
+      "depends_on": [
+        "WI-01"
+      ],
+      "title": "06b re-measure after the label bump",
+      "findings": [
+        "F23",
+        "F48 (θ)"
+      ],
+      "doc": "wi/WI-12-06b-remeasure.md",
+      "cost": "0.5-1d",
+      "model": "opus-5",
+      "note": "A publication task, not a code fix. 06b's published claim (dirty air's cost fell by roughly two thirds and shows no detectable directional cost 2021-2024) was measured on θ_air calibrated on F1's fabricated laps. State plainly whether 'no detectable directional cost' survives; rewrite the claim and the dirty-air-cost page's methodology text (it says 'per-circuit OLS coefficient' where the coefficient is one global slope)."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "FD1",
+      "raised": "2026-09-24",
+      "blocking": [
+        "WI-01"
+      ],
+      "status": "OPEN",
+      "question": "What is the baseline each lap is compared against? A: a neutral reference - fuel AND tyre-compound effects taken out once, and track rubber/temperature NOT taken out a second time. B: what the field actually did that day, with nothing subtracted again.",
+      "context": "F22 (rubber+ambient) and F38 (compound) are one defect - a component the base already contains, subtracted again - so they need one answer, not two. A matches how fuel is already handled and needs no new design work. B changes what the residual MEANS (pace vs what the field actually did) and would force re-justifying the residual's header identity and 07's closed-channel causal argument from scratch.",
+      "recommendation": "A (the reverification's recommendation)."
+    },
+    {
+      "id": "FD2",
+      "raised": "2026-09-24",
+      "blocking": [
+        "WI-01"
+      ],
+      "status": "OPEN",
+      "question": "What happens to safety-car / VSC / red-flag / restart laps (9,016 of 139,947 eligible training rows, 6.4%) at training time? Exclude them outright, or keep them at reduced weight via correction_weight (computed today, applied nowhere in ml/src)?",
+      "context": "Either way the same rule has to reach int_field_pace_curve's eligibility CTE, because these laps also enter the field-pace baseline F1 depends on. Weighting keeps more data and matches what correction_weight was built for; excluding is a one-line change that mirrors how 'mistake' and 'conditions' laps are already handled. The audit's own write-up leans to weighting.",
+      "recommendation": "Orchestrator's read, not the audit's: exclude. Those laps are slow because the field is queueing behind the safety car, not because tyres wore, so a reduced weight still trains on a label that is not degradation."
+    },
+    {
+      "id": "FD3",
+      "raised": "2026-09-24",
+      "blocking": [
+        "WI-02b"
+      ],
+      "status": "OPEN",
+      "question": "Compound-seed leakage: refit the seed point-in-time (each season fitted only on earlier seasons), or declare a same-race exemption and make training match serving?",
+      "context": "Leaving it as-is (train on in-race fitted values, serve on carried-forward ones) is not an option: it makes every pre-2025 headline optimistic relative to what the model does on an unrun race. Measured cost of the honest option (arm C): small (~0.7%) on the trio and cliff, but -0.0761 AFT NLL (~3.8%) on stint-life.",
+      "recommendation": "Orchestrator's read, not the audit's: point-in-time - it is what the model does at serving time and follows int_sc_hazard_history's precedent - accepting the stint-life cost knowingly, since D5 tunes against that family."
+    },
+    {
+      "id": "FD4",
+      "raised": "2026-09-24",
+      "blocking": [
+        "WI-03"
+      ],
+      "status": "OPEN",
+      "question": "Which season is the holdout? No completed season is unspent (2025 was consumed as a selection fold by 02c's admission gate). Pin 2026 explicitly and fill it with the races run so far, or declare that no clean holdout exists yet?",
+      "context": "Today resolve_holdout_season returns MAX(race_year)+1, which is 2026 with 0 rows, and it moves the moment data arrives, so it can never hold rows. The card, README, HOLDOUT_NOTE and a tautological test all describe the mechanism as working.",
+      "recommendation": "Orchestrator's read, not the audit's: pin holdout_season = 2026 in config, state holdout_populated: false until 2026 rows exist, and ingest the 2026 races already run if the data is available - the only option that yields a clean holdout rather than a declared absence."
+    },
+    {
+      "id": "FD5",
+      "raised": "2026-09-24",
+      "blocking": [
+        "WI-14b"
+      ],
+      "status": "OPEN",
+      "question": "Equal-car teammate rating: compare P20 against P20 (keeps the 'kill cruise drag' ceiling logic, applied on both sides), or median against median (simpler, loses the ceiling)?",
+      "context": "Today one side is a ceiling and the other a mean, so more lap-time scatter reads as faster: mean teammate pair sum is -1.83s and 79% of two-driver cars rate both teammates faster than each other. The choice feeds F44 and F45 downstream.",
+      "recommendation": "P20-vs-P20 (the WI doc's recommendation): the smaller conceptual change, and it preserves the model header's stated intent."
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-09-24T18:00:00Z",
+      "session": "fixes/status created: 16 items from the 13 WI docs, 5 open rulings, pointer on WI-04",
+      "landed": [
+        "_roadmap/_fixes/status/{board.py, build-log.json, BUILD-ORDER.md} created, adapted from _roadmap/_improvements/status.",
+        "13 WI docs became 16 items: WI-02, WI-14 and WI-15 are each split in two along boundaries their own docs state (02a/02b: 'F41 first'; 14a/14b: F28/F50 'independent' of the F40 ruling; 15a/15b: only the traffic half feeds θ_air). The other ten map one to one.",
+        "Five open decisions (FD1-FD5) recorded with the audit's recommendation where it gave one.",
+        "WI-04's 'check the CDN' to-do resolved in its doc: the CDN serves v11.",
+        "_fixes reorganised: WI docs -> wi/, STATUS-BOARD.md -> reference/finding-verdicts.md (renamed: it is a static per-finding record, not the execution board), NEW-FINDINGS.md -> reference/new-findings.md, README rewritten around the layout. Plain mv, not git mv: the index is untouched."
+      ],
+      "verified": [
+        "The four pasted claims (F1, F22/F38, F51, F3) reproduced against live code and data/dev.duckdb read-only: 14,892 of 160,207 laps have a NULL base and pace_delta_s = 0 on every one; 9,016 of 139,947 eligible rows are event_driven; featureVector.test.ts fails 3 of 14 against the shipped manifest; https://storage.googleapis.com/off-the-pace-cdn/models/manifest.json is v11 with the old input shape.",
+        "θ_air depends only on F48's coding, not on all of WI-15: int_lap_air_state takes gaps from raw telemetry and int_dirty_air_tax_component's ref() list contains no thermal or proximity model (grep of ref() and of thermal/push/surface column names)."
+      ],
+      "assumed": [
+        "Cost and model on every item are the orchestrator's estimates from reading the WI docs; none was measured.",
+        "WI-02b and WI-11 hard-depend on WI-05. The README words this as 'benefits from' / 'F27 needs F26'; relax the dependency in the log if you want them to run ahead.",
+        "Where the split points and FD2/FD3/FD4 recommendations come from: the orchestrator's reading of the docs. The audit gave a recommendation for FD1 and FD5 only, and leans to weighting for FD2."
+      ],
+      "gates_run": "None, and none applies: this is a status scaffold and no label, feature contract or model moved. verify_findings.py was not re-run (it has a path bug - F53, WI-07).",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "Run WI-04 (say 'proceed'): 0.5 day, no blockers, and it must land before the v14 manifest is published to the CDN. Five rulings are yours in parallel: FD1 and FD2 unlock WI-01, the pacing item every v15 retrain waits on; FD3 unlocks WI-02b, FD4 WI-03, FD5 WI-14b. After WI-04, WI-05 is the most useful unblocked item because WI-02b and WI-11 wait on it - or WI-14a if you would rather ship the fan-visible F50 sign fix first."
+    },
+    {
+      "date": "2026-09-24T18:09:00Z",
+      "session": "WI-04 landed: browser inference, per-model feature vectors",
+      "landed": [
+        "app/src/ml/manifest.ts: ManifestInput now carries only shared encoding (input.feature_union, encoding) not per-model widths; moved feature_order/n_features/shape to ModelSpec. Added ModelInputSpec type and getModelInput(manifest, name) helper.",
+        "app/src/ml/infer.ts: predictLaps now calls runScalar and runClassifier, each builds its own feature matrix from model.feature_order/width via getModelInput (cliff_classifier 39-wide, other four 32-wide). Removed the shared-matrix defect.",
+        "app/src/ml/featureVector.ts: buildFeatureVector/buildFeatureMatrix now take ModelInputSpec instead of ManifestInput.",
+        "app/src/ml/verifyParity.ts: uses manifest.input.feature_union (union of all models) instead of retired top-level feature_order.",
+        "app/src/ml/featureVector.test.ts: rewrote per-model tests; added T7 regression guard that runs buildFeatureVector on every model in shipped manifest.json, asserting the five declared widths (32/32/32/39/32) and that feature_union = union of all models' feature_order.",
+        "app/src/ml/parity.node.test.ts: updated to build distinct matrix per model via getModelInput.",
+        "scripts/dump_parity_rows.py: fixed same defect one layer down (fed shared 39-wide matrix into 32-wide boosters, crashed before TS was exercised). Now encodes each booster on its own feature_columns_for(target)."
+      ],
+      "verified": [
+        "make app-parity passes end-to-end: dump_parity_rows.py runs clean (48 parity rows), parity.node.test.ts reports maxAbs=8.413e-5, cliffMismatches=0.",
+        "pnpm exec vitest run --coverage: 366 tests pass (37 files, 1 skipped), including T7 regression on shipped manifest.",
+        "pnpm typecheck, pnpm build both pass clean.",
+        "F3 check in verify_findings.py: CLEARED (method verified by evaluating its lambda)."
+      ],
+      "assumed": [
+        "No further code issues found in the five models or the booster exports; the defect was isolated to feature-matrix assembly and is now closed."
+      ],
+      "gates_run": "None (feature contract changed only for internal browser API, manifest shape was already live).",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "WI-05 is the pointer: 2-3 days, no blockers. It unblocks WI-02b and WI-11, both of which depend on it. Alternatively, WI-14a (0.5-1d) ships the F50 sign fix if you want fan-visible work sooner."
+    }
+  ]
+}

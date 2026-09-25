@@ -202,10 +202,14 @@ def estimate_cliff_severity(
     """
     Estimate cliff_severity_s (seconds of pace loss at onset + 5 laps post-cliff).
 
-    Uses only uncensored stints (observed cliff or forced stop) where we actually
-    see post-cliff laps. Computes the average lap-time delta between
-    [onset, onset+5] vs [onset-5, onset-1], windowed on age_in_stint (tyre-life
-    laps) to match the units cliff_lap is detected in.
+    Uses only stints with a cliff detected on pace_col: a stint with no detected
+    cliff (including a forced stop or tyre failure that never produced one) has
+    no lap to anchor the windows on and contributes nothing. cliff_onset_laps is
+    not read -- each stint is windowed on its own detected cliff lap, not on the
+    fitted onset. Computes the average lap-time delta between [cliff, cliff+5]
+    vs [cliff-5, cliff-1], windowed on age_in_stint (tyre-life laps) to match
+    the units cliff_lap is detected in, and keeps a stint only with >= 2 laps on
+    each side.
 
     pace_col: see build_survival_dataset. Normalizing matters here because the
     post-cliff window is exactly where a struggling car picks up traffic, which
@@ -235,6 +239,22 @@ def estimate_cliff_severity(
     p10, p90 = np.percentile(arr, [10, 90])
     trimmed = arr[(arr >= p10) & (arr <= p90)]
     return float(trimmed.mean()) if len(trimmed) > 0 else float(arr.mean())
+
+
+def is_uncensored_stint(grp: pd.DataFrame, pace_col: str = "lap_time_s") -> bool:
+    """
+    True if the stint's end is observed rather than censored by a voluntary pit.
+
+    Observed means either a cliff detected on pace_col (the same event
+    build_survival_dataset counts), or a forced stop: the stint ended in a
+    retirement, which the loader records as dnf_status on the driver's final
+    stint only. forced_stop_flag is NOT used here -- it is set on every lap of a
+    retiring driver's race, so it would also admit the earlier stints that ended
+    in an ordinary, voluntary pit.
+    """
+    if detect_cliff_lap(grp[pace_col], grp["age_in_stint"]) is not None:
+        return True
+    return "dnf_status" in grp.columns and bool(grp["dnf_status"].notna().any())
 
 
 def _fit_wear_slope_with_wind(
@@ -267,12 +287,15 @@ def estimate_wear_gradient(
     """
     Estimate compound_wear_gradient (s/lap) from the linear portion of the wear curve.
 
-    Fits a linear regression on tyre-life laps 3 to min(cliff_onset-2, max_age-2)
+    Fits a linear regression on tyre-life laps 3 to cliff_onset-2 (floored at 3)
     to capture the steady-state degradation before the cliff accelerates, windowed
     on age_in_stint so an SC/VSC gap (already excluded from this row set by the
     caller) doesn't compress the fitted x-spacing and inflate the slope.
-    Uses uncensored stints only (forced stop or observed cliff) to avoid the selection
-    bias of voluntary pits cutting short the measurable degradation range.
+    Uses uncensored stints only (forced stop or observed cliff -- see
+    is_uncensored_stint) to avoid the selection bias of voluntary pits cutting
+    short the measurable degradation range. A stint must also give a positive
+    slope with R^2 > 0.1 to count; the per-stint slopes are then trimmed to
+    their p10-p90 and averaged.
 
     When wind_speed_ms is available (and the window has enough points to fit a
     3-parameter model), nets wind out via multivariate OLS so a windy stint's
@@ -292,6 +315,8 @@ def estimate_wear_gradient(
 
     for _stint_id, grp in stints_df.groupby("stint_id"):
         grp = grp.sort_values("age_in_stint").reset_index(drop=True)
+        if not is_uncensored_stint(grp, pace_col):
+            continue
         linear_region = grp[
             grp["age_in_stint"].between(3, cutoff) &
             grp[pace_col].notna()

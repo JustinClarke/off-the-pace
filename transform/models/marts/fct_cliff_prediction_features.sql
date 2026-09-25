@@ -1,7 +1,11 @@
 -- Gold layer: lap-grain feature table for tyre cliff XGBoost model.
 -- Grain: lap_id one row per valid race lap.
--- Targets: next_lap_degradation_jump_detrended_s (PRIMARY, detrended) and
---          next_lap_degradation_jump_s (legacy, kept for diff/gate).
+-- Targets (ml/src/schema.py): next_5_lap_cumulative_jump_s (PRIMARY, the
+--          degradation trio's target) and laps_until_cliff_class (the cliff
+--          classifier's). Also carried but not modelled:
+--          next_lap_degradation_jump_detrended_s and next_3_lap_cumulative_jump_s
+--          (alternative horizons) and next_lap_degradation_jump_s (legacy, kept
+--          for diff/gate).
 --
 -- LEAKAGE WARNING: driver_skill_proxy_s and synthetic-teammate features are
 -- deliberately
@@ -535,9 +539,18 @@ base AS (
         COALESCE(det.drift_s_per_lap, 0.0) AS drift_s_per_lap,
 
         -- C2: IPW survival weight 1/P(stint reaches this lap) per compound,
-        -- clipped [0.25, 4].
+        -- clipped [0.25, 4]; 1.0 (unweighted) where there is no prior-season
+        -- curve (see stint_survival above). clamp_or_null keeps that NULL a
+        -- NULL so the COALESCE fires: the GREATEST(0.25, LEAST(4.0, ...)) it
+        -- replaces turned a NULL survival_prob into 4.0, the maximum weight
+        -- (DuckDB skips NULL arguments): every 2018 row, every unknown-compound
+        -- row, and every later (compound, lap_in_stint) no earlier season
+        -- reached -- 24,800 rows on the 2026-09-24 dev build (WI-13;
+        -- assert_survival_weight_neutral_without_prior_curve).
+        -- survival_prob is never 0 (a cell no prior stint reached is NULL).
         COALESCE(
-            GREATEST(0.25, LEAST(4.0, 1.0 / NULLIF(ss.survival_prob, 0.0))),
+            {{ clamp_or_null(
+                '1.0 / NULLIF(ss.survival_prob, 0.0)', 0.25, 4.0) }},
             1.0
         ) AS survival_weight,
 
@@ -624,24 +637,26 @@ cliff_scan AS (
 ),
 
 -- Compute targets: single-lap and multi-horizon degradation jumps.
+--
+-- Every bound below is clamp_or_null, not GREATEST(LEAST(x, hi), lo): DuckDB's
+-- LEAST/GREATEST skip NULL arguments, so a NULL residual anywhere in a window
+-- would have come out as the upper bound (+10 / +30 / +50 s) instead of NULL.
+-- No residual is NULL today, so no label value moves; the guard is for the day
+-- one is (F39's latent sibling in the label clips).
 with_target AS (
     SELECT
         *,
         -- Single-lap target (legacy, kept alongside detrended for diff/gate).
         CASE
             WHEN LEAD(driver_skill_residual_s, 1) OVER w IS NULL THEN NULL
-            ELSE GREATEST(
-                LEAST(
-                    LEAD(driver_skill_residual_s, 1) OVER w
-                    - driver_skill_residual_s,
-                    10.0
-                ),
-                -10.0
-            )
+            ELSE {{ clamp_or_null(
+                'LEAD(driver_skill_residual_s, 1) OVER w - driver_skill_residual_s',
+                -10.0, 10.0) }}
         END AS next_lap_degradation_jump_s,
 
-        -- C1 PRIMARY target: detrended single-lap jump with per-stint
-        -- fuel/track drift removed.
+        -- C1 target: detrended single-lap jump with per-stint fuel/track drift
+        -- removed. Primary until Phase 7 moved the modelled column to the 5-lap
+        -- cumulative one below; carried since as an alternative horizon.
         -- drift_s_per_lap is the OLS slope of residual ~ lap_in_stint on
         -- pre-cliff laps.
         -- Subtracting it removes the systematic ~-0.07 s/lap leak (Step 0:
@@ -649,15 +664,11 @@ with_target AS (
         -- Bounded [-10, 10] same as legacy target.
         CASE
             WHEN LEAD(driver_skill_residual_s, 1) OVER w IS NULL THEN NULL
-            ELSE GREATEST(
-                LEAST(
-                    LEAD(driver_skill_residual_s, 1) OVER w
+            ELSE {{ clamp_or_null(
+                'LEAD(driver_skill_residual_s, 1) OVER w
                     - driver_skill_residual_s
-                    - drift_s_per_lap,
-                    10.0
-                ),
-                -10.0
-            )
+                    - drift_s_per_lap',
+                -10.0, 10.0) }}
         END AS next_lap_degradation_jump_detrended_s,
 
         -- Multi-horizon cumulative targets: the sum of the next k detrended
@@ -678,34 +689,26 @@ with_target AS (
         -- claims. Same defect class as the cliff label repair.
         CASE
             WHEN LEAD(lap_in_stint, 3) OVER w = lap_in_stint + 3
-                THEN GREATEST(
-                    LEAST(
-                        LEAD(driver_skill_residual_s, 1) OVER w
+                THEN {{ clamp_or_null(
+                    'LEAD(driver_skill_residual_s, 1) OVER w
                         + LEAD(driver_skill_residual_s, 2) OVER w
                         + LEAD(driver_skill_residual_s, 3) OVER w
                         - 3 * driver_skill_residual_s
-                        - 6 * drift_s_per_lap,
-                        30.0
-                    ),
-                    -30.0
-                )
+                        - 6 * drift_s_per_lap',
+                    -30.0, 30.0) }}
         END AS next_3_lap_cumulative_jump_s,
 
         CASE
             WHEN LEAD(lap_in_stint, 5) OVER w = lap_in_stint + 5
-                THEN GREATEST(
-                    LEAST(
-                        LEAD(driver_skill_residual_s, 1) OVER w
+                THEN {{ clamp_or_null(
+                    'LEAD(driver_skill_residual_s, 1) OVER w
                         + LEAD(driver_skill_residual_s, 2) OVER w
                         + LEAD(driver_skill_residual_s, 3) OVER w
                         + LEAD(driver_skill_residual_s, 4) OVER w
                         + LEAD(driver_skill_residual_s, 5) OVER w
                         - 5 * driver_skill_residual_s
-                        - 15 * drift_s_per_lap,
-                        50.0
-                    ),
-                    -50.0
-                )
+                        - 15 * drift_s_per_lap',
+                    -50.0, 50.0) }}
         END AS next_5_lap_cumulative_jump_s
 
     FROM base
@@ -752,7 +755,7 @@ SELECT
     compound_cliff_onset_laps,
     compound_cliff_severity,
 
-    -- Thermal predictors (C3: surface_bulk_ratio added as 42nd feature)
+    -- Thermal predictors (C3 added surface_bulk_ratio; it survived Phase 9's prune)
     push_residual,
     cumulative_push_load_surface,
     cumulative_push_load_bulk,
@@ -771,9 +774,10 @@ SELECT
     dirty_air_thermal_load_bulk,
     air_state_dominant,
 
-    -- Proximity predictors (Phase 10a, position channel). Present in the mart
-    -- and not yet in the ML feature contract: the contract moves only if the
-    -- ablation says it should, which is the phase's own acceptance rule.
+    -- Proximity predictors (Phase 10a, position channel). Present in the mart and
+    -- in the ML feature contract (ml/src/schema.py FEATURE_GROUPS['proximity']),
+    -- admitted on Phase 10a's add-ablation, which was the phase's own acceptance
+    -- rule.
     share_lap_within_1s,
     share_lap_within_2s,
     share_lap_in_train,
@@ -831,13 +835,15 @@ SELECT
     corner_exit_drift_sd_s,
     corner_exit_drift_max_s,
 
-    -- 02b qualifying predictors (Tier 1, an entire session the contract has never
-    -- read). Weekend-grain, stint-invariant: present in the mart, NOT yet in
-    -- ml/src/schema.py's FEATURE_COLUMNS. Per the leaf doc's §1, a stint-invariant
-    -- feature can only address the 0.94% of the degradation target's variance that
-    -- is between-stint, so this group is expected to move cliff_classifier and/or
+    -- 02b qualifying predictors (Tier 1, an entire session the contract had never
+    -- read). Weekend-grain, stint-invariant: present in the mart and in
+    -- ml/src/schema.py's FEATURE_COLUMNS since D12 (2026-09-21), for
+    -- cliff_classifier only -- PER_TARGET_FEATURE_MASK masks them out of the other
+    -- four models. Per the leaf doc's §1, a stint-invariant feature can only
+    -- address the 0.94% of the degradation target's variance that is between-stint,
+    -- so this group was expected to move cliff_classifier and/or
     -- stint_life_regressor, not the degradation trio -- the pre-registered arms in
-    -- _improvements/work/02-feature-expansion.md §2 `02b` test that expectation.
+    -- _improvements/work/02-feature-expansion.md §2 `02b` tested that expectation.
     quali_push_laps_n,
     quali_constructor_pace_mean_s,
     quali_constructor_pace_se_mean_s,
@@ -853,8 +859,9 @@ SELECT
     -- the family it is aimed at is stint_life_regressor, where stint ends are set
     -- by pit-wall calls and safety-car probability is the largest exogenous input
     -- to those calls. Present in the mart, NOT in ml/src/schema.py's
-    -- FEATURE_COLUMNS -- the same standing 02b's seven and 02c's ten hold until
-    -- their arms rule. The pre-registered arms are in
+    -- FEATURE_COLUMNS -- the same standing 02c's ten hold (02b's seven held it
+    -- until D12 admitted them for the cliff classifier). The pre-registered arms
+    -- are in
     -- _improvements/work/02-feature-expansion.md §4 `02d`.
     circuit_sc_hazard_per_lap,
     circuit_vsc_hazard_per_lap,
@@ -897,7 +904,8 @@ SELECT
     anomaly_class,
     is_rain_lap,
 
-    -- Targets: detrended (primary) + legacy + multi-horizon
+    -- Targets: the modelled ones (next_5_lap_cumulative_jump_s, laps_until_cliff_class)
+    -- plus the alternative horizons and the legacy single-lap column
     next_lap_degradation_jump_detrended_s,
     next_lap_degradation_jump_s,
     next_3_lap_cumulative_jump_s,

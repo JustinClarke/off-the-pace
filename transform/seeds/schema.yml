@@ -50,6 +50,45 @@ seeds:
               arguments:
                 min_value: 0.005
                 max_value: 0.300
+      - name: fit_source
+        description: >
+          The tier the cell's fit was attempted at: cox_km_survival (this season's stints),
+          cross_season_fallback (the venue's stints pooled across seasons), compound_class_default
+          (too few stints for either), or carried_forward_<season> (no fit for this season; that
+          earlier season's cell copied unchanged). Cell-level only -- see the three *_source
+          columns for where each parameter actually came from.
+        tests:
+          - not_null
+      - name: onset_source
+        description: >
+          Where compound_cliff_onset_laps came from: fitted (this cell's own season),
+          cross_season_fallback (venue pooled across seasons), class_default (COMPOUND_DEFAULTS, or
+          a compound-class value explained in notes), carried_forward (copied from an earlier
+          season's fitted or cross-season value). A class default stays class_default when it is
+          carried forward. Recorded at fit time by fit_compound_cliff.py. Rows fitted before that
+          (fit_date up to 2026-09-22) were labelled from their values: a parameter exactly equal to
+          its class default is class_default. A fired default always lands exactly on the default,
+          so that labelling can only over-report defaults (a genuine estimate that happens to equal
+          one), never hide one.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
+      - name: gradient_source
+        description: Where compound_wear_gradient came from; same vocabulary and history as onset_source.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
+      - name: severity_source
+        description: Where compound_cliff_severity came from; same vocabulary and history as onset_source.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
       - name: fit_date
         description: ISO date when these coefficients were last fitted.
         tests:
@@ -182,6 +221,12 @@ seeds:
               arguments:
                 min_value: 0.010
                 max_value: 0.060
+      - name: fuel_consumption_rate_kg_per_lap
+        description: >
+          LEGACY -- a hand-set burn estimate (kg/lap) that neither the fuel model (since WI-05)
+          nor fit_weight_penalty.py (since WI-13, F55) reads: both use
+          int_lap_fuel_state.fuel_consumption_rate_kg_per_lap, the FIA limit over the scheduled
+          laps. Kept for the app's Degradation Simulator, which reads it through dim_circuits.
       - name: fit_date
         description: ISO date when the weight_penalty_factor was last calibrated.
         tests:

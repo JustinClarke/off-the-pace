@@ -1,0 +1,210 @@
+{
+  "_about": "Reviewed LEAST/GREATEST calls over a possibly-NULL expression (DuckDB skips NULL arguments, so the bound is returned instead of NULL). Read by transform/tasks/coefficients/tests/test_sql_least_greatest_nullable.py. verdict: not_null = the argument cannot be NULL there (reason says why); intended = the NULL-skip cannot reach an output; open = a NULL would become the bound -- reported, not fixed. Counts are from the 2026-09-24 dev build. Edit a call and its entry goes stale on purpose.",
+  "entries": [
+    {
+      "file": "models/intermediate/int_constructor_deg_sensitivity.sql",
+      "call": "GREATEST(MEDIAN(compound_cliff_severity), 0.30)",
+      "verdict": "not_null",
+      "reason": "compound_cliff_severity is not_null-tested on the compound_cliff_params seed and every (season, compound) group has at least one row, so the MEDIAN is never NULL."
+    },
+    {
+      "file": "models/intermediate/int_constructor_deg_sensitivity.sql",
+      "call": "GREATEST(SQRT( GREATEST(syy - b_age_raw * sxy - b_hinge_raw * szy, 0) / GREATEST(n_laps_cliff - n_stints_cliff - 2, 1) * (sxx / NULLIF(det, 0)) ), 0.0001)",
+      "verdict": "intended",
+      "reason": "NULL only when det = 0 (collinear age/hinge). b_hinge_se is read only on cliff_qualifies rows (cliff_tau, cliff_field_mean and hinge_dev_shrunk filter on it), and cliff_qualifies requires det > 0, so the 1e-4 floor on a NULL is never consumed."
+    },
+    {
+      "file": "models/intermediate/int_constructor_deg_sensitivity.sql",
+      "call": "GREATEST(SQRT( GREATEST(syy - slope_raw * sxy, 0) / GREATEST(n_laps - n_stints - 1, 1) / NULLIF(sxx, 0) ), 0.0001)",
+      "verdict": "intended",
+      "reason": "The SQRT is NULL only when sxx = 0 (a cell of single-lap stints), and every read of slope_se is gated on qualifies, which requires sxx > 0: field_mean and tau filter WHERE qualifies (centered's w is read only in tau), and the final SELECT's four reads sit behind WHEN c.qualifies or after WHEN NOT c.qualifies. qualifies is never NULL, because clean_laps drops NULL age and residual. So the 1e-4 floor on a NULL is never consumed; it exists for a near-perfect fit. Re-measured on the 2026-09-25 dev build (WI-13): 233 cells, 231 qualifying, 0 with sxx = 0, 0 qualifying with a NULL pre-floor SE, 0 at the floor. (Was 'open' on the claim that the final SELECT reads slope_se for every cell, which the code does not.)"
+    },
+    {
+      "file": "models/intermediate/int_constructor_deg_sensitivity.sql",
+      "call": "GREATEST(n_laps - n_stints - 1, 1)",
+      "verdict": "not_null",
+      "reason": "n_laps and n_stints are COUNT aggregates of the same GROUP BY row and cannot be NULL."
+    },
+    {
+      "file": "models/intermediate/int_constructor_deg_sensitivity.sql",
+      "call": "GREATEST(n_laps_cliff - n_stints_cliff - 2, 1)",
+      "verdict": "not_null",
+      "reason": "COUNT aggregates of the same GROUP BY row; never NULL."
+    },
+    {
+      "file": "models/intermediate/int_constructor_deg_sensitivity.sql",
+      "call": "GREATEST(syy - b_age_raw * sxy - b_hinge_raw * szy, 0)",
+      "verdict": "intended",
+      "reason": "b_age_raw / b_hinge_raw are NULL only when det <= 0 (det is a Gram determinant, so only det = 0), where the enclosing sxx / NULLIF(det, 0) is NULL anyway; the floor absorbs a slightly negative RSS."
+    },
+    {
+      "file": "models/intermediate/int_constructor_deg_sensitivity.sql",
+      "call": "GREATEST(syy - slope_raw * sxy, 0)",
+      "verdict": "intended",
+      "reason": "slope_raw is NULL only when sxx = 0, and then the enclosing division by NULLIF(sxx, 0) is NULL whatever this returns; the floor exists to absorb a slightly negative RSS from float rounding."
+    },
+    {
+      "file": "models/intermediate/int_driver_circuit_affinity.sql",
+      "call": "GREATEST(ws.raw_affinity_s, ws.global_driver_mean_s)",
+      "verdict": "not_null",
+      "reason": "Shrinkage-bound test columns. raw_affinity_s is an AVG over the driver-circuit's residuals (0 NULL of 1,034 rows on the 2026-09-24 dev build) and global_driver_mean_s comes from an INNER JOIN to the driver's mean over the same residuals."
+    },
+    {
+      "file": "models/intermediate/int_driver_circuit_affinity.sql",
+      "call": "LEAST(ws.raw_affinity_s, ws.global_driver_mean_s)",
+      "verdict": "not_null",
+      "reason": "Same two columns as the upper bound beside it: 0 NULL raw_affinity_s of 1,034; global_driver_mean_s from an INNER JOIN over the same residuals."
+    },
+    {
+      "file": "models/intermediate/int_driver_circuit_era_affinity.sql",
+      "call": "GREATEST(raw_affinity_s, global_driver_mean_s)",
+      "verdict": "not_null",
+      "reason": "Evaluated only WHEN n_obs >= 2 (the CASE around it); 0 NULL raw_affinity_s among those 1,472 rows on the 2026-09-24 dev build, and the global mean aggregates the same residuals."
+    },
+    {
+      "file": "models/intermediate/int_driver_circuit_era_affinity.sql",
+      "call": "LEAST(raw_affinity_s, global_driver_mean_s)",
+      "verdict": "not_null",
+      "reason": "Lower bound of the same n_obs >= 2 pair: 0 NULL raw_affinity_s among 1,472 rows."
+    },
+    {
+      "file": "models/intermediate/int_driver_season_ratings.sql",
+      "call": "GREATEST(raw_residual_mean_s, season_mean_s)",
+      "verdict": "not_null",
+      "reason": "Shrinkage-bound test column; 0 NULL raw_residual_mean_s / season_mean_s of 173 rows on the 2026-09-24 dev build (both are AVGs over the driver-season's clean laps)."
+    },
+    {
+      "file": "models/intermediate/int_driver_season_ratings.sql",
+      "call": "LEAST(raw_residual_mean_s, season_mean_s)",
+      "verdict": "not_null",
+      "reason": "Lower bound of the same pair: 0 NULL of 173."
+    },
+    {
+      "file": "models/intermediate/int_lap_anomaly_flags.sql",
+      "call": "GREATEST(MEDIAN(ABS(w.driver_skill_residual_s - tw.trailing_median_s)), 0.10)",
+      "verdict": "intended",
+      "reason": "MEDIAN is NULL only when trailing_median_s is NULL (driver_skill_residual_s has 0 NULLs); the 0.10 floor is then read only as the divisor of (residual - trailing_median_s), which is NULL itself, so the MAD score stays NULL."
+    },
+    {
+      "file": "models/intermediate/int_lap_fuel_state.sql",
+      "call": "GREATEST(initial_fuel_kg - fuel_consumption_rate_kg_per_lap * (lap_number - 1), 0.0)",
+      "verdict": "not_null",
+      "reason": "All three inputs come through INNER JOINs to the race_scheduled_laps seed and stg_laps (0 NULL of 161,040 rows); assert_fuel_load_matches_scheduled_distance fails the build if a race lacks them."
+    },
+    {
+      "file": "models/intermediate/int_lap_normalized_pace.sql",
+      "call": "GREATEST(0.0, LEAST( 5.0, tt.theta_time * COALESCE(a.time_in_dirty_air_s, 0.0) ))",
+      "verdict": "not_null",
+      "reason": "theta_time is COALESCE(..., 0.004) in a one-row aggregate CROSS JOINed onto every lap (0 NULL of 189,418), and the exposure is COALESCEd."
+    },
+    {
+      "file": "models/intermediate/int_lap_normalized_pace.sql",
+      "call": "LEAST(5.0, tt.theta_time * COALESCE(a.time_in_dirty_air_s, 0.0))",
+      "verdict": "not_null",
+      "reason": "Inner half of the same clamp: theta_time is COALESCEd in its one-row CTE; 0 NULL of 189,418."
+    },
+    {
+      "file": "models/intermediate/int_pit_strategy_cost_curve.sql",
+      "call": "GREATEST(a.age_laps - p.compound_cliff_onset_laps, 0.0)",
+      "verdict": "not_null",
+      "reason": "p is a dim_compounds_season row (compound_cliff_onset_laps is not_null-tested on the seed) and a.age_laps is a generated series, so neither side is NULL. Passed as the laps_past_cliff argument of compound_cliff_wear_s, which is itself NULL-guarded."
+    },
+    {
+      "file": "models/intermediate/int_pit_strategy_value.sql",
+      "call": "GREATEST(r.actual_total_cost_race_s - r.optimal_total_cost_race_s, 0.0)",
+      "verdict": "open",
+      "reason": "The CASE NULL-tests actual_pit_lap and optimal_total_cost_race_s but not actual_total_cost_race_s; a NULL there would read as a 0.0 opportunity cost. Does not fire: 0 of the 5,112 stints graded with a stop on the 2026-09-25 dev build (after WI-13's F31 fix). Left open as a judgement call, not a one-liner: the CASE already maps an ungradeable stint (no stop, no optimum) to 0.0, so NULL-preserving here would add a third convention for 'cannot grade', and the choice between 0.0 and NULL reaches fct_stint_features.tyre_management_score and the app's cost totals."
+    },
+    {
+      "file": "models/intermediate/int_pit_strategy_value.sql",
+      "call": "GREATEST(r.pick_actual_cost_s - r.pick_optimal_cost_s, 0.0)",
+      "verdict": "open",
+      "reason": "The CASE NULL-tests actual_pit_lap and pick_optimal_cost_s but not pick_actual_cost_s; a NULL there would read as a 0.0 opportunity cost. Does not fire: 0 of the 5,112 stints graded with a stop on the 2026-09-25 dev build (after WI-13's F31 fix). Left open for the same judgement call as the race-horizon clip beside it: 0.0 vs NULL for a stint the model cannot grade."
+    },
+    {
+      "file": "models/intermediate/int_sector_residual_decomposed.sql",
+      "call": "GREATEST(ABS(sector_fuel_component_s), ABS(sector_compound_component_s), ABS(sector_rubber_component_s), ABS(sector_ambient_component_s), ABS(sector_constructor_component_s), ABS(sector_dirty_air_tax_s))",
+      "verdict": "not_null",
+      "reason": "Dominant-component pick. 0 of 483,120 rows have any NULL sector component on the 2026-09-24 dev build (after the F39 change made compound_component_s NULL on unknown-age laps).",
+      "count": 5
+    },
+    {
+      "file": "models/intermediate/int_track_evolution.sql",
+      "call": "LEAST(SUM( (c.lap_number - rm.mean_lap) * (c.field_pace_smoothed_s - rm.mean_pace) ) / NULLIF(SUM(POWER(c.lap_number - rm.mean_lap, 2)), 0), 0.0)",
+      "verdict": "not_null",
+      "reason": "The OLS slope is NULL only for a race whose field curve has fewer than two distinct laps (SUM of squares 0); 0 such races on the 2026-09-24 dev build. A zero slope would also be the right reading for such a race."
+    },
+    {
+      "file": "models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql",
+      "call": "GREATEST(0.0, LEAST( 1.0, ( 1.0 / (1.0 + EXP(-2.0 * (COALESCE(surface_bulk_ratio, 0.5) - 0.5))) ) * (1.0 / (1.0 + 0.1 * GREATEST(laps_past_cliff, 0.0))) ))",
+      "verdict": "not_null",
+      "reason": "Rows are filtered to cliff_onset_passed = TRUE, which requires a known tyre age, so laps_past_cliff is never NULL where this is evaluated; surface_bulk_ratio is COALESCEd."
+    },
+    {
+      "file": "models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql",
+      "call": "GREATEST(laps_past_cliff, 0.0)",
+      "verdict": "not_null",
+      "reason": "Evaluated only on cliff_onset_passed = TRUE rows (known age), where laps_past_cliff is non-NULL; with a NULL age cliff_onset_passed is NULL and the row is filtered out."
+    },
+    {
+      "file": "models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql",
+      "call": "LEAST(1.0, ( 1.0 / (1.0 + EXP(-2.0 * (COALESCE(surface_bulk_ratio, 0.5) - 0.5))) ) * (1.0 / (1.0 + 0.1 * GREATEST(laps_past_cliff, 0.0))))",
+      "verdict": "not_null",
+      "reason": "Same cliff_onset_passed = TRUE filter: laps_past_cliff is known on every row it is evaluated for."
+    },
+    {
+      "file": "models/marts/fct_driver_skill_features.sql",
+      "call": "LEAST(panel_observations_n / 500.0, 1.0)",
+      "verdict": "not_null",
+      "reason": "panel_observations_n is a COUNT carried from int_constructor_structural_pace (0 NULL of 1,679 rows on the 2026-09-24 dev build)."
+    },
+    {
+      "file": "models/marts/fct_ghost_car_pace.sql",
+      "call": "GREATEST({{ cliff_plateau_s('el.compound_cliff_severity', 'el.compound_wear_gradient') }} * ( {{ cliff_ramp_frac( 'GREATEST( CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE) - COALESCE(el.compound_cliff_onset_laps, 999.0) - COALESCE(deg_host.cliff_onset_shift_laps, 0.0), 0.0 )') }} - {{ cliff_ramp_frac( 'GREATEST( CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE) - COALESCE(el.compound_cliff_onset_laps, 999.0) - COALESCE(deg_ego.cliff_onset_shift_laps, 0.0), 0.0 )') }} ), -2.0)",
+      "verdict": "not_null",
+      "reason": "Every input is COALESCEd: cliff_plateau_s COALESCEs severity and gradient, and both ramp arguments are GREATEST(COALESCE(age, 0) - COALESCE(onset, 999) - COALESCE(shift, 0), 0.0)."
+    },
+    {
+      "file": "models/marts/fct_ghost_car_pace.sql",
+      "call": "LEAST(GREATEST( {{ cliff_plateau_s('el.compound_cliff_severity', 'el.compound_wear_gradient') }} * ( {{ cliff_ramp_frac( 'GREATEST( CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE) - COALESCE(el.compound_cliff_onset_laps, 999.0) - COALESCE(deg_host.cliff_onset_shift_laps, 0.0), 0.0 )') }} - {{ cliff_ramp_frac( 'GREATEST( CAST(COALESCE(el.age_in_stint, 0) AS DOUBLE) - COALESCE(el.compound_cliff_onset_laps, 999.0) - COALESCE(deg_ego.cliff_onset_shift_laps, 0.0), 0.0 )') }} ), -2.0 ), 2.0)",
+      "verdict": "not_null",
+      "reason": "Outer half of the same +/-2 s guardrail; its argument is the COALESCE-only expression above."
+    },
+    {
+      "file": "models/marts/fct_ghost_race_finish.sql",
+      "call": "GREATEST(SQRT( i.var_self + j.var_self + POWER(i.host_slope_term - j.host_slope_term, 2) + POWER(i.host_cliff_term - j.host_cliff_term, 2) ), 1e-6)",
+      "verdict": "not_null",
+      "reason": "sd_diff floor. Every input is non-NULL by construction: var_self, host_slope_term and host_cliff_term are built from AVGs of fct_ghost_car_pace columns that are COALESCEd there (host/ego_deg_slope_sd_s_per_lap, host/ego_cliff_shift_se_laps, age_in_stint, compound_cliff_severity) or are CASE ... ELSE 0.0 (host/ego_cliff_active), over non-empty GROUP BY groups; lap_pace_sd is COALESCEd; laps_counted is a COUNT. Measured on the 2026-09-25 dev build (WI-13, from the compiled CTEs): 0 NULL inputs over 32,037 driver_stats rows, 0 NULL and 0 floored sd_diff over 586,522 pairs (min 0.052). The floor only guards the documented 0/0 case."
+    },
+    {
+      "file": "models/marts/fct_ghost_race_finish.sql",
+      "call": "LEAST(1.0, CAST(rt.laps_counted AS DOUBLE) / NULLIF(rd.race_distance_laps, 0))",
+      "verdict": "not_null",
+      "reason": "lap_coverage (the same ratio) is non-NULL on all 32,037 rows of the 2026-09-24 dev build: race_distance_laps is never 0 or NULL there."
+    },
+    {
+      "file": "models/reference/dim_corners.sql",
+      "call": "GREATEST(w.apex_distance_m - {{ var('corner_entry_margin_m') }}, COALESCE(w.prev_apex_m, 0), 0)",
+      "verdict": "not_null",
+      "reason": "apex_distance_m has 0 NULLs of 2,844 corners on the 2026-09-24 dev build; the neighbour apex is COALESCEd."
+    },
+    {
+      "file": "models/reference/dim_corners.sql",
+      "call": "LEAST(w.apex_distance_m + {{ var('corner_exit_margin_m') }}, COALESCE( w.next_apex_m, w.apex_distance_m + {{ var('corner_exit_margin_m') }} ))",
+      "verdict": "not_null",
+      "reason": "Same apex column (0 NULL of 2,844); the fallback is COALESCEd."
+    },
+    {
+      "file": "models/staging/stg_telemetry_position.sql",
+      "call": "GREATEST(CAST(relativedistance AS DOUBLE), 0.0)",
+      "verdict": "not_null",
+      "reason": "The CTE's WHERE relativedistance IS NOT NULL drops the NULL samples (39,457 of 137,153,620 bronze rows) before the clamp runs."
+    },
+    {
+      "file": "models/staging/stg_telemetry_position.sql",
+      "call": "LEAST(GREATEST(CAST(relativedistance AS DOUBLE), 0.0), 0.999999)",
+      "verdict": "not_null",
+      "reason": "Outer half of the same clamp, under the same WHERE relativedistance IS NOT NULL."
+    }
+  ]
+}

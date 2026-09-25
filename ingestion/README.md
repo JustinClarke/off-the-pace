@@ -41,6 +41,21 @@ make test                                                   # offline unit tests
 
 The `make` targets in step 2 wrap `src/ingest.py` with the season ranges shown. Every flag including the validation rules that govern how they combine is documented at [/ingestion/cli](https://offthepace.mintlify.app/ingestion/cli).
 
+**A season still in progress** is safe to ingest whole: rounds whose race has not reached its
+scheduled start + 6 h are skipped without loading (`[NOT RUN]`, no manifest row). A load that
+comes back incomplete (e.g. results with no points because the Jolpica call failed) is retried
+once and, if still thin, not written, so the next run pulls it again. `ingest.py` exits 1 and
+prints `=== NEEDS ATTENTION` if any session ended `error` or `thin`.
+
+```bash
+make ingest-plan SEASON=2026         # dry run: would pull / on disk / not run yet, slug warnings
+make add-season SEASON=2026          # ingest -> jolpica -> verify -> seed check -> fits -> dbt -> app data
+make season-seeds-check SEASON=2026  # just the seed to-do list (race_to_track, scheduled laps, ...)
+```
+
+Probes and experiments can write elsewhere: `--bronze-dir PATH` (or `INGESTION_BRONZE_DIR`)
+and `--cache-dir PATH` (or `FASTF1_CACHE_DIR`).
+
 ## 4. Monitor long runs
 
 For full backfills (hours-long runs), use the monitor to catch failures early instead of watching the terminal:
@@ -58,7 +73,8 @@ The monitor polls every 10 seconds and exits immediately (non-zero) if:
 - Data quality failures ([DQ FAIL])
 - Process errors (OOM, disk full, killed, etc.)
 
-…or exits 0 when ingestion completes (`=== COMPLETE:`). Ignores FastF1 DEBUG-level noise.
+…or, when ingestion completes (`=== COMPLETE:`), exits 0, or 1 if the run printed
+`=== NEEDS ATTENTION` (sessions that ended `error` or `thin`). Ignores FastF1 DEBUG-level noise.
 The monitor is stdlib-only Python no extra dependencies. See [/ingestion/monitoring](https://offthepace.mintlify.app/ingestion/monitoring) for the full two-terminal walkthrough.
 
 ## 5. Verify
@@ -70,7 +86,9 @@ make verify-bronze   # or: python verify_bronze.py
 ```
 
 Only seasons present on disk are checked, so it works after a partial
-`make ingest-recent` as well as a full `make ingest-all`. Exits non-zero if anything is off.
+`make ingest-recent` as well as a full `make ingest-all`. Expected races come from each
+season's schedule snapshot (finished rounds only), and documented source gaps (2018 Rd1/Rd2
+telemetry, see `src/bronze_checks.py`) print as KNOWN. Exits non-zero only on a NEW problem.
 
 Two companion views read what each run recorded:
 

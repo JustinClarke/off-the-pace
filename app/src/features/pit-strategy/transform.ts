@@ -61,7 +61,12 @@ export function transform(rows: PitGanttRow[], totalLaps: number): GanttResult {
     .sort((a, b) => (b.opportunityCostS ?? 0)-(a.opportunityCostS ?? 0))
     .slice(0, 5)
 
-  return { stints, totalLaps, topCostStints, verdictCounts, totalOpportunityCostS }
+  // The summary's lap count is the race's last VALID lap. Stints now end on the
+  // lap they really ended on, which in 12 of 172 races (a finish under SC or red
+  // flag) is past it, by up to 6 laps -- so the axis has to reach the last bar.
+  const axisLaps = stints.reduce((m, s) => Math.max(m, s.endLap), totalLaps)
+
+  return { stints, totalLaps: axisLaps, topCostStints, verdictCounts, totalOpportunityCostS }
 }
 
 export function toCsvRows(result: GanttResult): Record<string, string | number | null>[] {

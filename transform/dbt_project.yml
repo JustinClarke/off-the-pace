@@ -195,6 +195,10 @@ seeds:
         compound_grip_peak: double
         n_stints: integer
         fit_date: date
+        fit_source: varchar
+        onset_source: varchar
+        gradient_source: varchar
+        severity_source: varchar
     seed_manual_lap_exceptions:
       +column_types:
         race_year: integer
@@ -205,6 +209,11 @@ seeds:
         correction_weight_override: double
         note: varchar
     race_to_track:
+      +column_types:
+        race_id: varchar
+    # F13 (WI-09): without this DuckDB's CSV sniffer reads '2021_10' as the
+    # digit-separated integer 202110, and dim_events / stg_events match no race.
+    raw_dim_events:
       +column_types:
         race_id: varchar
     # race_id must be typed: '2021_10' is otherwise sniffed as the digit-separated

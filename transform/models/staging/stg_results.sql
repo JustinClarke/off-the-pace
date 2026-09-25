@@ -8,6 +8,22 @@
 
 WITH source AS (
     SELECT * FROM {{ source('bronze_f1', 'raw_results') }}
+),
+
+-- F14: a disqualification is ruled after the flag, and bronze leaves a numeric
+-- ClassifiedPosition on some of those rows (HAM and LEC at 2023_18, RUS at
+-- 2024_14) where the other thirteen carry 'D'. Parsing ClassifiedPosition
+-- alone therefore read those three as classified finishers. status says it
+-- directly, so it is decided first: one parsed rank, NULL for a disqualified
+-- driver, is what is_classified, is_dnf and dnf_cause below all read.
+ranked AS (
+    SELECT
+        *,
+        CASE
+            WHEN status = 'Disqualified' THEN NULL
+            ELSE TRY_CAST(classifiedposition AS INTEGER)
+        END AS classified_rank
+    FROM source
 )
 
 SELECT
@@ -48,14 +64,15 @@ SELECT
     -- 'R'/'D'/'W'/'E'/'F'/'N'
     -- for retired/disqualified/withdrawn/etc. A driver is "classified" (counts
     -- as
-    -- a finisher for ranking) when ClassifiedPosition parses to an integer.
-    TRY_CAST(classifiedposition AS INTEGER) IS NOT NULL AS is_classified,
+    -- a finisher for ranking) when ClassifiedPosition parses to an integer and
+    -- the driver was not disqualified (see classified_rank above).
+    classified_rank IS NOT NULL AS is_classified,
 
     -- DNF: not classified AND status is not a lapped-finish ('+N Lap(s)').
     -- 'Finished' and '+N Lap(s)' are completions; anything else that fails to
     -- classify is a retirement.
     (
-        TRY_CAST(classifiedposition AS INTEGER) IS NULL
+        classified_rank IS NULL
         AND status NOT LIKE '%Lap%'
         AND status <> 'Finished'
     ) AS is_dnf,
@@ -64,7 +81,7 @@ SELECT
     -- racing-incident. Crash/collision/accident/spun → racing; the rest of the
     -- non-finishes are treated as mechanical/other.
     CASE
-        WHEN TRY_CAST(classifiedposition AS INTEGER) IS NOT NULL THEN NULL
+        WHEN classified_rank IS NOT NULL THEN NULL
         WHEN status LIKE '%Lap%' OR status = 'Finished' THEN NULL
         WHEN
             REGEXP_MATCHES(
@@ -78,4 +95,4 @@ SELECT
         ELSE 'mechanical'
     END AS dnf_cause
 
-FROM source
+FROM ranked

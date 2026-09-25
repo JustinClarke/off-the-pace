@@ -67,9 +67,13 @@
 {%- endmacro %}
 
 
-{# Fraction of the plateau delivered at this depth past onset: 0 -> 1 over span. #}
+{# Fraction of the plateau delivered at this depth past onset: 0 -> 1 over span.
+   NULL in, NULL out: DuckDB's LEAST skips a NULL argument, so a bare
+   LEAST(NULL, span) would read an unknown depth as a fully developed cliff. #}
 {% macro cliff_ramp_frac(laps_past_cliff) -%}
-(LEAST({{ laps_past_cliff }}, {{ cliff_severity_span() }}) / {{ cliff_severity_span() }})
+(CASE WHEN {{ laps_past_cliff }} IS NULL THEN NULL
+    ELSE LEAST({{ laps_past_cliff }}, {{ cliff_severity_span() }}) END
+    / {{ cliff_severity_span() }})
 {%- endmacro %}
 
 
@@ -81,13 +85,23 @@
 
 {# The full age-dependent wear term, bounded. grip_peak and the temperature
    offset are per-lap constants and are deliberately NOT included: they do not
-   run away with age, and the bound is defined on the age-dependent part only. #}
+   run away with age, and the bound is defined on the age-dependent part only.
+
+   NULL-SAFE (F39). DuckDB's LEAST skips NULL arguments, so with a NULL tyre age
+   the bare LEAST(NULL, cap) returned the cap itself -- a valid-looking 10 s of
+   wear on every lap whose age is unknown (stints quarantined by stg_lap_tyre_qa,
+   and a few laps bronze never aged). An unknown age is an unknown wear term:
+   the guard returns NULL, the same pattern int_lap_thermal_proxy uses for
+   GREATEST. #}
 {% macro compound_cliff_wear_s(wear_gradient, severity, age, laps_past_cliff) -%}
-LEAST(
-    COALESCE({{ wear_gradient }}, 0.0) * {{ age }}
-    + {{ cliff_severity_term(severity, wear_gradient, laps_past_cliff) }},
-    {{ var('compound_wear_max_s_per_lap', 10.0) }}
-)
+CASE
+    WHEN {{ age }} IS NULL OR {{ laps_past_cliff }} IS NULL THEN NULL
+    ELSE LEAST(
+        COALESCE({{ wear_gradient }}, 0.0) * {{ age }}
+        + {{ cliff_severity_term(severity, wear_gradient, laps_past_cliff) }},
+        {{ var('compound_wear_max_s_per_lap', 10.0) }}
+    )
+END
 {%- endmacro %}
 
 

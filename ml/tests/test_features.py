@@ -450,3 +450,60 @@ def test_no_null_targets_in_training(load, target):
     XGBoost errors on NaN in y."""
     y = load(target).y_train
     assert y is not None and y.notna().all(), f"NULL target rows reached training for {target}"
+
+
+# ─── T11 (F11/F53): --check must be read-only by default ───────────────────────
+# `_check()` used to hardcode `load_features(..., persist_encoders=True)` (features.py:706),
+# so any local run of `python -m ml.src.features --check` against data/dev.duckdb silently
+# overwrote the shipped ml/models/encoders.json with whatever the holdout resolver
+# currently returns (which, per F4, may not match the vocabulary baked into the shipped
+# ONNX models). F53 is what made this buildable: features.py's CLI had no dry-run flag at
+# all until `--persist-encoders` was added. These tests never touch the real
+# ml/models/encoders.json -- they monkeypatch the write target and the CLI's own `_check`
+# entry point so the guard can be asserted without depending on (or risking) either a live
+# warehouse or the checked-in file.
+
+def test_check_cli_defaults_persist_encoders_false(monkeypatch):
+    """The CLI flag exists and defaults to the safe (non-mutating) choice."""
+    captured: dict[str, bool] = {}
+
+    def fake_check(duckdb_path, manifest_path, *, persist_encoders=False):
+        captured["persist_encoders"] = persist_encoders
+        return 0
+
+    monkeypatch.setattr(F, "_check", fake_check)
+    monkeypatch.setattr("sys.argv", ["features.py", "--check"])
+    assert F.main() == 0
+    assert captured["persist_encoders"] is False, (
+        "--check must default to a read-only run; the old hardcoded "
+        "persist_encoders=True made this a landmine for any local invocation")
+
+
+def test_check_cli_persist_encoders_flag_threads_through(monkeypatch):
+    """The escape hatch works when actually asked for -- this is what proves the flag
+    is wired end to end rather than merely declared and ignored."""
+    captured: dict[str, bool] = {}
+
+    def fake_check(duckdb_path, manifest_path, *, persist_encoders=False):
+        captured["persist_encoders"] = persist_encoders
+        return 0
+
+    monkeypatch.setattr(F, "_check", fake_check)
+    monkeypatch.setattr("sys.argv", ["features.py", "--check", "--persist-encoders"])
+    assert F.main() == 0
+    assert captured["persist_encoders"] is True
+
+
+def test_load_features_does_not_persist_encoders_by_default(tmp_path, monkeypatch):
+    """The actual write path both `_check()` and `ml.src.train` funnel through
+    (`load_features`'s own `if persist_encoders:` guard). ENCODERS_PATH is monkeypatched
+    to a scratch file for the duration of this test so it can assert both directions
+    without ever writing the real, shipped ml/models/encoders.json."""
+    scratch = tmp_path / "encoders.json"
+    monkeypatch.setattr(F, "ENCODERS_PATH", scratch)
+
+    F.load_features(target="degradation_regressor_p50")
+    assert not scratch.exists(), "load_features() persisted encoders without being asked to"
+
+    F.load_features(target="degradation_regressor_p50", persist_encoders=True)
+    assert scratch.exists(), "persist_encoders=True did not write encoders.json"

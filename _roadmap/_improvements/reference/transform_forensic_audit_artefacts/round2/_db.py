@@ -9,7 +9,19 @@ import pathlib
 
 import duckdb
 
-REPO = pathlib.Path(__file__).resolve().parents[4]
+
+def _repo_root() -> pathlib.Path:
+    """Walk up from this file to the nearest `.git`, rather than hardcoding a parent
+    count (F53: a fixed `parents[N]` silently breaks the moment this artefact moves,
+    the way `_roadmap/`'s consolidation already broke it once)."""
+    here = pathlib.Path(__file__).resolve()
+    for candidate in (here, *here.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    raise RuntimeError(f"no .git found walking up from {here}")
+
+
+REPO = _repo_root()
 DB = pathlib.Path(os.environ.get("OTP_DB", REPO / "data" / "dev.duckdb"))
 
 

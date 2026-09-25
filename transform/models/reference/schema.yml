@@ -41,7 +41,14 @@ models:
         description: Average lateral g-force proxy for the circuit (used in the weight-penalty formula).
         data_type: double
       - name: fuel_consumption_rate_kg_per_lap
-        description: Estimated kg of fuel burned per lap, used for fuel_mass_kg in Layer 03.
+        description: >
+          LEGACY -- no transform model or fitter computes from it. A hand-set per-circuit burn
+          estimate (kg/lap). Since WI-05 the fuel model burns the season's FIA limit over the
+          race's scheduled laps (int_lap_fuel_state.fuel_consumption_rate_kg_per_lap), and since
+          WI-13 (F55) fit_weight_penalty.py divides by that rate too. Kept, not dropped, because
+          the app's Degradation Simulator still reads it here as the burn rate of the stint it
+          sweeps. It runs high against the model's rate: 1.09x on average over the 36 raced
+          circuits (0.97-1.35x; Spain 1.9 against ~1.66).
         data_type: double
         tests: [not_null]
       - name: track_energy_index
@@ -106,8 +113,45 @@ models:
       - name: data_window
         description: Season range the fit was estimated over (governance provenance).
         data_type: varchar
+      - name: fit_source
+        description: >
+          Cell-level fit tier (cox_km_survival, cross_season_fallback, compound_class_default,
+          carried_forward_<season>). Says which tier was attempted, not where each number came
+          from -- use the three *_source columns for that.
+        data_type: varchar
+        tests: [not_null]
+      - name: onset_source
+        description: >
+          Where compound_cliff_onset_laps came from: fitted, cross_season_fallback, class_default
+          or carried_forward. A class default stays class_default wherever the cell is carried.
+          See the compound_cliff_params seed for how rows fitted before this column existed were
+          labelled.
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
+      - name: gradient_source
+        description: Where compound_wear_gradient came from; same vocabulary as onset_source.
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
+      - name: severity_source
+        description: Where compound_cliff_severity came from; same vocabulary as onset_source.
+        data_type: varchar
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['fitted', 'cross_season_fallback', 'class_default', 'carried_forward']
       - name: notes
-        description: Free-text provenance / caveat notes carried from the seed.
+        description: >
+          Free-text provenance / caveat notes carried from the seed. Never reads "fitted from"
+          on a cell where any parameter is a class default.
         data_type: varchar
 
   - name: dim_drivers
@@ -135,9 +179,10 @@ models:
   - name: dim_constructors
     description: >
       One row per constructor (team). Derived from stg_laps with a manually maintained power-unit
-      family mapping. pu_family conditions constructor_pace_index on similar-engine teams in
-      Layer 04 (e.g. Mercedes PU customers share base drag); update the mapping when customer
-      relationships change.
+      family mapping, one family per team name (not per season). pu_family is a reference
+      attribute: it is carried onto fct_lap_residuals and fct_driver_skill_features, and no pace
+      index or model reads it. A team rename arrives as a new constructor_id and needs its own
+      mapping row; assert_pu_family_coverage warns while any constructor is 'unknown_pu'.
     meta:
       family: reference
     columns:

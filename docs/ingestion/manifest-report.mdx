@@ -28,7 +28,7 @@ Schema drift:
 
 ## Last-run status
 
-For every `(season, round_number, session_type)` combination that's ever been attempted, the report keeps only the most recent manifest row so re-running `make ingest-recent` after a transient error supersedes the earlier failure rather than reporting it twice. Anything still showing `error` after the latest run is printed by name and needs attention.
+For every `(season, round_number, session_type)` combination that's ever been attempted, the report keeps only the most recent manifest row so re-running `make ingest-recent` after a transient error supersedes the earlier failure rather than reporting it twice. Anything still showing `error` or `thin` after the latest run is printed by name and needs attention.
 
 <ResponseField name="run_id" type="string">
   UTC timestamp the run started (`YYYYMMDDTHHMMSSZ`) sortable by construction, used to order runs chronologically.
@@ -36,14 +36,32 @@ For every `(season, round_number, session_type)` combination that's ever been at
 <ResponseField name="season / round_number / session_type" type="int / int / 'R' | 'Q'">
   The session this row describes.
 </ResponseField>
-<ResponseField name="status" type="'ok' | 'skip' | 'error'">
-  `ok` written this run. `skip` already existed on disk, untouched. `error` failed the DQ gate or raised during load.
+<ResponseField name="status" type="'ok' | 'skip' | 'error' | 'thin'">
+  `ok` written this run. `skip` already existed on disk, untouched. `error` failed the DQ gate or raised during load. `thin` loaded, but key columns came back missing even after one retry, so nothing was written and the next run pulls it again. Sessions that have not been run yet get no row at all.
 </ResponseField>
 <ResponseField name="row_count / dq_passed / duplicate_lap_keys" type="int / boolean / int">
   Row count of the laps written, whether the schema check passed, and how many duplicate `(race_id, DriverNumber, LapNumber)` keys were found.
 </ResponseField>
 <ResponseField name="schema_fingerprint" type="string">
-  12-character SHA-1 of the sorted column names empty for `skip`/`error` rows, since no write happened.
+  12-character SHA-1 of the sorted column names empty for `skip`/`error`/`thin` rows, since no write happened.
+</ResponseField>
+
+Runs from 2026-09-25 on add the columns below. Manifests written earlier lack them, and the report treats a missing column as "not recorded".
+
+<ResponseField name="thin_reasons / known_gap_note" type="string / string">
+  The completeness checks the session failed (`results.Points 0% non-null (< 90%)`, ...), and the documented source gap that explained any of them (`ingestion/src/bronze_checks.py`). On an `ok` row a non-empty `thin_reasons` means it was written with `--accept-thin`.
+</ResponseField>
+<ResponseField name="telemetry_laps_attempted / telemetry_laps_merged / telemetry_coverage" type="int / int / float">
+  Race only: laps per-lap telemetry was tried on, laps it came back for, and the share. Healthy races are above 99.7%; below 95% is flagged.
+</ResponseField>
+<ResponseField name="telemetry_car_drivers / telemetry_pos_drivers / telemetry_note" type="int / int / string">
+  How many drivers the session had car-data (speed/throttle) and position (X/Y/Z) samples for, and the commonest per-lap errors or `low coverage` / `known gap`.
+</ResponseField>
+<ResponseField name="circuit_info_status" type="string">
+  Race only: `ok: N corners`, `none`, or `failed: <error>` (e.g. a MultiViewer 404). A failure is tolerated but recorded here, not only in the log.
+</ResponseField>
+<ResponseField name="venue_note" type="string">
+  Set when the event's slug named a different venue in earlier seasons (2026: `spanish_grand_prix` is Madrid, not Barcelona), or a new slug appears at a known venue.
 </ResponseField>
 
 ## Schema drift detection
@@ -56,7 +74,11 @@ For every `(season, round_number, session_type)` combination that's ever been at
   Schema drift is compared **within** a season, not across seasons. A 2018 fingerprint differing from a 2024 fingerprint isn't drift different seasons are expected to have different schemas. Drift means the *same* `(season, session_type)` produced a different fingerprint on a later run, which only happens on a re-ingest with `--force`.
 </Note>
 
-The report's exit code is non-zero whenever any session shows `error` in its latest run, or any drift was detected making `make manifest-report` usable as a CI gate, not just an interactive tool.
+## Flags on the last write
+
+For each session the report also reads its most recent non-`skip` row (a later `skip` row carries none of the columns above) and lists anything written but worth a look: low telemetry coverage, an accepted thin load, no circuit info, a venue change. These are informational.
+
+The report's exit code is non-zero whenever any session shows `error` or `thin` in its latest run, or any drift was detected making `make manifest-report` usable as a CI gate, not just an interactive tool.
 
 ## Next
 

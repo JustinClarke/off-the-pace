@@ -43,7 +43,11 @@
 --      circuit_reference.pit_lane_loss_s seed is the fallback for a circuit
 --      that resolves no stops; pit_loss_source records which was used.
 --   3. Undercut threat captured by gap_to_ahead (ignores overcut threat).
---   4. Last stint of race has no pit actual_pit_lap NULL.
+--   4. A stint that did not end in a stop (the driver's last stint, or a
+--      retirement) has actual_pit_lap NULL unless a pit-in falls inside its
+--      span: a retirement into the pit lane, or a stop bronze did not split
+--      the stint at (2 stints). Every stint that ended in a stop has one,
+--      whatever flag was out (T23).
 --   5. Laps are counted in VALID laps, so optimal_pit_lap_in_stint means
 --      "after this many racing laps on the set", not a chronological index.
 
@@ -281,40 +285,58 @@ stint_base AS (
     GROUP BY stint_id, race_year, race_id, driver_id
 ),
 
--- Get stint_number for joining to actual_pits
-stint_numbers AS (
-    -- GROUP BY already yields one row per stint_id; no DISTINCT needed.
+-- The stint's full chronological span: its first lap of ANY validity through
+-- int_stint_end_regime.end_lap_number, the lap it ended on (the in-lap, for a
+-- stint that ended in a stop). Not stint_meta: that CTE is valid-lap-only, so
+-- its last lap is the last VALID one, and the window used to be "last valid lap
+-- + 1". A stop taken after a run of SC/VSC/red-flag or otherwise invalid laps
+-- fell outside it, and the stint was graded as if it never stopped (verdict
+-- NULL, cost 0.0) -- 418 pit-ended stints until WI-13 (F31): 194 of 653
+-- SC-ended, 107 of 116 red-flag-ended, 38 VSC, 79 green.
+--
+-- A window, not end_lap_number equality: on 13 stints bronze puts the stint
+-- boundary a lap or two after the in-lap (2018_2 VET: pit-in lap 17, the
+-- stint's last lap is its out-lap, 18), so the stop is inside the span but not
+-- on its last lap.
+stint_first_lap AS (
     SELECT
-        sg.stint_id,
-        sg.race_year,
-        sg.race_id,
-        sg.driver_id,
-        MIN(sg.lap_number) AS stint_start_lap,
-        MAX(sg.lap_number) AS stint_end_lap
-    FROM stint_meta AS sg
-    GROUP BY sg.stint_id, sg.race_year, sg.race_id, sg.driver_id
+        stint_id,
+        MIN(lap_number) AS first_lap_number
+    FROM {{ ref('int_stint_geometry') }}
+    GROUP BY stint_id
+),
+
+stint_span AS (
+    SELECT
+        er.stint_id,
+        er.race_year,
+        er.race_id,
+        er.driver_id,
+        fl.first_lap_number,
+        er.end_lap_number
+    FROM {{ ref('int_stint_end_regime') }} AS er
+    INNER JOIN stint_first_lap AS fl ON er.stint_id = fl.stint_id
 ),
 
 -- One actual pit per stint: the pit that TERMINATES the stint (the latest
--- pit-in
--- within the stint's lap window). Red-flag races (e.g. 2022 Monaco) can record
--- two
--- pit events inside a single FastF1 stint number without this dedupe the same
--- stint_id matches multiple actual_pits rows and the stint_id grain breaks.
+-- pit-in within the stint's span). Red-flag races (e.g. 2022 Monaco) can
+-- record two pit events inside a single FastF1 stint number; without this
+-- dedupe the same stint_id matches multiple actual_pits rows and the stint_id
+-- grain breaks. assert_pit_ended_stints_have_stop (T23) fails the build if a
+-- stint that ended in a stop comes out of here without one.
 stint_actual_pit AS (
     SELECT
-        sn.stint_id,
+        sp.stint_id,
         MAX(ap.actual_pit_lap) AS actual_pit_lap
-    FROM stint_numbers AS sn
+    FROM stint_span AS sp
     INNER JOIN actual_pits AS ap
         ON
-            sn.race_year = ap.race_year
-            AND sn.race_id = ap.race_id
-            AND sn.driver_id = ap.driver_id
+            sp.race_year = ap.race_year
+            AND sp.race_id = ap.race_id
+            AND sp.driver_id = ap.driver_id
             AND ap.actual_pit_lap
-            BETWEEN sn.stint_start_lap AND sn.stint_end_lap
-            + 1
-    GROUP BY sn.stint_id
+            BETWEEN sp.first_lap_number AND sp.end_lap_number
+    GROUP BY sp.stint_id
 ),
 
 -- Compound and cliff context, plus the pieces the verdict reads.
@@ -327,6 +349,7 @@ assembled AS (
         sb.stint_length_laps,
         cos.cliff_onset_lap_in_stint,
         ap.actual_pit_lap,
+        sp.end_lap_number,
         mgps.first_undercut_threat_lap,
         cpl.pit_lane_loss_s,
         cpl.pit_loss_source,
@@ -353,6 +376,7 @@ assembled AS (
     LEFT JOIN race_map AS rm ON sb.race_id = rm.race_id
     LEFT JOIN circuit_pit_loss AS cpl ON rm.circuit_key = cpl.circuit_key
     LEFT JOIN stint_actual_pit AS ap ON sb.stint_id = ap.stint_id
+    LEFT JOIN stint_span AS sp ON sb.stint_id = sp.stint_id
     LEFT JOIN window_pick AS wp ON sb.stint_id = wp.stint_id
     LEFT JOIN race_pick AS rp ON sb.stint_id = rp.stint_id
 ),
@@ -396,6 +420,11 @@ SELECT
     -- Actual pit lap: pit_in_lap_number for the pit stop at the END of this
     -- stint
     r.actual_pit_lap,
+    -- The lap the stint ended on, of any validity (int_stint_end_regime). For
+    -- a stint with no stop -- the chequered flag, or a retirement on track --
+    -- this is where it ends; the app's Gantt reads it rather than the race's
+    -- last valid lap, which drew such bars to the flag.
+    r.end_lap_number,
     -- Overrun: actual minus optimal (negative = pitted early). Compared in
     -- offsets, so an invalid lap before the stop cannot skew it.
     CASE

@@ -2,8 +2,8 @@
 Environment configuration for ingestion.
 
 FastF1 needs no credentials, so config is deliberately small: a cache
-directory, a log level, and a request timeout, each overridable by an
-environment variable (optionally via a `.env` file).
+directory, a bronze output root, a log level, and a request timeout, each
+overridable by an environment variable (optionally via a `.env` file).
 """
 
 import logging
@@ -56,6 +56,16 @@ class EnvironmentConfig:
         default = Path(__file__).resolve().parent.parent.parent / "data" / "cache"
         val = os.getenv("FASTF1_CACHE_DIR", str(default))
         return Path(val)
+
+    @property
+    def bronze_dir(self) -> Path:
+        """Bronze root that ingest.py writes under. Default: data/bronze.
+
+        Point INGESTION_BRONZE_DIR (or ingest.py --bronze-dir) at a scratch
+        directory for probes and tests, so they never write into data/bronze.
+        """
+        default = Path(__file__).resolve().parent.parent.parent / "data" / "bronze"
+        return Path(os.getenv("INGESTION_BRONZE_DIR", str(default)))
 
     @property
     def log_level(self) -> str:

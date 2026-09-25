@@ -37,6 +37,28 @@ def minimal_laps_df():
     })
 
 
+def _complete_session(laps_df: pd.DataFrame, session_type: str = "R") -> MagicMock:
+    """A mock FastF1 session that passes the completeness gate."""
+    drivers = laps_df["DriverNumber"].unique()
+    session = MagicMock()
+    session.laps = laps_df
+    session.weather_data = pd.DataFrame({"Time": pd.to_timedelta([0, 60], unit="s"),
+                                         "AirTemp": [25.0, 25.1]})
+    session.race_control_messages = pd.DataFrame({
+        "Time": pd.to_timedelta([0], unit="s"), "Category": ["Flag"], "Message": ["GREEN"],
+    })
+    session.results = pd.DataFrame({
+        "DriverNumber": drivers,
+        "Points": [0.0] * len(drivers),
+        "GridPosition": list(range(1, len(drivers) + 1)),
+        "Q1": pd.to_timedelta([90.0] * len(drivers), unit="s") if session_type == "Q" else [None] * len(drivers),
+    })
+    session.track_status = pd.DataFrame()
+    session.session_status = pd.DataFrame()
+    session.get_circuit_info.return_value = None
+    return session
+
+
 # ---------------------------------------------------------------------------
 # DataQualityEngine   existing tests kept + extended
 # ---------------------------------------------------------------------------
@@ -202,12 +224,11 @@ def test_ingest_race_force_overwrites_existing(tmp_path, mock_laps_df, monkeypat
     target.parent.mkdir(parents=True)
     mock_laps_df.to_parquet(target, index=False)
 
-    mock_session = MagicMock()
-    mock_session.laps = mock_laps_df
-    mock_session.weather_data = None
-    mock_session.race_control_messages = None
+    # A complete session: the thin-load gate (bronze_checks.assess_session) needs
+    # Stint, results, weather and race control, or it (correctly) refuses to write.
+    mock_session = _complete_session(mock_laps_df.assign(Stint=1))
 
-    with patch("ingest._with_retry", return_value=mock_session):
+    with patch("ingest._with_retry", return_value=mock_session), patch("ingest.time.sleep"):
         status, mrow = ingest.ingest_race(2024, 1, "bahrain_grand_prix", force=True, skip_telemetry=True)
 
     assert status == "ok"

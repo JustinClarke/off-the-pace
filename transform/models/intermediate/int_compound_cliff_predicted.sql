@@ -118,12 +118,17 @@ with_pace AS (
             30.0
         )
             AS ambient_temp_delta,
-        -- Laps past cliff onset (0 before onset)
-        GREATEST(
-            CAST(age_in_stint AS DOUBLE)
-            - COALESCE(compound_cliff_onset_laps, 999.0),
-            0.0
-        )
+        -- Laps past cliff onset (0 before onset). NULL when the tyre age is
+        -- unknown (F39): DuckDB's GREATEST skips NULL, so the bare
+        -- GREATEST(NULL - onset, 0.0) read "no cliff yet" instead of "unknown".
+        CASE
+            WHEN age_in_stint IS NULL THEN NULL
+            ELSE GREATEST(
+                CAST(age_in_stint AS DOUBLE)
+                - COALESCE(compound_cliff_onset_laps, 999.0),
+                0.0
+            )
+        END
             AS laps_past_cliff,
         age_in_stint > COALESCE(compound_cliff_onset_laps, 999.0)
             AS cliff_onset_passed
@@ -147,22 +152,29 @@ SELECT
     -- the onset, measured over a ~5.5-lap window. It is NOT s/lap^2, as this
     -- comment claimed until 2026-09-16, and consumers must not multiply it by a
     -- lap count. See the with_cliff CTE above for the licensed consumption.
-    COALESCE(compound_cliff_onset_laps, 999.0) AS compound_cliff_onset_laps,
-    COALESCE(compound_cliff_severity, 0.0) AS compound_cliff_severity,
+    --
+    -- F7: passed through as-is, NULL when the lap has no seed cell. They were
+    -- COALESCEd to 999 / 0 / 0, which published an invented cell ("never
+    -- cliffs, never wears") for every lap the seed did not cover. Every
+    -- (venue, season, compound) a valid lap needs now has a cell or the build
+    -- stops (assert_compound_params_cover_mart), so the only cell-less laps
+    -- left are those whose compound is itself unknown (stg_lap_tyre_qa's
+    -- quarantine), and unknown is what they now say.
+    compound_cliff_onset_laps,
+    compound_cliff_severity,
     -- 08m: exposed deliberately alongside severity. Any consumer that needs a
     -- post-onset RATE needs BOTH -- severity alone is a level shift and the
     -- de-double-count against wear_gradient is what turns it into one. Use the
     -- cliff_ramp_slope_s_per_lap() macro rather than re-deriving it.
-    COALESCE(compound_wear_gradient, 0.0) AS compound_wear_gradient,
+    compound_wear_gradient,
     -- The age-dependent wear portion, bounded. Exposed as its own column so
     -- the bound is assertable without re-deriving it from the pace total.
-    LEAST(
-        COALESCE(compound_wear_gradient, 0.0) * age_in_stint
-        + {{ cliff_severity_term('compound_cliff_severity',
-                                 'compound_wear_gradient',
-                                 'laps_past_cliff') }},
-        {{ var('compound_wear_max_s_per_lap', 10.0) }}
-    ) AS compound_wear_s,
+    -- NULL exactly when the tyre age is unknown (F39; see the macro), never
+    -- the bound: assert_no_cap_valued_wear holds it there.
+    {{ compound_cliff_wear_s('compound_wear_gradient',
+                             'compound_cliff_severity',
+                             'age_in_stint',
+                             'laps_past_cliff') }} AS compound_wear_s,
     -- Hockey-stick pace model:
     -- grip_peak baseline + linear wear + the saturating post-onset cliff ramp.
     --
@@ -195,14 +207,14 @@ SELECT
     --     erasing cliffs into the majority class, not inventing them.
     --   * next_lap_degradation_jump_detrended_s moves on 9.05% of rows, max
     --     9.08 s, and its sd falls 2.5321 -> 2.4948.
+    --
+    -- The wear term is the same macro as compound_wear_s, so this total is
+    -- NULL when the tyre age is unknown (F39) rather than grip + 10 s + temp.
     COALESCE(compound_grip_peak, 0.0)
-    + LEAST(
-        COALESCE(compound_wear_gradient, 0.0) * age_in_stint
-        + {{ cliff_severity_term('compound_cliff_severity',
-                                 'compound_wear_gradient',
-                                 'laps_past_cliff') }},
-        {{ var('compound_wear_max_s_per_lap', 10.0) }}
-    )
+    + {{ compound_cliff_wear_s('compound_wear_gradient',
+                               'compound_cliff_severity',
+                               'age_in_stint',
+                               'laps_past_cliff') }}
     + 0.005 * ambient_temp_delta AS expected_compound_pace_s,
     -- First derivative: rate of pace loss at current age.
     -- 08m: this column carried a THIRD defect 08l did not report -- it added the
@@ -211,8 +223,11 @@ SELECT
     -- degradation rate. It is now the actual derivative of the pace curve above:
     -- the wear gradient, plus the ramp's slope only while the ramp is climbing
     -- (0 before onset, 0 once it has saturated at onset + sev_span).
+    -- NULL when the tyre age is unknown: where on the curve the lap sits, and
+    -- so whether the ramp is climbing, is unknown too (F39).
     COALESCE(compound_wear_gradient, 0.0)
     + CASE
+        WHEN laps_past_cliff IS NULL THEN NULL
         WHEN
             laps_past_cliff > 0.0
             AND laps_past_cliff < {{ cliff_severity_span() }}

@@ -14,7 +14,9 @@ Usage:
 
 Exit codes:
     0  ingestion completed successfully ("=== COMPLETE:" seen)
-    1  a real failure was detected (DQ fail, process error, OOM, disk full, killed)
+    1  a real failure was detected (DQ fail, process error, OOM, disk full, killed),
+       or the run completed but printed "=== NEEDS ATTENTION" (sessions that
+       ended 'error' or 'thin'; ingest.py itself exits 1 in that case too)
 
 FastF1 DEBUG-level noise (debug tracebacks, etc.) is ignored.
 """
@@ -32,7 +34,8 @@ FAILURE_RE = re.compile(
     r"\[DQ FAIL\]| ERROR | CRITICAL |ProcessRuntimeError|MemoryError|OSError.*disk|killed by|Killed"
 )
 COMPLETE_RE = re.compile(r"=== COMPLETE:")
-PROGRESS_RE = re.compile(r"\[OK\]|\[PULL\]")
+ATTENTION_RE = re.compile(r"=== NEEDS ATTENTION")
+PROGRESS_RE = re.compile(r"\[OK\]|\[PULL\]|── \[\d+/\d+\]")
 
 
 def _ts() -> str:
@@ -44,6 +47,7 @@ def monitor(log_path: Path, poll_interval: int = POLL_INTERVAL_S) -> int:
     print(f"Polling every {poll_interval}s for failures or completion...\n", flush=True)
 
     pos = 0
+    needs_attention = False
     while True:
         if not log_path.exists():
             print(f"[{_ts()}] Waiting for ingestion output...", flush=True)
@@ -66,7 +70,12 @@ def monitor(log_path: Path, poll_interval: int = POLL_INTERVAL_S) -> int:
                 _print_tail(log_path, 30)
                 return 1
 
+            needs_attention = needs_attention or bool(ATTENTION_RE.search(new_text))
             if COMPLETE_RE.search(new_text):
+                if needs_attention:
+                    print("\n⚠️  Ingestion completed, but some sessions need attention:")
+                    _print_tail(log_path, 20)
+                    return 1
                 print("\n✅ Ingestion completed successfully!")
                 _print_tail(log_path, 5)
                 return 0

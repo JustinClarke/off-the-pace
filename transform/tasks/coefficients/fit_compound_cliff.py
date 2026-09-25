@@ -10,9 +10,23 @@ Usage:
     python -m tasks.coefficients.fit_compound_cliff --seasons 2022 2023 2024
     python -m tasks.coefficients.fit_compound_cliff --circuits bahrain_grand_prix
 
+    python -m tasks.coefficients.fit_compound_cliff --fill-gaps
+
 The fitter operates per (circuit_key, compound_code, season) group.
-Groups with fewer than MIN_STINTS stints fall back to the cross-season
-circuit+compound average, then to compound-class defaults.
+Groups with fewer than MIN_STINTS stints fall back to a fit on the venue's
+stints pooled across every season, then to compound-class defaults.
+
+Provenance is recorded per parameter, not per cell. fit_source says which tier
+the cell's fit was attempted at; onset_source, gradient_source and
+severity_source say where each number actually came from, because a tier that
+ran can still hand back no usable estimate for one parameter, and that
+parameter then holds the class default. See PARAM_SOURCES.
+
+--fill-gaps does not fit anything. It adds a row for every
+(circuit_key, compound_code, season) the warehouse's valid laps need but the
+live seed lacks -- the latest earlier season's cell for the same venue and
+compound, else the class default -- so a new season's missing cells are
+carried forward explicitly instead of being priced from nothing downstream.
 """
 
 from __future__ import annotations
@@ -27,7 +41,7 @@ import numpy as np
 import pandas as pd
 
 from .provenance import build_provenance
-from .seed_writer import write_pending
+from .seed_writer import SEEDS_DIR, write_pending
 from .survival import (
     build_survival_dataset,
     estimate_cliff_severity,
@@ -70,6 +84,41 @@ COMPOUND_DEFAULTS = {
     "HYPERSOFT":    {"cliff_onset_laps": 10, "cliff_severity": 1.50, "wear_gradient": 0.115, "grip_peak": 1.09},
 }
 
+# Where one fitted parameter's number came from. A class default stays
+# "class_default" wherever the number travels -- including when a later season
+# carries the cell forward -- so a default can never be relabelled as measured
+# one step downstream.
+#   fitted                 estimated from this cell's own (venue, compound,
+#                          season) stints
+#   cross_season_fallback  estimated from the venue's stints pooled across
+#                          every season (too few in this season alone)
+#   class_default          COMPOUND_DEFAULTS (or a compound-class value noted
+#                          in the row): no usable estimate for this venue
+#   carried_forward        copied unchanged from an earlier season's cell, where
+#                          it was fitted or cross-season estimated
+PARAM_SOURCES = ("fitted", "cross_season_fallback", "class_default", "carried_forward")
+
+# The parameter source each fit tier implies when its estimator returns a
+# usable number.
+_TIER_PARAM_SOURCE = {
+    "cox_km_survival": "fitted",
+    "cross_season_fallback": "cross_season_fallback",
+    "compound_class_default": "class_default",
+}
+
+_PARAM_SOURCE_COLUMNS = ("onset_source", "gradient_source", "severity_source")
+
+# The seed's column order.
+SEED_COLUMNS = [
+    "circuit_key", "compound_code", "season",
+    "compound_grip_peak", "compound_wear_gradient",
+    "compound_optimal_temp_low", "compound_optimal_temp_high",
+    "compound_cliff_onset_laps", "compound_cliff_severity",
+    "fit_date", "data_window", "fit_method", "git_sha", "fit_timestamp",
+    "fit_source", *_PARAM_SOURCE_COLUMNS,
+    "n_stints", "notes",
+]
+
 OPTIMAL_TEMP_RANGES = {
     "SOFT":         (82, 108),
     "MEDIUM":       (78, 105),
@@ -89,9 +138,17 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
     Build the per-lap stint dataset from dev.duckdb.
 
     Joins int_stint_geometry + stg_laps + stg_weather + stg_events +
-    int_lap_normalized_pace. Filters to dry, green-flag, non-SC laps on slick
+    stg_results + int_lap_normalized_pace + int_lap_fuel_state. Filters to
+    green-flag, non-SC, non-pit laps with a known tyre age on the dry and wet
     compounds -- see the WHERE clause for why that is green-flag rather than
     is_valid_lap.
+
+    fuel_corrected_pace_s is the series the curve is fitted on: lap time with
+    the dirty-air cost AND the fuel burn removed. The residual decomposition
+    subtracts fuel separately (fuel_component_s), so a curve fitted on pace that
+    still carries the burn would price wear net of ~0.05 s/lap of fuel gain.
+    normalized_pace_s (dirty air removed, fuel left in) is kept for inspection
+    and for scripts/measure_wear_residual_sigma.py.
     """
     season_filter = ", ".join(str(s) for s in seasons)
     query = f"""
@@ -130,6 +187,25 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
             -- does not cover, so a missing air state degrades to raw lap time
             -- rather than dropping the lap from the fit.
             COALESCE(np.normalized_pace_s, l.lap_time_s) AS normalized_pace_s,
+            -- The fitted series: the same pace with the fuel burn removed too,
+            -- by the fuel model's own weight_penalty_s (the correction
+            -- int_lap_fuel_state applies to weight_corrected_lap_time). That
+            -- model prices valid laps only, so a green-flag lap it skipped
+            -- (inaccurate timing: 0.8% of rows, nearly all 2018) is priced
+            -- from the same race's constants with the same formula -- linear
+            -- burn from the regulatory limit over the scheduled distance.
+            -- NULL, never 0, if the race has no fuel row: an unpriced lap must
+            -- not be fitted as if it carried no fuel.
+            COALESCE(np.normalized_pace_s, l.lap_time_s) - COALESCE(
+                fs.weight_penalty_s,
+                CASE WHEN rf.race_id IS NOT NULL THEN
+                    GREATEST(
+                        rf.initial_fuel_kg
+                        - rf.fuel_consumption_rate_kg_per_lap * (l.lap_number - 1),
+                        0.0
+                    ) * dc.weight_penalty_factor
+                END
+            ) AS fuel_corrected_pace_s,
             COALESCE(w.track_temp_c, 30.0)     AS track_temp_c,
             COALESCE(w.rainfall_flag, FALSE)    AS rainfall_flag,
             w.wind_speed_ms,
@@ -165,7 +241,22 @@ def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.Da
         LEFT JOIN dim_circuits dc
           ON rtt.track_id = dc.circuit_key
         LEFT JOIN int_lap_normalized_pace np ON sg.lap_id = np.lap_id
+        LEFT JOIN int_lap_fuel_state fs ON sg.lap_id = fs.lap_id
+        LEFT JOIN (
+            -- Race-level constants, identical on every row of a race.
+            SELECT
+                race_id,
+                MAX(initial_fuel_kg) AS initial_fuel_kg,
+                MAX(fuel_consumption_rate_kg_per_lap) AS fuel_consumption_rate_kg_per_lap
+            FROM int_lap_fuel_state
+            GROUP BY race_id
+        ) rf ON l.race_id = rf.race_id
         WHERE sg.race_year IN ({season_filter})
+          -- A NULL tyre age is unknown, not a value: int_stint_geometry NULLs
+          -- it (and the compound) on stints whose bronze boundaries contradict
+          -- the pit record (stg_lap_tyre_qa's quarantine). Those laps cannot be
+          -- placed on a wear curve; the survival step also cannot run on them.
+          AND sg.age_in_stint IS NOT NULL
           AND l.compound IN (
               'SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET',
               -- Pre-2019 legacy naming, 2018 only (see COMPOUND_DEFAULTS).
@@ -220,7 +311,13 @@ def fit_group(
     """
     Fit cliff parameters for a single (circuit_key, compound_code, season) group.
 
-    Falls back to cross-season circuit+compound average, then to compound defaults.
+    Tiers: this season's stints (>= MIN_STINTS), else the venue's stints pooled
+    across every season (fallback_df, >= MIN_STINTS), else the compound-class
+    defaults. Within a tier that ran, any parameter whose estimator returns
+    nothing or an out-of-range value takes the class default, and that is
+    recorded against the parameter itself (onset_source / gradient_source /
+    severity_source) -- notes never claim "fitted" for a cell holding a default.
+
     Returns a result dict with all columns needed for the seed CSV.
     """
     defaults = COMPOUND_DEFAULTS.get(compound_code, COMPOUND_DEFAULTS["MEDIUM"])
@@ -232,11 +329,17 @@ def fit_group(
         (stints_df["race_year"] == season)
     ]
 
-    # Phase C: fit on normalized pace when the warehouse supplies it, raw lap
-    # time otherwise (synthetic fixtures, or a pre-Phase-C warehouse). Resolved
-    # once here so onset, severity and gradient are all fitted on the same
-    # series -- mixing them would make cliff onset and severity incomparable.
-    pace_col = "normalized_pace_s" if "normalized_pace_s" in stints_df.columns else "lap_time_s"
+    # Fit on fuel-corrected pace when the warehouse supplies it, then on
+    # dirty-air-normalized pace, then raw lap time (synthetic fixtures, or an
+    # older warehouse). Resolved once here so onset, severity and gradient are
+    # all fitted on the same series -- mixing them would make cliff onset and
+    # severity incomparable, and the cliff term downstream de-double-counts
+    # severity against span * wear_gradient, which only cancels cleanly when
+    # both were measured with the fuel burn in or out together.
+    pace_col = next(
+        (c for c in ("fuel_corrected_pace_s", "normalized_pace_s") if c in stints_df.columns),
+        "lap_time_s",
+    )
 
     survival_df = (
         build_survival_dataset(group_df, pace_col=pace_col) if len(group_df) > 0 else pd.DataFrame()
@@ -291,17 +394,42 @@ def fit_group(
         )
 
     # Clamp to physically plausible ranges   survival/regression can produce
-    # outliers for thin groups; fall back to defaults when out of range.
+    # outliers for thin groups; fall back to defaults when out of range. Each
+    # fallback is recorded against its own parameter: the tier's source holds
+    # only for a parameter whose estimator actually returned a usable number.
+    tier_param_source = _TIER_PARAM_SOURCE[source]
+
+    onset_defaulted = not cliff_onset
     onset_val = float(cliff_onset or defaults["cliff_onset_laps"])
     onset_val = max(5.0, min(100.0, onset_val))
 
     severity_val = float(cliff_severity or defaults["cliff_severity"])
-    if severity_val < 0.1 or severity_val > 1.5:
+    severity_defaulted = not cliff_severity or severity_val < 0.1 or severity_val > 1.5
+    if severity_defaulted:
         severity_val = defaults["cliff_severity"]
 
     gradient_val = float(wear_gradient or defaults["wear_gradient"])
-    if gradient_val < 0.005 or gradient_val > 0.300:
+    gradient_defaulted = not wear_gradient or gradient_val < 0.005 or gradient_val > 0.300
+    if gradient_defaulted:
         gradient_val = defaults["wear_gradient"]
+
+    param_sources = {
+        "onset_source": "class_default" if onset_defaulted else tier_param_source,
+        "gradient_source": "class_default" if gradient_defaulted else tier_param_source,
+        "severity_source": "class_default" if severity_defaulted else tier_param_source,
+    }
+    defaulted = [
+        name for name, key in (("onset", "onset_source"), ("gradient", "gradient_source"),
+                               ("severity", "severity_source"))
+        if param_sources[key] == "class_default"
+    ]
+    if source == "compound_class_default" or not defaulted:
+        notes = fit_notes or f"fitted from {used_n_stints} stints via {source}"
+    else:
+        # A tier ran but could not measure every parameter. Say so, and never
+        # with the "fitted from" wording a fully measured cell carries.
+        head = fit_notes or f"{used_n_stints} stints via {source}"
+        notes = f"{head}; no usable estimate for {', '.join(defaulted)}: class default used"
 
     return {
         "circuit_key": circuit_key,
@@ -314,8 +442,9 @@ def fit_group(
         "compound_cliff_onset_laps": round(onset_val, 1),
         "compound_cliff_severity": round(severity_val, 2),
         "fit_source": source,
+        **param_sources,
         "n_stints": used_n_stints,
-        "notes": fit_notes or f"fitted from {used_n_stints} stints via {source}",
+        "notes": notes,
     }
 
 
@@ -393,19 +522,120 @@ def run_fit(
     for k, v in prov.items():
         out_df[k] = v
 
-    # Reorder columns to match the existing seed schema
-    col_order = [
-        "circuit_key", "compound_code", "season",
-        "compound_grip_peak", "compound_wear_gradient",
-        "compound_optimal_temp_low", "compound_optimal_temp_high",
-        "compound_cliff_onset_laps", "compound_cliff_severity",
-        "fit_date", "data_window", "fit_method", "git_sha", "fit_timestamp",
-        "fit_source", "n_stints", "notes",
-    ]
-    out_df = out_df[[c for c in col_order if c in out_df.columns]]
+    out_df = out_df[[c for c in SEED_COLUMNS if c in out_df.columns]]
     out_df = out_df.sort_values(["circuit_key", "compound_code", "season"])
 
     return out_df
+
+
+def load_needed_cells(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    """
+    Every (circuit_key, compound_code, season) the warehouse prices.
+
+    The same population int_compound_cliff_predicted joins to the seed: valid
+    laps of int_stint_geometry with a known compound, keyed through
+    race_to_track. assert_compound_params_cover_mart checks the same set.
+    """
+    return con.execute("""
+        SELECT DISTINCT
+            rtt.track_id AS circuit_key,
+            g.compound_in_stint AS compound_code,
+            g.race_year AS season
+        FROM int_stint_geometry g
+        JOIN race_to_track rtt ON g.race_id = rtt.race_id
+        WHERE g.is_valid_lap AND g.compound_in_stint IS NOT NULL
+    """).df()
+
+
+def fill_coverage_gaps(seed_df: pd.DataFrame, needed: pd.DataFrame) -> pd.DataFrame:
+    """
+    Rows for every needed (circuit_key, compound_code, season) cell the seed lacks.
+
+    Nothing is fitted. The hierarchy, applied per missing cell:
+      1. venue history -- the latest EARLIER season's cell for the same
+         circuit_key and compound, copied unchanged. Earlier only, so a filled
+         cell never carries information from its own season or a later one.
+      2. class default -- COMPOUND_DEFAULTS, when the venue has never had one.
+    Per-parameter provenance follows the number: a copied parameter is
+    "carried_forward" unless the source cell itself held a class default there,
+    in which case it stays "class_default".
+
+    Returns only the new rows, in SEED_COLUMNS order.
+    """
+    have = set(zip(seed_df["circuit_key"], seed_df["compound_code"], seed_df["season"].astype(int)))
+    gaps = sorted(
+        {(k, c, int(s)) for k, c, s in zip(needed["circuit_key"], needed["compound_code"], needed["season"])}
+        - have
+    )
+    rows = []
+    for circuit_key, compound_code, season in gaps:
+        history = seed_df[
+            (seed_df["circuit_key"] == circuit_key)
+            & (seed_df["compound_code"] == compound_code)
+            & (seed_df["season"].astype(int) < season)
+        ]
+        if len(history):
+            src = history.loc[history["season"].astype(int).idxmax()]
+            src_season = int(src["season"])
+            row = {c: src[c] for c in SEED_COLUMNS if c in src.index}
+            row.update({
+                "season": season,
+                "fit_source": f"carried_forward_{src_season}",
+                **{
+                    col: "class_default" if src[col] == "class_default" else "carried_forward"
+                    for col in _PARAM_SOURCE_COLUMNS
+                },
+                "notes": (
+                    f"No {season} cell for this venue and compound: the {src_season} cell "
+                    f"(the latest earlier season with one; fit_source {src['fit_source']}) "
+                    "carried forward unchanged. Parameters that were class defaults there "
+                    "stay marked class_default. data_window/fit_method are the source fit's."
+                ),
+            })
+        else:
+            if compound_code not in COMPOUND_DEFAULTS:
+                # No class default to fall back to: leave the gap, and let
+                # assert_compound_params_cover_mart refuse the build on it.
+                log.error("%s / %s / %d: no seed history and no class default for this compound",
+                          circuit_key, compound_code, season)
+                continue
+            defaults = COMPOUND_DEFAULTS[compound_code]
+            opt_temp_low, opt_temp_high = OPTIMAL_TEMP_RANGES[compound_code]
+            row = {
+                "circuit_key": circuit_key,
+                "compound_code": compound_code,
+                "season": season,
+                "compound_grip_peak": defaults["grip_peak"],
+                "compound_wear_gradient": defaults["wear_gradient"],
+                "compound_optimal_temp_low": opt_temp_low,
+                "compound_optimal_temp_high": opt_temp_high,
+                "compound_cliff_onset_laps": float(defaults["cliff_onset_laps"]),
+                "compound_cliff_severity": defaults["cliff_severity"],
+                "fit_method": "km_survival_v1",
+                "data_window": f"{int(seed_df['season'].min())}_to_{season - 1}",
+                "fit_source": "compound_class_default",
+                **{col: "class_default" for col in _PARAM_SOURCE_COLUMNS},
+                "n_stints": 0,
+                "notes": (
+                    f"No {season} cell and no earlier season's cell for this venue and "
+                    "compound to carry forward: compound-class defaults (COMPOUND_DEFAULTS)."
+                ),
+            }
+        rows.append(row)
+
+    out = pd.DataFrame(rows, columns=SEED_COLUMNS)
+    if len(out):
+        # When and at which commit the rows were written. data_window and
+        # fit_method stay per row (above): they describe the numbers, not
+        # this write.
+        stamp = build_provenance(
+            fit_method="km_survival_v1",
+            season_min=int(seed_df["season"].min()),
+            season_max=int(out["season"].max()),
+        )
+        for k in ("fit_date", "git_sha", "fit_timestamp"):
+            out[k] = stamp[k]
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -420,7 +650,26 @@ def main(argv: list[str] | None = None) -> int:
         "--circuits", nargs="+", default=None,
         help="Limit fit to these circuit_keys (default: all).",
     )
+    parser.add_argument(
+        "--fill-gaps", action="store_true",
+        help="Fit nothing: write the live seed plus a carried-forward / class-default row "
+             "for every cell the warehouse's valid laps need but the seed lacks.",
+    )
     args = parser.parse_args(argv)
+
+    if args.fill_gaps:
+        con = duckdb.connect(str(DB_PATH), read_only=True)
+        live = pd.read_csv(SEEDS_DIR / f"{SEED_NAME}.csv")
+        added = fill_coverage_gaps(live, load_needed_cells(con))
+        for _, r in added.iterrows():
+            log.info("  + %-35s %-12s %d  [%s]", r["circuit_key"], r["compound_code"],
+                     r["season"], r["fit_source"])
+        log.info("%d gap rows.", len(added))
+        if args.dry_run or not len(added):
+            return 0
+        write_pending(pd.concat([live, added], ignore_index=True)[SEED_COLUMNS], SEED_NAME)
+        log.info("Done. Pending seed written. Review then run: make coefficients-promote")
+        return 0
 
     if args.dry_run:
         log.info("DRY RUN   will connect to duckdb and show plan without writing output.")

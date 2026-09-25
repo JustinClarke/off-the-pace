@@ -57,38 +57,39 @@ export const queryRaceOptions = registerQuery<SeasonParams, { race_id: string }[
  * Loads per-stint Gantt data for a race.
  *
  * Derives contiguous start/end laps from int_pit_strategy_value using window
- * functions: start_lap = prev actual_pit_lap + 1 (or 1), end_lap = actual_pit_lap
- * (or total_laps for the final stint). This avoids the gaps that arise when using
- * fct_lap_residuals, which excludes pit/safety-car laps from its coverage.
+ * functions, in the order the stints ran (end_lap_number, the lap each one ended
+ * on): end_lap = the stop (actual_pit_lap) for a stint that ended in one, else
+ * the stint's own last lap (the flag, or a retirement on track); start_lap = the
+ * previous stint's end_lap + 1 (or 1). This avoids the gaps that arise when
+ * using fct_lap_residuals, which excludes pit/safety-car laps from its coverage.
+ *
+ * No race-length fallback: every stint that ended in a stop carries its stop,
+ * whatever flag was out (WI-13, F31; asserted by T23 in the transform). This
+ * used to end a stint with no matched stop at the race's last valid lap, which
+ * drew 194 of 653 SC-ended and 107 of 116 red-flag-ended stints to the
+ * chequered flag.
  */
 export const queryPitGantt = registerQuery<GanttParams, PitGanttRow[]>(
   'pit-strategy.gantt',
-  async ({ race_id, season }) => {
+  async ({ race_id }) => {
     const manifest = await loadManifest()
 
     const stintPath = getTablePath(manifest, 'fct_stint_features')
     const pvPath    = getTablePath(manifest, 'int_pit_strategy_value')
-    const lapPath   = getTablePath(manifest, 'fct_lap_residuals', season)
     await Promise.all([
       registerParquet('fct_stint_features',    stintPath),
       registerParquet('int_pit_strategy_value', pvPath),
-      registerParquet(`fct_lap_residuals_${season}`, lapPath),
     ])
 
     return rawQuery<PitGanttRow>(`
-      WITH total_laps AS (
-        SELECT MAX(lap_number) AS n
-        FROM fct_lap_residuals_${season}
-        WHERE race_id = ?
-      ),
-      ordered AS (
+      WITH ordered AS (
         SELECT
           pv.stint_id,
           pv.driver_id,
           pv.race_id,
           pv.compound,
           pv.stint_length_laps,
-          pv.actual_pit_lap,
+          COALESCE(pv.actual_pit_lap, pv.end_lap_number) AS end_lap,
           pv.cliff_onset_lap_in_stint,
           pv.optimal_pit_lap_in_stint,
           pv.overrun_laps,
@@ -98,12 +99,12 @@ export const queryPitGantt = registerQuery<GanttParams, PitGanttRow[]>(
           pv.optimal_pit_lap_confidence,
           ROW_NUMBER() OVER (
             PARTITION BY pv.race_id, pv.driver_id
-            ORDER BY pv.actual_pit_lap NULLS LAST
+            ORDER BY pv.end_lap_number
           ) AS stint_number,
-          LAG(pv.actual_pit_lap) OVER (
+          LAG(COALESCE(pv.actual_pit_lap, pv.end_lap_number)) OVER (
             PARTITION BY pv.race_id, pv.driver_id
-            ORDER BY pv.actual_pit_lap NULLS LAST
-          ) AS prev_pit_lap
+            ORDER BY pv.end_lap_number
+          ) AS prev_end_lap
         FROM int_pit_strategy_value pv
         WHERE pv.race_id = ?
       )
@@ -112,8 +113,8 @@ export const queryPitGantt = registerQuery<GanttParams, PitGanttRow[]>(
         s.constructor_id,
         CAST(o.stint_number AS INTEGER)                        AS stint_number,
         o.compound,
-        CAST(COALESCE(o.prev_pit_lap + 1, 1) AS INTEGER)      AS start_lap,
-        CAST(COALESCE(o.actual_pit_lap, tl.n) AS INTEGER)     AS end_lap,
+        CAST(COALESCE(o.prev_end_lap + 1, 1) AS INTEGER)      AS start_lap,
+        CAST(o.end_lap AS INTEGER)                             AS end_lap,
         CAST(o.stint_length_laps AS INTEGER)                   AS stint_length_laps,
         CAST(s.cliff_lap_in_stint AS INTEGER)                  AS cliff_lap_in_stint,
         s.tyre_management_score,
@@ -124,15 +125,16 @@ export const queryPitGantt = registerQuery<GanttParams, PitGanttRow[]>(
         o.pit_lane_loss_s,
         CAST(o.optimal_pit_lap_confidence AS DOUBLE)           AS optimal_pit_lap_confidence
       FROM ordered o
-      CROSS JOIN total_laps tl
       LEFT JOIN fct_stint_features s ON o.stint_id = s.stint_id
       ORDER BY o.driver_id, o.stint_number
-    `, [race_id, race_id])
+    `, [race_id])
   }
 )
 
 /**
- * Total laps for the race (used to set the Gantt x-axis extent).
+ * Total laps for the race: the last VALID lap (fct_lap_residuals holds valid
+ * laps only), so a race that finished under a safety car or red flag reads
+ * short. transform() widens the Gantt axis to the last stint's end lap.
  */
 export const queryRaceSummary = registerQuery<GanttParams, RaceSummaryRow[]>(
   'pit-strategy.race-summary',

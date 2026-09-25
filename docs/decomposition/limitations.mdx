@@ -26,7 +26,7 @@ The model was trained on 2018–2024. 2025 OpenF1 data is publicly available but
 
 ### 4. No 2018 Rounds 1–2 telemetry
 
-F1 did not publish live timing telemetry until mid-season 2018. Rounds 1 and 2 (Australia and Bahrain) have no telemetry data in the Bronze layer. This does not affect decompositions for other races, but it means 2018 is slightly underrepresented in coefficient estimation.
+F1's archive is missing the race telemetry streams for 2018 rounds 1 and 2: Australia has the car-data stream but no position stream (FastF1 needs both to merge per-lap telemetry), and Bahrain has neither. Those two races (Australia and Bahrain) have no telemetry data in the Bronze layer. This does not affect decompositions for other races, but it means 2018 is slightly underrepresented in coefficient estimation.
 
 ### 5. Weather granularity is session-level
 

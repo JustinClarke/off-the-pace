@@ -5,6 +5,8 @@
     python3 _roadmap/_fixes/status/board.py --check        # invariants only; exit 1 on failure
     python3 _roadmap/_fixes/status/board.py --order        # the ordered task list, to stdout
     python3 _roadmap/_fixes/status/board.py --write-order  # ...and into BUILD-ORDER.md
+    python3 _roadmap/_fixes/status/board.py --watch        # the watch list in full
+    python3 _roadmap/_fixes/status/board.py --ship         # exit 1 while a ship-blocker is open
 
 build-log.json is the authoritative state. This script never writes to it -- it is a
 reader, so a malformed edit surfaces as a failed check rather than as silent drift.
@@ -17,7 +19,13 @@ Adapted from _roadmap/_improvements/status/board.py. What differs, and why:
     --check confirms the doc exists -- an item with no doc is not runnable;
   * the task list puts work you can run now ahead of work waiting on a human ruling,
     otherwise "the pointer is the next thing to run" would be false the moment the first
-    item in the table is decision-blocked.
+    item in the table is decision-blocked;
+  * a `watch` list holds what is being kept an eye on but is not an item or a ruling:
+    ship-blockers, uncommitted or unreviewed work, stale artifacts, standing hazards,
+    unverified claims, gate gaps and known debt. Items and decisions say what to build and
+    what to rule; the watch list is where an exception lives so it cannot fall off the
+    board when the item that raised it lands. --check validates its shape only (an open
+    ship-blocker is not a malformed log); --ship is the gate to run before publishing.
 """
 from __future__ import annotations
 
@@ -49,6 +57,46 @@ def decs(item: dict) -> list[str]:
 
 def open_decs(item: dict, decisions: dict[str, dict]) -> list[str]:
     return [d for d in decs(item) if decisions.get(d, {}).get("status") == "OPEN"]
+
+
+WATCH_FIELDS = ("id", "raised", "kind", "title", "detail", "clears_when", "status")
+
+
+def open_watch(log: dict) -> list[dict]:
+    """Open watch entries, most urgent kind first (vocabulary order), then in the order raised."""
+    kinds = list(log.get("watch_vocabulary", {}))
+    rank = {k: n for n, k in enumerate(kinds)}
+    live = [w for w in log.get("watch", []) if w.get("status") == "OPEN"]
+    return sorted(live, key=lambda w: (rank.get(w.get("kind"), 99), w.get("raised", ""),
+                                       len(w.get("id", "")), w.get("id", "")))
+
+
+def check_watch(log: dict, items: dict, decisions: dict) -> list[str]:
+    """Shape of the watch list. An open entry is not a failure -- that is what it is for."""
+    if "watch" not in log or "watch_vocabulary" not in log:
+        return ["build-log.json has no `watch` list or `watch_vocabulary`"]
+    kinds = set(log["watch_vocabulary"])
+    bad: list[str] = []
+    seen: set[str] = set()
+    for w in log["watch"]:
+        wid = w.get("id", "?")
+        if wid in seen:
+            bad.append(f"{wid}: duplicate watch id")
+        seen.add(wid)
+        for f in WATCH_FIELDS:
+            if not w.get(f):
+                bad.append(f"{wid}: watch entry has no {f!r}")
+        if w.get("kind") and w["kind"] not in kinds:
+            bad.append(f"{wid}: kind {w['kind']!r} not in watch_vocabulary")
+        if w.get("status") not in ("OPEN", "RESOLVED"):
+            bad.append(f"{wid}: status {w.get('status')!r} is not OPEN or RESOLVED")
+        if w.get("status") == "RESOLVED" and not (w.get("resolved") and w.get("resolution")):
+            bad.append(f"{wid}: RESOLVED without a date and a resolution")
+        if w.get("item") and w["item"] not in items:
+            bad.append(f"{wid}: names item {w['item']}, which does not exist")
+        if w.get("decision") and w["decision"] not in decisions:
+            bad.append(f"{wid}: names decision {w['decision']}, which does not exist")
+    return bad
 
 
 def check(log: dict) -> list[str]:
@@ -110,6 +158,8 @@ def check(log: dict) -> list[str]:
         for b in d["blocking"]:
             if b not in items:
                 bad.append(f"{d['id']}: blocks {b}, which does not exist")
+
+    bad += check_watch(log, items, decisions)
 
     # Staleness is only meaningful for a valid log: render_order assumes one, and a
     # malformed log has already been reported above.
@@ -224,6 +274,25 @@ def render_order(log: dict) -> str:
             out.append(f"- **{d['id']}** (blocks {blocks}) — {d['question']}{rec}")
         out.append("")
 
+    if watch := open_watch(log):
+        ships = sum(1 for w in watch if w["kind"] == "ship-blocker")
+        out.append("### Watch list — kept an eye on, not tasks and not rulings")
+        out.append("")
+        out.append(f"**{len(watch)} open** ({ships} ship-blocker{'s' if ships != 1 else ''}). "
+                   f"Full detail: `{CMD} --watch`. `{CMD} --ship` exits 1 while a "
+                   f"ship-blocker is open.")
+        out.append("")
+        out.append("| ID | Kind | Item | What | Clears when |")
+        out.append("| :--- | :--- | :--- | :--- | :--- |")
+
+        def cell(s: str) -> str:
+            return s.replace("|", "/").replace("\n", " ")
+        for w in watch:
+            ref = ", ".join(x for x in (w.get("item"), w.get("decision")) if x) or "—"
+            out.append(f"| {w['id']} | {w['kind']} | {ref} | {cell(w['title'])} "
+                       f"| {cell(w['clears_when'])} |")
+        out.append("")
+
     # Terminal items are deliberately NOT listed: this file answers "what do I run next".
     # Their reasons live in build-log.json's `closed` field; `board.py` shows them as [x].
     out.append(END)
@@ -248,7 +317,10 @@ def board(log: dict) -> None:
     items = {i["id"]: i for i in log["items"]}
     decisions = {d["id"]: d for d in log["decisions"]}
     ptr = log.get("pointer")
-    print(f"\n  {log['project']}    updated {log['updated']}    next: {ptr}\n")
+    watch = open_watch(log)
+    ships = sum(1 for w in watch if w["kind"] == "ship-blocker")
+    print(f"\n  {log['project']}    updated {log['updated']}    next: {ptr}"
+          f"    watch: {len(watch)} open ({ships} ship-blocker{'s' if ships != 1 else ''})\n")
 
     for g in log["groups"]:
         mine = [i for i in log["items"] if i["group"] == g["id"]]
@@ -274,6 +346,14 @@ def board(log: dict) -> None:
             print(f"    {d['id']}{blocks} -- {d['question']}")
         print()
 
+    if watch:
+        print("  Watch list (kept an eye on; `--watch` for detail):")
+        for w in watch:
+            ref = w.get("item") or w.get("decision") or ""
+            flag = "!!" if w["kind"] == "ship-blocker" else "  "
+            print(f"    {flag} {w['id']:<4} {w['kind']:<15} {ref:<7} {w['title']}")
+        print()
+
     last = log["history"][-1]
     session = last.get("session") or (f"landed {last['landed']}" if last.get("landed") else "")
     print(f"  Last session {last['date']} -- {session}")
@@ -292,6 +372,19 @@ def main() -> int:
     if "--order" in sys.argv:
         print(render_order(log))
         return 0
+    if "--watch" in sys.argv:
+        for w in open_watch(log):
+            ref = ", ".join(x for x in (w.get("item"), w.get("decision")) if x) or "no item"
+            print(f"{w['id']}  [{w['kind']}]  {ref}  raised {w['raised']}\n  {w['title']}\n"
+                  f"  why:   {w['detail']}\n  clears when: {w['clears_when']}\n")
+        print(f"{len(open_watch(log))} open")
+        return 0
+    if "--ship" in sys.argv:
+        blockers = [w for w in open_watch(log) if w["kind"] == "ship-blocker"]
+        for w in blockers:
+            print(f"SHIP-BLOCKER {w['id']}  {w['title']}\n  clears when: {w['clears_when']}")
+        print("no open ship-blockers" if not blockers else f"{len(blockers)} open ship-blocker(s)")
+        return 1 if blockers else 0
     if "--write-order" in sys.argv:
         # Staleness is the failure this command repairs -- refusing on it would deadlock.
         # Any OTHER failure means the log is wrong, and generating a task list from a

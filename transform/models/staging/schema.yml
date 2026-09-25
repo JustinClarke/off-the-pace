@@ -7,6 +7,18 @@ models:
       Renames Bronze columns to snake_case, casts nanosecond timings to seconds,
       and derives the validity / track-status flags consumed across the warehouse.
       is_valid_lap = TRUE excludes pit laps, deleted laps, SC/VSC laps, and lap 1.
+
+      Known bronze defect, not corrected here (F18, one race): 2020_1 (Austrian GP) is numbered
+      1-68 in bronze laps while the race ran 71. Race control puts the CHEQUERED flag on lap 71
+      and race_scheduled_laps says 71; on the 2026-09-25 dev build it is the only race with a
+      chequered flag on record whose laps end short of it. The audit also found Jolpica's pit
+      laps for that race running 4 to 5 laps ahead of stg_pits (not re-run since). The two
+      other feeds are ingested separately from the lap feed and neither passes through stg_laps,
+      so the fault is in bronze ingestion, outside this layer. Effect, that race only:
+      lap_number runs behind the true lap (3 laps at the flag, 4-5 by the pit-lap comparison), so
+      the lap_number feature reads early and fuel_mass_kg, which counts down from lap_number
+      at the scheduled 71-lap rate (about 1.55 kg per lap), reads about 1.5 kg per lap of offset
+      too heavy (4.6 kg at 3 laps). The fix is a re-pull of 2020_1.
     meta:
       family: staging
     columns:
@@ -705,11 +717,16 @@ models:
         description: Raw FastF1 status string ('Finished', '+1 Lap', 'Engine', 'Collision', ...).
         data_type: varchar
       - name: is_classified
-        description: TRUE when ClassifiedPosition parses to an integer (a ranked finisher).
+        description: >
+          TRUE when ClassifiedPosition parses to an integer (a ranked finisher) and the driver was not
+          disqualified. A disqualified driver is never classified: bronze leaves a numeric
+          ClassifiedPosition on some of them (HAM and LEC 2023_18, RUS 2024_14), so status is decided first.
         data_type: boolean
         tests: [not_null]
       - name: is_dnf
-        description: TRUE for retirements (not classified and not a lapped finish).
+        description: >
+          TRUE for retirements (not classified and not a lapped finish). A disqualified driver is
+          included, since disqualification removes the classification.
         data_type: boolean
         tests: [not_null]
       - name: dnf_cause

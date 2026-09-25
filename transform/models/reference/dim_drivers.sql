@@ -22,8 +22,12 @@ driver_seasons AS (
 career_summary AS (
     SELECT
         driver_id,
-        -- Most recent number (drivers sometimes change numbers)
-        MAX(driver_number) AS driver_number,
+        -- Most recent number (drivers sometimes change numbers): the one
+        -- carried in the driver's latest season, or the one raced under most
+        -- within it if they carried two. This was MAX(driver_number), a string
+        -- maximum, which ranks '33' above '1' and '45' above '21', so VER, DEV
+        -- and LAW kept an old number (F17).
+        ARG_MAX(driver_number, (race_year, races_in_season)) AS driver_number,
         MIN(race_year) AS debut_year,
         SUM(races_in_season) AS career_races_in_dataset
     FROM driver_seasons

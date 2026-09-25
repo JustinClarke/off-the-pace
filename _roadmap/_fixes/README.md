@@ -2,8 +2,8 @@
 
 **What this is.** `_roadmap/_improvements/reference/transform_forensic_audit*.md` (3 rounds, run
 2026-09-24) found 49 defects (F1–F49) in the transform/ML pipeline and the fan-facing app. This
-folder is that audit **independently reverified against the live tree**, extended with five
-findings it missed (F50–F54), and turned into work items with a board that executes them.
+folder is that audit **independently reverified against the live tree**, extended with the
+findings it missed (F50–F55), and turned into work items with a board that executes them.
 
 ## Layout
 
@@ -16,8 +16,8 @@ _fixes/
 │   └── BUILD-ORDER.md      the rules, and the generated, ordered task list
 ├── wi/                     one doc per work item: method, acceptance, tests, definition of done
 └── reference/              static evidence, not state
-    ├── finding-verdicts.md one row per finding (F1–F54): reverification verdict, severity, its WI
-    └── new-findings.md     F50–F54, written up in the audit's own format
+    ├── finding-verdicts.md one row per finding (F1–F55): reverification verdict, severity, its WI
+    └── new-findings.md     F50–F55, written up in the audit's own format
 ```
 
 Same mechanism as [`../_improvements/status/`](../_improvements/status/BUILD-ORDER.md) — a JSON log,
@@ -68,7 +68,7 @@ The group ids are the `_improvements` groups these fixes belong to, so a fix can
 cross-referenced against that tree. The evidence standard (Definitely wrong / Probably wrong /
 Requires investigation), the "how I could be wrong" discipline and the **T1–T39** test ids are
 inherited from the audit as-is — reinventing labels would only add translation risk. Cite
-findings by their original id (F1–F49) or the new ones (F50–F54) everywhere else in the tree.
+findings by their original id (F1–F49) or the new ones (F50–F55) everywhere else in the tree.
 
 ## Reverification method
 
@@ -87,7 +87,8 @@ findings by their original id (F1–F49) or the new ones (F50–F54) everywhere 
    (mechanism holds, some part of the characterization is debatable), or **UNDERSTATED**. None came
    back OVERBLOWN, INVALID, or STALE-OR-FIXED. Verdicts: [`reference/finding-verdicts.md`](reference/finding-verdicts.md).
 3. The same reviews surfaced five issues not in F1–F49, numbered **F50–F54** to keep them out of the
-   audit's own range while staying cross-referenceable. Write-ups:
+   audit's own range while staying cross-referenceable; the WI-05 build later found a sixth, **F55**.
+   Write-ups:
    [`reference/new-findings.md`](reference/new-findings.md).
 
 ## Overall verdict, reconfirmed

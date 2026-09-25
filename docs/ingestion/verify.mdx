@@ -1,10 +1,12 @@
 ---
 title: "Verify: confirm Bronze integrity"
 sidebarTitle: "Verify"
-description: "Re-run the data-quality gate against every file already on disk, and regenerate the coverage table the rest of the docs link to."
+description: "Check every file already on disk against what the schedule says should be there, and regenerate the coverage table the rest of the docs link to."
 ---
 
-`verify_bronze.py` re-checks everything ingestion already wrote dataset presence, the same four quality checks from [Data Quality](/data/data-quality), and row-count distributions as a standalone pass over `data/bronze/`. It's the script to reach for after a backfill finishes, or any time you want to confirm Bronze is healthy without re-reading ingestion logs.
+`verify_bronze.py` re-checks everything ingestion already wrote as a standalone pass over `data/bronze/`: which races should be there, whether each has its datasets, the laps quality checks, the same completeness rules `ingest.py` applies before writing, per-race telemetry coverage, and row counts. It's the script to reach for after a backfill finishes, or any time you want to confirm Bronze is healthy without re-reading ingestion logs.
+
+Nothing about the seasons is hand-typed. The races a season should have are the rounds on its schedule snapshot (`schedule/season=YYYY/`, written by `ingest.py` from FastF1's event schedule) whose race has finished, so a new season is checked as soon as it's ingested. Documented source gaps (`KNOWN_TELEMETRY_GAPS` / `KNOWN_THIN` in `ingestion/src/bronze_checks.py`, e.g. 2018 Rd1/Rd2 telemetry) are printed as **KNOWN** and don't fail the run; anything else is printed as **NEW** and makes it exit 1.
 
 <Steps>
   <Step title="Run it">
@@ -12,8 +14,8 @@ description: "Re-run the data-quality gate against every file already on disk, a
     make verify-bronze
     ```
   </Step>
-  <Step title="Read the three sections">
-    The output walks through dataset presence, then data quality, then row-count distribution, each printed as its own block.
+  <Step title="Read the five sections">
+    The output walks through presence, laps data quality, completeness, telemetry coverage and row counts, each printed as its own block, then a summary of NEW vs KNOWN findings. `--season YYYY` limits it to one season; `--bronze-dir PATH` points it at another bronze root.
   </Step>
 </Steps>
 
@@ -24,19 +26,25 @@ description: "Re-run the data-quality gate against every file already on disk, a
 ## What each section checks
 
 <AccordionGroup>
-  <Accordion title="1. Dataset presence">
-    For every season with a `laps/season=<year>/` directory, counts how many races are present against the expected count for that season, and how many of those races have all four core datasets (`laps`, `weather`, `race_control`, `telemetry`). A race missing one of the four is flagged by name.
+  <Accordion title="1. Presence">
+    For every season with a `laps/season=<year>/` directory, every finished round on the schedule snapshot must have race laps, qualifying laps, `weather`, `race_control` and `telemetry`. A finished round with no laps, or a race missing a dataset, is flagged by name; a known gap is reported as KNOWN. With no schedule snapshot the check falls back to the races on disk.
   </Accordion>
-  <Accordion title="2. Data quality">
-    Re-runs all four `DataQualityEngine` checks schema, row count, null rate, duplicate lap keys against every laps Parquet file on disk, independent of whatever the original ingestion run logged. A file passes only if it has no high-null columns and no duplicate keys; the per-issue counts are summarized at the end.
+  <Accordion title="2. Laps data quality">
+    Runs `DataQualityEngine`'s schema check (required columns) and duplicate lap-key check on every race and qualifying laps file. Fewer than 50 laps is reported as info, not a failure, matching ingestion (red-flagged sessions are short).
   </Accordion>
-  <Accordion title="3. Row-count distribution">
-    For each season and dataset, reports the number of races present and the median/min/max row count per race. Useful for spotting an outlier race one with far fewer telemetry samples than its neighbours, for example without opening a single file by hand.
+  <Accordion title="3. Completeness">
+    The thin-load rules `ingest.py` applies before writing, run on the files instead: tyre columns (`Compound`, `TyreLife`, `Stint`) at least 90% non-null, `LapTime` at least 25%, as many results rows as drivers who set laps, race `Points`/`GridPosition` at least 90% and qualifying `Q1` at least 50% non-null, and non-empty weather and race control. This is what catches a load that was written thin and would otherwise be skipped as done forever.
+  </Accordion>
+  <Accordion title="4. Telemetry coverage">
+    The share of each race's laps with merged per-lap telemetry. Every healthy race 2018-2025 is at or above 99.7%; below 95% is flagged.
+  </Accordion>
+  <Accordion title="5. Row-count distribution">
+    For each season and dataset, reports the number of races present and the median/min/max row count per race (from Parquet metadata). Informational.
   </Accordion>
 </AccordionGroup>
 
 <Note>
-  The data-quality re-check here uses a 10% null-rate threshold, looser than the 5% threshold `ingest.py` applies inline during ingestion (see [Data Quality](/data/data-quality)). A file can pass this verification pass while still having logged a null-rate warning the first time it was written.
+  The all-column null-rate warning `ingest.py` logs while writing (see [Data Quality](/data/data-quality)) is not re-checked here: most FastF1 lap columns (pit in/out times, for instance) are mostly null by design. Completeness is judged on the key columns in section 3 instead.
 </Note>
 
 ## Regenerating the coverage table
@@ -45,7 +53,7 @@ description: "Re-run the data-quality gate against every file already on disk, a
 verify_bronze.py --markdown
 ```
 
-emits the Bronze coverage table season-by-season counts of how many races have each dataset as Markdown, read straight off disk. `make docs-coverage` wraps this into `docs/snippets/bronze-coverage.mdx`, the snippet embedded on [Known Issues](/data/known-issues); a CI gate fails if the committed snippet ever drifts from a fresh regeneration, so the table in the docs can't go stale.
+emits the Bronze coverage table season-by-season counts of how many races have each dataset as Markdown, read straight off disk. It covers the seasons in `MARKDOWN_SEASONS` (2018-2024); widening it adds rows to the published docs, so that is a deliberate change. `make docs-coverage` wraps this into `docs/snippets/bronze-coverage.mdx`, the snippet embedded on [Known Issues](/data/known-issues); a CI gate fails if the committed snippet ever drifts from a fresh regeneration, so the table in the docs can't go stale.
 
 ## Next
 

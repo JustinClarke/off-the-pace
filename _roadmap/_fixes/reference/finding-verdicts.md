@@ -1,4 +1,4 @@
-# Finding verdicts — reverification of F1–F49, plus F50–F54
+# Finding verdicts — reverification of F1–F49, plus F50–F55
 
 A static record of what the reverification concluded about each finding. It does **not** say
 whether a fix has been done: execution state lives only in
@@ -71,6 +71,7 @@ OVERBLOWN, INVALID, or STALE-OR-FIXED.
 | **F52** | *New:* F6+F32 fuel bugs compound on the same neutralized races | — | Low-Medium | WI-05 |
 | **F53** | *New:* `verify_findings.py`/`features.py` have no safe re-run path | — | Low (process) | WI-07 |
 | **F54** | *New:* `dim_constructors.pu_mapping` has no completeness test | — | Low (process) | WI-09 |
+| **F55** | *New (found by the WI-05 build):* `fit_weight_penalty.py` divides by a fuel burn rate the model no longer reads | — | Low | WI-13 (fix); WI-02b (refit) |
 
 **51 of 49+5 = 54 findings checked** (F9 and F15 are manual-only, not on `verify_findings.py`'s
 board, matching the original reports).

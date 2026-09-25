@@ -32,7 +32,7 @@ Always include `season` in your query predicate. The partition pruner uses it to
 The pipeline covers **168 races across 2018–2024**, with one known gap:
 
 <Note>
-  Telemetry data for **2018 Rd1 and Rd2** is missing. FastF1's livetiming feed started mid-season in 2018, so no position or channel data was recorded for the Australian and Bahraini rounds. Laps, weather, and race control for those rounds are present. Telemetry coverage is complete from 2018 Rd3 onward.
+  Telemetry data for **2018 Rd1 and Rd2** is missing because F1's archive lacks the streams it is built from. For the Australian (Rd1) race the archive has the car-data stream (speed, throttle, brake) but no position stream, and FastF1 merges per-lap telemetry only when it has both; for the Bahraini (Rd2) race it has neither. Qualifying at both weekends has both streams, but the pipeline ingests race telemetry only. Laps, weather, and race control for those rounds are present. Telemetry coverage is complete from 2018 Rd3 onward.
 </Note>
 
 ---
@@ -174,5 +174,5 @@ Both issues below are upstream FastF1 bugs, not Off The Pace pipeline errors.
 
 | Issue | Scope | Workaround |
 |---|---|---|
-| Missing telemetry 2018 Rd1 and Rd2 | Telemetry only | No workaround. Exclude those rounds from telemetry-dependent analyses. |
+| Missing telemetry 2018 Rd1 and Rd2 (not in F1's archive; see Coverage above) | Telemetry only | No workaround. Exclude those rounds from telemetry-dependent analyses. |
 | `session_time_s` null all 2024 races | Telemetry + Race control | Use `lap_number` for telemetry joins; use `time` (HH:MM:SS) or `lap` for race control joins. |

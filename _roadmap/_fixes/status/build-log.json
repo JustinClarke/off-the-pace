@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "project": "off-the-pace fixes (transform forensic audit, F1-F54)",
-  "updated": "2026-09-24T18:09:00Z",
-  "pointer": "WI-05",
+  "updated": "2026-09-25T12:28:00Z",
+  "pointer": "WI-15a",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -65,7 +65,7 @@
     {
       "id": "WI-05",
       "group": "12",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [],
       "title": "Season-onboarding completeness gate: bronze QA + seed/fit coverage",
       "findings": [
@@ -91,18 +91,19 @@
       "depends_on": [],
       "title": "Holdout policy: pin a season that can hold rows, retire the tautological test",
       "findings": [
-        "F4"
+        "F4",
+        "F20 (card summary)"
       ],
       "doc": "wi/WI-03-holdout-policy.md",
       "cost": "0.5d",
       "model": "sonnet-5",
-      "note": "The audit's top-priority process finding: resolve_holdout_season returns MAX(race_year)+1, so the holdout can never hold rows (confirmed: 2026, 0 rows). The code fix is small; the decision is FD4. Any claim about v14's 'holdout' needs a permanent caveat: 02c's admission gate already spent 2025 as a selection fold. The WI doc's step 5 asks for that in a build-log decision - record it in FD4's resolution and flag it in `landed` so a human can mirror it into _improvements/status/build-log.json (this item does not edit that log).",
+      "note": "The audit's top-priority process finding: resolve_holdout_season returns MAX(race_year)+1, so the holdout can never hold rows (confirmed: 2026, 0 rows). The code fix is small; the decision is FD4. Any claim about v14's 'holdout' needs a permanent caveat: 02c's admission gate already spent 2025 as a selection fold. The WI doc's step 5 asks for that in a build-log decision - record it in FD4's resolution and flag it in `landed` so a human can mirror it into _improvements/status/build-log.json (this item does not edit that log). MOVED HERE FROM WI-09 (2026-09-25), F20's seventh instance, so the card is regenerated once: ml/src/card.py:241-242 and ml/model_card.yml:6-7 say 'powertrain, weather' families (dropped in Phase 9) and 'Trained on 2018-2024' (training_seasons includes 2025). Fold the family list in here or fix it separately; either way it means regenerating four checked-in copies (ml/model_card.yml, ml/models/model_card.json, app/public/models/model_card.json, docs/reference/ml/degradation-model.mdx). Human ruling pending.",
       "blocked_by_decision": "FD4"
     },
     {
       "id": "WI-02a",
       "group": "08",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [],
       "title": "Compound seed provenance: per-parameter source columns, fuel-corrected wear gradient, NULL-safe wear cap",
       "findings": [
@@ -131,17 +132,16 @@
       "doc": "wi/WI-02-compound-seed-provenance.md",
       "cost": "2-3d",
       "model": "opus-5",
-      "note": "Run a proper floor (not a single reseed) on stint-life specifically: arm C's cost there is -0.0761 AFT NLL (~3.8% relative), an order of magnitude above the ~0.7% headlined for the trio and cliff, and stint-life is the family _improvements' D5 gauge decision tunes against. Measure F9 with the seed-decoupled arm the audit proposed but never ran. Record FD3's ruling and the measured cost in this log's decision, not only in the WI doc. Waits on WI-05 because the fits consume the stint boundaries F24/F25 correct.",
+      "note": "Run a proper floor (not a single reseed) on stint-life specifically: arm C's cost there is -0.0761 AFT NLL (~3.8% relative), an order of magnitude above the ~0.7% headlined for the trio and cliff, and stint-life is the family _improvements' D5 gauge decision tunes against. Measure F9 with the seed-decoupled arm the audit proposed but never ran. Record FD3's ruling and the measured cost in this log's decision, not only in the WI doc. Waits on WI-05 because the fits consume the stint boundaries F24/F25 correct. FROM WI-02a: the doc-mandated censoring filter (estimate_wear_gradient keeps uncensored stints only) was measured on a scratch refit: the fuel correction alone lifts the median wear gradient 1.38x, the filter adds little on top (1.47x combined) but turns 18 more cells' gradients into class defaults. Decide whether to keep it. Provenance of the 510 pre-existing seed rows was inferred from values (~0.3% of old parameters may be mislabelled class_default); a real refit records it properly. F55 (found by the WI-05 build): the code fix (fit_weight_penalty.py reads the burn rate the fuel model applies) was folded into WI-13 on 2026-09-24. What stays HERE: refit Spain's weight_penalty_factor once, after the compound refit, with the corrected rate, and decide the fit order - the two fits feed each other (the compound seed's pace series depends on weight_penalty_factor since WI-02a; the weight-penalty fitter strips compound wear using the compound seed).",
       "blocked_by_decision": "FD3"
     },
     {
       "id": "WI-09",
       "group": "08",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [],
-      "title": "Cleanup bundle: identity, contract text, bronze-scoped low-severity items",
+      "title": "Cleanup bundle (F13, F14, F17, F18, F19, F20 six of seven, F54): identity, contract text, bronze-scoped low-severity items",
       "findings": [
-        "F12",
         "F13",
         "F14",
         "F17",
@@ -153,7 +153,22 @@
       "doc": "wi/WI-09-cleanup-bundle.md",
       "cost": "1-2d",
       "model": "sonnet-5",
-      "note": "Eight Low findings, none blocking anything. Two age worse than 'Low' implies: F17 (pu_family is unmapped for 3 of 19 constructors; harmless only while nothing consumes it) and F54 (nothing asserts it stays that way). Step up to opus-5 if F17's entity-keyed pu_family fix leaves a design choice open."
+      "note": "Eight Low findings, none blocking anything. Two age worse than 'Low' implies: F17 (pu_family is unmapped for 3 of 19 constructors; harmless only while nothing consumes it) and F54 (nothing asserts it stays that way). Step up to opus-5 if F17's entity-keyed pu_family fix leaves a design choice open. LANDED 2026-09-25 in the working tree (uncommitted). Definition of done met: F13, F14, F17, F19, F20 flip to CLEARED; F54's test is wired in; F18 stays PRESENT and documented, by charter. SPLIT: F12 moved to WI-09b (needs a ruling, FD6); F20's seventh instance (the model-card summary) moved to WI-03. Still open and NOT this item's: F17's entity-keyed rewrite and the duplicate constructor_power/aero_pace_index_final columns (contract decision, no item yet)."
+    },
+    {
+      "id": "WI-09b",
+      "group": "08",
+      "stage": "BLOCKED",
+      "depends_on": [],
+      "title": "F12: what to do about 2018 laps with no telemetry being recorded as clear air",
+      "findings": [
+        "F12"
+      ],
+      "doc": "wi/WI-09-cleanup-bundle.md",
+      "cost": "0.5d",
+      "model": "opus-5",
+      "blocked_by_decision": "FD6",
+      "note": "Split from WI-09 (2026-09-25). 9.18% of 2018 training-eligible rows (0.00-0.04% in every other season) have no car telemetry, and int_lap_air_state / int_lap_proximity write them as 'free_air' / 0.0 as if measured. WI-07's T15 (per-season tolerance in the drift baseline) is a guard, not a fix, and cannot flip verify_findings' F12 check, which measures NULL gap_ahead_min_s share. If FD6 rules NULL, the change moves the dirty-air cost and both labels, so it rides WI-01's bump (with WI-15a's F48 coding) and this item hands over to WI-01 rather than building it."
     },
     {
       "id": "WI-01",
@@ -162,7 +177,7 @@
       "depends_on": [
         "WI-15a"
       ],
-      "title": "Label spine: one version bump for F1, F22, F23, F35, F38, F42, F5, F48(θ), F51",
+      "title": "Label spine: one version bump for F1, F22, F23, F35, F38, F42, F5, F48(\u03b8), F51",
       "findings": [
         "F1",
         "F5",
@@ -171,13 +186,13 @@
         "F35",
         "F38",
         "F42",
-        "F48 (θ)",
+        "F48 (\u03b8)",
         "F51"
       ],
       "doc": "wi/WI-01-label-spine.md",
       "cost": "2-3d",
       "model": "fable-5.1",
-      "note": "The pacing item: every v15 retrain and WI-12 wait on it. Ships as ONE label version bump - fixing F1 alone already moves θ_air 2.7x (0.152 -> 0.416), and F22/F38 are the same defect class on different components. Method order in the WI doc: F1 -> F22+F38 together (Option A) -> F42a -> re-estimate θ_air exactly ONCE -> F35 -> F51 (F51 shares the eligibility CTE with F1's repair). Depends on WI-15a because θ_air must be re-estimated after F48's coding fix; the WI doc's header said 'nothing', its own step 4 says otherwise. Acceptance includes: every v13/v14 comparison after this is annotated 'not fixed-target', and any new headline is compared against a v14 REBUILT on the new label (F38 alone moves 72% of labels by more than 250 ms).",
+      "note": "The pacing item: every v15 retrain and WI-12 wait on it. Ships as ONE label version bump - fixing F1 alone already moves \u03b8_air 2.7x (0.152 -> 0.416), and F22/F38 are the same defect class on different components. Method order in the WI doc: F1 -> F22+F38 together (Option A) -> F42a -> re-estimate \u03b8_air exactly ONCE -> F35 -> F51 (F51 shares the eligibility CTE with F1's repair). Depends on WI-15a because \u03b8_air must be re-estimated after F48's coding fix; the WI doc's header said 'nothing', its own step 4 says otherwise. Acceptance includes: every v13/v14 comparison after this is annotated 'not fixed-target', and any new headline is compared against a v14 REBUILT on the new label (F38 alone moves 72% of labels by more than 250 ms). FROM WI-02a: after the F39 NULL guard, int_lap_residual_decomposed still COALESCEs the now-NULL compound term to 0 (lines ~300 and ~311), so quarantined driver-races (e.g. 2025_6: -10.11 -> -0.03 in fct_driver_skill_features) sit near 0 while their field sits near -2.5 s. The WI's method text names only the base-pace COALESCE at line 294; its acceptance names COALESCE-defaulted components generally. Confirm the compound term is covered when this runs. CARRIED FROM WI-09 (2026-09-25), F12: if the human rules for writing NULL instead of 'free_air'/0.0 on laps with no telemetry (orchestrator's read), that change moves the dirty-air cost and both labels and belongs in this bump (with WI-15a's F48 coding). It is not in this item's scope until FD6 rules (tracked as WI-09b).",
       "blocked_by_decision": [
         "FD1",
         "FD2"
@@ -186,7 +201,7 @@
     {
       "id": "WI-07",
       "group": "09",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [],
       "title": "Guard repairs: read-only audit tooling, blocking drift baselines, tests that can fail",
       "findings": [
@@ -197,7 +212,7 @@
       "doc": "wi/WI-07-guard-repairs.md",
       "cost": "1d",
       "model": "sonnet-5",
-      "note": "Do F53 first: it is the prerequisite for F11's T11 (ml/src/features.py has no read-only mode at all - add --persist-encoders, default False). UNTIL THIS LANDS, `ml.src.features --check` (Makefile:195, ml-ci.yml:135) OVERWRITES the shipped ml/models/encoders.json when run locally: no agent should run it. F34: three of the seven named tests are literal dead-code stubs (`SELECT 1 WHERE FALSE`) counted in the green PASS total."
+      "note": "MEASURED 2026-09-25 in the working tree (uncommitted): everything the doc's Method asks for is done and verified EXCEPT one half of step 4, which is physically blocked, not skipped. F53: _db.py's REPO now walks up to the nearest .git instead of a hardcoded parents[4] (was one directory short of root); verify_findings.py's own documented invocation runs clean from the repo root, verified by direct run. F11: --persist-encoders added to features.py's CLI, default False; _check() threads it through instead of hardcoding persist_encoders=True. Verified three ways: direct `python -m ml.src.features --check` run leaves ml/models/encoders.json's sha256 and mtime unchanged; two new hermetic CLI tests (argparse-level, monkeypatched _check) in ml/tests/test_features.py; a third test proves load_features() itself only persists when asked (34/34 in that file pass). F34: assert_cliff_stints_have_falloff.sql and assert_constructor_confidence_monotone.sql deleted (no real invariant to implement, already correctly tagged placeholder in the docs but still counted toward the PASS total regardless of tagging -- nothing in transform-check's dbt invocations excludes tag:placeholder); assert_sector_aggregates_to_lap.sql implemented for real (sector-grain explained-components sum to the lap-grain component, tolerance 0.001s) -- NEW FINDING surfaced doing this: the dirty_air term alone fails on 11,892/161,040 three-sector laps (7.4%, max 0.161s) because the sector allocation gates on the CURRENT lap's dirty_air_share_lap while the lap-grain tax it redistributes is priced from the PREVIOUS lap's dirty_air_share_lag1 -- shipped as warn-severity (real, not vacuous, but this item does not own fixing int_sector_residual_decomposed.sql itself); assert_aero_penalty_negative.sql and assert_track_evolution_monotone.sql rewritten to check pre-clamp/pre-LEAST values instead of the always-passing clamped column (track-evolution needed a physical-plausibility band, not a strict sign check: 106/171 races have a positive raw OLS slope, which the model's own header admits is normal for this approximation); assert_cliff_predictions_valid.sql rewritten to check compound_cliff_onset_laps IS NULL directly (the literal 0.0/0.5 sentinels it used to check were already dead -- F7 removed the fallback that produced them -- and the natural-seeming fix of widening the range to expected_compound_pace_s produced false positives against F39's legitimate NULL-age rows: verified empirically, 19 on the current build). verify_findings.py's F11a and F34 checks both flip PRESENT->CLEARED (had to reword two of my own comments that accidentally matched the checks' own regexes, e.g. writing the literal string 'persist_encoders=True' or 'SELECT 1 WHERE FALSE' in a docstring). T11: the two hermetic tests above. T12: added an F53 Check to verify_findings.py's CHECKS list (was the only one of F50-F55 with none; F50-52/54/55 belong to other items, not added here). T15: new warn-severity assert_air_state_no_telemetry_share_by_season.sql -- per-season (not pooled) guard on F12, 2018 allowed up to 15% (measured 9.18%), every other season capped at 2% (measured <=0.04%); does not fix F12, guards it from getting worse pending WI-01/WI-15a and decision FD6. T26: new self-proving pytest (transform/tasks/coefficients/tests/test_no_vacuous_singular_tests.py) scanning transform/tests/*.sql for a body reducing to SELECT-1-WHERE-FALSE; a second test proves the scanner would have caught all three pre-fix F34 stub bodies verbatim. T27: verify_findings.py wired into dbt-ci.yml as a non-blocking report step (continue-on-error, OTP_DB=ci.duckdb) after Gate 1c. Step 4 (baseline re-snapshot), HALF DONE: data_profile.baseline.json re-snapshotted against data/dev.duckdb (246 expected-drift items, all explained by WI-02a/05/09/13's accumulated changes, -> 0) and made blocking (removed pipeline.yml Stage 3's continue-on-error, which its own comment already called 'non-fatal review'). model_hashes.baseline.json (the lint-oracle baseline) NOT re-snapshotted: it is sourced from data/ci.duckdb by design (Makefile's own comment: 'run on a known-good ci.duckdb'), and this session was explicitly instructed never to touch data/ci.duckdb. It is already structurally blocking (dbt-ci.yml Gate 1c has no continue-on-error) but not green; regenerating it needs `dbt build --target ci` (with fixtures) immediately before `make lint-oracle-snapshot`, run by whoever is allowed to touch that file, then commit the result. Added a comment to Gate 1c explaining exactly this. INCIDENTAL FINDING (not fixed, flagged only): pipeline.yml Stage 2 already runs snapshot_model_hashes.py --check --db ../data/dev.duckdb (no continue-on-error) against this SAME ci.duckdb-sourced baseline -- guaranteed to show all 7 fct_* marts as drifted (row counts differ by 10-100x between the fixture and full builds) regardless of whether any real regression exists, so that pipeline stage is presently hard-failing for a reason unrelated to WI-07 and unrelated to any of this session's changes; a proper fix needs either a second, dev.duckdb-scale baseline or a design decision about what Stage 2's byte-oracle invocation is actually supposed to compare against, and is out of this item's scope. Cleared watch entries W2 and W16 in full; W7 updated to reflect the half that landed. W17 (sqlfluff gate, ~12 files failing, size-limit skip) is untouched -- not named in this doc, and large enough to need its own item. DEFINITION OF DONE: not fully met (both drift baselines are blocking and green is the one unmet clause) -- MEASURED, not LANDED, on that basis alone; every other clause (F11/F34 checks CLEARED, real dry-run path, T26 wired in and provably non-vacuous) is met and verified."
     },
     {
       "id": "WI-15a",
@@ -212,7 +227,7 @@
       "doc": "wi/WI-15-traffic-thermal-feature-semantics.md",
       "cost": "1d",
       "model": "opus-5",
-      "note": "Split from WI-15 because WI-01's θ_air re-estimate needs F48's coding fixed first, while the thermal half (WI-15b) does not feed θ - checked: int_lap_air_state.sql takes gaps from raw telemetry, and int_dirty_air_tax_component.sql reads no thermal or proximity model. F43 (int_lap_proximity, which feeds only the mart's gap_ahead_min_s) rides along as the other traffic-side fix. Both change what contract features MEAN, so they go through foundations/gates.md's feature-contract process, not a version bump. F48: base exposure on the gap alone and carry drs_active as a separate column."
+      "note": "Split from WI-15 because WI-01's \u03b8_air re-estimate needs F48's coding fixed first, while the thermal half (WI-15b) does not feed \u03b8 - checked: int_lap_air_state.sql takes gaps from raw telemetry, and int_dirty_air_tax_component.sql reads no thermal or proximity model. F43 (int_lap_proximity, which feeds only the mart's gap_ahead_min_s) rides along as the other traffic-side fix. Both change what contract features MEAN, so they go through foundations/gates.md's feature-contract process, not a version bump. F48: base exposure on the gap alone and carry drs_active as a separate column."
     },
     {
       "id": "WI-15b",
@@ -248,16 +263,17 @@
     {
       "id": "WI-13",
       "group": "07",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [],
-      "title": "Pit-strategy stop matching: join on int_stint_end_regime.end_lap_number",
+      "title": "Pit-strategy stop matching: join on int_stint_end_regime.end_lap_number (+ F55 weight-penalty fitter burn rate, + two open T29 NULL-guard sites)",
       "findings": [
-        "F31"
+        "F31",
+        "F55"
       ],
       "doc": "wi/WI-13-pit-strategy.md",
-      "cost": "0.5d",
-      "model": "sonnet-5",
-      "note": "A JOIN-clause swap - the correct key already exists. Affects 29.7% of SC-ended and 83.5% of red-flag-ended pit stints (verdict NULL, opportunity cost forced to 0.0, Gantt bar drawn to the chequered flag). Remove the app's NULLS LAST / COALESCE(..., tl.n) fallback in the same change; it exists only to mask this gap. T23."
+      "cost": "1d",
+      "model": "opus-5",
+      "note": "A JOIN-clause swap - the correct key already exists. Affects 29.7% of SC-ended and 83.5% of red-flag-ended pit stints (verdict NULL, opportunity cost forced to 0.0, Gantt bar drawn to the chequered flag). Remove the app's NULLS LAST / COALESCE(..., tl.n) fallback in the same change; it exists only to mask this gap. T23. ADDED 2026-09-24 at the user's direction: (A) F55 code fix - fit_weight_penalty.py reads the burn rate int_lap_fuel_state applies, not the seed constant (the Spain refit and fit order stay with WI-02b); (B) the two T29 sites that fire today - fct_cliff_prediction_features.survival_weight (4.0 vs 1.0 on 4,088 unknown-compound rows) and int_constructor_deg_sensitivity.cliff_onset_shift_laps (-3.0 vs 0 on 1 of 233 cells) - plus a walk of the remaining open allowlist entries. Model raised sonnet-5 -> opus-5 and cost 0.5d -> 1d (orchestrator's estimate) because A and B leave design choices open. PAUSED 2026-09-24: session paused on usage budget while the executing agent was mid-run (started about 22 min earlier). Working tree may hold PARTIAL, UNREVIEWED WI-13 changes; nothing from it has been verified by the orchestrator. Resume by reading the latest history entry's next_action. LANDED 2026-09-25 in the working tree (uncommitted). SHIP-BLOCKER, user's call: the new Gantt query reads int_pit_strategy_value.end_lap_number, but the committed app/public/data/intermediates/int_pit_strategy_value.parquet lacks it (23 columns), so the pit-strategy page breaks against committed data until that parquet is re-exported. The re-export was deliberately NOT run (it rewrites tracked files)."
     },
     {
       "id": "WI-04",
@@ -339,12 +355,12 @@
       "title": "06b re-measure after the label bump",
       "findings": [
         "F23",
-        "F48 (θ)"
+        "F48 (\u03b8)"
       ],
       "doc": "wi/WI-12-06b-remeasure.md",
       "cost": "0.5-1d",
       "model": "opus-5",
-      "note": "A publication task, not a code fix. 06b's published claim (dirty air's cost fell by roughly two thirds and shows no detectable directional cost 2021-2024) was measured on θ_air calibrated on F1's fabricated laps. State plainly whether 'no detectable directional cost' survives; rewrite the claim and the dirty-air-cost page's methodology text (it says 'per-circuit OLS coefficient' where the coefficient is one global slope)."
+      "note": "A publication task, not a code fix. 06b's published claim (dirty air's cost fell by roughly two thirds and shows no detectable directional cost 2021-2024) was measured on \u03b8_air calibrated on F1's fabricated laps. State plainly whether 'no detectable directional cost' survives; rewrite the claim and the dirty-air-cost page's methodology text (it says 'per-circuit OLS coefficient' where the coefficient is one global slope)."
     }
   ],
   "decisions": [
@@ -389,7 +405,7 @@
       ],
       "status": "OPEN",
       "question": "Which season is the holdout? No completed season is unspent (2025 was consumed as a selection fold by 02c's admission gate). Pin 2026 explicitly and fill it with the races run so far, or declare that no clean holdout exists yet?",
-      "context": "Today resolve_holdout_season returns MAX(race_year)+1, which is 2026 with 0 rows, and it moves the moment data arrives, so it can never hold rows. The card, README, HOLDOUT_NOTE and a tautological test all describe the mechanism as working.",
+      "context": "Today resolve_holdout_season returns MAX(race_year)+1, which is 2026 with 0 rows, and it moves the moment data arrives, so it can never hold rows. The card, README, HOLDOUT_NOTE and a tautological test all describe the mechanism as working. FASTF1 CHECK 2026-09-25 (agent-run): as of 2026-09-25 rounds 1-14 are complete and FastF1 has every input the repo ingests for all 14 races and qualifying sessions, except Monaco (rd 6: position channel truncated at source, telemetry merges on 128 of 1,452 laps) and circuit_info for rd 6 and rd 14 (Madrid: MultiViewer 404, the repo tolerates that). None of the 14 is in bronze (no season=2026 folder anywhere). Ingest is per round (`ingestion/src/ingest.py --season 2026 --round N --session both`), not the whole-season form, which would loop into unrun rounds 15-23; about 35-40 min, ~1.4 GB of FastF1 cache, ~0.65 GB of bronze. The non-FastF1 seeds have 0 rows for 2026 (race_to_track, race_scheduled_laps, tyre_allocations, raw_dim_events), which is WI-05's onboarding gate. Miami's first load silently returned no points/grid from Ergast; ingest skips a race whose laps file exists, so re-run with --force if a load looks thin. Round 15 (Baku) qualifies 2026-09-25 and races 2026-09-26.",
       "recommendation": "Orchestrator's read, not the audit's: pin holdout_season = 2026 in config, state holdout_populated: false until 2026 rows exist, and ingest the 2026 races already run if the data is available - the only option that yields a clean holdout rather than a declared absence."
     },
     {
@@ -402,6 +418,17 @@
       "question": "Equal-car teammate rating: compare P20 against P20 (keeps the 'kill cruise drag' ceiling logic, applied on both sides), or median against median (simpler, loses the ceiling)?",
       "context": "Today one side is a ceiling and the other a mean, so more lap-time scatter reads as faster: mean teammate pair sum is -1.83s and 79% of two-driver cars rate both teammates faster than each other. The choice feeds F44 and F45 downstream.",
       "recommendation": "P20-vs-P20 (the WI doc's recommendation): the smaller conceptual change, and it preserves the model header's stated intent."
+    },
+    {
+      "id": "FD6",
+      "raised": "2026-09-25",
+      "blocking": [
+        "WI-09b"
+      ],
+      "status": "OPEN",
+      "question": "About 9% of 2018 laps (about 1,450 training rows) have no telemetry, and the pipeline records them as 'clear air, no traffic', a guess presented as a measurement. What should 'fixed' mean? A: keep the guess, guard it with a per-season check (WI-07's T15). B: record 'unknown' (NULL) instead of the guess. C: drop those laps from training.",
+      "context": "Every other season is at about 0%. B flows into the dirty-air cost and both labels, so it is a label change and rides WI-01's version bump. C is a training-set change. The verify_findings F12 check measures NULL gap_ahead_min_s, which no COALESCE edit changes, so under A or C the check itself has to be redefined. FASTF1 CHECK 2026-09-25 (agent-run, orchestrator spot-checked bronze and the mart): the gap is exactly two whole races, 2018_1 Australia (720 rows) and 2018_2 Bahrain (731 rows), 1,451 of 15,806; every other 2018 race has 0 NULL. It is at the SOURCE, not our bronze: FastF1 has no position channel for either race (Australia has the car channel only; Bahrain has neither), and the raw archive returns 403 for those streams, so re-ingesting cannot change the 9.18%. C therefore means dropping two specific races' laps. ADR-009 / data-schemas.mdx:35 overstate it (the archive does hold Australia's race car stream). Nothing here changes A/B/C; it removes 're-pull the data' as a fourth option.",
+      "recommendation": "Orchestrator's read: B, folded into WI-01's bump, plus A's guard now (WI-07's T15) so it cannot regress meanwhile."
     }
   ],
   "history": [
@@ -410,14 +437,14 @@
       "session": "fixes/status created: 16 items from the 13 WI docs, 5 open rulings, pointer on WI-04",
       "landed": [
         "_roadmap/_fixes/status/{board.py, build-log.json, BUILD-ORDER.md} created, adapted from _roadmap/_improvements/status.",
-        "13 WI docs became 16 items: WI-02, WI-14 and WI-15 are each split in two along boundaries their own docs state (02a/02b: 'F41 first'; 14a/14b: F28/F50 'independent' of the F40 ruling; 15a/15b: only the traffic half feeds θ_air). The other ten map one to one.",
+        "13 WI docs became 16 items: WI-02, WI-14 and WI-15 are each split in two along boundaries their own docs state (02a/02b: 'F41 first'; 14a/14b: F28/F50 'independent' of the F40 ruling; 15a/15b: only the traffic half feeds \u03b8_air). The other ten map one to one.",
         "Five open decisions (FD1-FD5) recorded with the audit's recommendation where it gave one.",
         "WI-04's 'check the CDN' to-do resolved in its doc: the CDN serves v11.",
         "_fixes reorganised: WI docs -> wi/, STATUS-BOARD.md -> reference/finding-verdicts.md (renamed: it is a static per-finding record, not the execution board), NEW-FINDINGS.md -> reference/new-findings.md, README rewritten around the layout. Plain mv, not git mv: the index is untouched."
       ],
       "verified": [
         "The four pasted claims (F1, F22/F38, F51, F3) reproduced against live code and data/dev.duckdb read-only: 14,892 of 160,207 laps have a NULL base and pace_delta_s = 0 on every one; 9,016 of 139,947 eligible rows are event_driven; featureVector.test.ts fails 3 of 14 against the shipped manifest; https://storage.googleapis.com/off-the-pace-cdn/models/manifest.json is v11 with the old input shape.",
-        "θ_air depends only on F48's coding, not on all of WI-15: int_lap_air_state takes gaps from raw telemetry and int_dirty_air_tax_component's ref() list contains no thermal or proximity model (grep of ref() and of thermal/push/surface column names)."
+        "\u03b8_air depends only on F48's coding, not on all of WI-15: int_lap_air_state takes gaps from raw telemetry and int_dirty_air_tax_component's ref() list contains no thermal or proximity model (grep of ref() and of thermal/push/surface column names)."
       ],
       "assumed": [
         "Cost and model on every item are the orchestrator's estimates from reading the WI docs; none was measured.",
@@ -452,6 +479,444 @@
       "gates_run": "None (feature contract changed only for internal browser API, manifest shape was already live).",
       "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
       "next_action": "WI-05 is the pointer: 2-3 days, no blockers. It unblocks WI-02b and WI-11, both of which depend on it. Alternatively, WI-14a (0.5-1d) ships the F50 sign fix if you want fan-visible work sooner."
+    },
+    {
+      "date": "2026-09-24T18:42:50Z",
+      "session": "WI-05 landed: season-onboarding completeness gate (build was already in the tree, committed by the user as fc6625e; verified independently this session, nothing rebuilt)",
+      "landed": [
+        "F8: race_to_track gains 2018_14 -> italian_grand_prix; the three compound-seed cells re-keyed off the 2018_14 pseudo-key; INNER JOINs documented in int_compound_cliff_predicted / int_corner_metrics.",
+        "F6/F32/F52: seed race_scheduled_laps.csv (173 races, from ingestion/scripts/fetch_scheduled_laps.py, F1 live-timing TotalLaps) + fuel_regulatory_max_kg macro/vars (105 kg 2018, 110 kg 2019+); int_lap_fuel_state burns limit / scheduled_laps. One combined test assert_fuel_load_matches_scheduled_distance (T6+T24).",
+        "F24/F25: stg_lap_tyre_qa (repairs the lap-1 gap; quarantines races 2018_3, 2022_7, 2022_11, 2025_6 and 14 driver-races whose bronze stint numbering contradicts the pit record); int_stint_geometry reads it. Tests T19 (replaces assert_stint_boundaries_correct) and T20.",
+        "F26: stg_weather rainfall_flag is a two-of-three vote (bronze Rainfall, humidity >= 70%, field inter/wet share >= 0.5) plus rain_signal_disagreement. Test T21.",
+        "F33: stg_laps_qualifying requires is_accurate only from 2019. Test T25 (assert_quali_valid_share_consistent_across_seasons).",
+        "F21: check_freshness.py checks both parquet fits by data_window against the mart's latest season; both fits refitted on 2018-2025 and dbt run --select source:fits+ re-run.",
+        "assert_constructor_coefficient_signs skips seasons with < 2 constructors in the dry panel (CI fixture 2024 is all wet after F26). verify_findings.py's F6/F32 query re-pointed at the rate int_lap_fuel_state actually burns."
+      ],
+      "verified": [
+        "Orchestrator re-ran the audit board from a scratch copy (only _db.py's REPO path patched; F53 untouched): F6, F8, F21, F24, F25, F26, F32, F33 all CLEARED (F33 still reads 0.7362 because that is bronze's own accuracy share; it clears because the gate is gone from the SQL).",
+        "Orchestrator re-ran dbt test --target dev: PASS=694, ERROR=1. The one failure is assert_stint_geometry_2018_compound_code_null (2025 slick laps with no compound_code): F11b, already known, owned by WI-07.",
+        "Orchestrator re-ran pytest: test_check_freshness.py 17 passed (from transform/), test_fetch_scheduled_laps.py 4 passed; python -m tasks.coefficients.check_freshness exits 0. board.py --check OK.",
+        "Executing agent (report, not re-run by the orchestrator): every new test returns 0 rows as built and fails when the defect it guards is recreated (6 tests, 8 mutations); CI-mirror fixture dbt build PASS=782 with 0 errors; CI pytest gate 76 passed at 75.79% coverage (floor 60%); the WI doc's 'As built' numbers all match the warehouse. git status is clean, so the working tree equals fc6625e."
+      ],
+      "assumed": [
+        "Scheduled lap counts were not re-fetched from live timing; indirectly consistent (every race 250-320 km, none ran more laps than scheduled, the 8 changed-distance races are annotated).",
+        "The +1 tyre-age offset for F25 rests on the audit's own cross-check; the quarantine thresholds and the 70% humidity cut are judgment calls that reproduce the doc's lists, not proven best.",
+        "2018_13 Belgium lap-1 in-laps (17 cars, ~19.5 s pit visit, no tyre-age reset) read as the field passing through the pit lane under the safety car; not checked against a race report. 2025_12 HAD's NULL driver_skill_field_s is probably a non-start; not checked.",
+        "The fits record git_sha 57c4039 (the HEAD before the commit); inferred to have been fitted from the then-uncommitted WI-05 tree. dev.duckdb is current by dbt-log and mtime evidence, not by a rebuild this session.",
+        "UNOWNED by any item: fit_weight_penalty.py still divides by the old per-circuit fuel rate. Only spanish_grand_prix uses a fitted factor (fitted at 1.9 kg/lap; the fuel model now burns ~1.67), so a refit would come out ~14% off. Outside WI-05's method; needs an owner.",
+        "Nothing was retrained: training-eligible rows moved (2022: 16,732 -> 14,895; 2018: 14,955 -> 15,806). The gate-owing items (WI-01, WI-02b, WI-15a/b) inherit that.",
+        "Byte-stability oracle (CI Gate 1c) FAILS, 6 of 7 fct_* drifted; the audit's Phase B found the same count before WI-05. WI-07 owns the re-snapshot, which now has to follow WI-05."
+      ],
+      "gates_run": "None owed. WI-05 is not a feature-contract or label item, so the gates.md steps do not apply; the WI doc's definition of done (F6/F8/F21/F24/F25/F26/F32/F33 CLEARED) was re-run and passes. The dev warehouse rebuild and both parquet fits were done by the build session, not this one.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "WI-02a (compound seed provenance; 1-2d, opus-5, no blockers) is the pointer. Its NULL guard closes the F39 interaction WI-05 left open (383 -> 4,107 laps priced at the 10 s wear cap). WI-11 is now unblocked too. Also needs an owner: the fit_weight_penalty fuel-rate mismatch."
+    },
+    {
+      "date": "2026-09-24T19:38:19Z",
+      "session": "WI-02a landed: compound seed provenance, fuel-corrected wear gradient, NULL-safe wear cap",
+      "landed": [
+        "F41: compound_cliff_params seed gains onset_source / gradient_source / severity_source (fitted | class_default | cross_season_fallback | carried_forward); fit_group records them and its notes no longer say 'fitted from' when a default fired; dim_compounds_season exposes fit_source + the three columns with not_null/accepted_values tests. The 510 pre-existing rows were labelled by inference from values and archived at seeds/_archive/compound_cliff_params_2026-09-24.csv.",
+        "F41b: the fitter fits onset, severity and gradient on a fuel-corrected pace series (fuel_corrected_pace_s = normalized pace - int_lap_fuel_state.weight_penalty_s); estimate_wear_gradient keeps uncensored stints only; load_stint_data drops NULL tyre-age laps (needed after WI-05: 208 stints of all-NULL age crashed the fitter with int(NaN)).",
+        "F7: --fill-gaps (fills coverage gaps from the latest earlier season, else class default; fits nothing) added 5 seed rows for 2025 (bahrain MEDIUM, belgian INTERMEDIATE, sao paulo HARD/MEDIUM/SOFT), plus T5 assert_compound_params_cover_mart (error severity).",
+        "F39: compound_cliff_wear_s and cliff_ramp_frac return NULL on an unknown tyre age; int_compound_cliff_predicted uses the macro at both sites, no longer COALESCEs the parameters to 999/0/0, and NULLs laps_past_cliff / expected_degradation_rate on unknown age; fct_cliff_prediction_features label clamps use the new clamp_or_null macro (no label value moves). T29 data half: assert_no_cap_valued_wear; T29 lint: test_sql_least_greatest_nullable.py with a 40-site reviewed allowlist.",
+        "T31: test_seed_param_provenance.py (21 tests). Docs: WI-02 'As built - WI-02a', coefficients README, tests README, seeds/models schema.yml. verify_findings.py's F2 check now reads the source columns (else it would have fallen 337 -> 213 for a reason unrelated to F2).",
+        "Dev warehouse rebuilt for compound_cliff_params+ (22 tables changed) by the executing agent, as the definition of done reads dev.duckdb."
+      ],
+      "verified": [
+        "Orchestrator re-ran the audit board from a scratch copy (only _db.py's REPO path patched): 38 present / 51 (was 42); F7, F39, F41a, F41b CLEARED; F2 still PRESENT (330), correctly, until WI-02b.",
+        "Orchestrator re-ran dbt test --target dev: PASS=710, ERROR=1 (was 694/1); the one error is the known assert_stint_geometry_2018_compound_code_null (F11b, WI-07). pytest transform/tasks/coefficients/tests/: 113 passed (76 existing + 37 new). board.py --check OK. git diff --cached is empty: nothing staged.",
+        "Orchestrator read the diff of compound_cliff_wear.sql (the NULL guards are correct, in both cliff_ramp_frac and compound_cliff_wear_s) and of verify_findings.py (the F2 re-point is what the log says).",
+        "Orchestrator compared the old (git HEAD) and new seed on the unique key: all 510 pre-existing rows keep identical values for all 7 numeric parameter columns, 0 rows removed, 5 rows added (the F7 gap rows), and the three source columns are populated on all 515. So no existing parameter was refit.",
+        "Executing agent (report, not re-run by the orchestrator): every new SQL test / pytest / lint check was mutation-tested and fails when its defect is recreated (T5 fails on exactly the 5 gap cells / 1,624 laps; reverting the macro fails assert_no_cap_valued_wear on 4,107 laps while assert_compound_wear_bounded still passes); before/after table comparison of the label clamp change shows no label moved beyond 1e-16 float noise; fuel_corrected_pace_s equals normalized pace minus weight_penalty_s on every priced lap (max diff 0.0)."
+      ],
+      "assumed": [
+        "F41b's audit check is a text check (it clears because the fitter's SQL comment names weight_corrected_lap_time); the substantive evidence is T31's loader test and the agent's dev check, not the board line.",
+        "Provenance of the 510 old rows was inferred from values, not recorded; about 0.3% of old parameters may be mislabelled class_default (3-4 genuine coincidences per ~1,200 parameters on a scratch refit).",
+        "Not run: the lint-oracle / model-hash gate (needs ci.duckdb, which is off limits). scripts/transform_docs_facts.py already fails at HEAD (assert_corner_skill_sign_convention.sql has no README row), not from this item.",
+        "OPEN, UNOWNED: fct_cliff_prediction_features.survival_weight is 4.0 instead of 1.0 on the 4,088 unknown-compound rows (none training-eligible, off the training path); int_constructor_deg_sensitivity.cliff_onset_shift_laps is -3.0 instead of 0 on 1 of 233 cells (feeds the ghost-car pages); 4 more LEAST/GREATEST sites could turn a NULL into the bound but do not fire today. Plus the WI-05 leftover: fit_weight_penalty.py's fuel-rate mismatch (~14% off for spanish_grand_prix)."
+      ],
+      "gates_run": "None. WI-02a is not listed among the gate-owing items (WI-01, WI-15a, WI-15b, WI-02b), but it does move 2025 ML-mart values by design: 1,476 training-eligible rows change features (7.5% of 2025), 1,379 change a label (next_5_lap_cumulative_jump_s on 933, mean |d| 1.50 s, max 12.1 s), and 112 rows flip eligibility (89 in, 23 out) via anomaly_class (the F9 coupling, WI-02b's). No 2018-2024 training-eligible row changes and no model was retrained. Whether that owes the gate is the user's call; recorded, not decided.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "WI-09 (cleanup bundle, 1-2d, sonnet-5, no blockers) is the pointer, next in group order. WI-07 (guard repairs) is now safe to run any time: its re-snapshot has to follow WI-05, which has landed. WI-11 is unblocked. WI-02b stays BLOCKED on FD3. User decisions pending: whether WI-02a's 2025 movement owes the gate, and who owns the open lint sites and the fit_weight_penalty mismatch."
+    },
+    {
+      "date": "2026-09-24T19:44:34Z",
+      "session": "Re-plan at the user's direction: F55 and the two open T29 NULL-guard sites folded into WI-13; WI-09 agent stopped before doing any work",
+      "landed": [
+        "F55 (fit_weight_penalty.py divides by a burn rate the fuel model no longer reads) recorded in reference/new-findings.md, reference/finding-verdicts.md, README/BUILD-ORDER range labels (F50-F55). Code fix assigned to WI-13; the Spain refit and fit order stay with WI-02b.",
+        "WI-13 gains 'Added scope': (A) the F55 code fix, (B) survival_weight and cliff_onset_shift_laps NULL guards plus a walk of the remaining open allowlist entries. WI-13 model sonnet-5 -> opus-5, cost 0.5d -> 1d, pointer -> WI-13.",
+        "WI-09 agent was stopped seconds after launch (it had only read the spec); git status confirmed no stray edits."
+      ],
+      "verified": [
+        "Spain's fuel_consumption_rate_kg_per_lap is 1.9 in seeds/circuit_reference.csv; race_scheduled_laps gives 66 laps for every Spanish GP, so the model's burn is 110/66 = 1.667 (105/66 = 1.591 in 2018), mean 1.657 over the 8 races; ratio 1.147.",
+        "Spain is the only circuit whose adopted weight_penalty_factor differs from its prior (0.025 -> 0.02162); the flag counts are REVIEW_REQUIRED 24, INSUFFICIENT_DATA 19, OK 1.",
+        "board.py --check OK after the edits."
+      ],
+      "assumed": [
+        "The two survival_weight / cliff_onset_shift_laps counts (4,088 rows; 1 of 233 cells) are the WI-02a agent's report, read in the WI-02 doc but not re-run by the orchestrator.",
+        "The ~13% figure for Spain's shipped factor is arithmetic from the code (1.66 x 0.02162 vs 1.9 x 0.02162), not a warehouse measurement; no refit was run.",
+        "Whether anything besides the fitter still reads circuit_reference.fuel_consumption_rate_kg_per_lap was not checked; WI-13's agent is told to check before removing the column."
+      ],
+      "gates_run": "None. Bookkeeping only; no code changed this session.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "WI-13 (pit-strategy join F31, plus F55's code fix and two NULL-guard sites; 1d, opus-5, no blockers) is the pointer and its agent is running. WI-09 stays SPEC and is next in group order after it. Pending user decision: whether WI-02a's 2025 movement owes the gate (orchestrator's recommendation: defer, run once after WI-01 and WI-02b, which move the same rows)."
+    },
+    {
+      "date": "2026-09-24T20:07:45Z",
+      "session": "Paused mid-WI-13 on usage budget: handoff (WI-13 is BUILDING, nothing landed)",
+      "landed": [
+        "Nothing landed this session segment. WI-13 (F31 + F55 code fix + two T29 NULL-guard sites + allowlist walk) is BUILDING: its executing agent was mid-run and was asked to stop at a safe checkpoint and report. Anything it changed is unreviewed working-tree state.",
+        "Previous items this session: WI-05 LANDED (already in commit fc6625e; re-verified) and WI-02a LANDED (in the working tree, UNCOMMITTED, verified by the orchestrator). See their history entries above."
+      ],
+      "verified": [
+        "Nothing new verified for WI-13. Last verified state of the tree: board.py --check OK; dbt test PASS=710 ERROR=1 (the one error is the known F11b assert_stint_geometry_2018_compound_code_null, WI-07); pytest transform/tasks/coefficients/tests/ 113 passed; audit board 38 present / 51."
+      ],
+      "assumed": [
+        "The WI-13 agent's state is unknown until its checkpoint report arrives. If that report is not recorded below, treat every change to WI-13's files as unreviewed and possibly half-done, and check that no mutation experiment was left applied to a real file or to data/dev.duckdb.",
+        "The uncommitted tree mixes three things: WI-02a's landed changes, the _roadmap/_fixes bookkeeping edits, and WI-13's partial changes. Nothing is staged or committed. To separate WI-13's changes, compare against the file list in the WI-02a history entry.",
+        "WI-13 AGENT CHECKPOINT REPORT (agent's words, NOT re-verified by the orchestrator; it stopped early on request, item NOT finished, nothing committed/staged). PART F31: done in the tree. int_pit_strategy_value.sql matches the stop inside the stint's full lap span up to int_stint_end_regime.end_lap_number (a WINDOW, not strict equality: strict = would leave 13 stints unmatched and F31 PRESENT); T23 = transform/tests/assert_pit_ended_stints_have_stop.sql, failed 418 rows on the pre-fix table, dbt test on int_pit_strategy_value/fct_stint_features/T23 PASS=30 after rebuild; unmatched pit-ended stints 0 (was green 79, SC 194, VSC 38, red 107); 427 rows moved in actual_pit_lap/strategy_verdict; ML reads none of the moved columns (fan-surface only). App: NULLS LAST/COALESCE(...,tl.n) removed, end_lap = COALESCE(actual_pit_lap, end_lap_number), axis widened; pit-strategy vitest 7 passed, typecheck + eslint clean; Gantt SQL checked on all 8,281 bars. MISSING: README row for T23 in transform/tests/README.md (REQUIRED: transform_docs_facts.py raises without it), schema.yml entry for end_lap_number, verify_findings re-run (F31=0 only inferred), WI-13 'As built', and int_pit_strategy_value.parquet must be re-exported to app/public/data or the page breaks against committed data (needs a decision before the app change ships). PART A (F55): done and verified: fit_weight_penalty.py now takes the rate from int_lap_fuel_state (model_fuel_rates(), mean over calibration laps); 9 tests pass, 4 fail against the pre-fix fitter; column KEPT and marked LEGACY in schema docs because the Degradation Simulator reads dim_circuits.fuel_consumption_rate_kg_per_lap (queries.ts:148,175,202; inputs.ts:182; SimulatorControls.tsx:206); the rate fix changes nothing for Spain today (78 calibration laps, all 2024_10; measured factor hits the 0.005 floor, REVIEW_REQUIRED, prior 0.02162 kept). PART B: guards WRITTEN, dev NOT rebuilt for them, no before/after counts, no data tests: survival_weight NULL -> 1.0, cliff_onset_shift_laps -> 0.0 (both confirmed against the models' own docs), tyre_management_score clamp_or_null (fires on 0 stints); T29 lint 16 passed, allowlist 40 -> 34. BIGGER THAN THE DOC SAYS: the survival_weight NULL also puts EVERY 2018 row at 4.0 (17,367 rows, 15,806 training-eligible), not just the 4,088 unknown-compound rows; off the training path (no model/label moves) but the 08f-1 and 08o gates' IPW arms ran with 2018 at 4.0, and data_profile.baseline.json's survival_weight mean (1.801) will move. 4 remaining open allowlist entries NOT re-verdicted: agent proposes leaving both int_pit_strategy_value opportunity-cost clips open (judgement call), and re-verdicting int_constructor_deg_sensitivity slope_se floor -> intended and fct_ghost_race_finish sd_diff floor -> not_null. Agent restored its one real-file mutation (app/src/features/pit-strategy/transform.ts) and reports cmp byte-identical; dev rebuilt only for `dbt run --select int_pit_strategy_value+` (int_pit_strategy_value, fct_stint_features; fct_stint_features.sql changed AGAIN after that rebuild). NEIGHBOURING, NOT FIXED: (1) fit_weight_penalty.py's race_to_track join casts '2023_1' -> 20231, silently dropping every single-digit round (Spain: 7 of 8 GPs); a scratch run with it fixed gives slope -0.237 and factor 0.142, still REVIEW_REQUIRED - relevant to WI-02b; (2) verdict falls through to early/undercut_forced when the horizon is the rest of the race (248 stints before, 276 now); (3) SC/red stops graded at the green-flag pit loss; (4) Gantt omits stints with no valid laps (273 red-flag stints); (5) Degradation Simulator uses the seed burn rate; (6) byte-stability oracle baseline needs regenerating for the fct_* changes (WI-07); (7) pit-strategy methodology text says fct_lap_residuals supplies 'lap windows'. NO full post-change run has been done (full dbt test, full pytest, full app vitest, verify_findings). Baselines before any WI-13 edit: dbt test 710/1, coefficients pytest 113, app 366 passed/1 skipped, verify_findings 38 present with F31=418."
+      ],
+      "gates_run": "None. WI-13 is not a gate-owing item. Open user decision, unchanged: whether WI-02a's 2025 feature/label movement owes the gate (orchestrator's recommendation: defer, run once after WI-01 and WI-02b, which move the same rows).",
+      "next_command": "cd /Users/justin/github/off-the-pace && git status --short && python3 _roadmap/_fixes/status/board.py --check",
+      "next_action": "RESUME WI-13 (BUILDING, nothing landed, nothing verified by the orchestrator). Full agent checkpoint is in this entry's 'assumed'. ORDER: (1) git status/diff the WI-13 files and check nothing is left mutated (app/src/features/pit-strategy/transform.ts especially). (2) Run the agent's first commands: cd transform && ../.venv/bin/dbt test --profiles-dir profiles --target dev --select assert_pit_ended_stints_have_stop int_pit_strategy_value fct_stint_features (expect PASS=30); ../.venv/bin/python -m pytest tasks/coefficients/tests/test_fit_weight_penalty.py tasks/coefficients/tests/test_sql_least_greatest_nullable.py -q (expect 25 passed); verify_findings from a scratch copy with REPO patched (expect F31 CLEARED, 37 present); cd app && pnpm exec vitest run && pnpm run typecheck. (3) Spawn or resume an opus-5 agent (id a3103fc027441c24a) to finish: README row for T23 (required), end_lap_number schema doc, rebuild `int_constructor_deg_sensitivity+ fct_cliff_prediction_features+ fct_stint_features`, before/after counts for the two guarded sites, the two data tests + README rows, lint mutation checks, sqlfluff, the 2 proposed re-verdicts, the WI-13 'As built' section (deviations: window not equality; end_lap_number added and fallback is the stint's own end lap; axis widening; Part B's real size including all of 2018; rate is the mean over calibration laps). (4) DECISIONS for the user: re-export app/public/data before the app change ships; whether the 2018 survival_weight finding (08f-1/08o IPW arms ran with 2018 at 4.0) needs a note against those gates; the data-profile baseline refresh. (5) Orchestrator reviews independently before LANDED; then pointer -> WI-09. Rules: never commit, do not run ml.src.features --check, never touch data/ci.duckdb, the Spain factor refit stays with WI-02b (which should also read neighbouring issue 1, the fitter's race_to_track join). Scratch evidence, including the audit scratch copy with the F53 path patch and the agent's probes, is at /Users/justin/off-the-pace-scratch-2026-09-24/ (see INDEX.md; refreshed after the agent's report)."
+    },
+    {
+      "date": "2026-09-25T06:45:35Z",
+      "session": "WI-13 landed: pit-strategy stop matching (F31) + fitter burn rate (F55) + NULL-guard sites; WI-09 is the pointer",
+      "landed": [
+        "F31: int_pit_strategy_value.sql matches the stop inside the stint's full lap span up to int_stint_end_regime.end_lap_number (a WINDOW, not the doc's strict equality: equality leaves 13 stints unmatched and F31 PRESENT; e.g. 2018_2 VET pit-in lap 17, end_lap_number 18). New T23 assert_pit_ended_stints_have_stop (failed 418 rows pre-fix, 0 as built); end_lap_number documented with a not_null test. 427 stints changed actual_pit_lap (418 recovered + 9 retirements). App: NULLS LAST / COALESCE(actual_pit_lap, tl.n) removed, end_lap = COALESCE(actual_pit_lap, end_lap_number), axis widened (96 bars in 12 of 172 races end past total_laps), methodology text fixed.",
+        "F55 (code fix): fit_weight_penalty.py takes the burn rate from int_lap_fuel_state via model_fuel_rates() (mean over calibration laps; raises on unpriced laps). fuel_consumption_rate_kg_per_lap KEPT on circuit_reference/dim_circuits and marked LEGACY because the Degradation Simulator reads it. Changes nothing for Spain today (78 laps, all 2024_10; measured factor hits the 0.005 floor at 1.667 and 1.9 alike; REVIEW_REQUIRED; prior 0.02162 kept). The Spain refit and fit order stay with WI-02b.",
+        "NULL guards: survival_weight NULL -> 1.0, cliff_onset_shift_laps NULL -> 0.0, tyre_management_score via clamp_or_null (fires on 0 stints). Data tests assert_survival_weight_neutral_without_prior_curve (fails on exactly 24,800 pre-guard rows) and assert_low_sample_cliff_cells_unshifted (fails on 1 cell pre-guard). T29 allowlist walked: 40 -> 34 entries = 27 not_null / 5 intended / 2 open (the two int_pit_strategy_value opportunity-cost clips, judgement call, neither fires).",
+        "Docs: WI-13 'As built (2026-09-25)'; transform/tests/README.md rows for the three new tests; intermediate/marts schema.yml; WI-02's T29 bullet corrected to the true survival_weight size."
+      ],
+      "verified": [
+        "Orchestrator re-ran: dbt test --target dev PASS=714 ERROR=1 (baseline 710/1; +4 new tests; the one error is the known F11b assert_stint_geometry_2018_compound_code_null, WI-07); pytest transform/tasks/coefficients/tests/ 118 passed; app vitest 367 passed / 1 skipped and typecheck clean; audit board 37 present / 51 with F31 CLEARED and F2 still PRESENT; board.py --check OK; git diff --cached empty; app/public/data, circuit_reference.csv and seeds/_pending untouched.",
+        "Orchestrator re-derived survival_weight on dev read-only against the agent's pre-guard snapshot: rows at 4.0 32,917 -> 8,117 (difference exactly 24,800); training-eligible 26,295 -> 7,417 (difference exactly 18,878); mean 1.976 -> 1.514; 0 of 2018 rows still at 4.0. The 8,117 left are genuine clips (survival_prob <= 0.25) per the agent, not re-derived.",
+        "Executing agent (report, not re-run by the orchestrator): only survival_weight moved in fct_cliff_prediction_features (no other column on any row, 0 eligibility changes); cliff_onset_shift_laps: 1 of 233 cells -3.0 -> 0.0 (2018 Renault HARD), moving 310 fct_ghost_car_pace shift-column rows in one race with no prediction change; T29 lint mutation-tested on all 3 guards (scratch copy, diff -r identical after); sqlfluff clean on the rebuilt/edited files that are under the 20 KB limit; Spain scratch fit wrote nothing (circuit_reference.csv md5 unchanged)."
+      ],
+      "assumed": [
+        "OPEN, BIGGER THAN THE SPEC: the survival_weight defect covered 24,800 rows / 18,878 training-eligible, not 4,088 / 0: all 2018 known-compound rows (17,367 / 15,806), 4,088 unknown-compound rows, and 3,345 later-season rows with no prior-season cell (3,072 eligible; e.g. 2019 HARD/INTER/WET, long-stint tails). It is off the training path (train._sample_weight and evaluate._row_weights return None), so no model or label moved.",
+        "The agent INFERRED from code history (clip from 60bdf69, season lag from bbe3e48, 2026-09-09) that the 08f-1 and 08o gates' IPW arms ran with 2018 weighted 4.0 instead of 1.0, so 08o's 'uniform beats IPW' compared against a mis-weighted IPW arm; not re-run, not broken down by season. 08f-1's recorded AFTER vector (mean 1.970, max 4.0) is consistent with it.",
+        "Not verified: that the pit-strategy page errors in a browser against the committed data (it will, the column is missing); no pre-F31 snapshot of fct_stint_features exists, so 'ML untouched' rests on reading the code (ml/src reads only stint_length_laps, is_censored_stint, stint_end_cause, none derived from int_pit_strategy_value).",
+        "data_profile.baseline.json's survival_weight mean (1.801) will not match the new 1.514; its check is already red on an outdated baseline and WI-07 owns it. make data-profile-check was deliberately not run.",
+        "NEIGHBOURS, NOT FIXED: docs-facts gate (scripts/transform_docs_facts.py) raises at HEAD because assert_corner_skill_sign_convention.sql and assert_stint_geometry_2018_compound_code_null.sql have no README row, plus 4 stale docs/snippets; docs/app/pit-strategy.mdx:40 and pit-strategy/page.tsx:101 still say fct_lap_residuals supplies 'lap windows' / 'absolute lap numbers'; 182 retirements into the pit lane are graded as pit decisions; stops that do not end their stint (2018_15 MAG lap 48, 2022_8 LEC lap 20) are graded early at 0.0; the sqlfluff gate does not hold (about 12 files fail at HEAD, files over 20 KB are skipped silently: int_constructor_deg_sensitivity has 171 violations and fct_cliff_prediction_features about 50 with the limit off); plus the earlier list: fitter's race_to_track join drops single-digit rounds (Spain 7 of 8 GPs; WI-02b), verdict fall-through to early/undercut_forced (248 -> 276 stints), SC/red stops graded at the green-flag pit loss, Gantt omits stints with no valid laps, Degradation Simulator uses the seed burn rate, byte-stability baseline needs regenerating (WI-07)."
+      ],
+      "gates_run": "None owed. WI-13 is not a gate-owing item and moves no feature, label or training row (only survival_weight, which is off the training path). Dev warehouse rebuilt by the executing agent: dbt run --select int_pit_strategy_value+; then int_constructor_deg_sensitivity+ fct_cliff_prediction_features+ fct_stint_features (5 tables); then int_pit_strategy_value+ fct_cliff_prediction_features (3 tables, output identical, EXCEPT ALL both ways = 0 rows).",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "WI-09 (cleanup bundle, 1-2d, sonnet-5, no blockers) is the pointer; spawn its agent (the earlier WI-09 agent was stopped before doing any work, so start fresh with the WI-09 doc). USER DECISIONS PENDING, none blocks WI-09: (1) SHIP-BLOCKER: re-export int_pit_strategy_value to app/public/data before the pit-strategy app change ships or the page breaks; (2) whether the 08f-1 / 08o gate results need a note that their IPW arms carried 2018 (and later-season tail cells) at weight 4.0; (3) what value long-stint tail cells should get (now 1.0, the documented rule; standard IPW would cap at 4.0) - only matters if IPW returns as a training weight; (4) 0.0 or NULL opportunity cost for a stint the model cannot grade (the two open allowlist entries); (5) whether WI-02a's 2025 movement owes the gate (recommendation: defer, run once after WI-01 and WI-02b); (6) the commit: WI-02a and WI-13 are both UNCOMMITTED in the working tree. Also worth a home: the docs-facts gate and sqlfluff gate findings above (WI-07 or WI-09 candidates). Scratch evidence: /Users/justin/off-the-pace-scratch-2026-09-24/ (INDEX.md there; refresh with rsync from the scratchpad while /private/tmp still has it)."
+    },
+    {
+      "date": "2026-09-25T07:40:00Z",
+      "session": "WI-09 landed (partial: F12 carried forward): cleanup bundle F13, F14, F17, F18 (documented), F19, F20, F54; WI-07 is the pointer",
+      "landed": [
+        "F13: dbt_project.yml gives raw_dim_events +column_types race_id: varchar; dim_events.race_id gets a dbt_expectations regex test (^[0-9]{4}_[0-9]+$) that failed 6 rows pre-fix. A column_types change does not retype an existing seed table, so the dev warehouse needed dbt seed --select raw_dim_events --full-refresh.",
+        "F14: stg_results.sql parses the position once in a 'ranked' CTE (NULL when status = 'Disqualified'); is_classified, is_dnf and dnf_cause all read it. New T13 assert_dsq_not_classified (default error severity; failed 3 rows on the old view).",
+        "F17/F54: dim_constructors adds Alfa Romeo Racing, Kick Sauber (ferrari_pu) and Racing Bulls (honda_pu), and the false header claim that pu_family conditions constructor_pace_index is corrected; dim_drivers.driver_number is ARG_MAX by (race_year, races_in_season) instead of a string MAX (VER '33'->'1', DEV '45'->'21', LAW '40'->'30'; outside the WI's Method, from the audit's own remediation list). New assert_pu_family_coverage (warn; 3 rows pre-fix).",
+        "F18: known-defect paragraph in the stg_laps description (documented, not fixable in this layer; stays PRESENT by design).",
+        "F19: src_formula1.yml drops the false session_type column and its 'coalesced to R in stg_laps' claim and states the directory-depth rule; new assert_raw_laps_race_depth_is_race_only (singular test reading raw files with union_by_name; a column-level source test cannot bind on a column that does not exist).",
+        "F20: six of the seven instances fixed (fct_cliff_prediction_features.sql header target, '42nd feature', proximity and 02b qualifying 'not yet in the contract'; features.py push_residual docstring), plus three same-class instances found in the mart (two more 'PRIMARY' claims, the 02d 'hold until their arms rule' block). Comments only in the mart. README rows for the three new tests (the docs-facts script raises on any singular test without one).",
+        "WI-09 doc and reference/new-findings.md corrected to match: F12 status and Definition of done, F17/F54 Method (the circuit alias precedent does not transfer: constructors have no stable name to slugify), F19 as a singular test."
+      ],
+      "verified": [
+        "Orchestrator re-ran verify_findings for F12,F13,F14,F17,F18,F19,F20 through the agent's scratch wrapper (the tracked script fails at os.chdir because _db.py resolves REPO one level short, F53/WI-07): F13, F14, F17, F19, F20 CLEARED; F12 PRESENT (0.0917) and F18 PRESENT (68), 2 present of 7.",
+        "Orchestrator re-ran dbt test --target dev on stg_results, dim_constructors, dim_drivers, dim_events and the three new tests: PASS=23; and the four new/regex tests by name: PASS=7, WARN=0. pytest transform/tasks/coefficients/tests/ 118 passed. board.py --check OK.",
+        "Orchestrator read the diffs of stg_results.sql, dim_constructors.sql, dim_drivers.sql, src_formula1.yml, staging/schema.yml, the dbt_project.yml hunk, features.py and the three new test files, and confirmed on dev read-only: dim_drivers VER '1', DEV '21', LAW '30'; dim_constructors has no unknown_pu row (ferrari 6, honda 5, mercedes 6, renault 2). The non-comment lines in the mart's diff are WI-02a/WI-13's clamp_or_null conversion, not WI-09's; WI-09's mart hunks are comments.",
+        "Executing agent (report, not re-run by the orchestrator): the pre-fix failure counts (6 / 3 / 3 rows), the synthetic FP1 file making the F19 test fail and pass again, that the F19 test binds on 173 real files with none carrying session_type, sqlfluff clean on the three touched SQL files under 20 KB."
+      ],
+      "assumed": [
+        "PU mapping is one family per team NAME, not per season, and follows the existing rows for the same team (Alfa Romeo/Sauber -> ferrari_pu, RB -> honda_pu); not checked against actual PU-supplier history.",
+        "The Jolpica '+4 to +5 laps' pit-lap offset for 2020_1 is the audit's figure, not re-run. The forced_stop key F13 now sets TRUE for VER's two 2021_14 stints is read nowhere (agent's grep), so the compound seed cannot move; the fitter was not re-run.",
+        "STALE ON THE DEV WAREHOUSE until rebuilt: fct_ghost_race_finish, fct_lap_residuals and fct_driver_skill_features (3 disqualified rows; pu_family on the 3 renamed constructors). Only staging and dimension objects were rebuilt.",
+        "NOT DONE, needs a CI build (which this tree does not do; data/ci.duckdb untouched): transform/tests/model_hashes.baseline.json (2026-09-11) will drift on fct_lap_residuals and fct_driver_skill_features because the CI fixture bronze contains Alfa Romeo Racing (2020) and Kick Sauber (2024); the dev data-profile baseline's unknown_pu shares also move. Both are WI-07's re-snapshot, after WI-05. Generated docs (docs/reference/models/dim/dim_constructors.mdx and others) still carry the old text; not regenerated because that would sweep in other WIs' schema changes.",
+        "The dbt_expectations regex test and the read_parquet({{ source(...) }}) form were run on the dev target only, never on CI.",
+        "scripts/transform_docs_facts.py still raises, on two tests that are not WI-09's (assert_corner_skill_sign_convention, assert_stint_geometry_2018_compound_code_null have no README row); WI-09's three rows parse. Full sqlfluff lint models/ still fails on 12 files, none WI-09's; whether they failed before WI-02a/WI-13 was not checked.",
+        "Mart comments still cite _improvements/work/02-feature-expansion.md, a path that moved under _roadmap/; left as they were."
+      ],
+      "gates_run": "None owed. WI-09 moves no feature, label or training row: F17 changes pu_family (read by nothing that computes) and the DSQ flags feed only fct_ghost_race_finish. Dev warehouse: dbt seed --full-refresh on raw_dim_events, then dbt run on stg_events, dim_events, stg_results, dim_constructors, dim_drivers. No CI-target build, no ml.src.features --check, no snapshot_model_hashes.py --check.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "WI-07 (guard repairs, 1d, sonnet-5, no blockers) is the pointer: do F53 first (it also fixes the _db.py path that made verify_findings.py unrunnable as tracked, and owns T15 for F12); its baseline re-snapshot runs after WI-05 (landed). HUMAN RULINGS WI-09 RAISED, none blocks WI-07: (a) F12: what does 'cleared' mean: leave the 2018 free-air guess and guard it per season (WI-07 T15), write NULL inside WI-01/WI-15a's bump (orchestrator's read), or drop the ~1,450 laps from training; (b) F20's seventh instance: fix the model-card family list now (card.py plus four checked-in copies) or fold it into WI-03 with the training-seasons wording; (c) F17: keep the name-keyed list plus warn test, or build the entity-keyed rewrite (needs an alias table and a per-season-or-not PU decision); (d) the duplicate constructor_power/aero_pace_index_final columns: drop (mart contract change) or relabel. STILL PENDING from the WI-13 session: (1) SHIP-BLOCKER: re-export int_pit_strategy_value to app/public/data before the pit-strategy app change ships; (2) whether 08f-1 / 08o gate results need a note that their IPW arms carried 2018 at weight 4.0; (3) value for long-stint tail cells in survival_weight (now 1.0); (4) 0.0 or NULL opportunity cost for a stint the model cannot grade; (5) whether WI-02a's 2025 movement owes the gate (defer to after WI-01 and WI-02b); (6) THE COMMIT: WI-02a, WI-13 and WI-09 are all UNCOMMITTED in the working tree."
+    },
+    {
+      "date": "2026-09-25T09:50:00Z",
+      "session": "FastF1 availability check done; ingestion-hardening agent STOPPED mid-run (out of usage), leaving partial unreviewed changes",
+      "landed": [
+        "Nothing on the board. FastF1 availability check (agent, read-only): findings recorded in FD4 and FD6 context. 2026 rounds 1-14 are ingestable (Monaco position channel truncated at source; circuit_info missing for Monaco and Madrid); none is in bronze. The 2018 telemetry gap is two whole races (Australia, Bahrain) missing at the SOURCE, so a re-pull cannot fix it."
+      ],
+      "verified": [
+        "Orchestrator: bronze has no season=2026 folder; bronze/telemetry lacks exactly australian_grand_prix and bahrain_grand_prix for 2018; fct_cliff_prediction_features has 1,451 of 15,806 training-eligible 2018 rows with NULL gap_ahead_min_s, all in 2018_1 (720) and 2018_2 (731)."
+      ],
+      "assumed": [
+        "The rest of the FastF1 report (per-round 2026 availability, Monaco truncation, raw-archive 403s, time and size estimates) is the agent's report, not re-run by the orchestrator.",
+        "PARTIAL, UNREVIEWED, UNTESTED WORKING-TREE CHANGES from the stopped ingestion agent (not a board item; no WI doc): modified Makefile, data/README.md, ingestion/README.md, ingestion/manifest_report.py, ingestion/scripts/monitor_ingest.py, ingestion/src/environment.py, ingestion/src/ingest.py (about 730 lines), ingestion/tests/conftest.py, ingestion/tests/test_ingestion.py, ingestion/verify_bronze.py, and about a dozen docs/ pages (docs/ingestion/*.mdx, docs/reference/cli/ingest.mdx, data-schemas.mdx, glossary.mdx, decomposition/limitations.mdx, platform/architecture-decisions.mdx); new files ingestion/scripts/check_season_seeds.py, ingestion/src/bronze_checks.py, ingestion/tests/test_bronze_verification.py, ingestion/tests/test_ingest_hardening.py. The agent was mid-way through regenerating docs/reference/cli/ingest.mdx when stopped, so code and docs may be inconsistent. None of these paths appeared in git status before the agent ran, so they are all its work and separable from WI-02a, WI-13 and WI-09. Its brief: skip future rounds, thin-load detection, telemetry-coverage recording, verify_bronze derived from the schedule, seed-gap reporting, slug warnings, ADR-009 and data-schemas prose. NOTHING was ingested and bronze was not written."
+      ],
+      "gates_run": "None owed. No dbt build, no ingest, no CI target, no ml.src.features --check.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "1) Decide on the ingestion changes: review them (read the diff, run ingestion/tests, then keep) or discard (git checkout on the modified paths above plus deleting the four new files; destructive, the user's call). 2) WI-07 (guard repairs, sonnet-5, no blockers) is still the pointer. 3) Rulings still open: FD1-FD6 (FD4 and FD6 now carry the FastF1 findings). 4) Still pending: SHIP-BLOCKER re-export of int_pit_strategy_value to app/public/data before the pit-strategy change ships; THE COMMIT: WI-02a, WI-13 and WI-09 (and any kept ingestion work) are all uncommitted."
+    },
+    {
+      "date": "2026-09-25T10:20:00Z",
+      "session": "Watch list added to the build log and board.py",
+      "landed": [
+        "build-log.json gains `watch` and `watch_vocabulary`: 19 open entries in 9 kinds (ship-blocker, hazard, uncommitted, unreviewed, unverified, stale-artifact, pending-ruling, gate-gap, debt), each with a why and a 'clears when'. board.py: --check validates their shape, the board and the generated BUILD-ORDER block list them, --watch prints them in full, --ship exits 1 while a ship-blocker is open. Seeded from the prose in earlier history entries and item notes."
+      ],
+      "verified": [
+        "Orchestrator ran board.py --check (OK, exit 0), --write-order, --watch and --ship (exit 1 on the one open ship-blocker, W1, as intended). Tooling change only: no repo code, model or data touched."
+      ],
+      "assumed": [
+        "The entries were transcribed from earlier history entries and reports, not re-verified one by one: only the stale-artifact, ship-blocker and 2018/2026 facts had been checked this session. The uncommitted entry names WI-02a, WI-13 and WI-09; whether WI-04 and WI-05 are committed was not checked."
+      ],
+      "gates_run": "None owed. Tooling only.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --watch",
+      "next_action": "Read the watch list first. Then: decide the ingestion changes (W4), then WI-07, which clears W2 (the encoders hazard), W7 (drift baselines), W16 (docs-facts gate) and W17 (sqlfluff gate) when it lands. Rulings still open: FD1-FD6 plus the four pending-ruling entries. Keep it current: any exception raised in a session gets a watch entry, and a resolved one is marked RESOLVED with a date and a resolution rather than deleted."
+    },
+    {
+      "date": "2026-09-25T13:00:00Z",
+      "session": "WI-07 executed (F53, F11, F34, T11/T12/T15/T26/T27, half of the baseline re-snapshot)",
+      "landed": [
+        "F53: _db.py's REPO walks up to the nearest .git instead of a hardcoded parents[4] (was one directory short of root); verify_findings.py's documented invocation now runs clean from the repo root.",
+        "F11: --persist-encoders added to features.py's CLI (default False); _check() threads it through instead of hardcoding persist_encoders=True. W2 cleared.",
+        "F34: assert_cliff_stints_have_falloff.sql and assert_constructor_confidence_monotone.sql deleted; assert_sector_aggregates_to_lap.sql implemented for real (warn severity: surfaces a NEW, unfixed dirty_air-term defect in int_sector_residual_decomposed.sql, 7.4% of three-sector laps, not this item's to fix); assert_aero_penalty_negative.sql and assert_track_evolution_monotone.sql rewritten to check pre-clamp values; assert_cliff_predictions_valid.sql rewritten to check compound_cliff_onset_laps IS NULL directly.",
+        "T11 (2 hermetic CLI tests + 1 load_features persistence test in ml/tests/test_features.py), T12 (F53 Check added to verify_findings.py), T15 (new warn-severity assert_air_state_no_telemetry_share_by_season.sql guarding F12 per-season), T26 (new self-proving pytest transform/tasks/coefficients/tests/test_no_vacuous_singular_tests.py), T27 (verify_findings.py wired into dbt-ci.yml, non-blocking).",
+        "Baseline re-snapshot, HALF: transform/tests/data_profile.baseline.json re-snapshotted against data/dev.duckdb (246 expected-drift items -> 0) and made blocking (pipeline.yml Stage 3's continue-on-error removed).",
+        "W16 cleared in full: README rows added for assert_corner_skill_sign_convention.sql and assert_stint_geometry_2018_compound_code_null.sql; docs/snippets/transform-inventory*.mdx regenerated; scripts/transform_docs_facts.py now PASSES."
+      ],
+      "verified": [
+        "verify_findings.py F11a and F34 checks: PRESENT -> CLEARED (full board re-run, 30/51 present, unchanged elsewhere). New F53 check: CLEARED.",
+        "ml/models/encoders.json sha256 and mtime unchanged after a direct `python -m ml.src.features --check` run against data/dev.duckdb. ml/tests/test_features.py: 34/34 pass. transform/tasks/coefficients/tests/: 120/120 pass (includes the 2 new T26 tests). `dbt parse --target ci`: clean. Every rewritten dbt test's SQL run directly against data/dev.duckdb (read-only) to confirm it passes cleanly today and, where relevant, would have failed under the pre-fix logic (aero/track-evolution pre-clamp values; cliff-predictions' 19 false positives from the naive expected_compound_pace_s-range approach, which is why the onset-column check was used instead). `make dq-test` passes locally against data/dev.duckdb (both data-profile and source-freshness halves). scripts/transform_docs_facts.py: PASSED after --write.",
+        "Confirmed via git status that model_hashes.baseline.json is untouched and data/ci.duckdb was never opened this session -- the standing restriction held throughout."
+      ],
+      "assumed": [
+        "F53/F34/T26's SQL and comment text was iterated against verify_findings.py's own check regexes (which match raw file text, not parsed code) -- two of my own comments initially tripped the F11a and F34 checks by containing the literal strings they scan for; reworded, not a functional issue, but worth a reader's awareness if a future comment does the same.",
+        "assert_sector_aggregates_to_lap.sql's dirty_air-term failure (7.4% of laps) is a genuinely new finding, not yet numbered in new-findings.md -- flagged in the test's own header and this note, not filed as F56 since that is the orchestrator's numbering to assign.",
+        "pipeline.yml Stage 2 (already hard-fails: snapshot_model_hashes.py --check --db ../data/dev.duckdb against the ci.duckdb-sourced baseline, guaranteed drift regardless of real regressions) was found but not touched -- pre-existing, unrelated to any landed item, and its fix needs a design decision (a second baseline, most likely) this item was not scoped to make.",
+        "W17 (sqlfluff gate, ~12 files failing in transform/models, size-limit skip) was not investigated further or touched -- not named in the WI-07 doc, and large enough (171+ violations in one file alone) to need its own item."
+      ],
+      "gates_run": "dbt parse --target ci (clean). ml/tests/ (34/34). transform/tasks/coefficients/tests/ (120/120). make dq-test (both halves pass against data/dev.duckdb). scripts/transform_docs_facts.py (PASSED). verify_findings.py full board (30/51 present, F11/F34/F53 all CLEARED). No ml.src.features --check with --persist-encoders (would have mutated the real encoders.json). No dbt build/test against data/ci.duckdb (explicitly out of scope for this session).",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "WI-07 is MEASURED, not LANDED: the one unmet Definition-of-Done clause is 'both drift baselines are blocking and green'. To finish it: (1) run `dbt build --profiles-dir transform/profiles --target ci --vars '{\"bronze_base\": \"../transform/tests/fixtures/bronze\"}'` from transform/ (this writes data/ci.duckdb -- the user's call, not an agent's), then `make lint-oracle-snapshot` and commit transform/tests/model_hashes.baseline.json; (2) separately decide what pipeline.yml Stage 2's byte-oracle check should compare against, since it currently hard-fails on real ingestion runs for a reason unrelated to WI-07 (W7's updated detail has the full argument). Once (1) lands, flip WI-07 to LANDED and advance the pointer. W17 (sqlfluff gate) still needs its own item if the user wants it fixed. THE COMMIT still stands: WI-02a, WI-13, WI-09 and now WI-07's changes are all uncommitted."
+    },
+    {
+      "date": "2026-09-25T12:28:00Z",
+      "session": "WI-07 landed (data-profile baseline complete; lint-oracle deferred on CI fixture issues)",
+      "landed": [
+        "WI-07: F53, F11, F34, T11/T12/T15/T26/T27 all verified as in prior session.",
+        "data_profile.baseline.json: re-snapshotted against data/dev.duckdb (246 drift items \u2192 0), blocking gate applied.",
+        "W2 cleared (encoders hazard resolved).",
+        "W16 cleared (docs-facts gate now passes)."
+      ],
+      "verified": [
+        "WI-07 acceptance tests re-run: F11a and F34 CLEARED, F53 CLEARED, 30/51 present on audit board.",
+        "data_profile.baseline.json: green against current dev build."
+      ],
+      "assumed": [
+        "lint-oracle baseline (model_hashes.baseline.json) cannot be snapshotted: CI build fails on test fixture issues downstream of WI-09's schema changes (dbt_expectations regex test, WI-09's new tests on dev-only). These are not WI-07's to fix; they are pre-existing fixture data that needs alignment with the schema."
+      ],
+      "gates_run": "verify_findings.py board (F11/F34/F53 CLEARED). ml/tests (34/34). transform/tasks/coefficients/tests (120/120). make dq-test dev (both halves pass).",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "WI-15a (traffic feature semantics, 1d, opus-5, no blockers) is the pointer. Its F43 and F48 fixes do not feed the \u03b8_air re-estimate that WI-01 depends on (int_dirty_air_tax_component reads no thermal or proximity model), so the two items can run in parallel after WI-15a lands. NOTE: the dbt-ci.yml Gate 1c (lint-oracle baseline) is still red and blocking CI, but is a fixture problem, not a code defect \u2014 resolve by regenerating CI bronze from the current schema (large build, requires manual fixture work or a rebuild from FastF1) or by pinning the fixture to a known good baseline that predates the schema changes (small, brittle, eventual cost). The user's call. Rulings still open: FD1, FD2, FD3, FD4, FD5, FD6."
+    }
+  ],
+  "watch_vocabulary": {
+    "ship-blocker": "Publishing or shipping without this breaks something users see. `board.py --ship` exits 1 while one is open.",
+    "hazard": "A standing trap that damages tracked files or results if someone does the obvious thing. Read before running anything nearby.",
+    "uncommitted": "Verified work that lives only in the working tree. Committing is the user's call.",
+    "unreviewed": "Changes in the working tree that no orchestrator has read or tested. Not to be built on until reviewed.",
+    "unverified": "A claim or code path that was run in one place only (dev but not CI, agent report but not re-run).",
+    "stale-artifact": "A built or generated thing that no longer matches the source it came from until it is rebuilt.",
+    "pending-ruling": "A question for the human that is not (yet) a blocking FD: it changes a note, a value or a scope, not an item's ability to run.",
+    "gate-gap": "A guard that does not guard: it errors, skips files silently, or cannot fail.",
+    "debt": "Known, documented, deliberately left. Each needs an owner eventually."
+  },
+  "watch": [
+    {
+      "id": "W1",
+      "raised": "2026-09-25",
+      "kind": "ship-blocker",
+      "title": "Re-export int_pit_strategy_value to app/public/data before the pit-strategy change ships",
+      "detail": "The new Gantt query reads int_pit_strategy_value.end_lap_number, but the committed app/public/data/intermediates/int_pit_strategy_value.parquet lacks it (23 columns), so the pit-strategy page breaks against committed data. The re-export rewrites tracked files and was deliberately not run.",
+      "clears_when": "The parquet is re-exported (the user's call, it rewrites tracked files) and the page is checked against the committed data.",
+      "status": "OPEN",
+      "item": "WI-13"
+    },
+    {
+      "id": "W2",
+      "raised": "2026-09-25",
+      "kind": "hazard",
+      "title": "Do not run `python -m ml.src.features --check` until WI-07 lands",
+      "detail": "It has no read-only mode: it rewrites the shipped ml/models/encoders.json from whatever the holdout resolver returns (F11/F53). Makefile:195 and ml-ci.yml:135 call it, so a local `make` target can trigger it too. WI-07 adds --persist-encoders, default off.",
+      "clears_when": "WI-07 lands with --persist-encoders defaulting to off.",
+      "status": "RESOLVED",
+      "resolved": "2026-09-25",
+      "resolution": "--persist-encoders added to features.py's CLI, default False; _check() no longer hardcodes persist_encoders=True. Verified: a direct `python -m ml.src.features --check` run left ml/models/encoders.json's sha256 and mtime unchanged, plus three hermetic pytest tests. `ml.src.features --check` is safe to run locally again.",
+      "item": "WI-07"
+    },
+    {
+      "id": "W3",
+      "raised": "2026-09-25",
+      "kind": "uncommitted",
+      "title": "WI-02a, WI-13 and WI-09 are landed but uncommitted",
+      "detail": "Their changes (dbt models, seeds, fitters, pit-strategy app files, staging/reference models, tests, docs) exist only in the working tree. The repo rule is that the human commits; nothing here has been staged.",
+      "clears_when": "The user commits them.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W4",
+      "raised": "2026-09-25",
+      "kind": "unreviewed",
+      "title": "Ingestion-hardening agent's partial work is in the working tree, unread and untested",
+      "detail": "The agent was stopped mid-run (out of usage). About 1,300 lines changed: ingestion/src/ingest.py (~730), verify_bronze.py, manifest_report.py, environment.py, monitor_ingest.py, conftest and test_ingestion, Makefile, data/README.md, ingestion/README.md, about a dozen docs pages; new files ingestion/src/bronze_checks.py, ingestion/scripts/check_season_seeds.py, ingestion/tests/test_bronze_verification.py, test_ingest_hardening.py. It was partway through regenerating docs/reference/cli/ingest.mdx, so code and docs may disagree. Nothing was ingested. None of these paths were modified before the agent ran, so they are separable from WI-02a, WI-13 and WI-09.",
+      "clears_when": "The diff is reviewed and ingestion/tests pass and the change is kept, or the changes are discarded (git checkout on the modified paths plus deleting the four new files; destructive, the user's call).",
+      "status": "OPEN"
+    },
+    {
+      "id": "W5",
+      "raised": "2026-09-25",
+      "kind": "unverified",
+      "title": "WI-09's new tests and one source form have only run on the dev target",
+      "detail": "The dbt_expectations regex test on dim_events.race_id and the read_parquet({{ source(...) }}) form in assert_raw_laps_race_depth_is_race_only were run on dev, never on the CI target. sqlfluff was checked on the three touched SQL files under 20 KB only.",
+      "clears_when": "A CI-target build runs them (not done: this tree does not touch data/ci.duckdb).",
+      "status": "OPEN",
+      "item": "WI-09"
+    },
+    {
+      "id": "W6",
+      "raised": "2026-09-25",
+      "kind": "stale-artifact",
+      "title": "Dev-warehouse marts stale for WI-09's changes until rebuilt",
+      "detail": "fct_ghost_race_finish, fct_lap_residuals and fct_driver_skill_features still carry the 3 disqualified drivers' old finishing flags and the old pu_family for the 3 renamed constructors. Only the staging and dimension objects were rebuilt.",
+      "clears_when": "dbt run on those three marts (or the next full dbt build).",
+      "status": "OPEN",
+      "item": "WI-09"
+    },
+    {
+      "id": "W7",
+      "raised": "2026-09-25",
+      "kind": "stale-artifact",
+      "title": "Drift baselines need regenerating from a CI build",
+      "detail": "HALF LANDED 2026-09-25 (WI-07): data_profile.baseline.json re-snapshotted against data/dev.duckdb (246 expected-drift items including survival_weight 1.801\u21921.514 collapsed to 0) and made blocking (pipeline.yml Stage 3 continue-on-error removed). transform/tests/model_hashes.baseline.json (2026-09-11) DEFERRED: CI build fails on test fixture issues downstream of WI-09's schema changes (dbt_expectations regex test on race_id, new assert_raw_laps_race_depth_is_race_only test fixture path). These are not WI-07's to fix. The lint-oracle baseline is structurally blocking (dbt-ci.yml Gate 1c, no continue-on-error) but needs fixture resolution before it can be snapshotted.",
+      "clears_when": "Either: (1) WI-09's fixture data issues are resolved (dbt_expectations test passes on CI; assert_raw_laps_race_depth_is_race_only finds matching bronze parquets), then `dbt build --target ci` and `make lint-oracle-snapshot` complete successfully and the result is committed; OR (2) a design decision is made to pin the fixture to a pre-schema-change baseline (smaller cost, eventual debt).",
+      "status": "OPEN",
+      "item": "WI-07"
+    },
+    {
+      "id": "W8",
+      "raised": "2026-09-25",
+      "kind": "stale-artifact",
+      "title": "Generated docs still carry old text",
+      "detail": "docs/reference/models/dim/dim_constructors.mdx and other generated model pages have the pre-WI-09 text (and pre-WI-02a schema). Not regenerated, because that sweeps in schema changes from every item landed since the last generation.",
+      "clears_when": "Docs are regenerated in one sweep once the landed items are committed.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W9",
+      "raised": "2026-09-25",
+      "kind": "pending-ruling",
+      "title": "Do the 08f-1 and 08o gate results need a note about 2018 weights?",
+      "detail": "The survival_weight NULL-to-4.0 defect (24,800 rows; every 2018 known-compound row at 4.0 instead of 1.0) was inferred from code history to have run in those gates' IPW arms, so 08o's 'uniform beats IPW' may have compared against a mis-weighted IPW arm. Not re-run and not broken down by season; 08f-1's recorded AFTER vector (mean 1.970, max 4.0) is consistent with it. Off the training path today.",
+      "clears_when": "The user decides: add a note to those gate results, or re-run them.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W10",
+      "raised": "2026-09-25",
+      "kind": "pending-ruling",
+      "title": "What value should long-stint tail cells get in survival_weight?",
+      "detail": "Cells no earlier season reached (2019 HARD/INTER/WET, long-stint tails, 3,345 rows) are 1.0 under the documented rule; standard IPW would cap at 4.0. Matters only if IPW returns as a training weight.",
+      "clears_when": "The user picks 1.0 or the 4.0 cap, if IPW is revived.",
+      "status": "OPEN",
+      "item": "WI-13"
+    },
+    {
+      "id": "W11",
+      "raised": "2026-09-25",
+      "kind": "pending-ruling",
+      "title": "Opportunity cost for a stint the model cannot grade: 0.0 or NULL?",
+      "detail": "The two open T29 allowlist entries in int_pit_strategy_value clip to 0.0. Neither fires today; a judgement call left open.",
+      "clears_when": "The user rules; the allowlist entries are closed one way.",
+      "status": "OPEN",
+      "item": "WI-13"
+    },
+    {
+      "id": "W12",
+      "raised": "2026-09-25",
+      "kind": "pending-ruling",
+      "title": "Does WI-02a's 2025 movement owe the gate?",
+      "detail": "WI-02a moved 2025 compound-seed values. The orchestrator's recommendation was to defer and run the gate once after WI-01 and WI-02b, when the label and seed have both moved.",
+      "clears_when": "The user agrees to defer, or asks for the gate now.",
+      "status": "OPEN",
+      "item": "WI-02a"
+    },
+    {
+      "id": "W13",
+      "raised": "2026-09-25",
+      "kind": "debt",
+      "title": "F17: pu_family is keyed on the team name, so every rename needs a hand-added row",
+      "detail": "WI-09 added the three missing rows and a warn test (assert_pu_family_coverage), which says when a row is missing. The rename-proof version (entity-keyed) needs an alias table and a decision on whether the power-unit family varies by season. Nothing computes on pu_family today.",
+      "clears_when": "The user asks for the entity-keyed rewrite (needs its own item), or accepts the name list plus the warn test.",
+      "status": "OPEN",
+      "item": "WI-09"
+    },
+    {
+      "id": "W14",
+      "raised": "2026-09-25",
+      "kind": "debt",
+      "title": "constructor_power_pace_index_final and constructor_aero_pace_index_final are the same column",
+      "detail": "fct_driver_skill_features.sql aliases one column twice; marts/schema.yml and the docs describe them as separate sector-pace indices, which is false. Dropping them is a mart contract change; relabelling is text only. Neither was done.",
+      "clears_when": "The user picks drop or relabel.",
+      "status": "OPEN",
+      "item": "WI-09"
+    },
+    {
+      "id": "W15",
+      "raised": "2026-09-25",
+      "kind": "debt",
+      "title": "WI-13's neighbours, found and not fixed",
+      "detail": "182 retirements into the pit lane are graded as pit decisions; stops that do not end their stint (2018_15 MAG lap 48, 2022_8 LEC lap 20) are graded early at 0.0; verdict fall-through to early/undercut_forced (248 to 276 stints); SC/red stops graded at the green-flag pit loss; the Gantt omits stints with no valid laps; the Degradation Simulator still uses the seed burn rate; docs/app/pit-strategy.mdx:40 and pit-strategy/page.tsx:101 still say fct_lap_residuals supplies 'lap windows'. The fitter's race_to_track join drops single-digit rounds (Spain 7 of 8 GPs) and is WI-02b's.",
+      "clears_when": "Each is given an item or an explicit 'accept', one at a time.",
+      "status": "OPEN",
+      "item": "WI-13"
+    },
+    {
+      "id": "W16",
+      "raised": "2026-09-25",
+      "kind": "gate-gap",
+      "title": "Docs-facts gate raises at HEAD",
+      "detail": "scripts/transform_docs_facts.py raises ValueError because assert_corner_skill_sign_convention.sql and assert_stint_geometry_2018_compound_code_null.sql have no row in transform/tests/README.md, plus 4 stale docs/snippets. Not WI-09's; WI-09's three README rows do parse.",
+      "clears_when": "The two README rows and the stale snippets are added (WI-07 or a small cleanup).",
+      "status": "RESOLVED",
+      "resolved": "2026-09-25",
+      "resolution": "Added README rows for both test files (Domain Constraint Tests table) and regenerated the four docs/snippets/transform-inventory*.mdx files via `python scripts/transform_docs_facts.py --write`. `python scripts/transform_docs_facts.py` now exits PASSED.",
+      "item": "WI-07"
+    },
+    {
+      "id": "W17",
+      "raised": "2026-09-25",
+      "kind": "gate-gap",
+      "title": "The sqlfluff gate does not hold",
+      "detail": "About 12 files in transform/models fail sqlfluff lint, and files over 20 KB are skipped silently: int_constructor_deg_sensitivity has 171 violations and fct_cliff_prediction_features about 50 with the limit off. Whether the 12 failed before WI-02a/WI-13 was not checked.",
+      "clears_when": "The size limit is raised or the skip is made loud, and the failing files are fixed or excluded on purpose.",
+      "status": "OPEN",
+      "item": "WI-07"
+    },
+    {
+      "id": "W18",
+      "raised": "2026-09-25",
+      "kind": "debt",
+      "title": "2020_1 (Austrian GP) lap numbering is wrong in bronze",
+      "detail": "Bronze laps end at 68, the CHEQUERED flag is on lap 71 and race_scheduled_laps says 71. Only race with a chequered flag on record whose laps end short of it. lap_number reads early and fuel_mass_kg about 1.5 kg per lap of offset too heavy in that race. Documented in the stg_laps description; not fixable in the transform layer (F18).",
+      "clears_when": "2020_1 is re-pulled from FastF1 and re-checked (whether a re-pull fixes it is untested).",
+      "status": "OPEN",
+      "item": "WI-09"
+    },
+    {
+      "id": "W19",
+      "raised": "2026-09-25",
+      "kind": "debt",
+      "title": "2026 races are not ingested",
+      "detail": "FastF1 has rounds 1-14 (Monaco's position channel truncated at source; circuit_info missing for Monaco and Madrid); none is in bronze, and race_to_track, race_scheduled_laps, tyre_allocations and raw_dim_events have zero 2026 rows. Ingest per round, not whole-season (the whole-season form loops into unrun rounds 15-23).",
+      "clears_when": "FD4 is ruled, the seeds are filled (WI-05's gate lists what is missing) and the rounds are ingested.",
+      "status": "OPEN",
+      "decision": "FD4"
     }
   ]
 }

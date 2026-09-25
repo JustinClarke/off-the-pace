@@ -74,9 +74,14 @@ jobs:
           make dbt-test
           cd transform && python scripts/snapshot_model_hashes.py --check --db ../data/dev.duckdb
 
-      # ── Stage 3: data quality (build-over-build diff + freshness; non-fatal review) ─
+      # ── Stage 3: data quality (build-over-build diff + freshness) ──────────────────
+      # WI-07 (F53/F11/F34's guard-repairs item): was continue-on-error while the
+      # baseline (transform/tests/data_profile.baseline.json) predated several seasons'
+      # worth of legitimate ingestion/fix drift and so reported red on every run
+      # regardless of whether anything was actually wrong -- "non-fatal" because it had
+      # nothing honest left to gate. Re-snapshotted against the current build (246
+      # expected-drift items -> 0), so this is now a real, blocking gate again.
       - name: Stage 3 data-quality gate
-        continue-on-error: true
         run: make dq-test
 
       # ── Stage 4: ML (train/eval/export/parity) ────────────────────────────────────

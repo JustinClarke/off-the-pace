@@ -198,17 +198,16 @@ SELECT
     -- 5.5 s where the overrun-only definition returned 0), and the score
     -- reached -3321.9 on a stint whose cost rounded to a few hundredths.
     -- Nothing tested it, because a one-sided clamp looks like a clamp.
+    -- clamp_or_null, not GREATEST(LEAST(...)): end_residual_s comes through a
+    -- LEFT JOIN, and DuckDB's LEAST skips a NULL argument, so a stint with a
+    -- cost and no residual row would have scored +3.0 rather than NULL (0 such
+    -- stints on the 2026-09-24 dev build; WI-13).
     CASE
         WHEN ps.opportunity_cost_s IS NOT NULL AND ps.opportunity_cost_s > 0
             THEN
-                GREATEST(
-                    LEAST(
-                        llr.end_residual_s
-                        / NULLIF(ps.opportunity_cost_s, 0),
-                        3.0
-                    ),
-                    -3.0
-                )
+                {{ clamp_or_null(
+                    'llr.end_residual_s / NULLIF(ps.opportunity_cost_s, 0)',
+                    -3.0, 3.0) }}
     END AS tyre_management_score,
     sc.end_of_stint_pace_falloff_s_per_lap,
     sa.stint_length_laps < 3 AS short_stint_flag,

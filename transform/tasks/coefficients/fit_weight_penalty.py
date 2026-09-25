@@ -9,6 +9,13 @@ This fitter calibrates it empirically by regressing pace residual against
 lap_number in clean first stints, after deconvolving compound wear using
 fitted cliff params from fit_compound_cliff.
 
+The slope (s/lap) is turned into s/kg by dividing by the burn rate the fuel
+model applies to those laps -- int_lap_fuel_state.fuel_consumption_rate_kg_per_lap,
+the season's FIA limit over the race's scheduled laps -- not by
+circuit_reference.fuel_consumption_rate_kg_per_lap. That seed constant stopped
+feeding the fuel model in WI-05 and runs high (Spain 1.9 kg/lap against the
+~1.66 the model burns), which fitted the factor ~13% low (F55, WI-13).
+
 Usage:
     python -m tasks.coefficients.fit_weight_penalty
     python -m tasks.coefficients.fit_weight_penalty --dry-run
@@ -82,11 +89,14 @@ def load_calibration_data(
             COALESCE(w.rainfall_flag, FALSE) AS rainfall_flag,
             COALESCE(w.track_temp_c, 30.0)  AS track_temp_c,
             -- expected compound wear pace (from fitted int model)
-            icp.expected_compound_pace_s
+            icp.expected_compound_pace_s,
+            -- the burn rate the fuel model priced this lap with (kg/lap)
+            fs.fuel_consumption_rate_kg_per_lap
         FROM int_stint_geometry sg
         JOIN stg_laps l ON sg.lap_id = l.lap_id
         LEFT JOIN stg_weather w ON sg.lap_id = w.lap_id
         LEFT JOIN int_compound_cliff_predicted icp ON sg.lap_id = icp.lap_id
+        LEFT JOIN int_lap_fuel_state fs ON sg.lap_id = fs.lap_id
         LEFT JOIN race_to_track rtt
           ON CAST(SPLIT_PART(l.race_id, '_', 1) AS INTEGER) * 100
            + CAST(SPLIT_PART(l.race_id, '_', 2) AS INTEGER) = rtt.race_id
@@ -110,6 +120,28 @@ def load_calibration_data(
     return lap_df, circuit_ref
 
 
+def model_fuel_rates(lap_df: pd.DataFrame) -> pd.Series:
+    """Per-circuit burn rate (kg/lap) the fuel model applied to the calibration laps:
+    the mean of int_lap_fuel_state.fuel_consumption_rate_kg_per_lap over the laps
+    whose slope is being measured. The rate is one number per race (FIA limit /
+    scheduled laps), so this is that number averaged over the fitted races, weighted
+    by their calibration laps -- the burn the pooled slope actually reflects.
+
+    Every calibration lap is a valid lap, and the fuel model prices every valid lap
+    (assert_fuel_load_matches_scheduled_distance fails the build otherwise), so an
+    unpriced one means a broken warehouse. Refuse rather than average around it or
+    fall back to circuit_reference's constant, which the model no longer burns.
+    """
+    unpriced = lap_df["fuel_consumption_rate_kg_per_lap"].isna()
+    if unpriced.any():
+        raise ValueError(
+            f"{int(unpriced.sum())} calibration laps have no int_lap_fuel_state rate "
+            f"(circuits: {sorted(lap_df.loc[unpriced, 'circuit_key'].unique())}); "
+            "rebuild int_lap_fuel_state before fitting"
+        )
+    return lap_df.groupby("circuit_key")["fuel_consumption_rate_kg_per_lap"].mean()
+
+
 def calibrate_circuit(
     lap_df: pd.DataFrame,
     circuit_key: str,
@@ -120,7 +152,9 @@ def calibrate_circuit(
     Fit weight_penalty_factor for one circuit.
 
     Strategy: regress (lap_time-expected_compound_pace) ~ lap_number.
-    The slope is pace improvement per lap. Dividing by fuel_rate gives s/kg.
+    The slope is pace improvement per lap. Dividing by fuel_rate gives s/kg, so
+    fuel_rate must be the burn the fuel model applies to these laps
+    (model_fuel_rates), not circuit_reference's constant.
     """
     circuit_laps = lap_df[lap_df["circuit_key"] == circuit_key].copy()
     n_laps = len(circuit_laps)
@@ -139,6 +173,10 @@ def calibrate_circuit(
             "calibration_delta_pct": 0.0,
             "calibration_flag": "INSUFFICIENT_DATA",
         }
+
+    # max(NaN / rate, 0.005) is NaN, which would be adopted as the factor.
+    if not fuel_rate > 0:
+        raise ValueError(f"{circuit_key}: burn rate {fuel_rate!r} kg/lap cannot convert s/lap to s/kg")
 
     # Pace residual after removing compound contribution
     circuit_laps["pace_residual"] = (
@@ -198,6 +236,7 @@ def run_fit(
     con = duckdb.connect(str(DB_PATH), read_only=True)
 
     lap_df, circuit_ref = load_calibration_data(con, seasons, circuits)
+    fuel_rates = model_fuel_rates(lap_df)
 
     results = []
     for _, ref_row in circuit_ref.iterrows():
@@ -219,7 +258,9 @@ def run_fit(
             lap_df=lap_df,
             circuit_key=ckey,
             prior_wpf=float(ref_row["weight_penalty_factor"]),
-            fuel_rate=float(ref_row["fuel_consumption_rate_kg_per_lap"]),
+            # A circuit with no calibration laps has no rate; it returns the
+            # prior (INSUFFICIENT_DATA) before the rate is read.
+            fuel_rate=float(fuel_rates.get(ckey, float("nan"))),
         )
         merged = {**ref_row.to_dict(), **cal}
         results.append(merged)

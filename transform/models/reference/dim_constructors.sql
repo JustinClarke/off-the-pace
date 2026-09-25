@@ -1,6 +1,13 @@
 -- Constructor / team reference with power-unit family grouping.
--- pu_family is used in Layer 04 to condition constructor_pace_index
--- on similar-engine teams (e.g. Mercedes PU customers share base drag).
+-- pu_family is a reference attribute only: it is carried onto fct_lap_residuals
+-- and fct_driver_skill_features, and no pace index or model reads it. (This
+-- header used to say it conditions constructor_pace_index on similar-engine
+-- teams in Layer 04; that was never built. F17.)
+--
+-- The mapping below is one family per team NAME, not per season, and a name it
+-- does not list comes out 'unknown_pu'. F1 renames its teams every year or two
+-- and each rename arrives as a new constructor_id, so every rename needs a row
+-- here; assert_pu_family_coverage warns when one is missing. (F54.)
 {{ config(materialized='table') }}
 
 WITH laps AS (
@@ -13,7 +20,10 @@ teams AS (
     WHERE constructor_id IS NOT NULL
 ),
 
--- PU family mapping: manually maintained until an external seed is built
+-- PU family mapping: manually maintained until an external seed is built.
+-- 'Alfa Romeo Racing', 'Kick Sauber' and 'Racing Bulls' are later names of
+-- teams already listed ('Alfa Romeo' / 'Sauber' and 'RB'), so each takes the
+-- family of its earlier name.
 pu_mapping AS (
     SELECT * FROM (
         VALUES
@@ -25,6 +35,7 @@ pu_mapping AS (
         ('Aston Martin', 'mercedes_pu'),
         ('AlphaTauri', 'honda_pu'),
         ('Alfa Romeo', 'ferrari_pu'),
+        ('Alfa Romeo Racing', 'ferrari_pu'),
         ('Haas F1 Team', 'ferrari_pu'),
         ('Williams', 'mercedes_pu'),
         ('Racing Point', 'mercedes_pu'),
@@ -32,7 +43,9 @@ pu_mapping AS (
         ('Toro Rosso', 'honda_pu'),
         ('Force India', 'mercedes_pu'),
         ('Sauber', 'ferrari_pu'),
-        ('RB', 'honda_pu')
+        ('Kick Sauber', 'ferrari_pu'),
+        ('RB', 'honda_pu'),
+        ('Racing Bulls', 'honda_pu')
     -- the t(...) column-list alias names the VALUES columns; load-bearing
     ) AS t (team_name, pu_family)  -- noqa: AL05
 )

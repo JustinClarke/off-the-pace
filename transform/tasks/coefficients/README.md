@@ -30,9 +30,10 @@ limits, lock-ups).
 race). These contribute information about the *minimum* cliff onset  -  we know the cliff
 hadn't happened yet when the car pitted.
 
-**Forced stops:** DNF, retirement, crash, safety-car pitting  -  these are treated as
-*uncensored* because the team did not choose to pit at that moment. They provide the
-cleanest observations of full tyre wear curves.
+**Forced stops:** a retirement ends the stint without the team choosing to pit. In the
+KM onset fit only a tyre-failure retirement counts as the event (a mechanical DNF stays
+censored); for the wear gradient any retirement makes the stint uncensored, because its
+length was not cut short by strategy.
 
 ### Why KM rather than Cox PH?
 
@@ -51,17 +52,46 @@ covariates like `track_temp_c` and `compound_code`. KM was chosen for V1 because
 When more seasons are added (2025+), switching to a stratified Cox PH model to
 capture track-temperature effects within compound class would be the logical upgrade.
 
+### The pace series
+
+All three parameters are fitted on one series, `fuel_corrected_pace_s`: lap time with the
+dirty-air cost removed (`int_lap_normalized_pace`) and the fuel burn removed
+(`int_lap_fuel_state.weight_penalty_s`). The residual decomposition subtracts fuel as its
+own component, so a curve fitted with the burn left in would price wear net of ~0.05 s/lap
+of fuel gain. Laps with an unknown tyre age (stints `stg_lap_tyre_qa` quarantines) are
+not fitted.
+
 ### Cliff severity
 
-`compound_cliff_severity` is estimated from uncensored stints (observed cliff or
-forced DNF) as the average lap-time delta between `[onset, onset+5]` vs
-`[onset-5, onset-1]`. The 10th–90th percentile trim removes one-off crash outliers.
+`compound_cliff_severity` is estimated from stints with a detected cliff, as the average
+lap-time delta between `[cliff, cliff+5]` vs `[cliff-5, cliff-1]` around each stint's own
+detected cliff lap (a stint needs ≥ 2 laps each side). Values are winsorised at 1.5 s and
+the 10th–90th percentile trim removes one-off outliers.
 
 ### Wear gradient
 
 `compound_wear_gradient` (s/lap of steady-state degradation) uses OLS on the linear
-region `[lap 3, cliff_onset-2]`, restricted to stints with R² > 0.10. Low R² stints
-indicate variable track conditions or atypical strategies and are excluded.
+region `[age 3, cliff_onset-2]` of **uncensored** stints only: a cliff detected on the
+fitted series, or a stint ended by a retirement. A stint cut short by a voluntary pit is
+left out. Only positive slopes with R² > 0.10 count; the slopes are trimmed to their
+10th–90th percentile and averaged.
+
+### Provenance, per parameter
+
+A fit tier can run and still return no usable number for one parameter (KM never crosses
+0.5, no positive slope, no cliff with two laps each side, or a value out of range); that
+parameter then takes the class default. `fit_source` records the tier, and
+`onset_source` / `gradient_source` / `severity_source` record where each number came from
+(`fitted`, `cross_season_fallback`, `class_default`, `carried_forward`). Notes never read
+"fitted from" on a cell holding a default.
+
+### A season with no fit yet
+
+`python -m tasks.coefficients.fit_compound_cliff --fill-gaps` fits nothing: it writes a
+pending seed with a row for every (venue, season, compound) the warehouse's valid laps
+need but the seed lacks -- the latest earlier season's cell for the venue and compound,
+else the class default -- with a class default staying `class_default` when carried.
+`assert_compound_params_cover_mart` fails the dbt build until every such cell exists.
 
 ## Promotion workflow
 

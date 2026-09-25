@@ -11,7 +11,7 @@ Unified F1 Bronze-layer ingestion controller. Fetches race and qualifying data f
 ## Usage
 
 ```bash
-usage: ingest.py [-h] (--start-season YEAR | -s YEAR) [--end-season YEAR] [--round N] [--session {R,Q,both}] [--skip-telemetry] [--telemetry-full] [--force] [--dry-run] [--log-level LOG_LEVEL]
+usage: ingest.py [-h] (--start-season YEAR | -s YEAR) [--end-season YEAR] [--round N | --rounds LIST] [--session {R,Q,both}] [--skip-telemetry] [--telemetry-full] [--force] [--ready-after-hours H] [--include-unfinished] [--accept-thin] [--bronze-dir PATH] [--cache-dir PATH] [--dry-run] [--log-level LOG_LEVEL]
 ```
 
 ## Options
@@ -25,6 +25,8 @@ usage: ingest.py [-h] (--start-season YEAR | -s YEAR) [--end-season YEAR] [--rou
                         --start-season.
   --round N             Ingest only this round number (requires a single
                         season via -s/--season)
+  --rounds LIST         Ingest only these rounds, e.g. 1-14 or 3,5,7 (requires
+                        a single season)
   --session {R,Q,both}  Which session types to ingest (default: both)
   --skip-telemetry      Skip telemetry extraction (faster dry-runs and
                         qualifying-only runs)
@@ -32,7 +34,20 @@ usage: ingest.py [-h] (--start-season YEAR | -s YEAR) [--end-season YEAR] [--rou
                         nGear, RPM, DRS) and pos_data (v0.2)
   --force               Overwrite existing Parquet files instead of skipping
                         them
-  --dry-run             Show what would be fetched without pulling data
+  --ready-after-hours H
+                        Treat a session as finished this many hours after its
+                        scheduled start (default: 6)
+  --include-unfinished  Also attempt sessions the schedule says have not
+                        finished yet
+  --accept-thin         Write a session even if it is still incomplete after
+                        the retry (recorded as thin_reasons in the manifest)
+  --bronze-dir PATH     Bronze root to write under (default:
+                        $INGESTION_BRONZE_DIR or data/bronze)
+  --cache-dir PATH      FastF1 cache directory (default: $FASTF1_CACHE_DIR or
+                        data/cache)
+  --dry-run             Fetch the schedule and list what would be pulled,
+                        skipped, or is not run yet, without loading sessions
+                        or writing to bronze
   --log-level LOG_LEVEL
                         Logging level: DEBUG, INFO, WARNING, ERROR (default:
                         INFO)
@@ -47,10 +62,18 @@ python ingest.py --season 2024 --round 1 --session R
                  Ingest 2024 races only
   python ingest.py --season 2024 --session both
                  Ingest 2024 races and qualifying
+  python ingest.py --season 2026 --dry-run
+                 Show which rounds would be pulled, skipped, or are not run yet
+  python ingest.py --season 2026 --rounds 1-14
+                 Ingest a list or range of rounds
   python ingest.py --start-season 2018 --end-season 2024 --session both
                  Full historical backfill (4–6 hours)
   python ingest.py --season 2024 --force
                  Re-ingest 2024, overwriting existing files
-  python ingest.py --season 2024 --skip-telemetry --dry-run
-                 Dry-run without pulling telemetry
+  python ingest.py --season 2024 --round 1 --bronze-dir /tmp/bronze
+                 Write to a scratch bronze root instead of data/bronze
+
+Sessions that have not finished (scheduled start + --ready-after-hours still in
+the future) are skipped without loading. Exit code is 1 if any session ended
+'error' or 'thin' (loaded incomplete, not written), else 0.
 ```

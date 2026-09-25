@@ -38,7 +38,7 @@ export const methodologyContent = (
     <p className="text-xs">
       Source:{' '}
       <code>fct_stint_features</code> &times; <code>fct_lap_residuals</code> (for
-      lap windows) &times; <code>int_pit_strategy_value</code>.
+      the race&rsquo;s lap count) &times; <code>int_pit_strategy_value</code>.
     </p>
   </div>
 )

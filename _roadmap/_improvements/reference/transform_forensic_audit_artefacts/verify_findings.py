@@ -1,9 +1,10 @@
 """Status board for every transform-audit finding (round 1: F1-F21, round 2: F22-F37,
 round 3: F38-F49).
 
-Run from anywhere, read-only against data/dev.duckdb (override with OTP_DB=...):
+Run from the repo root (or anywhere, given this file's path), read-only against
+data/dev.duckdb (override with OTP_DB=...):
 
-    .venv/bin/python _improvements/reference/transform_forensic_audit_artefacts/verify_findings.py
+    .venv/bin/python _roadmap/_improvements/reference/transform_forensic_audit_artefacts/verify_findings.py
     .venv/bin/python .../verify_findings.py F22 F23a        # only these
 
 Each check measures the defect directly (a count, a share, or a code/text fact) and prints
@@ -92,8 +93,14 @@ CHECKS: list[Check] = [
     Check("F1", "pace_delta_s fabricated as 0 where the field curve is missing",
           sql("select count(*) from int_lap_residual_decomposed where base_track_pace_s is null and pace_delta_s is not null"),
           lambda v: v > 0, "0 laps carry a pace_delta_s without a measured base"),
-    Check("F2", "compound seed cells fitted on their own (single-race) season",
-          sql("select count(*) from dim_compounds_season where season <= 2024 and notes like 'fitted from % via cox_km_survival'"),
+    # Reads the per-parameter provenance WI-02a (F41) added, not the notes string: F41
+    # rewrote the notes of every cell where a class default fired, so the old
+    # `notes like 'fitted from %'` count fell 337 -> 213 for a reason unrelated to F2.
+    # A cell counts if any of its parameters was fitted on its own season (330 of the
+    # 337 cox_km_survival cells; the other 7 are class defaults on all three).
+    Check("F2", "compound seed cells with a parameter fitted on their own (single-race) season",
+          sql("select count(*) from dim_compounds_season where season <= 2024 "
+              "and 'fitted' in (onset_source, gradient_source, severity_source)"),
           lambda v: v > 0, "no cell's fit population includes its own season (needs fit provenance, round-1 T3)"),
     Check("F3", "browser reads manifest.input.n_features / feature_order, which v14 lacks",
           lambda c: ("n_features" not in json.loads(text("app/public/models/manifest.json"))["input"])
@@ -319,6 +326,17 @@ CHECKS: list[Check] = [
           lambda c: c.execute("""select round(max(surface_bulk_ratio), 3), count(*) filter (where degradation_source = 'surface_driven')
                                  from int_tyre_surface_vs_bulk_decoupling""").fetchone(),
           lambda v: v[0] <= 0.5 and v[1] == 0, "loads normalised so the ratio can span its classes (or the class removed)"),
+
+    # ── New findings (found during 2026-09-24 reverification, not in rounds 1-3) ──
+    # T12 (WI-07): audit coverage for F53 specifically -- the only one of F50-F55 this
+    # item owns. F50-52/54/55 belong to other items and are deliberately not added here.
+    Check("F53", "_db.py resolves REPO one directory short of the real repo root; "
+                 "features.py's CLI has no read-only/dry-run flag",
+          lambda c: ((REPO / ".git").is_dir(),
+                     bool(re.search(r"--persist-encoders", text("ml/src/features.py")))),
+          lambda v: not (v[0] and v[1]),
+          "_db.py's REPO resolves to the real repo root (this file itself proves it: "
+          "it just ran) and features.py's CLI exposes --persist-encoders"),
 ]
 
 

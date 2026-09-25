@@ -16,6 +16,16 @@ closer read than "Low" implies for how they'll age.
 shares. Mechanism confirmed live; the 14.9%-vs-5.5% season comparison wasn't independently rerun but
 the producing code matches exactly. Fix: T15 (per-season null/zero tolerance in the drift baseline).
 
+**Build finding (2026-09-25): F12 was not fixed here, and the text above cannot deliver its own
+definition of done.** T15 is a guard, and `WI-07` owns it (its "T15 (baseline re-snapshot)"); it
+cannot flip the F12 check. That check measures the share of 2018 training-eligible rows whose
+`gap_ahead_min_s` is NULL (9.18% in 2018 against 0.00-0.04% in every other season on the
+2026-09-25 dev build, so the check reads 0.0917), a property of which laps have telemetry that no
+edit to the COALESCE changes. Removing the fabrication itself (NULL instead of `'free_air'` / `0.0` on a lap
+with no telemetry) puts NULL into `dirty_air_share_lap`, which feeds the dirty-air tax and so the
+residual and both labels: it belongs with `WI-01` / `WI-15a`, not in a cleanup bundle. Left PRESENT
+pending a ruling on what "cleared" means; see the build's open question.
+
 ## F13 — `race_id` loaded as INTEGER
 
 `SELECT typeof(race_id), race_id FROM raw_dim_events LIMIT 5` → `('INTEGER', 202110)`. Confirmed
@@ -26,6 +36,13 @@ consumers — `useRaces.ts`, `fit_compound_cliff.py:136`'s `forced_stop_flag` �
 unused/dead, not because this bug is harmless, but because nothing live currently depends on it).
 **Fix:** trivial one-line addition of the same `+column_types` entry used for its two siblings.
 
+*Build note:* a `+column_types` change does not retype an existing seed table, so the dev
+warehouse needed `dbt seed --select raw_dim_events --full-refresh` and a rebuild of `stg_events` /
+`dim_events` before the check flipped. With the id now matching, `fit_compound_cliff.py`'s
+`forced_stop_flag` can be TRUE (VER's two 2021_14 stints); nothing reads the `forced_stop` key
+(`grep` over `transform/tasks`), so the seed is unaffected. Added a `dbt_expectations` regex test on
+`dim_events.race_id` (it fails 6 rows on the pre-fix build).
+
 ## F14 — three DSQs read as classified finishers
 
 `stg_results.sql`'s `is_dnf` logic requires `TRY_CAST(classifiedposition AS INTEGER) IS NULL`.
@@ -33,6 +50,12 @@ Confirmed live: HAM/LEC (2023_18) and RUS (2024_14) all have `status='Disqualifi
 is_classified=TRUE, is_dnf=FALSE, dnf_cause=NULL`, while the other 13 DSQs in the window correctly
 resolve. **Fix:** route `status = 'Disqualified'` explicitly ahead of the classifiedposition parse —
 a one-line CASE addition, no downside.
+
+*Build note:* done as one parsed rank (a `ranked` CTE) that `is_classified`, `is_dnf` and
+`dnf_cause` all read, rather than a CASE in each; exactly the 3 rows change. T13 is at default
+(error) severity, not the audit's warn: bronze can no longer trip it, only a change to the flags
+can. `fct_ghost_race_finish` is a table, so on the dev warehouse it stays stale for those 3 rows
+(finish position, `actual_is_dnf`) until rebuilt.
 
 ## F17 — `pu_family`/`driver_number` wrong, but currently unread by anything that computes
 
@@ -53,6 +76,11 @@ independently-ingested bronze feeds cannot originate in the transform layer, cor
 bronze per the charter. No fix proposed beyond documenting the impact (single-race distortion of
 `lap_number`/`fuel_mass_kg`), which is the right level of effort for a bronze-scoped, single-race
 defect.
+
+*Build note:* documented in the `stg_laps` model description (`transform/models/staging/schema.yml`).
+Re-checked on the dev build: bronze laps end at 68, race control's CHEQUERED flag is on 71,
+`race_scheduled_laps` says 71, and no other race with a chequered flag on record ends short of it.
+The Jolpica +4/+5 pit-lap offset is the audit's figure and was not re-run.
 
 ## F19 — `session_type` declared, absent — and the doc is worse than "stale"
 
@@ -96,12 +124,37 @@ Work these independently; none block each other or anything else in `_fixes/`.
 2. F14: one CASE branch in `stg_results.sql`.
 3. F17/F54: either the coverage test (cheap) or the entity-keyed rewrite (durable) — recommend the
    entity-keyed rewrite since the pattern already exists in-tree for circuits.
+   *Build correction:* the circuit precedent does not transfer as stated.
+   `macros/circuit_id_from_name.sql` slugifies the circuit's display name, which is stable across
+   event renames; constructors have no stable name to slugify (`Sauber` → `Alfa Romeo Racing` →
+   `Kick Sauber` share nothing), so an entity key needs a new alias table and decisions about entity
+   granularity and whether `pu_family` is per season. **Done here:** the three missing rows added
+   to `pu_mapping` (clears the F17 check) plus `assert_pu_family_coverage` (warn). **Not done:** the
+   entity-keyed rewrite, held as an open question. Also fixed under F17, from the audit's own
+   remediation list though not in this Method: `dim_drivers.driver_number` (VER, DEV and LAW were
+   stale). Not touched: the duplicate `constructor_power/aero_pace_index_final` columns, which
+   need a contract decision (drop, or relabel).
 4. F18: document only, per charter (bronze-scoped).
 5. F19: correct the yml to state what the code does today (nothing); add a dbt source test that
    fails if any race-depth glob file contains a non-'R'/non-NULL `session_type` — cheap insurance
    ahead of `02f`.
+   *Build note:* built as a singular test (`assert_raw_laps_race_depth_is_race_only.sql`), not a
+   column-level source test: race files have no `session_type` column, so a generic test on it
+   fails to bind. It reads the raw files with `union_by_name` so a column in any file is seen. The
+   yml fix removes the `session_type` column from `raw_laps` (which is what the audit's check
+   looks for) and states the directory-depth rule in the table description.
 6. F20: delete "not yet in X" prose the moment X happens, going forward; fix the 7 confirmed
    instances now.
+   *Build note:* the seven are the six named in the F20 section above plus the model-card summary
+   (`ml/src/card.py:241-242`, `ml/model_card.yml:6-7`: "powertrain, weather" families dropped in
+   Phase 9, and "Trained on 2018–2024"). The first six are fixed. The card summary is not: its
+   second half is `WI-03`'s (it names `card.py:242` and `model_card.yml:7` as stale holdout prose,
+   and the true wording depends on `FD4`), and fixing it means regenerating four checked-in
+   copies (`ml/model_card.yml`, `ml/models/model_card.json`, `app/public/models/model_card.json`,
+   `docs/reference/ml/degradation-model.mdx`). Held as an open question. The same pass found and
+   fixed three more of the same class in `fct_cliff_prediction_features.sql`: two more "PRIMARY"
+   claims for the detrended 1-lap target (the C1 comment and the final SELECT) and "02b's seven ...
+   hold until their arms rule" in the 02d block.
 
 ## Acceptance
 
@@ -115,5 +168,9 @@ coverage` (F54, warn-level).
 
 ## Definition of done
 
-`verify_findings.py`'s F12, F13, F14, F17, F18, F19, F20 checks flip to CLEARED (F18 stays PRESENT
-and documented, since the fix is out of scope per the charter); F54's new test is wired in.
+`verify_findings.py`'s F13, F14, F17, F19, F20 checks flip to CLEARED (F18 stays PRESENT and
+documented, since the fix is out of scope per the charter); F54's new test is wired in.
+
+**Split (2026-09-25):** F12 is carried by `WI-09b` (blocked on `FD6`, the ruling above), and F20's
+seventh instance (the model-card summary) moved to `WI-03`. `WI-09` itself is complete against this
+definition of done.

@@ -477,10 +477,18 @@ SELECT
     -- Per-constructor cliff-onset shift (laps). Positive = cliff arrives
     -- LATER than the field (gentler); negative = earlier (harsher). 0 for cells
     -- without enough post-onset evidence. Clipped to +/-3 laps.
-    LEAST(GREATEST(
-        -COALESCE(cs.hinge_dev_shrunk, 0.0) * cs.ref_depth
-            / NULLIF(cs.severity_used, 0),
-        -3.0), 3.0)                         AS cliff_onset_shift_laps,
+    -- A compound-season with no post-onset clean laps has no ref_depth, so the
+    -- mapping is NULL; clamp_or_null keeps it NULL for the COALESCE to read as
+    -- that field-timed 0. The LEAST(GREATEST(...)) it replaces returned -3.0,
+    -- the harshest shift, there (DuckDB skips NULL arguments): 2018 Renault
+    -- HARD on the 2026-09-24 dev build, 1 of 233 cells (WI-13).
+    COALESCE(
+        {{ clamp_or_null(
+            '-COALESCE(cs.hinge_dev_shrunk, 0.0) * cs.ref_depth
+                / NULLIF(cs.severity_used, 0)',
+            -3.0, 3.0) }},
+        0.0
+    )                                       AS cliff_onset_shift_laps,
     -- SE of the shift (delta-method through the same ref_depth/severity map);
     -- carried for downstream SE propagation. NULL for non-qualifying cells.
     CASE WHEN cs.cliff_qualifies

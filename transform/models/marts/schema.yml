@@ -605,9 +605,19 @@ models:
       - name: survival_weight
         description: >
           C2 metadata (not a feature): IPW weight = 1 / P(stint reaches lap_in_stint | compound),
-          clipped to [0.25, 4]. Used by train.py for quantile regressor sample weighting to
-          correct for survivorship bias (degraded stints pitted early are under-represented
-          at high lap_in_stint values).
+          the survival curve cumulated over seasons strictly before the row's own (08f-1),
+          clipped to [0.25, 4]. Built to correct survivorship bias (degraded stints pitted early
+          are under-represented at high lap_in_stint values). Since 08o it is neither a
+          feature nor a training weight: train.py fits the quantile heads unweighted, and the
+          column is carried in IDENTIFIER_COLUMNS only.
+
+          1.0 (unweighted) where there is no prior-season curve to read: the first ingested
+          season, a lap with no compound, and a (compound, lap_in_stint) no earlier season
+          reached (assert_survival_weight_neutral_without_prior_curve). Until WI-13 those
+          rows came out at 4.0, the maximum weight, because the clip was
+          GREATEST(0.25, LEAST(4.0, NULL)) and DuckDB's LEAST skips the NULL: 24,800 rows on
+          the 2026-09-24 dev build, 18,878 training-eligible, including every 2018 row. The
+          08f-1 and 08o gates' IPW arms were built on code that did this.
         data_type: double
       - name: next_lap_degradation_jump_detrended_s
         description: >
@@ -1228,9 +1238,14 @@ models:
           - not_null
           - unique
       - name: race_id
-        description: Race identifier the event belongs to.
+        description: >
+          Race identifier the event belongs to, in the pipeline's 'YYYY_N' form (e.g. 2021_10).
+          Typed varchar on the seed (dbt_project.yml); untyped, DuckDB reads it as the integer 202110.
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_match_regex:
+              arguments:
+                regex: '^[0-9]{4}_[0-9]+$'
 
   - name: fct_lap_residuals
     description: >
@@ -1287,15 +1302,16 @@ models:
           - not_null
       - name: compound_component_s
         description: >
-          Tyre-compound degradation component. NULL when compound itself is
-          NULL — a handful of laps (5, all 2018) have no tyre-compound tag in
-          bronze; known source-data gap, not a pipeline bug.
+          Tyre-compound degradation component. NULL when the compound or the tyre age is
+          unknown: stints stg_lap_tyre_qa quarantines have both NULLed, and a few laps
+          have a compound but no age in bronze. Until the F39 fix those laps carried the
+          10 s wear cap here instead (DuckDB's LEAST skips the NULL age), and this test,
+          scoped only on compound, passed on the fabricated value.
         tests:
           - not_null:
               config:
-                # Only enforce non-null where we actually know the compound;
-                # see description above for the known 2018 exception.
-                where: "compound IS NOT NULL"
+                # Only enforce non-null where the curve has both of its inputs.
+                where: "compound IS NOT NULL AND age_in_stint IS NOT NULL"
       - name: rubber_component_s
         description: Track-rubber evolution component.
         tests:

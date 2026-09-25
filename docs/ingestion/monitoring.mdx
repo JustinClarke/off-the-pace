@@ -37,6 +37,7 @@ A full historical backfill runs for tens of minutes to hours. Watching the termi
 | Signal in the log | Monitor exit code | Meaning |
 |---|---|---|
 | `=== COMPLETE:` | `0` | Ingestion finished; the run's manifest rows were all written |
+| `=== COMPLETE:` after `=== NEEDS ATTENTION` | `1` | Finished, but some sessions ended `error` or `thin` (listed in the log); re-run to retry them |
 | `[DQ FAIL]` | `1` | A race laps file failed the schema gate and its write was skipped |
 | ` ERROR `, ` CRITICAL ` | `1` | An unhandled error surfaced in the log |
 | `ProcessRuntimeError`, `MemoryError`, disk-full `OSError`, `killed by`/`Killed` | `1` | The process died (OOM, disk full, or was killed) |

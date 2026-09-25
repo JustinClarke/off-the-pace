@@ -1,11 +1,13 @@
 | Model | Family | `expect_column_values_to_be_between` | `accepted_range` | `expect_table_row_count_to_be_between` | `accepted_values` | `expect_column_pair_values_A_to_be_greater_than_B` | Total |
 |---|---|---|---|---|---|---|---|
+| `stg_lap_tyre_qa` | Staging |   |   |   | 2 |   | 2 |
 | `stg_laps` | Staging |   |   |   | 1 |   | 1 |
 | `stg_results` | Staging |   |   |   | 1 |   | 1 |
 | `stg_sector_times` | Staging |   |   |   | 1 |   | 1 |
 | `stg_track_status` | Staging |   |   |   | 1 |   | 1 |
 | `stg_tyre_allocations` | Staging |   |   |   | 2 |   | 2 |
 | `dim_circuits` | Reference | 1 |   |   |   |   | 1 |
+| `dim_compounds_season` | Reference |   |   |   | 3 |   | 3 |
 | `dim_corners` | Reference |   |   |   | 1 |   | 1 |
 | `int_dirty_air_tax_component` | Physics | 2 |   |   |   |   | 2 |
 | `int_lap_air_state` | Physics | 1 |   |   |   |   | 1 |
@@ -38,6 +40,7 @@
 | `mart_corner_skill_driver` | Marts | 4 |   |   |   |   | 4 |
 | `mart_degradation_history_envelope` | Marts | 3 |   | 1 | 1 | 3 | 8 |
 | `circuit_reference` | Reference (seed) | 2 |   |   |   |   | 2 |
-| `compound_cliff_params` | Reference (seed) | 4 |   |   | 1 |   | 5 |
+| `compound_cliff_params` | Reference (seed) | 4 |   |   | 4 |   | 8 |
+| `race_scheduled_laps` | Reference (seed) | 1 |   |   | 1 |   | 2 |
 | `tyre_allocations` | Reference (seed) |   |   |   | 3 |   | 3 |
-| **Total** |  | 72 | 4 | 1 | 31 | 4 | **112** |
+| **Total** |  | 73 | 4 | 1 | 40 | 4 | **122** |

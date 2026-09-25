@@ -12,7 +12,9 @@ Public API:
 
 CLI (`python -m ml.src.features --check`): audit-only mode for CI-runs the
 forward-window and aggregation-scope audits, asserts the leakage guards, prints
-the season split, and exits non-zero on any violation.
+the season split, and exits non-zero on any violation. Read-only by default (F11):
+add --persist-encoders to also overwrite ml/models/encoders.json, which normal use
+does not need -- ml.src.train persists encoders as part of an actual training run.
 """
 from __future__ import annotations
 
@@ -595,7 +597,8 @@ def audit_aggregation_scope(manifest_path: str = MANIFEST_PATH) -> list[str]:
     expression, deliberately. Resolving a feature to the models that build it means
     following the definition chain, and that chain stops at the first computed
     expression -- so a model reached only through arithmetic (`int_field_pace_curve`
-    feeds `push_residual` by subtraction) would drop out of scope. Over-approximating
+    feeds `driver_skill_residual_s` by subtraction: `lap_time_s - base_track_pace_s`)
+    would drop out of scope. Over-approximating
     costs a few declarations; under-approximating costs the guard."""
     manifest = json.loads(Path(manifest_path).read_text())
     target_dir = Path(manifest_path).parent
@@ -674,7 +677,7 @@ def _declared_known_leaks(manifest_path: str = MANIFEST_PATH) -> list[str]:
 
 
 # ─── CLI: --check (CI audit mode) ────────────────────────────────────────────────
-def _check(duckdb_path: str, manifest_path: str) -> int:
+def _check(duckdb_path: str, manifest_path: str, *, persist_encoders: bool = False) -> int:
     problems: list[str] = []
 
     fw = audit_forward_window(manifest_path)
@@ -702,7 +705,8 @@ def _check(duckdb_path: str, manifest_path: str) -> int:
           f"int_/stg_ models outside the mart lineage (report-only; they enter the "
           f"audit above if a feature ever reads them)")
 
-    bundle = load_features(duckdb_path, target="degradation_regressor_p50", persist_encoders=True)
+    bundle = load_features(duckdb_path, target="degradation_regressor_p50",
+                            persist_encoders=persist_encoders)
     leaked = sorted(set(bundle.X_train.columns) & S.EXCLUDED_LEAKAGE_COLUMNS)
     if leaked:
         problems.append(f"leaked columns in X: {leaked}")
@@ -736,9 +740,20 @@ def main() -> int:
     ap.add_argument("--check", action="store_true", help="CI audit mode (leakage + forward-window + split).")
     ap.add_argument("--duckdb", default=S.DUCKDB_PATH)
     ap.add_argument("--manifest", default=MANIFEST_PATH)
+    # F11/F53: --check used to hardcode the persist-encoders keyword to always fire, so
+    # every local run against data/dev.duckdb silently overwrote the shipped
+    # ml/models/encoders.json with whatever the (possibly stale, see F4) holdout
+    # resolver returned. --check is an audit, not a training run -- ml.src.train is the
+    # entry point that is SUPPOSED to persist encoders, and it already does
+    # (train.py:259) independently of this flag. Default False makes --check
+    # read-only; pass this explicitly to get the old (dangerous) behaviour back for a
+    # one-off debugging session.
+    ap.add_argument("--persist-encoders", action="store_true",
+                     help="Let --check overwrite ml/models/encoders.json (default: read-only). "
+                          "Not needed for normal use -- ml.src.train persists encoders itself.")
     args = ap.parse_args()
     if args.check:
-        return _check(args.duckdb, args.manifest)
+        return _check(args.duckdb, args.manifest, persist_encoders=args.persist_encoders)
     bundle = load_features(args.duckdb)
     print(f"Loaded {len(bundle.X_train)} training rows, {len(bundle.feature_columns)} features.")
     return 0

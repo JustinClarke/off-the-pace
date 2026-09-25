@@ -21,13 +21,31 @@ A season range is the one required argument, and it comes in two mutually exclus
 </ParamField>
 
 <Warning>
-  `--start-season`/`-s` are **mutually exclusive** the parser rejects a command that passes both. If `--start-season` is after `--end-season`, or `--round` is combined with a season range spanning more than one year, `ingest.py` exits immediately with an error before touching the network.
+  `--start-season`/`-s` are **mutually exclusive** the parser rejects a command that passes both. If `--start-season` is after `--end-season`, or `--round`/`--rounds` is combined with a season range spanning more than one year, `ingest.py` exits immediately with an error before touching the network.
 </Warning>
 
 ## Scope and behaviour flags
 
 <ParamField path="--round" type="int" default="None">
   Ingest only this round number. Requires a single season combine with `-s`/`--season`, not a multi-year range.
+</ParamField>
+<ParamField path="--rounds" type="string" default="None">
+  Ingest only these rounds, as a range or list: `1-14`, `3,5,7`, `1-3,9`. Same single-season rule as `--round`, and the two are mutually exclusive.
+</ParamField>
+<ParamField path="--ready-after-hours" type="float" default="6">
+  A session counts as finished this many hours after its **scheduled start** on the FastF1 schedule. Sessions that have not reached that point are skipped without loading (logged as `[NOT RUN]`, no manifest row), so a whole-season run never walks into rounds that have not happened. With `--session both` the round is the unit: qualifying waits until the race is also finished, so bronze never holds a qualifying-only round.
+</ParamField>
+<ParamField path="--include-unfinished" type="boolean" default="false">
+  Attempt every round on the schedule regardless of its date (the old behaviour).
+</ParamField>
+<ParamField path="--accept-thin" type="boolean" default="false">
+  Write a session even if it is still incomplete after its retry. By default a thin load (FastF1 returned it, but key columns came back missing: results points/grid or Q1 times, tyre columns, weather or race control) is retried once with the FastF1 cache bypassed and, if still thin, **not written**, so the next run pulls it again. With this flag it is written and the manifest records what was thin.
+</ParamField>
+<ParamField path="--bronze-dir" type="path" default="data/bronze">
+  Bronze root to write under (same layout). Also settable as `INGESTION_BRONZE_DIR`. Point probes and experiments at a scratch directory so they never touch `data/bronze`.
+</ParamField>
+<ParamField path="--cache-dir" type="path" default="data/cache">
+  FastF1 cache directory for this run; overrides `FASTF1_CACHE_DIR`.
 </ParamField>
 <ParamField path="--session" type="'R' | 'Q' | 'both'" default="both">
   Which session types to pull. `R` for race only, `Q` for qualifying only, `both` for everything.
@@ -42,7 +60,7 @@ A season range is the one required argument, and it comes in two mutually exclus
   Overwrite existing Parquet files instead of skipping sessions already on disk. Without it, `ingest.py` is idempotent re-running the same command after a crash resumes from the gap rather than re-pulling everything.
 </ParamField>
 <ParamField path="--dry-run" type="boolean" default="false">
-  Print what would be fetched race count and an estimated size without making any network calls or writing anything.
+  Fetch the season schedule (from the FastF1 cache when it has it) and list, per round and session, whether it would be pulled, skipped as already on disk, or is not run yet, plus any slug/venue warnings and an estimated bronze size. Loads no session and writes nothing to bronze. `make ingest-plan SEASON=YYYY` wraps it.
 </ParamField>
 <ParamField path="--log-level" type="string" default="INFO">
   Logging verbosity: `DEBUG`, `INFO`, `WARNING`, or `ERROR`.
@@ -66,10 +84,18 @@ python ingestion/src/ingest.py --season 2024 --force
 ```bash Dry-run without telemetry
 python ingestion/src/ingest.py --season 2024 --skip-telemetry --dry-run
 ```
+```bash Part-finished season
+python ingestion/src/ingest.py --season 2026 --dry-run        # what would happen
+python ingestion/src/ingest.py --season 2026 --session both   # finished rounds only
+```
 </CodeGroup>
 
 <Tip>
-  `--dry-run` estimates size from `races × 0.15 GB` a single round is reported as `~0.2 GB`; a season range multiplies by the round count. It's a quick sanity check before committing to a multi-hour backfill.
+  `--dry-run` estimates size at ~0.05 GB of bronze per race weekend pulled (race + qualifying + race telemetry; 2025 on disk averages ~47 MB). It's a quick sanity check before committing to a multi-hour backfill.
 </Tip>
+
+## Exit code and end-of-run summary
+
+`ingest.py` exits **1** when any session ended `error` (load or write failed after retries), `thin` (loaded incomplete, not written) or a season's schedule could not be fetched, and **0** otherwise. Those sessions are listed under `=== NEEDS ATTENTION` at the end of the log; re-running the same command retries them, since everything already on disk is skipped. Sessions that were written but deserve a look (telemetry merged on fewer than 95% of laps, no circuit info, an accepted thin load, a slug that now names a different venue) are listed under `=== NOTES` and recorded in the run manifest (see [Manifest report](/ingestion/manifest-report)); they do not change the exit code. Known source gaps (`ingestion/src/bronze_checks.py`, e.g. 2018 Rd1/Rd2 telemetry) are logged as `[KNOWN GAP]` and never flagged.
 
 See the [generated flag dump](/reference/cli/ingest) for the raw `argparse` help text, including the exact `usage:` line.

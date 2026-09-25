@@ -671,7 +671,15 @@ models:
           a literal constant identical across all 438 seed cells that was never
           fitted against anything. 08l measured them at 60.4% and 18.9% of the
           seed's contribution to the ML target respectively.
-        tests: [not_null]
+
+          NULL exactly when age_in_stint is NULL (F39). DuckDB's LEAST skips NULL
+          arguments, so an unknown age used to come out as the bound itself -- a
+          valid-looking 10 s on 4,107 laps. The not_null test is scoped to laps
+          with a known age; assert_no_cap_valued_wear covers the other side.
+        tests:
+          - not_null:
+              config:
+                where: "age_in_stint is not null"
       - name: compound_wear_gradient
         description: >
           The fitted linear wear slope (s/lap) for this lap's
@@ -680,7 +688,13 @@ models:
           because any consumer needing a post-onset RATE needs both: severity is
           a level shift, and de-double-counting it against this gradient is what
           turns it into a rate. Use the cliff_ramp_slope_s_per_lap() macro.
-        tests: [not_null]
+          NULL when the lap has no seed cell, which assert_compound_params_cover_mart
+          confines to laps whose compound is itself unknown (F7): it is no longer
+          COALESCEd to 0.
+        tests:
+          - not_null:
+              config:
+                where: "compound is not null"
       - name: expected_compound_pace_s
         description: >
           Expected pace loss vs compound baseline, in seconds. Bounded as of
@@ -697,7 +711,12 @@ models:
           (see compound_wear_s). Any number in the tree measured against
           next_5_lap_cumulative_jump_s before that date is on the old quantity
           and is not comparable to one measured after it.
-        tests: [not_null]
+
+          NULL when age_in_stint is NULL, through the same wear term (F39).
+        tests:
+          - not_null:
+              config:
+                where: "age_in_stint is not null"
 
   - name: int_field_pace_curve
     description: >
@@ -2026,7 +2045,29 @@ models:
           chronological lap_in_stint: SC and pit laps do not age a tyre the way a racing lap
           does, and the cost curve is indexed on tyre age.
       - name: actual_pit_lap
-        description: Actual pit lap number from stg_pits. NULL for last stint of race.
+        description: >
+          The stop that ended this stint: stg_pits.pit_in_lap_number, the latest pit-in inside
+          the stint's full chronological span (its first lap of any validity through
+          end_lap_number). Non-NULL on every stint that ended in a stop, whatever flag was out
+          (assert_pit_ended_stints_have_stop, T23). A stint that did not end in a stop (the
+          driver's last stint, or a retirement) is NULL unless a pit-in falls inside its span:
+          a retirement into the pit lane, or, on 2 stints, a stop bronze did not split the
+          stint at (2018_15 MAG lap 48; 2022_8 LEC lap 20). Until WI-13 (F31) the stop was
+          looked for only up to the stint's last VALID lap + 1, which missed it after a run of
+          SC/VSC/red-flag or other
+          invalid laps: 418 pit-ended stints (107 of 116 red-flag-ended, 194 of 653 SC-ended)
+          came out NULL and were graded as if they never stopped. It is a window, not
+          equality with end_lap_number: on 13 stints bronze puts the stint boundary a lap or
+          two after the in-lap (2018_2 VET: pit-in lap 17, stint's last lap 18).
+      - name: end_lap_number
+        description: >
+          The lap the stint ended on, of any validity (int_stint_end_regime.end_lap_number):
+          the in-lap, or up to two laps after it, for a stint that ended in a stop; the
+          chequered flag or the retirement lap for one that did not. Not the stint's last
+          valid lap. The app's pit-strategy Gantt orders stints on it and ends a bar with no
+          stop here, where it used to fall back to the race's last valid lap and drew those
+          bars to the flag (WI-13).
+        tests: [not_null]
       - name: overrun_laps
         description: >
           Actual laps run on the set minus optimal, in valid laps. Negative = pitted early.

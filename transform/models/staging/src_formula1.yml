@@ -11,12 +11,15 @@ sources:
           Hive-partitioned FastF1 lap data. One row per driver × lap.
           Columns follow FastF1 naming conventions (PascalCase).
           Sector times, speed traps, and pit markers are embedded per row.
-          Partitioned by season, race, and session_type (R=race, Q=qualifying).
+          Partitioned by season and race. This source is the race session only, and it is told
+          apart from qualifying by directory depth alone: race files sit at
+          laps/season=YYYY/race=SLUG/*.parquet, qualifying files one level deeper under
+          session=Q/ (read as raw_laps_qualifying). Race files carry no session_type column, and
+          nothing in stg_laps reads, filters or defaults one. The glob is therefore the only
+          thing keeping another session (FP1-3, sprint) out of the race lap set: any file written
+          at race depth is read as race laps. assert_raw_laps_race_depth_is_race_only fails if a
+          race-depth file declares a session_type other than 'R'.
         columns:
-          - name: session_type
-            description: >
-              Session type partition: 'R' for race sessions, 'Q' for qualifying.
-              Existing race files have no session_type column and read NULL (coalesced to 'R' in stg_laps).
           - name: Driver
             description: Three-letter driver code (e.g. VER, HAM)
           - name: DriverNumber

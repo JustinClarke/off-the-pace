@@ -79,6 +79,19 @@ describe('transform', () => {
     expect(result.topCostStints[0].driverId).toBe('LEC')
   })
 
+  it('widens the lap axis to a stint that ends past the last valid lap', () => {
+    // WI-13 (F31): a stint now ends on the lap it really ended on. The race
+    // summary's lap count is the last VALID lap, so a race that finished under a
+    // safety car reads short of its final stint (12 of 172 races, up to 6 laps).
+    const rows = [
+      baseRow({ start_lap: 1, end_lap: 30 }),
+      baseRow({ stint_number: 2, start_lap: 31, end_lap: 61 }),
+    ]
+    expect(transform(rows, 57).totalLaps).toBe(61)
+    // ...and never shrinks it below the race's own count
+    expect(transform([baseRow({ end_lap: 14 })], 57).totalLaps).toBe(57)
+  })
+
   it('coerces unknown verdict strings to null', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deliberately invalid verdict to exercise null-coercion
     const rows = [baseRow({ verdict: 'something_else' as any })]

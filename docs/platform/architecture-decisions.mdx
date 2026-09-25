@@ -73,7 +73,7 @@ These decisions were made to minimise infrastructure cost, eliminate server-side
   </Accordion>
 
   <Accordion title="ADR-009 Accept 2018 Rd1/Rd2 telemetry gap" icon="triangle-alert">
-    **Decision:** Include all 20 races from 2018 but accept missing telemetry for Rd1/Rd2 F1 didn't publish the livetiming feed until later that season.
+    **Decision:** Include all 21 races from 2018 but accept missing race telemetry for Rd1/Rd2. F1's archive has the Rd1 (Australia) race's car-data stream (speed, throttle, brake) but no position stream, and FastF1 merges per-lap telemetry only when it has both; for the Rd2 (Bahrain) race it has neither stream. Qualifying at both weekends has both streams, but the pipeline ingests race telemetry only. `verify_bronze.py` reports the two races as known gaps (`ingestion/src/bronze_checks.py`, `KNOWN_TELEMETRY_GAPS`).
 
     **Rationale:** Preserves the full dataset for trend analysis; lap-time degradation signals are available as a fallback; clean to document and test.
 

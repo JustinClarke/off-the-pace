@@ -22,7 +22,7 @@
 .PHONY: \
 	help \
 	setup ml-setup app-install \
-	ingest-all ingest-recent ingest-jolpica verify-bronze monitor-ingest manifest-report simulate \
+	ingest-all ingest-recent ingest-jolpica verify-bronze monitor-ingest manifest-report ingest-plan season-seeds-check simulate \
 	test test-integration cov-python \
 	coefficients-fit coefficients-promote coefficients-status coefficients-check car-fe-fit deg-iso-fit \
 	dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs query \
@@ -85,14 +85,24 @@ simulate:  ## Replay a Bronze race lap-by-lap (demo of the data)
 manifest-report:  ## Report ingestion run status + schema-drift from manifests
 	./.venv/bin/python ingestion/manifest_report.py
 
+ingest-plan:  ## Dry run: which rounds of SEASON would be pulled / skipped / are not run yet
+	@test -n "$(SEASON)" || { echo "Usage: make ingest-plan SEASON=YYYY"; exit 1; }
+	./.venv/bin/python ingestion/src/ingest.py --season $(SEASON) --session both --dry-run
+
+season-seeds-check:  ## List the seed rows SEASON still needs (race_to_track, scheduled laps, ...)
+	@test -n "$(SEASON)" || { echo "Usage: make season-seeds-check SEASON=YYYY"; exit 1; }
+	./.venv/bin/python ingestion/scripts/check_season_seeds.py --season $(SEASON)
+
 test:  ## Offline ingestion unit tests (no network, <5 s)
-	./.venv/bin/pytest ingestion/tests/test_ingestion.py ingestion/tests/test_jolpica.py
+	./.venv/bin/pytest ingestion/tests/test_ingestion.py ingestion/tests/test_jolpica.py \
+		ingestion/tests/test_ingest_hardening.py ingestion/tests/test_bronze_verification.py
 
 test-integration:  ## Live FastF1 ingestion test (needs network)
 	./.venv/bin/pytest ingestion/tests/test_integration_fastf1.py -m integration
 
 cov-python:  ## Coverage-threshold gate for the self-contained Python suites
 	PYTHONPATH=. ./.venv/bin/pytest ingestion/tests/test_ingestion.py ingestion/tests/test_jolpica.py \
+		ingestion/tests/test_ingest_hardening.py ingestion/tests/test_bronze_verification.py \
 		--cov=ingestion --cov-report=term-missing --cov-fail-under=55
 	PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/coefficients/tests/ \
 		--cov=transform/tasks/coefficients --cov-report=term-missing --cov-fail-under=60
@@ -409,19 +419,21 @@ docs-install:  ## (no-op) npx fetches Mintlify automatically
 
 add-season:  ## Onboard a new season end-to-end (stops before publish): make add-season SEASON=YYYY
 	@test -n "$(SEASON)" || { echo "Usage: make add-season SEASON=YYYY"; exit 1; }
-	@echo "── 1/7  Ingest races for season $(SEASON) ──────────────────────────"
+	@echo "── 1/8  Ingest finished rounds for $(SEASON) (unrun rounds skipped) ──"
 	./.venv/bin/python ingestion/src/ingest.py --season $(SEASON) --session both
-	@echo "── 2/7  Ingest standings + pit stops for $(SEASON) ─────────────────"
+	@echo "── 2/8  Ingest standings + pit stops for $(SEASON) ─────────────────"
 	./.venv/bin/python ingestion/src/jolpica_client.py --start-season $(SEASON) --end-season $(SEASON)
-	@echo "── 3/7  Verify Bronze integrity ────────────────────────────────────"
+	@echo "── 3/8  Verify Bronze integrity ────────────────────────────────────"
 	./.venv/bin/python ingestion/verify_bronze.py
-	@echo "── 4/7  Re-fit isotonic tyre-deg curves ────────────────────────────"
+	@echo "── 4/8  Seed coverage for $(SEASON) (stops with a to-do list) ──────"
+	./.venv/bin/python ingestion/scripts/check_season_seeds.py --season $(SEASON)
+	@echo "── 5/8  Re-fit isotonic tyre-deg curves ────────────────────────────"
 	$(MAKE) deg-iso-fit
-	@echo "── 5/7  Full dbt build (car-FE refit + all models) ─────────────────"
+	@echo "── 6/8  Full dbt build (car-FE refit + all models) ─────────────────"
 	$(MAKE) dbt-dev-full
-	@echo "── 6/7  dbt tests ──────────────────────────────────────────────────"
+	@echo "── 7/8  dbt tests ──────────────────────────────────────────────────"
 	$(MAKE) dbt-test
-	@echo "── 7/7  Export warehouse → app/public/data/ ────────────────────────"
+	@echo "── 8/8  Export warehouse → app/public/data/ ────────────────────────"
 	$(MAKE) app-data
 	@echo "── ✔    Smoke test ─────────────────────────────────────────────────"
 	./.venv/bin/python scripts/smoke_test_season.py $(SEASON)

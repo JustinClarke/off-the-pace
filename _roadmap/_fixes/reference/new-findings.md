@@ -1,8 +1,9 @@
-# New findings — F50–F54
+# New findings — F50–F55
 
 Found during reverification of F1–F49 (2026-09-24), not already in any of the three audit rounds.
 Numbered to continue the audit's own convention without colliding with F1–F49. Written in the
 audit's own format so they can be folded into the reports' own tables if desired.
+F55 was found later, by the WI-05 build's verification, not by the reverification.
 
 ---
 
@@ -165,7 +166,60 @@ audit's own format so they can be folded into the reports' own tables if desired
   build-over-build, or (better, per F17's own recommended ruling) key `pu_family` on the constructor
   *entity* using the same alias pattern `macros/circuit_id_from_name.sql` already uses for circuits,
   which would make the mapping rename-proof rather than needing to catch renames after the fact.
+  *Build correction (WI-09):* the circuit precedent does not transfer as written.
+  `circuit_id_from_name` slugifies a display name that is stable across event renames; constructors
+  have no such stable name, so an entity key needs a new alias table (and a decision on whether
+  `pu_family` is per entity or per season), and a brand-new rename still needs a row. WI-09 added
+  the three missing `pu_mapping` rows and the test; the entity-keyed rewrite is an open question.
 - **Test:** new — `assert_pu_family_coverage.sql`, warn-level, checking `unknown_pu` count against a
-  stored baseline.
+  stored baseline. *Built as a zero assertion:* with the three renames mapped the baseline is 0, so
+  no stored baseline file is needed.
 - **How I could be wrong:** if `pu_family` genuinely stays unconsumed forever (F17's finding), this
   is pure defense-in-depth with no realized cost. It's cheap enough to add regardless.
+
+
+---
+
+## F55 — `fit_weight_penalty.py` divides by a fuel burn rate the fuel model no longer uses
+
+- **Severity:** Low (one shipped value today; every refit inherits it).
+- **file:line:** `transform/tasks/coefficients/fit_weight_penalty.py` — `run_fit` passes
+  `fuel_rate=float(ref_row["fuel_consumption_rate_kg_per_lap"])` (the hand-set constant in
+  `seeds/circuit_reference.csv`) into `calibrate_circuit`, which computes
+  `measured_wpf = max(-slope / fuel_rate, 0.005)`. Since WI-05 (F6/F32), `int_lap_fuel_state.sql` no
+  longer reads that constant: it burns `fuel_regulatory_max_kg / scheduled_laps` per race.
+- **Observed behaviour:** `spanish_grand_prix` carries 1.9 kg/lap in the seed; the model burns
+  110/66 = 1.667 kg/lap (105/66 = 1.591 in 2018; 1.657 averaged over the 8 Spanish GPs), so the seed
+  constant is 1.147x the burn actually applied. Spain is the only circuit whose adopted
+  `weight_penalty_factor` moved off its formula prior (0.025 -> 0.02162, n = 80 laps, flag OK): the
+  fitter rejected the other 24 tested circuits as `REVIEW_REQUIRED` and kept the prior, and 19 had
+  too few laps.
+- **Why it is wrong:** the factor converts a measured lap-time slope (s/lap) into s/kg by dividing
+  by the burn rate. Divide by 1.9 where the model burns ~1.66 and the factor comes out ~13% too low
+  (the right value is ~15% higher). Two consequences: (1) a refit of Spain, or of any circuit that
+  clears the 30% review threshold, repeats the error; (2) the shipped Spain value was fitted under
+  the 1.9 assumption but is now applied with a ~1.66 burn, so the model's Spain fuel correction is
+  about 13% weaker than the regression that produced it implied (1.66 x 0.02162 = 0.0358 s/lap
+  against 1.9 x 0.02162 = 0.0411 s/lap) -- arithmetic from the code, not measured on the warehouse.
+- **Second, related problem -- the two fits feed each other.** The fitter strips compound wear using
+  `int_compound_cliff_predicted.expected_compound_pace_s`; since WI-02a the compound seed is fitted
+  on a pace series corrected with `weight_penalty_s`, i.e. on `weight_penalty_factor`. Each fit's
+  input is the other's output, so which one runs first (and whether they iterate) is undecided.
+- **Verdict:** Wrong constant; low current impact.
+- **Earliest point:** WI-05's fuel-model change, which stopped reading the seed constant without
+  updating the fitter.
+- **Isolated or systematic:** one shipped value (Spain, 8 races); systematic for any refit.
+- **ML impact:** small today -- Spain's fuel correction reaches pace features and labels for 8
+  races only. It grows if the fitter is run against more circuits.
+- **Recommended fix:** take the burn rate from the model itself (the per-race rate in
+  `int_lap_fuel_state`, or `fuel_regulatory_max_kg / scheduled_laps`), not the seed constant; then
+  drop `fuel_consumption_rate_kg_per_lap` from `circuit_reference` / `dim_circuits` if nothing else
+  reads it. Then refit Spain and decide the fit order against the compound refit in the same pass.
+  The code fix is owned by **WI-13** (folded in 2026-09-24); the Spain refit and the fit order stay
+  with **WI-02b**, because the fitter's input, `expected_compound_pace_s`, changes when that refit lands.
+- **Test:** new -- a fitter unit test asserting the rate passed to `calibrate_circuit` equals
+  `int_lap_fuel_state`'s mean rate for that circuit; it fails against the seed constant for Spain.
+- **How I could be wrong:** found by the WI-05 executing agent and re-checked by the orchestrator:
+  the constant (1.9), Spain's scheduled laps (66) and that Spain is the only moved factor. No refit
+  was run. Whether anything besides the fitter still reads `fuel_consumption_rate_kg_per_lap`
+  (`fit_compound_cliff.py` mentions the name) was not checked.

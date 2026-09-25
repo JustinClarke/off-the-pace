@@ -21,7 +21,8 @@
 -- the regulatory limit (median 117.8 kg, Sakhir 2020 147.9 kg -- F32). The two
 -- compound on the same neutralised races (F52); one scheduled-distance column
 -- fixes both. dim_circuits.fuel_consumption_rate_kg_per_lap is no longer read
--- here (the weight-penalty fitter and the app's simulator still use it).
+-- here (the app's simulator still uses it; the weight-penalty fitter divides by
+-- this model's rate since WI-13, F55).
 --
 -- JOIN COMPLETENESS (F8). The two seed joins below are INNER on purpose -- a
 -- race with no track or no scheduled distance cannot be priced -- and they

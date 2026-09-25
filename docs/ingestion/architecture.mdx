@@ -85,7 +85,7 @@ Every dataset beyond the laps file itself is written by its own function, called
     Renames `Category`/`Message` to `category`/`message`. The `Time` column arrives in different shapes across sessions a plain `timedelta64`, a timezone-aware datetime, or something `pd.to_timedelta` needs to coerce and the writer handles all three explicitly, converting each to elapsed `session_time_s` rather than assuming one representation and raising on the others.
   </Accordion>
   <Accordion title="_write_telemetry">
-    Iterates every lap in `session.laps`, pulling that lap's `get_telemetry()` individually. A single lap's `get_telemetry()` call is wrapped in its own inner `try/except` that swallows the exception silently safety-car laps, pit-in/pit-out laps, and red-flagged stints routinely have no telemetry, and that's expected, not an error. Only logs a warning if *no* lap in the whole race produced telemetry.
+    Iterates every lap in `session.laps`, pulling that lap's `get_telemetry()` individually. A single lap's `get_telemetry()` call is wrapped in its own inner `try/except`: an isolated lap with no telemetry is normal, so the write goes ahead, but every failure is counted. The writer returns a coverage record (laps attempted vs merged, how many drivers had car-data and position samples, the commonest errors) that goes into the run manifest; a race under 95% coverage is logged as `[LOW TELEMETRY]` unless it is a documented known gap (2018 Rd1/Rd2). What is written for a healthy race is unchanged.
   </Accordion>
   <Accordion title="_write_telemetry_full">
     Only runs when `--telemetry-full` is passed. Writes full-channel `car_data` (Speed, Throttle, Brake, `nGear`, RPM, DRS) per driver, partitioned by `driver=<id>`, compressed with `zstd` instead of `snappy` since this dataset is substantially larger.
@@ -103,7 +103,7 @@ Every dataset beyond the laps file itself is written by its own function, called
     Writes red-flag and session-status transitions, with the same `Time`-format handling as `_write_track_status`.
   </Accordion>
   <Accordion title="_write_circuit_info">
-    Writes corner geometry from `session.get_circuit_info()` one row per corner, with coordinates and marshal-sector numbers. Returns silently if the session has no circuit-info accessor at all (older seasons).
+    Writes corner geometry from `session.get_circuit_info()` one row per corner, with coordinates and marshal-sector numbers. A failure (e.g. MultiViewer has no layout for a new venue) is tolerated but returned as `failed: <error>` and recorded in the manifest's `circuit_info_status`, so a race without circuit info is visible without reading the log.
   </Accordion>
   <Accordion title="_write_event_schedule">
     Called once per season, not per race writes the full FastF1 event schedule (every round, including non-numbered events) to `schedule/season=<year>/schedule.parquet` after the season's races/qualifying sessions are done.

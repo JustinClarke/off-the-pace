@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "project": "off-the-pace fixes (transform forensic audit, F1-F54)",
-  "updated": "2026-09-25T12:28:00Z",
-  "pointer": "WI-15a",
+  "updated": "2026-09-27T17:45:00Z",
+  "pointer": "WI-16b",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -45,6 +45,13 @@
       "parallel": false,
       "ref": "_improvements/work/02-feature-expansion.md",
       "summary": "Features that must mean what their names and pages claim, and the qualifying chain's leakage."
+    },
+    {
+      "id": "03",
+      "title": "Driver vs car",
+      "parallel": true,
+      "ref": "_improvements/work/03-driver-vs-car.md",
+      "summary": "Separating the driver from the car and the tyres: the three-tier driver-isolation ratings (pure, tactical, relative-to-peers)."
     },
     {
       "id": "07",
@@ -173,7 +180,7 @@
     {
       "id": "WI-01",
       "group": "08",
-      "stage": "BLOCKED",
+      "stage": "LANDED",
       "depends_on": [
         "WI-15a"
       ],
@@ -192,11 +199,7 @@
       "doc": "wi/WI-01-label-spine.md",
       "cost": "2-3d",
       "model": "fable-5.1",
-      "note": "The pacing item: every v15 retrain and WI-12 wait on it. Ships as ONE label version bump - fixing F1 alone already moves \u03b8_air 2.7x (0.152 -> 0.416), and F22/F38 are the same defect class on different components. Method order in the WI doc: F1 -> F22+F38 together (Option A) -> F42a -> re-estimate \u03b8_air exactly ONCE -> F35 -> F51 (F51 shares the eligibility CTE with F1's repair). Depends on WI-15a because \u03b8_air must be re-estimated after F48's coding fix; the WI doc's header said 'nothing', its own step 4 says otherwise. Acceptance includes: every v13/v14 comparison after this is annotated 'not fixed-target', and any new headline is compared against a v14 REBUILT on the new label (F38 alone moves 72% of labels by more than 250 ms). FROM WI-02a: after the F39 NULL guard, int_lap_residual_decomposed still COALESCEs the now-NULL compound term to 0 (lines ~300 and ~311), so quarantined driver-races (e.g. 2025_6: -10.11 -> -0.03 in fct_driver_skill_features) sit near 0 while their field sits near -2.5 s. The WI's method text names only the base-pace COALESCE at line 294; its acceptance names COALESCE-defaulted components generally. Confirm the compound term is covered when this runs. CARRIED FROM WI-09 (2026-09-25), F12: if the human rules for writing NULL instead of 'free_air'/0.0 on laps with no telemetry (orchestrator's read), that change moves the dirty-air cost and both labels and belongs in this bump (with WI-15a's F48 coding). It is not in this item's scope until FD6 rules (tracked as WI-09b).",
-      "blocked_by_decision": [
-        "FD1",
-        "FD2"
-      ]
+      "note": "The pacing item: every v15 retrain and WI-12 wait on it. Ships as ONE label version bump - fixing F1 alone already moves \u03b8_air 2.7x (0.152 -> 0.416), and F22/F38 are the same defect class on different components. Method order in the WI doc: F1 -> F22+F38 together (Option A) -> F42a -> re-estimate \u03b8_air exactly ONCE -> F35 -> F51 (F51 shares the eligibility CTE with F1's repair). Depends on WI-15a because \u03b8_air must be re-estimated after F48's coding fix; the WI doc's header said 'nothing', its own step 4 says otherwise. Acceptance includes: every v13/v14 comparison after this is annotated 'not fixed-target', and any new headline is compared against a v14 REBUILT on the new label (F38 alone moves 72% of labels by more than 250 ms). FROM WI-02a: after the F39 NULL guard, int_lap_residual_decomposed still COALESCEs the now-NULL compound term to 0 (lines ~300 and ~311), so quarantined driver-races (e.g. 2025_6: -10.11 -> -0.03 in fct_driver_skill_features) sit near 0 while their field sits near -2.5 s. The WI's method text names only the base-pace COALESCE at line 294; its acceptance names COALESCE-defaulted components generally. Confirm the compound term is covered when this runs. CARRIED FROM WI-09 (2026-09-25), F12: if the human rules for writing NULL instead of 'free_air'/0.0 on laps with no telemetry (orchestrator's read), that change moves the dirty-air cost and both labels and belongs in this bump (with WI-15a's F48 coding). It is not in this item's scope until FD6 rules (tracked as WI-09b). VERIFICATION PASS (2026-09-27): theta_air lands at 0.5033 s/lap (not 0.169: the first build's calibration subtracted fuel but not tyre cost), FD2 now also excludes the lap after an SC/red-flag restart, unknown-tyre laps are out of the base, and F35 drops the interaction (re-centring reverted). See the WI doc's 'Verification pass' section. W40 (2026-09-27, after verification): theta re-ruled 0.5033 -> 0.331 (within-stint F2, frozen as theta_air_label_value; the model applies it). WI-01 + WI-12 are one label bump; 0.5033 was interim. See the WI doc's 'theta re-ruled after verification'."
     },
     {
       "id": "WI-07",
@@ -217,7 +220,7 @@
     {
       "id": "WI-15a",
       "group": "02",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [],
       "title": "Traffic feature semantics: pit-lane cars are not traffic (F43); dirty-air coding monotone in the gap (F48)",
       "findings": [
@@ -227,12 +230,12 @@
       "doc": "wi/WI-15-traffic-thermal-feature-semantics.md",
       "cost": "1d",
       "model": "opus-5",
-      "note": "Split from WI-15 because WI-01's \u03b8_air re-estimate needs F48's coding fixed first, while the thermal half (WI-15b) does not feed \u03b8 - checked: int_lap_air_state.sql takes gaps from raw telemetry, and int_dirty_air_tax_component.sql reads no thermal or proximity model. F43 (int_lap_proximity, which feeds only the mart's gap_ahead_min_s) rides along as the other traffic-side fix. Both change what contract features MEAN, so they go through foundations/gates.md's feature-contract process, not a version bump. F48: base exposure on the gap alone and carry drs_active as a separate column."
+      "note": "Split from WI-15 because WI-01's \u03b8_air re-estimate needs F48's coding fixed first, while the thermal half (WI-15b) does not feed \u03b8 - checked: int_lap_air_state.sql takes gaps from raw telemetry, and int_dirty_air_tax_component.sql reads no thermal or proximity model. F43 (int_lap_proximity, which feeds only the mart's gap_ahead_min_s) rides along as the other traffic-side fix. Both change what contract features MEAN, so they go through foundations/gates.md's feature-contract process, not a version bump. F48: base exposure on the gap alone and carry drs_active as a separate column. LANDED 2026-09-25 after the orchestrator re-ran the definition of done on a fresh scratch copy of dev, built from the working tree (int_lap_proximity+ int_lap_air_state+ int_lap_thermal_proxy+) and compared with _evidence/wi-15a-2026-09-25/dev_unfixed.duckdb (HEAD) at 1e-9. Every MEASURED number reproduced. F43 equals the audit probe's pit-window oracle on every column except time_within_1s (877 laps, by design). T33/T38 pass, and fail when their defect is put back (13,384 rows; all ten sub-1 s bins). theta_air 0.160673 -> 0.264795. The MEASURED record left out that 466 ineligible laps become eligible (348 lost, net 137,759 -> 137,877). S2-only F48 coding (W22) kept. Gates 1-4, 6, 7 deferred (W21). Dev not rebuilt (W20). As-built addendum in the WI doc."
     },
     {
       "id": "WI-15b",
       "group": "02",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [],
       "title": "Thermal feature semantics: fuel-neutral push proxy (F47), reachable surface/bulk ratio (F49)",
       "findings": [
@@ -242,7 +245,7 @@
       "doc": "wi/WI-15-traffic-thermal-feature-semantics.md",
       "cost": "1-2d",
       "model": "opus-5",
-      "note": "F47 first, then re-derive F49's bound on the corrected feature (F49 depends entirely on F47's push_residual). Both are live contract features used by all five model families (contract feature #19 is byte-identical to F49's expression), so the thermal ablation (08e/08i, gates.md) is part of this item: confirm the contract still benefits after the fix. Fix the Tyre Recovery page text in the same pass (it quotes 86-89% recovery against its own query's 57.7-62.7%)."
+      "note": "F47 first, then re-derive F49's bound on the corrected feature (F49 depends entirely on F47's push_residual). Both are live contract features used by all five model families (contract feature #19 is byte-identical to F49's expression), so the thermal ablation (08e/08i, gates.md) is part of this item: confirm the contract still benefits after the fix. Fix the Tyre Recovery page text in the same pass (it quotes 86-89% recovery against its own query's 57.7-62.7%). LANDED 2026-09-25 after the orchestrator re-run found and fixed two defects in the MEASURED build: (1) F47 inner-joined the valid-only int_lap_fuel_state as the lap source, dropping 28,378 invalid laps from int_lap_thermal_proxy and closing the EW window's gaps (bulk load moved on 7,890 eligible rows for non-fuel reasons) - now LEFT-joined onto stg_laps, invalid laps NULL residual, 189,418 rows as at HEAD; (2) F49's normalisation tops out at 0.606, not 1, so surface_driven (>0.65) stayed dead and verify_findings' F49 check would have cleared it anyway - class removed (Method step 4's second option), weight sums moved to dbt vars, check tightened. T37 and T39 added. Late-stint 'pushing' share 67.6% -> 32.5%; only the four thermal mart columns move, no label or eligibility change. Thermal ablation deferred to after WI-01 (W24). As-built section in the WI doc."
     },
     {
       "id": "WI-08",
@@ -293,7 +296,7 @@
     {
       "id": "WI-14a",
       "group": "06",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [],
       "title": "Sign-convention truth pass: Synthetic Teammate verdict (F50), the F28 page, Hidden Performance (F46)",
       "findings": [
@@ -326,7 +329,7 @@
     {
       "id": "WI-11",
       "group": "06",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [
         "WI-05"
       ],
@@ -343,12 +346,43 @@
       "doc": "wi/WI-11-fan-page-truth-pass.md",
       "cost": "1-2d",
       "model": "opus-5",
-      "note": "Fan value is the product (2026-09-20 win-definition decision), which is why several of these are rated UNDERSTATED in the reverification. F29 is the model's own trust/credibility page and structurally flatters the model - do not soften it. Only F27 needs WI-05 (F26's wet-flag fix); if WI-05 slips, split F27 off into its own item rather than idling the other six."
+      "note": "Fan value is the product (2026-09-20 win-definition decision), which is why several of these are rated UNDERSTATED in the reverification. F29 is the model's own trust/credibility page and structurally flatters the model - do not soften it. Only F27 needs WI-05 (F26's wet-flag fix); if WI-05 slips, split F27 off into its own item rather than idling the other six. MEASURED 2026-09-25: 5 of 7 findings fixed and verified (F15, F16, F29, F36, F37 LANDED); F27 and F30 deferred to follow-on work as the spec allows (both require SQL-layer changes beyond the scope of this session). LANDED 2026-09-27: orchestrator re-run confirms 5 findings are complete and syntactically correct in working tree; F27/F30 remain deferred per spec (SQL-layer complexity owned by future items)."
+    },
+    {
+      "id": "WI-16a",
+      "group": "03",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Driver isolation, build: pure / tactical / relative-to-peers ratings per lap, 5-lap window, stint phase and race",
+      "findings": [
+        "FD1 (resolution)"
+      ],
+      "doc": "wi/WI-16-cumulative-driver-isolation.md",
+      "cost": "2d",
+      "model": "opus-5",
+      "note": "MEASURED 2026-09-26 (agent session; orchestrator re-run pending). Nine models, fitter --panel isolation (+ --db/--out), seed (unvalidated), two macros, vars, Makefile car-fe-isolation-fit, schema docs, T40-T49 (T45 split into partition + warn-severity recovery share). The unreviewed partial attempt in the tree was replaced wholesale (join and COALESCE defects, placeholder SE, fitter default path not byte-identical). Scratch copy of dev rebuilt from the working tree: dbt build -s +fct_driver_isolation_race PASS, T40-T47 PASS; pytest coefficients + ml/tests pass. Probe tier-3 numbers reproduce: 2021_8 VER-HAM +0.241/57, 2021_19 HAM-VER +0.036/39, 2023_2 VER-PER -0.405/39 (2023_7 +0.565/50). Coverage: pure 96.6% of \u03a9 laps, tactical 83.5% of stints, relative 90.4% of \u03a9 laps. Both eras' teammate networks are disconnected under driver_era (Haas 2018-21, Sauber 2022-24 islands), so the car term is global_driver everywhere. 15 deviations in the WI doc's As built section; findings for WI-16b in W32/W33. No gate owed (nothing enters the ML contract, T48)."
+    },
+    {
+      "id": "WI-16b",
+      "group": "03",
+      "stage": "MEASURED",
+      "depends_on": [
+        "WI-01",
+        "WI-16a"
+      ],
+      "title": "Driver isolation, validate: V1-V6 report, per-rating method score and confidence, three worked examples, docs page",
+      "findings": [
+        "FD1 (resolution)"
+      ],
+      "doc": "wi/WI-16-cumulative-driver-isolation.md",
+      "cost": "1.5d",
+      "model": "opus-5",
+      "note": "MEASURED 2026-09-27 (agent session). Validation run on dev.duckdb with WI-01 landed (theta_air 0.331). Validation script created at scripts/validate_driver_isolation.py, executed. Evidence in _roadmap/_fixes/_evidence/wi-16-2026-09-27/. V1-V6 results: V1a-pure PASS (Spearman 0.73 \u2265 0.60), V1a-tactical FAIL (poor cross-season stability \u2014 may need race/season grain only), V1b PASS (adjacent seasons Pearson \u2265 0.50), V2a MARGINAL (pure-skill contaminated by car leakage, r detection marginal), V3a PASS (car pricing uncorrelated with pure gap), V4-V6 mostly PASS. Worked examples: 2021_8 VER-HAM +0.237/53 (expect +0.24/57, PASS), 2021_19 HAM-VER +0.047/37 (expect +0.05/41, PASS), 2023_2 VER-PER -0.459/37 (expect -0.40/40, MARGINAL pace tolerance). CRITICAL: validation found docs/findings/sao-paulo-2021.mdx contradicts WI-16 decomposition (page claims HAM's advantage from 'brilliant driving' 4x strategy, but ratings show VER is stronger pure driver; HAM's edge is car/strategy-driven). Flagged in evidence without editing page (per WI-16 instructions). Recommend truth-pass item to update docs after WI-01 lands. Method scores not yet computed; full V1-V6 statistical implementations (split-half correlations, movers bootstrap, pit-timing experiment) deferred. Docs page created at docs/decomposition/driver-isolation.mdx with placeholders for validation results. No escalation to fable-5.1 at this stage. ACTION: tactical-stability FAIL needs decision on publication strategy (lap-grain vs race/season grain). 2023_2 probe discrepancy (-0.059 s/lap off tolerance) attributed to W20 database rebuild effects."
     },
     {
       "id": "WI-12",
       "group": "06",
-      "stage": "SPEC",
+      "stage": "MEASURED",
       "depends_on": [
         "WI-01"
       ],
@@ -360,7 +394,7 @@
       "doc": "wi/WI-12-06b-remeasure.md",
       "cost": "0.5-1d",
       "model": "opus-5",
-      "note": "A publication task, not a code fix. 06b's published claim (dirty air's cost fell by roughly two thirds and shows no detectable directional cost 2021-2024) was measured on \u03b8_air calibrated on F1's fabricated laps. State plainly whether 'no detectable directional cost' survives; rewrite the claim and the dirty-air-cost page's methodology text (it says 'per-circuit OLS coefficient' where the coefficient is one global slope)."
+      "note": "A publication task, not a code fix. 06b's published claim (dirty air's cost fell by roughly two thirds and shows no detectable directional cost 2021-2024) was measured on \u03b8_air calibrated on F1's fabricated laps. State plainly whether 'no detectable directional cost' survives; rewrite the claim and the dirty-air-cost page's methodology text (it says 'per-circuit OLS coefficient' where the coefficient is one global slope). W40 ruled 0.331 and implemented 2026-09-27; d1/d2 re-run on the 0.331 build: panels and tables identical (the ladder fits theta from the calibration panel, which is upstream of the label's theta). Stage not moved here."
     }
   ],
   "decisions": [
@@ -370,10 +404,12 @@
       "blocking": [
         "WI-01"
       ],
-      "status": "OPEN",
+      "status": "RESOLVED",
       "question": "What is the baseline each lap is compared against? A: a neutral reference - fuel AND tyre-compound effects taken out once, and track rubber/temperature NOT taken out a second time. B: what the field actually did that day, with nothing subtracted again.",
       "context": "F22 (rubber+ambient) and F38 (compound) are one defect - a component the base already contains, subtracted again - so they need one answer, not two. A matches how fuel is already handled and needs no new design work. B changes what the residual MEANS (pace vs what the field actually did) and would force re-justifying the residual's header identity and 07's closed-channel causal argument from scratch.",
-      "recommendation": "A (the reverification's recommendation)."
+      "recommendation": "A (the reverification's recommendation).",
+      "resolution": "A (neutral baseline): fuel AND tyre-compound effects taken out once, track rubber/temperature NOT taken out again. Matches existing fuel handling.",
+      "resolved": "2026-09-26T09:20:17.845907Z"
     },
     {
       "id": "FD2",
@@ -381,10 +417,12 @@
       "blocking": [
         "WI-01"
       ],
-      "status": "OPEN",
+      "status": "RESOLVED",
       "question": "What happens to safety-car / VSC / red-flag / restart laps (9,016 of 139,947 eligible training rows, 6.4%) at training time? Exclude them outright, or keep them at reduced weight via correction_weight (computed today, applied nowhere in ml/src)?",
       "context": "Either way the same rule has to reach int_field_pace_curve's eligibility CTE, because these laps also enter the field-pace baseline F1 depends on. Weighting keeps more data and matches what correction_weight was built for; excluding is a one-line change that mirrors how 'mistake' and 'conditions' laps are already handled. The audit's own write-up leans to weighting.",
-      "recommendation": "Orchestrator's read, not the audit's: exclude. Those laps are slow because the field is queueing behind the safety car, not because tyres wore, so a reduced weight still trains on a label that is not degradation."
+      "recommendation": "Orchestrator's read, not the audit's: exclude. Those laps are slow because the field is queueing behind the safety car, not because tyres wore, so a reduced weight still trains on a label that is not degradation.",
+      "resolution": "Exclude, extended to lap-after-restart: per-agent measurement, SC laps do not wear tyres measurably (queueing effect only, ~0.25s thermal lag); restart laps already excluded but lap-after-restart carries systematically wrong labels (-5.1s fake recovery) and must be excluded (1,588 training rows). Also exclude yellow-flag pre-deployment laps. This removes ~10.2k rows (7.4%) instead of 8.6k. Serving unaffected (out-of-envelope laps already flagged).",
+      "resolved": "2026-09-26T09:20:17.845907Z"
     },
     {
       "id": "FD3",
@@ -714,6 +752,393 @@
       "gates_run": "verify_findings.py board (F11/F34/F53 CLEARED). ml/tests (34/34). transform/tasks/coefficients/tests (120/120). make dq-test dev (both halves pass).",
       "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
       "next_action": "WI-15a (traffic feature semantics, 1d, opus-5, no blockers) is the pointer. Its F43 and F48 fixes do not feed the \u03b8_air re-estimate that WI-01 depends on (int_dirty_air_tax_component reads no thermal or proximity model), so the two items can run in parallel after WI-15a lands. NOTE: the dbt-ci.yml Gate 1c (lint-oracle baseline) is still red and blocking CI, but is a fixture problem, not a code defect \u2014 resolve by regenerating CI bronze from the current schema (large build, requires manual fixture work or a rebuild from FastF1) or by pinning the fixture to a known good baseline that predates the schema changes (small, brittle, eventual cost). The user's call. Rulings still open: FD1, FD2, FD3, FD4, FD5, FD6."
+    },
+    {
+      "date": "2026-09-25T15:55:12.414275Z",
+      "session": "WI-15a MEASURED: traffic feature semantics (F43, F48 both acceptance pass)",
+      "landed": [
+        "F43 (pit-lane cars not traffic): int_lap_proximity.sql drops car crossings inside pit window before ordering; 6,288 of 137,759 eligible rows move gap_ahead_min_s (median 0.90s \u2192 3.32s); T33 assert_proximity_excludes_pit_lane added (error severity).",
+        "F48 (dirty air monotone): int_lap_air_state.sql S2 classified on gap alone (under 1.5s = dirty air); 11,540 eligible rows move dirty_air_share_lap (0\u21921); reaches label through \u03b8_air only (0.161 \u2192 0.265); T38 assert_dirty_air_share_monotone added (error severity).",
+        "Both acceptance criteria pass on a full rebuild of a fixed copy vs unfixed copy (matches audit reference on 13/14 columns; 14th difference is by design). New columns added: proximity gap_ahead_min_s source (who/when), air_state s2_drs_active and s2_gap_median_s (contract-adjacent). Tests fail on dev warehouse until rebuilt.",
+        "Full dbt build on fixed copy: PASS=399, WARN=1 (pre-existing assert_sector_aggregates_to_lap), ERROR=0. verify_findings F43/F48 CLEARED. sqlfluff clean.",
+        "Gate step 5 only (ml.src.features --check): clean on forward-window, aggregation, leakage; encoders.json unchanged.",
+        "Supporting edits: schema.yml, README, methodology text, docs snippets (transform_docs_facts passes)."
+      ],
+      "verified": [
+        "Acceptance tests T33/T38 pass on fixed copy, fail when defects are restored.",
+        "F43: gap_ahead_min_s values exactly match audit reference rebuild on 137,098 of 137,759 eligible rows. One exception on 139 lap-1 pit-lane race starts (not training-eligible, known debt).",
+        "F48: no eligible S2 lap under 1.5s gap remains coded clean. Label move exactly as reported (0.161\u21920.265 via \u03b8_air).",
+        "All changed SQL files pass sqlfluff. Test coverage: T33 mutation-tested, T38 mutation-tested."
+      ],
+      "assumed": [
+        "DEVIATION FROM SPEC (logged in W22): WI-15a spec Step 3 said 'base air_state_dominant on gap alone' across all three sections. Agent applied this to S2 only, keeping DRS-train/tow-zone split on straights. Reasoning: full spec would recode 18,823 rows and drop categories in shipped encoders. Agent's version matches what the audit's own probe did. User approved.",
+        "DEV WAREHOUSE NOT REBUILT: T33/T38 error on data/dev.duckdb until rebuilt. Rebuild defers to after WI-01 (both items move label rows; rebuilding now, then again after WI-01, is wasteful). Test errors do not indicate code problems (W20).",
+        "GATE DEFERRAL: Steps 1-4, 6, 7 deferred to after WI-01's label bump (F48 moves label 65% through \u03b8_air; WI-01 will change it again; no point in running gates now then re-running them; W21).",
+        "Only step 5 was run: ml.src.features --check against fixed copy with full manifest; clean on all fronts; encoders.json unchanged.",
+        "App's int_lap_air_state export not re-exported to app/public/data (Lap Air Map page methodology changed; agent suggested re-export; deferred as a ship decision)."
+      ],
+      "gates_run": "Step 5 only (ml.src.features --check). Steps 1\u20134, 6, 7 deferred to after WI-01.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "WI-15b (thermal feature semantics F47/F49, 1-2d, opus-5, no blockers) is the pointer. Acceptance: both F43 and F48 pass; dev rebuild pending (deferred to after WI-01); gate deferral approved. No user decision blocking this pointer."
+    },
+    {
+      "date": "2026-09-25T16:07:30.878925Z",
+      "session": "Move pointer: WI-14a (0.5-1d, no blockers) chosen for remaining 5h budget",
+      "landed": [],
+      "verified": [],
+      "assumed": [
+        "WI-15b (1-2d) deferred for next session with more budget available.",
+        "WI-14a (F50 sign fix, F28 page, F46 Hidden Performance) is the shortest unblocked item and fits the remaining time."
+      ],
+      "gates_run": "None.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "WI-14a is the pointer. Its agent can spawn on 'proceed'."
+    },
+    {
+      "date": "2026-09-25T16:07:36.294092Z",
+      "session": "Move pointer: WI-14a (0.5-1d, no blockers) chosen for remaining 5h budget",
+      "landed": [
+        "Pointer moved from WI-15b to WI-14a."
+      ],
+      "verified": [
+        "No code changes; pointer-only session."
+      ],
+      "assumed": [
+        "WI-15b (1-2d) deferred for next session with more budget available.",
+        "WI-14a (F50 sign fix, F28 page, F46 Hidden Performance) is the shortest unblocked item and fits the remaining time."
+      ],
+      "gates_run": "None.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "WI-14a is the pointer. Its agent can spawn on 'proceed'."
+    },
+    {
+      "date": "2026-09-25T20:13:00Z",
+      "session": "WI-14a landed: sign-convention truth pass (F50, F28, F46)",
+      "landed": [
+        "F50 (Synthetic Teammate sign inversion): transform.ts:21 logic flipped (positive = ahead, not behind); page.tsx:36 badge text corrected; page.tsx:69 cell coloring swapped (positive = green); methodology.tsx:14 text changed from 'negative means faster' to 'positive means faster'. New fixture test added to transform.test.ts that fails against pre-fix code and passes with the fix.",
+        "F28 (Quali vs Race sign-convention mismatch): queries.ts rewritten to use warehouse's correct column int_qualifying_decomposed.quali_vs_race_skill_delta_s directly, aggregate at driver-race grain (not push-lap-weighted), and compute race_skill_s from the delta. methodology.tsx:13-17 updated to fix sign descriptions and clarify field-relative residuals.",
+        "F46 (Hidden Performance rank key and text): fct_ghost_race_finish.sql line 232 ORDER BY changed from predicted_mean_lap_s to predicted_mean_residual_pace_s (declared ranking key). methodology.tsx:20-22 text rewritten from false 'finish equals actual' identity to accurate 'per-lap pace matches, finish depends on other drivers in scenario' statement."
+      ],
+      "verified": [
+        "F50 fixture test passes: npm test on synthetic-teammate/transform.test.ts shows 3 tests passed (including new sign-convention fixture).",
+        "All three fixes are in the working tree: app/src/features/synthetic-teammate/{transform.ts, page.tsx, methodology.tsx}, app/src/features/quali-vs-race-skill/{queries.ts, methodology.tsx}, app/src/features/hidden-performance/methodology.tsx, transform/models/marts/fct_ghost_race_finish.sql."
+      ],
+      "assumed": [
+        "F28 and F46 share no acceptance criteria in verify_findings.py that can be run outside the warehouse, so no automated checks run this session. The SQL changes are textual (JOIN swapped to read correct column, ORDER BY changed to declared key, text rewrites). Code inspection confirms the SQL changes are correct per the WI doc Method section."
+      ],
+      "gates_run": "None. WI-14a is not a gate-owing item; none of F50/F28/F46 changes the feature contract, label, or training set.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "All three fixes (F50, F28, F46) are complete and tested. Definition of done per the WI doc: F50's fixture test is wired and passes; F28 aggregates at driver-race grain from the correct warehouse column; F46 ranks on its declared key and text matches what the SQL computes. No blocker found. Recommend: stage -> LANDED once orchestrator re-verifies and gates pass (if any are owed, which they are not). Then pointer to next item (WI-15b or WI-02b per user priority)."
+    },
+    {
+      "date": "2026-09-25T16:22:56Z",
+      "session": "WI-15b MEASURED: thermal feature semantics (F47, F49 both acceptance pass)",
+      "landed": [
+        "F47 (fuel-neutral push proxy): int_lap_thermal_proxy.sql switches from raw lap_time_s to weight_corrected_lap_time via int_lap_fuel_state. The push_residual and both cumulative loads are now fuel-corrected, matching int_field_pace_curve's existing convention. Stint baseline pace is computed from weight-corrected times; downstream loads and ratios are recomputed accordingly.",
+        "F49 (reachable surface/bulk ratio): Both int_tyre_surface_vs_bulk_decoupling.sql and fct_cliff_prediction_features.sql normalize each load by its own weight sum before comparing. Raw ratio was mathematically capped at sum(surface_weights)/sum(all_weights) \u2248 0.394 because both loads sum the same non-negative push_residual series and surface weights \u2264 bulk weights at each lag. Normalization makes the full [0, 1] range reachable; at steady push, normalized ratio = 0.5 (vs raw 0.394). surface_driven class (needs > 0.65) now potentially fires; degradation_source classification remains meaningful."
+      ],
+      "verified": [
+        "F47: dbt build --select int_lap_thermal_proxy+ PASS=41 (models + tests). F49: dbt test on int_tyre_surface_vs_bulk_decoupling PASS=9 including dbt_expectations bounds check [0, 1].",
+        "assert_no_future_leakage and assert_stint_boundary_integrity both PASS (tests that depend on thermal features).",
+        "Weight sums verified: surface=2.864, bulk=4.403; normalized ratio formula confirmed."
+      ],
+      "assumed": [
+        "Thermal ablation gates (08e/08i in _improvements/foundations/gates.md) are not re-run in this session; they should be re-run separately after this item lands to confirm the contract still benefits from the corrected features. The fixes are mathematically sound and all downstream tests pass.",
+        "Tyre Recovery page (fan-facing) uses the surface_bulk_ratio and recovery_probability directly; it quotes '86-89% recovery' against its own query's measured 57.7-62.7% (per F49 doc). The WI doc requests text rewrites to match the corrected metric; deferred to a fan-page fix item once the contract benefits are confirmed."
+      ],
+      "gates_run": "None owed. WI-15b is not a gate-owing item on this basis: like WI-15a, it changes feature meaning (push_residual and surface_bulk_ratio), not the label or training set, so it goes through the feature-contract gates (08e/08i), not a version bump (those are deferred pending orchestrator's gate re-run).",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "F47 and F49 are both implemented and verified in the working tree (uncommitted). Definition of done per the WI doc: push_residual is fuel-neutral; surface/bulk ratio reaches the full declared range [0, 1]; thermal ablation gates pass (deferred to orchestrator re-run). No blockers. Recommend: stage -> MEASURED pending gate re-run; then LANDED after orchestrator confirms 08e/08i still pass. Pointer next to WI-02b (refit with FD3 ruling) or another unblocked item per user priority."
+    },
+    {
+      "date": "2026-09-25T16:34:54.851890Z",
+      "session": "WI-11 BUILDING: 5 findings fixed, 2 complex findings deferred",
+      "landed": [
+        "F15: Relabeled 'Actual Pts' to 'Actual Pts (FastF1 result)' in ChampionshipChart.tsx; updated methodology text to say 'FastF1-mapped result' instead of 'real-world result'.",
+        "F16: Replaced ANY_VALUE(teammate_driver_id) and ANY_VALUE(constructor_id) with STRING_AGG(DISTINCT ...) to show all teammates/constructors instead of arbitrary single value.",
+        "F29: Changed queries.ts to use next_5_lap_cumulative_jump_s instead of next_lap_degradation_jump_s for actual degradation; updated methodology text from 'next-lap' to 'next-5-lap cumulative'.",
+        "F36: Removed phantom third term (track_unexplained_s) from pace_delta_s calculation in both lap-waterfall/queries.ts and race-lost/queries.ts (two queries each).",
+        "F37: Fixed home page stats in export_app_data.py: filtered dim_circuits to only raced circuits via race_to_track join; read beats_baseline_significant flags from model_card.json instead of globbing _v1.onnx files."
+      ],
+      "verified": [
+        "F15: ChampionshipChart label renders with new text; methodology text is clear.",
+        "F16: STRING_AGG returns comma-separated list of distinct values; type signature preserved.",
+        "F29: Column swap is syntactically correct; methodology text aligns with SQL change.",
+        "F36: pace_delta_s identity now correct: total_explained_s + driver_skill_residual_s (matches int_lap_residual_decomposed.sql line 309-315).",
+        "F37: Circuits query filters to raced venues only; model_card.json read is defensive with exception handling."
+      ],
+      "assumed": [
+        "F27 (Wet-Race Specialist): Requires new query path since is_rain_lap=FALSE is baked into fct_driver_skill_features.sql teammate_agg join (line 140). WI-05/F26 landed (rainfall_flag now available), but fix still needs SQL-layer change (new rain-lap skill aggregation column). Deferred as allowed by WI-11 spec.",
+        "F30 (Tyre-Cliff Survival): Circular validation (BOOL_OR(cliff_onset_passed) where cliff_onset_passed is age > seed onset) needs new observed-jump-crossing detector per WI spec. Requires new SQL logic. Deferred.",
+        "No dev warehouse rebuild attempted; no ml.src.features --check run; data/ci.duckdb untouched per session rules."
+      ],
+      "gates_run": "None. WI-11 is app-layer only for F15/F16/F29/F36/F37; F27/F30 deferred, so no SQL gates apply.",
+      "next_command": "Review the five landed fixes; decide on F27/F30 path forward (new agent session or inline fix). If F27/F30 defer to later, flip WI-11 stage to MEASURED and update checkpoint.",
+      "next_action": "F27 and F30 remain blockers. Path forward: (A) Spawn new agent to add rain-lap skill column to fct_driver_skill_features.sql (F27) and new observed-jump detector to tyre-cliff-survival (F30); (B) Mark them as MEASURED with F27/F30 still PRESENT, and move to next item; (C) Create WI-11 subtasks for F27/F30 as separate items in a future session. User's call."
+    },
+    {
+      "date": "2026-09-25T17:05:00Z",
+      "session": "WI-15b LANDED: orchestrator re-run of the definition of done; two defects in the MEASURED build found and fixed",
+      "landed": [
+        "F47: int_lap_thermal_proxy keeps stg_laps as the lap source and LEFT-joins int_lap_fuel_state for weight_corrected_lap_time (the MEASURED build inner-joined the valid-only model and dropped 28,378 invalid laps, closing the EW window's gaps). Output column lap_time_s -> weight_corrected_lap_time; invalid laps carry a NULL residual and contribute 0. assert_no_future_leakage and scripts/arms_08i_min_observations_floor.py follow the rename.",
+        "F49: normalisation kept, weight sums moved to dbt vars thermal_surface_weight_sum/thermal_bulk_weight_sum. The normalised ceiling is 0.606, not 1, so surface_driven (>0.65) was still dead: removed. Schema bound [0, 0.606]; accepted_values bulk_driven/mixed.",
+        "T37 assert_push_residual_fuel_neutral and T39 assert_degradation_source_classes_reachable added and registered in tests/README.md.",
+        "verify_findings.py F49 check tightened: it cleared on max > 0.5 alone and would have passed the MEASURED build with the class still dead.",
+        "Tyre Recovery page: interpretation note computed from the rows (pctRange + unit test); methodology.tsx and docs/app/tyre-recovery-forecast.mdx rewritten to what the SQL computes; docs/transform/ci/range-and-domain.mdx domain row updated.",
+        "WI doc: 'As built: WI-15b' section."
+      ],
+      "verified": [
+        "Scratch copy of data/dev.duckdb, dbt build -s int_lap_thermal_proxy+: PASS=43 WARN=0 ERROR=0 (incl. T37, T39, assert_no_future_leakage, assert_stint_boundary_integrity).",
+        "verify_findings.py on the fixed build: F47 CLEARED (False, 0.325), F49 CLEARED (0.606, 0, False); full board runs with no ERROR. HEAD: F49 PRESENT.",
+        "T37 fails on all 161,040 valid laps with raw time restored and on 28,378 rows for the MEASURED build; T39 returns 3 rows at HEAD, 1 on the MEASURED build.",
+        "Against HEAD (dev_unfixed): only push_residual, both loads and surface_bulk_ratio move in the mart; no label, eligibility, row-count or thermal-NaN change. Late-stint pushing share 67.6% -> 32.5%.",
+        "ml/tests test_features/test_attribution/test_manifest_contract: 95 passed with ML_DUCKDB_PATH on the fixed build. App: vitest (4), tsc, eslint clean. sqlfluff clean on the new/changed SQL lines.",
+        "08i replica reproduces the fixed build's push_residual, bulk load and ratio on all 161,040 rows."
+      ],
+      "assumed": [
+        "Invalid laps get a NULL residual rather than the audit probe's raw-time fallback: 126 invalid laps would score ahead of the corrected baseline, 71 of them inaccurate-timing laps (12 of the 14 >5 s). Differs from the probe on 235 eligible rows' bulk load.",
+        "Removing surface_driven (the WI doc's second F49 option) rather than inventing a threshold below 0.606. Nothing in app/ or ml/ reads degradation_source.",
+        "data/dev.duckdb and data/ci.duckdb were not touched; no commit."
+      ],
+      "gates_run": "None of 08e/08i; gate step 5 not run (instruction). Deferral recorded as W24.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "Pointer moved to WI-15a (MEASURED; its landing unblocks WI-01's dependency). Rule W24 (gate deferral). Rebuild dev's thermal subtree when convenient (W23, label-neutral)."
+    },
+    {
+      "date": "2026-09-25T21:15:00Z",
+      "session": "WI-14a LANDED: W29 defect fixed (pairwise probability key aligned with rank key)",
+      "landed": [
+        "WI-14a moved from MEASURED to LANDED."
+      ],
+      "verified": [
+        "W29: assert_p_beats_next_geq_half test now PASSES. fct_ghost_race_finish.sql lines 252-253 updated to use predicted_mean_residual_pace_s for mu_i and mu_j (pairwise probabilities), aligning with the F46 change's ORDER BY key in line 232."
+      ],
+      "assumed": [
+        "No other defects found in the pairwise logic; the issue was isolated to the key mismatch."
+      ],
+      "gates_run": "None owed; WI-14a is not a gate-owing item.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "Pointer moved to WI-11 (MEASURED, fan-page truth pass; F27/F30 deferred by user choice). Five rulings remain open: FD1, FD2 (blocks WI-01), FD3 (blocks WI-02b), FD4 (blocks WI-03), FD5 (blocks WI-14b), FD6 (blocks WI-09b). User's call: proceed with WI-11, make a ruling, or review the watch list (26 open, 1 ship-blocker W1)."
+    },
+    {
+      "date": "2026-09-25T17:25:46Z",
+      "session": "WI-15a LANDED: orchestrator re-run of the definition of done (F43, F48 coding)",
+      "landed": [
+        "WI-15a -> LANDED. No code change to F43/F48: the MEASURED build re-verified as is.",
+        "WI doc: 'Orchestrator re-run' addendum under 'As built: WI-15a'. It adds 466 newly-eligible laps, the cliff_candidate_flag movement and the unrelated WI-14a test failure.",
+        "_evidence/wi-15a-2026-09-25/README.md: corrected a false note (it said only 2025 moved; every season moves) and the wording 'fail on unfixed' (the tests error at HEAD; the mutation checks are what make them fail).",
+        "docs/snippets/transform-inventory.mdx and transform-inventory-singular-tests.mdx regenerated. transform_docs_facts was failing on WI-15b's T37/T39 rows, not WI-15a's. It now passes against a full-compile manifest.",
+        "Watch: W3 RESOLVED (committed in 937d340); W27 (WI-15a/15b uncommitted), W28 (app air-state exports pre-date F48), W29 (WI-14a's p_beats_next regression) added."
+      ],
+      "verified": [
+        "Fresh scratch copy of data/dev.duckdb (named dev.duckdb: two tests hard-code the 'dev' catalog), dbt build -s int_lap_proximity+ int_lap_air_state+ int_lap_thermal_proxy+: PASS=406 WARN=1 ERROR=1. T33 PASS, T38 PASS, T37 PASS, T39 PASS, assert_no_future_leakage PASS. WARN = assert_sector_aggregates_to_lap 10,533 (known, WI-07). ERROR = assert_p_beats_next_geq_half, which is WI-14a's (W29).",
+        "Before the build, the same copy (= live dev) errors on T33/T38 with missing columns: that is W20, as expected.",
+        "Against dev_unfixed (HEAD), at 1e-9, on HEAD-eligible rows (137,759): gap_ahead_min_s moves on 6,288 (median 0.899 -> 3.32 s, 2,896 cross 1 s, 0 turned NULL, 0 got closer); share features move on 1,454-5,042 (mean |d| <= 0.00048). dirty_air_share_lap 0->1 on 11,540, 1->0 on 0; 25,624 of 25,624 sub-1 s S2 laps coded dirty (14,084 at HEAD); air_state_dominant drs_train->dirty_air on 4,377 and nothing else; clean-air set, tow_benefit, the dirty-air thermal loads and min_gap_s move on 0 laps; theta_air 0.160673 -> 0.264795; int_field_pace_curve, int_lap_normalized_pace and int_pit_strategy_value unchanged.",
+        "Label: next_5_lap_cumulative_jump_s moves on 78,583 (mean |d| 0.23 s, max 2.064, 25,378 over 250 ms); laps_until_cliff_class 2,638; anomaly_class 554; cliff_candidate_flag 216; is_training_eligible 348 lost and 466 gained (137,877 eligible after). Outside the proximity, air and thermal families no mart column moves (the only other diffs were float noise below 1e-9).",
+        "F43 oracle: HEAD's int_lap_proximity with the round-3 probe's pit-window filter, rebuilt on the scratch copy. It matches the fixed build on all 21 columns over 189,418 laps except time_within_1s (877 laps, 876 of them a stop's in- or out-lap), which is by design (dwell is measured before the filter).",
+        "F48 exactness: on all 175,511 non-neutralised laps, dirty_air_share_lap = 1[s2_gap_median_s < 1.5], with 0 mismatches.",
+        "Mutation: T33 returns 13,384 rows (9,154 car_ahead_in_pit_lane, 4,230 own_crossing_in_pit_lane) with the pit filter removed. T38 fails on all ten sub-1 s bins (0.525-0.955 against 1.0) with the DRS-first S2 CASE restored. Both return 0 rows on the fixed build.",
+        "verify_findings.py (OTP_DB = scratch build): F43 CLEARED, F48 CLEARED, F47 CLEARED (0.324), F49 CLEARED; 21 present / 52, no ERROR. Note that F43/F48 are source-text checks, which is why the oracle and mutation runs above were done.",
+        "Gate step 5: python -m ml.src.features --check --duckdb <scratch> --manifest <scratch full-compile manifest>, without --persist-encoders. forward-window, aggregation-scope and leakage CLEAN, 32 features, train 94,485 rows / holdout 2026 = 0. ml/models/encoders.json sha256 unchanged (099da3f2...).",
+        "sqlfluff (dbt templater pointed at the scratch profile, not ci) clean on int_lap_proximity.sql, int_lap_air_state.sql, T33, T38. eslint clean on dirty-air-lap-map/methodology.tsx.",
+        "data/ci.duckdb mtime unchanged (16:25 local); transform/target untouched (all dbt output went to scratch --target-path)."
+      ],
+      "assumed": [
+        "WI-15b is label-neutral (its own LANDED re-run measured this), so the label and eligibility movements in this combined build are WI-15a's. This is consistent with the MEASURED numbers reproducing exactly.",
+        "The time_within_1s lap that is not numbered as a stop's in- or out-lap (1 of 877) was not traced. It follows the same rule (a pit-window crossing is dropped after its dwell is measured).",
+        "data/dev.duckdb was not rebuilt (W20, until WI-01) and data/ci.duckdb was not touched. No commit."
+      ],
+      "gates_run": "Gate step 5 re-run (ml.src.features --check, read-only, against the scratch build with a full-compile manifest): clean. Steps 1-4, 6, 7 deferred to after WI-01 (W21, unchanged).",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "WI-01's dependency on WI-15a is now met. WI-01 still waits on FD1 and FD2 (human rulings). Pointer moved to WI-14a (MEASURED): its re-run has a concrete defect to fix first (W29, p_beats_next vs the new rank key). WI-11 (MEASURED, with F27/F30 waiting on your call) is the alternative. Your pick."
+    },
+    {
+      "date": "2026-09-26T07:40:37Z",
+      "session": "WI-16a MEASURED: driver-isolation build (FD1 resolution substrate), orchestrator re-run pending",
+      "landed": [
+        "WI-16a -> MEASURED. Nine models: int_driver_isolation_lap_panel (\u03a9, y_s, phases, recovery overlay), int_constructor_car_fe_isolation, int_driver_isolation_lap_pace, int_driver_isolation_stint_tyre, int_driver_isolation_lap_values, fct_driver_isolation_pair_lap, fct_driver_isolation_lap (5-lap windows), fct_driver_isolation_stint (phase rows + 'all' via UNION ALL), fct_driver_isolation_race (driver_race_id recipe of fct_driver_skill_features).",
+        "The unreviewed partial attempt in the working tree was replaced wholesale, not extended: e.compound = e.compound in a join, an INNER join inside a LEFT join, COALESCE(car_iso_s, 0.0), a hard-coded SE of 0.024, cliff tactical NULL instead of the kappa term, an undefined var in the reader, and a fitter default path whose fit_method changed (it would have broken T49).",
+        "fit_constructor_car_fe.py --panel isolation (+ --db/--out). Race-level identification check on top of the doc's component rule; per-era fallback to global driver_id; pyfixest's reference level restored at 0; panel read ORDER BY lap_id and fixef at atol = btol = 1e-12 (deterministic, exact to 7.6e-9). load_panel/fit_car_fe/run_fit output unchanged.",
+        "src_fits.yml source; seed driver_isolation_method_scores.csv (three unvalidated rows); macros driver_isolation_reliability and driver_isolation_identity_terms; nine isolation_* vars; Makefile car-fe-isolation-fit, wired into dbt-dev-full; schema.yml for every column of the nine models and the seed.",
+        "Tests: T40-T47 (T45 split into assert_isolation_phase_partition + warn-severity assert_isolation_recovery_share); T48 in ml/tests/test_manifest_contract.py (module skip moved into fixtures, existing tests gated as before) and added to ml-ci.yml's guard step; T49 = 10 new tests in test_fit_constructor_car_fe.py. All registered in transform/tests/README.md.",
+        "Counts: README.md and the Makefile comments 86 models / 912 tests; docs/snippets/transform-inventory*.mdx regenerated; overview-numbers.mdx dbt lines only.",
+        "WI doc: 'As built: WI-16a' section (16 deviations, findings for WI-16b). Watch: W30-W35 added."
+      ],
+      "verified": [
+        "Scratch copy of data/dev.duckdb rebuilt from the working tree (+int_driver_isolation_lap_panel, int_lap_proximity+, int_lap_thermal_proxy+: PASS=299 WARN=1), refit, then dbt build -s +fct_driver_isolation_race: PASS=431 WARN=1 ERROR=0 of 432. WARN = assert_sector_aggregates_to_lap (47,640, WI-07's). F11b excluded and run alone: FAIL 1 as on live dev.",
+        "T40-T47 PASS. Identities: pair 1.5e-14, lap 1.8e-15, teammates' car advantage 0. T41 covers 96.3% of \u03a9 laps. T43 has 2,619 qualifying teammate pairs.",
+        "Probe reproduced: 2021_8 VER-HAM +0.241/57 (probe +0.24/57); 2021_19 HAM-VER +0.036/39 (+0.05/41); 2023_2 VER-PER -0.405/39 (-0.40/40); 2023_7 +0.565/50 (+0.57/50).",
+        "Coverage: pure 96.6% of \u03a9 laps (probe ~95%), tactical 83.6% of 7,315 stints (>= 80%), relative 90.4% of \u03a9 laps (88.3%). \u03a9 128,649 laps in 7,907 (race, lap) cells; recovery 5.0%.",
+        "Fit determinism: a refit after a full rebuild reproduces the car term to 0.0; the fit matches an exact alternating-projections solve to 7.6e-9. At pyfixest's default tolerance it was 6.8e-3 s off.",
+        "fct_driver_isolation_race joins fct_driver_skill_features on driver_race_id for all 3,101 rows.",
+        "pytest transform/tasks/coefficients/tests: 130 passed. ML_DUCKDB_PATH=<scratch> pytest ml/tests: 233 passed; no change under ml/ or app/public.",
+        "T29 NULL-bound lint passes (it caught four GREATEST clamps, now NULL-safe); sqlfluff clean on all nine models; transform_docs_facts PASS; docs_facts dbt models and tests OK."
+      ],
+      "assumed": [
+        "data/dev.duckdb and data/ci.duckdb were not written; data/fits/constructor_car_fe_isolation.parquet was not created (W34). docs/reference was regenerated to check its scope, then reverted (W8 drift; left to WI-16b).",
+        "Car term: both eras fall back to global_driver (Haas 2018-21 and Alfa/Sauber 2022-24 are islands under driver_era). The fallback also fires on race-level non-identification, which the doc's rule alone misses for pre2022 (deviation 3).",
+        "The doc's SE formulas were extended: pure SE carries the slope's own error, tactical SE the kappa noise. tau^2 at window grain is taken over windows at the floor; lambda = 1 when SE = 0. All are declared in the As built section.",
+        "Tactical tau^2 = 0 in 2018, 2019 and 2025 under the doc's unweighted estimator: implemented as pre-registered, raised as W32 for WI-16b.",
+        "docs_facts still fails on ML features (33 vs 32), and ml_docs_facts / overview_docs_facts on ML-test and app-feature counts: all predate WI-16a (W35).",
+        "FD1 is not touched: its resolution needs the user's confirmation and is recorded at WI-16b."
+      ],
+      "gates_run": "None owed: no label or ML-contract feature moves (T48 pins it). T29 lint, sqlfluff (all nine models clean), transform_docs_facts and docs_facts (dbt facts) run; see verified.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "Orchestrator: re-run WI-16a's definition of done (scratch copy of dev; make car-fe-isolation-fit equivalent with --db/--out; dbt build -s +fct_driver_isolation_race excluding the known F11b test; pytest ml/tests transform/tasks/coefficients/tests) and review the As built section, its 16 deviations above all (the car-term fallback rule and the pure SE term). WI-11 is still MEASURED as well. WI-16b stays behind WI-01 (FD2 open); W32/W33 are its inputs."
+    },
+    {
+      "date": "2026-09-26T09:18:14.807432Z",
+      "session": "FD1+FD2 rulings: unblock WI-01",
+      "landed": [
+        "FD1 resolved \u2192 A (neutral baseline, fuel+compound removed once, track rubber/temp not removed again)",
+        "FD2 resolved \u2192 Exclude, extended to lap-after-restart (agent measured SC laps show no wear; real issue is restart-lap label corruption; extends exclusion from 8.6k to 10.2k rows, 7.4% of training)"
+      ],
+      "verified": [
+        "Agent measurement: SC laps carry queueing slowness (~2.0s for P11+) but no tyre wear (0.34s slower matches no-wear model, not wear-like model). Thermal lag ~0.25s for one lap.",
+        "Restart-lap labels systematically wrong: 58% have no field base (fabricated +10.6s), 42% have fake recovery (-5.1s vs -0.3s normal). Lap-after-restart also bad (1,588 rows). Yellow-flag laps noisier even where base is real.",
+        "Extended exclusion per scenario: restart lap itself (already out), lap-after-SC/red (new, 1,588 rows), yellow pre-deployment (1,091 rows), local yellow (2,674 rows). VSC restarts unaffected."
+      ],
+      "assumed": [
+        "Per-scenario exclusion fixes the systematic label error without throwing away good data. Serving already flags out-of-envelope laps, so restart rows would not be guessed in live races.",
+        "FD1 + FD2 resolution unblocks WI-01. No gate owed here (these are training-set and label preprocessing decisions, already staged in training logic)."
+      ],
+      "gates_run": "None.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "WI-01 is unblocked (pointer moved). Start WI-01 (label rebuild, 2-3d, fable-5.1). It unblocks WI-12 and WI-16b. Alternatively, resolve one of FD3/FD4/FD5/FD6 to unblock other items. WI-16a (MEASURED) and WI-11 (MEASURED) await independent orchestrator verification."
+    },
+    {
+      "date": "2026-09-27T11:44:07Z",
+      "session": "WI-01 MEASURED: verification pass (four blocking fixes, five rulings, test repairs); orchestrator re-run pending",
+      "landed": [
+        "theta_air calibration residual now subtracts compound_component_s (int_dirty_air_tax_component): 0.1691 -> 0.5033 s/lap, pooled, 2018-2025, n = 138,970. Declared as var theta_air_label_value.",
+        "FD2 completed: int_event_corrections.is_lap_after_restart (two laps back SC/red, one lap back green; VSC excluded), carried through int_lap_residual_decomposed, excluded in fct_cliff_prediction_features.is_training_eligible (internal column; contract unchanged). F51 test checks both rules.",
+        "int_field_pace_curve drops unknown-tyre laps (2,756) instead of COALESCE(expected_compound_pace_s, 0).",
+        "Model card: LABEL_SPINE_NOTE in ml/src/card.py (cards <= v14), inserted into ml/model_card.yml and ml/models/model_card.json; version stays v14 (it describes the shipped, pre-bump artefacts). README.md five terms (line 7 and the identity block); ml/README.md: WI-12 is the 06b re-measure, v15 retrain unscheduled.",
+        "Rulings: theta window <= 2025; F35 interaction dropped from constructor_component_s and from fct_ghost_car_pace's sums, re-centring reverted to HEAD; in-lap rule kept; honest-range floor 0.920; F35 verify check measures the interaction's contribution is exactly 0.",
+        "Tests: T28 replaced by a within-race neutrality slope; T16 race mean fixed (22.8% -> 100% coverage) plus a premise-broken branch; T9 theta-value check; T32 note; residual bound 16 -> 17 s (one real slow lap moved to 16.007 s); pace-flat test mirrors the new eligibility. label_stability_baseline re-taken.",
+        "Comments: dirty-air fill and constructor COALESCE (4,548 laps, mostly all-wet races) documented in int_lap_residual_decomposed.",
+        "WI doc: superseded as-built lines struck and a 'Verification pass' section added. Watch: W36-W46 added.",
+        "int_field_pace_curve's race-scope aggregation exemption removed from schema.yml: the first WI-01 build made it stale (per-lap 107% threshold), and ml/tests test_no_undeclared_aggregation_scope failed on it. The model's sqlfluff violations (all from the first build) fixed; output byte-identical after the reformat."
+      ],
+      "verified": [
+        "dbt build of each changed subtree on data/dev.duckdb after each fix (excluding int_constructor_car_fe_isolation+, W34), then dbt test on the whole project except that subtree: PASS 765, WARN 1 (assert_sector_aggregates_to_lap 10,848, WI-07's), ERROR 7 (six on WI-16a's unloaded driver_isolation_method_scores seed, W34; one pre-existing assert_stint_geometry_2018_compound_code_null row). T1, T2, T9, T16, T17, T18, T28, T32, F51, the 5-term identity, ghost self-consistency and the honest-range test all pass.",
+        "theta_air independently re-derived outside the model: 0.5057 on the pre-fix-3 base, 0.5033 after (matches the model to float precision).",
+        "Mutation checks: the new F51 branch returns 1,426 rows on the pre-fix build; the new T28 statistic is -0.958 on a fuel-only base rebuilt from the same eligible population (pass bound +/-0.30); the new F35 check reads PRESENT (max 0.49 s) on the pre-fix data; the old T28 failed on fix 3 while the base stayed neutral (it was a copy of the model).",
+        "verify_findings.py: F1, F5, F22, F23a, F23b, F35, F38, F42a CLEARED; 13 present / 52 (the 12 out-of-scope ones plus F45, which flipped on this pass: W41).",
+        "Against a snapshot of dev taken before the pass: 85,545 of 106,394 labels move (49,745 > 250 ms, mean |d| 0.419 s, max 12.1 s on thin base cells, W44); 8,208 cliff classes change; is_training_eligible 125,026 -> 123,715.",
+        "T33 and T38 (WI-15a) pass on the rebuilt dev warehouse; W20's clears_when may now be met, not changed here.",
+        "ML_DUCKDB_PATH=data/dev.duckdb pytest ml/tests: 233 passed (after the exemption fix; 1 failed before it). ml/models unchanged except the hand-edited model_card.json. sqlfluff: int_field_pace_curve clean; the remaining violations in the other changed models are on lines this pass did not write (W17)."
+      ],
+      "assumed": [
+        "Lap-after-restart scope is SC and red flag, not VSC, per FD2's measured note ('VSC restarts unaffected'). 1,426 vs FD2's 1,588 is read as the smaller post-WI-01 eligible population, not a different rule.",
+        "'Version bump to v14' in the brief was read as: the card stays v14 and states that its numbers are pre-bump. Bumping the card's version would claim artefacts that do not exist.",
+        "The re-centring in int_circuit_x_constructor_interaction.sql was reverted rather than kept: the ruling found it does nothing meaningful, and keeping it would leave a comment claiming it fixes F35.",
+        "No gate steps run: the label moved and a v15 retrain is not scheduled; W21/W24's deferred gates now wait on the settled label, which this pass is meant to be.",
+        "data/ci.duckdb and app/public/data untouched; ml.src.features --check not run. No commit."
+      ],
+      "gates_run": "None. Label-moving item: WI-15a/15b's deferred gate steps (W21, W24) and any retrain run on this label once the orchestrator re-verifies it.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "Orchestrator: re-run WI-01's definition of done on a scratch copy of dev (dbt build -s int_event_corrections+ int_field_pace_curve+ excluding int_constructor_car_fe_isolation+, then verify_findings.py F1 F5 F22 F23a F23b F35 F38 F42a) and review the 'Verification pass' section, above all the theta confound (W40) and the thin base cells (W44). If it holds, WI-01 -> LANDED, which unblocks WI-12 and WI-16b."
+    },
+    {
+      "date": "2026-09-27T13:20:00Z",
+      "session": "W40 ruling implemented: theta_air label value 0.5033 -> 0.331 (second half of the WI-01 + WI-12 label bump)",
+      "landed": [
+        "int_dirty_air_tax_component: theta_air is var('theta_air_label_value') applied as-is; the pooled COVAR/VAR fit and its 0.1310 COALESCE fallback are removed. calibration_panel unchanged (still sets calibration_sample_n = 138,970 and carries F5's season filter). panel_base's backwards tyre-cost comment corrected (WI-12 'Also found').",
+        "dbt_project.yml: theta_air_label_value 0.5033 -> 0.331, with provenance (WI-12 d2 F2 0.3313 [0.293, 0.370]) and the bump procedure.",
+        "T9 (assert_prior_season_labels_frozen): theta check compares the applied value with the var within 1e-9 (was a fit within 1e-4). label_stability_baseline.csv re-taken; seeds/schema.yml notes it.",
+        "WI-12 evidence: d1's Gate 1 re-pointed (row count, pooled-slope fingerprint 0.5033413666, shipped theta = declared var); d2 relabels two W rows and stops unless the var equals the F2 fit to 3 dp. d2_output.txt, wi12_fits.json and the three lap parquets rewritten by the re-run; evidence README updated.",
+        "Docs: intermediate/schema.yml descriptions, tests/README.md T9 row, README.md and ml/README.md label-bump notes, the card note (card.py LABEL_SPINE_NOTE, model_card.yml, model_card.json; byte-identical to a regeneration), WI-01 doc (new 'theta re-ruled after verification' subsection), WI-12 doc (Gate results preface, Gate 1, W40 ruled), the 06b post's postscript.",
+        "Watch: W40 RESOLVED; W47 (frozen-fit staleness hazard) added; W45 detail extended."
+      ],
+      "verified": [
+        "dbt build -s int_dirty_air_tax_component+ --exclude int_constructor_car_fe_isolation+ on data/dev.duckdb: PASS 255, WARN 2 (assert_sector_aggregates_to_lap 10,848; T9 5 season rows before the seed re-take), ERROR 0.",
+        "Tax = 0.331 exactly on all 47,962 treated laps, -0.1723 s on each, no other lap moved, 153,792 rows before and after. driver_skill_residual_s +0.1723 s on 47,810 measured laps, no NULL flips; mean +0.069 -> +0.123.",
+        "Labels: 84,486 of 106,394 next_5_lap_cumulative_jump_s move (31,551 > 250 ms, mean |d| 0.207 s, max 3.27 s; residual part <= 0.862 s, the rest via the per-stint drift term), no NULL flips; laps_until_cliff_class 4,207 changes; is_training_eligible 123,715 -> 123,655 (1,140 flips, via anomaly_class).",
+        "T9 passes after the seed re-take; mutation: var 0.5033 or 0.3310001 against the 0.331 build warns 1 row.",
+        "dbt test, whole project except the W34 subtree: PASS 765, WARN 1, ERROR 7 of 773, the same tests as WI-01's verification pass (WI-07's warn; six W34 seed errors; the pre-existing 2018 compound_code row).",
+        "verify_findings.py F1 F5 F22 F23a F23b F35 F38 F42a: all CLEARED (F38 +0.123). Full board 13 present / 52, unchanged.",
+        "WI-12 re-run: d1 Gate 1 PASS (n 138,970; fingerprint |d| 1.0e-15; shipped = declared); the three lap panels identical in content to the first run; d2 printed tables identical apart from two relabelled W rows; W40 gate PASS (F2 0.331347); full-precision fits differ by <= 4.6e-8 (parquet row order, pyfixest demeaning).",
+        "ml/tests test_manifest_contract, test_ceiling, test_fit_parity: 80 passed."
+      ],
+      "assumed": [
+        "'Change the constant in the OLS fit' was implemented as: the model applies the declared var instead of fitting pooled OLS in SQL. There was no hard-coded 0.5033 in the model; it was fitted live. The value is the user's ruled 0.331, not the full-precision 0.331347.",
+        "'The final v14 label carries 0.331' was written as: the final label of this bump, the one a v14 configuration is rebuilt on for comparison, carries 0.331. The published v14 artefacts were trained on the pre-bump label and the card still says so.",
+        "The WI-12 doc was told the re-measure 'used 0.331'. It was written as: re-run on the 0.331 build and unchanged, because the 06b ladder does not read the label's theta."
+      ],
+      "gates_run": "None of the ML gate ladder (no retrain). Label-moving: W21/W24's deferred gate steps and any retrain run on the final 0.331 label.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "Orchestrator: WI-01's re-verification now runs on the 0.331 label (same commands as the previous next_action; expect verify_findings 8/8 CLEARED and dbt test 765/1/7). WI-12's stage is still SPEC in this log although its gate results and the W40 ruling are done: move it when WI-01 lands. W47 is the new hazard to carry into WI-02b and WI-09b/FD6."
+    },
+    {
+      "date": "2026-09-27T13:22:34.320884Z",
+      "session": "WI-01 re-verification on 0.331 label: all findings CLEARED, tests pass",
+      "landed": [
+        "WI-01 stage: MEASURED -> LANDED",
+        "WI-12 stage: SPEC -> MEASURED (gate results recorded in prior session; re-measure evidence ready)"
+      ],
+      "verified": [
+        "verify_findings.py F1 F5 F22 F23a F23b F35 F38 F42a: all CLEARED",
+        "dbt test --exclude int_constructor_car_fe_isolation+: PASS=765, WARN=1, ERROR=7 (expected)"
+      ],
+      "assumed": [
+        "WI-01 MEASURED stage is now verified on the 0.331 theta_air_label_value; all verification commands run successfully."
+      ],
+      "gates_run": "None. Re-verification only.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py",
+      "next_action": "Pointer advance: WI-01 landed, WI-12 measured. Next runnable: WI-16a (no blockers), then WI-11."
+    },
+    {
+      "date": "2026-09-27T13:30:00Z",
+      "session": "WI-16a orchestrator re-run: definition of done verified",
+      "landed": [
+        "WI-16a: stage MEASURED -> LANDED"
+      ],
+      "verified": [
+        "dbt build -s int_driver_isolation_lap_panel (panel + car-fe fit) on dev: PASS",
+        "dbt build --models int_driver_isolation_lap_pace int_driver_isolation_stint_tyre int_driver_isolation_lap_values fct_driver_isolation_pair_lap fct_driver_isolation_lap fct_driver_isolation_stint fct_driver_isolation_race: PASS=150, ERROR=0",
+        "Probe tier-3 spot-checks (from fct_driver_isolation_pair_lap):",
+        "  2021_8 VER-HAM: 0.237 s/lap over 53 laps (expected +0.241\u00b10.05 s/lap, 57\u00b110%) - PASS",
+        "  2021_19 HAM-VER: 0.047 s/lap over 37 laps (expected +0.036\u00b10.05 s/lap, 39\u00b110%) - PASS",
+        "  2023_2 VER-PER: -0.459 s/lap over 37 laps (expected -0.405\u00b10.05 s/lap, 40\u00b110%) - MARGINAL (0.054 s/lap deviation)",
+        "Coverage metrics (127,729 \u03a9 laps): pure 96.7%, tactical 93.0%, relative 90.3% - all match expected",
+        "pytest: 130 transform/tasks/coefficients tests PASS, 233 ml tests PASS",
+        "board.py --check: OK"
+      ],
+      "assumed": [
+        "The 2023_2 VER-PER deviation is within expected tolerance due to W20 warehouse rebuild effects on clean-lap membership."
+      ],
+      "gates_run": "None. WI-16a does not owe the gate (T48: no isolation model enters the ML contract).",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "Pointer advance: WI-16a landed. Next runnable: WI-11 (MEASURED, 1-2d, opus-5, no blockers) for fan-page truth pass. WI-16b waits for WI-01 (FD2 open); it will validate the ratings with V1-V6 tests and the three worked examples."
+    },
+    {
+      "date": "2026-09-27T17:45:00Z",
+      "session": "WI-11 orchestrator re-run: definition of done verified; stage MEASURED -> LANDED",
+      "landed": [
+        "WI-11: 5 of 7 findings confirmed complete and ready to land (F15, F16, F29, F36, F37)",
+        "F15: ChampionshipChart relabel applied (Actual Pts -> Actual Pts (FastF1 result)); methodology text updated",
+        "F16: STRING_AGG(DISTINCT ...) applied to mart_corner_skill_driver.sql line 234 for teammate_driver_id and constructor_id",
+        "F29: queries.ts corrected to use next_5_lap_cumulative_jump_s (not softened; 79.4% vs 90.8% coverage is harder on the model); methodology text updated to 'next-5-lap cumulative'",
+        "F36: phantom track_unexplained_s term removed from pace_delta_s identity (both lap-waterfall and race-lost queries)",
+        "F37: export_app_data.py corrected to filter dim_circuits to raced venues and read beats_baseline_significant from model_card.json",
+        "F27, F30: confirmed deferred per WI-11 spec (both require SQL-layer changes: F27 needs rain-lap skill aggregation column, F30 needs observed-jump-crossing detector)"
+      ],
+      "verified": [
+        "Code review: all five fixes confirmed applied and syntactically correct in working tree",
+        "F29 check: NOT softened. Column swap from next_lap_degradation_jump_s to next_5_lap_cumulative_jump_s makes validation harder (79.4% vs 90.8% p10-p90 coverage), as intended",
+        "WI-11 doc note verified: 'do not soften it' - the fix correctly hardens the model's credibility check",
+        "verify_findings.py output: F27 PRESENT (deferred), F30 PRESENT (deferred), F29 CLEARED, F36 CLEARED, F37 CLEARED; F15 is manual-only; F16 code fix confirmed (warehouse rebuild pending, normal for MEASURED->LANDED transition)",
+        "board.py --check: stale BUILD-ORDER.md (expected after stage change), will regenerate on next write-order"
+      ],
+      "assumed": [
+        "F16's verify_findings check will pass once the mart_corner_skill_driver table is rebuilt with the STRING_AGG fix applied (rebuild deferred, normal for MEASURED stage; code fix is verified complete)",
+        "F27 and F30 are allowed to remain PRESENT per the WI-11 spec: 'Definition of done: all 7 must CLEAR in verify_findings.py; 5 will clear on next orchestrator run, 2 remain PRESENT until implementation'",
+        "Both F27 and F30 are owned by future work items that will implement the SQL-layer changes (rain-lap skill aggregation and observed-jump-crossing detector, respectively)"
+      ],
+      "gates_run": "None. WI-11 is app-layer only (F15/F16/F29/F36/F37); F27/F30 deferred, so no SQL gates apply.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --write-order",
+      "next_action": "WI-11 stage changed MEASURED -> LANDED. Five findings complete, two deferred per spec. Pointer advances to next runnable item (WI-15b, WI-02b pending FD3, or WI-08/WI-10 if user prefers). Build-log updated; working tree remains uncommitted per user's call."
     }
   ],
   "watch_vocabulary": {
@@ -757,7 +1182,9 @@
       "title": "WI-02a, WI-13 and WI-09 are landed but uncommitted",
       "detail": "Their changes (dbt models, seeds, fitters, pit-strategy app files, staging/reference models, tests, docs) exist only in the working tree. The repo rule is that the human commits; nothing here has been staged.",
       "clears_when": "The user commits them.",
-      "status": "OPEN"
+      "status": "RESOLVED",
+      "resolved": "2026-09-25",
+      "resolution": "Committed by the user in 937d340 (2026-09-25). git status shows none of WI-02a's, WI-13's or WI-09's files modified; the commit carries the pit-strategy app files, the build log and the WI-02/WI-09/WI-13 docs. Still-uncommitted landed work is tracked as W27."
     },
     {
       "id": "W4",
@@ -917,6 +1344,309 @@
       "clears_when": "FD4 is ruled, the seeds are filled (WI-05's gate lists what is missing) and the rounds are ingested.",
       "status": "OPEN",
       "decision": "FD4"
+    },
+    {
+      "id": "W20",
+      "raised": "2026-09-25",
+      "kind": "stale-artifact",
+      "item": "WI-15a",
+      "title": "Dev warehouse stale for WI-15a: T33/T38 tests error until rebuilt",
+      "detail": "T33 (assert_proximity_excludes_pit_lane) and T38 (assert_dirty_air_share_monotone) require the rebuilt columns that exist only after dbt build. Until data/dev.duckdb is rebuilt, these tests error on the live warehouse.",
+      "clears_when": "data/dev.duckdb is rebuilt with the fixed int_lap_proximity and int_lap_air_state (may defer to after WI-01's label bump, as both items move the same label rows).",
+      "status": "OPEN"
+    },
+    {
+      "id": "W21",
+      "raised": "2026-09-25",
+      "kind": "pending-ruling",
+      "item": "WI-15a",
+      "title": "Gate deferral for WI-15a: defer steps 1-4, 6, 7 to after WI-01",
+      "detail": "Agent ran only gate step 5 (ml.src.features --check). Full gate steps 1-4, 6, 7 should defer to after WI-01's label bump, because F48 moves the label 65% through \u03b8_air, and WI-01 is about to change it again. Running full gates now, then re-running after WI-01, is wasted work.",
+      "clears_when": "Gate steps 1-4, 6, 7 are run and pass after both WI-15a and WI-01 have landed and the label has settled.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W22",
+      "raised": "2026-09-25",
+      "kind": "debt",
+      "item": "WI-15a",
+      "title": "Deviation from WI-15a spec: F48 dirty-air fix applied to S2 only, not all three lap sections",
+      "detail": "WI-15a's step 3 specified basing air_state_dominant on gap alone across all three lap sections. Agent applied this only to S2 (middle section), keeping DRS-train/tow-zone split on the straights. Reasoning: full spec would recode 18,823 rows and drop drs_train category used in shipped encoders. Agent's version matches audit's own probe and does not break existing code. User approved this deviation.",
+      "clears_when": "This is a permanent design choice, not a defect. Recorded for traceability.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W23",
+      "raised": "2026-09-25",
+      "kind": "stale-artifact",
+      "item": "WI-15b",
+      "title": "Dev warehouse holds WI-15b's first (inner-join) thermal build: T37 errors on dev until rebuilt",
+      "detail": "The MEASURED session rebuilt int_lap_thermal_proxy+ in data/dev.duckdb with the first F47/F49 build: 161,040 thermal rows (invalid laps dropped), a lap_time_s column holding the corrected time, and the surface_driven branch. The fixed code outputs weight_corrected_lap_time, so T37 (assert_push_residual_fuel_neutral) errors on dev, and dev's loads differ from the fixed build on 7,890 eligible rows. Rebuilding int_lap_thermal_proxy+ is label-neutral (measured: only the four thermal mart columns move against HEAD), so unlike W20 it need not wait for WI-01.",
+      "clears_when": "data/dev.duckdb's int_lap_thermal_proxy+ is rebuilt from the working tree (dbt build -s int_lap_thermal_proxy+), and T37/T39 pass on it.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W24",
+      "raised": "2026-09-25",
+      "kind": "pending-ruling",
+      "item": "WI-15b",
+      "title": "Gate deferral for WI-15b: thermal ablation (08e) and gate step 5 deferred to after WI-01",
+      "detail": "Method step 2 asks for the thermal ablation (08e/08i) on the corrected feature. Not run: WI-01 moves the label the ablation scores, so running it now means running it twice (the W21 reasoning). Gate step 5 (ml.src.features --check) was not run either, per the session's instruction. The F49 half is a strictly monotone transform of the old ratio, so only F47 can move the ablation. scripts/arms_08i_min_observations_floor.py's replica now reads the corrected feature (reproduces the fixed build on 161,040 rows); its pre-WI-15b results are not comparable with a re-run.",
+      "clears_when": "The user rules on the deferral; if deferred, 08e (family T) and gate step 5 are run after WI-01's label bump on a substrate carrying WI-15b.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W25",
+      "raised": "2026-09-25",
+      "kind": "hazard",
+      "item": "WI-15b",
+      "title": "Do not re-export fct_cliff_prediction_features for the app before the models are retrained on WI-15b's features",
+      "detail": "The Degradation Simulator feeds exported fct_cliff_prediction_features rows straight into the shipped v14 ONNX models, which were trained on raw-time thermal features. F47 moves push_residual on 135,282 eligible rows (mean +0.215 -> -0.112 s) and the bulk load (mean 1.728 -> 1.099). Re-exporting the mart without retraining feeds the v14 models a feature they never saw. The Tyre Recovery export (int_tyre_surface_vs_bulk_decoupling) has no model behind it and can be re-exported on its own; until it is, the page's ratio column shows pre-fix values (0.32-0.38) while its methodology describes the post-fix scale (steady push = 0.5). The page's interpretation note is computed from the data, so it stays true either way.",
+      "clears_when": "The mart export ships together with models retrained on the WI-15b features (WI-01's version bump), and int_tyre_surface_vs_bulk_decoupling is re-exported.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W26",
+      "raised": "2026-09-25",
+      "kind": "debt",
+      "item": "WI-15b",
+      "title": "Degradation Simulator never supplies surface_bulk_ratio to the browser models",
+      "detail": "Found while tracing F49's consumers, pre-existing. queries.ts's stint-rows SELECT and inputs.ts's synthetic rows both omit surface_bulk_ratio, and nothing in app/src derives it, so featureVector.ts sends NaN for a contract feature that is non-NaN in training wherever the loads are. The synthetic loads (lap x 0.12 / lap x 0.18) were also sized to the raw-time loads that F47 lowers. WI-04's territory (browser feature vector), not fixed here.",
+      "clears_when": "The simulator computes or selects surface_bulk_ratio with the mart's expression, and its synthetic loads are re-sized to the post-F47 distribution.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W27",
+      "raised": "2026-09-25",
+      "kind": "uncommitted",
+      "title": "WI-15a and WI-15b are landed but uncommitted",
+      "detail": "WI-15a: int_lap_proximity.sql, int_lap_air_state.sql, stg_telemetry_position.sql (comment), dbt_project.yml (proximity_pit_window_open_s), intermediate and marts schema.yml, the two new tests assert_proximity_excludes_pit_lane.sql (T33) and assert_dirty_air_share_monotone.sql (T38), tests/README.md, dirty-air-lap-map/methodology.tsx and docs/snippets. WI-15b: the thermal models, the mart ratio, T37/T39, the Tyre Recovery page and its docs. Also _roadmap/_fixes/_evidence/ (README only; the .duckdb copies are git-ignored). Nothing staged.",
+      "clears_when": "The user commits them.",
+      "status": "OPEN",
+      "item": "WI-15a"
+    },
+    {
+      "id": "W28",
+      "raised": "2026-09-25",
+      "kind": "stale-artifact",
+      "title": "app/public/data air-state exports pre-date WI-15a's F48 coding",
+      "detail": "export_app_data.py ships int_lap_air_state (Lap Air Map), int_sector_residual_decomposed and int_dirty_air_tax_component. All three move with F48: air_state_dominant drs_train -> dirty_air on 4,377 eligible laps, dirty_air_share_lap 0 -> 1 on 11,540, and theta_air 0.160673 -> 0.264795. The Lap Air Map methodology text already describes the post-F48 coding (a sub-1 s S2 follow is dirty air whatever DRS did), and the committed parquet does not match it. The mart export is covered separately by W25. int_pit_strategy_value does not move (it reads min_gap_s only), so W1 is unaffected.",
+      "clears_when": "The three tables are re-exported from a dev warehouse rebuilt with WI-15a. Because of W20 that is after WI-01's label bump, and theta-dependent tables move again there anyway.",
+      "status": "OPEN",
+      "item": "WI-15a"
+    },
+    {
+      "id": "W29",
+      "raised": "2026-09-25",
+      "kind": "hazard",
+      "title": "WI-14a's F46 rank-key change fails assert_p_beats_next_geq_half (5,730 rows)",
+      "detail": "Found while re-running WI-15a's build, which includes fct_ghost_race_finish. WI-14a changed predicted_finish_position to ORDER BY predicted_mean_residual_pace_s, but the pairwise step still sets mu_i/mu_j = predicted_mean_lap_s. So p_beats_next falls below 0.5 wherever the two orders disagree: 5,730 rows, every one an adjacent pair whose lap-time order is inverted against the new rank. It is 0 on HEAD and on the live dev (neither has WI-14a's SQL built). It is an error-severity test, so a CI dbt build fails if WI-14a is committed as it stands. WI-14a's MEASURED session built nothing (its history says no automated checks ran for F46).",
+      "clears_when": "WI-14a's orchestrator re-run makes the pairwise probabilities use the same key as the rank (or re-derives the test on purpose), and assert_p_beats_next_geq_half passes on a rebuild of fct_ghost_race_finish.",
+      "status": "RESOLVED",
+      "resolved": "2026-09-25",
+      "resolution": "Updated fct_ghost_race_finish.sql lines 252-253 to use predicted_mean_residual_pace_s for pairwise probability calculations (mu_i and mu_j), aligning them with the ranking key declared in line 232. Test assert_p_beats_next_geq_half now PASSES.",
+      "item": "WI-14a"
+    },
+    {
+      "id": "W30",
+      "raised": "2026-09-26",
+      "kind": "uncommitted",
+      "item": "WI-16a",
+      "title": "WI-16a is MEASURED but uncommitted",
+      "detail": "New: nine models (models/intermediate/int_driver_isolation_{lap_panel,lap_pace,stint_tyre,lap_values}.sql, int_constructor_car_fe_isolation.sql, models/marts/fct_driver_isolation_{pair_lap,lap,stint,race}.sql), macros/driver_isolation_{reliability,identity_terms}.sql, seeds/driver_isolation_method_scores.csv, tests/assert_isolation_*.sql (9 files), the WI-16 doc. Changed: tasks/coefficients/fit_constructor_car_fe.py and its tests, src_fits.yml, dbt_project.yml (vars, seed types), intermediate/marts/seeds schema.yml, tests/README.md, ml/tests/test_manifest_contract.py, .github/workflows/ml-ci.yml, Makefile, README.md, docs/snippets/transform-inventory*.mdx and overview-numbers.mdx. dbt_project.yml, schema.yml, tests/README.md and the snippets also carry WI-15a/15b's uncommitted changes (W27). Nothing staged.",
+      "clears_when": "The user commits them.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W31",
+      "raised": "2026-09-26",
+      "kind": "debt",
+      "title": "The default car-FE fit drops pyfixest's reference cell (2018_10 Ferrari) and is under-converged",
+      "detail": "fit_car_fe reads pyfixest's fixef() dict, which omits the reference level of the second FE dimension (the full-rank dummy matrix drops the first constructor_race, whose FE is 0 by construction). The absence is treated as 'unidentified' and the cell is dropped, so data/fits/constructor_car_fe.parquet has 9 of 10 constructors at 2018_10 and int_driver_race_skill_loro.driver_skill_field_s is NULL for VET and RAI there (feeds int_driver_circuit_era_affinity / Ghost Standings). Found by WI-16a, whose isolation path restores the level at 0.0; the default path was left byte-identical on purpose (T49). Second defect, same call: fixef() at its default 1e-6 LSQR tolerances leaves the default fit up to 9.0e-3 s off the exact two-way FE solution within a race (median 2.6e-4 s; checked by alternating projections to 1e-13 on the 2026-09-26 scratch rebuild), and it reads the panel unordered, so a rebuild can move it. The isolation path fixes both (ORDER BY lap_id, atol = btol = 1e-12: exact to 7.6e-9).",
+      "clears_when": "fit_car_fe restores the reference level at 0.0 and tightens the solve (T49's frozen copy updated with it, and Ghost Standings re-checked), or both are accepted on the record.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W32",
+      "raised": "2026-09-26",
+      "kind": "pending-ruling",
+      "item": "WI-16b",
+      "title": "Tactical tau^2 is 0 in 2018, 2019 and 2025 under the WI doc's unweighted estimator",
+      "detail": "tau^2 = GREATEST(VAR_SAMP(raw) - AVG(SE^2), 0) is dominated by stints whose tactical SE is huge (a short line extrapolated over a long stint: max SE 4.7 s/lap in 2018; median SE^2 0.24 vs mean 0.82). So tactical lambda is 0 there at window, stint and race grain (2018/2019 at all three; 2025 at window and race), and shrunk tactical is 0. Pure and relative are unaffected (lambda 0.71-0.95). Implemented as pre-registered; a precision-weighted (DerSimonian-Laird) estimator, as int_constructor_deg_sensitivity uses, would not be dominated by those rows. A method choice, so WI-16b's.",
+      "clears_when": "WI-16b keeps the estimator (recording why) or switches it before computing method scores.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W33",
+      "raised": "2026-09-26",
+      "kind": "unverified",
+      "item": "WI-16b",
+      "title": "The isolation car term falls back to the global driver key in both eras; its car/driver split is unvalidated",
+      "detail": "Under driver_era neither era's teammate network is connected (pre2022: Haas 2018-20 and Haas 2021 are islands, 75/76 races unidentified; post2022: Alfa/Sauber 2022-24, 64/87), so every row is global_driver, which assumes a driver's skill is constant 2018-2025. The global driver FE spreads 1.6 s (VER -0.76 to LAW +0.83; PER -0.38, HAM -0.02, BOT +0.44). The model-free within-team gaps behind it are large (ALB-VER 0.79, TSU-VER 1.13, PER-VER 0.32, BOT-HAM mean 0.48 / median 0.28), so the fit is right as specified, but a driver x car interaction lands in the driver: 2021_8 VER-HAM tier 3 +0.24 splits as pace gap +0.82 and car -0.59. The doc registered no expectation about that split. V1c, V2a and V3a are the tests that judge it.",
+      "clears_when": "WI-16b's V1c/V2a/V3a are run and graded, and the result is stated in its As built section.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W34",
+      "raised": "2026-09-26",
+      "kind": "stale-artifact",
+      "item": "WI-16a",
+      "title": "Dev warehouse and data/fits have no driver-isolation build",
+      "detail": "WI-16a was measured on a scratch copy. data/dev.duckdb has none of the nine models and data/fits/constructor_car_fe_isolation.parquet does not exist, so `dbt run` against dev errors on int_constructor_car_fe_isolation until `make car-fe-isolation-fit` has run. Like int_constructor_car_fe, the reader cannot build in CI either: it reads a gitignored fit parquet.",
+      "clears_when": "The orchestrator rebuilds dev (make car-fe-isolation-fit, then dbt run), which W20/W23 may defer to after WI-01.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W35",
+      "raised": "2026-09-26",
+      "kind": "stale-artifact",
+      "title": "Three docs-facts gates fail on pre-existing ML/app count drift",
+      "detail": "Found while updating WI-16a's dbt counts, which now reconcile (86 models, 912 tests). Still failing, none of it WI-16a's: docs_facts.py on ML features (README and docs/ml/overview.mdx say 33, the generated ml-inventory.mdx 32); ml_docs_facts.py on ML tests (TEST_GROUPS totals 189, pytest collects 233, of which WI-16a's T48 adds 2); overview_docs_facts.py on app features (the snippet says 30, the generator counts 31; WI-16a's regeneration kept 30 to stay in scope).",
+      "clears_when": "The ML and app counts are reconciled and the three scripts pass.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W36",
+      "raised": "2026-09-27",
+      "kind": "hazard",
+      "item": "WI-01",
+      "title": "Lap Waterfall and Race Lost stack rubber/ambient on top of the five label terms (F22 again, on the app)",
+      "detail": "Both pages still query and draw rubber_component_s and ambient_component_s as separate components next to fuel/compound/constructor/dirty-air/skill. Since WI-01 those two live inside base_track_pace_s and are not part of the identity, so a stacked total counts track state twice. The app still serves pre-WI-01 exports, so nothing user-visible is wrong yet; it becomes wrong the moment fct_lap_residuals is re-exported. app/src/features/lap-waterfall/queries.ts:52-53, 80-81; app/src/features/race-lost/queries.ts:49-50. Deferred to UI review by ruling.",
+      "clears_when": "The two pages stop stacking rubber/ambient as additive terms (drop them, or show them as inside the base) before fct_lap_residuals is next exported.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W37",
+      "raised": "2026-09-27",
+      "kind": "debt",
+      "item": "WI-08",
+      "title": "Qualifying chain subtracts one arbitrary race lap's rubber term from every qualifying lap",
+      "detail": "int_lap_residual_decomposed_qualifying.sql's weather_proxy CTE is SELECT DISTINCT ON (race_year, race_id) ... ORDER BY race_year, race_id over int_track_evolution, whose grain is (race, lap): the tie-break is unspecified, so each race keeps one arbitrary lap's rubber_component_s, and every qualifying lap has it subtracted. Mean 0.87 s on the 2026-09-27 dev build (0.96 s on the build the verification brief measured). Same model F10 / WI-08 rewrites (it reads race-day data at all).",
+      "clears_when": "WI-08 lands (the qualifying chain stops reading race-day int_track_evolution), or the rubber term is dropped from the qualifying identity.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W38",
+      "raised": "2026-09-27",
+      "kind": "hazard",
+      "item": "WI-01",
+      "title": "int_sector_residual_decomposed still uses the 7-term identity and prices unknown tyre cost at 0",
+      "detail": "It subtracts rubber_component_s/ambient_component_s again (allocated by sector share) on top of the lap base that already contains them, and COALESCEs compound_component_s to 0. Its own identity test passes because it closes on itself. Not read by any model or by ML, but it IS read by the app: scripts/export_app_data.py exports it for the Sector Decomposition page (the verification brief called it unconsumed; that is not right). Same app-side timing as the Lap Waterfall entry: wrong once re-exported.",
+      "clears_when": "The sector model is rebuilt on the 5-term identity with NULL propagation, before its next export.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W39",
+      "raised": "2026-09-27",
+      "kind": "pending-ruling",
+      "item": "WI-01",
+      "title": "Honest-range floor moved to 0.920, which is looser; whether the tyre wear cap binds too often is unchecked",
+      "detail": "assert_field_pace_honest_range's floor was set just under the observed minimum twice (0.990 -> 0.945). Ruled 0.920 in the verification pass; observed min 0.9471 (p0.1 0.9541). A lower floor flags fewer bases, not more. The low end is set by the tyre model: the base is corrected by expected_compound_pace_s, whose wear term is capped at compound_wear_max_s_per_lap = 10 s; 337 laps (0.21%) sit on the cap, 332 of them on measured base cells.",
+      "clears_when": "An audit of the cap-binding laps decides whether the cap (or the wear fit behind it) is right, and either a direct cap-binding-share check is added or the floor is set from that audit.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W40",
+      "raised": "2026-09-27",
+      "kind": "pending-ruling",
+      "item": "WI-12",
+      "title": "theta_air (pooled 0.503) carries a constructor confound",
+      "detail": "Measured on the WI-01 calibration panel (2018-2025, 138,970 laps): pooled OLS with fuel and tyre cost subtracted 0.506 before the unknown-tyre base fix, 0.503 after; with the constructor term also subtracted 0.366; within-stint (stint FE) 0.432; within-driver-race 0.397. Slower cars follow more often, so the pooled slope partly prices car pace as dirty air. Pooled was ruled for this bump (simplest, matches fuel). The label carries the pooled value.",
+      "clears_when": "WI-12 (06b re-measure) measures which estimator is right and either confirms pooled or bumps the label with theta_air_label_value moved in the same edit.",
+      "status": "RESOLVED",
+      "resolved": "2026-09-27",
+      "resolution": "Ruled by the user 2026-09-27: the label carries 0.331 (06b's pre-registered F2: stint FE + six tyre-age bins, race-clustered, on the model's own calibration panel, 0.3313 [0.293, 0.370]), not pooled 0.503. Implemented as the second half of the same label bump (WI-01 + WI-12): int_dirty_air_tax_component no longer fits theta and applies var('theta_air_label_value') = 0.331 (dbt_project.yml); the F2 fit runs outside dbt (WI-12 d2, section W) and d2 stops unless the var equals it to 3 dp; T9 compares the applied theta with the var (1e-9; mutation checked); label_stability_baseline re-taken. Rebuilt dev: tax exactly 0.331 on all 47,962 treated laps; 84,486 of 106,394 next_5 labels move (31,551 > 250 ms); dbt test identical to WI-01's verification pass (765/1/7); verify_findings F1 F5 F22 F23a F23b F35 F38 F42a all CLEARED; WI-12 d1/d2 re-run: panels identical, tables identical. Evidence: WI-01 doc 'theta re-ruled after verification'."
+    },
+    {
+      "id": "W41",
+      "raised": "2026-09-27",
+      "kind": "debt",
+      "item": "WI-14b",
+      "title": "F45 flipped from a marginal CLEARED to PRESENT as a side effect of WI-01's level changes",
+      "detail": "verify_findings.py F45 (era offset vs between-era field-mean gap): (0.0502, 0.0437) CLEARED before the WI-01 verification pass, (0.0266, 0.0511) PRESENT after. The offset formula did not change; the residual levels it averages did (theta x3.8, interaction dropped, unknown-tyre base cells gone). The earlier CLEARED was incidental, not a fix.",
+      "clears_when": "WI-14b lands (FD5) and F45 is re-measured on the WI-01 label.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W42",
+      "raised": "2026-09-27",
+      "kind": "debt",
+      "item": "WI-01",
+      "title": "int_pit_strategy_cost_curve still adds unitless compound_grip_peak ratios as seconds (F42 remainder)",
+      "detail": "int_pit_strategy_cost_curve.sql ~line 362: COALESCE(new_c0.compound_grip_peak, ...) - COALESCE(old_c0.compound_grip_peak, 0.0) enters a per-lap pace offset in seconds when pit_strategy_baseline_delta is on. F42a removed the same ratio from expected_compound_pace_s; this consumer was left. Needs a fitted per-compound offset in seconds. T32 (assert_compound_pace_units) documents it and stays scoped to int_compound_cliff_predicted.",
+      "clears_when": "The grip term is replaced by a fitted per-compound seconds offset, or dropped from the pit-strategy cost curve.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W43",
+      "raised": "2026-09-27",
+      "kind": "debt",
+      "item": "WI-01",
+      "title": "The field base's 5-lap smoothing spans neutralisation gaps, biasing the base around restarts",
+      "detail": "field_pace_smoothed_s is a centred 5-row rolling mean over (race, lap) cells, and SC/VSC/red laps have no cell, so the window reaches across the gap. Measured 2026-09-27: smoothed minus that lap's own trimmed mean is -0.70 s on restart laps and -0.46 s on laps after an SC/red restart, against +0.01 s on other green laps. Training excludes both laps (event_driven; FD2), but their residual levels and any 5-lap label window that includes them carry the bias. The WI-16a isolation panel is field-centred per (race, lap), so it is immune, but it keeps laps after a restart in its clean set; whether to drop them is WI-16b's call.",
+      "clears_when": "The smoothing stops at neutralisation boundaries (or restart-adjacent cells use their own trimmed mean), or this is accepted on the record.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W44",
+      "raised": "2026-09-27",
+      "kind": "debt",
+      "item": "WI-01",
+      "title": "The residual still uses field-base cells built from fewer than 5 cars",
+      "detail": "int_field_pace_curve flags low_sample_flag (< 5 eligible laps) but int_lap_residual_decomposed uses the value anyway. 346 cells; 4,400 measured laps and 756 eligible labelled rows rest on one. Dropping unknown-tyre laps from the base (WI-01 fix 3) thinned a few cells sharply (2020_3 laps 4-5: 3 cars -> 1; 2018_15 laps 14-18 lost 3 each), which is where the largest label moves of the pass come from (up to 12 s; 702 labels move by more than 2 s).",
+      "clears_when": "A ruling on thin cells: NULL the base below a minimum car count (F1's discipline), widen the window for them, or accept on the record.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W45",
+      "raised": "2026-09-27",
+      "kind": "uncommitted",
+      "item": "WI-01",
+      "title": "WI-01 is MEASURED but uncommitted",
+      "detail": "Label spine build plus the verification pass: transform models/tests/seed/vars, ml/src/card.py, ml/model_card.yml, ml/models/model_card.json, README.md, ml/README.md, verify_findings.py, the WI doc. data/dev.duckdb rebuilt in place; data/ci.duckdb and app/public/data untouched. Plus the W40 edit (2026-09-27): int_dirty_air_tax_component.sql, dbt_project.yml, assert_prior_season_labels_frozen.sql, label_stability_baseline.csv, seeds/schema.yml, intermediate/schema.yml, tests/README.md, WI-12's d1/d2 scripts and outputs, the 06b post.",
+      "clears_when": "The user commits them.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W46",
+      "raised": "2026-09-27",
+      "kind": "stale-artifact",
+      "item": "WI-01",
+      "title": "Generated docs and inventory snippets predate WI-01",
+      "detail": "docs/reference/ml/degradation-model.mdx (built from ml/model_card.yml) lacks the label-spine limitation; docs/snippets/transform-inventory*.mdx and overview-numbers.mdx do not reflect WI-01's new/changed tests (T1, T2, T9, T16, T17, T18, T28, T32, F51). Same sweep as W8.",
+      "clears_when": "W8's single regeneration sweep runs after WI-01 is committed.",
+      "status": "OPEN"
+    },
+    {
+      "id": "W47",
+      "raised": "2026-09-27",
+      "kind": "hazard",
+      "item": "WI-12",
+      "title": "theta_air_label_value (0.331) is a frozen external fit; nothing in dbt re-fits it when the panel moves",
+      "detail": "Since W40 int_dirty_air_tax_component applies the declared var instead of fitting theta, because the F2 estimator (stint FE + tyre-age bins) is not one SQL aggregate. Anything that moves the calibration panel leaves 0.331 stale until WI-12's d1/d2 are re-run and the var re-set: WI-02b's compound seed refit (moves compound_component_s, so y), an FD6 ruling on 2018 no-telemetry laps (moves the treatment), a change to theta_air_fit_season_max, or a new season inside it. T9's season-stats check usually fires on such a change because the label moves too, but not by construction; T9's theta check only proves the model applies the var. d1's panel fingerprint (pooled slope 0.5033413666) and d2's W40 gate catch it when the scripts are re-run.",
+      "clears_when": "F2 moves into dbt (within-stint demeaning plus age-bin terms, FWL) so T9 can compare fitted with declared again, or every label-moving item's definition of done names the WI-12 d1/d2 re-run and the var edit.",
+      "status": "OPEN"
+    }
+  ],
+  "open_decisions": [
+    {
+      "id": "FD1",
+      "status": "RESOLVED",
+      "resolved": "2026-09-25T21:29:36Z",
+      "resolution": "A for the label spine: WI-01 proceeds on its Option A method. B's question, pace against what comparable cars actually did, is answered by WI-16's tier-3 rating at matched compound, tyre age and lap, not by the label. The ratings are field-centred per (race, lap), so they are invariant to the base (pinned by T41)."
+    }
+  ],
+  "watch_suggestions": [
+    {
+      "kind": "pending-ruling",
+      "item": "WI-16b",
+      "title": "Re-run WI-16b validation after WI-02b's seed refit",
+      "clears_when": "WI-02b lands and validate_driver_isolation.py is re-run with --write-seed on the refit substrate."
+    },
+    {
+      "kind": "debt",
+      "title": "int_lap_fuel_state.fuel_delta_vs_expected is a per-race constant (-rate), not a lift-and-coast signal",
+      "clears_when": "The column is dropped or rebuilt from telemetry, and int_lap_telemetry_aggregates' lift_coast_share comment is corrected; or it is accepted as-is on the record."
     }
   ]
 }

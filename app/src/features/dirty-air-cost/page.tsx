@@ -74,7 +74,7 @@ export default function DirtyAirCostPage() {
         },
         {
           label: "How It's Calculated",
-          content: 'Per-lap gap-to-car-ahead is fed into a per-circuit OLS coefficient to estimate dirty_air_tax_s. The cumulative race total is the sum of all non-zero laps. Leader laps, safety car laps, and pit-in/out laps are excluded from the tax calculation.',
+          content: 'If a driver spent the previous lap less than 1.5 s behind the car ahead through the middle third of the lap, this lap is charged one dirty-air coefficient (a single OLS slope shared by every circuit and season); otherwise it is charged nothing. The race total is the sum of those charges. The first lap of each stint and the lap after a safety car, VSC or red flag lap are never charged; pit laps are not scored.',
         },
       ]}
       methodology={methodologyContent}

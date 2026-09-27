@@ -57,8 +57,7 @@ export const queryLapWaterfall = registerQuery<Params, LapResidualRow[]>(
           COALESCE(AVG(track_unexplained_s), 0)       AS track_unexplained_s,
           COALESCE(AVG(total_explained_s), 0)         AS total_explained_s,
           COALESCE(AVG(total_explained_s), 0)
-            + COALESCE(AVG(driver_skill_residual_s), 0)
-            + COALESCE(AVG(track_unexplained_s), 0)  AS pace_delta_s,
+            + COALESCE(AVG(driver_skill_residual_s), 0)  AS pace_delta_s,
           COUNT(*)                                    AS n_laps
         FROM fct_lap_residuals_${season}
         WHERE race_year = ?
@@ -86,8 +85,7 @@ export const queryLapWaterfall = registerQuery<Params, LapResidualRow[]>(
         COALESCE(AVG(track_unexplained_s), 0)       AS track_unexplained_s,
         COALESCE(AVG(total_explained_s), 0)         AS total_explained_s,
         COALESCE(AVG(total_explained_s), 0)
-          + COALESCE(AVG(driver_skill_residual_s), 0)
-          + COALESCE(AVG(track_unexplained_s), 0)  AS pace_delta_s,
+          + COALESCE(AVG(driver_skill_residual_s), 0)  AS pace_delta_s,
         COUNT(*)                                    AS n_laps
       FROM fct_lap_residuals_${season}
       WHERE race_year = ?

@@ -26,7 +26,7 @@ export const methodologyContent = (
     </p>
     <p className="mt-2">
       The "delta" column shows how many championship points each driver gained or lost versus their
-      real-world result. Note the host team's own drivers still appear in the real grid, so each
+      FastF1-mapped result. Note the host team's own drivers still appear in the real grid, so each
       transplant is measured against the actual field including the car's incumbents.
     </p>
   </>

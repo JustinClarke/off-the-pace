@@ -18,33 +18,32 @@ export const queryQualiVsRace = registerQuery<Params, QualiVsRaceRow[]>(
   'quali-vs-race.season',
   async ({ season }) => {
     const manifest = await loadManifest()
-    const [qPath, fPath] = await Promise.all([
-      getTablePath(manifest, 'int_qualifying_decomposed'),
-      getTablePath(manifest, 'fct_driver_skill_features'),
-    ])
-    await Promise.all([
-      registerParquet('int_qualifying_decomposed', qPath),
-      registerParquet('fct_driver_skill_features', fPath),
-    ])
+    const qPath = await getTablePath(manifest, 'int_qualifying_decomposed')
+    await registerParquet('int_qualifying_decomposed', qPath)
 
     return rawQuery<QualiVsRaceRow>(`
+      WITH race_deltas AS (
+        SELECT
+          driver_id,
+          race_id,
+          AVG(quali_skill_session_avg_s) AS quali_skill_s,
+          AVG(quali_vs_race_skill_delta_s) AS delta_s
+        FROM int_qualifying_decomposed
+        WHERE race_year = ?
+          AND session_type = 'Q'
+          AND dnq_flag IS NOT TRUE
+          AND quali_traffic_flag IS NOT TRUE
+        GROUP BY driver_id, race_id
+      )
       SELECT
-        q.driver_id,
-        AVG(q.quali_skill_session_avg_s)       AS quali_skill_s,
-        AVG(f.driver_skill_proxy_mean_s)        AS race_skill_s,
-        AVG(q.quali_skill_session_avg_s)
-          - AVG(f.driver_skill_proxy_mean_s)    AS delta_s,
-        COUNT(DISTINCT q.race_id)               AS n_races
-      FROM int_qualifying_decomposed q
-      JOIN fct_driver_skill_features f
-        ON q.driver_id = f.driver_id
-       AND q.race_id   = f.race_id
-      WHERE q.race_year = ?
-        AND q.session_type = 'Q'
-        AND q.dnq_flag IS NOT TRUE
-        AND q.quali_traffic_flag IS NOT TRUE
-      GROUP BY q.driver_id
-      HAVING COUNT(DISTINCT q.race_id) >= 3
+        driver_id,
+        AVG(quali_skill_s) AS quali_skill_s,
+        AVG(quali_skill_s - delta_s) AS race_skill_s,
+        AVG(delta_s) AS delta_s,
+        COUNT(*) AS n_races
+      FROM race_deltas
+      GROUP BY driver_id
+      HAVING COUNT(*) >= 3
       ORDER BY delta_s ASC
     `, [season])
   }

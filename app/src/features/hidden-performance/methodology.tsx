@@ -17,9 +17,10 @@ export const methodologyContent = (
       confidence).
     </p>
     <p className="mt-2">
-      Short runs (too few laps for a reliable estimate) are excluded. The identity check: when the
-      host constructor equals the driver's own team, predicted finish equals actual finish any
-      deviation from zero in that case signals a data issue.
+      Short runs (too few laps for a reliable estimate) are excluded. The self-scenario check: when
+      the host constructor equals the driver's own team, the predicted per-lap pace should match
+      the actual per-lap pace. Finish position depends on how other drivers rank within the scenario
+      when transplanted to the same car, so it will differ from actual finish.
     </p>
   </>
 )

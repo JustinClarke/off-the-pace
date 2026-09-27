@@ -11,6 +11,27 @@
 -- time_in_dirty_air_s sums real per-sample elapsed time (from the merged
 -- ~10Hz car/pos telemetry stream) where gap < 1.5s, replacing the coarse
 -- "was the S2 sector median gap < 1.5s" binary with an actual duration.
+--
+-- F48 (WI-15a, 2026-09-25): dirty-air exposure is a function of the gap
+-- alone. S2 (the only third that prices dirty air) used to test DRS before
+-- the gap, so a car sitting <1.0 s behind through S2 with DRS open anywhere in
+-- the third was coded 'drs_train' (dirty_air_share_lap = 0) while a car
+-- 1.0-1.5 s behind was coded 'dirty_air' (share 1): the share was not monotone
+-- in the gap, and 11,540 of the 25,624 training-eligible laps with an S2
+-- median gap under 1 s (45%, 2026-09-25 build) were billed as clean air. Now
+-- any S2 median gap
+-- < 1.5 s is 'dirty_air' whatever DRS did. DRS is carried beside it as its own
+-- column (s2_drs_active) instead of inside the classification, together with
+-- the S2 median gap itself (s2_gap_median_s) so the monotonicity can be
+-- asserted against the measured gap (assert_dirty_air_share_monotone, T38).
+-- Whether DRS-open S2 laps really carry less aero load is a physics question
+-- nothing in this tree settles; keeping DRS in a column leaves it answerable.
+-- The straights (S1/S3) keep their tow/DRS split unchanged: 'drs_train' now
+-- means "within 1 s with DRS open on a straight third" and never touches the
+-- dirty-air share. Downstream, the share is the treatment in
+-- int_dirty_air_tax_component's theta_air, so this change moves theta_air
+-- and every dirty-air lap's label on the next build: that re-estimate belongs
+-- to WI-01's label version bump, not to this model.
 {{ config(materialized='table') }}
 
 WITH geom AS (
@@ -112,15 +133,20 @@ sector_agg AS (
     GROUP BY race_year, race_id, driver_id, lap_number, sector_proxy
 ),
 
--- Classify each sector by air state
+-- Classify each sector by air state.
+-- S2 is classified on the gap alone (F48): DRS is not consulted there. The
+-- S1/S3 branches are the pre-F48 logic unchanged -- DRS still splits a sub-1 s
+-- follow on a straight into 'drs_train' vs 'tow_zone'.
 sector_classified AS (
     SELECT
         *,
         CASE
             WHEN gap_median_s IS NULL OR gap_median_s > 2.0 THEN 'free_air'
-            WHEN gap_median_s < 1.0 AND drs_active = 1 THEN 'drs_train'
-            WHEN gap_median_s < 1.0 AND sector != 2 THEN 'tow_zone'
-            WHEN gap_median_s < 1.5 AND sector = 2 THEN 'dirty_air'
+            WHEN sector = 2 AND gap_median_s < 1.5 THEN 'dirty_air'
+            WHEN
+                sector != 2 AND gap_median_s < 1.0 AND drs_active = 1
+                THEN 'drs_train'
+            WHEN sector != 2 AND gap_median_s < 1.0 THEN 'tow_zone'
             ELSE 'free_air'
         END AS sector_air_state,
         -- Dirty air intensity (S2 only): inverse distance, floored at 0.3s gap
@@ -157,7 +183,12 @@ lap_air AS (
         MAX(dirty_air_intensity_sector) AS dirty_air_intensity,
         -- Modal sector state
         MODE() WITHIN GROUP (ORDER BY sector_air_state) AS air_state_dominant,
-        MIN(gap_median_s) AS min_gap_s
+        MIN(gap_median_s) AS min_gap_s,
+        -- F48: the measured S2 gap the share is a function of, and the DRS
+        -- state it no longer consults. One S2 row per lap, so MAX just picks
+        -- it; NULL when the lap has no S2 telemetry (gap) or no S2 row (DRS).
+        MAX(CASE WHEN sector = 2 THEN gap_median_s END) AS s2_gap_median_s,
+        MAX(CASE WHEN sector = 2 THEN drs_active END) AS s2_drs_active
     FROM sector_classified
     GROUP BY race_year, race_id, driver_id, lap_number
 ),
@@ -189,6 +220,10 @@ with_stint AS (
         END AS dirty_air_intensity,
         COALESCE(a.air_state_dominant, 'free_air') AS air_state_dominant,
         a.min_gap_s,
+        -- Raw measurements, not zeroed on SC/VSC laps (min_gap_s is not
+        -- either): they describe what was measured, not what is priced.
+        a.s2_gap_median_s,
+        CAST(a.s2_drs_active AS BOOLEAN) AS s2_drs_active,
         CASE
             WHEN g.is_safety_car_lap OR g.is_vsc_lap OR g.is_red_flag_lap
                 THEN 0.0
@@ -261,5 +296,7 @@ SELECT
     dirty_air_thermal_load_bulk,
     air_state_dominant,
     min_gap_s,
-    time_in_dirty_air_s
+    time_in_dirty_air_s,
+    s2_gap_median_s,
+    s2_drs_active
 FROM thermal

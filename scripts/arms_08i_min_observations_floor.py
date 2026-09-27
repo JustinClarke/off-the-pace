@@ -75,14 +75,20 @@ OUT = Path("ml/artefacts/08i_min_observations_floor_arms.json")
 
 # ─── The floor-parameterised replica of int_lap_thermal_proxy ───────────────────────
 # `combined` in the dbt model is int_stint_geometry INNER JOIN stg_laps on lap_id.
-# int_lap_thermal_proxy IS that join, materialised, and carries lap_time_s through
-# untouched -- so re-joining it to geometry for is_valid_lap reproduces `combined`
-# exactly without stg_laps, which is a view over bronze parquet at a path relative to
-# the dbt project dir. Everything below this CTE is copied from the model verbatim;
-# the ONLY parameter is {floor}. surface_bulk_ratio is the mart's own expression.
+# int_lap_thermal_proxy IS that join, materialised, and carries its baseline input
+# through untouched -- so re-joining it to geometry for is_valid_lap reproduces
+# `combined` exactly without stg_laps, which is a view over bronze parquet at a path
+# relative to the dbt project dir. Everything below this CTE is copied from the model
+# verbatim; the ONLY parameter is {floor}. surface_bulk_ratio is the mart's own
+# expression.
+# WI-15b: the baseline input is now weight_corrected_lap_time (F47, NULL on invalid
+# laps) and the ratio divides each load by its weight sum (F49). Aliased back to
+# lap_time_s below so the copied CTEs stay verbatim. Runs from before WI-15b scored
+# the raw-time feature and are not comparable with a re-run.
 THERMAL_SQL = """
 WITH combined AS (
-    SELECT t.stint_id, t.lap_id, t.lap_in_stint, g.is_valid_lap, t.lap_time_s
+    SELECT t.stint_id, t.lap_id, t.lap_in_stint, g.is_valid_lap,
+           t.weight_corrected_lap_time AS lap_time_s
     FROM int_lap_thermal_proxy AS t
     INNER JOIN int_stint_geometry AS g ON t.lap_id = g.lap_id
 ),
@@ -130,9 +136,10 @@ thermal AS (
 )
 SELECT lap_id, baseline_observations_n,
        push_residual, cumulative_push_load_surface, cumulative_push_load_bulk,
-       COALESCE(cumulative_push_load_surface, 0.0)
-       / NULLIF(COALESCE(cumulative_push_load_surface, 0.0)
-                + COALESCE(cumulative_push_load_bulk, 0.0), 0.0) AS surface_bulk_ratio
+       (COALESCE(cumulative_push_load_surface, 0.0) / 2.864)
+       / NULLIF((COALESCE(cumulative_push_load_surface, 0.0) / 2.864)
+                + (COALESCE(cumulative_push_load_bulk, 0.0) / 4.403), 0.0)
+           AS surface_bulk_ratio  -- 2.864 / 4.403: dbt vars thermal_*_weight_sum
 FROM thermal
 """
 

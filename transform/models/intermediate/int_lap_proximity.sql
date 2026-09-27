@@ -26,11 +26,11 @@
 -- intermediate and never a browser payload; the join to the mart carries
 -- eleven doubles per lap, not a 20x20 matrix per sample.
 --
--- COST (measured 2026-09-05, 7 seasons / 118.7M telemetry rows):
--- the crossing table is 16,045,328 rows and the whole model builds in ~3 s.
--- The Phase 10 risk note predicted this would be the phase that made dev
--- builds painful; it is cheaper than either existing telemetry model
--- (int_lap_air_state 57.8 s, int_lap_telemetry_aggregates 19.3 s).
+-- COST: ~3 s at 16.0M crossings (2026-09-05); ~20 s at 18.7M (2026-09-25).
+--
+-- F43 (WI-15a): PIT-LANE CROSSINGS ARE NOT TRAFFIC. They are dropped before
+-- the ordering (crossings_on_track); measured impact in schema.yml; guarded by
+-- assert_proximity_excludes_pit_lane (T33).
 {{ config(materialized='table') }}
 
 WITH pos AS (
@@ -98,10 +98,62 @@ crossings AS (
     GROUP BY 1, 2, 3, 4, 5
 ),
 
--- The pairwise step. Ordering every crossing of one bin by its clock makes
--- the immediately-preceding row the car ahead on track and the row before
--- that the car ahead of IT -- which is what separates a train from a single
--- tow without ever materialising a pairwise matrix.
+-- Time spent in each bin, over the FULL crossing sequence (before the pit
+-- filter, so the bin before pit entry keeps its ~1 s dwell); clamped at 5 s so
+-- one stop cannot dominate a lap. Tie-break, a live defect once: at the LAP
+-- ROLLOVER bin 99 of lap N and bin 0 of lap N+1 share a crossing time (76
+-- pairs), and unordered LEAD moved time_within_1s by up to 2.841 s between
+-- builds. The key is total; assert_proximity_crossing_total_order checks it.
+crossings_timed AS (
+    SELECT
+        *,
+        LEAST(
+            COALESCE(
+                LEAD(crossing_time_s) OVER wd - crossing_time_s, 1.0
+            ), 5.0
+        ) AS bin_duration_s
+    FROM crossings
+    WINDOW wd AS (
+        PARTITION BY race_id, driver_id
+        ORDER BY crossing_time_s, lap_number, track_bin
+    )
+),
+
+-- F43: each driver's own pit windows (session clock). A stop with no exit
+-- closes proximity_pit_window_open_s after entry (dbt_project.yml).
+pit_windows AS (
+    SELECT
+        race_id,
+        driver_id,
+        pit_in_time_s,
+        COALESCE(
+            pit_out_time_s,
+            pit_in_time_s + {{ var('proximity_pit_window_open_s', 120.0) }}
+        ) AS pit_out_time_s
+    FROM {{ ref('stg_pits') }}
+    WHERE pit_in_time_s IS NOT NULL
+),
+
+-- F43: a crossing inside the driver's own pit window is dropped outright. It
+-- is nobody's car ahead or behind, and not a traffic bin of the pit lap.
+crossings_on_track AS (
+    SELECT c.*
+    FROM crossings_timed AS c
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM pit_windows AS w
+        WHERE
+            w.race_id = c.race_id
+            AND w.driver_id = c.driver_id
+            AND c.crossing_time_s
+            BETWEEN w.pit_in_time_s AND w.pit_out_time_s
+    )
+),
+
+-- The pairwise step. Ordering every on-track crossing of one bin by its clock
+-- makes the immediately-preceding row the car ahead on track and the row
+-- before that the car ahead of IT -- which is what separates a train from a
+-- single tow without ever materialising a pairwise matrix.
 --
 -- Self-match guard: when a driver is genuinely alone at a point on track, the
 -- previous crossing of that bin is the same driver one lap earlier. That is
@@ -128,7 +180,7 @@ neighbours AS (
         LAG(crossing_time_s, 2) OVER w AS ahead2_crossing_s,
         LEAD(driver_id) OVER w AS behind_driver_id,
         LEAD(crossing_time_s) OVER w AS behind_crossing_s
-    FROM crossings
+    FROM crossings_on_track
     -- driver_id is a TIE-BREAK, not decoration, and leaving it out was a live
     -- defect in this model's first build. crossing_time_s alone is not a total
     -- order inside a (race_id, track_bin): the position channel samples on a
@@ -196,34 +248,8 @@ gaps AS (
                 <= {{ var('proximity_max_gap_s', 300.0) }}
                 THEN behind_crossing_s - crossing_time_s
         END AS gap_behind_s,
-        -- How long this driver spent in this bin. Used to turn a per-bin
-        -- share into real seconds. Clamped at 5 s: a bin is ~1% of a lap
-        -- (~0.9-1.2 s) in green-flag running, and an unclamped value would
-        -- let one pit stop dominate a lap's exposure total.
-        LEAST(
-            COALESCE(
-                LEAD(crossing_time_s) OVER wd - crossing_time_s, 1.0
-            ), 5.0
-        ) AS bin_duration_s
+        bin_duration_s  -- from crossings_timed
     FROM neighbours
-    -- Second tie-break, and it was a second live defect. crossing_time_s looks
-    -- like a total order per driver per race -- one telemetry sample cannot sit
-    -- in two bins -- but it is not, AT THE LAP ROLLOVER: FastF1 hands the
-    -- transition sample to both laps, so bin 99 of lap N and bin 0 of lap N+1
-    -- carry the SAME crossing time. 76 such pairs across the 149 races (e.g.
-    -- 2018_6 BOT, lap 25 bin 99 and lap 26 bin 0, both at 2384.384).
-    -- Unordered, LEAD could return the far side of the pair and hand a bin a
-    -- whole lap of duration instead of ~1 s -- which is why time_within_1s
-    -- moved by up to 2.841 s (5.06% relative) between two builds while
-    -- share_lap_within_1s, computed over the same bin SET, did not move at
-    -- all. The set was stable; only the weights were not.
-    -- (crossing_time_s, lap_number, track_bin) is total by construction: it
-    -- contains the full crossings grain. Asserted by
-    -- assert_proximity_crossing_total_order.
-    WINDOW wd AS (
-        PARTITION BY race_id, driver_id
-        ORDER BY crossing_time_s, lap_number, track_bin
-    )
 ),
 
 -- Per-lap scalars. Every aggregate here is over the ~100 bins of one lap.
@@ -238,6 +264,15 @@ lap_scalars AS (
         -- (1) how close, at the closest and typically
         MIN(gap_ahead_s) AS gap_ahead_min_s,
         MEDIAN(gap_ahead_s) AS gap_ahead_median_s,
+        -- ...and who set it, and when (F43 diagnostic for T33, never a
+        -- feature). STRUCT MIN is lexicographic and (gap, track_bin) is
+        -- unique per driver-lap, so ties resolve deterministically.
+        MIN({
+            'gap_s': gap_ahead_s,
+            'track_bin': track_bin,
+            'crossing_s': crossing_time_s,
+            'ahead_driver_id': gap_ahead_driver_id
+        }) FILTER (WHERE gap_ahead_s IS NOT NULL) AS gap_ahead_min_arg,
 
         -- (2) cars within 1 s / 2 s / 3 s, as a share of the lap's bins
         AVG(CASE WHEN gap_ahead_s < 1.0 THEN 1.0 ELSE 0.0 END)
@@ -357,6 +392,10 @@ joined AS (
         s.proximity_bin_count,
         s.gap_ahead_min_s,
         s.gap_ahead_median_s,
+        STRUCT_EXTRACT(s.gap_ahead_min_arg, 'ahead_driver_id')
+            AS gap_ahead_min_driver_id,
+        STRUCT_EXTRACT(s.gap_ahead_min_arg, 'crossing_s')
+            AS gap_ahead_min_crossing_s,
         s.share_lap_within_1s,
         s.share_lap_within_2s,
         s.share_lap_within_3s,
@@ -441,5 +480,9 @@ SELECT
 
     -- The incumbent measure at the same grain, for the head-to-head
     ff_distance_to_ahead_m,
-    ff_ahead_identity_agreement
+    ff_ahead_identity_agreement,
+
+    -- F43 diagnostics, never features (see schema.yml)
+    gap_ahead_min_driver_id,
+    gap_ahead_min_crossing_s
 FROM joined

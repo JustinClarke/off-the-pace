@@ -61,7 +61,15 @@ sc_windows AS (
         LEAD(is_safety_car_lap OR is_vsc_lap OR is_red_flag_lap) OVER (
             PARTITION BY race_year, race_id, driver_id
             ORDER BY lap_number
-        ) AS next_lap_is_controlled
+        ) AS next_lap_is_controlled,
+        -- FD2 (WI-01): the second green lap after a safety car or red flag.
+        -- Two laps back was SC/red, one lap back was green (that is the
+        -- restart lap, already flagged is_restart_lap). VSC is deliberately
+        -- not included: FD2's measurement found VSC restarts unaffected.
+        LAG(is_safety_car_lap OR is_red_flag_lap, 2) OVER (
+            PARTITION BY race_year, race_id, driver_id
+            ORDER BY lap_number
+        ) AS lap_before_prev_was_sc_or_red
     FROM laps
 ),
 
@@ -98,6 +106,17 @@ classified AS (
         -- Derived adjacency flags
         COALESCE(sc.prev_lap_was_controlled, FALSE) AS is_restart_lap,
         COALESCE(sc.next_lap_is_controlled, FALSE) AS is_pre_controlled_lap,
+        -- FD2 (WI-01): lap after the SC/red-flag restart lap. Its label is
+        -- systematically wrong (FD2 measured a -5.1 s fake recovery against
+        -- -0.3 s on normal laps), so fct_cliff_prediction_features drops it
+        -- from is_training_eligible. It does NOT change correction_class or
+        -- correction_weight below: those feed theta_air's calibration panel
+        -- and other consumers, and FD2 ruled on training eligibility only.
+        COALESCE(
+            sc.lap_before_prev_was_sc_or_red
+            AND NOT COALESCE(sc.prev_lap_was_controlled, FALSE),
+            FALSE
+        ) AS is_lap_after_restart,
 
         -- Local yellow (sector caution, no full neutralisation)
         COALESCE(y.is_local_yellow_lap, FALSE) AS is_local_yellow_lap,
@@ -200,6 +219,7 @@ SELECT
     is_local_yellow_lap,
     is_restart_lap,
     is_pre_controlled_lap,
+    is_lap_after_restart,
     is_pit_lap,
     is_deleted,
     is_major_outlier_lap,

@@ -210,7 +210,9 @@ SELECT
     --
     -- The wear term is the same macro as compound_wear_s, so this total is
     -- NULL when the tyre age is unknown (F39) rather than grip + 10 s + temp.
-    COALESCE(compound_grip_peak, 0.0)
+    -- F42a: compound_grip_peak is unitless (0.95-1.09, a ratio) and must not be
+    -- added as seconds; dropped here pending per-compound offset in seconds.
+    0.0
     + {{ compound_cliff_wear_s('compound_wear_gradient',
                                'compound_cliff_severity',
                                'age_in_stint',

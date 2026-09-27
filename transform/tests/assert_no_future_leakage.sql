@@ -22,7 +22,10 @@ WITH lap_source AS (
         g.lap_id,
         g.lap_in_stint,
         g.is_valid_lap,
-        t.lap_time_s
+        -- F47 (WI-15b): the model's baseline input is the fuel-corrected
+        -- time. That column is pinned to int_lap_fuel_state by T37
+        -- (assert_push_residual_fuel_neutral), so it is not re-checked here.
+        t.weight_corrected_lap_time AS lap_time_s
     FROM {{ ref('int_stint_geometry') }} AS g
     INNER JOIN {{ ref('int_lap_thermal_proxy') }} AS t ON t.lap_id = g.lap_id
 ),
@@ -88,10 +91,10 @@ UNION ALL
 SELECT
     lap_id,
     'push_residual' AS check_name,
-    stint_baseline_pace - lap_time_s AS expected,
+    stint_baseline_pace - weight_corrected_lap_time AS expected,
     push_residual AS actual
 FROM {{ ref('int_lap_thermal_proxy') }}
-WHERE push_residual IS DISTINCT FROM stint_baseline_pace - lap_time_s
+WHERE push_residual IS DISTINCT FROM stint_baseline_pace - weight_corrected_lap_time
 
 UNION ALL
 

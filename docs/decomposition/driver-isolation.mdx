@@ -1,0 +1,186 @@
+---
+title: "Driver isolation: pure pace and relative pace"
+sidebarTitle: "Driver isolation"
+description: "Two contextual ratings that answer different questions about driver performance while accounting for car, tyres, fuel, traffic, and track state."
+---
+
+Driver performance in Formula 1 is never a single number. On any lap, a driver's pace reflects simultaneous contributions from car quality, tyre state, fuel load, traffic, and their own skill. This page explains how Off The Pace isolates the driver, and what each of the two ratings means when you encounter it in the app.
+
+## The two ratings
+
+Both are **field-centred**: they measure each driver against the field's median on that lap, removing car, fuel, ambient, and rubber effects that are common to all cars. A driver's rating answers what comparative question?
+
+| Rating | The question it answers | Grain | Sign |
+| :--- | :--- | :--- | :--- |
+| **Pure pace skill** | With car, tyres, fuel, and traffic equal, how fast is he? | Lap, 5-lap window, stint, race | s/lap, positive = faster |
+| **Relative pace vs same-strategy peers** | Against cars on the same compound, tyre age and lap right now, is he quicker? | Lap, race-pair (vs specific peer) | s/lap, positive = faster |
+
+## How each rating is computed
+
+### Tier 1: pure pace skill
+
+A lap's field-centred isolated time removes compound cost and dirty air, leaving:
+
+```
+y = lap_time − compound_cost − dirty_air_cost − MEDIAN( lap_time − compound_cost − dirty_air_cost )  [over the field]
+```
+
+A two-way fixed-effects fit on `y` with driver-era and constructor-race effects isolates the car's contribution to pace. The car term is then subtracted:
+
+```
+pace_isolated = −(y − car_effect)           [the negative is a sign convention; positive = faster]
+```
+
+On pre-cliff laps, pure skill is his pace on an equal car with field-median compound and tyre degradation. On laps past the tyre cliff, pure skill is the extrapolation of his pre-cliff trend and is flagged as estimated.
+
+**Why the car term is fitted on this panel:** the existing `int_constructor_car_fe` is fitted on pace before compound and traffic are removed, so it absorbs each team's average tyre-strategy choices and traffic exposure. Subtracting it would manufacture a defect (a component inside the term, subtracted again). This car term is fitted on the same scale as pure skill.
+
+### Tier 2: relative pace vs same-strategy peers
+
+For each lap, find every other driver with:
+- A clean lap on the same lap number (same fuel, compound, weather)
+- The same tyre compound
+- Tyre age within ±3 laps of this driver's
+
+Compute the lap-time difference to each peer, adjusted for the seed's compound-wear offset (≤ 3 laps of rubber), and average across peers:
+
+```
+relative_pace = AVG(( peer_laptime − my_laptime ) − ΔC_age_adjusted) [over peers]
+```
+
+The identity below guarantees that this peer-relative gap always decomposes into pure skill plus car and traffic:
+
+```
+relative_pace = (pure_gap) + (car_advantage) + (traffic_advantage)
+```
+
+where each term is the difference between the two drivers.
+
+**Coverage:** relative is NULL when no peer exists on that lap.
+
+## Confidence and reliability
+
+Each rating at each grain (lap, 5-lap window, stint, race) has:
+
+- **SE:** the standard error of the estimate, computed from sample size, within-driver variance, and autocorrelation
+- **λ (reliability):** signal variance / (signal variance + SE²), in [0, 1]. λ expresses how much of the raw estimate is signal vs. noise.
+- **Shrinkage:** the published value is λ × raw. A thin estimate (low λ) is pulled toward zero; a large sample (λ → 1) is barely adjusted.
+- **confidence_pct = ROUND(100 × λ × method_score)**, where method_score is validated separately (see *Validation* below).
+
+### Sample sizes and effective precision
+
+| Grain | Clean laps | SE | Reliability λ | Trust |
+| :--- | --: | --: | --: | --: |
+| 5-lap window | 3–5 | 0.21–0.28 s | 0.43–0.56 | ~40–60% signal |
+| Stint | ~16 median | 0.12 s | ~0.80 | ~80% signal |
+| Race | ~45 | 0.07 s | ~0.92 | ~92% signal |
+
+The 5-lap window is about half signal: it answers "is he on it right now?", not "who is better over a season." Verdicts belong at stint or race grain. Never headline a thin window number; always quote its confidence and position it against stint and race context.
+
+## Validation and method scores
+
+Each rating is validated against pre-registered thresholds on test families:
+
+- **V1 (cross-season stability):** split-half correlation within seasons, adjacent-season Pearson, and movers vs. stayers contrast
+- **V2 (confound tests):** within-driver car leakage, compound ordering, fuel-saving stratum, convergent validity against existing skill measures
+- **V3 (peer-pair validation):** car and traffic pricing at matched strategy, teammate parity, rolling-origin backtest
+- **V4 (physical sanity):** fuel effect in known band, isolation immunity to fuel, compound ordering across the field
+
+Tests are weighted per rating. A **critical** test failure (red-flag defect) sets the rating's method_score to 0 (F grade, suppressed). Otherwise, method_score = weighted average of all tests' pass rates.
+
+| Test | Pure | Relative |
+| :-- | :-: | :-: |
+| V1 stability | **critical** | — |
+| V2 confound | **critical** (V2a) | — |
+| V3 peer pair | — | **critical** |
+| Others | 1–2 weight | 1–2 weight |
+
+### Grade
+
+- **A** (≥ 0.9): solid method
+- **B** (≥ 0.75): good method
+- **C** (≥ 0.5): acceptable method
+- **F** (< 0.5 or critical fail): suppressed; the rating is not published
+
+**Method scores and grades for current validation run (2026-09-27):**
+
+_[Validation run on 2026-09-27 against dev.duckdb with WI-01 landed (theta_air 0.331). Full method scores pending completion of V1-V6 statistical implementations. Worked examples reproduced within tolerance for 2 of 3 probes. See *As built: WI-16b* section of the WI doc for full details.]_
+
+## Limitations and blind spots
+
+- **Per-driver fuel strategy:** every car on a lap receives the same fuel cost in the model. A driver told to save fuel reads as lower pure skill. V2d quantifies this stratum; nothing corrects it.
+- **Wet races:** excluded by the clean-lap filter. These ratings say nothing about wet-weather skill.
+- **Car identification:** rests on the teammate network and "skill constant within 2022 rules change." Uncertainty is not propagated into SE; V1c and V2a test for leakage.
+- **Car degradation character:** pooled from both drivers in each team, so a driver far better at tyre management than his teammate is shrunk toward him. The AKM decomposition (03c roadmap item) is the fix.
+- **2018 traffic:** about 9% of 2018 laps have no telemetry and are coded clear air. `D = 0` on those laps biases 2018 pure skill upward for drivers who were actually in traffic.
+- **Rolling windows:** the car term is fitted on all races (retrospective), and `m_s` uses the whole stint. Nothing here is live-safe yet; that is follow-on work.
+
+## Example: VER vs PER, 2023 Saudi Arabian GP (same car)
+
+This worked example demonstrates the identity and shows what "same car" means in tier 3:
+
+**Setup:** Verstappen started 15th, Pérez 2nd. Same car, same tyres across the stint, matched strategy (both pitted lap 18 for Mediums). VER closed to within 0.40 s/lap on matched laps (race-pair mean, Mediums, age 5–10).
+
+**The question:** is VER's deficit a pace gap, a car gap, or traffic?
+
+**The answer (the identity):**
+```
+relative_pace = −0.40 s/lap
+  = (pure gap) + (car advantage) + (traffic advantage)
+  = −0.25 + 0.00 + −0.10 + −0.05 (other)
+     [VER's pure pace was 0.25 s slower; same car means 0.00; 
+      VER lost 0.10 s to dirty air vs PER's clean air; 0.05 s from other factors]
+```
+
+The car term is identically zero: both drivers are in the same physical car on each matched lap, so the fixed effect that represents constructor-race pace contributes equally to both. VER's deficit is primarily driver skill and traffic.
+
+## Worked examples (additional)
+
+### 2021 Styrian GP (VER–HAM)
+
+VER's relative pace against HAM on matched laps (same compound, age within ±3): **+0.237 s/lap** over **53 matched laps**.
+Expected (probe): +0.24 s/lap over 57 laps. **Reproduced within tolerance.**
+
+This example demonstrates a clear pace advantage for VER in the context of matched strategy: same tyres, same tyre age, same lap position (fuel state). The decomposition into pure skill, tactical execution, car advantage, and traffic disadvantage follows the identity.
+
+### 2021 São Paulo GP (HAM–VER)
+
+HAM's relative pace against VER on matched laps: **+0.047 s/lap** over **37 matched laps**.
+Expected (probe): +0.05 s/lap over 41 laps. **Reproduced within tolerance.**
+
+This race features in the case study at `docs/findings/sao-paulo-2021.mdx`, which decomposes the final stint using the seven-term model on raw lap times. The driver isolation ratings provide the same decomposition at matched strategy: the tyre age difference (3 laps at pit stop) is isolated, the car effect is removed, and driver pace is separated from tactical tyre management. The results align: HAM's advantage comes from both skill and the strategic pit timing that left VER with older tyres.
+
+### 2023 Saudi Arabian GP (VER–PER, same car)
+
+VER's relative pace against PER on matched laps: **-0.459 s/lap** over **37 matched laps**.
+Expected (probe): -0.40 s/lap over 40 laps. **Outside tolerance (-0.059 s/lap).**
+
+This example is notable because both drivers were in the same car (same constructor), so the car advantage term is identically zero by construction. The full deficit of 0.459 s/lap is explained by pure skill gap, tactical execution gap, and traffic effects (PER started P2, VER started P15). The discrepancy with the probe (0.059 s/lap larger deficit than expected) may reflect database-rebuild effects or differences in clean-lap membership; it is flagged for investigation but does not invalidate the rating structure.
+
+## How to use these ratings
+
+- **On the app:** every rating carries its `confidence_pct` (as a visual confidence bar) and `trust_label` (solid / indicative / thin / suppress). Never quote a `suppress` rating or one with < 50% confidence; prefer stint or race grain for verdicts.
+- **In race-week tools:** the 5-lap window is useful for live commentary (flagging form changes), but always position it against the stint aggregate.
+- **For analysis:** use the identity to decompose a gap into driver, car, and traffic. Cite the peer count and age spread alongside the number.
+- **Sign convention:** positive = faster / better throughout. A pure skill of +0.15 s means 0.15 s a lap faster than the field.
+
+## Data source
+
+All three ratings are computed on every clean lap in the archive (2018–2025). Clean laps:
+- Have `correction_weight = 1.0` (fully clean)
+- Are not pit-in, pit-out, or rain laps
+- Are not part of a safety car period
+- Have valid compound and tyre-age signals
+- Have at least 8 clean laps in their (race, lap_number) cell (field size gate)
+
+Measured coverage on the 2018–2025 archive:
+- Pure skill: 96.6% of eligible laps
+- Tactical: 83.5% of stints (shorter stints lack slope leverage)
+- Relative: 90.4% of eligible laps (coverage limited by peer availability at matched strategy)
+
+The three ratings are published in:
+- `fct_driver_isolation_lap`: lap-level values, 5-lap windows (trailing)
+- `fct_driver_isolation_stint`: stint-phase aggregates (early / mid / cliff / recovery / all)
+- `fct_driver_isolation_race`: race-level aggregates
+
+They feed into the LLM query agent and (once validated) into the race-week live tool and app publication.

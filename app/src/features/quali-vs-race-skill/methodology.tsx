@@ -10,11 +10,11 @@ export const methodologyContent = (
     <ul className="list-disc pl-4 mt-3 space-y-1">
       <li><strong>Qualifying skill</strong>: average residual from personal-best Q laps
         with traffic and DNQ sessions excluded.</li>
-      <li><strong>Race skill</strong>: average <code>driver_skill_proxy_mean_s</code>
-        across race stints from <code>fct_driver_skill_features</code>.</li>
-      <li><strong>Q−R delta</strong>: qualifying residual minus race residual. Negative
-        means the driver is relatively faster in qualifying (qualifying specialist);
-        positive means they gain more in race trim (race specialist).</li>
+      <li><strong>Race skill</strong>: average residual from race stints, derived from
+        the quali-vs-race differential.</li>
+      <li><strong>Q−R delta</strong>: qualifying residual minus race residual. Positive
+        means the driver is relatively faster in qualifying (single-lap specialist);
+        negative means they are stronger in race conditions (race specialist).</li>
     </ul>
     <p className="mt-3">
       Residuals are on the same scale as absolute lap times (seconds, negative = faster
@@ -22,8 +22,8 @@ export const methodologyContent = (
       skill; deviation shows the direction of specialisation.
     </p>
     <p className="mt-3 text-muted/70">
-      Sources: <code>int_qualifying_decomposed</code> and <code>fct_driver_skill_features</code>.
-      Minimum 3 valid qualifying sessions per season required.
+      Source: <code>int_qualifying_decomposed</code> (field-relative residuals, aggregated
+      at driver-race grain). Minimum 3 valid qualifying sessions per season required.
     </p>
   </>
 )

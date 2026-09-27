@@ -12,8 +12,9 @@ export const methodologyContent = (
         sector. The thermally-loaded air disrupts downforce and causes tyre overheating.</li>
       <li><strong>Tow zone</strong> (green): gap &lt; 1.0s on a straight sector, without active
         DRS. Slipstream benefit without full aerodynamic interference.</li>
-      <li><strong>DRS train</strong> (amber): gap &lt; 1.0s with DRS active. Speed benefit but
-        still constrained by car ahead.</li>
+      <li><strong>DRS train</strong> (amber): gap &lt; 1.0s on a straight sector with DRS
+        active. Speed benefit but still constrained by car ahead. DRS does not change the
+        middle-third call: a car that close there is in dirty air either way.</li>
       <li><strong>Free air</strong> (grey): gap &gt; 2.0s or gap unavailable. Clean aerodynamic
         conditions; baseline.</li>
     </ul>

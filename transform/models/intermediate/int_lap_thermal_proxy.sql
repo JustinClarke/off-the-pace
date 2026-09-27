@@ -40,12 +40,28 @@ WITH geom AS (
 
 -- Full sequence (SC/VSC/pit/invalid laps included): the LAG window below
 -- must run over every lap so the push-residual EWMA decays across a gap
--- instead of treating the lap before/after it as adjacent. Invalid laps are
--- much slower than the stint baseline, so their push_residual is clipped to
--- ~0 by the GREATEST(...,0) below and naturally contribute little.
+-- instead of treating the lap before/after it as adjacent.
+--
+-- F47 (WI-15b): the residual is measured on weight_corrected_lap_time, the
+-- convention int_field_pace_curve already uses. On raw lap time, fuel burn-off
+-- alone makes every lap faster than the stint's earlier laps and reads as
+-- pushing: 67.6% of training-eligible laps past lap_in_stint 20 were coded
+-- "pushing" on raw time, 32.5% fuel-corrected. int_lap_fuel_state carries VALID
+-- laps only, so it is LEFT-joined onto stg_laps rather than used as the lap
+-- source: an inner join drops the 28,378 invalid laps and closes the gaps
+-- this window exists to keep open (measured: that moved the bulk load on 7,890
+-- of 137,759 training-eligible rows against this build). An invalid lap
+-- therefore has a NULL corrected time and a NULL residual: it keeps its slot
+-- in the window and contributes 0, the rule below for any NULL prior residual.
+-- It is not in the baseline either (valid_condition). The one change this
+-- makes beyond fuel: the 968 invalid laps with a positive raw residual no
+-- longer add load (2,808 training-eligible rows have one in their lookback).
 laps AS (
-    SELECT lap_id, lap_time_s
-    FROM {{ ref('stg_laps') }}
+    SELECT
+        s.lap_id,
+        f.weight_corrected_lap_time
+    FROM {{ ref('stg_laps') }} AS s
+    LEFT JOIN {{ ref('int_lap_fuel_state') }} AS f ON s.lap_id = f.lap_id
 ),
 
 combined AS (
@@ -58,7 +74,7 @@ combined AS (
         g.lap_number,
         g.lap_in_stint,
         g.is_valid_lap,
-        l.lap_time_s
+        l.weight_corrected_lap_time
     FROM geom AS g
     INNER JOIN laps AS l ON g.lap_id = l.lap_id
 ),
@@ -88,11 +104,11 @@ with_baseline AS (
     SELECT
         *,
         {{ trailing_median(
-            'lap_time_s', ['stint_id'], ['lap_in_stint'],
+            'weight_corrected_lap_time', ['stint_id'], ['lap_in_stint'],
             min_observations=1, valid_condition='is_valid_lap') }}
             AS stint_baseline_pace,
         {{ trailing_observation_count(
-            'lap_time_s', ['stint_id'], ['lap_in_stint'],
+            'weight_corrected_lap_time', ['stint_id'], ['lap_in_stint'],
             valid_condition='is_valid_lap') }}
             AS baseline_observations_n
     FROM combined
@@ -103,7 +119,8 @@ with_residual AS (
         *,
         -- Positive = faster than baseline = pushing harder.
         -- NULL until the stint has a prior valid lap: unknown, not zero.
-        stint_baseline_pace - lap_time_s AS push_residual
+        -- NULL on invalid laps too (no corrected time, see `laps`).
+        stint_baseline_pace - weight_corrected_lap_time AS push_residual
     FROM with_baseline
 ),
 
@@ -157,7 +174,7 @@ SELECT
     driver_id,
     lap_number,
     lap_in_stint,
-    lap_time_s,
+    weight_corrected_lap_time,
     stint_baseline_pace,
     baseline_observations_n,
     push_residual,

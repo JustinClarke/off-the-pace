@@ -37,7 +37,7 @@ export default function ChampionshipChart({
           { key: 'ghostRank', header: 'Ghost P', align: 'right', render: v => `P${v}` },
           { key: 'driver', header: 'Driver', align: 'left' },
           { key: 'ghostPoints', header: 'Ghost Pts', align: 'right' },
-          { key: 'actualPoints', header: 'Actual Pts', align: 'right' },
+          { key: 'actualPoints', header: 'Actual Pts (FastF1 result)', align: 'right' },
           {
             key: 'delta',
             header: 'Pts Δ',

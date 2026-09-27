@@ -11,9 +11,13 @@
 --   pace_delta_s = fuel + compound + rubber + ambient + constructor
 --               + dirty_air_tax + driver_skill + unexplained
 --
--- Two-part estimation:
--- Part 1: Calibration θ_air estimated from (partial_residual ~ dirty_air_lag1)
---   partial_residual = lap_time_s-field_pace_smoothed_s-fuel_component_s
+-- Two parts:
+-- Part 1: Calibration panel -- the population θ_air is fitted on
+--   (partial_residual ~ dirty_air_lag1). Since W40 the fit itself runs
+--   outside dbt and θ_air is a declared var; see the W40 block below.
+--   partial_residual = lap_time_s - field_pace_smoothed_s - fuel_component_s
+--                      - compound_component_s   (WI-01: tyre cost too, see
+--                      panel_base; the base is fuel- AND compound-neutral)
 --   This avoids the circular reference: int_dirty_air_tax_component cannot ref
 --   int_lap_residual_decomposed because that model refs this one.
 --   The calibration panel carries BOTH arms (treated and untreated laps).
@@ -40,6 +44,63 @@
 --   the ML label without its own gate ladder. See work/08-foundations-repair.md
 --   section 08q for the identification argument and the open ruling on what the
 --   app should show for seasons where θ is not distinguishable from zero.
+--
+-- WI-01 (2026-09-27, F5 + F23a + F23b + F48-θ): three fixes land together
+-- because they all touch this same calibration/application split.
+--   F23a -- the calibration panel is no longer defended by
+--     COALESCE(fp.field_pace_smoothed_s, f.lap_time_s): that fallback made
+--     partial_residual_s = -fuel_component_s (never NULL) for a lap the field
+--     curve has no row for, so the existing
+--     `WHERE partial_residual_s IS NOT NULL` filter never actually excluded a
+--     fabricated-base lap from the fit. panel_base now INNER JOINs field_pace
+--     directly, so a lap with no measured base gets no row at all here --
+--     same NULL-propagation discipline as F1, not a fabricated tax value.
+--   F23b -- the correction_weight/rainfall filter used to gate `panel` itself,
+--     so a downweighted or wet lap got NO row in the OUTPUT table, which
+--     int_lap_residual_decomposed's COALESCE(da.dirty_air_tax_s, 0.0) then
+--     read as "0 s of dirty air" even when that lap genuinely followed one.
+--     That filter now governs `calibration_panel` (estimation) only;
+--     `panel_base` (application, and this model's grain) carries every
+--     base-measured lap regardless of its own weight/weather.
+--   F5 -- calibration_panel additionally requires
+--     race_year <= var('theta_air_fit_season_max'): theta is fit on a
+--     declared, frozen season window instead of "every ingested season," so
+--     ingesting a new season cannot silently move theta and relabel history
+--     that already shipped.
+--   F48-θ -- this is the FIRST rebuild of theta after F1 (honest base),
+--     F23a/F23b (honest calibration panel) and F48's coding fix
+--     (WI-15a: S2 dirty-air share is monotone in the gap, no longer
+--     miscoding sub-1s DRS-open follows as clean) all landed together, per
+--     the WI-01 doc's instruction to re-estimate exactly once on top of all
+--     three rather than once per fix.
+--   Verification pass (2026-09-27): the partial residual now also subtracts
+--     the lap's own compound_component_s. With a compound-neutral base (F38)
+--     a fuel-only partial residual kept every lap's tyre cost in y, which
+--     biased the pooled slope to 0.169; subtracting it gave pooled 0.5033,
+--     WI-01's interim label value (superseded by W40, below).
+--
+-- W40 (2026-09-27, ruled by the user; the second half of the same label
+-- bump, WI-01 + WI-12): θ_air is the DECLARED var('theta_air_label_value'),
+-- 0.331 s/lap, applied as-is. It is no longer fitted in this model.
+--   The value is 06b's pre-registered F2 estimator (partial residual on the
+--   lagged bit | stint FE + six tyre-age bins, race-clustered), fitted by
+--   WI-12 on exactly this model's calibration_panel (2018-2025):
+--   0.3313 [0.293, 0.370], n = 138,679 (singleton stints drop out).
+--   It replaces the pooled OLS slope this model used to compute here
+--   (COVAR_POP / VAR_POP, 0.5033) because every estimator that removes
+--   between-stint variation lands at 0.30-0.43 and pooled sits outside F2's
+--   interval: slower cars follow more often (the constructor term alone is
+--   worth 0.14 s between the arms), and later-in-stint laps are both more
+--   often following and slower than the tyre model accounts for (the age
+--   bins take stint-FE 0.433 to 0.331). The label only sees θ through
+--   within-stint differences, so a between-stint confound has no place in it.
+--   A two-way FE fit is not one SQL aggregate, so it runs outside dbt
+--   (_roadmap/_fixes/_evidence/wi-12-2026-09-27/d2_fit_wi12.py, section W)
+--   and is frozen as the var. Moving it is a reviewed label bump: rebuild,
+--   re-run d1/d2 on the new panel, edit the var, re-take
+--   label_stability_baseline. calibration_panel below still defines the
+--   population the value was fitted on and still sets calibration_sample_n
+--   (tax_calibration_confidence), and theta_air_fit_season_max still bounds it.
 
 {{ config(materialized='table', tags=['causal_decomposition', 'dirty_air']) }}
 
@@ -63,6 +124,16 @@ field_pace AS (
         lap_number,
         field_pace_smoothed_s
     FROM {{ ref('int_field_pace_curve') }}
+),
+
+-- The lap's own tyre cost, the same term int_lap_residual_decomposed
+-- subtracts as compound_component_s. Needed in the partial residual below
+-- because the base is compound-neutral (WI-01/F38): see panel_base.
+compound AS (
+    SELECT
+        lap_id,
+        expected_compound_pace_s AS compound_component_s
+    FROM {{ ref('int_compound_cliff_predicted') }}
 ),
 
 geom AS (
@@ -129,7 +200,13 @@ evolution AS (
     FROM {{ ref('int_track_evolution') }}
 ),
 
-panel AS (
+panel_base AS (
+    -- Full spine: every lap with fuel/geom data AND a measured field-pace
+    -- base. A lap the field curve has no row for (F1) gets no row here
+    -- either -- the same NULL-propagation discipline as the rest of the
+    -- label spine, not a fabricated tax (F23a). This is BOTH the application
+    -- population (every row here gets a tax value in with_tax below) and the
+    -- superset calibration_panel narrows for estimation only (F23b).
     SELECT
         f.lap_id,
         g.stint_id,
@@ -138,25 +215,46 @@ panel AS (
         f.driver_id,
         f.lap_number,
         g.lap_in_stint,
-        -- Partial residual: pace delta minus fuel only (avoids circular ref to
-        -- int_lap_residual_decomposed).
-        -- Compound, rubber, ambient, and constructor noise increases variance
-        -- but θ_air remains identified
-        -- via within-driver-race variation orthogonal to those components.
-        (f.lap_time_s - COALESCE(fp.field_pace_smoothed_s, f.lap_time_s))
+        -- Partial residual: pace delta minus fuel AND the lap's own tyre cost
+        -- (avoids circular ref to int_lap_residual_decomposed).
+        -- WI-01 (2026-09-27): the base is now compound-neutral (F38), so it no
+        -- longer absorbs the field's tyre cost. Subtracting fuel only left
+        -- each lap's whole tyre cost in the partial residual, and that cost is
+        -- not orthogonal to the dirty-air lag: treated laps carry about 0.33 s
+        -- LESS modelled tyre cost than untreated ones (1.08 vs 1.41 s, WI-12),
+        -- so the pooled slope came out at 0.169 instead of ~0.5. Tyre cost is
+        -- now handled exactly the way fuel is.
+        -- A lap with an unknown tyre cost (F39: unknown tyre age) gets a NULL
+        -- partial residual and so stays out of the fit (calibration_panel's
+        -- IS NOT NULL filter); it still gets a tax value in with_tax.
+        -- Constructor pace is left in, and it is NOT orthogonal to the lag:
+        -- slower cars follow more often. Measured 2026-09-27 on this panel:
+        -- pooled 0.503, pooled with the constructor term also subtracted
+        -- 0.363, stint FE 0.433, stint FE + tyre-age bins (F2) 0.331. That
+        -- confound is why θ_air is the declared F2 value, not the pooled
+        -- slope of this residual (W40, header): stint FE absorbs the car.
+        -- No defensive COALESCE on fp.field_pace_smoothed_s (F23a): the INNER
+        -- JOIN to field_pace below already means every row reaching this
+        -- SELECT has a measured base, so this is a plain subtraction, not a
+        -- fallback that could silently revive the fabrication.
+        (f.lap_time_s - fp.field_pace_smoothed_s)
         - f.fuel_component_s
+        - cc.compound_component_s
             AS partial_residual_s,
         a.dirty_air_share_lap,
         a.air_state_dominant,
-        fsl.dirty_air_share_lag1
+        fsl.dirty_air_share_lag1,
+        c.correction_weight,
+        e.rainfall_flag
     FROM fuel AS f
     INNER JOIN geom AS g ON f.lap_id = g.lap_id
     INNER JOIN full_sequence_lag AS fsl ON f.lap_id = fsl.lap_id
-    LEFT JOIN field_pace AS fp
+    INNER JOIN field_pace AS fp                -- F1/F23a: no base, no row
         ON
             f.race_year = fp.race_year
             AND f.race_id = fp.race_id
             AND f.lap_number = fp.lap_number
+    LEFT JOIN compound AS cc ON f.lap_id = cc.lap_id
     LEFT JOIN air_state AS a ON f.lap_id = a.lap_id
     LEFT JOIN corrections AS c ON f.lap_id = c.lap_id
     LEFT JOIN evolution AS e
@@ -166,14 +264,24 @@ panel AS (
             AND f.lap_number = e.lap_number
     WHERE
         f.lap_time_s IS NOT NULL
-        AND COALESCE(c.correction_weight, 1.0) = 1.0
-        AND COALESCE(e.rainfall_flag, FALSE) = FALSE
+        -- F1/F23a: int_field_pace_curve can carry a ROW for a (race, lap_number)
+        -- with too few eligible cars to produce a value (eligible_lap_count as
+        -- low as 1-2 around a red flag/restart) -- field_pace_trimmed_mean_s AND
+        -- the smoothed rolling average both NULL despite the row existing. The
+        -- INNER JOIN above only guarantees a row, not a measured value, so this
+        -- guards the value itself (measured 2026-09-27: 19 laps, all lap 21-22
+        -- of 2022_7 around a red-flag restart).
+        AND fp.field_pace_smoothed_s IS NOT NULL
 ),
 
 calibration_panel AS (
     -- BOTH ARMS. Do not re-add a `dirty_air_share_lag1 > 0` filter here: the
     -- regressor is binary, so restricting it to the treated arm makes it a
     -- constant and the slope below is no longer identified (08q).
+    --
+    -- The three filters below govern ESTIMATION only (F23b): a lap excluded
+    -- here from the theta fit still gets a tax value in with_tax, which reads
+    -- from panel_base, not from this CTE.
     SELECT
         race_year,
         race_id,
@@ -181,28 +289,30 @@ calibration_panel AS (
         lap_in_stint,
         partial_residual_s,
         dirty_air_share_lag1
-    FROM panel
-    WHERE partial_residual_s IS NOT NULL
+    FROM panel_base
+    WHERE
+        partial_residual_s IS NOT NULL
+        AND COALESCE(correction_weight, 1.0) = 1.0
+        AND COALESCE(rainfall_flag, FALSE) = FALSE
+        -- F5: frozen fit window (dbt_project.yml var), not "every ingested
+        -- season" -- see that var's comment for why.
+        AND race_year <= {{ var('theta_air_fit_season_max') }}
 ),
 
--- Global θ_air: OLS slope COV(y, x) / VAR(x) over the two-arm panel, which for
--- a binary x is the treated-minus-untreated difference in mean partial
--- residual. Identified by the one-lap lag: the air state that prices this lap
--- is the previous lap's, so the causal arrow runs prior-position → current-cost.
--- In production this would be a pyfixest HDFE regression (06b's F2 adds stint
--- FE and tyre-age bins); this is the SQL OLS approximation, which reproduces
--- +0.1310 s/lap on the v12 substrate.
-theta_air_estimate AS (
+-- Global θ_air: the declared label value (W40, header), one number for every
+-- lap and season. Identified by the one-lap lag: the air state that prices
+-- this lap is the previous lap's, so the causal arrow runs prior-position ->
+-- current-cost. It is 06b's F2 estimate (stint FE + tyre-age bins) on this
+-- model's calibration_panel, fitted outside dbt because a two-way FE fit is
+-- not one SQL aggregate. Until W40 this CTE fitted the pooled OLS slope
+-- COVAR_POP(y, x) / VAR_POP(x) here (0.5033 on this panel; 0.1310 on the v12
+-- substrate), with a COALESCE to 0.1310 for a degenerate panel. A declared
+-- value has no degenerate case, so the fallback is gone with the fit.
+-- calibration_panel still sets calibration_sample_n (the population the
+-- declared value was fitted on).
+theta_air_label AS (
     SELECT
-        -- The COALESCE is a defensive guard, NOT the operating path: with both
-        -- arms present VAR_POP(x) > 0 and the fitted slope is what ships. Its
-        -- literal is the 08q measured global estimate so that a degenerate
-        -- panel falls back to a measured number rather than to a made-up one.
-        COALESCE(
-            COVAR_POP(partial_residual_s, dirty_air_share_lag1)
-            / NULLIF(VAR_POP(dirty_air_share_lag1), 0),
-            0.1310
-        ) AS theta_air,
+        CAST({{ var('theta_air_label_value') }} AS DOUBLE) AS theta_air,
         COUNT(*) AS calibration_sample_n
     FROM calibration_panel
 ),
@@ -254,8 +364,8 @@ with_tax AS (
                 wl.lap_number
             ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
         ) AS cumulative_dirty_air_tax_race_s
-    FROM panel AS wl
-    CROSS JOIN theta_air_estimate AS ta
+    FROM panel_base AS wl
+    CROSS JOIN theta_air_label AS ta
 )
 
 SELECT

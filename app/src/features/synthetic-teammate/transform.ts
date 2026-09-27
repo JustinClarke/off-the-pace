@@ -18,8 +18,8 @@ export function transform(rows: SyntheticTmRow[]): TransformResult {
   const points: SyntheticTmPoint[] = rows.map(r => ({
     ...r,
     verdict:
-      r.avg_skill_proxy_s < -0.1 ? 'ahead'
-      : r.avg_skill_proxy_s > 0.1 ? 'behind'
+      r.avg_skill_proxy_s > 0.1 ? 'ahead'
+      : r.avg_skill_proxy_s < -0.1 ? 'behind'
       : 'even',
   }))
   return { points }

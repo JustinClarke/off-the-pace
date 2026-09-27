@@ -54,8 +54,7 @@ export const queryRaceLost = registerQuery<Params, RaceLostRow[]>(
         COALESCE(SUM(track_unexplained_s), 0)       AS total_track_s,
         COALESCE(SUM(total_explained_s), 0)         AS total_explained_s,
         COALESCE(SUM(total_explained_s), 0)
-          + COALESCE(SUM(driver_skill_residual_s), 0)
-          + COALESCE(SUM(track_unexplained_s), 0)   AS total_pace_delta_s,
+          + COALESCE(SUM(driver_skill_residual_s), 0)   AS total_pace_delta_s,
         COUNT(*)                                    AS n_laps
       FROM ${alias}
       WHERE race_year = ?

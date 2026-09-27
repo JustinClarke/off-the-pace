@@ -163,23 +163,19 @@ order, then id. Read it top-down: it is the sequence in which the items are actu
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-25T12:28:00Z`. Run `python3 _roadmap/_fixes/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-27T17:45:00Z`. Run `python3 _roadmap/_fixes/status/board.py --write-order` after any edit to the log._
 
-**11 live items** (5 blocked). The pointer is on **WI-15a** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 6 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
+**7 live items** (4 blocked). The pointer is on **WI-16b** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 12 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
 
 | # | Item | Group | Stage | Cost | Model | Fixes | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | [WI-15a](../wi/WI-15-traffic-thermal-feature-semantics.md) ▶ | 02 | SPEC | 1d | `opus-5` | F43, F48 (coding) | Traffic feature semantics: pit-lane cars are not traffic (F43); dirty-air coding monotone in the gap (F48) | — |
-| 2 | [WI-15b](../wi/WI-15-traffic-thermal-feature-semantics.md) | 02 | SPEC | 1-2d | `opus-5` | F47, F49 | Thermal feature semantics: fuel-neutral push proxy (F47), reachable surface/bulk ratio (F49) | — |
-| 3 | [WI-11](../wi/WI-11-fan-page-truth-pass.md) | 06 | SPEC | 1-2d | `opus-5` | F15, F16, F27, F29, F30, F36, F37 | Fan-page truth pass: pages must state what their SQL computes | — |
-| 4 | [WI-14a](../wi/WI-14-rating-chain.md) | 06 | SPEC | 0.5-1d | `sonnet-5` | F50, F28, F46 | Sign-convention truth pass: Synthetic Teammate verdict (F50), the F28 page, Hidden Performance (F46) | — |
-| 5 | [WI-03](../wi/WI-03-holdout-policy.md) | 12 | BLOCKED | 0.5d | `sonnet-5` | F4, F20 (card summary) | Holdout policy: pin a season that can hold rows, retire the tautological test | **FD4** (human call) |
-| 6 | [WI-01](../wi/WI-01-label-spine.md) | 08 | BLOCKED | 2-3d | `fable-5.1` | F1, F5, F22, F23, F35, F38, F42, F48 (θ), F51 | Label spine: one version bump for F1, F22, F23, F35, F38, F42, F5, F48(θ), F51 | WI-15a, **FD1** (human call), **FD2** (human call) |
-| 7 | [WI-02b](../wi/WI-02-compound-seed-provenance.md) | 08 | BLOCKED | 2-3d | `opus-5` | F2, F9 | Compound seed refit under the FD3 ruling, plus F9 eligibility decoupling | **FD3** (human call) |
-| 8 | [WI-09b](../wi/WI-09-cleanup-bundle.md) | 08 | BLOCKED | 0.5d | `opus-5` | F12 | F12: what to do about 2018 laps with no telemetry being recorded as clear air | **FD6** (human call) |
-| 9 | [WI-08](../wi/WI-08-qualifying-chain.md) | 02 | SPEC | 0.5-1d | `opus-5` | F10 | Qualifying chain stops reading race-day data | WI-02b |
-| 10 | [WI-12](../wi/WI-12-06b-remeasure.md) | 06 | SPEC | 0.5-1d | `opus-5` | F23, F48 (θ) | 06b re-measure after the label bump | WI-01 |
-| 11 | [WI-14b](../wi/WI-14-rating-chain.md) | 06 | BLOCKED | 1-2d | `opus-5` | F40, F44, F45 | Rating chain: equal-car rating symmetry (F40), affinity as deviation (F44), era offset (F45) | **FD5** (human call) |
+| 1 | [WI-16b](../wi/WI-16-cumulative-driver-isolation.md) ▶ | 03 | MEASURED | 1.5d | `opus-5` | FD1 (resolution) | Driver isolation, validate: V1-V6 report, per-rating method score and confidence, three worked examples, docs page | — |
+| 2 | [WI-12](../wi/WI-12-06b-remeasure.md) | 06 | MEASURED | 0.5-1d | `opus-5` | F23, F48 (θ) | 06b re-measure after the label bump | — |
+| 3 | [WI-03](../wi/WI-03-holdout-policy.md) | 12 | BLOCKED | 0.5d | `sonnet-5` | F4, F20 (card summary) | Holdout policy: pin a season that can hold rows, retire the tautological test | **FD4** (human call) |
+| 4 | [WI-02b](../wi/WI-02-compound-seed-provenance.md) | 08 | BLOCKED | 2-3d | `opus-5` | F2, F9 | Compound seed refit under the FD3 ruling, plus F9 eligibility decoupling | **FD3** (human call) |
+| 5 | [WI-09b](../wi/WI-09-cleanup-bundle.md) | 08 | BLOCKED | 0.5d | `opus-5` | F12 | F12: what to do about 2018 laps with no telemetry being recorded as clear air | **FD6** (human call) |
+| 6 | [WI-08](../wi/WI-08-qualifying-chain.md) | 02 | SPEC | 0.5-1d | `opus-5` | F10 | Qualifying chain stops reading race-day data | WI-02b |
+| 7 | [WI-14b](../wi/WI-14-rating-chain.md) | 06 | BLOCKED | 1-2d | `opus-5` | F40, F44, F45 | Rating chain: equal-car rating symmetry (F40), affinity as deviation (F44), era offset (F45) | **FD5** (human call) |
 
 ### Which model to run it on
 
@@ -192,8 +188,6 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 ### Open decisions — these are yours, not tasks
 
-- **FD1** (blocks `WI-01`) — What is the baseline each lap is compared against? A: a neutral reference - fuel AND tyre-compound effects taken out once, and track rubber/temperature NOT taken out a second time. B: what the field actually did that day, with nothing subtracted again. _Recommended: A (the reverification's recommendation)._
-- **FD2** (blocks `WI-01`) — What happens to safety-car / VSC / red-flag / restart laps (9,016 of 139,947 eligible training rows, 6.4%) at training time? Exclude them outright, or keep them at reduced weight via correction_weight (computed today, applied nowhere in ml/src)? _Recommended: Orchestrator's read, not the audit's: exclude. Those laps are slow because the field is queueing behind the safety car, not because tyres wore, so a reduced weight still trains on a label that is not degradation._
 - **FD3** (blocks `WI-02b`) — Compound-seed leakage: refit the seed point-in-time (each season fitted only on earlier seasons), or declare a same-race exemption and make training match serving? _Recommended: Orchestrator's read, not the audit's: point-in-time - it is what the model does at serving time and follows int_sc_hazard_history's precedent - accepting the stint-life cost knowingly, since D5 tunes against that family._
 - **FD4** (blocks `WI-03`) — Which season is the holdout? No completed season is unspent (2025 was consumed as a selection fold by 02c's admission gate). Pin 2026 explicitly and fill it with the races run so far, or declare that no clean holdout exists yet? _Recommended: Orchestrator's read, not the audit's: pin holdout_season = 2026 in config, state holdout_populated: false until 2026 rows exist, and ingest the 2026 races already run if the data is available - the only option that yields a clean holdout rather than a declared absence._
 - **FD5** (blocks `WI-14b`) — Equal-car teammate rating: compare P20 against P20 (keeps the 'kill cruise drag' ceiling logic, applied on both sides), or median against median (simpler, loses the ceiling)? _Recommended: P20-vs-P20 (the WI doc's recommendation): the smaller conceptual change, and it preserves the model header's stated intent._
@@ -201,26 +195,51 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 ### Watch list — kept an eye on, not tasks and not rulings
 
-**17 open** (1 ship-blocker). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
+**42 open** (1 ship-blocker). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
 
 | ID | Kind | Item | What | Clears when |
 | :--- | :--- | :--- | :--- | :--- |
 | W1 | ship-blocker | WI-13 | Re-export int_pit_strategy_value to app/public/data before the pit-strategy change ships | The parquet is re-exported (the user's call, it rewrites tracked files) and the page is checked against the committed data. |
-| W3 | uncommitted | — | WI-02a, WI-13 and WI-09 are landed but uncommitted | The user commits them. |
+| W25 | hazard | WI-15b | Do not re-export fct_cliff_prediction_features for the app before the models are retrained on WI-15b's features | The mart export ships together with models retrained on the WI-15b features (WI-01's version bump), and int_tyre_surface_vs_bulk_decoupling is re-exported. |
+| W36 | hazard | WI-01 | Lap Waterfall and Race Lost stack rubber/ambient on top of the five label terms (F22 again, on the app) | The two pages stop stacking rubber/ambient as additive terms (drop them, or show them as inside the base) before fct_lap_residuals is next exported. |
+| W38 | hazard | WI-01 | int_sector_residual_decomposed still uses the 7-term identity and prices unknown tyre cost at 0 | The sector model is rebuilt on the 5-term identity with NULL propagation, before its next export. |
+| W47 | hazard | WI-12 | theta_air_label_value (0.331) is a frozen external fit; nothing in dbt re-fits it when the panel moves | F2 moves into dbt (within-stint demeaning plus age-bin terms, FWL) so T9 can compare fitted with declared again, or every label-moving item's definition of done names the WI-12 d1/d2 re-run and the var edit. |
+| W27 | uncommitted | WI-15a | WI-15a and WI-15b are landed but uncommitted | The user commits them. |
+| W30 | uncommitted | WI-16a | WI-16a is MEASURED but uncommitted | The user commits them. |
+| W45 | uncommitted | WI-01 | WI-01 is MEASURED but uncommitted | The user commits them. |
 | W4 | unreviewed | — | Ingestion-hardening agent's partial work is in the working tree, unread and untested | The diff is reviewed and ingestion/tests pass and the change is kept, or the changes are discarded (git checkout on the modified paths plus deleting the four new files; destructive, the user's call). |
 | W5 | unverified | WI-09 | WI-09's new tests and one source form have only run on the dev target | A CI-target build runs them (not done: this tree does not touch data/ci.duckdb). |
+| W33 | unverified | WI-16b | The isolation car term falls back to the global driver key in both eras; its car/driver split is unvalidated | WI-16b's V1c/V2a/V3a are run and graded, and the result is stated in its As built section. |
 | W6 | stale-artifact | WI-09 | Dev-warehouse marts stale for WI-09's changes until rebuilt | dbt run on those three marts (or the next full dbt build). |
 | W7 | stale-artifact | WI-07 | Drift baselines need regenerating from a CI build | Either: (1) WI-09's fixture data issues are resolved (dbt_expectations test passes on CI; assert_raw_laps_race_depth_is_race_only finds matching bronze parquets), then `dbt build --target ci` and `make lint-oracle-snapshot` complete successfully and the result is committed; OR (2) a design decision is made to pin the fixture to a pre-schema-change baseline (smaller cost, eventual debt). |
 | W8 | stale-artifact | — | Generated docs still carry old text | Docs are regenerated in one sweep once the landed items are committed. |
+| W20 | stale-artifact | WI-15a | Dev warehouse stale for WI-15a: T33/T38 tests error until rebuilt | data/dev.duckdb is rebuilt with the fixed int_lap_proximity and int_lap_air_state (may defer to after WI-01's label bump, as both items move the same label rows). |
+| W23 | stale-artifact | WI-15b | Dev warehouse holds WI-15b's first (inner-join) thermal build: T37 errors on dev until rebuilt | data/dev.duckdb's int_lap_thermal_proxy+ is rebuilt from the working tree (dbt build -s int_lap_thermal_proxy+), and T37/T39 pass on it. |
+| W28 | stale-artifact | WI-15a | app/public/data air-state exports pre-date WI-15a's F48 coding | The three tables are re-exported from a dev warehouse rebuilt with WI-15a. Because of W20 that is after WI-01's label bump, and theta-dependent tables move again there anyway. |
+| W34 | stale-artifact | WI-16a | Dev warehouse and data/fits have no driver-isolation build | The orchestrator rebuilds dev (make car-fe-isolation-fit, then dbt run), which W20/W23 may defer to after WI-01. |
+| W35 | stale-artifact | — | Three docs-facts gates fail on pre-existing ML/app count drift | The ML and app counts are reconciled and the three scripts pass. |
+| W46 | stale-artifact | WI-01 | Generated docs and inventory snippets predate WI-01 | W8's single regeneration sweep runs after WI-01 is committed. |
 | W9 | pending-ruling | — | Do the 08f-1 and 08o gate results need a note about 2018 weights? | The user decides: add a note to those gate results, or re-run them. |
 | W10 | pending-ruling | WI-13 | What value should long-stint tail cells get in survival_weight? | The user picks 1.0 or the 4.0 cap, if IPW is revived. |
 | W11 | pending-ruling | WI-13 | Opportunity cost for a stint the model cannot grade: 0.0 or NULL? | The user rules; the allowlist entries are closed one way. |
 | W12 | pending-ruling | WI-02a | Does WI-02a's 2025 movement owe the gate? | The user agrees to defer, or asks for the gate now. |
+| W21 | pending-ruling | WI-15a | Gate deferral for WI-15a: defer steps 1-4, 6, 7 to after WI-01 | Gate steps 1-4, 6, 7 are run and pass after both WI-15a and WI-01 have landed and the label has settled. |
+| W24 | pending-ruling | WI-15b | Gate deferral for WI-15b: thermal ablation (08e) and gate step 5 deferred to after WI-01 | The user rules on the deferral; if deferred, 08e (family T) and gate step 5 are run after WI-01's label bump on a substrate carrying WI-15b. |
+| W32 | pending-ruling | WI-16b | Tactical tau^2 is 0 in 2018, 2019 and 2025 under the WI doc's unweighted estimator | WI-16b keeps the estimator (recording why) or switches it before computing method scores. |
+| W39 | pending-ruling | WI-01 | Honest-range floor moved to 0.920, which is looser; whether the tyre wear cap binds too often is unchecked | An audit of the cap-binding laps decides whether the cap (or the wear fit behind it) is right, and either a direct cap-binding-share check is added or the floor is set from that audit. |
 | W17 | gate-gap | WI-07 | The sqlfluff gate does not hold | The size limit is raised or the skip is made loud, and the failing files are fixed or excluded on purpose. |
 | W13 | debt | WI-09 | F17: pu_family is keyed on the team name, so every rename needs a hand-added row | The user asks for the entity-keyed rewrite (needs its own item), or accepts the name list plus the warn test. |
 | W14 | debt | WI-09 | constructor_power_pace_index_final and constructor_aero_pace_index_final are the same column | The user picks drop or relabel. |
 | W15 | debt | WI-13 | WI-13's neighbours, found and not fixed | Each is given an item or an explicit 'accept', one at a time. |
 | W18 | debt | WI-09 | 2020_1 (Austrian GP) lap numbering is wrong in bronze | 2020_1 is re-pulled from FastF1 and re-checked (whether a re-pull fixes it is untested). |
 | W19 | debt | FD4 | 2026 races are not ingested | FD4 is ruled, the seeds are filled (WI-05's gate lists what is missing) and the rounds are ingested. |
+| W22 | debt | WI-15a | Deviation from WI-15a spec: F48 dirty-air fix applied to S2 only, not all three lap sections | This is a permanent design choice, not a defect. Recorded for traceability. |
+| W26 | debt | WI-15b | Degradation Simulator never supplies surface_bulk_ratio to the browser models | The simulator computes or selects surface_bulk_ratio with the mart's expression, and its synthetic loads are re-sized to the post-F47 distribution. |
+| W31 | debt | — | The default car-FE fit drops pyfixest's reference cell (2018_10 Ferrari) and is under-converged | fit_car_fe restores the reference level at 0.0 and tightens the solve (T49's frozen copy updated with it, and Ghost Standings re-checked), or both are accepted on the record. |
+| W37 | debt | WI-08 | Qualifying chain subtracts one arbitrary race lap's rubber term from every qualifying lap | WI-08 lands (the qualifying chain stops reading race-day int_track_evolution), or the rubber term is dropped from the qualifying identity. |
+| W41 | debt | WI-14b | F45 flipped from a marginal CLEARED to PRESENT as a side effect of WI-01's level changes | WI-14b lands (FD5) and F45 is re-measured on the WI-01 label. |
+| W42 | debt | WI-01 | int_pit_strategy_cost_curve still adds unitless compound_grip_peak ratios as seconds (F42 remainder) | The grip term is replaced by a fitted per-compound seconds offset, or dropped from the pit-strategy cost curve. |
+| W43 | debt | WI-01 | The field base's 5-lap smoothing spans neutralisation gaps, biasing the base around restarts | The smoothing stops at neutralisation boundaries (or restart-adjacent cells use their own trimmed mean), or this is accepted on the record. |
+| W44 | debt | WI-01 | The residual still uses field-base cells built from fewer than 5 cars | A ruling on thin cells: NULL the base below a minimum car count (F1's discipline), widen the window for them, or accept on the record. |
 
 <!-- END GENERATED TASKS -->

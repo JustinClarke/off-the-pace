@@ -49,6 +49,43 @@ HOLDOUT_NOTE = (
     "The evaluation headline is reported on the final TimeSeriesSplit fold (2024); it switches to a "
     "true-holdout reveal the moment 2025 ingests, with no code change.")
 
+# WI-01 (label spine, 2026-09-27). The mart's label changed AFTER the v14 artefacts were
+# trained, so every card for v14 or earlier must say its numbers sit on the old label.
+# W40 (same day) completed the bump: theta_air moved from WI-01's interim pooled 0.503 to
+# the within-stint 0.331 after WI-12's re-measure. WI-01 + WI-12 are one bump, one note.
+# Prose, not a metric, for the same reason as the v11 bullet in build_card: the old label
+# cannot be read back off any current artefact. A card for the first retrain on the new
+# label (v15+) drops this bullet and states its own comparison base instead.
+LABEL_SPINE_BUMP_LAST_PRE_VERSION = 14
+LABEL_SPINE_NOTE = (
+    "LABEL SPINE BUMPED AFTER THESE ARTEFACTS WERE TRAINED (WI-01 + WI-12, 2026-09-27): NOT COMPARABLE "
+    "AT FIXED TARGET. The residual that both labels difference (`driver_skill_residual_s`, "
+    "behind `next_5_lap_cumulative_jump_s` and `laps_until_cliff_class`) now has five additive "
+    "terms, not seven: pace_delta = fuel + compound + constructor + dirty-air tax + driver "
+    "skill. The field base is fuel- AND compound-neutral, and rubber and ambient track state "
+    "live only inside the base instead of being subtracted a second time. In the same bump: "
+    "laps with no measured base or an unknown tyre cost carry a NULL label instead of a "
+    "fabricated one; `theta_air` is 0.331 s/lap, the within-stint estimate (stint fixed "
+    "effects plus tyre-age bins) fitted with tyre cost subtracted on a declared season window "
+    "(2018-2025) and frozen as a declared value; the circuit x constructor interaction is out "
+    "of the constructor term; `compound_grip_peak` (a unitless ratio) is out of "
+    "`expected_compound_pace_s`; SC/VSC/red-flag/restart laps and the lap after an SC or "
+    "red-flag restart are out of `is_training_eligible`. WI-01 and WI-12 are one bump: "
+    "`theta_air` passed through an interim pooled 0.503 s/lap before the W40 ruling set 0.331, "
+    "and the final label carries 0.331. Every number on this card was measured on the "
+    "PRE-BUMP label. No post-bump number may be compared with it: a headline on the new label "
+    "is compared only against this configuration rebuilt on the final (0.331) label. "
+    "Evidence: `_roadmap/_fixes/wi/WI-01-label-spine.md`, "
+    "`_roadmap/_fixes/wi/WI-12-06b-remeasure.md`.")
+
+
+def _pre_label_spine_bump(version: str) -> bool:
+    """True for artefact versions trained before WI-01's label bump (v14 and earlier)."""
+    try:
+        return int(version.lstrip("v")) <= LABEL_SPINE_BUMP_LAST_PRE_VERSION
+    except ValueError:  # e.g. 'smoke': not a published version, say nothing
+        return False
+
 
 def _latest_log(target: str, version: str) -> dict:
     logs = sorted(LOGS_DIR.glob(f"{target}_{version}_*.json"))
@@ -347,7 +384,7 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                 {"id": "E4", "note": "stint_life_regressor's hyperparameters are work item 10e's S1x, landed on decision D4 rather than on a cleared gate: the green-pit accuracy gain is significant, the calibration-slope gain is not, and this card's own mixture headline for the family regresses by design. See the limitations entry."},
             ],
 
-            "limitations": [
+            "limitations": ([LABEL_SPINE_NOTE] if _pre_label_spine_bump(version) else []) + [
                 # ── STINT-LIFE HYPERPARAMETERS LANDED ON A RULING (10e / D4, 2026-09-19) ────
                 # Hardcoded A/B figures for the same reason the v11 bullet below is: the
                 # "before" side is a superseded artefact this card cannot read back, and the

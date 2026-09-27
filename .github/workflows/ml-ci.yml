@@ -73,7 +73,7 @@ jobs:
             --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
 
       # Warehouse + manifest present (compiled_code makes the forward-window audit meaningful).
-      - name: Guard - leakage columns + forward-window audit + holdout purity
+      - name: Guard - leakage columns + forward-window audit + holdout purity + isolation lineage (T48)
         if: steps.fixtures.outputs.present == 'true'
         run: |
           python -m pytest -q \
@@ -82,7 +82,9 @@ jobs:
             ml/tests/test_features.py::test_audit_features_clear_forward_window \
             ml/tests/test_features.py::test_holdout_purity \
             ml/tests/test_features.py::test_target_bounded \
-            ml/tests/test_features.py::test_no_null_targets_in_training
+            ml/tests/test_features.py::test_no_null_targets_in_training \
+            ml/tests/test_manifest_contract.py::test_no_ml_contract_mart_depends_on_the_isolation_ratings \
+            ml/tests/test_manifest_contract.py::test_the_isolation_lineage_check_can_fail
 
       # Skips cleanly when ml/artefacts/evaluation_metrics.json is absent (regen-able, gitignored).
       - name: Guard - every model beats its baseline (if eval artefact present)

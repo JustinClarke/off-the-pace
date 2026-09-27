@@ -1,17 +1,13 @@
--- 7-term residual decomposition per lap.
--- Decomposes actual lap_time_s into seven additive components, yielding a
--- driver-skill residual stripped of field pace baseline, fuel mass, tyre
--- compound
--- trajectory, rubber track evolution, ambient weather, constructor structural
--- pace,
+-- 5-term residual decomposition per lap.
+-- Decomposes actual lap_time_s into five additive components, yielding a
+-- driver-skill residual stripped of field pace baseline (fuel-, compound-,
+-- rubber-, and ambient-neutral), constructor structural pace,
 -- and dirty-air tax.
 --
 -- Residual identity (all terms in seconds, positive = slower):
---   pace_delta_s = lap_time_s-base_track_pace_s
+--   pace_delta_s = lap_time_s - base_track_pace_s
 --               =  fuel_component_s
 --                + compound_component_s
---                + rubber_component_s
---                + ambient_component_s
 --                + constructor_component_s
 --                + dirty_air_tax_s          ← extracted from
 --                driver_skill_residual_s
@@ -19,20 +15,43 @@
 --                + track_unexplained_s      (informational; not in
 --                total_explained_s)
 --
+-- Note (F22): rubber and ambient components are carried in the base_track_pace_s
+-- (from int_field_pace_curve's measurement of the field), not subtracted again here.
+--
 -- base_track_pace_s      : field_pace_smoothed_s from int_field_pace_curve
--- (trimmed field median)
--- pace_delta_s           : lap_time_s base_track_pace_s
+-- (10%-trimmed field mean of fuel- and compound-corrected laps, 5-lap smoothed)
+-- pace_delta_s           : lap_time_s - base_track_pace_s
 -- fuel_component_s       : weight_penalty_s from int_lap_fuel_state
 -- compound_component_s   : expected_compound_pace_s from
 -- int_compound_cliff_predicted
 -- rubber_component_s     : rubber_component_s from int_track_evolution
+-- (informational only, inside the base)
 -- ambient_component_s    : ambient_component_s from int_track_evolution
+-- (informational only, inside the base)
 -- constructor_component_s: constructor_structural_pace_s from
--- int_constructor_structural_pace
+-- int_constructor_structural_pace (no circuit interaction, F35)
 -- dirty_air_tax_s        : per-lap dirty-air tax from
 -- int_dirty_air_tax_component
 -- driver_skill_residual_s: pace_delta_s minus all above; cleaned of dirty-air
 -- signal
+--
+-- WI-01/F1: NULL propagates through the identity rather than being
+-- fabricated. pace_delta_s is NULL when int_field_pace_curve has no measured
+-- value for (race_year, race_id, lap_number); compound_component_s is NULL
+-- when the tyre age is unknown (F39). Either one makes
+-- driver_skill_residual_s and total_explained_s NULL.
+--
+-- Two terms ARE filled with 0 when their source has no row, and neither
+-- fabricates a label:
+--   dirty_air_tax_s -- COALESCE(.., 0.0) below. int_dirty_air_tax_component
+--     has a row for every lap with a measured base (F23b, T17), so a missing
+--     row only happens where pace_delta_s is already NULL and the 0 never
+--     reaches driver_skill_residual_s. (The not_null test on this column in
+--     schema.yml relies on the fill.)
+--   constructor_component_s -- 0 where int_constructor_structural_pace has
+--     no (race, constructor) row, mostly all-wet races; see the comment at
+--     the column for why that cancels from the labels and what it does not
+--     cancel from.
 --
 -- correction_weight from int_event_corrections is carried but NOT applied here.
 {{ config(materialized='table') }}
@@ -133,18 +152,14 @@ constructor_struct AS (
     FROM {{ ref('int_constructor_structural_pace') }}
 ),
 
-constructor_interaction AS (
-    -- Circuit-constructor interaction to capture
-    -- circuit-specific baseline deviations
-    SELECT
-        race_year,
-        race_id,
-        constructor_id,
-        circuit_constructor_interaction_s,
-        interaction_se_s,
-        interaction_obs_n
-    FROM {{ ref('int_circuit_x_constructor_interaction') }}
-),
+-- F35 (WI-01): int_circuit_x_constructor_interaction is no longer read here.
+-- It used to be added on top of constructor_structural_pace_s, but that is
+-- already a per-RACE constructor level, so it already spans this circuit; the
+-- interaction was a second per-(team, circuit) shift on top of it. A global
+-- re-centring (tried first) only moved every value by the same 0.002 s and
+-- left each team-circuit shift in place, so the interaction is dropped, as the
+-- audit proposed. Both terms are constant within a stint, so the ML labels
+-- never saw it; the fix is to levels (app surfaces, fct_ghost_car_pace).
 
 dirty_air AS (
     -- Per-lap dirty-air tax extracted from
@@ -174,6 +189,7 @@ corrections AS (
         is_red_flag_lap,
         is_restart_lap,
         is_pre_controlled_lap,
+        is_lap_after_restart,
         is_local_yellow_lap,
         is_major_outlier_lap
     FROM {{ ref('int_event_corrections') }}
@@ -218,26 +234,38 @@ combined AS (
         e.track_temp_c,
         e.rainfall_flag,
 
-        -- Constructor structural pace: grouped-aggregation coefficient +
-        -- circuit interaction.
+        -- Constructor structural pace: the per-race grouped-aggregation
+        -- coefficient alone (F35: no circuit interaction on top, see above).
+        --
+        -- The COALESCE to 0 is deliberate and is the one place this identity
+        -- prices an unmeasured term at 0. It fires where
+        -- int_constructor_structural_pace has no row for (race, constructor):
+        -- its panel keeps only dry, full-weight laps, so an all-wet race has
+        -- no constructor row at all (2021_16, 2024_21, 2020_14, 2019_11,
+        -- 2025_1, 2022_18), and a few constructors in mixed races have no dry
+        -- clean lap. 4,548 laps with a measured residual on the 2026-09-27
+        -- build, most of them rain laps (anomaly_class 'conditions', so not
+        -- training-eligible anyway). Why 0 and not NULL: the term is one
+        -- constant per (race, constructor), so it cancels exactly from both
+        -- ML labels (every label differences laps within one stint). What it
+        -- does NOT cancel from is the LEVEL of driver_skill_residual_s on
+        -- those laps, which carries the car's pace there: app surfaces that
+        -- average residual levels over wet races read car + driver, not
+        -- driver alone.
         COALESCE(cs.constructor_structural_pace_s, 0.0)
-        + COALESCE(cci.circuit_constructor_interaction_s, 0.0)
             AS constructor_component_s,
-        -- Standard error is propagated via sqrt(se_pace^2 + se_interaction^2)
-        SQRT(
-            POWER(COALESCE(cs.constructor_structural_pace_se_s, 0.0), 2)
-            + POWER(COALESCE(cci.interaction_se_s, 0.0), 2)
-        ) AS constructor_component_se_s,
+        COALESCE(cs.constructor_structural_pace_se_s, 0.0)
+            AS constructor_component_se_s,
         cs.constructor_structural_pace_ci_low_s
-        + COALESCE(cci.circuit_constructor_interaction_s, 0.0)
             AS constructor_component_ci_low_s,
         cs.constructor_structural_pace_ci_high_s
-        + COALESCE(cci.circuit_constructor_interaction_s, 0.0)
             AS constructor_component_ci_high_s,
         cs.panel_observations_n AS constructor_panel_n,
 
         -- Dirty-air tax: per-lap seconds attributable to following another
-        -- car.
+        -- car. Filled with 0 only where int_dirty_air_tax_component has no
+        -- row, which is only where the base is unmeasured (pace_delta_s NULL),
+        -- so the fill never reaches driver_skill_residual_s (header note).
         COALESCE(da.dirty_air_tax_s, 0.0) AS dirty_air_tax_s,
         COALESCE(da.dirty_air_tax_se_s, 0.0) AS dirty_air_tax_se_s,
         da.dirty_air_intensity_lag1,
@@ -256,6 +284,10 @@ combined AS (
         cor.is_red_flag_lap,
         cor.is_restart_lap,
         cor.is_pre_controlled_lap,
+        -- FD2 (WI-01): excluded from is_training_eligible downstream
+        -- (fct_cliff_prediction_features), alongside anomaly_class
+        -- 'event_driven'.
+        COALESCE(cor.is_lap_after_restart, FALSE) AS is_lap_after_restart,
         cor.is_local_yellow_lap,
         cor.is_major_outlier_lap
 
@@ -278,11 +310,6 @@ combined AS (
             f.race_year = cs.race_year
             AND f.race_id = cs.race_id
             AND lm.constructor_id = cs.constructor_id
-    LEFT JOIN constructor_interaction AS cci
-        ON
-            f.race_year = cci.race_year
-            AND f.race_id = cci.race_id
-            AND lm.constructor_id = cci.constructor_id
     LEFT JOIN dirty_air AS da ON f.lap_id = da.lap_id
     LEFT JOIN corrections AS cor ON f.lap_id = cor.lap_id
 ),
@@ -291,26 +318,29 @@ with_residual AS (
     SELECT
         *,
         -- Driver delta vs trimmed field pace (the closure base)
-        lap_time_s - COALESCE(base_track_pace_s, lap_time_s) AS pace_delta_s,
+        lap_time_s - base_track_pace_s AS pace_delta_s,
 
-        -- Total physics offsets subtracted from pace_delta_s (7-term identity).
+        -- Total physics offsets subtracted from pace_delta_s (5-term identity).
+        -- rubber/ambient are already in the base_track_pace_s (field measurement),
+        -- so they are NOT subtracted again here (F22 fix).
         -- dirty_air_tax_s is accounted for separately, so
         -- driver_skill_residual_s carries no dirty-air signal.
+        -- compound_component_s is NOT COALESCEd (F1's acceptance covers every
+        -- fabricated component, not only the base): a lap with an unknown tyre
+        -- age (F39) has an unknown compound cost, and NULL propagates through
+        -- this sum rather than being priced as a free 0.0 s tyre.
         fuel_component_s
-        + COALESCE(compound_component_s, 0.0)
-        + rubber_component_s
-        + ambient_component_s
+        + compound_component_s
         + constructor_component_s
         + dirty_air_tax_s AS total_explained_s,
 
-        -- Driver skill residual: pace_delta_s minus all 7 physics components.
+        -- Driver skill residual: pace_delta_s minus all 5 physics components.
+        -- rubber/ambient are already in the base, not subtracted again (F22 fix).
         -- Identity: pace_delta_s = total_explained_s + driver_skill_residual_s
         -- + track_unexplained_s
-        (lap_time_s - COALESCE(base_track_pace_s, lap_time_s))
+        (lap_time_s - base_track_pace_s)
         - fuel_component_s
-        - COALESCE(compound_component_s, 0.0)
-        - rubber_component_s
-        - ambient_component_s
+        - compound_component_s
         - constructor_component_s
         - dirty_air_tax_s AS driver_skill_residual_s
 
@@ -344,12 +374,15 @@ SELECT
     pace_delta_s,
 
     -- Additive components (all in seconds, positive = slower contribution)
+    -- First 5 terms in the residual identity
     fuel_component_s,
     compound_component_s,
-    rubber_component_s,
-    ambient_component_s,
     constructor_component_s,
     dirty_air_tax_s,
+    -- Informational only (contained in base_track_pace_s, not subtracted again)
+    rubber_component_s,
+    ambient_component_s,
+    -- Total of the 5 explained components in the identity
     total_explained_s,
 
     -- Residuals
@@ -379,6 +412,7 @@ SELECT
     is_red_flag_lap,
     is_restart_lap,
     is_pre_controlled_lap,
+    is_lap_after_restart,
     is_local_yellow_lap,
     is_major_outlier_lap
 

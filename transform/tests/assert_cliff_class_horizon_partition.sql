@@ -6,10 +6,18 @@
 -- 9,405 training rows on the wrong side of a class boundary, and a `6_plus`
 -- class the classifier could not learn (final-fold F1 0.058).
 --
+-- WI-01/F1 (2026-09-27): driver_skill_residual_s can now be NULL (a lap the
+-- field curve has no measured base for, rather than a fabricated 0). Two
+-- additions to the re-derivation below, mirroring the mart's own fix: (a) a
+-- lap whose OWN residual is unmeasured has no honest starting point to scan
+-- from -> NULL; (b) a lap sitting on or before the nearest later unmeasured
+-- lap in the stint might hide a real crossing the scan can't see past ->
+-- NULL, not 'none_in_stint'.
+--
 -- The scan below is an independent re-derivation of the first crossing lap. It
 -- does not reuse the mart's CTEs, so it fails if the mart's definition drifts
--- back to a fixed offset set, changes the 1.0s threshold, or drops the
--- k x drift detrending.
+-- back to a fixed offset set, changes the 1.0s threshold, drops the
+-- k x drift detrending, or regresses the NULL-propagation above.
 WITH residuals AS (
     SELECT
         r.lap_id,
@@ -47,20 +55,45 @@ first_crossing AS (
     GROUP BY a.lap_id
 ),
 
+nearest_unknown AS (
+    SELECT
+        a.lap_id,
+        MIN(g.lap_in_stint - a.lap_in_stint) AS nearest_unknown_gap
+    FROM residuals AS a
+    INNER JOIN residuals AS g
+        ON
+            a.stint_id = g.stint_id
+            AND a.lap_in_stint < g.lap_in_stint
+            AND g.driver_skill_residual_s IS NULL
+    GROUP BY a.lap_id
+),
+
 expected AS (
     SELECT
         r.lap_id,
         fc.laps_until_cliff,
         CASE
+            WHEN r.driver_skill_residual_s IS NULL THEN NULL
             WHEN h.last_lap_in_stint <= r.lap_in_stint THEN NULL
-            WHEN fc.laps_until_cliff <= 2 THEN '0_to_2'
-            WHEN fc.laps_until_cliff <= 5 THEN '3_to_5'
-            WHEN fc.laps_until_cliff IS NOT NULL THEN '6_plus'
+            WHEN
+                fc.laps_until_cliff <= 2
+                AND (ug.nearest_unknown_gap IS NULL OR ug.nearest_unknown_gap > fc.laps_until_cliff)
+                THEN '0_to_2'
+            WHEN
+                fc.laps_until_cliff <= 5
+                AND (ug.nearest_unknown_gap IS NULL OR ug.nearest_unknown_gap > fc.laps_until_cliff)
+                THEN '3_to_5'
+            WHEN
+                fc.laps_until_cliff IS NOT NULL
+                AND (ug.nearest_unknown_gap IS NULL OR ug.nearest_unknown_gap > fc.laps_until_cliff)
+                THEN '6_plus'
+            WHEN ug.nearest_unknown_gap IS NOT NULL THEN NULL
             ELSE 'none_in_stint'
         END AS expected_class
     FROM residuals AS r
     INNER JOIN horizon AS h ON r.stint_id = h.stint_id
     LEFT JOIN first_crossing AS fc ON r.lap_id = fc.lap_id
+    LEFT JOIN nearest_unknown AS ug ON r.lap_id = ug.lap_id
 )
 
 SELECT

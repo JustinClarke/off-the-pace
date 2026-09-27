@@ -6,10 +6,15 @@
 --   • pu_family        -power-unit lineage for constructor grouping
 --   • debut_year       -driver vintage for era-normalisation features
 --
--- Residual identity (all in seconds, positive = slower):
---   pace_delta_s = fuel_component_s + compound_component_s + rubber_component_s
---                + ambient_component_s + constructor_component_s
---                + dirty_air_tax_s + driver_skill_residual_s
+-- Residual identity (all in seconds, positive = slower; WI-01, 2026-09-27):
+--   pace_delta_s = fuel_component_s + compound_component_s
+--                + constructor_component_s + dirty_air_tax_s
+--                + driver_skill_residual_s
+-- rubber_component_s / ambient_component_s are already inside
+-- base_track_pace_s (int_track_evolution decomposes that same base) and are
+-- informational columns only, not part of this identity (F22). NULL, not a
+-- fabricated number, on driver_skill_residual_s / pace_delta_s / total_explained_s
+-- wherever base_track_pace_s or compound_component_s is itself unmeasured (F1).
 --
 -- correction_weight < 1.0 rows are retained but ml_eligible = FALSE.
 -- Consumers that want clean laps only: WHERE ml_eligible = TRUE.
@@ -56,6 +61,12 @@ SELECT
     -- Raw and weight-corrected time
     b.lap_time_s,
     b.weight_corrected_lap_time,
+
+    -- Field pace baseline and delta (WI-01: exposed so a NULL
+    -- driver_skill_residual_s -- an unmeasured field base or compound cost,
+    -- not a fabricated number -- is explainable from this mart directly)
+    b.base_track_pace_s,
+    b.pace_delta_s,
 
     -- Additive decomposition components (seconds, positive = slower)
     b.fuel_component_s,

@@ -33,7 +33,7 @@ export default function SyntheticTeammatePage() {
       badges={[
         {
           label: 'What It Means',
-          content: 'Skill proxy < 0: the driver is faster than their synthetic benchmark. Proxy > 0: they would be slower in a controlled head-to-head against the same car.',
+          content: 'Skill proxy > 0: the driver is faster than their synthetic benchmark. Proxy < 0: they would be slower in a controlled head-to-head against the same car.',
         },
         {
           label: 'Why It Matters',
@@ -66,7 +66,7 @@ export default function SyntheticTeammatePage() {
               header: 'Skill proxy',
               align: 'right',
               render: v => fmt(v as number),
-              cellClass: v => (v as number) < -0.1 ? 'text-green-400' : (v as number) > 0.1 ? 'text-red-400' : '',
+              cellClass: v => (v as number) > 0.1 ? 'text-green-400' : (v as number) < -0.1 ? 'text-red-400' : '',
             },
             {
               key: 'avg_quality_weight',

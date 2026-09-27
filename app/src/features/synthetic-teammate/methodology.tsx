@@ -10,7 +10,7 @@ export const methodologyContent = (
     </p>
     <ul className="list-disc pl-4 mt-3 space-y-1">
       <li><strong>Skill proxy</strong>: ego pace minus the synthetic teammate's
-        world-coordinate-adjusted pace, averaged over non-divergent laps. Negative
+        world-coordinate-adjusted pace, averaged over non-divergent laps. Positive
         means the driver is faster than their synthetic benchmark.</li>
       <li><strong>Quality weight</strong>: confidence in the comparison lap.
         Higher weight = the lap pair is in similar conditions (tyre age, position,

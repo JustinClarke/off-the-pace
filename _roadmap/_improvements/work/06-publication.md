@@ -404,6 +404,20 @@ causal costs of following**; they are published as *no detectable directional co
 what the table says anyway. The placebo does not rescue a hidden late-era effect; it says
 there is nothing there to certify either way.
 
+> **SUPERSEDED 2026-09-27 by the WI-12 re-measure** ([`../../_fixes/wi/WI-12-06b-remeasure.md`](../../_fixes/wi/WI-12-06b-remeasure.md),
+> "Gate results"). The results above were measured on a panel in which about 7% of laps had a
+> fabricated field base (F1/F23a). Re-run with this same pre-registered design on the corrected
+> label (WI-01, with WI-15a's F48 coding), F2 θ is +0.511 / +0.435 / +0.297 / +0.347 / +0.275 /
+> +0.194 / +0.271 for 2018-2024 (+0.382 in 2025), and every interval excludes zero on every rung.
+> **The measured claim above survives in shape but not in size.** The decline is gradual, pre-dates
+> 2022, and every placebo boundary fires (Δ at 2022 −0.241, trend −0.065/season). It is roughly a
+> halving, not two thirds, and 2022-2024 sits at +0.245, not zero. **The lead-placebo ruling above
+> does not survive.** The lead is material in every season, the lag exceeds it in every season, and
+> the lag-minus-lead contrast clears zero in 2021, 2022 and 2023, so "no detectable directional
+> cost" is withdrawn. 2025, the out-of-sample season the post named, comes in at +0.382 against a
+> trend prediction of +0.075. The original record above is kept as measured, and the post is
+> rewritten on the new numbers.
+
 #### The corner-type breakdown — where the real surprise is
 
 Apex-speed deficit (`mid_corner_residual_s`), driver × race × corner FE + age bins,
@@ -421,6 +435,11 @@ is concentrated in fast corners, where downforce matters most, and is literally 
 corners. **And not one of the three Δs is distinguishable from zero.** The honest reading is:
 the data is consistent with the aero mechanism and has nowhere near the power to confirm it.
 Fast corners are 15% of corner-rows; that is where the precision went.
+
+> **Correction (WI-12, 2026-09-27):** fast corners are 7.6% of corner-*rows* in this panel. The 15%
+> is the share of corner *cells* from the pre-registration probe. On the corrected treatment the
+> slow-corner apex deficit rises from 1.0% (2018) to 1.6% (2024) of apex speed rather than staying
+> flat; the era Δs remain indistinguishable from zero in all three classes.
 
 The finding that *is* precise is the level, not the change:
 
@@ -632,6 +651,11 @@ scheduling flag rather than a technical gate.
 > leaderboard for 2021 and 2024, where θ's interval crosses zero) is recorded as **pending
 > implementation**, so publishing `06b` before that lands would point readers at a leaderboard
 > the same analysis says should not be shown for two of its seven seasons.
+>
+> **2026-09-27 (WI-12):** the premise of (2) is gone. On the corrected label no season's θ interval
+> crosses zero on any rung, so there is no season for which 08q's "suppress the leaderboard where θ
+> is indistinguishable from zero" ruling would apply. Recommended to the fixes board that the
+> ruling be retired, not implemented.
 
 ---
 

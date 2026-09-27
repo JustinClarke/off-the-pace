@@ -29,12 +29,15 @@ MODELS_DIR = Path("ml/models")
 MANIFEST_PATH = MODELS_DIR / "manifest.json"
 APP_MODELS_DIR = Path("app/public/models")
 
-pytestmark = pytest.mark.skipif(
-    not MANIFEST_PATH.exists(), reason="no ml/models/manifest.json (run `make ml-onnx`)")
+DBT_MANIFEST_PATH = Path("transform/target/manifest.json")
 
 
 @pytest.fixture(scope="module")
 def manifest() -> dict:
+    # The skip lives here rather than in a module-level pytestmark so that T48 below, which
+    # reads the dbt manifest and not this one, still runs when no ML artefacts exist.
+    if not MANIFEST_PATH.exists():
+        pytest.skip("no ml/models/manifest.json (run `make ml-onnx`)")
     return json.loads(MANIFEST_PATH.read_text())
 
 
@@ -251,6 +254,9 @@ CARD_JSON_PATH = MODELS_DIR / "model_card.json"
 
 @pytest.fixture(scope="module")
 def card() -> dict:
+    # Was gated by the module-level manifest skip too; kept identical (see `manifest`).
+    if not MANIFEST_PATH.exists():
+        pytest.skip("no ml/models/manifest.json (run `make ml-onnx`)")
     if not CARD_JSON_PATH.exists():
         pytest.skip(f"no {CARD_JSON_PATH} (run `make ml-card`)")
     return json.loads(CARD_JSON_PATH.read_text())
@@ -317,3 +323,88 @@ def test_attainable_ceiling_is_published_per_model(card):
         assert frac is not None, (
             f"{m['name']}: no fraction_of_attainable -- the headline is still anchored "
             f"to 1.0, which is the whole finding of Corrections §12")
+
+
+# ─── T48 (WI-16a): the driver-isolation ratings stay out of the ML contract ──────────────
+# The isolation ratings (pure / tactical / relative-to-peers) are functions of the residual
+# trajectory, and same-race tactical is a function of the label's own trajectory. The WI-16
+# doc's leakage warning is fct_cliff_prediction_features' in reverse: no ML-contract mart may
+# have an isolation model among its ancestors. Promoting a validated, LAGGED rating into the
+# contract is a gated follow-on; until then this holds on the dbt manifest itself, so a ref()
+# added anywhere in a contract mart's lineage fails here, not in review.
+ML_CONTRACT_MARTS = (
+    "fct_cliff_prediction_features",
+    "fct_stint_features",
+    "fct_lap_residuals",
+    "fct_driver_skill_features",
+)
+_ISOLATION_PREFIXES = ("int_driver_isolation_", "fct_driver_isolation_",
+                       "int_constructor_car_fe_isolation")
+
+
+def _isolation_nodes(dbt_manifest: dict) -> set[str]:
+    """Isolation models by tag OR by name, so an untagged new one is still caught."""
+    return {
+        uid for uid, n in dbt_manifest["nodes"].items()
+        if n.get("resource_type") == "model"
+        and ("driver_isolation" in (n.get("tags") or [])
+             or n.get("name", "").startswith(_ISOLATION_PREFIXES))
+    }
+
+
+def _ancestors(dbt_manifest: dict, uid: str) -> set[str]:
+    nodes = dbt_manifest["nodes"]
+    seen: set[str] = set()
+    stack = list(nodes[uid].get("depends_on", {}).get("nodes", []))
+    while stack:
+        u = stack.pop()
+        if u in seen:
+            continue
+        seen.add(u)
+        if u in nodes:   # sources live under "sources" and are leaves here
+            stack.extend(nodes[u].get("depends_on", {}).get("nodes", []))
+    return seen
+
+
+def _contract_leaks(dbt_manifest: dict) -> dict[str, list[str]]:
+    iso = _isolation_nodes(dbt_manifest)
+    by_name = {n["name"]: uid for uid, n in dbt_manifest["nodes"].items()
+               if n.get("resource_type") == "model"}
+    leaks = {}
+    for mart in ML_CONTRACT_MARTS:
+        hit = sorted(dbt_manifest["nodes"][u]["name"]
+                     for u in _ancestors(dbt_manifest, by_name[mart]) & iso)
+        if hit:
+            leaks[mart] = hit
+    return leaks
+
+
+@pytest.fixture(scope="module")
+def dbt_manifest() -> dict:
+    if not DBT_MANIFEST_PATH.exists():
+        pytest.skip(f"no {DBT_MANIFEST_PATH} (run `cd transform && dbt parse`)")
+    return json.loads(DBT_MANIFEST_PATH.read_text())
+
+
+def test_no_ml_contract_mart_depends_on_the_isolation_ratings(dbt_manifest):
+    iso = _isolation_nodes(dbt_manifest)
+    # Not vacuous: a manifest parsed before WI-16a has no isolation model to find.
+    assert len(iso) >= 9, (
+        f"only {len(iso)} isolation models in {DBT_MANIFEST_PATH}; it predates WI-16a or "
+        "the models were renamed -- re-run `dbt parse` and check _ISOLATION_PREFIXES")
+    names = {n["name"] for n in dbt_manifest["nodes"].values()}
+    assert set(ML_CONTRACT_MARTS) <= names, "an ML-contract mart is missing from the manifest"
+    leaks = _contract_leaks(dbt_manifest)
+    assert not leaks, f"ML-contract marts read the driver-isolation ratings: {leaks}"
+
+
+def test_the_isolation_lineage_check_can_fail(dbt_manifest):
+    """Inject the defect the test above guards against -- fct_stint_features reading
+    fct_driver_isolation_race -- into a copy of the manifest, and require it to be caught."""
+    import copy
+
+    m = copy.deepcopy(dbt_manifest)
+    by_name = {n["name"]: uid for uid, n in m["nodes"].items() if n.get("resource_type") == "model"}
+    m["nodes"][by_name["fct_stint_features"]]["depends_on"]["nodes"].append(
+        by_name["fct_driver_isolation_race"])
+    assert "fct_stint_features" in _contract_leaks(m)

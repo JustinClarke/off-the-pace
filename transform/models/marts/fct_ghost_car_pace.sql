@@ -10,17 +10,34 @@
 --                      residual)
 --                      + constructor_pace(host)   (host constructor
 --                      coefficient)
---                      + circuit_x_constructor(host)
 --                      + dirty_air_tax             (inherited from ego
 --                      position)
 --                      + compound_component        (inherited from ego
 --                      strategy)
---                      + rubber_component
---                      + ambient_component
 --                      + deg_interaction           (see
 --                      below)
 --                      + cliff_interaction         (see
 --                      below)
+--
+-- WI-01 (2026-09-27, F22): rubber_component_s and ambient_component_s are NOT
+-- in this sum. base_track_pace_s is now built from int_field_pace_curve,
+-- which int_track_evolution decomposes into
+-- race_mean + rubber_component_s + ambient_component_s + unexplained -- i.e.
+-- rubber/ambient are already inside base_track_pace_s, and
+-- driver_skill_residual_s no longer has them subtracted out either (same
+-- fix, int_lap_residual_decomposed). Adding them again here double-counted
+-- track state on every recombined lap (self-consistency failed on ~all rows
+-- until this was caught). Both columns are still carried below as
+-- informational/explainability fields only.
+--
+-- WI-01 (F35): circuit_x_constructor(host) is out of the sum for the same
+-- reason it is out of int_lap_residual_decomposed's constructor term: the
+-- host's constructor_structural_pace_s is already a per-race level at this
+-- circuit, so adding the per-(team, circuit) interaction on top counted the
+-- circuit twice. It must leave both sums together: the ego lap's residual no
+-- longer has it subtracted, so adding it back here would break the ego ==
+-- host identity below by exactly the interaction. Carried as the
+-- informational column circuit_interaction_s.
 --
 -- deg_interaction_s = (deg_slope(host) - deg_slope(ego)) * age_in_stint, with
 -- slopes from int_constructor_deg_sensitivity at the ego lap's (compound,
@@ -94,6 +111,16 @@ WITH ego_laps AS (
     -- confidence below.
     AND lr.correction_weight >= 0.6
     AND COALESCE(lr.rainfall_flag, FALSE) = FALSE
+    -- WI-01/F1: driver_skill_residual_s (equivalently, compound_component_s or
+    -- base_track_pace_s) can be NULL for an unmeasured lap. The recombination
+    -- below COALESCEs several inputs to 0.0 as a defensive default for a
+    -- missing SIDE TERM (e.g. no host cliff/deg cell); it must not do that for
+    -- the ego lap's OWN skill/compound, or a lap whose real cost is unknown
+    -- gets rebuilt as if that cost were exactly 0 -- self-consistency then
+    -- fails by the whole missing amount (observed up to ~16 s before this
+    -- exclusion). Excluded, not COALESCEd: ghost-car counterfactuals for a
+    -- lap this tree cannot honestly decompose are not computable, not zero.
+    AND lr.driver_skill_residual_s IS NOT NULL
 ),
 
 -- All valid host constructors per race_year (constructors that actually
@@ -319,16 +346,17 @@ SELECT
     host_constructor_id,
     ego_constructor_id,
     lap_number,
-    -- Recombined lap time: base + all physics + ego skill + host constructor
+    -- Recombined lap time: base + all physics + ego skill + host constructor.
+    -- WI-01/F22: no rubber_component_s / ambient_component_s term -- both are
+    -- already inside base_track_pace_s (see header note). WI-01/F35: no
+    -- circuit_interaction_s term either (header note); it is carried below as
+    -- an informational column only.
     COALESCE(base_track_pace_s, actual_lap_time_s)
     + COALESCE(fuel_component_s, 0.0)
     + COALESCE(driver_skill_residual_s, 0.0)
     + COALESCE(host_constructor_pace_s, 0.0)
-    + COALESCE(circuit_interaction_s, 0.0)
     + COALESCE(dirty_air_tax_s, 0.0)
     + COALESCE(compound_component_s, 0.0)
-    + COALESCE(rubber_component_s, 0.0)
-    + COALESCE(ambient_component_s, 0.0)
     + COALESCE(deg_interaction_s, 0.0)
     + COALESCE(cliff_interaction_s, 0.0) AS predicted_lap_time_s,
     actual_lap_time_s,
@@ -341,11 +369,8 @@ SELECT
     COALESCE(base_track_pace_s, actual_lap_time_s)
     + COALESCE(driver_skill_residual_s, 0.0)
     + COALESCE(host_constructor_pace_s, 0.0)
-    + COALESCE(circuit_interaction_s, 0.0)
     + COALESCE(dirty_air_tax_s, 0.0)
     + COALESCE(compound_component_s, 0.0)
-    + COALESCE(rubber_component_s, 0.0)
-    + COALESCE(ambient_component_s, 0.0)
     + COALESCE(deg_interaction_s, 0.0)
     + COALESCE(cliff_interaction_s, 0.0) AS predicted_residual_pace_s,
     actual_lap_time_s - COALESCE(fuel_component_s, 0.0)
@@ -356,11 +381,8 @@ SELECT
         + COALESCE(fuel_component_s, 0.0)
         + COALESCE(driver_skill_residual_s, 0.0)
         + COALESCE(host_constructor_pace_s, 0.0)
-        + COALESCE(circuit_interaction_s, 0.0)
         + COALESCE(dirty_air_tax_s, 0.0)
         + COALESCE(compound_component_s, 0.0)
-        + COALESCE(rubber_component_s, 0.0)
-        + COALESCE(ambient_component_s, 0.0)
         + COALESCE(deg_interaction_s, 0.0)
         + COALESCE(cliff_interaction_s, 0.0)
     ) - actual_lap_time_s AS delta_vs_actual_lap_s,

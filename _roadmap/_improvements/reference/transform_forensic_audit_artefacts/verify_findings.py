@@ -111,9 +111,29 @@ CHECKS: list[Check] = [
                      c.execute("select count(*) from fct_cliff_prediction_features where race_year = "
                                "(select max(race_year) + 1 from fct_cliff_prediction_features)").fetchone()[0]),
           lambda v: v[0] and v[1] == 0, "a declared holdout season with rows"),
-    Check("F5", "one global theta_air across all seasons (ingesting a season relabels history)",
-          sql("select count(distinct round(dirty_air_tax_s, 9)) filter (where dirty_air_tax_s > 0) from int_dirty_air_tax_component"),
-          lambda v: v == 1, "theta windowed/frozen per version (more than one per-lap tax value, or a declared freeze)"),
+    # WI-01 (2026-09-27): the original measure (distinct nonzero dirty_air_tax_s
+    # values) could never have distinguished "pooled over every ingested season"
+    # from "frozen at a declared cutoff" -- dirty_air_share_lag1 is binary
+    # (int_lap_air_state: one bit per lap), so theta * share collapses to exactly
+    # one nonzero value on the whole table either way, and a per-season theta was
+    # already ruled out on identification grounds (08q: indistinguishable from
+    # zero in 2021/2024). What actually fixes F5 is that the CALIBRATION PANEL is
+    # bounded by a declared, versioned var instead of "every race_year currently
+    # in the warehouse" -- so this check now reads the source for that guard and
+    # confirms the var is declared with a value, rather than counting tax values.
+    Check("F5", "theta_air's calibration panel pools every ingested season, not a declared frozen window",
+          lambda c: (
+              "AND race_year <= {{ var('theta_air_fit_season_max') }}"
+              in text("transform/models/intermediate/int_dirty_air_tax_component.sql"),
+              getattr(
+                  re.search(r"theta_air_fit_season_max:\s*(\d+)", text("transform/dbt_project.yml")),
+                  "group", lambda *_: None,
+              )(1),
+          ),
+          lambda v: not (v[0] and v[1]),
+          "calibration_panel filters race_year to a declared var (theta_air_fit_season_max, "
+          "dbt_project.yml) instead of pooling every ingested season; bumping that var is the "
+          "explicit, reviewable act that moves the fit window for a new label version"),
     Check("F6", "fuel counts laps from the last VALID lap (reaches the race ending)",
           lambda c: c.execute(FUEL_INITIAL_SQL.format(expr="count(*)") + r"""
              where implied_race_laps + 0.5 < (select max(lap_number) from stg_laps s where s.race_id = r.race_id)""").fetchone()[0],
@@ -185,13 +205,24 @@ CHECKS: list[Check] = [
           sql("""select count(*) from int_dirty_air_tax_component d join int_lap_residual_decomposed r using (lap_id)
                  where r.base_track_pace_s is null"""),
           lambda v: v > 0, "0 (follows from fixing F1: partial residual becomes NULL there)"),
-    Check("F23b", "laps behind a car billed 0 s dirty air because they were downweighted/wet",
+    # WI-01 (2026-09-27): restricted to base-measured laps. Before the fix, EVERY
+    # lag.s>0 lap with no tax row was the defect (the correction_weight/rainfall
+    # filter gated the whole output table). After it, a lag.s>0 lap can still lack
+    # a tax row for the separate, honest reason that its own field base is
+    # unmeasured (F1/F23a -- e.g. lap 2 of a race whose whole field shares an
+    # out-lap there, measured 2026-09-27: 2,309 such rows, all base-null). That is
+    # not this defect and must not re-trip this check once F1's coverage
+    # naturally shrinks or grows on a future ingest.
+    Check("F23b", "base-measured laps behind a car billed 0 s dirty air because they were downweighted/wet",
           sql(r"""with lag as (select g.lap_id, lag(coalesce(a.dirty_air_share_lap, 0.0), 1, 0.0)
                     over (partition by g.stint_id order by g.lap_in_stint) s
                     from int_stint_geometry g left join int_lap_air_state a using (lap_id))
                   select count(*) from int_lap_residual_decomposed r join lag using (lap_id)
-                  left join int_dirty_air_tax_component d using (lap_id) where d.lap_id is null and lag.s > 0"""),
-          lambda v: v > 0, "tax applied to every spine lap; the panel filter only governs estimation"),
+                  left join int_dirty_air_tax_component d using (lap_id)
+                  where d.lap_id is null and lag.s > 0 and r.base_track_pace_s is not null"""),
+          lambda v: v > 0,
+          "tax applied to every BASE-MEASURED spine lap; the panel filter only governs estimation "
+          "(a base-missing lap is correctly excluded for F1's reason, not this one)"),
     Check("F24", "races whose bronze stint numbering ignores the pit stops",
           sql(STINT_BOUNDARY_SQL), lambda v: v > 0,
           "0 races with >= 5 stint boundaries lacking a pit stop (stints rebuilt from pits, or races quarantined)"),
@@ -239,9 +270,26 @@ CHECKS: list[Check] = [
               "WHERE dirty_air_tax_s < 0" in text("transform/tests/assert_aero_penalty_negative.sql"))
           + ("rubber_component_s > prev_rubber_component_s" in text("transform/tests/assert_track_evolution_monotone.sql")),
           lambda v: v > 0, "placeholders deleted or wired up; clamped quantities tested before the clamp"),
+    # WI-01 (2026-09-27, verification pass): the fix is the audit's own -- the
+    # interaction is DROPPED from the constructor term, not re-centred. An
+    # earlier WI-01 pass re-centred it to zero global mean and rewrote this check
+    # to accept that; a global re-centring moves every (team, circuit) value by
+    # the same 0.002 s and leaves each per-team, per-circuit shift in place, so
+    # it could pass while the defect stayed. The check now measures what the
+    # interaction still contributes: (a) the source no longer references it,
+    # and (b) on the data, constructor_component_s equals the per-race
+    # structural pace alone on every lap (max |difference| exactly 0).
     Check("F35", "circuit x constructor interaction added on top of a per-race constructor level",
-          lambda c: "cci.circuit_constructor_interaction_s" in text("transform/models/intermediate/int_lap_residual_decomposed.sql"),
-          lambda v: v, "interaction dropped from the lap residual (or structural pace made seasonal)"),
+          lambda c: (
+              "circuit_constructor_interaction" in text("transform/models/intermediate/int_lap_residual_decomposed.sql")
+              and "cci." in text("transform/models/intermediate/int_lap_residual_decomposed.sql"),
+              c.execute("""select max(abs(r.constructor_component_s - coalesce(cs.constructor_structural_pace_s, 0.0)))
+                           from int_lap_residual_decomposed r left join int_constructor_structural_pace cs
+                           using (race_year, race_id, constructor_id)""").fetchone()[0],
+          ),
+          lambda v: v[0] or v[1] > 1e-9,
+          "interaction dropped: int_lap_residual_decomposed no longer joins it, and constructor_component_s "
+          "= structural pace alone on every lap (max |diff| 0)"),
     Check("F36", "Lap Waterfall / Race Lost add track_unexplained_s to the reconstructed delta",
           lambda c: "COALESCE(AVG(track_unexplained_s), 0)  AS pace_delta_s" in text("app/src/features/lap-waterfall/queries.ts"),
           lambda v: v, "delta = explained + skill"),
@@ -322,10 +370,17 @@ CHECKS: list[Check] = [
           lambda c: "WHEN gap_median_s < 1.0 AND drs_active = 1 THEN 'drs_train'"
           in text("transform/models/intermediate/int_lap_air_state.sql"),
           lambda v: v, "share monotone in gap: S2 < 1.5 s counts as dirty air whatever DRS did"),
+    # WI-15b: this used to be `v[0] <= 0.5 and v[1] == 0`, which read CLEARED as soon as the
+    # loads were normalised (max 0.606) although 'surface_driven' still needed > 0.65 and still
+    # had 0 rows: normalising lifts the ceiling from 0.5 to bulk/(surface+bulk) = 0.606, not to 1.
+    # The defect is a declared class that cannot fire, so that is what is measured now:
+    # (max ratio, surface_driven rows, whether the CASE still emits 'surface_driven').
     Check("F49", "surface/bulk ratio capped at 0.5 by construction; 'surface_driven' (>0.65) unreachable",
           lambda c: c.execute("""select round(max(surface_bulk_ratio), 3), count(*) filter (where degradation_source = 'surface_driven')
-                                 from int_tyre_surface_vs_bulk_decoupling""").fetchone(),
-          lambda v: v[0] <= 0.5 and v[1] == 0, "loads normalised so the ratio can span its classes (or the class removed)"),
+                                 from int_tyre_surface_vs_bulk_decoupling""").fetchone()
+          + ("THEN 'surface_driven'" in text("transform/models/intermediate/int_tyre_surface_vs_bulk_decoupling.sql"),),
+          lambda v: v[0] <= 0.5 or (v[2] and v[1] == 0),
+          "loads normalised (max > 0.5) and no declared class left dead: surface_driven either fires or is gone from the CASE"),
 
     # ── New findings (found during 2026-09-24 reverification, not in rounds 1-3) ──
     # T12 (WI-07): audit coverage for F53 specifically -- the only one of F50-F55 this

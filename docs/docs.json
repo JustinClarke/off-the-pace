@@ -194,6 +194,7 @@
               "decomposition/seven-term-identity",
               "decomposition/methodology",
               "decomposition/tyre-cliff",
+              "decomposition/driver-isolation",
               "decomposition/limitations"
             ]
           },

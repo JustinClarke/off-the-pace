@@ -22,7 +22,10 @@
 -- 0..1 lap fraction and carries its own bound. Applying the car-channel's
 -- absolute-distance guard would drop pit-lane and out-lap samples that the
 -- proximity measure specifically needs to see in order to *exclude* them
--- downstream with a reason rather than silently.
+-- downstream with a reason rather than silently. That exclusion lives in
+-- int_lap_proximity's pit_windows / crossings_on_track (F43, WI-15a): a
+-- crossing inside the driver's own stg_pits window is dropped before the
+-- car-ahead ordering.
 {{ config(materialized='view') }}
 
 WITH source AS (

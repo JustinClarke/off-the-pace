@@ -24,7 +24,7 @@
 	setup ml-setup app-install \
 	ingest-all ingest-recent ingest-jolpica verify-bronze monitor-ingest manifest-report ingest-plan season-seeds-check simulate \
 	test test-integration cov-python \
-	coefficients-fit coefficients-promote coefficients-status coefficients-check car-fe-fit deg-iso-fit \
+	coefficients-fit coefficients-promote coefficients-status coefficients-check car-fe-fit car-fe-isolation-fit deg-iso-fit \
 	dbt-dev dbt-dev-full dbt-prod dbt-test dbt-docs query \
 	lint lint-fix lint-oracle-snapshot lint-oracle-check \
 	test-all test-fast transform-check data-profile-snapshot data-profile-check dq-test \
@@ -132,6 +132,11 @@ car-fe-fit:  ## Fit de-biased constructor car FE → data/fits/constructor_car_f
 	  --select +int_lap_fuel_state +int_field_pace_curve +int_event_corrections +int_track_evolution +stg_laps
 	cd transform && ../.venv/bin/python -m tasks.coefficients.fit_constructor_car_fe
 
+car-fe-isolation-fit:  ## Fit driver-isolation car term (WI-16a) → data/fits/constructor_car_fe_isolation.parquet
+	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev \
+	  --select +int_driver_isolation_lap_panel
+	cd transform && ../.venv/bin/python -m tasks.coefficients.fit_constructor_car_fe --panel isolation
+
 deg-iso-fit:  ## Fit isotonic tyre-deg curves + modulation coefs → data/fits/degradation_isotonic.parquet
 	cd transform && ../.venv/bin/python -m tasks.coefficients.fit_degradation_isotonic
 
@@ -139,10 +144,10 @@ deg-iso-fit:  ## Fit isotonic tyre-deg curves + modulation coefs → data/fits/d
 ##@ 4. Transform
 
 ##   Build targets
-dbt-dev:  ## Build all 72 dbt models → data/dev.duckdb
+dbt-dev:  ## Build all 86 dbt models → data/dev.duckdb
 	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
 
-dbt-dev-full: coefficients-check car-fe-fit  ## Seed check → car-FE refit → full dbt run
+dbt-dev-full: coefficients-check car-fe-fit car-fe-isolation-fit  ## Seed check → car-FE refits (Ghost Standings, driver isolation) → full dbt run
 	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
 
 dbt-prod:  ## Prod build (Fabric deferred runs against dev for now)
@@ -155,7 +160,7 @@ query:  ## Open the warehouse in the Harlequin SQL IDE
 	./.venv/bin/harlequin data/dev.duckdb
 
 ##   Test targets
-dbt-test:  ## Run all 620 dbt tests (schema + singular + assert_* invariants)
+dbt-test:  ## Run all 912 dbt tests (schema + singular + assert_* invariants)
 	cd transform && ../.venv/bin/dbt test --profiles-dir profiles
 
 test-all:  ## CI-equivalent: full dbt build on fixtures + coefficient tests

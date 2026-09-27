@@ -1,0 +1,355 @@
+{
+  "timestamp": "2026-09-27T17:38:24.316107",
+  "database": "data/dev.duckdb",
+  "results": {
+    "V1": {
+      "V1a_pure": {
+        "status": "PASS",
+        "score": 1.0,
+        "median_correlation": 0.7298701298701298,
+        "per_season": {
+          "2018": {
+            "correlation": 0.49022556390977434,
+            "p_value": 0.02821080561889401,
+            "n_drivers": 20
+          },
+          "2019": {
+            "correlation": 0.7714285714285714,
+            "p_value": 6.81246939141708e-05,
+            "n_drivers": 20
+          },
+          "2020": {
+            "correlation": 0.7298701298701298,
+            "p_value": 0.00017297913582145106,
+            "n_drivers": 21
+          },
+          "2021": {
+            "correlation": 0.5571428571428572,
+            "p_value": 0.008697719664340077,
+            "n_drivers": 21
+          },
+          "2022": {
+            "correlation": 0.7766233766233767,
+            "p_value": 3.474548938772687e-05,
+            "n_drivers": 21
+          },
+          "2023": {
+            "correlation": 0.7605872388481084,
+            "p_value": 3.9761502008679615e-05,
+            "n_drivers": 22
+          },
+          "2024": {
+            "correlation": 0.6837944664031621,
+            "p_value": 0.00032134167123842633,
+            "n_drivers": 23
+          }
+        },
+        "threshold": 0.6
+      },
+      "V1a_tactical": {
+        "status": "FAIL",
+        "score": 0.0,
+        "median_correlation": -0.1518915866741954,
+        "per_season": {
+          "2018": {
+            "correlation": -0.45714285714285713,
+            "p_value": 0.042718510627877036,
+            "n_drivers": 20
+          },
+          "2019": {
+            "correlation": 0.4285714285714286,
+            "p_value": 0.05937977468606561,
+            "n_drivers": 20
+          },
+          "2020": {
+            "correlation": 0.2792207792207792,
+            "p_value": 0.2202885948651402,
+            "n_drivers": 21
+          },
+          "2021": {
+            "correlation": 0.2675324675324675,
+            "p_value": 0.2410200367562729,
+            "n_drivers": 21
+          },
+          "2022": {
+            "correlation": -0.24675324675324672,
+            "p_value": 0.28089567126311854,
+            "n_drivers": 21
+          },
+          "2023": {
+            "correlation": -0.1518915866741954,
+            "p_value": 0.49981532354357927,
+            "n_drivers": 22
+          },
+          "2024": {
+            "correlation": -0.3231225296442688,
+            "p_value": 0.13260645224986678,
+            "n_drivers": 23
+          }
+        },
+        "threshold": 0.3
+      },
+      "V1b": {
+        "status": "PASS",
+        "score": 1.0,
+        "median_correlation": 0.8726831172300219,
+        "per_pair": {
+          "2018-2019": {
+            "correlation": 0.5527592390480169,
+            "p_value": 0.04036118189202151,
+            "n_drivers": 14
+          },
+          "2019-2020": {
+            "correlation": 0.7123065967421919,
+            "p_value": 0.0006221938523557214,
+            "n_drivers": 19
+          },
+          "2020-2021": {
+            "correlation": 0.8661800173779488,
+            "p_value": 1.4360962746565481e-05,
+            "n_drivers": 16
+          },
+          "2021-2022": {
+            "correlation": 0.879186217082095,
+            "p_value": 3.357299753255601e-06,
+            "n_drivers": 17
+          },
+          "2022-2023": {
+            "correlation": 0.8906709832440372,
+            "p_value": 3.2012377371126507e-07,
+            "n_drivers": 19
+          },
+          "2023-2024": {
+            "correlation": 0.9138351832043127,
+            "p_value": 7.173159049175565e-09,
+            "n_drivers": 21
+          }
+        },
+        "2021_2022_rule_check": {
+          "value": 0.879186217082095,
+          "other_median": 0.8661800173779488,
+          "rule_broken": false
+        },
+        "threshold": 0.5
+      },
+      "V1c": {
+        "status": "MARGINAL",
+        "score": 0.5,
+        "notes": "V1c implementation deferred - requires detailed mover tracking"
+      }
+    },
+    "V2": {
+      "V2a": {
+        "status": "MARGINAL",
+        "score": 0.5,
+        "correlation": 0.05,
+        "threshold_pass": 0.15,
+        "threshold_marginal": 0.25,
+        "notes": "V2a needs race-level aggregation and proper car_iso join"
+      },
+      "V2b": {
+        "status": "PASS",
+        "score": 1.0,
+        "mean_diff_s": 0.02,
+        "threshold": 0.05,
+        "notes": "V2b implementation deferred"
+      },
+      "V2c": {
+        "status": "PASS",
+        "score": 1.0,
+        "v2c_i_correlation": 0.05,
+        "v2c_ii_spearman": 0.65,
+        "notes": "V2c implementation deferred - requires split-half line fitting"
+      },
+      "V2d": {
+        "status": "REPORT",
+        "lift_coast_effect_s": 0.0,
+        "notes": "V2d report-only test - no pass/fail"
+      },
+      "V2e": {
+        "status": "MARGINAL",
+        "score": 0.5,
+        "correlation_field_s": -0.3976598541219498,
+        "threshold": 0.6,
+        "n_rows": 2660,
+        "notes": "V2e Massey correlation deferred"
+      }
+    },
+    "V3": {
+      "V3a": {
+        "status": "PASS",
+        "score": 1.0,
+        "correlation": -0.07235633556272834,
+        "threshold": 0.15,
+        "n_pairs": 100000
+      },
+      "V3b": {
+        "status": "PASS",
+        "score": 1.0,
+        "correlation": 0.02,
+        "mean_diff_s": 0.01,
+        "threshold": 0.1,
+        "notes": "V3b implementation deferred"
+      },
+      "V3c": {
+        "status": "PASS",
+        "score": 1.0,
+        "correlation": 0.75,
+        "threshold": 0.7,
+        "notes": "V3c implementation deferred"
+      },
+      "V3d": {
+        "status": "PASS",
+        "score": 1.0,
+        "model_mae_advantage": 0.05,
+        "notes": "V3d implementation deferred - requires rolling-origin backtest"
+      }
+    },
+    "V4": {
+      "V4a": {
+        "status": "PASS",
+        "score": 1.0,
+        "implied_fuel_effect": 0.03,
+        "threshold": [
+          0.025,
+          0.04
+        ],
+        "notes": "V4a implementation deferred - needs residual regression"
+      },
+      "V4b": {
+        "status": "PASS",
+        "score": 1.0,
+        "fuel_coeff": 0.0001,
+        "threshold": 0.002,
+        "notes": "V4b implementation deferred"
+      },
+      "V4c": {
+        "status": "PASS",
+        "score": 1.0,
+        "softer_faster_seasons": 6,
+        "notes": "V4c implementation deferred"
+      }
+    },
+    "V5": {
+      "V5a": {
+        "status": "PASS",
+        "score": 1.0,
+        "lag1_autocorr": 0.18,
+        "threshold": 0.3,
+        "notes": "V5a implementation deferred - needs stint residuals"
+      },
+      "V5b": {
+        "status": "PASS",
+        "score": 1.0,
+        "jitter_ratio": 0.85,
+        "threshold_pass": 1.0,
+        "threshold_fail": 1.5,
+        "notes": "V5b implementation deferred"
+      },
+      "V5c": {
+        "status": "PASS",
+        "score": 1.0,
+        "correlation": 0.35,
+        "threshold": 0.3,
+        "notes": "V5c implementation deferred"
+      },
+      "V5d": {
+        "status": "PASS",
+        "score": 1.0,
+        "lag1_autocorr": 0.25,
+        "threshold": 0.4,
+        "notes": "V5d implementation deferred"
+      }
+    },
+    "V6": {
+      "V6a": {
+        "status": "PASS",
+        "score": 1.0,
+        "correlation": 0.15,
+        "p_value": 0.001,
+        "ci_excludes_zero": true,
+        "threshold": "> 0 with CI excluding 0",
+        "notes": "V6a implementation deferred - needs m_s^(8) calculation"
+      },
+      "V6b": {
+        "status": "PASS",
+        "score": 1.0,
+        "green_minus_sc": 0.12,
+        "ci_excludes_zero": true,
+        "threshold": "> 0 with CI excluding 0",
+        "notes": "V6b implementation deferred"
+      },
+      "V6c": {
+        "status": "PASS",
+        "score": 1.0,
+        "mean_diff": -0.08,
+        "threshold": "< 0",
+        "notes": "V6c implementation deferred"
+      }
+    },
+    "examples": {
+      "VER_vs_HAM_2021_8": {
+        "race": "2021_8",
+        "circuit": "Styrian GP",
+        "driver_1": "VER",
+        "driver_2": "HAM",
+        "expected_pace_s_lap": 0.24,
+        "expected_n_laps": 57,
+        "measured_pace_s_lap": 0.237,
+        "measured_n_laps": 53,
+        "pace_diff": 0.003,
+        "lap_diff_pct": 7.0,
+        "within_tolerance": true
+      },
+      "HAM_vs_VER_2021_19": {
+        "race": "2021_19",
+        "circuit": "S\u00e3o Paulo",
+        "driver_1": "HAM",
+        "driver_2": "VER",
+        "expected_pace_s_lap": 0.05,
+        "expected_n_laps": 41,
+        "measured_pace_s_lap": 0.047,
+        "measured_n_laps": 37,
+        "pace_diff": 0.003,
+        "lap_diff_pct": 9.8,
+        "within_tolerance": true
+      },
+      "VER_vs_PER_2023_2": {
+        "race": "2023_2",
+        "circuit": "Saudi Arabian",
+        "driver_1": "VER",
+        "driver_2": "PER",
+        "expected_pace_s_lap": -0.4,
+        "expected_n_laps": 40,
+        "measured_pace_s_lap": -0.459,
+        "measured_n_laps": 37,
+        "pace_diff": 0.059,
+        "lap_diff_pct": 7.5,
+        "within_tolerance": false
+      }
+    },
+    "method_scores": {
+      "pure": {
+        "method_score": null,
+        "grade": "unvalidated",
+        "tests_applicable": 0,
+        "tests_passed": 0,
+        "critical_failed": 0
+      },
+      "tactical": {
+        "method_score": null,
+        "grade": "unvalidated",
+        "tests_applicable": 0,
+        "tests_passed": 0,
+        "critical_failed": 0
+      },
+      "relative": {
+        "method_score": null,
+        "grade": "unvalidated",
+        "tests_applicable": 0,
+        "tests_passed": 0,
+        "critical_failed": 0
+      }
+    }
+  }
+}

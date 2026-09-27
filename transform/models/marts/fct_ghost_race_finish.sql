@@ -229,7 +229,7 @@ driver_stats AS (
         )                                       AS predicted_mean_lap_se_s,
         RANK() OVER (
             PARTITION BY race_year, race_id, host_constructor_id
-            ORDER BY predicted_mean_lap_s ASC
+            ORDER BY predicted_mean_residual_pace_s ASC
         )                                       AS predicted_finish_position,
         RANK() OVER (
             PARTITION BY race_year, race_id, host_constructor_id
@@ -249,8 +249,8 @@ pairwise AS (
         i.ego_driver_id,
         i.predicted_finish_position             AS rank_i,
         j.predicted_finish_position             AS rank_j,
-        i.predicted_mean_lap_s                  AS mu_i,
-        j.predicted_mean_lap_s                  AS mu_j,
+        i.predicted_mean_residual_pace_s        AS mu_i,
+        j.predicted_mean_residual_pace_s        AS mu_j,
         -- sd of (mu_i - mu_j); floored to avoid 0/0 when both are deterministic.
         GREATEST(SQRT(
             i.var_self + j.var_self

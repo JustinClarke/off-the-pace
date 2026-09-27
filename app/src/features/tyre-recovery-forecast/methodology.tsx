@@ -7,17 +7,18 @@ export const methodologyContent = (
       has been passed, does the tyre show any pace recovery when the driver lifts off?
     </p>
     <ul className="list-disc pl-4 mt-3 space-y-1">
-      <li><strong>Recovery rate</strong>: fraction of post-cliff laps where the model flags
-        a partial pace recovery (<code>recovery_flag = true</code>). Very high across all
-        compounds (~86–89%) because the model detects any positive deviation from the cliff slope,
-        however small.</li>
-      <li><strong>Avg recovery probability</strong>: the model's probabilistic estimate of how
-        likely a lap with the observed surface/bulk load split is to show recovery.
-        This is more discriminating than the binary flag: 21–29% on average.</li>
-      <li><strong>Surface/bulk ratio</strong>: the ratio of surface thermal load to bulk mechanical
-        load. Values below ~0.4 are bulk-driven (compound breakdown, hard to recover);
-        values above ~0.4 are mixed or surface-driven (thermal, can partially recover with
-        reduced push).</li>
+      <li><strong>Recovery rate</strong>: fraction of post-cliff laps where the driver's
+        next two laps were, on average, faster relative to the field than this one
+        (<code>recovery_flag = true</code>), by any margin. About 58–64% by compound; pure
+        lap-to-lap noise would put it near 50%.</li>
+      <li><strong>Avg recovery probability</strong>: a fixed formula, not a fitted model: a
+        logistic curve in the surface/bulk ratio (50% at a ratio of 0.5), shrunk the further
+        past the cliff the lap is. The table shows its average per compound.</li>
+      <li><strong>Surface/bulk ratio</strong>: how much of the recent push load is fresh
+        (surface, ~3-lap memory) against longer-lived (bulk, ~5-lap memory), each scaled so a
+        steady push reads 0.5. It tops out at about 0.61, when all the push came on the current
+        lap. Below 0.35 is labelled bulk-driven (hard to recover); everything above is mixed.
+        There is no surface-driven label: its old 0.65 threshold could never be reached.</li>
     </ul>
     <p className="mt-3 text-muted/70">
       Source: <code>int_tyre_surface_vs_bulk_decoupling</code>. All seasons, post-cliff laps only.

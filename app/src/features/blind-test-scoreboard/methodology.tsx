@@ -8,7 +8,7 @@ season evaluation fold (the last TimeSeriesSplit fold, held out of training). Un
 season ingests, 2024 is the proxy holdout the scoreboard promotes automatically the moment
 the new season arrives.
 
-**Predicted vs actual scatter:** Each point is one lap. X-axis = actual next-lap degradation
+**Predicted vs actual scatter:** Each point is one lap. X-axis = actual next-5-lap cumulative degradation
 jump observed in the race; Y-axis = model p50 prediction. Points on the 45-degree diagonal are
 perfect calls. The p10 / p90 band defines the 80% conformal envelope.
 

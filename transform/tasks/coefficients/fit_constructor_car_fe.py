@@ -33,10 +33,47 @@ than field), read by the int_constructor_car_fe dbt model. NOT a seed: this is
 a per-build fit, not a hand-curated calibration, so it lives in data/ (a build
 artifact) rather than churning a committed CSV every rebuild.
 
+The isolation panel (--panel isolation, WI-16a)
+-----------------------------------------------
+The driver-isolation ratings (_roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md)
+need a car term on the same scale as the quantity they subtract it from: y_s, the lap
+time with compound and dirty air removed and then centred on the lap's field median
+(int_driver_isolation_lap_panel). The default panel above is fitted on pace_delta_s,
+before compound and dirty air come out, so it carries each team's average strategy and
+traffic exposure; subtracting it from y_s would subtract those terms a second time (the
+F22/F38 defect shape). So the isolation path fits
+
+    y_s ~ 1 | driver_era + constructor_race        driver_era = driver_id + pre/post era_boundary
+
+and emits car_iso_s: the constructor×race FE re-centred to a lap-weighted mean of zero
+inside each race (negative = faster, like car_fe_s). y_s is already centred per lap, so no
+race effect is needed.
+
+Why driver_era: a global driver FE assumes a driver's skill is constant 2018-2025.
+Splitting at the regulation boundary halves that assumption.
+
+What identifies it: the teammate network. A constructor×race level is only comparable
+with the other constructors in the same race if some chain of drivers who changed team
+connects them. The OCO/PER 2018 Force India -> Racing Point rename creates no new link
+(same pair, same car), so it cannot manufacture identification here the way it can in a
+constructor-season design; no exclusion is needed. The fit checks this directly: a race
+is identified when all of its constructor×race cells sit in one connected component of
+the driver_key x constructor_race graph. An era falls back to the global driver_id when
+any of its races is not identified under driver_era, or when it has more than one
+component containing two or more constructors (the WI doc's rule). Both are logged, and
+the rows carry car_term_source = 'global_driver'. A cell still unidentified under the
+global key gets car_iso_s NULL and car_term_source = 'unidentified', never a guess.
+
+The default path (--panel pace_delta) is unchanged: load_panel, fit_car_fe and run_fit
+produce the same output as before this option existed (T49 pins it).
+
 Usage
 -----
     python -m tasks.coefficients.fit_constructor_car_fe
     python -m tasks.coefficients.fit_constructor_car_fe --dry-run
+    python -m tasks.coefficients.fit_constructor_car_fe --panel isolation
+    python -m tasks.coefficients.fit_constructor_car_fe --panel isolation \\
+        --db /path/to/scratch/dev.duckdb --out /path/to/fits/constructor_car_fe_isolation.parquet
 """
 
 from __future__ import annotations
@@ -47,8 +84,11 @@ import sys
 from pathlib import Path
 
 import duckdb
+import numpy as np
 import pandas as pd
 import pyfixest as pf  # type: ignore
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
 
 from .provenance import build_provenance
 
@@ -62,6 +102,8 @@ log = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).parents[3]
 DB_PATH = REPO_ROOT / "data" / "dev.duckdb"
 OUT_PATH = REPO_ROOT / "data" / "fits" / "constructor_car_fe.parquet"
+ISOLATION_OUT_PATH = REPO_ROOT / "data" / "fits" / "constructor_car_fe_isolation.parquet"
+ISOLATION_FIT_METHOD = "constructor_car_fe_isolation_hdfe_v1"
 
 # The clean lap panel: lap_time vs the smoothed field median, restricted to
 # correction_weight = 1.0 and dry laps. This mirrors the clean_panel CTE in
@@ -181,8 +223,8 @@ def fit_car_fe(panel: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def run_fit() -> pd.DataFrame:
-    con = duckdb.connect(str(DB_PATH), read_only=True)
+def run_fit(db_path: Path = DB_PATH) -> pd.DataFrame:
+    con = duckdb.connect(str(db_path), read_only=True)
     try:
         panel = load_panel(con)
     finally:
@@ -200,21 +242,274 @@ def run_fit() -> pd.DataFrame:
     return out
 
 
+# ── The isolation panel (WI-16a) ─────────────────────────────────────────────────────
+# Read straight from the dbt model; every Ω predicate, the field centring and the era
+# split live in SQL (int_driver_isolation_lap_panel), not here.
+ISOLATION_PANEL_QUERY = """
+SELECT
+    lap_id,
+    race_year,
+    race_id,
+    driver_id,
+    driver_era,
+    era,
+    constructor_id,
+    y_s
+FROM int_driver_isolation_lap_panel
+-- A fixed row order: the table's physical order changes from build to build, and the
+-- FE solve is iterative, so without this two builds of the same panel gave car terms
+-- differing by up to 4e-5 s.
+ORDER BY lap_id
+"""
+
+ISOLATION_COLUMNS = [
+    "race_year", "race_id", "constructor_id", "era", "n_laps",
+    "car_fe_raw_s", "car_iso_s", "car_term_source", "race_components_n",
+]
+
+
+def load_isolation_panel(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    panel = con.execute(ISOLATION_PANEL_QUERY).fetchdf()
+    panel["constructor_race"] = (
+        panel.race_year.astype(str)
+        + "_" + panel.race_id.astype(str)
+        + "_" + panel.constructor_id.astype(str)
+    )
+    log.info(
+        "Loaded isolation panel: %d laps · %d drivers · %d driver-eras · %d races · "
+        "%d constructor-races.",
+        len(panel), panel.driver_id.nunique(), panel.driver_era.nunique(),
+        panel.groupby(["race_year", "race_id"]).ngroups, panel.constructor_race.nunique(),
+    )
+    return panel
+
+
+def component_of_cells(panel: pd.DataFrame, driver_col: str) -> pd.Series:
+    """Connected component of every constructor_race cell in the bipartite graph
+    driver_col x constructor_race, one edge per lap. Two cells in the same component can
+    be compared through a chain of drivers; two cells in different components cannot,
+    whatever the fit reports for them."""
+    drivers = pd.Index(panel[driver_col].unique())
+    cells = pd.Index(panel["constructor_race"].unique())
+    n_drivers = len(drivers)
+    rows = drivers.get_indexer(panel[driver_col])
+    cols = cells.get_indexer(panel["constructor_race"]) + n_drivers
+    size = n_drivers + len(cells)
+    adj = coo_matrix((np.ones(len(rows)), (rows, cols)), shape=(size, size))
+    _, labels = connected_components(adj, directed=False)
+    return pd.Series(labels[n_drivers:], index=cells, name="component")
+
+
+def connectivity(panel: pd.DataFrame, driver_col: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Per-cell and per-era identification diagnostics under `driver_col`.
+
+    Returns (cells, eras). cells: one row per constructor_race with its component and
+    race_components_n, the number of components the race's cells span (1 = the race's
+    car levels are comparable). eras: per era, the component count, the WI doc's
+    statistic (components holding two or more constructors) and the unidentified races.
+    """
+    comp = component_of_cells(panel, driver_col)
+    cells = (
+        panel.groupby(
+            ["race_year", "race_id", "constructor_id", "constructor_race", "era"],
+            as_index=False,
+        )
+        .size()
+        .rename(columns={"size": "n_laps"})
+    )
+    cells["component"] = cells.constructor_race.map(comp)
+    cells["race_components_n"] = cells.groupby(["race_year", "race_id"]).component.transform(
+        "nunique"
+    )
+    ctors_per_comp = cells.groupby("component").constructor_id.nunique()
+    eras = []
+    for era, g in cells.groupby("era"):
+        comps = g.component.unique()
+        races = g.drop_duplicates(["race_year", "race_id"])
+        eras.append({
+            "era": era,
+            "components_n": len(comps),
+            "multi_constructor_components_n": int((ctors_per_comp.loc[comps] >= 2).sum()),
+            "races_n": len(races),
+            "races_unidentified_n": int((races.race_components_n > 1).sum()),
+        })
+    return cells, pd.DataFrame(eras)
+
+
+def _fit_cell_fe(panel: pd.DataFrame, driver_col: str) -> pd.Series:
+    """Two-way FE fit y_s ~ 1 | driver_col + constructor_race; constructor_race -> FE.
+
+    pyfixest drops singleton cells (its default, as in fit_car_fe); they get no FE. Its
+    fixef() also leaves out the REFERENCE level: it solves on the full-rank dummy matrix
+    -1 + C(driver_col) + C(constructor_race), which drops the first constructor_race level,
+    so that cell's FE is 0 by construction but absent from the dict. fit_car_fe (the
+    default path, kept byte-identical) reads the absence as "unidentified" and drops the
+    cell; here it is restored as 0.0."""
+    log.info("Fitting y_s ~ 1 | %s + constructor_race ...", driver_col)
+    model = pf.feols(f"y_s ~ 1 | {driver_col} + constructor_race", data=panel)
+    # fixef() recovers the FE by LSQR; its 1e-6 default tolerances leave ~1e-5 s of
+    # solver noise in a car term. Tightened so a rebuild reproduces it.
+    fe = pd.Series(
+        model.fixef(atol=1e-12, btol=1e-12)["C(constructor_race)"], dtype=float
+    )
+    fe.index = fe.index.astype(str)
+    estimated = set(model._data["constructor_race"].astype(str))
+    reference = sorted(estimated - set(fe.index))
+    if len(reference) > 1:
+        raise RuntimeError(
+            f"{len(reference)} estimation-sample cells have no FE; expected one reference "
+            f"level: {reference[:5]}"
+        )
+    for cell in reference:
+        log.info("Reference level %s restored at FE 0.0.", cell)
+        fe[cell] = 0.0
+    return fe
+
+
+def _era_needs_fallback(era_row: pd.Series) -> bool:
+    return bool(
+        era_row.races_unidentified_n > 0 or era_row.multi_constructor_components_n > 1
+    )
+
+
+def fit_car_fe_isolation(panel: pd.DataFrame) -> tuple[pd.DataFrame, str]:
+    """Isolation car term per (race_year, race_id, constructor_id).
+
+    Returns (out, connectivity_note). out carries car_iso_s: the constructor×race FE of
+    y_s ~ 1 | driver_era + constructor_race, re-centred to a lap-weighted mean of zero
+    over the identified cells of each race (negative = faster). An era whose races are
+    not all identified under driver_era, or that has more than one component holding
+    two or more constructors, takes its car term from a global-driver_id fit instead
+    (car_term_source = 'global_driver'). A cell that is still not comparable with the
+    rest of its race, or that pyfixest dropped as a singleton, gets car_iso_s NULL."""
+    cells, eras = connectivity(panel, "driver_era")
+    notes = []
+    fallback_eras = []
+    for _, e in eras.iterrows():
+        needs = _era_needs_fallback(e)
+        notes.append(
+            f"{e.era}: driver_era {e.components_n} component(s), "
+            f"{e.multi_constructor_components_n} with >=2 constructors, "
+            f"{e.races_unidentified_n}/{e.races_n} races unidentified"
+            + (" -> global_driver" if needs else "")
+        )
+        if needs:
+            fallback_eras.append(e.era)
+        log.info("Connectivity %s", notes[-1])
+
+    fe_era = _fit_cell_fe(panel, "driver_era")
+    cells["car_fe_raw_s"] = cells.constructor_race.map(fe_era)
+    cells["car_term_source"] = "driver_era"
+
+    if fallback_eras:
+        g_cells, g_eras = connectivity(panel, "driver_id")
+        fe_glob = _fit_cell_fe(panel, "driver_id")
+        in_fallback = cells.era.isin(fallback_eras)
+        cells.loc[in_fallback, "car_fe_raw_s"] = cells.loc[in_fallback, "constructor_race"].map(fe_glob)
+        cells.loc[in_fallback, "car_term_source"] = "global_driver"
+        glob_comp = g_cells.set_index("constructor_race")
+        cells.loc[in_fallback, "component"] = cells.loc[in_fallback, "constructor_race"].map(
+            glob_comp.component
+        )
+        cells.loc[in_fallback, "race_components_n"] = cells.loc[
+            in_fallback, "constructor_race"
+        ].map(glob_comp.race_components_n)
+        for _, e in g_eras[g_eras.era.isin(fallback_eras)].iterrows():
+            notes.append(
+                f"{e.era} (global_driver): {e.components_n} component(s), "
+                f"{e.races_unidentified_n}/{e.races_n} races unidentified"
+            )
+            log.info("Connectivity %s", notes[-1])
+
+    # A race whose cells span several components: only the cells in the race's largest
+    # component (by laps) are comparable with each other; the rest are not identified.
+    # Ties go to the lower component id, so exactly one component per race is kept.
+    race_key = ["race_year", "race_id"]
+    comp_sum = cells.groupby(race_key + ["component"], as_index=False).n_laps.sum()
+    main = (
+        comp_sum.sort_values(race_key + ["n_laps", "component"],
+                             ascending=[True, True, False, True])
+        .drop_duplicates(race_key)[race_key + ["component"]]
+        .rename(columns={"component": "main_component"})
+    )
+    cells = cells.merge(main, on=race_key, how="left")
+    unidentified = (cells.component != cells.main_component).to_numpy()
+    cells.loc[unidentified, "car_fe_raw_s"] = np.nan
+    cells.loc[unidentified, "car_term_source"] = "unidentified"
+    not_estimated = cells.car_fe_raw_s.isna() & ~unidentified
+    cells.loc[not_estimated, "car_term_source"] = "not_estimated"
+
+    # Lap-weighted re-centring inside each race, over the cells that have a car term.
+    w = cells.n_laps.where(cells.car_fe_raw_s.notna(), 0).astype(float)
+    num = (cells.car_fe_raw_s.fillna(0.0) * w).groupby([cells.race_year, cells.race_id]).transform("sum")
+    den = w.groupby([cells.race_year, cells.race_id]).transform("sum")
+    cells["car_iso_s"] = cells.car_fe_raw_s - num / den.replace(0.0, np.nan)
+
+    out = (
+        cells[ISOLATION_COLUMNS]
+        .sort_values(["race_year", "race_id", "constructor_id"])
+        .reset_index(drop=True)
+    )
+    counts = out.car_term_source.value_counts().to_dict()
+    log.info("car_term_source counts: %s", counts)
+    log.info(
+        "Emitting %d (race_year, race_id, constructor_id) rows; car_iso_s in [%.3f, %.3f].",
+        len(out), out.car_iso_s.min(), out.car_iso_s.max(),
+    )
+    return out, "; ".join(notes)
+
+
+def run_fit_isolation(db_path: Path = DB_PATH) -> pd.DataFrame:
+    con = duckdb.connect(str(db_path), read_only=True)
+    try:
+        panel = load_isolation_panel(con)
+    finally:
+        con.close()
+
+    out, note = fit_car_fe_isolation(panel)
+
+    prov = build_provenance(
+        fit_method=ISOLATION_FIT_METHOD,
+        season_min=int(panel.race_year.min()),
+        season_max=int(panel.race_year.max()),
+    )
+    for k, v in prov.items():
+        out[k] = v
+    out["connectivity_note"] = note
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Fit the de-biased constructor car FE (HDFE) for Ghost Standings."
+        description="Fit the de-biased constructor car FE (HDFE): the Ghost Standings "
+        "panel (default) or the driver-isolation panel."
     )
+    parser.add_argument(
+        "--panel", choices=["pace_delta", "isolation"], default="pace_delta",
+        help="pace_delta (default): data/fits/constructor_car_fe.parquet for "
+        "int_constructor_car_fe. isolation: data/fits/constructor_car_fe_isolation.parquet "
+        "for int_constructor_car_fe_isolation (WI-16a).",
+    )
+    parser.add_argument("--db", type=Path, default=DB_PATH,
+                        help="warehouse to read, read-only (default data/dev.duckdb)")
+    parser.add_argument("--out", type=Path, default=None,
+                        help="parquet to write (default: the panel's data/fits/ file)")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
+    if args.panel == "isolation":
+        out_path = args.out or ISOLATION_OUT_PATH
+    else:
+        out_path = args.out or OUT_PATH
+
     if args.dry_run:
-        log.info("DRY RUN would write %s", OUT_PATH)
+        log.info("DRY RUN would write %s", out_path)
         return 0
 
-    out = run_fit()
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    out.to_parquet(OUT_PATH, index=False)
-    log.info("Wrote %d rows → %s", len(out), OUT_PATH)
+    out = run_fit_isolation(args.db) if args.panel == "isolation" else run_fit(args.db)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out.to_parquet(out_path, index=False)
+    log.info("Wrote %d rows → %s", len(out), out_path)
     return 0
 
 

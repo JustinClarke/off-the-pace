@@ -85,9 +85,20 @@ combined AS (
 with_ratio AS (
     SELECT
         *,
-        -- Surface/total ratio: bounded [0, 1].
-        push_load_surface
-        / NULLIF(push_load_surface + push_load_bulk, 0.0) AS surface_bulk_ratio,
+        -- Surface share of the two loads, each divided by its own weight sum.
+        -- F49 (WI-15b): both loads sum the same non-negative push_residual
+        -- series and no surface weight exceeds the bulk weight at the same lag,
+        -- so surface <= bulk always. The raw share surface/(surface+bulk) was
+        -- therefore capped at 0.5 and read 0.394 at steady push. Normalised, a
+        -- steady push reads 0.5 and the ceiling is
+        -- bulk_sum/(surface_sum+bulk_sum) = 0.606, when all push is on this
+        -- lap. It is a monotone function of the raw share (same ordering).
+        (push_load_surface / {{ var('thermal_surface_weight_sum') }})
+        / NULLIF(
+            (push_load_surface / {{ var('thermal_surface_weight_sum') }})
+            + (push_load_bulk / {{ var('thermal_bulk_weight_sum') }}),
+            0.0
+        ) AS surface_bulk_ratio,
 
         -- Next 2-lap driver_skill_residual: compare to current for recovery
         -- detection
@@ -113,9 +124,13 @@ with_classification AS (
         push_load_bulk,
         COALESCE(surface_bulk_ratio, 0.5) AS surface_bulk_ratio,
 
-        -- Degradation source classification
+        -- Degradation source classification.
+        -- F49 (WI-15b): 'surface_driven' (ratio > 0.65) is removed. It never
+        -- fired (0 of 41,437 laps): the ratio's ceiling is 0.606 even after
+        -- normalisation (see surface_bulk_ratio above), so any threshold above
+        -- that is dead code. assert_degradation_source_classes_reachable (T39)
+        -- fails if a declared class has no rows.
         CASE
-            WHEN COALESCE(surface_bulk_ratio, 0.5) > 0.65 THEN 'surface_driven'
             WHEN COALESCE(surface_bulk_ratio, 0.5) < 0.35 THEN 'bulk_driven'
             ELSE 'mixed'
         END AS degradation_source,

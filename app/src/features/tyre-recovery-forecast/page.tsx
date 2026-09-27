@@ -3,7 +3,7 @@ import { RankedTable } from '../../ui/charts'
 import type { RankedTableColumn } from '../../ui/charts'
 import { methodologyContent, methodologyHref } from './methodology'
 import { useQuery } from '../../data/hooks/useQuery'
-import { toCsvRows } from './transform'
+import { pctRange, toCsvRows } from './transform'
 import './queries'
 import type { RecoveryRow } from './queries'
 
@@ -103,10 +103,12 @@ export default function TyreRecoveryForecastPage() {
 
           <div className="rounded-xl border border-border/50 bg-amber-500/5 border-amber-500/20 px-4 py-3">
             <p className="text-xs text-amber-300/80">
-              <strong>Interpretation note:</strong> The 86–89% recovery rate is high because the model
-              detects any positive deviation from the cliff slope, however small. The Avg Probability
-              (21–29%) is the more meaningful metric it estimates the actual chance of meaningful
-              pace recovery.
+              <strong>Interpretation note:</strong> The {pctRange(data, 'recovery_rate_pct')} recovery
+              rate counts any lap where the driver's next two laps were, on average, faster relative
+              to the field than this one, however small the gain. Pure lap-to-lap noise would put
+              it near 50%. The Avg Probability
+              ({pctRange(data, 'avg_recovery_prob_pct')}) is a fixed formula of the surface/bulk
+              ratio and laps past the cliff, not a fitted estimate.
             </p>
           </div>
         </div>

@@ -10,9 +10,9 @@ Once a tyre is past the degradation cliff, is it gone, or can the driver nurse s
 
 The chart breaks post-cliff recovery into three signals per compound:
 
-- **Recovery rate (`recovery_flag`)**: the fraction of post-cliff laps where the model flags any partial pace recovery. This runs very high across all compounds (~86–89%) because the flag fires on any positive deviation from the cliff slope, however small.
-- **Average recovery probability**: the model's probabilistic estimate of how likely a lap with the observed surface/bulk load split is to recover. This is far more discriminating than the binary flag typically 21–29%.
-- **Surface/bulk ratio**: the ratio of surface thermal load to bulk mechanical load. Below ~0.4 the wear is **bulk-driven** (compound breakdown, hard to recover); above ~0.4 it is mixed or **surface-driven** (thermal, can partially recover with reduced push).
+- **Recovery rate (`recovery_flag`)**: the fraction of post-cliff laps where the driver's next two laps were, on average, faster relative to the field than this one, by any margin. It runs at about 58–64% by compound. Pure lap-to-lap noise would put it near 50%, so it is a low bar.
+- **Average recovery probability**: a fixed formula, not a fitted model: a logistic curve in the surface/bulk ratio (50% at a ratio of 0.5), shrunk the further past the cliff the lap is. The chart shows its average per compound.
+- **Surface/bulk ratio**: how much of the recent push load is fresh (surface, ~3-lap memory) against longer-lived (bulk, ~5-lap memory), each scaled so a steady push reads 0.5. It tops out at about 0.61, when all the push came on the current lap. Below 0.35 the lap is labelled **bulk-driven** (compound breakdown, hard to recover); everything above is **mixed**. There is no surface-driven label: its old threshold (0.65) sat above the ratio's ceiling and never fired.
 
 <Note>
   Only post-cliff laps are included the feature is silent about pre-cliff behaviour, which the [degradation timeline](/app/stint-degradation-timeline) covers.
@@ -21,16 +21,16 @@ The chart breaks post-cliff recovery into three signals per compound:
 ## How to use it
 
 1. **Select a compound** to see its post-cliff recovery profile.
-2. **Trust the probability over the rate** the near-universal recovery rate is a low bar; the average recovery probability is the number that separates compounds.
+2. **Read the rate against 50%, not against 0%.** A coin flip would score about 50%, so what a compound has is the margin above that. The average probability moves with the surface/bulk ratio by construction, so it restates the ratio rather than adding evidence.
 3. **Read the surface/bulk ratio** to know *why* a tyre can or cannot recover: a low ratio means structural breakdown that lifting won't fix.
 4. **Cross-reference a real stint** in the [pit strategy Gantt](/app/pit-strategy) to see whether a driver who extended was riding recoverable thermal wear or terminal structural wear.
 
 ## Reading the signal correctly
 
-A high recovery rate does **not** mean tyres bounce back to fresh pace it means a measurable, often tiny, deviation above the cliff slope. The magnitude lives in the average recovery probability, not the flag.
+A recovery rate above 50% does **not** mean tyres bounce back to fresh pace. It means that slightly more often than not, the next two laps were a little quicker relative to the field than this one. The flag carries no magnitude, and the probability is a formula of the ratio, not a measured recovery.
 
 <Warning>
-  Surface/bulk ratios near the ~0.4 boundary are ambiguous: the same lap can read as thermal or structural across nearby laps. Treat the boundary as a soft transition, not a hard switch.
+  Surface/bulk ratios near the 0.35 boundary are ambiguous: the same lap can read as thermal or structural across nearby laps. Treat the boundary as a soft transition, not a hard switch.
 </Warning>
 
 ## Data source
@@ -39,9 +39,9 @@ The chart queries `int_tyre_surface_vs_bulk_decoupling` via DuckDB-Wasm in the b
 
 | Column | Meaning |
 |---|---|
-| `recovery_flag` | Whether a lap shows any positive deviation from the cliff slope |
-| `recovery_probability` | Model probability the lap genuinely recovers, averaged per compound |
-| `surface_bulk_ratio` | Surface thermal load ÷ bulk mechanical load (the recoverability split) |
+| `recovery_flag` | Whether the next two laps' average field-relative residual beat this lap's |
+| `recovery_probability` | Fixed-formula probability from the surface/bulk ratio and laps past the cliff, averaged per compound |
+| `surface_bulk_ratio` | Surface share of the two push loads, each scaled by its weight sum: 0.5 at steady push, at most about 0.61 |
 
 The data window covers **2018–2024**, post-cliff laps only.
 

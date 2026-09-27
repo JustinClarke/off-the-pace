@@ -37,6 +37,26 @@ vars:
   # 1484.5 s), 23 exceed 120 s, p99.99 is 125.4 s -- so this bound is not
   # doing routine work, it is catching a specific artefact.
   proximity_max_gap_s: 300.0
+  # int_lap_proximity (F43, WI-15a): crossings made inside a driver's own pit
+  # window (stg_pits pit_in_time_s .. pit_out_time_s) are not traffic and are
+  # dropped before the car-ahead ordering. A stop with no recorded exit (car
+  # retired in the pit lane, or the race ended under the stop) has no
+  # pit_out_time_s; its window closes this many seconds after pit entry.
+  # Measured 2026-09-25: none of the 248 such stops has a position crossing
+  # past 120 s, so the bound does no routine work -- it exists so a missing
+  # out-lap row can never erase a car that did rejoin. T33
+  # (assert_proximity_excludes_pit_lane) reads the same var.
+  proximity_pit_window_open_s: 120.0
+  # surface_bulk_ratio (F49, WI-15b), in int_tyre_surface_vs_bulk_decoupling and
+  # fct_cliff_prediction_features: each thermal load is divided by the sum of
+  # its own EW weights before the two are compared, so a lap at steady push
+  # reads 0.5. These MUST equal the sums of the literal weights in
+  # int_lap_thermal_proxy.sql (surface 1+.717+.514+.369+.264, bulk
+  # 1+.819+.670+.549+.449+.368+.301+.247): move them together. Surface weights
+  # never exceed bulk weights at the same lag, so the ratio's ceiling is
+  # bulk/(surface+bulk) = 0.606, reached when all push is on the current lap.
+  thermal_surface_weight_sum: 2.864
+  thermal_bulk_weight_sum: 4.403
   # int_pit_loss_circuit: a stop's measured loss must land inside
   # [pit_loss_min_s, pit_loss_max_s] to count. The floor drops stops where the
   # reference lap was itself compromised; the ceiling drops what the SC/VSC/red
@@ -148,6 +168,89 @@ vars:
   #   legitimately land here, but they are one or two a race; the broken feeds miss
   #   43-97% of stops.
   tyre_qa_race_unmatched_pit_share_min: 0.3
+  # ── Driver isolation (WI-16a; _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md) ──
+  # The three contextual driver ratings (pure pace, tactical, relative to same-strategy
+  # peers). Every value below is pre-registered in the WI doc; WI-16b's validation does
+  # not tune them. Measured numbers are from the 2026-09-26 scratch rebuild of dev.
+  #
+  # int_driver_isolation_lap_panel: a (race, lap) enters the clean-lap panel Ω only if at
+  # least this many drivers have an Ω lap on it, so the field median each lap is centred
+  # on is a median of a real field, not of three cars behind a safety car. Measured:
+  # 96.2% of (race, lap) cells have >= 8 Ω laps (median 17), and the floor drops 0.9%
+  # of Ω laps.
+  isolation_min_field_n: 8
+  # fct_driver_isolation_lap: the rolling window is the Ω laps of the same stint with
+  # lap_number in [l - (this - 1), l] -- a RANGE frame on lap_number, trailing only, so a
+  # window that spans a safety car simply holds fewer laps. 5 laps is the "is he on it
+  # right now" grain; the WI doc's prototype put its reliability near 0.5 ("What a 5-lap
+  # window can carry"), which is why verdicts belong at stint or race grain. (Measured
+  # pure-window lambda is 0.71-0.88 by season; WI-16b's V5b decides what that is worth.)
+  isolation_window_laps: 5
+  # fct_driver_isolation_lap: a window value is NULL below this many contributing laps
+  # (non-extrapolated laps for pure, non-NULL laps for tactical, pair-laps for relative).
+  # The floor stops a 1-2 lap "window" publishing; shrinkage handles everything above it.
+  isolation_window_min_laps: 3
+  # fct_driver_isolation_pair_lap: d' is a same-strategy peer of d on lap l when both have
+  # an Ω lap on the same lap number and the same compound, with tyre ages within this
+  # many laps. 3 laps of wear is small enough for the seed's ΔC to adjust (tier 3's
+  # age-adjusted delta). Measured: 90.4% of Ω laps have >= 1 peer (the WI doc's probe
+  # said 88.3%).
+  isolation_peer_age_tolerance: 3
+  # int_driver_isolation_stint_tyre: a stint's pace line (the slope beta_s the tactical
+  # rating is built from) needs at least this many clean early/mid, non-recovery laps;
+  # below it beta_s, m_s and every tactical value in the stint are NULL (never 0).
+  # About 16 line laps give a slope SE near 0.024 s/lap^2 (WI doc); 6 is the floor below
+  # which a slope is mostly noise. Measured: 83.6% of the 7,315 stints with an Ω lap
+  # clear it (the WI doc's probe said 81.7%).
+  isolation_min_stint_laps: 6
+  # int_driver_isolation_stint_tyre: the peer slope beta_peer_s is the median over other
+  # drivers' stints in the same race on the same compound. With fewer than this many such
+  # stints it falls back to the (race_year, compound) pool, leave-driver-out, flagged
+  # tactical_peer_source = 'season_pool'. 2 is the smallest count whose median is not one
+  # other driver's slope.
+  isolation_min_peer_stints: 2
+  # int_driver_isolation_lap_panel: the recovery overlay marks the first this-many valid
+  # laps of a non-dirty-air run that directly follows a dirty-air run of at least
+  # isolation_recovery_min_dirty_run laps in the same stint ("he has dropped out of the
+  # wake and his tyres are coming back"). Backward-looking and gap-based, so it is never
+  # selected on the lap's own pace. Measured: 5.0% of Ω laps (the WI doc's 3.1% of valid
+  # laps predates WI-15a's S2 coding); T45 warns outside [1%, 10%] of Ω.
+  isolation_recovery_laps: 3
+  isolation_recovery_min_dirty_run: 2
+  # int_driver_isolation_lap_panel: races kept out of Ω entirely. 2020_1 (Austrian GP)
+  # has wrong lap numbering in bronze (watch W18), and tiers 1 and 3 match cars on
+  # lap_number. A list; the panel renders it with a Jinja loop, not as a Python list.
+  isolation_exclude_races: ['2020_1']
+  # ── Label spine (WI-01; _roadmap/_fixes/wi/WI-01-label-spine.md) ──
+  # int_dirty_air_tax_component: theta_air's calibration panel is restricted to
+  # race_year <= this value (F5). Without a declared cutoff, the panel was
+  # "every ingested season," so ingesting a new season silently re-fit theta
+  # and relabelled every already-published season's dirty-air tax and
+  # driver_skill_residual_s. 2025 is the latest currently-ingested season
+  # (2026 is not ingested yet, W19); bumping this var is now the explicit,
+  # reviewable act that moves theta to a later window for a new label version,
+  # rather than an automatic side effect of the next `dbt build`.
+  # Ruled 2026-09-27 (WI-01 verification pass): keep <= 2025 (every ingested
+  # season; 2025 is complete). If FD4 (holdout policy) rules 2025 out of
+  # estimation, drop this to 2024 and relabel. Since W40 this var bounds the
+  # population theta_air_label_value (below) is fitted on outside dbt, so
+  # moving it also means re-running that fit and moving that var in the same
+  # edit; on its own it now changes only calibration_sample_n.
+  theta_air_fit_season_max: 2025
+  # The theta_air the label is built with. Since W40 int_dirty_air_tax_component
+  # APPLIES this value (it no longer fits theta in SQL), so a change to it is
+  # always a reviewed edit and never a side effect of a build. T9
+  # (assert_prior_season_labels_frozen) warns if the applied value differs.
+  # 0.331 s/lap (ruled 2026-09-27, W40): 06b's pre-registered F2 estimator
+  # (partial residual on the lagged dirty-air bit | stint FE + six tyre-age
+  # bins, race-clustered) on the model's calibration_panel, 2018-2025:
+  # 0.3313 [0.293, 0.370], n = 138,679. Fitted outside dbt by
+  # _roadmap/_fixes/_evidence/wi-12-2026-09-27/d2_fit_wi12.py (section W);
+  # d2 stops if this var is not that fit to 3 dp.
+  # History: 0.1310 (08q, pre-WI-01 label) -> 0.5033 (WI-01's pooled OLS,
+  # interim) -> 0.331. To move it: rebuild, re-run d1/d2 on the new panel,
+  # edit this var, re-take seeds/label_stability_baseline.csv.
+  theta_air_label_value: 0.331
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -175,6 +278,33 @@ models:
 
 seeds:
   off_the_pace:
+    # WI-16a: committed with three 'unvalidated' rows and NULL scores; WI-16b's
+    # scripts/validate_driver_isolation.py --write-seed fills it. Typed explicitly
+    # because an all-empty column would otherwise be sniffed as VARCHAR.
+    driver_isolation_method_scores:
+      +column_types:
+        rating: varchar
+        method_score: double
+        grade: varchar
+        tests_applicable: integer
+        tests_passed: integer
+        critical_failed: varchar
+        validated_at: varchar
+        substrate: varchar
+        report_path: varchar
+    # WI-01 (T9, F5): frozen per-season label snapshot taken the day the label
+    # spine version bumped (2026-09-27), re-taken the same day after WI-01's
+    # verification pass (theta with tyre cost subtracted, unknown-tyre laps out
+    # of the base) -- one bump, one snapshot. assert_prior_season_labels_frozen.sql
+    # warns if a COMPLETE season's stats drift from this on a later build.
+    # Refresh deliberately (with a note here and in the label-version doc) the
+    # next time the label version bumps; never silence a real drift by editing
+    # this file to match instead.
+    label_stability_baseline:
+      +column_types:
+        race_year: integer
+        row_count: integer
+        mean_next_5_lap_jump_s: double
     circuit_reference:
       +column_types:
         era_start_year: integer

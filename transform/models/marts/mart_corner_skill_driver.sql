@@ -231,7 +231,7 @@ driver_season AS (
     SELECT
         race_year,
         driver_id,
-        ANY_VALUE(constructor_id) AS constructor_id,
+        STRING_AGG(DISTINCT constructor_id, ', ') AS constructor_id,
         AVG(deconf_braking_s) AS braking_skill_s,
         AVG(deconf_mid_s) AS mid_corner_skill_s,
         AVG(deconf_exit_s) AS exit_skill_s,

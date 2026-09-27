@@ -970,6 +970,21 @@ model_card:
       not, and this card''s own mixture headline for the family regresses by design. See the limitations
       entry.'
   limitations:
+  - 'LABEL SPINE BUMPED AFTER THESE ARTEFACTS WERE TRAINED (WI-01 + WI-12, 2026-09-27): NOT COMPARABLE
+    AT FIXED TARGET. The residual that both labels difference (`driver_skill_residual_s`, behind `next_5_lap_cumulative_jump_s`
+    and `laps_until_cliff_class`) now has five additive terms, not seven: pace_delta = fuel + compound
+    + constructor + dirty-air tax + driver skill. The field base is fuel- AND compound-neutral, and rubber
+    and ambient track state live only inside the base instead of being subtracted a second time. In the
+    same bump: laps with no measured base or an unknown tyre cost carry a NULL label instead of a fabricated
+    one; `theta_air` is 0.331 s/lap, the within-stint estimate (stint fixed effects plus tyre-age bins)
+    fitted with tyre cost subtracted on a declared season window (2018-2025) and frozen as a declared
+    value; the circuit x constructor interaction is out of the constructor term; `compound_grip_peak`
+    (a unitless ratio) is out of `expected_compound_pace_s`; SC/VSC/red-flag/restart laps and the lap
+    after an SC or red-flag restart are out of `is_training_eligible`. WI-01 and WI-12 are one bump: `theta_air`
+    passed through an interim pooled 0.503 s/lap before the W40 ruling set 0.331, and the final label
+    carries 0.331. Every number on this card was measured on the PRE-BUMP label. No post-bump number may
+    be compared with it: a headline on the new label is compared only against this configuration rebuilt
+    on the final (0.331) label. Evidence: `_roadmap/_fixes/wi/WI-01-label-spine.md`, `_roadmap/_fixes/wi/WI-12-06b-remeasure.md`.'
   - 'STINT-LIFE HYPERPARAMETERS ARE WORK ITEM 10e''s S1x, AND THEY WERE LANDED ON A DECISION (D4), NOT
     ON A CLEARED GATE. What changed: n_estimators 200 -> 100, learning_rate 0.02631 -> 0.02192, aft_loss_distribution_scale
     0.80 -> 0.754, plus reg_alpha/min_child_weight/subsample/colsample_bytree. max_depth stayed at 8 -

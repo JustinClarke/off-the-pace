@@ -2,9 +2,9 @@
 
 > **When a car is off the pace, why?**
 
-**A browser-native, full-stack F1 analytics platform.** It ingests 7 seasons of telemetry, models it through a 72-table dbt warehouse, trains 5 ML models, and serves 30 interactive analytics features with **no server, no login, and no cost to serve**.
+**A browser-native, full-stack F1 analytics platform.** It ingests 7 seasons of telemetry, models it through a 86-table dbt warehouse, trains 5 ML models, and serves 30 interactive analytics features with **no server, no login, and no cost to serve**.
 
-Under the hood, every lap is decomposed into seven additive, physically-grounded components, so lost time is attributed to an exact, named cause rather than a vibe.
+Under the hood, every lap is decomposed into five additive, physically-grounded components, so lost time is attributed to an exact, named cause rather than a vibe.
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![dbt](https://img.shields.io/badge/dbt--core-FF694B?logo=dbt&logoColor=white)
@@ -20,7 +20,7 @@ Under the hood, every lap is decomposed into seven additive, physically-grounded
 
 ![Off The Pace: browser-native F1 analytics dashboard decomposing every lap into named causes](docs/images/off-the-pace-home.png)
 
-**137,447** laps decomposed · **149** races · **40** drivers · **44** circuits · **72** dbt models · **620** tests · **5/5** ML models beat baseline · **30** browser features · **0** servers
+**137,447** laps decomposed · **149** races · **40** drivers · **44** circuits · **86** dbt models · **912** tests · **5/5** ML models beat baseline · **30** browser features · **0** servers
 
 ---
 
@@ -30,21 +30,20 @@ Under the hood, every lap is decomposed into seven additive, physically-grounded
 
 Most F1 analytics tells you *who* is slow. This project asks *why*. Each lap is decomposed into:
 
-> `lap_time = base_track_pace + fuel + compound + rubber + ambient + constructor + dirty_air + driver_skill`
+> `lap_time = base_track_pace + fuel + compound + constructor + dirty_air + driver_skill`
 
-The driver skill residual is what remains after every measurable physical factor is removed: the part that actually belongs to the human.
+The base is the field's own pace on that lap with fuel and tyre cost taken out, so track rubber and temperature are already inside it (they are reported, not subtracted again). The driver skill residual is what remains after every measurable physical factor is removed: the part that actually belongs to the human.
 
 ### 2. A CI-enforced mathematical invariant
 
-The seven terms sum to zero by construction. This isn't a stated property: it's tested on every lap in CI:
+The five terms close the lap exactly. This isn't a stated property: it's tested on every lap in CI:
 
 ```sql
 -- transform/macros/assert_additive_identity.sql
 select count(*) from {{ model }}
 where abs(pace_delta_s-(
-  fuel_component_s + compound_component_s + rubber_component_s +
-  ambient_component_s + constructor_component_s + dirty_air_tax_s +
-  driver_skill_residual_s
+  fuel_component_s + compound_component_s + constructor_component_s +
+  dirty_air_tax_s + driver_skill_residual_s
 )) > 0.0001
 ```
 
@@ -61,7 +60,7 @@ Trained on 2018–2024. The 2025 season is held out as a reproducible out-of-sam
 ```mermaid
 flowchart LR
     A["FastF1 + OpenF1"] --> B["Bronze<br/>Hive-partitioned Parquet<br/>7 seasons · 149 races"]
-    B --> C["Transform<br/>dbt + DuckDB<br/>72 models · 620 tests"]
+    B --> C["Transform<br/>dbt + DuckDB<br/>86 models · 912 tests"]
     C --> D["ML<br/>5 XGBoost models<br/>→ ONNX, 33 features"]
     C --> E["GCS CDN<br/>parquet + models"]
     D --> E
@@ -91,8 +90,8 @@ Requires Python 3.11+.
 git clone https://github.com/justinclarke/off-the-pace
 cd off-the-pace
 make setup           # build venv + install Python/dbt deps
-make dbt-dev         # build the transform layer (72 models)
-make dbt-test        # run 620 tests including assert_additive_identity
+make dbt-dev         # build the transform layer (86 models)
+make dbt-test        # run 912 tests including assert_additive_identity
 ```
 
 No cloud credentials required. DuckDB runs locally at `data/dev.duckdb`.
@@ -144,7 +143,7 @@ If you want to run the React app or the documentation site locally, you'll also 
 | Subsystem | State | Evidence |
 |---|---|---|
 | Ingestion (Bronze) | ✅ Built | `ingestion/src/`: FastF1 + OpenF1 → Hive-partitioned Parquet, 7 seasons / 149 races |
-| Transform (72 models, 620 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
+| Transform (86 models, 912 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
 | Coefficients (KM tyre cliff) | ✅ Fitted | `transform/tasks/coefficients/`: seeds |
 | ML (5 XGBoost models, 189 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life survival (AFT); ONNX parity; v11 model (33 features) |
 | Frontend (React + DuckDB-Wasm) | ✅ Built | [`app/`](app/): 30 interactive features, zero server, sub-10ms queries; deployed to Firebase Hosting |
@@ -176,6 +175,22 @@ make ml-test         # 189 tests: leakage spine, ONNX parity, survival/AFT contr
 
 Full auto-generated **[model card](docs/reference/ml/degradation-model.mdx)** (metrics, baselines, calibration, dual feature importance, limitations) is built from `ml/model_card.yml`.
 
+**Label spine version bump (WI-01 + WI-12, 2026-09-27):** the label is now built from five
+additive terms, not seven. The field pace base is neutral to fuel *and* compound (not fuel
+alone), and rubber/ambient live only inside the base instead of being subtracted a second time.
+`theta_air` (dirty-air tax) is 0.331 s/lap: the within-stint estimate (stint fixed effects plus
+tyre-age bins), fitted with tyre cost subtracted on a declared season window and frozen as a
+declared value. Event-driven laps (SC/VSC/red-flag/restart) and the lap after an SC or red-flag
+restart are excluded from training. WI-01 and WI-12 together are **one** version bump: WI-01
+first carried a pooled `theta_air` of 0.503 s/lap, WI-12's re-measure showed that the pooled
+slope bills some car pace as dirty air, and the ruling (W40) set 0.331. Both values were
+interim states of the same bump. The final label, the one a `v14` configuration is rebuilt on
+for comparison, carries 0.331, and nothing measured on the 0.503 state is kept. The published
+`v14` artefacts were fit on the pre-bump label, so **no pre-bump number is comparable to a
+post-bump one at fixed target**. A new headline is compared only against a `v14` configuration
+rebuilt on the new label (see `ml/README.md`, `_roadmap/_fixes/wi/WI-01-label-spine.md` and
+`_roadmap/_fixes/wi/WI-12-06b-remeasure.md`).
+
 ---
 
 ## App features
@@ -200,7 +215,7 @@ The app runs entirely in the browser: DuckDB-Wasm for sub-10ms SQL and ONNX Runt
 | Layer | Tech |
 |---|---|
 | Ingestion | FastF1 + OpenF1 → Hive-partitioned Parquet |
-| Transform | dbt-core (DuckDB local, 72 models, 620 tests) |
+| Transform | dbt-core (DuckDB local, 86 models, 912 tests) |
 | ML | XGBoost (degradation quantile trio, cliff classifier, remaining life) → ONNX v11 (33 features) |
 | Frontend | React + DuckDB-Wasm (sub-10ms queries, zero compute cost) |
 | Hosting | Firebase Hosting (frontend) + GCS CDN `gs://off-the-pace-cdn` (data + models) |

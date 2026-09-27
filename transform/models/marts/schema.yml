@@ -230,7 +230,8 @@ models:
       - name: push_residual
         description: >
           Lap pace against the stint's point-in-time baseline, from
-          int_lap_thermal_proxy. NULL until the stint has one valid prior lap
+          int_lap_thermal_proxy, both on fuel-corrected lap time (F47, WI-15b).
+          NULL until the stint has one valid prior lap
           (08e); the NULL is deterministic on baseline_observations_n below.
         data_type: double
       - name: cumulative_push_load_surface
@@ -250,7 +251,10 @@ models:
           the outcome.
         data_type: bigint
       - name: dirty_air_share_lap
-        description: Fraction of this lap spent in dirty air (sector 2)
+        description: >
+          1.0 when the lap's S2 median gap to the car ahead is under 1.5 s, else 0.0; zeroed
+          on SC/VSC/red-flag laps. Gap-only since F48 (WI-15a): DRS no longer turns a sub-1 s
+          S2 follow into a clean lap (see int_lap_air_state.s2_drs_active).
         data_type: decimal(2,1)
         constraints:
           - type: not_null
@@ -265,7 +269,11 @@ models:
         constraints:
           - type: not_null
       - name: air_state_dominant
-        description: Dominant air state this lap (free_air, tow_zone, drs_train, dirty_air)
+        description: >
+          Dominant (modal) air state over the lap's three thirds (free_air, tow_zone,
+          drs_train, dirty_air). Since F48 (WI-15a) the S2 third is dirty_air whenever its
+          median gap is under 1.5 s, so drs_train and tow_zone come from the straight
+          thirds only.
         data_type: varchar
         constraints:
           - type: not_null
@@ -597,8 +605,10 @@ models:
         data_type: boolean
       - name: surface_bulk_ratio
         description: >
-          C3 feature (42nd): ratio of surface thermal load to total thermal load
-          (cumulative_push_load_surface / (surface + bulk)). NULL when both loads are zero.
+          C3 feature (42nd): surface share of the two thermal loads, each divided by its
+          own EW weight sum (F49, WI-15b), so a steady push reads 0.5; range [0, 0.606].
+          A monotone function of the pre-F49 share surface/(surface+bulk), which was
+          capped at 0.5. NULL when both loads are zero.
           Helps the model distinguish early-stint surface-dominated warming from bulk-driven
           structural degradation.
         data_type: double
@@ -655,7 +665,11 @@ models:
           stint. NULL on the last lap of a stint, where there is no horizon to scan.
         data_type: varchar
       - name: is_training_eligible
-        description: TRUE if this lap is suitable for model training (age_in_stint > 3, no anomaly)
+        description: >
+          TRUE if this lap is suitable for model training: age_in_stint > 3, anomaly_class not
+          in (mistake, conditions, event_driven), and not the lap after an SC/red-flag restart
+          lap (int_event_corrections.is_lap_after_restart). The last two are FD2's ruling
+          (WI-01): exclude, not weight.
         data_type: boolean
         constraints:
           - type: not_null
@@ -1329,9 +1343,22 @@ models:
         tests:
           - not_null
       - name: driver_skill_residual_s
-        description: Residual after all physics/car/strategy components (driver skill).
+        description: >
+          Residual after fuel/compound/constructor/dirty-air (driver skill). WI-01/F1:
+          NULL, not a fabricated number, when base_track_pace_s or compound_component_s
+          is itself unmeasured -- see pace_delta_s.
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "pace_delta_s IS NOT NULL AND compound_component_s IS NOT NULL"
+      - name: base_track_pace_s
+        description: >
+          Field pace baseline (int_field_pace_curve), fuel- and compound-neutral.
+          NULL when the field curve has no measured row for this (race, lap_number)
+          (F1) -- not COALESCEd to a fabricated value.
+      - name: pace_delta_s
+        description: >
+          lap_time_s - base_track_pace_s. NULL when base_track_pace_s is NULL (F1).
       - name: ml_eligible
         description: TRUE when the lap is training-quality for ML inputs.
         tests:
@@ -1389,3 +1416,1089 @@ models:
         description: driver_a − driver_b throttle-application point (metres). Positive = driver_a gets on power later.
         tests:
           - not_null
+
+  - name: fct_driver_isolation_pair_lap
+    description: >
+      Driver isolation tier 3 per pair of cars: for every Ω lap, each peer on the same race,
+      lap number and compound with tyre age within var('isolation_peer_age_tolerance'),
+      teammates included. relative_pace_gain_s is the raw time gap age-adjusted by the
+      seed's ΔC, positive = the focal driver faster, and it splits exactly into pace_gap (=
+      pure_gap + tactical_gap where both tacticals exist) + car_advantage +
+      traffic_advantage (T42). Both directions of every pair are rows. The table 'X vs Y'
+      questions are answered from. Peers share a lap and a compound, not a situation.
+      Leakage: a function of the residual trajectory; no ML-contract mart may depend on it
+      (T48, ml/tests/test_manifest_contract.py). WI-16a,
+      _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md.
+    tags: [marts, driver_isolation]
+    meta:
+      family: marts
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [lap_id, peer_lap_id]
+    columns:
+      - name: lap_id
+        description: >
+          Lap identifier (int_lap_residual_decomposed.lap_id).
+        tests:
+          - not_null
+      - name: peer_lap_id
+        description: >
+          The peer's lap on the same race, lap number and compound (its lap_id).
+        tests:
+          - not_null
+      - name: race_year
+        description: >
+          Season.
+        tests:
+          - not_null
+      - name: race_id
+        description: >
+          FastF1 event id, e.g. 2021_8.
+        tests:
+          - not_null
+      - name: lap_number
+        description: >
+          Race lap number. Tiers 1 and 3 match cars on it, which is why 2020_1 is excluded
+          (W18).
+        tests:
+          - not_null
+      - name: compound
+        description: >
+          Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
+        tests:
+          - not_null
+      - name: driver_id
+        description: >
+          Driver (three-letter code). In the pair mart, the focal driver whose gains the row
+          reports.
+        tests:
+          - not_null
+      - name: peer_driver_id
+        description: >
+          The peer driver.
+        tests:
+          - not_null
+      - name: constructor_id
+        description: >
+          Constructor (stg_laps.constructor_id).
+        tests:
+          - not_null
+      - name: peer_constructor_id
+        description: >
+          The peer's constructor.
+        tests:
+          - not_null
+      - name: is_teammate
+        description: >
+          TRUE when the peer drove the same constructor in the race; car_advantage_gain_s is
+          then exactly 0 (T42).
+        tests:
+          - not_null
+      - name: stint_id
+        description: >
+          Stint identifier (int_stint_geometry.stint_id).
+      - name: peer_stint_id
+        description: >
+          The peer's stint.
+      - name: age_in_stint
+        description: >
+          Tyre age in laps (int_stint_geometry).
+        tests:
+          - not_null
+      - name: peer_age_in_stint
+        description: >
+          The peer's tyre age in laps; within var('isolation_peer_age_tolerance') of
+          age_in_stint.
+        tests:
+          - not_null
+      - name: stint_phase
+        description: >
+          'recovery' when is_recovery, else tyre_phase (T45).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff', 'recovery']
+      - name: peer_stint_phase
+        description: >
+          The peer's stint_phase.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff', 'recovery']
+      - name: tyre_phase
+        description: >
+          early (laps_past_cliff = 0, valid_lap_in_stint <= 5), mid (laps_past_cliff = 0, >=
+          6) or cliff (laps_past_cliff > 0), from the seed's onset, so never selected on the
+          residual.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff']
+      - name: peer_tyre_phase
+        description: >
+          The peer's tyre_phase.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff']
+      - name: is_dirty_air_lap
+        description: >
+          TRUE when air_state_dominant = 'dirty_air'.
+      - name: peer_is_dirty_air_lap
+        description: >
+          The peer's is_dirty_air_lap (V3b's exactly-one-in-dirty-air strata).
+      - name: relative_pace_raw_gain_s
+        description: >
+          t(peer) - t(driver), s/lap: model-free, POSITIVE = the driver faster. In aggregates,
+          the mean over pair-laps.
+        tests:
+          - not_null
+      - name: relative_pace_gain_s
+        description: >
+          Tier 3: (t(peer) - t(driver)) - (C(peer) - C(driver)), s/lap, the raw gap age-
+          adjusted by the seed's ΔC (<= 3 laps of wear). POSITIVE = the driver faster than
+          same-strategy peers. In aggregates, the mean over pair-laps; NULL with no peer.
+        tests:
+          - not_null
+      - name: pace_gap_gain_s
+        description: >
+          p(driver) - p(peer), s/lap. relative = pace_gap + car_advantage + traffic_advantage
+          exactly (T42). NULL if either car term is missing.
+      - name: pure_gap_gain_s
+        description: >
+          pure(driver) - pure(peer), s/lap. NULL unless both tactical values exist; then
+          pace_gap = pure_gap + tactical_gap.
+      - name: tactical_gap_gain_s
+        description: >
+          tactical(driver) - tactical(peer), s/lap.
+      - name: car_advantage_gain_s
+        description: >
+          car_iso(peer) - car_iso(driver), s/lap; > 0 = the driver's car faster. 0 for
+          teammates.
+      - name: traffic_advantage_gain_s
+        description: >
+          D(peer) - D(driver), s/lap; > 0 = the driver lost less to dirty air.
+        tests:
+          - not_null
+
+  - name: fct_driver_isolation_lap
+    description: >
+      Driver isolation per Ω lap with the rolling rating: the lap's three ratings, its
+      tier-3 peer aggregates and identity split, and a trailing window per rating (the Ω
+      laps of the same stint with lap_number in [l - 4, l]; never forward, T44), each NULL
+      below var('isolation_window_min_laps') contributing laps, with SE, lambda, a shrunk
+      value, confidence_pct and trust_label. The 5-lap window is about half signal: the 'is
+      he on it right now' number, not the 'who is better' number; verdicts belong at stint
+      or race grain. Positive = faster. Leakage: a function of the residual trajectory; no
+      ML-contract mart may depend on it (T48, ml/tests/test_manifest_contract.py). WI-16a,
+      _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md.
+    tags: [marts, driver_isolation]
+    meta:
+      family: marts
+    columns:
+      - name: lap_id
+        description: >
+          Lap identifier (int_lap_residual_decomposed.lap_id).
+        tests:
+          - not_null
+          - unique
+      - name: stint_id
+        description: >
+          Stint identifier (int_stint_geometry.stint_id).
+        tests:
+          - not_null
+      - name: race_year
+        description: >
+          Season.
+        tests:
+          - not_null
+      - name: race_id
+        description: >
+          FastF1 event id, e.g. 2021_8.
+        tests:
+          - not_null
+      - name: driver_id
+        description: >
+          Driver (three-letter code). In the pair mart, the focal driver whose gains the row
+          reports.
+        tests:
+          - not_null
+      - name: constructor_id
+        description: >
+          Constructor (stg_laps.constructor_id).
+        tests:
+          - not_null
+      - name: stint_number
+        description: >
+          Stint ordinal within the driver's race (int_stint_geometry).
+      - name: lap_number
+        description: >
+          Race lap number. Tiers 1 and 3 match cars on it, which is why 2020_1 is excluded
+          (W18).
+        tests:
+          - not_null
+      - name: compound
+        description: >
+          Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
+        tests:
+          - not_null
+      - name: age_in_stint
+        description: >
+          Tyre age in laps (int_stint_geometry).
+        tests:
+          - not_null
+      - name: valid_lap_in_stint
+        description: >
+          Ordinal among the stint's valid laps; early vs mid phase splits at 5/6.
+      - name: laps_past_cliff
+        description: >
+          Laps beyond the compound seed's cliff onset (0 before it); drives tyre_phase =
+          cliff. Never NULL in Ω.
+      - name: era
+        description: >
+          Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
+      - name: tyre_phase
+        description: >
+          early (laps_past_cliff = 0, valid_lap_in_stint <= 5), mid (laps_past_cliff = 0, >=
+          6) or cliff (laps_past_cliff > 0), from the seed's onset, so never selected on the
+          residual.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff']
+      - name: is_recovery
+        description: >
+          TRUE on the first var('isolation_recovery_laps') valid laps of a non-dirty-air run
+          directly after >= var('isolation_recovery_min_dirty_run') consecutive dirty-air
+          valid laps in the stint. Backward-looking only.
+      - name: stint_phase
+        description: >
+          'recovery' when is_recovery, else tyre_phase (T45).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff', 'recovery']
+      - name: air_state_dominant
+        description: >
+          int_lap_air_state.air_state_dominant (context; dirty_air drives the recovery
+          overlay).
+      - name: is_dirty_air_lap
+        description: >
+          TRUE when air_state_dominant = 'dirty_air'.
+      - name: field_n
+        description: >
+          Ω laps on this (race, lap); >= var('isolation_min_field_n') by construction (T40).
+      - name: lap_time_s
+        description: >
+          Raw lap time, s.
+      - name: compound_component_s
+        description: >
+          C: the compound seed's expected cost of this tyre state, s, positive = slower
+          (int_lap_residual_decomposed). Never COALESCEd: an unknown tyre is not in Ω.
+      - name: dirty_air_tax_s
+        description: >
+          D: dirty-air tax, s, positive = slower (int_lap_residual_decomposed).
+      - name: y_s
+        description: >
+          x_s minus the lap's Ω field median of x_s, s. POSITIVE = SLOWER than the field-
+          typical car and driver on the lap. Invariant to the field base, fuel, rubber and
+          ambient terms, which depend on (race, lap) only (T41).
+      - name: car_iso_s
+        description: >
+          Isolation car term, s, NEGATIVE = FASTER than the race's lap-weighted car
+          (int_constructor_car_fe_isolation). NULL when not identified.
+      - name: car_term_source
+        description: >
+          Where car_iso_s came from: driver_era, global_driver (the era fell back),
+          unidentified, not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['driver_era', 'global_driver', 'unidentified', 'not_estimated', 'no_fit_row']
+      - name: tyre_offset_vs_field_s
+        description: >
+          compound_component_s minus the lap's Ω field median of it, s; positive = this tyre
+          state costs more than the field's. The strategy position on the lap: team-dominated
+          context, not a rating.
+      - name: lift_coast_share
+        description: >
+          int_lap_telemetry_aggregates.lift_coast_share (context; fuel- and tyre-saving are
+          indistinguishable in it).
+      - name: lift_coast_excess_share
+        description: >
+          lift_coast_share minus the lap's Ω field median of it (context for WI-16b's V2d;
+          aggregates are means).
+      - name: pace_isolated_gain_s
+        description: >
+          p = -(y_s - car_iso_s), s/lap. POSITIVE = FASTER than the field on an equal car,
+          tyre state, traffic and fuel: the driver plus noise, everything modelled removed.
+          NULL without a car term (never a car term of 0).
+      - name: pure_skill_gain_s
+        description: >
+          Tier 1, s/lap, POSITIVE = FASTER: p - tactical_gain_s, the pace against the field as
+          if the tyres had faded like peers'. = p when tactical is unavailable on a pre-cliff
+          lap (tactical_available FALSE); NULL on a cliff lap without tactical. On cliff laps
+          it is the extrapolated line (pure_is_extrapolated) and pure aggregates skip it.
+      - name: pure_is_extrapolated
+        description: >
+          TRUE on cliff-tyre laps: pure_skill_gain_s there is the extrapolated pre-cliff line
+          plus the peers' mean cliff departure, not a driver measurement; aggregates exclude
+          these laps.
+      - name: tactical_gain_s
+        description: >
+          Tier 2, s/lap, POSITIVE = gaining: m_s * (age_in_stint - age_ref) before the cliff;
+          past it, plus (kappa - kappa_ref), how much softer (+) or harder (-, overextension)
+          the cliff bit than it bit same-compound peers. NULL when m_s is NULL (never 0), or
+          on a cliff lap with no kappa_ref.
+      - name: tactical_available
+        description: >
+          TRUE when tactical_gain_s is non-NULL (so pure_skill_gain_s has tactical taken out).
+      - name: kappa_gain_s
+        description: >
+          kappa on a cliff-tyre lap: p minus the stint's pre-cliff line extrapolated to this
+          age, s; positive = faster than his own line predicts. NULL off the cliff or without
+          a line.
+      - name: kappa_ref_gain_s
+        description: >
+          The peers' mean kappa (leave-driver-out, same race and compound; else the season
+          pool), s. See kappa_ref_source.
+      - name: age_from_ref_laps
+        description: >
+          age_in_stint - line_ref_age_laps, laps: the lever tactical_gain_s multiplies m_s by.
+          NULL when m_s is NULL.
+      - name: tactical_slope_s_per_lap2
+        description: >
+          m_s, s/lap per lap of tyre age: (beta_s - peer slope) + (car_deg - peers' car_deg).
+          POSITIVE = his tyres fade SLOWER than same-compound peers', car degradation
+          character removed. NULL without a line or peers.
+      - name: tactical_slope_se_s_per_lap2
+        description: >
+          SE of m_s, s/lap^2: the line slope's OLS SE (sigma_w / sqrt(Sxx f)) and the peer-
+          median SE (1.2533 SD / sqrt(n)) in quadrature.
+      - name: tactical_peer_source
+        description: >
+          Where the peer slope came from: race (>= var('isolation_min_peer_stints') other
+          drivers' stints on the compound in the race), season_pool (the (race_year, compound)
+          pool, leave-driver-out) or none.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['race', 'season_pool', 'none']
+      - name: season_sigma_w_s
+        description: >
+          Pooled within-stint SD of p around its stint line for the season, s.
+      - name: season_neff_factor
+        description: >
+          f = (1 - rho+)/(1 + rho+), rho+ = GREATEST(season_rho1, 0): the effective-sample
+          factor every SE uses. NULL if rho cannot be measured.
+      - name: n_peers
+        description: >
+          Same-strategy peers on this lap (pair-mart rows with this lap_id); 0 when none.
+        tests:
+          - not_null
+      - name: n_teammate_peers
+        description: >
+          Of n_peers, how many are teammates.
+        tests:
+          - not_null
+      - name: relative_pace_gain_s
+        description: >
+          Tier 3 on this lap: mean relative_pace_gain_s over its peers, s/lap, positive =
+          faster than same-strategy peers. NULL with no peer.
+      - name: relative_pace_raw_gain_s
+        description: >
+          Mean raw (not age-adjusted) gap over this lap's peers, s/lap.
+      - name: identity_n_pair_laps
+        description: >
+          Pair-laps with both car terms, over which the identity_* contributions are computed.
+      - name: identity_n_split_pair_laps
+        description: >
+          Of those, pair-laps with both tactical values (the pure/tactical split exists). Read
+          before quoting the split.
+      - name: identity_relative_pace_gain_s
+        description: >
+          Mean relative_pace_gain_s over the identity_n_pair_laps rows, s/lap. = the five
+          identity_* contributions exactly (T42).
+      - name: identity_pure_gap_gain_s
+        description: >
+          Contribution: SUM(pure_gap) over split rows / identity_n_pair_laps, s/lap.
+      - name: identity_tactical_gap_gain_s
+        description: >
+          Contribution: SUM(tactical_gap) over split rows / identity_n_pair_laps, s/lap.
+      - name: identity_pace_gap_unsplit_gain_s
+        description: >
+          Contribution: SUM(pace_gap) over rows without the split / identity_n_pair_laps,
+          s/lap.
+      - name: identity_car_advantage_gain_s
+        description: >
+          Contribution: mean car_advantage_gain_s over identity rows, s/lap; > 0 = the
+          driver's car faster.
+      - name: identity_traffic_advantage_gain_s
+        description: >
+          Contribution: mean traffic_advantage_gain_s over identity rows, s/lap; > 0 = he lost
+          less to dirty air.
+      - name: window_first_lap_number
+        description: >
+          First lap number the window could span (the earliest Ω lap in it).
+      - name: window_n_laps
+        description: >
+          Ω laps in the trailing window (same stint, lap_number in [l -
+          (var('isolation_window_laps') - 1), l]).
+        tests:
+          - not_null
+      - name: window_mixed_phase
+        description: >
+          TRUE when the window's laps span more than one stint_phase; the window is labelled
+          with this lap's.
+        tests:
+          - not_null
+      - name: window_n_pure_laps
+        description: >
+          Non-extrapolated laps with pure in the window; pure_skill_5lap_gain_s is NULL below
+          var('isolation_window_min_laps').
+        tests:
+          - not_null
+      - name: window_n_tactical_laps
+        description: >
+          Laps with tactical in the window; tactical_5lap_gain_s is NULL below the floor.
+        tests:
+          - not_null
+      - name: window_n_pair_laps
+        description: >
+          Pair-laps in the window (SUM of n_peers); relative_pace_5lap_gain_s is NULL below
+          the floor.
+        tests:
+          - not_null
+      - name: window_n_relative_laps
+        description: >
+          Laps in the window with at least one peer.
+        tests:
+          - not_null
+      - name: pure_skill_5lap_gain_s
+        description: >
+          Pure pace skill, mean over the window's non-extrapolated laps at trailing 5-lap
+          window grain, s/lap, POSITIVE = faster / better (raw, before shrinkage).
+      - name: pure_skill_5lap_se_s
+        description: >
+          SE of pure_skill_5lap_gain_s, s/lap (see the model header for the formula).
+      - name: pure_skill_5lap_lambda
+        description: >
+          Reliability tau^2 / (tau^2 + SE^2) in [0, 1]; tau^2 per (season, rating) at this
+          grain. 1 when SE = 0.
+      - name: pure_skill_5lap_shrunk_gain_s
+        description: >
+          lambda * pure_skill_5lap_gain_s: shrunk toward 0 (the ratings are field- or peer-
+          centred), s/lap.
+      - name: pure_skill_5lap_confidence_pct
+        description: >
+          ROUND(100 * lambda * method_score); NULL until WI-16b validates the method (seed
+          driver_isolation_method_scores).
+      - name: pure_skill_5lap_trust_label
+        description: >
+          solid (>= 75), indicative (50-75), thin (25-50), suppress (< 25, grade F or no
+          lambda), unvalidated (no method score yet). NULL without a raw value.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['solid', 'indicative', 'thin', 'suppress', 'unvalidated']
+      - name: tactical_5lap_gain_s
+        description: >
+          Tactical skill, mean over the window's laps with tactical at trailing 5-lap window
+          grain, s/lap, POSITIVE = faster / better (raw, before shrinkage).
+      - name: tactical_5lap_se_s
+        description: >
+          SE of tactical_5lap_gain_s, s/lap (see the model header for the formula).
+      - name: tactical_5lap_lambda
+        description: >
+          Reliability tau^2 / (tau^2 + SE^2) in [0, 1]; tau^2 per (season, rating) at this
+          grain. 1 when SE = 0.
+      - name: tactical_5lap_shrunk_gain_s
+        description: >
+          lambda * tactical_5lap_gain_s: shrunk toward 0 (the ratings are field- or peer-
+          centred), s/lap.
+      - name: tactical_5lap_confidence_pct
+        description: >
+          ROUND(100 * lambda * method_score); NULL until WI-16b validates the method (seed
+          driver_isolation_method_scores).
+      - name: tactical_5lap_trust_label
+        description: >
+          solid (>= 75), indicative (50-75), thin (25-50), suppress (< 25, grade F or no
+          lambda), unvalidated (no method score yet). NULL without a raw value.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['solid', 'indicative', 'thin', 'suppress', 'unvalidated']
+      - name: relative_pace_5lap_gain_s
+        description: >
+          Relative pace vs same-strategy peers, SUM(relative * n_peers) / SUM(n_peers) at
+          trailing 5-lap window grain, s/lap, POSITIVE = faster / better (raw, before
+          shrinkage).
+      - name: relative_pace_5lap_se_s
+        description: >
+          SE of relative_pace_5lap_gain_s, s/lap (see the model header for the formula).
+      - name: relative_pace_5lap_lambda
+        description: >
+          Reliability tau^2 / (tau^2 + SE^2) in [0, 1]; tau^2 per (season, rating) at this
+          grain. 1 when SE = 0.
+      - name: relative_pace_5lap_shrunk_gain_s
+        description: >
+          lambda * relative_pace_5lap_gain_s: shrunk toward 0 (the ratings are field- or peer-
+          centred), s/lap.
+      - name: relative_pace_5lap_confidence_pct
+        description: >
+          ROUND(100 * lambda * method_score); NULL until WI-16b validates the method (seed
+          driver_isolation_method_scores).
+      - name: relative_pace_5lap_trust_label
+        description: >
+          solid (>= 75), indicative (50-75), thin (25-50), suppress (< 25, grade F or no
+          lambda), unvalidated (no method score yet). NULL without a raw value.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['solid', 'indicative', 'thin', 'suppress', 'unvalidated']
+
+  - name: fct_driver_isolation_stint
+    description: >
+      Driver isolation per stint and phase: one row per (stint_id, stint_phase) with
+      stint_phase in early / mid / cliff / recovery, plus an 'all' row per stint (built with
+      UNION ALL, never GROUPING SETS). Per rating: raw, n, SE, lambda, shrunk,
+      confidence_pct, trust_label; tactical_banked_s; cliff_excess_gain_s (overextension
+      when negative); the tier-3 identity split; and context (strategy verdict and
+      opportunity cost, stint end cause, strategy position, lift-and-coast excess, dirty-air
+      share). tau^2 per season from the 'all' rows with n >= 6. Positive = faster. Leakage:
+      a function of the residual trajectory; no ML-contract mart may depend on it (T48,
+      ml/tests/test_manifest_contract.py). WI-16a, _roadmap/_fixes/wi/WI-16-cumulative-
+      driver-isolation.md.
+    tags: [marts, driver_isolation]
+    meta:
+      family: marts
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [stint_id, stint_phase]
+    columns:
+      - name: stint_phase_id
+        description: >
+          PK: stint_id || '|' || stint_phase.
+        tests:
+          - not_null
+          - unique
+      - name: stint_id
+        description: >
+          Stint identifier (int_stint_geometry.stint_id).
+        tests:
+          - not_null
+      - name: stint_phase
+        description: >
+          'recovery' when is_recovery, else tyre_phase (T45).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff', 'recovery', 'all']
+      - name: race_year
+        description: >
+          Season.
+        tests:
+          - not_null
+      - name: race_id
+        description: >
+          FastF1 event id, e.g. 2021_8.
+        tests:
+          - not_null
+      - name: driver_id
+        description: >
+          Driver (three-letter code). In the pair mart, the focal driver whose gains the row
+          reports.
+        tests:
+          - not_null
+      - name: constructor_id
+        description: >
+          Constructor (stg_laps.constructor_id).
+        tests:
+          - not_null
+      - name: stint_number
+        description: >
+          Stint ordinal within the driver's race (int_stint_geometry).
+      - name: compound
+        description: >
+          Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
+        tests:
+          - not_null
+      - name: era
+        description: >
+          Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
+      - name: n_laps
+        description: >
+          Ω laps in the group.
+        tests:
+          - not_null
+      - name: first_lap_number
+        description: >
+          First Ω lap number in the group.
+      - name: last_lap_number
+        description: >
+          Last Ω lap number in the group.
+      - name: min_age_in_stint
+        description: >
+          Youngest tyre age in the group, laps.
+      - name: max_age_in_stint
+        description: >
+          Oldest tyre age in the group, laps.
+      - name: pace_isolated_gain_s
+        description: >
+          Mean p over the group's laps, s/lap, positive = faster (pure + tactical before the
+          split).
+      - name: n_pure_laps
+        description: >
+          Non-extrapolated laps with pure in the group (the pure rating's n).
+        tests:
+          - not_null
+      - name: n_tactical_laps
+        description: >
+          Laps with tactical in the group (the tactical rating's n).
+        tests:
+          - not_null
+      - name: tactical_banked_s
+        description: >
+          SUM of tactical_gain_s over the group's laps, s: time banked (+) or lost (-) through
+          tyre use, relative to peers.
+      - name: n_pair_laps
+        description: >
+          Pair-laps in the group (the relative rating's n).
+        tests:
+          - not_null
+      - name: n_relative_laps
+        description: >
+          Distinct laps with at least one peer in the group.
+        tests:
+          - not_null
+      - name: n_teammate_pair_laps
+        description: >
+          Of n_pair_laps, those against a teammate.
+        tests:
+          - not_null
+      - name: relative_pace_raw_gain_s
+        description: >
+          t(peer) - t(driver), s/lap: model-free, POSITIVE = the driver faster. In aggregates,
+          the mean over pair-laps.
+      - name: identity_n_pair_laps
+        description: >
+          Pair-laps with both car terms, over which the identity_* contributions are computed.
+      - name: identity_n_split_pair_laps
+        description: >
+          Of those, pair-laps with both tactical values (the pure/tactical split exists). Read
+          before quoting the split.
+      - name: identity_relative_pace_gain_s
+        description: >
+          Mean relative_pace_gain_s over the identity_n_pair_laps rows, s/lap. = the five
+          identity_* contributions exactly (T42).
+      - name: identity_pure_gap_gain_s
+        description: >
+          Contribution: SUM(pure_gap) over split rows / identity_n_pair_laps, s/lap.
+      - name: identity_tactical_gap_gain_s
+        description: >
+          Contribution: SUM(tactical_gap) over split rows / identity_n_pair_laps, s/lap.
+      - name: identity_pace_gap_unsplit_gain_s
+        description: >
+          Contribution: SUM(pace_gap) over rows without the split / identity_n_pair_laps,
+          s/lap.
+      - name: identity_car_advantage_gain_s
+        description: >
+          Contribution: mean car_advantage_gain_s over identity rows, s/lap; > 0 = the
+          driver's car faster.
+      - name: identity_traffic_advantage_gain_s
+        description: >
+          Contribution: mean traffic_advantage_gain_s over identity rows, s/lap; > 0 = he lost
+          less to dirty air.
+      - name: n_cliff_excess_laps
+        description: >
+          Cliff-tyre laps with both kappa and kappa_ref.
+      - name: cliff_excess_gain_s
+        description: >
+          Mean (kappa - kappa_ref) over the group's cliff-tyre laps, s/lap; NEGATIVE = the
+          cliff bit him harder than it bit his peers (overextension). NULL without one.
+      - name: n_line_laps
+        description: >
+          Line laps the stint's slope was fitted on (early/mid, not recovery, with p). Below
+          var('isolation_min_stint_laps') the slope and every tactical value are NULL.
+      - name: line_slope_s_per_lap2
+        description: >
+          beta_s: REGR_SLOPE(p, age) over the stint's line laps, s/lap per lap of age; > 0 =
+          his isolated pace rises through the stint. NULL below the line floor or with Sxx = 0
+          (never NaN).
+      - name: tactical_slope_s_per_lap2
+        description: >
+          m_s, s/lap per lap of tyre age: (beta_s - peer slope) + (car_deg - peers' car_deg).
+          POSITIVE = his tyres fade SLOWER than same-compound peers', car degradation
+          character removed. NULL without a line or peers.
+      - name: tactical_slope_se_s_per_lap2
+        description: >
+          SE of m_s, s/lap^2: the line slope's OLS SE (sigma_w / sqrt(Sxx f)) and the peer-
+          median SE (1.2533 SD / sqrt(n)) in quadrature.
+      - name: tactical_peer_source
+        description: >
+          Where the peer slope came from: race (>= var('isolation_min_peer_stints') other
+          drivers' stints on the compound in the race), season_pool (the (race_year, compound)
+          pool, leave-driver-out) or none.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['race', 'season_pool', 'none']
+      - name: n_peer_stints
+        description: >
+          Peer stints behind the chosen peer slope.
+      - name: car_deg_imputed
+        description: >
+          TRUE when int_constructor_deg_sensitivity has no cell for (season, constructor,
+          compound) and car_deg took 0.0, its prior mean (every 2018 stint on a legacy
+          compound name).
+      - name: kappa_ref_source
+        description: >
+          Where kappa_ref came from: race (>= 10 peer cliff laps on the race and compound),
+          season_pool or none.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['race', 'season_pool', 'none']
+      - name: tyre_offset_vs_field_s
+        description: >
+          Mean tyre_offset_vs_field_s over the group: the strategy position, context.
+      - name: lift_coast_excess_share
+        description: >
+          Mean lift_coast_excess_share over the group (context).
+      - name: dirty_air_lap_share
+        description: >
+          Share of the group's laps with is_dirty_air_lap.
+      - name: stint_end_cause
+        description: >
+          int_stint_end_regime.stint_end_cause (context).
+      - name: is_censored_stint
+        description: >
+          int_stint_end_regime.is_censored_stint (context).
+      - name: strategy_verdict
+        description: >
+          int_pit_strategy_value.strategy_verdict (context: staying out is the pit wall's
+          call, not the driver's).
+      - name: opportunity_cost_s
+        description: >
+          int_pit_strategy_value.opportunity_cost_s (context).
+      - name: pure_skill_gain_s
+        description: >
+          Pure pace skill, mean over the group's non-extrapolated laps at stint-phase grain,
+          s/lap, POSITIVE = faster / better (raw, before shrinkage).
+      - name: pure_skill_se_s
+        description: >
+          SE of pure_skill_gain_s, s/lap (see the model header for the formula).
+      - name: pure_skill_lambda
+        description: >
+          Reliability tau^2 / (tau^2 + SE^2) in [0, 1]; tau^2 per (season, rating) at this
+          grain. 1 when SE = 0.
+      - name: pure_skill_shrunk_gain_s
+        description: >
+          lambda * pure_skill_gain_s: shrunk toward 0 (the ratings are field- or peer-
+          centred), s/lap.
+      - name: pure_skill_confidence_pct
+        description: >
+          ROUND(100 * lambda * method_score); NULL until WI-16b validates the method (seed
+          driver_isolation_method_scores).
+      - name: pure_skill_trust_label
+        description: >
+          solid (>= 75), indicative (50-75), thin (25-50), suppress (< 25, grade F or no
+          lambda), unvalidated (no method score yet). NULL without a raw value.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['solid', 'indicative', 'thin', 'suppress', 'unvalidated']
+      - name: tactical_gain_s
+        description: >
+          Tactical skill, mean over the group's laps with tactical at stint-phase grain,
+          s/lap, POSITIVE = faster / better (raw, before shrinkage).
+      - name: tactical_se_s
+        description: >
+          SE of tactical_gain_s, s/lap (see the model header for the formula).
+      - name: tactical_lambda
+        description: >
+          Reliability tau^2 / (tau^2 + SE^2) in [0, 1]; tau^2 per (season, rating) at this
+          grain. 1 when SE = 0.
+      - name: tactical_shrunk_gain_s
+        description: >
+          lambda * tactical_gain_s: shrunk toward 0 (the ratings are field- or peer-centred),
+          s/lap.
+      - name: tactical_confidence_pct
+        description: >
+          ROUND(100 * lambda * method_score); NULL until WI-16b validates the method (seed
+          driver_isolation_method_scores).
+      - name: tactical_trust_label
+        description: >
+          solid (>= 75), indicative (50-75), thin (25-50), suppress (< 25, grade F or no
+          lambda), unvalidated (no method score yet). NULL without a raw value.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['solid', 'indicative', 'thin', 'suppress', 'unvalidated']
+      - name: relative_pace_gain_s
+        description: >
+          Relative pace vs same-strategy peers, mean over the group's pair-laps at stint-phase
+          grain, s/lap, POSITIVE = faster / better (raw, before shrinkage).
+      - name: relative_pace_se_s
+        description: >
+          SE of relative_pace_gain_s, s/lap (see the model header for the formula).
+      - name: relative_pace_lambda
+        description: >
+          Reliability tau^2 / (tau^2 + SE^2) in [0, 1]; tau^2 per (season, rating) at this
+          grain. 1 when SE = 0.
+      - name: relative_pace_shrunk_gain_s
+        description: >
+          lambda * relative_pace_gain_s: shrunk toward 0 (the ratings are field- or peer-
+          centred), s/lap.
+      - name: relative_pace_confidence_pct
+        description: >
+          ROUND(100 * lambda * method_score); NULL until WI-16b validates the method (seed
+          driver_isolation_method_scores).
+      - name: relative_pace_trust_label
+        description: >
+          solid (>= 75), indicative (50-75), thin (25-50), suppress (< 25, grade F or no
+          lambda), unvalidated (no method score yet). NULL without a raw value.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['solid', 'indicative', 'thin', 'suppress', 'unvalidated']
+
+  - name: fct_driver_isolation_race
+    description: >
+      Driver isolation per driver-race: the three ratings rolled up with lap weighting
+      (pair-lap weighting for relative), SEs that add each stint's slope error in
+      quadrature, lambda, shrunk value, confidence_pct and trust_label, the tier-3 identity
+      split, and context. Keyed with the same surrogate-key recipe as
+      fct_driver_skill_features, which is deliberately not changed (an unvalidated rating
+      must not enter a trained model's contract). No minimum-race floor: lambda does that
+      job. Positive = faster. Leakage: a function of the residual trajectory; no ML-contract
+      mart may depend on it (T48, ml/tests/test_manifest_contract.py). WI-16a,
+      _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md.
+    tags: [marts, driver_isolation]
+    meta:
+      family: marts
+    columns:
+      - name: driver_race_id
+        description: >
+          PK: dbt_utils.generate_surrogate_key(race_year, race_id, driver_id), the same recipe
+          as fct_driver_skill_features.driver_race_id, so the two join directly.
+        tests:
+          - not_null
+          - unique
+      - name: race_year
+        description: >
+          Season.
+        tests:
+          - not_null
+      - name: race_id
+        description: >
+          FastF1 event id, e.g. 2021_8.
+        tests:
+          - not_null
+      - name: driver_id
+        description: >
+          Driver (three-letter code). In the pair mart, the focal driver whose gains the row
+          reports.
+        tests:
+          - not_null
+      - name: constructor_id
+        description: >
+          Constructor (stg_laps.constructor_id).
+        tests:
+          - not_null
+      - name: era
+        description: >
+          Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
+      - name: car_iso_s
+        description: >
+          Isolation car term, s, NEGATIVE = FASTER than the race's lap-weighted car
+          (int_constructor_car_fe_isolation). NULL when not identified.
+      - name: car_term_source
+        description: >
+          Where car_iso_s came from: driver_era, global_driver (the era fell back),
+          unidentified, not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['driver_era', 'global_driver', 'unidentified', 'not_estimated', 'no_fit_row']
+      - name: n_stints
+        description: >
+          Stints with Ω laps in the race.
+        tests:
+          - not_null
+      - name: n_stints_with_tactical
+        description: >
+          Of those, stints with a tactical slope.
+        tests:
+          - not_null
+      - name: n_laps
+        description: >
+          Ω laps in the group.
+        tests:
+          - not_null
+      - name: pace_isolated_gain_s
+        description: >
+          Mean p over the race's Ω laps, s/lap, positive = faster.
+      - name: n_pure_laps
+        description: >
+          Non-extrapolated laps with pure in the group (the pure rating's n).
+        tests:
+          - not_null
+      - name: n_tactical_laps
+        description: >
+          Laps with tactical in the group (the tactical rating's n).
+        tests:
+          - not_null
+      - name: tactical_banked_s
+        description: >
+          SUM of tactical_gain_s over the group's laps, s: time banked (+) or lost (-) through
+          tyre use, relative to peers.
+      - name: n_pair_laps
+        description: >
+          Pair-laps in the group (the relative rating's n).
+        tests:
+          - not_null
+      - name: n_relative_laps
+        description: >
+          Distinct laps with at least one peer in the group.
+        tests:
+          - not_null
+      - name: n_teammate_pair_laps
+        description: >
+          Of n_pair_laps, those against a teammate.
+        tests:
+          - not_null
+      - name: relative_pace_raw_gain_s
+        description: >
+          t(peer) - t(driver), s/lap: model-free, POSITIVE = the driver faster. In aggregates,
+          the mean over pair-laps.
+      - name: identity_n_pair_laps
+        description: >
+          Pair-laps with both car terms, over which the identity_* contributions are computed.
+      - name: identity_n_split_pair_laps
+        description: >
+          Of those, pair-laps with both tactical values (the pure/tactical split exists). Read
+          before quoting the split.
+      - name: identity_relative_pace_gain_s
+        description: >
+          Mean relative_pace_gain_s over the identity_n_pair_laps rows, s/lap. = the five
+          identity_* contributions exactly (T42).
+      - name: identity_pure_gap_gain_s
+        description: >
+          Contribution: SUM(pure_gap) over split rows / identity_n_pair_laps, s/lap.
+      - name: identity_tactical_gap_gain_s
+        description: >
+          Contribution: SUM(tactical_gap) over split rows / identity_n_pair_laps, s/lap.
+      - name: identity_pace_gap_unsplit_gain_s
+        description: >
+          Contribution: SUM(pace_gap) over rows without the split / identity_n_pair_laps,
+          s/lap.
+      - name: identity_car_advantage_gain_s
+        description: >
+          Contribution: mean car_advantage_gain_s over identity rows, s/lap; > 0 = the
+          driver's car faster.
+      - name: identity_traffic_advantage_gain_s
+        description: >
+          Contribution: mean traffic_advantage_gain_s over identity rows, s/lap; > 0 = he lost
+          less to dirty air.
+      - name: n_cliff_excess_laps
+        description: >
+          Cliff-tyre laps with both kappa and kappa_ref.
+      - name: cliff_excess_gain_s
+        description: >
+          Mean (kappa - kappa_ref) over the group's cliff-tyre laps, s/lap; NEGATIVE = the
+          cliff bit him harder than it bit his peers (overextension). NULL without one.
+      - name: tyre_offset_vs_field_s
+        description: >
+          Mean tyre_offset_vs_field_s over the race (context).
+      - name: lift_coast_excess_share
+        description: >
+          Mean lift_coast_excess_share over the race (context).
+      - name: dirty_air_lap_share
+        description: >
+          Share of the group's laps with is_dirty_air_lap.
+      - name: pure_skill_gain_s
+        description: >
+          Pure pace skill, mean over the race's non-extrapolated laps at driver-race grain,
+          s/lap, POSITIVE = faster / better (raw, before shrinkage).
+      - name: pure_skill_se_s
+        description: >
+          SE of pure_skill_gain_s, s/lap (see the model header for the formula).
+      - name: pure_skill_lambda
+        description: >
+          Reliability tau^2 / (tau^2 + SE^2) in [0, 1]; tau^2 per (season, rating) at this
+          grain. 1 when SE = 0.
+      - name: pure_skill_shrunk_gain_s
+        description: >
+          lambda * pure_skill_gain_s: shrunk toward 0 (the ratings are field- or peer-
+          centred), s/lap.
+      - name: pure_skill_confidence_pct
+        description: >
+          ROUND(100 * lambda * method_score); NULL until WI-16b validates the method (seed
+          driver_isolation_method_scores).
+      - name: pure_skill_trust_label
+        description: >
+          solid (>= 75), indicative (50-75), thin (25-50), suppress (< 25, grade F or no
+          lambda), unvalidated (no method score yet). NULL without a raw value.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['solid', 'indicative', 'thin', 'suppress', 'unvalidated']
+      - name: tactical_gain_s
+        description: >
+          Tactical skill, mean over the race's laps with tactical at driver-race grain, s/lap,
+          POSITIVE = faster / better (raw, before shrinkage).
+      - name: tactical_se_s
+        description: >
+          SE of tactical_gain_s, s/lap (see the model header for the formula).
+      - name: tactical_lambda
+        description: >
+          Reliability tau^2 / (tau^2 + SE^2) in [0, 1]; tau^2 per (season, rating) at this
+          grain. 1 when SE = 0.
+      - name: tactical_shrunk_gain_s
+        description: >
+          lambda * tactical_gain_s: shrunk toward 0 (the ratings are field- or peer-centred),
+          s/lap.
+      - name: tactical_confidence_pct
+        description: >
+          ROUND(100 * lambda * method_score); NULL until WI-16b validates the method (seed
+          driver_isolation_method_scores).
+      - name: tactical_trust_label
+        description: >
+          solid (>= 75), indicative (50-75), thin (25-50), suppress (< 25, grade F or no
+          lambda), unvalidated (no method score yet). NULL without a raw value.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['solid', 'indicative', 'thin', 'suppress', 'unvalidated']
+      - name: relative_pace_gain_s
+        description: >
+          Relative pace vs same-strategy peers, mean over the race's pair-laps at driver-race
+          grain, s/lap, POSITIVE = faster / better (raw, before shrinkage).
+      - name: relative_pace_se_s
+        description: >
+          SE of relative_pace_gain_s, s/lap (see the model header for the formula).
+      - name: relative_pace_lambda
+        description: >
+          Reliability tau^2 / (tau^2 + SE^2) in [0, 1]; tau^2 per (season, rating) at this
+          grain. 1 when SE = 0.
+      - name: relative_pace_shrunk_gain_s
+        description: >
+          lambda * relative_pace_gain_s: shrunk toward 0 (the ratings are field- or peer-
+          centred), s/lap.
+      - name: relative_pace_confidence_pct
+        description: >
+          ROUND(100 * lambda * method_score); NULL until WI-16b validates the method (seed
+          driver_isolation_method_scores).
+      - name: relative_pace_trust_label
+        description: >
+          solid (>= 75), indicative (50-75), thin (25-50), suppress (< 25, grade F or no
+          lambda), unvalidated (no method score yet). NULL without a raw value.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['solid', 'indicative', 'thin', 'suppress', 'unvalidated']

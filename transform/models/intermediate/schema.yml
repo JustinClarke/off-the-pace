@@ -263,6 +263,9 @@ models:
       Air state classification and thermal load from dirty air. One row per stint-lap.
       Classifies air state per sector (free_air, tow_zone, drs_train, dirty_air) and accumulates
       cumulative thermal load on tyre surface and bulk using exponential moving average.
+      S2 (the dirty-air third) is classified on the median gap alone: < 1.5 s is dirty_air
+      whatever DRS did (F48, WI-15a). drs_train and tow_zone arise only on the straight
+      thirds (S1/S3), where DRS still splits a sub-1 s follow.
     tags: [intermediate]
     meta:
       family: physics
@@ -270,6 +273,33 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: dirty_air_share_lap
+        description: >
+          1.0 when the lap's S2 median gap to the car ahead is under 1.5 s, else 0.0
+          (one S2 per lap, so it is a bit, not a fraction). Zeroed on SC/VSC/red-flag laps.
+          Non-increasing in s2_gap_median_s by construction since F48 (WI-15a): before it,
+          a sub-1 s S2 gap with DRS open was coded drs_train and billed 0 while 1.0-1.5 s
+          was billed 1. Asserted by assert_dirty_air_share_monotone (T38). A contract
+          feature, and lagged one lap it is the treatment in int_dirty_air_tax_component's
+          theta_air, so it moves the label.
+      - name: s2_gap_median_s
+        description: >
+          F48 (WI-15a). The measured S2 median gap to the car ahead (seconds;
+          DistanceToDriverAhead / point speed, median over the third's samples), i.e. the
+          quantity dirty_air_share_lap is a function of. Raw: not zeroed on SC/VSC laps.
+          NULL when the lap has no S2 gap sample. Not in the ML contract.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                row_condition: "s2_gap_median_s is not null"
+      - name: s2_drs_active
+        description: >
+          F48 (WI-15a). TRUE when any S2 sample had DRS open (FastF1 codes 10/12/14). This
+          used to be folded into the S2 classification (it turned a sub-1 s dirty-air lap
+          into a clean one); it is carried here instead, so the unsettled physics question
+          (do DRS-open S2 laps lose less aero load?) stays answerable without the label
+          assuming an answer. NULL when the lap has no S2 telemetry. Not in the ML contract.
       - name: time_in_dirty_air_s
         description: >
           Real per-lap dirty-air exposure time (seconds), summed from actual
@@ -308,6 +338,17 @@ models:
 
       Validated against the FIA's own blue flags, which are not derived from
       telemetry - see assert_proximity_agrees_with_blue_flags.
+
+      Pit-lane crossings are not traffic (F43, WI-15a): a crossing made inside
+      the driver's own stg_pits window is removed before the car-ahead
+      ordering, so a car in the pit lane is nobody's car ahead or behind and
+      its pit-lane bins are not traffic bins of its own lap. Before the fix a
+      pit-lane car set gap_ahead_min_s on 6,288 of 137,759 training-eligible
+      laps (median 0.90 s as built vs 3.32 s to the real car ahead). Asserted
+      by assert_proximity_excludes_pit_lane (T33). Not covered: pit-lane race
+      starts, which are not stops and have no stg_pits row (139 lap-1 laps
+      still have a pit-lane starter as their closest car ahead; lap 1 is never
+      training-eligible).
     tags: [intermediate]
     meta:
       family: physics
@@ -317,10 +358,12 @@ models:
         tests: [not_null, unique]
       - name: proximity_bin_count
         description: >
-          How many of the 100 track bins this driver-lap produced a crossing
-          for. Mean 99.8. NULL on the 1.22% of laps with no position telemetry
-          (1,982 of 162,729) - left NULL rather than zeroed so "no data" stays
-          distinguishable from "no traffic".
+          How many of the 100 track bins this driver-lap produced an ON-TRACK
+          crossing for (bins crossed inside the driver's own pit window are
+          excluded since F43, so in- and out-laps count fewer). Mean 99.8. NULL
+          on the 1.22% of laps with no position telemetry (1,982 of 162,729) -
+          left NULL rather than zeroed so "no data" stays distinguishable from
+          "no traffic".
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
@@ -330,7 +373,9 @@ models:
         description: >
           Closest the car ahead on track came, this lap (seconds). NULL when no
           other car crossed any of this lap's bins between this driver's own
-          consecutive crossings, i.e. a full lap of clear air. Median 0.92 s.
+          consecutive crossings, i.e. a full lap of clear air. Median 1.10 s
+          over all laps on the 2026-09-25 build (0.92 s before F43, when a car
+          in the pit lane could be the car ahead).
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
@@ -390,6 +435,18 @@ models:
           ablation against both"). Where they disagree, FastF1's own
           DistanceToDriverAhead is roughly twice as large, i.e. it is naming a
           car further away than the one actually ahead on track.
+      - name: gap_ahead_min_driver_id
+        description: >
+          Diagnostic, never a feature (F43, WI-15a). The car ahead at the bin
+          where gap_ahead_min_s was measured (ties broken by lowest track bin).
+          NULL exactly when gap_ahead_min_s is. Read by
+          assert_proximity_excludes_pit_lane (T33).
+      - name: gap_ahead_min_crossing_s
+        description: >
+          Diagnostic, never a feature (F43, WI-15a). This driver's own session
+          clock crossing time at that bin; the car ahead crossed the same point
+          at gap_ahead_min_crossing_s - gap_ahead_min_s. NULL exactly when
+          gap_ahead_min_s is.
 
   - name: int_lap_normalized_pace
     description: >
@@ -463,9 +520,17 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: weight_corrected_lap_time
+        description: >
+          F47 (WI-15b): int_lap_fuel_state.weight_corrected_lap_time, the lap time
+          with the fuel-mass penalty taken out, so burn-off is not read as pushing.
+          NULL on invalid laps (int_lap_fuel_state carries valid laps only); those
+          laps keep their slot in the EW window and contribute 0 load. Pinned to
+          int_lap_fuel_state by T37 (assert_push_residual_fuel_neutral).
       - name: stint_baseline_pace
         description: >
-          Median lap_time_s over this stint's VALID laps strictly before this one.
+          Median weight_corrected_lap_time over this stint's VALID laps strictly
+          before this one.
           Expanding, not trailing-N: a stint is short enough that the window stays
           local, and capping it would let the baseline drift with the degradation it
           measures. NULL until one valid prior lap exists (min_observations=1) --
@@ -499,8 +564,9 @@ models:
                 min_value: 0
       - name: push_residual
         description: >
-          stint_baseline_pace - lap_time_s. Positive = faster than the stint's own
-          prior pace = pushing. NULL wherever the baseline is NULL: unknown, not zero.
+          stint_baseline_pace - weight_corrected_lap_time. Positive = faster than the
+          stint's own prior pace, fuel held equal = pushing. NULL wherever the
+          baseline is NULL, and on invalid laps: unknown, not zero.
       - name: cumulative_push_load_surface
         description: >
           EW sum of positive push_residual, tau~3 laps, 5-lap lookback. A NULL
@@ -726,15 +792,10 @@ models:
     tags: [intermediate]
     meta:
       family: pace-baselines
-      aggregation_scope_exemptions:
-        - keys: [race_year, race_id]
-          status: accepted
-          reason: >
-            race_fastest supplies the 107% eligibility threshold for the field pace
-            curve. The curve itself groups (race_year, race_id, lap_number) and pins
-            a lap; only the threshold is race-scoped. Accepted with the spine, and
-            recorded as its narrowest instance -- a pre-race reference time, e.g.
-            pole or a circuit benchmark, would remove it entirely.
+      # WI-01 (F1) replaced the race-wide 107% threshold (race_fastest, a
+      # GROUP BY race_year, race_id) with a per-lap one grouped on
+      # (race_year, race_id, lap_number), so the exemption that covered it was
+      # removed (test_no_undeclared_aggregation_scope flagged it stale).
     columns:
       - name: race_year
         description: Race year
@@ -827,11 +888,14 @@ models:
 
   - name: int_lap_residual_decomposed
     description: >
-      One row per lap. 7-term decomposition: splits lap time into fuel penalty, compound degradation,
-      track rubber evolution, ambient weather, constructor car pace, dirty-air tax, and driver skill residual.
-      Identity: pace_delta_s = fuel_component_s + compound_component_s + rubber_component_s + ambient_component_s
-      + constructor_component_s + dirty_air_tax_s + driver_skill_residual_s.
-      Driver skill residual = what remains after removing all physics/car/strategy factors.
+      One row per lap. WI-01 (2026-09-27, Option A): base_track_pace_s is fuel- AND
+      compound-neutral and already contains rubber/ambient (int_track_evolution decomposes that
+      same base), so this model's identity is 5-term, not 7: pace_delta_s = fuel_component_s +
+      compound_component_s + constructor_component_s + dirty_air_tax_s + driver_skill_residual_s.
+      rubber_component_s and ambient_component_s are carried as informational columns only (F22 --
+      subtracting them again on top of the base would double-count them). Driver skill residual =
+      what remains after removing fuel/compound/car/dirty-air. NULL (not a fabricated number)
+      wherever base_track_pace_s or compound_component_s is itself unmeasured (F1).
     tags: [intermediate, causal_decomposition]
     meta:
       family: residual
@@ -854,8 +918,9 @@ models:
           Non-negative seconds. Zero when not in dirty air.
           Subtracted into driver_skill_residual_s, so θ_air sits inside the ML label: this column
           feeds DEGRADATION_TARGET and CLIFF_TARGET. 08q (2026-09-21) moved θ_air from an unfitted
-          0.5 literal to the fitted +0.1310 s/lap, which changes this component on the ~23% of panel
-          laps that are dirty-air laps and requires a target rebuild plus a model version bump.
+          0.5 literal to the fitted +0.1310 s/lap; the WI-01 label bump moved it to 0.5033 (interim)
+          and W40 to the declared 0.331 s/lap. Each move changes this component on every dirty-air
+          lap and requires a target rebuild plus a model version bump.
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -864,12 +929,25 @@ models:
                 max_value: 5.0
       - name: driver_skill_residual_s
         description: >
-          Residual after all 7 physics components. Cleaned of dirty-air signal vs pre-causal-decomposition.
-          Positive = slower than field baseline after all adjustments.
-        tests: [not_null]
+          Residual after fuel/compound/constructor/dirty-air (rubber and ambient are already
+          inside base_track_pace_s, WI-01/F22, and are not subtracted again here). Positive =
+          slower than field baseline after all adjustments. WI-01/F1: NULL, not a
+          COALESCE-defaulted number, when base_track_pace_s (no measured field curve row) or
+          compound_component_s (unknown tyre age, F39) is itself unmeasured -- see the model's
+          header comment.
+        tests:
+          - not_null:
+              config:
+                where: "pace_delta_s IS NOT NULL AND compound_component_s IS NOT NULL"
       - name: total_explained_s
-        description: Sum of all 7 components (fuel + compound + rubber + ambient + constructor + dirty_air_tax)
-        tests: [not_null]
+        description: >
+          Sum of fuel + compound + constructor + dirty_air_tax (rubber/ambient are already inside
+          base_track_pace_s, WI-01/F22, and are informational columns only, not part of this sum).
+          NULL under the same conditions as driver_skill_residual_s.
+        tests:
+          - not_null:
+              config:
+                where: "pace_delta_s IS NOT NULL AND compound_component_s IS NOT NULL"
 
   - name: int_lap_anomaly_flags
     description: >
@@ -1167,17 +1245,16 @@ models:
       One row per lap. Cost of driving in dirty air (turbulent wake) following another car.
       Uses prior-lap dirty-air intensity to establish causality: current lap slowdown → prior lap's position.
       Avoids reverse causality. Seconds lost = θ_air × dirty_air_intensity_lag1, capped [0, 5.0] seconds.
-      θ_air IS FITTED FROM THE DATA, not configured: it is the OLS slope of partial residual on the
-      lagged dirty-air bit over the full two-arm calibration panel (treated and untreated laps).
-      Before 08q (2026-09-21) the panel was filtered to `dirty_air_share_lag1 > 0`, which left the
-      binary regressor constant and unidentified, so θ_air silently fell through a COALESCE to the
-      literal 0.5 s/lap on every build and dirty_air_tax_s was 0.5 on every dirty-air lap and 0.0
-      otherwise. Measured on the v12 substrate the fitted value is +0.1310 s/lap
-      [95% CI +0.1144, +0.1476] over 123,993 laps — the shipped 0.5 was 3.8x too high. The COALESCE
-      literal is now that measured estimate and serves only as a degenerate-panel guard.
-      A global pooled θ is used deliberately; per-season θ runs +0.418 (2018) to -0.011 (2024) and is
-      not distinguishable from zero on 2021 and 2024, which is an open ruling for any fan-facing
-      surface that reports per-driver seconds (see work/08-foundations-repair.md section 08q).
+      θ_air is the DECLARED var theta_air_label_value (0.331 s/lap since W40, 2026-09-27), applied
+      as-is. It is fitted from the data, but outside dbt: 06b's pre-registered F2 estimator (partial
+      residual on the lagged dirty-air bit, stint fixed effects plus six tyre-age bins) on this
+      model's two-arm calibration panel, 2018-2025, gives 0.3313 [0.293, 0.370]
+      (_roadmap/_fixes/wi/WI-12-06b-remeasure.md). The pooled OLS slope this model used to fit in
+      SQL (0.5033 on the same panel, WI-01's interim value) billed some car pace as dirty air,
+      because slower cars follow more often. History: an unfitted 0.5 literal through v12 (the panel
+      was filtered to the treated arm, so the slope was unidentified, 08q), 0.1310 (08q, v12
+      substrate), 0.5033 (WI-01, interim), 0.331 (W40). One θ for every season; per-season fits are
+      published in the 06b post, not carried into the label.
     tags: [intermediate, causal_decomposition]
     meta:
       family: physics
@@ -1192,10 +1269,10 @@ models:
         description: >
           Per-lap dirty-air slowdown in seconds. θ_air × dirty_air_intensity_lag1.
           Positive (slower cost). Bounded [0, 5.0].
-          θ_air is estimated from the two-arm calibration panel, not defaulted (08q). Because
-          dirty_air_intensity_lag1 is one bit per lap, this column still takes two values per build —
-          0.0 on a clean-air lap and θ_air on a dirty-air lap — but θ_air is now the fitted
-          +0.1310 s/lap rather than the unfitted 0.5 literal it was through v12. A dose-response on
+          θ_air is the declared theta_air_label_value (0.331 s/lap, W40), fitted outside dbt on the
+          two-arm calibration panel (see the model description). Because
+          dirty_air_intensity_lag1 is one bit per lap, this column takes two values per build —
+          0.0 on a clean-air lap and θ_air on a dirty-air lap. A dose-response on
           the measured gap (int_lap_air_state.min_gap_s / stg_telemetry_position.distance_to_ahead_m)
           is the standing follow-up; removing the treated-arm filter is the identification fix, not
           the measurement fix.
@@ -1211,8 +1288,9 @@ models:
       - name: tax_calibration_confidence
         description: >
           Confidence in the tax [0, 1], as n / (n + 500) over the calibration sample n.
-          Since 08q restored both arms to that panel, n is the full 123,993-lap panel rather than
-          the 28,523 treated laps it was through v12, so this reads ~0.996 rather than ~0.983.
+          Since 08q restored both arms to that panel, n is the full two-arm panel (138,970 laps on
+          the WI-01 label) rather than the 28,523 treated laps it was through v12, so this reads
+          ~0.996 rather than ~0.983.
           It measures calibration SAMPLE SIZE ONLY and is not a statement about whether θ_air is
           distinguishable from zero in a given season — it is near 1.0 on every season including
           2021 and 2024, where the per-season estimate straddles zero.
@@ -2288,9 +2366,10 @@ models:
   - name: int_tyre_surface_vs_bulk_decoupling
     description: >
       One row per lap (post-cliff only). After tyre cliff, diagnoses whether degradation is
-      surface-recoverable or bulk-structural. surface_bulk_ratio [0,1]: high = recoverable,
-      low = must pit. Includes recovery_probability (pace-recovery chance within 2 laps).
-      Grain: lap_id filtered to cliff_onset_passed = TRUE.
+      surface-recoverable or bulk-structural. surface_bulk_ratio [0, 0.606], 0.5 at steady
+      push: high = recoverable, low = must pit. Includes recovery_probability
+      (pace-recovery chance within 2 laps). Grain: lap_id filtered to
+      cliff_onset_passed = TRUE.
     tags: [intermediate, simulation, thermal]
     meta:
       family: residual
@@ -2299,20 +2378,30 @@ models:
         description: PK, FK to stg_laps (post-cliff laps only)
         tests: [not_null, unique]
       - name: surface_bulk_ratio
-        description: push_load_surface / (push_load_surface + push_load_bulk). [0, 1].
+        description: >
+          Surface share of the two thermal loads, each divided by its own weight sum
+          (vars thermal_surface_weight_sum / thermal_bulk_weight_sum): 0.5 at steady
+          push. F49 (WI-15b): surface <= bulk by construction, so the ceiling is
+          bulk_sum/(surface_sum+bulk_sum) = 0.606 (all push on the current lap);
+          the bound below is that ceiling, not [0, 1]. Before F49 the unnormalised
+          share was capped at 0.5.
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
-                max_value: 1
+                max_value: 0.606
       - name: degradation_source
-        description: Classification based on surface_bulk_ratio thresholds.
+        description: >
+          bulk_driven when surface_bulk_ratio < 0.35, else mixed. F49 (WI-15b) removed
+          surface_driven (> 0.65), which the ratio's 0.606 ceiling made unreachable.
+          T39 (assert_degradation_source_classes_reachable) checks every value
+          below has rows.
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['surface_driven', 'bulk_driven', 'mixed']
+                values: ['bulk_driven', 'mixed']
       - name: recovery_probability
         description: Probability of pace recovery within 2 laps. [0, 1]. SQL approximation.
         tests:
@@ -2908,3 +2997,830 @@ models:
           lap). Negative = residual trending faster through the stint. 0.0 when the stint has
           fewer than 3 pre-cliff laps.
         tests: [not_null]
+
+  - name: int_driver_isolation_lap_panel
+    description: >
+      Driver isolation step 0: the clean-lap panel Ω and the field-centred isolated time.
+      One row per Ω lap: correction_weight 1, anomaly_class normal/clean_cliff, dry, not
+      rain, not an out- or in-lap, a known tyre (compound_component_s and laps_past_cliff
+      non-NULL, never COALESCEd), not in var('isolation_exclude_races'), on a (race, lap)
+      with >= var('isolation_min_field_n') such laps. y_s = x_s minus the lap's field
+      median, so every per-(race, lap) term (field base, fuel, rubber, ambient) cancels: the
+      ratings do not depend on the FD1 base (T41). Also the stint phase (tyre phase from the
+      seed's onset, recovery overlay from the air state). The input of the car-term fit
+      (fit_constructor_car_fe.py --panel isolation). Leakage: a function of the residual
+      trajectory; no ML-contract mart may depend on it (T48,
+      ml/tests/test_manifest_contract.py). WI-16a, _roadmap/_fixes/wi/WI-16-cumulative-
+      driver-isolation.md.
+    tags: [intermediate, driver_isolation]
+    meta:
+      family: skill
+    columns:
+      - name: lap_id
+        description: >
+          Lap identifier (int_lap_residual_decomposed.lap_id).
+        tests:
+          - not_null
+          - unique
+      - name: stint_id
+        description: >
+          Stint identifier (int_stint_geometry.stint_id).
+        tests:
+          - not_null
+      - name: race_year
+        description: >
+          Season.
+        tests:
+          - not_null
+      - name: race_id
+        description: >
+          FastF1 event id, e.g. 2021_8.
+        tests:
+          - not_null
+      - name: driver_id
+        description: >
+          Driver (three-letter code). In the pair mart, the focal driver whose gains the row
+          reports.
+        tests:
+          - not_null
+      - name: constructor_id
+        description: >
+          Constructor (stg_laps.constructor_id).
+        tests:
+          - not_null
+      - name: stint_number
+        description: >
+          Stint ordinal within the driver's race (int_stint_geometry).
+      - name: lap_number
+        description: >
+          Race lap number. Tiers 1 and 3 match cars on it, which is why 2020_1 is excluded
+          (W18).
+        tests:
+          - not_null
+      - name: compound
+        description: >
+          Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
+        tests:
+          - not_null
+      - name: age_in_stint
+        description: >
+          Tyre age in laps (int_stint_geometry).
+        tests:
+          - not_null
+      - name: lap_in_stint
+        description: >
+          Lap ordinal within the stint, counting every lap.
+      - name: valid_lap_in_stint
+        description: >
+          Ordinal among the stint's valid laps; early vs mid phase splits at 5/6.
+        tests:
+          - not_null
+      - name: laps_past_cliff
+        description: >
+          Laps beyond the compound seed's cliff onset (0 before it); drives tyre_phase =
+          cliff. Never NULL in Ω.
+        tests:
+          - not_null
+      - name: fuel_mass_kg
+        description: >
+          Scheduled-distance fuel load, kg. The same for every car on a lap, so it cancels
+          from every rating (carried for WI-16b's V4 physics check).
+      - name: era
+        description: >
+          Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
+        tests:
+          - not_null
+      - name: driver_era
+        description: >
+          driver_id + '_' + era: the driver key of the era-split car-term fit.
+        tests:
+          - not_null
+      - name: anomaly_class
+        description: >
+          int_lap_anomaly_flags.anomaly_class; normal or clean_cliff in Ω.
+      - name: air_state_dominant
+        description: >
+          int_lap_air_state.air_state_dominant (context; dirty_air drives the recovery
+          overlay).
+      - name: is_dirty_air_lap
+        description: >
+          TRUE when air_state_dominant = 'dirty_air'.
+        tests:
+          - not_null
+      - name: field_n
+        description: >
+          Ω laps on this (race, lap); >= var('isolation_min_field_n') by construction (T40).
+        tests:
+          - not_null
+      - name: lap_time_s
+        description: >
+          Raw lap time, s.
+        tests:
+          - not_null
+      - name: compound_component_s
+        description: >
+          C: the compound seed's expected cost of this tyre state, s, positive = slower
+          (int_lap_residual_decomposed). Never COALESCEd: an unknown tyre is not in Ω.
+        tests:
+          - not_null
+      - name: dirty_air_tax_s
+        description: >
+          D: dirty-air tax, s, positive = slower (int_lap_residual_decomposed).
+        tests:
+          - not_null
+      - name: x_s
+        description: >
+          lap_time_s - compound_component_s - dirty_air_tax_s, s.
+        tests:
+          - not_null
+      - name: field_median_x_s
+        description: >
+          Median of x_s over the Ω laps on this (race, lap), s.
+      - name: y_s
+        description: >
+          x_s minus the lap's Ω field median of x_s, s. POSITIVE = SLOWER than the field-
+          typical car and driver on the lap. Invariant to the field base, fuel, rubber and
+          ambient terms, which depend on (race, lap) only (T41).
+        tests:
+          - not_null
+      - name: tyre_offset_vs_field_s
+        description: >
+          compound_component_s minus the lap's Ω field median of it, s; positive = this tyre
+          state costs more than the field's. The strategy position on the lap: team-dominated
+          context, not a rating.
+        tests:
+          - not_null
+      - name: tyre_phase
+        description: >
+          early (laps_past_cliff = 0, valid_lap_in_stint <= 5), mid (laps_past_cliff = 0, >=
+          6) or cliff (laps_past_cliff > 0), from the seed's onset, so never selected on the
+          residual.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff']
+      - name: is_recovery
+        description: >
+          TRUE on the first var('isolation_recovery_laps') valid laps of a non-dirty-air run
+          directly after >= var('isolation_recovery_min_dirty_run') consecutive dirty-air
+          valid laps in the stint. Backward-looking only.
+        tests:
+          - not_null
+      - name: stint_phase
+        description: >
+          'recovery' when is_recovery, else tyre_phase (T45).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff', 'recovery']
+
+  - name: int_constructor_car_fe_isolation
+    description: >
+      Driver-isolation car term: a thin reader over
+      data/fits/constructor_car_fe_isolation.parquet, fitted by fit_constructor_car_fe.py
+      --panel isolation (y_s ~ 1 | driver_era + constructor_race on the Ω panel), re-centred
+      to a lap-weighted mean of zero inside each race. Fitted on the same scale as y_s,
+      unlike int_constructor_car_fe (pace_delta_s, before compound and dirty air come out),
+      so subtracting it does not take strategy and traffic out twice. An era whose races the
+      teammate network does not connect falls back to a global-driver fit (car_term_source).
+      Negative = faster. Leakage: a function of the residual trajectory; no ML-contract mart
+      may depend on it (T48, ml/tests/test_manifest_contract.py). WI-16a,
+      _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md.
+    tags: [intermediate, driver_isolation, constructor]
+    meta:
+      family: skill
+    columns:
+      - name: constructor_car_fe_isolation_id
+        description: >
+          Surrogate PK = race_year_raceid_constructorid.
+        tests:
+          - not_null
+          - unique
+      - name: race_year
+        description: >
+          Season.
+        tests:
+          - not_null
+      - name: race_id
+        description: >
+          FastF1 event id, e.g. 2021_8.
+        tests:
+          - not_null
+      - name: constructor_id
+        description: >
+          Constructor (stg_laps.constructor_id).
+        tests:
+          - not_null
+      - name: era
+        description: >
+          Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
+        tests:
+          - not_null
+      - name: n_laps
+        description: >
+          Ω laps of this constructor in the race: the re-centring weight.
+        tests:
+          - not_null
+      - name: car_fe_raw_s
+        description: >
+          The fitted constructor×race FE before re-centring, s on the y_s scale; NULL when not
+          identified.
+      - name: car_iso_s
+        description: >
+          Isolation car term, s, NEGATIVE = FASTER than the race's lap-weighted car
+          (int_constructor_car_fe_isolation). NULL when not identified.
+      - name: car_term_source
+        description: >
+          Where car_iso_s came from: driver_era, global_driver (the era fell back),
+          unidentified, not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['driver_era', 'global_driver', 'unidentified', 'not_estimated']
+      - name: race_components_n
+        description: >
+          Connected components the race's constructor×race cells span under the driver key
+          used; 1 = every car level in the race is comparable.
+      - name: connectivity_note
+        description: >
+          The fit's per-era connected-set diagnostics and fallback decision.
+      - name: fit_method
+        description: >
+          Provenance fit identifier (constructor_car_fe_isolation_hdfe_v1).
+      - name: fit_timestamp
+        description: >
+          Provenance UTC timestamp of the fit.
+
+  - name: int_driver_isolation_lap_pace
+    description: >
+      Driver isolation with the car removed: pace_isolated_gain_s = -(y_s - car_iso_s) per Ω
+      lap, positive = faster than the field on an equal car, tyre state, traffic and fuel.
+      Exists so the stint and lap models subtract the car the same way. NULL without a car
+      term, never a car term of 0. Leakage: a function of the residual trajectory; no ML-
+      contract mart may depend on it (T48, ml/tests/test_manifest_contract.py). WI-16a,
+      _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md.
+    tags: [intermediate, driver_isolation]
+    meta:
+      family: skill
+    columns:
+      - name: lap_id
+        description: >
+          Lap identifier (int_lap_residual_decomposed.lap_id).
+        tests:
+          - not_null
+          - unique
+      - name: stint_id
+        description: >
+          Stint identifier (int_stint_geometry.stint_id).
+        tests:
+          - not_null
+      - name: race_year
+        description: >
+          Season.
+        tests:
+          - not_null
+      - name: race_id
+        description: >
+          FastF1 event id, e.g. 2021_8.
+        tests:
+          - not_null
+      - name: driver_id
+        description: >
+          Driver (three-letter code). In the pair mart, the focal driver whose gains the row
+          reports.
+        tests:
+          - not_null
+      - name: constructor_id
+        description: >
+          Constructor (stg_laps.constructor_id).
+        tests:
+          - not_null
+      - name: stint_number
+        description: >
+          Stint ordinal within the driver's race (int_stint_geometry).
+      - name: lap_number
+        description: >
+          Race lap number. Tiers 1 and 3 match cars on it, which is why 2020_1 is excluded
+          (W18).
+        tests:
+          - not_null
+      - name: compound
+        description: >
+          Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
+        tests:
+          - not_null
+      - name: age_in_stint
+        description: >
+          Tyre age in laps (int_stint_geometry).
+        tests:
+          - not_null
+      - name: lap_in_stint
+        description: >
+          Lap ordinal within the stint, counting every lap.
+      - name: valid_lap_in_stint
+        description: >
+          Ordinal among the stint's valid laps; early vs mid phase splits at 5/6.
+      - name: laps_past_cliff
+        description: >
+          Laps beyond the compound seed's cliff onset (0 before it); drives tyre_phase =
+          cliff. Never NULL in Ω.
+      - name: fuel_mass_kg
+        description: >
+          Scheduled-distance fuel load, kg. The same for every car on a lap, so it cancels
+          from every rating (carried for WI-16b's V4 physics check).
+      - name: era
+        description: >
+          Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
+      - name: anomaly_class
+        description: >
+          int_lap_anomaly_flags.anomaly_class; normal or clean_cliff in Ω.
+      - name: air_state_dominant
+        description: >
+          int_lap_air_state.air_state_dominant (context; dirty_air drives the recovery
+          overlay).
+      - name: is_dirty_air_lap
+        description: >
+          TRUE when air_state_dominant = 'dirty_air'.
+      - name: field_n
+        description: >
+          Ω laps on this (race, lap); >= var('isolation_min_field_n') by construction (T40).
+      - name: lap_time_s
+        description: >
+          Raw lap time, s.
+      - name: compound_component_s
+        description: >
+          C: the compound seed's expected cost of this tyre state, s, positive = slower
+          (int_lap_residual_decomposed). Never COALESCEd: an unknown tyre is not in Ω.
+      - name: dirty_air_tax_s
+        description: >
+          D: dirty-air tax, s, positive = slower (int_lap_residual_decomposed).
+      - name: x_s
+        description: >
+          lap_time_s - compound_component_s - dirty_air_tax_s, s.
+      - name: y_s
+        description: >
+          x_s minus the lap's Ω field median of x_s, s. POSITIVE = SLOWER than the field-
+          typical car and driver on the lap. Invariant to the field base, fuel, rubber and
+          ambient terms, which depend on (race, lap) only (T41).
+        tests:
+          - not_null
+      - name: tyre_offset_vs_field_s
+        description: >
+          compound_component_s minus the lap's Ω field median of it, s; positive = this tyre
+          state costs more than the field's. The strategy position on the lap: team-dominated
+          context, not a rating.
+      - name: tyre_phase
+        description: >
+          early (laps_past_cliff = 0, valid_lap_in_stint <= 5), mid (laps_past_cliff = 0, >=
+          6) or cliff (laps_past_cliff > 0), from the seed's onset, so never selected on the
+          residual.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff']
+      - name: is_recovery
+        description: >
+          TRUE on the first var('isolation_recovery_laps') valid laps of a non-dirty-air run
+          directly after >= var('isolation_recovery_min_dirty_run') consecutive dirty-air
+          valid laps in the stint. Backward-looking only.
+      - name: stint_phase
+        description: >
+          'recovery' when is_recovery, else tyre_phase (T45).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff', 'recovery']
+      - name: car_iso_s
+        description: >
+          Isolation car term, s, NEGATIVE = FASTER than the race's lap-weighted car
+          (int_constructor_car_fe_isolation). NULL when not identified.
+      - name: car_term_source
+        description: >
+          Where car_iso_s came from: driver_era, global_driver (the era fell back),
+          unidentified, not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['driver_era', 'global_driver', 'unidentified', 'not_estimated', 'no_fit_row']
+      - name: pace_isolated_gain_s
+        description: >
+          p = -(y_s - car_iso_s), s/lap. POSITIVE = FASTER than the field on an equal car,
+          tyre state, traffic and fuel: the driver plus noise, everything modelled removed.
+          NULL without a car term (never a car term of 0).
+
+  - name: int_driver_isolation_stint_tyre
+    description: >
+      Driver isolation, tier 2's stint layer: each stint's pace line (slope of p on tyre age
+      over its clean early/mid, non-recovery laps; NULL below
+      var('isolation_min_stint_laps') or with Sxx = 0, never NaN), the leave-driver-out peer
+      slope (same race and compound, else the season pool), the car's degradation character
+      (int_constructor_deg_sensitivity), the tactical slope m_s and its SE, the cliff
+      reference kappa_ref, and the per-season noise (sigma_w, rho1, f) every downstream SE
+      uses. Leakage: a function of the residual trajectory; no ML-contract mart may depend
+      on it (T48, ml/tests/test_manifest_contract.py). WI-16a,
+      _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md.
+    tags: [intermediate, driver_isolation]
+    meta:
+      family: skill
+    columns:
+      - name: stint_id
+        description: >
+          Stint identifier (int_stint_geometry.stint_id).
+        tests:
+          - not_null
+          - unique
+      - name: race_year
+        description: >
+          Season.
+        tests:
+          - not_null
+      - name: race_id
+        description: >
+          FastF1 event id, e.g. 2021_8.
+        tests:
+          - not_null
+      - name: driver_id
+        description: >
+          Driver (three-letter code). In the pair mart, the focal driver whose gains the row
+          reports.
+        tests:
+          - not_null
+      - name: constructor_id
+        description: >
+          Constructor (stg_laps.constructor_id).
+        tests:
+          - not_null
+      - name: stint_number
+        description: >
+          Stint ordinal within the driver's race (int_stint_geometry).
+      - name: compound
+        description: >
+          Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
+        tests:
+          - not_null
+      - name: era
+        description: >
+          Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
+      - name: n_omega_laps
+        description: >
+          Ω laps in the stint.
+        tests:
+          - not_null
+      - name: n_pace_laps
+        description: >
+          Ω laps with p (a car term).
+        tests:
+          - not_null
+      - name: n_cliff_laps
+        description: >
+          Ω laps on a cliff tyre.
+        tests:
+          - not_null
+      - name: n_line_laps
+        description: >
+          Line laps the stint's slope was fitted on (early/mid, not recovery, with p). Below
+          var('isolation_min_stint_laps') the slope and every tactical value are NULL.
+        tests:
+          - not_null
+      - name: line_mean_pace_gain_s
+        description: >
+          p_bar: mean p over the line laps, s/lap.
+      - name: line_mean_age_laps
+        description: >
+          Mean tyre age over the line laps, laps.
+      - name: line_ref_age_laps
+        description: >
+          age_ref: the tyre age of the stint's first line lap, laps. Tactical accumulates from
+          here (a declared attribution rule).
+      - name: line_age_sxx
+        description: >
+          Sxx of tyre age over the line laps (REGR_SXX), laps^2.
+      - name: line_slope_s_per_lap2
+        description: >
+          beta_s: REGR_SLOPE(p, age) over the stint's line laps, s/lap per lap of age; > 0 =
+          his isolated pace rises through the stint. NULL below the line floor or with Sxx = 0
+          (never NaN).
+      - name: line_slope_se_s_per_lap2
+        description: >
+          OLS SE of the line slope, sigma_w / sqrt(Sxx f), s/lap^2.
+      - name: tactical_peer_source
+        description: >
+          Where the peer slope came from: race (>= var('isolation_min_peer_stints') other
+          drivers' stints on the compound in the race), season_pool (the (race_year, compound)
+          pool, leave-driver-out) or none.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['race', 'season_pool', 'none']
+      - name: n_peer_stints
+        description: >
+          Peer stints behind the chosen peer slope.
+        tests:
+          - not_null
+      - name: peer_line_slope_s_per_lap2
+        description: >
+          Median line slope of the peer stints, s/lap^2.
+      - name: peer_line_slope_sd_s_per_lap2
+        description: >
+          SD of the peer stints' line slopes, s/lap^2.
+      - name: peer_line_slope_se_s_per_lap2
+        description: >
+          1.2533 * SD / sqrt(n_peer_stints): SE of the peer median, s/lap^2.
+      - name: car_deg_s_per_lap
+        description: >
+          The constructor's degradation deviation for (season, compound), s/lap per lap,
+          positive = degrades faster; 0.0 when imputed.
+        tests:
+          - not_null
+      - name: car_deg_imputed
+        description: >
+          TRUE when int_constructor_deg_sensitivity has no cell for (season, constructor,
+          compound) and car_deg took 0.0, its prior mean (every 2018 stint on a legacy
+          compound name).
+        tests:
+          - not_null
+      - name: peer_car_deg_s_per_lap
+        description: >
+          Median car_deg over the same peer stints.
+      - name: car_deg_adjustment_s_per_lap2
+        description: >
+          car_deg - peer_car_deg: the term that takes the car's degradation character out of
+          m_s.
+      - name: tactical_slope_s_per_lap2
+        description: >
+          m_s, s/lap per lap of tyre age: (beta_s - peer slope) + (car_deg - peers' car_deg).
+          POSITIVE = his tyres fade SLOWER than same-compound peers', car degradation
+          character removed. NULL without a line or peers.
+      - name: tactical_slope_se_s_per_lap2
+        description: >
+          SE of m_s, s/lap^2: the line slope's OLS SE (sigma_w / sqrt(Sxx f)) and the peer-
+          median SE (1.2533 SD / sqrt(n)) in quadrature.
+      - name: kappa_ref_source
+        description: >
+          Where kappa_ref came from: race (>= 10 peer cliff laps on the race and compound),
+          season_pool or none.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['race', 'season_pool', 'none']
+      - name: n_peer_cliff_laps
+        description: >
+          Peer cliff laps behind kappa_ref.
+        tests:
+          - not_null
+      - name: kappa_ref_gain_s
+        description: >
+          The peers' mean kappa (leave-driver-out, same race and compound; else the season
+          pool), s. See kappa_ref_source.
+      - name: season_sigma_w_s
+        description: >
+          Pooled within-stint SD of p around its stint line for the season, s.
+      - name: season_rho1
+        description: >
+          Pooled lag-1 autocorrelation of those line residuals for the season (adjacent laps
+          only).
+      - name: season_neff_factor
+        description: >
+          f = (1 - rho+)/(1 + rho+), rho+ = GREATEST(season_rho1, 0): the effective-sample
+          factor every SE uses. NULL if rho cannot be measured.
+
+  - name: int_driver_isolation_lap_values
+    description: >
+      Driver isolation tiers 1 and 2 per Ω lap: tactical_gain_s (m_s times tyre age since
+      the first line lap, plus the excess cliff departure past the cliff) and
+      pure_skill_gain_s = p - tactical. pure + tactical = p exactly wherever tactical exists
+      (T42). NULLs are declared, never zeros: no car term -> both NULL; no m_s -> tactical
+      NULL and pure = p on a pre-cliff lap (tactical_available FALSE), both NULL on a cliff
+      lap. Positive = faster. Leakage: a function of the residual trajectory; no ML-contract
+      mart may depend on it (T48, ml/tests/test_manifest_contract.py). WI-16a,
+      _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md.
+    tags: [intermediate, driver_isolation]
+    meta:
+      family: skill
+    columns:
+      - name: lap_id
+        description: >
+          Lap identifier (int_lap_residual_decomposed.lap_id).
+        tests:
+          - not_null
+          - unique
+      - name: stint_id
+        description: >
+          Stint identifier (int_stint_geometry.stint_id).
+        tests:
+          - not_null
+      - name: race_year
+        description: >
+          Season.
+        tests:
+          - not_null
+      - name: race_id
+        description: >
+          FastF1 event id, e.g. 2021_8.
+        tests:
+          - not_null
+      - name: driver_id
+        description: >
+          Driver (three-letter code). In the pair mart, the focal driver whose gains the row
+          reports.
+        tests:
+          - not_null
+      - name: constructor_id
+        description: >
+          Constructor (stg_laps.constructor_id).
+        tests:
+          - not_null
+      - name: stint_number
+        description: >
+          Stint ordinal within the driver's race (int_stint_geometry).
+      - name: lap_number
+        description: >
+          Race lap number. Tiers 1 and 3 match cars on it, which is why 2020_1 is excluded
+          (W18).
+        tests:
+          - not_null
+      - name: compound
+        description: >
+          Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
+        tests:
+          - not_null
+      - name: age_in_stint
+        description: >
+          Tyre age in laps (int_stint_geometry).
+        tests:
+          - not_null
+      - name: lap_in_stint
+        description: >
+          Lap ordinal within the stint, counting every lap.
+      - name: valid_lap_in_stint
+        description: >
+          Ordinal among the stint's valid laps; early vs mid phase splits at 5/6.
+      - name: laps_past_cliff
+        description: >
+          Laps beyond the compound seed's cliff onset (0 before it); drives tyre_phase =
+          cliff. Never NULL in Ω.
+      - name: fuel_mass_kg
+        description: >
+          Scheduled-distance fuel load, kg. The same for every car on a lap, so it cancels
+          from every rating (carried for WI-16b's V4 physics check).
+      - name: era
+        description: >
+          Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
+      - name: anomaly_class
+        description: >
+          int_lap_anomaly_flags.anomaly_class; normal or clean_cliff in Ω.
+      - name: air_state_dominant
+        description: >
+          int_lap_air_state.air_state_dominant (context; dirty_air drives the recovery
+          overlay).
+      - name: is_dirty_air_lap
+        description: >
+          TRUE when air_state_dominant = 'dirty_air'.
+      - name: field_n
+        description: >
+          Ω laps on this (race, lap); >= var('isolation_min_field_n') by construction (T40).
+      - name: tyre_phase
+        description: >
+          early (laps_past_cliff = 0, valid_lap_in_stint <= 5), mid (laps_past_cliff = 0, >=
+          6) or cliff (laps_past_cliff > 0), from the seed's onset, so never selected on the
+          residual.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff']
+      - name: is_recovery
+        description: >
+          TRUE on the first var('isolation_recovery_laps') valid laps of a non-dirty-air run
+          directly after >= var('isolation_recovery_min_dirty_run') consecutive dirty-air
+          valid laps in the stint. Backward-looking only.
+      - name: stint_phase
+        description: >
+          'recovery' when is_recovery, else tyre_phase (T45).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['early', 'mid', 'cliff', 'recovery']
+      - name: lap_time_s
+        description: >
+          Raw lap time, s.
+      - name: compound_component_s
+        description: >
+          C: the compound seed's expected cost of this tyre state, s, positive = slower
+          (int_lap_residual_decomposed). Never COALESCEd: an unknown tyre is not in Ω.
+      - name: dirty_air_tax_s
+        description: >
+          D: dirty-air tax, s, positive = slower (int_lap_residual_decomposed).
+      - name: x_s
+        description: >
+          lap_time_s - compound_component_s - dirty_air_tax_s, s.
+      - name: y_s
+        description: >
+          x_s minus the lap's Ω field median of x_s, s. POSITIVE = SLOWER than the field-
+          typical car and driver on the lap. Invariant to the field base, fuel, rubber and
+          ambient terms, which depend on (race, lap) only (T41).
+      - name: tyre_offset_vs_field_s
+        description: >
+          compound_component_s minus the lap's Ω field median of it, s; positive = this tyre
+          state costs more than the field's. The strategy position on the lap: team-dominated
+          context, not a rating.
+      - name: car_iso_s
+        description: >
+          Isolation car term, s, NEGATIVE = FASTER than the race's lap-weighted car
+          (int_constructor_car_fe_isolation). NULL when not identified.
+      - name: car_term_source
+        description: >
+          Where car_iso_s came from: driver_era, global_driver (the era fell back),
+          unidentified, not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['driver_era', 'global_driver', 'unidentified', 'not_estimated', 'no_fit_row']
+      - name: pace_isolated_gain_s
+        description: >
+          p = -(y_s - car_iso_s), s/lap. POSITIVE = FASTER than the field on an equal car,
+          tyre state, traffic and fuel: the driver plus noise, everything modelled removed.
+          NULL without a car term (never a car term of 0).
+      - name: tactical_gain_s
+        description: >
+          Tier 2, s/lap, POSITIVE = gaining: m_s * (age_in_stint - age_ref) before the cliff;
+          past it, plus (kappa - kappa_ref), how much softer (+) or harder (-, overextension)
+          the cliff bit than it bit same-compound peers. NULL when m_s is NULL (never 0), or
+          on a cliff lap with no kappa_ref.
+      - name: pure_skill_gain_s
+        description: >
+          Tier 1, s/lap, POSITIVE = FASTER: p - tactical_gain_s, the pace against the field as
+          if the tyres had faded like peers'. = p when tactical is unavailable on a pre-cliff
+          lap (tactical_available FALSE); NULL on a cliff lap without tactical. On cliff laps
+          it is the extrapolated line (pure_is_extrapolated) and pure aggregates skip it.
+      - name: pure_is_extrapolated
+        description: >
+          TRUE on cliff-tyre laps: pure_skill_gain_s there is the extrapolated pre-cliff line
+          plus the peers' mean cliff departure, not a driver measurement; aggregates exclude
+          these laps.
+        tests:
+          - not_null
+      - name: tactical_available
+        description: >
+          TRUE when tactical_gain_s is non-NULL (so pure_skill_gain_s has tactical taken out).
+        tests:
+          - not_null
+      - name: kappa_gain_s
+        description: >
+          kappa on a cliff-tyre lap: p minus the stint's pre-cliff line extrapolated to this
+          age, s; positive = faster than his own line predicts. NULL off the cliff or without
+          a line.
+      - name: n_line_laps
+        description: >
+          Line laps the stint's slope was fitted on (early/mid, not recovery, with p). Below
+          var('isolation_min_stint_laps') the slope and every tactical value are NULL.
+      - name: line_ref_age_laps
+        description: >
+          age_ref: the tyre age of the stint's first line lap, laps. Tactical accumulates from
+          here (a declared attribution rule).
+      - name: age_from_ref_laps
+        description: >
+          age_in_stint - line_ref_age_laps, laps: the lever tactical_gain_s multiplies m_s by.
+          NULL when m_s is NULL.
+      - name: tactical_slope_s_per_lap2
+        description: >
+          m_s, s/lap per lap of tyre age: (beta_s - peer slope) + (car_deg - peers' car_deg).
+          POSITIVE = his tyres fade SLOWER than same-compound peers', car degradation
+          character removed. NULL without a line or peers.
+      - name: tactical_slope_se_s_per_lap2
+        description: >
+          SE of m_s, s/lap^2: the line slope's OLS SE (sigma_w / sqrt(Sxx f)) and the peer-
+          median SE (1.2533 SD / sqrt(n)) in quadrature.
+      - name: tactical_peer_source
+        description: >
+          Where the peer slope came from: race (>= var('isolation_min_peer_stints') other
+          drivers' stints on the compound in the race), season_pool (the (race_year, compound)
+          pool, leave-driver-out) or none.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['race', 'season_pool', 'none']
+      - name: kappa_ref_gain_s
+        description: >
+          The peers' mean kappa (leave-driver-out, same race and compound; else the season
+          pool), s. See kappa_ref_source.
+      - name: kappa_ref_source
+        description: >
+          Where kappa_ref came from: race (>= 10 peer cliff laps on the race and compound),
+          season_pool or none.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['race', 'season_pool', 'none']
+      - name: season_sigma_w_s
+        description: >
+          Pooled within-stint SD of p around its stint line for the season, s.
+      - name: season_neff_factor
+        description: >
+          f = (1 - rho+)/(1 + rho+), rho+ = GREATEST(season_rho1, 0): the effective-sample
+          factor every SE uses. NULL if rho cannot be measured.

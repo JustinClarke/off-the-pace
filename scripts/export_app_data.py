@@ -530,13 +530,20 @@ def build_stats_block(conn) -> dict:
         import glob as _glob
         dbt_model_count = len(_glob.glob(str(ROOT / "transform" / "models" / "**" / "*.sql"), recursive=True))
 
-    # ML models: count production _v1.onnx files only (excludes smoke-test variants)
-    ml_models_dir = ROOT / "ml" / "models"
-    ml_model_count = (
-        len(list(ml_models_dir.glob("*_v1.onnx")))
-        if ml_models_dir.exists()
-        else 0
-    )
+    # ML models: count from model_card.json's beats_baseline_significant flags
+    ml_model_count = 0
+    model_card_path = ROOT / "ml" / "model_card.json"
+    if model_card_path.exists():
+        try:
+            with open(model_card_path) as f:
+                model_card = json.load(f)
+            # Count models where beats_baseline_significant is True
+            ml_model_count = sum(
+                1 for model in model_card.get("models", [])
+                if model.get("beats_baseline_significant", False)
+            )
+        except Exception:
+            ml_model_count = 0
 
     # Read era_boundary from transform/dbt_project.yml vars so the manifest
     # stays in sync with the dbt var without a separate hardcode here.
@@ -553,7 +560,10 @@ def build_stats_block(conn) -> dict:
 
     total_drivers = conn.execute("SELECT COUNT(*) FROM dim_drivers").fetchone()[0]
     total_events = conn.execute("SELECT COUNT(*) FROM dim_events").fetchone()[0]
-    total_circuits = conn.execute("SELECT COUNT(*) FROM dim_circuits").fetchone()[0]
+    # Count only raced circuits: circuits that appear in race_to_track
+    total_circuits = conn.execute(
+        "SELECT COUNT(DISTINCT circuit_key) FROM (SELECT DISTINCT track_id AS circuit_key FROM race_to_track)"
+    ).fetchone()[0]
 
     return {
         "total_laps": total_laps,

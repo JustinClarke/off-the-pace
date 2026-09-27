@@ -37,7 +37,7 @@ Three generic dbt/`dbt_expectations` test kinds, individually small but sharing 
     | `stg_track_status.status_label` | `all_clear`, `yellow`, `safety_car`, `vsc`, `vsc_ending`, `red_flag`, `unknown` |
     | `int_sector_residual_decomposed.dominant_component_class` | `fuel`, `compound`, `rubber`, `ambient`, `constructor`, `dirty_air` |
     | `int_pit_strategy_value.strategy_verdict` | `optimal`, `overran`, `undercut_forced`, `early`, `unknown` |
-    | `int_tyre_surface_vs_bulk_decoupling.degradation_source` | `surface_driven`, `bulk_driven`, `mixed` |
+    | `int_tyre_surface_vs_bulk_decoupling.degradation_source` | `bulk_driven`, `mixed` (`surface_driven` removed by F49: its threshold sat above the ratio's ceiling; `assert_degradation_source_classes_reachable` checks every value has rows) |
     | `era` / `era_key` (`mart_degradation_history_envelope`, `int_driver_circuit_era_affinity`) | `pre2022`, `post2022` |
   </Accordion>
   <Accordion title="Cross-column monotonicity">

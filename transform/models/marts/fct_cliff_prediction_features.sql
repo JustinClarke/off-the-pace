@@ -28,6 +28,7 @@ WITH residuals AS (
         compound,
         fuel_mass_kg,
         correction_weight,
+        is_lap_after_restart,
         driver_skill_residual_s
     FROM {{ ref('int_lap_residual_decomposed') }}
 ),
@@ -367,6 +368,9 @@ base AS (
         a.anomaly_class,
         a.cliff_candidate_flag,
         a.is_rain_lap,
+        -- FD2: internal only (read by is_training_eligible, not in the
+        -- final SELECT, so the enforced contract is unchanged).
+        r.is_lap_after_restart,
 
         -- Cliff prediction
         c.expected_compound_pace_s,
@@ -555,10 +559,17 @@ base AS (
         ) AS survival_weight,
 
         -- C3: surface/total thermal load ratio warm-up attribution feature.
-        COALESCE(th.cumulative_push_load_surface, 0.0)
+        -- F49 (WI-15b): each load normalised by its own weight sum, so a steady
+        -- push reads 0.5 (it read 0.394, with a hard cap at 0.5). Range [0, 0.606];
+        -- see int_tyre_surface_vs_bulk_decoupling for the derivation. A monotone
+        -- function of the old expression, so tree splits on it are unchanged.
+        (COALESCE(th.cumulative_push_load_surface, 0.0)
+            / {{ var('thermal_surface_weight_sum') }})
         / NULLIF(
-            COALESCE(th.cumulative_push_load_surface, 0.0)
-            + COALESCE(th.cumulative_push_load_bulk, 0.0),
+            (COALESCE(th.cumulative_push_load_surface, 0.0)
+                / {{ var('thermal_surface_weight_sum') }})
+            + (COALESCE(th.cumulative_push_load_bulk, 0.0)
+                / {{ var('thermal_bulk_weight_sum') }}),
             0.0
         ) AS surface_bulk_ratio
 
@@ -636,13 +647,38 @@ cliff_scan AS (
     GROUP BY a.lap_id
 ),
 
+-- WI-01/F1: the nearest later lap in this stint whose OWN residual is
+-- unmeasured (a fabricated-base lap is NULL now, not COALESCEd -- see
+-- int_lap_residual_decomposed). Its comparison to `a` inside cliff_scan above
+-- is neither TRUE nor FALSE, it is UNKNOWN, so the INNER JOIN there simply
+-- never proposes it as a crossing: a real crossing sitting on or past an
+-- unknown lap can be silently skipped rather than found, and the scan would
+-- misread that as "no crossing" instead of "don't know." Kept as its own CTE
+-- (rather than a second join predicate inside cliff_scan) to avoid an
+-- unrelated fan-out between the two independent MINs.
+unknown_gap_scan AS (
+    SELECT
+        a.lap_id,
+        MIN(g.lap_in_stint - a.lap_in_stint) AS nearest_unknown_gap
+    FROM base AS a
+    INNER JOIN base AS g
+        ON
+            a.stint_id = g.stint_id
+            AND a.lap_in_stint < g.lap_in_stint
+            AND g.driver_skill_residual_s IS NULL
+    GROUP BY a.lap_id
+),
+
 -- Compute targets: single-lap and multi-horizon degradation jumps.
 --
 -- Every bound below is clamp_or_null, not GREATEST(LEAST(x, hi), lo): DuckDB's
 -- LEAST/GREATEST skip NULL arguments, so a NULL residual anywhere in a window
 -- would have come out as the upper bound (+10 / +30 / +50 s) instead of NULL.
--- No residual is NULL today, so no label value moves; the guard is for the day
--- one is (F39's latent sibling in the label clips).
+-- WI-01/F1: driver_skill_residual_s CAN be NULL now (a lap the field curve
+-- has no measured base for), so this guard is live, not defensive -- a NULL
+-- anywhere in a window correctly NULLs the whole window's label rather than
+-- being clamped to a fabricated bound (F39's latent sibling in the label
+-- clips, T2).
 with_target AS (
     SELECT
         *,
@@ -723,15 +759,36 @@ with_cliff_class AS (
     SELECT
         wt.*,
         CASE
+            -- WI-01/F1: this lap's own residual is unmeasured (fabricated-base
+            -- lap) -- there is no honest starting point to scan a cliff from.
+            WHEN wt.driver_skill_residual_s IS NULL THEN NULL
             WHEN ch.last_lap_in_stint <= wt.lap_in_stint THEN NULL
-            WHEN cs.laps_until_cliff <= 2 THEN '0_to_2'
-            WHEN cs.laps_until_cliff <= 5 THEN '3_to_5'
-            WHEN cs.laps_until_cliff IS NOT NULL THEN '6_plus'
+            -- A confirmed crossing found strictly before the nearest unknown
+            -- lap is trustworthy: the scan reached it without passing through
+            -- unmeasured territory.
+            WHEN
+                cs.laps_until_cliff <= 2
+                AND (ug.nearest_unknown_gap IS NULL OR ug.nearest_unknown_gap > cs.laps_until_cliff)
+                THEN '0_to_2'
+            WHEN
+                cs.laps_until_cliff <= 5
+                AND (ug.nearest_unknown_gap IS NULL OR ug.nearest_unknown_gap > cs.laps_until_cliff)
+                THEN '3_to_5'
+            WHEN
+                cs.laps_until_cliff IS NOT NULL
+                AND (ug.nearest_unknown_gap IS NULL OR ug.nearest_unknown_gap > cs.laps_until_cliff)
+                THEN '6_plus'
+            -- WI-01/F1: no crossing was found before hitting an unmeasured lap
+            -- (or a real crossing sits ON or PAST it) -- a crossing could be
+            -- hiding in the unscanned stretch, so this is "don't know," not
+            -- "none in stint."
+            WHEN ug.nearest_unknown_gap IS NOT NULL THEN NULL
             ELSE 'none_in_stint'
         END AS laps_until_cliff_class
     FROM with_target AS wt
     LEFT JOIN cliff_scan AS cs ON wt.lap_id = cs.lap_id
     LEFT JOIN cliff_horizon AS ch ON wt.stint_id = ch.stint_id
+    LEFT JOIN unknown_gap_scan AS ug ON wt.lap_id = ug.lap_id
 )
 
 SELECT
@@ -916,10 +973,16 @@ SELECT
     survival_weight,
 
     -- Training eligibility: exclude early stint warmup and obvious anomalies.
+    -- F51 / FD2 (ruled exclude, not weight): event_driven anomalies (SC/VSC/
+    -- red-flag/restart lap/pre-deployment/local-yellow) AND the lap after an
+    -- SC or red-flag restart lap (int_event_corrections.is_lap_after_restart;
+    -- FD2 measured its label as a -5.1 s fake recovery) are both out.
+    -- correction_weight is still not applied as a sample weight anywhere.
     -- COALESCE guards against NULLs from LEFT JOINs producing NULL boolean.
     COALESCE(
         age_in_stint > 3
-        AND COALESCE(anomaly_class, 'normal') NOT IN ('mistake', 'conditions'),
+        AND COALESCE(anomaly_class, 'normal') NOT IN ('mistake', 'conditions', 'event_driven')
+        AND NOT COALESCE(is_lap_after_restart, FALSE),
         FALSE
     ) AS is_training_eligible
 

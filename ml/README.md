@@ -22,6 +22,50 @@ Each ships as a `.bst` **and** a parity-tested `.onnx`. Artefacts are versioned;
 version, feature list and metrics are defined in `src/schema.py` (`MODEL_VERSION_DEFAULT`) and
 recorded in `models/manifest.json` / `models/model_card.json`. Older versions are kept for diffing.
 
+### Label spine version bump (WI-01 + WI-12, 2026-09-27)
+
+The shipped `v14` model card above was trained on the **pre-WI-01 label**. WI-01
+(`_roadmap/_fixes/wi/WI-01-label-spine.md`) rebuilt `int_field_pace_curve` and
+`int_lap_residual_decomposed`, and the residual both labels are built from now has
+**five additive terms, not seven**:
+`pace_delta_s = fuel + compound + constructor + dirty_air_tax + driver_skill`.
+
+- The field base is fuel- **and** compound-neutral (not just fuel). Rubber and
+  ambient track state live only inside the base; they are no longer subtracted a
+  second time on top of it (they stay on the table as informational columns).
+- Laps with no measured field base, or an unknown tyre cost, carry a NULL label
+  instead of a fabricated one, and unknown-tyre laps no longer enter the base.
+- `compound_grip_peak` (a unitless ratio) is no longer added into
+  `expected_compound_pace_s` as if it were seconds.
+- `circuit_constructor_interaction_s` is out of `constructor_component_s` (it sat on
+  top of a per-race constructor level that already spans the circuit).
+- `theta_air` is 0.331 s/lap (`theta_air_label_value`): the within-stint estimate
+  (stint fixed effects plus tyre-age bins), fitted with tyre cost subtracted from its
+  calibration residual the same way fuel is, on a declared season window
+  (`theta_air_fit_season_max: 2025`), and frozen as a declared value.
+- `event_driven` laps (SC/VSC/red-flag/restart/pre-deployment/local yellow) and the
+  lap after an SC or red-flag restart are excluded from `is_training_eligible` (FD2).
+
+`next_5_lap_cumulative_jump_s` and `laps_until_cliff_class` move on this rebuild
+(F38 alone moved 72% of pre-fix labels by more than 250 ms).
+
+**WI-01 and WI-12 together are one version bump.** `theta_air` passed through two
+interim values inside it: WI-01's pooled 0.503 s/lap, then 0.331 once WI-12's 06b
+re-measure showed the pooled slope bills some car pace as dirty air (ruling W40,
+2026-09-27; `_roadmap/_fixes/wi/WI-12-06b-remeasure.md`). The final label, the one a
+`v14` configuration is rebuilt on for comparison, carries 0.331. Nothing measured on
+the 0.503 state is kept as a comparison base. Moving from 0.503 to 0.331 alone moved
+84,486 of 106,394 `next_5_lap_cumulative_jump_s` labels (31,551 by more than 250 ms)
+and 4,207 `laps_until_cliff_class` values.
+
+**Every number published against `v14` (or any earlier version) is "not
+fixed-target" from this point on.** A new headline on the new label is compared only
+against a `v14` configuration rebuilt on the new label, never against the published
+numbers. Until a `v15` retrain lands (not yet scheduled; WI-01 is what unblocks it),
+`v14`'s artefacts in `ml/models/` are still the ones the app serves, fit on the
+pre-bump label. WI-12 is not a retrain: it is the 06b dirty-air re-measure on the new
+label, and its W40 ruling set the label's final `theta_air`.
+
 ## Quickstart (one venv at repo root)
 
 ```bash

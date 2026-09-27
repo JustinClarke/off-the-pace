@@ -236,3 +236,74 @@ seeds:
                 row_condition: "fit_date is not null"
               config:
                 severity: warn
+
+  - name: driver_isolation_method_scores
+    description: >
+      Method score per driver-isolation rating (WI-16), written by WI-16b's
+      scripts/validate_driver_isolation.py --write-seed from the V1-V6 validation
+      (pre-registered in _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md). Committed
+      by WI-16a with three unvalidated rows and NULL scores, so every confidence_pct is NULL
+      and every trust_label 'unvalidated' until the method is graded.
+    columns:
+      - name: rating
+        description: pure, tactical or relative.
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              arguments:
+                values: ['pure', 'tactical', 'relative']
+      - name: method_score
+        description: >
+          Weighted mean of the rating's V-test scores (PASS 1, MARGINAL 0.5, FAIL 0), or 0
+          on a critical fail; in [0, 1]. NULL until validated.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: grade
+        description: A (>= 0.9), B (>= 0.75), C (>= 0.5), F (< 0.5 or a critical fail; suppresses the rating), or unvalidated.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['A', 'B', 'C', 'F', 'unvalidated']
+      - name: tests_applicable
+        description: V-tests applicable to the rating.
+      - name: tests_passed
+        description: Of those, how many PASSed.
+      - name: critical_failed
+        description: The critical tests that FAILed, if any (a critical fail sets the score to 0).
+      - name: validated_at
+        description: UTC timestamp of the validation run.
+      - name: substrate
+        description: What was validated (git SHA and warehouse mtime).
+      - name: report_path
+        description: Path of the validation report the score came from.
+
+  - name: label_stability_baseline
+    description: >
+      WI-01 (T9, F5) frozen per-season label snapshot, taken the day the label spine
+      version bumped (2026-09-27). assert_prior_season_labels_frozen.sql warns if a
+      COMPLETE season's next_5_lap_cumulative_jump_s stats drift from this on a later
+      build -- a sign a pooled parameter (theta_air, a compound refit, ...) silently
+      relabelled already-published history. Refresh deliberately (with a note here and
+      in the label-version doc) the next time the label version bumps.
+      Re-taken 2026-09-27 after W40 moved theta_air_label_value from 0.5033 (WI-01's
+      interim pooled value) to 0.331: the second half of the same bump (WI-01 + WI-12).
+      Row counts unchanged; five of seven season means moved by more than 0.001 s.
+    columns:
+      - name: race_year
+        description: Season year. Excludes the latest ingested season (still receiving rows).
+        tests:
+          - not_null
+          - unique
+      - name: row_count
+        description: Count of fct_cliff_prediction_features rows with a non-null next_5_lap_cumulative_jump_s, for this season, at freeze time.
+        tests:
+          - not_null
+      - name: mean_next_5_lap_jump_s
+        description: AVG(next_5_lap_cumulative_jump_s) for this season, at freeze time, rounded to 4 places.
+        tests:
+          - not_null

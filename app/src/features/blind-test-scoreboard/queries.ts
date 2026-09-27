@@ -71,7 +71,7 @@ export const queryScoreboardRows = registerQuery<{ season: number }, ScoreboardR
         p.predicted_degradation_jump_s,
         p.predicted_degradation_jump_p10_s,
         p.predicted_degradation_jump_p90_s,
-        f.next_lap_degradation_jump_s   AS actual_degradation_jump_s,
+        f.next_5_lap_cumulative_jump_s   AS actual_degradation_jump_s,
         p.is_in_envelope,
         p.predicted_cliff_class,
         f.laps_until_cliff_class        AS actual_cliff_class,

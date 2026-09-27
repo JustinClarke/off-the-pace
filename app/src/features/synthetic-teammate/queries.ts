@@ -25,8 +25,8 @@ export const querySyntheticTeammate = registerQuery<Params, SyntheticTmRow[]>(
     return rawQuery<SyntheticTmRow>(`
       SELECT
         ego_driver_id                                    AS driver_id,
-        ANY_VALUE(teammate_driver_id)                   AS teammate_driver_id,
-        ANY_VALUE(constructor_id)                       AS constructor_id,
+        STRING_AGG(DISTINCT teammate_driver_id, ', ') AS teammate_driver_id,
+        STRING_AGG(DISTINCT constructor_id, ', ')     AS constructor_id,
         COUNT(DISTINCT race_id)                         AS n_races,
         AVG(driver_skill_proxy_s)                       AS avg_skill_proxy_s,
         AVG(pair_quality_weight)                        AS avg_quality_weight

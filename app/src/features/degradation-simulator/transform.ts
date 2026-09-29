@@ -309,11 +309,28 @@ export function recomposeLapTimes(
   )
   const analyticalRate = opts.analyticalDegRatePerLap ?? 0
 
+  // Find the first lap with fitted data to initialize the working window; avoids flat-lining when
+  // early laps lack data (e.g., lap 1 rows dropped from fuel_state, causing negative degradation
+  // on drying tracks to be clamped to 0).
+  let firstWorkLap = 0
+  let lastWork = 0, lastWork10 = 0, lastWork90 = 0
+  if (hasFittedHistory) {
+    for (let k = 1; k <= Math.max(0, Math.round(opts.stintLength)); k++) {
+      const h = histByLap.get(k)
+      if (h?.obs_deg_from_fresh_p50_mono_s != null) {
+        firstWorkLap = k
+        lastWork = h.obs_deg_from_fresh_p50_mono_s
+        lastWork10 = h.obs_deg_from_fresh_p10_mono_s ?? lastWork - 0.3
+        lastWork90 = h.obs_deg_from_fresh_p90_mono_s ?? lastWork + 0.5
+        break
+      }
+    }
+  }
+
   const laptimeCurve: LaptimePoint[] = []
   const historyBand:  HistoryBandPoint[] = []
   let prevTyre = -Infinity // running-max guard: belt-and-suspenders monotonicity
   // The observed working window is held flat past the last fitted lap; the cliff term supplies the rise.
-  let lastWork = 0, lastWork10 = 0, lastWork90 = 0
 
   const stintLength = Math.max(0, Math.round(opts.stintLength))
   for (let k = 1; k <= stintLength; k++) {

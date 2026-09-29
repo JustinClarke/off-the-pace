@@ -210,9 +210,9 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 _Generated from the watch rules in [`build-log.json`](build-log.json) (`watch_rules`); watch entries update automatically as items land or decisions resolve. A rule whose trigger needs something the log cannot see (a commit, a re-export, a rebuild, your ruling) stays open until its `resolved` and `resolution` are recorded._
 
-**22 open** (2 ship-blockers). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
+**19 open** (0 ship-blockers). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
 
-Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (6 haiku, 12 sonnet, 4 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
+Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (5 haiku, 10 sonnet, 4 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
 
 - **`haiku`** — Maps to haiku-4-5. A binary check, or recording a resolution the evidence or the user has already settled: is it committed, did the named tests pass on the rebuild, write down the accept. The output has a mechanical check (a test result, a file list, git log).
 - **`sonnet`** — Maps to sonnet-5. The fix or the options are written down in the rule: pick between two named options, run a named rebuild or export and check the pages, review a diff, reconcile counts, reword text to a meaning already settled.
@@ -220,9 +220,6 @@ Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for tok
 
 | ID | Kind | Item | Model | What | Clears when |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| W1 | ship-blocker | WI-13 | `haiku` | Re-export int_pit_strategy_value to app/public/data before the pit-strategy change ships | The parquet is re-exported (the user's call, it rewrites tracked files) and the page is checked against the committed data. |
-| W55 | ship-blocker | WI-14b | `sonnet` | Re-export the rating-chain tables to app/public/data before WI-14b's app changes ship | int_driver_race_skill_loro, int_driver_circuit_affinity and int_era_normalized_driver_rating are re-exported from a dev warehouse built with WI-14b (the user's call; it rewrites tracked files) and the three pages are checked against the committed data. |
-| W25 | hazard | WI-15b | `sonnet` | Do not re-export fct_cliff_prediction_features for the app before the models are retrained on WI-15b's features | The mart export ships together with models retrained on the WI-15b features (WI-01's version bump), and int_tyre_surface_vs_bulk_decoupling is re-exported. |
 | W4 | unreviewed | — | `sonnet` | Ingestion-hardening agent's partial work is in the working tree, unread and untested | The diff is reviewed and ingestion/tests pass and the change is kept, or the changes are discarded (git checkout on the modified paths plus deleting the four new files; destructive, the user's call). |
 | W5 | unverified | WI-09 | `sonnet` | WI-09's new tests and one source form have only run on the dev target | A CI-target build runs them (not done: this tree does not touch data/ci.duckdb). |
 | W33 | unverified | WI-16b | `opus` | The isolation car term falls back to the global driver key in both eras; its car/driver split is unvalidated | WI-16b's V1c/V2a/V3a are run and graded, and the result is stated in its As built section. |

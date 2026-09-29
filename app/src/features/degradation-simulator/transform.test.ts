@@ -7,6 +7,7 @@ import type { StintFeatureRow, HistoryEnvelopeRow } from './queries'
 import { projectedDegMAE, monotoneViolations } from './accuracy'
 import type { TyrePoint } from './accuracy'
 import accuracyBasket from './__fixtures__/accuracy_basket.json'
+import fittedBasket from './__fixtures__/fitted_basket.json'
 
 function pred(p10: number, p50: number, p90: number, life: number, probs: Record<string, number>, label: string): LapPrediction {
   return {
@@ -407,10 +408,15 @@ describe('accuracy metrics (P0.3)', () => {
     expect(monotoneViolations([5])).toBe(0)
   })
 
-  it('all 5 basket cells have raw-median violations (confirming v2 bug is real)', () => {
-    const basket = (accuracyBasket as typeof accuracyBasket).basket
-    for (const cell of basket.slice(0, 4)) { // dry compounds expected to show survivorship
-      const p50Series = cell.samples.map(s => s.obs_deg_from_fresh_p50_s)
+  it('dry basket cells have raw-median violations across every lap (confirming v2 bug is real)', () => {
+    // Checked over ALL laps of each cell (fitted_basket.json holds every envelope row), not the six
+    // accuracy_basket sample laps: on the Sep 29 warehouse the six sampled laps of the Red Bull Ring
+    // HARD/MEDIUM cells happen to rise smoothly, while the full cells still dip 10-24 times.
+    const cells = (fittedBasket as typeof fittedBasket).cells
+    for (const cell of cells.slice(0, 4)) { // dry compounds expected to show survivorship
+      const p50Series = [...cell.rows]
+        .sort((a, b) => a.lap_in_stint - b.lap_in_stint)
+        .map(r => r.obs_deg_from_fresh_p50_s)
       expect(monotoneViolations(p50Series)).toBeGreaterThan(0)
     }
   })

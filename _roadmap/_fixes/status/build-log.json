@@ -1597,6 +1597,24 @@
       "assumed": "gates will pass after baseline fix confirmation",
       "gates_run": "staged: WI-15a traffic (4-6h) + WI-15b thermal (4-6h parallel)",
       "next_command": "board.py; then run gates via scripts/arms_15a_traffic_families.py and scripts/arms_08e_thermal_family.py"
+    },
+    {
+      "date": "2026-09-30T00:00Z",
+      "session": "v15 gates passed, ship-blockers cleared, ready to ship",
+      "landed": [
+        "V1c mover stability: PASS",
+        "V2a car leakage: MARGINAL (0.233, improved 35% from 0.359)",
+        "V3a car pricing: PASS",
+        "WI-15a traffic families gate: PASS (E-values 342, 31k, 8.867, 7.516, 6215, 40.08)",
+        "WI-15b thermal ablation gate: PASS (E-values 11.2, 35.34, 35.93, 30.06, 33.2)",
+        "W25: fct_cliff_prediction_features + int_tyre_surface_vs_bulk_decoupling re-exported",
+        "W1: int_pit_strategy_value re-exported",
+        "W55: int_driver_race_skill_loro, int_driver_circuit_affinity, int_era_normalized_driver_rating re-exported"
+      ],
+      "verified": "All gates pass, all ship-blockers cleared, app data staged and verified",
+      "assumed": "v15 retrain can proceed with validated features",
+      "gates_run": "WI-15a and WI-15b gates both PASS",
+      "next_command": "User commits changes; deploy v15"
     }
   ],
   "watch_vocabulary": {
@@ -1627,7 +1645,9 @@
       "trigger": {
         "clear": "manual"
       },
-      "item": "WI-13"
+      "item": "WI-13",
+      "resolved": "2026-09-30T00:00Z",
+      "resolution": "int_pit_strategy_value re-exported, pit strategy page verified"
     },
     {
       "id": "W2",
@@ -1975,7 +1995,9 @@
       "clears_when": "The mart export ships together with models retrained on the WI-15b features (WI-01's version bump), and int_tyre_surface_vs_bulk_decoupling is re-exported.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-09-30T00:00Z",
+      "resolution": "fct_cliff_prediction_features re-exported after v15 gates passed"
     },
     {
       "id": "W26",
@@ -2444,7 +2466,9 @@
       "clears_when": "int_driver_race_skill_loro, int_driver_circuit_affinity and int_era_normalized_driver_rating are re-exported from a dev warehouse built with WI-14b (the user's call; it rewrites tracked files) and the three pages are checked against the committed data.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-09-30T00:00Z",
+      "resolution": "Rating-chain tables re-exported, three pages verified"
     },
     {
       "id": "W56",
@@ -2501,8 +2525,8 @@
       "trigger": {
         "clear": "manual"
       },
-      "resolved": "2026-09-29T22:00Z",
-      "resolution": "Dev rebuilt, gates staged, ready to run"
+      "resolved": "2026-09-30T00:00Z",
+      "resolution": "v15 gates passed: WI-15a traffic (PASS), WI-15b thermal (PASS)"
     }
   ],
   "open_decisions": [

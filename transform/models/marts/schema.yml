@@ -1705,12 +1705,12 @@ models:
           (int_constructor_car_fe_isolation). NULL when not identified.
       - name: car_term_source
         description: >
-          Where car_iso_s came from: driver_era, global_driver (the era fell back),
-          unidentified, not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
+          Where car_iso_s came from: driver_id (fitted per-era), unidentified (multiple
+          components in race), not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
         tests:
           - accepted_values:
               arguments:
-                values: ['driver_era', 'global_driver', 'unidentified', 'not_estimated', 'no_fit_row']
+                values: ['driver_id', 'unidentified', 'not_estimated', 'no_fit_row']
       - name: tyre_offset_vs_field_s
         description: >
           compound_component_s minus the lap's Ω field median of it, s; positive = this tyre
@@ -2144,12 +2144,12 @@ models:
           (int_constructor_car_fe_isolation). NULL when not identified.
       - name: car_term_source
         description: >
-          Where car_iso_s came from: driver_era, global_driver (the era fell back),
-          unidentified, not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
+          Where car_iso_s came from: driver_id (fitted per-era), unidentified (multiple
+          components in race), not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
         tests:
           - accepted_values:
               arguments:
-                values: ['driver_era', 'global_driver', 'unidentified', 'not_estimated', 'no_fit_row']
+                values: ['driver_id', 'unidentified', 'not_estimated', 'no_fit_row']
       - name: n_stints
         description: >
           Stints with Ω laps in the race.

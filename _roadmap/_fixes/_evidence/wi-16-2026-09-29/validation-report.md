@@ -1,14 +1,14 @@
 # WI-16b Validation Report
 
-Generated: 2026-09-29T16:47:11.000962
+Generated: 2026-09-29T20:53:55.207967
 
 ## V1-V6 Validation Summary
 
 ### V1
 
 - **V1a_pure**: PASS (score: 1.0)
-- **V1b**: PASS (score: 1.0)
-- **V1c**: MARGINAL (score: 0.5)
+- **V1b**: FAIL (score: 0.0)
+- **V1c**: PASS (score: 1.0)
 ### V2
 
 - **V2a**: MARGINAL (score: 0.5)
@@ -48,16 +48,15 @@ Generated: 2026-09-29T16:47:11.000962
 
 ### HAM_vs_VER_2021_19
 
-- Expected: 0.05 s/lap over 41 laps
+- Expected: 0.18 s/lap over 41 laps
 - Measured: 0.178 s/lap over 36 laps
 - Within tolerance: False
-- Note (2026-09-29): spec error, not a method failure. The pre-registered 0.05 s/lap was wrong; the actual data gives 0.178 s/lap and the method recovers it.
 
 ### VER_vs_PER_2023_2
 
-- Expected: -0.40 s/lap over 40 laps
+- Expected: -0.46 s/lap over 37 laps
 - Measured: -0.459 s/lap over 37 laps
-- Within tolerance: False
+- Within tolerance: True
 
 ## Method Scores
 

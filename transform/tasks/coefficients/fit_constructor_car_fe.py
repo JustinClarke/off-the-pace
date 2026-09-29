@@ -329,6 +329,34 @@ def load_isolation_panel(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     return panel
 
 
+def aggregate_to_race_level(panel: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate panel to race level for car FE fitting.
+
+    Aggregates y_s and other quantities to one row per (race, constructor, driver_id),
+    so that the car FE is fitted on driver-adjusted race means. This avoids fitting
+    noise and ensures lap-level variation doesn't interfere with car identification.
+    """
+    race_level = (
+        panel.groupby(["race_year", "race_id", "constructor_id", "era", "driver_id"])
+        .agg({
+            "y_s": "mean",
+            "lap_id": "count",  # n_laps per driver per race per constructor
+        })
+        .reset_index()
+        .rename(columns={"lap_id": "n_laps_driver"})
+    )
+    race_level["constructor_race"] = (
+        race_level.race_year.astype(str)
+        + "_" + race_level.race_id.astype(str)
+        + "_" + race_level.constructor_id.astype(str)
+    )
+    log.info(
+        "Aggregated to race level: %d driver-race-constructor cells",
+        len(race_level)
+    )
+    return race_level
+
+
 def component_of_cells(panel: pd.DataFrame, driver_col: str) -> pd.Series:
     """Connected component of every constructor_race cell in the bipartite graph
     driver_col x constructor_race, one edge per lap. Two cells in the same component can
@@ -417,60 +445,77 @@ def _era_needs_fallback(era_row: pd.Series) -> bool:
     )
 
 
-def fit_car_fe_isolation(panel: pd.DataFrame) -> tuple[pd.DataFrame, str]:
+def fit_car_fe_isolation(lap_panel: pd.DataFrame) -> tuple[pd.DataFrame, str]:
     """Isolation car term per (race_year, race_id, constructor_id).
 
     Returns (out, connectivity_note). out carries car_iso_s: the constructor×race FE of
-    y_s ~ 1 | driver_era + constructor_race, re-centred to a lap-weighted mean of zero
-    over the identified cells of each race (negative = faster). An era whose races are
-    not all identified under driver_era, or that has more than one component holding
-    two or more constructors, takes its car term from a global-driver_id fit instead
-    (car_term_source = 'global_driver'). A cell that is still not comparable with the
-    rest of its race, or that pyfixest dropped as a singleton, gets car_iso_s NULL."""
-    cells, eras = connectivity(panel, "driver_era")
+    y_s ~ 1 | driver_id + constructor_race, fitted at the race level to avoid lap-level
+    noise. Fitted separately per era (pre/post regulation boundary). The driver_id FE is
+    used instead of driver_era because driver_era breaks connectivity: each driver races
+    for only one constructor per race, so the bipartite network (driver_era x constructor_race)
+    is never connected. Using driver_id with separate fits per era gives better identification
+    while avoiding cross-era driver skill contamination. car_iso_s is re-centred to a
+    lap-weighted mean of zero over the identified cells of each race (negative = faster).
+    A cell that pyfixest dropped as a singleton gets car_iso_s NULL."""
+
+    # Aggregate to race level to avoid lap-level noise
+    race_panel = aggregate_to_race_level(lap_panel)
+
     notes = []
-    fallback_eras = []
-    for _, e in eras.iterrows():
-        needs = _era_needs_fallback(e)
-        notes.append(
-            f"{e.era}: driver_era {e.components_n} component(s), "
-            f"{e.multi_constructor_components_n} with >=2 constructors, "
-            f"{e.races_unidentified_n}/{e.races_n} races unidentified"
-            + (" -> global_driver" if needs else "")
-        )
-        if needs:
-            fallback_eras.append(e.era)
-        log.info("Connectivity %s", notes[-1])
+    all_cells = []
 
-    fe_era = _fit_cell_fe(panel, "driver_era")
-    cells["car_fe_raw_s"] = cells.constructor_race.map(fe_era)
-    cells["car_term_source"] = "driver_era"
+    # Fit separately per era, using driver_id within each
+    max_component_id = 0
+    for era in sorted(race_panel["era"].unique()):
+        era_panel = race_panel[race_panel["era"] == era].copy()
+        era_cells, era_eras = connectivity(era_panel, "driver_id")
 
-    if fallback_eras:
-        g_cells, g_eras = connectivity(panel, "driver_id")
-        fe_glob = _fit_cell_fe(panel, "driver_id")
-        in_fallback = cells.era.isin(fallback_eras)
-        cells.loc[in_fallback, "car_fe_raw_s"] = cells.loc[in_fallback, "constructor_race"].map(fe_glob)
-        cells.loc[in_fallback, "car_term_source"] = "global_driver"
-        glob_comp = g_cells.set_index("constructor_race")
-        cells.loc[in_fallback, "component"] = cells.loc[in_fallback, "constructor_race"].map(
-            glob_comp.component
-        )
-        cells.loc[in_fallback, "race_components_n"] = cells.loc[
-            in_fallback, "constructor_race"
-        ].map(glob_comp.race_components_n)
-        for _, e in g_eras[g_eras.era.isin(fallback_eras)].iterrows():
+        # Log connectivity for this era
+        for _, e in era_eras.iterrows():
             notes.append(
-                f"{e.era} (global_driver): {e.components_n} component(s), "
+                f"{e.era}: driver_id {e.components_n} component(s), "
+                f"{e.multi_constructor_components_n} with >=2 constructors, "
                 f"{e.races_unidentified_n}/{e.races_n} races unidentified"
             )
             log.info("Connectivity %s", notes[-1])
+
+        # Fit the car FE for this era
+        fe_era = _fit_cell_fe(era_panel, "driver_id")
+        era_cells["car_fe_raw_s"] = era_cells.constructor_race.map(fe_era)
+        era_cells["car_term_source"] = "driver_id"
+
+        # Make component IDs globally unique by adding an era offset
+        # This prevents component ID clashes when combining results from different eras
+        era_cells["component"] = era_cells["component"] + max_component_id
+        max_component_id = era_cells["component"].max() + 1
+
+        all_cells.append(era_cells)
+
+    # Combine results from all eras
+    cells = pd.concat(all_cells, ignore_index=True)
+
+    # Map FE back to original lap-level panel for weighted recentering
+    # Get lap counts per constructor-race from original panel
+    lap_counts = (
+        lap_panel.groupby(["race_year", "race_id", "constructor_id"])
+        .size()
+        .reset_index(name="n_laps")
+    )
+    cells = cells.merge(
+        lap_counts[["race_year", "race_id", "constructor_id", "n_laps"]],
+        on=["race_year", "race_id", "constructor_id"],
+        how="left",
+        suffixes=("_old", "")
+    )
+    # Drop the old n_laps if merge created suffixes
+    if "n_laps_old" in cells.columns:
+        cells = cells.drop(columns=["n_laps_old"])
 
     # A race whose cells span several components: only the cells in the race's largest
     # component (by laps) are comparable with each other; the rest are not identified.
     # Ties go to the lower component id, so exactly one component per race is kept.
     race_key = ["race_year", "race_id"]
-    comp_sum = cells.groupby(race_key + ["component"], as_index=False).n_laps.sum()
+    comp_sum = cells.groupby(race_key + ["component"], as_index=False)["n_laps"].sum()
     main = (
         comp_sum.sort_values(race_key + ["n_laps", "component"],
                              ascending=[True, True, False, True])
@@ -507,16 +552,16 @@ def fit_car_fe_isolation(panel: pd.DataFrame) -> tuple[pd.DataFrame, str]:
 def run_fit_isolation(db_path: Path = DB_PATH) -> pd.DataFrame:
     con = duckdb.connect(str(db_path), read_only=True)
     try:
-        panel = load_isolation_panel(con)
+        lap_panel = load_isolation_panel(con)
     finally:
         con.close()
 
-    out, note = fit_car_fe_isolation(panel)
+    out, note = fit_car_fe_isolation(lap_panel)
 
     prov = build_provenance(
         fit_method=ISOLATION_FIT_METHOD,
-        season_min=int(panel.race_year.min()),
-        season_max=int(panel.race_year.max()),
+        season_min=int(lap_panel.race_year.min()),
+        season_max=int(lap_panel.race_year.max()),
     )
     for k, v in prov.items():
         out[k] = v

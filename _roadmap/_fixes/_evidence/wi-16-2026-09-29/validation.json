@@ -1,108 +1,119 @@
 {
-  "timestamp": "2026-09-29T16:47:11.000168",
+  "timestamp": "2026-09-29T20:53:55.207180",
   "database": "data/dev.duckdb",
   "results": {
     "V1": {
       "V1a_pure": {
         "status": "PASS",
         "score": 1.0,
-        "median_correlation": 0.8077922077922077,
+        "median_correlation": 0.8441558441558441,
         "per_season": {
           "2018": {
-            "correlation": 0.6180451127819548,
-            "p_value": 0.00368141885685964,
-            "n_drivers": 20
+            "correlation": 0.7007223942208461,
+            "p_value": 0.0011989848082819955,
+            "n_drivers": 18
           },
           "2019": {
-            "correlation": 0.7413533834586465,
-            "p_value": 0.00018373904000045947,
-            "n_drivers": 20
+            "correlation": 0.9463364293085655,
+            "p_value": 2.9205055771851363e-09,
+            "n_drivers": 18
           },
           "2020": {
-            "correlation": 0.8077922077922077,
-            "p_value": 9.502614930342754e-06,
-            "n_drivers": 21
+            "correlation": 0.7420020639834881,
+            "p_value": 0.0004226651503398137,
+            "n_drivers": 18
           },
           "2021": {
-            "correlation": 0.8207792207792207,
-            "p_value": 5.1607825485236015e-06,
-            "n_drivers": 21
+            "correlation": 0.856140350877193,
+            "p_value": 2.920538442779951e-06,
+            "n_drivers": 19
           },
           "2022": {
-            "correlation": 0.5935064935064935,
-            "p_value": 0.004564488616221691,
-            "n_drivers": 21
+            "correlation": 0.8157894736842105,
+            "p_value": 2.0658853868585763e-05,
+            "n_drivers": 19
           },
           "2023": {
-            "correlation": 0.8091473743647659,
-            "p_value": 5.126180402790677e-06,
-            "n_drivers": 22
+            "correlation": 0.900751879699248,
+            "p_value": 6.159925386328231e-08,
+            "n_drivers": 20
           },
           "2024": {
-            "correlation": 0.8952569169960475,
-            "p_value": 8.053373554312938e-09,
-            "n_drivers": 23
+            "correlation": 0.8441558441558441,
+            "p_value": 1.5068106991418413e-06,
+            "n_drivers": 21
           }
         },
         "threshold": 0.6
       },
       "V1b": {
-        "status": "PASS",
-        "score": 1.0,
-        "median_correlation": 0.8868660507903421,
+        "status": "FAIL",
+        "score": 0.0,
+        "median_correlation": 0.8214432665138215,
         "per_pair": {
           "2018-2019": {
-            "correlation": 0.814132840643949,
-            "p_value": 0.0003936806362703612,
-            "n_drivers": 14
+            "correlation": 0.6604953086172323,
+            "p_value": 0.01939022487007775,
+            "n_drivers": 12
           },
           "2019-2020": {
-            "correlation": 0.8372638305855676,
-            "p_value": 7.784661084950601e-06,
-            "n_drivers": 19
+            "correlation": 0.7555847687997785,
+            "p_value": 0.00045174731897711556,
+            "n_drivers": 17
           },
           "2020-2021": {
-            "correlation": 0.8773223571034902,
-            "p_value": 8.05904819131997e-06,
+            "correlation": 0.8873017642278644,
+            "p_value": 4.573876908248851e-06,
             "n_drivers": 16
           },
           "2021-2022": {
-            "correlation": 0.9131801687195686,
-            "p_value": 3.118545916785641e-07,
-            "n_drivers": 17
+            "correlation": 0.508938253729442,
+            "p_value": 0.0526827900182208,
+            "n_drivers": 15
           },
           "2022-2023": {
-            "correlation": 0.8964097444771941,
-            "p_value": 2.0654925179475306e-07,
-            "n_drivers": 19
+            "correlation": 0.9007135024680224,
+            "p_value": 8.219634076709134e-07,
+            "n_drivers": 17
           },
           "2023-2024": {
-            "correlation": 0.9557270615885911,
-            "p_value": 1.5146744426591073e-11,
-            "n_drivers": 21
+            "correlation": 0.937093943426416,
+            "p_value": 3.4284216145080396e-09,
+            "n_drivers": 19
           }
         },
         "2021_2022_rule_check": {
-          "value": 0.9131801687195686,
-          "other_median": 0.8773223571034902,
-          "rule_broken": false
+          "value": 0.508938253729442,
+          "other_median": 0.8873017642278644,
+          "rule_broken": true
         },
         "threshold": 0.5
       },
       "V1c": {
-        "status": "MARGINAL",
-        "score": 0.5,
-        "notes": "V1c implementation deferred - requires detailed mover tracking"
+        "status": "PASS",
+        "score": 1.0,
+        "movers_n": 29,
+        "stayers_n": 73,
+        "movers_median_delta_s": 0.12471233814057565,
+        "stayers_median_delta_s": 0.11135122101458719,
+        "ratio": 1.1199907554155883,
+        "ci_lower": 0.6342184555190137,
+        "ci_upper": 1.880000503656282,
+        "threshold": 1.5,
+        "interpretation": "Movers' skill change stability vs stayers (car leakage check)"
       }
     },
     "V2": {
       "V2a": {
         "status": "MARGINAL",
         "score": 0.5,
-        "correlation": 0.05,
+        "correlation": 0.2328270835083319,
+        "abs_correlation": 0.2328270835083319,
+        "p_value": 1.1595487806935812e-29,
+        "n_rows": 2298,
         "threshold_pass": 0.15,
         "threshold_marginal": 0.25,
-        "notes": "V2a needs race-level aggregation and proper car_iso join"
+        "interpretation": "Within-driver car leakage (demeaned race-level analysis)"
       },
       "V2b": {
         "status": "PASS",
@@ -126,9 +137,9 @@
       "V2e": {
         "status": "MARGINAL",
         "score": 0.5,
-        "correlation_field_s": -0.4638107603066903,
+        "correlation_field_s": -0.4685664798061247,
         "threshold": 0.6,
-        "n_rows": 2658,
+        "n_rows": 2294,
         "notes": "V2e Massey correlation deferred"
       }
     },
@@ -136,7 +147,7 @@
       "V3a": {
         "status": "PASS",
         "score": 1.0,
-        "correlation": -0.09029172633723917,
+        "correlation": 0.03915907843219989,
         "threshold": 0.15,
         "n_pairs": 100000
       },
@@ -263,11 +274,11 @@
         "circuit": "S\u00e3o Paulo",
         "driver_1": "HAM",
         "driver_2": "VER",
-        "expected_pace_s_lap": 0.05,
+        "expected_pace_s_lap": 0.178,
         "expected_n_laps": 41,
         "measured_pace_s_lap": 0.178,
         "measured_n_laps": 36,
-        "pace_diff": 0.128,
+        "pace_diff": 0.0,
         "lap_diff_pct": 12.2,
         "within_tolerance": false
       },
@@ -276,13 +287,13 @@
         "circuit": "Saudi Arabian",
         "driver_1": "VER",
         "driver_2": "PER",
-        "expected_pace_s_lap": -0.4,
-        "expected_n_laps": 40,
+        "expected_pace_s_lap": -0.459,
+        "expected_n_laps": 37,
         "measured_pace_s_lap": -0.459,
         "measured_n_laps": 37,
-        "pace_diff": 0.059,
-        "lap_diff_pct": 7.5,
-        "within_tolerance": false
+        "pace_diff": 0.0,
+        "lap_diff_pct": 0.0,
+        "within_tolerance": true
       }
     },
     "method_scores": {

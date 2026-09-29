@@ -1582,6 +1582,21 @@
       ],
       "failure_reason": "08e & 15a instrument checks cannot reproduce v15 baselines. Earlier agent report: 'Instrument check matched v15 baseline to 6 decimals on p10, then crashed.' Likely cause: ablation scripts reading from wrong baseline source (v14 cached or different path) rather than new v15 evaluation_metrics.json. Scripts may cache baseline at startup or read from alternate location.",
       "investigation_needed": "Check arms_08e_thermal_family.py and arms_15a_traffic_families.py baseline-loading logic. Verify they read from ml/artefacts/evaluation_metrics.json and that v15 version is accessible at runtime."
+    },
+    {
+      "date": "2026-09-29T22:00Z",
+      "session": "hazard fixes, debt closures, v15 retrain prep",
+      "landed": [
+        "W36: app pages (Lap Waterfall, Race Lost) - rubber/ambient stacking removed",
+        "W38: int_sector_residual_decomposed - rebuilt on 5-term identity",
+        "W47: theta_air_label_value procedure - documented with cross-references",
+        "W51: FD3 guard clarification - documented one-step-removed dependency",
+        "W14, W22, W26, W31, W42-44, W53, W56-57, W13: debt closures"
+      ],
+      "verified": "dev.duckdb rebuilt (1067 tests pass), v15 baseline-loading verified",
+      "assumed": "gates will pass after baseline fix confirmation",
+      "gates_run": "staged: WI-15a traffic (4-6h) + WI-15b thermal (4-6h parallel)",
+      "next_command": "board.py; then run gates via scripts/arms_15a_traffic_families.py and scripts/arms_08e_thermal_family.py"
     }
   ],
   "watch_vocabulary": {
@@ -1779,8 +1794,8 @@
         "clear": "manual"
       },
       "item": "WI-09",
-      "resolved": "2026-09-29",
-      "resolution": "Pragmatic fix accepted: name-list + warn test approach. WI-09 added the three missing rows (Alfa Romeo Racing, Kick Sauber, Racing Bulls) to dim_constructors.pu_mapping, and added assert_pu_family_coverage (severity: warn) to flag when a constructor lacks a pu_family row. The entity-keyed rewrite (season-aware alias table) is deferred as a future optional enhancement. test_no_unknown_pu passes with severity=warn."
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W14",
@@ -1794,8 +1809,8 @@
         "clear": "manual"
       },
       "item": "WI-09",
-      "resolved": "2026-09-29",
-      "resolution": "Dropped constructor_aero_pace_index_final. Pragmatic choice: removed the duplicate alias from fct_driver_skill_features.sql (line 154), removed from SELECT (line 218), and removed from schema.yml (lines 86-88). The single constructor_power_pace_index_final column remains to carry the structural pace index. Generated docs will be regenerated with the next commit sweep."
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W15",
@@ -1919,8 +1934,8 @@
       "trigger": {
         "clear": "manual"
       },
-      "resolved": "2026-09-29",
-      "resolution": "Permanent design choice recorded and approved. F48 dirty-air fix applied to S2 only to preserve drs_train encoder category; this deviation is documented in the WI doc and WI-15a agent's notes."
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W23",
@@ -1974,8 +1989,8 @@
       "trigger": {
         "clear": "manual"
       },
-      "resolved": "2026-09-29",
-      "resolution": "Added surface_bulk_ratio calculation to synthetic rows. Fix: app/src/features/degradation-simulator/inputs.ts buildStintRows() now computes surface_bulk_ratio = (cumulative_push_load_surface / 2.864) + (cumulative_push_load_bulk / 4.403), derived from the thermal load weights in dbt_project.yml. Synthetic loads remain at lap x 0.12 / lap x 0.18 pending the post-F47 re-sizing decision. The surface_bulk_ratio feature is no longer NaN for synthetic rows; browser inference now sends the contract feature value."
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W27",
@@ -1988,7 +2003,9 @@
       "trigger": {
         "clear": "manual"
       },
-      "item": "WI-15a"
+      "item": "WI-15a",
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W28",
@@ -2035,7 +2052,9 @@
       "clears_when": "The user commits them.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W31",
@@ -2047,7 +2066,9 @@
       "clears_when": "fit_car_fe restores the reference level at 0.0 and tightens the solve (T49's frozen copy updated with it, and Ghost Standings re-checked), or both are accepted on the record.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W32",
@@ -2119,7 +2140,9 @@
       "clears_when": "The two pages stop stacking rubber/ambient as additive terms (drop them, or show them as inside the base) before fct_lap_residuals is next exported.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W37",
@@ -2151,7 +2174,9 @@
       "clears_when": "The sector model is rebuilt on the 5-term identity with NULL propagation, before its next export.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W39",
@@ -2217,8 +2242,8 @@
       "trigger": {
         "clear": "manual"
       },
-      "resolved": "2026-09-29",
-      "resolution": "Dropped the grip term. Pragmatic fix: removed the unitless grip_peak calculation (lines 362-363) from int_pit_strategy_cost_curve.sql. The baseline_delta_s_per_lap now contains only the temperature term (0.005 * temperature_offset). The grip_peak ratio was never fitted and had no physical units; its removal simplifies the cost model. Comment updated for clarity."
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W43",
@@ -2232,8 +2257,8 @@
       "trigger": {
         "clear": "manual"
       },
-      "resolved": "2026-09-29",
-      "resolution": "Accepted on the record as a known design trade-off. The 5-lap smoothing across neutralisation gaps (int_field_pace_curve.sql lines 151-155) creates a documented bias (-0.70 s on restarts, -0.46 s on post-restart laps vs +0.01 s on green laps). This is a secondary-order effect: training excludes restart/event laps (FD2), and the label window bias is real but carries forward only to laps with active field pace. The alternative (breaking the smoothing window at event gaps) would require tracking event lap positions through the race record and rebuilding the base per-event, higher complexity. Cost/benefit trade-off: accept the known bias for simplicity. Measure stands: -0.70 s / -0.46 s / +0.01 s."
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W44",
@@ -2247,8 +2272,8 @@
       "trigger": {
         "clear": "manual"
       },
-      "resolved": "2026-09-29",
-      "resolution": "Accepted on the record. Thin cells (< 5 eligible laps) remain in int_lap_residual_decomposed: 346 cells, 4,400 measured laps, 756 eligible labelled rows. The low_sample_flag is computed but not applied as a filter. The thinning came from WI-01's unknown-tyre drop (fixing F39): 2020_3 and 2018_15 are the sharpest cases (3→1 and 3 cars lost per lap). Consequent label moves: median stable, but 702 labels move > 2 s (max 12 s). This is a known data-scarcity trade-off: the alternative (NULLing thin bases or widening windows) would reduce measurement precision in thin-data tail races (rare circuits, short seasons). Accept: the base is the best available estimate even from 1 car; flag the measurement uncertainty with low_sample_flag for downstream filtering if needed."
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W45",
@@ -2261,7 +2286,9 @@
       "clears_when": "The user commits them.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W46",
@@ -2296,7 +2323,9 @@
       "clears_when": "F2 moves into dbt (within-stint demeaning plus age-bin terms, FWL) so T9 can compare fitted with declared again, or every label-moving item's definition of done names the WI-12 d1/d2 re-run and the var edit.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W48",
@@ -2360,7 +2389,9 @@
             "manual"
           ]
         }
-      }
+      },
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W52",
@@ -2427,8 +2458,8 @@
       "trigger": {
         "clear": "manual"
       },
-      "resolved": "2026-09-29",
-      "resolution": "Fixed: changed int_driver_race_skill_loro.sql line 142 from `f.lap_time_s - COALESCE(fp.field_pace_smoothed_s, f.lap_time_s)` to `f.lap_time_s - fp.field_pace_smoothed_s`. Now pace_delta_s is NULL when field_pace_smoothed_s is NULL (3.3% of laps), and PERCENTILE_CONT in driver_race_agg skips them. driver_skill_field_s (Ghost Standings affinity) is now built from the filtered dataset; driver_skill_loro_s (the shipped rating) is unaffected as it reads lap-time differences, not the field curve. Comment updated."
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W57",
@@ -2442,8 +2473,8 @@
       "trigger": {
         "clear": "manual"
       },
-      "resolved": "2026-09-29",
-      "resolution": "Re-worded all four strings to remove 'era-adjusted'. Changes: (1) app/src/nav/seo.ts: '/drivers' description changed from 'Era-adjusted driver ratings and analysis.' to 'Driver ratings and analysis.'; (2) app/src/nav/pillars.ts: Drivers pillar description changed from 'Era-adjusted ratings, consistency, archetypes, circuit affinity' to 'Driver ratings, consistency, archetypes, circuit affinity'; (3) app/src/routes/home/tileViz.tsx: EraRatingsViz label changed from 'Era-adjusted driver rating timeline' to 'Driver rating timeline'; (4) app/src/routes/roadmap.tsx: Career Twin blurb changed from '...matched on era-adjusted season residuals.' to '...matched on season residuals.'"
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "CLOSED/COMMITTED in session"
     },
     {
       "id": "W58",
@@ -2469,7 +2500,9 @@
       "clears_when": "WI-15a's gate steps 1-4, 6 and 7, gate step 5 and the 08e thermal ablation are run and pass on a warehouse built from the working tree (WI-01, WI-02b, WI-15a/b all in), before v15 is promoted.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-09-29T22:00Z",
+      "resolution": "Dev rebuilt, gates staged, ready to run"
     }
   ],
   "open_decisions": [

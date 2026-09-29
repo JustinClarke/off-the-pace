@@ -257,11 +257,106 @@ class DriverIsolationValidator:
         }
 
     def _validate_v1c(self) -> Dict[str, Any]:
-        """Movers vs stayers bootstrap."""
+        """V1c: Movers vs stayers bootstrap.
+
+        For drivers who changed team between seasons, compare |Δ pure skill|
+        with drivers who stayed. Movers' median ≤ 1.5 × stayers' is PASS.
+        """
+        # Get pure skill per driver-season (using raw 5-lap values)
+        query = """
+        WITH driver_season AS (
+            SELECT
+              race_year,
+              driver_id,
+              constructor_id,
+              AVG(pure_skill_gain_s) as pure_skill_mean
+            FROM fct_driver_isolation_race
+            WHERE pure_skill_gain_s IS NOT NULL
+              AND race_year BETWEEN 2018 AND 2024
+            GROUP BY race_year, driver_id, constructor_id
+        ),
+        driver_year_pairs AS (
+            SELECT
+              d1.driver_id,
+              d1.race_year,
+              d1.constructor_id as constructor_year1,
+              d1.pure_skill_mean as pure_skill_year1,
+              d2.race_year as next_year,
+              d2.constructor_id as constructor_year2,
+              d2.pure_skill_mean as pure_skill_year2,
+              CASE WHEN d1.constructor_id <> d2.constructor_id THEN 1 ELSE 0 END as is_mover
+            FROM driver_season d1
+            LEFT JOIN driver_season d2
+              ON d1.driver_id = d2.driver_id
+              AND d1.race_year + 1 = d2.race_year
+            WHERE d2.driver_id IS NOT NULL
+              AND d1.race_year BETWEEN 2018 AND 2023
+        )
+        SELECT
+          driver_id,
+          race_year,
+          pure_skill_year1,
+          pure_skill_year2,
+          is_mover,
+          ABS(pure_skill_year2 - pure_skill_year1) as delta_pure_skill
+        FROM driver_year_pairs
+        WHERE pure_skill_year1 IS NOT NULL
+          AND pure_skill_year2 IS NOT NULL
+        ORDER BY is_mover, driver_id, race_year
+        """
+
+        df = self.con.execute(query).df()
+
+        if len(df) == 0:
+            return {
+                "status": "FAIL",
+                "score": 0.0,
+                "notes": "No data available for V1c",
+            }
+
+        movers = df[df['is_mover'] == 1]['delta_pure_skill']
+        stayers = df[df['is_mover'] == 0]['delta_pure_skill']
+
+        movers_median = np.median(movers) if len(movers) > 0 else np.nan
+        stayers_median = np.median(stayers) if len(stayers) > 0 else np.nan
+
+        # Bootstrap CI for the ratio (movers_median / stayers_median)
+        bootstrap_ratios = []
+        np.random.seed(42)
+
+        for _ in range(1000):
+            if len(movers) > 0 and len(stayers) > 0:
+                movers_sample = np.random.choice(movers, size=len(movers), replace=True)
+                stayers_sample = np.random.choice(stayers, size=len(stayers), replace=True)
+                movers_med = np.median(movers_sample)
+                stayers_med = np.median(stayers_sample)
+                if stayers_med != 0:
+                    bootstrap_ratios.append(movers_med / stayers_med)
+
+        ratio = movers_median / stayers_median if stayers_median != 0 else np.nan
+        ci_lower = np.percentile(bootstrap_ratios, 2.5) if bootstrap_ratios else np.nan
+        ci_upper = np.percentile(bootstrap_ratios, 97.5) if bootstrap_ratios else np.nan
+
+        # Determine result: movers' median <= 1.5 * stayers' median is PASS
+        if not np.isnan(ratio) and ratio <= 1.5:
+            status = "PASS"
+            score = 1.0
+        else:
+            status = "FAIL" if np.isnan(ratio) else "MARGINAL"
+            score = 0.5
+
         return {
-            "status": "MARGINAL",
-            "score": 0.5,
-            "notes": "V1c implementation deferred - requires detailed mover tracking",
+            "status": status,
+            "score": score,
+            "movers_n": len(movers),
+            "stayers_n": len(stayers),
+            "movers_median_delta_s": float(movers_median) if not np.isnan(movers_median) else None,
+            "stayers_median_delta_s": float(stayers_median) if not np.isnan(stayers_median) else None,
+            "ratio": float(ratio) if not np.isnan(ratio) else None,
+            "ci_lower": float(ci_lower) if not np.isnan(ci_lower) else None,
+            "ci_upper": float(ci_upper) if not np.isnan(ci_upper) else None,
+            "threshold": 1.5,
+            "interpretation": "Movers' skill change stability vs stayers (car leakage check)"
         }
 
     def _validate_v2(self) -> Dict[str, Any]:
@@ -286,14 +381,90 @@ class DriverIsolationValidator:
         return v2_results
 
     def _validate_v2a(self) -> Dict[str, Any]:
-        """Within-driver car leakage test."""
+        """V2a: Within-driver car leakage test.
+
+        Demean race-level pure skill within driver-season, and demean car_iso_s
+        within constructor-season. Compute |corr(demeaned pure, demeaned car)|.
+        ≤ 0.15 PASS, ≤ 0.25 MARGINAL.
+
+        Do NOT test the raw cross-sectional correlation. Demeaning removes selection;
+        the race-to-race variation in car pace that remains should not move the driver.
+        """
+        # Get race-level pure skill and car_iso per driver-race
+        query = """
+        WITH race_level AS (
+            SELECT
+              r.race_year,
+              r.race_id,
+              r.driver_id,
+              r.constructor_id,
+              r.pure_skill_gain_s,
+              c.car_iso_s
+            FROM fct_driver_isolation_race r
+            LEFT JOIN int_constructor_car_fe_isolation c
+              ON r.race_year = c.race_year
+              AND r.race_id = c.race_id
+              AND r.constructor_id = c.constructor_id
+            WHERE r.pure_skill_gain_s IS NOT NULL
+              AND c.car_iso_s IS NOT NULL
+              AND r.race_year BETWEEN 2018 AND 2024
+        ),
+        demeaned AS (
+            SELECT
+              race_year,
+              race_id,
+              driver_id,
+              constructor_id,
+              pure_skill_gain_s - AVG(pure_skill_gain_s) OVER (
+                PARTITION BY driver_id, race_year
+              ) as pure_demeaned,
+              car_iso_s - AVG(car_iso_s) OVER (
+                PARTITION BY constructor_id, race_year
+              ) as car_demeaned
+            FROM race_level
+        )
+        SELECT pure_demeaned, car_demeaned
+        FROM demeaned
+        WHERE pure_demeaned IS NOT NULL
+          AND car_demeaned IS NOT NULL
+        """
+
+        df = self.con.execute(query).df()
+
+        if len(df) < 3:
+            return {
+                "status": "FAIL",
+                "score": 0.0,
+                "n_rows": len(df),
+                "notes": "Insufficient data for V2a",
+            }
+
+        # Compute Pearson correlation
+        corr, pval = stats.pearsonr(df['pure_demeaned'], df['car_demeaned'])
+        abs_corr = abs(corr)
+
+        # Determine result
+        thresholds = THRESHOLDS["V2a_corr"]
+        if abs_corr <= thresholds["pass"]:
+            status = "PASS"
+            score = 1.0
+        elif abs_corr <= thresholds["marginal"]:
+            status = "MARGINAL"
+            score = 0.5
+        else:
+            status = "FAIL"
+            score = 0.0
+
         return {
-            "status": "MARGINAL",
-            "score": 0.5,
-            "correlation": 0.05,
-            "threshold_pass": THRESHOLDS["V2a_corr"]["pass"],
-            "threshold_marginal": THRESHOLDS["V2a_corr"]["marginal"],
-            "notes": "V2a needs race-level aggregation and proper car_iso join",
+            "status": status,
+            "score": score,
+            "correlation": float(corr),
+            "abs_correlation": float(abs_corr),
+            "p_value": float(pval),
+            "n_rows": len(df),
+            "threshold_pass": thresholds["pass"],
+            "threshold_marginal": thresholds["marginal"],
+            "interpretation": "Within-driver car leakage (demeaned race-level analysis)"
         }
 
     def _validate_v2b(self) -> Dict[str, Any]:

@@ -190,7 +190,7 @@ order, then id. Read it top-down: it is the sequence in which the items are actu
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-29T09:03:10Z`. Run `python3 _roadmap/_fixes/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-29T18:30Z`. Run `python3 _roadmap/_fixes/status/board.py --write-order` after any edit to the log._
 
 **0 live items** (0 blocked). The pointer is on **None** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 20 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
 
@@ -210,9 +210,9 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 _Generated from the watch rules in [`build-log.json`](build-log.json) (`watch_rules`); watch entries update automatically as items land or decisions resolve. A rule whose trigger needs something the log cannot see (a commit, a re-export, a rebuild, your ruling) stays open until its `resolved` and `resolution` are recorded._
 
-**40 open** (2 ship-blockers). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
+**22 open** (2 ship-blockers). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
 
-Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (11 haiku, 16 sonnet, 13 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
+Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (6 haiku, 12 sonnet, 4 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
 
 - **`haiku`** — Maps to haiku-4-5. A binary check, or recording a resolution the evidence or the user has already settled: is it committed, did the named tests pass on the rebuild, write down the accept. The output has a mechanical check (a test result, a file list, git log).
 - **`sonnet`** — Maps to sonnet-5. The fix or the options are written down in the rule: pick between two named options, run a named rebuild or export and check the pages, review a diff, reconcile counts, reword text to a meaning already settled.
@@ -223,14 +223,6 @@ Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for tok
 | W1 | ship-blocker | WI-13 | `haiku` | Re-export int_pit_strategy_value to app/public/data before the pit-strategy change ships | The parquet is re-exported (the user's call, it rewrites tracked files) and the page is checked against the committed data. |
 | W55 | ship-blocker | WI-14b | `sonnet` | Re-export the rating-chain tables to app/public/data before WI-14b's app changes ship | int_driver_race_skill_loro, int_driver_circuit_affinity and int_era_normalized_driver_rating are re-exported from a dev warehouse built with WI-14b (the user's call; it rewrites tracked files) and the three pages are checked against the committed data. |
 | W25 | hazard | WI-15b | `sonnet` | Do not re-export fct_cliff_prediction_features for the app before the models are retrained on WI-15b's features | The mart export ships together with models retrained on the WI-15b features (WI-01's version bump), and int_tyre_surface_vs_bulk_decoupling is re-exported. |
-| W36 | hazard | WI-01 | `sonnet` | Lap Waterfall and Race Lost stack rubber/ambient on top of the five label terms (F22 again, on the app) | The two pages stop stacking rubber/ambient as additive terms (drop them, or show them as inside the base) before fct_lap_residuals is next exported. |
-| W38 | hazard | WI-01 | `opus` | int_sector_residual_decomposed still uses the 7-term identity and prices unknown tyre cost at 0 | The sector model is rebuilt on the 5-term identity with NULL propagation, before its next export. |
-| W47 | hazard | WI-12 | `opus` | theta_air_label_value (0.331) is a frozen external fit; nothing in dbt re-fits it when the panel moves | F2 moves into dbt (within-stint demeaning plus age-bin terms, FWL) so T9 can compare fitted with declared again, or every label-moving item's definition of done names the WI-12 d1/d2 re-run and the var edit. |
-| W51 | hazard | WI-17 | `opus` | The fuel-corrected lap time, the rubber split and the constructor coefficient are priced from the compound seed, one step removed | FD3 is ruled and WI-02b's refit states whether these one-step-removed reads are in or out of the guard; WI-17's target and constructor feature are re-checked against it. |
-| W59 | hazard | WI-01 | `opus` | The v15 retrain owes the gate runs deferred from WI-02a, WI-15a and WI-15b | WI-15a's gate steps 1-4, 6 and 7, gate step 5 and the 08e thermal ablation are run and pass on a warehouse built from the working tree (WI-01, WI-02b, WI-15a/b all in), before v15 is promoted. |
-| W27 | uncommitted | WI-15a | `haiku` | WI-15a and WI-15b are landed but uncommitted | The user commits them. |
-| W30 | uncommitted | WI-16a | `haiku` | WI-16a is MEASURED but uncommitted | The user commits them. |
-| W45 | uncommitted | WI-01 | `haiku` | WI-01 is MEASURED but uncommitted | The user commits them. |
 | W4 | unreviewed | — | `sonnet` | Ingestion-hardening agent's partial work is in the working tree, unread and untested | The diff is reviewed and ingestion/tests pass and the change is kept, or the changes are discarded (git checkout on the modified paths plus deleting the four new files; destructive, the user's call). |
 | W5 | unverified | WI-09 | `sonnet` | WI-09's new tests and one source form have only run on the dev target | A CI-target build runs them (not done: this tree does not touch data/ci.duckdb). |
 | W33 | unverified | WI-16b | `opus` | The isolation car term falls back to the global driver key in both eras; its car/driver split is unvalidated | WI-16b's V1c/V2a/V3a are run and graded, and the result is stated in its As built section. |
@@ -246,19 +238,9 @@ Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for tok
 | W54 | stale-artifact | WI-17 | `sonnet` | The Degradation Simulator's P3 basket fixtures predate the current warehouse | The fixtures are regenerated from a rebuilt envelope (and the generator restored), and accuracy.test.ts and powerLaw.test.ts re-run on them. |
 | W39 | pending-ruling | WI-01 | `opus` | Honest-range floor moved to 0.920, which is looser; whether the tyre wear cap binds too often is unchecked | An audit of the cap-binding laps decides whether the cap (or the wear fit behind it) is right, and either a direct cap-binding-share check is added or the floor is set from that audit. |
 | W17 | gate-gap | WI-07 | `sonnet` | The sqlfluff gate does not hold | The size limit is raised or the skip is made loud, and the failing files are fixed or excluded on purpose. |
-| W13 | debt | WI-09 | `haiku` | F17: pu_family is keyed on the team name, so every rename needs a hand-added row | The user asks for the entity-keyed rewrite (needs its own item), or accepts the name list plus the warn test. |
-| W14 | debt | WI-09 | `sonnet` | constructor_power_pace_index_final and constructor_aero_pace_index_final are the same column | The user picks drop or relabel. |
 | W15 | debt | WI-13 | `opus` | WI-13's neighbours, found and not fixed | Each is given an item or an explicit 'accept', one at a time. |
 | W18 | debt | WI-09 | `sonnet` | 2020_1 (Austrian GP) lap numbering is wrong in bronze | 2020_1 is re-pulled from FastF1 and re-checked (whether a re-pull fixes it is untested). |
 | W19 | debt | FD4 | `sonnet` | 2026 races are not ingested | FD4 is ruled, the seeds are filled (WI-05's gate lists what is missing) and the rounds are ingested. |
-| W22 | debt | WI-15a | `haiku` | Deviation from WI-15a spec: F48 dirty-air fix applied to S2 only, not all three lap sections | This is a permanent design choice, not a defect. Recorded for traceability. |
-| W26 | debt | WI-15b | `sonnet` | Degradation Simulator never supplies surface_bulk_ratio to the browser models | The simulator computes or selects surface_bulk_ratio with the mart's expression, and its synthetic loads are re-sized to the post-F47 distribution. |
-| W31 | debt | — | `sonnet` | The default car-FE fit drops pyfixest's reference cell (2018_10 Ferrari) and is under-converged | fit_car_fe restores the reference level at 0.0 and tightens the solve (T49's frozen copy updated with it, and Ghost Standings re-checked), or both are accepted on the record. |
-| W42 | debt | WI-01 | `opus` | int_pit_strategy_cost_curve still adds unitless compound_grip_peak ratios as seconds (F42 remainder) | The grip term is replaced by a fitted per-compound seconds offset, or dropped from the pit-strategy cost curve. |
-| W43 | debt | WI-01 | `opus` | The field base's 5-lap smoothing spans neutralisation gaps, biasing the base around restarts | The smoothing stops at neutralisation boundaries (or restart-adjacent cells use their own trimmed mean), or this is accepted on the record. |
-| W44 | debt | WI-01 | `opus` | The residual still uses field-base cells built from fewer than 5 cars | A ruling on thin cells: NULL the base below a minimum car count (F1's discipline), widen the window for them, or accept on the record. |
 | W53 | debt | WI-17 | `opus` | No 2025 hardness ranks: WI-17's C6 leave-out (T54) and its 2025 season-forward fold cannot run | The 2025 tyre_allocations rows are re-added and checked against their source URLs, dev is rebuilt, and python -m ml.src.powerlaw re-runs T54 on real C6 cells and the <= 2024 / 2025 fold. |
-| W56 | debt | WI-14b | `opus` | int_driver_race_skill_loro still zero-fills pace_delta_s where the field curve has no row | The COALESCE becomes a NULL that the medians skip, and the Ghost Standings affinity is re-checked; or it is accepted as-is on the record. |
-| W57 | debt | WI-14b | `opus` | Peripheral app labels still say 'era-adjusted' ratings | The four strings are re-worded, or kept on the record as product naming. |
 
 <!-- END GENERATED TASKS -->

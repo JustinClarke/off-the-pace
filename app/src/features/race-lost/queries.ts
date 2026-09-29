@@ -12,8 +12,6 @@ import { registerParquet } from '../../data/duckdb/register'
 export interface RaceLostRow {
   total_fuel_s: number
   total_compound_s: number
-  total_rubber_s: number
-  total_ambient_s: number
   total_constructor_s: number
   total_dirty_air_s: number
   total_skill_s: number
@@ -46,8 +44,6 @@ export const queryRaceLost = registerQuery<Params, RaceLostRow[]>(
       SELECT
         COALESCE(SUM(fuel_component_s), 0)          AS total_fuel_s,
         COALESCE(SUM(compound_component_s), 0)      AS total_compound_s,
-        COALESCE(SUM(rubber_component_s), 0)        AS total_rubber_s,
-        COALESCE(SUM(ambient_component_s), 0)       AS total_ambient_s,
         COALESCE(SUM(constructor_component_s), 0)   AS total_constructor_s,
         COALESCE(SUM(dirty_air_tax_s), 0)           AS total_dirty_air_s,
         COALESCE(SUM(driver_skill_residual_s), 0)   AS total_skill_s,

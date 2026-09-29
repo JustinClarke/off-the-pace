@@ -112,6 +112,17 @@ anything priced from it:
 Filtering "pre-cliff" laps with `cliff_onset_passed` is out for the same reason. The power law's
 β > 1 carries acceleration, and the cliff stays the cliff classifier's job.
 
+**FD3 ruling (point-in-time refit allowed) — how it affects this item (W51, RESOLVED 2026-09-29):**
+The feature `constructor_pace_s` in the XGBoost model (see *Step 2: features*) comes from
+`int_constructor_structural_pace`, which computes pace_delta_s by subtracting `field_pace_smoothed_s`
+from `lap_time_s`. The field pace is built by subtracting `expected_compound_pace_s` from
+`weight_corrected_lap_time`, so the constructor coefficient is one-step-removed from the compound seed.
+With FD3 ruled to allow point-in-time refit (WI-02b's compound seed refit may be fitted on the race
+it scores), this one-step-removed read is acceptable. The feature itself carries no direct compound
+seed column, and the constraint is satisfied as long as the seed is point-in-time (fit on the race,
+not held fixed across races). Documentation added to `int_constructor_structural_pace.sql` and
+`fct_power_law_training.sql` to pin this dependency and the FD3 ruling that permits it.
+
 **The compound seed had a live defect in the working tree (W50, RESOLVED 2026-09-28).** The
 working-tree `tyre_allocations.csv` edit had added 2018 rows with legacy names in the relative
 hard/medium/soft columns. But 2018 laps carry **absolute** names, so `int_stint_geometry`'s join

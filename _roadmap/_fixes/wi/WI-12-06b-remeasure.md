@@ -42,6 +42,12 @@ DRS-open closest-followers are coded correctly.
 06b's ladder is re-run once, after both upstream fixes land; the published finding and the app page
 are updated together, not independently (to avoid a second round of doc drift like F20's).
 
+**W47 note (standing hazard):** `theta_air_label_value` is a frozen external fit, re-estimated here
+on the WI-01 label and applied inside dbt thereafter. Future items that move the calibration panel
+(WI-02b's seed refit, FD6 ruling, new seasons) must re-run the d1/d2 scripts and update the var if
+the F2 coefficient changes. See [`THETA_AIR_LABEL_VALUE_PROCEDURE.md`](../THETA_AIR_LABEL_VALUE_PROCEDURE.md)
+for the automated procedure.
+
 ## Gate results: the 06b ladder on the WI-01 label (2026-09-27, opus-5)
 
 **Re-run on the final label (W40, 2026-09-27).** The W40 ruling moved the label's `theta_air`

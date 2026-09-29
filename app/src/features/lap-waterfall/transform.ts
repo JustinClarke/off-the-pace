@@ -12,15 +12,14 @@ export interface WaterfallResult {
   nLaps: number
 }
 
-// Component display order and labels. These eight terms satisfy the documented identity
-//   pace_delta_s = fuel + compound + rubber + ambient + constructor + dirty_air
+// Component display order and labels. These six terms satisfy the documented identity
+//   pace_delta_s = fuel + compound + constructor + dirty_air
 //                  + driver_skill_residual + track_unexplained
-// (the first six sum to total_explained_s; see int_lap_residual_decomposed.sql).
+// (they sum to total_explained_s; see int_lap_residual_decomposed.sql).
+// Note: rubber and ambient components are now part of base_track_pace and are not displayed separately.
 const COMPONENT_KEYS: Array<{ key: keyof LapResidualRow; label: string; color?: string }> = [
   { key: 'fuel_component_s',          label: 'Fuel',         color: 'rgb(96,165,250)'   }, // blue-400
   { key: 'compound_component_s',      label: 'Compound',     color: 'rgb(251,191,36)'   }, // amber-400
-  { key: 'rubber_component_s',        label: 'Rubber',       color: 'rgb(234,179,8)'    }, // yellow-500
-  { key: 'ambient_component_s',       label: 'Ambient',      color: 'rgb(167,243,208)'  }, // emerald-200
   { key: 'constructor_component_s',   label: 'Constructor',  color: 'rgb(192,132,252)'  }, // violet-400
   { key: 'dirty_air_tax_s',           label: 'Dirty Air',    color: 'rgb(244,114,182)'  }, // pink-400
   { key: 'driver_skill_residual_s',   label: 'Driver Skill', color: 'rgb(249,115,22)'   }, // orange-500

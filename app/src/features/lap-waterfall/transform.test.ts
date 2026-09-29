@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { transform } from './transform'
 import type { LapResidualRow } from './queries'
 
-// fuel+compound+rubber+ambient+constructor+dirty_air = total_explained_s
-const TOTAL_EXPLAINED = 1.4 + 2.5-0.01 + 0.002 + 0.5 + 0.1 // = 4.492
+// fuel+compound+constructor+dirty_air = total_explained_s
+const TOTAL_EXPLAINED = 1.4 + 2.5 + 0.5 + 0.1 // = 4.5
 // pace_delta = total_explained + skill + track
-const PACE_DELTA = TOTAL_EXPLAINED-3.0-0.01 // = 1.482
+const PACE_DELTA = TOTAL_EXPLAINED-3.0-0.01 // = 1.49
 
 const baseRow: LapResidualRow = {
   driver_id: 'VER',
@@ -13,8 +13,6 @@ const baseRow: LapResidualRow = {
   race_year: 2023,
   fuel_component_s: 1.4,
   compound_component_s: 2.5,
-  rubber_component_s: -0.01,
-  ambient_component_s: 0.002,
   constructor_component_s: 0.5,
   dirty_air_tax_s: 0.1,
   driver_skill_residual_s: -3.0,
@@ -27,10 +25,10 @@ const baseRow: LapResidualRow = {
 describe('transform', () => {
   it('produces one bar per component in order', () => {
     const result = transform(baseRow)
-    expect(result.bars).toHaveLength(8)
+    expect(result.bars).toHaveLength(6)
     expect(result.bars[0].label).toBe('Fuel')
-    expect(result.bars[5].label).toBe('Dirty Air')
-    expect(result.bars[6].label).toBe('Driver Skill')
+    expect(result.bars[3].label).toBe('Dirty Air')
+    expect(result.bars[4].label).toBe('Driver Skill')
   })
 
   it('assigns sign correctly', () => {

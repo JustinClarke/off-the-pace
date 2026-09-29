@@ -20,6 +20,11 @@
 --   * constructor_pace_s: lap-weighted mean of
 --     int_constructor_structural_pace's coefficient over the cell's laps, a
 --     team-level proxy. Car setup is not observed anywhere in this warehouse.
+--     ⚠️ W51 NOTE: This feature is ONE-STEP-REMOVED from the compound seed
+--     because int_constructor_structural_pace reads field_pace_smoothed_s,
+--     which subtracts expected_compound_pace_s (priced from int_compound_cliff_predicted,
+--     which reads the compound seed). This is acceptable only under FD3 ruling that
+--     allows point-in-time refit of the compound seed on the race it scores.
 --
 -- Deliberately absent (the F2/FD3 guard, T51 pins it): every compound_* seed
 -- column, every expected_* column, cliff_onset_passed / laps_past_cliff,

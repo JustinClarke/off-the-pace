@@ -15,8 +15,6 @@ const COMPONENTS: Array<{
 }> = [
   { key: 'total_fuel_s',        label: 'Fuel',         color: 'rgb(96,165,250)'   },
   { key: 'total_compound_s',    label: 'Compound',     color: 'rgb(251,191,36)'   },
-  { key: 'total_rubber_s',      label: 'Rubber',       color: 'rgb(234,179,8)'    },
-  { key: 'total_ambient_s',     label: 'Ambient',      color: 'rgb(167,243,208)'  },
   { key: 'total_constructor_s', label: 'Constructor',  color: 'rgb(192,132,252)'  },
   { key: 'total_dirty_air_s',   label: 'Dirty Air',    color: 'rgb(244,114,182)'  },
   { key: 'total_skill_s',       label: 'Driver Skill', color: 'rgb(249,115,22)'   },

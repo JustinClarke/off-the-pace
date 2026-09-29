@@ -133,6 +133,13 @@ F35, F38, F42 checks all flip to CLEARED; T1/T2/T16/T17/T18/T28/T32 are wired in
 model card and README are updated to state the label version and that pre-bump headline numbers are
 not comparable at fixed target.
 
+**W47 note (theta_air_label_value procedure):** WI-01's label changes move the calibration panel for
+`theta_air` estimation. The hazard W47 requires that any item moving the panel must re-run WI-12's
+d1/d2 scripts and update `theta_air_label_value` in `transform/dbt_project.yml` if the fitted F2
+coefficient changes. See [`THETA_AIR_LABEL_VALUE_PROCEDURE.md`](../THETA_AIR_LABEL_VALUE_PROCEDURE.md)
+for the full procedure. For future items that move the panel (e.g. WI-02b, FD6 if ruled), include
+these steps in their definition of done.
+
 ## As built (2026-09-27, fable-5.1)
 
 Built directly in the working tree against `data/dev.duckdb` (rebuilt, not committed). Nothing

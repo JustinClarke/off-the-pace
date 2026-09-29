@@ -9,6 +9,16 @@
 --
 -- Output grain: one row per (race_year, race_id, constructor_id).
 --
+-- ⚠️ W51 / FD3 CONSTRAINT: This model computes pace_delta_s = lap_time_s -
+-- field_pace_smoothed_s, where field_pace_smoothed_s is built by subtracting
+-- expected_compound_pace_s from weight_corrected_lap_time (see
+-- int_field_pace_curve.sql line 83). This means the constructor coefficient
+-- includes expected_compound_pace_s, which is priced from the compound seed
+-- (int_compound_cliff_predicted). The coefficient is therefore one-step-removed
+-- from the compound seed and subject to the FD3 guard. It is acceptable to use
+-- in WI-17 (Degradation Simulator) only with FD3 ruling that the compound seed
+-- may be fitted on the race it scores (point-in-time refit allowed).
+--
 -- DAG note: this model is upstream of int_lap_residual_decomposed, which is
 -- upstream of
 -- int_lap_anomaly_flags. To avoid cycles, clean-lap filtering here uses

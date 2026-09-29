@@ -166,6 +166,12 @@ measured cost (including the stint-life-specific floor); `verify_findings.py`'s 
 checks flip to CLEARED; F9's eligibility change is measured with the seed-decoupled arm the original
 report proposed but didn't run.
 
+**W47 note (WI-02b's refit and theta_air_label_value):** WI-02b's compound seed refit moves the
+calibration panel for `theta_air` estimation (changes `compound_component_s` in the outcome).
+The hazard W47 requires that WI-02b's definition of done must include re-running WI-12's d1/d2
+scripts to check if `theta_air_label_value` needs updating. See
+[`THETA_AIR_LABEL_VALUE_PROCEDURE.md`](../THETA_AIR_LABEL_VALUE_PROCEDURE.md) for the full procedure.
+
 ## As built -- WI-02a (2026-09-24): F41, F7, F39
 
 State is in `../status/build-log.json`; this section only corrects or refines the spec where the

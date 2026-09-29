@@ -4,10 +4,10 @@
 -- PK: sector_id = lap_id || '_S' || sector (surrogate)
 --
 -- Identity (per sector):
---   sector_pace_delta_s = sector_fuel + sector_compound + sector_rubber
---                       + sector_ambient + sector_constructor +
---                       sector_dirty_air_tax
---                       + sector_driver_skill_residual_s
+--   sector_pace_delta_s = sector_fuel + sector_compound + sector_constructor +
+--                       sector_dirty_air_tax + sector_driver_skill_residual_s
+-- Note: rubber and ambient components are now part of base_track_pace and
+-- are not allocated separately (removed per WI-01)
 --
 -- NOTE: constructor_component_s allocated proportionally (no power/aero split
 -- yet).
@@ -47,8 +47,6 @@ lap_components AS (
         lr.constructor_id,
         lr.fuel_component_s,
         lr.compound_component_s,
-        lr.rubber_component_s,
-        lr.ambient_component_s,
         lr.constructor_component_s,
         lr.dirty_air_tax_s,
         lr.correction_weight,
@@ -98,8 +96,6 @@ joined AS (
         lc.constructor_id,
         lc.fuel_component_s,
         lc.compound_component_s,
-        lc.rubber_component_s,
-        lc.ambient_component_s,
         lc.constructor_component_s,
         lc.dirty_air_tax_s,
         lc.dirty_air_share_lap,
@@ -144,13 +140,9 @@ allocated AS (
         sector_time_s - field_sector_pace_smoothed_s AS sector_pace_delta_s,
         fuel_component_s
         * (sector_time_s / NULLIF(lap_time_s, 0)) AS sector_fuel_component_s,
-        COALESCE(compound_component_s, 0.0)
+        compound_component_s
         * (sector_time_s / NULLIF(lap_time_s, 0))
             AS sector_compound_component_s,
-        rubber_component_s
-        * (sector_time_s / NULLIF(lap_time_s, 0)) AS sector_rubber_component_s,
-        ambient_component_s
-        * (sector_time_s / NULLIF(lap_time_s, 0)) AS sector_ambient_component_s,
         constructor_component_s
         * (sector_time_s / NULLIF(lap_time_s, 0))
             AS sector_constructor_component_s,
@@ -168,15 +160,11 @@ with_residual AS (
         *,
         sector_fuel_component_s
         + sector_compound_component_s
-        + sector_rubber_component_s
-        + sector_ambient_component_s
         + sector_constructor_component_s
         + sector_dirty_air_tax_s AS sector_total_explained_s,
         sector_pace_delta_s
         - sector_fuel_component_s
         - sector_compound_component_s
-        - sector_rubber_component_s
-        - sector_ambient_component_s
         - sector_constructor_component_s
         - sector_dirty_air_tax_s AS sector_driver_skill_residual_s
     FROM allocated
@@ -196,8 +184,6 @@ SELECT
     sector_pace_delta_s,
     sector_fuel_component_s,
     sector_compound_component_s,
-    sector_rubber_component_s,
-    sector_ambient_component_s,
     sector_constructor_component_s,
     sector_dirty_air_tax_s,
     sector_driver_skill_residual_s,
@@ -209,8 +195,6 @@ SELECT
             ABS(sector_fuel_component_s) = GREATEST(
                 ABS(sector_fuel_component_s),
                 ABS(sector_compound_component_s),
-                ABS(sector_rubber_component_s),
-                ABS(sector_ambient_component_s),
                 ABS(sector_constructor_component_s),
                 ABS(sector_dirty_air_tax_s)
             )
@@ -219,38 +203,14 @@ SELECT
             ABS(sector_compound_component_s) = GREATEST(
                 ABS(sector_fuel_component_s),
                 ABS(sector_compound_component_s),
-                ABS(sector_rubber_component_s),
-                ABS(sector_ambient_component_s),
                 ABS(sector_constructor_component_s),
                 ABS(sector_dirty_air_tax_s)
             )
             THEN 'compound'
         WHEN
-            ABS(sector_rubber_component_s) = GREATEST(
-                ABS(sector_fuel_component_s),
-                ABS(sector_compound_component_s),
-                ABS(sector_rubber_component_s),
-                ABS(sector_ambient_component_s),
-                ABS(sector_constructor_component_s),
-                ABS(sector_dirty_air_tax_s)
-            )
-            THEN 'rubber'
-        WHEN
-            ABS(sector_ambient_component_s) = GREATEST(
-                ABS(sector_fuel_component_s),
-                ABS(sector_compound_component_s),
-                ABS(sector_rubber_component_s),
-                ABS(sector_ambient_component_s),
-                ABS(sector_constructor_component_s),
-                ABS(sector_dirty_air_tax_s)
-            )
-            THEN 'ambient'
-        WHEN
             ABS(sector_constructor_component_s) = GREATEST(
                 ABS(sector_fuel_component_s),
                 ABS(sector_compound_component_s),
-                ABS(sector_rubber_component_s),
-                ABS(sector_ambient_component_s),
                 ABS(sector_constructor_component_s),
                 ABS(sector_dirty_air_tax_s)
             )

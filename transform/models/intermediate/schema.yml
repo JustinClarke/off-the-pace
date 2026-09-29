@@ -1310,9 +1310,10 @@ models:
   - name: int_sector_residual_decomposed
     description: >
       One row per lap per sector (3 rows/lap). Breaks down lap-level physics components
-      (fuel, compound, rubber, ambient, constructor, dirty_air) to individual sectors
-      proportional to sector time. Grain: (lap_id, sector). Allows per-sector skill analysis.
-      Matches stg_sector_times granularity. Identity: sector_pace_delta = sector_components + sector_skill_residual.
+      (fuel, compound, constructor, dirty_air) to individual sectors proportional to sector time.
+      Grain: (lap_id, sector). Allows per-sector skill analysis. Matches stg_sector_times granularity.
+      Identity: sector_pace_delta = sector_components + sector_skill_residual.
+      Note: rubber and ambient components are now part of base_track_pace and are not allocated separately (removed per WI-01).
     tags: [intermediate, feature_engineering]
     meta:
       family: residual
@@ -1337,19 +1338,19 @@ models:
         description: sector_time_s minus rolling ±3 lap field sector median
         tests: [not_null]
       - name: sector_driver_skill_residual_s
-        description: Closure residual after all 6 allocated components
+        description: Closure residual after all 4 allocated components (fuel, compound, constructor, dirty_air)
         tests: [not_null]
       - name: sector_total_explained_s
-        description: Sum of the 6 allocated components
+        description: Sum of the 4 allocated components (fuel, compound, constructor, dirty_air)
         tests: [not_null]
       - name: dominant_component_class
         description: >
-          Component with the largest absolute value among the 6 allocated components.
-          Values: fuel, compound, rubber, ambient, constructor, dirty_air
+          Component with the largest absolute value among the 4 allocated components.
+          Values: fuel, compound, constructor, dirty_air
         tests:
           - accepted_values:
               arguments:
-                values: ['fuel', 'compound', 'rubber', 'ambient', 'constructor', 'dirty_air']
+                values: ['fuel', 'compound', 'constructor', 'dirty_air']
 
   - name: int_corner_skill_residuals
     description: >

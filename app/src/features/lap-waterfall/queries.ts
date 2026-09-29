@@ -16,8 +16,6 @@ export interface LapResidualRow {
   race_year: number
   fuel_component_s: number
   compound_component_s: number
-  rubber_component_s: number
-  ambient_component_s: number
   constructor_component_s: number
   dirty_air_tax_s: number
   driver_skill_residual_s: number
@@ -49,8 +47,6 @@ export const queryLapWaterfall = registerQuery<Params, LapResidualRow[]>(
           race_year,
           COALESCE(AVG(fuel_component_s), 0)          AS fuel_component_s,
           COALESCE(AVG(compound_component_s), 0)      AS compound_component_s,
-          COALESCE(AVG(rubber_component_s), 0)        AS rubber_component_s,
-          COALESCE(AVG(ambient_component_s), 0)       AS ambient_component_s,
           COALESCE(AVG(constructor_component_s), 0)   AS constructor_component_s,
           COALESCE(AVG(dirty_air_tax_s), 0)           AS dirty_air_tax_s,
           COALESCE(AVG(driver_skill_residual_s), 0)   AS driver_skill_residual_s,
@@ -77,8 +73,6 @@ export const queryLapWaterfall = registerQuery<Params, LapResidualRow[]>(
         race_year,
         COALESCE(AVG(fuel_component_s), 0)          AS fuel_component_s,
         COALESCE(AVG(compound_component_s), 0)      AS compound_component_s,
-        COALESCE(AVG(rubber_component_s), 0)        AS rubber_component_s,
-        COALESCE(AVG(ambient_component_s), 0)       AS ambient_component_s,
         COALESCE(AVG(constructor_component_s), 0)   AS constructor_component_s,
         COALESCE(AVG(dirty_air_tax_s), 0)           AS dirty_air_tax_s,
         COALESCE(AVG(driver_skill_residual_s), 0)   AS driver_skill_residual_s,

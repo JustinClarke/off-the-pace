@@ -5,27 +5,25 @@ import type { RaceLostRow } from './queries'
 const row: RaceLostRow = {
   total_fuel_s: -5.0,
   total_compound_s: 2.0,
-  total_rubber_s: -1.5,
-  total_ambient_s: 0.5,
   total_constructor_s: -3.0,
   total_dirty_air_s: 8.0,
   total_skill_s: -4.0,
   total_track_s: 0.0,
-  total_explained_s: 1.0,
-  total_pace_delta_s: -3.0,
+  total_explained_s: 2.0,
+  total_pace_delta_s: -2.0,
   n_laps: 55,
 }
 
 describe('transform', () => {
-  it('produces 8 bars', () => {
+  it('produces 6 bars', () => {
     const { bars } = transform(row)
-    expect(bars).toHaveLength(8)
+    expect(bars).toHaveLength(6)
   })
 
   it('labels are correct', () => {
     const { bars } = transform(row)
     expect(bars[0].label).toBe('Fuel')
-    expect(bars[6].label).toBe('Driver Skill')
+    expect(bars[4].label).toBe('Driver Skill')
   })
 
   it('computes cumulative starts correctly', () => {

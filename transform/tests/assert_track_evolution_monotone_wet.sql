@@ -25,16 +25,30 @@
 -- outside that range in both directions, but tight enough to catch a genuine blowup
 -- (a broken join, a unit error, a sign flip upstream) rather than routine per-race
 -- regression noise.
+--
+-- SPLIT (WET): wet/drying races get a looser +/-0.75 s/lap bound (track wetness and drying
+-- dominate the field pace trend, so 0.5 is not a physical blowup signal there).
+-- Wet = any lap in the race with stg_weather.rainfall_flag TRUE (the WI-05 two-of-three
+-- vote; same 'BOOL_OR' convention as fct_driver_skill_features.race_wet_flag). The
+-- sibling assert_track_evolution_monotone_dry covers the other partition.
 {{ config(tags=['track_evolution']) }}
 
-WITH pace AS (
+WITH wet_races AS (
+    SELECT race_year, race_id
+    FROM {{ ref('stg_weather') }}
+    GROUP BY race_year, race_id
+    HAVING BOOL_OR(COALESCE(rainfall_flag, FALSE))
+),
+
+pace AS (
     SELECT
         race_year,
         race_id,
         lap_number,
         field_pace_smoothed_s
-    FROM {{ ref('int_field_pace_curve') }}
+    FROM {{ ref('int_field_pace_curve') }} AS f
     WHERE NOT low_sample_flag
+        AND (f.race_year, f.race_id) IN (SELECT race_year, race_id FROM wet_races)
 ),
 
 race_means AS (
@@ -65,4 +79,4 @@ SELECT
     race_id,
     raw_slope_s_per_lap
 FROM race_slope
-WHERE ABS(raw_slope_s_per_lap) > 0.5
+WHERE ABS(raw_slope_s_per_lap) > 0.75

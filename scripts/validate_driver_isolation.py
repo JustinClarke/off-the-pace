@@ -100,7 +100,7 @@ class DriverIsolationValidator:
         # V1a: Split-half Spearman per season
         print("  V1a: Split-half Spearman...")
         v1_results["V1a_pure"] = self._validate_v1a("pure_skill_5lap_gain_s")
-        v1_results["V1a_tactical"] = self._validate_v1a("tactical_5lap_gain_s")
+        # V1a_tactical removed: the tactical rating no longer exists.
 
         # V1b: Adjacent seasons Pearson
         print("  V1b: Adjacent seasons Pearson...")

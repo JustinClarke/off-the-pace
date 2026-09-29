@@ -29,8 +29,6 @@
 
 {{ config(materialized='table', tags=['driver_isolation']) }}
 
-{%- set min_peer_cliff_laps = 10 %}
-
 WITH laps AS (
     SELECT * FROM {{ ref('int_driver_isolation_lap_pace') }}
 ),

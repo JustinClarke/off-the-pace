@@ -50,27 +50,22 @@ cliff_detected_per_race AS (
         r.lap_number,
         r.driver_skill_residual_s,
         -- Trailing median BEFORE this lap (laps up to lap_number - 1)
-        MEDIAN(CASE WHEN w.lap_number < r.lap_number THEN w.driver_skill_residual_s END)
-            FILTER (WHERE correction_weight = 1.0)
+        MEDIAN(r.driver_skill_residual_s)
+            FILTER (WHERE r.correction_weight = 1.0)
             OVER (PARTITION BY r.race_year, r.race_id, r.driver_id
                   ORDER BY r.lap_number ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
             AS median_before,
         -- Trailing median AFTER (or at) this lap
-        MEDIAN(w.driver_skill_residual_s) FILTER (WHERE correction_weight = 1.0)
+        MEDIAN(r.driver_skill_residual_s) FILTER (WHERE r.correction_weight = 1.0)
             OVER (PARTITION BY r.race_year, r.race_id, r.driver_id
                   ORDER BY r.lap_number ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
             AS median_after,
         -- Median of residuals from next 3 laps (looking forward for cliff signature)
-        MEDIAN(w.driver_skill_residual_s) FILTER (WHERE correction_weight = 1.0)
+        MEDIAN(r.driver_skill_residual_s) FILTER (WHERE r.correction_weight = 1.0)
             OVER (PARTITION BY r.race_year, r.race_id, r.driver_id
                   ORDER BY r.lap_number ROWS BETWEEN CURRENT ROW AND 3 FOLLOWING)
             AS median_next3
     FROM residuals r
-    INNER JOIN residuals w
-        ON r.race_year = w.race_year
-        AND r.race_id = w.race_id
-        AND r.driver_id = w.driver_id
-    GROUP BY r.lap_id, r.race_year, r.race_id, r.driver_id, r.lap_number, r.driver_skill_residual_s
 ),
 
 -- Compute MAD-based scores (same as original)

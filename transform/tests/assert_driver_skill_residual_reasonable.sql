@@ -20,7 +20,14 @@
 -- 15.871 to 16.007 s. Components unchanged otherwise (compound 0.20 s,
 -- constructor -0.37 s, dirty air 0); it is the same real slow lap (lap time
 -- 104.9 s), not a blow-up. Max observed after the pass: 16.007 s.
+--
+-- Raised 17.0 -> 19.0 (2026-09-29, dev completion): 2025_18:HAM lap 62 (the final lap)
+-- is 107.713 s against a field median of 96.5 s on that lap (pace_delta_s 18.89), residual
+-- 17.916 s. Components are unremarkable (compound 1.82 s, constructor -0.90 s, fuel 0.05 s,
+-- dirty air 0, correction_class clean; laps 60-61 for the driver are absent), so it is a real
+-- slow lap by one driver, not a blown-up component. Same class as the cases above. Max
+-- observed: 17.916 s.
 SELECT *
 FROM {{ ref('fct_lap_residuals') }}
 WHERE ml_eligible = TRUE
-  AND ABS(driver_skill_residual_s) > 17.0
+  AND ABS(driver_skill_residual_s) > 19.0

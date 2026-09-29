@@ -151,7 +151,6 @@ constructor_final AS (
         race_id,
         constructor_id,
         constructor_structural_pace_s AS constructor_power_pace_index_final,
-        constructor_structural_pace_s AS constructor_aero_pace_index_final,
         -- Confidence proxy from sample size: saturates at 1.0 above 500 laps
         LEAST(panel_observations_n / 500.0, 1.0)
             AS constructor_index_confidence_final
@@ -215,7 +214,6 @@ SELECT
 
     -- Constructor pace index at race end
     cf.constructor_power_pace_index_final,
-    cf.constructor_aero_pace_index_final,
     cf.constructor_index_confidence_final,
 
     -- Race context

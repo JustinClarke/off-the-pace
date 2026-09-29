@@ -353,15 +353,13 @@ priced AS (
         -- subtracted off rather than re-charged.
         old_c.cum_wear_s - COALESCE(old_0.cum_wear_s, 0.0) AS old_wear_cost_s,
         COALESCE(new_c.cum_wear_s, 0.0) AS new_wear_cost_s,
-        -- Per-lap pace offset between the two compounds: grip_peak plus the
-        -- temperature term, both of which are per-compound CONSTANTS in the
-        -- seed rather than fitted quantities. The
-        -- pit_strategy_baseline_delta var decides whether they are allowed to
-        -- move the argmin; see the model's schema.yml note.
+        -- Per-lap pace offset between the two compounds: only the temperature
+        -- term, which is a per-compound CONSTANT in the seed rather than a
+        -- fitted quantity. The compound_grip_peak ratio was unitless and is
+        -- dropped per W42. The pit_strategy_baseline_delta var decides whether
+        -- this term is allowed to move the argmin; see the model's schema.yml note.
         {% if var('pit_strategy_baseline_delta', true) %}
-            COALESCE(new_c0.compound_grip_peak, old_c0.compound_grip_peak, 0.0)
-            - COALESCE(old_c0.compound_grip_peak, 0.0)
-            + 0.005 * (
+            0.005 * (
                 LEAST(
                     GREATEST(
                         COALESCE(c.track_temp_c, 30.0)

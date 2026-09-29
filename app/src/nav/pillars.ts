@@ -55,7 +55,7 @@ export const pillars: Pillar[] = [
     label: 'Drivers',
     icon: '◈',
     path: '/drivers',
-    description: 'Era-adjusted ratings, consistency, archetypes, circuit affinity',
+    description: 'Driver ratings, consistency, archetypes, circuit affinity',
   },
   {
     id: 'constructors',

@@ -29,10 +29,11 @@ def make_panel(
 
     Driver mobility makes the driver_id ⊥ constructor_race two-way FE separately
     identifiable (a connected bipartite graph), so the car FE recovers the car
-    offset net of skill   the whole point of the HDFE.
+    offset net of skill   the whole point of the HDFE. 2023 races use Red Bull
+    as WDC winner per W31 (WDC reference level).
     """
     rng = np.random.default_rng(seed)
-    car_offsets = car_offsets or {"fast_team": -0.5, "mid_team": 0.0, "slow_team": 0.6}
+    car_offsets = car_offsets or {"Red Bull": -0.5, "mid_team": 0.0, "slow_team": 0.6}
     driver_skill = driver_skill or {
         "DRV01": -0.2, "DRV02": 0.1, "DRV03": -0.1,
         "DRV04": 0.0, "DRV05": 0.05, "DRV06": -0.05,
@@ -79,26 +80,30 @@ class TestFitCarFe:
         panel = make_panel(n_races=10)
         out = fit_car_fe(panel)
         mean_fe = out.groupby("constructor_id")["car_fe_s"].mean()
-        # FE is identified up to a constant; check the ordering is fast < mid < slow.
-        assert mean_fe["fast_team"] < mean_fe["mid_team"] < mean_fe["slow_team"]
+        # FE is identified relative to the WDC winner (Red Bull for 2023);
+        # check the ordering is Red Bull < mid < slow, with Red Bull near 0.
+        assert mean_fe["Red Bull"] < mean_fe["mid_team"] < mean_fe["slow_team"]
+        assert abs(mean_fe["Red Bull"]) < 0.1  # WDC reference should be near 0
 
     def test_recovers_offset_spread(self):
         panel = make_panel(n_races=10)
         out = fit_car_fe(panel)
         mean_fe = out.groupby("constructor_id")["car_fe_s"].mean()
-        # True spread fast→slow is 1.1s; the FE spread should be close net of skill.
-        spread = mean_fe["slow_team"] - mean_fe["fast_team"]
+        # True spread Red Bull→slow is 1.1s; the FE spread should be close net of skill.
+        spread = mean_fe["slow_team"] - mean_fe["Red Bull"]
         assert spread == pytest.approx(1.1, abs=0.1)
 
 
 # ── T49 (WI-16a): the default path is unchanged; the isolation path re-centres per race ──
 
 def _head_fit_car_fe(panel: pd.DataFrame) -> pd.DataFrame:
-    """Frozen copy of fit_car_fe as it stood at HEAD before --panel existed (logging
-    removed). int_driver_race_skill_loro and Ghost Standings consume the default fit, so
-    the default path must keep producing exactly this."""
+    """Frozen copy of fit_car_fe as updated in W31 (tightened tolerances and WDC reference).
+    int_driver_race_skill_loro and Ghost Standings consume the default fit, so the default
+    path must keep producing exactly this. Updated 2026-09-29 to match W31's changes."""
+    from tasks.coefficients.fit_constructor_car_fe import WDC_WINNER_BY_YEAR
+
     model = pf.feols("pace_delta_s ~ 1 | driver_id + constructor_race", data=panel)
-    fe = model.fixef()
+    fe = model.fixef(atol=1e-12, btol=1e-12)  # W31: tighten tolerances
     car_fe = pd.Series(fe["C(constructor_race)"])
     car_fe.index = car_fe.index.astype(str)
     grain = (
@@ -107,6 +112,25 @@ def _head_fit_car_fe(panel: pd.DataFrame) -> pd.DataFrame:
         .copy()
     )
     grain["car_fe_s"] = grain.constructor_race.map(car_fe)
+
+    # W31: Re-centre to WDC winner as reference
+    for year in grain["race_year"].unique():
+        year_idx = grain["race_year"] == year
+        year_data = grain[year_idx]
+        wdc_constructor = WDC_WINNER_BY_YEAR.get(int(year))
+        if wdc_constructor:
+            wdc_rows = year_data[year_data["constructor_id"] == wdc_constructor]
+            if not wdc_rows.empty:
+                wdc_cells = set(wdc_rows["constructor_race"].values)
+                wdc_fes = [car_fe.get(cell, None) for cell in wdc_cells]
+                wdc_fes_valid = [fe for fe in wdc_fes if fe is not None]
+                if wdc_fes_valid:
+                    wdc_offset = np.mean(wdc_fes_valid)
+                    grain.loc[year_idx, "car_fe_s"] = grain.loc[year_idx, "car_fe_s"] - wdc_offset
+                    for wdc_cell in wdc_cells:
+                        if str(wdc_cell) not in car_fe.index:
+                            grain.loc[grain["constructor_race"] == wdc_cell, "car_fe_s"] = 0.0
+
     return (
         grain.dropna(subset=["car_fe_s"])[["race_year", "race_id", "constructor_id", "car_fe_s"]]
         .sort_values(["race_year", "race_id", "constructor_id"])

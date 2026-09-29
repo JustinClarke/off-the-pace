@@ -55,7 +55,7 @@ const GROUPS: RoadmapGroup[] = [
     detail: 'The analytics largely exist-these views are waiting on a dedicated race-level model or a scoring mart to be promoted into the public export.',
     items: [
       { title: 'Race Story', blurb: 'A single-race narrative dashboard-lap chart, position swaps, tyre overlay and pace decomposition, end to end.' },
-      { title: 'Career Twin', blurb: 'The most statistically similar career arc to any driver, matched on era-adjusted season residuals.' },
+      { title: 'Career Twin', blurb: 'The most statistically similar career arc to any driver, matched on season residuals.' },
       { title: 'Ghost Car Lap Chart', blurb: "Lap-by-lap gap between a driver's real race and their equal-car ghost, drawn as it unfolds." },
       { title: 'Degradation Edge Cases', blurb: 'The stints where the tyre model and reality diverged most-the honest cabinet of where it breaks.' },
     ],

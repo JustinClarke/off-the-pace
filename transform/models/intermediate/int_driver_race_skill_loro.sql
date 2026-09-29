@@ -125,11 +125,9 @@ car_fe AS (
 -- Per clean lap: the raw lap time (feeds the paired, lap-by-lap teammate
 -- rating) and the pace delta vs the smoothed field median (feeds the median
 -- and field-anchored signals).
--- Known defect, NOT fixed here (WI-14b scope is the rating): where the field
--- curve has no row for a lap, the COALESCE below sets pace_delta_s to exactly
--- 0 instead of NULL (3.3% of laps in the FD5 probe). driver_skill_loro_mean_s
--- and driver_skill_field_s still read it. driver_skill_loro_s does not: it is
--- built from lap_time_s differences and never touches the field curve.
+-- W56: where the field curve has no row for a lap, pace_delta_s is NULL
+-- (medians skip it). ~3.3% of laps. driver_skill_loro_s does not read this
+-- field curve; it is built from lap_time_s differences only.
 clean_panel AS (
     SELECT
         f.race_year,
@@ -138,8 +136,7 @@ clean_panel AS (
         lm.constructor_id,
         f.lap_number,
         f.lap_time_s,
-        f.lap_time_s
-        - COALESCE(fp.field_pace_smoothed_s, f.lap_time_s) AS pace_delta_s
+        f.lap_time_s - fp.field_pace_smoothed_s AS pace_delta_s
     FROM fuel AS f
     INNER JOIN laps_meta AS lm ON f.lap_id = lm.lap_id
     LEFT JOIN field_pace AS fp

@@ -215,6 +215,9 @@ export function buildStintRows(inputs: SimulatorInputs): FeatureRow[] {
       dirty_air_share_lap: inputs.dirty_air_share_lap,
       dirty_air_thermal_load_surface: inputs.dirty_air_share_lap * 1.2,
       dirty_air_thermal_load_bulk: inputs.dirty_air_share_lap * 0.9,
+      // surface_bulk_ratio = (cumulative_push_load_surface / 2.864) + (cumulative_push_load_bulk / 4.403)
+      // Recalculated from the synthetic loads set above
+      surface_bulk_ratio: (lap * 0.12 / 2.864) + (lap * 0.18 / 4.403),
       air_state_dominant: inputs.air_state_dominant,
       ambient_temp_delta: inputs.ambient_temp_delta,
       is_rain_lap: inputs.is_rain_lap,

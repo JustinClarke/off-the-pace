@@ -130,7 +130,7 @@ export function WaterfallViz() {
 // #3 Era Ratings-multi-line timeline with a CI ribbon and the 2022 era boundary.
 export function EraRatingsViz() {
   return (
-    <Frame label="Era-adjusted driver rating timeline">
+    <Frame label="Driver rating timeline">
       {/* CI ribbon */}
       <motion.path
         d="M 10 38 C 30 30, 50 24, 70 20 C 86 17, 100 16, 112 18 L 112 30 C 100 28, 86 28, 70 30 C 50 33, 30 38, 10 46 Z"

@@ -83,9 +83,6 @@ models:
       - name: constructor_power_pace_index_final
         description: EW-smoothed constructor power-sector pace index at race end
         data_type: double
-      - name: constructor_aero_pace_index_final
-        description: EW-smoothed constructor aero-sector pace index at race end
-        data_type: double
       - name: constructor_index_confidence_final
         description: Confidence score (0–1) for constructor pace index at race end
         data_type: double

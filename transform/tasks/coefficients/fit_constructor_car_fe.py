@@ -92,6 +92,19 @@ from scipy.sparse.csgraph import connected_components
 
 from .provenance import build_provenance
 
+# WDC-winning constructor for each year. Used as the reference level (FE = 0.0) in the
+# car FE fit, so that car ratings are anchored to championship-winning performance.
+WDC_WINNER_BY_YEAR = {
+    2018: "Mercedes",
+    2019: "Mercedes",
+    2020: "Mercedes",
+    2021: "Red Bull",
+    2022: "Red Bull",
+    2023: "Red Bull",
+    2024: "McLaren",
+    2025: "McLaren",  # provisional; will be updated post-season
+}
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
@@ -170,12 +183,18 @@ def load_panel(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
 
 
 def fit_car_fe(panel: pd.DataFrame) -> pd.DataFrame:
-    """Two-way FE fit; return per-(race_year, race_id, constructor_id) car_fe_s."""
+    """Two-way FE fit; return per-(race_year, race_id, constructor_id) car_fe_s.
+
+    The reference level is set to the WDC-winning constructor for each year, so that
+    car ratings are anchored to championship-winning performance (reference FE = 0.0).
+    """
     log.info("Fitting pace_delta_s ~ 1 | driver_id + constructor_race ...")
     model = pf.feols(
         "pace_delta_s ~ 1 | driver_id + constructor_race", data=panel
     )
-    fe = model.fixef()
+    # Tighten LSQR tolerances from default 1e-6 to 1e-12 for consistency across rebuilds
+    # and to match the isolation path's precision (W31).
+    fe = model.fixef(atol=1e-12, btol=1e-12)
     car_fe = pd.Series(fe["C(constructor_race)"])
     car_fe.index = car_fe.index.astype(str)
     drv_fe = pd.Series(fe["C(driver_id)"])
@@ -202,6 +221,32 @@ def fit_car_fe(panel: pd.DataFrame) -> pd.DataFrame:
         .copy()
     )
     grain["car_fe_s"] = grain.constructor_race.map(car_fe)
+
+    # Restore the reference level at 0.0 for the WDC-winning constructor in each year,
+    # and re-centre all other FEs relative to that reference (W31).
+    for year in grain["race_year"].unique():
+        year_idx = grain["race_year"] == year
+        year_data = grain[year_idx]
+        wdc_constructor = WDC_WINNER_BY_YEAR.get(int(year))
+
+        if wdc_constructor:
+            wdc_rows = year_data[year_data["constructor_id"] == wdc_constructor]
+            if not wdc_rows.empty:
+                # Find WDC constructor cells in this year and calculate the mean offset
+                wdc_cells = set(wdc_rows["constructor_race"].values)
+                wdc_fes = [car_fe.get(cell, None) for cell in wdc_cells]
+                wdc_fes_valid = [fe for fe in wdc_fes if fe is not None]
+
+                if wdc_fes_valid:
+                    # Re-centre this year's FEs so the WDC winner is at 0.0 on average
+                    wdc_offset = np.mean(wdc_fes_valid)
+                    grain.loc[year_idx, "car_fe_s"] = grain.loc[year_idx, "car_fe_s"] - wdc_offset
+                    # Restore any missing WDC cells at 0.0 (the reference level after re-centering)
+                    for wdc_cell in wdc_cells:
+                        if str(wdc_cell) not in car_fe.index:
+                            grain.loc[grain["constructor_race"] == wdc_cell, "car_fe_s"] = 0.0
+                            log.info("Restored reference level %s at FE 0.0 (WDC reference).", wdc_cell)
+
     n_total = len(grain)
     out = (
         grain.dropna(subset=["car_fe_s"])[

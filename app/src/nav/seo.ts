@@ -25,7 +25,7 @@ export const pageMeta: Record<string, PageMeta> = {
   '/aerodynamics/dirty-air': { title: `Dirty Air · ${BASE}`, description: 'Dirty air cost leaderboard.' },
   '/aero/dirty-air': { title: `Dirty Air · ${BASE}`, description: 'Dirty air cost leaderboard.' },
   '/aerodynamics/lap-map': { title: `Lap Air Map · ${BASE}`, description: 'Per-lap air state timeline.' },
-  '/drivers': { title: `Drivers · ${BASE}`, description: 'Era-adjusted driver ratings and analysis.' },
+  '/drivers': { title: `Drivers · ${BASE}`, description: 'Driver ratings and analysis.' },
   '/constructors': { title: `Constructors · ${BASE}`, description: 'Structural pace and circuit interaction.' },
   '/deep-dives': { title: `Deep Dives · ${BASE}`, description: 'Sector and telemetry decomposition.' },
   '/query': { title: `Query Lab · ${BASE}`, description: 'DuckDB-Wasm SQL lab.' },

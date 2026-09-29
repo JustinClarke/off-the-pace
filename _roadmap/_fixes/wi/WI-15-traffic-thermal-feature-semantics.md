@@ -271,3 +271,95 @@ The 08i replica reproduces the fixed build on all 161,040 rows.
   Until it is rebuilt, T37 errors on dev.
 - `app/public/data` still has pre-fix `int_tyre_surface_vs_bulk_decoupling` values (ratio 0.32–0.38 by
   compound).
+
+## Pre-registration: WI-15a's gate arms (written 2026-09-29, before any arm was run)
+
+`foundations/gates.md` steps 6 and 7 require the arms and the e-value construction to be written
+down before they run. This is that block. It covers **WI-15a only** (F43 and F48's coding side).
+WI-15b's ablation is `08e`'s, already registered in `work/08-foundations-repair.md` at `n = 5,
+g = 1`; it is re-run unchanged (see "Gate run W59" below), not re-declared, and adds no hypothesis.
+
+**Substrate.** `data/dev.duckdb` built from the working tree (WI-01, WI-02a/b, WI-15a/b in), the
+warehouse the published `v15` artefact (`ml/artefacts/evaluation_metrics.json`, `version: v15`,
+`cv_final_fold`, train 2018-2024, eval 2025) was evaluated on. Uniform quantile weights
+(`ML_QUANTILE_WEIGHT=none`, the W58 default). The script is `scripts/arms_15a_traffic_families.py`;
+it writes `ml/artefacts/15a_traffic_families_arms.json` and `.log`.
+
+**Families, fixed by lineage rather than by taste** (the only contract columns each fixed model feeds,
+read off `fct_cliff_prediction_features`):
+
+| Family | Finding | Fixed model | Contract columns (`schema.FEATURE_GROUPS`) |
+| :-- | :-- | :-- | :-- |
+| **P** proximity | F43 (pit-lane car is not "the car ahead") | `int_lap_proximity` | the 9 of `proximity`: `share_lap_within_1s`, `share_lap_within_2s`, `share_lap_in_train`, `share_lap_behind_within_1s`, `time_within_1s`, `gap_ahead_min_s`, `gap_ahead_median_s`, `ahead_identity_stability`, `n_distinct_cars_ahead_3s` |
+| **D** dirty air | F48, coding side (S2 gap-only) | `int_lap_air_state` | the 4 of `dirty_air`: `dirty_air_share_lap`, `dirty_air_thermal_load_surface`, `dirty_air_thermal_load_bulk`, `air_state_dominant` |
+
+The two are disjoint and neither contains a thermal column (WI-15b's `push_residual`,
+`cumulative_push_load_*`, `surface_bulk_ratio` belong to `08e`'s family T). F43 moves P by moving the
+gap the crossings are ordered on; F48 moves D directly and reaches the label through `theta_air`,
+which the instrument check absorbs, because the baseline is the published `v15` headline on the same
+substrate.
+
+**Baselines.** Each arm is an **add-ablation from the full contract**, the shape `08e` used:
+baseline `A_P` = the full contract minus the 9 P columns; baseline `A_D` = the full contract minus
+the 4 D columns; the arm under test is the full contract. Widths: 32 -> 23 (P) and 32 -> 28 (D) for
+the degradation trio and stint life, 39 -> 30 (P) and 39 -> 35 (D) for `cliff_classifier` (02b's seven
+qualifying columns stay in every arm). There is no third arm and no joint P+D arm.
+
+**Hypotheses declared: 10** (2 families x 5 targets: `degradation_regressor_p10 / p50 / p90` on
+pinball, `cliff_classifier` on macro-F1, `stint_life_regressor` on AFT NLL). Each is "family X's
+columns carry information about the label beyond their capacity", scored on the information contrast
+(step 4: real vs the same block row-shuffled JOINTLY in train and eval). Every one is reported and
+counted whatever `E` comes out as, `E < 1` included.
+
+**Gate steps, as run.**
+1. *Instrument check.* The full-contract refit reproduces the published `v15` headline to six
+   decimals, per target, or that target aborts. (Checked before registration on the unmodified
+   pipeline: all five reproduce to the last printed digit, so the check is a real one, not assumed.)
+2. *Add-ablation.* `cv_final_fold` through `evaluate.py`'s own `_fit` / `_predict_index` / `_score`.
+3. *Floor.* `attribution.refit_noise_floor`, five reseeds `RANDOM_STATE + 0..4`, `2*sqrt(2)*sd`,
+   measured fresh on both the arm and its baseline, quoted against the larger of the two. Nothing is
+   borrowed from an earlier run.
+4. *Permutation null.* Joint row-shuffle of the family's columns in train and eval; capacity
+   (`shuffled - baseline`) and information (`real - shuffled`) reported separately.
+5. *Forward-window audit.* `python3 -m ml.src.features --check` (forward-window, aggregation-scope
+   and leakage), run once for the whole gate.
+6. *This block.*
+7. *E-value.* Construction B (paired safe-t), **`n = 10`, `g = 1`**, `09c`'s ruling for arms declared
+   after 2026-09-19. Seeds `RANDOM_STATE + 0..9`, nesting the floor's five (`02d`'s and `02h`'s
+   choice: pay the extra five). Null = the information contrast. Family size sized against: `09c`
+   enumerated 103 as of 2026-09-19, `02d` added 20 and `02h` added 12 (`m = 135`, the last enumerated
+   count); this item adds 10, so `m = 145` and the lone-rejection bar is `20 * (145 + 1) = 2,920`.
+   `E_max(10, 1) = 11^4.5 = 48,558.70` clears it by about 16.6x. This is the count-forward `m`, not a
+   fresh campaign enumeration (`04c`'s recount is still undone); the ceiling only needs revisiting
+   near `m = 2,428`. The Monte Carlo validity check (100k draws at four sigmas, mean `E` must be 1.00)
+   runs in the script, and a shuffle-vs-shuffle negative control (5 nested seeds) is run per arm as a
+   harness check, not as a declared hypothesis.
+
+**What PASS means for this gate (fixed now, not tuned on results).**
+- *Instrument:* all five targets reproduce the `v15` headline to six decimals. Otherwise the run is
+  void, not failed.
+- *Non-harm (the gating criterion):* for each of the 10 arms, the add-ablation delta (full minus
+  baseline, oriented so positive is improvement) is not below `-1 x` that arm's floor. A family whose
+  presence makes a target worse by more than its own reseed noise means the fix left a column that
+  hurts, and the gate FAILS.
+- *Harness sanity:* every negative-control `E < 20`, and the validity check's mean `E` is 1.00 within
+  three Monte Carlo standard errors at every sigma. *(Amended 2026-09-29, still before any arm result
+  was scored: this said two. The first debug run of the script, on `stint_life_regressor` alone,
+  returned 0.9525 +/- 0.0454 at sigma 0.1, just over a 2-se band. Four bands at 2 se fail by chance
+  about one time in five, and E is heavy-tailed, so 2 se was the wrong tolerance for a check on an
+  exact construction. Nothing else changed. That debug run also printed stint life's ten arm
+  numbers; no arm, column, baseline or rule was altered in response to them.)*
+- *Benefit (reported, not gating):* an arm "clears" when its information delta exceeds its own floor
+  in the improving direction (gates.md "What clears means"); a total that clears while neither half
+  does is recorded as ambiguous, never rounded up. Neither the floor ratio nor `E` gates promotion: a
+  feature-*meaning* fix is owed a defect-free coding, not a measured gain (the fix is correct whether
+  or not the contract profits, and the `v15` headlines are already scored with it in). What the
+  benefit numbers decide is whether the family stays advertised in the contract as informative.
+- `E` is read against the declared `m = 145`, never against this item's ten alone. Local e-BH over the
+  ten is printed for reference and labelled as such.
+
+**WI-02a's gate (the seed gate W12 deferred here).** WI-02a's 2025 movement is not a column, so it has
+no add-ablation. Its gate is that every dbt test that reads the seeds passes on the rebuilt dev
+warehouse: all 70 seed-attached and seed-coverage tests, including `assert_compound_params_cover_mart`
+(T5), the provenance tests (T31), and the tyre-allocations row-count test added 2026-09-29.
+Coverage the ablation cannot give is out of scope and stated as such in the run record.

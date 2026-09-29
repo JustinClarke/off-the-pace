@@ -118,8 +118,10 @@ def fit_seeded(spec: S.TargetSpec, params: dict, X, y, cens, w, seed: int):
     else:
         model = T._make_model(spec, params)
         model.set_params(random_state=int(seed))
-    if spec.kind == "quantile" and w is None:
-        raise ValueError("quantile fit needs the IPW row weights production fits with")
+    # W58: production's quantile weighting is S.QUANTILE_SAMPLE_WEIGHT ("none" = uniform,
+    # the default). Only the "ipw" scheme needs row weights; uniform fits with w=None.
+    if spec.kind == "quantile" and w is None and S.QUANTILE_SAMPLE_WEIGHT == "ipw":
+        raise ValueError("quantile fit under ML_QUANTILE_WEIGHT=ipw needs the IPW row weights")
     weights = np.asarray(w, dtype=np.float32) if w is not None else T._sample_weight(spec, y)
     if spec.kind == "survival":
         model.fit(X, y, sample_weight=weights, is_censored=np.asarray(cens, dtype=bool))

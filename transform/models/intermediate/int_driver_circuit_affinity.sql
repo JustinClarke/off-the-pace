@@ -18,8 +18,25 @@
 -- mexico_city_grand_prix) pool into a single track record instead of
 -- appearing as separate event-keyed rows.
 --
--- Sign convention: negative _s = faster than driver's mean (same as
--- driver_skill_residual_s).
+-- Input: int_driver_race_skill_loro.driver_skill_loro_s, the driver's median
+-- lap-by-lap gap to his teammate in each race (F40, FD5 option C).
+--
+-- Columns and sign conventions (seconds, negative = faster):
+--   raw_affinity_s / shrunk_affinity_s  LEVELS: the driver's (shrunk) mean
+--       gap to his teammate at this circuit. Negative = faster than his
+--       teammate there. NOT a deviation from the driver's own average.
+--   global_driver_mean_s  the driver's mean gap to his teammate over every
+--       race at every circuit (the shrinkage prior mean).
+--   affinity_vs_driver_mean_s = shrunk_affinity_s - global_driver_mean_s
+--       The AFFINITY: how much better (negative) or worse (positive) the
+--       driver does against his teammate at this circuit than he does on
+--       average. This is what the Driver Circuit Affinity page draws.
+--   WI-14b (F44): the page used to draw shrunk_affinity_s, a level, on a
+--   zero-centred scale while its text called it a deviation from the
+--   driver's average. With F40's -0.92 s level bias every one of 667 cells
+--   was green; relative to each driver's own mean about half are. Fixing F40
+--   alone would not have fixed it: a driver who beats his teammates
+--   everywhere still paints an all-green row if the level is drawn.
 -- affinity_confidence: n_obs / (n_obs + prior_weight) in [0, 1].
 --   Values below ~0.17 (1 race, prior_weight=5) mean posterior is
 --   prior-dominated.
@@ -43,7 +60,7 @@ circuit_name_map AS (
 ),
 
 driver_race AS (
-    -- De-confounded LORO equal-car skill (was
+    -- Equal-car rating: median lap-by-lap gap to the teammate (was
     -- fct_driver_skill_features.driver_residual_mean_s). Aliased to the old
     -- name so the
     -- shrinkage logic below is unchanged. See int_driver_race_skill_loro.
@@ -140,6 +157,13 @@ SELECT
     ws.seasons_observed_n,
     ws.raw_affinity_s,
     ws.shrunk_affinity_s,
+
+    -- The prior mean the cell is shrunk toward, and the affinity proper: the
+    -- cell's deviation from it (F44). Negative = better against the teammate
+    -- at this circuit than the driver's own average.
+    ws.global_driver_mean_s,
+    ws.shrunk_affinity_s - ws.global_driver_mean_s
+        AS affinity_vs_driver_mean_s,
 
     -- Posterior SE and 95% CI
     SQRT(NULLIF(ws.posterior_var_s2, 0)) AS shrunk_affinity_se_s,

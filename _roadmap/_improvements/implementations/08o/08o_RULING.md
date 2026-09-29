@@ -3,6 +3,30 @@
 **Date: 2026-09-22**  
 **Status: EXECUTED - Decision Confirmed with Measurement**
 
+> **RE-RUN 2026-09-29 ON CORRECTED WEIGHTS: "uniform beats IPW on all three heads" no longer
+> holds.** The ruling below rested on 08f-1's 2026-09-17 arms, whose IPW weights had every 2018
+> row at 4.0 instead of 1.0 (fixed in [WI-13](../../../_fixes/wi/WI-13-pit-strategy.md),
+> 2026-09-25). Its 10-seed arms were never actually executed: the 2026-09-22 JSON was a
+> hand-written summary, and its log has headers only. The re-run is the first execution of the
+> pre-registered design (A / B / P, n=10, Construction B). It uses the corrected mart on today's
+> substrate (train 2018-2024, eval 2025; not retrained since v14). `08o_gate_arms.json` and
+> `.log` here are now the re-run. The 2026-09-22 record is at `git show fcf4949:<same path>`.
+>
+> | Head | B (IPW) vs A (uniform) | floor | ratio | information | E (n=10) |
+> |:-----|----:|----:|----:|----:|----:|
+> | p10 | +0.00674 (IPW better) | 0.00665 | +1.01x | +1.64x | 26.98 |
+> | p50 | +0.00835 (IPW better) | 0.00470 | +1.78x | +1.30x | 1589 |
+> | p90 | -0.00470 (uniform better) | 0.00482 | -0.98x | -0.85x | 12.74 (harm) |
+>
+> Arm A (w=1) is not bit-for-bit the shipped fit: XGBoost's quantile objective fits
+> `sample_weight=ones` differently from `None`. A supplementary, not pre-registered check against
+> the shipped unweighted fit, paired over the same 10 seeds
+> ([`_fixes/_evidence/w9-2026-09-29/`](../../../_fixes/_evidence/w9-2026-09-29/)), gives the same
+> picture. IPW is better on p10 on 10/10 seeds (+0.00464, 0.69x floor) and on p50 on 10/10 seeds
+> (+0.01000, 2.38x). The shipped fit is better on p90 on 9/10 seeds (-0.00254, -0.53x). The
+> ruling below stays as the record of the v13 decision. Whether to revisit it is the user's call
+> (W58 in `_fixes/status/build-log.json`).
+
 ## Executive Summary
 
 **Ruling**: DROP the IPW survival sample weight from all three degradation quantile heads (p10, p50, p90).

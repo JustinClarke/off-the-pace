@@ -88,16 +88,17 @@ make ml-test        # leakage spine · ONNX parity · schema · beats-baseline
 src/      schema.py · features.py · train.py · tune.py · predict.py · export_onnx.py · evaluate.py · card.py
           survival.py (AFT) · ceiling.py + intervals.py (attainable denominators)
           attribution.py (what the within-stint signal is, and whether a feature could carry it)
+          powerlaw_fit.py · powerlaw_ceiling.py · powerlaw.py (WI-17 power-law tyre curve; separate from v14)
 tests/    test_features.py · test_targets.py · test_predict.py · test_onnx_parity.py · test_evaluate.py
           test_survival.py · test_manifest_contract.py · test_ceiling.py · test_attribution.py
-          test_fit_parity.py (search == evaluation == production refit)
+          test_fit_parity.py (search == evaluation == production refit) · test_powerlaw_export.py (WI-17)
 models/   *.bst/*.onnx (gitignored) · encoders.json / manifest.json / model_card.json (tracked) · training_logs/ optuna_studies/
 artefacts/ PNGs + eval parquets (gitignored, regen-able)
 ```
 
 ## Contracts
 
-- **Holdout** is data-derived (`MAX(race_year)+1`), never hardcoded pinned by `test_no_hardcoded_holdout`.
+- **Holdout** is pinned to `holdout_config.HOLDOUT_SEASON` (2026, WI-03 FD4 ruling); previously derived as `MAX(race_year)+1` which was structurally broken. `holdout_populated` is false until 2026 data arrives (derived from warehouse state, not pinned).
 - **No leaked columns** (`driver_skill_*`, identifiers, targets, gate) ever enter `X` pinned by `schema.EXCLUDED_LEAKAGE_COLUMNS` and `transform/tests/assert_no_leakage_columns.sql`.
 - **Feature contract ⊆ live mart** `test_feature_contract_subset_of_mart` fails the build on schema drift in either direction.
 - **Determinism** `RANDOM_STATE` everywhere; dataset SHA256 fingerprint logged in the card.

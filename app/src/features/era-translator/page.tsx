@@ -3,21 +3,13 @@ import RankedTable from '../../ui/charts/RankedTable'
 import { methodologyContent, methodologyHref } from './methodology'
 import { useQuery } from '../../data/hooks/useQuery'
 import { useFilters } from '../../state/FilterContext'
-import { transform, toCsvRows } from './transform'
+import { transform, toCsvRows, ratingClass } from './transform'
 import './queries'
 import type { EraTranslatorRow } from './queries'
 import { TechTooltip } from '../../ui/TechTooltip'
 
 function fmtRating(v: number) {
   return `${v >= 0 ? '+' : ''}${v.toFixed(3)}s`
-}
-
-function ratingClass(v: unknown) {
-  const s = v as number
-  if (s < -3)   return 'text-green-300'
-  if (s < -1.5) return 'text-green-400'
-  if (s > 0.5)  return 'text-red-400'
-  return 'text-[rgb(var(--color-text))]'
 }
 
 export default function EraTranslatorPage() {
@@ -32,24 +24,24 @@ export default function EraTranslatorPage() {
   return (
     <FeaturePage
       title="Era Translator"
-      hook="How fast was Hamilton in 2020, measured on the same scale as Verstappen in 2024? Era-adjusted ratings anchor every season to a common baseline using bridge drivers who raced across the 2022 regulation boundary."
+      hook="How big was Hamilton's 2020 margin over his teammate, next to Verstappen's in 2024? Every season is rated by the driver's lap-by-lap gap to his teammate in the same car, so the car, and the 2022 regulation change, cancel out."
       badges={[
         {
           label: 'What It Means',
-          content: 'Ratings are corrected for the pace baseline shift at the 2022 ground-effect regulation change. A 2018 rating of −2.5s is directly comparable to a 2024 rating of −2.5s.',
+          content: 'Negative = faster than his teammate, in seconds per lap (median lap-by-lap gap, season average). A 2018 rating of −0.3s and a 2024 rating of −0.3s are the same margin over a teammate. No era offset is applied: a regulation change moves both teammates alike, so it cancels.',
         },
         {
           label: 'Why It Matters',
-          content: 'Drivers marked ★ raced on both sides of the 2022 regulation boundary. Their consistent performance anchors the era correction. More bridge drivers = tighter era uncertainty.',
+          content: 'A rating says as much about the teammate as the driver: a margin over a weak teammate and the same margin over a strong one are different achievements. Drivers marked ★ raced at least 8 races on each side of the 2022 regulation boundary.',
         },
         {
           label: "How It's Calculated",
-          content: 'Wider CI means less certainty fewer races, fewer clean laps, or weaker bridge coverage in that era. The rating is still the best estimate, just with greater spread.',
+          content: 'Per race, the median of the driver\'s lap-by-lap gap to his teammate on laps both ran clean. Per season, those are averaged and shrunk toward the season mean with a 5-race prior. A wider CI means fewer races.',
         },
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024', nObs: result?.rows.length }}
+      provenance={{ dataWindow: '2018–2025', nObs: result?.rows.length }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename={`era-translator-${season}.csv`}
       isLoading={isLoading}
@@ -69,7 +61,7 @@ export default function EraTranslatorPage() {
                 <span className="flex items-center gap-1">
                   <span className="font-mono">{v as string}</span>
                   {(row as { bridge_driver_anchor_flag: boolean }).bridge_driver_anchor_flag && (
-                    <TechTooltip content="Bridge driver anchor">
+                    <TechTooltip content="Raced 8+ races on each side of the 2022 regulation change">
                       <span className="text-amber-400/80 text-[10px] cursor-help">★</span>
                     </TechTooltip>
                   )}
@@ -78,7 +70,7 @@ export default function EraTranslatorPage() {
             },
             {
               key: 'era_adjusted_rating',
-              header: 'Era rating (s)',
+              header: 'Gap to teammate (s)',
               align: 'right',
               render: v => fmtRating(v as number),
               cellClass: ratingClass,

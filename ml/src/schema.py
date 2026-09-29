@@ -38,9 +38,10 @@ EXCLUDED_LEAKAGE_COLUMNS: frozenset[str] = frozenset({
     # reason is the opposite of the one that was assumed. "LORO" in that model means
     # leave-one-DRIVER-out -- a driver is graded against the OTHER same-car drivers in the
     # SAME race (its header: "leave-one-driver-out (LORO) car baseline"). It is NOT
-    # leave-one-race-out. The focal race is never excluded: driver_skill_loro_s is
-    # `driver_p20_pace_delta_s - loro_car_baseline_s`, and that P20 is the focal driver's
-    # own clean laps in the race being predicted. Every CTE in the model groups by
+    # leave-one-race-out. The focal race is never excluded: driver_skill_loro_s is the
+    # median lap-by-lap gap to the teammate over the focal driver's own clean laps in the
+    # race being predicted (WI-14b, F40; it was P20 of those laps minus the teammate's
+    # median before that). Every CTE in the model groups by
     # (race_year, race_id, ...); no cross-race window exists anywhere in it.
     #
     # Proof, not reading: a driver with exactly ONE race in the whole table still gets a
@@ -88,6 +89,20 @@ IDENTIFIER_COLUMNS: tuple[str, ...] = (
     "driver_id", "constructor_id", "is_training_eligible",
     "survival_weight",
 )
+
+# W58 (2026-09-29): the row weight the degradation quantile trio trains with.
+#   "none" -- uniform, sample_weight=None: the production path since 08o (v13, v14).
+#   "ipw"  -- the season-lagged `survival_weight` column (C2, corrected by WI-13).
+# One switch, read at call time by BOTH train._sample_weight and evaluate._row_weights,
+# so the shipped fit and the evaluation refit cannot drift apart (the Phase 2 finding 1
+# defect). The cliff classifier (balanced class weights) and stint life (AFT interval
+# label) do not read it. Set per process with ML_QUANTILE_WEIGHT=ipw; the default
+# stays "none" until W58 is ruled and the version that uses it is promoted.
+QUANTILE_WEIGHT_SCHEMES: tuple[str, ...] = ("none", "ipw")
+QUANTILE_SAMPLE_WEIGHT = os.environ.get("ML_QUANTILE_WEIGHT", "none")
+if QUANTILE_SAMPLE_WEIGHT not in QUANTILE_WEIGHT_SCHEMES:
+    raise ValueError(f"ML_QUANTILE_WEIGHT={QUANTILE_SAMPLE_WEIGHT!r}; "
+                     f"expected one of {QUANTILE_WEIGHT_SCHEMES}")
 
 # ─── Feature set (39) verified members, grouped for ablation ────────────────────
 # 02b / D12 (2026-09-21): 32 -> 39. The seven `qualifying` columns join the contract
@@ -473,13 +488,13 @@ assert len(PREDICTIONS_ARROW_SCHEMA) == 19, "predictions schema must be 19 colum
 MODEL_VERSION_DEFAULT = "v14"  # v14 = 12a-1: 2025 ingested, retrained on the wider window with a
 # real holdout. No feature-contract, target-definition or hyperparameter change from v13 -- the
 # only mover is the data. Training seasons go 2018-2024 -> 2018-2025 (2025 folds into training as
-# ordinary rows) and `resolve_holdout_season()` (MAX(race_year)+1 over fct_cliff_prediction_features)
-# now returns 2026, i.e. there is no 2026 data yet so the holdout is effectively empty; see this
-# version's training log for what `ml.src.train` actually resolved at run time -- do not assume the
-# comment above predicts it correctly, read the log. **v14 IS comparable to v13 head-to-head at
-# fixed target**, unlike most of the version jumps documented below: 08q's target-moving change
-# already shipped in v13, so nothing about the label definition moves here, only the row count and
-# (if the holdout resolved to a real season) which rows are held out. See `_improvements/work/
+# ordinary rows) and `resolve_holdout_season()` is pinned to holdout_config.HOLDOUT_SEASON = 2026
+# (WI-03 FD4); there is no 2026 data yet so the holdout is effectively empty (holdout_populated=false).
+# See this version's training log for what `ml.src.train` actually resolved at run time -- do not
+# assume the comment above predicts it correctly, read the log. **v14 IS comparable to v13
+# head-to-head at fixed target**, unlike most of the version jumps documented below: 08q's
+# target-moving change already shipped in v13, so nothing about the label definition moves here,
+# only the row count and (if the holdout populated) which rows are held out. See `_improvements/work/
 # 12-season-coverage.md` (12a-1) for the ingest/rebuild trace.
 #
 # v13 = the four-item bundle (08i, 02b, 08o, 08q), landed as ONE

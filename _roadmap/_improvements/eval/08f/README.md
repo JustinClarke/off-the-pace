@@ -119,6 +119,28 @@ dead by `08g`/`08j` and stays closed here too.
 
 # 08f-1 Evaluation — Gating the survival-weight season-lag, in isolation
 
+> **RE-RUN 2026-09-29 ON CORRECTED WEIGHTS. Everything below this box is the 2026-09-17 run.**
+> A NULL-handling bug, fixed in [WI-13](../../../_fixes/wi/WI-13-pit-strategy.md) on 2026-09-25,
+> put every 2018 row's `survival_weight` at the 4.0 clip ceiling instead of the neutral 1.0, and
+> the 2026-09-17 AFTER arm ran on it. The re-run uses the corrected mart on today's substrate
+> (train 2018-2024, eval 2025; WI-01/05/15/02b landed, not retrained), plus an added
+> `AFTER_PREWI13` arm that rebuilds the old defect on the same substrate. `08f1_gate_arms.json`
+> and `.log` here are now the re-run. The 2026-09-17 record is
+> `git show fcf4949:_roadmap/_improvements/eval/08f/08f1_gate_arms.json`. Absolute headlines
+> are not comparable across the two runs.
+> - **Held:** the gate's own question is still a null. AFTER vs BEFORE is -0.53x / +0.18x /
+>   -0.93x floor (p10/p50/p90), all inside (was +0.49x / +0.15x / -0.07x). p10 changed sign,
+>   and p90 now sits just inside the floor on the cost side. The added arm attributes that p90
+>   move to the WI-13 fix (fix effect -1.00x).
+> - **Reversed:** the "secondary finding" below (both schemes lose to uniform on all three
+>   heads). On the re-run both IPW schemes beat uniform on p10 and p50 (AFTER +0.96x / +1.54x,
+>   BEFORE +1.49x / +1.35x). The p10 alignment cost (-1.30x) is now an alignment gain (+1.55x),
+>   and p50's is +1.12x with E=24.15 (n=5, ceiling 36, so it cannot clear e-BH on its own).
+>   Uniform still wins p90 (AFTER -1.09x). The p10 reversal also appears with the old defective
+>   weights, so it comes from the substrate. p50's is mostly the fix (fix effect +0.94x of the
+>   +1.54x; its alignment term is +0.10x with the defective weights). See W9 in
+>   `_fixes/status/build-log.json` and the 08o re-run.
+
 ## Status
 **GATED, 2026-09-17.** This is the one piece of 08f that had never been gated in isolation (the
 2026-09-09 run reverted `08e`+`08f-1`+`08f-2` together in one combined A/B, on a target `08m` has

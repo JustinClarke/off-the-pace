@@ -20,12 +20,18 @@ Adapted from _roadmap/_improvements/status/board.py. What differs, and why:
   * the task list puts work you can run now ahead of work waiting on a human ruling,
     otherwise "the pointer is the next thing to run" would be false the moment the first
     item in the table is decision-blocked;
-  * a `watch` list holds what is being kept an eye on but is not an item or a ruling:
+  * `watch_rules` hold what is being kept an eye on but is not an item or a ruling:
     ship-blockers, uncommitted or unreviewed work, stale artifacts, standing hazards,
     unverified claims, gate gaps and known debt. Items and decisions say what to build and
     what to rule; the watch list is where an exception lives so it cannot fall off the
-    board when the item that raised it lands. --check validates its shape only (an open
-    ship-blocker is not a malformed log); --ship is the gate to run before publishing.
+    board when the item that raised it lands. Like the task list, the watch list is
+    computed: each rule's `trigger` is evaluated against the items, the decisions and the
+    other rules (see generate_watch_list), and no status is stored. --check validates the
+    rules and their references (an open ship-blocker is not a malformed log); --ship is the
+    gate to run before publishing.
+  * every watch rule that is not cleared names a `recommended_model` from
+    `watch_model_vocabulary` (haiku / sonnet / opus): the smallest model that can work the
+    rule, so a sweep does not spend opus on "is it committed?".
 """
 from __future__ import annotations
 
@@ -59,43 +65,248 @@ def open_decs(item: dict, decisions: dict[str, dict]) -> list[str]:
     return [d for d in decs(item) if decisions.get(d, {}).get("status") == "OPEN"]
 
 
-WATCH_FIELDS = ("id", "raised", "kind", "title", "detail", "clears_when", "status")
+# --- The watch list: computed from `watch_rules`, like the task list from `items` ---------
+#
+# Each rule carries a `trigger`. `clear` (required) says when the rule stops being owed;
+# `raise` (optional) keeps it off the list until it holds, so a follow-up can be registered
+# before the item that owes it lands. Both are conditions in one small grammar:
+#
+#   "manual"                             the rule records `resolved` + `resolution`: a person
+#                                        saw a fact the log cannot (a commit, a re-export, a
+#                                        rebuild, a ruling given outside `decisions`)
+#   {"item": "WI-08"}                    the item is LANDED or CLOSED
+#   {"item": "WI-08", "stage": [...]}    the item is in one of the named stages
+#   {"decision": "FD4"}                  the decision is RESOLVED
+#   {"watch": "W8"}                      that watch rule is cleared
+#   {"all": [...]} / {"any": [...]}      every / at least one listed condition holds
+#
+# A rule is CLEARED when `clear` holds, DORMANT while `raise` does not, and OPEN otherwise.
+
+MANUAL = "manual"
+WATCH_FIELDS = ("id", "raised", "kind", "title", "detail", "clears_when", "trigger")
+WATCH_KEYS = set(WATCH_FIELDS) | {"item", "decision", "resolved", "resolution",
+                                  "recommended_model"}
+CONDITION_HELP = '"manual", {"item"}, {"decision"}, {"watch"}, {"all": [...]} or {"any": [...]}'
+
+
+def trig(rule: dict) -> dict:
+    """A rule's trigger, or {} when it is missing or malformed (--check names that)."""
+    t = rule.get("trigger")
+    return t if isinstance(t, dict) else {}
+
+
+def stages_of(cond: dict) -> list[str]:
+    s = cond.get("stage", sorted(TERMINAL))
+    return [s] if isinstance(s, str) else s if isinstance(s, list) else []
+
+
+def leaves(cond):
+    """The non-combinator conditions inside `cond`."""
+    if isinstance(cond, dict) and ("all" in cond or "any" in cond):
+        for op in ("all", "any"):
+            if isinstance(cond.get(op), list):
+                for sub in cond[op]:
+                    yield from leaves(sub)
+    elif cond is not None:
+        yield cond
+
+
+class WatchRules:
+    """Evaluates watch-rule triggers against one log. Never modifies the log."""
+
+    def __init__(self, log: dict):
+        self.items = {i["id"]: i for i in log["items"]}
+        self.decisions = {d["id"]: d for d in log["decisions"]}
+        self.rules = {r.get("id"): r for r in log.get("watch_rules", [])}
+        self._cleared: dict[str, bool] = {}
+        self._visiting: set[str] = set()
+
+    def holds(self, cond, rule: dict) -> bool:
+        """Whether `cond` holds. Anything malformed is False, so a bad rule stays OPEN."""
+        if cond == MANUAL:
+            return bool(rule.get("resolved") and rule.get("resolution"))
+        if not isinstance(cond, dict):
+            return False
+        if "all" in cond:
+            return isinstance(cond["all"], list) and all(self.holds(c, rule) for c in cond["all"])
+        if "any" in cond:
+            return isinstance(cond["any"], list) and any(self.holds(c, rule) for c in cond["any"])
+        if "item" in cond:
+            return self.items.get(cond["item"], {}).get("stage") in stages_of(cond)
+        if "decision" in cond:
+            return self.decisions.get(cond["decision"], {}).get("status") == "RESOLVED"
+        if "watch" in cond:
+            return self.cleared(cond["watch"])
+        return False
+
+    def cleared(self, wid: str) -> bool:
+        if wid not in self._cleared:
+            if wid in self._visiting or wid not in self.rules:
+                return False                   # a cycle or a dead reference; --check names it
+            self._visiting.add(wid)
+            rule = self.rules[wid]
+            self._cleared[wid] = self.holds(trig(rule).get("clear"), rule)
+            self._visiting.discard(wid)
+        return self._cleared[wid]
+
+    def status(self, rule: dict) -> str:
+        if self.cleared(rule.get("id")):
+            return "CLEARED"
+        t = trig(rule)
+        if "raise" in t and not self.holds(t["raise"], rule):
+            return "DORMANT"
+        return "OPEN"
+
+    def describe(self, cond, rule: dict) -> str:
+        """`cond` in words, each leaf marked with whether it holds now."""
+        def mark(c) -> str:
+            return "✓" if self.holds(c, rule) else "✗"
+        if cond == MANUAL:
+            return f"resolved by hand {mark(cond)}"
+        if not isinstance(cond, dict):
+            return f"<not a condition: {cond!r}>"
+        for op, word in (("all", "all of"), ("any", "any of")):
+            if isinstance(cond.get(op), list):
+                return f"{word} (" + "; ".join(self.describe(c, rule) for c in cond[op]) + ")"
+        if "item" in cond:
+            now = self.items.get(cond["item"], {}).get("stage", "missing")
+            return f"{cond['item']} {'/'.join(stages_of(cond))} (now {now}) {mark(cond)}"
+        if "decision" in cond:
+            now = self.decisions.get(cond["decision"], {}).get("status", "missing")
+            return f"{cond['decision']} RESOLVED (now {now}) {mark(cond)}"
+        if "watch" in cond:
+            return f"{cond['watch']} cleared {mark(cond)}"
+        return f"<not a condition: {cond!r}>"
+
+
+def generate_watch_list(log: dict) -> list[dict]:
+    """Every watch rule with its computed `status` -- OPEN, CLEARED or DORMANT -- and, when
+    cleared, `cleared_by`: "hand" if a resolution is recorded, else "trigger" (the log itself
+    shows the condition met). Returns copies; the rules in the log are not touched."""
+    ev = WatchRules(log)
+    out: list[dict] = []
+    for rule in log.get("watch_rules", []):
+        w = dict(rule, status=ev.status(rule))
+        if w["status"] == "CLEARED":
+            w["cleared_by"] = "hand" if rule.get("resolution") else "trigger"
+        out.append(w)
+    return out
 
 
 def open_watch(log: dict) -> list[dict]:
     """Open watch entries, most urgent kind first (vocabulary order), then in the order raised."""
     kinds = list(log.get("watch_vocabulary", {}))
     rank = {k: n for n, k in enumerate(kinds)}
-    live = [w for w in log.get("watch", []) if w.get("status") == "OPEN"]
+    live = [w for w in generate_watch_list(log) if w["status"] == "OPEN"]
     return sorted(live, key=lambda w: (rank.get(w.get("kind"), 99), w.get("raised", ""),
                                        len(w.get("id", "")), w.get("id", "")))
 
 
+def condition_errors(cond, where: str, ev: WatchRules, stages: set[str]) -> list[str]:
+    """Why `cond` is not a valid condition (empty when it is)."""
+    if cond == MANUAL:
+        return []
+    if not isinstance(cond, dict) or not cond:
+        return [f"{where}: {cond!r} is not a condition -- use {CONDITION_HELP}"]
+    keys = set(cond)
+    if keys in ({"all"}, {"any"}):
+        subs = cond[next(iter(keys))]
+        if not isinstance(subs, list) or not subs:
+            return [f"{where}: {next(iter(keys))!r} needs a non-empty list"]
+        return [e for c in subs for e in condition_errors(c, where, ev, stages)]
+    if "item" in keys and keys <= {"item", "stage"}:
+        if cond["item"] not in ev.items:
+            return [f"{where}: names item {cond['item']}, which does not exist"]
+        if not stages_of(cond):
+            return [f"{where}: stage must be a stage name or a non-empty list of them"]
+        return [f"{where}: stage {s!r} not in stage_vocabulary"
+                for s in stages_of(cond) if s not in stages]
+    if keys == {"decision"}:
+        return ([] if cond["decision"] in ev.decisions else
+                [f"{where}: names decision {cond['decision']}, which does not exist"])
+    if keys == {"watch"}:
+        return ([] if cond["watch"] in ev.rules else
+                [f"{where}: names watch rule {cond['watch']}, which does not exist"])
+    return [f"{where}: {cond!r} is not a condition -- use {CONDITION_HELP}"]
+
+
 def check_watch(log: dict, items: dict, decisions: dict) -> list[str]:
-    """Shape of the watch list. An open entry is not a failure -- that is what it is for."""
-    if "watch" not in log or "watch_vocabulary" not in log:
-        return ["build-log.json has no `watch` list or `watch_vocabulary`"]
+    """The watch rules parse and every reference resolves. An open rule is not a failure --
+    that is what the list is for."""
+    if "watch" in log:
+        return ["build-log.json still has a `watch` list: it is `watch_rules` now, one "
+                "`trigger` per entry and no stored `status` (see BUILD-ORDER.md)"]
+    if "watch_rules" not in log or "watch_vocabulary" not in log:
+        return ["build-log.json has no `watch_rules` or `watch_vocabulary`"]
+    ev = WatchRules(log)
     kinds = set(log["watch_vocabulary"])
+    stages = set(log["stage_vocabulary"])
+    wmodels = set(log.get("watch_model_vocabulary", {}))
     bad: list[str] = []
     seen: set[str] = set()
-    for w in log["watch"]:
-        wid = w.get("id", "?")
+    for r in log["watch_rules"]:
+        wid = r.get("id", "?")
         if wid in seen:
             bad.append(f"{wid}: duplicate watch id")
         seen.add(wid)
+        if rm := r.get("recommended_model"):
+            if rm not in wmodels:
+                bad.append(f"{wid}: recommended_model {rm!r} not in watch_model_vocabulary")
+        elif wid in ev.rules and not ev.cleared(wid):
+            bad.append(f"{wid}: live watch rule has no recommended_model")
         for f in WATCH_FIELDS:
-            if not w.get(f):
-                bad.append(f"{wid}: watch entry has no {f!r}")
-        if w.get("kind") and w["kind"] not in kinds:
-            bad.append(f"{wid}: kind {w['kind']!r} not in watch_vocabulary")
-        if w.get("status") not in ("OPEN", "RESOLVED"):
-            bad.append(f"{wid}: status {w.get('status')!r} is not OPEN or RESOLVED")
-        if w.get("status") == "RESOLVED" and not (w.get("resolved") and w.get("resolution")):
-            bad.append(f"{wid}: RESOLVED without a date and a resolution")
-        if w.get("item") and w["item"] not in items:
-            bad.append(f"{wid}: names item {w['item']}, which does not exist")
-        if w.get("decision") and w["decision"] not in decisions:
-            bad.append(f"{wid}: names decision {w['decision']}, which does not exist")
+            if not r.get(f):
+                bad.append(f"{wid}: watch rule has no {f!r}")
+        if "status" in r:
+            bad.append(f"{wid}: has a stored `status` -- status is computed from `trigger`; "
+                       f"to clear a manual rule, record `resolved` and `resolution`")
+        elif extra := sorted(set(r) - WATCH_KEYS):
+            bad.append(f"{wid}: unknown key(s) {', '.join(extra)}")
+        if r.get("kind") and r["kind"] not in kinds:
+            bad.append(f"{wid}: kind {r['kind']!r} not in watch_vocabulary")
+        if r.get("item") and r["item"] not in items:
+            bad.append(f"{wid}: names item {r['item']}, which does not exist")
+        if r.get("decision") and r["decision"] not in decisions:
+            bad.append(f"{wid}: names decision {r['decision']}, which does not exist")
+
+        t = r.get("trigger")
+        if t is not None and (not isinstance(t, dict) or "clear" not in t
+                              or set(t) - {"clear", "raise"}):
+            bad.append(f"{wid}: trigger must be {{\"clear\": <condition>}}, "
+                       f"optionally with \"raise\": <condition>")
+            continue
+        t = t or {}
+        for part in ("clear", "raise"):
+            if part in t:
+                bad += condition_errors(t[part], f"{wid} trigger.{part}", ev, stages)
+        if MANUAL in leaves(t.get("raise")):
+            bad.append(f"{wid}: trigger.raise uses \"manual\" -- a rule is raised by the log, "
+                       f"not by its own resolution")
+        if bool(r.get("resolved")) != bool(r.get("resolution")):
+            bad.append(f"{wid}: `resolved` and `resolution` must be recorded together")
+        elif r.get("resolution") and "clear" in t:
+            if MANUAL not in leaves(t["clear"]):
+                bad.append(f"{wid}: records a resolution, but its trigger has no \"manual\" "
+                           f"to read it")
+            elif not ev.cleared(wid):
+                bad.append(f"{wid}: resolved by hand, but the rest of its trigger is not met: "
+                           f"{ev.describe(t['clear'], r)}")
+
+    # A rule that waits on itself through {"watch": ...} can never clear.
+    graph = {r.get("id"): {c["watch"] for part in ("clear", "raise")
+                           for c in leaves(trig(r).get(part))
+                           if isinstance(c, dict) and "watch" in c}
+             for r in log["watch_rules"]}
+    for start, refs in graph.items():
+        stack, visited = list(refs), set()
+        while stack:
+            n = stack.pop()
+            if n == start:
+                bad.append(f"{start}: its trigger waits on itself through watch references")
+                break
+            if n not in visited and n in graph:
+                visited.add(n)
+                stack.extend(graph[n])
     return bad
 
 
@@ -278,18 +489,36 @@ def render_order(log: dict) -> str:
         ships = sum(1 for w in watch if w["kind"] == "ship-blocker")
         out.append("### Watch list — kept an eye on, not tasks and not rulings")
         out.append("")
+        out.append("_Generated from the watch rules in [`build-log.json`](build-log.json) "
+                   "(`watch_rules`); watch entries update automatically as items land or "
+                   "decisions resolve. A rule whose trigger needs something the log cannot see "
+                   "(a commit, a re-export, a rebuild, your ruling) stays open until its "
+                   "`resolved` and `resolution` are recorded._")
+        out.append("")
         out.append(f"**{len(watch)} open** ({ships} ship-blocker{'s' if ships != 1 else ''}). "
                    f"Full detail: `{CMD} --watch`. `{CMD} --ship` exits 1 while a "
                    f"ship-blocker is open.")
         out.append("")
-        out.append("| ID | Kind | Item | What | Clears when |")
-        out.append("| :--- | :--- | :--- | :--- | :--- |")
+        wm = log.get("watch_model_vocabulary", {})
+        tally = ", ".join(f"{sum(1 for w in watch if w.get('recommended_model') == m)} {m}"
+                          for m in wm)
+        out.append("Each watch rule is tagged with the recommended model (haiku/sonnet/opus) "
+                   f"for token efficiency ({tally}). The tag is the smallest model that can work "
+                   "the rule to its `clears_when`; step up a tier the moment the rule turns out "
+                   "to leave a choice open that the tag assumed was made.")
+        out.append("")
+        for name, why in wm.items():
+            out.append(f"- **`{name}`** — {why}")
+        out.append("")
+        out.append("| ID | Kind | Item | Model | What | Clears when |")
+        out.append("| :--- | :--- | :--- | :--- | :--- | :--- |")
 
         def cell(s: str) -> str:
             return s.replace("|", "/").replace("\n", " ")
         for w in watch:
             ref = ", ".join(x for x in (w.get("item"), w.get("decision")) if x) or "—"
-            out.append(f"| {w['id']} | {w['kind']} | {ref} | {cell(w['title'])} "
+            model = f"`{w['recommended_model']}`" if w.get("recommended_model") else "—"
+            out.append(f"| {w['id']} | {w['kind']} | {ref} | {model} | {cell(w['title'])} "
                        f"| {cell(w['clears_when'])} |")
         out.append("")
 
@@ -310,7 +539,8 @@ def write_order(log: dict) -> str:
     else:
         doc = doc.rstrip() + "\n\n" + block + "\n"
     ORDER_DOC.write_text(doc)
-    return f"wrote {len(plan(log))} live items into {ORDER_DOC.name}"
+    return (f"wrote {len(plan(log))} live items and {len(open_watch(log))} open watch entries "
+            f"into {ORDER_DOC.name}")
 
 
 def board(log: dict) -> None:
@@ -351,7 +581,8 @@ def board(log: dict) -> None:
         for w in watch:
             ref = w.get("item") or w.get("decision") or ""
             flag = "!!" if w["kind"] == "ship-blocker" else "  "
-            print(f"    {flag} {w['id']:<4} {w['kind']:<15} {ref:<7} {w['title']}")
+            model = w.get("recommended_model", "?")
+            print(f"    {flag} {w['id']:<4} {w['kind']:<15} {ref:<7} {model:<7} {w['title']}")
         print()
 
     last = log["history"][-1]
@@ -373,11 +604,27 @@ def main() -> int:
         print(render_order(log))
         return 0
     if "--watch" in sys.argv:
-        for w in open_watch(log):
+        ev = WatchRules(log)
+        rows = generate_watch_list(log)
+        live = open_watch(log)
+        for w in live:
             ref = ", ".join(x for x in (w.get("item"), w.get("decision")) if x) or "no item"
-            print(f"{w['id']}  [{w['kind']}]  {ref}  raised {w['raised']}\n  {w['title']}\n"
-                  f"  why:   {w['detail']}\n  clears when: {w['clears_when']}\n")
-        print(f"{len(open_watch(log))} open")
+            model = w.get("recommended_model", "untagged")
+            print(f"{w['id']}  [{w['kind']}]  {ref}  raised {w['raised']}  model {model}\n"
+                  f"  {w['title']}\n"
+                  f"  why:   {w['detail']}\n  clears when: {w['clears_when']}\n"
+                  f"  trigger: {ev.describe(trig(w).get('clear'), w)}\n")
+        auto = [w for w in rows if w.get("cleared_by") == "trigger"]
+        if auto:
+            print("Cleared by trigger -- no resolution was written; the log shows the condition met:")
+            for w in auto:
+                print(f"  {w['id']}  {w['title']}\n"
+                      f"    trigger: {ev.describe(trig(w).get('clear'), w)}")
+            print()
+        by_hand = sum(1 for w in rows if w.get("cleared_by") == "hand")
+        dormant = sum(1 for w in rows if w["status"] == "DORMANT")
+        print(f"{len(live)} open · {by_hand} cleared by hand · {len(auto)} cleared by trigger"
+              f" · {dormant} not yet raised  ({len(rows)} rules)")
         return 0
     if "--ship" in sys.argv:
         blockers = [w for w in open_watch(log) if w["kind"] == "ship-blocker"]

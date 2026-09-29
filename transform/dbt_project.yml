@@ -124,6 +124,12 @@ vars:
   # its own; both default to the same value and the cost curve reads the shared
   # bound. Set this alone to diverge the strategy ceiling from the source curve.
   pit_strategy_max_wear_s_per_lap: 10.0
+  # ── Holdout policy (WI-03; _roadmap/_fixes/wi/WI-03-holdout-policy.md) ──
+  # Pin a holdout season instead of deriving MAX(race_year)+1. WI-03 ruling (FD4,
+  # 2026-09-28): use 2026 as the holdout. Ingest 2026 data incrementally as races
+  # complete rather than upfront. holdout_populated is derived from whether the
+  # holdout season has any rows in the warehouse (false until data arrives).
+  holdout_season: 2026
   # dim_corners: each corner's telemetry window runs from its apex minus
   # corner_entry_margin_m to its apex plus corner_exit_margin_m, with both ends
   # clipped at the neighbouring apex so no corner reaches past its neighbours.

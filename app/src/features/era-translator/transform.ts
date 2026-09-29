@@ -1,5 +1,20 @@
 import type { EraTranslatorRow } from './queries'
 
+/**
+ * Colour for a season rating (seconds, negative = faster than his teammate(s)).
+ * The rating is a gap to the teammate (F40, WI-14b), typically within ±0.4s, so the
+ * bands sit on that scale: green for faster than the teammate, red for slower.
+ * The old bands (< -3s, < -1.5s, > 0.5s) were tuned to the pre-fix level bias
+ * (every rating near -1.8s) and would leave every honest rating uncoloured.
+ */
+export function ratingClass(v: unknown): string {
+  const s = v as number
+  if (s < -0.3) return 'text-green-300'
+  if (s < -0.1) return 'text-green-400'
+  if (s > 0.1)  return 'text-red-400'
+  return 'text-[rgb(var(--color-text))]'
+}
+
 export interface EraRankRow {
   rank: number
   driver_id: string

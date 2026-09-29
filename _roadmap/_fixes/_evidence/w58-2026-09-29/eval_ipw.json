@@ -1,0 +1,2342 @@
+{
+  "evaluated_at": "2026-09-29T08:08:10.124048+00:00",
+  "version": "v15ipw",
+  "censoring_variant": "standard",
+  "holdout_season": 2026,
+  "evaluation_mode": "cv_final_fold",
+  "models": {
+    "degradation_regressor_p10": {
+      "family": "degradation_regressor",
+      "kind": "quantile",
+      "headline_metric": "pinball",
+      "headline": 0.5824154571191429,
+      "baseline_headline": 0.7364241707628093,
+      "beats_baseline": true,
+      "higher_is_better": false,
+      "n_eval_rows": 12380,
+      "cohorts": {
+        "by_compound": {
+          "HARD": {
+            "n": 5963,
+            "model": 0.4020477233758596,
+            "baseline": 0.5936525282900011,
+            "beats_baseline": true
+          },
+          "MEDIUM": {
+            "n": 5130,
+            "model": 0.8616981403056428,
+            "baseline": 0.9769698464200087,
+            "beats_baseline": true
+          },
+          "SOFT": {
+            "n": 1287,
+            "model": 0.30488059430985925,
+            "baseline": 0.43910326007432554,
+            "beats_baseline": true
+          }
+        },
+        "by_circuit_key": {
+          "abu_dhabi_grand_prix": {
+            "n": 580,
+            "model": 0.27289532606653816,
+            "baseline": 0.3846131090107698,
+            "beats_baseline": true
+          },
+          "austrian_grand_prix": {
+            "n": 590,
+            "model": 0.2543868363395932,
+            "baseline": 0.3027260196260848,
+            "beats_baseline": true
+          },
+          "azerbaijan_grand_prix": {
+            "n": 532,
+            "model": 0.353872901166684,
+            "baseline": 0.4949429351174326,
+            "beats_baseline": true
+          },
+          "bahrain_grand_prix": {
+            "n": 451,
+            "model": 0.29701184392918384,
+            "baseline": 0.5965149856614503,
+            "beats_baseline": true
+          },
+          "belgian_grand_prix": {
+            "n": 380,
+            "model": 6.625666842743782,
+            "baseline": 5.852932794496538,
+            "beats_baseline": false
+          },
+          "british_grand_prix": {
+            "n": 37,
+            "model": 0.9879836349879941,
+            "baseline": 0.9668179381193196,
+            "beats_baseline": false
+          },
+          "canadian_grand_prix": {
+            "n": 774,
+            "model": 0.2756544626929887,
+            "baseline": 0.4138059960541304,
+            "beats_baseline": true
+          },
+          "chinese_grand_prix": {
+            "n": 650,
+            "model": 0.308329385780655,
+            "baseline": 0.5475239451046489,
+            "beats_baseline": true
+          },
+          "dutch_grand_prix": {
+            "n": 454,
+            "model": 0.3080790799007817,
+            "baseline": 0.3796802715840549,
+            "beats_baseline": true
+          },
+          "emilia_romagna_grand_prix": {
+            "n": 471,
+            "model": 0.2691591137771981,
+            "baseline": 0.4101408619189295,
+            "beats_baseline": true
+          },
+          "hungarian_grand_prix": {
+            "n": 854,
+            "model": 0.3930425534468104,
+            "baseline": 0.6574290227600103,
+            "beats_baseline": true
+          },
+          "italian_grand_prix": {
+            "n": 555,
+            "model": 0.22396471551455469,
+            "baseline": 0.3054580025706131,
+            "beats_baseline": true
+          },
+          "japanese_grand_prix": {
+            "n": 686,
+            "model": 0.41304223924438577,
+            "baseline": 0.6033059234124117,
+            "beats_baseline": true
+          },
+          "las_vegas_grand_prix": {
+            "n": 435,
+            "model": 0.46631886237769016,
+            "baseline": 0.5163080088888714,
+            "beats_baseline": true
+          },
+          "mexico_city_grand_prix": {
+            "n": 759,
+            "model": 0.27969517827591395,
+            "baseline": 0.40436860834038235,
+            "beats_baseline": true
+          },
+          "monaco_grand_prix": {
+            "n": 795,
+            "model": 1.3199126453000565,
+            "baseline": 1.7419620402541343,
+            "beats_baseline": true
+          },
+          "qatar_grand_prix": {
+            "n": 470,
+            "model": 0.2463366054061515,
+            "baseline": 0.333341885732124,
+            "beats_baseline": true
+          },
+          "saudi_arabian_grand_prix": {
+            "n": 498,
+            "model": 0.2802156585773177,
+            "baseline": 0.39981793804714194,
+            "beats_baseline": true
+          },
+          "singapore_grand_prix": {
+            "n": 734,
+            "model": 0.5040204184737332,
+            "baseline": 0.9287477389923209,
+            "beats_baseline": true
+          },
+          "spanish_grand_prix": {
+            "n": 464,
+            "model": 0.2782046970430862,
+            "baseline": 0.4246139219941661,
+            "beats_baseline": true
+          },
+          "s\u00e3o_paulo_grand_prix": {
+            "n": 687,
+            "model": 0.25926886112965425,
+            "baseline": 0.38432326161440733,
+            "beats_baseline": true
+          },
+          "united_states_grand_prix": {
+            "n": 524,
+            "model": 0.39073837410124035,
+            "baseline": 0.6136493106033009,
+            "beats_baseline": true
+          }
+        },
+        "by_constructor_id": {
+          "Alpine": {
+            "n": 1192,
+            "model": 0.6795172668128671,
+            "baseline": 0.8939678528873211,
+            "beats_baseline": true
+          },
+          "Aston Martin": {
+            "n": 1186,
+            "model": 0.5905834743235128,
+            "baseline": 0.7364675101889262,
+            "beats_baseline": true
+          },
+          "Ferrari": {
+            "n": 1231,
+            "model": 0.6987465650365903,
+            "baseline": 0.7894125300614997,
+            "beats_baseline": true
+          },
+          "Haas F1 Team": {
+            "n": 1324,
+            "model": 0.4278573628604029,
+            "baseline": 0.7138284927842077,
+            "beats_baseline": true
+          },
+          "Kick Sauber": {
+            "n": 1185,
+            "model": 0.6933693322330402,
+            "baseline": 0.8691308649132137,
+            "beats_baseline": true
+          },
+          "McLaren": {
+            "n": 1318,
+            "model": 0.39466027499054995,
+            "baseline": 0.5106151701218697,
+            "beats_baseline": true
+          },
+          "Mercedes": {
+            "n": 1238,
+            "model": 0.5596121555737474,
+            "baseline": 0.6490714182419814,
+            "beats_baseline": true
+          },
+          "Racing Bulls": {
+            "n": 1316,
+            "model": 0.5486235880941442,
+            "baseline": 0.7147132321568226,
+            "beats_baseline": true
+          },
+          "Red Bull Racing": {
+            "n": 1266,
+            "model": 0.5325564453158113,
+            "baseline": 0.6130065407611439,
+            "beats_baseline": true
+          },
+          "Williams": {
+            "n": 1124,
+            "model": 0.7494988924585775,
+            "baseline": 0.9234031657628875,
+            "beats_baseline": true
+          }
+        },
+        "by_is_rain_lap": {
+          "False": {
+            "n": 12380,
+            "model": 0.5824154571191429,
+            "baseline": 0.7364241707628093,
+            "beats_baseline": true
+          }
+        },
+        "by_race_year": {
+          "2025": {
+            "n": 12380,
+            "model": 0.5824154571191429,
+            "baseline": 0.7364241707628093,
+            "beats_baseline": true
+          }
+        }
+      },
+      "underperforming_cohorts": [
+        {
+          "dimension": "circuit_key",
+          "cohort": "belgian_grand_prix",
+          "n": 380,
+          "model": 6.625666842743782,
+          "baseline": 5.852932794496538
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "british_grand_prix",
+          "n": 37,
+          "model": 0.9879836349879941,
+          "baseline": 0.9668179381193196
+        }
+      ],
+      "attainable": {
+        "variance": {
+          "target_column": "next_5_lap_cumulative_jump_s",
+          "scope": "mart",
+          "horizon_laps": 5,
+          "estimator": "anova_icc_oneway_non_overlapping",
+          "n_rows": 106394,
+          "n_stints": 7157,
+          "mean_rows_per_stint": 14.866,
+          "sd": 4.005634429053983,
+          "between_stint_share": 0.0,
+          "between_stint_share_naive": 0.26249587702992067,
+          "naive_inflation_x": 2.7166986286893726,
+          "within_stint_lag1_autocorr": 0.37706074010277296,
+          "lag1_expected_from_window_overlap": 0.8,
+          "lag1_excess_over_overlap": -0.4229392598972271,
+          "non_overlapping": {
+            "n_rows": 24210,
+            "n_stints": 7157,
+            "mean_rows_per_stint": 3.383,
+            "between_stint_share": 0.0,
+            "between_stint_share_naive": 0.4815990000392177
+          },
+          "between_stint_share_overlapping": 0.09662311242692295
+        },
+        "metric_native": {
+          "basis": "analytic_from_icc",
+          "floor_metric": 0.7294581863512908,
+          "achieved_reduction": 0.1470427292321479,
+          "achieved_reduction_pct_of_floor": 0.20157800951915755,
+          "oracle_metric_in_sample": 0.3969994702186206,
+          "oracle_metric_cross_fitted": 0.49130679598026594,
+          "in_sample_oracle_is_exact_optimum": true,
+          "fraction_of_attainable_in_sample": 0.4422886875778867,
+          "fraction_of_attainable_cross_fitted": 0.6174338474491566,
+          "attainable_fraction_of_floor": 0.0,
+          "oracle_metric_analytic": 0.7294581863512908,
+          "fraction_of_attainable": null,
+          "note": "primary denominator is analytic: under a Gaussian shape, knowing the stint scales sigma from sqrt(sigma_b^2 + sigma_w^2) to sigma_w, so a stint-constant predictor can remove at most 1 - sqrt(1 - ICC) of the expected pinball. It is the population ceiling and it is not estimated per stint, so it does not collapse at ~19 laps the way the empirical oracles do. fraction_of_attainable_in_sample carries a stronger property and no shape assumption: the per-stint empirical alpha-quantile is the EXACT minimiser of pinball over all stint-constant predictors on these very rows, so an out-of-sample model scoring below it has provably used within-stint information. Above 1 on either is a finding, not a defect."
+        }
+      },
+      "interval": {
+        "fold_paired": {
+          "n_folds": 5,
+          "fold_deltas": [
+            0.18183230559303476,
+            0.17013936548100073,
+            0.14445335074593385,
+            0.20693716071893914,
+            0.15400871364366642
+          ],
+          "folds_won": 5,
+          "mean_delta": 0.17147417923651498,
+          "t": 15.64730666468055,
+          "p_value": 9.742246687748215e-05,
+          "ci_low": 0.14104794321957353,
+          "ci_high": 0.20190041525345642,
+          "ci_level": 0.95,
+          "significant": true,
+          "folds": [
+            {
+              "fold": 0,
+              "val_season": 2021,
+              "n": 11422,
+              "model": 0.4286560334763587,
+              "baseline": 0.6104883390693935
+            },
+            {
+              "fold": 1,
+              "val_season": 2022,
+              "n": 8053,
+              "model": 0.35183219288594514,
+              "baseline": 0.5219715583669459
+            },
+            {
+              "fold": 2,
+              "val_season": 2023,
+              "n": 11133,
+              "model": 0.40441743738374697,
+              "baseline": 0.5488707881296808
+            },
+            {
+              "fold": 3,
+              "val_season": 2024,
+              "n": 12665,
+              "model": 0.4156486471384336,
+              "baseline": 0.6225858078573727
+            },
+            {
+              "fold": 4,
+              "val_season": 2025,
+              "n": 12380,
+              "model": 0.5824154571191429,
+              "baseline": 0.7364241707628093
+            }
+          ],
+          "method": "paired t over season-grouped CV folds (whole seasons move together)"
+        },
+        "cluster_bootstrap": {
+          "method": "percentile bootstrap over whole stints, on the evaluation fold",
+          "stint_grain": {
+            "n_clusters": 882,
+            "n_rows": 12380,
+            "resamples": 400,
+            "mean": 0.15341627251994994,
+            "ci_low": 0.1253852772720926,
+            "ci_high": 0.1829507010859703,
+            "ci_level": 0.95,
+            "width": 0.05756542381387772,
+            "significant": true
+          },
+          "lap_grain": {
+            "n_clusters": 12380,
+            "n_rows": 12380,
+            "resamples": 400,
+            "mean": 0.15405594767098438,
+            "ci_low": 0.13815957303375007,
+            "ci_high": 0.17079292978972752,
+            "ci_level": 0.95,
+            "width": 0.03263335675597745,
+            "significant": true
+          },
+          "width_ratio_stint_over_lap": 1.7640055923248983,
+          "worst_case_ratio_sqrt_rows_over_stints": 3.7465025262420846,
+          "mean_laps_per_stint": 14.036281179138323,
+          "implied_intra_stint_correlation_of_margin": 0.16198758685359196
+        }
+      },
+      "beats_baseline_significant": true
+    },
+    "degradation_regressor_p50": {
+      "family": "degradation_regressor",
+      "kind": "quantile",
+      "headline_metric": "pinball",
+      "headline": 0.9482790686085404,
+      "baseline_headline": 1.128291895920138,
+      "beats_baseline": true,
+      "higher_is_better": false,
+      "n_eval_rows": 12380,
+      "cohorts": {
+        "by_compound": {
+          "HARD": {
+            "n": 5963,
+            "model": 0.882607715038702,
+            "baseline": 1.0861737950737238,
+            "beats_baseline": true
+          },
+          "MEDIUM": {
+            "n": 5130,
+            "model": 1.0904571975184378,
+            "baseline": 1.2349226607480288,
+            "beats_baseline": true
+          },
+          "SOFT": {
+            "n": 1287,
+            "model": 0.6858272271393652,
+            "baseline": 0.8984041039854745,
+            "beats_baseline": true
+          }
+        },
+        "by_circuit_key": {
+          "abu_dhabi_grand_prix": {
+            "n": 580,
+            "model": 0.6235995146790623,
+            "baseline": 0.7840335686419105,
+            "beats_baseline": true
+          },
+          "austrian_grand_prix": {
+            "n": 590,
+            "model": 0.5666447324733409,
+            "baseline": 0.6328303785522668,
+            "beats_baseline": true
+          },
+          "azerbaijan_grand_prix": {
+            "n": 532,
+            "model": 0.7950231984990722,
+            "baseline": 1.0069951709146843,
+            "beats_baseline": true
+          },
+          "bahrain_grand_prix": {
+            "n": 451,
+            "model": 0.692731331500215,
+            "baseline": 1.0395282970510262,
+            "beats_baseline": true
+          },
+          "belgian_grand_prix": {
+            "n": 380,
+            "model": 5.328846117581816,
+            "baseline": 4.743903946195617,
+            "beats_baseline": false
+          },
+          "british_grand_prix": {
+            "n": 37,
+            "model": 1.8214882402506027,
+            "baseline": 2.5546852208712165,
+            "beats_baseline": true
+          },
+          "canadian_grand_prix": {
+            "n": 774,
+            "model": 0.6318332574866647,
+            "baseline": 0.7950356759726247,
+            "beats_baseline": true
+          },
+          "chinese_grand_prix": {
+            "n": 650,
+            "model": 0.7480325898884449,
+            "baseline": 1.0246160671703182,
+            "beats_baseline": true
+          },
+          "dutch_grand_prix": {
+            "n": 454,
+            "model": 0.6174188399031234,
+            "baseline": 0.7200102252995481,
+            "beats_baseline": true
+          },
+          "emilia_romagna_grand_prix": {
+            "n": 471,
+            "model": 0.6596596603182148,
+            "baseline": 0.7725154975856261,
+            "beats_baseline": true
+          },
+          "hungarian_grand_prix": {
+            "n": 854,
+            "model": 0.8524370441965358,
+            "baseline": 1.0864137081420142,
+            "beats_baseline": true
+          },
+          "italian_grand_prix": {
+            "n": 555,
+            "model": 0.49107488570988717,
+            "baseline": 0.6757761428824848,
+            "beats_baseline": true
+          },
+          "japanese_grand_prix": {
+            "n": 686,
+            "model": 0.8930914761095229,
+            "baseline": 1.1950650570047399,
+            "beats_baseline": true
+          },
+          "las_vegas_grand_prix": {
+            "n": 435,
+            "model": 0.8120160346487807,
+            "baseline": 0.9482206473872152,
+            "beats_baseline": true
+          },
+          "mexico_city_grand_prix": {
+            "n": 759,
+            "model": 0.6535722211668964,
+            "baseline": 0.8377622573104602,
+            "beats_baseline": true
+          },
+          "monaco_grand_prix": {
+            "n": 795,
+            "model": 2.139981033942107,
+            "baseline": 2.483309827135947,
+            "beats_baseline": true
+          },
+          "qatar_grand_prix": {
+            "n": 470,
+            "model": 0.5039894409205673,
+            "baseline": 0.5657315364098899,
+            "beats_baseline": true
+          },
+          "saudi_arabian_grand_prix": {
+            "n": 498,
+            "model": 0.6751315180403404,
+            "baseline": 0.8058556229521746,
+            "beats_baseline": true
+          },
+          "singapore_grand_prix": {
+            "n": 734,
+            "model": 1.0624097850177372,
+            "baseline": 1.3330476892169052,
+            "beats_baseline": true
+          },
+          "spanish_grand_prix": {
+            "n": 464,
+            "model": 0.6528633740826209,
+            "baseline": 0.8519256174109391,
+            "beats_baseline": true
+          },
+          "s\u00e3o_paulo_grand_prix": {
+            "n": 687,
+            "model": 0.516357755211085,
+            "baseline": 0.7028237088869547,
+            "beats_baseline": true
+          },
+          "united_states_grand_prix": {
+            "n": 524,
+            "model": 0.9071766360765534,
+            "baseline": 1.139798455805545,
+            "beats_baseline": true
+          }
+        },
+        "by_constructor_id": {
+          "Alpine": {
+            "n": 1192,
+            "model": 1.0260369547176211,
+            "baseline": 1.239316618418625,
+            "beats_baseline": true
+          },
+          "Aston Martin": {
+            "n": 1186,
+            "model": 0.972999635659776,
+            "baseline": 1.153128994930809,
+            "beats_baseline": true
+          },
+          "Ferrari": {
+            "n": 1231,
+            "model": 0.9934417336103752,
+            "baseline": 1.1327856316123366,
+            "beats_baseline": true
+          },
+          "Haas F1 Team": {
+            "n": 1324,
+            "model": 0.8962101999348722,
+            "baseline": 1.1166716003614408,
+            "beats_baseline": true
+          },
+          "Kick Sauber": {
+            "n": 1185,
+            "model": 1.1033531371752316,
+            "baseline": 1.2419447924128737,
+            "beats_baseline": true
+          },
+          "McLaren": {
+            "n": 1318,
+            "model": 0.7531386889169862,
+            "baseline": 0.950212053077836,
+            "beats_baseline": true
+          },
+          "Mercedes": {
+            "n": 1238,
+            "model": 0.9162565097873039,
+            "baseline": 1.093778276204959,
+            "beats_baseline": true
+          },
+          "Racing Bulls": {
+            "n": 1316,
+            "model": 0.928250951523286,
+            "baseline": 1.124841276292687,
+            "beats_baseline": true
+          },
+          "Red Bull Racing": {
+            "n": 1266,
+            "model": 0.8529569414579256,
+            "baseline": 0.9908798538997311,
+            "beats_baseline": true
+          },
+          "Williams": {
+            "n": 1124,
+            "model": 1.0830201191435855,
+            "baseline": 1.2789309407555296,
+            "beats_baseline": true
+          }
+        },
+        "by_is_rain_lap": {
+          "False": {
+            "n": 12380,
+            "model": 0.9482790686085404,
+            "baseline": 1.128291895920138,
+            "beats_baseline": true
+          }
+        },
+        "by_race_year": {
+          "2025": {
+            "n": 12380,
+            "model": 0.9482790686085404,
+            "baseline": 1.128291895920138,
+            "beats_baseline": true
+          }
+        }
+      },
+      "underperforming_cohorts": [
+        {
+          "dimension": "circuit_key",
+          "cohort": "belgian_grand_prix",
+          "n": 380,
+          "model": 5.328846117581816,
+          "baseline": 4.743903946195617
+        }
+      ],
+      "attainable": {
+        "variance": {
+          "target_column": "next_5_lap_cumulative_jump_s",
+          "scope": "mart",
+          "horizon_laps": 5,
+          "estimator": "anova_icc_oneway_non_overlapping",
+          "n_rows": 106394,
+          "n_stints": 7157,
+          "mean_rows_per_stint": 14.866,
+          "sd": 4.005634429053983,
+          "between_stint_share": 0.0,
+          "between_stint_share_naive": 0.26249587702992067,
+          "naive_inflation_x": 2.7166986286893726,
+          "within_stint_lag1_autocorr": 0.37706074010277296,
+          "lag1_expected_from_window_overlap": 0.8,
+          "lag1_excess_over_overlap": -0.4229392598972271,
+          "non_overlapping": {
+            "n_rows": 24210,
+            "n_stints": 7157,
+            "mean_rows_per_stint": 3.383,
+            "between_stint_share": 0.0,
+            "between_stint_share_naive": 0.4815990000392177
+          },
+          "between_stint_share_overlapping": 0.09662311242692295
+        },
+        "metric_native": {
+          "basis": "analytic_from_icc",
+          "floor_metric": 1.080795717427398,
+          "achieved_reduction": 0.13251664881885772,
+          "achieved_reduction_pct_of_floor": 0.12261026453202935,
+          "oracle_metric_in_sample": 0.8304779249005318,
+          "oracle_metric_cross_fitted": 0.9050136461473222,
+          "in_sample_oracle_is_exact_optimum": true,
+          "fraction_of_attainable_in_sample": 0.5293936458976838,
+          "fraction_of_attainable_cross_fitted": 0.7538689688535821,
+          "attainable_fraction_of_floor": 0.0,
+          "oracle_metric_analytic": 1.080795717427398,
+          "fraction_of_attainable": null,
+          "note": "primary denominator is analytic: under a Gaussian shape, knowing the stint scales sigma from sqrt(sigma_b^2 + sigma_w^2) to sigma_w, so a stint-constant predictor can remove at most 1 - sqrt(1 - ICC) of the expected pinball. It is the population ceiling and it is not estimated per stint, so it does not collapse at ~19 laps the way the empirical oracles do. fraction_of_attainable_in_sample carries a stronger property and no shape assumption: the per-stint empirical alpha-quantile is the EXACT minimiser of pinball over all stint-constant predictors on these very rows, so an out-of-sample model scoring below it has provably used within-stint information. Above 1 on either is a finding, not a defect."
+        }
+      },
+      "interval": {
+        "fold_paired": {
+          "n_folds": 5,
+          "fold_deltas": [
+            0.2142303534201324,
+            0.21342012837776425,
+            0.17130629330016034,
+            0.18623797818728105,
+            0.18001282731159762
+          ],
+          "folds_won": 5,
+          "mean_delta": 0.19304151611938714,
+          "t": 21.908902447584317,
+          "p_value": 2.5683892962318812e-05,
+          "ci_low": 0.16857798245712788,
+          "ci_high": 0.2175050497816464,
+          "ci_level": 0.95,
+          "significant": true,
+          "folds": [
+            {
+              "fold": 0,
+              "val_season": 2021,
+              "n": 11422,
+              "model": 0.9258980749539194,
+              "baseline": 1.1401284283740518
+            },
+            {
+              "fold": 1,
+              "val_season": 2022,
+              "n": 8053,
+              "model": 0.7881936276274973,
+              "baseline": 1.0016137560052616
+            },
+            {
+              "fold": 2,
+              "val_season": 2023,
+              "n": 11133,
+              "model": 0.8412267745074393,
+              "baseline": 1.0125330678075997
+            },
+            {
+              "fold": 3,
+              "val_season": 2024,
+              "n": 12665,
+              "model": 0.9258587280902998,
+              "baseline": 1.1120967062775808
+            },
+            {
+              "fold": 4,
+              "val_season": 2025,
+              "n": 12380,
+              "model": 0.9482790686085404,
+              "baseline": 1.128291895920138
+            }
+          ],
+          "method": "paired t over season-grouped CV folds (whole seasons move together)"
+        },
+        "cluster_bootstrap": {
+          "method": "percentile bootstrap over whole stints, on the evaluation fold",
+          "stint_grain": {
+            "n_clusters": 882,
+            "n_rows": 12380,
+            "resamples": 400,
+            "mean": 0.1800499720859066,
+            "ci_low": 0.15402232300726246,
+            "ci_high": 0.20588507298014394,
+            "ci_level": 0.95,
+            "width": 0.05186274997288148,
+            "significant": true
+          },
+          "lap_grain": {
+            "n_clusters": 12380,
+            "n_rows": 12380,
+            "resamples": 400,
+            "mean": 0.180229853459614,
+            "ci_low": 0.1653243044728761,
+            "ci_high": 0.19486083307880592,
+            "ci_level": 0.95,
+            "width": 0.029536528605929813,
+            "significant": true
+          },
+          "width_ratio_stint_over_lap": 1.7558850826657204,
+          "worst_case_ratio_sqrt_rows_over_stints": 3.7465025262420846,
+          "mean_laps_per_stint": 14.036281179138323,
+          "implied_intra_stint_correlation_of_margin": 0.15979499022018606
+        }
+      },
+      "beats_baseline_significant": true,
+      "importance": {
+        "shap_top5": [
+          [
+            "push_residual",
+            0.8609127998352051
+          ],
+          [
+            "dirty_air_thermal_load_surface",
+            0.27671658992767334
+          ],
+          [
+            "fuel_mass_kg",
+            0.22047458589076996
+          ],
+          [
+            "expected_degradation_rate_s_per_lap",
+            0.16756625473499298
+          ],
+          [
+            "compound_wear_gradient",
+            0.15250617265701294
+          ]
+        ],
+        "permutation_top5": [
+          [
+            "push_residual",
+            0.2814469466090744
+          ],
+          [
+            "dirty_air_thermal_load_surface",
+            0.07800111866992213
+          ],
+          [
+            "expected_degradation_rate_s_per_lap",
+            0.02485484209124118
+          ],
+          [
+            "fuel_mass_kg",
+            0.024032180020398954
+          ],
+          [
+            "dirty_air_thermal_load_bulk",
+            0.011763653338289104
+          ]
+        ],
+        "agreement_note": "top-5 differ on: compound_wear_gradient, dirty_air_thermal_load_bulk-likely correlated features or leakage pressure"
+      },
+      "ablation": [
+        {
+          "group": "<none>",
+          "headline": 0.9482790686085404,
+          "delta_vs_full": 0.0
+        },
+        {
+          "group": "stint_position",
+          "headline": 0.9741108505973293,
+          "delta_vs_full": 0.025831781988788882
+        },
+        {
+          "group": "compound",
+          "headline": 0.9453686798469921,
+          "delta_vs_full": -0.002910388761548255
+        },
+        {
+          "group": "cliff_prior",
+          "headline": 0.9632168448104603,
+          "delta_vs_full": 0.014937776201919939
+        },
+        {
+          "group": "thermal",
+          "headline": 1.011281612137176,
+          "delta_vs_full": 0.06300254352863555
+        },
+        {
+          "group": "dirty_air",
+          "headline": 0.9626103547306402,
+          "delta_vs_full": 0.014331286122099773
+        },
+        {
+          "group": "proximity",
+          "headline": 0.9692543647823098,
+          "delta_vs_full": 0.020975296173769364
+        },
+        {
+          "group": "qualifying",
+          "headline": 0.9482790686085404,
+          "delta_vs_full": 0.0
+        }
+      ],
+      "learning_curve": [
+        {
+          "train_seasons": [
+            2018
+          ],
+          "n_train": 10396,
+          "headline": 1.1524265895889743
+        },
+        {
+          "train_seasons": [
+            2018,
+            2019
+          ],
+          "n_train": 22365,
+          "headline": 0.9929538466381369
+        },
+        {
+          "train_seasons": [
+            2018,
+            2019,
+            2020
+          ],
+          "n_train": 30206,
+          "headline": 0.9806985770398418
+        },
+        {
+          "train_seasons": [
+            2018,
+            2019,
+            2020,
+            2021
+          ],
+          "n_train": 41628,
+          "headline": 0.9715060278932774
+        },
+        {
+          "train_seasons": [
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ],
+          "n_train": 49681,
+          "headline": 0.960552519444899
+        },
+        {
+          "train_seasons": [
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023
+          ],
+          "n_train": 60814,
+          "headline": 0.9479504186277115
+        },
+        {
+          "train_seasons": [
+            2018,
+            2019,
+            2020,
+            2021,
+            2022,
+            2023,
+            2024
+          ],
+          "n_train": 73479,
+          "headline": 0.9482790686085404
+        }
+      ],
+      "behaviour_audit": {
+        "pdp_features": [
+          "push_residual",
+          "dirty_air_thermal_load_surface",
+          "fuel_mass_kg"
+        ],
+        "monotonicity_laps_past_cliff": {
+          "expected_direction": "non_decreasing",
+          "violations": 11,
+          "n_steps": 19,
+          "monotone_as_expected": false
+        }
+      }
+    },
+    "degradation_regressor_p90": {
+      "family": "degradation_regressor",
+      "kind": "quantile",
+      "headline_metric": "pinball",
+      "headline": 0.4393696728399759,
+      "baseline_headline": 0.5180684867512299,
+      "beats_baseline": true,
+      "higher_is_better": false,
+      "n_eval_rows": 12380,
+      "cohorts": {
+        "by_compound": {
+          "HARD": {
+            "n": 5963,
+            "model": 0.4480217886251445,
+            "baseline": 0.5259822692191269,
+            "beats_baseline": true
+          },
+          "MEDIUM": {
+            "n": 5130,
+            "model": 0.45367225791392435,
+            "baseline": 0.5109898747827936,
+            "beats_baseline": true
+          },
+          "SOFT": {
+            "n": 1287,
+            "model": 0.34227190449784967,
+            "baseline": 0.5096173558592388,
+            "beats_baseline": true
+          }
+        },
+        "by_circuit_key": {
+          "abu_dhabi_grand_prix": {
+            "n": 580,
+            "model": 0.29359447075119716,
+            "baseline": 0.3624812956607808,
+            "beats_baseline": true
+          },
+          "austrian_grand_prix": {
+            "n": 590,
+            "model": 0.28355561254351574,
+            "baseline": 0.30708997637538604,
+            "beats_baseline": true
+          },
+          "azerbaijan_grand_prix": {
+            "n": 532,
+            "model": 0.3881818740381756,
+            "baseline": 0.4962722083856532,
+            "beats_baseline": true
+          },
+          "bahrain_grand_prix": {
+            "n": 451,
+            "model": 0.3393387132338962,
+            "baseline": 0.40826981078237223,
+            "beats_baseline": true
+          },
+          "belgian_grand_prix": {
+            "n": 380,
+            "model": 1.3958047849348418,
+            "baseline": 1.2797604271112424,
+            "beats_baseline": false
+          },
+          "british_grand_prix": {
+            "n": 37,
+            "model": 0.846720228829693,
+            "baseline": 2.3573616360747893,
+            "beats_baseline": true
+          },
+          "canadian_grand_prix": {
+            "n": 774,
+            "model": 0.3306829770845397,
+            "baseline": 0.398885945328783,
+            "beats_baseline": true
+          },
+          "chinese_grand_prix": {
+            "n": 650,
+            "model": 0.38613571643633077,
+            "baseline": 0.4876548590197841,
+            "beats_baseline": true
+          },
+          "dutch_grand_prix": {
+            "n": 454,
+            "model": 0.26303383881724535,
+            "baseline": 0.35645800090938384,
+            "beats_baseline": true
+          },
+          "emilia_romagna_grand_prix": {
+            "n": 471,
+            "model": 0.33565630566806004,
+            "baseline": 0.3786981910393972,
+            "beats_baseline": true
+          },
+          "hungarian_grand_prix": {
+            "n": 854,
+            "model": 0.4146290326151603,
+            "baseline": 0.49828292889089887,
+            "beats_baseline": true
+          },
+          "italian_grand_prix": {
+            "n": 555,
+            "model": 0.27452455455561836,
+            "baseline": 0.3471229132526379,
+            "beats_baseline": true
+          },
+          "japanese_grand_prix": {
+            "n": 686,
+            "model": 0.37776014890154447,
+            "baseline": 0.575627917110584,
+            "beats_baseline": true
+          },
+          "las_vegas_grand_prix": {
+            "n": 435,
+            "model": 0.4112580091401052,
+            "baseline": 0.5004276318297668,
+            "beats_baseline": true
+          },
+          "mexico_city_grand_prix": {
+            "n": 759,
+            "model": 0.35595451634104486,
+            "baseline": 0.4832611731773245,
+            "beats_baseline": true
+          },
+          "monaco_grand_prix": {
+            "n": 795,
+            "model": 1.0751875276701952,
+            "baseline": 1.0813092920601488,
+            "beats_baseline": true
+          },
+          "qatar_grand_prix": {
+            "n": 470,
+            "model": 0.25081953368923615,
+            "baseline": 0.31124272665110836,
+            "beats_baseline": true
+          },
+          "saudi_arabian_grand_prix": {
+            "n": 498,
+            "model": 0.3617354949997953,
+            "baseline": 0.4428479102812114,
+            "beats_baseline": true
+          },
+          "singapore_grand_prix": {
+            "n": 734,
+            "model": 0.5624340929611407,
+            "baseline": 0.6470697025244974,
+            "beats_baseline": true
+          },
+          "spanish_grand_prix": {
+            "n": 464,
+            "model": 0.3204053478566939,
+            "baseline": 0.37973682437036027,
+            "beats_baseline": true
+          },
+          "s\u00e3o_paulo_grand_prix": {
+            "n": 687,
+            "model": 0.26982218926443113,
+            "baseline": 0.3244544892059055,
+            "beats_baseline": true
+          },
+          "united_states_grand_prix": {
+            "n": 524,
+            "model": 0.5376833053851097,
+            "baseline": 0.6423974729047258,
+            "beats_baseline": true
+          }
+        },
+        "by_constructor_id": {
+          "Alpine": {
+            "n": 1192,
+            "model": 0.43717532031844225,
+            "baseline": 0.5182941530115509,
+            "beats_baseline": true
+          },
+          "Aston Martin": {
+            "n": 1186,
+            "model": 0.43680686396852414,
+            "baseline": 0.5316311716709012,
+            "beats_baseline": true
+          },
+          "Ferrari": {
+            "n": 1231,
+            "model": 0.4542974501635971,
+            "baseline": 0.5013622803080445,
+            "beats_baseline": true
+          },
+          "Haas F1 Team": {
+            "n": 1324,
+            "model": 0.4237067257704613,
+            "baseline": 0.5012513329696066,
+            "beats_baseline": true
+          },
+          "Kick Sauber": {
+            "n": 1185,
+            "model": 0.49832549302340423,
+            "baseline": 0.5550819393922655,
+            "beats_baseline": true
+          },
+          "McLaren": {
+            "n": 1318,
+            "model": 0.35097163964787065,
+            "baseline": 0.46494137263097435,
+            "beats_baseline": true
+          },
+          "Mercedes": {
+            "n": 1238,
+            "model": 0.48624037995766406,
+            "baseline": 0.6031660332551282,
+            "beats_baseline": true
+          },
+          "Racing Bulls": {
+            "n": 1316,
+            "model": 0.47486948431022313,
+            "baseline": 0.5175854350615937,
+            "beats_baseline": true
+          },
+          "Red Bull Racing": {
+            "n": 1266,
+            "model": 0.37823082296396154,
+            "baseline": 0.4611404043348912,
+            "beats_baseline": true
+          },
+          "Williams": {
+            "n": 1124,
+            "model": 0.46367649226007523,
+            "baseline": 0.5358562038892071,
+            "beats_baseline": true
+          }
+        },
+        "by_is_rain_lap": {
+          "False": {
+            "n": 12380,
+            "model": 0.4393696728399759,
+            "baseline": 0.5180684867512299,
+            "beats_baseline": true
+          }
+        },
+        "by_race_year": {
+          "2025": {
+            "n": 12380,
+            "model": 0.4393696728399759,
+            "baseline": 0.5180684867512299,
+            "beats_baseline": true
+          }
+        }
+      },
+      "underperforming_cohorts": [
+        {
+          "dimension": "circuit_key",
+          "cohort": "belgian_grand_prix",
+          "n": 380,
+          "model": 1.3958047849348418,
+          "baseline": 1.2797604271112424
+        }
+      ],
+      "attainable": {
+        "variance": {
+          "target_column": "next_5_lap_cumulative_jump_s",
+          "scope": "mart",
+          "horizon_laps": 5,
+          "estimator": "anova_icc_oneway_non_overlapping",
+          "n_rows": 106394,
+          "n_stints": 7157,
+          "mean_rows_per_stint": 14.866,
+          "sd": 4.005634429053983,
+          "between_stint_share": 0.0,
+          "between_stint_share_naive": 0.26249587702992067,
+          "naive_inflation_x": 2.7166986286893726,
+          "within_stint_lag1_autocorr": 0.37706074010277296,
+          "lag1_expected_from_window_overlap": 0.8,
+          "lag1_excess_over_overlap": -0.4229392598972271,
+          "non_overlapping": {
+            "n_rows": 24210,
+            "n_stints": 7157,
+            "mean_rows_per_stint": 3.383,
+            "between_stint_share": 0.0,
+            "between_stint_share_naive": 0.4815990000392177
+          },
+          "between_stint_share_overlapping": 0.09662311242692295
+        },
+        "metric_native": {
+          "basis": "analytic_from_icc",
+          "floor_metric": 0.5194376852670101,
+          "achieved_reduction": 0.08006801242703415,
+          "achieved_reduction_pct_of_floor": 0.15414363396809813,
+          "oracle_metric_in_sample": 0.34250410066912074,
+          "oracle_metric_cross_fitted": 0.4178197926178389,
+          "in_sample_oracle_is_exact_optimum": true,
+          "fraction_of_attainable_in_sample": 0.4525314547207184,
+          "fraction_of_attainable_cross_fitted": 0.7879322266942054,
+          "attainable_fraction_of_floor": 0.0,
+          "oracle_metric_analytic": 0.5194376852670101,
+          "fraction_of_attainable": null,
+          "note": "primary denominator is analytic: under a Gaussian shape, knowing the stint scales sigma from sqrt(sigma_b^2 + sigma_w^2) to sigma_w, so a stint-constant predictor can remove at most 1 - sqrt(1 - ICC) of the expected pinball. It is the population ceiling and it is not estimated per stint, so it does not collapse at ~19 laps the way the empirical oracles do. fraction_of_attainable_in_sample carries a stronger property and no shape assumption: the per-stint empirical alpha-quantile is the EXACT minimiser of pinball over all stint-constant predictors on these very rows, so an out-of-sample model scoring below it has provably used within-stint information. Above 1 on either is a finding, not a defect."
+        }
+      },
+      "interval": {
+        "fold_paired": {
+          "n_folds": 5,
+          "fold_deltas": [
+            0.11095393846388923,
+            0.11065131952397772,
+            0.09595722980345434,
+            0.08582697851036647,
+            0.07869881391125394
+          ],
+          "folds_won": 5,
+          "mean_delta": 0.09641765604258834,
+          "t": 14.8755088708719,
+          "p_value": 0.00011893006825891205,
+          "ci_low": 0.07842174534818006,
+          "ci_high": 0.11441356673699662,
+          "ci_level": 0.95,
+          "significant": true,
+          "folds": [
+            {
+              "fold": 0,
+              "val_season": 2021,
+              "n": 11422,
+              "model": 0.5131906468487056,
+              "baseline": 0.6241445853125949
+            },
+            {
+              "fold": 1,
+              "val_season": 2022,
+              "n": 8053,
+              "model": 0.39977862015432714,
+              "baseline": 0.5104299396783049
+            },
+            {
+              "fold": 2,
+              "val_season": 2023,
+              "n": 11133,
+              "model": 0.43753518155297055,
+              "baseline": 0.5334924113564249
+            },
+            {
+              "fold": 3,
+              "val_season": 2024,
+              "n": 12665,
+              "model": 0.5271610220975539,
+              "baseline": 0.6129880006079204
+            },
+            {
+              "fold": 4,
+              "val_season": 2025,
+              "n": 12380,
+              "model": 0.4393696728399759,
+              "baseline": 0.5180684867512299
+            }
+          ],
+          "method": "paired t over season-grouped CV folds (whole seasons move together)"
+        },
+        "cluster_bootstrap": {
+          "method": "percentile bootstrap over whole stints, on the evaluation fold",
+          "stint_grain": {
+            "n_clusters": 882,
+            "n_rows": 12380,
+            "resamples": 400,
+            "mean": 0.07833927864037905,
+            "ci_low": 0.06239559068332257,
+            "ci_high": 0.09412758539988726,
+            "ci_level": 0.95,
+            "width": 0.03173199471656469,
+            "significant": true
+          },
+          "lap_grain": {
+            "n_clusters": 12380,
+            "n_rows": 12380,
+            "resamples": 400,
+            "mean": 0.07900309509917829,
+            "ci_low": 0.07027152340700417,
+            "ci_high": 0.08854456634125431,
+            "ci_level": 0.95,
+            "width": 0.01827304293425014,
+            "significant": true
+          },
+          "width_ratio_stint_over_lap": 1.736546826423076,
+          "worst_case_ratio_sqrt_rows_over_stints": 3.7465025262420846,
+          "mean_laps_per_stint": 14.036281179138323,
+          "implied_intra_stint_correlation_of_margin": 0.1546142533029718
+        }
+      },
+      "beats_baseline_significant": true
+    },
+    "cliff_classifier": {
+      "family": "cliff_classifier",
+      "kind": "classification",
+      "headline_metric": "macro_f1",
+      "headline": 0.376884691374087,
+      "baseline_headline": 0.19838996265003445,
+      "beats_baseline": true,
+      "higher_is_better": true,
+      "n_eval_rows": 16635,
+      "cohorts": {
+        "by_compound": {
+          "HARD": {
+            "n": 7538,
+            "model": 0.38396439587982,
+            "baseline": 0.1847871539683867,
+            "beats_baseline": true
+          },
+          "MEDIUM": {
+            "n": 7081,
+            "model": 0.3411954214468683,
+            "baseline": 0.20998525557011796,
+            "beats_baseline": true
+          },
+          "SOFT": {
+            "n": 1996,
+            "model": 0.372687660586954,
+            "baseline": 0.2042086544161233,
+            "beats_baseline": true
+          },
+          "_other": {
+            "n": 20,
+            "model": 0.10526315789473684,
+            "baseline": 0.47368421052631576,
+            "beats_baseline": false
+          }
+        },
+        "by_circuit_key": {
+          "_other": {
+            "n": 14,
+            "model": 0.10317460317460318,
+            "baseline": 0.48148148148148145,
+            "beats_baseline": false
+          },
+          "abu_dhabi_grand_prix": {
+            "n": 866,
+            "model": 0.3376905075129093,
+            "baseline": 0.2109479305740988,
+            "beats_baseline": true
+          },
+          "austrian_grand_prix": {
+            "n": 780,
+            "model": 0.4100545248850209,
+            "baseline": 0.18344155844155843,
+            "beats_baseline": true
+          },
+          "azerbaijan_grand_prix": {
+            "n": 670,
+            "model": 0.36285505992004374,
+            "baseline": 0.19095940959409594,
+            "beats_baseline": true
+          },
+          "bahrain_grand_prix": {
+            "n": 718,
+            "model": 0.29643060626916845,
+            "baseline": 0.2128,
+            "beats_baseline": true
+          },
+          "belgian_grand_prix": {
+            "n": 470,
+            "model": 0.2216783790689633,
+            "baseline": 0.24118942731277532,
+            "beats_baseline": false
+          },
+          "british_grand_prix": {
+            "n": 98,
+            "model": 0.2991041710253533,
+            "baseline": 0.13970588235294118,
+            "beats_baseline": true
+          },
+          "canadian_grand_prix": {
+            "n": 974,
+            "model": 0.40416090076626,
+            "baseline": 0.19901112484548825,
+            "beats_baseline": true
+          },
+          "chinese_grand_prix": {
+            "n": 825,
+            "model": 0.3102347327236854,
+            "baseline": 0.2139389736477115,
+            "beats_baseline": true
+          },
+          "dutch_grand_prix": {
+            "n": 558,
+            "model": 0.41024274047186926,
+            "baseline": 0.20600632244467862,
+            "beats_baseline": true
+          },
+          "emilia_romagna_grand_prix": {
+            "n": 711,
+            "model": 0.3459353341652282,
+            "baseline": 0.19718909710391821,
+            "beats_baseline": true
+          },
+          "hungarian_grand_prix": {
+            "n": 1095,
+            "model": 0.4398089615643009,
+            "baseline": 0.19447544642857142,
+            "beats_baseline": true
+          },
+          "italian_grand_prix": {
+            "n": 749,
+            "model": 0.3181154706785435,
+            "baseline": 0.23792862141357593,
+            "beats_baseline": true
+          },
+          "japanese_grand_prix": {
+            "n": 868,
+            "model": 0.40027876041465493,
+            "baseline": 0.15987460815047022,
+            "beats_baseline": true
+          },
+          "las_vegas_grand_prix": {
+            "n": 606,
+            "model": 0.284741597488701,
+            "baseline": 0.21761416589002797,
+            "beats_baseline": true
+          },
+          "mexico_city_grand_prix": {
+            "n": 948,
+            "model": 0.3641676318259859,
+            "baseline": 0.1906005221932115,
+            "beats_baseline": true
+          },
+          "monaco_grand_prix": {
+            "n": 1016,
+            "model": 0.29372889732748764,
+            "baseline": 0.1644649933949802,
+            "beats_baseline": true
+          },
+          "qatar_grand_prix": {
+            "n": 698,
+            "model": 0.2967101258692713,
+            "baseline": 0.21275720164609052,
+            "beats_baseline": true
+          },
+          "saudi_arabian_grand_prix": {
+            "n": 668,
+            "model": 0.4258966857106229,
+            "baseline": 0.1969147005444646,
+            "beats_baseline": true
+          },
+          "singapore_grand_prix": {
+            "n": 950,
+            "model": 0.3840172409968939,
+            "baseline": 0.16119828815977175,
+            "beats_baseline": true
+          },
+          "spanish_grand_prix": {
+            "n": 708,
+            "model": 0.3928006373246311,
+            "baseline": 0.20767960363336085,
+            "beats_baseline": true
+          },
+          "s\u00e3o_paulo_grand_prix": {
+            "n": 878,
+            "model": 0.3113735849128954,
+            "baseline": 0.20034129692832764,
+            "beats_baseline": true
+          },
+          "united_states_grand_prix": {
+            "n": 767,
+            "model": 0.3504972928882604,
+            "baseline": 0.19270833333333334,
+            "beats_baseline": true
+          }
+        },
+        "by_constructor_id": {
+          "Alpine": {
+            "n": 1621,
+            "model": 0.3676676939630982,
+            "baseline": 0.16646090534979424,
+            "beats_baseline": true
+          },
+          "Aston Martin": {
+            "n": 1581,
+            "model": 0.3434138857811102,
+            "baseline": 0.1892688679245283,
+            "beats_baseline": true
+          },
+          "Ferrari": {
+            "n": 1680,
+            "model": 0.3670285853315729,
+            "baseline": 0.21262401642148476,
+            "beats_baseline": true
+          },
+          "Haas F1 Team": {
+            "n": 1770,
+            "model": 0.3459207053016895,
+            "baseline": 0.19629375428963625,
+            "beats_baseline": true
+          },
+          "Kick Sauber": {
+            "n": 1559,
+            "model": 0.3810064184201459,
+            "baseline": 0.17520833333333333,
+            "beats_baseline": true
+          },
+          "McLaren": {
+            "n": 1745,
+            "model": 0.4168223783165245,
+            "baseline": 0.21384060347654968,
+            "beats_baseline": true
+          },
+          "Mercedes": {
+            "n": 1711,
+            "model": 0.4010463631439712,
+            "baseline": 0.2107843137254902,
+            "beats_baseline": true
+          },
+          "Racing Bulls": {
+            "n": 1734,
+            "model": 0.37430598469513576,
+            "baseline": 0.18253387037715121,
+            "beats_baseline": true
+          },
+          "Red Bull Racing": {
+            "n": 1674,
+            "model": 0.34802469591192275,
+            "baseline": 0.2190332326283988,
+            "beats_baseline": true
+          },
+          "Williams": {
+            "n": 1560,
+            "model": 0.3791454877261659,
+            "baseline": 0.2055492638731597,
+            "beats_baseline": true
+          }
+        },
+        "by_is_rain_lap": {
+          "False": {
+            "n": 16635,
+            "model": 0.376884691374087,
+            "baseline": 0.19838996265003445,
+            "beats_baseline": true
+          }
+        },
+        "by_race_year": {
+          "2025": {
+            "n": 16635,
+            "model": 0.376884691374087,
+            "baseline": 0.19838996265003445,
+            "beats_baseline": true
+          }
+        }
+      },
+      "underperforming_cohorts": [
+        {
+          "dimension": "compound",
+          "cohort": "_other",
+          "n": 20,
+          "model": 0.10526315789473684,
+          "baseline": 0.47368421052631576
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "_other",
+          "n": 14,
+          "model": 0.10317460317460318,
+          "baseline": 0.48148148148148145
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "belgian_grand_prix",
+          "n": 470,
+          "model": 0.2216783790689633,
+          "baseline": 0.24118942731277532
+        }
+      ],
+      "attainable": {
+        "variance": {
+          "target_column": "laps_until_cliff_class",
+          "scope": "mart",
+          "horizon_laps": 1,
+          "estimator": "gini_anova_icc_oneway",
+          "n_rows": 142968,
+          "n_stints": 7684,
+          "mean_rows_per_stint": 18.606,
+          "sd": 0.7753175030982116,
+          "between_stint_share": 0.28377833615992165,
+          "between_stint_share_naive": 0.3266605572626268,
+          "naive_inflation_x": 1.1511116799223855
+        },
+        "metric_native": {
+          "basis": "stint_identity_oracle",
+          "floor_metric": 0.19838996265003445,
+          "achieved_reduction": 0.17849472872405253,
+          "achieved_reduction_pct_of_floor": 0.8997165297063053,
+          "oracle_metric_in_sample": 0.4983496866202315,
+          "oracle_metric_cross_fitted": 0.4767972772771117,
+          "in_sample_oracle_is_exact_optimum": false,
+          "fraction_of_attainable_in_sample": 0.5950623182390552,
+          "fraction_of_attainable_cross_fitted": 0.641128014050722,
+          "note": "floor = the unconditional statistic (stint-blind); oracle = the per-stint statistic. The in-sample oracle is scored on rows it saw and overstates the ceiling; the cross-fitted one estimates each stint from ~half its laps and understates it. Note the per-stint majority class maximises ACCURACY, not macro-F1, so unlike the quantile family this oracle is not an exact optimum and the fraction is indicative rather than a bound. A null fraction means that oracle's advantage over the floor was too small to divide by, not that the model failed."
+        }
+      },
+      "interval": {
+        "fold_paired": {
+          "n_folds": 5,
+          "fold_deltas": [
+            0.2006724214320836,
+            0.1828916370662632,
+            0.16228411679354998,
+            0.20975827196723207,
+            0.17849472872405253
+          ],
+          "folds_won": 5,
+          "mean_delta": 0.1868202351966363,
+          "t": 22.291063597808794,
+          "p_value": 2.397858915424002e-05,
+          "ci_low": 0.16355099435096443,
+          "ci_high": 0.21008947604230815,
+          "ci_level": 0.95,
+          "significant": true,
+          "folds": [
+            {
+              "fold": 0,
+              "val_season": 2021,
+              "n": 14983,
+              "model": 0.37073760244150844,
+              "baseline": 0.17006518100942483
+            },
+            {
+              "fold": 1,
+              "val_season": 2022,
+              "n": 11904,
+              "model": 0.3764508194788668,
+              "baseline": 0.19355918241260361
+            },
+            {
+              "fold": 2,
+              "val_season": 2023,
+              "n": 15360,
+              "model": 0.3603735892363521,
+              "baseline": 0.19808947244280212
+            },
+            {
+              "fold": 3,
+              "val_season": 2024,
+              "n": 17182,
+              "model": 0.3957482569813042,
+              "baseline": 0.18598998501407216
+            },
+            {
+              "fold": 4,
+              "val_season": 2025,
+              "n": 16635,
+              "model": 0.376884691374087,
+              "baseline": 0.19838996265003445
+            }
+          ],
+          "method": "paired t over season-grouped CV folds (whole seasons move together)"
+        },
+        "cluster_bootstrap": {
+          "method": "percentile bootstrap over whole stints, on the evaluation fold",
+          "stint_grain": {
+            "n_clusters": 988,
+            "n_rows": 16635,
+            "resamples": 400,
+            "mean": 0.177826922394537,
+            "ci_low": 0.1596759366119951,
+            "ci_high": 0.19477615218201733,
+            "ci_level": 0.95,
+            "width": 0.035100215570022214,
+            "significant": true
+          },
+          "lap_grain": {
+            "n_clusters": 16635,
+            "n_rows": 16635,
+            "resamples": 400,
+            "mean": 0.1786580657646597,
+            "ci_low": 0.1703791345115102,
+            "ci_high": 0.1875371232612059,
+            "ci_level": 0.95,
+            "width": 0.01715798874969568,
+            "significant": true
+          },
+          "width_ratio_stint_over_lap": 2.045706876375284,
+          "worst_case_ratio_sqrt_rows_over_stints": 4.103296788487637,
+          "mean_laps_per_stint": 16.837044534412957,
+          "implied_intra_stint_correlation_of_margin": 0.2011054914399266
+        }
+      },
+      "beats_baseline_significant": true
+    },
+    "stint_life_regressor": {
+      "family": "stint_life_regressor",
+      "kind": "survival",
+      "headline_metric": "aft_nloglik",
+      "headline": 2.3120602362115665,
+      "baseline_headline": 2.319094945019622,
+      "beats_baseline": true,
+      "higher_is_better": false,
+      "n_eval_rows": 17728,
+      "cohorts": {
+        "by_compound": {
+          "HARD": {
+            "n": 7973,
+            "model": 2.1434381013085884,
+            "baseline": 2.1629607896325806,
+            "beats_baseline": true
+          },
+          "INTERMEDIATE": {
+            "n": 76,
+            "model": 2.021703940493377,
+            "baseline": 2.213265270876556,
+            "beats_baseline": true
+          },
+          "MEDIUM": {
+            "n": 7489,
+            "model": 2.6064470738415495,
+            "baseline": 2.587180860579165,
+            "beats_baseline": false
+          },
+          "SOFT": {
+            "n": 2190,
+            "model": 1.9293334476476787,
+            "baseline": 1.9744398100928326,
+            "beats_baseline": true
+          }
+        },
+        "by_circuit_key": {
+          "_other": {
+            "n": 19,
+            "model": 1.9677386470922658,
+            "baseline": 2.1795734556086064,
+            "beats_baseline": true
+          },
+          "abu_dhabi_grand_prix": {
+            "n": 912,
+            "model": 2.018246404977557,
+            "baseline": 1.9843825358962404,
+            "beats_baseline": false
+          },
+          "austrian_grand_prix": {
+            "n": 823,
+            "model": 2.264588234100234,
+            "baseline": 2.3061529900853075,
+            "beats_baseline": true
+          },
+          "azerbaijan_grand_prix": {
+            "n": 702,
+            "model": 1.9122994904767932,
+            "baseline": 1.823410574544343,
+            "beats_baseline": false
+          },
+          "bahrain_grand_prix": {
+            "n": 770,
+            "model": 1.8037356432316758,
+            "baseline": 2.063332600497077,
+            "beats_baseline": true
+          },
+          "belgian_grand_prix": {
+            "n": 510,
+            "model": 1.8174779164817643,
+            "baseline": 1.6902714266069208,
+            "beats_baseline": false
+          },
+          "british_grand_prix": {
+            "n": 146,
+            "model": 0.8361681275237807,
+            "baseline": 0.7581396431938777,
+            "beats_baseline": false
+          },
+          "canadian_grand_prix": {
+            "n": 1006,
+            "model": 3.5936923173361004,
+            "baseline": 3.5138179158440455,
+            "beats_baseline": false
+          },
+          "chinese_grand_prix": {
+            "n": 867,
+            "model": 1.8960569934659277,
+            "baseline": 2.041087930635804,
+            "beats_baseline": true
+          },
+          "dutch_grand_prix": {
+            "n": 757,
+            "model": 2.7984425477592416,
+            "baseline": 2.7620891956000597,
+            "beats_baseline": false
+          },
+          "emilia_romagna_grand_prix": {
+            "n": 739,
+            "model": 2.3686474363077155,
+            "baseline": 2.5463268113073885,
+            "beats_baseline": true
+          },
+          "hungarian_grand_prix": {
+            "n": 1143,
+            "model": 2.293364057998491,
+            "baseline": 2.171419690220823,
+            "beats_baseline": false
+          },
+          "italian_grand_prix": {
+            "n": 781,
+            "model": 2.9406448643619423,
+            "baseline": 2.8521836110092655,
+            "beats_baseline": false
+          },
+          "japanese_grand_prix": {
+            "n": 908,
+            "model": 2.0048440179964127,
+            "baseline": 2.1084232903681643,
+            "beats_baseline": true
+          },
+          "las_vegas_grand_prix": {
+            "n": 637,
+            "model": 1.7878749506107545,
+            "baseline": 2.0725567421222615,
+            "beats_baseline": true
+          },
+          "mexico_city_grand_prix": {
+            "n": 981,
+            "model": 2.511342171533615,
+            "baseline": 2.350813291550779,
+            "beats_baseline": false
+          },
+          "monaco_grand_prix": {
+            "n": 1065,
+            "model": 2.7364177342371914,
+            "baseline": 2.6300518075734276,
+            "beats_baseline": false
+          },
+          "qatar_grand_prix": {
+            "n": 737,
+            "model": 2.00062560833958,
+            "baseline": 2.134517388239648,
+            "beats_baseline": true
+          },
+          "saudi_arabian_grand_prix": {
+            "n": 698,
+            "model": 1.7447845583362653,
+            "baseline": 1.717773895107044,
+            "beats_baseline": false
+          },
+          "singapore_grand_prix": {
+            "n": 994,
+            "model": 2.2948011454357453,
+            "baseline": 2.2426869081937624,
+            "beats_baseline": false
+          },
+          "spanish_grand_prix": {
+            "n": 801,
+            "model": 2.8932530794316014,
+            "baseline": 2.8437781877962496,
+            "beats_baseline": false
+          },
+          "s\u00e3o_paulo_grand_prix": {
+            "n": 927,
+            "model": 2.2858883751028944,
+            "baseline": 2.445016877085853,
+            "beats_baseline": true
+          },
+          "united_states_grand_prix": {
+            "n": 805,
+            "model": 2.07840419195446,
+            "baseline": 2.047220999167826,
+            "beats_baseline": false
+          }
+        },
+        "by_constructor_id": {
+          "Alpine": {
+            "n": 1735,
+            "model": 2.311636368039009,
+            "baseline": 2.3858004981684404,
+            "beats_baseline": true
+          },
+          "Aston Martin": {
+            "n": 1671,
+            "model": 2.4508117016875786,
+            "baseline": 2.4218567141639515,
+            "beats_baseline": false
+          },
+          "Ferrari": {
+            "n": 1788,
+            "model": 2.2207645438259465,
+            "baseline": 2.256664739898634,
+            "beats_baseline": true
+          },
+          "Haas F1 Team": {
+            "n": 1868,
+            "model": 2.262825014561409,
+            "baseline": 2.2458013247476893,
+            "beats_baseline": false
+          },
+          "Kick Sauber": {
+            "n": 1648,
+            "model": 2.3568372039926753,
+            "baseline": 2.321746943484159,
+            "beats_baseline": false
+          },
+          "McLaren": {
+            "n": 1886,
+            "model": 2.344757517539956,
+            "baseline": 2.3489503215092826,
+            "beats_baseline": true
+          },
+          "Mercedes": {
+            "n": 1819,
+            "model": 2.2358144363470243,
+            "baseline": 2.3142951497944035,
+            "beats_baseline": true
+          },
+          "Racing Bulls": {
+            "n": 1836,
+            "model": 2.1884555322840167,
+            "baseline": 2.164565286386331,
+            "beats_baseline": false
+          },
+          "Red Bull Racing": {
+            "n": 1812,
+            "model": 2.383220657272392,
+            "baseline": 2.394156188782747,
+            "beats_baseline": true
+          },
+          "Williams": {
+            "n": 1665,
+            "model": 2.3873256730948778,
+            "baseline": 2.353237414694382,
+            "beats_baseline": false
+          }
+        },
+        "by_is_rain_lap": {
+          "False": {
+            "n": 17728,
+            "model": 2.3120602362115665,
+            "baseline": 2.319094945019622,
+            "beats_baseline": true
+          }
+        },
+        "by_race_year": {
+          "2025": {
+            "n": 17728,
+            "model": 2.3120602362115665,
+            "baseline": 2.319094945019622,
+            "beats_baseline": true
+          }
+        }
+      },
+      "underperforming_cohorts": [
+        {
+          "dimension": "compound",
+          "cohort": "MEDIUM",
+          "n": 7489,
+          "model": 2.6064470738415495,
+          "baseline": 2.587180860579165
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "abu_dhabi_grand_prix",
+          "n": 912,
+          "model": 2.018246404977557,
+          "baseline": 1.9843825358962404
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "azerbaijan_grand_prix",
+          "n": 702,
+          "model": 1.9122994904767932,
+          "baseline": 1.823410574544343
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "belgian_grand_prix",
+          "n": 510,
+          "model": 1.8174779164817643,
+          "baseline": 1.6902714266069208
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "british_grand_prix",
+          "n": 146,
+          "model": 0.8361681275237807,
+          "baseline": 0.7581396431938777
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "canadian_grand_prix",
+          "n": 1006,
+          "model": 3.5936923173361004,
+          "baseline": 3.5138179158440455
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "dutch_grand_prix",
+          "n": 757,
+          "model": 2.7984425477592416,
+          "baseline": 2.7620891956000597
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "hungarian_grand_prix",
+          "n": 1143,
+          "model": 2.293364057998491,
+          "baseline": 2.171419690220823
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "italian_grand_prix",
+          "n": 781,
+          "model": 2.9406448643619423,
+          "baseline": 2.8521836110092655
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "mexico_city_grand_prix",
+          "n": 981,
+          "model": 2.511342171533615,
+          "baseline": 2.350813291550779
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "monaco_grand_prix",
+          "n": 1065,
+          "model": 2.7364177342371914,
+          "baseline": 2.6300518075734276
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "saudi_arabian_grand_prix",
+          "n": 698,
+          "model": 1.7447845583362653,
+          "baseline": 1.717773895107044
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "singapore_grand_prix",
+          "n": 994,
+          "model": 2.2948011454357453,
+          "baseline": 2.2426869081937624
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "spanish_grand_prix",
+          "n": 801,
+          "model": 2.8932530794316014,
+          "baseline": 2.8437781877962496
+        },
+        {
+          "dimension": "circuit_key",
+          "cohort": "united_states_grand_prix",
+          "n": 805,
+          "model": 2.07840419195446,
+          "baseline": 2.047220999167826
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "Aston Martin",
+          "n": 1671,
+          "model": 2.4508117016875786,
+          "baseline": 2.4218567141639515
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "Haas F1 Team",
+          "n": 1868,
+          "model": 2.262825014561409,
+          "baseline": 2.2458013247476893
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "Kick Sauber",
+          "n": 1648,
+          "model": 2.3568372039926753,
+          "baseline": 2.321746943484159
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "Racing Bulls",
+          "n": 1836,
+          "model": 2.1884555322840167,
+          "baseline": 2.164565286386331
+        },
+        {
+          "dimension": "constructor_id",
+          "cohort": "Williams",
+          "n": 1665,
+          "model": 2.3873256730948778,
+          "baseline": 2.353237414694382
+        }
+      ],
+      "survival": {
+        "scale": 0.7537929016487691,
+        "label_shift": 1.0,
+        "distribution": "normal",
+        "censored_share": 0.4407152527075812,
+        "c_index": 0.7360499236932347,
+        "baseline_c_index": 0.6400594081192809,
+        "uncensored": {
+          "n": 9915,
+          "aft_nloglik": 3.440422942540262,
+          "baseline_aft_nloglik": 3.4304350332883646,
+          "median_abs_error_laps": 4.931239953622065
+        },
+        "censored": {
+          "n": 7813,
+          "aft_nloglik": 0.8801242022618654,
+          "baseline_aft_nloglik": 0.908761273550968,
+          "median_abs_error_laps": null
+        }
+      },
+      "attainable": {
+        "variance": {
+          "target_column": "remaining_stint_life_laps",
+          "scope": "mart",
+          "horizon_laps": 1,
+          "estimator": "anova_icc_oneway",
+          "n_rows": 161040,
+          "n_stints": 8281,
+          "mean_rows_per_stint": 19.447,
+          "sd": 10.301273503126874,
+          "between_stint_share": 0.2909999123157427,
+          "between_stint_share_naive": 0.2914209546859323,
+          "naive_inflation_x": 1.0014468814331903,
+          "within_stint_lag1_autocorr": 0.9993707467743184,
+          "lag1_expected_from_window_overlap": 0.0,
+          "lag1_excess_over_overlap": 0.9993707467743184,
+          "within_stint_is_deterministic": true,
+          "note": "remaining life is stint_length - lap_in_stint, so its within-stint variation is a known ramp rather than noise: this share bounds stint-constant predictors, and bounds nothing about the model. Read the metric-native ceiling and the censored/uncensored split instead."
+        },
+        "metric_native": {
+          "basis": "perfect_prediction",
+          "floor_metric": 2.3246062373512797,
+          "oracle_metric": 1.9644607459834589,
+          "achieved_reduction": 0.012546001139713159,
+          "fraction_of_attainable": 0.03483592448169726,
+          "note": "floor = global mean remaining life; oracle = the censored AFT likelihood at a perfect prediction, which is non-zero because the log-normal scale is a fitted term. A hard bound, not an estimate -- nothing can score past it, so this fraction cannot exceed 1."
+        }
+      },
+      "interval": {
+        "fold_paired": {
+          "n_folds": 5,
+          "fold_deltas": [
+            -0.07066273768829134,
+            0.10821090221909824,
+            0.011952433804491847,
+            -0.03321575678178368,
+            0.0070347088080553455
+          ],
+          "folds_won": 3,
+          "mean_delta": 0.004663910072314081,
+          "t": 0.1559422108219424,
+          "p_value": 0.8836321149733799,
+          "ci_low": -0.07837383976531404,
+          "ci_high": 0.08770165990994219,
+          "ci_level": 0.95,
+          "significant": false,
+          "folds": [
+            {
+              "fold": 0,
+              "val_season": 2021,
+              "n": 15954,
+              "model": 2.28894767843025,
+              "baseline": 2.2182849407419587
+            },
+            {
+              "fold": 1,
+              "val_season": 2022,
+              "n": 12728,
+              "model": 2.2420249185195704,
+              "baseline": 2.3502358207386687
+            },
+            {
+              "fold": 2,
+              "val_season": 2023,
+              "n": 16764,
+              "model": 2.274157955284665,
+              "baseline": 2.2861103890891568
+            },
+            {
+              "fold": 3,
+              "val_season": 2024,
+              "n": 18188,
+              "model": 2.185728245597478,
+              "baseline": 2.1525124888156943
+            },
+            {
+              "fold": 4,
+              "val_season": 2025,
+              "n": 17728,
+              "model": 2.3120602362115665,
+              "baseline": 2.319094945019622
+            }
+          ],
+          "method": "paired t over season-grouped CV folds (whole seasons move together)"
+        },
+        "cluster_bootstrap": {
+          "method": "percentile bootstrap over whole stints, on the evaluation fold",
+          "stint_grain": {
+            "n_clusters": 1040,
+            "n_rows": 17728,
+            "resamples": 400,
+            "mean": 0.006715055810595767,
+            "ci_low": -0.023795210986977292,
+            "ci_high": 0.036435123600751025,
+            "ci_level": 0.95,
+            "width": 0.06023033458772832,
+            "significant": false
+          },
+          "lap_grain": {
+            "n_clusters": 17728,
+            "n_rows": 17728,
+            "resamples": 400,
+            "mean": 0.007507245729020265,
+            "ci_low": -0.0015530605274945977,
+            "ci_high": 0.017495140256418282,
+            "ci_level": 0.95,
+            "width": 0.01904820078391288,
+            "significant": false
+          },
+          "width_ratio_stint_over_lap": 3.161995994844601,
+          "worst_case_ratio_sqrt_rows_over_stints": 4.128698807875654,
+          "mean_laps_per_stint": 17.046153846153846,
+          "implied_intra_stint_correlation_of_margin": 0.5607710581417683
+        }
+      },
+      "beats_baseline_significant": false
+    }
+  },
+  "eval_season": 2025,
+  "holdout_populated": false,
+  "calibration": {
+    "nominal": 0.8,
+    "raw_empirical_coverage": 0.7588852988691438,
+    "conformal_empirical_coverage": 0.8019386106623586,
+    "conformal_q": 0.2585077520329193,
+    "mean_interval_width": 4.790874481201172,
+    "n": 12380
+  },
+  "crps": {
+    "crps": 1.3716943328623037,
+    "grid_alphas": [
+      0.0,
+      0.1,
+      0.5,
+      0.9,
+      1.0
+    ],
+    "per_alpha": {
+      "0.1": {
+        "alpha": 0.1,
+        "n": 12380,
+        "n_bins": 24,
+        "score": 0.5824154571191429,
+        "mcb": 0.005195026482807452,
+        "dsc": 0.15153012071428873,
+        "unc": 0.7287505513506242
+      },
+      "0.5": {
+        "alpha": 0.5,
+        "n": 12380,
+        "n_bins": 24,
+        "score": 0.9482790686085404,
+        "mcb": -0.00651653924995288,
+        "dsc": 0.12404028306177317,
+        "unc": 1.0788358909202664
+      },
+      "0.9": {
+        "alpha": 0.9,
+        "n": 12380,
+        "n_bins": 24,
+        "score": 0.4393696728399759,
+        "mcb": -0.0022935822145755957,
+        "dsc": 0.07009613994350228,
+        "unc": 0.5117593949980538
+      }
+    },
+    "decomposition": {
+      "mcb": -0.0034723648390231903,
+      "dsc": 0.23220798284409314,
+      "unc": 1.60737468054542,
+      "reconstructed_crps": 1.3716943328623037,
+      "method": "binned Murphy calibration-resolution-uncertainty split at each available quantile level, trapezoidal-integrated over the same alpha grid as `crps` -- mcb - dsc + unc reproduces `crps` by construction (see reconstructed_crps); it is not a second, weaker estimate of it."
+    },
+    "note": "flat-extended at alpha=0 and alpha=1 from the trio's own p10/p90, not a tail estimate. `decomposition.unc` is an independent read on the target's irreducible spread, in the SAME units as `crps` but from a different construction than 01b's difference-based floor -- report them side by side, never as a difference (foundations/epistemics.md)."
+  },
+  "leakage_probe": {
+    "accuracy": 0.8798975075704636,
+    "majority_class_accuracy": 0.1474982141193279,
+    "lift_over_chance": 0.7323992934511356,
+    "n_seasons": 8,
+    "note": "X carries strong residual temporal signal-race_year recoverable far above chance; race_year is correctly excluded from features"
+  },
+  "all_models_beat_baseline": true,
+  "underperforming_cohorts_total": 27,
+  "stint_grain": {
+    "n_stints": 6562,
+    "n_rows": 85859,
+    "mean_laps_per_stint": 13.084273087473331,
+    "stints_straddling_a_season_fold": 0,
+    "effective_sample_ratio": 3.6172189714576763,
+    "note": "season-grouped folds are already stint-pure; the clustering damage was never in the split, it was in every interval computed at lap grain over it (Corrections \u00a715)."
+  },
+  "claims_inside_noise": [
+    "stint_life_regressor"
+  ],
+  "all_claims_significant": false
+}

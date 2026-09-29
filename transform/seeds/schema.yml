@@ -154,6 +154,53 @@ seeds:
         tests:
           - not_null
 
+  - name: compound_hardness_scale
+    description: >
+      Declared cross-era ordinal hardness rank (1 = hardest, 7 = softest) for every compound
+      identity the warehouse can see: the 2018 legacy names (SUPERHARD..HYPERSOFT, a 7-point
+      range; SUPERHARD was never nominated for a dry race but is included so the scale has no
+      hole below HARD) and the 2019+ C1-C6 scale. Grain is (compound_code, era): a C-code's
+      hardness position does not move, but era is carried as a second feature so a model can
+      absorb construction-generation shifts (the 2022 18-inch switch) at equal hardness rank.
+      Built for WI-17 (functional degradation parametrization); assert_hardness_scale_no_gaps.sql
+      requires every (compound, era) pair the warehouse actually uses to resolve here.
+
+      PROVENANCE - the ordinal correspondence (2018 name -> rank, C-code -> rank) is a stated
+      modelling assumption, not a physical hardness measurement, matching tyre_allocations'
+      non-quotable status. WI-17's T55 tests the 2018 mapping by leave-out; T54 leaves out C6
+      (59 laps in the whole warehouse as of 2026-09-28, all 2025) and reports against C5.
+    columns:
+      - name: compound_code
+        description: 2018 legacy name (SUPERHARD, HARD, MEDIUM, SOFT, SUPERSOFT, ULTRASOFT, HYPERSOFT) or C1-C6.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'SUPERHARD', 'HARD', 'MEDIUM', 'SOFT', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
+      - name: era
+        description: Tyre-construction generation the row applies to.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['2018', '2019-21', '2022+']
+      - name: hardness_rank
+        description: Ordinal position on the declared 1 (hardest) - 7 (softest) scale.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 7
+      - name: provenance
+        description: How this row's rank was assigned, and its assumption/validation status (see description).
+        tests:
+          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [compound_code, era]
+
   - name: race_scheduled_laps
     description: >
       The scheduled race distance in laps, one row per race (WI-05: F6, F32, F52). The fuel

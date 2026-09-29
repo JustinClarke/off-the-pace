@@ -23,13 +23,19 @@ function CircuitAffinityTooltip({
     <div className="bg-[#13151a] border border-white/15 rounded px-3 py-2 text-xs shadow-xl">
       <p className="font-semibold mb-1">{yLabel} @ {xLabel}</p>
       <p className="text-muted">
-        Affinity:{' '}
+        vs own average:{' '}
         <span className={`font-mono ${cell.value !== null && cell.value < 0 ? 'text-green-400' : 'text-red-400'}`}>
           {cell.value !== null ? `${cell.value > 0 ? '+' : ''}${cell.value.toFixed(3)}s` : ' '}
         </span>
       </p>
       {row && (
         <>
+          <p className="text-muted">
+            Overall gap to teammate:{' '}
+            <span className="font-mono text-[rgb(var(--color-text))]">
+              {`${row.global_driver_mean_s > 0 ? '+' : ''}${row.global_driver_mean_s.toFixed(3)}s`}
+            </span>
+          </p>
           <p className="text-muted">
             Seasons: <span className="font-mono text-[rgb(var(--color-text))]">{row.seasons_observed_n}</span>
           </p>
@@ -53,24 +59,24 @@ export default function DriverCircuitAffinityPage() {
   return (
     <FeaturePage
       title="Circuit Affinity"
-      hook="Which circuits suit each driver's style? This heatmap shows how much faster or slower each driver is at a specific circuit relative to their own seasonal average, after removing car and field effects."
+      hook="Which circuits suit each driver's style? This heatmap shows how much better or worse each driver does against his teammate at a specific circuit than he does on average. The teammate comparison removes the car."
       badges={[
         {
           label: 'What It Means',
-          content: 'Green = faster than the driver\'s own global average at that circuit. Red = slower. A strong green cell (Monaco for a specialist, Spa for a power-track driver) reveals genuine circuit affinity beyond the car.',
+          content: 'Green = the driver does better against his teammate at that circuit than his own average. Red = worse. Each row is measured against that driver\'s own average, so even a driver who beats his teammate everywhere has green and red cells. A strong green cell (Monaco for a specialist, Spa for a power-track driver) is circuit affinity beyond the car.',
         },
         {
           label: 'Why It Matters',
-          content: 'Circuit affinity is a persistent driver trait that persists across team changes. Knowing a driver systematically gains 0.4s at a specific layout independent of car strength informs driver market valuations and race simulations.',
+          content: 'Knowing that a driver gains a couple of tenths on his teammate at a specific layout, beyond his usual margin, informs driver market valuations and race simulations. Most cells sit within ±0.2s; a cell backed by few visits is mostly prior, so check its confidence.',
         },
         {
           label: "How It's Calculated",
-          content: 'Per (driver, circuit), the model averages raw residuals across visits and applies Bayesian shrinkage toward the driver\'s global mean with a 5-race prior. Cells require ≥ 2 observed races to appear.',
+          content: 'Per race, the driver\'s median lap-by-lap gap to his teammate. Per (driver, circuit), those gaps are averaged across visits, shrunk toward the driver\'s own all-circuit mean with a 5-race prior, and drawn as the difference from that mean. Cells require ≥ 2 observed races to appear.',
         },
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024' }}
+      provenance={{ dataWindow: '2018–2025' }}
       csvRows={data ? toCsvRows(data) : undefined}
       csvFilename="driver-circuit-affinity.csv"
       isLoading={isLoading}
@@ -83,7 +89,7 @@ export default function DriverCircuitAffinityPage() {
             Driver × Circuit affinity heatmap
           </h2>
           <p className="text-xs text-muted mb-4">
-            Drivers sorted fastest → slowest by median affinity. Circuits alphabetical.
+            Drivers sorted by overall gap to their teammates, biggest margin first. Circuits alphabetical.
             Only circuits with ≥ 2 race visits shown per driver.
           </p>
           <Heatmap
@@ -96,7 +102,7 @@ export default function DriverCircuitAffinityPage() {
             cellWidth={28}
             cellHeight={24}
             yLabelWidth={64}
-            legendLabel="Pace delta"
+            legendLabel="vs own average (s)"
             renderTooltip={(cell, xLabel, yLabel) => (
               <CircuitAffinityTooltip
                 cell={cell}

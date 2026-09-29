@@ -1,0 +1,13 @@
+created_at: 2026-09-29T07:56:43Z
+HEAD: fcf4949f4cde4930d40d663f109ddc58e10852ed
+warehouse: /private/tmp/claude-501/-Users-justin-github-off-the-pace/e3cb4fbb-4e5e-417e-b2ee-56ee0edf841b/scratchpad/gate08f1/gate_after.duckdb (read-only)
+warehouse_sha256: 261e2fd9a2f87f54c8db4349420a6e3621990b70318a6f0922fa5de6acbdc2d7
+warehouse_provenance: built 2026-09-28T20:12Z for the W9 re-run from the working tree (HEAD fcf4949 + uncommitted; see _roadmap/_fixes/_evidence/w9-2026-09-29/PROVENANCE.txt)
+transform_tree_vs_snapshot: diff -rq (excluding target/logs/dbt_packages/*.duckdb) empty on 2026-09-29; mart SQL byte-identical
+dev.duckdb: not opened
+hyperparameters: ml/models/*_best_params.json (v14's; no re-tune)
+ml_code_change: ml/src/schema.py QUANTILE_SAMPLE_WEIGHT (ML_QUANTILE_WEIGHT env, default none); train.py _sample_weight + sample_weight_scheme; evaluate.py _row_weights
+artefacts: ml/models/*_v15ipw.{bst,onnx}, ml/models/*_v15uni.{bst,onnx}, training_logs/*_v15ipw_*.json, *_v15uni_*.json (all gitignored)
+tracked files guarded: ml/models/encoders.json, ml/models/manifest.json, ml/artefacts/evaluation_metrics.json (sha256 checked before/after)
+versions: xgboost 3.3.0 sklearn 1.9.0 onnxruntime 1.28.0 numpy 2.4.6
+machine: Apple M1 ncpu=8

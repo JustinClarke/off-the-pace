@@ -77,7 +77,7 @@ export default function EraRatingsTimelineChart({ series, selected, showCIRibbon
         <YAxis
           tickFormatter={yFormatter}
           tick={AXIS_STYLE}
-          label={{ value: 'era-adjusted rating (s)', angle: -90, position: 'insideLeft', offset: 14, fontSize: 11, fill: 'rgb(var(--color-text-muted))' }}
+          label={{ value: 'gap to teammate (s)', angle: -90, position: 'insideLeft', offset: 14, fontSize: 11, fill: 'rgb(var(--color-text-muted))' }}
         />
         <Tooltip
           cursor={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1 }}

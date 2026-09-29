@@ -160,9 +160,11 @@ def _sample_weight(spec: S.TargetSpec, y, meta=None) -> np.ndarray | None:
     """Return per-row training weights.
 
     Classifier: balanced class weights for minority cliff-window recall.
-    Quantile regressors (C2): uniform weights (None). IPW survival weights were measured
-    against uniform in 08o and found to underperform on all three heads (p10/p50/p90),
-    with the information term on p10 clearing its floor in the *wrong* direction.
+    Quantile regressors (C2): S.QUANTILE_SAMPLE_WEIGHT decides. "none" (the default,
+    and the production path since 08o) is uniform. 08o measured IPW against uniform on
+    the pre-WI-13 weights (every 2018 row at 4.0) and dropped it; the W9 re-run on the
+    corrected weights reversed p10/p50 (W58). "ipw" returns `meta['survival_weight']`
+    and refuses to run without it -- a missing meta must not quietly fit uniform.
 
     Survival (stint life): deliberately None. The censoring that the IPW weights
     approximate for the quantile models is now represented exactly, as an interval
@@ -173,7 +175,25 @@ def _sample_weight(spec: S.TargetSpec, y, meta=None) -> np.ndarray | None:
         w = compute_class_weight("balanced", classes=classes, y=y)
         lut = dict(zip(classes, w))
         return np.asarray([lut[v] for v in y], dtype=np.float32)
+    if spec.kind == "quantile" and S.QUANTILE_SAMPLE_WEIGHT == "ipw":
+        if meta is None or "survival_weight" not in meta.columns:
+            raise ValueError(
+                f"{spec.name}: ML_QUANTILE_WEIGHT=ipw needs meta['survival_weight']; "
+                "refusing to fall back to an unweighted fit")
+        w = meta["survival_weight"].to_numpy(dtype=np.float32)
+        if not np.isfinite(w).all() or (w <= 0).any():
+            raise ValueError(f"{spec.name}: survival_weight has non-finite or non-positive rows")
+        return w
     return None
+
+
+def sample_weight_scheme(spec: S.TargetSpec) -> str:
+    """What `_sample_weight` fits this target with, for the training log."""
+    if spec.kind == "classification":
+        return "balanced_class"
+    if spec.kind == "quantile":
+        return "ipw_survival_weight" if S.QUANTILE_SAMPLE_WEIGHT == "ipw" else "uniform_none"
+    return "none"
 
 
 def _season_folds(seasons: np.ndarray, training_seasons: list[int], n_splits: int):
@@ -310,6 +330,7 @@ def train_one(target: str, *, version: str, params: dict | None,
         "target_horizon_laps": S.TARGET_HORIZON_LAPS.get(spec.source_column),
         **({"target_bound": S.TARGET_BOUND} if spec.kind == "quantile" else {}),
         "objective": spec.objective, "quantile_alpha": spec.quantile_alpha,
+        "sample_weight_scheme": sample_weight_scheme(spec),
         **({"aft": {"distribution": S.AFT_DISTRIBUTION, "scale": scale,
                     "label_shift": S.AFT_LABEL_SHIFT,
                     "c_index_cv": float(np.mean([m["c_index"] for m in fold_metrics])),

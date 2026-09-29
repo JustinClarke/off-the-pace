@@ -64,25 +64,25 @@ export default function EraRatingsTimelinePage() {
 
   return (
     <FeaturePage
-      title="Era-Adjusted Driver Rating Timeline"
-      hook="How does each driver's pace rank across history, corrected for the 2022 regulation shift? Bayesian season ratings anchored on bridge drivers who raced on both sides of the boundary so Hamilton 2020 is genuinely comparable to Verstappen 2024."
+      title="Driver Rating Timeline"
+      hook="How big was each driver's margin over his teammate, season by season? The rating is a lap-by-lap gap to the teammate in the same car, so the car, and the 2022 regulation change, cancel out and every season sits on one scale."
       badges={[
         {
           label: 'What It Means',
-          content: 'A single cross-era rating lets you ask: was Alonso 2021 as fast as Alonso 2023? Negative = faster than the era-normalised field average. The width of the CI ribbon is honesty made visible fewer races, wider uncertainty.',
+          content: 'Negative = faster than his teammate, in seconds per lap. Read a line as the driver\'s margin over whoever shared his car that season: a change of teammate can move it as much as a change in the driver. The width of the CI ribbon is honesty made visible: fewer races, wider uncertainty.',
         },
         {
           label: 'Why It Matters',
-          content: 'Raw lap-time residuals shift at regulation changes (2022 ground-effect rules moved the absolute pace baseline). Without era calibration, a pre-2022 driver looks artificially faster or slower. The bridge-driver anchor corrects this systematically, not by hand.',
+          content: 'Absolute lap times shift at regulation changes (2022 ground-effect rules moved the whole field). A gap to the teammate in the same car does not: the change moves both drivers alike and cancels, so no era correction is needed or applied.',
         },
         {
           label: "How It's Calculated",
-          content: 'Source: int_era_normalized_driver_rating. Two-stage: (1) Bayesian shrinkage of per-season residuals toward the season league average; (2) era offset estimated from 20 bridge drivers (≥8 clean-race seasons pre- and post-2022), propagated to CI. Bridge drivers shown as solid lines.',
+          content: 'Source: int_era_normalized_driver_rating. Per race, the median lap-by-lap gap to the teammate on laps both ran clean; per season, the mean of those, shrunk toward the season mean with a 5-race prior. Drivers with 8+ races on each side of 2022 are shown as solid lines.',
         },
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018-2024', nObs: result?.series.length }}
+      provenance={{ dataWindow: '2018–2025', nObs: result?.series.length }}
       csvRows={csvRows}
       csvFilename="era-ratings-timeline.csv"
       isLoading={isLoading}
@@ -95,9 +95,9 @@ export default function EraRatingsTimelinePage() {
           <section className="rounded-xl border border-border bg-white/[0.015] p-4 sm:p-5">
             <div className="flex items-center justify-between mb-1">
               <div>
-                <h2 className="text-sm font-semibold tracking-tight">Era-adjusted pace</h2>
+                <h2 className="text-sm font-semibold tracking-tight">Gap to teammate</h2>
                 <p className="text-xs text-muted/70">
-                  All seasons 2018-2024 · negative is faster than the era field average
+                  All seasons · negative is faster than his teammate
                 </p>
               </div>
               <label className="flex items-center gap-2 text-xs text-muted cursor-pointer select-none">
@@ -171,11 +171,6 @@ export default function EraRatingsTimelinePage() {
             </div>
           </section>
 
-          {result.lowAnchorSample && (
-            <p className="text-xs text-amber-400/80 bg-amber-400/10 rounded px-3 py-2">
-              Warning: era offset estimated from fewer than 3 bridge drivers-offset set to 0. Pre-2022 ratings are not era-adjusted.
-            </p>
-          )}
         </div>
       )}
     </FeaturePage>

@@ -1,20 +1,20 @@
 ---
 title: "Which circuits suit each driver's style?"
 sidebarTitle: "Circuit Affinity"
-description: "A heatmap of how much faster or slower each driver is at a specific circuit, relative to their own season average, after removing car and field effects."
+description: "A heatmap of how much better or worse each driver does against his teammate at a specific circuit than he does on average. The teammate comparison removes the car."
 ---
 
-Some drivers seem to find an extra tenth at certain tracks year after year. This heatmap measures that: for each driver and circuit, how much faster or slower they tend to be there relative to **their own** season-average pace, after constructor and field effects are removed. Negative (green) means faster than the driver's average at that circuit; positive (red) means slower.
+Some drivers seem to find an extra tenth at certain tracks year after year. This heatmap measures that: for each driver and circuit, how much better or worse he does against his teammate there than he does on average. The car is removed by the teammate comparison. Negative (green) means the driver does better against his teammate at that circuit than his own average; positive (red) means worse.
 
 ## What it shows
 
 Each cell is one driver × circuit affinity:
 
-- **Shrunk affinity**: a Bayesian posterior mean that pulls the raw observed circuit delta toward the driver's global mean, using 5 virtual races as the prior weight. Drivers with fewer observations are shrunk more aggressively toward neutral.
-- **Sign convention**: negative = faster than the driver's own average at that circuit (green); positive = slower (red) the same convention as the driver skill residual.
+- **Affinity**: the driver's Bayesian-shrunk gap to his teammate at the circuit, minus his own average gap across every circuit. Each race's input is the driver's median lap-by-lap gap to his teammate on laps both ran clean. The circuit estimate is shrunk toward the driver's own mean with 5 virtual races as the prior weight, so drivers with few visits are pulled toward zero affinity.
+- **Sign convention**: negative (green) = better against his teammate at this circuit than his own average; positive (red) = worse. Each row is measured against that driver's own average, so a row mixes green and red even for a driver who beats his teammate everywhere.
 - **Confidence**: the fraction of the posterior coming from data versus prior, `n_obs / (n_obs + 5)`. Values below 0.17 (one race) are prior-dominated.
 
-Drivers are sorted fastest-to-slowest by median affinity across circuits; circuits are sorted alphabetically.
+Drivers are sorted by their overall gap to their teammates, biggest margin first; circuits are sorted alphabetically.
 
 <Note>
   Cells are shown only when `n_obs ≥ 2` (two or more races at the circuit). Single-race visits are excluded as unreliable, so empty cells mean too few visits, not zero affinity.
@@ -22,17 +22,17 @@ Drivers are sorted fastest-to-slowest by median affinity across circuits; circui
 
 ## How to use it
 
-1. **Select a season scope** from the filter bar; the heatmap reloads.
-2. **Scan a driver's row** for their strong (green) and weak (red) circuits.
-3. **Scan a circuit's column** to see which drivers historically over-deliver there.
-4. **Check confidence before concluding** a strong colour on a low-confidence cell is mostly prior, not signal.
+1. **Scan a driver's row** for his strong (green) and weak (red) circuits.
+2. **Scan a circuit's column** to see which drivers historically over-deliver there against their teammates.
+3. **Hover a cell** to see the driver's overall gap to his teammate alongside the circuit's deviation from it.
+4. **Check confidence before concluding**: a strong colour on a low-confidence cell is mostly prior, not signal.
 
 ## Reading the signal correctly
 
-Affinity is **within-driver**: it compares a driver to themselves, so it is not a pace ranking. A slow-car driver can show strong positive affinity at a circuit that suits their style, independent of where they finished.
+Affinity is **within-driver**: it compares a driver to himself, so it is not a pace ranking. A driver who trails his teammate everywhere can still show strong green at a circuit that suits his style.
 
 <Warning>
-  Affinity and the era ratings share an underlying skill residual; do not stack them as if independent. A circuit where a whole era's data is thin (few events) will show wide, prior-dominated cells read the confidence column. See the [decomposition limitations](/decomposition/limitations).
+  Until 2026-09-28 this heatmap drew the shrunk gap to the teammate itself (a level) on a zero-centred scale, so every cell was green (audit finding F44). It now draws the deviation from the driver's own mean. Affinity and the era ratings share the same race-grain rating; do not stack them as if independent. See the [decomposition limitations](/decomposition/limitations).
 </Warning>
 
 ## Data source
@@ -41,10 +41,11 @@ The chart queries `int_driver_circuit_affinity` via DuckDB-Wasm in the browser.
 
 | Column | Meaning |
 |---|---|
-| `shrunk_affinity_s` | Bayesian posterior circuit delta vs the driver's own average (the cell colour) |
+| `affinity_vs_driver_mean_s` | `shrunk_affinity_s − global_driver_mean_s`: the circuit's deviation from the driver's own average (the cell colour) |
+| `global_driver_mean_s` | The driver's mean gap to his teammate over every race (the shrinkage prior mean; used to sort rows) |
 | `n_obs` | Races the driver ran at the circuit; gates display at `≥ 2` |
-| `confidence` | Data fraction of the estimate, `n_obs / (n_obs + 5)` |
+| `affinity_confidence` | Data fraction of the estimate, `n_obs / (n_obs + 5)` |
 
-The data window covers **2018–2024**.
+The heatmap pools every season in the data, **2018–2025**.
 
 For the full model definition, see the [`int_driver_circuit_affinity` reference](/reference/models/int/int_driver_circuit_affinity).

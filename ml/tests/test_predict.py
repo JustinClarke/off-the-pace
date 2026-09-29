@@ -31,9 +31,12 @@ def test_output_schema(table):
 
 def test_holdout_and_envelope_flags(table):
     df = table.to_pandas()
-    # is_holdout is all-False today (2025 absent); both flags present and boolean.
+    # is_holdout flags holdout_season (2026) rows. Today holdout_populated=false
+    # (no 2026 data yet); both flags present and boolean (WI-03 FD4 ruling).
+    # CAVEAT: 2025 was consumed as a selection fold by 02c's admission gate (n_eval=13,951),
+    # so it is now a validation fold rather than a clean holdout; real holdout is 2026.
     assert df["is_holdout"].dtype == bool and df["is_in_envelope"].dtype == bool
-    assert not df["is_holdout"].any(), "no holdout rows expected before 2025 ingests"
+    assert not df["is_holdout"].any(), "holdout_populated=false until 2026 data arrives"
     assert df["is_in_envelope"].sum() > 0
 
 

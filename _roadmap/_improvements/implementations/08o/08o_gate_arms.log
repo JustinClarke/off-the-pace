@@ -1,4 +1,4 @@
-Published artefact version: v13
+Published artefact version: v14
 Using 10 seeds for floor and e-value (post-09c Construction B)
 E_max = 11^4.5 = 48558.70
 
@@ -11,11 +11,69 @@ e-value validity check (mean E under H0 should be 1.00):
 ======================================================================
 degradation_regressor_p10
 ======================================================================
+[degradation_regressor_p10] Gate 1: production path (uniform, w=None) vs published v14...
+  Headline: 0.5867213020, Published: 0.3880862341, Passes: False, deterministic: True (8s)
+  Gate 1 WAIVED (--allow-published-mismatch): |diff|=0.199
+[degradation_regressor_p10] Scoring three arms...
+  Arm A (uniform): 0.5891527213
+  Arm B (IPW):     0.5824154571
+  Delta B-vs-A:    +0.00673726
+  Delta A-vs-B:    -0.00673726 (8s)
+[degradation_regressor_p10] Computing refit noise floor over 10 seeds...
+  Floor (2√2·sd) = 0.00664994 (from arm A; A=0.00664994, B=0.00594243) (83s)
+[degradation_regressor_p10] Permutation null (shuffle arm B weights)...
+  Arm B shuffled:     0.5933061610
+  Capacity (shuf-A):  -0.00415344 (-0.62x floor)
+  Information (B-shuf): +0.01089070 (+1.64x floor) (4s)
+[degradation_regressor_p10] Paired e-values: real B vs shuffled B (10 seeds)...
+  E(information, B real-vs-shuffle) = 26.98 (d_bar=+0.00448333, max_E=48558.7) (83s)
+[degradation_regressor_p10] Negative control: shuffle B vs shuffle B...
+  Control E (shuffle vs shuffle) = 0.3436 (83s)
 
 ======================================================================
 degradation_regressor_p50
 ======================================================================
+[degradation_regressor_p50] Gate 1: production path (uniform, w=None) vs published v14...
+  Headline: 0.9604870335, Published: 0.8612849907, Passes: False, deterministic: True (15s)
+  Gate 1 WAIVED (--allow-published-mismatch): |diff|=0.0992
+[degradation_regressor_p50] Scoring three arms...
+  Arm A (uniform): 0.9566275210
+  Arm B (IPW):     0.9482790686
+  Delta B-vs-A:    +0.00834845
+  Delta A-vs-B:    -0.00834845 (15s)
+[degradation_regressor_p50] Computing refit noise floor over 10 seeds...
+  Floor (2√2·sd) = 0.00469769 (from arm A; A=0.00469769, B=0.00394871) (183s)
+[degradation_regressor_p50] Permutation null (shuffle arm B weights)...
+  Arm B shuffled:     0.9543850928
+  Capacity (shuf-A):  +0.00224243 (+0.48x floor)
+  Information (B-shuf): +0.00610602 (+1.30x floor) (9s)
+[degradation_regressor_p50] Paired e-values: real B vs shuffled B (10 seeds)...
+  E(information, B real-vs-shuffle) = 1589 (d_bar=+0.00827017, max_E=48558.7) (149s)
+[degradation_regressor_p50] Negative control: shuffle B vs shuffle B...
+  Control E (shuffle vs shuffle) = 0.8241 (146s)
 
 ======================================================================
 degradation_regressor_p90
+======================================================================
+[degradation_regressor_p90] Gate 1: production path (uniform, w=None) vs published v14...
+  Headline: 0.4342682000, Published: 0.4831049503, Passes: False, deterministic: True (7s)
+  Gate 1 WAIVED (--allow-published-mismatch): |diff|=0.0488
+[degradation_regressor_p90] Scoring three arms...
+  Arm A (uniform): 0.4346690721
+  Arm B (IPW):     0.4393696728
+  Delta B-vs-A:    -0.00470060
+  Delta A-vs-B:    +0.00470060 (7s)
+[degradation_regressor_p90] Computing refit noise floor over 10 seeds...
+  Floor (2√2·sd) = 0.00481780 (from arm B; A=0.00314861, B=0.00481780) (68s)
+[degradation_regressor_p90] Permutation null (shuffle arm B weights)...
+  Arm B shuffled:     0.4352854471
+  Capacity (shuf-A):  -0.00061637 (-0.13x floor)
+  Information (B-shuf): -0.00408423 (-0.85x floor) (3s)
+[degradation_regressor_p90] Paired e-values: real B vs shuffled B (10 seeds)...
+  E(information, B real-vs-shuffle) = 12.74 (d_bar=-0.00250418, max_E=48558.7) (68s)
+[degradation_regressor_p90] Negative control: shuffle B vs shuffle B...
+  Control E (shuffle vs shuffle) = 0.5423 (67s)
+
+======================================================================
+Wrote results to /private/tmp/claude-501/-Users-justin-github-off-the-pace/e3cb4fbb-4e5e-417e-b2ee-56ee0edf841b/scratchpad/gate08f1/out08o/08o_gate_arms.json
 ======================================================================

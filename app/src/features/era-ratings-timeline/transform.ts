@@ -3,8 +3,8 @@ import type { CIPoint } from '../../ui/charts/LineWithCIRibbon'
 
 /** Why a driver does or does not bridge the 2022 regulation boundary. */
 export type SpanCohort =
-  | 'bridge'        // raced both sides of 2022, anchors the era calibration
-  | 'full-span'     // present 2018-2024 but not a calibration anchor
+  | 'bridge'        // raced >= 8 races on each side of 2022
+  | 'full-span'     // present every season, but not a bridge driver
   | 'joined'        // debuted after 2018
   | 'left'          // last season before 2024
   | 'cameo'         // single season
@@ -13,7 +13,7 @@ export interface DriverSeries {
   driver_id: string
   /** All driver-season points, sorted by season */
   points: CIPoint[]
-  /** True if this driver was used to calibrate the 2022 era offset */
+  /** True if the driver raced >= 8 races on each side of 2022 (no offset is applied; context only) */
   isBridgeDriver: boolean
   /** Confidence of the most recent season's rating */
   latestConfidence: number
@@ -23,7 +23,7 @@ export interface DriverSeries {
   lastSeason: number
   /** Distinct seasons the driver is present (sorted) */
   activeSeasons: number[]
-  /** Career mean era-adjusted rating (negative = faster) */
+  /** Career mean season rating (seconds, negative = faster than his teammates) */
   meanRating: number
   /** Career-span classification for the timeline DAG */
   cohort: SpanCohort
@@ -36,10 +36,6 @@ export interface TransformResult {
   seasons: number[]
   /** Earliest and latest season across the whole dataset */
   seasonRange: [number, number]
-  /** True if the era offset was anchored on fewer than 3 bridge drivers */
-  lowAnchorSample: boolean
-  /** Number of bridge drivers used for calibration */
-  nBridgeDrivers: number
 }
 
 const ERA_BOUNDARY = 2022
@@ -60,7 +56,7 @@ function classifyCohort(
 
 export function transform(rows: EraRatingRow[]): TransformResult {
   if (!rows.length) {
-    return { series: [], seasons: [], seasonRange: [0, 0], lowAnchorSample: false, nBridgeDrivers: 0 }
+    return { series: [], seasons: [], seasonRange: [0, 0] }
   }
 
   const byDriver = new Map<string, EraRatingRow[]>()
@@ -73,8 +69,6 @@ export function transform(rows: EraRatingRow[]): TransformResult {
   const allSeasons = [...new Set(rows.map(r => r.season))].sort((a, b) => a - b)
   const globalFirst = allSeasons[0]
   const globalLast = allSeasons[allSeasons.length - 1]
-  const lowAnchorSample = rows[0].low_anchor_sample_flag
-  const nBridgeDrivers = rows[0].n_bridge_drivers ?? 0
 
   const series: DriverSeries[] = []
   for (const [driver_id, driverRows] of byDriver) {
@@ -112,8 +106,6 @@ export function transform(rows: EraRatingRow[]): TransformResult {
     series,
     seasons: allSeasons,
     seasonRange: [globalFirst, globalLast],
-    lowAnchorSample,
-    nBridgeDrivers,
   }
 }
 

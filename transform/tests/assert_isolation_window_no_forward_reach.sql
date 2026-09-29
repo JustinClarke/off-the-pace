@@ -7,8 +7,8 @@
 -- (pattern: assert_corner_trailing_window_no_forward_reach). A frame that reached forward,
 -- or that crossed a stint boundary, would see laps the recomputation cannot, and differ.
 --
--- Checked, each to 1e-9: window_n_laps, the three window counts, and the three window
--- values (pure over non-extrapolated laps, tactical, and relative as
+-- Checked, each to 1e-9: window_n_laps, the two window counts (pure and pair-laps), and
+-- the two window values (pure over non-extrapolated laps and relative as
 -- SUM(relative * n_peers) / SUM(n_peers)), including that each value is NULL exactly when
 -- its count is below var('isolation_window_min_laps').
 
@@ -22,7 +22,6 @@ WITH laps AS (
         lap_number,
         pure_skill_gain_s,
         pure_is_extrapolated,
-        tactical_gain_s,
         relative_pace_gain_s,
         n_peers
     FROM {{ ref('fct_driver_isolation_lap') }}
@@ -34,8 +33,6 @@ recomputed AS (
         COUNT(*) AS n_laps,
         COUNT(CASE WHEN NOT prior.pure_is_extrapolated THEN prior.pure_skill_gain_s END) AS n_pure,
         AVG(CASE WHEN NOT prior.pure_is_extrapolated THEN prior.pure_skill_gain_s END) AS pure_mean,
-        COUNT(prior.tactical_gain_s) AS n_tactical,
-        AVG(prior.tactical_gain_s) AS tactical_mean,
         SUM(prior.n_peers) AS n_pair_laps,
         SUM(prior.relative_pace_gain_s * prior.n_peers) AS relative_weighted_sum
     FROM laps AS focal
@@ -52,10 +49,8 @@ expected AS (
         lap_id,
         n_laps,
         n_pure,
-        n_tactical,
         n_pair_laps,
         CASE WHEN n_pure >= {{ min_n }} THEN pure_mean END AS pure_5lap,
-        CASE WHEN n_tactical >= {{ min_n }} THEN tactical_mean END AS tactical_5lap,
         CASE WHEN n_pair_laps >= {{ min_n }} THEN relative_weighted_sum / n_pair_laps END
             AS relative_5lap
     FROM recomputed
@@ -67,8 +62,6 @@ SELECT
     e.n_laps,
     m.pure_skill_5lap_gain_s,
     e.pure_5lap,
-    m.tactical_5lap_gain_s,
-    e.tactical_5lap,
     m.relative_pace_5lap_gain_s,
     e.relative_5lap
 FROM {{ ref('fct_driver_isolation_lap') }} AS m
@@ -77,11 +70,8 @@ INNER JOIN expected AS e
 WHERE
     m.window_n_laps != e.n_laps
     OR m.window_n_pure_laps != e.n_pure
-    OR m.window_n_tactical_laps != e.n_tactical
     OR m.window_n_pair_laps != e.n_pair_laps
     OR (m.pure_skill_5lap_gain_s IS NULL) != (e.pure_5lap IS NULL)
-    OR (m.tactical_5lap_gain_s IS NULL) != (e.tactical_5lap IS NULL)
     OR (m.relative_pace_5lap_gain_s IS NULL) != (e.relative_5lap IS NULL)
     OR ABS(m.pure_skill_5lap_gain_s - e.pure_5lap) > 1e-9
-    OR ABS(m.tactical_5lap_gain_s - e.tactical_5lap) > 1e-9
     OR ABS(m.relative_pace_5lap_gain_s - e.relative_5lap) > 1e-9

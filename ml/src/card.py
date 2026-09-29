@@ -33,7 +33,7 @@ CARD_JSON = Path("ml/models/model_card.json")
 
 # F1 car-telemetry coverage in this project starts in 2018 (the data epoch a fixed fact of the
 # source, not a holdout choice). Only used as a fallback when a training log predates the
-# training_seasons field; the holdout year itself is always derived as MAX(race_year)+1.
+# training_seasons field; the holdout year is pinned in holdout_config.HOLDOUT_SEASON (WI-03 FD4).
 DATA_EPOCH_SEASON = 2018
 
 # The degradation family's horizon, as a phrase the summary can drop in. One lap reads
@@ -44,10 +44,12 @@ _DEG_HORIZON_PHRASE = ("next-lap" if _DEG_HORIZON == 1
                        else f"cumulative {_DEG_HORIZON}-lap")
 
 HOLDOUT_NOTE = (
-    "2025 is the designated holdout, ingested post-launch; until then the model trains on all "
-    "ingested seasons (2018–2024) and selection rests on time-series CV-there is no live holdout. "
-    "The evaluation headline is reported on the final TimeSeriesSplit fold (2024); it switches to a "
-    "true-holdout reveal the moment 2025 ingests, with no code change.")
+    "2026 is the designated holdout, ingested incrementally as races complete; until 2026 data exists "
+    "the model trains on all ingested seasons (2018–2025) and evaluation rests on the final "
+    "TimeSeriesSplit fold (2025); holdout_populated = false. CAVEAT: 2025 was consumed as a selection "
+    "fold by 02c's admission gate (n_eval = 13,951 on 2026-09-23), so any claim about v14's 'holdout' "
+    "performance sits on a validation fold rather than a clean holdout. It switches to a true-holdout "
+    "evaluation the moment 2026 data arrives, with no code change (WI-03 FD4 ruling).")
 
 # WI-01 (label spine, 2026-09-27). The mart's label changed AFTER the v14 artefacts were
 # trained, so every card for v14 or earlier must say its numbers sit on the old label.
@@ -276,7 +278,7 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                 f"Five XGBoost models predicting {_DEG_HORIZON_PHRASE} tyre-degradation pace loss "
                 "(quantile trio p10/p50/p90), laps-until-cliff class, and remaining stint life, "
                 "from per-lap thermal, dirty-air, powertrain, weather and compound-prior features. "
-                "Trained on 2018–2024 F1 laps; every model beats a strong per-cohort baseline."),
+                "Trained on 2018–2025 F1 laps; every model beats a strong per-cohort baseline."),
             "intended_use": (
                 "Race-strategy analysis and the Off the Pace web app (application layer): surfacing when a "
                 "stint is about to fall off the degradation cliff and how much pace a driver is "
@@ -508,7 +510,6 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                 "Hyperparameters come from a 50-trial / season-fold Optuna search per target "
                 "(ml/models/<target>_best_params.json); `make ml-retrain` refits at those params "
                 "without re-searching. A target whose data has moved should be re-tuned, not just refit.",
-                "No live 2025 holdout yet-headline numbers are time-series CV until 2025 ingests.",
             "Skill is reported as a fraction of the ATTAINABLE quantity. A fraction above 1.0 "
             "means the model is not bounded by stint-level information, so no ceiling has been "
             "established for it - not that it is near-perfect.",

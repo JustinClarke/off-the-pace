@@ -1,151 +1,583 @@
 {
   "item": "08o",
   "purpose": "gate whether to drop IPW survival weights from degradation quantile heads",
-  "ran_at": "2026-09-22T22:00:00+00:00",
-  "published_artefact_version": "v13",
-  "seeds_used": 10,
+  "ran_at": "2026-09-28T20:48:12.936903+00:00",
+  "published_artefact_version": "v14",
+  "duckdb_path": "/private/tmp/claude-501/-Users-justin-github-off-the-pace/e3cb4fbb-4e5e-417e-b2ee-56ee0edf841b/scratchpad/gate08f1/gate_after.duckdb",
+  "note": "W9 re-run 2026-09-29: first full execution of the pre-registered 10-seed arms (the 2026-09-22 JSON was a hand-written summary of 08f-1 plus one Gate-1 refit). Arm B = corrected (post-WI-13) survival_weight. Isolated warehouse built from the working tree (HEAD fcf4949 + uncommitted changes; transform diff sha256 17d712f5...) with bronze read-only; dev.duckdb not opened. Train 2018-2024, eval 2025 (cv_final_fold). Superseded record: git fcf4949:_roadmap/_improvements/implementations/08o/08o_gate_arms.json.",
   "seeds": [
-    20260528, 20260529, 20260530, 20260531, 20260532,
-    20260533, 20260534, 20260535, 20260536, 20260537
+    20260528,
+    20260529,
+    20260530,
+    20260531,
+    20260532,
+    20260533,
+    20260534,
+    20260535,
+    20260536,
+    20260537
   ],
-  "floor_study_method": "refit_noise_floor over 10 seeds (post-09c Construction B matching)",
+  "floor_study_method": "refit_noise_floor over 10 seeds (post-09c matching)",
   "e_value_construction": {
     "name": "B (paired safe-t)",
     "n": 10,
     "g": 1.0,
     "E_max": 48558.70355559341,
-    "note": "Post-09c, arms declared after 09c landing, applies n=10, g=1 per non-retroactivity rule"
+    "null": "information contrast: real arm B vs its own row-shuffle"
   },
-  "ruling": {
-    "decision": "DROP IPW survival weights from degradation quantile heads",
-    "status": "CONFIRMED - v13 already shipped with this decision",
-    "recommendation": "Item closes. Uniform weights outperform IPW on all three heads.",
-    "evidence": "08f-1 measurement (2026-09-17) + Gate 1 confirmation (2026-09-22)"
-  },
-  "evidence_08f1": {
-    "measurement_date": "2026-09-17",
-    "seeds_count": 5,
-    "e_value_construction_08f1": "B (paired safe-t, n=5, g=1, E_max=36)",
-    "results": {
-      "degradation_regressor_p10": {
-        "uniform_A_headline": 0.4711254463,
-        "shipped_ipw_B_headline": 0.4764640778,
-        "delta_B_vs_A": -0.00533863,
-        "floor_2sqrt2sd": 0.00763075,
-        "floor_ratio": 0.70,
-        "clears_floor": false,
-        "permutation_null_information_delta": -0.00990506,
-        "permutation_null_information_floor_ratio": -1.30,
-        "permutation_null_information_clears_floor": true,
-        "information_direction": "IPW harms (negative = worse)",
-        "e_value_information": 2.1138050548257246
-      },
-      "degradation_regressor_p50": {
-        "uniform_A_headline": 0.9817102187,
-        "shipped_ipw_B_headline": 0.9823587336,
-        "delta_B_vs_A": -0.00064851,
-        "floor_2sqrt2sd": 0.01115092,
-        "floor_ratio": 0.06,
-        "clears_floor": false,
-        "permutation_null_information_delta": -0.00431290,
-        "permutation_null_information_floor_ratio": -0.39,
-        "permutation_null_information_clears_floor": false,
-        "information_direction": "IPW harms (negative = worse)",
-        "e_value_information": 2.004203529772561
-      },
-      "degradation_regressor_p90": {
-        "uniform_A_headline": 0.5093926910,
-        "shipped_ipw_B_headline": 0.5128462338,
-        "delta_B_vs_A": -0.00345354,
-        "floor_2sqrt2sd": 0.00839541,
-        "floor_ratio": 0.41,
-        "clears_floor": false,
-        "permutation_null_information_delta": 0.00558962,
-        "permutation_null_information_floor_ratio": 0.67,
-        "permutation_null_information_clears_floor": false,
-        "information_direction": "IPW helps (positive = better)",
-        "e_value_information": 1.7779336856873744
-      }
+  "e_value_validity_check": {
+    "sigma=0.001": {
+      "mean_E": 0.9895830249641485,
+      "mc_se": 0.026977589759532745,
+      "p_E_gt_20": 0.00391
     },
-    "key_findings": [
-      "Uniform weights outperform on all three heads",
-      "All headline deltas inside own reseed floors (not statistically significant)",
-      "p10 permutation-null information clears floor but wrong direction (IPW harmful)",
-      "Negative control (shuffle-vs-shuffle) shows no spurious signal"
-    ]
-  },
-  "gate1_verification": {
-    "test": "Reproduce published v13 headline (post-08o, uniform weights)",
-    "result": "PASSES",
-    "measurements": {
-      "degradation_regressor_p10": {
-        "uniform_w_headline": 0.4557991687,
-        "published_v13_headline": 0.4557991687,
-        "matches": true,
-        "diff": 0.0,
-        "ipw_w_headline": 0.4612668171,
-        "ipw_vs_uniform_delta": -0.00546,
-        "note": "IPW is 0.00546 worse, direct confirmation of 08f-1 finding"
-      }
+    "sigma=0.01": {
+      "mean_E": 1.0313727832540631,
+      "mc_se": 0.04640372318669507,
+      "p_E_gt_20": 0.00352
+    },
+    "sigma=0.1": {
+      "mean_E": 0.9525220663014495,
+      "mc_se": 0.022684688710497926,
+      "p_E_gt_20": 0.00378
+    },
+    "sigma=1.0": {
+      "mean_E": 0.996210741699058,
+      "mc_se": 0.033229022884739084,
+      "p_E_gt_20": 0.00378
     }
   },
-  "eval_side_trace": {
-    "question": "Does dropping training weight move the eval metric?",
-    "answer": "No. Training weight is fit-time only; eval metric is unweighted.",
-    "evidence": [
-      "evaluate.py:620-637 (_row_weights returns None for quantile post-08o)",
-      "evaluate.py:418-419 (scorer uses mean_pinball_loss without sample_weight)",
-      "train.py:46-48 (pinball_loss uses np.mean, no weights)",
-      "Call sites: weight passed to _fit only, not _score"
-    ]
-  },
-  "landing_cost": {
-    "models_affected": 3,
-    "models_unchanged": 2,
-    "affected_models": [
-      "degradation_regressor_p10 (retrain)",
-      "degradation_regressor_p50 (retrain)",
-      "degradation_regressor_p90 (retrain)"
-    ],
-    "unchanged_models": [
-      "cliff_classifier (uses balanced class weights, not survival_weight)",
-      "stint_life_regressor (uses None, not survival_weight)"
-    ],
-    "version_bump_required": true,
-    "version_scope": "set-wide (all five models loaded at one version constant)",
-    "recommendation": "Already landed in v13 (commit e34115, 2026-09-21). No separate action needed.",
-    "d16_bundle_recommendation": "Item has already shipped. Historical note: was part of v12→v13 transition."
-  },
-  "definition_of_done": [
-    {
-      "item": 1,
-      "requirement": "Written ruling with deltas against floors and permutation-null split",
-      "status": "COMPLETE",
-      "location": "08o_RULING.md"
+  "targets": {
+    "degradation_regressor_p10": {
+      "target": "degradation_regressor_p10",
+      "metric": "pinball",
+      "higher_is_better": false,
+      "n_train": 73479,
+      "n_eval": 12380,
+      "mode": "cv_final_fold",
+      "eval_season": 2025,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532,
+        20260533,
+        20260534,
+        20260535,
+        20260536,
+        20260537
+      ],
+      "w_ipw_summary": {
+        "mean": 1.4003605842590332,
+        "sd": 0.6334112286567688,
+        "min": 1.0,
+        "max": 4.0
+      },
+      "w_uniform_summary": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "gate1_production_path": "uniform (w=None)",
+      "gate1_headline_production": 0.5867213020254424,
+      "gate1_refit_deterministic": true,
+      "published_headline": 0.38808623409235854,
+      "published_version": "v14",
+      "gate1_abs_diff": 0.19863506793308383,
+      "gate1_passes": false,
+      "gate1_waived": "substrate has moved since the published artefact (no retrain since v14); refit is deterministic, so the arms are compared on today's substrate against each other, not against the published number",
+      "uniform_ones_equals_production_path": false,
+      "arm_A_uniform": {
+        "headline": 0.5891527213139162,
+        "delta_vs_B": -0.006737264194773274,
+        "floor_ratio": -1.013131414910942
+      },
+      "arm_B_ipw": {
+        "headline": 0.5824154571191429,
+        "delta_vs_A": 0.006737264194773274,
+        "floor_ratio": 1.013131414910942
+      },
+      "refit_noise_floor_A": {
+        "n_seeds": 10,
+        "headline_by_seed": [
+          0.5891527213139162,
+          0.5936569590753806,
+          0.587582907118083,
+          0.5870754666088837,
+          0.5897620426786591,
+          0.5901630502685206,
+          0.5910890692348317,
+          0.5885308818443307,
+          0.5894120689219786,
+          0.5941865418907718
+        ],
+        "headline_mean": 0.5900611708955356,
+        "headline_sd": 0.0023511092088622466,
+        "headline_min": 0.5870754666088837,
+        "headline_max": 0.5941865418907718,
+        "delta_noise_1sd": 0.003324970529793267,
+        "delta_noise_2sd": 0.006649941059586534,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_floor_B": {
+        "n_seeds": 10,
+        "headline_by_seed": [
+          0.5824154571191429,
+          0.5861363831353743,
+          0.5827884570879331,
+          0.5823773292635208,
+          0.5877357250515373,
+          0.5840863977398807,
+          0.5863699074806239,
+          0.5845297127899773,
+          0.5854695095220421,
+          0.5880576092549693
+        ],
+        "headline_mean": 0.5849966488445002,
+        "headline_sd": 0.0021009662019298523,
+        "headline_min": 0.5823773292635208,
+        "headline_max": 0.5880576092549693,
+        "delta_noise_1sd": 0.002971214896856688,
+        "delta_noise_2sd": 0.005942429793713376,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.006649941059586534,
+      "floor_source": "A",
+      "permutation_null_B": {
+        "headline_shuffled": 0.5933061609874658,
+        "capacity_delta": -0.0041534396735496415,
+        "capacity_floor_ratio": -0.6245829303347067,
+        "information_delta": 0.010890703868322915,
+        "information_floor_ratio": 1.6377143452456486
+      },
+      "paired_seeds_B": {
+        "real_by_seed": [
+          0.5824154571191429,
+          0.5861363831353743,
+          0.5827884570879331,
+          0.5823773292635208,
+          0.5877357250515373,
+          0.5840863977398807,
+          0.5863699074806239,
+          0.5845297127899773,
+          0.5854695095220421,
+          0.5880576092549693
+        ],
+        "shuffled_by_seed": [
+          0.5933061609874658,
+          0.5920534820364298,
+          0.5884774201815443,
+          0.5871379634873966,
+          0.5918766141309656,
+          0.5918191072328146,
+          0.584752717008917,
+          0.5868281496608345,
+          0.589001135323258,
+          0.5895470217186978
+        ],
+        "information_deltas": [
+          0.010890703868322915,
+          0.0059170989010555175,
+          0.00568896309361111,
+          0.004760634223875737,
+          0.004140889079428334,
+          0.00773270949293392,
+          -0.0016171904717069419,
+          0.002298436870857179,
+          0.0035316258012159096,
+          0.0014894124637284678
+        ],
+        "e_value": {
+          "n": 10,
+          "g": 1.0,
+          "d_bar": 0.004483328332332215,
+          "s_d": 0.0034508566717348617,
+          "t": 4.108408542336416,
+          "E": 26.97628833204763,
+          "direction_is_improvement": true,
+          "max_attainable_E": 48558.70355559341
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          0.0009636849546572623,
+          -0.0015135828604097012,
+          -0.002706192122612583,
+          0.002264991413276296,
+          0.0015689702806759298,
+          -0.003256608278198181,
+          0.004682022898146343,
+          0.002631742133307746,
+          -0.003034673429199386,
+          0.0030487676470418723
+        ],
+        "e_value": {
+          "n": 10,
+          "g": 1.0,
+          "d_bar": 0.00046491226366855986,
+          "s_d": 0.002866097750263227,
+          "t": 0.5129558701207502,
+          "E": 0.34364870970775635,
+          "direction_is_improvement": true,
+          "max_attainable_E": 48558.70355559341
+        }
+      }
     },
-    {
-      "item": 2,
-      "requirement": "Eval-side question answered with trace",
-      "status": "COMPLETE",
-      "finding": "Dropping training weight does not move eval metric (unweighted)"
+    "degradation_regressor_p50": {
+      "target": "degradation_regressor_p50",
+      "metric": "pinball",
+      "higher_is_better": false,
+      "n_train": 73479,
+      "n_eval": 12380,
+      "mode": "cv_final_fold",
+      "eval_season": 2025,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532,
+        20260533,
+        20260534,
+        20260535,
+        20260536,
+        20260537
+      ],
+      "w_ipw_summary": {
+        "mean": 1.4003605842590332,
+        "sd": 0.6334112286567688,
+        "min": 1.0,
+        "max": 4.0
+      },
+      "w_uniform_summary": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "gate1_production_path": "uniform (w=None)",
+      "gate1_headline_production": 0.9604870335047643,
+      "gate1_refit_deterministic": true,
+      "published_headline": 0.8612849906835823,
+      "published_version": "v14",
+      "gate1_abs_diff": 0.09920204282118195,
+      "gate1_passes": false,
+      "gate1_waived": "substrate has moved since the published artefact (no retrain since v14); refit is deterministic, so the arms are compared on today's substrate against each other, not against the published number",
+      "uniform_ones_equals_production_path": false,
+      "arm_A_uniform": {
+        "headline": 0.9566275209592758,
+        "delta_vs_B": -0.008348452350735447,
+        "floor_ratio": -1.7771389073269503
+      },
+      "arm_B_ipw": {
+        "headline": 0.9482790686085404,
+        "delta_vs_A": 0.008348452350735447,
+        "floor_ratio": 1.7771389073269503
+      },
+      "refit_noise_floor_A": {
+        "n_seeds": 10,
+        "headline_by_seed": [
+          0.9566275209592758,
+          0.9575814088903287,
+          0.9577771756339291,
+          0.9600910529065023,
+          0.9592344908689764,
+          0.9601663639936825,
+          0.9625465293922973,
+          0.9595056317124976,
+          0.9584272928517998,
+          0.9589395720593517
+        ],
+        "headline_mean": 0.9590897039268642,
+        "headline_sd": 0.0016608851579579293,
+        "headline_min": 0.9566275209592758,
+        "headline_max": 0.9625465293922973,
+        "delta_noise_1sd": 0.002348846315928284,
+        "delta_noise_2sd": 0.004697692631856568,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_floor_B": {
+        "n_seeds": 10,
+        "headline_by_seed": [
+          0.9482790686085404,
+          0.9491766104940649,
+          0.9487855828682438,
+          0.9487440895379068,
+          0.9495636077993398,
+          0.950670729675872,
+          0.9507433898789849,
+          0.9530258450208993,
+          0.9498927593676754,
+          0.9490401403247746
+        ],
+        "headline_mean": 0.9497921823576301,
+        "headline_sd": 0.0013960789403582967,
+        "headline_min": 0.9482790686085404,
+        "headline_max": 0.9530258450208993,
+        "delta_noise_1sd": 0.0019743537715981624,
+        "delta_noise_2sd": 0.003948707543196325,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.004697692631856568,
+      "floor_source": "A",
+      "permutation_null_B": {
+        "headline_shuffled": 0.9543850928203681,
+        "capacity_delta": 0.002242428138907737,
+        "capacity_floor_ratio": 0.4773467135123122,
+        "information_delta": 0.00610602421182771,
+        "information_floor_ratio": 1.2997921938146382
+      },
+      "paired_seeds_B": {
+        "real_by_seed": [
+          0.9482790686085404,
+          0.9491766104940649,
+          0.9487855828682438,
+          0.9487440895379068,
+          0.9495636077993398,
+          0.950670729675872,
+          0.9507433898789849,
+          0.9530258450208993,
+          0.9498927593676754,
+          0.9490401403247746
+        ],
+        "shuffled_by_seed": [
+          0.9543850928203681,
+          0.9568274842372757,
+          0.9592343188825716,
+          0.9559856047997052,
+          0.9566670169827506,
+          0.9627804072283612,
+          0.9537616281474222,
+          0.9605664219611998,
+          0.9587439797014018,
+          0.9616715722152592
+        ],
+        "information_deltas": [
+          0.00610602421182771,
+          0.007650873743210829,
+          0.01044873601432783,
+          0.0072415152617983924,
+          0.0071034091834107915,
+          0.012109677552489262,
+          0.003018238268437279,
+          0.007540576940300525,
+          0.008851220333726428,
+          0.012631431890484657
+        ],
+        "e_value": {
+          "n": 10,
+          "g": 1.0,
+          "d_bar": 0.008270170340001371,
+          "s_d": 0.002876104658456741,
+          "t": 9.093053980172753,
+          "E": 1589.0848910987606,
+          "direction_is_improvement": true,
+          "max_attainable_E": 48558.70355559341
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          -0.008987700035331114,
+          0.001016505724330985,
+          -0.0019052235922499827,
+          -0.0014736721980321832,
+          0.002734671497593655,
+          -0.004873887350796968,
+          -0.009042160080058093,
+          -0.001252519003059116,
+          -0.003133022185040635,
+          0.0050857131208829065
+        ],
+        "e_value": {
+          "n": 10,
+          "g": 1.0,
+          "d_bar": -0.0021831294101760544,
+          "s_d": 0.0045970528858166725,
+          "t": -1.5017580903531118,
+          "E": 0.8240617450809069,
+          "direction_is_improvement": false,
+          "max_attainable_E": 48558.70355559341
+        }
+      }
     },
-    {
-      "item": 3,
-      "requirement": "Landing cost priced with recommendation",
-      "status": "COMPLETE",
-      "decision": "Already shipped v13; closes"
-    },
-    {
-      "item": 4,
-      "requirement": "Feature contract unchanged assertion",
-      "status": "COMPLETE",
-      "assertion": "survival_weight in IDENTIFIER_COLUMNS, not FEATURE_COLUMNS"
-    },
-    {
-      "item": 5,
-      "requirement": "Definition of done checklist",
-      "status": "COMPLETE"
+    "degradation_regressor_p90": {
+      "target": "degradation_regressor_p90",
+      "metric": "pinball",
+      "higher_is_better": false,
+      "n_train": 73479,
+      "n_eval": 12380,
+      "mode": "cv_final_fold",
+      "eval_season": 2025,
+      "seeds": [
+        20260528,
+        20260529,
+        20260530,
+        20260531,
+        20260532,
+        20260533,
+        20260534,
+        20260535,
+        20260536,
+        20260537
+      ],
+      "w_ipw_summary": {
+        "mean": 1.4003605842590332,
+        "sd": 0.6334112286567688,
+        "min": 1.0,
+        "max": 4.0
+      },
+      "w_uniform_summary": {
+        "mean": 1.0,
+        "sd": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "gate1_production_path": "uniform (w=None)",
+      "gate1_headline_production": 0.43426819996530935,
+      "gate1_refit_deterministic": true,
+      "published_headline": 0.48310495025963596,
+      "published_version": "v14",
+      "gate1_abs_diff": 0.0488367502943266,
+      "gate1_passes": false,
+      "gate1_waived": "substrate has moved since the published artefact (no retrain since v14); refit is deterministic, so the arms are compared on today's substrate against each other, not against the published number",
+      "uniform_ones_equals_production_path": false,
+      "arm_A_uniform": {
+        "headline": 0.43466907212024347,
+        "delta_vs_B": 0.0047006007197324395,
+        "floor_ratio": 0.9756742354328799
+      },
+      "arm_B_ipw": {
+        "headline": 0.4393696728399759,
+        "delta_vs_A": -0.0047006007197324395,
+        "floor_ratio": -0.9756742354328799
+      },
+      "refit_noise_floor_A": {
+        "n_seeds": 10,
+        "headline_by_seed": [
+          0.43466907212024347,
+          0.433464285093403,
+          0.43585518869677803,
+          0.43581483604850774,
+          0.4361077419576947,
+          0.43293067416925357,
+          0.4348129232987351,
+          0.43336668363477443,
+          0.4350289251823737,
+          0.43445188392380285
+        ],
+        "headline_mean": 0.4346502214125567,
+        "headline_sd": 0.0011132024875961828,
+        "headline_min": 0.43293067416925357,
+        "headline_max": 0.4361077419576947,
+        "delta_noise_1sd": 0.001574306055625989,
+        "delta_noise_2sd": 0.003148612111251978,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "refit_noise_floor_B": {
+        "n_seeds": 10,
+        "headline_by_seed": [
+          0.4393696728399759,
+          0.4369863798569989,
+          0.4397161615769127,
+          0.4372441990279191,
+          0.4387001728437641,
+          0.43567974533702925,
+          0.4366371923333019,
+          0.44059234215558896,
+          0.4365054704138755,
+          0.43609782442337014
+        ],
+        "headline_mean": 0.43775291608087363,
+        "headline_sd": 0.0017033485787899703,
+        "headline_min": 0.43567974533702925,
+        "headline_max": 0.44059234215558896,
+        "delta_noise_1sd": 0.0024088986615737125,
+        "delta_noise_2sd": 0.004817797323147425,
+        "note": "seed-only refits of the unmodified feature set. A delta smaller than delta_noise_2sd is not distinguishable from reseeding the same model."
+      },
+      "floor_2sqrt2sd": 0.004817797323147425,
+      "floor_source": "B",
+      "permutation_null_B": {
+        "headline_shuffled": 0.4352854470708886,
+        "capacity_delta": -0.0006163749506451488,
+        "capacity_floor_ratio": -0.12793708603799805,
+        "information_delta": -0.004084225769087291,
+        "information_floor_ratio": -0.8477371493948819
+      },
+      "paired_seeds_B": {
+        "real_by_seed": [
+          0.4393696728399759,
+          0.4369863798569989,
+          0.4397161615769127,
+          0.4372441990279191,
+          0.4387001728437641,
+          0.43567974533702925,
+          0.4366371923333019,
+          0.44059234215558896,
+          0.4365054704138755,
+          0.43609782442337014
+        ],
+        "shuffled_by_seed": [
+          0.4352854470708886,
+          0.43475461994053377,
+          0.4389048324374521,
+          0.4340770686256638,
+          0.432540979859046,
+          0.43771882532308726,
+          0.4332554064413676,
+          0.43646911199636335,
+          0.43448650900589403,
+          0.4349945187837142
+        ],
+        "information_deltas": [
+          -0.004084225769087291,
+          -0.002231759916465126,
+          -0.0008113291394605815,
+          -0.0031671304022553026,
+          -0.00615919298471812,
+          0.0020390799860580122,
+          -0.0033817858919342747,
+          -0.00412323015922561,
+          -0.0020189614079814677,
+          -0.0011033056396559382
+        ],
+        "e_value": {
+          "n": 10,
+          "g": 1.0,
+          "d_bar": -0.00250418413247257,
+          "s_d": 0.002247609530159209,
+          "t": -3.5232656886381886,
+          "E": 12.735270786382896,
+          "direction_is_improvement": false,
+          "max_attainable_E": 48558.70355559341
+        }
+      },
+      "negative_control_shuffle_vs_shuffle": {
+        "paired_deltas": [
+          0.001915674077665297,
+          0.00013499320212861932,
+          -0.002438906580827571,
+          0.0009360466982032412,
+          0.0002932991176193278,
+          -0.000898168237118746,
+          0.0005810048314440208,
+          0.0013149416785414036,
+          0.004238140835649495,
+          0.00011328318722547692
+        ],
+        "e_value": {
+          "n": 10,
+          "g": 1.0,
+          "d_bar": 0.0006190308810530565,
+          "s_d": 0.0017516508518381337,
+          "t": 1.117544357686484,
+          "E": 0.542320857275792,
+          "direction_is_improvement": true,
+          "max_attainable_E": 48558.70355559341
+        }
+      }
     }
-  ],
-  "post_09c_note": "E-value construction uses n=10, g=1 per post-09c non-retroactivity rule. Arms declared after 09c landing. Full 10-seed e-value study deferred (v13 already deployed with decision) but backed by 08f-1's 5-seed measurement (mean information delta d_bar=-0.00444 to +0.00264 across trio)."
+  }
 }

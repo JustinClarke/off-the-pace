@@ -1,0 +1,88 @@
+## A. 2025 (v14 evaluation protocol: refit 2018-2024, score 2025, canonical seed)
+| Head | published v14 (old label, not comparable) | uniform = v14 config rebuilt | IPW (v15ipw) | IPW - uniform | % | seed floor (n=10) | x floor | seeds IPW better | E |
+|---|---|---|---|---|---|---|---|---|---|
+| p10 | 0.3881 | 0.5867 | 0.5824 | +0.0043 | +0.73% | 0.0068 | +0.64x | 10/10 | 641 |
+| p50 | 0.8613 | 0.9605 | 0.9483 | +0.0122 | +1.27% | 0.0042 | +2.90x | 10/10 | 8.04e+03 |
+| p90 | 0.4831 | 0.4343 | 0.4394 | -0.0051 | -1.17% | 0.0048 | -1.06x | 1/10 | 31.1 |
+
+## B. Five season folds (validate 2021..2025), 3 seeds per fold, seed-averaged
+| Head | uniform mean | IPW mean | mean improvement | mean % | folds IPW won | paired t p | 95% CI |
+|---|---|---|---|---|---|---|---|
+| p10 | 0.4381 | 0.4370 | +0.0011 | +0.19% | 4/5 | 0.428 | [-0.0024, +0.0045] |
+|  | by fold (uniform -> IPW): 2021 0.4309->0.4283; 2022 0.3525->0.3523; 2023 0.4017->0.4045; 2024 0.4171->0.4162; 2025 0.5885->0.5838 | | | | | | |
+| p50 | 0.8867 | 0.8853 | +0.0015 | +0.15% | 3/5 | 0.622 | [-0.0062, +0.0091] |
+|  | by fold (uniform -> IPW): 2021 0.9285->0.9263; 2022 0.7878->0.7870; 2023 0.8407->0.8417; 2024 0.9169->0.9225; 2025 0.9599->0.9487 | | | | | | |
+| p90 | 0.4597 | 0.4620 | -0.0023 | -0.49% | 0/5 | 0.109 | [-0.0055, +0.0008] |
+|  | by fold (uniform -> IPW): 2021 0.5126->0.5136; 2022 0.3976->0.3977; 2023 0.4368->0.4380; 2024 0.5157->0.5222; 2025 0.4358->0.4387 | | | | | | |
+
+## C. Trio as a distribution (canonical seed)
+
+2025 (nominal: coverage 0.80; hits 0.10 / 0.50 / 0.90)
+| arm | coverage_p10_p90 | hit_below_p10 | hit_below_p50 | hit_below_p90 | mean_width_p10_p90 | crossing_p10_gt_p50 | crossing_p50_gt_p90 | crps | mae_p50 |
+|---|---|---|---|---|---|---|---|---|---|
+| ipw | 0.7589 | 0.1384 | 0.5172 | 0.8973 | 4.7909 | 0.0000 | 0.0002 | 1.3717 | 1.8966 |
+| ipw_w10tail4 | 0.7628 | 0.1371 | 0.5149 | 0.8998 | 4.8068 | 0.0000 | 0.0001 | 1.3755 | 1.9044 |
+| mixed_ipw_p10p50_uniform_p90 | 0.7591 | 0.1384 | 0.5172 | 0.8975 | 4.7923 | 0.0000 | 0.0000 | 1.3686 | 1.8966 |
+| uniform | 0.7547 | 0.1428 | 0.5187 | 0.8975 | 4.7578 | 0.0000 | 0.0000 | 1.3810 | 1.9210 |
+
+mean of 5 folds (nominal: coverage 0.80; hits 0.10 / 0.50 / 0.90)
+| arm | coverage_p10_p90 | hit_below_p10 | hit_below_p50 | hit_below_p90 | mean_width_p10_p90 | crossing_p10_gt_p50 | crossing_p50_gt_p90 | crps | mae_p50 |
+|---|---|---|---|---|---|---|---|---|---|
+| ipw | 0.7703 | 0.1137 | 0.4907 | 0.8840 | 4.9206 | 0.0000 | 0.0001 | 1.2487 | 1.7718 |
+| ipw_w10tail4 | 0.7722 | 0.1144 | 0.4908 | 0.8865 | 4.9366 | 0.0001 | 0.0002 | 1.2479 | 1.7701 |
+| mixed_ipw_p10p50_uniform_p90 | 0.7698 | 0.1137 | 0.4907 | 0.8834 | 4.9161 | 0.0000 | 0.0001 | 1.2461 | 1.7718 |
+| uniform | 0.7665 | 0.1169 | 0.4923 | 0.8834 | 4.8943 | 0.0000 | 0.0002 | 1.2473 | 1.7736 |
+
+## D. W10 (tail cells at 4.0 instead of 1.0), seed-averaged over 5 folds
+- p10: 1769 tail rows ({'2018': 0, '2019': 1734, '2020': 0, '2021': 0, '2022': 0, '2023': 0, '2024': 35, '2025': 0}); 4.0 vs 1.0 mean improvement +0.0004, folds won 3/5, p=0.617; recomputed weight max |diff| vs mart 1.2e-07
+- p50: 1769 tail rows ({'2018': 0, '2019': 1734, '2020': 0, '2021': 0, '2022': 0, '2023': 0, '2024': 35, '2025': 0}); 4.0 vs 1.0 mean improvement +0.0009, folds won 4/5, p=0.398; recomputed weight max |diff| vs mart 1.2e-07
+- p90: 1769 tail rows ({'2018': 0, '2019': 1734, '2020': 0, '2021': 0, '2022': 0, '2023': 0, '2024': 35, '2025': 0}); 4.0 vs 1.0 mean improvement +0.0010, folds won 4/5, p=0.181; recomputed weight max |diff| vs mart 1.2e-07
+
+## E. 2025 breakdown by lap_in_stint and compound (pinball, canonical seed)
+| head | cohort | n | uniform | IPW | W10 tail 4.0 | IPW - uniform |
+|---|---|---|---|---|---|---|
+| p10 | lap_in_stint 4-10 | 4532 | 0.4804 | 0.4728 | 0.4785 | +0.0075 |
+| p10 | lap_in_stint 11-20 | 4845 | 0.6052 | 0.5991 | 0.5999 | +0.0061 |
+| p10 | lap_in_stint 21-30 | 2052 | 0.7742 | 0.7716 | 0.7754 | +0.0027 |
+| p10 | lap_in_stint 31-+ | 827 | 0.6271 | 0.6432 | 0.6625 | -0.0160 |
+| p10 | compound HARD | 5963 | 0.4030 | 0.4020 | 0.4019 | +0.0009 |
+| p10 | compound MEDIUM | 5130 | 0.8729 | 0.8617 | 0.8730 | +0.0112 |
+| p10 | compound SOFT | 1287 | 0.2974 | 0.3049 | 0.3024 | -0.0075 |
+| p50 | lap_in_stint 4-10 | 4532 | 0.7668 | 0.7576 | 0.7635 | +0.0092 |
+| p50 | lap_in_stint 11-20 | 4845 | 0.9479 | 0.9385 | 0.9448 | +0.0094 |
+| p50 | lap_in_stint 21-30 | 2052 | 1.2748 | 1.2541 | 1.2498 | +0.0207 |
+| p50 | lap_in_stint 31-+ | 827 | 1.3254 | 1.3000 | 1.3003 | +0.0254 |
+| p50 | compound HARD | 5963 | 0.8866 | 0.8826 | 0.8828 | +0.0040 |
+| p50 | compound MEDIUM | 5130 | 1.1155 | 1.0905 | 1.0990 | +0.0250 |
+| p50 | compound SOFT | 1287 | 0.6850 | 0.6858 | 0.6891 | -0.0009 |
+| p90 | lap_in_stint 4-10 | 4532 | 0.3573 | 0.3558 | 0.3552 | +0.0016 |
+| p90 | lap_in_stint 11-20 | 4845 | 0.4253 | 0.4284 | 0.4265 | -0.0031 |
+| p90 | lap_in_stint 21-30 | 2052 | 0.5367 | 0.5496 | 0.5442 | -0.0129 |
+| p90 | lap_in_stint 31-+ | 827 | 0.6461 | 0.6810 | 0.6599 | -0.0349 |
+| p90 | compound HARD | 5963 | 0.4418 | 0.4480 | 0.4462 | -0.0062 |
+| p90 | compound MEDIUM | 5130 | 0.4496 | 0.4537 | 0.4488 | -0.0041 |
+| p90 | compound SOFT | 1287 | 0.3383 | 0.3423 | 0.3395 | -0.0039 |
+
+## F. Artefacts (final boosters, fit on 2018-2025)
+| model | arm | CV headline (train.py, 5 folds) | train loss (unweighted) | .bst MB | .onnx MB | trees | leaves | fit s | ONNX 1 row ms | ONNX 2025 batch ms | xgb batch ms | parity |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| degradation_regressor_p10 | uniform | pinball 0.4373 | 0.3278 | 2.33 | 1.97 | 400 | 30508 | 20.13 | 0.008 | 31.9 | 15.1 | True |
+| degradation_regressor_p10 | ipw | pinball 0.4366 | 0.3399 | 2.27 | 1.91 | 400 | 29672 | 19.93 | 0.008 | 29.6 | 14.4 | True |
+| degradation_regressor_p50 | uniform | pinball 0.8868 | 0.7084 | 5.89 | 5.39 | 600 | 81013 | 35.24 | 0.010 | 68.6 | 27.7 | True |
+| degradation_regressor_p50 | ipw | pinball 0.8859 | 0.7328 | 5.68 | 5.18 | 600 | 77987 | 35.69 | 0.010 | 53.5 | 29.8 | True |
+| degradation_regressor_p90 | uniform | pinball 0.4591 | 0.3983 | 1.10 | 0.84 | 300 | 13348 | 16.23 | 0.007 | 18.0 | 10.0 | True |
+| degradation_regressor_p90 | ipw | pinball 0.4634 | 0.4052 | 1.12 | 0.86 | 300 | 13636 | 16.1 | 0.011 | 16.9 | 10.2 | True |
+| cliff_classifier | uniform | macro_f1 0.3760 | 0.7712 | 27.98 | 25.96 | 2800 | 385710 | 209.94 | 0.048 | 380.3 | 239.4 | True |
+| cliff_classifier | ipw | macro_f1 0.3760 | 0.7712 | 27.98 | 25.96 | 2800 | 385710 | 111.57 | 0.037 | 372.4 | 207.7 | True |
+| stint_life_regressor | uniform | aft_nloglik 2.2606 |  | 1.24 | 1.12 | 100 | 17280 | 5.19 | 0.007 | 13.0 | 0.1 | True |
+| stint_life_regressor | ipw | aft_nloglik 2.2606 |  | 1.24 | 1.12 | 100 | 17280 | 5.24 | 0.007 | 13.2 | 0.1 | True |
+
+## G. Weight-invariant models (same .bst under both arms)
+- cliff_classifier: bst identical across arms = True; 2025 macro_f1 0.3769 (baseline 0.1984; published v14 on old label 0.3711)
+- stint_life_regressor: bst identical across arms = True; 2025 aft_nloglik 2.3121 (baseline 2.3191; published v14 on old label 2.3466)
+
+## H. p50 top-5 gain share
+- uniform: push_residual 0.175, fuel_mass_kg 0.066, expected_compound_pace_s 0.058, compound_wear_gradient 0.055, expected_degradation_rate_s_per_lap 0.053
+- ipw: push_residual 0.147, expected_compound_pace_s 0.064, fuel_mass_kg 0.062, lap_number 0.052, expected_degradation_rate_s_per_lap 0.052
+- uniform SHAP top-5 (eval refit): push_residual, dirty_air_thermal_load_surface, fuel_mass_kg, expected_degradation_rate_s_per_lap, compound_wear_gradient
+- ipw SHAP top-5 (eval refit): push_residual, dirty_air_thermal_load_surface, fuel_mass_kg, expected_degradation_rate_s_per_lap, compound_wear_gradient

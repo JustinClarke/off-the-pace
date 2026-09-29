@@ -2502,3 +2502,46 @@ models:
           - accepted_values:
               arguments:
                 values: ['solid', 'indicative', 'thin', 'suppress', 'unvalidated']
+
+  - name: fct_power_law_training
+    description: >
+      WI-17: the training frame for ml/src/powerlaw.py, one row per fit_eligible race x hardness
+      rank cell. Targets from int_cell_power_law_fit (alpha_s, beta, curve_incr_*_s) and an
+      allowlist of features the Degradation Simulator can supply (W26): compound_hardness_rank,
+      era_code, track_energy_index, circuit_abrasiveness_index, track_temp_c (circuit-season
+      median), stint_start_fuel_kg, dirty_air_share, constructor_pace_s. No compound_cliff_params
+      column and nothing priced from it, including the warehouse's ambient_temp_delta (T51,
+      assert_power_law_no_seed_columns.sql and ml/tests/test_powerlaw_export.py).
+    tags: [marts]
+    columns:
+      - name: cell_id
+        tests: [not_null, unique]
+      - name: n_laps
+        description: Laps in the cell's fit; the training sample weight.
+        tests: [not_null]
+      - name: compound_hardness_rank
+        tests: [not_null]
+      - name: era_code
+        description: 0 = 2018, 1 = 2019-21, 2 = 2022+.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2]
+                quote: false
+      - name: track_energy_index
+        tests: [not_null]
+      - name: circuit_abrasiveness_index
+        tests: [not_null]
+      - name: stint_start_fuel_kg
+        tests: [not_null]
+      - name: dirty_air_share
+        tests: [not_null]
+      - name: constructor_pace_s
+        tests: [not_null]
+      - name: curve_incr_20_s
+        description: Degradation at age 20 over the age-2 fresh pace (s); the level model's target.
+        tests: [not_null]
+      - name: beta
+        description: The shape model's target.
+        tests: [not_null]

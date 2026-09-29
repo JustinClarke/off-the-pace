@@ -3281,13 +3281,13 @@ models:
           (int_constructor_car_fe_isolation). NULL when not identified.
       - name: car_term_source
         description: >
-          Where car_iso_s came from: driver_era, global_driver (the era fell back),
-          unidentified, not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
+          Where car_iso_s came from: driver_id (fitted per-era), unidentified (multiple
+          components in race), not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['driver_era', 'global_driver', 'unidentified', 'not_estimated']
+                values: ['driver_id', 'unidentified', 'not_estimated']
       - name: race_components_n
         description: >
           Connected components the race's constructor×race cells span under the driver key
@@ -3447,13 +3447,13 @@ models:
           (int_constructor_car_fe_isolation). NULL when not identified.
       - name: car_term_source
         description: >
-          Where car_iso_s came from: driver_era, global_driver (the era fell back),
-          unidentified, not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
+          Where car_iso_s came from: driver_id (fitted per-era), unidentified (multiple
+          components in race), not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
         tests:
           - not_null
           - accepted_values:
               arguments:
-                values: ['driver_era', 'global_driver', 'unidentified', 'not_estimated', 'no_fit_row']
+                values: ['driver_id', 'unidentified', 'not_estimated', 'no_fit_row']
       - name: pace_isolated_gain_s
         description: >
           p = -(y_s - car_iso_s), s/lap. POSITIVE = FASTER than the field on an equal car,
@@ -3712,12 +3712,12 @@ models:
           (int_constructor_car_fe_isolation). NULL when not identified.
       - name: car_term_source
         description: >
-          Where car_iso_s came from: driver_era, global_driver (the era fell back),
-          unidentified, not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
+          Where car_iso_s came from: driver_id (fitted per-era), unidentified (multiple
+          components in race), not_estimated (pyfixest singleton), or no_fit_row (no row in the fit).
         tests:
           - accepted_values:
               arguments:
-                values: ['driver_era', 'global_driver', 'unidentified', 'not_estimated', 'no_fit_row']
+                values: ['driver_id', 'unidentified', 'not_estimated', 'no_fit_row']
       - name: pace_isolated_gain_s
         description: >
           p = -(y_s - car_iso_s), s/lap. POSITIVE = FASTER than the field on an equal car,

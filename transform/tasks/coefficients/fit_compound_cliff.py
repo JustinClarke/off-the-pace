@@ -326,7 +326,7 @@ def fit_group(
     group_df = stints_df[
         (stints_df["circuit_key"] == circuit_key) &
         (stints_df["compound_code"] == compound_code) &
-        (stints_df["race_year"] == season)
+        (stints_df["race_year"] < season)
     ]
 
     # Fit on fuel-corrected pace when the warehouse supplies it, then on
@@ -489,16 +489,20 @@ def run_fit(
         # double-header keys (mexican_grand_prix / mexico_city_grand_prix,
         # austrian_grand_prix / styrian_grand_prix, etc.) share history instead
         # of each falling to compound_class_default in isolation.
+        # Filtered to prior seasons only (race_year < season) for point-in-time
+        # refitting: the fallback pool must not include the season being fitted.
         circuit_id = circuit_id_by_key.get(circuit_key)
         if circuit_id is not None:
             cross_df = stints_df[
                 (stints_df["circuit_id"] == circuit_id) &
-                (stints_df["compound_code"] == compound_code)
+                (stints_df["compound_code"] == compound_code) &
+                (stints_df["race_year"] < season)
             ]
         else:
             cross_df = stints_df[
                 (stints_df["circuit_key"] == circuit_key) &
-                (stints_df["compound_code"] == compound_code)
+                (stints_df["compound_code"] == compound_code) &
+                (stints_df["race_year"] < season)
             ]
 
         result = fit_group(stints_df, circuit_key, compound_code, season, fallback_df=cross_df)

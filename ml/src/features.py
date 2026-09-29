@@ -29,6 +29,7 @@ import duckdb
 import numpy as np
 import pandas as pd
 
+from ml.src import holdout_config
 from ml.src import schema as S
 
 ENCODERS_PATH = Path("ml/models/encoders.json")
@@ -52,11 +53,17 @@ class FeatureBundle:
     training_seasons: list[int] = field(default_factory=list)
 
 
-# ─── Holdout resolution (data-derived; no literal year, ever) ───────────────────
+# ─── Holdout resolution (pinned by WI-03 FD4 ruling) ────────────────────────────
 def resolve_holdout_season(con: duckdb.DuckDBPyConnection) -> int:
-    """Holdout = next (not-yet-ingested) season = latest ingested + 1.
-    2025 today (absent from the mart); becomes live the moment 2025 ingests."""
-    return int(con.execute(f"SELECT MAX(race_year) + 1 FROM {S.MART}").fetchone()[0])
+    """Holdout season, pinned to holdout_config.HOLDOUT_SEASON (2026).
+
+    Previously derived as MAX(race_year)+1, which was structurally broken: the moment
+    a season ingests, MAX(race_year) includes it, and the target moves further out,
+    so the holdout could never hold rows. WI-03 (FD4) ruling: pin a literal season
+    instead. holdout_populated (whether it has rows) is derived from warehouse state
+    by load_features and the evaluation layer, not from this function.
+    """
+    return holdout_config.HOLDOUT_SEASON
 
 
 # ─── Encoding helpers ───────────────────────────────────────────────────────────

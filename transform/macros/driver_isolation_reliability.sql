@@ -34,9 +34,8 @@
                                            'tau.pure_tau2', 'ms.method_score',
                                            'ms.grade') }}
   -#}
-  {#- SE = 0 means the raw value is known exactly (e.g. a tactical window whose laps sit
-      symmetrically around age_ref, where m_s * mean(age - age_ref) is exactly 0 whatever
-      m_s is): lambda is 1, the SE -> 0 limit, rather than 0/0 when tau^2 is also 0. -#}
+  {#- SE = 0 means the raw value is known exactly: lambda is 1, the SE -> 0 limit,
+      rather than 0/0 when tau^2 is also 0. -#}
   {%- set lam -%}
     (CASE
         WHEN {{ raw }} IS NULL OR {{ se }} IS NULL OR {{ tau2 }} IS NULL THEN NULL

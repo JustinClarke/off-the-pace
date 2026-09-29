@@ -112,14 +112,14 @@
     {
       "file": "models/intermediate/int_pit_strategy_value.sql",
       "call": "GREATEST(r.actual_total_cost_race_s - r.optimal_total_cost_race_s, 0.0)",
-      "verdict": "open",
-      "reason": "The CASE NULL-tests actual_pit_lap and optimal_total_cost_race_s but not actual_total_cost_race_s; a NULL there would read as a 0.0 opportunity cost. Does not fire: 0 of the 5,112 stints graded with a stop on the 2026-09-25 dev build (after WI-13's F31 fix). Left open as a judgement call, not a one-liner: the CASE already maps an ungradeable stint (no stop, no optimum) to 0.0, so NULL-preserving here would add a third convention for 'cannot grade', and the choice between 0.0 and NULL reaches fct_stint_features.tyre_management_score and the app's cost totals."
+      "verdict": "intended",
+      "reason": "The CASE NULL-tests actual_pit_lap and optimal_total_cost_race_s but not actual_total_cost_race_s; a NULL there reads as a 0.0 opportunity cost. Ruled 0.0 (W11, 2026-09-29 watch sweep): the CASE already maps every stint the model cannot grade (no stop, no optimum) to 0.0, so 0.0 here keeps one 'cannot grade' convention instead of adding a NULL one that would reach fct_stint_features.tyre_management_score and the app's cost totals. Does not fire: 0 of the 5,112 stints graded with a stop on the 2026-09-25 dev build (after WI-13's F31 fix). If 'cannot grade' ever moves to NULL, move this clip, the pick-horizon clip and both CASE branches together."
     },
     {
       "file": "models/intermediate/int_pit_strategy_value.sql",
       "call": "GREATEST(r.pick_actual_cost_s - r.pick_optimal_cost_s, 0.0)",
-      "verdict": "open",
-      "reason": "The CASE NULL-tests actual_pit_lap and pick_optimal_cost_s but not pick_actual_cost_s; a NULL there would read as a 0.0 opportunity cost. Does not fire: 0 of the 5,112 stints graded with a stop on the 2026-09-25 dev build (after WI-13's F31 fix). Left open for the same judgement call as the race-horizon clip beside it: 0.0 vs NULL for a stint the model cannot grade."
+      "verdict": "intended",
+      "reason": "The CASE NULL-tests actual_pit_lap and pick_optimal_cost_s but not pick_actual_cost_s; a NULL there reads as a 0.0 opportunity cost. Ruled 0.0 (W11, 2026-09-29 watch sweep), for the same reason as the race-horizon clip beside it: 0.0 is this model's one convention for a stint it cannot grade. Does not fire: 0 of the 5,112 stints graded with a stop on the 2026-09-25 dev build (after WI-13's F31 fix)."
     },
     {
       "file": "models/intermediate/int_sector_residual_decomposed.sql",

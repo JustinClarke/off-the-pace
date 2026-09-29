@@ -1,26 +1,36 @@
--- Era-normalised driver rating model: Era-normalised driver rating
--- (cross-season comparable).
+-- Driver-season rating on one scale across the 2022 regulation boundary.
 --
--- Two-part hierarchy:
---   First part: Per-(driver, season) shrunk residual from
---   int_driver_season_ratings.
---   Second part: Cross-era calibration anchored on "bridge drivers" drivers
---   with
---            ≥8 clean races in both pre-2022 and post-2022 eras. The average
---            shift in their shrunk residual across the 2022 regulation boundary
---            is the era offset applied to all pre-2022 seasons.
+-- era_adjusted_rating = shrunk_residual_s from int_driver_season_ratings,
+-- with NO era offset (WI-14b, F45). The rating is teammate-relative: each
+-- race's input is the driver's median lap-by-lap gap to his teammate in the
+-- same car (int_driver_race_skill_loro, F40). A change of car era moves both
+-- teammates alike and cancels inside every pair, so there is no era level to
+-- remove, and the scale is the same on both sides of 2022 without one.
 --
--- Regulation boundary: 2022 (ground-effect regulation change). Pre-era:
--- 2018–2021.
--- Post-era: 2022–2024. If fewer than 3 bridge drivers are found the era offset
--- is set to 0 and low_anchor_sample_flag = TRUE.
+-- What was removed, and why. The model used to subtract a "bridge driver"
+-- offset (mean pre-minus-post shift of drivers with >= 8 races in both eras)
+-- from every pre-2022 driver-season whenever >= 3 bridge drivers existed,
+-- with no significance gate. It was -0.1153 s at t = -1.5 (driven by one
+-- driver's change of teammate, MSC), and it moved the field-mean gap across
+-- the boundary from -0.044 s to +0.071 s: it inverted the gap it claimed to
+-- remove. assert_era_offset_shrinks_gap (T35) fails if an offset comes back
+-- ungated (|t| < 2) or widens / inverts the field-mean gap.
+--
+-- The bridge-driver shift is still MEASURED and published as diagnostics
+-- (era_shift_global_s, era_shift_se_s, n_bridge_drivers,
+-- low_anchor_sample_flag) so the "is there an era step?" question stays
+-- visible; none of them moves era_adjusted_rating.
+--
+-- Regulation boundary: var('era_boundary', 2022). Pre-era: seasons < 2022.
+-- Post-era: seasons >= 2022.
 --
 -- Output grain: (driver_id, season). One row per driver-season.
 -- PK: driver_season_id (same surrogate as int_driver_season_ratings).
 --
--- era_adjusted_rating: negative = faster than era-normalised field average.
--- bridge_driver_anchor_flag: TRUE if this driver-season was used to estimate
--- the offset.
+-- era_adjusted_rating: seconds, negative = faster than his teammate(s),
+-- season average, shrunk toward the season mean.
+-- bridge_driver_anchor_flag: TRUE if the driver raced >= 8 races on each side
+-- of the boundary (the population behind the diagnostic shift).
 
 {{ config(materialized='table', tags=['driver_rating', 'era_rating']) }}
 
@@ -41,8 +51,7 @@ WITH season_ratings AS (
 ),
 
 -- Bridge driver identification:
--- Drivers with ≥8 races in pre-era (2018–2021) AND ≥8 races in post-era
--- (2022–2024).
+-- Drivers with ≥8 races before the boundary AND ≥8 races from it on.
 driver_era_counts AS (
     SELECT
         driver_id,
@@ -109,7 +118,8 @@ bridge_shifts AS (
         AND post_era_mean_s IS NOT NULL
 ),
 
--- Global era offset: mean shift across all bridge drivers
+-- Diagnostic only (F45): mean shift across all bridge drivers. Measured and
+-- published, never applied.
 era_offset AS (
     SELECT
         AVG(era_shift_s) AS era_shift_global_s,
@@ -121,8 +131,9 @@ era_offset AS (
     FROM bridge_shifts
 ),
 
--- Apply the era offset to every pre-2022 driver-season
--- Post-2022 seasons are the reference; pre-2022 are shifted down
+-- No era offset (F45): the rating is teammate-relative, so a car-era shift
+-- cancels inside each pair. era_adjusted_rating is the season rating as is,
+-- and its SE is the season rating's own (no offset uncertainty to add).
 with_era_adjustment AS (
     SELECT
         sr.driver_season_id,
@@ -140,27 +151,9 @@ with_era_adjustment AS (
         eo.n_bridge_drivers,
         eo.low_anchor_sample_flag,
 
-        -- Apply offset only to pre-era seasons; if low anchor, offset is 0
-        sr.shrunk_residual_s
-        - CASE
-            WHEN
-                sr.season < {{ var('era_boundary', 2022) }}
-                AND NOT eo.low_anchor_sample_flag
-                THEN COALESCE(eo.era_shift_global_s, 0)
-            ELSE 0
-        END AS era_adjusted_rating,
+        sr.shrunk_residual_s AS era_adjusted_rating,
 
-        -- Propagate SE: sqrt(shrunk_se² + era_shift_se² [if pre-era])
-        CASE
-            WHEN
-                sr.season < {{ var('era_boundary', 2022) }}
-                AND NOT eo.low_anchor_sample_flag
-                THEN SQRT(
-                    POWER(COALESCE(sr.shrunk_residual_se_s, 0), 2)
-                    + POWER(COALESCE(eo.era_shift_se_s, 0), 2)
-                )
-            ELSE COALESCE(sr.shrunk_residual_se_s, 0)
-        END AS era_adjusted_rating_se_s,
+        COALESCE(sr.shrunk_residual_se_s, 0) AS era_adjusted_rating_se_s,
 
         bd.driver_id IS NOT NULL AS bridge_driver_anchor_flag
 
@@ -190,7 +183,8 @@ SELECT
     rating_confidence,
     bridge_driver_anchor_flag,
 
-    -- Audit columns
+    -- Diagnostic columns: the measured bridge-driver shift. NOT applied to
+    -- era_adjusted_rating (F45).
     era_shift_global_s,
     era_shift_se_s,
     n_bridge_drivers,

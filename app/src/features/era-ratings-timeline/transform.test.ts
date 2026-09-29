@@ -11,8 +11,6 @@ const makeRow = (overrides: Partial<EraRatingRow>): EraRatingRow => ({
   rating_confidence: 0.8,
   n_races: 20,
   bridge_driver_anchor_flag: false,
-  low_anchor_sample_flag: false,
-  n_bridge_drivers: 20,
   ...overrides,
 })
 
@@ -83,9 +81,19 @@ describe('transform', () => {
     expect(p.hi).toBe(0.5)
   })
 
-  it('propagates low_anchor_sample_flag', () => {
-    const rows = [makeRow({ low_anchor_sample_flag: true })]
-    expect(transform(rows).lowAnchorSample).toBe(true)
+  // T34 (era pages, WI-14b): the line is the season rating exactly as published
+  // (a gap to the teammate, negative = faster). F45 dropped the era offset, so a
+  // bridge driver's pre-2022 point and a non-bridge driver's are drawn the same way,
+  // and there is no low-anchor warning state left to carry.
+  it('draws era_adjusted_rating as published, bridge driver or not', () => {
+    const rows = [
+      makeRow({ driver_id: 'HAM', season: 2019, era_adjusted_rating: -0.25, bridge_driver_anchor_flag: true }),
+      makeRow({ driver_id: 'KUB', season: 2019, era_adjusted_rating: 0.5, bridge_driver_anchor_flag: false }),
+    ]
+    const result = transform(rows)
+    expect(result.series.find(s => s.driver_id === 'HAM')!.points[0].y).toBe(-0.25)
+    expect(result.series.find(s => s.driver_id === 'KUB')!.points[0].y).toBe(0.5)
+    expect(result).not.toHaveProperty('lowAnchorSample')
   })
 
   it('reports the dataset-wide season range', () => {

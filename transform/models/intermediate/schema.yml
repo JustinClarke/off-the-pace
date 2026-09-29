@@ -1890,7 +1890,9 @@ models:
     description: >
       One row per qualifying lap. 7-term decomposition mirroring int_lap_residual_decomposed
       but with qualifying-specific coefficients (near-zero fuel, cliff-suppressed compound degradation,
-      quali-mode car pace). Grain: lap_id. Enables quali-vs-race skill comparison.
+      quali-mode car pace). Grain: lap_id. Enables quali-vs-race skill comparison. Qualifying-session
+      scoped: all inputs are qualifying session data or pre-fitted parameters (e.g., compound seed,
+      constructor pace, segment median baseline). No race-day data is read.
     tags: [intermediate, simulation, qualifying]
     meta:
       family: residual
@@ -2416,12 +2418,17 @@ models:
 
   - name: int_driver_circuit_affinity
     description: >
-      One row per (driver_id, circuit_id). How much faster/slower is this driver at this circuit
-      relative to their career average? circuit_id is the physical-circuit identifier, so renamed
-      events and double-headers at one venue (e.g. mexican_grand_prix / mexico_city_grand_prix)
-      pool into a single track record. Shrunk toward driver mean (Bayesian, prior = 5 virtual races).
-      Negative = faster at this circuit than career average. affinity_confidence [0,1]: < 0.17 = prior-dominated.
-      Identifies drivers who suit high-downforce, street, etc. tracks.
+      One row per (driver_id, circuit_id). How much better or worse does this driver do against
+      his teammate at this circuit than he does on average? Built on
+      int_driver_race_skill_loro.driver_skill_loro_s (median lap-by-lap gap to the teammate).
+      circuit_id is the physical-circuit identifier, so renamed events and double-headers at one
+      venue (e.g. mexican_grand_prix / mexico_city_grand_prix) pool into a single track record.
+      shrunk_affinity_s is a LEVEL (the shrunk circuit mean gap to the teammate), shrunk toward the
+      driver's own all-circuit mean (Bayesian, prior = 5 virtual races). The affinity itself is
+      affinity_vs_driver_mean_s = shrunk_affinity_s - global_driver_mean_s: negative = better
+      against the teammate at this circuit than the driver's own average (WI-14b, F44: the page
+      used to draw the level, so every cell was green). affinity_confidence [0,1]: < 0.17 =
+      prior-dominated.
     tags: [intermediate, driver_rating, driver_affinity]
     meta:
       family: skill
@@ -2447,10 +2454,26 @@ models:
         description: Count of distinct seasons the driver raced at this circuit
         tests: [not_null]
       - name: raw_affinity_s
-        description: Unshrunk observed mean residual at this circuit. Negative = faster.
+        description: >
+          Unshrunk mean gap to the teammate at this circuit (a level). Negative = faster than
+          the teammate there.
         tests: [not_null]
       - name: shrunk_affinity_s
-        description: Bayesian posterior mean. Pulled toward driver global mean.
+        description: >
+          Bayesian posterior mean of the circuit gap to the teammate (a level), pulled toward
+          global_driver_mean_s. Negative = faster than the teammate at this circuit. NOT a
+          deviation from the driver's own average; that is affinity_vs_driver_mean_s.
+        tests: [not_null]
+      - name: global_driver_mean_s
+        description: >
+          The driver's mean gap to his teammate over every race at every circuit: the prior mean
+          each of his cells is shrunk toward.
+        tests: [not_null]
+      - name: affinity_vs_driver_mean_s
+        description: >
+          The circuit affinity: shrunk_affinity_s - global_driver_mean_s, seconds. Negative =
+          the driver does better against his teammate at this circuit than he does on average;
+          positive = worse. What the Driver Circuit Affinity page draws (F44).
         tests: [not_null]
       - name: shrunk_affinity_se_s
         description: Posterior standard error in seconds. Non-negative.
@@ -2580,13 +2603,15 @@ models:
 
   - name: int_driver_race_skill_loro
     description: >
-      De-confounded absolute equal-car skill, race grain
-      (race_year, race_id, driver_id). driver_skill_loro_s = P20 ceiling minus the LORO
-      teammate baseline (used by the rating chain). driver_skill_field_s = median pace
-      delta minus the de-biased constructor×race FE (int_constructor_car_fe.car_fe_s,
-      car pace net of driver skill); used only by int_driver_circuit_era_affinity / Ghost
-      Car Standings leaderboard, fixing the weak-teammate inflation confound. Negative =
-      faster than field (both signals).
+      Equal-car driver skill, race grain (race_year, race_id, driver_id).
+      driver_skill_loro_s = MEDIAN(own lap time - teammate lap time) over the clean laps both
+      drivers ran, paired on lap_number (WI-14b, F40, FD5 option C); negative = faster than the
+      teammate; used by the rating chain. It replaced P20(own) minus the teammate's median, which
+      rated lap-time scatter as speed (mean pair sum -1.83 s). driver_skill_field_s = median pace
+      delta minus the de-biased constructor×race FE (int_constructor_car_fe.car_fe_s, car pace net
+      of driver skill); used only by int_driver_circuit_era_affinity / Ghost Car Standings
+      leaderboard, fixing the weak-teammate inflation confound; negative = faster than the car
+      term.
     tags: [intermediate, driver_rating, causal_decomposition]
     meta:
       family: skill
@@ -2605,9 +2630,11 @@ models:
         tests: [not_null]
       - name: driver_skill_loro_s
         description: >
-          De-confounded equal-car skill, seconds. P20 of focal deltas minus LORO car baseline.
-          Negative = faster. NULL when the driver is the only one with clean laps in his car
-          that race (no equal-car reference). Used by the rating chain.
+          Equal-car rating, seconds: the median lap-by-lap gap to the teammate,
+          MEDIAN(own lap_time_s - teammate lap_time_s) over laps both ran clean (same lap
+          number, correction_weight 1, dry). Negative = faster than the teammate. Antisymmetric:
+          a two-driver car's two values sum to 0 (T30). NULL when no teammate has a clean lap on
+          any lap number the driver ran clean (no equal-car reference). Used by the rating chain.
       - name: driver_skill_field_s
         description: >
           Field-anchored equal-car skill, seconds. Median pace delta minus the de-biased
@@ -2619,15 +2646,21 @@ models:
           unidentified for this race. Used only by int_driver_circuit_era_affinity
           (Ghost Car Standings leaderboard).
       - name: clean_lap_count
-        description: Clean laps contributing to this driver-race estimate.
+        description: The driver's own clean laps in this race (correction_weight 1, dry).
+        tests: [not_null]
+      - name: paired_lap_count
+        description: >
+          Clean laps paired with a teammate's clean lap on the same lap number: the sample
+          behind driver_skill_loro_s. 0 exactly when driver_skill_loro_s is NULL.
         tests: [not_null]
 
   - name: int_driver_season_ratings
     description: >
-      One row per (driver_id, season). Aggregates race residuals to season grain.
-      Shrunk toward season league average (Bayesian, prior = 5 virtual races).
-      Negative = faster than season average. Intermediate for era_normalized_driver_rating.
-      Isolates driver strength from era variation (e.g., 2016 vs 2022 regulations).
+      One row per (driver_id, season). Aggregates the race-grain equal-car rating
+      (int_driver_race_skill_loro.driver_skill_loro_s, the median lap-by-lap gap to the teammate)
+      to season grain, shrunk toward the season mean over all drivers (Bayesian, prior = 5
+      virtual races). Negative = faster than his teammate(s). Teammate-relative, so a car-era
+      shift cancels inside each pair. Intermediate for int_era_normalized_driver_rating.
     tags: [intermediate, driver_rating, era_rating]
     meta:
       family: skill
@@ -2645,10 +2678,10 @@ models:
         description: Races contributing to this estimate
         tests: [not_null]
       - name: raw_residual_mean_s
-        description: Unadjusted season mean residual. Negative = faster.
+        description: Unshrunk season mean gap to the teammate. Negative = faster than the teammate.
         tests: [not_null]
       - name: shrunk_residual_s
-        description: Bayesian posterior mean toward season league average.
+        description: Bayesian posterior mean toward the season mean over all drivers.
         tests: [not_null]
       - name: shrunk_residual_se_s
         description: Posterior standard error in seconds.
@@ -2674,10 +2707,14 @@ models:
 
   - name: int_era_normalized_driver_rating
     description: >
-      One row per (driver_id, season). Cross-era driver rating: compares drivers across 2018–2024
-      despite regulation changes (2022 ground-effect boundary). Uses bridge drivers (≥8 races both eras)
-      to estimate era offset, then adjusts season residuals. era_adjusted_rating = comparable across eras;
-      negative = faster than era average. low_anchor_sample_flag = few bridge drivers (weak offset).
+      One row per (driver_id, season). The published driver-season rating. era_adjusted_rating =
+      shrunk_residual_s with NO era offset (WI-14b, F45): the rating is teammate-relative (median
+      lap-by-lap gap to the teammate, F40), so a car-era shift moves both teammates alike and
+      cancels. The old ungated bridge-driver offset (t = -1.5) inverted the between-era field-mean
+      gap. Negative = faster than his teammate(s). The bridge-driver shift is still measured and
+      published as diagnostics (era_shift_global_s, era_shift_se_s, n_bridge_drivers,
+      low_anchor_sample_flag); none of them moves era_adjusted_rating. T35
+      (assert_era_offset_shrinks_gap) fails if an ungated offset returns.
     tags: [intermediate, driver_rating, era_rating]
     meta:
       family: skill
@@ -2698,10 +2735,12 @@ models:
         description: Bayesian posterior mean (season shrinkage applied, no era offset).
         tests: [not_null]
       - name: era_adjusted_rating
-        description: Cross-era comparable rating. Negative = faster than era average. Key output column.
+        description: >
+          The driver-season rating, equal to shrunk_residual_s (no era offset, F45). Negative =
+          faster than his teammate(s). Key output column.
         tests: [not_null]
       - name: era_adjusted_rating_se_s
-        description: Propagated SE (sqrt of shrunk SE² + era shift SE²).
+        description: The season rating's posterior SE (shrunk_residual_se_s; 0 where that is NULL).
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
@@ -2723,10 +2762,18 @@ models:
                 min_value: 0
                 max_value: 1
       - name: bridge_driver_anchor_flag
-        description: TRUE if this driver was used to estimate the era offset.
+        description: >
+          TRUE if the driver raced >= 8 races on each side of the 2022 boundary (the population
+          behind the diagnostic era_shift_global_s). Anchors nothing: no offset is applied.
         tests: [not_null]
+      - name: era_shift_global_s
+        description: >
+          Diagnostic only: mean pre-minus-post shift of the bridge drivers' season ratings. NOT
+          applied to era_adjusted_rating (F45).
       - name: low_anchor_sample_flag
-        description: TRUE if fewer than 3 bridge drivers found; era offset is 0 when this fires.
+        description: >
+          Diagnostic only: TRUE if fewer than 3 bridge drivers were found. No offset is applied
+          either way.
         tests: [not_null]
 
   - name: int_sc_hazard_history
@@ -3824,3 +3871,117 @@ models:
         description: >
           f = (1 - rho+)/(1 + rho+), rho+ = GREATEST(season_rho1, 0): the effective-sample
           factor every SE uses. NULL if rho cannot be measured.
+
+  - name: int_power_law_lap
+    description: >
+      WI-17: the one lap set every power-law fit, the Step-0 identification check
+      (ml/src/powerlaw_ceiling.py) and the held-out grading in ml/src/powerlaw.py read. Slick laps
+      with mart_degradation_history_envelope's filters (correction_weight = 1, no SC / VSC / red
+      flag, not a major outlier), tyre age 1-50. y_s is weight_corrected_lap_time: the WI's
+      pre-flight probe also subtracted rubber_component_s, which Step 0 dropped because
+      int_field_pace_curve (its source) is priced from the compound seed and the P3 truth is not
+      net of it (see the model header and the WI's As built). Compound identity is a hardness rank
+      from compound_hardness_scale: 2018 from the lap's own name, 2019+ from compound_code, NULL
+      for 2025 (tyre_allocations stops at 2024, W50). T52 pins the 2018 rule; T51 the column guard.
+    tags: [intermediate]
+    meta:
+      family: physics
+    columns:
+      - name: lap_id
+        tests: [not_null, unique]
+      - name: stint_id
+        tests: [not_null]
+      - name: race_id
+        tests: [not_null]
+      - name: age_in_stint
+        description: Tyre age (tyre life, so a used set starts above 1), 1-50.
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 50
+      - name: compound_label
+        description: The lap's own compound name (absolute in 2018, relative HARD/MEDIUM/SOFT from 2019). Slicks only.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['HARD', 'MEDIUM', 'SOFT', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
+      - name: hardness_era
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['2018', '2019-21', '2022+']
+      - name: hardness_identity
+        description: What the rank is looked up on -- compound_label in 2018, compound_code from 2019.
+      - name: compound_hardness_rank
+        description: compound_hardness_scale.hardness_rank (1 = hardest). NULL only where the identity is (2025).
+      - name: y_s
+        description: The fitted quantity, weight_corrected_lap_time (s).
+        tests: [not_null]
+      - name: track_temp_c
+        description: Track temperature on the lap (stg_weather via int_track_evolution, a pass-through of the reading).
+      - name: constructor_pace_s
+        description: int_constructor_structural_pace's per-(race, constructor) coefficient on the lap (s).
+
+  - name: int_stint_power_law_fit
+    description: >
+      WI-17: y = intercept + alpha * age^beta per stint, beta profiled on 0.20-3.00 (step 0.05)
+      with REGR_SLOPE / REGR_INTERCEPT / REGR_R2. One row per stint that can be fitted (two or
+      more distinct ages, some spread in y); fit_eligible marks the spec's stints (>= 8 laps,
+      age span >= 7). Descriptive only: Step 0 found beta on the grid edge in ~65% of eligible
+      stints and alpha's reliability ceiling ~0, so the per-stint R^2 distribution is reported,
+      never gated. T50 pins the bounds.
+    tags: [intermediate]
+    meta:
+      family: physics
+    columns:
+      - name: stint_id
+        tests: [not_null, unique]
+      - name: beta
+        tests: [not_null]
+      - name: r2
+        description: R^2 at the chosen beta.
+        tests: [not_null]
+      - name: r2_linear
+        description: R^2 of the straight line (beta = 1, on the grid). r2 >= r2_linear always (T50).
+      - name: beta_at_grid_edge
+        description: TRUE when beta landed on 0.2 or 3.0.
+      - name: fit_eligible
+        tests: [not_null]
+
+  - name: int_cell_power_law_fit
+    description: >
+      WI-17: the pooled fit and training target, one per race x compound hardness rank. Each
+      stint keeps its own intercept; within-stint demeaning removes it, beta is profiled on the
+      grid and alpha is OLS through the origin. curve_incr_{5,10,15,20}_s is the curve over the
+      fresh-tyre pace at tyre age 2 (the simulator's anchor), the quantity Step 0 found
+      identified (reliability ceiling 0.58-0.76) where alpha is not (0.07). fit_eligible: >= 3
+      qualifying stints (>= 5 laps over >= 2 ages) and >= 40 laps. No 2025 cells (no rank).
+    tags: [intermediate]
+    meta:
+      family: physics
+    columns:
+      - name: cell_id
+        tests: [not_null, unique]
+      - name: compound_hardness_rank
+        tests: [not_null]
+      - name: n_compound_labels
+        description: Distinct compound names in the cell; 1 by construction (one C-code per label per race).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [1]
+                quote: false
+      - name: beta
+        tests: [not_null]
+      - name: r2_within
+        tests: [not_null]
+      - name: fit_eligible
+        tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, compound_hardness_rank]

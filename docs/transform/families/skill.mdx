@@ -1,12 +1,12 @@
 ---
 title: "Skill family: de-biasing the car to leave the driver"
 sidebarTitle: "Skill"
-description: "Seven models, two parallel systems: a four-stage car-FE to LORO to shrink to era-bridge rating pipeline exported straight to the app, plus one independent pairwise signal that is the family's only ML feature."
+description: "Seven models, two parallel systems: a teammate-relative rating chain (lap-by-lap gap to the teammate, then Bayesian shrinkage) exported straight to the app, plus one independent pairwise signal that is the family's only ML feature."
 ---
 
 ## What this family does
 
-Skill isolates driver performance from car performance using two genuinely different identification strategies that both live in this family. The first is a four-stage rating pipeline: a de-biased constructor×race fixed effect read from an external `pyfixest` fit, a leave-one-race-out (LORO) teammate baseline built on top of it, per-cell Bayesian shrinkage at season and circuit grain, and a bridge-driver calibration across the 2022 regulation boundary. The second is `int_synthetic_teammate`, a single self-contained pairwise comparison with no shrinkage and no fixed-effects fit.
+Skill isolates driver performance from car performance using two genuinely different identification strategies that both live in this family. The first is a rating chain: a race-grain equal-car rating, the driver's median lap-by-lap gap to his teammate in the same car (LORO: leave-one-driver-out, so a driver is never in his own baseline), then per-cell Bayesian shrinkage at season and circuit grain. A de-biased constructor×race fixed effect read from an external `pyfixest` fit feeds a parallel field-anchored signal used only by the era-affinity model. No era offset is applied: a teammate-relative rating cancels a car-era shift inside each pair. The second is `int_synthetic_teammate`, a single self-contained pairwise comparison with no shrinkage and no fixed-effects fit.
 
 **These signals are not the seven-term identity's closure-defined `driver_skill`.** That term (`pace_delta` minus the six physics components, see [The Seven-Term Identity](/decomposition/seven-term-identity)) is computed entirely inside [Residual Decomposition](/transform/families/residual), from a different baseline. No model in this family `ref()`s anything in Residual Decomposition, and no residual model reads anything here verified directly against `manifest.json`, not assumed (see the correction note on this tab's [overview](/transform/overview)). This family's outputs are an independently-estimated, complementary rating system, built for ranking and leaderboards rather than for closing a per-lap identity.
 
@@ -29,6 +29,7 @@ flowchart LR
     int_driver_race_skill_loro --> int_driver_circuit_affinity
     int_driver_race_skill_loro --> int_driver_circuit_era_affinity
     circuit_reference["circuit_reference (seed)"] --> int_driver_circuit_era_affinity
+    circuit_reference --> int_driver_circuit_affinity
     int_driver_season_ratings --> int_era_normalized_driver_rating
 
     int_lap_fuel_state --> int_synthetic_teammate
@@ -76,13 +77,13 @@ where $k$ is the prior weight, expressed as virtual observations ($k=5$ everywhe
     `int_constructor_car_fe` reads a two-way fixed-effects fit (`pace_delta_s ~ 1 | driver_id + constructor_race`) from an external `pyfixest` artifact: car pace net of who drove it, anchored globally so one weak driver's slowness can't leak back in as car pace.
   </Step>
   <Step title="LORO baseline">
-    `int_driver_race_skill_loro` computes two parallel signals per driver-race: a leave-one-race-out teammate baseline on the 20th-percentile (ceiling) lap delta, feeding the rating chain; and a field-anchored signal median pace delta minus the car FE used only by the era-affinity model below.
+    `int_driver_race_skill_loro` computes two parallel signals per driver-race: `driver_skill_loro_s`, the median of the driver's lap-by-lap gap to his teammate on laps both ran clean (paired on lap number), feeding the rating chain; and a field-anchored signal, median pace delta minus the car FE, used only by the era-affinity model below.
   </Step>
   <Step title="Per-cell shrink">
     `int_driver_season_ratings` (season grain) and `int_driver_circuit_affinity` / `int_driver_circuit_era_affinity` (circuit and circuit×era grain) each shrink their observed cell mean toward a wider prior mean with the same conjugate macro.
   </Step>
-  <Step title="Era bridge">
-    `int_era_normalized_driver_rating` finds drivers with ≥8 clean races on both sides of the 2022 regulation boundary and uses their average rating shift across it as a global offset applied to every pre-2022 season.
+  <Step title="Publish, no era offset">
+    `int_era_normalized_driver_rating` publishes the season rating as `era_adjusted_rating` with no offset. It still measures the average shift of drivers with ≥8 races on both sides of the 2022 boundary, as a diagnostic only.
   </Step>
 </Steps>
 
@@ -94,18 +95,18 @@ where $k$ is the prior weight, expressed as virtual observations ($k=5$ everywhe
 
     LORO exists because a same-car median baseline is contaminated by both drivers, including a weak one subtracting it hands the weak driver's slowness back to his teammate as "skill." LORO removes the focal driver from his own baseline; the field-anchored variant goes further, replacing the single-teammate baseline with the FE's global driver anchor specifically for the era-affinity model, which otherwise inflates a driver paired with a persistently slower teammate.
 
-    `driver_skill_loro_s` uses the 20th-percentile (ceiling) lap delta rather than the median, on purpose: the median understates a dominant-car leader who's cruising rather than pushing. The same model also emits a median-based variant for the ghost-pace simulation, deliberately the more conservative number, because a ceiling-based estimate calibrates poorly once it's feeding a probabilistic race simulation rather than a season ranking.
+    `driver_skill_loro_s` compares like with like, lap by lap. Until WI-14b (2026-09-28, audit finding F40) it was the driver's 20th-percentile (ceiling) lap delta minus the teammate's median, meant to discount a dominant-car leader's cruising. A ceiling against a typical lap mixes lap-time scatter into the level: scatter read as speed, and in 79% of two-driver cars both teammates were rated faster than each other. Pairing the two drivers' clean laps on the same lap number and taking the median gap is antisymmetric by construction (a pair's ratings sum to 0) and did best on split-half reliability and qualifying agreement in the design round that chose it.
 
-    `int_driver_circuit_era_affinity` reads the `circuit_reference` seed directly rather than going through [Reference](/transform/families/reference)'s `dim_circuits`, because it needs `circuit_id_from_name`'s physical-venue resolution specifically so a renamed event or a double-header pools into one track record; `int_driver_circuit_affinity` (the non-era sibling) skips that resolution and pools by the raw event-slug `circuit_key` instead, the simpler grain being adequate since it doesn't need to bridge anything across eras.
+    `int_driver_circuit_era_affinity` and `int_driver_circuit_affinity` read the `circuit_reference` seed directly rather than going through [Reference](/transform/families/reference)'s `dim_circuits`, because they need `circuit_id_from_name`'s physical-venue resolution so a renamed event or a double-header pools into one track record. `int_driver_circuit_affinity` shrinks each circuit's gap to the teammate toward the driver's own mean and publishes the difference, `affinity_vs_driver_mean_s`, as the affinity (F44: drawing the shrunk level itself painted every cell one colour).
 
-    The bridge-driver threshold (≥8 races each side) and the `low_anchor_sample_flag` fallback (offset forced to 0 below 3 bridge drivers) exist so a thin cross-era sample never produces a confident-looking offset built on a handful of drivers.
+    There is no era offset because a teammate-relative rating has no era level to remove: a change of car era moves both teammates alike. The bridge-driver offset this model used to apply (t = −1.5, no significance gate) inverted the between-era field-mean gap it was meant to remove (F45). `assert_era_offset_shrinks_gap` fails if an offset comes back with |t| < 2, or widens or inverts that gap.
   </Tab>
   <Tab title="Other approaches">
     A full hierarchical or mixed-effects model is the credible alternative to closed-form conjugate shrinkage at every shrink point in this family. The conjugate form is auditable in pure SQL and adequate for a Normal-Normal problem with a roughly stable within-cell variance; a mixed-effects fit would need to leave `dbt run` the way the car FE already does, for a precision gain this family's CI tolerances don't currently need.
 
-    LORO/FE de-biasing and `int_synthetic_teammate`'s pairwise comparison are not competing designs here both shipped, deliberately, for different jobs. The pairwise comparison needs no shrinkage or fitted car term and is the one signal stable enough at single-race grain to feed an ML model; the LORO/shrinkage/era chain is tuned for a season- or career-length rating, not a per-race feature.
+    LORO/FE de-biasing and `int_synthetic_teammate`'s pairwise comparison are not competing designs here both shipped, deliberately, for different jobs. The pairwise comparison needs no shrinkage or fitted car term and is the one signal stable enough at single-race grain to feed an ML model; the LORO/shrinkage chain is tuned for a season- or career-length rating, not a per-race feature.
 
-    A continuous era covariate (treating the regulation change as a smooth drift rather than a step) is the credible alternative to the discrete 2022 split. The discrete split is auditable per driver you can name the bridge drivers and inspect their individual shift and matches the actual regulation history being a step change at a known date; a continuous covariate would need its own functional-form assumption with no obvious physical basis.
+    An era adjustment of any shape (a bridge-driver step at 2022, or a continuous era covariate) is only needed for a rating measured against the field. The chain measures against the teammate instead, so the car and its era cancel; the price is that a rating says as much about the teammate as about the driver.
   </Tab>
 </Tabs>
 
@@ -116,16 +117,16 @@ where $k$ is the prior weight, expressed as virtual observations ($k=5$ everywhe
     Thin reader over an external two-way fixed-effects fit (driver × constructor-race): car pace net of who drove it.
   </Card>
   <Card title="int_driver_race_skill_loro" icon="users" href="/reference/models/int/int_driver_race_skill_loro">
-    Two skill signals per driver-race: a leave-one-race-out teammate baseline for the rating chain, and a field-anchored car-FE baseline for era affinity.
+    Two skill signals per driver-race: the median lap-by-lap gap to the teammate for the rating chain, and a field-anchored car-FE baseline for era affinity.
   </Card>
   <Card title="int_driver_season_ratings" icon="calendar" href="/reference/models/int/int_driver_season_ratings">
     Race-grain skill shrunk to season grain via Bayesian conjugate shrinkage toward the season mean.
   </Card>
   <Card title="int_era_normalized_driver_rating" icon="shuffle" href="/reference/models/int/int_era_normalized_driver_rating">
-    Cross-era comparable rating: bridge-driver calibration anchors the 2022 regulation boundary.
+    The published season rating, on one scale across eras because it is teammate-relative; no era offset applied.
   </Card>
   <Card title="int_driver_circuit_affinity" icon="map-pin" href="/reference/models/int/int_driver_circuit_affinity">
-    Per-(driver, circuit) shrunk affinity: how much faster or slower a driver is at one circuit relative to their own career average.
+    Per-(driver, circuit) affinity: how much better or worse a driver does against his teammate at one circuit than his own average.
   </Card>
   <Card title="int_driver_circuit_era_affinity" icon="flag" href="/reference/models/int/int_driver_circuit_era_affinity">
     The same affinity, era-split and car-removed via the FE baseline the "equal-car track record" leaderboard signal.

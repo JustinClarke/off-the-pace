@@ -1,0 +1,23 @@
+copied_at: 2026-09-28T20:07:11Z
+HEAD: fcf4949f4cde4930d40d663f109ddc58e10852ed
+transform_worktree_diff_sha256: 17d712f5177791bfc0caa63015188f5caad7100387762d0eaefacd0c47122a71
+untracked_transform:
+?? transform/macros/power_law_beta_grid.sql
+?? transform/models/intermediate/int_cell_power_law_fit.sql
+?? transform/models/intermediate/int_lap_anomaly_flags_option_a.sql
+?? transform/models/intermediate/int_lap_anomaly_flags_option_b.sql
+?? transform/models/intermediate/int_power_law_lap.sql
+?? transform/models/intermediate/int_stint_power_law_fit.sql
+?? transform/models/intermediate/unit_tests_rating_chain.yml
+?? transform/models/marts/fct_power_law_training.sql
+?? transform/seeds/_archive/compound_cliff_params_2026-09-28.csv
+?? transform/seeds/_pending/circuit_reference_pending.csv
+?? transform/seeds/compound_hardness_scale.csv
+?? transform/tasks/coefficients/assess_f9_options.py
+?? transform/tasks/coefficients/measure_f9_decoupling.py
+?? transform/tests/assert_era_offset_shrinks_gap.sql
+?? transform/tests/assert_hardness_rank_2018_from_lap_name.sql
+?? transform/tests/assert_hardness_scale_no_gaps.sql
+?? transform/tests/assert_power_law_fit_bounds.sql
+?? transform/tests/assert_power_law_no_seed_columns.sql
+?? transform/tests/assert_teammate_rating_antisymmetric.sql

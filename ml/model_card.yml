@@ -1,10 +1,10 @@
 model_card:
   name: Off the Pace-Tyre Degradation Predictors
   version: v14
-  generated_at: '2026-09-22T19:39:58.331804+00:00'
+  generated_at: '2026-09-28T17:40:18.787329+00:00'
   summary: Five XGBoost models predicting cumulative 5-lap tyre-degradation pace loss (quantile trio p10/p50/p90),
     laps-until-cliff class, and remaining stint life, from per-lap thermal, dirty-air, powertrain, weather
-    and compound-prior features. Trained on 2018–2024 F1 laps; every model beats a strong per-cohort baseline.
+    and compound-prior features. Trained on 2018–2025 F1 laps; every model beats a strong per-cohort baseline.
   intended_use: 'Race-strategy analysis and the Off the Pace web app (application layer): surfacing when
     a stint is about to fall off the degradation cliff and how much pace a driver is leaving on track.
     Not a betting or safety system.'
@@ -21,10 +21,12 @@ model_card:
     - 2025
     holdout_seasons:
     - 2026
-    holdout_note: 2025 is the designated holdout, ingested post-launch; until then the model trains on
-      all ingested seasons (2018–2024) and selection rests on time-series CV-there is no live holdout.
-      The evaluation headline is reported on the final TimeSeriesSplit fold (2024); it switches to a true-holdout
-      reveal the moment 2025 ingests, with no code change.
+    holdout_note: '2026 is the designated holdout, ingested incrementally as races complete; until 2026
+      data exists the model trains on all ingested seasons (2018–2025) and evaluation rests on the final
+      TimeSeriesSplit fold (2025); holdout_populated = false. CAVEAT: 2025 was consumed as a selection
+      fold by 02c''s admission gate (n_eval = 13,951 on 2026-09-23), so any claim about v14''s ''holdout''
+      performance sits on a validation fold rather than a clean holdout. It switches to a true-holdout
+      evaluation the moment 2026 data arrives, with no code change (WI-03 FD4 ruling).'
     n_training_rows: 95513
     feature_count: 32
     evaluation_mode: cv_final_fold
@@ -1061,7 +1063,6 @@ model_card:
   - Hyperparameters come from a 50-trial / season-fold Optuna search per target (ml/models/<target>_best_params.json);
     `make ml-retrain` refits at those params without re-searching. A target whose data has moved should
     be re-tuned, not just refit.
-  - No live 2025 holdout yet-headline numbers are time-series CV until 2025 ingests.
   - Skill is reported as a fraction of the ATTAINABLE quantity. A fraction above 1.0 means the model is
     not bounded by stint-level information, so no ceiling has been established for it - not that it is
     near-perfect.

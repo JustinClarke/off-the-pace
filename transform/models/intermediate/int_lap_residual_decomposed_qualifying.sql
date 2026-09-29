@@ -89,21 +89,6 @@ constructor_coef AS (
     FROM {{ ref('int_constructor_structural_pace_qualifying') }}
 ),
 
--- Ambient / track evolution: reuse the race-day data for the same event.
--- Qualifying happens the day before the race; we use same-event weather as an
--- approximation.
-weather_proxy AS (
-    SELECT DISTINCT ON (race_year, race_id)
-        race_year,
-        race_id,
-        COALESCE(rubber_component_s, 0.0) AS rubber_component_s,
-        COALESCE(ambient_component_s, 0.0) AS ambient_component_s,
-        COALESCE(unexplained_residual_s, 0.0) AS track_unexplained_s,
-        track_temp_c
-    FROM {{ ref('int_track_evolution') }}
-    ORDER BY race_year, race_id
-),
-
 combined AS (
     SELECT
         q.lap_id,
@@ -124,12 +109,15 @@ combined AS (
         f.fuel_mass_kg,
         f.fuel_component_s,
         fp.segment_median_s AS base_track_pace_s,
-        COALESCE(w.rubber_component_s, 0.0) AS rubber_component_s,
-        COALESCE(w.ambient_component_s, 0.0) AS ambient_component_s,
+        -- Qualifying runs in a single session with controlled conditions.
+        -- No race-day track evolution applies; rubber and ambient terms are set
+        -- to zero and absorbed into the driver skill residual.
+        0.0 AS rubber_component_s,
+        0.0 AS ambient_component_s,
         -- Informational, exactly as on the race side: the track-evolution
         -- model's own residual, carried but deliberately not in the identity.
-        COALESCE(w.track_unexplained_s, 0.0) AS track_unexplained_s,
-        w.track_temp_c,
+        NULL::FLOAT AS track_unexplained_s,
+        NULL::FLOAT AS track_temp_c,
         -- Constructor qualifying-mode coefficient
         COALESCE(cc.constructor_structural_pace_s, 0.0)
             AS constructor_component_s,
@@ -138,8 +126,7 @@ combined AS (
         cc.constructor_structural_pace_ci_low_s,
         cc.constructor_structural_pace_ci_high_s,
         -- Compound degradation: use tyre_life as age proxy; cliff suppressed in
-        -- quali
-        -- by limiting to small age values. No survival-model cliff for quali.
+        -- quali by limiting to small age values. No survival-model cliff for quali.
         -- Simple linear wear model: wear_gradient × tyre_life.
         COALESCE(cp.compound_wear_gradient, 0.0)
         * q.tyre_life AS compound_component_s,
@@ -159,9 +146,6 @@ combined AS (
             q.race_year = cc.race_year
             AND q.race_id = cc.race_id
             AND q.constructor_id = cc.constructor_id
-    LEFT JOIN
-        weather_proxy AS w
-        ON q.race_year = w.race_year AND q.race_id = w.race_id
     LEFT JOIN {{ ref('race_to_track') }} AS r2t
         ON q.race_id = r2t.race_id
     LEFT JOIN {{ ref('dim_compounds_season') }} AS cp

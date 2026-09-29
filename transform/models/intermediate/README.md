@@ -40,9 +40,9 @@ All models are materialised as **views** (no storage cost; recomputed on demand)
 | `int_lap_anomaly_flags` | lap | Anomaly classification (mistake, conditions, etc.) |
 | `int_event_corrections` | lap | Manual correction weights from `stg_events` |
 | `int_synthetic_teammate` | driver × race | Virtual teammate reference pace |
-| `int_driver_circuit_affinity` | driver × circuit | Bayesian-shrunken circuit affinity |
-| `int_driver_season_ratings` | driver × season | Posterior driver rating with CIs |
-| `int_era_normalized_driver_rating` | driver × season | Era-bridged rating (anchor shrinkage) |
+| `int_driver_circuit_affinity` | driver × circuit | Bayesian-shrunken circuit gap to the teammate; `affinity_vs_driver_mean_s` = deviation from the driver's own mean (the drawn affinity, F44) |
+| `int_driver_season_ratings` | driver × season | Posterior season rating with CIs: median lap-by-lap gap to the teammate (F40), shrunk toward the season mean |
+| `int_era_normalized_driver_rating` | driver × season | Published season rating; no era offset (teammate-relative, F45), bridge-driver shift kept as a diagnostic |
 | `int_constructor_structural_pace` | constructor × race | Team power/aero index isolated from driver |
 | `int_constructor_structural_pace_qualifying` | constructor × race | Constructor index for qualifying |
 | `int_constructor_structural_pace_qualifying` | constructor × circuit | Constructor pace by circuit type |

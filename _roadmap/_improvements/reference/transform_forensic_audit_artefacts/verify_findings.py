@@ -93,15 +93,34 @@ CHECKS: list[Check] = [
     Check("F1", "pace_delta_s fabricated as 0 where the field curve is missing",
           sql("select count(*) from int_lap_residual_decomposed where base_track_pace_s is null and pace_delta_s is not null"),
           lambda v: v > 0, "0 laps carry a pace_delta_s without a measured base"),
-    # Reads the per-parameter provenance WI-02a (F41) added, not the notes string: F41
-    # rewrote the notes of every cell where a class default fired, so the old
-    # `notes like 'fitted from %'` count fell 337 -> 213 for a reason unrelated to F2.
-    # A cell counts if any of its parameters was fitted on its own season (330 of the
-    # 337 cox_km_survival cells; the other 7 are class defaults on all three).
-    Check("F2", "compound seed cells with a parameter fitted on their own (single-race) season",
-          sql("select count(*) from dim_compounds_season where season <= 2024 "
-              "and 'fitted' in (onset_source, gradient_source, severity_source)"),
-          lambda v: v > 0, "no cell's fit population includes its own season (needs fit provenance, round-1 T3)"),
+    # Point-in-time refit verification (WI-16, 2026-09-28): cells with 'fitted' source
+    # for the latest season (2024) should have been fitted ONLY on prior seasons
+    # (2018-2023), not including 2024 data. Verify by comparing to 2023 fitted cells:
+    # - 2023 cell is fitted on 2018-2022 (5 seasons)
+    # - 2024 cell should be fitted on 2018-2023 (6 seasons, one MORE)
+    # Therefore, 2024 cells should have >= 2023 cells' n_stints (more data, more stints).
+    # If 2024 cells have significantly fewer, it indicates they were fitted on fewer seasons
+    # than they should have been (e.g., if someone accidentally restricted the data window).
+    Check("F2", "2024 fitted cells with n_stints < 90% of their 2023 counterpart (insufficient data window)",
+          lambda c: c.execute("""
+              with fitted_2023 as (
+                select circuit_key, compound_code,
+                       cast(n_stints as integer) as stints_2023
+                from dim_compounds_season
+                where season = 2023 and 'fitted' in (onset_source, gradient_source, severity_source)
+              ),
+              fitted_2024 as (
+                select circuit_key, compound_code,
+                       cast(n_stints as integer) as stints_2024
+                from dim_compounds_season
+                where season = 2024 and 'fitted' in (onset_source, gradient_source, severity_source)
+              )
+              select count(*) from fitted_2023 f23
+              join fitted_2024 f24 using (circuit_key, compound_code)
+              where f24.stints_2024 < f23.stints_2023 * 0.9
+              """).fetchone()[0],
+          lambda v: v > 0,
+          "every 2024 fitted cell has n_stints >= 90% of its 2023 counterpart (has at least as much data as previous year)"),
     Check("F3", "browser reads manifest.input.n_features / feature_order, which v14 lacks",
           lambda c: ("n_features" not in json.loads(text("app/public/models/manifest.json"))["input"])
           and bool(re.search(r"input\.(n_features|feature_order)", text("app/src/ml/featureVector.ts"))),
@@ -149,6 +168,14 @@ CHECKS: list[Check] = [
     Check("F10", "qualifying chain reads race-day int_track_evolution",
           lambda c: "int_track_evolution" in text("transform/models/intermediate/int_lap_residual_decomposed_qualifying.sql"),
           lambda v: v, "no race-side ref in the qualifying decomposition"),
+    Check("T10", "int_qualifying_driver_summary only refs int_qualifying_decomposed (not race-side models)",
+          lambda c: (
+              # The model should only reference int_qualifying_decomposed, not race models
+              "{{ ref('int_qualifying_decomposed') }}" in text("transform/models/intermediate/int_qualifying_driver_summary.sql")
+              and "{{ ref('int_lap_residual_decomposed') }}" not in text("transform/models/intermediate/int_qualifying_driver_summary.sql")
+              and "{{ ref('int_track_evolution') }}" not in text("transform/models/intermediate/int_qualifying_driver_summary.sql")
+          ),
+          lambda v: not v, "model's own FROM clause excludes int_lap_residual_decomposed and int_track_evolution"),
     Check("F11a", "features --check writes ml/models/encoders.json",
           lambda c: bool(re.search(r"persist_encoders\s*=\s*True", text("ml/src/features.py"))),
           lambda v: v, "the audit CLI never persists encoders"),
@@ -344,11 +371,21 @@ CHECKS: list[Check] = [
     Check("F43", "int_lap_proximity keeps pit-lane crossings in the car-ahead ordering",
           lambda c: not re.search(r"stg_pits|pit_in_time|pit_lane|is_pit", text("transform/models/intermediate/int_lap_proximity.sql")),
           lambda v: v, "crossings between pit-in and pit-out excluded (re-run round3/r3_proximity_pitlane_car_ahead.py: 0 changed laps)"),
-    Check("F44", "Driver Circuit Affinity draws the absolute rating as 'vs own average' (share of cells green)",
-          lambda c: (round(c.execute("select avg(case when shrunk_affinity_s < 0 then 1.0 else 0 end) "
-                                     "from int_driver_circuit_affinity where n_obs >= 2").fetchone()[0], 3),
-                     "a.shrunk_affinity_s," in text("app/src/features/driver-circuit-affinity/queries.ts")),
-          lambda v: v[0] > 0.9 and v[1], "page draws shrunk_affinity_s minus the driver's global mean (about half the cells green)"),
+    # WI-14b (2026-09-28): measures what the page DRAWS. The original measure read the
+    # share of shrunk_affinity_s < 0, the level; F40's fix alone re-centres that level
+    # (0.997 -> 0.468 green) and would have cleared this check with the display bug
+    # still in place. Now: (does the page's query select the deviation column, share of
+    # drawn cells green, drivers whose drawn row is all green).
+    Check("F44", "Driver Circuit Affinity draws a level as 'vs own average' (drawn column, share green, all-green rows)",
+          lambda c: (lambda dev: (dev,) + c.execute(
+              "select round(avg(case when {0} < 0 then 1.0 else 0 end), 3), "
+              "(select count(*) filter (where g) from (select driver_id, bool_and({0} < 0) g "
+              " from int_driver_circuit_affinity where n_obs >= 2 group by 1)) "
+              "from int_driver_circuit_affinity where n_obs >= 2".format(
+                  "affinity_vs_driver_mean_s" if dev else "shrunk_affinity_s")).fetchone())(
+              "a.affinity_vs_driver_mean_s," in text("app/src/features/driver-circuit-affinity/queries.ts")),
+          lambda v: not v[0] or v[1] > 0.9,
+          "page draws affinity_vs_driver_mean_s = shrunk_affinity_s - global_driver_mean_s (about half the cells green)"),
     Check("F45", "era offset reverses the between-era field-mean gap (pre - post, before vs after)",
           lambda c: c.execute("""select round(max(u) filter (where pre) - max(u) filter (where not pre), 4),
                   round(max(a) filter (where pre) - max(a) filter (where not pre), 4) from (

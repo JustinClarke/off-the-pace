@@ -3,8 +3,8 @@ import type { DriverSeries, SpanCohort } from './transform'
 import { ERA_BOUNDARY } from './transform'
 
 export const COHORT_STYLE: Record<SpanCohort, { color: string; label: string; hint: string }> = {
-  bridge:      { color: '#34d399', label: 'Bridge',    hint: 'raced both sides of 2022 anchors the era calibration' },
-  'full-span': { color: '#60a5fa', label: 'Full span', hint: 'present every season, not a calibration anchor' },
+  bridge:      { color: '#34d399', label: 'Bridge',    hint: 'raced 8+ races on each side of 2022' },
+  'full-span': { color: '#60a5fa', label: 'Full span', hint: 'present every season, not a bridge driver' },
   joined:      { color: '#fbbf24', label: 'Joined',    hint: 'debuted after the opening season' },
   left:        { color: '#f472b6', label: 'Left',      hint: 'last season before the final year' },
   cameo:       { color: '#94a3b8', label: 'Cameo',     hint: 'single season only' },

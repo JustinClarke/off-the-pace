@@ -13,15 +13,12 @@ WITH ratings AS (
     {%- for grain, model, key, ratings in [
         ('window', 'fct_driver_isolation_lap', 'lap_id',
             [('pure_skill_5lap', 'pure_skill_5lap_gain_s', 'pure_skill_5lap_se_s'),
-             ('tactical_5lap', 'tactical_5lap_gain_s', 'tactical_5lap_se_s'),
              ('relative_pace_5lap', 'relative_pace_5lap_gain_s', 'relative_pace_5lap_se_s')]),
         ('stint', 'fct_driver_isolation_stint', 'stint_phase_id',
             [('pure_skill', 'pure_skill_gain_s', 'pure_skill_se_s'),
-             ('tactical', 'tactical_gain_s', 'tactical_se_s'),
              ('relative_pace', 'relative_pace_gain_s', 'relative_pace_se_s')]),
         ('race', 'fct_driver_isolation_race', 'driver_race_id',
             [('pure_skill', 'pure_skill_gain_s', 'pure_skill_se_s'),
-             ('tactical', 'tactical_gain_s', 'tactical_se_s'),
              ('relative_pace', 'relative_pace_gain_s', 'relative_pace_se_s')]),
     ] %}
     {%- set outer = loop %}

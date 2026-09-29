@@ -1,0 +1,124 @@
+{
+  "name": "Off the Pace - power-law tyre curve (WI-17)",
+  "model_version": "v1",
+  "generated_at": "2026-09-28T12:19:19.500670+00:00",
+  "status": "not published; the v14 manifest.json is untouched",
+  "input": {
+    "tensor_name": "input",
+    "dtype": "float32",
+    "continuous_missing": "NaN (XGBoost native-missing)",
+    "era_code": {
+      "2018": 0,
+      "2019-21": 1,
+      "2022+": 2
+    },
+    "compound_hardness_rank": "compound_hardness_scale seed: 2018 legacy names 1-7, C1-C6 1-6 (1 = hardest)"
+  },
+  "models": [
+    {
+      "name": "powerlaw_deg20",
+      "onnx": "powerlaw_deg20_v1.onnx",
+      "onnx_sha256": "aa108bda82db83d982b47ed3213b87993b3183d28d4f6d9c3da6a7910d7cadf6",
+      "feature_order": [
+        "compound_hardness_rank",
+        "era_code",
+        "track_energy_index",
+        "circuit_abrasiveness_index",
+        "track_temp_c",
+        "stint_start_fuel_kg",
+        "dirty_air_share",
+        "constructor_pace_s"
+      ],
+      "n_features": 8,
+      "shape": [
+        "batch",
+        8
+      ],
+      "monotone_increasing": [
+        "compound_hardness_rank",
+        "dirty_air_share",
+        "track_temp_c"
+      ],
+      "output": {
+        "index": 0,
+        "meaning": "tyre degradation at age 20 over the age-2 fresh pace (s)",
+        "target_column": "curve_incr_20_s"
+      }
+    },
+    {
+      "name": "powerlaw_beta",
+      "onnx": "powerlaw_beta_v1.onnx",
+      "onnx_sha256": "081710c535ffe135f10f2fc06836d7d33a0b5cd3ed77e70bc02045c368f70c4b",
+      "feature_order": [
+        "era_code",
+        "track_energy_index",
+        "circuit_abrasiveness_index",
+        "stint_start_fuel_kg",
+        "constructor_pace_s"
+      ],
+      "n_features": 5,
+      "shape": [
+        "batch",
+        5
+      ],
+      "output": {
+        "index": 0,
+        "meaning": "power-law exponent beta",
+        "target_column": "beta",
+        "postprocess": "clip to [0.2, 3.0]"
+      }
+    }
+  ],
+  "curve": {
+    "fresh_anchor_age": 2,
+    "level_age": 20,
+    "alpha": "max(deg20, 0) / (20^beta - 2^beta)",
+    "tyre_s_at_lap_k": "max(0, alpha * (k^beta - 2^beta))",
+    "implemented_in": [
+      "ml/src/powerlaw.py",
+      "app/src/features/degradation-simulator/powerLaw.ts"
+    ]
+  },
+  "provenance": {
+    "training_table": "fct_power_law_training",
+    "n_training_cells": 339,
+    "xgb_params": {
+      "n_estimators": 300,
+      "learning_rate": 0.03,
+      "max_depth": 3,
+      "subsample": 0.8,
+      "colsample_bytree": 0.8,
+      "min_child_weight": 1500.0,
+      "reg_lambda": 1.0,
+      "objective": "reg:pseudohubererror",
+      "tree_method": "exact",
+      "random_state": 20260528,
+      "n_jobs": 1
+    },
+    "random_state": 20260528,
+    "library_versions": {
+      "xgboost": "3.3.0",
+      "onnxmltools": "1.16.0",
+      "onnxruntime": "1.28.0"
+    },
+    "onnx_parity": {
+      "deg20": {
+        "max_abs_diff": 1.430511474609375e-06,
+        "max_abs_diff_clean": 1.430511474609375e-06,
+        "max_abs_diff_nan_bearing": 4.76837158203125e-07,
+        "n_rows": 68,
+        "pass": true
+      },
+      "beta": {
+        "max_abs_diff": 1.6689300537109375e-06,
+        "max_abs_diff_clean": 1.430511474609375e-06,
+        "max_abs_diff_nan_bearing": 1.6689300537109375e-06,
+        "n_rows": 68,
+        "pass": true
+      }
+    },
+    "onnx_total_bytes": 227401,
+    "onnx_size_limit_bytes": 512000,
+    "cv_headline_T_fit_mae_mean": 0.4721
+  }
+}

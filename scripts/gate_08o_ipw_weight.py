@@ -111,6 +111,29 @@ Negative control (shuffle vs shuffle, 08f-1):
 - p50: E=8.76 (signal but this is the negative control)
 - p90: E=0.93 (no signal)
 
+RE-RUN ON CORRECTED WEIGHTS (W9, 2026-09-29)
+============================================
+
+The 10-seed arms above were never executed. The 2026-09-22 JSON was a hand-written summary
+of 08f-1 plus one Gate-1 refit, and this script's log shows no arm output. On top of that,
+WI-13 (2026-09-25) found that arm B's `survival_weight` had every "no prior-season curve"
+cell (all of 2018, plus later unreached (compound, lap_in_stint) cells) at 4.0 instead of
+1.0. This re-run is the first full execution, on the corrected mart. The pre-registered
+design (A / B / P, n=10, Construction B) is unchanged. Edits:
+
+  - Gate 1 checks the PRODUCTION path. Since 08o shipped (v13) that is the uniform fit
+    (`E._fit(w=None)`), not arm B, so the original "B reproduces published" can no longer
+    hold by construction. The substrate has also moved since v14 without a retrain, so with
+    `--allow-published-mismatch` a mismatch is recorded, not fatal, as long as two
+    production refits agree. `uniform_ones_equals_production_path` is recorded, not
+    enforced, and is False here: XGBoost's reg:quantileerror fits sample_weight=ones
+    (weighted leaf quantile) differently from None (unweighted), so arm A is "uniform" but
+    not bit-for-bit the shipped fit. `gate1_headline_production` is the shipped path.
+  - `--duckdb` points `F.load_features` at an isolated warehouse built from the current
+    working tree (dev.duckdb is not rebuilt for this).
+  - The arm output is now written to the .log (it used `print`, so the log only had headers).
+  - OUT moved to `_roadmap/_improvements/...` after the folder consolidation (57c4039).
+
 """
 from __future__ import annotations
 
@@ -133,10 +156,18 @@ E_VALUE_G = 1.0
 E_VALUE_MAX = 11 ** 4.5  # post-09c Construction B: (1 + n*g)^((n-1)/2) where n=10, g=1
 QUANTILE_TARGETS = ("degradation_regressor_p10", "degradation_regressor_p50",
                     "degradation_regressor_p90")
-OUT = Path("_improvements/implementations/08o/08o_gate_arms.json")
+OUT = Path("_roadmap/_improvements/implementations/08o/08o_gate_arms.json")
 
 print(f"PRE-REGISTRATION: Using {len(SEEDS)} seeds for both floor and e-value, "
       f"Construction B with E_max={E_VALUE_MAX:.2f}")
+
+_LOG_LINES: list[str] = []
+
+
+def log(msg: str) -> None:
+    """print, and keep the line for the .log written next to the JSON."""
+    print(msg, flush=True)
+    _LOG_LINES.append(msg)
 
 
 def delta(arm_value: float, base_value: float, higher_is_better: bool) -> float:
@@ -203,7 +234,9 @@ def score_model(spec: S.TargetSpec, model, X_ev, y_ev) -> float:
     return E._score(spec, y_ev, E._predict_index(spec, model, X_ev), cens=None, scale=None)
 
 
-def run_quantile_target(target: str, bundle_after: F.FeatureBundle, published: float) -> dict:
+def run_quantile_target(target: str, bundle_after: F.FeatureBundle, published: float,
+                        published_version: str | None = None,
+                        allow_published_mismatch: bool = False) -> dict:
     """Run arms A (uniform), B (shipped), P (permutation null) on one target."""
     spec = S.TARGET_BY_NAME[target]
     params = E._params_for(target, S.MODEL_VERSION_DEFAULT)
@@ -239,6 +272,8 @@ def run_quantile_target(target: str, bundle_after: F.FeatureBundle, published: f
         "higher_is_better": hib,
         "n_train": int(len(X_tr)),
         "n_eval": int(len(X_ev)),
+        "mode": split.mode,
+        "eval_season": split.eval_season,
         "seeds": list(SEEDS),
         "w_ipw_summary": {
             "mean": float(w_ipw.mean()),
@@ -254,38 +289,62 @@ def run_quantile_target(target: str, bundle_after: F.FeatureBundle, published: f
         },
     }
 
-    # Gate 1: Reproduce v12 headline on arm B (shipped)
-    print(f"[{target}] Gate 1: Reproducing v12 headline with shipped IPW weights...")
+    # Gate 1: the PRODUCTION path reproduces the published headline. Pre-08o that was
+    # arm B; since 08o (v13) production fits the trio unweighted
+    # (train.py::_sample_weight -> None), so the fit checked is E._fit(w=None).
+    prod_uniform = T._sample_weight(spec, y_tr[:1]) is None
+    log(f"[{target}] Gate 1: production path "
+        f"({'uniform, w=None' if prod_uniform else 'IPW'}) vs published {published_version}...")
+    t0 = time.time()
+    w_prod = None if prod_uniform else w_ipw
+    h_prod = score_model(spec, E._fit(spec, params, X_tr, y_tr, cens=None, w=w_prod), X_ev, y_ev)
+    h_prod2 = score_model(spec, E._fit(spec, params, X_tr, y_tr, cens=None, w=w_prod), X_ev, y_ev)
+    res["gate1_production_path"] = "uniform (w=None)" if prod_uniform else "IPW survival_weight"
+    res["gate1_headline_production"] = h_prod
+    res["gate1_refit_deterministic"] = bool(h_prod == h_prod2)
+    res["published_headline"] = published
+    res["published_version"] = published_version
+    res["gate1_abs_diff"] = float(abs(h_prod - published))
+    res["gate1_passes"] = bool(abs(h_prod - published) < 5e-7)
+    log(f"  Headline: {h_prod:.10f}, Published: {published:.10f}, "
+        f"Passes: {res['gate1_passes']}, deterministic: {res['gate1_refit_deterministic']} "
+        f"({time.time()-t0:.0f}s)")
+
+    if not res["gate1_refit_deterministic"]:
+        res["aborted"] = "production-path refit is not deterministic"
+        log(f"  ABORTED: {res['aborted']}")
+        return res
+    if not res["gate1_passes"]:
+        if not allow_published_mismatch:
+            res["aborted"] = f"Gate 1 failed: headline diff = {res['gate1_abs_diff']:.2e}"
+            log(f"  ABORTED: {res['aborted']}")
+            return res
+        res["gate1_waived"] = (
+            "substrate has moved since the published artefact (no retrain since "
+            f"{published_version}); refit is deterministic, so the arms are compared on "
+            "today's substrate against each other, not against the published number")
+        log(f"  Gate 1 WAIVED (--allow-published-mismatch): |diff|={res['gate1_abs_diff']:.3g}")
+
+    # Score all three arms at canonical seed
+    log(f"[{target}] Scoring three arms...")
     t0 = time.time()
     model_b = E._fit(spec, params, X_tr, y_tr, cens=None, w=w_ipw)
     h_b = score_model(spec, model_b, X_ev, y_ev)
-    res["gate1_headline_B"] = h_b
-    res["published_v12_headline"] = published
-    res["gate1_passes"] = bool(abs(h_b - published) < 5e-7)
-    print(f"  Headline: {h_b:.10f}, Published: {published:.10f}, "
-          f"Passes: {res['gate1_passes']} ({time.time()-t0:.0f}s)")
-
-    if not res["gate1_passes"]:
-        res["aborted"] = f"Gate 1 failed: headline diff = {abs(h_b - published):.2e}"
-        print(f"  ABORTED: {res['aborted']}")
-        return res
-
-    # Score all three arms at canonical seed
-    print(f"[{target}] Scoring three arms...")
-    t0 = time.time()
     model_a = E._fit(spec, params, X_tr, y_tr, cens=None, w=w_uniform)
     h_a = score_model(spec, model_a, X_ev, y_ev)
+    if prod_uniform:
+        res["uniform_ones_equals_production_path"] = bool(h_a == h_prod)
 
     d_b_vs_a = delta(h_b, h_a, hib)
     d_a_vs_b = delta(h_a, h_b, hib)
 
-    print(f"  Arm A (uniform): {h_a:.10f}")
-    print(f"  Arm B (IPW):     {h_b:.10f}")
-    print(f"  Delta B-vs-A:    {d_b_vs_a:+.8f}")
-    print(f"  Delta A-vs-B:    {d_a_vs_b:+.8f} ({time.time()-t0:.0f}s)")
+    log(f"  Arm A (uniform): {h_a:.10f}")
+    log(f"  Arm B (IPW):     {h_b:.10f}")
+    log(f"  Delta B-vs-A:    {d_b_vs_a:+.8f}")
+    log(f"  Delta A-vs-B:    {d_a_vs_b:+.8f} ({time.time()-t0:.0f}s)")
 
     # Floor study: refit_noise_floor with 10 seeds
-    print(f"[{target}] Computing refit noise floor over {len(SEEDS)} seeds...")
+    log(f"[{target}] Computing refit noise floor over {len(SEEDS)} seeds...")
     t0 = time.time()
     floor_a = AT.refit_noise_floor(
         lambda s: fit_seeded(spec, params, X_tr, y_tr, w_uniform, s),
@@ -299,7 +358,7 @@ def run_quantile_target(target: str, bundle_after: F.FeatureBundle, published: f
     )
     F2 = max(floor_a["delta_noise_2sd"], floor_b["delta_noise_2sd"])
     floor_source = "A" if floor_a["delta_noise_2sd"] >= floor_b["delta_noise_2sd"] else "B"
-    print(f"  Floor (2√2·sd) = {F2:.8f} (from arm {floor_source}; "
+    log(f"  Floor (2√2·sd) = {F2:.8f} (from arm {floor_source}; "
           f"A={floor_a['delta_noise_2sd']:.8f}, B={floor_b['delta_noise_2sd']:.8f}) ({time.time()-t0:.0f}s)")
 
     res.update({
@@ -312,7 +371,7 @@ def run_quantile_target(target: str, bundle_after: F.FeatureBundle, published: f
     })
 
     # Permutation null: shuffle the IPW weight
-    print(f"[{target}] Permutation null (shuffle arm B weights)...")
+    log(f"[{target}] Permutation null (shuffle arm B weights)...")
     t0 = time.time()
     rng_shuf = np.random.default_rng([S.RANDOM_STATE, 0])
     w_b_shuffled = shuffle_weights(w_ipw, rng_shuf)
@@ -322,12 +381,12 @@ def run_quantile_target(target: str, bundle_after: F.FeatureBundle, published: f
     cap_b = delta(h_b_shuf, h_a, hib)  # shuffled vs uniform
     info_b = delta(h_b, h_b_shuf, hib)  # real vs shuffled
 
-    print(f"  Arm B shuffled:     {h_b_shuf:.10f}")
-    print(f"  Capacity (shuf-A):  {cap_b:+.8f} ({cap_b/F2:+.2f}x floor)")
-    print(f"  Information (B-shuf): {info_b:+.8f} ({info_b/F2:+.2f}x floor) ({time.time()-t0:.0f}s)")
+    log(f"  Arm B shuffled:     {h_b_shuf:.10f}")
+    log(f"  Capacity (shuf-A):  {cap_b:+.8f} ({cap_b/F2:+.2f}x floor)")
+    log(f"  Information (B-shuf): {info_b:+.8f} ({info_b/F2:+.2f}x floor) ({time.time()-t0:.0f}s)")
 
     # Paired e-values (real vs shuffle, n=10 seeds)
-    print(f"[{target}] Paired e-values: real B vs shuffled B ({len(SEEDS)} seeds)...")
+    log(f"[{target}] Paired e-values: real B vs shuffled B ({len(SEEDS)} seeds)...")
     t0 = time.time()
     reals, shufs = [], []
     for s in SEEDS:
@@ -340,11 +399,11 @@ def run_quantile_target(target: str, bundle_after: F.FeatureBundle, published: f
     reals, shufs = np.asarray(reals), np.asarray(shufs)
     d_paired = np.asarray([delta(r, sh, hib) for r, sh in zip(reals, shufs)])
     ev_b = safe_t_e_value(d_paired)
-    print(f"  E(information, B real-vs-shuffle) = {ev_b['E']:.4g} "
+    log(f"  E(information, B real-vs-shuffle) = {ev_b['E']:.4g} "
           f"(d_bar={ev_b['d_bar']:+.8f}, max_E={ev_b['max_attainable_E']:.1f}) ({time.time()-t0:.0f}s)")
 
     # Negative control: shuffle vs shuffle
-    print(f"[{target}] Negative control: shuffle B vs shuffle B...")
+    log(f"[{target}] Negative control: shuffle B vs shuffle B...")
     t0 = time.time()
     d_ctrl = []
     for s in SEEDS:
@@ -355,7 +414,7 @@ def run_quantile_target(target: str, bundle_after: F.FeatureBundle, published: f
         d_ctrl.append(delta(va, vb, hib))
 
     ctrl_ev = safe_t_e_value(np.asarray(d_ctrl))
-    print(f"  Control E (shuffle vs shuffle) = {ctrl_ev['E']:.4g} ({time.time()-t0:.0f}s)")
+    log(f"  Control E (shuffle vs shuffle) = {ctrl_ev['E']:.4g} ({time.time()-t0:.0f}s)")
 
     res.update({
         "permutation_null_B": {
@@ -383,13 +442,14 @@ def run_quantile_target(target: str, bundle_after: F.FeatureBundle, published: f
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--duckdb", default=S.DUCKDB_PATH,
+                    help="warehouse F.load_features reads (read-only)")
+    ap.add_argument("--allow-published-mismatch", action="store_true",
+                    help="record, rather than abort on, a production-path headline that does "
+                         "not reproduce the published artefact (substrate moved since the last "
+                         "retrain); still aborts if the refit is not deterministic")
+    ap.add_argument("--note", default=None, help="free-text provenance stored in the JSON")
     args = ap.parse_args()
-
-    lines: list[str] = []
-
-    def log(msg: str) -> None:
-        print(msg, flush=True)
-        lines.append(msg)
 
     # Load current features and artefacts (AFTER state, no warehouse work needed)
     published = json.loads(Path("ml/artefacts/evaluation_metrics.json").read_text())
@@ -400,6 +460,8 @@ def main() -> int:
         "purpose": "gate whether to drop IPW survival weights from degradation quantile heads",
         "ran_at": pd.Timestamp.utcnow().isoformat(),
         "published_artefact_version": pub_version,
+        "duckdb_path": args.duckdb,
+        "note": args.note,
         "seeds": list(SEEDS),
         "floor_study_method": f"refit_noise_floor over {len(SEEDS)} seeds (post-09c matching)",
         "e_value_construction": {
@@ -427,21 +489,23 @@ def main() -> int:
         log(f"{'='*70}")
 
         # Load features for this target (same bundle object, just specify target)
-        bundle = F.load_features(target=target)
+        bundle = F.load_features(duckdb_path=args.duckdb, target=target)
 
         out["targets"][target] = run_quantile_target(
-            target, bundle, published["models"][target]["headline"]
+            target, bundle, published["models"][target]["headline"],
+            published_version=pub_version,
+            allow_published_mismatch=args.allow_published_mismatch,
         )
 
         # Incrementally write results
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(json.dumps(out, indent=2, default=float))
 
-    # Save log
-    Path(args.out).with_suffix(".log").write_text("\n".join(lines) + "\n")
     log(f"\n{'='*70}")
     log(f"Wrote results to {args.out}")
     log(f"{'='*70}")
+    # Save log
+    Path(args.out).with_suffix(".log").write_text("\n".join(_LOG_LINES) + "\n")
     return 0
 
 

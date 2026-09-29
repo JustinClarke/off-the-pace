@@ -633,7 +633,13 @@ def _row_weights(spec: S.TargetSpec, meta: pd.DataFrame) -> np.ndarray | None:
     The mechanism stays (the `w` plumbing through `EvalSplit` and `_fit`) because a
     weight-scheme arm has to be able to pass one explicitly, and because the classifier's
     weights being per-fit rather than per-row is still a distinction this function holds.
+
+    W58: with ML_QUANTILE_WEIGHT=ipw (S.QUANTILE_SAMPLE_WEIGHT) the quantile trio trains
+    on `survival_weight`, and this returns exactly what `train._sample_weight` fits with,
+    by calling it, so parity holds by construction. Default "none": still None.
     """
+    if spec is not None and spec.kind == "quantile":
+        return T._sample_weight(spec, None, meta)
     return None
 
 

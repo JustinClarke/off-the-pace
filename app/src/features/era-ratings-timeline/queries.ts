@@ -11,8 +11,6 @@ export interface EraRatingRow {
   rating_confidence: number
   n_races: number
   bridge_driver_anchor_flag: boolean
-  low_anchor_sample_flag: boolean
-  n_bridge_drivers: number
 }
 
 export const queryEraRatings = registerQuery<void, EraRatingRow[]>(
@@ -31,9 +29,7 @@ export const queryEraRatings = registerQuery<void, EraRatingRow[]>(
         era_adjusted_rating_ci_high_s,
         rating_confidence,
         n_races,
-        bridge_driver_anchor_flag,
-        low_anchor_sample_flag,
-        n_bridge_drivers
+        bridge_driver_anchor_flag
       FROM int_era_normalized_driver_rating
       WHERE era_adjusted_rating IS NOT NULL
       ORDER BY driver_id, season ASC

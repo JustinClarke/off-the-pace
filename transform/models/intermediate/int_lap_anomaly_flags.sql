@@ -263,6 +263,35 @@ SELECT
         ELSE TRUE
     END AS usable_for_modelling,
 
+    -- F9: training_weight for decoupled eligibility (Option B)
+    -- Implements soft exclusion of 'mistake' rows instead of hard exclusion
+    -- - normal rows: weight 1.0 (full training signal)
+    -- - clean_cliff rows: weight 1.0 (keep as before)
+    -- - mistake rows: weight 0.5 (reduced, not hard-excluded)
+    -- - all other anomalies: weight 0.0 (hard-exclude as before)
+    CASE
+        WHEN correction_class = 'exclude' THEN 0.0
+        WHEN COALESCE(rainfall_flag, FALSE) THEN 0.0
+        WHEN
+            is_safety_car_lap OR is_vsc_lap OR is_red_flag_lap OR is_restart_lap
+            THEN 0.0
+        WHEN is_in_lap OR is_out_lap THEN 0.0
+        WHEN is_local_yellow_lap THEN 0.0
+        -- clean_cliff rows: keep with full weight (seed-based cliff detection, kept as before)
+        WHEN
+            mad_score > 3.0
+            AND cliff_onset_passed
+            AND driver_skill_residual_s > trailing_median_s
+            THEN 1.0
+        -- mistake rows: apply reduced weight instead of hard exclusion (F9 decoupling)
+        WHEN mad_score > 3.0 AND driver_skill_residual_s > trailing_median_s
+            THEN 0.5
+        -- hard-exclude other outliers
+        WHEN mad_score > 3.0 THEN 0.0
+        -- all other rows (normal)
+        ELSE 1.0
+    END AS training_weight_f9,
+
     driver_skill_residual_s
 
 FROM with_boundaries

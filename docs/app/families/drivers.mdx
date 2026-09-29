@@ -11,9 +11,10 @@ are almost perfectly correlated, so raw pace rankings are mostly a car ranking.
 The Drivers pillar isolates the driver's contribution using multiple independent
 identification strategies, each reading a different signal:
 
-- **Rating chains.** Era Ratings Timeline and Era Translator read `int_era_normalized_driver_rating`,
-  a four-stage pipeline (car FE → LORO teammate baseline → Bayesian shrinkage → era bridge)
-  that produces one comparable number per driver per season across the 2022 regulation boundary.
+- **Rating chains.** Era Ratings Timeline and Era Translator read `int_era_normalized_driver_rating`:
+  each race's median lap-by-lap gap to the teammate in the same car, shrunk to one number per
+  driver per season. The teammate comparison cancels the car, and with it the 2022 regulation
+  change, so no era offset is applied.
 - **Circuit and weather slices.** Driver Circuit Affinity, Wet-Race Specialist, and workload
   features ask a narrower question at a specific grain a circuit, a weather condition, or
   a traffic pattern.
@@ -30,12 +31,12 @@ in full.
 
 <CardGroup cols={2}>
   <Card title="Era Ratings Timeline" icon="chart-line" href="/app/era-ratings-timeline">
-    Each driver's era-adjusted pace rating across seasons, corrected for the 2022 regulation
-    change and shown with honest confidence ribbons.
+    Each driver's season-by-season margin over his teammate in the same car, on one scale
+    across the 2022 regulation change, with honest confidence ribbons.
   </Card>
   <Card title="Era Translator" icon="shuffle" href="/app/era-translator">
-    A season leaderboard of era-adjusted driver ratings on one comparable scale, anchored by
-    drivers who raced on both sides of the 2022 rule change.
+    A season leaderboard of driver ratings on one scale: each driver's lap-by-lap gap to his
+    teammate, which cancels the car and the 2022 rule change.
   </Card>
   <Card title="Consistency" icon="chart-scatter" href="/app/driver-consistency">
     How reliably each driver extracts pace from the car, lap to lap, using the residual
@@ -46,8 +47,8 @@ in full.
     separating one-lap merchants from drivers who come alive over a stint.
   </Card>
   <Card title="Circuit Affinity" icon="map-pin" href="/app/driver-circuit-affinity">
-    How much faster or slower each driver is at a specific circuit, relative to their own
-    season average, after removing car and field effects.
+    How much better or worse each driver does against his teammate at a specific circuit
+    than he does on average.
   </Card>
   <Card title="Wet-Race Specialist" icon="cloud-rain" href="/app/wet-race-specialist">
     Each driver's wet-weather edge: race skill residual in the wet minus their dry baseline,

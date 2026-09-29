@@ -181,6 +181,14 @@ warehouse and profile block are deliberately not left on disk between runs.
 
 # 08f-1 Measurements — Isolation of the survival-weight season-lag
 
+> **RE-RUN 2026-09-29 ON CORRECTED WEIGHTS. The tables below are the 2026-09-17 run.** The
+> 2026-09-17 AFTER arm had every 2018 row's `survival_weight` at 4.0 instead of 1.0 (fixed in
+> [WI-13](../../../_fixes/wi/WI-13-pit-strategy.md), 2026-09-25). `08f1_gate_arms.json` in this
+> folder is now the re-run (corrected mart, today's substrate, plus an attribution-only
+> `AFTER_PREWI13` arm). The 2026-09-17 record is at `git show fcf4949:<same path>`. The gate's own
+> AFTER-vs-BEFORE null holds on all three heads. The IPW-vs-uniform side finding reverses on p10
+> and p50. Summary in `README.md`'s 08f-1 box and W9 in `_fixes/status/build-log.json`.
+
 All numbers from `scripts/gate_08f1_survival_weight.py`, run 2026-09-17 against two isolated
 `gate_before` warehouse builds (`dbt run --select +fct_cliff_prediction_features +fct_stint_features
 --target gate_before`, 40+26 models). AFTER = as-shipped (season-lagged, commit `bbe3e48` content).

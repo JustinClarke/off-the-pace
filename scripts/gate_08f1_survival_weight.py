@@ -118,6 +118,42 @@ framework does not apply literally. Translated:
 
 Deltas are oriented so POSITIVE ALWAYS MEANS IMPROVEMENT, on every metric.
 
+RE-RUN ON CORRECTED WEIGHTS (W9, 2026-09-29) -- what changed in this script, and why.
+The design above is unchanged. These edits only make it runnable after 08o and WI-13, plus
+one arm added after the fact to tell the fix apart from everything else:
+
+  - WI-13 (2026-09-25) found the AFTER weights this gate ran on were mis-built: the
+    `GREATEST(0.25, LEAST(4.0, 1/NULL))` clip turned every "no prior-season curve" cell
+    (all of 2018, plus later (compound, lap_in_stint) cells no earlier season reached) into
+    4.0 instead of the documented neutral 1.0. The shipped SQL now uses `clamp_or_null`.
+    The re-run's AFTER is the corrected, as-shipped SQL.
+  - ADDED ARM `AFTER_PREWI13` (not pre-registered; for attribution only): the same
+    season-lagged SQL with just the survival_weight expression put back to the pre-WI-13
+    GREATEST/LEAST form, so the old defect is rebuilt on today's substrate. Exported by
+    `--stage export-after-prewi13`. It answers "is any change the fix's doing, or the
+    substrate's?" by running the original gate on the buggy weights next to the corrected
+    one. Its own gate rows use the pre-registered floor rule (the larger of its floor and
+    BEFORE's).
+  - Since 08o (v13) `evaluate._row_weights` returns None, so `EvalSplit.w_tr` is None for
+    the trio. The export now takes `survival_weight` from `meta_train`, re-indexed to the
+    split's `lap_ids_tr` (the same thing `_row_weights` returned before 08o).
+  - Step 1(a) checks the PRODUCTION path against the published headline. Before 08o that
+    was the AFTER-weighted fit. Since 08o it is the uniform fit (`E._fit(w=None)`), so that
+    is the fit checked. The substrate has also moved since the last published artefact
+    (v14, 2026-09-22; WI-01's label, WI-15's features, WI-05's eligibility and WI-02b's
+    seed refit have all landed without a retrain), so a mismatch is expected. With
+    `--allow-published-mismatch` it is recorded and waived, not fatal, on one condition:
+    two production-path refits give the same number. Without the flag the original abort
+    stands. `uniform_ones_equals_production_path` is recorded but NOT enforced, and on
+    2026-09-29 it came out False on all three heads: XGBoost's reg:quantileerror fits a
+    different model for sample_weight=ones (weighted leaf quantile) than for None
+    (unweighted, interpolated), while squared error does not. So arm A is "uniform", not
+    bit-for-bit production; the production (w=None) headline is recorded beside it.
+  - Weights from the BEFORE/PREWI13 snapshots are aligned to AFTER's rows by lap_id, not
+    by position. The mart ends with an ORDER BY, so the orders match anyway, and the
+    row-diff still asserts that they do.
+  - OUT moved to `_roadmap/_improvements/...` after the folder consolidation (57c4039).
+
 Reads the warehouse read-only in every stage. Writes nothing to `ml/models/`, nothing to
 `ml/artefacts/evaluation_metrics.json`, nothing to `dev.duckdb` and nothing to git. The
 only outputs are the two snapshot pickles (scratch, not committed) and the JSON named by
@@ -156,7 +192,7 @@ QUANTILE_TARGETS = ("degradation_regressor_p10", "degradation_regressor_p50",
                     "degradation_regressor_p90")
 STRUCTURAL_TARGETS = ("cliff_classifier", "stint_life_regressor")
 ALL_TARGETS = QUANTILE_TARGETS + STRUCTURAL_TARGETS
-OUT = Path("_improvements/eval/08f/08f1_gate_arms.json")
+OUT = Path("_roadmap/_improvements/eval/08f/08f1_gate_arms.json")
 
 INSTRUMENT_COLS_NOTE = (
     "every FEATURE_COLUMNS member, every target column, and the censoring flag -- "
@@ -219,18 +255,28 @@ def export_snapshot(duckdb_path: str, label: str, out_path: Path) -> None:
             bundles[fam] = F.load_features(duckdb_path=duckdb_path, target=target)
         b = bundles[fam]
         split = E._evaluation_split(b)
+        w_tr, w_source = split.w_tr, "EvalSplit.w_tr"
+        if w_tr is None and S.TARGET_BY_NAME[target].kind == "quantile":
+            # Post-08o: _row_weights returns None, so read the mart's survival_weight
+            # directly, re-indexed to the split's training rows (W9 re-run).
+            lut = dict(zip(b.meta_train["lap_id"], b.meta_train["survival_weight"]))
+            if len(lut) != len(b.meta_train):
+                raise ValueError(f"{target}: duplicate lap_id in meta_train")
+            w_tr = np.asarray([lut[i] for i in split.lap_ids_tr], dtype=np.float32)
+            w_source = "meta_train.survival_weight by lap_id"
         snap["targets"][target] = {
             "mode": split.mode, "eval_season": split.eval_season,
             "X_tr": split.X_tr, "y_tr": split.y_tr,
             "X_ev": split.X_ev, "y_ev": split.y_ev,
             "cens_tr": split.cens_tr, "cens_ev": split.cens_ev,
-            "w_tr": split.w_tr,
+            "w_tr": w_tr, "w_source": w_source,
+            "seasons_tr": np.asarray(split.seasons_tr),
             "lap_ids_tr": split.lap_ids_tr, "lap_ids_ev": split.lap_ids_ev,
             "fingerprint": b.fingerprint, "n_features": len(b.feature_columns),
         }
         print(f"[{label}] {target}: n_tr={len(split.X_tr)} n_ev={len(split.X_ev)} "
               f"mode={split.mode} eval_season={split.eval_season} "
-              f"w_tr={'yes' if split.w_tr is not None else 'no'}")
+              f"w_tr={'yes (' + w_source + ')' if w_tr is not None else 'no'}")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "wb") as fh:
         pickle.dump(snap, fh)
@@ -354,39 +400,103 @@ def instrument_check_rowdiff(after: dict, before: dict, target: str, log) -> dic
     return res
 
 
-def run_quantile_target(target: str, after: dict, before: dict, published: float, log) -> dict:
+def _aligned_w(snap_t: dict, ref_lap_ids) -> np.ndarray:
+    """A snapshot's training weights, re-indexed to `ref_lap_ids` (AFTER's train order).
+    The mart ends ORDER BY (race_year, race_id, driver_id, stint_id, lap_in_stint), so the
+    orders already agree -- instrument_check_rowdiff asserts it -- but aligning by lap_id
+    means a positional slip can never pair a weight with the wrong row."""
+    ids = list(snap_t["lap_ids_tr"])
+    w = np.asarray(snap_t["w_tr"], dtype=np.float32)
+    lut = dict(zip(ids, w))
+    if len(lut) != len(ids):
+        raise ValueError("duplicate lap_id in the training fold")
+    return np.asarray([lut[i] for i in ref_lap_ids], dtype=np.float32)
+
+
+def _w_summary(w: np.ndarray) -> dict:
+    return {"mean": float(w.mean()), "sd": float(w.std()),
+            "min": float(w.min()), "max": float(w.max())}
+
+
+def _by_season(mask: np.ndarray, seasons: np.ndarray) -> dict:
+    return {str(int(s)): int(mask[seasons == s].sum()) for s in np.unique(seasons)}
+
+
+def run_quantile_target(target: str, after: dict, before: dict, published: float, log,
+                        prewi13: dict | None = None, published_version: str | None = None,
+                        allow_published_mismatch: bool = False) -> dict:
     spec = S.TARGET_BY_NAME[target]
     params = E._params_for(target, S.MODEL_VERSION_DEFAULT)
     hib = E._higher_is_better(spec)
     a = after[target]
     X_tr, y_tr, X_ev, y_ev = a["X_tr"], a["y_tr"], a["X_ev"], a["y_ev"]
-    w_after = np.asarray(a["w_tr"], dtype=np.float32)
-    w_before = np.asarray(before[target]["w_tr"], dtype=np.float32)
+    ref_ids = a["lap_ids_tr"]
+    w_after = _aligned_w(a, ref_ids)
+    w_before = _aligned_w(before[target], ref_ids)
     w_uniform = np.ones_like(w_after)
+    w_bug = _aligned_w(prewi13[target], ref_ids) if prewi13 is not None else None
+    seasons_tr = np.asarray(a.get("seasons_tr")) if a.get("seasons_tr") is not None else None
 
     res: dict = {"target": target, "metric": E._headline_metric_name(spec),
                 "higher_is_better": hib, "n_train": int(len(X_tr)), "n_eval": int(len(X_ev)),
+                "mode": a.get("mode"), "eval_season": a.get("eval_season"),
                 "seeds": list(SEEDS),
-                "w_after_summary": {"mean": float(w_after.mean()), "sd": float(w_after.std()),
-                                    "min": float(w_after.min()), "max": float(w_after.max())},
-                "w_before_summary": {"mean": float(w_before.mean()), "sd": float(w_before.std()),
-                                     "min": float(w_before.min()), "max": float(w_before.max())},
+                "w_after_summary": _w_summary(w_after),
+                "w_before_summary": _w_summary(w_before),
                 "w_max_abs_diff": float(np.max(np.abs(w_after - w_before))),
                 "w_n_changed": int((w_after != w_before).sum())}
+    if seasons_tr is not None:
+        res["n_train_by_season"] = {str(int(s)): int((seasons_tr == s).sum())
+                                    for s in np.unique(seasons_tr)}
+        res["w_after_mean_by_season"] = {str(int(s)): float(w_after[seasons_tr == s].mean())
+                                         for s in np.unique(seasons_tr)}
+    if w_bug is not None:
+        moved = w_bug != w_after
+        res["w_after_prewi13_summary"] = _w_summary(w_bug)
+        res["prewi13_vs_after_w_n_changed"] = int(moved.sum())
+        res["prewi13_vs_after_w_n_4_to_1"] = int(((w_bug == 4.0) & (w_after == 1.0)).sum())
+        if seasons_tr is not None:
+            res["prewi13_vs_after_w_n_changed_by_season"] = _by_season(moved, seasons_tr)
+            res["w_after_prewi13_mean_by_season"] = {
+                str(int(s)): float(w_bug[seasons_tr == s].mean()) for s in np.unique(seasons_tr)}
 
-    # Step 1: instrument check -- AFTER (= production) reproduces published v12.
+    # Step 1: instrument check -- the PRODUCTION path reproduces the published headline.
+    # Pre-08o that was the AFTER-weighted fit; since 08o (v13) production fits the trio
+    # unweighted (train.py::_sample_weight -> None), so it is E._fit(w=None).
     t0 = time.time()
+    prod_uniform = T._sample_weight(spec, y_tr[:1]) is None
+    w_prod = None if prod_uniform else w_after
+    h_prod = score_model(spec, E._fit(spec, params, X_tr, y_tr, cens=None, w=w_prod), X_ev, y_ev, None)
+    h_prod2 = score_model(spec, E._fit(spec, params, X_tr, y_tr, cens=None, w=w_prod), X_ev, y_ev, None)
     m_after = E._fit(spec, params, X_tr, y_tr, cens=None, w=w_after)
     h_after = score_model(spec, m_after, X_ev, y_ev, None)
+    res["production_path"] = "uniform (w=None)" if prod_uniform else "AFTER survival_weight"
+    res["production_path_headline"] = h_prod
+    res["refit_deterministic"] = bool(h_prod == h_prod2)
     res["after_headline"] = h_after
-    res["published_v12_headline"] = published
-    res["instrument_check_6dp"] = bool(abs(h_after - published) < 5e-7)
-    log(f"  [{target}] AFTER={h_after:.10f} published_v12={published:.10f} "
-        f"instrument_check={res['instrument_check_6dp']} ({time.time()-t0:.0f}s)")
-    if not res["instrument_check_6dp"]:
-        res["aborted"] = "instrument check failed"
+    res["published_headline"] = published
+    res["published_version"] = published_version
+    res["instrument_check_6dp"] = bool(abs(h_prod - published) < 5e-7)
+    res["published_abs_diff"] = float(abs(h_prod - published))
+    log(f"  [{target}] production({res['production_path']})={h_prod:.10f} "
+        f"published_{published_version}={published:.10f} "
+        f"instrument_check={res['instrument_check_6dp']} deterministic={res['refit_deterministic']} "
+        f"AFTER={h_after:.10f} ({time.time()-t0:.0f}s)")
+    if not res["refit_deterministic"]:
+        res["aborted"] = "production-path refit is not deterministic"
         log(f"  [{target}] ABORTED -- {res['aborted']}")
         return res
+    if not res["instrument_check_6dp"]:
+        if not allow_published_mismatch:
+            res["aborted"] = "instrument check failed"
+            log(f"  [{target}] ABORTED -- {res['aborted']}")
+            return res
+        res["instrument_check_waived"] = (
+            "substrate has moved since the published artefact (no retrain since "
+            f"{published_version}); refit is deterministic, so the arms are compared on "
+            "today's substrate against each other, not against the published number")
+        log(f"  [{target}] instrument check WAIVED (--allow-published-mismatch): "
+            f"|diff|={res['published_abs_diff']:.3g}")
 
     # Step 2: the gate's own question -- AFTER vs BEFORE, both vs uniform A.
     t0 = time.time()
@@ -396,6 +506,10 @@ def run_quantile_target(target: str, after: dict, before: dict, published: float
     h_a = score_model(spec, m_a, X_ev, y_ev, None)
     res["before_headline"] = h_before
     res["uniform_A_headline"] = h_a
+    if prod_uniform:
+        # Recorded, not enforced: under reg:quantileerror w = ones and w = None are
+        # different fits (weighted vs unweighted leaf quantile), so this is False in practice.
+        res["uniform_ones_equals_production_path"] = bool(h_a == h_prod)
     d_after_before = delta(h_after, h_before, hib)
     d_after_a = delta(h_after, h_a, hib)
     d_before_a = delta(h_before, h_a, hib)
@@ -488,7 +602,81 @@ def run_quantile_target(target: str, after: dict, before: dict, published: float
                          "information_deltas": d_paired.tolist(), "e_value": ev},
         "negative_control_shuffle_vs_shuffle": {"paired_deltas": d_ctrl, "e_value": ctrl_ev},
     })
+
+    if w_bug is not None:
+        res["attribution_prewi13"] = run_prewi13_arm(
+            target, spec, params, hib, X_tr, y_tr, X_ev, y_ev, w_bug,
+            h_after=h_after, h_before=h_before, h_a=h_a,
+            floor_after=floor_after, floor_before=floor_before, log=log)
     return res
+
+
+def run_prewi13_arm(target, spec, params, hib, X_tr, y_tr, X_ev, y_ev, w_bug, *,
+                    h_after, h_before, h_a, floor_after, floor_before, log) -> dict:
+    """ADDED ARM for the W9 re-run (not pre-registered): AFTER with the pre-WI-13
+    GREATEST/LEAST clip, i.e. the defective weights the 2026-09-17 run used, rebuilt on
+    today's substrate. Two readings:
+
+      * `original_gate_on_prewi13`: the original gate re-run with the buggy AFTER, with
+        its own floor rule (larger of PREWI13's and BEFORE's). If it matches the corrected
+        run's verdicts, any change from 2026-09-17 comes from the substrate, not the fix.
+      * `fix_effect`: corrected AFTER vs PREWI13 (positive = the fix improved pinball),
+        quoted against the larger of the two arms' floors.
+    """
+    t0 = time.time()
+    h_bug = score_model(spec, E._fit(spec, params, X_tr, y_tr, cens=None, w=w_bug), X_ev, y_ev, None)
+    floor_bug = AT.refit_noise_floor(
+        lambda s: fit_seeded(spec, params, X_tr, y_tr, None, w_bug, s),
+        lambda yt, m, X: score_model(spec, m, X, yt, None), X_ev, y_ev, SEEDS)
+    F2_old = max(floor_bug["delta_noise_2sd"], floor_before["delta_noise_2sd"])
+    F2_fix = max(floor_bug["delta_noise_2sd"], floor_after["delta_noise_2sd"])
+    d_bug_before = delta(h_bug, h_before, hib)
+    d_bug_a = delta(h_bug, h_a, hib)
+    d_fix = delta(h_after, h_bug, hib)
+    log(f"  [{target}] PREWI13={h_bug:.10f} floor={floor_bug['delta_noise_2sd']:.8f}  "
+        f"PREWI13-vs-BEFORE={d_bug_before:+.8f} ({d_bug_before/F2_old:+.2f}x)  "
+        f"PREWI13-vs-A={d_bug_a:+.8f} ({d_bug_a/F2_old:+.2f}x)  "
+        f"fix effect AFTER-vs-PREWI13={d_fix:+.8f} ({d_fix/F2_fix:+.2f}x) ({time.time()-t0:.0f}s)")
+
+    t0 = time.time()
+    w_bug_shuf = shuffle_weights(w_bug, np.random.default_rng([S.RANDOM_STATE, 0]))
+    h_bug_shuf = score_model(spec, E._fit(spec, params, X_tr, y_tr, None, w_bug_shuf), X_ev, y_ev, None)
+    cap_bug = delta(h_bug_shuf, h_a, hib)
+    info_bug = delta(h_bug, h_bug_shuf, hib)
+    reals, shufs = [], []
+    for s in SEEDS:
+        reals.append(score_model(
+            spec, fit_seeded(spec, params, X_tr, y_tr, None, w_bug, s), X_ev, y_ev, None))
+        w_shuf_s = shuffle_weights(w_bug, np.random.default_rng([int(s), 0]))
+        shufs.append(score_model(
+            spec, fit_seeded(spec, params, X_tr, y_tr, None, w_shuf_s, s), X_ev, y_ev, None))
+    d_paired = np.asarray([delta(r, sh, hib) for r, sh in zip(reals, shufs)])
+    ev = safe_t_e_value(d_paired)
+    log(f"  [{target}] PREWI13: shuffled={h_bug_shuf:.10f} capacity={cap_bug:+.8f} "
+        f"({cap_bug/F2_old:+.2f}x) information={info_bug:+.8f} ({info_bug/F2_old:+.2f}x) "
+        f"E={ev['E']:.4g} (d_bar={ev['d_bar']:+.8f}) ({time.time()-t0:.0f}s)")
+    return {
+        "note": "added arm, not pre-registered: pre-WI-13 clip rebuilt on today's substrate",
+        "headline": h_bug, "refit_noise": floor_bug,
+        "original_gate_on_prewi13": {
+            "floor_2sqrt2sd": F2_old,
+            "prewi13_vs_before": {"delta": d_bug_before, "floor_ratio": d_bug_before / F2_old,
+                                  "clears_floor": bool(abs(d_bug_before) > F2_old)},
+            "prewi13_vs_uniform_A": {"delta": d_bug_a, "floor_ratio": d_bug_a / F2_old,
+                                     "clears_floor": bool(abs(d_bug_a) > F2_old)},
+            "permutation_null": {
+                "headline_shuffled": h_bug_shuf, "capacity_delta": cap_bug,
+                "capacity_floor_ratio": cap_bug / F2_old, "information_delta": info_bug,
+                "information_floor_ratio": info_bug / F2_old},
+            "paired_seeds": {"real_by_seed": list(map(float, reals)),
+                             "shuffled_by_seed": list(map(float, shufs)),
+                             "information_deltas": d_paired.tolist(), "e_value": ev},
+        },
+        "fix_effect_after_vs_prewi13": {
+            "delta": d_fix, "floor_2sqrt2sd": F2_fix, "floor_ratio": d_fix / F2_fix,
+            "clears_floor": bool(abs(d_fix) > F2_fix),
+            "direction": "fix improves pinball" if d_fix > 0 else "fix costs pinball"},
+    }
 
 
 def run_structural_target(target: str, after: dict, before: dict, published: float, log) -> dict:
@@ -507,10 +695,10 @@ def run_structural_target(target: str, after: dict, before: dict, published: flo
     model = E._fit(spec, params, X_tr, y_tr, cens=cens_tr, w=None)
     headline = score_model(spec, model, X_ev, y_ev, cens_ev)
     ok = bool(abs(headline - published) < 5e-7)
-    log(f"  [{target}] headline={headline:.10f} published_v12={published:.10f} "
+    log(f"  [{target}] headline={headline:.10f} published={published:.10f} "
         f"instrument_check={ok} ({time.time()-t0:.0f}s)")
     return {"target": target, "metric": E._headline_metric_name(spec),
-            "headline": headline, "published_v12_headline": published,
+            "headline": headline, "published_headline": published,
             "instrument_check_6dp": ok,
             "survival_weight_reaches_this_target": False,
             "before_vs_after_delta": 0.0,
@@ -522,15 +710,24 @@ def run_structural_target(target: str, after: dict, before: dict, published: flo
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", required=True, choices=["export-after", "export-before", "analyze"])
+    ap.add_argument("--stage", required=True,
+                    choices=["export-after", "export-after-prewi13", "export-before", "analyze"])
     ap.add_argument("--duckdb", default=None)
     ap.add_argument("--snapshot-dir", required=True)
     ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--allow-published-mismatch", action="store_true",
+                    help="record, rather than abort on, a production-path headline that does "
+                         "not reproduce the published artefact (substrate moved since the last "
+                         "retrain); still aborts if the refit is not deterministic")
+    ap.add_argument("--note", default=None, help="free-text provenance stored in the JSON")
     args = ap.parse_args()
     snap_dir = Path(args.snapshot_dir)
 
     if args.stage == "export-after":
         export_snapshot(args.duckdb, "after", snap_dir / "after.pkl")
+        return 0
+    if args.stage == "export-after-prewi13":
+        export_snapshot(args.duckdb, "after_prewi13", snap_dir / "after_prewi13.pkl")
         return 0
     if args.stage == "export-before":
         export_snapshot(args.duckdb, "before", snap_dir / "before.pkl")
@@ -547,6 +744,10 @@ def main() -> int:
         after = pickle.load(fh)["targets"]
     with open(snap_dir / "before.pkl", "rb") as fh:
         before = pickle.load(fh)["targets"]
+    prewi13 = None
+    if (snap_dir / "after_prewi13.pkl").exists():
+        with open(snap_dir / "after_prewi13.pkl", "rb") as fh:
+            prewi13 = pickle.load(fh)["targets"]
 
     published = json.loads(Path("ml/artefacts/evaluation_metrics.json").read_text())
     pub_version = published.get("version")
@@ -555,6 +756,11 @@ def main() -> int:
         "item": "08f-1", "purpose": "gate the survival-weight season-lag in isolation",
         "ran_at": pd.Timestamp.utcnow().isoformat(),
         "published_artefact_version": pub_version,
+        "note": args.note,
+        "arms": {"A": "uniform (w=1)", "AFTER": "season-lagged IPW, as shipped (post-WI-13 clip)",
+                 "BEFORE": "season-pooled IPW (pre-08f-1 hand revert)",
+                 **({"AFTER_PREWI13": "season-lagged IPW with the pre-WI-13 GREATEST/LEAST "
+                     "clip (added arm, attribution only)"} if prewi13 is not None else {})},
         "seeds": list(SEEDS),
         "e_value_construction": {"name": "B (paired safe-t)", "n": len(SEEDS), "g": E_VALUE_G,
                                  "null": "information contrast: real AFTER vs its own shuffle"},
@@ -569,11 +775,17 @@ def main() -> int:
     log("\n=== Step 1(b): instrument check -- row-level diff outside survival_weight ===")
     for target in ALL_TARGETS:
         out["instrument_row_diff"][target] = instrument_check_rowdiff(after, before, target, log)
+    if prewi13 is not None:
+        log("  -- AFTER vs AFTER_PREWI13 --")
+        out["instrument_row_diff_prewi13"] = {
+            t: instrument_check_rowdiff(after, prewi13, t, log) for t in ALL_TARGETS}
 
     for target in QUANTILE_TARGETS:
         log(f"\n=== {target} ===")
         out["targets"][target] = run_quantile_target(
-            target, after, before, published["models"][target]["headline"], log)
+            target, after, before, published["models"][target]["headline"], log,
+            prewi13=prewi13, published_version=pub_version,
+            allow_published_mismatch=args.allow_published_mismatch)
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(json.dumps(out, indent=2, default=float))
 

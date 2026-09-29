@@ -1,0 +1,1229 @@
+{
+  "models": {
+    "degradation_regressor_p10": {
+      "ipw": {
+        "version": "v15ipw",
+        "bst_path": "ml/models/degradation_regressor_p10_v15ipw.bst",
+        "bst_bytes": 2270547,
+        "bst_sha256": "569d93c12c69d3bbbf752c7dbe33cdf41d52532b680597241ccb83163655ad69",
+        "sample_weight_scheme": "ipw_survival_weight",
+        "headline_metric": "pinball",
+        "headline_cv": 0.43659395360072545,
+        "fold_metrics": [
+          {
+            "fold": 0,
+            "val_season": 2021,
+            "pinball": 0.4286560334763587
+          },
+          {
+            "fold": 1,
+            "val_season": 2022,
+            "pinball": 0.35183219288594514
+          },
+          {
+            "fold": 2,
+            "val_season": 2023,
+            "pinball": 0.40441743738374697
+          },
+          {
+            "fold": 3,
+            "val_season": 2024,
+            "pinball": 0.4156486471384336
+          },
+          {
+            "fold": 4,
+            "val_season": 2025,
+            "pinball": 0.5824154571191429
+          }
+        ],
+        "fit_seconds": 19.93,
+        "n_train_rows": 85859,
+        "fingerprint": "fb65a7711ed4169973c15bd9aaa1e3e978ac50a1e3b9ff844ab586be379eb65a",
+        "n_trees": 400,
+        "n_nodes": 58944,
+        "n_leaves": 29672,
+        "gain_share_top10": [
+          [
+            "push_residual",
+            0.22888012354141457
+          ],
+          [
+            "expected_degradation_rate_s_per_lap",
+            0.08047116926348649
+          ],
+          [
+            "compound_wear_gradient",
+            0.05831296193335596
+          ],
+          [
+            "expected_compound_pace_s",
+            0.05754004540426533
+          ],
+          [
+            "gap_ahead_min_s",
+            0.048120394354986856
+          ],
+          [
+            "fuel_mass_kg",
+            0.04730432618364321
+          ],
+          [
+            "compound_cliff_severity",
+            0.040991179461981615
+          ],
+          [
+            "compound_cliff_onset_laps",
+            0.03804945077362773
+          ],
+          [
+            "lap_number",
+            0.037788003080089574
+          ],
+          [
+            "lap_in_stint",
+            0.03729935389994034
+          ]
+        ],
+        "train_pinball_unweighted": 0.33987582395098914,
+        "train_pinball_ipw_weighted": 0.3330746083323276,
+        "xgb_batch_2025": {
+          "rows": 12380,
+          "median_ms": 14.359083026647568,
+          "p90_ms": 15.065716381650418,
+          "reps": 7
+        },
+        "xgb_single_row": {
+          "median_ms": 0.6676044722553343,
+          "p90_ms": 0.7418161374516785,
+          "reps": 200
+        },
+        "onnx_bytes": 1911128,
+        "onnx_parity": {
+          "target": "degradation_regressor_p10",
+          "max_abs_diff": 1.52587890625e-05,
+          "max_rel_diff": 2.3832480048117602e-05,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "pass": true,
+          "n_rows": 500,
+          "kind": "quantile"
+        },
+        "onnx_batch_2025": {
+          "rows": 12380,
+          "median_ms": 29.553749947808683,
+          "p90_ms": 29.61165838642046,
+          "reps": 7
+        },
+        "onnx_single_row": {
+          "median_ms": 0.008249946404248476,
+          "p90_ms": 0.008754106238484384,
+          "reps": 500
+        }
+      },
+      "uniform": {
+        "version": "v15uni",
+        "bst_path": "ml/models/degradation_regressor_p10_v15uni.bst",
+        "bst_bytes": 2327401,
+        "bst_sha256": "66380cb72dc7dbdd0900509e0ffcfcfdd2c4a19e896eb379e5f08b8b33bb2d3d",
+        "sample_weight_scheme": "uniform_none",
+        "headline_metric": "pinball",
+        "headline_cv": 0.4373049860493505,
+        "fold_metrics": [
+          {
+            "fold": 0,
+            "val_season": 2021,
+            "pinball": 0.4299605749196483
+          },
+          {
+            "fold": 1,
+            "val_season": 2022,
+            "pinball": 0.35264808790440494
+          },
+          {
+            "fold": 2,
+            "val_season": 2023,
+            "pinball": 0.40000173051242405
+          },
+          {
+            "fold": 3,
+            "val_season": 2024,
+            "pinball": 0.4171932348848328
+          },
+          {
+            "fold": 4,
+            "val_season": 2025,
+            "pinball": 0.5867213020254424
+          }
+        ],
+        "fit_seconds": 20.13,
+        "n_train_rows": 85859,
+        "fingerprint": "fb65a7711ed4169973c15bd9aaa1e3e978ac50a1e3b9ff844ab586be379eb65a",
+        "n_trees": 400,
+        "n_nodes": 60616,
+        "n_leaves": 30508,
+        "gain_share_top10": [
+          [
+            "push_residual",
+            0.26173295195767693
+          ],
+          [
+            "expected_degradation_rate_s_per_lap",
+            0.09211399027788927
+          ],
+          [
+            "expected_compound_pace_s",
+            0.05822398826527587
+          ],
+          [
+            "gap_ahead_min_s",
+            0.04908828886642502
+          ],
+          [
+            "fuel_mass_kg",
+            0.047674437930109864
+          ],
+          [
+            "compound_wear_gradient",
+            0.04692408136473867
+          ],
+          [
+            "compound_cliff_onset_laps",
+            0.045969319917087643
+          ],
+          [
+            "compound_cliff_severity",
+            0.04203218189231272
+          ],
+          [
+            "lap_number",
+            0.034004958821557484
+          ],
+          [
+            "cumulative_push_load_surface",
+            0.03249556210618348
+          ]
+        ],
+        "train_pinball_unweighted": 0.3277918059554533,
+        "train_pinball_ipw_weighted": 0.3312955067154367,
+        "xgb_batch_2025": {
+          "rows": 12380,
+          "median_ms": 15.147041995078325,
+          "p90_ms": 16.60273359157145,
+          "reps": 7
+        },
+        "xgb_single_row": {
+          "median_ms": 0.6855414831079543,
+          "p90_ms": 0.7580413366667926,
+          "reps": 200
+        },
+        "onnx_bytes": 1968616,
+        "onnx_parity": {
+          "target": "degradation_regressor_p10",
+          "max_abs_diff": 2.86102294921875e-05,
+          "max_rel_diff": 6.206401004015989e-05,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "pass": true,
+          "n_rows": 500,
+          "kind": "quantile"
+        },
+        "onnx_batch_2025": {
+          "rows": 12380,
+          "median_ms": 31.942333036568016,
+          "p90_ms": 32.35520881135017,
+          "reps": 7
+        },
+        "onnx_single_row": {
+          "median_ms": 0.008000002708286047,
+          "p90_ms": 0.008500006515532732,
+          "reps": 500
+        }
+      },
+      "bst_identical_across_arms": false
+    },
+    "degradation_regressor_p50": {
+      "ipw": {
+        "version": "v15ipw",
+        "bst_path": "ml/models/degradation_regressor_p50_v15ipw.bst",
+        "bst_bytes": 5681383,
+        "bst_sha256": "26e6da4a4319cfe122b00a34b9e1d1fc8ada7441b4a71b466efd94f2c21906e9",
+        "sample_weight_scheme": "ipw_survival_weight",
+        "headline_metric": "pinball",
+        "headline_cv": 0.8858912547575393,
+        "fold_metrics": [
+          {
+            "fold": 0,
+            "val_season": 2021,
+            "pinball": 0.9258980749539194
+          },
+          {
+            "fold": 1,
+            "val_season": 2022,
+            "pinball": 0.7881936276274973
+          },
+          {
+            "fold": 2,
+            "val_season": 2023,
+            "pinball": 0.8412267745074393
+          },
+          {
+            "fold": 3,
+            "val_season": 2024,
+            "pinball": 0.9258587280902998
+          },
+          {
+            "fold": 4,
+            "val_season": 2025,
+            "pinball": 0.9482790686085404
+          }
+        ],
+        "fit_seconds": 35.69,
+        "n_train_rows": 85859,
+        "fingerprint": "fb65a7711ed4169973c15bd9aaa1e3e978ac50a1e3b9ff844ab586be379eb65a",
+        "n_trees": 600,
+        "n_nodes": 155374,
+        "n_leaves": 77987,
+        "gain_share_top10": [
+          [
+            "push_residual",
+            0.14708205144418118
+          ],
+          [
+            "expected_compound_pace_s",
+            0.06365850106571169
+          ],
+          [
+            "fuel_mass_kg",
+            0.062351780255547204
+          ],
+          [
+            "lap_number",
+            0.05247609267376398
+          ],
+          [
+            "expected_degradation_rate_s_per_lap",
+            0.0519484768329713
+          ],
+          [
+            "compound_wear_gradient",
+            0.05066056132726294
+          ],
+          [
+            "compound_cliff_severity",
+            0.048492266405624686
+          ],
+          [
+            "lap_in_stint",
+            0.0457142973507736
+          ],
+          [
+            "laps_past_cliff",
+            0.04130419667476086
+          ],
+          [
+            "surface_bulk_ratio",
+            0.04116418624842306
+          ]
+        ],
+        "train_pinball_unweighted": 0.7328234482519747,
+        "train_pinball_ipw_weighted": 0.7096813873687331,
+        "xgb_batch_2025": {
+          "rows": 12380,
+          "median_ms": 29.762000020127743,
+          "p90_ms": 32.621833414305,
+          "reps": 7
+        },
+        "xgb_single_row": {
+          "median_ms": 0.7766459893900901,
+          "p90_ms": 0.8989292080514133,
+          "reps": 200
+        },
+        "onnx_bytes": 5183484,
+        "onnx_parity": {
+          "target": "degradation_regressor_p50",
+          "max_abs_diff": 8.58306884765625e-06,
+          "max_rel_diff": 8.225293368945442e-06,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "pass": true,
+          "n_rows": 500,
+          "kind": "quantile"
+        },
+        "onnx_batch_2025": {
+          "rows": 12380,
+          "median_ms": 53.451042040251195,
+          "p90_ms": 86.2945834058337,
+          "reps": 7
+        },
+        "onnx_single_row": {
+          "median_ms": 0.009874987881630659,
+          "p90_ms": 0.010457995813339949,
+          "reps": 500
+        }
+      },
+      "uniform": {
+        "version": "v15uni",
+        "bst_path": "ml/models/degradation_regressor_p50_v15uni.bst",
+        "bst_bytes": 5887166,
+        "bst_sha256": "2495a724caef5823ee0b2c30c1aa83efec7da9ed3e9dba8d04644a8cc77c3c95",
+        "sample_weight_scheme": "uniform_none",
+        "headline_metric": "pinball",
+        "headline_cv": 0.8868226697724373,
+        "fold_metrics": [
+          {
+            "fold": 0,
+            "val_season": 2021,
+            "pinball": 0.9293143039455665
+          },
+          {
+            "fold": 1,
+            "val_season": 2022,
+            "pinball": 0.7879157807900881
+          },
+          {
+            "fold": 2,
+            "val_season": 2023,
+            "pinball": 0.8399961383462927
+          },
+          {
+            "fold": 3,
+            "val_season": 2024,
+            "pinball": 0.9164000922754747
+          },
+          {
+            "fold": 4,
+            "val_season": 2025,
+            "pinball": 0.9604870335047643
+          }
+        ],
+        "fit_seconds": 35.24,
+        "n_train_rows": 85859,
+        "fingerprint": "fb65a7711ed4169973c15bd9aaa1e3e978ac50a1e3b9ff844ab586be379eb65a",
+        "n_trees": 600,
+        "n_nodes": 161426,
+        "n_leaves": 81013,
+        "gain_share_top10": [
+          [
+            "push_residual",
+            0.17525255103088866
+          ],
+          [
+            "fuel_mass_kg",
+            0.06619442011984863
+          ],
+          [
+            "expected_compound_pace_s",
+            0.05811707698703611
+          ],
+          [
+            "compound_wear_gradient",
+            0.05473457741013438
+          ],
+          [
+            "expected_degradation_rate_s_per_lap",
+            0.05339114891554079
+          ],
+          [
+            "compound_cliff_severity",
+            0.04939083929836767
+          ],
+          [
+            "lap_number",
+            0.04897597746195159
+          ],
+          [
+            "compound_cliff_onset_laps",
+            0.04218547553220418
+          ],
+          [
+            "surface_bulk_ratio",
+            0.04137494534478434
+          ],
+          [
+            "cumulative_push_load_surface",
+            0.04021781222253912
+          ]
+        ],
+        "train_pinball_unweighted": 0.7083914627891637,
+        "train_pinball_ipw_weighted": 0.7161061498165121,
+        "xgb_batch_2025": {
+          "rows": 12380,
+          "median_ms": 27.658083999995142,
+          "p90_ms": 28.432674997020513,
+          "reps": 7
+        },
+        "xgb_single_row": {
+          "median_ms": 0.8838124922476709,
+          "p90_ms": 1.1800877924542874,
+          "reps": 200
+        },
+        "onnx_bytes": 5394739,
+        "onnx_parity": {
+          "target": "degradation_regressor_p50",
+          "max_abs_diff": 1.049041748046875e-05,
+          "max_rel_diff": 1.303916823944517e-05,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "pass": true,
+          "n_rows": 500,
+          "kind": "quantile"
+        },
+        "onnx_batch_2025": {
+          "rows": 12380,
+          "median_ms": 68.63954197615385,
+          "p90_ms": 80.20103299058974,
+          "reps": 7
+        },
+        "onnx_single_row": {
+          "median_ms": 0.010374991688877344,
+          "p90_ms": 0.010958989150822163,
+          "reps": 500
+        }
+      },
+      "bst_identical_across_arms": false
+    },
+    "degradation_regressor_p90": {
+      "ipw": {
+        "version": "v15ipw",
+        "bst_path": "ml/models/degradation_regressor_p90_v15ipw.bst",
+        "bst_bytes": 1117247,
+        "bst_sha256": "1147cdf336c37cbb825151a86ba97ebe0bc28aa3fd32e0267cb44e0f915b4fad",
+        "sample_weight_scheme": "ipw_survival_weight",
+        "headline_metric": "pinball",
+        "headline_cv": 0.46340702869870665,
+        "fold_metrics": [
+          {
+            "fold": 0,
+            "val_season": 2021,
+            "pinball": 0.5131906468487056
+          },
+          {
+            "fold": 1,
+            "val_season": 2022,
+            "pinball": 0.39977862015432714
+          },
+          {
+            "fold": 2,
+            "val_season": 2023,
+            "pinball": 0.43753518155297055
+          },
+          {
+            "fold": 3,
+            "val_season": 2024,
+            "pinball": 0.5271610220975539
+          },
+          {
+            "fold": 4,
+            "val_season": 2025,
+            "pinball": 0.4393696728399759
+          }
+        ],
+        "fit_seconds": 16.1,
+        "n_train_rows": 85859,
+        "fingerprint": "fb65a7711ed4169973c15bd9aaa1e3e978ac50a1e3b9ff844ab586be379eb65a",
+        "n_trees": 300,
+        "n_nodes": 26972,
+        "n_leaves": 13636,
+        "gain_share_top10": [
+          [
+            "push_residual",
+            0.1341735327177264
+          ],
+          [
+            "expected_compound_pace_s",
+            0.08058161178101236
+          ],
+          [
+            "fuel_mass_kg",
+            0.07525944779688518
+          ],
+          [
+            "lap_number",
+            0.05705851450338412
+          ],
+          [
+            "compound_wear_gradient",
+            0.056838506300560296
+          ],
+          [
+            "compound_cliff_onset_laps",
+            0.05673907340670937
+          ],
+          [
+            "compound_cliff_severity",
+            0.052774980327047714
+          ],
+          [
+            "laps_past_cliff",
+            0.0517298749325488
+          ],
+          [
+            "surface_bulk_ratio",
+            0.04156441111357463
+          ],
+          [
+            "lap_in_stint",
+            0.03823410814012313
+          ]
+        ],
+        "train_pinball_unweighted": 0.4052189367215251,
+        "train_pinball_ipw_weighted": 0.4037156299717384,
+        "xgb_batch_2025": {
+          "rows": 12380,
+          "median_ms": 10.18974999897182,
+          "p90_ms": 10.741733387112617,
+          "reps": 7
+        },
+        "xgb_single_row": {
+          "median_ms": 0.6370834889821708,
+          "p90_ms": 0.7193411409389228,
+          "reps": 200
+        },
+        "onnx_bytes": 857827,
+        "onnx_parity": {
+          "target": "degradation_regressor_p90",
+          "max_abs_diff": 5.7220458984375e-06,
+          "max_rel_diff": 2.2802832996713537e-06,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "pass": true,
+          "n_rows": 500,
+          "kind": "quantile"
+        },
+        "onnx_batch_2025": {
+          "rows": 12380,
+          "median_ms": 16.93599997088313,
+          "p90_ms": 19.524283579085022,
+          "reps": 7
+        },
+        "onnx_single_row": {
+          "median_ms": 0.011458003427833319,
+          "p90_ms": 0.024707987904548645,
+          "reps": 500
+        }
+      },
+      "uniform": {
+        "version": "v15uni",
+        "bst_path": "ml/models/degradation_regressor_p90_v15uni.bst",
+        "bst_bytes": 1097652,
+        "bst_sha256": "e9607bf3f0302f43fd42abbaa9ec473f5d6ce2e71cf9a9b276e1501c272313f7",
+        "sample_weight_scheme": "uniform_none",
+        "headline_metric": "pinball",
+        "headline_cv": 0.4591034846255825,
+        "fold_metrics": [
+          {
+            "fold": 0,
+            "val_season": 2021,
+            "pinball": 0.5120806634917302
+          },
+          {
+            "fold": 1,
+            "val_season": 2022,
+            "pinball": 0.39845208743065413
+          },
+          {
+            "fold": 2,
+            "val_season": 2023,
+            "pinball": 0.4364775225718725
+          },
+          {
+            "fold": 3,
+            "val_season": 2024,
+            "pinball": 0.5142389496683463
+          },
+          {
+            "fold": 4,
+            "val_season": 2025,
+            "pinball": 0.43426819996530935
+          }
+        ],
+        "fit_seconds": 16.23,
+        "n_train_rows": 85859,
+        "fingerprint": "fb65a7711ed4169973c15bd9aaa1e3e978ac50a1e3b9ff844ab586be379eb65a",
+        "n_trees": 300,
+        "n_nodes": 26396,
+        "n_leaves": 13348,
+        "gain_share_top10": [
+          [
+            "push_residual",
+            0.17079697655191223
+          ],
+          [
+            "fuel_mass_kg",
+            0.08440591422966001
+          ],
+          [
+            "expected_compound_pace_s",
+            0.06100750985754002
+          ],
+          [
+            "compound_cliff_severity",
+            0.059024732873156474
+          ],
+          [
+            "lap_number",
+            0.05624368820534009
+          ],
+          [
+            "compound_cliff_onset_laps",
+            0.0557969454340775
+          ],
+          [
+            "compound_wear_gradient",
+            0.053929302535041405
+          ],
+          [
+            "expected_degradation_rate_s_per_lap",
+            0.040401058333694145
+          ],
+          [
+            "laps_past_cliff",
+            0.04019566514523413
+          ],
+          [
+            "surface_bulk_ratio",
+            0.03635802650948731
+          ]
+        ],
+        "train_pinball_unweighted": 0.3982726156459051,
+        "train_pinball_ipw_weighted": 0.4071537566462017,
+        "xgb_batch_2025": {
+          "rows": 12380,
+          "median_ms": 9.979667025618255,
+          "p90_ms": 10.55726659251377,
+          "reps": 7
+        },
+        "xgb_single_row": {
+          "median_ms": 0.6400834827218205,
+          "p90_ms": 0.7442290661856532,
+          "reps": 200
+        },
+        "onnx_bytes": 839128,
+        "onnx_parity": {
+          "target": "degradation_regressor_p90",
+          "max_abs_diff": 4.76837158203125e-06,
+          "max_rel_diff": 8.568601130678096e-06,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "pass": true,
+          "n_rows": 500,
+          "kind": "quantile"
+        },
+        "onnx_batch_2025": {
+          "rows": 12380,
+          "median_ms": 18.04820803226903,
+          "p90_ms": 18.752791604492813,
+          "reps": 7
+        },
+        "onnx_single_row": {
+          "median_ms": 0.007416994776576757,
+          "p90_ms": 0.007796124555170538,
+          "reps": 500
+        }
+      },
+      "bst_identical_across_arms": false
+    },
+    "cliff_classifier": {
+      "ipw": {
+        "version": "v15ipw",
+        "bst_path": "ml/models/cliff_classifier_v15ipw.bst",
+        "bst_bytes": 27980138,
+        "bst_sha256": "2579ae804a2666bd3c37fc8f25cfc5abcfc07059969c7bb05d4d9207bf88d695",
+        "sample_weight_scheme": "balanced_class",
+        "headline_metric": "macro_f1",
+        "headline_cv": 0.37603899190242374,
+        "fold_metrics": [
+          {
+            "fold": 0,
+            "val_season": 2021,
+            "macro_f1": 0.37073760244150844
+          },
+          {
+            "fold": 1,
+            "val_season": 2022,
+            "macro_f1": 0.3764508194788668
+          },
+          {
+            "fold": 2,
+            "val_season": 2023,
+            "macro_f1": 0.3603735892363521
+          },
+          {
+            "fold": 3,
+            "val_season": 2024,
+            "macro_f1": 0.3957482569813042
+          },
+          {
+            "fold": 4,
+            "val_season": 2025,
+            "macro_f1": 0.376884691374087
+          }
+        ],
+        "fit_seconds": 111.57,
+        "n_train_rows": 115356,
+        "fingerprint": "1194bbc9dbe0c7c43e8ee0121d7663f357bc3d900567e241c65dc5b6378efd61",
+        "n_trees": 2800,
+        "n_nodes": 768620,
+        "n_leaves": 385710,
+        "gain_share_top10": [
+          [
+            "fuel_mass_kg",
+            0.10360123259590705
+          ],
+          [
+            "push_residual",
+            0.06335104761316487
+          ],
+          [
+            "quali_ratio_to_segment_best_min",
+            0.05649180900121755
+          ],
+          [
+            "quali_constructor_pace_se_mean_s",
+            0.05629453772545668
+          ],
+          [
+            "quali_skill_session_avg_s",
+            0.05383956653736202
+          ],
+          [
+            "quali_constructor_pace_mean_s",
+            0.05045008463407953
+          ],
+          [
+            "quali_pace_delta_best_s",
+            0.048940852032218554
+          ],
+          [
+            "lap_number",
+            0.04777995841457176
+          ],
+          [
+            "compound_cliff_severity",
+            0.0430206762436966
+          ],
+          [
+            "expected_compound_pace_s",
+            0.04098478393434867
+          ]
+        ],
+        "train_macro_f1": 0.7712131321701649,
+        "train_accuracy": 0.8166545303235202,
+        "xgb_batch_2025": {
+          "rows": 16635,
+          "median_ms": 207.6783340307884,
+          "p90_ms": 233.40789198409766,
+          "reps": 7
+        },
+        "xgb_single_row": {
+          "median_ms": 2.4671040009707212,
+          "p90_ms": 3.8212871877476555,
+          "reps": 200
+        },
+        "onnx_bytes": 25960106,
+        "onnx_parity": {
+          "target": "cliff_classifier",
+          "max_abs_diff": 3.5762786865234375e-07,
+          "max_rel_diff": 6.474115494448461e-06,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "pass": true,
+          "n_rows": 500,
+          "kind": "classification"
+        },
+        "onnx_batch_2025": {
+          "rows": 16635,
+          "median_ms": 372.37349996576086,
+          "p90_ms": 374.63256620103493,
+          "reps": 7
+        },
+        "onnx_single_row": {
+          "median_ms": 0.03702053800225258,
+          "p90_ms": 0.05010803579352797,
+          "reps": 500
+        }
+      },
+      "uniform": {
+        "version": "v15uni",
+        "bst_path": "ml/models/cliff_classifier_v15uni.bst",
+        "bst_bytes": 27980138,
+        "bst_sha256": "2579ae804a2666bd3c37fc8f25cfc5abcfc07059969c7bb05d4d9207bf88d695",
+        "sample_weight_scheme": "balanced_class",
+        "headline_metric": "macro_f1",
+        "headline_cv": 0.37603899190242374,
+        "fold_metrics": [
+          {
+            "fold": 0,
+            "val_season": 2021,
+            "macro_f1": 0.37073760244150844
+          },
+          {
+            "fold": 1,
+            "val_season": 2022,
+            "macro_f1": 0.3764508194788668
+          },
+          {
+            "fold": 2,
+            "val_season": 2023,
+            "macro_f1": 0.3603735892363521
+          },
+          {
+            "fold": 3,
+            "val_season": 2024,
+            "macro_f1": 0.3957482569813042
+          },
+          {
+            "fold": 4,
+            "val_season": 2025,
+            "macro_f1": 0.376884691374087
+          }
+        ],
+        "fit_seconds": 209.94,
+        "n_train_rows": 115356,
+        "fingerprint": "1194bbc9dbe0c7c43e8ee0121d7663f357bc3d900567e241c65dc5b6378efd61",
+        "n_trees": 2800,
+        "n_nodes": 768620,
+        "n_leaves": 385710,
+        "gain_share_top10": [
+          [
+            "fuel_mass_kg",
+            0.10360123259590705
+          ],
+          [
+            "push_residual",
+            0.06335104761316487
+          ],
+          [
+            "quali_ratio_to_segment_best_min",
+            0.05649180900121755
+          ],
+          [
+            "quali_constructor_pace_se_mean_s",
+            0.05629453772545668
+          ],
+          [
+            "quali_skill_session_avg_s",
+            0.05383956653736202
+          ],
+          [
+            "quali_constructor_pace_mean_s",
+            0.05045008463407953
+          ],
+          [
+            "quali_pace_delta_best_s",
+            0.048940852032218554
+          ],
+          [
+            "lap_number",
+            0.04777995841457176
+          ],
+          [
+            "compound_cliff_severity",
+            0.0430206762436966
+          ],
+          [
+            "expected_compound_pace_s",
+            0.04098478393434867
+          ]
+        ],
+        "train_macro_f1": 0.7712131321701649,
+        "train_accuracy": 0.8166545303235202,
+        "xgb_batch_2025": {
+          "rows": 16635,
+          "median_ms": 239.3522919737734,
+          "p90_ms": 299.8542666085996,
+          "reps": 7
+        },
+        "xgb_single_row": {
+          "median_ms": 2.27972847642377,
+          "p90_ms": 2.788595773745328,
+          "reps": 200
+        },
+        "onnx_bytes": 25960106,
+        "onnx_parity": {
+          "target": "cliff_classifier",
+          "max_abs_diff": 3.5762786865234375e-07,
+          "max_rel_diff": 6.474115494448461e-06,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "pass": true,
+          "n_rows": 500,
+          "kind": "classification"
+        },
+        "onnx_batch_2025": {
+          "rows": 16635,
+          "median_ms": 380.3400420001708,
+          "p90_ms": 399.3130749906413,
+          "reps": 7
+        },
+        "onnx_single_row": {
+          "median_ms": 0.04783296026289463,
+          "p90_ms": 0.04967112326994538,
+          "reps": 500
+        }
+      },
+      "bst_identical_across_arms": true
+    },
+    "stint_life_regressor": {
+      "ipw": {
+        "version": "v15ipw",
+        "bst_path": "ml/models/stint_life_regressor_v15ipw.bst",
+        "bst_bytes": 1239866,
+        "bst_sha256": "163620569df3187ae7bc42ffbab18e39c52b432801c3a74208f7ae0d1a31cd71",
+        "sample_weight_scheme": "none",
+        "headline_metric": "aft_nloglik",
+        "headline_cv": 2.260583806808706,
+        "fold_metrics": [
+          {
+            "fold": 0,
+            "val_season": 2021,
+            "aft_nloglik": 2.28894767843025,
+            "c_index": 0.7448847972048654,
+            "censored_share": 0.4386987589319293
+          },
+          {
+            "fold": 1,
+            "val_season": 2022,
+            "aft_nloglik": 2.2420249185195704,
+            "c_index": 0.7082224571898198,
+            "censored_share": 0.41027655562539284
+          },
+          {
+            "fold": 2,
+            "val_season": 2023,
+            "aft_nloglik": 2.274157955284665,
+            "c_index": 0.7072454891490342,
+            "censored_share": 0.4201264614650441
+          },
+          {
+            "fold": 3,
+            "val_season": 2024,
+            "aft_nloglik": 2.185728245597478,
+            "c_index": 0.752781099815828,
+            "censored_share": 0.48966351440510225
+          },
+          {
+            "fold": 4,
+            "val_season": 2025,
+            "aft_nloglik": 2.3120602362115665,
+            "c_index": 0.7360499236932347,
+            "censored_share": 0.4407152527075812
+          }
+        ],
+        "fit_seconds": 5.24,
+        "n_train_rows": 123133,
+        "fingerprint": "1b76298fb18bef906c728db494bdde018b89acacb2a4637f5ec0cd33e8a17763",
+        "n_trees": 100,
+        "n_nodes": 34460,
+        "n_leaves": 17280,
+        "gain_share_top10": [
+          [
+            "f3",
+            0.2664436986614176
+          ],
+          [
+            "f0",
+            0.09912388700503953
+          ],
+          [
+            "f11",
+            0.09287106791070703
+          ],
+          [
+            "f10",
+            0.0865820517600677
+          ],
+          [
+            "f4",
+            0.07256721528480742
+          ],
+          [
+            "f2",
+            0.0724177672873032
+          ],
+          [
+            "f1",
+            0.04827258588200269
+          ],
+          [
+            "f6",
+            0.042116445087964915
+          ],
+          [
+            "f15",
+            0.040777598769954626
+          ],
+          [
+            "f9",
+            0.02928756513371687
+          ]
+        ],
+        "xgb_batch_2025": {
+          "rows": 17728,
+          "median_ms": 0.11666701175272465,
+          "p90_ms": 0.14100036351010206,
+          "reps": 7
+        },
+        "xgb_single_row": {
+          "median_ms": 0.07458351319655776,
+          "p90_ms": 0.08521307026967406,
+          "reps": 200
+        },
+        "onnx_bytes": 1123495,
+        "onnx_parity": {
+          "target": "stint_life_regressor",
+          "max_abs_diff": 4.373418760295067e-05,
+          "max_rel_diff": 2.258726092002524e-06,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "pass": true,
+          "n_rows": 500,
+          "kind": "survival",
+          "aft_margin_offset": -0.6931467056274414,
+          "aft_scale": 0.753792882
+        },
+        "onnx_batch_2025": {
+          "rows": 17728,
+          "median_ms": 13.157124980352819,
+          "p90_ms": 13.957400189246982,
+          "reps": 7
+        },
+        "onnx_single_row": {
+          "median_ms": 0.006916496204212308,
+          "p90_ms": 0.007671152707189323,
+          "reps": 500
+        }
+      },
+      "uniform": {
+        "version": "v15uni",
+        "bst_path": "ml/models/stint_life_regressor_v15uni.bst",
+        "bst_bytes": 1239866,
+        "bst_sha256": "163620569df3187ae7bc42ffbab18e39c52b432801c3a74208f7ae0d1a31cd71",
+        "sample_weight_scheme": "none",
+        "headline_metric": "aft_nloglik",
+        "headline_cv": 2.260583806808706,
+        "fold_metrics": [
+          {
+            "fold": 0,
+            "val_season": 2021,
+            "aft_nloglik": 2.28894767843025,
+            "c_index": 0.7448847972048654,
+            "censored_share": 0.4386987589319293
+          },
+          {
+            "fold": 1,
+            "val_season": 2022,
+            "aft_nloglik": 2.2420249185195704,
+            "c_index": 0.7082224571898198,
+            "censored_share": 0.41027655562539284
+          },
+          {
+            "fold": 2,
+            "val_season": 2023,
+            "aft_nloglik": 2.274157955284665,
+            "c_index": 0.7072454891490342,
+            "censored_share": 0.4201264614650441
+          },
+          {
+            "fold": 3,
+            "val_season": 2024,
+            "aft_nloglik": 2.185728245597478,
+            "c_index": 0.752781099815828,
+            "censored_share": 0.48966351440510225
+          },
+          {
+            "fold": 4,
+            "val_season": 2025,
+            "aft_nloglik": 2.3120602362115665,
+            "c_index": 0.7360499236932347,
+            "censored_share": 0.4407152527075812
+          }
+        ],
+        "fit_seconds": 5.19,
+        "n_train_rows": 123133,
+        "fingerprint": "1b76298fb18bef906c728db494bdde018b89acacb2a4637f5ec0cd33e8a17763",
+        "n_trees": 100,
+        "n_nodes": 34460,
+        "n_leaves": 17280,
+        "gain_share_top10": [
+          [
+            "f3",
+            0.2664436986614176
+          ],
+          [
+            "f0",
+            0.09912388700503953
+          ],
+          [
+            "f11",
+            0.09287106791070703
+          ],
+          [
+            "f10",
+            0.0865820517600677
+          ],
+          [
+            "f4",
+            0.07256721528480742
+          ],
+          [
+            "f2",
+            0.0724177672873032
+          ],
+          [
+            "f1",
+            0.04827258588200269
+          ],
+          [
+            "f6",
+            0.042116445087964915
+          ],
+          [
+            "f15",
+            0.040777598769954626
+          ],
+          [
+            "f9",
+            0.02928756513371687
+          ]
+        ],
+        "xgb_batch_2025": {
+          "rows": 17728,
+          "median_ms": 0.12770801549777389,
+          "p90_ms": 0.18980017630383372,
+          "reps": 7
+        },
+        "xgb_single_row": {
+          "median_ms": 0.07408301462419331,
+          "p90_ms": 0.09123371564783155,
+          "reps": 200
+        },
+        "onnx_bytes": 1123495,
+        "onnx_parity": {
+          "target": "stint_life_regressor",
+          "max_abs_diff": 4.373418760295067e-05,
+          "max_rel_diff": 2.258726092002524e-06,
+          "atol": 1e-05,
+          "rtol": 1e-05,
+          "pass": true,
+          "n_rows": 500,
+          "kind": "survival",
+          "aft_margin_offset": -0.6931467056274414,
+          "aft_scale": 0.753792882
+        },
+        "onnx_batch_2025": {
+          "rows": 17728,
+          "median_ms": 12.983333028387278,
+          "p90_ms": 15.216150216292592,
+          "reps": 7
+        },
+        "onnx_single_row": {
+          "median_ms": 0.00662502134218812,
+          "p90_ms": 0.007000000914558768,
+          "reps": 500
+        }
+      },
+      "bst_identical_across_arms": true
+    }
+  }
+}

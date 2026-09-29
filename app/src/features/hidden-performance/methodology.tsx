@@ -22,5 +22,11 @@ export const methodologyContent = (
       the actual per-lap pace. Finish position depends on how other drivers rank within the scenario
       when transplanted to the same car, so it will differ from actual finish.
     </p>
+    <p className="mt-2">
+      The <em>Rating</em> column is the driver's season rating from{' '}
+      <code>int_era_normalized_driver_rating</code>: his median lap-by-lap gap to his teammate,
+      averaged over the season, in seconds. Negative = faster than his teammate. It is a
+      teammate comparison, not a gap to the field, and carries no era offset.
+    </p>
   </>
 )

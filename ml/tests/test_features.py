@@ -360,12 +360,14 @@ def test_baseline_observations_n_is_never_a_feature():
 
 def test_holdout_purity(degradation):
     b = degradation
-    # Holdout season is strictly after every training season (derived as MAX+1).
-    assert b.holdout_season == max(b.training_seasons) + 1
+    # Holdout season is pinned to holdout_config.HOLDOUT_SEASON (WI-03 FD4 ruling).
+    # It must be strictly after every training season to prevent leakage.
+    from ml.src import holdout_config
+    assert b.holdout_season == holdout_config.HOLDOUT_SEASON
     assert b.holdout_season not in b.training_seasons
     # No training row leaks into / past the holdout season.
     assert (b.groups_train < b.holdout_season).all()
-    # Today the holdout is empty (2025 not ingested); on ingest this becomes nunique()==1.
+    # holdout_populated is false until 2026 rows exist; on ingest this becomes nunique()==1.
     if len(b.X_holdout) == 0:
         assert b.meta_holdout.empty
     else:
@@ -374,10 +376,13 @@ def test_holdout_purity(degradation):
 
 
 def test_no_hardcoded_holdout():
-    """No numeric literal 2024/2025 in ml/src code (docstrings/comments are fine -
-    the holdout is derived as MAX(race_year)+1)."""
+    """No numeric literal 2024/2025 in ml/src code (docstrings/comments are fine).
+    The holdout is pinned in holdout_config.HOLDOUT_SEASON (WI-03 FD4 ruling),
+    so 2026 is intentionally hardcoded there and is the sole exception."""
     offenders = []
     for path in SRC_DIR.glob("*.py"):
+        if path.name == "holdout_config.py":
+            continue  # holdout_config.HOLDOUT_SEASON is intentionally pinned
         src = path.read_text()
         for tok in tokenize.generate_tokens(io.StringIO(src).readline):
             if tok.type == tokenize.NUMBER and tok.string in {"2024", "2025"}:

@@ -3,19 +3,23 @@
 -- Aggregates race-grain skill residuals to driver-season grain, then applies
 -- Bayesian shrinkage toward the season mean (prior_weight = 5 virtual races).
 --
--- Produces the base era rating; int_era_normalized_driver_rating consumes
--- this model and applies the era offset on top of it.
+-- Produces the season rating; int_era_normalized_driver_rating publishes it
+-- as era_adjusted_rating with no era offset (WI-14b, F45).
 --
 -- Output grain: (driver_id, race_year). One row per driver per season.
 -- PK: driver_season_id (surrogate hash).
 --
--- Sign convention: negative residual = faster than field (same as upstream).
--- shrunk_residual_s pulls the observed season mean toward the league average.
+-- Sign convention: negative = faster than his teammate(s). The race-grain
+-- input is int_driver_race_skill_loro.driver_skill_loro_s, the median
+-- lap-by-lap gap to the teammate (F40), so every value here is a
+-- teammate-relative gap, not a gap to the field.
+-- shrunk_residual_s pulls the observed season mean toward the season mean
+-- over all drivers (near 0: teammate pairs cancel).
 
 {{ config(materialized='table', tags=['driver_rating', 'era_rating']) }}
 
 WITH driver_race AS (
-    -- De-confounded LORO equal-car skill (was
+    -- Equal-car rating: median lap-by-lap gap to the teammate (was
     -- fct_driver_skill_features.driver_residual_mean_s, which buried elite
     -- drivers via a
     -- self-referencing car baseline + cruise drag). Aliased to the old name so

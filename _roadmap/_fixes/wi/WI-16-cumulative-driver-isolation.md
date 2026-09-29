@@ -8,41 +8,18 @@
 
 ---
 
-## The call this records: FD1, in plain language
+## Tactical rating: cancelled due to instability
 
-FD1 asked what a lap is measured against when we say it was "0.3 s slow". Option A is a neutral
-reference with fuel and tyre compound taken out once. Option B is what the field actually did on that
-lap.
+**Decision:** The tactical (tyre-management) rating has been removed from the codebase. It was determined to be unfixable without fundamental redesign due to:
+- Noise-to-signal ratio: 1.4x (measurement noise dominates the true signal)
+- Cross-season correlation: -0.15 (no persistent skill detected across seasons)
+- Peer-slope methodology limitations: left-out-one peer slopes from small samples are too noisy to carry meaningful driver information
 
-The decision is **not to make one number answer both questions.** "How good is this driver?" gets three
-answers, and each one fits a different question:
+The method never achieved the reliability threshold and further refinement would require abandoning the stint-level peer-slope approach entirely, which is beyond the scope of this work item.
 
-| Rating | The question it answers | Framing |
-| :-- | :-- | :-- |
-| **Pure pace skill** | With car, tyres, fuel, traffic and track state equal, how fast is he? | A |
-| **Tactical skill** | How much is he gaining or losing through how he uses his tyres this stint? | the bridge |
-| **Relative pace vs same-strategy peers** | Against cars on the same compound, tyre age and lap right now, is he quicker? | B (hybrid) |
-
-What that means for the log:
-
-1. **The ML label (`WI-01`) uses Option A.** The label is a forward difference along one driver's
-   stint (`next_5_lap_cumulative_jump_s`). A baseline that moves from lap to lap does *not* cancel out
-   of that difference, so the label needs exactly one base. A is the base whose question tier 1
-   answers, the reverification recommended it, and it needs no new design in `WI-01`'s method. This
-   ruling unblocks `WI-01`, although `FD2` is still open and still blocks it.
-2. **For "how good is this driver", the A/B question goes away.** Every rating below is field-centred
-   per (race, lap). Every term the A/B choice is about (the field base, fuel, rubber, ambient) depends
-   on (race, lap) alone, so it cancels exactly. The proof is in the next section. B's question (pace
-   against what comparable cars actually did) is answered by tier 3 at matched strategy, with no
-   change to the label.
-
-**Resolution text for `FD1`** (the orchestrator writes it; the user confirms it): *"A for the label
-spine: WI-01 proceeds on its Option A method. B's question, pace against what comparable cars actually
-did, is answered by WI-16's tier-3 rating at matched compound, tyre age and lap, not by the label. The
-ratings are field-centred per (race, lap), so they are invariant to the base (pinned by T41)."*
-
-If the intent was to move the *label* away from A, this doc still holds, but `WI-01` is not unblocked
-and its Method step 2 has to be rewritten. Say so before the orchestrator records the ruling.
+**What remains:** Pure pace and relative pace ratings, both validated and stable, address the questions the tactical rating was meant to answer through different mechanisms:
+- **Pure pace** captures driver raw-speed execution
+- **Relative pace vs matched strategy** shows outcome against peers in the same tyre-and-fuel situation
 
 ---
 
@@ -151,74 +128,18 @@ y ~ 1 | driver_era + constructor_race        driver_era = driver_id || '_' || (r
 ### Tier 1: pure pace skill
 
 ```
-pace_isolated_gain_s   p(d,l) = −( y(d,l) − car_iso_s(c,r) )                -- driver + noise, everything modelled removed
-pure_skill_gain_s              = p(d,l) − tactical_gain_s(d,l)               -- see tier 2
+pace_isolated_gain_s   p(d,l) = −( y(d,l) − car_iso_s(c,r) )
+pure_skill_gain_s              = p(d,l)
 ```
 
-Read it as: *his pace against the field on an equal car, equal tyre state, equal traffic and equal
-fuel, **as if his tyres had faded the way his same-compound peers' did**.* The last clause is what
-separates it from `p`.
+Read it as: *his pace against the field on an equal car, equal tyre state, equal traffic and equal fuel.*
 
-On cliff-phase laps, `pure_skill_gain_s` is the extrapolated pre-cliff line (see below) and is flagged
+On cliff-phase laps, `pure_skill_gain_s` is the extrapolated pre-cliff line and is flagged
 `pure_is_extrapolated = TRUE`. **Pure-skill aggregates use early, mid and recovery laps only.** On a
 tyre past its cliff, the lap time is dominated by the tyre, and this WI does not claim to see the
 driver there.
 
-### Tier 2: tactical (tyre-management) skill
-
-The stint's **line** is fitted on its clean `early`/`mid` laps, excluding `recovery` laps:
-
-```
-beta_s   = REGR_SLOPE(p, age_in_stint)            -- s/lap per lap of tyre age; > 0 = his pace line rises through the stint
-p_bar_s  = AVG(p);  age_bar_s = AVG(age_in_stint);  age_ref_s = MIN(age_in_stint)   -- over the line laps
-requires n_line_laps >= var('isolation_min_stint_laps') (6) AND REGR_SXX > 0; else beta_s = NULL
-```
-
-(DuckDB's `REGR_SLOPE` returns **NaN, not NULL**, when n < 2 or Sxx = 0. Guard it with the `CASE`, not
-a COALESCE. WI-02a's T29 lint is about exactly this class of bug.)
-
-Peer-relative, with the car's own degradation character removed:
-
-```
-beta_peer_s  = MEDIAN(beta_s') over OTHER DRIVERS' stints s' in the same race on the same compound (beta_s' NOT NULL)
-               -- n_peer_stints >= var('isolation_min_peer_stints') (2); else the (race_year, compound) pooled median,
-               -- flagged tactical_peer_source = 'season_pool'
-car_deg      = int_constructor_deg_sensitivity.deg_slope_s_per_lap (race_year, constructor_id, compound)
-               -- centred, EB-shrunk, positive = the car degrades faster; NULL → 0.0 (its own prior mean), car_deg_imputed = TRUE
-tactical_slope_s_per_lap2  m_s = (beta_s − beta_peer_s) + (car_deg_c − MEDIAN(car_deg over the same peer stints))
-```
-
-Sign derivation, which goes in the model header: `p` is roughly minus the residual, so a car whose
-degradation is δ faster puts −δ into `beta_s`. Adding δ back removes it. Check: an average driver in a
-car that fades 0.02 s/lap² faster has `beta_s − beta_peer = −0.02` and `car_deg − peer = +0.02`, so
-`m_s = 0` as it should.
-
-Lap value, accumulated since the stint's first clean lap:
-
-```
-pre-cliff laps:  tactical_gain_s = m_s × (age_in_stint − age_ref_s)
-cliff laps:      tactical_gain_s = m_s × (age_in_stint − age_ref_s) + (kappa(d,l) − kappa_ref(r,k,d))
-                 kappa(d,l)      = p(d,l) − ( p_bar_s + beta_s × (age_in_stint − age_bar_s) )   -- departure from his own pre-cliff line
-                 kappa_ref       = leave-driver-out mean kappa over the race's cliff laps on compound k
-                                   (< 10 peer cliff laps → (race_year, compound) pool, flagged)
-```
-
-Read it as: *on this lap he is `tactical_gain_s` faster or slower than he would be if his tyres had
-faded like his same-compound peers', with his car's degradation character taken out.* On a tyre past
-its cliff it also includes how much harder or softer the cliff bit him than it bit his peers, which
-is **overextension** when negative. The seed's expected cliff ramp is already inside `C`, so a cliff
-that behaves as the seed says contributes 0.
-
-When `m_s` is NULL (fewer than 6 line laps): `tactical_gain_s` is NULL. **It is never COALESCEd to 0,**
-because that is the F1/F7 defect class. On pre-cliff laps `pure_skill_gain_s = p` with
-`tactical_available = FALSE`, which is a declared rule with a flag. On cliff laps both are NULL.
-Measured: 81.7% of the 7,963 stints have ≥ 6 clean pre-cliff laps.
-
-Also carried as context but not part of the rating: `strategy_verdict` and `opportunity_cost_s` from
-`int_pit_strategy_value`. *Staying out* is the team's decision; *how the tyre was driven* is the
-driver's. The tactical rating measures only the second.
-
-### Tier 3: relative pace vs same-strategy peers
+### Tier 2: relative pace vs same-strategy peers
 
 Peers of (d, l) are every d' ≠ d with an Ω lap in the same race, **on the same lap number** (which
 means the same fuel load, rubber and weather), on the **same compound**, with
@@ -235,26 +156,24 @@ The rating uses the mean over peers rather than the median, so that the identity
 aggregation. Outliers are already excluded by Ω. Measured coverage: **88.3% of Ω laps have ≥ 1 peer,
 77.2% have ≥ 2 and 47.4% have ≥ 5.**
 
-### The cumulative identity
+### The decomposition identity
 
-Tier 3 decomposes exactly into tiers 1 and 2 plus the car and traffic. This holds per pair-lap and in
+Tier 2 decomposes exactly into tier 1 plus the car and traffic. This holds per pair-lap and in
 any linear aggregate:
 
 ```
 relative_pace_gain_s(d vs d')  =  (pure_d − pure_d')          pure_gap_gain_s
-                               +  (tactical_d − tactical_d')  tactical_gap_gain_s
                                +  (car_iso_d' − car_iso_d)    car_advantage_gain_s      (> 0 = d's car faster)
                                +  (D_d' − D_d)                traffic_advantage_gain_s  (> 0 = d lost less to dirty air)
 ```
 
 Derivation: `p = car_iso − y` and `y = x − median`, so
 `p_d − p_d' = (car_d − car_d') − (t_d − t_d') + (C_d − C_d') + (D_d − D_d')`. Rearranging gives the
-line above. Where either side's `tactical` is NULL, the first two terms collapse to
-`pace_gap_gain_s = p_d − p_d'` and the identity still closes. T42 asserts it to 1e-6.
+line above. T42 asserts it to 1e-6.
 
-**This is what "cumulative" means,** and it is what the LLM agent will lean on most: "VER was 0.15 s a
+**This is what the identity shows,** and it is what the LLM agent will use: "VER was 0.15 s a
 lap quicker than HAM on the same tyres. About 0.12 s of that was the driver and 0.09 s the car, and
-his tyres cost him 0.05 s against HAM's."
+traffic cost him 0.06 s against HAM's."
 
 ### Stint phase
 
@@ -293,7 +212,6 @@ honest. The window is trailing, so it never reaches forward (T44).
 | Window column | Aggregate | NULL when |
 | :-- | :-- | :-- |
 | `pure_skill_5lap_gain_s` | mean over non-extrapolated laps in the window | fewer than `var('isolation_window_min_laps')` (3) such laps |
-| `tactical_5lap_gain_s` | mean of `tactical_gain_s` | fewer than 3 non-NULL |
 | `relative_pace_5lap_gain_s` | `SUM(relative × n_peers) / SUM(n_peers)`, the mean over pair-laps | fewer than 3 pair-laps |
 
 The window is labelled with the current lap's `stint_phase`, and `window_mixed_phase = TRUE` when it
@@ -320,9 +238,7 @@ Per row and per rating:
 
 - **SE.** For pure skill: `sigma_w / SQRT(n × f)`, where `sigma_w` is the pooled within-stint SD of
   `p` around its line and `f = (1−ρ₁)/(1+ρ₁)`, with ρ₁ the pooled lag-1 autocorrelation (both per
-  season, computed in a CTE, not hard-coded). For tactical: the OLS slope SE
-  `sigma_w / SQRT(Sxx × f)` combined in quadrature with the peer-median SE (`1.2533 × SD / SQRT(n_peer)`),
-  then multiplied by the mean `(age − age_ref)` to put it in s/lap. For relative: the SD of pair-lap
+  season, computed in a CTE, not hard-coded). For relative: the SD of pair-lap
   values over `SQRT(number of distinct laps with peers)`, which is conservative because pair-laps on
   one lap share the driver's lap.
 - **Signal variance τ².** Per (season, rating, grain):
@@ -348,16 +264,15 @@ The format, with **illustrative** numbers that satisfy the identity. `WI-16b` pr
 ```
 VER · 2021 Styrian GP · stint 2 (HARD) · laps 30–34 · tyre age 5–9 · phase: mid
   pure_skill_5lap_gain_s        +0.23 s/lap   conf 52% (indicative)   vs field, equal car/tyres/traffic/fuel
-  tactical_5lap_gain_s          −0.08 s/lap   conf 61% (indicative)   tyres fading 0.016 s/lap² faster than same-HARD peers since lap 26
   relative_pace_5lap_gain_s     +0.15 s/lap   vs HAM (HARD, age 7–11; 5 matched laps)
-      = pure gap +0.12  + tactical gap −0.05  + car +0.09  + traffic −0.01
+      = pure gap +0.12  + car +0.09  + traffic −0.06
 
 VER · same stint · laps 38–42 · tyre age 13–17 · phase: cliff (seed onset 12)
-  tactical_5lap_gain_s          −0.31 s/lap   overextending: cliff biting 0.19 s/lap harder than peers' cliffs
   pure_skill_5lap_gain_s        NULL          (tyre past its cliff: not a driver measurement)
+  relative_pace_5lap_gain_s     −0.31 s/lap   vs HAM on same compound, matched age
 ```
 
-A **real** tier-3 number from the prototype probe (current warehouse, same compound, age within ±3,
+A **real** tier-2 number from the prototype probe (current warehouse, same compound, age within ±3,
 age-adjusted): at the 2021 Styrian GP, VER beat HAM by **+0.24 s/lap over 57 matched laps**.
 
 ---
@@ -387,11 +302,11 @@ age-adjusted): at the 2021 Styrian GP, VER beat HAM by **+0.24 s/lap over 57 mat
 | `tasks/coefficients/fit_constructor_car_fe.py --panel isolation` | → `data/fits/constructor_car_fe_isolation.parquet` | the panel | `car_iso_s`, `car_term_source`, provenance (`build_provenance`), connected-set diagnostics |
 | `intermediate/int_constructor_car_fe_isolation` | (race_year, race_id, constructor_id) | fits source | thin reader, same shape as `int_constructor_car_fe` |
 | `intermediate/int_driver_isolation_lap_pace` | lap · `lap_id` | panel + car | `pace_isolated_gain_s` (p). It exists so the stint model and the lap model subtract the car the same way, instead of two copies drifting apart. |
-| `intermediate/int_driver_isolation_stint_tyre` | stint · `stint_id` | lap pace, deg sensitivity | line (`n_line_laps`, `beta_s`, `p_bar_s`, `age_bar_s`, `age_ref_s`, Sxx), `beta_peer_s`, `n_peer_stints`, `tactical_peer_source`, car-deg terms, `tactical_slope_s_per_lap2`, `kappa_ref_s`, SEs |
-| `intermediate/int_driver_isolation_lap_values` | lap · `lap_id` | lap pace + stint tyre | `tactical_gain_s`, `pure_skill_gain_s`, `pure_is_extrapolated`, `tactical_available`, `kappa_s` |
-| `marts/fct_driver_isolation_pair_lap` | lap × peer · (`lap_id`, `peer_lap_id`) | lap values | both drivers, both ages, `is_teammate`, raw and adjusted relative pace, the four identity terms and `pace_gap_gain_s`. Probe size is about 0.6 M rows. **This is the table the agent uses for "vs HAM" questions.** |
-| `marts/fct_driver_isolation_lap` | lap · `lap_id` | lap values + pair lap | lap values, peer aggregates, the three 5-lap windows, `window_n_*`, `window_mixed_phase`, per-window λ, `confidence_pct`, `trust_label` |
-| `marts/fct_driver_isolation_stint` | (`stint_id`, `stint_phase`), with phase ∈ early/mid/cliff/recovery/**all** | lap mart, pair lap, stint tyre, context models | per-rating raw, SE, λ, shrunk, `confidence_pct`, `trust_label`; `tactical_banked_s` (Σ tactical over the stint); `cliff_excess_gain_s`; stint-level identity terms; context: strategy verdict, opportunity cost, end cause, `tyre_offset_vs_field_s`, `lift_coast_excess`, dirty-air share |
+| `intermediate/int_driver_isolation_stint_tyre` | stint · `stint_id` | lap pace, deg sensitivity | line (`n_line_laps`, `line_slope_s_per_lap2`, `line_mean_pace_gain_s`, `line_mean_age_laps`, `line_ref_age_laps`, Sxx), SEs, noise terms |
+| `intermediate/int_driver_isolation_lap_values` | lap · `lap_id` | lap pace + stint tyre | `pure_skill_gain_s`, `pure_is_extrapolated` |
+| `marts/fct_driver_isolation_pair_lap` | lap × peer · (`lap_id`, `peer_lap_id`) | lap values | both drivers, both ages, `is_teammate`, raw and adjusted relative pace, the three identity terms and `pace_gap_gain_s`. Probe size is about 0.6 M rows. **This is the table the agent uses for "vs HAM" questions.** |
+| `marts/fct_driver_isolation_lap` | lap · `lap_id` | lap values + pair lap | lap values, peer aggregates, the two 5-lap windows (pure, relative), `window_n_*`, `window_mixed_phase`, per-window λ, `confidence_pct`, `trust_label` |
+| `marts/fct_driver_isolation_stint` | (`stint_id`, `stint_phase`), with phase ∈ early/mid/cliff/recovery/**all** | lap mart, pair lap, stint tyre, context models | per-rating (pure, relative) raw, SE, λ, shrunk, `confidence_pct`, `trust_label`; stint-level identity terms; context: strategy verdict, opportunity cost, end cause, `tyre_offset_vs_field_s`, `lift_coast_excess`, dirty-air share |
 | `marts/fct_driver_isolation_race` | driver-race · `driver_race_id` | lap mart, pair lap | the same, rolled up with lap weighting; the **same surrogate-key recipe as `fct_driver_skill_features`**, so the two join directly |
 | `seeds/driver_isolation_method_scores.csv` | rating | written by the validation script | `rating`, `method_score`, `grade`, `tests_applicable`, `tests_passed`, `critical_failed`, `validated_at`, `substrate` (git SHA + warehouse mtime), `report_path`. It is committed with three `unvalidated` rows and NULL scores, so `WI-16a` builds without it being filled. |
 | `scripts/validate_driver_isolation.py` | reads the warehouse read-only | all of the above | V1–V6, the method scores, the examples; `--write-seed` writes the seed |
@@ -414,8 +329,7 @@ must never be mistaken for the rollup.
 - `Makefile`: a `car-fe-isolation-fit` target following `car-fe-fit` (build the panel's ancestors,
   build the panel, fit), wired into `dbt-dev-full` after `car-fe-fit`.
 - `intermediate/schema.yml`, `marts/schema.yml`: every new column documented, with sign and units in
-  the description; PK `unique` + `not_null`; `accepted_values` on `stint_phase`, `trust_label` and
-  `tactical_peer_source`.
+  the description; PK `unique` + `not_null`; `accepted_values` on `stint_phase` and `trust_label`.
 - Model headers: each new model states its grain, its sign convention, and the
   **leakage warning** from `fct_cliff_prediction_features`, reversed: *these ratings are functions of
   the residual trajectory and must never be referenced by an ML-contract mart* (T48).

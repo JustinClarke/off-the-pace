@@ -239,6 +239,25 @@ FROM ranked_pairs
 
 ---
 
+### `power_law_beta_grid()`
+
+WI-17: the beta grid both power-law fits profile over, 0.20 to 3.00 in steps of 0.05, built
+from integers (`beta_k` 4..60, `beta = beta_k / 20`) so every value is exact and identical to
+`ml/src/powerlaw_fit.py`'s `BETA_GRID`. `beta_k = 20` is the straight line (T50 relies on it),
+4 and 60 are the grid edges.
+
+**Used by:** `int_stint_power_law_fit`, `int_cell_power_law_fit`.
+
+**Example:**
+```sql
+WITH grid AS ({{ power_law_beta_grid() }})
+SELECT stint_id, beta, REGR_R2(y_s, POW(age, beta)) AS r2
+FROM laps CROSS JOIN grid
+GROUP BY stint_id, beta
+```
+
+---
+
 ## Future Candidates
 
 Patterns that appear in 3+ models but are not yet extracted to macros:

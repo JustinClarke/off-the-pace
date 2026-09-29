@@ -1,37 +1,37 @@
 ---
 title: "Tracking driver pace across eras on one scale"
 sidebarTitle: "Era Ratings Timeline"
-description: "Each driver's era-adjusted pace rating across seasons, corrected for the 2022 regulation change and shown with honest confidence ribbons."
+description: "Each driver's season-by-season margin over his teammate in the same car, on one scale across the 2022 regulation change, with honest confidence ribbons."
 ---
 
-The era ratings timeline draws every driver's career as a line of era-adjusted pace, expressed in seconds relative to the field after normalising for the 2022 ground-effect regulation change. A 2018 rating sits on the same scale as a 2024 rating, so you can read a career arc rise, peak, decline without a regulation reset hiding inside it. Negative means faster than the era-normalised field average.
+The era ratings timeline draws every driver's career as a line of season ratings: how far ahead of (or behind) his teammate he was, in seconds per lap, in the same car. The car cancels in the teammate comparison, and so does the 2022 ground-effect regulation change, which moved both teammates alike, so a 2018 rating sits on the same scale as a 2025 one without any era correction. Negative means faster than his teammate.
 
 ## What it shows
 
 Each line is one driver's season-by-season rating:
 
-- **Era-adjusted rating**: the per-season skill residual after the regulation offset is applied. Negative = faster than the era-normalised field average.
-- **Bayesian shrinkage**: per-season residuals are shrunk toward the season league average. Drivers with fewer races have wider intervals and estimates pulled closer to zero the uncertainty is honest, not hidden.
-- **Era calibration**: the 2022 offset is estimated from 20 "bridge drivers" with ≥8 clean-race seasons on both sides of the boundary, then applied to all pre-2022 seasons. Bridge drivers render as **solid** lines; non-bridge drivers as **dashed**.
-- **95% CI ribbon**: propagates both the per-season shrinkage standard error and, for pre-2022 seasons, the era-offset estimation uncertainty.
+- **Rating (gap to teammate)**: per race, the median of the driver's lap-by-lap gap to his teammate on laps both ran clean; per season, the mean of those. Negative = faster than his teammate(s).
+- **Bayesian shrinkage**: per-season means are shrunk toward the season mean with a 5-race prior. Drivers with fewer races have wider intervals and estimates pulled closer to zero; the uncertainty is honest, not hidden.
+- **Line style**: drivers with at least 8 races on each side of 2022 ("bridge" drivers) render as **solid** lines, others as **dashed**. This is context only; no era offset is applied and no rating depends on it.
+- **95% CI ribbon**: the per-season posterior uncertainty.
 
 <Note>
-  Dashed (non-bridge) lines before 2022 lean more on the estimated era offset than on the driver's own cross-era racing, so their absolute level is less certain than a solid line's.
+  A line moves when the driver's margin over his teammate moves, and a change of teammate can move it as much as a change in the driver.
 </Note>
 
 ## How to use it
 
 1. **Select drivers** to add or remove their career lines.
-2. **Read line style** solid lines are anchored by cross-era racing; dashed lines inherit more offset uncertainty.
+2. **Check the teammate** at any step in a line: a jump often coincides with a new teammate.
 3. **Compare ribbon overlap** between two drivers in the same season: overlapping ribbons mean the gap is within noise.
 4. **Follow a single arc** across seasons to see development, peak, and decline on one continuous scale.
 
 ## Reading the signal correctly
 
-The rating is a **relative** measure it places a driver against the era-normalised field, not on an absolute lap-time scale. A flat line across a regulation boundary is the goal of the era correction, not evidence the driver stood still.
+The rating is **teammate-relative**: it places a driver against the driver in the same car, not against the field and not on an absolute lap-time scale.
 
 <Warning>
-  Pre-2022 absolute levels depend on the bridge-driver offset. If you care about cross-era comparisons specifically, weight the solid (bridge) lines more heavily and treat dashed early-season levels as wider than the ribbon alone suggests. See the [decomposition limitations](/decomposition/limitations).
+  Until 2026-09-28 this page applied a "bridge driver" era offset to every pre-2022 season. It was not statistically distinguishable from zero and it inverted the gap it was meant to remove, so it was dropped (audit finding F45). The per-race statistic also changed then, from a best-laps ceiling against the teammate's typical lap to a like-for-like lap-by-lap median (F40). See the [decomposition limitations](/decomposition/limitations).
 </Warning>
 
 ## Data source
@@ -40,11 +40,11 @@ The chart queries `int_era_normalized_driver_rating` (built on `int_driver_seaso
 
 | Column | Meaning |
 |---|---|
-| `era_adjusted_rating_s` | Era-normalised seasonal pace rating, the line |
-| `rating_ci_lower_s` / `rating_ci_upper_s` | 95% credible interval, the ribbon |
-| `is_bridge_driver` | Whether the driver anchors the era offset (solid vs dashed) |
+| `era_adjusted_rating` | Season rating: gap to teammate, seconds (negative = faster), the line. Carries no era offset |
+| `era_adjusted_rating_ci_low_s` / `era_adjusted_rating_ci_high_s` | 95% credible interval, the ribbon |
+| `bridge_driver_anchor_flag` | 8+ races on each side of 2022 (solid vs dashed); context only |
 | `season` | The season, the x-axis |
 
-The data window covers **2018–2024**.
+The data window covers **2018–2025**.
 
 For the full model definitions, see the [`int_era_normalized_driver_rating` reference](/reference/models/int/int_era_normalized_driver_rating) and the [`int_driver_season_ratings` reference](/reference/models/int/int_driver_season_ratings).

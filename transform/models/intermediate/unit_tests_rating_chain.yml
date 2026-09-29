@@ -1,0 +1,104 @@
+version: 2
+
+# WI-14b (F40, F44): fixture tests for the rating chain's sign conventions.
+# dbt unit tests run the model's SQL against the hand-built rows below and
+# compare the listed columns exactly. Every value is a dyadic fraction
+# (0.25, 0.125, 0.375, ...) so the float arithmetic is exact and the
+# comparison needs no tolerance. They run with `dbt test` / `dbt build`
+# (select them alone with `dbt test --select test_type:unit`).
+
+unit_tests:
+  - name: loro_rating_is_paired_median_gap_to_teammate
+    description: >
+      F40 / FD5 option C. driver_skill_loro_s is the median of
+      (own lap time - teammate lap time) over laps BOTH drivers ran clean,
+      paired on lap_number. Negative = faster than the teammate. AAA beats
+      BBB on 2 of the 3 clean shared laps (-0.25, +0.125, -0.5) so AAA is
+      -0.25 and BBB exactly +0.25 (antisymmetric). AAA's lap 4 is
+      downweighted (correction_weight 0.5) and lap 5 is a rain lap: both are
+      out of the panel. Were they paired, the deltas would add +5.0 and +2.0
+      and the median would flip to +0.125, so this also pins the clean
+      filter. CCC is alone in his car: no equal-car reference, NULL rating,
+      0 paired laps.
+    model: int_driver_race_skill_loro
+    given:
+      - input: ref('int_lap_fuel_state')
+        rows:
+          - {lap_id: a1, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 1, lap_time_s: 90.0}
+          - {lap_id: a2, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 2, lap_time_s: 90.5}
+          - {lap_id: a3, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 3, lap_time_s: 91.0}
+          - {lap_id: a4, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 4, lap_time_s: 95.0}
+          - {lap_id: a5, race_year: 2099, race_id: '2099_1', driver_id: AAA, lap_number: 5, lap_time_s: 92.0}
+          - {lap_id: b1, race_year: 2099, race_id: '2099_1', driver_id: BBB, lap_number: 1, lap_time_s: 90.25}
+          - {lap_id: b2, race_year: 2099, race_id: '2099_1', driver_id: BBB, lap_number: 2, lap_time_s: 90.375}
+          - {lap_id: b3, race_year: 2099, race_id: '2099_1', driver_id: BBB, lap_number: 3, lap_time_s: 91.5}
+          - {lap_id: b4, race_year: 2099, race_id: '2099_1', driver_id: BBB, lap_number: 4, lap_time_s: 90.0}
+          - {lap_id: b5, race_year: 2099, race_id: '2099_1', driver_id: BBB, lap_number: 5, lap_time_s: 90.0}
+          - {lap_id: c1, race_year: 2099, race_id: '2099_1', driver_id: CCC, lap_number: 1, lap_time_s: 91.0}
+          - {lap_id: c2, race_year: 2099, race_id: '2099_1', driver_id: CCC, lap_number: 2, lap_time_s: 91.0}
+      - input: ref('stg_laps')
+        rows:
+          - {lap_id: a1, constructor_id: car_a}
+          - {lap_id: a2, constructor_id: car_a}
+          - {lap_id: a3, constructor_id: car_a}
+          - {lap_id: a4, constructor_id: car_a}
+          - {lap_id: a5, constructor_id: car_a}
+          - {lap_id: b1, constructor_id: car_a}
+          - {lap_id: b2, constructor_id: car_a}
+          - {lap_id: b3, constructor_id: car_a}
+          - {lap_id: b4, constructor_id: car_a}
+          - {lap_id: b5, constructor_id: car_a}
+          - {lap_id: c1, constructor_id: car_b}
+          - {lap_id: c2, constructor_id: car_b}
+      - input: ref('int_field_pace_curve')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', lap_number: 1, field_pace_smoothed_s: 90.0}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 2, field_pace_smoothed_s: 90.0}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 3, field_pace_smoothed_s: 90.0}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 4, field_pace_smoothed_s: 90.0}
+          - {race_year: 2099, race_id: '2099_1', lap_number: 5, field_pace_smoothed_s: 90.0}
+      - input: ref('int_event_corrections')
+        rows:
+          - {lap_id: a4, correction_weight: 0.5}
+      - input: ref('int_track_evolution')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', lap_number: 5, rainfall_flag: true}
+      - input: ref('race_to_track')
+        rows:
+          - {race_id: '2099_1', track_id: fixture_grand_prix}
+      - input: ref('int_constructor_car_fe')
+        rows:
+          - {race_year: 2099, race_id: '2099_1', constructor_id: car_a, car_fe_s: 0.0}
+    expect:
+      rows:
+        - {driver_id: AAA, driver_skill_loro_s: -0.25, paired_lap_count: 3, clean_lap_count: 3}
+        - {driver_id: BBB, driver_skill_loro_s: 0.25, paired_lap_count: 3, clean_lap_count: 4}
+        - {driver_id: CCC, driver_skill_loro_s: null, paired_lap_count: 0, clean_lap_count: 2}
+
+  - name: circuit_affinity_is_drawn_as_deviation_from_driver_mean
+    description: >
+      F44. AAA beats his teammate at every circuit (every level negative), so
+      drawing the level paints his whole row green. The affinity the page
+      draws is shrunk_affinity_s - global_driver_mean_s: better than his own
+      average at Circuit X (negative), worse at Circuit Y (positive).
+      Shrinkage is toward the driver's own mean (-0.375) with 5 virtual
+      races: X = (3 x -0.5 + 5 x -0.375) / 8 = -0.421875, Y = (3 x -0.25 +
+      5 x -0.375) / 8 = -0.328125.
+    model: int_driver_circuit_affinity
+    given:
+      - input: ref('int_driver_race_skill_loro')
+        rows:
+          - {driver_id: AAA, race_year: 2097, race_id: '2097_1', circuit_key: x_grand_prix, driver_skill_loro_s: -0.5, clean_lap_count: 50}
+          - {driver_id: AAA, race_year: 2098, race_id: '2098_1', circuit_key: x_grand_prix, driver_skill_loro_s: -0.5, clean_lap_count: 50}
+          - {driver_id: AAA, race_year: 2099, race_id: '2099_1', circuit_key: x_grand_prix, driver_skill_loro_s: -0.5, clean_lap_count: 50}
+          - {driver_id: AAA, race_year: 2097, race_id: '2097_2', circuit_key: y_grand_prix, driver_skill_loro_s: -0.25, clean_lap_count: 50}
+          - {driver_id: AAA, race_year: 2098, race_id: '2098_2', circuit_key: y_grand_prix, driver_skill_loro_s: -0.25, clean_lap_count: 50}
+          - {driver_id: AAA, race_year: 2099, race_id: '2099_2', circuit_key: y_grand_prix, driver_skill_loro_s: -0.25, clean_lap_count: 50}
+      - input: ref('circuit_reference')
+        rows:
+          - {circuit_key: x_grand_prix, circuit_name: Circuit X}
+          - {circuit_key: y_grand_prix, circuit_name: Circuit Y}
+    expect:
+      rows:
+        - {driver_id: AAA, circuit_name: Circuit X, shrunk_affinity_s: -0.421875, global_driver_mean_s: -0.375, affinity_vs_driver_mean_s: -0.046875}
+        - {driver_id: AAA, circuit_name: Circuit Y, shrunk_affinity_s: -0.328125, global_driver_mean_s: -0.375, affinity_vs_driver_mean_s: 0.046875}

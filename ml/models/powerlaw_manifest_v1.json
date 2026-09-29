@@ -1,7 +1,7 @@
 {
   "name": "Off the Pace - power-law tyre curve (WI-17)",
   "model_version": "v1",
-  "generated_at": "2026-09-28T12:19:19.500670+00:00",
+  "generated_at": "2026-09-29T20:49:09.193642+00:00",
   "status": "not published; the v14 manifest.json is untouched",
   "input": {
     "tensor_name": "input",
@@ -18,7 +18,7 @@
     {
       "name": "powerlaw_deg20",
       "onnx": "powerlaw_deg20_v1.onnx",
-      "onnx_sha256": "aa108bda82db83d982b47ed3213b87993b3183d28d4f6d9c3da6a7910d7cadf6",
+      "onnx_sha256": "1bdcba37bbcf6bbd43b549880a478eaf6b61882918ee8c5fcb853b2994af878b",
       "feature_order": [
         "compound_hardness_rank",
         "era_code",
@@ -48,7 +48,7 @@
     {
       "name": "powerlaw_beta",
       "onnx": "powerlaw_beta_v1.onnx",
-      "onnx_sha256": "081710c535ffe135f10f2fc06836d7d33a0b5cd3ed77e70bc02045c368f70c4b",
+      "onnx_sha256": "e4f02cde5e4ac8f36a05d30f9ddc3c3c39b4c20e0ae67b8e1f85b5632b374785",
       "feature_order": [
         "era_code",
         "track_energy_index",
@@ -81,7 +81,7 @@
   },
   "provenance": {
     "training_table": "fct_power_law_training",
-    "n_training_cells": 339,
+    "n_training_cells": 388,
     "xgb_params": {
       "n_estimators": 300,
       "learning_rate": 0.03,
@@ -103,22 +103,22 @@
     },
     "onnx_parity": {
       "deg20": {
-        "max_abs_diff": 1.430511474609375e-06,
-        "max_abs_diff_clean": 1.430511474609375e-06,
-        "max_abs_diff_nan_bearing": 4.76837158203125e-07,
-        "n_rows": 68,
+        "max_abs_diff": 1.3113021850585938e-06,
+        "max_abs_diff_clean": 1.0728836059570312e-06,
+        "max_abs_diff_nan_bearing": 1.3113021850585938e-06,
+        "n_rows": 78,
         "pass": true
       },
       "beta": {
-        "max_abs_diff": 1.6689300537109375e-06,
-        "max_abs_diff_clean": 1.430511474609375e-06,
-        "max_abs_diff_nan_bearing": 1.6689300537109375e-06,
-        "n_rows": 68,
+        "max_abs_diff": 1.9073486328125e-06,
+        "max_abs_diff_clean": 1.9073486328125e-06,
+        "max_abs_diff_nan_bearing": 1.9073486328125e-06,
+        "n_rows": 78,
         "pass": true
       }
     },
-    "onnx_total_bytes": 227401,
+    "onnx_total_bytes": 234900,
     "onnx_size_limit_bytes": 512000,
-    "cv_headline_T_fit_mae_mean": 0.4721
+    "cv_headline_T_fit_mae_mean": 0.4659
   }
 }

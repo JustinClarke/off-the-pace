@@ -34,7 +34,7 @@ describe('transform', () => {
   it('assigns sign correctly', () => {
     const result = transform(baseRow)
     expect(result.bars[0].sign).toBe('positive')  // fuel = +1.4
-    expect(result.bars[6].sign).toBe('negative')  // skill = -3.0
+    expect(result.bars[4].sign).toBe('negative')  // skill = -3.0
   })
 
   it('bar start offsets form a running cumsum', () => {

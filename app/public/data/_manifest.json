@@ -1,12 +1,12 @@
 {
-  "version": "55b7bd81dfe9f6d0",
-  "generatedAt": "2026-09-22T19:40:19.745663+00:00",
+  "version": "8202c8569e763fb4",
+  "generatedAt": "2026-09-29T19:58:01.095451+00:00",
   "stats": {
-    "total_laps": 160207,
+    "total_laps": 161040,
     "total_drivers": 43,
     "total_events": 6,
-    "total_circuits": 44,
-    "dbt_models": 76,
+    "total_circuits": 36,
+    "dbt_models": 92,
     "ml_models": 5,
     "seasons": "2018\u20132025",
     "seasons_list": [
@@ -223,6 +223,10 @@
               "path": "/data/facts/fct_ghost_car_pace/2018/2018_13.parquet"
             },
             {
+              "value": "2018_14",
+              "path": "/data/facts/fct_ghost_car_pace/2018/2018_14.parquet"
+            },
+            {
               "value": "2018_15",
               "path": "/data/facts/fct_ghost_car_pace/2018/2018_15.parquet"
             },
@@ -253,10 +257,6 @@
             {
               "value": "2018_21",
               "path": "/data/facts/fct_ghost_car_pace/2018/2018_21.parquet"
-            },
-            {
-              "value": "2018_3",
-              "path": "/data/facts/fct_ghost_car_pace/2018/2018_3.parquet"
             },
             {
               "value": "2018_4",
@@ -295,10 +295,6 @@
             {
               "value": "2019_10",
               "path": "/data/facts/fct_ghost_car_pace/2019/2019_10.parquet"
-            },
-            {
-              "value": "2019_11",
-              "path": "/data/facts/fct_ghost_car_pace/2019/2019_11.parquet"
             },
             {
               "value": "2019_12",
@@ -399,10 +395,6 @@
               "path": "/data/facts/fct_ghost_car_pace/2020/2020_13.parquet"
             },
             {
-              "value": "2020_14",
-              "path": "/data/facts/fct_ghost_car_pace/2020/2020_14.parquet"
-            },
-            {
               "value": "2020_15",
               "path": "/data/facts/fct_ghost_car_pace/2020/2020_15.parquet"
             },
@@ -477,10 +469,6 @@
               "path": "/data/facts/fct_ghost_car_pace/2021/2021_15.parquet"
             },
             {
-              "value": "2021_16",
-              "path": "/data/facts/fct_ghost_car_pace/2021/2021_16.parquet"
-            },
-            {
               "value": "2021_17",
               "path": "/data/facts/fct_ghost_car_pace/2021/2021_17.parquet"
             },
@@ -551,10 +539,6 @@
               "path": "/data/facts/fct_ghost_car_pace/2022/2022_10.parquet"
             },
             {
-              "value": "2022_11",
-              "path": "/data/facts/fct_ghost_car_pace/2022/2022_11.parquet"
-            },
-            {
               "value": "2022_12",
               "path": "/data/facts/fct_ghost_car_pace/2022/2022_12.parquet"
             },
@@ -577,10 +561,6 @@
             {
               "value": "2022_17",
               "path": "/data/facts/fct_ghost_car_pace/2022/2022_17.parquet"
-            },
-            {
-              "value": "2022_18",
-              "path": "/data/facts/fct_ghost_car_pace/2022/2022_18.parquet"
             },
             {
               "value": "2022_19",
@@ -617,10 +597,6 @@
             {
               "value": "2022_6",
               "path": "/data/facts/fct_ghost_car_pace/2022/2022_6.parquet"
-            },
-            {
-              "value": "2022_7",
-              "path": "/data/facts/fct_ghost_car_pace/2022/2022_7.parquet"
             },
             {
               "value": "2022_8",
@@ -783,10 +759,6 @@
               "path": "/data/facts/fct_ghost_car_pace/2024/2024_20.parquet"
             },
             {
-              "value": "2024_21",
-              "path": "/data/facts/fct_ghost_car_pace/2024/2024_21.parquet"
-            },
-            {
               "value": "2024_22",
               "path": "/data/facts/fct_ghost_car_pace/2024/2024_22.parquet"
             },
@@ -832,10 +804,6 @@
           "value": 2025,
           "path": "/data/facts/fct_ghost_car_pace/2025",
           "subPartitions": [
-            {
-              "value": "2025_1",
-              "path": "/data/facts/fct_ghost_car_pace/2025/2025_1.parquet"
-            },
             {
               "value": "2025_10",
               "path": "/data/facts/fct_ghost_car_pace/2025/2025_10.parquet"
@@ -911,10 +879,6 @@
             {
               "value": "2025_5",
               "path": "/data/facts/fct_ghost_car_pace/2025/2025_5.parquet"
-            },
-            {
-              "value": "2025_6",
-              "path": "/data/facts/fct_ghost_car_pace/2025/2025_6.parquet"
             },
             {
               "value": "2025_7",
@@ -1196,6 +1160,10 @@
             {
               "value": "2018_13",
               "path": "/data/intermediates/int_sector_residual_decomposed/2018/2018_13.parquet"
+            },
+            {
+              "value": "2018_14",
+              "path": "/data/intermediates/int_sector_residual_decomposed/2018/2018_14.parquet"
             },
             {
               "value": "2018_15",

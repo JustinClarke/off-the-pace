@@ -133,10 +133,8 @@ rated AS (
         pa.relative_pace_raw_gain_s,
         pa.relative_pair_sd_s / SQRT(pa.n_relative_laps) AS relative_pace_se_s,
         pa.identity_n_pair_laps,
-        pa.identity_n_split_pair_laps,
         pa.identity_relative_pace_gain_s,
-        pa.identity_pure_gap_gain_s,
-        pa.identity_pace_gap_unsplit_gain_s,
+        pa.identity_pace_gap_gain_s,
         pa.identity_car_advantage_gain_s,
         pa.identity_traffic_advantage_gain_s,
 

@@ -3554,77 +3554,6 @@ models:
       - name: line_slope_se_s_per_lap2
         description: >
           OLS SE of the line slope, sigma_w / sqrt(Sxx f), s/lap^2.
-      - name: tactical_peer_source
-        description: >
-          Where the peer slope came from: race (>= var('isolation_min_peer_stints') other
-          drivers' stints on the compound in the race), season_pool (the (race_year, compound)
-          pool, leave-driver-out) or none.
-        tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values: ['race', 'season_pool', 'none']
-      - name: n_peer_stints
-        description: >
-          Peer stints behind the chosen peer slope.
-        tests:
-          - not_null
-      - name: peer_line_slope_s_per_lap2
-        description: >
-          Median line slope of the peer stints, s/lap^2.
-      - name: peer_line_slope_sd_s_per_lap2
-        description: >
-          SD of the peer stints' line slopes, s/lap^2.
-      - name: peer_line_slope_se_s_per_lap2
-        description: >
-          1.2533 * SD / sqrt(n_peer_stints): SE of the peer median, s/lap^2.
-      - name: car_deg_s_per_lap
-        description: >
-          The constructor's degradation deviation for (season, compound), s/lap per lap,
-          positive = degrades faster; 0.0 when imputed.
-        tests:
-          - not_null
-      - name: car_deg_imputed
-        description: >
-          TRUE when int_constructor_deg_sensitivity has no cell for (season, constructor,
-          compound) and car_deg took 0.0, its prior mean (every 2018 stint on a legacy
-          compound name).
-        tests:
-          - not_null
-      - name: peer_car_deg_s_per_lap
-        description: >
-          Median car_deg over the same peer stints.
-      - name: car_deg_adjustment_s_per_lap2
-        description: >
-          car_deg - peer_car_deg: the term that takes the car's degradation character out of
-          m_s.
-      - name: tactical_slope_s_per_lap2
-        description: >
-          m_s, s/lap per lap of tyre age: (beta_s - peer slope) + (car_deg - peers' car_deg).
-          POSITIVE = his tyres fade SLOWER than same-compound peers', car degradation
-          character removed. NULL without a line or peers.
-      - name: tactical_slope_se_s_per_lap2
-        description: >
-          SE of m_s, s/lap^2: the line slope's OLS SE (sigma_w / sqrt(Sxx f)) and the peer-
-          median SE (1.2533 SD / sqrt(n)) in quadrature.
-      - name: kappa_ref_source
-        description: >
-          Where kappa_ref came from: race (>= 10 peer cliff laps on the race and compound),
-          season_pool or none.
-        tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values: ['race', 'season_pool', 'none']
-      - name: n_peer_cliff_laps
-        description: >
-          Peer cliff laps behind kappa_ref.
-        tests:
-          - not_null
-      - name: kappa_ref_gain_s
-        description: >
-          The peers' mean kappa (leave-driver-out, same race and compound; else the season
-          pool), s. See kappa_ref_source.
       - name: season_sigma_w_s
         description: >
           Pooled within-stint SD of p around its stint line for the season, s.
@@ -3793,12 +3722,6 @@ models:
           p = -(y_s - car_iso_s), s/lap. POSITIVE = FASTER than the field on an equal car,
           tyre state, traffic and fuel: the driver plus noise, everything modelled removed.
           NULL without a car term (never a car term of 0).
-      - name: tactical_gain_s
-        description: >
-          Tier 2, s/lap, POSITIVE = gaining: m_s * (age_in_stint - age_ref) before the cliff;
-          past it, plus (kappa - kappa_ref), how much softer (+) or harder (-, overextension)
-          the cliff bit than it bit same-compound peers. NULL when m_s is NULL (never 0), or
-          on a cliff lap with no kappa_ref.
       - name: pure_skill_gain_s
         description: >
           Tier 1, s/lap, POSITIVE = FASTER: p - tactical_gain_s, the pace against the field as
@@ -3812,16 +3735,6 @@ models:
           these laps.
         tests:
           - not_null
-      - name: tactical_available
-        description: >
-          TRUE when tactical_gain_s is non-NULL (so pure_skill_gain_s has tactical taken out).
-        tests:
-          - not_null
-      - name: kappa_gain_s
-        description: >
-          kappa on a cliff-tyre lap: p minus the stint's pre-cliff line extrapolated to this
-          age, s; positive = faster than his own line predicts. NULL off the cliff or without
-          a line.
       - name: n_line_laps
         description: >
           Line laps the stint's slope was fitted on (early/mid, not recovery, with p). Below
@@ -3830,40 +3743,6 @@ models:
         description: >
           age_ref: the tyre age of the stint's first line lap, laps. Tactical accumulates from
           here (a declared attribution rule).
-      - name: age_from_ref_laps
-        description: >
-          age_in_stint - line_ref_age_laps, laps: the lever tactical_gain_s multiplies m_s by.
-          NULL when m_s is NULL.
-      - name: tactical_slope_s_per_lap2
-        description: >
-          m_s, s/lap per lap of tyre age: (beta_s - peer slope) + (car_deg - peers' car_deg).
-          POSITIVE = his tyres fade SLOWER than same-compound peers', car degradation
-          character removed. NULL without a line or peers.
-      - name: tactical_slope_se_s_per_lap2
-        description: >
-          SE of m_s, s/lap^2: the line slope's OLS SE (sigma_w / sqrt(Sxx f)) and the peer-
-          median SE (1.2533 SD / sqrt(n)) in quadrature.
-      - name: tactical_peer_source
-        description: >
-          Where the peer slope came from: race (>= var('isolation_min_peer_stints') other
-          drivers' stints on the compound in the race), season_pool (the (race_year, compound)
-          pool, leave-driver-out) or none.
-        tests:
-          - accepted_values:
-              arguments:
-                values: ['race', 'season_pool', 'none']
-      - name: kappa_ref_gain_s
-        description: >
-          The peers' mean kappa (leave-driver-out, same race and compound; else the season
-          pool), s. See kappa_ref_source.
-      - name: kappa_ref_source
-        description: >
-          Where kappa_ref came from: race (>= 10 peer cliff laps on the race and compound),
-          season_pool or none.
-        tests:
-          - accepted_values:
-              arguments:
-                values: ['race', 'season_pool', 'none']
       - name: season_sigma_w_s
         description: >
           Pooled within-stint SD of p around its stint line for the season, s.

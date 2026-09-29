@@ -8,8 +8,7 @@
   the group's closed rows (both cars have a car term, so pace_gap is non-NULL) divided
   by identity_n_pair_laps. Then
 
-    identity_relative_pace_gain_s = identity_pure_gap_gain_s
-                                  + identity_pace_gap_unsplit_gain_s
+    identity_relative_pace_gain_s = identity_pace_gap_gain_s
                                   + identity_car_advantage_gain_s
                                   + identity_traffic_advantage_gain_s
 
@@ -18,8 +17,8 @@
   positive = in the focal driver's favour.
 
   Emits: n_pair_laps, identity_n_pair_laps,
-  identity_relative_pace_gain_s, identity_pure_gap_gain_s,
-  identity_pace_gap_unsplit_gain_s, identity_car_advantage_gain_s,
+  identity_relative_pace_gain_s, identity_pace_gap_gain_s,
+  identity_car_advantage_gain_s,
   identity_traffic_advantage_gain_s.
 
   Usage:
@@ -34,12 +33,8 @@
         SUM(CASE WHEN pace_gap_gain_s IS NOT NULL THEN relative_pace_gain_s END) / {{ n }}
     END AS identity_relative_pace_gain_s,
     CASE WHEN {{ n }} > 0 THEN
-        COALESCE(SUM(CASE WHEN pace_gap_gain_s IS NOT NULL THEN pure_gap_gain_s END), 0.0)
-        / {{ n }}
-    END AS identity_pure_gap_gain_s,
-    CASE WHEN {{ n }} > 0 THEN
         COALESCE(SUM(pace_gap_gain_s), 0.0) / {{ n }}
-    END AS identity_pace_gap_unsplit_gain_s,
+    END AS identity_pace_gap_gain_s,
     CASE WHEN {{ n }} > 0 THEN
         SUM(CASE WHEN pace_gap_gain_s IS NOT NULL THEN car_advantage_gain_s END) / {{ n }}
     END AS identity_car_advantage_gain_s,

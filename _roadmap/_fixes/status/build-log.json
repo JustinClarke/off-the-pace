@@ -1527,6 +1527,23 @@
       "gates_run": "None.",
       "next_command": "git status --short  # step 0: user commits the working tree; then rebuild dev (step 1)",
       "next_action": "User commits the 110 uncommitted paths. Then: record resolutions on W27/W30/W45; rebuild dev from the working tree; run W59's gates; re-export app data (W1/W55/W25/W28); promote v15."
+    },
+    {
+      "date": "2026-09-29T11:00:00Z",
+      "session": "WI-16 close-out: identity macro fixed, 2021_19 worked-example spec error recorded",
+      "landed": [
+        "driver_isolation_identity_terms macro fixed for the tactical-free model; isolation intermediates/marts, schema.yml cleanup and test comment updated; assert_track_evolution_monotone split into _dry and _wet.",
+        "Worked example HAM_vs_VER_2021_19: the pre-registered expected value (0.05 s/lap) was a spec error. Measured 0.178 s/lap over 36 laps is what the data says, and the method recovers it. The 'Within tolerance: False' line in validation-report.md is a spec failure, not a method failure."
+      ],
+      "verified": [
+        "board.py --check: build-log.json OK. Isolation models rebuild clean on dev (per session report)."
+      ],
+      "assumed": [
+        "VER_vs_PER_2023_2 also reads outside tolerance (-0.459 vs -0.40 s/lap); not investigated here, may be a second spec/tolerance question. V1c/V2a/V2e stay MARGINAL."
+      ],
+      "gates_run": "board.py --check. No W59 gates run.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --watch",
+      "next_action": "User commits the WI-16 paths. Then run W59's gates: WI-15a/b, 08e thermal, WI-02a seed-movement gates."
     }
   ],
   "watch_vocabulary": {

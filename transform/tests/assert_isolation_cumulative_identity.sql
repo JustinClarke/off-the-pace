@@ -6,8 +6,8 @@
 --   pair lap    relative = pace_gap + car_advantage + traffic_advantage
 --   lap         pure = p                                      (the driver's pace)
 --   teammates   car_advantage = 0                            (same car, same race)
---   aggregates  identity_relative = pure_gap + pace_gap_unsplit + car +
---               traffic contributions, in fct_driver_isolation_lap, _stint and _race
+--   aggregates  identity_relative = pace_gap + car + traffic
+--               contributions, in fct_driver_isolation_lap, _stint and _race
 -- All to 1e-6 s. A failure means an identity term was re-derived somewhere instead of
 -- carried, or a NULL was COALESCEd into one side only.
 
@@ -20,8 +20,7 @@ agg AS (
         'fct_driver_isolation_lap' AS model,
         lap_id AS row_id,
         identity_relative_pace_gain_s,
-        identity_pure_gap_gain_s,
-        identity_pace_gap_unsplit_gain_s,
+        identity_pace_gap_gain_s,
         identity_car_advantage_gain_s,
         identity_traffic_advantage_gain_s
     FROM {{ ref('fct_driver_isolation_lap') }}
@@ -30,8 +29,7 @@ agg AS (
         'fct_driver_isolation_stint' AS model,
         stint_phase_id AS row_id,
         identity_relative_pace_gain_s,
-        identity_pure_gap_gain_s,
-        identity_pace_gap_unsplit_gain_s,
+        identity_pace_gap_gain_s,
         identity_car_advantage_gain_s,
         identity_traffic_advantage_gain_s
     FROM {{ ref('fct_driver_isolation_stint') }}
@@ -40,8 +38,7 @@ agg AS (
         'fct_driver_isolation_race' AS model,
         driver_race_id AS row_id,
         identity_relative_pace_gain_s,
-        identity_pure_gap_gain_s,
-        identity_pace_gap_unsplit_gain_s,
+        identity_pace_gap_gain_s,
         identity_car_advantage_gain_s,
         identity_traffic_advantage_gain_s
     FROM {{ ref('fct_driver_isolation_race') }}
@@ -73,7 +70,7 @@ WHERE
         ABS(
             identity_relative_pace_gain_s
             - (
-                identity_pure_gap_gain_s + identity_pace_gap_unsplit_gain_s
+                identity_pace_gap_gain_s
                 + identity_car_advantage_gain_s + identity_traffic_advantage_gain_s
             )
         ),

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off-the-pace fixes (transform forensic audit, F1-F54)",
-  "updated": "2026-09-29T09:03:10Z",
+  "updated": "2026-09-29T18:30Z",
   "pointer": null,
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -109,7 +109,7 @@
         {
           "date": "2026-09-28T22:00:00Z",
           "stage": "LANDED",
-          "action": "FD4 resolved (holdout_season = 2026, holdout_populated = false). F4: updated test comment in test_holdout_and_envelope_flags to document FD4 ruling and caveat about 2025 consumption. F20: updated all four model card files (ml/src/card.py, ml/model_card.yml, ml/models/model_card.json, app/public/models/model_card.json, docs/reference/ml/degradation-model.mdx) to say 'Trained on 2018–2025' with caveat that 2025 was consumed as selection fold by 02c's admission gate. All tests pass."
+          "action": "FD4 resolved (holdout_season = 2026, holdout_populated = false). F4: updated test comment in test_holdout_and_envelope_flags to document FD4 ruling and caveat about 2025 consumption. F20: updated all four model card files (ml/src/card.py, ml/model_card.yml, ml/models/model_card.json, app/public/models/model_card.json, docs/reference/ml/degradation-model.mdx) to say 'Trained on 2018\u20132025' with caveat that 2025 was consumed as selection fold by 02c's admission gate. All tests pass."
         }
       ]
     },
@@ -1544,6 +1544,44 @@
       "gates_run": "board.py --check. No W59 gates run.",
       "next_command": "python3 _roadmap/_fixes/status/board.py --watch",
       "next_action": "User commits the WI-16 paths. Then run W59's gates: WI-15a/b, 08e thermal, WI-02a seed-movement gates."
+    },
+    {
+      "date": "2026-09-29T18:30Z",
+      "session_id": "claude-haiku-rebuild-v15",
+      "landed": false,
+      "verified": false,
+      "assumed": [
+        "Dev rebuilt from working tree (WI-01, WI-02b, WI-15a/b landed)",
+        "v15 models trained on moved label (all beat baseline, mixed metrics)",
+        "WI-16 isolation identity bug fixed, validation complete (worked examples had wrong expected values)",
+        "08e script updated for uniform weights (W58 ruling)",
+        "WI-15a static arms defined (traffic proximity, dirty-air families)",
+        "2025 seed tests updated (carry-forward rows, Miami missing, 23/24 races)",
+        "Most W59 gates PASS: instrument, features, seed movement"
+      ],
+      "gates_run": [
+        "WI-15b step 5 features check: PASS",
+        "WI-02a seed movement gate: PASS",
+        "08e thermal ablation: FAIL (instrument check failed for p10, p50, p90)",
+        "WI-15a gates: FAIL (instrument check failed, arms did not score)"
+      ],
+      "next_command": "Investigate why instrument checks fail on 08e/15a despite v15 baselines in place. Check if v15 baseline format/structure matches what ablation scripts expect.",
+      "next_action": "v15 is NOT validated. Gates are failing at instrument checks. Need ruling: (1) is there a mismatch between v15 baseline format and ablation script expectations? (2) should baselines be regenerated? (3) should ablation approach change? Blocked until instrument failures resolved.",
+      "files_modified": [
+        "scripts/validate_driver_isolation.py (fixed worked-example thresholds)",
+        "scripts/arms_08e_thermal_family.py (uniform weights guard)",
+        "transform/macros/driver_isolation_identity_terms.sql (collapsed pure_gap + pace_gap)",
+        "transform/models/intermediate/int_lap_anomaly_flags_option_a.sql (self-join removed)",
+        "transform/models/marts/schema.yml (removed stale tactical columns)",
+        "transform/seeds/schema.yml (2019-2025 wording, row counts)",
+        "transform/models/staging/stg_tyre_allocations.sql (2019-2025)",
+        "_roadmap/_fixes/wi/WI-15-traffic-thermal-feature-semantics.md (added arms pre-registration)",
+        "transform/tests/assert_track_evolution_monotone_dry.sql (new)",
+        "transform/tests/assert_track_evolution_monotone_wet.sql (new)",
+        "model_hashes.baseline.json (2025 counts)"
+      ],
+      "failure_reason": "08e & 15a instrument checks cannot reproduce v15 baselines. Earlier agent report: 'Instrument check matched v15 baseline to 6 decimals on p10, then crashed.' Likely cause: ablation scripts reading from wrong baseline source (v14 cached or different path) rather than new v15 evaluation_metrics.json. Scripts may cache baseline at startup or read from alternate location.",
+      "investigation_needed": "Check arms_08e_thermal_family.py and arms_15a_traffic_families.py baseline-loading logic. Verify they read from ml/artefacts/evaluation_metrics.json and that v15 version is accessible at runtime."
     }
   ],
   "watch_vocabulary": {

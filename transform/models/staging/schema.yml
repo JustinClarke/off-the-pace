@@ -1069,11 +1069,15 @@ models:
 
   - name: stg_tyre_allocations
     description: >
-      Pirelli weekend compound nominations for 2019-2024: which C-code each of hard/medium/soft
+      Pirelli weekend compound nominations for 2019-2025: which C-code each of hard/medium/soft
       actually was, per race. compound_label has been RELATIVE since 2019 (Pirelli picks 3 of 5
       physical compounds per weekend), so "SOFT" at one circuit is not the same rubber as "SOFT"
       at another; this model supplies the absolute scale that makes them comparable.
-      One row per (race, label): 128 races x 3 = 384 rows.
+      One row per (race, label): 151 races x 3 = 453 rows (128 races for 2019-2024, 23 for 2025;
+      the 2025 seed has no Miami row). 2025 values are carried forward from the circuit's 2023 or
+      2024 allocation (source_url = 'carried_from_20xx'), not read from a 2025 Pirelli preview.
+      Row counts per season and three labels per race are pinned by
+      assert_tyre_allocations_rows_per_season.
 
       PROVENANCE - READ BEFORE QUOTING ANYTHING FROM THIS TABLE. The seed is USER-SUPPLIED AND
       SELF-VERIFIED, not machine-sourced. source_url names the Pirelli per-race preview each row
@@ -1088,7 +1092,7 @@ models:
       family: staging
     columns:
       - name: race_year
-        description: Season year, 2019-2024.
+        description: Season year, 2019-2025.
         data_type: integer
         tests:
           - not_null

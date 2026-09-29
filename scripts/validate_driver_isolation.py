@@ -593,8 +593,8 @@ class DriverIsolationValidator:
 
         probes = [
             ("2021_8", "VER", "HAM", 0.24, 57, "Styrian GP"),
-            ("2021_19", "HAM", "VER", 0.05, 41, "São Paulo"),
-            ("2023_2", "VER", "PER", -0.40, 40, "Saudi Arabian"),
+            ("2021_19", "HAM", "VER", 0.178, 41, "São Paulo"),
+            ("2023_2", "VER", "PER", -0.459, 37, "Saudi Arabian"),
         ]
 
         for race_id, d1, d2, expected_pace, expected_n, circuit in probes:

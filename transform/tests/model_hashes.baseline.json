@@ -71,7 +71,7 @@
     "stg_telemetry": "965d61e5c0347845837fe2181a6edbe1",
     "stg_telemetry_position": "370581dbf1b2816ec8026976d73c0bef",
     "stg_track_status": "9ee626a655ee57fe01acb08c88c7ca19",
-    "stg_tyre_allocations": "89c27eaa0b36b9c690136703fb0125ae",
+    "stg_tyre_allocations": "d38738c33421d0650689d66a426d2bcc",
     "stg_weather": "b5fd495c804043bcb2e4b8a09ee9e0a0"
   },
   "missing": [],
@@ -147,7 +147,7 @@
     "stg_telemetry": 2360678,
     "stg_telemetry_position": 1212916,
     "stg_track_status": 52,
-    "stg_tyre_allocations": 384,
+    "stg_tyre_allocations": 453,
     "stg_weather": 3116
   }
 }

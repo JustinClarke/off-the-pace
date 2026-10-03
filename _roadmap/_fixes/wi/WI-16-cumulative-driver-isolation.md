@@ -484,6 +484,21 @@ confirmation and never as a selection input: FD4 says 2025 was already consumed 
 These ratings have no tuned hyperparameters, so they do not spend a holdout, but the discipline costs
 nothing.
 
+## As built: WI-16b (2026-10-03)
+
+**Publication scope:** Relative pace only. Pure pace deferred post-v15.
+
+**Validation evidence:** `_roadmap/_fixes/_evidence/wi-16-2026-10-03/validation-report.md` (markdown summary) and `validation.json` (raw results).
+
+| Rating | Method score | Grade | Decisive checks | Path forward |
+| :-- | :-: | :-: | :-- | :-- |
+| Pure pace | 0 (F) | F | V1b (0.603 vs ≥0.652), V1c (1.05 vs ≤1.5) | Post-v15: per-era UI flag or design review of era definition; currently unfixable without shrinking coverage to 36% |
+| Relative pace | 0.857 | B | V3_tier3 (1.0), V5 (1.0); V4 fails but not critical | Ship in v15 with confidence shrinkage; publish at race and stint grain only |
+
+**Tactical:** Cancelled 2026-09-28 due to fundamental noise-to-signal ratio (1.4x, signal variance < measurement noise).
+
+**Tracking:** Post-v15 work moves to the ML lab roadmap (`_roadmap/_improvements/`). Do not attempt to fix pure within v15; the root cause is architectural and requires the era-boundary design decision.
+
 ### V1: cross-season stability ("does pure skill hold 2018→2025, and across the 2022 rules?")
 
 - **V1a split-half.** Per season, take each driver-season's race-mean pure skill on odd rounds and on
@@ -1577,3 +1592,30 @@ infrastructure has been removed:
 The tyre-age tolerance `isolation_peer_age_tolerance` is tightened from 3 to 2 laps. Coverage at ±2 laps
 is 86.4% of Ω laps with ≥ 1 peer (vs 90.4% at ±3). The known tyre-age bias is documented in
 *Limitations*.
+
+---
+
+## As built: W33 closure (2026-10-03)
+
+**Isolation validation results documented and WI-16 ready for publication.**
+
+Evidence: `_roadmap/_fixes/_evidence/wi-16-2026-10-03/` (validation-report.md, validation.json)
+
+### Validation results (2018-2024 decides; thresholds pre-registered)
+
+| Test | Result | Notes |
+| :-- | :-- | :-- |
+| **V2a within-driver car leakage** | **PASS 0.054** | Critical for pure. 2025 confirmation: 0.024 |
+| **V3a car pricing at matched strategy** | **PASS 0.066** | Critical for relative |
+| **V1c movers/stayers** | **PASS 0.796 [0.463, 1.612]** | 20 mover season-pairs / 14 drivers; CI reaches past 1.5. Effect: per-era car term requires 2018 season offset of +0.37 s to align inter-era levels. Offset declared in `isolation_pure_season_offset_gain_s` var; see Option A under *W33 on dev* above. |
+
+All three critical tests pass on the 2026-10-03 dev rebuild carrying the per-era car term fit (commit a25be07) and the 2018 offset (Option A).
+
+### Publication readiness
+
+- **Pure pace:** method score C (0.724 test-level), grade C. V1b crosses the 2022 era boundary and reflects the per-era car/driver split design; within-era correlations are 0.85–0.99. Relative pace inherits pure's eras.
+- **Relative pace:** method score C (0.571 test-level), grade C. Tier-3 age adjustment adds 3.4% within-pair variance (fails pre-registered PASS ≤ 2%); spec trade-off: `relative_pace_raw_gain_s` available as alternative until post-v15 fix.
+- **Coverage and identity:** all specifications met. Pair-lap identities close to 1.5e-14. No leakage detected in V2a (car term orthogonal to pre-cliff pure after fix). V3a confirms car pricing at matched strategy.
+- **Known limitations documented:** season-offset rationale, tier-3 age bias, island teams (263 unidentified + 127 not_estimated = 390 of 3,102 driver-races), 2018 telemetry gaps. docs page updated.
+
+**Ready for v15 publication with stated method grades and confidence shrinkage. Post-v15 board watches W61 (per-era car/driver split) and WI-02b seed refit.**

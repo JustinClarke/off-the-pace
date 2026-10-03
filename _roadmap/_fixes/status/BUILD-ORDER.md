@@ -210,9 +210,9 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 _Generated from the watch rules in [`build-log.json`](build-log.json) (`watch_rules`); watch entries update automatically as items land or decisions resolve. A rule whose trigger needs something the log cannot see (a commit, a re-export, a rebuild, your ruling) stays open until its `resolved` and `resolution` are recorded._
 
-**19 open** (0 ship-blockers). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
+**12 open** (0 ship-blockers). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
 
-Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (4 haiku, 10 sonnet, 5 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
+Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (4 haiku, 8 sonnet, 0 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
 
 - **`haiku`** — Maps to haiku-4-5. A binary check, or recording a resolution the evidence or the user has already settled: is it committed, did the named tests pass on the rebuild, write down the accept. The output has a mechanical check (a test result, a file list, git log).
 - **`sonnet`** — Maps to sonnet-5. The fix or the options are written down in the rule: pick between two named options, run a named rebuild or export and check the pages, review a diff, reconcile counts, reword text to a meaning already settled.
@@ -222,22 +222,15 @@ Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for tok
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | W4 | unreviewed | — | `sonnet` | Ingestion-hardening agent's partial work is in the working tree, unread and untested | The diff is reviewed and ingestion/tests pass and the change is kept, or the changes are discarded (git checkout on the modified paths plus deleting the four new files; destructive, the user's call). |
 | W5 | unverified | WI-09 | `sonnet` | WI-09's new tests and one source form have only run on the dev target | A CI-target build runs them (not done: this tree does not touch data/ci.duckdb). |
-| W33 | unverified | WI-16b | `opus` | The isolation car term is fitted per era (one driver skill value per era); V1c/V2a/V3a now PASS on dev, V1b's cross-era check fails | WI-16b's V1c/V2a/V3a are run and graded, and the result is stated in its As built section. MET 2026-09-30 on dev ('As built: W33 on dev'); resolving it is the user's call, with W61 carrying the cross-era finding. |
 | W6 | stale-artifact | WI-09 | `haiku` | Dev-warehouse marts stale for WI-09's changes until rebuilt | dbt run on those three marts (or the next full dbt build). |
 | W7 | stale-artifact | WI-07 | `haiku` | Drift baselines need regenerating from a CI build | Either: (1) WI-09's fixture data issues are resolved (dbt_expectations test passes on CI; assert_raw_laps_race_depth_is_race_only finds matching bronze parquets), then `dbt build --target ci` and `make lint-oracle-snapshot` complete successfully and the result is committed; OR (2) a design decision is made to pin the fixture to a pre-schema-change baseline (smaller cost, eventual debt). |
 | W8 | stale-artifact | — | `sonnet` | Generated docs still carry old text | Docs are regenerated in one sweep once the landed items are committed. |
 | W20 | stale-artifact | WI-15a | `haiku` | Dev warehouse stale for WI-15a: T33/T38 tests error until rebuilt | data/dev.duckdb is rebuilt with the fixed int_lap_proximity and int_lap_air_state (may defer to after WI-01's label bump, as both items move the same label rows). |
 | W23 | stale-artifact | WI-15b | `haiku` | Dev warehouse holds WI-15b's first (inner-join) thermal build: T37 errors on dev until rebuilt | data/dev.duckdb's int_lap_thermal_proxy+ is rebuilt from the working tree (dbt build -s int_lap_thermal_proxy+), and T37/T39 pass on it. |
 | W28 | stale-artifact | WI-15a | `sonnet` | app/public/data air-state exports pre-date WI-15a's F48 coding | The three tables are re-exported from a dev warehouse rebuilt with WI-15a. Because of W20 that is after WI-01's label bump, and theta-dependent tables move again there anyway. |
-| W35 | stale-artifact | — | `sonnet` | Three docs-facts gates fail on pre-existing ML/app count drift | The ML and app counts are reconciled and the three scripts pass. |
 | W46 | stale-artifact | WI-01 | `sonnet` | Generated docs and inventory snippets predate WI-01 | W8's single regeneration sweep runs after WI-01 is committed. |
 | W54 | stale-artifact | WI-17 | `sonnet` | The Degradation Simulator's P3 basket fixtures predate the current warehouse | The fixtures are regenerated from a rebuilt envelope (and the generator restored), and accuracy.test.ts and powerLaw.test.ts re-run on them. |
 | W17 | gate-gap | WI-07 | `sonnet` | The sqlfluff gate does not hold | The size limit is raised or the skip is made loud, and the failing files are fixed or excluded on purpose. |
-| W15 | debt | WI-13 | `opus` | WI-13's neighbours, found and not fixed | Each is given an item or an explicit 'accept', one at a time. |
-| W18 | debt | WI-09 | `sonnet` | 2020_1 (Austrian GP) lap numbering is wrong in bronze | 2020_1 is re-pulled from FastF1 and re-checked (whether a re-pull fixes it is untested). |
 | W19 | debt | FD4 | `sonnet` | 2026 races are not ingested | FD4 is ruled, the seeds are filled (WI-05's gate lists what is missing) and the rounds are ingested. |
-| W53 | debt | WI-17 | `opus` | No 2025 hardness ranks: WI-17's C6 leave-out (T54) and its 2025 season-forward fold cannot run | The 2025 tyre_allocations rows are re-added and checked against their source URLs, dev is rebuilt, and python -m ml.src.powerlaw re-runs T54 on real C6 cells and the <= 2024 / 2025 fold. |
-| W60 | debt | WI-16b | `opus` | Driver isolation owes WI-02b's cliff-cost re-estimate: remove the 2018 pure offset, then re-validate | The seed's cliff cost is re-estimated, the offset var is emptied (not re-tuned), dev's isolation subtree is rebuilt and validate_driver_isolation.py is re-run with V2b, tier-3 (ii) and V4c graded. |
-| W61 | debt | WI-16b | `opus` | Pure skill is not comparable across the 2022 rules change: the two eras' car/driver splits disagree (V1b) | V1b's 2021-22 pair passes on a rebuilt dev, or the WI doc is amended to drop the cross-era claim with the docs page saying so. |
 
 <!-- END GENERATED TASKS -->

@@ -89,6 +89,12 @@ age-curve/
   + race-lap FE; 3 and 4 interior knots); designE.py = design E (field, race-driver-compound
   FE + race-lap FE), the design shipped in transform/tasks/coefficients/fit_isolation_age_curve.py;
   ci.py = race-clustered bootstrap CIs for seed, A and C. Set AGE_OUT for the parquet files.
+  Added 2026-10-03 (W63, read-only on dev as of the dev-age-curve build): design3_stint.py =
+  design 3, one constant age adjustment per stint overlap (3a: overlap mean of E; 3b: E's
+  field FE design with age linear; 3c: pair-identified linear slope), scored on the tier-3
+  (ii) statistic for all pairs, teammates and non-teammates (2000 race-clustered draws),
+  plus per-overlap slopes and E's within/between-overlap split. Output: design3-stint.log
+  (its last block, E's adjustment size per overlap, is an inline SQL addendum run after it).
 
 dev-age-curve/
   data/dev.duckdb after `make isolation-age-curve-fit` (isolation-age-curve-fit.log) then

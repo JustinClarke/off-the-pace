@@ -143,37 +143,43 @@ driver there.
 
 Peers of (d, l) are every d' ≠ d with an Ω lap in the same race, **on the same lap number** (which
 means the same fuel load, rubber and weather), on the **same compound**, with
-`|age_d' − age_d| <= var('isolation_peer_age_tolerance')` (3). Teammates are included, and
+`|age_d' − age_d| <= var('isolation_peer_age_tolerance')` (2). Teammates are included, and
 `is_teammate` flags them.
 
 ```
-relative_pace_raw_gain_s(d,d',l) = t(d',l) − t(d,l)                                      -- model-free
-relative_pace_gain_s(d,d',l)     = (t(d',l) − t(d,l)) − (C(d',l) − C(d,l))               -- age-adjusted by the seed's ΔC (≤ 3 laps of wear)
-relative_pace_gain_s(d,l)        = AVG over peers of the above;  n_peers(d,l) = COUNT      -- NULL when n_peers = 0
+relative_pace_gain_s(d,d',l) = t(d',l) − t(d,l)                                      -- model-free, raw pace
+relative_pace_gain_s(d,l)    = AVG over peers of the above;  n_peers(d,l) = COUNT      -- NULL when n_peers = 0
 ```
 
-The rating uses the mean over peers rather than the median, so that the identity below survives
-aggregation. Outliers are already excluded by Ω. Measured coverage: **88.3% of Ω laps have ≥ 1 peer,
-77.2% have ≥ 2 and 47.4% have ≥ 5.**
+The age tolerance is ±2 laps (vs the previous ±3) to tighten the tyre-age match. No model-based
+age adjustment is applied; the tyre-age matching controls for this confounder directly. The rating uses
+the mean over peers rather than the median, so that the identity below survives aggregation. Outliers
+are already excluded by Ω. Measured coverage at ±2 laps: **86.4% of Ω laps have ≥ 1 peer,
+72.0% have ≥ 2 and 37.4% have ≥ 5.**
 
 ### The decomposition identity
 
-Tier 2 decomposes exactly into tier 1 plus the car and traffic. This holds per pair-lap and in
-any linear aggregate:
+Tier 2 decomposes into tier 1 plus the car and traffic, with a tyre-age bias:
 
 ```
 relative_pace_gain_s(d vs d')  =  (pure_d − pure_d')          pure_gap_gain_s
                                +  (car_iso_d' − car_iso_d)    car_advantage_gain_s      (> 0 = d's car faster)
                                +  (D_d' − D_d)                traffic_advantage_gain_s  (> 0 = d lost less to dirty air)
+                               +  (C_d' − C_d)                tyre_age_bias              (residual from matching ±2 laps)
 ```
 
-Derivation: `p = car_iso − y` and `y = x − median`, so
-`p_d − p_d' = (car_d − car_d') − (t_d − t_d') + (C_d − C_d') + (D_d − D_d')`. Rearranging gives the
-line above. T42 asserts it to 1e-6.
+The tyre-age bias is the gap left by matching within ±2 laps instead of adjusting for age. For
+teammates (same car, same strategy), this bias is median ±0.011 s (90th percentile ±0.147 s) per
+driver-race. The median is well below the rating's uncertainty (~0.1 s at race grain), but the 90th
+percentile exceeds it, so it is a known limitation. The *Limitations* section addresses this and its use case.
 
-**This is what the identity shows,** and it is what the LLM agent will use: "VER was 0.15 s a
-lap quicker than HAM on the same tyres. About 0.12 s of that was the driver and 0.09 s the car, and
-traffic cost him 0.06 s against HAM's."
+T42 checks the first three terms to 1e-6 (the pure, car, and traffic sum to the observed gap within
+model precision).
+
+**What this identity shows:** relative pace measures outcome against peers on the same tyre and fuel load.
+The LLM agent will use it as: "VER was 0.15 s a lap quicker than HAM on matching tyres. About 0.12 s
+of that was the driver and 0.09 s the car, and traffic cost him 0.06 s against HAM's. On the same
+tyres because we matched within 2-lap age windows."
 
 ### Stint phase
 
@@ -272,8 +278,14 @@ VER · same stint · laps 38–42 · tyre age 13–17 · phase: cliff (seed onse
   relative_pace_5lap_gain_s     −0.31 s/lap   vs HAM on same compound, matched age
 ```
 
-A **real** tier-2 number from the prototype probe (current warehouse, same compound, age within ±3,
-age-adjusted): at the 2021 Styrian GP, VER beat HAM by **+0.24 s/lap over 57 matched laps**.
+A **real** tier-2 number from dev (2026-10-03; same compound, tyre age within ±2 laps, raw pace with
+no age adjustment): at the 2021 São Paulo GP, HAM vs VER reads **−0.041 s/lap over 18 matched laps**,
+so VER was 0.041 s a lap quicker on matched tyres. Call it level: lap 2 alone (HAM −0.995 s) carries
+the sign, and the other 17 laps average +0.015 s for HAM. The identity puts +0.673 in HAM's car,
+−0.523 in the pace gap and −0.184 in traffic; the remaining −0.007 is the tyre-age bias from the six
+laps where HAM's tyres were one lap older. The ±3 match had 36 laps here; the 18 it loses are all
+three laps apart in tyre age. (The prototype probe's number, VER +0.24 s/lap over 57 laps at the 2021
+Styrian GP, was age-adjusted at ±3; that pair now reads +0.233 over 54.)
 
 ---
 
@@ -304,7 +316,7 @@ age-adjusted): at the 2021 Styrian GP, VER beat HAM by **+0.24 s/lap over 57 mat
 | `intermediate/int_driver_isolation_lap_pace` | lap · `lap_id` | panel + car | `pace_isolated_gain_s` (p). It exists so the stint model and the lap model subtract the car the same way, instead of two copies drifting apart. |
 | `intermediate/int_driver_isolation_stint_tyre` | stint · `stint_id` | lap pace, deg sensitivity | line (`n_line_laps`, `line_slope_s_per_lap2`, `line_mean_pace_gain_s`, `line_mean_age_laps`, `line_ref_age_laps`, Sxx), SEs, noise terms |
 | `intermediate/int_driver_isolation_lap_values` | lap · `lap_id` | lap pace + stint tyre | `pure_skill_gain_s`, `pure_is_extrapolated` |
-| `marts/fct_driver_isolation_pair_lap` | lap × peer · (`lap_id`, `peer_lap_id`) | lap values | both drivers, both ages, `is_teammate`, raw and adjusted relative pace, the three identity terms and `pace_gap_gain_s`. Probe size is about 0.6 M rows. **This is the table the agent uses for "vs HAM" questions.** |
+| `marts/fct_driver_isolation_pair_lap` | lap × peer · (`lap_id`, `peer_lap_id`) | lap values | both drivers, both ages, `is_teammate`, relative pace (raw, age-matched within ±2 laps), the three identity terms and `pace_gap_gain_s`. Probe size is about 0.6 M rows. **This is the table the agent uses for "vs HAM" questions.** |
 | `marts/fct_driver_isolation_lap` | lap · `lap_id` | lap values + pair lap | lap values, peer aggregates, the two 5-lap windows (pure, relative), `window_n_*`, `window_mixed_phase`, per-window λ, `confidence_pct`, `trust_label` |
 | `marts/fct_driver_isolation_stint` | (`stint_id`, `stint_phase`), with phase ∈ early/mid/cliff/recovery/**all** | lap mart, pair lap, stint tyre, context models | per-rating (pure, relative) raw, SE, λ, shrunk, `confidence_pct`, `trust_label`; stint-level identity terms; context: strategy verdict, opportunity cost, end cause, `tyre_offset_vs_field_s`, `lift_coast_excess`, dirty-air share |
 | `marts/fct_driver_isolation_race` | driver-race · `driver_race_id` | lap mart, pair lap | the same, rolled up with lap weighting; the **same surrogate-key recipe as `fct_driver_skill_features`**, so the two join directly |
@@ -1548,44 +1560,19 @@ the pairs themselves gets below zero, and it does so with non-physical shapes. E
 because it is identified, stable and physical, not for its score. Against the brief's target
 (< 2% added) it passes; against the pre-registered rule (must reduce) it fails.
 
-What shipped:
-- `transform/tasks/coefficients/fit_isolation_age_curve.py` (`isolation_age_curve_bspline_rdc_cf5_v1`)
-  → `data/fits/isolation_age_curve.parquet`, one row per (race, compound, age); refuses to emit
-  a group it has no curve for. Unit tests: `tests/test_fit_isolation_age_curve.py` (5).
-  `make car-fe-isolation-fit` now runs it; `make isolation-age-curve-fit` runs it alone.
-- `int_driver_isolation_age_curve` (source `fits.isolation_age_curve`).
-- `fct_driver_isolation_pair_lap`: `relative_pace_gain_s` = raw − (g(peer) − g(driver)); new
-  `relative_pace_seed_adj_gain_s` (the old value) and `age_pricing_gain_s` = ΔC_seed − Δg.
-  The identity is now relative = pace_gap + car + traffic + age_pricing (pure stays on the
-  seed); the macro emits `identity_age_pricing_gain_s` into the lap, stint and race marts,
-  and T42 checks the four terms.
-- The validator reports the seed's reduction alongside (report only).
+### Age curve: removed per W63 (design 2 resolution)
 
-Rebuild: `make isolation-age-curve-fit` (127,135 Ω laps, 106,602 in the fit sample, 13,913
-rows, `age_effect_s` 0 to 2.47 s), then `dbt build -s int_driver_isolation_age_curve+`:
-PASS=101, WARN=0, ERROR=0. The eras and the car term are unchanged, so nothing upstream was
-rebuilt.
+The age-curve approach was tested to reduce variance on tier-3 relative pace but could not pass the
+validation check on cross-car pairs (confounded by pit strategy). Under W63 resolution, the age-curve
+infrastructure has been removed:
 
-### Validation on dev (`dev-age-curve/`; 2018-2024 decides)
+- `fit_isolation_age_curve.py`, `int_driver_isolation_age_curve`, and `data/fits/isolation_age_curve.parquet` are
+  deleted.
+- `fct_driver_isolation_pair_lap` holds `relative_pace_gain_s` only (raw, peer-matched within ±2 laps
+  of tyre age, not age-adjusted).
+- The identity is: relative = pure_gap + car_advantage + traffic_advantage (3 terms, not 4).
+- T42 checks the three terms to 1e-6.
 
-Against `dev-final` only relative-pace rows moved: tier-3 age adjustment FAIL −0.034 →
-**FAIL −0.0066** (+0.66%); V5d 0.389 / 0.314 → 0.381 / 0.317 (PASS); V3d gains 0.124 / 0.281 →
-0.123 / 0.273 (PASS); São Paulo HAM–VER +0.178 → +0.147 (raw +0.208; age pricing −0.031).
-Every pure row is identical.
-
-| Rating | Strict | Before the critical rule / test-level | Critical fail |
-| :-- | :-: | :-: | :-- |
-| Pure | 0 (F) | 0.724 (C) | V1b |
-| Relative | 0 (F) | 0.571 (C) | tier-3 age adjustment |
-
-Neither rating reaches C under the strict reading; both are C under the test-level one, as
-before. The two critical fails are now both shown to be properties of the checks' design
-against this method (V1b: per-era fitting; tier-3 ii: pair dynamics swamp tyre age), not
-defects either change here could remove.
-
-### Not done
-
-- `--write-seed`: the strict or test-level reading is still the user's call.
-- The V1b and tier-3 (ii) spec questions above are the user's call; nothing was re-graded.
-- The generated reference docs and `transform_docs_facts.py` counts (one new model, 13 new
-  data tests): the generator still crashes on `fct_power_law_training` (pre-existing).
+The tyre-age tolerance `isolation_peer_age_tolerance` is tightened from 3 to 2 laps. Coverage at ±2 laps
+is 86.4% of Ω laps with ≥ 1 peer (vs 90.4% at ±3). The known tyre-age bias is documented in
+*Limitations*.

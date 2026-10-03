@@ -1,0 +1,117 @@
+pair-laps 334473, overlaps 24838, overlaps with non-constant age gap: 0
+pair-laps in overlaps with dage != 0: 0.538; overlap length median 12 laps
+
+(3b) field linear slope beta_G, s per lap of age (all races; then fold-held-out fits):
+  2018|OTHER         +0.0342 (SE 0.0055)   folds +0.0348 +0.0235 +0.0388 +0.0387 +0.0337
+  2018|SOFT          +0.0321 (SE 0.0055)   folds +0.0316 +0.0205 +0.0394 +0.0364 +0.0328
+  2018|SUPERSOFT     +0.0315 (SE 0.0056)   folds +nan +nan +nan +0.0324 +nan
+  post2022|HARD      +0.0519 (SE 0.0018)   folds +0.0504 +0.0516 +0.0517 +0.0554 +0.0504
+  post2022|MEDIUM    +0.0569 (SE 0.0022)   folds +0.0573 +0.0538 +0.0553 +0.0586 +0.0601
+  post2022|SOFT      +0.0732 (SE 0.0034)   folds +0.0704 +0.0673 +0.0770 +0.0758 +0.0766
+  pre2022|HARD       +0.0385 (SE 0.0027)   folds +0.0381 +0.0363 +0.0385 +0.0375 +0.0420
+  pre2022|MEDIUM     +0.0466 (SE 0.0029)   folds +0.0479 +0.0432 +0.0467 +0.0490 +0.0461
+  pre2022|SOFT       +0.0586 (SE 0.0039)   folds +0.0598 +0.0579 +0.0577 +0.0585 +0.0595
+
+(3c) pair-identified linear slope, s per lap of age gap (2018-2024; then fold-held-out fits):
+  2018|HARD          -0.2281   folds -0.2281 -0.2281 -0.2281 +nan -0.2281
+  2018|HYPERSOFT     -0.2705   folds -0.2680 -0.2713 -0.2710 -0.3953 -0.0701
+  2018|MEDIUM        +0.0203   folds +0.0206 +0.0076 +0.0183 +0.0256 +0.0270
+  2018|SOFT          -0.0095   folds -0.0033 -0.0509 -0.0112 +0.0057 +0.0114
+  2018|SUPERSOFT     -0.0178   folds -0.0329 +0.0006 +0.0079 -0.0232 -0.0268
+  2018|ULTRASOFT     -0.1039   folds -0.1446 -0.0998 -0.1503 -0.0948 -0.0497
+  post2022|HARD      +0.0395   folds +0.0392 +0.0356 +0.0261 +0.0418 +0.0524
+  post2022|MEDIUM    +0.0617   folds +0.0663 +0.0485 +0.0621 +0.0658 +0.0624
+  post2022|SOFT      +0.0229   folds +0.0273 +0.0491 -0.0016 +0.0275 +0.0196
+  pre2022|HARD       +0.0327   folds +0.0232 +0.0365 +0.0392 +0.0360 +0.0283
+  pre2022|MEDIUM     -0.0352   folds -0.0296 -0.0467 -0.0396 -0.0279 -0.0324
+  pre2022|SOFT       -0.0424   folds -0.0438 -0.0556 -0.0406 -0.0476 -0.0182
+
+per-overlap noise: lag-1 autocorrelation of the raw gap around its overlap mean 0.353 (SE^2 inflated x2.09)
+naive per-overlap slope = mean pace gap / age gap (dage != 0 overlaps, no pair baseline):
+  n 11325, median -0.011, IQR [-0.451, +0.395] s/lap, share > 0 0.490   <- mostly the pair's skill+car gap, not age
+
+per-overlap slope vs the pair's any-compound dage=0 reference: (r_overlap - r_ref) / dage, s per lap
+  group                  n   median                IQR     >0  medSE         FE-mean    tau    I2  E says
+  ALL                 3540   +0.028 [-0.159, +0.211]   0.54  0.172 +0.027±0.004  0.183  0.70  +0.060
+  2018|MEDIUM           35   +0.005 [-0.302, +0.290]   0.51  0.239 +0.059±0.061  0.215  0.57  +0.073
+  2018|SOFT            100   +0.034 [-0.139, +0.220]   0.58  0.173 +0.051±0.024  0.172  0.66  +0.032
+  2018|SUPERSOFT        51   +0.025 [-0.112, +0.162]   0.59  0.164 +0.040±0.034  0.123  0.49  +0.038
+  2018|ULTRASOFT        27   -0.030 [-0.366, +0.221]   0.44  0.253 -0.005±0.052  0.310  0.82  +0.047
+  post2022|HARD       1567   +0.032 [-0.142, +0.202]   0.55  0.161 +0.032±0.006  0.174  0.69  +0.060
+  post2022|MEDIUM      438   +0.082 [-0.112, +0.268]   0.61  0.200 +0.057±0.012  0.180  0.65  +0.083
+  post2022|SOFT        306   +0.023 [-0.179, +0.219]   0.54  0.166 +0.028±0.013  0.180  0.71  +0.081
+  pre2022|HARD         518   +0.006 [-0.188, +0.197]   0.51  0.178 +0.009±0.010  0.199  0.74  +0.045
+  pre2022|MEDIUM       346   +0.009 [-0.169, +0.228]   0.51  0.166 +0.004±0.012  0.203  0.75  +0.054
+  pre2022|SOFT         148   -0.050 [-0.264, +0.174]   0.45  0.182 +0.007±0.020  0.193  0.71  +0.070
+  teammates            420   +0.064 [-0.127, +0.214]   0.60  0.200 +0.049±0.012  0.170  0.65  +0.059
+  non-teammates       3120   +0.023 [-0.164, +0.208]   0.54  0.167 +0.025±0.004  0.185  0.71  +0.061
+
+per-overlap slope vs the pair's same-compound dage=0 reference: (r_overlap - r_ref) / dage, s per lap
+  group                  n   median                IQR     >0  medSE         FE-mean    tau    I2  E says
+  ALL                  512   +0.060 [-0.151, +0.237]   0.57  0.196 +0.051±0.011  0.198  0.70  +0.071
+  2018|SOFT             10   -0.040 [-0.130, +0.161]   0.40  0.191 -0.024±0.095  0.103  0.30  +0.032
+  post2022|HARD        101   +0.048 [-0.143, +0.173]   0.56  0.155 +0.036±0.024  0.119  0.49  +0.068
+  post2022|MEDIUM      118   +0.143 [-0.044, +0.302]   0.70  0.200 +0.116±0.024  0.195  0.68  +0.074
+  post2022|SOFT        177   +0.024 [-0.171, +0.256]   0.54  0.178 +0.036±0.018  0.209  0.75  +0.076
+  pre2022|MEDIUM        36   +0.103 [-0.161, +0.428]   0.58  0.309 +0.015±0.064  0.416  0.81  +0.055
+  pre2022|SOFT          59   -0.043 [-0.291, +0.166]   0.41  0.245 +0.014±0.037  0.196  0.62  +0.065
+  teammates             68   +0.090 [-0.109, +0.296]   0.65  0.219 +0.130±0.032  0.221  0.72  +0.072
+  non-teammates        444   +0.047 [-0.161, +0.230]   0.56  0.191 +0.040±0.012  0.193  0.69  +0.071
+
+=== tier-3 (ii) pooled within-pair variance change vs raw, 2018-2024 (decides) ===
+-- all pairs: pairs 14563, pair-laps 283898, overlaps 20961, raw within-pair var 0.4392
+   E (shipped, per-lap curve)     +0.664%  [+0.300, +1.027]  k*=+0.178  adds
+   3a overlap mean of E           +0.408%  [+0.124, +0.699]  k*=+0.184  adds
+   3b field linear slope          +0.220%  [-0.032, +0.432]  k*=+0.238  adds
+   3c pair-identified slope       -0.062%  [-0.211, +0.087]  k*=+0.607  REDUCES
+   seed dC (old)                  +3.403%  [+2.565, +4.375]  k*=+0.109  adds
+   seed-3a overlap mean           +1.736%  [+1.239, +2.323]  k*=+0.082  adds
+-- teammates: pairs 897, pair-laps 21054, overlaps 1495, raw within-pair var 0.4037
+   E (shipped, per-lap curve)     -0.256%  [-0.759, +0.274]  k*=+0.655  REDUCES
+   3a overlap mean of E           -0.228%  [-0.679, +0.216]  k*=+0.710  REDUCES
+   3b field linear slope          -0.214%  [-0.571, +0.146]  k*=+0.785  REDUCES
+   3c pair-identified slope       -0.068%  [-0.395, +0.238]  k*=+0.645  REDUCES
+   seed dC (old)                  +1.880%  [+0.639, +3.129]  k*=+0.236  adds
+   seed-3a overlap mean           +0.505%  [-0.267, +1.274]  k*=+0.362  adds
+-- non-teammates: pairs 13666, pair-laps 262844, overlaps 19466, raw within-pair var 0.4421
+   E (shipped, per-lap curve)     +0.732%  [+0.345, +1.137]  k*=+0.151  adds
+   3a overlap mean of E           +0.455%  [+0.147, +0.762]  k*=+0.152  adds
+   3b field linear slope          +0.252%  [+0.006, +0.490]  k*=+0.202  adds
+   3c pair-identified slope       -0.062%  [-0.217, +0.086]  k*=+0.604  REDUCES
+   seed dC (old)                  +3.515%  [+2.665, +4.574]  k*=+0.102  adds
+   seed-3a overlap mean           +1.827%  [+1.267, +2.422]  k*=+0.064  adds
+
+=== tier-3 (ii) pooled within-pair variance change vs raw, 2025 (confirm) ===
+-- all pairs: pairs 2275, pair-laps 49799, overlaps 3338, raw within-pair var 0.3378
+   E (shipped, per-lap curve)     +0.538%  [-0.328, +1.639]  k*=+0.281  adds
+   3a overlap mean of E           +0.188%  [-0.342, +0.960]  k*=+0.385  adds
+   3b field linear slope          -0.017%  [-0.362, +0.425]  k*=+0.514  REDUCES
+   3c pair-identified slope       +0.072%  [-0.227, +0.477]  k*=+0.374  adds
+   seed dC (old)                  +2.649%  [+1.308, +4.396]  k*=+0.207  adds
+   seed-3a overlap mean           +1.524%  [+0.841, +2.609]  k*=+0.254  adds
+-- teammates: pairs 127, pair-laps 3101, overlaps 205, raw within-pair var 0.2762
+   E (shipped, per-lap curve)     +0.349%  [-0.912, +1.699]  k*=+0.359  adds
+   3a overlap mean of E           +0.391%  [-0.734, +1.283]  k*=+0.263  adds
+   3b field linear slope          +0.330%  [-0.740, +1.148]  k*=+0.247  adds
+   3c pair-identified slope       -0.076%  [-0.878, +0.480]  k*=+0.616  REDUCES
+   seed dC (old)                  +4.998%  [+0.922, +8.222]  k*=+0.069  adds
+   seed-3a overlap mean           +3.942%  [+0.082, +7.195]  k*=+0.017  adds
+-- non-teammates: pairs 2148, pair-laps 46698, overlaps 3133, raw within-pair var 0.3419
+   E (shipped, per-lap curve)     +0.548%  [-0.348, +1.766]  k*=+0.277  adds
+   3a overlap mean of E           +0.177%  [-0.366, +0.991]  k*=+0.391  adds
+   3b field linear slope          -0.036%  [-0.393, +0.412]  k*=+0.529  REDUCES
+   3c pair-identified slope       +0.079%  [-0.219, +0.518]  k*=+0.359  adds
+   seed dC (old)                  +2.522%  [+1.014, +4.441]  k*=+0.217  adds
+   seed-3a overlap mean           +1.394%  [+0.519, +2.757]  k*=+0.271  adds
+
+=== E's change split: within-overlap (curvature) vs between-overlap (level), 2018-2024 ===
+  all pairs      E +0.664% = within-overlap +0.255pp + between-overlap +0.408pp | E's within-pair adj variance: 1.032% of raw, of which within-overlap 37% | raw var within-overlap share 90.9% | k*(within) +0.169
+  teammates      E -0.256% = within-overlap -0.028pp + between-overlap -0.228pp | E's within-pair adj variance: 0.823% of raw, of which within-overlap 34% | raw var within-overlap share 89.6% | k*(within) +0.550
+  non-teammates  E +0.732% = within-overlap +0.276pp + between-overlap +0.455pp | E's within-pair adj variance: 1.047% of raw, of which within-overlap 38% | raw var within-overlap share 91.0% | k*(within) +0.149
+
+pair-race mean adjustment, 3a vs E: max |diff| 5.55e-17 s (identical by construction); 3b vs E: median |diff| 0.004 s, p90 0.045 s
+
+-- addendum: size of E's adjustment inside dage != 0 overlaps, 2018-2024 (s) --
+          grp  n_overlaps  med_abs_overlap_level  med_within_overlap_swing  p90_swing  med_within_overlap_sd
+non-teammates       10609                  0.118                     0.127      0.294                  0.039
+    teammates         716                  0.085                     0.113      0.278                  0.034

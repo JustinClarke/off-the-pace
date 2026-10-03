@@ -1,7 +1,7 @@
 {
   "name": "Off the Pace - power-law tyre curve (WI-17)",
   "model_version": "v1",
-  "generated_at": "2026-09-29T20:49:09.193642+00:00",
+  "generated_at": "2026-10-03T17:49:00.287389+00:00",
   "status": "not published; the v14 manifest.json is untouched",
   "input": {
     "tensor_name": "input",
@@ -18,7 +18,7 @@
     {
       "name": "powerlaw_deg20",
       "onnx": "powerlaw_deg20_v1.onnx",
-      "onnx_sha256": "1bdcba37bbcf6bbd43b549880a478eaf6b61882918ee8c5fcb853b2994af878b",
+      "onnx_sha256": "be66f4bb201a546455ea35029a9cab56a4dc0c0201276d45fc5c9cfc075798a9",
       "feature_order": [
         "compound_hardness_rank",
         "era_code",
@@ -48,7 +48,7 @@
     {
       "name": "powerlaw_beta",
       "onnx": "powerlaw_beta_v1.onnx",
-      "onnx_sha256": "e4f02cde5e4ac8f36a05d30f9ddc3c3c39b4c20e0ae67b8e1f85b5632b374785",
+      "onnx_sha256": "a61aefdf00be76a90058d1afe52576d0e890a080fb8e04c0919aaf2a342ab8e8",
       "feature_order": [
         "era_code",
         "track_energy_index",

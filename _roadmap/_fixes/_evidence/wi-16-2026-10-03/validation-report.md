@@ -1,6 +1,6 @@
 # WI-16b validation report
 
-Generated 2026-10-03T15:37:21 on `data/dev.duckdb` (mtime 2026-10-03T15:17:21, git a038fce).
+Generated 2026-10-03T21:07:49 on `data/dev.duckdb` (mtime 2026-10-03T21:07:21, git e1ce101).
 Car term: [{'fit_method': 'constructor_car_fe_isolation_hdfe_v2', 'fit_timestamp': '2026-09-29T21:50:06Z', 'n_car_terms': 1356, 'n_cells': 1619}].
 
 Decisions use 2018-2024; 2025 is confirmation only. Thresholds are the WI doc's.
@@ -10,7 +10,7 @@ Decisions use 2018-2024; 2025 is confirmation only. Thresholds are the WI doc's.
 - **V1a_pure**: PASS (median_spearman=0.897)
 - **V1a_tactical**: NOT_APPLICABLE (The tactical rating was cancelled on 2026-09-28 (WI-16b); this check tests it only.)
 - **V1b**: FAIL (median_pearson=0.916; 2021-22=0.603 vs required >= 0.652)
-- **V1c**: PASS (ratio=0.796; ci95=[0.463, 1.612])
+- **V1c**: FAIL (ratio=1.507; ci95=[1.043, 2.673])
 
 ## V2
 
@@ -42,7 +42,7 @@ Decisions use 2018-2024; 2025 is confirmation only. Thresholds are the WI doc's.
 - **V5d_autocorr**: PASS (lag1_autocorr=0.371)
 - **V5d_jitter**: PASS (median_ratio=0.336)
 - **V5c**: NOT_APPLICABLE (The tactical rating was cancelled on 2026-09-28 (WI-16b); this check tests it only.)
-- **V5_sign_flips_report**: REPORT (share_stints_2plus_sign_changes=0.176)
+- **V5_sign_flips_report**: REPORT (share_stints_2plus_sign_changes=0.172)
 
 ## V6
 
@@ -63,7 +63,7 @@ Decisions use 2018-2024; 2025 is confirmation only. Thresholds are the WI doc's.
 
 | season | cliff share | y pre-cliff | y cliff | mean race pure |
 | --: | --: | --: | --: | --: |
-| 2018 | 0.419 | +0.538 | -0.879 | -0.080 |
+| 2018 | 0.419 | +0.538 | -0.879 | -0.450 |
 | 2019 | 0.144 | +0.132 | -0.886 | -0.105 |
 | 2020 | 0.194 | +0.136 | -0.874 | -0.048 |
 | 2021 | 0.207 | +0.143 | -0.590 | -0.032 |
@@ -75,13 +75,13 @@ Decisions use 2018-2024; 2025 is confirmation only. Thresholds are the WI doc's.
 ## Worked examples
 
 - **VER_vs_HAM_2021_8**: expected +0.240/57, measured +0.233/54 (within tolerance: True); split pace gap +0.444, car -0.227, traffic +0.012
-- **HAM_vs_VER_2021_19**: expected +0.178/41, measured -0.041/18 (within tolerance: False); split pace gap -0.523, car +0.673, traffic -0.184
+- **HAM_vs_VER_2021_19**: expected -0.041/18, measured -0.041/18 (within tolerance: True); split pace gap -0.523, car +0.673, traffic -0.184
 - **VER_vs_PER_2023_2**: expected -0.459/37, measured -0.459/37 (within tolerance: True); split pace gap -0.370, car +0.000, traffic -0.089
 
 ## Method scores
 
-- **pure**: 0.000 (F); weighted score before the critical rule 0.724; critical fails ['V1.V1b']; 10/16 sub-checks PASS. Test-level reading: 0.724 (C).
-  - V1 (weight 2.0): 0.667
+- **pure**: 0.000 (F); weighted score before the critical rule 0.622; critical fails ['V1.V1b', 'V1.V1c']; 9/16 sub-checks PASS. Test-level reading: 0.000 (F).
+  - V1 (weight 2.0): 0.333
   - V2 (weight 2.0): 0.750
   - V3 (weight 1.0): 0.875
   - V4 (weight 0.5): 0.000

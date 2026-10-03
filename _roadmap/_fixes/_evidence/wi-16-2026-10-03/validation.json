@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-10-03T15:37:21",
+  "timestamp": "2026-10-03T21:07:49",
   "database": "data/dev.duckdb",
   "results": {
     "substrate": {
-      "git_sha": "a038fce",
+      "git_sha": "e1ce101",
       "database": "data/dev.duckdb",
-      "database_mtime": "2026-10-03T15:17:21",
+      "database_mtime": "2026-10-03T21:07:21",
       "car_fe_fit": [
         {
           "fit_method": "constructor_car_fe_isolation_hdfe_v2",
@@ -91,11 +91,11 @@
             "n_drivers": 15
           },
           "2022-2023": {
-            "pearson": 0.9672110013306199,
+            "pearson": 0.9672110013306197,
             "n_drivers": 14
           },
           "2023-2024": {
-            "pearson": 0.9784054979035974,
+            "pearson": 0.9784054979035977,
             "n_drivers": 17
           },
           "2024-2025": {
@@ -105,11 +105,11 @@
         },
         "reported_individually": {
           "2022-2023": {
-            "pearson": 0.9672110013306199,
+            "pearson": 0.9672110013306197,
             "n_drivers": 14
           },
           "2023-2024": {
-            "pearson": 0.9784054979035974,
+            "pearson": 0.9784054979035977,
             "n_drivers": 17
           },
           "2024-2025": {
@@ -131,23 +131,23 @@
         "design": "EB-shrunk driver-season pure (toward the season mean; tau^2 per season), drivers with >= 8 races in both seasons. Verdict on the 6 pairs inside 2018-2024; 2024-2025 reported as confirmation, and the doc's 7-pair median alongside."
       },
       "V1c": {
-        "status": "PASS",
-        "score": 1.0,
-        "ratio": 0.7958259206331846,
+        "status": "FAIL",
+        "score": 0.0,
+        "ratio": 1.5065176540671275,
         "ci95": [
-          0.4625522739745956,
-          1.6124878637921036
+          1.0427128768104574,
+          2.673148028877933
         ],
         "movers_n": 20,
         "stayers_n": 70,
         "movers_distinct_drivers": 14,
-        "movers_median_delta_s": 0.07485801558571142,
-        "stayers_median_delta_s": 0.09406330410317873,
+        "movers_median_delta_s": 0.14684047010544501,
+        "stayers_median_delta_s": 0.09747012901509755,
         "season_centred_sensitivity": {
-          "ratio": 0.8375478369471582,
+          "ratio": 0.8375478369471588,
           "ci95": [
-            0.6061501796041251,
-            2.1622739641128312
+            0.6061501796041245,
+            2.162273964112829
           ],
           "note": "each season's mean pure removed first (the 2018 level offset, W33 issue 4)"
         },
@@ -161,11 +161,11 @@
       "V2a": {
         "status": "PASS",
         "score": 1.0,
-        "correlation": 0.05377628457821158,
-        "abs_correlation": 0.05377628457821158,
+        "correlation": 0.053776284578211576,
+        "abs_correlation": 0.053776284578211576,
         "n_rows": 2296,
         "confirmation_2025": {
-          "correlation": 0.023506399375275537,
+          "correlation": 0.023506399375275523,
           "n_rows": 416
         },
         "threshold": {
@@ -178,14 +178,14 @@
       "V2b": {
         "status": "FAIL",
         "score": 0.0,
-        "max_abs_mean_diff_s": 0.9100012367990933,
+        "max_abs_mean_diff_s": 0.9100012367990935,
         "worst_cell": {
           "race_year": 2018,
           "pair": "SUPERSOFT-MEDIUM",
           "n": 21,
-          "mean": 0.9100012367990933,
-          "sd": 0.71350961969741,
-          "se": 0.1557005638734541
+          "mean": 0.9100012367990935,
+          "sd": 0.7135096196974103,
+          "se": 0.15570056387345416
         },
         "cells_graded": 23,
         "cells_below_min_n": 5,
@@ -194,7 +194,7 @@
             "race_year": 2018,
             "pair": "HYPERSOFT-SOFT",
             "n": 4,
-            "mean": 0.37280200501253,
+            "mean": 0.3728020050125302,
             "sd": 0.3558095937248351,
             "se": 0.17790479686241756
           },
@@ -202,73 +202,73 @@
             "race_year": 2018,
             "pair": "HYPERSOFT-SUPERSOFT",
             "n": 13,
-            "mean": 1.3379714354022054,
-            "sd": 2.1910947870759903,
-            "se": 0.6077003541695642
+            "mean": 1.3379714354022052,
+            "sd": 2.19109478707599,
+            "se": 0.6077003541695641
           },
           {
             "race_year": 2018,
             "pair": "HYPERSOFT-ULTRASOFT",
             "n": 14,
-            "mean": 0.4072662925863835,
-            "sd": 2.148122649852307,
-            "se": 0.5741099271797355
+            "mean": 0.40726629258638347,
+            "sd": 2.1481226498523074,
+            "se": 0.5741099271797356
           },
           {
             "race_year": 2018,
             "pair": "MEDIUM-HARD",
             "n": 2,
-            "mean": 0.32213840326339693,
-            "sd": 0.4262168536979684,
-            "se": 0.30138082750582806
+            "mean": 0.3221384032633972,
+            "sd": 0.42621685369796847,
+            "se": 0.3013808275058281
           },
           {
             "race_year": 2018,
             "pair": "SOFT-MEDIUM",
             "n": 51,
             "mean": 0.560900614274599,
-            "sd": 0.5989202361140666,
-            "se": 0.08386560785518807
+            "sd": 0.5989202361140665,
+            "se": 0.08386560785518805
           },
           {
             "race_year": 2018,
             "pair": "SUPERSOFT-MEDIUM",
             "n": 21,
-            "mean": 0.9100012367990933,
-            "sd": 0.71350961969741,
-            "se": 0.1557005638734541
+            "mean": 0.9100012367990935,
+            "sd": 0.7135096196974103,
+            "se": 0.15570056387345416
           },
           {
             "race_year": 2018,
             "pair": "SUPERSOFT-SOFT",
             "n": 74,
             "mean": 0.5507880473087955,
-            "sd": 0.9827866695732397,
-            "se": 0.11424662972679125
+            "sd": 0.9827866695732396,
+            "se": 0.11424662972679124
           },
           {
             "race_year": 2018,
             "pair": "ULTRASOFT-MEDIUM",
             "n": 3,
-            "mean": 0.43841017216955347,
-            "sd": 1.0553593007320203,
-            "se": 0.6093119763694071
+            "mean": 0.4384101721695539,
+            "sd": 1.0553593007320217,
+            "se": 0.6093119763694079
           },
           {
             "race_year": 2018,
             "pair": "ULTRASOFT-SOFT",
             "n": 47,
-            "mean": -0.1394458666104265,
-            "sd": 1.7307089478692514,
-            "se": 0.2524498459662784
+            "mean": -0.13944586661042654,
+            "sd": 1.7307089478692517,
+            "se": 0.25244984596627845
           },
           {
             "race_year": 2018,
             "pair": "ULTRASOFT-SUPERSOFT",
             "n": 40,
-            "mean": 0.22003178726655287,
-            "sd": 2.094494222197332,
-            "se": 0.3311686144103184
+            "mean": 0.22003178726655293,
+            "sd": 2.0944942221973317,
+            "se": 0.33116861441031836
           },
           {
             "race_year": 2019,
@@ -283,40 +283,40 @@
             "pair": "SOFT-HARD",
             "n": 81,
             "mean": 0.7502586347171424,
-            "sd": 0.7977450380597741,
-            "se": 0.08863833756219713
+            "sd": 0.7977450380597745,
+            "se": 0.08863833756219716
           },
           {
             "race_year": 2019,
             "pair": "SOFT-MEDIUM",
             "n": 176,
             "mean": 0.12781038689410182,
-            "sd": 0.909067020028656,
-            "se": 0.06852350488003521
+            "sd": 0.9090670200286566,
+            "se": 0.06852350488003525
           },
           {
             "race_year": 2020,
             "pair": "MEDIUM-HARD",
             "n": 115,
             "mean": 0.36396826629553,
-            "sd": 0.8966641573813356,
-            "se": 0.0836143638134845
+            "sd": 0.8966641573813358,
+            "se": 0.08361436381348451
           },
           {
             "race_year": 2020,
             "pair": "SOFT-HARD",
             "n": 54,
             "mean": 0.4407315601852347,
-            "sd": 0.7092268649736393,
-            "se": 0.09651355172551108
+            "sd": 0.7092268649736392,
+            "se": 0.09651355172551107
           },
           {
             "race_year": 2020,
             "pair": "SOFT-MEDIUM",
             "n": 95,
             "mean": 0.21474354388506184,
-            "sd": 0.7649082723398546,
-            "se": 0.07847793287515463
+            "sd": 0.7649082723398545,
+            "se": 0.07847793287515462
           },
           {
             "race_year": 2021,
@@ -339,16 +339,16 @@
             "pair": "SOFT-MEDIUM",
             "n": 52,
             "mean": 0.5230838910848705,
-            "sd": 1.4632140081759017,
-            "se": 0.20291127436366918
+            "sd": 1.4632140081759015,
+            "se": 0.20291127436366915
           },
           {
             "race_year": 2022,
             "pair": "MEDIUM-HARD",
             "n": 183,
             "mean": 0.3874802117493733,
-            "sd": 0.7422202335717132,
-            "se": 0.05486649843890817
+            "sd": 0.742220233571713,
+            "se": 0.05486649843890816
           },
           {
             "race_year": 2022,
@@ -362,23 +362,23 @@
             "race_year": 2022,
             "pair": "SOFT-MEDIUM",
             "n": 113,
-            "mean": -0.0767850760486413,
-            "sd": 0.581208742168929,
-            "se": 0.05467551926452932
+            "mean": -0.07678507604864128,
+            "sd": 0.5812087421689289,
+            "se": 0.05467551926452931
           },
           {
             "race_year": 2023,
             "pair": "MEDIUM-HARD",
             "n": 229,
-            "mean": 0.19752338714197942,
-            "sd": 1.0194206916274324,
-            "se": 0.06736521547161996
+            "mean": 0.1975233871419794,
+            "sd": 1.0194206916274327,
+            "se": 0.06736521547161997
           },
           {
             "race_year": 2023,
             "pair": "SOFT-HARD",
             "n": 48,
-            "mean": 0.4828624313409106,
+            "mean": 0.48286243134091067,
             "sd": 0.6384068869670261,
             "se": 0.09214609701073088
           },
@@ -386,7 +386,7 @@
             "race_year": 2023,
             "pair": "SOFT-MEDIUM",
             "n": 67,
-            "mean": -0.012906667440092947,
+            "mean": -0.012906667440092959,
             "sd": 0.9439704154665182,
             "se": 0.11532434114633511
           },
@@ -395,22 +395,22 @@
             "pair": "MEDIUM-HARD",
             "n": 280,
             "mean": 0.26858272175320475,
-            "sd": 0.827195276826113,
-            "se": 0.049434373018442695
+            "sd": 0.8271952768261128,
+            "se": 0.04943437301844268
           },
           {
             "race_year": 2024,
             "pair": "SOFT-HARD",
             "n": 53,
-            "mean": 0.05744989248840859,
-            "sd": 0.9686700069163078,
+            "mean": 0.057449892488408594,
+            "sd": 0.9686700069163079,
             "se": 0.13305705843020454
           },
           {
             "race_year": 2024,
             "pair": "SOFT-MEDIUM",
             "n": 52,
-            "mean": -0.44834645647178106,
+            "mean": -0.44834645647178095,
             "sd": 1.2145963623178486,
             "se": 0.16843421012804002
           },
@@ -419,8 +419,8 @@
             "pair": "MEDIUM-HARD",
             "n": 250,
             "mean": 0.2503790028028816,
-            "sd": 1.1254764213910333,
-            "se": 0.07118137888822236
+            "sd": 1.125476421391034,
+            "se": 0.0711813788882224
           },
           {
             "race_year": 2025,
@@ -443,17 +443,17 @@
           {
             "pair": "HYPERSOFT-SOFT",
             "size": 4,
-            "mean": 0.37280200501253
+            "mean": 0.3728020050125302
           },
           {
             "pair": "HYPERSOFT-SUPERSOFT",
             "size": 13,
-            "mean": 1.3379714354022054
+            "mean": 1.3379714354022052
           },
           {
             "pair": "HYPERSOFT-ULTRASOFT",
             "size": 14,
-            "mean": 0.4072662925863835
+            "mean": 0.40726629258638347
           },
           {
             "pair": "MEDIUM-HARD",
@@ -473,7 +473,7 @@
           {
             "pair": "SUPERSOFT-MEDIUM",
             "size": 21,
-            "mean": 0.9100012367990933
+            "mean": 0.9100012367990935
           },
           {
             "pair": "SUPERSOFT-SOFT",
@@ -483,17 +483,17 @@
           {
             "pair": "ULTRASOFT-MEDIUM",
             "size": 3,
-            "mean": 0.43841017216955347
+            "mean": 0.4384101721695539
           },
           {
             "pair": "ULTRASOFT-SOFT",
             "size": 47,
-            "mean": -0.1394458666104265
+            "mean": -0.13944586661042654
           },
           {
             "pair": "ULTRASOFT-SUPERSOFT",
             "size": 40,
-            "mean": 0.22003178726655287
+            "mean": 0.22003178726655293
           }
         ],
         "threshold": {
@@ -530,10 +530,10 @@
       "V2d": {
         "status": "REPORT",
         "within_driver_race_mean_diff_s": -0.09759084905948562,
-        "within_driver_race_median_diff_s": -0.06777619047618764,
+        "within_driver_race_median_diff_s": -0.06777619047618763,
         "n_driver_races": 1587,
         "flagged_lap_share": 0.24350253663237253,
-        "raw_mean_diff_s": -0.07963450023611518,
+        "raw_mean_diff_s": -0.076862160303639,
         "design": "Lap flagged when lift_coast_share exceeds the same-(race, lap) median by more than 1 MAD. Difference in mean non-extrapolated pure, flagged minus other laps, within driver-race (weighted by the smaller lap count), 2018-2024. Negative = pure reads slower on lift-and-coast laps. Report only (known, uncorrectable confound)."
       },
       "V2e": {
@@ -571,10 +571,10 @@
       "V3a": {
         "status": "PASS",
         "score": 1.0,
-        "correlation": -0.040004453699424236,
+        "correlation": -0.040004453699424264,
         "n_race_pairs": 8909,
         "all_phases_sensitivity": {
-          "correlation": -0.054866524938945414,
+          "correlation": -0.054866524938945435,
           "n_race_pairs": 8934
         },
         "threshold": 0.15,
@@ -583,13 +583,13 @@
       "V3b": {
         "status": "MARGINAL",
         "score": 0.5,
-        "correlation": -0.012107205504435906,
+        "correlation": -0.012107205504435902,
         "n_pair_laps_one_dirty": 29448,
         "correlation_status": "PASS",
         "dirty_minus_clean_gap_s": -0.059052525977105794,
         "gap_ci95": [
           -0.08950168755277392,
-          -0.031376418554923666
+          -0.03137641855492368
         ],
         "n_ordered_pairs": 3856,
         "gap_status": "FAIL",
@@ -613,14 +613,14 @@
         "mae_s": {
           "model": 0.3996037394440703,
           "base_car_traffic": 0.5238026303181446,
-          "base_last_delta": 0.6550781526379567
+          "base_last_delta": 0.6550781526379568
         },
         "vs_baselines": {
           "base_car_traffic": {
-            "mae_gain_s": 0.12419889087407425,
+            "mae_gain_s": 0.12419889087407422,
             "ci95": [
               0.10936159753503752,
-              0.13943495902331005
+              0.13943495902331002
             ],
             "model_better": true
           },
@@ -656,9 +656,9 @@
         "score": 0.0,
         "implied_total_s_per_kg": 0.01976348417198697,
         "seed_weight_penalty_median_s_per_kg": 0.025,
-        "residual_fuel_coef_s_per_kg": -0.005236515828013029,
-        "age_coef_s_per_lap": -0.00644983496703919,
-        "corr_age_fuel_within": -0.43430653071320974,
+        "residual_fuel_coef_s_per_kg": -0.005236515828013031,
+        "age_coef_s_per_lap": -0.006449834967039194,
+        "corr_age_fuel_within": -0.43430653071320985,
         "n_laps": 90628,
         "burn_kg_per_lap_median": 1.8644067796610169,
         "implied_burn_off_gain_s_per_lap": 0.03684717387997571,
@@ -674,18 +674,18 @@
             "n": 16025
           },
           "2020": {
-            "b_fuel_s_per_kg": -0.004366337712014586,
+            "b_fuel_s_per_kg": -0.004366337712014585,
             "implied_total_s_per_kg": 0.020633662287985417,
             "n": 10761
           },
           "2021": {
-            "b_fuel_s_per_kg": -0.0033160081133593398,
+            "b_fuel_s_per_kg": -0.0033160081133593385,
             "implied_total_s_per_kg": 0.021683991886640663,
             "n": 14225
           },
           "2022": {
-            "b_fuel_s_per_kg": -0.004436569817878839,
-            "implied_total_s_per_kg": 0.020563430182121162,
+            "b_fuel_s_per_kg": -0.004436569817878841,
+            "implied_total_s_per_kg": 0.02056343018212116,
             "n": 12038
           },
           "2023": {
@@ -694,7 +694,7 @@
             "n": 14184
           },
           "2024": {
-            "b_fuel_s_per_kg": -0.006988327598134579,
+            "b_fuel_s_per_kg": -0.00698832759813458,
             "implied_total_s_per_kg": 0.018011672401865422,
             "n": 13979
           }
@@ -708,7 +708,7 @@
       "V4b": {
         "status": "FAIL",
         "score": 0.0,
-        "fuel_coef_s_per_kg": 0.006420266564650065,
+        "fuel_coef_s_per_kg": 0.006420266564650064,
         "age_coef_s_per_lap": 0.006143982083743724,
         "n_laps": 71259,
         "threshold": 0.002,
@@ -719,13 +719,13 @@
         "score": 0.0,
         "per_season": {
           "2018": {
-            "softer_faster_by_s": -0.018928694462509683,
+            "softer_faster_by_s": -0.01892869446250966,
             "n_pairs": 755,
             "n_races": 17,
             "share_races_softer_faster": 0.4117647058823529
           },
           "2019": {
-            "softer_faster_by_s": 0.297539693720602,
+            "softer_faster_by_s": 0.29753969372060196,
             "n_pairs": 2116,
             "n_races": 20,
             "share_races_softer_faster": 0.75
@@ -755,20 +755,20 @@
             "share_races_softer_faster": 0.5909090909090909
           },
           "2024": {
-            "softer_faster_by_s": 0.1351809200556791,
+            "softer_faster_by_s": 0.13518092005567914,
             "n_pairs": 3296,
             "n_races": 21,
             "share_races_softer_faster": 0.6666666666666666
           },
           "2025": {
-            "softer_faster_by_s": 0.16154225634235622,
+            "softer_faster_by_s": 0.16154225634235625,
             "n_pairs": 3869,
             "n_races": 22,
             "share_races_softer_faster": 0.6363636363636364
           }
         },
         "confirmation_2025": {
-          "softer_faster_by_s": 0.16154225634235622,
+          "softer_faster_by_s": 0.16154225634235625,
           "n_pairs": 3869,
           "n_races": 22,
           "share_races_softer_faster": 0.6363636363636364
@@ -780,16 +780,16 @@
       "V5a": {
         "status": "PASS",
         "score": 1.0,
-        "lag1_autocorr": 0.19494534405519826,
+        "lag1_autocorr": 0.19494534405519828,
         "per_season": {
-          "2018": 0.260173343670423,
+          "2018": 0.26017334367042305,
           "2019": 0.2610900109775563,
           "2020": 0.1341142114322348,
           "2021": 0.3021974030573769,
           "2022": 0.058035521821418926,
           "2023": 0.08853372202153005,
-          "2024": 0.10209547563466449,
-          "2025": 0.12381018653893185
+          "2024": 0.10209547563466446,
+          "2025": 0.12381018653893187
         },
         "threshold": 0.3,
         "design": "Residual of pace_isolated_gain_s around each stint's line (line laps: early/mid, not recovery), pooled lag-1 over laps exactly one apart, 2018-2024."
@@ -797,54 +797,54 @@
       "V5b": {
         "status": "PASS",
         "score": 1.0,
-        "median_ratio": 0.32281073407005123,
+        "median_ratio": 0.32281073407005173,
         "per_season": {
           "2018": {
-            "median_within_stint_sd_s": 0.28945944192324885,
-            "tau_stint_s": 0.8966846866388123,
-            "ratio": 0.32281073407005123,
+            "median_within_stint_sd_s": 0.28945944192324896,
+            "tau_stint_s": 0.8966846866388113,
+            "ratio": 0.32281073407005173,
             "n_stints": 515
           },
           "2019": {
-            "median_within_stint_sd_s": 0.24708042709233272,
-            "tau_stint_s": 0.6177133719803632,
-            "ratio": 0.3999920323890726,
+            "median_within_stint_sd_s": 0.24708042709233274,
+            "tau_stint_s": 0.6177133719803635,
+            "ratio": 0.3999920323890725,
             "n_stints": 751
           },
           "2020": {
             "median_within_stint_sd_s": 0.23643111825300894,
-            "tau_stint_s": 0.6637370828186311,
-            "ratio": 0.35621200679187415,
+            "tau_stint_s": 0.6637370828186313,
+            "ratio": 0.35621200679187404,
             "n_stints": 514
           },
           "2021": {
             "median_within_stint_sd_s": 0.232524073426705,
-            "tau_stint_s": 0.6395870657365842,
-            "ratio": 0.3635534329621211,
+            "tau_stint_s": 0.6395870657365843,
+            "ratio": 0.36355343296212106,
             "n_stints": 709
           },
           "2022": {
             "median_within_stint_sd_s": 0.18055076561093802,
-            "tau_stint_s": 0.6056245398192266,
-            "ratio": 0.29812326571976555,
+            "tau_stint_s": 0.6056245398192258,
+            "ratio": 0.29812326571976594,
             "n_stints": 756
           },
           "2023": {
             "median_within_stint_sd_s": 0.18563524500050008,
-            "tau_stint_s": 0.6793074355072976,
-            "ratio": 0.27327132796930187,
+            "tau_stint_s": 0.6793074355072972,
+            "ratio": 0.273271327969302,
             "n_stints": 847
           },
           "2024": {
             "median_within_stint_sd_s": 0.1760199278490955,
-            "tau_stint_s": 0.6181894521008108,
-            "ratio": 0.28473460239562803,
+            "tau_stint_s": 0.618189452100811,
+            "ratio": 0.2847346023956279,
             "n_stints": 859
           },
           "2025": {
             "median_within_stint_sd_s": 0.16550296648096724,
-            "tau_stint_s": 0.7839992008485673,
-            "ratio": 0.21110093773288785,
+            "tau_stint_s": 0.7839992008485664,
+            "ratio": 0.21110093773288807,
             "n_stints": 851
           }
         },
@@ -885,14 +885,14 @@
             },
             "2019": {
               "median_within_stint_sd_s": 0.2974499150485741,
-              "tau_stint_s": 0.9588947008397734,
-              "ratio": 0.3102008122352493,
+              "tau_stint_s": 0.9588947008397738,
+              "ratio": 0.31020081223524915,
               "n_stints": 796
             },
             "2020": {
               "median_within_stint_sd_s": 0.2631434729692364,
-              "tau_stint_s": 0.7520372719512297,
-              "ratio": 0.34990748834361163,
+              "tau_stint_s": 0.7520372719512299,
+              "ratio": 0.3499074883436115,
               "n_stints": 576
             },
             "2021": {
@@ -903,20 +903,20 @@
             },
             "2022": {
               "median_within_stint_sd_s": 0.23838684283348713,
-              "tau_stint_s": 0.8426873495104509,
-              "ratio": 0.2828888353100057,
+              "tau_stint_s": 0.8426873495104507,
+              "ratio": 0.28288883531000575,
               "n_stints": 812
             },
             "2023": {
               "median_within_stint_sd_s": 0.23888489710609567,
-              "tau_stint_s": 0.5768337511014825,
-              "ratio": 0.4141312755190509,
+              "tau_stint_s": 0.5768337511014828,
+              "ratio": 0.41413127551905066,
               "n_stints": 942
             },
             "2024": {
               "median_within_stint_sd_s": 0.23724700041591648,
-              "tau_stint_s": 0.6739139737758049,
-              "ratio": 0.35204345012564303,
+              "tau_stint_s": 0.6739139737758045,
+              "ratio": 0.35204345012564325,
               "n_stints": 929
             },
             "2025": {
@@ -941,7 +941,7 @@
       },
       "V5_sign_flips_report": {
         "status": "REPORT",
-        "share_stints_2plus_sign_changes": 0.1760428626100268,
+        "share_stints_2plus_sign_changes": 0.17221584385763491,
         "n_stints": 5226
       }
     },
@@ -1017,64 +1017,64 @@
           "race_year": 2018,
           "n_laps": 14113,
           "cliff_share": 0.418904556083044,
-          "y_precliff_s": 0.5377200341421773,
-          "y_cliff_s": -0.8787768944519584,
-          "mean_race_pure_gain_s": -0.0798955497956084
+          "y_precliff_s": 0.5377200341421764,
+          "y_cliff_s": -0.8787768944519635,
+          "mean_race_pure_gain_s": -0.4498955497956084
         },
         {
           "race_year": 2019,
           "n_laps": 16793,
           "cliff_share": 0.14363127493598524,
-          "y_precliff_s": 0.1315617328419439,
-          "y_cliff_s": -0.8857580472636797,
+          "y_precliff_s": 0.13156173284194342,
+          "y_cliff_s": -0.8857580472636807,
           "mean_race_pure_gain_s": -0.10514720949790814
         },
         {
           "race_year": 2020,
           "n_laps": 11489,
           "cliff_share": 0.19435982243885455,
-          "y_precliff_s": 0.13648055715211777,
-          "y_cliff_s": -0.8744339708911768,
-          "mean_race_pure_gain_s": -0.04832994015477367
+          "y_precliff_s": 0.13648055715211774,
+          "y_cliff_s": -0.8744339708911788,
+          "mean_race_pure_gain_s": -0.048329940154773675
         },
         {
           "race_year": 2021,
           "n_laps": 16267,
           "cliff_share": 0.20667609270301837,
-          "y_precliff_s": 0.14319815528864763,
-          "y_cliff_s": -0.5897819851278993,
-          "mean_race_pure_gain_s": -0.03228818846886953
+          "y_precliff_s": 0.1431981552886468,
+          "y_cliff_s": -0.589781985127899,
+          "mean_race_pure_gain_s": -0.032288188468869536
         },
         {
           "race_year": 2022,
           "n_laps": 13483,
           "cliff_share": 0.18133946451086552,
-          "y_precliff_s": 0.04853598387389051,
-          "y_cliff_s": -0.49119134560327204,
-          "mean_race_pure_gain_s": -0.04249020866796249
+          "y_precliff_s": 0.04853598387389061,
+          "y_cliff_s": -0.49119134560327066,
+          "mean_race_pure_gain_s": -0.04249020866796248
         },
         {
           "race_year": 2023,
           "n_laps": 17555,
           "cliff_share": 0.25092566220450013,
-          "y_precliff_s": 0.1319277326996198,
-          "y_cliff_s": -0.38112226674233807,
-          "mean_race_pure_gain_s": -0.11339480677340595
+          "y_precliff_s": 0.13192773269962038,
+          "y_cliff_s": -0.3811222667423391,
+          "mean_race_pure_gain_s": -0.11339480677340597
         },
         {
           "race_year": 2024,
           "n_laps": 19106,
           "cliff_share": 0.3230922223385324,
-          "y_precliff_s": 0.20099660310832781,
-          "y_cliff_s": -0.2418370273772886,
+          "y_precliff_s": 0.20099660310832757,
+          "y_cliff_s": -0.24183702737728752,
           "mean_race_pure_gain_s": -0.11893452117775846
         },
         {
           "race_year": 2025,
           "n_laps": 18329,
           "cliff_share": 0.33880735446560095,
-          "y_precliff_s": 0.20065300561102384,
-          "y_cliff_s": -0.43339246843800483,
+          "y_precliff_s": 0.2006530056110231,
+          "y_cliff_s": -0.4333924684380028,
           "mean_race_pure_gain_s": -0.24554262853241926
         }
       ],
@@ -1091,7 +1091,7 @@
         "measured_pace_s_lap": 0.233,
         "measured_n_laps": 54,
         "identity_split": {
-          "pace_gap": 0.4436690652845234,
+          "pace_gap": 0.4436690652845235,
           "car_advantage": -0.22691054676600483,
           "traffic_advantage": 0.01225925925925926
         },
@@ -1104,8 +1104,8 @@
         "circuit": "S\u00e3o Paulo",
         "driver_1": "HAM",
         "driver_2": "VER",
-        "expected_pace_s_lap": 0.178,
-        "expected_n_laps": 41,
+        "expected_pace_s_lap": -0.041,
+        "expected_n_laps": 18,
         "measured_pace_s_lap": -0.041,
         "measured_n_laps": 18,
         "identity_split": {
@@ -1113,9 +1113,9 @@
           "car_advantage": 0.672774251399557,
           "traffic_advantage": -0.18388888888888888
         },
-        "pace_diff": 0.219,
-        "lap_diff_pct": 56.1,
-        "within_tolerance": false
+        "pace_diff": 0.0,
+        "lap_diff_pct": 0.0,
+        "within_tolerance": true
       },
       "VER_vs_PER_2023_2": {
         "race": "2023_2",
@@ -1140,26 +1140,29 @@
       "pure": {
         "method_score": 0.0,
         "grade": "F",
-        "weighted_score_before_critical_rule": 0.7243589743589743,
+        "weighted_score_before_critical_rule": 0.6217948717948717,
         "tests_applicable": 16,
-        "tests_passed": 10,
-        "critical_failed": 1,
+        "tests_passed": 9,
+        "critical_failed": 2,
         "critical_failed_checks": [
-          "V1.V1b"
+          "V1.V1b",
+          "V1.V1c"
         ],
         "test_level_reading": {
-          "method_score": 0.7243589743589743,
-          "grade": "C",
-          "critical_groups_failed": []
+          "method_score": 0.0,
+          "grade": "F",
+          "critical_groups_failed": [
+            "V1"
+          ]
         },
         "groups": {
           "V1": {
             "weight": 2.0,
-            "score": 0.6666666666666666,
+            "score": 0.3333333333333333,
             "sub_checks": {
               "V1.V1a_pure": "PASS",
               "V1.V1b": "FAIL",
-              "V1.V1c": "PASS"
+              "V1.V1c": "FAIL"
             }
           },
           "V2": {

@@ -9,6 +9,7 @@ description: "Cleaned lap-level data from FastF1 race sessions."
 <Note>Part of the [Staging](/transform/families/staging) family.</Note>
 
 Cleaned lap-level data from FastF1 race sessions. One row per driver × lap. Renames Bronze columns to snake_case, casts nanosecond timings to seconds, and derives the validity / track-status flags consumed across the warehouse. is_valid_lap = TRUE excludes pit laps, deleted laps, SC/VSC laps, and lap 1.
+Known bronze defect, not corrected here (F18, one race): 2020_1 (Austrian GP) is numbered 1-68 in bronze laps while the race ran 71. Race control puts the CHEQUERED flag on lap 71 and race_scheduled_laps says 71; on the 2026-09-25 dev build it is the only race with a chequered flag on record whose laps end short of it. The audit also found Jolpica's pit laps for that race running 4 to 5 laps ahead of stg_pits (not re-run since). The two other feeds are ingested separately from the lap feed and neither passes through stg_laps, so the fault is in bronze ingestion, outside this layer. Effect, that race only: lap_number runs behind the true lap (3 laps at the flag, 4-5 by the pit-lap comparison), so the lap_number feature reads early and fuel_mass_kg, which counts down from lap_number at the scheduled 71-lap rate (about 1.55 kg per lap), reads about 1.5 kg per lap of offset too heavy (4.6 kg at 3 laps). The fix is a re-pull of 2020_1.
 
 ## Lineage
 
@@ -35,6 +36,7 @@ flowchart LR
   stg_laps --> int_stint_geometry
   stg_laps --> int_synthetic_teammate
   stg_laps --> mart_corner_skill_driver
+  stg_laps --> stg_lap_tyre_qa
   stg_laps --> stg_sector_times
   stg_laps --> stg_weather
   style stg_laps fill:#e40404,stroke:#e40404,color:#fff
@@ -48,7 +50,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**15 tests** [guard](/transform/ci/overview) this model  -  10 generic, 5 singular.
+**18 tests** [guard](/transform/ci/overview) this model  -  10 generic, 8 singular.
 
 ## Columns
 

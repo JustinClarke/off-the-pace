@@ -30,7 +30,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**11 tests** [guard](/transform/ci/overview) this model  -  8 generic, 3 singular.
+**12 tests** [guard](/transform/ci/overview) this model  -  8 generic, 4 singular.
 
 ## Columns
 
@@ -49,6 +49,6 @@ flowchart LR
 | `points` | `double` | Yes |   | Championship points scored in the race. |
 | `time_or_gap_s` | `double` | Yes |   | Total race time for the winner / gap to winner for others (seconds); NULL when unavailable. |
 | `status` | `varchar` | Yes |   | Raw FastF1 status string ('Finished', '+1 Lap', 'Engine', 'Collision', ...). |
-| `is_classified` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when ClassifiedPosition parses to an integer (a ranked finisher). |
-| `is_dnf` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE for retirements (not classified and not a lapped finish). |
+| `is_classified` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when ClassifiedPosition parses to an integer (a ranked finisher) and the driver was not disqualified. A disqualified driver is never classified: bronze leaves a numeric ClassifiedPosition on some of them (HAM and LEC 2023_18, RUS 2024_14), so status is decided first. |
+| `is_dnf` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE for retirements (not classified and not a lapped finish). A disqualified driver is included, since disqualification removes the classification. |
 | `dnf_cause` | `varchar` | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Coarse cause for DNFs only   'racing' / 'mechanical' / 'non_classified'; NULL for finishers. |

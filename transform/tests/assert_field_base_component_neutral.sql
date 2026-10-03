@@ -22,7 +22,7 @@
 -- neutral.
 --
 -- Fails with one row per offending scope ('pooled' or a season), and also if
--- the check has fewer than 1,000 cells to work with (vacuity guard).
+-- the check has fewer than 1,000 cells (100 on the CI fixture, which measures 149) to work with (vacuity guard).
 {{ config(severity='error') }}
 
 WITH per_lap AS (
@@ -67,4 +67,4 @@ SELECT scope, within_race_slope, n_cells
 FROM slopes
 WHERE within_race_slope IS NULL
    OR ABS(within_race_slope) > 0.30
-   OR (scope = 'pooled' AND n_cells < 1000)
+   OR (scope = 'pooled' AND n_cells < {{ 100 if target.name == 'ci' else 1000 }})

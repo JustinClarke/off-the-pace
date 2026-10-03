@@ -8,7 +8,7 @@ description: "One row per lap per sector (3 rows/lap)."
 
 <Note>Part of the [Residual](/transform/families/residual) family.</Note>
 
-One row per lap per sector (3 rows/lap). Breaks down lap-level physics components (fuel, compound, rubber, ambient, constructor, dirty_air) to individual sectors proportional to sector time. Grain: (lap_id, sector). Allows per-sector skill analysis. Matches stg_sector_times granularity. Identity: sector_pace_delta = sector_components + sector_skill_residual.
+One row per lap per sector (3 rows/lap). Breaks down lap-level physics components (fuel, compound, constructor, dirty_air) to individual sectors proportional to sector time. Grain: (lap_id, sector). Allows per-sector skill analysis. Matches stg_sector_times granularity. Identity: sector_pace_delta = sector_components + sector_skill_residual. Note: rubber and ambient components are now part of base_track_pace and are not allocated separately (removed per WI-01).
 
 ## Lineage
 
@@ -16,6 +16,7 @@ One row per lap per sector (3 rows/lap). Breaks down lap-level physics component
 flowchart LR
   int_lap_air_state --> int_sector_residual_decomposed
   int_lap_residual_decomposed --> int_sector_residual_decomposed
+  stg_lap_tyre_qa --> int_sector_residual_decomposed
   stg_laps --> int_sector_residual_decomposed
   stg_sector_times --> int_sector_residual_decomposed
   style int_sector_residual_decomposed fill:#e40404,stroke:#e40404,color:#fff
@@ -29,9 +30,9 @@ flowchart LR
 | Family | [Residual](/transform/families/residual) |
 | Contract enforced | No |
 | Tags | `feature_engineering` |
-| Upstream | [`stg_sector_times`](../stg/stg_sector_times), [`stg_laps`](../stg/stg_laps), [`int_lap_residual_decomposed`](./int_lap_residual_decomposed), [`int_lap_air_state`](./int_lap_air_state) |
+| Upstream | [`stg_sector_times`](../stg/stg_sector_times), [`stg_laps`](../stg/stg_laps), [`stg_lap_tyre_qa`](../stg/stg_lap_tyre_qa), [`int_lap_residual_decomposed`](./int_lap_residual_decomposed), [`int_lap_air_state`](./int_lap_air_state) |
 
-**11 tests** [guard](/transform/ci/overview) this model  -  10 generic, 1 singular.
+**10 tests** [guard](/transform/ci/overview) this model  -  8 generic, 2 singular.
 
 ## Columns
 
@@ -42,6 +43,6 @@ flowchart LR
 | `sector` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Sector number (1, 2, or 3) |
 | `sector_time_s` |   | Yes | [`not_null`](/transform/ci/structural) | Raw sector time in seconds |
 | `sector_pace_delta_s` |   | Yes | [`not_null`](/transform/ci/structural) | sector_time_s minus rolling ±3 lap field sector median |
-| `sector_driver_skill_residual_s` |   | Yes | [`not_null`](/transform/ci/structural) | Closure residual after all 6 allocated components |
-| `sector_total_explained_s` |   | Yes | [`not_null`](/transform/ci/structural) | Sum of the 6 allocated components |
-| `dominant_component_class` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Component with the largest absolute value among the 6 allocated components. Values: fuel, compound, rubber, ambient, constructor, dirty_air |
+| `sector_driver_skill_residual_s` |   | Yes |   | Closure residual after all 4 allocated components (fuel, compound, constructor, dirty_air) |
+| `sector_total_explained_s` |   | Yes |   | Sum of the 4 allocated components (fuel, compound, constructor, dirty_air) |
+| `dominant_component_class` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Component with the largest absolute value among the 4 allocated components. Values: fuel, compound, constructor, dirty_air |

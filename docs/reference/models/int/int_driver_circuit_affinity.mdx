@@ -8,7 +8,7 @@ description: "One row per (driver_id, circuit_id)."
 
 <Note>Part of the [Skill](/transform/families/skill) family.</Note>
 
-One row per (driver_id, circuit_id). How much faster/slower is this driver at this circuit relative to their career average? circuit_id is the physical-circuit identifier, so renamed events and double-headers at one venue (e.g. mexican_grand_prix / mexico_city_grand_prix) pool into a single track record. Shrunk toward driver mean (Bayesian, prior = 5 virtual races). Negative = faster at this circuit than career average. affinity_confidence [0,1]: &lt; 0.17 = prior-dominated. Identifies drivers who suit high-downforce, street, etc. tracks.
+One row per (driver_id, circuit_id). How much better or worse does this driver do against his teammate at this circuit than he does on average? Built on int_driver_race_skill_loro.driver_skill_loro_s (median lap-by-lap gap to the teammate). circuit_id is the physical-circuit identifier, so renamed events and double-headers at one venue (e.g. mexican_grand_prix / mexico_city_grand_prix) pool into a single track record. shrunk_affinity_s is a LEVEL (the shrunk circuit mean gap to the teammate), shrunk toward the driver's own all-circuit mean (Bayesian, prior = 5 virtual races). The affinity itself is affinity_vs_driver_mean_s = shrunk_affinity_s - global_driver_mean_s: negative = better against the teammate at this circuit than the driver's own average (WI-14b, F44: the page used to draw the level, so every cell was green). affinity_confidence [0,1]: &lt; 0.17 = prior-dominated.
 
 ## Lineage
 
@@ -28,7 +28,7 @@ flowchart LR
 | Tags | `driver_rating`, `driver_affinity` |
 | Upstream | [`int_driver_race_skill_loro`](./int_driver_race_skill_loro) |
 
-**17 tests** [guard](/transform/ci/overview) this model  -  15 generic, 2 singular.
+**19 tests** [guard](/transform/ci/overview) this model  -  17 generic, 2 singular.
 
 ## Columns
 
@@ -40,8 +40,10 @@ flowchart LR
 | `circuit_name` |   | Yes | [`not_null`](/transform/ci/structural) | Canonical circuit display name for this circuit_id. |
 | `n_obs` |   | Yes | [`not_null`](/transform/ci/structural) | Number of race-residual observations backing this estimate |
 | `seasons_observed_n` |   | Yes | [`not_null`](/transform/ci/structural) | Count of distinct seasons the driver raced at this circuit |
-| `raw_affinity_s` |   | Yes | [`not_null`](/transform/ci/structural) | Unshrunk observed mean residual at this circuit. Negative = faster. |
-| `shrunk_affinity_s` |   | Yes | [`not_null`](/transform/ci/structural) | Bayesian posterior mean. Pulled toward driver global mean. |
+| `raw_affinity_s` |   | Yes | [`not_null`](/transform/ci/structural) | Unshrunk mean gap to the teammate at this circuit (a level). Negative = faster than the teammate there. |
+| `shrunk_affinity_s` |   | Yes | [`not_null`](/transform/ci/structural) | Bayesian posterior mean of the circuit gap to the teammate (a level), pulled toward global_driver_mean_s. Negative = faster than the teammate at this circuit. NOT a deviation from the driver's own average; that is affinity_vs_driver_mean_s. |
+| `global_driver_mean_s` |   | Yes | [`not_null`](/transform/ci/structural) | The driver's mean gap to his teammate over every race at every circuit: the prior mean each of his cells is shrunk toward. |
+| `affinity_vs_driver_mean_s` |   | Yes | [`not_null`](/transform/ci/structural) | The circuit affinity: shrunk_affinity_s - global_driver_mean_s, seconds. Negative = the driver does better against his teammate at this circuit than he does on average; positive = worse. What the Driver Circuit Affinity page draws (F44). |
 | `shrunk_affinity_se_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Posterior standard error in seconds. Non-negative. |
 | `shrunk_affinity_ci_low_s` |   | Yes | [`not_null`](/transform/ci/structural) | Lower bound of 95% credible interval |
 | `shrunk_affinity_ci_high_s` |   | Yes | [`not_null`](/transform/ci/structural) | Upper bound of 95% credible interval |

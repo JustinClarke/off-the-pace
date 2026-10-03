@@ -8,7 +8,7 @@ description: "One row per qualifying lap."
 
 <Note>Part of the [Residual](/transform/families/residual) family.</Note>
 
-One row per qualifying lap. 7-term decomposition mirroring int_lap_residual_decomposed but with qualifying-specific coefficients (near-zero fuel, cliff-suppressed compound degradation, quali-mode car pace). Grain: lap_id. Enables quali-vs-race skill comparison.
+One row per qualifying lap. 7-term decomposition mirroring int_lap_residual_decomposed but with qualifying-specific coefficients (near-zero fuel, cliff-suppressed compound degradation, quali-mode car pace). Grain: lap_id. Enables quali-vs-race skill comparison. Qualifying-session scoped: all inputs are qualifying session data or pre-fitted parameters (e.g., compound seed, constructor pace, segment median baseline). No race-day data is read.
 
 ## Lineage
 
@@ -18,7 +18,6 @@ flowchart LR
   int_constructor_structural_pace_qualifying --> int_lap_residual_decomposed_qualifying
   int_lap_fuel_state_qualifying --> int_lap_residual_decomposed_qualifying
   int_qualifying_push_laps --> int_lap_residual_decomposed_qualifying
-  int_track_evolution --> int_lap_residual_decomposed_qualifying
   stg_laps_qualifying --> int_lap_residual_decomposed_qualifying
   int_lap_residual_decomposed_qualifying --> int_qualifying_decomposed
   style int_lap_residual_decomposed_qualifying fill:#e40404,stroke:#e40404,color:#fff
@@ -32,7 +31,7 @@ flowchart LR
 | Family | [Residual](/transform/families/residual) |
 | Contract enforced | No |
 | Tags | `simulation`, `qualifying` |
-| Upstream | [`int_qualifying_push_laps`](./int_qualifying_push_laps), [`stg_laps_qualifying`](../stg/stg_laps_qualifying), [`int_lap_fuel_state_qualifying`](./int_lap_fuel_state_qualifying), [`int_constructor_structural_pace_qualifying`](./int_constructor_structural_pace_qualifying), [`int_track_evolution`](./int_track_evolution), [`dim_compounds_season`](../dim/dim_compounds_season) |
+| Upstream | [`int_qualifying_push_laps`](./int_qualifying_push_laps), [`stg_laps_qualifying`](../stg/stg_laps_qualifying), [`int_lap_fuel_state_qualifying`](./int_lap_fuel_state_qualifying), [`int_constructor_structural_pace_qualifying`](./int_constructor_structural_pace_qualifying), [`dim_compounds_season`](../dim/dim_compounds_season) |
 
 **4 tests** [guard](/transform/ci/overview) this model  -  4 generic, 0 singular.
 

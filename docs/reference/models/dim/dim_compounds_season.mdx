@@ -30,7 +30,7 @@ flowchart LR
 | Family | [Reference](/transform/families/reference) |
 | Contract enforced | No |
 
-**4 tests** [guard](/transform/ci/overview) this model  -  4 generic, 0 singular.
+**12 tests** [guard](/transform/ci/overview) this model  -  11 generic, 1 singular.
 
 ## Columns
 
@@ -47,4 +47,8 @@ flowchart LR
 | `compound_cliff_severity` | `double` | Yes |   | Fitted magnitude of the pace drop once the cliff is reached. |
 | `fit_date` | `date` | Yes | [`not_null`](/transform/ci/structural) | Date on which the cliff parameters were last estimated. |
 | `data_window` | `varchar` | Yes |   | Season range the fit was estimated over (governance provenance). |
-| `notes` | `varchar` | Yes |   | Free-text provenance / caveat notes carried from the seed. |
+| `fit_source` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Cell-level fit tier (cox_km_survival, cross_season_fallback, compound_class_default, carried_forward_&lt;season&gt;). Says which tier was attempted, not where each number came from -- use the three *_source columns for that. |
+| `onset_source` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Where compound_cliff_onset_laps came from: fitted, cross_season_fallback, class_default or carried_forward. A class default stays class_default wherever the cell is carried. See the compound_cliff_params seed for how rows fitted before this column existed were labelled. |
+| `gradient_source` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Where compound_wear_gradient came from; same vocabulary as onset_source. |
+| `severity_source` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Where compound_cliff_severity came from; same vocabulary as onset_source. |
+| `notes` | `varchar` | Yes |   | Free-text provenance / caveat notes carried from the seed. Never reads "fitted from" on a cell where any parameter is a class default. |

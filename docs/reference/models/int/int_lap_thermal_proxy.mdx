@@ -14,6 +14,7 @@ Cumulative push load from tyre thermal management. One row per lap. push_residua
 
 ```mermaid
 flowchart LR
+  int_lap_fuel_state --> int_lap_thermal_proxy
   int_stint_geometry --> int_lap_thermal_proxy
   stg_laps --> int_lap_thermal_proxy
   int_lap_thermal_proxy --> fct_cliff_prediction_features
@@ -29,17 +30,18 @@ flowchart LR
 | Layer | `intermediate` |
 | Family | [Physics](/transform/families/physics) |
 | Contract enforced | No |
-| Upstream | [`int_stint_geometry`](./int_stint_geometry), [`stg_laps`](../stg/stg_laps) |
+| Upstream | [`int_stint_geometry`](./int_stint_geometry), [`stg_laps`](../stg/stg_laps), [`int_lap_fuel_state`](./int_lap_fuel_state) |
 
-**6 tests** [guard](/transform/ci/overview) this model  -  4 generic, 2 singular.
+**7 tests** [guard](/transform/ci/overview) this model  -  4 generic, 3 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `lap_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Foreign key to stg_laps |
-| `stint_baseline_pace` |   | Yes |   | Median lap_time_s over this stint's VALID laps strictly before this one. Expanding, not trailing-N: a stint is short enough that the window stays local, and capping it would let the baseline drift with the degradation it measures. NULL until one valid prior lap exists (min_observations=1) -- usually laps 1-2, since lap 1 of a stint is an out-lap and not valid. Costs 1.41pp of training-eligible coverage against the old block median. The floor is 1 by measurement, not by default: a 2026-09-10 session silently raised it to 2, and 08i (RESULT 2026-09-18) gated all four priced floors &#123;1,2,3,5&#125; on the v12/08m substrate and reverted to 1. Floors 3 and 5 are rejected -- dominated on coverage AND signal. On the v12 training-eligible panel floor 1 leaves 2,156/119,822 rows (1.80%) thermal-NaN, +2.15pp of coverage against floor 2, and cuts the blind rate on the hardest cliff class (0_to_2) from 12.13% to 10.48%. |
+| `weight_corrected_lap_time` |   | Yes |   | F47 (WI-15b): int_lap_fuel_state.weight_corrected_lap_time, the lap time with the fuel-mass penalty taken out, so burn-off is not read as pushing. NULL on invalid laps (int_lap_fuel_state carries valid laps only); those laps keep their slot in the EW window and contribute 0 load. Pinned to int_lap_fuel_state by T37 (assert_push_residual_fuel_neutral). |
+| `stint_baseline_pace` |   | Yes |   | Median weight_corrected_lap_time over this stint's VALID laps strictly before this one. Expanding, not trailing-N: a stint is short enough that the window stays local, and capping it would let the baseline drift with the degradation it measures. NULL until one valid prior lap exists (min_observations=1) -- usually laps 1-2, since lap 1 of a stint is an out-lap and not valid. Costs 1.41pp of training-eligible coverage against the old block median. The floor is 1 by measurement, not by default: a 2026-09-10 session silently raised it to 2, and 08i (RESULT 2026-09-18) gated all four priced floors &#123;1,2,3,5&#125; on the v12/08m substrate and reverted to 1. Floors 3 and 5 are rejected -- dominated on coverage AND signal. On the v12 training-eligible panel floor 1 leaves 2,156/119,822 rows (1.80%) thermal-NaN, +2.15pp of coverage against floor 2, and cuts the blind rate on the hardest cliff class (0_to_2) from 12.13% to 10.48%. LANDED in the v13 bundle (D10, 2026-09-21) and re-measured on the built v13 panel 2026-09-22: 2,152/119,775 rows (1.80%) thermal-NaN, +2.13pp against the floor-2 counterfactual on the same panel, and the 0_to_2 blind rate 12.61% -&gt; 11.13%. The levels differ from the v12 figures above because 08q moved the label inside the same bump; the gain does not. |
 | `baseline_observations_n` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | How many valid prior laps stint_baseline_pace was computed from. Ships as a feature-contract column precisely because the baseline's NULLs are deterministic on it and on nothing else the contract carries: unlike 02a's rebuild, whose NULLs were declarable from age_in_stint, this count rises with SC and pit disruption and is plausibly correlated with the outcome. A consumer conditions on it; it must not be imputed away. |
-| `push_residual` |   | Yes |   | stint_baseline_pace - lap_time_s. Positive = faster than the stint's own prior pace = pushing. NULL wherever the baseline is NULL: unknown, not zero. |
+| `push_residual` |   | Yes |   | stint_baseline_pace - weight_corrected_lap_time. Positive = faster than the stint's own prior pace, fuel held equal = pushing. NULL wherever the baseline is NULL, and on invalid laps: unknown, not zero. |
 | `cumulative_push_load_surface` |   | Yes |   | EW sum of positive push_residual, tau~3 laps, 5-lap lookback. A NULL residual on a PRIOR lap contributes 0 (the same convention as laps before the stint began); a NULL residual on THIS lap makes the load NULL rather than 0, since GREATEST(NULL, 0) = 0 in DuckDB would fabricate "no thermal load" for a lap whose load is simply unknown. |
 | `cumulative_push_load_bulk` |   | Yes |   | EW sum of positive push_residual, tau~5 laps, 8-lap lookback. Same NULL rule as cumulative_push_load_surface. |

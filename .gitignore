@@ -116,5 +116,6 @@ web/.docusaurus/
 # Local-only not published (kept in author working tree, excluded from repo)
 agents/
 data/dev.duckdb.tmp/
+data/ci.duckdb.tmp/
 graphify-out/
 docs/project-graph.html

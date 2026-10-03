@@ -16,7 +16,9 @@ Why did this stint end? One row per stint. The stint-life survival target treats
 flowchart LR
   int_stint_geometry --> int_stint_end_regime
   stg_results --> int_stint_end_regime
+  int_stint_end_regime --> fct_driver_isolation_stint
   int_stint_end_regime --> fct_stint_features
+  int_stint_end_regime --> int_pit_strategy_value
   style int_stint_end_regime fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -29,7 +31,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`int_stint_geometry`](./int_stint_geometry), [`stg_results`](../stg/stg_results) |
 
-**20 tests** [guard](/transform/ci/overview) this model  -  19 generic, 1 singular.
+**21 tests** [guard](/transform/ci/overview) this model  -  19 generic, 2 singular.
 
 ## Columns
 
@@ -39,7 +41,7 @@ flowchart LR
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year. |
 | `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | Race identifier (numeric FastF1 event id cast to string). |
 | `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code (e.g. VER, HAM). |
-| `stint_number` |   | Yes |   | Stint ordinal within the driver's race. NULL for the 325 stints in 2018 built from laps FastF1 never assigned to a stint; those carry stint_end_cause NULL and end_cause_confidence 'unassigned_stint'. |
+| `stint_number` |   | Yes |   | Stint ordinal within the driver's race. NULL for stints built from laps FastF1 never assigned to a stint -- two since WI-05 filled the 2018 lap-1 gap (2018_2 RIC, 2018_10 HAR; 325 before); those carry stint_end_cause NULL and end_cause_confidence 'unassigned_stint'. |
 | `end_lap_id` |   | Yes | [`not_null`](/transform/ci/structural) | Foreign key to stg_laps - the lap the stint ended on, chronologically. For an uncensored stint this is the in-lap. |
 | `end_lap_number` |   | Yes | [`not_null`](/transform/ci/structural) | Race lap number of the stint's final lap. |
 | `end_lap_in_stint` |   | Yes | [`not_null`](/transform/ci/structural) | Chronological ordinal of the stint's final lap within the stint (equals stint_length_actual). |

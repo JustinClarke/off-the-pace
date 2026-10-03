@@ -2307,6 +2307,8 @@ models:
       column and nothing priced from it, including the warehouse's ambient_temp_delta (T51,
       assert_power_law_no_seed_columns.sql and ml/tests/test_powerlaw_export.py).
     tags: [marts]
+    meta:
+      family: marts
     columns:
       - name: cell_id
         tests: [not_null, unique]

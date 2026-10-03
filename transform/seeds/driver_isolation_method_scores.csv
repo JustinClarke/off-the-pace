@@ -1,4 +1,4 @@
 rating,method_score,grade,tests_applicable,tests_passed,critical_failed,validated_at,substrate,report_path
 pure,0,F,16,9,2,2026-10-03T21:07:49,e1ce101,_roadmap/_fixes/_evidence/wi-16-2026-10-03/validation-report.md
 relative,0.857142857142857,B,4,3,0,2026-10-03T21:07:49,e1ce101,_roadmap/_fixes/_evidence/wi-16-2026-10-03/validation-report.md
-tactical,,cancelled,,,2026-10-03T21:07:49,e1ce101,_roadmap/_fixes/_evidence/wi-16-2026-09-28/validation-report.md
+tactical,,,,,2026-10-03T21:07:49,e1ce101,_roadmap/_fixes/_evidence/wi-16-2026-09-28/validation-report.md

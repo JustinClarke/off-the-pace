@@ -1,0 +1,69 @@
+cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev \
+	  --select +int_driver_isolation_lap_panel
+[0m21:48:34  Running with dbt=1.11.11
+[0m21:48:34  Registered adapter: duckdb=1.10.1
+[0m21:48:35  Found 92 models, 2 analyses, 960 data tests, 17 seeds, 14 sources, 3 exposures, 893 macros, 2 unit tests
+[0m21:48:35  
+[0m21:48:35  Concurrency: 4 threads (target='dev')
+[0m21:48:35  
+[0m21:48:35  3 of 19 START sql view model main.stg_laps ..................................... [RUN]
+[0m21:48:35  2 of 19 START sql table model main.dim_compounds_season ........................ [RUN]
+[0m21:48:35  1 of 19 START sql table model main.dim_circuits ................................ [RUN]
+[0m21:48:35  4 of 19 START sql view model main.stg_pits ..................................... [RUN]
+[0m21:48:35  1 of 19 OK created sql table model main.dim_circuits ........................... [[32mOK[0m in 0.10s]
+[0m21:48:35  2 of 19 OK created sql table model main.dim_compounds_season ................... [[32mOK[0m in 0.10s]
+[0m21:48:35  5 of 19 START sql view model main.stg_tyre_allocations ......................... [RUN]
+[0m21:48:35  3 of 19 OK created sql view model main.stg_laps ................................ [[32mOK[0m in 0.11s]
+[0m21:48:35  4 of 19 OK created sql view model main.stg_pits ................................ [[32mOK[0m in 0.11s]
+[0m21:48:35  6 of 19 START sql table model main.int_event_corrections ....................... [RUN]
+[0m21:48:35  7 of 19 START sql view model main.stg_weather .................................. [RUN]
+[0m21:48:35  8 of 19 START sql view model main.stg_lap_tyre_qa .............................. [RUN]
+[0m21:48:35  5 of 19 OK created sql view model main.stg_tyre_allocations .................... [[32mOK[0m in 0.04s]
+[0m21:48:35  8 of 19 OK created sql view model main.stg_lap_tyre_qa ......................... [[32mOK[0m in 0.08s]
+[0m21:48:35  7 of 19 OK created sql view model main.stg_weather ............................. [[32mOK[0m in 0.10s]
+[0m21:48:35  9 of 19 START sql table model main.int_stint_geometry .......................... [RUN]
+[0m21:48:35  6 of 19 OK created sql table model main.int_event_corrections .................. [[32mOK[0m in 0.37s]
+[0m21:48:36  9 of 19 OK created sql table model main.int_stint_geometry ..................... [[32mOK[0m in 0.52s]
+[0m21:48:36  12 of 19 START sql table model main.int_lap_fuel_state ......................... [RUN]
+[0m21:48:36  11 of 19 START sql table model main.int_lap_air_state .......................... [RUN]
+[0m21:48:36  10 of 19 START sql table model main.int_compound_cliff_predicted ............... [RUN]
+[0m21:48:37  12 of 19 OK created sql table model main.int_lap_fuel_state .................... [[32mOK[0m in 0.92s]
+[0m21:49:38  10 of 19 OK created sql table model main.int_compound_cliff_predicted .......... [[32mOK[0m in 62.06s]
+[0m21:49:53  11 of 19 OK created sql table model main.int_lap_air_state ..................... [[32mOK[0m in 77.56s]
+[0m21:49:53  13 of 19 START sql table model main.int_field_pace_curve ....................... [RUN]
+[0m21:49:53  13 of 19 OK created sql table model main.int_field_pace_curve .................. [[32mOK[0m in 0.14s]
+[0m21:49:53  14 of 19 START sql table model main.int_track_evolution ........................ [RUN]
+[0m21:49:59  14 of 19 OK created sql table model main.int_track_evolution ................... [[32mOK[0m in 5.38s]
+[0m21:49:59  16 of 19 START sql table model main.int_dirty_air_tax_component ................ [RUN]
+[0m21:49:59  15 of 19 START sql table model main.int_constructor_structural_pace ............ [RUN]
+[0m21:49:59  15 of 19 OK created sql table model main.int_constructor_structural_pace ....... [[32mOK[0m in 0.22s]
+[0m21:49:59  16 of 19 OK created sql table model main.int_dirty_air_tax_component ........... [[32mOK[0m in 0.29s]
+[0m21:49:59  17 of 19 START sql table model main.int_lap_residual_decomposed ................ [RUN]
+[0m21:50:00  17 of 19 OK created sql table model main.int_lap_residual_decomposed ........... [[32mOK[0m in 0.58s]
+[0m21:50:00  18 of 19 START sql table model main.int_lap_anomaly_flags ...................... [RUN]
+[0m21:50:00  18 of 19 OK created sql table model main.int_lap_anomaly_flags ................. [[32mOK[0m in 0.48s]
+[0m21:50:00  19 of 19 START sql table model main.int_driver_isolation_lap_panel ............. [RUN]
+[0m21:50:00  19 of 19 OK created sql table model main.int_driver_isolation_lap_panel ........ [[32mOK[0m in 0.42s]
+[0m21:50:01  
+[0m21:50:01  Finished running 14 table models, 5 view models in 0 hours 1 minutes and 25.78 seconds (85.78s).
+[0m21:50:01  
+[0m21:50:01  [32mCompleted successfully[0m
+[0m21:50:01  
+[0m21:50:01  Done. PASS=19 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=19
+cd transform && ../.venv/bin/python -m tasks.coefficients.fit_constructor_car_fe --panel isolation
+01:50:04 INFO Loaded isolation panel: 93983 laps · 43 drivers · 63 driver-eras · 163 races · 1619 constructor-races.
+01:50:04 INFO Aggregated to race level: 3099 driver-race-constructor cells
+01:50:04 INFO Connectivity post2022: driver_id 2 component(s), 2 with >=2 constructors, 64/87 races unidentified
+01:50:04 INFO Fitting y_s ~ 1 | driver_id + constructor_race ...
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 65 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+01:50:05 INFO Reference level 2022_2022_10_AlphaTauri restored at FE 0.0.
+01:50:06 INFO Connectivity pre2022: driver_id 3 component(s), 1 with >=2 constructors, 75/76 races unidentified
+01:50:06 INFO Fitting y_s ~ 1 | driver_id + constructor_race ...
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 76 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+01:50:06 INFO Reference level 2018_2018_10_Ferrari restored at FE 0.0.
+01:50:06 INFO car_term_source counts: {'driver_id': 1356, 'unidentified': 139, 'not_estimated': 124}
+01:50:06 INFO Emitting 1619 (race_year, race_id, constructor_id) rows; car_iso_s in [-2.512, 2.364].
+01:50:06 INFO Wrote 1619 rows → /Users/justin/github/off-the-pace/data/fits/constructor_car_fe_isolation.parquet
+EXIT 0

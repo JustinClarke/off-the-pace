@@ -1,0 +1,51 @@
+== fit method on the warehouse ==
+                          fit_method car_term_source    n
+constructor_car_fe_isolation_hdfe_v2       driver_id 1356
+constructor_car_fe_isolation_hdfe_v2   not_estimated  124
+constructor_car_fe_isolation_hdfe_v2    unidentified  139
+
+== season level of pure (fct_driver_isolation_race, and pre-cliff laps) ==
+ race_year  mean_race_pure  lapw_race_pure  n_rated  n_driver_races  cliff_share  mean_lap_pure_precliff
+      2018         -0.0799         -0.0592      296             364       0.4189                 -0.0592
+      2019         -0.1051         -0.0672      364             412       0.1436                 -0.0672
+      2020         -0.0483         -0.0372      240             280       0.1944                 -0.0372
+      2021         -0.0323         -0.0003      332             381       0.2067                 -0.0003
+      2022         -0.0425         -0.0315      314             361       0.1813                 -0.0315
+      2023         -0.1134         -0.0726      368             424       0.2509                 -0.0726
+      2024         -0.1189         -0.0843      382             443       0.3231                 -0.0843
+      2025         -0.2455         -0.1969      416             437       0.3388                 -0.1969
+
+== pure-less driver-races by reason ==
+car_term_source    n  n_pure_null
+      driver_id 2712            0
+   unidentified  263          263
+  not_estimated  127          127
+ driver_races  no_pure
+         3102      390
+car_term_source  race_year constructor_id  driver_races     drivers
+   unidentified       2018   Haas F1 Team            37     GRO,MAG
+   unidentified       2019   Haas F1 Team            41     GRO,MAG
+   unidentified       2020   Haas F1 Team            25 FIT,GRO,MAG
+   unidentified       2021   Haas F1 Team            36     MAZ,MSC
+   unidentified       2022     Alfa Romeo            35     BOT,ZHO
+   unidentified       2023     Alfa Romeo            43     BOT,ZHO
+   unidentified       2024    Kick Sauber            46     BOT,ZHO
+ no_pure car_term_source  zero_pure_laps   n
+    True   not_estimated            True 127
+    True    unidentified            True 263
+
+== tier-3 age adjustment: pooled within-pair variance of raw - k*dC ==
+-- all pair-laps (the V3 tier-3 ii design): pairs 14563, pair-laps 283898
+   k= 0.000  var=0.43923  vs raw +0.00%
+   k= 0.500  var=0.44193  vs raw +0.61%
+   k= 0.966  var=0.45305  vs raw +3.14%
+   k= 1.000  var=0.45418  vs raw +3.40%
+   k= 0.109  var=0.43901  vs raw -0.05%
+   break-even k (adjusted == raw): 0.218; variance-minimising k*: 0.109
+-- both laps pre-cliff: pairs 14417, pair-laps 220486
+   k= 0.000  var=0.35142  vs raw +0.00%
+   k= 0.500  var=0.35231  vs raw +0.25%
+   k= 0.966  var=0.35610  vs raw +1.33%
+   k= 1.000  var=0.35649  vs raw +1.44%
+   k= 0.115  var=0.35134  vs raw -0.02%
+   break-even k (adjusted == raw): 0.229; variance-minimising k*: 0.115

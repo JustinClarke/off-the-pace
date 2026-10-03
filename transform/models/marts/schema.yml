@@ -1419,9 +1419,10 @@ models:
       Driver isolation tier 3 per pair of cars: for every Ω lap, each peer on the same race,
       lap number and compound with tyre age within var('isolation_peer_age_tolerance'),
       teammates included. relative_pace_gain_s is the raw time gap age-adjusted by the
-      seed's ΔC, positive = the focal driver faster, and it splits exactly into pace_gap (=
-      pure_gap + tactical_gap where both tacticals exist) + car_advantage +
-      traffic_advantage (T42). Both directions of every pair are rows. The table 'X vs Y'
+      fitted tyre-age curve (int_driver_isolation_age_curve; the seed's ΔC until
+      2026-09-30, kept as relative_pace_seed_adj_gain_s), positive = the focal driver
+      faster, and it splits exactly into pace_gap + car_advantage + traffic_advantage +
+      age_pricing (T42). Both directions of every pair are rows. The table 'X vs Y'
       questions are answered from. Peers share a lap and a compound, not a situation.
       Leakage: a function of the residual trajectory; no ML-contract mart may depend on it
       (T48, ml/tests/test_manifest_contract.py). WI-16a,
@@ -1553,9 +1554,19 @@ models:
           - not_null
       - name: relative_pace_gain_s
         description: >
-          Tier 3: (t(peer) - t(driver)) - (C(peer) - C(driver)), s/lap, the raw gap age-
-          adjusted by the seed's ΔC (<= 3 laps of wear). POSITIVE = the driver faster than
-          same-strategy peers. In aggregates, the mean over pair-laps; NULL with no peer.
+          Tier 3: (t(peer) - t(driver)) - (g(peer) - g(driver)), s/lap, the raw gap age-
+          adjusted by the fitted tyre-age curve g (int_driver_isolation_age_curve,
+          cross-fitted by race; <= 3 laps of age gap). POSITIVE = the driver faster than
+          same-strategy peers. NULL (and a failed build) if the curve has no row for either
+          car. WI-16b, 2026-09-30.
+        tests:
+          - not_null
+      - name: relative_pace_seed_adj_gain_s
+        description: >
+          (t(peer) - t(driver)) - (C(peer) - C(driver)), s/lap: the seed-ΔC adjustment tier 3
+          used until 2026-09-30, kept for comparison. It raised the pooled within-pair
+          lap-to-lap variance by 3.4% (V3 tier-3 ii). = pace_gap + car_advantage +
+          traffic_advantage where the car terms exist.
         tests:
           - not_null
       - name: pace_gap_gain_s
@@ -1573,6 +1584,15 @@ models:
       - name: traffic_advantage_gain_s
         description: >
           D(peer) - D(driver), s/lap; > 0 = the driver lost less to dirty air.
+        tests:
+          - not_null
+      - name: age_pricing_gain_s
+        description: >
+          (C(peer) - C(driver)) - (g(peer) - g(driver)), s/lap: how much more the compound
+          seed charges the peer's tyre-age difference than the fitted curve does; > 0 counts
+          in the driver's favour. pace_gap (and pure) is built on the seed, relative pace on
+          the curve, so this term closes the identity relative = pace_gap + car_advantage +
+          traffic_advantage + age_pricing (T42). WI-16b, 2026-09-30.
         tests:
           - not_null
 
@@ -1731,14 +1751,15 @@ models:
           NULL without a car term (never a car term of 0).
       - name: pure_skill_gain_s
         description: >
-          Tier 1, s/lap, POSITIVE = FASTER: p - tactical_gain_s, the pace against the field as
-          if the tyres had faded like peers'. = p when tactical is unavailable on a pre-cliff
-          lap (tactical_available FALSE); NULL on a cliff lap without tactical. On cliff laps
-          it is the extrapolated line (pure_is_extrapolated) and pure aggregates skip it.
+          Tier 1, s/lap, POSITIVE = FASTER: pace_isolated_gain_s plus the declared season
+          offset (int_driver_isolation_lap_values.pure_season_offset_gain_s; 2018 +0.37 s,
+          W33). Within a season it ranks and differences exactly like p. NULL without a car
+          term. On cliff laps it is not a driver measurement (pure_is_extrapolated) and pure
+          aggregates skip it.
       - name: pure_is_extrapolated
         description: >
-          TRUE on cliff-tyre laps: pure_skill_gain_s there is the extrapolated pre-cliff line
-          plus the peers' mean cliff departure, not a driver measurement; aggregates exclude
+          TRUE on cliff-tyre laps (tyre_phase = 'cliff'): the lap time there is dominated by
+          the tyre, so pure_skill_gain_s is not a driver measurement; aggregates exclude
           these laps.
       - name: season_sigma_w_s
         description: >
@@ -1769,7 +1790,7 @@ models:
           Pair-laps with both car terms, over which the identity_* contributions are computed.
       - name: identity_relative_pace_gain_s
         description: >
-          Mean relative_pace_gain_s over the identity_n_pair_laps rows, s/lap. = the three
+          Mean relative_pace_gain_s over the identity_n_pair_laps rows, s/lap. = the four
           identity_* contributions exactly (T42).
       - name: identity_pace_gap_gain_s
         description: >
@@ -1783,6 +1804,10 @@ models:
         description: >
           Contribution: mean traffic_advantage_gain_s over identity rows, s/lap; > 0 = he lost
           less to dirty air.
+      - name: identity_age_pricing_gain_s
+        description: >
+          Contribution: mean age_pricing_gain_s over identity rows, s/lap: the seed's tyre-age
+          pricing minus the fitted curve's (> 0 in his favour). WI-16b, 2026-09-30.
       - name: window_first_lap_number
         description: >
           First lap number the window could span (the earliest Ω lap in it).
@@ -1992,7 +2017,7 @@ models:
           Pair-laps with both car terms, over which the identity_* contributions are computed.
       - name: identity_relative_pace_gain_s
         description: >
-          Mean relative_pace_gain_s over the identity_n_pair_laps rows, s/lap. = the three
+          Mean relative_pace_gain_s over the identity_n_pair_laps rows, s/lap. = the four
           identity_* contributions exactly (T42).
       - name: identity_pace_gap_gain_s
         description: >
@@ -2006,6 +2031,10 @@ models:
         description: >
           Contribution: mean traffic_advantage_gain_s over identity rows, s/lap; > 0 = he lost
           less to dirty air.
+      - name: identity_age_pricing_gain_s
+        description: >
+          Contribution: mean age_pricing_gain_s over identity rows, s/lap: the seed's tyre-age
+          pricing minus the fitted curve's (> 0 in his favour). WI-16b, 2026-09-30.
       - name: n_line_laps
         description: >
           Line laps the stint's slope was fitted on (early/mid, not recovery, with p). Below
@@ -2040,7 +2069,8 @@ models:
       - name: pure_skill_gain_s
         description: >
           Pure pace skill, mean over the group's non-extrapolated laps at stint-phase grain,
-          s/lap, POSITIVE = faster / better (raw, before shrinkage).
+          s/lap, POSITIVE = faster / better (raw, before shrinkage). Includes the declared
+          season offset (2018 +0.37 s, W33; see int_driver_isolation_lap_values).
       - name: pure_skill_se_s
         description: >
           SE of pure_skill_gain_s, s/lap (see the model header for the formula).
@@ -2192,7 +2222,7 @@ models:
           Pair-laps with both car terms, over which the identity_* contributions are computed.
       - name: identity_relative_pace_gain_s
         description: >
-          Mean relative_pace_gain_s over the identity_n_pair_laps rows, s/lap. = the three
+          Mean relative_pace_gain_s over the identity_n_pair_laps rows, s/lap. = the four
           identity_* contributions exactly (T42).
       - name: identity_pace_gap_gain_s
         description: >
@@ -2206,6 +2236,10 @@ models:
         description: >
           Contribution: mean traffic_advantage_gain_s over identity rows, s/lap; > 0 = he lost
           less to dirty air.
+      - name: identity_age_pricing_gain_s
+        description: >
+          Contribution: mean age_pricing_gain_s over identity rows, s/lap: the seed's tyre-age
+          pricing minus the fitted curve's (> 0 in his favour). WI-16b, 2026-09-30.
       - name: tyre_offset_vs_field_s
         description: >
           Mean tyre_offset_vs_field_s over the race (context).
@@ -2218,7 +2252,17 @@ models:
       - name: pure_skill_gain_s
         description: >
           Pure pace skill, mean over the race's non-extrapolated laps at driver-race grain,
-          s/lap, POSITIVE = faster / better (raw, before shrinkage).
+          s/lap, POSITIVE = faster / better (raw, before shrinkage). Includes
+          pure_season_offset_gain_s.
+      - name: pure_season_offset_gain_s
+        description: >
+          The declared season-level offset inside pure_skill_gain_s, s/lap (positive = the
+          season's pure is raised; 0 for seasons without one). W33 Option A, 2026-09-30:
+          2018 +0.37 s, so a 2018 pure value sits at the 2019-2024 seasons' level. It does
+          not change any within-season ranking or gap. Cross-season comparisons remain
+          caveated (docs/decomposition/driver-isolation.mdx, Limitations).
+        tests:
+          - not_null
       - name: pure_skill_se_s
         description: >
           SE of pure_skill_gain_s, s/lap (see the model header for the formula).

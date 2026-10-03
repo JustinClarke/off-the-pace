@@ -1,0 +1,1261 @@
+{
+  "timestamp": "2026-09-30T01:36:38",
+  "database": "/private/tmp/claude-501/-Users-justin-github-off-the-pace/7cb13d4e-adf0-45bf-bb69-9d69959b58d8/scratchpad/w33/variant/dev.duckdb",
+  "results": {
+    "substrate": {
+      "git_sha": "024e342",
+      "database": "/private/tmp/claude-501/-Users-justin-github-off-the-pace/7cb13d4e-adf0-45bf-bb69-9d69959b58d8/scratchpad/w33/variant/dev.duckdb",
+      "database_mtime": "2026-09-30T01:33:57",
+      "car_fe_fit": [
+        {
+          "fit_method": "constructor_car_fe_isolation_hdfe_v2",
+          "fit_timestamp": "2026-09-29T21:33:54Z",
+          "n_car_terms": 1356,
+          "n_cells": 1619
+        }
+      ]
+    },
+    "V1": {
+      "V1a_pure": {
+        "status": "PASS",
+        "score": 1.0,
+        "median_spearman": 0.8988648090815273,
+        "per_season": {
+          "2018": {
+            "spearman": 0.8183694530443757,
+            "n_drivers": 18
+          },
+          "2019": {
+            "spearman": 0.869969040247678,
+            "n_drivers": 18
+          },
+          "2020": {
+            "spearman": 0.9380804953560371,
+            "n_drivers": 18
+          },
+          "2021": {
+            "spearman": 0.8988648090815273,
+            "n_drivers": 18
+          },
+          "2022": {
+            "spearman": 0.7915376676986584,
+            "n_drivers": 18
+          },
+          "2023": {
+            "spearman": 0.9558823529411765,
+            "n_drivers": 17
+          },
+          "2024": {
+            "spearman": 0.9133126934984519,
+            "n_drivers": 18
+          },
+          "2025": {
+            "spearman": 0.7984962406015037,
+            "n_drivers": 20
+          }
+        },
+        "confirmation_2025": {
+          "spearman": 0.7984962406015037,
+          "n_drivers": 20
+        },
+        "threshold": {
+          "pass": 0.6,
+          "marginal": 0.4
+        },
+        "design": "Race-level pure (fct_driver_isolation_race) averaged over odd and even rounds; driver-seasons with >= 5 races in each half; median of per-season Spearman over 2018-2024."
+      },
+      "V1a_tactical": {
+        "status": "NOT_APPLICABLE",
+        "notes": "The tactical rating was cancelled on 2026-09-28 (WI-16b); this check tests it only."
+      },
+      "V1b": {
+        "status": "FAIL",
+        "score": 0.0,
+        "median_pearson": 0.9079004431568463,
+        "median_pearson_all_7_pairs": 0.925989078730214,
+        "per_pair": {
+          "2018-2019": {
+            "pearson": 0.925989078730214,
+            "n_drivers": 12
+          },
+          "2019-2020": {
+            "pearson": 0.8219960100738745,
+            "n_drivers": 16
+          },
+          "2020-2021": {
+            "pearson": 0.8898118075834784,
+            "n_drivers": 16
+          },
+          "2021-2022": {
+            "pearson": 0.6309256226740512,
+            "n_drivers": 15
+          },
+          "2022-2023": {
+            "pearson": 0.9789322472591279,
+            "n_drivers": 14
+          },
+          "2023-2024": {
+            "pearson": 0.9773297815609255,
+            "n_drivers": 17
+          },
+          "2024-2025": {
+            "pearson": 0.9831694471340519,
+            "n_drivers": 14
+          }
+        },
+        "reported_individually": {
+          "2022-2023": {
+            "pearson": 0.9789322472591279,
+            "n_drivers": 14
+          },
+          "2023-2024": {
+            "pearson": 0.9773297815609255,
+            "n_drivers": 17
+          },
+          "2024-2025": {
+            "pearson": 0.9831694471340519,
+            "n_drivers": 14
+          }
+        },
+        "rule_change_check": {
+          "pair_2021_2022": 0.6309256226740512,
+          "median_other_decision_pairs": 0.925989078730214,
+          "required_min": 0.6481923551111497,
+          "rule_broken": true
+        },
+        "threshold": {
+          "pass": 0.5,
+          "rule_change_ratio": 0.7
+        },
+        "design": "EB-shrunk driver-season pure (toward the season mean; tau^2 per season), drivers with >= 8 races in both seasons. Verdict on the 6 pairs inside 2018-2024; 2024-2025 reported as confirmation, and the doc's 7-pair median alongside."
+      },
+      "V1c": {
+        "status": "PASS",
+        "score": 1.0,
+        "ratio": 1.067805499030412,
+        "ci95": [
+          0.5666437408717787,
+          1.586819014458339
+        ],
+        "movers_n": 20,
+        "stayers_n": 70,
+        "movers_distinct_drivers": 14,
+        "movers_median_delta_s": 0.0838340024770114,
+        "stayers_median_delta_s": 0.0785105551087106,
+        "season_centred_sensitivity": {
+          "ratio": 1.3694542217426713,
+          "ci95": [
+            0.8242267357855672,
+            2.0256427792191904
+          ],
+          "note": "each season's mean pure removed first (the 2018 level offset, W33 issue 4)"
+        },
+        "threshold": {
+          "pass": 1.5
+        },
+        "design": "Adjacent-season pairs inside 2018-2024 of drivers with >= 8 races in both seasons; mover = main constructor (most races) differs. Ratio of medians |delta pure|; bootstrap CI resampling drivers (clustered by driver). PASS iff ratio <= 1.5."
+      }
+    },
+    "V2": {
+      "V2a": {
+        "status": "PASS",
+        "score": 1.0,
+        "correlation": 0.016537276591802465,
+        "abs_correlation": 0.016537276591802465,
+        "n_rows": 2296,
+        "confirmation_2025": {
+          "correlation": -0.000984100639023669,
+          "n_rows": 416
+        },
+        "threshold": {
+          "pass": 0.15,
+          "marginal": 0.25
+        },
+        "design": "Race-level pure demeaned within driver-season, car_iso_s within constructor-season; Pearson over race rows, 2018-2024.",
+        "caveat": "With the car term fitted on the same laps pure is averaged over (W33 fix), the two-way FE's within-cell residuals are orthogonal to the car term by construction, so V2a is close to 0 almost mechanically. It catches sample and plumbing mismatches, not a driver x car interaction (that lands in the driver effect). V1c and V3a/V3c carry that question."
+      },
+      "V2b": {
+        "status": "FAIL",
+        "score": 0.0,
+        "max_abs_mean_diff_s": 0.6542629943490309,
+        "worst_cell": {
+          "race_year": 2019,
+          "pair": "SOFT-HARD",
+          "n": 81,
+          "mean": 0.6542629943490309,
+          "sd": 0.7216778805939922,
+          "se": 0.08018643117711025
+        },
+        "cells_graded": 23,
+        "cells_below_min_n": 5,
+        "per_cell": [
+          {
+            "race_year": 2018,
+            "pair": "HYPERSOFT-SOFT",
+            "n": 4,
+            "mean": 0.19021322055137777,
+            "sd": 0.3784103432278654,
+            "se": 0.1892051716139327
+          },
+          {
+            "race_year": 2018,
+            "pair": "HYPERSOFT-SUPERSOFT",
+            "n": 13,
+            "mean": 0.9255650033726964,
+            "sd": 0.7980789090301648,
+            "se": 0.2213472637211246
+          },
+          {
+            "race_year": 2018,
+            "pair": "HYPERSOFT-ULTRASOFT",
+            "n": 14,
+            "mean": 0.9517648834300629,
+            "sd": 1.19282110259969,
+            "se": 0.3187948492601405
+          },
+          {
+            "race_year": 2018,
+            "pair": "MEDIUM-HARD",
+            "n": 2,
+            "mean": 0.17450645881895527,
+            "sd": 0.4560430105655173,
+            "se": 0.3224711052836056
+          },
+          {
+            "race_year": 2018,
+            "pair": "SOFT-MEDIUM",
+            "n": 51,
+            "mean": 0.27222704098070055,
+            "sd": 0.5007925315603999,
+            "se": 0.07012498081739965
+          },
+          {
+            "race_year": 2018,
+            "pair": "SUPERSOFT-MEDIUM",
+            "n": 21,
+            "mean": 0.5759240672672253,
+            "sd": 0.6456452335881969,
+            "se": 0.14089134071454082
+          },
+          {
+            "race_year": 2018,
+            "pair": "SUPERSOFT-SOFT",
+            "n": 74,
+            "mean": 0.31050756193213597,
+            "sd": 0.6036151664937403,
+            "se": 0.07016883781485464
+          },
+          {
+            "race_year": 2018,
+            "pair": "ULTRASOFT-MEDIUM",
+            "n": 3,
+            "mean": 0.6452760578983713,
+            "sd": 0.21629628773912546,
+            "se": 0.12487871995090084
+          },
+          {
+            "race_year": 2018,
+            "pair": "ULTRASOFT-SOFT",
+            "n": 47,
+            "mean": -0.04893852896471476,
+            "sd": 0.7297252470706544,
+            "se": 0.10644136695976002
+          },
+          {
+            "race_year": 2018,
+            "pair": "ULTRASOFT-SUPERSOFT",
+            "n": 40,
+            "mean": 0.08399881940975537,
+            "sd": 0.7073857747872137,
+            "se": 0.1118475116365253
+          },
+          {
+            "race_year": 2019,
+            "pair": "MEDIUM-HARD",
+            "n": 153,
+            "mean": 0.2571950270070085,
+            "sd": 0.5489056187598942,
+            "se": 0.04437638911062868
+          },
+          {
+            "race_year": 2019,
+            "pair": "SOFT-HARD",
+            "n": 81,
+            "mean": 0.6542629943490309,
+            "sd": 0.7216778805939922,
+            "se": 0.08018643117711025
+          },
+          {
+            "race_year": 2019,
+            "pair": "SOFT-MEDIUM",
+            "n": 176,
+            "mean": 0.10960229671237381,
+            "sd": 0.7437859421208306,
+            "se": 0.05606497487172258
+          },
+          {
+            "race_year": 2020,
+            "pair": "MEDIUM-HARD",
+            "n": 115,
+            "mean": 0.2793746216268509,
+            "sd": 0.6033699037175971,
+            "se": 0.056264533636415454
+          },
+          {
+            "race_year": 2020,
+            "pair": "SOFT-HARD",
+            "n": 54,
+            "mean": 0.359287059089583,
+            "sd": 0.8296901200178831,
+            "se": 0.11290652437068603
+          },
+          {
+            "race_year": 2020,
+            "pair": "SOFT-MEDIUM",
+            "n": 95,
+            "mean": 0.15972114133697526,
+            "sd": 0.7322981407106245,
+            "se": 0.07513220396413088
+          },
+          {
+            "race_year": 2021,
+            "pair": "MEDIUM-HARD",
+            "n": 207,
+            "mean": 0.2690092615247125,
+            "sd": 0.6335262196160184,
+            "se": 0.04403311615767591
+          },
+          {
+            "race_year": 2021,
+            "pair": "SOFT-HARD",
+            "n": 66,
+            "mean": 0.47527139448131167,
+            "sd": 0.6200071613589675,
+            "se": 0.07631760590953904
+          },
+          {
+            "race_year": 2021,
+            "pair": "SOFT-MEDIUM",
+            "n": 52,
+            "mean": 0.3817068275061511,
+            "sd": 0.8417124323272666,
+            "se": 0.11672451284428742
+          },
+          {
+            "race_year": 2022,
+            "pair": "MEDIUM-HARD",
+            "n": 183,
+            "mean": 0.22235168733284158,
+            "sd": 0.6792255896133774,
+            "se": 0.050209800361887
+          },
+          {
+            "race_year": 2022,
+            "pair": "SOFT-HARD",
+            "n": 42,
+            "mean": 0.2094413135373127,
+            "sd": 0.6925745353518576,
+            "se": 0.10686657090323089
+          },
+          {
+            "race_year": 2022,
+            "pair": "SOFT-MEDIUM",
+            "n": 113,
+            "mean": -0.09943701732351425,
+            "sd": 0.587836768956143,
+            "se": 0.05529903157602309
+          },
+          {
+            "race_year": 2023,
+            "pair": "MEDIUM-HARD",
+            "n": 229,
+            "mean": 0.19182547739598033,
+            "sd": 0.5465675645943423,
+            "se": 0.03611820130893802
+          },
+          {
+            "race_year": 2023,
+            "pair": "SOFT-HARD",
+            "n": 48,
+            "mean": 0.3997973275068208,
+            "sd": 0.6196024743256404,
+            "se": 0.08943191383561667
+          },
+          {
+            "race_year": 2023,
+            "pair": "SOFT-MEDIUM",
+            "n": 67,
+            "mean": 0.11530376808024444,
+            "sd": 0.6643571624287569,
+            "se": 0.08116414538805283
+          },
+          {
+            "race_year": 2024,
+            "pair": "MEDIUM-HARD",
+            "n": 280,
+            "mean": 0.12834930903846073,
+            "sd": 0.4724754276841537,
+            "se": 0.028235807418780193
+          },
+          {
+            "race_year": 2024,
+            "pair": "SOFT-HARD",
+            "n": 53,
+            "mean": 0.05281993746681612,
+            "sd": 0.5610360778419218,
+            "se": 0.07706423204792698
+          },
+          {
+            "race_year": 2024,
+            "pair": "SOFT-MEDIUM",
+            "n": 52,
+            "mean": -0.1534625625849466,
+            "sd": 0.6396000842495233,
+            "se": 0.08869657305972092
+          },
+          {
+            "race_year": 2025,
+            "pair": "MEDIUM-HARD",
+            "n": 250,
+            "mean": 0.1311184428297621,
+            "sd": 0.7837177969287706,
+            "se": 0.0495666656220846
+          },
+          {
+            "race_year": 2025,
+            "pair": "SOFT-HARD",
+            "n": 42,
+            "mean": -0.04985716615290968,
+            "sd": 1.1436935933703456,
+            "se": 0.17647575278722688
+          },
+          {
+            "race_year": 2025,
+            "pair": "SOFT-MEDIUM",
+            "n": 116,
+            "mean": 0.027002397561175288,
+            "sd": 0.6505467882465609,
+            "se": 0.06040175292172004
+          }
+        ],
+        "pooled_2018_2024": [
+          {
+            "pair": "HYPERSOFT-SOFT",
+            "size": 4,
+            "mean": 0.19021322055137777
+          },
+          {
+            "pair": "HYPERSOFT-SUPERSOFT",
+            "size": 13,
+            "mean": 0.9255650033726964
+          },
+          {
+            "pair": "HYPERSOFT-ULTRASOFT",
+            "size": 14,
+            "mean": 0.9517648834300629
+          },
+          {
+            "pair": "MEDIUM-HARD",
+            "size": 1169,
+            "mean": 0.21220620214608388
+          },
+          {
+            "pair": "SOFT-HARD",
+            "size": 344,
+            "mean": 0.39113656785904466
+          },
+          {
+            "pair": "SOFT-MEDIUM",
+            "size": 606,
+            "mean": 0.09357221620153147
+          },
+          {
+            "pair": "SUPERSOFT-MEDIUM",
+            "size": 21,
+            "mean": 0.5759240672672253
+          },
+          {
+            "pair": "SUPERSOFT-SOFT",
+            "size": 74,
+            "mean": 0.31050756193213597
+          },
+          {
+            "pair": "ULTRASOFT-MEDIUM",
+            "size": 3,
+            "mean": 0.6452760578983713
+          },
+          {
+            "pair": "ULTRASOFT-SOFT",
+            "size": 47,
+            "mean": -0.04893852896471476
+          },
+          {
+            "pair": "ULTRASOFT-SUPERSOFT",
+            "size": 40,
+            "mean": 0.08399881940975537
+          }
+        ],
+        "threshold": {
+          "pass": 0.05,
+          "marginal": 0.1
+        },
+        "design": "Per driver-race-compound mean of non-extrapolated pure (>= 3 laps, the window floor); difference softer - harder within the same driver-race; mean per (season, compound pair). Cells with >= 20 driver-races inside 2018-2024 are graded; the verdict is on the largest |mean|. Positive = pure reads faster on the softer tyre."
+      },
+      "V2c": {
+        "V2c_i": {
+          "status": "NOT_APPLICABLE",
+          "notes": "The tactical rating was cancelled on 2026-09-28 (WI-16b); this check tests it only."
+        },
+        "V2c_ii": {
+          "status": "PASS",
+          "score": 1.0,
+          "by_tercile": {
+            "top": {
+              "spearman": 0.8684989429175475,
+              "n_driver_seasons": 44
+            },
+            "bottom": {
+              "spearman": 0.8859087594198202,
+              "n_driver_seasons": 42
+            }
+          },
+          "all_driver_seasons_spearman": 0.8717496795458707,
+          "threshold": 0.6,
+          "design": "Driver-seasons with >= 5 races; tercile of the season's driver-season mean push_residual on early-phase laps; pure on early vs mid laps (non-extrapolated), each centred on its season mean before pooling 2018-2024 (a season level shift would otherwise inflate a pooled rank correlation). PASS iff both the top and the bottom tercile reach 0.60."
+        },
+        "status": "PASS",
+        "score": 1.0
+      },
+      "V2d": {
+        "status": "REPORT",
+        "within_driver_race_mean_diff_s": -0.10113014165857699,
+        "within_driver_race_median_diff_s": -0.07216376811594899,
+        "n_driver_races": 1587,
+        "flagged_lap_share": 0.24350253663237253,
+        "raw_mean_diff_s": -0.07092198416583029,
+        "design": "Lap flagged when lift_coast_share exceeds the same-(race, lap) median by more than 1 MAD. Difference in mean non-extrapolated pure, flagged minus other laps, within driver-race (weighted by the smaller lap count), 2018-2024. Negative = pure reads slower on lift-and-coast laps. Report only (known, uncorrectable confound)."
+      },
+      "V2e": {
+        "status": "PASS",
+        "score": 1.0,
+        "median_spearman_field": 0.6105263157894737,
+        "per_season_field": {
+          "2018": 0.5913312693498451,
+          "2019": 0.5149638802889577,
+          "2020": 0.6470588235294118,
+          "2021": 0.762641898864809,
+          "2022": 0.7234262125902993,
+          "2023": 0.6105263157894737,
+          "2024": 0.5894736842105263
+        },
+        "median_spearman_massey": 0.7440660474716203,
+        "per_season_massey": {
+          "2018": 0.8410732714138286,
+          "2019": 0.7440660474716203,
+          "2020": 0.8080495356037152,
+          "2021": 0.8493292053663571,
+          "2022": 0.4633642930856553,
+          "2023": 0.46491228070175433,
+          "2024": 0.5666666666666667
+        },
+        "massey_error": null,
+        "threshold": {
+          "field": 0.6,
+          "massey": 0.5
+        },
+        "design": "Driver-seasons with >= 5 races, 2018-2024; per-season Spearman of driver-season pure against the season mean of -driver_skill_field_s (sign flipped: that column is negative = faster) and against the era Massey rating of scripts/driver_network_rating.py (its solver on int_synthetic_teammate, <= 2024, pre2022/post2022, rows with a non-NULL proxy only). Median over seasons. Soft test: below either bar is MARGINAL."
+      }
+    },
+    "V3": {
+      "V3a": {
+        "status": "FAIL",
+        "score": 0.0,
+        "correlation": 0.17327810051391157,
+        "n_race_pairs": 10560,
+        "all_phases_sensitivity": {
+          "correlation": 0.1583969699856173,
+          "n_race_pairs": 10583
+        },
+        "threshold": 0.15,
+        "design": "Race-pair means (one row per unordered cross-team pair per race) over pair-laps where both drivers are pre-cliff (the doc: pure aggregates use early, mid and recovery laps only), 2018-2024. Positive = car under-removed."
+      },
+      "V3b": {
+        "status": "MARGINAL",
+        "score": 0.5,
+        "correlation": 0.029878118103536667,
+        "n_pair_laps_one_dirty": 36289,
+        "correlation_status": "PASS",
+        "dirty_minus_clean_gap_s": -0.07103485279162006,
+        "gap_ci95": [
+          -0.09764404116882698,
+          -0.045415261525206856
+        ],
+        "n_ordered_pairs": 4847,
+        "gap_status": "FAIL",
+        "threshold": {
+          "corr": 0.1,
+          "gap_s": 0.05
+        },
+        "design": "Pre-cliff pair-laps 2018-2024. (i) exactly one of the pair in dirty air: Pearson(pure_gap, traffic_advantage) over unordered pair-laps. (ii) per ordered (race, driver, peer) with >= 3 laps of each kind: mean pure gap when the driver is in dirty air and the peer clean, minus the same pair's clean-clean gap; mean over pairs, CI clustered by race. Negative = dirty air under-priced (pure reads slower in the wake). PASS both, MARGINAL one, FAIL neither."
+      },
+      "V3c": {
+        "status": "PASS",
+        "score": 1.0,
+        "spearman": 0.728245474659674,
+        "n_race_pairs": 826,
+        "threshold": 0.7,
+        "design": "Teammate race-pairs (one row per pair per race), mean pure gap over pre-cliff matched laps against -driver_skill_loro_s (int_driver_race_skill_loro: the median lap-by-lap teammate gap, negative = faster, so flipped), 2018-2024."
+      },
+      "V3d": {
+        "status": "PASS",
+        "score": 1.0,
+        "mae_s": {
+          "model": 0.38990761134362467,
+          "base_car_traffic": 0.5146865436426938,
+          "base_last_delta": 0.7038123370395766
+        },
+        "vs_baselines": {
+          "base_car_traffic": {
+            "mae_gain_s": 0.12477893229906913,
+            "ci95": [
+              0.11269068216045978,
+              0.13697426131695334
+            ],
+            "model_better": true
+          },
+          "base_last_delta": {
+            "mae_gain_s": 0.31390472569595196,
+            "ci95": [
+              0.2868657701855699,
+              0.3408096490510573
+            ],
+            "model_better": true
+          }
+        },
+        "n_pair_races": 8711,
+        "n_races": 114,
+        "design": "2018-2024, rounds k >= 5, one row per unordered matched pair per race. Model: shrunk pure of each driver over rounds < k of the same season (>= 3 prior races; normal-normal shrinkage toward the field's prior mean with tau^2 estimated from rounds < k only) differenced, plus race k's car and traffic identity terms. Baselines: car + traffic only, and the pair's last matched race-mean relative pace earlier in the season. Evaluated on pair-races where all three exist; MAE; paired bootstrap clustered by race. PASS iff the model beats both with CI > 0. The car term is fitted on all races (retrospective, as the doc allows)."
+      },
+      "V3_tier3": {
+        "status": "FAIL",
+        "V3_tier3_coverage": {
+          "status": "PASS",
+          "score": 1.0,
+          "share_ge1_peer": 0.9035898755583331,
+          "share_ge2": 0.789303898682058,
+          "share_ge5": 0.473117291325846,
+          "n_omega_laps": 108806,
+          "threshold": 0.8
+        },
+        "V3_tier3_age_adjustment": {
+          "status": "FAIL",
+          "score": 0.0,
+          "pooled_within_pair_var_adjusted": 0.45418114981891416,
+          "pooled_within_pair_var_raw": 0.4392347238081979,
+          "reduction": -0.03402833428361407,
+          "n_pairs": 14563,
+          "n_pair_laps": 283898,
+          "design": "Pooled within-pair (race, unordered pair, >= 3 pair-laps) lap-to-lap variance of the age-adjusted vs the raw delta."
+        }
+      }
+    },
+    "V4": {
+      "V4a": {
+        "status": "FAIL",
+        "score": 0.0,
+        "implied_total_s_per_kg": 0.01976348417198697,
+        "seed_weight_penalty_median_s_per_kg": 0.025,
+        "residual_fuel_coef_s_per_kg": -0.005236515828013031,
+        "age_coef_s_per_lap": -0.006449834967039194,
+        "corr_age_fuel_within": -0.43430653071320985,
+        "n_laps": 90628,
+        "burn_kg_per_lap_median": 1.8644067796610169,
+        "implied_burn_off_gain_s_per_lap": 0.03684717387997571,
+        "per_season": {
+          "2018": {
+            "b_fuel_s_per_kg": -0.01383460780620453,
+            "implied_total_s_per_kg": 0.01116539219379547,
+            "n": 9416
+          },
+          "2019": {
+            "b_fuel_s_per_kg": -0.0022170852443552055,
+            "implied_total_s_per_kg": 0.022782914755644795,
+            "n": 16025
+          },
+          "2020": {
+            "b_fuel_s_per_kg": -0.004366337712014587,
+            "implied_total_s_per_kg": 0.020633662287985414,
+            "n": 10761
+          },
+          "2021": {
+            "b_fuel_s_per_kg": -0.003316008113359339,
+            "implied_total_s_per_kg": 0.021683991886640663,
+            "n": 14225
+          },
+          "2022": {
+            "b_fuel_s_per_kg": -0.004436569817878839,
+            "implied_total_s_per_kg": 0.020563430182121162,
+            "n": 12038
+          },
+          "2023": {
+            "b_fuel_s_per_kg": -0.004969191497995134,
+            "implied_total_s_per_kg": 0.020030808502004865,
+            "n": 14184
+          },
+          "2024": {
+            "b_fuel_s_per_kg": -0.00698832759813458,
+            "implied_total_s_per_kg": 0.018011672401865422,
+            "n": 13979
+          }
+        },
+        "threshold": [
+          0.025,
+          0.04
+        ],
+        "design": "transform/analyses/deg_slope_fuel_deconfounding.sql's design, pooled 2018-2024: driver_skill_residual_s ~ age + fuel_mass_kg, demeaned within (race, driver), on clean dry pre-cliff laps with lap_in_stint > 1. Implied total = median seed factor (weight_penalty_s / fuel_mass_kg) + the residual coefficient."
+      },
+      "V4b": {
+        "status": "FAIL",
+        "score": 0.0,
+        "fuel_coef_s_per_kg": 0.002545042214974519,
+        "age_coef_s_per_lap": 0.003939521413993837,
+        "n_laps": 71259,
+        "threshold": 0.002,
+        "design": "The V4a design on pace_isolated_gain_s over pre-cliff \u03a9 laps, 2018-2024."
+      },
+      "V4c": {
+        "status": "PASS",
+        "score": 1.0,
+        "per_season": {
+          "2018": {
+            "softer_faster_by_s": 0.0860288731754095,
+            "n_pairs": 755,
+            "n_races": 17,
+            "share_races_softer_faster": 0.4117647058823529
+          },
+          "2019": {
+            "softer_faster_by_s": 0.33019979592673493,
+            "n_pairs": 2116,
+            "n_races": 20,
+            "share_races_softer_faster": 0.8
+          },
+          "2020": {
+            "softer_faster_by_s": 0.33271383057781295,
+            "n_pairs": 1258,
+            "n_races": 14,
+            "share_races_softer_faster": 0.7142857142857143
+          },
+          "2021": {
+            "softer_faster_by_s": 0.16236145323483236,
+            "n_pairs": 1445,
+            "n_races": 17,
+            "share_races_softer_faster": 0.7647058823529411
+          },
+          "2022": {
+            "softer_faster_by_s": 0.5404867742318851,
+            "n_pairs": 2281,
+            "n_races": 17,
+            "share_races_softer_faster": 0.8235294117647058
+          },
+          "2023": {
+            "softer_faster_by_s": 0.051380390496422665,
+            "n_pairs": 2825,
+            "n_races": 22,
+            "share_races_softer_faster": 0.5909090909090909
+          },
+          "2024": {
+            "softer_faster_by_s": 0.10510127141735374,
+            "n_pairs": 3296,
+            "n_races": 21,
+            "share_races_softer_faster": 0.6666666666666666
+          },
+          "2025": {
+            "softer_faster_by_s": 0.139141422825826,
+            "n_pairs": 3869,
+            "n_races": 22,
+            "share_races_softer_faster": 0.5909090909090909
+          }
+        },
+        "confirmation_2025": {
+          "softer_faster_by_s": 0.139141422825826,
+          "n_pairs": 3869,
+          "n_races": 22,
+          "share_races_softer_faster": 0.5909090909090909
+        },
+        "design": "Same-(race, lap) pairs on different dry compounds, both at tyre age <= 5, \u03a9 laps with a car term. Raw lap-time gap, net of the two car terms and the two dirty-air taxes (the compound component is NOT removed: this checks the direction the seed must reproduce). PASS iff the softer tyre is faster on average in every season 2018-2024."
+      }
+    },
+    "V5": {
+      "V5a": {
+        "status": "PASS",
+        "score": 1.0,
+        "lag1_autocorr": 0.15542688367074678,
+        "per_season": {
+          "2018": 0.13205999069969204,
+          "2019": 0.21868640140256052,
+          "2020": 0.14661808059822937,
+          "2021": 0.20070142523108309,
+          "2022": 0.059446668242882444,
+          "2023": 0.1361768934317011,
+          "2024": 0.12043707979797628,
+          "2025": 0.1053358371551657
+        },
+        "threshold": 0.3,
+        "design": "Residual of pace_isolated_gain_s around each stint's line (line laps: early/mid, not recovery), pooled lag-1 over laps exactly one apart, 2018-2024."
+      },
+      "V5b": {
+        "status": "PASS",
+        "score": 1.0,
+        "median_ratio": 0.4554117004148758,
+        "per_season": {
+          "2018": {
+            "median_within_stint_sd_s": 0.2640579560298798,
+            "tau_stint_s": 0.48534434861307163,
+            "ratio": 0.5440631106233262,
+            "n_stints": 515
+          },
+          "2019": {
+            "median_within_stint_sd_s": 0.2513834396274244,
+            "tau_stint_s": 0.49361443583660225,
+            "ratio": 0.5092708425379968,
+            "n_stints": 751
+          },
+          "2020": {
+            "median_within_stint_sd_s": 0.23817729876508398,
+            "tau_stint_s": 0.5229933674257967,
+            "ratio": 0.4554117004148758,
+            "n_stints": 514
+          },
+          "2021": {
+            "median_within_stint_sd_s": 0.22608228272065825,
+            "tau_stint_s": 0.5066784045067031,
+            "ratio": 0.4462046945552567,
+            "n_stints": 709
+          },
+          "2022": {
+            "median_within_stint_sd_s": 0.1769964252959069,
+            "tau_stint_s": 0.5116511229967505,
+            "ratio": 0.3459318612636583,
+            "n_stints": 756
+          },
+          "2023": {
+            "median_within_stint_sd_s": 0.17945514810636742,
+            "tau_stint_s": 0.4924448110096386,
+            "ratio": 0.36441677137066014,
+            "n_stints": 847
+          },
+          "2024": {
+            "median_within_stint_sd_s": 0.1772774946883043,
+            "tau_stint_s": 0.37757740450628985,
+            "ratio": 0.4695129861388492,
+            "n_stints": 859
+          },
+          "2025": {
+            "median_within_stint_sd_s": 0.16553975307311442,
+            "tau_stint_s": 0.4193682452893069,
+            "ratio": 0.3947360224160858,
+            "n_stints": 851
+          }
+        },
+        "threshold": {
+          "pass": 1.0,
+          "fail": 1.5
+        },
+        "design": "Per season: median over stints (>= 3 windows) of the within-stint SD of pure_skill_5lap_gain_s, over tau = sqrt(VAR(pure_skill_gain_s) - mean SE^2) on the stint mart's 'all' rows with n_pure_laps >= 6. Verdict on the median of the 2018-2024 season ratios."
+      },
+      "V5d": {
+        "V5d_autocorr": {
+          "status": "PASS",
+          "score": 1.0,
+          "lag1_autocorr": 0.38863477011250863,
+          "threshold": 0.4,
+          "per_season": {
+            "2018": 0.4250102022933387,
+            "2019": 0.42211051654022647,
+            "2020": 0.3753256635295137,
+            "2021": 0.3902819689401605,
+            "2022": 0.3133051458886062,
+            "2023": 0.41554577179338803,
+            "2024": 0.32916891376935303,
+            "2025": 0.500379884912423
+          },
+          "design": "Lap-level relative_pace_gain_s around its stint mean, pooled lag-1 over laps exactly one apart, 2018-2024."
+        },
+        "V5d_jitter": {
+          "status": "PASS",
+          "score": 1.0,
+          "median_ratio": 0.3144317328744647,
+          "per_season": {
+            "2018": {
+              "median_within_stint_sd_s": 0.35419681657983615,
+              "tau_stint_s": 1.1264665094131816,
+              "ratio": 0.3144317328744647,
+              "n_stints": 650
+            },
+            "2019": {
+              "median_within_stint_sd_s": 0.3083100452753173,
+              "tau_stint_s": 1.0405560663272644,
+              "ratio": 0.29629354462708113,
+              "n_stints": 831
+            },
+            "2020": {
+              "median_within_stint_sd_s": 0.28586615234121204,
+              "tau_stint_s": 0.8505467666947535,
+              "ratio": 0.3360969243961684,
+              "n_stints": 602
+            },
+            "2021": {
+              "median_within_stint_sd_s": 0.28219723774909994,
+              "tau_stint_s": 0.9130756956560457,
+              "ratio": 0.30906225966987433,
+              "n_stints": 797
+            },
+            "2022": {
+              "median_within_stint_sd_s": 0.24192318269251079,
+              "tau_stint_s": 0.8516834329769971,
+              "ratio": 0.2840529395375063,
+              "n_stints": 849
+            },
+            "2023": {
+              "median_within_stint_sd_s": 0.23259091309448485,
+              "tau_stint_s": 0.582871595651429,
+              "ratio": 0.39904314231428034,
+              "n_stints": 972
+            },
+            "2024": {
+              "median_within_stint_sd_s": 0.24682571027274977,
+              "tau_stint_s": 0.6837886602845487,
+              "ratio": 0.36096783203458926,
+              "n_stints": 959
+            },
+            "2025": {
+              "median_within_stint_sd_s": 0.23016235928918205,
+              "tau_stint_s": 0.6709555182283057,
+              "ratio": 0.34303668877623694,
+              "n_stints": 896
+            }
+          },
+          "threshold": {
+            "pass": 1.0,
+            "fail": 1.5
+          },
+          "design": "Per season: median over stints (>= 3 windows) of the within-stint SD of relative_pace_5lap_gain_s, over tau = sqrt(VAR(relative_pace_gain_s) - mean SE^2) on the stint mart's 'all' rows with n_pair_laps >= 6. Verdict on the median of the 2018-2024 season ratios."
+        },
+        "score": 1.0,
+        "status": "PASS"
+      },
+      "V5c": {
+        "status": "NOT_APPLICABLE",
+        "notes": "The tactical rating was cancelled on 2026-09-28 (WI-16b); this check tests it only."
+      },
+      "V5_sign_flips_report": {
+        "status": "REPORT",
+        "share_stints_2plus_sign_changes": 0.2024492920015308,
+        "n_stints": 5226
+      }
+    },
+    "V6": {
+      "V6a": {
+        "status": "NOT_APPLICABLE",
+        "notes": "The tactical rating was cancelled on 2026-09-28 (WI-16b); this check tests it only. V6 carries no weight for pure or relative in the matrix."
+      },
+      "V6b": {
+        "status": "NOT_APPLICABLE",
+        "notes": "The tactical rating was cancelled on 2026-09-28 (WI-16b); this check tests it only. V6 carries no weight for pure or relative in the matrix."
+      },
+      "V6c": {
+        "status": "NOT_APPLICABLE",
+        "notes": "The tactical rating was cancelled on 2026-09-28 (WI-16b); this check tests it only. V6 carries no weight for pure or relative in the matrix."
+      }
+    },
+    "coverage": {
+      "driver_races": 3102,
+      "with_pure": 2712,
+      "without_pure": 390,
+      "without_pure_share": 0.12572533849129594,
+      "without_pure_by_reason": {
+        "car term not estimated: only one of the team's drivers has pre-cliff laps in the race": 127,
+        "car term unidentified: team is an island in the era's teammate network": 263
+      },
+      "without_pure_by_year": {
+        "2018": 68,
+        "2019": 48,
+        "2020": 40,
+        "2021": 49,
+        "2022": 47,
+        "2023": 56,
+        "2024": 61,
+        "2025": 21
+      },
+      "unidentified_by_constructor": [
+        {
+          "constructor_id": "Alfa Romeo",
+          "n": 78,
+          "years": "2022-2023",
+          "drivers": [
+            "BOT",
+            "ZHO"
+          ]
+        },
+        {
+          "constructor_id": "Haas F1 Team",
+          "n": 139,
+          "years": "2018-2021",
+          "drivers": [
+            "FIT",
+            "GRO",
+            "MAG",
+            "MAZ",
+            "MSC"
+          ]
+        },
+        {
+          "constructor_id": "Kick Sauber",
+          "n": 46,
+          "years": "2024-2024",
+          "drivers": [
+            "BOT",
+            "ZHO"
+          ]
+        }
+      ]
+    },
+    "season_levels": {
+      "per_season": [
+        {
+          "race_year": 2018,
+          "n_laps": 14113,
+          "cliff_share": 0.418904556083044,
+          "y_precliff_s": -0.07665016461407131,
+          "y_cliff_s": -2.8051880920162366,
+          "mean_race_pure_gain_s": 0.1521886463575989
+        },
+        {
+          "race_year": 2019,
+          "n_laps": 16793,
+          "cliff_share": 0.14363127493598524,
+          "y_precliff_s": -0.011492976844447663,
+          "y_cliff_s": -1.8688124295190698,
+          "mean_race_pure_gain_s": 0.062264837553592405
+        },
+        {
+          "race_year": 2020,
+          "n_laps": 11489,
+          "cliff_share": 0.19435982243885455,
+          "y_precliff_s": -0.015625388936905373,
+          "y_cliff_s": -2.063758437080157,
+          "mean_race_pure_gain_s": 0.11706910483696654
+        },
+        {
+          "race_year": 2021,
+          "n_laps": 16267,
+          "cliff_share": 0.20667609270301837,
+          "y_precliff_s": -0.024927671445176245,
+          "y_cliff_s": -1.8986902212968446,
+          "mean_race_pure_gain_s": 0.15247266308507687
+        },
+        {
+          "race_year": 2022,
+          "n_laps": 13483,
+          "cliff_share": 0.18133946451086552,
+          "y_precliff_s": -0.05533248776952311,
+          "y_cliff_s": -1.2762226012269924,
+          "mean_race_pure_gain_s": 0.07792177917193874
+        },
+        {
+          "race_year": 2023,
+          "n_laps": 17555,
+          "cliff_share": 0.25092566220450013,
+          "y_precliff_s": -0.006990212927756223,
+          "y_cliff_s": -1.6611932054483567,
+          "mean_race_pure_gain_s": 0.05051005253993469
+        },
+        {
+          "race_year": 2024,
+          "n_laps": 19106,
+          "cliff_share": 0.3230922223385324,
+          "y_precliff_s": -0.006207121317559378,
+          "y_cliff_s": -1.5454996322695624,
+          "mean_race_pure_gain_s": 0.07767362204783541
+        },
+        {
+          "race_year": 2025,
+          "n_laps": 18329,
+          "cliff_share": 0.33880735446560095,
+          "y_precliff_s": -0.014935184421156952,
+          "y_cliff_s": -1.7210070553945183,
+          "mean_race_pure_gain_s": 0.012145988652330233
+        }
+      ],
+      "note": "y_s is centred on each lap's field median over ALL \u03a9 laps; cliff laps read fast (the seed's cliff cost over-corrects), so pre-cliff laps sit above that median by roughly the season's cliff share x the cliff gap, and mean pure (which uses pre-cliff laps) is shifted by the same amount. It is a level shared by every driver in a season, not a ranking effect."
+    },
+    "examples": {
+      "VER_vs_HAM_2021_8": {
+        "race": "2021_8",
+        "circuit": "Styrian GP",
+        "driver_1": "VER",
+        "driver_2": "HAM",
+        "expected_pace_s_lap": 0.24,
+        "expected_n_laps": 57,
+        "measured_pace_s_lap": 0.229,
+        "measured_n_laps": 54,
+        "identity_split": {
+          "pace_gap": 0.41923357571865255,
+          "car_advantage": -0.2024750572001338,
+          "traffic_advantage": 0.01225925925925926
+        },
+        "pace_diff": 0.011,
+        "lap_diff_pct": 5.3,
+        "within_tolerance": true
+      },
+      "HAM_vs_VER_2021_19": {
+        "race": "2021_19",
+        "circuit": "S\u00e3o Paulo",
+        "driver_1": "HAM",
+        "driver_2": "VER",
+        "expected_pace_s_lap": 0.178,
+        "expected_n_laps": 41,
+        "measured_pace_s_lap": 0.178,
+        "measured_n_laps": 36,
+        "identity_split": {
+          "pace_gap": -0.33252092856638593,
+          "car_advantage": 0.6671875952330526,
+          "traffic_advantage": -0.1563055555555556
+        },
+        "pace_diff": 0.0,
+        "lap_diff_pct": 12.2,
+        "within_tolerance": false
+      },
+      "VER_vs_PER_2023_2": {
+        "race": "2023_2",
+        "circuit": "Saudi Arabian",
+        "driver_1": "VER",
+        "driver_2": "PER",
+        "expected_pace_s_lap": -0.459,
+        "expected_n_laps": 37,
+        "measured_pace_s_lap": -0.459,
+        "measured_n_laps": 37,
+        "identity_split": {
+          "pace_gap": -0.36962162162162093,
+          "car_advantage": 0.0,
+          "traffic_advantage": -0.08945945945945946
+        },
+        "pace_diff": 0.0,
+        "lap_diff_pct": 0.0,
+        "within_tolerance": true
+      }
+    },
+    "method_scores": {
+      "pure": {
+        "method_score": 0.0,
+        "grade": "F",
+        "weighted_score_before_critical_rule": 0.7051282051282051,
+        "tests_applicable": 16,
+        "tests_passed": 10,
+        "critical_failed": 1,
+        "critical_failed_checks": [
+          "V1.V1b"
+        ],
+        "test_level_reading": {
+          "method_score": 0.7051282051282051,
+          "grade": "C",
+          "critical_groups_failed": []
+        },
+        "groups": {
+          "V1": {
+            "weight": 2.0,
+            "score": 0.6666666666666666,
+            "sub_checks": {
+              "V1.V1a_pure": "PASS",
+              "V1.V1b": "FAIL",
+              "V1.V1c": "PASS"
+            }
+          },
+          "V2": {
+            "weight": 2.0,
+            "score": 0.75,
+            "sub_checks": {
+              "V2.V2a": "PASS",
+              "V2.V2b": "FAIL",
+              "V2.V2c.V2c_ii": "PASS",
+              "V2.V2e": "PASS"
+            }
+          },
+          "V3": {
+            "weight": 1.0,
+            "score": 0.625,
+            "sub_checks": {
+              "V3.V3a": "FAIL",
+              "V3.V3b": "MARGINAL",
+              "V3.V3c": "PASS",
+              "V3.V3d": "PASS"
+            }
+          },
+          "V4": {
+            "weight": 0.5,
+            "score": 0.25,
+            "sub_checks": {
+              "V4.V4a": "FAIL",
+              "V4.V4b": "FAIL",
+              "V4.V4c": "PASS"
+            }
+          },
+          "V5": {
+            "weight": 1.0,
+            "score": 1.0,
+            "sub_checks": {
+              "V5.V5a": "PASS",
+              "V5.V5b": "PASS"
+            }
+          }
+        }
+      },
+      "relative": {
+        "method_score": 0.0,
+        "grade": "F",
+        "weighted_score_before_critical_rule": 0.7142857142857143,
+        "tests_applicable": 5,
+        "tests_passed": 4,
+        "critical_failed": 1,
+        "critical_failed_checks": [
+          "V3.V3_tier3.V3_tier3_age_adjustment"
+        ],
+        "test_level_reading": {
+          "method_score": 0.7142857142857143,
+          "grade": "C",
+          "critical_groups_failed": []
+        },
+        "groups": {
+          "V3_tier3": {
+            "weight": 2.0,
+            "score": 0.5,
+            "sub_checks": {
+              "V3.V3_tier3.V3_tier3_coverage": "PASS",
+              "V3.V3_tier3.V3_tier3_age_adjustment": "FAIL"
+            }
+          },
+          "V4": {
+            "weight": 0.5,
+            "score": 1.0,
+            "sub_checks": {
+              "V4.V4c": "PASS"
+            }
+          },
+          "V5": {
+            "weight": 1.0,
+            "score": 1.0,
+            "sub_checks": {
+              "V5.V5d.V5d_autocorr": "PASS",
+              "V5.V5d.V5d_jitter": "PASS"
+            }
+          }
+        }
+      },
+      "tactical": {
+        "method_score": null,
+        "grade": "cancelled",
+        "notes": "The tactical rating was cancelled on 2026-09-28 (WI-16b); this check tests it only."
+      }
+    }
+  }
+}

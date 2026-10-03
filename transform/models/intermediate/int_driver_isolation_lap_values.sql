@@ -1,12 +1,18 @@
 -- Driver isolation, tier 1 per lap: pure_skill_gain_s (WI-16). Grain: one row
 -- per Ω lap, PK lap_id.
 --
--- TIER 1, PURE PACE:   pure_skill_gain_s = pace_isolated_gain_s
+-- TIER 1, PURE PACE:   pure_skill_gain_s = pace_isolated_gain_s + season offset
 -- His pace against the field on an equal car, equal tyre state, equal traffic
 -- and equal fuel. On a tyre past its cliff this is the extrapolated pre-cliff
 -- pure line, flagged pure_is_extrapolated: the lap time there is dominated by
 -- the tyre, and pure-skill aggregates use early, mid and recovery laps on a
 -- pre-cliff tyre only.
+--
+-- SEASON OFFSET (W33, 2026-09-30): pure_season_offset_gain_s is a declared
+-- per-season constant (var isolation_pure_season_offset_gain_s; currently 2018
+-- +0.37 s) that corrects a season level, not a driver. It cancels in every
+-- within-season difference, so pair gaps and the tier-3 identity (which use
+-- pace_isolated_gain_s) are unchanged. pace_isolated_gain_s carries no offset.
 --
 -- NULL POLICY (never COALESCE a missing rating to 0; that is the F1/F7 class):
 --   p NULL (no car term)              -> pure NULL
@@ -69,7 +75,11 @@ SELECT
 
     -- Ratings (s/lap; positive = faster).
     pace_isolated_gain_s,
-    pace_isolated_gain_s AS pure_skill_gain_s,
+    pace_isolated_gain_s
+    + {{ driver_isolation_pure_season_offset('race_year') }}
+        AS pure_skill_gain_s,
+    {{ driver_isolation_pure_season_offset('race_year') }}
+        AS pure_season_offset_gain_s,
     tyre_phase = 'cliff' AS pure_is_extrapolated,
 
     -- Stint context the marts' SEs are built from.

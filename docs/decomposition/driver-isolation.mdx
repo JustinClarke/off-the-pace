@@ -25,7 +25,7 @@ A lap's field-centred isolated time removes compound cost and dirty air, leaving
 y = lap_time − compound_cost − dirty_air_cost − MEDIAN( lap_time − compound_cost − dirty_air_cost )  [over the field]
 ```
 
-A two-way fixed-effects fit on `y` with driver-era and constructor-race effects isolates the car's contribution to pace. The car term is then subtracted:
+A two-way fixed-effects fit on `y` with driver and constructor-race effects, run separately for each regulation era (2018–2021 and 2022–2025) on the pre-cliff laps that pure skill is averaged over, isolates the car's contribution to pace. The car term is then subtracted:
 
 ```
 pace_isolated = −(y − car_effect)           [the negative is a sign convention; positive = faster]
@@ -42,19 +42,21 @@ For each lap, find every other driver with:
 - The same tyre compound
 - Tyre age within ±3 laps of this driver's
 
-Compute the lap-time difference to each peer, adjusted for the seed's compound-wear offset (≤ 3 laps of rubber), and average across peers:
+Compute the lap-time difference to each peer, adjusted for the tyre-age difference between the two cars (≤ 3 laps), and average across peers:
 
 ```
-relative_pace = AVG(( peer_laptime − my_laptime ) − ΔC_age_adjusted) [over peers]
+relative_pace = AVG(( peer_laptime − my_laptime ) − ( g(peer_age) − g(my_age) )) [over peers]
 ```
 
-The identity below guarantees that this peer-relative gap always decomposes into pure skill plus car and traffic:
+`g` is a fitted tyre-age curve (`int_driver_isolation_age_curve`), one smooth curve per regulation era and compound. It is fitted on the whole field: a cubic B-spline in tyre age, with the (race, lap) effect absorbing fuel and track evolution and a (race, driver, compound) effect absorbing the car. What teaches it the wear rate is a driver fitting a new set of the same compound and gaining pace on the field. Each race is adjusted with a curve fitted on the other races only. Until 2026-09-30 the adjustment was the compound seed's hockey-stick curve, kept as `relative_pace_seed_adj_gain_s`.
+
+The identity below guarantees that this peer-relative gap always decomposes exactly:
 
 ```
-relative_pace = (pure_gap) + (car_advantage) + (traffic_advantage)
+relative_pace = (pace_gap) + (car_advantage) + (traffic_advantage) + (age_pricing)
 ```
 
-where each term is the difference between the two drivers.
+where each term is the difference between the two drivers. `age_pricing` is the part of the tyre-age gap the compound seed prices and the fitted curve does not. It exists because pure pace is built on the seed and relative pace on the curve. It is usually a few hundredths of a second.
 
 **Coverage:** relative is NULL when no peer exists on that lap.
 
@@ -102,15 +104,63 @@ Tests are weighted per rating. A **critical** test failure (red-flag defect) set
 - **C** (≥ 0.5): acceptable method
 - **F** (< 0.5 or critical fail): suppressed; the rating is not published
 
-**Method scores and grades for current validation run (2026-09-27):**
+### Current results (2026-09-30)
 
-_[Validation run on 2026-09-27 against dev.duckdb with WI-01 landed (theta_air 0.331). Full method scores pending completion of V1-V6 statistical implementations. Worked examples reproduced within tolerance for 2 of 3 probes. See *As built: WI-16b* section of the WI doc for full details.]_
+Validation ran on the dev warehouse rebuilt on 2026-09-30. That build uses the car term fitted on pre-cliff laps (`constructor_car_fe_isolation_hdfe_v2`), the 2018 season offset and the fitted tyre-age curve (`isolation_age_curve_bspline_rdc_cf5_v1`). Seasons 2018–2024 decide the verdicts; 2025 is confirmation only. The evidence is in `_roadmap/_fixes/_evidence/wi-16-2026-09-30/dev-age-curve/`.
+
+| Rating | Method score, strict reading | Score before the critical rule | Critical check that fails |
+| :-- | :-: | :-: | :-- |
+| Pure pace skill | 0 (F) | 0.72 (C) | V1b, stability across the 2022 rules change |
+| Relative pace | 0 (F) | 0.57 (C) | Tier-3 age adjustment |
+
+The strict reading zeroes a rating when any critical sub-check fails. Read at test level instead, where a critical group fails only when its own score is below 0.5, both ratings grade C. Which reading governs is still an open decision. Until it is made, the method-score seed is not written and every `trust_label` reads `unvalidated`.
+
+| Test | Result | Statistic |
+| :-- | :-: | :-- |
+| V1a split-half | PASS | median Spearman 0.897 |
+| V1b adjacent seasons | FAIL | median Pearson 0.916, but 2021→2022 is 0.603 (needs ≥ 0.652) |
+| V1c movers vs stayers | PASS | ratio 0.80, 95% CI 0.46–1.61 (20 mover season-pairs, 14 drivers) |
+| V2a within-driver car leakage | PASS | \|corr\| 0.054 (2025: 0.024) |
+| V2b compound, within driver-race | FAIL | the softer tyre reads faster, by up to 0.91 s |
+| V2c-ii style strata | PASS | Spearman 0.83 (top tercile), 0.89 (bottom) |
+| V2d fuel saving | report | −0.098 s on high lift-and-coast laps |
+| V2e convergent validity | PASS | Spearman 0.61 (field skill), 0.71 (Massey) |
+| V3a car pricing at matched strategy | PASS | corr 0.066 |
+| V3b traffic pricing | MARGINAL | corr 0.027 passes; dirty-air laps read 0.071 s slow |
+| V3c teammates | PASS | Spearman 0.728 |
+| V3d rolling-origin backtest | PASS | beats car + traffic by 0.123 s MAE, last delta by 0.273 s |
+| Tier-3 coverage | PASS | 90.4% of clean laps have a peer |
+| Tier-3 age adjustment | FAIL | adds 0.66% within-pair variance (95% CI 0.31–1.04%); the seed's adjustment added 3.4% |
+| V4a fuel, absolute | FAIL | 0.020 s/kg (physical band 0.025–0.040) |
+| V4b fuel immunity | FAIL | 0.006 s/kg (limit 0.002) |
+| V4c compound ordering | FAIL | 2018 only: the softer tyre reads 0.019 s slower |
+| V5a, V5b, V5d smoothness | PASS | lag-1 0.195; jitter 0.32; relative 0.381 and 0.317 |
+
+V1c passes only with the 2018 season offset (without it: 1.51, a FAIL by 0.007), and its confidence interval still reaches past the 1.5 limit. Treat it as "no car leakage detected", not as proof of none.
+
+### Known issues
+
+These failures are known and tracked for after v15. None of them is fixed here.
+
+- **Stability across the 2022 rules change (V1b).** Each driver's skill is fitted as one value per regulation era, so a driver's pure pace barely moves between seasons inside an era (adjacent-season Pearson 0.82–0.98). Across the 2021→2022 boundary it drops to 0.60. An existing skill measure that does not assume one value per era (`driver_skill_field_s`) shows no drop there (0.91). So the two eras place drivers differently: the car/driver split changes at the boundary, not the drivers. Pure moves most for TSU (+0.53 s), PER (+0.37 s), GAS (+0.26 s) and HAM (+0.19 s), all of whom the era-free measure has flat or slower. **Do not compare a driver's pure pace across the 2021/2022 boundary.**
+
+  Finer eras do not fix it. The fit can only tell car from driver through drivers who changed teams inside an era, and a single season has almost none, so every team becomes an island. With 2018, 2021 and 2025 as one-season eras, pure covers 36% of driver-races instead of 87%. V1b then "passes" on 2 of its 6 season pairs and V1c fails. Moving the one boundary elsewhere shows why V1b fails: every boundary drops the cross-era correlation, including years with no rule change (2022→2023: 0.30, 2023→2024: 0.54). The 2022 rules change (0.60) drops the least. The drop comes from fitting each era separately, not from the rules change, and the 2021 floor change (2020→2021: 0.13) is not the cause either.
+- **Compound levels (V2b, V4b, V4c in 2018).** Within the same driver and race, pure should not depend on the compound, but it does. MEDIUM−HARD reads 0.20–0.42 s faster on the Medium in every season, SOFT−HARD up to 0.75 s faster on the Soft, and 2018 SUPERSOFT−MEDIUM 0.91 s faster on the Supersoft. SOFT−MEDIUM flips the other way from 2022 (2024: the Soft reads 0.45 s slower). So the compound seed's levels are off per compound pair, in both directions. Soft tyres usually run the heavy-fuel first stint, so the bias also shows up as a small fuel slope (V4b). The fix is the seed re-estimate (WI-02b).
+- **Tier-3 age adjustment.** The check asks the age adjustment to make a pair's lap-to-lap gap less noisy. The compound seed's adjustment made it 3.4% noisier, and 10.5% in 2018, because its per-track cliff pricing fires on the wrong laps. The fitted tyre-age curve that replaced it adds 0.66% (95% CI 0.31–1.04%). Its curves rise in every group, at 0.03–0.11 s a lap over tyre ages 5–20. A curve fitted on the pairs themselves does pass (−0.32%), but only by learning that a three-lap-older soft or medium tyre was up to 0.75 s faster before 2022, so it is not used. Within ±3 laps of tyre age, a pair's lap-to-lap gap is driven by racing (attacking, defending, the push after a stop) far more than by tyre age, so no physically sensible curve reduces it. Relative rankings are held until after v15. When you need a matched-strategy gap now, quote `relative_pace_raw_gain_s`, the model-free lap-time difference, or `relative_pace_gain_s` with its age adjustment stated.
+- **Traffic pricing (V3b).** On laps where only one of the pair is in dirty air, pure reads 0.071 s slower than the same pair's clean-air gap (95% CI 0.045–0.098 s). θ_air slightly under-prices traffic. The effect is small, and it is documented rather than corrected.
+- **Absolute fuel cost (V4a).** The implied fuel effect is 0.020 s/kg, below the physical band of 0.025–0.040 s/kg. This affects the absolute decomposition ("fuel cost him X"), not the ratings, which are field-centred and cancel fuel exactly.
 
 ## Limitations and blind spots
 
 - **Per-driver fuel strategy:** every car on a lap receives the same fuel cost in the model. A driver told to save fuel reads as lower pure skill. V2d quantifies this stratum; nothing corrects it.
 - **Wet races:** excluded by the clean-lap filter. These ratings say nothing about wet-weather skill.
-- **Car identification:** rests on the teammate network and "skill constant within 2022 rules change." Uncertainty is not propagated into SE; V1c and V2a test for leakage.
+- **Car identification:** rests on the teammate network and on each driver's skill being one value per regulation era (2018–2021, 2022–2025), not one value for the whole archive. Uncertainty is not propagated into SE; V1c, V2a and V3a test for leakage.
+- **Driver-races with no pure rating (390 of 3,102, 12.6%):** this is a limit of the method, not a bug. Pure skill needs a car term, and the car term is identified only through drivers who changed teams. `car_term_source` says why a row has none:
+  - `unidentified` (263 driver-races): the team is an island. Its drivers drove for no other team in that era, so no chain of team-changers links its car to the rest of the field. This covers Haas 2018–2021 (139; GRO, MAG, FIT, MAZ, MSC), Alfa Romeo 2022–2023 (78) and Kick Sauber 2024 (46; BOT, ZHO).
+  - `not_estimated` (127 driver-races): only one of the team's two drivers has clean pre-cliff laps in that race, so that race cannot separate him from the car.
+
+  Rankings leave these driver-races out rather than guess, and a missing race is not a zero. Relative pace needs no car term, so it still covers them (262 of the 263 island driver-races have one). Bridging the islands through drivers who cross the 2022 boundary (MAG and MSC for Haas, BOT for Sauber) would bring back the assumption that a driver's skill is constant from 2018 to 2025, so it is not done.
+- **Season levels:** pure skill is centred on each lap's whole field, including laps on tyres past their cliff, which currently read fast. Seasons with many such laps sit lower as a whole. In 2018, 42% of clean laps are cliff laps, and its mean race pure sat at −0.45 s, against −0.03 to −0.12 s in 2019–2024. `pure_season_offset_gain_s` adds **+0.37 s** to every 2018 pure value (the 2018 baseline offset), which puts 2018 at the other seasons' level (−0.08 s). The offset is one constant for the whole season, so it changes no ranking or gap inside 2018. 2025 still sits low (−0.25 s) and has no offset. Treat any cross-season comparison of pure skill as measured with a caveat. The real fix is the compound seed's cliff cost (WI-02b); the offset is removed once that lands.
 - **Car degradation character:** pooled from both drivers in each team, so a driver far better at tyre management than his teammate is shrunk toward him. The AKM decomposition (03c roadmap item) is the fix.
 - **2018 traffic:** about 9% of 2018 laps have no telemetry and are coded clear air. `D = 0` on those laps biases 2018 pure skill upward for drivers who were actually in traffic.
 - **Rolling windows:** the car term is fitted on all races (retrospective), and `m_s` uses the whole stint. Nothing here is live-safe yet; that is follow-on work.
@@ -119,43 +169,43 @@ _[Validation run on 2026-09-27 against dev.duckdb with WI-01 landed (theta_air 0
 
 This worked example demonstrates the identity and shows what "same car" means in tier 3:
 
-**Setup:** Verstappen started 15th, Pérez 2nd. Same car, same tyres across the stint, matched strategy (both pitted lap 18 for Mediums). VER closed to within 0.40 s/lap on matched laps (race-pair mean, Mediums, age 5–10).
+**Setup:** Verstappen started 15th, Pérez 2nd. On the 37 matched laps (same compound, tyre age within ±3), VER was 0.46 s/lap slower than PER.
 
 **The question:** is VER's deficit a pace gap, a car gap, or traffic?
 
 **The answer (the identity):**
 ```
-relative_pace = −0.40 s/lap
-  = (pure gap) + (car advantage) + (traffic advantage)
-  = −0.25 + 0.00 + −0.10 + −0.05 (other)
-     [VER's pure pace was 0.25 s slower; same car means 0.00; 
-      VER lost 0.10 s to dirty air vs PER's clean air; 0.05 s from other factors]
+relative_pace = −0.459 s/lap
+  = (pace gap) + (car advantage) + (traffic advantage) + (age pricing)
+  = −0.370     +  0.000          + −0.089              +  0.000
+     [VER's isolated pace was 0.37 s slower; same car, so 0.00;
+      dirty air cost VER 0.09 s a lap more than PER; matched tyre ages, so 0.00]
 ```
 
-The car term is identically zero: both drivers are in the same physical car on each matched lap, so the fixed effect that represents constructor-race pace contributes equally to both. VER's deficit is primarily driver skill and traffic.
+The car term is identically zero: both drivers are in the same car, so the constructor-race effect cancels. Most of VER's deficit on these laps sits in the pace gap, and traffic explains about a fifth of it.
 
 ## Worked examples (additional)
 
 ### 2021 Styrian GP (VER–HAM)
 
-VER's relative pace against HAM on matched laps (same compound, age within ±3): **+0.237 s/lap** over **53 matched laps**.
+VER's relative pace against HAM on matched laps (same compound, age within ±3): **+0.231 s/lap** over **54 matched laps**.
 Expected (probe): +0.24 s/lap over 57 laps. **Reproduced within tolerance.**
 
-This example demonstrates a clear pace advantage for VER in the context of matched strategy: same tyres, same tyre age, same lap position (fuel state). The decomposition into pure skill, tactical execution, car advantage, and traffic disadvantage follows the identity.
+The identity splits it as a pace gap of +0.44 s/lap for VER, a car term of −0.23 s/lap (the Mercedes read faster), traffic of +0.01 s/lap and age pricing of +0.00 s/lap. VER's edge on matched laps is his pace, partly offset by the slower car.
 
 ### 2021 São Paulo GP (HAM–VER)
 
-HAM's relative pace against VER on matched laps: **+0.047 s/lap** over **37 matched laps**.
-Expected (probe): +0.05 s/lap over 41 laps. **Reproduced within tolerance.**
+HAM's relative pace against VER on matched laps: **+0.147 s/lap** over **36 matched laps** (model-free delta +0.208 s/lap; +0.178 s/lap with the seed's age adjustment).
+The WI doc's probe had +0.05 s/lap over 41 laps. Most of the change comes from which laps count as clean (41 → 36); the age adjustment moves it by 0.06 s/lap.
 
-This race features in the case study at `docs/findings/sao-paulo-2021.mdx`, which decomposes the final stint using the seven-term model on raw lap times. The driver isolation ratings provide the same decomposition at matched strategy: the tyre age difference (3 laps at pit stop) is isolated, the car effect is removed, and driver pace is separated from tactical tyre management. The results align: HAM's advantage comes from both skill and the strategic pit timing that left VER with older tyres.
+The identity splits it as a car term of +0.67 s/lap in HAM's favour, a pace gap of −0.34 s/lap (VER's isolated pace was faster), traffic of −0.16 s/lap against HAM and age pricing of −0.03 s/lap. On matched laps the model places HAM's edge in the car, not in his pace. The case study at `docs/findings/sao-paulo-2021.mdx` reads the race as "brilliant driving and brilliant strategy", using the seven-term model on raw lap times. This split does not support its driving half, and that page has not yet been reconciled with it.
 
 ### 2023 Saudi Arabian GP (VER–PER, same car)
 
-VER's relative pace against PER on matched laps: **-0.459 s/lap** over **37 matched laps**.
-Expected (probe): -0.40 s/lap over 40 laps. **Outside tolerance (-0.059 s/lap).**
+VER's relative pace against PER on matched laps: **−0.459 s/lap** over **37 matched laps**.
+The WI doc's probe had −0.40 s/lap over 40 laps; the current value is 0.059 s/lap outside that tolerance.
 
-This example is notable because both drivers were in the same car (same constructor), so the car advantage term is identically zero by construction. The full deficit of 0.459 s/lap is explained by pure skill gap, tactical execution gap, and traffic effects (PER started P2, VER started P15). The discrepancy with the probe (0.059 s/lap larger deficit than expected) may reflect database-rebuild effects or differences in clean-lap membership; it is flagged for investigation but does not invalidate the rating structure.
+Both drivers were in the same car, so the car advantage is zero by construction. The deficit splits as a pace gap of −0.37 s/lap and traffic of −0.09 s/lap (PER started 2nd, VER 15th). See the worked example above.
 
 ## How to use these ratings
 
@@ -166,7 +216,7 @@ This example is notable because both drivers were in the same car (same construc
 
 ## Data source
 
-All three ratings are computed on every clean lap in the archive (2018–2025). Clean laps:
+Both ratings are computed on every clean lap in the archive (2018–2025). Clean laps:
 - Have `correction_weight = 1.0` (fully clean)
 - Are not pit-in, pit-out, or rain laps
 - Are not part of a safety car period
@@ -174,11 +224,10 @@ All three ratings are computed on every clean lap in the archive (2018–2025). 
 - Have at least 8 clean laps in their (race, lap_number) cell (field size gate)
 
 Measured coverage on the 2018–2025 archive:
-- Pure skill: 96.6% of eligible laps
-- Tactical: 83.5% of stints (shorter stints lack slope leverage)
+- Pure skill: 96.6% of eligible laps (87.4% of driver-races; see *Limitations* for the rest)
 - Relative: 90.4% of eligible laps (coverage limited by peer availability at matched strategy)
 
-The three ratings are published in:
+The two ratings are published in:
 - `fct_driver_isolation_lap`: lap-level values, 5-lap windows (trailing)
 - `fct_driver_isolation_stint`: stint-phase aggregates (early / mid / cliff / recovery / all)
 - `fct_driver_isolation_race`: race-level aggregates

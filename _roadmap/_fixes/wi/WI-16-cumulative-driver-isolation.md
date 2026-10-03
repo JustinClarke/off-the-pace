@@ -1050,7 +1050,8 @@ No shortfall. Every figure is within 2.1 points of the probe or above it.
    valid lap, the stint's first flying lap has `valid_lap_in_stint = 1`. 4,085 Ω laps (3.1%)
    are like that, and they would have had no phase at all, which breaks T45's "exactly one
    phase".
-3. **The car term's fallback rule, and its outcome.** The doc's rule is "more than one
+3. **The car term's fallback rule, and its outcome.** *(Superseded: since `a25be07` the fit
+   is per era with no global fallback; see "As built: W33 re-validation" below.)* The doc's rule is "more than one
    component containing two or more constructors → global driver". The fit applies it,
    and also falls back whenever any race's constructor cells span more than one
    component. That is the actual identification condition: a car level can only be
@@ -1163,3 +1164,428 @@ No shortfall. Every figure is within 2.1 points of the probe or above it.
 - The known F11b failure (`assert_stint_geometry_2018_compound_code_null`, 24,029 2025 slick
   rows, WI-07's) was excluded from the build so that it would not skip everything
   downstream. It was then run on its own and fails as before.
+
+---
+
+## As built: W33 re-validation (2026-09-30; working tree, dev not rebuilt)
+
+Working-tree edits only: no `dbt build`, no training, no commit. `data/dev.duckdb` and
+`data/fits/` were not written. Numbers come from `_evidence/wi-16-2026-09-30/`. Its
+`PROVENANCE.txt` describes the three substrates. `w33-fit-fix` is a scratch copy of dev
+with the car term refitted and the eight downstream models replayed from the compiled SQL.
+Replaying the *unchanged* parquet that way reproduced live dev to 6e-15.
+
+### The car term is per era now (supersedes WI-16a deviation 3)
+
+Since `a25be07` (2026-09-29) the fitter fits `mean y_s ~ 1 | driver_id + constructor_race`
+separately in each era, on driver-race means. That is this doc's `driver_era` key, with
+**no global fallback**: a driver's skill is one value per era, not one value for
+2018-2025. Every identified row is `car_term_source = 'driver_id'`. The islands deviation
+3 found are therefore unrated rather than bridged: Haas 2018-2021, Alfa Romeo
+2022-2023 and Kick Sauber 2024 (`unidentified`). The race-level aggregation also turns a
+constructor-race where only one driver has laps in the fit into a singleton
+(`not_estimated`). Three T49 tests had been failing since `a25be07` because they pinned
+the fallback and the old labels. They now pin the per-era behaviour, and a new test pins
+the fit sample (below).
+
+### The V2a plumbing bug and its fix
+
+The car term was fitted on **all** Ω laps, but every pure aggregate uses the **pre-cliff**
+laps only (`pure_is_extrapolated = tyre_phase = 'cliff'` is excluded). In `y_s`, cliff
+laps read 0.24-0.89 s faster than pre-cliff laps in every season, because the seed's
+cliff cost over-corrects. A constructor-race with many cliff laps therefore got a faster
+car term, and the pre-cliff laps rated against it read slower. The two-way FE's
+residuals are orthogonal to the car term only on the sample it was fitted on. So the
+fitter now reads `tyre_phase <> 'cliff'` (`ISOLATION_FIT_METHOD` `..._hdfe_v2`).
+
+**The root cause named in the W33 brief does not reproduce.** `int_lap_fuel_state` holds
+all 161,040 laps. Lap 1 is excluded by `stg_laps.is_valid_lap` (`lap_number > 1`), which
+is long-standing and can never be an Ω lap.
+
+### Validation, before and after (2018-2024 decides; thresholds as pre-registered)
+
+| Test | live dev (v1 fit) | fixed fit (scratch replay) |
+| :-- | :-- | :-- |
+| V1a split-half (median Spearman) | PASS 0.808 | PASS 0.897 |
+| V1b adjacent seasons | FAIL: median 0.818, but 2021-22 0.559 < 0.627 | FAIL: median 0.916, but 2021-22 0.603 < 0.652 |
+| **V1c movers/stayers** | PASS 1.074 [0.67, 1.76] | **FAIL 1.507 [1.04, 2.67]**; season-centred 0.84 [0.61, 2.16] |
+| **V2a within-driver car leakage** | MARGINAL 0.233 (2025: 0.211) | **PASS 0.054 (2025: 0.024)** |
+| V2b compound, within driver-race | FAIL 0.910 s | FAIL 0.910 s |
+| V2c-ii style strata | PASS (top 0.823, bottom 0.885) | PASS (0.833, 0.891) |
+| V2d fuel saving (report) | −0.098 s | −0.098 s |
+| V2e convergent (field / Massey) | PASS 0.623 / 0.699 | PASS 0.608 / 0.711 |
+| **V3a car pricing at matched strategy** | PASS 0.039 | **PASS 0.066** |
+| V3b traffic pricing | MARGINAL: corr 0.038 PASS; dirty−clean gap −0.071 s FAIL | MARGINAL: 0.027; −0.071 s [−0.098, −0.045] |
+| V3c teammates vs loro | PASS 0.728 | PASS 0.728 |
+| V3d rolling-origin backtest | PASS (MAE gain 0.097 / 0.242) | PASS (0.124 [0.109, 0.138] / 0.281 [0.248, 0.311]) |
+| Tier-3 (i) coverage | PASS 0.904 | PASS 0.904 |
+| Tier-3 (ii) ΔC age adjustment | FAIL (variance +3.4%) | FAIL (+3.4%) |
+| V4a fuel, absolute | FAIL 0.020 s/kg | FAIL 0.020 s/kg (0.025 seed − 0.005 residual) |
+| V4b fuel immunity | FAIL 0.006 s/kg | FAIL 0.006 s/kg |
+| V4c compound ordering | FAIL (2018 −0.064 s) | FAIL (2018 only, −0.019 s) |
+| V5a / V5b / V5d | PASS 0.195 / 0.309 / 0.389 + 0.314 | PASS 0.195 / 0.323 / 0.389 + 0.314 |
+| V1a-tactical, V2c-i, V5c, V6a-c | not applicable (tactical cancelled) | not applicable |
+| **Method score, pure** | 0 (F: V1b); 0.686 before the critical rule | 0 (F: V1b, V1c); 0.622 before |
+| **Method score, relative** | 0 (F: tier-3 ii); 0.571 before | 0 (F: tier-3 ii); 0.571 before |
+
+The critical rule is read literally: any FAIL among a critical row's sub-checks zeroes
+the rating. Read at test level instead (a critical row fails only when its own mean is
+below 0.5), pure is C 0.686 on live dev and F on the fixed fit (V1 row 0.33), and relative
+is C 0.571. **Which reading applies is the user's call.** The doc's "any critical test
+FAILs" supports the literal one.
+
+### What the W33 tests say about the car/driver split
+
+- **V2a** was the plumbing bug and is fixed. On the aligned sample V2a is near 0 almost
+  by construction (FE residuals are orthogonal to the cell effects). So it now guards the
+  plumbing; it cannot see a driver × car interaction, because that lands in the driver
+  effect.
+- **V3a** passes on both substrates, so no car leakage shows at matched strategy.
+- **V1c** fails by 0.007 on the fixed fit, and it is underpowered: 20 mover season-pairs
+  from 14 drivers, CI 1.04-2.67. It also carries the season level offset (next section).
+  With each season's mean removed first it is 0.84 [0.61, 2.16].
+
+This is not evidence of car leakage, and it is not evidence against it either.
+
+### Driver-races without a pure value (W33 issue 3)
+
+On the fixed fit, 390 of 3,102 driver-races (12.6%) have no pure value; on live dev it is
+388. The reason is carried in `car_term_source` on every row of `fct_driver_isolation_race`:
+
+- **263 `unidentified`:** the team is an island in its era's teammate network. Haas
+  2018-2021: 139 driver-races (GRO, MAG, FIT, MAZ, MSC). Alfa Romeo 2022-2023: 78, and
+  Kick Sauber 2024: 46 (BOT, ZHO). No driver links those cars to the rest of the field
+  inside the era.
+- **127 `not_estimated`:** only one of the team's drivers has pre-cliff Ω laps in that
+  race. With one driver, the car and the driver cannot be separated. WI-16a's lap-level
+  fit gave most of these a term, but that term was the driver's own race mean minus his
+  era effect, so his race pure was his era average by construction.
+- (live dev only) 2 driver-races with every clean lap past the cliff.
+
+Options, for the user: keep them NULL and say why (done in the docs page), or bridge the
+islands through the drivers who cross the era boundary (MAG and MSC for Haas, BOT for
+Sauber). Bridging reintroduces the cross-era constant-skill assumption for exactly those
+drivers.
+
+### The 2018 level (W33 issue 4): not fixed
+
+Mean race pure by season on the fixed fit runs from −0.03 (2021) to −0.45 (2018). `y_s` is
+centred on each lap's field median over **all** Ω laps. Cliff laps read fast, and 42% of
+2018's Ω laps are cliff laps, so 2018's pre-cliff laps sit +0.54 s above the median
+(0.05-0.20 s in other seasons). It is a level every driver in a season shares. It does
+not affect within-season rankings, V1b or pair gaps, but it does tilt V1c.
+
+The fit fix does not change it: 2018 moves from −0.40 to −0.45. Experiment
+(`experiment-precliff-median`): centring on the pre-cliff laps' median removes the offset
+(season means +0.01 to +0.15). With it, V1c passes (1.068), V4c passes (2018 +0.086) and
+V4b halves. **But V3a fails (0.173):** where few cars are pre-cliff, the median comes
+from a few teams, and that team-correlated noise enters the car fit.
+
+Candidate fixes, for a decision:
+1. Re-centre pure on each race's pre-cliff field in the marts. This is level only, and
+   leaves the car fit alone; the season-centred V1c above shows its effect.
+2. Fix the seed's cliff cost (WI-02b), which removes the cause.
+3. Keep the level and document that pure is not comparable across seasons.
+
+### Upstream findings, not W33's (routed per the doc)
+
+- **V2b, V4b and V4c-2018: the seed's compound levels.** Within the same driver-race, pure
+  reads faster on the softer compound in every season: MEDIUM−HARD +0.20 to +0.42 s,
+  SOFT−HARD up to +0.75 s, and 2018 SUPERSOFT−MEDIUM +0.91 s. Soft tyres usually run the
+  heavy-fuel first stint, so this bias projects onto fuel. V4b's 0.0064 s/kg falls to
+  0.0034 with a compound effect, and to 0.0004 with the pre-cliff median as well. So V4b
+  is not a fuel bug. These go to F42a / WI-02b.
+- **Tier-3 age adjustment (critical for relative):** within a stint pair on pre-cliff laps
+  ΔC is constant (linear wear, fixed age gap), so it changes nothing. On cliff laps it
+  adds variance (−3.6%). The seed's cliff pricing makes the adjusted delta noisier than
+  the raw one. Publishing `relative_pace_raw_gain_s` instead is the obvious alternative
+  (user decision).
+- **V3b:** with the driver in dirty air, pure reads 0.071 s slower than the same pair's
+  clean-clean gap [−0.098, −0.045], so θ_air under-prices traffic. This goes to WI-01.
+- **V4a:** the implied fuel effect is 0.020 s/kg, below the physical band, with a residual
+  coefficient of −0.005 in every season. This is about the absolute decomposition the
+  agent would quote, not the ratings.
+
+### Validator implementation choices (declared in each result's `design` field)
+
+V1a and V1b now follow this doc. V1a uses race-level halves with ≥ 5 races each. V1b
+uses an EB-shrunk driver-season pure (≥ 8 races) and grades the 6 pairs inside
+2018-2024, with 2024-25 reported. V1c: movers are drivers whose main constructor
+changed, ≥ 8 races in both seasons, bootstrap clustered by driver, and PASS iff the ratio
+is ≤ 1.5. V2b grades cells with ≥ 20 driver-races. V2c-ii centres each season before
+pooling. V2e takes the median of per-season Spearman; its Massey half averages only
+synthetic-teammate rows with a proxy. `driver_network_rating.py` itself returns NaN
+ratings on current dev, because a group of all-NULL proxies gives one NaN delta. V3a,
+V3b and V3c aggregate pre-cliff pair-laps only ("pure aggregates use early, mid and
+recovery laps only"). V3d's prior pure is shrunk with τ² from rounds < k. Tier-3 (ii)
+uses the pooled within-(race, pair) variance. V4 is weighted V4a 0.5 / V4b 1 / V4c 0.5
+for pure and V4c alone for relative. The worked examples still use the 2026-09-29
+expected values, not this doc's probe (see the build log, 2026-09-29T11:00).
+
+### Not done
+
+- Dev is not rebuilt, so dev still carries the v1 car term. Next: `make car-fe-isolation-fit`,
+  then `dbt build -s int_constructor_car_fe_isolation+`, then re-run the validator. After
+  that, `--write-seed` once the critical-rule reading is decided.
+- Two descriptions still describe the global fallback: `schema.yml`'s
+  `int_constructor_car_fe_isolation` description and that model's SQL header. They were
+  left alone because this pass edits only Python, JSON and Markdown.
+
+---
+
+## As built: W33 on dev (2026-09-30, later session; dev rebuilt, nothing committed)
+
+This session wrote `data/dev.duckdb` and `data/fits/constructor_car_fe_isolation.parquet`
+(both backed up first). No model training, no seed re-estimate, no commit. Evidence:
+`_evidence/wi-16-2026-09-30/dev-rebuilt-v2/` (the v2 fit, no offset) and `dev-final/`
+(plus the 2018 offset); `PROVENANCE.txt` describes both.
+
+### What was rebuilt
+
+1. `make car-fe-isolation-fit`: `dbt run +int_driver_isolation_lap_panel` PASS=19, then
+   the v2 fit (pre-cliff laps only): 93,983 laps, 1,619 constructor-races, `driver_id`
+   1,356 / `unidentified` 139 / `not_estimated` 124.
+2. `dbt build -s int_constructor_car_fe_isolation+`: PASS=139, WARN=0, ERROR=0.
+3. The validator on that dev (`dev-rebuilt-v2`) reproduces the `w33-fit-fix` scratch
+   replay line for line. The replay was faithful, and the "Not done" item of the previous
+   section (rebuild dev) is done.
+4. After the offset below: `dbt build -s int_constructor_car_fe_isolation+` again,
+   PASS=141 (the two new `not_null` tests included), WARN=0, ERROR=0.
+
+### The 2018 level (W33 issue 4): Option A, a declared season offset
+
+`pure_skill_gain_s = pace_isolated_gain_s + pure_season_offset_gain_s`, the offset being
+the var `isolation_pure_season_offset_gain_s: {2018: 0.37}` rendered by the new macro
+`driver_isolation_pure_season_offset` in `int_driver_isolation_lap_values` and exposed
+on `fct_driver_isolation_race`. **+0.37, not +0.45:** on the rebuilt dev 2018's mean race
+pure is −0.450 and the 2019-2024 seasons average −0.077 (−0.03 to −0.12), so +0.37 puts
+2018 at their level. +0.45 (the gap to zero) would put it 0.08 s above them. The value
+was fixed from `dev-rebuilt-v2` before `dev-final` was validated, not tuned on V1c.
+2025 (−0.246) is not offset; the docs page says so.
+
+The offset is constant within a season, so it cancels in pair gaps (checked: pair
+`pure_gap_gain_s = pace_gap_gain_s` to 9e-16), in the tier-3 identity (written on
+`pace_gap`, which carries no offset), and in every within-season ranking. Against
+`dev-rebuilt-v2` it moved only V1c, the report-only sign-flip share (0.172 → 0.176) and
+the 2018 season level (−0.450 → −0.080). It is a stopgap for the seed's cliff cost; the
+var's comment says to remove it, not re-tune it, when WI-02b's cliff-cost refit lands.
+
+### Validation on dev (`dev-final`; 2018-2024 decides)
+
+| Test | Result |
+| :-- | :-- |
+| V1a split-half | PASS 0.897 |
+| V1b adjacent seasons | **FAIL**: median 0.916, 2021-22 0.603 < 0.652 required |
+| **V1c movers/stayers** | **PASS 0.796 [0.463, 1.612]** (1.507 FAIL without the offset; season-centred 0.838) |
+| **V2a within-driver car leakage** | **PASS 0.054** (2025: 0.024) |
+| V2b compound, within driver-race | FAIL 0.910 s (2018 SUPERSOFT-MEDIUM) |
+| V2c-ii / V2d / V2e | PASS (0.833, 0.891) / report −0.098 s / PASS (0.608, 0.711) |
+| **V3a car pricing at matched strategy** | **PASS 0.066** |
+| V3b traffic pricing | MARGINAL: corr 0.027 PASS; dirty−clean −0.071 s [−0.098, −0.045] FAIL |
+| V3c / V3d | PASS 0.728 / PASS (MAE gain 0.124 [0.109, 0.138], 0.281 [0.248, 0.311]) |
+| Tier-3 coverage / age adjustment | PASS 0.904 / **FAIL** (+3.4% variance) |
+| V4a / V4b / V4c | FAIL 0.020 s/kg / FAIL 0.006 s/kg / FAIL (2018 only, −0.019 s) |
+| V5a / V5b / V5d | PASS 0.195 / 0.323 / 0.389 + 0.314 |
+| Method score, pure | strict 0 (F: V1b); test-level 0.724 (C) |
+| Method score, relative | strict 0 (F: tier-3 age adjustment); test-level 0.571 (C) |
+
+### What the W33 tests say now
+
+V1c, V2a and V3a all PASS on dev. V2a is close to 0 by construction on the aligned sample,
+so it now guards the plumbing only. V1c passes because of the offset, and its CI still
+reaches 1.61, past the 1.5 limit, with 20 mover season-pairs from 14 drivers. Read it as
+no leakage detected, not as none.
+
+**V1b is the W33 finding this session adds.** Its rule-change check is the doc's own
+"the rule change broke the car term, not the drivers" test, and the evidence says it is
+right. Race pure is roughly the driver's era effect plus half the season's teammate
+deviation, so inside an era a driver's pure barely moves (adjacent-season Pearson
+0.82-0.98). `driver_skill_field_s`, which does not hold skill constant per era, has
+2021-22 at 0.912, its highest pair, so the drivers did not reshuffle at the boundary.
+Pure's 0.603 there means the two eras' car/driver splits place drivers differently:
+TSU +0.53, PER +0.37, GAS +0.26 and HAM +0.19 s move up in pure where the era-free
+measure has them flat or slower (HAM −0.41). This is the driver × car question W33 was
+opened for, seen across eras rather than across teams. Option A cannot touch it (Pearson
+ignores a season constant, and V1b shrinks toward each season's mean). Candidate fixes,
+post-v15: a joint fit with era-specific driver effects linked by drivers who span the
+boundary, or dropping the cross-era claim and grading V1b on within-era pairs only (a
+spec change, not a threshold tweak).
+
+### Upstream issues (documented, not fixed)
+
+- **Tier-3 age adjustment.** The brief's workaround, scaling ΔC by 0.966, was measured
+  first (`dev-final/w33-measurements.txt`, the validator's pooled within-pair design):
+  k = 1 adds 3.40%, k = 0.966 adds 3.14% (still FAIL), the break-even is k = 0.218 and the
+  best is k = 0.109 at −0.05%. Picking k from this test would also grade its own
+  homework. Not applied; relative rankings are held for post-v15, and
+  `relative_pace_raw_gain_s` is the number to quote meanwhile. Even on pre-cliff pairs
+  ΔC adds 1.44%.
+- **V2b / V4b / V4c-2018:** compound seed levels (WI-02b). V2b is not one-directional:
+  MEDIUM-HARD +0.20..+0.42 every season, but SOFT-MEDIUM turns negative from 2022
+  (2024 −0.45 s).
+- **V3b:** θ_air under-prices traffic by 0.071 s (WI-01 territory). Documented.
+- **V4a:** implied fuel effect 0.020 s/kg against the 0.025-0.040 band (the absolute
+  decomposition, not the ratings). Documented. The brief's "V4c (base/fuel)" is V4a; V4c
+  is compound ordering (2018 −0.019 s), also documented.
+
+### Island teams (W33 issue 3)
+
+Unchanged in count and documented in the docs page as a method limitation: 390 of
+3,102 driver-races (12.6%) have no pure value, 263 `unidentified` (island teams: Haas
+2018-2021 139, Alfa Romeo 2022-2023 78, Kick Sauber 2024 46) and 127 `not_estimated`
+(one of the team's drivers has pre-cliff laps in that race). The brief's "390 islands"
+is those two groups together. Relative pace needs no car term: 262 of the 263 island
+driver-races have one.
+
+### Other edits
+
+- The two stale global-fallback descriptions (the `int_constructor_car_fe_isolation`
+  schema entry and SQL header) now describe the per-era v2 fit. The
+  `int_driver_isolation_lap_values` schema entries no longer describe the cancelled
+  tactical tier. T42's header no longer claims `pure = p`.
+- `docs/decomposition/driver-isolation.mdx`: current results, known issues, the season
+  offset, the island explanation, and the worked examples re-quoted from `dev-final`
+  (São Paulo: car +0.67, pace gap −0.34, so the page's "results align" claim was removed;
+  `docs/findings/sao-paulo-2021.mdx` itself is untouched).
+
+### Not done
+
+- `--write-seed`: the strict or test-level critical-rule reading is still the user's
+  call. Under strict, both ratings are F and `suppress`; under test-level, both are C.
+- `scripts/transform_docs_facts.py` crashes on `fct_power_law_training` having no
+  `meta.family` (WI-17's model, pre-existing), so the generated test count cannot be
+  refreshed for the two new `not_null` tests. `docs_facts.py`'s one failure (ML features
+  33 vs 32) is pre-existing (W35).
+
+---
+
+## As built: eras and the age curve (2026-09-30, third session; dev rebuilt, nothing committed)
+
+The brief: (1) split the eras more finely to fix V1b, recommending "by technical change"
+(2018 | 2019-2020 | 2021 | 2022-2024 | 2025) on the hypothesis that the 2021 floor change,
+not the 2022 aero change, broke continuity; (2) replace relative pace's age adjustment with
+a spline (target: under 2% added variance). This session wrote `data/dev.duckdb` and the new
+`data/fits/isolation_age_curve.parquet` (dev and the car-term parquet backed up first, to the
+session scratchpad). No other model trained, nothing else rebuilt, no commit. Evidence:
+`_evidence/wi-16-2026-09-30/eras/`, `age-curve/` and `dev-age-curve/`; `PROVENANCE.txt`.
+
+### Eras: left as they are (2018-2021 | 2022-2025)
+
+The fit tells car from driver only through drivers who changed team inside an era. A single
+season has almost none, so every team is an island, and the race's "identified" component is
+one team whose car term re-centres to 0 (its pure is raw pace). Share of driver-races with a
+car term, on the same pre-cliff fit (`eras/era_fits.py`):
+
+| Eras | All | 2018 | 2021 | 2022-24 | 2025 |
+| :-- | --: | --: | --: | --: | --: |
+| current, 2018-21 / 2022-25 | 87.5% | 82% | 87% | 87% | 95% |
+| option 1, one per season | 15.1% | 11% | 10.5% | 10-20% | 19% |
+| option 2, 2018 / 19-20 / 21 / 22-24 / 25 | 36.3% | 11% | 10.5% | 67% | 19% |
+| option 3, 18-19 / 20-21 / 22-24 / 25 | 47.5% | 26% | 49% | 67% | 19% |
+
+(2022-2024 loses 20 points without 2025, whose driver moves link most of that era's teams.)
+Replayed and validated (`eras/eras-summary.csv`): option 2 leaves no 2021-22 pair, V1b's other
+pairs exist for 2 of 6 seasons, V1c FAILs (1.62, 3 movers), V3c FAILs (0.684); pure is F
+under either reading. Option 3 passes V1b on 5-13 drivers a pair, with its own cross-era pair
+2019-20 at 0.356. Option 1 has no V1b pair and no movers at all.
+
+**The hypothesis test.** Moving the single boundary (two eras, boundary year B) gives the
+cross-era pair's Pearson; every within-era pair is 0.85-0.99 in every split:
+
+| B | Cross pair | Pearson | Drivers |
+| :-- | :-- | --: | --: |
+| 2020 | 2019-20 | 0.541 | 7 |
+| 2021 (floor change) | 2020-21 | 0.129 | 8 |
+| 2022 (current, aero change) | 2021-22 | 0.603 | 15 |
+| 2023 (no rule change) | 2022-23 | 0.297 | 7 |
+| 2024 (no rule change) | 2023-24 | 0.543 | 10 |
+
+Every boundary drops, the rule-change boundary least. **V1b's failure is the per-era design,
+not the regulations:** inside an era both seasons share one driver effect, so adjacent-season
+correlation is high by construction; across a boundary it compares two independent, thinly
+identified estimates. The 2021 floor-change hypothesis is not supported (0.129 at 2020-21).
+Finer eras only add cross-era pairs and islands. With V1b's rule-change pair hard-coded to
+2021-22, any split that makes 2021-22 within-era "passes" V1b by construction (every
+two-era split above does), which is why none of these was adopted.
+
+Options, for the user (neither done): (a) a spec change to V1b's rule-change check, grading
+the 2021-22 pair against placebo boundaries (it would pass: 0.603 is above all four) or
+grading within-era pairs only; this is decided after seeing results, so it must be declared
+as such. (b) Post-v15: one fit with a global driver effect plus shrunk driver-season
+deviations, so identification uses the whole 2018-2025 mover network and V1b tests every
+pair alike.
+
+Validator fixes found on the way: V1b now FAILs when its 2021-22 pair cannot be computed
+(option 2 had read PASS on 2 of 6 pairs); the report line and the cluster bootstrap (no
+movers) no longer crash on an empty case.
+
+### Tier-3 age adjustment: the fitted tyre-age curve
+
+All variants are cubic B-splines in `age_in_stint`, 3 interior knots at age quartiles,
+per era|compound group (2018 its own tag: absolute compound names), cross-fitted by race
+(5 folds), scored on the validator's pooled within-pair variance (2018-2024; CI
+race-clustered, 2000 draws):
+
+| Design | Variance vs raw | 95% CI | 2025 | Curves |
+| :-- | --: | :-- | --: | :-- |
+| Seed ΔC (until now) | +3.40% | +2.53, +4.38 | +2.65% | 2018 alone +10.5% |
+| A: fitted on the pairs, pair FE | −0.32% | −0.66, +0.01 | −0.29% | a 3-lap-older pre-2022 SOFT/MEDIUM tyre up to 0.75 s *faster*; 61% of pre-2022 adjustments opposite in sign to E |
+| C: field, stint FE + (race, lap) FE | +0.30% | +0.01, +0.58 | +0.57% | linear slope NOT identified (below); swings up to 2 s between folds |
+| **E: field, (race, driver, compound) FE + (race, lap) FE — shipped** | **+0.66%** | **+0.31, +1.04** | +0.54% | rising in every group, 0.03-0.11 s/lap over ages 5-20; fold-to-fold ±0.1 s |
+
+A's pass comes from the pair design: the age gap is 0 in the first stint and non-zero only
+after the stops, so the pair FE hands pair × compound pace to "age". Fitting A on clean-air
+pair-laps only changes nothing (−0.30%), so it is not traffic. C has the age-period-cohort
+collinearity: inside a stint age = lap − stint start, so a stint FE plus a (race, lap) FE
+absorb any linear age effect (on synthetic data with 0.06 s/lap wear C returns −0.0004).
+E identifies the slope from drivers who fit a new set of the same compound (25% of fit
+laps) and recovers the synthetic 0.06 s/lap (unit test). `tyre_life` equals `age_in_stint`
+from 2019, so a better age measure is not available. Four knots instead of three: C +0.311%.
+
+**No physically sensible curve reduces the within-pair variance.** Within ±3 laps of tyre
+age a pair's lap-to-lap gap is driven by racing far more than by age; only a curve fitted on
+the pairs themselves gets below zero, and it does so with non-physical shapes. E was shipped
+because it is identified, stable and physical, not for its score. Against the brief's target
+(< 2% added) it passes; against the pre-registered rule (must reduce) it fails.
+
+What shipped:
+- `transform/tasks/coefficients/fit_isolation_age_curve.py` (`isolation_age_curve_bspline_rdc_cf5_v1`)
+  → `data/fits/isolation_age_curve.parquet`, one row per (race, compound, age); refuses to emit
+  a group it has no curve for. Unit tests: `tests/test_fit_isolation_age_curve.py` (5).
+  `make car-fe-isolation-fit` now runs it; `make isolation-age-curve-fit` runs it alone.
+- `int_driver_isolation_age_curve` (source `fits.isolation_age_curve`).
+- `fct_driver_isolation_pair_lap`: `relative_pace_gain_s` = raw − (g(peer) − g(driver)); new
+  `relative_pace_seed_adj_gain_s` (the old value) and `age_pricing_gain_s` = ΔC_seed − Δg.
+  The identity is now relative = pace_gap + car + traffic + age_pricing (pure stays on the
+  seed); the macro emits `identity_age_pricing_gain_s` into the lap, stint and race marts,
+  and T42 checks the four terms.
+- The validator reports the seed's reduction alongside (report only).
+
+Rebuild: `make isolation-age-curve-fit` (127,135 Ω laps, 106,602 in the fit sample, 13,913
+rows, `age_effect_s` 0 to 2.47 s), then `dbt build -s int_driver_isolation_age_curve+`:
+PASS=101, WARN=0, ERROR=0. The eras and the car term are unchanged, so nothing upstream was
+rebuilt.
+
+### Validation on dev (`dev-age-curve/`; 2018-2024 decides)
+
+Against `dev-final` only relative-pace rows moved: tier-3 age adjustment FAIL −0.034 →
+**FAIL −0.0066** (+0.66%); V5d 0.389 / 0.314 → 0.381 / 0.317 (PASS); V3d gains 0.124 / 0.281 →
+0.123 / 0.273 (PASS); São Paulo HAM–VER +0.178 → +0.147 (raw +0.208; age pricing −0.031).
+Every pure row is identical.
+
+| Rating | Strict | Before the critical rule / test-level | Critical fail |
+| :-- | :-: | :-: | :-- |
+| Pure | 0 (F) | 0.724 (C) | V1b |
+| Relative | 0 (F) | 0.571 (C) | tier-3 age adjustment |
+
+Neither rating reaches C under the strict reading; both are C under the test-level one, as
+before. The two critical fails are now both shown to be properties of the checks' design
+against this method (V1b: per-era fitting; tier-3 ii: pair dynamics swamp tyre age), not
+defects either change here could remove.
+
+### Not done
+
+- `--write-seed`: the strict or test-level reading is still the user's call.
+- The V1b and tier-3 (ii) spec questions above are the user's call; nothing was re-graded.
+- The generated reference docs and `transform_docs_facts.py` counts (one new model, 13 new
+  data tests): the generator still crashes on `fct_power_law_training` (pre-existing).

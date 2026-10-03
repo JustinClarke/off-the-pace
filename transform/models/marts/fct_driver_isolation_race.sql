@@ -128,6 +128,10 @@ rated AS (
 
         la.n_pure_laps,
         la.pure_skill_gain_s,
+        -- The season offset already inside pure_skill_gain_s (W33; see
+        -- int_driver_isolation_lap_values), carried so a reader can see it.
+        {{ driver_isolation_pure_season_offset('la.race_year') }}
+            AS pure_season_offset_gain_s,
         CASE
             WHEN la.n_pure_laps > 0
                 THEN SQRT(
@@ -147,6 +151,7 @@ rated AS (
         pa.identity_pace_gap_gain_s,
         pa.identity_car_advantage_gain_s,
         pa.identity_traffic_advantage_gain_s,
+        pa.identity_age_pricing_gain_s,
 
         la.tyre_offset_vs_field_s,
         la.lift_coast_excess_share,

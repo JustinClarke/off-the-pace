@@ -103,6 +103,7 @@ laps AS (
         pa.identity_pace_gap_gain_s,
         pa.identity_car_advantage_gain_s,
         pa.identity_traffic_advantage_gain_s,
+        pa.identity_age_pricing_gain_s,
         li.lift_coast_share,
         li.lift_coast_share
         - lf.field_median_lift_coast_share AS lift_coast_excess_share
@@ -278,6 +279,7 @@ SELECT
     v.identity_pace_gap_gain_s,
     v.identity_car_advantage_gain_s,
     v.identity_traffic_advantage_gain_s,
+    v.identity_age_pricing_gain_s,
 
     -- The trailing window.
     v.window_first_lap_number,

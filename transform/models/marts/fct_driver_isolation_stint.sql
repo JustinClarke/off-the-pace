@@ -137,6 +137,7 @@ rated AS (
         pa.identity_pace_gap_gain_s,
         pa.identity_car_advantage_gain_s,
         pa.identity_traffic_advantage_gain_s,
+        pa.identity_age_pricing_gain_s,
 
         -- The stint's tyre model (int_driver_isolation_stint_tyre).
         s.n_line_laps,

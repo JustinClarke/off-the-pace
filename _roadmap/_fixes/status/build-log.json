@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off-the-pace fixes (transform forensic audit, F1-F54)",
-  "updated": "2026-09-29T18:30Z",
+  "updated": "2026-09-30T04:00:00Z",
   "pointer": null,
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -1615,6 +1615,88 @@
       "assumed": "v15 retrain can proceed with validated features",
       "gates_run": "WI-15a and WI-15b gates both PASS",
       "next_command": "User commits changes; deploy v15"
+    },
+    {
+      "date": "2026-09-30T02:00:00Z",
+      "session": "W33 follow-up: isolation car-term sample aligned with pure skill; every applicable WI-16b V-test implemented; re-validated on a scratch replay (dev not rebuilt)",
+      "landed": [
+        "fit_constructor_car_fe.py --panel isolation: fitted on pre-cliff laps only (ISOLATION_PANEL_QUERY WHERE tyre_phase <> 'cliff'), the laps every pure aggregate uses; fit_method constructor_car_fe_isolation_hdfe_v2. Module and function docstrings describe the per-era fit (a25be07), not WI-16a's global fallback.",
+        "test_fit_constructor_car_fe.py: the three isolation tests that failed at HEAD since a25be07 (they pinned driver_era/global_driver labels and the fallback) now pin the per-era behaviour (island 'unidentified', no cross-era bridge, singleton 'not_estimated'); new test_panel_query_reads_the_pure_skill_sample_only.",
+        "scripts/validate_driver_isolation.py rewritten: every applicable V-test computed (V1a/V1b to spec, V1c clustered by driver, V2b, V2c-ii, V2d, V2e with Massey, V3a race-pair means, V3b, V3c, V3d rolling-origin backtest, tier-3 V3 coverage + age adjustment, V4a-c, V5a/b/d, sign-flip report), tactical-only checks NOT_APPLICABLE, method score per the matrix, two-row seed writer. 14 hard-coded PASS stubs removed.",
+        "Evidence _evidence/wi-16-2026-09-30/: live-dev, w33-fit-fix (scratch replay), experiment-precliff-median; PROVENANCE.txt and the two replay scripts.",
+        "W33 title/detail rewritten for the per-era fit and these results; WI doc 'As built: W33 re-validation' section; docs/decomposition/driver-isolation.mdx car-identification limitation and pure coverage note."
+      ],
+      "verified": [
+        "Replay fidelity: replaying the unchanged car-term parquet into a copy of dev through the compiled isolation SQL reproduced live dev's isolation marts to 6e-15, 0 NULL mismatches.",
+        "W33 tests on the fixed-fit replay: V2a 0.233 MARGINAL -> 0.054 PASS (2025 0.211 -> 0.024); V3a 0.066 PASS; V1c 1.507 FAIL (CI 1.04-2.67), season-centred 0.84 PASS.",
+        "Other verdicts (fixed-fit replay): V1a 0.897 PASS; V1b FAIL (2021-22 0.603 < 0.652 required); V2b FAIL (softer compound reads faster within driver-race, MEDIUM-HARD +0.20..+0.42 s every season); V2c-ii PASS; V2e PASS (field 0.608, Massey 0.711); V3b MARGINAL (dirty-minus-clean gap -0.071 s); V3c 0.728 PASS; V3d PASS; tier-3 coverage 0.904 PASS, age adjustment FAIL (-3.4%); V4a FAIL (0.020 s/kg); V4b FAIL (0.006 s/kg); V4c FAIL (2018 only, -0.019 s); V5a/V5b/V5d PASS.",
+        "Method score, strict critical rule: pure 0 (F: V1b, V1c), relative 0 (F: tier-3 age adjustment). Weighted before the rule: pure 0.622, relative 0.571.",
+        "pytest transform/tasks/coefficients/tests: test_fit_constructor_car_fe.py all pass (14); the 9 remaining failures (test_seed_param_provenance, test_sql_least_greatest_nullable) fail identically at HEAD.",
+        "board.py --check OK after --write-order."
+      ],
+      "assumed": [
+        "No dbt build, no model training, no commit; data/dev.duckdb and data/fits/ were not written. Dev still carries the v1 (all-laps) car term until it is rebuilt.",
+        "The brief's root cause (int_lap_fuel_state keeping 11 of 9,374 rows; lap 1 dropped on 2026-09-29) does not reproduce: int_lap_fuel_state has all 161,040 laps; lap 1 is excluded by stg_laps.is_valid_lap (lap_number > 1), long-standing, and is never an \u03a9 lap.",
+        "Critical rule read strictly (any FAIL among a critical row's sub-checks zeroes the score); the test-level reading is reported alongside (pure: F on the fixed fit, C 0.686 on live dev; relative: C 0.571).",
+        "Issue 4 (2018 level) is NOT fixed: the pre-cliff-median experiment removes it but breaks V3a (0.173); needs a design decision (see the WI doc).",
+        "scripts/driver_network_rating.py returns NaN ratings on current dev (NULL proxies); the validator filters them, the script is not changed. schema.yml's int_constructor_car_fe_isolation description and the model's SQL header still describe the global fallback (YAML/SQL left untouched)."
+      ],
+      "gates_run": "None owed (no label or ML-contract feature moves). pytest transform/tasks/coefficients/tests; validate_driver_isolation.py on three substrates; board.py --check.",
+      "next_command": "make car-fe-isolation-fit && (cd transform && dbt build -s int_constructor_car_fe_isolation+) && python scripts/validate_driver_isolation.py",
+      "next_action": "User: review and commit. Then rebuild dev's isolation subtree with the v2 fit and confirm the w33-fit-fix numbers on dev. Rule on W33 (V2a/V3a pass; V1c borderline and offset-driven) and on the 2018-level design (issue 4). Upstream findings for their owners: V2b + V4b + V4c-2018 (compound seed levels, WI-02b/F42a), tier-3 age adjustment (seed cliff pricing), V3b (theta_air, WI-01), V4a (base/fuel decomposition)."
+    },
+    {
+      "date": "2026-09-30T03:00:00Z",
+      "session": "W33 on dev: isolation subtree rebuilt with the v2 (pre-cliff) car term; 2018 pure season offset (Option A); upstream failures documented; full re-validation on dev",
+      "landed": [
+        "Dev rebuilt: make car-fe-isolation-fit (dbt run +int_driver_isolation_lap_panel PASS=19; fit v2 1,619 constructor-races: driver_id 1,356, unidentified 139, not_estimated 124), then dbt build -s int_constructor_car_fe_isolation+ PASS=139, and PASS=141 after the offset. dev.duckdb and the fit parquet were backed up to the session scratchpad first.",
+        "Option A: var isolation_pure_season_offset_gain_s {2018: 0.37} (dbt_project.yml, with provenance), new macro driver_isolation_pure_season_offset, applied in int_driver_isolation_lap_values (pure_skill_gain_s = pace_isolated_gain_s + offset; new column pure_season_offset_gain_s) and exposed on fct_driver_isolation_race. +0.37 = 2018 mean race pure (-0.450) minus the 2019-2024 average (-0.077), fixed before validating.",
+        "Schema/SQL text: int_constructor_car_fe_isolation description and header describe the per-era v2 fit (no global fallback); int_driver_isolation_lap_values and the mart pure descriptions drop the cancelled tactical wording and name the offset; two not_null tests on pure_season_offset_gain_s; T42 header no longer claims pure = p.",
+        "docs/decomposition/driver-isolation.mdx: current results table, known issues (V1b cross-era, V2b/V4b/V4c compound levels, tier-3 age adjustment with the measured k grid, V3b, V4a), season-offset and island limitations with exact counts, worked examples re-quoted from dev-final; tactical leftovers removed.",
+        "WI doc 'As built: W33 on dev'; evidence dev-rebuilt-v2/, dev-final/ (validation, w33-measurements.txt), measure_w33.py, PROVENANCE.txt extended.",
+        "Watch: W33 detail updated (its clear condition is met; resolution left to the user); W34 resolved; W60 (WI-02b follow-up + offset removal), W61 (V1b cross-era split), W62 (critical-rule ruling / seed) added."
+      ],
+      "verified": [
+        "dev-rebuilt-v2 validation equals the w33-fit-fix scratch replay line for line (except the database path).",
+        "Offset: pure - p = 0.37 on every 2018 lap and 0 elsewhere; pair pure_gap = pace_gap to 9e-16; 2018 mean race pure -0.450 -> -0.080. Against dev-rebuilt-v2 only V1c, the report-only sign-flip share and the 2018 level moved.",
+        "dev-final: V1a 0.897 PASS; V1b FAIL (2021-22 0.603 < 0.652); V1c 0.796 PASS [0.463, 1.612]; V2a 0.054 PASS; V2b FAIL 0.910; V2c-ii PASS; V2d -0.098 report; V2e PASS; V3a 0.066 PASS; V3b MARGINAL (-0.071 s); V3c 0.728 PASS; V3d PASS; tier-3 coverage 0.904 PASS, age adjustment FAIL (+3.4%); V4a/V4b/V4c FAIL; V5a/b/d PASS.",
+        "Method scores: pure strict 0 (F: V1b), test-level 0.724 (C); relative strict 0 (F: tier-3 age adjustment), test-level 0.571 (C).",
+        "Tier-3 dampening measured before deciding: k=0.966 still +3.14% (FAIL); break-even 0.218; best 0.109 (-0.05%). Not applied.",
+        "sqlfluff clean on the changed models (fct_driver_isolation_race's two findings are pre-existing at HEAD). test_fit_constructor_car_fe.py 14 passed."
+      ],
+      "assumed": [
+        "No training, no seed re-estimate, no commit. --write-seed not run (W62).",
+        "Offset target is the 2019-2024 level, not zero (+0.45 would lift 2018 ~0.08 s above the other seasons); 2025 not offset, per the brief's 2018-only scope.",
+        "transform_docs_facts.py crashes on fct_power_law_training's missing meta.family (pre-existing, WI-17), so the generated dbt test count does not yet include the two new not_null tests; docs_facts.py's ML-features mismatch is W35."
+      ],
+      "gates_run": "None owed (no label or ML-contract feature moves; T48 unchanged). dbt build of the isolation subtree with tests; validate_driver_isolation.py on dev twice; sqlfluff; fitter pytest; board.py --check.",
+      "next_command": "python _roadmap/_fixes/status/board.py --watch",
+      "next_action": "User: review and commit; rule on W33 (clear condition met) and W62 (strict vs test-level critical rule, then --write-seed). Post-v15: W60 (after WI-02b: drop the offset, re-validate), W61 (cross-era car/driver split)."
+    },
+    {
+      "date": "2026-09-30T04:00:00Z",
+      "session": "WI-16b third session: era structures tested (not adopted); tier-3 age adjustment replaced by a cross-fitted B-spline tyre-age curve; dev rebuilt and re-validated",
+      "landed": [
+        "Eras: options per-season / 2018|19-20|21|22-24|25 / 18-19|20-21|22-24|25 and placebo two-era boundaries fitted and replayed in a scratch copy of dev (never dev). Not adopted: pure coverage 15-47% vs 87.5%; V1b drops at every boundary (2022 the least). W61 updated.",
+        "New fitter transform/tasks/coefficients/fit_isolation_age_curve.py (isolation_age_curve_bspline_rdc_cf5_v1) + 5 unit tests; source fits.isolation_age_curve; model int_driver_isolation_age_curve (11 tests); make car-fe-isolation-fit runs it, make isolation-age-curve-fit alone.",
+        "fct_driver_isolation_pair_lap: relative_pace_gain_s = raw - (g(peer) - g(driver)); new relative_pace_seed_adj_gain_s (old value) and age_pricing_gain_s (2 not_null tests); identity macro, lap/stint/race marts (identity_age_pricing_gain_s) and T42 carry the fourth term.",
+        "validate_driver_isolation.py: V1b FAILs when the 2021-22 pair is uncomputable (was a vacuous PASS); report writer and cluster bootstrap None-safe; tier-3 (ii) reports the seed's reduction alongside.",
+        "Docs page and WI doc ('As built: eras and the age curve'); evidence eras/, age-curve/, dev-age-curve/; PROVENANCE.txt extended. W63 added."
+      ],
+      "verified": [
+        "Dev: make isolation-age-curve-fit (13,913 rows, age_effect_s 0..2.47 s), dbt build -s int_driver_isolation_age_curve+ PASS=101 WARN=0 ERROR=0.",
+        "dev-age-curve validation: tier-3 age adjustment FAIL -0.0066 (+0.66%; seed +3.40%); V5d 0.381/0.317 PASS; V3d PASS; every pure row identical to dev-final. Pure strict 0 F (V1b), test-level 0.724 C; relative strict 0 F, test-level 0.571 C.",
+        "Scratch replay of the current eras reproduces dev's V1b line for line; the age-curve evidence scripts re-run on the rebuilt dev reproduce every reported figure.",
+        "pytest: test_fit_isolation_age_curve.py 5 + test_fit_constructor_car_fe.py 14 passed; ml/tests/test_manifest_contract.py 30 passed (T48). sqlfluff clean on changed models (stint/race findings pre-existing)."
+      ],
+      "assumed": [
+        "No model training beyond the two fits; no power-law or other downstream rebuild; no commit; --write-seed not run (W62).",
+        "Option 2 was not written to dev because it removes pure from 64% of driver-races; its results are the exact scratch replay.",
+        "Design E shipped for identification and physical plausibility although design C scores lower variance and design A passes."
+      ],
+      "gates_run": "dbt build of the isolation subtree from the new model; validator on dev; fitter pytest; T48 manifest test; sqlfluff; docs_facts.py (only the pre-existing W35 mismatch).",
+      "next_command": "python _roadmap/_fixes/status/board.py --watch",
+      "next_action": "User: review and commit; rule on W61 (V1b spec), W62 (critical-rule reading) and W63 (tier-3 age-adjustment spec)."
     }
   ],
   "watch_vocabulary": {
@@ -2112,9 +2194,9 @@
       "kind": "unverified",
       "recommended_model": "opus",
       "item": "WI-16b",
-      "title": "The isolation car term falls back to the global driver key in both eras; its car/driver split is unvalidated",
-      "detail": "Under driver_era neither era's teammate network is connected (pre2022: Haas 2018-20 and Haas 2021 are islands, 75/76 races unidentified; post2022: Alfa/Sauber 2022-24, 64/87), so every row is global_driver, which assumes a driver's skill is constant 2018-2025. The global driver FE spreads 1.6 s (VER -0.76 to LAW +0.83; PER -0.38, HAM -0.02, BOT +0.44). The model-free within-team gaps behind it are large (ALB-VER 0.79, TSU-VER 1.13, PER-VER 0.32, BOT-HAM mean 0.48 / median 0.28), so the fit is right as specified, but a driver x car interaction lands in the driver: 2021_8 VER-HAM tier 3 +0.24 splits as pace gap +0.82 and car -0.59. The doc registered no expectation about that split. V1c, V2a and V3a are the tests that judge it.",
-      "clears_when": "WI-16b's V1c/V2a/V3a are run and graded, and the result is stated in its As built section.",
+      "title": "The isolation car term is fitted per era (one driver skill value per era); V1c/V2a/V3a now PASS on dev, V1b's cross-era check fails",
+      "detail": "Updated 2026-09-30 (dev rebuilt). Since a25be07 the isolation car term is fitted per era on driver-race means (the WI doc's driver_era key, no global fallback); since the 2026-09-30 plumbing fix it reads pre-cliff laps only (constructor_car_fe_isolation_hdfe_v2), the sample pure is averaged over. Dev now carries that fit (make car-fe-isolation-fit; dbt build -s int_constructor_car_fe_isolation+ PASS=141) plus W33 Option A: a declared 2018 season offset of +0.37 s on pure (var isolation_pure_season_offset_gain_s; 2018's mean race pure -0.450 vs the 2019-2024 average -0.077). On dev (_evidence/wi-16-2026-09-30/dev-final): V2a 0.054 PASS (2025 0.024), V3a 0.066 PASS, V1c 0.796 PASS [0.463, 1.612] (1.507 FAIL without the offset; CI still reaches past 1.5, 20 mover pairs / 14 drivers). V2a is near 0 by construction on the aligned sample, so it guards plumbing only. New: V1b's rule-change check fails (2021-22 Pearson 0.603 < 0.652) and is itself car/driver evidence: pure barely moves inside an era (0.82-0.98) because a driver's skill is one value per era, while the era-free driver_skill_field_s has 2021-22 at 0.912; TSU +0.53, PER +0.37, GAS +0.26, HAM +0.19 s jump in pure where the era-free measure is flat or slower. So the two eras' splits disagree (tracked as W61). Islands: 263 unidentified + 127 not_estimated = 390 of 3,102 driver-races with no pure value, documented as a method limitation in the docs page.",
+      "clears_when": "WI-16b's V1c/V2a/V3a are run and graded, and the result is stated in its As built section. MET 2026-09-30 on dev ('As built: W33 on dev'); resolving it is the user's call, with W61 carrying the cross-era finding.",
       "trigger": {
         "clear": {
           "all": [
@@ -2137,7 +2219,9 @@
       "clears_when": "The orchestrator rebuilds dev (make car-fe-isolation-fit, then dbt run), which W20/W23 may defer to after WI-01.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-09-30T03:00:00Z",
+      "resolution": "Dev rebuilt 2026-09-30: make car-fe-isolation-fit (dbt run +int_driver_isolation_lap_panel PASS=19; data/fits/constructor_car_fe_isolation.parquet written, fit_method ..._hdfe_v2), then dbt build -s int_constructor_car_fe_isolation+ PASS=141, WARN=0, ERROR=0. CI still cannot build the reader (gitignored fit parquet), as for int_constructor_car_fe."
     },
     {
       "id": "W35",
@@ -2211,7 +2295,10 @@
       "clears_when": "An audit of the cap-binding laps decides whether the cap (or the wear fit behind it) is right, and either a direct cap-binding-share check is added or the floor is set from that audit.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "status": "RESOLVED",
+      "resolved": "2026-10-03T00:00Z",
+      "resolution": "Cap binding is negligible (0.215% of laps, mostly at stint age 34+). Accept the 0.920 floor as-is. The 337 laps and their distribution (2019 MEDIUM, 2023 HARD/SOFT majority) are flagged on the docs home page as a data highlight."
     },
     {
       "id": "W40",
@@ -2527,6 +2614,61 @@
       },
       "resolved": "2026-09-30T00:00Z",
       "resolution": "v15 gates passed: WI-15a traffic (PASS), WI-15b thermal (PASS)"
+    },
+    {
+      "id": "W60",
+      "raised": "2026-09-30",
+      "kind": "debt",
+      "recommended_model": "opus",
+      "item": "WI-16b",
+      "title": "Driver isolation owes WI-02b's cliff-cost re-estimate: remove the 2018 pure offset, then re-validate",
+      "detail": "W33 Option A put a declared +0.37 s offset on 2018 pure (var isolation_pure_season_offset_gain_s, macro driver_isolation_pure_season_offset). It is a stopgap for one cause: y_s is centred on a field median that includes cliff laps, which read 0.24-0.89 s fast because the compound seed's cliff cost over-corrects, and 2018 has 42% cliff laps. The same seed causes three failures the ratings carry: V2b (pure depends on the compound within driver-race, up to 0.91 s, both directions), the tier-3 age adjustment (adds 3.4% variance; scaling it by 0.966 still adds 3.1%, break-even k 0.218, best k 0.109 at -0.05%, so no workaround applied; relative rankings held for post-v15) and V4c-2018. The offset value is specific to the current seed and fit. 2025 sits low too (-0.246) and is not offset.",
+      "clears_when": "The seed's cliff cost is re-estimated, the offset var is emptied (not re-tuned), dev's isolation subtree is rebuilt and validate_driver_isolation.py is re-run with V2b, tier-3 (ii) and V4c graded.",
+      "trigger": {
+        "clear": "manual"
+      }
+    },
+    {
+      "id": "W61",
+      "raised": "2026-09-30",
+      "kind": "debt",
+      "recommended_model": "opus",
+      "item": "WI-16b",
+      "title": "Pure skill is not comparable across the 2022 rules change: the two eras' car/driver splits disagree (V1b)",
+      "detail": "V1b's rule-change check fails on dev: 2021-22 Pearson 0.603 against 0.652 required (median of the other pairs 0.931). Race pure is roughly the driver's era effect plus half the season's teammate deviation, so within an era it barely moves (0.82-0.98), which also inflates the pairs the check compares with. driver_skill_field_s, which does not hold skill constant per era, has 2021-22 at 0.912, so drivers did not reshuffle. Pure moves TSU +0.53, PER +0.37, GAS +0.26, HAM +0.19 s across the boundary where the era-free measure is flat or slower (HAM -0.41). The docs page now says not to compare a driver's pure across 2021/2022. Under the strict critical rule V1b alone keeps pure at F. Candidate fixes: a joint fit with era-specific driver effects linked by drivers who span the boundary; or drop the cross-era claim and grade V1b within eras only (a spec change). Updated 2026-09-30 (third session): finer eras do not fix it and are not adopted (eras unchanged on dev). The fit separates car from driver only through drivers who changed team inside an era, so a one-season era is all islands: pure coverage 87.5% now, 36.3% with 2018|19-20|21|22-24|25, 47.5% with 18-19|20-21|22-24|25, 15.1% per season. Option 2 leaves no 2021-22 pair and FAILs V1c (1.62). Placebo two-era splits show the cross-era Pearson drops at EVERY boundary: 2019-20 0.541, 2020-21 0.129 (the 2021 floor change), 2021-22 0.603 (the 2022 rules change, the smallest drop), 2022-23 0.297, 2023-24 0.543; within-era pairs 0.85-0.99. So V1b's failure is the per-era design (shared vs independent driver effects), not the regulations, and the 2021 hypothesis is not supported. Evidence _evidence/wi-16-2026-09-30/eras/ (eras-summary.csv). Paths left for the user: grade the 2021-22 pair against placebo boundaries or within eras only (a spec change, declared post hoc), or post-v15 a global driver effect plus shrunk season deviations.",
+      "clears_when": "V1b's 2021-22 pair passes on a rebuilt dev, or the WI doc is amended to drop the cross-era claim with the docs page saying so.",
+      "trigger": {
+        "clear": "manual"
+      }
+    },
+    {
+      "id": "W62",
+      "raised": "2026-09-30",
+      "kind": "pending-ruling",
+      "recommended_model": "opus",
+      "item": "WI-16b",
+      "title": "Driver isolation's method-score seed is unwritten until the critical-rule reading is ruled",
+      "detail": "validate_driver_isolation.py grades both readings. Strict (any FAIL among a critical row's sub-checks zeroes the rating, the WI doc's literal text): pure 0 F (V1b), relative 0 F (tier-3 age adjustment), so every trust_label would read 'suppress'. Test-level (a critical row fails only below 0.5): pure 0.724 C, relative 0.571 C. Until one is chosen --write-seed is not run and every trust_label reads 'unvalidated'. Nothing in the app or the ML contract reads these marts, so v15 does not wait on it.",
+      "clears_when": "The user rules on the reading; validate_driver_isolation.py --write-seed is run on dev and the isolation marts rebuilt.",
+      "trigger": {
+        "clear": "manual"
+      },
+      "status": "RESOLVED",
+      "resolved": "2026-10-03T00:00Z",
+      "resolution": "TEST-LEVEL GRADING: relative pace (0.571 C) and pure pace (0.724 C) are published with confidence C. A critical sub-check fails only if the score drops below 0.5, not on literal spec interpretation. validate_driver_isolation.py --write-seed is staged for the rebuild after v15 promotion."
+    },
+    {
+      "id": "W63",
+      "raised": "2026-09-30",
+      "kind": "pending-ruling",
+      "recommended_model": "opus",
+      "item": "WI-16b",
+      "title": "Relative pace's critical age-adjustment check fails for every physically sensible tyre-age curve",
+      "detail": "Tier 3 is now age-adjusted by a fitted tyre-age curve (fit_isolation_age_curve.py, cubic B-spline per era|compound, (race, driver, compound) + (race, lap) FE, cross-fitted by race; int_driver_isolation_age_curve), not the seed's \u0394C; the identity gains age_pricing_gain_s (seed minus curve) and T42 checks four terms. Pooled within-pair variance vs raw, 2018-2024: seed +3.40% [+2.53, +4.38], curve +0.66% [+0.31, +1.04] (2025 +0.54%). The pre-registered rule needs a reduction, so relative stays F strict (0.571 C test-level). A curve fitted on the pairs passes (-0.32%) only by learning that older pre-2022 SOFT/MEDIUM tyres are up to 0.75 s faster; a stint-FE field fit cannot identify a linear slope (age-period-cohort). Within +-3 laps a pair's lap-to-lap gap is racing, not tyre age. Evidence _evidence/wi-16-2026-09-30/age-curve/ and dev-age-curve/.",
+      "clears_when": "The user rules: amend tier-3 (ii) (e.g. a bound on added variance, or a test of the adjustment's level), or keep relative suppressed and quote relative_pace_raw_gain_s; the WI doc and docs page say which.",
+      "trigger": {
+        "clear": "manual"
+      }
     }
   ],
   "open_decisions": [

@@ -41,16 +41,18 @@ time with compound and dirty air removed and then centred on the lap's field med
 (int_driver_isolation_lap_panel). The default panel above is fitted on pace_delta_s,
 before compound and dirty air come out, so it carries each team's average strategy and
 traffic exposure; subtracting it from y_s would subtract those terms a second time (the
-F22/F38 defect shape). So the isolation path fits
+F22/F38 defect shape). So the isolation path fits, separately inside each era
+(pre/post era_boundary),
 
-    y_s ~ 1 | driver_era + constructor_race        driver_era = driver_id + pre/post era_boundary
+    mean_y_s ~ 1 | driver_id + constructor_race     on driver-race means of the pre-cliff laps
 
 and emits car_iso_s: the constructor×race FE re-centred to a lap-weighted mean of zero
 inside each race (negative = faster, like car_fe_s). y_s is already centred per lap, so no
-race effect is needed.
+race effect is needed. Fitting driver_id inside one era is the WI doc's driver_era key: a
+driver's skill is held constant within an era, not from 2018 to 2025.
 
-Why driver_era: a global driver FE assumes a driver's skill is constant 2018-2025.
-Splitting at the regulation boundary halves that assumption.
+The sample (W33, 2026-09-30): pre-cliff laps only (tyre_phase <> 'cliff'), the laps every
+pure-skill aggregate uses. See ISOLATION_PANEL_QUERY.
 
 What identifies it: the teammate network. A constructor×race level is only comparable
 with the other constructors in the same race if some chain of drivers who changed team
@@ -58,11 +60,13 @@ connects them. The OCO/PER 2018 Force India -> Racing Point rename creates no ne
 (same pair, same car), so it cannot manufacture identification here the way it can in a
 constructor-season design; no exclusion is needed. The fit checks this directly: a race
 is identified when all of its constructor×race cells sit in one connected component of
-the driver_key x constructor_race graph. An era falls back to the global driver_id when
-any of its races is not identified under driver_era, or when it has more than one
-component containing two or more constructors (the WI doc's rule). Both are logged, and
-the rows carry car_term_source = 'global_driver'. A cell still unidentified under the
-global key gets car_iso_s NULL and car_term_source = 'unidentified', never a guess.
+the driver_id x constructor_race graph of its era. There is no fallback to a global
+driver key any more (WI-16a had one; removed 2026-09-29, a25be07): a team whose drivers
+drove nothing else in the era (Haas 2018-2021, Alfa Romeo/Sauber 2022-2024) is an island,
+and its cells get car_iso_s NULL with car_term_source = 'unidentified', never a guess.
+A cell pyfixest drops as a singleton (at driver-race grain: only one of the team's
+drivers has pre-cliff Ω laps in that race) gets NULL with 'not_estimated'. With one
+driver the car and the driver cannot be separated in that race.
 
 The default path (--panel pace_delta) is unchanged: load_panel, fit_car_fe and run_fit
 produce the same output as before this option existed (T49 pins it).
@@ -116,7 +120,8 @@ REPO_ROOT = Path(__file__).parents[3]
 DB_PATH = REPO_ROOT / "data" / "dev.duckdb"
 OUT_PATH = REPO_ROOT / "data" / "fits" / "constructor_car_fe.parquet"
 ISOLATION_OUT_PATH = REPO_ROOT / "data" / "fits" / "constructor_car_fe_isolation.parquet"
-ISOLATION_FIT_METHOD = "constructor_car_fe_isolation_hdfe_v1"
+# v2 (W33, 2026-09-30): fitted on pre-cliff laps only, the pure-skill sample.
+ISOLATION_FIT_METHOD = "constructor_car_fe_isolation_hdfe_v2"
 
 # The clean lap panel: lap_time vs the smoothed field median, restricted to
 # correction_weight = 1.0 and dry laps. This mirrors the clean_panel CTE in
@@ -290,6 +295,17 @@ def run_fit(db_path: Path = DB_PATH) -> pd.DataFrame:
 # ── The isolation panel (WI-16a) ─────────────────────────────────────────────────────
 # Read straight from the dbt model; every Ω predicate, the field centring and the era
 # split live in SQL (int_driver_isolation_lap_panel), not here.
+#
+# THE FIT SAMPLE IS THE RATING SAMPLE (W33, 2026-09-30). The car term is fitted on the
+# pre-cliff laps only (tyre_phase early or mid, recovery laps included), which is exactly
+# the set pure skill is averaged over downstream (pure_is_extrapolated = tyre_phase =
+# 'cliff' is excluded from every pure aggregate). Fitting on all Ω laps while rating on
+# the pre-cliff ones broke the FE's orthogonality: cliff laps read 0.24-0.89 s faster
+# than pre-cliff laps in y_s on the 2026-09-29 dev (the seed's cliff cost over-corrects),
+# so a constructor-race with many cliff laps got a faster car term, and the pre-cliff
+# laps rated against it read slower. That is the car signal V2a measured leaking into
+# pure (|corr| 0.233). With one sample, the within-cell residuals the rating is built
+# from are orthogonal to the car term by construction.
 ISOLATION_PANEL_QUERY = """
 SELECT
     lap_id,
@@ -301,6 +317,7 @@ SELECT
     constructor_id,
     y_s
 FROM int_driver_isolation_lap_panel
+WHERE tyre_phase <> 'cliff'
 -- A fixed row order: the table's physical order changes from build to build, and the
 -- FE solve is iterative, so without this two builds of the same panel gave car terms
 -- differing by up to 4e-5 s.
@@ -449,14 +466,14 @@ def fit_car_fe_isolation(lap_panel: pd.DataFrame) -> tuple[pd.DataFrame, str]:
     """Isolation car term per (race_year, race_id, constructor_id).
 
     Returns (out, connectivity_note). out carries car_iso_s: the constructor×race FE of
-    y_s ~ 1 | driver_id + constructor_race, fitted at the race level to avoid lap-level
-    noise. Fitted separately per era (pre/post regulation boundary). The driver_id FE is
-    used instead of driver_era because driver_era breaks connectivity: each driver races
-    for only one constructor per race, so the bipartite network (driver_era x constructor_race)
-    is never connected. Using driver_id with separate fits per era gives better identification
-    while avoiding cross-era driver skill contamination. car_iso_s is re-centred to a
-    lap-weighted mean of zero over the identified cells of each race (negative = faster).
-    A cell that pyfixest dropped as a singleton gets car_iso_s NULL."""
+    y_s ~ 1 | driver_id + constructor_race, fitted on driver-race means of y_s and
+    separately per era (pre/post regulation boundary). driver_id inside one era is the
+    WI doc's driver_era key, so a driver's skill is held constant within an era only.
+    lap_panel is the fit sample as loaded by load_isolation_panel (pre-cliff laps; see
+    ISOLATION_PANEL_QUERY). car_iso_s is re-centred to a lap-weighted mean of zero over
+    the identified cells of each race (negative = faster). A cell in a race's minor
+    component gets NULL ('unidentified'); a cell pyfixest dropped as a singleton gets
+    NULL ('not_estimated')."""
 
     # Aggregate to race level to avoid lap-level noise
     race_panel = aggregate_to_race_level(lap_panel)

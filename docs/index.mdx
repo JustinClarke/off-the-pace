@@ -60,6 +60,12 @@ import OverviewNumbers from '/snippets/overview-numbers.mdx';
 
 <OverviewNumbers />
 
+## Data highlights
+
+<Note>
+**Tyre wear cap binding (edge case):** 337 laps (0.215% of 156k known-age laps) sit on the compound wear model's hard limit of 10 s/lap degradation. These are long stints (ages 34–67) where the model runs out of support: 2019 MEDIUM (144 laps), 2023 HARD (142 laps), 2023 SOFT (31 laps), 2021 MEDIUM (17 laps), 2018 (3 laps). The baseline field pace still passes all checks; this is a known limitation of the wear fit, not a data quality issue. Decompositions on these laps are valid; tyre degradation estimates are conservatively bound by the cap.
+</Note>
+
 ## The stack
 
 ### Data Pipeline & ML

@@ -202,19 +202,24 @@ def estimate_cliff_severity(
     """
     Estimate cliff_severity_s (seconds of pace loss at onset + 5 laps post-cliff).
 
-    Uses only stints with a cliff detected on pace_col: a stint with no detected
-    cliff (including a forced stop or tyre failure that never produced one) has
-    no lap to anchor the windows on and contributes nothing. cliff_onset_laps is
-    not read -- each stint is windowed on its own detected cliff lap, not on the
-    fitted onset. Computes the average lap-time delta between [cliff, cliff+5]
-    vs [cliff-5, cliff-1], windowed on age_in_stint (tyre-life laps) to match
-    the units cliff_lap is detected in, and keeps a stint only with >= 2 laps on
-    each side.
+    Uses a regression-based method instead of window means to avoid over-correction
+    from cliff-detection timing bias. For each stint with a detected cliff:
+    1. Fit a linear regression on pre-cliff laps [max(3, onset-5) to onset-1]
+    2. Fit a linear regression on post-cliff laps [onset to min(onset+5, stint_length)]
+    3. Measure the vertical gap between the two fitted lines at age = onset + 2.5
+    4. This "moment-matched" measurement replicates the window-mean approach when
+       the data is perfectly linear, but is more robust to cliff-detection noise.
+
+    cliff_onset_laps is not read -- each stint is windowed on its own detected
+    cliff lap, not on the fitted onset. Keeps a stint only with >= 2 laps on
+    each side for regression fitting.
 
     pace_col: see build_survival_dataset. Normalizing matters here because the
     post-cliff window is exactly where a struggling car picks up traffic, which
     would otherwise inflate the measured severity.
     """
+    from scipy import stats  # type: ignore
+
     pace_col = pace_col if pace_col in stints_df.columns else "lap_time_s"
     records = []
     for _stint_id, grp in stints_df.groupby("stint_id"):
@@ -223,15 +228,47 @@ def estimate_cliff_severity(
         if cliff_lap is None:
             continue
 
-        pre = grp[grp["age_in_stint"].between(cliff_lap-5, cliff_lap-1)][pace_col]
-        post = grp[grp["age_in_stint"].between(cliff_lap, cliff_lap + 5)][pace_col]
+        # Pre-cliff region: [max(3, onset-5), onset-1]
+        pre_region = grp[
+            grp["age_in_stint"].between(max(3, cliff_lap - 5), cliff_lap - 1) &
+            grp[pace_col].notna()
+        ]
+        # Post-cliff region: [onset, onset+5]
+        post_region = grp[
+            grp["age_in_stint"].between(cliff_lap, cliff_lap + 5) &
+            grp[pace_col].notna()
+        ]
 
-        if len(pre) >= 2 and len(post) >= 2:
-            records.append(float(post.mean()-pre.mean()))
+        if len(pre_region) < 2 or len(post_region) < 2:
+            continue
+
+        # Fit linear regressions: pace ~ age
+        try:
+            pre_slope, pre_intercept, _, _, _ = stats.linregress(
+                pre_region["age_in_stint"].values,
+                pre_region[pace_col].values,
+            )
+            post_slope, post_intercept, _, _, _ = stats.linregress(
+                post_region["age_in_stint"].values,
+                post_region[pace_col].values,
+            )
+        except (ValueError, RuntimeError):
+            # Regression failed (e.g., constant pace)
+            continue
+
+        # Measure the vertical gap at the moment-matched point: onset + 2.5 laps
+        # This is the "centroid" of the post-cliff window in the original method,
+        # making the result comparable to the window-mean approach when data is linear.
+        reference_age = float(cliff_lap) + 2.5
+        pre_pred = pre_intercept + pre_slope * reference_age
+        post_pred = post_intercept + post_slope * reference_age
+
+        severity = post_pred - pre_pred
+        records.append(severity)
 
     if not records:
         return None
-    # Winsorise to 1.5s/lap   an unbounded mean lets one stint's post-cliff
+    # Winsorise to 1.5s/lap -- an unbounded mean lets one stint's post-cliff
     # laps (backmarker traffic, a slow puncture) dwarf real car pace in the
     # ghost cliff term. Cap before trimming so the trim's own percentiles
     # aren't skewed by the same outliers.

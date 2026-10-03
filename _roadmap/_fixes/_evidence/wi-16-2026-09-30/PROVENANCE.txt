@@ -1,0 +1,97 @@
+WI-16b / W33 re-validation, 2026-09-30. Nothing here wrote data/dev.duckdb or data/fits/.
+
+Validator: scripts/validate_driver_isolation.py (working tree, 2026-09-30: every V-test
+implemented; tactical-only checks NOT_APPLICABLE). Git HEAD 024e342 plus uncommitted edits.
+
+Three substrates, one validator:
+
+live-dev/
+  data/dev.duckdb as built 2026-09-29 20:53 (read-only). Car term fit_method
+  constructor_car_fe_isolation_hdfe_v1: fitted on ALL Ω laps, per era, driver_id.
+
+w33-fit-fix/
+  A scratch copy of that dev. The car term refitted with the working-tree fitter
+  (transform/tasks/coefficients/fit_constructor_car_fe.py --panel isolation --db <copy>
+  --out <scratch parquet>; fit_method ..._hdfe_v2: pre-cliff laps only, the pure-skill
+  sample). The eight downstream isolation models were then replayed into the copy from
+  transform/target/compiled/ (compiled 2026-09-29 20:53, newer than every isolation source
+  file) by replay_isolation.py. Not dbt. Fidelity check: replaying the UNCHANGED parquet
+  into a second copy reproduced live dev's fct_driver_isolation_race / _lap / _stint and
+  int_constructor_car_fe_isolation to 6e-15, with 0 NULL mismatches.
+  This is what a rebuilt dev should show after `make car-fe-isolation-fit` and
+  `dbt build -s int_constructor_car_fe_isolation+`.
+
+experiment-precliff-median/
+  An EXPERIMENT for W33 issue 4 (2018 level), not a proposed change as-is: the panel's
+  y_s centred on the median of the lap's pre-cliff Ω laps (all-lap median when none),
+  then refit (v2) and replay. variant_precliff_median.py. It removes the season offset
+  and passes V1c and V4c, but V3a FAILs (0.173): on laps where few cars are pre-cliff the
+  median is set by a handful of teams, and that team-correlated noise enters the car fit.
+
+To reproduce the scratch substrates: copy data/dev.duckdb to <dir>/dev.duckdb (the name
+matters: the compiled SQL addresses the catalog "dev"), run the fitter with --db/--out as
+above, then `python replay_isolation.py <dir>/dev.duckdb <parquet>` (or
+`python variant_precliff_median.py <dir>/dev.duckdb <fits dir>`), then
+`python scripts/validate_driver_isolation.py --db <dir>/dev.duckdb --output-dir <out>`.
+
+--- Added 2026-09-30 (later session): dev itself rebuilt. These two DID write
+data/dev.duckdb and data/fits/constructor_car_fe_isolation.parquet (both backed up
+first, outside the repo).
+
+dev-rebuilt-v2/
+  data/dev.duckdb after `make car-fe-isolation-fit` (dbt run +int_driver_isolation_lap_panel:
+  PASS=19; fitter: 93,983 pre-cliff laps, 1,619 constructor-races, driver_id 1,356 /
+  unidentified 139 / not_estimated 124, fit_method ..._hdfe_v2; log in
+  make-car-fe-isolation-fit.log) then `dbt build -s int_constructor_car_fe_isolation+`
+  (PASS=139, WARN=0, ERROR=0). No season offset. Its validation-report.md equals
+  w33-fit-fix/'s line for line except the database path, so the scratch replay was
+  faithful.
+
+dev-final/
+  The same dev after W33 Option A: var isolation_pure_season_offset_gain_s {2018: 0.37}
+  (macro driver_isolation_pure_season_offset, applied in int_driver_isolation_lap_values,
+  exposed on fct_driver_isolation_race), rebuilt with
+  `dbt build -s int_constructor_car_fe_isolation+` (PASS=141, WARN=0, ERROR=0).
+  The offset is 2018's mean race pure (-0.450) minus the 2019-2024 average (-0.077),
+  measured on dev-rebuilt-v2 and fixed before this validation run. Against
+  dev-rebuilt-v2 only V1c (1.507 FAIL -> 0.796 PASS), the report-only sign-flip share and
+  the 2018 season level moved. w33-measurements.txt is measure_w33.py's output on it:
+  season levels, the pure-less driver-races by reason, and the tier-3 age-adjustment
+  variance for a scaled adjustment raw - k*dC (k = 0, 0.5, 0.966, 1, and the
+  variance-minimising k).
+  The method-score seed was NOT written (--write-seed not run): the critical-rule
+  reading is still the user's call.
+
+--- Added 2026-09-30 (third session): era structures and the tyre-age curve. This session
+wrote data/dev.duckdb and data/fits/isolation_age_curve.parquet (dev and
+constructor_car_fe_isolation.parquet backed up first, to the session scratchpad). The eras
+and the car term in dev are unchanged.
+
+eras/
+  Scratch experiments, read-only on dev. era_fits.py / era_fits2.py refit the car term with
+  the working-tree fitter under other era labels (the panel's `era` column overridden in
+  Python): the three proposed structures (per season; 2018|19-20|21|22-24|25;
+  18-19|20-21|22-24|25) and two-era "placebo" boundaries at 2019, 2020, 2021, 2023, 2024.
+  run_struct.py replays one car term into a scratch copy of dev (set ERAS_DIR to a folder
+  holding dev.duckdb and car_<name>.parquet) with replay_isolation_v2.py, which is
+  replay_isolation.py plus the new int_driver_isolation_age_curve, then runs V1 (and with
+  --full, the whole validator). `current` reproduces dev's V1b line for line.
+  v1_<name>.json and eras-summary.csv hold pure coverage by season and V1a/V1b/V1c.
+  opt2_technical/ is the full validation of option 2 (report re-rendered from its JSON by
+  the fixed report writer). Most runs predate the validator fixes of this session; only
+  V1b's status changes with them, and opt1/opt2 were re-run after the fix.
+
+age-curve/
+  Scratch experiments for tier 3's age adjustment, read-only on dev; each log is the script
+  re-run on the rebuilt dev (the seed-adjusted delta is read from
+  relative_pace_seed_adj_gain_s). proto.py = design A (spline fitted on the pairs, pair FE;
+  --clean = clean-air pair-laps only); proto3.py / proto3_k4.py = design C (field, stint FE
+  + race-lap FE; 3 and 4 interior knots); designE.py = design E (field, race-driver-compound
+  FE + race-lap FE), the design shipped in transform/tasks/coefficients/fit_isolation_age_curve.py;
+  ci.py = race-clustered bootstrap CIs for seed, A and C. Set AGE_OUT for the parquet files.
+
+dev-age-curve/
+  data/dev.duckdb after `make isolation-age-curve-fit` (isolation-age-curve-fit.log) then
+  `dbt build -s int_driver_isolation_age_curve+` (dbt-build.log: PASS=101, WARN=0,
+  ERROR=0), validated (validation-report.md, validation.json). The method-score seed was
+  NOT written.

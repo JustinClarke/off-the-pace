@@ -227,6 +227,23 @@ vars:
   # has wrong lap numbering in bronze (watch W18), and tiers 1 and 3 match cars on
   # lap_number. A list; the panel renders it with a Jinja loop, not as a Python list.
   isolation_exclude_races: ['2020_1']
+  # int_driver_isolation_lap_values: a declared season-level offset (s/lap, positive =
+  # raised) added to pure_skill_gain_s, via macro driver_isolation_pure_season_offset.
+  # W33, 2026-09-30, Option A for v15: a stopgap, not a measurement. y_s is centred on
+  # each lap's whole-field median, and cliff laps read fast in y_s (the compound seed's
+  # cliff cost over-corrects, WI-02b territory), so a season with many cliff laps has its
+  # pre-cliff laps, the ones pure is averaged over, sitting slow against that median.
+  # 2018 has 42% cliff laps, against 14-32% in 2019-2024. On dev rebuilt 2026-09-30 (car
+  # term constructor_car_fe_isolation_hdfe_v2) 2018's mean race pure is -0.450 s, and the
+  # 2019-2024 seasons average -0.077 s (-0.03 to -0.12). +0.37 is that gap: it puts
+  # 2018 at the other decision seasons' level. It is not +0.45 (the gap to zero), which
+  # would lift 2018 about 0.08 s above them. The offset is constant within a season, so
+  # within-season rankings, pair gaps and the tier-3 identity are unchanged; it only
+  # makes a 2018 pure value comparable, with a caveat, with a 2019-2024 one. 2025 also
+  # sits low (-0.246) and is not offset here; the docs page says so. Remove this, do not
+  # re-tune it, once WI-02b's cliff-cost refit removes the cause (the value is specific
+  # to the current seed and car-term fit).
+  isolation_pure_season_offset_gain_s: {2018: 0.37}
   # ── Label spine (WI-01; _roadmap/_fixes/wi/WI-01-label-spine.md) ──
   # int_dirty_air_tax_component: theta_air's calibration panel is restricted to
   # race_year <= this value (F5). Without a declared cutoff, the panel was

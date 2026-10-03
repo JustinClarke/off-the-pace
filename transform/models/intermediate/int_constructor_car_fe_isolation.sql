@@ -2,10 +2,14 @@
 -- isolation panel. A thin reader over
 -- data/fits/constructor_car_fe_isolation.parquet, written by
 -- tasks/coefficients/fit_constructor_car_fe.py --panel isolation (`make
--- car-fe-isolation-fit`), which fits
---     y_s ~ 1 | driver_era + constructor_race
--- on int_driver_isolation_lap_panel and re-centres the constructor×race FE to a
--- lap-weighted mean of zero inside each race.
+-- car-fe-isolation-fit`), which fits, separately in each era (pre/post
+-- era_boundary),
+--     mean_y_s ~ 1 | driver_id + constructor_race
+-- on driver-race means of int_driver_isolation_lap_panel's pre-cliff laps (the
+-- laps pure skill is averaged over; fit_method ..._hdfe_v2, W33 2026-09-30) and
+-- re-centres the constructor×race FE to a lap-weighted mean of zero inside each
+-- race. There is no global-driver fallback: an island team gets
+-- 'unidentified', a cell with one driver in the fit 'not_estimated'.
 --
 -- Why a second car term, not int_constructor_car_fe: that one is fitted on
 -- pace_delta_s, before compound and dirty air are taken out, so it carries each

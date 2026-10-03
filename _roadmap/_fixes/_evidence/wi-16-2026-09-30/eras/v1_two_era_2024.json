@@ -1,0 +1,153 @@
+{
+ "V1": {
+  "V1a_pure": {
+   "status": "PASS",
+   "score": 1.0,
+   "median_spearman": 0.9037593984962405,
+   "per_season": {
+    "2018": {
+     "spearman": 0.831578947368421,
+     "n_drivers": 20
+    },
+    "2019": {
+     "spearman": 0.9037593984962405,
+     "n_drivers": 20
+    },
+    "2020": {
+     "spearman": 0.9035087719298246,
+     "n_drivers": 19
+    },
+    "2021": {
+     "spearman": 0.8812030075187969,
+     "n_drivers": 20
+    },
+    "2022": {
+     "spearman": 0.9413533834586465,
+     "n_drivers": 20
+    },
+    "2023": {
+     "spearman": 0.9403508771929823,
+     "n_drivers": 19
+    },
+    "2024": {
+     "spearman": 0.9151515151515152,
+     "n_drivers": 10
+    },
+    "2025": {
+     "spearman": 0.17482517482517487,
+     "n_drivers": 12
+    }
+   },
+   "confirmation_2025": {
+    "spearman": 0.17482517482517487,
+    "n_drivers": 12
+   },
+   "threshold": {
+    "pass": 0.6,
+    "marginal": 0.4
+   },
+   "design": "Race-level pure (fct_driver_isolation_race) averaged over odd and even rounds; driver-seasons with >= 5 races in each half; median of per-season Spearman over 2018-2024."
+  },
+  "V1a_tactical": {
+   "status": "NOT_APPLICABLE",
+   "notes": "The tactical rating was cancelled on 2026-09-28 (WI-16b); this check tests it only."
+  },
+  "V1b": {
+   "status": "PASS",
+   "score": 1.0,
+   "median_pearson": 0.9326310236507231,
+   "median_pearson_all_7_pairs": 0.9498891806036887,
+   "per_pair": {
+    "2018-2019": {
+     "pearson": 0.9153728666977577,
+     "n_drivers": 14
+    },
+    "2019-2020": {
+     "pearson": 0.8792899984411562,
+     "n_drivers": 18
+    },
+    "2020-2021": {
+     "pearson": 0.9605855745485421,
+     "n_drivers": 16
+    },
+    "2021-2022": {
+     "pearson": 0.9598263309482625,
+     "n_drivers": 17
+    },
+    "2022-2023": {
+     "pearson": 0.9498891806036887,
+     "n_drivers": 16
+    },
+    "2023-2024": {
+     "pearson": 0.5425701388688122,
+     "n_drivers": 10
+    },
+    "2024-2025": {
+     "pearson": 0.9812659283500407,
+     "n_drivers": 8
+    }
+   },
+   "reported_individually": {
+    "2022-2023": {
+     "pearson": 0.9498891806036887,
+     "n_drivers": 16
+    },
+    "2023-2024": {
+     "pearson": 0.5425701388688122,
+     "n_drivers": 10
+    },
+    "2024-2025": {
+     "pearson": 0.9812659283500407,
+     "n_drivers": 8
+    }
+   },
+   "rule_change_check": {
+    "pair_2021_2022": 0.9598263309482625,
+    "median_other_decision_pairs": 0.9153728666977577,
+    "required_min": 0.6407610066884304,
+    "rule_broken": false
+   },
+   "threshold": {
+    "pass": 0.5,
+    "rule_change_ratio": 0.7
+   },
+   "design": "EB-shrunk driver-season pure (toward the season mean; tau^2 per season), drivers with >= 8 races in both seasons. Verdict on the 6 pairs inside 2018-2024; 2024-2025 reported as confirmation, and the doc's 7-pair median alongside."
+  },
+  "V1c": {
+   "status": "PASS",
+   "score": 1.0,
+   "ratio": 0.8843557135578617,
+   "ci95": [
+    0.5533594561215439,
+    1.1163913286150613
+   ],
+   "movers_n": 20,
+   "stayers_n": 71,
+   "movers_distinct_drivers": 14,
+   "movers_median_delta_s": 0.09287226053948386,
+   "stayers_median_delta_s": 0.10501686042808317,
+   "season_centred_sensitivity": {
+    "ratio": 0.8175925041993437,
+    "ci95": [
+     0.5403059091753641,
+     1.7843771364088172
+    ],
+    "note": "each season's mean pure removed first (the 2018 level offset, W33 issue 4)"
+   },
+   "threshold": {
+    "pass": 1.5
+   },
+   "design": "Adjacent-season pairs inside 2018-2024 of drivers with >= 8 races in both seasons; mover = main constructor (most races) differs. Ratio of medians |delta pure|; bootstrap CI resampling drivers (clustered by driver). PASS iff ratio <= 1.5."
+  }
+ },
+ "coverage": {
+  "2018": 0.9065934065934066,
+  "2019": 0.9757281553398058,
+  "2020": 0.9357142857142857,
+  "2021": 0.9553805774278216,
+  "2022": 0.9584487534626038,
+  "2023": 0.9669811320754716,
+  "2024": 0.4650112866817156,
+  "2025": 0.5720823798627003
+ }
+}

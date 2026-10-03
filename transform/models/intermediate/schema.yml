@@ -3228,11 +3228,14 @@ models:
     description: >
       Driver-isolation car term: a thin reader over
       data/fits/constructor_car_fe_isolation.parquet, fitted by fit_constructor_car_fe.py
-      --panel isolation (y_s ~ 1 | driver_era + constructor_race on the Ω panel), re-centred
-      to a lap-weighted mean of zero inside each race. Fitted on the same scale as y_s,
-      unlike int_constructor_car_fe (pace_delta_s, before compound and dirty air come out),
-      so subtracting it does not take strategy and traffic out twice. An era whose races the
-      teammate network does not connect falls back to a global-driver fit (car_term_source).
+      --panel isolation (mean y_s ~ 1 | driver_id + constructor_race on driver-race means
+      of the pre-cliff Ω laps, separately in each era; fit_method
+      constructor_car_fe_isolation_hdfe_v2), re-centred to a lap-weighted mean of zero
+      inside each race. Fitted on the same scale as y_s, unlike int_constructor_car_fe
+      (pace_delta_s, before compound and dirty air come out), so subtracting it does not
+      take strategy and traffic out twice. There is no global-driver fallback: a team whose
+      drivers drove for no other team in the era is an island ('unidentified', NULL), and a
+      cell with only one of the team's drivers in the fit is 'not_estimated' (NULL).
       Negative = faster. Leakage: a function of the residual trajectory; no ML-contract mart
       may depend on it (T48, ml/tests/test_manifest_contract.py). WI-16a,
       _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md.
@@ -3298,6 +3301,91 @@ models:
       - name: fit_method
         description: >
           Provenance fit identifier (constructor_car_fe_isolation_hdfe_v1).
+      - name: fit_timestamp
+        description: >
+          Provenance UTC timestamp of the fit.
+
+  - name: int_driver_isolation_age_curve
+    description: >
+      Driver-isolation tyre-age curve, tier 3's age adjustment (WI-16b, 2026-09-30): a thin
+      reader over data/fits/isolation_age_curve.parquet, fitted by
+      fit_isolation_age_curve.py as lap_time_s ~ a cubic B-spline in age_in_stint per
+      era|compound group | (race, driver, compound) + (race, lap) FE, on the clean-air,
+      non-recovery Ω laps, cross-fitted by race (5 folds; a race's curve never uses its own
+      laps). The slope is identified by drivers who fit a new set of the same compound. It
+      replaced the compound seed's ΔC, which raised the within-pair variance by 3.4%.
+      Positive = slower than the group's reference age; only differences inside one (race,
+      compound) mean anything. Leakage: a function of the residual trajectory; no
+      ML-contract mart may depend on it (T48, ml/tests/test_manifest_contract.py). WI-16b,
+      _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md.
+    tags: [intermediate, driver_isolation]
+    meta:
+      family: skill
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, compound, age_in_stint]
+    columns:
+      - name: isolation_age_curve_id
+        description: >
+          Surrogate PK = raceid_compound_age.
+        tests:
+          - not_null
+          - unique
+      - name: race_year
+        description: >
+          Season.
+        tests:
+          - not_null
+      - name: race_id
+        description: >
+          FastF1 event id, e.g. 2021_8.
+        tests:
+          - not_null
+      - name: compound
+        description: >
+          Dry compound label as in the panel (2018 carries absolute Pirelli names).
+        tests:
+          - not_null
+      - name: age_in_stint
+        description: >
+          Tyre age in laps (int_stint_geometry).
+        tests:
+          - not_null
+      - name: age_effect_s
+        description: >
+          g(age), s, POSITIVE = slower than the group's reference (lower boundary) age.
+          Never NULL: the fit refuses to emit a row it has no curve for.
+        tests:
+          - not_null
+      - name: fit_group
+        description: >
+          The curve used: era|compound, or era|OTHER for groups under 3000 fit laps; era is
+          2018 for the legacy-label season, else pre/post era_boundary.
+        tests:
+          - not_null
+      - name: fold
+        description: >
+          The race's cross-fitting fold (0-4); its curve was fitted on the other four.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [0, 1, 2, 3, 4]
+                quote: false
+      - name: n_fit_laps_group
+        description: >
+          Fit-sample laps behind the group's curve in the other folds.
+      - name: boundary_lo_age
+        description: >
+          Lower boundary knot (1st percentile of the group's ages); ages below are clipped.
+      - name: boundary_hi_age
+        description: >
+          Upper boundary knot (99th percentile); ages above are clipped, so the curve is
+          flat beyond it.
+      - name: fit_method
+        description: >
+          Provenance fit identifier (isolation_age_curve_bspline_rdc_cf5_v1).
       - name: fit_timestamp
         description: >
           Provenance UTC timestamp of the fit.
@@ -3569,12 +3657,11 @@ models:
 
   - name: int_driver_isolation_lap_values
     description: >
-      Driver isolation tiers 1 and 2 per Ω lap: tactical_gain_s (m_s times tyre age since
-      the first line lap, plus the excess cliff departure past the cliff) and
-      pure_skill_gain_s = p - tactical. pure + tactical = p exactly wherever tactical exists
-      (T42). NULLs are declared, never zeros: no car term -> both NULL; no m_s -> tactical
-      NULL and pure = p on a pre-cliff lap (tactical_available FALSE), both NULL on a cliff
-      lap. Positive = faster. Leakage: a function of the residual trajectory; no ML-contract
+      Driver isolation tier 1 per Ω lap: pure_skill_gain_s = p (pace_isolated_gain_s) plus
+      the declared season offset pure_season_offset_gain_s (W33; var
+      isolation_pure_season_offset_gain_s, 2018 +0.37 s). The tactical tier was cancelled
+      on 2026-09-28. NULLs are declared, never zeros: no car term -> p and pure NULL.
+      Positive = faster. Leakage: a function of the residual trajectory; no ML-contract
       mart may depend on it (T48, ml/tests/test_manifest_contract.py). WI-16a,
       _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md.
     tags: [intermediate, driver_isolation]
@@ -3725,14 +3812,24 @@ models:
           NULL without a car term (never a car term of 0).
       - name: pure_skill_gain_s
         description: >
-          Tier 1, s/lap, POSITIVE = FASTER: p - tactical_gain_s, the pace against the field as
-          if the tyres had faded like peers'. = p when tactical is unavailable on a pre-cliff
-          lap (tactical_available FALSE); NULL on a cliff lap without tactical. On cliff laps
-          it is the extrapolated line (pure_is_extrapolated) and pure aggregates skip it.
+          Tier 1, s/lap, POSITIVE = FASTER: pace_isolated_gain_s + pure_season_offset_gain_s.
+          The offset is a per-season constant, so within a season pure ranks and differences
+          equal p's. NULL without a car term. On cliff laps it is not a driver measurement
+          (pure_is_extrapolated) and pure aggregates skip it.
+      - name: pure_season_offset_gain_s
+        description: >
+          The declared season-level offset inside pure_skill_gain_s, s/lap (positive = the
+          season's pure is raised; 0 for seasons not in var isolation_pure_season_offset_gain_s).
+          W33 Option A, 2026-09-30: 2018 +0.37 s, the measured gap between 2018's mean race
+          pure and the 2019-2024 seasons', caused by 2018's 42% share of fast-reading cliff
+          laps in the field median. A stopgap until WI-02b's cliff-cost refit; see the var's
+          comment in dbt_project.yml.
+        tests:
+          - not_null
       - name: pure_is_extrapolated
         description: >
-          TRUE on cliff-tyre laps: pure_skill_gain_s there is the extrapolated pre-cliff line
-          plus the peers' mean cliff departure, not a driver measurement; aggregates exclude
+          TRUE on cliff-tyre laps (tyre_phase = 'cliff'): the lap time there is dominated by
+          the tyre, so pure_skill_gain_s is not a driver measurement; aggregates exclude
           these laps.
         tests:
           - not_null

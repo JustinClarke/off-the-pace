@@ -1,0 +1,8 @@
+adj_seed       +3.403%  95% CI [+2.531, +4.380]
+adj_spline_cf  -0.324%  95% CI [-0.660, +0.009]
+adj_C_cf       +0.299%  95% CI [+0.014, +0.577]
+
+by era_tag (pair's era):
+  2018      seed +10.50%  A +0.45%  C +0.48%  pairs 1396
+  post2022  seed +1.83%  A -0.25%  C +0.13%  pairs 7646
+  pre2022   seed +2.96%  A -0.65%  C +0.44%  pairs 5521

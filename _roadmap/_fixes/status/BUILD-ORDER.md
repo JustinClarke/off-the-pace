@@ -210,9 +210,9 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 _Generated from the watch rules in [`build-log.json`](build-log.json) (`watch_rules`); watch entries update automatically as items land or decisions resolve. A rule whose trigger needs something the log cannot see (a commit, a re-export, a rebuild, your ruling) stays open until its `resolved` and `resolution` are recorded._
 
-**12 open** (0 ship-blockers). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
+**2 open** (0 ship-blockers). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
 
-Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (4 haiku, 8 sonnet, 0 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
+Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (0 haiku, 2 sonnet, 0 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
 
 - **`haiku`** — Maps to haiku-4-5. A binary check, or recording a resolution the evidence or the user has already settled: is it committed, did the named tests pass on the rebuild, write down the accept. The output has a mechanical check (a test result, a file list, git log).
 - **`sonnet`** — Maps to sonnet-5. The fix or the options are written down in the rule: pick between two named options, run a named rebuild or export and check the pages, review a diff, reconcile counts, reword text to a meaning already settled.
@@ -221,16 +221,6 @@ Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for tok
 | ID | Kind | Item | Model | What | Clears when |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | W4 | unreviewed | — | `sonnet` | Ingestion-hardening agent's partial work is in the working tree, unread and untested | The diff is reviewed and ingestion/tests pass and the change is kept, or the changes are discarded (git checkout on the modified paths plus deleting the four new files; destructive, the user's call). |
-| W5 | unverified | WI-09 | `sonnet` | WI-09's new tests and one source form have only run on the dev target | A CI-target build runs them (not done: this tree does not touch data/ci.duckdb). |
-| W6 | stale-artifact | WI-09 | `haiku` | Dev-warehouse marts stale for WI-09's changes until rebuilt | dbt run on those three marts (or the next full dbt build). |
-| W7 | stale-artifact | WI-07 | `haiku` | Drift baselines need regenerating from a CI build | Either: (1) WI-09's fixture data issues are resolved (dbt_expectations test passes on CI; assert_raw_laps_race_depth_is_race_only finds matching bronze parquets), then `dbt build --target ci` and `make lint-oracle-snapshot` complete successfully and the result is committed; OR (2) a design decision is made to pin the fixture to a pre-schema-change baseline (smaller cost, eventual debt). |
-| W8 | stale-artifact | — | `sonnet` | Generated docs still carry old text | Docs are regenerated in one sweep once the landed items are committed. |
-| W20 | stale-artifact | WI-15a | `haiku` | Dev warehouse stale for WI-15a: T33/T38 tests error until rebuilt | data/dev.duckdb is rebuilt with the fixed int_lap_proximity and int_lap_air_state (may defer to after WI-01's label bump, as both items move the same label rows). |
-| W23 | stale-artifact | WI-15b | `haiku` | Dev warehouse holds WI-15b's first (inner-join) thermal build: T37 errors on dev until rebuilt | data/dev.duckdb's int_lap_thermal_proxy+ is rebuilt from the working tree (dbt build -s int_lap_thermal_proxy+), and T37/T39 pass on it. |
-| W28 | stale-artifact | WI-15a | `sonnet` | app/public/data air-state exports pre-date WI-15a's F48 coding | The three tables are re-exported from a dev warehouse rebuilt with WI-15a. Because of W20 that is after WI-01's label bump, and theta-dependent tables move again there anyway. |
-| W46 | stale-artifact | WI-01 | `sonnet` | Generated docs and inventory snippets predate WI-01 | W8's single regeneration sweep runs after WI-01 is committed. |
-| W54 | stale-artifact | WI-17 | `sonnet` | The Degradation Simulator's P3 basket fixtures predate the current warehouse | The fixtures are regenerated from a rebuilt envelope (and the generator restored), and accuracy.test.ts and powerLaw.test.ts re-run on them. |
-| W17 | gate-gap | WI-07 | `sonnet` | The sqlfluff gate does not hold | The size limit is raised or the skip is made loud, and the failing files are fixed or excluded on purpose. |
 | W19 | debt | FD4 | `sonnet` | 2026 races are not ingested | FD4 is ruled, the seeds are filled (WI-05's gate lists what is missing) and the rounds are ingested. |
 
 <!-- END GENERATED TASKS -->

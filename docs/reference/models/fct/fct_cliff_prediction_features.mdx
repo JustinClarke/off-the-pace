@@ -24,6 +24,7 @@ flowchart LR
   int_event_corrections --> fct_cliff_prediction_features
   int_lap_air_state --> fct_cliff_prediction_features
   int_lap_anomaly_flags --> fct_cliff_prediction_features
+  int_lap_corner_drift --> fct_cliff_prediction_features
   int_lap_corner_inputs --> fct_cliff_prediction_features
   int_lap_proximity --> fct_cliff_prediction_features
   int_lap_residual_decomposed --> fct_cliff_prediction_features
@@ -32,6 +33,7 @@ flowchart LR
   int_lap_thermal_proxy --> fct_cliff_prediction_features
   int_qualifying_driver_summary --> fct_cliff_prediction_features
   int_sc_hazard_history --> fct_cliff_prediction_features
+  fct_cliff_prediction_features --> fct_power_law_training
   style fct_cliff_prediction_features fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -42,10 +44,10 @@ flowchart LR
 | Layer | `marts` |
 | Family | [Marts](/transform/families/marts) |
 | Contract enforced | ✅ Yes |
-| Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_compound_cliff_predicted`](../int/int_compound_cliff_predicted), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_lap_air_state`](../int/int_lap_air_state), [`int_lap_proximity`](../int/int_lap_proximity), [`int_lap_corner_inputs`](../int/int_lap_corner_inputs), [`int_event_corrections`](../int/int_event_corrections), [`int_qualifying_driver_summary`](../int/int_qualifying_driver_summary), [`int_sc_hazard_history`](../int/int_sc_hazard_history), [`int_lap_residual_stint_detrend`](../int/int_lap_residual_stint_detrend), [`int_lap_telemetry_aggregates`](../int/int_lap_telemetry_aggregates), [`dim_compounds_season`](../dim/dim_compounds_season), [`dim_circuits`](../dim/dim_circuits) |
+| Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_compound_cliff_predicted`](../int/int_compound_cliff_predicted), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_lap_air_state`](../int/int_lap_air_state), [`int_lap_proximity`](../int/int_lap_proximity), [`int_lap_corner_inputs`](../int/int_lap_corner_inputs), [`int_lap_corner_drift`](../int/int_lap_corner_drift), [`int_event_corrections`](../int/int_event_corrections), [`int_qualifying_driver_summary`](../int/int_qualifying_driver_summary), [`int_sc_hazard_history`](../int/int_sc_hazard_history), [`int_lap_residual_stint_detrend`](../int/int_lap_residual_stint_detrend), [`int_lap_telemetry_aggregates`](../int/int_lap_telemetry_aggregates), [`dim_compounds_season`](../dim/dim_compounds_season), [`dim_circuits`](../dim/dim_circuits) |
 | Model-level tests | `expect_column_values_to_be_between`, `expect_column_values_to_be_between` |
 
-**3 tests** [guard](/transform/ci/overview) this model  -  2 generic, 1 singular.
+**9 tests** [guard](/transform/ci/overview) this model  -  2 generic, 7 singular.
 
 ## Columns
 
@@ -68,14 +70,14 @@ flowchart LR
 | `compound_optimal_temp_high` | `double` | Yes |   | Upper bound of optimal operating temperature window (°C) |
 | `compound_cliff_onset_laps` | `double` | Yes |   | Expected lap age at cliff onset for this compound × circuit × season |
 | `compound_cliff_severity` | `double` | Yes |   | Fitted cliff severity (s/lap post-cliff) for this compound × circuit × season |
-| `push_residual` | `double` | Yes |   | Lap pace against the stint's point-in-time baseline, from int_lap_thermal_proxy. NULL until the stint has one valid prior lap (08e); the NULL is deterministic on baseline_observations_n below. |
+| `push_residual` | `double` | Yes |   | Lap pace against the stint's point-in-time baseline, from int_lap_thermal_proxy, both on fuel-corrected lap time (F47, WI-15b). NULL until the stint has one valid prior lap (08e); the NULL is deterministic on baseline_observations_n below. |
 | `cumulative_push_load_surface` | `double` | Yes |   | EW cumulative push load (τ≈3 laps) for tyre surface |
 | `cumulative_push_load_bulk` | `double` | Yes |   | EW cumulative push load (τ≈5 laps) for tyre bulk |
 | `baseline_observations_n` | `bigint` | Yes |   | Valid prior laps behind this stint's baseline. NOT a feature -- it is not in ml/src/schema.py's FEATURE_COLUMNS, and putting it in X is an add-ablation someone has to gate. It ships in the contract because the four thermal columns are NULL exactly where it is 0, and unlike 02a's rebuild that missingness is not declarable from any other contract column: it rises with SC and pit disruption, so it is plausibly correlated with the outcome. |
-| `dirty_air_share_lap` | `decimal(2,1)` | No |   | Fraction of this lap spent in dirty air (sector 2) |
+| `dirty_air_share_lap` | `decimal(2,1)` | No |   | 1.0 when the lap's S2 median gap to the car ahead is under 1.5 s, else 0.0; zeroed on SC/VSC/red-flag laps. Gap-only since F48 (WI-15a): DRS no longer turns a sub-1 s S2 follow into a clean lap (see int_lap_air_state.s2_drs_active). |
 | `dirty_air_thermal_load_surface` | `double` | No |   | EW dirty air thermal load on tyre surface |
 | `dirty_air_thermal_load_bulk` | `double` | No |   | EW dirty air thermal load on tyre bulk |
-| `air_state_dominant` | `varchar` | No |   | Dominant air state this lap (free_air, tow_zone, drs_train, dirty_air) |
+| `air_state_dominant` | `varchar` | No |   | Dominant (modal) air state over the lap's three thirds (free_air, tow_zone, drs_train, dirty_air). Since F48 (WI-15a) the S2 third is dirty_air whenever its median gap is under 1.5 s, so drs_train and tow_zone come from the straight thirds only. |
 | `share_lap_within_1s` | `double` | No |   | Share of the lap's 100 track bins with a car within 1 s ahead on track (position channel; mean 0.2011) |
 | `share_lap_within_2s` | `double` | No |   | Share of the lap's track bins with a car within 2 s ahead on track (mean 0.4063) |
 | `share_lap_in_train` | `double` | No |   | Share of the lap in a train rather than a single tow - within 1 s of the car ahead AND that car within 1 s of its own car ahead (mean 0.0800) |
@@ -95,6 +97,16 @@ flowchart LR
 | `corner_exit_residual_mean_s` | `double` | Yes |   | 02c. Mean exit_residual_s across the lap's corners that reach full throttle (mean 0.0589 s). Distance-to-full-throttle vs the trailing-5 field median, in seconds. Sparsest of the three phases (47.00% of corner rows, 57.94% of the mapped ones): throttle_point_m is NULL where the driver never reaches 100% throttle before the next apex, which is a real answer about a corner sequence rather than missing data. |
 | `corner_exit_residual_sd_s` | `double` | Yes |   | 02c. Sample sd of exit_residual_s across the lap's corners (mean 0.2115 s; NULL on 9.78% of corner-covered laps, the sparsest phase). |
 | `corner_exit_residual_max_s` | `double` | Yes |   | 02c. Largest exit_residual_s on the lap - the corner the driver was slowest back to power in (mean 0.4367 s). |
+| `corner_drift_coverage` | `double` | No |   | 02h. Share of this lap's corners carrying a non-NULL drift value against the driver's own early-stint (valid_lap_in_stint 1-6) baseline (mean 0.5797 over int_lap_corner_drift). COALESCEd to 0.0 on laps with no int_lap_corner_drift row, because a lap with no drift row genuinely has zero coverage. Conflates TWO confounds by design: 02c's original telemetry/field-coverage gap, and a new, purely mechanical one (inside the baseline window, or stint shorter than 7 valid laps) that is a function of lap_in_stint / age_in_stint, already in the 32-column contract. Ablated separately as this item's arm C. |
+| `corner_braking_drift_mean_s` | `double` | Yes |   | 02h. Mean braking_drift_s across the lap's corners: braking_loss_s minus the stint's own mean braking_loss_s for that corner over valid_lap_in_stint 1-6. Positive = braking has drifted earlier (worse) than the driver's own early-stint reference. NULL, never 0.0, where unmeasured (unmapped corner, inside the baseline window, or a stint shorter than 7 valid laps). |
+| `corner_braking_drift_sd_s` | `double` | Yes |   | 02h. Sample sd of braking_drift_s across the lap's corners. |
+| `corner_braking_drift_max_s` | `double` | Yes |   | 02h. Largest braking_drift_s on the lap - the corner where braking has drifted furthest from the driver's own early-stint baseline. |
+| `corner_mid_drift_mean_s` | `double` | Yes |   | 02h. Mean mid_drift_s across the lap's corners: mid_corner_residual_s minus the stint's own mean mid_corner_residual_s for that corner over valid_lap_in_stint 1-6. Positive = apex speed has fallen further behind the field than at the driver's own early-stint baseline. |
+| `corner_mid_drift_sd_s` | `double` | Yes |   | 02h. Sample sd of mid_drift_s across the lap's corners. |
+| `corner_mid_drift_max_s` | `double` | Yes |   | 02h. Largest mid_drift_s on the lap. |
+| `corner_exit_drift_mean_s` | `double` | Yes |   | 02h. Mean exit_drift_s across the lap's corners: exit_residual_s minus the stint's own mean exit_residual_s for that corner over valid_lap_in_stint 1-6. Positive = throttle application has drifted later than the driver's own early-stint baseline. |
+| `corner_exit_drift_sd_s` | `double` | Yes |   | 02h. Sample sd of exit_drift_s across the lap's corners. |
+| `corner_exit_drift_max_s` | `double` | Yes |   | 02h. Largest exit_drift_s on the lap. |
 | `quali_push_laps_n` | `bigint` | No |   | Push laps this driver set across Q1/Q2/Q3 this weekend. 0, not NULL, when the driver has no row in int_qualifying_driver_summary. |
 | `quali_constructor_pace_mean_s` | `double` | Yes |   | Mean constructor_component_s over the driver's qualifying push laps this weekend - car pace at low fuel, new tyres, near-zero traffic. |
 | `quali_constructor_pace_se_mean_s` | `double` | Yes |   | Mean estimation SE of constructor_component_s over the same push laps. |
@@ -130,11 +142,11 @@ flowchart LR
 | `cliff_candidate_flag` | `boolean` | Yes |   | TRUE if this lap shows a MAD-score cliff spike consistent with tyre cliff. Removed from ML feature contract by 08j (2026-09-09): ruled dead on both substrates by 08g (carried no information in any family). Retained in mart for audit and historical reference; not consumed by current ML features. |
 | `anomaly_class` | `varchar` | Yes |   | Anomaly classification (clean_cliff, mistake, event_driven, conditions, normal) |
 | `is_rain_lap` | `boolean` | Yes |   | TRUE if rainfall was detected on this lap |
-| `surface_bulk_ratio` | `double` | Yes |   | C3 feature (42nd): ratio of surface thermal load to total thermal load (cumulative_push_load_surface / (surface + bulk)). NULL when both loads are zero. Helps the model distinguish early-stint surface-dominated warming from bulk-driven structural degradation. |
-| `survival_weight` | `double` | Yes |   | C2 metadata (not a feature): IPW weight = 1 / P(stint reaches lap_in_stint \| compound), clipped to [0.25, 4]. Used by train.py for quantile regressor sample weighting to correct for survivorship bias (degraded stints pitted early are under-represented at high lap_in_stint values). |
+| `surface_bulk_ratio` | `double` | Yes |   | C3 feature (42nd): surface share of the two thermal loads, each divided by its own EW weight sum (F49, WI-15b), so a steady push reads 0.5; range [0, 0.606]. A monotone function of the pre-F49 share surface/(surface+bulk), which was capped at 0.5. NULL when both loads are zero. Helps the model distinguish early-stint surface-dominated warming from bulk-driven structural degradation. |
+| `survival_weight` | `double` | Yes |   | C2 metadata (not a feature): IPW weight = 1 / P(stint reaches lap_in_stint \| compound), the survival curve cumulated over seasons strictly before the row's own (08f-1), clipped to [0.25, 4]. Built to correct survivorship bias (degraded stints pitted early are under-represented at high lap_in_stint values). Since 08o it is neither a feature nor a training weight: train.py fits the quantile heads unweighted, and the column is carried in IDENTIFIER_COLUMNS only. 1.0 (unweighted) where there is no prior-season curve to read: the first ingested season, a lap with no compound, and a (compound, lap_in_stint) no earlier season reached (assert_survival_weight_neutral_without_prior_curve). Until WI-13 those rows came out at 4.0, the maximum weight, because the clip was GREATEST(0.25, LEAST(4.0, NULL)) and DuckDB's LEAST skips the NULL: 24,800 rows on the 2026-09-24 dev build, 18,878 training-eligible, including every 2018 row. The 08f-1 and 08o gates' IPW arms were built on code that did this. |
 | `next_lap_degradation_jump_detrended_s` | `double` | Yes |   | C1 PRIMARY target: per-lap change in driver skill residual with per-stint linear drift removed. drift_s_per_lap (OLS slope on pre-cliff laps, Step 0 median -0.072 s/lap) is subtracted so fuel-lightening and track-evolution leaks are cancelled. Bounded [-10, 10]. NULL on last lap of each stint. |
 | `next_lap_degradation_jump_s` | `double` | Yes |   | Legacy target (undetrended): change in driver skill residual on the next lap, bounded [-10, 10]. Kept alongside the detrended primary for gate comparison. NULL on last lap. |
 | `next_3_lap_cumulative_jump_s` | `double` | Yes |   | Cumulative detrended degradation jump over the next 3 laps: SUM over i=1..3 of (residual(t+i) - residual(t) - i * drift_s_per_lap), i.e. the current residual is subtracted once per horizon step and per-stint drift is removed on the same schedule as next_lap_degradation_jump_detrended_s. Signed and bounded [-30, 30] (the per-lap +/-10 s bound scaled by the horizon). NULL unless laps t+1..t+3 are all present in the stint -- the guard is on true lap offsets, not row offsets. |
 | `next_5_lap_cumulative_jump_s` | `double` | Yes |   | As next_3_lap_cumulative_jump_s over a 5-lap horizon: SUM over i=1..5 of (residual(t+i) - residual(t) - i * drift_s_per_lap). Signed and bounded [-50, 50]. NULL unless laps t+1..t+5 are all present in the stint. |
 | `laps_until_cliff_class` | `varchar` | Yes |   | Bucket: 0_to_2, 3_to_5, 6_plus, none_in_stint. Laps until the FIRST crossing of the &gt;1.0s detrended jump threshold, scanned over every remaining lap of the stint at true lap offsets. The buckets partition the horizon exactly as their names read -- 6_plus is 6-or-more, not exactly 6, and none_in_stint means no crossing anywhere in the remaining stint. NULL on the last lap of a stint, where there is no horizon to scan. |
-| `is_training_eligible` | `boolean` | No |   | TRUE if this lap is suitable for model training (age_in_stint &gt; 3, no anomaly) |
+| `is_training_eligible` | `boolean` | No |   | TRUE if this lap is suitable for model training: age_in_stint &gt; 3, anomaly_class not in (mistake, conditions, event_driven), and not the lap after an SC/red-flag restart lap (int_event_corrections.is_lap_after_restart). The last two are FD2's ruling (WI-01): exclude, not weight. |

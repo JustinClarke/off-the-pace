@@ -9,12 +9,14 @@
 | `dim_circuits` | Reference | 1 |   |   |   |   | 1 |
 | `dim_compounds_season` | Reference |   |   |   | 3 |   | 3 |
 | `dim_corners` | Reference |   |   |   | 1 |   | 1 |
+| `int_cell_power_law_fit` | Physics |   |   |   | 1 |   | 1 |
 | `int_dirty_air_tax_component` | Physics | 2 |   |   |   |   | 2 |
 | `int_lap_air_state` | Physics | 2 |   |   |   |   | 2 |
 | `int_lap_normalized_pace` | Physics | 3 |   |   |   |   | 3 |
 | `int_lap_proximity` | Physics | 5 |   |   |   |   | 5 |
 | `int_lap_telemetry_aggregates` | Physics |   | 4 |   |   |   | 4 |
 | `int_lap_thermal_proxy` | Physics | 1 |   |   |   |   | 1 |
+| `int_power_law_lap` | Physics | 1 |   |   | 2 |   | 3 |
 | `int_stint_geometry` | Physics | 1 |   |   |   |   | 1 |
 | `int_constructor_structural_pace` | Pace Baselines | 2 |   |   |   | 1 | 3 |
 | `int_qualifying_segments` | Pace Baselines |   |   |   | 1 |   | 1 |
@@ -23,8 +25,7 @@
 | `int_driver_circuit_era_affinity` | Skill | 2 |   |   | 1 |   | 3 |
 | `int_driver_isolation_lap_pace` | Skill |   |   |   | 3 |   | 3 |
 | `int_driver_isolation_lap_panel` | Skill |   |   |   | 2 |   | 2 |
-| `int_driver_isolation_lap_values` | Skill |   |   |   | 5 |   | 5 |
-| `int_driver_isolation_stint_tyre` | Skill |   |   |   | 2 |   | 2 |
+| `int_driver_isolation_lap_values` | Skill |   |   |   | 3 |   | 3 |
 | `int_driver_season_ratings` | Skill | 2 |   |   |   |   | 2 |
 | `int_era_normalized_driver_rating` | Skill | 2 |   |   |   |   | 2 |
 | `int_lap_residual_decomposed` | Residual | 1 |   |   |   |   | 1 |
@@ -37,20 +38,22 @@
 | `int_sc_hazard_history` | Strategy | 7 |   |   |   |   | 7 |
 | `int_stint_end_regime` | Strategy |   |   |   | 4 |   | 4 |
 | `fct_cliff_prediction_features` | Marts | 2 |   |   |   |   | 2 |
-| `fct_driver_isolation_lap` | Marts |   |   |   | 7 |   | 7 |
+| `fct_driver_isolation_lap` | Marts |   |   |   | 5 |   | 5 |
 | `fct_driver_isolation_pair_lap` | Marts |   |   |   | 4 |   | 4 |
-| `fct_driver_isolation_race` | Marts |   |   |   | 4 |   | 4 |
-| `fct_driver_isolation_stint` | Marts |   |   |   | 6 |   | 6 |
+| `fct_driver_isolation_race` | Marts |   |   |   | 3 |   | 3 |
+| `fct_driver_isolation_stint` | Marts |   |   |   | 3 |   | 3 |
 | `fct_driver_skill_features` | Marts | 1 |   |   |   |   | 1 |
 | `fct_ghost_car_pace` | Marts | 2 |   |   |   |   | 2 |
 | `fct_ghost_race_finish` | Marts | 4 |   |   |   |   | 4 |
 | `fct_lap_residuals` | Marts |   |   |   | 1 |   | 1 |
+| `fct_power_law_training` | Marts |   |   |   | 1 |   | 1 |
 | `fct_stint_features` | Marts | 2 |   |   | 4 |   | 6 |
 | `mart_corner_skill_driver` | Marts | 4 |   |   |   |   | 4 |
 | `mart_degradation_history_envelope` | Marts | 3 |   | 1 | 1 | 3 | 8 |
 | `circuit_reference` | Reference (seed) | 2 |   |   |   |   | 2 |
 | `compound_cliff_params` | Reference (seed) | 4 |   |   | 4 |   | 8 |
+| `compound_hardness_scale` | Reference (seed) | 1 |   |   | 2 |   | 3 |
 | `driver_isolation_method_scores` | Reference (seed) | 1 |   |   | 2 |   | 3 |
 | `race_scheduled_laps` | Reference (seed) | 1 |   |   | 1 |   | 2 |
 | `tyre_allocations` | Reference (seed) |   |   |   | 3 |   | 3 |
-| **Total** |  | 75 | 4 | 1 | 76 | 4 | **160** |
+| **Total** |  | 77 | 4 | 1 | 72 | 4 | **158** |

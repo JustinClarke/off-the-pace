@@ -14,6 +14,7 @@ Field-level baseline pace curve. Grain is (race_year, race_id, lap_number). Comp
 
 ```mermaid
 flowchart LR
+  int_compound_cliff_predicted --> int_field_pace_curve
   int_lap_air_state --> int_field_pace_curve
   int_lap_fuel_state --> int_field_pace_curve
   int_stint_geometry --> int_field_pace_curve
@@ -33,9 +34,9 @@ flowchart LR
 | Layer | `intermediate` |
 | Family | [Pace Baselines](/transform/families/pace-baselines) |
 | Contract enforced | No |
-| Upstream | [`int_lap_fuel_state`](./int_lap_fuel_state), [`int_stint_geometry`](./int_stint_geometry), [`int_lap_air_state`](./int_lap_air_state) |
+| Upstream | [`int_lap_fuel_state`](./int_lap_fuel_state), [`int_stint_geometry`](./int_stint_geometry), [`int_lap_air_state`](./int_lap_air_state), [`int_compound_cliff_predicted`](./int_compound_cliff_predicted) |
 
-**5 tests** [guard](/transform/ci/overview) this model  -  3 generic, 2 singular.
+**8 tests** [guard](/transform/ci/overview) this model  -  3 generic, 5 singular.
 
 ## Columns
 

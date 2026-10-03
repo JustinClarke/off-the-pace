@@ -2,6 +2,9 @@
 templater = dbt
 dialect = duckdb
 exclude_rules = L034, L036
+# Disable file size limit to allow linting of large SQL files like
+# int_constructor_deg_sensitivity.sql (22KB) and fct_cliff_prediction_features.sql (40KB)
+large_file_skip_byte_limit = 0
 
 [sqlfluff:templater:dbt]
 project_dir = ./

@@ -19,6 +19,7 @@ flowchart LR
   dim_circuits --> fct_driver_skill_features
   dim_circuits --> int_lap_fuel_state
   dim_circuits --> int_pit_loss_circuit
+  dim_circuits --> int_power_law_lap
   dim_circuits --> mart_degradation_history_envelope
   style dim_circuits fill:#e40404,stroke:#e40404,color:#fff
 ```
@@ -31,7 +32,7 @@ flowchart LR
 | Family | [Reference](/transform/families/reference) |
 | Contract enforced | No |
 
-**7 tests** [guard](/transform/ci/overview) this model  -  6 generic, 1 singular.
+**9 tests** [guard](/transform/ci/overview) this model  -  6 generic, 3 singular.
 
 ## Columns
 
@@ -43,7 +44,7 @@ flowchart LR
 | `lap_length_km` | `double` | Yes | [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Circuit lap length in kilometres. |
 | `corner_count` | `integer` | Yes |   | Number of corners on the lap (used in the weight-penalty formula). |
 | `avg_lateral_g` | `double` | Yes |   | Average lateral g-force proxy for the circuit (used in the weight-penalty formula). |
-| `fuel_consumption_rate_kg_per_lap` | `double` | Yes | [`not_null`](/transform/ci/structural) | Estimated kg of fuel burned per lap, used for fuel_mass_kg in Layer 03. |
+| `fuel_consumption_rate_kg_per_lap` | `double` | Yes | [`not_null`](/transform/ci/structural) | LEGACY -- no transform model or fitter computes from it. A hand-set per-circuit burn estimate (kg/lap). Since WI-05 the fuel model burns the season's FIA limit over the race's scheduled laps (int_lap_fuel_state.fuel_consumption_rate_kg_per_lap), and since WI-13 (F55) fit_weight_penalty.py divides by that rate too. Kept, not dropped, because the app's Degradation Simulator still reads it here as the burn rate of the stint it sweeps. It runs high against the model's rate: 1.09x on average over the 36 raced circuits (0.97-1.35x; Spain 1.9 against ~1.66). |
 | `track_energy_index` | `double` | Yes |   | Energy-demand index for the circuit; conditions constructor structural-pace decomposition. |
 | `abrasiveness_index` | `integer` | Yes |   | Ordinal surface-abrasiveness rating driving track-evolution / rubber-in modelling. |
 | `weight_penalty_factor` | `double` | Yes | [`not_null`](/transform/ci/structural) | Seconds per kg of fuel mass carried. Formula: 0.02 + 0.0002 × corner_count × avg_lateral_g. Used in int_lap_fuel_state to compute weight_corrected_lap_time. |

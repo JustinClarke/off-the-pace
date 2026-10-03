@@ -1,22 +1,22 @@
 <CardGroup cols={3}>
-  <Card title="86 models" icon="database">
-    Staging (17) + Reference (5) + 50
-    intermediate models across 5 families + Marts (14).
+  <Card title="90 models" icon="database">
+    Staging (17) + Reference (5) + 53
+    intermediate models across 5 families + Marts (15).
   </Card>
-  <Card title="912 tests" icon="shield-check">
-    825 generic column contracts + 87 hand-written mathematical
+  <Card title="960 tests" icon="shield-check">
+    856 generic column contracts + 104 hand-written mathematical
     assertions, every build.
   </Card>
-  <Card title="664 structural" icon="key">
+  <Card title="697 structural" icon="key">
     `not_null`, `unique`, and unique-combination tests guard every model's grain.
   </Card>
-  <Card title="160 range &amp; domain" icon="ruler">
+  <Card title="158 range &amp; domain" icon="ruler">
     Bounded shares, honest envelopes, enum integrity, and cross-column monotonicity.
   </Card>
-  <Card title="18 identity-closure" icon="equal">
+  <Card title="22 identity-closure" icon="equal">
     Additive identities and shrinkage bounds that close to tolerance on every lap.
   </Card>
-  <Card title="67 domain + 2 regression" icon="check-check">
+  <Card title="79 domain + 3 regression" icon="check-check">
     Physical/statistical invariants, plus baseline-comparison gates on headline statistics.
     0 singular tests are placeholders (`SELECT 1 WHERE FALSE`), wired up once
     their upstream model lands.
@@ -26,10 +26,10 @@
 <CardGroup cols={4}>
   <Card title="17 Staging" icon="layers" href="/transform/families/staging" />
   <Card title="5 Reference" icon="layers" href="/transform/families/reference" />
-  <Card title="11 Physics" icon="layers" href="/transform/families/physics" />
+  <Card title="14 Physics" icon="layers" href="/transform/families/physics" />
   <Card title="9 Pace Baselines" icon="layers" href="/transform/families/pace-baselines" />
   <Card title="12 Skill" icon="layers" href="/transform/families/skill" />
   <Card title="12 Residual" icon="layers" href="/transform/families/residual" />
   <Card title="6 Strategy" icon="layers" href="/transform/families/strategy" />
-  <Card title="14 Marts" icon="layers" href="/transform/families/marts" />
+  <Card title="15 Marts" icon="layers" href="/transform/families/marts" />
 </CardGroup>

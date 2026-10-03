@@ -8,7 +8,7 @@ description: "One row per (driver_id, season)."
 
 <Note>Part of the [Skill](/transform/families/skill) family.</Note>
 
-One row per (driver_id, season). Aggregates race residuals to season grain. Shrunk toward season league average (Bayesian, prior = 5 virtual races). Negative = faster than season average. Intermediate for era_normalized_driver_rating. Isolates driver strength from era variation (e.g., 2016 vs 2022 regulations).
+One row per (driver_id, season). Aggregates the race-grain equal-car rating (int_driver_race_skill_loro.driver_skill_loro_s, the median lap-by-lap gap to the teammate) to season grain, shrunk toward the season mean over all drivers (Bayesian, prior = 5 virtual races). Negative = faster than his teammate(s). Teammate-relative, so a car-era shift cancels inside each pair. Intermediate for int_era_normalized_driver_rating.
 
 ## Lineage
 
@@ -39,7 +39,7 @@ flowchart LR
 | `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | Driver identifier |
 | `season` |   | Yes | [`not_null`](/transform/ci/structural) | Race year (integer) |
 | `n_races` |   | Yes | [`not_null`](/transform/ci/structural) | Races contributing to this estimate |
-| `raw_residual_mean_s` |   | Yes | [`not_null`](/transform/ci/structural) | Unadjusted season mean residual. Negative = faster. |
-| `shrunk_residual_s` |   | Yes | [`not_null`](/transform/ci/structural) | Bayesian posterior mean toward season league average. |
+| `raw_residual_mean_s` |   | Yes | [`not_null`](/transform/ci/structural) | Unshrunk season mean gap to the teammate. Negative = faster than the teammate. |
+| `shrunk_residual_s` |   | Yes | [`not_null`](/transform/ci/structural) | Bayesian posterior mean toward the season mean over all drivers. |
 | `shrunk_residual_se_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Posterior standard error in seconds. |
 | `rating_confidence` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Data fraction of posterior mass. n_races / (n_races + 5). [0, 1]. |

@@ -16,6 +16,7 @@ Bronze tyre QA (WI-05: F24, F25), one row per race lap; int_stint_geometry reads
 flowchart LR
   stg_laps --> stg_lap_tyre_qa
   stg_pits --> stg_lap_tyre_qa
+  stg_lap_tyre_qa --> int_sector_residual_decomposed
   stg_lap_tyre_qa --> int_stint_geometry
   style stg_lap_tyre_qa fill:#e40404,stroke:#e40404,color:#fff
 ```

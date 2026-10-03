@@ -1,12 +1,12 @@
 {
-  "version": "8202c8569e763fb4",
-  "generatedAt": "2026-09-29T19:58:01.095451+00:00",
+  "version": "b9fbd7092b43b6dc",
+  "generatedAt": "2026-10-03T17:53:33.919781+00:00",
   "stats": {
     "total_laps": 161040,
     "total_drivers": 43,
     "total_events": 6,
     "total_circuits": 36,
-    "dbt_models": 92,
+    "dbt_models": 90,
     "ml_models": 5,
     "seasons": "2018\u20132025",
     "seasons_list": [
@@ -1198,10 +1198,6 @@
               "path": "/data/intermediates/int_sector_residual_decomposed/2018/2018_21.parquet"
             },
             {
-              "value": "2018_3",
-              "path": "/data/intermediates/int_sector_residual_decomposed/2018/2018_3.parquet"
-            },
-            {
               "value": "2018_4",
               "path": "/data/intermediates/int_sector_residual_decomposed/2018/2018_4.parquet"
             },
@@ -1854,10 +1850,6 @@
             {
               "value": "2025_5",
               "path": "/data/intermediates/int_sector_residual_decomposed/2025/2025_5.parquet"
-            },
-            {
-              "value": "2025_6",
-              "path": "/data/intermediates/int_sector_residual_decomposed/2025/2025_6.parquet"
             },
             {
               "value": "2025_7",

@@ -26,11 +26,11 @@ flowchart LR
 | Family | [Marts](/transform/families/marts) |
 | Contract enforced | No |
 
-**3 tests** [guard](/transform/ci/overview) this model  -  3 generic, 0 singular.
+**4 tests** [guard](/transform/ci/overview) this model  -  4 generic, 0 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `event_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK for the event. |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | Race identifier the event belongs to. |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `expect_column_values_to_match_regex` | Race identifier the event belongs to, in the pipeline's 'YYYY_N' form (e.g. 2021_10). Typed varchar on the seed (dbt_project.yml); untyped, DuckDB reads it as the integer 202110. |

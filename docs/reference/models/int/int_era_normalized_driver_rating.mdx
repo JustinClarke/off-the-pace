@@ -8,7 +8,7 @@ description: "One row per (driver_id, season)."
 
 <Note>Part of the [Skill](/transform/families/skill) family.</Note>
 
-One row per (driver_id, season). Cross-era driver rating: compares drivers across 2018–2024 despite regulation changes (2022 ground-effect boundary). Uses bridge drivers (≥8 races both eras) to estimate era offset, then adjusts season residuals. era_adjusted_rating = comparable across eras; negative = faster than era average. low_anchor_sample_flag = few bridge drivers (weak offset).
+One row per (driver_id, season). The published driver-season rating. era_adjusted_rating = shrunk_residual_s with NO era offset (WI-14b, F45): the rating is teammate-relative (median lap-by-lap gap to the teammate, F40), so a car-era shift moves both teammates alike and cancels. The old ungated bridge-driver offset (t = -1.5) inverted the between-era field-mean gap. Negative = faster than his teammate(s). The bridge-driver shift is still measured and published as diagnostics (era_shift_global_s, era_shift_se_s, n_bridge_drivers, low_anchor_sample_flag); none of them moves era_adjusted_rating. T35 (assert_era_offset_shrinks_gap) fails if an ungated offset returns.
 
 ## Lineage
 
@@ -28,7 +28,7 @@ flowchart LR
 | Tags | `driver_rating`, `era_rating` |
 | Upstream | [`int_driver_season_ratings`](./int_driver_season_ratings) |
 
-**16 tests** [guard](/transform/ci/overview) this model  -  15 generic, 1 singular.
+**17 tests** [guard](/transform/ci/overview) this model  -  15 generic, 2 singular.
 
 ## Columns
 
@@ -39,10 +39,11 @@ flowchart LR
 | `season` |   | Yes | [`not_null`](/transform/ci/structural) | Race year (integer) |
 | `raw_residual_mean_s` |   | Yes | [`not_null`](/transform/ci/structural) | Unadjusted season mean. Not era-adjusted. |
 | `shrunk_residual_s` |   | Yes | [`not_null`](/transform/ci/structural) | Bayesian posterior mean (season shrinkage applied, no era offset). |
-| `era_adjusted_rating` |   | Yes | [`not_null`](/transform/ci/structural) | Cross-era comparable rating. Negative = faster than era average. Key output column. |
-| `era_adjusted_rating_se_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Propagated SE (sqrt of shrunk SE² + era shift SE²). |
+| `era_adjusted_rating` |   | Yes | [`not_null`](/transform/ci/structural) | The driver-season rating, equal to shrunk_residual_s (no era offset, F45). Negative = faster than his teammate(s). Key output column. |
+| `era_adjusted_rating_se_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | The season rating's posterior SE (shrunk_residual_se_s; 0 where that is NULL). |
 | `era_adjusted_rating_ci_low_s` |   | Yes | [`not_null`](/transform/ci/structural) | Lower bound of 95% CI on era_adjusted_rating |
 | `era_adjusted_rating_ci_high_s` |   | Yes | [`not_null`](/transform/ci/structural) | Upper bound of 95% CI on era_adjusted_rating |
 | `rating_confidence` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | n_races / (n_races + 5). [0, 1]. |
-| `bridge_driver_anchor_flag` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE if this driver was used to estimate the era offset. |
-| `low_anchor_sample_flag` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE if fewer than 3 bridge drivers found; era offset is 0 when this fires. |
+| `bridge_driver_anchor_flag` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE if the driver raced &gt;= 8 races on each side of the 2022 boundary (the population behind the diagnostic era_shift_global_s). Anchors nothing: no offset is applied. |
+| `era_shift_global_s` |   | Yes |   | Diagnostic only: mean pre-minus-post shift of the bridge drivers' season ratings. NOT applied to era_adjusted_rating (F45). |
+| `low_anchor_sample_flag` |   | Yes | [`not_null`](/transform/ci/structural) | Diagnostic only: TRUE if fewer than 3 bridge drivers were found. No offset is applied either way. |

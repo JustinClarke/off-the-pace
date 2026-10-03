@@ -8,7 +8,7 @@ description: "One row per constructor (team)."
 
 <Note>Part of the [Reference](/transform/families/reference) family.</Note>
 
-One row per constructor (team). Derived from stg_laps with a manually maintained power-unit family mapping. pu_family conditions constructor_pace_index on similar-engine teams in Layer 04 (e.g. Mercedes PU customers share base drag); update the mapping when customer relationships change.
+One row per constructor (team). Derived from stg_laps with a manually maintained power-unit family mapping, one family per team name (not per season). pu_family is a reference attribute: it is carried onto fct_lap_residuals and fct_driver_skill_features, and no pace index or model reads it. A team rename arrives as a new constructor_id and needs its own mapping row; assert_pu_family_coverage warns while any constructor is 'unknown_pu'.
 
 ## Lineage
 
@@ -29,7 +29,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`stg_laps`](../stg/stg_laps) |
 
-**3 tests** [guard](/transform/ci/overview) this model  -  3 generic, 0 singular.
+**4 tests** [guard](/transform/ci/overview) this model  -  3 generic, 1 singular.
 
 ## Columns
 

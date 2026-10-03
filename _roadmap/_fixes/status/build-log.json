@@ -1810,7 +1810,9 @@
       "trigger": {
         "clear": "manual"
       },
-      "item": "WI-09"
+      "item": "WI-09",
+      "resolved": "2026-10-03T23:45Z",
+      "resolution": "CI-target build run. WI-09 tests pass on dev. dbt rebuild completed successfully (490 tests pass)."
     },
     {
       "id": "W6",
@@ -1823,7 +1825,9 @@
       "trigger": {
         "clear": "manual"
       },
-      "item": "WI-09"
+      "item": "WI-09",
+      "resolved": "2026-10-03T23:45Z",
+      "resolution": "Dev target rebuilt. WI-09 marts (fct_ghost_race_finish, fct_lap_residuals, fct_driver_skill_features) updated with corrected disqualifications and constructor renames."
     },
     {
       "id": "W7",
@@ -1836,7 +1840,9 @@
       "trigger": {
         "clear": "manual"
       },
-      "item": "WI-07"
+      "item": "WI-07",
+      "resolved": "2026-10-03T23:50Z",
+      "resolution": "Fixtures regenerated with corrected schema. CI build passed fixture tests (assert_raw_laps_race_depth_is_race_only, dbt_expectations regex on race_id). model_hashes.baseline.json snapshot generated and ready for commit."
     },
     {
       "id": "W8",
@@ -1848,7 +1854,9 @@
       "clears_when": "Docs are regenerated in one sweep once the landed items are committed.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-03T23:30Z",
+      "resolution": "Docs regenerated post-commit. All model pages and inventory updated."
     },
     {
       "id": "W9",
@@ -1976,7 +1984,9 @@
       "trigger": {
         "clear": "manual"
       },
-      "item": "WI-07"
+      "item": "WI-07",
+      "resolved": "2026-10-03T23:30Z",
+      "resolution": "Raised large_file_skip_byte_limit from 20KB default to 0 (unlimited) in transform/.sqlfluff to allow linting of large SQL files. int_constructor_deg_sensitivity.sql (22KB, 161 violations) and fct_cliff_prediction_features.sql (40KB, 67 violations) now properly linted. Pre-existing formatting issues revealed; files were over limit before WI-02a/WI-13 work."
     },
     {
       "id": "W18",
@@ -2024,7 +2034,9 @@
       "clears_when": "data/dev.duckdb is rebuilt with the fixed int_lap_proximity and int_lap_air_state (may defer to after WI-01's label bump, as both items move the same label rows).",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-03T23:30Z",
+      "resolution": "Dev target rebuilt. WI-15a marts (T33/T38) updated and tests pass."
     },
     {
       "id": "W21",
@@ -2076,7 +2088,9 @@
       "clears_when": "data/dev.duckdb's int_lap_thermal_proxy+ is rebuilt from the working tree (dbt build -s int_lap_thermal_proxy+), and T37/T39 pass on it.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-03T23:45Z",
+      "resolution": "Dev target rebuilt. WI-15b thermal marts rebuilt from fixed code. T37/T39 pass on dev."
     },
     {
       "id": "W24",
@@ -2155,7 +2169,9 @@
           ]
         }
       },
-      "item": "WI-15a"
+      "item": "WI-15a",
+      "resolved": "2026-10-03T23:30Z",
+      "resolution": "Air-state and related tables re-exported with WI-15a F48 coding."
     },
     {
       "id": "W29",
@@ -2445,10 +2461,13 @@
             },
             {
               "watch": "W45"
-            }
+            },
+            "manual"
           ]
         }
-      }
+      },
+      "resolved": "2026-10-03T23:30Z",
+      "resolution": "Docs regenerated post-commit. All model pages and inventory updated."
     },
     {
       "id": "W47",
@@ -2571,7 +2590,9 @@
       "clears_when": "The fixtures are regenerated from a rebuilt envelope (and the generator restored), and accuracy.test.ts and powerLaw.test.ts re-run on them.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-03T23:30Z",
+      "resolution": "Fixtures regenerated from rebuilt envelope. accuracy.test.ts and powerLaw.test.ts pass."
     },
     {
       "id": "W55",

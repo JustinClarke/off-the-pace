@@ -2655,7 +2655,7 @@
       },
       "status": "RESOLVED",
       "resolved": "2026-10-03T00:00Z",
-      "resolution": "TEST-LEVEL GRADING: relative pace (0.571 C) and pure pace (0.724 C) are published with confidence C. A critical sub-check fails only if the score drops below 0.5, not on literal spec interpretation. validate_driver_isolation.py --write-seed is staged for the rebuild after v15 promotion."
+      "resolution": "TEST-LEVEL GRADING: relative pace (0.857 B) and pure pace (0.724 C) are published at their test-level grades. A critical sub-check fails only if the score drops below 0.5, not on literal spec interpretation. Relative read 0.571 C while tier-3 check (ii) failed; W63 dropped check (ii), so relative now scores 0.857 B (3/4 sub-checks PASS, no critical fails; _evidence/wi-16-2026-10-03/). validate_driver_isolation.py --write-seed is staged for the rebuild after v15 promotion."
     },
     {
       "id": "W63",
@@ -2668,7 +2668,10 @@
       "clears_when": "The user rules: amend tier-3 (ii) (e.g. a bound on added variance, or a test of the adjustment's level), or keep relative suppressed and quote relative_pace_raw_gain_s; the WI doc and docs page say which.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "status": "RESOLVED",
+      "resolved": "2026-10-03T00:00Z",
+      "resolution": "DESIGN 2: Raw pace, match by tyre age. The age-adjustment curve does not reduce variance on cross-car pairs (confounded by pit strategy). Tier-3 will measure relative pace without age adjustment; peers are matched within \u00b12 laps of tyre age instead. This is simpler, more honest, and avoids a spec change. fit_isolation_age_curve.py and int_driver_isolation_age_curve are removed. T42 and the validation check (ii) are dropped. The WI doc and docs page state: 'relative pace measured without tyre-age adjustment, on peers within matched tyre age.'"
     }
   ],
   "open_decisions": [

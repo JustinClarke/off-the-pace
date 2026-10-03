@@ -13,6 +13,10 @@ Scope after the 2026-09-28 cancellation of the tactical rating:
     are reported as NOT_APPLICABLE and carry no weight: the matrix gives V6 no weight for
     pure or relative, and the other three are tactical rows.
   * Decisions use 2018-2024 only; 2025 is reported as confirmation (FD4).
+  * Tier 3's own V3 checks coverage only. Its check (ii), that the ΔC / fitted-curve age
+    adjustment must reduce the within-pair variance against the raw delta, was dropped with
+    the age adjustment itself under W63 design 2 (2026-10-03): relative pace is raw pace on
+    peers matched within var('isolation_peer_age_tolerance') laps of tyre age.
 
 Implementation choices the doc leaves open are declared in each result's `design`
 field; none of them is tuned on a result. Thresholds are the doc's.
@@ -710,46 +714,15 @@ class DriverIsolationValidator:
             FROM fct_driver_isolation_lap
             WHERE race_year BETWEEN {DECISION_YEARS[0]} AND {DECISION_YEARS[1]}
         """).iloc[0]
-        # Since WI-16b (2026-09-30) relative_pace_gain_s is adjusted by the fitted age curve;
-        # the seed-ΔC version is kept in relative_pace_seed_adj_gain_s and reported alongside.
-        has_seed = bool(self.q("""
-            SELECT COUNT(*) AS n FROM information_schema.columns
-            WHERE table_name = 'fct_driver_isolation_pair_lap' AND column_name = 'relative_pace_seed_adj_gain_s'
-        """).n.iloc[0])
-        seed_col = "relative_pace_seed_adj_gain_s" if has_seed else "NULL::DOUBLE"
-        var = self.q(f"""
-            WITH p AS (
-                SELECT race_id, driver_id, peer_driver_id, relative_pace_gain_s AS adj, relative_pace_raw_gain_s AS raw,
-                       {seed_col} AS seed
-                FROM fct_driver_isolation_pair_lap
-                WHERE driver_id < peer_driver_id AND race_year BETWEEN {DECISION_YEARS[0]} AND {DECISION_YEARS[1]}
-                  AND relative_pace_gain_s IS NOT NULL AND relative_pace_raw_gain_s IS NOT NULL
-            ),
-            g AS (
-                SELECT race_id, driver_id, peer_driver_id, COUNT(*) AS n,
-                       VAR_SAMP(adj) * (COUNT(*) - 1) AS ss_adj, VAR_SAMP(raw) * (COUNT(*) - 1) AS ss_raw,
-                       VAR_SAMP(seed) * (COUNT(*) - 1) AS ss_seed
-                FROM p GROUP BY ALL HAVING COUNT(*) >= 3
-            )
-            SELECT COUNT(*) AS n_pairs, SUM(n) AS n_laps, SUM(ss_adj) / SUM(n - 1) AS var_adj,
-                   SUM(ss_raw) / SUM(n - 1) AS var_raw, SUM(ss_seed) / SUM(n - 1) AS var_seed
-            FROM g
-        """).iloc[0]
+        # Check (ii), the age adjustment's within-pair variance test, was dropped under W63
+        # design 2 (2026-10-03): relative_pace_gain_s is raw pace on age-matched peers, so
+        # there is no adjustment left to test. Coverage (i) is the whole of tier 3's V3.
         thr = THRESHOLDS["V3_tier3_coverage"]["pass"]
         s_cov = grade_lower(float(cov.share1), thr)
-        s_var = "PASS" if float(var.var_adj) < float(var.var_raw) else "FAIL"
         return {
-            "status": "PASS" if (s_cov == "PASS" and s_var == "PASS") else "FAIL",
+            "status": s_cov,
             "V3_tier3_coverage": result(s_cov, share_ge1_peer=f(cov.share1), share_ge2=f(cov.share2),
                                         share_ge5=f(cov.share5), n_omega_laps=int(cov.n), threshold=thr),
-            "V3_tier3_age_adjustment": result(s_var, pooled_within_pair_var_adjusted=f(var.var_adj),
-                                              pooled_within_pair_var_raw=f(var.var_raw),
-                                              reduction=f(1 - var.var_adj / var.var_raw),
-                                              report_seed_adjusted_reduction=(
-                                                  f(1 - var.var_seed / var.var_raw) if has_seed else None),
-                                              n_pairs=int(var.n_pairs), n_pair_laps=int(var.n_laps),
-                                              design="Pooled within-pair (race, unordered pair, >= 3 pair-laps) "
-                                                     "lap-to-lap variance of the age-adjusted vs the raw delta."),
         }
 
     # ── V4 ──────────────────────────────────────────────────────────────────────────
@@ -985,10 +958,11 @@ class DriverIsolationValidator:
     def _validate_examples(self) -> Dict[str, Any]:
         examples = {}
         # Expected values: the 2026-09-29 run's (the WI doc's probe for 2021_19 was +0.05/41 and
-        # for 2023_2 -0.40/40; see the build log's 2026-09-29T11:00 entry).
+        # for 2023_2 -0.40/40; see the build log's 2026-09-29T11:00 entry), except 2021_19, re-based
+        # to the 2026-10-03 run after W63 (raw pace, peers within ±2 laps of tyre age; was +0.178/41).
         probes = [
             ("2021_8", "VER", "HAM", 0.24, 57, "Styrian GP"),
-            ("2021_19", "HAM", "VER", 0.178, 41, "São Paulo"),
+            ("2021_19", "HAM", "VER", -0.041, 18, "São Paulo"),
             ("2023_2", "VER", "PER", -0.459, 37, "Saudi Arabian"),
         ]
         for race_id, d1, d2, expected_pace, expected_n, circuit in probes:
@@ -1038,8 +1012,8 @@ class DriverIsolationValidator:
                 ("V5", 1.0, [("V5.V5a", 1, False), ("V5.V5b", 1, False)]),
             ],
             "relative": [
-                ("V3_tier3", 2.0, [("V3.V3_tier3.V3_tier3_coverage", 1, True),
-                                   ("V3.V3_tier3.V3_tier3_age_adjustment", 1, True)]),
+                # Tier-3 (ii) age adjustment dropped under W63 design 2 (2026-10-03).
+                ("V3_tier3", 2.0, [("V3.V3_tier3.V3_tier3_coverage", 1, True)]),
                 ("V4", 0.5, [("V4.V4c", 1, False)]),
                 ("V5", 1.0, [("V5.V5d.V5d_autocorr", 1, False), ("V5.V5d.V5d_jitter", 1, False)]),
             ],

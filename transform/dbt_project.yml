@@ -198,10 +198,9 @@ vars:
   isolation_window_min_laps: 3
   # fct_driver_isolation_pair_lap: d' is a same-strategy peer of d on lap l when both have
   # an Ω lap on the same lap number and the same compound, with tyre ages within this
-  # many laps. 3 laps of wear is small enough for the seed's ΔC to adjust (tier 3's
-  # age-adjusted delta). Measured: 90.4% of Ω laps have >= 1 peer (the WI doc's probe
-  # said 88.3%).
-  isolation_peer_age_tolerance: 3
+  # many laps. No model-based age adjustment is applied; peers are matched directly by age.
+  # Measured: 86.4% of Ω laps have >= 1 peer at ±2 laps (90.4% at ±3).
+  isolation_peer_age_tolerance: 2
   # int_driver_isolation_stint_tyre: a stint's pace line (the slope beta_s the tactical
   # rating is built from) needs at least this many clean early/mid, non-recovery laps;
   # below it beta_s, m_s and every tactical value in the stint are NULL (never 0).

@@ -151,7 +151,6 @@ rated AS (
         pa.identity_pace_gap_gain_s,
         pa.identity_car_advantage_gain_s,
         pa.identity_traffic_advantage_gain_s,
-        pa.identity_age_pricing_gain_s,
 
         la.tyre_offset_vs_field_s,
         la.lift_coast_excess_share,

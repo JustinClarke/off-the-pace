@@ -21,8 +21,9 @@
 -- ALSO:
 --   identity_*           the tier-3 identity split over the group's pair-laps
 --                        (macro driver_isolation_identity_terms): the
---                        contributions sum exactly to
---                        identity_relative_pace_gain_s
+--                        contributions sum to identity_relative_pace_gain_s
+--                        up to the tyre-age bias of the +-tolerance peer
+--                        match (W63 design 2; see the macro)
 --   context              not ratings: strategy_verdict and opportunity_cost_s
 --                        (int_pit_strategy_value; staying out is the pit
 --                        wall's call), stint_end_cause and is_censored_stint
@@ -137,7 +138,6 @@ rated AS (
         pa.identity_pace_gap_gain_s,
         pa.identity_car_advantage_gain_s,
         pa.identity_traffic_advantage_gain_s,
-        pa.identity_age_pricing_gain_s,
 
         -- The stint's tyre model (int_driver_isolation_stint_tyre).
         s.n_line_laps,

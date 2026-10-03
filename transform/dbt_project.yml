@@ -239,10 +239,9 @@ vars:
   # would lift 2018 about 0.08 s above them. The offset is constant within a season, so
   # within-season rankings, pair gaps and the tier-3 identity are unchanged; it only
   # makes a 2018 pure value comparable, with a caveat, with a 2019-2024 one. 2025 also
-  # sits low (-0.246) and is not offset here; the docs page says so. Remove this, do not
-  # re-tune it, once WI-02b's cliff-cost refit removes the cause (the value is specific
-  # to the current seed and car-term fit).
-  isolation_pure_season_offset_gain_s: {2018: 0.37}
+  # sits low (-0.246) and is not offset here; the docs page says so. Removed in this session:
+  # WI-02b's cliff-cost refit with a regression-based severity estimation replaces this.
+  isolation_pure_season_offset_gain_s: {}
   # ── Label spine (WI-01; _roadmap/_fixes/wi/WI-01-label-spine.md) ──
   # int_dirty_air_tax_component: theta_air's calibration panel is restricted to
   # race_year <= this value (F5). Without a declared cutoff, the panel was

@@ -34,8 +34,10 @@ WITH sector_times AS (
         sl.lap_time_s
     FROM {{ ref('stg_sector_times') }} AS st
     INNER JOIN {{ ref('stg_laps') }} AS sl ON st.lap_id = sl.lap_id
+    INNER JOIN {{ ref('stg_lap_tyre_qa') }} AS qa ON st.lap_id = qa.lap_id
     WHERE
-        st.is_valid_lap = TRUE
+        qa.tyre_qa_status = 'ok'
+        AND st.is_valid_lap = TRUE
         AND st.sector_time_s > 0
         AND sl.lap_time_s > 0
 ),

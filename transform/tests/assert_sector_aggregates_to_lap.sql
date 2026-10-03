@@ -29,6 +29,10 @@
 -- to cause. Fixing it means re-deriving dirty_air_share_lag1 (or an equivalent lag)
 -- at the sector grain rather than reusing the lap's own current-lap air state.
 --
+-- Update (W66): rubber and ambient now live inside base_track_pace_s, so the explained
+-- sum is fuel + compound + constructor + dirty-air, compared against the lap's
+-- total_explained_s. The 7.4% dirty-air-lag warning above is unchanged.
+--
 -- Tolerance: 0.001s (3-sector float accumulation), matching assert_sector_residual_identity.sql.
 {{ config(severity='warn', tags=['sector_grain']) }}
 
@@ -37,8 +41,8 @@ WITH sector_totals AS (
         lap_id,
         COUNT(*) AS n_sectors,
         SUM(
-            sector_fuel_component_s + sector_compound_component_s + sector_rubber_component_s
-            + sector_ambient_component_s + sector_constructor_component_s + sector_dirty_air_tax_s
+            sector_fuel_component_s + sector_compound_component_s
+            + sector_constructor_component_s + sector_dirty_air_tax_s
         ) AS sector_explained_sum_s
     FROM {{ ref('int_sector_residual_decomposed') }}
     GROUP BY lap_id
@@ -47,8 +51,7 @@ WITH sector_totals AS (
 lap_totals AS (
     SELECT
         lap_id,
-        fuel_component_s + COALESCE(compound_component_s, 0.0) + rubber_component_s
-        + ambient_component_s + constructor_component_s + dirty_air_tax_s AS lap_explained_s
+        total_explained_s AS lap_explained_s
     FROM {{ ref('int_lap_residual_decomposed') }}
 )
 

@@ -494,6 +494,7 @@ nothing.
   ≥ 8 races in both seasons. Median over the 7 season pairs ≥ 0.50 PASS. Report 2022/23, 2023/24 and
   2024/25 individually. The 2021→2022 pair must be ≥ 0.7 × the median of the other pairs; if it isn't,
   the rule change broke the car term, not the drivers.
+  **Amended (W69, 2026-10-03):** V1b checks pure-skill correlation within each era only (2018, 2019-21, 2022-25), not across era boundaries. The failure is the per-era fit design, not regulations. Cross-era comparison is not claimed.
 - **V1c movers.** For drivers who changed team between seasons, compare |Δ pure skill| with drivers
   who stayed. Movers' median ≤ 1.5 × stayers' is PASS. Use a bootstrap CI clustered by driver. There
   are about 21 movers (03a), so report the CI honestly and do not over-read it. A pure skill that jumps

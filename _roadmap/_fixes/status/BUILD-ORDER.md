@@ -210,9 +210,9 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 _Generated from the watch rules in [`build-log.json`](build-log.json) (`watch_rules`); watch entries update automatically as items land or decisions resolve. A rule whose trigger needs something the log cannot see (a commit, a re-export, a rebuild, your ruling) stays open until its `resolved` and `resolution` are recorded._
 
-**22 open** (0 ship-blockers). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
+**19 open** (0 ship-blockers). Full detail: `python3 _roadmap/_fixes/status/board.py --watch`. `python3 _roadmap/_fixes/status/board.py --ship` exits 1 while a ship-blocker is open.
 
-Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (4 haiku, 10 sonnet, 8 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
+Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (4 haiku, 10 sonnet, 5 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
 
 - **`haiku`** — Maps to haiku-4-5. A binary check, or recording a resolution the evidence or the user has already settled: is it committed, did the named tests pass on the rebuild, write down the accept. The output has a mechanical check (a test result, a file list, git log).
 - **`sonnet`** — Maps to sonnet-5. The fix or the options are written down in the rule: pick between two named options, run a named rebuild or export and check the pages, review a diff, reconcile counts, reword text to a meaning already settled.
@@ -232,9 +232,6 @@ Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for tok
 | W35 | stale-artifact | — | `sonnet` | Three docs-facts gates fail on pre-existing ML/app count drift | The ML and app counts are reconciled and the three scripts pass. |
 | W46 | stale-artifact | WI-01 | `sonnet` | Generated docs and inventory snippets predate WI-01 | W8's single regeneration sweep runs after WI-01 is committed. |
 | W54 | stale-artifact | WI-17 | `sonnet` | The Degradation Simulator's P3 basket fixtures predate the current warehouse | The fixtures are regenerated from a rebuilt envelope (and the generator restored), and accuracy.test.ts and powerLaw.test.ts re-run on them. |
-| W39 | pending-ruling | WI-01 | `opus` | Honest-range floor moved to 0.920, which is looser; whether the tyre wear cap binds too often is unchecked | An audit of the cap-binding laps decides whether the cap (or the wear fit behind it) is right, and either a direct cap-binding-share check is added or the floor is set from that audit. |
-| W62 | pending-ruling | WI-16b | `opus` | Driver isolation's method-score seed is unwritten until the critical-rule reading is ruled | The user rules on the reading; validate_driver_isolation.py --write-seed is run on dev and the isolation marts rebuilt. |
-| W63 | pending-ruling | WI-16b | `opus` | Relative pace's critical age-adjustment check fails for every physically sensible tyre-age curve | The user rules: amend tier-3 (ii) (e.g. a bound on added variance, or a test of the adjustment's level), or keep relative suppressed and quote relative_pace_raw_gain_s; the WI doc and docs page say which. |
 | W17 | gate-gap | WI-07 | `sonnet` | The sqlfluff gate does not hold | The size limit is raised or the skip is made loud, and the failing files are fixed or excluded on purpose. |
 | W15 | debt | WI-13 | `opus` | WI-13's neighbours, found and not fixed | Each is given an item or an explicit 'accept', one at a time. |
 | W18 | debt | WI-09 | `sonnet` | 2020_1 (Austrian GP) lap numbering is wrong in bronze | 2020_1 is re-pulled from FastF1 and re-checked (whether a re-pull fixes it is untested). |

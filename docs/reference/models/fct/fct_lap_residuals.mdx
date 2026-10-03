@@ -48,11 +48,13 @@ flowchart LR
 | `lap_time_s` |   | Yes | [`not_null`](/transform/ci/structural) | Raw lap time in seconds. |
 | `compound` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Tyre compound on this lap. |
 | `fuel_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Fuel-burnoff weight penalty component. |
-| `compound_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Tyre-compound degradation component. NULL when compound itself is NULL — a handful of laps (5, all 2018) have no tyre-compound tag in bronze; known source-data gap, not a pipeline bug. |
+| `compound_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Tyre-compound degradation component. NULL when the compound or the tyre age is unknown: stints stg_lap_tyre_qa quarantines have both NULLed, and a few laps have a compound but no age in bronze. Until the F39 fix those laps carried the 10 s wear cap here instead (DuckDB's LEAST skips the NULL age), and this test, scoped only on compound, passed on the fabricated value. |
 | `rubber_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Track-rubber evolution component. |
 | `ambient_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Ambient/weather component. |
 | `constructor_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor structural pace component. |
 | `dirty_air_tax_s` |   | Yes | [`not_null`](/transform/ci/structural) | Per-lap dirty-air slowdown component. |
-| `driver_skill_residual_s` |   | Yes | [`not_null`](/transform/ci/structural) | Residual after all physics/car/strategy components (driver skill). |
+| `driver_skill_residual_s` |   | Yes | [`not_null`](/transform/ci/structural) | Residual after fuel/compound/constructor/dirty-air (driver skill). WI-01/F1: NULL, not a fabricated number, when base_track_pace_s or compound_component_s is itself unmeasured -- see pace_delta_s. |
+| `base_track_pace_s` |   | Yes |   | Field pace baseline (int_field_pace_curve), fuel- and compound-neutral. NULL when the field curve has no measured row for this (race, lap_number) (F1) -- not COALESCEd to a fabricated value. |
+| `pace_delta_s` |   | Yes |   | lap_time_s - base_track_pace_s. NULL when base_track_pace_s is NULL (F1). |
 | `ml_eligible` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when the lap is training-quality for ML inputs. |
 | `correction_weight` |   | Yes | [`not_null`](/transform/ci/structural) | IPW/cleanliness weight for the lap. |

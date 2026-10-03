@@ -29,7 +29,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**10 tests** [guard](/transform/ci/overview) this model  -  9 generic, 1 singular.
+**11 tests** [guard](/transform/ci/overview) this model  -  9 generic, 2 singular.
 
 ## Columns
 
@@ -70,4 +70,4 @@ flowchart LR
 | `is_safety_car_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 4 (SCDeployed). See stg_laps for the full decode. |
 | `is_vsc_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 6 or 7 (VSCDeployed/VSCEnding). |
 | `is_red_flag_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 5 (Red) — a full session stoppage. |
-| `is_valid_lap` | `boolean` | Yes |   | Clean-lap flag (timed, not pit/deleted, accurate, no SC/VSC, lap_number &gt; 1). |
+| `is_valid_lap` | `boolean` | Yes |   | Clean-lap flag (timed, not pit/deleted, no SC/VSC/red, lap_number &gt; 1, and -- from 2019 only -- accurate). WI-05 (F33): IsAccurate is FastF1's lap start/end sync flag, not a lap-time check, and 2018 largely leaves it unset (73.6% of timed quali laps accurate vs &gt;= 99.6% in 2019-2025), so it is not required for 2018. assert_quali_valid_share_consistent_across_seasons (T25) guards the next season. |

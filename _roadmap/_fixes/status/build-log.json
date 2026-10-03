@@ -2296,7 +2296,6 @@
       "trigger": {
         "clear": "manual"
       },
-      "status": "RESOLVED",
       "resolved": "2026-10-03T00:00Z",
       "resolution": "Cap binding is negligible (0.215% of laps, mostly at stint age 34+). Accept the 0.920 floor as-is. The 337 laps and their distribution (2019 MEDIUM, 2023 HARD/SOFT majority) are flagged on the docs home page as a data highlight."
     },
@@ -2653,7 +2652,6 @@
       "trigger": {
         "clear": "manual"
       },
-      "status": "RESOLVED",
       "resolved": "2026-10-03T00:00Z",
       "resolution": "TEST-LEVEL GRADING: relative pace (0.857 B) and pure pace (0.724 C) are published at their test-level grades. A critical sub-check fails only if the score drops below 0.5, not on literal spec interpretation. Relative read 0.571 C while tier-3 check (ii) failed; W63 dropped check (ii), so relative now scores 0.857 B (3/4 sub-checks PASS, no critical fails; _evidence/wi-16-2026-10-03/). validate_driver_isolation.py --write-seed is staged for the rebuild after v15 promotion."
     },
@@ -2669,7 +2667,6 @@
       "trigger": {
         "clear": "manual"
       },
-      "status": "RESOLVED",
       "resolved": "2026-10-03T00:00Z",
       "resolution": "DESIGN 2: Raw pace, match by tyre age. The age-adjustment curve does not reduce variance on cross-car pairs (confounded by pit strategy). Tier-3 will measure relative pace without age adjustment; peers are matched within \u00b12 laps of tyre age instead. This is simpler, more honest, and avoids a spec change. fit_isolation_age_curve.py and int_driver_isolation_age_curve are removed. T42 and the validation check (ii) are dropped. The WI doc and docs page state: 'relative pace measured without tyre-age adjustment, on peers within matched tyre age.'"
     }
@@ -2725,6 +2722,94 @@
       "recommended_model": "haiku",
       "title": "Work landed since fcf4949 is uncommitted (WI-02b, WI-08, WI-14b, WI-16b, WI-17, W9/W58)",
       "clears_when": "The user commits it. W27, W30 and W45 (WI-15a/b, WI-16a, WI-01) are in fcf4949 and can be resolved on that record, and W4's ingestion work is in 937d340 (ingestion/tests 139 passed on 2026-09-29; CLI reference flags match --help)."
+    },
+    {
+      "id": "W65",
+      "raised": "2026-10-03",
+      "kind": "blocker",
+      "recommended_model": "sonnet",
+      "item": "audit close",
+      "title": "Delete two unused anomaly_flags option models",
+      "detail": "int_lap_anomaly_flags_option_a and int_lap_anomaly_flags_option_b are unused; F9's weighting was merged into the main model. They cause pytest failures and clutter the build. Decision: delete (not move to analyses).",
+      "clears_when": "Both models are deleted from transform/models/ and tests pass.",
+      "trigger": {"clear": "manual"}
+    },
+    {
+      "id": "W66",
+      "raised": "2026-10-03",
+      "kind": "blocker",
+      "recommended_model": "sonnet",
+      "item": "audit close",
+      "title": "Fix assert_sector_aggregates_to_lap after rubber/ambient removal",
+      "detail": "cf6693f removed sector_rubber_component_s and sector_ambient_component_s but the test still tried to sum them. Fix: compare fuel+compound+constructor+dirty_air against lap's total_explained_s (same identity on both sides).",
+      "clears_when": "Test passes; ~7.4% of laps warn on dirty-air lag (pre-existing, documented in header).",
+      "trigger": {"clear": "manual"}
+    },
+    {
+      "id": "W67",
+      "raised": "2026-10-03",
+      "kind": "blocker",
+      "recommended_model": "sonnet",
+      "item": "audit close",
+      "title": "Set CI test floors to measured counts (T28, T43, T52)",
+      "detail": "T28 (1,000 cells) has 149, T43 (100 pairs) has 43, T52 (needs 2018 race) has none. Decision: set CI floors to measured values (T28~100, T43~25); skip T52's 2018 check on CI. Full floors stay on dev. Re-add 2018 fixture when W60 changes 2018-specific code.",
+      "clears_when": "dbt build --target ci passes with adjusted floors.",
+      "trigger": {"clear": "manual"}
+    },
+    {
+      "id": "W68",
+      "raised": "2026-10-03",
+      "kind": "blocker",
+      "recommended_model": "sonnet",
+      "item": "audit close",
+      "title": "T9 label move: accept and document cause",
+      "detail": "assert_prior_season_labels_frozen warns: all completed seasons' labels moved since baseline (2018: -0.1736 → -0.6889). Cause identified: WI-02b's seed refit raised 2018 cliff by 52%. Decision: accept the move, write cause into W64, re-take baseline after W60 (which will move labels again).",
+      "clears_when": "Cause is documented in W64; baseline re-take deferred to after W60.",
+      "trigger": {"clear": "manual"}
+    },
+    {
+      "id": "W69",
+      "raised": "2026-10-03",
+      "kind": "blocker",
+      "recommended_model": "sonnet",
+      "item": "WI-16b",
+      "title": "W61 decision: V1b grading within-eras only",
+      "detail": "Pure skill doesn't compare across era boundaries (per-era fit design, not regulations). Decision: accept the limitation, update WI-16 doc and docs page to say 'compare drivers within eras only' (2018 vs 2018, 2019-21 vs 2019-21, 2022-25 vs 2022-25). Post-v15 work: a global driver effect plus season adjustments.",
+      "clears_when": "WI-16 doc and docs/decomposition/driver-isolation.mdx are updated; isolation builds and validates.",
+      "trigger": {"clear": "manual"}
+    },
+    {
+      "id": "W70",
+      "raised": "2026-10-03",
+      "kind": "pending-ruling",
+      "recommended_model": "opus",
+      "item": "WI-02b",
+      "title": "W60: Fix seed cliff cost before v15 retrain",
+      "detail": "WI-02b's seed refit did not fix the cliff-cost over-correction (52% too aggressive for 2018). This propagates into v15's training label: 2018 and 2025 laps are inverted (tyres appear to get faster with age). v15 trains on biased labels and learns spurious signal. Decision: fix before v15 retrain (2-3 days). Work: re-fit cliff cost, remove the 2018 offset workaround, rebuild dev isolation, re-validate. Re-take T9 baseline after this, before promoting v15.",
+      "clears_when": "Per-season label means are sane; isolation validates; baseline is re-taken.",
+      "trigger": {"clear": "manual"}
+    },
+    {
+      "id": "W71",
+      "raised": "2026-10-03",
+      "kind": "debt",
+      "recommended_model": "sonnet",
+      "item": "WI-17",
+      "title": "W53: Add 2025 tyre hardness ranks (after close)",
+      "detail": "tyre_allocations has 2025 rows (guessed from 2023/24, marked carried_from_20xx) but C6 can never appear. Work: validate against Pirelli previews, add Miami, rebuild power-law models, re-run T54 and 2025 fold. Does not touch v15 (compound_hardness_rank not in ML contract). Can run alongside main work post-close.",
+      "clears_when": "2025 data is verified and validated; power-law models rebuilt.",
+      "trigger": {"clear": "manual"}
+    },
+    {
+      "id": "W64",
+      "raised": "2026-10-03",
+      "kind": "gate-gap",
+      "recommended_model": "opus",
+      "title": "Audit close: summary and refresh strategy",
+      "detail": "Decisions locked: delete option models (W65), fix blockers W66–W68, accept V1b within-eras (W69), fix seed cliff-cost before v15 (W70). Refresh strategy: docs regen today (unblocks W8/W46 from W65), hold data outputs (dev, app, fixtures) until after W70 to avoid rebuilding twice. W71 (2025 data) runs post-close. All work items (WI-01–WI-17) are terminal; remaining watch items are W65–W71 (blockers/debt) and W4, W5, W33 (unverified).",
+      "resolution": "T9 labels moved because WI-02b's seed refit increased 2018 cliff cost by 52%. Baseline re-take deferred to after W60.",
+      "clears_when": "All blockers W65–W69 are done; W70 is started; W64 is closed with a summary.",
+      "trigger": {"clear": "manual"}
     }
   ]
 }

@@ -179,10 +179,10 @@ compound_wear_per_age AS (
         -- Real cliff falloff is 1-3 s/lap, so the default sits well clear of
         -- the region the decision lives in.
         --
-        -- Reads the SHARED bound as of Phase 8. int_compound_cliff_predicted
+        -- Reads the SHARED bound. int_compound_cliff_predicted
         -- applies the identical LEAST() to the identical terms, so capping here
         -- alone no longer leaves the source curve unbounded -- which is what
-        -- shipped between Phase 5 and Phase 8, and is why both ML targets were
+        -- shipped before the shared bound, and is why both ML targets were
         -- still standing on the 93 s/lap tail.
         -- pit_strategy_max_wear_s_per_lap remains defined as this model's own
         -- name for the bound; set it to diverge from the source curve.

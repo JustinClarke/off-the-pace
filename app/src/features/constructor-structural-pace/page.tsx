@@ -73,7 +73,7 @@ export default function ConstructorStructuralPacePage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018-2024' }}
+      provenance={{ dataWindow: '2018-2025' }}
       csvRows={entries.length ? toCsvRows(entries, mode) : undefined}
       csvFilename={`constructor-pace-${season}-${raceId || 'season'}-${mode}.csv`}
       isLoading={isLoading}

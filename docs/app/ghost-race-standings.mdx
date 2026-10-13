@@ -8,10 +8,10 @@ What if every driver who ever raced this circuit had been in the same car? Ghost
 
 ## What it shows
 
-The leaderboard is built from the driver-skill residual of the seven-term identity:
+The leaderboard is built from the driver-skill residual of the additive identity:
 
-- **Equal car**: each lap is decomposed into fuel, tyre compound, rubber, ambient, *constructor*, and driver-skill components. The board uses only the driver-skill residual the part left once car and conditions are removed so a slow car no longer hides a fast driver. Negative = faster than the field.
-- **Split by era, not blended**: records are computed separately for 2018–2021 (last-gen aero) and 2022–2024 (ground-effect), split on the 2022 regulation change. Pace is only ever compared within one car era.
+- **Equal car**: each lap's gap to the field is decomposed into fuel, tyre compound, *constructor*, dirty-air and driver-skill components. The board uses only the driver-skill residual the part left once car and conditions are removed so a slow car no longer hides a fast driver. Negative = faster than the field.
+- **Split by era, not blended**: records are computed separately for 2018–2021 (last-gen aero) and 2022 onward (ground-effect), split on the 2022 regulation change. Pace is only ever compared within one car era.
 - **No single year**: every race a driver ran at the circuit within the era is pooled, so this is a multi-season record.
 - **Shrunk toward the driver's own average**: a one-race sample is regularised toward the driver's era-wide mean (Bayesian, prior = 5 virtual races). The **Conf.** column is the data fraction `n / (n + 5)`; values below 0.3 (amber) are prior-dominated.
 - **95% CI**: overlapping intervals mean two drivers are statistically tied at that track.
@@ -33,7 +33,7 @@ The leaderboard is built from the driver-skill residual of the seven-term identi
 The board is **within one era and one circuit** by design never average a driver across the 2022 boundary, and don't read it as an all-time ranking. The skill residual is what survives car removal, so a midfield driver can top a circuit where they consistently over-delivered.
 
 <Warning>
-  Low-confidence (amber) rows can post extreme positions on a single hot weekend before shrinkage fully reins them in. Weight the confidence and CI columns, not just the headline order. See the [seven-term identity](/decomposition/seven-term-identity) for how the residual is isolated.
+  Low-confidence (amber) rows can post extreme positions on a single hot weekend before shrinkage fully reins them in. Weight the confidence and CI columns, not just the headline order. See the [additive identity](/decomposition/additive-identity) for how the residual is isolated.
 </Warning>
 
 ## Data source
@@ -47,6 +47,6 @@ The chart queries `int_driver_circuit_era_affinity`, built on the driver-skill r
 | `ci_lower_s` / `ci_upper_s` | 95% credible interval |
 | `regulation_era` | 2018–2021 vs 2022–2024 split |
 
-The data window covers **2018–2024**, split at the 2022 regulation change.
+The data window covers **2018–2025**, split at the 2022 regulation change.
 
 For the full model definitions, see the [`int_driver_circuit_era_affinity` reference](/reference/models/int/int_driver_circuit_era_affinity) and the [`fct_lap_residuals` reference](/reference/models/fct/fct_lap_residuals).

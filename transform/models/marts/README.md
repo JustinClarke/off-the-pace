@@ -15,6 +15,14 @@ tables. Schemas on the two primary ML inputs are enforced via dbt model contract
 | `fct_ghost_race_finish` | host-constructor × ego-driver × race | Ghost Car  -  projected finishing position with SE |
 | `mart_corner_skill_driver` | race-year × driver | Equal-car driver corner-skill ranking |
 | `mart_degradation_history_envelope` | circuit × era × compound × tyre-life | Degradation Simulator history overlay |
+| `fct_driver_isolation_pair_lap` | lap × peer | Driver isolation tier 3: raw relative pace against each same-tyre-age peer |
+| `fct_driver_isolation_lap` | lap | Driver isolation per lap, with trailing-window ratings |
+| `fct_driver_isolation_stint` | stint × phase | Driver isolation per stint phase (early / mid / cliff / recovery, plus `all`) |
+| `fct_driver_isolation_race` | driver × race | Driver isolation ratings rolled up per race |
+| `fct_power_law_training` | race × compound hardness rank | Power-law tyre-curve training frame for `ml/src/powerlaw.py` |
+| `mart_driver_season_summary` | driver × season | Season rating, rank, teammate gap and component means, shaped for plain-language explanations |
+| `mart_race_driver_summary` | driver × race | Race rating, rank, teammate gap, components and result, shaped for plain-language explanations |
+| `mart_metric_benchmark` | metric × season | p05 / p50 / p95, mean and sd of each decomposition component over clean laps |
 | `dim_events` | event | Race event flags (damage, retirement, penalty) |
 
 Exposures pointing at `ml/` are declared in [exposures.yml](exposures.yml).

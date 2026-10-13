@@ -8,7 +8,7 @@ description: "Lap-grain analytics table."
 
 <Note>Part of the [Marts](/transform/families/marts) family.</Note>
 
-> For the conceptual foundation, read [Fct Lap Residuals](/decomposition/seven-term-identity).
+> For the conceptual foundation, read [Fct Lap Residuals](/decomposition/additive-identity).
 
 Lap-grain analytics table. One row per valid race lap. Exposes the full residual decomposition from int_lap_residual_decomposed plus anomaly flags from int_lap_anomaly_flags. Use ml_eligible = TRUE to filter to training-quality laps. For ML model inputs, prefer the split marts:
   - fct_driver_skill_features   race-grain skill aggregates
@@ -21,6 +21,9 @@ flowchart LR
   dim_constructors --> fct_lap_residuals
   dim_drivers --> fct_lap_residuals
   int_lap_residual_decomposed --> fct_lap_residuals
+  fct_lap_residuals --> mart_driver_season_summary
+  fct_lap_residuals --> mart_metric_benchmark
+  fct_lap_residuals --> mart_race_driver_summary
   style fct_lap_residuals fill:#e40404,stroke:#e40404,color:#fff
 ```
 

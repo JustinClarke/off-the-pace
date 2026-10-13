@@ -31,7 +31,7 @@ locally. `make app-build` bundles everything; the output in `dist/` is a static 
 | `src/features/` | One directory per analytical feature; each renders through the shared `FeaturePage` template (see **Feature anatomy** below) |
 | `src/lib/` | Pure utilities: `format/` (time, number, name), `colors.ts`, `stats.ts`, `url.ts`, `csv.ts` |
 | `src/ml/` | ONNX runtime layer: model session queue, feature-vector builders, parity verification |
-| `src/nav/` | `pillars.ts` (11 pillar definitions), `routes.ts` (route registry with `featureId` + `shipped` flags), `seo.ts` |
+| `src/nav/` | `pillars.ts` (pillar definitions), `routes.ts` (route registry with `featureId` + `shipped` flags), `seo.ts` |
 | `src/state/` | `FilterContext.tsx` (season/driver/race filter), `ThemeContext.tsx`, `preferences.ts` |
 | `src/ui/layout/` | `AppShell`, `Sidebar`, `TopBar`, `FilterBar`, `EngineStatus`, `FeaturePage` |
 | `src/ui/feedback/` | `Spinner`, `Skeleton`, `ErrorBoundary`, `DataBoundary`, `EmptyState` |
@@ -65,14 +65,15 @@ There are **two** route lists, and they serve different jobs don't confuse them:
   router, and it has drifted from `App.tsx` before (the alias paths above). When you add a feature,
   update both.
 
-`routes.ts` holds **59 route entries** across **11 pillars** (`pillars.ts`). **46** carry a
-`featureId`; of those, **30 are shipped** and 16 are `shipped: false` (roadmap stubs surfaced on
-`/roadmap`). The 30 shipped `featureId` routes each map 1:1 to a `src/features/<dir>/` module.
+`routes.ts` holds one entry per route, grouped by the pillars in `pillars.ts`. An entry that
+carries a `featureId` is either shipped or `shipped: false` (a roadmap stub surfaced on
+`/roadmap`). Each shipped `featureId` route maps 1:1 to a `src/features/<dir>/` module;
+`scripts/app_docs_audit.py` checks that, and that every one has a docs page.
 
 ## Content pillars
 
-`pillars.ts` defines **11** pillars. Live pillars render shipped features; the three "coming soon"
-pillars are nav landing pages whose features are all `shipped: false`.
+`pillars.ts` defines the pillars below. Live pillars render shipped features; the "coming soon"
+pillars after the table are nav landing pages whose features are all `shipped: false`.
 
 | Pillar | Path | Status |
 |---|---|---|
@@ -81,6 +82,7 @@ pillars are nav landing pages whose features are all `shipped: false`.
 | Lap Decomposition | `/lap-decomposition` | live |
 | Tyre & Strategy | `/tyre-strategy` | live |
 | Aero & Conditions | `/aero` | live |
+| Race Craft | `/race-craft` | live |
 | Drivers | `/drivers` | live |
 | Constructors | `/constructors` | live |
 | The Machine (ML) | `/ml` | live |
@@ -88,9 +90,9 @@ pillars are nav landing pages whose features are all `shipped: false`.
 | Data Quality | `/data-quality` | live |
 | Roadmap | `/roadmap` | live |
 
-Three further pillars **Races** (`/races`), **Race Craft** (`/race-craft`), and **Energy &
-Telemetry** (`/energy`) exist in `routes.ts` as `shipped: false` landing pages and are surfaced
-only on `/roadmap`, not in the sidebar.
+Two further pillars **Races** (`/races`) and **Energy & Telemetry** (`/energy`) exist in
+`routes.ts` as `shipped: false` landing pages and are surfaced only on `/roadmap`, not in the
+sidebar.
 
 | Status | Meaning |
 |---|---|

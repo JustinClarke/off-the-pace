@@ -58,7 +58,7 @@ from ml.src import train as T
 CANDIDATE_COL = "baseline_observations_n"
 
 SEEDS: tuple[int, ...] = tuple(S.RANDOM_STATE + i for i in range(5))
-E_VALUE_G = 1.0  # pre-registered: a one-sd effect, as in 02c
+E_VALUE_G = 1.0  # fixed in advance: a one-sd effect, as in 02c
 FAMILIES = ("degradation_regressor_p10", "degradation_regressor_p50",
             "degradation_regressor_p90", "cliff_classifier",
             "stint_life_regressor")
@@ -204,7 +204,7 @@ def safe_t_e_value(d: np.ndarray, g: float = E_VALUE_G) -> dict:
 def e_value_validity_check(n_draws: int = 100_000, seed: int = S.RANDOM_STATE) -> dict:
     """Push i.i.d. N(0, sigma) deltas through the implementation; mean(E) must be 1.
 
-    Required by `e_value_construction.md` §4: a construction whose null mean is not 1
+    Required by `e_value_construction.md`: a construction whose null mean is not 1
     is not an e-value. Run at several sigma because Construction B's whole claim is
     that validity does not depend on sigma.
     """

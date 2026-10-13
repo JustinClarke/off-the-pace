@@ -18,7 +18,7 @@ It also refuses to answer the question everyone asks first "what are the chances
 
 **The event table** below the strip gives each window its lap range, its duration in laps, and its share of the race distance. Duration is reported in laps rather than seconds because laps are the unit a strategist and a viewer both count in.
 
-**The pooled frequency block** gives how often a caution happens at all, across all 149 races in the warehouse, with a Wilson 95% interval on every rate and the race count beside it.
+**The pooled frequency block** gives how often a caution happens at all, across every race in the warehouse, with a Wilson 95% interval on every rate and the race count beside it.
 
 ## How to use it
 
@@ -79,5 +79,5 @@ Contiguous caution laps merge into one block, so two deployments with no green l
 The per-lap status originates in the FIA track-status channel, decoded in `stg_laps` and carried into `int_stint_geometry`. A lap counts as neutralised if any car's lap carried that status code, which is the correct reading when a deployment lands mid-lap.
 
 <Note>
-  `fct_lap_residuals` carries the same three column names `is_safety_car_lap`, `is_vsc_lap`, `is_red_flag_lap` and they are `FALSE` on all 137,447 of its rows, because that mart is built from green racing laps only. It is not a caution source, and any query filtering on those columns there is performing a no-op.
+  `fct_lap_residuals` carries the same three column names `is_safety_car_lap`, `is_vsc_lap`, `is_red_flag_lap` and they are `FALSE` on every one of its rows, because that mart is built from green racing laps only. It is not a caution source, and any query filtering on those columns there is performing a no-op.
 </Note>

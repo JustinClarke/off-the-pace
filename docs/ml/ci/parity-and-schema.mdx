@@ -1,10 +1,10 @@
 ---
-title: "Parity and schema: ONNX, predict output, and target bounds"
+title: "Parity and schema: ONNX, predict output, and the version contract"
 sidebarTitle: "Parity & Schema"
-description: "5 ONNX parity tests, 3 predict-schema tests, and 1 target synthesis test the mechanical contracts that ensure the browser sees what training produced and the output schema never silently changes."
+description: "ONNX parity, predict-schema, target and version-contract tests: the mechanical contracts that ensure the browser sees what training produced and the output schema never silently changes."
 ---
 
-These nine tests (5 + 3 + 1) are mechanical contracts: each one verifies a single repeated pattern rather than a unique idea. They are grouped here because they share the same character "this thing must match that thing exactly" rather than explaining a policy choice.
+The ONNX parity, predict-schema and target tests (5 + 3 + 1 = 9), followed by the 30-test version contract, are mechanical contracts: each one verifies a single repeated pattern rather than a unique idea. They are grouped here because they share the same character "this thing must match that thing exactly" rather than explaining a policy choice.
 
 ## ONNX parity (5 tests)
 
@@ -93,6 +93,163 @@ These nine tests (5 + 3 + 1) are mechanical contracts: each one verifies a singl
 
 **What it catches:** the stint-life target is synthesised in `features.py` at load time, not read from the mart. A bug in the synthesis (e.g. a subtraction with wrong column alignment) would produce negative "remaining laps", which has no physical meaning and would cause the regressor to learn from impossible targets. The test gates the synthesised values before any training can start.
 
+## Version contract (30 tests)
+
+**Source:** `test_manifest_contract.py` (18 test functions; five are parametrized across the five models)
+
+**What these catch:** the pipeline being consistent with itself but not with the rest of the system. Parity compares each booster with its own ONNX file, and a manifest is valid JSON whatever version it names, so a stale export would pass every other check. These tests compare what the pipeline produced with what the app and the model card expect. Tests that need `ml/models/manifest.json`, the model card, the app copy or the dbt manifest skip when that file is absent.
+
+### Manifest and artefacts
+
+<AccordionGroup>
+  <Accordion title="Complete artefact set" icon="box">
+    **Source:** `test_manifest_contract.py::test_manifest_version_has_a_complete_artefact_set`
+
+    **Assertion:** every production target has both a `.bst` and a `.onnx` file on disk for the version the manifest names.
+
+    **Why it matters:** a manifest that names a version with missing files would ship a contract the browser cannot load.
+  </Accordion>
+  <Accordion title="Manifest ships the expected version" icon="tag">
+    **Source:** `test_manifest_contract.py::test_manifest_ships_the_version_the_system_expects`
+
+    **Assertion:** if a complete set for `MODEL_VERSION_DEFAULT` is on disk, the manifest names that version. The test skips when no complete default set exists, as in the CI smoke run.
+
+    **Why it matters:** this catches `make ml-onnx` publishing an old version. `make app-models` copies by manifest version, so the manifest version is what reaches the browser.
+  </Accordion>
+  <Accordion title="Declared input width matches the booster (×5 models)" icon="ruler">
+    **Source:** `test_manifest_contract.py::test_manifest_input_width_matches_the_actual_booster` (parametrized × 5)
+
+    **Assertion:** the manifest's `n_features` for each model equals `num_features()` of the booster at that version.
+
+    **Why it matters:** the width is written from the feature contract and never read back from the booster, so it is a claim until this test measures it. The contract is per model (39 columns for the cliff classifier, 32 for the others), and the browser builds its feature vector from the declared width.
+  </Accordion>
+  <Accordion title="Per-model input block is self-consistent (×5 models)" icon="equals">
+    **Source:** `test_manifest_contract.py::test_manifest_per_model_input_block_is_self_consistent` (parametrized × 5)
+
+    **Assertion:** `n_features`, `shape[1]` and `len(feature_order)` are equal for each model.
+
+    **Why it matters:** the three fields describe the same width. If they disagree, a consumer reading a different one of them would build a different vector.
+  </Accordion>
+  <Accordion title="Feature order matches the masked contract (×5 models)" icon="arrow-down-1-9">
+    **Source:** `test_manifest_contract.py::test_manifest_feature_order_matches_the_masked_contract` (parametrized × 5)
+
+    **Assertion:** each model's shipped `feature_order` equals `feature_columns_for(target)`, including the per-model mask.
+
+    **Why it matters:** a width check would pass on any 32 columns. Scoring is positional, so the identity and order of the columns have to match what training fitted through.
+  </Accordion>
+  <Accordion title="No global feature order" icon="ban">
+    **Source:** `test_manifest_contract.py::test_manifest_does_not_declare_a_global_feature_order`
+
+    **Assertion:** `manifest_schema_version >= 2`, and the top-level `input` block has neither `feature_order` nor `n_features`.
+
+    **Why it matters:** a single order cannot describe a per-model contract. Leaving the 39-column superset in place would let a consumer that was not migrated build the wrong vector for four of the five boosters.
+  </Accordion>
+</AccordionGroup>
+
+### The copy the browser loads
+
+<AccordionGroup>
+  <Accordion title="App manifest equals the ML manifest" icon="copy">
+    **Source:** `test_manifest_contract.py::test_app_manifest_matches_ml_manifest`
+
+    **Assertion:** `app/public/models/manifest.json` exists and is identical to `ml/models/manifest.json`. The test skips when `app/public/models/` is absent.
+
+    **Why it matters:** `make app-models` copies the manifest verbatim. A difference means someone re-exported without re-copying, and the browser is scoring against a stale contract.
+  </Accordion>
+  <Accordion title="App ONNX files match the manifest hashes" icon="fingerprint">
+    **Source:** `test_manifest_contract.py::test_app_onnx_files_match_the_manifest_hashes`
+
+    **Assertion:** each ONNX file in `app/public/models/` exists and its sha256 equals the `onnx_sha256` recorded in the manifest. The test skips when the directory is absent.
+
+    **Why it matters:** the files the browser loads must be the exact bytes the manifest describes, not an older export left by a partial copy.
+  </Accordion>
+</AccordionGroup>
+
+### Stint-life survival output
+
+<AccordionGroup>
+  <Accordion title="Stint life ships as a survival model" icon="hourglass">
+    **Source:** `test_manifest_contract.py::test_stint_life_ships_as_a_survival_model`
+
+    **Assertion:** the `stint_life_regressor` entry has `kind == "survival"`, `objective == "survival:aft"` and `headline_metric == "aft_nloglik"`.
+
+    **Why it matters:** an RMSE computed on uncensored stints picks the worst model, so the stint-life headline must be the censoring-aware likelihood.
+  </Accordion>
+  <Accordion title="Survival output block is complete" icon="list-check">
+    **Source:** `test_manifest_contract.py::test_survival_output_block_is_complete`
+
+    **Assertion:** `margin_offset`, `label_shift`, `aft_scale`, `aft_distribution` and `quantiles` are all present and non-null; `label_shift` and `aft_distribution` equal the schema constants; `0 < aft_scale < 5`; and the quantiles include `p10` and `p90`.
+
+    **Why it matters:** the stint-life graph emits a shifted log-scale margin, and the browser turns it into laps using constants that exist only in the manifest. A missing or null constant would produce numbers that look like laps and are not.
+  </Accordion>
+  <Accordion title="Margin offset reconstructs the booster" icon="rotate">
+    **Source:** `test_manifest_contract.py::test_survival_margin_offset_actually_reconstructs_the_booster`
+
+    **Assertion:** on 200 NaN-bearing rows, laps computed from the ONNX margin plus `margin_offset` match laps computed from the `.bst` booster within the export tolerance. The test skips when the artefact pair is absent.
+
+    **Why it matters:** the export step checks the offset inside the process that wrote it. This test re-reads both files from disk and shows the manifest constants really turn one into the other, which is the property the browser depends on.
+  </Accordion>
+  <Accordion title="Predictions schema carries the life band" icon="arrows-left-right">
+    **Source:** `test_manifest_contract.py::test_predictions_schema_carries_the_life_band`
+
+    **Assertion:** `predictions_schema` includes the stint-life point prediction and its p10 and p90 columns.
+
+    **Why it matters:** the parquet and the browser must describe the same object. If the app draws a band the mart does not store, there is nothing to compare it with.
+  </Accordion>
+</AccordionGroup>
+
+### Interval and ceiling contract on the model card
+
+<AccordionGroup>
+  <Accordion title="Every win carries an interval" icon="ruler-horizontal">
+    **Source:** `test_manifest_contract.py::test_every_beats_baseline_claim_carries_an_interval`
+
+    **Assertion:** `assert_claims_carry_intervals` accepts the model card on disk. Skips when the card is absent.
+
+    **Why it matters:** `beats_baseline: true` was published without an interval for every model. The card writer now refuses a bare claim, and this runs that check on the real card.
+  </Accordion>
+  <Accordion title="The interval gate can fail" icon="bolt">
+    **Source:** `test_manifest_contract.py::test_the_interval_gate_can_fail`
+
+    **Assertion:** for a model that claims a win, each of three mutations makes `assert_claims_carry_intervals` raise a `ValueError` mentioning "un-intervalled": an interval that failed to compute, an interval with null bounds, and a missing significance verdict.
+
+    **Why it matters:** a gate ships with a proof that it fires. The three mutations are three different ways a card could go quiet.
+  </Accordion>
+  <Accordion title="Claims inside noise are recorded" icon="triangle-exclamation">
+    **Source:** `test_manifest_contract.py::test_claims_inside_noise_are_recorded_not_deleted`
+
+    **Assertion:** the card's `validation` block has a `claims_inside_noise` list, and its entries are a subset of the model names on the card.
+
+    **Why it matters:** a claim that fails its interval is the most informative line on the card. The key has to exist even when the list is empty, so "every claim survived" and "nobody checked" cannot look the same.
+  </Accordion>
+  <Accordion title="Attainable ceiling is published per model" icon="bullseye">
+    **Source:** `test_manifest_contract.py::test_attainable_ceiling_is_published_per_model`
+
+    **Assertion:** every model on the card has an `attainable` block with a `basis` and a `fraction_of_attainable` (or the in-sample-oracle variant).
+
+    **Why it matters:** without a ceiling every headline is a ratio against a perfect score of 1.0. The card is where that stops, and the `basis` says what the ceiling is a ceiling of.
+  </Accordion>
+</AccordionGroup>
+
+### Driver-isolation ratings stay out of the ML contract
+
+<AccordionGroup>
+  <Accordion title="No contract mart depends on the isolation ratings" icon="shield">
+    **Source:** `test_manifest_contract.py::test_no_ml_contract_mart_depends_on_the_isolation_ratings`
+
+    **Assertion:** on the dbt manifest, none of `fct_cliff_prediction_features`, `fct_stint_features`, `fct_lap_residuals` or `fct_driver_skill_features` has a driver-isolation model among its ancestors. The test first requires at least nine isolation models to exist, so it cannot pass on a manifest that predates them. Skips when the dbt manifest is absent.
+
+    **Why it matters:** the isolation ratings are functions of the residual trajectory, and the same-race tactical rating is a function of the label's own trajectory. A `ref()` added anywhere in a contract mart's lineage would leak the label, so it fails here rather than in review.
+  </Accordion>
+  <Accordion title="The isolation lineage check can fail" icon="bolt">
+    **Source:** `test_manifest_contract.py::test_the_isolation_lineage_check_can_fail`
+
+    **Assertion:** in a copy of the dbt manifest where `fct_stint_features` is made to depend on `fct_driver_isolation_race`, the leak check reports `fct_stint_features`.
+
+    **Why it matters:** the lineage check passes when nothing leaks, so a broken check would look identical to a clean repo. Injecting the defect shows the check can see it.
+  </Accordion>
+</AccordionGroup>
+
 ## Relationships
 
 <CardGroup cols={2}>
@@ -100,12 +257,12 @@ These nine tests (5 + 3 + 1) are mechanical contracts: each one verifies a singl
     The export stage and why parity must be exact in depth.
   </Card>
   <Card title="CI overview" href="/ml/ci/overview" icon="vial">
-    All 40 tests where these nine sit in the full contract.
+    All 270 tests where these sit in the full contract.
   </Card>
   <Card title="Features & Targets" href="/ml/features-and-targets" icon="layers">
     Target synthesis and why `stint_length_laps` is never in the feature matrix.
   </Card>
   <Card title="Evaluation gates" href="/ml/ci/evaluation-gates" icon="trophy">
-    The other seven tests beats-baseline, calibration, cohorts.
+    The other 19 tests: beats-baseline, ceilings, intervals, cohorts.
   </Card>
 </CardGroup>

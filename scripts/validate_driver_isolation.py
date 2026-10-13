@@ -3,7 +3,7 @@
 WI-16b: validation of the driver-isolation ratings (pure pace and relative pace).
 
 Implements the V1-V5 checks of _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md
-(section *Validation*) with the thresholds pre-registered there, and compiles the
+(section *Validation*) with the thresholds declared there, and compiles the
 per-rating method score. Writes validation.json and validation-report.md to
 _roadmap/_fixes/_evidence/wi-16-<date>/ (or --output-dir).
 

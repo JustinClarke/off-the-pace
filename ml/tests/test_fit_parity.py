@@ -1,10 +1,10 @@
-"""Every fit path in the layer fits the way production fits (Phase 2 finding 1).
+"""Every fit path in the layer fits the way production fits.
 
 Three places build a booster: `train.py` (the shipped one), `tune.py` (the search) and
 `evaluate.py` (the refit every published number is measured on). They must agree about
 the fit, or the model that is searched, the model that is measured and the model that is
 shipped are three different models wearing one name. Both disagreements this file locks
-down were live in the tree until Phase 7.
+down were once live in the tree.
 
 **The search.** `tune.py`'s objective used to call `model.fit` directly, and deliberately did not pass
 `meta`. `train._sample_weight` needed `meta` to produce the quantile trio's IPW survival
@@ -27,7 +27,7 @@ keeps the rest from being vacuous by showing the two paths genuinely disagreed.
 
 **The identity of a fit.** A third disagreement is possible without any of the three
 functions differing: the same artefact name, refitted against a different target column.
-Phase 7 moved `DEGRADATION_TARGET`, so `make ml-retrain` would have overwritten the
+`DEGRADATION_TARGET` moved to the 5-lap column, so `make ml-retrain` would have overwritten the
 shipped v6 boosters with five-lap models under the next-lap name. `train._guard_target_change`
 refuses that, and the last tests here hold it.
 
@@ -135,7 +135,7 @@ def search(monkeypatch, tmp_path):
 
 @pytest.mark.parametrize("target", [t.name for t in S.PRODUCTION_TARGETS])
 def test_search_fits_with_the_weights_the_refit_applies(search, target):
-    """Phase 2 finding 1: per fold, the search's weights == the refit's weights.
+    """Per fold, the search's weights == the refit's weights.
 
     Asserted per fold rather than in aggregate, because the failure this replaced
     (weights computed from the full training frame, not the fold's rows) matches on
@@ -330,7 +330,7 @@ def _write_log(dirpath, target, version, **fields):
 
 
 def test_refit_refuses_to_replace_a_version_fitted_on_another_target(monkeypatch, tmp_path):
-    """The trap Phase 7 sets: same artefact path, same manifest, different quantity.
+    """The trap: same artefact path, same manifest, different quantity.
 
     Nothing downstream can catch it -- the file exists, the input width is unchanged,
     ONNX parity compares the new booster against itself and passes. The version's own
@@ -358,7 +358,7 @@ def test_refit_allows_the_same_target_and_an_unbuilt_version(monkeypatch, tmp_pa
 
 
 def test_a_log_predating_the_field_warns_rather_than_refusing(monkeypatch, tmp_path, capsys):
-    """Every artefact built before Phase 7 -- v6 included, which is the one that ships --
+    """Every artefact built before the target column was logged -- v6 included, which is the one that ships --
     has a log with no `target_column`, so the check cannot be made on exactly the
     version it most matters for. The fingerprint is the fallback witness, and because it
     also moves for legitimate reasons (new seasons, a feature change) it warns and says

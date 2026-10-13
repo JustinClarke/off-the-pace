@@ -39,11 +39,11 @@ Query Lab registers the full set of published gold marts via DuckDB-Wasm in the 
 
 | Table | Role |
 |---|---|
-| `fct_lap_residuals` | Per-lap seven-term decomposition (the core mart) |
+| `fct_lap_residuals` | Per-lap additive decomposition (the core mart) |
 | `fct_driver_skill_features` | Driver skill residual aggregates |
 | `fct_cliff_prediction_features` | Per-lap degradation / cliff feature matrix |
 | `dim_*` | Driver, constructor, circuit, event, and compound dimensions |
 
-The data window covers **2018–2024**.
+The data window covers **2018–2025**.
 
 For the full table and column catalog, browse the [model reference](/reference/models/fct/fct_lap_residuals) and the other entries in the Reference tab.

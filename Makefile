@@ -63,14 +63,14 @@ app-install:  ## Install web-app dependencies (pnpm)
 
 
 ##@ 2. Ingest
-ingest-all:  ## Pull all 2018–2024 races → Bronze (~2 GB, 30–45 min)
-	./.venv/bin/python ingestion/src/ingest.py --start-season 2018 --end-season 2024 --session both
+ingest-all:  ## Pull all 2018–2025 races → Bronze (~7 GB, mostly telemetry; 35–50 min)
+	./.venv/bin/python ingestion/src/ingest.py --start-season 2018 --end-season 2025 --session both
 
 ingest-recent:  ## Pull 2023–2024 only → Bronze (~15 min, ~200 MB)
 	./.venv/bin/python ingestion/src/ingest.py --start-season 2023 --end-season 2024 --session both
 
-ingest-jolpica:  ## Pull standings + pit stops (2018–2024) via Jolpica API (~2–3 min)
-	./.venv/bin/python ingestion/src/jolpica_client.py --start-season 2018 --end-season 2024
+ingest-jolpica:  ## Pull standings + pit stops (2018–2025) via Jolpica API (~2–3 min)
+	./.venv/bin/python ingestion/src/jolpica_client.py --start-season 2018 --end-season 2025
 
 verify-bronze:  ## Verify Bronze integrity (counts, nulls, schema)
 	./.venv/bin/python ingestion/verify_bronze.py

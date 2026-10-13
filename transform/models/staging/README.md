@@ -18,6 +18,10 @@ normalise compound labels. No joins, no aggregations.
 | `stg_session_status` | `bronze_f1.raw_session_status` | Session start/stop/finish timeline (red-flag stoppages) |
 | `stg_circuit_info` | `bronze_f1.raw_circuit_info` | Corner/marshal-sector geometry per circuit |
 | `stg_events` | `seeds.raw_dim_events` | Race-level events (damage, retirement, penalties) |
+| `stg_results_qualifying` | `bronze_f1.raw_results_qualifying` | Official qualifying classification; Q1/Q2/Q3 best times per driver anchor the segment split |
+| `stg_session_status_qualifying` | `bronze_f1.raw_session_status_qualifying` | Qualifying session start/finish/abort events; the only record of where Q1, Q2 and Q3 begin and end |
+| `stg_race_control` | `bronze_f1.raw_race_control` (+ `stg_results`) | FIA race-control messages, one row per message; the waved blue flags validate the `proximity` features |
+| `stg_telemetry_position` | `bronze_f1.raw_telemetry` (position channel) | X/Y/Z position samples, projected out of the telemetry stream; source of `int_lap_proximity` |
 | `stg_tyre_allocations` | stub  -  source not yet ingested | Empty result set; see model comment |
 
 Source declarations (external Parquet locations) are in [src_formula1.yml](src_formula1.yml).

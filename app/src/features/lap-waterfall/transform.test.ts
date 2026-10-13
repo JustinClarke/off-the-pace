@@ -4,8 +4,8 @@ import type { LapResidualRow } from './queries'
 
 // fuel+compound+constructor+dirty_air = total_explained_s
 const TOTAL_EXPLAINED = 1.4 + 2.5 + 0.5 + 0.1 // = 4.5
-// pace_delta = total_explained + skill + track
-const PACE_DELTA = TOTAL_EXPLAINED-3.0-0.01 // = 1.49
+// pace_delta = total_explained + skill (track noise is informational, not summed)
+const PACE_DELTA = TOTAL_EXPLAINED - 3.0 // = 1.5
 
 const baseRow: LapResidualRow = {
   driver_id: 'VER',
@@ -23,12 +23,20 @@ const baseRow: LapResidualRow = {
 }
 
 describe('transform', () => {
-  it('produces one bar per component in order', () => {
+  it('produces five identity bars plus a track-noise diagnostic bar', () => {
     const result = transform(baseRow)
     expect(result.bars).toHaveLength(6)
     expect(result.bars[0].label).toBe('Fuel')
     expect(result.bars[3].label).toBe('Dirty Air')
     expect(result.bars[4].label).toBe('Driver Skill')
+    expect(result.bars[5].label).toBe('Track noise')
+  })
+
+  it('track noise does not affect closure or the running cumsum', () => {
+    const a = transform(baseRow)
+    const b = transform({ ...baseRow, track_unexplained_s: 5 })
+    expect(b.closureGap).toBeCloseTo(a.closureGap, 9)
+    expect(b.bars[5].start).toBe(0)
   })
 
   it('assigns sign correctly', () => {

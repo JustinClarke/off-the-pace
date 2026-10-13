@@ -1,12 +1,12 @@
 ---
-title: "The leakage spine: 28 guards, one idea each"
+title: "The leakage spine: one idea per guard"
 sidebarTitle: "Leakage Spine"
-description: "The 28 tests in test_features.py that make temporal leakage structurally impossible from column exclusions to the sqlglot forward-window and aggregation-scope audits to the MAX+1-derived holdout."
+description: "The tests in test_features.py that make temporal leakage structurally impossible from column exclusions to the sqlglot forward-window and aggregation-scope audits to the pinned holdout season."
 ---
 
 import MLLeakage from '/snippets/ml-inventory-leakage.mdx';
 
-Temporal leakage is silent. It never throws an error. It inflates every offline metric and collapses the moment the model meets a season it has not memorised. The leakage spine is a set of 28 CI guards that make leakage structurally impossible not just "unlikely" or "checked once."
+Temporal leakage is silent. It never throws an error. It inflates every offline metric and collapses the moment the model meets a season it has not memorised. The leakage spine is a set of 34 CI tests (26 test functions, three of them parametrized across targets) that make leakage structurally impossible not just "unlikely" or "checked once."
 
 <Warning>
   A model that accidentally sees the future looks better on paper than a model that does not. There is no natural corrective: the offline metrics reward the leak, the model ships, and the live numbers disagree. The only reliable defence is to make the leak structurally impossible and then test that impossibility.
@@ -36,7 +36,7 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
   <Accordion title="3. The forward-window audit can still see" icon="eye">
     **Source:** `test_features.py::test_forward_window_audit_actually_reads_the_lineage`
 
-    **Assertion:** every lineage model parses, and all 33 features resolve to a SQL definition
+    **Assertion:** every lineage model parses, and all 39 features resolve to a SQL definition
 
     **Why it matters:** Coverage, not cleanliness. `audit_forward_window` returns `[]` both when it has inspected every feature and found nothing, and when it inspected nothing at all — and for as long as the manifest carried a null `compiled_code`, it was the second: 0 of 21 models parsed, 0 of 42 features resolved, `CLEAN` on every run. This test is what makes gate 2 mean something. The failure mode of a gate is silence, and silence is indistinguishable from success.
   </Accordion>
@@ -45,7 +45,7 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
 
     **Assertion:** No `AUDIT_FEATURES` (`cliff_candidate_flag`) appear in any `audit_forward_window` violation
 
-    **Why it matters:** `cliff_candidate_flag` is a "label-adjacent" feature it is predictive precisely because it encodes information that co-moves with the cliff. The test asserts that this predictiveness comes from the mart's temporal conditioning, not from a forward-window leak. If it ever looks ahead in the SQL, it must move to `EXCLUDED_LEAKAGE_COLUMNS`. (`anomaly_class` carried the same guard until Phase 9 (2026-09-05) dropped it from the feature contract along with the rest of the `context` group.)
+    **Why it matters:** `cliff_candidate_flag` is a "label-adjacent" feature it is predictive precisely because it encodes information that co-moves with the cliff. The test asserts that this predictiveness comes from the mart's temporal conditioning, not from a forward-window leak. If it ever looks ahead in the SQL, it must move to `EXCLUDED_LEAKAGE_COLUMNS`. (`anomaly_class` carried the same guard until it was dropped from the feature contract along with the rest of the `context` group.)
   </Accordion>
   <Accordion title="5. No undeclared aggregation scope" icon="layer-group">
     **Source:** `test_features.py::test_no_undeclared_aggregation_scope`
@@ -71,7 +71,7 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
     **Why it matters:** The hole a name-based check would leave. If the audit trusted the *name* of a grouping key, aliasing a five-lap bucket back onto `lap_number` would buy a pass, and the key set would look like it pins a lap when it spans five — four of them in the future at the first one. The audit resolves each key to what it is computed from, so a derived key is disqualified whatever it is called.
   </Accordion>
   <Accordion title="8. Declared exemptions are signed, and cannot rot" icon="file-signature">
-    **Source:** `test_features.py::test_declared_exemptions_are_well_formed`, `::test_aggregation_survey_names_the_two_known_instances`
+    **Source:** `test_features.py::test_declared_exemptions_are_well_formed`, `::test_the_sc_hazard_instance_left_the_survey_by_being_fixed_not_by_being_hidden`, `::test_the_corner_instance_left_the_survey_by_being_fixed_not_by_being_hidden`
 
     **Assertion:** every declaration carries a known status and a written reason; a `known_leak` names the item that fixes it; a declaration matching no aggregation in its model is a violation
 
@@ -89,23 +89,23 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
   <Accordion title="10. Holdout purity" icon="lock">
     **Source:** `test_features.py::test_holdout_purity`
 
-    **Assertion:** `holdout_season not in training_seasons` AND `(groups_train < holdout_season).all()`
+    **Assertion:** `holdout_season == holdout_config.HOLDOUT_SEASON`, `holdout_season not in training_seasons` AND `(groups_train < holdout_season).all()`; when holdout rows exist they all belong to that one season
 
-    **Why it matters:** If any row from the holdout season appears in any training fold, every metric computed on that season is overstated. This test checks both that the season is not in the training set list and that no training row's `race_year` equals or exceeds the holdout season. Both are necessary: the first catches a metadata error; the second catches a data-construction bug.
+    **Why it matters:** If any row from the holdout season appears in any training fold, every metric computed on that season is overstated. This test checks that the season is the pinned one, that it is not in the training set list, and that no training row's `race_year` equals or exceeds it. Both are necessary: the first catches a metadata error; the second catches a data-construction bug.
   </Accordion>
   <Accordion title="11. No hard-coded holdout year" icon="code">
     **Source:** `test_features.py::test_no_hardcoded_holdout`
 
     **Assertion:** No numeric literal `2024` or `2025` appears as a code token (not a comment or docstring) in any `ml/src/*.py` file
 
-    **Why it matters:** The holdout season is `MAX(race_year) + 1`. If a developer hard-codes the year, the guard fails silently when the season rolls over 2025 ingests, the literal still says 2025, and the "holdout" is now in-sample. The test tokenizes the source files rather than string-searching, so it distinguishes code from comments correctly.
+    **Why it matters:** The holdout season is pinned in one place, `holdout_config.HOLDOUT_SEASON`, and every other module reads it from there. If a developer hard-codes a year elsewhere, the guard fails silently when the season rolls over: the literal goes stale and the "holdout" is now in-sample. The pinned file is the only exemption. The test tokenizes the source files rather than string-searching, so it distinguishes code from comments correctly.
   </Accordion>
   <Accordion title="12. Degradation target bounded [−10, 10]" icon="ruler">
     **Source:** `test_features.py::test_target_bounded`
 
-    **Assertion:** `y_train.between(-10, 10).all()` AND `(y_train < 0).mean() > 0.2`
+    **Assertion:** `y_train.between(-TARGET_BOUND, TARGET_BOUND).all()` AND `(y_train < 0).mean() > 0.2`, and `remaining_stint_life_laps >= 0`
 
-    **Why it matters:** The target `next_lap_degradation_jump_detrended_s` is bounded by physics: a tyre cannot gain or lose more than 10 seconds per lap in a single step. The upper bound guards against catastrophic outliers that would dominate the loss. The lower bound (`> 0.2` fraction negative) checks that the training data still contains enough negative examples if detrending went wrong, the target could become artificially non-negative and the model would never learn tyre recovery.
+    **Why it matters:** The degradation target is bounded at source by the clip the mart applies (±50 s for the current five-lap cumulative column). The bound guards against catastrophic outliers that would dominate the loss. The lower bound (`> 0.2` fraction negative) checks that the training data still contains enough negative examples if detrending went wrong, the target could become artificially non-negative and the model would never learn tyre recovery.
   </Accordion>
   <Accordion title="13–15. No NULL targets in training (×3 targets)" icon="ban">
     **Source:** `test_features.py::test_no_null_targets_in_training` (parametrized × 3)
@@ -113,6 +113,83 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
     **Assertion:** `y_train.notna().all()` for each of the three model families
 
     **Why it matters:** The last lap of a stint has no "next lap" its degradation target is `NULL`. XGBoost raises an error on `NaN` in `y` but produces silently wrong results if the `NaN` is dropped inconsistently. This test asserts that `load_features` correctly filters NULL-target rows before training for all three families, not just the one being actively developed.
+  </Accordion>
+  <Accordion title="16. Self-join horizons are caught" icon="arrows-left-right">
+    **Source:** `test_features.py::test_forward_window_audit_catches_a_self_join_horizon`
+
+    **Assertion:** with `laps_until_cliff` as the only feature, `audit_forward_window()` returns a violation containing "self-join inequality"
+
+    **Why it matters:** The cliff scan walks a whole horizon through `a.lap_in_stint < f.lap_in_stint` in a `JOIN ... ON`, with no `LEAD` and no `FOLLOWING` frame anywhere. A feature built that way passed the audit silently until the walker learned to read the enclosing scope. This test shows the audit still flags the shape it was extended for.
+  </Accordion>
+  <Accordion title="17. The safety-car hazard left the survey by being fixed" icon="triangle-exclamation">
+    **Source:** `test_features.py::test_the_sc_hazard_instance_left_the_survey_by_being_fixed_not_by_being_hidden`
+
+    **Assertion:** `int_sc_hazard_history` no longer appears in `survey_aggregation_scope()`, the survey no longer reports its all-time "pools every ingested season" shape, the model is in the mart lineage, and `audit_aggregation_scope()` has no violation naming it
+
+    **Why it matters:** A model can drop off the report-only survey for two reasons: its defect was removed, or a feature started reading it. The second alone would hide a model that still leaks. The test requires both, so the model is now keyed by circuit and season with every aggregate ending one season back, it sits inside the audited lineage, and the audit is clean on it. The survey check is scoped to this model on purpose, because other models outside the lineage still report the pooled shape and none of them feeds a feature.
+  </Accordion>
+  <Accordion title="18. The hazard join keeps the season" icon="key">
+    **Source:** `test_features.py::test_the_sc_hazard_join_key_still_carries_the_season`
+
+    **Assertion:** the SQL of `fct_cliff_prediction_features` joins `int_sc_hazard_history` on `sch.circuit_slug` and on `r.race_year = sch.season`
+
+    **Why it matters:** The hazard is point-in-time as of the start of a season, so the season is half the key. A join on circuit alone would hand a 2018 row a hazard estimated partly from 2024 and fan the mart out five to seven times, and neither the window walker nor the aggregation walker reads join keys. The test checks the SQL text structurally, so it fails on the edit that causes the bug rather than on the rebuild that reveals it.
+  </Accordion>
+  <Accordion title="19. The corner-skill model left the survey by being fixed" icon="road">
+    **Source:** `test_features.py::test_the_corner_instance_left_the_survey_by_being_fixed_not_by_being_hidden`
+
+    **Assertion:** `int_corner_skill_residuals` is absent from the survey, both it and `int_lap_corner_inputs` are in the mart lineage, and `audit_aggregation_scope()` has no violation naming either
+
+    **Why it matters:** The same two-reason check as the safety-car hazard. The five-lap block bucket that once made this model's groups reach forward was replaced by a trailing range window, and the model entered the mart through `int_lap_corner_inputs`. Asserting both halves stops a model from leaving the survey by being wired into a feature while still carrying the defect.
+  </Accordion>
+  <Accordion title="20. `baseline_observations_n` is never a feature" icon="hashtag">
+    **Source:** `test_features.py::test_baseline_observations_n_is_never_a_feature`
+
+    **Assertion:** `"baseline_observations_n" not in FEATURE_COLUMNS`
+
+    **Why it matters:** The column ships in the mart because the thermal features' NULLs are deterministic on it, so consumers need it to condition on that missingness. A feature add-ablation measured it and no model family cleared its reseed floor. Its rank correlation with `lap_in_stint` is 0.97, so it is easy to add back by mistake. A future change that wants it in `X` has to re-run the ablation and delete this test on purpose.
+  </Accordion>
+  <Accordion title="21. The target bound follows the target column" icon="ruler-combined">
+    **Source:** `test_features.py::test_target_bound_follows_the_target_column`
+
+    **Assertion:** `TARGET_BOUND == TARGET_BOUND_BY_COLUMN[DEGRADATION_TARGET]`, and every quantile model's source column has an entry in `TARGET_BOUND_BY_COLUMN`
+
+    **Why it matters:** The bound is a fact about the clip on whichever column is modelled, not a constant that fits the one-lap target. Carrying a ±10 bound over to the five-lap column, which is clipped at ±50, would put a range into the manifest that is five times too tight and that nothing downstream checks.
+  </Accordion>
+  <Accordion title="22. The bound is the clip the warehouse applies" icon="bullseye">
+    **Source:** `test_features.py::test_target_bound_is_the_clip_the_warehouse_applies`
+
+    **Assertion:** the largest absolute value in the degradation training target is more than 90% of `TARGET_BOUND`
+
+    **Why it matters:** A bound that is five times too loose passes the bounded-target test forever. This one requires the data to actually reach the bound, which shows the bound is the SQL clip and not an arbitrary envelope drawn around it.
+  </Accordion>
+  <Accordion title="23–25. Target columns are never features (×3 models)" icon="ban">
+    **Source:** `test_features.py::test_target_columns_are_never_features` (parametrized × 3)
+
+    **Assertion:** the model's source column is not in `FEATURE_COLUMNS`; for every model except stint life it is in `EXCLUDED_LEAKAGE_COLUMNS`; and no column in `TARGET_HORIZON_LAPS` (every alternative-horizon degradation column) is in `FEATURE_COLUMNS`
+
+    **Why it matters:** When the modelled column moves between horizons, the column just vacated can quietly become available as a predictor. The test bars the target of each production model and keeps every alternative-horizon degradation column barred whether or not it is the one being modelled.
+  </Accordion>
+  <Accordion title="26. `--check` is read-only by default" icon="eye">
+    **Source:** `test_features.py::test_check_cli_defaults_persist_encoders_false`
+
+    **Assertion:** running `features.py --check` calls `_check` with `persist_encoders=False`
+
+    **Why it matters:** `--check` used to hard-code `persist_encoders=True`, so a local check against the dev warehouse overwrote the shipped `encoders.json` with whatever vocabulary the holdout resolver returned, which may not match the one baked into the shipped ONNX models. The test replaces `_check` with a stub, so it never touches the real file.
+  </Accordion>
+  <Accordion title="27. The `--persist-encoders` flag is wired through" icon="plug">
+    **Source:** `test_features.py::test_check_cli_persist_encoders_flag_threads_through`
+
+    **Assertion:** `features.py --check --persist-encoders` calls `_check` with `persist_encoders=True`
+
+    **Why it matters:** This is the other direction of the previous guard. It shows the escape hatch reaches `_check` and is not merely declared and ignored.
+  </Accordion>
+  <Accordion title="28. `load_features` does not persist encoders unless asked" icon="floppy-disk">
+    **Source:** `test_features.py::test_load_features_does_not_persist_encoders_by_default`
+
+    **Assertion:** with `ENCODERS_PATH` redirected to a scratch file, `load_features(...)` writes nothing, and `load_features(..., persist_encoders=True)` writes the file
+
+    **Why it matters:** This is the write path that both `--check` and training go through. Testing both directions shows the guard in `load_features` itself is correct, again without touching the shipped `ml/models/encoders.json`.
   </Accordion>
 </AccordionGroup>
 
@@ -130,9 +207,9 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
     The adversarial probe that demonstrates the exclusions are non-negotiable `race_year` is recoverable at 0.998 accuracy.
   </Card>
   <Card title="Feature contract" href="/ml/feature-contract" icon="list">
-    The full list of 33 features and why each is allowed into `X`.
+    The full list of 39 features and why each is allowed into `X`.
   </Card>
   <Card title="CI overview" href="/ml/ci/overview" icon="vial">
-    All 40 tests where the spine sits in the full contract.
+    All 270 tests where the spine sits in the full contract.
   </Card>
 </CardGroup>

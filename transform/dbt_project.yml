@@ -118,7 +118,7 @@ vars:
   #
   # Sensitivity, measured 2026-08-25 by re-deriving laps_until_cliff_class at
   # each value: 10.0 moves 4.97% of labels, 5.0 moves 11.09%, 3.0 moves 18.11%.
-  # 10.0 is the conservative choice and the one continuous with Phase 5.
+  # 10.0 is the conservative choice and the one continuous with the earlier, uncapped wear curve.
   compound_wear_max_s_per_lap: 10.0
   # Retained as an alias of the above so the pit-strategy model keeps a name of
   # its own; both default to the same value and the cost curve reads the shared
@@ -176,7 +176,7 @@ vars:
   tyre_qa_race_unmatched_pit_share_min: 0.3
   # ── Driver isolation (WI-16a; _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md) ──
   # The three contextual driver ratings (pure pace, tactical, relative to same-strategy
-  # peers). Every value below is pre-registered in the WI doc; WI-16b's validation does
+  # peers). Every value below is fixed in advance of the validation, which does
   # not tune them. Measured numbers are from the 2026-09-26 scratch rebuild of dev.
   #
   # int_driver_isolation_lap_panel: a (race, lap) enters the clean-lap panel Ω only if at
@@ -262,7 +262,7 @@ vars:
   # APPLIES this value (it no longer fits theta in SQL), so a change to it is
   # always a reviewed edit and never a side effect of a build. T9
   # (assert_prior_season_labels_frozen) warns if the applied value differs.
-  # 0.331 s/lap (ruled 2026-09-27, W40): 06b's pre-registered F2 estimator
+  # 0.331 s/lap (ruled 2026-09-27, W40): 06b's F2 estimator
   # (partial residual on the lagged dirty-air bit | stint FE + six tyre-age
   # bins, race-clustered) on the model's calibration_panel, 2018-2025:
   # 0.3313 [0.293, 0.370], n = 138,679. Fitted outside dbt by

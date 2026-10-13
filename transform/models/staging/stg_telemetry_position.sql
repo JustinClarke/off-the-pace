@@ -1,7 +1,7 @@
 -- stg_telemetry_position.sql · staging · grain: one row per POSITION-channel
 -- telemetry sample per driver per lap (~369 samples/lap/driver).
 --
--- The channel split (Phase 10c). `raw_telemetry` interleaves three FastF1
+-- The channel split. `raw_telemetry` interleaves three FastF1
 -- sample provenances in one file: 'car' (the true car-channel cadence),
 -- 'pos' (the true positional-channel cadence) and 'interpolation' (a handful
 -- of synthesised joins). `stg_telemetry` projects all three un-filtered and
@@ -61,7 +61,7 @@ renamed AS (
 
         -- FastF1's own answer to "who is ahead and how far", kept so the new
         -- measure can be scored AGAINST it rather than merely replacing it
-        -- (Phase 10a: "run the ablation against both rather than asserted").
+        -- (the ablation runs against both rather than asserting one better).
         -- driver_ahead is a car NUMBER, not the three-letter code driver_id
         -- uses; int_lap_proximity resolves it through stg_results.
         NULLIF(TRIM(CAST(driverahead AS VARCHAR)), '') AS driver_ahead_number,

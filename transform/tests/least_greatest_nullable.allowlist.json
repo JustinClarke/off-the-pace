@@ -122,13 +122,6 @@
       "reason": "The CASE NULL-tests actual_pit_lap and pick_optimal_cost_s but not pick_actual_cost_s; a NULL there reads as a 0.0 opportunity cost. Ruled 0.0 (W11, 2026-09-29 watch sweep), for the same reason as the race-horizon clip beside it: 0.0 is this model's one convention for a stint it cannot grade. Does not fire: 0 of the 5,112 stints graded with a stop on the 2026-09-25 dev build (after WI-13's F31 fix)."
     },
     {
-      "file": "models/intermediate/int_sector_residual_decomposed.sql",
-      "call": "GREATEST(ABS(sector_fuel_component_s), ABS(sector_compound_component_s), ABS(sector_rubber_component_s), ABS(sector_ambient_component_s), ABS(sector_constructor_component_s), ABS(sector_dirty_air_tax_s))",
-      "verdict": "not_null",
-      "reason": "Dominant-component pick. 0 of 483,120 rows have any NULL sector component on the 2026-09-24 dev build (after the F39 change made compound_component_s NULL on unknown-age laps).",
-      "count": 5
-    },
-    {
       "file": "models/intermediate/int_track_evolution.sql",
       "call": "LEAST(SUM( (c.lap_number - rm.mean_lap) * (c.field_pace_smoothed_s - rm.mean_pace) ) / NULLIF(SUM(POWER(c.lap_number - rm.mean_lap, 2)), 0), 0.0)",
       "verdict": "not_null",

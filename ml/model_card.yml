@@ -721,7 +721,7 @@ model_card:
       stints_straddling_a_season_fold: 0
       effective_sample_ratio: 3.642969135356707
       note: season-grouped folds are already stint-pure; the clustering damage was never in the split,
-        it was in every interval computed at lap grain over it (Corrections §15).
+        it was in every interval computed at lap grain over it.
     claims_inside_noise:
     - stint_life_regressor
     all_claims_significant: false
@@ -1056,7 +1056,7 @@ model_card:
     stint share a compound, a car, a circuit and a driver. Against an oracle handed the stint id and nothing
     else it reaches 69% of the ceiling. What limits it is not established. The label was the leading candidate
     and has been tested: laps_until_cliff_class is a first-crossing scan over int_compound_cliff_predicted,
-    which was unbounded until Phase 8 bounded it at source (compound_wear_max_s_per_lap). Repairing it
+    which is now bounded at source (compound_wear_max_s_per_lap). Repairing it
     moved 4.97% of rows and did not lift macro-F1, and a fresh 50-trial search on the repaired label did
     not beat the params tuned on the contaminated one. Neither the label nor the hyperparameters explain
     the number.'

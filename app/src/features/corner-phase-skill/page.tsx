@@ -89,7 +89,7 @@ export default function CornerPhaseSkillPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024' }}
+      provenance={{ dataWindow: '2018–2025' }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename={`corner-phase-skill-${season}.csv`}
       isLoading={isLoading}

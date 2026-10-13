@@ -47,7 +47,7 @@ export default function ModelMetricsPage() {
         },
         {
           label: 'Why It Matters',
-          content: "Every fitted number traces to a tracked artefact, beats a strong baseline, and carries an interval on that margin laps inside one stint are not independent draws, so a point estimate alone overstates certainty. The 2025 season is the true held-out blind test this page shows results on the 2024 CV fold until that data ingests.",
+          content: "Every fitted number traces to a tracked artefact, beats a strong baseline, and carries an interval on that margin laps inside one stint are not independent draws, so a point estimate alone overstates certainty. 2026 is the true held-out blind test; until its races ingest, this page shows the 2025 CV fold, scored by models trained on 2018–2024.",
         },
         {
           label: "How It's Calculated",
@@ -60,7 +60,7 @@ export default function ModelMetricsPage() {
         fitDate: result.generated_at.slice(0, 10),
         dataWindow: result.training_seasons.join(', '),
         nObs: result.n_training_rows,
-        modelVersion: result.version,
+        modelVersion: result.version.replace(/^v/, ''),
         datasetFingerprint: result.dataset_fingerprint,
       } : undefined}
       csvRows={result ? toCsvRows(result) : undefined}

@@ -1,16 +1,16 @@
 ---
 title: "Evaluation gates: beats-baseline, calibration, and cohorts"
 sidebarTitle: "Evaluation Gates"
-description: "The 7 tests in test_evaluate.py that assert every model beats its per-cohort baseline, calibration coverage is computed, cohorts are surfaced not dropped, and metrics match the model card."
+description: "The tests in test_evaluate.py that assert every model beats its per-cohort baseline, cohorts are surfaced not dropped, every model carries an attainable ceiling, and every win carries an interval."
 ---
 
-The seven evaluation gates in `test_evaluate.py` enforce the properties that make the model card trustworthy: all five models beat honest baselines, coverage is computed, and no cohort loss is silently hidden. These tests run against `ml/artefacts/evaluation_metrics.json`, produced by `make ml-evaluate`.
+The 19 evaluation tests in `test_evaluate.py` (seven test functions, four of them parametrized across the five models) enforce the properties that make the model card trustworthy: all five models beat honest baselines, every headline has a denominator and an interval, and no cohort loss is silently hidden. These tests run against `ml/artefacts/evaluation_metrics.json`, produced by `make ml-evaluate`.
 
 <Note>
   These tests are skipped when `evaluation_metrics.json` is absent (i.e. in CI pull requests that do not retrain). They are always run before a release. To run them locally: `make ml-evaluate && make ml-test`.
 </Note>
 
-## The 7 gates
+## The 19 tests
 
 <AccordionGroup>
   <Accordion title="Gate 1: All five targets evaluated" icon="list-check">
@@ -47,6 +47,40 @@ The seven evaluation gates in `test_evaluate.py` enforce the properties that mak
 
     See [Cohorts](/ml/cohorts) for the current underperforming cells and their context.
   </Accordion>
+  <Accordion title="Gates 8–12: Every model reports an attainable ceiling (×5 models)" icon="bullseye">
+    **Source:** `test_evaluate.py::test_every_model_reports_an_attainable_ceiling` (parametrized × 5)
+
+    **Assertion (for each model):**
+    - the `attainable` block exists and carries no `error`
+    - `variance.between_stint_share` lies in [0, 1]
+    - the corrected (ANOVA) between-stint share does not exceed the naive share, unless the target's within-stint variation is deterministic, as it is for stint life
+
+    **Why it matters:** a headline score with no denominator cannot say whether to keep tuning or stop. This gate requires every model's report to say how much of the variance a stint-aware predictor could reach. The ordering check catches an estimator that has regressed to the naive one, which overstates the ceiling.
+  </Accordion>
+  <Accordion title="Gates 13–17: Every win carries an interval (×5 models)" icon="ruler-horizontal">
+    **Source:** `test_evaluate.py::test_every_beats_baseline_claim_has_an_interval` (parametrized × 5)
+
+    **Assertion (for each model that claims `beats_baseline`):**
+    - the `interval` block exists and carries no `error`
+    - the fold-paired result has at least two folds, a non-null `p_value`, and `ci_low < ci_high`
+    - a `beats_baseline_significant` verdict is recorded
+
+    **Why it matters:** the effective sample is the number of stints, not the number of laps, so a lap-grain point estimate can look decisive when it is not. A model that does not claim a win is skipped. A model that does must publish the interval and the verdict that go with it.
+  </Accordion>
+  <Accordion title="Gate 18: Stint grain recorded, folds stint-pure" icon="layer-group">
+    **Source:** `test_evaluate.py::test_stint_grain_is_recorded_and_the_folds_are_stint_pure`
+
+    **Assertion:** the report has a `stint_grain` block, `stints_straddling_a_season_fold == 0`, and `n_stints < n_rows`
+
+    **Why it matters:** laps within a stint are not independent, so the report must record how many stints stand behind the lap count. The zero-straddle check confirms the season-grouped folds never split a stint, which is what shows the cross-validation split was not the source of any clustering problem. A straddling stint would mean a stint belongs to two seasons, which should be impossible.
+  </Accordion>
+  <Accordion title="Gate 19: Claims inside noise is present, even when empty" icon="triangle-exclamation">
+    **Source:** `test_evaluate.py::test_claims_inside_noise_is_present_even_when_empty`
+
+    **Assertion:** the report has a `claims_inside_noise` key, and its entries are a subset of the evaluated model names
+
+    **Why it matters:** a claim that fails its own interval is the most informative line in the report. An absent key and "every claim survived" must not look the same, so the key has to exist even when the list is empty.
+  </Accordion>
 </AccordionGroup>
 
 ## The relationship to the model card
@@ -74,6 +108,6 @@ Any model that fails an evaluation gate cannot produce a valid card, and therefo
     The headline numbers the beats-baseline gates are checking.
   </Card>
   <Card title="CI overview" href="/ml/ci/overview" icon="vial">
-    All 40 tests where these seven sit in the full contract.
+    All 270 tests where these 19 sit in the full contract.
   </Card>
 </CardGroup>

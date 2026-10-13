@@ -1,0 +1,9 @@
+F9 mistake-row weighting arms, 2026-10-10.
+Script: f9_mistake_weight_arms.py (scratch copy of data/dev.duckdb; dev.duckdb not written).
+Run: --seeds 5 (RANDOM_STATE .. +4), all five production targets, eval = final CV fold (2025),
+eval rows identical across arms (baseline-eligible rows only).
+Arms: A shipped (w=None / balanced), A1 explicit ones control, B mistake rows at 0.5, C mistake rows at 1.0.
+Result: every delta vs A1 is within 1.3x the reseed floor (sd of A1 over 5 seeds); see arms.log.
+Not measured: behaviour ON mistake laps (they are excluded from eval in every arm).
+Note: int_lap_anomaly_flags.training_weight_f9 is not read by anything and gives 1,234 event_driven rows
+a weight > 0 (1,147 at 1.0, 87 at 0.5); it is not a drop-in for is_training_eligible.

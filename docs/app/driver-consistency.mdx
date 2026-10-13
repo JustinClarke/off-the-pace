@@ -1,10 +1,10 @@
 ---
 title: "Visualizing driver consistency across races and seasons"
 sidebarTitle: "Driver Consistency"
-description: "Plot each driver's residual skill mean and variance after removing all six physics factors see who delivers reliably and who runs hot and cold."
+description: "Plot each driver's residual skill mean and variance after removing every modelled physics factor see who delivers reliably and who runs hot and cold."
 ---
 
-The driver consistency chart answers a single question: after you strip away the car, the tyres, the fuel load, the dirty air, and the ambient conditions, how reliably does each driver extract the same pace the car is capable of? Every point on the chart represents one driver's season-level aggregation of their `driver_skill_residual_s` the component of lap time left over once all six modelled physics terms have been subtracted. Drivers with a tight, negative cluster are delivering better-than-expected pace, consistently. Drivers scattered wide are brilliant sometimes and costly others.
+The driver consistency chart answers a single question: after you strip away the car, the tyres, the fuel load, the dirty air, and the track conditions the whole field shares, how reliably does each driver extract the same pace the car is capable of? Every point on the chart represents one driver's season-level aggregation of their `driver_skill_residual_s` the component of lap time left over once the four modelled physics terms have been subtracted. Drivers with a tight, negative cluster are delivering better-than-expected pace, consistently. Drivers scattered wide are brilliant sometimes and costly others.
 
 ## What the chart shows
 
@@ -35,12 +35,12 @@ A **positive mean residual** means the driver is, on average, delivering less pa
 A **low standard deviation** means that signal positive or negative is reproducible. A high standard deviation means the driver has more lap-to-lap variance after conditions are controlled, which could indicate sensitivity to tyre windows, traffic effects not fully captured by the dirty-air term, or genuine inconsistency.
 
 <Warning>
-  Circuits that carry a `REVIEW_REQUIRED` flag in the data quality audit should be treated with caution. Residuals from those events may absorb miscalibration in one of the six physics terms rather than genuine driver skill variation. Check the [decomposition limitations](/decomposition/limitations) page before drawing strong conclusions from any single race.
+  Circuits that carry a `REVIEW_REQUIRED` flag in the data quality audit should be treated with caution. Residuals from those events may absorb miscalibration in one of the physics terms rather than genuine driver skill variation. Check the [decomposition limitations](/decomposition/limitations) page before drawing strong conclusions from any single race.
 </Warning>
 
 ## Data source
 
-The chart queries `fct_driver_skill_features` via DuckDB-Wasm in the browser. The underlying residuals are computed by the seven-term additive decomposition pipeline and enforced lap-by-lap in the warehouse by the `assert_additive_identity` CI check. Season-level aggregates are produced by averaging across all clean laps per driver per season.
+The chart queries `fct_driver_skill_features` via DuckDB-Wasm in the browser. The underlying residuals are computed by the additive decomposition pipeline and enforced lap-by-lap in the warehouse by the `assert_additive_identity` CI check. Season-level aggregates are produced by averaging across all clean laps per driver per season.
 
 | Column | Meaning |
 |---|---|
@@ -49,4 +49,4 @@ The chart queries `fct_driver_skill_features` via DuckDB-Wasm in the browser. Th
 | `clean_lap_count` | Number of laps included after SC, pit-window, and anomaly filters |
 | `constructor_id` | The constructor the driver raced for that season |
 
-The data window covers **2018–2024**.
+The data window covers **2018–2025**.

@@ -64,7 +64,7 @@ export default function RaceLostPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024' }}
+      provenance={{ dataWindow: '2018–2025' }}
       csvRows={row && driverId ? toCsvRows(driverId, row) : undefined}
       csvFilename={`race-lost-${raceId}-${driverId}.csv`}
       isLoading={isLoading}

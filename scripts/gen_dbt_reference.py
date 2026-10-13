@@ -34,8 +34,8 @@ LAYER_LABELS = {
 
 # Maps model name prefix → explanation page slug (for cross-ref links)
 EXPLANATION_LINKS: dict[str, str] = {
-    "int_lap_residual_decomposed": "/decomposition/seven-term-identity",
-    "fct_lap_residuals": "/decomposition/seven-term-identity",
+    "int_lap_residual_decomposed": "/decomposition/additive-identity",
+    "fct_lap_residuals": "/decomposition/additive-identity",
     "int_dirty_air_tax_component": "/decomposition/methodology",
     "int_compound_cliff_predicted": "/decomposition/methodology",
     "fct_cliff_prediction_features": "/decomposition/methodology",

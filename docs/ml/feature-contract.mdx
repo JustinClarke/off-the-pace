@@ -1,7 +1,7 @@
 ---
-title: "Feature contract: the 33 features and the read-only mart"
+title: "Feature contract: the 39 features and the read-only mart"
 sidebarTitle: "Feature Contract"
-description: "33 features across 6 physics groups, all read from fct_cliff_prediction_features. The machine layer never re-derives physics it reads the decomposition's output and writes nothing back."
+description: "39 features across 7 physics groups, all read from fct_cliff_prediction_features. The machine layer never re-derives physics it reads the decomposition's output and writes nothing back."
 ---
 
 import MLFeatures from '/snippets/ml-inventory-features.mdx';
@@ -13,7 +13,7 @@ The physics lives in the dbt transform layer. The machine layer reads it. That s
 **Read-only mart contract.** The ML layer reads `fct_cliff_prediction_features` read-only. It never writes to the warehouse or the application. `driver_skill_residual_s` the decomposition's closure is **excluded** from the feature matrix; the models must not relearn what the skill layer already attributed.
 </Warning>
 
-## 33 features across 6 physics groups
+## 39 features across 7 physics groups
 
 Every feature has a physics interpretation. The grouping below matches `FEATURE_GROUPS` in `ml/src/schema.py` and the `features.groups` section of the model card the exact same ordering used during training.
 
@@ -57,6 +57,25 @@ capacity, with **neither half clearing on its own** so the quantile trio's impro
 real on this fold but is not cleanly attributable to traffic.
 </Note>
 
+<Note>
+**Qualifying group (2026-09-21): 32 → 39, read by the cliff classifier only.** Seven columns
+from `int_qualifying_driver_summary` describe the driver's qualifying weekend: push laps run,
+the constructor's qualifying pace and its standard error, the gap to the session best, the
+ratio to the segment best, the session-average skill residual, and how many segments the driver
+contested. They are weekend-grain, broadcast onto every race lap, and settled before the race
+starts, so they carry no forward information.
+
+Admitted on an add-ablation against each family's own seed-refit noise floor: cliff macro-F1
+0.35247 → 0.38404 (7.27× floor raw, 7.47× permutation-corrected). The driver-form half carries
+more than the car half, so the signal is the driver's one-lap form. The degradation trio and
+stint life gained nothing measurable at p10, p50 or on stint life, so the mask in
+`PER_TARGET_FEATURE_MASK` keeps those four models at 32 columns. p90 cleared on its own, but it
+shares a model family with p10 and p50 and the mask is keyed by family, so it stays at 32 too.
+About 2% of rows have no qualifying record (8% in 2018, an upstream ingestion gap);
+`quali_push_laps_n` is 0 on exactly those rows, so the missingness is an explicit feature rather
+than a pattern hidden in NaNs.
+</Note>
+
 <MLFeatures />
 
 <CardGroup cols={2}>
@@ -66,8 +85,8 @@ real on this fold but is not cleanly attributable to traffic.
   <Card title="compound (7)" icon="circle">
     Compound identity, grip peak, wear gradient, optimal temp window, cliff-onset and severity priors. The compound-level physics prior baked into the Reference family.
   </Card>
-  <Card title="cliff_prior (5)" icon="triangle-alert">
-    Expected pace, degradation rate, whether the onset lap has passed, laps past the cliff, and a cliff candidate flag. The Kaplan-Meier survival prior from the physics layer ML's starting point, not its conclusion.
+  <Card title="cliff_prior (4)" icon="triangle-alert">
+    Expected pace, degradation rate, whether the onset lap has passed, and laps past the cliff. The Kaplan-Meier survival prior from the physics layer ML's starting point, not its conclusion.
   </Card>
   <Card title="thermal (4)" icon="thermometer">
     Push residual, cumulative surface and bulk thermal load, and the surface-to-bulk ratio (added under Route C, C3). Encodes how hard the tyre has been working at each of the two thermal layers.
@@ -78,12 +97,15 @@ real on this fold but is not cleanly attributable to traffic.
   <Card title="proximity (9)" icon="car">
     True pairwise track gaps from the position channel: share of the lap within 1 s / 2 s of the car ahead, share spent in a train rather than a single tow, share with a car within 1 s **behind**, seconds within 1 s, closest and median gap ahead, how stable the car ahead's identity was, and how many distinct cars came within 3 s. The same physical hypothesis as `dirty_air` measured from a different sensor and both are kept, because the swap arm says they carry different things.
   </Card>
+  <Card title="qualifying (7)" icon="timer">
+    The driver's qualifying weekend: push laps run, constructor qualifying pace and its standard error, gap to the session best, ratio to the segment best, session-average skill residual, and segments contested. Read by the cliff classifier only; the other four models mask it.
+  </Card>
 </CardGroup>
 
 ## The read-only contract in practice
 
 <Info>
-  **Two target spans.** The quantile trio and cliff classifier train on **114,270 laps** that carry the degradation and cliff targets; the stint-life regressor trains on **120,934 laps** the spans differ because a lap can have a valid stint-life count even where its next-lap jump is undefined.
+  **Three target spans.** The quantile trio trains on **95,513 laps** that carry the degradation target, the cliff classifier on **132,265** and the stint-life regressor on **139,947**. The spans differ because a lap can carry a cliff label or a valid stint-life count even where its next-lap jump is undefined.
 </Info>
 
 Ordinal encoding handles categoricals: the training map assigns each seen value an integer; NULL or unseen values get `−1` (the `MISSING_ORDINAL` sentinel). Continuous features keep `NaN` as `NaN` XGBoost learns the best split direction for missing values natively.
@@ -102,7 +124,7 @@ Ordinal encoding handles categoricals: the training map assigns each seen value 
     How a mart row becomes a row of the `X` matrix encoding, fingerprinting, the forward-window audit, and the three targets.
   </Card>
   <Card title="Leakage spine" href="/ml/ci/leakage-spine" icon="shield">
-    The 12 CI tests that assert these exclusions hold every build one idea per guard.
+    The 34 CI tests that assert these exclusions hold every build one idea per guard.
   </Card>
   <Card title="Model overview" href="/ml/overview" icon="microchip">
     Back to the ML front door.

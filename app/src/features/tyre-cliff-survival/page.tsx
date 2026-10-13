@@ -130,7 +130,7 @@ export default function TyreCliffSurvivalPage() {
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
       provenance={{
-        dataWindow: profile?.data_window ?? '2018-2024',
+        dataWindow: profile?.data_window ?? '2018-2025',
         nObs: result?.actualStintCount,
         fitDate: profile?.fit_date ?? undefined,
       }}

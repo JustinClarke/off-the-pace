@@ -4,7 +4,7 @@
 // precomputed mart_degradation_predictions within tolerance. This is the browser
 // analogue of the Python ONNX-parity test (manifest.provenance.onnx_parity).
 //
-// The 33-feature vector (Phase 9 pruned 42 -> 24; Phase 10a added the 9-column
+// The 33-feature vector (24 pruned columns plus the 9-column
 // `proximity` group from the position channel) is read straight from
 // fct_cliff_prediction_features, which carries the full feature set (the 8 telemetry/air
 // columns that once lived in int_lap_powertrain_signature and int_air_density were folded

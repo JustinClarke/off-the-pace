@@ -4,7 +4,7 @@ sidebarTitle: "Track Evolution"
 description: "The lap-time baseline split into rubber buildup and ambient drift, showing how much the circuit itself changed underneath the field over a race."
 ---
 
-A circuit is not a fixed stopwatch it rubbers in and gets faster, and the ambient conditions drift underneath the cars. Track evolution decomposes the lap-time baseline into those two time-varying components, both extracted from the seven-term decomposition run over clean laps. It separates "the track got quicker" from "the cars got quicker".
+A circuit is not a fixed stopwatch it rubbers in and gets faster, and the ambient conditions drift underneath the cars. Track evolution decomposes the lap-time baseline into those two time-varying components, both split out of the field baseline (`base_track_pace_s`) over clean laps. Because they live inside the baseline every lap is measured against, they are informational and are not terms of the additive identity. It separates "the track got quicker" from "the cars got quicker".
 
 ## What it shows
 
@@ -27,7 +27,7 @@ The chart splits the moving baseline into two curves plus a weather overlay:
 
 ## Reading the signal correctly
 
-These offsets are **field-wide baseline shifts**, not any single car's pace they describe the track everyone shares. Rubber and ambient are estimated jointly with the rest of the decomposition, so they reflect what's left after fuel and tyre effects are removed.
+These offsets are **field-wide baseline shifts**, not any single car's pace they describe the track everyone shares. Rubber and ambient are estimated from the fuel- and compound-corrected field baseline, so they reflect what's left after fuel and tyre effects are removed.
 
 <Warning>
   On short or interrupted races there may be too few clean laps to resolve the ambient component cleanly, and it can absorb residual rubber signal. Treat a noisy ambient curve as low-confidence. See the [decomposition limitations](/decomposition/limitations).
@@ -44,6 +44,6 @@ The chart queries `int_track_evolution` via DuckDB-Wasm in the browser, for a si
 | `rainfall_flag` | Whether the lap was rain-affected (highlighted) |
 | `lap_number` | The race lap, the x-axis |
 
-This is a **single-race** view across **2018–2024** data.
+This is a **single-race** view across **2018–2025** data.
 
 For the full model definition, see the [`int_track_evolution` reference](/reference/models/int/int_track_evolution).

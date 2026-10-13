@@ -41,8 +41,11 @@ def pool():
 
 
 def _fit(pool, monkeypatch, onset=18.0, severity=0.8, gradient=0.06, fallback_df=None,
-         season=2023):
-    """fit_group with the three estimators pinned, so each fallback path is forced."""
+         season=2024):
+    """fit_group with the three estimators pinned, so each fallback path is forced.
+
+    The fixture pools are 2023 stints and fit_group is point-in-time (it fits a season
+    on race_year < season), so the cell under test is 2024."""
     monkeypatch.setattr(F, "fit_cliff_onset_median", lambda *a, **k: onset)
     monkeypatch.setattr(F, "estimate_cliff_severity", lambda *a, **k: severity)
     monkeypatch.setattr(F, "estimate_wear_gradient", lambda *a, **k: gradient)
@@ -234,7 +237,8 @@ class TestFuelCorrectedSeries:
             return estimate_wear_gradient(df, onset, pace_col=pace_col)
 
         monkeypatch.setattr(F, "estimate_wear_gradient", spy)
-        r = F.fit_group(pool, "bahrain_grand_prix", "SOFT", 2023)
+        # point-in-time: the 2023 pool is the prior-season history for a 2024 cell
+        r = F.fit_group(pool, "bahrain_grand_prix", "SOFT", 2024)
         assert seen["pace_col"] == "fuel_corrected_pace_s"
         assert r["gradient_source"] == "fitted"
         assert 0.03 < r["compound_wear_gradient"] < 0.05, r["compound_wear_gradient"]

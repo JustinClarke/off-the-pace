@@ -2,7 +2,7 @@
 
 > **When a car is off the pace, why?**
 
-**A browser-native, full-stack F1 analytics platform.** It ingests 7 seasons of telemetry, models it through a 86-table dbt warehouse, trains 5 ML models, and serves 30 interactive analytics features with **no server, no login, and no cost to serve**.
+**A browser-native, full-stack F1 analytics platform.** It ingests 8 seasons of telemetry, models it through a 93-table dbt warehouse, trains 5 ML models, and serves 31 interactive analytics features with **no server, no login, and no cost to serve**.
 
 Under the hood, every lap is decomposed into five additive, physically-grounded components, so lost time is attributed to an exact, named cause rather than a vibe.
 
@@ -20,7 +20,7 @@ Under the hood, every lap is decomposed into five additive, physically-grounded 
 
 ![Off The Pace: browser-native F1 analytics dashboard decomposing every lap into named causes](docs/images/off-the-pace-home.png)
 
-**137,447** laps decomposed · **149** races · **40** drivers · **44** circuits · **86** dbt models · **912** tests · **5/5** ML models beat baseline · **30** browser features · **0** servers
+**161,040** laps decomposed · **173** races · **43** drivers · **44** circuits · **93** dbt models · **996** tests · **5/5** ML models beat baseline · **31** browser features · **0** servers
 
 ---
 
@@ -51,7 +51,7 @@ If it fails, the build fails. An enforced invariant is worth more than a claimed
 
 ### 3. Out-of-sample validation + limitations
 
-Trained on 2018–2024. The 2025 season is held out as a reproducible out-of-sample validation against now-public OpenF1 data; you can run it yourself to get the same numbers. Paired with an explicit limitations section: no 2025 ingestion yet (so the ML holdout is time-series CV for now).
+Trained on 2018–2025. The 2026 season is the designated holdout: evaluation switches to a true out-of-sample reveal as its races are ingested, with no code change. Until then the headline is the final time-series CV fold (2025), which was also used to admit features, so it is reported as a validation fold rather than a clean holdout. Paired with an explicit limitations section.
 
 ---
 
@@ -59,12 +59,12 @@ Trained on 2018–2024. The 2025 season is held out as a reproducible out-of-sam
 
 ```mermaid
 flowchart LR
-    A["FastF1 + OpenF1"] --> B["Bronze<br/>Hive-partitioned Parquet<br/>7 seasons · 149 races"]
-    B --> C["Transform<br/>dbt + DuckDB<br/>86 models · 912 tests"]
-    C --> D["ML<br/>5 XGBoost models<br/>→ ONNX, 33 features"]
+    A["FastF1 + OpenF1"] --> B["Bronze<br/>Hive-partitioned Parquet<br/>8 seasons · 173 races"]
+    B --> C["Transform<br/>dbt + DuckDB<br/>93 models · 996 tests"]
+    C --> D["ML<br/>5 XGBoost models<br/>→ ONNX, 39 features"]
     C --> E["GCS CDN<br/>parquet + models"]
     D --> E
-    E --> F["Browser App<br/>React · DuckDB-Wasm · ONNX Runtime<br/>30 features · zero server"]
+    E --> F["Browser App<br/>React · DuckDB-Wasm · ONNX Runtime<br/>31 features · zero server"]
     F --> G["Firebase Hosting"]
 ```
 
@@ -90,8 +90,8 @@ Requires Python 3.11+.
 git clone https://github.com/justinclarke/off-the-pace
 cd off-the-pace
 make setup           # build venv + install Python/dbt deps
-make dbt-dev         # build the transform layer (86 models)
-make dbt-test        # run 912 tests including assert_additive_identity
+make dbt-dev         # build the transform layer (93 models)
+make dbt-test        # run 996 tests including assert_additive_identity
 ```
 
 No cloud credentials required. DuckDB runs locally at `data/dev.duckdb`.
@@ -142,12 +142,12 @@ If you want to run the React app or the documentation site locally, you'll also 
 
 | Subsystem | State | Evidence |
 |---|---|---|
-| Ingestion (Bronze) | ✅ Built | `ingestion/src/`: FastF1 + OpenF1 → Hive-partitioned Parquet, 7 seasons / 149 races |
-| Transform (86 models, 912 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
+| Ingestion (Bronze) | ✅ Built | `ingestion/src/`: FastF1 + OpenF1 → Hive-partitioned Parquet, 8 seasons / 173 races |
+| Transform (93 models, 996 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
 | Coefficients (KM tyre cliff) | ✅ Fitted | `transform/tasks/coefficients/`: seeds |
-| ML (5 XGBoost models, 189 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life survival (AFT); ONNX parity; v11 model (33 features) |
-| Frontend (React + DuckDB-Wasm) | ✅ Built | [`app/`](app/): 30 interactive features, zero server, sub-10ms queries; deployed to Firebase Hosting |
-| Docs | ✅ Built | [`docs/`](docs/): Mintlify site with 6 tabs (Overview, Data, Transform, ML, App, Platform) |
+| ML (5 XGBoost models, 270 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life survival (AFT); ONNX parity; v14 models on a 39-column contract (the cliff classifier reads all 39 features; the other four mask the 7 qualifying columns) |
+| Frontend (React + DuckDB-Wasm) | ✅ Built | [`app/`](app/): 31 interactive features, zero server, sub-10ms queries; deployed to Firebase Hosting |
+| Docs | ✅ Built | [`docs/`](docs/): Mintlify site with 5 tabs (Start Here, Data, Transform, Machine Learning, App) |
 | Platform | ✅ Built | CI/CD, security scanning, observability (Sentry), E2E tests (Playwright), IaC (Terraform) |
 | Streaming (Microsoft Fabric) | ❌ Planned | Streaming Integration |
 
@@ -163,14 +163,14 @@ Five XGBoost models score every lap from the feature mart [`fct_cliff_prediction
 - **Cliff classifier** laps-until-cliff bucket (`0_to_2` / `3_to_5` / `6_plus` / `none_in_stint`).
 - **Stint-life regressor** remaining laps of usable life.
 
-Every model **beats a strong per-cohort baseline** on the headline metric (season-grouped `TimeSeriesSplit`; the 2024 fold stands in as a holdout until 2025 ingests) and every one of those claims **carries an interval** the effective sample is ~7,100 stints, not ~137,000 laps, so a lap-grain point estimate overstates certainty. Headlines are also reported as a fraction of what is **attainable** rather than of 1.0, which is not a score anything could reach on this data. Each booster round-trips to **ONNX within `atol=1e-5`** for in-browser scoring. The leakage spine (no forward-looking features, `driver_id`/`race_year` excluded) is enforced by tests and CI.
+Every model **beats a strong per-cohort baseline** on the headline metric (season-grouped `TimeSeriesSplit`; the 2025 fold stands in as a holdout until 2026 ingests) and every one of those claims **carries an interval** the effective sample is ~7,200 stints, not ~95,500 laps, so a lap-grain point estimate overstates certainty. Headlines are also reported as a fraction of what is **attainable** rather than of 1.0, which is not a score anything could reach on this data. Each booster round-trips to **ONNX within `atol=1e-5`** for in-browser scoring. The leakage spine (no forward-looking features, `driver_id`/`race_year` excluded) is enforced by tests and CI.
 
 Reproduce end-to-end (one venv, warehouse read-only, nothing written to `app/`):
 
 ```bash
 make ml-setup        # install ml/requirements.txt
 make ml-all          # features → tune → train → evaluate → predict → onnx → card → docs
-make ml-test         # 189 tests: leakage spine, ONNX parity, survival/AFT contract, version contract, output schema, beats-baseline, attainable ceilings + intervals
+make ml-test         # 270 tests: leakage spine, ONNX parity, survival/AFT contract, version contract, output schema, beats-baseline, attainable ceilings + intervals, power-law tyre curve
 ```
 
 Full auto-generated **[model card](docs/reference/ml/degradation-model.mdx)** (metrics, baselines, calibration, dual feature importance, limitations) is built from `ml/model_card.yml`.
@@ -195,7 +195,7 @@ rebuilt on the new label (see `ml/README.md`, `_roadmap/_fixes/wi/WI-01-label-sp
 
 ## App features
 
-The app runs entirely in the browser: DuckDB-Wasm for sub-10ms SQL and ONNX Runtime Web for inference. No server, no login, no cost to serve. Thirty features across eight analytical families:
+The app runs entirely in the browser: DuckDB-Wasm for sub-10ms SQL and ONNX Runtime Web for inference. No server, no login, no cost to serve. Thirty-one features across nine analytical families, plus the Query Lab SQL console:
 
 | Family | Features |
 |---|---|
@@ -203,6 +203,7 @@ The app runs entirely in the browser: DuckDB-Wasm for sub-10ms SQL and ONNX Runt
 | **Lap Decomposition** | Lap Waterfall, Race Lost, Sector Decomposition |
 | **Tyre & Strategy** | Tyre Cliff Survival, Stint Degradation Timeline, Pit Strategy, Tyre Recovery Forecast, Party Mode |
 | **Aero & Conditions** | Dirty Air Cost, Dirty Air Lap Map, Track Evolution, Field Pace Curve |
+| **Race Craft** | Race Control |
 | **Drivers** | Era Ratings Timeline, Driver Consistency, Quali vs Race Skill, Driver Circuit Affinity, Era Translator, Wet Race Specialist, Driver Workload, Synthetic Teammate, Corner Phase Skill |
 | **Constructors** | Constructor Structural Pace, Constructor Circuit Interaction |
 | **The Machine** | Degradation Simulator, Model Metrics, Blind Test Scoreboard |
@@ -215,8 +216,8 @@ The app runs entirely in the browser: DuckDB-Wasm for sub-10ms SQL and ONNX Runt
 | Layer | Tech |
 |---|---|
 | Ingestion | FastF1 + OpenF1 → Hive-partitioned Parquet |
-| Transform | dbt-core (DuckDB local, 86 models, 912 tests) |
-| ML | XGBoost (degradation quantile trio, cliff classifier, remaining life) → ONNX v11 (33 features) |
+| Transform | dbt-core (DuckDB local, 93 models, 996 tests) |
+| ML | XGBoost (degradation quantile trio, cliff classifier, remaining life) → ONNX v14 (39 features) |
 | Frontend | React + DuckDB-Wasm (sub-10ms queries, zero compute cost) |
 | Hosting | Firebase Hosting (frontend) + GCS CDN `gs://off-the-pace-cdn` (data + models) |
 | Docs | Mintlify (offthepace.mintlify.app) |
@@ -229,7 +230,7 @@ The app runs entirely in the browser: DuckDB-Wasm for sub-10ms SQL and ONNX Runt
 | [`ingestion/`](ingestion/) | FastF1 + OpenF1 pulls → Bronze Parquet |
 | [`transform/`](transform/) | dbt project, from staging through feature marts |
 | [`ml/`](ml/) | Machine learning layer: XGBoost models, ONNX export, model card |
-| [`app/`](app/) | React + DuckDB-Wasm frontend; 30 interactive features |
+| [`app/`](app/) | React + DuckDB-Wasm frontend; 31 interactive features |
 | [`docs/`](docs/) | Mintlify docs site |
 | [`infra/`](infra/) | Terraform modules (GCS, WIF, billing budget) |
 | [`scripts/`](scripts/) | Reference doc generators, CI tooling |
@@ -241,7 +242,7 @@ The app runs entirely in the browser: DuckDB-Wasm for sub-10ms SQL and ONNX Runt
 | Document | Purpose |
 |---|---|
 | **[README.md](README.md)** | *Start here*: thesis, status, quickstart, stack |
-| **[offthepace.mintlify.app](https://offthepace.mintlify.app)** | Full docs: Data · Transform · ML · App · Platform tabs |
+| **[offthepace.mintlify.app](https://offthepace.mintlify.app)** | Full docs: Start Here · Data · Transform · Machine Learning · App tabs |
 | **[.github/CONTRIBUTING.md](.github/CONTRIBUTING.md)** | How to contribute; pipeline overview for new contributors |
 
 ---

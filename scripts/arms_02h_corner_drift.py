@@ -1,5 +1,5 @@
 """02h -- Tier 2 follow-on, corner drift from the driver's own early-stint baseline:
-the pre-registered arms.
+the declared arms.
 
 Runs exactly the arms declared in _improvements/work/02-feature-expansion.md's `02h`
 section before any of them was run:
@@ -56,7 +56,7 @@ Protocol, in the order gates.md numbers it (identical shape to 02b/02c/02d):
                           information reported separately.
   7. e-value           -- Construction B (paired safe-t) at n=10, g=1, per 09c's
                           ruling (LANDED 2026-09-19, applies to every arm
-                          pre-registered after that date -- this one was written
+                          declared after that date -- this one was written
                           2026-09-22). NOT n=5: E_max(5,1) = 36 sits below any
                           plausible campaign lone-rejection bar. E_max(10,1) =
                           11^4.5 = 48,558.70. Floor stays at five reseeds (gates.md
@@ -112,7 +112,7 @@ ARMS: dict[str, tuple[str, ...]] = {
 
 # ─── Seeds: two studies, two n, exactly 02d's post-09c decision ─────────────────
 # gates.md step 3 defines the reseed floor as 2*sqrt(2)*sd over FIVE reseeds. 09c
-# (LANDED 2026-09-19) ruled Construction B to n=10, g=1 for every arm pre-registered
+# (LANDED 2026-09-19) ruled Construction B to n=10, g=1 for every arm declared
 # after that date. This item's pre-registration (leaf doc `02h` section) is written
 # 2026-09-22, so n=10 applies -- unlike 02b and 02c, which stay at n=5 because they
 # were declared before 09c landed and 09c is explicitly non-retroactive.
@@ -123,7 +123,7 @@ ARMS: dict[str, tuple[str, ...]] = {
 FLOOR_SEEDS: tuple[int, ...] = tuple(S.RANDOM_STATE + i for i in range(5))
 E_SEEDS: tuple[int, ...] = tuple(S.RANDOM_STATE + i for i in range(10))
 assert E_SEEDS[:len(FLOOR_SEEDS)] == FLOOR_SEEDS, "the e-value seeds must nest the floor's"
-E_VALUE_G = 1.0          # pre-registered: a one-sd effect
+E_VALUE_G = 1.0          # fixed in advance: a one-sd effect
 
 # Family size this construction is sized against, recorded beside the
 # pre-registration as gates.md step 7 requires. 09c enumerated 103 declared
@@ -241,7 +241,7 @@ def safe_t_e_value(d: np.ndarray, g: float = E_VALUE_G) -> dict:
         e = (1.0 + n * g) ** -0.5 * (num / den) ** (n / 2.0)
     else:
         e = cap
-    # The DECLARED formula is reported exactly as pre-registered, and it is
+    # The DECLARED formula is reported exactly as declared, and it is
     # symmetric in t. A consistently negative delta therefore also returns a large
     # E -- evidence against "these columns are exchangeable with their own
     # shuffle", in the wrong direction. Reading that as support for the arm would
@@ -353,7 +353,7 @@ def run_family(target: str, split, extra: pd.DataFrame, published: float,
         capacity = delta(shuf_c, baseline, hib)
         information = delta(real_c, shuf_c, hib)
 
-        # Paired ten-seed arms for the e-value (09c: n=10 for arms pre-registered
+        # Paired ten-seed arms for the e-value (09c: n=10 for arms declared
         # after 2026-09-19). The shuffle is redrawn per seed from a stream keyed on
         # that seed, so the ten deltas are i.i.d. under H0 rather than sharing one
         # permutation draw. The first five seeds are FLOOR_SEEDS -- nested, not
@@ -454,7 +454,7 @@ def main() -> int:
             "name": "B (paired safe-t)", "n": len(E_SEEDS), "g": E_VALUE_G,
             "family_size_sized_against": FAMILY_SIZE_SIZED_AGAINST,
             "lone_rejection_bar": LONE_REJECTION_BAR,
-            "ruled_by": "09c, LANDED 2026-09-19 (this item's arms are pre-registered "
+            "ruled_by": "09c, LANDED 2026-09-19 (this item's arms are declared "
                         "2026-09-22, after that date, so n=10 applies, not 02b's/02c's n=5)",
         },
         "e_value_validity_check": e_value_validity_check(),

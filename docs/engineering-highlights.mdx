@@ -12,19 +12,19 @@ import OverviewNumbers from '/snippets/overview-numbers.mdx';
 
 ## 1. A CI-enforced mathematical invariant
 
-Every lap is decomposed into seven physically-grounded components that sum to the measured pace delta by construction:
+Every lap is decomposed into five physically-grounded components that sum to its measured gap to the field by construction:
 
 ```
-pace_delta = fuel + compound + rubber + ambient + constructor + dirty_air + driver_skill
+pace_delta = fuel + compound + constructor + dirty_air + driver_skill
 ```
 
 This is not a property the docs claim. It is a test that runs on every lap in CI: [`assert_additive_identity`](https://github.com/JustinClarke/off-the-pace/blob/main/transform/macros/assert_additive_identity.sql) fails the build if any lap's terms miss closure by more than `0.0001` s. An enforced invariant is worth more than a stated one.
 
-<Note>**Proof:** [The seven-term identity](/decomposition/seven-term-identity) explains the maths; [Identity closure](/transform/ci/identity-closure) is the CI gate that holds it to zero.</Note>
+<Note>**Proof:** [The additive identity](/decomposition/additive-identity) explains the maths; [Identity closure](/transform/ci/identity-closure) is the CI gate that holds it to zero.</Note>
 
 ## 2. A medallion warehouse, not a pile of scripts
 
-Raw timing data flows through a staging → intermediate → mart warehouse (bronze → silver → gold): 60 dbt models, 443 tests, every model a single `SELECT` with dbt resolving the dependency graph. Lineage is a contract, not a diagram drawn after the fact.
+Raw timing data flows through a staging → intermediate → mart warehouse (bronze → silver → gold), every model a single `SELECT` with dbt resolving the dependency graph. Lineage is a contract, not a diagram drawn after the fact.
 
 <Note>**Proof:** [Transform layer overview](/transform/overview) maps the eight model families and the DAG; the [Model Reference](/reference/models/fct/fct_lap_residuals) documents every model and column.</Note>
 
@@ -48,7 +48,7 @@ Silent data regressions are caught before they ship. A byte-stability oracle has
 
 ## 6. Out-of-sample honesty
 
-Models are trained on 2018–2024 with a season-grouped `TimeSeriesSplit`; the most recent fold stands in as a holdout, and the 2025 season is reserved as a reproducible out-of-sample check against now-public data. Paired with an explicit, written limitations section. No varnish.
+Models are trained on 2018–2025 with a season-grouped `TimeSeriesSplit`; the most recent fold (2025) stands in as a validation fold, and the 2026 season is the designated out-of-sample holdout, ingested as races complete. Paired with an explicit, written limitations section. No varnish.
 
 <Note>**Proof:** [Validation](/ml/validation) shows the holdout protocol; [Limitations](/decomposition/limitations) states what the decomposition cannot do.</Note>
 

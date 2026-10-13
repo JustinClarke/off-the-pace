@@ -1,7 +1,7 @@
 // The simulator's adjustable input model and the stint-sweep that turns one set of slider
 // values into a FeatureRow per lap (the input the ONNX layer scores). The slider ranges and
 // defaults below are grounded in the real distribution of fct_cliff_prediction_features
-// (2018-2024, p5/p95 used for slider bounds, median for defaults) so the cold-start state is a
+// (2018-2025, p5/p95 used for slider bounds, median for defaults) so the cold-start state is a
 // plausible mid-field stint rather than zeros.
 //
 // Only the features a strategist actually reasons about are exposed as controls. Every other

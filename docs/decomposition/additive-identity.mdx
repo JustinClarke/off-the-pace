@@ -1,0 +1,110 @@
+---
+title: "The additive lap decomposition identity explained"
+sidebarTitle: "Additive Identity"
+description: "Understand the five-term identity that breaks every race lap into four physics terms plus a driver residual enforced as a CI contract to within 0.1 ms."
+---
+
+Every race lap in Off The Pace is governed by a single additive equation. Four measurable physics terms fuel, tyre degradation, constructor pace, and dirty air plus one closure term (driver skill), defined as whatever remains after all four are subtracted. That equation is not an approximation or a modelling convenience: it is an exact identity enforced on every lap in every race, and a failing CI test blocks any merge that breaks it.
+
+## The core identity
+
+$$\text{pace\_delta} = \text{fuel} + \text{compound} + \text{constructor} + \text{dirty\_air} + \text{driver\_skill}$$
+
+Read each term in seconds relative to the field baseline. Positive values mean slower than the field; negative values mean faster. The terms always sum to exactly `pace_delta` not approximately, but exactly.
+
+<Note>
+  **Five terms, not seven (since 2026-09-27).** Earlier versions also subtracted a track-rubber term and an ambient-temperature term. Both are already inside the field baseline, so subtracting them again counted them twice. They are now reported as informational columns and are no longer part of the identity. See [what the baseline already contains](#what-the-baseline-already-contains).
+</Note>
+
+## What pace_delta means
+
+`pace_delta` is each lap's deviation from the field's own pace on that lap:
+
+$$\text{pace\_delta} = \text{lap\_time} - \text{base\_track\_pace}$$
+
+`base_track_pace` comes from `int_field_pace_curve`: at each lap number, the 10%-trimmed mean of the field's fuel- and compound-corrected lap times, smoothed over a 5-lap centred window. Out-laps, in-laps, laps outside 107% of the fastest lap and laps in another car's wake are left out before averaging. Because the baseline is already corrected for fuel and tyre cost, it is the pace an average car on a neutral fuel load and fresh-equivalent tyres would run on that lap of that race.
+
+A driver running at exactly the field's pace has `pace_delta ≈ 0`. Positive is slower than the field; negative is faster. Normalising against the field removes the circuit characteristic Monza averages around 80 s, Singapore around 100 s so a driver residual of −0.4 s at Monza means the same thing as −0.4 s at Singapore: 400 ms faster than the field, net of all physics.
+
+## What the baseline already contains
+
+The field's pace changes through a race for reasons that hit every car at once: rubber builds up on the racing line and the track gets faster, and the track temperature drifts. Because `base_track_pace` is measured from the field lap by lap, both effects are already inside it.
+
+`int_track_evolution` splits that same baseline into a **rubber** component and an **ambient** component so you can see how much the circuit itself changed (the [Track evolution](/app/track-evolution) feature charts them). Those two columns are informational: they describe the baseline, they are not subtracted from `pace_delta`, and they are not part of the identity.
+
+## The four physics terms
+
+### 1. Fuel
+
+$$\text{fuel} = w \times m_{\text{fuel}}$$
+
+$m_{\text{fuel}}$ is the estimated fuel mass at lap $t$ in kilograms. It is computed deterministically never measured from the lap count and a seeded per-circuit burn rate:
+
+$$m_{\text{fuel}}(t) = \max\!\big(m_0 - r\,(t-1),\; 0\big), \qquad m_0 = N_{\text{laps}} \cdot r$$
+
+where $r$ is the per-lap burn rate (kg/lap, seeded in `dim_circuits` as `fuel_consumption_rate_kg_per_lap`), $N_{\text{laps}}$ is the race lap count, and $m_0$ is the full-race start-line load (safety factor 1.0). Because $m_{\text{fuel}}$ is fixed by arithmetic, the only *fitted* quantity in the fuel term is the weight penalty $w$ in seconds per kilogram, calibrated per circuit using the corner count and average lateral G:
+
+$$w \approx 0.02 + 0.0002 \times \text{corner\_count} \times \text{avg\_lateral\_g}$$
+
+This gives $w \approx 0.018$ s/kg at Monza (few corners, high speed), $\approx 0.025$ s/kg at Monaco (tight, high corner count), and $\approx 0.035$ s/kg at Suzuka (high downforce, high lateral G). The fuel term is always positive and decreasing: a driver on lap 3 of a 55-lap race runs 0.8–1.0 s slower than their end-of-race pace from fuel mass alone.
+
+### 2. Compound (tyre degradation)
+
+$$\text{compound}(\text{age}) = \beta_0 + \beta_1 \cdot \text{age} + \beta_2 \cdot \text{age}^2 + \beta_3 \cdot \max(0,\, \text{age} - \tau) + \delta_T \cdot \text{temp\_delta}$$
+
+This hockey-stick polynomial captures the full tyre wear trajectory. $\tau$ is the cliff onset lap estimated via Kaplan-Meier survival analysis (see [Tyre Cliff](/decomposition/tyre-cliff)). $\beta_3$ is the post-cliff degradation acceleration the additional pace loss per lap once the cliff begins. $\delta_T \approx 0.005$ s/°C captures temperature sensitivity.
+
+All coefficients and $\tau$ are stored per `(circuit, compound, season)` in `dim_compounds_season`, pre-computed from the ingested seasons. For a Soft compound at a high-wear circuit, the full trajectory from new tyres to cliff can span 1.5–2.5 s of pace loss. When a lap's tyre age is unknown, the compound term is NULL, and so is that lap's driver-skill residual: the identity never fills a gap with a made-up number.
+
+### 3. Constructor
+
+The constructor's structural pace relative to the field, estimated from a panel fixed-effects regression on race-year-constructor combinations across the ingested seasons. Subtracting this term removes the car quality signal so the driver residual reflects execution, not machinery.
+
+### 4. Dirty air
+
+$$\text{dirty\_air} = \theta \times \text{dirty\_air\_share}(t)$$
+
+`dirty_air_share` measures the proportion of each lap run in the aerodynamic wake of another car. $\theta$ is the cost of a full lap in dirty air: 0.331 s, estimated within stints (stint fixed effects plus tyre-age bins) with tyre cost already subtracted, on a declared season window, and then frozen as a declared value. Higher dirty-air exposure increases pace delta the car simply cannot generate the same downforce in turbulent air.
+
+## Driver skill residual (the closure)
+
+$$\text{driver\_skill} = \text{pace\_delta} - (\text{fuel} + \text{compound} + \text{constructor} + \text{dirty\_air})$$
+
+The driver skill term is defined as the closure not estimated independently, but derived. Subtract the four physics terms from `pace_delta` and whatever remains is the driver's contribution. A large negative residual means the driver is running faster than the physics predicts; a large positive residual means the opposite. Defining it as a closure rather than an independent estimate is intentional: it guarantees the identity holds exactly and prevents the residual from silently absorbing model error.
+
+`track_unexplained_s` is a separate field-level diagnostic carried on the same rows. It is not part of the closure and must never be added into it.
+
+## The CI invariant
+
+A stated invariant is documentation. An enforced invariant is a contract.
+
+The following SQL test runs in CI on every model change. If it returns any rows meaning any lap where the five terms diverge from `pace_delta` by more than 0.1 ms the dbt test fails and the merge is blocked. It is one of fourteen identity-closure tests enforced the same way see [Identity Closure](/transform/ci/identity-closure) for the full set:
+
+```sql
+-- transform/tests/assert_lap_7term_identity.sql (the file name predates the five-term identity)
+{{ assert_additive_identity(
+     ref('int_lap_residual_decomposed'),
+     'pace_delta_s',
+     ['fuel_component_s', 'compound_component_s', 'constructor_component_s', 'dirty_air_tax_s'],
+     'driver_skill_residual_s',
+     tolerance=0.0001
+) }}
+```
+
+Every model change must maintain this invariant or explicitly update the test contract. It is the most important engineering property in the project: it means you can trust that every attribution you read was derived from an equation that closed exactly.
+
+<Info>
+  **Qualifying is different.** Qualifying laps are decomposed by `int_qualifying_decomposed` with their own re-fitted coefficients, and that identity still carries separate rubber and ambient terms. `assert_qualifying_7term_identity` enforces it.
+</Info>
+
+<CardGroup cols={3}>
+  <Card title="Methodology" icon="flask-conical" href="/decomposition/methodology">
+    How each physics term is identified and estimated from lap time data
+  </Card>
+  <Card title="Tyre Cliff" icon="trending-down" href="/decomposition/tyre-cliff">
+    Kaplan-Meier cliff detection and per-lap ML prediction
+  </Card>
+  <Card title="Residual Decomposition" icon="sigma" href="/transform/families/residual">
+    The models that compute this identity and the closure it defines
+  </Card>
+</CardGroup>

@@ -98,7 +98,7 @@ Booleans map `True → 1.0`, `False → 0.0`, `NULL → NaN`.
     python -m ml.src.features --check
     ```
 
-    The audit returns an empty list on success; CI runs it via `make ml-features`. It is one of the 12 leakage-spine guards see [The leakage spine](/ml/ci/leakage-spine) for the full set.
+    The audit returns an empty list on success; CI runs it via `make ml-features`. It is one of the 34 leakage-spine guards see [The leakage spine](/ml/ci/leakage-spine) for the full set.
 
     The reason this lives in `ml/src/features.py` rather than in the transform tests is that it operates on the *compiled* SQL (the dbt manifest), not the dbt model source and it is conceptually the feature layer's responsibility to verify that what it reads is not forward-looking.
   </Accordion>
@@ -114,7 +114,7 @@ def resolve_holdout_season(con) -> int:
     return int(con.execute("SELECT MAX(race_year) + 1 FROM fct_cliff_prediction_features").fetchone()[0])
 ```
 
-Today the holdout season is 2025 (no data yet). The final `TimeSeriesSplit` fold (2024) stands in as the evaluation holdout until 2025 ingests at which point the reveal happens with zero code change.
+Today the holdout season is 2026 (no data yet). The final `TimeSeriesSplit` fold (2025) stands in as the evaluation holdout until 2026 ingests at which point the reveal happens with zero code change.
 
 ## Measured and rejected
 
@@ -147,7 +147,7 @@ longer exists two of those three paths were removed by the prune.
     The one target the block did move is stint life (+3.25%), and that is race-distance information the model already has through fuel mass.
   </Accordion>
   <Accordion title="Air density is not worth building" icon="wind">
-    `pressure_hpa` sits in bronze, 100% non-null across all seven seasons, and `stg_weather` drops it in a 12-column projection. Staging it would unblock a proper air-density feature: dry-air plus vapour partial pressures via Tetens gives 0.902 to 1.241 kg/m³ across the calendar, a 37.6% spread driven by Mexico City's altitude. Downforce, drag and thermal load all scale with it, so the physics argument is a good one.
+    `pressure_hpa` sits in bronze, 100% non-null across all eight seasons, and `stg_weather` drops it in a 12-column projection. Staging it would unblock a proper air-density feature: dry-air plus vapour partial pressures via Tetens gives 0.902 to 1.241 kg/m³ across the calendar, a 37.6% spread driven by Mexico City's altitude. Downforce, drag and thermal load all scale with it, so the physics argument is a good one.
 
     It does not survive measurement. Both features added to the 42:
 
@@ -166,7 +166,7 @@ longer exists two of those three paths were removed by the prune.
 
 <CardGroup cols={2}>
   <Card title="Feature contract" href="/ml/feature-contract" icon="layers">
-    The full 33-feature table, physics group descriptions, and the read-only mart contract.
+    The full 39-feature table, physics group descriptions, and the read-only mart contract.
   </Card>
   <Card title="Models" href="/ml/models" icon="microchip">
     How each target is used objective function, loss, and weighting.

@@ -31,7 +31,7 @@ A **tyre life gauge** summarises the stint-life regressor's estimate of how many
 | **Ambient temp delta** | Adjusts `ambient_temp_delta` relative to the circuit's seasonal baseline |
 | **Push residual** | Sets `push_residual`, representing how aggressively the driver is extracting pace and loading the tyre surface |
 
-Slider ranges are calibrated to the p5–p95 of `fct_cliff_prediction_features` across 2018–2024, so you cannot dial inputs the model has never seen.
+Slider ranges are calibrated to the p5–p95 of `fct_cliff_prediction_features` across 2018–2025, so you cannot dial inputs the model has never seen.
 
 ## Loading a real stint
 
@@ -63,4 +63,4 @@ Each lap of the simulated stint is converted into a 38-feature `float32` vector 
 | `dim_compounds_season` | Compound coefficients used to seed the `compound_*` features on each lap row |
 | `race_to_track` / `dim_circuits` | Circuit name resolution for the preset selector |
 
-The model was trained on data from **2018–2024**. The dataset fingerprint for the current ONNX bundle is `3aff4559`.
+The model was trained on data from **2018–2025**. The dataset fingerprint for the current ONNX bundle is `3aff4559`.

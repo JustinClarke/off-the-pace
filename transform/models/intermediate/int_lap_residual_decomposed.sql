@@ -12,8 +12,8 @@
 --                + dirty_air_tax_s          ← extracted from
 --                driver_skill_residual_s
 --                + driver_skill_residual_s
---                + track_unexplained_s      (informational; not in
---                total_explained_s)
+--
+-- track_unexplained_s is informational: it is not part of total_explained_s or the identity.
 --
 -- Note (F22): rubber and ambient components are carried in the base_track_pace_s
 -- (from int_field_pace_curve's measurement of the field), not subtracted again here.
@@ -334,10 +334,9 @@ with_residual AS (
         + constructor_component_s
         + dirty_air_tax_s AS total_explained_s,
 
-        -- Driver skill residual: pace_delta_s minus all 5 physics components.
+        -- Driver skill residual: pace_delta_s minus the four physics components.
         -- rubber/ambient are already in the base, not subtracted again (F22 fix).
         -- Identity: pace_delta_s = total_explained_s + driver_skill_residual_s
-        -- + track_unexplained_s
         (lap_time_s - base_track_pace_s)
         - fuel_component_s
         - compound_component_s

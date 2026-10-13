@@ -14,7 +14,9 @@ Narrative docs: [Machine Learning section](../docs/ml/overview.mdx) · auto-gene
   pairwise track gaps measured from the telemetry stream's position channel, which is the first
   feature family in the project sourced from a different sensor rather than from a further
   transform of lap times or the car channel (see `src/schema.py`, `DEGRADATION_TARGET` /
-  `FEATURE_GROUPS`).
+  `FEATURE_GROUPS`). The shipped version is now `v14`, on a 39-column contract: the 7-column
+  `qualifying` group (2026-09-21) is read by the cliff classifier only, so the trio and stint
+  life take 32 (`PER_TARGET_FEATURE_MASK`).
 - `cliff_classifier` `laps_until_cliff_class` ∈ {`0_to_2`, `3_to_5`, `6_plus`, `none_in_stint`}.
 - `stint_life_regressor` `remaining_stint_life_laps` (synthesised; ≥ 0).
 
@@ -79,18 +81,19 @@ make ml-evaluate    # baselines, cohorts, calibration, importance
 make ml-card        # assemble model_card.yml / .json
 make ml-reference   # regenerate the docs model-card MDX
 make ml-all         # the whole pipeline, end to end
-make ml-test        # leakage spine · ONNX parity · schema · beats-baseline
+make ml-test        # leakage spine · ONNX parity · schema · beats-baseline · survival · version contract
 ```
 
 ## Layout
 
 ```
 src/      schema.py · features.py · train.py · tune.py · predict.py · export_onnx.py · evaluate.py · card.py
-          survival.py (AFT) · ceiling.py + intervals.py (attainable denominators)
+          survival.py (AFT) · crps.py · ceiling.py + intervals.py (attainable denominators)
+          evaluate_10c.py (cause-specific evaluation) · inspect_trials.py + monitor_tune.py (Optuna helpers)
           attribution.py (what the within-stint signal is, and whether a feature could carry it)
           powerlaw_fit.py · powerlaw_ceiling.py · powerlaw.py (WI-17 power-law tyre curve; separate from v14)
 tests/    test_features.py · test_targets.py · test_predict.py · test_onnx_parity.py · test_evaluate.py
-          test_survival.py · test_manifest_contract.py · test_ceiling.py · test_attribution.py
+          test_survival.py · test_manifest_contract.py · test_ceiling.py · test_attribution.py · test_crps.py
           test_fit_parity.py (search == evaluation == production refit) · test_powerlaw_export.py (WI-17)
 models/   *.bst/*.onnx (gitignored) · encoders.json / manifest.json / model_card.json (tracked) · training_logs/ optuna_studies/
 artefacts/ PNGs + eval parquets (gitignored, regen-able)
@@ -104,7 +107,7 @@ artefacts/ PNGs + eval parquets (gitignored, regen-able)
 - **Determinism** `RANDOM_STATE` everywhere; dataset SHA256 fingerprint logged in the card.
 - **ONNX parity** every `.onnx` must match its `.bst` within `atol=1e-5`; the tolerance is never loosened.
 - **Every claim carries an interval** a `beats_baseline: true` with no interval on it is not a claim, and
-  `card.py` refuses to write one. The effective sample is ~7,100 stints, not ~137,000 laps, so each margin is
+  `card.py` refuses to write one. The effective sample is ~7,200 stints, not ~95,500 laps, so each margin is
   reported both as a paired t over the season folds and as a bootstrap resampling whole stints.
 - **A flatten is a measurement, never feature guidance** replacing a feature with its per-stint mean says what
   the model *uses*; on a forward-looking target it also hands the model laps that had not run. `make ml-attribution`

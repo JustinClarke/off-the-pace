@@ -3,16 +3,14 @@
 `tune._suggest` used to hardcode its ranges inline, which made a boundary invisible
 twice over: nothing outside the function knew what the bounds were, and a search that
 ended on one printed a best value like any other. Both happened. The classifier pinned
-`max_depth` and `n_estimators` at their ceilings from Phase 2 to Phase 8 (checkpoint
-2026-08-25) and the quantile trio pinned `max_depth` and `min_child_weight` at theirs in
-Phase 7 -- five searches, four years of seasons, and the fact reached a checkpoint only
+`max_depth` and `n_estimators` at their ceilings across several searches and the quantile trio pinned `max_depth` and
+`min_child_weight` at theirs -- five searches, four years of seasons, and the fact surfaced only
 when someone read three JSON files side by side.
 
 So the space is data (`SEARCH_SPACE`), `_suggest` builds its suggestions from it, and
 `boundary_params` reads the same dict to name what came back on an edge. The tests here
 hold the two properties that makes worth having: suggestions never leave the declared
-space, and the detector actually fires -- a detector that cannot fire is the silent gate
-Corrections §5-§8 are about.
+space, and the detector actually fires -- a detector that cannot fire is the silent gate.
 
 `boundary_params` reports; it does not fail. A pin means the optimum of the trials run
 sits where the space ran out, which happens both when the learner wants more capacity
@@ -125,7 +123,7 @@ def test_the_widened_bounds_are_past_every_pin_the_series_recorded():
     """Open item 21's whole subject: the five best_params that stopped on an edge.
 
     max_depth 8 (p50, classifier, stint-life), min_child_weight 20 (p50, p90) and
-    n_estimators 700 (classifier) were the ceilings from Phase 2 to Phase 7. Each is
+    n_estimators 700 (classifier) were the earlier ceilings. Each is
     now interior, which is what makes the 2026-08-26 probe's null a measurement rather
     than a restatement of the bound.
     """

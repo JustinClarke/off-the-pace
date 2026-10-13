@@ -78,7 +78,7 @@ export default function PartyModePage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018-2024' }}
+      provenance={{ dataWindow: '2018-2025' }}
       csvRows={entries.length ? toCsvRows(entries) : undefined}
       csvFilename={`party-mode-${season}-${raceId || 'season'}.csv`}
       isLoading={isLoading}

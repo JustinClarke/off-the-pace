@@ -103,7 +103,7 @@ export default function DirtyAirLapMapPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024' }}
+      provenance={{ dataWindow: '2018–2025' }}
       csvRows={data ? toCsvRows(data) : undefined}
       csvFilename={`lap-air-map-${raceId || season}.csv`}
       isLoading={isLoading}

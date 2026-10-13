@@ -78,8 +78,7 @@ def _paths(spec: S.TargetSpec, version: str) -> tuple[Path, Path]:
 # onnxmltools dispatches on the booster's objective string, and it has no case for
 # survival:aft. Handed one it produces a TreeEnsembleCLASSIFIER with a LOGISTIC
 # post-transform and label/probabilities outputs -- a graph whose output is not the
-# margin, not the prediction, and not even the right shape. (ml_execution_plan.md
-# Phase 3c expected "the raw margin, exp(onnx - 1.193147)". It is not the raw
+# margin, not the prediction, and not even the right shape. (An earlier assumption was "the raw margin, exp(onnx - 1.193147)". It is not the raw
 # margin; that constant was ln(2) + the 0.5 base_score, conflating two different
 # extraction points.)
 #
@@ -274,7 +273,7 @@ def build_manifest(version: str, parities: dict[str, dict]) -> dict:
             entry["quantile_alpha"] = spec.quantile_alpha
             horizon = S.TARGET_HORIZON_LAPS.get(spec.source_column, 1)
             # The horizon is IN the meaning string, because that string is what the app
-            # renders a sentence from. Phase 7 moved the family to the 5-lap cumulative
+            # renders a sentence from. The family models the 5-lap cumulative
             # column: same output index, same units, different quantity. A manifest that
             # still said "degradation_jump_seconds" would leave the app describing a
             # next-lap prediction while scoring a five-lap one -- correct number, wrong

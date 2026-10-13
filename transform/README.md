@@ -13,7 +13,7 @@ Batch transformation for **Off The Pace**. Reads Bronze Hive-partitioned Parquet
 
 **Reference & Explanation:**
 - [Documentation Site](https://offthepace.mintlify.app)
-- [Goal & Approach](https://offthepace.mintlify.app/decomposition/seven-term-identity) (core thesis and the seven-term identity)
+- [Goal & Approach](https://offthepace.mintlify.app/decomposition/additive-identity) (core thesis and the additive identity)
 - [Methodology](https://offthepace.mintlify.app/decomposition/methodology) (detailed physics-informed approach)
 - [Limitations](https://offthepace.mintlify.app/decomposition/limitations) (current scope and boundaries)
 
@@ -46,7 +46,7 @@ Bronze Parquet (laps / results / track_status / session_status / circuit_info / 
             └── Physics          fuel, air state, thermal proxy, dirty air, corner metrics, telemetry cliff signals
                     └── Pace Baselines    field pace, track evolution, compound trajectory, constructor structural pace
                             ├── Skill                 car FE, LORO baseline, shrinkage, era bridges
-                            └── Residual Decomposition  where the seven-term identity closes
+                            └── Residual Decomposition  where the five-term identity closes
                                     └── Strategy        pit-loss, degradation sensitivity, SC hazard
                                             └── Feature Marts   the contract with ml/ and app/
 ```
@@ -80,7 +80,7 @@ transform/
 
 New to dbt? Each `.sql` file under `models/` is a `SELECT` statement  -  dbt materialises it as a view or table. `{{ ref('x') }}` is a typed dependency; dbt sorts the DAG and runs models in topological order, so you never manage `DROP/CREATE` ordering manually.
 
-See [Quick Start](https://offthepace.mintlify.app/ingestion/quickstart) for environment setup and [the seven-term identity](https://offthepace.mintlify.app/decomposition/seven-term-identity) for what this layer computes.
+See [Quick Start](https://offthepace.mintlify.app/ingestion/quickstart) for environment setup and [the additive identity](https://offthepace.mintlify.app/decomposition/additive-identity) for what this layer computes.
 
 ---
 

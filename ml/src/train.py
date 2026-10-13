@@ -229,7 +229,7 @@ def _guard_target_change(target: str, version: str, spec: S.TargetSpec,
 
     `make ml-retrain` refits every target at MODEL_VERSION_DEFAULT from its
     `*_best_params.json`, and it does not know or check what column those params were
-    searched against. Phase 7 moved DEGRADATION_TARGET, so from that moment the same
+    searched against. DEGRADATION_TARGET moved to the 5-lap column, so the same
     command would overwrite the shipped v6 boosters -- the ones ONNX-exported into
     `app/public/models/` and the rollback point for everything after them -- with
     models of a DIFFERENT QUANTITY under the same name, the same artefact path and an
@@ -245,7 +245,7 @@ def _guard_target_change(target: str, version: str, spec: S.TargetSpec,
         return
     existing = log.get("target_column")
     if existing is None:
-        # Logs written before Phase 7 do not name the column, which is exactly the
+        # Logs written before the target column was recorded do not name the column, which is exactly the
         # case that matters: v6 is the shipped version. The fingerprint is the next
         # best witness -- it is a hash over the encoded matrix, the season list and
         # the feature list, and a target change moves it because the NULL-target rows
@@ -321,7 +321,7 @@ def train_one(target: str, *, version: str, params: dict | None,
     log = {
         "target": target, "version": version, "smoke": smoke,
         "censoring_variant": censoring_variant,
-        # The COLUMN, not just the artefact name. Phase 7 moved the degradation family
+        # The COLUMN, not just the artefact name. The degradation family moved
         # from the 1-lap column to the 5-lap one without renaming a single artefact, so
         # "degradation_regressor_p50" alone no longer identifies what was fitted: a v6
         # booster and a v8 booster carry the same target name and model different

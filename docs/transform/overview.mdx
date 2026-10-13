@@ -11,8 +11,8 @@ dbt models turn raw lap times into seven physics-attributed seconds and a driver
 <Note>
   **For a reviewer:**
   - **Decision:** a medallion warehouse (staging → intermediate → marts) where every model is a single, tested `SELECT` and lineage is resolved by dbt, not by hand.
-  - **Trade-off:** pushing all business logic into SQL means a large model graph (60 models) to keep coherent and documented.
-  - **Proof:** the seven-term additive identity closes to zero on every lap in CI, and 443 tests gate every build.
+  - **Trade-off:** pushing all business logic into SQL means a large model graph (93 models) to keep coherent and documented.
+  - **Proof:** the five-term additive identity closes to zero on every lap in CI, and the full dbt test suite gates every build.
 </Note>
 
 ```mermaid
@@ -38,7 +38,7 @@ flowchart LR
 This is the simplified, top-level view: it shows which family a family reads from, not every individual `ref()`. Skill and Residual Decomposition are parallel branches that both read Pace Baselines neither depends on the other and reconverge only at Feature Marts. Every model's own page (under Model Reference) carries its exact upstream and downstream lineage.
 
 <Note>
-  **`driver_skill` is a closure, not an estimate.** It is defined as `pace_delta − Σ(six physics terms)`, computed in [Residual Decomposition](/transform/families/residual). The identity is seven-term: `track_unexplained_s`, surfaced on some models, is informational and is not part of the closure see [the Seven-Term Identity](/decomposition/seven-term-identity).
+  **`driver_skill` is a closure, not an estimate.** It is defined as `pace_delta − Σ(four physics terms)`, computed in [Residual Decomposition](/transform/families/residual). The identity is five-term: `track_unexplained_s`, surfaced on some models, is informational and is not part of the closure, and neither are the rubber and ambient columns, which sit inside the field baseline see [the Additive Identity](/decomposition/additive-identity).
 </Note>
 
 ## Eight families, one DAG
@@ -117,7 +117,7 @@ Three `vars` in `dbt_project.yml` retune the layer without touching SQL. Each is
     Every model, individually documented.
   </Card>
   <Card title="The CI Contract" icon="shield-check" href="/transform/ci/overview">
-    How ~443 tests keep the DAG honest.
+    How the test suite keeps the DAG honest.
   </Card>
   <Card title="Macros" icon="code" href="/transform/macros">
     The seven reusable building blocks.

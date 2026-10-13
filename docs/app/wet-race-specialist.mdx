@@ -1,7 +1,7 @@
 ---
 title: "Who is genuinely faster in the wet?"
 sidebarTitle: "Wet-Race Specialist"
-description: "Each driver's wet-weather skill advantage their race skill residual in the wet minus their dry baseline across their full 2018–2024 career."
+description: "Each driver's wet-weather skill advantage their race skill residual in the wet minus their dry baseline across their full 2018–2025 career."
 ---
 
 Rain reshuffles the order, but how much of that is the driver and how much is the car's wet setup? This chart isolates the driver: it compares each driver's race skill residual on wet-flagged races against their own dry-race baseline, across their full career. Because the residual already removes car pace, tyres, fuel, and conditions, a positive wet advantage reflects genuine adaptability rather than a good wet car.
@@ -43,6 +43,6 @@ The chart queries `fct_driver_skill_features` via DuckDB-Wasm in the browser, ag
 | `race_wet_flag` | Whether weather materially affected the race |
 | `wet_advantage_s` | Wet residual minus dry residual, shrunk by sample size |
 
-The data window covers a **career aggregation over 2018–2024**.
+The data window covers a **career aggregation over 2018–2025**.
 
 For the full model definition, see the [`fct_driver_skill_features` reference](/reference/models/fct/fct_driver_skill_features).

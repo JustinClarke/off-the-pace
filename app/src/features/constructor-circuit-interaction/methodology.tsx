@@ -21,7 +21,7 @@ export const methodologyContent = (
       are sorted alphabetically. Empty cells indicate fewer than 2 race visits.
     </p>
     <p className="mt-3 text-muted/70">
-      Source: <code>int_circuit_x_constructor_interaction</code>. All seasons 2018–2024.
+      Source: <code>int_circuit_x_constructor_interaction</code>. All seasons 2018–2025.
     </p>
   </>
 )

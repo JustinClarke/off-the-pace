@@ -7,24 +7,25 @@ export interface WaterfallResult {
   driverId: string
   raceId: string
   bars: ComponentBar[]
-  /** sum(components)-total_explained_s; should be ~0 if the identity holds */
+  /** sum(five identity terms) - pace_delta_s; should be ~0 if the identity holds */
   closureGap: number
   nLaps: number
 }
 
-// Component display order and labels. These six terms satisfy the documented identity
-//   pace_delta_s = fuel + compound + constructor + dirty_air
-//                  + driver_skill_residual + track_unexplained
-// (they sum to total_explained_s; see int_lap_residual_decomposed.sql).
-// Note: rubber and ambient components are now part of base_track_pace and are not displayed separately.
+// Identity bars. These five terms satisfy the CI-enforced five-term identity
+//   pace_delta_s = fuel + compound + constructor + dirty_air + driver_skill_residual
+// (the first four sum to total_explained_s; see int_lap_residual_decomposed.sql).
+// Rubber and ambient are already inside base_track_pace_s and are not bars.
 const COMPONENT_KEYS: Array<{ key: keyof LapResidualRow; label: string; color?: string }> = [
   { key: 'fuel_component_s',          label: 'Fuel',         color: 'rgb(96,165,250)'   }, // blue-400
   { key: 'compound_component_s',      label: 'Compound',     color: 'rgb(251,191,36)'   }, // amber-400
   { key: 'constructor_component_s',   label: 'Constructor',  color: 'rgb(192,132,252)'  }, // violet-400
   { key: 'dirty_air_tax_s',           label: 'Dirty Air',    color: 'rgb(244,114,182)'  }, // pink-400
   { key: 'driver_skill_residual_s',   label: 'Driver Skill', color: 'rgb(249,115,22)'   }, // orange-500
-  { key: 'track_unexplained_s',       label: 'Track noise',  color: 'rgb(148,163,184)'  }, // slate-400
 ]
+
+// Informational diagnostic: shown as a standalone bar, never summed into the identity.
+const DIAGNOSTIC = { key: 'track_unexplained_s' as const, label: 'Track noise', color: 'rgb(148,163,184)' }
 
 export function transform(row: LapResidualRow): WaterfallResult {
   let cumsum = 0
@@ -39,6 +40,15 @@ export function transform(row: LapResidualRow): WaterfallResult {
       sign: value >= 0 ? 'positive' : 'negative',
       color,
     }
+  })
+
+  const diag = row[DIAGNOSTIC.key] as number
+  bars.push({
+    label: DIAGNOSTIC.label,
+    value: diag,
+    start: diag < 0 ? diag : 0,
+    sign: diag >= 0 ? 'positive' : 'negative',
+    color: DIAGNOSTIC.color,
   })
 
   const componentSum = COMPONENT_KEYS.reduce((acc, { key }) => acc + (row[key] as number), 0)

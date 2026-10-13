@@ -1,6 +1,6 @@
 """10c — competing-risks evaluation, with the dependent-censoring caveat quantified.
 
-WHY THIS IS A RE-RUN. `10c`'s 2026-09-10 verdict is doubly superseded and `10b` §10 says
+WHY THIS IS A RE-RUN. `10c`'s 2026-09-10 verdict is doubly superseded and `10b` says
 so in writing: its AUC 0.844 / Brier 0.141 headline was in-sample (`10d`'s gate-1 finding)
 AND measured under the `10b` label, which `10b` has since rejected on the arm's own
 declared metric. Two of the three things this item's method asks for were also never
@@ -68,7 +68,7 @@ BOOT_SEED = 20260910          # races the unit, as 10d and 10e both used
 MIN_EVENTS_FOR_F2 = 100       # declared: a cause-specific framing needs >=100 events
 D_CAL_BINS = 10
 
-# 10b §4's A0 row, measured on THIS substrate on 2026-09-18 at the canonical seed.
+# 10b's A0 row, measured on THIS substrate on 2026-09-18 at the canonical seed.
 # Unlike 10b, this item has a published figure whose rows still exist, so gate 1's
 # literal six-decimal requirement is meetable rather than merely explained away.
 ANCHOR_10B_A0 = {
@@ -347,8 +347,8 @@ def main() -> int:
         f"(dof {f1['d_calibration']['dof']}, p {f1['d_calibration']['p_value']:.3g}), "
         f"mean |dev|/expected {f1['d_calibration']['mean_abs_deviation_ratio']:.3f}")
 
-    # ── gate 1b: reproduce 10b §4's A0 row ─────────────────────────────────────────
-    log("\n[gate 1b] reproduce 10b §4's A0 green-pit row (same substrate, 2026-09-18)")
+    # ── gate 1b: reproduce 10b's A0 row ─────────────────────────────────────────
+    log("\n[gate 1b] reproduce 10b's A0 green-pit row (same substrate, 2026-09-18)")
     b_anchor, _ = SV.ipcw_brier(y_ev[gp], pred[gp], cens_ev[gp], scale)
     got = {"green_pit_nll": f1["aft_nloglik"], "green_pit_ipcw_brier": float(b_anchor),
            "green_pit_auc": f1["auc_unweighted"],

@@ -5,7 +5,7 @@
 -- WHAT THIS IS FOR. Qualifying is a full session the ML feature contract has never
 -- read: 14,165 decomposed quali laps 2018-2024, already fuel-corrected
 -- (int_lap_fuel_state_qualifying assumes a flat 12kg burn, defensible because a
--- quali push lap's fuel burn is ~0.006s -- see the leaf doc §2). Qualifying runs
+-- quali push lap's fuel burn is ~0.006s -- see the leaf doc). Qualifying runs
 -- strictly before the race, so joining it needs no lag/expanding-window treatment,
 -- PROVIDED the columns used are themselves scoped to the qualifying session alone.
 --
@@ -64,10 +64,10 @@
 -- whether this is a random subset or a biased one.
 --
 -- HONEST CEILING. This grain is stint-invariant: every lap of a driver's race sees
--- the same value. Per the leaf doc's §1, 99.06% of the degradation target's
+-- the same value. Per the leaf doc, 99.06% of the degradation target's
 -- variance is within-stint, so this group can only ever address the other 0.94%.
 -- Expected to move cliff_classifier and/or stint_life_regressor, not the
--- degradation trio -- the pre-registered arms test that expectation, they do not
+-- degradation trio -- the declared arms test that expectation, they do not
 -- assume it.
 
 {{ config(materialized='table', tags=['intermediate', 'feature_engineering']) }}

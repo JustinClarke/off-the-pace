@@ -7,7 +7,7 @@
 -- would only prove that two functions of the same bytes agree. A waved blue
 -- flag is race control saying "car N is being lapped on lap L". It is
 -- independent of the position channel, and it is the only supervised traffic
--- label this project has (4,909 of them, plan §17 / open item 13).
+-- label this project has (4,909 of them).
 --
 -- THE ASSERTION, and why it is per-season rather than pooled.
 -- On a lap where a driver is being lapped there is, by definition, a car
@@ -40,7 +40,7 @@
 -- fixture carries 12 / 1 / 0 blue flags per season (verified 2026-09-05 against
 -- data/ci.duckdb: 3,116 proximity laps, 10 of them blue-flagged). No season
 -- clears the guard, so on `--target ci` this test asserts over an empty set --
--- the "gate asserting over nothing" shape Corrections §6 catalogues. It is a
+-- the "gate asserting over nothing" shape. It is a
 -- dev/prod gate: on data/dev.duckdb it exercises 7 seasons carrying 257-1,079
 -- blue flags each. Enlarging the fixture until a season clears 100 would mean
 -- carrying several more races of telemetry in git; lowering the guard would

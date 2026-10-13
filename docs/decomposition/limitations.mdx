@@ -18,11 +18,11 @@ The CI invariant proves the arithmetic closes exactly. It cannot prove the coeff
 
 The Kaplan-Meier survival estimates and hockey-stick polynomial coefficients are estimated per `(circuit, compound, season)`. Groups with fewer than approximately 8 qualifying stints produce high-variance estimates. Currently **24 circuits** in `dim_circuits` carry a `REVIEW_REQUIRED` flag on weight penalty calibration, reflecting limited telemetry coverage or unusual tyre behaviour at those venues.
 
-The `dim_compounds_season` seed covers 401 groups. Not all are equally well-calibrated.
+The `dim_compounds_season` seed covers every circuit × compound × season group. Not all are equally well-calibrated.
 
-### 3. 2025 data not yet ingested
+### 3. No clean holdout season yet
 
-The model was trained on 2018–2024. 2025 OpenF1 data is publicly available but has not yet been ingested into the Bronze layer. Until that ingestion is complete, the decomposition produces no 2025 laps. Out-of-sample validation against 2025 data is planned for after the ML layer is finalised.
+2025 is ingested and decomposed, and the models train on 2018–2025. The designated holdout is 2026, which has no data yet. Until it does, ML evaluation rests on the final cross-validation fold (2025), which was also used to admit features, so it is a validation fold rather than a clean holdout.
 
 ### 4. No 2018 Rounds 1–2 telemetry
 
@@ -34,7 +34,7 @@ Track temperature and weather data are sourced at session resolution. Within-rac
 
 ### 6. Constructor coefficients are pre-season priors
 
-Constructor structural pace priors are estimated from 2018–2024 data and held fixed during the 2025 validation window. A team that undergoes a major performance shift mid-season a large floor upgrade or a regulatory regression will have a stale constructor coefficient. The driver residual absorbs that difference until the constructor model is refitted.
+Constructor structural pace priors are estimated from the ingested seasons and held fixed until the next refit. A team that undergoes a major performance shift mid-season a large floor upgrade or a regulatory regression will have a stale constructor coefficient. The driver residual absorbs that difference until the constructor model is refitted.
 
 ### 7. ML cliff prediction is v1
 
@@ -59,11 +59,11 @@ The limitations above are modelling choices improvable with better calibration o
 None of these limits invalidate the decomposition framework. They define where current estimates should be treated with more caution, where data improvements would help most, and what the roadmap is addressing next.
 
 <CardGroup cols={3}>
-  <Card title="Seven-Term Identity" icon="sigma" href="/decomposition/seven-term-identity">
+  <Card title="Additive Identity" icon="sigma" href="/decomposition/additive-identity">
     The additive equation and the CI invariant that keeps it honest
   </Card>
   <Card title="Methodology" icon="flask-conical" href="/decomposition/methodology">
-    How sequential residualisation separates the six physics terms
+    How sequential residualisation separates the physics terms
   </Card>
   <Card title="Residual Decomposition" icon="sigma" href="/transform/families/residual">
     Why error propagation is contained to arithmetic, not coefficient correctness

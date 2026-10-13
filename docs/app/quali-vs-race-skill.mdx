@@ -4,7 +4,7 @@ sidebarTitle: "Quali vs Race"
 description: "Each driver's skill residual in qualifying plotted against their skill in the race, separating one-lap merchants from drivers who come alive over a stint."
 ---
 
-Some drivers light up over a single lap; others find their rhythm only once the race settles. This chart estimates each driver's skill residual **independently** in qualifying and in the race both from the same seven-term decomposition, after removing car, tyre, fuel, dirty air, and conditions and plots one against the other. Where a driver sits relative to the diagonal tells you which direction they specialise.
+Some drivers light up over a single lap; others find their rhythm only once the race settles. This chart estimates each driver's skill residual **independently** in qualifying and in the race both from the same additive decomposition, after removing car, tyre, fuel, dirty air, and track conditions and plots one against the other. Where a driver sits relative to the diagonal tells you which direction they specialise.
 
 ## What it shows
 
@@ -46,6 +46,6 @@ The chart queries `int_qualifying_decomposed` (qualifying residuals) and `fct_dr
 | `driver_skill_proxy_mean_s` | Season-average race skill residual (`fct_driver_skill_features`) |
 | `quali_race_delta_s` | Qualifying minus race residual; negative = qualifying specialist |
 
-The data window covers **2018–2024**.
+The data window covers **2018–2025**.
 
 For the full model definitions, see the [`int_qualifying_decomposed` reference](/reference/models/int/int_qualifying_decomposed) and the [`fct_driver_skill_features` reference](/reference/models/fct/fct_driver_skill_features).

@@ -46,10 +46,10 @@ def test_underperforming_cohorts_present(report):
         assert "underperforming_cohorts" in m, f"{target} missing underperforming_cohorts block"
 
 
-# ─── Phase 6: the report must carry its own denominators and intervals ──────────
+# ─── The report must carry its own denominators and intervals ──────────
 @pytest.mark.parametrize("target", [t.name for t in S.PRODUCTION_TARGETS])
 def test_every_model_reports_an_attainable_ceiling(report, target):
-    """Corrections §12. A headline with no denominator cannot answer the only question
+    """A headline with no denominator cannot answer the only question
     it is asked — keep going, or stop."""
     att = report["models"][target].get("attainable")
     assert att and not att.get("error"), f"{target} has no attainable block: {att}"
@@ -75,7 +75,7 @@ def test_every_beats_baseline_claim_has_an_interval(report, target):
 
 
 def test_stint_grain_is_recorded_and_the_folds_are_stint_pure(report):
-    """§15's clustering fact, and the measurement that shows the CV split was never the
+    """The clustering fact, and the measurement that shows the CV split was never the
     part that was broken."""
     sg = report.get("stint_grain")
     assert sg, "no stint_grain block — the effective sample is undocumented"

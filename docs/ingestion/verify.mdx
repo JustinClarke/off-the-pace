@@ -53,7 +53,7 @@ Nothing about the seasons is hand-typed. The races a season should have are the 
 verify_bronze.py --markdown
 ```
 
-emits the Bronze coverage table season-by-season counts of how many races have each dataset as Markdown, read straight off disk. It covers the seasons in `MARKDOWN_SEASONS` (2018-2024); widening it adds rows to the published docs, so that is a deliberate change. `make docs-coverage` wraps this into `docs/snippets/bronze-coverage.mdx`, the snippet embedded on [Known Issues](/data/known-issues); a CI gate fails if the committed snippet ever drifts from a fresh regeneration, so the table in the docs can't go stale.
+emits the Bronze coverage table season-by-season counts of how many races have each dataset as Markdown, read straight off disk. It covers the seasons in `MARKDOWN_SEASONS` (2018–2025); widening it adds rows to the published docs, so that is a deliberate change. `make docs-coverage` wraps this into `docs/snippets/bronze-coverage.mdx`, the snippet embedded on [Known Issues](/data/known-issues); a CI gate fails if the committed snippet ever drifts from a fresh regeneration, so the table in the docs can't go stale.
 
 ## Next
 

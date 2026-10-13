@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import BlindTestScoreboardChart from './BlindTestScoreboardChart'
 import { methodologyContent, methodologyHref } from './methodology'
@@ -7,6 +7,17 @@ import { useFilters } from '../../state/FilterContext'
 import { transform, toCsvRows, COMPOUND_COLORS } from './transform'
 import './queries'
 import type { ScoreboardRow } from './queries'
+import { MODELS_BASE } from '../../ml/manifest'
+
+const MODEL_CARD_URL = `${MODELS_BASE}/model_card.json`
+// 2026 is the designated holdout season. Any season the shipped models trained on is in-sample.
+const HOLDOUT_SEASON = 2026
+
+interface CardProvenance {
+  version: string
+  dataset_fingerprint: string
+  training_seasons: number[]
+}
 
 function formatCircuit(key: string) {
   return key
@@ -26,6 +37,21 @@ export default function BlindTestScoreboardPage() {
   const [compoundFilter, setCompoundFilter] = useState<string | null>(null)
   const [circuitFilter, setCircuitFilter] = useState<string | null>(null)
   const [mismatch, setMismatch] = useState<MismatchModal | null>(null)
+  const [card, setCard] = useState<CardProvenance | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(MODEL_CARD_URL)
+      .then(r => (r.ok ? r.json() : null))
+      .then(raw => { if (!cancelled && raw?.model_card) setCard(raw.model_card) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
+
+  const isInSample = card ? card.training_seasons.includes(season) : season < HOLDOUT_SEASON
+  const trainedOn = card
+    ? `${Math.min(...card.training_seasons)}–${Math.max(...card.training_seasons)}`
+    : null
 
   const { data: rows, isLoading, error } = useQuery<ScoreboardRow[]>(
     'blind-test-scoreboard.rows',
@@ -41,15 +67,17 @@ export default function BlindTestScoreboardPage() {
     <>
     <FeaturePage
       title="Blind Test Scoreboard"
-      hook={`Degradation model predictions vs actuals for the ${season} season-every call locked against real race data.`}
+      hook={isInSample
+        ? `Degradation model predictions vs actuals for ${season}. The shipped models trained on this season, so this is in-sample fit, not a blind test. ${HOLDOUT_SEASON} is the blind test.`
+        : `Degradation model predictions vs actuals for ${season}, a season the shipped models never saw. Every call is locked against real race data.`}
       badges={[
         {
           label: 'What It Means',
-          content: "Did the model actually call the cliff? This scoreboard shows every prediction made on laps the model has never seen, plotted against what really happened. Green = the actual jump landed inside the 80% confidence band.",
+          content: "Did the model actually call the cliff? This scoreboard plots every prediction against what really happened. Green = the actual jump landed inside the 80% confidence band. On a season the model trained on, that flatters the fit; on the 2026 holdout it is a real test.",
         },
         {
           label: 'Why It Matters',
-          content: "A self-locking out-of-sample scoreboard is the difference between a demo and a real model. The 2025 season is the true blind test; until it ingests, this is the 2024 CV fold the model's best honest proxy for unseen data.",
+          content: "A self-locking out-of-sample scoreboard is the difference between a demo and a real model. 2026 is the blind test: its races are scored by models that never saw them, as they ingest. Until then every season here is in-sample; the honest out-of-sample numbers are the 2025 cross-validation fold on Model Metrics.",
         },
         {
           label: "How It's Calculated",
@@ -59,9 +87,11 @@ export default function BlindTestScoreboardPage() {
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
       provenance={{
-        modelVersion: '3',
-        datasetFingerprint: 'b8a37b7c',
-        dataWindow: 'Training seasons 2018-2024 (CV fold 2024 as eval)',
+        modelVersion: card?.version.replace(/^v/, ''),
+        datasetFingerprint: card?.dataset_fingerprint,
+        dataWindow: trainedOn
+          ? `Trained on ${trainedOn}; ${HOLDOUT_SEASON} is the blind test`
+          : `${HOLDOUT_SEASON} is the blind test`,
       }}
       csvRows={result.scatter.length ? toCsvRows(result) : undefined}
       csvFilename={`blind-test-scoreboard-${season}.csv`}

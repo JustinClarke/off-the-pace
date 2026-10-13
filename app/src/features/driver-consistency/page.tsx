@@ -36,7 +36,7 @@ export default function DriverConsistencyPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024', nObs: result?.points.length }}
+      provenance={{ dataWindow: '2018–2025', nObs: result?.points.length }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename={`driver-consistency-${season}.csv`}
       isLoading={isLoading}

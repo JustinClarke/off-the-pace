@@ -1,60 +1,59 @@
-# Mintlify Starter Kit
+# docs/ — the Mintlify site
 
-Use the starter kit to get your docs deployed and ready to customize.
+Source for [offthepace.mintlify.app](https://offthepace.mintlify.app). Pages are MDX with YAML
+frontmatter; navigation, theme and tabs live in [`docs.json`](docs.json). Writing conventions
+(terminology, sign convention, the app feature-page contract) are in [`AGENTS.md`](AGENTS.md).
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
-
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
-
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## AI-assisted writing
-
-Set up your AI coding tool to work with Mintlify:
+## Preview locally
 
 ```bash
-npx skills add https://mintlify.com/docs
+make docs-site        # runs `npx mintlify dev` in docs/ → http://localhost:3000
 ```
 
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
+Needs Node.js 18+. Nothing to install globally; `npx` fetches the Mintlify CLI.
 
-See the [AI tools guides](/ai-tools) for tool-specific setup.
+## Layout
 
-## Development
+Five tabs, one per pipeline layer plus a front door:
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
+| Tab | Folders |
+|---|---|
+| Start Here | `index`, `about`, `engineering-highlights`, `system-design`, `data-engineering`, `key-concepts`, `findings/`, `platform/` |
+| Data | `data/`, `ingestion/`, `reference/schemas/`, `reference/cli/` |
+| Transform | `transform/`, `decomposition/`, `reference/models/`, `reference/macros/` |
+| Machine Learning | `ml/`, `reference/ml/` |
+| App | `app/` (one page per shipped feature, plus `app/families/`) |
 
-```
-npm i -g mint
-```
+Shared fragments live in `snippets/`, images in `images/`, and the interactive dependency graph
+is `project-graph.html` (built by `make project-graph`).
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+## Generated, never hand-edited
 
-```
-mint dev
-```
+| Path | Regenerate with | Source |
+|---|---|---|
+| `reference/**` | `make docs-reference` | dbt manifest, Bronze schemas, CLI `--help`, `ml/model_card.yml` |
+| `snippets/bronze-coverage.mdx`, `overview-numbers.mdx`, `transform-inventory*.mdx`, `ml-inventory*.mdx` | `make docs-coverage` | Bronze data, `README.md` headline counts, dbt manifest, `ml/src/schema.py` + pytest collection |
 
-View your local preview at `http://localhost:3000`.
+A new dbt model needs a `schema.yml` entry with `meta.family` before `make docs-reference` will
+run. After regenerating, add any new reference page to the matching group in `docs.json`.
 
-## Publishing changes
+## CI gates
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+`.github/workflows/docs-ci.yml` runs these on every pull request that touches docs or source:
 
-## Need help?
+| Gate | Local command |
+|---|---|
+| Mintlify config + broken links | `cd docs && npx mintlify validate && npx mintlify broken-links` |
+| Reference pages match a fresh build | `make docs-reference`, then `git diff docs/reference/` |
+| Snippets match a fresh build | `make docs-coverage-check` |
+| Headline counts agree across README and docs | `make docs-facts` |
+| Every shipped app feature has a page | `make docs-app-audit` |
+| Required READMEs, tour footers, file headers | `make docs-audit` |
 
-### Troubleshooting
+## Publishing
 
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+The Mintlify GitHub app deploys the default branch automatically; there is no manual publish step.
 
 ---
 
 ← Previous in tour: [app/](../app/README.md) · **Next in tour: [scripts/](../scripts/README.md) →**
-

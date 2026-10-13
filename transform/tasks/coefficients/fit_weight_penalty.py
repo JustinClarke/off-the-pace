@@ -97,9 +97,11 @@ def load_calibration_data(
         LEFT JOIN stg_weather w ON sg.lap_id = w.lap_id
         LEFT JOIN int_compound_cliff_predicted icp ON sg.lap_id = icp.lap_id
         LEFT JOIN int_lap_fuel_state fs ON sg.lap_id = fs.lap_id
-        LEFT JOIN race_to_track rtt
-          ON CAST(SPLIT_PART(l.race_id, '_', 1) AS INTEGER) * 100
-           + CAST(SPLIT_PART(l.race_id, '_', 2) AS INTEGER) = rtt.race_id
+        -- Both race ids are the '<season>_<round>' string. Comparing a computed integer
+        -- (season * 100 + round) with it made DuckDB read '2018_5' as 20185, so only
+        -- two-digit rounds matched and every earlier round fell back to its own race
+        -- id as a one-race "circuit".
+        LEFT JOIN race_to_track rtt ON l.race_id = rtt.race_id
         WHERE l.race_year IN ({season_filter})
           {circuit_filter}
           AND sg.stint_number = 1

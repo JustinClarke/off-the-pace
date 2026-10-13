@@ -3,7 +3,7 @@
 -- Work item 02c (Tier 2 of _improvements/work/02-feature-expansion.md).
 --
 -- WHAT THIS IS FOR. The degradation target's variance is 99.06% within stint
--- (`between_stint_share` = 0.0094, ml_research_program.md §1c). A feature that is
+-- (`between_stint_share` = 0.0094, ml_research_program.md). A feature that is
 -- constant inside a stint can only ever address the other 0.94%. This is the only
 -- candidate channel in item 02 that varies lap to lap, so it is the only one that
 -- can reach the degradation trio at all.

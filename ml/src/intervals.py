@@ -1,12 +1,12 @@
-"""Intervals on the `beats_baseline` claim — Phase 6, Corrections §15.
+"""Intervals on the `beats_baseline` claim.
 
-`ml_execution_plan.md` §15: `fct_cliff_prediction_features` holds 137,447 rows over
+`fct_cliff_prediction_features` holds 137,447 rows over
 **7,094 stints**. Laps inside one stint share a compound, a car, a circuit, a fuel load
 and a driver, so they are not independent draws, and every interval in this series is
 computed at lap grain. Standard errors are understated by roughly
 `sqrt(137,447 / 7,094) ~ 4.4x`.
 
-Phase 2's checkpoint got this right once -- it reported the tuned classifier beating the
+An early checkpoint got this right once -- it reported the tuned classifier beating the
 floor by +0.75% at paired t=1.386, p=0.24, and declined to call it a win. Nothing else in
 the series did. This module makes that the default: two intervals per claim, computed the
 two ways that respect the clustering.
@@ -18,7 +18,7 @@ two ways that respect the clustering.
 
 * **`cluster_bootstrap`** -- resample whole *stints* with replacement on the evaluation
   fold and re-score. Reported alongside a lap-grain bootstrap of the same quantity, so
-  the width ratio §15 predicts is visible rather than asserted.
+  the predicted width ratio is visible rather than asserted.
 
 Every function here takes a scoring callable rather than a model, so the same interval
 arithmetic serves pinball, macro-F1 and censored AFT NLL without knowing which it has.
@@ -43,7 +43,7 @@ def paired_t(deltas: list[float] | np.ndarray, ci_level: float = CI_LEVEL) -> di
     """Paired t on per-fold win margins against 0. Positive delta == model ahead.
 
     `significant` is the whole point of the module: a claim whose interval spans 0 is
-    recorded, kept, and marked -- never deleted. Phase 6's checklist is explicit that a
+    recorded, kept, and marked -- never deleted. A
     claim failing its own interval is the most useful line in the card.
     """
     d = np.asarray(deltas, dtype=np.float64)
@@ -108,7 +108,7 @@ def cluster_bootstrap(score: Callable[[np.ndarray], float],
 
 
 def width_ratio(clustered: dict, lap_grain: dict) -> float | None:
-    """How much wider the honest interval is. §15 predicts ~sqrt(rows / stints) ~ 4.4x.
+    """How much wider the honest interval is. The expected ratio is ~sqrt(rows / stints) ~ 4.4x.
 
     Reported rather than assumed: the prediction is exact only for a mean under equal
     cluster sizes and constant intra-cluster correlation, and the headline metrics are

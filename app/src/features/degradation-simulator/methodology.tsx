@@ -52,7 +52,7 @@ tyre(k)  = working_deg(k) × track_scale + cliff_term(k)            [monotone by
         circuit × era × compound median fuel-removed lap time over fresh-tyre clean laps, from the{' '}
         <code>mart_degradation_history_envelope</code> mart.</li>
       <li><strong>Observed range</strong> (dashed band) is the fitted p10/p90 what actually happened
-        across comparable 2018–2024 stints, monotonised; past the onset it carries the same cliff term
+        across comparable 2018–2025 stints, monotonised; past the onset it carries the same cliff term
         so the band rises with the projection.</li>
       <li><strong>The fan</strong> is the degradation-jump quantile trio (p10/p50/p90) the
         predicted next-lap pace loss swept across every lap (ONNX models unchanged).</li>
@@ -62,7 +62,7 @@ tyre(k)  = working_deg(k) × track_scale + cliff_term(k)            [monotone by
     </ul>
     <p className="mt-3">
       Sliders are bounded by the p5-p95 range of the real training data
-      (<code>fct_cliff_prediction_features</code>, 2018-2024). The cliff-state features
+      (<code>fct_cliff_prediction_features</code>, 2018-2025). The cliff-state features
       (<code>cliff_onset_passed</code>, <code>laps_past_cliff</code>, <code>cliff_candidate_flag</code>)
       are derived per lap from the compound&apos;s cliff-onset constant, exactly as the warehouse
       computes them, so the swept rows are faithful model inputs.

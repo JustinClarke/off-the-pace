@@ -55,7 +55,7 @@ def _pct(v) -> str:
 
 
 def _attainable_cell(m: dict) -> str:
-    """Skill as a share of what is reachable, not of 1.0 (Phase 6, Corrections §12).
+    """Skill as a share of what is reachable, not of 1.0.
 
     A value above 1.0 renders as a multiple rather than a percentage, because "2824%"
     reads as a broken metric and "28x the stint-level ceiling" reads as what it is: the
@@ -137,7 +137,7 @@ def render_mdx(card: dict) -> str:
           f"_Eval headline on the {card['data']['evaluation_mode']} "
           f"(season {card['data']['evaluation_season']}); CV is the season-grouped TimeSeriesSplit mean._",
           "",
-          "_**Of attainable** is the column to read._ A pinball of 0.20 or a macro-F1 of "
+          "_**Of attainable** is the column to read._ A pinball of 0.20 or a macro-F1 score of "
           "0.40 says nothing on its own, because neither is a ratio against anything "
           "reachable — 1.0 is not a target any model of this data could hit. The column "
           "divides each headline's improvement over an uninformed floor by the "
@@ -185,7 +185,7 @@ def render_mdx(card: dict) -> str:
     for fam, desc in v["baselines"].items():
         L.append(f"| {fam} | {escape_mdx(desc)} |")
 
-    # ── Attainable ceilings + intervals (Phase 6) ──
+    # ── Attainable ceilings + intervals ──
     if v.get("attainable_note"):
         L += ["", "### Attainable ceilings", "", escape_mdx(v["attainable_note"]), "",
               "| Model | Target column | Between-stint share | Naive estimate | "

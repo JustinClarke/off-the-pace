@@ -319,7 +319,7 @@ models:
 
   - name: int_lap_proximity
     description: >
-      Phase 10a. True pairwise track gaps from the POSITION channel, reduced to
+      True pairwise track gaps from the POSITION channel, reduced to
       per-lap scalars. One row per race lap, on the same spine as
       int_lap_air_state (162,729 rows, verified equal 2026-09-05).
 
@@ -431,8 +431,8 @@ models:
           Diagnostic, never a feature. Share of the lap's bins where FastF1's
           own DriverAhead names the same car this model derives. 0.8704 across
           all seasons. Kept at lap grain so the incumbent and the new measure
-          can be compared rather than one asserted better (Phase 10a: "run the
-          ablation against both"). Where they disagree, FastF1's own
+          can be compared rather than one asserted better (the ablation
+          runs against both). Where they disagree, FastF1's own
           DistanceToDriverAhead is roughly twice as large, i.e. it is naming a
           car further away than the one actually ahead on track.
       - name: gap_ahead_min_driver_id
@@ -763,8 +763,8 @@ models:
                 where: "compound is not null"
       - name: expected_compound_pace_s
         description: >
-          Expected pace loss vs compound baseline, in seconds. Bounded as of
-          Phase 8 (2026-08-25): the wear portion is capped, having previously
+          Expected pace loss vs compound baseline, in seconds. Bounded since 2026-08-25:
+          the wear portion is capped, having previously
           reached 93.5 s/lap on laps that were actually run. This column is
           subtracted into driver_skill_residual_s, so the unbounded tail was
           depressing the residual on 12,575 post-onset laps and, through it,
@@ -1246,7 +1246,7 @@ models:
       Uses prior-lap dirty-air intensity to establish causality: current lap slowdown → prior lap's position.
       Avoids reverse causality. Seconds lost = θ_air × dirty_air_intensity_lag1, capped [0, 5.0] seconds.
       θ_air is the DECLARED var theta_air_label_value (0.331 s/lap since W40, 2026-09-27), applied
-      as-is. It is fitted from the data, but outside dbt: 06b's pre-registered F2 estimator (partial
+      as-is. It is fitted from the data, but outside dbt: 06b's F2 estimator (partial
       residual on the lagged dirty-air bit, stint fixed effects plus six tyre-age bins) on this
       model's two-arm calibration panel, 2018-2025, gives 0.3313 [0.293, 0.370]
       (_roadmap/_fixes/wi/WI-12-06b-remeasure.md). The pooled OLS slope this model used to fit in
@@ -1344,7 +1344,8 @@ models:
       - name: dominant_component_class
         description: >
           Component with the largest absolute value among the 4 allocated components.
-          Values: fuel, compound, constructor, dirty_air
+          Values: fuel, compound, constructor, dirty_air; NULL when any of the four
+          components is NULL (e.g. compound_component_s on unknown-age laps).
         tests:
           - accepted_values:
               arguments:
@@ -1462,8 +1463,8 @@ models:
       energy into a tyre. The incumbent `thermal` group (push_residual,
       cumulative_push_load_*) INFERS push load from lap-time residuals; this MEASURES the
       inputs. That is a different construct even though it shares the telemetry sensor with
-      `proximity`. Phase 9 dropped `powertrain` and `telemetry_cliff` -- the mart's whole
-      consumption of int_lap_telemetry_aggregates -- and Phase 10a then cleared at 1.54x/2.17x
+      `proximity`. An earlier pruning dropped `powertrain` and `telemetry_cliff` -- the mart's whole
+      consumption of int_lap_telemetry_aggregates -- and the proximity add-ablation then cleared at 1.54x/2.17x
       re-reading the same ingestion through a different aggregation. The evidence says the
       aggregation failed, not the sensor, which is why this model's risk is concentrated in
       the aggregation design and stated there.
@@ -1479,8 +1480,8 @@ models:
       intersection) is non-null on only 38.59% of corner rows. An earlier draft quoted
       mid-corner 97.6% and exit 60.9%; those do not reproduce and are corrected here.
 
-      CORNER-TYPE SPLIT: CONSIDERED AND DECLINED, recorded so it is not re-derived. §3 of the
-      leaf doc suggests splitting by corner type since a slow hairpin and a high-speed sweep
+      CORNER-TYPE SPLIT: CONSIDERED AND DECLINED, recorded so it is not re-derived. The leaf doc
+      suggests splitting by corner type since a slow hairpin and a high-speed sweep
       load a tyre differently. Declined for the primary arm on two grounds. (1) The only
       within-warehouse classifier of corner speed is apex speed, and a per-(race, corner)
       speed class pooled over the race reaches forward into the label window -- the exact
@@ -2010,10 +2011,10 @@ models:
       above for the full ruling.
 
       HONEST CEILING. This grain is stint-invariant: every lap of a driver's race sees
-      the same value. Per the leaf doc's §1, 99.06% of the degradation target's variance
+      the same value. Per the leaf doc, 99.06% of the degradation target's variance
       is within-stint, so this group can only ever address the other 0.94%. Expected to
       move cliff_classifier and/or stint_life_regressor, not the degradation trio -- 02b's
-      pre-registered arms test that expectation, they do not assume it.
+      declared arms test that expectation, they do not assume it.
     tags: [intermediate, feature_engineering, qualifying]
     meta:
       family: pace-baselines
@@ -2255,7 +2256,7 @@ models:
       1 - (1 - m)(1 - (1 - h)^L), with h from int_sc_hazard_history, is what makes waiting pay
       and gives the model the property assert_pit_loss_pushes_optimum_later checks.
       Per-lap wear is capped at var('compound_wear_max_s_per_lap') -- the shared bound, which
-      int_compound_cliff_predicted now applies to the same three terms as of Phase 8. The cliff polynomial
+      int_compound_cliff_predicted now applies to the same three terms. The cliff polynomial
       is unbounded, reaching 136 s/lap extrapolated to age 80 and already 93 s/lap in-sample.
     tags: [intermediate, simulation, strategy]
     meta:

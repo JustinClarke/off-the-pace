@@ -15,7 +15,7 @@ The chart overlays a smoothed reference, the raw mean, and a caution flag:
 - **Low-sample laps**: laps with fewer than 4 eligible cars (pit windows, early laps) are flagged and should be read with caution.
 
 <Note>
-  The fuel-corrected rate of change of this curve feeds the `base_track_pace_s` input to the seven-term decomposition so this is not just a chart, it is an upstream model input.
+  The fuel-corrected rate of change of this curve feeds the `base_track_pace_s` input to the additive decomposition so this is not just a chart, it is an upstream model input.
 </Note>
 
 ## How to use it
@@ -43,6 +43,6 @@ The chart queries `int_field_pace_curve` via DuckDB-Wasm in the browser, for a s
 | `trimmed_mean_pace_s` | 20th–80th percentile lap-time mean per lap |
 | `eligible_car_count` | Cars contributing to the lap; gates the low-sample flag at `< 4` |
 
-This is a **single-race** view across **2018–2024** data.
+This is a **single-race** view across **2018–2025** data.
 
 For the full model definition, see the [`int_field_pace_curve` reference](/reference/models/int/int_field_pace_curve).

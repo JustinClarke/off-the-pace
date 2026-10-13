@@ -29,7 +29,7 @@ Each stint is a horizontal bar spanning its actual race laps:
 
 ## Reading the signal correctly
 
-The optimal lap is a **model counterfactual** computed from the fitted degradation curve, the circuit's pit-lane loss and its safety-car rate it assumes the rest of the race plays out as observed, and that exactly one stop happens inside the horizon. The horizon is this stint plus the next, so the verdict grades the lap the stop landed on, not the number of stops the team chose. Across seven seasons the median stop comes **one lap earlier** than the model's optimum, which is roughly what track position is worth: a stop that looks early may have been the correct response to something a degradation-only model does not price.
+The optimal lap is a **model counterfactual** computed from the fitted degradation curve, the circuit's pit-lane loss and its safety-car rate it assumes the rest of the race plays out as observed, and that exactly one stop happens inside the horizon. The horizon is this stint plus the next, so the verdict grades the lap the stop landed on, not the number of stops the team chose. Across the 2018–2025 seasons the median stop came **one lap earlier** than the model's optimum, which is roughly what track position is worth: a stop that looks early may have been the correct response to something a degradation-only model does not price.
 
 <Warning>
   Neither **overran** nor **early** is automatically a mistake: teams trade lap-time loss for track position, safety-car optionality, or tyre-offset at the end. Read the opportunity cost as the pace price paid, not as proof of an error.
@@ -46,6 +46,6 @@ The chart joins `fct_stint_features` (stint windows and cliff lap), `fct_lap_res
 | `opportunity_cost_s` | `Total_Cost(actual)` - `Total_Cost(optimal)`; median 5.5 s, p95 83 s |
 | `strategy_verdict` | optimal / overran / early / undercut_forced / unknown |
 
-This is a **single-race** view across **2018–2024** data.
+This is a **single-race** view across **2018–2025** data.
 
 For the full model definitions, see the [`int_pit_strategy_value` reference](/reference/models/int/int_pit_strategy_value) and the [`fct_stint_features` reference](/reference/models/fct/fct_stint_features).

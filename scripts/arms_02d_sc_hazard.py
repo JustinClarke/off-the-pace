@@ -1,4 +1,4 @@
-"""02d — Tier 3 SC/VSC hazard: the pre-registered arms.
+"""02d — Tier 3 SC/VSC hazard: the declared arms.
 
 Runs exactly the arms declared in _improvements/work/02-feature-expansion.md's `02d`
 section before any of them was run:
@@ -8,7 +8,7 @@ section before any of them was run:
     degradation_regressor p10 / p50 / p90   secondary (pinball, lower better)
 
 WHY stint_life IS THE PRIMARY FAMILY HERE, and not a follow-on as it was in 02b. The
-leaf doc's §1 caps a circuit-constant feature at the between-stint share of the
+leaf doc caps a circuit-constant feature at the between-stint share of the
 degradation target. Stint life is the one target not shaped like that column: it is
 right-censored on 46.2% of training rows, stint ends are pit-wall decisions, and 00b
 measured that 26.87% of UNCENSORED stint ends fall on an SC/VSC lap against 6.49% of
@@ -46,7 +46,7 @@ Protocol, in the order gates.md numbers it (identical to 02b's and 02c's):
                           capacity is preserved and signal destroyed. Capacity and
                           information reported separately.
   7. e-value           -- Construction B (paired safe-t) at n=10, g=1, as 09c ruled it
-                          and as pre-registered, with the Monte Carlo validity check the
+                          and as declared, with the Monte Carlo validity check the
                           reference requires. NOT n=5: E_max(5,1) = 36 sits below the
                           campaign's lone-rejection bar of 20*(m+1), so a construction
                           that size cannot reject whatever the data show. E_max(10,1) =
@@ -123,7 +123,7 @@ ARMS: dict[str, tuple[str, ...]] = {
 FLOOR_SEEDS: tuple[int, ...] = tuple(S.RANDOM_STATE + i for i in range(5))
 E_SEEDS: tuple[int, ...] = tuple(S.RANDOM_STATE + i for i in range(10))
 assert E_SEEDS[:len(FLOOR_SEEDS)] == FLOOR_SEEDS, "the e-value seeds must nest the floor's"
-E_VALUE_G = 1.0          # pre-registered: a one-sd effect
+E_VALUE_G = 1.0          # fixed in advance: a one-sd effect
 
 # The family size this construction was sized against, recorded beside the
 # pre-registration as gates.md step 7 requires. 09c enumerated 103 declared hypotheses
@@ -276,7 +276,7 @@ def safe_t_e_value(d: np.ndarray, g: float = E_VALUE_G) -> dict:
         e = (1.0 + n * g) ** -0.5 * (num / den) ** (n / 2.0)
     else:
         e = cap
-    # The DECLARED formula is reported exactly as pre-registered, and it is symmetric
+    # The DECLARED formula is reported exactly as declared, and it is symmetric
     # in t. A consistently negative delta therefore also returns a large E -- evidence
     # against "these columns are exchangeable with their own shuffle", in the wrong
     # direction. Reading that as support for the arm would be a misreading, so the
@@ -291,7 +291,7 @@ def safe_t_e_value(d: np.ndarray, g: float = E_VALUE_G) -> dict:
 def e_value_validity_check(n_draws: int = 100_000, seed: int = S.RANDOM_STATE) -> dict:
     """Push i.i.d. N(0, sigma) deltas through the implementation and confirm mean(E)=1.
 
-    Required by e_value_construction.md §4: "A construction whose null mean is not 1 is
+    Required by e_value_construction.md: "A construction whose null mean is not 1 is
     not an e-value." Run at several sigma because the whole point of Construction B is
     that validity does not depend on sigma.
     """

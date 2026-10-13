@@ -1,6 +1,6 @@
 -- stg_race_control.sql · staging · grain: one row per race-control message
 -- The FIA message feed. Ingested for 149 races since the beginning of this
--- project and, until Phase 10a, consumed by nothing (plan open item 13).
+-- project and, until the proximity features, consumed by nothing.
 --
 -- It is staged now for one specific reason: the 4,909 waved blue flags are a
 -- traffic label produced by race control, not by the position channel. Every
@@ -83,7 +83,7 @@ SELECT
     lap_number,
     driver_number,
     driver_id,
-    -- The label Phase 10a validates against: this driver was being lapped on
+    -- The label the proximity features are validated against: this driver was being lapped on
     -- this lap. Requires the identity and the lap to both resolve, which is
     -- why it is a flag rather than a filter -- a blue flag whose car number
     -- did not resolve is a data gap, not a negative.

@@ -766,7 +766,7 @@ def main() -> int:
         and (p_h1 is not None and p_h1 >= 0.95) and verdict["h2_positive"])
     report["verdict"] = verdict
     log("\n" + "=" * 78)
-    log("VERDICT against the pre-registered criterion")
+    log("VERDICT against the declared criterion")
     log(f"  H1 green-pit NLL   delta {h1['mean']:+.6f}  "
         f"({h1['x_floor_of_record']:+.2f}x own floor)  positive {verdict['h1_positive']}  "
         f"clears floor {verdict['h1_clears_own_floor']}  boot P {p_h1}")

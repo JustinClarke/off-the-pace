@@ -53,7 +53,7 @@ export interface StintFeatureRow {
   constructor_id: string
   event_flag_any: boolean | null
   anomaly_class: string | null
-  // v3 telemetry features (per-lap; ~90-100% populated 2018-2024). Carried so a loaded real stint
+  // v3 telemetry features (per-lap; ~90-100% populated 2018-2025). Carried so a loaded real stint
   // scores the full 41-wide vector instead of leaving these 11 as native-missing.
   n_gear_changes: number | null
   mean_rpm: number | null

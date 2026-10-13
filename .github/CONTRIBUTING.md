@@ -41,12 +41,12 @@ make app-install  # install React app dependencies
 **Data setup:** Choose based on your workflow see the full [Data setup options](../ingestion/README.md#data-setup-options) table. Quick summary:
 - **SQL transforms only:** `make dbt-dev` (uses test fixtures, 0 min)
 - **Scale validation:** `make ingest-recent` (2023–2024, ~15 min)
-- **Full verification:** `make ingest-all` (all 168 races, 30–45 min)
+- **Full verification:** `make ingest-all` (every 2018–2025 race, 35–50 min; add later seasons with `make add-season SEASON=YYYY`)
 
 ```bash
 make ingest-recent  # or ingest-all; see link above for options
 make dbt-dev        # build all 54 dbt models against local DuckDB
-make dbt-test       # run the 336 tests, including the seven-term identity
+make dbt-test       # run every dbt test, including the lap identity
 ```
 
 To verify the core invariant every lap's seven components sum to zero holds:
@@ -78,7 +78,7 @@ For the full repo layout and a file-by-file walkthrough, start at the
 # dbt models + identity tests
 make dbt-test
 
-# ML spine (28 tests: leakage, ONNX parity, schema, beats-baseline)
+# ML suite: leakage spine, ONNX parity, schema, beats-baseline, survival, version contract
 make ml-test
 
 # Ingestion (mocked API calls-no network, runs in <5s)
@@ -131,7 +131,7 @@ Quick checklist:
 2. Add a description + column docs to `schema.yml`.
 3. Add at least one dbt test.
 4. Run `make dbt-dev` and `make dbt-test`.
-5. **If the model participates in the seven-term identity,** confirm `assert_lap_7term_identity` still passes.
+5. **If the model participates in the lap identity,** confirm `assert_lap_7term_identity` still passes (it enforces five terms; the file name predates that).
 6. Open a PR-CI runs the full build automatically.
 
 ### Add or change an app feature
@@ -185,7 +185,7 @@ See [`ingestion/README.md`](../ingestion/README.md) for module architecture, dat
 ## Getting help
 
 - Usage questions → the relevant directory README (e.g. [`ingestion/README.md`](../ingestion/README.md)).
-- Architecture & rationale → the [explanation docs](https://offthepace.mintlify.app/decomposition/seven-term-identity) and the [ADR log](adr/DECISIONS.md).
+- Architecture & rationale → the [explanation docs](https://offthepace.mintlify.app/decomposition/additive-identity) and the [ADR log](adr/DECISIONS.md).
 - Bugs / feature requests → open an issue or a discussion on GitHub.
 
 ---

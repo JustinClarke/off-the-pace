@@ -159,8 +159,8 @@ describe('modelBeatsBaselineDescription', () => {
   })
 })
 
-// ── Phase 6: attainable ceilings and intervals ────────────────────────────────
-// A card written before Phase 6 carries none of these fields. The transform must render
+// ── Attainable ceilings and intervals ────────────────────────────────
+// A card written before the ceiling and interval fields existed carries none of these fields. The transform must render
 // that as "not measured" rather than as a zero or a false, because a model page that
 // shows 0% attainable for an unmeasured model is worse than one that shows nothing.
 const row = (over: Partial<Parameters<typeof attainableLabel>[0]> = {}) => ({
@@ -221,7 +221,7 @@ describe('intervalLabel', () => {
   })
 })
 
-describe('transform: Phase 6 fields', () => {
+describe('transform: ceiling and interval fields', () => {
   it('carries an empty claims list rather than undefined on a pre-Phase-6 card', () => {
     expect(transform(MINIMAL_CARD as never).claimsInsideNoise).toEqual([])
   })

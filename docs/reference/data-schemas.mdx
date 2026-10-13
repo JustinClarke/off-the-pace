@@ -25,11 +25,11 @@ data/bronze/<dataset>/season=<YYYY>/race=<event-slug>/[session=<Q|R>]/<file>.par
 | `<event-slug>` | `EventName` lowercased, spaces replaced with hyphens e.g. `bahrain-grand-prix` |
 | `session=<Q\|R>` | Present for **telemetry only** distinguishes Qualifying from Race sessions |
 
-Always include `season` in your query predicate. The partition pruner uses it to skip entire years; omitting it triggers a full scan across all 168 races.
+Always include `season` in your query predicate. The partition pruner uses it to skip entire years; omitting it triggers a full scan across all 173 races.
 
 ### Coverage
 
-The pipeline covers **168 races across 2018–2024**, with one known gap:
+The pipeline covers **173 races across 2018–2025**, with one known gap:
 
 <Note>
   Telemetry data for **2018 Rd1 and Rd2** is missing because F1's archive lacks the streams it is built from. For the Australian (Rd1) race the archive has the car-data stream (speed, throttle, brake) but no position stream, and FastF1 merges per-lap telemetry only when it has both; for the Bahraini (Rd2) race it has neither. Qualifying at both weekends has both streams, but the pipeline ingests race telemetry only. Laps, weather, and race control for those rounds are present. Telemetry coverage is complete from 2018 Rd3 onward.
@@ -83,7 +83,7 @@ The table above covers the fields most commonly used in decomposition queries. T
 
 ## Weather
 
-The weather dataset provides session-level atmospheric observations sampled approximately once per minute. You use it to identify rain laps (excluded from the clean lap filter), to compute the track temperature deviation that feeds the ambient component, and to flag high-humidity sessions where tyre behaviour deviates from dry-weather models.
+The weather dataset provides session-level atmospheric observations sampled approximately once per minute. You use it to identify rain laps (excluded from the clean lap filter), to compute the track temperature deviation behind the informational ambient component, and to flag high-humidity sessions where tyre behaviour deviates from dry-weather models.
 
 **File pattern:** `bronze/weather/season=YYYY/race=<slug>/weather.parquet`
 

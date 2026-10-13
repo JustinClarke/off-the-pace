@@ -10,7 +10,7 @@ verdict was measured on. And the label moved: `D5` settled on the realised stint
 and `10b`'s 2026-09-18 ruling rejected its own label, so the incumbent this run compares
 against is `standard`, not `10b`.
 
-THE ARMS, as pre-registered 2026-09-10 and re-declared with their addendum 2026-09-18.
+THE ARMS, as declared 2026-09-10 and re-declared with their addendum 2026-09-18.
 
     A0   nothing -- the incumbent, refit honestly, `standard` labels, shipped v12 params
     A1   aft_loss_distribution_scale in [0.30, 1.40]
@@ -869,7 +869,7 @@ def main() -> int:
     report["verdict"] = verdict
 
     log("\n" + "=" * 78)
-    log("VERDICT against the pre-registered three-leg criterion")
+    log("VERDICT against the declared three-leg criterion")
     for a in DECLARED_ARMS:
         v = verdict["arms"][a]
         log(f"  {a:4s} slope {v['slope']:.4f} (delta {v['slope_delta']:+.4f})  "

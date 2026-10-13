@@ -274,7 +274,7 @@ models:
         data_type: varchar
         constraints:
           - type: not_null
-      # ── Phase 10a: proximity, from the position channel ────────────────────
+      # ── Proximity, from the position channel ────────────────────
       # Present in the mart, deliberately not yet in the ML feature contract --
       # the contract moves only if the ablation earns it. The five share/time
       # columns are not_null (zeroed at source on neutralised laps and on the
@@ -442,12 +442,12 @@ models:
         data_type: double
       # ── 02b: qualifying, from int_qualifying_driver_summary ────────────────
       # Weekend-grain (race_year, race_id, driver_id), broadcast onto every lap of
-      # that driver's race - stint-invariant, so per the leaf doc's §1 it can only
+      # that driver's race - stint-invariant, so per the leaf doc it can only
       # address the 0.94% of the degradation target's variance that is
       # between-stint. (That 0.94% figure is itself wrong and is corrected to
       # 6.43% in 02-feature-expansion.md sec.4(b); the cap is real but looser
       # than stated.) IN THE ML FEATURE CONTRACT SINCE 2026-09-21 (02b, decision
-      # D12), for `cliff_classifier` ONLY: all three pre-registered arms cleared
+      # D12), for `cliff_classifier` ONLY: all three declared arms cleared
       # their floor on cliff (raw +4.60x to +7.27x, permutation-corrected
       # information +4.67x to +7.47x), and the degradation trio and stint life
       # are masked back to 32 columns in ml/src/schema.py's
@@ -2341,3 +2341,232 @@ models:
       - name: beta
         description: The shape model's target.
         tests: [not_null]
+
+  - name: mart_driver_season_summary
+    description: >
+      One row per driver-season, shaped for plain-language explanations ("22nd of 22").
+      Grain: (driver_id, race_year). rating_s is int_era_normalized_driver_rating's
+      era_adjusted_rating (shrunk teammate-relative gap, seconds; negative = faster),
+      ranked within the season so rank 1 is the most negative. The primary constructor
+      is the one the driver ran the most clean laps for; the teammate is the other
+      driver with the most clean laps for that constructor. Component means are over
+      ml_eligible laps of fct_lap_residuals (seconds, positive = slower).
+    tags: [marts]
+    meta:
+      family: marts
+    columns:
+      - name: driver_id
+        description: FastF1 three-letter driver code (e.g. VER, HAM).
+        tests: [not_null]
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: rating_s
+        description: Season rating (era_adjusted_rating), seconds. Negative = faster than teammate(s).
+        tests: [not_null]
+      - name: rank
+        description: Rank of rating_s within the season; 1 = fastest. Ties share a rank.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: n_drivers
+        description: Number of rated drivers that season.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: percentile
+        description: 1 - (rank - 1) / (n_drivers - 1). 1.0 = top of the season, 0.0 = bottom.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+              config:
+                where: "percentile is not null"
+      - name: ci_low
+        description: Lower bound of the 95% CI on rating_s (era_adjusted_rating_ci_low_s).
+      - name: ci_high
+        description: Upper bound of the 95% CI on rating_s (era_adjusted_rating_ci_high_s).
+      - name: n_races
+        description: Races behind the season rating.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: teammate_id
+        description: Primary-constructor teammate with the most clean laps. Null when there is none.
+      - name: teammate_gap_s
+        description: rating_s minus the teammate's rating_s, seconds. Negative = faster than the teammate.
+      - name: constructor_id
+        description: Primary constructor for the season (most clean laps).
+        tests: [not_null]
+      - name: constructor_rank
+        description: Season rank of the constructor's mean constructor_component_s; 1 = fastest car.
+      - name: mean_fuel_component_s
+        description: Mean fuel component over ml_eligible laps, seconds.
+      - name: mean_compound_component_s
+        description: Mean compound component over ml_eligible laps, seconds.
+      - name: mean_constructor_component_s
+        description: Mean constructor component over ml_eligible laps, seconds.
+      - name: mean_dirty_air_tax_s
+        description: Mean dirty-air tax over ml_eligible laps, seconds.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [driver_id, race_year]
+
+  - name: mart_metric_benchmark
+    description: >
+      Per-metric distribution by season over clean (ml_eligible) laps of
+      fct_lap_residuals, so an explanation can say what is typical for a value.
+      Grain: (metric_name, race_year). Covers driver_skill_residual_s,
+      fuel_component_s, compound_component_s, constructor_component_s,
+      dirty_air_tax_s and lap_time_s. Null values are dropped before aggregation.
+    tags: [marts]
+    meta:
+      family: marts
+    columns:
+      - name: metric_name
+        description: Source column in fct_lap_residuals.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [driver_skill_residual_s, fuel_component_s, compound_component_s, constructor_component_s, dirty_air_tax_s, lap_time_s]
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: p05
+        description: 5th percentile (QUANTILE_CONT).
+      - name: p50
+        description: Median (QUANTILE_CONT).
+        tests: [not_null]
+      - name: p95
+        description: 95th percentile (QUANTILE_CONT).
+      - name: mean
+        description: Arithmetic mean.
+        tests: [not_null]
+      - name: sd
+        description: Sample standard deviation.
+      - name: unit
+        description: Unit of every value in the row. Always 's' (seconds).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [s]
+      - name: sample_size
+        description: Non-null lap count behind the row.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [metric_name, race_year]
+
+  - name: mart_race_driver_summary
+    description: >
+      One row per driver-race, shaped for plain-language explanations ("why so slow at
+      Monza"). Grain: (driver_id, race_id). rating_s is int_driver_race_skill_loro's
+      driver_skill_loro_s (median lap-by-lap gap to the teammate; negative = faster),
+      ranked within the race. ci_low / ci_high are rating_s +/- 1.96 x the standard
+      error of clean-lap driver_skill_residual_s: a lap-noise band, not the season
+      Bayesian CI. Component means are over ml_eligible laps (seconds, positive = slower).
+    tags: [marts]
+    meta:
+      family: marts
+    columns:
+      - name: driver_id
+        description: FastF1 three-letter driver code (e.g. VER, HAM).
+        tests: [not_null]
+      - name: race_id
+        description: Race identifier.
+        tests: [not_null]
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: circuit_id
+        description: Physical circuit identifier from dim_circuits.
+      - name: rating_s
+        description: Race rating (driver_skill_loro_s), seconds. Negative = faster than the teammate.
+        tests: [not_null]
+      - name: rank
+        description: Rank of rating_s within the race; 1 = fastest. Ties share a rank.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: n_drivers
+        description: Number of rated drivers in the race.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: percentile
+        description: 1 - (rank - 1) / (n_drivers - 1). 1.0 = top of the race, 0.0 = bottom.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+              config:
+                where: "percentile is not null"
+      - name: ci_low
+        description: rating_s - 1.96 x standard error of clean-lap driver_skill_residual_s.
+      - name: ci_high
+        description: rating_s + 1.96 x standard error of clean-lap driver_skill_residual_s.
+      - name: n_clean_laps
+        description: ml_eligible laps behind the components and the CI band.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+              config:
+                where: "n_clean_laps is not null"
+      - name: teammate_id
+        description: Same-race teammate with the most clean laps. Null when there is none.
+      - name: teammate_gap_s
+        description: rating_s minus the teammate's rating_s, seconds. Negative = faster than the teammate.
+      - name: constructor_id
+        description: Constructor for the race.
+        tests: [not_null]
+      - name: constructor_rank
+        description: Race rank of the constructor's mean constructor_component_s; 1 = fastest car.
+      - name: mean_fuel_component_s
+        description: Mean fuel component over ml_eligible laps, seconds.
+      - name: mean_compound_component_s
+        description: Mean compound component over ml_eligible laps, seconds.
+      - name: mean_constructor_component_s
+        description: Mean constructor component over ml_eligible laps, seconds.
+      - name: mean_dirty_air_tax_s
+        description: Mean dirty-air tax over ml_eligible laps, seconds.
+      - name: avg_lap_time_s
+        description: Mean lap time over ml_eligible laps, seconds.
+      - name: laps_completed
+        description: All laps the driver has in fct_lap_residuals for the race, clean or not.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+              config:
+                where: "laps_completed is not null"
+      - name: positions_gained
+        description: grid_position - finish_position from stg_results. Positive = places gained.
+      - name: has_dnf
+        description: TRUE when stg_results marks the driver as a DNF. FALSE when no result row exists.
+        tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [driver_id, race_id]
+

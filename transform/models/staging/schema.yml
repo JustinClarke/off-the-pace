@@ -741,8 +741,8 @@ models:
 
   - name: stg_telemetry_position
     description: >
-      Phase 10c, the channel split. The POSITION channel of raw_telemetry -- 58.8M
-      of its 118.7M rows -- projected to the positional columns. Until Phase 10 these
+      The channel split. The POSITION channel of raw_telemetry -- 58.8M
+      of its 118.7M rows -- projected to the positional columns. Before this model existed these
       rows had no consumer at all: stg_telemetry projects all three FastF1 sample
       provenances un-filtered and int_lap_telemetry_aggregates then filters to 'car'.
       This model is the only reader of source_channel = 'pos', and int_lap_proximity
@@ -771,10 +771,10 @@ models:
           start/finish line) where the gap matters most.
         data_type: double
       - name: pos_x
-        description: Track-frame X coordinate (1/10 m). Carried for Phase 10b (racing-line deviation); no current consumer.
+        description: Track-frame X coordinate (1/10 m). Carried for racing-line deviation; no current consumer.
         data_type: double
       - name: pos_y
-        description: Track-frame Y coordinate (1/10 m). Carried for Phase 10b (racing-line deviation); no current consumer.
+        description: Track-frame Y coordinate (1/10 m). Carried for racing-line deviation; no current consumer.
         data_type: double
       - name: driver_ahead_number
         description: >
@@ -793,7 +793,7 @@ models:
     description: >
       The FIA race-control message feed. One row per message; 12,814 rows across 149
       races, of which 4,909 are waved blue flags. Ingested since the beginning of the
-      project and consumed by nothing until Phase 10a (plan open item 13, now closed).
+      project and consumed by nothing until the proximity features needed it.
 
       Staged for one reason: the blue flags are a traffic label produced by race
       control rather than by the position channel, which makes them the only

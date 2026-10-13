@@ -191,8 +191,18 @@ SELECT
     sector_driver_skill_residual_s,
     sector_total_explained_s,
 
-    -- Dominant component: the one with largest absolute value
+    -- Dominant component: the one with largest absolute value. NULL when any of
+    -- the four components is NULL (compound_component_s is NULL on unknown-age
+    -- laps): GREATEST skips NULL arguments, so an unguarded pick would crown a
+    -- dominant component from the remaining three and, via the ELSE, label a
+    -- lap 'dirty_air' that has no known ranking at all.
     CASE
+        WHEN
+            sector_fuel_component_s IS NULL
+            OR sector_compound_component_s IS NULL
+            OR sector_constructor_component_s IS NULL
+            OR sector_dirty_air_tax_s IS NULL
+            THEN NULL
         WHEN
             ABS(sector_fuel_component_s) = GREATEST(
                 ABS(sector_fuel_component_s),

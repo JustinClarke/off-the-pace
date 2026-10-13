@@ -10,7 +10,7 @@ methodologyHref. That set IS the rendered feature set, and it is the only place 
 link-to-validate physically lives. A feature is "documented" when all of:
 
   1. docs/app/<dir>.mdx exists,
-  2. "app/<dir>" is listed in the docs.json "App & Visualizations" group,
+  2. "app/<dir>" is listed under the docs.json App tab,
   3. its methodologyHref equals  CANONICAL_DOCS_BASE + "/app/" + <dir>,
   4. the page carries the required section headings + complete frontmatter.
 

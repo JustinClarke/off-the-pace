@@ -25,7 +25,7 @@ Pick the smallest scope that fits your task most contributors never need a full 
 |----------|---------------|------|------|---------|
 | **Experimenting with dbt SQL transforms** | Test fixtures only | 0 min | – | `make test-all` (dbt build against `transform/tests/fixtures/bronze/` no network) |
 | **Scale-testing transforms, validation before PR** | Recent seasons (2023–2024) | ~15 min | ~200 MB | `make ingest-recent` |
-| **Full feature verification, ML training** | Every season on record (2018–2024) | 30–45 min | ~2 GB | `make ingest-all` |
+| **Full feature verification, ML training** | Every season on record (2018–2025) | 35–50 min | ~7 GB | `make ingest-all` |
 | **Single race smoke test** | One race only | 2–5 min | ~100 MB | `python src/ingest.py --season 2024 --round 1 --session R` |
 | **Ingestion development** | Offline unit tests, no Bronze write | <5 s | – | `make test` (no network) |
 

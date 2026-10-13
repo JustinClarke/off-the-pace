@@ -15,6 +15,7 @@ One row per (driver_id, season). The published driver-season rating. era_adjuste
 ```mermaid
 flowchart LR
   int_driver_season_ratings --> int_era_normalized_driver_rating
+  int_era_normalized_driver_rating --> mart_driver_season_summary
   style int_era_normalized_driver_rating fill:#e40404,stroke:#e40404,color:#fff
 ```
 

@@ -179,7 +179,7 @@ sources:
           FastF1 session.race_control_messages: the FIA's own message feed for
           the session. One row per message. 12,814 rows across 149 races, of
           which 4,909 are waved blue flags. Ingested since the beginning and
-          staged by nothing until Phase 10a, which needs the blue flags as a
+          staged by nothing until the proximity features, which need the blue flags as a
           traffic label that is NOT derived from the telemetry the proximity
           features are built from.
         columns:

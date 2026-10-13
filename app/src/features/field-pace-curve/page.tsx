@@ -59,7 +59,7 @@ export default function FieldPaceCurvePage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024' }}
+      provenance={{ dataWindow: '2018–2025' }}
       csvRows={data ? toCsvRows(data) : undefined}
       csvFilename={`field-pace-${raceId || season}.csv`}
       isLoading={isLoading}

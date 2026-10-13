@@ -40,7 +40,7 @@ export default function LapWaterfallPage() {
   return (
     <FeaturePage
       title="Lap Time Decomposition"
-      hook="Seven causes, one lap time. The additive identity breaks every lap into fuel, compound, rubber, ambient, constructor, dirty air, driver skill, and unexplained noise and proves the sum closes."
+      hook="Five causes, one lap time. The additive identity breaks every lap into fuel, compound, constructor, dirty air, and driver skill, and proves the sum closes."
       badges={[
         {
           label: 'What It Means',
@@ -52,12 +52,12 @@ export default function LapWaterfallPage() {
         },
         {
           label: "How It's Calculated",
-          content: 'Source: fct_lap_residuals (partitioned by season). SC and major-outlier laps excluded. Each bar = mean component across clean laps. Closure gap = Σ components − pace_delta_s (reconstructed as total_explained_s + driver_skill + track_unexplained).',
+          content: 'Source: fct_lap_residuals (partitioned by season). SC and major-outlier laps excluded. Each bar = mean component across clean laps. Closure gap = Σ five identity terms − pace_delta_s (total_explained_s + driver_skill). Track noise is shown as a diagnostic and is not summed.',
         },
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024', nObs: activeResult?.nLaps }}
+      provenance={{ dataWindow: '2018–2025', nObs: activeResult?.nLaps }}
       csvRows={csvRows}
       csvFilename={`lap-waterfall-${season}${raceKey ? `-${raceKey}` : ''}.csv`}
       isLoading={isLoading}

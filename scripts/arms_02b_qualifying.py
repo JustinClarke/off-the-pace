@@ -1,4 +1,4 @@
-"""02b — Tier 1 qualifying: the pre-registered arms.
+"""02b — Tier 1 qualifying: the declared arms.
 
 Runs exactly the arms declared in _improvements/work/02-feature-expansion.md's `02b`
 section before any of them was run, on the families that are not barred:
@@ -32,7 +32,7 @@ Protocol, in the order gates.md numbers it (identical to 02c's):
                           capacity is preserved and signal destroyed. Capacity and
                           information reported separately.
   7. e-value           -- Construction B (paired safe-t) over the same five seeds, as
-                          pre-registered, with the Monte Carlo validity check the
+                          declared, with the Monte Carlo validity check the
                           reference requires.
 
 Deltas are oriented so POSITIVE ALWAYS MEANS IMPROVEMENT, on every metric.
@@ -81,7 +81,7 @@ ARMS: dict[str, tuple[str, ...]] = {
 }
 
 SEEDS: tuple[int, ...] = tuple(S.RANDOM_STATE + i for i in range(5))
-E_VALUE_G = 1.0          # pre-registered: a one-sd effect
+E_VALUE_G = 1.0          # fixed in advance: a one-sd effect
 FAMILIES = ("degradation_regressor_p10", "degradation_regressor_p50",
             "degradation_regressor_p90", "cliff_classifier")
 OUT = Path("ml/artefacts/02b_qualifying_arms.json")
@@ -213,7 +213,7 @@ def safe_t_e_value(d: np.ndarray, g: float = E_VALUE_G) -> dict:
         e = (1.0 + n * g) ** -0.5 * (num / den) ** (n / 2.0)
     else:
         e = cap
-    # The DECLARED formula is reported exactly as pre-registered, and it is symmetric
+    # The DECLARED formula is reported exactly as declared, and it is symmetric
     # in t. A consistently negative delta therefore also returns a large E -- evidence
     # against "these columns are exchangeable with their own shuffle", in the wrong
     # direction. Reading that as support for the arm would be a misreading, so the
@@ -228,7 +228,7 @@ def safe_t_e_value(d: np.ndarray, g: float = E_VALUE_G) -> dict:
 def e_value_validity_check(n_draws: int = 100_000, seed: int = S.RANDOM_STATE) -> dict:
     """Push i.i.d. N(0, sigma) deltas through the implementation and confirm mean(E)=1.
 
-    Required by e_value_construction.md §4: "A construction whose null mean is not 1 is
+    Required by e_value_construction.md: "A construction whose null mean is not 1 is
     not an e-value." Run at several sigma because the whole point of Construction B is
     that validity does not depend on sigma.
     """

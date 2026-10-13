@@ -55,9 +55,9 @@ EXPECTED_DATASETS = ["laps", "weather", "race_control", "telemetry"]
 
 # The --markdown coverage table feeds the committed docs snippet
 # (docs/snippets/bronze-coverage.mdx, drift-gated by scripts/ingestion_docs_facts.py).
-# It has always covered 2018-2024; adding newer seasons to it changes published
-# docs, so that stays a deliberate choice: widen this, then `make docs-coverage`.
-MARKDOWN_SEASONS = range(2018, 2025)
+# Adding a season to it changes published docs, so that stays a deliberate choice:
+# widen this, then `make docs-coverage`. 2025 was added once it was fully ingested.
+MARKDOWN_SEASONS = range(2018, 2026)
 
 @dataclass
 class Finding:

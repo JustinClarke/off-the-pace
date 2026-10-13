@@ -1,5 +1,5 @@
 -- int_lap_proximity.sql · intermediate · grain: one row per race lap (lap_id)
--- Phase 10a: the true pairwise gap, from the position channel.
+-- The true pairwise gap, from the position channel.
 --
 -- WHAT IS NEW HERE, AND WHY IT IS NOT ANOTHER RE-PROJECTION
 -- --------------------------------------------------------
@@ -317,8 +317,8 @@ lap_scalars AS (
             AS share_lap_behind_within_1s,
 
         -- (7) the incumbent measure, carried at the same grain so the two can
-        -- be compared rather than one asserted better. Phase 10a's checklist:
-        -- keep the old columns for one version.
+        -- be compared rather than one asserted better. The old columns are kept
+        -- for one version.
         MEDIAN(ff_distance_to_ahead_m) AS ff_distance_to_ahead_m,
         AVG(
             CASE

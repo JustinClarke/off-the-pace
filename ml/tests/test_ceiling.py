@@ -1,9 +1,9 @@
 """The ceiling arithmetic, proven against data whose answer is known in advance.
 
-`ml_execution_plan.md` Corrections §12 reported the trained degradation target as 17.5%
+The trained degradation target was once reported as 17.5%
 between-stint. That number is `var(per-stint means) / var(column)`, which counts
 `sigma_w^2 / n_bar` of within-stint scatter as between-stint signal — at ~19 laps per
-stint, most of the 17.5%. Phase 6's checklist says the ceiling must be computed
+stint, most of the 17.5%. The ceiling must be computed
 *properly* rather than inherited, so the estimator that replaces it ships with a proof
 that it recovers a known answer and that the old one does not.
 
@@ -46,7 +46,7 @@ def test_the_naive_estimator_is_the_one_that_was_wrong():
 
     At the ICC the degradation target actually sits near, the naive estimator does not
     err slightly — it more than doubles the answer. If this ever stops holding, either
-    the estimator changed or the group sizes did, and §12's correction needs re-reading.
+    the estimator changed or the group sizes did, and the estimator correction needs re-reading.
     """
     y, g, _ = _clustered(0.03)
     vc = CE.variance_components(y, g)
@@ -85,7 +85,7 @@ def test_rolling_window_overlap_inflates_the_estimate_and_thinning_removes_it():
     Build a target with *no* group structure at all, then make it a rolling 5-sum. The
     full-sample estimator reads a between-group share out of pure noise, because
     consecutive rows share four of their five terms. The non-overlapping thinning is what
-    puts it back to zero — and Phase 7 retargets onto exactly such a column.
+    puts it back to zero — and the modelled degradation target is exactly such a column.
     """
     rng = np.random.default_rng(RNG_SEED)
     n_groups, per_group, h = 3000, 25, 5
@@ -104,7 +104,7 @@ def test_rolling_window_overlap_inflates_the_estimate_and_thinning_removes_it():
 
 
 def test_lag1_of_a_rolling_sum_lands_near_the_overlap_prediction():
-    """(h-1)/h under white-noise increments. §12 read +0.719 on the 5-lap column as
+    """(h-1)/h under white-noise increments. A naive reading takes +0.719 on the 5-lap column as
     evidence of a degradation *process*; white noise alone predicts +0.800."""
     rng = np.random.default_rng(RNG_SEED)
     n_groups, per_group, h = 2000, 25, 5
@@ -157,8 +157,8 @@ def test_unconditional_floor_knows_nothing_about_stints():
 
 # ─── Intervals ──────────────────────────────────────────────────────────────────
 def test_paired_t_declines_a_win_that_is_inside_fold_noise():
-    """Phase 2's checkpoint reported +0.75% at p=0.24 and declined to call it a win.
-    That judgement is now the default rather than one careful session's discipline."""
+    """A +0.75% win at p=0.24 is declined as a win.
+    That judgement is the default rather than one careful session's discipline."""
     out = IV.paired_t([0.004, -0.002, 0.011, -0.006, 0.010])
     assert out["mean_delta"] > 0
     assert out["significant"] is False
@@ -172,7 +172,7 @@ def test_paired_t_accepts_a_win_that_clears_it():
 
 
 def test_clustered_bootstrap_is_wider_than_lap_grain_when_rows_are_clustered():
-    """Corrections §15's mechanism, on data built to carry it. The size of the widening
+    """The clustering mechanism, on data built to carry it. The size of the widening
     depends on the intra-cluster correlation of the *scored quantity*, which is why
     evaluate.py publishes the measured ratio instead of asserting sqrt(rows/stints)."""
     rng = np.random.default_rng(RNG_SEED)
@@ -199,7 +199,7 @@ def test_signed_delta_orients_both_metric_directions():
 
 # ─── The stint-grain claim itself ───────────────────────────────────────────────
 def test_season_grouped_folds_cannot_split_a_stint():
-    """Phase 6's checklist asks for stint-grain CV nesting. Measured rather than built:
+    """Stint-grain CV nesting is unnecessary. Measured rather than built:
     a stint belongs to one race and a race to one season, so season-grouped folds are
     already stint-pure and the clustering damage was only ever in the intervals."""
     stints = np.repeat(np.arange(500), 19)

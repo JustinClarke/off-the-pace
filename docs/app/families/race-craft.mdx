@@ -45,7 +45,7 @@ carried into `int_stint_geometry`. The app reads it through `race_caution_timeli
 export-time aggregate at one row per (race, lap). Per-circuit hazard context comes from
 `int_sc_hazard_history`, season-lagged and empirical-Bayes shrunk.
 
-The FIA race-control **message** feed is also ingested (`stg_race_control`, 12,814 messages
-across all 149 races) but is not yet consumed by any model or export. What it lacks is
+The FIA race-control **message** feed is also ingested (`stg_race_control`, one row per message
+across every ingested race) but is not yet consumed by any model or export. What it lacks is
 structure: penalties and DRS windows live inside the message text, not as fields, which is
 why Penalty Impact and DRS Dependency remain on the [roadmap](https://offthepace.dev/roadmap).

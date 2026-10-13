@@ -8,7 +8,7 @@ description: "Every F1 lap split into seven physically-grounded components, serv
   <img src="/images/off-the-pace-home.png" alt="Off The Pace home dashboard showing race analysis and lap decomposition charts" />
 </Frame>
 
-Off The Pace answers the question lap time alone can't: **when a car is off the pace, exactly why?** Every lap is split into seven named, additive components fuel, tyre degradation, track rubber, ambient conditions, constructor pace, dirty air, and driver skill so you can see precisely how much of the gap is the car, the tyres, the conditions, or the driver. Underneath that product is a full data and ML platform: a CI-enforced decomposition, a 60-model dbt warehouse, ONNX models with train/serve parity, and a zero-server browser app.
+Off The Pace answers the question lap time alone can't: **when a car is off the pace, exactly why?** Every lap's gap to the field is split into five named, additive components fuel, tyre degradation, constructor pace, dirty air, and driver skill so you can see precisely how much of the gap is the car, the tyres, the traffic, or the driver. Underneath that product is a full data and ML platform: a CI-enforced decomposition, a layered dbt warehouse, ONNX models with train/serve parity, and a zero-server browser app.
 
 ## Are you here to…
 
@@ -43,8 +43,8 @@ flowchart LR
   <Card title="Data" icon="table" href="/data/overview">
     Where the timing data comes from and how to ingest it yourself.
   </Card>
-  <Card title="Transform" icon="layers" href="/decomposition/seven-term-identity">
-    The seven-term decomposition: dbt models enforced by a CI contract.
+  <Card title="Transform" icon="layers" href="/decomposition/additive-identity">
+    The five-term decomposition: dbt models enforced by a CI contract.
   </Card>
   <Card title="Machine Learning" icon="brain" href="/ml/overview">
     XGBoost models predicting tyre cliff onset and degradation, exported to ONNX.
@@ -135,7 +135,7 @@ import OverviewNumbers from '/snippets/overview-numbers.mdx';
     Every driver re-ranked in equal machinery a counterfactual championship built from the structural pace model.
   </Card>
   <Card title="Lap Decomposition Waterfall" icon="bar-chart-3" href="https://off-the-pace.web.app/lap-decomposition/waterfall">
-    Any lap, any driver: seven causes stacked into one bar that always closes to zero.
+    Any lap, any driver: five causes stacked into one bar that always closes to zero.
   </Card>
   <Card title="Tyre Cliff Survival" icon="trending-down" href="https://off-the-pace.web.app/tyre-strategy/survival">
     How long each compound lasts before the cliff, by circuit and season.

@@ -14,7 +14,7 @@ Bronze stores source data exactly as the API returns it, Hive-partitioned by sea
 
 ## Data contracts and a testing pyramid
 
-The warehouse is governed by 443 dbt tests: schema tests (not-null, unique, accepted-values, relationships) at the base, singular SQL tests for business rules in the middle, and at the top a hand-written invariant, the additive identity, that fails the build if the seven decomposition terms miss closure on any lap. Tests are the contract between layers, not an afterthought.
+The warehouse is governed by its dbt test suite: schema tests (not-null, unique, accepted-values, relationships) at the base, singular SQL tests for business rules in the middle, and at the top a hand-written invariant, the additive identity, that fails the build if the seven decomposition terms miss closure on any lap. Tests are the contract between layers, not an afterthought.
 
 <Note>**Met by:** [The CI Contract](/transform/ci/overview), [Structural tests](/transform/ci/structural), and [Identity closure](/transform/ci/identity-closure).</Note>
 
@@ -55,7 +55,7 @@ Because all compute is build-time or client-side, serving has no per-user cost: 
 | Standard | How it is met |
 |---|---|
 | Idempotent, partitioned ingestion | Hive-partitioned Parquet, deterministic re-runs, write-time DQ gate |
-| Data contracts & testing pyramid | 443 dbt tests + singular tests + the additive-identity invariant |
+| Data contracts & testing pyramid | Generic dbt tests + singular tests + the additive-identity invariant |
 | Drift & quality gates | Byte-stability oracle, profile diff, post-publish verify + rollback |
 | Lineage | dbt DAG, generated lineage graph, column-level reference docs |
 | Orchestration | Staged CI pipeline with retries and alerting |

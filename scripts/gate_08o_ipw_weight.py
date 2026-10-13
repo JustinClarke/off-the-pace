@@ -40,7 +40,7 @@ FAMILIES AND FLOORS
 Family: quantile_trio (p10, p50, p90)
 Metric: pinball_loss (unweighted at eval time, per evaluate.py:620-637)
 Floor method: refit_noise_floor over 10 seeds (matching post-09c e-value construction)
-  DECISION (pre-registered): Use n=10 seeds for the floor study, consistent with
+  DECISION (declared in advance): Use n=10 seeds for the floor study, consistent with
   post-09c Construction B e-value n=10. This gives more stable floor estimates.
 
 EXPECTED DIRECTION
@@ -118,7 +118,7 @@ The 10-seed arms above were never executed. The 2026-09-22 JSON was a hand-writt
 of 08f-1 plus one Gate-1 refit, and this script's log shows no arm output. On top of that,
 WI-13 (2026-09-25) found that arm B's `survival_weight` had every "no prior-season curve"
 cell (all of 2018, plus later unreached (compound, lap_in_stint) cells) at 4.0 instead of
-1.0. This re-run is the first full execution, on the corrected mart. The pre-registered
+1.0. This re-run is the first full execution, on the corrected mart. The declared
 design (A / B / P, n=10, Construction B) is unchanged. Edits:
 
   - Gate 1 checks the PRODUCTION path. Since 08o shipped (v13) that is the uniform fit

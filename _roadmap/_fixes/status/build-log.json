@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off-the-pace fixes (transform forensic audit, F1-F54)",
-  "updated": "2026-09-30T04:00:00Z",
+  "updated": "2026-10-10T12:00:00Z",
   "pointer": null,
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -1719,6 +1719,29 @@
       "gates_run": "Isolation validation only (V1b/V2b/V4c checks); no label or model training gates run",
       "next_command": "commit, then python3 _roadmap/_fixes/status/board.py --check && --write-order",
       "next_action": "After commit: docs regen auto-clears stale artifacts; explicit debt items remain (W15, W18, W19, W35, W53). W4 (ingestion) on hold."
+    },
+    {
+      "date": "2026-10-10T12:00:00Z",
+      "session": "F9 measured (not wired); weight-penalty fitter race_to_track join fixed; Spain refit re-run",
+      "landed": [
+        "fit_weight_penalty.py: race_to_track join compared an integer (season*100+round) with the '<season>_<round>' string, which DuckDB reads as 2018_5 -> 20185, so only two-digit rounds matched and 72 of 173 races fell back to their race id as a one-race 'circuit'. Now joins on the string. New test TestRaceToTrackJoin (mutation-checked: fails on the old join). Calibration laps used 3,769 -> 6,753.",
+        "F9 measurement arm: _evidence/f9-2026-10-10/f9_mistake_weight_arms.py, 5 seeds, all five targets, production fit path, identical eval rows."
+      ],
+      "verified": [
+        "F9 arms vs explicit-ones control (positive = improvement, in units of reseed floor): B (mistake rows at 0.5) p10 -0.13x, p50 +0.23x, p90 -0.16x, cliff macro-F1 -0.45x, stint-life NLL +0.42x; C (mistake rows at 1.0, fully seed-independent) p10 +1.27x, p50 +1.29x, p90 +0.29x, cliff -1.31x, stint-life +0.28x. No arm clears 2x floor at n=5.",
+        "Spain after the join fix: 463 calibration laps (was 78, one race), measured factor 0.140 = 6.5x the 0.0216 prior -> REVIEW_REQUIRED, prior retained. Across all 44 circuits the median measured/prior ratio is 4.6x; flags OK 1 / REVIEW_REQUIRED 30 / INSUFFICIENT_DATA 13. Nothing to promote; no seed written.",
+        "Warehouse check: int_lap_anomaly_flags.training_weight_f9 exists (mistake 9,546 @0.5) but fct_cliff_prediction_features does not carry it, is_training_eligible still excludes every 'mistake' row, and train.py/features.py never read it."
+      ],
+      "assumed": [
+        "The 2026-09-28 entry 'F9 IMPLEMENTED' overstated: the weight column was computed but never reached training, and measure_f9_decoupling.py is a stub (placeholder costs, TODOs). F9 is MEASURED, not WIRED.",
+        "training_weight_f9 is not a drop-in: it ignores age_in_stint > 3 and is_lap_after_restart, and gives 1,234 event_driven rows a weight > 0 (1,147 at 1.0). Fix or delete before wiring.",
+        "The Spain 0.02162 in circuit_reference.csv was adopted from the 78-lap single-race fit; the full-data fit cannot support it or any value (the first-stint slope estimator is ~4.6x off its priors everywhere). Left unchanged: reverting to 0.025 moves Spain labels and belongs with the v15 label bump.",
+        "Eval excludes mistake laps in every arm, so F9's effect ON mistake laps is not measured.",
+        "fit_weight_penalty.py defaults to --seasons 2018-2024; not widened here."
+      ],
+      "gates_run": "None. No label, mart or model artefact was changed; scratch warehouse only.",
+      "next_command": "python3 _roadmap/_fixes/status/board.py --check",
+      "next_action": "Decide F9 wiring for v15: B (0.5 weight, costless at n=5, still keyed on the seed) or C (include all, seed-independent, cliff F1 -1.3x floor / quantiles +1.3x). Then fix-or-delete training_weight_f9, carry it through fct_cliff_prediction_features, read it in features.py/train.py, rebuild and retrain with the v15 bump."
     }
   ],
   "watch_vocabulary": {

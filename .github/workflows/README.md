@@ -9,9 +9,9 @@ the `make` targets you can run locally if it passes locally, it passes here. Run
 
 | Workflow | File | Triggers on | What it gates |
 |---|---|---|---|
-| **dbt CI** | `dbt-ci.yml` | Changes to `transform/`, `ingestion/`, `requirements.txt` | Build all 60 models; run 443 tests including `assert_additive_identity`; confirm the seven-term identity holds on every lap |
-| **Docs CI** | `docs-ci.yml` | Changes to `docs/`, `scripts/`, `transform/models/**`, `ingestion/schemas/**` | Validate Mintlify docs; run `python scripts/build_reference.py && git diff --exit-code`-fails if any generated MDX drifts from its source |
-| **ML CI** | `ml-ci.yml` | Changes to `ml/`, `scripts/gen_ml_reference.py` | 28-test leakage spine (static guards always run; warehouse-dependent guards gate on bronze fixtures); ONNX parity; beats-baseline; no hardcoded holdout year in `ml/src`; model-card MDX drift check |
+| **dbt CI** | `dbt-ci.yml` | Changes to `transform/`, `ingestion/`, `requirements.txt` | Build every model and run the full dbt test suite, including `assert_additive_identity`, so the lap identity holds on every lap |
+| **Docs CI** | `docs-ci.yml` | PRs touching `docs/`, `scripts/`, any layer directory, the `.github/*.md` platform docs, `README.md`, or any source file | Mintlify validate + broken links; reference-MDX drift (`build_reference.py` then `git diff --exit-code docs/reference/`); snippet drift (Bronze coverage, overview numbers, transform and ML inventories); headline-count reconciliation; app feature-page coverage; README / tour-footer / file-header audit; banned planning-language lint |
+| **ML CI** | `ml-ci.yml` | Changes to `ml/`, `scripts/gen_ml_reference.py` | Leakage spine (static guards always run; warehouse-dependent guards gate on bronze fixtures); ONNX parity; beats-baseline; no hardcoded holdout year in `ml/src`; model-card MDX drift check |
 | **App CI** | `app-ci.yml` | Changes to `app/**` | pnpm typecheck, ESLint, the vitest suite **with the coverage-threshold ratchet** (`--coverage`), and a production build (defaults to the CDN data base, so no warehouse export is needed) |
 | **App E2E** | `app-e2e.yml` | Changes to `app/**` | Playwright headless-Chromium smoke: serves the prod bundle (`vite preview`) against the live CDN and asserts DuckDB-wasm init + a real query, an ONNX inference, and the additive-identity UI all boot |
 | **App Performance** | `app-perf.yml` | Changes to `app/**` | Bundle-size budget (**blocking**, `check_bundle_size.mjs` vs `perf-budget.json`) + Lighthouse CI (advisory CWV/a11y on the shell routes) |

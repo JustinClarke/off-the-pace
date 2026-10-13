@@ -8,7 +8,7 @@ Custom macros for validation, statistical operations, and reusable filter predic
 
 Validates that an additive decomposition identity holds: `total = sum(components) + residual ± tolerance`.
 
-**Used by:** the lap seven-term identity test (`assert_lap_7term_identity`) and its worked
+**Used by:** the lap identity test (`assert_lap_7term_identity`; five terms since 2026-09-27, the file name predates that) and its worked
 macro-usage duplicate (`assert_example_identity_closure`). The other identity-closure tests
 assert different identity shapes with their own inline SQL rather than this macro.
 
@@ -18,8 +18,7 @@ assert different identity shapes with their own inline SQL rather than this macr
 {{ assert_additive_identity(
      ref('int_lap_residual_decomposed'),
      'pace_delta_s',
-     ['fuel_component_s', 'compound_component_s', 'rubber_component_s',
-      'ambient_component_s', 'constructor_component_s', 'dirty_air_tax_s'],
+     ['fuel_component_s', 'compound_component_s', 'constructor_component_s', 'dirty_air_tax_s'],
      'driver_skill_residual_s',
      tolerance=0.0001
 ) }}
@@ -255,6 +254,65 @@ SELECT stint_id, beta, REGR_R2(y_s, POW(age, beta)) AS r2
 FROM laps CROSS JOIN grid
 GROUP BY stint_id, beta
 ```
+
+---
+
+### `clamp_or_null(expr, lo, hi)`
+
+Bounds an expression to `[lo, hi]` and keeps a NULL a NULL. `GREATEST(LEAST(x, hi), lo)` is
+wrong on a NULL `x` in DuckDB, because both functions skip NULL arguments and the clamp turns
+"unknown" into the upper bound. This macro uses a `CASE` so NULL propagates.
+
+**Used by:** `fct_cliff_prediction_features`, `fct_stint_features`, `int_constructor_deg_sensitivity`.
+
+---
+
+### `compound_cliff_wear_s(wear_gradient, severity, age, laps_past_cliff)` and its helpers
+
+The single definition of the fitted compound wear curve's age-dependent terms. The file also
+defines `cliff_severity_span()`, `cliff_severity_gain()`, `cliff_plateau_s()`,
+`cliff_ramp_frac()`, `cliff_severity_term()` and `cliff_ramp_slope_s_per_lap()`. The expression
+used to be copied into six models and had diverged; every site now calls these.
+
+**Used by:** `int_compound_cliff_predicted`, `int_pit_strategy_cost_curve`, `fct_ghost_car_pace`.
+
+---
+
+### `fuel_regulatory_max_kg(season_column)`
+
+The FIA race-fuel limit in kg for a season, read from `var('fuel_regulatory_max_kg_by_season')`.
+A season older than every key returns NULL, so the fuel test fails rather than inventing a limit.
+
+**Used by:** `int_lap_fuel_state`, `assert_fuel_load_matches_scheduled_distance`.
+
+---
+
+### `driver_isolation_reliability(prefix, raw, se, tau2, method_score, method_grade)`
+
+Emits the four confidence columns every driver-isolation rating carries: `<prefix>_lambda`
+(reliability), `<prefix>_shrunk_gain_s`, `<prefix>_confidence_pct` and `<prefix>_trust_label`.
+
+**Used by:** `fct_driver_isolation_lap`, `fct_driver_isolation_stint`, `fct_driver_isolation_race`.
+
+---
+
+### `driver_isolation_identity_terms()`
+
+The cumulative-identity split of tier-3 relative pace (pace gap + car advantage + traffic
+advantage), aggregated over any group of `fct_driver_isolation_pair_lap` rows. Use inside a
+`GROUP BY` over that model.
+
+**Used by:** `fct_driver_isolation_lap`, `fct_driver_isolation_stint`, `fct_driver_isolation_race`.
+
+---
+
+### `driver_isolation_pure_season_offset(year_col)`
+
+The declared per-season offset added to pure skill, read from
+`var('isolation_pure_season_offset_gain_s')`. It cancels in every within-season comparison and
+moves only a season's level against other seasons.
+
+**Used by:** `int_driver_isolation_lap_values`, `fct_driver_isolation_race`.
 
 ---
 

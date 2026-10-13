@@ -127,12 +127,12 @@ one arm added after the fact to tell the fix apart from everything else:
     (all of 2018, plus later (compound, lap_in_stint) cells no earlier season reached) into
     4.0 instead of the documented neutral 1.0. The shipped SQL now uses `clamp_or_null`.
     The re-run's AFTER is the corrected, as-shipped SQL.
-  - ADDED ARM `AFTER_PREWI13` (not pre-registered; for attribution only): the same
+  - ADDED ARM `AFTER_PREWI13` (not declared in advance; for attribution only): the same
     season-lagged SQL with just the survival_weight expression put back to the pre-WI-13
     GREATEST/LEAST form, so the old defect is rebuilt on today's substrate. Exported by
     `--stage export-after-prewi13`. It answers "is any change the fix's doing, or the
     substrate's?" by running the original gate on the buggy weights next to the corrected
-    one. Its own gate rows use the pre-registered floor rule (the larger of its floor and
+    one. Its own gate rows use the declared floor rule (the larger of its floor and
     BEFORE's).
   - Since 08o (v13) `evaluate._row_weights` returns None, so `EvalSplit.w_tr` is None for
     the trio. The export now takes `survival_weight` from `meta_train`, re-indexed to the
@@ -613,7 +613,7 @@ def run_quantile_target(target: str, after: dict, before: dict, published: float
 
 def run_prewi13_arm(target, spec, params, hib, X_tr, y_tr, X_ev, y_ev, w_bug, *,
                     h_after, h_before, h_a, floor_after, floor_before, log) -> dict:
-    """ADDED ARM for the W9 re-run (not pre-registered): AFTER with the pre-WI-13
+    """ADDED ARM for the W9 re-run (not declared in advance): AFTER with the pre-WI-13
     GREATEST/LEAST clip, i.e. the defective weights the 2026-09-17 run used, rebuilt on
     today's substrate. Two readings:
 
@@ -656,7 +656,7 @@ def run_prewi13_arm(target, spec, params, hib, X_tr, y_tr, X_ev, y_ev, w_bug, *,
         f"({cap_bug/F2_old:+.2f}x) information={info_bug:+.8f} ({info_bug/F2_old:+.2f}x) "
         f"E={ev['E']:.4g} (d_bar={ev['d_bar']:+.8f}) ({time.time()-t0:.0f}s)")
     return {
-        "note": "added arm, not pre-registered: pre-WI-13 clip rebuilt on today's substrate",
+        "note": "added arm, not declared in advance: pre-WI-13 clip rebuilt on today's substrate",
         "headline": h_bug, "refit_noise": floor_bug,
         "original_gate_on_prewi13": {
             "floor_2sqrt2sd": F2_old,

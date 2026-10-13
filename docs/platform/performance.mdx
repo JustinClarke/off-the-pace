@@ -14,7 +14,7 @@ Four specs in [`app/e2e/`](https://github.com/JustinClarke/off-the-pace/tree/mai
 |---|---|---|
 | `duckdb-query.e2e.ts` | `/data-quality` | DuckDB-wasm instantiates and a real parquet query resolves and renders |
 | `onnx-inference.e2e.ts` | `/ml/simulator` | onnxruntime-web creates a session from the live CDN model and serves a finite inference |
-| `identity.e2e.ts` | `/lap-decomposition/waterfall` | Seven-term identity UI boots and renders end-to-end |
+| `identity.e2e.ts` | `/lap-decomposition/waterfall` | Additive-identity UI boots and renders end-to-end |
 | `smoke.e2e.ts` | `/`, `/data-quality` | SPA shell mounts with no uncaught error; client-side routing works |
 
 **The signal.** The observability layer keeps an always-on in-memory ring of timing marks (`duckdb_init` / `first_query` / `onnx_warmup`), recorded regardless of whether a RUM backend is configured, mirrored read-only to `window.__OTP_PERF__`. The E2E waits on those marks (`app/e2e/_helpers.ts`) rather than scraping fragile DOM, so a green run means the subsystem actually executed.

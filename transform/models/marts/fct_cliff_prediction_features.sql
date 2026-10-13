@@ -73,7 +73,7 @@ air AS (
     FROM {{ ref('int_lap_air_state') }}
 ),
 
--- Phase 10a: the position channel's per-lap scalars. Carried ALONGSIDE the
+-- The position channel's per-lap scalars. Carried ALONGSIDE the
 -- `air` block above, not in place of it, so the ablation can be run against
 -- both measures rather than the new one asserted better. The two describe the
 -- same physical situation from different sensors: `air` divides FastF1's
@@ -174,7 +174,7 @@ qualifying AS (
 -- 02d (Tier 3): per-circuit safety-car / virtual-safety-car hazard per racing
 -- lap, from int_sc_hazard_history. This is the marshalling channel -- neither a
 -- transform of lap times nor of the car channel -- and it is the reason
--- ml_research_program.md §1a's "safety-car timing ... carries no signal in any
+-- ml_research_program.md's "safety-car timing ... carries no signal in any
 -- feature this warehouse could build" is false (item 00b).
 --
 -- THE SEASON IS HALF THE KEY. int_sc_hazard_history is an EXPANDING,
@@ -393,7 +393,7 @@ base AS (
             AS dirty_air_thermal_load_bulk,
         COALESCE(ai.air_state_dominant, 'free_air') AS air_state_dominant,
 
-        -- Phase 10a proximity predictors (position channel).
+        -- Proximity predictors (position channel).
         -- The three share_* / time_* columns are already zeroed on
         -- neutralised laps at source and COALESCE only covers the 1.22% of
         -- laps with no position telemetry, matching how the dirty-air block
@@ -691,7 +691,7 @@ with_target AS (
         END AS next_lap_degradation_jump_s,
 
         -- C1 target: detrended single-lap jump with per-stint fuel/track drift
-        -- removed. Primary until Phase 7 moved the modelled column to the 5-lap
+        -- removed. Primary until the modelled column moved the modelled column to the 5-lap
         -- cumulative one below; carried since as an alternative horizon.
         -- drift_s_per_lap is the OLS slope of residual ~ lap_in_stint on
         -- pre-cliff laps.
@@ -812,7 +812,7 @@ SELECT
     compound_cliff_onset_laps,
     compound_cliff_severity,
 
-    -- Thermal predictors (C3 added surface_bulk_ratio; it survived Phase 9's prune)
+    -- Thermal predictors (C3 added surface_bulk_ratio; it survived the feature prune)
     push_residual,
     cumulative_push_load_surface,
     cumulative_push_load_bulk,
@@ -831,9 +831,9 @@ SELECT
     dirty_air_thermal_load_bulk,
     air_state_dominant,
 
-    -- Proximity predictors (Phase 10a, position channel). Present in the mart and
+    -- Proximity predictors (position channel). Present in the mart and
     -- in the ML feature contract (ml/src/schema.py FEATURE_GROUPS['proximity']),
-    -- admitted on Phase 10a's add-ablation, which was the phase's own acceptance
+    -- admitted on the proximity add-ablation, which was its own acceptance
     -- rule.
     share_lap_within_1s,
     share_lap_within_2s,
@@ -848,8 +848,8 @@ SELECT
     -- 02c corner-input predictors (Tier 2, corner-windowed telemetry). Same
     -- standing as the proximity block above when it landed: present in the mart,
     -- NOT yet in ml/src/schema.py's FEATURE_COLUMNS. The contract moves only if
-    -- the pre-registered ablation in _improvements/work/02-feature-expansion.md
-    -- §3 `02c` says it should. Shipping the columns here is what makes that
+    -- the declared ablation in _improvements/work/02-feature-expansion.md
+    -- (`02c` section) says it should. Shipping the columns here is what makes that
     -- ablation runnable; it is not a claim that they carry anything.
     --
     -- ARMS RUN 2026-09-11 (scripts/arms_02c_corner_inputs.py ->
@@ -860,7 +860,7 @@ SELECT
     -- and their information delta is negative. corner_input_coverage (arm C) is a
     -- SEPARATE channel that clears on p50, p90 and cliff, and on p90 it is the only
     -- one of the two that does -- which is the confound the column was emitted to
-    -- make visible. Campaign-level e-BH rejects nothing (the pre-registered e-value
+    -- make visible. Campaign-level e-BH rejects nothing (the declared e-value
     -- construction caps at E = 36 against a threshold of 240). So the columns stay
     -- here and out of the contract: moving them is a version bump with a retrain
     -- behind it, and the arms do not settle which set to move.
@@ -878,7 +878,7 @@ SELECT
     -- 02h corner-drift predictors (Tier 2 follow-on, drift from the driver's
     -- own early-stint corner baseline instead of 02c's instantaneous pace
     -- residual). Present in the mart, NOT in ml/src/schema.py's
-    -- FEATURE_COLUMNS -- the contract moves only if the pre-registered
+    -- FEATURE_COLUMNS -- the contract moves only if the declared
     -- ablation in _improvements/work/02-feature-expansion.md's `02h` section
     -- says it should.
     corner_drift_coverage,
@@ -896,11 +896,11 @@ SELECT
     -- read). Weekend-grain, stint-invariant: present in the mart and in
     -- ml/src/schema.py's FEATURE_COLUMNS since D12 (2026-09-21), for
     -- cliff_classifier only -- PER_TARGET_FEATURE_MASK masks them out of the other
-    -- four models. Per the leaf doc's §1, a stint-invariant feature can only
+    -- four models. Per the leaf doc, a stint-invariant feature can only
     -- address the 0.94% of the degradation target's variance that is between-stint,
     -- so this group was expected to move cliff_classifier and/or
-    -- stint_life_regressor, not the degradation trio -- the pre-registered arms in
-    -- _improvements/work/02-feature-expansion.md §2 `02b` tested that expectation.
+    -- stint_life_regressor, not the degradation trio -- the declared arms in
+    -- _improvements/work/02-feature-expansion.md (`02b` section) tested that expectation.
     quali_push_laps_n,
     quali_constructor_pace_mean_s,
     quali_constructor_pace_se_mean_s,
@@ -911,15 +911,15 @@ SELECT
 
     -- 02d SC/VSC hazard (Tier 3, the marshalling channel -- the one candidate in
     -- item 02 sourced from neither lap times nor the car channel). Circuit x
-    -- season grain, so stint-invariant: per the leaf doc's §1 it can address only
+    -- season grain, so stint-invariant: per the leaf doc it can address only
     -- the 0.94% of the degradation target's variance that is between-stint, and
     -- the family it is aimed at is stint_life_regressor, where stint ends are set
     -- by pit-wall calls and safety-car probability is the largest exogenous input
     -- to those calls. Present in the mart, NOT in ml/src/schema.py's
     -- FEATURE_COLUMNS -- the same standing 02c's ten hold (02b's seven held it
-    -- until D12 admitted them for the cliff classifier). The pre-registered arms
+    -- until D12 admitted them for the cliff classifier). The declared arms
     -- are in
-    -- _improvements/work/02-feature-expansion.md §4 `02d`.
+    -- _improvements/work/02-feature-expansion.md (`02d` section).
     circuit_sc_hazard_per_lap,
     circuit_vsc_hazard_per_lap,
     circuit_any_hazard_per_lap,

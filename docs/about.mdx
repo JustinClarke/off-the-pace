@@ -10,8 +10,8 @@ Off The Pace is a portfolio project built to clear a production data-engineering
 
 | Competency | Demonstrated by | Evidence |
 |---|---|---|
-| **Data modelling** | Medallion warehouse (bronze → silver → gold), dimensional marts, 60 dbt models in one topological pass | [Transform layer](/transform/overview) |
-| **Data quality & contracts** | 443 dbt tests, the CI-enforced additive-identity invariant, schema contracts | [The CI Contract](/transform/ci/overview) |
+| **Data modelling** | Medallion warehouse (bronze → silver → gold), dimensional marts, 93 dbt models in one topological pass | [Transform layer](/transform/overview) |
+| **Data quality & contracts** | dbt column contracts and singular tests, the CI-enforced additive-identity invariant, schema contracts | [The CI Contract](/transform/ci/overview) |
 | **Orchestration** | Staged pipeline DAG with retries, source-freshness checks, and build-over-build profiling | [Data pipeline](/platform/data-pipeline) |
 | **ML engineering** | XGBoost trained and exported to ONNX with train/serve parity and calibrated intervals | [ML layer](/ml/overview) |
 | **CI/CD** | Deploy / promote / rollback, PR preview channels, drift gates as merge blockers | [Deployment](/platform/deployment) |
@@ -22,9 +22,9 @@ For the narrative version of how these fit together, see [Engineering highlights
 
 ## What this project is
 
-A full-stack F1 analytics platform that answers a question lap time alone cannot: when a car is off the pace, exactly why? It ingests seven seasons of telemetry, models it through a dbt + DuckDB warehouse, trains five ML models, and serves 30 interactive features in the browser with no server, no login, and no per-user serving cost. Every lap is decomposed into seven additive, physically-grounded components, so lost time is attributed to a named cause rather than a feeling.
+A full-stack F1 analytics platform that answers a question lap time alone cannot: when a car is off the pace, exactly why? It ingests eight seasons of telemetry, models it through a dbt + DuckDB warehouse, trains five ML models, and serves 31 interactive features in the browser with no server, no login, and no per-user serving cost. Every lap is decomposed into five additive, physically-grounded components, so lost time is attributed to a named cause rather than a feeling.
 
-The engineering thesis is that the interesting numbers should be *enforced*, not asserted: the seven-term decomposition closes to zero on every lap because a CI test fails the build otherwise, and the model that serves in the browser is provably the model that trained because ONNX parity is tested to `atol=1e-5`.
+The engineering thesis is that the interesting numbers should be *enforced*, not asserted: the five-term decomposition closes to zero on every lap because a CI test fails the build otherwise, and the model that serves in the browser is provably the model that trained because ONNX parity is tested to `atol=1e-5`.
 
 ## About the builder
 

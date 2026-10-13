@@ -104,7 +104,7 @@ export default function PitStrategyPage() {
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
       provenance={{
-        dataWindow: '2018-2024',
+        dataWindow: '2018-2025',
       }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename={csvFilename}

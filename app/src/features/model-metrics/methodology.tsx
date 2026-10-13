@@ -7,11 +7,11 @@ export const methodologyContent = (
     <p>
       Five XGBoost 3.3.0 models predict next-lap tyre degradation (p10/p50/p90 quantile trio),
       laps-until-cliff class (4-class), and remaining stint life. All are trained on 24 per-lap
-      features from <code>fct_cliff_prediction_features</code> covering 2018-2024.
+      features from <code>fct_cliff_prediction_features</code> covering 2018-2025.
     </p>
     <p>
       Evaluation uses a season-grouped <strong>TimeSeriesSplit</strong> (5 folds, expanding window)
-      so the final fold always validates on 2024-a strict temporal holdout. Every number on this
+      so the final fold validates on 2025, a strict temporal split. Every number on this
       page is read directly from <code>model_card.json</code>; none are hand-typed.
     </p>
     <p>
@@ -30,9 +30,10 @@ export const methodologyContent = (
       disagreements flag potentially correlated or collinear features.
     </p>
     <p>
-      2025 is the designated true holdout and will ingest post-launch, at which point the
+      2026 is the designated true holdout and ingests as its races complete, at which point the
       <code>is_holdout</code> flag in <code>mart_degradation_predictions</code> flips automatically
-      with no code change.
+      with no code change. Until then the headline is the 2025 fold, which also helped decide which
+      features to admit, so it is a validation fold rather than a clean holdout.
     </p>
   </div>
 )

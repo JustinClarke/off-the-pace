@@ -8,7 +8,7 @@ description: "Eight models computing per-lap physics state fuel mass, push load,
 
 Physics turns each valid lap into a vector of physical state: fuel mass remaining, cumulative push load on the tyre (a thermal proxy), air-state classification and dirty-air exposure, and per-corner speed/g metrics. Every model in this family partitions its window functions on `stint_id`, the identifier `int_stint_geometry` builds first so a pit stop resets every trailing computation cleanly. Two of the eight components are purely deterministic arithmetic (fuel burns off at a fixed rate; nothing is fitted); the rest are finite, backward-looking weighted sums no model in this family ever reads ahead of the current lap.
 
-Physics's primary upstream is staging (`stg_laps`, `stg_telemetry`, `stg_laps_qualifying`) plus `dim_circuits` from Reference for per-circuit constants. One model, `int_dirty_air_tax_component`, also reads forward from Pace Baselines (`int_field_pace_curve`, `int_track_evolution`) and Residual Decomposition (`int_event_corrections`) a deliberate exception covered below. Physics's downstream is Pace Baselines and Residual Decomposition, which consume these components as additive terms in the seven-term identity.
+Physics's primary upstream is staging (`stg_laps`, `stg_telemetry`, `stg_laps_qualifying`) plus `dim_circuits` from Reference for per-circuit constants. One model, `int_dirty_air_tax_component`, also reads forward from Pace Baselines (`int_field_pace_curve`, `int_track_evolution`) and Residual Decomposition (`int_event_corrections`) a deliberate exception covered below. Physics's downstream is Pace Baselines and Residual Decomposition, which consume these components as additive terms in the five-term identity.
 
 ## The sub-DAG
 

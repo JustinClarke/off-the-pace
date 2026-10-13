@@ -8,7 +8,7 @@ description: "One row per lap."
 
 <Note>Part of the [Residual](/transform/families/residual) family.</Note>
 
-> For the conceptual foundation, read [Int Lap Residual Decomposed](/decomposition/seven-term-identity).
+> For the conceptual foundation, read [Int Lap Residual Decomposed](/decomposition/additive-identity).
 
 One row per lap. WI-01 (2026-09-27, Option A): base_track_pace_s is fuel- AND compound-neutral and already contains rubber/ambient (int_track_evolution decomposes that same base), so this model's identity is 5-term, not 7: pace_delta_s = fuel_component_s + compound_component_s + constructor_component_s + dirty_air_tax_s + driver_skill_residual_s. rubber_component_s and ambient_component_s are carried as informational columns only (F22 -- subtracting them again on top of the base would double-count them). Driver skill residual = what remains after removing fuel/compound/car/dirty-air. NULL (not a fabricated number) wherever base_track_pace_s or compound_component_s is itself unmeasured (F1).
 

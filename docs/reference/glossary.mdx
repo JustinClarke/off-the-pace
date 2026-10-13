@@ -10,7 +10,7 @@ Every term in these docs has a precise meaning. This glossary collects those def
 
 ## Decomposition Terms
 
-These terms describe the seven-term additive identity at the heart of Off The Pace the equation that breaks every race lap into its measurable physical causes.
+These terms describe the five-term additive identity at the heart of Off The Pace the equation that breaks every race lap into its measurable physical causes.
 
 <AccordionGroup>
 
@@ -19,17 +19,17 @@ The difference between a driver's lap time and the field baseline, in seconds. P
 </Accordion>
 
 <Accordion title="Field baseline (base_track_pace_s)">
-The trimmed-mean field pace computed over a 5-lap centred window at each point in the race. The fastest and slowest 10% of cars are excluded before computing the mean to remove drivers on extreme strategies or with mechanical issues. A driver running at exactly the field baseline pace will have `pace_delta_s ≈ 0`.
+The trimmed-mean field pace computed over a 5-lap centred window at each point in the race, from fuel- and compound-corrected laps. The fastest and slowest 10% of cars are excluded before computing the mean to remove drivers on extreme strategies or with mechanical issues. Track rubber and ambient temperature move every car at once, so they are already inside the baseline. A driver running at exactly the field baseline pace will have `pace_delta_s ≈ 0`.
 </Accordion>
 
-<Accordion title="Seven-term identity">
+<Accordion title="Five-term identity">
 The additive equation that defines how Off The Pace decomposes every race lap:
 
 ```
-pace_delta = fuel + compound + rubber + ambient + constructor + dirty_air + driver_skill
+pace_delta = fuel + compound + constructor + dirty_air + driver_skill
 ```
 
-Six measurable physics terms plus one closure term (driver skill) that captures everything else. This is an exact identity, not an approximation it is enforced to within 0.1 ms floating-point tolerance on every lap in every race via a CI test. If any model change breaks the identity, the build fails.
+Four measurable physics terms plus one closure term (driver skill) that captures everything else. Until 2026-09-27 the identity also subtracted rubber and ambient terms (seven in all); both are already inside the field baseline, so they are now informational. Qualifying laps still use the seven-term form. This is an exact identity, not an approximation it is enforced to within 0.1 ms floating-point tolerance on every lap in every race via a CI test. If any model change breaks the identity, the build fails.
 </Accordion>
 
 <Accordion title="Fuel component">
@@ -41,31 +41,31 @@ The pace penalty attributable to tyre degradation, modelled as a hockey-stick po
 </Accordion>
 
 <Accordion title="Rubber component">
-The pace improvement attributable to track evolution the grip increase as rubber laid by earlier cars builds on the racing line. The rubber term is typically negative (faster pace) and grows through the first 30–40 laps of a race before plateauing. It is identified from the fuel-adjusted residual panel using the fact that rubber accumulation is monotonically increasing while temperature can move in either direction.
+The pace improvement attributable to track evolution the grip increase as rubber laid by earlier cars builds on the racing line. It is typically negative (faster pace) and grows through the first 30–40 laps of a race before plateauing. `int_track_evolution` splits it out of the field baseline using the fact that rubber accumulation is monotonically increasing while temperature can move in either direction. It is informational: it is already inside the baseline, so it is not a term of the race-lap identity.
 </Accordion>
 
 <Accordion title="Ambient component">
-The pace effect of track temperature deviation from the session's thermal baseline. Higher track temperatures reduce tyre grip, particularly for Soft compounds operating near their thermal ceiling. Identified jointly with the rubber component using their opposite time-series signatures.
+The pace effect of track temperature deviation from the session's thermal baseline. Higher track temperatures reduce tyre grip, particularly for Soft compounds operating near their thermal ceiling. Split out of the field baseline jointly with the rubber component using their opposite time-series signatures. Like rubber, it is informational for race laps and not a term of the identity.
 </Accordion>
 
 <Accordion title="Constructor component">
-The team's structural pace advantage or deficit relative to the field median, estimated from a panel fixed-effects regression across race-year-constructor combinations. Pre-computed from 2018–2024 historical data. Subtracting the constructor term means the driver skill residual reflects execution, not machinery.
+The team's structural pace advantage or deficit relative to the field median, estimated from a panel fixed-effects regression across race-year-constructor combinations. Pre-computed from the ingested seasons. Subtracting the constructor term means the driver skill residual reflects execution, not machinery.
 </Accordion>
 
 <Accordion title="Dirty air component">
-The pace penalty a driver incurs from running in the aerodynamic wake of the car ahead. Computed as `θ × dirty_air_share`, where θ is the seconds-per-unit-share coefficient calibrated from the partial residual panel after all prior terms have been subtracted.
+The pace penalty a driver incurs from running in the aerodynamic wake of the car ahead. Computed as `θ × dirty_air_share`, where θ is the cost of a full lap in wake: 0.331 s, estimated within stints with tyre cost subtracted on a declared season window and then frozen as a declared value.
 </Accordion>
 
 <Accordion title="Driver skill residual">
-The closure term of the seven-term identity. Defined as `pace_delta` minus the sum of all six physics terms it is not estimated independently. This is intentional: it ensures the identity holds exactly and prevents the residual from absorbing model error. A large negative driver residual means the driver is running faster than the physics predicts; a large positive residual means the opposite.
+The closure term of the five-term identity. Defined as `pace_delta` minus the sum of the four physics terms it is not estimated independently. This is intentional: it ensures the identity holds exactly and prevents the residual from absorbing model error. A large negative driver residual means the driver is running faster than the physics predicts; a large positive residual means the opposite.
 </Accordion>
 
 <Accordion title="Sequential residualisation">
-The estimation strategy used to separate the seven terms from one another. Because all physics effects are active on every lap simultaneously, the model estimates them in order of decreasing physical identifiability fuel first, then compound + rubber + ambient jointly, then constructor, then dirty air subtracting each estimated term before estimating the next. The driver residual is what remains after all six physics terms have been subtracted.
+The estimation strategy used to separate the terms from one another. Because all physics effects are active on every lap simultaneously, the model estimates them in order of decreasing physical identifiability fuel first, then compound, then the field baseline (which carries rubber and ambient), then constructor, then dirty air subtracting each estimated term before estimating the next. The driver residual is what remains after the four physics terms have been subtracted.
 </Accordion>
 
 <Accordion title="Additive identity">
-The mathematical guarantee that all seven decomposition terms sum exactly to `pace_delta_s` for every lap. Enforced as an automated test on every build: if any lap violates the identity by more than 0.1 ms, the build fails and the merge is blocked.
+The mathematical guarantee that the five decomposition terms sum exactly to `pace_delta_s` for every lap. Enforced as an automated test on every build: if any lap violates the identity by more than 0.1 ms, the build fails and the merge is blocked.
 </Accordion>
 
 </AccordionGroup>
@@ -201,7 +201,7 @@ The open-source Python library used to fetch historical F1 lap timing, telemetry
 </Accordion>
 
 <Accordion title="dbt (data build tool)">
-The SQL-based transformation framework used to build all Silver and Gold models. dbt applies software engineering practices testing, documentation, version control to data pipeline SQL. The seven-term additive identity is enforced as a dbt test on every build.
+The SQL-based transformation framework used to build all Silver and Gold models. dbt applies software engineering practices testing, documentation, version control to data pipeline SQL. The five-term additive identity is enforced as a dbt test on every build.
 </Accordion>
 
 </AccordionGroup>

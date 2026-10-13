@@ -8,7 +8,7 @@
 -- rows: nothing in the SQL structurally prevents them drifting apart if the
 -- ahead_own_gap_s definition, the self-match guard, or the neutralised-lap
 -- zeroing is changed on one and not the other. That is the same shape of
--- defect Phase 8 found in the cliff bound (two applications of one rule, only
+-- defect found in the cliff bound (two applications of one rule, only
 -- one of them maintained).
 --
 -- Exact, not toleranced: both are averages of 0/1 over the identical bin set,

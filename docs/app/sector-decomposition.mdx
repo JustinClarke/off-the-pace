@@ -12,7 +12,7 @@ Each sector carries its own decomposition:
 
 - **Pace delta**: the driver's average sector time minus the rolling 7-lap field median sector time for that sector and lap number.
 - **Skill residual**: the portion of the pace delta not explained by the physics components (fuel, tyres, ambient, constructor, dirty air) the driving contribution within that sector.
-- **Total explained**: the sum of the six physics components allocated to the sector. A large value means external factors, not driving style, dominated the delta.
+- **Total explained**: the sum of the four physics components allocated to the sector. A large value means external factors, not driving style, dominated the delta.
 - **Consistency**: the within-race standard deviation of the skill residual for that driver–sector pair. Lower = more repeatable.
 
 All physics components are allocated using `sector_time / lap_time` as the weight, which preserves the **sector sum = lap total** identity.
@@ -44,9 +44,9 @@ The chart queries `int_sector_residual_decomposed` via DuckDB-Wasm in the browse
 |---|---|
 | `sector_pace_delta_s` | Sector time vs rolling 7-lap field median |
 | `sector_skill_residual_s` | The unexplained (driving) part of the sector delta |
-| `sector_total_explained_s` | The six physics components allocated to the sector |
+| `sector_total_explained_s` | The four physics components allocated to the sector |
 | `sector_skill_stddev_s` | Within-race consistency of the sector skill residual |
 
-This is a **single-race** view across **2018–2024** data.
+This is a **single-race** view across **2018–2025** data.
 
 For the full model definition, see the [`int_sector_residual_decomposed` reference](/reference/models/int/int_sector_residual_decomposed).

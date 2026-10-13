@@ -10,11 +10,11 @@ A driver finishes ten seconds behind but to what? "How the Race Was Lost" cumula
 
 For each component the chart sums the per-lap value across all classified laps:
 
-- **Components**: fuel, tyres, ambient, constructor, dirty air, and driver skill each summed across the race versus the per-lap field median.
+- **Components**: fuel, tyres, constructor, dirty air, and driver skill each summed across the race versus the per-lap field median.
 - **Negative total**: the driver/car *gained* time from that factor versus the field median.
 - **Positive total**: the driver/car *lost* time from that factor.
 - **Driver skill**: the residual after removing all physics components the pure driving contribution.
-- **Track noise**: unexplained lap-to-lap variation, shown as informational; it is **not** additive to the seven-term identity and should not be added into the total.
+- **Track noise**: unexplained lap-to-lap variation, shown as informational; it is **not** part of the additive identity and should not be added into the total.
 
 <Note>
   Laps under safety car, virtual safety car and red flag never reach this sum: `fct_lap_residuals` is built from green racing laps only, so the exclusion happens upstream in the warehouse rather than in this query. Major-outlier laps are excluded in the query itself. The totals reflect representative racing laps only.
@@ -29,10 +29,10 @@ For each component the chart sums the per-lap value across all classified laps:
 
 ## Reading the signal correctly
 
-These are totals **relative to the per-lap field median**, so a positive dirty-air bar means this driver spent more of the race in traffic than the median car it is a comparison, not an absolute physical loss. The six physics components plus driver skill close the identity; track noise is shown separately on purpose.
+These are totals **relative to the per-lap field median**, so a positive dirty-air bar means this driver spent more of the race in traffic than the median car it is a comparison, not an absolute physical loss. The four physics components plus driver skill close the identity; track noise is shown separately on purpose.
 
 <Warning>
-  Do not add track noise into the seven-term total it is non-additive and would double-count. See the [seven-term identity](/decomposition/seven-term-identity) for why the identity closes on six environmental terms plus driver skill.
+  Do not add track noise into the total it is non-additive and would double-count. See the [additive identity](/decomposition/additive-identity) for why the identity closes on four physics terms plus driver skill.
 </Warning>
 
 ## Data source
@@ -41,10 +41,10 @@ The chart queries `fct_lap_residuals` via DuckDB-Wasm in the browser, summing ac
 
 | Column | Meaning |
 |---|---|
-| `fuel_component_s`, `compound_component_s`, … | The six environmental components, summed across the race |
+| `fuel_component_s`, `compound_component_s`, … | The four physics components, summed across the race |
 | `driver_skill_residual_s` | The driver contribution after physics is removed |
 | `track_unexplained_s` | Lap-to-lap noise, shown as informational (non-additive) |
 
-This is a **single-race** view across **2018–2024** data.
+This is a **single-race** view across **2018–2025** data.
 
 For the full model definition, see the [`fct_lap_residuals` reference](/reference/models/fct/fct_lap_residuals).

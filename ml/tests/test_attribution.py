@@ -74,7 +74,7 @@ def test_flatten_removes_exactly_the_within_stint_variance():
     noisy estimate of the stint effect: it carries `sigma_w^2 / n0` of within-stint
     scatter with it. So the ANOVA reads the flattened column as having
     `sigma_b^2 + sigma_w^2 / n0` of between-stint variance, not `sigma_b^2`. That is the
-    *same* inflation Phase 6 corrected in Corrections §12 — the naive estimator's bias,
+    *same* inflation the ceiling estimator corrects — the naive estimator's bias,
     reappearing here because a stint mean is exactly what the naive estimator averages.
 
     It is asserted as an identity rather than smoothed under a tolerance, because the
@@ -232,7 +232,7 @@ def test_higher_is_better_orientation_is_positive_for_a_real_contribution():
     assert a == pytest.approx(b, rel=1e-9)
 
 
-# ─── Causality of the flatten (Corrections §22) ─────────────────────────────────
+# ─── Causality of the flatten ─────────────────────────────────
 def _laps(n_groups: int = N_GROUPS, per_group: int = PER_GROUP):
     return np.tile(np.arange(1, per_group + 1), n_groups).astype(float)
 
@@ -252,7 +252,7 @@ def test_causal_mean_meets_the_flatten_at_the_last_lap_and_the_raw_value_at_the_
     The last lap of a stint has no later lap, so its prefix *is* the whole stint; the
     first has no earlier lap, so its prefix is itself. Everything between them is where
     `stint_flatten` is using laps the row could not have seen, and that gap is the whole
-    subject of §22.
+    subject of the causality check.
     """
     g, lap = _stints(200, 7), _laps(200, 7)
     X = pd.DataFrame({"f": _feature(0.3, g)})
@@ -342,7 +342,7 @@ def _causality_case(target_kind: str, n_groups: int = 800, per_group: int = 9):
 
 
 def test_flatten_causality_names_a_look_ahead_result_as_unreachable():
-    """§22's finding, planted and recovered.
+    """The finding, planted and recovered.
 
     The target here depends on the *rest of the stint* — the shape a forward-looking
     label has. Flattening therefore helps a great deal, and it would be read as "within-

@@ -174,7 +174,7 @@ def _interval_block(em: dict) -> dict | None:
 
 
 def assert_claims_carry_intervals(card: dict) -> None:
-    """A `beats_baseline: true` with no interval is not a claim -- Phase 6, §15.
+    """A `beats_baseline: true` with no interval is not a claim.
 
     Enforced at write time rather than only in the test suite, for the same reason
     `write()` already refuses a card containing "TBD": the failure mode of a gate is
@@ -237,7 +237,7 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
             # rows are lower bounds, so the card carries the split rather than a number
             # that averages two different questions.
             **({"survival": em["survival"]} if "survival" in em else {}),
-            # Phase 6. Two numbers the card was missing and could not be read without:
+            # Two numbers the card was missing and could not be read without:
             # what fraction of the *reachable* quantity this headline is, and whether the
             # margin over the baseline survives an interval. `beats_baseline` alone is a
             # ratio against 1.0 and a point estimate against a clustered sample.
@@ -270,9 +270,9 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
             "version": version,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "summary": (
-                # The horizon is read from the schema, not written here: Phase 7 moved the
-                # degradation family from the next-lap column to the 5-lap cumulative one
-                # without renaming a model, so a hardcoded "next-lap" would be a false
+                # The horizon is read from the schema, not written here: the
+                # degradation family models the 5-lap cumulative column rather than the next-lap one
+                # without a model rename, so a hardcoded "next-lap" would be a false
                 # sentence attached to correct numbers -- the exact failure this module
                 # exists to prevent, in prose rather than in metrics.
                 f"Five XGBoost models predicting {_DEG_HORIZON_PHRASE} tyre-degradation pace loss "
@@ -337,7 +337,7 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                     "cliff_classifier": "majority-class prior (none_in_stint)",
                     "stint_life": "cell group-mean of remaining stint life over (compound, circuit, age-bucket), compound→global fallback (non-leakage); scored under the same censored likelihood as the model, never against uncensored rows alone",
                 },
-                # Phase 6. Every headline above is now reported twice: against the
+                # Every headline above is now reported twice: against the
                 # baseline, and against what is reachable. The second is the one that can
                 # answer "keep going or stop"; the first never could.
                 "attainable_note": (
@@ -502,7 +502,7 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                    if _cliff_frac is not None else "is measured in the attainable block. ")
                 + "What limits it is not established. The label was the leading candidate and "
                   "has been tested: laps_until_cliff_class is a first-crossing scan over "
-                  "int_compound_cliff_predicted, which was unbounded until Phase 8 bounded it at "
+                  "int_compound_cliff_predicted, which is now bounded at "
                   "source (compound_wear_max_s_per_lap). Repairing it moved 4.97% of rows and did "
                   "not lift macro-F1, and a fresh 50-trial search on the repaired label did not "
                   "beat the params tuned on the contaminated one. Neither the label nor the "

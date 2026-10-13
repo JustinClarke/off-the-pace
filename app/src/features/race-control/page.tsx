@@ -92,7 +92,7 @@ export default function RaceControlPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024' }}
+      provenance={{ dataWindow: '2018–2025' }}
       csvRows={result ? toCsvRows(raceId, result) : undefined}
       csvFilename={`race-control-${raceId || season}.csv`}
       isLoading={isLoading && ready}
@@ -136,7 +136,7 @@ export default function RaceControlPage() {
             How often does this happen at all?
           </h2>
           <p className="mb-4 max-w-2xl text-xs leading-relaxed text-muted">
-            Pooled across every circuit and every season — {pooled.races} races, 2018–2024 — with a
+            Pooled across every circuit and every season — {pooled.races} races, 2018–2025 — with a
             Wilson 95% interval on each. This is the only caution probability on this page, and it
             is pooled for a reason given in full under Methodology: at about four races per
             circuit, the between-circuit share of the variance in whether a race gets a safety car
@@ -151,7 +151,7 @@ export default function RaceControlPage() {
               <RateLine label="Virtual safety car" value={pooled.vsc} />
               <RateLine label="Red flag" value={pooled.redFlag} />
               <p className="pt-2 text-xs text-muted">
-                {pct(pooled.cautionLapShare)} of all race laps, 2018–2024, were run under a
+                {pct(pooled.cautionLapShare)} of all race laps, 2018–2025, were run under a
                 caution.
               </p>
             </div>

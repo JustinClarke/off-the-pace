@@ -80,7 +80,7 @@ OUT = Path("ml/artefacts/05d_training_window_arms.json")
 
 SEEDS: tuple[int, ...] = tuple(S.RANDOM_STATE + i for i in range(5))
 
-# 10e's declared winner, copied verbatim from work/10-competing-risks.md §10e so the
+# 10e's declared winner, copied verbatim from work/10-competing-risks.md (`10e` section) so the
 # stint-life arm is not measured only against a model that is about to be replaced.
 S1X_PARAMS = {
     "aft_loss_distribution_scale": 0.7537929016487691,

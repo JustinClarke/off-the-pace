@@ -91,14 +91,14 @@ RATE = {2018: 105 / 66, 2024: 110 / 66, 2025: 110 / 55}
 FUEL_SLOPE = -0.06       # s/lap of pace gained as the fuel burns, noise-free
 
 
-def _warehouse(path, *, unpriced_lap: str | None = None) -> None:
+def _warehouse(path, *, unpriced_lap: str | None = None, round_number: int = 10) -> None:
     """Spain in three seasons, 5 drivers x 5 clean first-stint laps a race, plus a
-    Monaco row in circuit_reference with no laps at all. Round 10 each season, so
-    the fitter's race_to_track join resolves; stg_laps.circuit_key is the race id,
-    as it is in the real staging model."""
+    Monaco row in circuit_reference with no laps at all. `round_number` defaults to a
+    two-digit round; stg_laps.circuit_key is the race id, as it is in the real staging
+    model, so a race the join misses shows up as its own one-race "circuit"."""
     laps = []
     for season in RATE:
-        race = f"{season}_10"
+        race = f"{season}_{round_number}"
         for drv in ("AAA", "BBB", "CCC", "DDD", "EEE"):
             for lap in range(1, 6):
                 laps.append({
@@ -157,6 +157,14 @@ def fit(tmp_path, monkeypatch):
         return W.run_fit(seasons=seasons, circuits=circuits).set_index("circuit_key"), seen
 
     return run
+
+
+class TestRaceToTrackJoin:
+    def test_single_digit_rounds_resolve_to_their_circuit(self, fit):
+        out, seen = fit(seasons=[2018, 2024], round_number=5)
+        assert SPAIN in seen, "a round-5 race fell back to its own race id"
+        assert out.loc[SPAIN, "n_calibration_laps"] == 2 * 5 * 5
+        assert not any(k.endswith("_5") for k in out.index)
 
 
 class TestBurnRateIsTheFuelModels:

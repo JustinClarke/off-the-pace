@@ -5,7 +5,7 @@ export const methodologyContent = (
     <p>
       Wet-race skill is measured by comparing a driver's race skill residual on
       wet-flagged races against their dry-race baseline, across their full
-      2018–2024 career.
+      2018–2025 career.
     </p>
     <ul className="list-disc pl-4 mt-3 space-y-1">
       <li><strong>Wet advantage</strong>: wet skill residual minus dry skill residual.
@@ -24,7 +24,7 @@ export const methodologyContent = (
       adaptability rather than the car's wet-weather setup.
     </p>
     <p className="mt-3 text-muted/70">
-      Source: <code>fct_driver_skill_features</code>. Career aggregation (2018–2024).
+      Source: <code>fct_driver_skill_features</code>. Career aggregation (2018–2025).
     </p>
   </>
 )

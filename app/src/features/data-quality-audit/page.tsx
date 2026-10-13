@@ -70,7 +70,7 @@ export default function DataQualityAuditPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024' }}
+      provenance={{ dataWindow: '2018–2025' }}
       csvRows={data ? toCsvRows(data) : undefined}
       csvFilename={`data-quality-${season}.csv`}
       isLoading={isLoading}

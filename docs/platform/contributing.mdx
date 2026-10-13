@@ -39,12 +39,12 @@ Choose a data scope based on what you're working on:
 |---|---|---|
 | `make dbt-dev` | Test fixtures (no ingest) | < 1 min |
 | `make ingest-recent` | 2023–2024 | ~15 min |
-| `make ingest-all` | All seasons (168 races) | 30–45 min |
+| `make ingest-all` | Every 2018–2025 race (add later seasons with `make add-season SEASON=YYYY`) | 35–50 min |
 
 ```bash
 make ingest-recent   # or ingest-all
 make dbt-dev         # build all dbt models against local DuckDB
-make dbt-test        # run 443 tests including the seven-term identity
+make dbt-test        # run every dbt test, including the lap identity
 ```
 
 The core invariant every lap's seven decomposition components sum to zero is enforced by `assert_lap_7term_identity` inside `make dbt-test`.
@@ -111,7 +111,7 @@ ls -la data/bronze/laps/season=2024/race=bahrain_grand_prix/
     2. Add a description + column docs to `schema.yml`.
     3. Add at least one dbt test.
     4. Run `make dbt-dev` and `make dbt-test`.
-    5. If the model participates in the seven-term identity, confirm `assert_lap_7term_identity` still passes.
+    5. If the model participates in the lap identity, confirm `assert_lap_7term_identity` still passes (it enforces five terms; the file name predates that).
   </Step>
   <Step title="Add or change an app feature" icon="monitor">
     Every shipped feature ships its docs in the **same PR** as its code.
@@ -149,7 +149,7 @@ ls -la data/bronze/laps/season=2024/race=bahrain_grand_prix/
     The relevant layer README e.g. [`ingestion/README.md`](https://github.com/JustinClarke/off-the-pace/blob/main/ingestion/README.md), [`transform/README.md`](https://github.com/JustinClarke/off-the-pace/blob/main/transform/README.md).
   </Card>
   <Card title="Architecture & rationale" icon="building-2">
-    The [Architecture Decisions](/platform/architecture-decisions) log and the [seven-term identity](/decomposition/seven-term-identity) explanation.
+    The [Architecture Decisions](/platform/architecture-decisions) log and the [additive identity](/decomposition/additive-identity) explanation.
   </Card>
   <Card title="Bugs & features" icon="github">
     Open an issue or discussion on GitHub.

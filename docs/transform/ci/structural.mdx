@@ -19,7 +19,7 @@ This is the biggest single page in the CI Contract by test count and the smalles
     ```
   </Tab>
   <Tab title="unique">
-    Declared on every model's grain key the column (or surrogate) that should have exactly one row per real-world entity. `int_lap_residual_decomposed`'s `lap_id` above is the canonical case: this is the model that closes the seven-term identity, so a duplicated `lap_id` here wouldn't just be a data-quality nuisance, it would mean a lap's `driver_skill_residual_s` gets counted twice in any downstream aggregate that doesn't already correct for it.
+    Declared on every model's grain key the column (or surrogate) that should have exactly one row per real-world entity. `int_lap_residual_decomposed`'s `lap_id` above is the canonical case: this is the model that closes the additive identity, so a duplicated `lap_id` here wouldn't just be a data-quality nuisance, it would mean a lap's `driver_skill_residual_s` gets counted twice in any downstream aggregate that doesn't already correct for it.
   </Tab>
   <Tab title="unique_combination_of_columns">
     For models whose grain isn't a single surrogate column, this asserts uniqueness over the column tuple that defines a row. `mart_corner_skill_driver` is keyed on `(race_year, driver_id)`; `mart_degradation_history_envelope` is keyed on `(circuit_id, era, compound, lap_in_stint)` a pre-aggregated cell, not a lap. Two of these exist today, both on marts whose grain is a model-specific aggregate rather than one of the DAG's two universal grains (lap, sector).

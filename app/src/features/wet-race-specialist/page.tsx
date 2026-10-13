@@ -40,12 +40,12 @@ export default function WetRaceSpecialistPage() {
         },
         {
           label: "How It's Calculated",
-          content: 'Aggregated over 2018–2024. Requires ≥4 wet races and ≥5 dry races. Estimates are shrunk toward zero by sample size drivers with fewer wet races appear closer to neutral.',
+          content: 'Aggregated over 2018–2025. Requires ≥4 wet races and ≥5 dry races. Estimates are shrunk toward zero by sample size drivers with fewer wet races appear closer to neutral.',
         },
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024', nObs: result?.rows.length }}
+      provenance={{ dataWindow: '2018–2025', nObs: result?.rows.length }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename="wet-race-specialists.csv"
       isLoading={isLoading}

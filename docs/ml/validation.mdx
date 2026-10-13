@@ -1,7 +1,7 @@
 ---
 title: "Model validation: leakage spine, CV, and the adversarial probe"
 sidebarTitle: "Validation"
-description: "Season-grouped TimeSeriesSplit, a five-guard leakage spine, adversarial probes, and the MAX+1-derived holdout policy that flips to a true reveal when 2025 ingests."
+description: "Season-grouped TimeSeriesSplit, a five-guard leakage spine, adversarial probes, and the MAX+1-derived holdout policy that flips to a true reveal when 2026 ingests."
 ---
 
 Forward-looking targets make leakage the defining risk of the machine layer. A model that accidentally sees the future or the answer will look good on paper and fail the moment it runs on live data. Off The Pace defends against this with a **leakage spine**: a set of guards baked into tests and CI that prove the model never sees what it should not.
@@ -16,26 +16,26 @@ gantt
     dateFormat  YYYY
     axisFormat  %Y
     section Fold 1
-    Train 2018-2019      :2018, 2020
-    Validate 2020        :crit, 2020, 2021
-    section Fold 2
     Train 2018-2020      :2018, 2021
     Validate 2021        :crit, 2021, 2022
-    section Fold 3
+    section Fold 2
     Train 2018-2021      :2018, 2022
     Validate 2022        :crit, 2022, 2023
-    section Fold 4
+    section Fold 3
     Train 2018-2022      :2018, 2023
     Validate 2023        :crit, 2023, 2024
-    section Fold 5 · headline
+    section Fold 4
     Train 2018-2023      :2018, 2024
     Validate 2024        :crit, 2024, 2025
+    section Fold 5 · headline
+    Train 2018-2024      :2018, 2025
+    Validate 2025        :crit, 2025, 2026
 ```
 
-The final fold trains on 2018–2023 and validates on **2024** the most recent, holdout-shaped unseen season. That final-fold score is the evaluation headline reported in the [model metrics table](/ml/models#headline-results).
+The final fold trains on 2018–2024 and validates on **2025** the most recent, holdout-shaped unseen season. That final-fold score is the evaluation headline reported in the [model metrics table](/ml/models#headline-results).
 
 <Note>
-  **2025 is the planned true out-of-sample holdout.** The holdout season is data-derived, not hard-coded: `HOLDOUT_SEASON = MAX(race_year) + 1`. Today that resolves to 2025, which has no rows yet. The moment 2025 data ingests, the evaluation logic detects the populated holdout and switches to a true out-of-sample reveal **with zero code change**. The split year is never a hard-coded literal the test suite enforces this.
+  **2026 is the planned true out-of-sample holdout.** The holdout season is data-derived, not hard-coded: `HOLDOUT_SEASON = MAX(race_year) + 1`. Today that resolves to 2026, which has no rows yet. The moment 2026 data ingests, the evaluation logic detects the populated holdout and switches to a true out-of-sample reveal **with zero code change**. The split year is never a hard-coded literal the test suite enforces this.
 </Note>
 
 ---
@@ -119,12 +119,12 @@ The full cohort table and the context for each loss live on the [Cohorts page](/
 ## Known limitations
 
 <Warning>
-  **No live 2025 holdout yet.** Evaluation headlines are the final time-series CV fold (2024). They become a true out-of-sample reveal automatically when 2025 data ingests but until that moment, they are cross-validation, not a held-out season.
+  **No live 2026 holdout yet.** Evaluation headlines are the final time-series CV fold (2025), which was also used to admit features. They become a true out-of-sample reveal automatically when 2026 data ingests but until that moment, they are cross-validation, not a held-out season.
 </Warning>
 
 - **The cliff classifier is the weakest model but not against the right denominator.** Macro-F1 ≈ 0.40 decisively beats the majority prior, and read against 1.0 that looks modest. 1.0 is not reachable here: against an oracle handed the stint id and nothing else, the model scores **114% of the ceiling**. What limits it is the label, not the learner `laps_until_cliff_class` is a first-crossing scan over an unbounded cliff polynomial. The 100 most-confident misses are exported for study.
 - **Every headline on this page is now reported against what is attainable, not against 1.0.** A pinball loss of 0.199 and a macro-F1 of 0.404 are uninterpretable as fractions of a perfect score. Each model card entry carries the between-stint variance share of its target and the fraction of the reachable improvement the model captures. Three of the five score *past* their stint-level ceiling, which is a statement about the ceiling: it only ever bounded predictors that are constant within a stint.
-- **Every `beats_baseline` claim carries an interval.** The effective sample is ~7,100 stints, not ~137,000 laps, so a lap-grain point estimate overstates certainty. Each margin is reported as a paired t across the five season folds and as a bootstrap that resamples whole stints; a claim that does not clear its own interval is listed rather than removed.
+- **Every `beats_baseline` claim carries an interval.** The effective sample is ~7,200 stints, not ~95,500 laps, so a lap-grain point estimate overstates certainty. Each margin is reported as a paired t across the five season folds and as a bootstrap that resamples whole stints; a claim that does not clear its own interval is listed rather than removed.
 - **About half the degradation model's within-stint signal is not tyre state.** The models reach past what stint identity alone can supply, so it matters what they reach with. Measured by replacing each feature group with its per-stint average which keeps the group's stint-level information and removes only its lap-to-lap variation roughly half of that signal (50.7%) is the in-stint age ramp, and roughly half is driver push (29.6%) plus traffic (19.7%). Only contributions clearing a measured seed-refit noise floor are counted. The `dirty_air` group's contribution is **95.2% lap-level**: the model is reading which *laps* ran behind a car, not which stints did. Reproduce with `make ml-attribution`.
 
   This measures what the models *use*, which is not the same as what a feature could *supply*. The per-stint average is taken over the whole stint, so on a forward-looking target it includes laps that had not run when the row is scored fine for asking what the model reads, inadmissible in a feature. Every share quoted above is a case where the lap-to-lap variation won *against* that advantage, so they stand as lower bounds; results pointing the other way are re-measured over laps 1..t before they are believed, and the run reports that causal arm beside every group that clears the noise floor.

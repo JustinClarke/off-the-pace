@@ -8,7 +8,7 @@ import MLMetrics from '/snippets/ml-inventory-metrics.mdx';
 
 <CardGroup cols={2}>
   <Card title="Features & Targets" href="/ml/features-and-targets" icon="layers">
-    The 33-feature input matrix, encoding, the three targets, and the dataset fingerprint.
+    The 39-feature input matrix (32 for every model except the cliff classifier), encoding, the three targets, and the dataset fingerprint.
   </Card>
   <Card title="Tuning" href="/ml/tuning" icon="sliders">
     The 9-dimensional Optuna search, CV selection, and full refit.
@@ -25,7 +25,7 @@ Off The Pace trains five XGBoost models on the same per-lap feature matrix and h
 
 <MLMetrics />
 
-*CV is the season-grouped `TimeSeriesSplit` mean across five folds. Eval is the final fold (2024), standing in as a holdout until 2025 data ingests. See [Validation](/ml/validation) for the full CV scheme and the per-cohort baselines. For individual model hyperparameters and per-cohort breakdowns, see the [Model Reference](/reference/ml/degradation-model).*
+*CV is the season-grouped `TimeSeriesSplit` mean across five folds. Eval is the final fold (2025), standing in as a holdout until 2026 data ingests. See [Validation](/ml/validation) for the full CV scheme and the per-cohort baselines. For individual model hyperparameters and per-cohort breakdowns, see the [Model Reference](/reference/ml/degradation-model).*
 
 ---
 

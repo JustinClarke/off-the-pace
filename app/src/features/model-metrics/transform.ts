@@ -11,7 +11,7 @@ export interface ModelSummaryRow {
   beats_baseline: boolean
   n_train_rows: number
   quantile_alpha: number | null
-  // Phase 6. Optional because a card written before the ceiling work carries neither,
+  // Optional because a card written before the ceiling work carries neither,
   // and a missing field must render as "not measured" rather than as a zero.
   attainable: AttainableSummary | null
   interval: IntervalSummary | null

@@ -1,4 +1,4 @@
-"""Version-consistency gate — the third blind gate (ml_execution_plan.md Phase 4).
+"""Version-consistency gate — the third blind gate.
 
 Every existing check in the ML pipeline is *internally* consistent. `parity()` compares
 each `.bst` against its own `.onnx`, so v1-against-v1 agrees perfectly. A manifest is
@@ -167,12 +167,12 @@ def test_app_onnx_files_match_the_manifest_hashes(manifest):
     assert not mismatched, f"app ONNX copies differ from the manifest: {mismatched}"
 
 
-# ─── Survival output block (Phase 3c) ───────────────────────────────────────────
+# ─── Survival output block ───────────────────────────────────────────
 # The stint-life graph does not emit laps. It emits a shifted log-scale margin, and
 # the browser turns it into laps using constants that only exist in the manifest. If
 # any of them goes missing or arrives null, app/src/ml/survival.ts produces numbers
-# that look like laps and are not — the same silent-wrongness shape as Corrections
-# §5–§8. These assert the constants are present, sane, and actually correct.
+# that look like laps and are not — the same silent-wrongness shape as the other silent gates.
+# These assert the constants are present, sane, and actually correct.
 def _survival_entry(manifest: dict) -> dict:
     return next(m for m in manifest["models"] if m["name"] == "stint_life_regressor")
 
@@ -243,9 +243,9 @@ def test_predictions_schema_carries_the_life_band(manifest):
         assert c in cols, f"predictions schema is missing {c}"
 
 
-# ─── Interval contract (Phase 6) ────────────────────────────────────────────────
+# ─── Interval contract ────────────────────────────────────────────────
 # `beats_baseline: true` was published five times in this repo and not one of those
-# claims carried an interval (ml_execution_plan.md Corrections §15). The effective
+# claims carried an interval. The effective
 # sample is 7,094 stints, not 137,447 laps, so a lap-grain point estimate is the same
 # shape of failure as the version gate above: something reporting success while
 # inspecting nothing. These assert the claim cannot ship bare again.
@@ -270,7 +270,7 @@ def test_every_beats_baseline_claim_carries_an_interval(card):
 
 
 def test_the_interval_gate_can_fail(card):
-    """Liveness. Per the §5/§6/§8 standing rule a gate ships with a proof that it fires:
+    """Liveness. As a standing rule a gate ships with a proof that it fires:
     strip the interval off a claiming model and the writer must refuse the card.
 
     Three ways a card can go quiet are checked, because they are three different bugs:
@@ -312,7 +312,7 @@ def test_claims_inside_noise_are_recorded_not_deleted(card):
 
 
 def test_attainable_ceiling_is_published_per_model(card):
-    """Corrections §12: every headline in this repo is a ratio against 1.0. The card is
+    """Every headline in this repo is a ratio against 1.0. The card is
     where that stops."""
     for m in card["model_card"]["models"]:
         att = m.get("attainable")
@@ -322,7 +322,7 @@ def test_attainable_ceiling_is_published_per_model(card):
                 or att.get("fraction_of_attainable_in_sample_oracle"))
         assert frac is not None, (
             f"{m['name']}: no fraction_of_attainable -- the headline is still anchored "
-            f"to 1.0, which is the whole finding of Corrections §12")
+            f"to 1.0, which is the whole point of the ceiling")
 
 
 # ─── T48 (WI-16a): the driver-isolation ratings stay out of the ML contract ──────────────

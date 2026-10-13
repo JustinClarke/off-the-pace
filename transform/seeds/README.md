@@ -1,14 +1,21 @@
 # Seeds
 
-Static CSV files loaded into DuckDB as tables. All seeds have a `schema.yml` entry with
-column tests and descriptions.
+Static CSV files loaded into DuckDB as tables. Every seed except the (currently empty)
+`seed_manual_lap_exceptions.csv` has a `schema.yml` entry with column tests and descriptions;
+its column types are pinned in `dbt_project.yml`.
 
-| Seed | Rows | Source | Refresh |
+| Seed | Grain | Source | Refresh |
 |---|---|---|---|
-| `circuit_reference.csv` | 44 circuits | First-stint regression (`fit_weight_penalty.py`) | `make coefficients-fit` |
-| `compound_cliff_params.csv` | 401 groups | KM survival fitter (`fit_compound_cliff.py`) | `make coefficients-fit` |
-| `race_to_track.csv` | 148 races | Manual | When new seasons are ingested (2018_14 is missing from it; models that need corner geometry read dim_corners, which resolves that race from its own FastF1 corner table) |
-| `raw_dim_events.csv` | ~30 events | Manual (2021 season only) | Expand as automated detection is built |
+| `circuit_reference.csv` | circuit | First-stint regression (`fit_weight_penalty.py`) | `make coefficients-fit` |
+| `compound_cliff_params.csv` | circuit × compound × season | KM survival fitter (`fit_compound_cliff.py`) | `make coefficients-fit` |
+| `race_to_track.csv` | race | Manual | When new seasons are ingested |
+| `race_scheduled_laps.csv` | race | Manual (scheduled race distance, the fuel model's pre-race lap count) | When new seasons are ingested |
+| `tyre_allocations.csv` | race | Pirelli weekend compound nominations, 2019 onward | When new seasons are ingested |
+| `compound_hardness_scale.csv` | compound × era | Declared cross-era hardness rank (1 = hardest) for the power-law tyre curve | When Pirelli changes the range |
+| `raw_dim_events.csv` | event | Manual (2021 season only) | Expand as automated detection is built |
+| `seed_manual_lap_exceptions.csv` | driver × lap | Manual correction-weight overrides, read by `int_event_corrections` (empty today) | As needed |
+| `driver_isolation_method_scores.csv` | rating | Written by `scripts/validate_driver_isolation.py --write-seed` | When the isolation validation reruns |
+| `label_stability_baseline.csv` | season | Frozen per-season label snapshot that `assert_prior_season_labels_frozen` compares against | Only when the label version bumps |
 
 ## Promotion workflow
 

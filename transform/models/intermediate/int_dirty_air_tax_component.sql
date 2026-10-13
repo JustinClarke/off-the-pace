@@ -82,7 +82,7 @@
 -- W40 (2026-09-27, ruled by the user; the second half of the same label
 -- bump, WI-01 + WI-12): θ_air is the DECLARED var('theta_air_label_value'),
 -- 0.331 s/lap, applied as-is. It is no longer fitted in this model.
---   The value is 06b's pre-registered F2 estimator (partial residual on the
+--   The value is 06b's F2 estimator (partial residual on the
 --   lagged bit | stint FE + six tyre-age bins, race-clustered), fitted by
 --   WI-12 on exactly this model's calibration_panel (2018-2025):
 --   0.3313 [0.293, 0.370], n = 138,679 (singleton stints drop out).

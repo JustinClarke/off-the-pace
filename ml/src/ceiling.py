@@ -1,8 +1,7 @@
 """Attainable ceilings — the denominator this series never wrote down.
 
 Every headline in the repo is a ratio against a baseline; none is a ratio against
-what is *reachable*. `ml_execution_plan.md` Corrections §12/§15 measured the gap and
-Phase 6 is the repair. This module owns the ceiling arithmetic; `evaluate.py` calls it
+what is *reachable*. This module owns the ceiling arithmetic; `evaluate.py` calls it
 and publishes the result beside each headline.
 
 Two independent ceilings are computed, because they answer different questions and
@@ -11,10 +10,10 @@ they are biased in opposite directions:
 **1. Distributional — the between-stint variance share (ICC).** Laps inside one stint
 share a compound, a car, a circuit, a fuel load and a driver. Any predictor that is
 constant within a stint can reach no further than the between-stint component of the
-target's variance, by construction. That share is what §12 reported at 17.5% for the
-trained degradation target.
+target's variance, by construction. A naive estimate of that share for the
+trained degradation target is 17.5%.
 
-  **§12's 17.5% is an artefact of the estimator, not a measurement.** It is
+  **The naive 17.5% is an artefact of the estimator, not a measurement.** It is
   `var(per-stint means) / var(column)`, which counts `sigma_w^2 / n_bar` of pure
   within-stint scatter as if it were between-stint signal. At ~19 laps per stint that
   inflation is ~5% of total variance — most of the 17.5%. The one-way random-effects
@@ -69,7 +68,7 @@ class VarianceComponents:
     sigma_b2: float        # between-group variance component
     sigma_w2: float        # within-group variance component
     share: float           # ICC = sigma_b2 / (sigma_b2 + sigma_w2)
-    share_naive: float     # var(group means) / var(y)  -- the §12 estimator, biased up
+    share_naive: float     # var(group means) / var(y)  -- the naive estimator, biased up
 
 
 def variance_components(y: np.ndarray, groups: np.ndarray) -> VarianceComponents | None:
@@ -143,7 +142,7 @@ def categorical_variance_components(labels: np.ndarray,
 
 
 def within_group_lag1(y: np.ndarray, groups: np.ndarray, order: np.ndarray) -> float | None:
-    """corr(y_t, y_{t-1}) within group, ordered by `order`. §12's load-bearing statistic.
+    """corr(y_t, y_{t-1}) within group, ordered by `order`. The statistic that exposes a rolling-sum column's overlap.
 
     Read it against what pure noise would give: for a rolling sum over `h` laps,
     consecutive rows share `h - 1` terms, so white-noise increments already produce

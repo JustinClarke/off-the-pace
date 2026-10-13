@@ -104,7 +104,7 @@ export default function SectorDecompositionPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024' }}
+      provenance={{ dataWindow: '2018–2025' }}
       csvRows={data && raceId ? toCsvRows(data) : undefined}
       csvFilename={`sector-decomposition-${raceId || season}.csv`}
       isLoading={isLoading}

@@ -1,11 +1,11 @@
 -- Check that predicted ghost lap times are within a realistic bound of the actual lap time.
 -- The DAG says "Ghost car laps implausibly fast/slow | Check fuel envelope bounds, interpolation logic"
 --
--- Bound raised 10.0 -> 11.0 in Phase 8 (2026-08-25), deliberately and with the
+-- Bound is 11.0 (raised from 10.0 on 2026-08-25), deliberately and with the
 -- cost recorded, because bounding the compound wear curve at source made this
 -- test fail on 4 rows of 1,283,006.
 --
--- Why the bound moved rather than the model. Before Phase 8 the wear
+-- Why the bound moved rather than the model. Before the wear curve was bounded at source, the wear
 -- polynomial was unbounded, and on an old tyre it charged the lap tens of
 -- seconds of "tyre wear" that the driver was actually giving away by cruising.
 -- driver_skill_residual_s is defined as the remainder, so it absorbed the

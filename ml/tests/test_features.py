@@ -403,7 +403,7 @@ def test_target_bounded(load):
 
 
 def test_target_bound_follows_the_target_column():
-    """Phase 7: the bound is a fact about the SQL clip on whichever column
+    """The bound is a fact about the SQL clip on whichever column
     DEGRADATION_TARGET names, not a constant that happens to fit the 1-lap one.
 
     Inheriting +/-10 after the flip to the 5-lap column would have been silent: the
@@ -435,7 +435,7 @@ def test_target_bound_is_the_clip_the_warehouse_applies(load):
 def test_target_columns_are_never_features(target):
     """No column is ever both a target and a feature, at any horizon.
 
-    Phase 7 moves the modelled column between horizons, and the failure it invites is
+    Moving the modelled column between horizons invites a failure: is
     the alt-horizon column that has just been vacated quietly becoming available as a
     predictor. Both directions are asserted: the target of every production model is
     barred, and every alt-horizon degradation column stays barred whether or not it is

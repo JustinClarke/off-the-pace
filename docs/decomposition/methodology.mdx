@@ -4,7 +4,7 @@ sidebarTitle: "Methodology"
 description: "Learn how sequential residualisation separates six simultaneous physics signals from driver skill and why the estimation order matters."
 ---
 
-All six physics terms in the decomposition are active on every lap at the same time. Estimating any one of them requires holding the others constant, but you cannot hold them constant without estimates of the others first. Off The Pace breaks this circularity through sequential residualisation: estimate terms in order of decreasing identifiability, subtract each estimated term, then estimate the next one on the residual. This page explains that order, why it is the right one, and what the model does and explicitly does not claim.
+All the physics terms in the decomposition are active on every lap at the same time. Estimating any one of them requires holding the others constant, but you cannot hold them constant without estimates of the others first. Off The Pace breaks this circularity through sequential residualisation: estimate terms in order of decreasing identifiability, subtract each estimated term, then estimate the next one on the residual. This page explains that order, why it is the right one, and what the model does and explicitly does not claim.
 
 ## The identification challenge
 
@@ -20,25 +20,28 @@ The only way to separate these signals is to use the structure of the data: fuel
 
 Estimate fuel first it is physically the most constrained term. Fuel mass is computable directly from lap number and circuit length using the known tank capacity and average burn rate. The weight penalty $w$ is calibrated per circuit from clean stints (no safety car, no pit in/out) where tyre age is low enough that the compound term is still minimal. Subtract the fuel component and pass the residual forward.
 
-### Compound, rubber, and ambient (jointly)
+### Compound
 
-Estimate these three terms together from the fuel-adjusted residual panel. Use their distinct structural signatures to separate them:
+Compound is identified by stint-level within-driver variation the same driver on the same tyre compound at the same circuit, but at different tyre ages. The fitted wear curve prices each lap's tyre cost.
 
-- **Compound** is identified by stint-level within-driver variation the same driver on the same tyre compound at the same circuit, but at different tyre ages.
+### Field baseline (rubber and ambient)
+
+Build the field baseline from fuel- and compound-corrected laps: at each lap number, the 10%-trimmed mean of the field, smoothed over five laps. `pace_delta` is each lap's gap to this baseline. Track rubber and ambient temperature move every car at once, so they are already inside it and are not subtracted again. `int_track_evolution` splits the baseline into its two parts for display, using their distinct signatures:
+
 - **Rubber** is identified by its monotone-increasing signature over the race: grip always improves as rubber builds on the racing line, never the reverse.
 - **Ambient** is identified because it can move in either direction temperature rises and falls which distinguishes it from rubber even when both are changing simultaneously.
 
 ### Constructor
 
-Estimate constructor pace from the compound + rubber + ambient residual using the panel structure. A constructor's structural pace relative to the field is identified by cross-driver variation within the same team in the same race. Two drivers in the same car should share the same constructor offset; any difference between them flows into their individual driver residuals.
+Estimate constructor pace from the fuel- and compound-adjusted residual against the field baseline, using the panel structure. A constructor's structural pace relative to the field is identified by cross-driver variation within the same team in the same race. Two drivers in the same car should share the same constructor offset; any difference between them flows into their individual driver residuals.
 
 ### Dirty air
 
-Regress the constructor-adjusted residual against `dirty_air_share` the proportion of each lap run in aerodynamic wake, computed from position gaps between cars on each lap. The dirty-air coefficient $\theta$ is calibrated from this partial residual panel. Because all five prior terms have already been subtracted, any remaining correlation with dirty-air share is attributable to aerodynamic disruption rather than confounding from fuel load or tyre state.
+Regress the constructor-adjusted residual against `dirty_air_share` the proportion of each lap run in aerodynamic wake, computed from position gaps between cars on each lap. The dirty-air coefficient $\theta$ is estimated within stints (stint fixed effects plus tyre-age bins) with tyre cost subtracted, on a declared season window, and then frozen as a declared value: 0.331 s per lap run fully in wake. Because fuel, tyre and car have already been taken out, any remaining correlation with dirty-air share is attributable to aerodynamic disruption rather than confounding from fuel load or tyre state.
 
 ### Driver residual
 
-Take everything that remains. The driver skill residual is the closure: `pace_delta` minus the sum of all six preceding components. It is not estimated independently see [The Seven-Term Identity](/decomposition/seven-term-identity) for why that design choice matters.
+Take everything that remains. The driver skill residual is the closure: `pace_delta` minus the sum of the four physics components. It is not estimated independently see [The Additive Identity](/decomposition/additive-identity) for why that design choice matters.
 
 </Steps>
 
@@ -65,7 +68,7 @@ Not all laps are usable for coefficient estimation. The `clean_lap_filter` macro
 
 The `correction_weight` column in `fct_lap_residuals` reflects how clean each lap is. A value of 1.0 means fully clean. Partial weights indicate laps with some interference that were included but down-weighted.
 
-Of the total 162,729 raw ingested laps in the staging layer (`stg_laps`), about **85%** (~137,447 laps) are retained in the `fct_lap_residuals` mart. The soft-outlier threshold (configured to 1.40x of the fastest lap) successfully salvages over **5,300 laps** (giving them a weight of 0.6) instead of completely discarding them.
+Of the total 189,418 raw ingested laps in the staging layer (`stg_laps`), about **85%** (~161,040 laps) are retained in the `fct_lap_residuals` mart. The soft-outlier threshold (configured to 1.40x of the fastest lap) successfully salvages over **5,800 laps** (giving them a weight of 0.6) instead of completely discarding them.
 
 
 ## Teammate baseline
@@ -79,7 +82,7 @@ The decomposition is **attributive**, not causal in the strict do-calculus sense
 Attribution is more defensible than counterfactual prediction, and it is sufficient for the stated purpose: ranking the causes of a pace deficit by magnitude and communicating them clearly.
 
 <CardGroup cols={3}>
-  <Card title="Seven-Term Identity" icon="sigma" href="/decomposition/seven-term-identity">
+  <Card title="Additive Identity" icon="sigma" href="/decomposition/additive-identity">
     The full additive equation and the CI invariant that enforces it
   </Card>
   <Card title="Tyre Cliff" icon="trending-down" href="/decomposition/tyre-cliff">

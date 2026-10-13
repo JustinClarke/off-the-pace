@@ -297,7 +297,7 @@ seeds:
     description: >
       Method score per driver-isolation rating (WI-16), written by WI-16b's
       scripts/validate_driver_isolation.py --write-seed from the V1-V6 validation
-      (pre-registered in _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md). Committed
+      (declared in advance in _roadmap/_fixes/wi/WI-16-cumulative-driver-isolation.md). Committed
       by WI-16a with three unvalidated rows and NULL scores, so every confidence_pct is NULL
       and every trust_label 'unvalidated' until the method is graded.
     columns:

@@ -1,14 +1,14 @@
 ---
-title: "Residual Decomposition family: the seven-term identity and what it leaves over"
+title: "Residual Decomposition family: the additive identity and what it leaves over"
 sidebarTitle: "Residual"
-description: "Nine models built around one closure equation: the lap-grain 7-term identity, its sector and corner-grain refinements, its qualifying mirror, and three diagnostics fit on top of the closed residual."
+description: "Nine models built around one closure equation: the lap-grain five-term identity, its sector and corner-grain refinements, its seven-term qualifying counterpart, and three diagnostics fit on top of the closed residual."
 ---
 
 ## What this family does
 
-Residual Decomposition computes the [seven-term identity](/decomposition/seven-term-identity): it subtracts six physics and car terms from each lap's deviation from field pace, and whatever is left over is `driver_skill_residual_s` by definition, not by a separate fit. One model (`int_lap_residual_decomposed`) does the actual closure; the other eight either refine its grain (sector, corner), mirror it for qualifying, or run a diagnostic on the closed residual it produces.
+Residual Decomposition computes the [additive identity](/decomposition/additive-identity): it subtracts four physics and car terms from each lap's deviation from field pace, and whatever is left over is `driver_skill_residual_s` by definition, not by a separate fit. One model (`int_lap_residual_decomposed`) does the actual closure; the other eight either refine its grain (sector, corner), mirror it for qualifying, or run a diagnostic on the closed residual it produces.
 
-Upstream is Pace Baselines and Physics, which supply five of the seven terms (`int_field_pace_curve`, `int_constructor_structural_pace`, `int_compound_cliff_predicted`, `int_track_evolution`, `int_dirty_air_tax_component`, `int_lap_fuel_state`) confirmed against `manifest.json`, not assumed from a "physics + baselines" summary, which undercounts the parent set. This family also has its own root input, `int_event_corrections`, which is *not* itself a closure term: it classifies every lap (SC, VSC, restart, yellow, pit, outlier, manual override) and computes a `correction_weight`, carried as metadata through `int_lap_residual_decomposed` but **not applied there** the model deliberately leaves every lap's residual in the output, full of contaminated laps, so each downstream consumer can choose its own masking policy rather than inherit one baked in upstream (see Design Notes). Downstream is Marts (`fct_lap_residuals`, `fct_driver_skill_features`, `fct_cliff_prediction_features`, `fct_stint_features`, `fct_ghost_car_pace`, `mart_degradation_history_envelope`) and, for the deg-sensitivity model, Strategy.
+Upstream is Pace Baselines and Physics, which supply the field baseline and the four physics terms (`int_field_pace_curve`, `int_constructor_structural_pace`, `int_compound_cliff_predicted`, `int_track_evolution`, `int_dirty_air_tax_component`, `int_lap_fuel_state`) confirmed against `manifest.json`, not assumed from a "physics + baselines" summary, which undercounts the parent set. This family also has its own root input, `int_event_corrections`, which is *not* itself a closure term: it classifies every lap (SC, VSC, restart, yellow, pit, outlier, manual override) and computes a `correction_weight`, carried as metadata through `int_lap_residual_decomposed` but **not applied there** the model deliberately leaves every lap's residual in the output, full of contaminated laps, so each downstream consumer can choose its own masking policy rather than inherit one baked in upstream (see Design Notes). Downstream is Marts (`fct_lap_residuals`, `fct_driver_skill_features`, `fct_cliff_prediction_features`, `fct_stint_features`, `fct_ghost_car_pace`, `mart_degradation_history_envelope`) and, for the deg-sensitivity model, Strategy.
 
 **`int_event_corrections` itself fans out well beyond this family** a real cross-family read, verified directly against `manifest.json`'s child map, not inferred: it's also read by `int_constructor_structural_pace` (Pace Baselines), `int_dirty_air_tax_component` (Physics), and `int_driver_race_skill_loro` (Skill). Those three use it the same way `int_lap_residual_decomposed` does to exclude or down-weight SC/VSC/outlier laps from their own fits rather than waiting for the closure model to finish. This means Residual Decomposition is not a purely downstream family for lap-event classification the way a simple upstream/downstream summary would imply; `int_event_corrections` is closer in role to a shared staging utility that happens to be tagged `residual` because the correction taxonomy it owns is residual-decomposition's own concept. [Physics](/transform/families/physics) already documents the mirror image of this: `int_dirty_air_tax_component` reads `int_event_corrections` instead of this family's `int_lap_anomaly_flags`, specifically to avoid a dependency cycle (`int_dirty_air_tax_component → int_lap_anomaly_flags → int_lap_residual_decomposed → int_dirty_air_tax_component`).
 
@@ -75,22 +75,18 @@ The closure itself is one subtraction, computed twice once for the total and onc
 
 ```sql
 fuel_component_s
-+ COALESCE(compound_component_s, 0.0)
-+ rubber_component_s
-+ ambient_component_s
++ compound_component_s
 + constructor_component_s
 + dirty_air_tax_s AS total_explained_s,
 
-(lap_time_s - COALESCE(base_track_pace_s, lap_time_s))
+(lap_time_s - base_track_pace_s)
 - fuel_component_s
-- COALESCE(compound_component_s, 0.0)
-- rubber_component_s
-- ambient_component_s
+- compound_component_s
 - constructor_component_s
 - dirty_air_tax_s AS driver_skill_residual_s
 ```
 
-`track_unexplained_s` (the track-evolution model's own residual) is carried alongside but is informational, not part of the identity adding it would double-count, since it's already implicit in how `rubber_component_s`/`ambient_component_s` were fit.
+`track_unexplained_s` (the track-evolution model's own residual) is carried alongside but is informational, not part of the identity adding it would double-count, since it's already implicit in how `rubber_component_s`/`ambient_component_s` were fit. Those two columns are informational too: they split the field baseline, which `pace_delta_s` is already measured against, so subtracting them would count them twice. Neither the base nor the compound term is `COALESCE`d: an unmeasured base or an unknown tyre age makes the residual NULL rather than inventing a number.
 
 The anomaly classifier scales each residual against its own trailing noise rather than a fixed threshold, using a 7-lap trailing median absolute deviation floored at 0.10 s so a quiet stint doesn't manufacture anomalies out of its own small spread:
 
@@ -103,7 +99,7 @@ GREATEST(
 
 A lap then earns `clean_cliff` only if its MAD-score exceeds 3 *and* it's past the tyre's predicted cliff onset; the same spike without a cliff in progress is classed `mistake` instead the cliff model elsewhere in the DAG (Pace Baselines' `int_compound_cliff_predicted`) is the tie-breaker between "the tyre did this" and "the driver did this."
 
-Two models push the same closure to finer grain by proportional allocation rather than re-fitting anything. Sector-grain spreads each lap's six physics components across its three sectors by time share:
+Two models push the same closure to finer grain by proportional allocation rather than re-fitting anything. Sector-grain spreads each lap's four physics components across its three sectors by time share:
 
 $$\text{sector\_component} = \text{lap\_component} \times \frac{\text{sector\_time\_s}}{\text{lap\_time\_s}}$$
 
@@ -120,7 +116,7 @@ all three null out together below a 5-driver comparison floor, and `assert_corne
     `int_event_corrections` tags SC/VSC/restart/yellow/pit/outlier laps and assigns a `correction_weight` (0.0–1.0), with a manual-override seed that always wins over the heuristic.
   </Step>
   <Step title="Close the identity">
-    `int_lap_residual_decomposed` subtracts the six physics terms from `pace_delta_s`; whatever remains is `driver_skill_residual_s`, unfiltered.
+    `int_lap_residual_decomposed` subtracts the four physics terms from `pace_delta_s`; whatever remains is `driver_skill_residual_s`, unfiltered.
   </Step>
   <Step title="Refine and diagnose">
     Five models branch off the closed residual in parallel: anomaly classification, sector and corner reallocation, per-stint drift detrending, and post-cliff surface/bulk attribution.
@@ -164,7 +160,7 @@ with the real logistic coefficients deferred to an offline validation notebook.
     Classifies every lap (SC, VSC, restart, yellow, pit, outlier, manual override) and assigns a correction_weight carried downstream, not applied here.
   </Card>
   <Card title="int_lap_residual_decomposed" icon="divide" href="/reference/models/int/int_lap_residual_decomposed">
-    The closure model: subtracts six physics terms from pace_delta_s, leaving driver_skill_residual_s by definition.
+    The closure model: subtracts four physics terms from pace_delta_s, leaving driver_skill_residual_s by definition.
   </Card>
   <Card title="int_lap_anomaly_flags" icon="triangle-alert" href="/reference/models/int/int_lap_anomaly_flags">
     Classifies each lap's residual (clean_cliff, mistake, event_driven, conditions, normal) via a 7-lap trailing MAD floored at 0.10s.
@@ -176,7 +172,7 @@ with the real logistic coefficients deferred to an offline validation notebook.
     Splits corner performance into braking, mid-corner, and exit residuals against a 5-lap-bucket field median.
   </Card>
   <Card title="int_lap_residual_decomposed_qualifying" icon="timer" href="/reference/models/int/int_lap_residual_decomposed_qualifying">
-    The same 7-term identity, mirrored for single push laps near-zero fuel, suppressed compound dynamics, quali-trim constructor pace.
+    The seven-term qualifying identity (rubber and ambient still separate terms), for single push laps near-zero fuel, suppressed compound dynamics, quali-trim constructor pace.
   </Card>
   <Card title="int_qualifying_decomposed" icon="git-compare" href="/reference/models/int/int_qualifying_decomposed">
     Public-facing qualifying residual plus quali_vs_race_skill_delta_s: positive means single-lap specialist.

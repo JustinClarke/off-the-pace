@@ -64,12 +64,12 @@ EXCLUDED_LEAKAGE_COLUMNS: frozenset[str] = frozenset({
     # targets: the modelled one, the alt-horizon ones (forward-looking, never
     # features), the classifier label, and the synthesised / join-time stint-life
     # columns. Every horizon stays barred whichever one DEGRADATION_TARGET names --
-    # Phase 7 moved the modelled column from the 1-lap to the 5-lap one and this set
+    # The modelled column moved from the 1-lap to the 5-lap one and this set
     # did not have to move with it, which is the property test_feature_contract keeps.
     "next_lap_degradation_jump_s",            # legacy (undetrended)
-    "next_lap_degradation_jump_detrended_s",  # C1 target; alt-horizon since Phase 7
+    "next_lap_degradation_jump_detrended_s",  # C1 target; alt-horizon
     "next_3_lap_cumulative_jump_s",
-    "next_5_lap_cumulative_jump_s",           # Phase 7 primary target
+    "next_5_lap_cumulative_jump_s",           # primary target
     "laps_until_cliff_class",
     "remaining_stint_life_laps",   # synthesised target
     "stint_length_laps",           # join-time only → synthesises the target, never a feature
@@ -94,7 +94,7 @@ IDENTIFIER_COLUMNS: tuple[str, ...] = (
 #   "none" -- uniform, sample_weight=None: the production path since 08o (v13, v14).
 #   "ipw"  -- the season-lagged `survival_weight` column (C2, corrected by WI-13).
 # One switch, read at call time by BOTH train._sample_weight and evaluate._row_weights,
-# so the shipped fit and the evaluation refit cannot drift apart (the Phase 2 finding 1
+# so the shipped fit and the evaluation refit cannot drift apart (the fit-parity
 # defect). The cliff classifier (balanced class weights) and stint life (AFT interval
 # label) do not read it. Set per process with ML_QUANTILE_WEIGHT=ipw; the default
 # stays "none" until W58 is ruled and the version that uses it is promoted.
@@ -109,7 +109,7 @@ if QUANTILE_SAMPLE_WEIGHT not in QUANTILE_WEIGHT_SCHEMES:
 # GLOBALLY but are MASKED from every family except cliff_classifier -- see
 # PER_TARGET_FEATURE_MASK below. The effective width is 39 for cliff_classifier and 32
 # for the degradation trio and stint life, which is the shape D12 ruled.
-# Phase 9 (2026-09-05): dropped `powertrain` (6), `telemetry_cliff` (5), `weather_air` (2),
+# Excluded from the contract: `powertrain` (6), `telemetry_cliff` (5), `weather_air` (2),
 # `track` (2) and `context` (3) -- 18 of the prior 42 columns -- on a noise-floor group
 # ablation re-run against the v8 mart (5-lap target, repaired cliff label) across all three
 # ablation-bearing families (degradation p50, cliff classifier, stint life). A group was kept
@@ -117,9 +117,8 @@ if QUANTILE_SAMPLE_WEIGHT not in QUANTILE_WEIGHT_SCHEMES:
 # (2*sqrt(2)*sd over 5 reseeds) in at least one of the three; every dropped group cleared in
 # none. `powertrain` and `telemetry_cliff` were the mart's entire consumption of
 # int_lap_telemetry_aggregates -- dropping them removes every telemetry-aggregate feature
-# from the contract, not the ingestion or model behind it (Phase 10 reads the same data for a
-# different channel). See the plan's Phase 9 section for the full ablation table and the
-# aggregation rule. Kept: `stint_position`, `compound`, `cliff_prior`, `thermal`, `dirty_air`.
+# from the contract, not the ingestion or model behind it (the proximity group reads the same data for a
+# different channel). Kept: `stint_position`, `compound`, `cliff_prior`, `thermal`, `dirty_air`.
 # The air-density weather features (air_density_kgm3 / density_ratio_to_ref) were
 # DEFERRED here pending enrichment. Closed 2026-08-23 as a measured negative result, not
 # as unrealised value: built properly (Tetens, off the bronze pressure_hpa that
@@ -129,7 +128,7 @@ if QUANTILE_SAMPLE_WEIGHT not in QUANTILE_WEIGHT_SCHEMES:
 # win; see docs/ml/features-and-targets.mdx. The export-time guard (test_feature_contract)
 # asserts contract ⊆ mart so nothing can be referenced before it lands.
 # C3 (Route C): surface_bulk_ratio added to the thermal group so the model can attribute
-# early-stint surface vs bulk thermal loading (warm-up vs real deg); survives Phase 9's prune.
+# early-stint surface vs bulk thermal loading (warm-up vs real deg); survives the group prune.
 # Foundations 08j (2026-09-09): dropped `cliff_candidate_flag` from `cliff_prior` (5 -> 4).
 # Ruled dead on both substrates by 08g; gate steps 2-4 found it carries no information in any
 # family. p10 capacity term measured at +0.0096350, so removing it may be a small gain rather
@@ -154,7 +153,7 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "dirty_air_share_lap", "dirty_air_thermal_load_surface",
         "dirty_air_thermal_load_bulk", "air_state_dominant",
     ),
-    # Phase 10a (2026-09-05). The first group in either series sourced from a
+    # The first group in either series sourced from a
     # DIFFERENT SENSOR rather than from a further transform of the car channel or
     # of lap times -- which is the specific thing the plan's "Not recommended"
     # list says a 43rd feature has to be in order to add information rather than
@@ -195,7 +194,7 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     # So the classifier's win is unambiguously the traffic signal. **p50's is
     # not cleanly attributable**: its total clears the floor but splits about
     # 50/50 between information and capacity, and neither half clears on its own.
-    # Recorded rather than rounded up -- see the plan's Phase 10a checkpoint.
+    # Recorded rather than rounded up.
     "proximity": (
         "share_lap_within_1s", "share_lap_within_2s", "share_lap_in_train",
         "share_lap_behind_within_1s", "time_within_1s", "gap_ahead_min_s",
@@ -220,7 +219,7 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     #   p90    B car   raw +1.90x  info +1.42x  clears   pinball  0.51285 -> 0.49693
     #          C form  raw +1.04x  info +1.20x  clears            -> 0.50415
     #          A full  raw +1.41x  info +0.95x  MISSES (dilution: the union pays more
-    #                  capacity than the halves earn back -- Phase 10a's trap, mirrored)
+    #                  capacity than the halves earn back -- the proximity group's trap, mirrored)
     #   p10/p50/stint life -- nothing reaches its floor on any arm.
     # C beats B on cliff, so the carrying channel is the DRIVER's one-lap form, not the
     # car term. All 7 are admitted together (Arm A) rather than B or C alone: A is the
@@ -277,36 +276,36 @@ BOOLEAN_COLUMNS: tuple[str, ...] = ("cliff_onset_passed",)
 MISSING_ORDINAL = -1.0
 
 # Label-adjacent features that must clear the forward-window audit before they stay in.
-# anomaly_class dropped by Phase 9 (2026-09-05): it left FEATURE_COLUMNS with the `context`
+# anomaly_class was dropped: it left FEATURE_COLUMNS with the `context`
 # group, and leaving it here would point the forward-window audit at a column no longer in
-# the contract -- a gate asserting over nothing (Corrections §6's shape).
+# the contract -- a gate asserting over nothing (an assertion over nothing).
 # cliff_candidate_flag pruned by 08j (2026-09-09): ruled dead on both substrates by 08g,
 # p10 capacity term +0.0096350 suggests removing it is a small gain, contract 33 -> 32.
 AUDIT_FEATURES: tuple[str, ...] = ()
 
 # ─── Targets / model families ───────────────────────────────────────────────────
-# Phase 7: the modelled degradation column is the 5-lap cumulative jump, not the
+# The modelled degradation column is the 5-lap cumulative jump, not the
 # next-lap one. Both are detrended at source; the 5-lap column subtracts 5x the current
-# residual and 15x the per-stint drift from the sum of the next five leads, and Phase 4
-# verified that closed form to max |diff| 3.2e-14. Three consequences live in this file:
+# residual and 15x the per-stint drift from the sum of the next five leads, and that closed form was
+# verified to max |diff| 3.2e-14. Three consequences live in this file:
 # TARGET_HORIZON_LAPS (below) makes the ceiling arithmetic thin overlapping windows,
 # TARGET_BOUND_BY_COLUMN carries the +/-50 s clip the SQL applies to it rather than the
 # +/-10 s of the 1-lap column, and every horizon stays in EXCLUDED_LEAKAGE_COLUMNS.
 # The cost is rows: the column is NULL unless five consecutive laps follow in the same
 # stint, which drops 114,274 -> 82,315 training rows, and drops them from the END of
-# stints (18.9% of laps 1-5 vs 50.4% of lap 31+). See the Phase 7 checkpoint.
+# stints (18.9% of laps 1-5 vs 50.4% of lap 31+).
 DEGRADATION_TARGET = "next_5_lap_cumulative_jump_s"  # was next_lap_degradation_jump_detrended_s (C1)
 CLIFF_TARGET = "laps_until_cliff_class"
 STINT_LIFE_TARGET = "remaining_stint_life_laps"  # synthesised in features.py
 STINT_LIFE_CENSOR_COLUMN = "is_censored_stint"  # from fct_stint_features; TRUE => right-censored
 
-# Forward horizon of each target column, in laps. Phase 6 (attainable ceilings) needs it:
+# Forward horizon of each target column, in laps. The attainable-ceiling arithmetic needs it:
 # a rolling-window target overlaps itself, so consecutive rows share `h - 1` of their `h`
 # terms and any within-stint independence assumption is false by construction. Two things
 # key off this and both are silently wrong without it -- the between-stint variance share
 # (ml/src/ceiling.py thins to non-overlapping windows when h > 1) and the reading of the
 # within-stint lag-1 autocorrelation (white-noise increments already give (h-1)/h).
-# Phase 7 flips DEGRADATION_TARGET to the 5-lap column; this map is what makes that a
+# This map is what makes switching DEGRADATION_TARGET to the 5-lap column a
 # one-line change rather than a silent regression in the ceiling arithmetic.
 TARGET_HORIZON_LAPS: dict[str, int] = {
     "next_lap_degradation_jump_detrended_s": 1,
@@ -346,7 +345,7 @@ STINT_LIFE_QUANTILES: tuple[float, ...] = (0.10, 0.50, 0.90)
 CLIFF_CLASS_LABELS: tuple[str, ...] = ("0_to_2", "3_to_5", "6_plus", "none_in_stint")
 # D5: the degradation target is clipped at source, and the clip is per-column -- the
 # 1-lap columns at +/-10 s, the 3-lap at +/-30 s, the 5-lap at +/-50 s (see
-# fct_cliff_prediction_features.sql). Phase 7's checklist called for reconciling the two
+# fct_cliff_prediction_features.sql). The two are reconciled
 # deliberately rather than inheriting either: the bound follows the column, because it
 # is the SQL that enforces it and a bound that disagreed with the SQL would be a claim
 # about the data rather than a fact about it. TARGET_BOUND stays as the name every
@@ -562,24 +561,24 @@ MODEL_VERSION_DEFAULT = "v14"  # v14 = 12a-1: 2025 ingested, retrained on the wi
 # feature-definition change on a fixed target. **v11 is the rollback floor** and is retained on
 # disk in full. See `_improvements/work/08-foundations-repair.md` -> 08m and 08n.
 #
-# v11 = Phase 10a: the `proximity` group (9 columns) joins the
+# v11 = the `proximity` group (9 columns) joins the
 # contract, 24 -> 33. It is the first version in either series whose feature change comes from
 # a DIFFERENT SENSOR -- the position channel of the telemetry stream, whose ~58.8M rows had no
-# consumer at all before Phase 10 (stg_telemetry projected them and int_lap_telemetry_aggregates
+# consumer at all before v11 (stg_telemetry projected them and int_lap_telemetry_aggregates
 # filtered them out). Everything else is held fixed: same targets, same labels, same
 # hyperparameters, same split. Nothing was re-tuned, so v10 -> v11 is attributable to the nine
 # columns and to nothing else, which is the property the group ablation above needs in order to
 # mean anything. See the FEATURE_GROUPS["proximity"] note for the acceptance numbers and
-# ml/src/schema.py's Phase 9 note for what the contract looked like before. **v10 is the
+# the pruning note above for what the contract looked like before. **v10 is the
 # rollback floor** and the last shipped set before this one. Prior version notes follow.
 #
-# v10 = Phase 9's pruned feature contract: FEATURE_GROUPS drops
+# v10 = the pruned feature contract: FEATURE_GROUPS drops
 # `powertrain`, `telemetry_cliff`, `weather_air`, `track` and `context` (18 of 42 columns),
 # leaving 24. It is the first version fitted against the two target/label changes that were
 # already live in the mart SQL and this file's constants but had never been shipped through a
-# retrain -- DEGRADATION_TARGET is Phase 7's 5-lap cumulative jump
+# retrain -- DEGRADATION_TARGET is the 5-lap cumulative jump
 # (next_5_lap_cumulative_jump_s), and CLIFF_TARGET's underlying laps_until_cliff_class is
-# scored against Phase 8's source-bounded driver_skill_residual_s (6,825 rows changed class).
+# scored against the source-bounded driver_skill_residual_s (6,825 rows changed class).
 # Both were already the code's truth under the stale "v6" label; v10 is the first artefact set
 # that actually reflects them. v9 is not in this lineage -- it is an abandoned 42-feature
 # search-space-widening probe (open item 21) run on only 2 of the 5 targets and explicitly

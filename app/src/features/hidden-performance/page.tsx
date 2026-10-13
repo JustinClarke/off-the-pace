@@ -154,7 +154,7 @@ export default function HiddenPerformancePage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018-2024' }}
+      provenance={{ dataWindow: '2018-2025' }}
       csvRows={csvRows}
       csvFilename={`hidden-performance-${season}-${hostConstructorId || 'all'}-${view}.csv`}
       isLoading={isLoading && ready}

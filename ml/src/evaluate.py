@@ -9,10 +9,10 @@ The headline contract (the gate): **every model must beat its per-cohort baselin
 headline metric** (pinball ↓ for quantiles, macro-F1 ↑ for the classifier, RMSE ↓ for stint-life).
 `tests/test_evaluate.py::test_model_beats_baseline_overall` reads the JSON this writes.
 
-Phase 6 added the two things that gate never carried, and both are written per model:
+Beyond that gate, two further things are written per model:
 
   * an **attainable ceiling** (`ml/src/ceiling.py`) -- skill as a fraction of what is
-    reachable rather than of 1.0. A pinball of 0.199 and a macro-F1 of 0.404 are
+    reachable rather than of 1.0. A pinball of 0.199 and a 0.404 macro-F1 are
     uninterpretable on their own; against the ceiling one of them is a strong result and
     the other is a model that is not bounded by the ceiling at all.
   * an **interval** on the margin (`ml/src/intervals.py`) -- paired t over the season
@@ -69,7 +69,7 @@ CONFORMAL_TARGET = 0.80    # quantile interval [p10, p90] nominal coverage
 SHAP_SAMPLE = 1000
 PERM_SAMPLE = 3000
 PERM_REPEATS = 5
-CV_SPLITS = 5              # season-grouped folds; the paired interval's n (Phase 6)
+CV_SPLITS = 5              # season-grouped folds; the paired interval's n
 ORACLE_MIN_SPAN = 0.005    # an oracle < 0.5% better than the floor is not a denominator
 
 # Heavy elevations (ablation / learning-curve / SHAP / PDP) run on the headline model of each
@@ -587,7 +587,7 @@ def _fit(spec: S.TargetSpec, params: dict, X, y, cens=None, w=None):
     carried `w` it did: `T._sample_weight` returned the quantile trio's IPW survival
     weights when handed `meta`, and this had none, so every degradation number in
     the report described an UNWEIGHTED model while `train.py:_fit` shipped a weighted one.
-    That is Phase 2 finding 1 in the place where it reaches the model card. (08o then
+    That is the fit-parity defect in the place where it reaches the model card. (08o then
     dropped that weight from production, so the two paths now agree on unweighted --
     which is the same contract, not an excuse to stop carrying `w`.)
 
@@ -657,7 +657,7 @@ def _params_for(target: str, version: str) -> dict:
     return dict(T.SMOKE_DEFAULTS)
 
 
-# ─── Attainable ceilings (Phase 6 -- Corrections §12/§15) ───────────────────────
+# ─── Attainable ceilings ──────────────────────────
 def _target_series(spec: S.TargetSpec, dims: pd.DataFrame) -> pd.Series:
     """The target column as it exists in the warehouse, for the ceiling arithmetic.
 
@@ -672,9 +672,9 @@ def _target_series(spec: S.TargetSpec, dims: pd.DataFrame) -> pd.Series:
 def variance_ceiling(spec: S.TargetSpec, dims: pd.DataFrame) -> dict:
     """Between-stint share of the target's variance -- the ceiling on any predictor that
     is constant within a stint. Reported at mart scope, so it is a property of the
-    column and directly comparable with Corrections §12.
+    column and directly comparable across targets.
 
-    Three things it is NOT, all of which §12 was read as saying and none of which it
+    Three things it is NOT, all of which the share could be misread as saying and none of which it
     supports: it is not a ceiling on the model (14 of 34 numeric features vary within a
     stint and can reach past it); it is not exact (see the estimator note in
     ml/src/ceiling.py); and it is not a noise estimate for a target whose within-stint
@@ -767,8 +767,8 @@ def metric_native_ceiling(spec: S.TargetSpec, y_tr: np.ndarray, y_ev: np.ndarray
 
     **A fraction above 1.0 is a result, not an error.** It says the model is reaching
     past everything stint identity can supply -- i.e. into within-stint variation, the
-    82.5% Corrections §12 reads as noise. That is the assumption the plan's measurement
-    block flagged as "the one to attack first", and this is the number that attacks it.
+    82.5% that the between-stint share treats as noise. This is the number that tests
+    that assumption.
     """
     alpha = spec.quantile_alpha
     # The classifier scores class INDICES; a float array of integral values is a
@@ -858,8 +858,8 @@ def within_stint_attribution(spec: S.TargetSpec, params: dict,
                              w_tr: np.ndarray | None = None) -> dict:
     """Split every feature group's contribution into its between- and within-stint parts.
 
-    Phase 6 established *that* the degradation family reaches past the stint-level
-    ceiling (2.84x for p50). Open item 15 asks what it is reaching with. The existing
+    The ceiling work established *that* the degradation family reaches past the stint-level
+    ceiling (2.84x for p50). The open question is what it is reaching with. The existing
     `ablation` cannot answer it: dropping `dirty_air` removes "this stint ran in traffic"
     and "this lap ran in traffic" in one move, and those are the two competing readings.
 
@@ -884,7 +884,7 @@ def within_stint_attribution(spec: S.TargetSpec, params: dict,
     correct for an information measurement and inadmissible in a feature, and the two
     readings of a negative delta -- "within-stint variation hurts" and "knowing the rest
     of the stint helps" -- are indistinguishable without the causal arm. See
-    `attribution.flatten_causality`, and Corrections §22 for the result that made this
+    `attribution.flatten_causality`, which makes this
     pass compulsory rather than optional.
     """
     def fit(X, y):
@@ -914,7 +914,7 @@ def within_stint_attribution(spec: S.TargetSpec, params: dict,
     }
 
     # The denominator for every delta below. Without it these are point estimates with
-    # nothing under them -- the same defect Phase 6 spent itself removing one level up.
+    # nothing under them -- the same defect the interval work removes one level up.
     try:
         out["refit_noise"] = AT.refit_noise_floor(
             fit_seeded, score, X_ev, y_ev,
@@ -1002,7 +1002,7 @@ def within_stint_attribution(spec: S.TargetSpec, params: dict,
     return out
 
 
-# ─── Intervals on the beats_baseline claim (Phase 6 -- Corrections §15) ─────────
+# ─── Intervals on the beats_baseline claim ─────────
 def _fold_dims(dims_all: pd.DataFrame, lap_ids: np.ndarray,
                stint_len: pd.Series) -> pd.DataFrame:
     d = dims_all.loc[lap_ids].reset_index()
@@ -1016,8 +1016,7 @@ def fold_paired_interval(spec: S.TargetSpec, params: dict, bundle: F.FeatureBund
 
     The season fold is the coarsest honest cluster in this warehouse -- a whole season
     moves together, so no clustering correction is needed on top and the n is simply the
-    fold count. It is the format Phase 2's checkpoint already used (paired t, n=5) and
-    the reason that checkpoint was right to decline a +0.75% win at p=0.24.
+    fold count. A +0.75% win at paired t, n=5, p=0.24 is declined as a win on this basis.
     """
     X = bundle.X_train
     y = bundle.y_train.to_numpy()
@@ -1054,7 +1053,7 @@ def stint_cluster_interval(spec: S.TargetSpec, y_ev: np.ndarray, model_pred: np.
                            base_pred: np.ndarray, stint_ev: np.ndarray, hib: bool,
                            cens_ev: np.ndarray | None, scale: float | None) -> dict:
     """Bootstrap the eval-fold win margin, resampling whole stints -- and, beside it, the
-    same quantity resampling laps, so §15's ~4.4x understatement is shown rather than
+    same quantity resampling laps, so the ~4.4x understatement is shown rather than
     asserted."""
     def delta(idx: np.ndarray) -> float:
         c = None if cens_ev is None else cens_ev[idx]
@@ -1067,7 +1066,7 @@ def stint_cluster_interval(spec: S.TargetSpec, y_ev: np.ndarray, model_pred: np.
     ratio = IV.width_ratio(clustered, lap_grain)
     k = max(clustered.get("n_clusters") or 1, 1)
     n_bar = len(y_ev) / k
-    # §15 predicts sqrt(rows / stints). That is the worst case -- it assumes the scored
+    # The expected ratio is sqrt(rows / stints). That is the worst case -- it assumes the scored
     # quantity is perfectly correlated inside a stint. The scored quantity here is the
     # model-minus-baseline WIN MARGIN, not the target, and the two are not equally
     # clustered. Both numbers are published so the gap is visible; the implied
@@ -1083,7 +1082,7 @@ def stint_cluster_interval(spec: S.TargetSpec, y_ev: np.ndarray, model_pred: np.
 
 
 def stint_fold_purity(bundle: F.FeatureBundle) -> dict:
-    """Phase 6 asks for stint-grain CV grouping. Measured before it is built: with
+    """Stint-grain CV grouping is not needed. Measured: with
     season-grouped folds a stint cannot straddle a boundary, because a stint belongs to
     one race and a race to one season. Reported as a number so the property is asserted
     rather than believed -- `ml/tests/test_ceiling.py` fails if it ever stops holding."""
@@ -1098,7 +1097,7 @@ def stint_fold_purity(bundle: F.FeatureBundle) -> dict:
             "effective_sample_ratio": float(np.sqrt(counts.sum() / max(counts.size, 1))),
             "note": ("season-grouped folds are already stint-pure; the clustering damage "
                      "was never in the split, it was in every interval computed at lap "
-                     "grain over it (Corrections §15).")}
+                     "grain over it.")}
 
 
 # ─── Per-target orchestration ───────────────────────────────────────────────────
@@ -1149,7 +1148,7 @@ def evaluate_target(target: str, version: str, dims_all: pd.DataFrame,
         out["survival"] = survival_report(split.y_ev, model_pred, base_pred,
                                           split.cens_ev, scale)
 
-    # ── Phase 6: the denominator. A headline reported against 1.0 cannot say whether to
+    # ── The denominator. A headline reported against 1.0 cannot say whether to
     # keep going or stop; a headline reported against what is reachable can. Failures
     # here are recorded, never swallowed -- an absent interval fails the card gate
     # (ml/tests/test_manifest_contract.py), which is the intended loud outcome.
@@ -1180,7 +1179,7 @@ def evaluate_target(target: str, version: str, dims_all: pd.DataFrame,
                out["interval"]["cluster_bootstrap"]["stint_grain"].get("significant")]
         # Both tests must clear zero. They ask different questions -- does the win hold
         # across seasons, and does it survive stint clustering within one -- and a claim
-        # that only one of them supports is exactly the claim §15 says to stop making.
+        # that only one of them supports is exactly the claim to stop making.
         out["beats_baseline_significant"] = (
             None if any(v is None for v in sig) else bool(all(sig)))
     except Exception as e:  # noqa: BLE001
@@ -1334,7 +1333,7 @@ def run(targets: list[str], version: str = S.MODEL_VERSION_DEFAULT,
     report["underperforming_cohorts_total"] = sum(
         len(m["underperforming_cohorts"]) for m in models.values())
 
-    # ── Phase 6: the clustering fact, and the claims that do not survive it ──────────
+    # ── The clustering fact, and the claims that do not survive it ──────────
     try:
         report["stint_grain"] = stint_fold_purity(sample_bundle)
     except Exception as e:  # noqa: BLE001

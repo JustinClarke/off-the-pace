@@ -1,6 +1,6 @@
-"""What the within-stint signal actually is — open item 15, opened by Phase 6.
+"""What the within-stint signal actually is.
 
-Phase 6 proved the degradation family reaches *past* everything stint identity can
+The attainable-ceiling work proved the degradation family reaches *past* everything stint identity can
 supply: `fraction_of_attainable_in_sample` is 2.84 for p50 against the exact in-sample
 optimum over stint-constant predictors, so the models are provably using within-stint
 variation. It did not show **what** that variation is. `push_residual` — the top SHAP
@@ -45,8 +45,8 @@ apart: the per-stint mean is taken over laps 1..N, so at row t it averages laps 
 not run. A negative delta then has two readings -- "within-stint variation hurts the
 model" and "knowing the rest of the stint helps" -- and nothing in the delta separates
 them. `causal_stint_mean` (laps 1..t) and `future_stint_mean` (laps t..N) do, and
-`flatten_causality` runs both arms for any result anyone proposes to act on. Corrections
-§22 is what happens when that check is skipped: the classifier's -0.01775 thermal flatten,
+`flatten_causality` runs both arms for any result anyone proposes to act on. Skipping that check is
+costly: the classifier's -0.01775 thermal flatten,
 recorded as a free win, is +0.00150 causally -- inside the noise floor -- while the
 future-only arm is *larger* than the full-stint one. The ingredient was the future.
 
@@ -84,7 +84,7 @@ PER_LAP_ICC_MAX = 0.50
 # Item 15's four hypotheses, at feature granularity. A feature appears at most once;
 # anything unmapped rolls up as "other" rather than being silently dropped.
 #
-# Phase 9 (2026-09-05) dropped 18 of the 42 feature columns (`powertrain`,
+# 18 of the 42 original feature columns were dropped from the contract (`powertrain`,
 # `telemetry_cliff`, `weather_air`, `track`, `context`). This is a different taxonomy
 # from `FEATURE_GROUPS` -- it regroups by physics hypothesis, not by ablation group --
 # so the prune lands unevenly here: `tyre_thermal` and `driver_push` each lose members
@@ -121,7 +121,7 @@ CHANNELS: dict[str, tuple[str, ...]] = {
     # Another car's wake. The competing explanation item 15 was opened to test, and
     # the channel item 15 found carries 19.7% of the within-stint signal.
     #
-    # Phase 10a (2026-09-05) more than triples it: the nine `proximity` columns are
+    # The nine `proximity` columns are
     # the same physical hypothesis (another car's wake) measured from the position
     # channel instead of from FastF1's DistanceToDriverAhead, so they belong in THIS
     # channel and not in a new one. That is a deliberate call with a consequence
@@ -142,8 +142,8 @@ CHANNELS: dict[str, tuple[str, ...]] = {
     # predictable from lap number -- the classic confound for a pace-based target.
     "fuel": ("fuel_mass_kg", "lap_number"),
     # Conditions and identity. Was almost entirely stint-level; carried so the roll-up
-    # was exhaustive rather than for what it showed. Phase 9 dropped every member
-    # (`weather_air`, `track`, `context`) -- kept empty rather than removed, see above.
+    # was exhaustive rather than for what it showed. Every member
+    # (`weather_air`, `track`, `context`) was dropped from the contract -- kept empty rather than removed, see above.
     "environment": (),
     # 02b's seven qualifying columns, admitted to the contract 2026-09-21 by D12. A NEW
     # channel rather than a home in an existing one, for two reasons. (a) None of the
@@ -536,9 +536,9 @@ def refit_noise_floor(fit_seeded: Callable[[int], object], score: Callable,
     two of them: `sqrt(2) * sd`. `delta_noise_2sd` is two of those, and any delta inside
     it is reported as inside noise rather than as a finding.
 
-    This exists because the alternative is the exact failure Corrections §15 catalogues
-    one level down: Phase 6 put intervals on every `beats_baseline` claim, and it would be
-    absurd for the phase that reads *why* those models win to ship point estimates with
+    This exists because the alternative is the exact failure of unqualified point estimates
+    one level down: every `beats_baseline` claim carries an interval, and it would be
+    absurd for the attribution that reads *why* those models win to ship point estimates with
     nothing under them.
     """
     vals = [float(score(y_ev, fit_seeded(int(s)), X_ev)) for s in seeds]
@@ -569,7 +569,7 @@ def per_lap_features(X: pd.DataFrame, stint_ids: np.ndarray,
                      icc_max: float = PER_LAP_ICC_MAX) -> dict[str, float]:
     """{feature: between-stint share} for features with genuine within-stint variation.
 
-    Uses the same corrected ANOVA estimator Phase 6 put under the target, so a feature's
+    Uses the same corrected ANOVA estimator used for the target, so a feature's
     share and the target's share are the same statistic and can be read side by side.
     Constant-within-stint features are excluded because flattening them is provably a
     no-op -- this is the cost control that keeps the feature-level pass to ~14 refits

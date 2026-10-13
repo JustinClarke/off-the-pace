@@ -84,7 +84,7 @@ export default function DriverWorkloadPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2024' }}
+      provenance={{ dataWindow: '2018–2025' }}
       csvRows={data ? toCsvRows(data) : undefined}
       csvFilename={`driver-workload-${season}.csv`}
       isLoading={isLoading}

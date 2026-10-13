@@ -1,6 +1,6 @@
 """WI-15a -- the traffic families' gate (steps 1-4 and 7), on the settled v15 substrate.
 
-The arms, columns, baselines, decision rule and e-value construction are pre-registered in
+The arms, columns, baselines, decision rule and e-value construction are declared in
 `_roadmap/_fixes/wi/WI-15-traffic-thermal-feature-semantics.md` ("Pre-registration: WI-15a's gate
 arms", written before any arm ran). This script runs exactly that and nothing else.
 

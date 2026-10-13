@@ -92,7 +92,7 @@ export default function CounterfactualChampionshipPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018-2024' }}
+      provenance={{ dataWindow: '2018-2025' }}
       csvRows={result ? toCsvRows(result.ghostStandings) : undefined}
       csvFilename={`counterfactual-championship-${season}-${hostConstructorId || 'all'}.csv`}
       isLoading={isLoading && ready}

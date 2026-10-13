@@ -18,9 +18,9 @@ Local on-disk mirror of the Fabric OneLake medallion structure. Used for DuckDB-
 
 | Layer | Contents | Size |
 |---|---|---|
-| Bronze | 168 races × 4 datasets, 2018–2024 (laps, sectors, pits, telemetry)*; telemetry incomplete for 2018 Rd1/Rd2 | ~8 GB |
-| Silver | 7 staging views + 4 reference tables, schema-tested |   |
-| Gold | 5 feature mart tables (fct_driver_skill_features, fct_cliff_prediction_features, + dims) |   |
+| Bronze | Every race 2018–2025 × 4 core datasets (laps, weather, race control, telemetry)*; telemetry incomplete for 2018 Rd1/Rd2 | ~7 GB |
+| Silver | Staging views + reference tables, schema-tested |   |
+| Gold | Mart and dimension tables (`fct_*`, `mart_*`, `dim_*`), including the two contracted ML inputs |   |
 
 ---
 

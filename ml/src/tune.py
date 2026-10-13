@@ -55,7 +55,7 @@ MODELS_DIR = Path("ml/models")
 
 # ─── The search space ───────────────────────────────────────────────────────────
 # Declared as data so `boundary_params` reads the same numbers `_suggest` searches.
-# Every search from Phase 2 to Phase 7 stopped with `max_depth` on its ceiling and
+# Earlier searches stopped with `max_depth` on its ceiling and
 # none of them said so, because a search that ends on its own edge prints a best
 # value like any other: the bound is invisible in the output, and "the learner is
 # saturated" cannot be told apart from "the learner was never allowed to ask for
@@ -173,7 +173,7 @@ def boundary_params(best: dict, spec: S.TargetSpec | None = None,
     A pin is a fact about the search, not a verdict on the model: it says the optimum
     of the trials run sits where the space ran out, which happens both when the
     learner wants more capacity and when the optimum genuinely lives at the edge.
-    Phase 8 and open item 21 are one of each. Telling them apart takes a probe past
+    Both cases occur in practice. Telling them apart takes a probe past
     the bound, so this reports rather than fails.
     """
     out: dict[str, str] = {}
@@ -268,7 +268,7 @@ def tune_one(target: str, *, trials: int, folds: int, version: str, subsample_ro
             # balanced class weights for the classifier, none for AFT (which carries
             # censoring in the label), and -- since 08o dropped the IPW survival
             # weights -- none for the quantile trio either.
-            # Until Phase 2 finding 1 was fixed this path called model.fit directly
+            # This path once called model.fit directly
             # without meta, so the quantile search silently dropped the IPW weights
             # train.py:_fit applied at the time -- p10/p50/p90 were selected against an
             # objective the refit did not use. Do not reintroduce a second fit call

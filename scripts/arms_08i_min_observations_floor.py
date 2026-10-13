@@ -67,7 +67,7 @@ REFERENCE_FLOOR = 2          # the built warehouse == the live v12 substrate
 THERMAL_COLS: tuple[str, ...] = S.FEATURE_GROUPS["thermal"]
 
 SEEDS: tuple[int, ...] = tuple(S.RANDOM_STATE + i for i in range(5))
-E_VALUE_G = 1.0              # pre-registered: a one-sd effect, as in 02c and 08h
+E_VALUE_G = 1.0              # fixed in advance: a one-sd effect, as in 02c and 08h
 FAMILIES = ("degradation_regressor_p10", "degradation_regressor_p50",
             "degradation_regressor_p90", "cliff_classifier",
             "stint_life_regressor")

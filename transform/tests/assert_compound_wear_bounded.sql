@@ -3,8 +3,8 @@
 -- This is the bound's own test, and it exists because the bound has two
 -- independent applications of the same three terms: the source curve in
 -- int_compound_cliff_predicted (per observed lap) and the recomputation
--- in int_pit_strategy_cost_curve (over a synthetic age grid). Between
--- Phase 5 and Phase 8 only the second was capped, and nothing failed --
+-- in int_pit_strategy_cost_curve (over a synthetic age grid). Before
+-- the shared bound existed, only the second was capped, and nothing failed --
 -- the source curve kept emitting up to 93.5 s/lap into
 -- driver_skill_residual_s, and from there into both ML targets.
 --

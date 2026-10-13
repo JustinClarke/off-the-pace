@@ -19,7 +19,7 @@ produce output. Specs live in [`app/e2e/`](../app/e2e); config in
 |---|---|---|
 | `duckdb-query.e2e.ts` | `/data-quality` | DuckDB-wasm instantiates (`duckdb_init`) and a real parquet query resolves (`first_query`) and renders a table |
 | `onnx-inference.e2e.ts` | `/ml/simulator` | onnxruntime-web creates a session from the live CDN model and serves an inference (`onnx_warmup`), no runtime fault |
-| `identity.e2e.ts` | `/lap-decomposition/waterfall` | The additive-identity ("seven-term") UI boots end-to-end and draws |
+| `identity.e2e.ts` | `/lap-decomposition/waterfall` | The additive-identity UI boots end-to-end and draws |
 | `smoke.e2e.ts` | `/`, `/data-quality` | SPA shell mounts with no uncaught error; client-side routing works |
 
 **The signal.** The observability layer keeps an always-on, in-memory ring of timing marks

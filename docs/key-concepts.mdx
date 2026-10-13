@@ -4,7 +4,7 @@ sidebarTitle: "Key Concepts"
 description: "A high-level orientation to pace delta, the seven decomposition terms, the tyre cliff, and structural pace as used throughout the Off The Pace docs and app."
 ---
 
-A handful of ideas recur on every page and every chart in the app. This page defines them at a glance; it does not derive them. For the full formula behind any term, see the [Transform tab](/decomposition/seven-term-identity); for a precise, column-level definition of every term, see the [Glossary](/reference/glossary).
+A handful of ideas recur on every page and every chart in the app. This page defines them at a glance; it does not derive them. For the full formula behind any term, see the [Transform tab](/decomposition/additive-identity); for a precise, column-level definition of every term, see the [Glossary](/reference/glossary).
 
 <Note>
   Sign convention is consistent everywhere in Off The Pace: **negative is faster** (shown in green), **positive is slower** (shown in red).
@@ -14,9 +14,9 @@ A handful of ideas recur on every page and every chart in the app. This page def
 
 `pace_delta` is how fast a driver is relative to the field on a given lap not the raw lap time. A driver running at exactly the field's typical pace has `pace_delta ≈ 0`. This normalisation is what lets you compare a residual at Monaco directly against one at Monza, even though the two circuits' lap times differ by 20+ seconds.
 
-## The seven components
+## The five components
 
-Every lap's `pace_delta` is split into seven named pieces that sum to it exactly: **fuel**, **compound** (tyre wear), **rubber** (track evolution), **ambient** (temperature), **constructor** (the car), **dirty air** (aero wake), and **driver skill** (everything else). See the [Transform tab](/decomposition/seven-term-identity) for the full equations and what each term captures.
+Every lap's `pace_delta` (its gap to the field's pace on that lap) is split into five named pieces that sum to it exactly: **fuel**, **compound** (tyre wear), **constructor** (the car), **dirty air** (aero wake), and **driver skill** (everything else). Track rubber and temperature move every car at once, so they sit inside the field baseline rather than in the sum. See the [Transform tab](/decomposition/additive-identity) for the full equations and what each term captures.
 
 ## The tyre cliff
 
@@ -37,7 +37,7 @@ A **stint** is the set of consecutive laps a driver runs on one set of tyres bet
 ## Where the depth lives
 
 <CardGroup cols={3}>
-  <Card title="Transform" icon="layers" href="/decomposition/seven-term-identity">
+  <Card title="Transform" icon="layers" href="/decomposition/additive-identity">
     Every equation, every coefficient, the CI-enforced identity.
   </Card>
   <Card title="Glossary" icon="book-marked" href="/reference/glossary">

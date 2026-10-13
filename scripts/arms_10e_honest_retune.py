@@ -9,7 +9,7 @@ measured on. So no 2026-09-10 figure can be reproduced, S1x has never been score
 substrate, and D4's ruling rests on a measurement that has to be taken again before
 anything ships on it.
 
-THE ARMS, as pre-registered in the leaf doc's 2026-09-19 addendum, written before any
+THE ARMS, as declared in the leaf doc's 2026-09-19 addendum, written before any
 trial ran.
 
     A0   the incumbent -- v12 shipped params, `standard` labels, refit honestly
@@ -689,7 +689,7 @@ def main() -> int:
     report["verdict"] = verdict
 
     log("\n" + "=" * 78)
-    log("VERDICT against the pre-registered three-leg criterion")
+    log("VERDICT against the declared three-leg criterion")
     for a in DECLARED_ARMS:
         v = verdict["arms"][a]
         log(f"  {a:3s} Brier {v['brier']:.4f} (delta {v['brier_delta']:+.4f}, "

@@ -14,25 +14,26 @@ Most of these tests share one shape: a total column must equal the sum of named 
 {{ assert_additive_identity(
      ref('int_lap_residual_decomposed'),
      'pace_delta_s',
-     ['fuel_component_s', 'compound_component_s', 'rubber_component_s',
-      'ambient_component_s', 'constructor_component_s', 'dirty_air_tax_s'],
+     ['fuel_component_s', 'compound_component_s', 'constructor_component_s', 'dirty_air_tax_s'],
      'driver_skill_residual_s',
      tolerance=0.0001
 ) }}
 ```
 
-That's the literal body of `assert_lap_7term_identity`, the "Lap 7-term residual identity" test below that enforces the [seven-term identity](/decomposition/seven-term-identity) itself. Three more of the fourteen tests below restate the same kind of sum-equals-total check by hand, at sector and qualifying grain, where the column lists differ enough that a direct `SELECT` reads more clearly than a macro call.
+That's the literal body of `assert_lap_7term_identity`, the "Lap residual identity" test below that enforces the [additive identity](/decomposition/additive-identity) itself. The file name predates the move from seven terms to five. Three more of the fourteen tests below restate the same kind of sum-equals-total check by hand, at sector and qualifying grain, where the column lists differ enough that a direct `SELECT` reads more clearly than a macro call.
 
 <AccordionGroup>
   <Accordion title="Residual decomposition identity">
-    `driver_skill_residual_s` must equal `pace_delta_s − total_explained_s`, within 0.0001 s. This is the identity's original two-term form total explained vs. residual that the seven-term test below further decomposes into six named physics components. `track_unexplained_s` is explicitly excluded from both sides: it's the track-evolution model's own internal residual, informational, not part of the closure. Guards [`int_lap_residual_decomposed`](/reference/models/int/int_lap_residual_decomposed). **Active.**
+    `driver_skill_residual_s` must equal `pace_delta_s − total_explained_s`, within 0.0001 s. This is the identity's original two-term form total explained vs. residual that the lap identity test below further decomposes into four named physics components. `track_unexplained_s` is explicitly excluded from both sides: it's the track-evolution model's own internal residual, informational, not part of the closure. Guards [`int_lap_residual_decomposed`](/reference/models/int/int_lap_residual_decomposed). **Active.**
   </Accordion>
-  <Accordion title="Lap 7-term residual identity">
+  <Accordion title="Lap residual identity (five terms)">
     The headline test. After `dirty_air_tax_s` is extracted as its own term, the closure is:
 
-    $$\text{pace\_delta\_s} = \text{fuel} + \text{compound} + \text{rubber} + \text{ambient} + \text{constructor} + \text{dirty\_air\_tax} + \text{driver\_skill\_residual}$$
+    $$\text{pace\_delta\_s} = \text{fuel} + \text{compound} + \text{constructor} + \text{dirty\_air\_tax} + \text{driver\_skill\_residual}$$
 
-    enforced via [`assert_additive_identity`](/reference/macros/assert_additive_identity) at 0.0001 s tolerance. Full derivation and the meaning of each term: [the Seven-Term Identity](/decomposition/seven-term-identity). The model this closes: [`families/residual`](/transform/families/residual). Guards [`int_lap_residual_decomposed`](/reference/models/int/int_lap_residual_decomposed). **Active.**
+    Rubber and ambient are not terms: they are already inside the field baseline that `pace_delta_s` is measured against.
+
+    enforced via [`assert_additive_identity`](/reference/macros/assert_additive_identity) at 0.0001 s tolerance. Full derivation and the meaning of each term: [the Additive Identity](/decomposition/additive-identity). The model this closes: [`families/residual`](/transform/families/residual). Guards [`int_lap_residual_decomposed`](/reference/models/int/int_lap_residual_decomposed). **Active.**
   </Accordion>
   <Accordion title="Qualifying 7-term identity">
     The same identity, re-fit at qualifying grain rather than mirrored from the race-grain coefficients qualifying laps have their own fuel, compound, rubber, ambient, constructor, and dirty-air terms because a single push lap has a fundamentally different fuel and tyre-temperature profile than a race stint:
@@ -54,7 +55,7 @@ That's the literal body of `assert_lap_7term_identity`, the "Lap 7-term residual
     A degenerate-case identity rather than an additive one: when the ghost car's ego driver and host constructor are the same (i.e. the counterfactual recombination is asking "what if this driver drove their own car"), `predicted_lap_time_s` must equal the driver's own `actual_lap_time_s` exactly, within 0.0001 s. If recombination is mathematically correct, the self-case has to be a no-op; any drift here means the recombination formula itself is wrong, not just imprecise for genuine swaps. Guards [`fct_ghost_car_pace`](/reference/models/fct/fct_ghost_car_pace). **Active.**
   </Accordion>
   <Accordion title="Example identity closure">
-    The same macro call as the lap 7-term test above, byte-for-byte kept as a standalone, readable usage example of `assert_additive_identity` rather than removed once the canonical test existed. It doesn't add coverage beyond what the lap 7-term test already enforces; its job is documentation-by-example for anyone adding a new closure test, not an independent guarantee. Guards [`int_lap_residual_decomposed`](/reference/models/int/int_lap_residual_decomposed). **Active.**
+    The same macro call as the lap identity test above, byte-for-byte kept as a standalone, readable usage example of `assert_additive_identity` rather than removed once the canonical test existed. It doesn't add coverage beyond what the lap identity test already enforces; its job is documentation-by-example for anyone adding a new closure test, not an independent guarantee. Guards [`int_lap_residual_decomposed`](/reference/models/int/int_lap_residual_decomposed). **Active.**
   </Accordion>
   <Accordion title="Deg-slope centering">
     An internal-consistency check on the field-mean itself, not on any one constructor's slope: the precision-weighted mean of `(deg_slope_raw_s_per_lap − field_mean_slope_s_per_lap)` must be exactly 0 within every `(race_year, compound)` cell, at 1e-9 s/lap tolerance (low-sample cells excluded they don't enter the field mean). If this drifts, "deviation from the field-average compound curve" stops meaning what every downstream consumer of the centred slope assumes it means. Guards [`int_constructor_deg_sensitivity`](/reference/models/int/int_constructor_deg_sensitivity). **Active.**

@@ -9,6 +9,9 @@ allowBuilds:
   '@sentry/cli': true
   esbuild: true
   protobufjs: false
+minimumReleaseAgeExclude:
+  - eslint@10.13.0
+  - happy-dom@21.0.3
 onlyBuiltDependencies:
   - esbuild
   - '@sentry/cli'

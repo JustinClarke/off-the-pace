@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off-the pace AI integration (trackside-analyst assistant)",
-  "updated": "2026-10-16T12:00:00+04:00",
+  "updated": "2026-10-15T17:45:00+04:00",
   "pointer": "CO-06",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -183,7 +183,7 @@
       "doc": "wi/CO-08-flag-chance-calibration.md",
       "cost": "3-5d",
       "model": "opus-5",
-      "note": "Owner go-ahead 2026-10-15 to build the laps-to-flag display cap and the calibrated flag-chance line. Source edits in working tree only. Stint-life fix (starting value) not promoted; built in scratch. Calibration fitted on 2018-2024 out-of-fold; 2025 for evaluation. 2026-10-16: drift rule last3 chosen on 2024 only; 2025 FAILS (5/10 bins). Follow-up agent (E4, pre-registered on 2023-2024) also fails (5/10, worst 13.2 pp) but cuts Brier to 0.0698 from 0.0803. Stage stays BUILDING; waiting on CD4 and CD5. Scratch report: scratchpad/flag_ideas/report.md."
+      "note": "Owner go-ahead 2026-10-15 to build the laps-to-flag display cap and the calibrated flag-chance line. Source edits in working tree only. Stint-life fix (starting value) not promoted; built in scratch. Calibration fitted on 2018-2024 out-of-fold; 2025 for evaluation."
     },
     {
       "id": "AI-03",
@@ -338,21 +338,6 @@
       "cost": "3d",
       "model": "sonnet-5",
       "note": "Last, because it exposes everything above. Behind a flag until the launch run passes on AI-03's frozen numbers; turning it on is the user's call. AD1 is ruled; waits on AI-06 as a dependency."
-    },
-    {
-      "id": "CO-09",
-      "group": "D",
-      "stage": "SPEC",
-      "depends_on": [],
-      "title": "Stint labels: join same-tyre splits, censor red-flag tyre changes (dbt), version bump",
-      "sources": [
-        "transform/models/intermediate/int_stint_end_regime.sql",
-        "ml/src/schema.py"
-      ],
-      "doc": "wi/CO-09-stint-label-fix.md",
-      "cost": "1-2d",
-      "model": "opus-5",
-      "note": "Raised 2026-10-16 from the CO-08 follow-up. Pit-lane drive-throughs and red flags split one tyre run into several stints; red-flag tyre changes are labelled as 'did not reach the flag'. Canada 2025 real final stints labelled sc_pit = 0. Touches the stint-life target, so a version bump; promotion is the owner's call."
     }
   ],
   "decisions": [
@@ -407,32 +392,6 @@
       "recommendation": "D2 A, D9 A, D13 A, D14 A: each is the cheapest answer that stays honest, and none of them reopens settled work.",
       "resolved": "2026-10-15",
       "resolution": "Yes to all four. D2: close (production already serves v14). D9: re-measure on v15 before any ruling; stays OPEN until then. D13: withdrawing a disowned e-value is allowed even where the original write-up rejected the idea. D14: do not reopen 01b's noise floor; recheck the newer attainable-block ceiling estimate on v15; stays OPEN until then. Recorded in the improvements log by CO-07."
-    },
-    {
-      "id": "CD4",
-      "raised": "2026-10-16",
-      "blocking": [
-        "CO-08"
-      ],
-      "status": "OPEN",
-      "question": "Acceptance rule for the flag-chance line. The 10-bins-within-5-pp rule cannot be met reliably on one season. A: keep it (chance stays hidden, cap only). B: a race-clustered rule: average gap within 3 pp, intercept CI contains 0, slope CI contains 1. C: 5 wider bins pooled over the two latest seasons.",
-      "context": "Best candidate E4 passes none of the three as the rule stands (5/10 within 5 pp, worst 13.2 pp; Brier 0.0698 vs 0.0803 current). Under B its 2025 point estimates fit (gap +1.1 pp, CI [-3.3, +6.0]; slope 0.83 [0.69, 1.09]); the current method fails B on 2024 (gap -8.8 pp). Whatever is chosen must be fixed before 2026 data is scored. See _roadmap/_ai-integration/wi/CO-08-flag-chance-calibration.md and the scratch report.",
-      "recommendation": "A for now. Revisit with 2026 data as the first clean test.",
-      "resolved": null,
-      "resolution": null
-    },
-    {
-      "id": "CD5",
-      "raised": "2026-10-16",
-      "blocking": [
-        "CO-08"
-      ],
-      "status": "OPEN",
-      "question": "Where the chance number may appear. A: parquet and race replay only (E4 needs live field context, the browser simulator cannot run it), cap only in the simulator. B: E6 instead (simulator-known inputs, 0.0872 vs 0.0855 on selection; not scored on 2025 and cannot be now without another look). C: cap only everywhere.",
-      "context": "E4 needs a refresh between races, so it cannot run in the browser as-is. E6 would need a classifier export instead of the 1-D lookup. Only E4 has a 2025 score.",
-      "recommendation": "C for the simulator now; A later if the 2026 test passes under the rule chosen in CD4.",
-      "resolved": null,
-      "resolution": null
     }
   ],
   "history": [
@@ -622,35 +581,6 @@
         "evaluate beats-baseline (FAIL stint life)"
       ],
       "next_action": "Owner decides v15 promotion and stint-life handling; CO-06 docs next.",
-      "next_command": "python3 _roadmap/_ai-integration/status/board.py",
-      "stands": {
-        "pointer": "CO-06"
-      }
-    },
-    {
-      "date": "2026-10-16T12:00:00+04:00",
-      "session": "CO-08 resumed: drift fix, then opus follow-up search for a better method; handed off to build log",
-      "landed": [
-        "None landed. CO-08 stays BUILDING (waiting on CD4, CD5). CO-09 raised as SPEC."
-      ],
-      "measured": [
-        "CO-08: last3 drift rule fails 2025 (5/10). Follow-up E4 fails 2025 (5/10, worst 13.2 pp) but Brier 0.0698 vs 0.0803."
-      ],
-      "watch": [
-        "Acceptance rule can't be met reliably on one season (race clustering).",
-        "Stint labels split same-tyre runs and count red-flag tyre changes as not-reached (CO-09).",
-        "2025 burned for selection twice."
-      ],
-      "verified": [
-        "flag_chance tests 10/10 pass (ML); app flagChance 6/6 pass."
-      ],
-      "assumed": [
-        "Follow-up numbers taken from the agent's report; not independently re-run."
-      ],
-      "gates_run": [
-        "board.py --check"
-      ],
-      "next_action": "Tomorrow: owner answers CD4 (acceptance rule) and CD5 (where the chance may show). Then CO-06 docs. CO-09 waits for a go-ahead. Uncommitted: ml/src/flag_chance.py (drift rule, weighting arg), ml/tests unchanged, wi/CO-08 and wi/CO-09 docs, this log. Nothing committed.",
       "next_command": "python3 _roadmap/_ai-integration/status/board.py",
       "stands": {
         "pointer": "CO-06"

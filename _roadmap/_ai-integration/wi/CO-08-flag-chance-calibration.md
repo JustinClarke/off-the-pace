@@ -64,15 +64,6 @@ A reliability table before and after (raw and calibrated), the Brier and ECE num
 4. **Caveat.** A pass on 2025 is one clean test, and the choice must not be tuned on 2025 again. The first true out-of-sample check is 2026 data, which does not exist yet. Record that the chance line, if shown, is provisional until then.
 5. **Dependency.** Refit on whichever stint-life version is promoted, and regenerate the parity fixture.
 
-## Drift fix result (2026-10-16)
-
-- **Built:** `fit(weighting=...)` in `ml/src/flag_chance.py`. Four rules: `uniform` (the old behaviour), `recent_geometric` (weights doubling per season), `last3`, `last2`. Method fixed to Platt (the prior run tied isotonic and Platt, 0.09902 vs 0.09925).
-- **Choice, made on pre-2025 data only:** the rule is fitted on seasons before 2024 and scored on 2024 alone. Brier on 2024: uniform 0.11207, recent_geometric 0.11101, **last3 0.11055 (chosen)**, last2 0.11189. Margins are small.
-- **Caveat:** 2025 was already scored in the earlier run, so it is no longer a clean holdout. The choice above does not use it.
-- **2025 acceptance: FAILS.** Calibrated (last3) bins within 5 pp: 5 of 10 (worst 19.9 pp). Calibrated ECE 0.040 (raw 0.076). Brier 0.0803 (raw 0.0900, base rate 0.2454).
-- **Pattern:** the map still under-predicts in the middle bins (predicted 0.55, observed 0.75; predicted 0.65, observed 0.78). The 2025 share reaching the flag (77%) is higher than any fitted season's, so a map on 2022–2024 lags.
-- **Decision under the plan:** the rule chosen on pre-2025 data fails, so the fallback is the cap alone and the chance is not shown. The other three rules were not scored on 2025, since that would be choosing the rule on the test season. Nothing in this run is promoted. Lookup scratch artefacts: `<scratchpad>/flag_drift/`.
-
 ## Definition of done
 
 Lookup fitted on 2018–2024 out-of-fold only, evaluated on 2025 with the acceptance bins above, exported with the predictions and the parity test passing. Tests re-run by the orchestrator. Do not commit.

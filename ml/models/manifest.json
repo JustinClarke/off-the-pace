@@ -1,8 +1,8 @@
 {
   "manifest_schema_version": 2,
   "name": "Off the Pace-Tyre Degradation Predictors",
-  "model_version": "v15",
-  "generated_at": "2026-10-15T17:22:40.316180+00:00",
+  "model_version": "v14",
+  "generated_at": "2026-10-16T21:27:50.150450+00:00",
   "input": {
     "tensor_name": "input",
     "dtype": "float32",
@@ -88,10 +88,10 @@
       "family": "degradation_regressor",
       "kind": "quantile",
       "objective": "reg:quantileerror",
-      "onnx": "degradation_regressor_p10_v15.onnx",
-      "onnx_sha256": "f76bb519a7722c024a48aec1bc7d2c8f93836635539cbc2f46029437999febde",
-      "booster_sha256": "deaf0e7e8e2418fd39a0145a392aae13b30da2198038806500115026f045479a",
-      "cv_headline": 0.41267941668170016,
+      "onnx": "degradation_regressor_p10_v14.onnx",
+      "onnx_sha256": "9bfd08c582bbe714eba4778c1c83ab673fd693f8bf37e288a87b8dbfb5e5856a",
+      "booster_sha256": "596551a6a2241c90270c9374e0d91df3c872bea151bd4fa0f8b8ff41f4a0c098",
+      "cv_headline": 0.4215404531213096,
       "headline_metric": "pinball",
       "feature_order": [
         "lap_number",
@@ -149,10 +149,10 @@
       "family": "degradation_regressor",
       "kind": "quantile",
       "objective": "reg:quantileerror",
-      "onnx": "degradation_regressor_p50_v15.onnx",
-      "onnx_sha256": "0ff8248dbdd1c860169483f86f9ad6842ac74a9539d7a7e60aa469a64ca3b031",
-      "booster_sha256": "7cd9d3f7523143e4f219ddff70819c13048547301c1bc3c9da04c4a9364f60c2",
-      "cv_headline": 0.8685975985846426,
+      "onnx": "degradation_regressor_p50_v14.onnx",
+      "onnx_sha256": "0fe357bb7cd662b3d8703e9c573c1e847a2edfc460b2d9037747808b69abe241",
+      "booster_sha256": "d41143cc53bd4750f72324021de188fff6df473aebf6736ac20153724ea4feea",
+      "cv_headline": 0.8704907497769557,
       "headline_metric": "pinball",
       "feature_order": [
         "lap_number",
@@ -210,10 +210,10 @@
       "family": "degradation_regressor",
       "kind": "quantile",
       "objective": "reg:quantileerror",
-      "onnx": "degradation_regressor_p90_v15.onnx",
-      "onnx_sha256": "f047b317bbe7e0761e9ea9afb05f1b8baf5f82eae11d1dba60bbfa89ae2c402e",
-      "booster_sha256": "934e9483519aa7a5637f41522041c78299b3ead4c3321d79fa2ea076aac50a66",
-      "cv_headline": 0.4505332497203206,
+      "onnx": "degradation_regressor_p90_v14.onnx",
+      "onnx_sha256": "6f4bed5cf37b6b567c84f8c2ba3e8b4af6c75f0870ddd9bc2ee45a3f33531c59",
+      "booster_sha256": "b71353c10ca4b64c236f43520bb0443711cdb430067f4e981bdc203441e67952",
+      "cv_headline": 0.4522829331914508,
       "headline_metric": "pinball",
       "feature_order": [
         "lap_number",
@@ -271,9 +271,9 @@
       "family": "cliff_classifier",
       "kind": "classification",
       "objective": "multi:softprob",
-      "onnx": "cliff_classifier_v15.onnx",
-      "onnx_sha256": "6511216802165dd8655f9ef13392cb48c443e76f1916d62c61651e191a16c3f7",
-      "booster_sha256": "f18d8e079224ab83ccb8d01e140c805cad687500d3e6a7dffb5135c388c3381d",
+      "onnx": "cliff_classifier_v14.onnx",
+      "onnx_sha256": "5b10f5733d644aac49d62aed406161625eac85cf2a7cb01bb067f62c4c7d3ed8",
+      "booster_sha256": "7d4df7e482cad75afa08e0562536fea10f53822a602a1942d6e37bad9c6089fd",
       "cv_headline": 0.36583834343519384,
       "headline_metric": "macro_f1",
       "feature_order": [
@@ -339,10 +339,10 @@
       "family": "stint_life_regressor",
       "kind": "survival",
       "objective": "survival:aft",
-      "onnx": "stint_life_regressor_v15.onnx",
-      "onnx_sha256": "77cd2c8f2c69dcd76e12ce3265109f32376c4180dd298c9455e36f96e6d39c92",
-      "booster_sha256": "8f6d8aafd2103095d9db21c70564f3e204bb4ff6b94b53f934407654647bc6fe",
-      "cv_headline": 2.2680012612025147,
+      "onnx": "stint_life_regressor_v14.onnx",
+      "onnx_sha256": "8a92f9187b6d744a4db153b7fdb57e9ad6e9116ee0a92bbb529fea3d642ed7d3",
+      "booster_sha256": "86048d70775ab3f4a0ffff2ac034f87be2e2f85af80e8dba44fc86b682dd361e",
+      "cv_headline": 2.1365942103822255,
       "headline_metric": "aft_nloglik",
       "feature_order": [
         "lap_number",
@@ -387,7 +387,7 @@
         "index": 0,
         "meaning": "aft_margin (log remaining_stint_life_laps + shift)",
         "postprocess": "exp(x + margin_offset) - label_shift, clip(>=0)",
-        "margin_offset": -0.6931467056274414,
+        "margin_offset": 2.3491812385618687,
         "label_shift": 1.0,
         "aft_distribution": "normal",
         "aft_scale": 0.753792882,
@@ -397,7 +397,7 @@
           "p90": 0.9
         },
         "censored_share_train": 0.4583497321306656,
-        "c_index_cv": 0.7243831756979386
+        "c_index_cv": 0.7381372388099237
       }
     }
   ],
@@ -444,18 +444,18 @@
     "dataset_fingerprint": "5dbd8e51502a5f832b8502741b71f5706a76f6c919f460daa841fd1b58f093f5",
     "random_state": 20260528,
     "library_versions": {
-      "xgboost": "3.3.0",
-      "sklearn": "1.9.0"
+      "xgboost": "3.4.1",
+      "sklearn": "1.9.1"
     },
     "onnx_parity": {
       "atol": 1e-05,
       "rtol": 1e-05,
       "max_abs_diff": {
-        "degradation_regressor_p10": 1.33514404296875e-05,
-        "degradation_regressor_p50": 1.1444091796875e-05,
-        "degradation_regressor_p90": 5.7220458984375e-06,
+        "degradation_regressor_p10": 9.5367431640625e-06,
+        "degradation_regressor_p50": 8.58306884765625e-06,
+        "degradation_regressor_p90": 4.291534423828125e-06,
         "cliff_classifier": 5.364418029785156e-07,
-        "stint_life_regressor": 3.967861690412633e-05
+        "stint_life_regressor": 8.72618333218611e-05
       },
       "all_pass": true
     }

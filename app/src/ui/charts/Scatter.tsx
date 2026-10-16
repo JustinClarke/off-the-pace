@@ -9,7 +9,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Cell,
-  TooltipProps,
+  TooltipContentProps,
 } from 'recharts'
 
 export interface ScatterPoint {
@@ -49,7 +49,7 @@ const GRID = 'rgba(255,255,255,0.05)'
 const AXIS_STYLE = { fontSize: 11, fill: 'rgb(var(--color-text-muted))' }
 const REF_STYLE = { fontSize: 10, fill: 'rgba(255,255,255,0.3)' }
 
-function DefaultTooltip({ active, payload }: TooltipProps<number, string>) {
+function DefaultTooltip({ active, payload }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null
   const d = payload[0].payload as ScatterPoint
   return (
@@ -69,7 +69,7 @@ function CustomTooltipWrapper({
   active,
   payload,
   renderTooltip,
-}: TooltipProps<number, string> & { renderTooltip: (p: ScatterPoint) => ReactNode }) {
+}: TooltipContentProps<number, string> & { renderTooltip: (p: ScatterPoint) => ReactNode }) {
   if (!active || !payload?.length) return null
   return <>{renderTooltip(payload[0].payload as ScatterPoint)}</>
 }

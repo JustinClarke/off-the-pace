@@ -6,9 +6,9 @@
 # Already present via root requirements.txt (listed to document the ML contract):
 xgboost>=3,<4
 duckdb>=1,<2
-pandas>=2,<3
-numpy>=2,<2.5
-pyarrow>=24.0.0,<25
+pandas>=2.3.3,<3
+numpy>=2,<3
+pyarrow>=26.0.0,<27
 scikit-learn>=1.9.0,<2
 # Direct dependency since Phase 6: ml/src/intervals.py uses scipy.stats.t for the
 # paired-t interval on every beats_baseline claim. It arrived transitively via
@@ -21,7 +21,7 @@ PyYAML>=6.0.3,<7
 # Machine Learning additions (D4 not previously installed):
 pytest-cov>=7.1.0,<8
 onnxmltools>=1.16.0,<2
-onnxruntime>=1.27.0,<2
-optuna>=4.9.0,<5
-shap>=0.52.0
-sqlglot>=30.11.0,<31
+onnxruntime>=1.31.0,<2
+optuna>=5.0.0,<6
+shap>=0.54.1
+sqlglot>=30.23.0,<31

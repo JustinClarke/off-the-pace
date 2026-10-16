@@ -56,8 +56,8 @@ function BaselineGrid({ models }: { models: ModelSummaryRow[] }) {
             <XAxis type="number" tickFormatter={v => `${v.toFixed(1)}%`} tick={{ fontSize: 10 }} />
             <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={120} />
             <Tooltip
-              formatter={(v: number, _name: string, props: { payload?: { metric?: string } }) =>
-                [`${v.toFixed(2)}% vs baseline`, `(${props.payload?.metric ?? ''})`]
+              formatter={(v, _name, item) =>
+                [`${Number(v).toFixed(2)}% vs baseline`, `(${(item.payload as { metric?: string } | undefined)?.metric ?? ''})`]
               }
               contentStyle={{ fontSize: 11 }}
             />
@@ -123,7 +123,7 @@ function ImportanceSection({ importance }: { importance: ModelMetricsResult['imp
                   <BarChart data={data} layout="vertical" margin={{ left: 180, right: 20, top: 4, bottom: 4 }}>
                     <XAxis type="number" domain={[0, 5]} ticks={[1, 2, 3, 4, 5]} tickFormatter={v => `#${6-v}`} tick={{ fontSize: 10 }} />
                     <YAxis type="category" dataKey="feature" tick={{ fontSize: 10 }} width={180} />
-                    <Tooltip contentStyle={{ fontSize: 11 }} formatter={(v: number) => [`Rank #${6-(v as number)}`]} />
+                    <Tooltip contentStyle={{ fontSize: 11 }} formatter={v => [`Rank #${6 - Number(v)}`]} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     <Bar dataKey="SHAP" fill={COLOR_SHAP} radius={[0, 3, 3, 0]} />
                     <Bar dataKey="Permutation" fill={COLOR_PERM} radius={[0, 3, 3, 0]} />
@@ -162,7 +162,7 @@ function CalibrationSection({ cal }: { cal: ModelMetricsResult['calibration'] })
           <BarChart data={coverageData} margin={{ left: 20, right: 40, top: 4, bottom: 4 }}>
             <XAxis dataKey="label" tick={{ fontSize: 11 }} />
             <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 10 }} />
-            <Tooltip formatter={(v: number) => [`${v.toFixed(2)}%`]} contentStyle={{ fontSize: 11 }} />
+            <Tooltip formatter={v => [`${Number(v).toFixed(2)}%`]} contentStyle={{ fontSize: 11 }} />
             <ReferenceLine y={80} stroke={COLOR_NEUTRAL} strokeDasharray="4 4" label={{ value: '80%', position: 'right', fontSize: 10 }} />
             <Bar dataKey="value" radius={[3, 3, 0, 0]}>
               {coverageData.map((entry, i) => (

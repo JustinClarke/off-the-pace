@@ -102,18 +102,17 @@ def apply_lookup(raw, lookup: dict):
 
 
 # ─── Fitting the recalibration ──────────────────────────────────────────────────
-def _fit_table(raw: np.ndarray, event: np.ndarray, method: str,
-               weights: np.ndarray | None = None) -> tuple[list, list]:
+def _fit_table(raw: np.ndarray, event: np.ndarray, method: str) -> tuple[list, list]:
     if method == "isotonic":
         from sklearn.isotonic import IsotonicRegression
         ir = IsotonicRegression(y_min=0.0, y_max=1.0, increasing=True, out_of_bounds="clip")
-        ir.fit(raw, event, sample_weight=weights)
+        ir.fit(raw, event)
         return [float(v) for v in ir.X_thresholds_], [float(v) for v in ir.y_thresholds_]
     if method == "platt":
         from sklearn.linear_model import LogisticRegression
         eps = 1e-6
         z = lambda p: np.log(np.clip(p, eps, 1 - eps) / (1 - np.clip(p, eps, 1 - eps)))
-        lr = LogisticRegression(C=1e6).fit(z(raw).reshape(-1, 1), event, sample_weight=weights)
+        lr = LogisticRegression(C=1e6).fit(z(raw).reshape(-1, 1), event)
         grid = np.linspace(0.0, 1.0, PLATT_GRID_POINTS)
         return [float(v) for v in grid], [float(v) for v in lr.predict_proba(z(grid).reshape(-1, 1))[:, 1]]
     raise ValueError(f"unknown calibration method {method!r}")
@@ -139,49 +138,6 @@ def ece(pred: np.ndarray, event: np.ndarray, n_bins: int = RELIABILITY_BINS) -> 
 
 def brier(pred, event) -> float:
     return float(np.mean((np.asarray(pred) - np.asarray(event)) ** 2))
-
-
-# ─── Drift: which training seasons the recalibration sees, and how much each counts ─
-# The raw chance is calibrated to a different share each season (46% in 2020, 77% in
-# 2025), so a single map over all seasons averages the drift away. Each rule is a way
-# of letting recent seasons dominate. `select_weighting` picks one using ONLY seasons
-# before the evaluation season, so the evaluation season is never used to choose.
-WEIGHTING_RULES = ("uniform", "recent_geometric", "last3", "last2")
-
-
-def rule_keep_and_weights(seasons: np.ndarray, rule: str) -> tuple[np.ndarray, np.ndarray]:
-    """Keep-mask and per-row weights for `rule`, anchored on the newest season given."""
-    s = np.asarray(seasons, dtype=np.int64)
-    anchor = int(s.max())
-    if rule == "uniform":
-        return np.ones(len(s), dtype=bool), np.ones(len(s))
-    if rule == "recent_geometric":          # doubles each season: 1, 2, 4, 8, 16 over five seasons
-        return np.ones(len(s), dtype=bool), 2.0 ** (s - anchor)
-    if rule == "last3":
-        return s >= anchor - 2, np.ones(len(s))
-    if rule == "last2":
-        return s >= anchor - 1, np.ones(len(s))
-    raise ValueError(f"unknown weighting rule {rule!r}")
-
-
-def select_weighting(oof_raw: np.ndarray, event: np.ndarray, seasons: np.ndarray,
-                     fit_rows: np.ndarray, holdout_season: int) -> tuple[str, dict]:
-    """Fit each rule on the out-of-fold seasons BEFORE `holdout_season`, score on
-    `holdout_season` alone, and keep the lowest Brier (ties go to the simpler rule)."""
-    train = np.where(fit_rows & (seasons < holdout_season))[0]
-    test = fit_rows & (seasons == holdout_season)
-    if not test.any() or len(train) == 0:
-        return "uniform", {"skipped": "no holdout season before the evaluation season"}
-    scores = {}
-    for rule in WEIGHTING_RULES:
-        keep, w = rule_keep_and_weights(seasons[train], rule)
-        k = train[keep]
-        xs, ys = _fit_table(oof_raw[k], event[k], "platt", w[keep])
-        pred = np.interp(oof_raw[test], xs, ys)
-        scores[rule] = {"brier": brier(pred, event[test]), "ece_10bin": ece(pred, event[test]),
-                        "seasons_fitted": sorted(int(v) for v in set(seasons[k]))}
-    best = min(WEIGHTING_RULES, key=lambda r: (scores[r]["brier"], WEIGHTING_RULES.index(r)))
-    return best, {"holdout_season": holdout_season, "rules": scores}
 
 
 # ─── Warehouse context ──────────────────────────────────────────────────────────
@@ -214,7 +170,7 @@ def load_flag_context(lap_ids, duckdb_path: str = S.DUCKDB_PATH) -> pd.DataFrame
 # ─── fit: OOF on the training seasons, evaluate on the eval season ──────────────
 def fit(out_dir: Path, model_version: str, booster_path: Path | None, params_path: Path,
         fit_max_season: int = DEFAULT_FIT_MAX_SEASON, eval_season: int = DEFAULT_EVAL_SEASON,
-        n_splits: int = 5, weighting: str = "auto") -> dict:
+        n_splits: int = 5) -> dict:
     from ml.src import features as F
     from ml.src import train as T
 
@@ -241,23 +197,21 @@ def fit(out_dir: Path, model_version: str, booster_path: Path | None, params_pat
         med, scale = fit_predict(pre[tr], pre[va])
         oof_raw[pre[va]] = raw_flag_chance(med, ltf[pre[va]], scale)
     fit_rows = ~np.isnan(oof_raw) & ~np.isnan(event)
+    oof_seasons = sorted(set(int(s) for s in seasons[fit_rows]))
 
-    # Drift rule, chosen on the season before the evaluation season (see select_weighting).
-    # Method is Platt: in the prior leave-one-season-out run Platt and isotonic tied
-    # (mean Brier 0.09902 vs 0.09925), and Platt is smooth where isotonic steps.
-    if weighting == "auto":
-        rule, selection = select_weighting(oof_raw, event, seasons, fit_rows, fit_max_season)
-    else:
-        if weighting not in WEIGHTING_RULES:
-            raise ValueError(f"weighting must be 'auto' or one of {WEIGHTING_RULES}")
-        rule, selection = weighting, {"chosen_by": "argument"}
-    method = "platt"
-    fit_idx = np.where(fit_rows)[0]
-    keep, w = rule_keep_and_weights(seasons[fit_idx], rule)
-    k = fit_idx[keep]
-    xs, ys = _fit_table(oof_raw[k], event[k], method, w[keep])
-    oof_seasons = sorted(set(int(s) for s in seasons[k]))
-    choice = {"fixed": method, "weighting": rule, "selection": selection}
+    # Method choice made inside the training seasons only: leave one OOF season out,
+    # fit each method on the rest, Brier on the held-out season. Lower mean wins.
+    choice = {}
+    for method in ("isotonic", "platt"):
+        scores = []
+        for s in oof_seasons:
+            a, h = fit_rows & (seasons != s), fit_rows & (seasons == s)
+            xs, ys = _fit_table(oof_raw[a], event[a], method)
+            scores.append(brier(np.interp(oof_raw[h], xs, ys), event[h]))
+        choice[method] = {"per_season_brier": dict(zip(oof_seasons, scores)),
+                          "mean_brier": float(np.mean(scores))}
+    method = min(choice, key=lambda k: choice[k]["mean_brier"])
+    xs, ys = _fit_table(oof_raw[fit_rows], event[fit_rows], method)
 
     booster_sha = (hashlib.sha256(Path(booster_path).read_bytes()).hexdigest()
                    if booster_path else None)
@@ -268,12 +222,11 @@ def fit(out_dir: Path, model_version: str, booster_path: Path | None, params_pat
         "aft_scale": float(params["aft_loss_distribution_scale"]),
         "label_shift": S.AFT_LABEL_SHIFT,
         "method": method,
-        "weighting": {"rule": rule, "selection": selection},
         "x": xs, "y": ys,
         "fitted_on": {"oof_seasons": oof_seasons, "models_trained_within": pre_seasons,
                       "fold_scheme": f"season-grouped expanding window, n_splits={n_splits}",
-                      "n_rows": int(len(k)),
-                      "base_rate": float(np.average(event[k], weights=w[keep]))},
+                      "n_rows": int(fit_rows.sum()),
+                      "base_rate": float(event[fit_rows].mean())},
         "laps_to_flag": "scheduled_laps - lap_number, >= 0 (browser: fuel_kg / burn_rate - 1)",
         "event": "stint_end_cause = race_end -> 1; pit-ended -> 0; retirement / no cause -> excluded",
         "shown_on": "final stints only (parquet: is_censored_stint; simulator: stint configured to the flag)",
@@ -366,15 +319,13 @@ def main() -> int:
     f.add_argument("--params", default="ml/models/stint_life_regressor_best_params.json")
     f.add_argument("--fit-max-season", type=int, default=DEFAULT_FIT_MAX_SEASON)
     f.add_argument("--eval-season", type=int, default=DEFAULT_EVAL_SEASON)
-    f.add_argument("--weighting", default="auto", choices=("auto",) + WEIGHTING_RULES,
-                   help="drift rule; 'auto' picks it on the season before the eval season")
     p = sub.add_parser("parity-fixture")
     p.add_argument("--lookup", required=True)
     p.add_argument("--out", required=True)
     args = ap.parse_args()
     if args.cmd == "fit":
         r = fit(Path(args.out), args.model_version, Path(args.booster) if args.booster else None,
-                Path(args.params), args.fit_max_season, args.eval_season, weighting=args.weighting)
+                Path(args.params), args.fit_max_season, args.eval_season)
         print(json.dumps({k: r[k] for k in ("brier", "ece_10bin", "acceptance", "lookup_sha256")}, indent=1))
     else:
         write_parity_fixture(json.loads(Path(args.lookup).read_text()), Path(args.out))

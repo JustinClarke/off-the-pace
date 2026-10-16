@@ -1,3 +1,5 @@
+{{ config(tags=['marts']) }}
+
 -- CO-01 (T5). A pit-lane start (grid_position = 0) is not a grid slot, so
 -- positions_gained must be NULL there, and must equal grid - finish elsewhere.
 -- Fails per offending row, and once if no pit-lane start exists to check

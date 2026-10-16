@@ -19,6 +19,11 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // eslint-plugin-react-hooks 7 added React Compiler rules that flag long-standing, working
+      // patterns (reset-state-on-route-change effects, inline chart components). Surface as
+      // warnings until each site is refactored.
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/static-components': 'warn',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // The `cond ? params.set(k, v) : params.delete(k)` idiom in the URL-state
       // setters is an intentional side-effecting ternary, not a dead expression.

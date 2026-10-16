@@ -12,7 +12,7 @@ const BORDER = 'rgb(var(--color-border))'
 const draw = (delay = 0) => ({
   initial: { pathLength: 0, opacity: 0 },
   animate: { pathLength: 1, opacity: 1 },
-  transition: { pathLength: { duration: 1.1, ease: 'easeInOut', delay }, opacity: { duration: 0.2, delay } },
+  transition: { pathLength: { duration: 1.1, ease: 'easeInOut' as const, delay }, opacity: { duration: 0.2, delay } },
 })
 
 function Frame({ children, label }: { children: React.ReactNode; label?: string }) {

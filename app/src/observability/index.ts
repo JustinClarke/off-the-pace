@@ -42,7 +42,6 @@ export async function initObservability(): Promise<void> {
       environment: ENVIRONMENT,
       release: RELEASE,
       tracesSampleRate: clamp01(Number(env.VITE_SENTRY_TRACES_SAMPLE_RATE ?? '0')),
-      sendDefaultPii: false, // privacy-respecting: no IP / user identifiers
     })
     sentry = Sentry
   } catch (err) {

@@ -6,7 +6,7 @@
 
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
-  ResponsiveContainer, TooltipProps,
+  ResponsiveContainer, TooltipContentProps,
 } from 'recharts'
 import QuantileFanChart from '../../ui/charts/QuantileFanChart'
 import type { SimulatorResult } from './transform'
@@ -38,7 +38,7 @@ interface LapTimeDatum {
   netP90: number        // fitted observed p90 band × M (absolute axis)
 }
 
-function LapTimeTooltip({ active, payload }: TooltipProps<number, string>) {
+function LapTimeTooltip({ active, payload }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null
   const d = payload[0].payload as LapTimeDatum
   return (

@@ -8,7 +8,7 @@ import {
   ReferenceLine,
   ResponsiveContainer,
   Cell,
-  TooltipProps,
+  TooltipContentProps,
 } from 'recharts'
 
 export interface WaterfallBar {
@@ -38,7 +38,7 @@ export interface WaterfallProps {
 const POS_COLOR = 'rgb(52, 211, 153)'   // emerald-400
 const NEG_COLOR = 'rgb(248, 113, 113)'  // red-400
 
-function CustomTooltip({ active, payload }: TooltipProps<number, string>) {
+function CustomTooltip({ active, payload }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null
   const d = payload[0].payload as WaterfallBar
   return (
@@ -93,7 +93,7 @@ export default function Waterfall({
             label={yLabel ? { value: yLabel, angle: -90, position: 'insideLeft', style: { fontSize: 11 } } : undefined}
             width={56}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+          <Tooltip content={(p: any) => <CustomTooltip {...p} />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
           <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
 
           {/* Transparent spacer lifts the coloured bar to the right starting position */}

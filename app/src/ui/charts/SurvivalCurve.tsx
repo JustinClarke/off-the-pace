@@ -8,7 +8,7 @@ import {
   Tooltip,
   ReferenceLine,
   ResponsiveContainer,
-  TooltipProps,
+  TooltipContentProps,
 } from 'recharts'
 
 /** One point on the Kaplan-Meier survival step function */
@@ -55,7 +55,7 @@ const AXIS_STYLE = { fontSize: 11, fill: 'rgb(var(--color-text-muted))' }
 const CLIFFED_COLOR = '#f87171'
 const CENSORED_COLOR = '#94a3b8'
 
-function KMTooltip({ active, payload }: TooltipProps<number, string>) {
+function KMTooltip({ active, payload }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null
   const d = payload[0]?.payload as KMPoint | undefined
   if (!d || d.survival == null) return null
@@ -72,7 +72,7 @@ function KMTooltip({ active, payload }: TooltipProps<number, string>) {
   )
 }
 
-function ScatterTooltip({ active, payload }: TooltipProps<number, string>) {
+function ScatterTooltip({ active, payload }: TooltipContentProps<number, string>) {
   if (!active || !payload?.length) return null
   const d = payload[0]?.payload as StintObservation | undefined
   if (!d) return null

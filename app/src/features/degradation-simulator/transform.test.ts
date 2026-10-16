@@ -421,3 +421,46 @@ describe('accuracy metrics (P0.3)', () => {
     }
   })
 })
+
+// ── CO-08 (draft): laps-to-flag cap and the flag-chance gate ──────────────────────────────────
+describe('transform with a FlagContext (laps-to-flag cap + flag chance)', () => {
+  const LOOKUP = { schema_version: 1, model_version: 'vT', booster_sha256: null, aft_scale: 0.75,
+    label_shift: 1, method: 'isotonic', x: [0, 1], y: [0.1, 0.9] }
+  const withScale = (p: LapPrediction): LapPrediction =>
+    ({ ...p, remaining_stint_life_aft_scale: 0.75, remaining_stint_life_label_shift: 1 })
+  // 20-lap stint, every lap predicting 21 laps of tyre life.
+  const preds = Array.from({ length: 20 }, () => withScale(pred(0, 0.1, 0.3, 21, PROBS, 'none_in_stint')))
+  // 1.6 kg/lap: 20 kg at stint start = 12.5 laps of fuel → 11.5 laps to run after lap 1.
+  const flagCtx = { fuelStartKg: 20, burnRateKgPerLap: 1.6, lookup: LOOKUP, modelVersion: 'vT' }
+
+  it('without a FlagContext nothing is capped and no chance is shown', () => {
+    const r = transform(preds, 1)
+    expect(r.remainingLifeLaps).toBe(21)
+    expect(r.lapsToFlag).toBeNull()
+    expect(r.flagChance).toBeNull()
+  })
+
+  it('caps median, p10 and p90 at laps to the flag and says so', () => {
+    const r = transform(preds, 1, [], undefined, flagCtx)
+    expect(r.lapsToFlag).toBeCloseTo(11.5, 9)
+    expect(r.remainingLifeLaps).toBeCloseTo(11.5, 9)
+    expect(r.remainingLifeP90).toBeCloseTo(11.5, 9)
+    expect(r.remainingLifeUncappedLaps).toBe(21)
+    expect(r.lifeCappedAtFlag).toBe(true)
+  })
+
+  it('shows the chance only when the configured stint runs to the flag', () => {
+    const final = transform(preds, 1, [], undefined, flagCtx)          // 19 laps left > 11.5 to flag
+    expect(final.isFinalStint).toBe(true)
+    expect(final.flagChance).not.toBeNull()
+    expect(final.flagChance!).toBeGreaterThan(0.1)
+    const notFinal = transform(preds, 1, [], undefined, { ...flagCtx, fuelStartKg: 80 })  // 49 to flag
+    expect(notFinal.isFinalStint).toBe(false)
+    expect(notFinal.flagChance).toBeNull()
+  })
+
+  it('hides the chance when the lookup is for another model version or absent', () => {
+    expect(transform(preds, 1, [], undefined, { ...flagCtx, modelVersion: 'other' }).flagChance).toBeNull()
+    expect(transform(preds, 1, [], undefined, { ...flagCtx, lookup: null }).flagChance).toBeNull()
+  })
+})

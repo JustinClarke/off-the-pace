@@ -35,12 +35,23 @@ seeds:
                 min_value: 5
                 max_value: 100
       - name: compound_cliff_severity
-        description: Average lap-time increase (seconds) in the 5 laps following cliff onset.
+        description: >
+          The cliff STEP in seconds, ordinary linear wear already excluded: the cell's trimmed
+          mean, over its stints, of the vertical gap at tyre age onset + cliff_ramp_span_laps
+          (2.5) between a line fitted through the pre-cliff laps and one through the post-cliff
+          laps (survival.py::estimate_cliff_severity). The wear curve adds it on top of
+          wear_gradient * age, ramped in over the same 2.5 laps (macros/compound_cliff_wear.sql).
+          A small fitted value is kept as measured (CO-02 / T2: "little or no cliff"). A NEGATIVE
+          estimate (the post-cliff line below the pre-cliff line) is stored as 0.0: a cliff that
+          makes the car faster is not a cliff, and the curve floors the plateau at zero anyway.
+          So 0.0 is a real, clipped value, which is why the lower bound is 0.0, not 0.1.
+          Above the 1.5 s winsorisation cap, or with no estimate, the class default is used
+          (severity_source = class_default).
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
-                min_value: 0.1
+                min_value: 0.0
                 max_value: 8.0
       - name: compound_wear_gradient
         description: Steady-state degradation rate (seconds per lap) before cliff onset.
@@ -349,6 +360,14 @@ seeds:
       Re-taken 2026-09-27 after W40 moved theta_air_label_value from 0.5033 (WI-01's
       interim pooled value) to 0.331: the second half of the same bump (WI-01 + WI-12).
       Row counts unchanged; five of seven season means moved by more than 0.001 s.
+      Re-taken 2026-10-15 (CO-03) for the v15 label bump, which covers everything since
+      the 09-27 snapshot: the WI-02b seed re-estimate (2026-10-03), CO-02 (cliff label:
+      wear no longer subtracted twice, regression severity, 2018 fitted in-sample under
+      CD2 = C, 2025 refit on 2018-24, 2.5-lap ramp; seed sha256 12fcc131...77f8) and
+      CO-04 (missing telemetry is NULL not clear air, restart laps get their own field
+      mean, thin field-base cells skipped). One bump, one snapshot. All seven seasons
+      moved: row counts -122 to -1,278 (2022 +373), means 2018 -0.1736 -> -0.2810,
+      2023 -0.0617 -> -0.3734, 2024 -0.1782 -> -0.3252; theta_air unchanged at 0.331.
     columns:
       - name: race_year
         description: Season year. Excludes the latest ingested season (still receiving rows).

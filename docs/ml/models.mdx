@@ -176,7 +176,7 @@ Every model is exported to ONNX and passes a round-trip parity test to `atol=1e-
 
     A symmetric band tight around zero means a settled tyre; a band that fans out on the positive side is a tyre starting to ask questions.
   </Accordion>
-  <Accordion title="Why gradient-boosted trees and not one regression?" icon="circle-question">
+  <Accordion title="Why gradient-boosted trees and not one regression?" icon="circle-help">
     The decomposition already runs the linear, physics-grounded corrections each one a single coefficient per dimension. The cliff is where that approach runs out: it is an *interaction* effect ("Soft **and** lap 14 **and** six laps of dirty air **and** a hot low-grip surface"), and a linear model would need every interaction term hand-specified. Boosted trees discover the interactions that matter from the data, which is precisely the job the linear layer cannot do. The trade is interpretability, recovered post-hoc via SHAP (see [Model Reference → feature importance](/reference/ml/degradation-model#feature-importance-shap-vs-permutation)).
   </Accordion>
 </AccordionGroup>

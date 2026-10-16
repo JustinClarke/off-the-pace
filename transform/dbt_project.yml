@@ -120,6 +120,20 @@ vars:
   # each value: 10.0 moves 4.97% of labels, 5.0 moves 11.09%, 3.0 moves 18.11%.
   # 10.0 is the conservative choice and the one continuous with the earlier, uncapped wear curve.
   compound_wear_max_s_per_lap: 10.0
+  # THE cliff ramp length, in laps, and its only definition (CO-02, owner decision
+  # E, 2026-10-15). Two readers, one number:
+  #   - the fitter, tasks/coefficients/survival.py::estimate_cliff_severity, measures
+  #     each stint's step as the gap between its pre- and post-cliff lines at tyre
+  #     age onset + this many laps (it reads this var from this file);
+  #   - the wear curve, macros/compound_cliff_wear.sql, ramps the fitted step in
+  #     linearly over this many laps past the cell's onset and holds it after.
+  # So the curve reaches the full fitted step exactly where the fitter measured it.
+  # 2.5 is the post-cliff window's centre ([onset, onset+5]). Until CO-02 the curve
+  # ramped over 5.5 laps (the old window-mean centroid spacing) while the fitter read
+  # the step at 2.5, so the curve sat below the measured step from onset+2.5 to
+  # onset+5.5. Read by every site that prices the curve (int_compound_cliff_predicted,
+  # int_pit_strategy_cost_curve, fct_ghost_car_pace). Changing it moves the label.
+  cliff_ramp_span_laps: 2.5
   # Retained as an alias of the above so the pit-strategy model keeps a name of
   # its own; both default to the same value and the cost curve reads the shared
   # bound. Set this alone to diverge the strategy ceiling from the source curve.
@@ -241,6 +255,10 @@ vars:
   # makes a 2018 pure value comparable, with a caveat, with a 2019-2024 one. 2025 also
   # sits low (-0.246) and is not offset here; the docs page says so. Removed in this session:
   # WI-02b's cliff-cost refit with a regression-based severity estimation replaces this.
+  # CO-02 (2026-10-15): the removal left 2018 on its hand-set class defaults (1.2-1.5 s
+  # severity on all 62 cells, never refit), i.e. the over-correction the offset existed
+  # for. Under ruling CD2 = C 2018's cliff cells are now fitted on 2018's own laps -- an
+  # IN-SAMPLE fit, labelled so in the seed's data_window -- and the offset stays empty.
   isolation_pure_season_offset_gain_s: {}
   # ── Label spine (WI-01; _roadmap/_fixes/wi/WI-01-label-spine.md) ──
   # int_dirty_air_tax_component: theta_air's calibration panel is restricted to
@@ -321,6 +339,9 @@ seeds:
     # Refresh deliberately (with a note here and in the label-version doc) the
     # next time the label version bumps; never silence a real drift by editing
     # this file to match instead.
+    # Re-taken 2026-10-15 (CO-03): the v15 label bump (WI-02b seed re-estimate +
+    # CO-02 cliff label + CO-04 measurement honesty), one bump, one snapshot. See
+    # the seed's schema.yml description and ml/README.md for what moved.
     label_stability_baseline:
       +column_types:
         race_year: integer

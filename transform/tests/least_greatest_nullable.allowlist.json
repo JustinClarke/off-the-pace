@@ -92,18 +92,6 @@
       "reason": "All three inputs come through INNER JOINs to the race_scheduled_laps seed and stg_laps (0 NULL of 161,040 rows); assert_fuel_load_matches_scheduled_distance fails the build if a race lacks them."
     },
     {
-      "file": "models/intermediate/int_lap_normalized_pace.sql",
-      "call": "GREATEST(0.0, LEAST( 5.0, tt.theta_time * COALESCE(a.time_in_dirty_air_s, 0.0) ))",
-      "verdict": "not_null",
-      "reason": "theta_time is COALESCE(..., 0.004) in a one-row aggregate CROSS JOINed onto every lap (0 NULL of 189,418), and the exposure is COALESCEd."
-    },
-    {
-      "file": "models/intermediate/int_lap_normalized_pace.sql",
-      "call": "LEAST(5.0, tt.theta_time * COALESCE(a.time_in_dirty_air_s, 0.0))",
-      "verdict": "not_null",
-      "reason": "Inner half of the same clamp: theta_time is COALESCEd in its one-row CTE; 0 NULL of 189,418."
-    },
-    {
       "file": "models/intermediate/int_pit_strategy_cost_curve.sql",
       "call": "GREATEST(a.age_laps - p.compound_cliff_onset_laps, 0.0)",
       "verdict": "not_null",

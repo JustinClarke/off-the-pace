@@ -1,7 +1,13 @@
 -- Driver x season summary for LLM explanations ("22nd of 22").
 -- Grain: (driver_id, race_year). Sorted by year, rank.
 -- rating_s = era_adjusted_rating (shrunk teammate-relative gap, seconds;
--- negative = faster). rank 1 = most negative. Component means are over
+-- negative = faster). rating_s IS already the gap to his teammate(s) (season
+-- average over every teammate he raced, pooled), so teammate_gap_s = rating_s;
+-- it used to be rating_s minus the teammate's rating_s, about twice the gap
+-- (CO-01/T3). teammate_id is the single teammate with the most clean laps; a
+-- driver who changed teammates mid-season is still rated against all of them.
+-- teammate_gap_rank 1 = most negative gap, i.e. furthest ahead of his own
+-- teammate; it is NOT a speed ranking against the field (CO-01/T4). Component means are over
 -- ml_eligible laps only (seconds, positive = slower).
 -- Primary constructor = the one the driver ran the most clean laps for;
 -- teammate = the other driver with the most clean laps for that constructor.
@@ -57,7 +63,7 @@ ratings AS (
 ranked AS (
     SELECT
         *,
-        RANK() OVER (PARTITION BY race_year ORDER BY rating_s) AS rank,
+        RANK() OVER (PARTITION BY race_year ORDER BY rating_s) AS teammate_gap_rank,
         COUNT(*) OVER (PARTITION BY race_year) AS n_drivers
     FROM ratings
 ),
@@ -92,14 +98,15 @@ SELECT
     k.driver_id,
     k.race_year,
     k.rating_s,
-    k.rank,
+    k.teammate_gap_rank,
     k.n_drivers,
-    1.0 - (k.rank - 1.0) / NULLIF(k.n_drivers - 1, 0) AS percentile,
+    1.0 - (k.teammate_gap_rank - 1.0) / NULLIF(k.n_drivers - 1, 0)
+        AS teammate_gap_percentile,
     k.ci_low,
     k.ci_high,
     k.n_races,
     t.teammate_id,
-    k.rating_s - tr.rating_s AS teammate_gap_s,
+    CASE WHEN t.teammate_id IS NOT NULL THEN k.rating_s END AS teammate_gap_s,
     p.constructor_id,
     cr.constructor_rank,
     c.mean_fuel_component_s,
@@ -113,8 +120,6 @@ LEFT JOIN components AS c
     ON k.driver_id = c.driver_id AND k.race_year = c.race_year
 LEFT JOIN teammates AS t
     ON k.driver_id = t.driver_id AND k.race_year = t.race_year
-LEFT JOIN ratings AS tr
-    ON t.teammate_id = tr.driver_id AND t.race_year = tr.race_year
 LEFT JOIN constructor_rank AS cr
     ON p.constructor_id = cr.constructor_id AND p.race_year = cr.race_year
-ORDER BY k.race_year, k.rank
+ORDER BY k.race_year, k.teammate_gap_rank

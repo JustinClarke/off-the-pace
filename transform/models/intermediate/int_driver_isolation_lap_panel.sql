@@ -38,6 +38,8 @@
 --   r.compound NOT IN ('INTERMEDIATE', 'WET')     (wet skill is out of scope)
 --   r.compound_component_s IS NOT NULL AND r.laps_past_cliff IS NOT NULL
 --                              (unknown tyre = no rating, F7/F39; never 0)
+--   r.dirty_air_intensity_lag1 IS NOT NULL
+--                              (measured dirty-air tax, FD6 / CO-04; below)
 --   r.race_id NOT IN var('isolation_exclude_races')
 --   the (race, lap) holds >= var('isolation_min_field_n') laps passing the rest
 --
@@ -64,6 +66,25 @@
 -- int_tyre_surface_vs_bulk_decoupling.recovery_flag reads future laps (LEAD),
 -- and push_residual is derived from lap time, so either would make "pace in
 -- recovery" circular.
+--
+-- FD6 (CO-04, 2026-10-15): unmeasured air is unknown, not clean air.
+--   x_s needs the lap's dirty-air tax, and int_lap_residual_decomposed fills
+--   that tax with 0.0 wherever int_dirty_air_tax_component has no row (no
+--   field base) and passes it through as NULL where the previous lap's air
+--   state is unmeasured. Only a lap with a measured lagged air state
+--   (dirty_air_intensity_lag1 NOT NULL) has a tax that was actually priced, so
+--   Ω keeps only those. Measured on the CO-04 build (2026-10-15) this drops
+--   5,989 of 129,527 candidate laps: 1,322 in 2018_1 Australia and 2018_2
+--   Bahrain (no telemetry in bronze, no field base, every tax a 0.0 fill), 12
+--   whose previous lap was unmeasured, and 4,655 elsewhere whose field-base
+--   cell is thin (W44: no base, so int_dirty_air_tax_component writes no row,
+--   T18). Those last laps' air IS measured, but their tax was never priced:
+--   3,584 of them followed a car, so the 0.0 fill would under-charge them by
+--   theta_air (0.331 s). Pricing the tax without a base would keep them, and
+--   needs T18 / F23a revisited; that is an open point in the CO-04 report.
+--   The recovery overlay reads an unmeasured lap as unknown (is_dirty NULL),
+--   not clean: it is its own run, it neither ends nor extends a dirty run, and
+--   it is never itself a recovery lap. is_dirty_air_lap is NULL on such a lap.
 --
 -- LEAKAGE WARNING, reversed from fct_cliff_prediction_features: the isolation
 -- ratings are functions of the residual trajectory. No ML-contract mart
@@ -93,6 +114,7 @@ WITH lap_source AS (
         r.lap_time_s,
         r.compound_component_s,
         r.dirty_air_tax_s,
+        r.dirty_air_intensity_lag1,
         a.anomaly_class
     FROM {{ ref('int_lap_residual_decomposed') }} AS r
     INNER JOIN {{ ref('int_lap_anomaly_flags') }} AS a
@@ -106,6 +128,8 @@ WITH lap_source AS (
         AND r.compound NOT IN ('INTERMEDIATE', 'WET')
         AND r.compound_component_s IS NOT NULL
         AND r.laps_past_cliff IS NOT NULL
+        -- FD6: a dirty-air tax that was priced, not filled (header)
+        AND r.dirty_air_intensity_lag1 IS NOT NULL
         {%- if exclude_races | length > 0 %}
             AND r.race_id NOT IN (
                 {%- for rid in exclude_races %}
@@ -164,7 +188,8 @@ air AS (
         g.lap_id,
         g.stint_id,
         g.lap_number,
-        COALESCE(ai.air_state_dominant = 'dirty_air', FALSE) AS is_dirty
+        -- NULL when the air state is unmeasured (FD6, header), not FALSE
+        ai.air_state_dominant = 'dirty_air' AS is_dirty
     FROM {{ ref('int_stint_geometry') }} AS g
     LEFT JOIN {{ ref('int_lap_air_state') }} AS ai
         ON g.lap_id = ai.lap_id
@@ -228,7 +253,11 @@ phased AS (
     SELECT
         c.*,
         ai.air_state_dominant,
-        COALESCE(rec.is_dirty, FALSE) AS is_dirty_air_lap,
+        -- FALSE where the lap has no recovery row (not a valid lap), as
+        -- before; NULL only for an unmeasured air state (FD6, header).
+        CASE
+            WHEN rec.lap_id IS NULL THEN FALSE ELSE rec.is_dirty
+        END AS is_dirty_air_lap,
         COALESCE(rec.is_recovery, FALSE) AS is_recovery,
         CASE
             WHEN c.laps_past_cliff > 0 THEN 'cliff'

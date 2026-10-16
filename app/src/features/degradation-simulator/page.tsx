@@ -15,12 +15,14 @@ import { methodologyContent, methodologyHref } from './methodology'
 import { useQuery } from '../../data/hooks/useQuery'
 import { useFilters } from '../../state/FilterContext'
 import { loadManifest } from '../../data/manifest'
-import { predictLaps } from '../../ml'
+import { predictLaps, loadModelManifest } from '../../ml'
+import { loadFlagChanceLookup } from '../../ml/flagChance'
+import type { FlagChanceLookup } from '../../ml/flagChance'
 import type { LapPrediction, FeatureRow } from '../../ml'
-import { buildStintRows, constructorPaceOffset, DEFAULT_INPUTS } from './inputs'
+import { buildStintRows, constructorPaceOffset, DEFAULT_INPUTS, DEFAULT_FUEL_CONSUMPTION_RATE } from './inputs'
 import type { SimulatorInputs } from './inputs'
 import { transform, toCsvRows, inputsFromStint, observedJumps } from './transform'
-import type { RecomposeOptions } from './transform'
+import type { RecomposeOptions, FlagContext } from './transform'
 import './queries' // side-effect: register the preset + circuit queries
 import type {
   StintOption, StintFeatureRow, CircuitOption, CircuitCompoundConstants, HistoryEnvelopeRow,
@@ -209,9 +211,29 @@ export default function DegradationSimulatorPage() {
       inputs.constants.compound_cliff_severity, inputs.circuit_abrasiveness_index, inputs.track_energy_index,
       inputs.air_state_dominant, inputs.is_rain_lap, inputs.constructor_id])
 
+  // CO-08 (draft): the flag-chance lookup is published beside the model manifest. Absent, or
+  // fitted for another model version → null, and the gauge shows only the laps-to-flag cap.
+  const [flagLookup, setFlagLookup] = useState<FlagChanceLookup | null>(null)
+  const [modelVersion, setModelVersion] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    loadModelManifest()
+      .then(m => loadFlagChanceLookup(m.model_version)
+        .then(lk => { if (!cancelled) { setModelVersion(m.model_version); setFlagLookup(lk) } }))
+      .catch(() => { /* manifest offline: the ONNX panels already say so; no flag line */ })
+    return () => { cancelled = true }
+  }, [])
+  // Same fuel trajectory buildStintRows feeds the model (same burn-rate fallback).
+  const flagCtx = useMemo<FlagContext>(() => ({
+    fuelStartKg: inputs.fuel_mass_kg,
+    burnRateKgPerLap: inputs.fuel_consumption_rate_kg_per_lap || DEFAULT_FUEL_CONSUMPTION_RATE,
+    lookup: flagLookup,
+    modelVersion,
+  }), [inputs.fuel_mass_kg, inputs.fuel_consumption_rate_kg_per_lap, flagLookup, modelVersion])
+
   const result = useMemo(
-    () => transform(predictions, inputs.current_lap, actuals, recompose),
-    [predictions, inputs.current_lap, actuals, recompose],
+    () => transform(predictions, inputs.current_lap, actuals, recompose, flagCtx),
+    [predictions, inputs.current_lap, actuals, recompose, flagCtx],
   )
 
   const onSelectStint = (id: string | null) => {

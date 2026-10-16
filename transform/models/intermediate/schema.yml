@@ -266,6 +266,18 @@ models:
       S2 (the dirty-air third) is classified on the median gap alone: < 1.5 s is dirty_air
       whatever DRS did (F48, WI-15a). drs_train and tow_zone arise only on the straight
       thirds (S1/S3), where DRS still splits a sub-1 s follow.
+      FD6 (CO-04): a lap with no measured gap to the car ahead is 'free_air' / 0.0 only
+      for the race leader (end-of-lap position 1), who has no car ahead. For any other
+      car, or an unknown position, every air-state term (air_state_dominant,
+      dirty_air_share_lap, tow_benefit_lap_s, dirty_air_intensity, time_in_dirty_air_s
+      and the thermal loads) is NULL: unmeasured, not clean air. The NULL wins over the
+      SC/VSC zeroing. A thermal load is also NULL while an unmeasured lap of the same
+      stint is inside its lookback. 2018_1 Australia and 2018_2 Bahrain have no telemetry
+      in bronze, so nearly all of their non-leader laps are NULL here; downstream that
+      excludes both races from the field base (int_field_pace_curve) and loses their
+      residuals and training labels. Elsewhere this is 2-32 laps a season.
+      The dominant state's tie-break is declared (T7): most frequent measured sector
+      state, ties to dirty_air > drs_train > tow_zone > free_air.
     tags: [intermediate]
     meta:
       family: physics
@@ -305,10 +317,13 @@ models:
           Real per-lap dirty-air exposure time (seconds), summed from actual
           ~10Hz telemetry sample durations where gap-to-car-ahead < 1.5s.
           Zeroed on SC/VSC laps (no real aero load at safety-car speeds).
-          Null-gap samples (~5%, car ahead unavailable) are treated as free
-          air, matching dirty_air_share_lap's existing convention.
+          Null-gap samples within a measured lap are not counted. A lap with
+          no gap sample at all is 0.0 for the race leader and NULL for anyone
+          else (FD6, CO-04), so not_null holds only where min_gap_s is measured.
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "min_gap_s is not null"
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
@@ -470,9 +485,10 @@ models:
         tests: [not_null, unique]
       - name: normalized_pace_s
         description: >
-          Lap time net of the dirty-air penalty. Null only where lap_time_s
-          itself is null (untimed lap); the solver filters those out rather
-          than having a pace fabricated for them.
+          Lap time net of the dirty-air penalty. Null where lap_time_s itself
+          is null (untimed lap) or the penalty is (unmeasured air state, FD6 /
+          CO-04); nothing is fabricated for them. The cliff fitter reads a
+          NULL here as the raw lap time.
         tests:
           # Two bounds rather than one. Normalization must never produce a
           # negative pace on any lap, but no useful upper bound holds across
@@ -494,9 +510,13 @@ models:
         description: >
           theta_time * time_in_dirty_air_s, bounded [0, 5.0] (same clamp as
           int_dirty_air_tax_component's dirty_air_tax_s). Zero on clean-air
-          laps by construction.
+          laps by construction. NULL where time_in_dirty_air_s is NULL: a
+          non-leader lap with no measured gap (FD6, CO-04), mostly 2018_1
+          Australia and 2018_2 Bahrain, which have no telemetry in bronze.
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "time_in_dirty_air_s is not null"
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
@@ -726,17 +746,20 @@ models:
           offset, so the pace total legitimately exceeds the bound while this
           column may not.
 
-          As of 08m (2026-09-16) the formula is
-          wear_gradient*age + cliff_ramp, where cliff_ramp is the
-          de-double-counted, moment-matched saturating post-onset term defined
-          once in macros/compound_cliff_wear.sql. It was previously
-          wear_gradient*age + 0.002*age^2 + severity*laps_past_cliff. Both of
-          the removed terms were unfounded: compound_cliff_severity is FITTED as
-          a level shift in seconds over a ~5.5-lap window and was being charged
-          once per lap (laps_past_cliff reaches 48), and the 0.002 quadratic was
-          a literal constant identical across all 438 seed cells that was never
-          fitted against anything. 08l measured them at 60.4% and 18.9% of the
-          seed's contribution to the ML target respectively.
+          The formula is wear_gradient*age + cliff_ramp, where cliff_ramp is
+          the saturating post-onset term defined once in
+          macros/compound_cliff_wear.sql: the fitted severity (the cliff step in
+          seconds, wear already excluded) ramped in linearly over
+          cliff_ramp_span_laps = 2.5 laps past onset and held flat after (the
+          plateau). CO-02 (2026-10-15) made the plateau the severity itself; from
+          08m until then it was 2.2 x (severity - 5.5 x wear_gradient), ramped over
+          5.5 laps, which took wear out of a number that had none in it (T1).
+          Before 08m (2026-09-16) the formula was
+          wear_gradient*age + 0.002*age^2 + severity*laps_past_cliff: severity
+          charged once per lap (laps_past_cliff reaches 48) and a 0.002 quadratic
+          that was a literal constant never fitted against anything. 08l measured
+          those two at 60.4% and 18.9% of the seed's contribution to the ML
+          target respectively.
 
           NULL exactly when age_in_stint is NULL (F39). DuckDB's LEAST skips NULL
           arguments, so an unknown age used to come out as the bound itself -- a
@@ -750,10 +773,11 @@ models:
         description: >
           The fitted linear wear slope (s/lap) for this lap's
           circuit x compound x season cell, passed through from
-          dim_compounds_season. Exposed by 08m alongside compound_cliff_severity
-          because any consumer needing a post-onset RATE needs both: severity is
-          a level shift, and de-double-counting it against this gradient is what
-          turns it into a rate. Use the cliff_ramp_slope_s_per_lap() macro.
+          dim_compounds_season. Exposed by 08m alongside compound_cliff_severity.
+          The pre-onset rate is this gradient; while the cliff ramp climbs the
+          rate adds severity / 2.5 (the ramp span). Since CO-02 the severity has no
+          wear in it, so it is not netted against this gradient. Use the
+          cliff_ramp_slope_s_per_lap() macro.
           NULL when the lap has no seed cell, which assert_compound_params_cover_mart
           confines to laps whose compound is itself unknown (F7): it is no longer
           COALESCEd to 0.
@@ -787,8 +811,16 @@ models:
   - name: int_field_pace_curve
     description: >
       Field-level baseline pace curve. Grain is (race_year, race_id, lap_number).
-      Computes rolling median of free-air pace for each lap to establish a clean baseline
-      uncontaminated by individual driver skill or traffic.
+      A 10% trimmed mean of fuel- and compound-corrected clean-air lap times at each lap
+      number, smoothed with a 5-cell centred rolling mean, to establish a baseline
+      uncontaminated by individual driver skill or traffic. CO-04: the smoother stays
+      inside one green segment (it does not cross an SC, VSC or red flag); the first two
+      green laps after an SC or red flag take their own trimmed mean; a cell built on
+      fewer than 5 cars has no base and feeds no neighbour. Only laps known to be in
+      clean air enter (an unmeasured air state, FD6, does not), so 2018_1 Australia and
+      2018_2 Bahrain, which have no telemetry in bronze, are EXCLUDED FROM THE FIELD
+      BASE: every cell there is thin, no lap has a base, and both races lose their
+      residuals and training labels for that reason (owner decision 2026-10-15).
     tags: [intermediate]
     meta:
       family: pace-baselines
@@ -806,6 +838,36 @@ models:
       - name: lap_number
         description: Lap number within race
         tests: [not_null]
+      - name: field_pace_smoothed_s
+        description: >
+          The field base, seconds. NULL when low_sample_flag is set (W44), and so on
+          every lap of 2018_1 and 2018_2 (FD6). Equal to field_pace_trimmed_mean_s on a
+          neutralised or restart-adjacent cell; otherwise the mean of the non-thin
+          trimmed means from smoothing_window_first_lap to smoothing_window_last_lap.
+      - name: low_sample_flag
+        description: TRUE when fewer than 5 eligible laps built the cell. Such a cell has no base.
+        tests: [not_null]
+      - name: is_neutralised_lap
+        description: >
+          TRUE when any driver's lap at this lap number carries an SC, VSC or red flag
+          (int_stint_geometry). Neutralised lap numbers split the smoother into green
+          segments (W43), and a neutralised cell averages only itself.
+        tests: [not_null]
+      - name: is_restart_adjacent_lap
+        description: >
+          TRUE on the first two green lap numbers after an SC or red-flag lap (not a VSC).
+          Such a cell's base is its own trimmed mean and it is in no other cell's window,
+          because the restart laps run slower than the green laps after them (-1.04 s and
+          -0.49 s of smoothing bias before CO-04 gave them their own mean).
+          Asserted by assert_field_pace_restart_cells_own_mean.
+        tests: [not_null]
+      - name: smoothing_window_first_lap
+        description: >
+          Lap number of the first cell averaged into field_pace_smoothed_s; NULL when the
+          base is NULL. With smoothing_window_last_lap it makes the W43/W44 rules
+          checkable from the output (assert_field_pace_smoothing_respects_boundaries).
+      - name: smoothing_window_last_lap
+        description: Lap number of the last cell averaged into field_pace_smoothed_s; NULL when the base is NULL.
 
   - name: int_track_evolution
     description: >
@@ -920,9 +982,14 @@ models:
           feeds DEGRADATION_TARGET and CLIFF_TARGET. 08q (2026-09-21) moved θ_air from an unfitted
           0.5 literal to the fitted +0.1310 s/lap; the WI-01 label bump moved it to 0.5033 (interim)
           and W40 to the declared 0.331 s/lap. Each move changes this component on every dirty-air
-          lap and requires a target rebuild plus a model version bump.
+          lap and requires a target rebuild plus a model version bump. 0.0 where the tax model has
+          no row (no measured base, so the residual is NULL anyway); NULL where it has a row with
+          an unknown tax (previous lap's air state unmeasured, FD6 / CO-04), and then
+          driver_skill_residual_s and total_explained_s are NULL too.
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "dirty_air_intensity_lag1 IS NOT NULL OR base_track_pace_s IS NULL"
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
@@ -933,12 +1000,12 @@ models:
           inside base_track_pace_s, WI-01/F22, and are not subtracted again here). Positive =
           slower than field baseline after all adjustments. WI-01/F1: NULL, not a
           COALESCE-defaulted number, when base_track_pace_s (no measured field curve row) or
-          compound_component_s (unknown tyre age, F39) is itself unmeasured -- see the model's
-          header comment.
+          compound_component_s (unknown tyre age, F39) is itself unmeasured, or the dirty-air tax
+          is (FD6 / CO-04) -- see the model's header comment.
         tests:
           - not_null:
               config:
-                where: "pace_delta_s IS NOT NULL AND compound_component_s IS NOT NULL"
+                where: "pace_delta_s IS NOT NULL AND compound_component_s IS NOT NULL AND dirty_air_tax_s IS NOT NULL"
       - name: total_explained_s
         description: >
           Sum of fuel + compound + constructor + dirty_air_tax (rubber/ambient are already inside
@@ -947,7 +1014,7 @@ models:
         tests:
           - not_null:
               config:
-                where: "pace_delta_s IS NOT NULL AND compound_component_s IS NOT NULL"
+                where: "pace_delta_s IS NOT NULL AND compound_component_s IS NOT NULL AND dirty_air_tax_s IS NOT NULL"
 
   - name: int_lap_anomaly_flags
     description: >
@@ -1055,26 +1122,45 @@ models:
         description: >
           Re-centred median pace-delta coefficient in seconds (not yet a fitted fixed effect
           see the model description). Positive = slower than field. Identified via
-          within-constructor, between-driver variation from teammate pairs.
-        tests: [not_null]
+          within-constructor, between-driver variation from teammate pairs. NULL (unknown,
+          not 0.0) when 10 or fewer of the team's clean laps have a measured field base
+          (CO-04): every team of 2018_1 / 2018_2 (no telemetry, FD6) and of 2018_3 / 2025_6
+          (tyre data quarantined by stg_lap_tyre_qa, so no lap has a tyre cost or a base),
+          which used to read 0.000 through a COALESCE(base, lap_time_s).
+        tests:
+          - not_null:
+              config:
+                where: "panel_observations_n > 10"
       - name: constructor_structural_pace_se_s
         description: >
           Standard error of the median pace delta (stddev / √n), not yet a clustered (CRV1)
           regression SE. Positive, ≥0. Captures uncertainty in the coefficient estimate.
+          NULL where the coefficient is.
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "panel_observations_n > 10"
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
                 max_value: 1.0
       - name: constructor_structural_pace_ci_low_s
-        description: 95% confidence interval lower bound
-        tests: [not_null]
+        description: 95% confidence interval lower bound. NULL where the coefficient is.
+        tests:
+          - not_null:
+              config:
+                where: "panel_observations_n > 10"
       - name: constructor_structural_pace_ci_high_s
-        description: 95% confidence interval upper bound
-        tests: [not_null]
+        description: 95% confidence interval upper bound. NULL where the coefficient is.
+        tests:
+          - not_null:
+              config:
+                where: "panel_observations_n > 10"
       - name: panel_observations_n
-        description: Sample size of clean laps used in the aggregate estimate
+        description: >
+          Clean laps with a measured field base that the estimate rests on (CO-04: laps with
+          no base are not counted). A row exists for every (race, constructor) with more
+          than 10 clean laps; the coefficient needs more than 10 of them measured.
         tests: [not_null]
       - name: clean_teammate_pair_laps_n
         description: >
@@ -1263,8 +1349,11 @@ models:
         description: PK, FK to stg_laps
         tests: [not_null, unique]
       - name: dirty_air_intensity_lag1
-        description: One-lap-lagged dirty-air intensity from int_lap_air_state
-        tests: [not_null]
+        description: >
+          One-lap-lagged dirty-air intensity (dirty_air_share_lap) from int_lap_air_state,
+          over the stint's full lap sequence; 0.0 on the stint's first lap. NULL when the
+          previous lap's air state is unmeasured (FD6 / CO-04: no gap and not the leader),
+          not 0.0. Asserted by assert_dirty_air_tax_null_only_when_unmeasured.
       - name: dirty_air_tax_s
         description: >
           Per-lap dirty-air slowdown in seconds. θ_air × dirty_air_intensity_lag1.
@@ -1275,16 +1364,21 @@ models:
           0.0 on a clean-air lap and θ_air on a dirty-air lap. A dose-response on
           the measured gap (int_lap_air_state.min_gap_s / stg_telemetry_position.distance_to_ahead_m)
           is the standing follow-up; removing the treated-arm filter is the identification fix, not
-          the measurement fix.
+          the measurement fix. NULL exactly where dirty_air_intensity_lag1 is (FD6 / CO-04).
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "dirty_air_intensity_lag1 is not null"
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
                 max_value: 5.0
       - name: dirty_air_tax_se_s
-        description: Standard error of the tax estimate via propagation
-        tests: [not_null]
+        description: Standard error of the tax estimate via propagation. NULL where the tax is.
+        tests:
+          - not_null:
+              config:
+                where: "dirty_air_intensity_lag1 is not null"
       - name: tax_calibration_confidence
         description: >
           Confidence in the tax [0, 1], as n / (n + 500) over the calibration sample n.
@@ -1301,8 +1395,9 @@ models:
                 min_value: 0
                 max_value: 1
       - name: cumulative_dirty_air_tax_race_s
-        description: Running race-cumulative sum of per-lap dirty-air tax for each driver
-        tests: [not_null]
+        description: >
+          Running race-cumulative sum of per-lap dirty-air tax for each driver, over laps with
+          a measured base. NULL from the first lap with an unknown tax (FD6 / CO-04) onward.
       - name: dirtiest_air_lap_in_race_flag
         description: TRUE on the lap where this driver's per-lap tax is at its maximum in the race
         tests: [not_null]
@@ -3017,8 +3112,9 @@ models:
   - name: int_lap_residual_stint_detrend
     description: >
       Per-stint linear drift of driver_skill_residual_s against lap_in_stint, fit on pre-cliff
-      laps only (cliff_onset_passed = FALSE) via OLS REGR_SLOPE. One row per stint with >= 3
-      pre-cliff laps; stints with fewer laps get drift_s_per_lap = 0.0 (no detrending, no data).
+      laps only (cliff_onset_passed = FALSE) via OLS REGR_SLOPE. One row per stint with a
+      pre-cliff lap; the slope is fit where >= 3 of those laps have a non-NULL residual (the
+      ones REGR_SLOPE uses; CO-04, was COUNT(*)), and is 0.0 otherwise (no detrending, no data).
       Consumed by fct_cliff_prediction_features to produce next_lap_degradation_jump_detrended_s
       the per-lap first-difference with this per-stint drift (fuel burn / track evolution leaking
       into the residual) removed. Diagnostic: pooled median slope ≈ -0.072 s/lap across ~5,950 stints.
@@ -3151,9 +3247,12 @@ models:
           overlay).
       - name: is_dirty_air_lap
         description: >
-          TRUE when air_state_dominant = 'dirty_air'.
+          TRUE when air_state_dominant = 'dirty_air'. NULL when the lap's air state is
+          unmeasured (air_state_dominant NULL: no gap and not the leader, FD6 / CO-04).
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "air_state_dominant is not null"
       - name: field_n
         description: >
           Ω laps on this (race, lap); >= var('isolation_min_field_n') by construction (T40).

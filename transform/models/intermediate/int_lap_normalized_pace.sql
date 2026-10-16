@@ -118,7 +118,12 @@ evolution AS (
 -- zero-exposure laps are KEPT -- see the header note on why.
 calibration_panel AS (
     SELECT
-        (l.lap_time_s - COALESCE(fp.field_pace_smoothed_s, l.lap_time_s))
+        -- No COALESCE on the base (CO-04): a lap with no measured base has no
+        -- partial residual and stays out of the fit (theta_time_estimate's
+        -- filter). COALESCE(base, lap_time_s) used to enter it as exactly
+        -- -fuel_component_s, a fabricated residual, on every thin cell and on
+        -- all of 2018_1 / 2018_2.
+        (l.lap_time_s - fp.field_pace_smoothed_s)
         - f.fuel_component_s AS partial_residual_s,
         a.time_in_dirty_air_s
     FROM air AS a
@@ -154,7 +159,8 @@ theta_time_estimate AS (
         ) AS theta_time,
         COUNT(*) AS calibration_sample_n
     FROM calibration_panel
-    WHERE partial_residual_s IS NOT NULL
+    -- Both sides measured: an unmeasured air state (FD6) is not zero exposure
+    WHERE partial_residual_s IS NOT NULL AND time_in_dirty_air_s IS NOT NULL
 ),
 
 applied AS (
@@ -175,13 +181,13 @@ applied AS (
         -- time_in_dirty_air_s (max observed 385s, 2020 Austrian GP), where the
         -- field genuinely sat bunched for minutes and an unbounded linear
         -- penalty would be nonsense.
-        GREATEST(
-            0.0,
-            LEAST(
-                5.0,
-                tt.theta_time * COALESCE(a.time_in_dirty_air_s, 0.0)
-            )
-        ) AS dirty_air_penalty_s
+        -- FD6 (CO-04): an unmeasured air state (NULL time_in_dirty_air_s: no
+        -- gap and not the leader) has an unknown penalty, so NULL, not 0.0.
+        -- clamp_or_null, not LEAST/GREATEST: those skip a NULL argument and
+        -- would return 0.0. The cliff fitter reads a NULL normalized_pace_s as
+        -- raw lap time, as it always did for these laps.
+        {{ clamp_or_null('tt.theta_time * a.time_in_dirty_air_s', '0.0', '5.0') }}
+            AS dirty_air_penalty_s
     FROM air AS a
     INNER JOIN laps AS l ON a.lap_id = l.lap_id
     CROSS JOIN theta_time_estimate AS tt
@@ -201,9 +207,9 @@ SELECT
     dirty_air_penalty_s,
     theta_time,
     calibration_sample_n,
-    -- NULL lap_time_s (untimed lap) propagates to NULL rather than being
-    -- coerced -- the solver filters those rows out, and a fabricated pace
-    -- would be worse than a missing one.
+    -- NULL lap_time_s (untimed lap) or NULL penalty (unmeasured air, FD6)
+    -- propagates to NULL rather than being coerced -- a fabricated pace would
+    -- be worse than a missing one.
     lap_time_s - dirty_air_penalty_s AS normalized_pace_s
 FROM applied
 ORDER BY race_year, race_id, driver_id, lap_number

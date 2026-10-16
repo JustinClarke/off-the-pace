@@ -1,6 +1,7 @@
 -- Per-stint linear drift of driver_skill_residual_s vs lap_in_stint, fit on
 -- pre-cliff laps.
--- Grain: stint_id (one row per stint that has >= 3 pre-cliff laps).
+-- Grain: stint_id, one row per stint with a pre-cliff lap; the slope is fit
+-- where >= 3 of them have a measured residual (0.0 otherwise).
 -- Output: drift_s_per_lap = OLS slope via REGR_SLOPE (negative = residual
 -- trending faster,
 --         i.e. fuel burn / track evolution leaking into the residual).
@@ -13,12 +14,17 @@
 --
 -- Step 0 diagnostic (2026-06-15): pooled median slope = -0.072 s/lap across
 -- 5952 stints.
+--
+-- CO-04 (2026-10-15): "3 pre-cliff laps" counts laps with a non-NULL
+-- residual, the only ones REGR_SLOPE uses. It used to be COUNT(*), so a stint
+-- with 3+ pre-cliff laps but only 2 measured residuals (a NULL base: thin
+-- cell, W44; or FD6) was detrended on a line through two points.
 {{ config(materialized='table') }}
 
 SELECT
     stint_id,
     CASE
-        WHEN COUNT(*) >= 3
+        WHEN COUNT(driver_skill_residual_s) >= 3
             THEN
                 COALESCE(REGR_SLOPE(driver_skill_residual_s, lap_in_stint), 0.0)
         ELSE 0.0

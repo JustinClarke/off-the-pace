@@ -123,14 +123,14 @@ The ONNX parity, predict-schema and target tests (5 + 3 + 1 = 9), followed by th
 
     **Why it matters:** the width is written from the feature contract and never read back from the booster, so it is a claim until this test measures it. The contract is per model (39 columns for the cliff classifier, 32 for the others), and the browser builds its feature vector from the declared width.
   </Accordion>
-  <Accordion title="Per-model input block is self-consistent (×5 models)" icon="equals">
+  <Accordion title="Per-model input block is self-consistent (×5 models)" icon="equal">
     **Source:** `test_manifest_contract.py::test_manifest_per_model_input_block_is_self_consistent` (parametrized × 5)
 
     **Assertion:** `n_features`, `shape[1]` and `len(feature_order)` are equal for each model.
 
     **Why it matters:** the three fields describe the same width. If they disagree, a consumer reading a different one of them would build a different vector.
   </Accordion>
-  <Accordion title="Feature order matches the masked contract (×5 models)" icon="arrow-down-1-9">
+  <Accordion title="Feature order matches the masked contract (×5 models)" icon="arrow-down-1-0">
     **Source:** `test_manifest_contract.py::test_manifest_feature_order_matches_the_masked_contract` (parametrized × 5)
 
     **Assertion:** each model's shipped `feature_order` equals `feature_columns_for(target)`, including the per-model mask.
@@ -182,14 +182,14 @@ The ONNX parity, predict-schema and target tests (5 + 3 + 1 = 9), followed by th
 
     **Why it matters:** the stint-life graph emits a shifted log-scale margin, and the browser turns it into laps using constants that exist only in the manifest. A missing or null constant would produce numbers that look like laps and are not.
   </Accordion>
-  <Accordion title="Margin offset reconstructs the booster" icon="rotate">
+  <Accordion title="Margin offset reconstructs the booster" icon="rotate-cw">
     **Source:** `test_manifest_contract.py::test_survival_margin_offset_actually_reconstructs_the_booster`
 
     **Assertion:** on 200 NaN-bearing rows, laps computed from the ONNX margin plus `margin_offset` match laps computed from the `.bst` booster within the export tolerance. The test skips when the artefact pair is absent.
 
     **Why it matters:** the export step checks the offset inside the process that wrote it. This test re-reads both files from disk and shows the manifest constants really turn one into the other, which is the property the browser depends on.
   </Accordion>
-  <Accordion title="Predictions schema carries the life band" icon="arrows-left-right">
+  <Accordion title="Predictions schema carries the life band" icon="arrow-left-right">
     **Source:** `test_manifest_contract.py::test_predictions_schema_carries_the_life_band`
 
     **Assertion:** `predictions_schema` includes the stint-life point prediction and its p10 and p90 columns.
@@ -201,7 +201,7 @@ The ONNX parity, predict-schema and target tests (5 + 3 + 1 = 9), followed by th
 ### Interval and ceiling contract on the model card
 
 <AccordionGroup>
-  <Accordion title="Every win carries an interval" icon="ruler-horizontal">
+  <Accordion title="Every win carries an interval" icon="ruler">
     **Source:** `test_manifest_contract.py::test_every_beats_baseline_claim_carries_an_interval`
 
     **Assertion:** `assert_claims_carry_intervals` accepts the model card on disk. Skips when the card is absent.
@@ -215,14 +215,14 @@ The ONNX parity, predict-schema and target tests (5 + 3 + 1 = 9), followed by th
 
     **Why it matters:** a gate ships with a proof that it fires. The three mutations are three different ways a card could go quiet.
   </Accordion>
-  <Accordion title="Claims inside noise are recorded" icon="triangle-exclamation">
+  <Accordion title="Claims inside noise are recorded" icon="triangle-alert">
     **Source:** `test_manifest_contract.py::test_claims_inside_noise_are_recorded_not_deleted`
 
     **Assertion:** the card's `validation` block has a `claims_inside_noise` list, and its entries are a subset of the model names on the card.
 
     **Why it matters:** a claim that fails its interval is the most informative line on the card. The key has to exist even when the list is empty, so "every claim survived" and "nobody checked" cannot look the same.
   </Accordion>
-  <Accordion title="Attainable ceiling is published per model" icon="bullseye">
+  <Accordion title="Attainable ceiling is published per model" icon="target">
     **Source:** `test_manifest_contract.py::test_attainable_ceiling_is_published_per_model`
 
     **Assertion:** every model on the card has an `attainable` block with a `basis` and a `fraction_of_attainable` (or the in-sample-oracle variant).
@@ -256,7 +256,7 @@ The ONNX parity, predict-schema and target tests (5 + 3 + 1 = 9), followed by th
   <Card title="ONNX export" href="/ml/onnx" icon="cpu">
     The export stage and why parity must be exact in depth.
   </Card>
-  <Card title="CI overview" href="/ml/ci/overview" icon="vial">
+  <Card title="CI overview" href="/ml/ci/overview" icon="flask-conical">
     All 270 tests where these sit in the full contract.
   </Card>
   <Card title="Features & Targets" href="/ml/features-and-targets" icon="layers">

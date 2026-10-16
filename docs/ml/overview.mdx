@@ -45,7 +45,7 @@ All five models read from a single contracted mart: `fct_cliff_prediction_featur
   <Card title="How much pace will the tyre lose?" icon="chart-line">
     Three quantile regressors p10, p50, and p90 predict `next_lap_degradation_jump_s`. Together they form a calibrated 80% prediction interval: p50 is the best single guess; p10 and p90 bound it. The target is legitimately negative roughly 44% of the time a tyre coming into its working window genuinely gains pace.
   </Card>
-  <Card title="How close is the cliff?" icon="triangle-exclamation">
+  <Card title="How close is the cliff?" icon="triangle-alert">
     A 4-class classifier predicts `laps_until_cliff_class`: `0_to_2`, `3_to_5`, `6_plus`, or `none_in_stint`. Most laps have no cliff ahead at all-the balance is roughly 9 / 7 / 9 / 76 percent-so the model trains with balanced class weights to keep the cliff-window classes from being drowned out by `none_in_stint`.
   </Card>
 </CardGroup>
@@ -104,7 +104,7 @@ make ml-test  # 270 tests: leakage spine, ONNX parity, survival/AFT contract, ve
   <Card title="Validation & Trust" href="/ml/validation" icon="shield-check">
     Season-grouped time-series cross-validation, the leakage spine, calibration coverage, and the `MAX+1`-derived holdout policy.
   </Card>
-  <Card title="The CI Contract" href="/ml/ci/overview" icon="vial">
+  <Card title="The CI Contract" href="/ml/ci/overview" icon="flask-conical">
     All 270 tests 34 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 19 evaluation gates, 5 CRPS, 3 target/censoring, 36 survival/AFT, 30 version-contract, 19 attainable-ceiling, 33 within-stint attribution, 31 fit-parity, 15 search-space, 37 power-law tyre curve grouped and explained.
   </Card>
   <Card title="Model Reference" href="/reference/ml/degradation-model" icon="database">

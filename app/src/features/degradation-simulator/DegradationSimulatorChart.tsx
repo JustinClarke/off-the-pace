@@ -185,7 +185,13 @@ function lifeColorFrom(p10: number): string {
  * far finer than a censored fit can resolve. The median is now shown to the lap,
  * and the band is shown next to it rather than left implicit.
  */
-function LifeGauge({ median, p10, p90 }: { median: number; p10: number; p90: number }) {
+function LifeGauge({ median, p10, p90, cappedAtFlag = false, flagChance = null }: {
+  median: number; p10: number; p90: number
+  /** CO-08: the median was capped at laps to the flag (the tyre would outlast the race). */
+  cappedAtFlag?: boolean
+  /** CO-08: calibrated chance these tyres reach the flag (final stint + lookup only). */
+  flagChance?: number | null
+}) {
   const color = lifeColorFrom(p10)
   const pos = (v: number) => Math.max(0, Math.min(100, (v / LIFE_HORIZON_LAPS) * 100))
   const left = pos(p10)
@@ -195,7 +201,7 @@ function LifeGauge({ median, p10, p90 }: { median: number; p10: number; p90: num
       <h3 className="text-sm font-semibold">Remaining stint life</h3>
       <div className="flex items-end gap-2">
         <span className="text-4xl font-bold tabular-nums" style={{ color }}>{Math.round(median)}</span>
-        <span className="text-sm text-muted mb-1">laps (median)</span>
+        <span className="text-sm text-muted mb-1">{cappedAtFlag ? 'laps · to the flag' : 'laps (median)'}</span>
       </div>
       <div className="relative h-2.5 rounded-full bg-white/5 overflow-hidden">
         <div
@@ -214,8 +220,16 @@ function LifeGauge({ median, p10, p90 }: { median: number; p10: number; p90: num
       <p className="text-xs text-muted/70">
         Log-normal AFT median, with the 10th-90th percentile of the same fitted
         distribution. Right-censored stints (the race ended before the tyre did) are
-        fitted as "at least this long", not as observed retirements.
+        fitted as "at least this long", not as observed retirements. A stint cannot
+        outlast the race, so every value is capped at the laps left to the flag.
       </p>
+      {flagChance !== null && (
+        <p className="text-xs text-muted">
+          <span className="font-semibold tabular-nums text-[rgb(var(--color-text))]">{Math.round(flagChance * 100)}%</span>
+          {' '}chance to reach the flag on these tyres. A model estimate, recalibrated on
+          past seasons; it carries its own uncertainty.
+        </p>
+      )}
     </div>
   )
 }
@@ -298,7 +312,10 @@ function ResultHero({ result, onnxReady, tyreColor }: { result: SimulatorResult;
       </MetricCell>
       <MetricCell
         label="Remaining tyre life"
-        sub={onnxReady ? `median · p10-p90 ${Math.round(lifeP10)}-${Math.round(lifeP90)}` : 'model offline'}
+        sub={onnxReady
+          ? `${result.lifeCappedAtFlag ? 'to the flag' : 'median'} · p10-p90 ${Math.round(lifeP10)}-${Math.round(lifeP90)}`
+            + (result.flagChance !== null ? ` · ${Math.round(result.flagChance * 100)}% to make the flag` : '')
+          : 'model offline'}
       >
         <span className="font-mono text-[26px] font-bold tabular-nums" style={{ color: onnxReady ? lifeColor : '#64748b' }}>
           {onnxReady ? Math.round(life) : ' '}
@@ -430,7 +447,8 @@ export default function DegradationSimulatorChart({ result, onnxLoading, onnxErr
         </div>
         <div className="rounded-xl border border-border bg-white/[0.02] p-4">
           {onnxReady
-            ? <LifeGauge median={result.remainingLifeLaps} p10={result.remainingLifeP10} p90={result.remainingLifeP90} />
+            ? <LifeGauge median={result.remainingLifeLaps} p10={result.remainingLifeP10} p90={result.remainingLifeP90}
+                cappedAtFlag={result.lifeCappedAtFlag} flagChance={result.flagChance} />
             : <OnnxNote error={onnxError} loading={onnxLoading} />}
         </div>
       </div>

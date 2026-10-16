@@ -97,6 +97,9 @@ class AFTBooster:
         }
         self.booster: xgb.Booster | None = None
         self.feature_names: list[str] | None = None
+        # Set by fit() from the rows it fits (SV.aft_base_score), unless the caller
+        # pinned `base_score` in params. Kept for the training log.
+        self.base_score: float | None = None
 
     def _dmatrix(self, X, y=None, is_censored=None, sample_weight=None) -> xgb.DMatrix:
         d = xgb.DMatrix(X, feature_names=list(X.columns), missing=np.nan)
@@ -115,7 +118,13 @@ class AFTBooster:
                 "treated as an observed death and the survival framing is inert.")
         self.feature_names = list(X.columns)
         d = self._dmatrix(X, y, is_censored, sample_weight)
-        self.booster = xgb.train(self.params, d, num_boost_round=self.num_boost_round)
+        # Start the trees at the label's log-mean, not XGBoost's 0.5 (= margin ln 0.5).
+        # See SV.aft_base_score. A base_score passed in params is respected as given.
+        fit_params = dict(self.params)
+        if "base_score" not in fit_params:
+            fit_params["base_score"] = SV.aft_base_score(y, sample_weight)
+        self.base_score = float(fit_params["base_score"])
+        self.booster = xgb.train(fit_params, d, num_boost_round=self.num_boost_round)
         return self
 
     def predict_margin(self, X) -> np.ndarray:
@@ -333,6 +342,9 @@ def train_one(target: str, *, version: str, params: dict | None,
         "sample_weight_scheme": sample_weight_scheme(spec),
         **({"aft": {"distribution": S.AFT_DISTRIBUTION, "scale": scale,
                     "label_shift": S.AFT_LABEL_SHIFT,
+                    # The shipped booster's starting point, in time units; the margin
+                    # intercept is its log. Before the fix this was always 0.5.
+                    "base_score": getattr(final, "base_score", None),
                     "c_index_cv": float(np.mean([m["c_index"] for m in fold_metrics])),
                     "censored_share": float(
                         bundle.meta_train[S.STINT_LIFE_CENSOR_COLUMN].mean())}}

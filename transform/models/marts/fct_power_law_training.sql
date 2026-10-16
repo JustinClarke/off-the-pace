@@ -16,7 +16,8 @@
 --   * stint_start_fuel_kg: mean over the cell's stints of the fuel load on
 --     the stint's first lap (int_lap_fuel_state).
 --   * dirty_air_share: mean dirty_air_share_lap over the cell's laps
---     (fct_cliff_prediction_features, this one column only).
+--     (fct_cliff_prediction_features, this one column only), over laps with a
+--     measured air state; a cell with none is left out (FD6, see the WHERE).
 --   * constructor_pace_s: lap-weighted mean of
 --     int_constructor_structural_pace's coefficient over the cell's laps, a
 --     team-level proxy. Car setup is not observed anywhere in this warehouse.
@@ -177,3 +178,11 @@ LEFT JOIN circuit_season_temp AS cst
     ON
         c.circuit_id = cst.circuit_id
         AND c.race_year = cst.race_year
+-- FD6 (CO-04): a cell whose dirty-air share is unknown (no lap of it has a
+-- measured air state) has no honest value for that feature, and a NaN
+-- feature is what this frame's allowlist exists to keep out (W26). Only
+-- 2018_1 Australia and 2018_2 Bahrain, which have no telemetry in bronze, so
+-- they are out of the field base too (owner decision 2026-10-15); their
+-- constructor_pace_s was a 0.0 fill for the same reason (no constructor row
+-- without a base). Before CO-04 the share was a 'free_air' guess there.
+WHERE cf.dirty_air_share IS NOT NULL

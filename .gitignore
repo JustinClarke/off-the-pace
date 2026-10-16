@@ -118,4 +118,5 @@ agents/
 data/dev.duckdb.tmp/
 data/ci.duckdb.tmp/
 graphify-out/
+/Users/justin/github/off-the-pace/_roadmap/_archive
 docs/project-graph.html

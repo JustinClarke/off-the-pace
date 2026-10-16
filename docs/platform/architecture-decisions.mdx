@@ -77,7 +77,7 @@ These decisions were made to minimise infrastructure cost, eliminate server-side
 
     **Rationale:** Preserves the full dataset for trend analysis; lap-time degradation signals are available as a fallback; clean to document and test.
 
-    **Tradeoff:** Feature inconsistency for 2018 Rd1/Rd2 (laps-only vs. full telemetry). The ML layer handles this via conditional feature selection `fct_lap_degradation` includes both `lap_time_delta` and `speed_delta` where available.
+    **Tradeoff:** Feature inconsistency for 2018 Rd1/Rd2 (laps-only vs. full telemetry). The ML layer handles this via conditional feature selection `fct_lap_degradation` includes both `lap_time_delta` and `speed_delta` where available. Since CO-04 (2026-10-15) the missing gap is recorded as unknown (NULL), not clear air, so both races are excluded from the field base and lose their residuals and training labels. The owner chose to keep them out rather than guess their air state.
   </Accordion>
 
   <Accordion title="ADR-010 CDN publish pipeline with version-stamped cache-busting" icon="refresh-cw">

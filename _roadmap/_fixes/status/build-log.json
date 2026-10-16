@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off-the-pace fixes (transform forensic audit, F1-F54)",
-  "updated": "2026-10-10T12:00:00Z",
+  "updated": "2026-10-15T20:00:00Z",
   "pointer": null,
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -1742,6 +1742,45 @@
       "gates_run": "None. No label, mart or model artefact was changed; scratch warehouse only.",
       "next_command": "python3 _roadmap/_fixes/status/board.py --check",
       "next_action": "Decide F9 wiring for v15: B (0.5 weight, costless at n=5, still keyed on the seed) or C (include all, seed-independent, cliff F1 -1.3x floor / quantiles +1.3x). Then fix-or-delete training_weight_f9, carry it through fct_cliff_prediction_features, read it in features.py/train.py, rebuild and retrain with the v15 bump."
+    },
+    {
+      "date": "2026-10-15T18:00:00Z",
+      "session": "2026-10-15 audit cross-check. No item, decision or watch rule on this board was changed; the open work moved to _roadmap/_ai-integration (CO-01..CO-07)",
+      "landed": [
+        "Nothing on this board. Each entry below is contradicted by the tree; its open work has one owner on _roadmap/_ai-integration, and that board's AI-03 corrects these entries once the work lands."
+      ],
+      "verified": [
+        "W43 (resolved 'CLOSED/COMMITTED in session'): int_field_pace_curve.sql:154 still smooths ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING with no neutralisation boundary. Owner: CO-04.",
+        "W44 (same resolution): int_lap_residual_decomposed.sql never reads low_sample_flag. Owner: CO-04.",
+        "FD6 (ruled B) / WI-09b (closed as superseded by WI-01): int_lap_air_state.sql:144, 213, 219, 221 still write 'free_air' / 0.0 for a missing gap. 2018 has 8.1% non-leader laps with no gap; elsewhere 98-100% of NULL gaps are the race leader (correctly free air). Owner: CO-04.",
+        "WI-02b (LANDED): F9 still not wired, as this log's 2026-10-10 entry says. Owner: CO-03, ruling CD1 on the AI board.",
+        "W59 (resolved 'v15 gates passed'): gate logs dated 2026-09-29, before the 2026-10-03 seed re-estimate; ml/models/*_v15.bst byte-identical to *_v15uni.bst; no v15 ONNX; manifests and MODEL_VERSION_DEFAULT at v14. Owner: CO-03.",
+        "W60 and the 2026-10-03 entry ('W70 completed', '2018 labels now sane'): there is no W70 rule in this log; all 62 2018 rows of compound_cliff_params.csv equal the 09-28 seed and are class defaults; the offset var is {}. Owner: CO-02, ruling CD2 on the AI board.",
+        "W4 (open): the work is committed in a9fe181; ingestion tests 56 passed, 1 failed (test_markdown_table_keeps_its_season_range, a stale test: MARKDOWN_SEASONS is 2018-2025 by design). Owner: CO-05."
+      ],
+      "assumed": [
+        "Recorded resolutions were left as written rather than reopened here, so each finding is tracked once (on the AI board), not twice."
+      ],
+      "gates_run": "board.py --check on all three boards; ingestion pytest (test_bronze_verification.py, test_ingest_hardening.py); read-only queries on data/dev.duckdb.",
+      "next_action": "Work continues on _roadmap/_ai-integration: pointer CO-01; rulings CD1, CD2, CD3 and AD1 are open there.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-15T20:00:00Z",
+      "session": "Ruling recorded: F9 closed as decided not wired (CD1 = A on the ai-integration board)",
+      "landed": [
+        "Nothing changed on this board's items. WI-02b's F9 half is decided: keep dropping 'mistake' laps; training_weight_f9 stays unused. CO-03 on the ai-integration board owns removing the column.",
+        "CD2 = C: 2018 cliff values are fitted on 2018's own data (in-sample, never for honest evaluation); owner CO-02."
+      ],
+      "verified": [
+        "training_weight_f9 is read by nothing (grep over transform, ml, app, scripts, docs)."
+      ],
+      "assumed": [
+        "Earlier F9 history entries are left as written."
+      ],
+      "gates_run": "board.py --check",
+      "next_action": "Work continues on _roadmap/_ai-integration (pointer CO-01).",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
     }
   ],
   "watch_vocabulary": {

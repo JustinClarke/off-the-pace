@@ -189,11 +189,11 @@ compound_wear_per_age AS (
         --
         -- 08m: this model is the SECOND of six sites that consumed
         -- compound_cliff_severity as a per-lap rate. It is fitted as a LEVEL
-        -- SHIFT across the onset over a ~5.5-lap window (survival.py::
-        -- estimate_cliff_severity), so multiplying it by laps-past-onset charged
-        -- a ~5.5-lap magnitude once per lap. Replaced with the identical
-        -- de-double-counted, moment-matched saturating ramp
-        -- int_compound_cliff_predicted now uses -- the two curves must stay
+        -- SHIFT across the onset (the step in seconds, wear excluded;
+        -- survival.py::estimate_cliff_severity), so multiplying it by
+        -- laps-past-onset charged the whole step once per lap. Replaced with the
+        -- identical saturating ramp (plateau = severity, reached at onset + 2.5
+        -- laps since CO-02) that int_compound_cliff_predicted uses -- the two curves must stay
         -- equivalent or the DP's running cost diverges from the ML target's
         -- lineage, which is exactly the split this item exists to close. The
         -- 0.002*age^2 quadratic is dropped here too: never fitted, identical

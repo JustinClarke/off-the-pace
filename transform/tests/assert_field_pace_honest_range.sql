@@ -1,7 +1,8 @@
 {{ config(tags=['intermediate']) }}
 
 -- Field pace honest range test: field_pace_smoothed_s / race_fastest_lap_s
--- should be between 0.920 and 1.070 for normal dry, non-SC races/laps.
+-- should be between 0.920 and 1.070 for normal dry, non-SC races/laps
+-- (restart laps excluded too, see the WHERE clause).
 --
 -- Floor moved 0.945 -> 0.920 in WI-01's verification pass (2026-09-27, ruled).
 -- Measured on the post-pass build (unknown-tyre laps out of the base, theta
@@ -62,6 +63,13 @@ LEFT JOIN sc_laps sc USING (race_year, race_id, lap_number)
 WHERE w.race_id IS NULL             -- exclude wet races
   AND sc.lap_number IS NULL         -- exclude SC/VSC laps
   AND f.low_sample_flag = FALSE     -- exclude low sample laps
+  -- exclude restart laps (CO-04): since the owner's 2026-10-15 decision the
+  -- first two green laps after an SC/red flag take their own trimmed mean
+  -- instead of being smoothed toward the faster laps after them. They really
+  -- are slow (2021_4 lap 11, the Spanish GP restart, is 7.3% off the race's
+  -- fastest lap on 10 cars), so they are outside "normal racing laps" the way
+  -- the SC/VSC laps above are, not a fault in the base.
+  AND NOT f.is_restart_adjacent_lap
   AND (
       f.field_pace_smoothed_s / rf.race_fastest_lap_s < 0.920
       OR f.field_pace_smoothed_s / rf.race_fastest_lap_s > 1.070

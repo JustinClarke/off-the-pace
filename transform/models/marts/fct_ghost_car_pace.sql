@@ -230,17 +230,17 @@ ghost_recombined AS (
         --
         -- 08m: this was the FIFTH site consuming compound_cliff_severity as a
         -- per-lap rate -- severity * hinge, growing without limit in the
-        -- asymmetric zone. severity is fitted as a LEVEL SHIFT over a ~5.5-lap
-        -- window (survival.py::estimate_cliff_severity), so it now goes through
-        -- the same de-double-counted, moment-matched saturating ramp as every
-        -- other site; see macros/compound_cliff_wear.sql.
+        -- asymmetric zone. severity is fitted as a LEVEL SHIFT (the cliff step
+        -- in seconds, wear excluded; survival.py::estimate_cliff_severity), so
+        -- it goes through the same saturating ramp as every other site: the
+        -- plateau is the severity itself, reached at onset + 2.5 laps (CO-02);
+        -- see macros/compound_cliff_wear.sql.
         --
-        -- The +/-2.0 s guardrail clip is KEPT but is now nearly inert by
-        -- construction: ramp() is in [0,1], so the whole term is bounded by the
-        -- plateau (median 0.94 s, max 3.13 s across the 438-row seed) instead of
-        -- growing with age. The clip's original justification cited "severity up
-        -- to ~3.3 s/lap"; the seed's severity max is 1.5 (winsorised by the
-        -- fitter), so that figure was stale as well as mis-united.
+        -- The +/-2.0 s guardrail clip is KEPT but is inert by construction:
+        -- ramp() is in [0,1], so the whole term is bounded by the plateau, which
+        -- since CO-02 is the severity (at most 1.5 s, winsorised by the fitter),
+        -- instead of growing with age. The clip's original justification cited
+        -- "severity up to ~3.3 s/lap", which was stale as well as mis-united.
         LEAST(GREATEST(
             {{ cliff_plateau_s('el.compound_cliff_severity',
                                'el.compound_wear_gradient') }} * (

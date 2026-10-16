@@ -38,6 +38,10 @@ export interface LapPrediction {
   /** 10th/90th percentile of the same fitted distribution. */
   remaining_stint_life_p10_laps: number
   remaining_stint_life_p90_laps: number
+  /** The AFT scale and label shift the life band came from (CO-08: the flag chance is
+   *  computed from the same distribution). Optional so hand-built fixtures stay valid. */
+  remaining_stint_life_aft_scale?: number
+  remaining_stint_life_label_shift?: number
 }
 
 function clamp(x: number, lo: number, hi: number): number {
@@ -67,6 +71,8 @@ export function postProcessScalars(
     remaining_stint_life_laps: band.median,
     remaining_stint_life_p10_laps: band.p10,
     remaining_stint_life_p90_laps: band.p90,
+    remaining_stint_life_aft_scale: lifeOut.aft_scale,
+    remaining_stint_life_label_shift: lifeOut.label_shift,
   }
 }
 

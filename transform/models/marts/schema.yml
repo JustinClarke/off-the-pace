@@ -251,29 +251,28 @@ models:
         description: >
           1.0 when the lap's S2 median gap to the car ahead is under 1.5 s, else 0.0; zeroed
           on SC/VSC/red-flag laps. Gap-only since F48 (WI-15a): DRS no longer turns a sub-1 s
-          S2 follow into a clean lap (see int_lap_air_state.s2_drs_active).
+          S2 follow into a clean lap (see int_lap_air_state.s2_drs_active). NULL when the
+          lap's air state is unmeasured (no gap and not the leader; FD6 / CO-04), mostly
+          2018_1 Australia and 2018_2 Bahrain, which have no telemetry in bronze.
         data_type: decimal(2,1)
-        constraints:
-          - type: not_null
       - name: dirty_air_thermal_load_surface
-        description: EW dirty air thermal load on tyre surface
+        description: >
+          EW dirty air thermal load on tyre surface. NULL while an unmeasured lap of the
+          stint is inside its 5-lap lookback (FD6 / CO-04).
         data_type: double
-        constraints:
-          - type: not_null
       - name: dirty_air_thermal_load_bulk
-        description: EW dirty air thermal load on tyre bulk
+        description: >
+          EW dirty air thermal load on tyre bulk. NULL while an unmeasured lap of the stint
+          is inside its 10-lap lookback (FD6 / CO-04).
         data_type: double
-        constraints:
-          - type: not_null
       - name: air_state_dominant
         description: >
-          Dominant (modal) air state over the lap's three thirds (free_air, tow_zone,
-          drs_train, dirty_air). Since F48 (WI-15a) the S2 third is dirty_air whenever its
-          median gap is under 1.5 s, so drs_train and tow_zone come from the straight
-          thirds only.
+          Dominant air state over the lap's measured thirds (free_air, tow_zone, drs_train,
+          dirty_air): the most frequent, ties to dirty_air > drs_train > tow_zone > free_air
+          (T7, CO-04). Since F48 (WI-15a) the S2 third is dirty_air whenever its median gap is
+          under 1.5 s, so drs_train and tow_zone come from the straight thirds only. NULL when
+          the lap's air state is unmeasured (FD6 / CO-04), as dirty_air_share_lap.
         data_type: varchar
-        constraints:
-          - type: not_null
       # ── Proximity, from the position channel ────────────────────
       # Present in the mart, deliberately not yet in the ML feature contract --
       # the contract moves only if the ablation earns it. The five share/time
@@ -1336,18 +1335,23 @@ models:
         tests:
           - not_null
       - name: dirty_air_tax_s
-        description: Per-lap dirty-air slowdown component.
-        tests:
-          - not_null
-      - name: driver_skill_residual_s
         description: >
-          Residual after fuel/compound/constructor/dirty-air (driver skill). WI-01/F1:
-          NULL, not a fabricated number, when base_track_pace_s or compound_component_s
-          is itself unmeasured -- see pace_delta_s.
+          Per-lap dirty-air slowdown component. NULL on a lap with a measured base whose
+          previous lap's air state is unmeasured (FD6 / CO-04); driver_skill_residual_s is
+          NULL there too.
         tests:
           - not_null:
               config:
-                where: "pace_delta_s IS NOT NULL AND compound_component_s IS NOT NULL"
+                where: "base_track_pace_s IS NULL OR compound_component_s IS NULL OR driver_skill_residual_s IS NOT NULL"
+      - name: driver_skill_residual_s
+        description: >
+          Residual after fuel/compound/constructor/dirty-air (driver skill). WI-01/F1:
+          NULL, not a fabricated number, when base_track_pace_s, compound_component_s or
+          dirty_air_tax_s is itself unmeasured -- see pace_delta_s.
+        tests:
+          - not_null:
+              config:
+                where: "pace_delta_s IS NOT NULL AND compound_component_s IS NOT NULL AND dirty_air_tax_s IS NOT NULL"
       - name: base_track_pace_s
         description: >
           Field pace baseline (int_field_pace_curve), fuel- and compound-neutral.
@@ -2347,7 +2351,7 @@ models:
       One row per driver-season, shaped for plain-language explanations ("22nd of 22").
       Grain: (driver_id, race_year). rating_s is int_era_normalized_driver_rating's
       era_adjusted_rating (shrunk teammate-relative gap, seconds; negative = faster),
-      ranked within the season so rank 1 is the most negative. The primary constructor
+      ranked within the season by that gap (teammate_gap_rank 1 = most negative; not a field-speed rank). The primary constructor
       is the one the driver ran the most clean laps for; the teammate is the other
       driver with the most clean laps for that constructor. Component means are over
       ml_eligible laps of fct_lap_residuals (seconds, positive = slower).
@@ -2364,8 +2368,11 @@ models:
       - name: rating_s
         description: Season rating (era_adjusted_rating), seconds. Negative = faster than teammate(s).
         tests: [not_null]
-      - name: rank
-        description: Rank of rating_s within the season; 1 = fastest. Ties share a rank.
+      - name: teammate_gap_rank
+        description: >
+          Rank of rating_s (the gap to one's own teammate) within the season; 1 = furthest
+          ahead of his teammate. Not a ranking of driver speed against the field: a driver in
+          a weak car can rank high and one in a strong car can rank low. Ties share a rank.
         tests:
           - not_null
           - dbt_utils.accepted_range:
@@ -2378,15 +2385,15 @@ models:
           - dbt_utils.accepted_range:
               arguments:
                 min_value: 1
-      - name: percentile
-        description: 1 - (rank - 1) / (n_drivers - 1). 1.0 = top of the season, 0.0 = bottom.
+      - name: teammate_gap_percentile
+        description: 1 - (teammate_gap_rank - 1) / (n_drivers - 1). 1.0 = largest lead over his own teammate in the season, 0.0 = largest deficit. Not a field-speed percentile.
         tests:
           - dbt_utils.accepted_range:
               arguments:
                 min_value: 0
                 max_value: 1
               config:
-                where: "percentile is not null"
+                where: "teammate_gap_percentile is not null"
       - name: ci_low
         description: Lower bound of the 95% CI on rating_s (era_adjusted_rating_ci_low_s).
       - name: ci_high
@@ -2401,7 +2408,10 @@ models:
       - name: teammate_id
         description: Primary-constructor teammate with the most clean laps. Null when there is none.
       - name: teammate_gap_s
-        description: rating_s minus the teammate's rating_s, seconds. Negative = faster than the teammate.
+        description: >
+          Equal to rating_s, which already is the season-average gap to his teammate(s), pooled
+          over every teammate he raced (teammate_id is only the one with the most clean laps).
+          Seconds, negative = faster than the teammate. NULL when teammate_id is NULL.
       - name: constructor_id
         description: Primary constructor for the season (most clean laps).
         tests: [not_null]
@@ -2476,10 +2486,12 @@ models:
     description: >
       One row per driver-race, shaped for plain-language explanations ("why so slow at
       Monza"). Grain: (driver_id, race_id). rating_s is int_driver_race_skill_loro's
-      driver_skill_loro_s (median lap-by-lap gap to the teammate; negative = faster),
-      ranked within the race. ci_low / ci_high are rating_s +/- 1.96 x the standard
-      error of clean-lap driver_skill_residual_s: a lap-noise band, not the season
-      Bayesian CI. Component means are over ml_eligible laps (seconds, positive = slower).
+      driver_skill_loro_s (median lap-by-lap gap to the teammate; negative = faster).
+      There is no within-race rank: ordering every driver's gap to his own teammate
+      across the field reads as a speed ranking and is not one (CO-01/T4), so it was
+      dropped. ci_low / ci_high are rating_s +/- 1.96 x the standard error of clean-lap
+      driver_skill_residual_s: a lap-noise band, not the season Bayesian CI. Component
+      means are over ml_eligible laps (seconds, positive = slower).
     tags: [marts]
     meta:
       family: marts
@@ -2498,13 +2510,6 @@ models:
       - name: rating_s
         description: Race rating (driver_skill_loro_s), seconds. Negative = faster than the teammate.
         tests: [not_null]
-      - name: rank
-        description: Rank of rating_s within the race; 1 = fastest. Ties share a rank.
-        tests:
-          - not_null
-          - dbt_utils.accepted_range:
-              arguments:
-                min_value: 1
       - name: n_drivers
         description: Number of rated drivers in the race.
         tests:
@@ -2512,15 +2517,6 @@ models:
           - dbt_utils.accepted_range:
               arguments:
                 min_value: 1
-      - name: percentile
-        description: 1 - (rank - 1) / (n_drivers - 1). 1.0 = top of the race, 0.0 = bottom.
-        tests:
-          - dbt_utils.accepted_range:
-              arguments:
-                min_value: 0
-                max_value: 1
-              config:
-                where: "percentile is not null"
       - name: ci_low
         description: rating_s - 1.96 x standard error of clean-lap driver_skill_residual_s.
       - name: ci_high
@@ -2536,7 +2532,10 @@ models:
       - name: teammate_id
         description: Same-race teammate with the most clean laps. Null when there is none.
       - name: teammate_gap_s
-        description: rating_s minus the teammate's rating_s, seconds. Negative = faster than the teammate.
+        description: >
+          Equal to rating_s, which already is the paired median gap to the teammate, so the
+          two teammates' values are exact negatives. Seconds, negative = faster than the
+          teammate. NULL when teammate_id is NULL.
       - name: constructor_id
         description: Constructor for the race.
         tests: [not_null]
@@ -2561,7 +2560,9 @@ models:
               config:
                 where: "laps_completed is not null"
       - name: positions_gained
-        description: grid_position - finish_position from stg_results. Positive = places gained.
+        description: >
+          grid_position - finish_position from stg_results. Positive = places gained. NULL when
+          grid_position = 0 (pit-lane start, not a grid slot) or either position is missing.
       - name: has_dnf
         description: TRUE when stg_results marks the driver as a DNF. FALSE when no result row exists.
         tests: [not_null]

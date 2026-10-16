@@ -484,6 +484,22 @@ PREDICTIONS_ARROW_SCHEMA = pa.schema([
 ])
 assert len(PREDICTIONS_ARROW_SCHEMA) == 19, "predictions schema must be 19 columns"
 
+# CO-08 (draft, not promoted): the calibrated chance that a final stint's tyres reach the
+# flag, and its uncalibrated input. OPT-IN: predict.py writes this 21-column schema only
+# when it is handed a flag-chance lookup (--flag-lookup); without one the output is the
+# 19-column contract above, unchanged. Both columns are NULL on every non-final stint.
+# See ml/src/flag_chance.py.
+FLAG_CHANCE_COLUMNS: tuple[str, ...] = ("flag_chance", "flag_chance_raw")
+PREDICTIONS_ARROW_SCHEMA_WITH_FLAG = pa.schema(
+    list(PREDICTIONS_ARROW_SCHEMA) + [pa.field(c, pa.float64()) for c in FLAG_CHANCE_COLUMNS])
+
+# v15 (built 2026-10-15 by CO-03, NOT promoted: the default below stays v14 until the owner bumps
+# it). The v14 configuration (same *_best_params.json, uniform quantile weights per W58, D5 gauge,
+# training 2018-2025) refit on ONE label bump: WI-01 + WI-12 (theta_air 0.331), the WI-02b seed
+# re-estimate, CO-02 (cliff label; 2018 fitted in-sample under CD2 = C, so 2018 is never an
+# evaluation season) and CO-04 (missing telemetry NULL, restart-lap field mean, thin cells
+# skipped). NOT fixed-target comparable with v14 or with the *_v15uni / *_v15ipw W58 artefacts
+# (09-29 label). The record is ml/README.md, "Label version bump for v15".
 MODEL_VERSION_DEFAULT = "v14"  # v14 = 12a-1: 2025 ingested, retrained on the wider window with a
 # real holdout. No feature-contract, target-definition or hyperparameter change from v13 -- the
 # only mover is the data. Training seasons go 2018-2024 -> 2018-2025 (2025 folds into training as
@@ -541,7 +557,9 @@ MODEL_VERSION_DEFAULT = "v14"  # v14 = 12a-1: 2025 ingested, retrained on the wi
 # `laps_past_cliff`, i.e. consuming a magnitude as a per-lap rate (48.7% of it was ordinary wear
 # already charged by `wear_gradient*age`), and adding a hardcoded `0.002*age^2` that was never
 # fitted against anything. 08m replaced both with a moment-matched saturating ramp defined once in
-# `transform/macros/compound_cliff_wear.sql`.
+# `transform/macros/compound_cliff_wear.sql`. (Superseded in part by CO-02, 2026-10-15: the severity
+# is now the regression step with wear excluded, the plateau is that step as is, and the ramp is 2.5
+# laps. The label moves again; the version bump is recorded in CO-03.)
 #
 # **Why this is a new version rather than a v11 rebuild.** `expected_compound_pace_s` is subtracted
 # into `driver_skill_residual_s`, so the degradation trio's target

@@ -434,8 +434,8 @@ def build_card(version: str = S.MODEL_VERSION_DEFAULT) -> dict:
                 # artefact, so quoting them here is not the "hand-edited metrics" failure this
                 # module prevents - it is the only way to stop the comparison being made.
                 "NOT COMPARABLE TO v11. Work item 08m changed how `expected_compound_pace_s` "
-                "is formed (`compound_cliff_severity` was fitted as a ~5.5-lap level shift and "
-                "was being consumed as a per-lap rate, plus an unfitted 0.002*age^2 term). That "
+                "is formed (`compound_cliff_severity`, a fitted level shift, was being consumed "
+                "as a per-lap rate, plus an unfitted 0.002*age^2 term). That "
                 "column is subtracted into `driver_skill_residual_s`, so the degradation trio's "
                 "target `next_5_lap_cumulative_jump_s` and the classifier's label "
                 "`laps_until_cliff_class` are DIFFERENT QUANTITIES under unchanged column names: "

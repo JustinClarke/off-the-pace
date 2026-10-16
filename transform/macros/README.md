@@ -269,10 +269,15 @@ wrong on a NULL `x` in DuckDB, because both functions skip NULL arguments and th
 
 ### `compound_cliff_wear_s(wear_gradient, severity, age, laps_past_cliff)` and its helpers
 
-The single definition of the fitted compound wear curve's age-dependent terms. The file also
-defines `cliff_severity_span()`, `cliff_severity_gain()`, `cliff_plateau_s()`,
-`cliff_ramp_frac()`, `cliff_severity_term()` and `cliff_ramp_slope_s_per_lap()`. The expression
-used to be copied into six models and had diverged; every site now calls these.
+The single definition of the fitted compound wear curve's age-dependent terms: linear wear plus
+the cliff step (the fitted `compound_cliff_severity`, wear already excluded) ramped in over
+`var('cliff_ramp_span_laps')` = 2.5 laps past onset and then held. The fitter
+(`survival.py::estimate_cliff_severity`) reads its step at onset + that same var, so the curve
+reaches the full step where it was measured (CO-02). The file also defines
+`cliff_severity_span()`, `cliff_plateau_s()`, `cliff_ramp_frac()`, `cliff_severity_term()` and
+`cliff_ramp_slope_s_per_lap()`. `cliff_severity_gain()` was removed by CO-02: the plateau is the
+severity itself, with no 5.5 * wear_gradient subtraction and no 2.2 gain. The expression used to be
+copied into six models and had diverged; every site now calls these.
 
 **Used by:** `int_compound_cliff_predicted`, `int_pit_strategy_cost_curve`, `fct_ghost_car_pace`.
 

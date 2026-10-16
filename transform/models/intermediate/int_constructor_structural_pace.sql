@@ -97,9 +97,14 @@ clean_panel AS (
         f.driver_id,
         lm.constructor_id,
         -- Partial pace delta (vs field median baseline), before component
-        -- subtraction
-        f.lap_time_s
-        - COALESCE(fp.field_pace_smoothed_s, f.lap_time_s) AS pace_delta_s,
+        -- subtraction. No COALESCE on the base (CO-04): a lap whose cell has
+        -- no measured base (thin cell, W44; 2018_1 / 2018_2, FD6; a race whose
+        -- tyre data is quarantined, 2018_3 / 2025_6) has a NULL delta, not
+        -- exactly 0.0. The old COALESCE(base, lap_time_s) did that, and where
+        -- most of a team's laps were unbased it set the team to 0.000: every
+        -- team of 2018_1 and 2018_2 after FD6, and of 2018_3 and 2025_6 since
+        -- WI-05's tyre quarantine (no lap there has a tyre cost, so no base).
+        f.lap_time_s - fp.field_pace_smoothed_s AS pace_delta_s,
         g.lap_in_stint
     FROM fuel AS f
     INNER JOIN geom AS g ON f.lap_id = g.lap_id
@@ -121,15 +126,21 @@ clean_panel AS (
         AND COALESCE(e.rainfall_flag, FALSE) = FALSE
 ),
 
+-- One row per (race, constructor) with more than 10 clean laps, the same rows
+-- as before CO-04, so no race drops out of this model's grain. The coefficient
+-- itself needs more than 10 laps with a MEASURED delta; below that it is NULL
+-- (unknown), not 0.0 (CO-04). n_obs counts the measured laps it rests on.
 constructor_agg AS (
     SELECT
         race_year,
         race_id,
         constructor_id,
-        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY pace_delta_s)
-            AS median_pace_delta,
+        CASE
+            WHEN COUNT(pace_delta_s) > 10
+                THEN PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY pace_delta_s)
+        END AS median_pace_delta,
         STDDEV_POP(pace_delta_s) AS stddev_pace_delta,
-        COUNT(*) AS n_obs,
+        COUNT(pace_delta_s) AS n_obs,
         COUNT(DISTINCT driver_id) AS n_drivers
     FROM clean_panel
     GROUP BY race_year, race_id, constructor_id
@@ -167,10 +178,14 @@ SELECT
     -- Positive = slower than average constructor. Negative = faster.
     ca.median_pace_delta
     - rm.race_avg_pace_delta AS constructor_structural_pace_s,
-    COALESCE(
-        ca.stddev_pace_delta / SQRT(CAST(ca.n_obs AS DOUBLE)),
-        0.0
-    ) AS constructor_structural_pace_se_s,
+    -- NULL with the coefficient (CO-04); otherwise as before
+    CASE
+        WHEN ca.median_pace_delta IS NOT NULL
+            THEN COALESCE(
+                ca.stddev_pace_delta / SQRT(CAST(ca.n_obs AS DOUBLE)),
+                0.0
+            )
+    END AS constructor_structural_pace_se_s,
     COALESCE(
         (ca.median_pace_delta - rm.race_avg_pace_delta)
         - 1.96 * (ca.stddev_pace_delta / SQRT(CAST(ca.n_obs AS DOUBLE))),

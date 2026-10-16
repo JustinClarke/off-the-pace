@@ -158,11 +158,15 @@ def test_report_exit_codes(tmp_path, capsys):
 
 
 def test_markdown_table_keeps_its_season_range(tmp_path, capsys):
+    # MARKDOWN_SEASONS is 2018-2025: 2025 is in the table, anything later is dropped.
     _race(tmp_path, 2024, 1, "bahrain_grand_prix")
     _race(tmp_path, 2025, 1, "australian_grand_prix")
+    _race(tmp_path, 2026, 1, "bahrain_grand_prix")
     verify_bronze.main(["--markdown", "--bronze-dir", str(tmp_path)])
     out = capsys.readouterr().out.splitlines()
-    assert out[2] == "| 2024 | 1 ✓ | 1 ✓ | 1 ✓ | 1 ✓ |" and len(out) == 3
+    assert out[2] == "| 2024 | 1 ✓ | 1 ✓ | 1 ✓ | 1 ✓ |"
+    assert out[3] == "| 2025 | 1 ✓ | 1 ✓ | 1 ✓ | 1 ✓ |"
+    assert len(out) == 4 and not any("2026" in line for line in out)
 
 
 # ---------------------------------------------------------------------------

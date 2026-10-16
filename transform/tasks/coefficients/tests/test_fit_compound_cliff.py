@@ -443,3 +443,149 @@ class TestSeedWriter:
         write_pending(df, "atomic_test")
         tmp_files = list(tmp_path.glob("*.tmp"))
         assert len(tmp_files) == 0
+
+
+# ---------------------------------------------------------------------------
+# CO-02 acceptance: a simulated step comes back as the plateau, wear excluded once
+# ---------------------------------------------------------------------------
+
+from pathlib import Path  # noqa: E402
+
+import duckdb  # noqa: E402
+import jinja2  # noqa: E402
+import yaml  # noqa: E402
+
+from tasks.coefficients.survival import SEVERITY_MIN_PRE_LAPS  # noqa: E402
+
+TRANSFORM_DIR = Path(__file__).resolve().parents[3]
+
+
+def make_step_stint(stint_id: str, n_laps: int, wear: float, step: float, cliff_age: int,
+                    noise_std: float = 0.03, base_time: float = 90.0) -> pd.DataFrame:
+    """Linear wear plus a pure step of `step` seconds from tyre age `cliff_age` on."""
+    rng = np.random.default_rng(seed=abs(hash(stint_id)) % 2**31)
+    ages = np.arange(1, n_laps + 1)
+    pace = base_time + wear * ages + step * (ages >= cliff_age) + rng.normal(0, noise_std, n_laps)
+    return pd.DataFrame({
+        "stint_id": stint_id, "circuit_key": "bahrain_grand_prix", "compound_code": "SOFT",
+        "race_year": 2023, "lap_in_stint": ages, "age_in_stint": ages, "lap_time_s": pace,
+        "track_temp_c": 35.0, "forced_stop_flag": False,
+    })
+
+
+def step_pool(n: int, wear: float, step: float, cliff_age: int = 15, n_laps: int = 25) -> pd.DataFrame:
+    return pd.concat(
+        [make_step_stint(f"step_{wear}_{step}_{cliff_age}_{i:03d}", n_laps, wear, step, cliff_age)
+         for i in range(n)],
+        ignore_index=True,
+    )
+
+
+@pytest.fixture(scope="module")
+def wear_macros():
+    """macros/compound_cliff_wear.sql rendered as dbt would, with dbt_project.yml's vars."""
+    project_vars = yaml.safe_load((TRANSFORM_DIR / "dbt_project.yml").read_text())["vars"]
+    env = jinja2.Environment()
+    env.globals["var"] = lambda name, default=None: project_vars.get(name, default)
+    return env.from_string((TRANSFORM_DIR / "macros" / "compound_cliff_wear.sql").read_text()).module
+
+
+def _eval(sql_expr: str, **cols) -> float:
+    names = ", ".join(f"{v!r}::DOUBLE AS {k}" for k, v in cols.items())
+    return duckdb.connect().execute(f"SELECT {sql_expr} FROM (SELECT {names})").fetchone()[0]
+
+
+class TestCliffPlateauIsTheStep:
+    @pytest.mark.parametrize("wear, step", [(0.03, 0.8), (0.08, 0.8), (0.03, 1.2), (0.10, 1.2)])
+    def test_plateau_equals_the_true_step(self, wear_macros, wear, step):
+        """CO-02 acceptance: simulated stints -> fitted severity -> the curve's plateau
+        lands on the true step to within 0.05 s, whatever the wear slope."""
+        severity = estimate_cliff_severity(step_pool(30, wear, step), cliff_onset_laps=15)
+        assert severity == pytest.approx(step, abs=0.05), severity
+        plateau = _eval(str(wear_macros.cliff_plateau_s("sev", "wg")), sev=severity, wg=wear)
+        assert plateau == pytest.approx(step, abs=0.05), plateau
+
+    def test_curve_past_the_ramp_is_wear_plus_step(self, wear_macros):
+        wear, step, onset, age = 0.06, 1.0, 15.0, 30.0
+        severity = estimate_cliff_severity(step_pool(30, wear, step), cliff_onset_laps=onset)
+        expr = str(wear_macros.compound_cliff_wear_s("wg", "sev", "age", "lpc"))
+        total = _eval(expr, wg=wear, sev=severity, age=age, lpc=age - onset)
+        assert total == pytest.approx(wear * age + step, abs=0.05), total
+
+    def test_plateau_does_not_subtract_wear(self, wear_macros):
+        """T1: the severity has no wear in it, so the plateau must not move with the
+        wear gradient (it used to lose 5.5 * wear_gradient, then gain x2.2)."""
+        expr = str(wear_macros.cliff_plateau_s("sev", "wg"))
+        assert _eval(expr, sev=0.9, wg=0.0) == _eval(expr, sev=0.9, wg=0.2) == pytest.approx(0.9)
+
+    def test_negative_or_null_severity_is_no_cliff(self, wear_macros):
+        expr = str(wear_macros.cliff_plateau_s("sev", "wg"))
+        assert _eval(expr, sev=-0.3, wg=0.05) == 0.0
+        assert _eval(expr.replace("sev", "CAST(NULL AS DOUBLE)"), wg=0.05) == 0.0
+
+    def test_window_mean_difference_would_carry_wear(self):
+        """Why the docstring changed: on the same data the old window-mean difference
+        reads step + 5.5 * wear; the regression gap reads the step alone."""
+        wear, step, c = 0.08, 1.0, 15
+        pool = step_pool(30, wear, step, cliff_age=c)
+        pre = pool[pool["age_in_stint"].between(c - 5, c - 1)].groupby("stint_id")["lap_time_s"].mean()
+        post = pool[pool["age_in_stint"].between(c, c + 5)].groupby("stint_id")["lap_time_s"].mean()
+        assert (post - pre).mean() == pytest.approx(step + 5.5 * wear, abs=0.05)
+        assert estimate_cliff_severity(pool, cliff_onset_laps=c) == pytest.approx(step, abs=0.05)
+
+
+class TestSeverityPreLineNeedsThreeLaps:
+    """T6: a cliff detected at tyre age 5 leaves ages 3-4 for the pre line, a line
+    through two points; those stints are not measured."""
+
+    def test_min_pre_laps_is_three(self):
+        assert SEVERITY_MIN_PRE_LAPS == 3
+
+    def test_cliff_at_age_5_is_not_measured(self):
+        assert estimate_cliff_severity(step_pool(20, 0.05, 1.0, cliff_age=5, n_laps=14),
+                                       cliff_onset_laps=5) is None
+
+    def test_cliff_at_age_6_is_measured(self):
+        sev = estimate_cliff_severity(step_pool(20, 0.05, 1.0, cliff_age=6, n_laps=14), cliff_onset_laps=6)
+        assert sev == pytest.approx(1.0, abs=0.1)
+
+
+class TestRampLengthIsOneConstant:
+    """CO-02 owner decision E: the fitter reads the step at onset + span, and the
+    curve ramps the step in over the same span, from one definition (dbt var
+    cliff_ramp_span_laps)."""
+
+    def test_fitter_and_curve_share_the_span(self, wear_macros):
+        from tasks.coefficients.survival import CLIFF_RAMP_SPAN_LAPS
+
+        assert float(str(wear_macros.cliff_severity_span())) == CLIFF_RAMP_SPAN_LAPS == 2.5
+
+    def test_curve_reaches_the_full_step_at_onset_plus_span(self, wear_macros):
+        from tasks.coefficients.survival import CLIFF_RAMP_SPAN_LAPS
+
+        wear, step, onset = 0.05, 1.0, 15.0
+        expr = str(wear_macros.compound_cliff_wear_s("wg", "sev", "age", "lpc"))
+
+        def cliff_term(lpc: float) -> float:
+            age = onset + lpc
+            return _eval(expr, wg=wear, sev=step, age=age, lpc=lpc) - wear * age
+
+        assert cliff_term(0.0) == pytest.approx(0.0)
+        assert cliff_term(CLIFF_RAMP_SPAN_LAPS / 2) == pytest.approx(step / 2)
+        assert cliff_term(CLIFF_RAMP_SPAN_LAPS) == pytest.approx(step)
+        assert cliff_term(CLIFF_RAMP_SPAN_LAPS + 3.0) == pytest.approx(step)
+
+    def test_fitted_step_is_read_where_the_ramp_tops_out(self, monkeypatch):
+        """A ramped (not stepped) cliff that tops out at onset + span is measured at
+        its full height: the fitter evaluates at the span the curve uses."""
+        from tasks.coefficients import survival
+
+        wear, step, c = 0.04, 1.0, 15
+        pool = step_pool(30, wear, step, cliff_age=c)
+        base = estimate_cliff_severity(pool, cliff_onset_laps=c)
+        monkeypatch.setattr(survival, "CLIFF_RAMP_SPAN_LAPS", 4.0)
+        moved = survival.estimate_cliff_severity(pool, cliff_onset_laps=c)
+        # On a pure step the gap is the step at any reference age, so the estimate
+        # does not depend on the span; the span only says where it is read.
+        assert base == pytest.approx(step, abs=0.05)
+        assert moved == pytest.approx(step, abs=0.05)

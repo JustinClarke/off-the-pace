@@ -47,7 +47,7 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
 
     **Why it matters:** `cliff_candidate_flag` is a "label-adjacent" feature it is predictive precisely because it encodes information that co-moves with the cliff. The test asserts that this predictiveness comes from the mart's temporal conditioning, not from a forward-window leak. If it ever looks ahead in the SQL, it must move to `EXCLUDED_LEAKAGE_COLUMNS`. (`anomaly_class` carried the same guard until it was dropped from the feature contract along with the rest of the `context` group.)
   </Accordion>
-  <Accordion title="5. No undeclared aggregation scope" icon="layer-group">
+  <Accordion title="5. No undeclared aggregation scope" icon="layers">
     **Source:** `test_features.py::test_no_undeclared_aggregation_scope`
 
     **Assertion:** `audit_aggregation_scope() == []`
@@ -56,14 +56,14 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
 
     The rule: every `GROUP BY` in the mart's lineage must confine a group to **at most one lap** (the label's grain — the mart is one row per valid race lap), or be declared in that model's `schema.yml`. A key set pins a lap if it holds `lap_id`, or a race key beside a lap ordinal, or `stint_id` beside a lap ordinal. Extra keys only ever shrink a group, so the test is monotone.
   </Accordion>
-  <Accordion title="6. The aggregation audit catches both known shapes" icon="crosshairs">
+  <Accordion title="6. The aggregation audit catches both known shapes" icon="crosshair">
     **Source:** `test_features.py::test_aggregation_audit_catches_a_cross_season_pooled_rate`, `::test_aggregation_audit_catches_a_bucketed_lap_key`, `::test_aggregation_audit_passes_a_lap_pinned_group`
 
     **Assertion:** synthetic SQL reproducing each shape is flagged, with the right severity; a lap-pinned group is not
 
     **Why it matters:** Falsification, not silence. Two live constructs motivated this audit — a per-circuit rate with no season key, and `FLOOR(lap_number / 5.0) * 5.0 AS lap_window` grouped as if it were a lap. Both are reproduced as synthetic SQL so the guard is tested against the shapes rather than against the warehouse, and the third test is the negative control: `(race_id, lap_number)` confines a group to one lap of one race, and a `CAST` is not a coarsening, so neither may be flagged.
   </Accordion>
-  <Accordion title="7. A bucket cannot be aliased onto a lap key" icon="mask">
+  <Accordion title="7. A bucket cannot be aliased onto a lap key" icon="venetian-mask">
     **Source:** `test_features.py::test_aggregation_audit_rejects_a_bucket_aliased_onto_a_lap_key`
 
     **Assertion:** `FLOOR(lap_number / 5.0) * 5.0 AS lap_number`, then grouped, is still a violation
@@ -114,14 +114,14 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
 
     **Why it matters:** The last lap of a stint has no "next lap" its degradation target is `NULL`. XGBoost raises an error on `NaN` in `y` but produces silently wrong results if the `NaN` is dropped inconsistently. This test asserts that `load_features` correctly filters NULL-target rows before training for all three families, not just the one being actively developed.
   </Accordion>
-  <Accordion title="16. Self-join horizons are caught" icon="arrows-left-right">
+  <Accordion title="16. Self-join horizons are caught" icon="arrow-left-right">
     **Source:** `test_features.py::test_forward_window_audit_catches_a_self_join_horizon`
 
     **Assertion:** with `laps_until_cliff` as the only feature, `audit_forward_window()` returns a violation containing "self-join inequality"
 
     **Why it matters:** The cliff scan walks a whole horizon through `a.lap_in_stint < f.lap_in_stint` in a `JOIN ... ON`, with no `LEAD` and no `FOLLOWING` frame anywhere. A feature built that way passed the audit silently until the walker learned to read the enclosing scope. This test shows the audit still flags the shape it was extended for.
   </Accordion>
-  <Accordion title="17. The safety-car hazard left the survey by being fixed" icon="triangle-exclamation">
+  <Accordion title="17. The safety-car hazard left the survey by being fixed" icon="triangle-alert">
     **Source:** `test_features.py::test_the_sc_hazard_instance_left_the_survey_by_being_fixed_not_by_being_hidden`
 
     **Assertion:** `int_sc_hazard_history` no longer appears in `survey_aggregation_scope()`, the survey no longer reports its all-time "pools every ingested season" shape, the model is in the mart lineage, and `audit_aggregation_scope()` has no violation naming it
@@ -135,28 +135,28 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
 
     **Why it matters:** The hazard is point-in-time as of the start of a season, so the season is half the key. A join on circuit alone would hand a 2018 row a hazard estimated partly from 2024 and fan the mart out five to seven times, and neither the window walker nor the aggregation walker reads join keys. The test checks the SQL text structurally, so it fails on the edit that causes the bug rather than on the rebuild that reveals it.
   </Accordion>
-  <Accordion title="19. The corner-skill model left the survey by being fixed" icon="road">
+  <Accordion title="19. The corner-skill model left the survey by being fixed" icon="route">
     **Source:** `test_features.py::test_the_corner_instance_left_the_survey_by_being_fixed_not_by_being_hidden`
 
     **Assertion:** `int_corner_skill_residuals` is absent from the survey, both it and `int_lap_corner_inputs` are in the mart lineage, and `audit_aggregation_scope()` has no violation naming either
 
     **Why it matters:** The same two-reason check as the safety-car hazard. The five-lap block bucket that once made this model's groups reach forward was replaced by a trailing range window, and the model entered the mart through `int_lap_corner_inputs`. Asserting both halves stops a model from leaving the survey by being wired into a feature while still carrying the defect.
   </Accordion>
-  <Accordion title="20. `baseline_observations_n` is never a feature" icon="hashtag">
+  <Accordion title="20. `baseline_observations_n` is never a feature" icon="hash">
     **Source:** `test_features.py::test_baseline_observations_n_is_never_a_feature`
 
     **Assertion:** `"baseline_observations_n" not in FEATURE_COLUMNS`
 
     **Why it matters:** The column ships in the mart because the thermal features' NULLs are deterministic on it, so consumers need it to condition on that missingness. A feature add-ablation measured it and no model family cleared its reseed floor. Its rank correlation with `lap_in_stint` is 0.97, so it is easy to add back by mistake. A future change that wants it in `X` has to re-run the ablation and delete this test on purpose.
   </Accordion>
-  <Accordion title="21. The target bound follows the target column" icon="ruler-combined">
+  <Accordion title="21. The target bound follows the target column" icon="ruler">
     **Source:** `test_features.py::test_target_bound_follows_the_target_column`
 
     **Assertion:** `TARGET_BOUND == TARGET_BOUND_BY_COLUMN[DEGRADATION_TARGET]`, and every quantile model's source column has an entry in `TARGET_BOUND_BY_COLUMN`
 
     **Why it matters:** The bound is a fact about the clip on whichever column is modelled, not a constant that fits the one-lap target. Carrying a ±10 bound over to the five-lap column, which is clipped at ±50, would put a range into the manifest that is five times too tight and that nothing downstream checks.
   </Accordion>
-  <Accordion title="22. The bound is the clip the warehouse applies" icon="bullseye">
+  <Accordion title="22. The bound is the clip the warehouse applies" icon="target">
     **Source:** `test_features.py::test_target_bound_is_the_clip_the_warehouse_applies`
 
     **Assertion:** the largest absolute value in the degradation training target is more than 90% of `TARGET_BOUND`
@@ -184,7 +184,7 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
 
     **Why it matters:** This is the other direction of the previous guard. It shows the escape hatch reaches `_check` and is not merely declared and ignored.
   </Accordion>
-  <Accordion title="28. `load_features` does not persist encoders unless asked" icon="floppy-disk">
+  <Accordion title="28. `load_features` does not persist encoders unless asked" icon="save">
     **Source:** `test_features.py::test_load_features_does_not_persist_encoders_by_default`
 
     **Assertion:** with `ENCODERS_PATH` redirected to a scratch file, `load_features(...)` writes nothing, and `load_features(..., persist_encoders=True)` writes the file
@@ -209,7 +209,7 @@ Temporal leakage is silent. It never throws an error. It inflates every offline 
   <Card title="Feature contract" href="/ml/feature-contract" icon="list">
     The full list of 39 features and why each is allowed into `X`.
   </Card>
-  <Card title="CI overview" href="/ml/ci/overview" icon="vial">
+  <Card title="CI overview" href="/ml/ci/overview" icon="flask-conical">
     All 270 tests where the spine sits in the full contract.
   </Card>
 </CardGroup>

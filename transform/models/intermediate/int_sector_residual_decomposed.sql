@@ -18,6 +18,12 @@
 -- NOTE: dirty_air_share_lap is lap-level only (no per-sector breakdown
 -- available).
 -- Proportional allocation used when > 0.
+--
+-- FD6 (CO-04): an unmeasured air state (int_lap_air_state NULL: no gap and not
+-- the leader) is NOT read as clean air. Until CO-04 COALESCE(share, 0.0) here
+-- zeroed the sector tax on such a lap; now the sector tax, the sector total
+-- and the sector residual are NULL there. Mostly 2018_1 Australia and 2018_2
+-- Bahrain, which have no telemetry in bronze.
 
 {{ config(materialized='table', tags=['intermediate', 'feature_engineering']) }}
 
@@ -52,7 +58,8 @@ lap_components AS (
         lr.constructor_component_s,
         lr.dirty_air_tax_s,
         lr.correction_weight,
-        COALESCE(air.dirty_air_share_lap, 0.0) AS dirty_air_share_lap
+        -- No COALESCE: NULL is an unmeasured lap (FD6, header)
+        air.dirty_air_share_lap
     FROM {{ ref('int_lap_residual_decomposed') }} AS lr
     LEFT JOIN {{ ref('int_lap_air_state') }} AS air ON lr.lap_id = air.lap_id
 ),
@@ -149,7 +156,8 @@ allocated AS (
         * (sector_time_s / NULLIF(lap_time_s, 0))
             AS sector_constructor_component_s,
         CASE
-            WHEN COALESCE(dirty_air_share_lap, 0.0) > 0
+            WHEN dirty_air_share_lap IS NULL THEN NULL
+            WHEN dirty_air_share_lap > 0
                 THEN dirty_air_tax_s * (sector_time_s / NULLIF(lap_time_s, 0))
             ELSE 0.0
         END AS sector_dirty_air_tax_s

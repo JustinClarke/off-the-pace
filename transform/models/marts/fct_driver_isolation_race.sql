@@ -77,7 +77,9 @@ lap_agg AS (
             AS pure_skill_gain_s,
         AVG(tyre_offset_vs_field_s) AS tyre_offset_vs_field_s,
         AVG(lift_coast_excess_share) AS lift_coast_excess_share,
-        AVG(CASE WHEN is_dirty_air_lap THEN 1.0 ELSE 0.0 END)
+        -- Over laps with a measured air state: an unmeasured lap (NULL,
+        -- FD6 / CO-04) is left out, not counted as clean air
+        AVG(CASE WHEN is_dirty_air_lap THEN 1.0 WHEN NOT is_dirty_air_lap THEN 0.0 END)
             AS dirty_air_lap_share
     FROM laps
     -- Constant within a driver-race (one car, one race, one season), so grouped

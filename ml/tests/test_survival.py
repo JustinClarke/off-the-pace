@@ -127,6 +127,39 @@ def test_aft_params_rejects_a_non_aft_booster(tmp_path):
         SV.aft_params(b)
 
 
+# ─── Starting point of the fit ──────────────────────────────────────────────────
+def test_aft_base_score_is_the_geometric_mean_of_the_shifted_label():
+    y = np.array([0.0, 3.0, 15.0, 40.0])
+    expected = np.exp(np.mean(np.log(y + S.AFT_LABEL_SHIFT)))
+    assert SV.aft_base_score(y) == pytest.approx(expected)
+
+
+def test_aft_booster_starts_at_the_label_log_mean_not_at_ln_half():
+    """XGBoost's survival:aft applies log(base_score) as its intercept and does not
+    estimate it; at the default 0.5 every fit started at margin -0.69 and the shipped
+    tree budget never closed the gap (v15 stint life lost to its baseline on 2025).
+    With a near-zero learning rate the fit cannot move, so the margin IS the start."""
+    import pandas as pd
+
+    from ml.src import train as T
+
+    rng = np.random.default_rng(0)
+    X = pd.DataFrame(rng.normal(size=(300, 3)), columns=["a", "b", "c"])
+    y = rng.uniform(0, 30, 300)
+    cens = rng.random(300) < 0.4
+    spec = S.TARGET_BY_NAME["stint_life_regressor"]
+    m = T._make_model(spec, {"n_estimators": 1, "learning_rate": 1e-9, "max_depth": 1})
+    m.fit(X, y, is_censored=cens)
+    margin = m.predict_margin(X)
+    assert margin.mean() == pytest.approx(np.mean(np.log(y + S.AFT_LABEL_SHIFT)), abs=1e-4)
+    assert m.base_score == pytest.approx(SV.aft_base_score(y))
+    # A base_score pinned by the caller is respected, not overwritten.
+    pinned = T._make_model(spec, {"n_estimators": 1, "learning_rate": 1e-9,
+                                  "max_depth": 1, "base_score": 0.5})
+    pinned.fit(X, y, is_censored=cens)
+    assert pinned.predict_margin(X).mean() == pytest.approx(np.log(0.5), abs=1e-4)
+
+
 # ─── Cause-specific metrics (10c) ───────────────────────────────────────────────
 # These three went into a measurement run untested, and two of them were not
 # computing what their names claimed. The regressions below are the checks that

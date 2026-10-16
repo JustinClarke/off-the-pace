@@ -48,6 +48,28 @@ def aft_bounds(y, is_censored) -> tuple[np.ndarray, np.ndarray]:
     return lower, upper
 
 
+# ─── Starting point of the fit ──────────────────────────────────────────────────
+def aft_base_score(y, sample_weight=None) -> float:
+    """The `base_score` that starts the boosted fit at the label's own log-mean.
+
+    survival:aft takes `base_score` in TIME units and applies log(base_score) as the
+    margin intercept (export_onnx.py measures exactly this offset). XGBoost does not
+    estimate it for this objective, so left alone it is 0.5: every fit started at a
+    margin of ln 0.5 = -0.69 (a median of 0 laps after the shift and clip), against a
+    label log-mean of ~2.35. With the tuned budget (100 trees at learning rate 0.022) the trees never
+    closed that gap, so predicted medians came out short and squeezed, worst on the
+    longest remaining lives. That was the v15 stint-life beats-baseline failure on 2025.
+
+    Returned as exp(mean(log(y + SHIFT))), the geometric mean of the shifted label, so
+    the starting margin is mean(log(y + SHIFT)). Computed from the rows being fitted,
+    never from evaluation rows. Censored rows enter at their lower bound, which only
+    sets where the trees start, not where they can go.
+    """
+    log_t = np.log(np.asarray(y, dtype=np.float64) + S.AFT_LABEL_SHIFT)
+    w = None if sample_weight is None else np.asarray(sample_weight, dtype=np.float64)
+    return float(np.exp(np.average(log_t, weights=w)))
+
+
 # ─── Booster → laps ─────────────────────────────────────────────────────────────
 def load_booster(path: str | Path) -> xgb.Booster:
     b = xgb.Booster()

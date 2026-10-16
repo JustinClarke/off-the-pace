@@ -96,6 +96,59 @@ class TestFitGroupProvenance:
         assert (r["onset_source"], r["gradient_source"], r["severity_source"]) == ("class_default",) * 3
 
 
+class TestSmallSeveritiesAreKept:
+    """CO-02 / T2: a measured small cliff is a measurement. It used to be swapped for
+    a 1.2-1.5 s class default -- the largest severities in the seed."""
+
+    @pytest.mark.parametrize("measured, stored", [(0.05, 0.05), (0.0, 0.0), (-0.3, 0.0)])
+    def test_measured_severity_under_0_1_stays_fitted(self, pool, monkeypatch, measured, stored):
+        r = _fit(pool, monkeypatch, severity=measured)
+        assert r["severity_source"] == "fitted"
+        assert r["compound_cliff_severity"] == pytest.approx(stored)
+        assert "severity" not in r["notes"]
+
+
+# ---------------------------------------------------------------------------
+# CD2 = C: 2018 is fitted on its own laps (in-sample); every other season on
+# earlier seasons only
+# ---------------------------------------------------------------------------
+
+class TestFitWindow:
+    def test_in_sample_season_is_2018_only(self):
+        assert F.IN_SAMPLE_SEASONS == frozenset({2018})
+
+    @pytest.mark.parametrize("season, first, label", [
+        (2018, 2018, "2018_to_2018_in_sample"),
+        (2019, 2018, "2018_to_2018"),
+        (2025, 2018, "2018_to_2024"),
+        (2020, 2020, "no_earlier_season"),
+    ])
+    def test_data_window_label(self, season, first, label):
+        assert F.data_window_label(season, first) == label
+
+    def test_2018_is_fitted_on_its_own_laps(self):
+        pool18 = make_stint_pool(n_stints=20, cliff_at_lap=20, race_year=2018)
+        r = F.fit_group(pool18, "bahrain_grand_prix", "SOFT", 2018)
+        assert r["fit_source"] == "cox_km_survival"
+        assert r["severity_source"] == "fitted"
+        assert "IN-SAMPLE" in r["notes"]
+
+    def test_2019_reads_2018_and_never_itself(self):
+        pool19 = make_stint_pool(n_stints=20, cliff_at_lap=20, race_year=2019)
+        assert F.fit_group(pool19, "bahrain_grand_prix", "SOFT", 2019)["fit_source"] == "compound_class_default"
+        both = pd.concat([pool19, make_stint_pool(n_stints=20, cliff_at_lap=20, race_year=2018)])
+        r = F.fit_group(both, "bahrain_grand_prix", "SOFT", 2019)
+        assert r["fit_source"] == "cox_km_survival" and r["n_stints"] == 20
+        assert "IN-SAMPLE" not in r["notes"]
+
+    def test_default_seasons_include_2025(self, monkeypatch):
+        seen = {}
+        monkeypatch.setattr(F, "run_fit", lambda seasons, circuits, dry_run: seen.setdefault("s", seasons))
+        monkeypatch.setattr(F, "write_pending", lambda *a, **k: None)
+        F.main([])
+        assert seen["s"] == list(range(2018, 2026))
+
+
 # ---------------------------------------------------------------------------
 # The live seed (F41a acceptance: provenance per parameter, honest notes)
 # ---------------------------------------------------------------------------
@@ -151,17 +204,50 @@ class TestLiveSeedProvenance:
         assert liars.empty, liars[["circuit_key", "compound_code", "season", "notes"]].head().to_string()
 
     def test_carried_rows_copy_their_source_and_keep_its_defaults(self, seed):
-        carried = seed[seed["fit_source"].str.startswith("carried_forward_")]
-        assert len(carried)
+        """CO-02 acceptance (finding 2): no row says "carried forward" unless it equals
+        its source row EXACTLY, the source row being the live seed's cell for the season
+        named in fit_source. 61 of the 2025 rows used to copy 2024 cells that had since
+        been refit (Abu Dhabi MEDIUM: 0.97 carried, 0.31 live). Zero carried rows passes:
+        a fully fitted seed has none."""
+        says_carried = (seed["fit_source"].str.startswith("carried_forward_")
+                        | (seed[list(PARAMS)] == "carried_forward").any(axis=1))
+        carried = seed[says_carried]
+        assert carried["fit_source"].str.startswith("carried_forward_").all(), \
+            "a parameter says carried_forward on a row whose fit_source does not"
+        copied = [c for c in F.SEED_COLUMNS if c not in (
+            "season", "fit_source", *PARAMS, "notes", "fit_date", "git_sha", "fit_timestamp")]
         by_key = seed.set_index(["circuit_key", "compound_code", "season"])
         for _, r in carried.iterrows():
             src_season = int(r["fit_source"].rsplit("_", 1)[1])
             assert src_season < r["season"], "a carried cell must come from an earlier season"
-            src = by_key.loc[(r["circuit_key"], r["compound_code"], src_season)]
-            for col, (vcol, _key) in PARAMS.items():
-                assert r[vcol] == pytest.approx(src[vcol])
+            key = (r["circuit_key"], r["compound_code"], src_season)
+            assert key in by_key.index, f"carried from a cell the seed does not hold: {key}"
+            src = by_key.loc[key]
+            for col in copied:
+                assert r[col] == src[col], (key, r["season"], col, r[col], src[col])
+            for col in PARAMS:
                 expected = "class_default" if src[col] == "class_default" else "carried_forward"
                 assert r[col] == expected, (r["circuit_key"], r["compound_code"], r["season"], col)
+
+    def test_data_window_is_the_window_each_row_was_fitted_on(self, seed):
+        """CO-02: point-in-time rows read earlier seasons only; 2018 (CD2) says it is
+        in-sample; a carried row keeps its source's window (checked above)."""
+        first = int(seed["season"].min())
+        fitted = seed[~seed["fit_source"].str.startswith("carried_forward_")]
+        wrong = fitted[fitted.apply(
+            lambda r: r["data_window"] != F.data_window_label(int(r["season"]), first), axis=1)]
+        assert wrong.empty, wrong[["circuit_key", "compound_code", "season", "data_window"]].head().to_string()
+        in_sample = seed["data_window"].str.endswith(F.IN_SAMPLE_SUFFIX)
+        assert (seed.loc[in_sample, "season"].isin(F.IN_SAMPLE_SEASONS)
+                | seed.loc[in_sample, "fit_source"].str.startswith("carried_forward_")).all()
+
+    def test_no_2018_cell_is_a_class_default_where_2018_had_the_stints(self, seed):
+        """Finding 1: every 2018 cell used to be a class default. Under CD2 a 2018 cell
+        may hold one only where 2018 itself gave the cell too few stints to fit."""
+        s18 = seed[seed["season"] == 2018]
+        assert (s18["fit_source"] != "compound_class_default").any()
+        tier_ran = s18[s18["fit_source"] != "compound_class_default"]
+        assert (tier_ran["severity_source"] == "fitted").mean() > 0.9
 
 
 # ---------------------------------------------------------------------------

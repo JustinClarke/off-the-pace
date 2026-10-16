@@ -40,14 +40,20 @@
 -- value for (race_year, race_id, lap_number); compound_component_s is NULL
 -- when the tyre age is unknown (F39). Either one makes
 -- driver_skill_residual_s and total_explained_s NULL.
+-- CO-04: "no measured value" now also covers a cell built on fewer than 5
+-- cars (W44, low_sample_flag) and the two 2018 races with no telemetry, where
+-- no lap other than the leader's is known to be in clean air (FD6). See
+-- int_field_pace_curve's header.
 --
 -- Two terms ARE filled with 0 when their source has no row, and neither
 -- fabricates a label:
---   dirty_air_tax_s -- COALESCE(.., 0.0) below. int_dirty_air_tax_component
---     has a row for every lap with a measured base (F23b, T17), so a missing
---     row only happens where pace_delta_s is already NULL and the 0 never
---     reaches driver_skill_residual_s. (The not_null test on this column in
---     schema.yml relies on the fill.)
+--   dirty_air_tax_s -- 0.0 below where int_dirty_air_tax_component has NO
+--     ROW. It has a row for every lap with a measured base (F23b, T17), so a
+--     missing row only happens where pace_delta_s is already NULL and the 0
+--     never reaches driver_skill_residual_s. A row whose tax is NULL (the
+--     previous lap's air state unmeasured, FD6 / CO-04) is NOT filled: the
+--     tax, total_explained_s and driver_skill_residual_s are NULL there.
+--     (schema.yml's not_null on this column is scoped to match.)
 --   constructor_component_s -- 0 where int_constructor_structural_pace has
 --     no (race, constructor) row, mostly all-wet races; see the comment at
 --     the column for why that cancels from the labels and what it does not
@@ -61,7 +67,13 @@ WITH field_pace AS (
         race_year,
         race_id,
         lap_number,
-        field_pace_smoothed_s
+        -- W44 (CO-04): no base from a cell built on fewer than 5 cars. The
+        -- field curve already returns NULL there; reading the flag here as
+        -- well keeps this model honest if that ever changes, and closes the
+        -- "the residual never reads low_sample_flag" half of W44.
+        CASE
+            WHEN NOT low_sample_flag THEN field_pace_smoothed_s
+        END AS field_pace_smoothed_s
     FROM {{ ref('int_field_pace_curve') }}
 ),
 
@@ -265,14 +277,22 @@ combined AS (
         -- Dirty-air tax: per-lap seconds attributable to following another
         -- car. Filled with 0 only where int_dirty_air_tax_component has no
         -- row, which is only where the base is unmeasured (pace_delta_s NULL),
-        -- so the fill never reaches driver_skill_residual_s (header note).
-        COALESCE(da.dirty_air_tax_s, 0.0) AS dirty_air_tax_s,
-        COALESCE(da.dirty_air_tax_se_s, 0.0) AS dirty_air_tax_se_s,
+        -- so the fill never reaches driver_skill_residual_s (header note). A
+        -- row with a NULL tax (unmeasured previous lap, FD6) stays NULL: a
+        -- COALESCE here would price it as clean air one step downstream.
+        CASE
+            WHEN da.lap_id IS NULL THEN 0.0 ELSE da.dirty_air_tax_s
+        END AS dirty_air_tax_s,
+        CASE
+            WHEN da.lap_id IS NULL THEN 0.0 ELSE da.dirty_air_tax_se_s
+        END AS dirty_air_tax_se_s,
         da.dirty_air_intensity_lag1,
         COALESCE(da.tax_calibration_confidence, 0.0)
             AS dirty_air_tax_confidence,
-        COALESCE(da.cumulative_dirty_air_tax_race_s, 0.0)
-            AS cumulative_dirty_air_tax_race_s,
+        CASE
+            WHEN da.lap_id IS NULL THEN 0.0
+            ELSE da.cumulative_dirty_air_tax_race_s
+        END AS cumulative_dirty_air_tax_race_s,
         COALESCE(da.dirtiest_air_lap_in_race_flag, FALSE)
             AS dirtiest_air_lap_in_race_flag,
 

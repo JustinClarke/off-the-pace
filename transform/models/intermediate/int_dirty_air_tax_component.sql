@@ -101,6 +101,15 @@
 --   label_stability_baseline. calibration_panel below still defines the
 --   population the value was fitted on and still sets calibration_sample_n
 --   (tax_calibration_confidence), and theta_air_fit_season_max still bounds it.
+--
+-- FD6 (CO-04, 2026-10-15): a previous lap whose air state is unmeasured
+-- (int_lap_air_state NULL: no gap and not the leader) has an unknown share,
+-- so dirty_air_intensity_lag1 and the tax are NULL on the lap after it, not
+-- 0.0. Until CO-04 LAG(COALESCE(share, 0.0)) priced that lap as clean air.
+-- LAG's own default (0.0) still fills only the first lap of a stint, which
+-- has no previous lap in the stint. cumulative_dirty_air_tax_race_s is NULL
+-- from the first unknown tax of the race onward: a running total with an
+-- unknown term in it is unknown.
 
 {{ config(materialized='table', tags=['causal_decomposition', 'dirty_air']) }}
 
@@ -172,7 +181,9 @@ air_state AS (
 full_sequence_lag AS (
     SELECT
         g.lap_id,
-        LAG(COALESCE(a.dirty_air_share_lap, 0.0), 1, 0.0) OVER (
+        -- No COALESCE inside the LAG (FD6, header): an unmeasured previous
+        -- lap stays NULL. The 0.0 default is for the stint's first lap only.
+        LAG(a.dirty_air_share_lap, 1, 0.0) OVER (
             PARTITION BY g.stint_id
             ORDER BY g.lap_in_stint
         ) AS dirty_air_share_lag1
@@ -330,17 +341,15 @@ with_tax AS (
         wl.air_state_dominant,
         ta.theta_air,
         ta.calibration_sample_n,
-        -- Dirty air tax: θ_air × lagged share, bounded [0, 5.0]
+        -- Dirty air tax: θ_air × lagged share, bounded [0, 5.0]. NULL when
+        -- the lagged share is (FD6, header): no COALESCE.
         CASE
-            WHEN
-                ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) < 0
-                THEN 0.0
-            WHEN
-                ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) > 5.0
-                THEN 5.0
-            ELSE ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0)
+            WHEN wl.dirty_air_share_lag1 IS NULL THEN NULL
+            WHEN ta.theta_air * wl.dirty_air_share_lag1 < 0 THEN 0.0
+            WHEN ta.theta_air * wl.dirty_air_share_lag1 > 5.0 THEN 5.0
+            ELSE ta.theta_air * wl.dirty_air_share_lag1
         END AS dirty_air_tax_s,
-        ABS(ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) * 0.15)
+        ABS(ta.theta_air * wl.dirty_air_share_lag1 * 0.15)
             AS dirty_air_tax_se_s,
         -- Continuous shrinkage-towards-prior: n / (n + k) where k = 500 (prior
         -- equivalent sample).
@@ -350,22 +359,21 @@ with_tax AS (
             AS tax_calibration_confidence,
         SUM(
             CASE
-                WHEN
-                    ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) < 0
-                    THEN 0.0
-                WHEN
-                    ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0) > 5.0
-                    THEN 5.0
-                ELSE ta.theta_air * COALESCE(wl.dirty_air_share_lag1, 0.0)
+                WHEN ta.theta_air * wl.dirty_air_share_lag1 < 0 THEN 0.0
+                WHEN ta.theta_air * wl.dirty_air_share_lag1 > 5.0 THEN 5.0
+                ELSE ta.theta_air * wl.dirty_air_share_lag1
             END
-        ) OVER (
-            PARTITION BY wl.race_year, wl.race_id, wl.driver_id
-            ORDER BY
-                wl.lap_number
-            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-        ) AS cumulative_dirty_air_tax_race_s
+        ) OVER race_to_date AS cumulative_known_tax_s,
+        -- Laps so far with an unknown tax (FD6): any one makes the total NULL
+        COUNT(*) FILTER (WHERE wl.dirty_air_share_lag1 IS NULL)
+            OVER race_to_date AS unknown_tax_laps_to_date
     FROM panel_base AS wl
     CROSS JOIN theta_air_label AS ta
+    WINDOW race_to_date AS (
+        PARTITION BY wl.race_year, wl.race_id, wl.driver_id
+        ORDER BY wl.lap_number
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    )
 )
 
 SELECT
@@ -374,7 +382,9 @@ SELECT
     dirty_air_tax_s,
     dirty_air_tax_se_s,
     tax_calibration_confidence,
-    cumulative_dirty_air_tax_race_s,
+    CASE
+        WHEN unknown_tax_laps_to_date = 0 THEN cumulative_known_tax_s
+    END AS cumulative_dirty_air_tax_race_s,
     COALESCE(dirty_air_tax_s = MAX(dirty_air_tax_s) OVER (
         PARTITION BY race_year, race_id, driver_id
     ), FALSE) AS dirtiest_air_lap_in_race_flag

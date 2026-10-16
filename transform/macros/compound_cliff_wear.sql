@@ -1,6 +1,6 @@
 {#
   compound_cliff_wear -- THE single definition of the fitted compound wear curve's
-  age-dependent terms. Work item 08m.
+  age-dependent terms. Work item 08m; the plateau was rewritten by CO-02 (2026-10-15).
 
   Why this is a macro and not inline SQL, per macros/README.md's own rule ("a
   definition lives once here instead of being copy-pasted, and silently diverging,
@@ -12,34 +12,36 @@
   so the arithmetic now lives here and the sites call it.
 
   THE UNITS, which are the whole point:
-  survival.py::estimate_cliff_severity returns post.mean() - pre.mean() over
-     pre  = age in [onset-5, onset-1]   5 laps, centroid onset - 3.0
-     post = age in [onset,   onset+5]   6 laps, centroid onset + 2.5
-  so compound_cliff_severity is the TOTAL pace change in SECONDS across the onset,
-  between two window centroids 5.5 laps apart. It is not s/lap and not s/lap^2.
+  survival.py::estimate_cliff_severity fits, per stint, one line (pace ~ age) through
+  the pre-cliff laps and one through the post-cliff laps, and takes their vertical
+  gap at onset + cliff_severity_span() (2.5 laps). Both lines carry the stint's wear
+  slope and are read at the same age, so the slope cancels: compound_cliff_severity
+  is the cliff STEP in SECONDS with ordinary wear already excluded. It is not s/lap
+  and not s/lap^2. A negative estimate is stored as 0.0 in the seed (no cliff).
 
-  TWO corrections are applied to it here:
+  So the plateau IS the fitted severity, added on top of wear_gradient * age as is.
 
-  (a) DE-DOUBLE-COUNT. The curve already carries wear_gradient*age, which rises by
-      span*wear_gradient across the same centroid separation the severity windows
-      straddle -- so ~48.7% of the measured severity (mean 0.4385 s of 0.8996 s
-      across the 438-row seed) is ordinary wear the formula charges elsewhere. The
-      cliff-attributable EXCESS is the remainder, floored at zero. It floors on 41 of
-      438 cells (9.4%), where the measured "cliff" is no worse than linear wear.
+  Until CO-02 this macro still corrected severity as if it were the older window-mean
+  difference, post.mean() - pre.mean(), whose window centroids sit 5.5 laps apart and
+  so carry 5.5 laps of wear: it subtracted 5.5 * wear_gradient (floored at zero) and
+  scaled the rest by 5.5 / 2.5 = 2.2. The estimator had already moved to the
+  regression gap, so wear came out twice (T1), and the 2.2 scaled a step up past its
+  own height. On a stint with a 1.0 s step and 0.05 s/lap of wear the old plateau
+  was 2.2 * (1.0 - 0.275) = 1.60 s; it is now 1.00 s.
 
-  (b) MOMENT-MATCH, then SATURATE. The excess is delivered as a linear ramp over
-      `span` laps past onset and held flat thereafter. The gain = span/post_centroid
-      makes the corrected curve reproduce the fitter's own measurement exactly: the
-      predicted pace change from onset-3.0 to onset+2.5 is
-          span*wear_gradient + plateau*(post_centroid/span) == severity.
-      Past onset+span the fitter measured NOTHING, so the curve holds its last
-      measured level rather than extrapolating. That is a documented limitation of
-      the seed, not a claim about tyres.
-
-  A two-window mean difference cannot distinguish a step from a ramp inside its own
-  window, so either is within the estimator's resolution; the ramp is used because it
-  is continuous at onset and because it moment-matches without an occupancy
-  correction for the age == onset lap, where laps_past_cliff = 0.
+  THE RAMP. The plateau is reached by a linear ramp over cliff_severity_span() laps
+  past the cell's onset, then held flat. The onset is a population median (the
+  Kaplan-Meier median of the cell's stints), and each stint's own cliff lands either
+  side of it, so the ramp spreads the step over that scatter and keeps the curve
+  continuous at onset. The span is the age offset at which the fitter measures the
+  step (owner decision E, CO-02): ONE constant, var cliff_ramp_span_laps = 2.5 in
+  dbt_project.yml, read by this macro and by survival.py. So the curve reaches the
+  full fitted step at onset + 2.5, where it was measured. Until CO-02 the ramp ran
+  over 5.5 laps (the old window-mean centroid spacing), so between onset + 2.5 and
+  onset + 5.5 the curve charged less than the step the fitter had measured there.
+  It is a modelling choice, not a fitted quantity. Past onset + 5 the fitter measured
+  nothing, so the curve holds the plateau rather than extrapolating. That is a
+  documented limitation of the seed, not a claim about tyres.
 
   The 0.002*age^2 quadratic that used to sit alongside these terms is GONE, at every
   site. It was a literal constant, identical across all 438 circuit x compound x
@@ -48,22 +50,19 @@
   fits pace ~ [1, age, wind] with no quadratic in its design matrix.
 #}
 
+{# Laps past onset over which the plateau is ramped in. See THE RAMP above. No
+   default on purpose: dbt_project.yml's var is the one definition, shared with the
+   fitter (survival.py::CLIFF_RAMP_SPAN_LAPS reads the same var). #}
 {% macro cliff_severity_span() -%}
-{{ var('cliff_severity_pre_centroid_laps', 3.0) + var('cliff_severity_post_centroid_laps', 2.5) }}
-{%- endmacro %}
-
-{% macro cliff_severity_gain() -%}
-{{ (var('cliff_severity_pre_centroid_laps', 3.0) + var('cliff_severity_post_centroid_laps', 2.5)) / var('cliff_severity_post_centroid_laps', 2.5) }}
+{{ var('cliff_ramp_span_laps') }}
 {%- endmacro %}
 
 
-{# The saturated post-onset level, in seconds. Reached at onset + span. #}
+{# The saturated post-onset level, in seconds: the fitted severity itself, floored
+   at zero. wear_gradient is NOT read (the severity has no wear in it, see THE
+   UNITS); the argument stays so that every call site keeps one signature. #}
 {% macro cliff_plateau_s(severity, wear_gradient) -%}
-({{ cliff_severity_gain() }} * GREATEST(
-    COALESCE({{ severity }}, 0.0)
-    - {{ cliff_severity_span() }} * COALESCE({{ wear_gradient }}, 0.0),
-    0.0
-))
+GREATEST(COALESCE({{ severity }}, 0.0), 0.0)
 {%- endmacro %}
 
 

@@ -108,7 +108,7 @@ because nothing on the ladder waits for them, not because they matter less.
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-09-24T00:00:00Z`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-15T20:00:00Z`. Run `python3 _improvements/status/board.py --write-order` after any edit to the log._
 
 **0 live items** (0 blocked). The pointer is on **None** — that is the one to run next; the rest of the order is what becomes runnable after it. 60 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json) for why each one ended as it did.
 
@@ -126,9 +126,7 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 
 ### Open decisions — these are yours, not tasks
 
-- **D2** (blocks nothing) — CDN publish / app deploy - v12 is now the local default and production still serves v6.
 - **D9** (blocks nothing) — Should int_pit_strategy_cost_curve consume mart_degradation_predictions - i.e. may a dbt intermediate depend on an ML artefact?
-- **D13** (blocks nothing) — May a declared-but-disowned e-value be withdrawn from the campaign's e-BH family before 04c's authoritative union run, or does 09c's non-retroactivity rule bind it in regardless?
 - **D14** (blocks nothing) — Does a target/label rebuild (08m) count as grounds to reopen 01b's noise-floor bracket, even though 01b's own do-not-reopen clause only names three triggers and a target rebuild isn't one of them?
 
 <!-- END GENERATED TASKS -->

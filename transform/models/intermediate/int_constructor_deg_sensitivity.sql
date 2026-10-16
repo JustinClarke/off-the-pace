@@ -377,15 +377,20 @@ cliff_tau AS (
 -- KNOWN DEFECT, 08m -- deliberately NOT fixed here, and this comment is the fix
 -- for now. severity_used is consumed below as an s/lap^2 RATE (it is the divisor
 -- turning hinge_dev * ref_depth into an onset shift in laps), but
--- compound_cliff_severity is FITTED as a level shift in SECONDS over a ~5.5-lap
--- window (survival.py::estimate_cliff_severity). This is the sixth and last site
--- of the units bug 08m fixed everywhere else via macros/compound_cliff_wear.sql.
+-- compound_cliff_severity is FITTED as a level shift in SECONDS: the cliff step,
+-- wear excluded (survival.py::estimate_cliff_severity). This is the sixth and
+-- last site of the units bug 08m fixed everywhere else via
+-- macros/compound_cliff_wear.sql.
 --
 -- Why it was left: the correct replacement is
--- cliff_ramp_slope_s_per_lap(severity, wear_gradient) = plateau/5.5, whose median
--- is ~0.17 against severity's ~0.85 -- so the 0.30 floor on the line below, which
--- is calibrated to the OLD scale and currently almost never binds, would bind on
--- nearly every cell and clamp cliff_onset_shift_laps for the whole field.
+-- cliff_ramp_slope_s_per_lap(severity, wear_gradient) = plateau / ramp span
+-- (since CO-02 the plateau is the severity itself and the span is 2.5 laps).
+-- The 0.30 floor on the line below is on the seed's seconds scale. It binds on
+-- none of the 42 (compound, season) medians, before or after CO-02's refit
+-- (lowest median 0.68 s at HEAD, 0.62 s after, 2026-10-15), but it would bind
+-- on a rate-scale numerator (plateau / 2.5, median ~0.4). So swapping in the
+-- rate still needs the floor re-derived against cliff_onset_shift_laps, not a
+-- line edit.
 -- Swapping the numerator without re-deriving that floor would silently replace a
 -- units bug with a saturated constant. Re-deriving it is a measurement with its
 -- own acceptance test (cliff_onset_shift_laps is consumed by fct_ghost_car_pace

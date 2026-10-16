@@ -17,6 +17,7 @@ gives an unbiased estimate of cliff_onset_laps.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -25,6 +26,37 @@ import pandas as pd
 CLIFF_DETECTION_THRESHOLD_S = 0.5
 CLIFF_MIN_CONTINUATION_LAPS = 2
 TRAILING_WINDOW = 5
+
+# estimate_cliff_severity: fewest laps each side of the cliff that a stint's
+# regression line may be fitted on. The pre-cliff line needs 3 (CO-02 / T6,
+# measured 2026-10-15 on 2018-2024, 3,649 detected-cliff stints): a 2-lap line
+# is a line through two points, and 387 of the 436 stints it admitted were
+# "cliffs" at tyre age 5, fitted on ages 3-4 alone, with a mean pre-slope of
+# 0.38 s/lap (0.02 for the 3+-lap lines) that extrapolates to onset + 2.5 as a
+# negative severity in 57% of them. They moved six of eight seasons' median
+# cell severity by more than 0.05 s (2018 by 0.15 s). The post line keeps 2:
+# detection itself needs 2 slow laps there.
+SEVERITY_MIN_PRE_LAPS = 3
+SEVERITY_MIN_POST_LAPS = 2
+
+
+def _dbt_project_var(name: str):
+    """A var from transform/dbt_project.yml, so a constant the SQL also reads has
+    one definition."""
+    import yaml
+
+    path = Path(__file__).resolve().parents[2] / "dbt_project.yml"
+    with path.open() as fh:
+        return yaml.safe_load(fh)["vars"][name]
+
+
+# THE cliff ramp length (laps), shared with the wear curve (CO-02, owner decision
+# E). estimate_cliff_severity reads each stint's step at tyre age
+# onset + CLIFF_RAMP_SPAN_LAPS, and macros/compound_cliff_wear.sql ramps the
+# fitted step in over the same number of laps past onset, so the curve reaches
+# the full step exactly where it was measured. Defined once, as dbt var
+# cliff_ramp_span_laps; read from there, never restated here.
+CLIFF_RAMP_SPAN_LAPS = float(_dbt_project_var("cliff_ramp_span_laps"))
 
 # Genuine tyre failures (vs. mechanical/collision/other retirements) are true
 # survival events, not censoring -- the tyre didn't survive to be censored.
@@ -200,19 +232,35 @@ def estimate_cliff_severity(
     pace_col: str = "lap_time_s",
 ) -> float | None:
     """
-    Estimate cliff_severity_s (seconds of pace loss at onset + 5 laps post-cliff).
+    Estimate compound_cliff_severity: the size of the cliff step in seconds, with
+    ordinary linear wear already EXCLUDED.
 
-    Uses a regression-based method instead of window means to avoid over-correction
-    from cliff-detection timing bias. For each stint with a detected cliff:
-    1. Fit a linear regression on pre-cliff laps [max(3, onset-5) to onset-1]
-    2. Fit a linear regression on post-cliff laps [onset to min(onset+5, stint_length)]
-    3. Measure the vertical gap between the two fitted lines at age = onset + 2.5
-    4. This "moment-matched" measurement replicates the window-mean approach when
-       the data is perfectly linear, but is more robust to cliff-detection noise.
+    For each stint with a detected cliff at tyre age c:
+    1. Fit a line, pace ~ age, on the pre-cliff laps, ages [max(3, c-5), c-1].
+    2. Fit a line on the post-cliff laps, ages [c, c+5].
+    3. Take the vertical gap between the two lines at age c + CLIFF_RAMP_SPAN_LAPS
+       (2.5: the post window's centre, and the wear curve's ramp length, so the
+       curve reaches the full step at the age it was measured).
+
+    Both lines carry the stint's wear slope, so evaluating them at the SAME age
+    cancels it: on pace = a + w*age + S*[age >= c] the gap is exactly S, for any
+    w. If the post line is steeper (a ramp rather than a step) the gap also holds
+    2.5 laps of the extra slope. This is NOT the old window-mean difference
+    post.mean() - pre.mean(), which on the same data reads S + 5.5*w, because
+    its two windows' centroids sit 5.5 laps apart. The docstring that stood here
+    until CO-02 said the two agree on linear data; they do not, and the wear
+    curve downstream (macros/compound_cliff_wear.sql) went on subtracting
+    5.5 * wear_gradient from a number that had none in it (T1). The curve now
+    adds this severity on top of wear_gradient * age unchanged.
 
     cliff_onset_laps is not read -- each stint is windowed on its own detected
-    cliff lap, not on the fitted onset. Keeps a stint only with >= 2 laps on
-    each side for regression fitting.
+    cliff lap, not on the fitted onset. A stint counts only with at least
+    SEVERITY_MIN_PRE_LAPS pre-cliff and SEVERITY_MIN_POST_LAPS post-cliff laps
+    (see those constants for why the pre line needs 3).
+
+    The per-stint gaps are capped at 1.5 s, trimmed to their p10-p90 and
+    averaged; that mean is the cell's severity. A small or negative result is a
+    measurement ("little or no cliff"), not a failure: the caller keeps it.
 
     pace_col: see build_survival_dataset. Normalizing matters here because the
     post-cliff window is exactly where a struggling car picks up traffic, which
@@ -239,7 +287,7 @@ def estimate_cliff_severity(
             grp[pace_col].notna()
         ]
 
-        if len(pre_region) < 2 or len(post_region) < 2:
+        if len(pre_region) < SEVERITY_MIN_PRE_LAPS or len(post_region) < SEVERITY_MIN_POST_LAPS:
             continue
 
         # Fit linear regressions: pace ~ age
@@ -256,10 +304,10 @@ def estimate_cliff_severity(
             # Regression failed (e.g., constant pace)
             continue
 
-        # Measure the vertical gap at the moment-matched point: onset + 2.5 laps
-        # This is the "centroid" of the post-cliff window in the original method,
-        # making the result comparable to the window-mean approach when data is linear.
-        reference_age = float(cliff_lap) + 2.5
+        # The vertical gap at onset + CLIFF_RAMP_SPAN_LAPS (2.5, the post
+        # window's centre; the same constant the wear curve ramps over).
+        # Evaluating both lines at one age is what removes the wear slope.
+        reference_age = float(cliff_lap) + CLIFF_RAMP_SPAN_LAPS
         pre_pred = pre_intercept + pre_slope * reference_age
         post_pred = post_intercept + post_slope * reference_age
 

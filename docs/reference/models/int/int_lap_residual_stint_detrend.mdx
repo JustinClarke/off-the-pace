@@ -8,7 +8,7 @@ description: "Per-stint linear drift of driver_skill_residual_s against lap_in_s
 
 <Note>Part of the [Residual](/transform/families/residual) family.</Note>
 
-Per-stint linear drift of driver_skill_residual_s against lap_in_stint, fit on pre-cliff laps only (cliff_onset_passed = FALSE) via OLS REGR_SLOPE. One row per stint with &gt;= 3 pre-cliff laps; stints with fewer laps get drift_s_per_lap = 0.0 (no detrending, no data). Consumed by fct_cliff_prediction_features to produce next_lap_degradation_jump_detrended_s the per-lap first-difference with this per-stint drift (fuel burn / track evolution leaking into the residual) removed. Diagnostic: pooled median slope ≈ -0.072 s/lap across ~5,950 stints.
+Per-stint linear drift of driver_skill_residual_s against lap_in_stint, fit on pre-cliff laps only (cliff_onset_passed = FALSE) via OLS REGR_SLOPE. One row per stint with a pre-cliff lap; the slope is fit where &gt;= 3 of those laps have a non-NULL residual (the ones REGR_SLOPE uses; CO-04, was COUNT(*)), and is 0.0 otherwise (no detrending, no data). Consumed by fct_cliff_prediction_features to produce next_lap_degradation_jump_detrended_s the per-lap first-difference with this per-stint drift (fuel burn / track evolution leaking into the residual) removed. Diagnostic: pooled median slope ≈ -0.072 s/lap across ~5,950 stints.
 
 ## Lineage
 

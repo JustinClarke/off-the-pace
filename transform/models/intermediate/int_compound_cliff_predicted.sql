@@ -4,22 +4,29 @@
 --
 -- All coefficients are sourced from dim_compounds_season, which is FITTED by
 -- transform/tasks/coefficients/fit_compound_cliff.py + survival.py (Kaplan-Meier
--- survival for cliff onset, wind-controlled OLS for the wear gradient, a pre/post
--- window mean difference for severity). The header note that stood here until
+-- survival for cliff onset, wind-controlled OLS for the wear gradient, and for
+-- severity the gap between per-stint pre- and post-cliff regression lines read
+-- at one age, so the wear slope cancels out of it). The header note that stood here until
 -- 2026-09-16 -- "placeholder values until Python RANSAC estimation rewrites the
 -- seed" -- was stale: the seed was refit on 2026-07-30 and again on 2026-09-08,
 -- and nobody updated the comment. Removed per work item 08l's correction.
 -- ambient_temp_delta = track_temp-compound_optimal_temp_low, clipped [0,30].
 {{ config(materialized='table') }}
 
--- 08m. compound_cliff_severity is FIT as a level shift, not as a rate:
--- survival.py::estimate_cliff_severity returns post.mean() - pre.mean() over
---   pre  = age in [onset-5, onset-1]  (5 laps, centroid onset - 3.0)
---   post = age in [onset,   onset+5]  (6 laps, centroid onset + 2.5)
--- i.e. the TOTAL pace change across onset between two centroids 5.5 laps apart.
--- Until 08m this model multiplied that number by laps_past_cliff -- unbounded,
--- reaching 48 -- which charged a ~5.5-lap magnitude once per lap. That single
--- term was 60.4% of the seed's contribution to the ML target (08l).
+-- 08m / CO-02. compound_cliff_severity is FIT as a level shift, not as a rate:
+-- survival.py::estimate_cliff_severity fits, per stint, a line through the
+-- pre-cliff laps and one through the post-cliff laps and takes their gap at
+-- tyre age onset + cliff_ramp_span_laps (2.5). Both lines carry the wear slope,
+-- so the severity is the cliff STEP in seconds with wear already excluded.
+-- The wear curve (macros/compound_cliff_wear.sql) adds it on top of
+-- wear_gradient * age as it is, ramped in linearly over the same 2.5 laps past
+-- onset and held flat after: the plateau. Until CO-02 the macro treated it as
+-- the older window-mean difference (centroids 5.5 laps apart, so 5.5 laps of
+-- wear inside it), subtracted 5.5 * wear_gradient, scaled by 2.2 and ramped
+-- over 5.5 laps (T1). Until 08m this model multiplied severity by
+-- laps_past_cliff -- unbounded, reaching 48 -- which charged a step once per
+-- lap; that single term was 60.4% of the seed's contribution to the ML target
+-- (08l).
 
 WITH geom AS (
     SELECT
@@ -148,10 +155,11 @@ SELECT
     cliff_onset_passed,
     -- Field cliff parameters exposed for the ghost-car cliff interaction term
     -- (host/ego onset shift): onset (laps) and severity from dim_compounds_season.
-    -- NOTE (08m): compound_cliff_severity is in SECONDS -- a level shift across
-    -- the onset, measured over a ~5.5-lap window. It is NOT s/lap^2, as this
-    -- comment claimed until 2026-09-16, and consumers must not multiply it by a
-    -- lap count. See the with_cliff CTE above for the licensed consumption.
+    -- NOTE (08m / CO-02): compound_cliff_severity is in SECONDS -- the step
+    -- across the onset, wear excluded, measured at onset + 2.5 laps. It is NOT
+    -- s/lap^2, as this comment claimed until 2026-09-16, and consumers must not
+    -- multiply it by a lap count. It is also the plateau itself: price it with
+    -- the macros in macros/compound_cliff_wear.sql, not by hand.
     --
     -- F7: passed through as-is, NULL when the lap has no seed cell. They were
     -- COALESCEd to 999 / 0 / 0, which published an invented cell ("never
@@ -162,10 +170,10 @@ SELECT
     -- quarantine), and unknown is what they now say.
     compound_cliff_onset_laps,
     compound_cliff_severity,
-    -- 08m: exposed deliberately alongside severity. Any consumer that needs a
-    -- post-onset RATE needs BOTH -- severity alone is a level shift and the
-    -- de-double-count against wear_gradient is what turns it into one. Use the
-    -- cliff_ramp_slope_s_per_lap() macro rather than re-deriving it.
+    -- 08m: exposed alongside severity. The pre-onset RATE is the wear gradient;
+    -- the extra post-onset rate while the ramp climbs is severity / ramp span
+    -- (wear_gradient is not involved since CO-02: the severity has no wear in
+    -- it). Use the cliff_ramp_slope_s_per_lap() macro rather than re-deriving it.
     compound_wear_gradient,
     -- The age-dependent wear portion, bounded. Exposed as its own column so
     -- the bound is assertable without re-deriving it from the pace total.
@@ -224,7 +232,8 @@ SELECT
     -- fresh tyre on lap 1 was charged the whole cliff severity as its current
     -- degradation rate. It is now the actual derivative of the pace curve above:
     -- the wear gradient, plus the ramp's slope only while the ramp is climbing
-    -- (0 before onset, 0 once it has saturated at onset + sev_span).
+    -- (0 before onset, 0 once it has saturated at onset + cliff_severity_span(),
+    -- 2.5 laps since CO-02).
     -- NULL when the tyre age is unknown: where on the curve the lap sits, and
     -- so whether the ramp is climbing, is unknown too (F39).
     COALESCE(compound_wear_gradient, 0.0)

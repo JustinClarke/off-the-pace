@@ -37,7 +37,7 @@ Every model in the pipeline is tuned by Optuna before its final fit. Tuning and 
 
     After the study completes, the best parameters are written to `ml/models/{target}_best_params.json`. The Optuna study is persisted to `ml/models/optuna_studies/{target}_{version}.db`, so it is resumable a rerun with `load_if_exists=True` extends the existing study rather than starting from scratch.
   </Step>
-  <Step title="Refit on the full training set" icon="layer-group">
+  <Step title="Refit on the full training set" icon="layers">
     Once the best hyperparameters are selected, the booster is trained on the **entire training set** (all seasons except the holdout). Cross-validation selected the configuration; the complete dataset trains the shipped model.
 
     This is the step that produces the `.bst` booster artefacts. The refit runs automatically after tuning completes `make ml-tune` chains into `ml-train` for the tuned version.
@@ -50,7 +50,7 @@ Every model in the pipeline is tuned by Optuna before its final fit. Tuning and 
 
 <img src="/images/ml/learning-curve-degradation-regressor-p50.png" alt="Learning curve for degradation_regressor_p50: train vs validation pinball loss by n_estimators" />
 
-<Accordion title="Reproducible and resumable studies" icon="rotate">
+<Accordion title="Reproducible and resumable studies" icon="rotate-cw">
   Every study is keyed by `{target}_{version}` (e.g. `cliff_classifier_v5`) so a fresh tuning run for a new version gets its own namespace without overwriting the existing study. The `TPESampler` is seeded by `RANDOM_STATE = 20260528`, so two runs with the same data and the same budget produce the same parameter sequence.
 
   The `.db` files are SQLite they can be inspected with `optuna-dashboard` or the `scripts/inspect_trials.py` utility. CI does not run `ml-tune` (it is too slow for pull requests); it runs `ml-test` against the committed `.bst` artefacts.

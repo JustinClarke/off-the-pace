@@ -1,6 +1,12 @@
 -- Driver x race summary ("why was he slow at Monza"). Grain: (driver_id, race_id).
 -- rating_s = driver_skill_loro_s (median lap-by-lap gap to teammate, negative =
--- faster). rank/percentile are within the race. ci_low/high = rating +/- 1.96 *
+-- faster). rating_s IS the teammate gap, so teammate_gap_s = rating_s (CO-01/T3:
+-- it used to be rating_s minus the teammate's rating_s, i.e. twice the gap).
+-- No within-race rank or percentile (CO-01/T4): ordering every driver's gap
+-- to his own teammate across the field read as a speed ranking ("22nd of
+-- 22") and is not one, so the owner dropped it (2026-10-15). The season mart
+-- keeps its teammate_gap_rank. positions_gained is NULL for a pit-lane start
+-- (grid_position = 0), which is not a grid slot (CO-01/T5). ci_low/high = rating +/- 1.96 *
 -- standard error of clean-lap driver_skill_residual_s (a lap-noise band, not the
 -- season Bayesian CI). n_races is 1 by construction and omitted; n_clean_laps
 -- is given instead. Components are means over ml_eligible laps.
@@ -34,7 +40,9 @@ completed AS (
 results AS (
     SELECT
         race_id, driver_id,
-        grid_position - finish_position AS positions_gained,
+        CASE
+            WHEN grid_position >= 1 THEN grid_position - finish_position
+        END AS positions_gained,
         is_dnf AS has_dnf
     FROM {{ ref('stg_results') }}
 ),
@@ -47,18 +55,16 @@ ratings AS (
     WHERE driver_skill_loro_s IS NOT NULL
 ),
 
-ranked AS (
+counted AS (
     SELECT
         *,
-        RANK() OVER (PARTITION BY race_id ORDER BY rating_s) AS rank,
         COUNT(*) OVER (PARTITION BY race_id) AS n_drivers
     FROM ratings
 ),
 
 teammates AS (
     SELECT
-        a.race_id, a.driver_id, b.driver_id AS teammate_id,
-        b.rating_s AS teammate_rating_s
+        a.race_id, a.driver_id, b.driver_id AS teammate_id
     FROM ratings AS a
     INNER JOIN ratings AS b
         ON a.race_id = b.race_id
@@ -89,14 +95,12 @@ SELECT
     k.race_year,
     dc.circuit_id,
     k.rating_s,
-    k.rank,
     k.n_drivers,
-    1.0 - (k.rank - 1.0) / NULLIF(k.n_drivers - 1, 0) AS percentile,
     k.rating_s - 1.96 * c.lap_se_s AS ci_low,
     k.rating_s + 1.96 * c.lap_se_s AS ci_high,
     c.n_clean_laps,
     t.teammate_id,
-    k.rating_s - t.teammate_rating_s AS teammate_gap_s,
+    CASE WHEN t.teammate_id IS NOT NULL THEN k.rating_s END AS teammate_gap_s,
     k.constructor_id,
     cr.constructor_rank,
     c.mean_fuel_component_s,
@@ -107,7 +111,7 @@ SELECT
     cp.laps_completed,
     r.positions_gained,
     COALESCE(r.has_dnf, FALSE) AS has_dnf
-FROM ranked AS k
+FROM counted AS k
 LEFT JOIN clean AS c ON k.race_id = c.race_id AND k.driver_id = c.driver_id
 LEFT JOIN completed AS cp ON k.race_id = cp.race_id AND k.driver_id = cp.driver_id
 LEFT JOIN results AS r ON k.race_id = r.race_id AND k.driver_id = r.driver_id
@@ -115,4 +119,4 @@ LEFT JOIN teammates AS t ON k.race_id = t.race_id AND k.driver_id = t.driver_id
 LEFT JOIN constructor_rank AS cr
     ON k.race_id = cr.race_id AND k.constructor_id = cr.constructor_id
 LEFT JOIN {{ ref('dim_circuits') }} AS dc ON k.circuit_key = dc.circuit_key
-ORDER BY k.race_year, k.race_id, k.rank
+ORDER BY k.race_year, k.race_id, k.rating_s, k.driver_id

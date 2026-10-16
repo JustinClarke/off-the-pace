@@ -10,6 +10,7 @@ code describes what it does in place; this tree records why it changed and what 
 |---|---|---|
 | [`_fixes/`](_fixes/README.md) | The transform forensic audit (F1–F55), reverified and turned into work items, with a board that tracks them | `python _roadmap/_fixes/status/board.py` |
 | [`_improvements/`](_improvements/README.md) | The ML/transform lab: research, evaluations and implementations, each carrying a stage rather than a checkbox | `python _roadmap/_improvements/status/board.py` |
+| [`_ai-integration/`](_ai-integration/README.md) | The AI layer that lets a fan ask about a race and get a trackside-analyst answer grounded in the app's verified stats, plus the close-out (`CO-*`) of defects under the numbers it would quote. The live board as of 2026-10-15 | `python _roadmap/_ai-integration/status/board.py` |
 | [`_status/`](_status/) | Project status snapshots, open issues and the maintenance / pipeline-sync checklist | `_status/STATUS.md` |
 | [`_wip/`](_wip/) | Forward plans not yet started: in-product AI, streaming watch-along, a Spark rebuild | `_wip/PROJECT_PLAN.md` |
 | [`_archive/`](_archive/) | Closed plans and notes kept for reference, including the docs-tab plans the Mintlify site was built from | — |

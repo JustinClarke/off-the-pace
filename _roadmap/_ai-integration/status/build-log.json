@@ -1,0 +1,677 @@
+{
+  "schema_version": 2,
+  "project": "off-the pace AI integration (trackside-analyst assistant)",
+  "updated": "2026-10-16T12:00:00+04:00",
+  "pointer": "CO-06",
+  "stage_vocabulary": {
+    "SPEC": "Reverified and specced in its WI doc. Nothing run.",
+    "BUILDING": "In progress.",
+    "MEASURED": "Fix applied and its acceptance numbers exist; the orchestrator has not yet re-run the doc's definition of done.",
+    "LANDED": "Definition of done re-run by the orchestrator and passing, in the working tree. Committing or publishing is the user's call and is not part of the stage.",
+    "BLOCKED": "Waiting on an open decision, or on a dependency that has hit a problem. Plain unmet dependencies are not BLOCKED - dependency order already handles those.",
+    "CLOSED": "Terminal, with reason recorded (won't fix / superseded). Do not re-open without new evidence named in the reason."
+  },
+  "model_vocabulary": {
+    "fable-5.1": "claude-fable-5-1. Novel statistical construction where a wrong derivation is expensive and hard to detect from the output - estimators, identification arguments, inference machinery. Reach for it when the failure mode is a plausible-looking number, not an error.",
+    "opus-5": "claude-opus-5. The default. Anything that makes a ruling, designs an aggregation, moves the feature contract, or turns a measurement into a claim.",
+    "sonnet-5": "claude-sonnet-5. The method is already written down and the judgment call is made - ingest, enumeration, a named refit, a declared schema note. Step back up to opus-5 the moment the leaf doc leaves a choice open.",
+    "haiku-4-5": "claude-haiku-4-5. Throughput work with a mechanical check on the output. Nothing in the tree currently qualifies: every live item either writes into the contract, rules on leakage, or produces a claim."
+  },
+  "groups": [
+    {
+      "id": "D",
+      "title": "Carry-over - defects under the numbers the assistant will quote",
+      "parallel": true,
+      "summary": "The 2026-10-15 audit findings, each verified against the tree, plus the AI-03 gate. CO-02 and CO-04 move the label and ship as one version bump in CO-03."
+    },
+    {
+      "id": "A",
+      "title": "Grounding - what the assistant may say",
+      "parallel": true,
+      "summary": "The fact-card contract and the honesty rules. The assistant quotes nothing else."
+    },
+    {
+      "id": "B",
+      "title": "Assistant core - one tool and the answer loop",
+      "parallel": true,
+      "summary": "A fact-card lookup tool and a bounded loop, runnable headless so it can be measured before any UI exists."
+    },
+    {
+      "id": "C",
+      "title": "Delivery - proxy, evaluation and the chat surface",
+      "parallel": false,
+      "summary": "What a fan touches, and the eval that decides whether it ships."
+    }
+  ],
+  "items": [
+    {
+      "id": "CO-01",
+      "group": "D",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Mart semantics: teammate gap is doubled, field rank is labelled 'fastest', pit-lane starters lose places",
+      "sources": [
+        "transform/models/marts/mart_race_driver_summary.sql",
+        "transform/models/marts/mart_driver_season_summary.sql",
+        "transform/models/marts/schema.yml",
+        "transform/models/intermediate/int_driver_race_skill_loro.sql"
+      ],
+      "doc": "wi/CO-01-mart-semantics.md",
+      "cost": "0.5-1d",
+      "model": "sonnet-5",
+      "note": "Built on dev 2026-10-15. Teammate gap now equals rating_s (was 2x). Renamed rank/percentile to teammate_gap_rank/teammate_gap_percentile; race-table ranking dropped per owner. positions_gained NULL for pit-lane starts. Sao Paulo 2021 page corrected (0.31 s, 0.18 s). Definition of done re-run 2026-10-15: mart tests pass on dev."
+    },
+    {
+      "id": "CO-02",
+      "group": "D",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Cliff label defects: wear subtracted twice, class defaults replacing fits, 2018 never refit, 2025 rows stale",
+      "sources": [
+        "transform/tasks/coefficients/survival.py",
+        "transform/tasks/coefficients/fit_compound_cliff.py",
+        "transform/macros/compound_cliff_wear.sql",
+        "transform/seeds/compound_cliff_params.csv",
+        "transform/dbt_project.yml"
+      ],
+      "doc": "wi/CO-02-cliff-label-defects.md",
+      "cost": "2-3d",
+      "model": "opus-5",
+      "note": "Built on dev 2026-10-15. Wear no longer double-counted; severity kept at 0.0 floor; 2018 fitted in-sample; 2025 fitted on 2018-24; 3 pre-cliff laps required. Ramp 2.5 laps (dbt var cliff_ramp_span_laps). Seed refit once, 499 rows, sha256 12fcc131a39853ea87189d3f0c67f0f668b6f2ddf28cbc29262e027d599c77f8. Open: simulator constants CLIFF_SEVERITY_MIN/MAX (app transform.ts:44-45) tuned to old scale. Definition of done re-run 2026-10-15: coefficient tests 159 pass; seed sha256 matches the frozen value."
+    },
+    {
+      "id": "CO-03",
+      "group": "D",
+      "stage": "MEASURED",
+      "depends_on": [
+        "CO-02",
+        "CO-04"
+      ],
+      "title": "v15 retrain on the final label, owed gates re-run, ONNX and manifest exported",
+      "sources": [
+        "ml/models/manifest.json",
+        "ml/src/schema.py",
+        "ml/artefacts/15a_traffic_families_arms.log",
+        "ml/artefacts/08e_thermal_family_arms_v15.log",
+        "transform/models/intermediate/int_lap_anomaly_flags.sql"
+      ],
+      "doc": "wi/CO-03-v15-gates-rerun.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "v15 retrained on the final label (2026-10-15). Gates pass: WI-15a, 08e thermal ablation, features --check, seed gate 66/66, ONNX parity 5/5. FAILS beats-baseline for stint life on 2025: NLL 2.3286 vs baseline 2.3225, p 0.96, won 2 of 5 folds. The other four models beat baseline (p <= 0.0003). v15 is NOT promoted; default stays v14. manifest.json now names v15 and makes 3 manifest-contract tests fail until a promote decision. Owner decides promotion and the stint-life fix."
+    },
+    {
+      "id": "CO-04",
+      "group": "D",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Measurement honesty: missing telemetry recorded as clear air (FD6), smoother crosses safety cars (W43), thin field-base cells (W44)",
+      "sources": [
+        "transform/models/intermediate/int_lap_air_state.sql",
+        "transform/models/intermediate/int_field_pace_curve.sql",
+        "transform/models/intermediate/int_lap_residual_decomposed.sql"
+      ],
+      "doc": "wi/CO-04-measurement-honesty.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "Built on dev 2026-10-15. Missing telemetry is NULL, not clear air (Australia and Bahrain 2018 dropped and documented). Restart laps have their own mean (first two green laps). Team pace NULL, not 0.0, where base is missing; 2018_3 and 2025_6 are quarantined by WI-05, not a regression. Open: 4,655 thin-cell isolation laps left out (T18); third restart lap still leans -0.18 s. Definition of done re-run 2026-10-15: coefficient tests 159 pass; mart tests pass. One dbt failure remains, assert_field_pace_honest_range (Monaco 2024, 15 laps), which also fails on clean HEAD, so it is pre-existing, not CO-04."
+    },
+    {
+      "id": "CO-05",
+      "group": "D",
+      "stage": "MEASURED",
+      "depends_on": [],
+      "title": "W4 ingestion hardening: review the committed work, fix the one stale test",
+      "sources": [
+        "ingestion/verify_bronze.py",
+        "ingestion/tests/test_bronze_verification.py",
+        "ingestion/tests/test_ingest_hardening.py",
+        "_roadmap/_fixes/status/build-log.json"
+      ],
+      "doc": "wi/CO-05-ingestion-review.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "Reviewed 2026-10-15. W4 ingestion committed in a9fe181, no bronze layout change. Stale test updated to 2018-2025 MARKDOWN_SEASONS. Ingestion tests 139 passed. ingest-recent deliberately still 2023-24. Stage MEASURED. The fixes-log W4 entry (_roadmap/_fixes/status/build-log.json) is not yet cleared."
+    },
+    {
+      "id": "CO-06",
+      "group": "D",
+      "stage": "SPEC",
+      "depends_on": [
+        "CO-02"
+      ],
+      "title": "Docs and schema text: the removed 2018 +0.37 s offset, the old window-mean severity",
+      "sources": [
+        "transform/models/marts/schema.yml",
+        "transform/models/intermediate/schema.yml",
+        "docs/reference/models/"
+      ],
+      "doc": "wi/CO-06-docs-schema-refresh.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "Audit 9 (schema and generated docs; the code headers go with CO-02). Five schema.yml spots state the removed offset, not two: marts 1743, 2058, 2244; intermediate 3576, 3737."
+    },
+    {
+      "id": "CO-07",
+      "group": "D",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Stale improvements rulings D2, D9, D13, D14: put them to the user with today's facts and record the answers",
+      "sources": [
+        "_roadmap/_improvements/status/build-log.json"
+      ],
+      "doc": "wi/CO-07-stale-rulings.md",
+      "cost": "0.25d",
+      "model": "sonnet-5",
+      "note": "Audit 8. The ruling is CD3; the answers are recorded in the improvements log, which stays the home of these decisions. Live CDN checked 2026-10-15: v14, not v6 (D2's premise) or v11 (the audit's). CD3 ruled 2026-10-15 and recorded in the improvements log: D2 and D13 RESOLVED; D9 and D14 stay OPEN pending a v15 re-measure (after CO-03)."
+    },
+    {
+      "id": "CO-08",
+      "group": "D",
+      "stage": "BUILDING",
+      "depends_on": [
+        "CO-04"
+      ],
+      "title": "Chance to make the flag: calibrated, final stints only (plus laps-to-flag display cap)",
+      "sources": [
+        "ml/src/survival.py",
+        "ml/src/evaluate.py",
+        "ml/src/predict.py",
+        "scripts/export_app_data.py",
+        "app/src/features/degradation-simulator/"
+      ],
+      "doc": "wi/CO-08-flag-chance-calibration.md",
+      "cost": "3-5d",
+      "model": "opus-5",
+      "note": "Owner go-ahead 2026-10-15 to build the laps-to-flag display cap and the calibrated flag-chance line. Source edits in working tree only. Stint-life fix (starting value) not promoted; built in scratch. Calibration fitted on 2018-2024 out-of-fold; 2025 for evaluation. 2026-10-16: drift rule last3 chosen on 2024 only; 2025 FAILS (5/10 bins). Follow-up agent (E4, pre-registered on 2023-2024) also fails (5/10, worst 13.2 pp) but cuts Brier to 0.0698 from 0.0803. Stage stays BUILDING; waiting on CD4 and CD5. Scratch report: scratchpad/flag_ideas/report.md."
+    },
+    {
+      "id": "AI-03",
+      "group": "D",
+      "stage": "SPEC",
+      "depends_on": [
+        "CO-01",
+        "CO-02",
+        "CO-03",
+        "CO-04",
+        "CO-06"
+      ],
+      "title": "Carry-over gate: numbers settled, fixes-log entries corrected, card sources frozen for the launch run",
+      "sources": [
+        "_roadmap/_fixes/status/build-log.json",
+        "scripts/export_app_data.py"
+      ],
+      "doc": "wi/AI-03-carry-over-closeout.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "Was a second list of the CO items; now the gate on them. AI-08 waits on it so nothing ships quoting numbers about to move. CO-05 and CO-07 are not gates: they move no quoted number."
+    },
+    {
+      "id": "AI-01",
+      "group": "A",
+      "stage": "SPEC",
+      "depends_on": [
+        "CO-01"
+      ],
+      "title": "Grounding contract: fact cards (value, n, interval, source) for ratings, tyre predictions and pit calls, published with the app data",
+      "sources": [
+        "transform/models/marts/mart_race_driver_summary.sql",
+        "transform/models/marts/mart_driver_season_summary.sql",
+        "transform/models/marts/mart_metric_benchmark.sql",
+        "ml/src/predict.py",
+        "transform/models/intermediate/int_pit_strategy_value.sql",
+        "scripts/export_app_data.py"
+      ],
+      "doc": "wi/AI-01-grounding-contract.md",
+      "cost": "2-3d",
+      "model": "opus-5",
+      "note": "The assistant may only state numbers that arrive as a fact card. The three rating marts are not exported today (the live CDN has 39 tables, none of them), so cards are generated at export time. mart_degradation_predictions supplies tyre cards with their p10-p90 band and in-envelope flag."
+    },
+    {
+      "id": "AI-02",
+      "group": "A",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Honesty policy: the docs' uncertainty rules as a machine-checkable list the assistant cannot talk around",
+      "sources": [
+        "docs/app/blind-test-scoreboard.mdx",
+        "docs/ml/ci/evaluation-gates.mdx",
+        "docs/app/model-metrics.mdx",
+        "_roadmap/_fixes/status/build-log.json"
+      ],
+      "doc": "wi/AI-02-honesty-policy.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "Rules already exist in prose (in-sample until 2026 ingests, REVIEW_REQUIRED priors, car-leakage and stability grades). This turns them into data, plus the claim limits of open rulings (D9, D13)."
+    },
+    {
+      "id": "AI-04",
+      "group": "B",
+      "stage": "SPEC",
+      "depends_on": [
+        "AI-01",
+        "AI-02"
+      ],
+      "title": "Assistant core: one fact-card tool and a bounded answer loop, runnable headless",
+      "sources": [
+        "app/src/data/duckdb/client.ts",
+        "app/src/data/manifest.ts",
+        "docs/app/degradation-simulator.mdx"
+      ],
+      "doc": "wi/AI-04-assistant-core.md",
+      "cost": "2d",
+      "model": "sonnet-5",
+      "note": "Replaces the free-SQL query tool for v1: a model-written aggregate has no n or interval, so it cannot be a fact card. SQL returns only if AI-07 shows cards miss a large share of fan questions. Headless so AI-07 can measure it before AD1 is ruled."
+    },
+    {
+      "id": "AI-05",
+      "group": "B",
+      "stage": "CLOSED",
+      "depends_on": [
+        "AI-02"
+      ],
+      "title": "Model prediction tool: cliff and stint-life estimates from the in-browser ONNX models, always with their band",
+      "sources": [
+        "app/src/ml/infer.ts",
+        "app/src/ml/index.ts"
+      ],
+      "doc": "wi/AI-05-model-prediction-tool.md",
+      "cost": "2d",
+      "model": "sonnet-5",
+      "note": "Kept for v2; the doc still holds the spec.",
+      "closed": "2026-10-15: cut from v1. mart_degradation_predictions, already on the CDN, carries p10/p50/p90, cliff-class probabilities, stint-life bands, model_version and is_in_envelope, so AI-01's cards answer questions about real stints. Hypotheticals link the Degradation Simulator. Reopen if AI-07 shows what-if tyre questions the link does not serve."
+    },
+    {
+      "id": "AI-06",
+      "group": "C",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Cloudflare Worker proxy to Workers AI: key never in the bundle, App Check or equivalent, rate limit, daily allowance guard, pause state, usage counter, CSP updated",
+      "sources": [
+        "firebase.json",
+        "docs/platform/architecture-decisions.mdx",
+        "_roadmap/_wip/AI_PLAN.md"
+      ],
+      "doc": "wi/AI-06-proxy-and-key-safety.md",
+      "cost": "2d",
+      "model": "sonnet-5",
+      "note": "AD1 ruled (2026-10-15): Cloudflare Workers AI on the free allowance (about 10k neurons/day). The proxy is a Worker; Firebase Hosting stays and firebase.json only gains the Worker host in connect-src. First step: confirm the model is on Workers AI and the current free-tier limit before code. Needs a graceful 'answers are paused for today' state and a usage counter. The allowance (not a spend cap) is the limit; sized from AI-07's measured tokens per answer."
+    },
+    {
+      "id": "AI-07",
+      "group": "C",
+      "stage": "SPEC",
+      "depends_on": [
+        "AI-01",
+        "AI-02",
+        "AI-04"
+      ],
+      "title": "Analyst eval: about 40 fan questions, a grader, a pass bar fixed before the first run, and a measured baseline",
+      "sources": [
+        "docs/app/race-lost.mdx",
+        "docs/app/pit-strategy.mdx",
+        "docs/app/tyre-cliff-survival.mdx",
+        "docs/app/families/"
+      ],
+      "doc": "wi/AI-07-analyst-eval-set.md",
+      "cost": "3d",
+      "model": "opus-5",
+      "note": "The measure of 'feels like a trackside analyst' that can fail. Expected values are read from the card table at grade time, so it need not wait for the CO items; the launch run on settled numbers is in AI-08. Outputs: scores per check and family, card coverage, cost per answer."
+    },
+    {
+      "id": "AI-08",
+      "group": "C",
+      "stage": "SPEC",
+      "depends_on": [
+        "AI-03",
+        "AI-04",
+        "AI-06",
+        "AI-07"
+      ],
+      "title": "Chat drawer: streamed answer, every number linked to its card and page, caveats inline; launch run of the eval",
+      "sources": [
+        "app/src/ui/layout/AppShell.tsx",
+        "app/src/ui/feedback/",
+        "app/src/nav/"
+      ],
+      "doc": "wi/AI-08-chat-ui.md",
+      "cost": "3d",
+      "model": "sonnet-5",
+      "note": "Last, because it exposes everything above. Behind a flag until the launch run passes on AI-03's frozen numbers; turning it on is the user's call. AD1 is ruled; waits on AI-06 as a dependency."
+    },
+    {
+      "id": "CO-09",
+      "group": "D",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Stint labels: join same-tyre splits, censor red-flag tyre changes (dbt), version bump",
+      "sources": [
+        "transform/models/intermediate/int_stint_end_regime.sql",
+        "ml/src/schema.py"
+      ],
+      "doc": "wi/CO-09-stint-label-fix.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "Raised 2026-10-16 from the CO-08 follow-up. Pit-lane drive-throughs and red flags split one tyre run into several stints; red-flag tyre changes are labelled as 'did not reach the flag'. Canada 2025 real final stints labelled sc_pit = 0. Touches the stint-life target, so a version bump; promotion is the owner's call."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "AD1",
+      "raised": "2026-10-15",
+      "blocking": [
+        "AI-06"
+      ],
+      "status": "RESOLVED",
+      "question": "Who pays for the answers? A: the project holds one API key behind a proxy, with a per-visitor daily limit. B: each visitor brings their own key, nothing is stored server-side. C: A for a small free quota, then B.",
+      "context": "A is the easiest for a fan but costs the project money and needs rate limiting and abuse handling. B costs nothing and has no abuse surface, but most casual fans will not have a key. C builds both paths. The CSP, App Check and the proxy design differ between A and B, so AI-06 cannot start before this is ruled. AI-07 measures cost per answer before AI-06 is needed, so the cap can be set from data. Recommendation revised 2026-10-15 from C to A for v1: C builds two paths before there is any usage data.",
+      "recommendation": "A for v1, with a per-visitor daily limit and a hard daily spend cap sized from AI-07's cost per answer; add B later only if the cap binds.",
+      "resolved": "2026-10-15",
+      "resolution": "Cloudflare Workers AI, on the account's free allowance (about 10,000 neurons a day) for now. The proxy is a Cloudflare Worker that calls Workers AI; the key/binding lives in the Worker, never the browser bundle. Firebase Hosting stays; the Worker is the only thing that touches the model API. Nothing else is decided (no paid tier, no bring-your-own-key path)."
+    },
+    {
+      "id": "CD1",
+      "raised": "2026-10-15",
+      "blocking": [
+        "CO-03"
+      ],
+      "status": "RESOLVED",
+      "question": "F9: laps the pipeline labels as a driver 'mistake' are dropped from training, and that label hangs on the tyre seed CO-02 is about to change. For v15: A: keep dropping them and delete the unused weight column (no change; the dependence on the seed stays). B: keep them at half weight (measured: no effect beyond noise; still tied to the seed). C: keep them at full weight (removes the dependence; quantile heads +1.3x the noise floor, cliff classifier -1.3x, all inside the 2x bar).",
+      "context": "Measured 2026-10-10 in the fixes log (5 seeds, scratch warehouse): no arm clears the 2x reseed floor. Checked 2026-10-15: training_weight_f9 exists only in int_lap_anomaly_flags.sql:293; fct_cliff_prediction_features.sql:984 still excludes 'mistake' rows; nothing in ml/src reads the weight. The column also gives 1,234 event_driven rows a weight above 0, so B or C means fixing it first. Rides v15's retrain either way.",
+      "recommendation": "C, because CO-02 rewrites the seed the 'mistake' label hangs on and C's costs and gains are both inside noise. A if you want the smallest possible v15.",
+      "resolved": "2026-10-15",
+      "resolution": "A: keep dropping laps marked 'mistake'. F9 is closed as decided NOT WIRED. training_weight_f9 (int_lap_anomaly_flags.sql:293) is unused; deleting it is left to CO-03's rebuild, not done on 2026-10-15."
+    },
+    {
+      "id": "CD2",
+      "raised": "2026-10-15",
+      "blocking": [
+        "CO-02"
+      ],
+      "status": "RESOLVED",
+      "question": "2018 tyre-cliff cells: the point-in-time rule (FD3) fits each season only from earlier seasons, so 2018 has nothing to fit from, and every 2018 cell uses a hand-set default of 1.2-1.5 s, about twice what fitted cells show. What should 2018 (and any later cell with no usable fit) use? A: a declared prior: the median fitted value per compound class, labelled as a prior, not a fit. B: unknown (NULL): 2018 laps past a cliff onset get no label (about 42% of 2018 laps). C: fit 2018 on its own data, as a declared one-season exception to FD3.",
+      "context": "Checked 2026-10-15: all 62 2018 rows of compound_cliff_params.csv equal the 09-28 seed and are class_default for onset and severity. The +0.37 s 2018 offset that compensated has been removed (dbt_project.yml:244 is {}), so 2018 ratings carry the over-correction again. A keeps 2018 in training with a small, declared class-level look-ahead. B follows FD6's 'NULL, not a guess' but drops most of 2018's post-cliff laps. C uses 2018's own data for its own label, which FD3 ruled against.",
+      "recommendation": "A: honest about being a prior, keeps the 8-season training window whole, and lands close to what the fitted cells say.",
+      "resolved": "2026-10-15",
+      "resolution": "C: fit 2018's cliff values on 2018's own data, as a declared one-season exception to FD3. Consequence: 2018 is then an in-sample fit. It must be labelled as such everywhere it appears and must never be used for any honest evaluation (validation, holdout, gates, headline metrics). Earlier-seasons-only (FD3) still applies to every other season."
+    },
+    {
+      "id": "CD3",
+      "raised": "2026-10-15",
+      "blocking": [
+        "CO-07"
+      ],
+      "status": "RESOLVED",
+      "question": "Four improvements-board rulings have gone stale. D2 (deploy): the live CDN serves v14, the same as the local build, so 'production is on v6' no longer holds. A: close D2 as overtaken; the next publish question is v15, after CO-03. B: keep it open. D9 (may the pit-strategy cost curve read the ML predictions): its +3.59 s/stint and 33.9% -> 53.0% call reproduction were measured on v11 and the old seed. A: re-measure on v15 after CO-03, then rule. B: rule now on the principle. C: close as no. D13 (may an e-value its own item disowned be withdrawn before 04c's union run): A: yes, only when the same document disowned it for a stated computational reason (k* 5 -> 3). B: no, every declared E stands. D14 (does a label rebuild reopen 01b's noise floor; the label has been rebuilt twice since and CO-02 rebuilds it again): A: no; re-evaluate 01c's attainable block on the v15 label instead. B: yes, reopen 01b.",
+      "context": "D2 checked 2026-10-15 against https://storage.googleapis.com/off-the-pace-cdn/models/manifest.json (model_version v14, built 2026-09-22). D9, D13 and D14 are unchanged in the improvements log since 2026-09-19/20. Answers are recorded there by CO-07; this entry is only the question as it stands today.",
+      "recommendation": "D2 A, D9 A, D13 A, D14 A: each is the cheapest answer that stays honest, and none of them reopens settled work.",
+      "resolved": "2026-10-15",
+      "resolution": "Yes to all four. D2: close (production already serves v14). D9: re-measure on v15 before any ruling; stays OPEN until then. D13: withdrawing a disowned e-value is allowed even where the original write-up rejected the idea. D14: do not reopen 01b's noise floor; recheck the newer attainable-block ceiling estimate on v15; stays OPEN until then. Recorded in the improvements log by CO-07."
+    },
+    {
+      "id": "CD4",
+      "raised": "2026-10-16",
+      "blocking": [
+        "CO-08"
+      ],
+      "status": "OPEN",
+      "question": "Acceptance rule for the flag-chance line. The 10-bins-within-5-pp rule cannot be met reliably on one season. A: keep it (chance stays hidden, cap only). B: a race-clustered rule: average gap within 3 pp, intercept CI contains 0, slope CI contains 1. C: 5 wider bins pooled over the two latest seasons.",
+      "context": "Best candidate E4 passes none of the three as the rule stands (5/10 within 5 pp, worst 13.2 pp; Brier 0.0698 vs 0.0803 current). Under B its 2025 point estimates fit (gap +1.1 pp, CI [-3.3, +6.0]; slope 0.83 [0.69, 1.09]); the current method fails B on 2024 (gap -8.8 pp). Whatever is chosen must be fixed before 2026 data is scored. See _roadmap/_ai-integration/wi/CO-08-flag-chance-calibration.md and the scratch report.",
+      "recommendation": "A for now. Revisit with 2026 data as the first clean test.",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "CD5",
+      "raised": "2026-10-16",
+      "blocking": [
+        "CO-08"
+      ],
+      "status": "OPEN",
+      "question": "Where the chance number may appear. A: parquet and race replay only (E4 needs live field context, the browser simulator cannot run it), cap only in the simulator. B: E6 instead (simulator-known inputs, 0.0872 vs 0.0855 on selection; not scored on 2025 and cannot be now without another look). C: cap only everywhere.",
+      "context": "E4 needs a refresh between races, so it cannot run in the browser as-is. E6 would need a classifier export instead of the 1-D lookup. Only E4 has a 2025 score.",
+      "recommendation": "C for the simulator now; A later if the 2026 test passes under the rule chosen in CD4.",
+      "resolved": null,
+      "resolution": null
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-10-15T12:00:00Z",
+      "session": "ai-integration track created: 8 items, 1 open ruling, pointer on AI-01",
+      "landed": [
+        "_roadmap/_ai-integration/{README.md, status/board.py, status/build-log.json, status/BUILD-ORDER.md, wi/AI-01..AI-08} created, copied from the fixes board's conventions.",
+        "AI-03 collects six items from the fixes board that could not be verified closed."
+      ],
+      "verified": [
+        "Fixes and improvements boards pass --check before and after; neither was edited.",
+        "Repo facts the WI docs cite were read in the tree: queryLab.ts read-only guard, app/src/ml/infer.ts, firebase.json CSP, the three new marts, docs/app pages."
+      ],
+      "assumed": [
+        "No item has been started; every stage is SPEC.",
+        "AD1's recommendation is the author's, not a ruling."
+      ],
+      "gates_run": [
+        "board.py --check on all three boards"
+      ],
+      "next_action": "Run AI-01. AD1 is yours to rule before AI-06 can start.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-15T18:00:00Z",
+      "session": "Cleanup after two writers overlapped: duplicate AI docs removed, CO-01..CO-07 registered, audit findings mapped to one item each, AI plan cut to a v1",
+      "landed": [
+        "Removed 8 duplicate AI docs (the set the board never referenced) and replaced AI-04-readonly-query-tool.md with AI-04-assistant-core.md.",
+        "Registered CO-01..CO-06 (docs existed, unregistered) and added CO-07 for the stale improvements rulings; added rulings CD1 (F9), CD2 (2018 cliff cells), CD3 (D2/D9/D13/D14).",
+        "AI-03 now gates on the CO items instead of restating them. AI-01 depends on CO-01 and generates cards at export time. AI-04 is one fact-card tool plus a headless loop (free SQL cut for v1). AI-05 closed for v1. AI-07 no longer waits on CO and records card coverage and cost per answer. AI-08 holds the launch run and waits on AI-03. AI-06 set to BLOCKED (it waits on AD1); AD1's recommendation changed to A for v1.",
+        "Group order D, A, B, C so carry-over leads; pointer on CO-01."
+      ],
+      "verified": [
+        "Every audit finding re-checked against the tree and dev (read-only) on 2026-10-15; facts quoted in each CO doc and item note.",
+        "Live CDN model manifest is v14 (not v11); live data manifest has 39 tables and none of the three rating marts.",
+        "Ingestion tests: 56 passed, 1 failed (stale test)."
+      ],
+      "assumed": [
+        "CO-04: thin field-base cells NULL below 5 cars, following F1/FD6, not separately ruled.",
+        "The fixes and improvements logs keep their recorded resolutions; AI-03 and CO-07 correct them when the work lands, so each finding is tracked once."
+      ],
+      "gates_run": [
+        "board.py --check on all three boards",
+        "ingestion pytest (2 files)",
+        "read-only queries on data/dev.duckdb"
+      ],
+      "next_action": "Put CD2 and CD1 to the user first (they gate the label fix and the v15 retrain), then CD3 and AD1. Meanwhile run CO-01.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-15T20:00:00Z",
+      "session": "Rulings recorded: CD1 = A, CD2 = C, CD3 = yes to all four, AD1 = Cloudflare Workers AI on the free allowance",
+      "landed": [
+        "CD1, CD2, CD3, AD1 set RESOLVED with the user's wording in build-log.json.",
+        "CO-02, CO-03, AI-06 moved BLOCKED to SPEC; CO-07 moved to LANDED (answers recorded in the improvements log: D2, D13 RESOLVED; D9, D14 stay OPEN pending a v15 re-measure).",
+        "CO-02 and CO-03 WI docs carry the ruling (2018 in-sample; F9 not wired). AI-06 WI doc reshaped to a Cloudflare Worker with the allowance check, paused state and usage counter.",
+        "Fixes log gets a pointer entry that F9 is closed as not wired."
+      ],
+      "verified": [
+        "training_weight_f9 is referenced only at int_lap_anomaly_flags.sql:293 plus comments in _fixes evidence and logs; no code reads it. Not deleted: it is a dbt model change that needs a rebuild, so CO-03 removes it.",
+        "Cloudflare docs (developers.cloudflare.com/workers-ai/platform/pricing/): free 10,000 neurons/day, resets 00:00 UTC, operations fail with an error past it; @cf/meta/llama-3.3-70b-instruct-fp8-fast lists function calling (26,668 / 204,805 neurons per M input / output tokens)."
+      ],
+      "assumed": [
+        "The model named in AI-06 is a candidate to confirm, not a decision: AI-06 step 1 confirms availability and the limit before code.",
+        "CO-07 marked LANDED because its done-condition (a recorded ruling, or re-put with a date) is met; D9 and D14 re-measures ride CO-03."
+      ],
+      "gates_run": "board.py --check on all three boards",
+      "next_action": "Run CO-01 (pointer). CO-02 is now runnable; CO-03 waits on CO-02 and CO-04; AI-06 is runnable.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-15T21:00:00Z",
+      "session": "Where we stand (snapshot after rulings)",
+      "landed": [
+        "CO-07 LANDED (improvements decisions D2, D13 resolved; D9, D14 open pending v15 re-measure, which rides CO-03).",
+        "AI-05 CLOSED (cut from v1; precomputed predictions carry their p10-p90 bands)."
+      ],
+      "stands": {
+        "ready_to_start": [
+          "CO-01 (pointer)",
+          "CO-02 (2018 in-sample per CD2=C)",
+          "CO-04",
+          "CO-05",
+          "AI-02",
+          "AI-06 (Workers AI, model and limit check first)"
+        ],
+        "waiting_on_work": [
+          "CO-03 waits on CO-02, CO-04",
+          "CO-06 waits on CO-02",
+          "AI-01 waits on CO-01",
+          "AI-04 waits on AI-01, AI-02",
+          "AI-07 waits on AI-01, AI-02, AI-04",
+          "AI-03 waits on CO-01, CO-02, CO-03, CO-04, CO-06",
+          "AI-08 waits on AI-03, AI-04, AI-06, AI-07"
+        ],
+        "rulings_done": [
+          "CD1 = A: keep dropping driver-mistake laps; F9 not wired",
+          "CD2 = C: 2018 fitted on its own data, labelled in-sample",
+          "CD3 = yes to all four",
+          "AD1 = Cloudflare Workers AI, free allowance (10k neurons/day, resets 00:00 UTC)"
+        ],
+        "open_watch": [
+          "D9 and D14 re-measure on v15 (CO-03 step 6)",
+          "AI-06 model choice: llama-3.3-70b-instruct-fp8-fast is a candidate, to confirm before code",
+          "training_weight_f9 dead code: removed in CO-03 rebuild"
+        ]
+      },
+      "gates_run": "none (snapshot only, no code changed)",
+      "next_action": "Pick the next runnable item: CO-01 is the pointer; CO-02, CO-04, CO-05, AI-02 and AI-06 can run in parallel.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py",
+      "verified": [
+        "Stages and dependencies read from build-log.json on 2026-10-15 (item list above).",
+        "Rulings CD1, CD2, CD3, AD1 read from the decisions block; wording matches the user's answers."
+      ],
+      "assumed": [
+        "The snapshot reflects the state after the 20:00 entry; no item was started in this entry.",
+        "Pointer left at CO-01 as set in the previous entry; change it when you choose the next item."
+      ]
+    },
+    {
+      "date": "2026-10-15T17:45:00+04:00",
+      "session": "CO-01, CO-02, CO-04 fixed to owner decisions and landed; CO-05 measured",
+      "landed": [
+        "CO-01 LANDED (new names, race ranking dropped).",
+        "CO-02 LANDED (ramp 2.5 laps, seed frozen sha256 12fcc131…77f8).",
+        "CO-04 LANDED (A drop+doc, B current, C own restart mean, D accept; team-pace NULL fix). Pre-existing dbt fail assert_field_pace_honest_range, Monaco 2024."
+      ],
+      "measured": [
+        "CO-05 MEASURED (ingestion 139 pass; fixes-log W4 not yet cleared)."
+      ],
+      "watch": [
+        "Simulator CLIFF_SEVERITY_MIN/MAX (app transform.ts:44-45) tuned to old scale.",
+        "4,655 thin-cell isolation laps left out (T18).",
+        "Third restart lap still leans -0.18 s.",
+        "assert_field_pace_honest_range fails 15 rows, Monaco 2024 laps 63-77, pre-existing."
+      ],
+      "stands": {
+        "pointer": "CO-03"
+      },
+      "verified": [
+        "Coefficient tests: 159 pass (PYTHONPATH=transform).",
+        "Ingestion tests: 139 pass.",
+        "dbt on mart_race_driver_summary, mart_driver_season_summary and the CO-01/CO-04 assert tests: 31 pass, 1 error (assert_field_pace_honest_range, Monaco 2024, 15 rows, pre-existing on clean HEAD).",
+        "Seed sha256 12fcc131… matches frozen value."
+      ],
+      "assumed": [
+        "Dev DB numbers were built by the CO-02/CO-04 agent; I did not re-run the full dev chain.",
+        "assert_field_pace_honest_range failure treated as pre-existing (agent compared against clean HEAD)."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "pytest coefficients and ingestion",
+        "dbt test (subset)"
+      ],
+      "next_action": "CO-03 v15 retrain on the frozen label (opus-5).",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-15T18:30:00+04:00",
+      "session": "CO-03 v15 retrain run; stint-life beats-baseline fails on 2025",
+      "landed": [
+        "None this step. CO-03 stays MEASURED."
+      ],
+      "measured": [
+        "CO-03 MEASURED: gates pass except stint-life beats-baseline (NLL 2.3286 vs 2.3225, p 0.96). Not promoted."
+      ],
+      "watch": [
+        "Stint-life does not beat baseline on v15 (2025). Owner decision needed: fix, or accept v14 for stint.",
+        "manifest.json names v15: 3 manifest-contract tests fail until promotion decision.",
+        "D9 re-measure has no script; stays OPEN.",
+        "assert_field_pace_honest_range Monaco 2024 pre-existing."
+      ],
+      "verified": [
+        "WI-15a and 08e gates PASS (ml/artefacts logs dated 2026-10-15).",
+        "features --check PASS, seed gate 66/66, ONNX parity 5/5."
+      ],
+      "assumed": [
+        "Targeted dbt tests only, not full dbt test."
+      ],
+      "gates_run": [
+        "WI-15a",
+        "08e thermal ablation",
+        "features --check",
+        "seed tests",
+        "ONNX parity",
+        "evaluate beats-baseline (FAIL stint life)"
+      ],
+      "next_action": "Owner decides v15 promotion and stint-life handling; CO-06 docs next.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py",
+      "stands": {
+        "pointer": "CO-06"
+      }
+    },
+    {
+      "date": "2026-10-16T12:00:00+04:00",
+      "session": "CO-08 resumed: drift fix, then opus follow-up search for a better method; handed off to build log",
+      "landed": [
+        "None landed. CO-08 stays BUILDING (waiting on CD4, CD5). CO-09 raised as SPEC."
+      ],
+      "measured": [
+        "CO-08: last3 drift rule fails 2025 (5/10). Follow-up E4 fails 2025 (5/10, worst 13.2 pp) but Brier 0.0698 vs 0.0803."
+      ],
+      "watch": [
+        "Acceptance rule can't be met reliably on one season (race clustering).",
+        "Stint labels split same-tyre runs and count red-flag tyre changes as not-reached (CO-09).",
+        "2025 burned for selection twice."
+      ],
+      "verified": [
+        "flag_chance tests 10/10 pass (ML); app flagChance 6/6 pass."
+      ],
+      "assumed": [
+        "Follow-up numbers taken from the agent's report; not independently re-run."
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_action": "Tomorrow: owner answers CD4 (acceptance rule) and CD5 (where the chance may show). Then CO-06 docs. CO-09 waits for a go-ahead. Uncommitted: ml/src/flag_chance.py (drift rule, weighting arg), ml/tests unchanged, wi/CO-08 and wi/CO-09 docs, this log. Nothing committed.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py",
+      "stands": {
+        "pointer": "CO-06"
+      }
+    }
+  ],
+  "watch_vocabulary": {
+    "ship-blocker": "Publishing or shipping without this breaks something users see. `board.py --ship` exits 1 while one is open.",
+    "hazard": "A standing trap that damages tracked files or results if someone does the obvious thing. Read before running anything nearby.",
+    "uncommitted": "Verified work that lives only in the working tree. Committing is the user's call.",
+    "unreviewed": "Changes in the working tree that no orchestrator has read or tested. Not to be built on until reviewed.",
+    "unverified": "A claim or code path that was run in one place only (dev but not CI, agent report but not re-run).",
+    "stale-artifact": "A built or generated thing that no longer matches the source it came from until it is rebuilt.",
+    "pending-ruling": "A question for the human that is not (yet) a blocking FD: it changes a note, a value or a scope, not an item's ability to run.",
+    "gate-gap": "A guard that does not guard: it errors, skips files silently, or cannot fail.",
+    "debt": "Known, documented, deliberately left. Each needs an owner eventually."
+  },
+  "watch_model_vocabulary": {
+    "haiku": "Maps to haiku-4-5. A binary check, or recording a resolution the evidence or the user has already settled: is it committed, did the named tests pass on the rebuild, write down the accept. The output has a mechanical check (a test result, a file list, git log).",
+    "sonnet": "Maps to sonnet-5. The fix or the options are written down in the rule: pick between two named options, run a named rebuild or export and check the pages, review a diff, reconcile counts, reword text to a meaning already settled.",
+    "opus": "Maps to opus-5 (fable-5.1 if the rule turns into a new estimator). Rules on a trade-off, designs the fix, audits a decision, or turns a measurement into a claim: label-moving changes, leakage boundaries, gate runs before a promotion."
+  },
+  "watch_rules": []
+}

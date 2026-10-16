@@ -190,7 +190,7 @@ order, then id. Read it top-down: it is the sequence in which the items are actu
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-10T12:00:00Z`. Run `python3 _roadmap/_fixes/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-15T20:00:00Z`. Run `python3 _roadmap/_fixes/status/board.py --write-order` after any edit to the log._
 
 **0 live items** (0 blocked). The pointer is on **None** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 20 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
 

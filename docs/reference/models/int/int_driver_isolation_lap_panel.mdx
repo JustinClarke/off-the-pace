@@ -56,7 +56,7 @@ flowchart LR
 | `driver_era` |   | Yes | [`not_null`](/transform/ci/structural) | driver_id + '_' + era: the driver key of the era-split car-term fit. |
 | `anomaly_class` |   | Yes |   | int_lap_anomaly_flags.anomaly_class; normal or clean_cliff in Ω. |
 | `air_state_dominant` |   | Yes |   | int_lap_air_state.air_state_dominant (context; dirty_air drives the recovery overlay). |
-| `is_dirty_air_lap` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when air_state_dominant = 'dirty_air'. |
+| `is_dirty_air_lap` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when air_state_dominant = 'dirty_air'. NULL when the lap's air state is unmeasured (air_state_dominant NULL: no gap and not the leader, FD6 / CO-04). |
 | `field_n` |   | Yes | [`not_null`](/transform/ci/structural) | Ω laps on this (race, lap); &gt;= var('isolation_min_field_n') by construction (T40). |
 | `lap_time_s` |   | Yes | [`not_null`](/transform/ci/structural) | Raw lap time, s. |
 | `compound_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | C: the compound seed's expected cost of this tyre state, s, positive = slower (int_lap_residual_decomposed). Never COALESCEd: an unknown tyre is not in Ω. |

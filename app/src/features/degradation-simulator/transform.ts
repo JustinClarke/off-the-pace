@@ -31,6 +31,8 @@ import {
   DEFAULT_WEIGHT_PENALTY_FACTOR,
 } from './inputs'
 import type { StintFeatureRow, HistoryEnvelopeRow } from './queries'
+import { capToFlag, flagChance, lapsToFlagFromFuel } from '../../ml/flagChance'
+import type { FlagChance, FlagChanceLookup } from '../../ml/flagChance'
 
 // ── Physical recomposition constants (mirror fit_degradation_isotonic.py where noted) ──────────
 // Cliff extrapolation past the survivor-collapsed observed window: convex acceleration scaled by
@@ -164,6 +166,31 @@ export interface SimulatorResult {
   currentLapTime: number
   /** Effective cliff-onset lap from the physical model (0 when the cliff term is inactive). */
   cliffOnsetLap: number
+  // ── CO-08 (draft): laps-to-flag cap + chance to reach the flag. Present only when
+  //    transform() is given a FlagContext; otherwise null/false and the life fields are raw.
+  /** Laps still to run after the current lap (fuel / burn - 1); null when unknown. */
+  lapsToFlag: number | null
+  /** True when the median was capped at lapsToFlag (the tyre would outlast the race). */
+  lifeCappedAtFlag: boolean
+  /** The AFT median before the cap, for the methodology note. */
+  remainingLifeUncappedLaps: number
+  /** The stint as configured runs to the flag (no further stop): the only case the chance is shown. */
+  isFinalStint: boolean
+  /** Calibrated chance these tyres last to the flag; null unless final stint + lookup present. */
+  flagChance: number | null
+  /** The uncalibrated chance the lookup was applied to. */
+  flagChanceRaw: number | null
+}
+
+/** CO-08: what transform() needs to cap the gauge and compute the flag chance. */
+export interface FlagContext {
+  /** Fuel at the start of the stint (kg) and the circuit burn rate, as fed to the model rows. */
+  fuelStartKg: number
+  burnRateKgPerLap: number
+  /** The recalibration table; null hides the chance line (the cap still applies). */
+  lookup: FlagChanceLookup | null
+  /** Manifest model version: a lookup fitted for another version is ignored. */
+  modelVersion?: string
 }
 
 const CLIFF_LABELS: Record<string, string> = {
@@ -187,6 +214,7 @@ export function transform(
   currentLap: number,
   actuals: (number | null)[] = [],
   recompose?: RecomposeOptions,
+  flag?: FlagContext,
 ): SimulatorResult {
   // The headline curve is built from `recompose` alone independent of the ONNX output so the
   // marker/length must follow whichever is longer (ONNX may be slow, failed, or 404).
@@ -217,13 +245,36 @@ export function transform(
 
   const currentLapTime = laptimeCurve[lap - 1]?.net ?? 0
 
+  // CO-08: the same fuel trajectory buildStintRows feeds the model, so laps-to-flag here
+  // is the race distance the model was scored against.
+  const lifeMedian = current ? current.remaining_stint_life_laps : 0
+  let lapsToFlag: number | null = null
+  let isFinalStint = false
+  let chance: FlagChance | null = null
+  if (flag && flag.burnRateKgPerLap > 0) {
+    const fuelNow = Math.max(1, flag.fuelStartKg - (lap - 1) * flag.burnRateKgPerLap)
+    lapsToFlag = lapsToFlagFromFuel(fuelNow, flag.burnRateKgPerLap)
+    isFinalStint = n - lap >= lapsToFlag            // the configured stint reaches the flag
+    if (isFinalStint && current && current.remaining_stint_life_aft_scale !== undefined) {
+      const lk = flag.lookup
+      chance = lk && current.remaining_stint_life_aft_scale === lk.aft_scale
+        ? flagChance(lifeMedian, lapsToFlag, lk, flag.modelVersion) : null
+    }
+  }
+
   return {
     fan,
     cliffBars,
     cliffLabel: current ? prettyCliff(current.cliff.label) : '',
-    remainingLifeLaps: current ? current.remaining_stint_life_laps : 0,
-    remainingLifeP10: current ? current.remaining_stint_life_p10_laps : 0,
-    remainingLifeP90: current ? current.remaining_stint_life_p90_laps : 0,
+    remainingLifeLaps: capToFlag(lifeMedian, lapsToFlag),
+    remainingLifeP10: current ? capToFlag(current.remaining_stint_life_p10_laps, lapsToFlag) : 0,
+    remainingLifeP90: current ? capToFlag(current.remaining_stint_life_p90_laps, lapsToFlag) : 0,
+    lapsToFlag,
+    lifeCappedAtFlag: lapsToFlag !== null && lifeMedian > lapsToFlag,
+    remainingLifeUncappedLaps: lifeMedian,
+    isFinalStint,
+    flagChance: chance ? chance.calibrated : null,
+    flagChanceRaw: chance ? chance.raw : null,
     currentJumpP50: current ? current.degradation_jump_s : 0,
     stintLength: n,
     currentLap: lap,

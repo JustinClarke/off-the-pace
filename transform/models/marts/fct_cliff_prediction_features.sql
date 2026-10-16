@@ -385,19 +385,22 @@ base AS (
         th.cumulative_push_load_surface,
         th.cumulative_push_load_bulk,
 
-        -- Dirty air predictors
-        COALESCE(ai.dirty_air_share_lap, 0.0) AS dirty_air_share_lap,
-        COALESCE(ai.dirty_air_thermal_load_surface, 0.0)
-            AS dirty_air_thermal_load_surface,
-        COALESCE(ai.dirty_air_thermal_load_bulk, 0.0)
-            AS dirty_air_thermal_load_bulk,
-        COALESCE(ai.air_state_dominant, 'free_air') AS air_state_dominant,
+        -- Dirty air predictors. No COALESCE (FD6 / CO-04): NULL is an
+        -- unmeasured air state (no gap and not the leader; mostly 2018_1 and
+        -- 2018_2, no telemetry in bronze), not clean air. Until CO-04 these
+        -- were filled with 0.0 / 'free_air'. The model reads a NULL feature
+        -- as missing (NaN; MISSING_ORDINAL for the categorical).
+        ai.dirty_air_share_lap,
+        ai.dirty_air_thermal_load_surface,
+        ai.dirty_air_thermal_load_bulk,
+        ai.air_state_dominant,
 
         -- Proximity predictors (position channel).
         -- The three share_* / time_* columns are already zeroed on
         -- neutralised laps at source and COALESCE only covers the 1.22% of
-        -- laps with no position telemetry, matching how the dirty-air block
-        -- above treats its own missingness. The gap_* and identity columns are
+        -- laps with no position telemetry. (The dirty-air block above used to
+        -- do the same; since CO-04 it keeps an unmeasured lap NULL instead.
+        -- This block is not in the ML contract and was left as it was.) The gap_* and identity columns are
         -- deliberately NOT coalesced: NULL there means "no car within a full
         -- lap", which is free air, and XGBoost reads it natively. Defaulting
         -- them to a number would invent a car that was not there.

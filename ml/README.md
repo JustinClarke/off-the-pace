@@ -68,6 +68,41 @@ numbers. Until a `v15` retrain lands (not yet scheduled; WI-01 is what unblocks 
 pre-bump label. WI-12 is not a retrain: it is the 06b dirty-air re-measure on the new
 label, and its W40 ruling set the label's final `theta_air`.
 
+### Label version bump for v15 (WI-02b seed + CO-02 + CO-04, recorded 2026-10-15)
+
+`v15` never shipped, so its label is the final one, and everything that moved the label
+after the 2026-09-27 snapshot is **one** bump, recorded here by CO-03
+(`_roadmap/_ai-integration/wi/CO-03-v15-gates-rerun.md`):
+
+- WI-02b's compound-seed re-estimate (2026-10-03).
+- CO-02, the cliff label (`_roadmap/_ai-integration/wi/CO-02-cliff-label-defects.md`):
+  wear is no longer subtracted twice, severity is the regression step with wear excluded,
+  the ramp is 2.5 laps (`cliff_ramp_span_laps`), 2025 is refit on 2018-24, and 2018 is fitted
+  on its own laps (ruling CD2 = C). Seed `compound_cliff_params.csv`, 499 rows, sha256
+  `12fcc131...77f8`, frozen.
+- CO-04, measurement honesty (`_roadmap/_ai-integration/wi/CO-04-measurement-honesty.md`):
+  missing telemetry is NULL, not clear air; restart laps get their own field mean; thin
+  field-base cells are skipped.
+- CD1 = A: 'mistake' laps stay dropped from training; the unused `training_weight_f9` column
+  was removed from `int_lap_anomaly_flags`.
+
+`theta_air` is unchanged (0.331). `transform/seeds/label_stability_baseline.csv` (T9) was
+re-taken the same day. All seven completed seasons moved against the 09-27 snapshot, for
+example 2018 12,560 -> 11,282 labelled rows and mean -0.1736 -> -0.2810 s, and 2023
+-0.0617 -> -0.3734 s. The trio trains on 83,424 rows (85,859 on the 09-29 label), the
+classifier on 105,525 (115,356) and stint life on 124,501 (123,133).
+
+**2018 is an in-sample fit** (CD2 = C). It is a training season only. It is never an
+evaluation season: `cv_final_fold` scores 2025, and the CV folds validate 2021-2025.
+
+`v15` is the `v14` configuration on this label: the same `*_best_params.json` (no re-tune),
+uniform quantile weights (W58), the realised-stint-end stint-life gauge (D5), training
+2018-2025, and 2026 as the blind test. So the only fixed-target comparison for `v15` is
+against its own baselines on this label. The published `v14` numbers are on the pre-WI-01
+label and are reference only. The `*_v15uni` / `*_v15ipw` artefacts (W58, 2026-09-29) are
+on the 09-29 label and are not this model. `MODEL_VERSION_DEFAULT` stays `v14` until the
+owner promotes.
+
 ## Quickstart (one venv at repo root)
 
 ```bash

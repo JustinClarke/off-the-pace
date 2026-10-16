@@ -12,9 +12,15 @@ Usage:
 
     python -m tasks.coefficients.fit_compound_cliff --fill-gaps
 
-The fitter operates per (circuit_key, compound_code, season) group.
-Groups with fewer than MIN_STINTS stints fall back to a fit on the venue's
-stints pooled across every season, then to compound-class defaults.
+The fitter operates per (circuit_key, compound_code, season) group, and is
+point-in-time (FD3): a season's cell is fitted on EARLIER seasons' stints only
+(race_year < season), at this event slug first and then, with fewer than
+MIN_STINTS stints there, on the physical venue's earlier stints pooled; with
+too few of either it takes the compound-class defaults. The one exception is
+IN_SAMPLE_SEASONS (2018, ruling CD2 = C): it has no earlier season, so it is
+fitted on its own laps and its rows' data_window says "_in_sample". 2018 must
+never be used for honest evaluation. Every row's data_window is the window that
+row was actually fitted on (e.g. 2021 -> 2018_to_2020), not the run's span.
 
 Provenance is recorded per parameter, not per cell. fit_source says which tier
 the cell's fit was attempted at; onset_source, gradient_source and
@@ -61,6 +67,15 @@ DB_PATH = REPO_ROOT / "data" / "dev.duckdb"
 SEED_NAME = "compound_cliff_params"
 
 MIN_STINTS = 8
+
+# Ruling CD2 (C, 2026-10-15): a declared one-season exception to FD3's
+# point-in-time rule. 2018 has no earlier season to fit from, so its cells are
+# fitted on 2018's own laps. That makes 2018 IN-SAMPLE: its data_window carries
+# IN_SAMPLE_SUFFIX, and 2018 must never be used for honest evaluation
+# (validation folds, gates, headline metrics). Do not widen this set: any other
+# cell with no usable fit takes the class-level handling below.
+IN_SAMPLE_SEASONS = frozenset({2018})
+IN_SAMPLE_SUFFIX = "_in_sample"
 
 # Compound-class defaults when data is insufficient.
 # Values are conservative (later onset, milder severity) to avoid overcorrecting.
@@ -131,6 +146,25 @@ OPTIMAL_TEMP_RANGES = {
     "ULTRASOFT":    (82, 108),
     "HYPERSOFT":    (82, 108),
 }
+
+
+def history_mask(race_year: pd.Series, season: int) -> pd.Series:
+    """The laps a `season` cell may be fitted on: earlier seasons only (FD3), or
+    the season's own laps for an IN_SAMPLE_SEASONS season (CD2)."""
+    if season in IN_SAMPLE_SEASONS:
+        return race_year == season
+    return race_year < season
+
+
+def data_window_label(season: int, first_season: int) -> str:
+    """The seasons a `season` cell's fit read, as YYYY_to_YYYY, given the first
+    season the run loaded. An in-sample cell is labelled so; a cell with no
+    earlier loaded season says that instead of printing a backwards window."""
+    if season in IN_SAMPLE_SEASONS:
+        return f"{season}_to_{season}{IN_SAMPLE_SUFFIX}"
+    if season - 1 < first_season:
+        return "no_earlier_season"
+    return f"{first_season}_to_{season - 1}"
 
 
 def load_stint_data(con: duckdb.DuckDBPyConnection, seasons: list[int]) -> pd.DataFrame:
@@ -311,12 +345,22 @@ def fit_group(
     """
     Fit cliff parameters for a single (circuit_key, compound_code, season) group.
 
-    Tiers: this season's stints (>= MIN_STINTS), else the venue's stints pooled
-    across every season (fallback_df, >= MIN_STINTS), else the compound-class
-    defaults. Within a tier that ran, any parameter whose estimator returns
-    nothing or an out-of-range value takes the class default, and that is
-    recorded against the parameter itself (onset_source / gradient_source /
-    severity_source) -- notes never claim "fitted" for a cell holding a default.
+    Tiers: this event slug's stints from the cell's history window (>=
+    MIN_STINTS), else the physical venue's stints from the same window
+    (fallback_df, built by the caller, >= MIN_STINTS), else the compound-class
+    defaults. The window is history_mask: earlier seasons only, or the season
+    itself for IN_SAMPLE_SEASONS (CD2). Within a tier that ran, any parameter
+    whose estimator returns nothing or an out-of-range value takes the class
+    default, and that is recorded against the parameter itself (onset_source /
+    gradient_source / severity_source) -- notes never claim "fitted" for a cell
+    holding a default.
+
+    A fitted severity is KEPT however small (CO-02 / T2): under 0.1 s is a
+    measured "little or no cliff", not a missing estimate. Only a severity the
+    estimator could not produce (None) or one above the 1.5 s winsorisation cap
+    takes the class default. A negative estimate (the post-cliff line below the
+    pre-cliff line) is recorded as 0.0: a cliff that makes the car faster is not
+    a cliff, and the wear curve floors the plateau at zero anyway.
 
     Returns a result dict with all columns needed for the seed CSV.
     """
@@ -326,16 +370,16 @@ def fit_group(
     group_df = stints_df[
         (stints_df["circuit_key"] == circuit_key) &
         (stints_df["compound_code"] == compound_code) &
-        (stints_df["race_year"] < season)
+        history_mask(stints_df["race_year"], season)
     ]
 
     # Fit on fuel-corrected pace when the warehouse supplies it, then on
     # dirty-air-normalized pace, then raw lap time (synthetic fixtures, or an
     # older warehouse). Resolved once here so onset, severity and gradient are
     # all fitted on the same series -- mixing them would make cliff onset and
-    # severity incomparable, and the cliff term downstream de-double-counts
-    # severity against span * wear_gradient, which only cancels cleanly when
-    # both were measured with the fuel burn in or out together.
+    # severity incomparable, and the wear curve downstream adds severity on top
+    # of wear_gradient * age, which only describes one pace series when both
+    # were measured with the fuel burn in or out together.
     pace_col = next(
         (c for c in ("fuel_corrected_pace_s", "normalized_pace_s") if c in stints_df.columns),
         "lap_time_s",
@@ -403,10 +447,18 @@ def fit_group(
     onset_val = float(cliff_onset or defaults["cliff_onset_laps"])
     onset_val = max(5.0, min(100.0, onset_val))
 
-    severity_val = float(cliff_severity or defaults["cliff_severity"])
-    severity_defaulted = not cliff_severity or severity_val < 0.1 or severity_val > 1.5
+    # `is None`, not falsiness: a measured 0.0 is an estimate. No lower bound
+    # (T2): the old `< 0.1 -> class default` swapped a measured small cliff for
+    # a 1.2-1.5 s default, the largest values in the seed.
+    severity_defaulted = (
+        cliff_severity is None
+        or not np.isfinite(cliff_severity)
+        or cliff_severity > 1.5
+    )
     if severity_defaulted:
         severity_val = defaults["cliff_severity"]
+    else:
+        severity_val = max(float(cliff_severity), 0.0)
 
     gradient_val = float(wear_gradient or defaults["wear_gradient"])
     gradient_defaulted = not wear_gradient or gradient_val < 0.005 or gradient_val > 0.300
@@ -430,6 +482,9 @@ def fit_group(
         # with the "fitted from" wording a fully measured cell carries.
         head = fit_notes or f"{used_n_stints} stints via {source}"
         notes = f"{head}; no usable estimate for {', '.join(defaulted)}: class default used"
+    if season in IN_SAMPLE_SEASONS and source != "compound_class_default":
+        notes = (f"{notes}; IN-SAMPLE: fitted on {season}'s own laps (CD2, a declared "
+                 f"exception to point-in-time), never use {season} for honest evaluation")
 
     return {
         "circuit_key": circuit_key,
@@ -489,20 +544,21 @@ def run_fit(
         # double-header keys (mexican_grand_prix / mexico_city_grand_prix,
         # austrian_grand_prix / styrian_grand_prix, etc.) share history instead
         # of each falling to compound_class_default in isolation.
-        # Filtered to prior seasons only (race_year < season) for point-in-time
-        # refitting: the fallback pool must not include the season being fitted.
+        # Same window as the cell itself (history_mask): prior seasons only for
+        # point-in-time refitting, so the pool never includes the season being
+        # fitted -- except an IN_SAMPLE_SEASONS season, whose only data it is.
         circuit_id = circuit_id_by_key.get(circuit_key)
         if circuit_id is not None:
             cross_df = stints_df[
                 (stints_df["circuit_id"] == circuit_id) &
                 (stints_df["compound_code"] == compound_code) &
-                (stints_df["race_year"] < season)
+                history_mask(stints_df["race_year"], season)
             ]
         else:
             cross_df = stints_df[
                 (stints_df["circuit_key"] == circuit_key) &
                 (stints_df["compound_code"] == compound_code) &
-                (stints_df["race_year"] < season)
+                history_mask(stints_df["race_year"], season)
             ]
 
         result = fit_group(stints_df, circuit_key, compound_code, season, fallback_df=cross_df)
@@ -525,6 +581,10 @@ def run_fit(
     )
     for k, v in prov.items():
         out_df[k] = v
+    # Per row, the window that row was fitted on -- not the run's span, which
+    # labelled every row 2018_to_2024 whatever it had actually read.
+    first_season = min(seasons)
+    out_df["data_window"] = [data_window_label(int(s), first_season) for s in out_df["season"]]
 
     out_df = out_df[[c for c in SEED_COLUMNS if c in out_df.columns]]
     out_df = out_df.sort_values(["circuit_key", "compound_code", "season"])
@@ -616,7 +676,7 @@ def fill_coverage_gaps(seed_df: pd.DataFrame, needed: pd.DataFrame) -> pd.DataFr
                 "compound_cliff_onset_laps": float(defaults["cliff_onset_laps"]),
                 "compound_cliff_severity": defaults["cliff_severity"],
                 "fit_method": "km_survival_v1",
-                "data_window": f"{int(seed_df['season'].min())}_to_{season - 1}",
+                "data_window": data_window_label(season, int(seed_df["season"].min())),
                 "fit_source": "compound_class_default",
                 **{col: "class_default" for col in _PARAM_SOURCE_COLUMNS},
                 "n_stints": 0,
@@ -645,10 +705,15 @@ def fill_coverage_gaps(seed_df: pd.DataFrame, needed: pd.DataFrame) -> pd.DataFr
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Fit compound cliff parameters from F1 stint data.")
     parser.add_argument("--dry-run", action="store_true", help="Print plan without writing output.")
+    # 2025 is a training season and is fitted point-in-time on 2018-2024; until
+    # CO-02 the default stopped at 2024, so no 2025 cell was ever fitted and
+    # --fill-gaps carried 2024 rows forward instead. 2026 is the blind-test
+    # holdout (dbt var holdout_season) and is never fitted here.
     parser.add_argument(
         "--seasons", nargs="+", type=int,
-        default=list(range(2018, 2025)),
-        help="Seasons to fit (default: 2018-2024).",
+        default=list(range(2018, 2026)),
+        help="Seasons to fit (default: 2018-2025). The first one listed bounds every "
+             "cell's history window, so fit a subset only with that in mind.",
     )
     parser.add_argument(
         "--circuits", nargs="+", default=None,

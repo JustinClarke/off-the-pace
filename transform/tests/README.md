@@ -185,3 +185,12 @@ Three races are committed:
 - São Paulo 2024 wet/mixed conditions
 
 See [fixtures/README.md](fixtures/README.md) for how to refresh fixture files.
+
+`fixtures/fits/` holds copies of the three parquet files the `fits` source reads
+(`degradation_isotonic`, `constructor_car_fe`, `constructor_car_fe_isolation`).
+The real ones in `data/fits/` are gitignored and produced by the fit scripts
+outside dbt, so CI would otherwise have nothing to read. CI and the fixture
+Make targets point at this folder with `--vars '{"fits_base": ...}'`. They are
+full copies (about 146 KB), not cut down to the three fixture races. Refresh
+them after a refit with
+`cp data/fits/{degradation_isotonic,constructor_car_fe,constructor_car_fe_isolation}.parquet transform/tests/fixtures/fits/`.

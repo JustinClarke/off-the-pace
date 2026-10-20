@@ -70,7 +70,7 @@ jobs:
           dbt build --profiles-dir profiles --target ci \
             --select +fct_cliff_prediction_features+ \
             --indirect-selection cautious \
-            --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+            --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 
       # Warehouse + manifest present (compiled_code makes the forward-window audit meaningful).
       - name: Guard - leakage columns + forward-window audit + holdout purity + isolation lineage (T48)
@@ -130,7 +130,7 @@ jobs:
           dbt build --profiles-dir profiles --target ci \
             --select +fct_cliff_prediction_features+ \
             --indirect-selection cautious \
-            --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+            --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 
       - name: Features audit (--check)
         if: steps.fixtures.outputs.present == 'true'

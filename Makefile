@@ -163,11 +163,11 @@ dbt-test:  ## Run all dbt tests (schema + singular + assert_* invariants)
 	cd transform && ../.venv/bin/dbt test --profiles-dir profiles --target dev
 
 test-all:  ## CI-equivalent: full dbt build on fixtures + coefficient tests
-	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 	PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/coefficients/tests/
 
 test-fast:  ## CI fast path: fast_build selector on fixtures
-	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --selector fast_build --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --selector fast_build --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 
 ##   Lint targets
 lint:  ## SQLFluff lint all models
@@ -187,8 +187,8 @@ lint-oracle-check:  ## Fail if any fct_* model output drifted vs the recorded ba
 transform-check:  ## Reproduce the CI transform gates in order (parse → lint → build → singular tests → oracle → pytest)
 	cd transform && ../.venv/bin/dbt parse --profiles-dir profiles --target ci
 	cd transform && ../.venv/bin/sqlfluff lint models/ --dialect duckdb --disable-progress-bar
-	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
-	cd transform && ../.venv/bin/dbt test --profiles-dir profiles --target ci --select test_type:singular --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
+	cd transform && ../.venv/bin/dbt test --profiles-dir profiles --target ci --select test_type:singular --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 	cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py --check
 	PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/coefficients/tests/
 

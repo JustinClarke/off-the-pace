@@ -69,7 +69,7 @@ jobs:
             --profiles-dir profiles \
             --target ci \
             --selector fast_build \
-            --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+            --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 
       # Gate 1b: full build   all models end-to-end.
       - name: Gate 1b   full dbt build (all models + generic tests)
@@ -78,7 +78,7 @@ jobs:
           dbt build \
             --profiles-dir profiles \
             --target ci \
-            --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+            --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 
       # Byte-stability oracle: fail if any fct_* mart output drifted vs the committed
       # baseline (transform/tests/model_hashes.baseline.json). Guards against cosmetic /
@@ -131,7 +131,7 @@ jobs:
           dbt test \
             --profiles-dir profiles \
             --target ci \
-            --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}' \
+            --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}' \
             --select test_type:singular
 
       # Gate 2–5 (Python layer): run the pytest validation harness.
@@ -158,7 +158,7 @@ jobs:
       - name: Generate dbt docs
         working-directory: ./transform
         run: |
-          dbt docs generate --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
+          dbt docs generate --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 
       - name: Upload dbt artifacts
         if: always()

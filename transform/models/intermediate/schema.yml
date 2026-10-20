@@ -610,6 +610,10 @@ models:
     tags: [intermediate]
     meta:
       family: physics
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, track_id, distance_bin]
     columns:
       - name: race_year
         description: Season
@@ -638,6 +642,10 @@ models:
     tags: [intermediate]
     meta:
       family: physics
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id, lap_number, corner_name]
     columns:
       - name: driver_id
         description: FastF1 three-letter driver code.
@@ -828,6 +836,10 @@ models:
       # GROUP BY race_year, race_id) with a per-lap one grouped on
       # (race_year, race_id, lap_number), so the exemption that covered it was
       # removed (test_no_undeclared_aggregation_scope flagged it stale).
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, lap_number]
     columns:
       - name: race_year
         description: Race year
@@ -894,6 +906,10 @@ models:
           status: accepted
           reason: >
             As above, for the track-temperature baseline behind ambient_component_s.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, lap_number]
     columns:
       - name: race_year
         description: Race year
@@ -913,6 +929,10 @@ models:
     tags: [intermediate]
     meta:
       family: skill
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, ego_driver_id, lap_number]
     columns:
       - name: race_year
         description: Race year
@@ -943,10 +963,26 @@ models:
             until the race has run, so this is race-scoped in the same sense as the
             rest of the decomposition spine, and accepted on the same grounds and at
             the same price.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id, lap_number]
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: race_id
+        description: Race identifier.
+        tests: [not_null]
+      - name: driver_id
+        description: FastF1 three-letter driver code.
+        tests: [not_null]
+      - name: lap_number
+        description: Lap number within the race.
+        tests: [not_null]
 
   - name: int_lap_residual_decomposed
     description: >
@@ -1037,10 +1073,26 @@ models:
             BETWEEN r.lap_number - 6 AND r.lap_number), which is backward-only. The
             mart reads lap_id, anomaly_class, cliff_candidate_flag and is_rain_lap
             from this model, and none of the z-score columns.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id, lap_number]
     columns:
       - name: lap_id
         description: Foreign key to stg_laps
         tests: [not_null, unique]
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: race_id
+        description: Race identifier.
+        tests: [not_null]
+      - name: driver_id
+        description: FastF1 three-letter driver code.
+        tests: [not_null]
+      - name: lap_number
+        description: Lap number within the race.
+        tests: [not_null]
 
   - name: int_constructor_car_fe
     description: >
@@ -1935,10 +1987,26 @@ models:
     tags: [intermediate, simulation, qualifying]
     meta:
       family: physics
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id, lap_number]
     columns:
       - name: lap_id
         description: PK, FK to stg_laps_qualifying
         tests: [not_null, unique]
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: race_id
+        description: Race identifier.
+        tests: [not_null]
+      - name: driver_id
+        description: FastF1 three-letter driver code.
+        tests: [not_null]
+      - name: lap_number
+        description: Lap number within the race.
+        tests: [not_null]
 
   - name: int_constructor_structural_pace_qualifying
     description: >
@@ -3133,7 +3201,7 @@ models:
     columns:
       - name: stint_id
         description: Surrogate key combining race_year, race_id, driver_id, stint_number (grain).
-        tests: [not_null]
+        tests: [not_null, unique]
       - name: drift_s_per_lap
         description: >
           OLS slope of driver_skill_residual_s vs lap_in_stint over pre-cliff laps (seconds per

@@ -216,7 +216,7 @@ lap_dominant_state AS (
         FROM sector_classified
         WHERE sector_air_state IS NOT NULL
         GROUP BY race_year, race_id, driver_id, lap_number, sector_air_state
-    )
+    ) AS state_counts
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY race_year, race_id, driver_id, lap_number
         ORDER BY

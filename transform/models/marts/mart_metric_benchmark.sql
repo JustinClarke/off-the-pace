@@ -3,21 +3,46 @@
 {{ config(materialized='table') }}
 
 WITH clean AS (
-    SELECT * FROM {{ ref('fct_lap_residuals') }} WHERE ml_eligible = TRUE
+    SELECT * FROM {{ ref('fct_lap_residuals') }}
+    WHERE ml_eligible = TRUE
 ),
 
 long AS (
-    SELECT race_year, 'driver_skill_residual_s' AS metric_name, driver_skill_residual_s AS v FROM clean
+    SELECT
+        race_year,
+        'driver_skill_residual_s' AS metric_name,
+        driver_skill_residual_s AS v
+    FROM clean
     UNION ALL
-    SELECT race_year, 'fuel_component_s', fuel_component_s FROM clean
+    SELECT
+        race_year,
+        'fuel_component_s' AS metric_name,
+        fuel_component_s AS v
+    FROM clean
     UNION ALL
-    SELECT race_year, 'compound_component_s', compound_component_s FROM clean
+    SELECT
+        race_year,
+        'compound_component_s' AS metric_name,
+        compound_component_s AS v
+    FROM clean
     UNION ALL
-    SELECT race_year, 'constructor_component_s', constructor_component_s FROM clean
+    SELECT
+        race_year,
+        'constructor_component_s' AS metric_name,
+        constructor_component_s AS v
+    FROM clean
     UNION ALL
-    SELECT race_year, 'dirty_air_tax_s', dirty_air_tax_s FROM clean
+    SELECT
+        race_year,
+        'dirty_air_tax_s' AS metric_name,
+        dirty_air_tax_s AS v
+    FROM clean
     UNION ALL
-    SELECT race_year, 'lap_time_s', lap_time_s FROM clean
+    SELECT
+        race_year,
+        'lap_time_s' AS metric_name,
+        lap_time_s AS v
+    FROM clean
 )
 
 SELECT

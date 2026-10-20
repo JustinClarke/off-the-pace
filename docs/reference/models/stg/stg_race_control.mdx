@@ -8,7 +8,7 @@ description: "The FIA race-control message feed."
 
 <Note>Part of the [Staging](/transform/families/staging) family.</Note>
 
-The FIA race-control message feed. One row per message; 12,814 rows across 149 races, of which 4,909 are waved blue flags. Ingested since the beginning of the project and consumed by nothing until Phase 10a (plan open item 13, now closed).
+The FIA race-control message feed. One row per message; 12,814 rows across 149 races, of which 4,909 are waved blue flags. Ingested since the beginning of the project and consumed by nothing until the proximity features needed it.
 Staged for one reason: the blue flags are a traffic label produced by race control rather than by the position channel, which makes them the only supervised check available for the proximity features that is not derived from the same sensor. The car number is resolved to driver_id here so consumers join on the key the rest of the warehouse uses.
 
 ## Lineage
@@ -27,13 +27,16 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 | Upstream | [`stg_results`](./stg_results) |
+| Model-level tests | `unique_combination_of_columns` |
 
-**3 tests** [guard](/transform/ci/overview) this model  -  2 generic, 1 singular.
+**6 tests** [guard](/transform/ci/overview) this model  -  5 generic, 1 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
+| `message_index` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Position of the message in the race session feed (FastF1 message index); with race_year and race_id it identifies one message. |
+| `race_year` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Season year. |
 | `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Numeric FastF1 event id; matches stg_laps.race_id. |
 | `message_time_s` | `double` | Yes |   | Session clock of the message. NOT on the same origin as the telemetry SessionTime column (it runs to ~55,000 s on a two-hour race, i.e. it is a wall-clock derivative). Join on lap_number, not on this. |
 | `flag` | `varchar` | Yes |   | Flag colour, upper-cased, NULL for non-flag messages (BLUE / YELLOW / DOUBLE YELLOW / GREEN / CLEAR / RED / CHEQUERED / BLACK AND WHITE). |

@@ -33,6 +33,14 @@
 -- sum is fuel + compound + constructor + dirty-air, compared against the lap's
 -- total_explained_s. The 7.4% dirty-air-lag warning above is unchanged.
 --
+-- Still failing (checked against dev.duckdb, 10,698 three-sector laps; the discrepancy on
+-- the sampled rows is exactly 0.331 s = theta_air, i.e. the dirty-air term). Kept at WARN
+-- because the defect is real and unfixed. PROMOTION CRITERION: change
+-- int_sector_residual_decomposed.sql so sector_dirty_air_tax_s is gated on / allocated from
+-- the lagged dirty-air share (dirty_air_share_lag1, matching the lap-grain tax in
+-- int_dirty_air_tax_component.sql) instead of the current lap's dirty_air_share_lap, rebuild,
+-- confirm this test returns 0 rows, then flip severity to 'error'.
+--
 -- Tolerance: 0.001s (3-sector float accumulation), matching assert_sector_residual_identity.sql.
 {{ config(severity='warn', tags=['sector_grain']) }}
 

@@ -83,10 +83,10 @@ SELECT
     lap_number,
     driver_number,
     driver_id,
-    -- The label the proximity features are validated against: this driver was being lapped on
-    -- this lap. Requires the identity and the lap to both resolve, which is
-    -- why it is a flag rather than a filter -- a blue flag whose car number
-    -- did not resolve is a data gap, not a negative.
+    -- The label the proximity features are validated against: this driver was
+    -- being lapped on this lap. Requires the identity and the lap to both
+    -- resolve, which is why it is a flag rather than a filter -- a blue flag
+    -- whose car number did not resolve is a data gap, not a negative.
     -- COALESCE and not a bare `flag = 'BLUE'`: `flag` is NULL on the 246
     -- non-flag messages that nevertheless carry a resolvable driver and lap
     -- (DRS and CarEvent messages), and SQL's three-valued logic makes

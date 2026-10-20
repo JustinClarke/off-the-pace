@@ -11,7 +11,8 @@ WITH source AS (
 SELECT
     CONCAT(
         CAST(race_id AS VARCHAR), '_',
-        CAST(session_time_s AS VARCHAR)
+        CAST(session_time_s AS VARCHAR), '_',
+        CAST(status AS VARCHAR)
     ) AS session_status_id,
 
     -- race_id = numeric FastF1 event id (matches stg_laps.race_id); race_slug =

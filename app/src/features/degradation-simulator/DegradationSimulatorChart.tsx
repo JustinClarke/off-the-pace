@@ -11,6 +11,7 @@ import {
 import QuantileFanChart from '../../ui/charts/QuantileFanChart'
 import type { SimulatorResult } from './transform'
 import { TechTooltip } from '../../ui/TechTooltip'
+import { FLAG_CHANCE_CALIBRATION } from '../../ml/flagChance'
 
 const GRID = 'rgba(255,255,255,0.05)'
 const AXIS_STYLE = { fontSize: 11, fill: 'rgb(var(--color-text-muted))' }
@@ -185,6 +186,8 @@ function lifeColorFrom(p10: number): string {
  * far finer than a censored fit can resolve. The median is now shown to the lap,
  * and the band is shown next to it rather than left implicit.
  */
+const FLAG_CHANCE_LABEL = 'Experimental: chance to reach the flag on these tyres (model estimate)'
+
 function LifeGauge({ median, p10, p90, cappedAtFlag = false, flagChance = null }: {
   median: number; p10: number; p90: number
   /** CO-08: the median was capped at laps to the flag (the tyre would outlast the race). */
@@ -224,11 +227,22 @@ function LifeGauge({ median, p10, p90, cappedAtFlag = false, flagChance = null }
         outlast the race, so every value is capped at the laps left to the flag.
       </p>
       {flagChance !== null && (
-        <p className="text-xs text-muted">
-          <span className="font-semibold tabular-nums text-[rgb(var(--color-text))]">{Math.round(flagChance * 100)}%</span>
-          {' '}chance to reach the flag on these tyres. A model estimate, recalibrated on
-          past seasons; it carries its own uncertainty.
-        </p>
+        <div className="flex flex-col gap-1 rounded-md border border-amber-400/30 bg-amber-400/5 p-2" data-testid="flag-chance">
+          <p className="text-xs text-muted">
+            <span className="font-semibold tabular-nums text-[rgb(var(--color-text))]">{Math.round(flagChance * 100)}%</span>
+            {' '}{FLAG_CHANCE_LABEL}
+          </p>
+          <p className="text-[11px] text-muted/80">
+            Failed the {FLAG_CHANCE_CALIBRATION.evalSeason} acceptance bar:{' '}
+            {FLAG_CHANCE_CALIBRATION.binsWithinTolerance} of {FLAG_CHANCE_CALIBRATION.binsTotal} bins within{' '}
+            {FLAG_CHANCE_CALIBRATION.tolerancePp} pp, worst gap {FLAG_CHANCE_CALIBRATION.worstGapPp} pp; Brier{' '}
+            {FLAG_CHANCE_CALIBRATION.brier.toFixed(4)} vs {FLAG_CHANCE_CALIBRATION.brierBaseRate.toFixed(4)} for
+            the base rate. Provisional until 2026 races are scored.{' '}
+            <a href="/docs/app/degradation-simulator#experimental-chance-to-reach-the-flag" className="underline">
+              Calibration numbers
+            </a>
+          </p>
+        </div>
       )}
     </div>
   )
@@ -314,7 +328,7 @@ function ResultHero({ result, onnxReady, tyreColor }: { result: SimulatorResult;
         label="Remaining tyre life"
         sub={onnxReady
           ? `${result.lifeCappedAtFlag ? 'to the flag' : 'median'} · p10-p90 ${Math.round(lifeP10)}-${Math.round(lifeP90)}`
-            + (result.flagChance !== null ? ` · ${Math.round(result.flagChance * 100)}% to make the flag` : '')
+            + (result.flagChance !== null ? ` · experimental: ${Math.round(result.flagChance * 100)}% to reach the flag` : '')
           : 'model offline'}
       >
         <span className="font-mono text-[26px] font-bold tabular-nums" style={{ color: onnxReady ? lifeColor : '#64748b' }}>

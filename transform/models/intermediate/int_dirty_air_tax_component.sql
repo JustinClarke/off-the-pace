@@ -27,15 +27,16 @@
 --   dirty_air_tax_s = CLAMP(θ_air × dirty_air_share_lag1, 0, 5.0)
 --
 -- 08q (2026-09-21): θ_air is now an ESTIMATE, not a default.
---   Until this item, `calibration_panel` filtered to `dirty_air_share_lag1 > 0`.
---   dirty_air_share_lap is one bit per lap (S2-only, int_lap_air_state:144-152),
---   so filtering to its treated arm left the regressor constant at 1.0 →
---   VAR_POP = 0 → NULLIF → NULL → the COALESCE fell through to the literal 0.5
---   on every build. dirty_air_tax_s was therefore exactly 0.5 s on every dirty-
---   air lap and 0.0 otherwise: a lap counter with a unit attached, which the
---   app's dirty-air-cost leaderboard presented as measured seconds.
---   Removing the filter restores both arms and identifies the slope. Measured
---   on the v12 substrate over the full 123,993-row panel (23.0% treated):
+--   Until this item, `calibration_panel` filtered to `dirty_air_share_lag1 >
+--   0`. dirty_air_share_lap is one bit per lap (S2-only,
+--   int_lap_air_state:144-152), so filtering to its treated arm left the
+--   regressor constant at 1.0 → VAR_POP = 0 → NULLIF → NULL → the COALESCE fell
+--   through to the literal 0.5 on every build. dirty_air_tax_s was therefore
+--   exactly 0.5 s on every dirty- air lap and 0.0 otherwise: a lap counter with
+--   a unit attached, which the app's dirty-air-cost leaderboard presented as
+--   measured seconds. Removing the filter restores both arms and identifies the
+--   slope. Measured on the v12 substrate over the full 123,993-row panel (23.0%
+--   treated):
 --     θ_air = +0.1310 s/lap  [95% CI +0.1144, +0.1476], SE 0.0085
 --   The shipped 0.5 was 3.8x too high and sits outside that CI.
 --   Global pooled θ is used rather than per-season (06b/08q ruling): per-season
@@ -275,13 +276,14 @@ panel_base AS (
             AND f.lap_number = e.lap_number
     WHERE
         f.lap_time_s IS NOT NULL
-        -- F1/F23a: int_field_pace_curve can carry a ROW for a (race, lap_number)
-        -- with too few eligible cars to produce a value (eligible_lap_count as
-        -- low as 1-2 around a red flag/restart) -- field_pace_trimmed_mean_s AND
-        -- the smoothed rolling average both NULL despite the row existing. The
-        -- INNER JOIN above only guarantees a row, not a measured value, so this
-        -- guards the value itself (measured 2026-09-27: 19 laps, all lap 21-22
-        -- of 2022_7 around a red-flag restart).
+        -- F1/F23a: int_field_pace_curve can carry a ROW for a (race,
+        -- lap_number) with too few eligible cars to produce a value
+        -- (eligible_lap_count as low as 1-2 around a red flag/restart) --
+        -- field_pace_trimmed_mean_s AND the smoothed rolling average both NULL
+        -- despite the row existing. The INNER JOIN above only guarantees a row,
+        -- not a measured value, so this guards the value itself (measured
+        -- 2026-09-27: 19 laps, all lap 21-22 of 2022_7 around a red-flag
+        -- restart).
         AND fp.field_pace_smoothed_s IS NOT NULL
 ),
 

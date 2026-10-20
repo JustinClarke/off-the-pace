@@ -25,17 +25,18 @@ flowchart LR
 | Layer | `staging` |
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
+| Model-level tests | `unique_combination_of_columns` |
 
-**3 tests** [guard](/transform/ci/overview) this model  -  3 generic, 0 singular.
+**7 tests** [guard](/transform/ci/overview) this model  -  7 generic, 0 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
-| `session_status_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Surrogate key   &#123;race_id&#125;_&#123;session_time_s&#125;. |
-| `race_year` | `integer` | Yes |   | Season year. |
+| `session_status_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate key   &#123;race_id&#125;_&#123;session_time_s&#125;_&#123;status&#125;. Unique; several statuses can share one timestamp. |
+| `race_year` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Season year. |
 | `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Numeric FastF1 event id cast to string; matches stg_laps.race_id. |
 | `race_slug` | `varchar` | Yes |   | Human-readable event name. |
 | `session_time_s` | `double` | Yes | [`not_null`](/transform/ci/structural) | Session clock (s) at the lifecycle event. |
-| `status` | `varchar` | Yes |   | Raw FastF1 session status ('Started', 'Aborted', 'Finished', ...). |
+| `status` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Raw FastF1 session status ('Started', 'Aborted', 'Finished', ...). |
 | `is_red_flag_stop` | `boolean` | Yes |   | TRUE when status is 'Aborted' (a red-flag stoppage). |

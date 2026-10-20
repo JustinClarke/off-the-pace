@@ -57,7 +57,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
 
       - name: Run docs audit
         run: python scripts/docs_audit.py --headers
@@ -71,7 +71,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
 
       - name: Check fact consistency
         run: python scripts/docs_facts.py
@@ -102,7 +102,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
 
       # --strict: every shipped feature must have an /app/<slug> page. Drop the flag
       # for report mode if you ever need CI to stay green mid-backfill.
@@ -118,7 +118,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
 
       - name: Check bronze-coverage.mdx is current
         run: python scripts/ingestion_docs_facts.py
@@ -132,7 +132,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
 
       - name: Check overview-numbers.mdx is current
         run: python scripts/overview_docs_facts.py
@@ -146,7 +146,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
 
       - name: Install yaml
         run: pip install pyyaml
@@ -163,7 +163,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
           cache: pip
 
       - name: Install dbt and generators
@@ -198,7 +198,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
           cache: pip
 
       - name: Install dbt and generators

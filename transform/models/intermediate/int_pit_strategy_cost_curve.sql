@@ -191,13 +191,14 @@ compound_wear_per_age AS (
         -- compound_cliff_severity as a per-lap rate. It is fitted as a LEVEL
         -- SHIFT across the onset (the step in seconds, wear excluded;
         -- survival.py::estimate_cliff_severity), so multiplying it by
-        -- laps-past-onset charged the whole step once per lap. Replaced with the
-        -- identical saturating ramp (plateau = severity, reached at onset + 2.5
-        -- laps since CO-02) that int_compound_cliff_predicted uses -- the two curves must stay
-        -- equivalent or the DP's running cost diverges from the ML target's
-        -- lineage, which is exactly the split this item exists to close. The
-        -- 0.002*age^2 quadratic is dropped here too: never fitted, identical
-        -- across all 438 seed cells, already absorbed by the linear term.
+        -- laps-past-onset charged the whole step once per lap. Replaced with
+        -- the identical saturating ramp (plateau = severity, reached at onset +
+        -- 2.5 laps since CO-02) that int_compound_cliff_predicted uses -- the
+        -- two curves must stay equivalent or the DP's running cost diverges
+        -- from the ML target's lineage, which is exactly the split this item
+        -- exists to close. The 0.002*age^2 quadratic is dropped here too: never
+        -- fitted, identical across all 438 seed cells, already absorbed by the
+        -- linear term.
         {{ compound_cliff_wear_s(
                'p.compound_wear_gradient',
                'p.compound_cliff_severity',
@@ -357,7 +358,8 @@ priced AS (
         -- term, which is a per-compound CONSTANT in the seed rather than a
         -- fitted quantity. The compound_grip_peak ratio was unitless and is
         -- dropped per W42. The pit_strategy_baseline_delta var decides whether
-        -- this term is allowed to move the argmin; see the model's schema.yml note.
+        -- this term is allowed to move the argmin; see the model's schema.yml
+        -- note.
         {% if var('pit_strategy_baseline_delta', true) %}
             0.005 * (
                 LEAST(

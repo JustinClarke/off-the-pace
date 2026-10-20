@@ -7,8 +7,8 @@
 -- (CO-01/T3). teammate_id is the single teammate with the most clean laps; a
 -- driver who changed teammates mid-season is still rated against all of them.
 -- teammate_gap_rank 1 = most negative gap, i.e. furthest ahead of his own
--- teammate; it is NOT a speed ranking against the field (CO-01/T4). Component means are over
--- ml_eligible laps only (seconds, positive = slower).
+-- teammate; it is NOT a speed ranking against the field (CO-01/T4). Component
+-- means are over ml_eligible laps only (seconds, positive = slower).
 -- Primary constructor = the one the driver ran the most clean laps for;
 -- teammate = the other driver with the most clean laps for that constructor.
 {{ config(materialized='table') }}
@@ -31,7 +31,8 @@ primary_team AS (
     SELECT race_year, driver_id, constructor_id, n_laps
     FROM driver_constructor
     QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY race_year, driver_id ORDER BY n_laps DESC, constructor_id
+        PARTITION BY race_year, driver_id
+        ORDER BY n_laps DESC, constructor_id ASC
     ) = 1
 ),
 
@@ -63,7 +64,9 @@ ratings AS (
 ranked AS (
     SELECT
         *,
-        RANK() OVER (PARTITION BY race_year ORDER BY rating_s) AS teammate_gap_rank,
+        RANK() OVER (
+            PARTITION BY race_year ORDER BY rating_s
+        ) AS teammate_gap_rank,
         COUNT(*) OVER (PARTITION BY race_year) AS n_drivers
     FROM ratings
 ),
@@ -75,11 +78,13 @@ teammates AS (
         b.driver_id AS teammate_id
     FROM primary_team AS a
     INNER JOIN driver_constructor AS b
-        ON a.race_year = b.race_year
-        AND a.constructor_id = b.constructor_id
-        AND a.driver_id <> b.driver_id
+        ON
+            a.race_year = b.race_year
+            AND a.constructor_id = b.constructor_id
+            AND a.driver_id <> b.driver_id
     QUALIFY ROW_NUMBER() OVER (
-        PARTITION BY a.race_year, a.driver_id ORDER BY b.n_laps DESC, b.driver_id
+        PARTITION BY a.race_year, a.driver_id
+        ORDER BY b.n_laps DESC, b.driver_id ASC
     ) = 1
 ),
 

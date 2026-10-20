@@ -186,7 +186,11 @@ applied AS (
         -- clamp_or_null, not LEAST/GREATEST: those skip a NULL argument and
         -- would return 0.0. The cliff fitter reads a NULL normalized_pace_s as
         -- raw lap time, as it always did for these laps.
-        {{ clamp_or_null('tt.theta_time * a.time_in_dirty_air_s', '0.0', '5.0') }}
+        {{
+            clamp_or_null(
+                'tt.theta_time * a.time_in_dirty_air_s', '0.0', '5.0'
+            )
+        }}
             AS dirty_air_penalty_s
     FROM air AS a
     INNER JOIN laps AS l ON a.lap_id = l.lap_id

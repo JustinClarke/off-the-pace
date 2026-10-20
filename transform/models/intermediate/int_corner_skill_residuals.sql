@@ -132,14 +132,15 @@ field_medians AS (
             frame='range',
             min_observations=5
         ) }} AS field_corner_throttle_point_m,
-        -- Reported UNFLOORED, which is the macro's documented contract: "the count
-        -- is what the floor is applied to, so it is reported unfloored". 02g wrapped
-        -- this in a CASE that returned NULL below 5, which destroyed the only thing
-        -- the companion column is for -- it made "no prior laps at all" and "four
-        -- prior laps, one short of the gate" indistinguishable, and it contradicted
-        -- this column's own `not_null` test in schema.yml (416,639 failing rows).
-        -- The residuals do not need it to NULL out anyway: trailing_median already
-        -- carries min_observations=5 and returns NULL on its own, and with_residuals
+        -- Reported UNFLOORED, which is the macro's documented contract: "the
+        -- count is what the floor is applied to, so it is reported unfloored".
+        -- 02g wrapped this in a CASE that returned NULL below 5, which
+        -- destroyed the only thing the companion column is for -- it made "no
+        -- prior laps at all" and "four prior laps, one short of the gate"
+        -- indistinguishable, and it contradicted this column's own `not_null`
+        -- test in schema.yml (416,639 failing rows). The residuals do not need
+        -- it to NULL out anyway: trailing_median already carries
+        -- min_observations=5 and returns NULL on its own, and with_residuals
         -- gates on `< 5` below.
         {{ trailing_observation_count(
             'braking_point_m',
@@ -149,20 +150,20 @@ field_medians AS (
             frame='range'
         ) }} AS field_corner_sample_n
     FROM corners_with_keys
-    -- GRAIN GUARD (02c, repairing 02g). corners_with_keys is at DRIVER grain, and
-    -- the block bucket this CTE replaced collapsed it with a GROUP BY. The window
-    -- functions above do not: they return one row per input row, so every
-    -- (race, corner, lap) emits one copy of its medians per driver on track. The
-    -- LEFT JOIN below then fans the model out by the field size -- measured
-    -- 2,206,939 -> 38,444,069 rows (17.4x), breaking the corner_id PK that
-    -- schema.yml declares unique.
+    -- GRAIN GUARD (02c, repairing 02g). corners_with_keys is at DRIVER grain,
+    -- and the block bucket this CTE replaced collapsed it with a GROUP BY. The
+    -- window functions above do not: they return one row per input row, so
+    -- every (race, corner, lap) emits one copy of its medians per driver on
+    -- track. The LEFT JOIN below then fans the model out by the field size --
+    -- measured 2,206,939 -> 38,444,069 rows (17.4x), breaking the corner_id PK
+    -- that schema.yml declares unique.
     --
-    -- Deduplicating here is value-preserving, not a choice of representative: the
-    -- RANGE frame orders by lap_number, so every driver row at the same lap_number
-    -- is a peer and sees an IDENTICAL frame. Verified on the fanned-out build --
-    -- zero corner_ids carried more than one distinct value of any median or of
-    -- field_corner_sample_n. ROWS would NOT have this property, which is the other
-    -- reason `frame='range'` is load-bearing here.
+    -- Deduplicating here is value-preserving, not a choice of representative:
+    -- the RANGE frame orders by lap_number, so every driver row at the same
+    -- lap_number is a peer and sees an IDENTICAL frame. Verified on the
+    -- fanned-out build -- zero corner_ids carried more than one distinct value
+    -- of any median or of field_corner_sample_n. ROWS would NOT have this
+    -- property, which is the other reason `frame='range'` is load-bearing here.
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY race_year, race_id, corner_name, lap_number
         ORDER BY driver_id

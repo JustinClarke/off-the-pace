@@ -68,10 +68,10 @@ jobs:
           done
 
       # ── Stage 2: transform + invariants ───────────────────────────────────────────
-      - name: Stage 2 dbt build + tests (identity oracle, byte oracle)
+      # dbt-dev-full runs `dbt build`, which already executes every test, so no separate dbt-test.
+      - name: Stage 2 dbt build (models + tests) + byte oracle
         run: |
           make dbt-dev-full
-          make dbt-test
           cd transform && python scripts/snapshot_model_hashes.py --check --db ../data/dev.duckdb
 
       # ── Stage 3: data quality (build-over-build diff + freshness) ──────────────────

@@ -47,10 +47,9 @@ help:  ## Show this help, grouped by pipeline stage
 setup:  ## Build venv + install all deps, scaffold data/ (run first)
 	@if [ ! -d ".venv" ]; then \
 		echo "Creating virtual environment..."; \
-		python3 -m venv .venv; \
+		uv venv -p 3.14 .venv; \
 	fi
-	./.venv/bin/pip install --upgrade pip
-	./.venv/bin/pip install -r requirements.txt
+	uv pip install -p .venv -r requirements.txt
 	mkdir -p data/bronze data/silver data/gold data/cache data/marts
 	touch data/bronze/.gitkeep data/silver/.gitkeep data/gold/.gitkeep data/cache/.gitkeep data/marts/.gitkeep
 	cd transform && ../.venv/bin/dbt deps
@@ -144,14 +143,14 @@ deg-iso-fit:  ## Fit isotonic tyre-deg curves + modulation coefs → data/fits/d
 ##@ 4. Transform
 
 ##   Build targets
-dbt-dev:  ## Build all 86 dbt models → data/dev.duckdb
-	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
+dbt-dev:  ## Build all dbt models + run their tests → data/dev.duckdb
+	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target dev
 
-dbt-dev-full: coefficients-check car-fe-fit car-fe-isolation-fit  ## Seed check → car-FE refits (Ghost Standings, driver isolation) → full dbt run
-	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
+dbt-dev-full: coefficients-check car-fe-fit car-fe-isolation-fit  ## Seed check → car-FE refits (Ghost Standings, driver isolation) → full dbt build (models + tests)
+	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target dev
 
 dbt-prod:  ## Prod build (Fabric deferred runs against dev for now)
-	cd transform && ../.venv/bin/dbt run --profiles-dir profiles --target dev
+	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target dev
 
 dbt-docs:  ## Generate + serve the dbt docs site (port 8080)
 	cd transform && ../.venv/bin/dbt docs generate --profiles-dir profiles && ../.venv/bin/dbt docs serve
@@ -160,8 +159,8 @@ query:  ## Open the warehouse in the Harlequin SQL IDE
 	./.venv/bin/harlequin data/dev.duckdb
 
 ##   Test targets
-dbt-test:  ## Run all 912 dbt tests (schema + singular + assert_* invariants)
-	cd transform && ../.venv/bin/dbt test --profiles-dir profiles
+dbt-test:  ## Run all dbt tests (schema + singular + assert_* invariants)
+	cd transform && ../.venv/bin/dbt test --profiles-dir profiles --target dev
 
 test-all:  ## CI-equivalent: full dbt build on fixtures + coefficient tests
 	cd transform && ../.venv/bin/dbt build --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'
@@ -424,21 +423,19 @@ docs-install:  ## (no-op) npx fetches Mintlify automatically
 
 add-season:  ## Onboard a new season end-to-end (stops before publish): make add-season SEASON=YYYY
 	@test -n "$(SEASON)" || { echo "Usage: make add-season SEASON=YYYY"; exit 1; }
-	@echo "── 1/8  Ingest finished rounds for $(SEASON) (unrun rounds skipped) ──"
+	@echo "── 1/7  Ingest finished rounds for $(SEASON) (unrun rounds skipped) ──"
 	./.venv/bin/python ingestion/src/ingest.py --season $(SEASON) --session both
-	@echo "── 2/8  Ingest standings + pit stops for $(SEASON) ─────────────────"
+	@echo "── 2/7  Ingest standings + pit stops for $(SEASON) ─────────────────"
 	./.venv/bin/python ingestion/src/jolpica_client.py --start-season $(SEASON) --end-season $(SEASON)
-	@echo "── 3/8  Verify Bronze integrity ────────────────────────────────────"
+	@echo "── 3/7  Verify Bronze integrity ────────────────────────────────────"
 	./.venv/bin/python ingestion/verify_bronze.py
-	@echo "── 4/8  Seed coverage for $(SEASON) (stops with a to-do list) ──────"
+	@echo "── 4/7  Seed coverage for $(SEASON) (stops with a to-do list) ──────"
 	./.venv/bin/python ingestion/scripts/check_season_seeds.py --season $(SEASON)
-	@echo "── 5/8  Re-fit isotonic tyre-deg curves ────────────────────────────"
+	@echo "── 5/7  Re-fit isotonic tyre-deg curves ────────────────────────────"
 	$(MAKE) deg-iso-fit
-	@echo "── 6/8  Full dbt build (car-FE refit + all models) ─────────────────"
+	@echo "── 6/7  Full dbt build + tests (car-FE refit + all models) ────────"
 	$(MAKE) dbt-dev-full
-	@echo "── 7/8  dbt tests ──────────────────────────────────────────────────"
-	$(MAKE) dbt-test
-	@echo "── 8/8  Export warehouse → app/public/data/ ────────────────────────"
+	@echo "── 7/7  Export warehouse → app/public/data/ ────────────────────────"
 	$(MAKE) app-data
 	@echo "── ✔    Smoke test ─────────────────────────────────────────────────"
 	./.venv/bin/python scripts/smoke_test_season.py $(SEASON)

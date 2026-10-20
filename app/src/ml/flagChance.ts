@@ -14,6 +14,23 @@
 
 import { MODELS_BASE } from './manifest'
 
+/**
+ * The 2025 scorecard of the shipped lookup (rule `last3`, chosen on 2024 only, fitted on
+ * 2018-2024 out-of-fold). It FAILED the acceptance bar, so the chance is shown as
+ * experimental and stays provisional until 2026 races are scored. Source: CO-08 drift-fix
+ * result; reproduced with `python -m ml.src.flag_chance fit --weighting last3`.
+ */
+export const FLAG_CHANCE_CALIBRATION = {
+  evalSeason: 2025,
+  rule: 'last3',
+  binsWithinTolerance: 5,
+  binsTotal: 10,
+  tolerancePp: 5,
+  worstGapPp: 19.9,
+  brier: 0.0803,
+  brierBaseRate: 0.2454,
+} as const
+
 /** The recalibration table written by `python -m ml.src.flag_chance fit`. */
 export interface FlagChanceLookup {
   schema_version: number

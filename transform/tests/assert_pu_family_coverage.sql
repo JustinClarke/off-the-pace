@@ -1,4 +1,4 @@
-{{ config(severity='warn') }}
+{{ config(severity='error') }}
 
 -- F54 (WI-09), the guard F17's slow-rot flag needs. Every constructor in
 -- dim_constructors has a power-unit family: none falls through to 'unknown_pu'.
@@ -10,10 +10,10 @@
 -- at 'unknown_pu' and nothing flagged it: pu_family reaches fct_lap_residuals and
 -- fct_driver_skill_features unchecked.
 --
--- Warn, not error: an unmapped name is a to-do (add the row) and must not stop a
--- season's ingestion. Nothing computes on pu_family today, so a miss costs a wrong
--- label rather than a wrong number. The baseline is zero, so this asserts "no
--- unknown_pu" rather than "no more than last build".
+-- Error: the baseline is zero and this asserts "no unknown_pu" rather than "no more than
+-- last build". A new team name failing here is the intended prompt to add its row to
+-- dim_constructors.pu_mapping before the season reaches the marts; a warn would let
+-- the gap pass silently, which is how three constructors sat unmapped before.
 
 SELECT
     constructor_id,

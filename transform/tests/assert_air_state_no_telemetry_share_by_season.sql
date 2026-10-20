@@ -19,9 +19,12 @@
 --      telemetry coverage degrades this way, that is a NEW occurrence and must be caught,
 --      not silently absorbed as "2018 is already like this".
 --
--- Warn severity: this guards a known, deliberately-deferred defect; it must not block a
--- build over the very condition it exists to keep an eye on.
-{{ config(severity='warn', tags=['data_quality']) }}
+-- Error severity: the test does not flag the known 2018 defect itself (2018 is allowed up
+-- to a 15% ceiling, measured 9.18%); it fails only if the defect gets WORSE or appears in
+-- another season, which is exactly what must stop a build. It passes on the dev warehouse
+-- and the 3-race CI fixture. If the ceilings must move (e.g. FD6 is resolved and 2018 is
+-- fixed), tighten them here rather than relaxing severity.
+{{ config(severity='error', tags=['data_quality']) }}
 
 WITH per_season AS (
     SELECT

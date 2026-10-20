@@ -113,6 +113,9 @@ models:
           arguments:
             min_value: 0
             max_value: 1
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id]
 
   - name: fct_cliff_prediction_features
     description: >
@@ -192,6 +195,8 @@ models:
       - name: constructor_id
         description: Team name
         data_type: varchar
+        tests:
+          - not_null
       - name: lap_number
         description: Lap number within race
         data_type: integer
@@ -512,12 +517,16 @@ models:
           than an invented value. Carried as its own channel so the ablation can separate
           safety-car risk from calendar tenure, which has no SC mechanism in it (arm C).
         data_type: bigint
+        tests:
+          - not_null
       - name: circuit_hazard_prior_seasons_n
         description: >
           02d. Distinct prior seasons in which this venue appears, strictly before this one.
           0 on a debut season. The companion count to circuit_hazard_prior_racing_laps and
           the second half of arm C.
         data_type: bigint
+        tests:
+          - not_null
       - name: expected_compound_pace_s
         description: Model-expected compound pace contribution from int_compound_cliff_predicted
         data_type: double
@@ -625,6 +634,8 @@ models:
           the 2026-09-24 dev build, 18,878 training-eligible, including every 2018 row. The
           08f-1 and 08o gates' IPW arms were built on code that did this.
         data_type: double
+        tests:
+          - not_null
       - name: next_lap_degradation_jump_detrended_s
         description: >
           C1 PRIMARY target: per-lap change in driver skill residual with per-stint linear
@@ -688,6 +699,9 @@ models:
             where: "next_lap_degradation_jump_detrended_s IS NOT NULL"
             warn_if: ">0"
             error_if: ">0"
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id, lap_number]
 
   - name: fct_stint_features
     description: >
@@ -1271,35 +1285,43 @@ models:
     columns:
       - name: lap_id
         description: Surrogate PK, FK to stg_laps.
+        data_type: varchar
         tests:
           - not_null
           - unique
       - name: race_year
         description: Season year.
+        data_type: integer
         tests:
           - not_null
       - name: race_id
         description: Race identifier.
+        data_type: varchar
         tests:
           - not_null
       - name: driver_id
         description: Driver identifier.
+        data_type: varchar
         tests:
           - not_null
       - name: constructor_id
         description: Constructor identifier.
+        data_type: varchar
         tests:
           - not_null
       - name: lap_number
         description: Lap number within the race.
+        data_type: integer
         tests:
           - not_null
       - name: lap_time_s
         description: Raw lap time in seconds.
+        data_type: double
         tests:
           - not_null
       - name: compound
         description: Tyre compound on this lap.
+        data_type: varchar
         tests:
           - accepted_values:
               arguments:
@@ -1308,6 +1330,7 @@ models:
                 where: "compound IS NOT NULL"
       - name: fuel_component_s
         description: Fuel-burnoff weight penalty component.
+        data_type: double
         tests:
           - not_null
       - name: compound_component_s
@@ -1317,6 +1340,7 @@ models:
           have a compound but no age in bronze. Until the F39 fix those laps carried the
           10 s wear cap here instead (DuckDB's LEAST skips the NULL age), and this test,
           scoped only on compound, passed on the fabricated value.
+        data_type: double
         tests:
           - not_null:
               config:
@@ -1324,14 +1348,17 @@ models:
                 where: "compound IS NOT NULL AND age_in_stint IS NOT NULL"
       - name: rubber_component_s
         description: Track-rubber evolution component.
+        data_type: double
         tests:
           - not_null
       - name: ambient_component_s
         description: Ambient/weather component.
+        data_type: double
         tests:
           - not_null
       - name: constructor_component_s
         description: Constructor structural pace component.
+        data_type: double
         tests:
           - not_null
       - name: dirty_air_tax_s
@@ -1339,6 +1366,7 @@ models:
           Per-lap dirty-air slowdown component. NULL on a lap with a measured base whose
           previous lap's air state is unmeasured (FD6 / CO-04); driver_skill_residual_s is
           NULL there too.
+        data_type: double
         tests:
           - not_null:
               config:
@@ -1348,6 +1376,7 @@ models:
           Residual after fuel/compound/constructor/dirty-air (driver skill). WI-01/F1:
           NULL, not a fabricated number, when base_track_pace_s, compound_component_s or
           dirty_air_tax_s is itself unmeasured -- see pace_delta_s.
+        data_type: double
         tests:
           - not_null:
               config:
@@ -1357,15 +1386,19 @@ models:
           Field pace baseline (int_field_pace_curve), fuel- and compound-neutral.
           NULL when the field curve has no measured row for this (race, lap_number)
           (F1) -- not COALESCEd to a fabricated value.
+        data_type: double
       - name: pace_delta_s
         description: >
           lap_time_s - base_track_pace_s. NULL when base_track_pace_s is NULL (F1).
+        data_type: double
       - name: ml_eligible
         description: TRUE when the lap is training-quality for ML inputs.
+        data_type: boolean
         tests:
           - not_null
       - name: correction_weight
         description: IPW/cleanliness weight for the lap.
+        data_type: double
         tests:
           - not_null
 
@@ -1417,6 +1450,10 @@ models:
         description: driver_a − driver_b throttle-application point (metres). Positive = driver_a gets on power later.
         tests:
           - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, driver_a, driver_b, corner_name, lap_number]
 
   - name: fct_driver_isolation_pair_lap
     description: >

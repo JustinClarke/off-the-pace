@@ -13,8 +13,9 @@
 -- rubber_component_s / ambient_component_s are already inside
 -- base_track_pace_s (int_track_evolution decomposes that same base) and are
 -- informational columns only, not part of this identity (F22). NULL, not a
--- fabricated number, on driver_skill_residual_s / pace_delta_s / total_explained_s
--- wherever base_track_pace_s or compound_component_s is itself unmeasured (F1).
+-- fabricated number, on driver_skill_residual_s / pace_delta_s /
+-- total_explained_s wherever base_track_pace_s or compound_component_s is
+-- itself unmeasured (F1).
 --
 -- correction_weight < 1.0 rows are retained but ml_eligible = FALSE.
 -- Consumers that want clean laps only: WHERE ml_eligible = TRUE.

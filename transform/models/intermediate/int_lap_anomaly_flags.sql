@@ -265,8 +265,8 @@ SELECT
 
     -- F9 (CD1 = A, 2026-10-15): 'mistake' laps stay hard-excluded from training
     -- (fct_cliff_prediction_features drops them). The unused soft-weight column
-    -- training_weight_f9 (WI-02b Option B, never read by transform, ml or app) was
-    -- removed in CO-03's rebuild.
+    -- training_weight_f9 (WI-02b Option B, never read by transform, ml or app)
+    -- was removed in CO-03's rebuild.
 
     driver_skill_residual_s
 

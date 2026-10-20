@@ -13,10 +13,12 @@
 --                driver_skill_residual_s
 --                + driver_skill_residual_s
 --
--- track_unexplained_s is informational: it is not part of total_explained_s or the identity.
+-- track_unexplained_s is informational: it is not part of total_explained_s or
+-- the identity.
 --
--- Note (F22): rubber and ambient components are carried in the base_track_pace_s
--- (from int_field_pace_curve's measurement of the field), not subtracted again here.
+-- Note (F22): rubber and ambient components are carried in the
+-- base_track_pace_s (from int_field_pace_curve's measurement of the field), not
+-- subtracted again here.
 --
 -- base_track_pace_s      : field_pace_smoothed_s from int_field_pace_curve
 -- (10%-trimmed field mean of fuel- and compound-corrected laps, 5-lap smoothed)
@@ -341,8 +343,8 @@ with_residual AS (
         lap_time_s - base_track_pace_s AS pace_delta_s,
 
         -- Total physics offsets subtracted from pace_delta_s (5-term identity).
-        -- rubber/ambient are already in the base_track_pace_s (field measurement),
-        -- so they are NOT subtracted again here (F22 fix).
+        -- rubber/ambient are already in the base_track_pace_s (field
+        -- measurement), so they are NOT subtracted again here (F22 fix).
         -- dirty_air_tax_s is accounted for separately, so
         -- driver_skill_residual_s carries no dirty-air signal.
         -- compound_component_s is NOT COALESCEd (F1's acceptance covers every
@@ -354,9 +356,10 @@ with_residual AS (
         + constructor_component_s
         + dirty_air_tax_s AS total_explained_s,
 
-        -- Driver skill residual: pace_delta_s minus the four physics components.
-        -- rubber/ambient are already in the base, not subtracted again (F22 fix).
-        -- Identity: pace_delta_s = total_explained_s + driver_skill_residual_s
+        -- Driver skill residual: pace_delta_s minus the four physics
+        -- components. rubber/ambient are already in the base, not subtracted
+        -- again (F22 fix). Identity: pace_delta_s = total_explained_s +
+        -- driver_skill_residual_s
         (lap_time_s - base_track_pace_s)
         - fuel_component_s
         - compound_component_s

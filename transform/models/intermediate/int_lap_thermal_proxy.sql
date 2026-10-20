@@ -4,20 +4,24 @@
 -- therefore measured against pace that was already on the timing screen when it
 -- started see 08e in _improvements/work/08-foundations-repair.md.
 --
--- It used to be MEDIAN(lap_time_s) FILTER (lap_in_stint <= CEIL(stint_length_actual*0.60))
--- GROUP BY stint_id, which reached forward twice: the median pooled laps the row
--- had not run yet (55.92% of mart rows, mean 4.65 laps), and the cutoff was a
--- function of stint_length_actual == fct_stint_features.stint_length_laps, the
--- stint-life target's own numerator. Measured before the swap: the contamination
--- INVERTS push_residual's sign against two targets, it does not merely add noise.
+-- It used to be MEDIAN(lap_time_s) FILTER (lap_in_stint <=
+-- CEIL(stint_length_actual*0.60)) GROUP BY stint_id, which reached forward
+-- twice: the median pooled laps the row had not run yet (55.92% of mart rows,
+-- mean 4.65 laps), and the cutoff was a function of stint_length_actual ==
+-- fct_stint_features.stint_length_laps, the stint-life target's own numerator.
+-- Measured before the swap: the contamination INVERTS push_residual's sign
+-- against two targets, it does not merely add noise.
 --
 -- Two properties of the rebuild a consumer must know:
---   1. stint_baseline_pace (and so push_residual, and so both loads) is NULL until
---      the stint has one valid prior lap. Lap 1 is an out-lap, so this is usually
---      laps 1-2. Costs 1.41pp of training-eligible coverage.
---   2. Those NULLs are deterministic on baseline_observations_n, which is shipped
---      beside them precisely because it is NOT derivable from the feature contract
---      (it rises with SC and pit disruption). Condition on it, do not impute it.
+--   1. stint_baseline_pace (and so push_residual, and so both loads) is NULL
+--      until
+--      the stint has one valid prior lap. Lap 1 is an out-lap, so this is
+--      usually laps 1-2. Costs 1.41pp of training-eligible coverage.
+--   2. Those NULLs are deterministic on baseline_observations_n, which is
+--      shipped
+--      beside them precisely because it is NOT derivable from the feature
+--      contract (it rises with SC and pit disruption). Condition on it, do not
+--      impute it.
 --
 -- push_residual > 0 means the driver is going faster than the stint baseline,
 -- implying higher thermal input to the tyres.
@@ -129,9 +133,10 @@ with_residual AS (
 -- Bulk:    τ≈5 laps → α = 1-exp(-1/5) ≈ 0.181 per lag increment
 -- Only positive residuals contribute (pushing, not coasting).
 -- A NULL residual on a PRIOR lap contributes 0, the same convention the window
--- already uses for laps before the stint started. A NULL residual on the CURRENT
--- lap makes the load NULL rather than 0: GREATEST(NULL, 0) is 0 in DuckDB, which
--- would fabricate "no thermal load" for a lap whose load is simply unknown.
+-- already uses for laps before the stint started. A NULL residual on the
+-- CURRENT lap makes the load NULL rather than 0: GREATEST(NULL, 0) is 0 in
+-- DuckDB, which would fabricate "no thermal load" for a lap whose load is
+-- simply unknown.
 thermal AS (
     SELECT
         *,

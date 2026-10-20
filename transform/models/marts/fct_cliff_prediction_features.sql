@@ -3,7 +3,8 @@
 -- Targets (ml/src/schema.py): next_5_lap_cumulative_jump_s (PRIMARY, the
 --          degradation trio's target) and laps_until_cliff_class (the cliff
 --          classifier's). Also carried but not modelled:
---          next_lap_degradation_jump_detrended_s and next_3_lap_cumulative_jump_s
+--          next_lap_degradation_jump_detrended_s and
+-- next_3_lap_cumulative_jump_s
 --          (alternative horizons) and next_lap_degradation_jump_s (legacy, kept
 --          for diff/gate).
 --
@@ -100,10 +101,11 @@ proximity AS (
 -- quantity from opposite ends. `thermal` INFERS push load from lap-time
 -- residuals; this MEASURES the braking, rotation and throttle inputs that put
 -- the energy into the tyre in the first place. The ablation decides whether the
--- measurement adds anything over the inference; nothing here asserts that it does.
+-- measurement adds anything over the inference; nothing here asserts that it
+-- does.
 --
--- This is the only lap-varying candidate in item 02, and so the only one that can
--- address the 99.06% of degradation variance that lives within a stint.
+-- This is the only lap-varying candidate in item 02, and so the only one that
+-- can address the 99.06% of degradation variance that lives within a stint.
 corner_inputs AS (
     SELECT
         lap_id,
@@ -121,8 +123,8 @@ corner_inputs AS (
 ),
 
 -- 02h (Tier 2 follow-on): corner drift from the driver's own early-stint
--- baseline, aggregated to lap grain in int_lap_corner_drift. Built because 02c's
--- audit found the nine PACE residual aggregates do not persist lap-to-lap
+-- baseline, aggregated to lap grain in int_lap_corner_drift. Built because
+-- 02c's audit found the nine PACE residual aggregates do not persist lap-to-lap
 -- (lag-1 within-stint autocorrelation 0.032-0.176) while every column that
 -- survived ablation elsewhere in the contract sits at .27-.42. DRIFT against a
 -- fixed early-stint (valid_lap_in_stint 1-6) baseline is a within-stint STATE
@@ -153,9 +155,10 @@ corrections AS (
 ),
 
 -- 02b (Tier 1): driver-weekend qualifying summary. Grain (race_year, race_id,
--- driver_id) -- stint-invariant, broadcast onto every lap of that driver's race.
--- quali_vs_race_skill_delta_s is deliberately NOT among the source columns; see
--- int_qualifying_driver_summary.sql's header for the forward-reach ruling.
+-- driver_id) -- stint-invariant, broadcast onto every lap of that driver's
+-- race. quali_vs_race_skill_delta_s is deliberately NOT among the source
+-- columns; see int_qualifying_driver_summary.sql's header for the forward-reach
+-- ruling.
 qualifying AS (
     SELECT
         race_year,
@@ -187,7 +190,8 @@ qualifying AS (
 -- Only the EB-SHRUNK rates are carried. The raw rates are NULL on a venue's
 -- debut season, which would put a SECOND missingness pattern in the block on a
 -- different axis from the first; shrinkage is also what the existing consumer
--- (int_pit_strategy_cost_curve) already uses, so the two read the same estimator.
+-- (int_pit_strategy_cost_curve) already uses, so the two read the same
+-- estimator.
 --
 -- any = sc + vsc EXACTLY, raw and shrunk alike: the onset counts add and the
 -- shrinkage priors add with them. It is carried anyway because a tree cannot
@@ -224,16 +228,16 @@ detrend AS (
 -- tail.
 --
 -- SEASON-LAGGED since 08f-1: both counts are cumulated over seasons STRICTLY
--- BEFORE the row's own. They used to be GROUP BY compound and GROUP BY (compound,
--- lap_in_stint) with no season key at all, so the weight applied to a 2018
--- training row was estimated partly from the 2024 evaluation season. The weight
--- is not a feature and never enters X, which is exactly why it went unnoticed:
--- train.py passes it to XGBoost as the sample weight and evaluate.py weights the
--- scores with it, so eval-season information reached both the fit and the metric
--- through the weights rather than through a column.
+-- BEFORE the row's own. They used to be GROUP BY compound and GROUP BY
+-- (compound, lap_in_stint) with no season key at all, so the weight applied to
+-- a 2018 training row was estimated partly from the 2024 evaluation season. The
+-- weight is not a feature and never enters X, which is exactly why it went
+-- unnoticed: train.py passes it to XGBoost as the sample weight and evaluate.py
+-- weights the scores with it, so eval-season information reached both the fit
+-- and the metric through the weights rather than through a column.
 --
--- Numerator and denominator are lagged TOGETHER. Lagging one alone would stop the
--- ratio being a probability.
+-- Numerator and denominator are lagged TOGETHER. Lagging one alone would stop
+-- the ratio being a probability.
 --
 -- 2018 is the first ingested season, so it has no prior season and its
 -- survival_prob is NULL. The COALESCE at the point of use turns that into a
@@ -259,8 +263,8 @@ season_stints_reaching AS (
     GROUP BY d.race_year, d.compound, d.lap_in_stint
 ),
 
--- Expanding over prior seasons. One row per season per partition by construction
--- above, so the ROWS frame is a season frame.
+-- Expanding over prior seasons. One row per season per partition by
+-- construction above, so the ROWS frame is a season frame.
 total_per_compound AS (
     SELECT
         race_year,
@@ -400,10 +404,11 @@ base AS (
         -- neutralised laps at source and COALESCE only covers the 1.22% of
         -- laps with no position telemetry. (The dirty-air block above used to
         -- do the same; since CO-04 it keeps an unmeasured lap NULL instead.
-        -- This block is not in the ML contract and was left as it was.) The gap_* and identity columns are
-        -- deliberately NOT coalesced: NULL there means "no car within a full
-        -- lap", which is free air, and XGBoost reads it natively. Defaulting
-        -- them to a number would invent a car that was not there.
+        -- This block is not in the ML contract and was left as it was.) The
+        -- gap_* and identity columns are deliberately NOT coalesced: NULL there
+        -- means "no car within a full lap", which is free air, and XGBoost
+        -- reads it natively. Defaulting them to a number would invent a car
+        -- that was not there.
         COALESCE(px.share_lap_within_1s, 0.0) AS share_lap_within_1s,
         COALESCE(px.share_lap_within_2s, 0.0) AS share_lap_within_2s,
         COALESCE(px.share_lap_in_train, 0.0) AS share_lap_in_train,
@@ -416,20 +421,22 @@ base AS (
         px.n_distinct_cars_ahead_3s,
 
         -- 02c corner-input predictors (corner-windowed telemetry).
-        -- NULL POLICY, and it is the opposite of the share_* block above. A NULL
-        -- residual mean means "this lap's corner inputs were not measured", not
-        -- "this driver sat exactly on the field median". COALESCE-ing to 0.0 would
-        -- invent a lap that was driven precisely at the reference, on 4.15% of
-        -- training rows whose mean label is +1.393 s against -2.330 s for the
-        -- covered ones -- inventing the reference value on exactly the rows that
-        -- degrade worst. So the nine residual aggregates stay NULL and XGBoost
-        -- reads them as native missing.
+        -- NULL POLICY, and it is the opposite of the share_* block above. A
+        -- NULL residual mean means "this lap's corner inputs were not
+        -- measured", not
+        -- "this driver sat exactly on the field median". COALESCE-ing to 0.0
+        -- would invent a lap that was driven precisely at the reference, on
+        -- 4.15% of training rows whose mean label is +1.393 s against -2.330 s
+        -- for the covered ones -- inventing the reference value on exactly the
+        -- rows that degrade worst. So the nine residual aggregates stay NULL
+        -- and XGBoost reads them as native missing.
         --
         -- corner_input_coverage IS coalesced, to 0.0, and that is not the same
-        -- decision: a lap with no mapped corner genuinely has zero coverage, so 0.0
-        -- is the measured value rather than an invented one. Carrying it explicitly
-        -- is what lets the ablation separate "the driver-input signal" from "the
-        -- model learned to split on the NaN pattern" -- see the leaf doc's arm C.
+        -- decision: a lap with no mapped corner genuinely has zero coverage, so
+        -- 0.0 is the measured value rather than an invented one. Carrying it
+        -- explicitly is what lets the ablation separate "the driver-input
+        -- signal" from "the model learned to split on the NaN pattern" -- see
+        -- the leaf doc's arm C.
         COALESCE(ci.corner_input_coverage, 0.0) AS corner_input_coverage,
         ci.corner_braking_loss_mean_s,
         ci.corner_braking_loss_sd_s,
@@ -446,8 +453,8 @@ base AS (
         -- corner_drift_coverage is a measured zero/fraction, not an invented
         -- one, so it is COALESCEd; the nine drift aggregates are left NULL on a
         -- lap with no valid drift value (unmapped corner, inside the baseline
-        -- window, or a stint shorter than 7 valid laps) so XGBoost reads them as
-        -- native missing rather than "drifted exactly zero from baseline".
+        -- window, or a stint shorter than 7 valid laps) so XGBoost reads them
+        -- as native missing rather than "drifted exactly zero from baseline".
         COALESCE(cd.corner_drift_coverage, 0.0) AS corner_drift_coverage,
         cd.corner_braking_drift_mean_s,
         cd.corner_braking_drift_sd_s,
@@ -460,13 +467,13 @@ base AS (
         cd.corner_exit_drift_max_s,
 
         -- 02b qualifying predictors (Tier 1, weekend-grain, stint-invariant).
-        -- NULL POLICY mirrors corner_inputs above for the pace/skill terms: a NULL
-        -- means "no qualifying record for this driver-weekend" (DNQ or a data
-        -- gap), not "drove exactly at the field reference", so XGBoost reads them
-        -- as native missing. quali_push_laps_n IS coalesced to 0 -- a
-        -- driver-weekend with no row in int_qualifying_driver_summary genuinely
-        -- set zero recorded push laps, which is the measured value, not an
-        -- invented one (same reasoning as corner_input_coverage above).
+        -- NULL POLICY mirrors corner_inputs above for the pace/skill terms: a
+        -- NULL means "no qualifying record for this driver-weekend" (DNQ or a
+        -- data gap), not "drove exactly at the field reference", so XGBoost
+        -- reads them as native missing. quali_push_laps_n IS coalesced to 0 --
+        -- a driver-weekend with no row in int_qualifying_driver_summary
+        -- genuinely set zero recorded push laps, which is the measured value,
+        -- not an invented one (same reasoning as corner_input_coverage above).
         COALESCE(qs.quali_push_laps_n, 0) AS quali_push_laps_n,
         qs.quali_constructor_pace_mean_s,
         qs.quali_constructor_pace_se_mean_s,
@@ -480,9 +487,9 @@ base AS (
         -- NULL POLICY, and it is the load-bearing decision in this block. The
         -- three rates are left NULL rather than coalesced, because a NULL here
         -- means UNKNOWABLE, not zero: season 2018 is the earliest in the
-        -- warehouse, so no 2018 row has a prior season to estimate from and none
-        -- has a prior-season pooled rate to shrink toward either. Writing 0.0
-        -- would assert "this venue never throws a safety car", which is a
+        -- warehouse, so no 2018 row has a prior season to estimate from and
+        -- none has a prior-season pooled rate to shrink toward either. Writing
+        -- 0.0 would assert "this venue never throws a safety car", which is a
         -- measurement nobody made. XGBoost reads the NULL as native missing.
         --
         -- THE COST OF THAT, STATED BEFORE THE ABLATION RUNS: the NaN mask of
@@ -490,11 +497,11 @@ base AS (
         -- 2018, 100% present in every other season -- and `race_year` is NOT in
         -- ml/src/schema.py's FEATURE_COLUMNS. So this block hands the model a
         -- free season indicator it does not currently have, through its
-        -- missingness rather than through a value, and a row-shuffle permutation
-        -- null cannot destroy it because the shuffle moves the NaNs with the
-        -- values (02c found the same shape in corner_input_coverage). That is
-        -- what the leaf doc's arm D isolates and what its decision rule is
-        -- written against.
+        -- missingness rather than through a value, and a row-shuffle
+        -- permutation null cannot destroy it because the shuffle moves the NaNs
+        -- with the values (02c found the same shape in corner_input_coverage).
+        -- That is what the leaf doc's arm D isolates and what its decision rule
+        -- is written against.
         --
         -- The two exposure counts are COALESCEd to 0: every mart row matches a
         -- hazard row (137,447 of 137,447, verified 2026-09-20), and the source
@@ -504,8 +511,8 @@ base AS (
         sch.vsc_hazard_per_lap_shrunk AS circuit_vsc_hazard_per_lap,
         sch.any_hazard_per_lap_shrunk AS circuit_any_hazard_per_lap,
         -- CAST to BIGINT: the source cumulates into HUGEINT, which the mart's
-        -- enforced contract has no reason to carry for a count that peaks in the
-        -- low thousands.
+        -- enforced contract has no reason to carry for a count that peaks in
+        -- the low thousands.
         CAST(
             COALESCE(sch.prior_racing_laps, 0) AS BIGINT
         ) AS circuit_hazard_prior_racing_laps,
@@ -563,16 +570,23 @@ base AS (
 
         -- C3: surface/total thermal load ratio warm-up attribution feature.
         -- F49 (WI-15b): each load normalised by its own weight sum, so a steady
-        -- push reads 0.5 (it read 0.394, with a hard cap at 0.5). Range [0, 0.606];
-        -- see int_tyre_surface_vs_bulk_decoupling for the derivation. A monotone
-        -- function of the old expression, so tree splits on it are unchanged.
-        (COALESCE(th.cumulative_push_load_surface, 0.0)
-            / {{ var('thermal_surface_weight_sum') }})
+        -- push reads 0.5 (it read 0.394, with a hard cap at 0.5). Range [0,
+        -- 0.606]; see int_tyre_surface_vs_bulk_decoupling for the derivation. A
+        -- monotone function of the old expression, so tree splits on it are
+        -- unchanged.
+        (
+            COALESCE(th.cumulative_push_load_surface, 0.0)
+            / {{ var('thermal_surface_weight_sum') }}
+        )
         / NULLIF(
-            (COALESCE(th.cumulative_push_load_surface, 0.0)
-                / {{ var('thermal_surface_weight_sum') }})
-            + (COALESCE(th.cumulative_push_load_bulk, 0.0)
-                / {{ var('thermal_bulk_weight_sum') }}),
+            (
+                COALESCE(th.cumulative_push_load_surface, 0.0)
+                / {{ var('thermal_surface_weight_sum') }}
+            )
+            + (
+                COALESCE(th.cumulative_push_load_bulk, 0.0)
+                / {{ var('thermal_bulk_weight_sum') }}
+            ),
             0.0
         ) AS surface_bulk_ratio
 
@@ -610,9 +624,10 @@ base AS (
     LEFT JOIN detrend AS det ON r.stint_id = det.stint_id
     LEFT JOIN
         stint_survival AS ss
-        ON r.compound = ss.compound
-        AND r.lap_in_stint = ss.lap_in_stint
-        AND r.race_year = ss.race_year
+        ON
+            r.compound = ss.compound
+            AND r.lap_in_stint = ss.lap_in_stint
+            AND r.race_year = ss.race_year
 ),
 
 -- Forward scan for the cliff bucket class.
@@ -694,10 +709,10 @@ with_target AS (
         END AS next_lap_degradation_jump_s,
 
         -- C1 target: detrended single-lap jump with per-stint fuel/track drift
-        -- removed. Primary until the modelled column moved the modelled column to the 5-lap
-        -- cumulative one below; carried since as an alternative horizon.
-        -- drift_s_per_lap is the OLS slope of residual ~ lap_in_stint on
-        -- pre-cliff laps.
+        -- removed. Primary until the modelled column moved the modelled column
+        -- to the 5-lap cumulative one below; carried since as an alternative
+        -- horizon. drift_s_per_lap is the OLS slope of residual ~ lap_in_stint
+        -- on pre-cliff laps.
         -- Subtracting it removes the systematic ~-0.07 s/lap leak (Step 0:
         -- median slope).
         -- Bounded [-10, 10] same as legacy target.
@@ -771,15 +786,24 @@ with_cliff_class AS (
             -- unmeasured territory.
             WHEN
                 cs.laps_until_cliff <= 2
-                AND (ug.nearest_unknown_gap IS NULL OR ug.nearest_unknown_gap > cs.laps_until_cliff)
+                AND (
+                    ug.nearest_unknown_gap IS NULL
+                    OR ug.nearest_unknown_gap > cs.laps_until_cliff
+                )
                 THEN '0_to_2'
             WHEN
                 cs.laps_until_cliff <= 5
-                AND (ug.nearest_unknown_gap IS NULL OR ug.nearest_unknown_gap > cs.laps_until_cliff)
+                AND (
+                    ug.nearest_unknown_gap IS NULL
+                    OR ug.nearest_unknown_gap > cs.laps_until_cliff
+                )
                 THEN '3_to_5'
             WHEN
                 cs.laps_until_cliff IS NOT NULL
-                AND (ug.nearest_unknown_gap IS NULL OR ug.nearest_unknown_gap > cs.laps_until_cliff)
+                AND (
+                    ug.nearest_unknown_gap IS NULL
+                    OR ug.nearest_unknown_gap > cs.laps_until_cliff
+                )
                 THEN '6_plus'
             -- WI-01/F1: no crossing was found before hitting an unmeasured lap
             -- (or a real crossing sits ON or PAST it) -- a crossing could be
@@ -815,7 +839,8 @@ SELECT
     compound_cliff_onset_laps,
     compound_cliff_severity,
 
-    -- Thermal predictors (C3 added surface_bulk_ratio; it survived the feature prune)
+    -- Thermal predictors (C3 added surface_bulk_ratio; it survived the feature
+    -- prune)
     push_residual,
     cumulative_push_load_surface,
     cumulative_push_load_bulk,
@@ -824,8 +849,8 @@ SELECT
     -- 08e companion column, NOT a feature: it is not in ml/src/schema.py's
     -- FEATURE_COLUMNS and entering X is an add-ablation someone has to gate. It
     -- ships here because the four thermal columns above are NULL exactly where
-    -- this is 0, and that missingness is not declarable from any other column in
-    -- the contract.
+    -- this is 0, and that missingness is not declarable from any other column
+    -- in the contract.
     baseline_observations_n,
 
     -- Dirty air predictors
@@ -835,9 +860,9 @@ SELECT
     air_state_dominant,
 
     -- Proximity predictors (position channel). Present in the mart and
-    -- in the ML feature contract (ml/src/schema.py FEATURE_GROUPS['proximity']),
-    -- admitted on the proximity add-ablation, which was its own acceptance
-    -- rule.
+    -- in the ML feature contract (ml/src/schema.py
+    -- FEATURE_GROUPS['proximity']), admitted on the proximity add-ablation,
+    -- which was its own acceptance rule.
     share_lap_within_1s,
     share_lap_within_2s,
     share_lap_in_train,
@@ -849,24 +874,27 @@ SELECT
     n_distinct_cars_ahead_3s,
 
     -- 02c corner-input predictors (Tier 2, corner-windowed telemetry). Same
-    -- standing as the proximity block above when it landed: present in the mart,
+    -- standing as the proximity block above when it landed: present in the
+    -- mart,
     -- NOT yet in ml/src/schema.py's FEATURE_COLUMNS. The contract moves only if
     -- the declared ablation in _improvements/work/02-feature-expansion.md
-    -- (`02c` section) says it should. Shipping the columns here is what makes that
-    -- ablation runnable; it is not a claim that they carry anything.
+    -- (`02c` section) says it should. Shipping the columns here is what makes
+    -- that ablation runnable; it is not a claim that they carry anything.
     --
     -- ARMS RUN 2026-09-11 (scripts/arms_02c_corner_inputs.py ->
     -- ml/artefacts/02c_corner_inputs_arms.json). The nine residual aggregates
-    -- (arm B) clear their family's 5-reseed floor on p10 (1.30x), p50 (1.63x) and
-    -- the cliff classifier (2.17x), with the permutation arm attributing the gain
-    -- to information rather than capacity in all three; on p90 they do not clear
-    -- and their information delta is negative. corner_input_coverage (arm C) is a
-    -- SEPARATE channel that clears on p50, p90 and cliff, and on p90 it is the only
-    -- one of the two that does -- which is the confound the column was emitted to
-    -- make visible. Campaign-level e-BH rejects nothing (the declared e-value
-    -- construction caps at E = 36 against a threshold of 240). So the columns stay
-    -- here and out of the contract: moving them is a version bump with a retrain
-    -- behind it, and the arms do not settle which set to move.
+    -- (arm B) clear their family's 5-reseed floor on p10 (1.30x), p50 (1.63x)
+    -- and the cliff classifier (2.17x), with the permutation arm attributing
+    -- the gain to information rather than capacity in all three; on p90 they do
+    -- not clear and their information delta is negative. corner_input_coverage
+    -- (arm C) is a
+    -- SEPARATE channel that clears on p50, p90 and cliff, and on p90 it is the
+    -- only one of the two that does -- which is the confound the column was
+    -- emitted to make visible. Campaign-level e-BH rejects nothing (the
+    -- declared e-value construction caps at E = 36 against a threshold of 240).
+    -- So the columns stay here and out of the contract: moving them is a
+    -- version bump with a retrain behind it, and the arms do not settle which
+    -- set to move.
     corner_input_coverage,
     corner_braking_loss_mean_s,
     corner_braking_loss_sd_s,
@@ -895,15 +923,16 @@ SELECT
     corner_exit_drift_sd_s,
     corner_exit_drift_max_s,
 
-    -- 02b qualifying predictors (Tier 1, an entire session the contract had never
-    -- read). Weekend-grain, stint-invariant: present in the mart and in
+    -- 02b qualifying predictors (Tier 1, an entire session the contract had
+    -- never read). Weekend-grain, stint-invariant: present in the mart and in
     -- ml/src/schema.py's FEATURE_COLUMNS since D12 (2026-09-21), for
-    -- cliff_classifier only -- PER_TARGET_FEATURE_MASK masks them out of the other
-    -- four models. Per the leaf doc, a stint-invariant feature can only
-    -- address the 0.94% of the degradation target's variance that is between-stint,
-    -- so this group was expected to move cliff_classifier and/or
+    -- cliff_classifier only -- PER_TARGET_FEATURE_MASK masks them out of the
+    -- other four models. Per the leaf doc, a stint-invariant feature can only
+    -- address the 0.94% of the degradation target's variance that is
+    -- between-stint, so this group was expected to move cliff_classifier and/or
     -- stint_life_regressor, not the degradation trio -- the declared arms in
-    -- _improvements/work/02-feature-expansion.md (`02b` section) tested that expectation.
+    -- _improvements/work/02-feature-expansion.md (`02b` section) tested that
+    -- expectation.
     quali_push_laps_n,
     quali_constructor_pace_mean_s,
     quali_constructor_pace_se_mean_s,
@@ -912,13 +941,13 @@ SELECT
     quali_skill_session_avg_s,
     quali_segments_contested_n,
 
-    -- 02d SC/VSC hazard (Tier 3, the marshalling channel -- the one candidate in
-    -- item 02 sourced from neither lap times nor the car channel). Circuit x
+    -- 02d SC/VSC hazard (Tier 3, the marshalling channel -- the one candidate
+    -- in item 02 sourced from neither lap times nor the car channel). Circuit x
     -- season grain, so stint-invariant: per the leaf doc it can address only
     -- the 0.94% of the degradation target's variance that is between-stint, and
-    -- the family it is aimed at is stint_life_regressor, where stint ends are set
-    -- by pit-wall calls and safety-car probability is the largest exogenous input
-    -- to those calls. Present in the mart, NOT in ml/src/schema.py's
+    -- the family it is aimed at is stint_life_regressor, where stint ends are
+    -- set by pit-wall calls and safety-car probability is the largest exogenous
+    -- input to those calls. Present in the mart, NOT in ml/src/schema.py's
     -- FEATURE_COLUMNS -- the same standing 02c's ten hold (02b's seven held it
     -- until D12 admitted them for the cliff classifier). The declared arms
     -- are in
@@ -964,8 +993,9 @@ SELECT
     anomaly_class,
     is_rain_lap,
 
-    -- Targets: the modelled ones (next_5_lap_cumulative_jump_s, laps_until_cliff_class)
-    -- plus the alternative horizons and the legacy single-lap column
+    -- Targets: the modelled ones (next_5_lap_cumulative_jump_s,
+    -- laps_until_cliff_class) plus the alternative horizons and the legacy
+    -- single-lap column
     next_lap_degradation_jump_detrended_s,
     next_lap_degradation_jump_s,
     next_3_lap_cumulative_jump_s,
@@ -984,7 +1014,9 @@ SELECT
     -- COALESCE guards against NULLs from LEFT JOINs producing NULL boolean.
     COALESCE(
         age_in_stint > 3
-        AND COALESCE(anomaly_class, 'normal') NOT IN ('mistake', 'conditions', 'event_driven')
+        AND COALESCE(anomaly_class, 'normal') NOT IN (
+            'mistake', 'conditions', 'event_driven'
+        )
         AND NOT COALESCE(is_lap_after_restart, FALSE),
         FALSE
     ) AS is_training_eligible

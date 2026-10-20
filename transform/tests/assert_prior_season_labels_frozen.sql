@@ -25,10 +25,15 @@
 --     theta is read back as the tax on laps whose lagged dirty-air share is 1
 --     (the share is binary, so tax = theta there, inside the [0, 5] clamp).
 --
--- Warn, not error (per the audit report's severity for this check): a
--- pooled-across-seasons parameter (theta_air, a compound seed refit, ...)
--- moving because someone deliberately re-fit it is a real, reviewable event
--- that should surface, not fail a build outright.
+-- Severity is target-conditional: error everywhere except the CI target, warn on CI.
+-- The CI warehouse is a 3-race fixture (transform/tests/fixtures/bronze), so its
+-- per-season row counts and means can never match the full-season baseline seed
+-- (2020: 465 vs 9,360 rows; 2023: 401 vs 12,654) -- the season check is meaningless
+-- there and would fail unconditionally. On a full-data build (dev, prod) it passes
+-- (0 failing rows) and must hold: a pooled-across-seasons parameter (theta_air, a
+-- compound seed refit, ...) silently relabelling published history is the F5 defect.
+-- A deliberate label-version bump fails this on purpose; the fix is to refresh the
+-- label_stability_baseline seed in the same change, as described above.
 --
 -- The season check excludes the latest ingested season: a season still
 -- receiving new races is expected to have moving label statistics as rows are
@@ -39,7 +44,7 @@
 -- Statistics are on next_5_lap_cumulative_jump_s (the primary trained
 -- target): driver_skill_residual_s itself is an intermediate column, not
 -- exposed on this mart.
-{{ config(severity='warn') }}
+{{ config(severity='warn' if target.name == 'ci' else 'error') }}
 
 WITH current_stats AS (
     SELECT

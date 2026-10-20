@@ -74,7 +74,7 @@
         "string",
         "null"
       ],
-      "description": "Single-digit string. 1=green, 2=yellow, 3=virtual safety car, 4=safety car, 5=red, 6=VSC, 7=red+stopped.",
+      "description": "String of one or more concatenated status codes active during the lap: 1=green/all clear, 2=yellow, 4=safety car deployed, 5=red flag, 6=virtual safety car deployed, 7=VSC ending. Code 3 is not used. Example: '12' means green then yellow occurred in the lap.",
       "x-nullable": true,
       "x-source": "FastF1 native"
     },

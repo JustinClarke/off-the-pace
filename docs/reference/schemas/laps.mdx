@@ -51,7 +51,7 @@ these on this dataset will come up empty:
   True if tyre age ≤ 1 lap. FastF1 infers from pit stop data. *Source: FastF1 native.*
 </ResponseField>
 <ResponseField name="TrackStatus" type="string">
-  Single-digit string. 1=green, 2=yellow, 3=virtual safety car, 4=safety car, 5=red, 6=VSC, 7=red+stopped. *Source: FastF1 native.*
+  String of one or more concatenated status codes active during the lap: 1=green/all clear, 2=yellow, 4=safety car deployed, 5=red flag, 6=virtual safety car deployed, 7=VSC ending. Code 3 is not used. Example: '12' means green then yellow occurred in the lap. *Source: FastF1 native.*
 </ResponseField>
 <ResponseField name="PitOutLap" type="boolean">
   True if driver exited the pit lane on this lap. *Source: FastF1 native.*

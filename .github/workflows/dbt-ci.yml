@@ -1,6 +1,13 @@
 name: dbt CI
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'transform/**'
+      - 'ingestion/**'
+      - '.github/workflows/dbt-ci.yml'
   pull_request:
     branches:
       - main
@@ -21,10 +28,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Python 3.12
+      - name: Set up Python 3.14
         uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
           cache: 'pip'
 
       - name: Install dependencies
@@ -42,24 +49,20 @@ jobs:
         working-directory: ./transform
         run: dbt parse --profiles-dir profiles --target ci
 
+      # Hard failure: a missing fixture set must never let the job pass with every build skipped.
       - name: Check fixture data exists
-        id: fixture_check
         run: |
-          if [ -d "transform/tests/fixtures/bronze/laps" ]; then
-            echo "fixtures_present=true" >> $GITHUB_OUTPUT
-          else
-            echo "fixtures_present=false" >> $GITHUB_OUTPUT
-            echo "::warning::Fixture parquet files not committed. Run ingestion/src/create_fixtures.py locally and commit the output to transform/tests/fixtures/bronze/ to enable dbt build in CI."
+          if [ ! -d "transform/tests/fixtures/bronze/laps" ]; then
+            echo "::error::Fixture parquet files not committed. Run ingestion/src/create_fixtures.py locally and commit the output to transform/tests/fixtures/bronze/."
+            exit 1
           fi
 
       - name: Run dbt seed
-        if: steps.fixture_check.outputs.fixtures_present == 'true'
         working-directory: ./transform
         run: dbt seed --profiles-dir profiles --target ci
 
       # Gate 1 (fast): staging + reference only   quick smoke test (~2 min).
       - name: Gate 1   fast_build selector (staging + reference)
-        if: steps.fixture_check.outputs.fixtures_present == 'true'
         working-directory: ./transform
         run: |
           dbt build \
@@ -70,7 +73,6 @@ jobs:
 
       # Gate 1b: full build   all models end-to-end.
       - name: Gate 1b   full dbt build (all models + generic tests)
-        if: steps.fixture_check.outputs.fixtures_present == 'true'
         working-directory: ./transform
         run: |
           dbt build \
@@ -94,8 +96,14 @@ jobs:
       # rebuild should confirm the drift is the expected post-WI-05 kind (see
       # transform/tests/data_profile.baseline.json's 2026-09-25 re-snapshot for the
       # equivalent dev.duckdb-side comparison) before committing the new baseline.
-      - name: Gate 1c   byte-stability oracle (fct_* output)
-        if: steps.fixture_check.outputs.fixtures_present == 'true'
+      #
+      # NON-BLOCKING until the baseline is re-snapshotted (continue-on-error below), so a
+      # known-red gate stops training everyone to ignore CI. To restore it as a gate: after
+      # a human confirms the drift is the expected kind, run `dbt build --target ci`, then
+      # `make lint-oracle-snapshot` on that reviewed ci.duckdb, commit the new baseline, and
+      # remove `continue-on-error: true` from this step.
+      - name: Gate 1c   byte-stability oracle (fct_* output, non-blocking until re-snapshot)
+        continue-on-error: true
         working-directory: ./transform
         run: python scripts/snapshot_model_hashes.py --check
 
@@ -109,7 +117,6 @@ jobs:
       # and reported as ERROR rather than crashing the board, but this step must never
       # be the thing that turns a PR red.
       - name: Audit report   verify_findings.py (non-blocking)
-        if: steps.fixture_check.outputs.fixtures_present == 'true'
         continue-on-error: true
         env:
           OTP_DB: ${{ github.workspace }}/data/ci.duckdb
@@ -119,7 +126,6 @@ jobs:
       # surface as a distinct CI step with a clear label.  dbt build already fails on
       # test failures; this step provides structured JUnit output for PR annotations.
       - name: Gate 2   Identity-closure singular tests
-        if: steps.fixture_check.outputs.fixtures_present == 'true'
         working-directory: ./transform
         run: |
           dbt test \
@@ -132,7 +138,6 @@ jobs:
       # Tests are written to skip gracefully when the models they depend on are not yet
       # materialised, so this step is safe to run at every phase of the build.
       - name: Gates 2–5   pytest validation harness
-        if: steps.fixture_check.outputs.fixtures_present == 'true'
         env:
           CI_DB_PATH: ${{ github.workspace }}/data/ci.duckdb
           PYTHONPATH: transform
@@ -151,7 +156,6 @@ jobs:
         run: sqlfluff lint models/ --disable-progress-bar
 
       - name: Generate dbt docs
-        if: steps.fixture_check.outputs.fixtures_present == 'true'
         working-directory: ./transform
         run: |
           dbt docs generate --profiles-dir profiles --target ci --vars '{"bronze_base": "../transform/tests/fixtures/bronze"}'

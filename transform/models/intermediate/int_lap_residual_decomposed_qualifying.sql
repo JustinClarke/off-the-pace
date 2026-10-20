@@ -126,8 +126,8 @@ combined AS (
         cc.constructor_structural_pace_ci_low_s,
         cc.constructor_structural_pace_ci_high_s,
         -- Compound degradation: use tyre_life as age proxy; cliff suppressed in
-        -- quali by limiting to small age values. No survival-model cliff for quali.
-        -- Simple linear wear model: wear_gradient × tyre_life.
+        -- quali by limiting to small age values. No survival-model cliff for
+        -- quali. Simple linear wear model: wear_gradient × tyre_life.
         COALESCE(cp.compound_wear_gradient, 0.0)
         * q.tyre_life AS compound_component_s,
         -- Dirty air tax: assume zero in quali (each driver runs a clear lap).

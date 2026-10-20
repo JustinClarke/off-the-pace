@@ -5,11 +5,12 @@
 -- has stopped firing (for example the air-state coding it reads changed its labels); above
 -- 10% it is no longer "the first laps after dropping out of a wake". Measured 5.0% on the
 -- 2026-09-26 build (WI-15a's S2 coding raised it from the WI doc's pre-WI-15a 3.1% of
--- valid laps). Warn severity, as the WI doc specifies: the band is a sanity range, not an
--- identity, and it is split out of assert_isolation_phase_partition so that the partition
--- itself can stay an error.
+-- valid laps). Error severity: a band that is never enforced guards nothing, and the test
+-- passes on both the dev warehouse and the 3-race CI fixture. It is split out of
+-- assert_isolation_phase_partition so the partition identity and this band fail
+-- independently. If the band is deliberately re-tuned, change the thresholds here.
 
-{{ config(severity='warn') }}
+{{ config(severity='error') }}
 
 SELECT
     COUNT(*) AS omega_laps,

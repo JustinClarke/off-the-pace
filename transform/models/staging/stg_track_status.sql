@@ -9,6 +9,11 @@ WITH source AS (
 ),
 
 renamed AS (
+    -- DISTINCT is the dedup: bronze raw_track_status repeats a few events
+    -- (8 surplus rows, e.g. 2024_17 @ 819.841s status 1 and 2, 4x each) that
+    -- differ only in the source row `index`, which is not selected here. This
+    -- keeps one row per (race, session_time_s, status) so track_status_id is
+    -- unique; the grain test in schema.yml fails the build if new ones appear.
     SELECT DISTINCT
         -- status_code is part of the key, not just race_id + session_time_s:
         -- some races log two distinct status codes at the identical

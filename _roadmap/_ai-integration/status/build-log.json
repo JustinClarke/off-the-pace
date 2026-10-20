@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off-the pace AI integration (trackside-analyst assistant)",
-  "updated": "2026-10-15T17:45:00+04:00",
+  "updated": "2026-10-17T12:00:00+04:00",
   "pointer": "CO-06",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -183,7 +183,7 @@
       "doc": "wi/CO-08-flag-chance-calibration.md",
       "cost": "3-5d",
       "model": "opus-5",
-      "note": "Owner go-ahead 2026-10-15 to build the laps-to-flag display cap and the calibrated flag-chance line. Source edits in working tree only. Stint-life fix (starting value) not promoted; built in scratch. Calibration fitted on 2018-2024 out-of-fold; 2025 for evaluation."
+      "note": "Owner go-ahead 2026-10-15 to build the laps-to-flag display cap and the calibrated flag-chance line. Source edits in working tree only. Stint-life fix (starting value) not promoted; built in scratch. Calibration fitted on 2018-2024 out-of-fold; 2025 for evaluation. 2026-10-16: drift rule last3 chosen on 2024 only; 2025 FAILS (5/10 bins). Follow-up agent (E4, pre-registered on 2023-2024) also fails (5/10, worst 13.2 pp) but cuts Brier to 0.0698 from 0.0803. Stage stays BUILDING; waiting on CD4 and CD5. Scratch report: scratchpad/flag_ideas/report.md. 2026-10-17: experimental chance line built in the working tree and labelled experimental on the simulator, with 2025 numbers and provisional note. Lookup rebuild matches the expanding-window refit exactly; relabel pending (CO-11). Stage stays BUILDING until CD4, CD6 and CO-10 resolve."
     },
     {
       "id": "AI-03",
@@ -338,6 +338,92 @@
       "cost": "3d",
       "model": "sonnet-5",
       "note": "Last, because it exposes everything above. Behind a flag until the launch run passes on AI-03's frozen numbers; turning it on is the user's call. AD1 is ruled; waits on AI-06 as a dependency."
+    },
+    {
+      "id": "CO-09",
+      "group": "D",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Stint labels: join same-tyre splits, censor red-flag tyre changes (dbt), version bump",
+      "sources": [
+        "transform/models/intermediate/int_stint_end_regime.sql",
+        "ml/src/schema.py"
+      ],
+      "doc": "wi/CO-09-stint-label-fix.md",
+      "cost": "1-2d",
+      "model": "opus-5",
+      "note": "Raised 2026-10-16 from the CO-08 follow-up. Pit-lane drive-throughs and red flags split one tyre run into several stints; red-flag tyre changes are labelled as 'did not reach the flag'. Canada 2025 real final stints labelled sc_pit = 0. Touches the stint-life target, so a version bump; promotion is the owner's call."
+    },
+    {
+      "id": "CO-10",
+      "group": "D",
+      "stage": "SPEC",
+      "depends_on": [
+        "CO-09"
+      ],
+      "title": "2026 flag-chance test: decide CD4, ingest 2026 stints (OpenF1), freeze pre-registration, score once",
+      "sources": [
+        "ml/src/flag_chance.py",
+        "ml/src/survival.py",
+        "app/src/ml/flagChance.ts",
+        "app/public/models/flag_chance_lookup.json"
+      ],
+      "doc": "wi/CO-10-flag-chance-2026-test.md",
+      "cost": "3-5d",
+      "model": "opus-5",
+      "note": "Raised 2026-10-17. The only clean season left is 2026 (2018-2025 are all used). Holds the experimental chance line to a single pre-registered score once 2026 races finish. Waits on CD4 (owner ruling), CO-09 (label fix) and the OpenF1 ingest; nothing scored yet."
+    },
+    {
+      "id": "CO-11",
+      "group": "D",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Relabel the experimental chance number as a refit of the v14 configuration, not v14",
+      "sources": [
+        "app/src/ml/flagChance.ts",
+        "app/src/features/degradation-simulator/DegradationSimulatorChart.tsx",
+        "app/src/features/degradation-simulator/methodology.tsx",
+        "docs/app/degradation-simulator.mdx",
+        "app/public/models/flag_chance_lookup.json"
+      ],
+      "doc": "wi/CO-11-relabel-flag-chance.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "Raised 2026-10-17 after the lookup check. The shipped lookup matches an expanding-window refit of the v14 configuration exactly, but it was not computed from the served booster (which saw 2025). Page text and the lookup stamp say v14; they should say refit of the v14 configuration on expanding-window folds."
+    },
+    {
+      "id": "CO-12",
+      "group": "D",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "OpenF1 2026 ingest spike: ingest only, nothing scored",
+      "sources": [
+        "ingestion/"
+      ],
+      "doc": "wi/CO-12-openf1-2026-spike.md",
+      "cost": "2-4d",
+      "model": "sonnet-5",
+      "note": "Raised 2026-10-17. The only route to a clean 2026 test. Pulls 2026 stints, pit stops, race control and laps into the warehouse. Coverage recorded per race; no fit, no score. Needs owner approval before it starts. The 2026 calendar must be fixed from one source (FastF1 and OpenF1 disagree)."
+    },
+    {
+      "id": "CO-13",
+      "group": "D",
+      "stage": "SPEC",
+      "depends_on": [
+        "CO-11"
+      ],
+      "title": "Commit the experimental chance line and the restored CO-08 records as separate commits",
+      "sources": [
+        "app/src/ml/flagChance.ts",
+        "app/src/features/degradation-simulator/",
+        "ml/src/flag_chance.py",
+        "_roadmap/_ai-integration/status/build-log.json",
+        "_roadmap/_ai-integration/wi/CO-08-flag-chance-calibration.md"
+      ],
+      "doc": "wi/CO-13-commit-split.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "Raised 2026-10-17. Nothing is committed yet. Split so the restored records, the drift code, the lookup and the page are separate and the dependency bumps from f02c4ff stay out. Waits on CO-11 and on CD4 being ruled. Commit only on the owner's yes."
     }
   ],
   "decisions": [
@@ -392,6 +478,57 @@
       "recommendation": "D2 A, D9 A, D13 A, D14 A: each is the cheapest answer that stays honest, and none of them reopens settled work.",
       "resolved": "2026-10-15",
       "resolution": "Yes to all four. D2: close (production already serves v14). D9: re-measure on v15 before any ruling; stays OPEN until then. D13: withdrawing a disowned e-value is allowed even where the original write-up rejected the idea. D14: do not reopen 01b's noise floor; recheck the newer attainable-block ceiling estimate on v15; stays OPEN until then. Recorded in the improvements log by CO-07."
+    },
+    {
+      "id": "CD4",
+      "raised": "2026-10-16",
+      "blocking": [
+        "CO-08",
+        "CO-10"
+      ],
+      "status": "OPEN",
+      "question": "Acceptance rule for the flag-chance line. The 10-bins-within-5-pp rule cannot be met reliably on one season. A: keep it (chance stays hidden, cap only). B: a race-clustered rule: average gap within 3 pp, intercept CI contains 0, slope CI contains 1. C: 5 wider bins pooled over the two latest seasons.",
+      "context": "Best candidate E4 passes none of the three as the rule stands (5/10 within 5 pp, worst 13.2 pp; Brier 0.0698 vs 0.0803 current). Under B its 2025 point estimates fit (gap +1.1 pp, CI [-3.3, +6.0]; slope 0.83 [0.69, 1.09]); the current method fails B on 2024 (gap -8.8 pp). Whatever is chosen must be fixed before 2026 data is scored. See _roadmap/_ai-integration/wi/CO-08-flag-chance-calibration.md and the scratch report.",
+      "recommendation": "A for now. Revisit with 2026 data as the first clean test.",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "CD5",
+      "raised": "2026-10-16",
+      "blocking": [
+        "CO-08"
+      ],
+      "status": "OPEN",
+      "question": "Where the chance number may appear. A: parquet and race replay only (E4 needs live field context, the browser simulator cannot run it), cap only in the simulator. B: E6 instead (simulator-known inputs, 0.0872 vs 0.0855 on selection; not scored on 2025 and cannot be now without another look). C: cap only everywhere.",
+      "context": "E4 needs a refresh between races, so it cannot run in the browser as-is. E6 would need a classifier export instead of the 1-D lookup. Only E4 has a 2025 score.",
+      "recommendation": "C for the simulator now; A later if the 2026 test passes under the rule chosen in CD4.",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "CD6",
+      "raised": "2026-10-17",
+      "blocking": [
+        "CO-10"
+      ],
+      "status": "OPEN",
+      "question": "Which fold scheme defines the flag-chance lookup and its 2026 test? A: expanding window (the project's existing CV; the shipped lookup matches it exactly). B: leave-one-season-out within 2018-2024 (the lookup differs by up to 0.012, and the 2024 weighting pick changes from last3 to uniform).",
+      "context": "The rebuild check found that the fold scheme changes both the lookup values and which weighting rule the 2024 selection picks. Whichever is chosen must be written into CO-10's pre-registration before any 2026 outcome is seen.",
+      "recommendation": "A. It is the project's existing CV and the shipped lookup already matches it.",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "CD7",
+      "raised": "2026-10-21",
+      "blocking": [],
+      "status": "OPEN",
+      "question": "How is dirty air priced below lap grain? int_sector_residual_decomposed allocates the sector dirty-air tax on the CURRENT lap's dirty_air_share_lap, while the lap tax it must sum to is priced on the PREVIOUS lap's share (theta_air 0.331, the causal lag), so assert_sector_aggregates_to_lap fails on 10,706 dev laps by exactly 0.331 s and stays warn. A: sector tax = lap tax x sector time share (one-line fix, identity holds, no relabel). B: lap and sector both switch to the current-lap share (refit theta, about 0.473; label bump, relabel, ML retrain; gives up the one-lap ordering argument). C: micro-sector pricing: persist int_lap_proximity's 100-bin gaps, aggregate to 10-20 micro-sectors, fit theta within lap on the entry gap (predetermined for the micro-sector it prices), lap tax = sum of micro-sector taxes (new models, fit script outside dbt, full relabel and retrain; 2018_1-2 have no telemetry). D: keep the lagged lap tax, allocate it across sectors by real-time exposure (identity holds, no relabel; on 2023 it moves little from time share).",
+      "context": "Owner asked 2026-10-21 for dirty air to be as real-time as possible, or at least micro-sector. Read-only scoping on dev: the current-lap bit fits better than the lag (0.473 vs 0.331 alone; 0.407 now / 0.130 lag jointly; lead about 0 once now is in), and continuous share_lap_within_1s fits better still (0.881). Better fit is not identification: shared local shocks (yellows, lapped cars) remain a threat. int_lap_proximity already builds about 50 m bins per lap but keeps only per-lap scalars; a micro-sector panel would be about 1.5-3M rows. A does not preclude C. Evidence: scratch scripts q1-q7 from the 2026-10-21 transform session; files int_dirty_air_tax_component.sql, int_sector_residual_decomposed.sql, int_lap_proximity.sql, d2_fit_wi12.py, 06-publication.md (pre-registered lag ladder and lead placebo).",
+      "recommendation": "A now (closes the warning; promote the test to error). Then C as its own reviewed label-version project, keeping the 06b/WI-12 lag series as a comparison arm. Not B.",
+      "resolved": null,
+      "resolution": null
     }
   ],
   "history": [
@@ -581,6 +718,76 @@
         "evaluate beats-baseline (FAIL stint life)"
       ],
       "next_action": "Owner decides v15 promotion and stint-life handling; CO-06 docs next.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py",
+      "stands": {
+        "pointer": "CO-06"
+      }
+    },
+    {
+      "date": "2026-10-16T12:00:00+04:00",
+      "session": "CO-08 resumed: drift fix, then opus follow-up search for a better method; handed off to build log",
+      "landed": [
+        "None landed. CO-08 stays BUILDING (waiting on CD4, CD5). CO-09 raised as SPEC."
+      ],
+      "measured": [
+        "CO-08: last3 drift rule fails 2025 (5/10). Follow-up E4 fails 2025 (5/10, worst 13.2 pp) but Brier 0.0698 vs 0.0803."
+      ],
+      "watch": [
+        "Acceptance rule can't be met reliably on one season (race clustering).",
+        "Stint labels split same-tyre runs and count red-flag tyre changes as not-reached (CO-09).",
+        "2025 burned for selection twice."
+      ],
+      "verified": [
+        "flag_chance tests 10/10 pass (ML); app flagChance 6/6 pass."
+      ],
+      "assumed": [
+        "Follow-up numbers taken from the agent's report; not independently re-run."
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_action": "Tomorrow: owner answers CD4 (acceptance rule) and CD5 (where the chance may show). Then CO-06 docs. CO-09 waits for a go-ahead. Uncommitted: ml/src/flag_chance.py (drift rule, weighting arg), ml/tests unchanged, wi/CO-08 and wi/CO-09 docs, this log. Nothing committed.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py",
+      "stands": {
+        "pointer": "CO-06"
+      }
+    },
+    {
+      "date": "2026-10-17T12:00:00+04:00",
+      "session": "CO-08 records restored; experimental chance line built in the working tree; lookup checked against served v14; CD6 and CO-10 to CO-13 added. Handed off to build log.",
+      "landed": [
+        "Working tree only, nothing committed: restored CO-08 records (CD4, CD5, CO-09 item, 2026-10-16 history, drift-fix section, drift code in ml/src/flag_chance.py) from 0faac10.",
+        "Experimental chance line on the degradation simulator final-stint gauge, labelled experimental, with the 2025 numbers and provisional note. Lookup at app/public/models/flag_chance_lookup.json (sha256 5339d041...fefe1).",
+        "New items: CO-10 (2026 test, pre-registered, score once), CO-11 (relabel as refit of v14 configuration), CO-12 (OpenF1 2026 ingest spike, ingest only), CO-13 (commit split).",
+        "New decision: CD6 (fold scheme for the lookup and the 2026 test), OPEN, blocks CO-10."
+      ],
+      "measured": [
+        "Lookup rebuild, expanding-window folds: bit-identical to shipped lookup (47,748 rows, base rate 0.429421). Leave-one-season-out within 2018-2024: values differ by up to 0.012 and the 2024 weighting pick changes from last3 to uniform.",
+        "2025 (burned, reference only): last3 fails, 5/10 bins within 5 pp, worst 19.9 pp; Brier 0.0803 vs base-rate 0.2454.",
+        "FastF1 3.8.3 archive returns 401 for 2024-2026 from this machine. OpenF1 serves 2026 stints, pit stops and race control (17 of 19 listed races have stint data)."
+      ],
+      "watch": [
+        "The served v14 booster was trained on 2018-2025, so the lookup is a refit of the v14 configuration, not the served booster. The page must not say v14 until CO-11 lands.",
+        "The fold scheme changes the answer (CD6). Pre-register it before any 2026 result.",
+        "CO-08 and CO-09 flagged that stint labels split same-tyre runs and count red-flag tyre changes as not reached.",
+        "2025 is burned: scored at least three times. Only 2026 is clean.",
+        "FastF1 and OpenF1 disagree on the 2026 calendar (2026-10-04: Bahrain vs Kuala Lumpur)."
+      ],
+      "verified": [
+        "ML flag_chance tests: 10 passed (rebuild run, and after the restore).",
+        "App tests (pnpm test run): 433 passed, 1 expected fail, 2 skipped, 0 failed; typecheck clean; lint 0 errors, 15 warnings.",
+        "board.py --check: passes after CO-10 to CO-13 and CD6 were added."
+      ],
+      "assumed": [
+        "The experimental page block was not seen in a browser; layout is unchecked.",
+        "CD5 is still recorded as open although the owner chose the experimental label; not resolved."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "pytest ml/tests/test_flag_chance.py",
+        "pnpm test run (app)"
+      ],
+      "next_action": "Owner rulings first: CD4 (acceptance rule; A recommended for now) and CD6 (fold scheme; expanding window recommended). Then approvals: CO-09 (stint-label fix) and CO-12 (OpenF1 spike). Then CO-11 (relabel the page and lookup stamp as refit of v14 configuration), then CO-13 (commit split, owner yes per commit). CO-10 freezes only after CD4 and CD6 are ruled and CO-09 and CO-12 are done. Decide CD5 (where the chance may appear) when the owner says. Nothing is committed; the dependency bumps from f02c4ff are not part of this work.",
       "next_command": "python3 _roadmap/_ai-integration/status/board.py",
       "stands": {
         "pointer": "CO-06"

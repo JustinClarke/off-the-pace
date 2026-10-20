@@ -153,6 +153,10 @@ models:
           Free-text provenance / caveat notes carried from the seed. Never reads "fitted from"
           on a cell where any parameter is a class default.
         data_type: varchar
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [circuit_key, compound_code, season]
 
   - name: dim_drivers
     description: >
@@ -277,3 +281,41 @@ models:
           - accepted_values:
               arguments:
                 values: ['session', 'nearest_season']
+
+  - name: dim_driver_seasons
+    description: >
+      One row per season × driver code. The three-letter code is reused across seasons and
+      names vary by season, so season is part of the key. driver_id is FastF1's stable
+      DriverId; names are the official ones for that season. Built from bronze race results.
+    meta:
+      family: reference
+    columns:
+      - name: season
+        description: Season year.
+        data_type: integer
+        tests: [not_null]
+      - name: driver_code
+        description: Three-letter FastF1 code matching laps.Driver and results.Abbreviation within the season.
+        data_type: varchar
+        tests: [not_null]
+      - name: driver_id
+        description: FastF1 stable DriverId for this code in this season.
+        data_type: varchar
+        tests: [not_null]
+      - name: full_name
+        description: Official full name for this code in this season.
+        data_type: varchar
+        tests: [not_null]
+      - name: first_name
+        description: First name.
+        data_type: varchar
+      - name: last_name
+        description: Last name.
+        data_type: varchar
+      - name: team_name
+        description: Team the driver raced for most often in the season.
+        data_type: varchar
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [season, driver_code]

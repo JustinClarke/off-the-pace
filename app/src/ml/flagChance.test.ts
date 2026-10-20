@@ -60,3 +60,17 @@ describe('flag chance pieces', () => {
     expect(flagChance(12, 12, lookup, lookup.model_version)).not.toBeNull()
   })
 })
+
+describe('shipped lookup (public/models/flag_chance_lookup.json)', () => {
+  it('is paired with the served model manifest version and is a valid monotone table', async () => {
+    const { readFileSync } = await import('node:fs')
+    const dir = 'public/models/'  // vitest runs from app/
+    const lk = JSON.parse(readFileSync(dir + 'flag_chance_lookup.json', 'utf8')) as FlagChanceLookup & { weighting: { rule: string } }
+    const manifest = JSON.parse(readFileSync(dir + 'manifest.json', 'utf8')) as { model_version: string }
+    expect(lk.model_version).toBe(manifest.model_version)
+    expect(lk.weighting.rule).toBe('last3')
+    expect(lk.x.length).toBe(lk.y.length)
+    expect(lk.x.every((v, i) => i === 0 || v > lk.x[i - 1])).toBe(true)
+    expect(flagChance(10, 10, lk, manifest.model_version)).not.toBeNull()
+  })
+})

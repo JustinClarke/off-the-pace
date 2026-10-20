@@ -1,6 +1,7 @@
--- Corner drift from the driver's own early-stint baseline, aggregated to lap grain.
--- Grain: lap_id -- one row per race lap that has at least one measured corner.
--- Item 02h (Tier 2 follow-on) in _improvements/work/02-feature-expansion.md.
+-- Corner drift from the driver's own early-stint baseline, aggregated to lap
+-- grain. Grain: lap_id -- one row per race lap that has at least one measured
+-- corner. Item 02h (Tier 2 follow-on) in
+-- _improvements/work/02-feature-expansion.md.
 --
 -- Same three phases and the same mean/sd/max shape int_lap_corner_inputs (02c)
 -- uses, applied to int_corner_drift_from_early_stint's DRIFT columns instead of
@@ -10,17 +11,17 @@
 -- early-stint baseline persists by construction, because it accumulates with
 -- tyre wear across the remainder of the stint.
 --
--- COVERAGE HERE IS TWO THINGS AT ONCE, and that is deliberate, not sloppy. A lap
--- can be missing a drift value because its OWN corner telemetry / field baseline
--- is unmapped -- the same reason 02c's corner_input_coverage exists -- OR because
--- the lap sits inside the baseline-defining window (valid_lap_in_stint <= 6) or
--- its stint never reached 7 valid laps. The second reason is new and entirely
--- mechanical: it is a function of lap_in_stint / age_in_stint, both already in
--- the 32-column contract, so a model handed corner_drift_coverage as a bare
--- number is free to relearn "how far into the stint am I" through it rather than
--- through the drift values themselves. That is exactly the shape 02c's confound
--- arm (arm C) existed to isolate, and this item's own arm C repeats the test
--- against the new confound.
+-- COVERAGE HERE IS TWO THINGS AT ONCE, and that is deliberate, not sloppy. A
+-- lap can be missing a drift value because its OWN corner telemetry / field
+-- baseline is unmapped -- the same reason 02c's corner_input_coverage exists --
+-- OR because the lap sits inside the baseline-defining window
+-- (valid_lap_in_stint <= 6) or its stint never reached 7 valid laps. The second
+-- reason is new and entirely mechanical: it is a function of lap_in_stint /
+-- age_in_stint, both already in the 32-column contract, so a model handed
+-- corner_drift_coverage as a bare number is free to relearn "how far into the
+-- stint am I" through it rather than through the drift values themselves. That
+-- is exactly the shape 02c's confound arm (arm C) existed to isolate, and this
+-- item's own arm C repeats the test against the new confound.
 {{ config(materialized='table', tags=['intermediate', 'feature_engineering']) }}
 
 WITH corner_rows AS (
@@ -44,16 +45,14 @@ SELECT
     -- already in the feature set three times over.
     COUNT(*) AS corners_total_n,
     COUNT(*) FILTER (
-        WHERE
-            braking_drift_s IS NOT NULL
-            OR mid_drift_s IS NOT NULL
-            OR exit_drift_s IS NOT NULL
+        WHERE braking_drift_s IS NOT NULL
+        OR mid_drift_s IS NOT NULL
+        OR exit_drift_s IS NOT NULL
     ) AS corners_drift_mapped_n,
     COUNT(*) FILTER (
-        WHERE
-            braking_drift_s IS NOT NULL
-            OR mid_drift_s IS NOT NULL
-            OR exit_drift_s IS NOT NULL
+        WHERE braking_drift_s IS NOT NULL
+        OR mid_drift_s IS NOT NULL
+        OR exit_drift_s IS NOT NULL
     ) / NULLIF(CAST(COUNT(*) AS DOUBLE), 0) AS corner_drift_coverage,
 
     -- Per-phase measured counts, mirroring int_lap_corner_inputs' companion

@@ -1,22 +1,22 @@
 <CardGroup cols={3}>
-  <Card title="93 models" icon="database">
-    Staging (17) + Reference (5) + 53
+  <Card title="94 models" icon="database">
+    Staging (17) + Reference (6) + 53
     intermediate models across 5 families + Marts (18).
   </Card>
-  <Card title="1002 tests" icon="shield-check">
-    890 generic column contracts + 112 hand-written mathematical
+  <Card title="1183 tests" icon="shield-check">
+    1070 generic column contracts + 113 hand-written mathematical
     assertions, every build.
   </Card>
-  <Card title="721 structural" icon="key">
+  <Card title="890 structural" icon="key">
     `not_null`, `unique`, and unique-combination tests guard every model's grain.
   </Card>
-  <Card title="168 range &amp; domain" icon="ruler">
+  <Card title="179 range &amp; domain" icon="ruler">
     Bounded shares, honest envelopes, enum integrity, and cross-column monotonicity.
   </Card>
   <Card title="24 identity-closure" icon="equal">
     Additive identities and shrinkage bounds that close to tolerance on every lap.
   </Card>
-  <Card title="85 domain + 3 regression" icon="check-check">
+  <Card title="86 domain + 3 regression" icon="check-check">
     Physical/statistical invariants, plus baseline-comparison gates on headline statistics.
     0 singular tests are placeholders (`SELECT 1 WHERE FALSE`), wired up once
     their upstream model lands.
@@ -25,7 +25,7 @@
 
 <CardGroup cols={4}>
   <Card title="17 Staging" icon="layers" href="/transform/families/staging" />
-  <Card title="5 Reference" icon="layers" href="/transform/families/reference" />
+  <Card title="6 Reference" icon="layers" href="/transform/families/reference" />
   <Card title="14 Physics" icon="layers" href="/transform/families/physics" />
   <Card title="9 Pace Baselines" icon="layers" href="/transform/families/pace-baselines" />
   <Card title="12 Skill" icon="layers" href="/transform/families/skill" />

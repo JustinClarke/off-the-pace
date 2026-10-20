@@ -45,4 +45,4 @@ flowchart LR
 | `sector_pace_delta_s` |   | Yes | [`not_null`](/transform/ci/structural) | sector_time_s minus rolling ±3 lap field sector median |
 | `sector_driver_skill_residual_s` |   | Yes |   | Closure residual after all 4 allocated components (fuel, compound, constructor, dirty_air) |
 | `sector_total_explained_s` |   | Yes |   | Sum of the 4 allocated components (fuel, compound, constructor, dirty_air) |
-| `dominant_component_class` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Component with the largest absolute value among the 4 allocated components. Values: fuel, compound, constructor, dirty_air |
+| `dominant_component_class` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Component with the largest absolute value among the 4 allocated components. Values: fuel, compound, constructor, dirty_air; NULL when any of the four components is NULL (e.g. compound_component_s on unknown-age laps). |

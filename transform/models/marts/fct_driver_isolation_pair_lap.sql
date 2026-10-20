@@ -18,7 +18,8 @@
 -- Sign: seconds per lap, POSITIVE = d (lap_id's driver) FASTER than the peer.
 --
 -- THE CUMULATIVE IDENTITY. Because p = car_iso - y and y = x - (the lap's
--- field median), which both cars share, and x has the compound seed's C removed,
+-- field median), which both cars share, and x has the compound seed's C
+-- removed,
 --   relative_pace_gain_s = pace_gap_gain_s + car_advantage_gain_s
 --                          + traffic_advantage_gain_s + (C(d') - C(d))
 -- with

@@ -299,21 +299,27 @@ models:
       - name: telemetry_id
         description: Composite key   {season}_{race_id}_{driver_id}_{lap_number} (not unique; many samples per lap).
         data_type: varchar
+        tests: [not_null]
       - name: race_year
         description: Season year.
         data_type: integer
+        tests: [not_null]
       - name: race_id
         description: Numeric FastF1 event id cast to string.
         data_type: varchar
+        tests: [not_null]
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
+        tests: [not_null]
       - name: lap_number
         description: Lap index the sample belongs to.
         data_type: integer
+        tests: [not_null]
       - name: distance_m
         description: Distance along the lap from start/finish (m); samples filtered to 0–6500 m.
         data_type: double
+        tests: [not_null]
       - name: session_time_s
         description: >
           Session clock of the sample (s), from the FastF1 SessionTime nanosecond field.
@@ -323,6 +329,7 @@ models:
           distance alone pick an arbitrary neighbour. Unique across all 59.5M samples, zero
           nulls.
         data_type: double
+        tests: [not_null]
       - name: speed_kph
         description: Instantaneous car speed (kph).
         data_type: double
@@ -344,6 +351,11 @@ models:
       - name: source_channel
         description: FastF1 sample provenance ('car' = true channel cadence; 'pos'/'interpolation' = forward-filled).
         data_type: varchar
+        tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id, lap_number, session_time_s]
 
   - name: stg_sector_times
     description: >
@@ -564,6 +576,7 @@ models:
       - name: lap_id
         description: Foreign key to stg_laps.
         data_type: varchar
+        tests: [not_null, unique]
       - name: race_year
         description: Season year.
         data_type: integer
@@ -756,6 +769,22 @@ models:
     meta:
       family: staging
     columns:
+      - name: lap_number
+        description: Lap index the sample belongs to.
+        data_type: integer
+        tests: [not_null]
+      - name: driver_id
+        description: FastF1 three-letter driver code.
+        data_type: varchar
+        tests: [not_null]
+      - name: race_id
+        description: Numeric FastF1 event id cast to string.
+        data_type: varchar
+        tests: [not_null]
+      - name: race_year
+        description: Season year.
+        data_type: integer
+        tests: [not_null]
       - name: session_time_s
         description: >
           Session clock of the sample (s). The one column that makes a cross-driver
@@ -763,6 +792,7 @@ models:
           of THIS column at the same point on track, never a difference of two
           distances.
         data_type: double
+        tests: [not_null]
       - name: relative_distance
         description: >
           Lap fraction in [0, 1). Clamped rather than filtered - FastF1 emits a
@@ -788,6 +818,10 @@ models:
           FastF1's DistanceToDriverAhead (m). The single number every incumbent
           traffic feature in this warehouse descends from. Diagnostic here.
         data_type: double
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id, lap_number, session_time_s]
 
   - name: stg_race_control
     description: >
@@ -803,6 +837,14 @@ models:
     meta:
       family: staging
     columns:
+      - name: message_index
+        description: Position of the message in the race session feed (FastF1 message index); with race_year and race_id it identifies one message.
+        data_type: integer
+        tests: [not_null]
+      - name: race_year
+        description: Season year.
+        data_type: integer
+        tests: [not_null]
       - name: race_id
         description: Numeric FastF1 event id; matches stg_laps.race_id.
         data_type: varchar
@@ -829,6 +871,10 @@ models:
           be a data gap, not a negative, which is why this is a flag and not a filter.
         data_type: boolean
         tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, message_index]
 
   - name: stg_track_status
     description: >
@@ -883,6 +929,10 @@ models:
       - name: status_duration_s
         description: Seconds this status was in effect (until the next change in the race); NULL for the final open-ended event.
         data_type: double
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, session_time_s, status_code]
 
   - name: stg_session_status
     description: >
@@ -893,12 +943,14 @@ models:
       family: staging
     columns:
       - name: session_status_id
-        description: Surrogate key   {race_id}_{session_time_s}.
+        description: Surrogate key   {race_id}_{session_time_s}_{status}.
+          Unique; several statuses can share one timestamp.
         data_type: varchar
-        tests: [not_null]
+        tests: [not_null, unique]
       - name: race_year
         description: Season year.
         data_type: integer
+        tests: [not_null]
       - name: race_id
         description: Numeric FastF1 event id cast to string; matches stg_laps.race_id.
         data_type: varchar
@@ -913,9 +965,14 @@ models:
       - name: status
         description: Raw FastF1 session status ('Started', 'Aborted', 'Finished', ...).
         data_type: varchar
+        tests: [not_null]
       - name: is_red_flag_stop
         description: TRUE when status is 'Aborted' (a red-flag stoppage).
         data_type: boolean
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, session_time_s, status]
 
   - name: stg_session_status_qualifying
     description: >
@@ -927,9 +984,10 @@ models:
       family: staging
     columns:
       - name: session_status_id
-        description: Surrogate key   {race_id}_Q_{session_time_s}.
+        description: Surrogate key   {race_id}_Q_{session_time_s}_{status}.
+          Unique; several statuses can share one timestamp.
         data_type: varchar
-        tests: [not_null]
+        tests: [not_null, unique]
       - name: race_year
         description: Season year.
         data_type: integer
@@ -951,6 +1009,7 @@ models:
       - name: status
         description: Raw FastF1 session status ('Started', 'Aborted', 'Finished', ...).
         data_type: varchar
+        tests: [not_null]
       - name: is_red_flag_stop
         description: TRUE when status is 'Aborted' (a red-flag stoppage).
         data_type: boolean
@@ -964,6 +1023,10 @@ models:
           TRUE when status is 'Finished'. Usually three per session, but a segment red-flagged at
           its end never gets one   the session goes straight to 'Finalised'.
         data_type: boolean
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, session_time_s, status]
 
   - name: stg_results_qualifying
     description: >
@@ -1132,3 +1195,7 @@ models:
         data_type: varchar
         tests:
           - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, circuit_key, compound_label]

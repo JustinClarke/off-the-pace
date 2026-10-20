@@ -11,19 +11,19 @@
 --
 -- Both windows are point-in-time (08f-2). They used to be GROUP BYs and both
 -- reached forward. The season average was over the WHOLE season, so a lap in
--- round 3 was measured against round 22; the circuit pool was over EVERY ingested
--- season at once -- 522 cells, mean 2.79 seasons, and 57.4% of pre-2024 panel rows
--- sat in a cell that also held a 2024 observation, each season carrying mean weight
--- 0.35. That one reaches a live feature: circuit_constructor_interaction_s ->
--- constructor_component_s -> driver_skill_residual_s -> int_lap_anomaly_flags ->
--- cliff_candidate_flag, so the evaluation season sat inside a feature training rows
--- could see.
+-- round 3 was measured against round 22; the circuit pool was over EVERY
+-- ingested season at once -- 522 cells, mean 2.79 seasons, and 57.4% of
+-- pre-2024 panel rows sat in a cell that also held a 2024 observation, each
+-- season carrying mean weight 0.35. That one reaches a live feature:
+-- circuit_constructor_interaction_s -> constructor_component_s ->
+-- driver_skill_residual_s -> int_lap_anomaly_flags -> cliff_candidate_flag, so
+-- the evaluation season sat inside a feature training rows could see.
 --
 -- A constructor's first race of a season has no season-to-date average, so its
--- deviation is NULL and contributes no observation to any circuit pool. A pairing's
--- first visit to a circuit has no prior visits, so n_obs = 0 and the interaction
--- falls back to 0.0 -- the same fallback the model already used for an unobserved
--- cell, and every downstream consumer already COALESCEs to it.
+-- deviation is NULL and contributes no observation to any circuit pool. A
+-- pairing's first visit to a circuit has no prior visits, so n_obs = 0 and the
+-- interaction falls back to 0.0 -- the same fallback the model already used for
+-- an unobserved cell, and every downstream consumer already COALESCEs to it.
 --
 -- Output grain: one row per (race_year, race_id, constructor_id).
 -- PK: surrogate hash of (race_year, race_id, constructor_id).
@@ -98,19 +98,20 @@ constructor_season_avg AS (
 circuit_constructor_obs AS (
     SELECT
         *,
-        -- Deviation of this race from the constructor's season to date. NULL, not
-        -- COALESCE(...,0.0), where there is no season-to-date average: coalescing
-        -- would make the deviation the constructor's raw pace and feed that whole
-        -- level into the circuit pool as if it were a circuit effect.
+        -- Deviation of this race from the constructor's season to date. NULL,
+        -- not COALESCE(...,0.0), where there is no season-to-date average:
+        -- coalescing would make the deviation the constructor's raw pace and
+        -- feed that whole level into the circuit pool as if it were a circuit
+        -- effect.
         constructor_structural_pace_s - season_avg_pace_s
             AS pace_circuit_deviation_s
     FROM constructor_season_avg
 ),
 
 -- Shrinkage: Bayesian posterior of circuit-constructor deviation toward 0,
--- estimated over this pairing's visits STRICTLY BEFORE this race. Expanding, not
--- trailing-N: a constructor visits a circuit about once a season, so a capped
--- window would usually hold one observation or none.
+-- estimated over this pairing's visits STRICTLY BEFORE this race. Expanding,
+-- not trailing-N: a constructor visits a circuit about once a season, so a
+-- capped window would usually hold one observation or none.
 circuit_constructor_agg AS (
     SELECT
         *,
@@ -137,8 +138,8 @@ with_shrinkage AS (
 )
 
 -- Output grain and columns are unchanged. No join back to the race grain is
--- needed any more: the pool is a window over the race-grain panel, so it already
--- carries one row per (race_year, race_id, constructor_id).
+-- needed any more: the pool is a window over the race-grain panel, so it
+-- already carries one row per (race_year, race_id, constructor_id).
 -- interaction_obs_n now means PRIOR visits, not total visits, and is 0 on a
 -- pairing's first visit.
 SELECT

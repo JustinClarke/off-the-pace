@@ -67,8 +67,12 @@ lap_agg AS (
         AVG(lift_coast_excess_share) AS lift_coast_excess_share,
         -- Over laps with a measured air state: an unmeasured lap (NULL,
         -- FD6 / CO-04) is left out, not counted as clean air
-        AVG(CASE WHEN is_dirty_air_lap THEN 1.0 WHEN NOT is_dirty_air_lap THEN 0.0 END)
-            AS dirty_air_lap_share
+        AVG(
+            CASE
+                WHEN is_dirty_air_lap THEN 1.0
+                WHEN NOT is_dirty_air_lap THEN 0.0
+            END
+        ) AS dirty_air_lap_share
     FROM lap_groups
     GROUP BY stint_id, group_phase
 ),
@@ -221,8 +225,8 @@ method AS (
 
 SELECT
     r.stint_id || '|' || r.stint_phase AS stint_phase_id,
-    -- EXCLUDE takes bare column names; the four are re-selected below, each next
-    -- to its confidence columns.
+    -- EXCLUDE takes bare column names; the four are re-selected below, each
+    -- next to its confidence columns.
     -- noqa: disable=RF02
     r.* EXCLUDE (
         pure_skill_gain_s, pure_skill_se_s,

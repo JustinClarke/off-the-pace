@@ -30,7 +30,9 @@ WITH laps AS (
     SELECT * FROM {{ ref('fct_driver_isolation_lap') }}
 ),
 
-stint AS (
+-- Unreferenced below; kept so the DAG keeps its edge to
+-- int_driver_isolation_stint_tyre.
+stint AS (  -- noqa: ST03
     SELECT * FROM {{ ref('int_driver_isolation_stint_tyre') }}
 ),
 
@@ -79,8 +81,12 @@ lap_agg AS (
         AVG(lift_coast_excess_share) AS lift_coast_excess_share,
         -- Over laps with a measured air state: an unmeasured lap (NULL,
         -- FD6 / CO-04) is left out, not counted as clean air
-        AVG(CASE WHEN is_dirty_air_lap THEN 1.0 WHEN NOT is_dirty_air_lap THEN 0.0 END)
-            AS dirty_air_lap_share
+        AVG(
+            CASE
+                WHEN is_dirty_air_lap THEN 1.0
+                WHEN NOT is_dirty_air_lap THEN 0.0
+            END
+        ) AS dirty_air_lap_share
     FROM laps
     -- Constant within a driver-race (one car, one race, one season), so grouped
     -- on, not picked: a second value would duplicate the row and fail the PK
@@ -223,8 +229,8 @@ method AS (
 )
 
 SELECT
-    -- EXCLUDE takes bare column names; the four are re-selected below, each next
-    -- to its confidence columns.
+    -- EXCLUDE takes bare column names; the four are re-selected below, each
+    -- next to its confidence columns.
     -- noqa: disable=RF02
     r.* EXCLUDE (
         pure_skill_gain_s, pure_skill_se_s,

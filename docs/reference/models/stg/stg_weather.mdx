@@ -30,13 +30,13 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`stg_laps`](./stg_laps) |
 
-**5 tests** [guard](/transform/ci/overview) this model  -  1 generic, 4 singular.
+**7 tests** [guard](/transform/ci/overview) this model  -  3 generic, 4 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
-| `lap_id` | `varchar` | Yes |   | Foreign key to stg_laps. |
+| `lap_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Foreign key to stg_laps. |
 | `race_year` | `integer` | Yes |   | Season year. |
 | `race_id` | `varchar` | Yes |   | Numeric FastF1 event id cast to string. |
 | `driver_id` | `varchar` | Yes |   | FastF1 three-letter driver code. |

@@ -19,13 +19,23 @@ sources:
           thing keeping another session (FP1-3, sprint) out of the race lap set: any file written
           at race depth is read as race laps. assert_raw_laps_race_depth_is_race_only fails if a
           race-depth file declares a session_type other than 'R'.
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns: [season, race_id, Driver, LapNumber]
         columns:
           - name: Driver
             description: Three-letter driver code (e.g. VER, HAM)
+            tests:
+              - not_null
           - name: DriverNumber
             description: Official race number
+            tests:
+              - not_null
           - name: LapNumber
             description: Lap number within the race session
+            tests:
+              - not_null
           - name: Stint
             description: Stint number assigned by FastF1 (1-indexed)
           - name: LapTime
@@ -52,10 +62,17 @@ sources:
             description: Speed at speed trap on main straight (kph)
           - name: Compound
             description: Tyre compound label (SOFT/MEDIUM/HARD/INTERMEDIATE/WET)
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT', 'nan', 'None', 'UNKNOWN']
           - name: TyreLife
             description: Laps completed on the current tyre set
           - name: FreshTyre
             description: Whether the set was new when fitted
+            tests:
+              - not_null
           - name: PitInTime
             description: Session time at pit lane entry (nanoseconds); null if no pit-in this lap
           - name: PitOutTime
@@ -63,18 +80,36 @@ sources:
           - name: TrackStatus
             description: >
               Encoded track condition. 1=clear, 2=yellow, 4=SC, 5=VSC, 6=SC ending, 7=red flag.
+            tests:
+              - not_null
           - name: IsPersonalBest
             description: Whether this lap is the driver's personal best for the session
           - name: Deleted
             description: Whether the lap time was deleted (track limits etc.)
+            tests:
+              - not_null
           - name: IsAccurate
             description: FastF1 accuracy flag   false for interpolated/estimated times
+            tests:
+              - not_null
           - name: Position
             description: Race position at end of lap
           - name: race_id
             description: Hive partition value   numeric FastF1 event id (e.g. 2018_1), not the slug
+            tests:
+              - not_null
           - name: season
             description: Hive partition value   calendar year
+            tests:
+              - not_null
+          - name: Team
+            description: Raw source column Team (read by staging)
+            tests:
+              - not_null
+          - name: LapStartTime
+            description: Raw source column LapStartTime (read by staging)
+            tests:
+              - not_null
 
       - name: raw_laps_qualifying
         meta:
@@ -82,15 +117,42 @@ sources:
         description: >
           Qualifying session lap data. Sourced separately due to different Hive partition structure
           (includes session=Q subdirectory). Unioned with raw_laps in stg_laps.
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns: [season, race_id, Driver, LapNumber]
         columns:
           - name: session_type
             description: Always 'Q' for qualifying sessions
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['Q']
           - name: Driver
             description: Three-letter driver code (e.g. VER, HAM)
+            tests:
+              - not_null
           - name: DriverNumber
             description: Official race number
+            tests:
+              - not_null
           - name: LapNumber
             description: Lap number within the qualifying session
+            tests:
+              - not_null
+          - name: season
+            description: Raw source column season (read by staging)
+            tests:
+              - not_null
+          - name: race_id
+            description: Raw source column race_id (read by staging)
+            tests:
+              - not_null
+          - name: Team
+            description: Raw source column Team (read by staging)
+            tests:
+              - not_null
 
       - name: raw_weather
         meta:
@@ -98,25 +160,47 @@ sources:
         description: >
           FastF1 session.weather_data sampled at ~1Hz during the race session.
           One row per weather sample; joined to laps on nearest session_time_s.
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns: [season, race_id, session_time_s]
         columns:
           - name: race_id
             description: Hive partition   race identifier (YYYY_RoundNumber)
+            tests:
+              - not_null
           - name: season
             description: Hive partition   calendar year
+            tests:
+              - not_null
           - name: session_time_s
             description: Session elapsed time of the weather sample (seconds)
+            tests:
+              - not_null
           - name: ambient_temp_c
             description: Ambient air temperature (°C)
+            tests:
+              - not_null
           - name: track_temp_c
             description: Track surface temperature (°C)
+            tests:
+              - not_null
           - name: rainfall_flag
             description: Boolean   true if rainfall detected
+            tests:
+              - not_null
           - name: humidity_pct
             description: Relative humidity (%)
+            tests:
+              - not_null
           - name: wind_speed_ms
             description: Wind speed (m/s)
+            tests:
+              - not_null
           - name: wind_direction
             description: Wind direction (degrees, 0–360)
+            tests:
+              - not_null
 
       - name: raw_results
         meta:
@@ -126,29 +210,47 @@ sources:
           per race. Carries finishing position, grid position, classified position,
           status (Finished / +N Lap(s) / DNF reason), points, and total race
           time / gap (nanoseconds). Partitioned by season and race (slug).
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns: [season, race_id, Abbreviation]
         columns:
           - name: race_id
             description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps.race_id (the downstream join key)
+            tests:
+              - not_null
           - name: race
             description: Hive partition race name slug (e.g. azerbaijan_grand_prix); exposed as race_slug
           - name: season
             description: Calendar year
+            tests:
+              - not_null
           - name: Abbreviation
             description: Three-letter driver code (e.g. VER, HAM)
+            tests:
+              - not_null
           - name: TeamName
             description: Constructor display name
+            tests:
+              - not_null
           - name: Position
             description: Finishing position (double; NULL if not classified)
           - name: ClassifiedPosition
             description: Official classified position string ('1'..'20', 'R'=retired, 'D'=disqualified, etc.)
+            tests:
+              - not_null
           - name: GridPosition
             description: Starting grid position (double)
           - name: Time
             description: Total race time for winner / gap to winner for others (nanoseconds)
           - name: Status
             description: Finish status 'Finished', '+1 Lap', or DNF reason (e.g. 'Engine', 'Collision')
+            tests:
+              - not_null
           - name: Points
             description: Championship points scored
+            tests:
+              - not_null
 
       - name: raw_track_status
         meta:
@@ -158,19 +260,36 @@ sources:
           track-status change event, ordered by session_time_s. Status codes
           (ground-truthed against the Message column): 1=AllClear, 2=Yellow,
           4=SCDeployed, 5=Red, 6=VSCDeployed, 7=VSCEnding.
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns: [season, race_id, index]
         columns:
           - name: race_id
             description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps.race_id (the downstream join key)
+            tests:
+              - not_null
           - name: race
             description: Hive partition race name slug; exposed as race_slug
           - name: season
             description: Calendar year
+            tests:
+              - not_null
           - name: Status
             description: Track status code (1/2/4/5/6/7)
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['1', '2', '4', '5', '6', '7']
           - name: Message
             description: Human-readable label (AllClear / Yellow / SCDeployed / VSCDeployed / Red)
+            tests:
+              - not_null
           - name: session_time_s
             description: Session elapsed time of the status change (seconds)
+            tests:
+              - not_null
 
       - name: raw_race_control
         meta:
@@ -182,19 +301,34 @@ sources:
           staged by nothing until the proximity features, which need the blue flags as a
           traffic label that is NOT derived from the telemetry the proximity
           features are built from.
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns: [season, race_id, index]
         columns:
           - name: race_id
             description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps.race_id (the downstream join key)
+            tests:
+              - not_null
           - name: race
             description: Hive partition race name slug; exposed as race_slug
           - name: season
             description: Calendar year
+            tests:
+              - not_null
           - name: Flag
             description: Flag colour where the message is a flag (BLUE / YELLOW / DOUBLE YELLOW / GREEN / CLEAR / RED / CHEQUERED / BLACK AND WHITE); NULL for non-flag messages
           - name: category
             description: Message category (Flag / Drs / SafetyCar / CarEvent / Other)
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['Flag', 'Drs', 'SafetyCar', 'CarEvent', 'Other']
           - name: message
             description: Raw FIA message text
+            tests:
+              - not_null
           - name: Scope
             description: Whom the message applies to (Track / Driver / Sector)
           - name: Sector
@@ -205,6 +339,8 @@ sources:
             description: Lap number the message was issued on
           - name: session_time_s
             description: Session clock of the message. NOT on the same origin as the telemetry SessionTime column - do not join the two on it; join on Lap
+            tests:
+              - not_null
 
       - name: raw_session_status
         meta:
@@ -213,17 +349,32 @@ sources:
           FastF1 session.session_status session lifecycle events. One row per
           change (Inactive / Started / Aborted / Finished / Finalised). Aborted
           marks red-flag stoppages.
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns: [season, race_id, session_time_s, Status]
         columns:
           - name: race_id
             description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps.race_id (the downstream join key)
+            tests:
+              - not_null
           - name: race
             description: Hive partition race name slug; exposed as race_slug
           - name: season
             description: Calendar year
+            tests:
+              - not_null
           - name: Status
             description: Session status (Inactive / Started / Aborted / Finished / Finalised)
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['Inactive', 'Started', 'Aborted', 'Finished', 'Finalised', 'Ends']
           - name: session_time_s
             description: Session elapsed time of the status change (seconds)
+            tests:
+              - not_null
 
       - name: raw_results_qualifying
         meta:
@@ -235,17 +386,32 @@ sources:
           qualifying session's own results, null on the race session's   plus
           the qualifying classification. A null segment time means the driver
           was eliminated before that segment or set no time in it.
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns: [season, race_id, Abbreviation]
         columns:
           - name: race_id
             description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps_qualifying.race_id
+            tests:
+              - not_null
           - name: race
             description: Hive partition race name slug; exposed as race_slug
           - name: season
             description: Calendar year
+            tests:
+              - not_null
           - name: session_type
             description: Always 'Q' for qualifying sessions
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['Q']
           - name: Abbreviation
             description: Three-letter driver code (e.g. VER, HAM)
+            tests:
+              - not_null
           - name: Position
             description: Official qualifying classification (1..20)
           - name: Q1
@@ -254,6 +420,10 @@ sources:
             description: Best Q2 lap in nanoseconds; null if eliminated in Q1
           - name: Q3
             description: Best Q3 lap in nanoseconds; null if eliminated in Q1 or Q2
+          - name: Status
+            description: Raw source column Status (read by staging)
+            tests:
+              - not_null
 
       - name: raw_session_status_qualifying
         meta:
@@ -266,19 +436,39 @@ sources:
           Finalised / Ends). The three 'Finished' events are the ends of Q1, Q2
           and Q3 respectively   the only place the segment structure is
           recorded, since the qualifying lap table has no segment column.
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns: [season, race_id, session_time_s, Status]
         columns:
           - name: race_id
             description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps_qualifying.race_id
+            tests:
+              - not_null
           - name: race
             description: Hive partition race name slug; exposed as race_slug
           - name: season
             description: Calendar year
+            tests:
+              - not_null
           - name: session_type
             description: Always 'Q' for qualifying sessions
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['Q']
           - name: Status
             description: Session status (Inactive / Started / Aborted / Finished / Finalised / Ends)
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['Inactive', 'Started', 'Aborted', 'Finished', 'Finalised', 'Ends']
           - name: session_time_s
             description: Session elapsed time of the status change (seconds)
+            tests:
+              - not_null
 
       - name: raw_circuit_info
         meta:
@@ -290,25 +480,45 @@ sources:
           FastF1 circuit_info.corners corner geometry for the circuit map. One
           row per corner, ordered by Distance along the racing line. Partitioned
           by season and race (slug); geometry can vary slightly year to year.
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns: [season, race_id, Number, Letter]
         columns:
           - name: race_id
             description: Numeric FastF1 event id (e.g. 2018_4); matches stg_laps.race_id (the downstream join key)
+            tests:
+              - not_null
           - name: race
             description: Hive partition race name slug; exposed as race_slug
           - name: season
             description: Calendar year
+            tests:
+              - not_null
           - name: Number
             description: Corner number (FIA designation)
+            tests:
+              - not_null
           - name: Letter
             description: Corner letter suffix for multi-apex corners (e.g. 'A', 'B'); blank otherwise
+            tests:
+              - not_null
           - name: X
             description: Corner apex X coordinate (FastF1 track frame, 1/10 m)
+            tests:
+              - not_null
           - name: Y
             description: Corner apex Y coordinate (FastF1 track frame, 1/10 m)
+            tests:
+              - not_null
           - name: Angle
             description: Corner orientation angle (degrees)
+            tests:
+              - not_null
           - name: Distance
             description: Distance of the corner along the racing line from start/finish (m)
+            tests:
+              - not_null
 
       - name: raw_telemetry
         meta:
@@ -319,10 +529,16 @@ sources:
         columns:
           - name: driver_id
             description: Three-letter driver code (e.g. VER, HAM)
+            tests:
+              - not_null
           - name: lap_number
             description: Lap number within the race session
+            tests:
+              - not_null
           - name: distance_m
             description: Distance from start line in meters
+            tests:
+              - not_null
           - name: speed_kph
             description: Speed in km/h
           - name: throttle_pct
@@ -337,5 +553,9 @@ sources:
             description: DRS state code (0/1 off, 8 eligible, 10/12/14 active)
           - name: race_id
             description: Hive partition   race identifier (YYYY_RoundNumber)
+            tests:
+              - not_null
           - name: season
             description: Hive partition   calendar year
+            tests:
+              - not_null

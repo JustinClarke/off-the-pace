@@ -58,7 +58,14 @@ tyre(k)  = working_deg(k) × track_scale + cliff_term(k)            [monotone by
         predicted next-lap pace loss swept across every lap (ONNX models unchanged).</li>
       <li><strong>Cliff probability</strong> is the multiclass cliff classifier&apos;s softprob over
         four classes (cliff in 0-2 / 3-5 / 6+ laps, or none this stint) at the current lap.</li>
-      <li><strong>Remaining life</strong> is the stint-life regressor, clipped at zero.</li>
+      <li><strong>Remaining life</strong> is the stint-life regressor, clipped at zero. On a
+        final stint (one configured to run to the flag) it is also capped at the laps left to the flag.</li>
+      <li><strong>Chance to reach the flag</strong> (<em>experimental</em>) is shown on final
+        stints only. It is the probability, under the stint-life log-normal, that the tyre outlasts
+        the laps to the flag, passed through a Platt recalibration (rule <code>last3</code>, chosen
+        on 2024 only, fitted on 2018-2024 out-of-fold). On 2025 it failed the acceptance bar: 5 of 10
+        bins within 5 pp, worst gap 19.9 pp, Brier 0.0803 against 0.2454 for the base rate. It is
+        provisional until 2026 races are scored.</li>
     </ul>
     <p className="mt-3">
       Sliders are bounded by the p5-p95 range of the real training data

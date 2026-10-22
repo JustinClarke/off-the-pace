@@ -32,7 +32,7 @@ flowchart LR
 | Upstream | [`int_driver_isolation_lap_values`](../int/int_driver_isolation_lap_values) |
 | Model-level tests | `unique_combination_of_columns` |
 
-**23 tests** [guard](/transform/ci/overview) this model  -  21 generic, 2 singular.
+**27 tests** [guard](/transform/ci/overview) this model  -  25 generic, 2 singular.
 
 ## Columns
 
@@ -41,12 +41,12 @@ flowchart LR
 | `lap_id` |   | Yes | [`not_null`](/transform/ci/structural) | Lap identifier (int_lap_residual_decomposed.lap_id). |
 | `peer_lap_id` |   | Yes | [`not_null`](/transform/ci/structural) | The peer's lap on the same race, lap number and compound (its lap_id). |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season. |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 event id, e.g. 2021_8. |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 event id, e.g. 2021_8. |
 | `lap_number` |   | Yes | [`not_null`](/transform/ci/structural) | Race lap number. Tiers 1 and 3 match cars on it, which is why 2020_1 is excluded (W18). |
-| `compound` |   | Yes | [`not_null`](/transform/ci/structural) | Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω). |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | Driver (three-letter code). In the pair mart, the focal driver whose gains the row reports. |
+| `compound` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω). |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Driver (three-letter code). In the pair mart, the focal driver whose gains the row reports. |
 | `peer_driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | The peer driver. |
-| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor (stg_laps.constructor_id). |
+| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Constructor (stg_laps.constructor_id). |
 | `peer_constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | The peer's constructor. |
 | `is_teammate` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when the peer drove the same constructor in the race; car_advantage_gain_s is then exactly 0 (T42). |
 | `stint_id` |   | Yes |   | Stint identifier (int_stint_geometry.stint_id). |

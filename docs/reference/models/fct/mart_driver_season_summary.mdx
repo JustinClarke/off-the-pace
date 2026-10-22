@@ -29,13 +29,13 @@ flowchart LR
 | Upstream | [`fct_lap_residuals`](./fct_lap_residuals), [`int_era_normalized_driver_rating`](../int/int_era_normalized_driver_rating) |
 | Model-level tests | `unique_combination_of_columns` |
 
-**13 tests** [guard](/transform/ci/overview) this model  -  12 generic, 1 singular.
+**15 tests** [guard](/transform/ci/overview) this model  -  14 generic, 1 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code (e.g. VER, HAM). |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code (e.g. VER, HAM). |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year. |
 | `rating_s` |   | Yes | [`not_null`](/transform/ci/structural) | Season rating (era_adjusted_rating), seconds. Negative = faster than teammate(s). |
 | `teammate_gap_rank` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | Rank of rating_s (the gap to one's own teammate) within the season; 1 = furthest ahead of his teammate. Not a ranking of driver speed against the field: a driver in a weak car can rank high and one in a strong car can rank low. Ties share a rank. |
@@ -46,7 +46,7 @@ flowchart LR
 | `n_races` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | Races behind the season rating. |
 | `teammate_id` |   | Yes |   | Primary-constructor teammate with the most clean laps. Null when there is none. |
 | `teammate_gap_s` |   | Yes |   | Equal to rating_s, which already is the season-average gap to his teammate(s), pooled over every teammate he raced (teammate_id is only the one with the most clean laps). Seconds, negative = faster than the teammate. NULL when teammate_id is NULL. |
-| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | Primary constructor for the season (most clean laps). |
+| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Primary constructor for the season (most clean laps). |
 | `constructor_rank` |   | Yes |   | Season rank of the constructor's mean constructor_component_s; 1 = fastest car. |
 | `mean_fuel_component_s` |   | Yes |   | Mean fuel component over ml_eligible laps, seconds. |
 | `mean_compound_component_s` |   | Yes |   | Mean compound component over ml_eligible laps, seconds. |

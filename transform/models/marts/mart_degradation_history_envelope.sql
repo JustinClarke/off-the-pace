@@ -41,7 +41,7 @@
 -- no history.
 {{ config(materialized='table', tags=['marts']) }}
 
-{% set era_boundary = 2022 %}
+{% set era_boundary = var('era_boundary') %}
 
 WITH clean AS (
     SELECT

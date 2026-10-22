@@ -28,15 +28,15 @@ flowchart LR
 | Contract enforced | No |
 | Model-level tests | `unique_combination_of_columns` |
 
-**7 tests** [guard](/transform/ci/overview) this model  -  6 generic, 1 singular.
+**9 tests** [guard](/transform/ci/overview) this model  -  8 generic, 1 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `lap_number` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Lap index the sample belongs to. |
-| `driver_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code. |
-| `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Numeric FastF1 event id cast to string. |
+| `driver_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code. |
+| `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | Numeric FastF1 event id cast to string. |
 | `race_year` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Season year. |
 | `session_time_s` | `double` | Yes | [`not_null`](/transform/ci/structural) | Session clock of the sample (s). The one column that makes a cross-driver comparison possible: a gap between two cars is a difference of two readings of THIS column at the same point on track, never a difference of two distances. |
 | `relative_distance` | `double` | Yes |   | Lap fraction in [0, 1). Clamped rather than filtered - FastF1 emits a handful of samples at -3e-6 and 1.0000004 from float error at the lap boundary, and dropping them would punch a hole in exactly the bin (the start/finish line) where the gap matters most. |

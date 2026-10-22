@@ -15,7 +15,6 @@ Known bronze defect, not corrected here (F18, one race): 2020_1 (Austrian GP) is
 
 ```mermaid
 flowchart LR
-  stg_laps --> dim_constructors
   stg_laps --> dim_corners
   stg_laps --> dim_drivers
   stg_laps --> fct_ghost_car_pace
@@ -51,7 +50,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**19 tests** [guard](/transform/ci/overview) this model  -  10 generic, 9 singular.
+**26 tests** [guard](/transform/ci/overview) this model  -  15 generic, 11 singular.
 
 ## Columns
 
@@ -59,11 +58,11 @@ flowchart LR
 |---|---|---|---|---|
 | `lap_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate key   &#123;season&#125;_&#123;race_id&#125;_&#123;driver&#125;_&#123;lap_number&#125;. |
 | `race_year` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Season year. |
-| `circuit_key` | `varchar` | Yes |   | Event/grand-prix key (equals race_id); used to group laps by circuit. |
-| `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Numeric FastF1 event id cast to string (e.g. '4'); the join key used across staging, not the human-readable slug. |
-| `driver_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code (e.g. VER, HAM). |
+| `circuit_key` | `varchar` | Yes | `relationships` | Event/grand-prix key (equals race_id); used to group laps by circuit. |
+| `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | Numeric FastF1 event id cast to string (e.g. '4'); the join key used across staging, not the human-readable slug. |
+| `driver_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code (e.g. VER, HAM). |
 | `driver_number` | `varchar` | Yes |   | Car number the driver carried in this session. |
-| `constructor_id` | `varchar` | Yes |   | Team name as reported by FastF1 (e.g. 'Mercedes'). |
+| `constructor_id` | `varchar` | Yes | `relationships` | Team name as reported by FastF1 (e.g. 'Mercedes'). |
 | `lap_number` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Lap index within the race (1-based). |
 | `stint_number` | `integer` | Yes |   | Stint index within the race (1-based); increments after each pit stop. |
 | `tyre_life` | `integer` | Yes |   | Laps already completed on the current tyre set at the start of this lap. |
@@ -87,7 +86,7 @@ flowchart LR
 | `is_deleted` | `boolean` | Yes |   | TRUE when stewards deleted the lap time (e.g. track-limits breach). |
 | `is_accurate` | `boolean` | Yes |   | FastF1 quality flag   timing considered reliable. |
 | `is_fastf1_generated` | `boolean` | Yes |   | TRUE when the row was synthesised by FastF1 rather than read from raw timing. |
-| `compound` | `varchar` | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Normalised tyre compound label (UPPER). None/nan/UNKNOWN mapped to NULL. Pre-2019 compounds (SUPERSOFT/ULTRASOFT/HYPERSOFT) preserved as-is. |
+| `compound` | `varchar` | Yes | [`accepted_values`](/transform/ci/range-and-domain), `relationships` | Normalised tyre compound label (UPPER). None/nan/UNKNOWN mapped to NULL. Pre-2019 compounds (SUPERSOFT/ULTRASOFT/HYPERSOFT) preserved as-is. |
 | `is_safety_car_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 4 (SCDeployed). Full safety car only   VSC is is_vsc_lap and a red flag is is_red_flag_lap. Decode matches stg_track_status, ground-truthed against the bronze Message column. |
 | `is_vsc_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 6 (VSCDeployed) or 7 (VSCEnding). Decode matches stg_track_status. |
 | `is_red_flag_lap` | `boolean` | Yes | [`not_null`](/transform/ci/structural) | TRUE when TrackStatus contains a 5 (Red). A red flag is a full session stoppage   physically the opposite of a VSC lap (tyres go to ambient, and may legally be changed), so it is flagged separately rather than folded into either neutralisation flag. The three flags together are the neutralised set the layer excludes; consumers should test all three, not a pair. |

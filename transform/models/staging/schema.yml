@@ -33,20 +33,40 @@ models:
       - name: circuit_key
         description: Event/grand-prix key (equals race_id); used to group laps by circuit.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_id
         description: Numeric FastF1 event id cast to string (e.g. '4'); the join key used across staging, not the human-readable slug.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code (e.g. VER, HAM).
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: driver_number
         description: Car number the driver carried in this session.
         data_type: varchar
       - name: constructor_id
         description: Team name as reported by FastF1 (e.g. 'Mercedes').
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: lap_number
         description: Lap index within the race (1-based).
         data_type: integer
@@ -129,6 +149,10 @@ models:
                          'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
               config:
                 where: "compound IS NOT NULL"
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: is_safety_car_lap
         description: >
           TRUE when TrackStatus contains a 4 (SCDeployed). Full safety car only   VSC is is_vsc_lap and a
@@ -176,23 +200,43 @@ models:
       - name: circuit_key
         description: Event/grand-prix key (equals race_id); groups laps by circuit.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_id
         description: Numeric FastF1 event id cast to string; matches stg_laps.race_id.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: session_type
         description: Constant 'Q' marking the qualifying session.
         data_type: varchar
       - name: driver_id
         description: FastF1 three-letter driver code (e.g. VER, HAM).
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: driver_number
         description: Car number the driver carried in this session.
         data_type: varchar
       - name: constructor_id
         description: Team name as reported by FastF1.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: lap_number
         description: Lap index within the qualifying session (1-based).
         data_type: integer
@@ -266,6 +310,11 @@ models:
       - name: compound
         description: Normalised tyre compound (UPPER); None/nan/UNKNOWN mapped to NULL.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: is_safety_car_lap
         description: TRUE when TrackStatus contains a 4 (SCDeployed). See stg_laps for the full decode.
         data_type: boolean
@@ -307,11 +356,21 @@ models:
       - name: race_id
         description: Numeric FastF1 event id cast to string.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: lap_number
         description: Lap index the sample belongs to.
         data_type: integer
@@ -378,9 +437,19 @@ models:
       - name: race_id
         description: Numeric FastF1 event id cast to string.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: lap_number
         description: Lap index within the race.
         data_type: integer
@@ -423,9 +492,19 @@ models:
       - name: race_id
         description: Numeric FastF1 event id cast to string.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: pit_in_lap_number
         description: Lap on which the car entered the pit lane.
         data_type: integer
@@ -523,6 +602,11 @@ models:
       - name: compound
         description: Served compound (bronze); NULL when quarantined.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: stint_source
         description: Where stint_number came from.
         data_type: varchar
@@ -583,9 +667,19 @@ models:
       - name: race_id
         description: Numeric FastF1 event id cast to string.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: lap_number
         description: Lap index within the race.
         data_type: integer
@@ -659,9 +753,24 @@ models:
       - name: race_id
         description: Race identifier from the seed (numeric).
         data_type: integer
+        tests:
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
-        description: Driver the event affects (FastF1 three-letter code).
+        description: >
+          Driver the event affects (FastF1 three-letter code), or the sentinel 'ALL' for a
+          race-wide event that affects every driver (seed raw_dim_events rows E005, E006).
+          'ALL' is not a dim_drivers key, so the relationships test excludes it.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
+              config:
+                where: "driver_id <> 'ALL'"
       - name: event_type
         description: Event category label (e.g. damage, retirement, penalty).
         data_type: varchar
@@ -697,20 +806,35 @@ models:
       - name: race_id
         description: Numeric FastF1 event id cast to string (e.g. '4'); matches stg_laps.race_id.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_slug
         description: Human-readable event name (e.g. azerbaijan_grand_prix).
         data_type: varchar
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: driver_number
         description: Car number carried by the driver.
         data_type: varchar
       - name: constructor_id
         description: Team name as reported by FastF1.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: finish_position
         description: Numeric finishing position from FastF1.
         data_type: integer
@@ -776,11 +900,21 @@ models:
       - name: driver_id
         description: FastF1 three-letter driver code.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: race_id
         description: Numeric FastF1 event id cast to string.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_year
         description: Season year.
         data_type: integer
@@ -848,7 +982,12 @@ models:
       - name: race_id
         description: Numeric FastF1 event id; matches stg_laps.race_id.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: message_time_s
         description: >
           Session clock of the message. NOT on the same origin as the telemetry
@@ -863,6 +1002,11 @@ models:
           Three-letter code resolved from RacingNumber via stg_results. NULL where the
           message is not driver-scoped, or where the number did not resolve.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: is_blue_flag_event
         description: >
           TRUE when this row is a blue flag whose driver identity and lap both
@@ -896,7 +1040,12 @@ models:
       - name: race_id
         description: Numeric FastF1 event id cast to string; matches stg_laps.race_id.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_slug
         description: Human-readable event name.
         data_type: varchar
@@ -954,7 +1103,12 @@ models:
       - name: race_id
         description: Numeric FastF1 event id cast to string; matches stg_laps.race_id.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_slug
         description: Human-readable event name.
         data_type: varchar
@@ -995,7 +1149,12 @@ models:
       - name: race_id
         description: Numeric FastF1 event id cast to string; matches stg_laps_qualifying.race_id.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_slug
         description: Human-readable event name.
         data_type: varchar
@@ -1049,7 +1208,12 @@ models:
       - name: race_id
         description: Numeric FastF1 event id cast to string; matches stg_laps_qualifying.race_id.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_slug
         description: Human-readable event name.
         data_type: varchar
@@ -1059,13 +1223,23 @@ models:
       - name: driver_id
         description: FastF1 three-letter driver code (e.g. VER, HAM).
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: driver_number
         description: Car number the driver carried in this session.
         data_type: varchar
       - name: constructor_id
         description: Team name as reported by FastF1.
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: quali_position
         description: >
           Official qualifying classification (1..20). Not the race grid   penalties are applied
@@ -1106,7 +1280,12 @@ models:
       - name: race_id
         description: Numeric FastF1 event id cast to string; matches stg_laps.race_id.
         data_type: varchar
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_slug
         description: Human-readable event name.
         data_type: varchar
@@ -1167,6 +1346,10 @@ models:
         data_type: varchar
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_circuits')
+                field: circuit_key
       - name: compound_code
         description: Pirelli compound code. C1 hardest, C5 softest.
         data_type: varchar
@@ -1175,6 +1358,10 @@ models:
           - accepted_values:
               arguments:
                 values: ['C1', 'C2', 'C3', 'C4', 'C5']
+          - relationships:
+              arguments:
+                to: ref('compound_hardness_scale')
+                field: compound_code
       - name: compound_label
         description: The relative label this code was badged as for that weekend.
         data_type: varchar

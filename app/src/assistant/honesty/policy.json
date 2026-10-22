@@ -1651,7 +1651,7 @@
           "experimental chance to reach the flag (flag_chance_lookup.json)"
         ]
       },
-      "condition": "The answer quotes or a card carries the experimental chance to reach the flag. This rule only fixes the wording if it is quoted; whether it may be quoted at all is CHANCE_LINE_QUOTABLE (pending, W13).",
+      "condition": "The answer quotes or a card carries the experimental chance to reach the flag. This rule only fixes the wording if it is quoted; it may not be quoted at all, per CHANCE_LINE_QUOTABLE (AD5, EXCLUDE).",
       "triggers": [
         {
           "card": [
@@ -1742,16 +1742,16 @@
                 "source_page": "/app/degradation-simulator"
               }
             ],
-            "answer": "The simulator's experimental chance to reach the flag is 62% [card c15]. It is provisional: it failed its 2025 acceptance bar, with only 5 of 10 calibration bins within 5 points."
+            "answer": "The simulator's flag line is experimental and provisional: it failed its 2025 acceptance bar, with only 5 of 10 calibration bins within 5 points. I do not quote the number here; open the simulator."
           }
         }
       ]
     },
     {
       "code": "CHANCE_LINE_QUOTABLE",
-      "kind": "pending_ruling",
-      "status": "pending_ruling",
-      "ruling": "W13 (under CD11)",
+      "kind": "low_confidence",
+      "status": "active",
+      "ruling": "AD5 (RESOLVED 2026-10-22: EXCLUDE; under CD11, W13 closed)",
       "applies_to": {
         "pages": [
           "/app/degradation-simulator"
@@ -1760,12 +1760,7 @@
           "experimental chance to reach the flag"
         ]
       },
-      "condition": "May the assistant quote the experimental chance number at all? CD11 keeps the line on the simulator but no doc says whether the assistant may quote it. Not decided here.",
-      "options": [
-        "A: exclude it. No card is published for it; the assistant links the simulator and quotes nothing.",
-        "B: quote it only with its label. A card is published and CHANCE_LINE_EXPERIMENTAL governs the wording.",
-        "C: quote only the laps-to-flag cap, never the chance number (matches CD5 option C, which is still open)."
-      ],
+      "condition": "The assistant does not quote the experimental chance to reach the flag. No card is published for it; the line stays on the simulator only (CD11). Fires when a card carries the chance or the answer names it; the answer must not state it and should point to the simulator.",
       "triggers": [
         {
           "card": [
@@ -1790,26 +1785,18 @@
         }
       ],
       "required_wording": {
-        "description": "Pending ruling.",
+        "description": "None. The rule forbids quoting; it does not require wording.",
         "all_of": []
       },
       "forbidden_claim": {
-        "description": "Pending ruling.",
-        "patterns": []
+        "description": "The answer quotes or names the experimental chance to reach the flag (AD5: EXCLUDE). Link the degradation simulator instead.",
+        "patterns": [
+          "\\bchance (to|of) (reach|reaching|make|making|last|lasting)( to)? the (chequered |checkered )?flag\\b",
+          "\\bflag[_ ]chance\\b",
+          "\\bchance (to|of) (reach|reaching|make|making) the (chequered |checkered )?flag\\b"
+        ]
       },
       "sources": [
-        {
-          "file": "_roadmap/_ai-integration/status/build-log.json",
-          "line": null,
-          "quote": "May the assistant quote the experimental chance number?",
-          "pending_commit": true
-        },
-        {
-          "file": "_roadmap/_ai-integration/status/build-log.json",
-          "line": null,
-          "quote": "Keep the current experimental line as it is: not parked, no 2026 test scheduled.",
-          "pending_commit": true
-        },
         {
           "file": "docs/app/degradation-simulator.mdx",
           "line": 65,
@@ -1818,8 +1805,8 @@
       ],
       "examples": [
         {
-          "name": "an answer quoting the chance is held as pending",
-          "expect": "pending",
+          "name": "an answer quoting the chance fails",
+          "expect": "fail",
           "input": {
             "cards": [
               {
@@ -1829,7 +1816,22 @@
                 "source_page": "/app/degradation-simulator"
               }
             ],
-            "answer": "The simulator's experimental chance to reach the flag is 62% [card c15]. It is provisional: it failed its 2025 acceptance bar."
+            "answer": "The simulator's experimental chance to reach the flag is 62% [card c15]."
+          }
+        },
+        {
+          "name": "an answer that declines the chance and links the simulator",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "c15",
+                "metric": "flag_chance",
+                "value": 0.62,
+                "source_page": "/app/degradation-simulator"
+              }
+            ],
+            "answer": "I do not quote that figure. It is experimental and failed its 2025 acceptance bar, so open the degradation simulator to see it with its own label."
           }
         },
         {

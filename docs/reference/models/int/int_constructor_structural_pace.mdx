@@ -38,7 +38,7 @@ flowchart LR
 | Upstream | [`int_lap_fuel_state`](./int_lap_fuel_state), [`int_field_pace_curve`](./int_field_pace_curve), [`int_stint_geometry`](./int_stint_geometry), [`stg_laps`](../stg/stg_laps), [`int_event_corrections`](./int_event_corrections), [`int_track_evolution`](./int_track_evolution) |
 | Model-level tests | `expect_column_pair_values_A_to_be_greater_than_B` |
 
-**16 tests** [guard](/transform/ci/overview) this model  -  15 generic, 1 singular.
+**18 tests** [guard](/transform/ci/overview) this model  -  17 generic, 1 singular.
 
 ## Columns
 
@@ -46,8 +46,8 @@ flowchart LR
 |---|---|---|---|---|
 | `constructor_race_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = hash(race_year, race_id, constructor_id) |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | Race identifier |
-| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor identifier (FK to dim_constructors) |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Race identifier |
+| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Constructor identifier (FK to dim_constructors) |
 | `constructor_structural_pace_s` |   | Yes | [`not_null`](/transform/ci/structural) | Re-centred median pace-delta coefficient in seconds (not yet a fitted fixed effect see the model description). Positive = slower than field. Identified via within-constructor, between-driver variation from teammate pairs. NULL (unknown, not 0.0) when 10 or fewer of the team's clean laps have a measured field base (CO-04): every team of 2018_1 / 2018_2 (no telemetry, FD6) and of 2018_3 / 2025_6 (tyre data quarantined by stg_lap_tyre_qa, so no lap has a tyre cost or a base), which used to read 0.000 through a COALESCE(base, lap_time_s). |
 | `constructor_structural_pace_se_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Standard error of the median pace delta (stddev / √n), not yet a clustered (CRV1) regression SE. Positive, ≥0. Captures uncertainty in the coefficient estimate. NULL where the coefficient is. |
 | `constructor_structural_pace_ci_low_s` |   | Yes | [`not_null`](/transform/ci/structural) | 95% confidence interval lower bound. NULL where the coefficient is. |

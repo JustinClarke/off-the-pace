@@ -47,7 +47,7 @@ flowchart LR
 | Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_compound_cliff_predicted`](../int/int_compound_cliff_predicted), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_lap_air_state`](../int/int_lap_air_state), [`int_lap_proximity`](../int/int_lap_proximity), [`int_lap_corner_inputs`](../int/int_lap_corner_inputs), [`int_lap_corner_drift`](../int/int_lap_corner_drift), [`int_event_corrections`](../int/int_event_corrections), [`int_qualifying_driver_summary`](../int/int_qualifying_driver_summary), [`int_sc_hazard_history`](../int/int_sc_hazard_history), [`int_lap_residual_stint_detrend`](../int/int_lap_residual_stint_detrend), [`int_lap_telemetry_aggregates`](../int/int_lap_telemetry_aggregates), [`dim_compounds_season`](../dim/dim_compounds_season), [`dim_circuits`](../dim/dim_circuits) |
 | Model-level tests | `expect_column_values_to_be_between`, `expect_column_values_to_be_between`, `unique_combination_of_columns` |
 
-**14 tests** [guard](/transform/ci/overview) this model  -  7 generic, 7 singular.
+**19 tests** [guard](/transform/ci/overview) this model  -  12 generic, 7 singular.
 
 ## Columns
 
@@ -56,14 +56,14 @@ flowchart LR
 | `lap_id` | `varchar` | No |   | Surrogate PK from stg_laps |
 | `stint_id` | `varchar` | No |   | Stint surrogate key |
 | `race_year` | `integer` | No |   | Season year |
-| `race_id` | `varchar` | No |   | Race identifier |
-| `circuit_key` | `varchar` | No |   | Circuit identifier (track_id via race_to_track); L0-1 cohort key and predictions output column |
-| `driver_id` | `varchar` | No |   | FastF1 three-letter driver code |
-| `constructor_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Team name |
+| `race_id` | `varchar` | No | `relationships` | Race identifier |
+| `circuit_key` | `varchar` | No | `relationships` | Circuit identifier (track_id via race_to_track); L0-1 cohort key and predictions output column |
+| `driver_id` | `varchar` | No | `relationships` | FastF1 three-letter driver code |
+| `constructor_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | Team name |
 | `lap_number` | `integer` | No |   | Lap number within race |
 | `lap_in_stint` | `bigint` | Yes |   | Lap position within current tyre stint |
 | `age_in_stint` | `integer` | Yes |   | Tyre age in laps (may differ from lap_in_stint for used tyres) |
-| `compound` | `varchar` | Yes |   | Tyre compound (SOFT, MEDIUM, HARD, etc.) |
+| `compound` | `varchar` | Yes | `relationships` | Tyre compound (SOFT, MEDIUM, HARD, etc.) |
 | `compound_grip_peak` | `double` | Yes |   | Fitted peak grip coefficient for this compound × circuit × season |
 | `compound_wear_gradient` | `double` | Yes |   | Fitted wear gradient (s/lap) for this compound × circuit × season |
 | `compound_optimal_temp_low` | `double` | Yes |   | Lower bound of optimal operating temperature window (°C) |
@@ -78,11 +78,11 @@ flowchart LR
 | `dirty_air_thermal_load_surface` | `double` | Yes |   | EW dirty air thermal load on tyre surface. NULL while an unmeasured lap of the stint is inside its 5-lap lookback (FD6 / CO-04). |
 | `dirty_air_thermal_load_bulk` | `double` | Yes |   | EW dirty air thermal load on tyre bulk. NULL while an unmeasured lap of the stint is inside its 10-lap lookback (FD6 / CO-04). |
 | `air_state_dominant` | `varchar` | Yes |   | Dominant air state over the lap's measured thirds (free_air, tow_zone, drs_train, dirty_air): the most frequent, ties to dirty_air &gt; drs_train &gt; tow_zone &gt; free_air (T7, CO-04). Since F48 (WI-15a) the S2 third is dirty_air whenever its median gap is under 1.5 s, so drs_train and tow_zone come from the straight thirds only. NULL when the lap's air state is unmeasured (FD6 / CO-04), as dirty_air_share_lap. |
-| `share_lap_within_1s` | `double` | No |   | Share of the lap's 100 track bins with a car within 1 s ahead on track (position channel; mean 0.2011) |
-| `share_lap_within_2s` | `double` | No |   | Share of the lap's track bins with a car within 2 s ahead on track (mean 0.4063) |
-| `share_lap_in_train` | `double` | No |   | Share of the lap in a train rather than a single tow - within 1 s of the car ahead AND that car within 1 s of its own car ahead (mean 0.0800) |
-| `share_lap_behind_within_1s` | `double` | No |   | Share of the lap's track bins with a car within 1 s BEHIND. The half of traffic DistanceToDriverAhead structurally cannot see (mean 0.2012) |
-| `time_within_1s` | `double` | No |   | Seconds of the lap spent within 1 s of the car ahead, time-weighted by real bin duration rather than counted in bins (mean 18.36 s) |
+| `share_lap_within_1s` | `double` | Yes |   | Share of the lap's 100 track bins with a car within 1 s ahead on track (position channel; mean 0.2011). NULL on a lap with no position telemetry (CO-21) |
+| `share_lap_within_2s` | `double` | Yes |   | Share of the lap's track bins with a car within 2 s ahead on track (mean 0.4063). NULL on a lap with no position telemetry (CO-21) |
+| `share_lap_in_train` | `double` | Yes |   | Share of the lap in a train rather than a single tow - within 1 s of the car ahead AND that car within 1 s of its own car ahead (mean 0.0800). NULL on a lap with no position telemetry (CO-21) |
+| `share_lap_behind_within_1s` | `double` | Yes |   | Share of the lap's track bins with a car within 1 s BEHIND. The half of traffic DistanceToDriverAhead structurally cannot see (mean 0.2012). NULL on a lap with no position telemetry (CO-21) |
+| `time_within_1s` | `double` | Yes |   | Seconds of the lap spent within 1 s of the car ahead, time-weighted by real bin duration rather than counted in bins (mean 18.36 s). NULL on a lap with no position telemetry (CO-21) |
 | `gap_ahead_min_s` | `double` | Yes |   | Closest the car ahead on track came this lap (s). NULL = a full lap of clear air; median 0.92 s |
 | `gap_ahead_median_s` | `double` | Yes |   | Median gap to the car ahead on track across the lap's bins (s). NULL = clear air; median 2.26 s |
 | `ahead_identity_stability` | `double` | Yes |   | Share of the lap's within-3 s bins held by the single most frequent car ahead. 1.0 = a settled follow, low = the car ahead rotated. NULL on the 27.3% of laps with no car within 3 s |

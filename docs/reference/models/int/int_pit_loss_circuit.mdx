@@ -33,14 +33,14 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`stg_track_status`](../stg/stg_track_status), [`stg_results`](../stg/stg_results), [`dim_circuits`](../dim/dim_circuits), [`stg_laps`](../stg/stg_laps), [`stg_pits`](../stg/stg_pits) |
 
-**9 tests** [guard](/transform/ci/overview) this model  -  8 generic, 1 singular.
+**10 tests** [guard](/transform/ci/overview) this model  -  9 generic, 1 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `circuit_slug` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Event identifier (race name slug); recurs across seasons. PK. |
-| `circuit_id` |   | Yes | [`not_null`](/transform/ci/structural) | Physical-venue identifier the estimate is pooled on. Several event slugs can share one circuit_id (british / 70th_anniversary, brazilian / são_paulo, mexican / mexico_city, austrian / styrian) and then carry identical values by construction. |
+| `circuit_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Physical-venue identifier the estimate is pooled on. Several event slugs can share one circuit_id (british / 70th_anniversary, brazilian / são_paulo, mexican / mexico_city, austrian / styrian) and then carry identical values by construction. |
 | `n_stops` |   | Yes | [`not_null`](/transform/ci/structural) | Number of clean green-flag pit stops observed at this physical venue. |
 | `pit_loss_s_empirical` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Median empirical pit-lane loss (seconds) across observed stops. |
 | `pit_loss_s_shrunk` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Pit-lane loss EB-shrunk toward the global median (pseudo-count pit_loss_prior_stops). |

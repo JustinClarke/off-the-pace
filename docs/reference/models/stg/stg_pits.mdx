@@ -29,7 +29,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**8 tests** [guard](/transform/ci/overview) this model  -  4 generic, 4 singular.
+**10 tests** [guard](/transform/ci/overview) this model  -  6 generic, 4 singular.
 
 ## Columns
 
@@ -37,8 +37,8 @@ flowchart LR
 |---|---|---|---|---|
 | `lap_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Foreign key to stg_laps (the pit-in lap). |
 | `race_year` | `integer` | Yes |   | Season year. |
-| `race_id` | `varchar` | Yes |   | Numeric FastF1 event id cast to string. |
-| `driver_id` | `varchar` | Yes |   | FastF1 three-letter driver code. |
+| `race_id` | `varchar` | Yes | `relationships` | Numeric FastF1 event id cast to string. |
+| `driver_id` | `varchar` | Yes | `relationships` | FastF1 three-letter driver code. |
 | `pit_in_lap_number` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Lap on which the car entered the pit lane. |
 | `pit_out_lap_number` | `integer` | Yes |   | Lap on which the car exited, always pit_in_lap_number + 1 where an out-lap exists. NULL for the 227 stops with no following out-lap (retired in the pit lane, or the race ended under the stop). |
 | `stint_number` | `integer` | Yes |   | Stint index of the in-lap, i.e. the stint this stop ends. |

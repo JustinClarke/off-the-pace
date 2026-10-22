@@ -31,16 +31,16 @@ flowchart LR
 | Upstream | [`fct_lap_residuals`](./fct_lap_residuals), [`stg_results`](../stg/stg_results), [`int_driver_race_skill_loro`](../int/int_driver_race_skill_loro), [`dim_circuits`](../dim/dim_circuits) |
 | Model-level tests | `unique_combination_of_columns` |
 
-**13 tests** [guard](/transform/ci/overview) this model  -  11 generic, 2 singular.
+**17 tests** [guard](/transform/ci/overview) this model  -  15 generic, 2 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code (e.g. VER, HAM). |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | Race identifier. |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code (e.g. VER, HAM). |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Race identifier. |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year. |
-| `circuit_id` |   | Yes |   | Physical circuit identifier from dim_circuits. |
+| `circuit_id` |   | Yes | `relationships` | Physical circuit identifier from dim_circuits. |
 | `rating_s` |   | Yes | [`not_null`](/transform/ci/structural) | Race rating (driver_skill_loro_s), seconds. Negative = faster than the teammate. |
 | `n_drivers` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | Number of rated drivers in the race. |
 | `ci_low` |   | Yes |   | rating_s - 1.96 x standard error of clean-lap driver_skill_residual_s. |
@@ -48,7 +48,7 @@ flowchart LR
 | `n_clean_laps` |   | Yes | [`accepted_range`](/transform/ci/range-and-domain) | ml_eligible laps behind the components and the CI band. |
 | `teammate_id` |   | Yes |   | Same-race teammate with the most clean laps. Null when there is none. |
 | `teammate_gap_s` |   | Yes |   | Equal to rating_s, which already is the paired median gap to the teammate, so the two teammates' values are exact negatives. Seconds, negative = faster than the teammate. NULL when teammate_id is NULL. |
-| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor for the race. |
+| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Constructor for the race. |
 | `constructor_rank` |   | Yes |   | Race rank of the constructor's mean constructor_component_s; 1 = fastest car. |
 | `mean_fuel_component_s` |   | Yes |   | Mean fuel component over ml_eligible laps, seconds. |
 | `mean_compound_component_s` |   | Yes |   | Mean compound component over ml_eligible laps, seconds. |

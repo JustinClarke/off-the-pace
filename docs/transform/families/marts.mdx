@@ -12,7 +12,7 @@ Upstream is not one family but effectively all of them confirmed model-by-model 
 
 **This is the other direction of a fact Pace Baselines and Skill already documented**: it's tempting to describe marts as *the* boundary where this layer hands off to `ml/` and `app/`, but [Pace Baselines](/transform/families/pace-baselines) and [Skill](/transform/families/skill) have both shown that many of their own models export straight to the app with no marts model in between. The reverse is also true and worth stating plainly here: marts is not the *only* export boundary, it's the boundary for the things that need shaping (ML contracts, BI semantics, gold-layer joins) rather than a straight intermediate-table passthrough.
 
-`dim_events` is tagged `meta.family: marts` even though it's prefixed `dim_` and sits in the "Dimensions" nav subgroup of [Model Reference](/reference/models) by prefix convention a deliberate divergence between nav placement and narrative placement, not an inconsistency to fix. It's materialized in `models/marts/` as a race-event flag table (damage, retirement, penalty) joined onto `fct_lap_residuals`, not a seed-backed dimension like `dim_circuits`; its story belongs here.
+`dim_events` is tagged `meta.family: marts` even though it's prefixed `dim_` and sits in the "Dimensions" nav subgroup of [Model Reference](/reference/models) by prefix convention a deliberate divergence between nav placement and narrative placement, not an inconsistency to fix. It's materialized in `models/marts/` as a race-event flag table (damage, retirement, penalty), not a seed-backed dimension like `dim_circuits`; no dbt model refs it, and it is published to the app as a parquet. Its story belongs here.
 
 ## The sub-DAG
 
@@ -80,7 +80,7 @@ flowchart LR
     class ML,ML2,Dash,App downstream;
 ```
 
-All ten models are exported to the app, verified against `scripts/export_app_data.py`'s table list, not assumed that's every single mart, not a subset. Cross-checked against the app's own query files (`app/src/features/*/queries.ts` plus the `ghost-car/*` routes and `useRaces` hook, since two consumers don't follow the `queries.ts` convention): nine of the ten power a named feature today. `fct_telemetry_deltas` is exported but, verified by grep, has **zero current app consumer** no `telemetry-style-fingerprint` feature directory exists despite the model's own header naming that as its purpose. Flagged here as a fact about the current tree, the same pattern [Residual](/transform/families/residual) already found for `int_corner_skill_residuals`.
+All ten models are exported to the app, verified against `scripts/export_app_data.py`'s table list, not assumed that's every single mart, not a subset. Cross-checked against the app's own query files (`app/src/features/*/queries.ts` plus the `ghost-car/*` routes, which don't follow the `queries.ts` convention): eight of the ten power a named feature today. `dim_events` and `fct_telemetry_deltas` are exported but, verified by grep, have **zero current app consumer** (`dim_events`' only reader was the unused `useRaces` hook, deleted in CO-28) no `telemetry-style-fingerprint` feature directory exists despite the model's own header naming that as its purpose. Flagged here as a fact about the current tree, the same pattern [Residual](/transform/families/residual) already found for `int_corner_skill_residuals`.
 
 ## How it works
 

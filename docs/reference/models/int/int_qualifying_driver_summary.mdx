@@ -32,15 +32,15 @@ flowchart LR
 | Upstream | [`int_qualifying_decomposed`](./int_qualifying_decomposed) |
 | Model-level tests | `unique_combination_of_columns` |
 
-**5 tests** [guard](/transform/ci/overview) this model  -  5 generic, 0 singular.
+**7 tests** [guard](/transform/ci/overview) this model  -  7 generic, 0 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year. |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | Race identifier. |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code. |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Race identifier. |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code. |
 | `quali_push_laps_n` |   | Yes | [`not_null`](/transform/ci/structural) | Push laps this driver set across Q1/Q2/Q3 this weekend (COUNT(*) over int_qualifying_decomposed's push-lap rows for this driver-weekend). The mart COALESCEs this to 0 for a driver-weekend with no row here at all -- a genuine "no qualifying record" (DNQ or a data gap), not an invented value. |
 | `quali_constructor_pace_mean_s` |   | Yes |   | Mean constructor_component_s over the driver's push laps this weekend: a car's one-lap aero/power level, measured with fuel, strategy and traffic all near-absent. MEAN smooths Q1/Q2/Q3 segment-to-segment noise in a term expected to be near-stable across one weekend. |
 | `quali_constructor_pace_se_mean_s` |   | Yes |   | Mean of constructor_component_se_s over the same push laps -- the average estimation uncertainty on the pace term above. |

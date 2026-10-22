@@ -28,15 +28,15 @@ flowchart LR
 | Tags | `driver_rating`, `driver_affinity` |
 | Upstream | [`int_driver_race_skill_loro`](./int_driver_race_skill_loro) |
 
-**21 tests** [guard](/transform/ci/overview) this model  -  18 generic, 3 singular.
+**23 tests** [guard](/transform/ci/overview) this model  -  20 generic, 3 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `driver_circuit_era_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = hash(driver_id, circuit_id, era_key) |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | Driver identifier |
-| `circuit_id` |   | Yes | [`not_null`](/transform/ci/structural) | Physical-circuit identifier (slug of circuit_name). Collapses event-slug aliases (renamed events, double-headers) onto one venue. |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Driver identifier |
+| `circuit_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Physical-circuit identifier (slug of circuit_name). Collapses event-slug aliases (renamed events, double-headers) onto one venue. |
 | `circuit_name` |   | Yes | [`not_null`](/transform/ci/structural) | Canonical circuit display name for this circuit_id. |
 | `era_key` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Regulation era. pre2022 = 2018–2021, post2022 = 2022–2024. |
 | `era_label` |   | Yes | [`not_null`](/transform/ci/structural) | Human-readable era span ('2018–2021' / '2022–2024'). |

@@ -32,7 +32,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`int_lap_residual_decomposed`](./int_lap_residual_decomposed), [`int_stint_geometry`](./int_stint_geometry), [`dim_circuits`](../dim/dim_circuits) |
 
-**14 tests** [guard](/transform/ci/overview) this model  -  11 generic, 3 singular.
+**15 tests** [guard](/transform/ci/overview) this model  -  12 generic, 3 singular.
 
 ## Columns
 
@@ -40,7 +40,7 @@ flowchart LR
 |---|---|---|---|---|
 | `lap_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) |  |
 | `stint_id` |   | Yes | [`not_null`](/transform/ci/structural) |  |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) |  |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` |  |
 | `age_in_stint` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Tyre age (tyre life, so a used set starts above 1), 1-50. |
 | `compound_label` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | The lap's own compound name (absolute in 2018, relative HARD/MEDIUM/SOFT from 2019). Slicks only. |
 | `hardness_era` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) |  |

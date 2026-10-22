@@ -439,30 +439,50 @@ SELECT
     gap_ahead_median_s,
     gap_behind_min_s,
 
-    -- Exposure shares, zeroed on neutralised laps
+    -- Exposure shares, zeroed on neutralised laps. NULL on an UNMEASURED lap
+    -- (no on-track position crossings, so proximity_bin_count IS NULL): "no
+    -- data" is not "no car near", and 0.0 would be a measurement nobody took
+    -- (CO-21; the same ruling FD6 / CO-04 made for int_lap_air_state). The
+    -- NULL takes precedence over the SC/VSC/red zeroing below: an unmeasured
+    -- lap is unknown whatever the track status (CO-04 / FD6, owner-approved
+    -- 2026-10-23). Inside a MEASURED lap the COALESCE is still needed:
+    -- time_within_1s is a FILTERed SUM, NULL when no bin had a car within
+    -- 1 s, and that lap really did spend 0 s there.
     CASE
+        WHEN proximity_bin_count IS NULL THEN NULL
         WHEN is_neutralised_lap THEN 0.0
-        ELSE COALESCE(share_lap_within_1s, 0.0)
+        WHEN proximity_bin_count IS NOT NULL
+            THEN COALESCE(share_lap_within_1s, 0.0)
     END AS share_lap_within_1s,
     CASE
+        WHEN proximity_bin_count IS NULL THEN NULL
         WHEN is_neutralised_lap THEN 0.0
-        ELSE COALESCE(share_lap_within_2s, 0.0)
+        WHEN proximity_bin_count IS NOT NULL
+            THEN COALESCE(share_lap_within_2s, 0.0)
     END AS share_lap_within_2s,
     CASE
+        WHEN proximity_bin_count IS NULL THEN NULL
         WHEN is_neutralised_lap THEN 0.0
-        ELSE COALESCE(share_lap_within_3s, 0.0)
+        WHEN proximity_bin_count IS NOT NULL
+            THEN COALESCE(share_lap_within_3s, 0.0)
     END AS share_lap_within_3s,
     CASE
+        WHEN proximity_bin_count IS NULL THEN NULL
         WHEN is_neutralised_lap THEN 0.0
-        ELSE COALESCE(time_within_1s, 0.0)
+        WHEN proximity_bin_count IS NOT NULL
+            THEN COALESCE(time_within_1s, 0.0)
     END AS time_within_1s,
     CASE
+        WHEN proximity_bin_count IS NULL THEN NULL
         WHEN is_neutralised_lap THEN 0.0
-        ELSE COALESCE(share_lap_in_train, 0.0)
+        WHEN proximity_bin_count IS NOT NULL
+            THEN COALESCE(share_lap_in_train, 0.0)
     END AS share_lap_in_train,
     CASE
+        WHEN proximity_bin_count IS NULL THEN NULL
         WHEN is_neutralised_lap THEN 0.0
-        ELSE COALESCE(share_lap_behind_within_1s, 0.0)
+        WHEN proximity_bin_count IS NOT NULL
+            THEN COALESCE(share_lap_behind_within_1s, 0.0)
     END AS share_lap_behind_within_1s,
 
     -- Identity stability of the car ahead: 1.0 = one car held the whole lap

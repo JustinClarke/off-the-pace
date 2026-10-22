@@ -116,7 +116,7 @@ Auto-generated reference for all 94 dbt models.
 |---|---|
 | [`dim_circuits`](/reference/models/dim/dim_circuits) | One row per event slug (circuit_key). |
 | [`dim_compounds_season`](/reference/models/dim/dim_compounds_season) | One row per circuit × compound × season. |
-| [`dim_constructors`](/reference/models/dim/dim_constructors) | One row per constructor (team). |
+| [`dim_constructors`](/reference/models/dim/dim_constructors) | One row per constructor (team) name, from a fixed list in the model rather than from the loaded laps (CO-29), so every build, the CI fixture included, has every team. |
 | [`dim_corners`](/reference/models/dim/dim_corners) | One row per race × circuit turn: the telemetry distance window each corner owns, derived from FastF1's own corner table (stg_circuit_info) rather than maintained by hand. |
 | [`dim_driver_seasons`](/reference/models/dim/dim_driver_seasons) | One row per season × driver code. |
 | [`dim_drivers`](/reference/models/dim/dim_drivers) | One row per driver_id. |

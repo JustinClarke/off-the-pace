@@ -103,12 +103,13 @@ describe('AI-02 acceptance', () => {
     expect(report.failed).toContain('IN_SAMPLE_FIT')
   })
 
-  it('reports the chance-line rule as pending rather than passing or failing it', () => {
+  it('fails an answer that quotes the experimental chance (AD5: EXCLUDE)', () => {
     const report = checkAnswer({
       cards: [{ id: 'c', metric: 'flag_chance', value: 0.62 }],
       answer: 'The experimental chance to reach the flag is 62% [card c]; it failed its 2025 acceptance bar.',
     })
-    expect(report.ok).toBe(true)
-    expect(report.pending).toEqual(['CHANCE_LINE_QUOTABLE'])
+    expect(report.ok).toBe(false)
+    expect(report.failed).toContain('CHANCE_LINE_QUOTABLE')
+    expect(report.pending).toEqual([])
   })
 })

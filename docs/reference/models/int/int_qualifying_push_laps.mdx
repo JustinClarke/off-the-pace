@@ -31,7 +31,7 @@ flowchart LR
 | Tags | `simulation`, `qualifying` |
 | Upstream | [`stg_laps_qualifying`](../stg/stg_laps_qualifying), [`int_qualifying_segments`](./int_qualifying_segments) |
 
-**8 tests** [guard](/transform/ci/overview) this model  -  7 generic, 1 singular.
+**10 tests** [guard](/transform/ci/overview) this model  -  9 generic, 1 singular.
 
 ## Columns
 
@@ -39,8 +39,8 @@ flowchart LR
 |---|---|---|---|---|
 | `lap_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | PK, FK to stg_laps_qualifying. |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year. |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | Numeric FastF1 event id. |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code. |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Numeric FastF1 event id. |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code. |
 | `quali_segment` |   | Yes | [`not_null`](/transform/ci/structural) | Segment the lap was set in   'Q1', 'Q2' or 'Q3', or 'Q' when the session has no recoverable segment structure (the pre-segment behaviour, not a dropped row). |
 | `segment_best_s` |   | Yes |   | Fastest valid lap set in this session's segment. |
 | `driver_segment_best_s` |   | Yes |   | This driver's fastest valid lap in this session's segment. |

@@ -27,7 +27,7 @@ flowchart LR
 | Contract enforced | No |
 | Tags | `causal_decomposition`, `constructor` |
 
-**6 tests** [guard](/transform/ci/overview) this model  -  6 generic, 0 singular.
+**8 tests** [guard](/transform/ci/overview) this model  -  8 generic, 0 singular.
 
 ## Columns
 
@@ -35,6 +35,6 @@ flowchart LR
 |---|---|---|---|---|
 | `constructor_car_fe_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = race_year_raceid_constructorid |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | Race identifier (matches int_lap_fuel_state.race_id, e.g. 2018_5) |
-| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor identifier (stg_laps.constructor_id) |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Race identifier (matches int_lap_fuel_state.race_id, e.g. 2018_5) |
+| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Constructor identifier (stg_laps.constructor_id) |
 | `car_fe_s` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor×race fixed effect in seconds, net of driver skill. Negative = faster than field. |

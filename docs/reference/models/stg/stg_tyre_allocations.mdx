@@ -28,15 +28,15 @@ flowchart LR
 | Contract enforced | No |
 | Model-level tests | `unique_combination_of_columns` |
 
-**9 tests** [guard](/transform/ci/overview) this model  -  8 generic, 1 singular.
+**11 tests** [guard](/transform/ci/overview) this model  -  10 generic, 1 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `race_year` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Season year, 2019-2025. |
-| `circuit_key` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Event/grand-prix key, matching dim_circuits.circuit_key. Event-level, not venue-level: 2020 Silverstone is british_grand_prix AND 70th_anniversary_grand_prix, and the Red Bull Ring / Bahrain double-headers split the same way. |
-| `compound_code` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Pirelli compound code. C1 hardest, C5 softest. |
+| `circuit_key` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | Event/grand-prix key, matching dim_circuits.circuit_key. Event-level, not venue-level: 2020 Silverstone is british_grand_prix AND 70th_anniversary_grand_prix, and the Red Bull Ring / Bahrain double-headers split the same way. |
+| `compound_code` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain), `relationships` | Pirelli compound code. C1 hardest, C5 softest. |
 | `compound_label` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | The relative label this code was badged as for that weekend. |
 | `allocated_sets_per_driver` | `integer` | Yes |   | NULL by construction. FIA technical allocation data, not carried by Pirelli's compound announcements - left unpopulated rather than invented. |
 | `source_url` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Pirelli press URL this row is attributed to. See the model description: most of these do not currently resolve. Presence of a URL is not evidence the row is sourced. |

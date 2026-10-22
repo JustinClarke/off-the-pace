@@ -36,18 +36,18 @@ flowchart LR
 | Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_synthetic_teammate`](../int/int_synthetic_teammate), [`int_constructor_structural_pace`](../int/int_constructor_structural_pace), [`dim_circuits`](../dim/dim_circuits), [`dim_drivers`](../dim/dim_drivers), [`dim_constructors`](../dim/dim_constructors) |
 | Model-level tests | `expect_column_values_to_be_between`, `unique_combination_of_columns` |
 
-**2 tests** [guard](/transform/ci/overview) this model  -  2 generic, 0 singular.
+**6 tests** [guard](/transform/ci/overview) this model  -  6 generic, 0 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `driver_race_id` | `varchar` | No |   | Surrogate PK   hash of (race_year, race_id, driver_id) |
-| `driver_id` | `varchar` | No |   | FastF1 three-letter driver code (e.g. VER, HAM) |
+| `driver_id` | `varchar` | No | `relationships` | FastF1 three-letter driver code (e.g. VER, HAM) |
 | `race_year` | `integer` | No |   | Season year |
-| `race_id` | `varchar` | No |   | Race identifier (e.g. 2021_19) |
-| `constructor_id` | `varchar` | Yes |   | Team name as used in FastF1 |
-| `circuit_key` | `varchar` | Yes |   | Stable circuit identifier matching dim_circuits |
+| `race_id` | `varchar` | No | `relationships` | Race identifier (e.g. 2021_19) |
+| `constructor_id` | `varchar` | Yes | `relationships` | Team name as used in FastF1 |
+| `circuit_key` | `varchar` | Yes | `relationships` | Stable circuit identifier matching dim_circuits |
 | `pu_family` | `varchar` | Yes |   | Power unit family (e.g. mercedes_pu, honda_pu) |
 | `driver_debut_year` | `integer` | Yes |   | First season in the dataset |
 | `driver_residual_mean_s` | `double` | Yes |   | Mean driver skill residual over clean laps. Negative = faster than field. |

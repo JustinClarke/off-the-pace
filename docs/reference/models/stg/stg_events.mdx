@@ -26,7 +26,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**2 tests** [guard](/transform/ci/overview) this model  -  2 generic, 0 singular.
+**4 tests** [guard](/transform/ci/overview) this model  -  4 generic, 0 singular.
 
 ## Columns
 
@@ -34,8 +34,8 @@ flowchart LR
 |---|---|---|---|---|
 | `stg_event_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate key   &#123;race_id&#125;_&#123;event_id&#125;. |
 | `event_id` | `varchar` | Yes |   | Seed-level event identifier. |
-| `race_id` | `integer` | Yes |   | Race identifier from the seed (numeric). |
-| `driver_id` | `varchar` | Yes |   | Driver the event affects (FastF1 three-letter code). |
+| `race_id` | `integer` | Yes | `relationships` | Race identifier from the seed (numeric). |
+| `driver_id` | `varchar` | Yes | `relationships` | Driver the event affects (FastF1 three-letter code), or the sentinel 'ALL' for a race-wide event that affects every driver (seed raw_dim_events rows E005, E006). 'ALL' is not a dim_drivers key, so the relationships test excludes it. |
 | `event_type` | `varchar` | Yes |   | Event category label (e.g. damage, retirement, penalty). |
 | `event_severity` | `double` | Yes |   | Magnitude estimate of the event's impact. |
 | `source` | `varchar` | Yes |   | Provenance of the event row (constant 'manual' for the seed). |

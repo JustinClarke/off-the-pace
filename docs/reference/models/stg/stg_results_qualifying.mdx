@@ -26,7 +26,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**7 tests** [guard](/transform/ci/overview) this model  -  6 generic, 1 singular.
+**10 tests** [guard](/transform/ci/overview) this model  -  9 generic, 1 singular.
 
 ## Columns
 
@@ -34,12 +34,12 @@ flowchart LR
 |---|---|---|---|---|
 | `quali_result_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate key   &#123;race_id&#125;_Q_&#123;driver_id&#125;. |
 | `race_year` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Season year. |
-| `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Numeric FastF1 event id cast to string; matches stg_laps_qualifying.race_id. |
+| `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | Numeric FastF1 event id cast to string; matches stg_laps_qualifying.race_id. |
 | `race_slug` | `varchar` | Yes |   | Human-readable event name. |
 | `session_type` | `varchar` | Yes |   | Constant 'Q' marking the qualifying session. |
-| `driver_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code (e.g. VER, HAM). |
+| `driver_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code (e.g. VER, HAM). |
 | `driver_number` | `varchar` | Yes |   | Car number the driver carried in this session. |
-| `constructor_id` | `varchar` | Yes |   | Team name as reported by FastF1. |
+| `constructor_id` | `varchar` | Yes | `relationships` | Team name as reported by FastF1. |
 | `quali_position` | `integer` | Yes |   | Official qualifying classification (1..20). Not the race grid   penalties are applied afterwards and show up in stg_results.grid_position. |
 | `q1_time_s` | `double` | Yes |   | Official best Q1 lap in seconds; NULL if the driver set no Q1 time. |
 | `q2_time_s` | `double` | Yes |   | Official best Q2 lap in seconds; NULL if eliminated in Q1. |

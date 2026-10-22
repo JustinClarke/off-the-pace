@@ -1,9 +1,9 @@
 -- dim_events.sql · marts · grain: one row per race-level event
 -- Lifts the raw_dim_events seed into a query-ready events dimension:
 -- retirements,
--- damage flags, penalties, and safety-car triggers. Consumed by
--- fct_lap_residuals
--- (correction_weight) and int_lap_anomaly_flags (anomaly_class).
+-- damage flags, penalties, and safety-car triggers. No dbt model refs it
+-- today (fct_lap_residuals and int_lap_anomaly_flags do not read it); it is
+-- published as the dim_events parquet for the app.
 {{ config(
     materialized='table'
 ) }}

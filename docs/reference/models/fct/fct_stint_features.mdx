@@ -35,18 +35,18 @@ flowchart LR
 | Tags | `feature_engineering`, `simulation` |
 | Upstream | [`int_stint_geometry`](../int/int_stint_geometry), [`int_stint_end_regime`](../int/int_stint_end_regime), [`stg_laps`](../stg/stg_laps), [`int_lap_thermal_proxy`](../int/int_lap_thermal_proxy), [`int_dirty_air_tax_component`](../int/int_dirty_air_tax_component), [`int_lap_anomaly_flags`](../int/int_lap_anomaly_flags), [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`int_pit_strategy_value`](../int/int_pit_strategy_value) |
 
-**17 tests** [guard](/transform/ci/overview) this model  -  16 generic, 1 singular.
+**20 tests** [guard](/transform/ci/overview) this model  -  19 generic, 1 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `stint_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | PK from int_stint_geometry |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code (e.g. VER, HAM). |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | Race identifier (numeric FastF1 event id cast to string). |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code (e.g. VER, HAM). |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Race identifier (numeric FastF1 event id cast to string). |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year. |
 | `stint_length_laps` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Total laps in this stint |
-| `compound` |   | Yes |   | Tyre compound for this stint |
+| `compound` |   | Yes | `relationships` | Tyre compound for this stint |
 | `starting_tyre_age_laps` |   | Yes |   | Tyre age at the start of this stint (before first lap) |
 | `cumulative_thermal_load_end` |   | Yes |   | EW cumulative thermal load at the end of the stint |
 | `cumulative_dirty_air_tax_s` |   | Yes |   | Sum of dirty air tax across all laps in the stint |

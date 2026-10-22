@@ -184,11 +184,13 @@ models:
 
   - name: dim_constructors
     description: >
-      One row per constructor (team). Derived from stg_laps with a manually maintained power-unit
-      family mapping, one family per team name (not per season). pu_family is a reference
-      attribute: it is carried onto fct_lap_residuals and fct_driver_skill_features, and no pace
-      index or model reads it. A team rename arrives as a new constructor_id and needs its own
-      mapping row; assert_pu_family_coverage warns while any constructor is 'unknown_pu'.
+      One row per constructor (team) name, from a fixed list in the model rather than from the
+      loaded laps (CO-29), so every build, the CI fixture included, has every team. pu_family is
+      one family per team name (not per season); it is a reference attribute carried onto
+      fct_lap_residuals and fct_driver_skill_features, and no pace index or model reads it. A
+      team rename arrives as a new constructor_id and needs its own row; a name missing from the
+      list fails the stg_laps.constructor_id relationships test. constructor_lineage_id groups
+      the names one team has raced under (a rename is the same team, owner's ruling 2026-10-23).
     meta:
       family: reference
     columns:
@@ -197,7 +199,15 @@ models:
         data_type: varchar
         tests: [not_null, unique]
       - name: pu_family
-        description: Power-unit family grouping (e.g. mercedes_pu, honda_pu, ferrari_pu, renault_pu); 'unknown_pu' when unmapped.
+        description: Power-unit family grouping (e.g. mercedes_pu, honda_pu, ferrari_pu, renault_pu).
+        data_type: varchar
+        tests: [not_null]
+      - name: constructor_lineage_id
+        description: >
+          The team across its renames: the snake-cased earliest name it has in the data.
+          force_india (Force India, Racing Point, Aston Martin), toro_rosso (Toro Rosso,
+          AlphaTauri, RB, Racing Bulls), sauber (Sauber, Alfa Romeo Racing, Alfa Romeo, Kick
+          Sauber), renault (Renault, Alpine); every other team is its own lineage.
         data_type: varchar
         tests: [not_null]
 

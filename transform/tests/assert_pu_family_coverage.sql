@@ -14,6 +14,11 @@
 -- last build". A new team name failing here is the intended prompt to add its row to
 -- dim_constructors.pu_mapping before the season reaches the marts; a warn would let
 -- the gap pass silently, which is how three constructors sat unmapped before.
+--
+-- CO-29: dim_constructors is now a fixed list with no 'unknown_pu' fallback, so a
+-- new team name no longer reaches this test; it fails the stg_laps.constructor_id
+-- relationships test instead. This test stays as the check that no listed row
+-- carries 'unknown_pu'.
 
 SELECT
     constructor_id,

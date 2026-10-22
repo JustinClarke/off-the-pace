@@ -30,7 +30,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`stg_laps`](./stg_laps), [`stg_pits`](./stg_pits) |
 
-**5 tests** [guard](/transform/ci/overview) this model  -  5 generic, 0 singular.
+**6 tests** [guard](/transform/ci/overview) this model  -  6 generic, 0 singular.
 
 ## Columns
 
@@ -39,7 +39,7 @@ flowchart LR
 | `lap_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Foreign key to stg_laps. |
 | `stint_number` | `integer` | Yes |   | Served stint number: bronze (lap-1 gap filled) where tyre_qa_status = 'ok', else the pit record's ordinal (1 + stops the car exited from before the lap + bronze's red-flag stint changes). NULL only for the few driver-races bronze never assigned any stint to (two cars retired on laps 1-2 in 2018). |
 | `tyre_life` | `integer` | Yes |   | Served tyre age (laps on the set, bronze TyreLife): offset by the filled laps on a repaired first stint; NULL when quarantined. |
-| `compound` | `varchar` | Yes |   | Served compound (bronze); NULL when quarantined. |
+| `compound` | `varchar` | Yes | `relationships` | Served compound (bronze); NULL when quarantined. |
 | `stint_source` | `varchar` | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Where stint_number came from. |
 | `tyre_life_offset_laps` | `integer` | Yes |   | Laps added to bronze TyreLife by the F25 repair (0, 1 or 2). |
 | `tyre_qa_status` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | The quarantine list. 'ok' serves bronze; the other two serve the pit record. |

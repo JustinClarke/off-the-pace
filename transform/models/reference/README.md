@@ -2,8 +2,9 @@
 
 Static dimension tables, reused across the DAG as lookup and join targets. Two
 (`dim_circuits`, `dim_compounds_season`) lift a committed dbt seed into a typed dimension;
-the other three (`dim_drivers`, `dim_constructors`, `dim_corners`) derive live on every build
-from `stg_laps` and, for the corner windows, FastF1's own corner table in `stg_circuit_info`.
+`dim_constructors` is a fixed list in its own SQL (every team name, its power-unit family and
+lineage); the other two (`dim_drivers`, `dim_corners`) derive live on every build from
+`stg_laps` and, for the corner windows, FastF1's own corner table in `stg_circuit_info`.
 All five materialise as **tables**.
 
 ---
@@ -14,7 +15,7 @@ All five materialise as **tables**.
 |---|---|---|
 | `dim_circuits` | circuit | Physical track characteristics: corner count, abrasiveness index, weight-penalty factor, calibration deltas |
 | `dim_drivers` | driver | Driver identity, team history, and era membership |
-| `dim_constructors` | constructor × season | Constructor identity with season-level metadata |
+| `dim_constructors` | constructor name | Team name, power-unit family, and the lineage (one team across its renames) |
 | `dim_compounds_season` | compound × season | Tyre compound assignments per season with hardness classification |
 | `dim_corners` | race × circuit turn | Telemetry distance window each corner owns (apex ± the configured entry/exit margins, clipped at the neighbouring apexes), derived per session from FastF1 corner geometry |
 
@@ -44,7 +45,7 @@ intermediate layer resolves to a row in `dim_circuits`. These live in `schema.ym
 
 - **Upstream (depends on):** `transform/seeds/`  -  CSV files (hand-authored and fitted) loaded
   by `dbt seed`, for `dim_circuits`/`dim_compounds_season`; `transform/models/staging/stg_laps`
-  for `dim_drivers`/`dim_constructors`
+  for `dim_drivers`
 - **Downstream (consumed by):** `transform/models/intermediate/`  -  joins `dim_circuits`, `dim_drivers`, `dim_constructors`, `dim_compounds_season` to add physics parameters to lap-grain models
 
 ## Layer contract

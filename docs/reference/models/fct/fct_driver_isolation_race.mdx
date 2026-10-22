@@ -30,7 +30,7 @@ flowchart LR
 | Tags | `driver_isolation` |
 | Upstream | [`fct_driver_isolation_lap`](./fct_driver_isolation_lap), [`int_driver_isolation_stint_tyre`](../int/int_driver_isolation_stint_tyre), [`fct_driver_isolation_pair_lap`](./fct_driver_isolation_pair_lap) |
 
-**19 tests** [guard](/transform/ci/overview) this model  -  16 generic, 3 singular.
+**22 tests** [guard](/transform/ci/overview) this model  -  19 generic, 3 singular.
 
 ## Columns
 
@@ -38,9 +38,9 @@ flowchart LR
 |---|---|---|---|---|
 | `driver_race_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | PK: dbt_utils.generate_surrogate_key(race_year, race_id, driver_id), the same recipe as fct_driver_skill_features.driver_race_id, so the two join directly. |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season. |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 event id, e.g. 2021_8. |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | Driver (three-letter code). In the pair mart, the focal driver whose gains the row reports. |
-| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor (stg_laps.constructor_id). |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 event id, e.g. 2021_8. |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Driver (three-letter code). In the pair mart, the focal driver whose gains the row reports. |
+| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Constructor (stg_laps.constructor_id). |
 | `era` |   | Yes |   | Regulation era: pre&lt;era_boundary&gt; or post&lt;era_boundary&gt; (var era_boundary, 2022). |
 | `car_iso_s` |   | Yes |   | Isolation car term, s, NEGATIVE = FASTER than the race's lap-weighted car (int_constructor_car_fe_isolation). NULL when not identified. |
 | `car_term_source` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Where car_iso_s came from: driver_id (fitted per-era), unidentified (multiple components in race), not_estimated (pyfixest singleton), or no_fit_row (no row in the fit). |

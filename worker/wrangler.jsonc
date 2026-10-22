@@ -1,0 +1,23 @@
+{
+  // Preview environment only. Production is deliberately not defined here: deploying it is the owner's call.
+  "name": "otp-ai-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "ai": { "binding": "AI" },
+  "durable_objects": { "bindings": [{ "name": "LEDGER", "class_name": "Ledger" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Ledger"] }],
+  "vars": {
+    // Pause switch. Edit in the dashboard (no deploy) or POST /admin/pause.
+    "AI_PAUSED": "false",
+    // Comma-separated browser origins allowed to call the Worker.
+    "ALLOWED_ORIGINS": "https://off-the-pace.web.app",
+    // Placeholder cap until AD4: about 1 USD at 0.011 USD per 1,000 neurons = 90,909 neurons.
+    // The free allowance (10,000/day) is hit first; Workers AI's own error then also pauses.
+    "DAILY_NEURON_CAP": "90909",
+    "VISITOR_DAILY_LIMIT": "10",
+    // Cloudflare Turnstile public test site key lives in the app, not here.
+    "TURNSTILE_ENABLED": "true"
+  }
+  // Secrets (owner sets with `wrangler secret put`; never in this file):
+  //   TURNSTILE_SECRET, ADMIN_TOKEN
+}

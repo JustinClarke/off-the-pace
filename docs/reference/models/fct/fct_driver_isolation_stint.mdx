@@ -33,7 +33,7 @@ flowchart LR
 | Upstream | [`fct_driver_isolation_lap`](./fct_driver_isolation_lap), [`fct_driver_isolation_pair_lap`](./fct_driver_isolation_pair_lap), [`int_driver_isolation_stint_tyre`](../int/int_driver_isolation_stint_tyre), [`int_stint_end_regime`](../int/int_stint_end_regime), [`int_pit_strategy_value`](../int/int_pit_strategy_value) |
 | Model-level tests | `unique_combination_of_columns` |
 
-**21 tests** [guard](/transform/ci/overview) this model  -  18 generic, 3 singular.
+**25 tests** [guard](/transform/ci/overview) this model  -  22 generic, 3 singular.
 
 ## Columns
 
@@ -43,11 +43,11 @@ flowchart LR
 | `stint_id` |   | Yes | [`not_null`](/transform/ci/structural) | Stint identifier (int_stint_geometry.stint_id). |
 | `stint_phase` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | 'recovery' when is_recovery, else tyre_phase (T45). |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season. |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 event id, e.g. 2021_8. |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | Driver (three-letter code). In the pair mart, the focal driver whose gains the row reports. |
-| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor (stg_laps.constructor_id). |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 event id, e.g. 2021_8. |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Driver (three-letter code). In the pair mart, the focal driver whose gains the row reports. |
+| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Constructor (stg_laps.constructor_id). |
 | `stint_number` |   | Yes |   | Stint ordinal within the driver's race (int_stint_geometry). |
-| `compound` |   | Yes | [`not_null`](/transform/ci/structural) | Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω). |
+| `compound` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω). |
 | `era` |   | Yes |   | Regulation era: pre&lt;era_boundary&gt; or post&lt;era_boundary&gt; (var era_boundary, 2022). |
 | `n_laps` |   | Yes | [`not_null`](/transform/ci/structural) | Ω laps in the group. |
 | `first_lap_number` |   | Yes |   | First Ω lap number in the group. |

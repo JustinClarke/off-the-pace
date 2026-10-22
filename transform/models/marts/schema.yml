@@ -26,6 +26,11 @@ models:
         data_type: varchar
         constraints:
           - type: not_null
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: race_year
         description: Season year
         data_type: integer
@@ -36,12 +41,27 @@ models:
         data_type: varchar
         constraints:
           - type: not_null
+        tests:
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: constructor_id
         description: Team name as used in FastF1
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: circuit_key
         description: Stable circuit identifier matching dim_circuits
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_circuits')
+                field: circuit_key
       - name: pu_family
         description: Power unit family (e.g. mercedes_pu, honda_pu)
         data_type: varchar
@@ -182,21 +202,40 @@ models:
         data_type: varchar
         constraints:
           - type: not_null
+        tests:
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: circuit_key
         description: Circuit identifier (track_id via race_to_track); L0-1 cohort key and predictions output column
         data_type: varchar
         constraints:
           - type: not_null
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_circuits')
+                field: circuit_key
       - name: driver_id
         description: FastF1 three-letter driver code
         data_type: varchar
         constraints:
           - type: not_null
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: constructor_id
         description: Team name
         data_type: varchar
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: lap_number
         description: Lap number within race
         data_type: integer
@@ -211,6 +250,11 @@ models:
       - name: compound
         description: Tyre compound (SOFT, MEDIUM, HARD, etc.)
         data_type: varchar
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: compound_grip_peak
         description: Fitted peak grip coefficient for this compound × circuit × season
         data_type: double
@@ -279,38 +323,28 @@ models:
           the lap's air state is unmeasured (FD6 / CO-04), as dirty_air_share_lap.
         data_type: varchar
       # ── Proximity, from the position channel ────────────────────
-      # Present in the mart, deliberately not yet in the ML feature contract --
-      # the contract moves only if the ablation earns it. The five share/time
-      # columns are not_null (zeroed at source on neutralised laps and on the
-      # 1.22% of laps with no position telemetry); the four gap/identity
-      # columns are nullable on purpose, because NULL there means "no car
-      # within a full lap" and defaulting it would invent a car that was not
-      # there.
+      # In the ML feature contract (ml/src/schema.py FEATURE_GROUPS['proximity']),
+      # admitted on the proximity add-ablation. The five share/time columns are
+      # zeroed at source on neutralised laps and NULL on a lap with no position
+      # telemetry: unmeasured, not "no car near" (CO-21, the CO-04 ruling for
+      # the dirty-air block). The four gap/identity columns are nullable for a
+      # different reason: NULL there means "no car within a full lap", and
+      # defaulting it would invent a car that was not there.
       - name: share_lap_within_1s
-        description: Share of the lap's 100 track bins with a car within 1 s ahead on track (position channel; mean 0.2011)
+        description: Share of the lap's 100 track bins with a car within 1 s ahead on track (position channel; mean 0.2011). NULL on a lap with no position telemetry (CO-21)
         data_type: double
-        constraints:
-          - type: not_null
       - name: share_lap_within_2s
-        description: Share of the lap's track bins with a car within 2 s ahead on track (mean 0.4063)
+        description: Share of the lap's track bins with a car within 2 s ahead on track (mean 0.4063). NULL on a lap with no position telemetry (CO-21)
         data_type: double
-        constraints:
-          - type: not_null
       - name: share_lap_in_train
-        description: Share of the lap in a train rather than a single tow - within 1 s of the car ahead AND that car within 1 s of its own car ahead (mean 0.0800)
+        description: Share of the lap in a train rather than a single tow - within 1 s of the car ahead AND that car within 1 s of its own car ahead (mean 0.0800). NULL on a lap with no position telemetry (CO-21)
         data_type: double
-        constraints:
-          - type: not_null
       - name: share_lap_behind_within_1s
-        description: Share of the lap's track bins with a car within 1 s BEHIND. The half of traffic DistanceToDriverAhead structurally cannot see (mean 0.2012)
+        description: Share of the lap's track bins with a car within 1 s BEHIND. The half of traffic DistanceToDriverAhead structurally cannot see (mean 0.2012). NULL on a lap with no position telemetry (CO-21)
         data_type: double
-        constraints:
-          - type: not_null
       - name: time_within_1s
-        description: Seconds of the lap spent within 1 s of the car ahead, time-weighted by real bin duration rather than counted in bins (mean 18.36 s)
+        description: Seconds of the lap spent within 1 s of the car ahead, time-weighted by real bin duration rather than counted in bins (mean 18.36 s). NULL on a lap with no position telemetry (CO-21)
         data_type: double
-        constraints:
-          - type: not_null
       - name: gap_ahead_min_s
         description: Closest the car ahead on track came this lap (s). NULL = a full lap of clear air; median 0.92 s
         data_type: double
@@ -718,10 +752,20 @@ models:
         tests: [not_null, unique]
       - name: driver_id
         description: FastF1 three-letter driver code (e.g. VER, HAM).
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: race_id
         description: Race identifier (numeric FastF1 event id cast to string).
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_year
         description: Season year.
         tests: [not_null]
@@ -735,6 +779,11 @@ models:
                 max_value: 100
       - name: compound
         description: Tyre compound for this stint
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: starting_tyre_age_laps
         description: Tyre age at the start of this stint (before first lap)
       - name: cumulative_thermal_load_end
@@ -1044,9 +1093,29 @@ models:
         tests: [not_null]
       - name: driver_id
         description: FastF1 three-letter driver code (e.g. VER, HAM)
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: constructor_id
-        description: Driver's team for the season (ANY_VALUE may vary for mid-season changes)
+        description: >
+          The driver's primary team for the season: the team with the most corner cells, ties
+          to the team of the later race (CO-29). A label only; the skill numbers match the LORO
+          car baseline on the per-race team. constructors_driven lists every team the driver
+          raced for that season.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
+      - name: constructors_driven
+        description: >
+          Every team the driver raced for that season, comma-separated in the order they first
+          drove it (e.g. 'Toro Rosso, Red Bull Racing' for ALB 2019). Equal to constructor_id
+          for a driver who stayed with one team.
         tests: [not_null]
       - name: braking_skill_s
         description: >
@@ -1169,7 +1238,12 @@ models:
     columns:
       - name: circuit_id
         description: Physical circuit identifier (slug of circuit_name).
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_circuits')
+                field: circuit_id
       - name: circuit_name
         description: Canonical display name for the circuit.
         tests: [not_null]
@@ -1182,7 +1256,14 @@ models:
                 values: ['pre2022', 'post2022']
       - name: compound
         description: Tyre compound code, or '_all' for the cross-compound rollup.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
+              config:
+                where: "compound <> '_all'"
       - name: lap_in_stint
         description: Lap number within the stint (1-based).
         tests:
@@ -1251,7 +1332,8 @@ models:
     description: >
       Race-level event dimension. One row per event (damage, retirement, penalty).
       Currently populated from the raw_dim_events seed (manual entries for 2021).
-      Joined onto fct_lap_residuals to flag performance-impact and reliability-impact events.
+      No dbt model refs it today; it is published as a parquet for the app. It is not joined onto
+      fct_lap_residuals or int_lap_anomaly_flags.
     tags: [marts]
     meta:
       family: marts
@@ -1270,6 +1352,10 @@ models:
           - dbt_expectations.expect_column_values_to_match_regex:
               arguments:
                 regex: '^[0-9]{4}_[0-9]+$'
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
 
   - name: fct_lap_residuals
     description: >
@@ -1299,16 +1385,28 @@ models:
         data_type: varchar
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: Driver identifier.
         data_type: varchar
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: constructor_id
         description: Constructor identifier.
         data_type: varchar
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: lap_number
         description: Lap number within the race.
         data_type: integer
@@ -1328,6 +1426,10 @@ models:
                 values: ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
               config:
                 where: "compound IS NOT NULL"
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: fuel_component_s
         description: Fuel-burnoff weight penalty component.
         data_type: double
@@ -1406,10 +1508,13 @@ models:
     description: >
       Driver-vs-teammate corner-metric deltas. Grain: one row per
       (race_id, driver_a, driver_b, corner_name, lap_number) for each teammate
-      pair (driver_a < driver_b) within a race, the per-corner difference in braking
-      point, minimum corner speed, and throttle-application point. Built by joining
-      int_corner_metrics to itself across same-car teammates. Exported to the app's
-      data bundle but has no current app feature consumer.
+      pair (same constructor_id in that race, driver_a < driver_b), the per-corner
+      difference in braking point, minimum corner speed, and throttle-application
+      point. Built by FULL OUTER joining the two teammates' int_corner_metrics on
+      corner and lap, so a corner either driver measured has a row; a delta is NULL
+      where either side is missing, never 0 (CO-22; before it, every driver in the
+      race was paired with every other and unmatched corners were written as 0).
+      Exported to the app's data bundle but has no current app feature consumer.
     tags: [marts]
     meta:
       family: marts
@@ -1418,6 +1523,10 @@ models:
         description: Race identifier.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_a
         description: First driver of the teammate pair (lexicographically smaller id).
         tests:
@@ -1439,17 +1548,19 @@ models:
         tests:
           - not_null
       - name: braking_point_delta_m
-        description: driver_a − driver_b braking point (metres). Positive = driver_a brakes later.
-        tests:
-          - not_null
+        description: >
+          driver_a − driver_b braking point (metres). Positive = driver_a brakes later.
+          NULL when either side is missing or has no braking point (corner taken flat);
+          never 0-filled (CO-22, assert_telemetry_deltas_null_when_side_missing).
       - name: v_min_delta_kph
-        description: driver_a − driver_b minimum corner speed (kph). Positive = driver_a carries more speed.
-        tests:
-          - not_null
+        description: >
+          driver_a − driver_b minimum corner speed (kph). Positive = driver_a carries more
+          speed. NULL when either side is missing; never 0-filled (CO-22).
       - name: throttle_point_delta_m
-        description: driver_a − driver_b throttle-application point (metres). Positive = driver_a gets on power later.
-        tests:
-          - not_null
+        description: >
+          driver_a − driver_b throttle-application point (metres). Positive = driver_a gets
+          on power later. NULL when either side is missing or never reaches full throttle;
+          never 0-filled (CO-22).
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -1498,6 +1609,10 @@ models:
           FastF1 event id, e.g. 2021_8.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: lap_number
         description: >
           Race lap number. Tiers 1 and 3 match cars on it, which is why 2020_1 is excluded
@@ -1509,12 +1624,20 @@ models:
           Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: driver_id
         description: >
           Driver (three-letter code). In the pair mart, the focal driver whose gains the row
           reports.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: peer_driver_id
         description: >
           The peer driver.
@@ -1525,6 +1648,10 @@ models:
           Constructor (stg_laps.constructor_id).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: peer_constructor_id
         description: >
           The peer's constructor.
@@ -1661,17 +1788,29 @@ models:
           FastF1 event id, e.g. 2021_8.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: >
           Driver (three-letter code). In the pair mart, the focal driver whose gains the row
           reports.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: constructor_id
         description: >
           Constructor (stg_laps.constructor_id).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: stint_number
         description: >
           Stint ordinal within the driver's race (int_stint_geometry).
@@ -1686,6 +1825,10 @@ models:
           Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: age_in_stint
         description: >
           Tyre age in laps (int_stint_geometry).
@@ -1974,17 +2117,29 @@ models:
           FastF1 event id, e.g. 2021_8.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: >
           Driver (three-letter code). In the pair mart, the focal driver whose gains the row
           reports.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: constructor_id
         description: >
           Constructor (stg_laps.constructor_id).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: stint_number
         description: >
           Stint ordinal within the driver's race (int_stint_geometry).
@@ -1993,6 +2148,10 @@ models:
           Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: era
         description: >
           Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
@@ -2181,17 +2340,29 @@ models:
           FastF1 event id, e.g. 2021_8.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: >
           Driver (three-letter code). In the pair mart, the focal driver whose gains the row
           reports.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: constructor_id
         description: >
           Constructor (stg_laps.constructor_id).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: era
         description: >
           Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
@@ -2400,7 +2571,12 @@ models:
     columns:
       - name: driver_id
         description: FastF1 three-letter driver code (e.g. VER, HAM).
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: race_year
         description: Season year.
         tests: [not_null]
@@ -2453,7 +2629,12 @@ models:
           Seconds, negative = faster than the teammate. NULL when teammate_id is NULL.
       - name: constructor_id
         description: Primary constructor for the season (most clean laps).
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: constructor_rank
         description: Season rank of the constructor's mean constructor_component_s; 1 = fastest car.
       - name: mean_fuel_component_s
@@ -2537,15 +2718,30 @@ models:
     columns:
       - name: driver_id
         description: FastF1 three-letter driver code (e.g. VER, HAM).
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: race_id
         description: Race identifier.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_year
         description: Season year.
         tests: [not_null]
       - name: circuit_id
         description: Physical circuit identifier from dim_circuits.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_circuits')
+                field: circuit_id
       - name: rating_s
         description: Race rating (driver_skill_loro_s), seconds. Negative = faster than the teammate.
         tests: [not_null]
@@ -2577,7 +2773,12 @@ models:
           teammate. NULL when teammate_id is NULL.
       - name: constructor_id
         description: Constructor for the race.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: constructor_rank
         description: Race rank of the constructor's mean constructor_component_s; 1 = fastest car.
       - name: mean_fuel_component_s

@@ -1859,7 +1859,9 @@
       "clears_when": "The diff is reviewed and ingestion/tests pass and the change is kept, or the changes are discarded (git checkout on the modified paths plus deleting the four new files; destructive, the user's call).",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-23",
+      "resolution": "Kept. The work was committed in a9fe181 (2026-09-25), not left in the working tree. Diff read in full (AI-integration CO-05): no bronze layout change, verdict SAFE WITH NOTED GAPS, accepted by the owner; KNOWN_THIN exceptions 2022_7 R and 2022_11 R added in ingestion/src/bronze_checks.py (cause at source unchecked; thin-load calibration not verified beyond those two). Stale test corrected to MARKDOWN_SEASONS 2018-2025. Tests re-run 2026-10-23 with the project venv: test_bronze_verification.py + test_ingest_hardening.py 57 passed; ingestion/tests 139 passed. Cleared on the owner's instruction via CO-05."
     },
     {
       "id": "W5",

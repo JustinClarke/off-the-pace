@@ -45,15 +45,8 @@ interface StintParams {
   season: number
 }
 
-/** Loads compound profiles for a full season (for the race/compound selector UI) */
-export const queryCompoundProfiles = registerQuery<SeasonParams, CompoundProfileRow[]>(
-  'tyre-cliff-survival.profiles',
-  async ({ season }) => {
-    const manifest = await loadManifest()
-    const path = getTablePath(manifest, 'dim_compounds_season')
-    await registerParquet('dim_compounds_season', path)
-
-    return rawQuery<CompoundProfileRow>(`
+/** SQL for the compound profiles of a season (circuit_key is a circuit name such as australian_grand_prix) */
+export const PROFILES_SQL = `
       SELECT
         circuit_key,
         compound_code,
@@ -71,7 +64,30 @@ export const queryCompoundProfiles = registerQuery<SeasonParams, CompoundProfile
       WHERE season = ?
         AND compound_code NOT IN ('INTERMEDIATE', 'WET')
       ORDER BY circuit_key, compound_code
-    `, [season])
+    `
+
+/** SQL for the circuit a race is held at: race_to_track.track_id is dim_circuits.circuit_key, the key dim_compounds_season.circuit_key uses. */
+export const RACE_TRACK_SQL = `SELECT track_id FROM race_to_track WHERE race_id = ?`
+
+/** Loads the circuit key (track_id) for a race id such as 2023_1 */
+export const queryRaceTrack = registerQuery<{ race_id: string }, { track_id: string }[]>(
+  'tyre-cliff-survival.race-track',
+  async ({ race_id }) => {
+    const manifest = await loadManifest()
+    await registerParquet('race_to_track', getTablePath(manifest, 'race_to_track'))
+    return rawQuery<{ track_id: string }>(RACE_TRACK_SQL, [race_id])
+  }
+)
+
+/** Loads compound profiles for a full season (for the race/compound selector UI) */
+export const queryCompoundProfiles = registerQuery<SeasonParams, CompoundProfileRow[]>(
+  'tyre-cliff-survival.profiles',
+  async ({ season }) => {
+    const manifest = await loadManifest()
+    const path = getTablePath(manifest, 'dim_compounds_season')
+    await registerParquet('dim_compounds_season', path)
+
+    return rawQuery<CompoundProfileRow>(PROFILES_SQL, [season])
   }
 )
 

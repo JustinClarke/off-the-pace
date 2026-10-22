@@ -3,10 +3,14 @@ selectors:
     description: "Staging and reference only  -  runs in ~2 min on CI fixtures"
     definition:
       union:
+        # cautious: a test runs here only if every model it refs is selected, so a
+        # relationships test on a mart (parent: a staging/reference dim) waits for Gate 1b.
         - method: path
           value: models/staging
+          indirect_selection: cautious
         - method: path
           value: models/reference
+          indirect_selection: cautious
         - exclude:
             - method: tag
               value: intermediate

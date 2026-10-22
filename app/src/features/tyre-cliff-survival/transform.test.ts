@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeKM, parseNStints, transform } from './transform'
+import { computeKM, findProfile, parseNStints, transform } from './transform'
 import type { StintSummaryRow } from './queries'
 
 const makeStint = (overrides: Partial<StintSummaryRow>): StintSummaryRow => ({
@@ -113,7 +113,7 @@ describe('transform', () => {
 
   it('maps profile metadata onto result', () => {
     const profile = {
-      circuit_key: '2023_1',
+      circuit_key: 'australian_grand_prix',
       compound_code: 'SOFT',
       season: 2023,
       compound_cliff_onset_laps: 18,
@@ -144,5 +144,29 @@ describe('transform', () => {
     expect(result.stintObservations).toHaveLength(2)
     expect(result.stintObservations[0]).toMatchObject({ endLap: 18, cliffed: true, degradation_s: 1.2, driver_id: 'VER' })
     expect(result.stintObservations[1]).toMatchObject({ endLap: 22, cliffed: false, degradation_s: 0.9, driver_id: 'HAM' })
+  })
+})
+
+describe('findProfile', () => {
+  const row = (circuit_key: string, compound_code: string) => ({
+    circuit_key, compound_code, season: 2023,
+    compound_cliff_onset_laps: 18, compound_cliff_severity: 0.86, compound_wear_gradient: 0.07,
+    compound_grip_peak: null, compound_optimal_temp_low: null, compound_optimal_temp_high: null,
+    fit_date: null, data_window: null, notes: null,
+  })
+  const profiles = [row('australian_grand_prix', 'SOFT'), row('bahrain_grand_prix', 'SOFT')]
+
+  it('matches on the circuit the race is held at', () => {
+    expect(findProfile(profiles, 'bahrain_grand_prix', 'SOFT')?.circuit_key).toBe('bahrain_grand_prix')
+  })
+
+  it('does not treat a race id as a circuit key', () => {
+    expect(findProfile(profiles, '2023_1', 'SOFT')).toBeNull()
+  })
+
+  it('is null when circuit, compound or profiles are missing', () => {
+    expect(findProfile(profiles, null, 'SOFT')).toBeNull()
+    expect(findProfile(profiles, 'bahrain_grand_prix', 'HARD')).toBeNull()
+    expect(findProfile(undefined, 'bahrain_grand_prix', 'SOFT')).toBeNull()
   })
 })

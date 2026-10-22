@@ -33,15 +33,16 @@ flowchart LR
 | Upstream | [`stg_laps`](../stg/stg_laps), [`int_event_corrections`](../int/int_event_corrections), [`int_track_evolution`](../int/int_track_evolution), [`int_corner_skill_residuals`](../int/int_corner_skill_residuals) |
 | Model-level tests | `unique_combination_of_columns` |
 
-**25 tests** [guard](/transform/ci/overview) this model  -  22 generic, 3 singular.
+**28 tests** [guard](/transform/ci/overview) this model  -  25 generic, 3 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code (e.g. VER, HAM) |
-| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | Driver's team for the season (ANY_VALUE may vary for mid-season changes) |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code (e.g. VER, HAM) |
+| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | The driver's primary team for the season: the team with the most corner cells, ties to the team of the later race (CO-29). A label only; the skill numbers match the LORO car baseline on the per-race team. constructors_driven lists every team the driver raced for that season. |
+| `constructors_driven` |   | Yes | [`not_null`](/transform/ci/structural) | Every team the driver raced for that season, comma-separated in the order they first drove it (e.g. 'Toro Rosso, Red Bull Racing' for ALB 2019). Equal to constructor_id for a driver who stayed with one team. |
 | `braking_skill_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Mean winsorized LORO-adjusted braking-phase residual (seconds). Negative = faster than the equal-car benchmark, i.e. braking LATER than the same-car reference. Bounded to [-1, 1] by the cell winsorization (convexity of the mean). 00d flipped this column's sign at the source; a pre-2026-09-20 value of +0.0745 for VER 2024 is now -0.0745. |
 | `mid_corner_skill_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Mean winsorized LORO-adjusted mid-corner residual (seconds). Negative = faster. |
 | `exit_skill_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Mean winsorized LORO-adjusted exit-phase residual (seconds). Negative = faster. |

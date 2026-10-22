@@ -28,7 +28,7 @@ flowchart LR
 | Contract enforced | No |
 | Model-level tests | `unique_combination_of_columns` |
 
-**8 tests** [guard](/transform/ci/overview) this model  -  6 generic, 2 singular.
+**9 tests** [guard](/transform/ci/overview) this model  -  7 generic, 2 singular.
 
 ## Columns
 
@@ -36,7 +36,7 @@ flowchart LR
 |---|---|---|---|---|
 | `track_status_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate key   &#123;race_id&#125;_&#123;session_time_s&#125;_&#123;status_code&#125;. |
 | `race_year` | `integer` | Yes |   | Season year. |
-| `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Numeric FastF1 event id cast to string; matches stg_laps.race_id. |
+| `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | Numeric FastF1 event id cast to string; matches stg_laps.race_id. |
 | `race_slug` | `varchar` | Yes |   | Human-readable event name. |
 | `session_time_s` | `double` | Yes | [`not_null`](/transform/ci/structural) | Session clock (s) at which the status changed. |
 | `status_code` | `varchar` | Yes |   | Raw FastF1 numeric status code as a string. |

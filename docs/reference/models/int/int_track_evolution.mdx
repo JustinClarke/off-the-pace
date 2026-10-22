@@ -35,12 +35,12 @@ flowchart LR
 | Upstream | [`int_field_pace_curve`](./int_field_pace_curve), [`stg_weather`](../stg/stg_weather) |
 | Model-level tests | `unique_combination_of_columns` |
 
-**6 tests** [guard](/transform/ci/overview) this model  -  4 generic, 2 singular.
+**7 tests** [guard](/transform/ci/overview) this model  -  5 generic, 2 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Race year |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | Race identifier |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Race identifier |
 | `lap_number` |   | Yes | [`not_null`](/transform/ci/structural) | Lap number within race |

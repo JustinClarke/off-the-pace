@@ -29,7 +29,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`stg_laps`](./stg_laps) |
 
-**4 tests** [guard](/transform/ci/overview) this model  -  4 generic, 0 singular.
+**6 tests** [guard](/transform/ci/overview) this model  -  6 generic, 0 singular.
 
 ## Columns
 
@@ -38,8 +38,8 @@ flowchart LR
 | `sector_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate key   &#123;lap_id&#125;_S&#123;sector&#125;. |
 | `lap_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Foreign key to stg_laps. |
 | `race_year` | `integer` | Yes |   | Season year. |
-| `race_id` | `varchar` | Yes |   | Numeric FastF1 event id cast to string. |
-| `driver_id` | `varchar` | Yes |   | FastF1 three-letter driver code. |
+| `race_id` | `varchar` | Yes | `relationships` | Numeric FastF1 event id cast to string. |
+| `driver_id` | `varchar` | Yes | `relationships` | FastF1 three-letter driver code. |
 | `lap_number` | `integer` | Yes |   | Lap index within the race. |
 | `sector` | `integer` | Yes | [`accepted_values`](/transform/ci/range-and-domain) | Sector number (1, 2 or 3). |
 | `sector_time_s` | `double` | Yes |   | Time spent in the sector (seconds). |

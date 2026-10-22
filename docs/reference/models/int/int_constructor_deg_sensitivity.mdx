@@ -31,7 +31,7 @@ flowchart LR
 | Tags | `causal_decomposition`, `constructor`, `degradation` |
 | Upstream | [`int_lap_residual_decomposed`](./int_lap_residual_decomposed), [`int_compound_cliff_predicted`](./int_compound_cliff_predicted), [`dim_compounds_season`](../dim/dim_compounds_season) |
 
-**28 tests** [guard](/transform/ci/overview) this model  -  25 generic, 3 singular.
+**30 tests** [guard](/transform/ci/overview) this model  -  27 generic, 3 singular.
 
 ## Columns
 
@@ -39,8 +39,8 @@ flowchart LR
 |---|---|---|---|---|
 | `deg_sensitivity_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = race_year \|\| constructor_id \|\| compound |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year (cells are season-scoped; no cross-season pooling) |
-| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor identifier |
-| `compound` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Dry tyre compound the slope is estimated for |
+| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Constructor identifier |
+| `compound` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain), `relationships` | Dry tyre compound the slope is estimated for |
 | `deg_slope_s_per_lap` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Production value: EB-shrunk deviation from the field-mean within-stint slope, in s/lap per lap of tyre age. Positive = degrades faster than field. 0.0 for low-sample cells. 2024 reference range: ~±0.025 s/lap on HARD, ~±0.08 on SOFT. |
 | `deg_slope_raw_s_per_lap` |   | Yes | [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Uncentred within-stint FE slope (diagnostic). Uniformly negative (~ -0.08 s/lap in 2024) because a common residual fuel under-correction survives the decomposition; the common part cancels in field-centring and in the (host - ego) recombination difference. |
 | `field_mean_slope_s_per_lap` |   | Yes |   | Precision-weighted mean raw slope per (race_year, compound); the centring constant. |

@@ -28,15 +28,15 @@ flowchart LR
 | Tags | `driver_rating`, `driver_affinity` |
 | Upstream | [`int_driver_race_skill_loro`](./int_driver_race_skill_loro) |
 
-**19 tests** [guard](/transform/ci/overview) this model  -  17 generic, 2 singular.
+**21 tests** [guard](/transform/ci/overview) this model  -  19 generic, 2 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `driver_circuit_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = hash(driver_id, circuit_id) |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | Driver identifier |
-| `circuit_id` |   | Yes | [`not_null`](/transform/ci/structural) | Physical-circuit identifier (slug of circuit_name). Collapses event-slug aliases (renamed events, double-headers) onto one venue. |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Driver identifier |
+| `circuit_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Physical-circuit identifier (slug of circuit_name). Collapses event-slug aliases (renamed events, double-headers) onto one venue. |
 | `circuit_name` |   | Yes | [`not_null`](/transform/ci/structural) | Canonical circuit display name for this circuit_id. |
 | `n_obs` |   | Yes | [`not_null`](/transform/ci/structural) | Number of race-residual observations backing this estimate |
 | `seasons_observed_n` |   | Yes | [`not_null`](/transform/ci/structural) | Count of distinct seasons the driver raced at this circuit |

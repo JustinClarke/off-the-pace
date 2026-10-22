@@ -27,7 +27,7 @@ flowchart LR
 | Contract enforced | No |
 | Tags | `driver_isolation`, `constructor` |
 
-**9 tests** [guard](/transform/ci/overview) this model  -  9 generic, 0 singular.
+**11 tests** [guard](/transform/ci/overview) this model  -  11 generic, 0 singular.
 
 ## Columns
 
@@ -35,8 +35,8 @@ flowchart LR
 |---|---|---|---|---|
 | `constructor_car_fe_isolation_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = race_year_raceid_constructorid. |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season. |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | FastF1 event id, e.g. 2021_8. |
-| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural) | Constructor (stg_laps.constructor_id). |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 event id, e.g. 2021_8. |
+| `constructor_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Constructor (stg_laps.constructor_id). |
 | `era` |   | Yes | [`not_null`](/transform/ci/structural) | Regulation era: pre&lt;era_boundary&gt; or post&lt;era_boundary&gt; (var era_boundary, 2022). |
 | `n_laps` |   | Yes | [`not_null`](/transform/ci/structural) | Ω laps of this constructor in the race: the re-centring weight. |
 | `car_fe_raw_s` |   | Yes |   | The fitted constructor×race FE before re-centring, s on the y_s scale; NULL when not identified. |

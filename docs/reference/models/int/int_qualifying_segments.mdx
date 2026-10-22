@@ -31,7 +31,7 @@ flowchart LR
 | Tags | `simulation`, `qualifying` |
 | Upstream | [`stg_session_status_qualifying`](../stg/stg_session_status_qualifying), [`stg_results_qualifying`](../stg/stg_results_qualifying), [`stg_laps_qualifying`](../stg/stg_laps_qualifying) |
 
-**8 tests** [guard](/transform/ci/overview) this model  -  8 generic, 0 singular.
+**9 tests** [guard](/transform/ci/overview) this model  -  9 generic, 0 singular.
 
 ## Columns
 
@@ -39,7 +39,7 @@ flowchart LR
 |---|---|---|---|---|
 | `quali_segment_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = concat(race_id, '_Q', segment_index). |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year. |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural) | Numeric FastF1 event id; matches stg_laps_qualifying.race_id. |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Numeric FastF1 event id; matches stg_laps_qualifying.race_id. |
 | `quali_segment` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Segment label   'Q1', 'Q2' or 'Q3'. |
 | `segment_index` |   | Yes | [`not_null`](/transform/ci/structural) | 1 for Q1, 2 for Q2, 3 for Q3. |
 | `segment_start_s` |   | Yes | [`not_null`](/transform/ci/structural) | Session clock (s) at the segment's green light. |

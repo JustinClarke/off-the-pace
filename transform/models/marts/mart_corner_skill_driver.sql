@@ -222,6 +222,36 @@ deconf_corner AS (
         OR loro_exit_s IS NOT NULL
 ),
 
+-- One row per (season, driver, team): the driver's cells in that car, and the
+-- round of the first and last race they were in it.
+driver_season_team AS (
+    SELECT
+        race_year,
+        driver_id,
+        constructor_id,
+        COUNT(*) AS n_cells,
+        MIN(CAST(SPLIT_PART(race_id, '_', 2) AS INTEGER)) AS first_round,
+        MAX(CAST(SPLIT_PART(race_id, '_', 2) AS INTEGER)) AS last_round
+    FROM deconf_corner
+    GROUP BY race_year, driver_id, constructor_id
+),
+
+-- One primary team per driver-season (CO-29): the team with the most cells,
+-- ties to the team of the later race. constructors_driven lists every team the
+-- driver raced for that season in the order they first drove it, so a
+-- mid-season move stays visible. The skill numbers do not use this label: the
+-- LORO car baseline above is matched on the per-race constructor.
+driver_season_teams AS (
+    SELECT
+        race_year,
+        driver_id,
+        ARG_MAX(constructor_id, [n_cells, last_round]) AS constructor_id,
+        STRING_AGG(constructor_id, ', ' ORDER BY first_round)
+            AS constructors_driven
+    FROM driver_season_team
+    GROUP BY race_year, driver_id
+),
+
 -- Season-driver aggregates: mean LORO-adjusted skill (of winsorized cells)
 -- across all corners and races, plus per-phase cell counts and standard
 -- errors. Require ≥ 100 mapped corners for reliability (same guard as the
@@ -231,7 +261,6 @@ driver_season AS (
     SELECT
         race_year,
         driver_id,
-        STRING_AGG(DISTINCT constructor_id, ', ') AS constructor_id,
         AVG(deconf_braking_s) AS braking_skill_s,
         AVG(deconf_mid_s) AS mid_corner_skill_s,
         AVG(deconf_exit_s) AS exit_skill_s,
@@ -260,7 +289,6 @@ standardized AS (
     SELECT
         race_year,
         driver_id,
-        constructor_id,
         braking_skill_s,
         mid_corner_skill_s,
         exit_skill_s,
@@ -301,23 +329,28 @@ standardized AS (
 )
 
 SELECT
-    race_year,
-    driver_id,
-    constructor_id,
-    ROUND(braking_skill_s, 4) AS braking_skill_s,
-    ROUND(mid_corner_skill_s, 4) AS mid_corner_skill_s,
-    ROUND(exit_skill_s, 4) AS exit_skill_s,
-    ROUND(braking_skill_se_s, 4) AS braking_skill_se_s,
-    ROUND(mid_corner_skill_se_s, 4) AS mid_corner_skill_se_s,
-    ROUND(exit_skill_se_s, 4) AS exit_skill_se_s,
-    ROUND(braking_skill_z, 2) AS braking_skill_z,
-    ROUND(mid_corner_skill_z, 2) AS mid_corner_skill_z,
-    ROUND(exit_skill_z, 2) AS exit_skill_z,
-    ROUND(braking_skill_z + mid_corner_skill_z + exit_skill_z, 2)
+    s.race_year,
+    s.driver_id,
+    t.constructor_id,
+    t.constructors_driven,
+    ROUND(s.braking_skill_s, 4) AS braking_skill_s,
+    ROUND(s.mid_corner_skill_s, 4) AS mid_corner_skill_s,
+    ROUND(s.exit_skill_s, 4) AS exit_skill_s,
+    ROUND(s.braking_skill_se_s, 4) AS braking_skill_se_s,
+    ROUND(s.mid_corner_skill_se_s, 4) AS mid_corner_skill_se_s,
+    ROUND(s.exit_skill_se_s, 4) AS exit_skill_se_s,
+    ROUND(s.braking_skill_z, 2) AS braking_skill_z,
+    ROUND(s.mid_corner_skill_z, 2) AS mid_corner_skill_z,
+    ROUND(s.exit_skill_z, 2) AS exit_skill_z,
+    ROUND(s.braking_skill_z + s.mid_corner_skill_z + s.exit_skill_z, 2)
         AS corner_skill_index,
-    braking_cells_n,
-    mid_cells_n,
-    exit_cells_n,
-    mapped_corners
-FROM standardized
-ORDER BY race_year ASC, corner_skill_index ASC
+    s.braking_cells_n,
+    s.mid_cells_n,
+    s.exit_cells_n,
+    s.mapped_corners
+FROM standardized AS s
+INNER JOIN driver_season_teams AS t
+    ON
+        s.race_year = t.race_year
+        AND s.driver_id = t.driver_id
+ORDER BY s.race_year ASC, corner_skill_index ASC

@@ -29,14 +29,14 @@ flowchart LR
 | Tags | `driver_rating`, `era_rating` |
 | Upstream | [`int_driver_season_ratings`](./int_driver_season_ratings) |
 
-**17 tests** [guard](/transform/ci/overview) this model  -  15 generic, 2 singular.
+**18 tests** [guard](/transform/ci/overview) this model  -  16 generic, 2 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `driver_season_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = hash(driver_id, season). Matches int_driver_season_ratings. |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | Driver identifier |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Driver identifier |
 | `season` |   | Yes | [`not_null`](/transform/ci/structural) | Race year (integer) |
 | `raw_residual_mean_s` |   | Yes | [`not_null`](/transform/ci/structural) | Unadjusted season mean. Not era-adjusted. |
 | `shrunk_residual_s` |   | Yes | [`not_null`](/transform/ci/structural) | Bayesian posterior mean (season shrinkage applied, no era offset). |

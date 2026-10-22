@@ -399,22 +399,21 @@ base AS (
         ai.dirty_air_thermal_load_bulk,
         ai.air_state_dominant,
 
-        -- Proximity predictors (position channel).
-        -- The three share_* / time_* columns are already zeroed on
-        -- neutralised laps at source and COALESCE only covers the 1.22% of
-        -- laps with no position telemetry. (The dirty-air block above used to
-        -- do the same; since CO-04 it keeps an unmeasured lap NULL instead.
-        -- This block is not in the ML contract and was left as it was.) The
-        -- gap_* and identity columns are deliberately NOT coalesced: NULL there
-        -- means "no car within a full lap", which is free air, and XGBoost
-        -- reads it natively. Defaulting them to a number would invent a car
-        -- that was not there.
-        COALESCE(px.share_lap_within_1s, 0.0) AS share_lap_within_1s,
-        COALESCE(px.share_lap_within_2s, 0.0) AS share_lap_within_2s,
-        COALESCE(px.share_lap_in_train, 0.0) AS share_lap_in_train,
-        COALESCE(px.share_lap_behind_within_1s, 0.0)
-            AS share_lap_behind_within_1s,
-        COALESCE(px.time_within_1s, 0.0) AS time_within_1s,
+        -- Proximity predictors (position channel). In the ML feature
+        -- contract (ml/src/schema.py FEATURE_GROUPS['proximity']).
+        -- The five share_* / time_* columns pass through uncoalesced: they
+        -- are zeroed on neutralised laps at source and NULL on a lap with no
+        -- position telemetry, which XGBoost reads as missing. Since CO-21 an
+        -- unmeasured lap is no longer filled with 0.0 ("no car near"), on the
+        -- same ruling CO-04 applied to the dirty-air block above. The gap_*
+        -- and identity columns are NULL for a different reason: "no car
+        -- within a full lap", which is free air. Defaulting either to a
+        -- number would invent a reading that was never taken.
+        px.share_lap_within_1s,
+        px.share_lap_within_2s,
+        px.share_lap_in_train,
+        px.share_lap_behind_within_1s,
+        px.time_within_1s,
         px.gap_ahead_min_s,
         px.gap_ahead_median_s,
         px.ahead_identity_stability,

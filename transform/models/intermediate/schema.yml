@@ -115,12 +115,27 @@ models:
           This column is deliberately NOT in FEATURE_COLUMNS. Nothing published may rest on
           it until 08d's archival re-source lands. See
           _improvements/work/08-foundations-repair.md (08d, 08p).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('compound_hardness_scale')
+                field: compound_code
       - name: race_year
         description: Season year.
       - name: race_id
         description: Race identifier.
+        tests:
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code (e.g. VER, HAM).
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
 
   - name: int_stint_end_regime
     description: >
@@ -146,10 +161,20 @@ models:
         tests: [not_null]
       - name: race_id
         description: Race identifier (numeric FastF1 event id cast to string).
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code (e.g. VER, HAM).
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: stint_number
         description: >
           Stint ordinal within the driver's race. NULL for stints built from laps
@@ -405,9 +430,14 @@ models:
           Share of the lap's track bins with a car within 1 s ahead. Mean
           0.2011. Zeroed on SC/VSC/red-flag laps for the same reason
           int_lap_air_state zeroes its dirty-air terms - the field bunches at
-          a pace that generates no aero load.
+          a pace that generates no aero load. NULL on a lap with no position
+          telemetry (proximity_bin_count IS NULL) that is not neutralised:
+          unmeasured, not "no car near" (CO-21). The same holds for
+          share_lap_within_2s/3s, time_within_1s and share_lap_behind_within_1s.
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "proximity_bin_count IS NOT NULL"
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
@@ -418,8 +448,11 @@ models:
           1 s of the car ahead AND that car within 1 s of the car ahead of it.
           Mean 0.0800. Must never exceed share_lap_within_1s, which is its own
           first conjunct - asserted by assert_proximity_train_subset_of_within1s.
+          NULL on an unmeasured, non-neutralised lap, as share_lap_within_1s (CO-21).
         tests:
-          - not_null
+          - not_null:
+              config:
+                where: "proximity_bin_count IS NOT NULL"
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: 0
@@ -649,13 +682,23 @@ models:
     columns:
       - name: driver_id
         description: FastF1 three-letter driver code.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: lap_number
         description: Lap number within the race.
         tests: [not_null]
       - name: race_id
         description: Numeric FastF1 event id.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: race_year
         description: Season year.
         tests: [not_null]
@@ -846,7 +889,12 @@ models:
         tests: [not_null]
       - name: race_id
         description: Race identifier
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: lap_number
         description: Lap number within race
         tests: [not_null]
@@ -916,7 +964,12 @@ models:
         tests: [not_null]
       - name: race_id
         description: Race identifier
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: lap_number
         description: Lap number within race
         tests: [not_null]
@@ -939,7 +992,12 @@ models:
         tests: [not_null]
       - name: race_id
         description: Race identifier
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: ego_driver_id
         description: The driver for whom we synthesize a teammate
         tests: [not_null]
@@ -976,10 +1034,20 @@ models:
         tests: [not_null]
       - name: race_id
         description: Race identifier.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: lap_number
         description: Lap number within the race.
         tests: [not_null]
@@ -1086,10 +1154,20 @@ models:
         tests: [not_null]
       - name: race_id
         description: Race identifier.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: lap_number
         description: Lap number within the race.
         tests: [not_null]
@@ -1117,10 +1195,20 @@ models:
         tests: [not_null]
       - name: race_id
         description: Race identifier (matches int_lap_fuel_state.race_id, e.g. 2018_5)
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: constructor_id
         description: Constructor identifier (stg_laps.constructor_id)
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: car_fe_s
         description: >
           Constructor×race fixed effect in seconds, net of driver skill.
@@ -1166,10 +1254,20 @@ models:
         tests: [not_null]
       - name: race_id
         description: Race identifier
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: constructor_id
         description: Constructor identifier (FK to dim_constructors)
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: constructor_structural_pace_s
         description: >
           Re-centred median pace-delta coefficient in seconds (not yet a fitted fixed effect
@@ -1264,7 +1362,12 @@ models:
         tests: [not_null]
       - name: constructor_id
         description: Constructor identifier
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: compound
         description: Dry tyre compound the slope is estimated for
         tests:
@@ -1272,6 +1375,10 @@ models:
           - accepted_values:
               arguments:
                 values: ['SOFT', 'MEDIUM', 'HARD']
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: deg_slope_s_per_lap
         description: >
           Production value: EB-shrunk deviation from the field-mean within-stint slope, in s/lap
@@ -1884,7 +1991,12 @@ models:
         tests: [not_null]
       - name: race_id
         description: Numeric FastF1 event id; matches stg_laps_qualifying.race_id.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: quali_segment
         description: Segment label   'Q1', 'Q2' or 'Q3'.
         tests:
@@ -1953,10 +2065,20 @@ models:
         tests: [not_null]
       - name: race_id
         description: Numeric FastF1 event id.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: quali_segment
         description: >
           Segment the lap was set in   'Q1', 'Q2' or 'Q3', or 'Q' when the session has no
@@ -2000,10 +2122,20 @@ models:
         tests: [not_null]
       - name: race_id
         description: Race identifier.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: lap_number
         description: Lap number within the race.
         tests: [not_null]
@@ -2210,10 +2342,20 @@ models:
         tests: [not_null]
       - name: race_id
         description: Race identifier.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: FastF1 three-letter driver code.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: quali_push_laps_n
         description: >
           Push laps this driver set across Q1/Q2/Q3 this weekend (COUNT(*) over
@@ -2603,12 +2745,22 @@ models:
         tests: [not_null, unique]
       - name: driver_id
         description: Driver identifier
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: circuit_id
         description: >
           Physical-circuit identifier (slug of circuit_name). Collapses event-slug
           aliases (renamed events, double-headers) onto one venue.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_circuits')
+                field: circuit_id
       - name: circuit_name
         description: Canonical circuit display name for this circuit_id.
         tests: [not_null]
@@ -2695,12 +2847,22 @@ models:
         tests: [not_null, unique]
       - name: driver_id
         description: Driver identifier
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: circuit_id
         description: >
           Physical-circuit identifier (slug of circuit_name). Collapses event-slug
           aliases (renamed events, double-headers) onto one venue.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_circuits')
+                field: circuit_id
       - name: circuit_name
         description: Canonical circuit display name for this circuit_id.
         tests: [not_null]
@@ -2786,13 +2948,23 @@ models:
         tests: [not_null, unique]
       - name: driver_id
         description: Driver identifier
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: race_year
         description: Race year (integer)
         tests: [not_null]
       - name: race_id
         description: Race identifier (numeric)
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_skill_loro_s
         description: >
           Equal-car rating, seconds: the median lap-by-lap gap to the teammate,
@@ -2835,7 +3007,12 @@ models:
         tests: [not_null, unique]
       - name: driver_id
         description: Driver identifier
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: season
         description: Race year (integer)
         tests: [not_null]
@@ -2889,7 +3066,12 @@ models:
         tests: [not_null, unique]
       - name: driver_id
         description: Driver identifier
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: season
         description: Race year (integer)
         tests: [not_null]
@@ -3158,7 +3340,12 @@ models:
           Physical-venue identifier the estimate is pooled on. Several event slugs can share
           one circuit_id (british / 70th_anniversary, brazilian / são_paulo, mexican /
           mexico_city, austrian / styrian) and then carry identical values by construction.
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_circuits')
+                field: circuit_id
       - name: n_stops
         description: Number of clean green-flag pit stops observed at this physical venue.
         tests: [not_null]
@@ -3250,17 +3437,29 @@ models:
           FastF1 event id, e.g. 2021_8.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: >
           Driver (three-letter code). In the pair mart, the focal driver whose gains the row
           reports.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: constructor_id
         description: >
           Constructor (stg_laps.constructor_id).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: stint_number
         description: >
           Stint ordinal within the driver's race (int_stint_geometry).
@@ -3275,6 +3474,10 @@ models:
           Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: age_in_stint
         description: >
           Tyre age in laps (int_stint_geometry).
@@ -3427,11 +3630,19 @@ models:
           FastF1 event id, e.g. 2021_8.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: constructor_id
         description: >
           Constructor (stg_laps.constructor_id).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: era
         description: >
           Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
@@ -3506,17 +3717,29 @@ models:
           FastF1 event id, e.g. 2021_8.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: >
           Driver (three-letter code). In the pair mart, the focal driver whose gains the row
           reports.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: constructor_id
         description: >
           Constructor (stg_laps.constructor_id).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: stint_number
         description: >
           Stint ordinal within the driver's race (int_stint_geometry).
@@ -3531,6 +3754,10 @@ models:
           Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: age_in_stint
         description: >
           Tyre age in laps (int_stint_geometry).
@@ -3662,17 +3889,29 @@ models:
           FastF1 event id, e.g. 2021_8.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: >
           Driver (three-letter code). In the pair mart, the focal driver whose gains the row
           reports.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: constructor_id
         description: >
           Constructor (stg_laps.constructor_id).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: stint_number
         description: >
           Stint ordinal within the driver's race (int_stint_geometry).
@@ -3681,6 +3920,10 @@ models:
           Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: era
         description: >
           Regulation era: pre<era_boundary> or post<era_boundary> (var era_boundary, 2022).
@@ -3772,17 +4015,29 @@ models:
           FastF1 event id, e.g. 2021_8.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: driver_id
         description: >
           Driver (three-letter code). In the pair mart, the focal driver whose gains the row
           reports.
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_drivers')
+                field: driver_id
       - name: constructor_id
         description: >
           Constructor (stg_laps.constructor_id).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
       - name: stint_number
         description: >
           Stint ordinal within the driver's race (int_stint_geometry).
@@ -3797,6 +4052,10 @@ models:
           Dry compound of the stint (INTERMEDIATE and WET laps are not in Ω).
         tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_compounds_season')
+                field: compound_code
       - name: age_in_stint
         description: >
           Tyre age in laps (int_stint_geometry).
@@ -3951,7 +4210,12 @@ models:
       - name: stint_id
         tests: [not_null]
       - name: race_id
-        tests: [not_null]
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
       - name: age_in_stint
         description: Tyre age (tyre life, so a used set starts above 1), 1-50.
         tests:

@@ -12,7 +12,10 @@
 --
 -- Per-season, not pooled: a table-wide null-rate check (the data-profile drift baseline)
 -- dilutes a one-season spike across every season's rows and can miss a regression the
--- size of 2018's own. Two things must hold:
+-- size of 2018's own. (Both fabrications named above have since been removed: the
+-- air-state one by CO-04, the proximity exposure shares by CO-21. Unmeasured laps are
+-- now NULL in both families; the coverage gap itself, which this test measures, remains.)
+-- Two things must hold:
 --   1. 2018 itself must not regress past a generous ceiling -- a re-ingestion of 2018
 --      should not quietly make an already-known problem worse without anyone noticing;
 --   2. no OTHER season may develop anything close to 2018's share -- if a future season's

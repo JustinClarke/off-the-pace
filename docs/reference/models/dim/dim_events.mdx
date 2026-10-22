@@ -8,7 +8,7 @@ description: "Race-level event dimension."
 
 <Note>Part of the [Marts](/transform/families/marts) family.</Note>
 
-Race-level event dimension. One row per event (damage, retirement, penalty). Currently populated from the raw_dim_events seed (manual entries for 2021). Joined onto fct_lap_residuals to flag performance-impact and reliability-impact events.
+Race-level event dimension. One row per event (damage, retirement, penalty). Currently populated from the raw_dim_events seed (manual entries for 2021). No dbt model refs it today; it is published as a parquet for the app. It is not joined onto fct_lap_residuals or int_lap_anomaly_flags.
 
 ## Lineage
 
@@ -26,11 +26,11 @@ flowchart LR
 | Family | [Marts](/transform/families/marts) |
 | Contract enforced | No |
 
-**4 tests** [guard](/transform/ci/overview) this model  -  4 generic, 0 singular.
+**5 tests** [guard](/transform/ci/overview) this model  -  5 generic, 0 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `event_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK for the event. |
-| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `expect_column_values_to_match_regex` | Race identifier the event belongs to, in the pipeline's 'YYYY_N' form (e.g. 2021_10). Typed varchar on the seed (dbt_project.yml); untyped, DuckDB reads it as the integer 202110. |
+| `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `expect_column_values_to_match_regex`, `relationships` | Race identifier the event belongs to, in the pipeline's 'YYYY_N' form (e.g. 2021_10). Typed varchar on the seed (dbt_project.yml); untyped, DuckDB reads it as the integer 202110. |

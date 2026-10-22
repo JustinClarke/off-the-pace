@@ -31,7 +31,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**13 tests** [guard](/transform/ci/overview) this model  -  8 generic, 5 singular.
+**16 tests** [guard](/transform/ci/overview) this model  -  11 generic, 5 singular.
 
 ## Columns
 
@@ -39,11 +39,11 @@ flowchart LR
 |---|---|---|---|---|
 | `result_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate key   &#123;race_id&#125;_&#123;driver abbreviation&#125;. |
 | `race_year` | `integer` | Yes | [`not_null`](/transform/ci/structural) | Season year. |
-| `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | Numeric FastF1 event id cast to string (e.g. '4'); matches stg_laps.race_id. |
+| `race_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | Numeric FastF1 event id cast to string (e.g. '4'); matches stg_laps.race_id. |
 | `race_slug` | `varchar` | Yes |   | Human-readable event name (e.g. azerbaijan_grand_prix). |
-| `driver_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | FastF1 three-letter driver code. |
+| `driver_id` | `varchar` | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code. |
 | `driver_number` | `varchar` | Yes |   | Car number carried by the driver. |
-| `constructor_id` | `varchar` | Yes |   | Team name as reported by FastF1. |
+| `constructor_id` | `varchar` | Yes | `relationships` | Team name as reported by FastF1. |
 | `finish_position` | `integer` | Yes |   | Numeric finishing position from FastF1. |
 | `classified_position` | `varchar` | Yes |   | Raw ClassifiedPosition string ('1'..'20' for ranked finishers; 'R'/'D'/'W'/'E'/'F'/'N' otherwise). |
 | `grid_position` | `integer` | Yes |   | Starting grid position. |

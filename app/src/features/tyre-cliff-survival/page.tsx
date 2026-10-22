@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import TyreCliffSurvivalChart from './TyreCliffSurvivalChart'
@@ -6,7 +6,7 @@ import { methodologyContent, methodologyHref } from './methodology'
 import { useQuery } from '../../data/hooks/useQuery'
 import { useFilters } from '../../state/FilterContext'
 import { useRaceOptions } from '../shared/useRaceOptions'
-import { transform, toCsvRows } from './transform'
+import { transform, toCsvRows, findProfile } from './transform'
 
 import { TechTooltip } from '../../ui/TechTooltip'
 import './queries'
@@ -57,7 +57,11 @@ export default function TyreCliffSurvivalPage() {
   const setParam = (key: string, value: string) =>
     setSearchParams(p => { value ? p.set(key, value) : p.delete(key); return p }, { replace: true })
 
+  // Clear the race and compound when the season changes, not on mount, so a deep link survives load
+  const prevSeason = useRef(season)
   useEffect(() => {
+    if (prevSeason.current === season) return
+    prevSeason.current = season
     setSearchParams(p => { p.delete('race_id'); p.delete('compound'); return p }, { replace: true })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [season])
@@ -88,10 +92,18 @@ export default function TyreCliffSurvivalPage() {
     { season }
   )
 
-  const profile = useMemo(() => {
-    if (!profiles || !raceId || !compound) return null
-    return profiles.find(p => p.circuit_key === raceId && p.compound_code === compound) ?? null
-  }, [profiles, raceId, compound])
+  // Profiles are keyed by circuit (dim_circuits.circuit_key), not race id: resolve the race's circuit first
+  const { data: raceTrack } = useQuery<{ track_id: string }[]>(
+    'tyre-cliff-survival.race-track',
+    { race_id: raceId },
+    { enabled: Boolean(raceId) }
+  )
+  const trackId = raceTrack?.[0]?.track_id ?? null
+
+  const profile = useMemo(
+    () => findProfile(profiles, trackId, compound),
+    [profiles, trackId, compound]
+  )
 
   // Load per-stint summaries only when both race and compound are selected
   const ready = Boolean(raceId && compound)
@@ -144,10 +156,12 @@ export default function TyreCliffSurvivalPage() {
         <Select
           label="Race"
           value={raceId}
-          onChange={v => {
-            setParam('race_id', v)
-            setParam('compound', '') // reset compound when race changes
-          }}
+          // One update: back-to-back setSearchParams calls don't chain, so a second one would drop race_id
+          onChange={v => setSearchParams(p => {
+            v ? p.set('race_id', v) : p.delete('race_id')
+            p.delete('compound') // reset compound when race changes
+            return p
+          }, { replace: true })}
           options={raceOptions}
           disabled={rcLoading}
         />

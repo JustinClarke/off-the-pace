@@ -69,6 +69,19 @@ export function computeKM(stints: StintSummaryRow[]): KMPoint[] {
  * Parses "fitted from N stints via ..." out of the notes field.
  * Returns null if the notes field doesn't match or is absent.
  */
+/**
+ * The compound profile for a race's circuit. Profiles are keyed by circuit
+ * (dim_compounds_season.circuit_key = race_to_track.track_id), never by race id.
+ */
+export function findProfile(
+  profiles: CompoundProfileRow[] | undefined,
+  trackId: string | null,
+  compound: string
+): CompoundProfileRow | null {
+  if (!profiles || !trackId || !compound) return null
+  return profiles.find(p => p.circuit_key === trackId && p.compound_code === compound) ?? null
+}
+
 export function parseNStints(notes: string | null): number | null {
   if (!notes) return null
   const match = notes.match(/fitted from (\d+) stints/i)

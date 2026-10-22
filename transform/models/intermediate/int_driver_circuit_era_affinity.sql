@@ -57,7 +57,7 @@
 
 {{ config(materialized='table', tags=['driver_rating', 'driver_affinity']) }}
 
-{% set era_boundary = 2022 %}
+{% set era_boundary = var('era_boundary') %}
 
 {# Map event slug (circuit_key) → physical circuit_id + a canonical #}
 {# display name. #}

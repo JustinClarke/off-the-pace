@@ -29,14 +29,14 @@ flowchart LR
 | Tags | `driver_rating`, `era_rating` |
 | Upstream | [`int_driver_race_skill_loro`](./int_driver_race_skill_loro) |
 
-**13 tests** [guard](/transform/ci/overview) this model  -  11 generic, 2 singular.
+**14 tests** [guard](/transform/ci/overview) this model  -  12 generic, 2 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
 | `driver_season_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Surrogate PK = hash(driver_id, season) |
-| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural) | Driver identifier |
+| `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Driver identifier |
 | `season` |   | Yes | [`not_null`](/transform/ci/structural) | Race year (integer) |
 | `n_races` |   | Yes | [`not_null`](/transform/ci/structural) | Races contributing to this estimate |
 | `raw_residual_mean_s` |   | Yes | [`not_null`](/transform/ci/structural) | Unshrunk season mean gap to the teammate. Negative = faster than the teammate. |

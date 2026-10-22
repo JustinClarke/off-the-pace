@@ -1,7 +1,7 @@
 # CO-09 — Stint labels: join same-tyre splits, censor red-flag tyre changes
 
 **Status:** SPEC (raised 2026-10-16 from the CO-08 flag-chance follow-up).
-**Group:** D carry-over · **Depends on:** none · **Blocker:** none. Shipping it is a version bump of the stint-life target, so the promotion call is the owner's.
+**Group:** 1 data settled · **Depends on:** none · **Blocker:** none. Opens a new label version, which CO-15 (Monaco wear fix, `CD9`) joins; the label moves once. Retrain is CO-18; promotion is `CD10`.
 
 **Sources:** `transform/models/intermediate/int_stint_end_regime.sql`, `transform/models/intermediate/fct_stint_features` (or its current name in the repo), the stint-life target in `ml/src/schema.py`.
 
@@ -32,8 +32,8 @@ Both feed the flag-chance event (`reached_flag`) and the stint-life target, whic
 
 - Row-count changes per season listed, with the affected races named (Canada 2025 must show the fix).
 - No change for seasons with no drive-through or red-flag splits, or the change is explained.
-- Stint-life v-bump gates re-run; the new target version is named and not promoted without the owner's yes.
+- The new label version is named in the label-version record (`ml/README.md`), shared with CO-15. Gates are re-run on the full build by CO-18; nothing is promoted without the owner's yes.
 
 ## Out of scope
 
-Promotion of any model. The chance line itself (CO-08). The 2025 holdout is already burned, so any judgement on the fixed label must be made on 2023–2024.
+Promotion of any model. The chance line itself (CO-08). Judgement on the fixed label is CO-14's leave-one-season-out test within 2018–2024 (`CD8`), not 2023–2024 alone, which were already used for choices.

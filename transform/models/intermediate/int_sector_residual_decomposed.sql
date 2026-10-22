@@ -15,15 +15,21 @@
 -- power_loading_s / aero_loading_s,
 -- update allocation: power → S1+S3, aero → S2.
 --
--- NOTE: dirty_air_share_lap is lap-level only (no per-sector breakdown
--- available).
--- Proportional allocation used when > 0.
+-- CD7 option A: the sector dirty-air tax is the lap tax times the sector's
+-- time share, with no gate of its own. The lap tax
+-- (int_dirty_air_tax_component) is priced on the PREVIOUS lap's share
+-- (dirty_air_share_lag1, theta_air); until CD7 this model gated it on the
+-- CURRENT lap's dirty_air_share_lap, which zeroed the sector tax on every
+-- lap that followed a dirty lap but ran clean itself (10,698 dev laps, each
+-- 0.331 s short of the lap total). Like fuel, compound and constructor, this
+-- term now carries no sector-specific dirty-air information: it is the lap
+-- number spread by time. Pricing dirty air below lap grain is CD7 option C.
 --
--- FD6 (CO-04): an unmeasured air state (int_lap_air_state NULL: no gap and not
--- the leader) is NOT read as clean air. Until CO-04 COALESCE(share, 0.0) here
--- zeroed the sector tax on such a lap; now the sector tax, the sector total
--- and the sector residual are NULL there. Mostly 2018_1 Australia and 2018_2
--- Bahrain, which have no telemetry in bronze.
+-- FD6 (CO-04): NULL follows the lap tax. The lap tax is NULL when the
+-- previous lap's air state is unmeasured, and then so are the sector tax,
+-- total and residual. A lap whose own air state is unmeasured but whose
+-- previous lap was measured has a known lap tax, so its sectors now carry it
+-- (until CD7 they were NULL there while the lap total was not).
 
 {{ config(materialized='table', tags=['intermediate', 'feature_engineering']) }}
 
@@ -155,12 +161,9 @@ allocated AS (
         constructor_component_s
         * (sector_time_s / NULLIF(lap_time_s, 0))
             AS sector_constructor_component_s,
-        CASE
-            WHEN dirty_air_share_lap IS NULL THEN NULL
-            WHEN dirty_air_share_lap > 0
-                THEN dirty_air_tax_s * (sector_time_s / NULLIF(lap_time_s, 0))
-            ELSE 0.0
-        END AS sector_dirty_air_tax_s
+        -- CD7 A (header): no gate on the current lap's share
+        dirty_air_tax_s
+        * (sector_time_s / NULLIF(lap_time_s, 0)) AS sector_dirty_air_tax_s
     FROM joined
     WHERE field_sector_pace_smoothed_s IS NOT NULL
 ),

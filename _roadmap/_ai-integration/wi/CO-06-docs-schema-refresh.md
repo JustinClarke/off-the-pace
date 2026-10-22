@@ -1,6 +1,6 @@
 # CO-06 — Docs and schema text: the removed 2018 offset, the old severity method
 
-**Group:** D carry-over · **Depends on:** `CO-02` · **Blocker:** none.
+**Group:** 1 data settled · **Depends on:** `CO-02` · **Blocker:** none.
 
 **Sources:** `transform/models/marts/schema.yml`, `transform/models/intermediate/schema.yml`, `docs/reference/models/`.
 

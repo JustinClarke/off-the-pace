@@ -10,7 +10,7 @@ A points-less afternoon can hide a great drive. Hidden performance surfaces thos
 
 The table ranks drivers by the gap between projection and result:
 
-- **Ghost-projected position (`fct_ghost_race_finish`)**: each driver's lap times recombined with a chosen host constructor's car pace, then re-ranked by predicted cumulative race time.
+- **Ghost-projected position (`fct_ghost_race_finish`)**: each driver's lap times recombined with a chosen host constructor's car pace, then re-ranked by predicted mean fuel-adjusted lap pace (not cumulative race time, so a driver who ran fewer laps is not ranked artificially high).
 - **Delta**: projected minus actual finish. A *negative* delta means the model projected a better finish than actually occurred the driver was under-rewarded.
 - **Confidence**: how well the host constructor's pace is estimated from panel data; more races with that team means higher confidence.
 
@@ -23,14 +23,14 @@ The table ranks drivers by the gap between projection and result:
 1. **Pick a host constructor** from the filter bar; projections re-score against that car.
 2. **Sort by delta** to surface the most under-rewarded drives.
 3. **Read confidence** before trusting a large delta a low-confidence host pace makes the projection noisier.
-4. **Use the identity check** as a sanity test: when the host equals the driver's own team, projected should equal actual.
+4. **Use the self-scenario check** as a sanity test: when the host equals the driver's own team, projected per-lap pace should equal actual per-lap pace. Projected finish position will usually differ from actual finish position.
 
 ## Reading the signal correctly
 
 The delta is **pace versus result**, not an injustice ledger strategy, safety cars, and incidents legitimately move finishing positions in ways a pace projection cannot see. A negative delta says "faster than the result", not "robbed".
 
 <Warning>
-  When the host constructor equals the driver's own team, predicted finish should equal actual finish any non-zero delta in that case signals a data issue, not hidden performance. Treat it as a diagnostic, not a finding.
+  When the host constructor equals the driver's own team (`is_self_scenario`), the predicted mean lap time (`predicted_mean_lap_s`) equals the actual mean lap time (`actual_mean_lap_s`). A gap between those two lap times in a self-scenario row signals a data issue. The projected finish position (`predicted_finish_position`) does not have to equal the actual finish position (`actual_finish_position`) in a self-scenario row. The projected finish position ranks every driver in the scenario by mean fuel-adjusted lap pace in the same car. The actual finish position also reflects strategy, safety cars, incidents and retirements. So a non-zero `delta_vs_actual_position` in a self-scenario row is expected and is not a data issue. On the 2018–2025 build, `delta_vs_actual_position` is non-zero in about 95% of self-scenario rows (n = 2,786 self-scenario rows that have an actual finish position).
 </Warning>
 
 ## Data source
@@ -39,9 +39,9 @@ The chart queries `fct_ghost_race_finish` via DuckDB-Wasm in the browser.
 
 | Column | Meaning |
 |---|---|
-| `projected_finish_pos` | Ghost-projected finishing position in the host car |
-| `actual_finish_pos` | The real finishing position |
-| `finish_delta` | Projected minus actual; negative = under-rewarded |
+| `predicted_finish_position` | Ghost-projected finishing position in the host car |
+| `actual_finish_position` | The real finishing position |
+| `delta_vs_actual_position` | Projected minus actual; negative = under-rewarded; NULL when the driver has no finishing position |
 | `avg_recombination_confidence` | Panel-data confidence; gated at `≥ 0.3` |
 
 The data window covers **2018–2025**.

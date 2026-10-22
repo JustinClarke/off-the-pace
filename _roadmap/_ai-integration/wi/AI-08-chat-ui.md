@@ -1,6 +1,6 @@
-# AI-08 — Chat UI and launch run
+# AI-08 — Chat drawer, behind a flag
 
-**Group:** C delivery · **Depends on:** `AI-03`, `AI-04`, `AI-06`, `AI-07` · **Blocker:** none beyond dependencies (`AD1` is ruled).
+**Group:** 3 delivery and launch · **Depends on:** `AI-04`, `AI-06` · **Blocker:** none. The launch run and switch-on moved to AI-12 (2026-10-22), which carries the freeze (AI-03), the eval (AI-07) and `AD4`.
 
 **Sources:** `app/src/ui/layout/AppShell.tsx`, `app/src/ui/feedback/`, `app/src/nav/`.
 
@@ -17,7 +17,6 @@
 3. AI-02 rule hits render as a visible note on the answer, not buried text.
 4. Reuse `DataBoundary`, `EmptyState` and `ErrorBoundary` for loading and failure. Use `TechTooltip` for terms.
 5. Ship behind a flag, off by default.
-6. **Launch run.** Re-run AI-07 against the real drawer on AI-03's frozen snapshot.
 
 ## Acceptance
 
@@ -28,4 +27,4 @@
 
 ## Definition of done
 
-Component tests for streaming, linking, rule notes and failure pass, and the launch run meets AI-07's recorded bar. Turning the flag on is the user's call.
+Component tests for streaming, linking, rule notes and failure pass, with the flag off by default. The launch run and switching the flag on are AI-12.

@@ -16,7 +16,7 @@ The CI invariant proves the arithmetic closes exactly. It cannot prove the coeff
 
 ### 2. Tyre coefficients need sufficient data
 
-The Kaplan-Meier survival estimates and hockey-stick polynomial coefficients are estimated per `(circuit, compound, season)`. Groups with fewer than approximately 8 qualifying stints produce high-variance estimates. Currently **24 circuits** in `dim_circuits` carry a `REVIEW_REQUIRED` flag on weight penalty calibration, reflecting limited telemetry coverage or unusual tyre behaviour at those venues.
+The Kaplan-Meier survival estimates and hockey-stick polynomial coefficients are estimated per `(circuit, compound, season)`. Groups with fewer than approximately 8 qualifying stints produce high-variance estimates. Currently **1 of 44 circuits** carries a `REVIEW_REQUIRED` flag on weight penalty calibration: `spanish_grand_prix`, in the `calibration_flag` column of the `circuit_reference` seed (`transform/seeds/circuit_reference.csv`, one row per `circuit_key`). The other 43 are `SKIPPED` (not calibrated, so they keep the prior). The `dim_circuits` table does not carry the flag.
 
 The `dim_compounds_season` seed covers every circuit × compound × season group. Not all are equally well-calibrated.
 
@@ -41,7 +41,7 @@ Constructor structural pace priors are estimated from the ingested seasons and h
 The machine layer (see [Tyre Cliff](/decomposition/tyre-cliff) for how it works) is built and beats a strong per-cohort baseline across all three target families. The honest remaining constraint is narrower: the **cliff classifier is the weakest model**, with a macro-F1 of approximately 0.40 on the 4-class cliff timing problem. It decisively outperforms the majority prior, but absolute skill on the rare imminent-cliff windows (`0_to_2` laps) is modest. There is also no live 2025 holdout yet headline numbers come from time-series cross-validation with the final fold at 2024. They will convert to a true out-of-sample reveal once 2025 data is ingested.
 
 <Warning>
-  Circuits with `REVIEW_REQUIRED` flags in `dim_circuits` have limited telemetry coverage or unusual tyre behaviour that reduces calibration quality. Treat driver residuals and compound estimates at these circuits with extra caution until the flags are cleared.
+  Circuits with `REVIEW_REQUIRED` flags in the `circuit_reference` seed have limited telemetry coverage or unusual tyre behaviour that reduces calibration quality. Treat driver residuals and compound estimates at these circuits with extra caution until the flags are cleared.
 </Warning>
 
 ## Data ceiling

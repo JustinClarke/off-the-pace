@@ -1,6 +1,6 @@
 # CO-13 — Commit the experimental chance line and restored records, split
 
-**Status:** SPEC (nothing run). **Group:** D carry-over · **Depends on:** `CO-11` · **Blocker:** CD4 ruling; owner's yes to commit.
+**Status:** SPEC (nothing run). **Group:** 4 chance line · **Depends on:** `CO-11` · **Blocker:** CD4 ruling; owner's yes to commit.
 
 **Sources:** the working-tree changes from the restore and experimental-line work.
 

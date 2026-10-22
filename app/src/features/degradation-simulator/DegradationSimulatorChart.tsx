@@ -186,7 +186,7 @@ function lifeColorFrom(p10: number): string {
  * far finer than a censored fit can resolve. The median is now shown to the lap,
  * and the band is shown next to it rather than left implicit.
  */
-const FLAG_CHANCE_LABEL = 'Experimental: chance to reach the flag on these tyres (model estimate)'
+const FLAG_CHANCE_LABEL = 'Experimental: chance to reach the flag on these tyres (model estimate; refit of the v14 configuration, expanding-window folds, 2018–2024)'
 
 function LifeGauge({ median, p10, p90, cappedAtFlag = false, flagChance = null }: {
   median: number; p10: number; p90: number

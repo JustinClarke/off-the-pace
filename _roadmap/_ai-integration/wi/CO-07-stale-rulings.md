@@ -1,6 +1,6 @@
 # CO-07 — Stale rulings on the improvements board: D2, D9, D13, D14
 
-**Group:** D carry-over · **Depends on:** none · **Status:** done 2026-10-15. `CD3` ruled yes to all four and is recorded in the improvements log. D2 and D13 are RESOLVED. D9 and D14 stay OPEN until re-measured on v15 (owned by CO-03 step 6).
+**Group:** 1 data settled · **Depends on:** none · **Status:** done 2026-10-15. `CD3` ruled yes to all four and is recorded in the improvements log. D2 and D13 are RESOLVED. D9 and D14 stay OPEN until re-measured on v15 (owned by CO-03 step 6).
 
 **Sources:** `_roadmap/_improvements/status/build-log.json` (`decisions`).
 

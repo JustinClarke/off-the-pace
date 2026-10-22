@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
   "model_version": "v14",
+  "provenance": "These numbers are a refit of the v14 configuration on expanding-window folds over 2018-2024. They were not computed from the served v14 booster, which was trained on 2018-2025.",
+  "booster_sha256_note": "booster_sha256 is the fingerprint of the served v14 booster (trained 2018-2025). It names that booster for reference only; these numbers were not computed from it.",
   "booster_sha256": "86048d70775ab3f4a0ffff2ac034f87be2e2f85af80e8dba44fc86b682dd361e",
   "aft_scale": 0.7537929016487691,
   "label_shift": 1.0,

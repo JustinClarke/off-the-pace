@@ -296,8 +296,8 @@ sources:
           external_location: "{{ var('bronze_base', '../data/bronze') }}/race_control/*/*/*.parquet"
         description: >
           FastF1 session.race_control_messages: the FIA's own message feed for
-          the session. One row per message. 12,814 rows across 149 races, of
-          which 4,909 are waved blue flags. Ingested since the beginning and
+          the session. One row per message. 14,992 rows across 173 races
+          (2018-2025), of which 5,388 are waved blue flags. Ingested since the beginning and
           staged by nothing until the proximity features, which need the blue flags as a
           traffic label that is NOT derived from the telemetry the proximity
           features are built from.

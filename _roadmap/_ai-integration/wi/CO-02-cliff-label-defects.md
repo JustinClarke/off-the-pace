@@ -1,6 +1,6 @@
 # CO-02 — Cliff label defects
 
-**Group:** D carry-over · **Depends on:** none · **Blocker:** none. `CD2` ruled C (2026-10-15): 2018 is fitted on its own data.
+**Group:** 1 data settled · **Depends on:** none · **Blocker:** none. `CD2` ruled C (2026-10-15): 2018 is fitted on its own data.
 
 **Sources:** `transform/tasks/coefficients/survival.py`, `fit_compound_cliff.py`, `transform/macros/compound_cliff_wear.sql`, `transform/models/intermediate/int_compound_cliff_predicted.sql`, `transform/seeds/compound_cliff_params.csv`, `transform/dbt_project.yml`.
 

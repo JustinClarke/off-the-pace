@@ -1,6 +1,8 @@
 # CO-03 — v15 retrain on the final label, owed gates, export
 
-**Group:** D carry-over · **Depends on:** `CO-02`, `CO-04` · **Blocker:** dependencies only. `CD1` ruled A (2026-10-15): F9 is decided not wired.
+**Status:** CLOSED 2026-10-22, superseded by `CO-18`. v15 was trained on the CO-02/CO-04 label, which CO-09 and CO-15 (`CD9`) now move again. The text below is the record. The retrain and gates move to CO-18, the `training_weight_f9` clean-up to CO-17, the D9/D14 re-measures to CO-18, and the promotion question to `CD10`.
+
+**Group:** 1 data settled · **Depends on:** `CO-02`, `CO-04` · **Blocker:** dependencies only. `CD1` ruled A (2026-10-15): F9 is decided not wired.
 
 **Sources:** `ml/models/manifest.json`, `ml/src/schema.py`, `ml/artefacts/15a_traffic_families_arms.log`, `ml/artefacts/08e_thermal_family_arms_v15.log`, `transform/models/intermediate/int_lap_anomaly_flags.sql`.
 

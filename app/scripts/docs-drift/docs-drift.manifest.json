@@ -1,0 +1,441 @@
+{
+  "note": "Written only by `node scripts/docs-drift/docsDrift.mjs --update`. Do not edit by hand.",
+  "budgetTokens": 800,
+  "tokenEstimate": "ceil(characters / 3.5)",
+  "pages": {
+    "architecture": {
+      "docs": {
+        "path": "docs/app/architecture.mdx",
+        "sha256": "8a15e4d9cec9a86cdd69087032f8a7e84a489f95803c7332ae2a0f15230a8c13"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/architecture",
+        "sha256": "7401e19054c919c6a5db0ba73b798241f6712b1987fe7f5555816152f76e90ef"
+      }
+    },
+    "blind-test-scoreboard": {
+      "docs": {
+        "path": "docs/app/blind-test-scoreboard.mdx",
+        "sha256": "e3f612e531445626d3e410ca2181ec1b1511271c6c34c7ae50ac5527d717a7fa"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/blind-test-scoreboard",
+        "sha256": "67d5c41c551dc60fa96a28aa074416b40e5a0ed1450daac95215d5cc9424cb70"
+      }
+    },
+    "constructor-circuit-interaction": {
+      "docs": {
+        "path": "docs/app/constructor-circuit-interaction.mdx",
+        "sha256": "48791432dc68fb055a3acdc23c3cba4487b3139d05cb00b6d6b7894513e96511"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/constructor-circuit-interaction",
+        "sha256": "ed6fdbc00d7b409d35e71ed46cfef736e500703f5dfdcb24ea726ed30f942e42"
+      }
+    },
+    "constructor-structural-pace": {
+      "docs": {
+        "path": "docs/app/constructor-structural-pace.mdx",
+        "sha256": "4904a3686091f2575ee1836bcd7bc932eb1596ab751daa5a1b707d9ad27ad46d"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/constructor-structural-pace",
+        "sha256": "b331728ceac7b3581492d93abb5985c8f114747c494f312ddc852873d7260e9e"
+      }
+    },
+    "corner-phase-skill": {
+      "docs": {
+        "path": "docs/app/corner-phase-skill.mdx",
+        "sha256": "9f520f554106409006d9fb243bbe5e0faf87c7bdc25d9d5eb13418d38746fe8c"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/corner-phase-skill",
+        "sha256": "cfd0dca051835e35953428e9151f223ef36c280a4cda2a780112f86b19c2e63c"
+      }
+    },
+    "counterfactual-championship": {
+      "docs": {
+        "path": "docs/app/counterfactual-championship.mdx",
+        "sha256": "27783105d58124604206691632bde0134764c287bd56a75167e890492f50bd3d"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/counterfactual-championship",
+        "sha256": "fb66a7951a616445049e801e9eaa2b0e9c77e330afea833139cd3f9a3d358167"
+      }
+    },
+    "data-quality-audit": {
+      "docs": {
+        "path": "docs/app/data-quality-audit.mdx",
+        "sha256": "b7e5c707ce49207c325c2e4e1e0310e1e79a737fe812e3f5a541125470ce0572"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/data-quality-audit",
+        "sha256": "683e299666561749cb4674dcf907bd12943b65e49bfb1a9f6c972b6e0aa9ccf8"
+      }
+    },
+    "degradation-simulator": {
+      "docs": {
+        "path": "docs/app/degradation-simulator.mdx",
+        "sha256": "7ece81e218582cb7841945045f863c42d006d0ccc3195d26baabc022830f6f7a"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/degradation-simulator",
+        "sha256": "a8f20f424e33120378a9d266d778cf36707574e34c9a3e9ec913a27002cbb03b"
+      }
+    },
+    "dirty-air-cost": {
+      "docs": {
+        "path": "docs/app/dirty-air-cost.mdx",
+        "sha256": "83cdbff1734127a09b5a0c238ee5cb2d9efb621d605b65577d9eb9801d44c1b6"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/dirty-air-cost",
+        "sha256": "8e2db9d8f4e99a3196aeb36462d9b98e8dd875130743074f326bd74aa2fa78db"
+      }
+    },
+    "dirty-air-lap-map": {
+      "docs": {
+        "path": "docs/app/dirty-air-lap-map.mdx",
+        "sha256": "c69af9cad1da395340934374dacc3b24c1e00ac1b2950d24a44f4eae6ca2186d"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/dirty-air-lap-map",
+        "sha256": "886d75f6d911db07439ef8ffb24918a07715de3581bc4b75bf218712b3913c89"
+      }
+    },
+    "driver-circuit-affinity": {
+      "docs": {
+        "path": "docs/app/driver-circuit-affinity.mdx",
+        "sha256": "19e60005dce641a5327a5c328774f51fbaa43459b6ea5de1664edd5665ddce59"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/driver-circuit-affinity",
+        "sha256": "524e9d21f46add129b363539edbb0a3e563ae0da418bf727c9ceb30ef309d190"
+      }
+    },
+    "driver-consistency": {
+      "docs": {
+        "path": "docs/app/driver-consistency.mdx",
+        "sha256": "b7b1f1a3f384a4f23f8e489f02209915fcffc098d15b388573885df5ba87d4d7"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/driver-consistency",
+        "sha256": "677efb3553fb744d3e944cbc41f7ee171bfb6c01305d0929fdb9e26588c59dd3"
+      }
+    },
+    "driver-workload": {
+      "docs": {
+        "path": "docs/app/driver-workload.mdx",
+        "sha256": "317a912b431aec21a50c07a9118c01edd042b660fc78a818fdd566875c2ac246"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/driver-workload",
+        "sha256": "a304857c33c29319eafb04c86c406092a44093b670955b48a765745e029da0cb"
+      }
+    },
+    "era-ratings-timeline": {
+      "docs": {
+        "path": "docs/app/era-ratings-timeline.mdx",
+        "sha256": "2807aaf988cfe4d9d6fbc12dad14c959a045e86b76bcd4e2df6b509a2431ab7f"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/era-ratings-timeline",
+        "sha256": "506bfef15ca1d52673a35e7089bd26535604b4a37d461762b4ff4d821c64e050"
+      }
+    },
+    "era-translator": {
+      "docs": {
+        "path": "docs/app/era-translator.mdx",
+        "sha256": "f070141191a31de0f0993ecf45385e5dcf81ce8af1a71f7c50ac9c8baf3ecbea"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/era-translator",
+        "sha256": "914956fd79db0eadc68ec1d5ab38a0f37462528b1460eb6679a84c52f6902999"
+      }
+    },
+    "families/aero-conditions": {
+      "docs": {
+        "path": "docs/app/families/aero-conditions.mdx",
+        "sha256": "2ea12e8913df83ba9485b582f81161bfed65be912bf0f0b534b8254bf82d29e0"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/families/aero-conditions",
+        "sha256": "6e786810d988e4fbd718ee6387344f936c226c9e350399e9db60966b7b2341be"
+      }
+    },
+    "families/constructors": {
+      "docs": {
+        "path": "docs/app/families/constructors.mdx",
+        "sha256": "34db40b40adcbf64603942c7d551f1f7d980831a991ce56bae3cb0b96c9f2551"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/families/constructors",
+        "sha256": "2bd129ba800c0fbfbe2ebfa6b14e04e60feff1c03e61ed9fffa1c0382430901a"
+      }
+    },
+    "families/data-validation": {
+      "docs": {
+        "path": "docs/app/families/data-validation.mdx",
+        "sha256": "d7f51d0fbe847d0aaa58cebeaf07bec3fb0995078e0b8eba7d25edbe221acfef"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/families/data-validation",
+        "sha256": "b4eba271e1e64fb893732db599f9d30a157e630932069ceaf36801d109faaccf"
+      }
+    },
+    "families/drivers": {
+      "docs": {
+        "path": "docs/app/families/drivers.mdx",
+        "sha256": "eede2ddeb49179d39f312119b1cd0a2b0392e19e09c4c4d63b8afaf1f5158520"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/families/drivers",
+        "sha256": "0ec862054c3aaf06e69e498e83e409605cf5eae1c06f7ff5e8677c970054841a"
+      }
+    },
+    "families/ghost-car": {
+      "docs": {
+        "path": "docs/app/families/ghost-car.mdx",
+        "sha256": "b69c81253d3b7851f4900d12bd2c2b79444bfc18a9136dff4adcd1aa51a1aa40"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/families/ghost-car",
+        "sha256": "6f4ad3593138379167397c7ca1d6474edb6ee0d1b694af38fd4d02b90d7ec61c"
+      }
+    },
+    "families/lap-decomposition": {
+      "docs": {
+        "path": "docs/app/families/lap-decomposition.mdx",
+        "sha256": "58bbdda01171daee2ac6c763e271913bac9395a83b980cbc2ee41873a1846543"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/families/lap-decomposition",
+        "sha256": "a64f84ff3e6f2d138065c039fdf2f8569462afeda8e832ecadd86e1634fb5a38"
+      }
+    },
+    "families/race-craft": {
+      "docs": {
+        "path": "docs/app/families/race-craft.mdx",
+        "sha256": "3ee16a8b1d2b62dcfb3c22418aaf72e91ec6b61e6c528e2a2b147c03b73c773b"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/families/race-craft",
+        "sha256": "32489550e858f46808af75ffe86a5b7c066d8d4e82c8b302bc2c7675b450aba1"
+      }
+    },
+    "families/the-machine": {
+      "docs": {
+        "path": "docs/app/families/the-machine.mdx",
+        "sha256": "cca61a7d316285b11107eb452f2f06d61ee673194f7d34e07e74d4fa67fc38db"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/families/the-machine",
+        "sha256": "87f40a94f14be0f52ae7af41382367f9a0a62b8dd3f11692b204ad251b4f9e4c"
+      }
+    },
+    "families/tyre-strategy": {
+      "docs": {
+        "path": "docs/app/families/tyre-strategy.mdx",
+        "sha256": "6e441bf74dae34ce9d52da0f2ff4fdb9956a08f66ce4a2ee131f6d9dc692cd38"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/families/tyre-strategy",
+        "sha256": "6397993fff5d4d2631f6edf0650845e6d42c6180f8713411aed642c1429963b4"
+      }
+    },
+    "field-pace-curve": {
+      "docs": {
+        "path": "docs/app/field-pace-curve.mdx",
+        "sha256": "8149d2b1f8bdfe6b48961b90dd9470bee6f24d703ca7a350b5fb3ef3dcdd5895"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/field-pace-curve",
+        "sha256": "c0fa59709b18f30bf512227514703466439c637d1d171d710124efd96fbdccc4"
+      }
+    },
+    "ghost-race-standings": {
+      "docs": {
+        "path": "docs/app/ghost-race-standings.mdx",
+        "sha256": "ddfc36170c28f58b49f094ed672dfed4275696881ad2b1451c2a8e87c2e13f38"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/ghost-race-standings",
+        "sha256": "ae5654f561de077fae0b5bdf6f76c98cd90f41ee259dbff7cdcb18b70c2fc1ae"
+      }
+    },
+    "hidden-performance": {
+      "docs": {
+        "path": "docs/app/hidden-performance.mdx",
+        "sha256": "5c43adfceb57c728aaae9784defed7b3f0941222ae4edf97a205ca8fee942bbc"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/hidden-performance",
+        "sha256": "0e26fb12dcece33a1d2004dce31e74c3d503be0e5931baa685238e6fd4eafee8"
+      }
+    },
+    "lap-waterfall": {
+      "docs": {
+        "path": "docs/app/lap-waterfall.mdx",
+        "sha256": "eda50613bd64c37abe53ed5f31b900a812d90798ec3099db90926214090a0c8e"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/lap-waterfall",
+        "sha256": "ef93d68a695fb15db31e464d67064ee10b49433b8b3903334abd96c90b03e814"
+      }
+    },
+    "model-metrics": {
+      "docs": {
+        "path": "docs/app/model-metrics.mdx",
+        "sha256": "baa9591312005e69d7c09b07dcb1bbcb1830452d76f4c85a313422d56e572a38"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/model-metrics",
+        "sha256": "ba9e98f69e0315b48f069c6611b8f48bd2f446a6aec7b1e922de6478edfe8e53"
+      }
+    },
+    "overview": {
+      "docs": {
+        "path": "docs/app/overview.mdx",
+        "sha256": "8498652a9d514278635f44077822007d2dde811dfec27cc0412369bce08bc5d0"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/overview",
+        "sha256": "c897be6b8792aa569a7b1e541b142c7187e6f320af35b57ca4fa460dc081e8d3"
+      }
+    },
+    "party-mode": {
+      "docs": {
+        "path": "docs/app/party-mode.mdx",
+        "sha256": "849ae44479d8994cb0717e5fa19ebfa6bbbf72fab15bf4c29f9af474b0a75732"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/party-mode",
+        "sha256": "afc9a51be76b95bb6e330320bd11ab340ad1e0cd0d4a79f70eedfbaeec87ee5c"
+      }
+    },
+    "pit-strategy": {
+      "docs": {
+        "path": "docs/app/pit-strategy.mdx",
+        "sha256": "0f802a7bb25930af9da345f45034aea4157d3b112f584fc736b81edcce9d1dac"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/pit-strategy",
+        "sha256": "71962fb308afb34b529465383e836e9921d4cdfd049cc17e12cc6525ef2b5b31"
+      }
+    },
+    "quali-vs-race-skill": {
+      "docs": {
+        "path": "docs/app/quali-vs-race-skill.mdx",
+        "sha256": "7fc929625fd9fa3dc411f9c7cf0ee5961291860e3442ebb5297422975dead391"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/quali-vs-race-skill",
+        "sha256": "a3a584fd810f7c703d1aa3bef7832ed08333afca614c31d5128c3fe5c6ffda5e"
+      }
+    },
+    "query-lab": {
+      "docs": {
+        "path": "docs/app/query-lab.mdx",
+        "sha256": "dbdad3676e782f4448bd90c3e093e5ddaeeeee4bfbe172bbd20abefdd6fa891b"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/query-lab",
+        "sha256": "866a92eb17b0eb151bd046b247a22e5e8a005a07e04d11852206bbf0befd5dc1"
+      }
+    },
+    "race-control": {
+      "docs": {
+        "path": "docs/app/race-control.mdx",
+        "sha256": "d6f585c2c7a71f2e4b3bea155e52c9b4f797cb7d11df793d1d7274568143903a"
+      },
+      "assistantSource": {
+        "path": "app/src/nav/assistant-docs/race-control.md",
+        "sha256": "ea01c7de81145df9b1201ae3661b0bb2bfc40b38d44ab11ca5cc52f30b915720"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/race-control",
+        "sha256": "34daac42fd36b7542fbbd5e931d42c334ab440508f962a1835fc7d66a886287d"
+      }
+    },
+    "race-lost": {
+      "docs": {
+        "path": "docs/app/race-lost.mdx",
+        "sha256": "b7d3ec8075c620fe9835fbc9190570bcea84211c1a45c18960b2409aed88239c"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/race-lost",
+        "sha256": "b910a696bde203debd294ea3b872df50e064f59995f52e3fcf0bd3f0b8332825"
+      }
+    },
+    "sector-decomposition": {
+      "docs": {
+        "path": "docs/app/sector-decomposition.mdx",
+        "sha256": "02a2925b6dadcd7a153e9432fc9d138979bc85f04e2be5d6947a1ad89bf60300"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/sector-decomposition",
+        "sha256": "78d0f504f72a6eff66a3778cb2d7450ea9288f6978aeeb0319d5edfc7fc7ac7b"
+      }
+    },
+    "stint-degradation-timeline": {
+      "docs": {
+        "path": "docs/app/stint-degradation-timeline.mdx",
+        "sha256": "4d65c222ce8c74b9bddef787732f62f4c0a093f171412b2f6b211d66d0015510"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/stint-degradation-timeline",
+        "sha256": "555ad8fc0b9b2910e6c4f3c466044cad9b1432beb441f870635b88bd6fa16a56"
+      }
+    },
+    "synthetic-teammate": {
+      "docs": {
+        "path": "docs/app/synthetic-teammate.mdx",
+        "sha256": "ac002be2ee83a10808f2556b0d3c8956766f7c343784645037ae0ce1c9810aa7"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/synthetic-teammate",
+        "sha256": "bee3da28a145a37831f62cde41428f279d86af8294147b49f17733e84d54382e"
+      }
+    },
+    "track-evolution": {
+      "docs": {
+        "path": "docs/app/track-evolution.mdx",
+        "sha256": "782ad61930c776e97f8b3aaca1356c0976a9212a42eff8bc6a5599af7b7ed3eb"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/track-evolution",
+        "sha256": "7d55a4c38f65da5ab17977e5af8c42a8b9712dc62c3339b8d107d044986384ff"
+      }
+    },
+    "tyre-cliff-survival": {
+      "docs": {
+        "path": "docs/app/tyre-cliff-survival.mdx",
+        "sha256": "5f74a036c2c11e50626d7caa209ca0408d3b6626a1d25035fbd23cbaefaf718b"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/tyre-cliff-survival",
+        "sha256": "51e7b6b38993a0211ac30bcee7afcf1acbaef336ab690f622df07331fac7d453"
+      }
+    },
+    "tyre-recovery-forecast": {
+      "docs": {
+        "path": "docs/app/tyre-recovery-forecast.mdx",
+        "sha256": "025d2e5c6129e272bae4c3af34ae92bc27e70e836d016ff97b6f6abff308ad81"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/tyre-recovery-forecast",
+        "sha256": "4fceb7da3d6e867e6f3d6dd6aa1cbbc395ab769454b1f8483240d0c325c556f0"
+      }
+    },
+    "wet-race-specialist": {
+      "docs": {
+        "path": "docs/app/wet-race-specialist.mdx",
+        "sha256": "ea1c7890f931c8ec2962283e8fee048d99c72f253af677e3139b30d04fdef8dc"
+      },
+      "aiCopy": {
+        "path": "app/src/nav/pageSummaries.generated.json#pages/wet-race-specialist",
+        "sha256": "f1448cf49f7d99dbc3adeda8542a5a37369167960233932d64d2936278ee9661"
+      }
+    }
+  }
+}

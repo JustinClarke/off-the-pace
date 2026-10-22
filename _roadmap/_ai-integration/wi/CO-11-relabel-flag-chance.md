@@ -1,6 +1,6 @@
 # CO-11 — Relabel the experimental chance number
 
-**Status:** SPEC (nothing run). **Group:** D carry-over · **Depends on:** none · **Blocker:** none.
+**Status:** SPEC (nothing run). **Group:** 4 chance line · **Depends on:** none · **Blocker:** none.
 
 **Sources:** `app/src/ml/flagChance.ts`, `app/src/features/degradation-simulator/DegradationSimulatorChart.tsx`, `app/src/features/degradation-simulator/methodology.tsx`, `docs/app/degradation-simulator.mdx`, `app/public/models/flag_chance_lookup.json`.
 

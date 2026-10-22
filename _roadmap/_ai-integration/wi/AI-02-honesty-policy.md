@@ -1,6 +1,6 @@
 # AI-02 — Honesty policy as data
 
-**Group:** A grounding · **Depends on:** none · **Blocker:** none.
+**Group:** 2 assistant build · **Depends on:** none · **Blocker:** none.
 
 **Sources:** `docs/app/blind-test-scoreboard.mdx`, `docs/ml/ci/evaluation-gates.mdx`, `docs/app/model-metrics.mdx`, and the WI-16 validation findings in `_roadmap/_fixes/status/build-log.json`.
 

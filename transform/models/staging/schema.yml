@@ -825,8 +825,8 @@ models:
 
   - name: stg_race_control
     description: >
-      The FIA race-control message feed. One row per message; 12,814 rows across 149
-      races, of which 4,909 are waved blue flags. Ingested since the beginning of the
+      The FIA race-control message feed. One row per message; 14,992 rows across 173
+      races (2018-2025), of which 5,388 are waved blue flags. Ingested since the beginning of the
       project and consumed by nothing until the proximity features needed it.
 
       Staged for one reason: the blue flags are a traffic label produced by race
@@ -866,8 +866,8 @@ models:
       - name: is_blue_flag_event
         description: >
           TRUE when this row is a blue flag whose driver identity and lap both
-          resolved - "this driver was being lapped on this lap". All 4,909 blue flags
-          resolve (verified 2026-09-05). A flag whose number failed to resolve would
+          resolved - "this driver was being lapped on this lap". All 5,388 blue flags
+          resolve (2018-2025; verified 2026-10-22). A flag whose number failed to resolve would
           be a data gap, not a negative, which is why this is a flag and not a filter.
         data_type: boolean
         tests: [not_null]

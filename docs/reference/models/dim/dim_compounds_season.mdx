@@ -8,7 +8,7 @@ description: "One row per circuit × compound × season."
 
 <Note>Part of the [Reference](/transform/families/reference) family.</Note>
 
-One row per circuit × compound × season. Lifts the compound_cliff_params seed into a typed dimension: cliff parameters estimated from stint survival analysis (Kaplan-Meier, fitted on 2018–2024 data   see tasks/coefficients/README.md). Every row carries fit_date and data_window for governance. Re-fit when a new season is ingested via make coefficients-fit.
+One row per circuit × compound × season. Lifts the compound_cliff_params seed into a typed dimension: cliff parameters estimated from stint survival analysis (Kaplan-Meier, see tasks/coefficients/README.md), fitted on expanding windows: each season from 2019 to 2025 uses 2018 through the prior season (data_window 2018_to_2018 up to 2018_to_2024), and 2018 is fitted in-sample on its own laps (2018_to_2018_in_sample). Every row carries fit_date and data_window for governance. Re-fit when a new season is ingested via make coefficients-fit.
 
 ## Lineage
 

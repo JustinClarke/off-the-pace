@@ -1,0 +1,64 @@
+CO-19 mixed-version probe: SET-UP ONLY, 2026-10-22. NO SCENARIO HAS RUN.
+Waits for CO-18 (retrain on the new label; CO-18 follows CO-17). Does not wait for CO-14.
+Method: _roadmap/_ai-integration/wi/CO-19-mixed-version-probe.md (owner's correction 2026-10-22:
+no scratch copies; run in the real ml/, transform/, app/, scripts/, data/ folders; record here).
+Rules: the go/no-go and pass rules in the doc are DRAFTS. Before the first run they are copied, final,
+into the log note for CO-19 and into rules.txt in the run folder, then not changed.
+Nothing promoted, nothing ships: no commit, MODEL_VERSION_DEFAULT stays v14, CDN untouched, changed
+working-tree files restored at the end. Promotion is the owner's call (CD10).
+
+A run on a later date makes _evidence/co-19-<run date>/ with its own PROVENANCE.txt (commands in order,
+git HEAD and git status before/after, data snapshot, sha256 lists) and links back to this file.
+
+Commands run at set-up (read-only):
+  git rev-parse HEAD
+  git status --short -- ml transform app scripts data
+  shasum -a 256 data/marts/mart_degradation_predictions.parquet ml/models/manifest.json ml/models/encoders.json app/public/models/*
+  stat data/dev.duckdb data/ci.duckdb data/marts/mart_degradation_predictions.parquet
+  python3 _roadmap/_ai-integration/status/board.py [--write-order|--check|--ship]
+
+Git state at set-up:
+  HEAD 6a6bdb6268b392bd0c5e8e372280fbc3c9dbcab7
+  ml/ transform/ app/ scripts/ data/: no working-tree changes
+  (_roadmap/ has uncommitted log and doc edits; not part of the probe's inputs)
+
+Data snapshot at set-up (baseline candidates; v14 world):
+  data/dev.duckdb  1939877888 bytes  modified Oct 22 01:42:11 2026
+  data/ci.duckdb  168833024 bytes  modified Oct 21 01:02:29 2026
+  data/marts/mart_degradation_predictions.parquet  14201301 bytes  modified Sep 22 23:40:07 2026
+  data/dev.duckdb was partly rebuilt by an earlier probe (2026-10-22 01:42): not a clean v14 warehouse.
+  Old-label feature tables (fct_cliff_prediction_features, fct_stint_features) are NOT saved anywhere.
+  CO-17 will overwrite data/dev.duckdb; export them to parquet first if the feature-shift measure is wanted.
+
+sha256 at set-up:
+  571b3981cd3d1d7577967b4720b6a956bab39d76d7c2086fb54c61c2ac616540  data/marts/mart_degradation_predictions.parquet
+  7855900dfbdc0fd239a13b0ab4f1fbb9832d801fe2954c33ade97ae7bb2cec3e  ml/models/manifest.json
+  099da3f23575928ccb20218711ba72731bddc73f6764de46cf8080b1d744a19d  ml/models/encoders.json
+  5b10f5733d644aac49d62aed406161625eac85cf2a7cb01bb067f62c4c7d3ed8  app/public/models/cliff_classifier_v14.onnx
+  9bfd08c582bbe714eba4778c1c83ab673fd693f8bf37e288a87b8dbfb5e5856a  app/public/models/degradation_regressor_p10_v14.onnx
+  0fe357bb7cd662b3d8703e9c573c1e847a2edfc460b2d9037747808b69abe241  app/public/models/degradation_regressor_p50_v14.onnx
+  6f4bed5cf37b6b567c84f8c2ba3e8b4af6c75f0870ddd9bc2ee45a3f33531c59  app/public/models/degradation_regressor_p90_v14.onnx
+  099da3f23575928ccb20218711ba72731bddc73f6764de46cf8080b1d744a19d  app/public/models/encoders.json
+  5339d0416641c480b8797ebccb084ece814eb5d111045f738e872b37d4dfefe1  app/public/models/flag_chance_lookup.json
+  7855900dfbdc0fd239a13b0ab4f1fbb9832d801fe2954c33ade97ae7bb2cec3e  app/public/models/manifest.json
+  7c4310afa14fbaaa7ecc37f0cbc85059504b8dad11c1a09581f8dc550e0c7966  app/public/models/model_card.json
+  8a92f9187b6d744a4db153b7fdb57e9ad6e9116ee0a92bbb529fea3d642ed7d3  app/public/models/stint_life_regressor_v14.onnx
+
+Facts checked at set-up:
+  ml/models/manifest.json: one top-level model_version = v14; no per-model version field. Same file as app/public/models/manifest.json.
+  One encoders.json (ml/models = app/public/models, same sha256).
+  ml/src/predict.py: one --version for all five models (args --out, --version, --models-dir, --flag-lookup).
+  Makefile app-models copies ml/models/*_<manifest model_version>.onnx only: one version for all five.
+  mart_degradation_predictions is the parquet predict.py writes (data/marts/), not a dbt model.
+
+PRE-CO-17 FEATURE SNAPSHOT (2026-10-22, owner ruling: export before the trusted rebuild)
+Exported read-only from data/dev.duckdb (modified 2026-10-22 01:42, partly rebuilt by the
+Monaco probe; NOT a clean v14 warehouse) with duckdb COPY ... TO parquet (ZSTD). Stored in the
+gitignored data/marts/pre-co17-2026-10-22/ so the data does not enter git.
+  fct_cliff_prediction_features.parquet  161040 rows  32880328 bytes
+    sha256 e6f09de90317333ebdeeec60ef5501261df333dc437e54e2699152ecc3973de2
+  fct_stint_features.parquet               9374 rows    171591 bytes
+    sha256 638c248116db7d275a4cec90ec6da0d50ba60c3033ee6768827701ca9f8fd8a4
+Command: python -I export script (COPY of SELECT * per table; read_only connection).
+Use: the S4 feature-shift scenario compares these against the post-CO-17 tables. The row count
+161040 matches the field-pace/cliff row count used in the probe design.

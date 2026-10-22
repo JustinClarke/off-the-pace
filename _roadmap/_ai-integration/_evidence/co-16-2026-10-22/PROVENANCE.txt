@@ -1,0 +1,7 @@
+CO-16 proposed diff, copied 2026-10-22. NOT APPLIED.
+File: cd7_option_a.diff (sha256 567d239c857c95b9627a24ef7c9cf6a218a01f3ac741f1eceacddae3945e4ba4).
+Copied from (session scratch, may not survive):
+  /private/tmp/claude-501/-Users-justin-github-off-the-pace/e7074a22-d03f-4724-882d-5fb7a35a514d/scratchpad/cd7_option_a.diff
+Made by the 2026-10-22 CD7 scoping session (owner ruling A). Touches
+transform/models/intermediate/int_sector_residual_decomposed.sql (and the sector test).
+A draft for CO-16: the method in wi/CO-16-sector-dirty-air-share.md is what counts. No label moves.

@@ -87,7 +87,7 @@ export default function RaceControlPage() {
         {
           label: "How It's Calculated",
           content:
-            'Per-lap track status from the FIA feed, via stg_laps into int_stint_geometry, collapsed to one row per race and lap. The pooled frequency comes from all 149 races. There is deliberately no per-circuit probability: at roughly four races per circuit the between-circuit variance component measures zero, so a per-circuit percentage would be noise with a venue name on it.',
+            'Per-lap track status from the FIA feed, via stg_laps into int_stint_geometry, collapsed to one row per race and lap. The pooled frequency comes from all 173 races (2018–2025). There is deliberately no per-circuit probability: at roughly five races per circuit the between-circuit variance component measures zero, so a per-circuit percentage would be noise with a venue name on it.',
         },
       ]}
       methodology={methodologyContent}

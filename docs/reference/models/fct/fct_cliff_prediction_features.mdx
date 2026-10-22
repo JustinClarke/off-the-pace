@@ -69,7 +69,7 @@ flowchart LR
 | `compound_optimal_temp_low` | `double` | Yes |   | Lower bound of optimal operating temperature window (°C) |
 | `compound_optimal_temp_high` | `double` | Yes |   | Upper bound of optimal operating temperature window (°C) |
 | `compound_cliff_onset_laps` | `double` | Yes |   | Expected lap age at cliff onset for this compound × circuit × season |
-| `compound_cliff_severity` | `double` | Yes |   | Fitted cliff severity (s/lap post-cliff) for this compound × circuit × season |
+| `compound_cliff_severity` | `double` | Yes |   | Fitted cliff severity (the cliff step in seconds, wear excluded) for this compound × circuit × season |
 | `push_residual` | `double` | Yes |   | Lap pace against the stint's point-in-time baseline, from int_lap_thermal_proxy, both on fuel-corrected lap time (F47, WI-15b). NULL until the stint has one valid prior lap (08e); the NULL is deterministic on baseline_observations_n below. |
 | `cumulative_push_load_surface` | `double` | Yes |   | EW cumulative push load (τ≈3 laps) for tyre surface |
 | `cumulative_push_load_bulk` | `double` | Yes |   | EW cumulative push load (τ≈5 laps) for tyre bulk |

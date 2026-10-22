@@ -1,10 +1,18 @@
 # CO-05 — W4: review the committed ingestion hardening, fix the stale test
 
-**Group:** D carry-over · **Depends on:** none · **Blocker:** none.
+**Group:** 1 data settled · **Depends on:** none · **Blocker:** none.
 
 **Sources:** `ingestion/verify_bronze.py`, `ingestion/src/ingest.py`, `ingestion/src/bronze_checks.py`, `ingestion/tests/test_bronze_verification.py`, `ingestion/tests/test_ingest_hardening.py`.
 
 **Audit finding:** 7.
+
+## In plain words
+
+"Ingestion" is the code that downloads raw race data (laps, stints, pit stops) and stores it as the warehouse's first layer ("bronze"). In September some safety checks were added to it: checks that each season downloaded completely and that the stored files look right. That work was saved to git long ago (commit a9fe181), but an old warning on the fixes board (W4) still says it was never saved or reviewed.
+
+This item closes that loose end. Someone read the change and found it does not alter what data gets stored. One test was out of date: it expected 2025 to be left out of a coverage table, but 2025 is now in scope on purpose. The test was corrected, and all 139 ingestion tests pass. What is left is small and mechanical: run the two test files again, then write the result into the fixes board so the old warning closes.
+
+It changes no number the assistant would quote, so the launch does not wait on it.
 
 ---
 

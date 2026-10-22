@@ -37,7 +37,7 @@ Slider ranges are calibrated to the p5–p95 of `fct_cliff_prediction_features` 
 
 ## Loading a real stint
 
-Use the **Preset** selector above the controls to load a real stint from the warehouse. This seeds all 38 model features from the actual race data for that stint and overlays the observed degradation jumps on the chart. Once a preset is loaded you can perturb individual sliders to run counterfactuals for example, asking "how would this stint have degraded if the driver had backed off the push residual by 20%?"
+Use the **Preset** selector above the controls to load a real stint from the warehouse. This seeds the model features from the actual race data for that stint and overlays the observed degradation jumps on the chart. Once a preset is loaded you can perturb individual sliders to run counterfactuals for example, asking "how would this stint have degraded if the driver had backed off the push residual by 20%?"
 
 Selecting **Reset** clears the preset and returns all sliders to their default values.
 
@@ -55,11 +55,11 @@ The most direct use of the simulator is understanding **why a strategy call was 
 
 ## How the models score in the browser
 
-Each lap of the simulated stint is converted into a 38-feature `float32` vector built from the current slider state, then passed through the ONNX runtime in your browser. The feature order, encoder mappings, and post-processing logic are read from the model manifest at runtime. Browser-side inference matches the originally trained boosters to a maximum absolute error of `1e-5`.
+Each lap of the simulated stint is converted into a `float32` vector for each model, built from the current slider state (39 features for the cliff classifier, 32 for the other four models), then passed through the ONNX runtime in your browser. The feature order, encoder mappings, and post-processing logic are read from the model manifest at runtime. Browser-side inference matches the originally trained boosters to a maximum absolute error of `1e-5`.
 
 ## Experimental chance to reach the flag
 
-The chance is the probability, under the stint-life model's log-normal distribution, that the tyres last to the chequered flag, passed through a Platt recalibration. It is `null` (not shown) for non-final stints, and also whenever the recalibration table was fitted for a different model version than the one loaded. The recalibration uses the `last3` rule (the most recent three seasons, chosen on 2024 only) fitted on 2018-2024 out-of-fold predictions.
+The chance is the probability, under the stint-life model's log-normal distribution, that the tyres last to the chequered flag, passed through a Platt recalibration. It is `null` (not shown) for non-final stints, and also whenever the recalibration table was fitted for a different model version than the one loaded. The recalibration uses the `last3` rule (the most recent three seasons, chosen on 2024 only) fitted on 2018-2024 out-of-fold predictions. These numbers are a refit of the v14 configuration on expanding-window folds over 2018–2024. They were not computed from the served v14 booster, which was trained on 2018–2025.
 
 <Warning>
   **This number failed its 2025 acceptance bar.** Only 5 of 10 calibration bins were within 5 percentage points, with a worst gap of 19.9 points. Its Brier score was 0.0803 against 0.2454 for always predicting the base rate, so it beats the base rate but is not well calibrated in the middle bins. It is provisional until 2026 races are scored.

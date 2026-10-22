@@ -2,7 +2,7 @@
 
 > **Cut from v1 on 2026-10-15.** `mart_degradation_predictions`, already on the CDN, carries p10/p50/p90, cliff-class probabilities, stint-life bands, `model_version` and `is_in_envelope` for every predicted lap. AI-01 turns those into fact cards, so questions about real stints need no live inference. Hypothetical questions link the Degradation Simulator page instead (AI-04). Reopen if AI-07 shows fans asking what-if tyre questions that the link does not serve. The spec below is kept for that.
 
-**Group:** B assistant core · **Depends on:** `AI-02` · **Blocker:** none.
+**Group:** 2 assistant build · **Depends on:** `AI-02` · **Blocker:** none.
 
 **Sources:** `app/src/ml/infer.ts`, `app/src/ml/index.ts`, `docs/ml/models.mdx`, `docs/ml/calibration.mdx`.
 

@@ -2315,8 +2315,10 @@ models:
         description: >
           Actual laps run on the set minus optimal, in valid laps. Negative = pitted early.
           Compared as offsets rather than lap numbers so an invalid lap before the stop cannot
-          skew it. NULL when either side is NULL. Median -1 across seven seasons: teams stop
-          slightly earlier than a degradation-only optimum, which is what track position buys.
+          skew it. NULL when either side is NULL. Median -3 valid laps per stint across
+          2018-2025 (n = 4,905 stints with both an actual stop and a model optimum; per-season
+          medians -1 to -4): teams stop earlier than a degradation-only optimum, which is what
+          track position buys.
       - name: opportunity_cost_s
         description: >
           Total_Cost(actual) - Total_Cost(optimal), in seconds. Non-negative by construction:
@@ -3740,7 +3742,7 @@ models:
     description: >
       Driver isolation tier 1 per Ω lap: pure_skill_gain_s = p (pace_isolated_gain_s) plus
       the declared season offset pure_season_offset_gain_s (W33; var
-      isolation_pure_season_offset_gain_s, 2018 +0.37 s). The tactical tier was cancelled
+      isolation_pure_season_offset_gain_s, currently empty so 0 in every season). The tactical tier was cancelled
       on 2026-09-28. NULLs are declared, never zeros: no car term -> p and pure NULL.
       Positive = faster. Leakage: a function of the residual trajectory; no ML-contract
       mart may depend on it (T48, ml/tests/test_manifest_contract.py). WI-16a,
@@ -3901,10 +3903,9 @@ models:
         description: >
           The declared season-level offset inside pure_skill_gain_s, s/lap (positive = the
           season's pure is raised; 0 for seasons not in var isolation_pure_season_offset_gain_s).
-          W33 Option A, 2026-09-30: 2018 +0.37 s, the measured gap between 2018's mean race
-          pure and the 2019-2024 seasons', caused by 2018's 42% share of fast-reading cliff
-          laps in the field median. A stopgap until WI-02b's cliff-cost refit; see the var's
-          comment in dbt_project.yml.
+          The var is currently empty ({}), so this is 0 in every season. The former 2018
+          +0.37 s stopgap (W33 Option A, 2026-09-30) was removed; see the var's comment in
+          dbt_project.yml.
         tests:
           - not_null
       - name: pure_is_extrapolated

@@ -222,6 +222,16 @@ KNOWN_THIN: dict[tuple[int, int, str], tuple[frozenset, str]] = {
         "Jolpica's 2025 Miami qualifying results carry empty Q1/Q2/Q3 at source "
         "(checked 2026-09-25)",
     ),
+    (2022, 7, "R"): (
+        frozenset({"laps.TyreLife"}),
+        "laps.TyreLife 86% non-null (threshold 90%); accepted by the owner 2026-10-22 "
+        "as an exception; the cause at source is not checked",
+    ),
+    (2022, 11, "R"): (
+        frozenset({"laps.TyreLife"}),
+        "laps.TyreLife 73% non-null (threshold 90%); accepted by the owner 2026-10-22 "
+        "as an exception; the cause at source is not checked",
+    ),
 }
 
 

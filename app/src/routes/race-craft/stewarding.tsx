@@ -3,7 +3,7 @@ export default function Page() {
     <div className="max-w-4xl mx-auto px-6 py-10">
       <h1 className="text-2xl font-bold tracking-tight mb-3">Penalty Impact</h1>
       <p className="text-sm text-muted mb-3">
-        The FIA race-control message feed is ingested-12,814 messages across all 149 races,
+        The FIA race-control message feed is ingested-14,992 messages across all 173 races,
         2018-2025-and the Race Control Timeline is built from that lineage. What it does not
         carry is structure. Incidents (track limits, collisions, unsafe releases) and the
         penalties that follow them (time additions, grid drops) exist only as free text inside

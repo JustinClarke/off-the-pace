@@ -1,6 +1,6 @@
 # CO-10 — 2026 flag-chance test: one pre-registered score
 
-**Status:** SPEC (nothing run). **Group:** D carry-over · **Depends on:** `CO-09` (label fix) · **Blocker:** owner ruling `CD4` (acceptance rule).
+**Status:** BLOCKED, not scheduled (nothing run). `CD11` (2026-10-22) keeps the chance line as it is with no 2026 test; this item stays open for the line only. **Group:** 4 chance line · **Depends on:** `CO-09` (label fix), `CO-12` (ingest) · **Blocker:** `CD4` (acceptance rule), `CD6` (fold scheme), and a new owner ruling to run a 2026 test at all.
 
 **Sources:** `ml/src/flag_chance.py`, `ml/src/survival.py`, `app/src/ml/flagChance.ts`, `app/public/models/flag_chance_lookup.json`.
 

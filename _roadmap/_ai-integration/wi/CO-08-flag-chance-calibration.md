@@ -1,7 +1,7 @@
 # CO-08 — Chance to make the flag: calibrated, final stints only
 
-**Status:** BUILDING (on the board; owner go-ahead 2026-10-15). The laps-to-flag cap is built. The chance line is built but FAILS the calibration acceptance on 2025, so it is not shown.
-**Group:** D carry-over · **Depends on:** the stint-life promotion decision (which model version feeds it) and the laps-to-flag display (option 1) · **Blocker:** none until those land.
+**Status:** BLOCKED on `CD4` and `CD5` (since 2026-10-22). The laps-to-flag cap is built. The chance line is built and shown on the simulator, labelled experimental (commits 0faac10, 4fa4384), although it FAILS the calibration acceptance on 2025. `CD11` (2026-10-22): kept as it is: not parked, no 2026 test. It does not gate the assistant launch.
+**Group:** 4 chance line · **Depends on:** `CO-04` · **Blocker:** `CD4`, `CD5`. Whether the line follows a stint-life promotion (`CD10`) is open (watch W14).
 
 **Sources:** `ml/src/survival.py` (AFT predictions), `ml/src/evaluate.py` (scoring), `ml/src/predict.py` (predictions parquet), `scripts/export_app_data.py`, `app/src/features/degradation-simulator/` (display), `docs/app/` (the page that explains the gauge).
 

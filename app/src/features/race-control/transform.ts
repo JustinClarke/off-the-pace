@@ -113,8 +113,8 @@ export function summarisePooled(rows: PooledRateRow[]): PooledSummary | null {
 /**
  * The empirical-Bayes pseudo-count from int_sc_hazard_history
  * (`var('sc_hazard_prior_laps', 600)`). Shown, not hidden: the weight a row
- * puts on its own circuit is L / (L + 600), which over the 128 rows with a
- * prior season averages 0.178.
+ * puts on its own circuit is L / (L + 600), which over the 152 rows with a
+ * prior season (2019-2025, warehouse build 2026-10-22) averages 0.202.
  */
 export const EB_PRIOR_LAPS = 600
 

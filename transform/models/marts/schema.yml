@@ -227,7 +227,7 @@ models:
         description: Expected lap age at cliff onset for this compound × circuit × season
         data_type: double
       - name: compound_cliff_severity
-        description: Fitted cliff severity (s/lap post-cliff) for this compound × circuit × season
+        description: Fitted cliff severity (the cliff step in seconds, wear excluded) for this compound × circuit × season
         data_type: double
       - name: push_residual
         description: >
@@ -1781,8 +1781,9 @@ models:
       - name: pure_skill_gain_s
         description: >
           Tier 1, s/lap, POSITIVE = FASTER: pace_isolated_gain_s plus the declared season
-          offset (int_driver_isolation_lap_values.pure_season_offset_gain_s; 2018 +0.37 s,
-          W33). Within a season it ranks and differences exactly like p. NULL without a car
+          offset (int_driver_isolation_lap_values.pure_season_offset_gain_s; currently 0 for
+          every season, so pure equals p). Within a season it ranks and differences exactly
+          like p. NULL without a car
           term. On cliff laps it is not a driver measurement (pure_is_extrapolated) and pure
           aggregates skip it.
       - name: pure_is_extrapolated
@@ -2096,7 +2097,7 @@ models:
         description: >
           Pure pace skill, mean over the group's non-extrapolated laps at stint-phase grain,
           s/lap, POSITIVE = faster / better (raw, before shrinkage). Includes the declared
-          season offset (2018 +0.37 s, W33; see int_driver_isolation_lap_values).
+          season offset, currently 0 for every season (see int_driver_isolation_lap_values).
       - name: pure_skill_se_s
         description: >
           SE of pure_skill_gain_s, s/lap (see the model header for the formula).
@@ -2281,9 +2282,10 @@ models:
       - name: pure_season_offset_gain_s
         description: >
           The declared season-level offset inside pure_skill_gain_s, s/lap (positive = the
-          season's pure is raised; 0 for seasons without one). W33 Option A, 2026-09-30:
-          2018 +0.37 s, so a 2018 pure value sits at the 2019-2024 seasons' level. It does
-          not change any within-season ranking or gap. Cross-season comparisons remain
+          season's pure is raised; 0 for seasons without one). The mechanism is kept but the
+          var is now empty ({}): the former 2018 +0.37 s offset (W33 Option A, 2026-09-30) was
+          removed, so the column is 0 for every season. An offset would not change any
+          within-season ranking or gap. Cross-season comparisons remain
           caveated (docs/decomposition/driver-isolation.mdx, Limitations).
         tests:
           - not_null

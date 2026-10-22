@@ -1,8 +1,8 @@
 -- stg_race_control.sql · staging · grain: one row per race-control message
--- The FIA message feed. Ingested for 149 races since the beginning of this
--- project and, until the proximity features, consumed by nothing.
+-- The FIA message feed. Ingested for 173 races (2018-2025) since the beginning
+-- of this project and, until the proximity features, consumed by nothing.
 --
--- It is staged now for one specific reason: the 4,909 waved blue flags are a
+-- It is staged now for one specific reason: the 5,388 waved blue flags are a
 -- traffic label produced by race control, not by the position channel. Every
 -- other traffic signal in this warehouse -- dirty_air_share_lap, the air-state
 -- classes, and now int_lap_proximity -- descends from FastF1 telemetry, so
@@ -42,8 +42,8 @@ renamed AS (
         -- derivative, not session-elapsed). Lap is the join key that works.
         --
         -- TRY_CAST and not CAST, because the CI fixture and production bronze
-        -- disagree on this column's TYPE: all 149 production race_control
-        -- parquets carry it as `double`, and all three fixture files carry it
+        -- disagree on this column's TYPE: all 173 production race_control
+        -- parquets (2018-2025) carry it as `double`, and all three fixture files carry it
         -- as `timestamp[ns]`. A plain CAST raises "Unimplemented type for cast
         -- (TIMESTAMP_NS -> DOUBLE)" on the fixture. That divergence went
         -- unnoticed through a full green `dbt build --target ci` because this

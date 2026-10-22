@@ -1,0 +1,114 @@
+PROPOSED, NOT APPLIED. Fix for assert_field_pace_honest_range failing on 2024_8 (Monaco).
+Cause: compound_cliff_wear_s extrapolates wear_gradient * age linearly to any tyre age;
+the gradient is fit on ages 3..onset-2 only (survival.py::estimate_wear_gradient) and the
+cliff step is measured no later than onset+5, so past onset+5 the curve is unmeasured.
+Fix: hold the linear wear term flat past onset + compound_wear_hold_after_onset_laps (5),
+the same "hold, don't extrapolate" rule the macro already applies to the cliff plateau.
+No call-site signature change: age - GREATEST(laps_past_cliff - H, 0) == LEAST(age, onset + H)
+when age > onset, and == age otherwise. Changes labels (expected_compound_pace_s feeds
+driver_skill_residual_s directly): needs a version bump + retrain (owner decision).
+Simulated on the dev build (current code, rebuilt 2026-10-22): 23,973 of 161,040
+int_compound_cliff_predicted rows change, max 6.32 s; honest-range failures 15 -> 0.
+
+--- a/transform/dbt_project.yml
++++ b/transform/dbt_project.yml
+@@ -120,6 +120,16 @@
+   # 10.0 is the conservative choice and the one continuous with the earlier, uncapped wear curve.
+   compound_wear_max_s_per_lap: 10.0
++  # Tyre-age offset past the cell's cliff onset beyond which the LINEAR wear term
++  # (wear_gradient * age) is held flat instead of extrapolated. The gradient is fit
++  # on ages 3..onset-2 and the cliff step at onset+2.5 from a window ending at
++  # onset+5 (survival.py), so past onset+5 the fitter measured nothing. Extrapolating
++  # drove 2024_8 (one-stint Monaco after a lap-1 red flag, ages to 78) to 10 s of
++  # charged wear against an observed weight-corrected drift of -1.8 s, and the
++  # field base to 0.905 x the race's fastest lap. Read by every site that prices the
++  # curve via macros/compound_cliff_wear.sql. Changing it moves the label.
++  compound_wear_hold_after_onset_laps: 5.0
+   # THE cliff ramp length, in laps, and its only definition (CO-02, owner decision
+--- a/transform/macros/compound_cliff_wear.sql
++++ b/transform/macros/compound_cliff_wear.sql
+@@ -92,13 +92,24 @@
+    the guard returns NULL, the same pattern int_lap_thermal_proxy uses for
+-   GREATEST. #}
++   GREATEST.
++
++   NO AGE EXTRAPOLATION. The linear term's age is held at
++   onset + var('compound_wear_hold_after_onset_laps') (5): the wear slope is
++   fitted on ages 3..onset-2 and the step measured by onset+5, so beyond that
++   the curve holds, exactly as the cliff plateau does (THE RAMP above). Written
++   as age - GREATEST(laps_past_cliff - hold, 0) so no call site needs the onset
++   passed separately: laps_past_cliff is age - onset past the onset and 0
++   before it. laps_past_cliff is NULL-guarded by the CASE before GREATEST. #}
+ {% macro compound_cliff_wear_s(wear_gradient, severity, age, laps_past_cliff) -%}
+ CASE
+     WHEN {{ age }} IS NULL OR {{ laps_past_cliff }} IS NULL THEN NULL
+     ELSE LEAST(
+-        COALESCE({{ wear_gradient }}, 0.0) * {{ age }}
++        COALESCE({{ wear_gradient }}, 0.0)
++        * ({{ age }} - GREATEST(
++            {{ laps_past_cliff }} - {{ var('compound_wear_hold_after_onset_laps') }},
++            0.0))
+         + {{ cliff_severity_term(severity, wear_gradient, laps_past_cliff) }},
+         {{ var('compound_wear_max_s_per_lap', 10.0) }}
+     )
+ END
+ {%- endmacro %}
+--- /dev/null
++++ b/transform/tests/assert_compound_wear_not_extrapolated.sql
+@@ -0,0 +1,18 @@
++{{ config(tags=['intermediate']) }}
++-- The linear wear term must not grow past onset + compound_wear_hold_after_onset_laps
++-- (macros/compound_cliff_wear.sql, NO AGE EXTRAPOLATION). Fails on any valid lap
++-- whose wear exceeds the held value of its cell, i.e. on any return of the
++-- unbounded-in-age curve that put 2024_8's field base at 0.905 x fastest lap.
++SELECT
++    lap_id, race_id, age_in_stint, compound_cliff_onset_laps, compound_wear_s,
++    LEAST(
++        compound_wear_gradient
++        * (compound_cliff_onset_laps + {{ var('compound_wear_hold_after_onset_laps') }})
++        + GREATEST(compound_cliff_severity, 0.0),
++        {{ var('compound_wear_max_s_per_lap', 10.0) }}
++    ) AS held_wear_s
++FROM {{ ref('int_compound_cliff_predicted') }}
++WHERE compound_wear_s IS NOT NULL
++  AND compound_wear_s > LEAST(
++        compound_wear_gradient
++        * (compound_cliff_onset_laps + {{ var('compound_wear_hold_after_onset_laps') }})
++        + GREATEST(compound_cliff_severity, 0.0),
++        {{ var('compound_wear_max_s_per_lap', 10.0) }}) + 1e-9
+--- /dev/null
++++ b/transform/tests/assert_field_base_drift_tracks_observed.sql
+@@ -0,0 +1,40 @@
++{{ config(tags=['intermediate'], severity='error') }}
++-- Loud companion to assert_field_pace_honest_range: names the CAUSE, not the symptom.
++-- Per dry race, the wear term the base subtracts must not drift through the race by
++-- more than 7 s beyond what the field's weight-corrected laps actually did. Measured
++-- 2026-10-22 on dev, current code: 2024_8 excess 10.25 s (fails); next 2020_4 6.89,
++-- 2024_5 5.64, 2021_3 5.24. With the hold fix: max 6.54 (2020_4, in-range gradient,
++-- a separate watch item), 2024_8 4.59, p99 4.61 over 149 dry races. Drift = median
++-- over laps in the last quarter of the race minus median over laps 3..first quarter.
++WITH nl AS (
++    SELECT race_id, MAX(lap_number) AS n FROM {{ ref('stg_laps') }}
++    WHERE is_valid_lap GROUP BY race_id
++),
++wet AS (SELECT DISTINCT race_id FROM {{ ref('stg_weather') }} WHERE rainfall_flag),
++l AS (
++    SELECT f.race_id, f.lap_number, nl.n,
++           f.weight_corrected_lap_time AS wc, c.compound_wear_s AS wear
++    FROM {{ ref('int_lap_fuel_state') }} AS f
++    INNER JOIN {{ ref('int_compound_cliff_predicted') }} AS c ON f.lap_id = c.lap_id
++    INNER JOIN nl ON f.race_id = nl.race_id
++    WHERE c.compound_wear_s IS NOT NULL
++      AND f.race_id NOT IN (SELECT race_id FROM wet)
++),
++d AS (
++    SELECT race_id,
++        MEDIAN(wear) FILTER (WHERE lap_number >= n * 0.75)
++          - MEDIAN(wear) FILTER (WHERE lap_number BETWEEN 3 AND n * 0.25) AS wear_drift_s,
++        MEDIAN(wc) FILTER (WHERE lap_number >= n * 0.75)
++          - MEDIAN(wc) FILTER (WHERE lap_number BETWEEN 3 AND n * 0.25) AS observed_drift_s
++    FROM l GROUP BY race_id
++)
++SELECT race_id, wear_drift_s, observed_drift_s, wear_drift_s - observed_drift_s AS excess_s
++FROM d
++WHERE wear_drift_s - observed_drift_s > 7.0

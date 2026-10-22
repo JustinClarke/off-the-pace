@@ -14,6 +14,14 @@ on:
     paths:
       - 'app/**'
       - '.github/workflows/app-ci.yml'
+      # Docs content claims (app/scripts/docs-drift/docs-claims.json): the pages they check and the
+      # files their value sources read.
+      - 'docs/**'
+      - 'README.md'
+      - 'transform/dbt_project.yml'
+      - 'transform/seeds/**'
+      - 'transform/models/**'
+      - 'ml/src/schema.py'
 
 defaults:
   run:
@@ -54,3 +62,25 @@ jobs:
 
       - name: Production build
         run: pnpm build
+
+  docs-claims:
+    # The deterministic half of the docs content check: value claims (stated facts vs the code) and
+    # the AI summaries' freshness. Prose claims need the docs-claims-reviewer agent and stay manual.
+    # No dbt here, so the model-count claims fall back to counting model files and the dbt test-count
+    # claims report SKIP (source unavailable) rather than fail.
+    name: docs content claims
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Value claims
+        run: node scripts/docs-drift/docsDrift.mjs --values-only
+
+      - name: AI summaries up to date
+        run: node src/nav/pageSummaries.mjs --check

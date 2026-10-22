@@ -1,0 +1,836 @@
+{
+  "note": "Checkable claims about docs pages. kind \"value\": the script compares the page (expect.pattern, one capture group, matched per line; or expect.value) to the source. kind \"prose\": decided by the docs-claims-reviewer agent; verdicts in docs-claims.verdicts.json. See docsClaims.mjs.",
+  "claims": [
+    {
+      "id": "isolation-offset-config",
+      "page": "docs/decomposition/driver-isolation.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "isolation_pure_season_offset_gain_s: ([^`]*)"
+      },
+      "source": {
+        "type": "file-regex",
+        "file": "transform/dbt_project.yml",
+        "regex": "^\\s*isolation_pure_season_offset_gain_s:\\s*(\\S.*?)\\s*$"
+      },
+      "forbid": [
+        "\\+0\\.37 s[^.]{0,80}\\b(is|are) (applied|added)",
+        "\\b(applies|adds|raises) [^.]{0,40}\\+0\\.37 s",
+        "uses[^.]{0,160}the 2018 season offset"
+      ],
+      "note": "The page must quote the live config value, and no line may describe the +0.37 s offset as applied."
+    },
+    {
+      "id": "isolation-offset-prose",
+      "page": "docs/decomposition/driver-isolation.mdx",
+      "kind": "prose",
+      "expect": "No statement on the page describes a 2018 (or any) season offset as currently applied to pure_skill_gain_s, to a validation build, or to any figure; every mention of the +0.37 s offset is in the past tense (removed).",
+      "source": {
+        "files": [
+          "transform/dbt_project.yml",
+          "transform/macros",
+          "transform/models/intermediate/int_driver_isolation_lap_values.sql"
+        ]
+      }
+    },
+    {
+      "id": "dbt-models-about",
+      "page": "docs/about.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "(\\d+) dbt models"
+      },
+      "source": {
+        "type": "command",
+        "cmd": "../.venv/bin/dbt ls --resource-type model --output name -q --profiles-dir profiles --target-path \"$(mktemp -d)\" --log-path \"$(mktemp -d)\"",
+        "cwd": "transform",
+        "countLines": true,
+        "fallback": {
+          "type": "count-files",
+          "dir": "transform/models",
+          "ext": ".sql"
+        }
+      }
+    },
+    {
+      "id": "dbt-models-transform-overview",
+      "page": "docs/transform/overview.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "model graph \\((\\d+) models\\)"
+      },
+      "source": {
+        "type": "command",
+        "cmd": "../.venv/bin/dbt ls --resource-type model --output name -q --profiles-dir profiles --target-path \"$(mktemp -d)\" --log-path \"$(mktemp -d)\"",
+        "cwd": "transform",
+        "countLines": true,
+        "fallback": {
+          "type": "count-files",
+          "dir": "transform/models",
+          "ext": ".sql"
+        }
+      }
+    },
+    {
+      "id": "dbt-models-overview-numbers",
+      "page": "docs/snippets/overview-numbers.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "title=\"(\\d+) dbt models\""
+      },
+      "source": {
+        "type": "command",
+        "cmd": "../.venv/bin/dbt ls --resource-type model --output name -q --profiles-dir profiles --target-path \"$(mktemp -d)\" --log-path \"$(mktemp -d)\"",
+        "cwd": "transform",
+        "countLines": true,
+        "fallback": {
+          "type": "count-files",
+          "dir": "transform/models",
+          "ext": ".sql"
+        }
+      }
+    },
+    {
+      "id": "dbt-models-transform-inventory",
+      "page": "docs/snippets/transform-inventory.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "title=\"(\\d+) models\""
+      },
+      "source": {
+        "type": "command",
+        "cmd": "../.venv/bin/dbt ls --resource-type model --output name -q --profiles-dir profiles --target-path \"$(mktemp -d)\" --log-path \"$(mktemp -d)\"",
+        "cwd": "transform",
+        "countLines": true,
+        "fallback": {
+          "type": "count-files",
+          "dir": "transform/models",
+          "ext": ".sql"
+        }
+      }
+    },
+    {
+      "id": "dbt-models-readme",
+      "page": "README.md",
+      "kind": "value",
+      "expect": {
+        "pattern": "(?:(\\d+)(?:\\*\\*)? dbt models|\\b(?:Transform|DuckDB)\\W[^|]*?\\b(\\d+) models|transform layer \\((\\d+) models)"
+      },
+      "source": {
+        "type": "command",
+        "cmd": "../.venv/bin/dbt ls --resource-type model --output name -q --profiles-dir profiles --target-path \"$(mktemp -d)\" --log-path \"$(mktemp -d)\"",
+        "cwd": "transform",
+        "countLines": true,
+        "fallback": {
+          "type": "count-files",
+          "dir": "transform/models",
+          "ext": ".sql"
+        }
+      },
+      "note": "Alternation: whichever group matched is compared (see checkValueClaim)."
+    },
+    {
+      "id": "dbt-models-readme-tables",
+      "page": "README.md",
+      "kind": "value",
+      "expect": {
+        "pattern": "(\\d+)-table dbt warehouse"
+      },
+      "source": {
+        "type": "command",
+        "cmd": "../.venv/bin/dbt ls --resource-type model --output name -q --profiles-dir profiles --target-path \"$(mktemp -d)\" --log-path \"$(mktemp -d)\"",
+        "cwd": "transform",
+        "countLines": true,
+        "fallback": {
+          "type": "count-files",
+          "dir": "transform/models",
+          "ext": ".sql"
+        }
+      }
+    },
+    {
+      "id": "dbt-tests-overview-numbers",
+      "page": "docs/snippets/overview-numbers.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "(\\d+) tests enforce the pipeline"
+      },
+      "source": {
+        "type": "command",
+        "cmd": "../.venv/bin/dbt ls --resource-type test --output name -q --profiles-dir profiles --target-path \"$(mktemp -d)\" --log-path \"$(mktemp -d)\"",
+        "cwd": "transform",
+        "countLines": true
+      }
+    },
+    {
+      "id": "dbt-tests-transform-inventory",
+      "page": "docs/snippets/transform-inventory.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "title=\"(\\d+) tests\""
+      },
+      "source": {
+        "type": "command",
+        "cmd": "../.venv/bin/dbt ls --resource-type test --output name -q --profiles-dir profiles --target-path \"$(mktemp -d)\" --log-path \"$(mktemp -d)\"",
+        "cwd": "transform",
+        "countLines": true
+      }
+    },
+    {
+      "id": "dbt-tests-readme",
+      "page": "README.md",
+      "kind": "value",
+      "expect": {
+        "pattern": "(?:\\*\\*(\\d+)\\*\\* tests|(?<!XGBoost )models[ ,·]+(\\d+) tests|run (\\d+) tests including)"
+      },
+      "source": {
+        "type": "command",
+        "cmd": "../.venv/bin/dbt ls --resource-type test --output name -q --profiles-dir profiles --target-path \"$(mktemp -d)\" --log-path \"$(mktemp -d)\"",
+        "cwd": "transform",
+        "countLines": true
+      }
+    },
+    {
+      "id": "app-features-about",
+      "page": "docs/about.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "All (\\d+) features, running client-side"
+      },
+      "source": {
+        "type": "md-table-items",
+        "file": "README.md",
+        "heading": "## App features",
+        "column": 1,
+        "exclude": [
+          "Query Lab"
+        ]
+      }
+    },
+    {
+      "id": "app-features-overview-numbers",
+      "page": "docs/snippets/overview-numbers.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "title=\"(\\d+) app features\""
+      },
+      "source": {
+        "type": "md-table-items",
+        "file": "README.md",
+        "heading": "## App features",
+        "column": 1,
+        "exclude": [
+          "Query Lab"
+        ]
+      }
+    },
+    {
+      "id": "app-features-readme",
+      "page": "README.md",
+      "kind": "value",
+      "expect": {
+        "pattern": "(?:\\*\\*(\\d+)\\*\\* browser features|serves (\\d+) interactive|(\\d+) features · zero server|frontend; (\\d+) interactive features|: (\\d+) interactive features)"
+      },
+      "source": {
+        "type": "md-table-items",
+        "file": "README.md",
+        "heading": "## App features",
+        "column": 1,
+        "exclude": [
+          "Query Lab"
+        ]
+      }
+    },
+    {
+      "id": "ml-width-degradation-simulator",
+      "page": "docs/app/degradation-simulator.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "\\((\\d+) features for the cliff classifier"
+      },
+      "source": {
+        "type": "count-matches",
+        "file": "ml/src/schema.py",
+        "start": "^FEATURE_GROUPS",
+        "end": "^}",
+        "regex": "\"[a-z0-9_]+\"(?!\\s*:)",
+        "commentPrefix": "#"
+      }
+    },
+    {
+      "id": "ml-width-masked-degradation-simulator",
+      "page": "docs/app/degradation-simulator.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "cliff classifier, (\\d+) for the other four models"
+      },
+      "source": {
+        "type": "count-matches",
+        "file": "ml/src/schema.py",
+        "start": "^FEATURE_GROUPS",
+        "end": "^    \"qualifying\"",
+        "regex": "\"[a-z0-9_]+\"(?!\\s*:)",
+        "commentPrefix": "#"
+      }
+    },
+    {
+      "id": "ml-width-feature-contract",
+      "page": "docs/ml/feature-contract.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "(?:the (\\d+) features and the read-only mart|^## (\\d+) features across|^description: \"(\\d+) features across)"
+      },
+      "source": {
+        "type": "count-matches",
+        "file": "ml/src/schema.py",
+        "start": "^FEATURE_GROUPS",
+        "end": "^}",
+        "regex": "\"[a-z0-9_]+\"(?!\\s*:)",
+        "commentPrefix": "#"
+      }
+    },
+    {
+      "id": "ml-width-ml-overview",
+      "page": "docs/ml/overview.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "contract holds (\\d+) features"
+      },
+      "source": {
+        "type": "count-matches",
+        "file": "ml/src/schema.py",
+        "start": "^FEATURE_GROUPS",
+        "end": "^}",
+        "regex": "\"[a-z0-9_]+\"(?!\\s*:)",
+        "commentPrefix": "#"
+      }
+    },
+    {
+      "id": "ml-width-masked-ml-overview",
+      "page": "docs/ml/overview.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "mask it and take (\\d+)"
+      },
+      "source": {
+        "type": "count-matches",
+        "file": "ml/src/schema.py",
+        "start": "^FEATURE_GROUPS",
+        "end": "^    \"qualifying\"",
+        "regex": "\"[a-z0-9_]+\"(?!\\s*:)",
+        "commentPrefix": "#"
+      }
+    },
+    {
+      "id": "ml-width-ml-inventory",
+      "page": "docs/snippets/ml-inventory.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "title=\"(\\d+) features in"
+      },
+      "source": {
+        "type": "count-matches",
+        "file": "ml/src/schema.py",
+        "start": "^FEATURE_GROUPS",
+        "end": "^}",
+        "regex": "\"[a-z0-9_]+\"(?!\\s*:)",
+        "commentPrefix": "#"
+      }
+    },
+    {
+      "id": "ml-width-readme",
+      "page": "README.md",
+      "kind": "value",
+      "expect": {
+        "pattern": "(?:ONNX, (\\d+) features|ONNX v14 \\((\\d+) features\\)|on a (\\d+)-column contract|reads all (\\d+) features)"
+      },
+      "source": {
+        "type": "count-matches",
+        "file": "ml/src/schema.py",
+        "start": "^FEATURE_GROUPS",
+        "end": "^}",
+        "regex": "\"[a-z0-9_]+\"(?!\\s*:)",
+        "commentPrefix": "#"
+      }
+    },
+    {
+      "id": "cliff-window-latest",
+      "page": "docs/reference/models/dim/dim_compounds_season.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "data_window 2018_to_2018 up to (\\d{4}_to_\\d{4})"
+      },
+      "source": {
+        "type": "csv",
+        "file": "transform/seeds/compound_cliff_params.csv",
+        "column": "data_window",
+        "reduce": "max",
+        "match": "^\\d{4}_to_\\d{4}$"
+      },
+      "forbid": [
+        "fitted on 2018.2024 data"
+      ],
+      "note": "Generated from transform/models/reference/schema.yml (dim_compounds_season description)."
+    },
+    {
+      "id": "cliff-window-2018-in-sample",
+      "page": "docs/reference/models/dim/dim_compounds_season.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "\\((\\d{4}_to_\\d{4}_in_sample)\\)"
+      },
+      "source": {
+        "type": "csv",
+        "file": "transform/seeds/compound_cliff_params.csv",
+        "column": "data_window",
+        "reduce": "max",
+        "match": "_in_sample$"
+      }
+    },
+    {
+      "id": "cliff-seed-rows-tyre-cliff",
+      "page": "docs/decomposition/tyre-cliff.mdx",
+      "kind": "value",
+      "expect": {
+        "pattern": "(\\d+) circuit-compound groups"
+      },
+      "source": {
+        "type": "csv",
+        "file": "transform/seeds/compound_cliff_params.csv",
+        "column": "data_window",
+        "reduce": "count"
+      }
+    },
+    {
+      "id": "nav-dim-driver-seasons",
+      "page": "docs/docs.json",
+      "kind": "value",
+      "expect": {
+        "value": "reference/models/dim/dim_driver_seasons"
+      },
+      "source": {
+        "type": "file-regex",
+        "file": "docs/docs.json",
+        "regex": "\"(reference/models/dim/dim_driver_seasons)\""
+      }
+    },
+    {
+      "id": "nav-every-page-listed",
+      "page": "docs/docs.json",
+      "kind": "value",
+      "expect": {
+        "value": "none"
+      },
+      "source": {
+        "type": "docs-nav-unlisted",
+        "docsDir": "docs",
+        "exclude": [
+          "snippets/"
+        ]
+      }
+    },
+    {
+      "id": "template-data-window",
+      "page": "docs/snippets/app-page-template.mdx",
+      "kind": "prose",
+      "expect": "The template's default data window (\"The data window covers ...\") names the seasons the warehouse and the shipped models actually cover (2018 through the last ingested season), not an older range such as 2018-2024.",
+      "source": {
+        "files": [
+          "transform/dbt_project.yml",
+          "transform/seeds/compound_cliff_params.csv",
+          "README.md"
+        ]
+      },
+      "note": "Prose, not value: no single config key states the ingested season range (holdout_season is the season after it; the seed covers it per season)."
+    },
+    {
+      "id": "reading-signal-blind-test-scoreboard",
+      "page": "docs/app/blind-test-scoreboard.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/blind-test-scoreboard/methodology.tsx",
+          "app/src/features/blind-test-scoreboard/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/blind-test-scoreboard"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-constructor-circuit-interaction",
+      "page": "docs/app/constructor-circuit-interaction.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/constructor-circuit-interaction/methodology.tsx",
+          "app/src/features/constructor-circuit-interaction/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/constructor-circuit-interaction"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-constructor-structural-pace",
+      "page": "docs/app/constructor-structural-pace.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/constructor-structural-pace/methodology.tsx",
+          "app/src/features/constructor-structural-pace/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/constructor-structural-pace"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-corner-phase-skill",
+      "page": "docs/app/corner-phase-skill.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/corner-phase-skill/methodology.tsx",
+          "app/src/features/corner-phase-skill/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/corner-phase-skill"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-counterfactual-championship",
+      "page": "docs/app/counterfactual-championship.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/counterfactual-championship/methodology.tsx",
+          "app/src/features/counterfactual-championship/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/counterfactual-championship"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-data-quality-audit",
+      "page": "docs/app/data-quality-audit.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/data-quality-audit/methodology.tsx",
+          "app/src/features/data-quality-audit/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/data-quality-audit"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-dirty-air-cost",
+      "page": "docs/app/dirty-air-cost.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/dirty-air-cost/methodology.tsx",
+          "app/src/features/dirty-air-cost/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/dirty-air-cost"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-dirty-air-lap-map",
+      "page": "docs/app/dirty-air-lap-map.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/dirty-air-lap-map/methodology.tsx",
+          "app/src/features/dirty-air-lap-map/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/dirty-air-lap-map"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-driver-circuit-affinity",
+      "page": "docs/app/driver-circuit-affinity.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/driver-circuit-affinity/methodology.tsx",
+          "app/src/features/driver-circuit-affinity/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/driver-circuit-affinity"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-driver-consistency",
+      "page": "docs/app/driver-consistency.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/driver-consistency/methodology.tsx",
+          "app/src/features/driver-consistency/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/driver-consistency"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-driver-workload",
+      "page": "docs/app/driver-workload.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/driver-workload/methodology.tsx",
+          "app/src/features/driver-workload/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/driver-workload"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-era-ratings-timeline",
+      "page": "docs/app/era-ratings-timeline.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/era-ratings-timeline/methodology.tsx",
+          "app/src/features/era-ratings-timeline/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/era-ratings-timeline"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-era-translator",
+      "page": "docs/app/era-translator.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/era-translator/methodology.tsx",
+          "app/src/features/era-translator/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/era-translator"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-field-pace-curve",
+      "page": "docs/app/field-pace-curve.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/field-pace-curve/methodology.tsx",
+          "app/src/features/field-pace-curve/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/field-pace-curve"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-ghost-race-standings",
+      "page": "docs/app/ghost-race-standings.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/ghost-race-standings/methodology.tsx",
+          "app/src/features/ghost-race-standings/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/ghost-race-standings"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-hidden-performance",
+      "page": "docs/app/hidden-performance.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/hidden-performance/methodology.tsx",
+          "app/src/features/hidden-performance/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/hidden-performance"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-model-metrics",
+      "page": "docs/app/model-metrics.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/model-metrics/methodology.tsx",
+          "app/src/nav/pageSummaries.generated.json#pages/model-metrics"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-party-mode",
+      "page": "docs/app/party-mode.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/party-mode/methodology.tsx",
+          "app/src/features/party-mode/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/party-mode"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-pit-strategy",
+      "page": "docs/app/pit-strategy.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/pit-strategy/methodology.tsx",
+          "app/src/features/pit-strategy/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/pit-strategy"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-quali-vs-race-skill",
+      "page": "docs/app/quali-vs-race-skill.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/quali-vs-race-skill/methodology.tsx",
+          "app/src/features/quali-vs-race-skill/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/quali-vs-race-skill"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-query-lab",
+      "page": "docs/app/query-lab.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/query-lab/",
+          "app/src/nav/pageSummaries.generated.json#pages/query-lab"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-race-control",
+      "page": "docs/app/race-control.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/race-control/methodology.tsx",
+          "app/src/features/race-control/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/race-control",
+          "app/src/nav/assistant-docs/race-control.md"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-race-lost",
+      "page": "docs/app/race-lost.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/race-lost/methodology.tsx",
+          "app/src/features/race-lost/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/race-lost"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-sector-decomposition",
+      "page": "docs/app/sector-decomposition.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/sector-decomposition/methodology.tsx",
+          "app/src/features/sector-decomposition/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/sector-decomposition"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-stint-degradation-timeline",
+      "page": "docs/app/stint-degradation-timeline.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/stint-degradation-timeline/methodology.tsx",
+          "app/src/features/stint-degradation-timeline/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/stint-degradation-timeline"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-synthetic-teammate",
+      "page": "docs/app/synthetic-teammate.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/synthetic-teammate/methodology.tsx",
+          "app/src/features/synthetic-teammate/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/synthetic-teammate"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-track-evolution",
+      "page": "docs/app/track-evolution.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/track-evolution/methodology.tsx",
+          "app/src/features/track-evolution/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/track-evolution"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-tyre-cliff-survival",
+      "page": "docs/app/tyre-cliff-survival.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/tyre-cliff-survival/methodology.tsx",
+          "app/src/features/tyre-cliff-survival/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/tyre-cliff-survival"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-tyre-recovery-forecast",
+      "page": "docs/app/tyre-recovery-forecast.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/tyre-recovery-forecast/methodology.tsx",
+          "app/src/features/tyre-recovery-forecast/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/tyre-recovery-forecast"
+        ]
+      }
+    },
+    {
+      "id": "reading-signal-wet-race-specialist",
+      "page": "docs/app/wet-race-specialist.mdx",
+      "kind": "prose",
+      "expect": "Every statement under \"Reading the signal correctly\" is supported by the feature's code (methodology/queries, and the dbt models they read), and each caveat in that section is also carried by the AI copy.",
+      "source": {
+        "files": [
+          "app/src/features/wet-race-specialist/methodology.tsx",
+          "app/src/features/wet-race-specialist/queries.ts",
+          "app/src/nav/pageSummaries.generated.json#pages/wet-race-specialist"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,421 @@
+{
+  "note": "Written only by `docsDrift.mjs --record-verdicts`. Keyed by page, then page sha256.",
+  "pages": {
+    "docs/app/blind-test-scoreboard.mdx": {
+      "e3f612e531445626d3e410ca2181ec1b1511271c6c34c7ae50ac5527d717a7fa": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-blind-test-scoreboard": {
+            "verdict": "PASS",
+            "evidence": "Page:30-33 in-sample 2018-2025 refit, 2025 CV fold validation-only, 80% target all match methodology.tsx:10-13,20 and model_card.json (v14, holdout_note); caveat text present in summary.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/constructor-circuit-interaction.mdx": {
+      "48791432dc68fb055a3acdc23c3cba4487b3139d05cb00b6d6b7894513e96511": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-constructor-circuit-interaction": {
+            "verdict": "PASS",
+            "evidence": "Within-constructor, prior weight 3, thin cells at 2 visits match methodology.tsx:10-12,17 and queries.ts:39 (HAVING >=2), dbt int_circuit_x_constructor_interaction.sql:132 (prior_weight=3); summary carries both.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/constructor-structural-pace.mdx": {
+      "4904a3686091f2575ee1836bcd7bc932eb1596ab751daa5a1b707d9ad27ad46d": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-constructor-structural-pace": {
+            "verdict": "PASS",
+            "evidence": "Panel fixed effects with driver control and wide CI for few teammate-pair obs match methodology.tsx:8-17; int_constructor_structural_pace.sql:126 drops rain laps, supporting rain-shortened caveat; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/corner-phase-skill.mdx": {
+      "9f520f554106409006d9fb243bbe5e0faf87c7bdc25d9d5eb13418d38746fe8c": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-corner-phase-skill": {
+            "verdict": "PASS",
+            "evidence": "Per-constructor car baseline and >=100 observation floor match methodology.tsx:14-17,40-41 and mart_corner_skill_driver.sql:250 (HAVING COUNT(*)>=100); summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/counterfactual-championship.mdx": {
+      "27783105d58124604206691632bde0134764c287bd56a75167e890492f50bd3d": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-counterfactual-championship": {
+            "verdict": "PASS",
+            "evidence": "Host drivers stay in real grid, expected-value reconstruction, confidence>=0.3 and <15-race badge match methodology.tsx:23-30, queries.ts:64 and ChampionshipChart.tsx:29; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/data-quality-audit.mdx": {
+      "b7e5c707ce49207c325c2e4e1e0310e1e79a737fe812e3f5a541125470ce0572": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-data-quality-audit": {
+            "verdict": "PASS",
+            "evidence": "Usable-% definition and neutralised/rain/out-in categories match methodology.tsx:10-21 and queries.ts:32-39; summary carries the caveat.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/dirty-air-cost.mdx": {
+      "83cdbff1734127a09b5a0c238ee5cb2d9efb621d605b65577d9eb9801d44c1b6": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-dirty-air-cost": {
+            "verdict": "PASS",
+            "evidence": "One pooled coefficient, 1.5 s following rule, 2018 highest match methodology.tsx:20-30 and int_dirty_air_tax_component.sql:42-43 (per-season theta +0.418 in 2018); summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/dirty-air-lap-map.mdx": {
+      "c69af9cad1da395340934374dacc3b24c1e00ac1b2950d24a44f4eae6ca2186d": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-dirty-air-lap-map": {
+            "verdict": "PASS",
+            "evidence": "1.5 s S2 gap threshold with gap 1.5-2.0 falling to free_air (int_lap_air_state.sql:179-185); unmeasured laps drawn grey via transform.ts:49 fallback; cost leaderboard taxes only laps with a measured gap (int_dirty_air_tax_component.sql:346-349). Summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/driver-circuit-affinity.mdx": {
+      "19e60005dce641a5327a5c328774f51fbaa43459b6ea5de1664edd5665ddce59": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-driver-circuit-affinity": {
+            "verdict": "PASS",
+            "evidence": "Within-driver affinity, F44 deviation-from-own-mean fix match queries.ts:44-68, methodology.tsx:12-19, schema.yml:2592; 2026-09-28 date matches WI-14b comments (int_driver_race_skill_loro.sql:7); summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/driver-consistency.mdx": {
+      "b7b1f1a3f384a4f23f8e489f02209915fcffc098d15b388573885df5ba87d4d7": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-driver-consistency": {
+            "verdict": "FAIL",
+            "evidence": "docs/app/driver-consistency.mdx:38 \"Circuits that carry a `REVIEW_REQUIRED` flag in the data quality audit\" vs the flag living in transform/seeds/circuit_reference.csv / dim_circuits (docs/decomposition/limitations.mdx:19 \"in dim_circuits\"); app/src/features/data-quality-audit/queries.ts:28-44 selects only int_lap_anomaly_flags columns and never surfaces REVIEW_REQUIRED, so the audit page does not carry it. Summary repeats the misattribution.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/driver-workload.mdx": {
+      "317a912b431aec21a50c07a9118c01edd042b660fc78a818fdd566875c2ac246": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-driver-workload": {
+            "verdict": "PASS",
+            "evidence": "Exposure signals, dirty-air share (gap<1.5 s S2), push residual as drift proxy match methodology.tsx:5-24; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/era-ratings-timeline.mdx": {
+      "2807aaf988cfe4d9d6fbc12dad14c959a045e86b76bcd4e2df6b509a2431ab7f": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-era-ratings-timeline": {
+            "verdict": "PASS",
+            "evidence": "Teammate-relative rating with no era offset (methodology.tsx:5-9,23-26,36); F45 offset drop and F40 lap-by-lap median match int_driver_season_ratings.sql:7, assert_era_offset_shrinks_gap.sql, int_driver_race_skill_loro.sql:7; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/era-translator.mdx": {
+      "f070141191a31de0f0993ecf45385e5dcf81ce8af1a71f7c50ac9c8baf3ecbea": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-era-translator": {
+            "verdict": "PASS",
+            "evidence": "Teammate-relative, no era offset (methodology.tsx:5-12,26); F45/F40 history matches transform comments and tests; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/field-pace-curve.mdx": {
+      "8149d2b1f8bdfe6b48961b90dd9470bee6f24d703ca7a350b5fb3ef3dcdd5895": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-field-pace-curve": {
+            "verdict": "FAIL",
+            "evidence": "docs/app/field-pace-curve.mdx:30 \"deliberately discards the top and bottom 20%\" vs transform/models/intermediate/int_field_pace_curve.sql:236-244 \"10% trim = drop top and bottom 10%\" (pct_rank BETWEEN 0.10 AND 0.90); also :30 \"a downward slope is fuel burn\" vs int_field_pace_curve.sql:2-3 the curve is fuel- and compound-corrected. features/field-pace-curve/methodology.tsx (20th-80th, <4 cars) is likewise stale vs sql (<5, line 261).",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/ghost-race-standings.mdx": {
+      "ddfc36170c28f58b49f094ed672dfed4275696881ad2b1451c2a8e87c2e13f38": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-ghost-race-standings": {
+            "verdict": "PASS",
+            "evidence": "Within one era and circuit, 2022 split, amber below 0.3 confidence match methodology.tsx:25-45; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/hidden-performance.mdx": {
+      "5c43adfceb57c728aaae9784defed7b3f0941222ae4edf97a205ca8fee942bbc": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-hidden-performance": {
+            "verdict": "FAIL",
+            "evidence": "docs/app/hidden-performance.mdx:33 \"predicted finish should equal actual finish\" (also :26) vs app/src/features/hidden-performance/methodology.tsx:20-23 \"the predicted per-lap pace should match the actual per-lap pace. Finish position ... will differ from actual finish.\" Summary carries the contradicted statement.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/model-metrics.mdx": {
+      "baa9591312005e69d7c09b07dcb1bbcb1830452d76f4c85a313422d56e572a38": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-model-metrics": {
+            "verdict": "PASS",
+            "evidence": "Out-of-sample temporal split, per-cohort baselines, 2025 fold also used to admit features match methodology.tsx:12-20,36-39 and model_card.json holdout_note; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/party-mode.mdx": {
+      "849ae44479d8994cb0717e5fa19ebfa6bbbf72fab15bf4c29f9af474b0a75732": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-party-mode": {
+            "verdict": "PASS",
+            "evidence": "Delta is a difference of two structural-pace estimates; quali and race are separate panels (methodology.tsx:5-13, queries.ts:44-55); summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/pit-strategy.mdx": {
+      "0f802a7bb25930af9da345f45034aea4157d3b112f584fc736b81edcce9d1dac": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-pit-strategy": {
+            "verdict": "FAIL",
+            "evidence": "docs/app/pit-strategy.mdx:32 \"Across the 2018-2025 seasons the median stop came one lap earlier than the model's optimum\" vs median overrun_laps = -3 (n=4905, 2018-2025) in data/dev.duckdb int_pit_strategy_value (overrun_laps defined int_pit_strategy_value.sql:429-433); schema.yml:2318 \"Median -1\" is for seven seasons only. Rest of the paragraph (one-stop horizon, stint plus next) matches int_pit_strategy_cost_curve.sql:48-60.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/quali-vs-race-skill.mdx": {
+      "7fc929625fd9fa3dc411f9c7cf0ee5961291860e3442ebb5297422975dead391": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-quali-vs-race-skill": {
+            "verdict": "PASS",
+            "evidence": "Both axes car-removed residuals, delta is specialisation signal, quali from few PB laps (methodology.tsx:5-24, queries.ts:30-37); summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/query-lab.mdx": {
+      "dbdad3676e782f4448bd90c3e093e5ddaeeeee4bfbe172bbd20abefdd6fa891b": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-query-lab": {
+            "verdict": "PASS",
+            "evidence": "Query Lab registers manifest tables (SchemaExplorer.tsx:8-14) that the charts read; driver_skill_residual_s is a decomposition residual (race-lost/queries.ts:62); summary carries both statements.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/race-control.mdx": {
+      "d6f585c2c7a71f2e4b3bea155e52c9b4f797cb7d11df793d1d7274568143903a": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-race-control": {
+            "verdict": "FAIL",
+            "evidence": "docs/app/race-control.mdx:35 \"The warehouse holds about 4.1 races per circuit\" (149 races; also table :42-47 and :59 \"0.178 across the 128 rows ... never exceeds 0.413\", :57 \"0.019 to 0.033\") vs warehouse now 173 races 2018-2025 (int_stint_geometry in data/dev.duckdb), int_sc_hazard_history: 137 rows with prior, mean weight 0.2245, max 0.4516, shrunk any-hazard 0.0166-0.0326. Figures are a 2018-2024 snapshot (methodology.tsx:297 repeats 149); summary and assistant-docs/race-control.md carry the same stale numbers.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/race-lost.mdx": {
+      "b7d3ec8075c620fe9835fbc9190570bcea84211c1a45c18960b2409aed88239c": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-race-lost": {
+            "verdict": "PASS",
+            "evidence": "Totals of fuel, compound, constructor, dirty-air plus skill close identity, track noise informational (methodology.tsx:19-27, queries.ts:558-566, int_lap_residual_decomposed.sql:16,357); summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/sector-decomposition.mdx": {
+      "02a2925b6dadcd7a153e9432fc9d138979bc85f04e2be5d6947a1ad89bf60300": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-sector-decomposition": {
+            "verdict": "PASS",
+            "evidence": "Proportional sector_time/lap_time allocation and rolling 7-lap (+-3) field median match methodology.tsx:12-19,27-30 and int_sector_residual_decomposed.sql:73; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/stint-degradation-timeline.mdx": {
+      "4d65c222ce8c74b9bddef787732f62f4c0a093f171412b2f6b211d66d0015510": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-stint-degradation-timeline": {
+            "verdict": "PASS",
+            "evidence": "Field-average curve, +-1 sd band (single stint gives COALESCE(STDDEV,0)=0), cliff onset from dim_compounds_season match methodology.tsx:11-19 and queries.ts:35-38; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/synthetic-teammate.mdx": {
+      "ac002be2ee83a10808f2556b0d3c8956766f7c343784645037ae0ce1c9810aa7": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-synthetic-teammate": {
+            "verdict": "PASS",
+            "evidence": "Divergent-strategy laps excluded, quality weight, min 3 races match methodology.tsx:12-31 and queries.ts:42-45; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/track-evolution.mdx": {
+      "782ad61930c776e97f8b3aaca1356c0976a9212a42eff8bc6a5599af7b7ed3eb": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-track-evolution": {
+            "verdict": "PASS",
+            "evidence": "Field-wide offsets from fuel- and compound-corrected field pace (int_field_pace_curve.sql:2-3, int_track_evolution.sql:2-12), low-sample laps excluded, ambient is residual after linear rubber fit; summary carries the caveat.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/tyre-cliff-survival.mdx": {
+      "5f74a036c2c11e50626d7caa209ca0408d3b6626a1d25035fbd23cbaefaf718b": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-tyre-cliff-survival": {
+            "verdict": "PASS",
+            "evidence": "Kaplan-Meier with censoring and at-risk thinning match methodology.tsx:12-24; censored stints are 56% of clean stints in dev.duckdb; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/tyre-recovery-forecast.mdx": {
+      "025d2e5c6129e272bae4c3af34ae92bc27e70e836d016ff97b6f6abff308ad81": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-tyre-recovery-forecast": {
+            "verdict": "PASS",
+            "evidence": "Recovery flag has no magnitude, probability is a fixed formula, 0.35 bulk_driven boundary match methodology.tsx:7-20 and int_tyre_surface_vs_bulk_decoupling.sql:134; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/app/wet-race-specialist.mdx": {
+      "ea1c7890f931c8ec2962283e8fee048d99c72f253af677e3139b30d04fdef8dc": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "reading-signal-wet-race-specialist": {
+            "verdict": "PASS",
+            "evidence": "Within-driver wet minus dry, k=6 shrinkage applied in transform.ts:21-35, wet-race eligibility counts match methodology.tsx:5-16 and queries.ts:186; summary carries it.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/decomposition/driver-isolation.mdx": {
+      "358f08c1dbbb593f4c0a58b4768eb6ed7d3ace85321fe38ec5fb4b77973959d2": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "isolation-offset-prose": {
+            "verdict": "PASS",
+            "evidence": "Only offset mention is driver-isolation.mdx:169, past tense (\"has been removed\"); dbt_project.yml:262 isolation_pure_season_offset_gain_s: {} and int_driver_isolation_lap_values.sql:12-13 confirm no offset applied. Other 0.37 mentions (146,186,214) are unrelated quantities.",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    },
+    "docs/snippets/app-page-template.mdx": {
+      "df3008350b0908e253f2760ab63d4b0039437fad638f693e1db163bf26f7e164": {
+        "reviewer": "docs-claims-reviewer",
+        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "claims": {
+          "template-data-window": {
+            "verdict": "PASS",
+            "evidence": "docs/snippets/app-page-template.mdx:63 \"covers 2018-2025\" matches README.md:54 (trained on 2018-2025), compound_cliff_params.csv seasons 2018-2025, holdout_season 2026 (dbt_project.yml:146).",
+            "at": "2026-10-22T07:44:24.418Z"
+          }
+        }
+      }
+    }
+  }
+}

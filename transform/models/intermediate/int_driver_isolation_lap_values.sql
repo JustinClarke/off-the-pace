@@ -9,8 +9,9 @@
 -- pre-cliff tyre only.
 --
 -- SEASON OFFSET (W33, 2026-09-30): pure_season_offset_gain_s is a declared
--- per-season constant (var isolation_pure_season_offset_gain_s; currently 2018
--- +0.37 s) that corrects a season level, not a driver. It cancels in every
+-- per-season constant (var isolation_pure_season_offset_gain_s; currently 0 in
+-- every season, the old 2018 +0.37 s offset was removed) that would correct a
+-- season level, not a driver. It cancels in every
 -- within-season difference, so pair gaps and the tier-3 identity (which use
 -- pace_isolated_gain_s) are unchanged. pace_isolated_gain_s carries no offset.
 --

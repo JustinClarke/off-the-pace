@@ -1,6 +1,6 @@
 # CO-01 — Mart semantics: teammate gap, field rank, positions gained
 
-**Group:** D carry-over · **Depends on:** none · **Blocker:** none.
+**Group:** 1 data settled · **Depends on:** none · **Blocker:** none.
 
 **Sources:** `transform/models/marts/mart_race_driver_summary.sql`, `mart_driver_season_summary.sql`, `transform/models/marts/schema.yml`, `transform/models/intermediate/int_driver_race_skill_loro.sql`.
 

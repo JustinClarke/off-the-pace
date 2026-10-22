@@ -11,7 +11,9 @@ _ai-integration/
 │   ├── board.py            renderer + validator (never writes to the log)
 │   ├── build-log.json      AUTHORITATIVE state: items, stages, open decisions, handoff history
 │   └── BUILD-ORDER.md      the rules, and the generated, ordered task list
-└── wi/                     one doc per work item: what exists, method, acceptance, definition of done
+├── wi/                     one doc per work item: what exists, method, acceptance, definition of done
+└── _evidence/              per-item artefacts (diffs, probe output), one folder per item and date:
+                            <item>-<date>/ with a PROVENANCE.txt, as in ../_fixes/_evidence/
 ```
 
 Same mechanism as [`../_fixes/`](../_fixes/README.md) and [`../_improvements/`](../_improvements/README.md): a JSON log, a read-only board, a generated task list.

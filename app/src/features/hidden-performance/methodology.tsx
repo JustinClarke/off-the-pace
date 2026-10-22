@@ -7,7 +7,7 @@ export const methodologyContent = (
     <p>
       Ghost-projected positions come from <strong>fct_ghost_race_finish</strong>: for each driver,
       their lap times are recombined with a chosen host constructor's car pace, then re-ranked by
-      predicted cumulative race time. Only scenarios where{' '}
+      predicted mean fuel-adjusted lap pace (not cumulative race time). Only scenarios where{' '}
       <code>avg_recombination_confidence &ge; 0.3</code> are included.
     </p>
     <p className="mt-2">
@@ -20,7 +20,8 @@ export const methodologyContent = (
       Short runs (too few laps for a reliable estimate) are excluded. The self-scenario check: when
       the host constructor equals the driver's own team, the predicted per-lap pace should match
       the actual per-lap pace. Finish position depends on how other drivers rank within the scenario
-      when transplanted to the same car, so it will differ from actual finish.
+      when transplanted to the same car, so it will usually differ from actual finish. A non-zero
+      finish delta in the self-scenario is expected; a pace mismatch would be a data issue.
     </p>
     <p className="mt-2">
       The <em>Rating</em> column is the driver's season rating from{' '}

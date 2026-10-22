@@ -32,23 +32,25 @@ It also refuses to answer the question everyone asks first "what are the chances
 <Warning>
   **There is no per-circuit safety-car probability on this page, and that is the finding, not an omission.**
 
-  The warehouse holds about 4.1 races per circuit. A one-way variance decomposition of the per-race caution rate grouped by circuit puts the between-circuit share at **0.000** for both "did this race have a safety car" and "did this race have any caution" the naive estimator reads 0.31 and 0.29, but the between-circuit mean square falls *below* the within-circuit one, so no circuit component is detectable at all.
+  The warehouse holds 173 races (2018–2025) at 36 circuits: about 4.8 races per circuit. A one-way variance decomposition of the per-race caution rate by circuit puts the between-circuit share at **0.000** for any caution and 0.015 for safety car (permutation p = 0.37, indistinguishable from zero).
 
-  The arithmetic of the scan says the same thing. A per-circuit estimate at 4.1 races carries a standard error of **22 points**. Thirty-six circuits of pure noise would spread about **95 points** from best to worst. The observed spread is **100 points**: eight circuits sit at exactly 100% and one at 0%. Printing "Baku: 100% chance of a safety car" would be reporting six coin flips as a forecast.
+  A per-circuit rate at 4.8 races carries a standard error of **20 points**. Thirty-six circuits of pure noise would spread about **93 points**. The observed spread is **100 points**: ten circuits sit at 100% and one at 0%. Baku City Circuit had a caution in 7 of 7 races; printing "Baku: 100% chance of a caution" would be reporting seven coin flips as a forecast.
 </Warning>
+
+The naive between-circuit estimator, which counts sampling noise as circuit signal, reads 0.32 for safety car and 0.27 for any caution.
 
 So the only caution probability shown is **pooled** across every circuit and season, and it never appears without its denominator and interval:
 
 | | races | rate | 95% CI |
 |---|---:|---:|---|
-| Any caution | 110 / 149 | 73.8% | 66.2 80.2 |
-| Safety car | 85 / 149 | 57.0% | 49.0 64.7 |
-| Virtual safety car | 65 / 149 | 43.6% | 35.9 51.6 |
-| Red flag | 19 / 149 | 12.8% | 8.3 19.1 |
+| Any caution | 128 / 173 | 74.0% | 67.0 80.0 |
+| Safety car | 98 / 173 | 56.6% | 49.2 63.8 |
+| Virtual safety car | 74 / 173 | 42.8% | 35.6 50.2 |
+| Red flag | 19 / 173 | 11.0% | 7.1 16.5 |
 
-8.97% of all race laps between 2018 and 2024 were run under a caution.
+Counts are races, 2018–2025 (n = 173 races), from the warehouse build of 2026-10-22. 9.03% of all race laps between 2018 and 2025 were run under a caution (n = 10,373 race laps, one per race and lap number).
 
-The one real movement in the data is seasonal, not spatial 90.5% of 2018 races had a caution against 58.3% of 2024 races and the per-season table on the page shows it rather than averaging it away.
+The one real movement in the data is seasonal, not spatial 90.5% of 2018 races had a caution against 58.3% of 2024 races and 75.0% of 2025 races and the per-season table on the page shows it rather than averaging it away.
 
 ### The per-circuit strip, and what it actually is
 
@@ -56,7 +58,7 @@ The one real movement in the data is seasonal, not spatial 90.5% of 2018 races h
 
 The **raw** rate spans 0.000 to 0.100 onsets per racing lap. That spread is the noise described above rendered to five decimal places, and it is never read into this app.
 
-The **shrunk** rate spans 0.019 to 0.033, and the reason it is narrow is stated on the page rather than hidden by it. The empirical-Bayes prior is 600 laps, so the weight a circuit's own history carries is `L / (L + 600)`, which averages **0.178** across the 128 rows that have a prior season and never exceeds 0.413. **Roughly four fifths of the value shown is the all-circuits pooled rate wearing a circuit's name.** That is the correct answer at this data volume the estimator has already conceded the question and the page prints the weight beside the number so a moving bar cannot imply a circuit signal that is not there.
+The **shrunk** rate (`any_hazard_per_lap_shrunk`) spans 0.017 to 0.033 onsets per racing lap, and the reason it is narrow is stated on the page rather than hidden by it. The empirical-Bayes prior is 600 laps, so the weight a circuit's own history carries is `L / (L + 600)`, where L is the circuit's racing laps in earlier seasons. That weight averages **0.202** across the 152 rows that have a prior season (2019–2025; a circuit's debut row counts as weight 0) and never exceeds 0.452. **Roughly four fifths of the value shown is the all-circuits pooled rate wearing a circuit's name.** That is the correct answer at this data volume the estimator has already conceded the question and the page prints the weight beside the number so a moving bar cannot imply a circuit signal that is not there.
 
 ### Why 2018 is blank
 
@@ -66,7 +68,7 @@ The page prints **not measurable** and draws no bar. A `COALESCE(..., 0)` would 
 
 ### How a "window" is counted
 
-Contiguous caution laps merge into one block, so two deployments with no green lap between them read as a single window. Measured against the event log in `stg_track_status`, this reconstruction produces **112 safety-car windows from 119 logged onsets**, agreeing exactly on **76 of the 85** races that have safety-car laps. The strip is therefore an accurate account of *which laps were neutralised* and a slight undercount of *how many times race control acted*.
+Contiguous caution laps merge into one block, so two deployments with no green lap between them read as a single window. Measured against the event log in `stg_track_status`, this reconstruction produces **129 safety-car windows from 137 logged onsets** over 2018–2025, agreeing exactly on **88 of the 98** races that have safety-car laps. The strip is therefore an accurate account of *which laps were neutralised* and a slight undercount of *how many times race control acted*.
 
 ## Data source
 

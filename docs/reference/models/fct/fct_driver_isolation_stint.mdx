@@ -74,7 +74,7 @@ flowchart LR
 | `is_censored_stint` |   | Yes |   | int_stint_end_regime.is_censored_stint (context). |
 | `strategy_verdict` |   | Yes |   | int_pit_strategy_value.strategy_verdict (context: staying out is the pit wall's call, not the driver's). |
 | `opportunity_cost_s` |   | Yes |   | int_pit_strategy_value.opportunity_cost_s (context). |
-| `pure_skill_gain_s` |   | Yes |   | Pure pace skill, mean over the group's non-extrapolated laps at stint-phase grain, s/lap, POSITIVE = faster / better (raw, before shrinkage). Includes the declared season offset (2018 +0.37 s, W33; see int_driver_isolation_lap_values). |
+| `pure_skill_gain_s` |   | Yes |   | Pure pace skill, mean over the group's non-extrapolated laps at stint-phase grain, s/lap, POSITIVE = faster / better (raw, before shrinkage). Includes the declared season offset, currently 0 for every season (see int_driver_isolation_lap_values). |
 | `pure_skill_se_s` |   | Yes |   | SE of pure_skill_gain_s, s/lap (see the model header for the formula). |
 | `pure_skill_lambda` |   | Yes |   | Reliability tau^2 / (tau^2 + SE^2) in [0, 1]; tau^2 per (season, rating) at this grain. 1 when SE = 0. |
 | `pure_skill_shrunk_gain_s` |   | Yes |   | lambda * pure_skill_gain_s: shrunk toward 0 (the ratings are field- or peer- centred), s/lap. |

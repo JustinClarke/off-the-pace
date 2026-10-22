@@ -332,6 +332,7 @@
                   "reference/models/dim/dim_constructors",
                   "reference/models/dim/dim_corners",
                   "reference/models/dim/dim_drivers",
+                  "reference/models/dim/dim_driver_seasons",
                   "reference/models/dim/dim_events"
                 ]
               }

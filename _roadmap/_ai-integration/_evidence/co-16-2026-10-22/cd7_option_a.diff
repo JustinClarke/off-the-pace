@@ -1,0 +1,85 @@
+diff -ru a/transform/models/intermediate/int_sector_residual_decomposed.sql b/transform/models/intermediate/int_sector_residual_decomposed.sql
+--- a/transform/models/intermediate/int_sector_residual_decomposed.sql	2026-10-22 01:42:10
++++ b/transform/models/intermediate/int_sector_residual_decomposed.sql	2026-10-22 01:42:26
+@@ -15,15 +15,21 @@
+ -- power_loading_s / aero_loading_s,
+ -- update allocation: power → S1+S3, aero → S2.
+ --
+--- NOTE: dirty_air_share_lap is lap-level only (no per-sector breakdown
+--- available).
+--- Proportional allocation used when > 0.
++-- CD7 option A: the sector dirty-air tax is the lap tax times the sector's
++-- time share, with no gate of its own. The lap tax
++-- (int_dirty_air_tax_component) is priced on the PREVIOUS lap's share
++-- (dirty_air_share_lag1, theta_air); until CD7 this model gated it on the
++-- CURRENT lap's dirty_air_share_lap, which zeroed the sector tax on every
++-- lap that followed a dirty lap but ran clean itself (10,706 dev laps, each
++-- 0.331 s short of the lap total). Like fuel, compound and constructor, this
++-- term now carries no sector-specific dirty-air information: it is the lap
++-- number spread by time. Pricing dirty air below lap grain is CD7 option C.
+ --
+--- FD6 (CO-04): an unmeasured air state (int_lap_air_state NULL: no gap and not
+--- the leader) is NOT read as clean air. Until CO-04 COALESCE(share, 0.0) here
+--- zeroed the sector tax on such a lap; now the sector tax, the sector total
+--- and the sector residual are NULL there. Mostly 2018_1 Australia and 2018_2
+--- Bahrain, which have no telemetry in bronze.
++-- FD6 (CO-04): NULL follows the lap tax. The lap tax is NULL when the
++-- previous lap's air state is unmeasured, and then so are the sector tax,
++-- total and residual. A lap whose own air state is unmeasured but whose
++-- previous lap was measured has a known lap tax, so its sectors now carry it
++-- (until CD7 they were NULL there while the lap total was not).
+ 
+ {{ config(materialized='table', tags=['intermediate', 'feature_engineering']) }}
+ 
+@@ -155,12 +161,9 @@
+         constructor_component_s
+         * (sector_time_s / NULLIF(lap_time_s, 0))
+             AS sector_constructor_component_s,
+-        CASE
+-            WHEN dirty_air_share_lap IS NULL THEN NULL
+-            WHEN dirty_air_share_lap > 0
+-                THEN dirty_air_tax_s * (sector_time_s / NULLIF(lap_time_s, 0))
+-            ELSE 0.0
+-        END AS sector_dirty_air_tax_s
++        -- CD7 A (header): no gate on the current lap's share
++        dirty_air_tax_s
++        * (sector_time_s / NULLIF(lap_time_s, 0)) AS sector_dirty_air_tax_s
+     FROM joined
+     WHERE field_sector_pace_smoothed_s IS NOT NULL
+ ),
+diff -ru a/transform/tests/assert_sector_aggregates_to_lap.sql b/transform/tests/assert_sector_aggregates_to_lap.sql
+--- a/transform/tests/assert_sector_aggregates_to_lap.sql	2026-10-22 01:42:10
++++ b/transform/tests/assert_sector_aggregates_to_lap.sql	2026-10-22 01:42:34
+@@ -33,16 +33,15 @@
+ -- sum is fuel + compound + constructor + dirty-air, compared against the lap's
+ -- total_explained_s. The 7.4% dirty-air-lag warning above is unchanged.
+ --
+--- Still failing (checked against dev.duckdb, 10,698 three-sector laps; the discrepancy on
+--- the sampled rows is exactly 0.331 s = theta_air, i.e. the dirty-air term). Kept at WARN
+--- because the defect is real and unfixed. PROMOTION CRITERION: change
+--- int_sector_residual_decomposed.sql so sector_dirty_air_tax_s is gated on / allocated from
+--- the lagged dirty-air share (dirty_air_share_lag1, matching the lap-grain tax in
+--- int_dirty_air_tax_component.sql) instead of the current lap's dirty_air_share_lap, rebuild,
+--- confirm this test returns 0 rows, then flip severity to 'error'.
++-- CD7 (option A): fixed. The sector dirty-air tax is now the lap tax times the time share,
++-- ungated, so it closes like the other terms. Before: 10,698 dev / 152 ci laps failed, every
++-- one by exactly 0.331 s (this lap clean, last lap dirty). Promoted to error.
+ --
++-- A lap whose sector sum is NULL while its lap total is not (or the reverse) also fails:
++-- before CD7 the SUM-vs-NULL comparison skipped those laps silently (1,482 dev laps).
++--
+ -- Tolerance: 0.001s (3-sector float accumulation), matching assert_sector_residual_identity.sql.
+-{{ config(severity='warn', tags=['sector_grain']) }}
++{{ config(severity='error', tags=['sector_grain']) }}
+ 
+ WITH sector_totals AS (
+     SELECT
+@@ -76,4 +75,7 @@
+ -- a broken identity.
+ WHERE
+     s.n_sectors = 3
+-    AND ABS(s.sector_explained_sum_s - l.lap_explained_s) > 0.001
++    AND (
++        ABS(s.sector_explained_sum_s - l.lap_explained_s) > 0.001
++        OR (s.sector_explained_sum_s IS NULL) <> (l.lap_explained_s IS NULL)
++    )

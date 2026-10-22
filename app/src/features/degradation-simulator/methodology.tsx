@@ -63,7 +63,9 @@ tyre(k)  = working_deg(k) × track_scale + cliff_term(k)            [monotone by
       <li><strong>Chance to reach the flag</strong> (<em>experimental</em>) is shown on final
         stints only. It is the probability, under the stint-life log-normal, that the tyre outlasts
         the laps to the flag, passed through a Platt recalibration (rule <code>last3</code>, chosen
-        on 2024 only, fitted on 2018-2024 out-of-fold). On 2025 it failed the acceptance bar: 5 of 10
+        on 2024 only, fitted on 2018-2024 out-of-fold). These numbers are a refit of the v14
+        configuration on expanding-window folds over 2018–2024. They were not computed from the served
+        v14 booster, which was trained on 2018–2025. On 2025 it failed the acceptance bar: 5 of 10
         bins within 5 pp, worst gap 19.9 pp, Brier 0.0803 against 0.2454 for the base rate. It is
         provisional until 2026 races are scored.</li>
     </ul>

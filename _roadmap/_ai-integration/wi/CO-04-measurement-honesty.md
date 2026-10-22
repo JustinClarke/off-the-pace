@@ -1,6 +1,6 @@
 # CO-04 — Measurement honesty: missing telemetry, safety-car smoothing, thin cells
 
-**Group:** D carry-over · **Depends on:** none · **Blocker:** none.
+**Group:** 1 data settled · **Depends on:** none · **Blocker:** none.
 
 **Sources:** `transform/models/intermediate/int_lap_air_state.sql`, `int_field_pace_curve.sql`, `int_lap_residual_decomposed.sql`.
 

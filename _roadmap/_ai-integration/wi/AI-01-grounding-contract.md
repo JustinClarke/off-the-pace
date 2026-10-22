@@ -1,6 +1,6 @@
 # AI-01 — Grounding contract: fact cards
 
-**Group:** A grounding · **Depends on:** `CO-01` · **Blocker:** none.
+**Group:** 2 assistant build · **Depends on:** `CO-01`, `CO-17` (cards built on the trusted rebuild) · **Blocker:** none.
 
 **Sources:** `transform/models/marts/mart_race_driver_summary.sql`, `mart_driver_season_summary.sql`, `mart_metric_benchmark.sql`; `mart_degradation_predictions` (written by `ml/src/predict.py`); `transform/models/intermediate/int_pit_strategy_value.sql`; `scripts/export_app_data.py`; the family pages under `docs/app/families/`.
 

@@ -1,6 +1,6 @@
 # CO-12 — OpenF1 2026 ingest spike
 
-**Status:** SPEC (nothing run). **Group:** D carry-over · **Depends on:** none · **Blocker:** owner approval to start.
+**Status:** BLOCKED (nothing run). **Group:** 4 chance line · **Depends on:** none · **Blocker:** `CD12` (owner approval to start; recorded as a decision 2026-10-22). Under `CD11` there is no 2026 test, so the ingest has no consumer in this order.
 
 **Sources:** `ingestion/`.
 

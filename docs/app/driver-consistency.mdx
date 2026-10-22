@@ -35,7 +35,7 @@ A **positive mean residual** means the driver is, on average, delivering less pa
 A **low standard deviation** means that signal positive or negative is reproducible. A high standard deviation means the driver has more lap-to-lap variance after conditions are controlled, which could indicate sensitivity to tyre windows, traffic effects not fully captured by the dirty-air term, or genuine inconsistency.
 
 <Warning>
-  Circuits that carry a `REVIEW_REQUIRED` flag in the data quality audit should be treated with caution. Residuals from those events may absorb miscalibration in one of the physics terms rather than genuine driver skill variation. Check the [decomposition limitations](/decomposition/limitations) page before drawing strong conclusions from any single race.
+  Some circuits carry a `REVIEW_REQUIRED` value in the `calibration_flag` column of the `circuit_reference` seed (`transform/seeds/circuit_reference.csv`). That flag marks a weight-penalty calibration that needs review. The flag is not shown on this chart. The flag is not shown by the Data Quality Audit page either. The `dim_circuits` table does not carry the flag. Treat driver residuals from races at a flagged circuit with caution. Residuals from those events may absorb miscalibration in one of the physics terms rather than genuine driver skill variation. Check the [decomposition limitations](/decomposition/limitations) page before drawing strong conclusions from any single race.
 </Warning>
 
 ## Data source

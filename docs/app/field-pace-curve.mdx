@@ -1,21 +1,21 @@
 ---
 title: "What pace did the field actually run, lap by lap?"
 sidebarTitle: "Field Pace Curve"
-description: "The trimmed field-average lap time across a race, blending fuel burn, tyre degradation, and track rubbering into one reference baseline."
+description: "The trimmed field-average lap time across a race, after fuel load and expected tyre compound cost are removed, smoothed into one reference baseline."
 ---
 
-To say a driver was "fast" you need a yardstick: what did the field run on that lap? The field pace curve builds that yardstick. It plots the trimmed field-average lap time as it evolves over race distance, blending fuel-load drop, tyre degradation, and track rubbering-in into a single reference baseline the curve every other decomposition measures against.
+To say a driver was "fast" you need a yardstick: what did the field run on that lap? The field pace curve builds that yardstick. It plots the trimmed field-average lap time as it evolves over race distance. Each lap time is first corrected for fuel load and for the expected tyre compound cost, so what is left is a single reference baseline the curve every other decomposition measures against.
 
 ## What it shows
 
 The chart overlays a smoothed reference, the raw mean, and a caution flag:
 
-- **Smoothed curve**: a LOWESS-smoothed field pace that suppresses outliers from safety cars, pit entries, and stint boundaries. This is the primary answer to "what did the field actually run this lap?"
-- **Raw trimmed mean**: the 20th–80th percentile lap time across all eligible cars per lap. The ribbon between the two series shows where smoothing diverges from the raw data a wide ribbon means a noisy lap (few cars, spread strategy).
-- **Low-sample laps**: laps with fewer than 4 eligible cars (pit windows, early laps) are flagged and should be read with caution.
+- **Smoothed curve** (`field_pace_smoothed_s`): a 5-lap centred rolling average of the trimmed mean. The window never crosses a safety car, virtual safety car or red flag lap, and the first two green laps after a safety car or red flag keep their own trimmed mean. This is the primary answer to "what did the field actually run this lap?"
+- **Raw trimmed mean** (`field_pace_trimmed_mean_s`): the mean corrected lap time per lap number after dropping the fastest 10% and the slowest 10% of eligible laps (percent rank 0.10 to 0.90). The ribbon between the two series shows where smoothing diverges from the raw data a wide ribbon means a noisy lap (few cars, spread strategy).
+- **Low-sample laps** (`low_sample_flag`): lap numbers with fewer than 5 eligible laps (pit windows, early laps) are flagged. A flagged lap has no smoothed value.
 
 <Note>
-  The fuel-corrected rate of change of this curve feeds the `base_track_pace_s` input to the additive decomposition so this is not just a chart, it is an upstream model input.
+  The smoothed curve is the `base_track_pace_s` input to the additive decomposition so this is not just a chart, it is an upstream model input.
 </Note>
 
 ## How to use it
@@ -27,7 +27,7 @@ The chart overlays a smoothed reference, the raw mean, and a caution flag:
 
 ## Reading the signal correctly
 
-The curve is a **trimmed central tendency**, not the leader's pace or the fastest lap it deliberately discards the top and bottom 20% to resist outliers. Its shape combines several physical effects (fuel, tyres, track), so a downward slope is fuel burn and rubbering, not the field simply getting faster.
+The curve is a **trimmed central tendency**, not the leader's pace or the fastest lap. Per lap number, the model drops the fastest 10% and the slowest 10% of eligible laps before averaging. Fuel load is removed from every lap time before averaging. The expected tyre compound cost from the tyre cliff model is also removed before averaging. So a downward slope in the curve is not fuel burn. The model source (`int_field_pace_curve`) names the remaining trend the rubber gradient: track rubbering-in plus anything the fuel and compound corrections do not capture. The curve does not split that remaining trend into separate causes.
 
 <Warning>
   Early laps and pit windows are sparse and flagged for a reason the curve there leans on a handful of cars and can swing. Don't read fine structure in the flagged regions.
@@ -39,9 +39,9 @@ The chart queries `int_field_pace_curve` via DuckDB-Wasm in the browser, for a s
 
 | Column | Meaning |
 |---|---|
-| `smoothed_field_pace_s` | LOWESS-smoothed field reference pace |
-| `trimmed_mean_pace_s` | 20th–80th percentile lap-time mean per lap |
-| `eligible_car_count` | Cars contributing to the lap; gates the low-sample flag at `< 4` |
+| `field_pace_smoothed_s` | 5-lap centred rolling average of the trimmed mean; NULL on low-sample laps |
+| `field_pace_trimmed_mean_s` | Mean corrected lap time per lap number, fastest and slowest 10% dropped |
+| `eligible_lap_count` | Eligible laps at that lap number; `low_sample_flag` is set when it is `< 5` |
 
 This is a **single-race** view across **2018–2025** data.
 

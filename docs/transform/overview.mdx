@@ -11,7 +11,7 @@ dbt models turn raw lap times into seven physics-attributed seconds and a driver
 <Note>
   **For a reviewer:**
   - **Decision:** a medallion warehouse (staging → intermediate → marts) where every model is a single, tested `SELECT` and lineage is resolved by dbt, not by hand.
-  - **Trade-off:** pushing all business logic into SQL means a large model graph (93 models) to keep coherent and documented.
+  - **Trade-off:** pushing all business logic into SQL means a large model graph (94 models) to keep coherent and documented.
   - **Proof:** the five-term additive identity closes to zero on every lap in CI, and the full dbt test suite gates every build.
 </Note>
 

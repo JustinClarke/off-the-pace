@@ -1,0 +1,8 @@
+CO-15 proposed diff, copied 2026-10-22. NOT APPLIED.
+File: proposed_fix_wear_hold.diff (sha256 ce786784b4d6c0a8d56b04733d32f1133cf2226501be38842a045c1a33af3d2a).
+Copied from (session scratch, may not survive):
+  /private/tmp/claude-501/-Users-justin-github-off-the-pace/e7074a22-d03f-4724-882d-5fb7a35a514d/scratchpad/proposed_fix_wear_hold.diff
+Made by the read-only Monaco 2024 probe of 2026-10-22 (CD9). Touches transform/dbt_project.yml and
+transform/macros/compound_cliff_wear.sql, and adds transform/tests/assert_compound_wear_not_extrapolated.sql
+and transform/tests/assert_field_base_drift_tracks_observed.sql. A draft for CO-15: the method in wi/CO-15-monaco-wear-hold.md
+is what counts. Moves the label; lands in CO-09's label version, retrain in CO-18.

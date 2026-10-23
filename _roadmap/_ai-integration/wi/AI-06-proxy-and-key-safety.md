@@ -39,3 +39,7 @@ The old AI plan (`_roadmap/_wip/AI_PLAN.md`) sketches a Firebase Cloud Function 
 ## Definition of done
 
 The Worker runs on a preview environment and every acceptance check passes there. CSP lists the single new host. Deploying to production is the user's call.
+
+## Step 1 record (2026-10-24)
+
+Source: https://developers.cloudflare.com/workers-ai/platform/pricing/ , fetched 2026-10-24. Free allowance 10,000 neurons a day, resets 00:00 UTC. Paid usage 0.011 USD per 1,000 neurons. gpt-oss-20b: 0.20 USD per M input tokens (18,182 neurons) and 0.30 USD per M output tokens (27,273 neurons). `worker/src/config.ts` uses these figures. Tool-call support on the model was not re-confirmed from the model page; check it before the preview run. The answers-per-day conversion needs AI-07's tokens per answer and is not yet recorded.

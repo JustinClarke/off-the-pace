@@ -52,8 +52,7 @@ This acts as the ultimate mathematical gatekeeper for the project. Certain tests
 When a developer submits a PR to improve how the "car pace" is calculated, the CI checks the variance of the resulting *driver skill residual*. If the new car pace calculation is worse, it will introduce noise, meaning the variance of the driver skill goes up. **The CI will block the merge** if a code change makes the driver skill estimate statistically noisier than the `main` branch baseline.
 
 ### Detailed Test Directory
-* **`assert_constructor_pace_propagates.sql`**: Ensures that the `constructor_component_s` successfully reduces the variance in `driver_skill_residual_s` versus the pre-release baseline.
-* **`assert_residual_variance_shrinks.sql`**: Ensures the variance of `driver_skill_residual_s` does not regress mathematically compared to the hardcoded baseline snapshot.
+*(The two baseline-gated tests that lived here were removed 2026-10-23, owner ruling CD15 = B; no tests are listed in this section.)*
 
 ---
 

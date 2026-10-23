@@ -1,0 +1,10 @@
+race_year,green_samples,valid_share_dd5_3s,gate,verdict,source
+2018,5203652,0.955,0.9,PASS,DA-01-2026-10-23/results/05_valid_share_by_season.csv column d_lapped_within_3s_invalid
+2019,6615642,0.9552,0.9,PASS,DA-01-2026-10-23/results/05_valid_share_by_season.csv column d_lapped_within_3s_invalid
+2020,6396108,0.969,0.9,PASS,DA-01-2026-10-23/results/05_valid_share_by_season.csv column d_lapped_within_3s_invalid
+2021,8825718,0.9571,0.9,PASS,DA-01-2026-10-23/results/05_valid_share_by_season.csv column d_lapped_within_3s_invalid
+2022,7299502,0.9761,0.9,PASS,DA-01-2026-10-23/results/05_valid_share_by_season.csv column d_lapped_within_3s_invalid
+2023,7830732,0.9827,0.9,PASS,DA-01-2026-10-23/results/05_valid_share_by_season.csv column d_lapped_within_3s_invalid
+2024,8595034,0.9735,0.9,PASS,DA-01-2026-10-23/results/05_valid_share_by_season.csv column d_lapped_within_3s_invalid
+2025,8183054,0.9847,0.9,PASS,DA-01-2026-10-23/results/05_valid_share_by_season.csv column d_lapped_within_3s_invalid
+ALL,58949442,0.97,0.9,PASS,DA-01-2026-10-23/results/05_valid_share_by_season.csv column d_lapped_within_3s_invalid

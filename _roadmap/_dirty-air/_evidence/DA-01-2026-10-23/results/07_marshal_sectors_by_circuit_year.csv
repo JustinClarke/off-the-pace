@@ -1,0 +1,257 @@
+circuit_key,name,year,http,index_lists_year,corners,marshal_lights,marshal_sectors,ms_all_have_xy
+2,Silverstone,2018,200,False,18,17,16,True
+2,Silverstone,2019,200,True,18,17,16,True
+2,Silverstone,2020,200,True,18,17,16,True
+2,Silverstone,2021,200,True,18,17,16,True
+2,Silverstone,2022,200,True,18,17,16,True
+2,Silverstone,2023,200,False,18,17,16,True
+2,Silverstone,2024,200,False,18,17,16,True
+2,Silverstone,2025,200,False,18,17,16,True
+4,Hungaroring,2018,200,True,16,19,19,True
+4,Hungaroring,2019,200,True,16,19,19,True
+4,Hungaroring,2020,200,True,16,19,19,True
+4,Hungaroring,2021,200,True,16,19,19,True
+4,Hungaroring,2022,200,False,16,19,19,True
+4,Hungaroring,2023,200,False,16,19,19,True
+4,Hungaroring,2024,200,False,16,19,19,True
+4,Hungaroring,2025,200,False,16,19,19,True
+6,Imola,2018,200,False,19,19,19,True
+6,Imola,2019,200,False,19,19,19,True
+6,Imola,2020,200,True,19,19,19,True
+6,Imola,2021,200,True,19,19,19,True
+6,Imola,2022,200,True,19,19,19,True
+6,Imola,2023,200,False,19,19,19,True
+6,Imola,2024,200,False,19,19,19,True
+6,Imola,2025,200,False,19,19,19,True
+7,Spa-Francorchamps,2018,200,True,19,19,19,True
+7,Spa-Francorchamps,2019,200,True,19,19,19,True
+7,Spa-Francorchamps,2020,200,True,19,19,19,True
+7,Spa-Francorchamps,2021,200,True,19,19,19,True
+7,Spa-Francorchamps,2022,200,False,19,21,21,True
+7,Spa-Francorchamps,2023,200,False,19,21,21,True
+7,Spa-Francorchamps,2024,200,False,19,21,21,True
+7,Spa-Francorchamps,2025,200,False,19,21,21,True
+9,Austin,2018,200,True,20,20,20,True
+9,Austin,2019,200,True,20,20,20,True
+9,Austin,2020,200,False,20,20,20,True
+9,Austin,2021,200,True,20,20,20,True
+9,Austin,2022,200,False,20,20,20,True
+9,Austin,2023,200,False,20,20,20,True
+9,Austin,2024,200,False,20,20,20,True
+9,Austin,2025,200,False,20,20,20,True
+10,Melbourne,2018,200,False,14,20,20,True
+10,Melbourne,2019,200,True,14,20,20,True
+10,Melbourne,2020,200,False,14,20,20,True
+10,Melbourne,2021,200,False,14,20,20,True
+10,Melbourne,2022,200,True,14,20,20,True
+10,Melbourne,2023,200,False,14,20,20,True
+10,Melbourne,2024,200,False,14,20,20,True
+10,Melbourne,2025,200,False,14,20,20,True
+14,Interlagos,2018,200,True,15,16,16,True
+14,Interlagos,2019,200,True,15,16,16,True
+14,Interlagos,2020,200,False,15,16,16,True
+14,Interlagos,2021,200,True,15,16,16,True
+14,Interlagos,2022,200,False,15,16,16,True
+14,Interlagos,2023,200,True,15,16,16,True
+14,Interlagos,2024,200,False,15,16,16,True
+14,Interlagos,2025,200,False,15,16,16,True
+15,Catalunya,2018,200,False,16,17,17,True
+15,Catalunya,2019,200,True,16,17,17,True
+15,Catalunya,2020,200,True,16,17,17,True
+15,Catalunya,2021,200,True,16,17,17,True
+15,Catalunya,2022,200,True,16,17,17,True
+15,Catalunya,2023,200,True,14,16,16,True
+15,Catalunya,2024,200,False,14,16,16,True
+15,Catalunya,2025,200,False,14,16,16,True
+19,Spielberg,2018,200,False,10,16,16,True
+19,Spielberg,2019,200,True,10,16,16,True
+19,Spielberg,2020,200,True,10,16,16,True
+19,Spielberg,2021,200,True,10,16,16,True
+19,Spielberg,2022,200,True,10,16,16,True
+19,Spielberg,2023,200,False,10,16,16,True
+19,Spielberg,2024,200,False,10,16,16,True
+19,Spielberg,2025,200,False,10,16,16,True
+22,Monte Carlo,2018,200,False,19,19,19,True
+22,Monte Carlo,2019,200,True,19,19,19,True
+22,Monte Carlo,2020,200,False,19,19,19,True
+22,Monte Carlo,2021,200,True,19,19,19,True
+22,Monte Carlo,2022,200,True,19,19,19,True
+22,Monte Carlo,2023,200,False,19,19,19,True
+22,Monte Carlo,2024,200,False,19,19,19,True
+22,Monte Carlo,2025,200,False,19,19,19,True
+23,Montreal,2018,200,False,14,15,15,True
+23,Montreal,2019,200,True,14,15,15,True
+23,Montreal,2020,200,False,14,15,15,True
+23,Montreal,2021,200,False,14,15,15,True
+23,Montreal,2022,200,True,14,15,15,True
+23,Montreal,2023,200,False,14,15,15,True
+23,Montreal,2024,200,False,14,15,15,True
+23,Montreal,2025,200,False,14,15,15,True
+28,Paul Ricard,2018,200,False,15,19,19,True
+28,Paul Ricard,2019,200,True,15,19,19,True
+28,Paul Ricard,2020,200,False,15,19,19,True
+28,Paul Ricard,2021,200,True,15,19,19,True
+28,Paul Ricard,2022,200,True,15,19,19,True
+28,Paul Ricard,2023,200,False,15,19,19,True
+28,Paul Ricard,2024,200,False,15,19,19,True
+28,Paul Ricard,2025,200,False,15,19,19,True
+34,Hockenheim,2018,200,False,17,15,14,True
+34,Hockenheim,2019,200,True,17,15,14,True
+34,Hockenheim,2020,200,False,17,15,14,True
+34,Hockenheim,2021,200,False,17,15,14,True
+34,Hockenheim,2022,200,False,17,15,14,True
+34,Hockenheim,2023,200,False,17,15,14,True
+34,Hockenheim,2024,200,False,17,15,14,True
+34,Hockenheim,2025,200,False,17,15,14,True
+39,Monza,2018,200,True,11,17,17,True
+39,Monza,2019,200,True,11,17,17,True
+39,Monza,2020,200,True,11,17,17,True
+39,Monza,2021,200,True,11,17,17,True
+39,Monza,2022,200,False,11,17,17,True
+39,Monza,2023,200,False,11,17,17,True
+39,Monza,2024,200,False,11,17,17,True
+39,Monza,2025,200,False,11,17,17,True
+46,Suzuka,2018,200,True,18,20,20,True
+46,Suzuka,2019,200,True,18,20,20,True
+46,Suzuka,2020,200,False,18,20,20,True
+46,Suzuka,2021,200,False,18,20,20,True
+46,Suzuka,2022,200,False,18,22,22,True
+46,Suzuka,2023,200,False,18,22,22,True
+46,Suzuka,2024,200,False,18,22,22,True
+46,Suzuka,2025,200,True,18,22,22,True
+49,Shanghai,2018,200,True,16,20,20,True
+49,Shanghai,2019,200,True,16,20,20,True
+49,Shanghai,2020,200,False,16,20,20,True
+49,Shanghai,2021,200,False,16,20,20,True
+49,Shanghai,2022,200,False,16,20,20,True
+49,Shanghai,2023,200,False,16,20,20,True
+49,Shanghai,2024,200,False,16,20,20,True
+49,Shanghai,2025,200,False,16,20,20,True
+55,Zandvoort,2018,200,False,14,19,19,True
+55,Zandvoort,2019,200,False,14,19,19,True
+55,Zandvoort,2020,200,False,14,19,19,True
+55,Zandvoort,2021,200,True,14,19,19,True
+55,Zandvoort,2022,200,False,14,19,19,True
+55,Zandvoort,2023,200,False,14,19,19,True
+55,Zandvoort,2024,200,False,14,19,19,True
+55,Zandvoort,2025,200,False,14,19,19,True
+59,Istanbul,2018,200,False,14,20,20,True
+59,Istanbul,2019,200,False,14,20,20,True
+59,Istanbul,2020,200,True,14,20,20,True
+59,Istanbul,2021,200,True,14,20,20,True
+59,Istanbul,2022,200,False,14,20,20,True
+59,Istanbul,2023,200,False,14,20,20,True
+59,Istanbul,2024,200,False,14,20,20,True
+59,Istanbul,2025,200,False,14,20,20,True
+61,Singapore,2018,200,True,23,18,18,True
+61,Singapore,2019,200,True,23,18,18,True
+61,Singapore,2020,200,False,23,18,18,True
+61,Singapore,2021,200,False,19,16,16,True
+61,Singapore,2022,200,False,19,16,16,True
+61,Singapore,2023,200,True,19,16,16,True
+61,Singapore,2024,200,False,19,16,16,True
+61,Singapore,2025,200,False,19,16,16,True
+63,Sakhir,2018,200,False,15,18,18,True
+63,Sakhir,2019,200,True,15,18,18,True
+63,Sakhir,2020,200,True,15,18,18,True
+63,Sakhir,2021,200,True,15,18,18,True
+63,Sakhir,2022,200,True,15,18,18,True
+63,Sakhir,2023,200,False,15,18,18,True
+63,Sakhir,2024,200,False,15,18,18,True
+63,Sakhir,2025,200,False,15,18,18,True
+65,Mexico City,2018,200,True,17,16,16,True
+65,Mexico City,2019,200,True,17,16,16,True
+65,Mexico City,2020,200,False,17,16,16,True
+65,Mexico City,2021,200,True,17,16,16,True
+65,Mexico City,2022,200,False,17,16,16,True
+65,Mexico City,2023,200,False,17,16,16,True
+65,Mexico City,2024,200,False,17,16,16,True
+65,Mexico City,2025,200,False,17,16,16,True
+70,Yas Marina Circuit,2018,200,True,21,20,20,True
+70,Yas Marina Circuit,2019,200,True,21,20,20,True
+70,Yas Marina Circuit,2020,200,True,21,20,20,True
+70,Yas Marina Circuit,2021,200,True,16,20,20,True
+70,Yas Marina Circuit,2022,200,False,16,20,20,True
+70,Yas Marina Circuit,2023,200,False,16,20,20,True
+70,Yas Marina Circuit,2024,200,False,16,20,20,True
+70,Yas Marina Circuit,2025,200,False,16,20,20,True
+72,Nürburgring,2018,200,False,15,18,18,True
+72,Nürburgring,2019,200,False,15,18,18,True
+72,Nürburgring,2020,200,True,15,18,18,True
+72,Nürburgring,2021,200,False,15,18,18,True
+72,Nürburgring,2022,200,False,15,18,18,True
+72,Nürburgring,2023,200,False,15,18,18,True
+72,Nürburgring,2024,200,False,15,18,18,True
+72,Nürburgring,2025,200,False,15,18,18,True
+79,Sochi,2018,200,True,18,20,20,True
+79,Sochi,2019,200,True,18,20,20,True
+79,Sochi,2020,200,True,18,20,20,True
+79,Sochi,2021,200,True,18,20,20,True
+79,Sochi,2022,200,False,18,20,20,True
+79,Sochi,2023,200,False,18,20,20,True
+79,Sochi,2024,200,False,18,20,20,True
+79,Sochi,2025,200,False,18,20,20,True
+144,Baku,2018,200,False,20,21,21,True
+144,Baku,2019,200,True,20,21,21,True
+144,Baku,2020,200,False,20,21,21,True
+144,Baku,2021,200,True,20,21,21,True
+144,Baku,2022,200,True,20,21,21,True
+144,Baku,2023,200,False,20,21,21,True
+144,Baku,2024,200,False,20,21,21,True
+144,Baku,2025,200,False,20,21,21,True
+146,Mugello,2018,200,False,0,0,19,True
+146,Mugello,2019,200,False,0,0,19,True
+146,Mugello,2020,200,True,0,0,19,True
+146,Mugello,2021,200,False,0,0,19,True
+146,Mugello,2022,200,False,0,0,19,True
+146,Mugello,2023,200,False,0,0,19,True
+146,Mugello,2024,200,False,0,0,19,True
+146,Mugello,2025,200,False,0,0,19,True
+147,Algarve International Circuit,2018,200,False,15,19,19,True
+147,Algarve International Circuit,2019,200,False,15,19,19,True
+147,Algarve International Circuit,2020,200,True,15,19,19,True
+147,Algarve International Circuit,2021,200,True,15,19,19,True
+147,Algarve International Circuit,2022,200,False,15,19,19,True
+147,Algarve International Circuit,2023,200,False,15,19,19,True
+147,Algarve International Circuit,2024,200,False,15,19,19,True
+147,Algarve International Circuit,2025,200,False,15,19,19,True
+148,Sakhir Outer Track,2018,200,False,0,0,0,False
+148,Sakhir Outer Track,2019,200,False,0,0,0,False
+148,Sakhir Outer Track,2020,200,True,0,0,0,False
+148,Sakhir Outer Track,2021,200,False,0,0,0,False
+148,Sakhir Outer Track,2022,200,False,0,0,0,False
+148,Sakhir Outer Track,2023,200,False,0,0,0,False
+148,Sakhir Outer Track,2024,200,False,0,0,0,False
+148,Sakhir Outer Track,2025,200,False,0,0,0,False
+149,Jeddah,2018,200,False,27,21,21,True
+149,Jeddah,2019,200,False,27,21,21,True
+149,Jeddah,2020,200,False,27,21,21,True
+149,Jeddah,2021,200,True,27,21,21,True
+149,Jeddah,2022,200,True,27,21,21,True
+149,Jeddah,2023,200,False,27,21,21,True
+149,Jeddah,2024,200,False,27,21,21,True
+149,Jeddah,2025,200,False,27,21,21,True
+150,Losail,2018,200,False,16,20,20,True
+150,Losail,2019,200,False,16,20,20,True
+150,Losail,2020,200,False,16,20,20,True
+150,Losail,2021,200,True,16,20,20,True
+150,Losail,2022,200,False,16,20,20,True
+150,Losail,2023,200,True,16,20,20,True
+150,Losail,2024,200,False,16,20,20,True
+150,Losail,2025,200,False,16,20,20,True
+151,Miami,2018,200,False,19,19,20,True
+151,Miami,2019,200,False,19,19,20,True
+151,Miami,2020,200,False,19,19,20,True
+151,Miami,2021,200,False,19,19,20,True
+151,Miami,2022,200,True,19,19,20,True
+151,Miami,2023,200,False,19,19,20,True
+151,Miami,2024,200,False,19,19,20,True
+151,Miami,2025,200,False,19,19,20,True
+152,Las Vegas,2018,200,False,17,21,21,True
+152,Las Vegas,2019,200,False,17,21,21,True
+152,Las Vegas,2020,200,False,17,21,21,True
+152,Las Vegas,2021,200,False,17,21,21,True
+152,Las Vegas,2022,200,False,17,21,21,True
+152,Las Vegas,2023,200,True,17,21,21,True
+152,Las Vegas,2024,200,False,17,21,21,True
+152,Las Vegas,2025,200,False,17,21,21,True

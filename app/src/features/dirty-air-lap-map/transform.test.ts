@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { transform } from './transform'
+import { transform, toCsvRows } from './transform'
+import { buildLapAirStateSql } from './queries'
 import type { LapAirStateRow } from './queries'
 
 const mkRow = (
@@ -7,8 +8,8 @@ const mkRow = (
   lap_number: number,
   air_state_dominant: string,
   dirty_air_thermal_load_surface = 0,
-  min_gap_s: number | null = null,
-): LapAirStateRow => ({ driver_id, lap_number, air_state_dominant, dirty_air_thermal_load_surface, min_gap_s })
+  gap_ahead_min_s: number | null = null,
+): LapAirStateRow => ({ driver_id, lap_number, air_state_dominant, dirty_air_thermal_load_surface, gap_ahead_min_s })
 
 describe('transform', () => {
   it('returns empty for no rows', () => {
@@ -80,5 +81,20 @@ describe('transform', () => {
     expect(byDriver('HAM')?.color).toContain('128')    // green
     expect(byDriver('LEC')?.color).toContain('83')     // amber
     expect(byDriver('SAI')?.color).toContain('0.04')   // near-transparent
+  })
+})
+
+// DD7 / DA-01: the gap label is the crossing-time gap (int_lap_proximity via
+// fct_cliff_prediction_features), never int_lap_air_state.min_gap_s, which is
+// distance-to-driver-ahead / point speed and biased above 1 s.
+describe('gap label source (DD7)', () => {
+  it('reads the crossing-time gap, not the distance / speed gap', () => {
+    const sql = buildLapAirStateSql(2024)
+    expect(sql).toContain('f.gap_ahead_min_s')
+    expect(sql).toMatch(/LEFT JOIN fct_cliff_prediction_features_2024 AS f\s+ON f\.lap_id = a\.lap_id/)
+    expect(sql).not.toMatch(/\bmin_gap_s\b/)
+    const [csv] = toCsvRows([mkRow('VER', 3, 'dirty_air', 0, 0.8765)])
+    expect(csv.gap_ahead_min_s).toBe('0.88')
+    expect(csv).not.toHaveProperty('min_gap_s')
   })
 })

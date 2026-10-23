@@ -20,6 +20,16 @@
 --    or out-lap), and at least the quarantine share of them with no stint change
 --    in the window after;
 -- 5. tyre age never falls or stalls between consecutive valid laps of a stint.
+--
+-- CO-09 (D4): int_stint_geometry now serves TYRE RUNS. A safety-car
+-- drive-through or red-flag pause on the same tyres (same compound, age + 1,
+-- non-green boundary) is a pit visit with no served stint change, by design.
+-- Checks 2, 2b and 3a still read the served numbering (a served change must
+-- still have its stop). Check 4 is a test of the bronze FEED (does its stint
+-- numbering ignore the pit stops?), so it now reads the feed's numbering,
+-- stg_lap_tyre_qa.stint_number -- the column int_stint_geometry served before
+-- the re-key -- not the run numbering, which would flag every joined
+-- drive-through as a broken feed (7 races on the 2026-10-24 scratch build).
 
 WITH geom AS (
     SELECT
@@ -51,6 +61,28 @@ changes AS (
         AND stint_number <> prev_stint_number
 ),
 
+-- The feed's own stint changes (FastF1 numbering after the WI-05 QA), for
+-- check 4 only.
+feed_changes AS (
+    SELECT race_year, race_id, driver_id, lap_number
+    FROM (
+        SELECT
+            race_year,
+            race_id,
+            driver_id,
+            lap_number,
+            stint_number,
+            LAG(stint_number) OVER (
+                PARTITION BY race_year, race_id, driver_id ORDER BY lap_number
+            ) AS prev_stint_number
+        FROM {{ ref('stg_lap_tyre_qa') }}
+    ) AS f
+    WHERE
+        prev_stint_number IS NOT NULL
+        AND stint_number IS NOT NULL
+        AND stint_number <> prev_stint_number
+),
+
 driver_last_lap AS (
     SELECT race_year, race_id, driver_id, MAX(lap_number) AS last_lap
     FROM geom
@@ -64,7 +96,7 @@ racing_stops AS (
         p.driver_id,
         p.pit_in_lap_number,
         EXISTS (
-            SELECT 1 FROM changes AS c
+            SELECT 1 FROM feed_changes AS c
             WHERE
                 c.race_year = p.race_year
                 AND c.race_id = p.race_id

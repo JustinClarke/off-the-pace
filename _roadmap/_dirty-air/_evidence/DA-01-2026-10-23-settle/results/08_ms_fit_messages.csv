@@ -1,0 +1,249 @@
+group,race_id,race_slug,layout_year,n_ms,t_session,lap,flag,rc_sector,slow_driver,min_ratio,fresh,n_slow_cars,slow_rd_channel,slow_rd,slow_off_track_units,status,pred_start,pred_nearest,d_start,d_nearest
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,487.9,1,YELLOW,2,PER,0.145,False,18,0.0997,0.111,84.5,matched,3,3,1,1
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,490.9,1,YELLOW,3,PER,0.145,False,18,0.0997,0.111,84.5,matched,3,3,0,0
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,498.9,1,DOUBLE YELLOW,4,OCO,0.0,True,18,1.0,0.287,57.9,matched,6,6,2,2
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,502.9,1,DOUBLE YELLOW,2,OCO,0.0,True,14,1.0,0.295,36.1,matched,6,6,4,4
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,507.9,1,YELLOW,3,OCO,0.0,True,10,1.0,0.297,14.9,matched,6,6,3,3
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,1785.9,10,DOUBLE YELLOW,3,STR,0.557,True,0,0.3071,0.297,24.2,no_slow_car,,,,
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,1916.9,11,YELLOW,6,HUL,0.026,True,2,1.0,0.395,63.8,matched,8,9,2,3
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,1924.9,11,DOUBLE YELLOW,1,HUL,0.026,True,2,1.0,0.395,63.8,matched,8,9,7,8
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,2303.9,15,YELLOW,2,STR,0.568,True,0,0.1242,0.115,35.0,no_slow_car,,,,
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,2306.9,15,YELLOW,3,STR,0.568,True,0,0.1242,0.115,35.0,no_slow_car,,,,
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,2360.9,15,DOUBLE YELLOW,3,STR,0.502,True,0,0.4385,0.429,27.7,no_slow_car,,,,
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,2673.9,18,YELLOW,4,ERI,0.0,True,2,0.2592,0.285,66.0,matched,6,6,2,2
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,2924.9,21,YELLOW,5,STR,0.563,True,0,0.6421,0.631,4.0,no_slow_car,,,,
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,4988.9,40,YELLOW,1,VER,0.043,True,2,1.0,0.053,49.6,matched,2,2,1,1
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,4993.9,40,DOUBLE YELLOW,1,VER,0.043,True,2,1.0,0.053,49.6,matched,2,2,1,1
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,4995.9,40,DOUBLE YELLOW,20,VER,0.043,True,2,1.0,0.053,49.6,matched,2,2,3,3
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,5666.9,44,DOUBLE YELLOW,12,ERI,0.332,True,2,0.5424,0.569,26.2,matched,13,14,1,2
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,5844.9,45,DOUBLE YELLOW,11,MAG,0.413,True,11,0.4049,0.421,54.1,matched,9,9,2,2
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,6389.9,49,YELLOW,2,BOT,0.205,True,1,0.2218,0.067,40.3,matched,2,3,0,1
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,6403.9,49,YELLOW,2,BOT,0.297,True,1,0.4036,0.149,30.1,matched,3,4,1,2
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,6422.9,49,DOUBLE YELLOW,2,BOT,0.002,True,2,1.0,0.345,30.5,matched,7,7,5,5
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,2019,21,6426.9,49,YELLOW,4,BOT,0.002,True,2,1.0,0.345,30.5,matched,7,7,3,3
+T_2018_on_2019_layout,2018_5,spanish_grand_prix,2019,17,459.2,1,YELLOW,4,GRO,0.028,True,7,0.9861,0.303,40.9,matched,4,5,0,1
+T_2018_on_2019_layout,2018_5,spanish_grand_prix,2019,17,462.2,1,DOUBLE YELLOW,4,GRO,0.028,True,6,0.9861,0.303,40.9,matched,4,5,0,1
+T_2018_on_2019_layout,2018_5,spanish_grand_prix,2019,17,3991.2,40,YELLOW,6,OCO,0.052,True,1,0.9976,0.481,9.8,matched,7,7,1,1
+T_2018_on_2019_layout,2018_5,spanish_grand_prix,2019,17,3992.2,40,YELLOW,7,OCO,0.052,True,1,0.9976,0.481,9.8,matched,7,7,0,0
+T_2018_on_2019_layout,2018_5,spanish_grand_prix,2019,17,4020.2,41,DOUBLE YELLOW,6,VER,0.808,True,0,0.9111,0.905,9.4,no_slow_car,,,,
+T_2018_on_2019_layout,2018_5,spanish_grand_prix,2019,17,4022.2,41,DOUBLE YELLOW,7,VER,0.808,True,0,0.9111,0.905,9.4,no_slow_car,,,,
+T_2018_on_2019_layout,2018_5,spanish_grand_prix,2019,17,4245.2,43,YELLOW,11,SIR,0.061,True,11,0.6614,0.703,19.7,matched,11,12,0,1
+T_2018_on_2019_layout,2018_5,spanish_grand_prix,2019,17,4245.2,43,YELLOW,12,SIR,0.061,True,11,0.6614,0.703,19.7,matched,11,12,1,0
+T_2018_on_2019_layout,2018_6,monaco_grand_prix,2019,19,446.0,1,YELLOW,6,GRO,0.405,True,10,0.3614,0.337,26.9,matched,7,7,1,1
+T_2018_on_2019_layout,2018_6,monaco_grand_prix,2019,19,1424.0,14,DOUBLE YELLOW,6,HAR,0.604,True,0,0.387,0.383,19.8,no_slow_car,,,,
+T_2018_on_2019_layout,2018_6,monaco_grand_prix,2019,19,4563.0,53,YELLOW,1,ALO,0.015,True,1,0.9997,0.233,10.0,matched,5,5,4,4
+T_2018_on_2019_layout,2018_6,monaco_grand_prix,2019,19,4573.0,53,DOUBLE YELLOW,1,ALO,0.006,True,1,1.0,0.237,0.0,matched,5,5,4,4
+T_2018_on_2019_layout,2018_6,monaco_grand_prix,2019,19,4578.0,53,YELLOW,19,ALO,0.006,True,1,1.0,0.237,0.0,matched,5,5,5,5
+T_2018_on_2019_layout,2018_6,monaco_grand_prix,2019,19,6035.0,72,YELLOW,12,LEC,0.035,True,2,0.9545,0.629,20.0,matched,13,13,1,1
+T_2018_on_2019_layout,2018_6,monaco_grand_prix,2019,19,6046.0,72,DOUBLE YELLOW,12,LEC,0.002,True,2,1.0,0.745,20.2,matched,14,15,2,3
+T_2018_on_2019_layout,2018_6,monaco_grand_prix,2019,19,6069.0,72,YELLOW,16,HAR,0.143,True,1,0.9756,0.941,40.3,matched,18,19,2,3
+T_2018_on_2019_layout,2018_7,canadian_grand_prix,2019,15,448.9,1,YELLOW,5,STR,0.0,False,8,1.0,0.289,9.5,matched,6,6,1,1
+T_2018_on_2019_layout,2018_7,canadian_grand_prix,2019,15,449.9,1,DOUBLE YELLOW,5,STR,0.0,False,8,1.0,0.295,49.2,matched,6,6,1,1
+T_2018_on_2019_layout,2018_7,canadian_grand_prix,2019,15,459.9,1,YELLOW,6,STR,0.0,True,9,1.0,0.437,29.8,matched,8,9,2,3
+T_2018_on_2019_layout,2018_7,canadian_grand_prix,2019,15,5943.9,70,DOUBLE YELLOW,8,GAS,0.848,True,0,0.9917,0.993,29.6,no_slow_car,,,,
+T_2018_on_2019_layout,2018_7,canadian_grand_prix,2019,15,5948.9,70,DOUBLE YELLOW,8,,,,,,,,field_slow_or_empty,,,,
+T_2018_on_2019_layout,2018_7,canadian_grand_prix,2019,15,5971.9,70,YELLOW,8,,,,,,,,field_slow_or_empty,,,,
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,461.0,1,YELLOW,2,BOT,0.0,False,8,0.0993,0.101,20.0,matched,2,3,0,1
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,475.0,1,YELLOW,4,BOT,0.0,True,8,0.0993,0.101,20.0,matched,2,3,2,1
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,479.0,1,DOUBLE YELLOW,4,OCO,0.0,True,12,1.0,0.233,30.1,matched,5,5,1,1
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,482.0,1,YELLOW,5,OCO,0.0,True,12,1.0,0.249,37.4,matched,5,6,0,1
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,1208.0,6,YELLOW,5,ALO,0.0,True,1,0.2015,0.219,10.2,matched,4,5,1,0
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,1209.0,6,DOUBLE YELLOW,4,ALO,0.0,True,1,0.2015,0.219,10.2,matched,4,5,0,1
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,1210.0,6,YELLOW,4,ALO,0.0,True,1,0.2015,0.219,10.2,matched,4,5,0,1
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,5542.0,51,YELLOW,12,STR,0.135,True,1,0.9885,0.709,10.6,matched,12,13,0,1
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,5582.0,51,YELLOW,11,ALO,0.78,True,0,0.8697,0.873,17.0,no_slow_car,,,,
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,5604.0,51,DOUBLE YELLOW,12,VER,0.815,True,0,0.6445,0.649,9.8,no_slow_car,,,,
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,5608.0,51,DOUBLE YELLOW,11,VER,0.815,True,0,0.6445,0.649,9.8,no_slow_car,,,,
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,5614.0,51,YELLOW,17,RIC,0.785,True,0,0.6436,0.647,20.2,no_slow_car,,,,
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,5787.0,53,YELLOW,11,SAI,0.325,True,7,0.2643,0.283,0.0,matched,6,6,5,5
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,5788.0,53,DOUBLE YELLOW,11,SAI,0.325,True,6,0.2643,0.283,0.0,matched,6,6,5,5
+T_2018_on_2019_layout,2018_8,french_grand_prix,2019,19,5790.0,53,DOUBLE YELLOW,12,SAI,0.325,True,4,0.2643,0.283,0.0,matched,6,6,6,6
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,530.8,2,YELLOW,9,LEC,0.327,True,1,0.6434,0.675,30.0,matched,12,12,3,3
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,1211.8,12,YELLOW,1,HUL,0.011,True,1,1.0,0.229,19.7,matched,4,5,3,4
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,1229.8,12,DOUBLE YELLOW,1,HUL,0.011,True,1,1.0,0.229,19.7,matched,4,5,3,4
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,1236.8,12,DOUBLE YELLOW,15,ALO,0.763,True,0,0.3052,0.307,39.6,no_slow_car,,,,
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,1372.8,14,YELLOW,7,BOT,0.137,True,1,0.9935,0.689,30.5,matched,12,12,5,5
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,1408.8,15,DOUBLE YELLOW,7,HAM,0.311,True,13,0.4311,0.455,20.2,matched,8,8,1,1
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,4144.8,54,YELLOW,1,RIC,0.005,True,1,1.0,0.271,10.6,matched,5,5,4,4
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,4183.8,55,DOUBLE YELLOW,1,MAG,0.813,True,0,0.0858,0.087,10.2,no_slow_car,,,,
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,4250.8,56,YELLOW,13,HAR,0.139,True,1,0.8969,0.933,30.6,matched,16,16,3,3
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,4256.8,56,YELLOW,14,HAR,0.09,True,1,0.8992,0.953,30.0,matched,16,16,2,2
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,4319.8,57,YELLOW,3,HAR,0.005,True,1,1.0,0.407,19.2,matched,7,8,4,5
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,4334.8,57,DOUBLE YELLOW,3,HAR,0.005,True,1,1.0,0.407,19.2,matched,7,8,4,5
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,4766.8,63,YELLOW,4,HAM,0.124,True,1,0.7595,0.333,9.1,matched,6,7,2,3
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,4821.8,64,DOUBLE YELLOW,5,ALO,0.797,True,0,0.0798,0.081,10.4,no_slow_car,,,,
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,2019,16,5396.8,71,DOUBLE YELLOW,11,SAI,0.907,True,0,0.9079,0.909,30.4,no_slow_car,,,,
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,450.0,1,YELLOW,1,PER,0.009,False,6,0.0836,0.119,10.3,matched,2,3,1,2
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,455.0,1,YELLOW,2,PER,0.0,False,7,0.088,0.159,30.5,matched,3,4,1,2
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,491.0,1,YELLOW,1,SIR,0.43,True,2,0.2971,0.345,30.5,matched,7,8,6,7
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,493.0,1,DOUBLE YELLOW,1,SIR,0.43,True,2,0.2971,0.345,30.5,matched,7,8,6,7
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,503.0,1,YELLOW,2,SIR,0.45,True,3,0.3149,0.363,30.5,matched,7,8,5,6
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,505.0,1,DOUBLE YELLOW,2,STR,0.487,True,2,0.3217,0.365,50.2,matched,7,8,5,6
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,529.0,1,YELLOW,1,HAR,0.324,False,1,0.1133,0.159,50.6,matched,3,4,2,3
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,530.0,1,YELLOW,2,HAR,0.324,False,1,0.1133,0.159,50.6,matched,3,4,1,2
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,595.0,2,DOUBLE YELLOW,5,HAR,0.578,True,0,0.8334,0.837,40.5,no_slow_car,,,,
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,680.0,3,DOUBLE YELLOW,5,ERI,0.759,True,0,0.3178,0.321,36.4,no_slow_car,,,,
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,2201.0,19,YELLOW,2,OCO,0.74,True,0,0.1846,0.179,30.4,no_slow_car,,,,
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,2245.0,20,YELLOW,2,VET,0.721,True,0,0.1841,0.179,20.9,no_slow_car,,,,
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,3439.0,32,YELLOW,1,ERI,0.042,True,1,1.0,0.097,3.0,matched,2,3,1,2
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,3450.0,33,DOUBLE YELLOW,1,ERI,0.042,True,1,1.0,0.097,3.0,matched,2,3,1,2
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,4208.0,38,YELLOW,9,GRO,0.06,True,2,1.0,0.547,0.0,matched,10,10,1,1
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,4209.0,38,DOUBLE YELLOW,9,GRO,0.06,True,2,1.0,0.547,0.0,matched,10,10,1,1
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,5138.0,46,YELLOW,14,VER,0.0,True,1,0.9407,0.959,10.6,matched,15,16,1,2
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,5231.0,47,YELLOW,4,VER,0.171,True,1,0.7972,0.413,9.8,matched,8,9,4,5
+T_2018_on_2019_layout,2018_10,british_grand_prix,2019,16,5247.0,48,DOUBLE YELLOW,4,VER,0.006,True,1,1.0,0.517,20.6,matched,10,10,6,6
+T_2018_on_2019_layout,2018_11,german_grand_prix,2019,14,2643.0,29,YELLOW,9,RIC,0.017,True,1,1.0,0.759,40.3,matched,10,10,1,1
+T_2018_on_2019_layout,2018_11,german_grand_prix,2019,14,2671.0,29,DOUBLE YELLOW,9,HAR,0.638,True,0,0.4641,0.461,14.3,no_slow_car,,,,
+T_2018_on_2019_layout,2018_11,german_grand_prix,2019,14,4179.0,48,YELLOW,10,GAS,0.235,True,1,0.7869,0.823,9.2,matched,11,11,1,1
+T_2018_on_2019_layout,2018_11,german_grand_prix,2019,14,4188.0,48,YELLOW,11,GAS,0.235,True,1,0.7869,0.823,9.2,matched,11,11,0,0
+T_2018_on_2019_layout,2018_11,german_grand_prix,2019,14,4279.0,49,YELLOW,1,LEC,0.154,True,1,0.0844,0.095,20.0,matched,1,2,0,1
+T_2018_on_2019_layout,2018_11,german_grand_prix,2019,14,4426.0,51,YELLOW,8,PER,0.012,True,1,0.6367,0.737,6.0,matched,10,10,2,2
+T_2018_on_2019_layout,2018_11,german_grand_prix,2019,14,4427.0,51,YELLOW,9,PER,0.009,True,1,0.6367,0.741,22.7,matched,10,10,1,1
+T_2018_on_2019_layout,2018_11,german_grand_prix,2019,14,4490.0,52,YELLOW,12,VET,0.186,True,2,0.5506,0.457,9.0,matched,6,6,6,6
+T_2018_on_2019_layout,2018_11,german_grand_prix,2019,14,4492.0,52,YELLOW,13,VET,0.186,True,2,0.5506,0.457,9.0,matched,6,6,7,7
+T_2018_on_2019_layout,2018_11,german_grand_prix,2019,14,4528.0,52,YELLOW,11,VET,0.019,True,2,1.0,0.837,4.0,matched,11,12,0,1
+C1_2018_on_2018_layout,2018_3,chinese_grand_prix,2018,20,3408.9,30,YELLOW,17,GAS,0.081,True,3,0.8812,0.881,43.5,matched,17,18,0,1
+C1_2018_on_2018_layout,2018_3,chinese_grand_prix,2018,20,3408.9,30,DOUBLE YELLOW,17,GAS,0.081,True,3,0.8812,0.881,43.5,matched,17,18,0,1
+C1_2018_on_2018_layout,2018_3,chinese_grand_prix,2018,20,3415.9,30,DOUBLE YELLOW,17,HAR,0.0,True,3,0.8808,0.941,30.0,matched,18,19,1,2
+C1_2018_on_2018_layout,2018_3,chinese_grand_prix,2018,20,3416.9,30,YELLOW,17,HAR,0.0,True,3,0.8808,0.933,30.8,matched,18,19,1,2
+C1_2018_on_2018_layout,2018_3,chinese_grand_prix,2018,20,3581.9,32,DOUBLE YELLOW,17,LEC,0.367,True,9,0.2695,0.299,10.3,matched,6,7,9,10
+C1_2018_on_2018_layout,2018_3,chinese_grand_prix,2018,20,4926.9,43,DOUBLE YELLOW,17,VER,0.0,True,2,0.8808,0.889,10.0,matched,17,18,0,1
+C1_2018_on_2018_layout,2018_12,hungarian_grand_prix,2018,19,903.8,6,YELLOW,9,VER,0.018,True,1,1.0,0.595,40.5,matched,11,11,2,2
+C1_2018_on_2018_layout,2018_12,hungarian_grand_prix,2018,19,4647.8,51,YELLOW,2,VAN,0.02,True,1,0.9924,0.349,20.6,matched,6,7,4,5
+C1_2018_on_2018_layout,2018_13,belgian_grand_prix,2018,19,889.0,1,YELLOW,16,,,,,,,,field_slow_or_empty,,,,
+C1_2018_on_2018_layout,2018_13,belgian_grand_prix,2018,19,1125.0,1,YELLOW,1,,,,,,,,field_slow_or_empty,,,,
+C1_2018_on_2018_layout,2018_14,italian_grand_prix,2018,17,1135.0,1,YELLOW,3,,,,,,,,field_slow_or_empty,,,,
+C1_2018_on_2018_layout,2018_14,italian_grand_prix,2018,17,1148.0,1,YELLOW,7,HAM,0.299,True,19,0.3438,0.373,30.1,matched,7,7,0,0
+C1_2018_on_2018_layout,2018_14,italian_grand_prix,2018,17,3265.0,25,YELLOW,7,RIC,0.015,True,1,0.9995,0.437,30.6,matched,8,8,1,1
+C1_2018_on_2018_layout,2018_14,italian_grand_prix,2018,17,3283.0,25,DOUBLE YELLOW,7,ERI,0.743,True,0,0.3453,0.349,40.0,no_slow_car,,,,
+C1_2018_on_2018_layout,2018_15,singapore_grand_prix,2018,18,1137.9,1,YELLOW,2,OCO,0.0,False,11,1.0,0.197,30.0,matched,4,4,2,2
+C1_2018_on_2018_layout,2018_15,singapore_grand_prix,2018,18,1142.9,1,DOUBLE YELLOW,1,OCO,0.0,False,11,1.0,0.245,29.1,matched,4,5,3,4
+C1_2018_on_2018_layout,2018_15,singapore_grand_prix,2018,18,1278.9,2,DOUBLE YELLOW,2,,,,,,,,field_slow_or_empty,,,,
+C1_2018_on_2018_layout,2018_15,singapore_grand_prix,2018,18,7983.9,61,DOUBLE YELLOW,1,,,,,,,,field_slow_or_empty,,,,
+C1_2018_on_2018_layout,2018_16,russian_grand_prix,2018,20,1153.0,1,YELLOW,3,HUL,0.3,True,14,0.1901,0.211,19.7,matched,4,4,1,1
+C1_2018_on_2018_layout,2018_16,russian_grand_prix,2018,20,1162.0,1,YELLOW,4,PER,0.43,True,6,0.3397,0.357,2.0,matched,7,7,3,3
+C1_2018_on_2018_layout,2018_16,russian_grand_prix,2018,20,1187.0,1,YELLOW,3,VAN,0.541,True,0,0.4939,0.503,39.8,no_slow_car,,,,
+C1_2018_on_2018_layout,2018_16,russian_grand_prix,2018,20,1474.0,4,YELLOW,6,GAS,0.0,True,1,0.3531,0.367,10.3,matched,7,7,1,1
+C1_2018_on_2018_layout,2018_16,russian_grand_prix,2018,20,1487.0,4,YELLOW,3,GAS,0.0,True,2,0.3531,0.355,0.0,matched,7,7,4,4
+C1_2018_on_2018_layout,2018_16,russian_grand_prix,2018,20,6710.0,53,YELLOW,4,,,,,,,,field_slow_or_empty,,,,
+C1_2018_on_2018_layout,2018_17,japanese_grand_prix,2018,20,2039.9,8,YELLOW,13,VET,0.006,True,1,0.6698,0.699,30.0,matched,14,15,1,2
+C1_2018_on_2018_layout,2018_17,japanese_grand_prix,2018,20,2044.9,8,YELLOW,14,VET,0.0,True,1,0.6698,0.699,30.0,matched,14,15,0,1
+C1_2018_on_2018_layout,2018_17,japanese_grand_prix,2018,20,5076.9,40,YELLOW,10,LEC,0.007,True,1,0.8773,0.435,40.0,matched,10,10,0,0
+C1_2018_on_2018_layout,2018_17,japanese_grand_prix,2018,20,5115.9,40,YELLOW,11,LEC,0.004,True,1,1.0,0.563,59.7,matched,12,12,1,1
+C1_2018_on_2018_layout,2018_17,japanese_grand_prix,2018,20,5116.9,40,DOUBLE YELLOW,10,LEC,0.004,True,1,1.0,0.563,59.7,matched,12,12,2,2
+C1_2018_on_2018_layout,2018_17,japanese_grand_prix,2018,20,5127.9,41,DOUBLE YELLOW,11,STR,0.672,True,0,0.9442,0.941,19.2,no_slow_car,,,,
+C1_2018_on_2018_layout,2018_18,united_states_grand_prix,2018,20,2052.9,1,YELLOW,4,ALO,0.0,True,6,0.2222,0.309,0.0,matched,7,7,3,3
+C1_2018_on_2018_layout,2018_18,united_states_grand_prix,2018,20,2087.9,1,YELLOW,13,LEC,0.0,True,20,0.6826,0.707,40.0,matched,14,15,1,2
+C1_2018_on_2018_layout,2018_18,united_states_grand_prix,2018,20,2092.9,1,YELLOW,14,LEC,0.0,True,16,0.6826,0.707,40.0,matched,14,15,0,1
+C1_2018_on_2018_layout,2018_18,united_states_grand_prix,2018,20,2093.9,1,DOUBLE YELLOW,14,LEC,0.0,True,17,0.6826,0.709,17.1,matched,14,15,0,1
+C1_2018_on_2018_layout,2018_18,united_states_grand_prix,2018,20,2098.9,1,YELLOW,15,LEC,0.0,True,16,0.6826,0.707,40.0,matched,14,15,1,0
+C1_2018_on_2018_layout,2018_18,united_states_grand_prix,2018,20,2285.9,3,YELLOW,6,GRO,0.507,True,0,0.7903,0.781,10.4,no_slow_car,,,,
+C1_2018_on_2018_layout,2018_18,united_states_grand_prix,2018,20,2889.9,9,YELLOW,10,RIC,0.341,True,1,0.0405,0.059,8936.7,matched,2,2,8,8
+C1_2018_on_2018_layout,2018_18,united_states_grand_prix,2018,20,2896.9,9,YELLOW,9,RIC,0.338,True,1,0.043,0.059,8936.7,matched,2,2,7,7
+C1_2018_on_2018_layout,2018_18,united_states_grand_prix,2018,20,2915.9,9,YELLOW,9,RIC,0.334,True,1,0.0497,0.059,8936.7,matched,2,2,7,7
+C1_2018_on_2018_layout,2018_19,mexican_grand_prix,2018,16,2310.9,5.0,YELLOW,10,ALO,0.004,True,1,1.0,0.845,0.0,matched,13,13,3,3
+C1_2018_on_2018_layout,2018_19,mexican_grand_prix,2018,16,2332.9,5.0,YELLOW,10,VAN,0.843,True,0,0.88,0.883,49.4,no_slow_car,,,,
+C1_2018_on_2018_layout,2018_19,mexican_grand_prix,2018,16,4454.9,30.0,YELLOW,12,SAI,0.331,True,1,0.1031,0.931,30.0,matched,15,15,3,3
+C1_2018_on_2018_layout,2018_19,mexican_grand_prix,2018,16,7077.9,62.0,YELLOW,2,RIC,0.006,True,1,1.0,0.321,10.0,matched,4,4,2,2
+C1_2018_on_2018_layout,2018_20,brazilian_grand_prix,2018,16,3524.9,21,DOUBLE YELLOW,8,ERI,0.0,True,1,0.5336,0.563,27.3,matched,9,9,1,1
+C1_2018_on_2018_layout,2018_20,brazilian_grand_prix,2018,16,3529.9,21,YELLOW,8,ERI,0.0,True,1,0.5312,0.531,20.4,matched,8,8,0,0
+C1_2018_on_2018_layout,2018_20,brazilian_grand_prix,2018,16,5218.9,44,DOUBLE YELLOW,2,OCO,0.0,True,2,0.1215,0.279,19.6,matched,4,5,2,3
+C1_2018_on_2018_layout,2018_20,brazilian_grand_prix,2018,16,5226.9,44,YELLOW,2,OCO,0.0,True,2,0.1215,0.279,19.6,matched,4,5,2,3
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,2073.9,1,YELLOW,8,HUL,0.0,True,4,1.0,0.557,19.8,matched,10,10,2,2
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,2871.9,7,YELLOW,20,RAI,0.435,True,1,0.0441,0.133,0.0,matched,3,4,3,4
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,2881.9,7,DOUBLE YELLOW,20,RAI,0.435,True,1,0.0441,0.133,0.0,matched,3,4,3,4
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,7264.9,48,DOUBLE YELLOW,13,GAS,0.052,True,1,0.9987,0.809,43.8,matched,15,15,2,2
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,7275.9,48,YELLOW,12,GAS,0.007,True,1,1.0,0.829,39.0,matched,16,16,4,4
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,7279.9,48,YELLOW,13,GAS,0.007,True,1,1.0,0.829,39.0,matched,16,16,3,3
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,7287.9,49,DOUBLE YELLOW,13,GAS,0.007,True,1,1.0,0.829,39.0,matched,16,16,3,3
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,7292.9,49,DOUBLE YELLOW,13,BOT,0.765,True,0,0.6997,0.701,5.0,no_slow_car,,,,
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,7295.9,49,DOUBLE YELLOW,13,BOT,0.765,True,0,0.6997,0.701,5.0,no_slow_car,,,,
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,7303.9,49,YELLOW,12,GRO,0.611,True,0,0.2157,0.221,20.1,no_slow_car,,,,
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,2018,20,8096.9,55,YELLOW,8,LEC,0.959,True,0,0.9713,0.971,10.8,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_1,australian_grand_prix,2019,20,2046.7,1.0,YELLOW,1,RIC,0.417,True,11,0.2232,0.213,30.6,matched,5,6,4,5
+C2_2019_on_2019_layout,2019_1,australian_grand_prix,2019,20,4755.7,31.0,YELLOW,19,GRO,0.068,True,1,0.9991,0.941,19.8,matched,20,20,1,1
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,82.9,1,DOUBLE YELLOW,15,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,2053.9,1,YELLOW,6,GRO,0.265,True,18,0.2569,0.289,0.0,matched,4,5,2,1
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,2060.9,1,YELLOW,6,GRO,0.265,True,19,0.2569,0.289,0.0,matched,4,5,2,1
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,2081.9,1,DOUBLE YELLOW,3,GRO,0.255,True,15,0.3958,0.419,49.8,matched,8,8,5,5
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,2096.9,1,DOUBLE YELLOW,9,GRO,0.363,True,2,0.4852,0.505,30.4,matched,10,11,1,2
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,2105.9,1,YELLOW,8,STR,0.522,True,0,0.6143,0.631,50.0,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,2160.9,2,DOUBLE YELLOW,16,GRO,0.587,True,0,0.9649,0.993,70.1,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,2341.9,4,DOUBLE YELLOW,2,SAI,0.704,True,0,0.2869,0.287,10.8,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,2347.9,4,YELLOW,1,SAI,0.568,True,0,0.3786,0.391,0.0,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,2348.9,4,YELLOW,6,SAI,0.568,True,0,0.3786,0.391,0.0,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,2549.9,6,DOUBLE YELLOW,3,MAG,0.763,True,0,0.2769,0.279,39.3,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,3179.9,13,DOUBLE YELLOW,11,KVY,0.003,True,1,0.6539,0.701,30.4,matched,14,14,3,3
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,3179.9,13,YELLOW,11,KVY,0.003,True,1,0.6539,0.701,30.4,matched,14,14,3,3
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,3180.9,13,YELLOW,12,KVY,0.0,True,1,0.6539,0.703,50.0,matched,14,14,2,2
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,5666.9,38,YELLOW,3,VET,0.014,True,1,0.3136,0.347,40.0,matched,6,6,3,3
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,5668.9,38,YELLOW,4,VET,0.0,True,1,0.3139,0.363,41.0,matched,6,7,2,3
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,5925.9,41,DOUBLE YELLOW,10,GAS,0.691,True,0,0.1383,0.137,10.6,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,6169.9,43,DOUBLE YELLOW,8,VET,0.824,True,0,0.8977,0.899,29.5,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,7246.9,54,YELLOW,1,HUL,0.078,True,1,0.9947,0.153,9.4,matched,2,3,1,2
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,7295.9,55,DOUBLE YELLOW,1,SAI,0.622,True,0,0.5062,0.505,9.2,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,7331.9,55,DOUBLE YELLOW,2,SAI,0.636,True,0,0.9181,0.917,19.7,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,2019,18,7333.9,55,YELLOW,2,SAI,0.636,True,0,0.9181,0.917,19.7,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,81.8,1,DOUBLE YELLOW,17,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,89.8,1,DOUBLE YELLOW,2,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,131.8,1,DOUBLE YELLOW,14,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,132.8,1,DOUBLE YELLOW,12,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,161.8,1,DOUBLE YELLOW,16,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,499.8,1,DOUBLE YELLOW,18,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,539.8,1,DOUBLE YELLOW,2,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,1740.8,1,DOUBLE YELLOW,2,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,5357.8,31,YELLOW,4,KVY,0.0,True,2,0.2531,0.271,39.3,matched,5,6,1,2
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,5375.8,32,DOUBLE YELLOW,4,RIC,0.0,True,2,0.2526,0.339,10.8,matched,7,7,3,3
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,5534.8,33,DOUBLE YELLOW,4,KVY,0.605,True,0,0.3455,0.349,20.0,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,2019,21,6204.8,39,YELLOW,6,GAS,0.003,True,1,1.0,0.421,43.4,matched,9,9,3,3
+C2_2019_on_2019_layout,2019_5,spanish_grand_prix,2019,17,1289.9,1,YELLOW,10,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_5,spanish_grand_prix,2019,17,2023.9,1,YELLOW,6,RAI,0.216,True,2,0.3912,0.443,10.0,matched,7,7,1,1
+C2_2019_on_2019_layout,2019_5,spanish_grand_prix,2019,17,5742.9,46,YELLOW,2,STR,0.007,True,3,0.9995,0.217,30.8,matched,2,3,0,1
+C2_2019_on_2019_layout,2019_5,spanish_grand_prix,2019,17,5747.9,46,YELLOW,3,STR,0.007,True,3,0.9995,0.217,30.8,matched,2,3,1,0
+C2_2019_on_2019_layout,2019_5,spanish_grand_prix,2019,17,5763.9,46,DOUBLE YELLOW,3,NOR,0.002,True,1,1.0,0.267,2307.3,matched,4,4,1,1
+C2_2019_on_2019_layout,2019_5,spanish_grand_prix,2019,17,7933.9,66,DOUBLE YELLOW,10,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,1497.5,1,YELLOW,4,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,1509.5,1,YELLOW,6,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,1531.5,1,YELLOW,4,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,1542.5,1,YELLOW,6,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,1548.5,1,YELLOW,7,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,2001.5,1,YELLOW,5,SAI,0.425,True,11,0.3908,0.379,19.8,matched,8,8,3,3
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,2425.5,6,YELLOW,4,GAS,0.756,True,0,0.6171,0.621,20.2,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,2608.5,9,YELLOW,16,LEC,0.265,True,1,0.8809,0.895,20.0,matched,17,18,1,2
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,2654.5,9,YELLOW,7,LEC,0.473,True,1,0.386,0.387,0.0,matched,8,8,1,1
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,2655.5,9,YELLOW,8,LEC,0.473,True,1,0.386,0.387,0.0,matched,8,8,0,0
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,2663.5,10,DOUBLE YELLOW,7,LEC,0.473,True,1,0.386,0.387,0.0,matched,8,8,1,1
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,2734.5,10,YELLOW,14,GAS,0.745,True,0,0.3802,0.379,9.9,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,3265.5,15,YELLOW,8,NOR,0.736,True,0,0.6169,0.621,30.3,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,3281.5,16,YELLOW,16,GIO,0.0,True,6,0.8759,0.895,20.0,matched,17,18,1,2
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,3283.5,16,DOUBLE YELLOW,16,LEC,0.0,True,6,0.8693,0.897,10.0,matched,18,18,2,2
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,3297.5,16,DOUBLE YELLOW,15,LEC,0.0,True,6,0.8727,0.083,0.0,matched,2,2,6,6
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,5274.5,41,DOUBLE YELLOW,5,NOR,0.788,True,0,0.88,0.877,21.2,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,2019,19,8196.5,78,DOUBLE YELLOW,4,STR,0.775,True,0,0.8801,0.879,29.8,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_7,canadian_grand_prix,2019,15,1998.9,1.0,DOUBLE YELLOW,1,,,,,,,,field_slow_or_empty,,,,
+C2_2019_on_2019_layout,2019_7,canadian_grand_prix,2019,15,2005.9,1.0,YELLOW,1,MAG,0.0,False,20,0.0,0.235,10500.4,matched,4,5,3,4
+C2_2019_on_2019_layout,2019_7,canadian_grand_prix,2019,15,2011.9,1.0,DOUBLE YELLOW,1,GRO,0.157,True,14,0.104,0.095,29.8,matched,2,2,1,1
+C2_2019_on_2019_layout,2019_7,canadian_grand_prix,2019,15,2040.9,1.0,DOUBLE YELLOW,1,KUB,0.443,True,4,0.3134,0.289,30.4,matched,6,6,5,5
+C2_2019_on_2019_layout,2019_7,canadian_grand_prix,2019,15,2651.9,9.0,DOUBLE YELLOW,1,NOR,0.007,True,1,1.0,0.119,20.1,matched,2,3,1,2
+C2_2019_on_2019_layout,2019_7,canadian_grand_prix,2019,15,2934.9,13.0,DOUBLE YELLOW,1,STR,0.693,True,0,0.8932,0.893,70.6,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_7,canadian_grand_prix,2019,15,4296.9,30.0,DOUBLE YELLOW,1,BOT,0.696,True,0,0.6205,0.615,29.4,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_8,french_grand_prix,2019,19,4130.8,23,DOUBLE YELLOW,2,KUB,0.769,True,0,0.0618,0.065,69.6,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_8,french_grand_prix,2019,19,5406.8,36,DOUBLE YELLOW,2,RUS,0.706,True,0,0.4659,0.471,0.0,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_8,french_grand_prix,2019,19,6675.8,49,DOUBLE YELLOW,4,PER,0.778,True,0,0.8033,0.801,69.0,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_8,french_grand_prix,2019,19,6760.8,50,YELLOW,2,STR,0.696,True,0,0.4564,0.463,89.5,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_8,french_grand_prix,2019,19,7124.8,53,YELLOW,4,RUS,0.87,True,0,0.9165,0.917,79.6,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_10,british_grand_prix,2019,16,3764.7,20,YELLOW,14,GIO,0.002,True,1,1.0,0.933,55.8,matched,15,15,1,1
+C2_2019_on_2019_layout,2019_10,british_grand_prix,2019,16,4542.7,27,YELLOW,6,STR,0.874,True,0,0.8663,0.869,49.8,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_10,british_grand_prix,2019,16,4554.7,27,DOUBLE YELLOW,6,KVY,0.721,True,0,0.925,0.927,60.2,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_10,british_grand_prix,2019,16,5529.7,38,YELLOW,14,VET,0.0,True,2,0.9321,0.937,8.0,matched,15,15,1,1
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,2673.8,3,DOUBLE YELLOW,10,GAS,0.295,True,8,0.4148,0.431,19.2,matched,6,6,4,4
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,3790.8,15,YELLOW,9,RIC,0.087,True,1,0.9986,0.643,53.7,matched,9,9,0,0
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,4191.8,19,YELLOW,14,SAI,0.0,True,1,0.9193,0.041,50.1,matched,14,1,0,1
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,4910.8,27,DOUBLE YELLOW,13,VER,0.093,True,1,0.879,0.897,79.6,matched,13,13,0,0
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,4912.8,27,YELLOW,13,VER,0.093,True,1,0.879,0.897,79.6,matched,13,13,0,0
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,4961.8,27,YELLOW,10,LEC,0.562,True,0,0.4626,0.459,50.5,no_slow_car,,,,
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,5122.8,29,YELLOW,14,GIO,0.0,True,2,0.1906,0.215,49.9,matched,3,4,3,4
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,6435.8,41,YELLOW,14,HUL,0.024,True,1,1.0,0.935,20.0,matched,13,14,1,0
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,7644.8,53,YELLOW,2,HAM,0.0,True,1,0.0737,0.089,19.7,matched,1,2,1,0
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,7944.8,57,YELLOW,2,BOT,0.002,True,1,1.0,0.081,40.2,matched,1,2,1,0
+C2_2019_on_2019_layout,2019_11,german_grand_prix,2019,14,7950.8,57,YELLOW,3,BOT,0.002,True,1,1.0,0.081,40.2,matched,1,2,2,1

@@ -12,9 +12,14 @@
 --   tyre_management_score: actual end-of-stint residual / expected (from
 --   int_pit_strategy_value context).
 --
--- Survival columns: is_censored_stint, end_regime, stint_end_cause and
--- end_cause_confidence all come from int_stint_end_regime -- see that model
--- for the precedence rule that assigns the cause.
+-- Survival columns: is_censored_stint, end_regime, stint_end_cause,
+-- end_cause_confidence, is_stint_life_censored and reached_flag all come from
+-- int_stint_end_regime -- see that model for the precedence rule that assigns
+-- the cause and for the two label rules (CO-09, D5/D6).
+--
+-- CO-09 (D4): stint_id is a tyre run (int_stint_geometry), so a stint split by
+-- a same-tyre drive-through or red-flag pause is one row here, and
+-- stint_length_laps is the run's length.
 
 {{ config(
     materialized='table', tags=['marts', 'feature_engineering', 'simulation']
@@ -46,7 +51,9 @@ stint_end AS (
         is_censored_stint,
         end_regime,
         stint_end_cause,
-        end_cause_confidence
+        end_cause_confidence,
+        is_stint_life_censored,
+        reached_flag
     FROM {{ ref('int_stint_end_regime') }}
 ),
 
@@ -153,6 +160,43 @@ pit_strategy AS (
     FROM {{ ref('int_pit_strategy_value') }}
 ),
 
+-- CO-09 (owner-approved 2026-10-24): what a cut-short run showed before it
+-- was cut. Since D6 a run that ended in a safety-car or VSC stop is censored
+-- for stint life, so its length says nothing about the tyre's limit; what it
+-- does say is how fast the tyre was going off when the stop came. These are
+-- STORED ONLY -- no model reads them as a training feature in this change.
+--
+-- tyre_age_at_fit is the TyreLife age on the run's first lap (the age already
+-- on the set when it was fitted, + 1 for the first lap), i.e. the same reading
+-- starting_tyre_age_laps takes (MIN(age) - 1); it equals
+-- starting_tyre_age_laps + 1 wherever the first lap carries an age. FastF1's
+-- FreshTyre flag is unreliable, so fresh_at_fit is derived from the age and
+-- the raw flag is carried separately as is_fresh_tyre_raw.
+--
+-- Pace on clean laps: "clean" is the existing is_valid_lap rule; the time is
+-- int_lap_fuel_state.weight_corrected_lap_time (the project's fuel model:
+-- season fuel limit burned evenly over the scheduled distance, times the
+-- circuit's weight_penalty_factor), regressed on tyre age.
+run_fit AS (
+    SELECT
+        sg.stint_id,
+        MIN(CASE WHEN sg.lap_in_stint = 1 THEN sg.age_in_stint END)
+            AS tyre_age_at_fit,
+        BOOL_OR(CASE WHEN sg.lap_in_stint = 1 THEN sl.is_fresh_tyre END)
+            AS is_fresh_tyre_raw,
+        COUNT(*) FILTER (WHERE sg.is_valid_lap) AS clean_laps,
+        REGR_SLOPE(fs.weight_corrected_lap_time, sg.age_in_stint) FILTER (
+            WHERE sg.is_valid_lap
+        ) AS clean_slope_s_per_lap,
+        AVG(fs.weight_corrected_lap_time) FILTER (
+            WHERE sg.is_valid_lap
+        ) AS clean_mean_pace_s
+    FROM {{ ref('int_stint_geometry') }} AS sg
+    INNER JOIN {{ ref('stg_laps') }} AS sl ON sg.lap_id = sl.lap_id
+    LEFT JOIN {{ ref('int_lap_fuel_state') }} AS fs ON sg.lap_id = fs.lap_id
+    GROUP BY sg.stint_id
+),
+
 slope_calc AS (
     -- Regress on valid_lap_in_stint, not chronological lap_in_stint: an SC
     -- gap between two of the trailing 3 laps would otherwise stretch the
@@ -215,7 +259,41 @@ SELECT
     se.is_censored_stint,
     se.end_regime,
     se.stint_end_cause,
-    se.end_cause_confidence
+    se.end_cause_confidence,
+    se.is_stint_life_censored,
+    se.reached_flag,
+    -- CO-09 cut-short fields (see run_fit). The first four are filled on every
+    -- run; the pace fields only on a run cut short by a safety-car or VSC stop
+    -- (stint_end_cause sc_pit / vsc_pit), NULL otherwise. Not model features.
+    sa.stint_length_laps AS laps_completed,
+    rf.tyre_age_at_fit,
+    rf.tyre_age_at_fit <= 1 AS fresh_at_fit,
+    rf.is_fresh_tyre_raw,
+    CASE
+        WHEN se.stint_end_cause IN ('sc_pit', 'vsc_pit') THEN rf.clean_laps
+    END AS clean_laps_to_cut,
+    CASE
+        WHEN
+            se.stint_end_cause IN ('sc_pit', 'vsc_pit') AND rf.clean_laps >= 5
+            THEN rf.clean_slope_s_per_lap
+    END AS slope_to_cut_s_per_lap,
+    CASE
+        WHEN se.stint_end_cause IN ('sc_pit', 'vsc_pit')
+            THEN rf.clean_mean_pace_s
+    END AS mean_clean_pace_s,
+    CASE
+        WHEN se.stint_end_cause IN ('sc_pit', 'vsc_pit')
+            THEN se.stint_end_cause
+    END AS cut_reason,
+    -- clean_laps >= 5, and a slope exists: a quarantined unit (stg_lap_tyre_qa
+    -- serves no tyre age) has clean laps but nothing to regress on (11 runs on
+    -- the 2026-10-22 dev build), so it is not called reliable.
+    CASE
+        WHEN se.stint_end_cause IN ('sc_pit', 'vsc_pit')
+            THEN
+                rf.clean_laps >= 5
+                AND rf.clean_slope_s_per_lap IS NOT NULL
+    END AS slope_reliable
 FROM stint_aggregates AS sa
 LEFT JOIN constructor_per_stint AS cs ON sa.stint_id = cs.stint_id
 LEFT JOIN thermal_last AS ta ON sa.stint_id = ta.stint_id
@@ -225,4 +303,5 @@ LEFT JOIN slope_calc AS sc ON sa.stint_id = sc.stint_id
 LEFT JOIN last_lap_residual AS llr ON sa.stint_id = llr.stint_id
 LEFT JOIN pit_strategy AS ps ON sa.stint_id = ps.stint_id
 INNER JOIN stint_end AS se ON sa.stint_id = se.stint_id
+LEFT JOIN run_fit AS rf ON sa.stint_id = rf.stint_id
 ORDER BY sa.race_year, sa.race_id, sa.driver_id

@@ -1,0 +1,62 @@
+CO-09 stint label fix -- evidence provenance (2026-10-24)
+=========================================================
+
+Repo: /Users/justin/github/off-the-pace, branch main, HEAD 66f3bdb84345e0772b18f66fbf9fd1ba2a9320c8.
+Working tree only. Nothing committed, pushed, deployed or promoted. The shared
+data/dev.duckdb was only READ (copied); it was never opened for writing.
+
+Source warehouse (stale until CO-17; watch W3)
+  data/dev.duckdb  mtime Oct 22 01:42:11 2026  size 1939877888
+  sha256 e13f7608ce113f2580f778460c8edddcef13e626730053e3ce59f2f93b94a7dc
+  Bronze: data/bronze/** (2,895 parquet files; none newer than data/dev.duckdb).
+  Staging views read ../data/bronze relative to transform/, so every dbt and
+  python command below ran with cwd = transform/.
+
+Scratch folder (this session only)
+  S=/private/tmp/claude-501/-Users-justin-github-off-the-pace/85db3c2b-413f-472d-8996-b584d23e4c49/scratchpad/co-09
+  $S/base/dev.duckdb    untouched copy of data/dev.duckdb (sha256 e13f7608...a7dc)
+  $S/before/dev.duckdb  copy rebuilt with HEAD code (sha256 8e007166d2a2eaabd06f6755ea9dc42715ed675301dd1c7892e7678b16a488dc, mtime Oct 24 00:37:12 local)
+  $S/dev.duckdb         copy rebuilt with the CO-09 working tree (sha256 d91b7f4a393a97a59d8efb16a15c99779dcc24230d06b691bb00f6ff8967e163, mtime Oct 24 00:44:27 local)
+  $S/profiles.yml, $S/before/profiles.yml  point at the copies above (file named dev.duckdb, per the scratch-copy rule)
+
+Commands (dbt 1.12.6, duckdb adapter 1.11.0; ../.venv/bin/dbt from transform/)
+  BEFORE (HEAD code, before any edit):
+    dbt run  -s int_stint_geometry+ --profiles-dir $S/before --target-path $S/before/target --log-path $S/before/logs   -> PASS=57
+    dbt test -s int_stint_geometry+ --profiles-dir $S/before --target-path $S/before/target --log-path $S/before/logs   -> PASS=827 ERROR=1 TOTAL=828
+  AFTER (CO-09 working tree):
+    dbt run  -s int_stint_geometry+ --profiles-dir $S --target-path $S/target --log-path $S/logs   -> PASS=57
+    dbt test -s int_stint_geometry+ --profiles-dir $S --target-path $S/target --log-path $S/logs   -> PASS=831 ERROR=2 TOTAL=833
+    (A `dbt build` attempt in between skipped 706 nodes after the known honest-range
+    failure; run + test separately is the result of record.)
+  Single tests against the BEFORE copy, compiled from the working tree:
+    dbt test -s assert_stint_boundaries_match_pits  -> PASS (edited check 4 is neutral on the old numbering)
+    dbt test -s assert_tyre_run_key                 -> FAIL 406 (the new test catches the defect it guards)
+  Evidence tables:
+    ../.venv/bin/python $S/evidence.py $S _roadmap/_ai-integration/_evidence/co-09-2026-10-24
+    (copy of the script: evidence.py here; output: evidence_output.txt and the *.csv files)
+  ML (repo root, read-only on the AFTER copy):
+    ML_DUCKDB_PATH=$S/dev.duckdb .venv/bin/python -m pytest -q ml/tests/test_targets.py ml/tests/test_features.py ml/tests/test_survival.py  -> 75 passed
+    ML_DUCKDB_PATH=$S/dev.duckdb .venv/bin/python -c "load_features(target='stint_life_regressor')"  -> 124,497 rows, censored share 0.5346
+    ml/tests/test_flag_chance.py NOT RUN: collection fails, onnxmltools is not installed in .venv (environment, not this change).
+  Lint: ../.venv/bin/sqlfluff lint on the four edited SQL files and the new test -> clean except
+    pre-existing findings in assert_stint_boundaries_match_pits.sql (also present at HEAD).
+    Note: sqlfluff's dbt templater compiles with transform/profiles, which may have touched
+    transform/target/ (shared compile output; no warehouse write).
+  Board: python3 _roadmap/_ai-integration/status/board.py --check (see build-log history entry).
+
+Edited files (sha256 after edit)
+  transform/models/intermediate/int_stint_geometry.sql   59b157f67d982b40898999e12499a5081f153d982295d9df3f549ec9d48bc2f4
+  transform/models/intermediate/int_stint_end_regime.sql c369b89067e3c9e6d2766ed528790b6efcd58ad64172eda6a9959b7c8b2081b7
+  transform/models/marts/fct_stint_features.sql          69324d040e5f10f849a6d5e3efdd31f9147737f2bd0ddde434f0667009b1c9e3
+  transform/tests/assert_stint_boundaries_match_pits.sql 964a7c3868d4fcefd506cc67dd25ffadff1f0724963848c6aa1ed186dfcd49c2
+  transform/tests/assert_tyre_run_key.sql (new)          f1b16593675dadcd9b67b8dd529c471e5b4c156514473c864f91b861359532c4
+  ml/src/schema.py                                       5e1eb7522665d649458153de5ee328dc353ebdcd90dc9b6cba584072bf2fba37
+  ml/src/features.py                                     14ad844e44f8d67f67322024fae12f769be2640c34602ab3eb8fa959a26f1e7b
+  ml/src/flag_chance.py                                  bb1d7199d831a80b5e0e77131d71329500a23e3712edd03dae31e45c154ff29d
+  also: transform/models/intermediate/schema.yml, transform/models/marts/schema.yml,
+        transform/tests/README.md (one row added, one row amended; the CD15 edits already in
+        the working tree are kept), ml/README.md (label version v16 record),
+        app/src/features/degradation-simulator/queries.ts (comment only).
+
+stint_id reference audit: stint_id_grep_counts.txt (git grep -c over tracked files outside
+_roadmap, plus untracked files), classified in NOTE.md.

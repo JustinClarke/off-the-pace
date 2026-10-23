@@ -25,7 +25,9 @@ export const methodologyContent = (
     </p>
     <p className="mt-3 text-muted/70">
       Source: <code>int_lap_air_state</code>. Telemetry-derived gap estimates; missing telemetry
-      laps show as free-air (grey).
+      laps show as free-air (grey). The hover min gap is the crossing-time gap from{' '}
+      <code>fct_cliff_prediction_features</code> (time between the two cars passing the same
+      point on track), not the distance ÷ speed estimate; laps outside that table show no gap.
     </p>
   </>
 )

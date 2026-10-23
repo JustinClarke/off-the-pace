@@ -103,6 +103,54 @@ label and are reference only. The `*_v15uni` / `*_v15ipw` artefacts (W58, 2026-0
 on the 09-29 label and are not this model. `MODEL_VERSION_DEFAULT` stays `v14` until the
 owner promotes.
 
+### Label version v16 (OPEN: CO-09 in, CO-15 to join; recorded 2026-10-24)
+
+The next label version is **v16**, matching the next free model name. It is opened by
+CO-09 (`_roadmap/_ai-integration/wi/CO-09-stint-label-fix.md`) and is shared with CO-15
+(the Monaco wear hold, ruling CD9), so the label moves once. It is not complete until
+CO-15 lands; the frozen-label seed (`transform/seeds/label_stability_baseline.csv`) is
+refreshed once, on CO-17's trusted rebuild, not per item. Nothing is retrained (CO-18)
+or promoted (owner) here. `MODEL_VERSION_DEFAULT` stays `v14`.
+
+CO-09's part, working tree 2026-10-24 (owner rulings D4, D5, D6 and CD14):
+
+- **A stint is a tyre run.** `stint_id` is re-keyed at its one source,
+  `int_stint_geometry` (D4: everywhere, no separate run id). Consecutive FastF1 stints of
+  a driver-race join when the compound is the same, the tyre age continues at last
+  age + 1 (CD14 1a), and the earlier stint did not end on a green-flag lap (CD14 2). The
+  run ends where its last fragment ends. A run never joined keeps its old `stint_id`; a
+  joined run takes its first fragment's id and `stint_number`, so numbers can skip.
+- **Stint-life censoring** (`schema.STINT_LIFE_CENSOR_COLUMN` = `is_stint_life_censored`,
+  was `is_censored_stint`): only a green-flag tyre change is an observed life. Red-flag
+  tyre changes (D5) and safety-car / VSC stops (D6) are censored, as are the flag and
+  retirements.
+- **Flag question** (`int_stint_end_regime.reached_flag`, `flag_chance.EVENT_NOT_REACHED`):
+  a red-flag tyre change is censored, not 0.
+- `stint_end_cause` keeps its six classes; `is_censored_stint` keeps "final run".
+
+Measured on a scratch copy of the 2026-10-22 dev warehouse (evidence:
+`_roadmap/_ai-integration/_evidence/co-09-2026-10-24/`): 9,374 -> 8,968 stints (406
+FastF1 stints folded: 299 safety-car drive-throughs, 107 red-flag pauses) in 31 races;
+every season moves (2018 and 2019 by one run each); Canada 2025 loses its 49 fake one-lap
+stints and its 17 real final stints become `race_end`. The lap grain is unchanged
+(189,418 laps), but per-stint detrending moves the degradation label too: 2020-2023 fail
+`assert_prior_season_labels_frozen` on purpose until the CO-17 refresh. Stint-life
+training rows 124,497, censored share 53.5% (scratch, before CO-15).
+
+CO-09 follow-up, same working tree, 2026-10-24 (evidence
+`_roadmap/_ai-integration/_evidence/co-09-2026-10-24-b/`):
+
+- **Penalty stops join too** (owner, recorded on CD14): a green-flag same-tyre boundary
+  joins when race control recorded a drive-through, stop-go or time penalty for that car
+  within one lap of the earlier stint's last lap. 23 of the 36 green age + 1 pairs join;
+  13 stay split. 8,968 -> 8,945 stints (23 `green_pit` ends become part of their run).
+  2018 and 2024 now also fail the frozen-label check; stint-life rows 124,496, censored
+  share 53.5%.
+- **Cut-short fields stored, not used**: `fct_stint_features` carries laps_completed,
+  tyre_age_at_fit, fresh_at_fit, is_fresh_tyre_raw, and on sc_pit / vsc_pit runs
+  clean_laps_to_cut, slope_to_cut_s_per_lap, mean_clean_pace_s, cut_reason,
+  slope_reliable. No model reads them; admitting any as a feature is a later decision.
+
 ## Quickstart (one venv at repo root)
 
 ```bash

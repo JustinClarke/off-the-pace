@@ -1,0 +1,5 @@
+lap_relation,green_bins,share_ff_null,share_ff_equals_track_ahead
+same_lap,13845546,0.0034,0.9581
+ahead_is_lapped_car,1988657,0.4666,0.0129
+self_is_lapped_ahead_is_lapping_car,1124357,0.003,0.7581
+no_car_ahead,2136,0.8352,0.0393

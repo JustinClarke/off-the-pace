@@ -50,11 +50,11 @@ function AirTooltip({
               {row.dirty_air_thermal_load_surface.toFixed(3)}
             </span>
           </p>
-          {row.min_gap_s != null && (
+          {row.gap_ahead_min_s != null && (
             <p className="text-muted">
               Min gap:{' '}
               <span className="font-mono text-[rgb(var(--color-text))]">
-                {row.min_gap_s.toFixed(2)}s
+                {row.gap_ahead_min_s.toFixed(2)}s
               </span>
             </p>
           )}
@@ -98,7 +98,7 @@ export default function DirtyAirLapMapPage() {
         },
         {
           label: "How It's Calculated",
-          content: 'Gap to car ahead is estimated from telemetry (distance-to-driver-ahead ÷ speed). The sector-2 gap classifies each lap into a state. Thermal load accumulates with an exponential weight (α=0.6, 5-lap lookback).',
+          content: 'The air state is classified from a telemetry gap estimate (distance-to-driver-ahead ÷ speed); the sector-2 gap classifies each lap into a state. The min gap shown on hover is measured by crossing time: the time between the two cars passing the same point on track. Thermal load accumulates with an exponential weight (α=0.6, 5-lap lookback).',
         },
       ]}
       methodology={methodologyContent}

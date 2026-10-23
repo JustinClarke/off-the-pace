@@ -1,0 +1,368 @@
+{
+  "schema_version": 2,
+  "project": "dirty-air: continuous, distance-based traffic cost (real-time, phased)",
+  "updated": "2026-10-24T10:00:00+04:00",
+  "pointer": "DA-02",
+  "stage_vocabulary": {
+    "SPEC": "Reverified and specced in its WI doc. Nothing run.",
+    "BUILDING": "In progress.",
+    "MEASURED": "Fix applied and its acceptance numbers exist; the orchestrator has not yet re-run the doc's definition of done.",
+    "LANDED": "Definition of done re-run by the orchestrator and passing, in the working tree. Committing or publishing is the user's call and is not part of the stage.",
+    "BLOCKED": "Waiting on an open decision, or on a dependency that has hit a problem. Plain unmet dependencies are not BLOCKED - dependency order already handles those.",
+    "CLOSED": "Terminal, with reason recorded (won't fix / superseded). Do not re-open without new evidence named in the reason."
+  },
+  "model_vocabulary": {
+    "fable-5.1": "claude-fable-5-1. Novel statistical construction where a wrong derivation is expensive and hard to detect from the output - estimators, identification arguments, inference machinery. Reach for it when the failure mode is a plausible-looking number, not an error.",
+    "opus-5": "claude-opus-5. The default. Anything that makes a ruling, designs an aggregation, moves the feature contract, or turns a measurement into a claim.",
+    "sonnet-5": "claude-sonnet-5. The method is already written down and the judgment call is made - ingest, enumeration, a named refit, a declared schema note. Step back up to opus-5 the moment the leaf doc leaves a choice open.",
+    "haiku-4-5": "claude-haiku-4-5. Throughput work with a mechanical check on the output. Nothing in the tree currently qualifies: every live item either writes into the contract, rules on leakage, or produces a claim."
+  },
+  "groups": [
+    {
+      "id": "0-audit",
+      "title": "Phase 0 - data audit",
+      "parallel": false,
+      "summary": "Can the position data support a gap measure at all? Sample spacing per season, share of samples with no car ahead, gap agreement with the timing data, marshal-sector feasibility. No label change. Depends on CO-17 (trusted dev rebuild, in the _ai-integration log)."
+    },
+    {
+      "id": "1-tables",
+      "title": "Phase 1 - tables and descriptives",
+      "parallel": false,
+      "summary": "Two dbt models at sample and micro-sector grain, their tests, and loss-versus-gap curves. Checks the shape before any identification."
+    },
+    {
+      "id": "2-identification",
+      "title": "Phase 2 - identification",
+      "parallel": false,
+      "summary": "Pre-registration, the fit, and the three placebos. Result is an adjusted traffic cost until these pass."
+    },
+    {
+      "id": "3-validation",
+      "title": "Phase 3 - fit and validation",
+      "parallel": false,
+      "summary": "Held-out season, the existing honesty tests, and the out-of-sample gain check."
+    },
+    {
+      "id": "4-label-app",
+      "title": "Phase 4 - label decision and app",
+      "parallel": false,
+      "summary": "Path A (sit beside the label, no label version) or path B (replace the tax, label version). Owner decides at this gate."
+    }
+  ],
+  "items": [
+    {
+      "id": "DA-01",
+      "group": "0-audit",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Phase 0 audit: sample spacing, missing car-ahead share, gap agreement with timing, marshal-sector feasibility",
+      "sources": [
+        "transform/models/staging/stg_telemetry_position.sql",
+        "transform/models/intermediate/int_lap_proximity.sql",
+        "ingestion/"
+      ],
+      "doc": "wi/DA-01-audit.md",
+      "cost": "2-3 wk",
+      "model": "opus-5",
+      "note": "DD1 and DD3 resolved 2026-10-23 (owner: go). Gates: validity PASS under DD5 (97.0%); gap agreement PASS; both stops not triggered. Marshal 2018 layout: 2019 layout fits; a 2018 layout cannot be tested (none served). FastF1 livetiming still 401. Numbers provisional until CO-17. Evidence: _evidence/DA-01-2026-10-23 and -settle. Closed to LANDED 2026-10-24 on owner's call. DoD checked structurally: evidence notes give per-gate verdicts, PROVENANCE and queries are present; the SQL was not re-run (numbers are provisional until CO-17 rebuilds dev)."
+    },
+    {
+      "id": "DA-02",
+      "group": "1-tables",
+      "stage": "SPEC",
+      "depends_on": [
+        "DA-01"
+      ],
+      "title": "Sample-level and micro-sector proximity tables, tests, and loss-versus-gap curves",
+      "sources": [
+        "transform/models/intermediate/",
+        "transform/tests/"
+      ],
+      "doc": "wi/DA-02-tables.md",
+      "cost": "3-4 wk",
+      "model": "opus-5",
+      "note": "Grain: seconds (owner, 2026-10-24), the design note default. Micro-sector count is per second of lap time."
+    },
+    {
+      "id": "DA-03",
+      "group": "2-identification",
+      "stage": "SPEC",
+      "depends_on": [
+        "DA-02"
+      ],
+      "title": "Identification: pre-registered fit, placebos P1-P3, era split (2018-21 vs 2022+)",
+      "sources": [
+        "transform/tasks/coefficients/"
+      ],
+      "doc": "wi/DA-03-identification.md",
+      "cost": "4-6 wk",
+      "model": "fable-5.1",
+      "note": "The wording decision (DD4) is owed at the Phase 2 gate, not before the fit starts."
+    },
+    {
+      "id": "DA-04",
+      "group": "3-validation",
+      "stage": "SPEC",
+      "depends_on": [
+        "DA-03"
+      ],
+      "title": "Held-out season fit, honesty tests, out-of-sample gain check",
+      "sources": [
+        "transform/tests/"
+      ],
+      "doc": "wi/DA-04-validation.md",
+      "cost": "3-4 wk",
+      "model": "opus-5",
+      "note": "Stop conditions in the design note section 7."
+    },
+    {
+      "id": "DA-05",
+      "group": "4-label-app",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "DA-04"
+      ],
+      "title": "Label and app decision: path A (sit beside) or path B (replace tax, label version)",
+      "sources": [
+        "transform/models/marts/",
+        "app/src/features/"
+      ],
+      "doc": "wi/DA-05-label-and-app.md",
+      "cost": "3 wk (A) / 6+ wk (B)",
+      "model": "opus-5",
+      "note": "Path B is a label-version change and must go through the ML retrain plan.",
+      "blocked_by_decision": "DD2"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DD1",
+      "raised": "2026-10-23",
+      "blocking": [
+        "DA-01"
+      ],
+      "status": "RESOLVED",
+      "question": "Approve Phase 0 (a 2-3 week data audit, no label change, runs on stale dev until CO-17)?",
+      "context": "The design note's phase table. Phase 0 can start now; it stops the project early if the gap is unreliable under 1 s.",
+      "recommendation": "Yes.",
+      "resolved": "2026-10-23",
+      "resolution": "Owner said go on dirty air. Taken as the recommendation: approve Phase 0."
+    },
+    {
+      "id": "DD2",
+      "raised": "2026-10-23",
+      "blocking": [
+        "DA-05"
+      ],
+      "status": "OPEN",
+      "question": "Path A first (sit beside the label, no label version, about 3 weeks of app work), path B later? Or path B from the start (label version, about 6+ weeks)?",
+      "context": "Path A adds a dirty_air_cost_dynamic_s replay measure. Path B replaces the label's tax, roughly 3x higher on followed laps, and moves every downstream number including ML features.",
+      "recommendation": "A first. It answers the question and ships without touching the label; B is decided on A's evidence.",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "DD3",
+      "raised": "2026-10-23",
+      "blocking": [
+        "DA-01"
+      ],
+      "status": "RESOLVED",
+      "question": "Approve new ingestion of FastF1 marshal-sector data, needed to place local yellows on track?",
+      "context": "Nothing in the repo maps a marshal sector to a track point. Without it, local yellows cannot be excluded and the identification has an unmeasured confound.",
+      "recommendation": "Yes, scoped to Phase 0 first: check whether the data exists for 2018-2020 before committing to it.",
+      "resolved": "2026-10-23",
+      "resolution": "Owner said go on dirty air. Taken as the recommendation: yes, scoped to Phase 0. Check 2018-2020 availability before any ingestion."
+    },
+    {
+      "id": "DD4",
+      "raised": "2026-10-23",
+      "blocking": [],
+      "status": "OPEN",
+      "question": "Which wording do we use for the result: 'causal' or 'adjusted traffic cost'?",
+      "context": "The design note says the result stays an adjusted traffic cost until placebos P1-P3 pass. The owner names the wording at the Phase 2 gate.",
+      "recommendation": "Adjusted traffic cost until all placebos pass.",
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "DD5",
+      "raised": "2026-10-23",
+      "blocking": [
+        "DA-01"
+      ],
+      "status": "RESOLVED",
+      "question": "Gate A definition: does a lapped car ahead make a sample invalid always, or only within 3 s?",
+      "context": "Literal reading (design note line 21) gives 88.6% valid, below the 90% gate. A 3 s reading gives 97.0%, passing in every season. DA-01 evidence: _roadmap/_dirty-air/_evidence/DA-01-2026-10-23/NOTE.md.",
+      "recommendation": "Lapped car ahead invalidates a sample only within 3 s. Beyond 3 s the sample is in the reference band.",
+      "resolved": "2026-10-23",
+      "resolution": "Owner accepted the 3 s reading. Design note line 21 amended to match on 2026-10-23. Gate A under this rule: 97.0% overall, 95.5-98.5% per season (PASS)."
+    },
+    {
+      "id": "DD6",
+      "raised": "2026-10-23",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Proceed without new F1 timing data for now, and carry the known gaps as exceptions?",
+      "context": "F1 livetiming needs an F1 TV login since October 2026. Bronze holds 2018-2025 except the 2018 gaps (Australia and Bahrain telemetry, China and Germany track status before lap ~30). Marshal-sector maps are not in bronze. OpenF1 covers 2023+ only. Owner intends a private, non-commercial project for portfolio and friends.",
+      "recommendation": "Proceed on bronze. Record the 2018 gaps and missing marshal maps as exceptions. Get the data before the ML step.",
+      "resolved": "2026-10-23",
+      "resolution": "Owner: proceed without the data for now, close the rest, and treat these as exceptions. New data (FastF1 with F1 TV, marshal sectors) comes before the ML step. Private use only; F1 terms are personal, non-commercial."
+    },
+    {
+      "id": "DD7",
+      "raised": "2026-10-23",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Micro-sector grain and user display: seconds or metres, and is metres shown to users?",
+      "context": "Grain review (_roadmap/_dirty-air/_evidence/GRAIN-2026-10-23/NOTE.md) recommended seconds primary, metres as a pre-registered check. Intuition review (_roadmap/_dirty-air/_evidence/INTUITION-2026-10-23/NOTE.md) recommended seconds only for labels. Existing lap-map page computes gap as distance divided by speed, which DA-01 found biased above 1 s.",
+      "recommendation": "Seconds only for the analysis and for every label. Metres at most a methods-page check later. Fix the lap-map gap to the seconds method.",
+      "resolved": "2026-10-23",
+      "resolution": "Owner: seconds only. Fix the lap-map gap calculation. Metres label not built now."
+    },
+    {
+      "id": "DD8",
+      "raised": "2026-10-23",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Micro-sectors per lap: how many?",
+      "context": "Options 10 to 20 per lap. About 300 samples per lap in 2018-19 and about 400 in 2020-21. Rule of thumb is 10 to 15 samples per slice, which caps the count near 20 to 30. 20 matches the marshal-sector grid, which DA-03 needs to rule out local yellows. Samples per slice not yet measured.",
+      "recommendation": "20 per lap, fixed for every circuit. Pre-register 10 as a sensitivity check under the same no-rescue rule as metres.",
+      "resolved": "2026-10-24",
+      "resolution": "Owner: 20 per lap. Pre-register 10 as the sensitivity check. DA-02 must measure samples per slice before the count is frozen; drop to 15 only on that evidence."
+    }
+  ],
+  "watch_vocabulary": {
+    "ship-blocker": "Publishing or shipping without this breaks something users see. `board.py --ship` exits 1 while one is open.",
+    "hazard": "A standing trap that damages tracked files or results if someone does the obvious thing. Read before running anything nearby.",
+    "uncommitted": "Verified work that lives only in the working tree. Committing is the user's call.",
+    "unreviewed": "Changes in the working tree that no orchestrator has read or tested. Not to be built on until reviewed.",
+    "unverified": "A claim or code path that was run in one place only (dev but not CI, agent report but not re-run).",
+    "stale-artifact": "A built or generated thing that no longer matches the source it came from until it is rebuilt.",
+    "pending-ruling": "A question for the human that is not (yet) a blocking FD: it changes a note, a value or a scope, not an item's ability to run.",
+    "gate-gap": "A guard that does not guard: it errors, skips files silently, or cannot fail.",
+    "debt": "Known, documented, deliberately left. Each needs an owner eventually."
+  },
+  "watch_model_vocabulary": {
+    "haiku": "Maps to haiku-4-5. A binary check, or recording a resolution the evidence or the user has already settled: is it committed, did the named tests pass on the rebuild, write down the accept. The output has a mechanical check (a test result, a file list, git log).",
+    "sonnet": "Maps to sonnet-5. The fix or the options are written down in the rule: pick between two named options, run a named rebuild or export and check the pages, review a diff, reconcile counts, reword text to a meaning already settled.",
+    "opus": "Maps to opus-5 (fable-5.1 if the rule turns into a new estimator). Rules on a trade-off, designs the fix, audits a decision, or turns a measurement into a claim: label-moving changes, leakage boundaries, gate runs before a promotion."
+  },
+  "watch_rules": [
+    {
+      "id": "W1",
+      "raised": "2026-10-23",
+      "kind": "stale-artifact",
+      "item": "DA-01",
+      "recommended_model": "haiku",
+      "title": "Dev warehouse is stale until CO-17 rebuilds it (in the _ai-integration log)",
+      "detail": "Phase 0 numbers measured on data/dev.duckdb are provisional until the trusted rebuild lands. Re-run the audit on the rebuilt dev.",
+      "clears_when": "CO-17 has landed in _roadmap/_ai-integration/status/build-log.json and the audit is re-run on it.",
+      "trigger": {
+        "clear": "manual"
+      }
+    },
+    {
+      "id": "W2",
+      "raised": "2026-10-23",
+      "kind": "pending-ruling",
+      "item": "DA-01",
+      "recommended_model": "sonnet",
+      "title": "IsAccurate may drop 2018 race laps for a reason unrelated to the lap",
+      "detail": "is_valid_lap requires is_accurate, which is FastF1's start/end sync flag, not a lap-time check. The repo's qualifying audit found 2018 leaves it unset for about 26% of timed laps (under 0.4% in other seasons). The race audit has not been split by season. If 2018 races drop valid laps the same way, the cliff and dirty-air samples for 2018 are thinner than the other seasons, and the 2018 numbers should be read with that caveat.",
+      "clears_when": "Split the is_accurate false share by season for race laps, and record whether 2018 is an outlier. Then decide whether to keep the gate for 2018 or flag it.",
+      "trigger": {
+        "clear": "manual"
+      }
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-10-23T15:00:00+04:00",
+      "session": "Track created from the dynamic dirty-air design note (wi/DA-design-note.md). Log, board and phase docs only; nothing run, built or committed.",
+      "landed": [
+        "Nothing landed. Folder, board, log, build order and phase docs created."
+      ],
+      "verified": [
+        "Board --check passes on the new log."
+      ],
+      "assumed": [
+        "Dev is stale until CO-17.",
+        "The position channel samples about every 0.3 s (one race measured; UNVERIFIED for other seasons)."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_action": "Owner answers DD1 and DD3. Then run DA-01.",
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-23T16:00:00+04:00",
+      "session": "Handoff to a new chat. Dirty-air track created from the design note in wi/DA-design-note.md. Phases 0-4 as items DA-01 to DA-05. Open decisions DD1 (approve Phase 0), DD2 (path A or B), DD3 (marshal-sector ingestion), DD4 (wording, owed at Phase 2 gate).",
+      "landed": [
+        "Nothing run or committed. Folder, board, log, build order and phase docs created."
+      ],
+      "verified": [
+        "board.py --check passes on this log."
+      ],
+      "assumed": [
+        "Dev is stale until CO-17 (watch W1).",
+        "Position channel sampling about every 0.3 s from one race only (UNVERIFIED for other seasons).",
+        "track_status in the position table is on/off only, not flag state."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_action": "Owner answers DD1 and DD3. If yes, run DA-01 (Phase 0 audit). DA-05 waits on DD2.",
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-23T18:00:00+04:00",
+      "session": "Handoff to a new chat after the DA-01 audit, the FastF1 access check and the source review. DD1, DD3, DD5 and DD6 resolved by the owner. DD2 and DD4 still open.",
+      "landed": [
+        "DA-01 measured (stage MEASURED, not LANDED). Gate A PASS under DD5 (97.0% valid, 95.5-98.5% per season). Gap agreement PASS. Both stop rules not triggered.",
+        "Design note line 21 amended to the 3 s lapped-car rule (DD5).",
+        "Evidence: _roadmap/_dirty-air/_evidence/DA-01-2026-10-23/ (first run), DA-01-2026-10-23-settle/ (Gate A re-check, marshal layout), FASTF1-401-2026-10-23/ (access check), SOURCES-2026-10-23/ (open sources and terms)."
+      ],
+      "verified": [
+        "Gate A and gap agreement re-run from staging views, not stale intermediate tables.",
+        "2018 marshal layout: the 2019 layout fits the yellows as well as the controls do. A 2018 layout cannot be tested because none is served. Australia and Bahrain 2018 are untested.",
+        "FastF1 livetiming returns 401 for every version tested (3.8.3 pinned, 3.9.0a0 pre-release). 3.9.0a0 needs an F1 TV login.",
+        "MultiViewer circuit API works with the numeric circuit key from /circuits (for example 70/2018 and 22/2018). Guessed slug URLs return 400 or 404."
+      ],
+      "assumed": [
+        "Dev is stale until CO-17 (watch W1). All DA-01 numbers are provisional until the rebuild.",
+        "Position channel samples about every 0.3 s only in 2018-19. 2020-21 are about 0.22 s, 2022-25 are jittered (median 0.24 s).",
+        "The 3 s validity rule holds beyond the 2018-25 range. Not tested.",
+        "Lapped cars and marshal sectors in the 2018 gap races are not measured.",
+        "The 2018 gaps (Australia and Bahrain telemetry, China and Germany track status before lap ~30) are carried as exceptions (DD6).",
+        "Team uses the data privately (portfolio, friends). F1 terms are personal, non-commercial. Public or commercial display is an open question."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_dirty-air/status/board.py --check (passes after DD5 and DD6)"
+      ],
+      "next_action": "Owner decides the DA-02 grain (seconds or metres; the design note defaults to seconds). Then DA-02 can start. DA-05 waits on DD2. DD4 is owed at the Phase 2 gate. Before ML: get the data (FastF1 with F1 TV after a test of 3.9.0a0 on scratch, and MultiViewer marshal sectors, pending owner approval). Back up bronze before any re-ingest.",
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-24T10:00:00+04:00",
+      "session": "Owner closed DA-01 and chose the DA-02 grain. Pointer moved to DA-02.",
+      "landed": [
+        "DA-01 stage MEASURED -> LANDED on the owner's call. DoD checked structurally: both evidence notes carry per-gate verdicts, PROVENANCE and queries are present.",
+        "DA-02 grain set to seconds (owner). DA-02 stays SPEC: nothing run."
+      ],
+      "verified": [
+        "board.py --check passes on this log."
+      ],
+      "assumed": [
+        "The DA-01 SQL was not re-run. Its numbers are provisional until CO-17 rebuilds dev (watch W1).",
+        "Gate A rests on the 3 s lapped-car rule (DD5), which holds for 2018-25 only."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_action": "Start DA-02 (sample-level and micro-sector proximity tables, seconds grain). DA-05 waits on DD2. DD4 is owed at the Phase 2 gate.",
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    }
+  ]
+}

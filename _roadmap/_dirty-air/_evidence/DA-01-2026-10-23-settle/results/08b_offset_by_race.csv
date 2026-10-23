@@ -1,0 +1,27 @@
+group,race_id,race_slug,matched,median_offset,share_0_to_3,share_neg1_to_3,share_abs_ge5,offsets
+C1_2018_on_2018_layout,2018_12,hungarian_grand_prix,2.0,3.0,0.5,0.5,0.0,2 4
+C1_2018_on_2018_layout,2018_14,italian_grand_prix,2.0,0.5,1.0,1.0,0.0,0 1
+C1_2018_on_2018_layout,2018_15,singapore_grand_prix,2.0,2.5,1.0,1.0,0.0,2 3
+C1_2018_on_2018_layout,2018_16,russian_grand_prix,4.0,2.0,0.75,0.75,0.0,1 3 1 4
+C1_2018_on_2018_layout,2018_17,japanese_grand_prix,5.0,1.0,1.0,1.0,0.0,1 0 0 1 2
+C1_2018_on_2018_layout,2018_18,united_states_grand_prix,8.0,-0.5,0.5,0.625,0.375,3 1 0 0 -1 -8 -7 -7
+C1_2018_on_2018_layout,2018_19,mexican_grand_prix,3.0,3.0,1.0,1.0,0.0,3 3 2
+C1_2018_on_2018_layout,2018_20,brazilian_grand_prix,4.0,1.5,1.0,1.0,0.0,1 0 2 2
+C1_2018_on_2018_layout,2018_21,abu_dhabi_grand_prix,7.0,3.0,0.857,0.857,0.0,2 3 3 2 4 3 3
+C1_2018_on_2018_layout,2018_3,chinese_grand_prix,6.0,0.5,0.833,0.833,0.167,0 0 1 1 9 0
+C2_2019_on_2019_layout,2019_1,australian_grand_prix,2.0,2.5,0.5,0.5,0.0,4 1
+C2_2019_on_2019_layout,2019_10,british_grand_prix,2.0,1.0,1.0,1.0,0.0,1 1
+C2_2019_on_2019_layout,2019_11,german_grand_prix,10.0,-0.5,0.5,0.8,0.0,-4 0 0 0 0 3 -1 -1 -1 -2
+C2_2019_on_2019_layout,2019_2,bahrain_grand_prix,10.0,2.0,0.7,0.7,0.1,-2 -2 5 1 3 3 2 3 2 1
+C2_2019_on_2019_layout,2019_4,azerbaijan_grand_prix,3.0,3.0,1.0,1.0,0.0,1 3 3
+C2_2019_on_2019_layout,2019_5,spanish_grand_prix,4.0,0.5,0.75,1.0,0.0,1 0 -1 1
+C2_2019_on_2019_layout,2019_6,monaco_grand_prix,8.0,1.0,0.875,0.875,0.125,3 1 1 0 1 1 2 6
+C2_2019_on_2019_layout,2019_7,canadian_grand_prix,4.0,2.0,0.75,0.75,0.25,3 1 5 1
+T_2018_on_2019_layout,2018_10,british_grand_prix,15.0,1.0,0.6,0.6,0.333,1 1 6 6 5 5 2 1 1 1 1 1 1 4 6
+T_2018_on_2019_layout,2018_11,german_grand_prix,9.0,1.0,0.778,0.778,0.222,1 1 0 0 2 1 -6 7 0
+T_2018_on_2019_layout,2018_4,azerbaijan_grand_prix,17.0,2.0,0.765,0.765,0.118,1 0 2 4 3 2 7 2 1 1 3 1 -2 0 1 5 3
+T_2018_on_2019_layout,2018_5,spanish_grand_prix,6.0,0.0,0.833,1.0,0.0,0 0 1 0 0 -1
+T_2018_on_2019_layout,2018_6,monaco_grand_prix,7.0,2.0,0.571,0.571,0.143,1 4 4 5 1 2 2
+T_2018_on_2019_layout,2018_7,canadian_grand_prix,3.0,1.0,1.0,1.0,0.0,1 1 2
+T_2018_on_2019_layout,2018_8,french_grand_prix,11.0,0.0,0.545,0.636,0.273,0 -2 1 0 -1 0 0 0 -5 -5 -6
+T_2018_on_2019_layout,2018_9,austrian_grand_prix,11.0,3.0,0.636,0.636,0.091,3 3 3 5 1 4 3 2 4 4 2

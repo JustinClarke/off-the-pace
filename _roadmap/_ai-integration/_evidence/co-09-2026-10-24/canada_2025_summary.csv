@@ -1,0 +1,9 @@
+side,stint_end_cause,n,one_lap
+before,green_pit,29,0
+before,race_end,17,17
+before,retirement,3,0
+before,sc_pit,53,36
+after,green_pit,29,0
+after,race_end,17,0
+after,retirement,3,0
+after,sc_pit,4,0

@@ -136,7 +136,7 @@ def load_features(
             f"SELECT * FROM {S.MART} WHERE race_year = {holdout_season}"
         ).df()
         # Load stint_end_cause if using 10b (cause-specific) censoring variant
-        stint_cols = "stint_id, stint_length_laps, is_censored_stint"
+        stint_cols = f"stint_id, stint_length_laps, {S.STINT_LIFE_CENSOR_COLUMN}"
         if censoring_variant == "10b":
             stint_cols += ", stint_end_cause"
         stint_len = con.execute(
@@ -146,7 +146,7 @@ def load_features(
         con.close()
 
     # Synthesise the stint-life target (full coverage verified: 0 unmatched).
-    # is_censored_stint rides along: the target alone cannot say whether a 0 means
+    # The censoring flag (S.STINT_LIFE_CENSOR_COLUMN) rides along: the target alone cannot say whether a 0 means
     # "the tyre was done" or "the race was". It is meta, never a feature -- it is
     # not in FEATURE_COLUMNS and test_features.py asserts that it never becomes one.
     #
@@ -166,7 +166,8 @@ def load_features(
                 | merged[S.STINT_LIFE_CENSOR_COLUMN].fillna(False)
             ).to_numpy(dtype=bool)
         else:
-            # Standard censoring: race_end and retirement (already marked in original)
+            # Standard censoring, label v16 (CO-09, D5/D6): every ending but a green-flag
+            # tyre change, owned by int_stint_end_regime.is_stint_life_censored.
             d[S.STINT_LIFE_CENSOR_COLUMN] = (
                 merged[S.STINT_LIFE_CENSOR_COLUMN].fillna(False).to_numpy(dtype=bool))
 

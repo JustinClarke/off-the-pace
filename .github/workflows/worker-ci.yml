@@ -1,0 +1,25 @@
+name: Worker CI
+
+on:
+  pull_request:
+    paths:
+      - 'worker/**'
+      - 'app/**'
+      - 'firebase.json'
+      - '.github/workflows/worker-ci.yml'
+
+jobs:
+  worker:
+    name: Typecheck, test, key scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test

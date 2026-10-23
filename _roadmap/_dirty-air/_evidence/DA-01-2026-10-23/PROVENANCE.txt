@@ -1,0 +1,76 @@
+DA-01 Phase 0 audit - provenance
+Run date: 2026-10-23
+Repo HEAD: 66f3bdb (main, working tree dirty with unrelated changes; nothing committed by this run)
+
+STALE-DEV CAVEAT
+  Every number here is PROVISIONAL. data/dev.duckdb is stale until CO-17
+  (trusted dev rebuild, _roadmap/_ai-integration/status/build-log.json, stage
+  SPEC on 2026-10-23) lands - watch W1. Re-run this audit on the rebuilt dev.
+  Mitigation used here: no stale dev TABLE was read. Only the dbt staging VIEWS
+  in dev (stg_telemetry_position, stg_track_status, stg_pits, stg_results,
+  stg_laps) were used, and those read bronze parquet live. The crossing-order
+  table was rebuilt from scratch (step 3) instead of reading the stale
+  int_lap_proximity. So the numbers reflect current bronze + the staging SQL
+  as compiled into dev on 2026-10-22, not current repo staging SQL if it has
+  changed since.
+
+DATA FILES
+  data/dev.duckdb  mtime 2026-10-22 01:42:11  1,939,877,888 bytes
+    sha256 e13f7608ce113f2580f778460c8edddcef13e626730053e3ce59f2f93b94a7dc
+    Copied (cp) to a scratch folder as <scratch>/da-01/dev.duckdb and ATTACHed
+    READ_ONLY. The shared file was never opened for writing.
+  Bronze parquet (read via the views, and directly in step 6 / 7d):
+    data/bronze/telemetry/season=*/race=*/telemetry.parquet - 171 files;
+      mtimes 144 x 2026-06-12, 23 x 2026-09-22, 4 x 2026-10-03; none newer
+      than dev.duckdb.
+    data/bronze/laps, results, track_status, race_control (same tree).
+  Scratch work database: <scratch>/da-01/work.duckdb (intermediate tables
+    pos, pos_flags, crossings, xorder, line_*, gap_pairs, car_drs, drs_ep*).
+    Not kept in the repo.
+  <scratch> = /private/tmp/claude-501/-Users-justin-github-off-the-pace/1fdfffb0-6280-4ac0-900e-471f09f2c9ba/scratchpad
+
+EXTERNAL DATA (step 7, availability check only; nothing ingested)
+  MultiViewer circuit API, https://api.multiviewer.app/api/v1/circuits and
+  /circuits/{key}/{year}, fetched 2026-10-23 into <scratch>/da-01/dl/
+  (untrusted, parsed with json only). The index is kept as
+  results/07_mvapi_circuits_index.json.
+  FastF1 Session.get_circuit_info() was tried first (scratch FastF1 cache, not
+  data/cache) and failed: livetiming.formula1.com/static returned HTTP 401, so
+  session_info never loads and get_circuit_info cannot resolve a circuit key.
+  get_circuit_info is a wrapper over the same MultiViewer endpoint, so the
+  probe called it directly.
+
+SOFTWARE
+  .venv python 3.14.8, duckdb 1.5.6, fastf1 3.8.3, macOS Darwin 27.0.0
+  run_sql.py: threads 10, memory_limit 14GB.
+
+COMMANDS (in order; S=<scratch>/da-01, R=/Users/justin/github/off-the-pace)
+  mkdir -p $S && cp $R/data/dev.duckdb $S/dev.duckdb
+  shasum -a 256 $R/data/dev.duckdb
+  cd $R/transform    # so the views' relative '../data/bronze' paths resolve
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/01_base_and_spacing.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/02_green_and_car_ahead.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/02b_no_track_status.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/03_crossing_order_and_lapped.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/03b_ff_lower_lap_detail.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/04_gap_agreement.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/04b_band_confusion.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/05_valid_share_samples.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/06_drs.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/06b_drs_races_without_8.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/07a_circuit_keys.sql   (circuit_key = race_id; unusable)
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/07b_race_slugs.sql
+  cd $S && $R/.venv/bin/python -I $S/sql/07_marshal_sectors_mvapi.py $S $S/out/07b_race_slugs.csv
+  $R/.venv/bin/python -I $S/sql/07c_served_year.py $S
+  cd $R/transform && $R/.venv/bin/python $S/sql/run_sql.py $S/sql/07d_race_control_sectors.sql
+  $R/.venv/bin/python $S/sql/run_sql.py $S/sql/07e_rc_sector_vs_served.sql
+  Ad hoc read-only checks also run: curl to livetiming (401) and MultiViewer
+  (200); shasum of the downloaded circuit JSON per year (showed the API
+  serves another year's layout for some requests -> step 7c).
+  Steps must run in this order: later SQL reads tables earlier steps create.
+  queries/ holds exact copies of everything run. One comment in
+  04_gap_agreement.sql was corrected after the run (S3 is not evaluated); no
+  SQL changed.
+
+OUTPUTS
+  results/*.csv - one file per '-- OUT:' query, named after the query.

@@ -1,0 +1,5 @@
+ff_ahead_relation,n,share
+ff_ahead_same_lap,14803875,0.92639
+ff_ahead_on_higher_lap,990771,0.062
+ff_ahead_on_lower_lap (lapped car),185440,0.0116
+ff_ahead_not_found_before,53,0.0

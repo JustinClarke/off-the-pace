@@ -1,6 +1,29 @@
 -- int_stint_end_regime.sql · intermediate · grain: one row per stint (stint_id)
 -- Why did this stint end?
 --
+-- CO-09 (label version v16, shared with CO-15). A "stint" here is a TYRE RUN:
+-- int_stint_geometry re-keys stint_id so that a safety-car drive-through or a
+-- red-flag pause on the same tyres (same compound, age + 1, non-green boundary)
+-- no longer splits one set's life into fake stints. The run ends where its last
+-- fragment ends, so every column below is read at the run's true end. The
+-- figures quoted in this header further down are from before the re-key and
+-- are kept as the record of why the cause label exists.
+--
+-- Two label columns are added for the two questions the cause feeds, so that
+-- neither consumer re-derives the rule:
+--   is_stint_life_censored  TRUE unless the run ended in a green-flag tyre
+--                           change. A red-flag tyre change (D5), a safety-car
+--                           or VSC stop (D6), the flag and a retirement all cut
+--                           the tyre's life short, so the observed life is a
+--                           lower bound. Only green_pit is an observed life.
+--   reached_flag            the flag question. TRUE on race_end, FALSE on a
+--                           green, SC or VSC stop, NULL (censored, unknown) on
+--                           a red-flag tyre change -- a free change at a
+--                           suspension is not a strategic stop, so it is not a
+--                           "did not reach the flag" -- on a retirement, and on
+--                           an unassigned stint.
+-- stint_end_cause and is_censored_stint keep their meaning.
+--
 -- The stint-life survival target treats every stint as a single-event,
 -- right-censored observation: either the tyre was changed (uncensored) or the
 -- stint ran out of race (censored). "Uncensored" is not one event. 1,543 of
@@ -186,6 +209,42 @@ classified AS (
             sg.race_year = res.race_year
             AND sg.race_id = res.race_id
             AND sg.driver_id = res.driver_id
+),
+
+cause AS (
+    SELECT
+        stint_id,
+        race_year,
+        race_id,
+        driver_id,
+        stint_number,
+        end_lap_id,
+        end_lap_number,
+        end_lap_in_stint,
+        is_censored_stint,
+        end_regime,
+        is_multi_regime_end,
+        ended_on_pit_lap,
+        was_running_at_flag,
+
+        CASE
+            WHEN stint_number IS NULL THEN NULL
+            WHEN is_censored_stint AND was_running_at_flag THEN 'race_end'
+            WHEN is_censored_stint THEN 'retirement'
+            WHEN end_regime = 'red_flag' THEN 'red'
+            WHEN end_regime = 'safety_car' THEN 'sc_pit'
+            WHEN end_regime = 'vsc' THEN 'vsc_pit'
+            ELSE 'green_pit'
+        END AS stint_end_cause,
+
+        CASE
+            WHEN stint_number IS NULL THEN 'unassigned_stint'
+            WHEN is_multi_regime_end THEN 'inferred'
+            WHEN end_cause_from_disqualification THEN 'inferred'
+            WHEN NOT is_censored_stint AND NOT ended_on_pit_lap THEN 'inferred'
+            ELSE 'observed'
+        END AS end_cause_confidence
+    FROM classified
 )
 
 SELECT
@@ -202,22 +261,16 @@ SELECT
     is_multi_regime_end,
     ended_on_pit_lap,
     was_running_at_flag,
+    stint_end_cause,
+    end_cause_confidence,
+
+    -- D5 + D6: only a green-flag tyre change is an observed tyre life. The
+    -- COALESCE makes the two unassigned stints (cause NULL, and already
+    -- is_censored_stint) censored, never NULL.
+    COALESCE(stint_end_cause <> 'green_pit', TRUE) AS is_stint_life_censored,
 
     CASE
-        WHEN stint_number IS NULL THEN NULL
-        WHEN is_censored_stint AND was_running_at_flag THEN 'race_end'
-        WHEN is_censored_stint THEN 'retirement'
-        WHEN end_regime = 'red_flag' THEN 'red'
-        WHEN end_regime = 'safety_car' THEN 'sc_pit'
-        WHEN end_regime = 'vsc' THEN 'vsc_pit'
-        ELSE 'green_pit'
-    END AS stint_end_cause,
-
-    CASE
-        WHEN stint_number IS NULL THEN 'unassigned_stint'
-        WHEN is_multi_regime_end THEN 'inferred'
-        WHEN end_cause_from_disqualification THEN 'inferred'
-        WHEN NOT is_censored_stint AND NOT ended_on_pit_lap THEN 'inferred'
-        ELSE 'observed'
-    END AS end_cause_confidence
-FROM classified
+        WHEN stint_end_cause = 'race_end' THEN TRUE
+        WHEN stint_end_cause IN ('green_pit', 'sc_pit', 'vsc_pit') THEN FALSE
+    END AS reached_flag
+FROM cause

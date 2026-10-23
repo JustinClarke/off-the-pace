@@ -59,6 +59,6 @@ export function toCsvRows(rows: LapAirStateRow[]): Record<string, unknown>[] {
     lap_number: r.lap_number,
     air_state_dominant: r.air_state_dominant,
     dirty_air_thermal_load_surface: r.dirty_air_thermal_load_surface.toFixed(4),
-    min_gap_s: r.min_gap_s != null ? r.min_gap_s.toFixed(2) : '',
+    gap_ahead_min_s: r.gap_ahead_min_s != null ? r.gap_ahead_min_s.toFixed(2) : '',
   }))
 }

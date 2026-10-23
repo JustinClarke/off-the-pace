@@ -265,7 +265,11 @@ export const queryStintOptions = registerQuery<{ season: number }, StintOption[]
           any_value(constructor_id) AS constructor_id,
           any_value(compound)       AS compound,
           max(lap_in_stint)         AS stint_length,
-          -- extract the trailing stint number from stint_id (e.g. "2024_2024_1_LEC_2" → 2)
+          -- extract the trailing stint number from stint_id (e.g. "2024_2024_1_LEC_2" → 2).
+          -- Since CO-09 stint_id keys a tyre run and a joined run keeps its FIRST FastF1
+          -- stint number, so after a same-tyre drive-through or red-flag pause the numbers
+          -- can skip (1, 2, 4). Not re-counted here: this view holds only modelled laps,
+          -- so a count would mislabel a driver whose early stint has no rows.
           TRY_CAST(REGEXP_EXTRACT(stint_id, '_([0-9]+)$', 1) AS INTEGER) AS stint_number
         FROM ${view}
         GROUP BY stint_id

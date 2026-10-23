@@ -1,0 +1,256 @@
+
+== per_season_stints
+ race_year  n_before  n_after  d_stints  sc_b  sc_a  red_b  red_a  green_b  green_a  vsc_b  vsc_a  race_end_b  race_end_a  ret_b  ret_a  censored_b  final_runs_a  life_censored_a  flag_1_a  flag_0_a  flag_censored_a
+      2018       951      950        -1    86    85      0      0      404      404     41     41         338         338     80     80         420           420              546       338       530               82
+      2019      1067     1066        -1   100    99      0      0      523      523     24     24         362         362     58     58         420           420              543       362       646               58
+      2020       934      890       -44   139   113     61     43      365      365     29     29         283         283     57     57         340           340              525       283       507              100
+      2021      1234     1106      -128   144    50    114     80      522      522     15     15         382         382     57     57         439           439              584       382       587              137
+      2022      1241     1218       -23   126   109     53     47      569      569     55     55         366         366     72     72         438           438              649       366       733              119
+      2023      1350     1275       -75   135   100    110     70      630      630     37     37         376         376     62     62         438           438              645       376       767              132
+      2024      1302     1260       -42   111    78     51     42      634      634     28     28         426         426     52     52         478           478              626       426       740               94
+      2025      1295     1203       -92   214   122      0      0      569      569     36     36         425         425     51     51         476           476              634       425       727               51
+
+== joined_runs_by_race
+ race_year race_id  runs_joined  stints_removed  drivers
+      2018  2018_4            1             1.0        1
+      2019 2019_13            1             1.0        1
+      2020  2020_1           12            12.0       12
+      2020 2020_15            5             5.0        5
+      2020 2020_16            1             1.0        1
+      2020  2020_8            8             8.0        8
+      2020  2020_9           17            18.0       13
+      2021 2021_10            6             6.0        6
+      2021 2021_19           20            42.0       20
+      2021  2021_2            8             8.0        8
+      2021 2021_21           13            17.0       13
+      2021  2021_3           19            38.0       19
+      2021  2021_6           14            17.0       14
+      2022 2022_10            2             2.0        2
+      2022 2022_15           15            15.0       15
+      2022  2022_4            1             1.0        1
+      2022  2022_7            5             5.0        5
+      2023 2023_10            1             1.0        1
+      2023 2023_13           14            15.0       14
+      2023 2023_16            1             1.0        1
+      2023 2023_19           11            11.0       11
+      2023 2023_20           14            15.0       14
+      2023  2023_3           11            13.0        9
+      2023  2023_9           19            19.0       19
+      2024 2024_21            1             1.0        1
+      2024 2024_23           17            32.0       17
+      2024  2024_4            7             7.0        7
+      2024  2024_6            1             1.0        1
+      2024  2024_8            1             1.0        1
+      2025  2025_1           16            43.0       16
+      2025 2025_10           17            49.0       17
+
+== joined_boundaries_by_regime
+ race_year boundary_regime  n
+      2018      safety_car  1
+      2019      safety_car  1
+      2020        red_flag 18
+      2020      safety_car 26
+      2021        red_flag 34
+      2021      safety_car 94
+      2022        red_flag  6
+      2022      safety_car 17
+      2023        red_flag 40
+      2023      safety_car 35
+      2024        red_flag  9
+      2024      safety_car 33
+      2025      safety_car 92
+
+== label_flips_lap_grain
+ race_year  laps  cause_changed  pit_to_race_end  remaining_life_changed  stint_life_censor_changed
+      2018 22336              3                3                       3                       1564
+      2019 23677              1                0                       1                       1663
+      2020 18343            328              219                     328                       2854
+      2021 23759            663               59                     670                       1817
+      2022 23577             90               71                      91                       3129
+      2023 24431            153               71                     161                       2813
+      2024 26606             54               32                      58                       2165
+      2025 26689            333              329                     387                       3104
+
+== lap_rows_per_season
+ race_year  mart_rows_before  mart_rows_after  n5_before  n5_after  elig_before  elig_after
+      2018             18213            18213      11282     11282        14270       14270
+      2019             20723            20723      14561     14561        16087       16087
+      2020             15225            15225       9360      9383        11612       11609
+      2021             20560            20560      14260     14260        15952       15952
+      2022             19395            19395      10941     10941        13853       13853
+      2023             20908            20908      12654     12654        16782       16781
+      2024             23256            23256      15069     15069        18221       18221
+      2025             22760            22760      14027     14027        17724       17724
+
+== canada_2025
+  side driver_id           stint_id  stint_number  end_lap_number  end_lap_in_stint end_regime stint_end_cause  is_censored_stint  is_stint_life_censored  reached_flag
+before       ALB 2025_2025_10_ALB_1           1.0              23                23      green       green_pit              False                    <NA>          <NA>
+before       ALB 2025_2025_10_ALB_2           2.0              47                24      green      retirement               True                    <NA>          <NA>
+ after       ALB 2025_2025_10_ALB_1           1.0              23                23      green       green_pit              False                   False         False
+ after       ALB 2025_2025_10_ALB_2           2.0              47                24      green      retirement               True                    True          <NA>
+before       ALO 2025_2025_10_ALO_1           1.0              15                15      green       green_pit              False                    <NA>          <NA>
+before       ALO 2025_2025_10_ALO_2           2.0              50                35      green       green_pit              False                    <NA>          <NA>
+before       ALO 2025_2025_10_ALO_3           3.0              66                16 safety_car          sc_pit              False                    <NA>          <NA>
+before       ALO 2025_2025_10_ALO_4           4.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       ALO 2025_2025_10_ALO_5           5.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       ALO 2025_2025_10_ALO_6           6.0              69                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       ALO 2025_2025_10_ALO_7           7.0              70                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       ALO 2025_2025_10_ALO_1           1.0              15                15      green       green_pit              False                   False         False
+ after       ALO 2025_2025_10_ALO_2           2.0              50                35      green       green_pit              False                   False         False
+ after       ALO 2025_2025_10_ALO_3           3.0              70                20 safety_car        race_end               True                    True          True
+before       ANT 2025_2025_10_ANT_1           1.0              14                14      green       green_pit              False                    <NA>          <NA>
+before       ANT 2025_2025_10_ANT_2           2.0              38                24      green       green_pit              False                    <NA>          <NA>
+before       ANT 2025_2025_10_ANT_3           3.0              67                29 safety_car          sc_pit              False                    <NA>          <NA>
+before       ANT 2025_2025_10_ANT_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       ANT 2025_2025_10_ANT_5           5.0              69                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       ANT 2025_2025_10_ANT_6           6.0              70                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       ANT 2025_2025_10_ANT_1           1.0              14                14      green       green_pit              False                   False         False
+ after       ANT 2025_2025_10_ANT_2           2.0              38                24      green       green_pit              False                   False         False
+ after       ANT 2025_2025_10_ANT_3           3.0              70                32 safety_car        race_end               True                    True          True
+before       BEA 2025_2025_10_BEA_1           1.0              18                18      green       green_pit              False                    <NA>          <NA>
+before       BEA 2025_2025_10_BEA_2           2.0              66                48 safety_car          sc_pit              False                    <NA>          <NA>
+before       BEA 2025_2025_10_BEA_3           3.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       BEA 2025_2025_10_BEA_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       BEA 2025_2025_10_BEA_5           5.0              69                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       BEA 2025_2025_10_BEA_1           1.0              18                18      green       green_pit              False                   False         False
+ after       BEA 2025_2025_10_BEA_2           2.0              66                48 safety_car          sc_pit              False                    True         False
+ after       BEA 2025_2025_10_BEA_3           3.0              69                 3 safety_car        race_end               True                    True          True
+before       BOR 2025_2025_10_BOR_1           1.0              49                49      green       green_pit              False                    <NA>          <NA>
+before       BOR 2025_2025_10_BOR_2           2.0              66                17 safety_car          sc_pit              False                    <NA>          <NA>
+before       BOR 2025_2025_10_BOR_3           3.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       BOR 2025_2025_10_BOR_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       BOR 2025_2025_10_BOR_5           5.0              69                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       BOR 2025_2025_10_BOR_1           1.0              49                49      green       green_pit              False                   False         False
+ after       BOR 2025_2025_10_BOR_2           2.0              69                20 safety_car        race_end               True                    True          True
+before       COL 2025_2025_10_COL_1           1.0              14                14      green       green_pit              False                    <NA>          <NA>
+before       COL 2025_2025_10_COL_2           2.0              66                52 safety_car          sc_pit              False                    <NA>          <NA>
+before       COL 2025_2025_10_COL_3           3.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       COL 2025_2025_10_COL_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       COL 2025_2025_10_COL_5           5.0              69                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       COL 2025_2025_10_COL_1           1.0              14                14      green       green_pit              False                   False         False
+ after       COL 2025_2025_10_COL_2           2.0              69                55 safety_car        race_end               True                    True          True
+before       GAS 2025_2025_10_GAS_1           1.0              53                53      green       green_pit              False                    <NA>          <NA>
+before       GAS 2025_2025_10_GAS_2           2.0              66                13 safety_car          sc_pit              False                    <NA>          <NA>
+before       GAS 2025_2025_10_GAS_3           3.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       GAS 2025_2025_10_GAS_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       GAS 2025_2025_10_GAS_5           5.0              69                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       GAS 2025_2025_10_GAS_1           1.0              53                53      green       green_pit              False                   False         False
+ after       GAS 2025_2025_10_GAS_2           2.0              69                16 safety_car        race_end               True                    True          True
+before       HAD 2025_2025_10_HAD_1           1.0              13                13      green       green_pit              False                    <NA>          <NA>
+before       HAD 2025_2025_10_HAD_2           2.0              66                53 safety_car          sc_pit              False                    <NA>          <NA>
+before       HAD 2025_2025_10_HAD_3           3.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       HAD 2025_2025_10_HAD_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       HAD 2025_2025_10_HAD_5           5.0              69                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       HAD 2025_2025_10_HAD_1           1.0              13                13      green       green_pit              False                   False         False
+ after       HAD 2025_2025_10_HAD_2           2.0              66                53 safety_car          sc_pit              False                    True         False
+ after       HAD 2025_2025_10_HAD_3           3.0              69                 3 safety_car        race_end               True                    True          True
+before       HAM 2025_2025_10_HAM_1           1.0              15                15      green       green_pit              False                    <NA>          <NA>
+before       HAM 2025_2025_10_HAM_2           2.0              45                30      green       green_pit              False                    <NA>          <NA>
+before       HAM 2025_2025_10_HAM_3           3.0              67                22 safety_car          sc_pit              False                    <NA>          <NA>
+before       HAM 2025_2025_10_HAM_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       HAM 2025_2025_10_HAM_5           5.0              69                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       HAM 2025_2025_10_HAM_6           6.0              70                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       HAM 2025_2025_10_HAM_1           1.0              15                15      green       green_pit              False                   False         False
+ after       HAM 2025_2025_10_HAM_2           2.0              45                30      green       green_pit              False                   False         False
+ after       HAM 2025_2025_10_HAM_3           3.0              70                25 safety_car        race_end               True                    True          True
+before       HUL 2025_2025_10_HUL_1           1.0              19                19      green       green_pit              False                    <NA>          <NA>
+before       HUL 2025_2025_10_HUL_2           2.0              66                47 safety_car          sc_pit              False                    <NA>          <NA>
+before       HUL 2025_2025_10_HUL_3           3.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       HUL 2025_2025_10_HUL_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       HUL 2025_2025_10_HUL_5           5.0              69                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       HUL 2025_2025_10_HUL_6           6.0              70                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       HUL 2025_2025_10_HUL_1           1.0              19                19      green       green_pit              False                   False         False
+ after       HUL 2025_2025_10_HUL_2           2.0              70                51 safety_car        race_end               True                    True          True
+before       LAW 2025_2025_10_LAW_1           1.0              38                38      green       green_pit              False                    <NA>          <NA>
+before       LAW 2025_2025_10_LAW_2           2.0              54                16      green      retirement               True                    <NA>          <NA>
+ after       LAW 2025_2025_10_LAW_1           1.0              38                38      green       green_pit              False                   False         False
+ after       LAW 2025_2025_10_LAW_2           2.0              54                16      green      retirement               True                    True          <NA>
+before       LEC 2025_2025_10_LEC_1           1.0              28                28      green       green_pit              False                    <NA>          <NA>
+before       LEC 2025_2025_10_LEC_2           2.0              53                25      green       green_pit              False                    <NA>          <NA>
+before       LEC 2025_2025_10_LEC_3           3.0              67                14 safety_car          sc_pit              False                    <NA>          <NA>
+before       LEC 2025_2025_10_LEC_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       LEC 2025_2025_10_LEC_5           5.0              69                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       LEC 2025_2025_10_LEC_6           6.0              70                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       LEC 2025_2025_10_LEC_1           1.0              28                28      green       green_pit              False                   False         False
+ after       LEC 2025_2025_10_LEC_2           2.0              53                25      green       green_pit              False                   False         False
+ after       LEC 2025_2025_10_LEC_3           3.0              70                17 safety_car        race_end               True                    True          True
+before       NOR 2025_2025_10_NOR_1           1.0              29                29      green       green_pit              False                    <NA>          <NA>
+before       NOR 2025_2025_10_NOR_2           2.0              47                18      green       green_pit              False                    <NA>          <NA>
+before       NOR 2025_2025_10_NOR_3           3.0              67                20 safety_car      retirement               True                    <NA>          <NA>
+ after       NOR 2025_2025_10_NOR_1           1.0              29                29      green       green_pit              False                   False         False
+ after       NOR 2025_2025_10_NOR_2           2.0              47                18      green       green_pit              False                   False         False
+ after       NOR 2025_2025_10_NOR_3           3.0              67                20 safety_car      retirement               True                    True          <NA>
+before       OCO 2025_2025_10_OCO_1           1.0              57                57      green       green_pit              False                    <NA>          <NA>
+before       OCO 2025_2025_10_OCO_2           2.0              66                 9 safety_car          sc_pit              False                    <NA>          <NA>
+before       OCO 2025_2025_10_OCO_3           3.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       OCO 2025_2025_10_OCO_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       OCO 2025_2025_10_OCO_5           5.0              69                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       OCO 2025_2025_10_OCO_1           1.0              57                57      green       green_pit              False                   False         False
+ after       OCO 2025_2025_10_OCO_2           2.0              69                12 safety_car        race_end               True                    True          True
+before       PIA 2025_2025_10_PIA_1           1.0              16                16      green       green_pit              False                    <NA>          <NA>
+before       PIA 2025_2025_10_PIA_2           2.0              45                29      green       green_pit              False                    <NA>          <NA>
+before       PIA 2025_2025_10_PIA_3           3.0              67                22 safety_car          sc_pit              False                    <NA>          <NA>
+before       PIA 2025_2025_10_PIA_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       PIA 2025_2025_10_PIA_5           5.0              69                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       PIA 2025_2025_10_PIA_6           6.0              70                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       PIA 2025_2025_10_PIA_1           1.0              16                16      green       green_pit              False                   False         False
+ after       PIA 2025_2025_10_PIA_2           2.0              45                29      green       green_pit              False                   False         False
+ after       PIA 2025_2025_10_PIA_3           3.0              67                22 safety_car          sc_pit              False                    True         False
+ after       PIA 2025_2025_10_PIA_4           4.0              70                 3 safety_car        race_end               True                    True          True
+before       RUS 2025_2025_10_RUS_1           1.0              13                13      green       green_pit              False                    <NA>          <NA>
+before       RUS 2025_2025_10_RUS_2           2.0              42                29      green       green_pit              False                    <NA>          <NA>
+before       RUS 2025_2025_10_RUS_3           3.0              67                25 safety_car          sc_pit              False                    <NA>          <NA>
+before       RUS 2025_2025_10_RUS_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       RUS 2025_2025_10_RUS_5           5.0              69                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       RUS 2025_2025_10_RUS_6           6.0              70                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       RUS 2025_2025_10_RUS_1           1.0              13                13      green       green_pit              False                   False         False
+ after       RUS 2025_2025_10_RUS_2           2.0              42                29      green       green_pit              False                   False         False
+ after       RUS 2025_2025_10_RUS_3           3.0              70                28 safety_car        race_end               True                    True          True
+before       SAI 2025_2025_10_SAI_1           1.0              57                57      green       green_pit              False                    <NA>          <NA>
+before       SAI 2025_2025_10_SAI_2           2.0              66                 9 safety_car          sc_pit              False                    <NA>          <NA>
+before       SAI 2025_2025_10_SAI_3           3.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       SAI 2025_2025_10_SAI_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       SAI 2025_2025_10_SAI_5           5.0              69                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       SAI 2025_2025_10_SAI_1           1.0              57                57      green       green_pit              False                   False         False
+ after       SAI 2025_2025_10_SAI_2           2.0              69                12 safety_car        race_end               True                    True          True
+before       STR 2025_2025_10_STR_1           1.0              24                24      green       green_pit              False                    <NA>          <NA>
+before       STR 2025_2025_10_STR_2           2.0              51                27      green       green_pit              False                    <NA>          <NA>
+before       STR 2025_2025_10_STR_3           3.0              66                15 safety_car          sc_pit              False                    <NA>          <NA>
+before       STR 2025_2025_10_STR_4           4.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       STR 2025_2025_10_STR_5           5.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       STR 2025_2025_10_STR_6           6.0              69                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       STR 2025_2025_10_STR_1           1.0              24                24      green       green_pit              False                   False         False
+ after       STR 2025_2025_10_STR_2           2.0              51                27      green       green_pit              False                   False         False
+ after       STR 2025_2025_10_STR_3           3.0              66                15 safety_car          sc_pit              False                    True         False
+ after       STR 2025_2025_10_STR_4           4.0              69                 3 safety_car        race_end               True                    True          True
+before       TSU 2025_2025_10_TSU_1           1.0              56                56      green       green_pit              False                    <NA>          <NA>
+before       TSU 2025_2025_10_TSU_2           2.0              66                10 safety_car          sc_pit              False                    <NA>          <NA>
+before       TSU 2025_2025_10_TSU_3           3.0              67                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       TSU 2025_2025_10_TSU_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       TSU 2025_2025_10_TSU_5           5.0              69                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       TSU 2025_2025_10_TSU_1           1.0              56                56      green       green_pit              False                   False         False
+ after       TSU 2025_2025_10_TSU_2           2.0              69                13 safety_car        race_end               True                    True          True
+before       VER 2025_2025_10_VER_1           1.0              12                12      green       green_pit              False                    <NA>          <NA>
+before       VER 2025_2025_10_VER_2           2.0              37                25      green       green_pit              False                    <NA>          <NA>
+before       VER 2025_2025_10_VER_3           3.0              67                30 safety_car          sc_pit              False                    <NA>          <NA>
+before       VER 2025_2025_10_VER_4           4.0              68                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       VER 2025_2025_10_VER_5           5.0              69                 1 safety_car          sc_pit              False                    <NA>          <NA>
+before       VER 2025_2025_10_VER_6           6.0              70                 1 safety_car        race_end               True                    <NA>          <NA>
+ after       VER 2025_2025_10_VER_1           1.0              12                12      green       green_pit              False                   False         False
+ after       VER 2025_2025_10_VER_2           2.0              37                25      green       green_pit              False                   False         False
+ after       VER 2025_2025_10_VER_3           3.0              70                33 safety_car        race_end               True                    True          True
+
+== canada_2025_summary
+  side stint_end_cause  n  one_lap
+before       green_pit 29        0
+before        race_end 17       17
+before      retirement  3        0
+before          sc_pit 53       36
+ after       green_pit 29        0
+ after        race_end 17        0
+ after      retirement  3        0
+ after          sc_pit  4        0
+
+== unchanged_key_check
+ stints_before  stints_after  after_ids_present_before  laps_after  laps_before
+          9374          8968                      8968      189418       189418

@@ -1,0 +1,60 @@
+race_year,race_id,race_slug,circuit,circuit_key,http,marshal_sectors,ms_all_have_xy
+2018,2018_1,australian_grand_prix,Melbourne,10,200,20,True
+2018,2018_2,bahrain_grand_prix,Sakhir,63,200,18,True
+2018,2018_3,chinese_grand_prix,Shanghai,49,200,20,True
+2018,2018_4,azerbaijan_grand_prix,Baku,144,200,21,True
+2018,2018_5,spanish_grand_prix,Catalunya,15,200,17,True
+2018,2018_6,monaco_grand_prix,Monte Carlo,22,200,19,True
+2018,2018_7,canadian_grand_prix,Montreal,23,200,15,True
+2018,2018_8,french_grand_prix,Paul Ricard,28,200,19,True
+2018,2018_9,austrian_grand_prix,Spielberg,19,200,16,True
+2018,2018_10,british_grand_prix,Silverstone,2,200,16,True
+2018,2018_11,german_grand_prix,Hockenheim,34,200,14,True
+2018,2018_12,hungarian_grand_prix,Hungaroring,4,200,19,True
+2018,2018_13,belgian_grand_prix,Spa-Francorchamps,7,200,19,True
+2018,2018_14,italian_grand_prix,Monza,39,200,17,True
+2018,2018_15,singapore_grand_prix,Singapore,61,200,18,True
+2018,2018_16,russian_grand_prix,Sochi,79,200,20,True
+2018,2018_17,japanese_grand_prix,Suzuka,46,200,20,True
+2018,2018_18,united_states_grand_prix,Austin,9,200,20,True
+2018,2018_19,mexican_grand_prix,Mexico City,65,200,16,True
+2018,2018_20,brazilian_grand_prix,Interlagos,14,200,16,True
+2018,2018_21,abu_dhabi_grand_prix,Yas Marina Circuit,70,200,20,True
+2019,2019_1,australian_grand_prix,Melbourne,10,200,20,True
+2019,2019_2,bahrain_grand_prix,Sakhir,63,200,18,True
+2019,2019_3,chinese_grand_prix,Shanghai,49,200,20,True
+2019,2019_4,azerbaijan_grand_prix,Baku,144,200,21,True
+2019,2019_5,spanish_grand_prix,Catalunya,15,200,17,True
+2019,2019_6,monaco_grand_prix,Monte Carlo,22,200,19,True
+2019,2019_7,canadian_grand_prix,Montreal,23,200,15,True
+2019,2019_8,french_grand_prix,Paul Ricard,28,200,19,True
+2019,2019_9,austrian_grand_prix,Spielberg,19,200,16,True
+2019,2019_10,british_grand_prix,Silverstone,2,200,16,True
+2019,2019_11,german_grand_prix,Hockenheim,34,200,14,True
+2019,2019_12,hungarian_grand_prix,Hungaroring,4,200,19,True
+2019,2019_13,belgian_grand_prix,Spa-Francorchamps,7,200,19,True
+2019,2019_14,italian_grand_prix,Monza,39,200,17,True
+2019,2019_15,singapore_grand_prix,Singapore,61,200,18,True
+2019,2019_16,russian_grand_prix,Sochi,79,200,20,True
+2019,2019_17,japanese_grand_prix,Suzuka,46,200,20,True
+2019,2019_18,mexican_grand_prix,Mexico City,65,200,16,True
+2019,2019_19,united_states_grand_prix,Austin,9,200,20,True
+2019,2019_20,brazilian_grand_prix,Interlagos,14,200,16,True
+2019,2019_21,abu_dhabi_grand_prix,Yas Marina Circuit,70,200,20,True
+2020,2020_1,austrian_grand_prix,Spielberg,19,200,16,True
+2020,2020_2,styrian_grand_prix,Spielberg,19,200,16,True
+2020,2020_3,hungarian_grand_prix,Hungaroring,4,200,19,True
+2020,2020_4,british_grand_prix,Silverstone,2,200,16,True
+2020,2020_5,70th_anniversary_grand_prix,Silverstone,2,200,16,True
+2020,2020_6,spanish_grand_prix,Catalunya,15,200,17,True
+2020,2020_7,belgian_grand_prix,Spa-Francorchamps,7,200,19,True
+2020,2020_8,italian_grand_prix,Monza,39,200,17,True
+2020,2020_9,tuscan_grand_prix,Mugello,146,200,19,True
+2020,2020_10,russian_grand_prix,Sochi,79,200,20,True
+2020,2020_11,eifel_grand_prix,Nürburgring,72,200,18,True
+2020,2020_12,portuguese_grand_prix,Algarve International Circuit,147,200,19,True
+2020,2020_13,emilia_romagna_grand_prix,Imola,6,200,19,True
+2020,2020_14,turkish_grand_prix,Istanbul,59,200,20,True
+2020,2020_15,bahrain_grand_prix,Sakhir,63,200,18,True
+2020,2020_16,sakhir_grand_prix,Sakhir Outer Track,148,200,0,False
+2020,2020_17,abu_dhabi_grand_prix,Yas Marina Circuit,70,200,20,True

@@ -1,0 +1,10 @@
+stint_id,compound,laps_completed,tyre_age_at_fit,fresh_at_fit,is_fresh_tyre_raw,cut_reason,clean_laps_to_cut,slope,mean_pace,slope_reliable
+2018_2018_11_SAI_3,INTERMEDIATE,6,1,True,True,sc_pit,0,,,False
+2019_2019_11_BOT_1,WET,3,1,True,True,sc_pit,1,,93.458,False
+2019_2019_11_HAM_3,SOFT,1,4,False,False,sc_pit,0,,,False
+2020_2020_17_RAI_1,MEDIUM,10,1,True,True,vsc_pit,8,0.1686,103.344,True
+2022_2022_5_MAG_2,HARD,30,1,True,True,sc_pit,25,0.0132,93.405,True
+2025_2025_10_VER_2,HARD,25,1,True,True,,,,,
+2025_2025_1_LAW_3,INTERMEDIATE,1,1,True,False,sc_pit,0,,,False
+2025_2025_1_STR_4,INTERMEDIATE,29,1,True,True,sc_pit,25,-0.1837,91.349,True
+2025_2025_7_STR_2,HARD,32,2,False,False,sc_pit,26,0.0671,80.645,True

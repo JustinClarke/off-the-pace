@@ -11,7 +11,6 @@ import {
 import QuantileFanChart from '../../ui/charts/QuantileFanChart'
 import type { SimulatorResult } from './transform'
 import { TechTooltip } from '../../ui/TechTooltip'
-import { FLAG_CHANCE_CALIBRATION } from '../../ml/flagChance'
 
 const GRID = 'rgba(255,255,255,0.05)'
 const AXIS_STYLE = { fontSize: 11, fill: 'rgb(var(--color-text-muted))' }
@@ -186,14 +185,12 @@ function lifeColorFrom(p10: number): string {
  * far finer than a censored fit can resolve. The median is now shown to the lap,
  * and the band is shown next to it rather than left implicit.
  */
-const FLAG_CHANCE_LABEL = 'Experimental: chance to reach the flag on these tyres (model estimate; refit of the v14 configuration, expanding-window folds, 2018–2024)'
-
-function LifeGauge({ median, p10, p90, cappedAtFlag = false, flagChance = null }: {
+// CO-08: the gauge carries the laps-to-flag cap only. CD5 (2026-10-23) ruled "cap only
+// everywhere", so the chance-to-reach-the-flag number is not rendered.
+function LifeGauge({ median, p10, p90, cappedAtFlag = false }: {
   median: number; p10: number; p90: number
   /** CO-08: the median was capped at laps to the flag (the tyre would outlast the race). */
   cappedAtFlag?: boolean
-  /** CO-08: calibrated chance these tyres reach the flag (final stint + lookup only). */
-  flagChance?: number | null
 }) {
   const color = lifeColorFrom(p10)
   const pos = (v: number) => Math.max(0, Math.min(100, (v / LIFE_HORIZON_LAPS) * 100))
@@ -226,24 +223,6 @@ function LifeGauge({ median, p10, p90, cappedAtFlag = false, flagChance = null }
         fitted as "at least this long", not as observed retirements. A stint cannot
         outlast the race, so every value is capped at the laps left to the flag.
       </p>
-      {flagChance !== null && (
-        <div className="flex flex-col gap-1 rounded-md border border-amber-400/30 bg-amber-400/5 p-2" data-testid="flag-chance">
-          <p className="text-xs text-muted">
-            <span className="font-semibold tabular-nums text-[rgb(var(--color-text))]">{Math.round(flagChance * 100)}%</span>
-            {' '}{FLAG_CHANCE_LABEL}
-          </p>
-          <p className="text-[11px] text-muted/80">
-            Failed the {FLAG_CHANCE_CALIBRATION.evalSeason} acceptance bar:{' '}
-            {FLAG_CHANCE_CALIBRATION.binsWithinTolerance} of {FLAG_CHANCE_CALIBRATION.binsTotal} bins within{' '}
-            {FLAG_CHANCE_CALIBRATION.tolerancePp} pp, worst gap {FLAG_CHANCE_CALIBRATION.worstGapPp} pp; Brier{' '}
-            {FLAG_CHANCE_CALIBRATION.brier.toFixed(4)} vs {FLAG_CHANCE_CALIBRATION.brierBaseRate.toFixed(4)} for
-            the base rate. Provisional until 2026 races are scored.{' '}
-            <a href="/docs/app/degradation-simulator#experimental-chance-to-reach-the-flag" className="underline">
-              Calibration numbers
-            </a>
-          </p>
-        </div>
-      )}
     </div>
   )
 }
@@ -328,7 +307,6 @@ function ResultHero({ result, onnxReady, tyreColor }: { result: SimulatorResult;
         label="Remaining tyre life"
         sub={onnxReady
           ? `${result.lifeCappedAtFlag ? 'to the flag' : 'median'} · p10-p90 ${Math.round(lifeP10)}-${Math.round(lifeP90)}`
-            + (result.flagChance !== null ? ` · experimental: ${Math.round(result.flagChance * 100)}% to reach the flag` : '')
           : 'model offline'}
       >
         <span className="font-mono text-[26px] font-bold tabular-nums" style={{ color: onnxReady ? lifeColor : '#64748b' }}>
@@ -462,7 +440,7 @@ export default function DegradationSimulatorChart({ result, onnxLoading, onnxErr
         <div className="rounded-xl border border-border bg-white/[0.02] p-4">
           {onnxReady
             ? <LifeGauge median={result.remainingLifeLaps} p10={result.remainingLifeP10} p90={result.remainingLifeP90}
-                cappedAtFlag={result.lifeCappedAtFlag} flagChance={result.flagChance} />
+                cappedAtFlag={result.lifeCappedAtFlag} />
             : <OnnxNote error={onnxError} loading={onnxLoading} />}
         </div>
       </div>

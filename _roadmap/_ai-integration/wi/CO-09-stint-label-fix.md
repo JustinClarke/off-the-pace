@@ -3,6 +3,8 @@
 **Status:** SPEC (raised 2026-10-16 from the CO-08 flag-chance follow-up).
 **Group:** 1 data settled · **Depends on:** none · **Blocker:** none. Opens a new label version, which CO-15 (Monaco wear fix, `CD9`) joins; the label moves once. Retrain is CO-18; promotion is `CD10`.
 
+**Owner rulings (2026-10-23, `D5`, `D6` in the build log):** red-flag censoring applies to stint life as well as the flag question ("d5 yes"); safety-car and pit ends are cut short too, censored, not left uncensored ("d6 cut them short too"). CO-14 depends on these.
+
 **Sources:** `transform/models/intermediate/int_stint_end_regime.sql`, `transform/models/intermediate/fct_stint_features` (or its current name in the repo), the stint-life target in `ml/src/schema.py`.
 
 ---

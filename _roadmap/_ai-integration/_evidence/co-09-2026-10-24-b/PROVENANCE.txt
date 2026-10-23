@@ -1,0 +1,60 @@
+CO-09 follow-up (penalty join + cut-short fields) -- evidence provenance (2026-10-24)
+====================================================================================
+
+Repo: /Users/justin/github/off-the-pace, branch main, HEAD 66f3bdb84345e0772b18f66fbf9fd1ba2a9320c8.
+Working tree only, on top of CO-09's uncommitted working tree. Nothing committed, pushed,
+deployed or promoted. data/dev.duckdb (mtime Oct 22 01:42, stale until CO-17) was neither
+read nor written by this session; every build ran on scratch copies.
+
+Scratch folder (this session only)
+  S=/private/tmp/claude-501/-Users-justin-github-off-the-pace/85db3c2b-413f-472d-8996-b584d23e4c49/scratchpad/co-09b
+  Source of both copies: .../scratchpad/co-09/dev.duckdb = CO-09's AFTER build
+    (sha256 d91b7f4a393a97a59d8efb16a15c99779dcc24230d06b691bb00f6ff8967e163, built from the
+    2026-10-22 dev warehouse; see ../co-09-2026-10-24/PROVENANCE.txt). Not modified.
+  $S/before/dev.duckdb  byte copy of it at start (sha256 d91b7f4a...e163). "Before" = CO-09 as built.
+    One later write: `dbt test -s assert_tyre_run_key --store-failures` added a dbt_test__audit
+    table (sha256 now 798a416e4dd4526cb0cc1876a400c31f9186ecc7fcf4c7d28a64e51d007335d2). No model
+    table was touched; the evidence script reads only model tables from it.
+  $S/after/dev.duckdb   copy rebuilt with this change (sha256 fa0a7828447227ce84130749174fb881c9ab964ba87f76f28d766afbe1085f75)
+  $S/before/profiles.yml, $S/after/profiles.yml  point at the copies (file named dev.duckdb).
+
+Commands (dbt 1.12.6; ../.venv/bin/dbt, cwd = transform/ so staging views resolve ../data/bronze)
+  AFTER, final code:
+    dbt run  -s int_stint_geometry+ --profiles-dir $S/after --target-path $S/after/target --log-path $S/after/logs  -> PASS=57
+    dbt test -s int_stint_geometry+ --profiles-dir $S/after --target-path $S/after/target --log-path $S/after/logs  -> PASS=835 ERROR=2 TOTAL=837 (dbt_test_after.txt)
+  BEFORE reference (not re-run): CO-09's own result on the same warehouse state,
+    .../scratchpad/co-09/after_test.log -> PASS=831 ERROR=2 TOTAL=833.
+  New test on the BEFORE copy, compiled from this working tree:
+    dbt test -s assert_tyre_run_key --store-failures --profiles-dir $S/before ... -> FAIL 23 (dbt_test_tyre_run_key_before.txt)
+  Evidence tables:
+    ../.venv/bin/python -W ignore evidence.py $S _roadmap/_ai-integration/_evidence/co-09-2026-10-24-b
+      -> evidence_output.txt and the *.csv files (connects to the AFTER copy read-only and
+         attaches the BEFORE copy read-only)
+    ../.venv/bin/python -W ignore mismatch2018.py $S/after/dev.duckdb /Users/justin/github/off-the-pace/data/bronze
+      -> mismatch_2018.txt (re-runs the investigation's raw-bronze cut-run count, its
+         scratchpad/tyres/q3.py logic, and diffs it against the warehouse; bronze read only)
+    Frozen-label rows: compiled assert_prior_season_labels_frozen run read-only on AFTER -> labels_frozen_failures.txt
+  ML (repo root, read-only on the copies):
+    ML_DUCKDB_PATH=$S/after/dev.duckdb .venv/bin/python -m pytest -q ml/tests/test_targets.py ml/tests/test_features.py ml/tests/test_survival.py -> 75 passed (pytest_after.txt)
+    ML_DUCKDB_PATH=$S/after/dev.duckdb .venv/bin/python -m pytest -q ml/tests/test_flag_chance.py -> collection error, ModuleNotFoundError: onnxmltools (environment; same as CO-09)
+    load_features(<copy>, target='stint_life_regressor'): before 124,497 rows, censored 0.5346;
+      after 124,496 rows, censored 0.5350; none of the new columns in feature_columns.
+  Lint: sqlfluff lint (dbt templater) with a scratch config $S/sqlfluff.cfg (profiles_dir=$S/after,
+    target dev) and DBT_TARGET_PATH=$S/after/target_lint, on int_stint_geometry.sql,
+    fct_stint_features.sql, assert_tyre_run_key.sql -> clean. transform/target/ not used.
+  Board: python3 _roadmap/_ai-integration/status/board.py --check (see build-log history entry).
+
+Data files read
+  stg_race_control (view over data/bronze race_control parquet), stg_results, stg_laps,
+  stg_lap_tyre_qa, stg_pits (scratch copies); data/bronze/laps/season=*/race=*/*_laps.parquet
+  (mismatch2018.py only).
+
+Edited files (sha256 after edit)
+  transform/models/intermediate/int_stint_geometry.sql  c03ee67a651e3e650af948fe96566c87fc6237d04f6b89285d51d163e3536808
+  transform/models/marts/fct_stint_features.sql         07fd6af8f6efbfc2de585372b6f97c0df969081e22c83b1db2b68076f5e8a637
+  transform/tests/assert_tyre_run_key.sql               7212d86f2334717cc429553a188a1ad837d6bd4729f209cffdd00673d6e21914
+  transform/models/marts/schema.yml                     26a600c16b93f226cc9f5dae48e2e7b78c6fb3752b6a02335de316579ebc179c
+  transform/models/intermediate/schema.yml              4167fdee1f1078e14a5aa9d697bb33ed465939f5f504f58dd2207784a765c6b3
+  transform/tests/README.md                             7dc7b0e6e34b958c6622eb523f441cd20e93253a7ddfa22b2e351c770bdda775
+  ml/README.md                                          bec03c0f05e9ce367a293fb14bb27213810734a3752509d178d8b9d8c7e26a0a
+  _roadmap/_ai-integration/status/build-log.json (CO-09 note, CD14 note, history entry)

@@ -297,7 +297,11 @@ AUDIT_FEATURES: tuple[str, ...] = ()
 DEGRADATION_TARGET = "next_5_lap_cumulative_jump_s"  # was next_lap_degradation_jump_detrended_s (C1)
 CLIFF_TARGET = "laps_until_cliff_class"
 STINT_LIFE_TARGET = "remaining_stint_life_laps"  # synthesised in features.py
-STINT_LIFE_CENSOR_COLUMN = "is_censored_stint"  # from fct_stint_features; TRUE => right-censored
+# Label version v16 (CO-09, owner rulings D4/D5/D6; shared with CO-15, record in ml/README.md):
+# was "is_censored_stint" (the driver's last stint only). Now TRUE unless the tyre run ended in a
+# green-flag tyre change -- red-flag changes (D5) and safety-car / VSC stops (D6) are cut short
+# too. "is_censored_stint" still marks the final stint (flag_chance reads it for that).
+STINT_LIFE_CENSOR_COLUMN = "is_stint_life_censored"  # from fct_stint_features; TRUE => right-censored
 
 # Forward horizon of each target column, in laps. The attainable-ceiling arithmetic needs it:
 # a rolling-window target overlaps itself, so consecutive rows share `h - 1` of their `h`
@@ -317,6 +321,21 @@ TARGET_HORIZON_LAPS: dict[str, int] = {
 }
 
 # ─── Stint-life survival (AFT) contract ─────────────────────────────────────────
+# LABEL VERSION v16 (CO-09; the rule, owner rulings D4/D5/D6 and CD14):
+#   * The stint is a TYRE RUN. stint_id is re-keyed in int_stint_geometry (D4: everywhere, no
+#     separate run id): consecutive FastF1 stints of one driver-race join when the compound is
+#     the same, the tyre age continues at last age + 1 (CD14 1a), and the earlier stint did not
+#     end on a green-flag lap (CD14 2: green same-tyre stops stay split). The run ends where its
+#     last fragment ends. A never-joined run keeps its stint_id; a joined run takes its first
+#     fragment's id. 406 FastF1 stints fold away on the 2026-10-22 warehouse (299 safety-car
+#     drive-throughs, 107 red-flag pauses); Canada 2025 loses its 49 fake one-lap stints.
+#   * remaining_stint_life_laps = stint_length_laps - lap_in_stint over the RUN.
+#   * Censoring (STINT_LIFE_CENSOR_COLUMN = is_stint_life_censored): only a green-flag tyre
+#     change (stint_end_cause = 'green_pit') is an observed life. A red-flag tyre change (D5),
+#     a safety-car or VSC stop (D6), the flag and a retirement are right-censored.
+#   * stint_end_cause keeps its six classes and precedence; is_censored_stint keeps "final run".
+# The figures in the paragraph below (46.2%, 55,926, 2,264) are the v15 label's and are kept as
+# the record; the v16 shares are measured by the retrain (CO-18), not here.
 # Remaining stint life is right-censored on 46.2% of training rows (55,926 of
 # 120,934): a driver's last
 # stint of a race ends at the flag or at retirement, so the observed life is a LOWER

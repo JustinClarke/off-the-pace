@@ -18,7 +18,17 @@ models:
       family: physics
     columns:
       - name: stint_id
-        description: Surrogate key combining race_year, race_id, driver_id, stint_number
+        description: >
+          Surrogate key combining race_year, race_id, driver_id, stint_number.
+          Since CO-09 (D4) it keys a TYRE RUN: consecutive FastF1 stints on the
+          same compound with tyre age continuing at + 1 across a non-green
+          boundary (safety-car drive-through, red-flag pause) are one stint.
+          A green-flag boundary joins only when race control recorded a
+          drive-through, stop-go or time penalty for that car within one lap
+          of the earlier stint's last lap (a penalty served on the same tyres;
+          owner 2026-10-24, on CD14); other green same-tyre stops stay split.
+          A run that was never joined keeps its old id; a joined run takes the
+          id of its first fragment.
         tests: [not_null]
       - name: lap_id
         description: Foreign key to stg_laps
@@ -177,7 +187,9 @@ models:
                 field: driver_id
       - name: stint_number
         description: >
-          Stint ordinal within the driver's race. NULL for stints built from laps
+          Stint ordinal within the driver's race: since CO-09, the FastF1 number
+          of the tyre run's first stint, so numbers can skip after a joined run.
+          NULL for stints built from laps
           FastF1 never assigned to a stint -- two since WI-05 filled the 2018 lap-1
           gap (2018_2 RIC, 2018_10 HAR; 325 before); those carry stint_end_cause NULL
           and end_cause_confidence 'unassigned_stint'.
@@ -255,6 +267,32 @@ models:
           - accepted_values:
               arguments:
                 values: [observed, inferred, unassigned_stint]
+      - name: is_stint_life_censored
+        description: >
+          CO-09 (label version v16; owner rulings D5, D6). The stint-life
+          censoring flag. TRUE unless the tyre run ended in a green-flag tyre
+          change (stint_end_cause = 'green_pit'): a red-flag tyre change (D5),
+          a safety-car or VSC stop (D6), the flag and a retirement all cut the
+          tyre's life short, so remaining stint life is a lower bound there.
+          TRUE on the unassigned stints. Read by ml/src/features.py through
+          schema.STINT_LIFE_CENSOR_COLUMN. Never a model feature.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
+      - name: reached_flag
+        description: >
+          CO-09. The flag question's outcome. TRUE on race_end; FALSE on a
+          green, safety-car or VSC tyre change; NULL (censored, unknown) on a
+          red-flag tyre change -- a free change at a suspension is not a
+          strategic stop -- on a retirement and on an unassigned stint.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
 
   - name: int_lap_fuel_state
     description: >

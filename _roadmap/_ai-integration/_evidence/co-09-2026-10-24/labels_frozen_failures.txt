@@ -1,0 +1,5 @@
+['check_name', 'scope', 'observed_row_count', 'expected_row_count', 'observed_value', 'expected_value']
+('season_label_stats', '2020', 9383, 9360, -0.1367, -0.1355)
+('season_label_stats', '2021', 14260, 14260, -0.1201, -0.1244)
+('season_label_stats', '2022', 10941, 10941, -0.1522, -0.1608)
+('season_label_stats', '2023', 12654, 12654, -0.3575, -0.3734)

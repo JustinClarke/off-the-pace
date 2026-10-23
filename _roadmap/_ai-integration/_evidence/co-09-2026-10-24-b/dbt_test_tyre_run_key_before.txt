@@ -1,0 +1,25 @@
+[0m21:20:42  Running with dbt=1.12.6
+[0m21:20:43  Registered adapter: duckdb=1.11.0
+[0m21:20:43  Unable to do partial parsing because saved manifest not found. Starting full parse.
+[0m21:20:46  Found 94 models, 2 analyses, 1327 data tests, 19 seeds, 14 sources, 3 exposures, 961 macros, 2 unit tests
+[0m21:20:46  
+[0m21:20:46  Concurrency: 4 threads (target='dev')
+[0m21:20:46  
+[0m21:20:46  1 of 1 START test assert_tyre_run_key .......................................... [RUN]
+[0m21:20:46  1 of 1 FAIL 23 assert_tyre_run_key ............................................. [[31mFAIL 23[0m in 0.16s]
+[0m21:20:46  
+[0m21:20:46  Finished running 1 test in 0 hours 0 minutes and 0.26 seconds (0.26s).
+[0m21:20:46  
+[0m21:20:46  [31mCompleted with 1 error, 0 partial successes, and 0 warnings:[0m
+[0m21:20:46  
+[0m21:20:46  [[31mERROR[0m]: in test assert_tyre_run_key (tests/assert_tyre_run_key.sql)
+[0m21:20:46    Got 23 results, configured to fail if != 0
+[0m21:20:46  
+[0m21:20:46    compiled code at /private/tmp/claude-501/-Users-justin-github-off-the-pace/85db3c2b-413f-472d-8996-b584d23e4c49/scratchpad/co-09b/before/target/compiled/off_the_pace/tests/assert_tyre_run_key.sql
+[0m21:20:46  
+[0m21:20:46    See test failures:
+  ----------------------------------------------------------------
+  select * from "dev"."main_dbt_test__audit"."assert_tyre_run_key"
+  ----------------------------------------------------------------
+[0m21:20:46  
+[0m21:20:46  Done. PASS=0 WARN=0 ERROR=1 SKIP=0 NO-OP=0 REUSED=0 TOTAL=1

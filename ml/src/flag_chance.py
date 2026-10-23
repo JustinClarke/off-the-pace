@@ -25,9 +25,13 @@ Definitions, chosen so the browser can compute the same thing from its inputs:
   exactly. Races stopped short of their scheduled distance make it slightly
   optimistic; `fit` reports how many rows that touches.
 * The event `reached_flag` follows the gate's censoring: a stint whose end cause is
-  'race_end' reached the flag (1); a stint that ended in a pit stop did not (0); a
-  retirement, or a stint with no end cause, is CENSORED for this question (we do not
-  know whether the tyres would have lasted) and is left out of fitting and scoring.
+  'race_end' reached the flag (1); a stint that ended in a green, SC or VSC pit stop did
+  not (0); a retirement, a red-flag tyre change (CO-09: a free change at a suspension,
+  not a strategic stop) or a stint with no end cause is CENSORED for this question (we
+  do not know whether the tyres would have lasted) and is left out of fitting and
+  scoring. A "stint" is a tyre run since CO-09 (same-tyre drive-throughs and red-flag
+  pauses no longer split it); the dbt column int_stint_end_regime.reached_flag holds
+  the same rule.
   The fit uses every lap with a known outcome, not only final-stint laps: restricted
   to final stints the outcome is "did not retire" (97% in 2025) and the rows are
   chosen with hindsight, which says nothing about the tyres.
@@ -62,7 +66,11 @@ DEFAULT_FIT_MAX_SEASON = DEFAULT_EVAL_SEASON - 1
 
 LOOKUP_SCHEMA_VERSION = 1
 EVENT_REACHED = ("race_end",)
-EVENT_NOT_REACHED = ("green_pit", "sc_pit", "vsc_pit", "red")
+# CO-09 (label version v16): a red-flag tyre change is CENSORED for the flag question, not
+# 0 -- a free change at a suspension is not a strategic stop. Mirrors
+# int_stint_end_regime.reached_flag. Takes effect at the next fit; the shipped lookup is
+# unchanged until then.
+EVENT_NOT_REACHED = ("green_pit", "sc_pit", "vsc_pit")
 PLATT_GRID_POINTS = 1001          # Platt is stored as a dense table: one browser code path
 RELIABILITY_BINS = 10
 MEMO_BINS = (0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 1.0)   # the options memo's bins, for before/after
@@ -275,7 +283,8 @@ def fit(out_dir: Path, model_version: str, booster_path: Path | None, params_pat
                       "n_rows": int(len(k)),
                       "base_rate": float(np.average(event[k], weights=w[keep]))},
         "laps_to_flag": "scheduled_laps - lap_number, >= 0 (browser: fuel_kg / burn_rate - 1)",
-        "event": "stint_end_cause = race_end -> 1; pit-ended -> 0; retirement / no cause -> excluded",
+        "event": ("stint_end_cause = race_end -> 1; green/SC/VSC pit -> 0; "
+                  "red-flag tyre change / retirement / no cause -> excluded (CO-09)"),
         "shown_on": "final stints only (parquet: is_censored_stint; simulator: stint configured to the flag)",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }

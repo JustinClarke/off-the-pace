@@ -4,13 +4,13 @@ transform_docs_facts.py   Drift gate for the Transform tab's test-inventory snip
 The Transform tab's model/family counts and CI-test breakdown are generated, never
 hand-typed in prose (CONVENTIONS "Hand-written counts in prose"). This script reads
 transform/target/manifest.json (the dbt parse output) and transform/tests/README.md
-(the authored category-and-status record for the 29 singular tests) and writes four
+(the authored category-and-status record for the 27 singular tests) and writes four
 snippets under docs/snippets/:
 
   transform-inventory.mdx              headline CardGroup (models, families, test taxonomy)
   transform-inventory-structural.mdx   every model x its structural test count (339)
   transform-inventory-range-and-domain.mdx   every model x its range/categorical/pairwise count (75)
-  transform-inventory-singular-tests.mdx     all 29 singular tests, grouped exactly as
+  transform-inventory-singular-tests.mdx     all 27 singular tests, grouped exactly as
                                               tests/README.md groups them, with
                                               Active/Placeholder status read off the
                                               dbt `placeholder` tag

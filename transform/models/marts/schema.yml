@@ -860,6 +860,82 @@ models:
           - accepted_values:
               arguments:
                 values: [observed, inferred, unassigned_stint]
+      - name: is_stint_life_censored
+        description: >
+          Passed through from int_stint_end_regime (CO-09, D5/D6). The stint-life censoring
+          flag: TRUE unless the tyre run ended in a green-flag tyre change. This is the column
+          ml/src/schema.STINT_LIFE_CENSOR_COLUMN names from label version v16. Never a model
+          feature.
+        tests:
+          - not_null
+      - name: reached_flag
+        description: >
+          Passed through from int_stint_end_regime (CO-09). TRUE race_end; FALSE green / SC /
+          VSC tyre change; NULL (censored for the flag question) on a red-flag tyre change, a
+          retirement or an unassigned stint.
+      # CO-09 cut-short fields (owner-approved 2026-10-24). STORED ONLY: no model reads any of
+      # them as a training feature yet; admitting them is a later, separate decision.
+      - name: laps_completed
+        description: >
+          CO-09. Laps the tyre run completed; equal to stint_length_laps, named for the
+          cut-short reading (for an sc_pit / vsc_pit run it is the laps done before the cut,
+          a lower bound on the tyre's life).
+        tests: [not_null]
+      - name: tyre_age_at_fit
+        description: >
+          CO-09. TyreLife (age_in_stint) on the run's first lap: the age the set already had
+          when fitted, plus the first lap. Equals starting_tyre_age_laps + 1 wherever the first
+          lap carries an age; NULL where it does not (quarantined units, whose age
+          stg_lap_tyre_qa withholds, and one 2018 run whose first lap has no TyreLife).
+      - name: fresh_at_fit
+        description: >
+          CO-09. tyre_age_at_fit <= 1: a new set at the fit, read from the age, not from
+          FastF1's FreshTyre flag (inconsistent across seasons; see is_fresh_tyre_raw). NULL
+          where tyre_age_at_fit is NULL.
+      - name: is_fresh_tyre_raw
+        description: >
+          CO-09. FastF1's raw FreshTyre flag on the run's first lap (stg_laps.is_fresh_tyre),
+          carried for audit only. Not reliable; do not build logic on it - use fresh_at_fit.
+      - name: clean_laps_to_cut
+        description: >
+          CO-09. Valid laps (the existing is_valid_lap rule) the run completed before it was
+          cut short. Filled only when stint_end_cause is sc_pit or vsc_pit; NULL otherwise.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 100
+              config:
+                where: "clean_laps_to_cut IS NOT NULL"
+      - name: slope_to_cut_s_per_lap
+        description: >
+          CO-09. OLS slope (s per lap of tyre age) of the fuel-corrected lap time
+          (int_lap_fuel_state.weight_corrected_lap_time: the project's fuel model, season fuel
+          limit burned evenly over the scheduled distance x the circuit's weight_penalty_factor)
+          against age_in_stint, on the run's clean laps. Filled only on sc_pit / vsc_pit runs
+          with at least 5 clean laps and a tyre age; NULL otherwise.
+      - name: mean_clean_pace_s
+        description: >
+          CO-09. Mean fuel-corrected lap time (s) over the run's clean laps. Filled only on
+          sc_pit / vsc_pit runs with at least one clean lap; NULL otherwise.
+      - name: cut_reason
+        description: >
+          CO-09. Why the run was cut short: stint_end_cause when it is sc_pit or vsc_pit, NULL
+          for every other run. Both are censored for stint life under D6; whether vsc_pit should
+          be censored is an open question to the owner.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [sc_pit, vsc_pit]
+      - name: slope_reliable
+        description: >
+          CO-09. On an sc_pit / vsc_pit run, TRUE when clean_laps_to_cut >= 5 and the slope
+          could be fitted (a quarantined unit has clean laps but no tyre age); NULL on every
+          other run.
+        tests:
+          - not_null:
+              config:
+                where: "cut_reason IS NOT NULL"
 
   - name: fct_ghost_car_pace
     description: >

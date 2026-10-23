@@ -16,7 +16,7 @@ The main chart plots **predicted next-lap degradation jump** (in seconds of pace
 
 A **tyre life gauge** summarises the stint-life regressor's estimate of how many laps remain before the compound falls below a usable pace threshold. A stint cannot outlast the race, so on a final stint (one configured to run to the flag) the gauge is capped at the laps left to the flag.
 
-On those final stints the gauge also shows an **experimental** chance to reach the flag on these tyres, a model estimate. See [Experimental chance to reach the flag](#experimental-chance-to-reach-the-flag).
+The gauge does not show a chance to reach the flag. See [Why there is no chance to reach the flag](#why-there-is-no-chance-to-reach-the-flag).
 
 <Note>
   When you load a **real stint preset**, the chart also overlays the observed next-lap degradation jumps from the warehouse so you can see exactly where the model was confident, conservative, or surprised.
@@ -57,12 +57,12 @@ The most direct use of the simulator is understanding **why a strategy call was 
 
 Each lap of the simulated stint is converted into a `float32` vector for each model, built from the current slider state (39 features for the cliff classifier, 32 for the other four models), then passed through the ONNX runtime in your browser. The feature order, encoder mappings, and post-processing logic are read from the model manifest at runtime. Browser-side inference matches the originally trained boosters to a maximum absolute error of `1e-5`.
 
-## Experimental chance to reach the flag
+## Why there is no chance to reach the flag
 
-The chance is the probability, under the stint-life model's log-normal distribution, that the tyres last to the chequered flag, passed through a Platt recalibration. It is `null` (not shown) for non-final stints, and also whenever the recalibration table was fitted for a different model version than the one loaded. The recalibration uses the `last3` rule (the most recent three seasons, chosen on 2024 only) fitted on 2018-2024 out-of-fold predictions. These numbers are a refit of the v14 configuration on expanding-window folds over 2018–2024. They were not computed from the served v14 booster, which was trained on 2018–2025.
+A chance to reach the flag on these tyres was built and tested: the probability, under the stint-life model's log-normal distribution, that the tyres last to the chequered flag, passed through a Platt recalibration. The recalibration used the `last3` rule (the most recent three seasons, chosen on 2024 only) fitted on 2018-2024 out-of-fold predictions, from a refit of the v14 configuration on expanding-window folds. The simulator does not show it; on final stints it shows only the laps-to-flag cap.
 
 <Warning>
-  **This number failed its 2025 acceptance bar.** Only 5 of 10 calibration bins were within 5 percentage points, with a worst gap of 19.9 points. Its Brier score was 0.0803 against 0.2454 for always predicting the base rate, so it beats the base rate but is not well calibrated in the middle bins. It is provisional until 2026 races are scored.
+  **The chance failed its 2025 acceptance bar, so it is not shown.** Only 5 of 10 calibration bins were within 5 percentage points, with a worst gap of 19.9 points. Its Brier score was 0.0803 against 0.2454 for always predicting the base rate, so it beats the base rate but is not well calibrated in the middle bins.
 </Warning>
 
 | 2025 check | Result |

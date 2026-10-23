@@ -1,0 +1,61 @@
+DA-01 settle - provenance
+Run date: 2026-10-23
+Repo HEAD: 66f3bdb (main; working tree dirty with unrelated changes; nothing committed by this run)
+
+STALE-DEV CAVEAT
+  Every number is PROVISIONAL. data/dev.duckdb is stale until CO-17 rebuilds
+  it (watch W1). No stale dev TABLE was read. Item 1 reuses DA-01 results,
+  which were built from staging views in a scratch work db. Item 2 reads the
+  staging VIEWS stg_telemetry_position and stg_pits, which read bronze
+  parquet live, plus bronze laps and race_control directly.
+
+DATA FILES
+  data/dev.duckdb  mtime 2026-10-22 01:42:11  1,939,877,888 bytes
+    sha256 e13f7608ce113f2580f778460c8edddcef13e626730053e3ce59f2f93b94a7dc
+    (the same file DA-01 used). It was copied (cp) to <S>/dev.duckdb and
+    ATTACHed READ_ONLY. The shared file was never opened.
+  MultiViewer circuit JSON: reused from the DA-01 download
+    (<D1>/dl/c{key}_{year}.json, fetched 2026-10-23). It was parsed with json
+    only and not re-fetched.
+  <S>  = /private/tmp/claude-501/-Users-justin-github-off-the-pace/1fdfffb0-6280-4ac0-900e-471f09f2c9ba/scratchpad/settle
+  <D1> = /private/tmp/claude-501/-Users-justin-github-off-the-pace/1fdfffb0-6280-4ac0-900e-471f09f2c9ba/scratchpad/da-01
+
+SOFTWARE
+  .venv python 3.14.8, duckdb 1.5.6, pandas/numpy/scipy from .venv, macOS Darwin 27.0.0
+
+COMMANDS (R=/Users/justin/github/off-the-pace)
+  Item 1: no query run. results/01_gateA_dd5_by_season.csv is a copy of
+    DA-01 results/05_valid_share_by_season.csv (column d_lapped_within_3s_invalid)
+    with a PASS/FAIL column against 0.90 added.
+  Item 2:
+    mkdir -p $S && cp $R/data/dev.duckdb $S/dev.duckdb
+    cd $R/transform    # so the views' relative '../data/bronze' paths resolve
+    $R/.venv/bin/python $S/sql/08_ms_layout_fit.py $S $D1
+    cd $S && $R/.venv/bin/python -I $S/sql/08b_offset_summary.py $S $D1
+    The Fisher exact tests in NOTE.md were ad hoc (python -c over
+    results/08b_ms_fit_messages_with_offset.csv). The groups were test vs
+    pooled C1+C2. "ok" means offset 0..+3, "far" means abs(offset) >= 5, and
+    "single" means n_slow_cars == 1 and lap >= 2. They used
+    scipy.stats.fisher_exact (two-sided).
+  Item 3:
+    curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+      https://livetiming.formula1.com/static/2018/2018-11-25_Abu_Dhabi_Grand_Prix/2018-11-25_Race/SessionInfo.json
+    -> 401 at 2026-10-23T09:51:36Z (one request).
+
+  queries/ holds exact copies of the scripts as run. 08_ms_layout_fit.py was
+  run twice. The first version took the slow car's relative_distance
+  directly, which reads about 1.0 for stopped cars. The version kept here
+  uses x/y projected onto the polyline and prefers a freshly slowed car. Only
+  the second run's outputs are kept.
+
+OUTPUTS
+  results/01_gateA_dd5_by_season.csv           item 1
+  results/08_ms_fit_messages.csv               one row per race-control sector yellow
+  results/08_ms_fit_races.csv                  per-race marker geometry and yellow counts
+  results/08_ms_markers.csv                    per-marker projected position and off-track distance
+  results/08_ms_fit_summary_by_group.csv       exact / +-1 agreement, both conventions
+  results/08_ms_fit_summary_by_race.csv
+  results/08b_ms_fit_messages_with_offset.csv  messages plus signed offset
+  results/08b_offset_by_group.csv / 08b_offset_by_race.csv
+  results/08b_layout_stability_T_circuits.csv  marker shift vs 2019, by served year
+  Distance units in the CSVs are position-channel units (1/10 m).

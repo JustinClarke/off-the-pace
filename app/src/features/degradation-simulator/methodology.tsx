@@ -60,14 +60,11 @@ tyre(k)  = working_deg(k) × track_scale + cliff_term(k)            [monotone by
         four classes (cliff in 0-2 / 3-5 / 6+ laps, or none this stint) at the current lap.</li>
       <li><strong>Remaining life</strong> is the stint-life regressor, clipped at zero. On a
         final stint (one configured to run to the flag) it is also capped at the laps left to the flag.</li>
-      <li><strong>Chance to reach the flag</strong> (<em>experimental</em>) is shown on final
-        stints only. It is the probability, under the stint-life log-normal, that the tyre outlasts
-        the laps to the flag, passed through a Platt recalibration (rule <code>last3</code>, chosen
-        on 2024 only, fitted on 2018-2024 out-of-fold). These numbers are a refit of the v14
-        configuration on expanding-window folds over 2018–2024. They were not computed from the served
-        v14 booster, which was trained on 2018–2025. On 2025 it failed the acceptance bar: 5 of 10
-        bins within 5 pp, worst gap 19.9 pp, Brier 0.0803 against 0.2454 for the base rate. It is
-        provisional until 2026 races are scored.</li>
+      <li><strong>No chance to reach the flag is shown.</strong> A recalibrated
+        chance (the stint-life log-normal&apos;s probability of outlasting the laps to the flag,
+        passed through a Platt map fitted on 2018-2024 out-of-fold) was built and tested. On 2025 it
+        failed its acceptance bar: 5 of 10 bins within 5 pp, worst gap 19.9 pp, though its Brier of
+        0.0803 beat 0.2454 for the base rate. The simulator therefore shows only the laps-to-flag cap.</li>
     </ul>
     <p className="mt-3">
       Sliders are bounded by the p5-p95 range of the real training data

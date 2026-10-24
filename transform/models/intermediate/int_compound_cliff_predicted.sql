@@ -240,7 +240,20 @@ SELECT
     -- cliff_severity_span(), 2.5 laps since CO-02).
     -- NULL when the tyre age is unknown: where on the curve the lap sits, and
     -- so whether the ramp is climbing, is unknown too (F39).
-    COALESCE(compound_wear_gradient, 0.0)
+    --
+    -- CO-15 (ruling CD9): the macro holds the linear wear term flat past
+    -- onset + var('compound_wear_hold_after_onset_laps'), so the curve's slope
+    -- there is 0, not the gradient. Until this was added the column kept
+    -- charging wear_gradient per lap on the held laps (26,382 at or past the
+    -- hold on the CO-17 build), i.e. it was no
+    -- longer the derivative of compound_wear_s. Same forward-slope convention
+    -- as the ramp below: the gradient applies while laps_past_cliff < hold.
+    CASE
+        WHEN laps_past_cliff IS NULL THEN NULL
+        WHEN laps_past_cliff < {{ var('compound_wear_hold_after_onset_laps') }}
+            THEN COALESCE(compound_wear_gradient, 0.0)
+        ELSE 0.0
+    END
     + CASE
         WHEN laps_past_cliff IS NULL THEN NULL
         WHEN

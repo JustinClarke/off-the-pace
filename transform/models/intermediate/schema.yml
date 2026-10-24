@@ -245,8 +245,9 @@ models:
       - name: stint_end_cause
         description: >
           Six-class answer to "why did this stint end": green_pit, sc_pit,
-          vsc_pit, red for the four uncensored causes, race_end and retirement
-          for the two censored ones. NULL where stint_number is NULL - the row
+          vsc_pit, red for the four causes the older is_censored_stint flag
+          treats as uncensored (for is_stint_life_censored both SC and VSC stops
+          are censored), race_end and retirement for the two censored ones. NULL where stint_number is NULL - the row
           is an artefact of unassigned laps, not a stint that ended.
         tests:
           - not_null:
@@ -835,8 +836,10 @@ models:
           offset, so the pace total legitimately exceeds the bound while this
           column may not.
 
-          The formula is wear_gradient*age + cliff_ramp, where cliff_ramp is
-          the saturating post-onset term defined once in
+          The formula is wear_gradient*LEAST(age, onset + 5) + cliff_ramp (the
+          linear term's age is held at onset + compound_wear_hold_after_onset_laps
+          since CO-15; before the onset it is plain wear_gradient*age), where
+          cliff_ramp is the saturating post-onset term defined once in
           macros/compound_cliff_wear.sql: the fitted severity (the cliff step in
           seconds, wear already excluded) ramped in linearly over
           cliff_ramp_span_laps = 2.5 laps past onset and held flat after (the
@@ -2680,10 +2683,14 @@ models:
         description: >
           Everything that does not scale with pit_lane_loss_s. Split out so a consumer - or
           assert_pit_loss_pushes_optimum_later - can re-minimise at a different pit loss
-          without rebuilding the curve.
+          without rebuilding the curve. Rounded to 6 dp so a flat stretch of the curve (the
+          CO-15 wear hold) is an exact tie rather than ~1e-13 s of float noise.
         tests: [not_null]
       - name: total_cost_s
-        description: wear_cost_s + pit_lane_loss_s x pit_discount_factor. The argmin target.
+        description: >
+          wear_cost_s + pit_lane_loss_s x pit_discount_factor, rounded to 6 dp. The argmin
+          target. Ties go to the earliest candidate lap (ORDER BY total_cost_s,
+          candidate_pit_lap_offset).
         tests: [not_null]
 
   - name: int_circuit_x_constructor_interaction

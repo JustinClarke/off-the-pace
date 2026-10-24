@@ -91,12 +91,25 @@ GREATEST(COALESCE({{ severity }}, 0.0), 0.0)
    wear on every lap whose age is unknown (stints quarantined by stg_lap_tyre_qa,
    and a few laps bronze never aged). An unknown age is an unknown wear term:
    the guard returns NULL, the same pattern int_lap_thermal_proxy uses for
-   GREATEST. #}
+   GREATEST.
+
+   NO AGE EXTRAPOLATION (CO-15, ruling CD9). The linear term's age is held at
+   onset + var('compound_wear_hold_after_onset_laps') (5 laps): the wear slope is
+   fitted on ages 3..onset-2 and the step measured by onset + 5, so beyond that
+   the curve holds, the same "hold, don't extrapolate" rule the cliff plateau
+   follows (THE RAMP above). Written as age - GREATEST(laps_past_cliff - hold, 0)
+   so no call site needs the onset passed separately: laps_past_cliff is
+   age - onset past the onset and 0 before it, so the expression is
+   LEAST(age, onset + hold) past the onset and age before it. laps_past_cliff is
+   NULL-guarded by the CASE before the GREATEST. #}
 {% macro compound_cliff_wear_s(wear_gradient, severity, age, laps_past_cliff) -%}
 CASE
     WHEN {{ age }} IS NULL OR {{ laps_past_cliff }} IS NULL THEN NULL
     ELSE LEAST(
-        COALESCE({{ wear_gradient }}, 0.0) * {{ age }}
+        COALESCE({{ wear_gradient }}, 0.0)
+        * ({{ age }} - GREATEST(
+            {{ laps_past_cliff }} - {{ var('compound_wear_hold_after_onset_laps') }},
+            0.0))
         + {{ cliff_severity_term(severity, wear_gradient, laps_past_cliff) }},
         {{ var('compound_wear_max_s_per_lap', 10.0) }}
     )

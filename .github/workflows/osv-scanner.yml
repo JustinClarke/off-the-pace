@@ -10,7 +10,7 @@ name: OSV-Scanner
 #   • On schedule / push to main: a full scan of every lockfile, catching advisories
 #     published after the code already merged.
 #
-# Lockfile scanned: the app (pnpm), a true lockfile with exact versions OSV scans cleanly.
+# Lockfiles scanned: the app (pnpm) and the worker (npm), true lockfiles with exact versions OSV scans cleanly.
 # Python is gated by pip-audit in security-scan.yml, which resolves the real environment;
 # OSV's transitive resolver crashes on ml/requirements.txt (rpc Internal error) and
 # false-positives the unpinned root requirements.txt (resolving versions pip never installs),
@@ -49,6 +49,7 @@ jobs:
       scan-args: |-
         --config=./osv-scanner.toml
         --lockfile=./app/pnpm-lock.yaml
+        --lockfile=./worker/package-lock.json
 
   scan-full:
     name: Full scan (all lockfiles)
@@ -62,3 +63,4 @@ jobs:
       scan-args: |-
         --config=./osv-scanner.toml
         --lockfile=./app/pnpm-lock.yaml
+        --lockfile=./worker/package-lock.json

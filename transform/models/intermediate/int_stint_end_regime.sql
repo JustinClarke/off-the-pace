@@ -26,7 +26,9 @@
 --
 -- The stint-life survival target treats every stint as a single-event,
 -- right-censored observation: either the tyre was changed (uncensored) or the
--- stint ran out of race (censored). "Uncensored" is not one event. 1,543 of
+-- stint ran out of race (censored). (This paragraph describes the older
+-- is_censored_stint flag only; for is_stint_life_censored both SC and VSC
+-- stops are censored.) "Uncensored" is not one event. 1,543 of
 -- the 5,360 uncensored stints -- 28.8% -- end under a safety car, VSC or red
 -- flag, which is not a statement about the tyre: it is the moment the pit wall
 -- was handed a free stop. Green-ended stints run 19.44 laps, SC-ended ones

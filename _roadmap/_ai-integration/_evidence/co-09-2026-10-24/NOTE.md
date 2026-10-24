@@ -118,10 +118,11 @@ no longer labelled sc_pit. Per-driver detail is in `canada_2025.csv`.
   test_survival ran on the after copy: 75 passed. Stint-life training rows are 124,497
   and the censored share is 53.5%. `test_flag_chance.py` could not be collected because
   `onnxmltools` is missing from the venv.
-- **Interpretation to confirm with the owner:** D6 says "safety-car and pit ends are cut
-  short too". It was read as sc_pit **and vsc_pit** censored for stint life, so only
-  green_pit is an observed life (the earlier `10b` arm). The flag question keeps SC and
-  VSC stops as 0; only red is censored there.
+- **Owner ruling, 2026-10-24 (D6 amendment):** VSC pit stops are censored for stint life,
+  same as SC; they count as did-not-reach-the-flag (reached_flag 0). So sc_pit **and
+  vsc_pit** are censored for stint life and only green_pit is an observed life (the
+  earlier `10b` arm). The flag question keeps SC and VSC stops as 0; only red is
+  censored there.
 
 ## stint_id reference audit (`stint_id_grep_counts.txt`, 132 files)
 

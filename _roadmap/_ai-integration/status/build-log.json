@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "project": "off-the pace AI integration (trackside-analyst assistant)",
-  "updated": "2026-10-24T21:45:00+04:00",
-  "pointer": "CO-09",
+  "updated": "2026-10-24T14:50:00+04:00",
+  "pointer": "AI-13",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -171,7 +171,7 @@
     {
       "id": "CO-08",
       "group": "4-chance",
-      "stage": "BUILDING",
+      "stage": "BLOCKED",
       "depends_on": [
         "CO-04"
       ],
@@ -186,17 +186,16 @@
       "doc": "wi/CO-08-flag-chance-calibration.md",
       "cost": "3-5d",
       "model": "opus-5",
-      "note": "Owner go-ahead 2026-10-15 to build the laps-to-flag display cap and the calibrated flag-chance line. Source edits in working tree only. Stint-life fix (starting value) not promoted; built in scratch. Calibration fitted on 2018-2024 out-of-fold; 2025 for evaluation. 2026-10-16: drift rule last3 chosen on 2024 only; 2025 FAILS (5/10 bins). Follow-up agent (E4, pre-registered on 2023-2024) also fails (5/10, worst 13.2 pp) but cuts Brier to 0.0698 from 0.0803. Stage stays BUILDING; waiting on CD4 and CD5. Scratch report: scratchpad/flag_ideas/report.md. 2026-10-17: experimental chance line built in the working tree and labelled experimental on the simulator, with 2025 numbers and provisional note. Lookup rebuild matches the expanding-window refit exactly; relabel pending (CO-11). Stage stays BUILDING until CD4, CD6 and CO-10 resolve. 2026-10-22: BLOCKED on CD4 and CD5 (open). The line is pushed (commits 0faac10, 4fa4384) and labelled experimental in the simulator; its doc header still says it is not shown and needs correcting. The stint-life clean test is CD8/CO-14, separate from this line. 2026-10-22 (CD11 = C): the experimental line stays on the simulator as it is (lookup sha256 5339d041...fefe1). Stays BLOCKED on CD4 and CD5 for the line itself; nothing in the launch path waits on it. Doc header corrected (it said the line is not shown). 2026-10-23: CD5 ruled C (cap only everywhere) and CD4 is already RESOLVED, so nothing blocks the line; stage BLOCKED -> BUILDING, per the stage this note had before 2026-10-22. 2026-10-24: ACCEPTANCE NOT MET, item NOT closed as passing. The fix plan had already been run on 2026-10-16 (rule last3 chosen on 2024 only; the other rules were deliberately not scored on 2025): 2025 gives 5 of 10 bins within 5 pp (worst 19.9 pp), Brier 0.0803 vs raw 0.0900 vs base rate 0.2454, ECE 0.040 (raw 0.076); the later E4 variant also fails (5/10, worst 13.2 pp, Brier 0.0698). A fresh run on 2026-10-24 was attempted and could not run: ml/src/features.py (owner CO-09 edits) selects is_stint_life_censored, which the dev warehouse does not have until the CO-17 rebuild; no new numbers. 2025 is no longer a clean holdout (scored several times), so no further option is scored on it. Brier beats raw and base rate, but the bin test fails. Cap stays; chance stays hidden; first clean test is 2026 (CO-10) or a refit on the CO-17 label version, under CD6 (recommended A).",
+      "note": "Owner go-ahead 2026-10-15 to build the laps-to-flag display cap and the calibrated flag-chance line. Source edits in working tree only. Stint-life fix (starting value) not promoted; built in scratch. Calibration fitted on 2018-2024 out-of-fold; 2025 for evaluation. 2026-10-16: drift rule last3 chosen on 2024 only; 2025 FAILS (5/10 bins). Follow-up agent (E4, pre-registered on 2023-2024) also fails (5/10, worst 13.2 pp) but cuts Brier to 0.0698 from 0.0803. Stage stays BUILDING; waiting on CD4 and CD5. Scratch report: scratchpad/flag_ideas/report.md. 2026-10-17: experimental chance line built in the working tree and labelled experimental on the simulator, with 2025 numbers and provisional note. Lookup rebuild matches the expanding-window refit exactly; relabel pending (CO-11). Stage stays BUILDING until CD4, CD6 and CO-10 resolve. 2026-10-22: BLOCKED on CD4 and CD5 (open). The line is pushed (commits 0faac10, 4fa4384) and labelled experimental in the simulator; its doc header still says it is not shown and needs correcting. The stint-life clean test is CD8/CO-14, separate from this line. 2026-10-22 (CD11 = C): the experimental line stays on the simulator as it is (lookup sha256 5339d041...fefe1). Stays BLOCKED on CD4 and CD5 for the line itself; nothing in the launch path waits on it. Doc header corrected (it said the line is not shown). 2026-10-23: CD5 ruled C (cap only everywhere) and CD4 is already RESOLVED, so nothing blocks the line; stage BLOCKED -> BUILDING, per the stage this note had before 2026-10-22. 2026-10-24: ACCEPTANCE NOT MET, item NOT closed as passing. The fix plan had already been run on 2026-10-16 (rule last3 chosen on 2024 only; the other rules were deliberately not scored on 2025): 2025 gives 5 of 10 bins within 5 pp (worst 19.9 pp), Brier 0.0803 vs raw 0.0900 vs base rate 0.2454, ECE 0.040 (raw 0.076); the later E4 variant also fails (5/10, worst 13.2 pp, Brier 0.0698). A fresh run on 2026-10-24 was attempted and could not run: ml/src/features.py (owner CO-09 edits) selects is_stint_life_censored, which the dev warehouse does not have until the CO-17 rebuild; no new numbers. 2025 is no longer a clean holdout (scored several times), so no further option is scored on it. Brier beats raw and base rate, but the bin test fails. Cap stays; chance stays hidden; first clean test is 2026 (CO-10) or a refit on the CO-17 label version, under CD6 (recommended A). 2026-10-24 (handoff): last3 drift rule re-run on the record; 2025 bins still 5 of 10 within 5 points (worst 19.9). Acceptance NOT MET. Chance number stays hidden under CD5 = C; cap ships. Revisit after CO-17/CO-18 refit or on 2026 (CO-10). 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was BUILDING; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
       "blocked_by_decision": [
-        "CD4",
-        "CD5"
+        "PK1"
       ],
       "order_hint": 100
     },
     {
       "id": "AI-03",
       "group": "1-data",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "CO-01",
         "CO-02",
@@ -215,15 +214,15 @@
       "doc": "wi/AI-03-carry-over-closeout.md",
       "cost": "0.5d",
       "model": "sonnet-5",
-      "note": "Was a second list of the CO items; now the gate on them. AI-08 waits on it so nothing ships quoting numbers about to move. CO-05 and CO-07 are not gates: they move no quoted number. 2026-10-22: now the last item of the data group. Depends on the trusted rebuild (CO-17), the retrain (CO-18) and the clean test (CO-14) instead of the superseded CO-03, and waits on CD10 (which model version serves at launch), so the snapshot is taken once and does not move afterwards. Gates the launch (AI-12), not the assistant build. 2026-10-22 (CD13): the freeze keeps waiting on CD10, CO-14 and CO-18; no launch on v14 ahead of the promotion ruling. Also depends on CO-19 (mixed-version probe), so CD10's option A fail branch is known to work or not before the snapshot is taken. 2026-10-23: CD10 recorded with the owner's words (launch on gpt-oss-20b, proxy to allow user model choice). The item still waits on CO-14, CO-17, CO-18 and CO-19 (unmet), so it is not yet runnable; see CD10 for the open gap.",
+      "note": "Was a second list of the CO items; now the gate on them. AI-08 waits on it so nothing ships quoting numbers about to move. CO-05 and CO-07 are not gates: they move no quoted number. 2026-10-22: now the last item of the data group. Depends on the trusted rebuild (CO-17), the retrain (CO-18) and the clean test (CO-14) instead of the superseded CO-03, and waits on CD10 (which model version serves at launch), so the snapshot is taken once and does not move afterwards. Gates the launch (AI-12), not the assistant build. 2026-10-22 (CD13): the freeze keeps waiting on CD10, CO-14 and CO-18; no launch on v14 ahead of the promotion ruling. Also depends on CO-19 (mixed-version probe), so CD10's option A fail branch is known to work or not before the snapshot is taken. 2026-10-23: CD10 recorded with the owner's words (launch on gpt-oss-20b, proxy to allow user model choice). The item still waits on CO-14, CO-17, CO-18 and CO-19 (unmet), so it is not yet runnable; see CD10 for the open gap. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
       "blocked_by_decision": [
-        "CD10"
+        "PK1"
       ]
     },
     {
       "id": "AI-01",
       "group": "2-assistant",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "CO-01",
         "CO-17"
@@ -240,7 +239,10 @@
       "doc": "wi/AI-01-grounding-contract.md",
       "cost": "2-3d",
       "model": "opus-5",
-      "note": "The assistant may only state numbers that arrive as a fact card, or as a labelled query-builder count or average (AD3). Cards are compact (about 50 tokens each, at most 10 per call). The three rating marts are not exported today, so cards are generated at export time. mart_degradation_predictions supplies tyre cards with their p10-p90 band and in-envelope flag. 2026-10-22: depends on CO-17 as well, so cards are built and tested on the trusted rebuild, not on a stale dev warehouse. Does not wait on CD10: the card's model_version is read at export time and frozen by AI-03."
+      "note": "The assistant may only state numbers that arrive as a fact card, or as a labelled query-builder count or average (AD3). Cards are compact (about 50 tokens each, at most 10 per call). The three rating marts are not exported today, so cards are generated at export time. mart_degradation_predictions supplies tyre cards with their p10-p90 band and in-envelope flag. 2026-10-22: depends on CO-17 as well, so cards are built and tested on the trusted rebuild, not on a stale dev warehouse. Does not wait on CD10: the card's model_version is read at export time and frozen by AI-03. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "AI-02",
@@ -265,7 +267,7 @@
     {
       "id": "AI-04",
       "group": "2-assistant",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "AI-01",
         "AI-02",
@@ -282,7 +284,10 @@
       "doc": "wi/AI-04-assistant-core.md",
       "cost": "2d",
       "model": "sonnet-5",
-      "note": "Re-scoped by AD2 (2026-10-22). The earlier one-tool plan is superseded. Budget: instructions 1,500; tool schemas 1,900; page context 600; query catalogue 1,200; history 2,000 (last two turns); tool results 6,000 (1,500 each); output 4,000. The doc (wi/AI-04) still describes the old one-tool plan and must be rewritten before this starts. Loop cap is 4 tool calls, down from the prototype's 8. 2026-10-22: doc rewritten to the AD2 plan recorded above (seven tools, budget, loop cap 4); no design changed. 2026-10-22: must also run AI-10's remaining definition-of-done check (explain_page answers 'how does this page work' for 5 pages in the headless loop) and record it on AI-10."
+      "note": "Re-scoped by AD2 (2026-10-22). The earlier one-tool plan is superseded. Budget: instructions 1,500; tool schemas 1,900; page context 600; query catalogue 1,200; history 2,000 (last two turns); tool results 6,000 (1,500 each); output 4,000. The doc (wi/AI-04) still describes the old one-tool plan and must be rewritten before this starts. Loop cap is 4 tool calls, down from the prototype's 8. 2026-10-22: doc rewritten to the AD2 plan recorded above (seven tools, budget, loop cap 4); no design changed. 2026-10-22: must also run AI-10's remaining definition-of-done check (explain_page answers 'how does this page work' for 5 pages in the headless loop) and record it on AI-10. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "AI-05",
@@ -305,7 +310,7 @@
     {
       "id": "AI-06",
       "group": "3-launch",
-      "stage": "MEASURED",
+      "stage": "BLOCKED",
       "depends_on": [],
       "title": "Cloudflare Worker proxy to gpt-oss-20b on Workers AI: key never in the bundle, Turnstile, per-visitor limit, placeholder daily cap, pause state, usage counter, CSP",
       "sources": [
@@ -316,12 +321,15 @@
       "doc": "wi/AI-06-proxy-and-key-safety.md",
       "cost": "2d",
       "model": "sonnet-5",
-      "note": "Model changed by AD2 (2026-10-22) from the Llama candidate to gpt-oss-20b. The Worker fixes the model, system prompt, tool set and output cap, and ignores browser-sent tools, max_tokens and reasoning. Abuse check: Turnstile, not App Check (App Check is Firebase-only; the old plan is superseded). Cost decision deferred (AD4); a low placeholder daily cap applies meanwhile. The doc (wi/AI-06) still names Llama and App Check and must be rewritten before this starts. 2026-10-22: doc's model and abuse-check sections corrected to AD2 (gpt-oss-20b, Turnstile) and the AD4 placeholder cap; no design changed. 2026-10-23: MEASURED (no BUILT stage exists; closest honest one). Built locally in worker/ (handler, Durable Object day ledger, preview-only wrangler.jsonc, bundle key scanner); npm test 16/16, tsc clean, scanner clean on app/dist. Model @cf/openai/gpt-oss-20b; free allowance 10,000 neurons/day (about 21 answers at about 460 neurons each), 1 USD placeholder cap about 197 answers. Not deployed, not committed. Not LANDED until the owner: Cloudflare login and preview deploy with the acceptance checks run there; wrangler secret put TURNSTILE_SECRET and ADMIN_TOKEN; Turnstile widget (site key to AI-08); CSP connect-src gets the Worker host once known. Open owner questions: Turnstile also needs https://challenges.cloudflare.com in script-src, frame-src and connect-src (wider than 'single new host'); visitor key is a hashed IP. Owed: CI step node worker/scripts/scan-bundle.mjs app/dist after the app build; live response shape and over-limit error regex untested until preview. 2026-10-23 owner: Turnstile CSP entries (https://challenges.cloudflare.com in script-src, frame-src, connect-src) approved alongside the Worker host; hashed IP accepted as the visitor key for now. CSP edit lands with the Worker host at preview deploy."
+      "note": "Model changed by AD2 (2026-10-22) from the Llama candidate to gpt-oss-20b. The Worker fixes the model, system prompt, tool set and output cap, and ignores browser-sent tools, max_tokens and reasoning. Abuse check: Turnstile, not App Check (App Check is Firebase-only; the old plan is superseded). Cost decision deferred (AD4); a low placeholder daily cap applies meanwhile. The doc (wi/AI-06) still names Llama and App Check and must be rewritten before this starts. 2026-10-22: doc's model and abuse-check sections corrected to AD2 (gpt-oss-20b, Turnstile) and the AD4 placeholder cap; no design changed. 2026-10-23: MEASURED (no BUILT stage exists; closest honest one). Built locally in worker/ (handler, Durable Object day ledger, preview-only wrangler.jsonc, bundle key scanner); npm test 16/16, tsc clean, scanner clean on app/dist. Model @cf/openai/gpt-oss-20b; free allowance 10,000 neurons/day (about 21 answers at about 460 neurons each), 1 USD placeholder cap about 197 answers. Not deployed, not committed. Not LANDED until the owner: Cloudflare login and preview deploy with the acceptance checks run there; wrangler secret put TURNSTILE_SECRET and ADMIN_TOKEN; Turnstile widget (site key to AI-08); CSP connect-src gets the Worker host once known. Open owner questions: Turnstile also needs https://challenges.cloudflare.com in script-src, frame-src and connect-src (wider than 'single new host'); visitor key is a hashed IP. Owed: CI step node worker/scripts/scan-bundle.mjs app/dist after the app build; live response shape and over-limit error regex untested until preview. 2026-10-23 owner: Turnstile CSP entries (https://challenges.cloudflare.com in script-src, frame-src, connect-src) approved alongside the Worker host; hashed IP accepted as the visitor key for now. CSP edit lands with the Worker host at preview deploy. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was MEASURED; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "AI-07",
       "group": "3-launch",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "AI-01",
         "AI-02",
@@ -337,12 +345,15 @@
       "doc": "wi/AI-07-analyst-eval-set.md",
       "cost": "3d",
       "model": "opus-5",
-      "note": "Re-scoped by AD2 (2026-10-22). Every tool appears in 5 or more questions; 15 or more questions need the query path; 8 or more must be refused. 5 repeats per question, since the spikes were single runs. Logs tokens per call and per slot. Runs on the production endpoint for the launch run, not Ollama. Pass bar: 100% of numbers grounded, 100% of refusals correct, right tool used 95% or more, no run over 18,000 tokens, human read passes. The doc (wi/AI-07) still describes about 40 questions and must be rewritten before this starts. 2026-10-22: doc's method corrected to the counts recorded above; no design changed. The launch run is now AI-12."
+      "note": "Re-scoped by AD2 (2026-10-22). Every tool appears in 5 or more questions; 15 or more questions need the query path; 8 or more must be refused. 5 repeats per question, since the spikes were single runs. Logs tokens per call and per slot. Runs on the production endpoint for the launch run, not Ollama. Pass bar: 100% of numbers grounded, 100% of refusals correct, right tool used 95% or more, no run over 18,000 tokens, human read passes. The doc (wi/AI-07) still describes about 40 questions and must be rewritten before this starts. 2026-10-22: doc's method corrected to the counts recorded above; no design changed. The launch run is now AI-12. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "AI-08",
       "group": "3-launch",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "AI-04",
         "AI-06"
@@ -356,12 +367,15 @@
       "doc": "wi/AI-08-chat-ui.md",
       "cost": "3d",
       "model": "sonnet-5",
-      "note": "Last, because it exposes everything above. Behind a flag until the launch run passes on AI-03's frozen numbers; turning it on is the owner's call. Launch cost and access are AD4 (deferred). Waits on AI-06 and AI-07. 2026-10-22: split. The launch run and switch-on moved to AI-12, which carries AD4 and the freeze (AI-03). The drawer itself can be built and tested behind its flag once the core (AI-04) and the proxy (AI-06) exist; it no longer waits on the freeze, the eval or AD4."
+      "note": "Last, because it exposes everything above. Behind a flag until the launch run passes on AI-03's frozen numbers; turning it on is the owner's call. Launch cost and access are AD4 (deferred). Waits on AI-06 and AI-07. 2026-10-22: split. The launch run and switch-on moved to AI-12, which carries AD4 and the freeze (AI-03). The drawer itself can be built and tested behind its flag once the core (AI-04) and the proxy (AI-06) exist; it no longer waits on the freeze, the eval or AD4. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "CO-09",
       "group": "1-data",
-      "stage": "BUILDING",
+      "stage": "LANDED",
       "depends_on": [],
       "title": "Stint labels: join same-tyre splits, censor red-flag tyre changes (dbt), version bump",
       "sources": [
@@ -372,7 +386,7 @@
       "doc": "wi/CO-09-stint-label-fix.md",
       "cost": "1-2d",
       "model": "opus-5",
-      "note": "Raised 2026-10-16 from the CO-08 follow-up. Pit-lane drive-throughs and red flags split one tyre run into several stints; red-flag tyre changes are labelled as 'did not reach the flag'. Canada 2025 real final stints labelled sc_pit = 0. Touches the stint-life target, so a version bump; promotion is the owner's call. 2026-10-22: its doc's advice to judge on 2023-2024 is superseded by CD8 (judge on leave-one-season-out within 2018-2024; the 2023-2024 seasons were already used for choices). 2026-10-22: CD9 puts the Monaco wear fix (CO-15) in the same label version, so CO-09 opens the new label version and CO-15 completes it; neither is promoted on its own. Go-ahead to run taken from the owner's 2026-10-22 rulings (CD9 names this fix), which the 2026-10-16 entry said it waited for. 2026-10-22: deferred by the owner; BLOCKED on CD14 (four open choices listed there). CO-15 and CO-17 wait on it. 2026-10-23: CD14 fully ruled (1a, last age + 1); ready to build. 2026-10-23 owner rulings D5 and D6 (see decisions): red-flag censoring applies to stint life as well as the flag question (\"d5 yes\"), and safety-car and pit ends are cut short too, censored (\"d6 cut them short too\"); CO-14 depends on them. 2026-10-23 handoff: the open D4 question (re-key stint_id everywhere, or add tyre_run_id; recommended tyre_run_id) and the D5/D6 rulings are the inputs; the build order is in _roadmap/_ml/ML-RESET-PLAN.md. 2026-10-24: D4 RESOLVED (re-key stint_id everywhere). Built in the working tree on scratch copies of the 2026-10-22 dev warehouse; evidence _evidence/co-09-2026-10-24/ (NOTE.md, PROVENANCE.txt). Tyre-run key in int_stint_geometry (same compound, age + 1, non-green boundary per CD14); is_stint_life_censored (only green_pit uncensored, D5/D6) and reached_flag (red censored) added in int_stint_end_regime and fct_stint_features; ml/src/schema.py STINT_LIFE_CENSOR_COLUMN -> is_stint_life_censored; flag_chance EVENT_NOT_REACHED drops red; label version v16 named in ml/README.md (open until CO-15). Stints 9,374 -> 8,968 (406 folded: 299 SC, 107 red) in 31 races; Canada 2025 loses 49 fake one-lap stints, 17 real final stints now race_end. Acceptance lines 1-3 pass on the evidence. Stage BUILDING, not LANDED: dbt tests 831 pass / 2 fail - assert_field_pace_honest_range (pre-existing, CO-15) and assert_prior_season_labels_frozen 2020-2023 (NEW, deliberate bump; seed refresh left to CO-17); stint-life gates not run (need CO-18 retrain); the WI has no definition-of-done section for an orchestrator to re-run; D6 read as sc_pit AND vsc_pit censored, owner to confirm. 2026-10-24 follow-up (evidence _evidence/co-09-2026-10-24-b/): owner chose to join penalty stops (recorded on CD14) - a green-flag same-tyre boundary joins only when race control recorded a drive-through, stop-go or time penalty for that car within the first stint's last lap +/- 1; 23 of the 36 green age + 1 pairs join, 13 stay split (2023_20 PIA/RIC lap 2 and 2020_14 OCO lap 1 flagged as possibly neutralised stops the flags missed, not changed). Stints 8,968 -> 8,945, all 23 removed ends green_pit. Cut-short fields (laps_completed, tyre_age_at_fit, fresh_at_fit, is_fresh_tyre_raw, and on sc_pit/vsc_pit runs clean_laps_to_cut, slope_to_cut_s_per_lap on the int_lap_fuel_state fuel model, mean_clean_pace_s, cut_reason, slope_reliable) stored in fct_stint_features, not model features. 2018 SC mismatch (investigation 47 vs 85) explained: 31 lap-1-only stints from the WI-05 lap-1 repair (bronze Stint NULL on 2018 lap 1), 10 quarantined units, 3 boundary differences; the 2018_13 lap-1 stints (17) look like a repair artefact, unverified. dbt tests 835 pass / 2 fail of 837 (frozen labels now 6 seasons: +2018, +2024). Stage stays BUILDING: frozen-label failure until CO-17, stint-life gates need CO-18, D6 vsc_pit reading unconfirmed."
+      "note": "Raised 2026-10-16 from the CO-08 follow-up. Pit-lane drive-throughs and red flags split one tyre run into several stints; red-flag tyre changes are labelled as 'did not reach the flag'. Canada 2025 real final stints labelled sc_pit = 0. Touches the stint-life target, so a version bump; promotion is the owner's call. 2026-10-22: its doc's advice to judge on 2023-2024 is superseded by CD8 (judge on leave-one-season-out within 2018-2024; the 2023-2024 seasons were already used for choices). 2026-10-22: CD9 puts the Monaco wear fix (CO-15) in the same label version, so CO-09 opens the new label version and CO-15 completes it; neither is promoted on its own. Go-ahead to run taken from the owner's 2026-10-22 rulings (CD9 names this fix), which the 2026-10-16 entry said it waited for. 2026-10-22: deferred by the owner; BLOCKED on CD14 (four open choices listed there). CO-15 and CO-17 wait on it. 2026-10-23: CD14 fully ruled (1a, last age + 1); ready to build. 2026-10-23 owner rulings D5 and D6 (see decisions): red-flag censoring applies to stint life as well as the flag question (\"d5 yes\"), and safety-car and pit ends are cut short too, censored (\"d6 cut them short too\"); CO-14 depends on them. 2026-10-23 handoff: the open D4 question (re-key stint_id everywhere, or add tyre_run_id; recommended tyre_run_id) and the D5/D6 rulings are the inputs; the build order is in _roadmap/_ml/ML-RESET-PLAN.md. 2026-10-24: D4 RESOLVED (re-key stint_id everywhere). Built in the working tree on scratch copies of the 2026-10-22 dev warehouse; evidence _evidence/co-09-2026-10-24/ (NOTE.md, PROVENANCE.txt). Tyre-run key in int_stint_geometry (same compound, age + 1, non-green boundary per CD14); is_stint_life_censored (only green_pit uncensored, D5/D6) and reached_flag (red censored) added in int_stint_end_regime and fct_stint_features; ml/src/schema.py STINT_LIFE_CENSOR_COLUMN -> is_stint_life_censored; flag_chance EVENT_NOT_REACHED drops red; label version v16 named in ml/README.md (open until CO-15). Stints 9,374 -> 8,968 (406 folded: 299 SC, 107 red) in 31 races; Canada 2025 loses 49 fake one-lap stints, 17 real final stints now race_end. Acceptance lines 1-3 pass on the evidence. Stage BUILDING, not LANDED: dbt tests 831 pass / 2 fail - assert_field_pace_honest_range (pre-existing, CO-15) and assert_prior_season_labels_frozen 2020-2023 (NEW, deliberate bump; seed refresh left to CO-17); stint-life gates not run (need CO-18 retrain); the WI has no definition-of-done section for an orchestrator to re-run; D6 read as sc_pit AND vsc_pit censored, owner to confirm. 2026-10-24 follow-up (evidence _evidence/co-09-2026-10-24-b/): owner chose to join penalty stops (recorded on CD14) - a green-flag same-tyre boundary joins only when race control recorded a drive-through, stop-go or time penalty for that car within the first stint's last lap +/- 1; 23 of the 36 green age + 1 pairs join, 13 stay split (2023_20 PIA/RIC lap 2 and 2020_14 OCO lap 1 flagged as possibly neutralised stops the flags missed, not changed). Stints 8,968 -> 8,945, all 23 removed ends green_pit. Cut-short fields (laps_completed, tyre_age_at_fit, fresh_at_fit, is_fresh_tyre_raw, and on sc_pit/vsc_pit runs clean_laps_to_cut, slope_to_cut_s_per_lap on the int_lap_fuel_state fuel model, mean_clean_pace_s, cut_reason, slope_reliable) stored in fct_stint_features, not model features. 2018 SC mismatch (investigation 47 vs 85) explained: 31 lap-1-only stints from the WI-05 lap-1 repair (bronze Stint NULL on 2018 lap 1), 10 quarantined units, 3 boundary differences; the 2018_13 lap-1 stints (17) look like a repair artefact, unverified. dbt tests 835 pass / 2 fail of 837 (frozen labels now 6 seasons: +2018, +2024). Stage stays BUILDING: frozen-label failure until CO-17, stint-life gates need CO-18, D6 vsc_pit reading unconfirmed. 2026-10-24 (handoff): cut-short columns laps_completed, tyre_age_at_fit, fresh_at_fit dropped from fct_stint_features and its schema (no readers; hash and profile baselines now stale, owner to re-baseline under CO-25). Slope fields: stored slopes are not causal at prediction time (whole-run fit); they stay out of the feature lists. Decision: no slope feature for now (owner, 2026-10-24). 2026-10-24 (CO-17 audit, knock-on of the tyre-run key): int_pit_strategy_value searched the whole joined run for the stop, so it took a same-tyre drive-through, red-flag pit or penalty as the stint's stop on runs that never ended in one (119 stints: 111 race_end, 8 retirement). The search now starts at the run's last FastF1 fragment (stg_lap_tyre_qa.stint_number); unjoined runs unchanged. New error test assert_pit_not_taken_from_joined_boundary.sql. In the tree, not yet in data/dev.duckdb. 2026-10-24: VSC ruling recorded as an amendment to D6 (vsc_pit censored for stint life, reached_flag 0), which settles the 'D6 vsc_pit reading unconfirmed' point above; new guard test assert_vsc_stop_censored.sql. Stage stays BUILDING until CO-17 lands. 2026-10-24 (agent A, on data/dev.duckdb build3): all acceptance lines met. Stints 9,374 -> 8,945 (2018 951 -> 947, 2019 1,067 -> 1,059, 2020 934 -> 889, 2021 1,234 -> 1,104, 2022 1,241 -> 1,216, 2023 1,350 -> 1,274, 2024 1,302 -> 1,256, 2025 1,295 -> 1,200); 48 races change. Canada 2025 sc_pit 53 -> 4, one-lap stints 53 -> 0. vsc_pit and race_end identical every season; green_pit falls by exactly the penalty joins. Labels follow D5, D6 and the VSC amendment. assert_tyre_run_key, assert_vsc_stop_censored, assert_pit_not_taken_from_joined_boundary, assert_stint_boundaries_match_pits and assert_prior_season_labels_frozen pass. v16 recorded in ml/README.md, MODEL_VERSION_DEFAULT stays v14. BUILDING -> MEASURED. Remains: stint-life gates belong to CO-18 (parked, PK1); ml/README.md v16 entry still cites scratch numbers (ML-side); WI header still says SPEC; the three possibly-neutralised stops (W24); commit held for the owner. 2026-10-24 (D8): v16 = CO-09 + CO-15, shipped through CO-17 now; W10 thin-cell and restart-lap fixes and CD7 option C go to v17, so these acceptance numbers are not reopened. 2026-10-24 (agent B, on the CO-17 build4 rebuild): LANDED. Per-season stint totals on build4 match the log (2018 947, 2019 1,059, 2020 889, 2021 1,104, 2022 1,216, 2023 1,274, 2024 1,256, 2025 1,200; total 8,945). Canada 2025 (2025_10) sc_pit 4. Named tests PASS: assert_tyre_run_key, assert_vsc_stop_censored, assert_pit_not_taken_from_joined_boundary, assert_stint_boundaries_match_pits, assert_prior_season_labels_frozen. Caveat: the WI has no definition-of-done section, so the acceptance lines in the WI were the check; the stint-life gates are owned by CO-18 (parked, PK1) per the WI. evidence per_season_stints.csv is from the pre-penalty-join run (2018 n_after 950, 2025 1,295 to 1,203) and is superseded by the log numbers above. Not committed."
     },
     {
       "id": "CO-10",
@@ -392,10 +406,9 @@
       "doc": "wi/CO-10-flag-chance-2026-test.md",
       "cost": "3-5d",
       "model": "opus-5",
-      "note": "Raised 2026-10-17. The only clean season left is 2026 (2018-2025 are all used). Holds the experimental chance line to a single pre-registered score once 2026 races finish. Waits on CD4 (owner ruling), CO-09 (label fix) and the OpenF1 ingest; nothing scored yet. 2026-10-22: depends on CO-12 as well (the ingest). Open question: 2026 is a mixed-era season, which CD8 rejected for stint life. Whether it is still the right clean season for this chance line needs a ruling before the freeze. 2026-10-22: BLOCKED and not scheduled. CD11 (C) rules out a 2026 test for now; the item is kept open, as the owner asked, and still waits on CD4 and CD6. Running it needs a new owner ruling that reverses CD11's 'no 2026 test', not only CD4 and CD6.",
+      "note": "Raised 2026-10-17. The only clean season left is 2026 (2018-2025 are all used). Holds the experimental chance line to a single pre-registered score once 2026 races finish. Waits on CD4 (owner ruling), CO-09 (label fix) and the OpenF1 ingest; nothing scored yet. 2026-10-22: depends on CO-12 as well (the ingest). Open question: 2026 is a mixed-era season, which CD8 rejected for stint life. Whether it is still the right clean season for this chance line needs a ruling before the freeze. 2026-10-22: BLOCKED and not scheduled. CD11 (C) rules out a 2026 test for now; the item is kept open, as the owner asked, and still waits on CD4 and CD6. Running it needs a new owner ruling that reverses CD11's 'no 2026 test', not only CD4 and CD6. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was BLOCKED; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
       "blocked_by_decision": [
-        "CD4",
-        "CD6"
+        "PK1"
       ],
       "order_hint": 100
     },
@@ -459,7 +472,7 @@
     {
       "id": "AI-09",
       "group": "2-assistant",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "AI-01",
         "CO-16"
@@ -473,12 +486,15 @@
       "doc": "wi/AI-09-query-builder.md",
       "cost": "3d",
       "model": "opus-5",
-      "note": "New by AD2 (2026-10-22). The model never writes SQL. It fills in one view from a whitelist, filters, up to two group-by columns and an aggregate. The browser checks every field and builds the SQL, which runs through the existing runLabQuery. Every row carries n. Results are labelled computed_not_card (AD3). 2026-10-22: depends on CO-16 explicitly. int_sector_residual_decomposed is exported to the app, so no view built on it may be whitelisted before the sector identity holds."
+      "note": "New by AD2 (2026-10-22). The model never writes SQL. It fills in one view from a whitelist, filters, up to two group-by columns and an aggregate. The browser checks every field and builds the SQL, which runs through the existing runLabQuery. Every row carries n. Results are labelled computed_not_card (AD3). 2026-10-22: depends on CO-16 explicitly. int_sector_residual_decomposed is exported to the app, so no view built on it may be whitelisted before the sector identity holds. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "AI-10",
       "group": "2-assistant",
-      "stage": "MEASURED",
+      "stage": "BLOCKED",
       "depends_on": [],
       "title": "Navigation and page explainer: shipped routes only, and pre-cut page summaries of 800 tokens or less",
       "sources": [
@@ -488,12 +504,15 @@
       "doc": "wi/AI-10-navigation-and-explainer.md",
       "cost": "2d",
       "model": "sonnet-5",
-      "note": "New by AD2 (2026-10-22). The route list is built from the app's routes, shipped ones only. The explainer returns summaries cut from the 34 docs pages (about 168 KB in total, too big to send whole). 2026-10-22: MEASURED (no BUILT stage exists; closest honest one). Route list and page summaries built at build time (app/src/nav/pageSummaries.*, assistantTools.ts), with tests and a CI step; tests pass. Definition of done not met: the explainer's 5-page check in the headless loop needs AI-04, which depends on this item, so AI-04 must run that check and move this item to LANDED. In commit b6d8de1."
+      "note": "New by AD2 (2026-10-22). The route list is built from the app's routes, shipped ones only. The explainer returns summaries cut from the 34 docs pages (about 168 KB in total, too big to send whole). 2026-10-22: MEASURED (no BUILT stage exists; closest honest one). Route list and page summaries built at build time (app/src/nav/pageSummaries.*, assistantTools.ts), with tests and a CI step; tests pass. Definition of done not met: the explainer's 5-page check in the headless loop needs AI-04, which depends on this item, so AI-04 must run that check and move this item to LANDED. In commit b6d8de1. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was MEASURED; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "AI-11",
       "group": "2-assistant",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "AI-09"
       ],
@@ -505,12 +524,15 @@
       "doc": "wi/AI-11-charts-and-comparison.md",
       "cost": "2-3d",
       "model": "sonnet-5",
-      "note": "New by AD2 (2026-10-22). The working prototype (outside this repo, in _misc/_chat/f1-chat) already charts questions and compares lap times. make_chart takes a fixed description (up to 6 series and 500 points); the model never writes chart code. The chart rows are not sent back to the model."
+      "note": "New by AD2 (2026-10-22). The working prototype (outside this repo, in _misc/_chat/f1-chat) already charts questions and compares lap times. make_chart takes a fixed description (up to 6 series and 500 points); the model never writes chart code. The chart rows are not sent back to the model. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "CO-14",
       "group": "1-data",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "CO-17"
       ],
@@ -523,12 +545,15 @@
       "doc": "wi/CO-14-stint-life-clean-test.md",
       "cost": "2-3d",
       "model": "opus-5",
-      "note": "Raised 2026-10-22 under CD8. Rules (candidates, pass test, folds) are written into the log before any fit. Promote v15 only on a pass; otherwise v14 stays for stint life and the assistant's cards say so. The result is provisional, since 2018-2024 have been used for other choices. 2026-10-22: corrected. The candidate is the v15 configuration refit on the new label version (CO-09 + CO-15), not the v15 artefacts trained on the old label, and on a pass what ships is CO-18's model under its own version, not 'v15'. Now depends on CO-17 (trusted rebuild, which carries CO-09 and CO-15). Its result feeds CD10."
+      "note": "Raised 2026-10-22 under CD8. Rules (candidates, pass test, folds) are written into the log before any fit. Promote v15 only on a pass; otherwise v14 stays for stint life and the assistant's cards say so. The result is provisional, since 2018-2024 have been used for other choices. 2026-10-22: corrected. The candidate is the v15 configuration refit on the new label version (CO-09 + CO-15), not the v15 artefacts trained on the old label, and on a pass what ships is CO-18's model under its own version, not 'v15'. Now depends on CO-17 (trusted rebuild, which carries CO-09 and CO-15). Its result feeds CD10. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "CO-15",
       "group": "1-data",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [
         "CO-09"
       ],
@@ -545,7 +570,7 @@
       "doc": "wi/CO-15-monaco-wear-hold.md",
       "cost": "1-2d",
       "model": "opus-5",
-      "note": "Raised 2026-10-22 under CD9 (owner: option A). Cause found by the read-only probe: the linear wear term extrapolates wear_gradient x age to any age, though the slope is fitted on ages 3..onset-2 and the step measured by onset+5; 2024_8 (one stint after a lap-1 red flag, ages to 78) is charged 10 s against an observed weight-corrected drift of -1.8 s. Probe numbers (dev, simulated): honest-range failures 15 -> 0; 2024_8 lap 77 field-base ratio 0.905 -> 0.972; laps on the 10 s cap 323 -> 0; about 23,973 of 161,040 int_compound_cliff_predicted rows change (about 15%, max 6.32 s). Keep the 0.920 floor. Moves the label: same label version as CO-09, retrain in CO-18. Proposed diff (not applied): copied 2026-10-22 to _evidence/co-15-2026-10-22/proposed_fix_wear_hold.diff with PROVENANCE.txt; original at the session scratchpad (/private/tmp/claude-501/-Users-justin-github-off-the-pace/e7074a22-d03f-4724-882d-5fb7a35a514d/scratchpad/proposed_fix_wear_hold.diff), which may not survive. 2026-10-22 transform audit re-found the same failure (assert_field_pace_honest_range, 2024_8 base about 67.1 s vs fastest lap 74.165 s, 15 laps); recorded here, not as a new item. The probe above found the cause (wear term extrapolated). Until it lands, dev field-pace numbers are not trusted (W3). 2026-10-23 (owner's agreed order, step 2 'trace the 2024 Round 8 pace problem'): confirmed this item already carries the traced cause, the probe numbers and the proposed diff; no new item. Still waits on CO-09 (CD14)."
+      "note": "Raised 2026-10-22 under CD9 (owner: option A). Cause found by the read-only probe: the linear wear term extrapolates wear_gradient x age to any age, though the slope is fitted on ages 3..onset-2 and the step measured by onset+5; 2024_8 (one stint after a lap-1 red flag, ages to 78) is charged 10 s against an observed weight-corrected drift of -1.8 s. Probe numbers (dev, simulated): honest-range failures 15 -> 0; 2024_8 lap 77 field-base ratio 0.905 -> 0.972; laps on the 10 s cap 323 -> 0; about 23,973 of 161,040 int_compound_cliff_predicted rows change (about 15%, max 6.32 s). Keep the 0.920 floor. Moves the label: same label version as CO-09, retrain in CO-18. Proposed diff (not applied): copied 2026-10-22 to _evidence/co-15-2026-10-22/proposed_fix_wear_hold.diff with PROVENANCE.txt; original at the session scratchpad (/private/tmp/claude-501/-Users-justin-github-off-the-pace/e7074a22-d03f-4724-882d-5fb7a35a514d/scratchpad/proposed_fix_wear_hold.diff), which may not survive. 2026-10-22 transform audit re-found the same failure (assert_field_pace_honest_range, 2024_8 base about 67.1 s vs fastest lap 74.165 s, 15 laps); recorded here, not as a new item. The probe above found the cause (wear term extrapolated). Until it lands, dev field-pace numbers are not trusted (W3). 2026-10-23 (owner's agreed order, step 2 'trace the 2024 Round 8 pace problem'): confirmed this item already carries the traced cause, the probe numbers and the proposed diff; no new item. Still waits on CO-09 (CD14). 2026-10-24 (handoff): fix built in the working tree, uncommitted (wear hold var compound_wear_hold_after_onset_laps=5, two new tests, README notes). Field-pace honesty failures 15 -> 0; 23,973 of 161,040 rows change, all seasons 2018-2025. Scratch rebuild of the two affected models: 28/28 tests pass. Knock-on: the same macro feeds int_pit_strategy_cost_curve, which made optimum picks tie; fixed by rounding cost to 6 dp with earliest-lap tie rule (2 of 13,045 optima changed, both on flat 28-lap stretches; no non-tie change). Definition of done waits on CO-17's trusted rebuild with CO-09 in. Commit held until then (owner). 2026-10-24 (CO-17 audit): expected_degradation_rate_s_per_lap in int_compound_cliff_predicted kept charging the wear gradient on held laps, so it was no longer the slope of compound_wear_s (26,382 rows at or past the hold on the CO-17 build). Now 0 past onset + 5 (the ramp slope only), gradient before. New error test assert_degradation_rate_follows_wear_hold.sql; two tests in transform/tasks/coefficients/tests/test_fit_compound_cliff.py updated to the hold rule (pytest 159 pass). In the tree, not yet in data/dev.duckdb. 2026-10-24 (agent A, on data/dev.duckdb build3): all acceptance numbers reproduced. assert_field_pace_honest_range 15 -> 0 failures with the 0.920 floor. 2024_8 field-base ratio lap 77 0.9051 -> 0.9717, lap 63 0.9156 -> 0.9799, lap 70 0.9120 -> 0.9743. Laps on the 10 s wear cap 323 -> 0. compound_wear_s changed on 23,973 of 161,040 rows (probe count), max 6.318 s. assert_compound_wear_not_extrapolated and assert_field_base_drift_tracks_observed pass; drift excess 2024_8 4.59 s, largest 2020_4 6.54 s (W8). Stage stays MEASURED. Remains: retrain CO-18 (parked), promotion CD10, the earliest-lap tie rule (W23), commit held for the owner. 2026-10-24 (D8): v16 = CO-09 + CO-15, shipped through CO-17 now; W10 thin-cell and restart-lap fixes and CD7 option C go to v17, so these acceptance numbers are not reopened. 2026-10-24 (agent B, on the CO-17 build4 rebuild): LANDED. Definition of done met: macro, var and tests in the tree; both new tests PASS (plus assert_degradation_rate_follows_wear_hold, PASS); assert_field_pace_honest_range PASS with the 0.920 floor; no failures. Reproduced on build4: 2024_8 field-base ratio lap 77 0.9717, lap 70 0.9743, lap 63 0.9799 (against fastest lap 74.165); int_compound_cliff_predicted max compound_wear_s 8.978 s, 0 rows at the 10 s cap (was 323 laps). The 23,973-row change count was not recomputed here (the pre-fix copy is not kept); it was reproduced on build3 and int_compound_cliff_predicted is value-identical between build3 and build4. Joint label version v16 with CO-09 recorded in ml/README.md. Not committed."
     },
     {
       "id": "CO-16",
@@ -568,7 +593,7 @@
     {
       "id": "CO-17",
       "group": "1-data",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [
         "CO-09",
         "CO-15",
@@ -587,12 +612,12 @@
       "doc": "wi/CO-17-trusted-dev-rebuild.md",
       "cost": "1d",
       "model": "sonnet-5",
-      "note": "Raised 2026-10-22. data/dev.duckdb was built 2026-10-17 and partly rebuilt by the 2026-10-22 probes, so no dev number is evidence for current code until this lands. Everything downstream (CO-14, CO-18, AI-01, the freeze) reads this build. Also carries CO-03's leftover: delete the unused training_weight_f9 if the build stays green (CD1), or leave it with a note. Step up to opus-5 if any failure needs a ruling rather than a named fix. 2026-10-22: CO-16 (CD7 sector fix) is in the tree (b6d8de1), so this rebuild also carries it into dev; the transform audit's 'rebuild dev with the sector fix and re-run tests' is this item, not a new one. Still waits on CO-09 (BLOCKED, CD14) and CO-15. If CO-21 lands first, this rebuild carries it too. 2026-10-23 (owner's agreed order): now depends on CO-21 and CO-22 as well, because both change numbers this rebuild is trusted to carry; CO-23 (CD15) and CO-25 (CD16) wait on this build, and CO-18 follows it."
+      "note": "Raised 2026-10-22. data/dev.duckdb was built 2026-10-17 and partly rebuilt by the 2026-10-22 probes, so no dev number is evidence for current code until this lands. Everything downstream (CO-14, CO-18, AI-01, the freeze) reads this build. Also carries CO-03's leftover: delete the unused training_weight_f9 if the build stays green (CD1), or leave it with a note. Step up to opus-5 if any failure needs a ruling rather than a named fix. 2026-10-22: CO-16 (CD7 sector fix) is in the tree (b6d8de1), so this rebuild also carries it into dev; the transform audit's 'rebuild dev with the sector fix and re-run tests' is this item, not a new one. Still waits on CO-09 (BLOCKED, CD14) and CO-15. If CO-21 lands first, this rebuild carries it too. 2026-10-23 (owner's agreed order): now depends on CO-21 and CO-22 as well, because both change numbers this rebuild is trusted to carry; CO-23 (CD15) and CO-25 (CD16) wait on this build, and CO-18 follows it. 2026-10-24 (handoff): stage SPEC -> BUILDING. First full build (session scratchpad co17/build.log): PASS=1442 WARN=0 ERROR=1 of 1446; the one error was assert_prior_season_labels_frozen (FAIL 7), the expected v16 label bump. Seed transform/seeds/label_stability_baseline.csv re-taken with dated notes in transform/dbt_project.yml and transform/seeds/schema.yml (row counts unchanged except 2020 9,360 -> 9,383; theta_air 0.331). Second build (co17/build2.log): PASS=1443 WARN=0 ERROR=0 of 1446; that build is what data/dev.duckdb holds. Pre-build copy kept at co17/dev-pre-co17.duckdb. A follow-up audit then found two defects, fixed in the tree after build2 (see CO-15 and CO-09): the degradation-rate column past the wear hold and the pit-stop search on joined runs. data/dev.duckdb does not carry them (the two new tests fail on it: co17audit/singular_devdb.log PASS=117 ERROR=2); scratch full build with both fixes (co17audit/build_audit.log): PASS=1445 WARN=0 ERROR=0 of 1448. Remaining: rebuild data/dev.duckdb with the audit fixes (make dbt-dev-full), then record the counts and the row-count diff table here. Not committed. 2026-10-24 (build 3, with the audit fixes): data/dev.duckdb backed up first to session scratchpad co17/dev-co17-pre-fixes.duckdb (sha256 a9077e38...e0ec9, identical to the live file at copy time); then make dbt-dev-full alone (co17/build3.log, exit 0): seed check PASS=16, coefficient check PASS=21, dbt build PASS=1446 WARN=0 ERROR=0 SKIP=0 NO-OP=3 of 1449. assert_prior_season_labels_frozen, assert_field_pace_honest_range, assert_degradation_rate_follows_wear_hold, assert_pit_not_taken_from_joined_boundary and assert_vsc_stop_censored all pass. Row-count diff against the backup (read-only): int_compound_cliff_predicted 161,040 -> 161,040, 26,382 rows changed, all in expected_degradation_rate_s_per_lap, all now 0, equal to the 26,382 laps at or past the hold; no other column moved (compound_wear_s unchanged). int_pit_strategy_value 8,211 -> 8,211, 119 stints changed: actual_pit_lap now NULL on all 119 (was a joined-across stop), strategy_verdict early -> NULL 85 and undercut_forced -> NULL 34, opportunity_cost_s and opportunity_cost_race_s changed on 21 of them; nothing else. fct_stint_features 8,945 -> 8,945: pit_decision_class changed on the same 119 stints, tyre_management_score on 20 of them; one more row (2025_2025_11_GAS_2, end_of_stint_pace_falloff_s_per_lap) differs only at the 16th digit (float noise). Labels unmoved (frozen-label test passes on the 10-24 seed). Stage stays BUILDING: still owed per the WI are the full per-model row-count diff table against the pre-CO-17 copy (co17/dev-pre-co17.duckdb), training_weight_f9 (CD1), the CI fits fixtures (W4) and byte-oracle re-snapshot (W6); then the orchestrator re-runs the definition of done and W3 clears. Not committed, not exported. 2026-10-24 (agent A): full row-count and value diff of build3 against co17/dev-pre-co17.duckdb (EXCEPT ALL both ways, exact and at 9 dp; views by SQL text): 117 relations (97 tables + 20 views; the 2 assert_* failure tables excluded), 60 changed (59 in value, 1 schema only: dim_constructors), 4 float noise only, 1 fit_timestamp only, 34 tables and all 20 views unchanged. 58 changed tables attributed by lineage: CO-09, CO-15 (compound_wear_s 23,973 rows), CO-16 (32,223 sector rows), CO-21 (1,994 laps 0.0 -> NULL), CO-22 (31,812 -> 1,679 pairs), the CO-17 audit fixes (26,382 rate rows, 119 stints), the car-FE refit, CO-29, the 4fa4384 seed driver_isolation_method_scores and the re-taken frozen-label seed. 2 unattributed: dim_corners (2 rows) and int_corner_metrics (2,518 rows, all 2022_21): the dim_corners.sql window orders by corner_distance_m with no tie-breaker and 2022_21 Turn_4/Turn_5 share apex 1114.035 m (code unchanged since d383e3c); not fixed, owner ruling W22. W4: transform/tests/fixtures/fits/ refreshed from data/fits (constructor_car_fe -> 4f1c67dd...23bb2, constructor_car_fe_isolation -> db4568e6...0e92e, degradation_isotonic already identical); sha256 matches data/fits for all three. W6: ci build (dbt build --target ci) PASS=1445 WARN=1 ERROR=0 of 1449 (warn: assert_prior_season_labels_frozen, warn on ci by design); snapshot_model_hashes.py --check fails 12 fct_*, warns 74 non-fct, 4 new. Proposed baseline written to session scratch co17/model_hashes.proposed_ci.json (diff co17/byte_oracle_proposed.diff, 368 lines); NOT adopted, transform/tests/model_hashes.baseline.json not overwritten; awaiting owner (W20, W21: the committed baseline is dev-sized but Gate 1c checks data/ci.duckdb, while pipeline.yml checks data/dev.duckdb). Singular tests on dev: PASS=120 of 120. Stage stays BUILDING. Remains: owner on W20/W21/W22, training_weight_f9 (CD1), then W6 resolution, the definition of done and W3. The CO-25 data_profile re-baseline listed by agent A is not owed: CO-25 closed as no change under CD16 B. Not committed. 2026-10-24 (delegated rulings): W22 ruled fix and verified (dim_corners window ordered by corner_distance_m, corner_number, corner_letter; build 127 tests, 0 errors; zero row differences on dim_corners and int_corner_metrics). D8: v16 = CO-09 + CO-15 ships through this rebuild; W10 and W11 go to v17. W21 (which warehouse the byte oracle tracks) left open for the owner to read first. 2026-10-24 (agent B, CO-17 trusted rebuild, make dbt-dev-full, log co17/build4.log): LANDED. Backup of the pre-build warehouse at scratchpad co17/before/dev.duckdb (sha256 4f0ab160...b247). seed check PASS=16 WARN=0 ERROR=0; coefficient check PASS=21; dbt build PASS=1448 WARN=0 ERROR=0 SKIP=0 NO-OP=3 of 1451 (singular: 122 pass; generic: 1211 pass). assert_prior_season_labels_frozen now PASS (seed refreshed on the earlier build). Named tests PASS: assert_field_pace_honest_range, assert_sector_aggregates_to_lap, assert_compound_wear_not_extrapolated, assert_field_base_drift_tracks_observed, assert_degradation_rate_follows_wear_hold, assert_tyre_run_key, assert_vsc_stop_censored, assert_pit_not_taken_from_joined_boundary, assert_stint_boundaries_match_pits. pytest transform/tasks/coefficients/tests 159 passed. Row-count diff vs pre-build copy: 119 relations, 0 changed. Value diff (EXCEPT ALL, 97 base tables): 38 differ exactly, all within float noise on re-run: at 9 dp 13 tables remain, max absolute difference 2.1e-10 (car-FE refit output, car_fe_s and dependents; fit_timestamp changed); no difference in CO-09/CO-15/CO-16 or W22 tables beyond that; dim_corners and int_corner_metrics unchanged (W22 holds). CI fits fixtures refreshed from the refit (W4): transform/tests/fixtures/fits/constructor_car_fe.parquet and constructor_car_fe_isolation.parquet, sha256 matches data/fits. training_weight_f9 already removed in CO-03's rebuild; only a comment remains (int_lap_anomaly_flags.sql:268). W6 not done (user's call). W21 open for the owner: read-only snapshot_model_hashes --check on dev reports 12 fct_* drifted, 53 non-fct warnings, 4 new models; the committed baseline's fct_telemetry_deltas rowcount is 28,628,356 while dev has 1,623,427 both before and after this build, so the baseline predates the current warehouse for reasons not in CO-17. Not committed; not exported."
     },
     {
       "id": "CO-18",
       "group": "1-data",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "CO-17",
         "CO-21"
@@ -608,12 +633,15 @@
       "doc": "wi/CO-18-retrain-new-label.md",
       "cost": "1-2d",
       "model": "opus-5",
-      "note": "Raised 2026-10-22, replacing CO-03 (closed as superseded). The v15 configuration retrained on the CO-09 + CO-15 label; names its own model version (v15's artefacts are on the old label). Runs every gate CO-03 ran, including stint-life beats-baseline, and the D9/D14 re-measures owed under CD3. Promotion is CD10; the default stays v14 until then. 2026-10-22: depends on CO-21 too: the cliff classifier's proximity family reads the columns CO-21 changes."
+      "note": "Raised 2026-10-22, replacing CO-03 (closed as superseded). The v15 configuration retrained on the CO-09 + CO-15 label; names its own model version (v15's artefacts are on the old label). Runs every gate CO-03 ran, including stint-life beats-baseline, and the D9/D14 re-measures owed under CD3. Promotion is CD10; the default stays v14 until then. 2026-10-22: depends on CO-21 too: the cliff classifier's proximity family reads the columns CO-21 changes. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "AI-12",
       "group": "3-launch",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "AI-03",
         "AI-06",
@@ -630,15 +658,15 @@
       "doc": "wi/AI-12-launch-run-and-switch-on.md",
       "cost": "1d",
       "model": "sonnet-5",
-      "note": "Raised 2026-10-22, split from AI-08. Checks the AI-03 snapshot is unchanged (checksums), runs AI-07 on the production endpoint, records cost per answer for AD4. Switch-on waits on AD4 (launch cost and access) and is the owner's call. 2026-10-23: AD4 recorded (owner's words; closest option B, mapping flagged). The decision no longer blocks, but the item still waits on AI-03, AI-06, AI-07 and AI-08.",
+      "note": "Raised 2026-10-22, split from AI-08. Checks the AI-03 snapshot is unchanged (checksums), runs AI-07 on the production endpoint, records cost per answer for AD4. Switch-on waits on AD4 (launch cost and access) and is the owner's call. 2026-10-23: AD4 recorded (owner's words; closest option B, mapping flagged). The decision no longer blocks, but the item still waits on AI-03, AI-06, AI-07 and AI-08. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
       "blocked_by_decision": [
-        "AD4"
+        "PK1"
       ]
     },
     {
       "id": "CO-19",
       "group": "1-data",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "CO-18"
       ],
@@ -663,7 +691,10 @@
       "doc": "wi/CO-19-mixed-version-probe.md",
       "cost": "1-2d",
       "model": "opus-5",
-      "note": "Raised 2026-10-22 on the owner's instruction (invasive probe). Tests CD10 option A's fail branch, which nobody has checked: the manifest carries one top-level model_version, one encoders.json serves all five models, predict.py takes one --version, make app-models copies one version, and CO-15 moves features the models read. Five scenarios with exact steps in the doc: S1 promotion yes; S2 promotion no; S3 partial promotion (v14 stint life beside four new models); S4 v14 stint life on new-label features; S5 v14 for every model on the new-label warehouse (option B); plus the cards and pages that sit beside mismatched versions. 2026-10-22 owner's correction: no scratch copies. The probe runs in the real ml/, transform/, app/, scripts/ and data/ folders; every output (scores, tables, go/no-go, what breaks, scenarios and frozen rules) goes in _evidence/co-19-<run date>/ with a PROVENANCE.txt (commands, git HEAD and status, data snapshot, sha256 lists). Set-up folder _evidence/co-19-2026-10-22/ made; no scenario run. Nothing promoted, nothing ships: no commit, MODEL_VERSION_DEFAULT stays v14, CDN untouched, changed working-tree files restored at the end; promotion is the owner's (CD10). Go/no-go and pass rules in the doc are DRAFTS for the owner to change; the final rule is written into this note and rules.txt before the first run, then not changed. Waits for CO-18 only (needs the real retrained files; CO-18 follows CO-17); not on CO-14, because it tests every promotion outcome; not blocked by CD10, because it is evidence for it. Blocks the freeze (AI-03). Baseline gap: old-label feature tables are not saved; export them before CO-17 overwrites data/dev.duckdb, or S4 measures prediction shift only."
+      "note": "Raised 2026-10-22 on the owner's instruction (invasive probe). Tests CD10 option A's fail branch, which nobody has checked: the manifest carries one top-level model_version, one encoders.json serves all five models, predict.py takes one --version, make app-models copies one version, and CO-15 moves features the models read. Five scenarios with exact steps in the doc: S1 promotion yes; S2 promotion no; S3 partial promotion (v14 stint life beside four new models); S4 v14 stint life on new-label features; S5 v14 for every model on the new-label warehouse (option B); plus the cards and pages that sit beside mismatched versions. 2026-10-22 owner's correction: no scratch copies. The probe runs in the real ml/, transform/, app/, scripts/ and data/ folders; every output (scores, tables, go/no-go, what breaks, scenarios and frozen rules) goes in _evidence/co-19-<run date>/ with a PROVENANCE.txt (commands, git HEAD and status, data snapshot, sha256 lists). Set-up folder _evidence/co-19-2026-10-22/ made; no scenario run. Nothing promoted, nothing ships: no commit, MODEL_VERSION_DEFAULT stays v14, CDN untouched, changed working-tree files restored at the end; promotion is the owner's (CD10). Go/no-go and pass rules in the doc are DRAFTS for the owner to change; the final rule is written into this note and rules.txt before the first run, then not changed. Waits for CO-18 only (needs the real retrained files; CO-18 follows CO-17); not on CO-14, because it tests every promotion outcome; not blocked by CD10, because it is evidence for it. Blocks the freeze (AI-03). Baseline gap: old-label feature tables are not saved; export them before CO-17 overwrites data/dev.duckdb, or S4 measures prediction shift only. 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was SPEC; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
+      "blocked_by_decision": [
+        "PK1"
+      ]
     },
     {
       "id": "CO-20",
@@ -683,11 +714,9 @@
       "doc": "wi/CO-20-flag-chance-plain-average-probe.md",
       "cost": "1-2d",
       "model": "opus-5",
-      "note": "Raised 2026-10-22 on the owner's instruction. Tests whether a plain average of past outcomes is a usable chance number on every scorable season 2018-2025, not only 2025, against the current experimental line. Rule (cells, minimum cell size, folds, seasons, pass/fail) written into this note before any scoring; per-season reporting; clear PASS/FAIL. Runs after the chance-line rulings: CD4 gives the acceptance rule, CD6 the folds, CD5 what a pass would be used for. Depends on CO-17 (trusted rebuild carrying CO-09's stint-label fix), because the averaged outcome is the stint label. Limits: 2025 used for selection at least twice; 2018 cliff values in-sample (CD2); 2026 not ingested (CO-12 blocked on CD12), mixed-era, and no 2026 test under CD11. Main thing to test: cross-season drift (where the model said about 50%, the share reaching the flag rose from 46% in 2020 to 77% in 2025). Caveat: an average ignores the stint's own tyre age and can miss drift. A probe: changes no shipped output, gates nothing in groups 1-3. 2026-10-23: CD5 ruled C; still BLOCKED on CD6 (open, not ruled).",
+      "note": "Raised 2026-10-22 on the owner's instruction. Tests whether a plain average of past outcomes is a usable chance number on every scorable season 2018-2025, not only 2025, against the current experimental line. Rule (cells, minimum cell size, folds, seasons, pass/fail) written into this note before any scoring; per-season reporting; clear PASS/FAIL. Runs after the chance-line rulings: CD4 gives the acceptance rule, CD6 the folds, CD5 what a pass would be used for. Depends on CO-17 (trusted rebuild carrying CO-09's stint-label fix), because the averaged outcome is the stint label. Limits: 2025 used for selection at least twice; 2018 cliff values in-sample (CD2); 2026 not ingested (CO-12 blocked on CD12), mixed-era, and no 2026 test under CD11. Main thing to test: cross-season drift (where the model said about 50%, the share reaching the flag rose from 46% in 2020 to 77% in 2025). Caveat: an average ignores the stint's own tyre age and can miss drift. A probe: changes no shipped output, gates nothing in groups 1-3. 2026-10-23: CD5 ruled C; still BLOCKED on CD6 (open, not ruled). 2026-10-24: parked: ML layer redo on separate branch (owner, 2026-10-24). Was BLOCKED; the old stage is not a verdict on the work. Parked pending the ML redo on the separate branch; project focus is the transform layer only. Revisit when that branch lands.",
       "blocked_by_decision": [
-        "CD4",
-        "CD5",
-        "CD6"
+        "PK1"
       ],
       "order_hint": 100
     },
@@ -724,12 +753,12 @@
       "model": "opus-5",
       "note": "Raised 2026-10-22 from the transform audit. fct_telemetry_deltas.sql about lines 18-28 (the 'teammates' CTE pairs all drivers on the same lap) and 37-42 (COALESCE(delta, 0)); checked in the tree. Exported to the app (export_telemetry_deltas), so the app export depends on this fix. 2026-10-23 (owner's agreed order): runs with CO-21 ahead of everything else because it changes numbers; CO-17 now depends on it; order_hint 10.",
       "order_hint": 10,
-      "closed": "2026-10-23: teammates only (same constructor in the race; opus call per Method step 1, reason in the spec, owner may override). Corner metrics FULL OUTER joined on corner and lap; deltas are a - b with no COALESCE, so NULL when a side is missing. schema.yml: not_null removed on the three delta columns. New tests assert_telemetry_deltas_null_when_side_missing (old build fails on 2,102,265 v_min rows) and assert_telemetry_deltas_teammates_only. Scratch build: 11 pass, 0 fail. Export on scratch: 28,628,356 -> 1,623,427 rows, 31,812 -> 1,679 pairs, 199.9 -> 7.8 MB; braking deltas exactly 0: 10,480,499 -> 3,877. No app consumer. Not committed; dev.duckdb holds the old table until CO-17. Owed: regenerate docs/reference/models/fct/fct_telemetry_deltas.mdx (scripts/gen_dbt_reference.py). 2026-10-23 owner: the teammates-only pairing is held for research later; not yet endorsed."
+      "closed": "2026-10-23: teammates only (same constructor in the race; opus call per Method step 1, reason in the spec, owner may override). Corner metrics FULL OUTER joined on corner and lap; deltas are a - b with no COALESCE, so NULL when a side is missing. schema.yml: not_null removed on the three delta columns. New tests assert_telemetry_deltas_null_when_side_missing (old build fails on 2,102,265 v_min rows) and assert_telemetry_deltas_teammates_only. Scratch build: 11 pass, 0 fail. Export on scratch: 28,628,356 -> 1,623,427 rows, 31,812 -> 1,679 pairs, 199.9 -> 7.8 MB; braking deltas exactly 0: 10,480,499 -> 3,877. No app consumer. Not committed; dev.duckdb holds the old table until CO-17. Owed: regenerate docs/reference/models/fct/fct_telemetry_deltas.mdx (scripts/gen_dbt_reference.py). 2026-10-23 owner: the teammates-only pairing is held for research later; not yet endorsed. 2026-10-24: endorsed by the owner's delegated decision D7 (option A, model unchanged)."
     },
     {
       "id": "CO-23",
       "group": "1-data",
-      "stage": "BLOCKED",
+      "stage": "CLOSED",
       "depends_on": [
         "CO-17"
       ],
@@ -741,10 +770,11 @@
       "doc": "wi/CO-23-baseline-gated-tests.md",
       "cost": "0.25d",
       "model": "sonnet-5",
-      "note": "Raised 2026-10-22 from the transform audit. Both tests compile to an empty check because data/silver/_lap_residuals_baseline/ is absent (checked). Mechanical once CD15 is ruled; under option A, take the baseline from CO-17's reviewed build. 2026-10-23 (owner's agreed order): depends on CO-17, so it waits for the trusted rebuild whichever way CD15 is ruled.",
+      "note": "Raised 2026-10-22 from the transform audit. Both tests compile to an empty check because data/silver/_lap_residuals_baseline/ is absent (checked). Mechanical once CD15 is ruled; under option A, take the baseline from CO-17's reviewed build. 2026-10-23 (owner's agreed order): depends on CO-17, so it waits for the trusted rebuild whichever way CD15 is ruled. 2026-10-24: closed under CD15 = B (owner, 2026-10-23). Both tests were removed in commit e87f728 and are absent from the tree (checked 2026-10-24). Probe CO-27 confirmed option A: a baseline taken from CO-17's build fails both tests by construction (1 row each: variance ratio 1.0 outside [0.85, 0.99]; constructor residual var not strictly below baseline). Nothing changed this session. Part C of the ruling (baseline-free replacement checks) is not built; it is tracked as watch W19.",
       "blocked_by_decision": [
         "CD15"
-      ]
+      ],
+      "closed": "2026-10-24: done as CD15 option B (tests removed in e87f728). Follow-up CD15 C is not started (watch W19)."
     },
     {
       "id": "CO-24",
@@ -766,7 +796,7 @@
     {
       "id": "CO-25",
       "group": "1-data",
-      "stage": "BLOCKED",
+      "stage": "CLOSED",
       "depends_on": [
         "CO-17"
       ],
@@ -780,10 +810,11 @@
       "doc": "wi/CO-25-pipeline-gates-rebaseline.md",
       "cost": "0.5d",
       "model": "sonnet-5",
-      "note": "Raised 2026-10-22 from the transform audit. pipeline.yml Stage 2 (snapshot_model_hashes.py --check) and Stage 3 (make dq-test). Audit counts on dev (not re-run): 11 fct_* drifted on the byte oracle, 187 data-profile drifts. Overlaps W6 (CI Gate 1c). Waits on CD16 and on CO-17's reviewed build.",
+      "note": "Raised 2026-10-22 from the transform audit. pipeline.yml Stage 2 (snapshot_model_hashes.py --check) and Stage 3 (make dq-test). Audit counts on dev (not re-run): 11 fct_* drifted on the byte oracle, 187 data-profile drifts. Overlaps W6 (CI Gate 1c). Waits on CD16 and on CO-17's reviewed build. 2026-10-24: closed as 'no change' under CD16 = B (owner, 2026-10-23): baselines left, pipeline kept off until reviewed. Baselines unchanged (sha256 model_hashes e2fcc4e8...926d5c, data_profile 35d0ec25...6eab, re-checked 2026-10-24). Counts on a copy of CO-17 build2 (CO-27): byte oracle 12 fct_* drifted (audit said 11), 4 new models, 53 non-fct changed; data profile 211 drifts (audit said 187). Both gates would fail if PIPELINE_ENABLED were set. W18 (is PIPELINE_ENABLED set?) stays open. Re-baselining needs a new ruling plus a full drift trace.",
       "blocked_by_decision": [
         "CD16"
-      ]
+      ],
+      "closed": "2026-10-24: no change, per CD16 option B. Baselines kept, pipeline off; W18 stays open."
     },
     {
       "id": "CO-26",
@@ -805,7 +836,7 @@
     {
       "id": "AI-13",
       "group": "3-launch",
-      "stage": "BLOCKED",
+      "stage": "SPEC",
       "depends_on": [
         "CO-17"
       ],
@@ -818,7 +849,7 @@
       "doc": "wi/AI-13-ci-real-data-job.md",
       "cost": "1-2d",
       "model": "opus-5",
-      "note": "Raised 2026-10-22 from the transform audit. Low priority (order_hint 100). The real-data gates are in pipeline.yml, enabled only when PIPELINE_ENABLED is set (W18). 2026-10-23: the agent stopped at the spec's open choice (A real-data job vs B fixture-scale thresholds) and changed nothing; the owner deferred it to the end of the project fixes (CD17). 2026-10-23: CD17 = A, a real-data test job on a reviewed build; waits on CO-17 and on W18.",
+      "note": "Raised 2026-10-22 from the transform audit. Low priority (order_hint 100). The real-data gates are in pipeline.yml, enabled only when PIPELINE_ENABLED is set (W18). 2026-10-23: the agent stopped at the spec's open choice (A real-data job vs B fixture-scale thresholds) and changed nothing; the owner deferred it to the end of the project fixes (CD17). 2026-10-23: CD17 = A, a real-data test job on a reviewed build; waits on CO-17 and on W18. 2026-10-24: unblocked when CO-17 landed (its only dependency); stage BLOCKED -> SPEC. Nothing run.",
       "order_hint": 100
     },
     {
@@ -843,7 +874,7 @@
     {
       "id": "CO-27",
       "group": "1-data",
-      "stage": "SPEC",
+      "stage": "LANDED",
       "depends_on": [
         "CO-17"
       ],
@@ -859,7 +890,8 @@
       "doc": "wi/CO-27-baseline-options-probe.md",
       "cost": "1d",
       "model": "opus-5",
-      "note": "Raised 2026-10-23 on the owner's answer. CD15 (keep a baseline for the two switched-off tests, or remove them) and CD16 (re-baseline the pipeline's real-data gates, or leave them off) stay OPEN; this probe is evidence for them, so it is not blocked by them. On a copy of CO-17's trusted build (never data/*.duckdb itself), try CD15 A and B and CD16 A and B, and report for each what would pass, fail or change (test results, drift counts traced to reviewed changes). Changes no tracked baseline and commits nothing. CO-23 and CO-25 then run the chosen option."
+      "note": "Raised 2026-10-23 on the owner's answer. CD15 (keep a baseline for the two switched-off tests, or remove them) and CD16 (re-baseline the pipeline's real-data gates, or leave them off) stay OPEN; this probe is evidence for them, so it is not blocked by them. On a copy of CO-17's trusted build (never data/*.duckdb itself), try CD15 A and B and CD16 A and B, and report for each what would pass, fail or change (test results, drift counts traced to reviewed changes). Changes no tracked baseline and commits nothing. CO-23 and CO-25 then run the chosen option. 2026-10-24 correction: the 'CD15 and CD16 stay OPEN' above is stale; both were RESOLVED 2026-10-23 (CD15 B then C, CD16 B), so this probe is confirmation evidence. 2026-10-24: probe run read-only on a copy of data/dev.duckdb (CO-17 build2; data/dev.duckdb sha256 f068fed7...d53ba4 unchanged). CD15 A: 2 of 2 tests FAIL; CD15 B: 0 tests, loses the constructor var > 0 and residual regression checks. CD16 A (before re-baseline): byte oracle FAIL, 12 fct drifts; data profile FAIL, 211 drifts; drifts not traced. CD16 B: no change, pipeline off. Report and raw outputs copied to _evidence/co-27-2026-10-24/ with PROVENANCE.txt (definition of done), linked from CD15 and CD16. Definition of done checked by the log owner 2026-10-24: per-option report present, PROVENANCE.txt present, tracked baselines sha256 unchanged, nothing committed. SPEC -> LANDED.",
+      "closed": "2026-10-24: probe done, evidence in _evidence/co-27-2026-10-24/; confirms CD15 B and CD16 B. Not committed."
     },
     {
       "id": "CO-28",
@@ -964,7 +996,8 @@
       "context": "Best candidate E4 passes none of the three as the rule stands (5/10 within 5 pp, worst 13.2 pp; Brier 0.0698 vs 0.0803 current). Under B its 2025 point estimates fit (gap +1.1 pp, CI [-3.3, +6.0]; slope 0.83 [0.69, 1.09]); the current method fails B on 2024 (gap -8.8 pp). Whatever is chosen must be fixed before 2026 data is scored. See _roadmap/_ai-integration/wi/CO-08-flag-chance-calibration.md and the scratch report. 2026-10-22 (CD11 = C): the experimental line is kept as it is and does not gate the assistant launch. This ruling stays open for the line itself; nothing in groups 1-3 waits on it.",
       "recommendation": "A for now. Revisit with 2026 data as the first clean test.",
       "resolved": "2026-10-23",
-      "resolution": "Owner ruling 2026-10-23: B, the race-clustered rule (average gap within 3 pp, intercept CI contains 0, slope CI contains 1). The line keeps its experimental label whatever it scores; passing B does not remove the label."
+      "resolution": "Owner ruling 2026-10-23: B, the race-clustered rule (average gap within 3 pp, intercept CI contains 0, slope CI contains 1). The line keeps its experimental label whatever it scores; passing B does not remove the label.",
+      "note": "2026-10-24: CO-08, CO-10 and CO-20 are parked with the ML layer (PK1); this ruling stands unchanged."
     },
     {
       "id": "CD5",
@@ -978,7 +1011,8 @@
       "context": "E4 needs a refresh between races, so it cannot run in the browser as-is. E6 would need a classifier export instead of the 1-D lookup. Only E4 has a 2025 score. 2026-10-22 (CD11 = C): the experimental line is kept as it is and does not gate the assistant launch. This ruling stays open for the line itself; nothing in groups 1-3 waits on it. 2026-10-23 owner asked whether E4 can run locally (owner's machine: replay and parquet) with E6 in prod. Possible: E4 runs locally as-is; E6 needs a small classifier shipped to the browser in place of the 1-D lookup, and it would go live unscored (scoring it on 2025 is a second look at the only clean season, and CD12 = A rules out 2026). Options put to the owner: (1) E4 local + E6 prod, unscored, under the experimental label; (2) E4 local + cap only in prod (A + C) [recommended]; (3) C, cap only everywhere. Owner to rule 2026-10-24.",
       "recommendation": "C for the simulator now; A later if the 2026 test passes under the rule chosen in CD4.",
       "resolved": "2026-10-23",
-      "resolution": "Owner ruled option C: cap only everywhere. Owner's words: \"C is great\"."
+      "resolution": "Owner ruled option C: cap only everywhere. Owner's words: \"C is great\".",
+      "note": "2026-10-24: CO-08 and CO-20 are parked with the ML layer (PK1); this ruling stands unchanged."
     },
     {
       "id": "CD6",
@@ -987,12 +1021,13 @@
         "CO-10",
         "CO-20"
       ],
-      "status": "OPEN",
+      "status": "RESOLVED",
       "question": "Which fold scheme defines the flag-chance lookup and its 2026 test? A: expanding window (the project's existing CV; the shipped lookup matches it exactly). B: leave-one-season-out within 2018-2024 (the lookup differs by up to 0.012, and the 2024 weighting pick changes from last3 to uniform).",
       "context": "The rebuild check found that the fold scheme changes both the lookup values and which weighting rule the 2024 selection picks. Whichever is chosen must be written into CO-10's pre-registration before any 2026 outcome is seen. 2026-10-22 (CD11 = C): the experimental line is kept as it is and does not gate the assistant launch. This ruling stays open for the line itself; nothing in groups 1-3 waits on it. 2026-10-23 explained to the owner in plain terms (A trains on past seasons and tests on the next, as the rest of the project does; B trains on later seasons too). Recommended A. Owner to rule 2026-10-24.",
       "recommendation": "A. It is the project's existing CV and the shipped lookup already matches it.",
-      "resolved": null,
-      "resolution": null
+      "resolved": "2026-10-24",
+      "resolution": "Owner's delegated decision 2026-10-24: A, expanding window. It is the project's existing CV and the shipped lookup matches it exactly. Rejected B (leave-one-season-out within 2018-2024): the lookup would differ by up to 0.012 and the 2024 weighting pick would change from last3 to uniform. CO-10 and CO-20 stay parked with the ML layer (PK1); A must be written into CO-10's pre-registration before any 2026 outcome is seen.",
+      "note": "2026-10-24: Still OPEN, and parked with the ML layer: CO-10 and CO-20 wait on the ML redo (PK1), so nothing needs this answer now."
     },
     {
       "id": "CD7",
@@ -1063,7 +1098,8 @@
       "context": "2025 has been used for selection several times. 2018-2025 are all used by the served model. 2026 is a mixed-era season (power-unit change), so it would test a regime change, not the model. Options were: 2026 races scored once, or leave-one-season-out within 2018-2024.",
       "recommendation": "Leave-one-season-out within 2018-2024, rules written before any fit. The result is provisional because those seasons have already been used for other choices.",
       "resolved": "2026-10-22",
-      "resolution": "Owner ruling 2026-10-22: leave-one-season-out within 2018-2024. 2026 is not used for stint life. Candidate list and pass test are written into the log before any fit (CO-14). A pass is recorded as provisional."
+      "resolution": "Owner ruling 2026-10-22: leave-one-season-out within 2018-2024. 2026 is not used for stint life. Candidate list and pass test are written into the log before any fit (CO-14). A pass is recorded as provisional.",
+      "note": "2026-10-24: Stint-life clean test (CO-14) is parked with the ML layer (PK1); this ruling stands unchanged and is not to be applied until the ML redo."
     },
     {
       "id": "CD9",
@@ -1089,7 +1125,8 @@
       "context": "Owner 2026-10-22: the launch waits for this ruling; promotion is off the assistant build's critical path, but the launch snapshot (AI-03) must not move after it is taken. Rule after CO-14 and CO-18 report. Unchecked: whether the manifest and app can serve stint life from a different version than the other four models (A's fail branch). Under B the served predictions stay on v14 while the warehouse moves to the new label; the cards would then mix label versions and must say so. 2026-10-22: CD13 rules that the launch does not go ahead on v14 ahead of this ruling. Option B remains a possible answer, chosen only after CO-14, CO-18 and CO-19 report. CO-19 (mixed-version probe) answers the 'unchecked' point above; rule after it reports too.",
       "recommendation": "None yet: rule on CO-14's, CO-18's and CO-19's results. A is the working assumption, subject to CO-19's go/no-go for its fail branch.",
       "resolved": "2026-10-23",
-      "resolution": "Owner 2026-10-23: the ML work is on a different branch and the promotion ruling comes later with it. Not ruled here. The owner's earlier model-choice answer (gpt-oss-20b, let users choose later) stands as the chat-model decision; the proxy's model-selection scope is not yet built."
+      "resolution": "Owner 2026-10-23: the ML work is on a different branch and the promotion ruling comes later with it. Not ruled here. The owner's earlier model-choice answer (gpt-oss-20b, let users choose later) stands as the chat-model decision; the proxy's model-selection scope is not yet built.",
+      "note": "2026-10-24: Promotion ruling is parked with the ML layer (PK1); AI-03, the item it blocks, is parked. Stays DEFERRED."
     },
     {
       "id": "CD11",
@@ -1126,7 +1163,8 @@
       "context": "CD10 option B already allowed launching on v14 and deciding promotion after launch. The owner was asked whether that could happen ahead of the ruling, to shorten the path to launch.",
       "recommendation": "Owner's call; recorded as ruled.",
       "resolved": "2026-10-22",
-      "resolution": "Owner ruling 2026-10-22: A. The freeze waits for the promotion ruling (CD10), the clean test (CO-14) and the retrain (CO-18). No launch on v14 ahead of it. The mixed-version probe (CO-19) is added to the freeze's dependencies on the same day."
+      "resolution": "Owner ruling 2026-10-22: A. The freeze waits for the promotion ruling (CD10), the clean test (CO-14) and the retrain (CO-18). No launch on v14 ahead of it. The mixed-version probe (CO-19) is added to the freeze's dependencies on the same day.",
+      "note": "2026-10-24: AI-03 is parked with the ML layer (PK1); this ruling stands unchanged."
     },
     {
       "id": "CD14",
@@ -1165,7 +1203,11 @@
       "context": "Transform audit 2026-10-22. Both compile to an empty check today, so they pass and guard nothing. 2026-10-23: the owner keeps this open until probe CO-27 (after CO-17) reports what each option would change.",
       "recommendation": "Deferred by the owner on 2026-10-23 to ideate later; no option chosen.",
       "resolved": "2026-10-23",
-      "resolution": "Owner ruling 2026-10-23: B then C. B: remove assert_constructor_pace_propagates and assert_residual_variance_shrinks now (the agent found option A fails by construction: the baseline SHA no longer exists, and a CO-17 baseline makes both tests fail). C: later, add baseline-free replacement checks (in-build ablation and constructor variance > 0), no baseline file."
+      "resolution": "Owner ruling 2026-10-23: B then C. B: remove assert_constructor_pace_propagates and assert_residual_variance_shrinks now (the agent found option A fails by construction: the baseline SHA no longer exists, and a CO-17 baseline makes both tests fail). C: later, add baseline-free replacement checks (in-build ablation and constructor variance > 0), no baseline file.",
+      "corrections": [
+        "2026-10-24 correction: this decision is RESOLVED (2026-10-23, B then C). The context line 'the owner keeps this open until probe CO-27' and the recommendation 'Deferred ... no option chosen' are stale and kept only as history; history entries of 2026-10-24T21:00 and 21:45 that say 'CD15 open' are stale for the same reason. B is done (tests removed in e87f728; CO-23 closed). C (baseline-free replacement checks: in-build ablation and constructor variance > 0, no baseline file) is NOT STARTED; tracked as watch W19."
+      ],
+      "evidence": "_evidence/co-27-2026-10-24/"
     },
     {
       "id": "CD16",
@@ -1178,7 +1220,11 @@
       "context": "Transform audit 2026-10-22, counts not re-run. Dev is stale (W3), so drifts measured on it mix real changes with staleness. The pipeline runs only when PIPELINE_ENABLED is set (W18). 2026-10-23: the owner keeps this open until probe CO-27 (after CO-17) reports what each option would change.",
       "recommendation": "None recorded; owner's call.",
       "resolved": "2026-10-23",
-      "resolution": "Owner ruling 2026-10-23: B, leave the baselines and keep the pipeline off until reviewed."
+      "resolution": "Owner ruling 2026-10-23: B, leave the baselines and keep the pipeline off until reviewed.",
+      "corrections": [
+        "2026-10-24 confirmation: the context line 'the owner keeps this open until probe CO-27' is stale (resolved 2026-10-23, B). Verified 2026-10-24: baselines unchanged, pipeline off; CO-25 closed as no change. W18 (PIPELINE_ENABLED) stays open."
+      ],
+      "evidence": "_evidence/co-27-2026-10-24/"
     },
     {
       "id": "CD17",
@@ -1218,7 +1264,8 @@
       "context": "Owner ruling recorded 2026-10-23, not a numbered CD/AD decision. Attached to CO-09; CO-14 (clean test) depends on it.",
       "recommendation": "None recorded; owner's call.",
       "resolved": "2026-10-23",
-      "resolution": "Owner ruling 2026-10-23: yes, red-flag censoring applies to stint life as well as the flag question. Owner's words: \"d5 yes\"."
+      "resolution": "Owner ruling 2026-10-23: yes, red-flag censoring applies to stint life as well as the flag question. Owner's words: \"d5 yes\".",
+      "note": "2026-10-24: CO-14 side is parked with the ML layer (PK1); the CO-09 side stays active."
     },
     {
       "id": "D6",
@@ -1232,7 +1279,64 @@
       "context": "Owner ruling recorded 2026-10-23, not a numbered CD/AD decision. Attached to CO-09 and CO-15; CO-14 (clean test) depends on it.",
       "recommendation": "None recorded; owner's call.",
       "resolved": "2026-10-23",
-      "resolution": "Owner ruling 2026-10-23: safety-car and pit ends are cut short too (censored), not left uncensored. Owner's words: \"d6 cut them short too\"."
+      "resolution": "Owner ruling 2026-10-23: safety-car and pit ends are cut short too (censored), not left uncensored. Owner's words: \"d6 cut them short too\".",
+      "amendments": [
+        {
+          "date": "2026-10-24",
+          "text": "VSC pit stops are censored for stint life, same as SC; they count as did-not-reach-the-flag (reached_flag 0). Owner ruling, 2026-10-24."
+        }
+      ],
+      "note": "2026-10-24: CO-14 side is parked with the ML layer (PK1); the CO-09 side stays active."
+    },
+    {
+      "id": "D7",
+      "raised": "2026-10-23",
+      "blocking": [
+        "CO-22"
+      ],
+      "status": "RESOLVED",
+      "question": "fct_telemetry_deltas pairing: keep teammates-only (CO-22, landed 2026-10-23, 'held for research later; not yet endorsed'), or restore cross-team pairs with a pair_type column?",
+      "context": "Owner held CO-22's teammates-only pairing on 2026-10-23 and delegated the call on 2026-10-24. Not a numbered CD/AD decision. Options weighed: A keep teammates-only; B restore cross-team with pair_type; C teammates-only plus a separate cross-team table.",
+      "recommendation": "A (opus, delegated).",
+      "resolved": "2026-10-24",
+      "resolution": "Owner's delegated decision 2026-10-24: A, teammates-only endorsed as is; model unchanged. Numbers (read-only on the pre-rebuild copy co17/dev-pre-co17.duckdb and on data/dev.duckdb; int_corner_metrics is identical in both): for cross-team pairs, splitting each corner gap into team-mean difference plus within-team driver deviation, the team part explains 55% of braking-point gap variance per lap (57% on race-averaged corners) and 59% of minimum-speed gap variance per lap (56% race-averaged); the rest is driver plus lap noise. So a cross-team row is mostly car and cannot be read as a driver delta, while a teammate row removes the car by construction. The old table was 94.7% cross-team (27,123,912 of 28,628,356 rows) and wrote 0 for 2,102,265 rows (7.3%) where driver_b had no reading, and dropped corners only driver_b measured; the new table has 1,623,427 rows with 219,526 (13.5%) one-side-missing rows held as NULL. No consumer needs cross-team rows: nothing in app/src, worker/, ml/, docs/app or the assistant grounding reads the table; only scripts/export_app_data.py exports it. If a car comparison is ever wanted, build it from team means over int_corner_metrics, not from driver pairs. Laps unchanged (161,040 in fct_cliff_prediction_features in both builds). Evidence scripts: session scratchpad tp_var.py, tp_miss.py (not committed)."
+    },
+    {
+      "id": "PK1",
+      "raised": "2026-10-24",
+      "blocking": [
+        "CO-08",
+        "CO-10",
+        "CO-20",
+        "CO-14",
+        "CO-18",
+        "CO-19",
+        "AI-01",
+        "AI-03",
+        "AI-04",
+        "AI-06",
+        "AI-07",
+        "AI-08",
+        "AI-09",
+        "AI-10",
+        "AI-11",
+        "AI-12"
+      ],
+      "status": "OPEN",
+      "question": "Scope: when does the ML layer (and the assistant built on it) come back? Owner ruled 2026-10-24: transform layer only; all ML and assistant items parked until the ML layer is redone on a separate branch.",
+      "context": "Parking uses the existing BLOCKED stage. board.py requires a BLOCKED item to have an unmet dependency or an open decision, and these items have neither, so this open decision carries them. Resolve it when the ML branch is ready; then restore each item's stage from the dated note on it.",
+      "recommendation": "Keep open until the ML redo branch lands; then re-triage every parked item (some may be superseded by the redo)."
+    },
+    {
+      "id": "D8",
+      "raised": "2026-10-24",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Label-version bundling: does v16 (CO-09 + CO-15) wait for the thin-cell and restart-lap fixes (W10) and CD7 option C micro-sector pricing (W11), or ship now with those in a later label version?",
+      "context": "W10 and W11 said both fixes ship in the W11 label version so the ML retrain happens once; that would put them in v16 with CO-09 and CO-15. Owner delegated the call 2026-10-24. Not a numbered CD/AD decision. Options weighed: A ship v16 now (CO-09 + CO-15, through CO-17), W10 and W11 in v17; B bundle W10 and W11 into v16.",
+      "recommendation": "A (opus, delegated).",
+      "resolved": "2026-10-24",
+      "resolution": "Owner's delegated decision 2026-10-24: A. v16 = CO-09 + CO-15, shipped through CO-17 now. The thin-cell tax fix and restart-lap fix (W10) and CD7 option C micro-sector pricing (W11) are separate label-version work for v17. Rejected B (bundle into v16): option C adds new models, a 1.5-3.3M-row micro-sector panel, a fit script outside dbt and a full relabel, and would block CO-17 for weeks; the restart-lap fix also moves the field base and would reopen CO-15's acceptance numbers. No new items raised by this ruling; W10 and W11 stay open with v17 as their target. The ML retrain still happens once, on the ML redo branch (PK1)."
     }
   ],
   "history": [
@@ -1947,7 +2051,8 @@
       ],
       "next_action": "Owner: confirm the D6 reading (vsc_pit censored). Then CO-15 on top of this working tree, then CO-17 (trusted rebuild, frozen-label refresh, regenerate docs/reference via scripts/gen_dbt_reference.py). test_flag_chance.py needs onnxmltools installed to run.",
       "next_command": "python3 _roadmap/_ai-integration/status/board.py",
-      "stands": "All prior rulings stand. CD6 and CD15 open."
+      "stands": "All prior rulings stand. CD6 and CD15 open.",
+      "correction": "2026-10-24 correction: 'CD15 open' in `stands` is stale; CD15 was RESOLVED 2026-10-23 (B then C). See CD15.corrections."
     },
     {
       "date": "2026-10-24T21:45:00+04:00",
@@ -1983,7 +2088,8 @@
       ],
       "next_action": "Owner: confirm D6 for vsc_pit; look at the three flagged stops and the 2018 lap-1 stints. Then CO-15 on this working tree, then CO-17 (trusted rebuild, frozen-label refresh, CI-fixture build, hash/profile baselines, docs/reference regeneration).",
       "next_command": "python3 _roadmap/_ai-integration/status/board.py",
-      "stands": "All prior rulings stand. CD6 and CD15 open."
+      "stands": "All prior rulings stand. CD6 and CD15 open.",
+      "correction": "2026-10-24 correction: 'CD15 open' in `stands` is stale; CD15 was RESOLVED 2026-10-23 (B then C). See CD15.corrections."
     },
     {
       "date": "2026-10-24",
@@ -2008,6 +2114,211 @@
         "python3 _roadmap/_ai-integration/status/board.py --check"
       ],
       "next_action": "Finish CO-09 (CO-15 waits on it; CO-17 waits on both). Still open: owner to confirm VSC censoring; decide whether to drop the duplicate cut-short columns (laps_completed, tyre_age_at_fit, fresh_at_fit) and bar the slope fields in ml/src/schema.py (proposed, not done); owner check on the two flagged stops. CD6 and CD10 unchanged.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-24",
+      "session": "Handoff: CO-08 closed as acceptance not met; CO-09 and CO-15 built in working tree; slope feature skipped; commits held until CO-17.",
+      "landed": [
+        "CO-15 fix built (wear hold, two new tests, rounding tie rule in int_pit_strategy_cost_curve). Stage MEASURED: numbers reproduced on scratch; definition of done needs CO-17.",
+        "CO-09 cut-short columns dropped from fct_stint_features and schema.yml; dbt parse and compile pass.",
+        "CO-08 acceptance recorded NOT MET (2025 bins 5 of 10 within 5 points). Cap ships, chance hidden."
+      ],
+      "verified": [
+        "dbt parse and compile clean on changed models; sqlfluff clean on changed models.",
+        "CO-15 pit-strategy test passes after the tie rule; 2 of 13,045 optima changed, both on flat stretches.",
+        "Stored slope fields checked against the data: whole-run fit, not causal at prediction time."
+      ],
+      "assumed": [
+        "Earliest-lap tie rule for pit optimum (owner has not explicitly ruled).",
+        "D6 read as covering safety-car and pit ends. VSC pits deliberately left uncensored (owner: VSC parked)."
+      ],
+      "open": [
+        "CO-17 trusted rebuild with CO-09 and CO-15 in; then CO-15 DoD and CO-09 frozen-label check.",
+        "Commit CO-09, CO-15 and tie changes as separate commits once CO-17 reproduces (owner's call).",
+        "Re-baseline model_hashes and data_profile (CO-25) after CO-17.",
+        "Slope feature: parked, not admissible on the current numbers; reconsider only as a new arm after CO-17.",
+        "Pit-strategy docs page has no tie sentence; decide if the page should say how ties resolve."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "dbt parse and compile on changed models",
+        "sqlfluff on changed models",
+        "pit-strategy singular test on scratch warehouse"
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --write-order"
+    },
+    {
+      "date": "2026-10-24",
+      "session": "Handoff: CO-17 first builds and audit fixes; D6 VSC amendment; D7 resolved; constructor team-averages page built. Nothing committed, pushed, deployed or exported.",
+      "landed": [
+        "CO-17 builds: build.log PASS=1442 ERROR=1 (assert_prior_season_labels_frozen, expected); seed re-taken with dated notes; build2.log PASS=1443 WARN=0 ERROR=0 of 1446 (now in data/dev.duckdb). Stage SPEC -> BUILDING.",
+        "Audit fixes in the tree, not yet in data/dev.duckdb: CO-15 degradation-rate column 0 past the wear hold (26,382 rows); CO-09 pit-stop search starts at the run's last fragment (119 stints regraded). Tests assert_degradation_rate_follows_wear_hold and assert_pit_not_taken_from_joined_boundary; two coefficient tests updated to the hold rule.",
+        "D6 amended 2026-10-24: VSC pit stops censored for stint life, reached_flag 0. Guard test assert_vsc_stop_censored.",
+        "D7 RESOLVED 2026-10-24 (owner's delegated decision, A): telemetry deltas teammates only; CO-22 endorsed.",
+        "Constructor team-averages page built (app/src/features/constructor-team-averages/, app/src/routes/constructors/team-averages.tsx, docs/app/constructors.mdx; route added in App.tsx and nav/routes.ts). No build-log item covers it; recorded here only."
+      ],
+      "verified": [
+        "Scratch full build with the audit fixes (co17audit/build_audit.log): PASS=1445 WARN=0 ERROR=0 of 1448.",
+        "On data/dev.duckdb (build2) the two new audit tests fail as expected (co17audit/singular_devdb.log PASS=117 ERROR=2).",
+        "Coefficient tests: 159 pass (co17audit/pytest_coefficients.log).",
+        "CO-17 build 3 with the audit fixes (co17/build3.log): PASS=1446 WARN=0 ERROR=0 of 1449; 26,382 and 119 changed rows confirmed against co17/dev-co17-pre-fixes.duckdb."
+      ],
+      "assumed": [
+        "The pit-search fix belongs to CO-09 (it is a knock-on of the tyre-run key); no item names int_pit_strategy_value except AI-01 as a source."
+      ],
+      "open": [
+        "CO-17: full per-model row-count diff table against co17/dev-pre-co17.duckdb, training_weight_f9 (CD1), W4 fixtures, W6 oracle; then definition of done and W3.",
+        "Owner, constructors page: is a raw team mean (average of each driver's laps, then equal weight per driver) acceptable as shown?",
+        "Owner, constructors page: the 20-lap floor per driver-season and equal weight per driver.",
+        "Owner, constructors page: a corner-level team comparison later (D7 says build it from team means over int_corner_metrics, not driver pairs).",
+        "Owner, constructors page: app/src/nav/pageSummaries.generated.json already has a 'constructors' entry in the working tree; owner to approve regenerating the summaries (app/src/nav/pageSummaries.mjs) as the copy to keep.",
+        "Earliest-lap tie rule for the pit optimum still not explicitly ruled (from the previous handoff)."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "make dbt-dev-full (build 3)"
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --order"
+    },
+    {
+      "date": "2026-10-24",
+      "session": "Scope change: transform layer only. All ML and assistant items parked until the ML layer is redone on a separate branch.",
+      "landed": [
+        "Owner ruling 2026-10-24: the project focuses on the transform layer only; the ML layer will be redone on a separate branch. Parked as BLOCKED, reason 'parked: ML layer redo on separate branch (owner, 2026-10-24)': CO-08, CO-10, CO-20, CO-14, CO-18, CO-19, AI-01, AI-03, AI-04, AI-06, AI-07, AI-08, AI-09, AI-10, AI-11, AI-12. New open decision PK1 carries them (the board needs an open decision to allow BLOCKED). Stays active: CO-09, CO-15, CO-17, CO-23, CO-25, CO-27, AI-13. No file, evidence or data was deleted; ml/ untouched."
+      ],
+      "verified": [
+        "board.py --check run after the edit (see next_command)."
+      ],
+      "assumed": [
+        "CO-09 and CO-15 stay active: they are dbt label and wear work, though CO-09 lists ml/src/schema.py as a source for the label version constant.",
+        "AI-13 (CI real-data job for dbt) counts as transform-side despite its AI id."
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_action": "CO-17 trusted rebuild of the dev warehouse on the new label version stays the pointer.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-24",
+      "session": "Agent B (CO-27 probe, CO-23/CO-25 close-out), recorded by the log owner. Nothing committed, pushed or deployed.",
+      "landed": [
+        "CO-23 BLOCKED -> CLOSED: CD15 option B done (tests removed in e87f728). CD15 C not started (watch W19).",
+        "CO-25 BLOCKED -> CLOSED: no change under CD16 B; baselines unchanged, pipeline off.",
+        "CO-27 SPEC -> LANDED: probe run; evidence _evidence/co-27-2026-10-24/ (probe_results.md, raw outputs, PROVENANCE.txt).",
+        "CD15: dated correction note added (status RESOLVED; old 'open/deferred' text and the 'CD15 open' lines in two 2026-10-24 history entries are stale; marked, not rewritten). CD16: confirmation note added."
+      ],
+      "verified": [
+        "Tests assert_constructor_pace_propagates.sql and assert_residual_variance_shrinks.sql absent from the tree; last touched in e87f728.",
+        "Baselines sha256 unchanged: model_hashes e2fcc4e8...926d5c, data_profile 35d0ec25...6eab.",
+        "Probe: CD15 A fails 2 of 2; byte oracle 12 fct drifts; data profile 211 drifts (on CO-17 build2)."
+      ],
+      "assumed": [
+        "CD15 C recorded as a watch rule (W19), not a new item, because a live item needs a WI doc and none exists yet.",
+        "The log owner's check of CO-27's definition of done stands in for the orchestrator's re-run."
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_action": "Owner: start CD15 C when wanted (W19); W18 still unknown.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-24",
+      "session": "Agent A (CO-17 diff table, W4 fixtures, W6 oracle proposal; CO-09 and CO-15 acceptance on build3), recorded by the log owner, who also added status_summary. Nothing committed, pushed, exported or deployed; transform/tests/model_hashes.baseline.json not overwritten.",
+      "landed": [
+        "CO-17 stays BUILDING: diff of build3 vs pre-CO-17 copy done (60 of 117 relations changed, 58 attributed, 2 unattributed: dim_corners tie, W22). W4 fixtures refreshed and sha256-matched to data/fits. Byte-oracle proposed baseline written to scratch, NOT adopted (W20, W21).",
+        "CO-09 BUILDING -> MEASURED: all acceptance lines met on build3 (stints 9,374 -> 8,945).",
+        "CO-15 stays MEASURED: all acceptance numbers reproduced on build3 (honest-range failures 15 -> 0).",
+        "New watch rules W20-W24 (owner questions) and W19 (CD15 C). New top-level key status_summary (DONE and PENDING tables)."
+      ],
+      "verified": [
+        "build3 PASS=1446 WARN=0 ERROR=0 of 1449; ci build PASS=1445 WARN=1 ERROR=0 of 1449; singular tests on dev PASS=120 of 120 (agent A logs in session scratch co17/).",
+        "board.py --check and --order after the edit; status_summary PENDING matches the --order live list."
+      ],
+      "assumed": [
+        "CO-09 moved to MEASURED because its acceptance numbers now exist on the trusted build; the definition of done is not re-run, and the stint-life gates stay with CO-18 (parked).",
+        "Agent A's 'CO-25 data_profile re-baseline' remainder is not owed: CO-25 closed under CD16 B.",
+        "status_summary is a dated snapshot; the board stays authoritative."
+      ],
+      "gates_run": [
+        "python3 -I json.load",
+        "board.py --check",
+        "board.py --order"
+      ],
+      "next_action": "Owner: W20/W21 (byte-oracle diff and which warehouse), W22 (dim_corners tie), W23, W24; then CO-17 resolves W6 and CD1 and re-runs its definition of done.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-24",
+      "session": "Delegated owner rulings W22, W10/W11 (D8), CD6 recorded by the log owner; CD7 and PK1 confirmed; W21 held for the owner. Nothing committed, pushed or rebuilt; no baseline re-taken.",
+      "landed": [
+        "W22 RESOLVED: fix (window order corner_distance_m, corner_number, corner_letter). Edit and verification by another agent: build 127 tests, 0 errors; zero row differences on dim_corners and int_corner_metrics.",
+        "D8 (new, RESOLVED): v16 = CO-09 + CO-15 ships through CO-17 now; W10 thin-cell and restart-lap fixes and W11 (CD7 option C) go to v17. Rejected bundling into v16. W10 and W11 stay open, retargeted to v17. No new items.",
+        "CD6 OPEN -> RESOLVED: A, expanding window; rejected B (LOSO). CO-10 and CO-20 stay parked on PK1.",
+        "CD7 confirmed RESOLVED 2026-10-22, A; no change. PK1 confirmed OPEN; it does not block CO-09, CO-15, CO-17 or AI-13; no change.",
+        "W21 not recorded: held at the owner's request (wants to read it first); left OPEN with no new text. W6 and W20 unchanged."
+      ],
+      "verified": [
+        "board.py --check before and after the edit.",
+        "W22 verification is the applying agent's report, relayed by the coordinator; not re-run by the log owner."
+      ],
+      "assumed": [
+        "The v16/v17 split recorded as decision D8 (delegated, like D7), since the decisions array is where owner rulings live and the split was absent."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "board.py --write-order"
+      ],
+      "next_action": "Owner reads and rules W21 (byte-oracle warehouse); CO-17 continues.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-24",
+      "session": "Handoff to a new chat. Log and notes only; nothing committed, pushed or rebuilt by this entry.",
+      "landed": [
+        "Handoff: transform close-out state recorded. Remaining path: CO-09 (MEASURED, not yet committed) -> CO-15 (MEASURED) -> CO-17 (BUILDING, pointer). Start with CO-09.",
+        "W22 RESOLVED (fix in dim_corners.sql, verified on a scratch copy). D8 recorded (v16 ships now; W10/W11 to v17). CD6 RESOLVED (A). CD7 and PK1 confirmed, no change.",
+        "W21 OPEN, held for the owner. Open question for the owner: is the 3-race CI fixture a stand-in for full data, or only a smoke test? The answer decides whether CI gets its own byte-oracle baseline (W6, AI-13).",
+        "Non-ML, non-AI close-out remaining after CO-17: W3 clears on CO-17; W5 (confirm green dbt CI run on main); W18 (confirm PIPELINE_ENABLED); W16 (triage 19 OSV findings); CI last: W6 and AI-13 after the W21 answer. W9 (simulator constants, app-side) needs an owner call on scope. v17 (W10, W11) is not needed to close v16."
+      ],
+      "verified": [
+        "board.py --check passed before this entry (per the records agent's run, 2026-10-24).",
+        "The W22 fix and its scratch verification are the applying agent's reports; not re-run by the log owner.",
+        "Two WI files (CO-09, CO-15, CO-17 per the records agent) got dated notes from an agent despite a no-WI-edits instruction. Not reviewed in this entry."
+      ],
+      "assumed": [
+        "A flagged-but-unreviewed WI edit is carried forward as an open check, not accepted."
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_action": "Review the WI-file diffs (CO-09, CO-15, CO-17) made by the records agent, then start CO-09. Owner answers the W21 fixture question (stand-in or smoke test).",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-24",
+      "session": "Agent B (chain CO-09 -> CO-15 -> CO-17): WI-file review, verification, trusted rebuild. Nothing committed, pushed, exported or deployed. transform/tests/model_hashes.baseline.json not touched; no byte-oracle re-snapshot.",
+      "landed": [
+        "CO-09 MEASURED -> LANDED, CO-15 MEASURED -> LANDED, CO-17 BUILDING -> LANDED (own checks passed, recorded in each note). W3 cleared on CO-17.",
+        "WI reconciliation: CO-09 WI header SPEC -> MEASURED; CO-09 sources and tyre-run rule now match the log (D4, CD14 1a/2/3a/4, the 2026-10-24 penalty join, D6 VSC amendment, W24). CO-15 WI: status line and the audit follow-ups (third test, degradation rate, cost tie rule). CO-17 WI: depends on CO-21 and CO-22 as the log says; status line.",
+        "CI fits fixtures refreshed (W4) from the refit output in data/fits.",
+        "Pointer moved to AI-13 (CI real-data job, the only runnable item left in transform scope); AI-13 BLOCKED -> SPEC since CO-17 landed. Not started."
+      ],
+      "verified": [
+        "make dbt-dev-full exit 0: seed PASS=16, coefficient PASS=21, dbt build PASS=1448 WARN=0 ERROR=0 SKIP=0 NO-OP=3 of 1451.",
+        "pytest transform/tasks/coefficients/tests: 159 passed.",
+        "Row counts: 119 relations, 0 changed vs pre-build copy. Value diff: float noise only (max 2.1e-10)."
+      ],
+      "assumed": [
+        "CO-09 counted as LANDED on its acceptance lines and named tests, since its WI has no definition-of-done section; the stint-life gates belong to CO-18 per the WI."
+      ],
+      "gates_run": [
+        "make dbt-dev-full (build4.log)",
+        "snapshot_model_hashes.py --check --db data/dev.duckdb (read-only; FAIL 12 fct drift, as expected for W21/W6; not a gate for this item)"
+      ],
+      "next_action": "Owner: W21 (dev, ci, or two baselines) and W6 re-snapshot; commit decision for CO-09, CO-15, CO-17 and the WI edits.",
       "next_command": "python3 _roadmap/_ai-integration/status/board.py"
     }
   ],
@@ -2036,7 +2347,7 @@
       "decision": "AD4",
       "recommended_model": "haiku",
       "title": "The Worker must not go live without the placeholder daily cap and per-visitor limit",
-      "detail": "AD4 (launch cost and access) is deferred. Until it is ruled the Worker carries a low placeholder cap (about 1 USD of usage) and a per-visitor limit, so testing cannot run up a bill.",
+      "detail": "AD4 (launch cost and access) is deferred. Until it is ruled the Worker carries a low placeholder cap (about 1 USD of usage) and a per-visitor limit, so testing cannot run up a bill. 2026-10-24: parked: AI-06 is parked (PK1). Stays on the list.",
       "clears_when": "AD4 is ruled and the launch run and switch-on (AI-12) have landed with the real cap in place.",
       "trigger": {
         "raise": {
@@ -2066,7 +2377,7 @@
       "item": "AI-03",
       "recommended_model": "sonnet",
       "title": "After the data freeze, nothing that moves a quoted number may change before the launch run",
-      "detail": "Owner 2026-10-22: the launch snapshot must not move after the freeze. Any label, seed, model-version, mart or export change after AI-03 lands reopens AI-03 and voids the launch run.",
+      "detail": "Owner 2026-10-22: the launch snapshot must not move after the freeze. Any label, seed, model-version, mart or export change after AI-03 lands reopens AI-03 and voids the launch run. 2026-10-24: parked: AI-12 is parked (PK1). Stays on the list.",
       "clears_when": "The launch run and switch-on (AI-12) have landed.",
       "trigger": {
         "raise": {
@@ -2113,7 +2424,9 @@
             "manual"
           ]
         }
-      }
+      },
+      "resolved": "2026-10-24",
+      "resolution": "Fits fixtures transform/tests/fixtures/fits/ refreshed from the CO-17 refit (constructor_car_fe, constructor_car_fe_isolation), 2026-10-24."
     },
     {
       "id": "W5",
@@ -2125,7 +2438,9 @@
       "clears_when": "A green dbt CI run on main is seen and its run id recorded.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-24",
+      "resolution": "Green dbt CI run on main: run 39499950007 on 6a6bdb6, conclusion success, 2026-10-20 (checked with gh, 2026-10-24). The three most recent main runs (e87f728, 66f3bdb, b6d8de1) failed; not investigated here."
     },
     {
       "id": "W6",
@@ -2148,7 +2463,7 @@
       "decision": "CD3",
       "recommended_model": "opus",
       "title": "D9 and D14 re-measures are owed on the retrained model",
-      "detail": "CD3: D9 (pit-strategy cost curve reading ML predictions) and D14 (01c attainable-block ceiling) stay open on the improvements board until re-measured on the new model. Moved from CO-03 to CO-18. D9 has no script yet.",
+      "detail": "CD3: D9 (pit-strategy cost curve reading ML predictions) and D14 (01c attainable-block ceiling) stay open on the improvements board until re-measured on the new model. Moved from CO-03 to CO-18. D9 has no script yet. 2026-10-24: parked: CO-18 is parked with the ML layer (PK1). Stays on the list.",
       "clears_when": "Both re-measured on CO-18's model and reported to the owner; improvements log updated.",
       "trigger": {
         "raise": {
@@ -2185,7 +2500,9 @@
             "manual"
           ]
         }
-      }
+      },
+      "resolved": "2026-10-24",
+      "resolution": "Owner ruled 2026-10-24: 2020_4 is real wear inside the fitted range and is included as real data. No item opened. Next-worst is 2024_8 at 4.59 s."
     },
     {
       "id": "W9",
@@ -2207,8 +2524,8 @@
       "item": "CO-04",
       "recommended_model": "sonnet",
       "title": "CO-04 leftovers: 4,655 thin-cell isolation laps left out (T18); third restart lap leans -0.18 s",
-      "detail": "Owner 2026-10-23: not accepted as debt. Fix it properly in the transform layer before the ML work. Thin cells: price the dirty-air tax inside the isolation panel (option 1a in the W10 ideation report; no label move). Restart lap: owner to choose the fix (2b: third and fourth green laps use their own trimmed mean, fourth lap re-measured; or 2c red flags only). Both changes to the field base move labels, so they ship with the W11 label version, so the ML retrain happens once. Ideation report: scratchpad/w10-ideation.md.",
-      "clears_when": "Thin-cell tax fix and restart-lap fix are landed in their own items, verified on a rebuilt dev, and bundled into the label version with W11 option C.",
+      "detail": "Owner 2026-10-23: not accepted as debt. Fix it properly in the transform layer before the ML work. Thin cells: price the dirty-air tax inside the isolation panel (option 1a in the W10 ideation report; no label move). Restart lap: owner to choose the fix (2b: third and fourth green laps use their own trimmed mean, fourth lap re-measured; or 2c red flags only). Both changes to the field base move labels, so they ship with the W11 label version, so the ML retrain happens once. Ideation report: scratchpad/w10-ideation.md. 2026-10-24 (D8): v16 ships now without these fixes; thin-cell and restart-lap fixes go to label version v17.",
+      "clears_when": "Thin-cell tax fix and restart-lap fix are landed in their own items, verified on a rebuilt dev, and shipped in label version v17 with W11 option C (D8, 2026-10-24: not in v16).",
       "trigger": {
         "clear": "manual"
       }
@@ -2221,7 +2538,7 @@
       "decision": "CD7",
       "recommended_model": "opus",
       "title": "Dirty air stays priced at lap grain; micro-sector pricing (CD7 option C) is a future project",
-      "detail": "Owner 2026-10-23: option C is wanted and the time exists. It is its own label-version item in this build order, sequenced before the ML retrain (ML is being reset on a separate branch, so the retrain happens once). Recommended path from the W11 ideation: build the micro-sector panel and robustness checks first (race-clustered SEs, non-green track status dropped, lapped cars excluded, pre-registered placebo), then the label version. Ideation report: scratchpad/w11-ideation.md.",
+      "detail": "Owner 2026-10-23: option C is wanted and the time exists. It is its own label-version item in this build order, sequenced before the ML retrain (ML is being reset on a separate branch, so the retrain happens once). Recommended path from the W11 ideation: build the micro-sector panel and robustness checks first (race-clustered SEs, non-green track status dropped, lapped cars excluded, pre-registered placebo), then the label version. Ideation report: scratchpad/w11-ideation.md. 2026-10-24 (D8): not bundled into v16; option C is v17 label-version work, raised as its own item when started.",
       "clears_when": "Option C is raised as its own item in this build order (owner ruled to pursue it, 2026-10-23).",
       "trigger": {
         "clear": "manual"
@@ -2235,7 +2552,7 @@
       "decision": "CD11",
       "recommended_model": "sonnet",
       "title": "Does 'keep the line as it is' (CD11) include the relabel from v14 to 'refit of the v14 configuration'?",
-      "detail": "The page and the lookup stamp say v14, but the lookup is an expanding-window refit of the v14 configuration, not the served booster (CO-11). Keeping it as it is keeps an overstatement; relabelling changes text, not values.",
+      "detail": "The page and the lookup stamp say v14, but the lookup is an expanding-window refit of the v14 configuration, not the served booster (CO-11). Keeping it as it is keeps an overstatement; relabelling changes text, not values. 2026-10-24: parked: Chance line is parked with the ML layer (PK1). Stays on the list.",
       "clears_when": "CO-11 lands, or the owner says the label stays.",
       "trigger": {
         "clear": {
@@ -2256,7 +2573,7 @@
       "decision": "CD11",
       "recommended_model": "opus",
       "title": "May the assistant quote the experimental chance number?",
-      "detail": "The line is kept on the simulator (CD11) but fails its 2025 calibration bar. No AI doc says whether the honesty policy (AI-02) and the cards (AI-01) include it, exclude it, or quote it only with its experimental label.",
+      "detail": "The line is kept on the simulator (CD11) but fails its 2025 calibration bar. No AI doc says whether the honesty policy (AI-02) and the cards (AI-01) include it, exclude it, or quote it only with its experimental label. 2026-10-24: parked: Assistant is parked (PK1). Stays on the list.",
       "clears_when": "AI-02 records the rule, or the owner rules.",
       "trigger": {
         "clear": {
@@ -2278,7 +2595,7 @@
       "decision": "CD10",
       "recommended_model": "opus",
       "title": "If CD10 promotes a new stint-life model, does the chance line stay on its v14-configuration lookup?",
-      "detail": "CD11 keeps the line as it is (lookup sha256 5339d041...fefe1). A stint-life promotion would leave the line built on a different model than the one served.",
+      "detail": "CD11 keeps the line as it is (lookup sha256 5339d041...fefe1). A stint-life promotion would leave the line built on a different model than the one served. 2026-10-24: parked: CD10 and the chance line are parked with the ML layer (PK1). Stays on the list.",
       "clears_when": "The owner says whether the line follows the promotion.",
       "trigger": {
         "raise": {
@@ -2295,7 +2612,7 @@
       "decision": "CD8",
       "recommended_model": "opus",
       "title": "Is 2026 still a clean season for the flag-chance test, given CD8 rejected it for stint life?",
-      "detail": "CD8 ruled 2026 out for stint life as a mixed-era season. Moot while CD11 schedules no 2026 test; must be ruled before any CO-10 freeze.",
+      "detail": "CD8 ruled 2026 out for stint life as a mixed-era season. Moot while CD11 schedules no 2026 test; must be ruled before any CO-10 freeze. 2026-10-24: parked: CO-10 is parked with the ML layer (PK1). Stays on the list.",
       "clears_when": "Ruled by the owner, or CO-10 closed.",
       "trigger": {
         "clear": {
@@ -2345,7 +2662,622 @@
       "clears_when": "The setting is confirmed (on or off) and recorded.",
       "trigger": {
         "clear": "manual"
+      },
+      "resolved": "2026-10-24",
+      "resolution": "Owner ruled 2026-10-24: record as off. Repository variable PIPELINE_ENABLED is not set (gh variable get, 2026-10-24); environment-level variables not checked."
+    },
+    {
+      "id": "W19",
+      "raised": "2026-10-24",
+      "kind": "debt",
+      "item": "CO-23",
+      "recommended_model": "sonnet",
+      "title": "CD15 C not started: baseline-free replacements for the two removed tests",
+      "detail": "CD15 (2026-10-23) ruled B then C. B is done (tests removed in e87f728, CO-23 closed). C is not built: an in-build ablation check and a constructor variance > 0 check, with no baseline file. Until then nothing checks constructor variance > 0 (0.628 on CO-17 build2) or residual-variance regression.",
+      "clears_when": "The two baseline-free checks are written, pass on a reviewed build, and are recorded here (or C is raised as its own item with a WI doc).",
+      "trigger": {
+        "clear": "manual"
+      },
+      "decision": "CD15",
+      "resolved": "2026-10-24",
+      "resolution": "CD15 C built. assert_constructor_pace_propagates (variance > 0) and assert_residual_variance_shrinks (in-build check: ratio < 0.95 and >= the per-(race, constructor) floor; inherited 0.85-0.99 band replaced) both pass on the 2026-10-24 build (ratio 0.720, floor 0.641, 148,622 laps). Not committed."
+    },
+    {
+      "id": "W20",
+      "raised": "2026-10-24",
+      "kind": "pending-ruling",
+      "item": "CO-17",
+      "recommended_model": "opus",
+      "title": "Accept the proposed byte-oracle baseline diff?",
+      "detail": "Agent A (2026-10-24) wrote a proposed baseline from the ci build (session scratch co17/model_hashes.proposed_ci.json, diff co17/byte_oracle_proposed.diff, 368 lines): 12 fct_* drifted, 74 non-fct warnings, 4 new models. Not adopted; Gate 1c needs a human to confirm the drift first. Clearing it is part of W6.",
+      "clears_when": "The owner accepts or rejects the diff and the answer is recorded.",
+      "trigger": {
+        "clear": "manual"
+      },
+      "resolved": "2026-10-24",
+      "resolution": "Owner 2026-10-24: reject the proposed ci-sized byte-oracle baseline (co17/model_hashes.proposed_ci.json). Not adopted. The re-take from dev is held with the ML layer work (PK1)."
+    },
+    {
+      "id": "W21",
+      "raised": "2026-10-24",
+      "kind": "pending-ruling",
+      "item": "CO-17",
+      "recommended_model": "opus",
+      "title": "Which warehouse does the byte-oracle baseline track: dev or ci?",
+      "detail": "The committed model_hashes.baseline.json is dev-sized (e.g. fct_cliff_prediction_features 161,040 rows; ci has 2,562). pipeline.yml checks it against data/dev.duckdb, dbt-ci.yml Gate 1c against data/ci.duckdb. One baseline cannot serve both gates.",
+      "clears_when": "The owner picks dev, ci, or two baselines, and it is recorded.",
+      "trigger": {
+        "clear": "manual"
       }
+    },
+    {
+      "id": "W22",
+      "raised": "2026-10-24",
+      "kind": "pending-ruling",
+      "item": "CO-17",
+      "recommended_model": "sonnet",
+      "title": "Fix the dim_corners tie (add corner_number to the window order)?",
+      "detail": "dim_corners.sql orders its window by corner_distance_m with no tie-breaker. In 2022_21, Turn_4 and Turn_5 share apex 1114.035 m, so they swap between builds: the only unattributed diffs in CO-17 (dim_corners 2 rows, int_corner_metrics 2,518 rows). Code unchanged since d383e3c.",
+      "clears_when": "The owner rules (fix or leave) and, if fixed, the tie-breaker is in and the diff re-checked.",
+      "trigger": {
+        "clear": "manual"
+      },
+      "resolved": "2026-10-24",
+      "resolution": "Owner's delegated decision 2026-10-24: fix. dim_corners.sql now orders its window by corner_distance_m, corner_number, corner_letter. Verified by the agent that applied the edit: build passed (127 tests, 0 errors) with zero row differences on dim_corners and int_corner_metrics. Rejected: leave it (the 2022_21 Turn_4/Turn_5 swap would keep producing unattributed diffs between builds). Not committed."
+    },
+    {
+      "id": "W23",
+      "raised": "2026-10-24",
+      "kind": "pending-ruling",
+      "item": "CO-15",
+      "recommended_model": "opus",
+      "title": "Pit optimum: earliest-lap tie rule not explicitly ruled",
+      "detail": "int_pit_strategy_cost_curve picks the earliest lap on a tie for the optimum. Carried as an open owner question from the 2026-10-24 handoffs; never ruled.",
+      "clears_when": "The owner rules on the tie rule and it is recorded.",
+      "trigger": {
+        "clear": "manual"
+      },
+      "resolved": "2026-10-24",
+      "resolution": "Owner 2026-10-24: yes. Earliest lap wins on a tie, cost rounded to 6 dp. Moves 2 of 13,045 optima, both on flat 28-lap stretches. Output rule only; no retrain."
+    },
+    {
+      "id": "W24",
+      "raised": "2026-10-24",
+      "kind": "pending-ruling",
+      "item": "CO-09",
+      "recommended_model": "opus",
+      "title": "Three green same-tyre stops look neutralised but carry no SC/VSC flag",
+      "detail": "2023_20 PIA and RIC lap 2, 2020_14 OCO lap 1: left split under the penalty-only join (CO-09 follow-up evidence _evidence/co-09-2026-10-24-b/). Still open.",
+      "clears_when": "The owner rules join, censor or leave split, and it is recorded.",
+      "trigger": {
+        "clear": "manual"
+      },
+      "resolved": "2026-10-24",
+      "resolution": "Owner 2026-10-24: leave split. 2023_20 PIA and RIC lap 2 and 2020_14 OCO lap 1 stay green_pit, no join, no censor, noted as possibly neutralised (3 of about 124,496 training rows; negligible)."
     }
-  ]
+  ],
+  "status_summary": {
+    "as_of": "2026-10-24",
+    "note": "Dated snapshot written by the log owner; the board (board.py, BUILD-ORDER.md) is authoritative. Update it with each session.",
+    "done": [
+      {
+        "id": "CO-01",
+        "type": "item LANDED",
+        "date": "2026-10-15",
+        "result": "Mart semantics fixed: teammate gap no longer doubled, ranks renamed, pit-lane starts NULL."
+      },
+      {
+        "id": "CO-02",
+        "type": "item LANDED",
+        "date": "2026-10-15",
+        "result": "Cliff label defects fixed (wear double-count, 2018 refit, 2025 fit)."
+      },
+      {
+        "id": "CO-03",
+        "type": "item CLOSED",
+        "date": "2026-10-22",
+        "result": "Closed, superseded by CO-18 (v15 not promoted)."
+      },
+      {
+        "id": "CO-04",
+        "type": "item LANDED",
+        "date": "2026-10-15",
+        "result": "Measurement honesty: missing telemetry NULL, restart-lap mean; thin cells not yet handled (4,655 isolation laps left out; W10/T18 open)."
+      },
+      {
+        "id": "CO-05",
+        "type": "item LANDED",
+        "date": "2026-10-23",
+        "result": "Ingestion checks re-tested (139 pass); fixes-log W4 resolved."
+      },
+      {
+        "id": "CO-06",
+        "type": "item LANDED",
+        "date": "2026-10-22",
+        "result": "Stale 2018 offset text removed from schema and docs."
+      },
+      {
+        "id": "CO-07",
+        "type": "item LANDED",
+        "date": "2026-10-15",
+        "result": "Stale improvements rulings put to owner (CD3) and recorded."
+      },
+      {
+        "id": "AI-02",
+        "type": "item LANDED",
+        "date": "2026-10-23",
+        "result": "Honesty policy as machine-checkable rules (last step AI-14)."
+      },
+      {
+        "id": "AI-05",
+        "type": "item CLOSED",
+        "date": "2026-10-15",
+        "result": "Closed, cut from v1 (prediction cards cover it)."
+      },
+      {
+        "id": "CO-11",
+        "type": "item LANDED",
+        "date": "2026-10-22",
+        "result": "Chance number relabelled as a refit of the v14 configuration."
+      },
+      {
+        "id": "CO-12",
+        "type": "item CLOSED",
+        "date": "2026-10-23",
+        "result": "Closed by CD12 A: no 2026 ingest now."
+      },
+      {
+        "id": "CO-13",
+        "type": "item CLOSED",
+        "date": "2026-10-22",
+        "result": "Closed, overtaken: chance line already on main."
+      },
+      {
+        "id": "CO-16",
+        "type": "item LANDED",
+        "date": "2026-10-22",
+        "result": "Sector dirty-air tax = lap tax x sector share (CD7 A)."
+      },
+      {
+        "id": "CO-21",
+        "type": "item LANDED",
+        "date": "2026-10-23",
+        "result": "Proximity exposure stays NULL without telemetry."
+      },
+      {
+        "id": "CO-22",
+        "type": "item LANDED",
+        "date": "2026-10-23",
+        "result": "Telemetry deltas teammates only, no COALESCE to 0 (D7 endorsed)."
+      },
+      {
+        "id": "CO-23",
+        "type": "item CLOSED",
+        "date": "2026-10-24",
+        "result": "Closed: CD15 B done, both tests removed in e87f728; CD15 C not started (W19)."
+      },
+      {
+        "id": "CO-24",
+        "type": "item LANDED",
+        "date": "2026-10-23",
+        "result": "Era boundary read from var('era_boundary'); no output moved."
+      },
+      {
+        "id": "CO-25",
+        "type": "item CLOSED",
+        "date": "2026-10-24",
+        "result": "Closed, no change: CD16 B, baselines kept, pipeline off."
+      },
+      {
+        "id": "CO-26",
+        "type": "item LANDED",
+        "date": "2026-10-23",
+        "result": "135 relationships tests added, all pass."
+      },
+      {
+        "id": "AI-14",
+        "type": "item LANDED",
+        "date": "2026-10-23",
+        "result": "CHANCE_LINE_QUOTABLE switched to the AD5 EXCLUDE rule."
+      },
+      {
+        "id": "CO-27",
+        "type": "item LANDED",
+        "date": "2026-10-24",
+        "result": "Probe done; confirms CD15 B and CD16 B; evidence _evidence/co-27-2026-10-24/."
+      },
+      {
+        "id": "CO-28",
+        "type": "item LANDED",
+        "date": "2026-10-23",
+        "result": "Tyre Cliff Survival page chips render (race id fix)."
+      },
+      {
+        "id": "CO-29",
+        "type": "item LANDED",
+        "date": "2026-10-23",
+        "result": "Team lineage in dim_constructors; one primary team per driver-season."
+      },
+      {
+        "id": "AD1",
+        "type": "decision RESOLVED",
+        "date": "2026-10-15",
+        "result": "Cloudflare Workers AI behind a Worker proxy, free allowance."
+      },
+      {
+        "id": "CD1",
+        "type": "decision RESOLVED",
+        "date": "2026-10-15",
+        "result": "Keep dropping 'mistake' laps; F9 not wired."
+      },
+      {
+        "id": "CD2",
+        "type": "decision RESOLVED",
+        "date": "2026-10-15",
+        "result": "2018 cliff fitted in-sample as a declared exception."
+      },
+      {
+        "id": "CD3",
+        "type": "decision RESOLVED",
+        "date": "2026-10-15",
+        "result": "Yes to all four stale improvements rulings."
+      },
+      {
+        "id": "CD4",
+        "type": "decision RESOLVED",
+        "date": "2026-10-23",
+        "result": "B: race-clustered acceptance rule for the chance line."
+      },
+      {
+        "id": "CD5",
+        "type": "decision RESOLVED",
+        "date": "2026-10-23",
+        "result": "C: cap only everywhere."
+      },
+      {
+        "id": "CD7",
+        "type": "decision RESOLVED",
+        "date": "2026-10-22",
+        "result": "A: sector tax = lap tax x sector time share."
+      },
+      {
+        "id": "AD2",
+        "type": "decision RESOLVED",
+        "date": "2026-10-22",
+        "result": "gpt-oss-20b, seven tools."
+      },
+      {
+        "id": "AD3",
+        "type": "decision RESOLVED",
+        "date": "2026-10-22",
+        "result": "Yes: query-builder numbers allowed, labelled computed_not_card."
+      },
+      {
+        "id": "AD4",
+        "type": "decision RESOLVED",
+        "date": "2026-10-23",
+        "result": "B: free allowance only for now."
+      },
+      {
+        "id": "CD8",
+        "type": "decision RESOLVED",
+        "date": "2026-10-22",
+        "result": "Stint-life clean test: leave-one-season-out 2018-2024."
+      },
+      {
+        "id": "CD9",
+        "type": "decision RESOLVED",
+        "date": "2026-10-22",
+        "result": "A: fix the wear term in CO-09's label version."
+      },
+      {
+        "id": "CD11",
+        "type": "decision RESOLVED",
+        "date": "2026-10-22",
+        "result": "C: keep the chance line as it is."
+      },
+      {
+        "id": "CD12",
+        "type": "decision RESOLVED",
+        "date": "2026-10-23",
+        "result": "A: no 2026 ingest now."
+      },
+      {
+        "id": "CD13",
+        "type": "decision RESOLVED",
+        "date": "2026-10-22",
+        "result": "A: no launch on v14 ahead of CD10."
+      },
+      {
+        "id": "CD14",
+        "type": "decision RESOLVED",
+        "date": "2026-10-23",
+        "result": "Stint-label choices ruled (age + 1 join, penalty-only green join)."
+      },
+      {
+        "id": "AD5",
+        "type": "decision RESOLVED",
+        "date": "2026-10-22",
+        "result": "EXCLUDE: the assistant does not quote the chance number."
+      },
+      {
+        "id": "CD15",
+        "type": "decision RESOLVED",
+        "date": "2026-10-23",
+        "result": "B then C: tests removed (done); C baseline-free checks not started (W19)."
+      },
+      {
+        "id": "CD16",
+        "type": "decision RESOLVED",
+        "date": "2026-10-23",
+        "result": "B: baselines kept, pipeline off until reviewed."
+      },
+      {
+        "id": "CD17",
+        "type": "decision RESOLVED",
+        "date": "2026-10-23",
+        "result": "A: real-data test job on a reviewed build (AI-13)."
+      },
+      {
+        "id": "D4",
+        "type": "decision RESOLVED",
+        "date": "2026-10-24",
+        "result": "Re-key stint_id everywhere to the tyre run."
+      },
+      {
+        "id": "D5",
+        "type": "decision RESOLVED",
+        "date": "2026-10-23",
+        "result": "Red-flag censoring applies to stint life too."
+      },
+      {
+        "id": "D6",
+        "type": "decision RESOLVED",
+        "date": "2026-10-23",
+        "result": "SC and pit ends censored (VSC amendment 2026-10-24)."
+      },
+      {
+        "id": "D7",
+        "type": "decision RESOLVED",
+        "date": "2026-10-24",
+        "result": "A: telemetry deltas teammates only."
+      },
+      {
+        "id": "W20",
+        "type": "watch RESOLVED",
+        "date": "2026-10-24",
+        "result": "Owner: reject the proposed ci-sized byte-oracle baseline; re-take held with PK1."
+      },
+      {
+        "id": "W23",
+        "type": "watch RESOLVED",
+        "date": "2026-10-24",
+        "result": "Owner: earliest lap wins a pit-optimum tie, cost rounded to 6 dp."
+      },
+      {
+        "id": "W24",
+        "type": "watch RESOLVED",
+        "date": "2026-10-24",
+        "result": "Owner: leave the three possibly-neutralised stops split."
+      },
+      {
+        "id": "W19",
+        "type": "watch RESOLVED",
+        "date": "2026-10-24",
+        "result": "CD15 C built: constructor variance and residual-variance checks pass."
+      },
+      {
+        "id": "D8",
+        "type": "decision RESOLVED",
+        "date": "2026-10-24",
+        "result": "A: v16 (CO-09 + CO-15) ships through CO-17; W10 and W11 go to v17."
+      },
+      {
+        "id": "CD6",
+        "type": "decision RESOLVED",
+        "date": "2026-10-24",
+        "result": "A: expanding window for the flag-chance lookup."
+      },
+      {
+        "id": "W22",
+        "type": "watch RESOLVED",
+        "date": "2026-10-24",
+        "result": "Fix: dim_corners ordered by distance, corner number, letter; verified, 0 row diffs."
+      },
+      {
+        "id": "CO-09",
+        "type": "item LANDED",
+        "date": "2026-10-24",
+        "result": "Stint labels: tyre-run key (D4 re-key), red-flag and SC/VSC censoring, v16 label. 8,945 stints (from 9,374). Verified on the CO-17 rebuild."
+      },
+      {
+        "id": "CO-15",
+        "type": "item LANDED",
+        "date": "2026-10-24",
+        "result": "Monaco 2024 wear hold (CD9 A): honest-range failures 15 -> 0, joint label v16 with CO-09."
+      },
+      {
+        "id": "CO-17",
+        "type": "item LANDED",
+        "date": "2026-10-24",
+        "result": "Trusted dev rebuild: 1448 pass, 0 errors; row counts unchanged vs pre-build; W3 cleared. W6 and W21 remain the owner's."
+      }
+    ],
+    "pending": [
+      {
+        "id": "CO-14",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "CO-17, PK1"
+      },
+      {
+        "id": "CO-18",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "CO-17, PK1"
+      },
+      {
+        "id": "CO-19",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "CO-18, PK1"
+      },
+      {
+        "id": "AI-03",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "CO-14, CO-17, CO-18, CO-19, PK1"
+      },
+      {
+        "id": "AI-01",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "CO-17, PK1"
+      },
+      {
+        "id": "AI-09",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "AI-01, PK1"
+      },
+      {
+        "id": "AI-10",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "PK1"
+      },
+      {
+        "id": "AI-11",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "AI-09, PK1"
+      },
+      {
+        "id": "AI-04",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "AI-01, AI-09, AI-10, AI-11, PK1"
+      },
+      {
+        "id": "AI-06",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "PK1"
+      },
+      {
+        "id": "AI-07",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "AI-01, AI-04, PK1"
+      },
+      {
+        "id": "AI-08",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "AI-04, AI-06, PK1"
+      },
+      {
+        "id": "AI-12",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "AI-03, AI-06, AI-07, AI-08, PK1"
+      },
+      {
+        "id": "AI-13",
+        "type": "active item",
+        "status": "BLOCKED",
+        "waiting_on": "CO-17; W18 (PIPELINE_ENABLED) unknown"
+      },
+      {
+        "id": "CO-08",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "PK1"
+      },
+      {
+        "id": "CO-10",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "CO-09, PK1"
+      },
+      {
+        "id": "CO-20",
+        "type": "parked item (PK1)",
+        "status": "BLOCKED",
+        "waiting_on": "CO-17, PK1"
+      },
+      {
+        "id": "CD10",
+        "type": "owner decision DEFERRED",
+        "status": "DEFERRED",
+        "waiting_on": "deferred by owner to the ML branch; blocks AI-03 (parked)"
+      },
+      {
+        "id": "PK1",
+        "type": "owner decision OPEN",
+        "status": "OPEN",
+        "waiting_on": "the ML-layer redo branch (owner); parks 16 items"
+      },
+      {
+        "id": "W5",
+        "type": "watch unverified",
+        "status": "OPEN",
+        "waiting_on": "A green dbt CI run on main is seen and its run id recorded."
+      },
+      {
+        "id": "W18",
+        "type": "watch unverified",
+        "status": "OPEN",
+        "waiting_on": "The setting is confirmed (on or off) and recorded."
+      },
+      {
+        "id": "W3",
+        "type": "watch stale-artifact",
+        "status": "OPEN",
+        "waiting_on": "CO-17 (trusted full rebuild) has landed."
+      },
+      {
+        "id": "W15",
+        "type": "watch pending-ruling",
+        "status": "OPEN",
+        "waiting_on": "Ruled by the owner, or CO-10 closed."
+      },
+      {
+        "id": "W21",
+        "type": "watch pending-ruling",
+        "status": "OPEN",
+        "waiting_on": "The owner picks dev, ci, or two baselines, and it is recorded."
+      },
+      {
+        "id": "W6",
+        "type": "watch gate-gap",
+        "status": "OPEN",
+        "waiting_on": "Re-snapshotted on CO-17's build and continue-on-error removed."
+      },
+      {
+        "id": "W9",
+        "type": "watch debt",
+        "status": "OPEN",
+        "waiting_on": "Constants re-tuned to the current seed, or the clamp shown to be harmless; record which."
+      },
+      {
+        "id": "W10",
+        "type": "watch debt",
+        "status": "OPEN",
+        "waiting_on": "Thin-cell tax fix and restart-lap fix are landed in their own items, verified on a rebuilt dev, and shipped in label version v17 with W11 option C (D8, 2026-10-24: not in v16)."
+      },
+      {
+        "id": "W11",
+        "type": "watch debt",
+        "status": "OPEN",
+        "waiting_on": "Option C raised as its own v17 label-version item (D8)."
+      },
+      {
+        "id": "W16",
+        "type": "watch debt",
+        "status": "OPEN",
+        "waiting_on": "Triaged, with each fixed or accepted."
+      }
+    ]
+  }
 }

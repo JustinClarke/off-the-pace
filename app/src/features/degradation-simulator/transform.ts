@@ -42,9 +42,10 @@ import type { FlagChance, FlagChanceLookup } from '../../ml/flagChance'
 // the join into the observed working window is C¹-continuous (no kink).
 const CLIFF_GAIN = 0.08
 const CLIFF_EXP = 1.5
-// The fitted params are noisy in thin-data cells (severity spans ~0.4–3.3, onset ~6–50), so clamp.
-const CLIFF_SEVERITY_MIN = 0.6
-const CLIFF_SEVERITY_MAX = 1.6
+// Fitted severity runs 0.0–1.5 (compound_cliff_params.csv; fit_compound_cliff.py caps it at 1.5), onset
+// ~6–50. Thin-data cells are noisy, so clamp: the max matches the fit cap, the min keeps a faint cliff.
+const CLIFF_SEVERITY_MIN = 0.2
+const CLIFF_SEVERITY_MAX = 1.5
 const CLIFF_ONSET_MIN = 6
 const CLIFF_ONSET_MAX = 40
 const CLIFF_ONSET_DEFAULT = 22

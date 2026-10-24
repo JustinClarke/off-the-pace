@@ -1,6 +1,8 @@
 # CO-17 — Trusted full rebuild of the dev warehouse
 
-**Group:** 1 data settled · **Depends on:** `CO-09`, `CO-15`, `CO-16` · **Blocker:** none.
+**Status:** LANDED in the working tree 2026-10-24 (build log, item CO-17). W6 (byte-oracle re-snapshot) and W21 (dev or ci baseline) are the owner's and not done here. Build log: `status/build-log.json`.
+
+**Group:** 1 data settled · **Depends on:** `CO-09`, `CO-15`, `CO-16`, `CO-21`, `CO-22` · **Blocker:** none. (CO-21 and CO-22 were added 2026-10-23: both change numbers this build is trusted to carry.)
 
 **Sources:** `Makefile` (`dbt-dev-full`), `transform/dbt_project.yml`, `transform/models/`, `transform/tests/`, `transform/models/intermediate/int_lap_anomaly_flags.sql`.
 

@@ -1,0 +1,18 @@
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.prefix, expected /Users/justin/github/off-the-pace/.venv, got /Users/justin/github/off-the-pace/transform/../.venv
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /Users/justin/github/off-the-pace/.venv, got /Users/justin/github/off-the-pace/transform/../.venv
+FAIL: byte-stable fct_* models drifted (12): fct_cliff_prediction_features, fct_driver_isolation_lap, fct_driver_isolation_pair_lap, fct_driver_isolation_race, fct_driver_isolation_stint, fct_driver_skill_features, fct_ghost_car_pace, fct_ghost_race_finish, fct_lap_residuals, fct_power_law_training, fct_stint_features, fct_telemetry_deltas
+  fct_cliff_prediction_features: d22754c562b71de1d81a138fde9034b7 -> 96ef51bd8863954a572b110b198fb618
+  fct_driver_isolation_lap: 78614deec433a1d75a66d3439c53bed6 -> b9f0c996206ed822371295df26e8fa0b (rows 128149 -> 123085)
+  fct_driver_isolation_pair_lap: 37ec2cb41e14affc65de1d4dfe18d3af -> d45d279db0cc97df6f847ea3d7df8669 (rows 558434 -> 523668)
+  fct_driver_isolation_race: 28ee07153a6a606885bb7ec72ecec0d0 -> be67a5dd61cec06a6ab97246c590192d (rows 3138 -> 3079)
+  fct_driver_isolation_stint: cee04886470d7e5ad068e383c98c437c -> eb993c87f1bf63d268b9ba784f9ea88b (rows 26700 -> 25963)
+  fct_driver_skill_features: 3b666e7122df41d7c6d1cd64162833b5 -> 6ed9e255491251584b5ae791ef6ac769
+  fct_ghost_car_pace: 13900fb963687fb0ff54ffa7155c55e7 -> 561f0d1c7d7d633327a8a45809a9deb4 (rows 1429337 -> 1384558)
+  fct_ghost_race_finish: 85037625e7af56da6fb8d76d5263eeda -> 6d0ebb216c6d67e9155aa119b8bac3ed (rows 30765 -> 30344)
+  fct_lap_residuals: 8a2b646d28b3621baa7a29d83a5e6502 -> bfa4d7813a720e9491c09a368aab65c9
+  fct_power_law_training: ca108b66f19f94e9d5da79aacd6cf81c -> 4cccbbfa2e51dff5a74e0631c1d74c75 (rows 392 -> 390)
+  fct_stint_features: 4b8c17e86d962f564f9c6f83fb29e817 -> 36e54564a65eaf5ade6570e3083d97e1 (rows 9374 -> 8945)
+  fct_telemetry_deltas: 968705f646bfa1489189d7c49ddbbc29 -> dd7dbcd20d0b0f3938afd8e875330107 (rows 28628356 -> 1623427)
+NEW models (not in baseline): dim_driver_seasons, mart_driver_season_summary, mart_metric_benchmark, mart_race_driver_summary
+WARNING: non-fct model output changed (53): dim_compounds_season, dim_constructors, dim_corners, int_cell_power_law_fit, int_circuit_x_constructor_interaction, int_compound_cliff_predicted, int_constructor_car_fe, int_constructor_car_fe_isolation, int_constructor_deg_sensitivity, int_constructor_structural_pace, int_constructor_structural_pace_qualifying, int_corner_drift_from_early_stint, int_corner_metrics, int_corner_skill_residuals, int_dirty_air_tax_component, int_driver_circuit_affinity, int_driver_circuit_era_affinity, int_driver_isolation_lap_pace, int_driver_isolation_lap_panel, int_driver_isolation_lap_values, int_driver_isolation_stint_tyre, int_driver_race_skill_loro, int_driver_season_ratings, int_era_normalized_driver_rating, int_field_pace_curve, int_lap_air_state, int_lap_anomaly_flags, int_lap_corner_drift, int_lap_corner_inputs, int_lap_fuel_state, int_lap_normalized_pace, int_lap_proximity, int_lap_residual_decomposed, int_lap_residual_decomposed_qualifying, int_lap_residual_stint_detrend, int_lap_telemetry_aggregates, int_lap_thermal_proxy, int_pit_strategy_cost_curve, int_pit_strategy_value, int_power_law_lap, int_qualifying_decomposed, int_qualifying_driver_summary, int_sector_residual_decomposed, int_stint_end_regime, int_stint_geometry, int_stint_power_law_fit, int_synthetic_teammate, int_track_evolution, int_tyre_surface_vs_bulk_decoupling, mart_corner_skill_driver, mart_degradation_history_envelope, stg_session_status, stg_session_status_qualifying
+exit 1

@@ -455,13 +455,39 @@ SELECT
     -- Everything that does not scale with pit_lane_loss_s. Split out so a
     -- consumer -- or a test -- can re-minimise at a different pit loss without
     -- rebuilding the curve.
-    pr.old_wear_cost_s
-    + pr.new_wear_cost_s
-    + pr.baseline_delta_s_per_lap * pr.laps_on_new_set AS wear_cost_s,
-    pr.old_wear_cost_s
-    + pr.new_wear_cost_s
-    + pr.baseline_delta_s_per_lap * pr.laps_on_new_set
-    + pr.pit_lane_loss_s * pr.pit_discount_factor AS total_cost_s
+    --
+    -- ROUNDED TO 6 DP, AND WHY. The wear hold (compound_cliff_wear_s, CO-15)
+    -- makes per-lap wear flat past onset + hold, so where the old and new sets
+    -- sit on the same plateau the curve is exactly flat across many candidate
+    -- laps -- 2018_2018_6_SIR_1 'race' ties from L = 20 to L = 47. Summed in
+    -- floating point those laps differ by ~1e-13 s, and the argmin was picking
+    -- whichever lap the rounding noise favoured: 47 at the green-flag pit
+    -- loss, 20 at +15 s, which assert_pit_loss_pushes_optimum_later caught as
+    -- a stop pulled forward (87 of 13,045 stint/horizon pairs have such a
+    -- plateau). A microsecond is far below anything the cost model can
+    -- resolve, so the noise is rounded off here and an exact plateau stays an
+    -- exact tie. Both columns are rounded: wear_cost_s is what the test
+    -- re-minimises, total_cost_s is what int_pit_strategy_value minimises.
+    --
+    -- TIE RULE: the EARLIEST candidate lap wins. Every consumer orders by
+    -- (total_cost_s, candidate_pit_lap_offset). Earliest because, on a plateau,
+    -- running further buys nothing the model can price, and because the
+    -- smallest member of the argmin set is itself monotone in pit_lane_loss_s
+    -- (Topkis: the cost has decreasing differences), so the tie rule cannot
+    -- break the property the test checks. A pick left to float noise can.
+    ROUND(
+        pr.old_wear_cost_s
+        + pr.new_wear_cost_s
+        + pr.baseline_delta_s_per_lap * pr.laps_on_new_set,
+        6
+    ) AS wear_cost_s,
+    ROUND(
+        pr.old_wear_cost_s
+        + pr.new_wear_cost_s
+        + pr.baseline_delta_s_per_lap * pr.laps_on_new_set
+        + pr.pit_lane_loss_s * pr.pit_discount_factor,
+        6
+    ) AS total_cost_s
 FROM priced AS pr
 LEFT JOIN driver_laps AS dl
     ON

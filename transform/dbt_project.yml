@@ -120,6 +120,18 @@ vars:
   # each value: 10.0 moves 4.97% of labels, 5.0 moves 11.09%, 3.0 moves 18.11%.
   # 10.0 is the conservative choice and the one continuous with the earlier, uncapped wear curve.
   compound_wear_max_s_per_lap: 10.0
+  # Tyre-age offset past the cell's cliff onset beyond which the LINEAR wear term
+  # (wear_gradient * age) is held flat instead of extrapolated (CO-15, ruling CD9).
+  # The gradient is fit on ages 3..onset-2 and the cliff step at onset+2.5 from a
+  # window ending at onset+5 (tasks/coefficients/survival.py), so past onset+5 the
+  # fitter measured nothing. Extrapolating drove 2024_8 (one-stint Monaco after a
+  # lap-1 red flag, tyre ages to 78) to the 10 s cap of charged wear against an
+  # observed weight-corrected drift of -1.8 s, and its field base to 0.905 x the
+  # race's fastest lap. Read by every site that prices the curve through
+  # macros/compound_cliff_wear.sql (int_compound_cliff_predicted,
+  # int_pit_strategy_cost_curve). Changing it moves the label (label version v16,
+  # ml/README.md).
+  compound_wear_hold_after_onset_laps: 5.0
   # THE cliff ramp length, in laps, and its only definition (CO-02, owner decision
   # E, 2026-10-15). Two readers, one number:
   #   - the fitter, tasks/coefficients/survival.py::estimate_cliff_severity, measures
@@ -240,6 +252,12 @@ vars:
   # has wrong lap numbering in bronze (watch W18), and tiers 1 and 3 match cars on
   # lap_number. A list; the panel renders it with a Jinja loop, not as a Python list.
   isolation_exclude_races: ['2020_1']
+  # int_driver_isolation_lap_panel (W10, v17): a lap in a thin field-base cell (fewer than 5
+  # clean-air laps, so no tax-component row) is kept in Ω with the dirty-air tax priced in
+  # the panel (theta_air x the previous lap's share). Races at or below this share of laps
+  # with a measured air state keep their laps out: 2018_1 and 2018_2 have no telemetry in
+  # bronze (6% measured; every other race is 94% or more).
+  isolation_thin_min_air_measured_share: 0.5
   # int_driver_isolation_lap_values: a declared season-level offset (s/lap, positive =
   # raised) added to pure_skill_gain_s, via macro driver_isolation_pure_season_offset.
   # W33, 2026-09-30, Option A for v15: a stopgap, not a measurement. y_s is centred on
@@ -342,6 +360,14 @@ seeds:
     # Re-taken 2026-10-15 (CO-03): the v15 label bump (WI-02b seed re-estimate +
     # CO-02 cliff label + CO-04 measurement honesty), one bump, one snapshot. See
     # the seed's schema.yml description and ml/README.md for what moved.
+    # Re-taken 2026-10-24 (CO-17 trusted rebuild): the v16 label bump (CO-09 tyre-run
+    # key incl. the 2b penalty joins + CO-15 wear hold past onset + 5 laps), one bump,
+    # one snapshot. Traced by counterfactual builds on copies of the pre-rebuild
+    # warehouse: pre-CO-09 code reproduces the old seed exactly (CO-16 and the other
+    # commits since 10-17 move no label); CO-09 alone moves 2018 -0.2810 -> -0.2642,
+    # 2020 rows 9,360 -> 9,383, 2021-2023 by +0.008 to +0.016; CO-15 does the rest
+    # (the working tree with the hold var at 1e6 reproduces the CO-09-only stats
+    # exactly). theta_air unchanged at 0.331.
     label_stability_baseline:
       +column_types:
         race_year: integer

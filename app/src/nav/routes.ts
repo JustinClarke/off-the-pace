@@ -70,6 +70,7 @@ export const routes: RouteConfig[] = [
   { path: '/constructors', pillar: 'constructors', label: 'Constructors' },
   { path: '/constructors/structural', pillar: 'constructors', featureId: 7, label: 'Structural Pace' },
   { path: '/constructors/circuits', pillar: 'constructors', featureId: 12, label: 'Circuit Interaction' },
+  { path: '/constructors/team-averages', pillar: 'constructors', label: 'Team Averages' },
 
   // Energy & Telemetry (pillar retired from nav-all features unshipped; see /roadmap)
   { path: '/energy', pillar: 'energy', label: 'Energy & Telemetry', shipped: false },

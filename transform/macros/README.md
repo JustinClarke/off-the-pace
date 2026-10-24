@@ -273,7 +273,9 @@ The single definition of the fitted compound wear curve's age-dependent terms: l
 the cliff step (the fitted `compound_cliff_severity`, wear already excluded) ramped in over
 `var('cliff_ramp_span_laps')` = 2.5 laps past onset and then held. The fitter
 (`survival.py::estimate_cliff_severity`) reads its step at onset + that same var, so the curve
-reaches the full step where it was measured (CO-02). The file also defines
+reaches the full step where it was measured (CO-02). The linear term's age is held at onset +
+`var('compound_wear_hold_after_onset_laps')` = 5 laps (CO-15): past that the fitter measured
+nothing, so the curve holds rather than extrapolating. The file also defines
 `cliff_severity_span()`, `cliff_plateau_s()`, `cliff_ramp_frac()`, `cliff_severity_term()` and
 `cliff_ramp_slope_s_per_lap()`. `cliff_severity_gain()` was removed by CO-02: the plateau is the
 severity itself, with no 5.5 * wear_gradient subtraction and no 2.2 gain. The expression used to be

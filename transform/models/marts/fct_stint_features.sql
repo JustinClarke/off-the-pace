@@ -166,12 +166,8 @@ pit_strategy AS (
 -- does say is how fast the tyre was going off when the stop came. These are
 -- STORED ONLY -- no model reads them as a training feature in this change.
 --
--- tyre_age_at_fit is the TyreLife age on the run's first lap (the age already
--- on the set when it was fitted, + 1 for the first lap), i.e. the same reading
--- starting_tyre_age_laps takes (MIN(age) - 1); it equals
--- starting_tyre_age_laps + 1 wherever the first lap carries an age. FastF1's
--- FreshTyre flag is unreliable, so fresh_at_fit is derived from the age and
--- the raw flag is carried separately as is_fresh_tyre_raw.
+-- FastF1's FreshTyre flag is unreliable, so it is carried separately as
+-- is_fresh_tyre_raw, for audit only.
 --
 -- Pace on clean laps: "clean" is the existing is_valid_lap rule; the time is
 -- int_lap_fuel_state.weight_corrected_lap_time (the project's fuel model:
@@ -180,8 +176,6 @@ pit_strategy AS (
 run_fit AS (
     SELECT
         sg.stint_id,
-        MIN(CASE WHEN sg.lap_in_stint = 1 THEN sg.age_in_stint END)
-            AS tyre_age_at_fit,
         BOOL_OR(CASE WHEN sg.lap_in_stint = 1 THEN sl.is_fresh_tyre END)
             AS is_fresh_tyre_raw,
         COUNT(*) FILTER (WHERE sg.is_valid_lap) AS clean_laps,
@@ -262,12 +256,10 @@ SELECT
     se.end_cause_confidence,
     se.is_stint_life_censored,
     se.reached_flag,
-    -- CO-09 cut-short fields (see run_fit). The first four are filled on every
-    -- run; the pace fields only on a run cut short by a safety-car or VSC stop
-    -- (stint_end_cause sc_pit / vsc_pit), NULL otherwise. Not model features.
-    sa.stint_length_laps AS laps_completed,
-    rf.tyre_age_at_fit,
-    rf.tyre_age_at_fit <= 1 AS fresh_at_fit,
+    -- CO-09 cut-short fields (see run_fit). is_fresh_tyre_raw is filled on
+    -- every run; the pace fields only on a run cut short by a safety-car or VSC
+    -- stop (stint_end_cause sc_pit / vsc_pit), NULL otherwise. Not model
+    -- features.
     rf.is_fresh_tyre_raw,
     CASE
         WHEN se.stint_end_cause IN ('sc_pit', 'vsc_pit') THEN rf.clean_laps

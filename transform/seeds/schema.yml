@@ -368,6 +368,13 @@ seeds:
       mean, thin field-base cells skipped). One bump, one snapshot. All seven seasons
       moved: row counts -122 to -1,278 (2022 +373), means 2018 -0.1736 -> -0.2810,
       2023 -0.0617 -> -0.3734, 2024 -0.1782 -> -0.3252; theta_air unchanged at 0.331.
+      Re-taken 2026-10-24 (CO-17 trusted rebuild) for the v16 label bump: CO-09 (tyre-run
+      key, including the 2b penalty joins) and CO-15 (linear wear held past cliff onset +
+      5 laps; 23,973 int_compound_cliff_predicted rows). One bump, one snapshot. Row
+      counts unchanged except 2020 9,360 -> 9,383 (CO-09 re-key). Means 2018 -0.2810 ->
+      +0.0519, 2019 -0.2265 -> -0.1836, 2020 -0.1355 -> -0.0806, 2021 -0.1244 -> -0.0042,
+      2022 -0.1608 -> -0.0361, 2023 -0.3734 -> -0.2705, 2024 -0.3252 -> -0.1779; about
+      0.01-0.02 s of that is CO-09, the rest CO-15. theta_air unchanged at 0.331.
     columns:
       - name: race_year
         description: Season year. Excludes the latest ingested season (still receiving rows).

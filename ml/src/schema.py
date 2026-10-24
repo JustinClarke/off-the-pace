@@ -325,10 +325,13 @@ TARGET_HORIZON_LAPS: dict[str, int] = {
 #   * The stint is a TYRE RUN. stint_id is re-keyed in int_stint_geometry (D4: everywhere, no
 #     separate run id): consecutive FastF1 stints of one driver-race join when the compound is
 #     the same, the tyre age continues at last age + 1 (CD14 1a), and the earlier stint did not
-#     end on a green-flag lap (CD14 2: green same-tyre stops stay split). The run ends where its
-#     last fragment ends. A never-joined run keeps its stint_id; a joined run takes its first
-#     fragment's id. 406 FastF1 stints fold away on the 2026-10-22 warehouse (299 safety-car
-#     drive-throughs, 107 red-flag pauses); Canada 2025 loses its 49 fake one-lap stints.
+#     end on a green-flag lap (CD14 2: green same-tyre stops stay split), unless race control
+#     recorded a drive-through, stop-go or time penalty for that car within one lap of the
+#     boundary (CD14 2b, owner 2026-10-24). The run ends where its last fragment ends. A
+#     never-joined run keeps its stint_id; a joined run takes its first fragment's id. 406
+#     FastF1 stints fold away on the 2026-10-22 warehouse (299 safety-car drive-throughs, 107
+#     red-flag pauses), plus 23 penalty stops (9,374 -> 8,945); Canada 2025 loses its 49 fake
+#     one-lap stints.
 #   * remaining_stint_life_laps = stint_length_laps - lap_in_stint over the RUN.
 #   * Censoring (STINT_LIFE_CENSOR_COLUMN = is_stint_life_censored): only a green-flag tyre
 #     change (stint_end_cause = 'green_pit') is an observed life. A red-flag tyre change (D5),

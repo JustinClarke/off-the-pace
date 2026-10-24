@@ -47,7 +47,10 @@
 --      retirement) has actual_pit_lap NULL unless a pit-in falls inside its
 --      span: a retirement into the pit lane, or a stop bronze did not split
 --      the stint at (2 stints). Every stint that ended in a stop has one,
---      whatever flag was out (T23).
+--      whatever flag was out (T23). Since CO-09 a stint is a tyre run, and
+--      only the run's last FastF1 fragment is searched, so a same-tyre stop
+--      the run was joined across (drive-through, red-flag pit, penalty) is
+--      never taken for the stop (see stint_first_lap below).
 --   5. Laps are counted in VALID laps, so optimal_pit_lap_in_stint means
 --      "after this many racing laps on the set", not a chronological index.
 
@@ -187,6 +190,9 @@ ranked AS (
         c.candidate_pit_lap_offset,
         c.candidate_lap_number,
         c.total_cost_s,
+        -- total_cost_s arrives rounded to 6 dp, so a flat stretch of the curve
+        -- is an exact tie and the offset decides it: earliest lap wins. See
+        -- the TIE RULE note in int_pit_strategy_cost_curve.
         ROW_NUMBER() OVER (
             PARTITION BY c.stint_id, c.horizon_scope
             ORDER BY c.total_cost_s, c.candidate_pit_lap_offset
@@ -298,11 +304,37 @@ stint_base AS (
 -- boundary a lap or two after the in-lap (2018_2 VET: pit-in lap 17, the
 -- stint's last lap is its out-lap, 18), so the stop is inside the span but not
 -- on its last lap.
+--
+-- CO-09 (tyre-run key): a stint is now a tyre RUN, and a joined run contains
+-- the pit-ins it was joined across -- a safety-car drive-through, a red-flag
+-- pit, a penalty served in the pit lane -- none of which changed the tyres.
+-- Searching the whole run picked such a stop as "the" stop on runs that never
+-- ended in one: 111 race_end and 8 retirement runs on the CO-17 build were
+-- graded against a drive-through. The window therefore starts at the run's
+-- LAST FastF1 fragment (stg_lap_tyre_qa.stint_number, the numbering
+-- int_stint_geometry joins), where the stop that ends the run lies. A run that
+-- was never joined is one fragment, so its window is unchanged.
+fragment_laps AS (
+    SELECT
+        sg.stint_id,
+        sg.lap_number,
+        qa.stint_number AS fragment_stint_number,
+        MAX(qa.stint_number) OVER (PARTITION BY sg.stint_id)
+            AS last_fragment_stint_number
+    FROM {{ ref('int_stint_geometry') }} AS sg
+    INNER JOIN {{ ref('stg_lap_tyre_qa') }} AS qa ON sg.lap_id = qa.lap_id
+),
+
 stint_first_lap AS (
     SELECT
         stint_id,
-        MIN(lap_number) AS first_lap_number
-    FROM {{ ref('int_stint_geometry') }}
+        COALESCE(
+            MIN(lap_number) FILTER (
+                WHERE fragment_stint_number = last_fragment_stint_number
+            ),
+            MIN(lap_number)
+        ) AS pit_window_first_lap
+    FROM fragment_laps
     GROUP BY stint_id
 ),
 
@@ -312,7 +344,7 @@ stint_span AS (
         er.race_year,
         er.race_id,
         er.driver_id,
-        fl.first_lap_number,
+        fl.pit_window_first_lap,
         er.end_lap_number
     FROM {{ ref('int_stint_end_regime') }} AS er
     INNER JOIN stint_first_lap AS fl ON er.stint_id = fl.stint_id
@@ -335,7 +367,7 @@ stint_actual_pit AS (
             AND sp.race_id = ap.race_id
             AND sp.driver_id = ap.driver_id
             AND ap.actual_pit_lap
-            BETWEEN sp.first_lap_number AND sp.end_lap_number
+            BETWEEN sp.pit_window_first_lap AND sp.end_lap_number
     GROUP BY sp.stint_id
 ),
 

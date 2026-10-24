@@ -106,6 +106,7 @@ export const router = createBrowserRouter([
           { path: '/constructors', element: lazyRoute(() => import('./routes/constructors/index')) },
           { path: '/constructors/structural', element: lazyRoute(() => import('./routes/constructors/structural-pace')) },
           { path: '/constructors/circuits', element: lazyRoute(() => import('./routes/constructors/circuit-interaction')) },
+          { path: '/constructors/team-averages', element: lazyRoute(() => import('./routes/constructors/team-averages')) },
 
           // Energy & Telemetry (deep-dives telemetry migrated here)
           { path: '/energy', element: <Stub title="Energy & Telemetry" /> },

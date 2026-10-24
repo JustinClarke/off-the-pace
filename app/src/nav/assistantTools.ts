@@ -53,6 +53,7 @@ export const routeToPageId: Record<string, string> = {
   '/constructors': 'families/constructors',
   '/constructors/structural': 'constructor-structural-pace',
   '/constructors/circuits': 'constructor-circuit-interaction',
+  '/constructors/team-averages': 'constructors',
   '/ml': 'families/the-machine',
   '/ml/blind-test': 'blind-test-scoreboard',
   '/ml/simulator': 'degradation-simulator',

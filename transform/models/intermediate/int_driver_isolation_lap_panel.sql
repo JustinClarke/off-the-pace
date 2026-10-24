@@ -38,8 +38,8 @@
 --   r.compound NOT IN ('INTERMEDIATE', 'WET')     (wet skill is out of scope)
 --   r.compound_component_s IS NOT NULL AND r.laps_past_cliff IS NOT NULL
 --                              (unknown tyre = no rating, F7/F39; never 0)
---   r.dirty_air_intensity_lag1 IS NOT NULL
---                              (measured dirty-air tax, FD6 / CO-04; below)
+--   a measured lagged air state, from the tax component's own row or, on a
+--   thin cell, priced here (FD6 / CO-04 and W10 / v17; below)
 --   r.race_id NOT IN var('isolation_exclude_races')
 --   the (race, lap) holds >= var('isolation_min_field_n') laps passing the rest
 --
@@ -82,6 +82,24 @@
 --   3,584 of them followed a car, so the 0.0 fill would under-charge them by
 --   theta_air (0.331 s). Pricing the tax without a base would keep them, and
 --   needs T18 / F23a revisited; that is an open point in the CO-04 report.
+--
+-- W10 / v17 (owner ruling 2026-10-23, option 1a): those thin-cell laps are
+--   priced here. The tax is theta_air x the previous lap's dirty-air share,
+--   clamped to [0, 5.0] -- it needs no field base (the base cancels out of y_s,
+--   T41), so the thin cell only ever blocked the tax component's row, not the
+--   tax. `thin_priced` rebuilds the lag exactly as int_dirty_air_tax_component's
+--   full_sequence_lag does (LAG over the whole stint, 0.0 only for a stint's
+--   first lap, an unmeasured previous lap stays NULL), and it applies ONLY to a
+--   lap with no tax-component row; a lap that has a row keeps that row's tax,
+--   so a lap priced in both places gets the same number
+--   (assert_isolation_thin_cell_tax_matches_component). Races where
+--   var('isolation_thin_min_air_measured_share') of the laps or fewer have a
+--   measured air state (2018_1 Australia and 2018_2 Bahrain, 6% each; no
+--   telemetry in bronze) stay out, per the owner's 2026-10-15 decision. The
+--   label spine is NOT touched: int_dirty_air_tax_component and the residual
+--   chain still carry no row/0.0 on these laps, so no ML label moves from this.
+--   is_thin_cell_tax flags the repriced laps. The car-term fit reads this panel,
+--   so the isolation car FE refit is owed (see the item note).
 --   The recovery overlay reads an unmeasured lap as unknown (is_dirty NULL),
 --   not clean: it is its own run, it neither ends nor extends a dirty run, and
 --   it is never itself a recovery lap. is_dirty_air_lap is NULL on such a lap.
@@ -96,7 +114,54 @@
 
 {%- set exclude_races = var('isolation_exclude_races') %}
 
-WITH lap_source AS (
+WITH theta AS (
+    SELECT CAST({{ var('theta_air_label_value') }} AS DOUBLE) AS theta_air
+),
+
+-- W10 / v17: the previous lap's dirty-air share on every lap, the same
+-- full-sequence lag int_dirty_air_tax_component prices from (header).
+air_lag AS (
+    SELECT
+        g.lap_id,
+        g.race_id,
+        LAG(a.dirty_air_share_lap, 1, 0.0) OVER (
+            PARTITION BY g.stint_id
+            ORDER BY g.lap_in_stint
+        ) AS share_lag1
+    FROM {{ ref('int_stint_geometry') }} AS g
+    LEFT JOIN {{ ref('int_lap_air_state') }} AS a
+        ON g.lap_id = a.lap_id
+),
+
+race_air AS (
+    SELECT
+        race_id,
+        AVG(CASE WHEN air_state_dominant IS NOT NULL THEN 1.0 ELSE 0.0 END)
+            AS air_measured_share
+    FROM {{ ref('int_lap_air_state') }}
+    GROUP BY race_id
+),
+
+thin_priced AS (
+    SELECT
+        l.lap_id,
+        l.share_lag1 AS dirty_air_intensity_lag1,
+        CASE
+            WHEN t.theta_air * l.share_lag1 < 0 THEN 0.0
+            WHEN t.theta_air * l.share_lag1 > 5.0 THEN 5.0
+            ELSE t.theta_air * l.share_lag1
+        END AS dirty_air_tax_s
+    FROM air_lag AS l
+    INNER JOIN race_air AS ra
+        ON l.race_id = ra.race_id
+    CROSS JOIN theta AS t
+    WHERE
+        l.share_lag1 IS NOT NULL
+        AND ra.air_measured_share
+        > {{ var('isolation_thin_min_air_measured_share') }}
+),
+
+lap_source AS (
     SELECT
         r.lap_id,
         r.stint_id,
@@ -113,12 +178,26 @@ WITH lap_source AS (
         r.fuel_mass_kg,
         r.lap_time_s,
         r.compound_component_s,
-        r.dirty_air_tax_s,
-        r.dirty_air_intensity_lag1,
+        -- W10 / v17: a lap with no tax-component row (thin field-base cell)
+        -- is priced from thin_priced; the residual chain's 0.0 fill is not
+        -- used. A lap with a row keeps its row.
+        CASE
+            WHEN da.lap_id IS NULL THEN tp.dirty_air_tax_s
+            ELSE r.dirty_air_tax_s
+        END AS dirty_air_tax_s,
+        CASE
+            WHEN da.lap_id IS NULL THEN tp.dirty_air_intensity_lag1
+            ELSE r.dirty_air_intensity_lag1
+        END AS dirty_air_intensity_lag1,
+        da.lap_id IS NULL AND tp.lap_id IS NOT NULL AS is_thin_cell_tax,
         a.anomaly_class
     FROM {{ ref('int_lap_residual_decomposed') }} AS r
     INNER JOIN {{ ref('int_lap_anomaly_flags') }} AS a
         ON r.lap_id = a.lap_id
+    LEFT JOIN {{ ref('int_dirty_air_tax_component') }} AS da
+        ON r.lap_id = da.lap_id
+    LEFT JOIN thin_priced AS tp
+        ON r.lap_id = tp.lap_id
     WHERE
         r.correction_weight = 1.0
         AND a.anomaly_class IN ('normal', 'clean_cliff')
@@ -128,8 +207,14 @@ WITH lap_source AS (
         AND r.compound NOT IN ('INTERMEDIATE', 'WET')
         AND r.compound_component_s IS NOT NULL
         AND r.laps_past_cliff IS NOT NULL
-        -- FD6: a dirty-air tax that was priced, not filled (header)
-        AND r.dirty_air_intensity_lag1 IS NOT NULL
+        -- FD6: a dirty-air tax that was priced, not filled (header). Priced
+        -- by the tax component, or on a thin cell by thin_priced (W10, v17).
+        AND (
+            CASE
+                WHEN da.lap_id IS NULL THEN tp.dirty_air_intensity_lag1
+                ELSE r.dirty_air_intensity_lag1
+            END
+        ) IS NOT NULL
         {%- if exclude_races | length > 0 %}
             AND r.race_id NOT IN (
                 {%- for rid in exclude_races %}
@@ -305,6 +390,7 @@ SELECT
     p.lap_time_s,
     p.compound_component_s,
     p.dirty_air_tax_s,
+    p.is_thin_cell_tax,
 
     -- Step 0 (s; positive = slower than the lap's field median).
     p.x_s,

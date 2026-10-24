@@ -565,7 +565,10 @@ models:
         description: Model-expected compound pace contribution from int_compound_cliff_predicted
         data_type: double
       - name: expected_degradation_rate_s_per_lap
-        description: Model-expected degradation rate (s/lap) at current tyre age
+        description: >
+          Model-expected degradation rate (s/lap) at current tyre age: the slope of
+          compound_wear_s. The wear gradient until cliff onset + 5 laps (0 after, CO-15
+          wear hold), plus the cliff ramp's slope while the ramp climbs.
         data_type: double
       - name: cliff_onset_passed
         description: TRUE if tyre has passed its fitted cliff onset lap
@@ -840,7 +843,9 @@ models:
       - name: stint_end_cause
         description: >
           Passed through from int_stint_end_regime. Why the stint ended: green_pit, sc_pit,
-          vsc_pit, red (the four uncensored causes) or race_end, retirement (the two censored
+          vsc_pit, red (the four causes the older is_censored_stint flag treats as
+          uncensored; for is_stint_life_censored sc_pit and vsc_pit are censored
+          too) or race_end, retirement (the two censored
           ones). 28.8% of uncensored stints are sc_pit / vsc_pit / red, i.e. the pit wall taking
           a free stop rather than the tyre reaching its limit, so anything fitting or scoring
           stint life reads this alongside is_censored_stint. NULL on stints built from laps
@@ -875,27 +880,10 @@ models:
           retirement or an unassigned stint.
       # CO-09 cut-short fields (owner-approved 2026-10-24). STORED ONLY: no model reads any of
       # them as a training feature yet; admitting them is a later, separate decision.
-      - name: laps_completed
-        description: >
-          CO-09. Laps the tyre run completed; equal to stint_length_laps, named for the
-          cut-short reading (for an sc_pit / vsc_pit run it is the laps done before the cut,
-          a lower bound on the tyre's life).
-        tests: [not_null]
-      - name: tyre_age_at_fit
-        description: >
-          CO-09. TyreLife (age_in_stint) on the run's first lap: the age the set already had
-          when fitted, plus the first lap. Equals starting_tyre_age_laps + 1 wherever the first
-          lap carries an age; NULL where it does not (quarantined units, whose age
-          stg_lap_tyre_qa withholds, and one 2018 run whose first lap has no TyreLife).
-      - name: fresh_at_fit
-        description: >
-          CO-09. tyre_age_at_fit <= 1: a new set at the fit, read from the age, not from
-          FastF1's FreshTyre flag (inconsistent across seasons; see is_fresh_tyre_raw). NULL
-          where tyre_age_at_fit is NULL.
       - name: is_fresh_tyre_raw
         description: >
           CO-09. FastF1's raw FreshTyre flag on the run's first lap (stg_laps.is_fresh_tyre),
-          carried for audit only. Not reliable; do not build logic on it - use fresh_at_fit.
+          carried for audit only. Not reliable; do not build logic on it; derive freshness from starting_tyre_age_laps (<= 0).
       - name: clean_laps_to_cut
         description: >
           CO-09. Valid laps (the existing is_valid_lap rule) the run completed before it was
@@ -921,8 +909,8 @@ models:
       - name: cut_reason
         description: >
           CO-09. Why the run was cut short: stint_end_cause when it is sc_pit or vsc_pit, NULL
-          for every other run. Both are censored for stint life under D6; whether vsc_pit should
-          be censored is an open question to the owner.
+          for every other run. Both are censored for stint life under D6; the owner ruled on
+          2026-10-24 that VSC stops are censored the same as SC (reached_flag 0).
         tests:
           - accepted_values:
               arguments:

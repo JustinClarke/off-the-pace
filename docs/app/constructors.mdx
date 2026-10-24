@@ -1,0 +1,40 @@
+---
+title: "How do the cars compare when each team is averaged per race?"
+sidebarTitle: "Team Averages"
+description: "Each constructor's car term, dirty-air tax, and driver-skill average from the same laps, with each team averaging its per-race values and no teammate or cross-team pairing."
+---
+
+Driver-vs-driver gaps across teams mostly measure the car, so this page does not pair drivers. Team averages show each constructor on its own: each team's value is the average of its per-race values, so a driver's share of races counts equally across the team's races.
+
+## What it shows
+
+Each constructor carries three season averages:
+
+- **Car term**: the team's car contribution to lap time from the lap decomposition. Lower = faster car.
+- **Dirty-air tax**: average time lost in dirty air across the team's measured laps.
+- **Driver skill**: average driver-skill residual across the team's drivers. This is the driver line-up, not the car.
+
+<Note>
+  Teammates are not paired and cross-team pairs are not compared. A cell with no measured reading is blank, not zero.
+</Note>
+
+## How to use it
+
+1. **Select a season** from the filter bar; the table reloads.
+2. **Read the car term** to rank the cars on the same laps.
+3. **Compare dirty-air tax** to see which teams spend more time in traffic.
+4. **Check the driver-skill column** to separate line-up strength from car strength.
+
+## Data source
+
+The page queries `fct_lap_residuals` via DuckDB-Wasm in the browser, using training-eligible laps (`ml_eligible`), averaged per race and then across the season's races.
+
+| Column | Meaning |
+|---|---|
+| `constructor_component_s` | Car term for the lap |
+| `dirty_air_tax_s` | Dirty-air time loss for the lap |
+| `driver_skill_residual_s` | Driver-skill residual for the lap |
+
+The data window covers **2018–2025**.
+
+For the full model definition, see the [`fct_lap_residuals` reference](/reference/models/fct/fct_lap_residuals).

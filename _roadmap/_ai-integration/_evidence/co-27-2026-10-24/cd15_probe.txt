@@ -1,0 +1,3 @@
+current_var (1.3200864922701265, 148622) constructor_var 0.6280672302651117
+variance test: ratio 1.0 FAIL
+constructor test: FAIL constructor_var>0: True

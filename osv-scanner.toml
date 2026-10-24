@@ -11,10 +11,3 @@
 # If a future advisory has to be accepted, add an [[IgnoredVulns]] block here with a reason
 # that states why it is unreachable in this project's usage (e.g. dev/build-only tooling,
 # never shipped to the browser bundle), and a plan to remove it on the next dep bump.
-
-# W16 triage (dependency audit). Everything with a patched release was fixed via the
-# `overrides` block in app/pnpm-workspace.yaml. The one entry below could not be.
-[[IgnoredVulns]]
-id = "GHSA-vfj7-8cjw-p6xm"
-ignoreUntil = 2027-04-23
-reason = "braces <=3.0.3 stack exhaustion (ReDoS-style DoS) on pathological brace patterns. Reached only via tailwindcss 3 -> chokidar/fast-glob/micromatch, i.e. build-time class scanning of our own source files; never in the shipped browser bundle and never fed untrusted input. The advisory lists 3.0.4 as patched but that version is not published to npm (latest is 3.0.3), so no override is possible. Remove when braces ships a fix or tailwind is upgraded."

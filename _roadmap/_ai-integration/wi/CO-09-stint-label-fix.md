@@ -1,11 +1,13 @@
 # CO-09 — Stint labels: join same-tyre splits, censor red-flag tyre changes
 
-**Status:** SPEC (raised 2026-10-16 from the CO-08 flag-chance follow-up).
+**Status:** LANDED in the working tree 2026-10-24 (raised 2026-10-16 from the CO-08 flag-chance follow-up; v16 label, verified on the CO-17 rebuild; stint-life gates owed by CO-18; commit held for the owner). Build log: `status/build-log.json`, item CO-09.
 **Group:** 1 data settled · **Depends on:** none · **Blocker:** none. Opens a new label version, which CO-15 (Monaco wear fix, `CD9`) joins; the label moves once. Retrain is CO-18; promotion is `CD10`.
 
-**Owner rulings (2026-10-23, `D5`, `D6` in the build log):** red-flag censoring applies to stint life as well as the flag question ("d5 yes"); safety-car and pit ends are cut short too, censored, not left uncensored ("d6 cut them short too"). CO-14 depends on these.
+**Owner rulings (2026-10-23, `D5`, `D6` in the build log):** red-flag censoring applies to stint life as well as the flag question ("d5 yes"); safety-car and pit ends are cut short too, censored, not left uncensored ("d6 cut them short too"). Amended 2026-10-24: VSC pit stops are censored for stint life, same as SC, and count as did-not-reach-the-flag (reached_flag 0). CO-14 depends on these.
 
-**Sources:** `transform/models/intermediate/int_stint_end_regime.sql`, `transform/models/intermediate/fct_stint_features` (or its current name in the repo), the stint-life target in `ml/src/schema.py`.
+**Sources:** `transform/models/intermediate/int_stint_geometry.sql` (the tyre-run key), `transform/models/intermediate/int_stint_end_regime.sql`, `transform/models/marts/fct_stint_features.sql`, the stint-life target and the v16 label record in `ml/src/schema.py`.
+
+**Rulings that shape the build (2026-10-24, from `status/build-log.json`):** D4 re-key: `stint_id` is re-keyed to the tyre run everywhere, with no separate `tyre_run_id`. CD14 (1): last tyre age + 1 is a continuation. CD14 (2): green-flag same-tyre stops stay split, except that a green boundary joins when race control recorded a drive-through, stop-go or time penalty for that car within the first stint's last lap +/- 1 (owner's choice, 2026-10-24). CD14 (3a) overwrite the end cause on fragments. CD14 (4): no new censored class, so red-flag tyre changes are an unknown ending (censored). D6 amendment (2026-10-24): VSC pit stops are censored for stint life. W24 (2026-10-24): the three green same-tyre stops with no SC/VSC flag stay split.
 
 ---
 
@@ -25,7 +27,7 @@ Both feed the flag-chance event (`reached_flag`) and the stint-life target, whic
 
 ## Method
 
-1. Build a tyre-run key: consecutive stints with the same compound and continuous tyre age (no age reset) form one run. Run end = last stint's end.
+1. Build a tyre-run key: consecutive stints with the same compound, where the tyre age continues at the previous stint's last age + 1 (CD14 1a), form one run. Run end = last stint's end. Joins are limited by CD14 (2) as stated above.
 2. Red-flag tyre changes: treat as censored for the flag question, not 0.
 3. Keep the existing `stint_end_cause` for everything else. Document the new rule in the schema text.
 4. Re-run the dbt tests on the touched models, and the stint-life gates. Check the change in row counts per season and list every affected race.

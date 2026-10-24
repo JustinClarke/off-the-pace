@@ -459,6 +459,20 @@ from tasks.coefficients.survival import SEVERITY_MIN_PRE_LAPS  # noqa: E402
 
 TRANSFORM_DIR = Path(__file__).resolve().parents[3]
 
+# CO-15 (ruling CD9): the macro holds the LINEAR wear term's age at
+# onset + compound_wear_hold_after_onset_laps (5 laps), because the fitter measured
+# nothing past onset + 5. Read from dbt_project.yml, the one definition.
+WEAR_HOLD_AFTER_ONSET_LAPS = float(
+    yaml.safe_load((TRANSFORM_DIR / "dbt_project.yml").read_text())["vars"][
+        "compound_wear_hold_after_onset_laps"
+    ]
+)
+
+
+def held_linear_wear(wear: float, age: float, onset: float) -> float:
+    """CO-15 hold rule: gradient x min(age, onset + hold)."""
+    return wear * min(age, onset + WEAR_HOLD_AFTER_ONSET_LAPS)
+
 
 def make_step_stint(stint_id: str, n_laps: int, wear: float, step: float, cliff_age: int,
                     noise_std: float = 0.03, base_time: float = 90.0) -> pd.DataFrame:
@@ -510,7 +524,9 @@ class TestCliffPlateauIsTheStep:
         severity = estimate_cliff_severity(step_pool(30, wear, step), cliff_onset_laps=onset)
         expr = str(wear_macros.compound_cliff_wear_s("wg", "sev", "age", "lpc"))
         total = _eval(expr, wg=wear, sev=severity, age=age, lpc=age - onset)
-        assert total == pytest.approx(wear * age + step, abs=0.05), total
+        # CO-15: past onset + 5 the linear wear is held, so the curve past the ramp
+        # is the held wear plus the full step (age 30 is past the hold at 20).
+        assert total == pytest.approx(held_linear_wear(wear, age, onset) + step, abs=0.05), total
 
     def test_plateau_does_not_subtract_wear(self, wear_macros):
         """T1: the severity has no wear in it, so the plateau must not move with the
@@ -567,8 +583,10 @@ class TestRampLengthIsOneConstant:
         expr = str(wear_macros.compound_cliff_wear_s("wg", "sev", "age", "lpc"))
 
         def cliff_term(lpc: float) -> float:
+            # CO-15: subtract the HELD linear wear, gradient x min(age, onset + 5);
+            # span + 3 = 5.5 laps past onset is past the hold.
             age = onset + lpc
-            return _eval(expr, wg=wear, sev=step, age=age, lpc=lpc) - wear * age
+            return _eval(expr, wg=wear, sev=step, age=age, lpc=lpc) - held_linear_wear(wear, age, onset)
 
         assert cliff_term(0.0) == pytest.approx(0.0)
         assert cliff_term(CLIFF_RAMP_SPAN_LAPS / 2) == pytest.approx(step / 2)

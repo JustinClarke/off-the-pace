@@ -520,7 +520,8 @@
             "pages": [
               "app/families/constructors",
               "app/constructor-structural-pace",
-              "app/constructor-circuit-interaction"
+              "app/constructor-circuit-interaction",
+              "app/constructors"
             ]
           },
           {

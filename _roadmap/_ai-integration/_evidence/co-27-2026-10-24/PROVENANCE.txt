@@ -1,0 +1,21 @@
+CO-27 baseline options probe (evidence for CD15 and CD16), run 2026-10-24. Copied here 2026-10-24 by the log owner.
+Both rulings were already RESOLVED on 2026-10-23 (CD15 = B then C, CD16 = B), so this is confirmation evidence, not input to an open ruling.
+
+Files (sha256):
+  probe_results.md      24f246d77698250da43c35d6f14fdd6e6f957c91cedbbc4fe25ea6ed0128bd20  per-option tables for CD15 and CD16
+  hash_check.txt        6e095bbb5dc887565557633c6524c2ecf9c414d63f80fc5a6ef24fa229190f87  snapshot_model_hashes.py --check output (byte oracle, 12 fct_* drifted, exit 1)
+  profile_check.txt     84805f4f1c358f4b0b42e2913a0d68fd691719288a734f4794292304aa35d1dc  data-profile check output (211 drifts)
+  cd15_probe.txt        d96384e9a16501071a5b11a664be14a84b531d89ea42da0b65f3c1ebd329a25a  CD15 A test logic evaluated in SQL (both FAIL)
+  devdb_sha_before.txt  c1b30623d080ff04e0a9c4181dc497d1797b0c311adf2751fce26c848c710bb6  sha256 of data/dev.duckdb before the probe
+
+Copied from (session scratch, may not survive):
+  /private/tmp/claude-501/-Users-justin-github-off-the-pace/bbfb881b-470b-45f4-973e-36432cbcc635/scratchpad/co27/
+Not copied (too large, scratch only): dev-probe.duckdb (1.9 GB copy of data/dev.duckdb, hard-linked as db/dev.duckdb) and manifest.json (copy of transform/target/manifest.json).
+
+Warehouse: copy of data/dev.duckdb = CO-17 second build (build2, PASS=1443 ERROR=0 of 1446), read-only.
+data/dev.duckdb sha256 before and after: f068fed74d25dbe854aa06505b08889f0b1bd8aee0d7f400eb22069680d53ba4 (unchanged).
+Note: build2 predates CO-17 build 3 (the audit fixes); drift counts are for build2.
+Tracked baselines unchanged (re-checked 2026-10-24 by the log owner):
+  transform/tests/model_hashes.baseline.json  e2fcc4e83097afb012e08716b957e5b7dcb009c5a02ef280f513b7a300926d5c
+  transform/tests/data_profile.baseline.json  35d0ec251a5f8f6859e6e1a677cac88445b06e72ab476ce8b6652355a9866eab
+Nothing tracked changed by the probe, nothing committed.

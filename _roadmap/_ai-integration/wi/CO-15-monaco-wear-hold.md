@@ -1,5 +1,7 @@
 # CO-15 — Monaco 2024 field pace: stop extrapolating the tyre-wear term
 
+**Status:** LANDED in the working tree 2026-10-24 (numbers reproduced on the CO-17 build; commit held for the owner). Build log: `status/build-log.json`, item CO-15.
+
 **Group:** 1 data settled · **Depends on:** `CO-09` (same label version) · **Blocker:** none. `CD9` ruled A (2026-10-22).
 
 **Sources:** `transform/macros/compound_cliff_wear.sql`, `transform/dbt_project.yml`, `transform/models/intermediate/int_compound_cliff_predicted.sql`, `transform/models/intermediate/int_field_pace_curve.sql`, `transform/tests/assert_field_pace_honest_range.sql`, `transform/tasks/coefficients/survival.py`.
@@ -35,4 +37,4 @@ A proposed diff exists from the probe, **not applied**. Treat it as a draft. The
 
 ## Definition of done
 
-Macro, var and two tests in the working tree. The tests pass on the touched models. The numbers above are reproduced within rounding, and any difference is explained. The label version is recorded jointly with CO-09. Retrain is CO-18; promotion is CD10. Do not commit.
+Macro, var and the two tests above in the working tree. Also in the tree, found after the probe, and recorded in the build log: (a) the CO-17 audit made `expected_degradation_rate_s_per_lap` follow the hold, with a third error test `assert_degradation_rate_follows_wear_hold`; (b) the same macro feeds `int_pit_strategy_cost_curve`, whose optimum picks tied, so cost is rounded to 6 dp with an earliest-lap tie rule (2 of 13,045 optima changed). The tests pass on the touched models. The numbers above are reproduced within rounding, and any difference is explained. The label version is recorded jointly with CO-09. Retrain is CO-18; promotion is CD10. Do not commit.

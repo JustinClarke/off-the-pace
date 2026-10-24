@@ -103,12 +103,12 @@ label and are reference only. The `*_v15uni` / `*_v15ipw` artefacts (W58, 2026-0
 on the 09-29 label and are not this model. `MODEL_VERSION_DEFAULT` stays `v14` until the
 owner promotes.
 
-### Label version v16 (OPEN: CO-09 in, CO-15 to join; recorded 2026-10-24)
+### Label version v16 (OPEN: CO-09 and CO-15 in the working tree, numbers owed by CO-17; recorded 2026-10-24)
 
 The next label version is **v16**, matching the next free model name. It is opened by
 CO-09 (`_roadmap/_ai-integration/wi/CO-09-stint-label-fix.md`) and is shared with CO-15
-(the Monaco wear hold, ruling CD9), so the label moves once. It is not complete until
-CO-15 lands; the frozen-label seed (`transform/seeds/label_stability_baseline.csv`) is
+(the Monaco wear hold, ruling CD9), so the label moves once. Both parts are now in the
+working tree (CO-15's below); the frozen-label seed (`transform/seeds/label_stability_baseline.csv`) is
 refreshed once, on CO-17's trusted rebuild, not per item. Nothing is retrained (CO-18)
 or promoted (owner) here. `MODEL_VERSION_DEFAULT` stays `v14`.
 
@@ -146,10 +146,34 @@ CO-09 follow-up, same working tree, 2026-10-24 (evidence
   13 stay split. 8,968 -> 8,945 stints (23 `green_pit` ends become part of their run).
   2018 and 2024 now also fail the frozen-label check; stint-life rows 124,496, censored
   share 53.5%.
-- **Cut-short fields stored, not used**: `fct_stint_features` carries laps_completed,
-  tyre_age_at_fit, fresh_at_fit, is_fresh_tyre_raw, and on sc_pit / vsc_pit runs
+- **Cut-short fields stored, not used**: `fct_stint_features` carries is_fresh_tyre_raw, and on sc_pit / vsc_pit runs
   clean_laps_to_cut, slope_to_cut_s_per_lap, mean_clean_pace_s, cut_reason,
   slope_reliable. No model reads them; admitting any as a feature is a later decision.
+
+CO-15's part, working tree 2026-10-24 (ruling CD9; `_roadmap/_ai-integration/wi/CO-15-monaco-wear-hold.md`),
+in this same label version, not a second bump:
+
+- **The linear wear term is held past onset + 5.** `macros/compound_cliff_wear.sql`
+  charges `wear_gradient * LEAST(age, onset + compound_wear_hold_after_onset_laps)` (new
+  dbt var, 5.0) instead of `wear_gradient * age`; the slope is fitted on ages 3..onset-2
+  and the step measured by onset + 5, so past that the curve was never measured. It moves
+  `expected_compound_pace_s`, so `driver_skill_residual_s` and both residual-based targets,
+  and the pit-strategy cost curve (same macro).
+- **Two new error tests**: `assert_compound_wear_not_extrapolated` and
+  `assert_field_base_drift_tracks_observed` (wear drift may not exceed the observed
+  weight-corrected drift by more than 7 s in any dry race). `assert_field_pace_honest_range`
+  keeps its 0.920 floor.
+- Probe numbers (2026-10-22 dev, before CO-09), to be reproduced on CO-17's rebuild:
+  honest-range failures 15 -> 0, `2024_8` lap 77 field base 0.905 -> about 0.972 x fastest
+  lap, laps on the 10 s cap 323 -> 0, about 23,973 of 161,040 `int_compound_cliff_predicted`
+  rows change (max about 6.3 s).
+- **CO-17 audit follow-ups (2026-10-24, same label version, no label moves):**
+  `expected_degradation_rate_s_per_lap` (a feature in all five models) now follows the
+  hold: 0 from onset + 5 on, instead of the wear gradient on a flat curve (26,382 rows).
+  `int_pit_strategy_value` no longer takes a same-tyre stop a CO-09 run was joined across
+  as the run's stop (119 stints: 111 race_end, 8 retirement). Tests
+  `assert_degradation_rate_follows_wear_hold`, `assert_pit_not_taken_from_joined_boundary`.
+  The frozen-label seed is unaffected (`next_5_lap_cumulative_jump_s` unchanged).
 
 ## Quickstart (one venv at repo root)
 

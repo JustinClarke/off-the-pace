@@ -1,0 +1,215 @@
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.prefix, expected /Users/justin/github/off-the-pace/.venv, got /Users/justin/github/off-the-pace/transform/../.venv
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /Users/justin/github/off-the-pace/.venv, got /Users/justin/github/off-the-pace/transform/../.venv
+❌  data-profile drift (211):
+    dim_compounds_season.row_count: 515 → 499 (-3.1%)
+    dim_compounds_season.compound_cliff_onset_laps.mean: 22.706214 → 23.82004
+    dim_compounds_season.compound_cliff_severity.mean: 0.899359 → 0.935411
+    dim_compounds_season.compound_wear_gradient.mean: 0.079057 → 0.086489
+    dim_compounds_season.data_window: NEW category '2018_to_2018' at share 0.122244
+    dim_compounds_season.data_window: NEW category '2018_to_2018_in_sample' at share 0.124248
+    dim_compounds_season.data_window: NEW category '2018_to_2019' at share 0.102204
+    dim_compounds_season.data_window: NEW category '2018_to_2020' at share 0.122244
+    dim_compounds_season.data_window: NEW category '2018_to_2021' at share 0.126253
+    dim_compounds_season.data_window: NEW category '2018_to_2022' at share 0.132265
+    dim_compounds_season.data_window: NEW category '2018_to_2023' at share 0.142285
+    dim_compounds_season.data_window.share['2018_to_2024']: 1.0 → 0.128257 (-0.8717)
+    dim_compounds_season.fit_source: category 'carried_forward_2024' GONE (was 0.137864)
+    dim_compounds_season.fit_source.share['compound_class_default']: 0.050485 → 0.234469 (+0.1840)
+    dim_compounds_season.fit_source.share['cox_km_survival']: 0.654369 → 0.741483 (+0.0871)
+    dim_compounds_season.fit_source.share['cross_season_fallback']: 0.149515 → 0.024048 (-0.1255)
+    dim_compounds_season.gradient_source: category 'carried_forward' GONE (was 0.116505)
+    dim_compounds_season.gradient_source.share['class_default']: 0.252427 → 0.318637 (+0.0662)
+    dim_compounds_season.gradient_source.share['cross_season_fallback']: 0.126214 → 0.022044 (-0.1042)
+    dim_compounds_season.gradient_source.share['fitted']: 0.504854 → 0.659319 (+0.1545)
+    dim_compounds_season.notes.n_distinct: 167 → 175
+    dim_compounds_season.onset_source: category 'carried_forward' GONE (was 0.12233)
+    dim_compounds_season.onset_source.share['class_default']: 0.217476 → 0.272545 (+0.0551)
+    dim_compounds_season.onset_source.share['cross_season_fallback']: 0.141748 → 0.024048 (-0.1177)
+    dim_compounds_season.onset_source.share['fitted']: 0.518447 → 0.703407 (+0.1850)
+    dim_compounds_season.severity_source: category 'carried_forward' GONE (was 0.133981)
+    dim_compounds_season.severity_source.share['class_default']: 0.099029 → 0.242485 (+0.1435)
+    dim_compounds_season.severity_source.share['cross_season_fallback']: 0.149515 → 0.024048 (-0.1255)
+    dim_compounds_season.severity_source.share['fitted']: 0.617476 → 0.733467 (+0.1160)
+    fct_cliff_prediction_features.air_state_dominant.share['dirty_air']: 0.082377 → 0.116617 (+0.0342)
+    fct_cliff_prediction_features.air_state_dominant.share['drs_train']: 0.129005 → 0.094778 (-0.0342)
+    fct_cliff_prediction_features.ambient_temp_delta.mean: 0.613164 → 0.540776
+    fct_cliff_prediction_features.anomaly_class.share['conditions']: 0.018896 → 0.040797 (+0.0219)
+    fct_cliff_prediction_features.anomaly_class.share['normal']: 0.853738 → 0.823429 (-0.0303)
+    fct_cliff_prediction_features.braking_point_drift_m.mean: -10.273211 → -9.778963
+    fct_cliff_prediction_features.cliff_candidate_flag.null_rate: 0.00244 → 0.022771
+    fct_cliff_prediction_features.cliff_candidate_flag.share['false']: 0.983874 → 0.95657 (-0.0273)
+    fct_cliff_prediction_features.cliff_onset_passed.share['false']: 0.717188 → 0.743759 (+0.0266)
+    fct_cliff_prediction_features.cliff_onset_passed.share['true']: 0.257309 → 0.241052 (-0.0163)
+    fct_cliff_prediction_features.compound_cliff_onset_laps.mean: 23.295764 → 25.032606
+    fct_cliff_prediction_features.compound_cliff_severity.mean: 0.827547 → 0.893623
+    fct_cliff_prediction_features.compound_wear_gradient.mean: 0.073219 → 0.083042
+    fct_cliff_prediction_features.cumulative_push_load_bulk.mean: 1.755693 → 1.134844
+    fct_cliff_prediction_features.cumulative_push_load_surface.mean: 1.214192 → 0.781201
+    fct_cliff_prediction_features.dirty_air_share_lap.mean: 0.230117 → 0.320011
+    fct_cliff_prediction_features.expected_compound_pace_s.mean: 2.294143 → 1.317328
+    fct_cliff_prediction_features.expected_degradation_rate_s_per_lap.mean: 0.091931 → 0.078246
+    fct_cliff_prediction_features.gap_ahead_min_s.mean: 3.594476 → 3.758895
+    fct_cliff_prediction_features.is_rain_lap.share['false']: 0.980731 → 0.957495 (-0.0232)
+    fct_cliff_prediction_features.is_rain_lap.share['true']: 0.019269 → 0.042505 (+0.0232)
+    fct_cliff_prediction_features.is_training_eligible.share['false']: 0.144567 → 0.22554 (+0.0810)
+    fct_cliff_prediction_features.is_training_eligible.share['true']: 0.855433 → 0.77446 (-0.0810)
+    fct_cliff_prediction_features.laps_past_cliff.mean: 2.309591 → 2.417453
+    fct_cliff_prediction_features.laps_until_cliff_class.null_rate: 0.051422 → 0.20131
+    fct_cliff_prediction_features.laps_until_cliff_class.share['0_to_2']: 0.101186 → 0.090953 (-0.0102)
+    fct_cliff_prediction_features.laps_until_cliff_class.share['3_to_5']: 0.08406 → 0.09815 (+0.0141)
+    fct_cliff_prediction_features.laps_until_cliff_class.share['6_plus']: 0.144349 → 0.173802 (+0.0295)
+    fct_cliff_prediction_features.laps_until_cliff_class.share['none_in_stint']: 0.618983 → 0.435786 (-0.1832)
+    fct_cliff_prediction_features.mid_corner_speed_loss_kph.mean: 0.425159 → 0.454764
+    fct_cliff_prediction_features.n_distinct_cars_ahead_3s.mean: 1.034295 → 0.977578
+    fct_cliff_prediction_features.next_3_lap_cumulative_jump_s.null_rate: 0.19135 → 0.260029
+    fct_cliff_prediction_features.next_3_lap_cumulative_jump_s.mean: -0.106739 → -0.032065
+    fct_cliff_prediction_features.next_5_lap_cumulative_jump_s.null_rate: 0.304011 → 0.365518
+    fct_cliff_prediction_features.next_5_lap_cumulative_jump_s.mean: -0.385285 → -0.09736
+    fct_cliff_prediction_features.next_lap_degradation_jump_detrended_s.null_rate: 0.051422 → 0.130086
+    fct_cliff_prediction_features.next_lap_degradation_jump_detrended_s.mean: 0.00406 → 0.001712
+    fct_cliff_prediction_features.next_lap_degradation_jump_s.null_rate: 0.051422 → 0.130086
+    fct_cliff_prediction_features.push_residual.mean: 0.200001 → -0.123868
+    fct_cliff_prediction_features.quali_skill_session_avg_s.mean: -0.695023 → -0.749349
+    fct_cliff_prediction_features.surface_bulk_ratio.null_rate: 0.147721 → 0.271069
+    fct_cliff_prediction_features.surface_bulk_ratio.mean: 0.372715 → 0.426667
+    fct_cliff_prediction_features.throttle_trace_decay.mean: -0.006552 → -0.006334
+    fct_driver_skill_features.clean_lap_count.mean: 41.770531 → 40.860205
+    fct_driver_skill_features.constructor_aero_pace_index_final: column MISSING
+    fct_driver_skill_features.constructor_index_confidence_final.mean: 0.177525 → 0.1688
+    fct_driver_skill_features.constructor_power_pace_index_final.null_rate: 0.019928 → 0.06401
+    fct_driver_skill_features.constructor_power_pace_index_final.mean: -0.003656 → -0.003752
+    fct_driver_skill_features.driver_residual_mean_s.null_rate: 0.003925 → 0.06401
+    fct_driver_skill_features.driver_residual_mean_s.mean: -2.140319 → 0.016828
+    fct_driver_skill_features.driver_residual_median_s.null_rate: 0.003925 → 0.06401
+    fct_driver_skill_features.driver_residual_median_s.mean: -2.087155 → -0.005008
+    fct_driver_skill_features.driver_residual_stddev_s.null_rate: 0.009058 → 0.070954
+    fct_driver_skill_features.driver_residual_stddev_s.mean: 1.090139 → 0.72127
+    fct_driver_skill_features.driver_skill_proxy_mean_s.mean: 0.053232 → 0.06488
+    fct_driver_skill_features.pu_family.share['ferrari_pu']: 0.237017 → 0.299819 (+0.0628)
+    fct_driver_skill_features.pu_family.share['honda_pu']: 0.184783 → 0.198671 (+0.0139)
+    fct_driver_skill_features.pu_family: category 'unknown_pu' GONE (was 0.076691)
+    fct_driver_skill_features.race_wet_flag.share['false']: 0.951087 → 0.892814 (-0.0583)
+    fct_driver_skill_features.race_wet_flag.share['true']: 0.048913 → 0.107186 (+0.0583)
+    fct_ghost_car_pace.row_count: 1511349 → 1384558 (-8.4%)
+    fct_ghost_car_pace.age_in_stint.mean: 15.769102 → 16.593009
+    fct_ghost_car_pace.ambient_component_s.mean: -0.001304 → -0.041474
+    fct_ghost_car_pace.base_track_pace_s.null_rate: 0.080494 → 0.0
+    fct_ghost_car_pace.circuit_interaction_s.mean: 0.001146 → 0.00063
+    fct_ghost_car_pace.cliff_interaction_s.mean: -0.000147 → -2.3e-05
+    fct_ghost_car_pace.compound_cliff_severity.mean: 0.804078 → 0.876087
+    fct_ghost_car_pace.compound_component_s.null_rate: 0.024872 → 0.0
+    fct_ghost_car_pace.compound_component_s.mean: 2.291979 → 1.360551
+    fct_ghost_car_pace.deg_interaction_s.mean: 0.000869 → 0.001671
+    fct_ghost_car_pace.delta_vs_actual_lap_s.mean: 0.026557 → 0.024598
+    fct_ghost_car_pace.dirty_air_tax_s.mean: 0.036578 → 0.103688
+    fct_ghost_car_pace.driver_skill_residual_s.mean: -2.051273 → 0.10762
+    fct_ghost_car_pace.ego_cliff_shift_laps.mean: 0.015131 → 0.01415
+    fct_ghost_car_pace.ego_cliff_shift_se_laps.mean: 0.10598 → 0.093855
+    fct_ghost_car_pace.ego_deg_slope_s_per_lap.mean: 0.001 → 0.000648
+    fct_ghost_car_pace.ego_deg_slope_sd_s_per_lap.mean: 0.00475 → 0.004356
+    fct_ghost_car_pace.fuel_component_s.mean: 1.403881 → 1.366465
+    fct_ghost_car_pace.ghost_id.n_distinct: 1511349 → 1384558
+    fct_ghost_car_pace.host_cliff_shift_laps.mean: 0.020385 → 0.013796
+    fct_ghost_car_pace.host_cliff_shift_se_laps.mean: 0.106607 → 0.094067
+    fct_ghost_car_pace.host_constructor_pace_se_s.mean: 0.123632 → 0.108088
+    fct_ghost_car_pace.host_deg_slope_s_per_lap.mean: 0.001119 → 0.000688
+    fct_ghost_car_pace.host_deg_slope_sd_s_per_lap.mean: 0.004813 → 0.004436
+    fct_ghost_car_pace.lap_number.mean: 31.772178 → 32.617002
+    fct_ghost_car_pace.race_id.n_distinct: 170 → 162
+    fct_ghost_car_pace.rubber_component_s.mean: 0.000659 → -0.041396
+    fct_ghost_race_finish.row_count: 32037 → 30344 (-5.3%)
+    fct_ghost_race_finish.actual_total_race_time_s.mean: 4131.899239 → 3989.505941
+    fct_ghost_race_finish.delta_vs_actual_position.mean: 0.472379 → 0.845908
+    fct_ghost_race_finish.finish_pos_se.mean: 1.293419 → 1.349628
+    fct_ghost_race_finish.ghost_race_id.n_distinct: 32037 → 30344
+    fct_ghost_race_finish.laps_counted.mean: 46.74414 → 45.332026
+    fct_ghost_race_finish.predicted_mean_lap_se_s.mean: 0.30058 → 0.243852
+    fct_ghost_race_finish.predicted_total_race_time_s.mean: 4133.027768 → 3990.585614
+    fct_ghost_race_finish.race_distance_laps.mean: 50.849549 → 49.052234
+    fct_ghost_race_finish.race_id.n_distinct: 169 → 161
+    fct_lap_residuals.ambient_component_s.mean: -0.001078 → -0.005506
+    fct_lap_residuals.ambient_temp_delta.mean: 0.613164 → 0.540776
+    fct_lap_residuals.cliff_onset_passed.share['false']: 0.717188 → 0.743759 (+0.0266)
+    fct_lap_residuals.cliff_onset_passed.share['true']: 0.257309 → 0.241052 (-0.0163)
+    fct_lap_residuals.compound_component_s.mean: 2.294143 → 1.317328
+    fct_lap_residuals.constructor_component_ci_high_s.null_rate: 0.015114 → 0.048168
+    fct_lap_residuals.constructor_component_ci_high_s.mean: 0.214964 → 0.191328
+    fct_lap_residuals.constructor_component_ci_low_s.null_rate: 0.015114 → 0.048168
+    fct_lap_residuals.constructor_component_ci_low_s.mean: -0.264318 → -0.231684
+    fct_lap_residuals.constructor_component_s.mean: -0.024304 → -0.019206
+    fct_lap_residuals.constructor_component_se_s.mean: 0.233765 → 0.102713
+    fct_lap_residuals.cumulative_dirty_air_tax_race_s.mean: 1.026096 → 2.838022
+    fct_lap_residuals.dirty_air_tax_s.mean: 0.034618 → 0.095559
+    fct_lap_residuals.dirty_air_tax_se_s.mean: 0.005193 → 0.014334
+    fct_lap_residuals.driver_skill_residual_s.null_rate: 0.0 → 0.077111
+    fct_lap_residuals.driver_skill_residual_s.mean: -2.071172 → 0.115266
+    fct_lap_residuals.expected_degradation_rate_s_per_lap.mean: 0.091931 → 0.078246
+    fct_lap_residuals.laps_past_cliff.mean: 2.309591 → 2.417453
+    fct_lap_residuals.ml_eligible.share['false']: 0.095573 → 0.084675 (-0.0109)
+    fct_lap_residuals.ml_eligible.share['true']: 0.904427 → 0.915325 (+0.0109)
+    fct_lap_residuals.pu_family.share['ferrari_pu']: 0.233631 → 0.297752 (+0.0641)
+    fct_lap_residuals.pu_family.share['honda_pu']: 0.185084 → 0.199137 (+0.0141)
+    fct_lap_residuals.pu_family: category 'unknown_pu' GONE (was 0.078173)
+    fct_lap_residuals.rainfall_flag.null_rate: 0.15195 → 0.071957
+    fct_lap_residuals.rainfall_flag.share['false']: 0.828782 → 0.885538 (+0.0568)
+    fct_lap_residuals.rainfall_flag.share['true']: 0.019269 → 0.042505 (+0.0232)
+    fct_lap_residuals.rubber_component_s.mean: 0.000988 → 0.019226
+    fct_lap_residuals.total_explained_s.mean: 3.655767 → 2.805033
+    fct_lap_residuals.track_temp_c.null_rate: 0.15195 → 0.071957
+    fct_lap_residuals.track_unexplained_s.null_rate: 0.15195 → 0.071957
+    fct_lap_residuals.track_unexplained_s.mean: -0.003476 → -0.004076
+    fct_stint_features.row_count: 9374 → 8945 (-4.6%)
+    fct_stint_features.cliff_lap_in_stint.null_rate: 0.858118 → 0.821465
+    fct_stint_features.cliff_lap_in_stint.mean: 26.062406 → 25.443331
+    fct_stint_features.cumulative_dirty_air_tax_s.mean: 0.594716 → 1.720053
+    fct_stint_features.cumulative_thermal_load_end.null_rate: 0.134841 → 0.099609
+    fct_stint_features.cumulative_thermal_load_end.mean: 1.700134 → 0.957219
+    fct_stint_features.end_of_stint_pace_falloff_s_per_lap.mean: -0.128672 → 0.085262
+    fct_stint_features.end_regime.share['green']: 0.788457 → 0.823589 (+0.0351)
+    fct_stint_features.end_regime.share['safety_car']: 0.130041 → 0.102851 (-0.0272)
+    fct_stint_features.is_censored_stint.share['false']: 0.632067 → 0.614421 (-0.0176)
+    fct_stint_features.is_censored_stint.share['true']: 0.367933 → 0.385579 (+0.0176)
+    fct_stint_features.pit_decision_class.share['early']: 0.287497 → 0.313471 (+0.0260)
+    fct_stint_features.short_stint_flag.share['false']: 0.900683 → 0.935048 (+0.0344)
+    fct_stint_features.short_stint_flag.share['true']: 0.099317 → 0.064952 (-0.0344)
+    fct_stint_features.starting_tyre_age_laps.mean: 1.015765 → 0.695732
+    fct_stint_features.stint_end_cause.share['green_pit']: 0.449755 → 0.468753 (+0.0190)
+    fct_stint_features.stint_end_cause.share['race_end']: 0.315554 → 0.330688 (+0.0151)
+    fct_stint_features.stint_end_cause.share['sc_pit']: 0.112545 → 0.084516 (-0.0280)
+    fct_stint_features.stint_id.n_distinct: 9374 → 8945
+    fct_stint_features.stint_length_laps.mean: 20.206742 → 21.175852
+    fct_stint_features.tyre_management_score.null_rate: 0.501387 → 0.594075
+    fct_stint_features.tyre_management_score.mean: -0.952751 → -0.082888
+    fct_telemetry_deltas.row_count: 28628356 → 1623427 (-94.3%)
+    fct_telemetry_deltas.braking_point_delta_m.null_rate: 0.0 → 0.40223
+    fct_telemetry_deltas.braking_point_delta_m.mean: -0.15257 → -0.562488
+    fct_telemetry_deltas.driver_a: was high-cardinality (41 distinct), now a 31-value category vector
+    fct_telemetry_deltas.driver_b: was high-cardinality (41 distinct), now a 26-value category vector
+    fct_telemetry_deltas.throttle_point_delta_m.null_rate: 0.0 → 0.545278
+    fct_telemetry_deltas.throttle_point_delta_m.mean: 0.541394 → 1.128676
+    fct_telemetry_deltas.v_min_delta_kph.null_rate: 0.0 → 0.135224
+    fct_telemetry_deltas.v_min_delta_kph.mean: -0.1139 → -0.174716
+    mart_corner_skill_driver.braking_skill_s.mean: 3.2e-05 → 2e-06
+    mart_corner_skill_driver.braking_skill_z.mean: -0.000435 → -0.001056
+    mart_corner_skill_driver.constructor_id: category 'Force India' GONE (was 0.012422)
+    mart_corner_skill_driver.constructor_id.share['Racing Point']: 0.024845 → 0.037267 (+0.0124)
+    mart_corner_skill_driver.corner_skill_index.mean: 0.002264 → 0.000629
+    mart_corner_skill_driver.exit_skill_s.mean: -0.00045 → -0.000462
+    mart_corner_skill_driver.exit_skill_se_s.mean: 0.018453 → 0.01903
+    mart_corner_skill_driver.exit_skill_z.mean: -0.004025 → -0.004151
+    mart_corner_skill_driver.mid_corner_skill_s.mean: 0.00023 → 0.000201
+    mart_corner_skill_driver.mid_corner_skill_se_s.mean: 0.007461 → 0.007611
+    mart_corner_skill_driver.mid_corner_skill_z.mean: 0.006398 → 0.005714
+    mart_degradation_history_envelope.row_count: 8074 → 8115 (+0.5%)
+    mart_degradation_history_envelope.obs_deg_from_fresh_p50_s.mean: 0.205253 → 0.188786
+    dim_driver_seasons: NEW table not in baseline
+    dim_drivers_tactical_pending: NEW table not in baseline
+    fct_driver_isolation_lap: NEW table not in baseline
+    fct_driver_isolation_pair_lap: NEW table not in baseline
+    fct_driver_isolation_race: NEW table not in baseline
+    fct_driver_isolation_stint: NEW table not in baseline
+    fct_power_law_training: NEW table not in baseline
+    mart_driver_season_summary: NEW table not in baseline
+    mart_metric_benchmark: NEW table not in baseline
+    mart_race_driver_summary: NEW table not in baseline
+exit 1

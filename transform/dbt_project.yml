@@ -258,6 +258,23 @@ vars:
   # with a measured air state keep their laps out: 2018_1 and 2018_2 have no telemetry in
   # bronze (6% measured; every other race is 94% or more).
   isolation_thin_min_air_measured_share: 0.5
+  # int_field_pace_curve (W10, v17, owner ruling 2b): how many green laps after an SC or red
+  # flag take their own trimmed mean as the base instead of a smoothed window. Was 2. The
+  # third lap leaned -0.185 s (smoothed minus own trimmed mean, 100 cells, v16 dev build)
+  # and the fourth -0.051 s. Changing it moves the label (label version v17).
+  field_restart_adjacent_laps: 4
+  # DA-02 (_roadmap/_dirty-air): the micro-sector panel. microsector_n = micro-sectors per lap
+  # (DD8, owner 2026-10-24: 20, fixed for every circuit; 10 is the pre-registered
+  # sensitivity check). microsector_max_bracket_s = the widest gap between the two position
+  # samples a boundary crossing may be interpolated across (the design note's 1 s cap on dt_i).
+  # microsector_lapped_ahead_window_s = a lapped car ahead within this many seconds makes the
+  # entry gap invalid (DD5); beyond it the sample is in the reference band.
+  # microsector_min_field_n = fewest timing-valid cars on a (race, lap, micro-sector) for a
+  # field-relative time y_s (the Omega rule, isolation_min_field_n).
+  microsector_n: 20
+  microsector_max_bracket_s: 1.0
+  microsector_lapped_ahead_window_s: 3.0
+  microsector_min_field_n: 8
   # int_driver_isolation_lap_values: a declared season-level offset (s/lap, positive =
   # raised) added to pure_skill_gain_s, via macro driver_isolation_pure_season_offset.
   # W33, 2026-09-30, Option A for v15: a stopgap, not a measurement. y_s is centred on

@@ -64,7 +64,7 @@ WHERE w.race_id IS NULL             -- exclude wet races
   AND sc.lap_number IS NULL         -- exclude SC/VSC laps
   AND f.low_sample_flag = FALSE     -- exclude low sample laps
   -- exclude restart laps (CO-04): since the owner's 2026-10-15 decision the
-  -- first two green laps after an SC/red flag take their own trimmed mean
+  -- first green laps after an SC/red flag (two; four since v17, W10) take their own trimmed mean
   -- instead of being smoothed toward the faster laps after them. They really
   -- are slow (2021_4 lap 11, the Spanish GP restart, is 7.3% off the race's
   -- fastest lap on 10 cars), so they are outside "normal racing laps" the way

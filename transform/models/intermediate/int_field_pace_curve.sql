@@ -43,6 +43,13 @@
 --     FD6), and its trimmed mean does not feed its neighbours' window either.
 --     Before this, 374 of 377 thin cells carried a base, 157 of them borrowed
 --     entirely from neighbours because their own trimmed mean was NULL.
+--   W10 / v17 (owner ruling 2b, 2026-10-24): the third and fourth green laps
+--     after an SC/red flag take their own trimmed mean too, so four laps are
+--     restart-adjacent (var('field_restart_adjacent_laps'), was 2). On the v16
+--     dev build smoothed minus own trimmed mean was -0.185 s on the third
+--     green lap (100 cells) and -0.051 s on the fourth: a window that
+--     took in the two isolated restart cells shrank to laps 3-5 and leaned
+--     fast. With two restart laps the rule reproduces v16 exactly.
 --   smoothing_window_first_lap / _last_lap record which cells a base was
 --   averaged over, so the two rules above are checkable from the output
 --   (assert_field_pace_smoothing_respects_boundaries).
@@ -99,9 +106,11 @@ neutralised_lap AS (
     GROUP BY race_year, race_id, lap_number
 ),
 
--- Restart-adjacent lap numbers: the first green lap after an SC/red-flag lap,
--- and the green lap after that (header). Over every lap number in the race,
--- like pace_segment below, so a restart lap with no cell is still placed.
+-- Restart-adjacent lap numbers: the first var('field_restart_adjacent_laps')
+-- green laps after an SC/red-flag lap (header; 4 since v17, was 2). Lap n is
+-- restart-adjacent at depth j when it is green, the j-1 laps before it are
+-- green, and the lap j before it is an SC/red lap. Over every lap number in the
+-- race, like pace_segment below, so a restart lap with no cell is still placed.
 restart_lap AS (
     SELECT
         race_year,
@@ -110,10 +119,17 @@ restart_lap AS (
         NOT is_neutralised_lap
         AND (
             COALESCE(LAG(is_sc_or_red_lap, 1) OVER w, FALSE)
-            OR (
-                NOT COALESCE(LAG(is_neutralised_lap, 1) OVER w, TRUE)
-                AND COALESCE(LAG(is_sc_or_red_lap, 2) OVER w, FALSE)
-            )
+            {%- for j in range(2, var('field_restart_adjacent_laps') + 1) %}
+                OR (
+                    {%- for i in range(1, j) %}
+                        NOT COALESCE(
+                            LAG(is_neutralised_lap, {{ i }}) OVER w, TRUE
+                        )
+                        AND
+                    {%- endfor %}
+                    COALESCE(LAG(is_sc_or_red_lap, {{ j }}) OVER w, FALSE)
+                )
+            {%- endfor %}
         ) AS is_restart_adjacent_lap
     FROM neutralised_lap
     WINDOW w AS (PARTITION BY race_year, race_id ORDER BY lap_number)

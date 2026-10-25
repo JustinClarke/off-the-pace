@@ -3,7 +3,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import path from 'node:path'
-import { createDuckDB, NODE_RUNTIME, ConsoleLogger, DuckDBDataProtocol } from '@duckdb/duckdb-wasm/dist/duckdb-node-blocking.cjs'
+import { createDuckDB, NODE_RUNTIME, ConsoleLogger, DuckDBDataProtocol } from '@duckdb/duckdb-wasm/blocking'
 import { PROFILES_SQL, RACE_TRACK_SQL } from './queries'
 import type { CompoundProfileRow } from './queries'
 import { findProfile } from './transform'

@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off-the pace AI integration (trackside-analyst assistant)",
-  "updated": "2026-10-24T14:50:00+04:00",
+  "updated": "2026-10-24T17:55:00+04:00",
   "pointer": "AI-13",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -928,6 +928,68 @@
       "model": "opus-5",
       "note": "Raised 2026-10-23 from CO-26 (owner approved). 6 published rows carry combined team strings: OCO/PER 2018 is a rename (owner: same team), GAS/ALB 2019 and LAW/TSU 2025 are real moves. Label only; skill numbers unaffected. Building dim_constructors from a fixed list also clears CO-26's CI-only warns.",
       "closed": "2026-10-23: dim_constructors is a fixed VALUES list (constructor_id, pu_family unchanged, constructor_lineage_id = earliest name, e.g. force_india, toro_rosso, sauber, renault); no longer built from stg_laps, so CI fixture has all 19 teams and the int_constructor_car_fe* tests are back at error. mart_corner_skill_driver: one primary team (ARG_MAX on corner cells, ties to the later round) plus constructors_driven in round order. 6 rows: OCO/PER 2018 Racing Point (113 vs 112 cells, one lineage), ALB 2019 Toro Rosso, GAS 2019 Red Bull Racing, LAW 2025 Racing Bulls, TSU 2025 Red Bull Racing. 161 rows, every other column identical; dbt children row counts unchanged (float noise at most 4e-14). Parquet for dim_constructors and mart_corner_skill_driver gains one column at the next export. Not committed. Known: model_hashes.baseline.json hashes for both move (CO-25's stale gate); verify_findings.py F16 still counts 6 multi-team seasons (non-blocking)."
+    },
+    {
+      "id": "CO-30",
+      "group": "1-data",
+      "stage": "SPEC",
+      "depends_on": [
+        "CO-17"
+      ],
+      "title": "W10 thin cells: price the dirty-air tax inside the isolation panel (option 1a)",
+      "sources": [
+        "transform/models/intermediate/int_driver_isolation_lap_panel.sql",
+        "transform/dbt_project.yml",
+        "transform/tests/assert_isolation_thin_cell_tax_matches_component.sql",
+        "transform/tasks/coefficients/fit_constructor_car_fe.py",
+        "data/fits/constructor_car_fe_isolation.parquet",
+        "transform/tests/fixtures/fits/"
+      ],
+      "doc": "wi/CO-30-isolation-thin-cell-tax.md",
+      "cost": "0.5d",
+      "model": "sonnet-5",
+      "note": "Raised 2026-10-24 from W10 (owner ruling 1a; owner approved the item 2026-10-24). Laps in thin field-base cells (no tax-component row) are kept in the isolation panel with the tax priced as theta_air x previous-lap share. No label move. Code and tests done (panel SQL and var are in commit ac9e798; the new test is untracked). Scratch: panel 123,085 -> 127,478 rows. 2026-10-24: the new test's vacuity guard (1,000 laps) failed the CI fixture (91 laps, 158 skips downstream); set to 50 on target ci, fixture build then green. Open: isolation car-FE refit into data/fits, CI fixture refresh, rebuilt dev, ships in label version v17 with CO-31 and CO-32."
+    },
+    {
+      "id": "CO-31",
+      "group": "1-data",
+      "stage": "SPEC",
+      "depends_on": [
+        "CO-17"
+      ],
+      "title": "W10 restart lap: first four green laps after an SC/red flag take their own trimmed mean (option 2b)",
+      "sources": [
+        "transform/models/intermediate/int_field_pace_curve.sql",
+        "transform/dbt_project.yml",
+        "transform/tests/assert_field_pace_restart_cells_own_mean.sql",
+        "transform/tests/assert_prior_season_labels_frozen.sql",
+        "transform/seeds/label_stability_baseline.csv"
+      ],
+      "doc": "wi/CO-31-restart-lap-own-mean.md",
+      "cost": "0.5d",
+      "model": "opus-5",
+      "note": "Raised 2026-10-24 from W10 (owner ruling 2b; keep field_restart_adjacent_laps = 4; owner approved the item 2026-10-24). field_restart_adjacent_laps 2 -> 4 moves 20,646 label rows (season means -0.024 to +0.007). Code and tests done, uncommitted. assert_prior_season_labels_frozen fails 7 rows on a full dev build until the v17 re-take (expected). Open: v17 re-take of label_stability_baseline (after the owner's commit and the DA-05 label decision), refits, rebuilt dev. Owner may widen to 6 if lap 5 and 6 (-0.046, -0.030) matter."
+    },
+    {
+      "id": "CO-32",
+      "group": "1-data",
+      "stage": "SPEC",
+      "depends_on": [
+        "CO-30",
+        "CO-31"
+      ],
+      "title": "W11 option C: micro-sector dirty-air pricing, panel and registered fit, then the label version",
+      "sources": [
+        "_roadmap/_dirty-air/status/build-log.json",
+        "_roadmap/_dirty-air/wi/DA-03-preregistration.md",
+        "transform/models/intermediate/int_microsector_crossings.sql",
+        "transform/models/intermediate/int_microsector_proximity.sql",
+        "transform/tasks/coefficients/fit_dirty_air_microsector.py"
+      ],
+      "doc": "wi/CO-32-microsector-dirty-air.md",
+      "cost": "3-6wk",
+      "model": "fable-5.1",
+      "note": "Raised 2026-10-24 from W11 (owner ruled option C wanted 2026-10-23; owner approved the item 2026-10-24). Follows _roadmap/_dirty-air (its own log holds the phases: DA-02 panel and checks built on scratch; DA-03 registered fit, DA-04 validation, DA-05 label). BLOCKER for the fit step: the owner must commit _roadmap/_dirty-air/wi/DA-03-preregistration.md (still a DRAFT) before any real fit; P3 corner-class map and DRS state owed. DA-05 waits on DD2 (dirty-air log). The dirty-air group does not exist in this log, so 1-data. Ships in v17 with CO-30 and CO-31."
     }
   ],
   "decisions": [
@@ -2320,6 +2382,134 @@
       ],
       "next_action": "Owner: W21 (dev, ci, or two baselines) and W6 re-snapshot; commit decision for CO-09, CO-15, CO-17 and the WI edits.",
       "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-24",
+      "session": "W10/W11 sub-agent (v17 label-version groundwork). Nothing committed, pushed, staged or reverted. data/dev.duckdb not touched: every dbt build ran on scratch copies. build-log items NOT added (an item needs a wi/ doc and the stop order forbade more file edits); proposed items are in proposed_items below. No other item, watch rule or the pointer changed.",
+      "landed": [
+        "Nothing moved to LANDED. W10 and W11 stay open; the code for W10 thin cells, W10 restart lap and the W11 micro-sector panel exists in the working tree, uncommitted, and is verified on scratch copies only."
+      ],
+      "verified": [
+        "W10 thin cells (option 1a), code done: int_driver_isolation_lap_panel now prices the dirty-air tax (theta_air x previous lap share, clamp [0,5]) for laps with no int_dirty_air_tax_component row, in races where >0.5 of laps have a measured air state (2018_1 and 2018_2 stay out, 6% measured). Isolation panel 123,085 -> 127,478 rows (+4,393 laps, 3,503 of them followed a car, mean tax 0.264 s, 126 races). New column is_thin_cell_tax. Label spine untouched: with restart laps held at 2, fct_cliff_prediction_features differs from v16 dev by no column above 1e-6 (only 16 rows of float noise from int_lap_telemetry_aggregates). Full build on a scratch copy PASS=1450 WARN=0 ERROR=0 of 1453, including new test assert_isolation_thin_cell_tax_matches_component and T41 assert_isolation_base_invariance, assert_isolation_field_centring, assert_isolation_phase_partition, assert_isolation_recovery_share. Isolation car-FE refit run on the scratch fits (1,619 isolation rows, was 1,604); the data/fits parquets were NOT refit or overwritten.",
+        "W10 restart lap (option 2b), code done: int_field_pace_curve restart-adjacent window is now var field_restart_adjacent_laps = 4 (was 2). With the var at 2 the model reproduces v16 dev to 2.8e-14 s. Smoothed minus own trimmed mean by green lap after an SC/red flag, v16 -> v17: lap 3 -0.185 -> 0.000 (100 cells), lap 4 -0.051 -> 0.000 (103 cells); the lean moves out to lap 5 (+0.077 -> -0.046) and lap 6 (+0.021 -> -0.030), still under 0.05 s. 422 field-base cells change. Label moves: next_5_lap_cumulative_jump_s changes on 20,646 of 161,040 laps, row counts unchanged, season means 2018 0.0519 -> 0.0441, 2019 -0.1836 -> -0.1799, 2020 -0.0806 -> -0.0825, 2021 -0.0042 -> 0.0028, 2022 -0.0361 -> -0.0435, 2023 -0.2705 -> -0.2941, 2024 -0.1779 -> -0.1878, 2025 -0.0389 -> -0.0334. assert_prior_season_labels_frozen therefore FAILS 7 rows on a full dev build: expected, it clears when label_stability_baseline is re-taken for v17. assert_field_pace_restart_cells_own_mean was rewritten to count depth independently and passes at 4.",
+        "W11 option C groundwork (DA-02 scope, panel + checks), built and tested on scratch: int_microsector_crossings (3,743,701 rows, 20 interpolated boundary crossings per lap, 171 races) and int_microsector_proximity (3,743,701 rows; 3,039,930 valid = 81.3% of all, 95.1-98.3% of timing-valid rows per season, Gate A >= 90% holds). Each model builds in about 2 s; two rebuilds are identical (EXCEPT = 0). Raw loss-versus-gap (valid rows, seconds per micro-sector vs field median): <0.5 s +0.068, 0.5-1 +0.018, 1-1.5 +0.010, 1.5-2 +0.006, 2-3 +0.003, >3 -0.007: rises as the gap shrinks. Samples per micro-slice p50 14 (2018-19) to 19 (2020), p10 9-13, so 20 per lap holds (DD8). Lap-total identity: sum of 20 times vs lap time median abs 0.026-0.032 s, no bias, 16 laps of 133,685 over 0.5 s. Blue-flag agreement: clear-behind share blue/other ratio 0.19-0.28 against the 0.85 bar. New tests PASS: assert_microsector_car_ahead_is_previous_crossing, assert_microsector_excludes_pit_lane, assert_microsector_lap_total_identity, assert_microsector_validity_rules, assert_microsector_agrees_with_blue_flags, plus 23 schema tests on the two models. Estimator tasks/coefficients/fit_dirty_air_microsector.py with race-clustered (CRV1, t with races-1 df) standard errors, placebos P1 P2, lead window: 6 pytest pass on a synthetic panel (tests/test_fit_dirty_air_microsector.py). The fit has NOT been run on real data.",
+        "Last full scratch build with everything (restart = 4, thin cells, new models and tests): dbt build PASS=1474 WARN=0 ERROR=1 SKIP=0 NO-OP=3 of 1478; the one error is assert_prior_season_labels_frozen (7 rows), the expected v17 label move."
+      ],
+      "assumed": [
+        "The per-micro-sector track status check treats ANY non-'1' circuit status as non-green (marshal-sector map absent, DD6), so a local yellow drops every driver for its duration.",
+        "The micro-sector panel was built at micro-sector grain from interpolated boundary crossings, not through the 68M-row sample-level table named in the design note; the entry-gap design does not need that table. Owner may still want it."
+      ],
+      "half_done": [
+        "Not run: pytest of transform/tasks/coefficients/tests as a whole (only test_fit_dirty_air_microsector.py was run), so test_no_vacuous_singular_tests.py has not been run against the five new singular tests.",
+        "Not run: the CI-target (fixture) build with --vars bronze_base/fits_base; the new models and tests were only run on full-data scratch copies. assert_microsector_lap_total_identity has a coverage guard (50% complete laps) and assert_microsector_excludes_pit_lane a >=1 pit_lane per 1,000 rows guard that are unchecked on the 3-race fixture.",
+        "Written but not committed or hashed: _roadmap/_dirty-air/wi/DA-03-preregistration.md is a DRAFT. P3 (mechanism) is OWED: no micro-sector to corner-class map exists. DRS state is not in the panel (registered as an owed amendment).",
+        "Stopped after the last scratch build completed (final/log_build.txt); no file was mid-edit. The evidence folder _roadmap/_dirty-air/_evidence/DA-02-2026-10-24/ holds queries/descriptives.py and results/*.csv but NO NOTE.md or PROVENANCE.txt yet."
+      ],
+      "not_started": [
+        "Re-take of transform/seeds/label_stability_baseline.csv for v17 (one bump, one snapshot, after the W11 label decision).",
+        "Refit of data/fits/constructor_car_fe_isolation.parquet and constructor_car_fe.parquet on the v17 substrate, and the CI fixture refresh (W4 shape).",
+        "DA-05 label decision (path A or B, DD2) and anything in ml/, app/ or docs: untouched by order. The ml/README.md and ml/src/schema.py label-version note for v17 is not written.",
+        "Running the real DA-03 fit; the sensitivity panel at microsector_n 10; docs/tests README entries for the three new models are only in schema.yml, not in models/intermediate/README.md."
+      ],
+      "files_changed": [
+        "transform/dbt_project.yml (vars isolation_thin_min_air_measured_share, field_restart_adjacent_laps, microsector_n, microsector_max_bracket_s, microsector_lapped_ahead_window_s, microsector_min_field_n)",
+        "transform/models/intermediate/int_driver_isolation_lap_panel.sql",
+        "transform/models/intermediate/int_field_pace_curve.sql",
+        "transform/models/intermediate/schema.yml (panel column is_thin_cell_tax, is_restart_adjacent_lap text, two new models appended at the end)",
+        "transform/models/intermediate/int_microsector_crossings.sql (new)",
+        "transform/models/intermediate/int_microsector_proximity.sql (new)",
+        "transform/tests/assert_field_pace_restart_cells_own_mean.sql, assert_field_pace_honest_range.sql (comment only), README.md (two rows reworded)",
+        "transform/tests/assert_isolation_thin_cell_tax_matches_component.sql (new)",
+        "transform/tests/assert_microsector_car_ahead_is_previous_crossing.sql, assert_microsector_excludes_pit_lane.sql, assert_microsector_lap_total_identity.sql, assert_microsector_validity_rules.sql, assert_microsector_agrees_with_blue_flags.sql (all new)",
+        "transform/tasks/coefficients/fit_dirty_air_microsector.py (new), transform/tasks/coefficients/tests/test_fit_dirty_air_microsector.py (new)",
+        "_roadmap/_dirty-air/wi/DA-03-preregistration.md (new, draft), _roadmap/_dirty-air/_evidence/DA-02-2026-10-24/ (new: queries/descriptives.py, results/*.csv)",
+        "_roadmap/_ai-integration/status/build-log.json (this entry only)"
+      ],
+      "proposed_items": [
+        {
+          "id": "CO-30 (proposed, SPEC)",
+          "title": "W10 thin cells: price the dirty-air tax inside the isolation panel (option 1a)",
+          "description": "Laps in thin field-base cells (no tax-component row) are kept in the isolation panel with the tax priced as theta_air x previous-lap share. No label move. Code and tests done in the working tree; open: isolation car-FE refit into data/fits, CI fixture refresh, rebuilt dev, ships in label version v17.",
+          "depends_on": [
+            "CO-17"
+          ],
+          "cost": "0.5d",
+          "model": "sonnet-5"
+        },
+        {
+          "id": "CO-31 (proposed, SPEC)",
+          "title": "W10 restart lap: first four green laps after an SC/red flag take their own trimmed mean (option 2b)",
+          "description": "field_restart_adjacent_laps 2 -> 4. Moves 20,646 label rows (season means -0.024 to +0.007). Code and tests done; open: v17 re-take of label_stability_baseline, refits, rebuilt dev. Owner may widen to 6 if lap 5 and 6 (-0.046, -0.030) matter.",
+          "depends_on": [
+            "CO-17"
+          ],
+          "cost": "0.5d",
+          "model": "opus-5"
+        },
+        {
+          "id": "CO-32 (proposed, SPEC)",
+          "title": "W11 option C: micro-sector dirty-air pricing, panel and registered fit, then the label version",
+          "description": "Follows _roadmap/_dirty-air (DA-02 panel and checks built; DA-03 registered fit, DA-04 validation, DA-05 label). Owner must commit DA-03-preregistration.md before any fit; P3 map and DRS state owed. Ships in v17 with CO-30 and CO-31.",
+          "depends_on": [
+            "CO-30",
+            "CO-31"
+          ],
+          "cost": "3-6wk",
+          "model": "fable-5.1"
+        }
+      ],
+      "next_action": "Owner: review the three proposed items and either approve them (a wi/ doc each, then add to items) or decline; decide whether field_restart_adjacent_laps stays 4 in the working tree (a full dev build now fails assert_prior_season_labels_frozen until v17 is snapshotted; set the var to 2 to restore v16 exactly); read and commit DA-03-preregistration.md before any real fit.",
+      "resume_commands": [
+        "S=/private/tmp/claude-501/-Users-justin-github-off-the-pace/1954c603-622c-4dd0-880d-1bc5e27497c9/scratchpad/v17   # scratch root; each run gets its own folder with dev.duckdb (name must stay dev.duckdb), profiles.yml, fits/, target/, logs/",
+        "$S/run_chain.sh <folder> <restart_laps>   # copies data/dev.duckdb and data/fits to $S/<folder>, writes its profiles.yml, then car-FE run+fit, isolation run+fit, dbt build with --vars {field_restart_adjacent_laps: N, fits_base: $S/<folder>/fits}; result in $S/<folder>/DONE and log_build.txt (about 3 minutes)",
+        "cd transform && ../.venv/bin/dbt test --profiles-dir $S/final --target-path $S/final/target --log-path $S/final/logs --select assert_microsector_lap_total_identity   # single test on an existing scratch copy",
+        "python3 $S/cmp.py data/dev.duckdb $S/final/dev.duckdb   # table-by-table diff vs v16 dev; python3 $S/restart_bias.py <db> for the lap-3/4 bias; coldiff.py <db> <table> <key> for per-column diffs",
+        "PYTHONPATH=transform .venv/bin/pytest transform/tasks/coefficients/tests -q   # still to run in full",
+        "cd transform && ../.venv/bin/python ../_roadmap/_dirty-air/_evidence/DA-02-2026-10-24/queries/descriptives.py $S/final/dev.duckdb ../_roadmap/_dirty-air/_evidence/DA-02-2026-10-24/results   # re-run descriptives"
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py",
+      "gates_run": [
+        "dbt build on scratch copies (restart=2 with thin cells: PASS=1450 ERROR=0; restart=4 final: PASS=1474 ERROR=1 expected assert_prior_season_labels_frozen)",
+        "pytest transform/tasks/coefficients/tests/test_fit_dirty_air_microsector.py: 6 passed",
+        "dbt test of the 5 new microsector singular tests and 23 schema tests: all PASS",
+        "dbt test of the 4 isolation tests plus the new thin-cell test: PASS"
+      ]
+    },
+    {
+      "date": "2026-10-24",
+      "session": "W10/W11 continuation sub-agent (owner: 'continue them'). Added CO-30, CO-31, CO-32 (owner-approved) with wi/ docs; finished the verification the previous handoff left unrun; wrote the DA-02 evidence NOTE and PROVENANCE. Nothing committed, pushed or staged. data/dev.duckdb, data/fits/*.parquet and transform/seeds/label_stability_baseline.csv not touched (sha256 checked before and after). Pointer, watch rules W10/W11 and decisions unchanged.",
+      "landed": [
+        "Nothing moved to LANDED. CO-30, CO-31, CO-32 added at SPEC (wi/CO-30-isolation-thin-cell-tax.md, wi/CO-31-restart-lap-own-mean.md, wi/CO-32-microsector-dirty-air.md). W10 and W11 left open: they clear when these items land (W11's clears_when is now met in substance; the owner records the resolution)."
+      ],
+      "verified": [
+        "PYTHONPATH=transform .venv/bin/pytest transform/tasks/coefficients/tests -q: 165 passed, 0 failed (includes test_no_vacuous_singular_tests.py, 2 passed, against the five new singular tests). Same suite with CI_DB_PATH on the fixture build and --cov-fail-under=60: 165 passed, coverage 76.9%.",
+        "Fixture-scale CI build on a scratch copy (target named ci, threads 1, --vars bronze_base ../transform/tests/fixtures/bronze, fits_base ../transform/tests/fixtures/fits): first run FAILED assert_isolation_thin_cell_tax_matches_component (vacuity guard: 91 thin-cell laps on the fixture < 1,000), PASS=1315 WARN=1 ERROR=1 SKIP=158. Fixed the guard to 50 on target ci (pattern of T28). Re-run: seed PASS=19, fast_build PASS=306 ERROR=0, full build PASS=1474 WARN=1 ERROR=0 SKIP=0 NO-OP=3 of 1478; the WARN is the known CI-only assert_prior_season_labels_frozen (2 rows). All five assert_microsector_* tests PASS at fixture scale (coverage guards hold).",
+        "A first fixture run with the scratch target named dev failed assert_field_base_component_neutral on its non-ci vacuity guard: a target-name artefact, not a defect. The fixture build must run under a target named ci."
+      ],
+      "assumed": [
+        "CO-32 is in group 1-data: this log has no dirty-air group; the phases stay in _roadmap/_dirty-air/status/build-log.json.",
+        "The CO-30 panel SQL and its var are already in commit ac9e798 (swept in with the constructor-team-averages commit); only its test file is untracked."
+      ],
+      "half_done": [
+        "sqlfluff lint models/ (CI 'Lint SQL', hard failure) FAILS on 6 files, 28 findings, not fixed (no reformatting by order): int_microsector_proximity 11, int_field_pace_curve 7, int_microsector_crossings 5, int_driver_isolation_lap_panel 2 (LT05, line 90 and 101, already committed), dim_corners 2 and stg_race_control 1 (both unchanged in the tree, so pre-existing). Owner: fix before the commit or CI goes red."
+      ],
+      "not_started": [
+        "Refits into data/fits, the v17 re-take of label_stability_baseline.csv, the CI fixture fits refresh, the rebuilt dev, the real DA-03 fit: all wait on the owner's commit, the DA-03 pre-registration commit and the DA-05 label decision. Not run, by order."
+      ],
+      "files_changed": [
+        "_roadmap/_ai-integration/wi/CO-30-isolation-thin-cell-tax.md, CO-31-restart-lap-own-mean.md, CO-32-microsector-dirty-air.md (new)",
+        "_roadmap/_ai-integration/status/build-log.json (three items, this entry), BUILD-ORDER.md (regenerated)",
+        "transform/tests/assert_isolation_thin_cell_tax_matches_component.sql (vacuity guard 50 on target ci)",
+        "_roadmap/_dirty-air/_evidence/DA-02-2026-10-24/NOTE.md, PROVENANCE.txt (new)"
+      ],
+      "next_action": "Owner: fix or accept the sqlfluff findings, then commit the v17 working tree (the DA-03 pre-registration separately, after review). Then CO-32's DA-03 fit with the committed file's SHA-256, DD2/DA-05, and one v17 baseline re-take plus refits for CO-30 and CO-31.",
+      "gates_run": [
+        "pytest transform/tasks/coefficients/tests: 165 passed",
+        "dbt seed + build --selector fast_build + build on fixture (scratch, target ci): PASS=1474 WARN=1 ERROR=0",
+        "sqlfluff lint models/: FAIL, 28 findings in 6 files",
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
     }
   ],
   "watch_vocabulary": {
@@ -2636,7 +2826,9 @@
       "clears_when": "Triaged, with each fixed or accepted.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-24",
+      "resolution": "Fixed: worker vitest 5.0.5, vite 8, undici 7.30.1 override; app happy-dom 21.0.4; withdrawn scanner exception removed; worker lockfile added to the OSV scan. OSV API shows 0 hits on the lockfiles. App typecheck fixed (profileLookup.test.ts imports from @duckdb/duckdb-wasm/blocking). The two sources.node honesty failures predate the bump (reproduce at e87f728) and are deferred to parked AI-02 policy.json work."
     },
     {
       "id": "W17",

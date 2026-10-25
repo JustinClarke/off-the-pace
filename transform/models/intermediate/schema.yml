@@ -956,7 +956,8 @@ models:
         tests: [not_null]
       - name: is_restart_adjacent_lap
         description: >
-          TRUE on the first two green lap numbers after an SC or red-flag lap (not a VSC).
+          TRUE on the first var('field_restart_adjacent_laps') green lap numbers (4 since v17,
+          was 2) after an SC or red-flag lap (not a VSC).
           Such a cell's base is its own trimmed mean and it is in no other cell's window,
           because the restart laps run slower than the green laps after them (-1.04 s and
           -0.49 s of smoothing bias before CO-04 gave them their own mean).
@@ -3589,7 +3590,16 @@ models:
           - not_null
       - name: dirty_air_tax_s
         description: >
-          D: dirty-air tax, s, positive = slower (int_lap_residual_decomposed).
+          D: dirty-air tax, s, positive = slower (int_lap_residual_decomposed). On a thin
+          field-base cell (is_thin_cell_tax) it is priced in this panel as theta_air x the
+          previous lap's dirty-air share, clamped to [0, 5] (W10, v17).
+        tests:
+          - not_null
+      - name: is_thin_cell_tax
+        description: >
+          TRUE where the lap sits in a thin field-base cell (no int_dirty_air_tax_component row)
+          and its tax was priced in this panel (W10, v17). The label spine is unchanged on
+          these laps.
         tests:
           - not_null
       - name: x_s
@@ -4353,3 +4363,98 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: [race_id, compound_hardness_rank]
+
+  - name: int_microsector_crossings
+    description: >
+      DA-02. The session clock at which each driver reaches each of var('microsector_n') (20)
+      fixed track positions per lap, linearly interpolated between the two position samples that
+      straddle the boundary (DA-01 validated the interpolation against the timing feed's sector
+      lines, median absolute error 0.053-0.078 s). One row per (race, driver, lap, boundary);
+      boundary 0 of lap L + 1 is the lap line. bracket_s is the width of the straddling pair;
+      on_track is TRUE when both samples are OnTrack. No label reads it. _roadmap/_dirty-air.
+    tags: [intermediate, dirty_air_dynamic]
+    columns:
+      - name: crossing_time_s
+        tests: [not_null]
+      - name: microsector
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 19
+                inclusive: true
+      - name: bracket_s
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                inclusive: false
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id, boundary_k]
+
+  - name: int_microsector_proximity
+    description: >
+      DA-02. The micro-sector panel the dirty-air identification (DA-03, W11 option C) is fitted
+      on. One row per (race, driver, lap, micro-sector): time_s (the interpolated time to drive
+      it), y_s (time_s minus the median of the timing-valid cars on the same race, lap and
+      micro-sector; positive = slower), the entry gap to the car ahead (gap_ahead_s, from
+      crossing order so lapped cars are handled), the gap behind, the exit gap (an outcome, for
+      the lead window only), the car ahead's own y_s, and one invalid_reason (NULL = valid).
+      Unknown car ahead is NULL, never 0. A lapped car ahead within
+      var('microsector_lapped_ahead_window_s') invalidates the row (DD5); beyond it the row is
+      in the reference band. gap_band is the design note's step function with >3 s as the
+      reference. No label, ML mart or isolation model reads it. Design:
+      _roadmap/_dirty-air/wi/DA-design-note.md, DA-02-tables.md.
+    tags: [intermediate, dirty_air_dynamic]
+    columns:
+      - name: microsector_id
+        tests: [not_null, unique]
+      - name: lap_id
+        description: >
+          stg_laps.lap_id of the lap the micro-sector belongs to.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_laps')
+                field: lap_id
+      - name: race_id
+        tests: [not_null]
+      - name: driver_id
+        tests: [not_null]
+      - name: microsector
+        tests: [not_null]
+      - name: entry_time_s
+        tests: [not_null]
+      - name: timing_invalid_reason
+        description: >
+          Why time_s is NULL: lap1, pit_lane, no_next_crossing, off_track, wide_bracket,
+          non_green_flag or post_restart; NULL when the row has a usable time.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [lap1, pit_lane, no_next_crossing, off_track, wide_bracket, non_green_flag, post_restart]
+                quote: true
+      - name: invalid_reason
+        description: >
+          timing_invalid_reason, or car_ahead_unknown, or lapped_ahead_within_window; NULL = valid
+          (priced).
+        tests:
+          - accepted_values:
+              arguments:
+                values: [lap1, pit_lane, no_next_crossing, off_track, wide_bracket, non_green_flag, post_restart, car_ahead_unknown, lapped_ahead_within_window]
+                quote: true
+      - name: gap_band
+        tests:
+          - accepted_values:
+              arguments:
+                values: [0_lt0.5, 1_0.5to1, 2_1to1.5, 3_1.5to2, 4_2to3, 5_gt3_reference]
+                quote: true
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, driver_id, lap_number, microsector]

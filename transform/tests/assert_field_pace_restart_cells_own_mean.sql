@@ -1,10 +1,13 @@
 -- CO-04 / W43, restart laps (owner decision 2026-10-15). The first two green
--- lap numbers after a safety car or red flag are restart-adjacent: each takes
+-- lap numbers after a safety car or red flag are restart-adjacent (two until v16;
+-- var('field_restart_adjacent_laps') = 4 since v17, W10 owner ruling 2b): each takes
 -- its own trimmed mean as its field base, and no other cell's smoothing window
 -- reaches one. So a restart cell never averages with the green laps before the
 -- neutralisation, nor with the faster green laps after it. Restart laps are
 -- re-derived here from int_stint_geometry (any driver's lap at that number
--- flagged), not read from the model's own is_restart_adjacent_lap.
+-- flagged), not read from the model's own is_restart_adjacent_lap. The depth is
+-- counted differently from the model (laps since the last neutralised lap, rather
+-- than a chain of LAGs), so the two derivations check each other.
 --
 -- One row per failure:
 --   'restart_flag_mismatch' -- the model's is_restart_adjacent_lap disagrees
@@ -39,25 +42,30 @@ ordered AS (
         race_id,
         lap_number,
         is_neutralised,
-        LAG(is_neutralised, 1) OVER w AS prev1_neutralised,
-        LAG(is_sc_or_red, 1) OVER w AS prev1_sc_or_red,
-        LAG(is_sc_or_red, 2) OVER w AS prev2_sc_or_red
+        MAX(CASE WHEN is_neutralised THEN lap_number END) OVER w AS last_neut_lap
     FROM lap_flags
-    WINDOW w AS (PARTITION BY race_year, race_id ORDER BY lap_number)
+    WINDOW w AS (
+        PARTITION BY race_year, race_id ORDER BY lap_number
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    )
 ),
 
 restart AS (
     SELECT
-        race_year,
-        race_id,
-        lap_number
-    FROM ordered
+        o.race_year,
+        o.race_id,
+        o.lap_number
+    FROM ordered AS o
+    INNER JOIN lap_flags AS n
+        ON
+            o.race_year = n.race_year
+            AND o.race_id = n.race_id
+            AND o.last_neut_lap = n.lap_number
     WHERE
-        NOT is_neutralised
-        AND (
-            prev1_sc_or_red
-            OR (NOT prev1_neutralised AND prev2_sc_or_red)
-        )
+        NOT o.is_neutralised
+        AND n.is_sc_or_red
+        AND o.lap_number - o.last_neut_lap
+        <= {{ var('field_restart_adjacent_laps') }}
 ),
 
 cells AS (

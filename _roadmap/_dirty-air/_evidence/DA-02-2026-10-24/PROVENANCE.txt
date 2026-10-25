@@ -1,0 +1,73 @@
+DA-02 Phase 1 tables and descriptives - provenance
+Run date: 2026-10-24
+Repo HEAD: ac9e798 (main). Working tree dirty: the DA-02 models, tests and the v17
+  W10 changes are uncommitted (see the 2026-10-24 entries in
+  _roadmap/_ai-integration/status/build-log.json). Nothing committed by this run.
+Results written by the W10/W11 sub-agent session (2026-10-24, ~15:15 +04:00).
+This file and NOTE.md were written afterwards (2026-10-24, ~17:55 +04:00) by a
+  follow-up session, which re-ran the script on the same warehouse and got
+  byte-identical CSVs (see VERIFICATION).
+
+DATA FILES
+  Source warehouse: data/dev.duckdb (CO-17 trusted rebuild, v16)
+    mtime 2026-10-24 14:38:58, 1,905,799,168 bytes
+    sha256 82c64d8683ddd4af4c4744efc014843bf6d693cffe7292011ff7a2b9aa237b2b
+    Only COPIED (cp). The shared file was never opened for writing.
+  Warehouse the descriptives read: <S>/final/dev.duckdb, opened read_only.
+    A copy of data/dev.duckdb rebuilt by run_chain.sh with the working tree
+    (field_restart_adjacent_laps = 4, W10 thin cells, the two micro-sector
+    models and their tests) and fits_base = <S>/final/fits (scratch refits).
+    After the build: mtime 2026-10-24 15:17:47, 1,905,799,168 bytes,
+    sha256 ce294b509f16db538fad5ee9a1619861b18df7fedd3b83c86c1781c7617a62d5
+    Build: PASS=1474 WARN=0 ERROR=1 SKIP=0 NO-OP=3 of 1478 (<S>/final/log_build.txt);
+    the one error is assert_prior_season_labels_frozen (7 rows), the expected
+    v17 label move from field_restart_adjacent_laps = 4. It does not touch the
+    micro-sector models.
+    int_microsector_crossings built in 3.3 s, int_microsector_proximity in 16.4 s.
+  Bronze parquet: read live through the staging views (stg_telemetry_position,
+    stg_laps), which is why the script runs from transform/.
+  <S> = /private/tmp/claude-501/-Users-justin-github-off-the-pace/1954c603-622c-4dd0-880d-1bc5e27497c9/scratchpad/v17
+    Scratch, not kept in the repo.
+
+MODEL SOURCES AT RUN TIME (sha256, unchanged since the run)
+  e789f6a95f605aca1c91f2dc11564ddb54eb341d1f5217cf1808a9e31a217b13  transform/models/intermediate/int_microsector_crossings.sql
+  b63d1fab754f1979f647631adb99cb9da7b8101828465ef1aa4fed730b097b4e  transform/models/intermediate/int_microsector_proximity.sql
+  Vars (transform/dbt_project.yml): microsector_n 20, microsector_max_bracket_s 1.0,
+    microsector_lapped_ahead_window_s 3.0, microsector_min_field_n 8.
+
+SOFTWARE
+  .venv python 3.14.8, duckdb 1.5.6, pandas 2.3.3, dbt-core 1.12.6, dbt-duckdb 1.11.0,
+  macOS Darwin 27.0.0.
+
+COMMANDS (in order; R=/Users/justin/github/off-the-pace)
+  $S/run_chain.sh final 4
+    # cp $R/data/dev.duckdb and $R/data/fits/* to $S/final/; writes $S/final/profiles.yml;
+    # dbt run of the car-FE inputs, fit_constructor_car_fe, dbt run of the isolation
+    # panel, fit_constructor_car_fe --panel isolation, then
+    # dbt build --vars "{field_restart_adjacent_laps: 4, fits_base: '$S/final/fits'}"
+    #   --profiles-dir $S/final --target-path $S/final/target --log-path $S/final/logs
+  cd $R/transform
+  ../.venv/bin/python ../_roadmap/_dirty-air/_evidence/DA-02-2026-10-24/queries/descriptives.py \
+      $S/final/dev.duckdb ../_roadmap/_dirty-air/_evidence/DA-02-2026-10-24/results
+  queries/descriptives.py is the exact script run (sha256
+  55cb96d30aa9391719f67626fcae85d9d3b307f401724c189e6a1a3e31d6fd96). It is descriptive
+  only: no fixed effects, no fit. The DA-03 fit was NOT run.
+
+OUTPUTS (one CSV per query in descriptives.py, named after the query key; sha256)
+  1b3ff6a98e8fc334853d7458fa15c683dcc035688d00a4ac0c37ab1f2f96d6ef  results/01_reason_funnel_by_season.csv
+  9231507064461d4750cd6afdede09b2d5fc2166cf4d2d844987ddc38422cbd2d  results/02_loss_vs_gap_raw.csv
+  e7e54589e2cc600cd6e0d6a092dee8e9602de83e057b0b90917d4b9f7923c4a6  results/02b_loss_vs_gap_raw_by_era.csv
+  1d811e8649568a3b7efdcd0a4a3b384f581c21482c75d4ca4575707e492604aa  results/03_samples_per_slice.csv
+  6ef836025e3540b8718ff17adc597d507720b8e24fecb0dbcf789aaf1cbd03de  results/04_lap_total_identity.csv
+  973a516e609f9bab173c6bfe89397d0fa0f0eac0dff11f734bc29f68f75b0ccc  results/05_bracket_by_season.csv
+  5d466bb8a8235c489ff6e53861d42873705f0acb1742355c4883477dc2798324  results/06_panel_for_fit.csv
+
+VERIFICATION (2026-10-24, follow-up session)
+  cd $R/transform && ../.venv/bin/python ../_roadmap/_dirty-air/_evidence/DA-02-2026-10-24/queries/descriptives.py \
+      $S/final/dev.duckdb $S/da02_rerun
+  All 7 CSVs byte-identical to results/ (cmp).
+
+CAVEATS
+  The warehouse is a scratch build of uncommitted code. Re-run on the rebuilt dev
+  after the owner's commit. Numbers in results/ are what the DA-03 pre-registration
+  draft says it looked at; nothing else from the real panel was examined.

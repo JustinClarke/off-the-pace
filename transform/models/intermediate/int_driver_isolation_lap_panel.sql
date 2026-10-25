@@ -87,19 +87,20 @@
 --   priced here. The tax is theta_air x the previous lap's dirty-air share,
 --   clamped to [0, 5.0] -- it needs no field base (the base cancels out of y_s,
 --   T41), so the thin cell only ever blocked the tax component's row, not the
---   tax. `thin_priced` rebuilds the lag exactly as int_dirty_air_tax_component's
---   full_sequence_lag does (LAG over the whole stint, 0.0 only for a stint's
---   first lap, an unmeasured previous lap stays NULL), and it applies ONLY to a
---   lap with no tax-component row; a lap that has a row keeps that row's tax,
---   so a lap priced in both places gets the same number
+--   tax. `thin_priced` rebuilds the lag exactly as
+--   int_dirty_air_tax_component's full_sequence_lag does
+--   (LAG over the whole stint, 0.0 only for a stint's first lap, an unmeasured
+--   previous lap stays NULL), and it applies ONLY to a lap with no
+--   tax-component row; a lap that has a row keeps that row's tax, so a lap
+--   priced in both places gets the same number
 --   (assert_isolation_thin_cell_tax_matches_component). Races where
 --   var('isolation_thin_min_air_measured_share') of the laps or fewer have a
 --   measured air state (2018_1 Australia and 2018_2 Bahrain, 6% each; no
 --   telemetry in bronze) stay out, per the owner's 2026-10-15 decision. The
 --   label spine is NOT touched: int_dirty_air_tax_component and the residual
 --   chain still carry no row/0.0 on these laps, so no ML label moves from this.
---   is_thin_cell_tax flags the repriced laps. The car-term fit reads this panel,
---   so the isolation car FE refit is owed (see the item note).
+--   is_thin_cell_tax flags the repriced laps. The car-term fit reads this
+--   panel, so the isolation car FE refit is owed (see the item note).
 --   The recovery overlay reads an unmeasured lap as unknown (is_dirty NULL),
 --   not clean: it is its own run, it neither ends nor extends a dirty run, and
 --   it is never itself a recovery lap. is_dirty_air_lap is NULL on such a lap.

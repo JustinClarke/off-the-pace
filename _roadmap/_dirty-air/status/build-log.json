@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "dirty-air: continuous, distance-based traffic cost (real-time, phased)",
-  "updated": "2026-10-25T16:00:00+04:00",
+  "updated": "2026-10-26T13:06:32+04:00",
   "pointer": "DA-02P",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -259,7 +259,7 @@
       "context": "Owner review of the DA-02P draft (wi/DA-03-preregistration-amendment-draft.md), 2026-10-25. Naming ruling recorded in the transform log D11: v16 is the TRANSFORM label version, v17 is the ML model. 2026-10-25 update: thresholds ruled; flat-out kinks split to DD10, since resolved (split into a flat class, 280 km/h). Path A or B (DD2): owner selected B, gated on DA-03 and DA-04.",
       "recommendation": "Accept the exceptions, the P3 pass rule, the DRS rule, the commit order and fixed corner cut-offs of 120 and 200 km/h as drafted. Flat-out kinks are split out to DD10.",
       "resolved": "2026-10-25",
-      "resolution": "Owner 2026-10-25. (1) Corner thresholds ACCEPTED (owner 2026-10-25, 'okay perf', accepting the recommendation): fixed cut-offs of 120 and 200 km/h for every track, 100 m and 150 m straight buffers, apex-speed definition as drafted. Basis: the corner analysis in /private/tmp/claude-501/-Users-justin-github-off-the-pace/4688e87f-3ff1-4470-87f4-4afc2bd5deef/scratchpad/corners/ (breaks_out.txt for the pooled and per-season distribution checks, options_out.txt for the fixed, pooled and per-track options). 200 km/h matches a dip in the pooled apex-speed distribution that holds across seasons; 120 km/h is a physics choice (about a third of the downforce of 200 km/h). (2) Exceptions ACCEPTED: 2020 Tuscan and 2020 Sakhir have no corner data and drop out of the fast-corner test (p3 only); 2021 Belgium borrows corner speeds from 2022. (3) P3 pass rule ACCEPTED: (a) fast-corner loss positive with 95% CI excluding 0; (b) fast minus straight positive with CI excluding 0; (c) straight effect at or below 0; required pooled and in each era 2018-21 and 2022-25. (4) DRS rule ACCEPTED: drop micro-sectors where DRS is open at entry or exit, and drop unknown; the DRS-closed result is reported as secondary and cannot rescue a failed main result. (5) Commit order ACCEPTED: model and test edits first, then the pre-registration alone. (6) Path A or B: owner selected B on 2026-10-25 (DD2), gated on DA-03 and DA-04; no label moves until both pass. The flat-out kink question was recorded separately as DD10 and resolved 2026-10-25: split into a flat class. DD9 is RESOLVED on its other items."
+      "resolution": "Owner 2026-10-25. (1) Corner thresholds ACCEPTED (owner 2026-10-25, 'okay perf', accepting the recommendation): fixed cut-offs of 120 and 200 km/h for every track, 100 m and 150 m straight buffers, apex-speed definition as drafted. Basis: the corner analysis in /private/tmp/claude-501/-Users-justin-github-off-the-pace/4688e87f-3ff1-4470-87f4-4afc2bd5deef/scratchpad/corners/ (breaks_out.txt for the pooled and per-season distribution checks, options_out.txt for the fixed, pooled and per-track options). 200 km/h matches a dip in the pooled apex-speed distribution that holds across seasons; 120 km/h is a physics choice (about a third of the downforce of 200 km/h). (2) Exceptions ACCEPTED: 2020 Tuscan and 2020 Sakhir have no corner data and drop out of the fast-corner test (p3 only); 2021 Belgium borrows corner speeds from 2022. (3) P3 pass rule: see D3 in wi/DA-03-preregistration-amendment-draft.md (note added 2026-10-26). The current rule is the owner-approved D3 of 2026-10-25: two gates, (a) beta(lt1, high) positive with a 95% interval excluding 0 and (b) beta(lt1, high) - beta(lt1, low) positive with a 95% interval excluding 0, pooled and in each era 2018-21 and 2022-25; high is 200 to under 280 km/h (flat excluded); the straight estimate is reported only, not gated. D3 superseded the three-part rule first accepted here on 2026-10-25 ((b) fast minus straight, (c) straight at or below 0), which is no longer in force. (4) DRS rule ACCEPTED: drop micro-sectors where DRS is open at entry or exit, and drop unknown; the DRS-closed result is reported as secondary and cannot rescue a failed main result. (5) Commit order ACCEPTED: model and test edits first, then the pre-registration alone. (6) Path A or B: owner selected B on 2026-10-25 (DD2), gated on DA-03 and DA-04; no label moves until both pass. The flat-out kink question was recorded separately as DD10 and resolved 2026-10-25: split into a flat class. DD9 is RESOLVED on its other items."
     },
     {
       "id": "DD10",
@@ -276,7 +276,7 @@
       ],
       "recommendation": "None was given. Owner chose (b).",
       "resolved": "2026-10-25",
-      "resolution": "Owner 2026-10-25: B. Split flat-out kinks into their own class before the fit. Class rule: \"flat: apex speed at or above 280 km/h, not a straight\". The 280 km/h number is taken from the corner analysis (205 of 869 high-corner race entries) and is TO BE CONFIRMED in the amendment text before commit. Classes are now low, medium, high, flat, straight, link, mixed, no_geometry. In the P3 test, flat is excluded from the high-speed effect and reported separately; high means 200 km/h and above and below 280 km/h. The P3 pass rule (a) to (c) is restated for high without flat in the amendment draft; that restated wording is NEW and the owner has not yet read it. The map (int_microsector_corner_class), the p3 spec and the row-count table must be changed to match before the hash; model SQL was not touched in this step."
+      "resolution": "Owner 2026-10-25: B. Split flat-out kinks into their own class before the fit. Class rule: \"flat: apex speed at or above 280 km/h, not a straight\". The 280 km/h number is taken from the corner analysis (205 of 869 high-corner race entries) and is CONFIRMED by the owner, 2026-10-25 (D5 in the amendment draft; note added 2026-10-26, this entry first read 'to be confirmed in the amendment text before commit'). Classes are now low, medium, high, flat, straight, link, mixed, no_geometry. In the P3 test, flat is excluded from the high-speed effect and reported separately; high means 200 km/h and above and below 280 km/h. The P3 pass rule (a) to (c) is restated for high without flat in the amendment draft; that restated wording is NEW and the owner has not yet read it (note 2026-10-26: since replaced by the owner-approved two-gate rule D3, high minus low, straight reported only). The map (int_microsector_corner_class), the p3 spec and the row-count table must be changed to match before the hash; model SQL was not touched in this step."
     }
   ],
   "watch_vocabulary": {
@@ -534,6 +534,88 @@
       ],
       "next_action": "Owner: read the amendment draft; commit the model, test and estimator edits; then copy the text between the markers over wi/DA-03-preregistration.md and commit it alone; then record its SHA-256 (--print-prereg-sha256) in this log. DA-03 can then run with that hash.",
       "next_command": "cd transform && ../.venv/bin/python -m tasks.coefficients.fit_dirty_air_microsector --print-prereg-sha256"
+    },
+    {
+      "date": "2026-10-26",
+      "session": "Handoff from the transform close-out (CO-33 sealed). Dirty air picks up here.",
+      "landed": [
+        "Transform layer sealed as label version v16 (CO-33, ai-integration log). Dirty-air staging edits (db259ea) were in place before the seal, so the seal already carries them.",
+        "Pointer stays on DA-02P."
+      ],
+      "verified": [
+        "Read-only check (2026-10-26 agent): nothing that feeds the labels reads the micro-sector models; only int_microsector_* and schema files reference them.",
+        "DA-02P scratch: flat class added, dbt build PASS=41 ERROR=0 (2026-10-25 entry); those edits are committed in db259ea."
+      ],
+      "assumed": [
+        "The amendment draft (wi/DA-03-preregistration-amendment-draft.md) is the text to approve; the committed DA-03-preregistration.md still has hash 74df5902... and has NOT had the amendment applied.",
+        "DA-02 SPEC in this log may be stale: its code is in 82796dc. Not changed here; owner or next session confirms before marking LANDED."
+      ],
+      "gates_run": [
+        "git status clean at handoff except the seal files in the ai-integration log owner commit."
+      ],
+      "next_action": [
+        "OWNER: approve the amendment text. Agent fixes first (draft only, not the pre-registration): gap spec at boundary m-1; overall gate verdict in the fit; hash check; DRS wording in the not-ruled-out paragraph; stale DD9 text (P3 rule c); stale DD10 text (280 km/h TO BE CONFIRMED, now confirmed).",
+        "OWNER: copy the approved text over DA-03-preregistration.md, commit it alone, record its SHA-256 here (DA-02P done).",
+        "Then DA-03 (fit, fable-5.1) can start on scratch only.",
+        "OWNER: W2 (2018 IsAccurate gate) can be deferred. DD2 (path A/B) is not needed until DA-05."
+      ],
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-26",
+      "session": "Agent fixes before owner review of the amendment draft (uncommitted).",
+      "landed": [
+        "Amendment draft, 'Not ruled out' paragraph: DRS sentence reworded (DRS opens because of the gap, so the main spec keeps DRS-open micro-sectors; a DRS gain inside 1 s pulls beta(lt1) toward zero; drs_closed and drs_location bound this, but drs_closed selects on a state the gap causes). drs_location is not said to select on the gap, matching the draft's own DRS section. Nothing else in the registered text changed.",
+        "DD9 item (3) now points at D3 (two gates, high minus low, straight reported only); DD10 records 280 km/h as CONFIRMED by the owner 2026-10-25 (D5). Dated notes added; the 2026-10-25 wording is kept as superseded.",
+        "fit_dirty_air_microsector.py: gate_verdict() gives one PASS/FAIL across gates 1-5 (beta(lt1) positive with interval excluding 0, P1, P2, P3, pooled and per era, plus no sign flip); a spec that did not run counts as FAIL; evaluate_gates adds beta_lt1_positive_ci_excludes_0 and p2_pass; main prints the verdict to stderr. Six synthetic tests added."
+      ],
+      "verified": [
+        "Entry gap: gap_ahead_s is read at boundary k = start of micro-sector m (int_microsector_proximity.sql, the gapped CTE joined on boundary_k, time_s = end_time_s - crossing_time_s). That matches the registered entry gap. No code change.",
+        "Hash check: main() refuses unless --prereg-sha256 equals sha256 of wi/DA-03-preregistration.md (test_fit_is_refused_without_the_registered_hash). No code change.",
+        "PYTHONPATH via cd transform, ../.venv/bin/python -m pytest tasks/coefficients/tests: 179 passed, 0 failed.",
+        "wi/DA-03-preregistration.md sha256 74df5902815dfe8e63006560fa687baf292910efe918cf0ede88a127348a49de, same as HEAD and as the draft's reference hash."
+      ],
+      "assumed": [
+        "No lagged-gap spec (gap at the entry of micro-sector m-1, which shares no crossing with the outcome) was added: it is not in the registered spec list, so adding it is an amendment for the owner to decide before the hash.",
+        "Nothing committed; the registered file and data/ were not touched; no fit on the real panel."
+      ],
+      "gates_run": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/coefficients/tests -q",
+        "python3 _roadmap/_dirty-air/status/board.py --check",
+        "python3 _roadmap/_dirty-air/status/board.py --write-order"
+      ],
+      "next_action": "OWNER: read the amendment draft and decide whether to register a lagged-gap (m-1) spec before the hash; then commit model, test and estimator edits, then the pre-registration alone, and record its SHA-256.",
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-26",
+      "session": "Handoff to a new chat: draft fixed, owner ruling needed before the hash.",
+      "landed": [
+        "Draft: \"Not ruled out\" DRS paragraph reworded (drs_closed selects on a gap-caused state; drs_location does not).",
+        "Build log: DD9 points at D3; DD10 shows 280 km/h confirmed (D5).",
+        "Fit code: gate_verdict() added (one PASS/FAIL across gates, pooled and per era, sign-flip rule). Six synthetic tests. 179 passed, 0 failed.",
+        "Checked, not defects: gap read at boundary k (int_microsector_proximity.sql 169, 211, 234); hash refusal in main."
+      ],
+      "verified": [
+        "pytest transform/tasks/coefficients/tests: 179 passed.",
+        "Registered file wi/DA-03-preregistration.md untouched; SHA-256 74df5902815dfe8e63006560fa687baf292910efe918cf0ede88a127348a49de (matches HEAD).",
+        "No commit, no write into data/, no real-panel fit."
+      ],
+      "assumed": [
+        "Shared-crossing bias is a real risk and not yet measured; the registered text says timing noise only attenuates beta."
+      ],
+      "gates_run": [
+        "pytest tasks/coefficients/tests (179 pass)",
+        "board.py --check"
+      ],
+      "next_action": [
+        "OWNER RULING 1 (before the hash): the entry gap and the outcome share the entry crossing at boundary k. A timing error there can push beta(lt1) up. Options: (a) add the lagged-gap spec from m-1 as a registered check (shares no crossing with the outcome); (b) leave the spec as is and record the risk as a caveat.",
+        "OWNER RULING 2: approve the amended text in the draft (after ruling 1), then copy over DA-03-preregistration.md, commit it alone, record its SHA-256 here.",
+        "OWNER RULING 3 (can wait): W2, the 2018 IsAccurate gate (keep or flag 2018).",
+        "Code vs text: the old beta_lt1_ci_excludes_0 test passes a negative interval; registered gate 1 needs positive. The new verdict is correct; the old test should be retired or renamed.",
+        "Then DA-03 fit on scratch only, after the hash is recorded."
+      ],
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
     }
   ]
 }

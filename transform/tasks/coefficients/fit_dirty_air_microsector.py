@@ -332,7 +332,9 @@ def evaluate_gates(res: dict) -> dict:
     lt1 = s["lt1"]["terms"]["lt1"]
     beta_ci_excludes_0 = lt1["ci_low_s"] > 0 or lt1["ci_high_s"] < 0
     out = {"beta_lt1_s": lt1["beta_s"],
-           "beta_lt1_ci_excludes_0": bool(beta_ci_excludes_0)}
+           "beta_lt1_ci_excludes_0": bool(beta_ci_excludes_0),
+           # Registered gate 1: the interval excludes 0 AND beta(lt1) is positive.
+           "beta_lt1_positive_ci_excludes_0": _ci_excludes_0_positive(lt1)}
     p1 = s["p1"]["terms"].get("behind_lt1")
     if p1 is not None:
         out["p1_beta_s"] = p1["beta_s"]
@@ -344,6 +346,7 @@ def evaluate_gates(res: dict) -> dict:
     if p2 is not None:
         out["p2_beta_s"] = p2["beta_s"]
         out["p2_ci_includes_0"] = bool(p2["ci_low_s"] <= 0 <= p2["ci_high_s"])
+        out["p2_pass"] = out["p2_ci_includes_0"]
     lead = s.get("lead", {}).get("terms", {}).get("x_lt1")
     if lead is not None:
         out["lead_x_lt1_beta_s"] = lead["beta_s"]
@@ -373,7 +376,35 @@ def run_panel(panel: pd.DataFrame, tyre_age: bool = True) -> dict:
     per = {"pooled": out["pooled"]["gates"]["p3_pass"],
            **{e: out["eras"][e]["gates"]["p3_pass"] for e in out["eras"]}}
     out["p3_verdict"] = {"by_sample": per, "pass": bool(all(per.values()))}
+    out["gate_verdict"] = gate_verdict(out)
     return out
+
+
+# The registered gate (pre-registration, "Primary quantity and gate"), per sample.
+# A check whose spec did not run counts as a FAIL, never as a pass.
+GATE_CHECKS = (
+    ("beta_lt1_positive", "beta_lt1_positive_ci_excludes_0"),
+    ("p1", "p1_pass"),
+    ("p2", "p2_pass"),
+    ("p3", "p3_pass"),
+)
+
+
+def gate_verdict(out: dict) -> dict:
+    """One mechanical PASS/FAIL across the registered gates: gates 1-4 pooled AND in
+    each era, and gate 5 (the sign of beta(lt1) does not flip between eras). Lead,
+    the P2 monotone check, the P3 report-only blocks and the DRS specs are reported
+    elsewhere and never enter this verdict."""
+    samples = {"pooled": out["pooled"], **out["eras"]}
+    checks = {}
+    for sample, res in samples.items():
+        g = res["gates"]
+        for name, key in GATE_CHECKS:
+            checks[f"{name}__{sample}"] = bool(g.get(key, False))
+    checks["no_sign_flip_by_era"] = not out["stop_sign_flips_by_era"]
+    failed = [k for k, v in checks.items() if not v]
+    return {"pass": not failed, "verdict": "PASS" if not failed else "FAIL",
+            "checks": checks, "failed": failed}
 
 
 def run(db_path: Path) -> dict:
@@ -411,6 +442,10 @@ def main(argv: list[str] | None = None) -> int:
         log.info("wrote %s", args.out)
     else:
         print(text)
+    v = result["gate_verdict"]
+    print(f"DA-03 GATE VERDICT: {v['verdict']}"
+          + (f" (failed: {', '.join(v['failed'])})" if v["failed"] else ""),
+          file=sys.stderr)
     return 0
 
 

@@ -7,6 +7,8 @@ registration lock holds.
 """
 from __future__ import annotations
 
+import json
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -203,3 +205,59 @@ def test_fit_is_refused_without_the_registered_hash(tmp_path, monkeypatch):
     assert fm.main(["--db", str(tmp_path / "none.duckdb")]) == 2
     assert fm.main(["--db", str(tmp_path / "none.duckdb"), "--prereg-sha256", "0" * 64]) == 2
     assert fm.sha256_of(prereg) == fm.sha256_of(prereg)
+
+
+# Overall gate verdict: one mechanical PASS/FAIL across gates 1-5, pooled and per era.
+
+@pytest.fixture(scope="module")
+def mech_run():
+    return fm.run_panel(make_panel(class_lt1=MECH))
+
+
+def test_gate_verdict_passes_when_every_registered_gate_passes(mech_run):
+    v = mech_run["gate_verdict"]
+    assert v["verdict"] == "PASS" and v["pass"] is True and v["failed"] == []
+    expected = {f"{n}__{s}" for n, _ in fm.GATE_CHECKS
+                for s in ("pooled", "pre2022", "post2022")} | {"no_sign_flip_by_era"}
+    assert set(v["checks"]) == expected
+
+
+def test_gate_verdict_fails_on_p3_in_one_era_only():
+    out = fm.run_panel(make_panel(class_lt1=MECH, post_class_lt1={**MECH, "high": 0.0}))
+    v = out["gate_verdict"]
+    assert v["verdict"] == "FAIL" and "p3__post2022" in v["failed"]
+
+
+def test_gate_verdict_fails_on_p1_confound():
+    v = fm.run_panel(make_panel(class_lt1=MECH, behind_effect=0.10))["gate_verdict"]
+    assert v["verdict"] == "FAIL" and any(k.startswith("p1__") for k in v["failed"])
+
+
+def test_gate_verdict_fails_on_sign_flip_and_negative_beta():
+    flip = {c: -0.10 for c in fm.P3_CLASSES}
+    v = fm.run_panel(make_panel(class_lt1=MECH, post_class_lt1=flip))["gate_verdict"]
+    assert v["verdict"] == "FAIL"
+    assert "no_sign_flip_by_era" in v["failed"]
+    # a negative interval excluding 0 is not a pass of gate 1
+    assert "beta_lt1_positive__post2022" in v["failed"]
+
+
+def test_gate_verdict_counts_a_missing_spec_as_fail(mech_run):
+    stripped = {**mech_run, "pooled": {**mech_run["pooled"],
+                                       "gates": {k: v for k, v in mech_run["pooled"]["gates"].items()
+                                                 if k != "p2_pass"}}}
+    v = fm.gate_verdict(stripped)
+    assert v["verdict"] == "FAIL" and v["failed"] == ["p2__pooled"]
+
+
+def test_cli_prints_the_verdict_with_the_registered_hash(tmp_path, monkeypatch, capsys, mech_run):
+    prereg = tmp_path / "prereg.md"
+    prereg.write_text("registered")
+    monkeypatch.setattr(fm, "PREREG_PATH", prereg)
+    monkeypatch.setattr(fm, "run", lambda db: dict(mech_run))
+    out = tmp_path / "fit.json"
+    assert fm.main(["--prereg-sha256", fm.sha256_of(prereg), "--out", str(out)]) == 0
+    assert "DA-03 GATE VERDICT: PASS" in capsys.readouterr().err
+    written = json.loads(out.read_text())
+    assert written["gate_verdict"]["verdict"] == "PASS"
+    assert written["prereg_sha256"] == fm.sha256_of(prereg)

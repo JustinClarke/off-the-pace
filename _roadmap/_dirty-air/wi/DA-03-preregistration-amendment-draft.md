@@ -139,6 +139,6 @@ Also reported, not gated: `beta(lt1, flat)` and `beta(lt1, flat) - beta(lt1, str
 
 ## Not ruled out by this design
 
-Pair-local shocks race control did not flag (no marshal-sector map); deliberate tyre saving while following; selection into who follows whom; DRS (the main spec keeps DRS-open micro-sectors, so a DRS gain inside 1 s pulls `beta(lt1)` toward zero; `drs_closed` and `drs_location` bound this but selects on a state the gap causes); era-specific timestamp noise (0.053-0.061 s in 2018-21, 0.067-0.078 s in 2022-25, DA-01) which attenuates `beta` differently by era.
+Pair-local shocks race control did not flag (no marshal-sector map); deliberate tyre saving while following; selection into who follows whom; DRS (DRS opens because of the gap, so the main spec keeps DRS-open micro-sectors; a DRS gain inside 1 s pulls `beta(lt1)` toward zero; `drs_closed` and `drs_location` bound this, but `drs_closed` selects on a state the gap causes); era-specific timestamp noise (0.053-0.061 s in 2018-21, 0.067-0.078 s in 2022-25, DA-01) which attenuates `beta` differently by era.
 
 ---8<--- END OF PROPOSED TEXT ---8<---

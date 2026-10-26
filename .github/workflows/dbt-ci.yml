@@ -81,31 +81,16 @@ jobs:
             --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 
       # Byte-stability oracle: fail if any fct_* mart output drifted vs the committed
-      # baseline (transform/tests/model_hashes.baseline.json). Guards against cosmetic /
+      # CI baseline (transform/tests/model_hashes.ci.baseline.json), recorded from the
+      # fixture warehouse data/ci.duckdb. The dev-sized baseline (model_hashes.baseline.json)
+      # is checked by pipeline.yml against data/dev.duckdb. Guards against cosmetic /
       # lint changes silently moving model output. duckdb is pinned in requirements.txt so
-      # the float-content hashes match the baseline. Regenerate the baseline (make
-      # lint-oracle-snapshot) when model logic changes intentionally.
-      #
-      # KNOWN STALE as of WI-07 (2026-09-25): this baseline is dated 2026-09-11 and
-      # predates WI-05's fuel/stint-boundary rebuild among others, so this gate is
-      # currently red for expected reasons and, in that state, catches nothing real --
-      # any genuine regression is indistinguishable from the already-known drift.
-      # Re-snapshotting it requires a `dbt build --target ci` (writes data/ci.duckdb)
-      # immediately before `make lint-oracle-snapshot`; WI-07 did not do this because
-      # data/ci.duckdb is out of scope for that session to touch. Whoever runs this
-      # rebuild should confirm the drift is the expected post-WI-05 kind (see
-      # transform/tests/data_profile.baseline.json's 2026-09-25 re-snapshot for the
-      # equivalent dev.duckdb-side comparison) before committing the new baseline.
-      #
-      # NON-BLOCKING until the baseline is re-snapshotted (continue-on-error below), so a
-      # known-red gate stops training everyone to ignore CI. To restore it as a gate: after
-      # a human confirms the drift is the expected kind, run `dbt build --target ci`, then
-      # `make lint-oracle-snapshot` on that reviewed ci.duckdb, commit the new baseline, and
-      # remove `continue-on-error: true` from this step.
-      - name: Gate 1c   byte-stability oracle (fct_* output, non-blocking until re-snapshot)
-        continue-on-error: true
+      # the float-content hashes match the baseline. Regenerate with `dbt build --target ci`
+      # followed by `python scripts/snapshot_model_hashes.py --baseline tests/model_hashes.ci.baseline.json`
+      # when model logic changes intentionally.
+      - name: Gate 1c   byte-stability oracle (fct_* output)
         working-directory: ./transform
-        run: python scripts/snapshot_model_hashes.py --check
+        run: python scripts/snapshot_model_hashes.py --check --baseline tests/model_hashes.ci.baseline.json
 
       # T27 (WI-07): audit report, not a gate. verify_findings.py re-measures every
       # numbered transform-audit finding directly against the build and prints a

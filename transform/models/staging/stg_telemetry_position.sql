@@ -65,7 +65,28 @@ renamed AS (
         -- driver_ahead is a car NUMBER, not the three-letter code driver_id
         -- uses; int_lap_proximity resolves it through stg_results.
         NULLIF(TRIM(CAST(driverahead AS VARCHAR)), '') AS driver_ahead_number,
-        CAST(distancetodriverahead AS DOUBLE) AS distance_to_ahead_m
+        CAST(distancetodriverahead AS DOUBLE) AS distance_to_ahead_m,
+
+        -- DA-02P (_roadmap/_dirty-air). The lap distance (m) FastF1 assigns to
+        -- the sample, unfiltered (stg_telemetry cuts at 6500 m, which loses
+        -- the end of a Spa lap). distance_m / relative_distance is the lap
+        -- length the lap fraction was computed against;
+        -- int_microsector_corner_class reads it to place the micro-sector
+        -- boundaries in metres.
+        CAST(distance_m AS DOUBLE) AS distance_m,
+
+        -- DRS state of the sample. FastF1 merges the car-channel DRS code onto
+        -- the position samples. Same decode as stg_telemetry.drs_state: 'off'
+        -- (0, 1), 'eligible' (8: within 1 s at the detection line, may open
+        -- in the next zone), 'open' (10, 12, 14), 'unknown' (any other code),
+        -- NULL when the code is NULL.
+        CAST(drs AS INTEGER) AS drs_code,
+        CASE
+            WHEN CAST(drs AS INTEGER) IN (0, 1) THEN 'off'
+            WHEN CAST(drs AS INTEGER) = 8 THEN 'eligible'
+            WHEN CAST(drs AS INTEGER) IN (10, 12, 14) THEN 'open'
+            WHEN drs IS NOT NULL THEN 'unknown'
+        END AS drs_state
     FROM source
     WHERE relativedistance IS NOT NULL
 )

@@ -128,7 +128,13 @@ windowed AS (
         LEAD(g.corner_distance_m) OVER w AS next_apex_m
     FROM resolved AS res
     INNER JOIN geometry AS g ON res.geometry_race_id = g.race_id
-    WINDOW w AS (PARTITION BY res.race_id ORDER BY g.corner_distance_m, g.corner_number, COALESCE(g.corner_letter, ''))
+    WINDOW w AS (
+        PARTITION BY res.race_id
+        ORDER BY
+            g.corner_distance_m,
+            g.corner_number,
+            COALESCE(g.corner_letter, '')
+    )
 )
 
 SELECT
@@ -157,4 +163,9 @@ SELECT
     ) AS end_distance_m
 FROM windowed AS w
 LEFT JOIN {{ ref('dim_circuits') }} AS c ON w.track_id = c.circuit_key
-ORDER BY w.race_year, w.race_id, w.apex_distance_m, w.corner_number, COALESCE(w.corner_letter, '')
+ORDER BY
+    w.race_year,
+    w.race_id,
+    w.apex_distance_m,
+    w.corner_number,
+    COALESCE(w.corner_letter, '')

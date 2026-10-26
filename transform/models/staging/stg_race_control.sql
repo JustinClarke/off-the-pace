@@ -43,8 +43,9 @@ renamed AS (
         --
         -- TRY_CAST and not CAST, because the CI fixture and production bronze
         -- disagree on this column's TYPE: all 173 production race_control
-        -- parquets (2018-2025) carry it as `double`, and all three fixture files carry it
-        -- as `timestamp[ns]`. A plain CAST raises "Unimplemented type for cast
+        -- parquets (2018-2025) carry it as `double`, and all three fixture
+        -- files carry it as `timestamp[ns]`. A plain CAST raises
+        -- "Unimplemented type for cast
         -- (TIMESTAMP_NS -> DOUBLE)" on the fixture. That divergence went
         -- unnoticed through a full green `dbt build --target ci` because this
         -- model is a VIEW and nothing in the CI suite selected the column --

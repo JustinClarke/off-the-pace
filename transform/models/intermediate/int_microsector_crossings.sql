@@ -23,6 +23,10 @@
 -- across a data gap can be dropped downstream
 -- (var('microsector_max_bracket_s'), the design note's 1 s cap on dt_i).
 -- on_track is TRUE when both straddling samples have pos Status 'OnTrack'.
+-- drs_state (DA-02P) is the DRS state of the earlier straddling sample, the
+-- last position sample before the boundary: 'off', 'eligible' (code 8),
+-- 'open' (10, 12, 14), 'unknown', or NULL (stg_telemetry_position.drs_state).
+-- It is carried, never used to drop or order a crossing.
 --
 -- A boundary crossed twice (relative_distance is not strictly monotone: 203 of
 -- 406,619 samples on 2023_4 step backwards) keeps its FIRST crossing. A pair
@@ -44,6 +48,7 @@ WITH pairs AS (
         session_time_s AS t0,
         CAST(lap_number AS DOUBLE) + relative_distance AS u0,
         track_status AS status0,
+        drs_state AS drs_state0,
         LEAD(session_time_s) OVER w AS t1,
         LEAD(CAST(lap_number AS DOUBLE) + relative_distance) OVER w AS u1,
         LEAD(track_status) OVER w AS status1
@@ -79,7 +84,8 @@ crossed AS (
             t0 + (boundary_k * 1.0 / {{ n }} - u0) / (u1 - u0) * (t1 - t0), 6
         ) AS crossing_time_s,
         ROUND(t1 - t0, 6) AS bracket_s,
-        status0 = 'OnTrack' AND status1 = 'OnTrack' AS on_track
+        status0 = 'OnTrack' AND status1 = 'OnTrack' AS on_track,
+        drs_state0 AS drs_state
     FROM straddling
 )
 
@@ -92,7 +98,8 @@ SELECT
     boundary_k,
     crossing_time_s,
     bracket_s,
-    on_track
+    on_track,
+    drs_state
 FROM crossed
 QUALIFY
     ROW_NUMBER() OVER (

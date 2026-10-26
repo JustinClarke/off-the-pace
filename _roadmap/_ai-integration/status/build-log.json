@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "project": "off-the pace AI integration (trackside-analyst assistant)",
-  "updated": "2026-10-24T17:55:00+04:00",
-  "pointer": "AI-13",
+  "updated": "2026-10-26T09:00:00+04:00",
+  "pointer": "CO-33",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -932,7 +932,7 @@
     {
       "id": "CO-30",
       "group": "1-data",
-      "stage": "SPEC",
+      "stage": "MEASURED",
       "depends_on": [
         "CO-17"
       ],
@@ -948,12 +948,12 @@
       "doc": "wi/CO-30-isolation-thin-cell-tax.md",
       "cost": "0.5d",
       "model": "sonnet-5",
-      "note": "Raised 2026-10-24 from W10 (owner ruling 1a; owner approved the item 2026-10-24). Laps in thin field-base cells (no tax-component row) are kept in the isolation panel with the tax priced as theta_air x previous-lap share. No label move. Code and tests done (panel SQL and var are in commit ac9e798; the new test is untracked). Scratch: panel 123,085 -> 127,478 rows. 2026-10-24: the new test's vacuity guard (1,000 laps) failed the CI fixture (91 laps, 158 skips downstream); set to 50 on target ci, fixture build then green. Open: isolation car-FE refit into data/fits, CI fixture refresh, rebuilt dev, ships in label version v17 with CO-31 and CO-32."
+      "note": "Raised 2026-10-24 from W10 (owner ruling 1a; owner approved the item 2026-10-24). Laps in thin field-base cells (no tax-component row) are kept in the isolation panel with the tax priced as theta_air x previous-lap share. No label move. Code and tests done and committed (panel SQL and var in ac9e798; the new test assert_isolation_thin_cell_tax_matches_component in 82796dc). Scratch: panel 123,085 -> 127,478 rows (127,478 is the window-2 figure; the restart-4 panel is 127,476, see D11). 2026-10-24: the new test's vacuity guard (1,000 laps) failed the CI fixture (91 laps, 158 skips downstream); set to 50 on target ci, fixture build then green. Open: isolation car-FE refit into data/fits, CI fixture refresh, rebuilt dev, sealed in label version v16 by CO-33 together with CO-31 (owner 2026-10-25: the seal does not wait for dirty air, CO-32). 2026-10-25: owner ratified option 1a (count the traffic on those slow laps). Item status unchanged. 2026-10-25 (status reconciliation): stage SPEC -> MEASURED. git shows every CO-30 source committed and none modified in the working tree; scratch acceptance numbers exist. Not LANDED: the definition of done needs the rebuilt dev, the isolation refit in data/fits and refreshed CI fixtures, which the CO-33 seal produces. Re-run this item's definition of done after the CO-33 final build."
     },
     {
       "id": "CO-31",
       "group": "1-data",
-      "stage": "SPEC",
+      "stage": "MEASURED",
       "depends_on": [
         "CO-17"
       ],
@@ -968,7 +968,7 @@
       "doc": "wi/CO-31-restart-lap-own-mean.md",
       "cost": "0.5d",
       "model": "opus-5",
-      "note": "Raised 2026-10-24 from W10 (owner ruling 2b; keep field_restart_adjacent_laps = 4; owner approved the item 2026-10-24). field_restart_adjacent_laps 2 -> 4 moves 20,646 label rows (season means -0.024 to +0.007). Code and tests done, uncommitted. assert_prior_season_labels_frozen fails 7 rows on a full dev build until the v17 re-take (expected). Open: v17 re-take of label_stability_baseline (after the owner's commit and the DA-05 label decision), refits, rebuilt dev. Owner may widen to 6 if lap 5 and 6 (-0.046, -0.030) matter."
+      "note": "Raised 2026-10-24 from W10 (owner ruling 2b; keep field_restart_adjacent_laps = 4; owner approved the item 2026-10-24). field_restart_adjacent_laps 2 -> 4 moves 20,646 label rows (season means -0.024 to +0.007). Code and tests done and committed in 82796dc (int_field_pace_curve.sql, the field_restart_adjacent_laps = 4 var, the rewritten assert_field_pace_restart_cells_own_mean). assert_prior_season_labels_frozen fails 7 rows on a full dev build until the v16 re-take (expected). Open: v16 re-take of label_stability_baseline, refits, rebuilt dev, all done by the CO-33 seal (owner 2026-10-25: the seal does not wait for the DA-05 label decision). Owner may widen to 6 if lap 5 and 6 (-0.046, -0.030) matter. 2026-10-25: owner ratified restart window 4 (field_restart_adjacent_laps = 4; not 6). Item status unchanged. 2026-10-25 (status reconciliation): stage SPEC -> MEASURED. git shows every CO-31 code and test source committed and none modified in the working tree; scratch acceptance numbers exist (20,646 label rows, per-lap bias table). Not LANDED: the definition of done needs dbt build 0 errors after the label-baseline re-take on a rebuilt dev, refits in data/fits and refreshed CI fixtures, which the CO-33 seal produces."
     },
     {
       "id": "CO-32",
@@ -989,7 +989,27 @@
       "doc": "wi/CO-32-microsector-dirty-air.md",
       "cost": "3-6wk",
       "model": "fable-5.1",
-      "note": "Raised 2026-10-24 from W11 (owner ruled option C wanted 2026-10-23; owner approved the item 2026-10-24). Follows _roadmap/_dirty-air (its own log holds the phases: DA-02 panel and checks built on scratch; DA-03 registered fit, DA-04 validation, DA-05 label). BLOCKER for the fit step: the owner must commit _roadmap/_dirty-air/wi/DA-03-preregistration.md (still a DRAFT) before any real fit; P3 corner-class map and DRS state owed. DA-05 waits on DD2 (dirty-air log). The dirty-air group does not exist in this log, so 1-data. Ships in v17 with CO-30 and CO-31."
+      "note": "Raised 2026-10-24 from W11 (owner ruled option C wanted 2026-10-23; owner approved the item 2026-10-24). Follows _roadmap/_dirty-air (its own log holds the phases: DA-02 panel and checks built on scratch; DA-03 registered fit, DA-04 validation, DA-05 label). BLOCKER for the fit step: the owner must commit _roadmap/_dirty-air/wi/DA-03-preregistration.md (still a DRAFT) before any real fit; P3 corner-class map and DRS state owed. DA-05 waits on DD2 (dirty-air log). The dirty-air group does not exist in this log, so 1-data. Ships in v17 with CO-30 and CO-31. 2026-10-25 (status reconciliation): CO-30 and CO-31 no longer ship with this item; the owner ruled the CO-33 seal (label version v16) goes ahead without dirty air. If this item later moves labels, its label version name is open: v17 is now the ML model name (D11)."
+    },
+    {
+      "id": "CO-33",
+      "group": "1-data",
+      "stage": "SPEC",
+      "depends_on": [
+        "CO-30",
+        "CO-31"
+      ],
+      "title": "Seal label version v16: scratch rehearsal, owner-approved final write, label and W21 baselines re-taken",
+      "sources": [
+        "transform/seeds/label_stability_baseline.csv",
+        "transform/tests/model_hashes.baseline.json",
+        "data/fits/",
+        "data/dev.duckdb"
+      ],
+      "doc": "wi/CO-33-v17-seal.md",
+      "cost": "1d",
+      "model": "sonnet-5",
+      "note": "PARKED 2026-10-25 by owner: seal waits for the DA wrap-up; rehearsal on scratch passed earlier, but the tree has moved, so the rehearsal must be re-run before any final write. Raised 2026-10-25. Owner: seal the transform label version now. CO-30 and CO-31 are committed (CO-30 panel SQL and var in ac9e798, its test in 82796dc; CO-31 in 82796dc) but the v16 build, refits and baselines are not run. Final write to data/ waits for owner approval. NAMING (owner confirmed 2026-10-25): v16 is the transform label version, v17 is the ML model; the sealed label version is called v16. The item id CO-33 is unchanged and the wi doc file name wi/CO-33-v17-seal.md still says v17 for now (rename later, separate step). Rehearsal finding, CONFIRMED by owner 2026-10-25 (whatever is true prevails): the isolation panel has 127,476 rows at restart window 4; the wi doc now says 127,476. The earlier 127,478 was the window-2 figure. 2026-10-25 (status reconciliation): stays SPEC and PARKED; the earlier rehearsal no longer counts. Order: (1) owner commits the dirty-air DA-02P edits (they touch staging models upstream of the labels); (2) re-run the scratch rehearsal on that committed tree; (3) owner approves the final write; (4) final build and refits into data/fits, CI fixtures refreshed; (5) label_stability_baseline re-taken and dbt build 0 errors; (6) the two byte-oracle baselines re-taken (W21 c); (7) orchestrator re-runs the CO-30, CO-31 and CO-33 definitions of done; (8) owner commits. See D11 for the v16 name collision with the CO-17 bump."
     }
   ],
   "decisions": [
@@ -1399,6 +1419,39 @@
       "recommendation": "A (opus, delegated).",
       "resolved": "2026-10-24",
       "resolution": "Owner's delegated decision 2026-10-24: A. v16 = CO-09 + CO-15, shipped through CO-17 now. The thin-cell tax fix and restart-lap fix (W10) and CD7 option C micro-sector pricing (W11) are separate label-version work for v17. Rejected B (bundle into v16): option C adds new models, a 1.5-3.3M-row micro-sector panel, a fit script outside dbt and a full relabel, and would block CO-17 for weeks; the restart-lap fix also moves the field base and would reopen CO-15's acceptance numbers. No new items raised by this ruling; W10 and W11 stay open with v17 as their target. The ML retrain still happens once, on the ML redo branch (PK1)."
+    },
+    {
+      "id": "D9",
+      "raised": "2026-10-25",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Transform-track rulings of 2026-10-25: pipeline switch (W18), restart window (CO-31), thin cells (CO-30), label naming, byte-oracle baselines (W21), lint, and the parked simulator (W9) and flag-chance test (W15).",
+      "context": "Recorded from the owner's answers to the transform track's open questions. Dirty-air and ML decisions are not part of this record.",
+      "recommendation": "n/a (owner's answers, recorded as given).",
+      "resolved": "2026-10-25",
+      "resolution": "Owner 2026-10-25. (1) W18: PIPELINE_ENABLED is not live; recorded as off. (2) CO-31: restart window 4 ratified. (3) CO-30: option 1a ratified; count the traffic on those slow laps. (4) Label naming: 'v16 it is' (owner's words); implications for the transform label versions and the ML model name are for the owner to read, nothing renamed. (5) W21: 'both it is': two baselines (option c), taken once after v17 is built; re-take still to do. (6) Lint: fix it; decided, fix still to do (another agent is on it). (7) W9 simulator and W15 flag-chance test: done, parked. Not touched: dirty-air and ML decisions."
+    },
+    {
+      "id": "D10",
+      "raised": "2026-10-25",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Transform-track follow-ups of 2026-10-25: data-fix list, seal v17, and dirty-air choices.",
+      "context": "Owner answers after the planning review.",
+      "recommendation": "n/a (owner's answers, recorded as given).",
+      "resolved": "2026-10-25",
+      "resolution": "Owner 2026-10-25. (1) Add the dirty-air prerequisites as a build-order item (DA-02P, in the dirty-air log). (2) Commit the pre-registration separately. (3) Micro-sectors per lap: 20. (4) Seal v17 now (CO-33). (5) Path A or B: still open, the dirty-air evidence decides. (6) Wording: adjusted traffic cost. (7) v16 naming: 'v16 it is', confirmed again; the label-versus-model meaning is not separately ruled."
+    },
+    {
+      "id": "D11",
+      "raised": "2026-10-25",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Which label version name does the CO-33 sealed build take (answered: v16)? And is the panel count 127,476 (RESOLVED)?",
+      "context": "Owner ruling 2026-10-25: v16 is the TRANSFORM label version; v17 is the ML model. CO-33 (title, wi/CO-33-v17-seal.md) uses v17 as the label version, and D8 sent W10/W11 to 'v17' as a label version. _roadmap/_ml/ML-RESET-PLAN.md names the retrained model v16 (step 7, step 8, D2). Both conflict with the ruling. Scratch rehearsal of CO-33 found the isolation panel at restart window 4 has 127,476 rows; the wi doc said 127,478 (the window-2 figure) and now says 127,476. 2026-10-25 (status reconciliation): name collision for the owner. D8 and the CO-17 rebuild already used 'v16' for the CO-09 + CO-15 label bump, and the committed transform/seeds/schema.yml and transform/dbt_project.yml notes record the 2026-10-24 baseline re-take as 'the v16 label bump'. Sealing CO-30 + CO-31 as v16 means two different label sets share one name, unless the owner means the CO-17 bump and the seal together are v16. transform/dbt_project.yml still labels the two W10 vars 'v17' (code comments; not edited).",
+      "recommendation": "Panel count: resolved, wi doc corrected to 127,476. Change the ML plan's retrained model name from v16 to v17 (owner edit).",
+      "resolved": "2026-10-25",
+      "resolution": "PANEL COUNT RESOLVED, owner 2026-10-25: whatever is true prevails; rehearsal measured 127,476. NAMING RESOLVED, owner 2026-10-25 (confirmed again): v16 is the transform label version, v17 is the ML model. CO-33's title, note and wi doc text now call the sealed label version v16; CO-30 and CO-31 notes say v16 where they meant the sealed build. Item id CO-33 and the file name wi/CO-33-v17-seal.md are unchanged (the file name still says v17 for now). The ML plan is not edited (owner edit still owed: its retrain name v16 should read v17). PANEL COUNT: rehearsal found 127,476 rows at restart window 4; wi doc corrected from 127,478 (the window-2 figure) to 127,476. OWNER 2026-10-25: the sealed transform label version is v16, and it covers the CO-09 + CO-15 bump and the CO-30 + CO-31 changes together. W10 clears on that seal, not on dirty air."
     }
   ],
   "history": [
@@ -2510,6 +2563,203 @@
         "python3 _roadmap/_ai-integration/status/board.py --check"
       ],
       "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Recording the owner's transform-track decisions (log only). Nothing committed, staged or pushed. Pointer, item stages and the dirty-air and ML decisions unchanged.",
+      "landed": [
+        "Decision D9 recorded (RESOLVED): W18 off, CO-31 window 4, CO-30 option 1a, label naming 'v16 it is', W21 two baselines after v17, lint fix decided (fix still to do), W9 and W15 done and parked.",
+        "Watch rules W21, W9, W15 resolved; W18 resolution re-confirmed. CO-30 and CO-31 notes extended; no item status changed."
+      ],
+      "verified": [
+        "board.py --check run after save."
+      ],
+      "assumed": [
+        "'v16 it is' was recorded in the owner's words without interpretation; its effect on label versions v16/v17 and the ML model name v16 is flagged to the owner, not decided."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --check",
+        "python3 _roadmap/_ai-integration/status/board.py --write-order"
+      ],
+      "half_done": [
+        "Lint fix (28 sqlfluff findings in 6 files) decided but not done; another agent is doing it.",
+        "Two byte-oracle baselines to re-take once after v17 is built."
+      ],
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Owner answers on the data-fix plan (transform track).",
+      "landed": [
+        "CO-33 added (seal v17); pointer moved to CO-33.",
+        "D10 recorded."
+      ],
+      "verified": [
+        "Working tree: transform lint fixes are present as uncommitted edits; not yet committed by the owner."
+      ],
+      "assumed": [
+        "CO-33 scope is the rehearsal and the owner-approved write; the write has not been run."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_action": "Agents: rehearse CO-33 on scratch. Owner: approve the final write before anything touches data/.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Owner naming ruling and CO-33 rehearsal finding (transform track).",
+      "landed": [
+        "D11 recorded: v16 is the transform label version, v17 is the ML model; CO-33 naming and the ML plan's v16 retrain name conflict and need the owner.",
+        "CO-33 note added: naming conflict and panel count 127,476 (rehearsal) awaiting owner confirmation."
+      ],
+      "verified": [
+        "Board --write-order and --check re-run on this log after the edit."
+      ],
+      "assumed": [
+        "127,476 is correct for restart window 4 per the rehearsal; unconfirmed by the owner.",
+        "No rename done; CO-33 keeps its v17 title until the owner names the label version."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --write-order",
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_action": "Owner: say which label version name the CO-33 sealed build takes, confirm 127,476, and change the ML plan's retrain name to v17. Then approve the final write.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Owner naming answer recorded (transform track): sealed label version is v16.",
+      "landed": [
+        "D11 naming part answered: v16 is the transform label version, v17 is the ML model. CO-33 title and note, and wi/CO-33-v17-seal.md text, now say v16 for the sealed label version; CO-30 and CO-31 notes changed from v17 to v16 for the sealed build.",
+        "CO-33 note says the file name still says v17 for now; id and file name unchanged.",
+        "D11 stays OPEN only for the panel count (127,476 rehearsal vs 127,478 wi doc), which the owner did not answer."
+      ],
+      "verified": [
+        "Board --write-order and --check re-run on this log after the edit."
+      ],
+      "assumed": [
+        "127,476 is the rehearsal's count; unconfirmed, the wi doc still says 127,478.",
+        "The ML plan still names the retrained model v16; not edited (owner edit)."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --write-order",
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_action": "Owner: confirm the panel count (127,476 or 127,478), change the ML plan's retrain name to v17, then approve the CO-33 final write.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Owner ruling on the isolation panel count (transform track).",
+      "landed": [
+        "Panel count settled at 127,476 (restart window 4): wi/CO-33-v17-seal.md step 2 now says 127,476; CO-33 note and D11 updated, D11 panel-count question RESOLVED.",
+        "CO-30 note and wi doc keep 127,478 but label it as the window-2 figure."
+      ],
+      "verified": [
+        "Rehearsal measured 127,476 rows at restart window 4 (2026-10-25).",
+        "Board --write-order and --check re-run after the edit."
+      ],
+      "assumed": [
+        "D11 stays OPEN only for the ML plan's retrain name (v16 should read v17), an owner edit."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --write-order",
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_action": "Owner: change the ML plan's retrain name to v17, then approve the CO-33 final write.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Owner ruling: park the CO-33 seal, wrap up the dirty-air DA-02P work.",
+      "landed": [
+        "CO-33 stays at SPEC with the note: PARKED 2026-10-25 by owner: seal waits for the DA wrap-up; rehearsal on scratch passed earlier, but the tree has moved, so the rehearsal must be re-run before any final write.",
+        "W10 left OPEN (unchanged). No other item, decision or watch rule changed in this log."
+      ],
+      "verified": [
+        "The seal was not run. data/dev.duckdb (sha256 82c64d86... unchanged, only copied), data/fits/, transform/seeds/label_stability_baseline.csv, transform/tests/model_hashes.baseline.json and transform/tests/fixtures/fits/ were not touched.",
+        "Board --write-order and --check re-run after the edit."
+      ],
+      "assumed": [
+        "The earlier CO-33 scratch rehearsal no longer reflects the tree: the DA-02P model, test and estimator edits (dirty-air log, 2026-10-25) are uncommitted and move the tree, so the rehearsal must be re-run before the final write.",
+        "The ML plan's retrain name (D11, v16 should read v17) is still an owner edit."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --write-order",
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_action": "Owner: finish the dirty-air wrap-up first (commit the DA-02P model and test edits, then the pre-registration alone). Then un-park CO-33: re-run the scratch rehearsal on the moved tree before approving any final write.",
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Status reconciliation of CO-30, CO-31 and CO-33 (transform track): logs and wi docs made to agree.",
+      "landed": [
+        "CO-30 SPEC -> MEASURED and CO-31 SPEC -> MEASURED: code and tests committed (CO-30 in ac9e798 + 82796dc, CO-31 in 82796dc), scratch acceptance numbers exist, definition of done not yet met (needs the CO-33 sealed build).",
+        "CO-30 and CO-31 notes and wi docs: stale 'untracked' / 'uncommitted' git state corrected; sealed label version written as v16 via CO-33, no longer bundled with CO-32 or waiting on DA-05.",
+        "CO-33 stays SPEC, PARKED; note and wi doc now give the seal order and say the rehearsal must be re-run on the committed tree.",
+        "W10 and W6 clear conditions updated to the CO-33 seal (old wording kept in detail); W21 resolution and CO-32 note given a naming note; D11 context records the v16 name collision with the CO-17 bump.",
+        "No stage set to LANDED or CLOSED; W10 left OPEN."
+      ],
+      "verified": [
+        "git: every CO-30 and CO-31 source (int_driver_isolation_lap_panel.sql, int_field_pace_curve.sql, dbt_project.yml, the three tests) is in HEAD and clean in the working tree; field_restart_adjacent_laps: 4 in HEAD.",
+        "git: 82796dc adds int_field_pace_curve.sql, assert_field_pace_restart_cells_own_mean.sql, assert_isolation_thin_cell_tax_matches_component.sql and the window-4 var; ac9e798 holds the CO-30 panel SQL and var.",
+        "Committed seeds/schema.yml and dbt_project.yml already name the 2026-10-24 CO-17 re-take 'the v16 label bump'.",
+        "Board --write-order and --check re-run after the edit."
+      ],
+      "assumed": [
+        "The owner's 2026-10-25 seal ruling (seal without waiting for dirty air) also releases W10 from W11 option C; owner to confirm.",
+        "The uncommitted DA-02P staging edits (stg_telemetry, stg_telemetry_position, stg_race_control) may move labels, so the rehearsal must run on the tree the seal will use.",
+        "Nothing was built or run: no dbt, no fit, data/ untouched."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --write-order",
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_action": "Owner: settle the v16 name collision in D11 and confirm W10 no longer waits on W11 option C; finish the dirty-air wrap-up (commit DA-02P edits); then un-park CO-33 and re-run the scratch rehearsal before approving the final write.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Owner rulings: seal together under v16; W10 clear condition confirmed.",
+      "landed": [
+        "D11 RESOLVED: sealed transform label version is v16, covering CO-09 + CO-15 and CO-30 + CO-31 together.",
+        "W10 clears_when rewritten: seal by CO-33 as v16, no dependency on dirty air."
+      ],
+      "verified": [
+        "Both build-log edits are JSON-valid and the board check is run after the write."
+      ],
+      "assumed": [
+        "The seal still has to run; nothing has been built or sealed."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_action": "Run CO-33 rehearsal on scratch once the dirty-air staging edits are committed; then owner approves the final write.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
+    },
+    {
+      "date": "2026-10-26",
+      "session": "Handoff to a new chat. Transform track: what is left to close it.",
+      "landed": [
+        "Transform work committed in 82796dc: CO-30 and CO-31 code and tests (MEASURED, not LANDED until the seal runs).",
+        "Owner rulings 2026-10-25: seal now under v16 (covers CO-09 + CO-15 bump and CO-30 + CO-31 together); W10 clears on the seal alone; dirty air runs in its own chat; path B selected but gated.",
+        "D11 RESOLVED (naming and panel count 127,476). W10 clears_when rewritten."
+      ],
+      "verified": [
+        "board.py --check passes on this log.",
+        "Backup of the pre-seal data, fits, fixtures and baselines exists at scratchpad/backup_pre_v17/ (sha256 checked)."
+      ],
+      "assumed": [
+        "The 2026-10-25 rehearsal at scratchpad/co33/ is void: the tree has moved since, so it must be re-run before any final write.",
+        "dbt_project.yml still labels two W10 vars 'v17' in comments (not edited)."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_ai-integration/status/board.py --check"
+      ],
+      "next_action": "1. Commit the dirty-air staging edits (stg_telemetry, stg_telemetry_position, intermediate micro-sector models, corner class) with the owner. 2. Re-run the CO-33 rehearsal on scratch (own folder, dev.duckdb copy, threads 2, 4GB), restart window 4. Check: panel 127,476 rows; only assert_prior_season_labels_frozen fails. 3. Owner approves the final write. 4. Seal: refit car-FE and isolation into data/fits, refresh CI fixtures, full dev build, re-take label_stability_baseline.csv, dbt build with 0 errors. 5. Re-take the two byte-oracle baselines (dev and ci, W21 option c). 6. Owner removes continue-on-error from Gate 1c (clears W6). 7. Re-check CO-30, CO-31, CO-33 definitions of done; move to LANDED; clear W10 by hand. 8. Owner commits seed, baselines and fixtures. Not on this track: W11 and CO-32 (dirty air, own chat). AI-13 is at SPEC and out of transform scope; owner to decide whether to park it.",
+      "next_command": "python3 _roadmap/_ai-integration/status/board.py"
     }
   ],
   "watch_vocabulary": {
@@ -2639,8 +2889,8 @@
       "item": "CO-17",
       "recommended_model": "sonnet",
       "title": "Byte oracle (CI Gate 1c) is stale and continue-on-error",
-      "detail": "It cannot fail. Re-snapshot it on a reviewed build, then remove continue-on-error. CO-17 is the first reviewed build on the new label.",
-      "clears_when": "Re-snapshotted on CO-17's build and continue-on-error removed.",
+      "detail": "It cannot fail. Re-snapshot it on a reviewed build, then remove continue-on-error. CO-17 is the first reviewed build on the new label. 2026-10-25: CO-17 landed without the re-snapshot, and the CO-33 seal moves the labels again, so the re-snapshot is taken on the sealed build as two baselines (W21 option c). Earlier clear condition: 'Re-snapshotted on CO-17's build and continue-on-error removed.'",
+      "clears_when": "Byte oracle re-snapshotted on the CO-33 sealed build as two baselines (dev for pipeline.yml, ci for dbt-ci.yml Gate 1c, W21 option c), and continue-on-error removed from Gate 1c.",
       "trigger": {
         "clear": "manual"
       }
@@ -2705,7 +2955,9 @@
       "clears_when": "Constants re-tuned to the current seed, or the clamp shown to be harmless; record which.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-25",
+      "resolution": "Owner 2026-10-25: done, parked. The simulator constants (CLIFF_SEVERITY_MIN/MAX) are not re-tuned and the clamp is not shown harmless; parked with the app/ML layer (PK1)."
     },
     {
       "id": "W10",
@@ -2714,8 +2966,8 @@
       "item": "CO-04",
       "recommended_model": "sonnet",
       "title": "CO-04 leftovers: 4,655 thin-cell isolation laps left out (T18); third restart lap leans -0.18 s",
-      "detail": "Owner 2026-10-23: not accepted as debt. Fix it properly in the transform layer before the ML work. Thin cells: price the dirty-air tax inside the isolation panel (option 1a in the W10 ideation report; no label move). Restart lap: owner to choose the fix (2b: third and fourth green laps use their own trimmed mean, fourth lap re-measured; or 2c red flags only). Both changes to the field base move labels, so they ship with the W11 label version, so the ML retrain happens once. Ideation report: scratchpad/w10-ideation.md. 2026-10-24 (D8): v16 ships now without these fixes; thin-cell and restart-lap fixes go to label version v17.",
-      "clears_when": "Thin-cell tax fix and restart-lap fix are landed in their own items, verified on a rebuilt dev, and shipped in label version v17 with W11 option C (D8, 2026-10-24: not in v16).",
+      "detail": "Owner 2026-10-23: not accepted as debt. Fix it properly in the transform layer before the ML work. Thin cells: price the dirty-air tax inside the isolation panel (option 1a in the W10 ideation report; no label move). Restart lap: owner to choose the fix (2b: third and fourth green laps use their own trimmed mean, fourth lap re-measured; or 2c red flags only). Both changes to the field base move labels, so they ship with the W11 label version, so the ML retrain happens once. Ideation report: scratchpad/w10-ideation.md. 2026-10-24 (D8): v16 ships now without these fixes; thin-cell and restart-lap fixes go to label version v17. 2026-10-25 (owner rulings in CO-33 and D11): the fixes are sealed by CO-33 without waiting for dirty air (W11 option C, CO-32); the sealed transform label version is named v16, and v17 is the ML model. Earlier clear condition: 'shipped in label version v17 with W11 option C'.",
+      "clears_when": "CO-30 and CO-31 have LANDED, verified on the rebuilt dev, and the transform label version is sealed by CO-33 as v16. The v16 seal covers the CO-09 + CO-15 label bump and the CO-30 + CO-31 changes together (owner 2026-10-25). Does not wait on dirty air.",
       "trigger": {
         "clear": "manual"
       }
@@ -2814,7 +3066,9 @@
             "manual"
           ]
         }
-      }
+      },
+      "resolved": "2026-10-25",
+      "resolution": "Owner 2026-10-25: done, parked. No ruling on whether 2026 is a clean season for the flag-chance test; parked with CO-10 and the ML layer (PK1)."
     },
     {
       "id": "W16",
@@ -2856,7 +3110,7 @@
         "clear": "manual"
       },
       "resolved": "2026-10-24",
-      "resolution": "Owner ruled 2026-10-24: record as off. Repository variable PIPELINE_ENABLED is not set (gh variable get, 2026-10-24); environment-level variables not checked."
+      "resolution": "Owner ruled 2026-10-24: record as off. Repository variable PIPELINE_ENABLED is not set (gh variable get, 2026-10-24); environment-level variables not checked. Re-confirmed by the owner 2026-10-25: PIPELINE_ENABLED is NOT live (off); pipeline.yml and its real-data gates (CO-25) do not run."
     },
     {
       "id": "W19",
@@ -2900,7 +3154,9 @@
       "clears_when": "The owner picks dev, ci, or two baselines, and it is recorded.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-25",
+      "resolution": "Owner 2026-10-25: 'both it is'. Two baselines (option c): one dev-sized for pipeline.yml (data/dev.duckdb) and one ci-sized for dbt-ci.yml Gate 1c (data/ci.duckdb), taken once after v17 is built. Decided; the re-take is still to do after v17. Rejected: dev only, ci only. Naming note 2026-10-25 (D11): 'after v17 is built' meant the CO-33 sealed transform build, now named v16; the re-take is CO-33 step 5."
     },
     {
       "id": "W22",

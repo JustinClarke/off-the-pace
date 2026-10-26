@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "project": "dirty-air: continuous, distance-based traffic cost (real-time, phased)",
-  "updated": "2026-10-24T10:00:00+04:00",
-  "pointer": "DA-02",
+  "updated": "2026-10-25T16:00:00+04:00",
+  "pointer": "DA-02P",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -88,7 +88,8 @@
       "group": "2-identification",
       "stage": "SPEC",
       "depends_on": [
-        "DA-02"
+        "DA-02",
+        "DA-02P"
       ],
       "title": "Identification: pre-registered fit, placebos P1-P3, era split (2018-21 vs 2022+)",
       "sources": [
@@ -132,6 +133,24 @@
       "model": "opus-5",
       "note": "Path B is a label-version change and must go through the ML retrain plan.",
       "blocked_by_decision": "DD2"
+    },
+    {
+      "id": "DA-02P",
+      "group": "1-tables",
+      "stage": "MEASURED",
+      "depends_on": [
+        "DA-02"
+      ],
+      "title": "Prerequisites before the fit: P3 corner-class map, DRS state, pre-registration amendment",
+      "sources": [
+        "transform/models/intermediate/",
+        "transform/models/staging/stg_telemetry_position.sql",
+        "_roadmap/_dirty-air/wi/DA-03-preregistration.md"
+      ],
+      "doc": "wi/DA-02P-prerequisites.md",
+      "cost": "1-2 wk",
+      "model": "opus-5",
+      "note": "Raised 2026-10-25 from the data-fix plan. DA-03 cannot pass without the P3 map and DRS state. Scratch first; the amendment is its own commit. 2026-10-25: DD10 resolved (flat class, 280 km/h to be confirmed). The map SQL, the p3 spec and the row-count table still need the flat class before the amendment hash. 2026-10-25 (owner: park the seal, wrap up DA): MEASURED, not LANDED (the owner commits). Flat class added to int_microsector_corner_class (flat_min_kph = 280; high 200 to under 280), schema accepted values updated, new test assert_microsector_flat_high_disjoint; estimator has p3, drs_closed and drs_location (P3 no longer OWED), synthetic tests only; scratch dbt build PASS=41 ERROR=0; DA-02 CSVs reproduce byte for byte; draft row-count table re-measured with the flat column. All uncommitted. Still owed for done: owner commits the model, test and estimator edits, then the pre-registration alone, then the hash is recorded."
     }
   ],
   "decisions": [
@@ -156,10 +175,10 @@
       ],
       "status": "OPEN",
       "question": "Path A first (sit beside the label, no label version, about 3 weeks of app work), path B later? Or path B from the start (label version, about 6+ weeks)?",
-      "context": "Path A adds a dirty_air_cost_dynamic_s replay measure. Path B replaces the label's tax, roughly 3x higher on followed laps, and moves every downstream number including ML features.",
+      "context": "Path A adds a dirty_air_cost_dynamic_s replay measure. Path B replaces the label's tax, roughly 3x higher on followed laps, and moves every downstream number including ML features. 2026-10-25: owner says the dirty-air evidence decides this. Rule proposed by the planning agent, not yet ruled: choose B only if DA-03 passes pooled and in both eras, including P3, and DA-04 shows a gain on the held-out season; otherwise A. 2026-10-25 owner selection: path B. This is a selection, not a pass: no label moves until DA-03 and DA-04 pass, as the design note requires. B moves labels and needs an ML retrain on the ml-fresh-start branch. B has passed nothing.",
       "recommendation": "A first. It answers the question and ships without touching the label; B is decided on A's evidence.",
       "resolved": null,
-      "resolution": null
+      "resolution": "OWNER SELECTION 2026-10-25: path B. Status stays OPEN because the selection is gated; the schema has only OPEN and RESOLVED and RESOLVED would unblock DA-05. Gate: no label moves until DA-03 and DA-04 pass, as the design note requires. B moves labels and needs an ML retrain on the ml-fresh-start branch. Nothing about B has passed: DA-03 and DA-04 have not run. If either fails, the label does not move."
     },
     {
       "id": "DD3",
@@ -178,12 +197,12 @@
       "id": "DD4",
       "raised": "2026-10-23",
       "blocking": [],
-      "status": "OPEN",
+      "status": "RESOLVED",
       "question": "Which wording do we use for the result: 'causal' or 'adjusted traffic cost'?",
       "context": "The design note says the result stays an adjusted traffic cost until placebos P1-P3 pass. The owner names the wording at the Phase 2 gate.",
       "recommendation": "Adjusted traffic cost until all placebos pass.",
-      "resolved": null,
-      "resolution": null
+      "resolved": "2026-10-25",
+      "resolution": "Owner 2026-10-25: adjusted traffic cost. Not \"causal\" until P1-P3 pass."
     },
     {
       "id": "DD5",
@@ -230,6 +249,34 @@
       "recommendation": "20 per lap, fixed for every circuit. Pre-register 10 as a sensitivity check under the same no-rescue rule as metres.",
       "resolved": "2026-10-24",
       "resolution": "Owner: 20 per lap. Pre-register 10 as the sensitivity check. DA-02 must measure samples per slice before the count is frozen; drop to 15 only on that evidence."
+    },
+    {
+      "id": "DD9",
+      "raised": "2026-10-25",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "DA-03 pre-registration amendment: corner thresholds, P3 exceptions, P3 pass rule, DRS rule, commit order, Path A or B.",
+      "context": "Owner review of the DA-02P draft (wi/DA-03-preregistration-amendment-draft.md), 2026-10-25. Naming ruling recorded in the transform log D11: v16 is the TRANSFORM label version, v17 is the ML model. 2026-10-25 update: thresholds ruled; flat-out kinks split to DD10, since resolved (split into a flat class, 280 km/h). Path A or B (DD2): owner selected B, gated on DA-03 and DA-04.",
+      "recommendation": "Accept the exceptions, the P3 pass rule, the DRS rule, the commit order and fixed corner cut-offs of 120 and 200 km/h as drafted. Flat-out kinks are split out to DD10.",
+      "resolved": "2026-10-25",
+      "resolution": "Owner 2026-10-25. (1) Corner thresholds ACCEPTED (owner 2026-10-25, 'okay perf', accepting the recommendation): fixed cut-offs of 120 and 200 km/h for every track, 100 m and 150 m straight buffers, apex-speed definition as drafted. Basis: the corner analysis in /private/tmp/claude-501/-Users-justin-github-off-the-pace/4688e87f-3ff1-4470-87f4-4afc2bd5deef/scratchpad/corners/ (breaks_out.txt for the pooled and per-season distribution checks, options_out.txt for the fixed, pooled and per-track options). 200 km/h matches a dip in the pooled apex-speed distribution that holds across seasons; 120 km/h is a physics choice (about a third of the downforce of 200 km/h). (2) Exceptions ACCEPTED: 2020 Tuscan and 2020 Sakhir have no corner data and drop out of the fast-corner test (p3 only); 2021 Belgium borrows corner speeds from 2022. (3) P3 pass rule ACCEPTED: (a) fast-corner loss positive with 95% CI excluding 0; (b) fast minus straight positive with CI excluding 0; (c) straight effect at or below 0; required pooled and in each era 2018-21 and 2022-25. (4) DRS rule ACCEPTED: drop micro-sectors where DRS is open at entry or exit, and drop unknown; the DRS-closed result is reported as secondary and cannot rescue a failed main result. (5) Commit order ACCEPTED: model and test edits first, then the pre-registration alone. (6) Path A or B: owner selected B on 2026-10-25 (DD2), gated on DA-03 and DA-04; no label moves until both pass. The flat-out kink question was recorded separately as DD10 and resolved 2026-10-25: split into a flat class. DD9 is RESOLVED on its other items."
+    },
+    {
+      "id": "DD10",
+      "raised": "2026-10-25",
+      "blocking": [
+        "DA-03"
+      ],
+      "status": "RESOLVED",
+      "question": "Flat-out kinks in the fast-corner class: keep them in the high class as drafted, or split them into their own class before the fit? Blocks DA-03 and the hash of the pre-registration amendment.",
+      "context": "Corner analysis (/private/tmp/claude-501/-Users-justin-github-off-the-pace/4688e87f-3ff1-4470-87f4-4afc2bd5deef/scratchpad/corners/, options_out.txt, fixed 120/200 option): 205 of 869 high-corner race entries (24%) have an apex speed of 280 km/h or more. These are flat-out kinks where a following car may get a tow, which could weaken the fast-corner test P3(a) and (b) by mixing tow gain into the high class. Not answered by the owner when the thresholds were accepted (DD9).",
+      "options": [
+        "(a) Keep flat kinks in the fast (high) class as drafted: no map change, the high class stays 200 km/h and above.",
+        "(b) Split kinks at 280 km/h or more into their own class before the fit: changes the map, the P3 spec and the pass rule text, and must be done before the hash. CHOSEN by owner 2026-10-25."
+      ],
+      "recommendation": "None was given. Owner chose (b).",
+      "resolved": "2026-10-25",
+      "resolution": "Owner 2026-10-25: B. Split flat-out kinks into their own class before the fit. Class rule: \"flat: apex speed at or above 280 km/h, not a straight\". The 280 km/h number is taken from the corner analysis (205 of 869 high-corner race entries) and is TO BE CONFIRMED in the amendment text before commit. Classes are now low, medium, high, flat, straight, link, mixed, no_geometry. In the P3 test, flat is excluded from the high-speed effect and reported separately; high means 200 km/h and above and below 280 km/h. The P3 pass rule (a) to (c) is restated for high without flat in the amendment draft; that restated wording is NEW and the owner has not yet read it. The map (int_microsector_corner_class), the p3 spec and the row-count table must be changed to match before the hash; model SQL was not touched in this step."
     }
   ],
   "watch_vocabulary": {
@@ -363,6 +410,130 @@
       ],
       "next_action": "Start DA-02 (sample-level and micro-sector proximity tables, seconds grain). DA-05 waits on DD2. DD4 is owed at the Phase 2 gate.",
       "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Owner decisions on the dirty-air track, 2026-10-25.",
+      "landed": [
+        "DD4 RESOLVED: adjusted traffic cost.",
+        "DA-02P added (P3 map, DRS state, pre-registration amendment); DA-03 now depends on it. Pointer moved to DA-02P.",
+        "DD8 answer recorded: 20 per lap (already resolved 2026-10-24)."
+      ],
+      "verified": [
+        "Planning agent re-ran DA-01 queries 01-05 on a scratch copy of the current dev: 20 of 21 CSVs identical (one 18-sample tail bin differs).",
+        "Planning agent rebuilt the two micro-sector models from committed code on scratch: 25 nodes pass, including the five assert_microsector tests at full scale; DA-02 descriptives reproduce all 7 CSVs byte for byte."
+      ],
+      "assumed": [
+        "Decisions recorded as the owner's answers; DD2 is not ruled."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_action": "Agents: build the P3 map and DRS state on scratch, draft the amendment. Owner: approve the amendment text, then commit it on its own.",
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Owner decisions on the DA-03 amendment draft.",
+      "landed": [
+        "DD9 recorded: exceptions, P3 pass rule, DRS rule and commit order ACCEPTED; corner thresholds PENDING the corner-pattern analysis (fixed across tracks versus per track not picked).",
+        "Amendment draft wi/DA-03-preregistration-amendment-draft.md updated: D2 to D4 marked accepted, DRS-closed wording set to secondary, thresholds marked pending. Still a DRAFT."
+      ],
+      "verified": [
+        "Board --write-order and --check re-run on this log after the edit."
+      ],
+      "assumed": [
+        "Threshold section stays pending until the corner analysis is read and the owner rules; the amendment is not ready to copy over the pre-registration until then.",
+        "Path A or B is not ruled."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_dirty-air/status/board.py --write-order",
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_action": "Owner: read the corner-pattern analysis and rule on the thresholds (fixed or per track). Then finalise the amendment text, commit model and test edits, then the pre-registration alone.",
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Corner-threshold decision recorded; flat-kink question opened.",
+      "landed": [
+        "DD9 threshold item ACCEPTED (owner 'okay perf'): fixed 120 and 200 km/h for every track, 100 m and 150 m buffers, apex-speed definition as drafted; DD9 set RESOLVED with the corner analysis cited.",
+        "DD10 raised OPEN: flat-out kinks (205 of 869 high-corner race entries, 24%, at 280 km/h or more) kept in the fast class or split out. Blocks DA-03 and the amendment hash. No option recommended.",
+        "Amendment draft wi/DA-03-preregistration-amendment-draft.md: thresholds bullet set to the accepted fixed wording with the pooled-distribution note; flat-kink wording left OPEN; DRAFT marking kept."
+      ],
+      "verified": [
+        "Board --write-order and --check re-run after the edit."
+      ],
+      "assumed": [
+        "The owner did not answer the flat-kink question; it stays OPEN in DD10.",
+        "Path A or B (DD2) is not ruled.",
+        "The committed wi/DA-03-preregistration.md is untouched."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_dirty-air/status/board.py --write-order",
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_action": "Owner: rule on DD10 (keep flat kinks in the fast class, or split them). Then finalise the amendment text, commit model and test edits, then the pre-registration alone, and record the hash.",
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "Owner answers: flat class, path B selected (gated), naming (dirty-air side).",
+      "landed": [
+        "DD10 RESOLVED: owner chose B, flat-out kinks get their own class (rule: flat: apex speed at or above 280 km/h, not a straight; 280 taken from the corner analysis, to be confirmed in the amendment text before commit).",
+        "DD2: owner selected path B, recorded as a selection only; DD2 stays OPEN because no label moves until DA-03 and DA-04 pass. B moves labels and needs an ML retrain on ml-fresh-start. Nothing about B has passed.",
+        "Amendment draft wi/DA-03-preregistration-amendment-draft.md: classes now low, medium, high, flat, straight, link, mixed, no_geometry; flat excluded from the high-speed effect and reported separately; P3 pass rule (a) to (c) restated for high without flat, flagged as new wording the owner has not read.",
+        "DD9 text updated to point at the DD10 and DD2 answers."
+      ],
+      "verified": [
+        "Board --write-order and --check re-run after the edit."
+      ],
+      "assumed": [
+        "280 km/h is the corner analysis number and is unconfirmed until the amendment text is read.",
+        "The restated P3 rule is the planning agent's wording; the owner has not read it.",
+        "The map SQL, p3 spec and row-count table are not yet changed for the flat class (model SQL not touched here); row counts in the draft are the pre-split counts.",
+        "The committed wi/DA-03-preregistration.md is untouched."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_dirty-air/status/board.py --write-order",
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_action": "Owner: read the restated P3 rule and confirm 280 km/h. Then add the flat class to int_microsector_corner_class and its test, refresh the draft's row counts, commit model and test edits, then the pre-registration alone, and record the hash.",
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-25",
+      "session": "DA-02P wrap-up (owner ruling: park the CO-33 seal, wrap up DA and proceed): flat class, p3 and DRS specs, scratch build, measured row counts.",
+      "landed": [
+        "int_microsector_corner_class.sql: flat_min_kph = 280 set; apex class flat when apex_speed_kph >= 280, before the ELSE high (high is now 200 to under 280). Header comment updated. mixed, straight, link, unknown and no_geometry rules unchanged. schema.yml: flat added to accepted values, description updated.",
+        "New dbt test transform/tests/assert_microsector_flat_high_disjoint.sql (no high micro-sector with max apex >= 280; no flat micro-sector with min apex < 280). Coverage test comment notes flat is usable.",
+        "fit_dirty_air_microsector.py: spec p3 (lt1 bands x corner_class, driver-lap FE plus driver-race x corner-class FE spanning the class main effects, tyre_life x corner_class, ahead_y_s, CRV1 by race, 2020_9 and 2020_16 dropped from p3 only); gates (a) beta(lt1, high) and (b) high minus low, pooled and per era, P3 passes only if all three pass; report-only blocks for flat, flat minus straight, straight, high minus straight, medium, mixed, link and the order check; reported-only specs drs_closed (drs_open FALSE) and drs_location (drops any micro-sector where any car had DRS open in that race). P3 no longer says OWED.",
+        "Unit tests added to tests/test_fit_dirty_air_microsector.py (synthetic panel: planted fast-corner loss and flat tow).",
+        "Amendment draft wi/DA-03-preregistration-amendment-draft.md: notes updated (estimator, class list, D5) and the row-count table replaced by the measured flat-split counts, marked as measured on the scratch build. Text between the markers unchanged.",
+        "DA-02P set to MEASURED (not LANDED: the owner commits). No other item stage changed."
+      ],
+      "verified": [
+        "pytest transform/tasks/coefficients/tests (PYTHONPATH=transform, .venv/bin/pytest): 173 passed, 0 failed (14 in test_fit_dirty_air_microsector.py).",
+        "Scratch dbt (copy of data/dev.duckdb sha256 82c64d8683ddd4af..., threads 2, memory_limit 4GB, own target and logs): dbt run of stg_telemetry, stg_telemetry_position, stg_race_control, dim_corners PASS=4; dbt build --select int_microsector_crossings int_microsector_proximity int_microsector_corner_class PASS=41 WARN=0 ERROR=0 (3 models, 38 tests, including assert_microsector_flat_high_disjoint and assert_microsector_corner_class_covers_panel).",
+        "DA-02 descriptives (queries/descriptives.py, sha256 55cb96d3...) re-run on the scratch copy: all 7 CSVs byte-identical to _evidence/DA-02-2026-10-24/results/.",
+        "Row counts (map and fit rows only, no y_s value read): 169 of 3,420 micro-sectors left high (151 to flat, 18 to mixed); old high = new high + flat + high-to-mixed in every cell of the old table; fit rows total 3,000,201.",
+        "Board --write-order and --check re-run after the edit."
+      ],
+      "assumed": [
+        "The real-data DA-03 fit was not run and no real-panel loss or gap coefficient was produced; p3 is checked on synthetic panels only.",
+        "Class main effects are carried by the driver-race x corner-class FE (they are spanned by it), not as separate coefficients; the registered model is the same.",
+        "The committed wi/DA-03-preregistration.md is untouched; the amendment hash is not recorded (owner commits first).",
+        "Model, test, estimator and log edits are uncommitted; other sessions' uncommitted edits (dim_corners.sql and stg_race_control.sql lint fixes, staging DRS changes) are left as they are."
+      ],
+      "gates_run": [
+        "PYTHONPATH=transform .venv/bin/pytest transform/tasks/coefficients/tests",
+        "dbt build --select int_microsector_crossings int_microsector_proximity int_microsector_corner_class (scratch profile)",
+        "python _roadmap/_dirty-air/_evidence/DA-02-2026-10-24/queries/descriptives.py <scratch>/dev.duckdb <scratch>/da02_rerun, then cmp",
+        "python3 _roadmap/_dirty-air/status/board.py --write-order",
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_action": "Owner: read the amendment draft; commit the model, test and estimator edits; then copy the text between the markers over wi/DA-03-preregistration.md and commit it alone; then record its SHA-256 (--print-prereg-sha256) in this log. DA-03 can then run with that hash.",
+      "next_command": "cd transform && ../.venv/bin/python -m tasks.coefficients.fit_dirty_air_microsector --print-prereg-sha256"
     }
   ]
 }

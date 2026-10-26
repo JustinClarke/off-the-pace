@@ -4391,6 +4391,15 @@ models:
               arguments:
                 min_value: 0
                 inclusive: false
+      - name: drs_state
+        description: >
+          DA-02P. DRS state of the last position sample before the boundary
+          (stg_telemetry_position.drs_state). Carried, never used to drop or order a crossing.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['off', eligible, open, unknown]
+                quote: true
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -4454,7 +4463,78 @@ models:
               arguments:
                 values: [0_lt0.5, 1_0.5to1, 2_1to1.5, 3_1.5to2, 4_2to3, 5_gt3_reference]
                 quote: true
+      - name: drs_state_entry
+        description: >
+          DA-02P. DRS state at the entry boundary (int_microsector_crossings.drs_state): off,
+          eligible (FastF1 code 8, within 1 s at the detection line), open (10/12/14), unknown, or
+          NULL. Carried only; not a control in the main DA-03 spec.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['off', eligible, open, unknown]
+                quote: true
+      - name: drs_state_exit
+        description: >
+          DA-02P. DRS state at the exit boundary (the next boundary's entry state); NULL when there
+          is no next crossing.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['off', eligible, open, unknown]
+                quote: true
+      - name: drs_open
+        description: >
+          DA-02P. TRUE when DRS is open at entry or exit, FALSE when both are off or eligible, NULL
+          otherwise. The registered DRS spec drops rows where drs_open is not FALSE.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: [race_year, race_id, driver_id, lap_number, microsector]
+
+  - name: int_microsector_corner_class
+    description: >
+      DA-02P. The micro-sector to corner-class map for the DA-03 P3 mechanism placebo. One row per
+      (race, micro-sector). Micro-sector m spans [m, m + 1) * lap_length_m / var('microsector_n'),
+      lap_length_m the race median of distance_m / relative_distance. Each dim_corners apex gets an
+      apex speed (median over green racing laps of the minimum position-channel speed within 50 m
+      of the apex) and a class: low < 120 km/h, medium 120 to < 200, high 200 to < 280, flat
+      >= 280 (flat-out kinks, split out of high by owner decision D5 / DD10 and reported apart
+      from the fast-corner test). corner_class is
+      that class when every apex inside the micro-sector shares it, mixed when they differ
+      (a micro-sector with a high and a flat apex is mixed),
+      straight when there is no apex inside and none within 100 m before its start or 150 m after
+      its end, link otherwise. Built from geometry and speed only; it reads no gap or time loss.
+      Thresholds are registered in the DA-03 pre-registration amendment (DA-02P).
+    tags: [intermediate, dirty_air_dynamic]
+    columns:
+      - name: race_microsector_id
+        tests: [not_null, unique]
+      - name: race_id
+        tests: [not_null]
+      - name: microsector
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: "{{ var('microsector_n') - 1 }}"
+                inclusive: true
+      - name: lap_length_m
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 3000
+                max_value: 7500
+                inclusive: true
+      - name: corner_class
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [low, medium, high, flat, mixed, straight, link, unknown, no_geometry]
+                quote: true
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_year, race_id, microsector]

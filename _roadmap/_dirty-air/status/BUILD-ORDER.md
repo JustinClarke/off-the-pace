@@ -26,16 +26,17 @@ python3 _roadmap/_dirty-air/status/board.py --ship         # exit 1 while a ship
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-24T10:00:00+04:00`. Run `python3 _roadmap/_dirty-air/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-25T16:00:00+04:00`. Run `python3 _roadmap/_dirty-air/status/board.py --write-order` after any edit to the log._
 
-**4 live items** (1 blocked). The pointer is on **DA-02** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 1 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
+**5 live items** (1 blocked). The pointer is on **DA-02P** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 1 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
 
 | # | Item | Group | Stage | Cost | Model | Sources | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | [DA-02](../wi/DA-02-tables.md) ▶ | 1-tables | SPEC | 3-4 wk | `opus-5` | transform/models/intermediate/, transform/tests/ | Sample-level and micro-sector proximity tables, tests, and loss-versus-gap curves | — |
-| 2 | [DA-03](../wi/DA-03-identification.md) | 2-identification | SPEC | 4-6 wk | `fable-5.1` | transform/tasks/coefficients/ | Identification: pre-registered fit, placebos P1-P3, era split (2018-21 vs 2022+) | DA-02 |
-| 3 | [DA-04](../wi/DA-04-validation.md) | 3-validation | SPEC | 3-4 wk | `opus-5` | transform/tests/ | Held-out season fit, honesty tests, out-of-sample gain check | DA-03 |
-| 4 | [DA-05](../wi/DA-05-label-and-app.md) | 4-label-app | BLOCKED | 3 wk (A) / 6+ wk (B) | `opus-5` | transform/models/marts/, app/src/features/ | Label and app decision: path A (sit beside) or path B (replace tax, label version) | DA-04, **DD2** (human call) |
+| 1 | [DA-02](../wi/DA-02-tables.md) | 1-tables | SPEC | 3-4 wk | `opus-5` | transform/models/intermediate/, transform/tests/ | Sample-level and micro-sector proximity tables, tests, and loss-versus-gap curves | — |
+| 2 | [DA-02P](../wi/DA-02P-prerequisites.md) ▶ | 1-tables | MEASURED | 1-2 wk | `opus-5` | transform/models/intermediate/, transform/models/staging/stg_telemetry_position.sql, _roadmap/_dirty-air/wi/DA-03-preregistration.md | Prerequisites before the fit: P3 corner-class map, DRS state, pre-registration amendment | DA-02 |
+| 3 | [DA-03](../wi/DA-03-identification.md) | 2-identification | SPEC | 4-6 wk | `fable-5.1` | transform/tasks/coefficients/ | Identification: pre-registered fit, placebos P1-P3, era split (2018-21 vs 2022+) | DA-02, DA-02P |
+| 4 | [DA-04](../wi/DA-04-validation.md) | 3-validation | SPEC | 3-4 wk | `opus-5` | transform/tests/ | Held-out season fit, honesty tests, out-of-sample gain check | DA-03 |
+| 5 | [DA-05](../wi/DA-05-label-and-app.md) | 4-label-app | BLOCKED | 3 wk (A) / 6+ wk (B) | `opus-5` | transform/models/marts/, app/src/features/ | Label and app decision: path A (sit beside) or path B (replace tax, label version) | DA-04, **DD2** (human call) |
 
 ### Which model to run it on
 
@@ -49,7 +50,6 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 ### Open decisions — these are yours, not tasks
 
 - **DD2** (blocks `DA-05`) — Path A first (sit beside the label, no label version, about 3 weeks of app work), path B later? Or path B from the start (label version, about 6+ weeks)? _Recommended: A first. It answers the question and ships without touching the label; B is decided on A's evidence._
-- **DD4** (blocks nothing) — Which wording do we use for the result: 'causal' or 'adjusted traffic cost'? _Recommended: Adjusted traffic cost until all placebos pass._
 
 ### Watch list — kept an eye on, not tasks and not rulings
 
@@ -69,3 +69,31 @@ Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for tok
 | W2 | pending-ruling | DA-01 | `sonnet` | IsAccurate may drop 2018 race laps for a reason unrelated to the lap | Split the is_accurate false share by season for race laps, and record whether 2018 is an outlier. Then decide whether to keep the gate for 2018 or flag it. |
 
 <!-- END GENERATED TASKS -->
+
+## Audit recommendations (hand-written, 2026-10-25)
+
+Source: Opus audit of this track. Advice only. The generated block above does not track these. Record each item in build-log.json when it starts.
+
+**Summary.** Design is mostly sound. Nothing has been fitted on real data. Blockers are your commits and one hash. None of this work moves the cliff or stint-life labels, so the seal is safe.
+
+**Order of work**
+1. **Agent:** add a gap spec at boundary m-1 (shares no crossing with the outcome), so timing noise cannot pass the main gate on its own. Add an overall gate verdict to the fit that checks the sign of beta(lt1), P1, P2 and P3. Add a hash check that confirms the file is committed and matches the logged hash. Fix the DRS wording in the "not ruled out" paragraph of the amendment draft. Fix DD9 (old P3 rule) and DD10 (280 still "to be confirmed").
+2. **You:** approve the amendment text after step 1.
+3. **You:** commit the model, test and estimator edits, then the pre-registration alone, then record its SHA-256 in build-log.json.
+4. **Agent (bookkeeping):** mark DA-02 LANDED (committed in 82796dc, evidence present). Clear W1 (CO-17 landed, audit re-run on the rebuilt dev: 20 of 21 CSVs identical).
+5. **Agent:** register the DA-04 out-of-sample gain metric before any run.
+6. **Agent:** run DA-03 on a scratch copy, using the recorded hash. Run it alone, not alongside dbt (about 3M rows, roughly 158k lap effects, run pooled and per era).
+7. **You:** read the gate result before anything else.
+8. **Only if everything passes:** path A replay first. Path B later, as a separate label version with its own retrain.
+
+**Can be deferred:** marshal-sector ingestion (DD3), W2 (2018 is_accurate check), the 10-micro-sector sensitivity, metres, the sample-level table.
+
+**Would not do**
+- Start path B, or fold it into the seal.
+- Change thresholds after seeing a coefficient.
+- Let drs_closed or a passing sensitivity rescue a failed primary result.
+- Run the fit against data/dev.duckdb directly.
+
+**Known risks**
+- P1 and P2 may fail on small real effects with about 3M rows. Expect possible false fails and read them as caveats.
+- Results cover 2018 to 2025 only, and say nothing about 2026 (no DRS, new rules).

@@ -67,6 +67,16 @@
 -- gap_band is the design note's step function: <0.5, 0.5-1, 1-1.5, 1.5-2, 2-3,
 -- and >3 s as the reference band. It is NULL on an invalid row.
 --
+-- DRS (DA-02P). drs_state_entry / drs_state_exit are the DRS state at the
+-- micro-sector's entry and exit boundaries (int_microsector_crossings.
+-- drs_state: 'off', 'eligible' = code 8, 'open' = 10/12/14, 'unknown', NULL).
+-- drs_open is TRUE when either is 'open', FALSE when both are 'off' or
+-- 'eligible', NULL otherwise. They are CARRIED ONLY: no invalid_reason,
+-- gap_band, y_s or field median reads them, so every pre-DA-02P column is
+-- unchanged. DRS is not a control in the main spec (being within 1 s at the
+-- detection line is what opens it); the registered DRS spec drops the rows
+-- where drs_open is not FALSE.
+--
 -- Times are ROUNDed at source; every window has a total ORDER BY; see
 -- assert_microsector_total_order.
 {{ config(materialized='table', tags=['dirty_air_dynamic']) }}
@@ -85,7 +95,8 @@ WITH crossings AS (
         boundary_k,
         crossing_time_s,
         bracket_s,
-        on_track
+        on_track,
+        drs_state
     FROM {{ ref('int_microsector_crossings') }}
 ),
 
@@ -171,6 +182,7 @@ gapped AS (
         f.crossing_time_s,
         f.bracket_s,
         f.on_track,
+        f.drs_state,
         f.status_code_at,
         f.in_pit,
         CASE
@@ -232,7 +244,8 @@ sectors AS (
         LEAD(on_track) OVER wd AS end_on_track,
         LEAD(status_code_at) OVER wd AS end_status_code,
         LEAD(in_pit) OVER wd AS end_in_pit,
-        LEAD(gap_ahead_s) OVER wd AS exit_gap_ahead_s
+        LEAD(gap_ahead_s) OVER wd AS exit_gap_ahead_s,
+        LEAD(drs_state) OVER wd AS end_drs_state
     FROM gapped
     WINDOW wd AS (
         PARTITION BY race_year, race_id, driver_id
@@ -411,7 +424,21 @@ SELECT
                     WHEN fi.gap_ahead_s < 3.0 THEN '4_2to3'
                     ELSE '5_gt3_reference'
                 END
-    END AS gap_band
+    END AS gap_band,
+    -- DA-02P: carried for the registered DRS spec only (header).
+    fi.drs_state AS drs_state_entry,
+    CASE WHEN fi.has_next THEN fi.end_drs_state END AS drs_state_exit,
+    CASE
+        WHEN
+            fi.drs_state = 'open'
+            OR (fi.has_next AND fi.end_drs_state = 'open')
+            THEN TRUE
+        WHEN
+            fi.drs_state IN ('off', 'eligible')
+            AND fi.has_next
+            AND fi.end_drs_state IN ('off', 'eligible')
+            THEN FALSE
+    END AS drs_open
 FROM final AS fi
 LEFT JOIN final AS ah
     ON

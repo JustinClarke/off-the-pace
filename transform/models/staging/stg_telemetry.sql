@@ -8,6 +8,12 @@
 -- telemetry aggregates (int_lap_telemetry_aggregates). FastF1 DRS
 -- codes:
 -- 0/1 = off, 8 = eligible-but-inactive, 10/12/14 = active → drs_active.
+-- drs_state (DA-02P, _roadmap/_dirty-air) keeps code 8 as its own state
+-- instead of folding it into "not active": 'off' (0, 1), 'eligible' (8: the
+-- car was within 1 s at the detection line and may open in the next zone),
+-- 'open' (10, 12, 14), 'unknown' (any other code: 2, 3, 9, 11, 13, 15 occur
+-- in bronze, a few thousand samples a season), NULL when the code is NULL.
+-- drs_active is unchanged. The same decode is in stg_telemetry_position.
 {{ config(materialized='view') }}
 
 WITH source AS (
@@ -45,6 +51,13 @@ renamed AS (
         CAST(rpm AS DOUBLE) AS rpm,
         CAST(ngear AS INTEGER) AS n_gear,
         (CAST(drs AS INTEGER) IN (10, 12, 14)) AS drs_active,
+        CAST(drs AS INTEGER) AS drs_code,
+        CASE
+            WHEN CAST(drs AS INTEGER) IN (0, 1) THEN 'off'
+            WHEN CAST(drs AS INTEGER) = 8 THEN 'eligible'
+            WHEN CAST(drs AS INTEGER) IN (10, 12, 14) THEN 'open'
+            WHEN drs IS NOT NULL THEN 'unknown'
+        END AS drs_state,
 
         -- FastF1 merges 'car' (true channel cadence) with forward-filled 'pos'
         -- /

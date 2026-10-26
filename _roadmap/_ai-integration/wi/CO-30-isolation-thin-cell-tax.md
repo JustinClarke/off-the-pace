@@ -1,12 +1,12 @@
 # CO-30 — Isolation panel: price the dirty-air tax for thin field-base cells (W10 option 1a)
 
-**Status:** SPEC (build log, item CO-30). Code and tests exist; the refits, CI fixture refresh and rebuilt dev are open. Build log: `status/build-log.json`.
+**Status:** MEASURED (build log, item CO-30, 2026-10-25). Code and tests are committed and scratch numbers exist; the refits, CI fixture refresh and rebuilt dev are open and are produced by the CO-33 seal. Build log: `status/build-log.json`.
 
-**Group:** 1 data settled · **Depends on:** `CO-17` · **Blocker:** none for the code. Shipping waits on the v17 label version (CO-31, CO-32). Raised 2026-10-24 from watch W10 (owner ruling: option 1a).
+**Group:** 1 data settled · **Depends on:** `CO-17` · **Blocker:** none for the code. Shipping waits on the CO-33 seal of label version v16 (with CO-31; owner 2026-10-25: not waiting for dirty air, CO-32). Raised 2026-10-24 from watch W10 (owner ruling: option 1a).
 
 **Sources:** `transform/models/intermediate/int_driver_isolation_lap_panel.sql`, `transform/dbt_project.yml` (`isolation_thin_min_air_measured_share`), `transform/models/intermediate/schema.yml` (`is_thin_cell_tax`), `transform/tests/assert_isolation_thin_cell_tax_matches_component.sql`, `transform/tasks/coefficients/fit_constructor_car_fe.py`, `data/fits/constructor_car_fe_isolation.parquet`, `transform/tests/fixtures/fits/`.
 
-**Git state (2026-10-24):** the panel SQL and the `isolation_thin_min_air_measured_share` var are in commit `ac9e798`. The new test `assert_isolation_thin_cell_tax_matches_component.sql` is untracked.
+**Git state (2026-10-25):** the panel SQL and the `isolation_thin_min_air_measured_share` var are in commit `ac9e798`. The new test `assert_isolation_thin_cell_tax_matches_component.sql` is in commit `82796dc`. Nothing for CO-30 is uncommitted.
 
 ---
 
@@ -18,15 +18,15 @@ CO-04 left 4,655 isolation laps out of `int_driver_isolation_lap_panel` (T18). T
 
 1. A lap with no `int_dirty_air_tax_component` row gets tax = `theta_air` x previous-lap dirty-air share, clamped to [0, 5] s, flagged `is_thin_cell_tax = true`.
 2. Only in races where more than `isolation_thin_min_air_measured_share` (0.5) of laps have a measured air state. 2018_1 and 2018_2 (6% measured) stay out.
-3. No label move. With `field_restart_adjacent_laps` held at 2, `fct_cliff_prediction_features` matches v16 dev to 1e-6 on every column.
+3. No label move. With `field_restart_adjacent_laps` held at 2, `fct_cliff_prediction_features` matches the CO-17 dev build (D8's v16 label bump) to 1e-6 on every column.
 
-Measured on a scratch copy (2026-10-24): panel 123,085 -> 127,478 rows (+4,393 laps, 3,503 of them followed a car, mean tax 0.264 s, 126 races). Isolation car-FE refit on scratch fits: 1,604 -> 1,619 isolation rows.
+Measured on a scratch copy (2026-10-24): panel 123,085 -> 127,478 rows (window-2 figure; the restart-4 panel is 127,476 per the 2026-10-25 rehearsal) (+4,393 laps, 3,503 of them followed a car, mean tax 0.264 s, 126 races). Isolation car-FE refit on scratch fits: 1,604 -> 1,619 isolation rows.
 
 ## Still open
 
-1. Refit `data/fits/constructor_car_fe_isolation.parquet` (and `constructor_car_fe.parquet`) on the v17 substrate. Do this after the owner commits, not before.
+1. Refit `data/fits/constructor_car_fe_isolation.parquet` (and `constructor_car_fe.parquet`) on the sealed v16 substrate, as part of CO-33 (rehearsal first, final write only after owner approval).
 2. Refresh the CI fits fixtures in `transform/tests/fixtures/fits/` from those refits (watch W4 shape; command in `transform/tests/README.md`).
-3. Rebuild dev and ship in label version v17 together with CO-31 and CO-32 (D8: not in v16).
+3. Rebuild dev and seal in label version v16 together with CO-31, through CO-33 (owner 2026-10-25; D11 for the name).
 
 ## Tests it relies on
 
@@ -37,6 +37,6 @@ Measured on a scratch copy (2026-10-24): panel 123,085 -> 127,478 rows (+4,393 l
 
 ## Definition of done
 
-On a rebuilt dev: the tests above pass, the panel row count and the thin-cell lap count are recorded, the isolation refit is in `data/fits/` and the CI fixture fits are refreshed, and the v17 label version records the change. W10 clears only when CO-30 and CO-31 both land and ship in v17 with W11 option C (CO-32). Do not commit; the owner commits.
+On a rebuilt dev: the tests above pass, the panel row count and the thin-cell lap count are recorded, the isolation refit is in `data/fits/` and the CI fixture fits are refreshed, and the sealed label version (v16, CO-33) records the change. W10 clears when CO-30 and CO-31 both land and CO-33 seals v16 (no longer waits on W11 option C, owner 2026-10-25). Do not commit; the owner commits.
 
 Step up to `opus-5` if the refit moves a constructor's isolation number by more than its interval.

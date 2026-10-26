@@ -407,6 +407,15 @@ models:
       - name: drs_active
         description: TRUE when DRS was open/active (FastF1 codes 10/12/14).
         data_type: boolean
+      - name: drs_code
+        description: The raw FastF1 DRS code of the sample (DA-02P).
+        data_type: integer
+      - name: drs_state
+        description: >
+          DA-02P. The DRS code decoded with code 8 kept as its own state: off (0, 1), eligible (8,
+          within 1 s at the detection line, may open in the next zone), open (10, 12, 14), unknown
+          (any other code), NULL when the code is NULL. drs_active is unchanged.
+        data_type: varchar
       - name: source_channel
         description: FastF1 sample provenance ('car' = true channel cadence; 'pos'/'interpolation' = forward-filled).
         data_type: varchar
@@ -952,6 +961,20 @@ models:
           FastF1's DistanceToDriverAhead (m). The single number every incumbent
           traffic feature in this warehouse descends from. Diagnostic here.
         data_type: double
+      - name: distance_m
+        description: >
+          DA-02P. FastF1 lap distance of the sample (m), unfiltered (no 6500 m cut).
+          distance_m / relative_distance is the lap length the lap fraction was computed against;
+          int_microsector_corner_class uses it to place micro-sector boundaries in metres.
+        data_type: double
+      - name: drs_code
+        description: The raw FastF1 DRS code FastF1 merged onto the position sample (DA-02P).
+        data_type: integer
+      - name: drs_state
+        description: >
+          DA-02P. Same decode as stg_telemetry.drs_state: off (0, 1), eligible (8), open (10, 12,
+          14), unknown (any other code), NULL when the code is NULL.
+        data_type: varchar
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

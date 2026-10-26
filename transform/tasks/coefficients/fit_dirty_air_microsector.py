@@ -26,7 +26,9 @@ Specs (all on the valid rows: invalid_reason IS NULL, y_s and ahead_y_s present)
     lt1     merged: gap < 1 s, 1-1.5, 1.5-2, 2-3 (the GATE quantity is beta(lt1))
     p1      lt1 + the car BEHIND within 1 s on the same lap (placebo P1)
     p2      lt1 + a 3-5 s band against >5 s (placebo P2: a level shift not tied to
-            the gap would show here)
+            the gap would show here). Gate (option (b), 2026-10-27): the 3-5 s
+            interval is no wider than 0.008 s and |P2| < 1/3 of |beta(lt1)|, pooled
+            AND in each era; "interval includes 0" is reported only.
     lead    exit-gap bands on y (the lead window: must be 0 or below, not a clean
             placebo because losing time opens the gap mechanically)
     p3      placebo P3 (DA-02P amendment): lt1 with each of its four gap-band dummies
@@ -44,6 +46,17 @@ Specs (all on the valid rows: invalid_reason IS NULL, y_s and ahead_y_s present)
     drs_closed    lt1 on rows with drs_open FALSE (gap-based; reported only)
     drs_location  lt1 after dropping every micro-sector where any car had DRS open in
                   that race (location-based; reported only)
+    lag_gap the lagged-gap check (DA-02P amendment, owner ruling 1 option (a)): lt1
+            with its four bands on the gap at boundary k - 1 (the entry of micro-
+            sector m - 1) instead of boundary k. y uses the crossings of boundaries k
+            and k + 1, the entry gap uses k, so a timing error at k moves both the
+            gap and y; the lagged gap shares no crossing with y. Rows with no valid
+            m - 1 row are dropped from lag_gap only. Gated: beta(lag lt1) > 0 with a
+            95% interval excluding 0, pooled AND in each era. The primary is
+            unchanged; lag_gap never replaces it.
+
+The fit also refuses unless the pre-registration is committed at HEAD unchanged and
+its hash equals the one recorded in the build log (DA-02P `prereg_sha256`).
 """
 from __future__ import annotations
 
@@ -51,6 +64,7 @@ import argparse
 import hashlib
 import json
 import logging
+import subprocess
 import sys
 from pathlib import Path
 
@@ -67,6 +81,9 @@ log = logging.getLogger("fit_dirty_air_microsector")
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DB_PATH = REPO_ROOT / "data" / "dev.duckdb"
 PREREG_PATH = REPO_ROOT / "_roadmap" / "_dirty-air" / "wi" / "DA-03-preregistration.md"
+BUILD_LOG_PATH = REPO_ROOT / "_roadmap" / "_dirty-air" / "status" / "build-log.json"
+# The build-log item whose `prereg_sha256` field records the committed file's hash.
+PREREG_LOG_ITEM = "DA-02P"
 
 BAND_ORDER = ["0_lt0.5", "1_0.5to1", "2_1to1.5", "3_1.5to2", "4_2to3"]
 ERA_BREAK = 2022  # 2022 ground-effect regulations (design note section 7)
@@ -74,15 +91,67 @@ ERA_BREAK = 2022  # 2022 ground-effect regulations (design note section 7)
 # Pre-registered gate constants (DA-03 doc, design note section 6, phase 2)
 P1_MAX_SHARE_OF_BETA = 1.0 / 3.0
 
+# P2 size limit (owner note in the DA-02P amendment draft). The owner chose option (b)
+# on 2026-10-27, replacing "the P2 interval includes 0", and confirmed its two numbers
+# the same day. p2_precision_check is in GATE_CHECKS (as p2_precision_pass).
+# Option (a), not chosen: gate 1 would also need beta(lt1) >= share x (lap figure /
+# micro-sectors per lap). Its numbers stay None and it is NOT in GATE_CHECKS.
+GATE1_LAP_FIGURE_S: float | None = None            # [OWNER TO SET] s per lap, cited source
+GATE1_MIN_SHARE_OF_LAP_FIGURE: float | None = None  # [OWNER TO SET]
+# Option (b), owner-confirmed 2026-10-27: P2 needs a 3-5 s vs >5 s interval no wider
+# than 0.008 s (b1) and a point estimate with |P2| under 1/3 of |beta(lt1)| (b2).
+P2_MAX_CI_WIDTH_S: float | None = 0.008
+P2_MAX_SHARE_OF_BETA: float | None = 1.0 / 3.0
+
 # P3 (DA-02P amendment). Classes estimated in p3; no_geometry rows are the two
 # registered exception races and are dropped with them.
 P3_CLASSES = ["low", "medium", "high", "flat", "mixed", "straight", "link"]
 P3_EXCEPTION_RACES = ("2020_9", "2020_16")
 LT1_BANDS = ["lt1", "g1_1p5", "g1p5_2", "g2_3"]
+# lag_gap: the same four bands on the gap at boundary k - 1 (DA-02P amendment).
+LAG_BANDS = ["lag_" + b for b in LT1_BANDS]
 
 
 def sha256_of(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def prereg_lock_errors(prereg: Path = PREREG_PATH,
+                       build_log: Path = BUILD_LOG_PATH) -> list[str]:
+    """Why the pre-registration is not locked; [] when it is.
+
+    Locked means: the file is committed at HEAD, the working copy is byte-identical to
+    the committed blob (so the hash the fit checks is the committed file's hash), and
+    the build log records that same hash in item PREREG_LOG_ITEM's `prereg_sha256`."""
+    errors: list[str] = []
+    digest = sha256_of(prereg)
+
+    def git(*a: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", "-C", str(prereg.parent), *a], capture_output=True)
+
+    top = git("rev-parse", "--show-toplevel")
+    if top.returncode != 0:
+        errors.append(f"{prereg} is not inside a git work tree")
+    else:
+        rel = prereg.resolve().relative_to(Path(top.stdout.decode().strip()).resolve())
+        head = git("show", f"HEAD:{rel.as_posix()}")
+        if head.returncode != 0:
+            errors.append(f"{rel.as_posix()} is not committed at HEAD")
+        elif hashlib.sha256(head.stdout).hexdigest() != digest:
+            errors.append(f"{rel.as_posix()} differs from its committed version at HEAD")
+    try:
+        items = json.loads(build_log.read_text())["items"]
+        logged = next((i.get("prereg_sha256") for i in items
+                       if i.get("id") == PREREG_LOG_ITEM), None)
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        errors.append(f"cannot read the build log {build_log}: {e}")
+    else:
+        if not logged:
+            errors.append(f"build log item {PREREG_LOG_ITEM} records no prereg_sha256")
+        elif logged != digest:
+            errors.append(f"build log {PREREG_LOG_ITEM}.prereg_sha256 ({logged}) does not "
+                          f"match the file ({digest})")
+    return errors
 
 
 def load_panel(db_path: Path) -> pd.DataFrame:
@@ -90,7 +159,12 @@ def load_panel(db_path: Path) -> pd.DataFrame:
 
     corner_class comes from int_microsector_corner_class on (race, micro-sector).
     ms_drs_any_open is TRUE when any car, on any lap of the race (valid row or not),
-    had DRS open at the entry or exit of that micro-sector: the drs_location drop."""
+    had DRS open at the entry or exit of that micro-sector: the drs_location drop.
+    lag_gap_ahead_s is the same driver's gap_ahead_s at boundary k - 1 (micro-sector
+    m - 1, across the lap line for m = 0), taken only when that row exists, is the
+    boundary directly before, and is itself valid (invalid_reason IS NULL); NULL
+    otherwise. It is read before the validity filter, so the m - 1 row need not have
+    y_s."""
     con = duckdb.connect(str(db_path), read_only=True)
     try:
         return con.sql(
@@ -100,12 +174,34 @@ def load_panel(db_path: Path) -> pd.DataFrame:
                        COALESCE(BOOL_OR(drs_open), FALSE) AS ms_drs_any_open
                 FROM int_microsector_proximity
                 GROUP BY race_year, race_id, microsector
+            ),
+            n_ms AS (
+                SELECT MAX(microsector) + 1 AS n FROM int_microsector_proximity
+            ),
+            lagged AS (
+                SELECT
+                    p.microsector_id,
+                    p.lap_number * n.n + p.microsector AS boundary_k,
+                    LAG(p.lap_number * n.n + p.microsector) OVER w AS prev_boundary_k,
+                    LAG(p.invalid_reason IS NULL) OVER w AS prev_valid,
+                    LAG(p.gap_ahead_s) OVER w AS prev_gap_ahead_s
+                FROM int_microsector_proximity AS p
+                CROSS JOIN n_ms AS n
+                WINDOW w AS (
+                    PARTITION BY p.race_year, p.race_id, p.driver_id
+                    ORDER BY p.lap_number, p.microsector
+                )
             )
             SELECT
                 p.microsector_id, p.lap_id, p.race_year, p.race_id, p.driver_id,
                 p.lap_number, p.microsector, p.y_s, p.ahead_y_s, p.gap_ahead_s,
                 p.gap_band, p.gap_behind_s, p.behind_lap_number, p.exit_gap_ahead_s,
-                l.tyre_life, p.drs_open, z.ms_drs_any_open, c.corner_class
+                l.tyre_life, p.drs_open, z.ms_drs_any_open, c.corner_class,
+                CASE
+                    WHEN g.prev_boundary_k = g.boundary_k - 1
+                        AND COALESCE(g.prev_valid, FALSE)
+                        THEN g.prev_gap_ahead_s
+                END AS lag_gap_ahead_s
             FROM int_microsector_proximity AS p
             LEFT JOIN stg_laps AS l ON p.lap_id = l.lap_id
             LEFT JOIN int_microsector_corner_class AS c
@@ -114,6 +210,7 @@ def load_panel(db_path: Path) -> pd.DataFrame:
             LEFT JOIN drs_zone AS z
                 ON p.race_year = z.race_year AND p.race_id = z.race_id
                 AND p.microsector = z.microsector
+            LEFT JOIN lagged AS g ON p.microsector_id = g.microsector_id
             WHERE p.invalid_reason IS NULL AND p.y_s IS NOT NULL
             """
         ).df()
@@ -131,6 +228,14 @@ def add_regressors(panel: pd.DataFrame) -> pd.DataFrame:
     d["g1_1p5"] = ((g >= 1.0) & (g < 1.5)).astype(float)
     d["g1p5_2"] = ((g >= 1.5) & (g < 2.0)).astype(float)
     d["g2_3"] = ((g >= 2.0) & (g < 3.0)).astype(float)
+    # lag_gap: the same bands on the gap at boundary k - 1. A row with no lagged gap
+    # gets 0 here and is dropped by the lag_gap spec, never put in its reference band.
+    if "lag_gap_ahead_s" in d.columns:
+        lg = d["lag_gap_ahead_s"]
+        d["lag_lt1"] = (lg < 1.0).astype(float)
+        d["lag_g1_1p5"] = ((lg >= 1.0) & (lg < 1.5)).astype(float)
+        d["lag_g1p5_2"] = ((lg >= 1.5) & (lg < 2.0)).astype(float)
+        d["lag_g2_3"] = ((lg >= 2.0) & (lg < 3.0)).astype(float)
     # P2: split the reference band. Only rows beyond 3 s enter; 3-5 s against >5 s.
     d["far_3_5"] = ((g >= 3.0) & (g < 5.0)).astype(float)
     # P1: the car behind within 1 s, SAME lap only (a higher-lap car behind is
@@ -262,6 +367,17 @@ def fit_specs(panel: pd.DataFrame, tyre_age: bool = True) -> dict:
         res["specs"]["lead"] = _tidy(
             fit, "lead", ["x_lt1", "x_1_3"], int(lead["race_id"].nunique()))
         res["specs"]["lead"]["rows"] = int(len(lead))
+    # Lagged-gap check: the lt1 bands on the gap at boundary k - 1, which shares no
+    # crossing with y (boundaries k and k + 1). Rows with no valid m - 1 row are
+    # dropped here only.
+    if "lag_gap_ahead_s" in d.columns:
+        lag = d.dropna(subset=["lag_gap_ahead_s"])
+        if len(lag) > 0 and lag["lag_lt1"].nunique() > 1:
+            fit = pf.feols(f"y_s ~ {' + '.join(LAG_BANDS)} + ahead_y_s{tyre} | lap_id",
+                           data=lag, vcov=vcov)
+            res["specs"]["lag_gap"] = _tidy(fit, "lag_gap", LAG_BANDS + ["ahead_y_s"],
+                                            int(lag["race_id"].nunique()))
+            res["specs"]["lag_gap"]["rows"] = int(len(lag))
     # P3 mechanism placebo.
     p3 = fit_p3(d, tyre_age, vcov)
     if p3 is not None:
@@ -287,6 +403,42 @@ def fit_specs(panel: pd.DataFrame, tyre_age: bool = True) -> dict:
 
 def _ci_excludes_0_positive(t: dict | None) -> bool:
     return bool(t is not None and t["beta_s"] > 0 and t["ci_low_s"] > 0)
+
+
+def gate1_minimum_effect_check(lt1: dict | None,
+                               lap_figure_s: float | None = GATE1_LAP_FIGURE_S,
+                               min_share: float | None = GATE1_MIN_SHARE_OF_LAP_FIGURE,
+                               n_microsectors: int = 20) -> bool | None:
+    """P2 size-limit option (a), STUB: beta(lt1) must be at least min_share of a lap-time
+    figure spread over the lap's micro-sectors. None while either number is unset
+    ([OWNER TO SET]); a missing beta(lt1) is False. Not in GATE_CHECKS."""
+    if lap_figure_s is None or min_share is None:
+        return None
+    if lt1 is None:
+        return False
+    return bool(lt1["beta_s"] >= min_share * lap_figure_s / n_microsectors)
+
+
+def p2_precision_check(p2: dict | None, lt1: dict | None,
+                       max_ci_width_s: float | None = P2_MAX_CI_WIDTH_S,
+                       max_share_of_beta: float | None = P2_MAX_SHARE_OF_BETA
+                       ) -> bool | None:
+    """P2 size-limit option (b), the registered P2 pass rule: the 3-5 s vs >5 s
+    interval is no wider than max_ci_width_s (so P2 cannot pass by imprecision), and
+    its point estimate is below max_share_of_beta x |beta(lt1)| (so a tiny, significant
+    shift is not a fail; the P1 rule's form). Whichever limits are set must all hold.
+    None if both are unset; a missing spec is False. In GATE_CHECKS via
+    evaluate_gates' p2_precision_pass."""
+    if max_ci_width_s is None and max_share_of_beta is None:
+        return None
+    if p2 is None or (max_share_of_beta is not None and lt1 is None):
+        return False
+    ok = True
+    if max_ci_width_s is not None:
+        ok = ok and (p2["ci_high_s"] - p2["ci_low_s"]) <= max_ci_width_s
+    if max_share_of_beta is not None:
+        ok = ok and abs(p2["beta_s"]) < max_share_of_beta * abs(lt1["beta_s"])
+    return bool(ok)
 
 
 def evaluate_p3(res: dict) -> dict:
@@ -330,11 +482,14 @@ def evaluate_gates(res: dict) -> dict:
     """The registered gate, as code, on one sample (pooled or one era)."""
     s = res["specs"]
     lt1 = s["lt1"]["terms"]["lt1"]
-    beta_ci_excludes_0 = lt1["ci_low_s"] > 0 or lt1["ci_high_s"] < 0
+    # Registered gate 1: the interval excludes 0 AND beta(lt1) is positive. (The old
+    # two-sided beta_lt1_ci_excludes_0 is retired: it passed a negative interval.)
     out = {"beta_lt1_s": lt1["beta_s"],
-           "beta_lt1_ci_excludes_0": bool(beta_ci_excludes_0),
-           # Registered gate 1: the interval excludes 0 AND beta(lt1) is positive.
            "beta_lt1_positive_ci_excludes_0": _ci_excludes_0_positive(lt1)}
+    # Lagged-gap check (gate 6): beta(lag lt1) positive with an interval excluding 0.
+    lag = s.get("lag_gap", {}).get("terms", {}).get("lag_lt1")
+    out["lag_gap_beta_lt1_s"] = None if lag is None else lag["beta_s"]
+    out["lag_gap_pass"] = _ci_excludes_0_positive(lag)
     p1 = s["p1"]["terms"].get("behind_lt1")
     if p1 is not None:
         out["p1_beta_s"] = p1["beta_s"]
@@ -345,8 +500,10 @@ def evaluate_gates(res: dict) -> dict:
     p2 = s.get("p2", {}).get("terms", {}).get("far_3_5")
     if p2 is not None:
         out["p2_beta_s"] = p2["beta_s"]
+        # Reported only: "includes 0" was replaced by option (b) on 2026-10-27.
         out["p2_ci_includes_0"] = bool(p2["ci_low_s"] <= 0 <= p2["ci_high_s"])
-        out["p2_pass"] = out["p2_ci_includes_0"]
+        out["p2_ci_width_s"] = p2["ci_high_s"] - p2["ci_low_s"]
+        out["p2_precision_pass"] = bool(p2_precision_check(p2, lt1))
     lead = s.get("lead", {}).get("terms", {}).get("x_lt1")
     if lead is not None:
         out["lead_x_lt1_beta_s"] = lead["beta_s"]
@@ -385,14 +542,16 @@ def run_panel(panel: pd.DataFrame, tyre_age: bool = True) -> dict:
 GATE_CHECKS = (
     ("beta_lt1_positive", "beta_lt1_positive_ci_excludes_0"),
     ("p1", "p1_pass"),
-    ("p2", "p2_pass"),
+    ("p2", "p2_precision_pass"),   # option (b): width <= 0.008 s and |P2| < beta/3
     ("p3", "p3_pass"),
+    ("lag_gap", "lag_gap_pass"),
 )
 
 
 def gate_verdict(out: dict) -> dict:
-    """One mechanical PASS/FAIL across the registered gates: gates 1-4 pooled AND in
-    each era, and gate 5 (the sign of beta(lt1) does not flip between eras). Lead,
+    """One mechanical PASS/FAIL across the registered gates: gates 1-4 and 6 (the
+    lagged-gap check) pooled AND in each era, and gate 5 (the sign of beta(lt1) does
+    not flip between eras). Lead,
     the P2 monotone check, the P3 report-only blocks and the DRS specs are reported
     elsewhere and never enter this verdict."""
     samples = {"pooled": out["pooled"], **out["eras"]}
@@ -418,6 +577,9 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--print-prereg-sha256", action="store_true",
                     help="print the SHA-256 of the pre-registration and exit")
+    ap.add_argument("--check-prereg-lock", action="store_true",
+                    help="check the pre-registration is committed and its hash logged, "
+                         "and exit")
     ap.add_argument("--prereg-sha256", help="must equal the pre-registration's SHA-256")
     ap.add_argument("--db", type=Path, default=DB_PATH, help="warehouse, read-only")
     ap.add_argument("--out", type=Path, default=None, help="JSON to write")
@@ -430,12 +592,22 @@ def main(argv: list[str] | None = None) -> int:
     if args.print_prereg_sha256:
         print(digest)
         return 0
+    lock_errors = prereg_lock_errors(PREREG_PATH, BUILD_LOG_PATH)
+    if args.check_prereg_lock:
+        print("\n".join(lock_errors) if lock_errors else f"LOCKED {digest}")
+        return 2 if lock_errors else 0
     if args.prereg_sha256 != digest:
         log.error("refusing to fit: --prereg-sha256 must equal the registered file's "
                   "hash (%s). Commit the pre-registration first, then pass its hash.", digest)
         return 2
+    if lock_errors:
+        log.error("refusing to fit: the pre-registration is not locked: %s",
+                  "; ".join(lock_errors))
+        return 2
     result = run(args.db)
     result["prereg_sha256"] = digest
+    result["prereg_locked"] = (f"committed at HEAD, matches build log "
+                               f"{PREREG_LOG_ITEM}.prereg_sha256")
     text = json.dumps(result, indent=2, default=float)
     if args.out:
         args.out.write_text(text)

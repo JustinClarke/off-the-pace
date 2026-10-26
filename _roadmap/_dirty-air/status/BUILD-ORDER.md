@@ -26,7 +26,7 @@ python3 _roadmap/_dirty-air/status/board.py --ship         # exit 1 while a ship
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-26T13:06:32+04:00`. Run `python3 _roadmap/_dirty-air/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-27T18:00:00+04:00`. Run `python3 _roadmap/_dirty-air/status/board.py --write-order` after any edit to the log._
 
 **5 live items** (1 blocked). The pointer is on **DA-02P** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 1 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
 

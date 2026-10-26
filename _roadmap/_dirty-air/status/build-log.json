@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "dirty-air: continuous, distance-based traffic cost (real-time, phased)",
-  "updated": "2026-10-26T13:06:32+04:00",
+  "updated": "2026-10-27T18:00:00+04:00",
   "pointer": "DA-02P",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -150,7 +150,7 @@
       "doc": "wi/DA-02P-prerequisites.md",
       "cost": "1-2 wk",
       "model": "opus-5",
-      "note": "Raised 2026-10-25 from the data-fix plan. DA-03 cannot pass without the P3 map and DRS state. Scratch first; the amendment is its own commit. 2026-10-25: DD10 resolved (flat class, 280 km/h to be confirmed). The map SQL, the p3 spec and the row-count table still need the flat class before the amendment hash. 2026-10-25 (owner: park the seal, wrap up DA): MEASURED, not LANDED (the owner commits). Flat class added to int_microsector_corner_class (flat_min_kph = 280; high 200 to under 280), schema accepted values updated, new test assert_microsector_flat_high_disjoint; estimator has p3, drs_closed and drs_location (P3 no longer OWED), synthetic tests only; scratch dbt build PASS=41 ERROR=0; DA-02 CSVs reproduce byte for byte; draft row-count table re-measured with the flat column. All uncommitted. Still owed for done: owner commits the model, test and estimator edits, then the pre-registration alone, then the hash is recorded."
+      "note": "Raised 2026-10-25 from the data-fix plan. DA-03 cannot pass without the P3 map and DRS state. Scratch first; the amendment is its own commit. 2026-10-25: DD10 resolved (flat class, 280 km/h, confirmed by the owner, D5 in the draft; note corrected 2026-10-26, it said 'to be confirmed'). 2026-10-25 (owner: park the seal, wrap up DA): MEASURED, not LANDED (the owner commits). Flat class added to int_microsector_corner_class (flat_min_kph = 280; high 200 to under 280), schema accepted values updated, new test assert_microsector_flat_high_disjoint; estimator has p3, drs_closed and drs_location (P3 no longer OWED), synthetic tests only; scratch dbt build PASS=41 ERROR=0; DA-02 CSVs reproduce byte for byte; draft row-count table re-measured with the flat column. All uncommitted. 2026-10-26 (owner ruling 1, option (a)): lagged-gap spec lag_gap (gap at boundary m-1, shares no crossing with y) added to the estimator next to lt1 and to the amendment draft as gate 6 (gated is the agent's drafting, owner confirms in ruling 2); fit refuses unless the pre-registration is committed at HEAD unchanged and its SHA-256 is in this item's prereg_sha256 field (not set yet); old two-sided beta_lt1_ci_excludes_0 retired. Synthetic tests only, uncommitted. Still owed for done: owner approves the amendment text (ruling 2), commits the model, test and estimator edits, then the pre-registration alone, then records its SHA-256 here as prereg_sha256. 2026-10-27 (later): owner chose P2 option (b) (precision limit, replacing 'interval includes 0') and approved the amended text (ruling 2); owner commits. Numbers still [OWNER TO SET]; agent proposals in the draft's owner note (b1 width 0.008 s, b2 1/3 of beta(lt1)), PROPOSED, owner to confirm. Estimator constants stay None. 2026-10-27 (owner: \"lock in P2\"): owner confirmed b1 = 0.008 s and b2 = 1/3 of beta(lt1); P2_MAX_CI_WIDTH_S and P2_MAX_SHARE_OF_BETA set, p2_precision_check wired into GATE_CHECKS (pooled and per era) in place of 'includes 0', the draft's P2 bullet rewritten to the option (b) rule (option (a) stays unset and ungated), synthetic tests 32 -> 36 passed; uncommitted, no fit run, no hash recorded."
     }
   ],
   "decisions": [
@@ -616,6 +616,124 @@
         "Then DA-03 fit on scratch only, after the hash is recorded."
       ],
       "next_command": "python3 _roadmap/_dirty-air/status/board.py"
+    },
+    {
+      "date": "2026-10-26T13:28:17+04:00",
+      "session": "DA-02P agent work on owner ruling 1, option (a): lagged-gap check, prereg lock check, gate-1 test retired, draft fixes (uncommitted). Ruling 2 (approve the text) still owed.",
+      "landed": [
+        "fit_dirty_air_microsector.py: spec lag_gap (lt1 bands on lag_gap_ahead_s, the same driver's gap at boundary k-1, taken only when that row is the boundary directly before and is valid; derived in load_panel, no panel column); evaluate_gates adds lag_gap_pass (positive, 95% interval excluding 0); GATE_CHECKS adds lag_gap, so the verdict needs it pooled and per era. Primary lt1 unchanged.",
+        "fit_dirty_air_microsector.py: prereg_lock_errors() and --check-prereg-lock; main refuses unless the pre-registration is committed at HEAD byte-identical and DA-02P.prereg_sha256 in this log equals its hash. No hash recorded (the file is not committed in amended form).",
+        "Retired the two-sided beta_lt1_ci_excludes_0 key (passed a negative interval); gate 1 is beta_lt1_positive_ci_excludes_0 only, used by the verdict and the test.",
+        "Amendment draft: lag_gap section, gate 6, spec list, status paragraph (lock and prereg_sha256 field), owner note D6; 'not ruled out' DRS wording (DRS availability comes from the gap at the detection line; DRS gain pulls beta(lt1) down, toward zero or below; drs_location and drs_closed show the size, drs_closed selects on a gap-caused state) and timing-noise sentence (shared-crossing error can bias beta(lt1) upward). Still a DRAFT.",
+        "DA-02P note: stale '280 km/h to be confirmed' corrected (confirmed, D5)."
+      ],
+      "verified": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/coefficients/tests/test_fit_dirty_air_microsector.py -q: 28 passed (baseline 20; 8 new: lag spec separate, entry-crossing noise passes gate 1 but fails lag_gap, verdict fails on lag alone, load_panel lag SQL on a tiny duckdb, lock needs commit and logged hash, lock fails on edit after commit, main refuses unlocked, --check-prereg-lock reports LOCKED).",
+        "Noise test robust across seeds 5-8: spurious beta(lt1) about +0.15 s with interval excluding 0; beta(lag lt1) about 0 with interval including 0.",
+        "Draft checked for DD9/DD10: P3 rule is the two-gate D3 rule, 280 km/h CONFIRMED (D5); no '(c)' rule or 'to be confirmed' left in the draft.",
+        "Registered wi/DA-03-preregistration.md untouched."
+      ],
+      "assumed": [
+        "lag_gap is GATED (gate 6). The owner ruled 'registered check'; gated is the agent's reading, from the audit aim that timing noise must not pass the gate on its own. Owner confirms or downgrades to reported-only in ruling 2.",
+        "The m-1 row must be valid (invalid_reason IS NULL); the lagged gap is to whichever car was ahead at m-1. Both are drafting choices in the amendment text.",
+        "The logged hash lives at items[DA-02P].prereg_sha256 (field not created yet).",
+        "No dbt run, no real-panel fit; the lag SQL is tested on a synthetic duckdb only. History entries before this one still say '280 to be confirmed' as of their date and are left as history.",
+        "Nothing committed."
+      ],
+      "gates_run": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/coefficients/tests/test_fit_dirty_air_microsector.py -q",
+        "python3 _roadmap/_dirty-air/status/board.py --check",
+        "python3 _roadmap/_dirty-air/status/board.py --write-order"
+      ],
+      "next_action": [
+        "OWNER RULING 2: approve the amendment text, including whether lag_gap is gated (gate 6) or reported only.",
+        "OWNER: commit the estimator and test edits, then copy the approved text over DA-03-preregistration.md and commit it alone; record its SHA-256 as prereg_sha256 on DA-02P; check with --check-prereg-lock.",
+        "Then DA-03 fit on scratch only."
+      ],
+      "next_command": "cd transform && ../.venv/bin/python -m tasks.coefficients.fit_dirty_air_microsector --check-prereg-lock"
+    },
+    {
+      "date": "2026-10-27T00:32:55+04:00",
+      "session": "DA-02P agent work: blue-flag exclusion (owner-approved), P2 size-limit options drafted (owner: change it if the evidence supports it). Uncommitted. Ruling 2 still owed.",
+      "landed": [
+        "int_microsector_proximity: new invalid_reason lapping_behind_within_window (behind_lap_number > lap_number and gap_behind_s < var('microsector_lapped_ahead_window_s'), after DD5 in first-match order); new column is_lapping_behind; gap_band NULL on those rows.",
+        "schema.yml: invalid_reason accepted values and description; is_lapping_behind not_null. assert_microsector_validity_rules: lapping_behind_not_flagged and lapping_behind_wrongly_flagged checks; lapped_beyond_not_reference skips rows carrying the new code. New singular test assert_microsector_lapping_behind_on_blue_laps.",
+        "Amendment draft: 'Rows used' blue-flag wording, status line, DA-02P columns bullet, lag-gap validity wording, owner notes on the blue-flag rule (measured counts) and the P2 size limit (options (a) and (b), numbers [OWNER TO SET]). Still a DRAFT.",
+        "fit_dirty_air_microsector.py: gate1_minimum_effect_check and p2_precision_check stubs with all constants None; not in GATE_CHECKS, verdict unchanged."
+      ],
+      "verified": [
+        "Scratch dbt build -s int_microsector_proximity on a copy of pre-CO-17 dev (sha256 7173444b...): PASS=22 ERROR=0.",
+        "Row counts only (no y_s read): 102,466 rows carry the new code (63,510 in 2018-21, 38,956 in 2022-25); fit rows 3,000,201 -> 2,899,537; 5,165 further fit rows lose their lagged gap.",
+        "Blue-flag test statistic: code fires on 96.4-99.4% of usable blue-flagged laps vs 1.6-4.5% of other laps per season; with the lap comparison broken to '>=' the ratio drops to 1.5-1.8, so the 3x bar discriminates.",
+        "cd transform && ../.venv/bin/python -m pytest tasks/coefficients/tests/test_fit_dirty_air_microsector.py -q: 32 passed (baseline 28; 4 new: lag drop after a blue-flag row, stub constants unset and not gated, option (a) logic, option (b) logic).",
+        "Registered wi/DA-03-preregistration.md untouched. No fit run, no coefficient or gate result looked at."
+      ],
+      "assumed": [
+        "First run of the blue-lap test failed on a NULL-comparison bug in the test (invalid_reason = '...' is NULL on valid rows); fixed to IS NOT DISTINCT FROM. The 0.50 and 3x bars were not changed.",
+        "Gate A in assert_microsector_validity_rules now passes at 90.3-90.5% in 2018, 2019 and 2021 (bar 90%); little room on the CO-17 rebuild.",
+        "transform/tests/model_hashes.baseline.json not updated for int_microsector_proximity (the owner's call with the commit).",
+        "Nothing committed."
+      ],
+      "gates_run": [
+        "../.venv/bin/dbt build -s int_microsector_proximity (scratch profile)",
+        "cd transform && ../.venv/bin/python -m pytest tasks/coefficients/tests/test_fit_dirty_air_microsector.py -q",
+        "python3 _roadmap/_dirty-air/status/board.py --check",
+        "python3 _roadmap/_dirty-air/status/board.py --write-order"
+      ],
+      "next_action": [
+        "OWNER RULING 2: approve the amendment text (now with the blue-flag wording), and pick a P2 option and set its numbers or keep P2 as registered.",
+        "OWNER: commit the model, test and estimator edits, then the pre-registration alone; record its SHA-256 as prereg_sha256 on DA-02P."
+      ],
+      "next_command": "cd transform && ../.venv/bin/python -m tasks.coefficients.fit_dirty_air_microsector --check-prereg-lock"
+    },
+    {
+      "date": "2026-10-27T12:00:00+04:00",
+      "session": "DA-02P agent work: owner decision on P2 recorded (option (b), replacing 'interval includes 0'; amended text approved, ruling 2; owner commits); candidate (b) numbers proposed without a fit. Uncommitted.",
+      "landed": [
+        "Amendment draft owner note on P2: owner decision line recorded; status wording updated (option (b) chosen, numbers [OWNER TO SET]); proposed b1 = 0.008 s (interval width) and b2 = 1/3 of beta(lt1), each marked PROPOSED, owner to confirm, with derivations. Placeholders kept. The registered-text P2 bullet is unchanged until the owner sets the numbers."
+      ],
+      "verified": [
+        "Row counts only (no y_s read), scratch copy of pre-CO-17 dev (sha256 7173444b...), fit rows before the blue-flag exclusion: 3-5 s 234,238 / over 5 s 384,323 (2018-21, 79 races); 267,693 / 418,258 (2022-25, 92 races).",
+        "cd transform && ../.venv/bin/python -m pytest tasks/coefficients/tests/test_fit_dirty_air_microsector.py -q: 32 passed.",
+        "Registered wi/DA-03-preregistration.md untouched. No fit run, no coefficient or gate result looked at. No hash recorded."
+      ],
+      "assumed": [
+        "b1 power argument assumes a shift of 0.0055 s per micro-sector (one third of 0.331 s / 20, P1's share of the low-end wake effect), 80% power, 5% two-sided, t with 78 df; row SD 0.12 s from the DA-01 2022-25 noise is a floor, so whether the clustered SE meets the bar is unknown before the fit.",
+        "Estimator constants P2_MAX_CI_WIDTH_S and P2_MAX_SHARE_OF_BETA left None; p2_precision_check not in GATE_CHECKS.",
+        "Nothing committed."
+      ],
+      "gates_run": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/coefficients/tests/test_fit_dirty_air_microsector.py -q",
+        "python3 _roadmap/_dirty-air/status/board.py --check",
+        "python3 _roadmap/_dirty-air/status/board.py --write-order"
+      ],
+      "next_action": [
+        "OWNER: confirm or change b1 (0.008 s) and b2 (1/3); then the P2 bullet in the draft's registered text is rewritten to the option (b) rule, the constants set and p2_precision_check wired into GATE_CHECKS.",
+        "OWNER: commit the model, test and estimator edits, then the pre-registration alone; record its SHA-256 as prereg_sha256 on DA-02P."
+      ],
+      "next_command": "cd transform && ../.venv/bin/python -m tasks.coefficients.fit_dirty_air_microsector --check-prereg-lock"
+    },
+    {
+      "date": "2026-10-27T18:00:00+04:00",
+      "session": "2026-10-27: owner dropped the blue-flag (lapping-behind) exclusion; P2 precision/size rule and lag check kept.",
+      "landed": [
+        "Blue-flag exclusion reverted in int_microsector_proximity, its schema.yml entries, assert_microsector_validity_rules, the estimator tests and the amendment draft; assert_microsector_lapping_behind_on_blue_laps deleted. Draft background paragraph on b1 and b2 rewritten as the owner's decision."
+      ],
+      "verified": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/coefficients/tests/test_fit_dirty_air_microsector.py -q: 35 passed (36 less the blue-flag lag-drop test). No fit run, no hash recorded, registered file untouched."
+      ],
+      "assumed": [
+        "Nothing committed."
+      ],
+      "gates_run": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/coefficients/tests/test_fit_dirty_air_microsector.py -q",
+        "python3 _roadmap/_dirty-air/status/board.py --write-order",
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_action": [
+        "OWNER: commit the model, test and estimator edits, then the pre-registration alone; record its SHA-256 as prereg_sha256 on DA-02P."
+      ],
+      "next_command": "cd transform && ../.venv/bin/python -m tasks.coefficients.fit_dirty_air_microsector --check-prereg-lock"
     }
   ]
 }

@@ -1,0 +1,295 @@
+{
+  "schema_version": 2,
+  "project": "wake-calibration: own-reference corner loss with an upstream gap (measured / modelled / unavailable)",
+  "updated": "2026-10-27T12:00:00+04:00",
+  "pointer": "WC-01",
+  "stage_vocabulary": {
+    "SPEC": "Reverified and specced in its WI doc. Nothing run.",
+    "BUILDING": "In progress.",
+    "MEASURED": "Fix applied and its acceptance numbers exist; the orchestrator has not yet re-run the doc's definition of done.",
+    "LANDED": "Definition of done re-run by the orchestrator and passing, in the working tree. Committing or publishing is the user's call and is not part of the stage.",
+    "BLOCKED": "Waiting on an open decision, or on a dependency that has hit a problem. Plain unmet dependencies are not BLOCKED - dependency order already handles those.",
+    "CLOSED": "Terminal, with reason recorded (won't fix / superseded). Do not re-open without new evidence named in the reason."
+  },
+  "model_vocabulary": {
+    "fable-5.1": "claude-fable-5-1. Novel statistical construction where a wrong derivation is expensive and hard to detect from the output - estimators, identification arguments, inference machinery. Reach for it when the failure mode is a plausible-looking number, not an error.",
+    "opus-5": "claude-opus-5. The default. Anything that makes a ruling, designs an aggregation, moves the feature contract, or turns a measurement into a claim.",
+    "sonnet-5": "claude-sonnet-5. The method is already written down and the judgment call is made - ingest, enumeration, a named refit, a declared schema note. Step back up to opus-5 the moment the leaf doc leaves a choice open.",
+    "haiku-4-5": "claude-haiku-4-5. Throughput work with a mechanical check on the output. Nothing in the tree currently qualifies: every live item either writes into the contract, rules on leakage, or produces a claim."
+  },
+  "groups": [
+    {
+      "id": "0-data",
+      "title": "Phase 0 - data and reference",
+      "parallel": false,
+      "summary": "Per-corner pass table from the bronze parquet: gap averaged 300 to 50 m before the corner, the driver's own clean reference within ±4 laps, the research's exclusions. No fit."
+    },
+    {
+      "id": "1-checks",
+      "title": "Phase 1 - measurement checks",
+      "parallel": false,
+      "summary": "Timing agreement per race, the 1,124 car-ahead-pits event set, minimum-speed agreement. No curve."
+    },
+    {
+      "id": "2-estimator",
+      "title": "Phase 2 - estimator",
+      "parallel": false,
+      "summary": "Pre-registration first. Monotone loss curve per corner class and era; held up / dirty air / racecraft / under attack classes."
+    },
+    {
+      "id": "3-validation",
+      "title": "Phase 3 - validation",
+      "parallel": false,
+      "summary": "Held-out season and the validation scorecard."
+    },
+    {
+      "id": "4-modelled",
+      "title": "Phase 4 - modelled-stint calibration and labels",
+      "parallel": false,
+      "summary": "Same-driver-other-stint and teammate references for stints with no clean lap, their checks, and the measured / modelled / unavailable labels with the disclaimer."
+    },
+    {
+      "id": "5-app",
+      "title": "Phase 5 - app output",
+      "parallel": false,
+      "summary": "Labels on every number; totals show the modelled share; unavailable is never 0."
+    }
+  ],
+  "items": [
+    {
+      "id": "WC-01",
+      "group": "0-data",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Per-corner pass table from bronze: gap 300-50 m before the corner, own clean reference within ±4 laps, exclusions",
+      "sources": [
+        "data/bronze/telemetry/",
+        "data/bronze/laps/",
+        "data/bronze/track_status/",
+        "data/bronze/race_control/",
+        "data/bronze/weather/",
+        "data/bronze/circuit_info/",
+        "transform/models/intermediate/"
+      ],
+      "doc": "wi/WC-01-data-and-reference.md",
+      "cost": "2-3 wk",
+      "model": "opus-5",
+      "note": "DD-WC1 approved by the owner 2026-10-27. Not registered. Scratch copy only, never data/dev.duckdb. Stint coverage to check against: 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable."
+    },
+    {
+      "id": "WC-02",
+      "group": "1-checks",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-01"
+      ],
+      "title": "Measurement checks: timing agreement per race, the 1,124 car-ahead-pits events, minimum-speed agreement",
+      "sources": [
+        "data/bronze/laps/",
+        "data/bronze/reference/jolpica/pit_stops/",
+        "transform/tests/"
+      ],
+      "doc": "wi/WC-02-measurement-checks.md",
+      "cost": "1-2 wk",
+      "model": "opus-5",
+      "note": "Not registered. Builds and counts the event set; the car-ahead-pits contrast itself is read in WC-04 and WC-05."
+    },
+    {
+      "id": "WC-03",
+      "group": "2-estimator",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-02"
+      ],
+      "title": "Estimator: monotone loss curve per corner class and era; held up / dirty air / racecraft / under attack",
+      "sources": [
+        "transform/tasks/coefficients/",
+        "transform/models/intermediate/"
+      ],
+      "doc": "wi/WC-03-estimator.md",
+      "cost": "3-5 wk",
+      "model": "fable-5.1",
+      "note": "No pre-registration exists. It is written, approved by the owner, committed alone and its SHA-256 recorded on this item before anything is fitted. The archived DA-03 estimator is not reused."
+    },
+    {
+      "id": "WC-04",
+      "group": "3-validation",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-03"
+      ],
+      "title": "Validation on a held-out season: scorecard incl. car-ahead-pits, physics sign, flat reference band, vs 0.331 × share",
+      "sources": [
+        "transform/tests/",
+        "transform/tasks/coefficients/"
+      ],
+      "doc": "wi/WC-04-validation.md",
+      "cost": "2-3 wk",
+      "model": "opus-5",
+      "note": "Held-out season and thresholds named in the WC-03 pre-registration before any run. Not registered."
+    },
+    {
+      "id": "WC-05",
+      "group": "4-modelled",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-04"
+      ],
+      "title": "Modelled-stint calibration (own other stint, teammate) and the measured / modelled / unavailable labels",
+      "sources": [
+        "transform/models/intermediate/",
+        "transform/models/marts/"
+      ],
+      "doc": "wi/WC-05-modelled-stints-and-labels.md",
+      "cost": "2-4 wk",
+      "model": "fable-5.1",
+      "blocked_by_decision": "DD-WC2",
+      "note": "Not registered. 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable. Modelled values carry the disclaimer (pending DD-WC2): \"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\""
+    },
+    {
+      "id": "WC-06",
+      "group": "5-app",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-05"
+      ],
+      "title": "App output: measured / modelled / unavailable labels; totals show the modelled share",
+      "sources": [
+        "app/src/features/dirty-air-cost/",
+        "app/src/features/dirty-air-lap-map/",
+        "transform/models/marts/"
+      ],
+      "doc": "wi/WC-06-app-output.md",
+      "cost": "2-3 wk",
+      "model": "opus-5",
+      "blocked_by_decision": "DD-WC2",
+      "note": "Not registered. Disclaimer text on every modelled value (pending DD-WC2). No old-method (DA-03) number anywhere. Phase 5 has its own item (WC-06) so each phase keeps one item."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "DD-WC1",
+      "raised": "2026-10-27",
+      "blocking": [
+        "WC-01"
+      ],
+      "status": "RESOLVED",
+      "question": "Is the wake-calibration plan approved to start Phase 0 (build the per-corner pass table from bronze, no fit, no label change)?",
+      "context": "Plan set up 2026-10-27 after the owner archived the dirty-air method (DA-03 registered FAIL, DA-03F withdrawn). Method from the 2026-10-27 research recommendation and decision memo. Phase 0 builds and counts only; nothing is registered or fitted.",
+      "recommendation": "Yes.",
+      "resolved": "2026-10-27",
+      "resolution": "Owner approved 2026-10-27: start Phase 0 (per-corner pass table from bronze; counts only; no fit, no registration, no label change)."
+    },
+    {
+      "id": "DD-WC2",
+      "raised": "2026-10-27",
+      "blocking": [
+        "WC-05",
+        "WC-06"
+      ],
+      "status": "RESOLVED",
+      "question": "Confirm the disclaimer wording for stints whose values are normalised from other sources: \"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\"",
+      "context": "To be used exactly, in the product and in the work-item docs, on every modelled value. The modelled sources in the plan are the same driver's other stint (with a compound offset) and the teammate on the same compound. The owner confirms the wording; the agent has not changed it.",
+      "recommendation": null,
+      "resolved": "2026-10-27",
+      "resolution": "Owner approved 2026-10-27: disclaimer wording as written: \"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\" Used exactly on every modelled value."
+    }
+  ],
+  "watch_vocabulary": {
+    "ship-blocker": "Publishing or shipping without this breaks something users see. `board.py --ship` exits 1 while one is open.",
+    "hazard": "A standing trap that damages tracked files or results if someone does the obvious thing. Read before running anything nearby.",
+    "uncommitted": "Verified work that lives only in the working tree. Committing is the user's call.",
+    "unreviewed": "Changes in the working tree that no orchestrator has read or tested. Not to be built on until reviewed.",
+    "unverified": "A claim or code path that was run in one place only (dev but not CI, agent report but not re-run).",
+    "stale-artifact": "A built or generated thing that no longer matches the source it came from until it is rebuilt.",
+    "pending-ruling": "A question for the human that is not (yet) a blocking FD: it changes a note, a value or a scope, not an item's ability to run.",
+    "gate-gap": "A guard that does not guard: it errors, skips files silently, or cannot fail.",
+    "debt": "Known, documented, deliberately left. Each needs an owner eventually."
+  },
+  "watch_model_vocabulary": {
+    "haiku": "Maps to haiku-4-5. A binary check, or recording a resolution the evidence or the user has already settled: is it committed, did the named tests pass on the rebuild, write down the accept. The output has a mechanical check (a test result, a file list, git log).",
+    "sonnet": "Maps to sonnet-5. The fix or the options are written down in the rule: pick between two named options, run a named rebuild or export and check the pages, review a diff, reconcile counts, reword text to a meaning already settled.",
+    "opus": "Maps to opus-5 (fable-5.1 if the rule turns into a new estimator). Rules on a trade-off, designs the fix, audits a decision, or turns a measurement into a claim: label-moving changes, leakage boundaries, gate runs before a promotion."
+  },
+  "watch_rules": [
+    {
+      "id": "W1",
+      "raised": "2026-10-27",
+      "kind": "hazard",
+      "item": "WC-03",
+      "recommended_model": "opus",
+      "title": "Nothing is registered: no fit, curve or gate before a committed, hashed pre-registration",
+      "detail": "The plan has no pre-registration. Running the estimator, or computing any coefficient or gate result, before one is approved, committed alone and its SHA-256 recorded on WC-03 would let the thresholds follow the data.",
+      "clears_when": "The pre-registration is committed alone and its SHA-256 is recorded on WC-03.",
+      "trigger": {
+        "clear": "manual"
+      }
+    },
+    {
+      "id": "W2",
+      "raised": "2026-10-27",
+      "kind": "hazard",
+      "item": "WC-06",
+      "recommended_model": "sonnet",
+      "title": "No archived dirty-air (DA-03) number may appear in the product, as a fallback or otherwise",
+      "detail": "Owner decision 2026-10-27. Stints with no reference are modelled (own other stint or teammate) or unavailable, never filled from the old method or from the pooled curve at stint level.",
+      "clears_when": "WC-06 has landed and its tests show no old-method value in any app output.",
+      "trigger": {
+        "clear": {
+          "item": "WC-06",
+          "stage": "LANDED"
+        }
+      }
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-10-27T11:50:00+04:00",
+      "session": "Plan created on the owner's approval of 2026-10-27, replacing the archived dirty-air method. Folder, board, log, build order, design note and phase docs only; nothing registered, built, fitted, run or committed.",
+      "landed": [
+        "Nothing landed. _roadmap/_wake-calibration/ created: README, status/ (board.py, build-log.json, BUILD-ORDER.md), wi/ (WC-01 to WC-06 and the design note), _evidence/."
+      ],
+      "verified": [
+        "python3 _roadmap/_wake-calibration/status/board.py --check passes on the new log."
+      ],
+      "assumed": [
+        "Stint counts are count-only figures from the decision memo (lap-end gap, whole stint): 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable.",
+        "Six phases (0-5) give six items, WC-01 to WC-06, one per phase.",
+        "Costs are rough estimates, not measured."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_wake-calibration/status/board.py --write-order",
+        "python3 _roadmap/_wake-calibration/status/board.py --check"
+      ],
+      "next_action": [
+        "OWNER: answer DD-WC1 (start Phase 0) and DD-WC2 (disclaimer wording). Then run WC-01."
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py"
+    },
+    {
+      "date": "2026-10-27T12:00:00+04:00",
+      "session": "Owner approved DD-WC1 and DD-WC2 (2026-10-27). Dirty-air moved to _roadmap/_archive/_dirty-air; fit paths updated. Handoff to a new chat for Phase 0.",
+      "landed": [
+        "DD-WC1 RESOLVED: start Phase 0 approved.",
+        "DD-WC2 RESOLVED: disclaimer wording approved as written.",
+        "_roadmap/_dirty-air moved to _roadmap/_archive/_dirty-air (uncommitted). transform/tasks/coefficients/fit_dirty_air_microsector.py PREREG_PATH, BUILD_LOG_PATH and FOLLOWUP_PREREG_PATH updated to the archive path (uncommitted)."
+      ],
+      "verified": [
+        "transform/tasks/coefficients/tests/test_fit_dirty_air_microsector.py: 77 passed after the path change.",
+        "Archived dirty-air board: build-log.json OK."
+      ],
+      "assumed": [
+        "Moving the archived folder is a path change only. The DA-03 lock still reads the same files, now at the archive path. Nothing was re-hashed or re-run.",
+        "The archived dirty-air logs in _roadmap/_ai-integration are historical text and were not edited."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_wake-calibration/status/board.py --check",
+        "cd transform && ../.venv/bin/python -m pytest tasks/coefficients/tests/test_fit_dirty_air_microsector.py -q"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "NEW CHAT: start WC-01 Phase 0 (per-corner pass table from bronze; counts only; no fit, no registration, no label change). Read _roadmap/_wake-calibration/README.md, BUILD-ORDER.md and wi/WC-01 first."
+      ]
+    }
+  ]
+}

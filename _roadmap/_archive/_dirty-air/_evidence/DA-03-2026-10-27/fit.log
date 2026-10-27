@@ -1,0 +1,162 @@
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.prefix, expected /Users/justin/github/off-the-pace/.venv, got /Users/justin/github/off-the-pace/transform/../.venv
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /Users/justin/github/off-the-pace/.venv, got /Users/justin/github/off-the-pace/transform/../.venv
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 322 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 322 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 322 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 2929 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 322 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 334 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 331 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 337 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 2051 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 199 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 199 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 199 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 1349 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 199 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 211 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 202 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 213 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 1778 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 123 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 123 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 123 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 1580 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 123 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 123 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 129 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre__link'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 124 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/feols_.py:2513: UserWarning: 
+            1 variables dropped due to multicollinearity.
+            The following variables are dropped: ['tyre_life:C(micro)[19]'].
+            
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/formula/model_matrix.py:151: UserWarning: 273 singleton fixed effect(s) dropped from the model.
+  warnings.warn(
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+/Users/justin/github/off-the-pace/.venv/lib/python3.14/site-packages/pyfixest/estimation/models/_result_accessor_mixin.py:85: RuntimeWarning: invalid value encountered in sqrt
+  self._se = np.sqrt(np.diagonal(self._vcov))
+INFO:fit_dirty_air_microsector:wrote /private/tmp/claude-501/-Users-justin-github-off-the-pace/ee218c22-feb2-4bd5-b674-56820a262446/scratchpad/da03-fit/fit.json
+DA-03 GATE VERDICT: FAIL (failed: p1__pooled, p2__pooled, p3__pooled, p1__pre2022, p2__pre2022, p3__pre2022, p1__post2022, p2__post2022, p3__post2022)
+exit=0

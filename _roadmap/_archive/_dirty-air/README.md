@@ -1,4 +1,4 @@
-# _dirty-air - a continuous, distance-based traffic cost, measured in real time
+# _dirty-air - ARCHIVED 2026-10-27 (see [ARCHIVED.md](ARCHIVED.md); superseded by [`../_wake-calibration/`](../_wake-calibration/README.md)) - a continuous, distance-based traffic cost, measured in real time
 
 **Goal.** Replace the per-lap dirty-air flag with a measure built on each position sample's time gap to the car ahead. Summed per micro-sector, sector and lap, it gives a cost that can be shown as a session replay. It is built in phases, and no label moves until the final gate.
 

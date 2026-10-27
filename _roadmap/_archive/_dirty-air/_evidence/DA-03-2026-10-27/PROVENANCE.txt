@@ -1,0 +1,12 @@
+DA-03 registered fit output, copied 2026-10-27 so the record does not live only in a session scratchpad.
+
+Source (copied byte for byte with cp -p, checked with cmp):
+  /private/tmp/claude-501/-Users-justin-github-off-the-pace/ee218c22-feb2-4bd5-b674-56820a262446/scratchpad/da03-fit/fit.json
+  /private/tmp/claude-501/-Users-justin-github-off-the-pace/ee218c22-feb2-4bd5-b674-56820a262446/scratchpad/da03-fit/fit.log
+
+Run: 2026-10-27 about 01:22 +04:00, on a scratch copy of the warehouse, against the pre-registration
+wi/DA-03-preregistration.md as committed in 08b6410 (lock: prereg_sha256 on DA-02P in status/build-log.json).
+Verdict: FAIL (P1, P2, P3 pooled and in both eras). See the history entry dated 2026-10-27T10:28:00+04:00.
+
+The copy was not re-run, re-read for new results, or edited. Nothing here is a new result.
+The plan is archived (../../ARCHIVED.md); these files are a frozen record, not product input.

@@ -1,5 +1,7 @@
 # Dirty-air build order: rules and the ordered task list
 
+**ARCHIVED 2026-10-27.** No item is live and the pointer is null. See [`../ARCHIVED.md`](../ARCHIVED.md). The hand-written audit recommendations below are kept for the record and are no longer a plan.
+
 **State lives in [`build-log.json`](build-log.json), and only there.** This file holds the rules
 and one **generated** task list, spliced in at the bottom by the board.
 
@@ -26,17 +28,12 @@ python3 _roadmap/_dirty-air/status/board.py --ship         # exit 1 while a ship
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-27T18:00:00+04:00`. Run `python3 _roadmap/_dirty-air/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-27T11:45:00+04:00`. Run `python3 _roadmap/_dirty-air/status/board.py --write-order` after any edit to the log._
 
-**5 live items** (1 blocked). The pointer is on **DA-02P** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 1 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
+**0 live items** (0 blocked). The pointer is on **None** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 7 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
 
 | # | Item | Group | Stage | Cost | Model | Sources | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | [DA-02](../wi/DA-02-tables.md) | 1-tables | SPEC | 3-4 wk | `opus-5` | transform/models/intermediate/, transform/tests/ | Sample-level and micro-sector proximity tables, tests, and loss-versus-gap curves | — |
-| 2 | [DA-02P](../wi/DA-02P-prerequisites.md) ▶ | 1-tables | MEASURED | 1-2 wk | `opus-5` | transform/models/intermediate/, transform/models/staging/stg_telemetry_position.sql, _roadmap/_dirty-air/wi/DA-03-preregistration.md | Prerequisites before the fit: P3 corner-class map, DRS state, pre-registration amendment | DA-02 |
-| 3 | [DA-03](../wi/DA-03-identification.md) | 2-identification | SPEC | 4-6 wk | `fable-5.1` | transform/tasks/coefficients/ | Identification: pre-registered fit, placebos P1-P3, era split (2018-21 vs 2022+) | DA-02, DA-02P |
-| 4 | [DA-04](../wi/DA-04-validation.md) | 3-validation | SPEC | 3-4 wk | `opus-5` | transform/tests/ | Held-out season fit, honesty tests, out-of-sample gain check | DA-03 |
-| 5 | [DA-05](../wi/DA-05-label-and-app.md) | 4-label-app | BLOCKED | 3 wk (A) / 6+ wk (B) | `opus-5` | transform/models/marts/, app/src/features/ | Label and app decision: path A (sit beside) or path B (replace tax, label version) | DA-04, **DD2** (human call) |
 
 ### Which model to run it on
 
@@ -46,10 +43,6 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 - **`opus-5`** — claude-opus-5. The default. Anything that makes a ruling, designs an aggregation, moves the feature contract, or turns a measurement into a claim.
 - **`sonnet-5`** — claude-sonnet-5. The method is already written down and the judgment call is made - ingest, enumeration, a named refit, a declared schema note. Step back up to opus-5 the moment the leaf doc leaves a choice open.
 - **`haiku-4-5`** — claude-haiku-4-5. Throughput work with a mechanical check on the output. Nothing in the tree currently qualifies: every live item either writes into the contract, rules on leakage, or produces a claim.
-
-### Open decisions — these are yours, not tasks
-
-- **DD2** (blocks `DA-05`) — Path A first (sit beside the label, no label version, about 3 weeks of app work), path B later? Or path B from the start (label version, about 6+ weeks)? _Recommended: A first. It answers the question and ships without touching the label; B is decided on A's evidence._
 
 ### Watch list — kept an eye on, not tasks and not rulings
 

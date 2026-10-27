@@ -517,3 +517,248 @@ def test_p2_precision_check_option_b():
                                  max_share_of_beta=1 / 3) is False
     # a missing spec is a FAIL, never a pass
     assert fm.p2_precision_check(None, lt1, max_ci_width_s=0.03) is False
+
+
+# DA-03F slow-corner follow-up (synthetic only): venue rule, blocking cut, verdict, lock.
+
+def _races(rows):
+    return pd.DataFrame(rows, columns=["race_id", "venue", "race_year"])
+
+
+def test_venue_of_track_maps_one_off_events_to_their_venue():
+    assert fm.venue_of_track("styrian_grand_prix") == "austria"
+    assert fm.venue_of_track("austrian_grand_prix") == "austria"
+    assert fm.venue_of_track("70th_anniversary_grand_prix") == "britain"
+    assert fm.venue_of_track("british_grand_prix") == "britain"
+    assert fm.venue_of_track("sakhir_grand_prix") == "bahrain"
+    assert fm.venue_of_track("monaco_grand_prix") == "monaco_grand_prix"  # unlisted
+    assert {fm.venue_of_track(t) for t in fm.VENUE_OF_TRACK} >= fm.FOLLOWUP_EXPECTED_VENUES
+
+
+def test_venue_rule_keeps_full_venues_with_all_races_and_drops_a_missing_season():
+    full = [(f"{y}_1", "austria", y) for y in fm.FOLLOWUP_SEASONS]
+    extra = [("2020_2", "austria", 2020), ("2021_8", "austria", 2021)]  # Styrian
+    gap = [(f"{y}_5", "monaco", y) for y in fm.FOLLOWUP_SEASONS if y != 2020]
+    kept = fm.followup_venue_races(_races(full + extra + gap))
+    assert set(kept["venue"]) == {"austria"}
+    assert set(kept["race_id"]) == {r for r, _, _ in full + extra}
+    assert len(kept) == 10
+
+
+def test_followup_race_table_uses_race_to_track_and_refuses_unmapped_races():
+    panel = pd.DataFrame({"race_id": ["2020_1", "2020_2", "2020_9"],
+                          "race_year": [2020, 2020, 2020],
+                          "corner_class": ["low", "high", "low"]})
+    tracks = pd.DataFrame({"race_id": ["2020_1", "2020_2", "2020_9"],
+                           "track_id": ["austrian_grand_prix", "styrian_grand_prix",
+                                        "tuscan_grand_prix"]})
+    t = fm.followup_race_table(panel, tracks)
+    # 2020_9 is a P3 exception race: not a p3-sample race
+    assert t.set_index("race_id")["venue"].to_dict() == {"2020_1": "austria",
+                                                         "2020_2": "austria"}
+    with pytest.raises(ValueError, match="no race_to_track row"):
+        fm.followup_race_table(panel, tracks.iloc[:1])
+
+
+def test_blocking_cut_keeps_only_ahead_at_or_quicker_than_median():
+    d = pd.DataFrame({"ahead_y_s": [-0.2, 0.0, 0.01, 0.3],
+                      "gap_band": ["0_lt0.5", "5_gt3_reference", "0_lt0.5", "4_2to3"],
+                      "corner_class": ["low", "high", "low", "flat"]})
+    assert fm.blocking_cut_mask(d).tolist() == [True, True, False, False]
+    assert fm.apply_blocking_cut(d)["ahead_y_s"].tolist() == [-0.2, 0.0]
+
+
+def test_blocking_cut_raises_on_a_missing_proxy():
+    d = pd.DataFrame({"ahead_y_s": [-0.2, np.nan, 0.1]})
+    with pytest.raises(fm.FollowupProxyMissing, match="1 valid rows"):
+        fm.blocking_cut_mask(d)
+    with pytest.raises(fm.FollowupProxyMissing):
+        fm.apply_blocking_cut(d)
+
+
+# One synthetic (D, lo, hi, T) per class, T = 0.03.
+_CLS_NUMS = {"S": (0.10, 0.05, 0.15, 0.03),   # lo > 0 and D >= T
+             "R": (0.00, -0.02, 0.02, 0.03),  # hi < T (not below 0)
+             "N": (0.03, -0.01, 0.07, 0.03)}  # neither
+
+
+def _sample(cls):
+    D, lo, hi, T = _CLS_NUMS[cls]
+    return {"D_s": D, "ci_low_s": lo, "ci_high_s": hi, "T_s": T}
+
+
+def test_followup_sample_class_numbers():
+    for cls, nums in _CLS_NUMS.items():
+        assert fm.followup_sample_class(*nums) == cls
+    # D >= T but lower bound not above 0: N; lower bound above 0 but D < T: N
+    assert fm.followup_sample_class(0.05, -0.001, 0.10, 0.03) == "N"
+    assert fm.followup_sample_class(0.02, 0.01, 0.04, 0.03) == "N"
+
+
+@pytest.mark.parametrize("pattern", [(a, b, c) for a in "SRN" for b in "SRN" for c in "SRN"])
+def test_followup_verdict_all_27_patterns_give_exactly_one_verdict(pattern):
+    v = fm.followup_verdict(dict(zip(fm.FOLLOWUP_SAMPLES, map(_sample, pattern))))
+    assert v["verdict"] in fm.FOLLOWUP_VERDICTS
+    assert v["classes"] == dict(zip(fm.FOLLOWUP_SAMPLES, pattern))
+    expected = ("PASS" if pattern == ("S", "S", "S") else
+                "REFUTED" if "R" in pattern else "INCONCLUSIVE")
+    assert v["verdict"] == expected
+    # exactly one of the three rules holds for each pattern
+    holds = [pattern == ("S", "S", "S"), "R" in pattern,
+             "R" not in pattern and "N" in pattern]
+    assert sum(holds) == 1
+    assert v["label"] is None  # the R numbers here have an upper bound >= 0
+
+
+def test_followup_verdict_reversed_label_and_not_run_paths():
+    rev = {"D_s": -0.10, "ci_low_s": -0.15, "ci_high_s": -0.05, "T_s": 0.03}
+    v = fm.followup_verdict({"pooled": _sample("S"), "pre2022": rev,
+                             "post2022": _sample("N")})
+    assert v["verdict"] == "REFUTED" and v["label"] == "reversed"
+    ok = {n: _sample("S") for n in fm.FOLLOWUP_SAMPLES}
+    for bad in (None, {"not_run": "no low corner rows"}, {"not_run": "crash: X"},
+                {**_sample("S"), "D_s": float("nan")}, {"D_s": 0.1}):
+        v = fm.followup_verdict({**ok, "post2022": bad})
+        assert v["verdict"] == "NOT_RUN" and v["reason"].startswith("post2022"), bad
+    assert fm.followup_verdict({"pooled": ok["pooled"]})["verdict"] == "NOT_RUN"
+
+
+def test_followup_d_is_low_minus_high_with_the_interval_flipped():
+    p3 = {"contrasts": {"high_minus_low": {"beta_s": -0.1, "se_s": 0.01,
+                                           "ci_low_s": -0.12, "ci_high_s": -0.08}}}
+    d = fm.followup_d(p3)
+    assert d["D_s"] == pytest.approx(0.1)
+    assert (d["ci_low_s"], d["ci_high_s"]) == pytest.approx((0.08, 0.12))
+    assert fm.followup_d({"contrasts": {}}) is None and fm.followup_d(None) is None
+
+
+def _followup_panel(class_lt1, dropped_venue=True):
+    """Two venues held in every season 2018-2025 (one race each per season), plus a
+    venue missing 2020. Races are make_panel races relabelled by year."""
+    n = 16 + (2 if dropped_venue else 0)
+    p = make_panel(n_races=n, class_lt1=class_lt1, seed=21)
+    ids = sorted(p["race_id"].unique(), key=lambda r: int(r.split("_")[1]))
+    years, tracks = {}, {}
+    for i, r in enumerate(ids[:16]):
+        years[r] = fm.FOLLOWUP_SEASONS[i % 8]
+        tracks[r] = "austrian_grand_prix" if i < 8 else "spanish_grand_prix"
+    for r, y in zip(ids[16:], (2019, 2023)):
+        years[r], tracks[r] = y, "monaco_grand_prix"
+    p = p.assign(race_year=p["race_id"].map(years))
+    rt = pd.DataFrame({"race_id": list(tracks), "track_id": list(tracks.values())})
+    return p, rt
+
+
+def test_run_followup_panel_end_to_end_on_a_planted_slow_corner_loss():
+    p, rt = _followup_panel({**MECH, "low": 0.25, "high": 0.02})
+    out = fm.run_followup_panel(p, rt, expected_venues=frozenset({"austria", "spain"}))
+    assert out["venues"] == ["austria", "spain"] and len(out["races"]) == 16
+    assert out["rows_after_cut"] == int(((p["ahead_y_s"] <= 0)
+                                         & p["race_id"].isin(out["races"])).sum())
+    for n in fm.FOLLOWUP_SAMPLES:
+        s = out["by_sample"][n]
+        assert s["D_s"] == pytest.approx(0.23, abs=0.04), n
+        assert s["T_s"] == pytest.approx(abs(s["beta_lt1"]["beta_s"]) / 3)
+        # the registered specs ran unchanged on the restricted sample
+        assert "dr_cc" in s["p3_spec"]["formula"]
+        assert s["n_races"] == (16 if n == "pooled" else 8)
+    assert out["followup_verdict"]["verdict"] == "PASS"
+    # the registered venue list does not match this synthetic sample: NOT_RUN
+    v = fm.run_followup_panel(p, rt)["followup_verdict"]
+    assert v["verdict"] == "NOT_RUN" and "venue rule kept" in v["reason"]
+
+
+def test_run_followup_panel_not_run_on_missing_proxy_or_missing_slow_rows():
+    p, rt = _followup_panel(MECH, dropped_venue=False)
+    bad = p.copy()
+    bad.loc[bad.index[0], "ahead_y_s"] = np.nan
+    v = fm.run_followup_panel(bad, rt, expected_venues=None)["followup_verdict"]
+    assert v["verdict"] == "NOT_RUN" and v["reason"].startswith("missing proxy")
+    no_low = p[p["corner_class"] != "low"]
+    out = fm.run_followup_panel(no_low, rt, expected_venues=None)
+    assert out["followup_verdict"]["verdict"] == "NOT_RUN"
+    assert out["by_sample"]["pooled"] == {"not_run": "no low corner rows"}
+
+
+def _write_followup_log(path, sha, **extra):
+    items = [{"id": fm.PREREG_LOG_ITEM, "prereg_sha256": "f" * 64},
+             {"id": fm.FOLLOWUP_LOG_ITEM, **({"prereg_sha256": sha} if sha else {}),
+              **extra}]
+    path.write_text(json.dumps({"items": items, "history": []}))
+
+
+def test_followup_lock_needs_the_da03f_hash_and_no_recorded_run(prereg_repo):
+    repo, prereg, log = prereg_repo
+    _git(repo, "add", "wi/prereg.md")
+    _git(repo, "commit", "-q", "-m", "prereg")
+    sha = fm.sha256_of(prereg)
+    _write_followup_log(log, sha)
+    assert fm.followup_lock_errors(prereg, log) == []
+    # the DA-02P lock is unchanged: it reads DA-02P, whose hash differs
+    assert any("DA-02P.prereg_sha256" in e for e in fm.prereg_lock_errors(prereg, log))
+    _write_followup_log(log, None)
+    assert fm.followup_lock_errors(prereg, log) == [
+        "build log item DA-03F records no prereg_sha256"]
+    _write_followup_log(log, "0" * 64)
+    assert any("DA-03F.prereg_sha256" in e for e in fm.followup_lock_errors(prereg, log))
+    _write_followup_log(log, sha, run_recorded=True)
+    errs = fm.followup_lock_errors(prereg, log)
+    assert len(errs) == 1 and "already records a run" in errs[0]
+    log.write_text(json.dumps({"items": [{"id": "DA-03F", "prereg_sha256": sha}],
+                               "history": [{"run_recorded": "DA-03F"}]}))
+    assert any("already records a run" in e for e in fm.followup_lock_errors(prereg, log))
+
+
+def test_da02p_lock_ignores_the_followup_item(prereg_repo):
+    repo, prereg, log = prereg_repo
+    _git(repo, "add", "wi/prereg.md")
+    _git(repo, "commit", "-q", "-m", "prereg")
+    sha = fm.sha256_of(prereg)
+    log.write_text(json.dumps({"items": [
+        {"id": fm.PREREG_LOG_ITEM, "prereg_sha256": sha},
+        {"id": fm.FOLLOWUP_LOG_ITEM, "prereg_sha256": "0" * 64, "run_recorded": True}]}))
+    assert fm.PREREG_LOG_ITEM == "DA-02P"
+    assert fm.prereg_lock_errors(prereg, log) == []
+    assert fm.prereg_lock_errors(prereg, log, log_item=fm.PREREG_LOG_ITEM) == []
+
+
+def test_followup_cli_refuses_without_the_matching_hash(tmp_path, monkeypatch):
+    prereg = tmp_path / "DA-03F-preregistration.md"
+    prereg.write_text("follow-up registered")
+    monkeypatch.setattr(fm, "FOLLOWUP_PREREG_PATH", prereg)
+    monkeypatch.setattr(fm, "followup_lock_errors", lambda *a: [])
+    monkeypatch.setattr(fm, "run_followup", lambda db: pytest.fail("ran without hash"))
+    monkeypatch.setattr(fm, "run", lambda db: pytest.fail("DA-03 fit ran in follow-up mode"))
+    assert fm.main(["--followup"]) == 2
+    assert fm.main(["--followup", "--prereg-sha256", "0" * 64]) == 2
+    # the DA-03 file's hash is not the follow-up's
+    assert fm.main(["--followup", "--prereg-sha256", fm.sha256_of(fm.PREREG_PATH)]) == 2
+
+
+def test_followup_cli_refuses_when_locked_errors_and_runs_when_locked(
+        tmp_path, monkeypatch, capsys):
+    prereg = tmp_path / "DA-03F-preregistration.md"
+    prereg.write_text("follow-up registered")
+    sha = fm.sha256_of(prereg)
+    monkeypatch.setattr(fm, "FOLLOWUP_PREREG_PATH", prereg)
+    monkeypatch.setattr(fm, "run", lambda db: pytest.fail("DA-03 fit ran in follow-up mode"))
+    monkeypatch.setattr(fm, "followup_lock_errors",
+                        lambda *a: ["build log item DA-03F already records a run"])
+    monkeypatch.setattr(fm, "run_followup", lambda db: pytest.fail("ran after a run"))
+    assert fm.main(["--followup", "--prereg-sha256", sha]) == 2
+    assert fm.main(["--followup", "--check-prereg-lock"]) == 2
+    monkeypatch.setattr(fm, "followup_lock_errors", lambda *a: [])
+    monkeypatch.setattr(fm, "run_followup", lambda db: {
+        "followup_verdict": {"verdict": "INCONCLUSIVE", "label": None, "reason": None}})
+    out = tmp_path / "f.json"
+    assert fm.main(["--followup", "--prereg-sha256", sha, "--out", str(out)]) == 0
+    assert "DA-03F VERDICT: INCONCLUSIVE" in capsys.readouterr().err
+    assert json.loads(out.read_text())["prereg_sha256"] == sha
+    monkeypatch.setattr(fm, "run_followup", lambda db: {
+        "followup_verdict": {"verdict": "NOT_RUN", "label": None, "reason": "crash"}})
+    assert fm.main(["--followup", "--prereg-sha256", sha, "--out", str(out)]) == 3
+
+
+def test_followup_cli_without_its_prereg_file_refuses(tmp_path, monkeypatch):
+    monkeypatch.setattr(fm, "FOLLOWUP_PREREG_PATH", tmp_path / "absent.md")
+    assert fm.main(["--followup", "--prereg-sha256", "0" * 64]) == 2

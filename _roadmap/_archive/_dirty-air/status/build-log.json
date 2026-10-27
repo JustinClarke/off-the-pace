@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "project": "dirty-air: continuous, distance-based traffic cost (real-time, phased)",
-  "updated": "2026-10-27T18:00:00+04:00",
-  "pointer": "DA-02P",
+  "project": "[ARCHIVED 2026-10-27] dirty-air: continuous, distance-based traffic cost (real-time, phased)",
+  "updated": "2026-10-27T11:45:00+04:00",
+  "pointer": null,
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -69,7 +69,7 @@
     {
       "id": "DA-02",
       "group": "1-tables",
-      "stage": "SPEC",
+      "stage": "CLOSED",
       "depends_on": [
         "DA-01"
       ],
@@ -81,12 +81,14 @@
       "doc": "wi/DA-02-tables.md",
       "cost": "3-4 wk",
       "model": "opus-5",
-      "note": "Grain: seconds (owner, 2026-10-24), the design note default. Micro-sector count is per second of lap time."
+      "note": "Grain: seconds (owner, 2026-10-24), the design note default. Micro-sector count is per second of lap time. 2026-10-27 (owner decision, plan archived): CLOSED, archived with the plan; not marked LANDED (the audit's bookkeeping step was never done and is not done now).",
+      "closed": "2026-10-27",
+      "outcome": "ARCHIVED"
     },
     {
       "id": "DA-03",
       "group": "2-identification",
-      "stage": "SPEC",
+      "stage": "CLOSED",
       "depends_on": [
         "DA-02",
         "DA-02P"
@@ -98,12 +100,14 @@
       "doc": "wi/DA-03-identification.md",
       "cost": "4-6 wk",
       "model": "fable-5.1",
-      "note": "The wording decision (DD4) is owed at the Phase 2 gate, not before the fit starts."
+      "note": "The wording decision (DD4) is owed at the Phase 2 gate, not before the fit starts. 2026-10-27 (owner decision, plan archived): CLOSED, registered FAIL, frozen. Verdict FAIL on the registered spec (P1, P2, P3 pooled and in both eras) against wi/DA-03-preregistration.md committed in 08b6410, lock prereg_sha256 on DA-02P. Record kept in full: registered file, lock, fit.json and fit.log (copied to _evidence/DA-03-2026-10-27/), history entry 2026-10-27T10:28:00+04:00. Estimator transform/tasks/coefficients/fit_dirty_air_microsector.py frozen as it stands: not rerun, re-specified, extended or maintained. No DA-03 number is used in the product.",
+      "closed": "2026-10-27",
+      "outcome": "FAIL (registered)"
     },
     {
       "id": "DA-04",
       "group": "3-validation",
-      "stage": "SPEC",
+      "stage": "CLOSED",
       "depends_on": [
         "DA-03"
       ],
@@ -114,12 +118,14 @@
       "doc": "wi/DA-04-validation.md",
       "cost": "3-4 wk",
       "model": "opus-5",
-      "note": "Stop conditions in the design note section 7."
+      "note": "Stop conditions in the design note section 7. 2026-10-27 (owner decision, plan archived): CLOSED, archived with the plan; never run (DA-03 failed). Superseded by _roadmap/_wake-calibration/.",
+      "closed": "2026-10-27",
+      "outcome": "ARCHIVED"
     },
     {
       "id": "DA-05",
       "group": "4-label-app",
-      "stage": "BLOCKED",
+      "stage": "CLOSED",
       "depends_on": [
         "DA-04"
       ],
@@ -131,13 +137,15 @@
       "doc": "wi/DA-05-label-and-app.md",
       "cost": "3 wk (A) / 6+ wk (B)",
       "model": "opus-5",
-      "note": "Path B is a label-version change and must go through the ML retrain plan.",
-      "blocked_by_decision": "DD2"
+      "note": "Path B is a label-version change and must go through the ML retrain plan. 2026-10-27 (owner decision, plan archived): CLOSED, archived with the plan; never run. No label moves from this method. Superseded by _roadmap/_wake-calibration/.",
+      "blocked_by_decision": "DD2",
+      "closed": "2026-10-27",
+      "outcome": "ARCHIVED"
     },
     {
       "id": "DA-02P",
       "group": "1-tables",
-      "stage": "MEASURED",
+      "stage": "CLOSED",
       "depends_on": [
         "DA-02"
       ],
@@ -150,7 +158,28 @@
       "doc": "wi/DA-02P-prerequisites.md",
       "cost": "1-2 wk",
       "model": "opus-5",
-      "note": "Raised 2026-10-25 from the data-fix plan. DA-03 cannot pass without the P3 map and DRS state. Scratch first; the amendment is its own commit. 2026-10-25: DD10 resolved (flat class, 280 km/h, confirmed by the owner, D5 in the draft; note corrected 2026-10-26, it said 'to be confirmed'). 2026-10-25 (owner: park the seal, wrap up DA): MEASURED, not LANDED (the owner commits). Flat class added to int_microsector_corner_class (flat_min_kph = 280; high 200 to under 280), schema accepted values updated, new test assert_microsector_flat_high_disjoint; estimator has p3, drs_closed and drs_location (P3 no longer OWED), synthetic tests only; scratch dbt build PASS=41 ERROR=0; DA-02 CSVs reproduce byte for byte; draft row-count table re-measured with the flat column. All uncommitted. 2026-10-26 (owner ruling 1, option (a)): lagged-gap spec lag_gap (gap at boundary m-1, shares no crossing with y) added to the estimator next to lt1 and to the amendment draft as gate 6 (gated is the agent's drafting, owner confirms in ruling 2); fit refuses unless the pre-registration is committed at HEAD unchanged and its SHA-256 is in this item's prereg_sha256 field (not set yet); old two-sided beta_lt1_ci_excludes_0 retired. Synthetic tests only, uncommitted. Still owed for done: owner approves the amendment text (ruling 2), commits the model, test and estimator edits, then the pre-registration alone, then records its SHA-256 here as prereg_sha256. 2026-10-27 (later): owner chose P2 option (b) (precision limit, replacing 'interval includes 0') and approved the amended text (ruling 2); owner commits. Numbers still [OWNER TO SET]; agent proposals in the draft's owner note (b1 width 0.008 s, b2 1/3 of beta(lt1)), PROPOSED, owner to confirm. Estimator constants stay None. 2026-10-27 (owner: \"lock in P2\"): owner confirmed b1 = 0.008 s and b2 = 1/3 of beta(lt1); P2_MAX_CI_WIDTH_S and P2_MAX_SHARE_OF_BETA set, p2_precision_check wired into GATE_CHECKS (pooled and per era) in place of 'includes 0', the draft's P2 bullet rewritten to the option (b) rule (option (a) stays unset and ungated), synthetic tests 32 -> 36 passed; uncommitted, no fit run, no hash recorded."
+      "note": "Raised 2026-10-25 from the data-fix plan. DA-03 cannot pass without the P3 map and DRS state. Scratch first; the amendment is its own commit. 2026-10-25: DD10 resolved (flat class, 280 km/h, confirmed by the owner, D5 in the draft; note corrected 2026-10-26, it said 'to be confirmed'). 2026-10-25 (owner: park the seal, wrap up DA): MEASURED, not LANDED (the owner commits). Flat class added to int_microsector_corner_class (flat_min_kph = 280; high 200 to under 280), schema accepted values updated, new test assert_microsector_flat_high_disjoint; estimator has p3, drs_closed and drs_location (P3 no longer OWED), synthetic tests only; scratch dbt build PASS=41 ERROR=0; DA-02 CSVs reproduce byte for byte; draft row-count table re-measured with the flat column. All uncommitted. 2026-10-26 (owner ruling 1, option (a)): lagged-gap spec lag_gap (gap at boundary m-1, shares no crossing with y) added to the estimator next to lt1 and to the amendment draft as gate 6 (gated is the agent's drafting, owner confirms in ruling 2); fit refuses unless the pre-registration is committed at HEAD unchanged and its SHA-256 is in this item's prereg_sha256 field (not set yet); old two-sided beta_lt1_ci_excludes_0 retired. Synthetic tests only, uncommitted. Still owed for done: owner approves the amendment text (ruling 2), commits the model, test and estimator edits, then the pre-registration alone, then records its SHA-256 here as prereg_sha256. 2026-10-27 (later): owner chose P2 option (b) (precision limit, replacing 'interval includes 0') and approved the amended text (ruling 2); owner commits. Numbers still [OWNER TO SET]; agent proposals in the draft's owner note (b1 width 0.008 s, b2 1/3 of beta(lt1)), PROPOSED, owner to confirm. Estimator constants stay None. 2026-10-27 (owner: \"lock in P2\"): owner confirmed b1 = 0.008 s and b2 = 1/3 of beta(lt1); P2_MAX_CI_WIDTH_S and P2_MAX_SHARE_OF_BETA set, p2_precision_check wired into GATE_CHECKS (pooled and per era) in place of 'includes 0', the draft's P2 bullet rewritten to the option (b) rule (option (a) stays unset and ungated), synthetic tests 32 -> 36 passed; uncommitted, no fit run, no hash recorded. 2026-10-27 (owner decision, plan archived): CLOSED, archived with the plan; not LANDED. prereg_sha256 left exactly as recorded (it is DA-03's lock).",
+      "prereg_sha256": "b7178e84cd203e2401c4174e3cc25bb999eb1b0d8273c8c345b00fd0e684f2bc",
+      "closed": "2026-10-27",
+      "outcome": "ARCHIVED"
+    },
+    {
+      "id": "DA-03F",
+      "group": "2-identification",
+      "stage": "CLOSED",
+      "closed": "2026-10-27",
+      "outcome": "WITHDRAWN",
+      "depends_on": [
+        "DA-03"
+      ],
+      "title": "DA-03 follow-up: slow-corner loss under a blocking control (WITHDRAWN before registration)",
+      "sources": [
+        "transform/tasks/coefficients/"
+      ],
+      "doc": "wi/archive/DA-03-followup-slow-corner-draft.md",
+      "cost": "none (withdrawn)",
+      "model": "fable-5.1",
+      "note": "Recorded 2026-10-27 so it is not taken later for an untested hypothesis still waiting to run. WITHDRAWN before registration: never registered, never hashed, never run, never committed. Superseded: its question (is the slow-corner excess blocking?) is answered directly by the held-up / dirty-air split in _roadmap/_wake-calibration/. Draft moved unchanged to wi/archive/; a one-line pointer stays at its old path. C5 (naming this item) needs no answer."
     }
   ],
   "decisions": [
@@ -173,12 +202,14 @@
       "blocking": [
         "DA-05"
       ],
-      "status": "OPEN",
+      "status": "MOOT",
       "question": "Path A first (sit beside the label, no label version, about 3 weeks of app work), path B later? Or path B from the start (label version, about 6+ weeks)?",
       "context": "Path A adds a dirty_air_cost_dynamic_s replay measure. Path B replaces the label's tax, roughly 3x higher on followed laps, and moves every downstream number including ML features. 2026-10-25: owner says the dirty-air evidence decides this. Rule proposed by the planning agent, not yet ruled: choose B only if DA-03 passes pooled and in both eras, including P3, and DA-04 shows a gain on the held-out season; otherwise A. 2026-10-25 owner selection: path B. This is a selection, not a pass: no label moves until DA-03 and DA-04 pass, as the design note requires. B moves labels and needs an ML retrain on the ml-fresh-start branch. B has passed nothing.",
       "recommendation": "A first. It answers the question and ships without touching the label; B is decided on A's evidence.",
       "resolved": null,
-      "resolution": "OWNER SELECTION 2026-10-25: path B. Status stays OPEN because the selection is gated; the schema has only OPEN and RESOLVED and RESOLVED would unblock DA-05. Gate: no label moves until DA-03 and DA-04 pass, as the design note requires. B moves labels and needs an ML retrain on the ml-fresh-start branch. Nothing about B has passed: DA-03 and DA-04 have not run. If either fails, the label does not move."
+      "resolution": "OWNER SELECTION 2026-10-25: path B. Status stays OPEN because the selection is gated; the schema has only OPEN and RESOLVED and RESOLVED would unblock DA-05. Gate: no label moves until DA-03 and DA-04 pass, as the design note requires. B moves labels and needs an ML retrain on the ml-fresh-start branch. Nothing about B has passed: DA-03 and DA-04 have not run. If either fails, the label does not move.",
+      "mooted": "2026-10-27",
+      "moot_reason": "Plan archived by the owner 2026-10-27; DA-05 is CLOSED and no path A or B will be built on this method. Not a ruling on A or B: the owner's 2026-10-25 selection is kept in `resolution` as written. MOOT is not RESOLVED and unblocks nothing."
     },
     {
       "id": "DD3",
@@ -734,6 +765,84 @@
         "OWNER: commit the model, test and estimator edits, then the pre-registration alone; record its SHA-256 as prereg_sha256 on DA-02P."
       ],
       "next_command": "cd transform && ../.venv/bin/python -m tasks.coefficients.fit_dirty_air_microsector --check-prereg-lock"
+    },
+    {
+      "date": "2026-10-27T01:21:18+04:00",
+      "session": "DA-03 pre-registration locked: DA-03-preregistration.md committed alone in 08b6410; prereg_sha256 recorded on DA-02P. Fit not yet run.",
+      "landed": [
+        "prereg_sha256 recorded on DA-02P = b7178e84cd203e2401c4174e3cc25bb999eb1b0d8273c8c345b00fd0e684f2bc (committed file at HEAD 08b6410)."
+      ],
+      "verified": [
+        "git show HEAD:... | shasum -a 256 matches the recorded value."
+      ],
+      "assumed": [
+        "Registered text is the owner-approved text between the markers in the amendment draft, copied verbatim (lines 85-183); no edits after the copy."
+      ],
+      "gates_run": [
+        "Lock check: LOCKED at HEAD 08b6410 with the recorded hash. No fit run; no gate result exists yet."
+      ],
+      "next_command": "cd transform && ../.venv/bin/python -m tasks.coefficients.fit_dirty_air_microsector --check-prereg-lock",
+      "next_action": [
+        "Fit on scratch copy of the warehouse, run alone; owner reads gate result before any further step."
+      ]
+    },
+    {
+      "date": "2026-10-27T10:28:00+04:00",
+      "session": "DA-03 result logged: gate verdict FAIL on the registered spec. Follow-up draft updated to the owner's settled choices C1-C4 (still DRAFT, not registered).",
+      "landed": [
+        "DA-03 gate verdict FAIL on the registered spec (prereg lock b7178e84...2bc at commit 08b6410).",
+        "Failed checks: P1 pooled, 2018-21 and 2022-25 (interval includes 0); P2 pooled, 2018-21 and 2022-25 (precision and size); P3 pooled, 2018-21 and 2022-25 (b-check; high minus low -0.106 s, slow corners losing more than fast).",
+        "beta(lt1) pooled 0.059 s. lag_gap check 0.027 s, passed.",
+        "_roadmap/_dirty-air/wi/DA-03-followup-slow-corner-draft.md updated to the settled choices: venue sample (7 venues, 59 races), cut ahead_y_s <= 0 with no margin, power figures, S/R/N verdict rule. Still DRAFT, not registered."
+      ],
+      "verified": [
+        "Fit ran on a scratch copy of the warehouse (dev.duckdb sha256 7173444b...) in /private/tmp/claude-501/-Users-justin-github-off-the-pace/ee218c22-feb2-4bd5-b674-56820a262446/scratchpad/da03-fit (fit.json, fit.log).",
+        "Lock hash b7178e84...2bc matched at commit 08b6410 for the run.",
+        "No re-run, no further fit, regression or gate run in this session."
+      ],
+      "assumed": [
+        "A RuntimeWarning was raised on the tyre-slope terms. Those terms are not reported and are not gate-relevant.",
+        "W1: recommended cleared, owner to confirm.",
+        "DA-03 stays FAILED; the follow-up is a new test and does not rescue, amend or reinterpret it.",
+        "Nothing committed, registered or hashed."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_dirty-air/status/board.py --write-order",
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_dirty-air/status/board.py --check",
+      "next_action": [
+        "OWNER: settle C5 (follow-up build-log item name and hash field) and approve the follow-up draft text; then write and test the sample filter and verdict code on synthetic data, commit it alone, then register the draft alone."
+      ]
+    },
+    {
+      "date": "2026-10-27T11:45:00+04:00",
+      "session": "Dirty-air plan ARCHIVED on the owner's decision of 2026-10-27. DA-03 closed as a registered FAIL and frozen; DA-03F withdrawn before registration; old method not used for any product number. Superseded by _roadmap/_wake-calibration/.",
+      "landed": [
+        "Owner decision 2026-10-27: archive the old dirty-air method. DA-03 is CLOSED as a registered FAIL (outcome FAIL (registered)) and frozen; its registered file wi/DA-03-preregistration.md, the lock (prereg_sha256 on DA-02P), fit.json and its history entry are kept unchanged.",
+        "DA-03F added as CLOSED with outcome WITHDRAWN: withdrawn before registration, never registered, never run. Draft moved unchanged to wi/archive/DA-03-followup-slow-corner-draft.md (SHA-256 of the file identical before and after the move); one-line pointer left at the old path.",
+        "The old method is archived and is not used for any product number, as a fallback or otherwise.",
+        "DA-02, DA-02P, DA-04, DA-05 CLOSED with outcome ARCHIVED (none marked LANDED). DD2 set to MOOT (not RESOLVED).",
+        "Pointer set to null: no item to run. ARCHIVED.md added; README first line marks the plan archived.",
+        "fit.json and fit.log copied from the session scratchpad to _evidence/DA-03-2026-10-27/ with PROVENANCE.txt (cmp identical), so the record does not depend on a temporary folder."
+      ],
+      "verified": [
+        "python3 _roadmap/_dirty-air/status/board.py --check: OK after --write-order.",
+        "No fit, regression or gate run. No hash recorded in this log. Nothing staged or committed."
+      ],
+      "assumed": [
+        "Archive means marking, not deleting: no file, lock or log entry removed; earlier history entries untouched.",
+        "The estimator code (with its uncommitted edits) is left as it is in the working tree and treated as frozen.",
+        "W1 and W2 left open as they were; they are not ruled on here."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_dirty-air/status/board.py --write-order",
+        "python3 _roadmap/_dirty-air/status/board.py --check"
+      ],
+      "next_action": [
+        "None on this plan. Work continues in _roadmap/_wake-calibration/ (owner decisions DD-WC1, DD-WC2)."
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py"
     }
   ]
 }

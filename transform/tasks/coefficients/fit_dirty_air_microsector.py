@@ -57,6 +57,11 @@ Specs (all on the valid rows: invalid_reason IS NULL, y_s and ahead_y_s present)
 
 The fit also refuses unless the pre-registration is committed at HEAD unchanged and
 its hash equals the one recorded in the build log (DA-02P `prereg_sha256`).
+
+--followup runs DA-03F, the slow-corner follow-up (a separate test with its own
+pre-registration, wi/DA-03F-preregistration.md, and build-log item DA-03F): lt1 and p3
+unchanged on a venue-restricted, blocking-cut sample, with its own S/R/N verdict. It
+refuses unless that file is locked under DA-03F and DA-03F records no run yet.
 """
 from __future__ import annotations
 
@@ -80,10 +85,14 @@ log = logging.getLogger("fit_dirty_air_microsector")
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DB_PATH = REPO_ROOT / "data" / "dev.duckdb"
-PREREG_PATH = REPO_ROOT / "_roadmap" / "_dirty-air" / "wi" / "DA-03-preregistration.md"
-BUILD_LOG_PATH = REPO_ROOT / "_roadmap" / "_dirty-air" / "status" / "build-log.json"
+PREREG_PATH = REPO_ROOT / "_roadmap" / "_archive" / "_dirty-air" / "wi" / "DA-03-preregistration.md"
+BUILD_LOG_PATH = REPO_ROOT / "_roadmap" / "_archive" / "_dirty-air" / "status" / "build-log.json"
 # The build-log item whose `prereg_sha256` field records the committed file's hash.
 PREREG_LOG_ITEM = "DA-02P"
+# DA-03F, the slow-corner follow-up (its own pre-registration, its own build-log item).
+FOLLOWUP_PREREG_PATH = (REPO_ROOT / "_roadmap" / "_archive" / "_dirty-air" / "wi"
+                        / "DA-03F-preregistration.md")
+FOLLOWUP_LOG_ITEM = "DA-03F"
 
 BAND_ORDER = ["0_lt0.5", "1_0.5to1", "2_1to1.5", "3_1.5to2", "4_2to3"]
 ERA_BREAK = 2022  # 2022 ground-effect regulations (design note section 7)
@@ -117,12 +126,14 @@ def sha256_of(path: Path) -> str:
 
 
 def prereg_lock_errors(prereg: Path = PREREG_PATH,
-                       build_log: Path = BUILD_LOG_PATH) -> list[str]:
+                       build_log: Path = BUILD_LOG_PATH,
+                       log_item: str = PREREG_LOG_ITEM) -> list[str]:
     """Why the pre-registration is not locked; [] when it is.
 
     Locked means: the file is committed at HEAD, the working copy is byte-identical to
     the committed blob (so the hash the fit checks is the committed file's hash), and
-    the build log records that same hash in item PREREG_LOG_ITEM's `prereg_sha256`."""
+    the build log records that same hash in item `log_item`'s `prereg_sha256` (default
+    PREREG_LOG_ITEM, the DA-02P item; the DA-03F follow-up passes its own item)."""
     errors: list[str] = []
     digest = sha256_of(prereg)
 
@@ -142,14 +153,14 @@ def prereg_lock_errors(prereg: Path = PREREG_PATH,
     try:
         items = json.loads(build_log.read_text())["items"]
         logged = next((i.get("prereg_sha256") for i in items
-                       if i.get("id") == PREREG_LOG_ITEM), None)
+                       if i.get("id") == log_item), None)
     except (OSError, ValueError, KeyError, TypeError) as e:
         errors.append(f"cannot read the build log {build_log}: {e}")
     else:
         if not logged:
-            errors.append(f"build log item {PREREG_LOG_ITEM} records no prereg_sha256")
+            errors.append(f"build log item {log_item} records no prereg_sha256")
         elif logged != digest:
-            errors.append(f"build log {PREREG_LOG_ITEM}.prereg_sha256 ({logged}) does not "
+            errors.append(f"build log {log_item}.prereg_sha256 ({logged}) does not "
                           f"match the file ({digest})")
     return errors
 
@@ -566,6 +577,297 @@ def gate_verdict(out: dict) -> dict:
             "checks": checks, "failed": failed}
 
 
+# ---------------------------------------------------------------------------------------
+# DA-03F: slow-corner follow-up (a new test with its own pre-registration). It does not
+# rescue, amend or reinterpret DA-03; nothing above is changed by it. It runs the
+# registered lt1 and p3 specs (through fit_specs, unchanged) on a restricted sample:
+#   venue rule   a venue is kept only if it has a p3-sample race in every season
+#                2018-2025, and then all its p3-sample races are kept;
+#   blocking cut keep a row only if ahead_y_s <= 0 (every band, every corner class);
+#                a valid row with no ahead_y_s stops the run.
+# Verdict: D = beta(lt1, low) - beta(lt1, high) from p3, T = |beta(lt1)| / 3 from lt1,
+# both on the same restricted sample, per sample (pooled, 2018-21, 2022-25).
+# ---------------------------------------------------------------------------------------
+
+FOLLOWUP_SEASONS = tuple(range(2018, 2026))
+FOLLOWUP_SHARE_OF_BETA = 1.0 / 3.0   # the registered P1/P2 size logic
+FOLLOWUP_SAMPLES = ("pooled", "pre2022", "post2022")
+FOLLOWUP_LOW, FOLLOWUP_HIGH = "low", "high"
+
+# Venue of each race_to_track.track_id. The estimator groups by race_id; race_to_track
+# maps race_id to an event slug (track_id). One-off events held at a regular venue map
+# to that venue (owner choice: group by venue). Any track_id not listed is its own venue.
+VENUE_OF_TRACK = {
+    "abu_dhabi_grand_prix": "abu_dhabi",
+    "austrian_grand_prix": "austria",
+    "styrian_grand_prix": "austria",            # Red Bull Ring, 2020 and 2021
+    "belgian_grand_prix": "belgium",
+    "british_grand_prix": "britain",
+    "70th_anniversary_grand_prix": "britain",   # Silverstone, 2020
+    "hungarian_grand_prix": "hungary",
+    "italian_grand_prix": "italy",              # Monza
+    "spanish_grand_prix": "spain",
+    "bahrain_grand_prix": "bahrain",
+    "sakhir_grand_prix": "bahrain",             # Bahrain outer loop, 2020 (P3 exception)
+}
+# The registered venue list. A run whose venue rule keeps any other set stops (NOT_RUN):
+# the sample must be the one the pre-registration names.
+FOLLOWUP_EXPECTED_VENUES = frozenset(
+    {"abu_dhabi", "austria", "belgium", "britain", "hungary", "italy", "spain"})
+
+FOLLOWUP_VERDICTS = ("PASS", "REFUTED", "INCONCLUSIVE", "NOT_RUN")
+
+
+class FollowupProxyMissing(ValueError):
+    """A valid row has no ahead_y_s: the blocking cut cannot be applied."""
+
+
+def venue_of_track(track_id: str) -> str:
+    return VENUE_OF_TRACK.get(track_id, track_id)
+
+
+def load_race_tracks(db_path: Path) -> pd.DataFrame:
+    """race_id -> track_id from the race_to_track seed (read-only)."""
+    con = duckdb.connect(str(db_path), read_only=True)
+    try:
+        return con.sql("SELECT race_id, track_id FROM race_to_track").df()
+    finally:
+        con.close()
+
+
+def followup_race_table(panel: pd.DataFrame, race_tracks: pd.DataFrame) -> pd.DataFrame:
+    """One row per p3-sample race: race_id, venue, race_year. A race with no
+    race_to_track row stops the run (it would otherwise drop out silently)."""
+    races = p3_sample(panel)[["race_id", "race_year"]].drop_duplicates()
+    m = races.merge(race_tracks[["race_id", "track_id"]], on="race_id", how="left")
+    if m["track_id"].isna().any():
+        missing = sorted(m.loc[m["track_id"].isna(), "race_id"].astype(str))
+        raise ValueError(f"races with no race_to_track row: {missing}")
+    m["venue"] = m["track_id"].map(venue_of_track)
+    return m[["race_id", "venue", "race_year"]].reset_index(drop=True)
+
+
+def followup_venue_races(races: pd.DataFrame,
+                         seasons: tuple[int, ...] = FOLLOWUP_SEASONS) -> pd.DataFrame:
+    """The venue rule. `races` has race_id, venue, race_year (one row per p3-sample
+    race). A venue is kept only if it has a race in every one of `seasons`; all its
+    races are then kept. Returns the kept rows of `races`."""
+    need = set(seasons)
+    have = races.groupby("venue")["race_year"].agg(lambda s: set(int(x) for x in s))
+    kept = [v for v, yrs in have.items() if need <= yrs]
+    return races[races["venue"].isin(kept)].reset_index(drop=True)
+
+
+def blocking_cut_mask(d: pd.DataFrame) -> pd.Series:
+    """The blocking cut: True where ahead_y_s <= 0 (the car ahead at or quicker than
+    the field median in that micro-sector). Applies to every row, the >3 s reference
+    band and every corner class included. Raises FollowupProxyMissing if any row has
+    no ahead_y_s; nothing is dropped or imputed."""
+    n_missing = int(d["ahead_y_s"].isna().sum())
+    if n_missing:
+        raise FollowupProxyMissing(
+            f"{n_missing} valid rows have no ahead_y_s; the blocking cut cannot be "
+            f"applied (nothing imputed, run stopped)")
+    return d["ahead_y_s"] <= 0
+
+
+def apply_blocking_cut(d: pd.DataFrame) -> pd.DataFrame:
+    return d[blocking_cut_mask(d)]
+
+
+def followup_sample(panel: pd.DataFrame, race_tracks: pd.DataFrame
+                    ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """The restricted sample: the proxy check on every valid row, the venue rule on the
+    p3-sample races, then the blocking cut. Returns (sample, kept race table)."""
+    blocking_cut_mask(panel)  # proxy check on the whole valid panel, before anything
+    kept = followup_venue_races(followup_race_table(panel, race_tracks))
+    sub = panel[panel["race_id"].isin(kept["race_id"])]
+    return apply_blocking_cut(sub), kept
+
+
+def followup_d(p3: dict | None) -> dict | None:
+    """D = beta(lt1, low) - beta(lt1, high): the registered high_minus_low contrast with
+    the sign reversed (same race-clustered interval)."""
+    hml = (p3 or {}).get("contrasts", {}).get("high_minus_low")
+    if hml is None:
+        return None
+    return {"D_s": -hml["beta_s"], "ci_low_s": -hml["ci_high_s"],
+            "ci_high_s": -hml["ci_low_s"], "se_s": hml.get("se_s")}
+
+
+def followup_sample_class(D: float, ci_low: float, ci_high: float, T: float) -> str:
+    """S if the lower 95% bound of D > 0 and D >= T; R if the upper bound < T; N
+    otherwise. (S and R cannot both hold: S needs D >= T, R needs ci_high < T.)"""
+    if ci_low > 0 and D >= T:
+        return "S"
+    if ci_high < T:
+        return "R"
+    return "N"
+
+
+def followup_verdict(by_sample: dict) -> dict:
+    """The DA-03F verdict, a pure function of the per-sample numbers.
+
+    `by_sample` maps each of FOLLOWUP_SAMPLES to {"D_s", "ci_low_s", "ci_high_s",
+    "T_s"} or to {"not_run": reason} / None. PASS if S in all three; REFUTED if R in
+    at least one (label "reversed" if an R sample's upper bound is below 0);
+    INCONCLUSIVE if no R and at least one N; NOT_RUN if any sample is missing, did not
+    run, or has a non-finite number."""
+    classes: dict[str, str] = {}
+    for name in FOLLOWUP_SAMPLES:
+        s = by_sample.get(name)
+        if not s or s.get("not_run"):
+            why = (s or {}).get("not_run") or "missing"
+            return {"verdict": "NOT_RUN", "label": None, "classes": classes,
+                    "reason": f"{name}: {why}"}
+        nums = [s.get(k) for k in ("D_s", "ci_low_s", "ci_high_s", "T_s")]
+        if any(v is None or not np.isfinite(v) for v in nums):
+            return {"verdict": "NOT_RUN", "label": None, "classes": classes,
+                    "reason": f"{name}: non-finite or missing D, interval or T"}
+        classes[name] = followup_sample_class(*nums)
+    r = [n for n, c in classes.items() if c == "R"]
+    if all(c == "S" for c in classes.values()):
+        verdict, label = "PASS", None
+    elif r:
+        verdict = "REFUTED"
+        label = ("reversed" if any(by_sample[n]["ci_high_s"] < 0 for n in r)
+                 else None)
+    else:
+        verdict, label = "INCONCLUSIVE", None
+    return {"verdict": verdict, "label": label, "classes": classes, "reason": None}
+
+
+def fit_followup_one(sample: pd.DataFrame, tyre_age: bool = True) -> dict:
+    """lt1 and p3, registered and unchanged (through fit_specs), on one restricted
+    sample. Only lt1, p3, D and T are kept; fit_specs' other specs are not reported."""
+    s3 = p3_sample(sample)
+    for c in (FOLLOWUP_LOW, FOLLOWUP_HIGH):
+        if not (s3["corner_class"] == c).any():
+            return {"not_run": f"no {c} corner rows"}
+    res = fit_specs(sample, tyre_age=tyre_age)
+    lt1 = res["specs"]["lt1"]["terms"].get("lt1")
+    d = followup_d(res["specs"].get("p3"))
+    if lt1 is None or d is None:
+        return {"not_run": "beta(lt1) or the low/high contrast was not estimated"}
+    return {**d, "T_s": FOLLOWUP_SHARE_OF_BETA * abs(lt1["beta_s"]),
+            "beta_lt1": lt1, "n_rows": res["n_rows"], "n_races": res["n_races"],
+            "lt1_spec": res["specs"]["lt1"], "p3_spec": res["specs"]["p3"]}
+
+
+def run_followup_panel(panel: pd.DataFrame, race_tracks: pd.DataFrame,
+                       tyre_age: bool = True,
+                       expected_venues: frozenset | None = FOLLOWUP_EXPECTED_VENUES
+                       ) -> dict:
+    """The DA-03F run on an add_regressors() panel. Never raises: a missing proxy, a
+    venue set other than the registered one, or a crash gives NOT_RUN."""
+    out: dict = {"test": "DA-03F", "by_sample": {}}
+    try:
+        sample, kept = followup_sample(panel, race_tracks)
+    except FollowupProxyMissing as e:
+        out["followup_verdict"] = {"verdict": "NOT_RUN", "label": None, "classes": {},
+                                   "reason": f"missing proxy: {e}"}
+        return out
+    except Exception as e:  # noqa: BLE001 - a crash is a NOT_RUN, logged
+        out["followup_verdict"] = {"verdict": "NOT_RUN", "label": None, "classes": {},
+                                   "reason": f"crash: {e!r}"}
+        return out
+    venues = sorted(kept["venue"].unique())
+    out["venues"] = venues
+    out["races"] = sorted(kept["race_id"].astype(str))
+    out["rows_after_cut"] = int(len(sample))
+    if expected_venues is not None and set(venues) != set(expected_venues):
+        out["followup_verdict"] = {
+            "verdict": "NOT_RUN", "label": None, "classes": {},
+            "reason": f"venue rule kept {venues}, not the registered "
+                      f"{sorted(expected_venues)}"}
+        return out
+    masks = {"pooled": slice(None),
+             "pre2022": sample["race_year"] < ERA_BREAK,
+             "post2022": sample["race_year"] >= ERA_BREAK}
+    for name in FOLLOWUP_SAMPLES:
+        try:
+            out["by_sample"][name] = fit_followup_one(sample[masks[name]], tyre_age)
+        except Exception as e:  # noqa: BLE001
+            out["by_sample"][name] = {"not_run": f"crash: {e!r}"}
+    out["followup_verdict"] = followup_verdict(out["by_sample"])
+    return out
+
+
+def run_followup(db_path: Path) -> dict:
+    out = {"git_sha": get_git_sha(), "db": str(db_path)}
+    try:
+        panel = add_regressors(load_panel(db_path))
+        tracks = load_race_tracks(db_path)
+    except Exception as e:  # noqa: BLE001
+        out["followup_verdict"] = {"verdict": "NOT_RUN", "label": None, "classes": {},
+                                   "reason": f"crash while loading: {e!r}"}
+        return out
+    out.update(run_followup_panel(panel, tracks))
+    return out
+
+
+def followup_run_recorded(build_log: Path, log_item: str = FOLLOWUP_LOG_ITEM) -> bool:
+    """True if the build log already records a DA-03F run: the item has a truthy
+    `run_recorded` or a non-empty `runs`, or a top-level history entry carries
+    `"run_recorded": "<log_item>"`. Unreadable log counts as recorded (refuse)."""
+    try:
+        data = json.loads(build_log.read_text())
+    except (OSError, ValueError):
+        return True
+    item = next((i for i in data.get("items", []) if i.get("id") == log_item), {}) or {}
+    if item.get("run_recorded") or item.get("runs"):
+        return True
+    return any(isinstance(h, dict) and h.get("run_recorded") == log_item
+               for h in data.get("history", []))
+
+
+def followup_lock_errors(prereg: Path, build_log: Path = BUILD_LOG_PATH) -> list[str]:
+    """The DA-03F lock: the DA-02P-style lock on item DA-03F, plus a refusal if DA-03F
+    already has a recorded run (a run that produced numbers is final)."""
+    errors = prereg_lock_errors(prereg, build_log, log_item=FOLLOWUP_LOG_ITEM)
+    if followup_run_recorded(build_log, FOLLOWUP_LOG_ITEM):
+        errors.append(f"build log item {FOLLOWUP_LOG_ITEM} already records a run; "
+                      f"the follow-up runs once")
+    return errors
+
+
+def _main_followup(args: argparse.Namespace) -> int:
+    prereg = FOLLOWUP_PREREG_PATH
+    if not prereg.exists():
+        log.error("no follow-up pre-registration at %s", prereg)
+        return 2
+    digest = sha256_of(prereg)
+    if args.print_prereg_sha256:
+        print(digest)
+        return 0
+    lock_errors = followup_lock_errors(prereg, BUILD_LOG_PATH)
+    if args.check_prereg_lock:
+        print("\n".join(lock_errors) if lock_errors else f"LOCKED {digest}")
+        return 2 if lock_errors else 0
+    if args.prereg_sha256 != digest:
+        log.error("refusing to run DA-03F: --prereg-sha256 must equal the follow-up "
+                  "pre-registration's hash (%s).", digest)
+        return 2
+    if lock_errors:
+        log.error("refusing to run DA-03F: %s", "; ".join(lock_errors))
+        return 2
+    result = run_followup(args.db)
+    result["prereg_sha256"] = digest
+    result["prereg_locked"] = (f"committed at HEAD, matches build log "
+                               f"{FOLLOWUP_LOG_ITEM}.prereg_sha256")
+    text = json.dumps(result, indent=2, default=float)
+    if args.out:
+        args.out.write_text(text)
+        log.info("wrote %s", args.out)
+    else:
+        print(text)
+    v = result["followup_verdict"]
+    print(f"DA-03F VERDICT: {v['verdict']}"
+          + (f" ({v['label']})" if v.get("label") else "")
+          + (f" [{v['reason']}]" if v.get("reason") else ""), file=sys.stderr)
+    return 3 if v["verdict"] == "NOT_RUN" else 0
+
+
 def run(db_path: Path) -> dict:
     panel = add_regressors(load_panel(db_path))
     out = {"git_sha": get_git_sha(), "db": str(db_path)}
@@ -583,8 +885,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--prereg-sha256", help="must equal the pre-registration's SHA-256")
     ap.add_argument("--db", type=Path, default=DB_PATH, help="warehouse, read-only")
     ap.add_argument("--out", type=Path, default=None, help="JSON to write")
+    ap.add_argument("--followup", action="store_true",
+                    help="DA-03F slow-corner follow-up: use wi/DA-03F-preregistration.md "
+                         "and build-log item DA-03F instead of DA-03 / DA-02P")
     args = ap.parse_args(argv)
 
+    if args.followup:
+        return _main_followup(args)
     if not PREREG_PATH.exists():
         log.error("no pre-registration at %s", PREREG_PATH)
         return 2

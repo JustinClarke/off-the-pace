@@ -30,18 +30,21 @@ python3 _roadmap/_wake-calibration/status/board.py --ship         # exit 1 while
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-27T12:00:00+04:00`. Run `python3 _roadmap/_wake-calibration/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-27T14:10:00+04:00`. Run `python3 _roadmap/_wake-calibration/status/board.py --write-order` after any edit to the log._
 
-**6 live items** (0 blocked). The pointer is on **WC-01** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 0 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
+**9 live items** (0 blocked). The pointer is on **WC-01** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 0 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
 
 | # | Item | Group | Stage | Cost | Model | Sources | Task | Waiting on |
 | ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | [WC-01](../wi/WC-01-data-and-reference.md) ▶ | 0-data | SPEC | 2-3 wk | `opus-5` | data/bronze/telemetry/, data/bronze/laps/, data/bronze/track_status/, data/bronze/race_control/, data/bronze/weather/, data/bronze/circuit_info/, transform/models/intermediate/ | Per-corner pass table from bronze: gap 300-50 m before the corner, own clean reference within ±4 laps, exclusions | — |
+| 1 | [WC-01](../wi/WC-01-data-and-reference.md) ▶ | 0-data | MEASURED | 2-3 wk | `opus-5` | data/bronze/telemetry/, data/bronze/laps/, data/bronze/track_status/, data/bronze/race_control/, data/bronze/weather/, data/bronze/circuit_info/, transform/models/intermediate/ | Per-corner pass table from bronze: gap 300-50 m before the corner, own clean reference within ±4 laps, exclusions | — |
 | 2 | [WC-02](../wi/WC-02-measurement-checks.md) | 1-checks | SPEC | 1-2 wk | `opus-5` | data/bronze/laps/, data/bronze/reference/jolpica/pit_stops/, transform/tests/ | Measurement checks: timing agreement per race, the 1,124 car-ahead-pits events, minimum-speed agreement | WC-01 |
-| 3 | [WC-03](../wi/WC-03-estimator.md) | 2-estimator | SPEC | 3-5 wk | `fable-5.1` | transform/tasks/coefficients/, transform/models/intermediate/ | Estimator: monotone loss curve per corner class and era; held up / dirty air / racecraft / under attack | WC-02 |
-| 4 | [WC-04](../wi/WC-04-validation.md) | 3-validation | SPEC | 2-3 wk | `opus-5` | transform/tests/, transform/tasks/coefficients/ | Validation on a held-out season: scorecard incl. car-ahead-pits, physics sign, flat reference band, vs 0.331 × share | WC-03 |
-| 5 | [WC-05](../wi/WC-05-modelled-stints-and-labels.md) | 4-modelled | SPEC | 2-4 wk | `fable-5.1` | transform/models/intermediate/, transform/models/marts/ | Modelled-stint calibration (own other stint, teammate) and the measured / modelled / unavailable labels | WC-04 |
-| 6 | [WC-06](../wi/WC-06-app-output.md) | 5-app | SPEC | 2-3 wk | `opus-5` | app/src/features/dirty-air-cost/, app/src/features/dirty-air-lap-map/, transform/models/marts/ | App output: measured / modelled / unavailable labels; totals show the modelled share | WC-05 |
+| 3 | [WC-07](../wi/WC-07-replay-dashboard.md) | 6-replay | SPEC | 1-2 wk | `opus-5` | transform/tasks/wake_calibration/, data/bronze/telemetry/, data/bronze/laps/ | Archived-race replay dashboard: per-lap gap (s and m) to the car ahead, reference status and label; measurement only | WC-01 |
+| 4 | [WC-03](../wi/WC-03-estimator.md) | 2-estimator | SPEC | 3-5 wk | `fable-5.1` | transform/tasks/coefficients/, transform/models/intermediate/ | Estimator: monotone loss curve per corner class and era; held up / dirty air / racecraft / under attack | WC-02 |
+| 5 | [WC-04](../wi/WC-04-validation.md) | 3-validation | SPEC | 2-3 wk | `opus-5` | transform/tests/, transform/tasks/coefficients/ | Validation on a held-out season: scorecard incl. car-ahead-pits, physics sign, flat reference band, vs 0.331 × share | WC-03 |
+| 6 | [WC-05](../wi/WC-05-modelled-stints-and-labels.md) | 4-modelled | SPEC | 2-4 wk | `fable-5.1` | transform/models/intermediate/, transform/models/marts/ | Modelled-stint calibration (own other stint, teammate) and the measured / modelled / unavailable labels | WC-04 |
+| 7 | [WC-06](../wi/WC-06-app-output.md) | 5-app | SPEC | 2-3 wk | `opus-5` | app/src/features/dirty-air-cost/, app/src/features/dirty-air-lap-map/, transform/models/marts/ | App output: measured / modelled / unavailable labels; totals show the modelled share | WC-05 |
+| 8 | [WC-08](../wi/WC-08-replay-loss-scale.md) | 6-replay | SPEC | 1 wk | `opus-5` | transform/tasks/wake_calibration/, transform/tasks/coefficients/ | Loss scale on the replay dashboard, only after WC-03, WC-04 and WC-05; every value labelled, disclaimer on modelled | WC-03, WC-04, WC-05, WC-07 |
+| 9 | [WC-09](../wi/WC-09-2026-ingest.md) | 7-ingest | SPEC | 1-2 wk | `sonnet-5` | ingestion/src/ingest.py, data/bronze/manifests/ | Ingest the 2026 season into bronze (archived FastF1 timing); count with the WC-01 builder, no fit | — |
 
 ### Which model to run it on
 
@@ -52,13 +55,17 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 - **`sonnet-5`** — claude-sonnet-5. The method is already written down and the judgment call is made - ingest, enumeration, a named refit, a declared schema note. Step back up to opus-5 the moment the leaf doc leaves a choice open.
 - **`haiku-4-5`** — claude-haiku-4-5. Throughput work with a mechanical check on the output. Nothing in the tree currently qualifies: every live item either writes into the contract, rules on leakage, or produces a claim.
 
+### Open decisions — these are yours, not tasks
+
+- **DD-WC3** (blocks nothing) — Licence the OpenF1 live data feed (paid; non-commercial, share-alike licence) for any live use of the method?
+
 ### Watch list — kept an eye on, not tasks and not rulings
 
 _Generated from the watch rules in [`build-log.json`](build-log.json) (`watch_rules`); watch entries update automatically as items land or decisions resolve. A rule whose trigger needs something the log cannot see (a commit, a re-export, a rebuild, your ruling) stays open until its `resolved` and `resolution` are recorded._
 
-**2 open** (0 ship-blockers). Full detail: `python3 _roadmap/_wake-calibration/status/board.py --watch`. `python3 _roadmap/_wake-calibration/status/board.py --ship` exits 1 while a ship-blocker is open.
+**6 open** (0 ship-blockers). Full detail: `python3 _roadmap/_wake-calibration/status/board.py --watch`. `python3 _roadmap/_wake-calibration/status/board.py --ship` exits 1 while a ship-blocker is open.
 
-Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (0 haiku, 1 sonnet, 1 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
+Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for token efficiency (1 haiku, 2 sonnet, 3 opus). The tag is the smallest model that can work the rule to its `clears_when`; step up a tier the moment the rule turns out to leave a choice open that the tag assumed was made.
 
 - **`haiku`** — Maps to haiku-4-5. A binary check, or recording a resolution the evidence or the user has already settled: is it committed, did the named tests pass on the rebuild, write down the accept. The output has a mechanical check (a test result, a file list, git log).
 - **`sonnet`** — Maps to sonnet-5. The fix or the options are written down in the rule: pick between two named options, run a named rebuild or export and check the pages, review a diff, reconcile counts, reword text to a meaning already settled.
@@ -68,5 +75,9 @@ Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for tok
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | W1 | hazard | WC-03 | `opus` | Nothing is registered: no fit, curve or gate before a committed, hashed pre-registration | The pre-registration is committed alone and its SHA-256 is recorded on WC-03. |
 | W2 | hazard | WC-06 | `sonnet` | No archived dirty-air (DA-03) number may appear in the product, as a fallback or otherwise | WC-06 has landed and its tests show no old-method value in any app output. |
+| W5 | hazard | WC-03 | `opus` | Flat-out passes may measure tow, not wake loss: no rule in the table separates the two | The WC-03 pre-registration either keeps fixed_before_apex passes out of the dirty-air curve or names a tow/wake split (e.g. TS-1) with its thresholds, before any fit. |
+| W3 | uncommitted | WC-01 | `haiku` | WC-01 builder, tests and evidence live only in the working tree | The owner commits the builder, tests and evidence folder, or rules them out. |
+| W4 | pending-ruling | WC-01 | `opus` | WC-01 builder choices need an owner ruling before WC-02 builds on them | The owner accepts or changes each listed choice; any change is rebuilt and recounted before WC-02 starts. |
+| W6 | debt | WC-01 | `sonnet` | Sector-yellow rule uses an approximate corner-to-marshal-sector mapping (even spacing) | Marshal-sector positions are in bronze and the builder uses them, or the owner accepts the approximation. |
 
 <!-- END GENERATED TASKS -->

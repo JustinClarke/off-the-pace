@@ -1,0 +1,9 @@
+segment_basis,following,drs_open,passes
+brake_onset,False,False,698915
+brake_onset,False,True,411
+brake_onset,True,False,962309
+brake_onset,True,True,11099
+fixed_before_apex,False,False,214335
+fixed_before_apex,False,True,308
+fixed_before_apex,True,False,281152
+fixed_before_apex,True,True,19955

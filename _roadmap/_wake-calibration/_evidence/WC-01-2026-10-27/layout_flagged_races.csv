@@ -1,0 +1,9 @@
+season,race,layout_note,passes,kept,measured
+2021,abu_dhabi_grand_prix,"corner count 21 -> 16 vs 2020 abu_dhabi_grand_prix; telemetry lap length 5214 m vs 5500 m (median of previous 3), -286 m",15387,11660,5369
+2021,belgian_grand_prix,corners taken from circuit_info season 2020 (fallback),380,0,0
+2022,australian_grand_prix,"telemetry lap length 5216 m vs 5273 m (median of previous 1), -57 m",14070,9291,2989
+2022,singapore_grand_prix,corner count 23 -> 19 vs 2019 singapore_grand_prix,17192,4327,2651
+2022,são_paulo_grand_prix,corners taken from circuit_info season 2021 (fallback),18313,11912,5444
+2023,singapore_grand_prix,"telemetry lap length 4872 m vs 4992 m (median of previous 1), -121 m",19969,16145,5039
+2023,spanish_grand_prix,corner count 16 -> 14 vs 2022 spanish_grand_prix,17808,15468,8360
+2024,bahrain_grand_prix,corners taken from circuit_info season 2023 (fallback),16335,13798,7317

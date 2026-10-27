@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "wake-calibration: own-reference corner loss with an upstream gap (measured / modelled / unavailable)",
-  "updated": "2026-10-27T12:00:00+04:00",
+  "updated": "2026-10-27T14:10:00+04:00",
   "pointer": "WC-01",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -53,13 +53,25 @@
       "title": "Phase 5 - app output",
       "parallel": false,
       "summary": "Labels on every number; totals show the modelled share; unavailable is never 0."
+    },
+    {
+      "id": "6-replay",
+      "title": "Replay dashboard - archived races",
+      "parallel": false,
+      "summary": "Per-lap replay of past races: measurement first (WC-07, an internal debugging view alongside WC-02, owner-facing only after WC-02 passes), loss scale only after WC-03, WC-04 and WC-05 (WC-08)."
+    },
+    {
+      "id": "7-ingest",
+      "title": "Data - new seasons",
+      "parallel": false,
+      "summary": "Bronze ingestion of seasons not yet in bronze. Blocks nothing in the archived replay."
     }
   ],
   "items": [
     {
       "id": "WC-01",
       "group": "0-data",
-      "stage": "SPEC",
+      "stage": "MEASURED",
       "depends_on": [],
       "title": "Per-corner pass table from bronze: gap 300-50 m before the corner, own clean reference within ±4 laps, exclusions",
       "sources": [
@@ -74,7 +86,7 @@
       "doc": "wi/WC-01-data-and-reference.md",
       "cost": "2-3 wk",
       "model": "opus-5",
-      "note": "DD-WC1 approved by the owner 2026-10-27. Not registered. Scratch copy only, never data/dev.duckdb. Stint coverage to check against: 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable."
+      "note": "DD-WC1 approved by the owner 2026-10-27. Not registered. Scratch copy only, never data/dev.duckdb. Stint coverage to check against: 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable. 2026-10-27: pass table built from bronze over 2018-2025 (169 races built, 4 skipped) to a session scratch folder; 24 synthetic tests pass; counts and PROVENANCE.txt in _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/. Builder choices listed in PROVENANCE.txt await owner review (W4). MEASURED, not LANDED: the orchestrator has not re-run the definition of done. 2026-10-27b: flat-out corners kept with a fixed 100 m segment start, track-limits laps excluded, sector-yellow rule measured only; rebuilt and recounted (see PROVENANCE second section). Still MEASURED. 2026-10-27c: owner rulings implemented - (a) yellow by sector: SC/VSC/red still neutralise the whole lap; a race_control sector yellow in k excludes corners in k and k+1 (reason yellow_sector; marshal sectors approximated by even spacing, bronze has no marshal-sector positions); (b) track-limit scope unchanged; (c) wi/WC-01 spec edited to match the build. Rebuilt: kept 2,132,637 -> 2,188,484; 55,872 neutralised -> kept, 25 kept -> yellow_sector. Still MEASURED. 2026-10-27d: owner rulings DD-WC4..DD-WC8 recorded; layout flag added (DD-WC6): columns layout_changed and layout_note on every pass row, flag only. Rebuilt 2018-2025: all pass-c columns identical; 8 races flagged (119,454 passes, 82,601 kept); see PROVENANCE fourth section and layout_flagged_races.csv. Still MEASURED."
     },
     {
       "id": "WC-02",
@@ -92,7 +104,8 @@
       "doc": "wi/WC-02-measurement-checks.md",
       "cost": "1-2 wk",
       "model": "opus-5",
-      "note": "Not registered. Builds and counts the event set; the car-ahead-pits contrast itself is read in WC-04 and WC-05."
+      "note": "Not registered. Builds and counts the event set; the car-ahead-pits contrast itself is read in WC-04 and WC-05.",
+      "order_hint": 1
     },
     {
       "id": "WC-03",
@@ -109,7 +122,7 @@
       "doc": "wi/WC-03-estimator.md",
       "cost": "3-5 wk",
       "model": "fable-5.1",
-      "note": "No pre-registration exists. It is written, approved by the owner, committed alone and its SHA-256 recorded on this item before anything is fitted. The archived DA-03 estimator is not reused."
+      "note": "No pre-registration exists. It is written, approved by the owner, committed alone and its SHA-256 recorded on this item before anything is fitted. The archived DA-03 estimator is not reused. 2026-10-27: nothing in the WC-01 table separates tow from wake loss on flat-out (fixed_before_apex) passes; the pre-registration must either keep them out of the dirty-air curve or pre-register a tow split (TS-1, see _evidence/WC-01-2026-10-27/DECISION-next-steps.md and W5)."
     },
     {
       "id": "WC-04",
@@ -164,6 +177,60 @@
       "model": "opus-5",
       "blocked_by_decision": "DD-WC2",
       "note": "Not registered. Disclaimer text on every modelled value (pending DD-WC2). No old-method (DA-03) number anywhere. Phase 5 has its own item (WC-06) so each phase keeps one item."
+    },
+    {
+      "id": "WC-07",
+      "group": "6-replay",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-01"
+      ],
+      "title": "Archived-race replay dashboard: per-lap gap (s and m) to the car ahead, reference status and label; measurement only",
+      "sources": [
+        "transform/tasks/wake_calibration/",
+        "data/bronze/telemetry/",
+        "data/bronze/laps/"
+      ],
+      "doc": "wi/WC-07-replay-dashboard.md",
+      "cost": "1-2 wk",
+      "model": "opus-5",
+      "note": "Owner ruling 2026-10-27: pulled forward as an INTERNAL debugging view built alongside WC-02 (order_hint 1 on WC-02 and WC-07, so it sorts right after WC-02 and ahead of WC-03); not an owner-facing view before WC-02 check 1 passes. Measurement only: no loss, delta, coefficient or scale; the pass table's delta_time_s is not shown. Non-measured passes show 'unavailable' with the reason until WC-05 provides modelled references. Distance to the car ahead in metres is a new derived column. Input is a documented ReplaySource interface (WC-07 doc) so a live feed can plug in later; no live code while DD-WC3 is open. Not registered.",
+      "order_hint": 1
+    },
+    {
+      "id": "WC-08",
+      "group": "6-replay",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-03",
+        "WC-04",
+        "WC-05",
+        "WC-07"
+      ],
+      "title": "Loss scale on the replay dashboard, only after WC-03, WC-04 and WC-05; every value labelled, disclaimer on modelled",
+      "sources": [
+        "transform/tasks/wake_calibration/",
+        "transform/tasks/coefficients/"
+      ],
+      "doc": "wi/WC-08-replay-loss-scale.md",
+      "cost": "1 wk",
+      "model": "opus-5",
+      "note": "Not registered. Owner ruling 2026-10-27: depends on WC-05 as well as WC-03, WC-04 and WC-07 (modelled values and labels come from WC-05). Every value carries measured / modelled / unavailable and every modelled value the DD-WC2 disclaimer word for word; unavailable is '—', never 0; totals print the modelled share. No DA-03 number."
+    },
+    {
+      "id": "WC-09",
+      "group": "7-ingest",
+      "stage": "SPEC",
+      "depends_on": [],
+      "title": "Ingest the 2026 season into bronze (archived FastF1 timing); count with the WC-01 builder, no fit",
+      "sources": [
+        "ingestion/src/ingest.py",
+        "data/bronze/manifests/"
+      ],
+      "doc": "wi/WC-09-2026-ingest.md",
+      "cost": "1-2 wk",
+      "model": "sonnet-5",
+      "note": "Verified 2026-10-27: no season=2026 in any bronze dataset (all stop at 2025). Blocks nothing in WC-07, which covers 2018-2025. Not the OpenF1 live feed (DD-WC3). 2026 has no DRS: counted separately, method refit later. Step up to opus-5 if the 2026 schema leaves a choice open."
     }
   ],
   "decisions": [
@@ -193,6 +260,70 @@
       "recommendation": null,
       "resolved": "2026-10-27",
       "resolution": "Owner approved 2026-10-27: disclaimer wording as written: \"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\" Used exactly on every modelled value."
+    },
+    {
+      "id": "DD-WC3",
+      "raised": "2026-10-27",
+      "blocking": [],
+      "status": "OPEN",
+      "question": "Licence the OpenF1 live data feed (paid; non-commercial, share-alike licence) for any live use of the method?",
+      "context": "OpenF1 live data is paid and licensed non-commercial share-alike (design note). It blocks any live ingest; no live-ingest item exists yet, so blocking is empty. It does NOT block WC-07 (archived races from bronze) or WC-09 (2026 from archived FastF1 timing). 2026-10-27: owner keeps it OPEN. No live ingest is wired; the WC-07 doc defines a ReplaySource input interface (pass-table columns, telemetry columns, is_live) so a live source can be added later. No live code exists.",
+      "recommendation": null
+    },
+    {
+      "id": "DD-WC4",
+      "raised": "2026-10-27",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Choice 21: is a sector yellow tested at lap level (active at any time during the follower's lap) rather than at the moment of the pass?",
+      "context": "WC-01 builder choice from _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/PROVENANCE.txt (W4).",
+      "recommendation": null,
+      "resolved": "2026-10-27",
+      "resolution": "Owner decided 2026-10-27: \"a yellow applies to the whole lap, not just the moment of the pass. Keep as built.\""
+    },
+    {
+      "id": "DD-WC5",
+      "raised": "2026-10-27",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Choice 22: does a track status AllClear end an open sector yellow (trusting track status over a late or missing race_control CLEAR)?",
+      "context": "WC-01 builder choice from _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/PROVENANCE.txt (W4).",
+      "recommendation": null,
+      "resolved": "2026-10-27",
+      "resolution": "Owner decided 2026-10-27: \"a track-status all-clear ends a sector yellow, trusting track status over a late CLEAR message. Keep as built.\""
+    },
+    {
+      "id": "DD-WC6",
+      "raised": "2026-10-27",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Choice 23: is the marshal-sector layout assumed constant across seasons (count = max over seasons per slug), and what happens to races whose layout changed?",
+      "context": "WC-01 builder choice from _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/PROVENANCE.txt (W4). Implemented 2026-10-27 (pass d): columns layout_changed and layout_note on every pass row; 8 races flagged, none excluded.",
+      "recommendation": null,
+      "resolved": "2026-10-27",
+      "resolution": "Owner decided 2026-10-27: \"sector layout assumed constant across seasons, BUT races whose sector or corner layout changed must be FLAGGED.\" Flag only, do not exclude."
+    },
+    {
+      "id": "DD-WC7",
+      "raised": "2026-10-27",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Choice 24: does yellow_sector rank above restart, pit and wet in the exclusion priority?",
+      "context": "WC-01 builder choice from _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/PROVENANCE.txt (W4).",
+      "recommendation": null,
+      "resolved": "2026-10-27",
+      "resolution": "Owner decided 2026-10-27: \"yellow_sector ranks above restart, pit and wet in the exclusion priority. Keep as built.\""
+    },
+    {
+      "id": "DD-WC8",
+      "raised": "2026-10-27",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Re-ingest marshal-sector positions from FastF1 circuit_info into bronze (a rewrite of past seasons) so the sector-yellow rule is exact?",
+      "context": "W6. Bronze is append-only; the builder approximates marshal sectors by even spacing.",
+      "recommendation": null,
+      "resolved": "2026-10-27",
+      "resolution": "Owner decided 2026-10-27: marshal-sector re-ingest is DEFERRED, not rejected. Bronze is not rewritten; W6 stays open as debt."
     }
   ],
   "watch_vocabulary": {
@@ -239,6 +370,58 @@
           "item": "WC-06",
           "stage": "LANDED"
         }
+      }
+    },
+    {
+      "id": "W3",
+      "raised": "2026-10-27",
+      "kind": "uncommitted",
+      "item": "WC-01",
+      "recommended_model": "haiku",
+      "title": "WC-01 builder, tests and evidence live only in the working tree",
+      "detail": "transform/tasks/wake_calibration/ (build_pass_table.py, tests/) and _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/ are uncommitted. The pass table itself is in a session scratch folder outside the repo and must be rebuilt (about 45 s) by whoever needs it.",
+      "clears_when": "The owner commits the builder, tests and evidence folder, or rules them out.",
+      "trigger": {
+        "clear": "manual"
+      }
+    },
+    {
+      "id": "W4",
+      "raised": "2026-10-27",
+      "kind": "pending-ruling",
+      "item": "WC-01",
+      "recommended_model": "opus",
+      "title": "WC-01 builder choices need an owner ruling before WC-02 builds on them",
+      "detail": "Ruled by the owner 2026-10-27: yellow by sector (k and k+1; SC/VSC/red whole lap), track-limit scope as built, flat-out corners with a fixed 100 m start (spec edited). Still open, in _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/PROVENANCE.txt: REF_MIN_N=2; corner class from median clear-air apex speed per race; segment start fixed per corner at the median clear-air brake onset; FLAT_KINK_BRAKE_SHARE=0.5; car ahead = latest apex by another car within 30 s; lapped/yielding tags; leader pit check on the leader's lap at its apex; circuit_info ±1-season fallback; neighbouring-corner window overlap (20). Ruled 2026-10-27: choices 21, 22 and 24 kept as built (DD-WC4, DD-WC5, DD-WC7); choice 23 kept with a layout flag (DD-WC6, built in pass d). New choices 25-28 (layout flag: circuit identity, 40 m / 50 m thresholds, flag on the change race only, subset re-reads) await review.",
+      "clears_when": "The owner accepts or changes each listed choice; any change is rebuilt and recounted before WC-02 starts.",
+      "trigger": {
+        "clear": "manual"
+      }
+    },
+    {
+      "id": "W5",
+      "raised": "2026-10-27",
+      "kind": "hazard",
+      "item": "WC-03",
+      "recommended_model": "opus",
+      "title": "Flat-out passes may measure tow, not wake loss: no rule in the table separates the two",
+      "detail": "515,750 kept passes have segment_basis fixed_before_apex; 301,107 of them follow a car within 3 s and 19,955 of those have the follower's DRS open in the segment (tow_exposure_2026-10-27c.csv). segment_basis is a label, not a test. Pooling them into the dirty-air curve would mix a gain with a loss, mostly in the fast class (671 of 687 flat race-corners), which also contaminates the WC-04 physics-sign check.",
+      "clears_when": "The WC-03 pre-registration either keeps fixed_before_apex passes out of the dirty-air curve or names a tow/wake split (e.g. TS-1) with its thresholds, before any fit.",
+      "trigger": {
+        "clear": "manual"
+      }
+    },
+    {
+      "id": "W6",
+      "raised": "2026-10-27",
+      "kind": "debt",
+      "item": "WC-01",
+      "recommended_model": "sonnet",
+      "title": "Sector-yellow rule uses an approximate corner-to-marshal-sector mapping (even spacing)",
+      "detail": "Bronze has no marshal-sector positions (ingestion writes circuit_info corners only). The builder assumes evenly spaced sectors, so corners near a boundary can be put in the neighbouring sector. The exact rule needs the marshal-sector positions re-ingested from FastF1 circuit_info (a bronze rewrite: owner call). Owner deferred the re-ingest 2026-10-27 (DD-WC8): deferred, not rejected; stays open.",
+      "clears_when": "Marshal-sector positions are in bronze and the builder uses them, or the owner accepts the approximation.",
+      "trigger": {
+        "clear": "manual"
       }
     }
   ],
@@ -289,6 +472,202 @@
       "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
       "next_action": [
         "NEW CHAT: start WC-01 Phase 0 (per-corner pass table from bronze; counts only; no fit, no registration, no label change). Read _roadmap/_wake-calibration/README.md, BUILD-ORDER.md and wi/WC-01 first."
+      ]
+    },
+    {
+      "date": "2026-10-27T13:00:00+04:00",
+      "session": "WC-01 Phase 0 started in a new chat on the owner's DD-WC1 approval. Builder and tests under transform/tasks/wake_calibration/. Reads bronze parquet only; writes the pass table to a scratch folder, never data/dev.duckdb. Builder fixed, tested and run over 2018-2025; counts recorded.",
+      "landed": [
+        "transform/tasks/wake_calibration/build_pass_table.py fixed and extended (uncommitted): NaN braking point no longer reaches the gap (crash on monaco 2024); race_control.session_time_s found to be time of day, blue flags now placed in session time from the message timestamp; telemetry sorted by (lap, time) because lap-boundary samples share a timestamp and corrupted the distance axis; corners keyed by number+letter (Hungary 1A, 12A); apex refined by projection onto the trace; segment start fixed per corner (median clear-air brake onset) instead of per pass; flat kinks flagged; references vectorised per driver/corner/stint/compound; yielding passes not used as donors; compound None/nan -> UNKNOWN; circuit_info fallback to the ±1 season when missing or misaligned; races with no telemetry or no corners skipped with a logged reason; --workers.",
+        "transform/tasks/wake_calibration/tests/test_build_pass_table.py (uncommitted): 24 synthetic tests - neutral intervals, overlaps_any, restart skip, gap window ends before the segment start and the outcome starts at it, car ahead (latest prior apex by another car, CAR_AHEAD_MAX_S), gap on a constant 1.0 s offset, reference donors (same driver/corner/stint/compound, ±4 laps, not self, not excluded/unclean/yielding, REF_MIN_N), circuit_info fallback and frame choice.",
+        "Full build 2018-2025 to /private/tmp/claude-501/-Users-justin-github-off-the-pace/018e30a7-241a-47f3-8390-a6836b3dce79/scratchpad/wc01/full/ (pass_table_<season>.parquet x8, races.csv): 173 race folders, 169 built, 4 skipped (2018 australian and bahrain: no telemetry; 2020 sakhir and tuscan: no circuit_info corners for the slug in 2019-2021), 0 failed; 2,927,753 passes; 41.5 s wall with 4 workers.",
+        "_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/: counts_by_season.csv, passes_by_corner_class.csv, races.csv, circuit_info_fallbacks.csv, counts.py, full_build.log, PROVENANCE.txt. All 2,927,753 passes: 43.9% excluded (flat_kink 508,254; neutralised 303,203; wet 145,382; pit_lap 122,155; restart 103,834; pit_lap_leader 100,882; no_gap 192; off_track 0), 27.4% measured reference, 28.7% no clean reference. Of the 1,643,851 kept passes: 48.8% measured, 51.2% no clean reference. Stints with kept passes but no measured pass: 32.9% (2,433 of 7,383), against the memo's lap-end 16.7% - not the same measure."
+      ],
+      "verified": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q: 24 passed in 0.23s (working tree, this session).",
+        "Single-race builds run clean: 2024 monaco (22,819 passes), 2018 austrian, 2020 italian, 2024 hungarian, 2021 turkish; 2018 australian and 2021 belgian handled (skip / fallback) without a crash.",
+        "Full build 2018-2025 re-run after the last code change, in this session: 169 built, 4 skipped with reasons, 0 failed.",
+        "Telemetry and circuit_info X/Y share units (1/10 m): median nearest-sample distance to a corner point 1.3-3.3 m, p99 under 13 m except pit-lane passes; APEX_MAX_XY=400 (40 m) kept.",
+        "driver_id in telemetry matches Driver in laps (checked monaco 2024). circuit_info has Number/X/Y for all corners except 2020 sakhir, 2020 tuscan, 2021 belgian (no file) and 2024 bahrain (empty schema); 2022 sao paulo corners are in another X/Y frame.",
+        "race_control.session_time_s equals seconds since midnight of the message timestamp on every race (max difference 0.0 s); rebuilt session times fall inside the race.",
+        "Kept passes: gap minus apex-time difference median 0.08 s, p99 0.61 s; segment time within 0.89-1.20 of the corner median at p0.1-p99.9.",
+        "data/dev.duckdb and data/ci.duckdb mtimes unchanged (Oct 26); not opened."
+      ],
+      "assumed": [
+        "All builder choices in _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/PROVENANCE.txt are for the owner to review (W4): REF_MIN_N=2; corner class from median clear-air apex speed per race; segment start = median clear-air brake onset per corner per race; flat kinks excluded; leader by apex time within 30 s; lapped/yielding tags; Deleted laps not excluded (spec does not list them); leader pit check on the leader's lap at its apex; track status 2 neutralises the whole lap; restart = first 2 laps starting after an SC/VSC/red end; circuit_info ±1-season fallback.",
+        "OffTrack exclusion is effectively inert: FastF1 Status is OffTrack almost only on lap 1 (grid), so track-limits excursions are not detected.",
+        "Lap 1 and each driver's last lap produce no passes (the windows need the neighbouring laps), so lap_1 counts 0 by construction.",
+        "Stage MEASURED, not LANDED: the builder ran the tests and the full build, but the orchestrator has not re-run the definition of done."
+      ],
+      "gates_run": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q",
+        "cd transform && ../.venv/bin/python -m tasks.wake_calibration.build_pass_table --out /private/tmp/claude-501/-Users-justin-github-off-the-pace/018e30a7-241a-47f3-8390-a6836b3dce79/scratchpad/wc01/full/ --workers 4",
+        "../.venv/bin/python _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/counts.py /private/tmp/claude-501/-Users-justin-github-off-the-pace/018e30a7-241a-47f3-8390-a6836b3dce79/scratchpad/wc01/full/ _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/",
+        "python3 _roadmap/_wake-calibration/status/board.py --check",
+        "python3 _roadmap/_wake-calibration/status/board.py --write-order"
+      ],
+      "next_command": "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q",
+      "next_action": [
+        "ORCHESTRATOR: re-run the WC-01 definition of done (tests, full build to a scratch folder, counts.py) and promote WC-01 to LANDED if it reproduces the counts.",
+        "OWNER: rule on the builder choices in W4 (PROVENANCE.txt) before WC-02 builds on the table; commit is the owner's call (W3)."
+      ]
+    },
+    {
+      "date": "2026-10-27T12:46:16+04:00",
+      "session": "WC-01 second pass on owner requests: (A) keep flat-out corners with a brake-independent segment start, (B) exclude track-limits-deleted laps, (C) measure only a sector-level yellow rule. Counts and exclusions only. Note: the machine clock reads earlier than the previous entry's 13:00 stamp; this entry uses the clock.",
+      "landed": [
+        "transform/tasks/wake_calibration/build_pass_table.py (uncommitted, sha256 b13dfa3d...): reason flat_kink removed; flat-out corners (under 50% of clear-air passes brake) get segment start FLAT_SEGMENT_BEFORE_APEX_M=100 m before the apex, new column segment_basis (brake_onset / fixed_before_apex); new reason no_segment (corner with no clear-air pass; 0 in 2018-2025); new reason track_limits (laps.Deleted and DeletedReason contains 'TRACK LIMITS'), priority after wet; diagnostic columns leader_track_limits, yellow_only, reason_if_no_yellow (do not change the reason).",
+        "transform/tasks/wake_calibration/tests/test_build_pass_table.py (uncommitted): 7 new tests (flat corner fixed start, flat gap window vs outcome window, track-limits parsing, reason order, no_segment, yellow diagnostics, neutral intervals without yellow); 31 total.",
+        "Full rebuild 2018-2025 to /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01b/full/: 169 built, 4 skipped (same as before), 0 failed, 2,927,753 passes, 44.4 s with 4 workers.",
+        "_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/: counts_by_season.csv replaced with this build; new exclusion_reasons_by_season.csv, exclusion_reasons_by_segment_basis.csv, reason_transition.csv, sector_yellow_measure.csv, compare_builds.py, sector_yellow_measure.py, full_build_2026-10-27b.log; counts.py updated to the new reasons; PROVENANCE.txt gains a dated second-pass section with choices 17-20.",
+        "Counts: excluded 1,283,902 -> 795,116; kept 1,643,851 -> 2,132,637 (former flat_kink 508,254: 502,769 kept, 5,465 track_limits, 20 no_gap; 13,983 previously kept now track_limits; track_limits total 19,449). Measured reference 802,133 -> 1,038,591; share measured of kept 48.8% -> 48.7%.",
+        "Task C measured, not implemented: of 303,203 neutralised passes, 98,309 are yellow-only, upper bound 64,403 would move to kept; k/k+1 sector rule with approximated marshal sectors 55,842 (wide band 48,180; pass-time variant 61,542); 743 kept passes would become excluded."
+      ],
+      "verified": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q: 31 passed in 0.22s (this session, final code).",
+        "Full build 2018-2025 run in this session on the final code: 169 built, 4 skipped with reasons, 0 failed.",
+        "Before/after join on (season, race, driver, lap, corner_id): 2,927,753 matched, 0 unmatched; every non-flat reason count unchanged except kept -> track_limits and 1 no_gap -> track_limits; 0 brake_onset passes changed segment start.",
+        "All kept passes have a finite positive segment time; every kept pass with a car ahead has gap_n >= 5; gap window ends 50 m before the segment start on every kept pass (flat corners: gap 400-150 m before the apex, outcome -100..+100 m).",
+        "Bronze DeletedReason values 2018-2025: every Deleted race lap carries a TRACK LIMITS reason; 2018 has 0 deletions, 2019 15.",
+        "off_track fires on 0 passes again (rule kept).",
+        "Bronze circuit_info has no marshal-sector positions; ingestion/src/ingest.py _write_circuit_info writes circuit.corners only, though its docstring mentions marshal sectors.",
+        "data/dev.duckdb and data/ci.duckdb mtimes unchanged (Oct 26 12:12 / 12:29); not opened."
+      ],
+      "assumed": [
+        "Builder choices for the owner (PROVENANCE.txt 17-20, added to W4): flat-out segment start fixed at 100 m before the apex; flat test stays FLAT_KINK_BRAKE_SHARE=0.5 and class stays by apex speed; track_limits excludes the follower's flagged lap only (for '(NEXT LAP)' the flagged lap, not the one before); the leader's track-limits lap does not exclude the follower; no_segment replaces the old silent flat_kink label for corners with no clear-air pass.",
+        "Option (ii) throttle lift ruled out on an 8-race sample: 20 of 46 flat corners show no lift on most clear passes, so it leaves the same hole.",
+        "Task C marshal-sector-of-corner is approximated by even spacing (no positions in bronze); the numbers are an estimate with a band, not an exact count.",
+        "Flat-out passes may measure tow (gain) rather than wake loss; flagged for WC-03 via segment_basis, not acted on.",
+        "First-section figure '666 of 2,812 race-corners' flat was wrong; recount gives 687 on both builds (noted in PROVENANCE).",
+        "The before build is the earlier session's scratch output (code sha d6615439..., matching PROVENANCE section 1); it was not rebuilt in this session.",
+        "WC-01 stays MEASURED: tests and the full build were re-run in this session by the builder, but the orchestrator has not re-run the definition of done and the owner has not ruled on W4."
+      ],
+      "gates_run": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q",
+        "cd transform && ../.venv/bin/python -m tasks.wake_calibration.build_pass_table --out /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01b/full/ --workers 4",
+        "cd transform && ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/counts.py /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01b/full/ ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/",
+        "cd transform && ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/compare_builds.py /private/tmp/claude-501/-Users-justin-github-off-the-pace/018e30a7-241a-47f3-8390-a6836b3dce79/scratchpad/wc01/full /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01b/full/ ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/",
+        "cd transform && ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/sector_yellow_measure.py /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01b/full/ ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/",
+        "python3 _roadmap/_wake-calibration/status/board.py --check",
+        "python3 _roadmap/_wake-calibration/status/board.py --write-order"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py",
+      "next_action": [
+        "OWNER: rule on choices 17-20 (W4), on the Task C sector-yellow rule (exact version needs marshal-sector positions re-ingested from FastF1 circuit_info), and on whether the WC-01 spec line 'flat kinks merged with the straight' is updated.",
+        "ORCHESTRATOR: re-run the WC-01 definition of done on this code and promote WC-01 if it reproduces the counts."
+      ]
+    },
+    {
+      "date": "2026-10-27T13:30:00+04:00",
+      "session": "WC-01 close-out on owner rulings (a) sector-yellow rule, (b) track-limit scope unchanged, (c) WC-01 spec wording; slipstream check; WC-07/08/09 and DD-WC3 added; go/no-go memo. Counts and exclusions only.",
+      "landed": [
+        "transform/tasks/wake_calibration/build_pass_table.py (uncommitted, sha256 ea41af04...): track status 2 no longer neutralises the lap; new reason yellow_sector (race_control Scope == Sector YELLOW/DOUBLE YELLOW in k during the lap excludes corners in k and k+1); intervals keep feed order for same-second messages and also end at track status AllClear; marshal sectors approximated by even spacing (docstring states it); diagnostics marshal_sector and ts_yellow_on_lap replace yellow_only and reason_if_no_yellow. Corner layout unchanged.",
+        "tests/test_build_pass_table.py (uncommitted): 36 tests (sector intervals, same-second order, AllClear end, re-issued yellow, even-spacing map, k/k+1 and wrap, reason priority).",
+        "wi/WC-01-data-and-reference.md edited (owner ruling c): segment description now matches the build - braking corners start at the braking point, flat-out corners a fixed 100 m before the apex (segment_basis), flat_kink gone, no_segment, track_limits exclusion, sector-yellow rule. Reason: the spec said 'flat kinks merged with the straight' and 'yellow-sector laps', which no longer matched the builder after passes b and c.",
+        "Full rebuild 2018-2025 to /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01c/full/: 169 built, 4 skipped (same), 0 failed, 2,927,753 passes, 45.2 s.",
+        "Counts: kept 2,132,637 -> 2,188,484; excluded 795,116 -> 739,269; neutralised 303,203 -> 204,894; yellow_sector 14,253; measured 1,038,591 -> 1,071,162; share measured of kept 48.7% -> 48.9%.",
+        "Reconciliation: pass b estimate 55,842 to kept / 743 to excluded reproduced exactly by its own logic; built 55,872 / 25. The 743 were mostly artefacts: 560 2023 bahrain (YELLOW and CLEAR in the same second, CLEAR sorted first, yellow left open to lap 42), 136 2023 azerbaijan and 19 2024 qatar (CLEAR missing or late; track status AllClear ends them).",
+        "Evidence _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/: counts_by_season.csv, exclusion_reasons_by_season.csv, exclusion_reasons_by_segment_basis.csv, passes_by_corner_class.csv replaced; new reason_transition_2026-10-27c.csv, sector_yellow_reconcile.csv, sector_yellow_kept_to_excluded.csv, tow_exposure_2026-10-27c.csv, sector_yellow_reconcile.py, tow_exposure.py, full_build_2026-10-27c.log, DECISION-next-steps.md; PROVENANCE third section (choices 21-24).",
+        "build-log: WC-07 (replay, measurement only), WC-08 (loss scale on replay, after WC-03/WC-04), WC-09 (2026 ingest; bronze has no 2026), groups 6-replay and 7-ingest, DD-WC3 (OpenF1 licence, OPEN), W5 (tow hazard on WC-03), W6 (approximate marshal sectors); W4 detail updated."
+      ],
+      "verified": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q: 36 passed in 0.24s (final code, this session).",
+        "Full build run on the final code in this session; join with pass b 2,927,753 matched, 0 unmatched; segment start identical on every pass.",
+        "All 1,338 yellow messages in bronze race_control have Scope == Sector.",
+        "Bronze telemetry has a DRS column (not read by the builder); no 2026 season in any bronze dataset.",
+        "data/dev.duckdb and data/ci.duckdb mtimes unchanged (Oct 26 12:12 / 12:29); not opened."
+      ],
+      "assumed": [
+        "'Affected sector plus following sector' implemented (k and k+1), not 'following only'.",
+        "Sector yellow tested at lap level, as in the measure the owner ruled on; pass-time variant not adopted (choice 21).",
+        "Track status AllClear ends a sector yellow (choice 22); it trusts track status over a late race_control CLEAR.",
+        "The 25 remaining kept -> yellow_sector passes (1-3 in each of 13 races) were not inspected one by one.",
+        "WC-08 depends on WC-03, WC-04 and WC-07 as asked; modelled values also need WC-05 (owner to confirm).",
+        "WC-01 stays MEASURED: the orchestrator has not re-run the definition of done; W4 still has open choices."
+      ],
+      "gates_run": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q",
+        "cd transform && ../.venv/bin/python -m tasks.wake_calibration.build_pass_table --out /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01c/full/ --workers 4",
+        "cd transform && ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/counts.py /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01c/full/ ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/",
+        "cd transform && ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/sector_yellow_reconcile.py <wc01b/full> /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01c/full/ ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/",
+        "python3 _roadmap/_wake-calibration/status/board.py --check",
+        "python3 _roadmap/_wake-calibration/status/board.py --write-order"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py",
+      "next_action": [
+        "OWNER: rule on the remaining W4 choices (incl. 21-24), DD-WC3, whether WC-08 should also depend on WC-05, and whether marshal-sector positions are re-ingested (W6).",
+        "ORCHESTRATOR: re-run the WC-01 definition of done and promote if it reproduces; then WC-02 (check 1 first), per DECISION-next-steps.md."
+      ]
+    },
+    {
+      "date": "2026-10-27T14:10:00+04:00",
+      "session": "Owner rulings of 2026-10-27 recorded (DD-WC4..DD-WC8); DD-WC6 layout flag built and the pass table rebuilt; WC-07 pulled forward as an internal view alongside WC-02; WC-08 now depends on WC-05. Counts and exclusions only.",
+      "landed": [
+        "transform/tasks/wake_calibration/build_pass_table.py (uncommitted, sha256 016c3bd6...): layout_changed / layout_note on every pass row (flag only); race_geometry shared by build_race and layout_info; layout_flags compares each race with the previous race at the same circuit (corner count, corner move > 40 m after rigid alignment, lap length > 50 m vs previous up-to-3 races, circuit_info fallback); layout_checks.csv and layout columns in races.csv.",
+        "tests/test_build_pass_table.py (uncommitted): 44 tests (8 new: rigid shift, first/same/frame-shift, count/moved/fallback, lap-length epochs, fallback epoch and circuits apart, same-season date order, apply columns, calendar aliases).",
+        "Full rebuild 2018-2025 to /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01d/full/: 169 built, 4 skipped (same), 0 failed, 2,927,753 passes, 46.6 s.",
+        "Flagged 8 races, 119,454 passes (82,601 kept, 37,169 measured): 2021 abu_dhabi (count 21->16, lap -286 m), 2021 belgian (fallback), 2022 australian (lap -57 m), 2022 singapore (count 23->19), 2022 são_paulo (fallback), 2023 singapore (lap -121 m), 2023 spanish (count 16->14), 2024 bahrain (fallback).",
+        "Evidence _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/: counts.py extended (layout counts, layout_flagged_races.csv); counts_by_season.csv and races.csv rewritten; new layout_flagged_races.csv, layout_checks_2026-10-27d.csv, full_build_2026-10-27d.log; PROVENANCE fourth section (choices 25-28).",
+        "Docs: wi/WC-01 (layout flag line), wi/WC-07 (pulled forward as internal view; ReplaySource input interface, no live code), wi/WC-08 (WC-05 dependency), wi/WC-09 (marshal-sector re-ingest deferred).",
+        "build-log: DD-WC4..DD-WC8 RESOLVED; DD-WC3 context (stays OPEN); WC-08 depends_on + WC-05 and title; order_hint 1 on WC-02 and WC-07; group 6-replay summary; W4 and W6 detail."
+      ],
+      "verified": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q: 44 passed in 0.26s (final code, this session).",
+        "Full build run on the final code in this session; every pass-c column identical to the pass c build in all 8 seasons (DataFrame.equals); kept 2,188,484 and measured 1,071,162 unchanged.",
+        "counts_by_season.csv: all pass-c columns identical to the previous file; only the four layout columns are new.",
+        "Layout flags read back from the built parquet: 119,454 rows with layout_changed true, all in the 8 races listed.",
+        "data/dev.duckdb and data/ci.duckdb mtimes unchanged (Oct 26 12:12 / 12:29); not opened. Bronze not written."
+      ],
+      "assumed": [
+        "DD-WC8 is used for the marshal-sector re-ingest deferral; the WC-07 reorder and the WC-08 dependency are recorded on the items and in this entry, not as decisions.",
+        "Circuit identity = schedule Location with 4 aliases; 2020 sakhir_grand_prix is a separate layout (choice 25).",
+        "Thresholds 40 m and 50 m chosen from 2018-2025 geometry, not from any outcome (choice 26); 2021 spanish (+48.6 m) and 2022 belgian (-44.2 m) sit just under 50 m and are not flagged.",
+        "layout_changed marks the race where a change is detected, not the whole epoch; other races at such circuits name the change in layout_note (choice 27).",
+        "Marshal-sector count is not compared: bronze holds none and the per-race max race_control Sector is incident-driven.",
+        "Reading of 2022 singapore and 2019/2022 australian (corner set vs lap length disagree) is from bronze only, not checked against an outside source.",
+        "WC-07 is placed right after WC-02 with order_hint 1 on both; an order_hint on WC-07 alone would have put it before WC-02.",
+        "WC-01 stays MEASURED: the orchestrator has not re-run the definition of done; W4 has new choices 25-28."
+      ],
+      "gates_run": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q",
+        "cd transform && ../.venv/bin/python -m tasks.wake_calibration.build_pass_table --out /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01d/full --workers 4",
+        "cd transform && ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/counts.py /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01d/full ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/",
+        "python3 _roadmap/_wake-calibration/status/board.py --check",
+        "python3 _roadmap/_wake-calibration/status/board.py --write-order"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py",
+      "next_action": [
+        "OWNER: review choices 25-28 (layout flag) and the remaining W4 choices; DD-WC3 stays open; commit or rule out the working tree (W3).",
+        "ORCHESTRATOR: re-run the WC-01 definition of done and promote if it reproduces; then WC-02 (check 1 first) with WC-07 as an internal debugging view alongside it."
+      ]
+    },
+    {
+      "date": "2026-10-27T14:10:00+04:00",
+      "session": "Session closed and handed off. Data-gap workarounds reviewed (DECISION-data-workarounds.md): none changes the core pass table much for personal use; the blocker for any paid release is the data licence (FastF1-derived data; OpenF1 and Jolpica are CC BY-NC-SA). Re-ingest of bronze not yet approved. Nothing committed. Stages unchanged: WC-01 MEASURED.",
+      "landed": [
+        "WC-01 builder, tests and evidence in the working tree (uncommitted): exclusions incl. track_limits, yellow_sector, flat-out fixed start, layout flag.",
+        "Owner rulings DD-WC4..DD-WC8 recorded; WC-07 pulled forward (order_hint 1 with WC-02); WC-08 depends on WC-03, WC-04, WC-05, WC-07; WC-09 added for 2026 ingest.",
+        "WC-01 spec wording updated to match the build.",
+        "Data-gap analysis memo DECISION-data-workarounds.md (no build-log state change)."
+      ],
+      "verified": [
+        "board.py --check: build-log.json OK (exit 0) at handoff.",
+        "pytest tasks/wake_calibration: 44 passed.",
+        "Agent baseline reproduced: 2,927,753 passes, 2,188,484 kept, 1,071,162 measured, 14,253 yellow_sector."
+      ],
+      "assumed": [
+        "Marshal sectors approximated by even spacing; sector count from bronze max.",
+        "Layout flag may land on the wrong year where only lap length changed.",
+        "2026 telemetry not in bronze; no legal personal-use route confirmed."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_wake-calibration/status/board.py --check",
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: decide whether to commit the working tree (W3); review choices 25-28 and remaining W4 choices; DD-WC3 licence stays open; approve or defer bronze re-ingest.",
+        "ORCHESTRATOR: re-run the WC-01 definition of done and promote if it reproduces; then WC-02 (check 1 first), with WC-07 as an internal debugging view alongside it. No loss estimate before the WC-03 pre-registration is committed and hashed (W1)."
       ]
     }
   ]

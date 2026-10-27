@@ -1,0 +1,170 @@
+season,race,circuit,date,circuit_info_season,n_corners,lap_len_m,layout_changed,structural_change,layout_note,prev_season,prev_race,prev_n_corners,raw_shift_m,aligned_shift_m,ref_lap_len_m,ref_races,lap_len_diff_m
+2018,united_states_grand_prix,Austin,2018-10-21,2018,20,5455.0,False,False,first race at Austin in bronze; nothing to compare,,,,,,,,
+2019,united_states_grand_prix,Austin,2019-11-03,2019,20,5457.6,False,False,same layout as 2018 united_states_grand_prix,2018.0,united_states_grand_prix,20.0,0.0,0.0,5455.0,1.0,2.6
+2021,united_states_grand_prix,Austin,2021-10-24,2021,20,5434.7,False,False,same layout as 2019 united_states_grand_prix,2019.0,united_states_grand_prix,20.0,0.0,0.0,5456.3,2.0,-21.6
+2022,united_states_grand_prix,Austin,2022-10-23,2022,20,5433.4,False,False,same layout as 2021 united_states_grand_prix,2021.0,united_states_grand_prix,20.0,0.0,0.0,5455.0,3.0,-21.6
+2023,united_states_grand_prix,Austin,2023-10-22,2023,20,5436.8,False,False,same layout as 2022 united_states_grand_prix,2022.0,united_states_grand_prix,20.0,0.0,0.0,5434.7,3.0,2.1
+2024,united_states_grand_prix,Austin,2024-10-20,2024,20,5436.5,False,False,same layout as 2023 united_states_grand_prix,2023.0,united_states_grand_prix,20.0,0.0,0.0,5434.7,3.0,1.8
+2025,united_states_grand_prix,Austin,2025-10-19,2025,20,5436.4,False,False,same layout as 2024 united_states_grand_prix,2024.0,united_states_grand_prix,20.0,0.0,0.0,5436.5,3.0,-0.1
+2018,azerbaijan_grand_prix,Baku,2018-04-29,2018,20,5970.6,False,False,first race at Baku in bronze; nothing to compare,,,,,,,,
+2019,azerbaijan_grand_prix,Baku,2019-04-28,2019,20,5966.7,False,False,same layout as 2018 azerbaijan_grand_prix,2018.0,azerbaijan_grand_prix,20.0,0.0,0.0,5970.6,1.0,-3.9
+2021,azerbaijan_grand_prix,Baku,2021-06-06,2021,20,5949.6,False,False,same layout as 2019 azerbaijan_grand_prix,2019.0,azerbaijan_grand_prix,20.0,0.0,0.0,5968.6,2.0,-19.1
+2022,azerbaijan_grand_prix,Baku,2022-06-12,2022,20,5928.9,False,False,same layout as 2021 azerbaijan_grand_prix,2021.0,azerbaijan_grand_prix,20.0,0.0,0.0,5966.7,3.0,-37.8
+2023,azerbaijan_grand_prix,Baku,2023-04-30,2023,20,5936.7,False,False,same layout as 2022 azerbaijan_grand_prix,2022.0,azerbaijan_grand_prix,20.0,0.0,0.0,5949.6,3.0,-12.9
+2024,azerbaijan_grand_prix,Baku,2024-09-15,2024,20,5933.1,False,False,same layout as 2023 azerbaijan_grand_prix,2023.0,azerbaijan_grand_prix,20.0,0.0,0.0,5936.7,3.0,-3.6
+2025,azerbaijan_grand_prix,Baku,2025-09-21,2025,20,5935.0,False,False,same layout as 2024 azerbaijan_grand_prix,2024.0,azerbaijan_grand_prix,20.0,0.0,0.0,5933.1,3.0,1.9
+2018,spanish_grand_prix,Barcelona,2018-05-13,2018,16,4614.5,False,False,first race at Barcelona in bronze; nothing to compare; circuit layout changes at 2023 spanish_grand_prix (marshal-sector count pooled per slug),,,,,,,,
+2019,spanish_grand_prix,Barcelona,2019-05-12,2019,16,4612.7,False,False,same layout as 2018 spanish_grand_prix; circuit layout changes at 2023 spanish_grand_prix (marshal-sector count pooled per slug),2018.0,spanish_grand_prix,16.0,0.0,0.0,4614.5,1.0,-1.8
+2020,spanish_grand_prix,Barcelona,2020-08-16,2020,16,4609.7,False,False,same layout as 2019 spanish_grand_prix; circuit layout changes at 2023 spanish_grand_prix (marshal-sector count pooled per slug),2019.0,spanish_grand_prix,16.0,0.0,0.0,4613.6,2.0,-3.9
+2021,spanish_grand_prix,Barcelona,2021-05-09,2021,16,4661.4,False,False,same layout as 2020 spanish_grand_prix; circuit layout changes at 2023 spanish_grand_prix (marshal-sector count pooled per slug),2020.0,spanish_grand_prix,16.0,0.0,0.0,4612.7,3.0,48.6
+2022,spanish_grand_prix,Barcelona,2022-05-22,2022,16,4622.6,False,False,same layout as 2021 spanish_grand_prix; circuit layout changes at 2023 spanish_grand_prix (marshal-sector count pooled per slug),2021.0,spanish_grand_prix,16.0,0.0,0.0,4612.7,3.0,9.9
+2023,spanish_grand_prix,Barcelona,2023-06-04,2023,14,4630.0,True,True,corner count 16 -> 14 vs 2022 spanish_grand_prix,2022.0,spanish_grand_prix,16.0,209.1,133.4,4622.6,3.0,7.3
+2024,spanish_grand_prix,Barcelona,2024-06-23,2024,14,4624.5,False,False,same layout as 2023 spanish_grand_prix; circuit layout changes at 2023 spanish_grand_prix (marshal-sector count pooled per slug),2023.0,spanish_grand_prix,14.0,0.0,0.0,4630.0,1.0,-5.5
+2025,spanish_grand_prix,Barcelona,2025-06-01,2025,14,4622.4,False,False,same layout as 2024 spanish_grand_prix; circuit layout changes at 2023 spanish_grand_prix (marshal-sector count pooled per slug),2024.0,spanish_grand_prix,14.0,0.0,0.0,4627.3,2.0,-4.8
+2018,hungarian_grand_prix,Budapest,2018-07-29,2018,16,4352.6,False,False,first race at Budapest in bronze; nothing to compare,,,,,,,,
+2019,hungarian_grand_prix,Budapest,2019-08-04,2019,16,4352.7,False,False,same layout as 2018 hungarian_grand_prix,2018.0,hungarian_grand_prix,16.0,0.0,0.0,4352.6,1.0,0.1
+2020,hungarian_grand_prix,Budapest,2020-07-19,2020,16,4358.3,False,False,same layout as 2019 hungarian_grand_prix,2019.0,hungarian_grand_prix,16.0,0.0,0.0,4352.6,2.0,5.7
+2021,hungarian_grand_prix,Budapest,2021-08-01,2021,16,4341.0,False,False,same layout as 2020 hungarian_grand_prix,2020.0,hungarian_grand_prix,16.0,0.0,0.0,4352.7,3.0,-11.6
+2022,hungarian_grand_prix,Budapest,2022-07-31,2022,16,4332.5,False,False,same layout as 2021 hungarian_grand_prix,2021.0,hungarian_grand_prix,16.0,0.0,0.0,4352.7,3.0,-20.2
+2023,hungarian_grand_prix,Budapest,2023-07-23,2023,16,4337.9,False,False,same layout as 2022 hungarian_grand_prix,2022.0,hungarian_grand_prix,16.0,0.0,0.0,4341.0,3.0,-3.2
+2024,hungarian_grand_prix,Budapest,2024-07-21,2024,16,4335.5,False,False,same layout as 2023 hungarian_grand_prix,2023.0,hungarian_grand_prix,16.0,0.0,0.0,4337.9,3.0,-2.3
+2025,hungarian_grand_prix,Budapest,2025-08-03,2025,16,4336.9,False,False,same layout as 2024 hungarian_grand_prix,2024.0,hungarian_grand_prix,16.0,0.0,0.0,4335.5,3.0,1.4
+2018,german_grand_prix,Hockenheim,2018-07-22,2018,17,4561.4,False,False,first race at Hockenheim in bronze; nothing to compare,,,,,,,,
+2019,german_grand_prix,Hockenheim,2019-07-28,2019,17,4568.3,False,False,same layout as 2018 german_grand_prix,2018.0,german_grand_prix,17.0,0.0,0.0,4561.4,1.0,6.8
+2020,emilia_romagna_grand_prix,Imola,2020-11-01,2020,19,4891.8,False,False,first race at Imola in bronze; nothing to compare,,,,,,,,
+2021,emilia_romagna_grand_prix,Imola,2021-04-18,2021,19,4903.4,False,False,same layout as 2020 emilia_romagna_grand_prix,2020.0,emilia_romagna_grand_prix,19.0,0.0,0.0,4891.8,1.0,11.6
+2022,emilia_romagna_grand_prix,Imola,2022-04-24,2022,19,4867.9,False,False,same layout as 2021 emilia_romagna_grand_prix,2021.0,emilia_romagna_grand_prix,19.0,0.0,0.0,4897.6,2.0,-29.7
+2024,emilia_romagna_grand_prix,Imola,2024-05-19,2024,19,4868.3,False,False,same layout as 2022 emilia_romagna_grand_prix,2022.0,emilia_romagna_grand_prix,19.0,0.0,0.0,4891.8,3.0,-23.4
+2025,emilia_romagna_grand_prix,Imola,2025-05-18,2025,19,4872.7,False,False,same layout as 2024 emilia_romagna_grand_prix,2024.0,emilia_romagna_grand_prix,19.0,0.0,0.0,4868.3,3.0,4.4
+2020,turkish_grand_prix,Istanbul,2020-11-15,2020,14,5252.5,False,False,first race at Istanbul in bronze; nothing to compare,,,,,,,,
+2021,turkish_grand_prix,Istanbul,2021-10-10,2021,14,5269.5,False,False,same layout as 2020 turkish_grand_prix,2020.0,turkish_grand_prix,14.0,0.0,0.0,5252.5,1.0,17.0
+2021,saudi_arabian_grand_prix,Jeddah,2021-12-05,2021,27,6096.5,False,False,first race at Jeddah in bronze; nothing to compare,,,,,,,,
+2022,saudi_arabian_grand_prix,Jeddah,2022-03-27,2022,27,6085.8,False,False,same layout as 2021 saudi_arabian_grand_prix,2021.0,saudi_arabian_grand_prix,27.0,0.0,0.0,6096.5,1.0,-10.7
+2023,saudi_arabian_grand_prix,Jeddah,2023-03-19,2023,27,6102.3,False,False,same layout as 2022 saudi_arabian_grand_prix,2022.0,saudi_arabian_grand_prix,27.0,0.0,0.0,6091.1,2.0,11.2
+2024,saudi_arabian_grand_prix,Jeddah,2024-03-09,2024,27,6096.4,False,False,same layout as 2023 saudi_arabian_grand_prix,2023.0,saudi_arabian_grand_prix,27.0,0.0,0.0,6096.5,3.0,-0.1
+2025,saudi_arabian_grand_prix,Jeddah,2025-04-20,2025,27,6095.2,False,False,same layout as 2024 saudi_arabian_grand_prix,2024.0,saudi_arabian_grand_prix,27.0,0.0,0.0,6096.4,3.0,-1.2
+2023,las_vegas_grand_prix,Las Vegas,2023-11-18,2023,17,6138.1,False,False,first race at Las Vegas in bronze; nothing to compare,,,,,,,,
+2024,las_vegas_grand_prix,Las Vegas,2024-11-23,2024,17,6132.0,False,False,same layout as 2023 las_vegas_grand_prix,2023.0,las_vegas_grand_prix,17.0,0.0,0.0,6138.1,1.0,-6.1
+2025,las_vegas_grand_prix,Las Vegas,2025-11-22,2025,17,6137.9,False,False,same layout as 2024 las_vegas_grand_prix,2024.0,las_vegas_grand_prix,17.0,0.0,0.0,6135.0,2.0,2.9
+2018,french_grand_prix,Le Castellet,2018-06-24,2018,15,5783.4,False,False,first race at Le Castellet in bronze; nothing to compare,,,,,,,,
+2019,french_grand_prix,Le Castellet,2019-06-23,2019,15,5779.9,False,False,same layout as 2018 french_grand_prix,2018.0,french_grand_prix,15.0,0.0,0.0,5783.4,1.0,-3.5
+2021,french_grand_prix,Le Castellet,2021-06-20,2021,15,5765.3,False,False,same layout as 2019 french_grand_prix,2019.0,french_grand_prix,15.0,0.0,0.0,5781.7,2.0,-16.4
+2022,french_grand_prix,Le Castellet,2022-07-24,2022,15,5750.4,False,False,same layout as 2021 french_grand_prix,2021.0,french_grand_prix,15.0,0.0,0.0,5779.9,3.0,-29.5
+2021,qatar_grand_prix,Lusail,2021-11-21,2021,16,5383.6,False,False,first race at Lusail in bronze; nothing to compare,,,,,,,,
+2023,qatar_grand_prix,Lusail,2023-10-08,2023,16,5374.7,False,False,corner coordinates shifted 286 m as a whole frame vs 2021 qatar_grand_prix (26 m after rigid alignment): not a layout change,2021.0,qatar_grand_prix,16.0,286.2,25.7,5383.6,1.0,-9.0
+2024,qatar_grand_prix,Lusail,2024-12-01,2024,16,5377.8,False,False,same layout as 2023 qatar_grand_prix,2023.0,qatar_grand_prix,16.0,0.0,0.0,5379.1,2.0,-1.4
+2025,qatar_grand_prix,Lusail,2025-11-30,2025,16,5369.6,False,False,same layout as 2024 qatar_grand_prix,2024.0,qatar_grand_prix,16.0,0.0,0.0,5377.8,3.0,-8.2
+2018,singapore_grand_prix,Marina Bay,2018-09-16,2018,23,5016.9,False,False,"first race at Marina Bay in bronze; nothing to compare; circuit layout changes at 2022 singapore_grand_prix, 2023 singapore_grand_prix (marshal-sector count pooled per slug)",,,,,,,,
+2019,singapore_grand_prix,Marina Bay,2019-09-22,2019,23,5018.2,False,False,"same layout as 2018 singapore_grand_prix; circuit layout changes at 2022 singapore_grand_prix, 2023 singapore_grand_prix (marshal-sector count pooled per slug)",2018.0,singapore_grand_prix,23.0,0.0,0.0,5016.9,1.0,1.4
+2022,singapore_grand_prix,Marina Bay,2022-10-02,2022,19,4992.4,True,True,corner count 23 -> 19 vs 2019 singapore_grand_prix,2019.0,singapore_grand_prix,23.0,498.1,394.7,5017.6,2.0,-25.1
+2023,singapore_grand_prix,Marina Bay,2023-09-17,2023,19,4871.7,True,True,"telemetry lap length 4872 m vs 4992 m (median of previous 1), -121 m",2022.0,singapore_grand_prix,19.0,0.0,0.0,4992.4,1.0,-120.7
+2024,singapore_grand_prix,Marina Bay,2024-09-22,2024,19,4873.2,False,False,"same layout as 2023 singapore_grand_prix; circuit layout changes at 2022 singapore_grand_prix, 2023 singapore_grand_prix (marshal-sector count pooled per slug)",2023.0,singapore_grand_prix,19.0,0.0,0.0,4871.7,1.0,1.5
+2025,singapore_grand_prix,Marina Bay,2025-10-05,2025,19,4874.8,False,False,"same layout as 2024 singapore_grand_prix; circuit layout changes at 2022 singapore_grand_prix, 2023 singapore_grand_prix (marshal-sector count pooled per slug)",2024.0,singapore_grand_prix,19.0,0.0,0.0,4872.5,2.0,2.3
+2019,australian_grand_prix,Melbourne,2019-03-17,2019,14,5273.0,False,False,first race at Melbourne in bronze; nothing to compare; circuit layout changes at 2022 australian_grand_prix (marshal-sector count pooled per slug),,,,,,,,
+2022,australian_grand_prix,Melbourne,2022-04-10,2022,14,5216.4,True,True,"telemetry lap length 5216 m vs 5273 m (median of previous 1), -57 m",2019.0,australian_grand_prix,14.0,0.0,0.0,5273.0,1.0,-56.6
+2023,australian_grand_prix,Melbourne,2023-04-02,2023,14,5229.0,False,False,same layout as 2022 australian_grand_prix; circuit layout changes at 2022 australian_grand_prix (marshal-sector count pooled per slug),2022.0,australian_grand_prix,14.0,0.0,0.0,5216.4,1.0,12.6
+2024,australian_grand_prix,Melbourne,2024-03-24,2024,14,5226.2,False,False,same layout as 2023 australian_grand_prix; circuit layout changes at 2022 australian_grand_prix (marshal-sector count pooled per slug),2023.0,australian_grand_prix,14.0,0.0,0.0,5222.7,2.0,3.5
+2025,australian_grand_prix,Melbourne,2025-03-16,2025,14,5238.1,False,False,same layout as 2024 australian_grand_prix; circuit layout changes at 2022 australian_grand_prix (marshal-sector count pooled per slug),2024.0,australian_grand_prix,14.0,0.0,0.0,5226.2,3.0,11.9
+2018,mexican_grand_prix,Mexico City,2018-10-28,2018,17,4257.4,False,False,first race at Mexico City in bronze; nothing to compare,,,,,,,,
+2019,mexican_grand_prix,Mexico City,2019-10-27,2019,17,4254.9,False,False,same layout as 2018 mexican_grand_prix,2018.0,mexican_grand_prix,17.0,0.0,0.0,4257.4,1.0,-2.5
+2021,mexico_city_grand_prix,Mexico City,2021-11-07,2021,17,4242.6,False,False,same layout as 2019 mexican_grand_prix,2019.0,mexican_grand_prix,17.0,0.0,0.0,4256.1,2.0,-13.5
+2022,mexico_city_grand_prix,Mexico City,2022-10-30,2022,17,4233.5,False,False,same layout as 2021 mexico_city_grand_prix,2021.0,mexico_city_grand_prix,17.0,0.0,0.0,4254.9,3.0,-21.4
+2023,mexico_city_grand_prix,Mexico City,2023-10-29,2023,17,4235.0,False,False,same layout as 2022 mexico_city_grand_prix,2022.0,mexico_city_grand_prix,17.0,0.0,0.0,4242.6,3.0,-7.6
+2024,mexico_city_grand_prix,Mexico City,2024-10-27,2024,17,4239.2,False,False,same layout as 2023 mexico_city_grand_prix,2023.0,mexico_city_grand_prix,17.0,0.0,0.0,4235.0,3.0,4.2
+2025,mexico_city_grand_prix,Mexico City,2025-10-26,2025,17,4235.0,False,False,same layout as 2024 mexico_city_grand_prix,2024.0,mexico_city_grand_prix,17.0,0.0,0.0,4235.0,3.0,-0.0
+2022,miami_grand_prix,Miami,2022-05-08,2022,19,5328.7,False,False,first race at Miami in bronze; nothing to compare,,,,,,,,
+2023,miami_grand_prix,Miami,2023-05-07,2023,19,5340.5,False,False,same layout as 2022 miami_grand_prix,2022.0,miami_grand_prix,19.0,0.0,0.0,5328.7,1.0,11.9
+2024,miami_grand_prix,Miami,2024-05-05,2024,19,5333.8,False,False,same layout as 2023 miami_grand_prix,2023.0,miami_grand_prix,19.0,0.0,0.0,5334.6,2.0,-0.8
+2025,miami_grand_prix,Miami,2025-05-04,2025,19,5335.1,False,False,same layout as 2024 miami_grand_prix,2024.0,miami_grand_prix,19.0,0.0,0.0,5333.8,3.0,1.2
+2018,monaco_grand_prix,Monaco,2018-05-27,2018,19,3290.5,False,False,first race at Monaco in bronze; nothing to compare,,,,,,,,
+2019,monaco_grand_prix,Monaco,2019-05-26,2019,19,3292.9,False,False,same layout as 2018 monaco_grand_prix,2018.0,monaco_grand_prix,19.0,0.0,0.0,3290.5,1.0,2.4
+2021,monaco_grand_prix,Monaco,2021-05-23,2021,19,3282.6,False,False,same layout as 2019 monaco_grand_prix,2019.0,monaco_grand_prix,19.0,0.0,0.0,3291.7,2.0,-9.2
+2022,monaco_grand_prix,Monaco,2022-05-29,2022,19,3271.9,False,False,same layout as 2021 monaco_grand_prix,2021.0,monaco_grand_prix,19.0,0.0,0.0,3290.5,3.0,-18.7
+2023,monaco_grand_prix,Monaco,2023-05-28,2023,19,3278.8,False,False,same layout as 2022 monaco_grand_prix,2022.0,monaco_grand_prix,19.0,0.0,0.0,3282.6,3.0,-3.7
+2024,monaco_grand_prix,Monaco,2024-05-26,2024,19,3281.3,False,False,same layout as 2023 monaco_grand_prix,2023.0,monaco_grand_prix,19.0,0.0,0.0,3278.8,3.0,2.4
+2025,monaco_grand_prix,Monaco,2025-05-25,2025,19,3282.9,False,False,same layout as 2024 monaco_grand_prix,2024.0,monaco_grand_prix,19.0,0.0,0.0,3278.8,3.0,4.1
+2018,canadian_grand_prix,Montréal,2018-06-10,2018,14,4326.7,False,False,first race at Montréal in bronze; nothing to compare,,,,,,,,
+2019,canadian_grand_prix,Montréal,2019-06-09,2019,14,4325.6,False,False,same layout as 2018 canadian_grand_prix,2018.0,canadian_grand_prix,14.0,0.0,0.0,4326.7,1.0,-1.1
+2022,canadian_grand_prix,Montréal,2022-06-19,2022,14,4306.1,False,False,same layout as 2019 canadian_grand_prix,2019.0,canadian_grand_prix,14.0,0.0,0.0,4326.2,2.0,-20.1
+2023,canadian_grand_prix,Montréal,2023-06-18,2023,14,4315.7,False,False,same layout as 2022 canadian_grand_prix,2022.0,canadian_grand_prix,14.0,0.0,0.0,4325.6,3.0,-9.9
+2024,canadian_grand_prix,Montréal,2024-06-09,2024,14,4316.1,False,False,same layout as 2023 canadian_grand_prix,2023.0,canadian_grand_prix,14.0,0.0,0.0,4315.7,3.0,0.4
+2025,canadian_grand_prix,Montréal,2025-06-15,2025,14,4312.9,False,False,same layout as 2024 canadian_grand_prix,2024.0,canadian_grand_prix,14.0,0.0,0.0,4315.7,3.0,-2.8
+2018,italian_grand_prix,Monza,2018-09-02,2018,11,5769.9,False,False,first race at Monza in bronze; nothing to compare,,,,,,,,
+2019,italian_grand_prix,Monza,2019-09-08,2019,11,5770.6,False,False,same layout as 2018 italian_grand_prix,2018.0,italian_grand_prix,11.0,0.0,0.0,5769.9,1.0,0.7
+2020,italian_grand_prix,Monza,2020-09-06,2020,11,5767.9,False,False,same layout as 2019 italian_grand_prix,2019.0,italian_grand_prix,11.0,0.0,0.0,5770.3,2.0,-2.4
+2021,italian_grand_prix,Monza,2021-09-12,2021,11,5750.3,False,False,same layout as 2020 italian_grand_prix,2020.0,italian_grand_prix,11.0,0.0,0.0,5769.9,3.0,-19.7
+2022,italian_grand_prix,Monza,2022-09-11,2022,11,5742.9,False,False,same layout as 2021 italian_grand_prix,2021.0,italian_grand_prix,11.0,0.0,0.0,5767.9,3.0,-25.0
+2023,italian_grand_prix,Monza,2023-09-03,2023,11,5747.4,False,False,same layout as 2022 italian_grand_prix,2022.0,italian_grand_prix,11.0,0.0,0.0,5750.3,3.0,-2.8
+2024,italian_grand_prix,Monza,2024-09-01,2024,11,5743.7,False,False,same layout as 2023 italian_grand_prix,2023.0,italian_grand_prix,11.0,0.0,0.0,5747.4,3.0,-3.8
+2025,italian_grand_prix,Monza,2025-09-07,2025,11,5742.5,False,False,same layout as 2024 italian_grand_prix,2024.0,italian_grand_prix,11.0,0.0,0.0,5743.7,3.0,-1.1
+2020,eifel_grand_prix,Nürburgring,2020-10-11,2020,15,5110.9,False,False,first race at Nürburgring in bronze; nothing to compare,,,,,,,,
+2020,portuguese_grand_prix,Portimão,2020-10-25,2020,15,4616.7,False,False,first race at Portimão in bronze; nothing to compare,,,,,,,,
+2021,portuguese_grand_prix,Portimão,2021-05-02,2021,15,4627.3,False,False,same layout as 2020 portuguese_grand_prix,2020.0,portuguese_grand_prix,15.0,0.0,0.0,4616.7,1.0,10.6
+2019,bahrain_grand_prix,Sakhir,2019-03-31,2019,15,5373.6,False,False,first race at Sakhir in bronze; nothing to compare,,,,,,,,
+2020,bahrain_grand_prix,Sakhir,2020-11-29,2020,15,5373.2,False,False,same layout as 2019 bahrain_grand_prix,2019.0,bahrain_grand_prix,15.0,0.0,0.0,5373.6,1.0,-0.4
+2021,bahrain_grand_prix,Sakhir,2021-03-28,2021,15,5393.9,False,False,same layout as 2020 bahrain_grand_prix,2020.0,bahrain_grand_prix,15.0,0.0,0.0,5373.4,2.0,20.6
+2022,bahrain_grand_prix,Sakhir,2022-03-20,2022,15,5348.5,False,False,same layout as 2021 bahrain_grand_prix,2021.0,bahrain_grand_prix,15.0,0.0,0.0,5373.6,3.0,-25.1
+2023,bahrain_grand_prix,Sakhir,2023-03-05,2023,15,5363.3,False,False,same layout as 2022 bahrain_grand_prix,2022.0,bahrain_grand_prix,15.0,0.0,0.0,5373.2,3.0,-9.9
+2024,bahrain_grand_prix,Sakhir,2024-03-02,2023,15,5360.9,True,False,corners taken from circuit_info season 2023 (fallback),2023.0,bahrain_grand_prix,15.0,0.0,0.0,5363.3,3.0,-2.4
+2025,bahrain_grand_prix,Sakhir,2025-04-13,2025,15,5356.7,False,False,same layout as 2024 bahrain_grand_prix,2024.0,bahrain_grand_prix,15.0,0.0,0.0,5360.9,3.0,-4.2
+2018,chinese_grand_prix,Shanghai,2018-04-15,2018,16,5414.9,False,False,first race at Shanghai in bronze; nothing to compare,,,,,,,,
+2019,chinese_grand_prix,Shanghai,2019-04-14,2019,16,5425.2,False,False,same layout as 2018 chinese_grand_prix,2018.0,chinese_grand_prix,16.0,0.0,0.0,5414.9,1.0,10.3
+2024,chinese_grand_prix,Shanghai,2024-04-21,2024,16,5387.1,False,False,same layout as 2019 chinese_grand_prix,2019.0,chinese_grand_prix,16.0,0.0,0.0,5420.0,2.0,-32.9
+2025,chinese_grand_prix,Shanghai,2025-03-23,2025,16,5376.5,False,False,same layout as 2024 chinese_grand_prix,2024.0,chinese_grand_prix,16.0,0.0,0.0,5414.9,3.0,-38.4
+2018,british_grand_prix,Silverstone,2018-07-08,2018,18,5830.8,False,False,first race at Silverstone in bronze; nothing to compare,,,,,,,,
+2019,british_grand_prix,Silverstone,2019-07-14,2019,18,5834.7,False,False,same layout as 2018 british_grand_prix,2018.0,british_grand_prix,18.0,0.0,0.0,5830.8,1.0,3.9
+2020,british_grand_prix,Silverstone,2020-08-02,2020,18,5835.5,False,False,same layout as 2019 british_grand_prix,2019.0,british_grand_prix,18.0,0.0,0.0,5832.7,2.0,2.8
+2020,70th_anniversary_grand_prix,Silverstone,2020-08-09,2020,18,5829.2,False,False,same layout as 2020 british_grand_prix,2020.0,british_grand_prix,18.0,0.0,0.0,5834.7,3.0,-5.4
+2021,british_grand_prix,Silverstone,2021-07-18,2021,18,5808.5,False,False,same layout as 2020 70th_anniversary_grand_prix,2020.0,70th_anniversary_grand_prix,18.0,0.0,0.0,5834.7,3.0,-26.1
+2022,british_grand_prix,Silverstone,2022-07-03,2022,18,5805.9,False,False,same layout as 2021 british_grand_prix,2021.0,british_grand_prix,18.0,0.0,0.0,5829.2,3.0,-23.3
+2023,british_grand_prix,Silverstone,2023-07-09,2023,18,5813.4,False,False,same layout as 2022 british_grand_prix,2022.0,british_grand_prix,18.0,0.0,0.0,5808.5,3.0,4.9
+2024,british_grand_prix,Silverstone,2024-07-07,2024,18,5819.8,False,False,same layout as 2023 british_grand_prix,2023.0,british_grand_prix,18.0,0.0,0.0,5808.5,3.0,11.3
+2025,british_grand_prix,Silverstone,2025-07-06,2025,18,5834.7,False,False,same layout as 2024 british_grand_prix,2024.0,british_grand_prix,18.0,0.0,0.0,5813.4,3.0,21.4
+2018,russian_grand_prix,Sochi,2018-09-30,2018,18,5815.2,False,False,first race at Sochi in bronze; nothing to compare,,,,,,,,
+2019,russian_grand_prix,Sochi,2019-09-29,2019,18,5811.3,False,False,same layout as 2018 russian_grand_prix,2018.0,russian_grand_prix,18.0,0.0,0.0,5815.2,1.0,-3.9
+2020,russian_grand_prix,Sochi,2020-09-27,2020,18,5811.0,False,False,same layout as 2019 russian_grand_prix,2019.0,russian_grand_prix,18.0,0.0,0.0,5813.3,2.0,-2.3
+2021,russian_grand_prix,Sochi,2021-09-26,2021,18,5794.1,False,False,same layout as 2020 russian_grand_prix,2020.0,russian_grand_prix,18.0,0.0,0.0,5811.3,3.0,-17.3
+2018,belgian_grand_prix,Spa-Francorchamps,2018-08-26,2018,19,6960.5,False,False,first race at Spa-Francorchamps in bronze; nothing to compare,,,,,,,,
+2019,belgian_grand_prix,Spa-Francorchamps,2019-09-01,2019,19,6965.0,False,False,same layout as 2018 belgian_grand_prix,2018.0,belgian_grand_prix,19.0,0.0,0.0,6960.5,1.0,4.5
+2020,belgian_grand_prix,Spa-Francorchamps,2020-08-30,2020,19,6957.2,False,False,same layout as 2019 belgian_grand_prix,2019.0,belgian_grand_prix,19.0,0.0,0.0,6962.7,2.0,-5.5
+2021,belgian_grand_prix,Spa-Francorchamps,2021-08-29,2020,19,6994.5,True,False,corners taken from circuit_info season 2020 (fallback),2020.0,belgian_grand_prix,19.0,0.0,0.0,6960.5,3.0,34.0
+2022,belgian_grand_prix,Spa-Francorchamps,2022-08-28,2022,19,6920.7,False,False,same layout as 2021 belgian_grand_prix,2021.0,belgian_grand_prix,19.0,0.0,0.0,6965.0,3.0,-44.2
+2023,belgian_grand_prix,Spa-Francorchamps,2023-07-30,2023,19,6938.3,False,False,same layout as 2022 belgian_grand_prix,2022.0,belgian_grand_prix,19.0,0.0,0.0,6957.2,3.0,-18.9
+2024,belgian_grand_prix,Spa-Francorchamps,2024-07-28,2024,19,6931.2,False,False,same layout as 2023 belgian_grand_prix,2023.0,belgian_grand_prix,19.0,0.0,0.0,6938.3,3.0,-7.1
+2025,belgian_grand_prix,Spa-Francorchamps,2025-07-27,2025,19,6933.4,False,False,same layout as 2024 belgian_grand_prix,2024.0,belgian_grand_prix,19.0,0.0,0.0,6931.2,3.0,2.2
+2018,austrian_grand_prix,Spielberg,2018-07-01,2018,10,4305.2,False,False,first race at Spielberg in bronze; nothing to compare,,,,,,,,
+2019,austrian_grand_prix,Spielberg,2019-06-30,2019,10,4309.5,False,False,same layout as 2018 austrian_grand_prix,2018.0,austrian_grand_prix,10.0,0.0,0.0,4305.2,1.0,4.3
+2020,austrian_grand_prix,Spielberg,2020-07-05,2020,10,4305.2,False,False,same layout as 2019 austrian_grand_prix,2019.0,austrian_grand_prix,10.0,0.0,0.0,4307.3,2.0,-2.1
+2020,styrian_grand_prix,Spielberg,2020-07-12,2020,10,4307.7,False,False,same layout as 2020 austrian_grand_prix,2020.0,austrian_grand_prix,10.0,0.0,0.0,4305.2,3.0,2.4
+2021,styrian_grand_prix,Spielberg,2021-06-27,2021,10,4294.1,False,False,same layout as 2020 styrian_grand_prix,2020.0,styrian_grand_prix,10.0,0.0,0.0,4307.7,3.0,-13.6
+2021,austrian_grand_prix,Spielberg,2021-07-04,2021,10,4293.5,False,False,same layout as 2021 styrian_grand_prix,2021.0,styrian_grand_prix,10.0,0.0,0.0,4305.2,3.0,-11.7
+2022,austrian_grand_prix,Spielberg,2022-07-10,2022,10,4283.5,False,False,same layout as 2021 austrian_grand_prix,2021.0,austrian_grand_prix,10.0,0.0,0.0,4294.1,3.0,-10.6
+2023,austrian_grand_prix,Spielberg,2023-07-02,2023,10,4293.3,False,False,same layout as 2022 austrian_grand_prix,2022.0,austrian_grand_prix,10.0,0.0,0.0,4293.5,3.0,-0.2
+2024,austrian_grand_prix,Spielberg,2024-06-30,2024,10,4291.4,False,False,same layout as 2023 austrian_grand_prix,2023.0,austrian_grand_prix,10.0,0.0,0.0,4293.3,3.0,-1.9
+2025,austrian_grand_prix,Spielberg,2025-06-29,2025,10,4292.6,False,False,same layout as 2024 austrian_grand_prix,2024.0,austrian_grand_prix,10.0,0.0,0.0,4291.4,3.0,1.2
+2018,japanese_grand_prix,Suzuka,2018-10-07,2018,18,5787.0,False,False,first race at Suzuka in bronze; nothing to compare,,,,,,,,
+2019,japanese_grand_prix,Suzuka,2019-10-13,2019,18,5794.7,False,False,same layout as 2018 japanese_grand_prix,2018.0,japanese_grand_prix,18.0,0.0,0.0,5787.0,1.0,7.7
+2022,japanese_grand_prix,Suzuka,2022-10-09,2022,18,5782.0,False,False,corner coordinates shifted 49 m as a whole frame vs 2019 japanese_grand_prix (27 m after rigid alignment): not a layout change,2019.0,japanese_grand_prix,18.0,48.6,27.2,5790.9,2.0,-8.8
+2023,japanese_grand_prix,Suzuka,2023-09-24,2023,18,5770.2,False,False,same layout as 2022 japanese_grand_prix,2022.0,japanese_grand_prix,18.0,0.0,0.0,5787.0,3.0,-16.8
+2024,japanese_grand_prix,Suzuka,2024-04-07,2024,18,5767.8,False,False,same layout as 2023 japanese_grand_prix,2023.0,japanese_grand_prix,18.0,0.0,0.0,5782.0,3.0,-14.2
+2025,japanese_grand_prix,Suzuka,2025-04-06,2025,18,5771.9,False,False,same layout as 2024 japanese_grand_prix,2024.0,japanese_grand_prix,18.0,0.0,0.0,5770.2,3.0,1.7
+2018,brazilian_grand_prix,São Paulo,2018-11-11,2018,15,4243.9,False,False,first race at São Paulo in bronze; nothing to compare,,,,,,,,
+2019,brazilian_grand_prix,São Paulo,2019-11-17,2019,15,4250.4,False,False,same layout as 2018 brazilian_grand_prix,2018.0,brazilian_grand_prix,15.0,0.0,0.0,4243.9,1.0,6.5
+2021,são_paulo_grand_prix,São Paulo,2021-11-14,2021,15,4234.7,False,False,same layout as 2019 brazilian_grand_prix,2019.0,brazilian_grand_prix,15.0,0.0,0.0,4247.2,2.0,-12.5
+2022,são_paulo_grand_prix,São Paulo,2022-11-13,2021,15,4228.0,True,False,corners taken from circuit_info season 2021 (fallback),2021.0,são_paulo_grand_prix,15.0,0.0,0.0,4243.9,3.0,-15.9
+2023,são_paulo_grand_prix,São Paulo,2023-11-05,2023,15,4240.1,False,False,corner coordinates shifted 325 m as a whole frame vs 2022 são_paulo_grand_prix (11 m after rigid alignment): not a layout change,2022.0,são_paulo_grand_prix,15.0,325.0,10.8,4234.7,3.0,5.5
+2024,são_paulo_grand_prix,São Paulo,2024-11-03,2024,15,4248.0,False,False,same layout as 2023 são_paulo_grand_prix,2023.0,são_paulo_grand_prix,15.0,0.0,0.0,4234.7,3.0,13.3
+2025,são_paulo_grand_prix,São Paulo,2025-11-09,2025,15,4231.9,False,False,same layout as 2024 são_paulo_grand_prix,2024.0,são_paulo_grand_prix,15.0,0.0,0.0,4240.1,3.0,-8.2
+2018,abu_dhabi_grand_prix,Yas Island,2018-11-25,2018,21,5499.3,False,False,first race at Yas Island in bronze; nothing to compare; circuit layout changes at 2021 abu_dhabi_grand_prix (marshal-sector count pooled per slug),,,,,,,,
+2019,abu_dhabi_grand_prix,Yas Island,2019-12-01,2019,21,5505.0,False,False,same layout as 2018 abu_dhabi_grand_prix; circuit layout changes at 2021 abu_dhabi_grand_prix (marshal-sector count pooled per slug),2018.0,abu_dhabi_grand_prix,21.0,0.0,0.0,5499.3,1.0,5.7
+2020,abu_dhabi_grand_prix,Yas Island,2020-12-13,2020,21,5500.3,False,False,same layout as 2019 abu_dhabi_grand_prix; circuit layout changes at 2021 abu_dhabi_grand_prix (marshal-sector count pooled per slug),2019.0,abu_dhabi_grand_prix,21.0,0.0,0.0,5502.1,2.0,-1.8
+2021,abu_dhabi_grand_prix,Yas Island,2021-12-12,2021,16,5214.1,True,True,"corner count 21 -> 16 vs 2020 abu_dhabi_grand_prix; telemetry lap length 5214 m vs 5500 m (median of previous 3), -286 m",2020.0,abu_dhabi_grand_prix,21.0,1548.0,1055.4,5500.3,3.0,-286.2
+2022,abu_dhabi_grand_prix,Yas Island,2022-11-20,2022,16,5205.6,False,False,same layout as 2021 abu_dhabi_grand_prix; circuit layout changes at 2021 abu_dhabi_grand_prix (marshal-sector count pooled per slug),2021.0,abu_dhabi_grand_prix,16.0,0.0,0.0,5214.1,1.0,-8.6
+2023,abu_dhabi_grand_prix,Yas Island,2023-11-26,2023,16,5218.4,False,False,same layout as 2022 abu_dhabi_grand_prix; circuit layout changes at 2021 abu_dhabi_grand_prix (marshal-sector count pooled per slug),2022.0,abu_dhabi_grand_prix,16.0,0.0,0.0,5209.9,2.0,8.5
+2024,abu_dhabi_grand_prix,Yas Island,2024-12-08,2024,16,5215.7,False,False,same layout as 2023 abu_dhabi_grand_prix; circuit layout changes at 2021 abu_dhabi_grand_prix (marshal-sector count pooled per slug),2023.0,abu_dhabi_grand_prix,16.0,0.0,0.0,5214.1,3.0,1.6
+2025,abu_dhabi_grand_prix,Yas Island,2025-12-07,2025,16,5216.4,False,False,same layout as 2024 abu_dhabi_grand_prix; circuit layout changes at 2021 abu_dhabi_grand_prix (marshal-sector count pooled per slug),2024.0,abu_dhabi_grand_prix,16.0,0.0,0.0,5215.7,3.0,0.7
+2021,dutch_grand_prix,Zandvoort,2021-09-05,2021,14,4228.7,False,False,first race at Zandvoort in bronze; nothing to compare,,,,,,,,
+2022,dutch_grand_prix,Zandvoort,2022-09-04,2022,14,4221.0,False,False,same layout as 2021 dutch_grand_prix,2021.0,dutch_grand_prix,14.0,0.0,0.0,4228.7,1.0,-7.7
+2023,dutch_grand_prix,Zandvoort,2023-08-27,2023,14,4231.6,False,False,same layout as 2022 dutch_grand_prix,2022.0,dutch_grand_prix,14.0,0.0,0.0,4224.8,2.0,6.8
+2024,dutch_grand_prix,Zandvoort,2024-08-25,2024,14,4227.3,False,False,same layout as 2023 dutch_grand_prix,2023.0,dutch_grand_prix,14.0,0.0,0.0,4228.7,3.0,-1.3
+2025,dutch_grand_prix,Zandvoort,2025-08-31,2025,14,4227.3,False,False,same layout as 2024 dutch_grand_prix,2024.0,dutch_grand_prix,14.0,0.0,0.0,4227.3,3.0,-0.0

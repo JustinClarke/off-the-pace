@@ -1,0 +1,468 @@
+WC-01 (Phase 0, wake-calibration): per-corner pass table, coverage counts
+==========================================================================
+
+Date run:       2026-10-27 (full build started 2026-10-27T12:15:53+04:00, local machine clock)
+Commit (HEAD):  63d13dddce4c0b7a32c298f8702e7e358c36ad07
+                The builder and its tests are UNCOMMITTED working-tree files on top of this commit:
+                  transform/tasks/wake_calibration/build_pass_table.py   sha256 d6615439623c1eea8126e1e3b48ca6082cc8859fc6f504b9688e1fdcaa9b2f36
+                  transform/tasks/wake_calibration/tests/test_build_pass_table.py
+                  transform/tasks/wake_calibration/__init__.py, tests/__init__.py
+
+Commands (from /Users/justin/github/off-the-pace/transform):
+  ../.venv/bin/python -m pytest tasks/wake_calibration -q
+      -> 24 passed in 0.23s
+  ../.venv/bin/python -m tasks.wake_calibration.build_pass_table \
+      --out /private/tmp/claude-501/-Users-justin-github-off-the-pace/018e30a7-241a-47f3-8390-a6836b3dce79/scratchpad/wc01/full --workers 4
+      -> 173 race folders, 169 built, 4 skipped, 0 failed; 41.5 s wall (real 41.78 s, user 158.3 s)
+  ../.venv/bin/python _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/counts.py <scratch out> <this folder>
+      -> counts_by_season.csv, passes_by_corner_class.csv, races.csv, circuit_info_fallbacks.csv
+
+Bronze read (read-only, parquet), under /Users/justin/github/off-the-pace/data/bronze/:
+  laps/season=<YYYY>/race=<slug>/*.parquet           (race laps; session=Q subfolders not read)
+  telemetry/season=<YYYY>/race=<slug>/telemetry.parquet
+  track_status/season=<YYYY>/race=<slug>/track_status.parquet
+  race_control/season=<YYYY>/race=<slug>/race_control.parquet
+  weather/season=<YYYY>/race=<slug>/weather.parquet
+  circuit_info/season=<YYYY±1>/race=<slug>/*.parquet
+  Seasons 2018-2025. transform/models/intermediate/ (listed as a source on WC-01) was NOT read.
+
+Scratch output (not in the repo):
+  /private/tmp/claude-501/-Users-justin-github-off-the-pace/018e30a7-241a-47f3-8390-a6836b3dce79/scratchpad/wc01/full/
+    pass_table_2018.parquet ... pass_table_2025.parquet (2,927,753 rows), races.csv
+  sha256:
+    7c841ec85d7aa5bb721e7196b1dd999c2fe8a560c05419fccc47eb1aa5039097  pass_table_2018.parquet
+    2face82cf36342933bd43db04ee2cb06692e0945cdf0c8b47e9b4e7f6d892efe  pass_table_2019.parquet
+    711c974323925e726c7782eb6227c76135d3058fc9c8781fe2cc7a0d0a72a2e5  pass_table_2020.parquet
+    36970db2b006aab021136d4b2f8b438e5943d30397a9da963b5227b25e7799ec  pass_table_2021.parquet
+    4e61219be326bbcdd911d5abb91eca45e62e84570dcf472e3bf65c65e7dde5e4  pass_table_2022.parquet
+    82fbfedb5aad4eda42b482a910accb771efac430750a387b9f1ad2675cb3bf81  pass_table_2023.parquet
+    d6d1374e886c5515d0e3baf39e6807de5bd275318f97deeb861aea0dc4401f8b  pass_table_2024.parquet
+    42d2f635ac97f9687bab47fce780d9fdcaba83ee0bcdcb4843f0fe9d6b91b9df  pass_table_2025.parquet
+
+What was NOT done:
+  - No coefficient, curve, loss estimate or gate was computed. Counts and exclusions only.
+    (delta_time_s = segment time minus the own-reference median is stored per pass as a column; it was
+    not aggregated, modelled or summarised anywhere.)
+  - data/dev.duckdb and data/ci.duckdb were not opened or written (mtimes unchanged: Oct 26 12:12 / 12:29).
+  - No number from the archived dirty-air method (DA-03) is used anywhere.
+  - Nothing committed or pushed.
+
+Parameter constants (copied from build_pass_table.py):
+  GAP_LOOKBACK_M = 300.0          gap averaged from 300 m ...
+  GAP_NEAREST_M = 50.0            ... to 50 m before the segment start
+  GAP_STEP_M = 10.0               (26 samples)
+  MIN_GAP_SAMPLES = 5
+  SEGMENT_AFTER_APEX_M = 100.0
+  BRAKE_LOOKBACK_M = 300.0
+  APEX_MAX_XY = 400.0             (X/Y units are 1/10 m in both telemetry and circuit_info -> 40 m)
+  FLAT_KINK_BRAKE_SHARE = 0.5
+  CAR_AHEAD_MAX_S = 30.0
+  CLEAN_AHEAD_GAP_S = 3.0
+  CLEAN_BEHIND_GAP_S = 1.0
+  LAPPED_GAP_S = 3.0
+  REF_HALF_WINDOW_LAPS = 4
+  REF_MIN_N = 2
+  RESTART_SKIP_LAPS = 2
+  CLASS_BOUNDS_KPH = (120.0, 200.0)
+  NEUTRAL_STATUS = {"2","4","5","6","7"}   RESTART_ENDS_STATUS = {"4","5","6","7"}
+  WET_COMPOUNDS = {"INTERMEDIATE","WET"}
+  CIRCUIT_FALLBACK_SEASONS = (-1, 1)   CIRCUIT_MATCH_MIN = 0.9   CIRCUIT_MATCH_SKIP = 0.5
+
+Skipped races (4; see races.csv):
+  2018 australian_grand_prix   no telemetry in bronze (known gap, data/README.md)
+  2018 bahrain_grand_prix      no telemetry in bronze (known gap)
+  2020 sakhir_grand_prix       circuit_info empty, no same-slug circuit_info in 2019-2021
+  2020 tuscan_grand_prix       circuit_info empty, no same-slug circuit_info in 2019-2021
+
+Data defects found in bronze (worked around, not fixed in bronze):
+  - race_control.session_time_s is the TIME OF DAY in seconds, not session time (checked on every race:
+    it equals the message timestamp's seconds since midnight). Blue flags are therefore placed in session
+    time as Time - median(LapStartDate - LapStartTime) from the laps parquet.
+  - circuit_info missing/empty: 2021 belgian (used 2020), 2024 bahrain (used 2023, empty schema).
+  - circuit_info 2022 são_paulo is in a different X/Y frame from that race's telemetry (3 of 15 corners
+    within 40 m); the 2021 circuit_info matches 100% and was used. See circuit_info_fallbacks.csv.
+  - Telemetry: the last sample of a lap and the first of the next often share a SessionTime; samples are
+    sorted by (lap, time) so the distance axis is not corrupted.
+  - 2018/2019 french_grand_prix: 2 of 15 circuit_info corners (2, 8) are never within 40 m of the line
+    (circuit_match 0.867); those corners have no passes.
+
+ASSUMPTIONS AND BUILDER CHOICES - each is a builder choice for the owner to review
+  1. REF_MIN_N = 2: a pass has a "measured" reference when at least 2 own clean passes are in the window.
+     The spec does not give a minimum. Reference value = median of donor segment times.
+  2. Corner class from the median apex speed of clear-air passes in that race (no car ahead within 3 s at
+     the apex, lap not neutralised/restart/pit). Speed at the nearest sample to the circuit_info corner
+     point. Segments and classes are built per race, not once per circuit layout across seasons.
+  3. Segment start ("braking point") is the corner's median brake onset (last rising edge of the brake
+     signal within 300 m before the apex) over the same clear-air passes, fixed per corner per race, so
+     every pass of a corner is timed over the same distance window relative to its apex. The per-pass
+     brake onset is stored (brake_offset_m) but not used to cut the segment.
+  4. Flat kinks: a corner where fewer than 50% of clear-air passes have a brake onset is a flat kink;
+     its passes carry reason "flat_kink" and get no segment (the spec merges kinks with the straight, and
+     straights are not part of this table). 666 of 2,812 race-corners; 508,254 passes.
+  5. Leader (car ahead) = the latest apex at the same corner by another car within 30 s before the
+     follower's apex (on-track crossing order at the apex, not FastF1 DriverAhead). Car behind within 1 s
+     = another car's apex within 1 s after the follower's apex.
+  6. Gap = mean over 26 points of (follower time at d) - (leader time at d), d running 300 m to 50 m
+     before the segment start, each car's distance measured from its own apex. Can be negative when the
+     order changed inside the gap window (a pass); 10,504 kept passes have a negative gap; none is clean.
+  7. Tags: "lapped" when the leader is on a lower lap number and the gap is under 3 s; "yielding" when a
+     BLUE flag for the follower's number falls inside the follower's lap; "lapped+yielding" when both.
+     Tags do not exclude. Yielding passes are never used as reference donors.
+  8. Deleted laps (laps.Deleted) are NOT excluded, because the spec does not list them.
+  9. Leader pit check uses the leader's lap number at its apex of that corner (pit in or out on that lap).
+ 10. Neutralised = the follower's lap [LapStartTime, Time] overlaps any track status 2 (yellow anywhere),
+     4 (SC), 5 (red), 6 (VSC) or 7 (VSC ending). Track status 2 is a whole-track yellow signal, so any
+     local yellow excludes the whole lap for everyone (broader than "yellow-sector laps").
+ 11. Restart = the end of a 4/5/6/7 period; the driver's first 2 laps STARTING at or after it are
+     excluded (the lap running across the restart is already neutralised).
+ 12. Wet = compound INTERMEDIATE or WET, or weather rainfall_flag true at any sample inside the lap.
+ 13. Lap 1 and each driver's last lap never produce a pass: a lap needs the laps either side in the
+     telemetry so the windows can cross the line. So reason lap_1 counts 0 by construction.
+ 14. OffTrack: exclusion fires when any telemetry Status != OnTrack in [segment start - 300 m,
+     apex + 100 m] for the follower or leader. In bronze, OffTrack samples are almost all on lap 1 (the
+     grid); 1,655 samples sit on later laps. After the higher-priority reasons the off_track count is 0.
+     The check does NOT detect track-limits excursions.
+ 15. Compound None / nan / empty -> "UNKNOWN"; references match on the stored compound string, and a pass
+     with no stint number gets no reference.
+ 16. circuit_info fallback: if the race's own corners match the telemetry for under 90% of (lap, corner)
+     checks, or are missing, the same race slug's circuit_info from the season before or after is used;
+     the source season and the match share are stored per pass (circuit_info_season, circuit_match).
+
+
+==========================================================================
+2026-10-27 (second pass, "b"): flat-out corners, track-limits laps, sector-yellow measure
+==========================================================================
+
+Date run:       2026-10-27 (full build about 12:40+04:00, local machine clock)
+Base commit:    63d13dddce4c0b7a32c298f8702e7e358c36ad07 (HEAD, unchanged). Builder, tests and this
+                folder are still UNCOMMITTED working-tree files on top of it.
+                  build_pass_table.py        sha256 b13dfa3dccaad6bed2d5ee61d346fe99d6041b637099cc98eaf65da0fde0d477
+                                             (was d6615439623c1eea8126e1e3b48ca6082cc8859fc6f504b9688e1fdcaa9b2f36)
+                  tests/test_build_pass_table.py sha256 a989ae297eae794193494b5ca7e7dda9dd5c928d14101e47745afa863973d2d1
+
+What changed (owner asked for A and B; C is measure-only):
+  A. Flat-out corners are kept. A corner where fewer than FLAT_KINK_BRAKE_SHARE (0.5) of clear-air
+     passes brake no longer gets reason "flat_kink" (reason removed). Its segment starts a fixed
+     FLAT_SEGMENT_BEFORE_APEX_M = 100 m before the apex and ends 100 m after it, as before; new column
+     segment_basis = "fixed_before_apex" (flat) or "brake_onset" (braking), so the two stay separable.
+     Braking corners are untouched (0 passes changed segment start).
+     Options ruled out: (ii) throttle lift / speed drop from the car's own trace - on an 8-race sample
+     (2018 ITA, 2019 GBR, 2021 SAU, 2022 BEL, 2023 JPN, 2024 MON, 2024 LVG, 2025 HUN), only 26 of 46
+     flat corners show a throttle dip under 95% on at least half their clear passes; the other 20 are
+     flat with no lift either, so a lift rule leaves the same hole and adds a noisy threshold. (iii)
+     labelled-but-excluded subset - keeps the hole the owner wants closed. segment_basis gives the
+     labelling of (iii) without the exclusion.
+     Gap window for a flat corner: 400 m to 150 m before the apex; outcome window -100 m to +100 m.
+     They do not overlap (50 m clear), by construction and by test.
+     New reason "no_segment": a corner with no clear-air pass in the race, so no start can be set
+     (previously such a corner was silently labelled flat_kink). Fires 0 times in 2018-2025.
+  B. Track-limits laps excluded: new reason "track_limits" = laps.Deleted is true and DeletedReason
+     contains "TRACK LIMITS" (TRACK_LIMITS_TEXT). Priority: after "wet", before "no_segment"/"off_track".
+     DeletedReason values found in bronze race laps, 2018-2025 (all Deleted=True rows):
+       TRACK LIMITS AT TURN <n>                     2019 15, 2020 220, 2021 183, 2022 15
+       TRACK LIMITS AT TURN <n> LAP <n>             2022 217, 2023 366, 2024 314, 2025 299
+       TRACK LIMITS AT TURN <n> (NEXT LAP)          2022 22, 2023 28, 2024 9
+       TRACK LIMITS AT TURN <n> LAP <n> (NEXT LAP)  2024 1
+       TRACK LIMITS AT PIT ENTRY LAP <n>            2024 2
+     Every deleted race lap is a track-limits deletion; 2018 has none (no deletions recorded in bronze
+     race laps), 2019 has 15. Coverage of track-limits exclusion is therefore uneven by season.
+     The off_track rule is kept; it has been found not to fire in practice (0 passes again in this build).
+  C. Diagnostics only, rule unchanged: columns yellow_only (lap neutralised by track status 2 but by no
+     SC/VSC/red), reason_if_no_yellow (the reason the pass would carry if status 2 did not neutralise),
+     leader_track_limits (the car ahead was on a track-limits-deleted lap; NOT an exclusion).
+
+Commands (from /Users/justin/github/off-the-pace/transform):
+  ../.venv/bin/python -m pytest tasks/wake_calibration -q
+      -> 31 passed in 0.22s
+  ../.venv/bin/python -m tasks.wake_calibration.build_pass_table \
+      --out /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01b/full --workers 4
+      -> 173 race folders, 169 built, 4 skipped (same 4 as before), 0 failed; 44.4 s wall
+         (full_build_2026-10-27b.log)
+  ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/counts.py <scratch full> <this folder>
+      -> counts_by_season.csv (REPLACED: now this build), exclusion_reasons_by_season.csv (new),
+         exclusion_reasons_by_segment_basis.csv (new), passes_by_corner_class.csv, races.csv,
+         circuit_info_fallbacks.csv (unchanged rows)
+  ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/compare_builds.py \
+      /private/tmp/claude-501/-Users-justin-github-off-the-pace/018e30a7-241a-47f3-8390-a6836b3dce79/scratchpad/wc01/full <scratch full> <this folder>
+      -> reason_transition.csv (before = the first build above, code sha d6615439...; join on season, race,
+         driver, lap, corner_id: 2,927,753 both, 0 unmatched)
+  ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/sector_yellow_measure.py <scratch full> <this folder>
+      -> sector_yellow_measure.csv
+
+Scratch output: /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01b/full/
+  2,927,753 rows (same passes as before; only reasons and columns changed). sha256:
+    713d98ac497820e9d13ca83a75f67c687d60a171fd31ba0c34b798984e70bea4  pass_table_2018.parquet
+    9057525eea5c60a4f783b9a9d1ab5650f915b1b4bddac8317710436ac8b901ac  pass_table_2019.parquet
+    db77232cd0d3d1c0a490ead8d01f70185341c53b5ee8db881da47edc2546b321  pass_table_2020.parquet
+    55235061adf81b17e051a55691f7393ff4db2b7dd5b8c4396c5556f1a29e77db  pass_table_2021.parquet
+    c51537f9872acc6d94d3bb122669cebb868cb93653c92354f41264ea638f4c79  pass_table_2022.parquet
+    66175c6468ebf47b989f953678ea0bf6b76c423f88fd714d4a57ccca662f5bad  pass_table_2023.parquet
+    6a62925dc530bda6c07e325361d35d411e6bb50f993a7c54bb7f927d141d5efa  pass_table_2024.parquet
+    6494b657e4a5b099b5b3d41887bddbba9c4131f56b08c7edea280c8a2f408aba  pass_table_2025.parquet
+
+Before -> after (all seasons):
+  excluded 1,283,902 -> 795,116; kept 1,643,851 -> 2,132,637; measured reference 802,133 -> 1,038,591;
+  no clean reference 841,718 -> 1,094,046; share measured of kept 48.8% -> 48.7%.
+  Former flat_kink 508,254: 502,769 now kept, 5,465 track_limits, 20 no_gap.
+  Previously kept 1,643,851: 13,983 now track_limits. Former no_gap 192: 191 no_gap, 1 track_limits.
+  track_limits total 19,449 (2019 202, 2020 2,238, 2021 2,140, 2022 2,904, 2023 4,763, 2024 3,544, 2025 3,658).
+  Kept passes whose car ahead was on a track-limits lap (not excluded): 18,021.
+  Correction to the first section: flat race-corners were 687 of 2,812, not 666 (recounted on both builds).
+
+Task C measure (sector_yellow_measure.csv; counts only, current rule unchanged):
+  LIMIT: bronze circuit_info has corner positions only, no marshal-sector positions (ingestion's
+  _write_circuit_info writes circuit.corners only, although its docstring says marshal sectors). The
+  corner's marshal sector is APPROXIMATED by even spacing: n = highest race_control Sector for the slug
+  over 2018-2025, sector = floor(n * corner Distance / median telemetry lap length) + 1. Sector yellow =
+  race_control Scope == Sector, Flag YELLOW or DOUBLE YELLOW, until CLEAR in that sector or a Track
+  CLEAR/GREEN/CHEQUERED. Candidate rule: exclude the pass if a sector yellow in k is active during the lap
+  and the corner is in k or k+1.
+  All seasons: neutralised now 303,203; of these 98,309 are yellow-only (no SC/VSC/red on the lap);
+  33,906 of those would still be excluded for another reason. Upper bound moving to kept: 64,403.
+  Under the k/k+1 rule: 55,842 move to kept, 8,561 stay excluded; with a wide band (k-1..k+2) to absorb
+  a one-sector misassignment: 48,180 move to kept. Pass-time variant (yellow active from 10 s before the
+  segment start to its end, sector k/k+1): 61,542. 83 yellow-only passes have no sector message on the
+  lap at all. 743 passes kept now would become excluded under the k/k+1 rule (4,403 with the wide band),
+  700 of the 743 in 2023 - sector yellows with no track status 2 on the lap; not explained further.
+
+ASSUMPTIONS AND BUILDER CHOICES ADDED IN THIS PASS - each is a choice for the owner to review
+ 17. FLAT_SEGMENT_BEFORE_APEX_M = 100 m: flat-out corners start a fixed 100 m before the apex (symmetric
+     with the 100 m after). For reference, braking-corner median brake onset by class is 101 m (slow),
+     112 m (medium), 146 m (fast) before the apex. Flat-out corners keep FLAT_KINK_BRAKE_SHARE = 0.5 as
+     the test for "flat", and keep corner_class from apex speed (671 of the 687 are "fast").
+     Physics note for WC-03: on a flat-out segment a following car can GAIN from the tow, so these passes
+     may measure slipstream more than wake loss; segment_basis lets the estimator split or drop them.
+ 18. track_limits excludes the follower's own flagged lap only. For "(NEXT LAP)" reasons the flagged lap
+     is excluded, not the lap before it. A Deleted lap with a non-track-limits reason would not be
+     excluded (none exist). The leader's track-limits lap does not exclude the follower (column
+     leader_track_limits, 18,021 kept passes) - the owner may want it to, like pit_lap_leader.
+ 19. no_segment reason (corner with no clear-air pass in the race) replaces the old silent flat_kink
+     label for that case.
+ 20. Observation, not changed: adjacent corners' outcome windows overlap. 47% of kept brake_onset passes
+     and 28% of kept fixed_before_apex passes start inside the previous corner's outcome window (same
+     driver, time order), so passes of neighbouring corners are not independent.
+
+What was NOT done (unchanged): no coefficient, curve, loss or gate number computed or shown;
+data/dev.duckdb and data/ci.duckdb not opened (mtimes Oct 26 12:12 / 12:29); bronze read-only; no
+archived DA-03 number used; nothing committed or pushed. The WC-01 spec text ("flat kinks merged with
+the straight") was not edited - it now differs from the builder and is the owner's to update.
+
+
+==========================================================================
+2026-10-27 (third pass, "c"): sector-yellow rule adopted; spec aligned; tow check
+==========================================================================
+
+Date run:       2026-10-27 (full build 13:05-13:10+04:00, local machine clock)
+Base commit:    63d13dddce4c0b7a32c298f8702e7e358c36ad07 (HEAD, unchanged). Builder, tests and this folder
+                are still UNCOMMITTED working-tree files on top of it.
+                  build_pass_table.py            sha256 ea41af04ee8d5e9ae5502d310018d109801afe8634d73526e22a81449fe8d713
+                                                 (was b13dfa3dccaad6bed2d5ee61d346fe99d6041b637099cc98eaf65da0fde0d477)
+                  tests/test_build_pass_table.py sha256 f8b4719a5bca81fb51e6ffb6b40c23426ceeee7c8dc55213bf2e8e0016e3c22b
+
+Owner rulings implemented (decided, 2026-10-27):
+  (a) Yellow by sector. Track status 2 no longer neutralises the whole lap; SC, VSC and red (4/5/6/7) still
+      do (reason "neutralised"). New reason "yellow_sector" (priority right after "neutralised"): a
+      race_control message Scope == Sector, Flag YELLOW or DOUBLE YELLOW, in marshal sector k, active at any
+      time during the follower's lap [LapStartTime, Time], excludes the passes whose corner is in sector k
+      (the affected sector) or k+1 (the following sector; the last sector wraps to 1). Read as "affected
+      plus following", not "following only": the yellow is shown in k and the incident is in k, so k is
+      the sector most affected; k+1 is added because drivers are still slowing/recovering there.
+      All 1,338 yellow messages in bronze race_control are Scope == Sector (none Track or Driver).
+      LIMIT: bronze has NO marshal-sector positions (circuit_info has corners only). The corner's sector is
+      APPROXIMATED by even spacing: n = highest race_control Sector for the slug over 2018-2025; sector =
+      floor(n * circuit_info Distance / median telemetry lap length) + 1 (column marshal_sector). Real
+      marshal sectors are not equal, so corners near a boundary can be put in the neighbour. The exact
+      rule needs marshal-sector positions re-ingested from FastF1 circuit_info (not done; bronze read-only).
+      Interval end: CLEAR in that sector, a Track CLEAR/GREEN/CHEQUERED, or a track status AllClear (1),
+      whichever is first. Messages sharing a timestamp keep the feed order (race_control "index").
+      Corner layout (segment start, class) is still built from laps with no track status 2 at all, so it
+      is unchanged: segment start identical on all 2,927,753 passes vs pass b.
+      Diagnostic columns yellow_only and reason_if_no_yellow are replaced by marshal_sector and
+      ts_yellow_on_lap (track status 2 overlapped the lap; not an exclusion).
+  (b) Track-limit scope: unchanged (follower's flagged lap excluded; leader's only in leader_track_limits).
+  (c) wi/WC-01-data-and-reference.md edited to match the build (segment_basis, fixed 100 m start,
+      no flat_kink, no_segment, track_limits, sector yellow).
+
+Commands (from /Users/justin/github/off-the-pace/transform):
+  ../.venv/bin/python -m pytest tasks/wake_calibration -q                  -> 36 passed in 0.24s
+  ../.venv/bin/python -m tasks.wake_calibration.build_pass_table \
+      --out /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01c/full --workers 4
+      -> 173 race folders, 169 built, 4 skipped (same 4), 0 failed; 45.2 s (full_build_2026-10-27c.log)
+  ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/counts.py <wc01c/full> <this folder>
+      -> counts_by_season.csv, exclusion_reasons_by_season.csv, exclusion_reasons_by_segment_basis.csv,
+         passes_by_corner_class.csv, races.csv, circuit_info_fallbacks.csv (all REPLACED: now pass c)
+  ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/sector_yellow_reconcile.py \
+      <wc01b/full> <wc01c/full> <this folder>
+      -> reason_transition_2026-10-27c.csv, sector_yellow_reconcile.csv, sector_yellow_kept_to_excluded.csv
+  ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/tow_exposure.py <wc01c/full> tow_exposure_2026-10-27c.csv
+  (reason_transition.csv and sector_yellow_measure.csv are pass b evidence, kept as they were.)
+
+Scratch output: /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01c/full/
+  2,927,753 rows (same passes as pass b; join 0 unmatched). sha256:
+    734cbfa09ebcbf2d7f5209382cb90279ceeb04ae5304502127a116d566e47303  pass_table_2018.parquet
+    79c15065d10a5f531fd8bd071abc13229ac551d6dff4a1b54cdede5615576641  pass_table_2019.parquet
+    41296b67a3110c9a757b06c0a1b4e4e99942d1ad849cfa58e63cedb1d4c733bd  pass_table_2020.parquet
+    f993c2e098c1dde5b82099971e163c7e16ed0f2f42b7440744c79f70bffd7365  pass_table_2021.parquet
+    7069e53eef4f2b934c012489cc4b321760efef12d216961add2f456d7ac1d40a  pass_table_2022.parquet
+    3aeb7f4eca14e1c0ebb36059b6f83be26a1cebaade7657e6e5152ba0a4cf6c07  pass_table_2023.parquet
+    bf0aaee6b600d76b57bea4b6560471118f574759cd45533bf43cc63abc562c80  pass_table_2024.parquet
+    58d0bba14b4ed2f91bfd01d5323929fb95c5b3c233165bc90fbb0c54e5783759  pass_table_2025.parquet
+
+Before (pass b) -> after (pass c), all seasons:
+  excluded 795,116 -> 739,269; kept 2,132,637 -> 2,188,484 (+55,847 net); measured reference
+  1,038,591 -> 1,071,162; no clean reference 1,094,046 -> 1,117,322; share measured of kept 48.7% -> 48.9%.
+  neutralised 303,203 -> 204,894 (SC/VSC/red only); yellow_sector 14,253 (new).
+  Of the 303,203 pass-b neutralised: 55,872 now kept, 204,894 neutralised, 14,222 yellow_sector, 6,555
+  restart, 5,222 pit_lap, 3,465 pit_lap_leader, 12,110 wet, 863 track_limits.
+  Of the 2,132,637 pass-b kept: 25 now yellow_sector. 6 passes move restart/pit_lap_leader/wet ->
+  yellow_sector (priority only).
+
+Reconciliation with the pass b estimate (55,842 to kept; 743 kept -> excluded), sector_yellow_reconcile.csv:
+  v0 = pass b measure logic re-run on pass c's sector mapping reproduces 55,842 and 743 exactly, so the
+  mapping is identical; the difference is two defects in that measure's interval logic, both fixed here:
+   1. Same-second YELLOW/CLEAR ordering (+25 to kept; 743 -> 183). The measure sorted messages by time
+      with a non-stable sort, so a CLEAR logged in the same second as its YELLOW could come first and the
+      yellow stayed open. 2023 bahrain: YELLOW and CLEAR in sector 4 both at 15:04:09 (lap 1); the yellow
+      stayed open until TRACK CLEAR on lap 42 and excluded sectors 4-5 on laps 3-41 (560 passes).
+   2. Missing CLEAR, closed by track status AllClear (+5 to kept; 183 -> 25). 2023 azerbaijan: DOUBLE
+      YELLOW sector 3 re-issued at 11:05:23 (lap 1), same second as a CLEAR in sector 2, never cleared
+      until TRACK CLEAR at lap 13, while track status shows AllClear 0.85 s later (136 passes, laps 2-9).
+      2024 qatar (19): race_control CLEAR in sector 2 arrives 1-2 laps after track status AllClear.
+      2025 azerbaijan (3): also closed earlier by a track status AllClear (not inspected further).
+  So the "700 in 2023 not explained" were 560 (bahrain, ordering) + 136 (azerbaijan, missing CLEAR) + 4
+  others; they were measure artefacts, not real yellows. Built: 55,872 to kept, 25 kept -> excluded.
+  The 25 remaining are 1-3 passes in each of 13 races: sector yellows overlapping the lap with no track
+  status 2 inside the lap. Not inspected one by one.
+
+ASSUMPTIONS AND BUILDER CHOICES ADDED IN THIS PASS - for the owner to review
+ 21. Sector yellow is tested at lap level (active at any time during the follower's lap), as in the pass b
+     measure the owner ruled on. A pass-time variant (active from ~10 s before the segment to its end)
+     would release more passes (pass b measure: 61,542 vs 55,842); not adopted.
+ 22. A sector yellow also ends at the first track status AllClear after it starts. This is a data repair
+     for missing or late CLEAR messages (it accounts for 158 of the 743). It trusts track status over a
+     late race_control CLEAR; on 2024 qatar lap 31 that releases 19 passes the CLEAR alone would exclude.
+ 23. Marshal-sector count per slug is the maximum over all seasons; a layout change that changed the
+     count (e.g. 2022 Albert Park, 2023 Barcelona) is not handled.
+ 24. yellow_sector has priority over restart, pit, wet and track_limits (it sits where neutralised was).
+
+Task 2 count (tow_exposure_2026-10-27c.csv; counts only, no threshold set): of 515,750 kept
+fixed_before_apex passes, 301,107 follow a car within the existing 3 s clean threshold; 19,955 of those
+have the follower's DRS open (codes 10/12/14) inside the outcome segment. Bronze telemetry has a DRS
+column; the builder does not read it. Nothing in the table separates tow from wake loss.
+
+What was NOT done (unchanged): no coefficient, curve, loss, gate or scale value computed or shown;
+data/dev.duckdb and data/ci.duckdb not opened (mtimes Oct 26 12:12 / 12:29); bronze read-only; no
+archived DA-03 number used; nothing committed or pushed.
+
+
+==========================================================================
+2026-10-27 (fourth pass, "d"): layout flag (DD-WC6); owner rulings DD-WC4..DD-WC8 recorded
+==========================================================================
+
+Date run:       2026-10-27 (full build started 2026-10-27T13:53:08+04:00, local machine clock)
+Base commit:    63d13dddce4c0b7a32c298f8702e7e358c36ad07 (HEAD, unchanged). Builder, tests and this folder are
+                still UNCOMMITTED working-tree files on top of it.
+                  build_pass_table.py            sha256 016c3bd653c256476a3c13b788006ad2cf9f7bea5ee33733bd773ef65e3b8e12
+                                                 (was ea41af04ee8d5e9ae5502d310018d109801afe8634d73526e22a81449fe8d713)
+                  tests/test_build_pass_table.py sha256 285b7c8833ad3516e99085947082bb8dae3ee83f9e01fb9cdc143673d7ccf727
+                  counts.py (this folder)        sha256 5fd0d88fae064938fa98efcfbe7ae825a2072795867bcba4ef7dfc668e38494b
+
+Owner rulings (decided 2026-10-27), recorded in build-log.json as DD-WC4..DD-WC8:
+  DD-WC4 (choice 21) a yellow applies to the whole lap, not just the moment of the pass. Kept as built.
+  DD-WC5 (choice 22) a track-status all-clear ends a sector yellow (track status trusted over a late CLEAR). Kept.
+  DD-WC6 (choice 23) sector layout assumed constant across seasons, BUT races whose sector or corner layout
+         changed are FLAGGED. Implemented here (flag only, no exclusion).
+  DD-WC7 (choice 24) yellow_sector ranks above restart, pit and wet. Kept as built.
+  DD-WC8 marshal-sector re-ingest DEFERRED (not rejected); bronze not rewritten; W6 stays open.
+  DD-WC3 (OpenF1 licence) stays OPEN: no live ingest written; WC-07 doc now defines a ReplaySource input
+         interface only.
+
+What changed in the builder (pass-c columns are untouched; verified below):
+  New columns layout_changed (bool) and layout_note (text) on every pass row, set after all races are built
+  (main -> layout_flags -> apply_layout_flags). race_geometry() is now shared by build_race and layout_info so
+  both choose the same corner set. races.csv gains layout_changed / layout_note; the out folder gains
+  layout_checks.csv (one row per race: previous race compared, corner counts, raw and aligned corner shift,
+  lap length, reference lap length, difference).
+  Rule: each race is compared with the PREVIOUS RACE AT THE SAME CIRCUIT by event date. Circuit = bronze
+  schedule Location, aliases merged (Monte Carlo=Monaco, Yas Marina=Yas Island, Miami Gardens=Miami,
+  Singapore=Marina Bay); 2020 sakhir_grand_prix (outer loop) is its own circuit. Same-season repeat races
+  (Austria/Styria, British/70th) are compared in date order. Flagged when:
+   (a) corners came from another season's circuit_info (the fallback in circuit_info_fallbacks.csv);
+   (b) corner count differs;
+   (c) a shared corner moved more than 40 m (LAYOUT_CORNER_MOVE_M = APEX_MAX_XY/10) after a rigid
+       (rotation + translation) alignment; a pure frame shift is noted, not flagged;
+   (d) median telemetry lap length differs by more than 50 m (LAYOUT_LAP_LENGTH_M) from the median of the
+       previous up-to-3 races (LAYOUT_LAP_REF_RACES) since the last change.
+  (b)-(d) start a new layout epoch; (a) does not. Unflagged races at a circuit with a change carry a note
+  naming the change races. Races with no usable telemetry or corners (the 4 skipped) are not compared.
+  NOT compared: the marshal-sector count. Bronze holds no sector count; the highest race_control Sector
+  per race is incident-driven (e.g. hungarian 2024 and 2025 show 3), so it cannot show a layout change.
+
+Measured before choosing the rule (scratch/wc01d/explore/, counts and lengths only):
+  - circuit_info corner X/Y are bit-identical across seasons at most circuits (0 m), so FastF1 circuit_info
+    often repeats one layout for several seasons; it cannot alone show a change. Telemetry lap length adds it.
+  - Unflagged season-to-season lap-length noise reaches 48.6 m (2021 spanish, vs the 2018-2020 median) and
+    44.2 m (2022 belgian, after the 2021 wet race). Both sit just under the 50 m threshold.
+
+Commands (from /Users/justin/github/off-the-pace/transform):
+  ../.venv/bin/python -m pytest tasks/wake_calibration -q                  -> 44 passed in 0.26s
+  ../.venv/bin/python -m tasks.wake_calibration.build_pass_table \
+      --out /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01d/full --workers 4
+      -> 173 race folders, 169 built, 4 skipped (same 4), 0 failed; 46.6 s (full_build_2026-10-27d.log)
+  ../.venv/bin/python ../_roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/counts.py <wc01d/full> <this folder>
+      -> counts_by_season.csv (pass-c columns identical; new races/passes/kept/measured_layout_changed),
+         exclusion_reasons_by_season.csv, exclusion_reasons_by_segment_basis.csv, passes_by_corner_class.csv,
+         circuit_info_fallbacks.csv (unchanged values), races.csv (now with layout columns),
+         layout_flagged_races.csv (new)
+  cp <wc01d/full>/layout_checks.csv layout_checks_2026-10-27d.csv
+
+Scratch output: /private/tmp/claude-501/-Users-justin-github-off-the-pace/893bb34f-15dd-4fc3-a095-752d56d99b20/scratchpad/wc01d/full/
+  2,927,753 rows. Every pass-c column is identical to pass c, season by season (DataFrame.equals on all 8
+  seasons); only layout_changed and layout_note are new. sha256:
+    d343a5bee0ffc4d65d375f0dc100c29f45c6d2deef46c9e18bf601ab0a51b345  pass_table_2018.parquet
+    ad97ce5aca63b25117a51e6586e171a106c3fc51d6eeb2f66b822c1ba424d5a2  pass_table_2019.parquet
+    abb44da28125f79563690a9a9d74ec41a5cf12db6dbfae50395fbdf8b9889b71  pass_table_2020.parquet
+    1c9e2f52c1d0dde282dbb98175f8b00905a43feff882b88ceccc04fa36eb53fe  pass_table_2021.parquet
+    58c8749821a6f9192c25a9b62263b4cd27e7bc9a8b4ff7491cb14dc56a1befdc  pass_table_2022.parquet
+    94c1f79aa4e50f10879edeabe8a9fc78f9b26488555cabbf50e05c6fcf5f44b5  pass_table_2023.parquet
+    572d587b46056b63ef50aeb6515e7dddf89823da1c6a7ac5bfb16e9a9ff50d4b  pass_table_2024.parquet
+    bd4c2e4a571001c22b93f13194ac8739fb32f755c17cc10522c61214bd234aa7  pass_table_2025.parquet
+
+Flagged races (8 of 169 built; layout_flagged_races.csv):
+  season race                    reason                                                   passes   kept  measured
+  2021   abu_dhabi_grand_prix    corner count 21 -> 16; lap length 5214 vs 5500 m (-286)  15,387 11,660   5,369
+  2021   belgian_grand_prix      corners from circuit_info 2020 (fallback)                   380      0       0
+  2022   australian_grand_prix   lap length 5216 vs 5273 m (-57; previous race 2019)      14,070  9,291   2,989
+  2022   singapore_grand_prix    corner count 23 -> 19 vs 2019                            17,192  4,327   2,651
+  2022   são_paulo_grand_prix    corners from circuit_info 2021 (fallback)                18,313 11,912   5,444
+  2023   singapore_grand_prix    lap length 4872 vs 4992 m (-121)                         19,969 16,145   5,039
+  2023   spanish_grand_prix      corner count 16 -> 14 vs 2022                            17,808 15,468   8,360
+  2024   bahrain_grand_prix      corners from circuit_info 2023 (fallback)                16,335 13,798   7,317
+  Total flagged passes 119,454 (4.1% of 2,927,753); kept 82,601; measured reference 37,169. Nothing excluded.
+  Noted, not flagged (frame shift, corners agree after rigid alignment): 2023 qatar (286 m raw, 26 m aligned),
+  2023 são_paulo (325 m raw, 11 m aligned), 2022 japanese (49 m raw, 27 m aligned).
+
+READING THE FLAGS - for the owner (not checked against any outside source)
+  - The flag marks where the data changes, which is not always the race whose track changed. 2022 singapore
+    is flagged because its circuit_info has 19 corners against 23 in 2019, while its telemetry lap length
+    (4992 m) is close to 2019's (5018 m); the lap length drops in 2023 (-121 m). So 2022's corner set looks
+    like the later layout applied to a race that still ran the earlier one. Similarly 2019 australian's
+    circuit_info is identical to 2022's (same 14 corners, 0 m), and only the 2022 lap length shows the change.
+  - 2021 abu_dhabi and 2023 spanish show both a corner-count change and (abu_dhabi) a large lap-length drop.
+  - The three fallback races are flagged per the ruling; they are corner-source flags, not track changes.
+
+ASSUMPTIONS AND BUILDER CHOICES ADDED IN THIS PASS - for the owner to review
+ 25. Circuit identity = schedule Location with four aliases; sakhir_grand_prix is a separate layout.
+ 26. Thresholds 40 m (corner move after rigid alignment) and 50 m (lap length vs previous up-to-3 races
+     since the last change) were set after looking at the 2018-2025 geometry above (not at any outcome).
+     A smaller lap-length change (under 50 m) is not detected.
+ 27. layout_changed marks the race where the change is detected, not every race of a layout epoch;
+     other races at such a circuit carry the change races in layout_note. The marshal-sector count stays
+     pooled per slug across all seasons (DD-WC6 keeps choice 23).
+ 28. For a --seasons/--race subset run, the earlier races at the same circuits are re-read (telemetry +
+     circuit_info) so each race is still compared with its true predecessor.
+
+What was NOT done (unchanged): no coefficient, curve, loss, gate or scale value computed or shown;
+data/dev.duckdb and data/ci.duckdb not opened (mtimes Oct 26 12:12 / 12:29); bronze read-only and not
+rewritten (marshal-sector re-ingest deferred); no archived DA-03 number used; no live ingest code; nothing
+committed or pushed.

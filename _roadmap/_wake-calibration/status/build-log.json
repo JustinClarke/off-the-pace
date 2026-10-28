@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "wake-calibration: own-reference corner loss with an upstream gap (measured / modelled / unavailable)",
   "updated": "2026-10-28T18:00:00+04:00",
-  "pointer": "WC-02",
+  "pointer": "WC-03",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -91,7 +91,7 @@
     {
       "id": "WC-02",
       "group": "1-checks",
-      "stage": "SPEC",
+      "stage": "CLOSED",
       "depends_on": [
         "WC-01"
       ],
@@ -104,8 +104,9 @@
       "doc": "wi/WC-02-measurement-checks.md",
       "cost": "1-2 wk",
       "model": "opus-5",
-      "note": "Not registered. Builds and counts the event set; the car-ahead-pits contrast itself is read in WC-04 and WC-05. Closing WC-02 needs owner answers to DD-WC9 to DD-WC13 (see BEST-MOVE-NEXT.md in the WC-02 evidence folder).",
-      "order_hint": 1
+      "note": "Closed 2026-10-28 by owner review of _evidence/WC-02-2026-10-27/WC-02-RESULTS.md. Rulings DD-WC9 to DD-WC13 recorded. 168 of 169 races agree within 0.1 s; 2024 Las Vegas flagged (feed-inconsistent), none dropped. Car-ahead-pits restated: 1,970 stays-out events, 1,669 distinct stops, 246 different-lap dropped. No fit computed.",
+      "order_hint": 1,
+      "closed": "2026-10-28"
     },
     {
       "id": "WC-03",
@@ -838,6 +839,29 @@
       "next_action": [
         "ORCHESTRATOR: run G3 (WC-03 prereg section 12a, checks 1-4) read-only on a scratch copy of dev.duckdb and the bronze files. No fit, no score. If any check fails: stop, record 'no verdict', tell the owner.",
         "OWNER: answer DD-WC9 to DD-WC13 before WC-02 is closed.",
+        "Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-28T20:00:00+04:00",
+      "session": "WC-02 closed on owner review. Pointer moves to WC-03.",
+      "landed": [
+        "WC-02 CLOSED: results in _evidence/WC-02-2026-10-27/WC-02-RESULTS.md (owner reviewed).",
+        "DD-WC9 to DD-WC13 RESOLVED per recommendations (committed 98d3555)."
+      ],
+      "verified": [
+        "board.py --check passes."
+      ],
+      "assumed": [
+        "Owner review of WC-02-RESULTS.md on 2026-10-28 is sufficient for closing."
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: decide the WC-03 prereg commit question (bundled in 839e0f4, or a log note). G3 cannot run until answered (BUILD-ORDER rule 4).",
+        "ORCHESTRATOR: once answered, run G3 (WC-03 prereg section 12a, checks 1-4) read-only on a scratch copy of dev.duckdb and the bronze files. No fit, no score.",
         "Do not commit without an explicit yes."
       ]
     }

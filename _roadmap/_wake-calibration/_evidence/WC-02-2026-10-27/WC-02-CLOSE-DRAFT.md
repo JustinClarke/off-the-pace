@@ -8,7 +8,7 @@ Draft for owner review. Not committed, not recorded in the build log. Numbers we
 - 168 of 169 races have a median absolute pair error at or under 0.1 s. Median per-race error across races is about 0.045 s.
 - The one race over 0.1 s is 2024 Las Vegas (0.116 s). The feed's own sector times disagree there. Recorded as a flagged race, not dropped.
 - The first check (line placed by lap distance) flagged 34 races. That flag came from the locator, not the feed (`SALVAGE-timing.md`).
-- Races dropping out at the 0.1 s bar: 1 (2024 Las Vegas). **Owner needs to see this.** It is the only race that fails under the method the pass table uses.
+- No race is dropped (DD-WC11). The one race over the 0.1 s bar, 2024 Las Vegas, stays in the set with a feed-inconsistency flag. **Owner needs to see this**: it is the only race where the timing feed contradicts itself under the method the pass table uses.
 
 Ruling needed: DD-WC11 (keep all 34 flagged races). Recommendation: retire the 34-race flag as a locator artefact and keep all races, with 2024 Las Vegas marked as a feed-inconsistent race.
 
@@ -40,7 +40,7 @@ Ruling needed: DD-WC12. Recommendation: yes, observation only.
 ## What closing WC-02 still needs
 
 1. Owner rulings on DD-WC9, DD-WC10, DD-WC11, DD-WC12 and DD-WC13.
-2. Owner sight of the races that drop out (2024 Las Vegas, and the 34-race flag reversal).
+2. Owner sight of the flagged races: 2024 Las Vegas (feed-inconsistent) and the 34 races that the first check flagged, now shown to be a locator artefact. None is dropped.
 3. A results file in this folder with the same numbers, once the rulings are in.
 
 Separately, G3 (WC-03 prereg §12a) is blocked by BUILD-ORDER rule 4 until the prereg is committed alone. That is independent of WC-02 closing.

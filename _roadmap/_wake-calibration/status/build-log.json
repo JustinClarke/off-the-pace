@@ -122,15 +122,16 @@
       "doc": "wi/WC-03-estimator.md",
       "cost": "3-5 wk",
       "model": "fable-5.1",
-      "note": "Pre-registration signed 2026-10-28 and committed alone at dc15e88 (SHA-256 518c3348a619...). Nothing has been fitted or scored yet; the first step is G3 (sections 12a and 17b), run before any fit or score.",
+      "note": "Pre-registration signed 2026-10-28 (SHA-256 518c3348a619...), committed at 839e0f4 together with other wake-calibration files, not alone as rule 4 asks. Nothing has been fitted or scored yet; the first step is G3 (sections 12a and 17b), run before any fit or score.",
       "prereg": {
         "status": "SIGNED",
         "signed": "2026-10-28",
         "doc": "wi/WC-03-preregistration-DRAFT.md",
-        "commit": "dc15e887c906881f735d3a5288fba3526a7e83ca",
+        "commit": "839e0f47ee049f15ffa263d17da7a36b96e05ad6",
         "sha256": "518c3348a619ebf6a964486bbe6313dcdc86c64ae05ca3daed8db202d9653a63",
-        "committed_alone": true,
-        "g3_checks": 4
+        "committed_alone": false,
+        "g3_checks": 4,
+        "note": "Committed with 22 other files in one commit (not alone, contrary to rule 4). Pushed; not rewritten. The SHA-256 identifies the signed text."
       }
     },
     {
@@ -365,7 +366,7 @@
         "clear": "manual"
       },
       "resolved": "2026-10-28",
-      "resolution": "Pre-registration signed and committed alone at dc15e88, SHA-256 518c3348a619ebf6a964486bbe6313dcdc86c64ae05ca3daed8db202d9653a63."
+      "resolution": "Pre-registration signed, committed at 839e0f4 (not alone; see WC-03 prereg note), SHA-256 518c3348a619ebf6a964486bbe6313dcdc86c64ae05ca3daed8db202d9653a63."
     },
     {
       "id": "W2",

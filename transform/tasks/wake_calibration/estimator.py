@@ -24,7 +24,7 @@ Also here, because gate G1 (§12a) tests them with the estimator:
   - the pieces of the contest that G1 names: flat-now with unknown kept unknown, the §8a step-2 filter,
     the θ_now point fit and the §8b score (§2d, §8a, §8b);
   - the pit-stop event builder (§11 "Events" and "Jump"; the comparison group, adjusted jump and
-    predicted drop are WC-04 work and are not here).
+    predicted drop are in pitstop.py).
 
 Also here (AMENDMENT A3, draft, not yet committed or hashed): §8a step 1 lap-level counting (lap_1,
 last_lap, no_pass_rows, by position in the panel), the step-4 short-stint drop (stint_under_2_laps)
@@ -33,8 +33,10 @@ counting of each dropped lap once, at its first step. And (amendment A2) the §1
 
 Not here: §8a step 3 (the ±5 s trim, label residual_beyond_5s, amendment A4), the θ_now refit per draw, the
 2025 rescoring, the contest bootstrap, W1-W3, P1/P2, G5 and G7 are in contest.py; G2, G3, G6, PROVENANCE and
-the evidence files are in run_wc03.py (the CLI, not run on real data). Still not built: the pit-stop
-comparison group, adjusted jump and predicted drop (§11), and the §12b sensitivity runs.
+the evidence files are in run_wc03.py (the CLI, not run on real data). The §11 comparison group, adjusted
+jump and predicted drop are in pitstop.py; the §12b sensitivity runs in sensitivity.py (which calls
+prepare_passes / reference_spread with half_window 2 or 6; the default stays the registered 4); coverage per
+team and Table 2 in report.py. All report-only.
 """
 
 from __future__ import annotations
@@ -139,10 +141,11 @@ def circuit_of(passes: pd.DataFrame, calendar: dict) -> pd.Series:
     return pd.Series([calendar[k][0] for k in keys], index=passes.index, dtype=object)
 
 
-def reference_spread(passes: pd.DataFrame) -> pd.Series:
+def reference_spread(passes: pd.DataFrame, half_window: int = REF_HALF_WINDOW_LAPS) -> pd.Series:
     """§5: median absolute deviation of seg_time_s over the same donors the builder used, floor 0.01 s.
 
-    Donors: same race, driver, corner_id, stint and compound; clean; lap within ±REF_HALF_WINDOW_LAPS;
+    Donors: same race, driver, corner_id, stint and compound; clean; lap within ±half_window (the registered
+    ±REF_HALF_WINDOW_LAPS = 4; 2 or 6 only in the §12b sensitivity runs, after sensitivity.rereference);
     the pass itself excluded. Defined only where ref_status is 'measured'; NaN elsewhere. As a check that
     the donors are the builder's, their median must equal the stored ref_time_s.
     """
@@ -158,7 +161,7 @@ def reference_spread(passes: pd.DataFrame) -> pd.Series:
         seg = g["seg_time_s"].to_numpy(dtype=float)
         ref = g["ref_time_s"].to_numpy(dtype=float)
         for i in np.flatnonzero(measured):
-            m = donor & (np.abs(laps - laps[i]) <= REF_HALF_WINDOW_LAPS) & (laps != laps[i])
+            m = donor & (np.abs(laps - laps[i]) <= half_window) & (laps != laps[i])
             if m.sum() < REF_MIN_N:
                 raise EstimatorError(f"measured reference with fewer than {REF_MIN_N} donors at row {g.index[i]}")
             med = float(np.median(seg[m]))
@@ -288,8 +291,10 @@ def gap_bin(gap: np.ndarray) -> np.ndarray:
     return np.where(ok, idx, -1)
 
 
-def prepare_passes(passes: pd.DataFrame, calendar: dict) -> pd.DataFrame:
-    """The pass table with the WC-03 analysis columns added. The builder's columns are not changed (G2)."""
+def prepare_passes(passes: pd.DataFrame, calendar: dict, half_window: int = REF_HALF_WINDOW_LAPS) -> pd.DataFrame:
+    """The pass table with the WC-03 analysis columns added. The builder's columns are not changed (G2).
+    half_window is the reference window the table's references were built with (4, registered; 2 or 6 only
+    in the §12b sensitivity runs)."""
     out = passes.copy()
     out["reason_wc03"] = wc03_reason(out)
     out["yielding"] = is_yielding(out["tag"])
@@ -299,7 +304,7 @@ def prepare_passes(passes: pd.DataFrame, calendar: dict) -> pd.DataFrame:
     # one physical corner keeps one group across the seasons the circuit hosts. §6 names a random effect per
     # circuit and one per corner_id but does not say crossed or nested; nested is what the REML code assumes.
     out["corner_key"] = out["circuit"].astype(str) + "|" + out["corner_id"].astype(str)
-    out["ref_spread_s"] = reference_spread(out)
+    out["ref_spread_s"] = reference_spread(out, half_window)
     out["leader_time_s"] = leader_time(out)
     out["racecraft"] = racecraft(out)
     out["pass_class"] = pass_class(out)

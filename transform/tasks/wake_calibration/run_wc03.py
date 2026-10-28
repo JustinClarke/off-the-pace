@@ -18,7 +18,11 @@ It refuses to start unless all of these hold:
 Order (§12a): G1 (the committed synthetic suite; a failure refuses the run before any data is read) -> G3 (checks 1 and 4 before anything is read from the warehouse, then the yardstick panel is
 built by the wrapper and checks 2-3) -> G2 (WC-01 count files byte for byte) -> prepare passes, G6 joins, G4
 leakage (asserted inside the fits) -> curves, θ_now, scored set, contest -> G5, G7, W1-W3 -> verdict ->
-SCORECARD.md. If G3 fails the run stops before anything is fitted, writes the registered first line and
+SCORECARD.md (Table 1). Then, report-only (Table 2, §12b; never a verdict input, each step logged and, if it
+cannot be computed, shown as "—" with the reason): §12b counts, coverage and contest per team, mixed stints
+and gains, under attack, the §11 pit-stop figure (pitstop.py), the older-car run (decision record L6), the
+sensitivity runs (sensitivity.py). SCORECARD.md is then rewritten with Table 2 and, when W1 holds but not in
+a sensitivity run, a line saying so right after the first two lines (§12b). If G3 fails the run stops before anything is fitted, writes the registered first line and
 nothing else. The pass table is rebuilt beforehand with the committed builder into --pass-table-dir:
 
     python -m tasks.wake_calibration.build_pass_table --out <scratch pass-table folder> --workers 6
@@ -46,6 +50,7 @@ import pandas as pd
 
 from tasks.wake_calibration import contest as C
 from tasks.wake_calibration import estimator as E
+from tasks.wake_calibration import report as RP
 
 REPO = Path(__file__).resolve().parents[3]
 WC = REPO / "_roadmap/_wake-calibration"
@@ -57,6 +62,11 @@ AMENDMENTS = (
     "wi/WC-03-amendment-A3-last-lap-exclusion.md",
     "wi/WC-03-amendment-A4-rulings.md",
 )
+# DRAFT amendment A5 (wi/WC-03-amendment-A5-fit-race-list-DRAFT.md): None = A4 ruling 4b as written. The owner
+# sets "union" (option a) or "built" (option b) once A5 is decided, committed and its SHA-256 recorded; the
+# CLI then also requires A5's digest (registration_problems). Not to be changed by an agent.
+A5_DOC = "wi/WC-03-amendment-A5-fit-race-list-DRAFT.md"
+A5_FIT_RACE_LIST: str | None = None
 WAREHOUSE = REPO / "data/dev.duckdb"
 BRONZE = REPO / "data/bronze"
 D1_SCRIPT = REPO / "_roadmap/_fixes/_evidence/wi-12-2026-09-27/d1_build_panels_wi12.py"
@@ -116,7 +126,8 @@ def registration_problems(build_log: Path = BUILD_LOG, wc_root: Path = WC,
     recorded = {PREREG: (item.get("prereg") or {}).get("sha256")}
     for a in item.get("amendments") or []:
         recorded[a.get("doc")] = a.get("sha256")
-    for doc in (PREREG, *AMENDMENTS):
+    docs = (PREREG, *AMENDMENTS, *((A5_DOC,) if A5_FIT_RACE_LIST is not None else ()))
+    for doc in docs:
         path = Path(wc_root) / doc
         if not path.exists():
             problems.append(f"{doc}: missing")
@@ -161,6 +172,9 @@ class Sources(Protocol):
     def g2_mismatches(self) -> list[str]: ...
     def passes(self) -> pd.DataFrame: ...
     def calendar(self) -> dict: ...
+    def race_circuit_map(self) -> dict: ...  # race_id -> §6 circuit key, every race in bronze laps (A5)
+    def pits(self) -> pd.DataFrame: ...  # season, race_id, driver, lap, pit_in, pit_out (§11)
+    def lap_info(self) -> pd.DataFrame: ...  # season, race_id, driver, lap, team, position (L5)
 
 
 def bronze_digest(bronze: Path = BRONZE) -> tuple[int, str]:
@@ -251,6 +265,68 @@ class ScratchSources:
         from tasks.wake_calibration import build_pass_table as bpt
         return bpt.race_calendar(BRONZE)
 
+    def race_circuit_map(self) -> dict:
+        return race_circuit_map(BRONZE, self.calendar())
+
+    def pits(self) -> pd.DataFrame:
+        from tasks.wake_calibration import pitstop as P
+        return P.pit_laps_from_bronze(BRONZE, range(2018, 2026))
+
+    def lap_info(self) -> pd.DataFrame:
+        from tasks.wake_calibration import report as RP
+        return RP.lap_info_from_bronze(BRONZE, range(2018, 2026))
+
+
+def race_circuit_map(bronze: Path, calendar: dict) -> dict:
+    """race_id -> §6 circuit key for every race folder in bronze laps (built or not), via the race calendar
+    (DRAFT A5: a race with panel laps but no pass table still needs its circuit). Reads one column per file."""
+    out = {}
+    for f in sorted(glob.glob(str(Path(bronze) / "laps/season=*/race=*/*.parquet"))):
+        if "session=" in f:
+            continue
+        season = int(Path(f).parent.parent.name.split("=")[1])
+        slug = Path(f).parent.name.split("=", 1)[1]
+        ids = pd.read_parquet(f, columns=["race_id"])["race_id"].dropna().astype(str).unique()
+        if (season, slug) in calendar:
+            for rid in ids:
+                out[rid] = str(calendar[(season, slug)][0])
+    return out
+
+
+def fit_race_preflight(pass_dir: Path) -> dict[str, tuple[list[str], list[str]]]:
+    """Before any warehouse read or gate: per era, the built fit-season races and those with a fit-eligible
+    pass before the loss trim (structural columns only; no outcome is read). Under A4 ruling 4b as written a
+    built race with no fit pass makes the run stop after G3; main() refuses instead (draft A5)."""
+    cols = ["season", "race_id", "segment_basis", "reason", "clear_ahead", "gap_s", "ref_status", "tag"]
+    files = sorted(glob.glob(str(Path(pass_dir) / "pass_table_*.parquet")))
+    p = pd.concat([pd.read_parquet(f, columns=cols) for f in files], ignore_index=True)
+    return _fit_race_lists(p)
+
+
+def a5_refusal(lists: dict, a5: str | None) -> None:
+    """Refuse before any warehouse read when, under A4 ruling 4b as written (a5 None), a built main-era fit
+    race has no fit-eligible pass: the run would otherwise stop after G3 has been written (one run, no
+    verdict). Conservative: the panel may lack that race too, but that cannot be known before G3."""
+    built, contributing = lists["main"]
+    if a5 is None and built != contributing:
+        raise RefusedError("refused before any data is read from the warehouse: built 2022-2024 race(s) "
+                           f"{sorted(set(built) - set(contributing))} have no fit-eligible pass, so under A4 "
+                           "ruling 4b the run would stop after G3 (one run, no verdict). The owner decides "
+                           "draft amendment A5 first.")
+
+
+def _fit_race_lists(p: pd.DataFrame) -> dict[str, tuple[list[str], list[str]]]:
+    gap = p["gap_s"].to_numpy(dtype=float)
+    fit = ((p["segment_basis"] == E.BRAKING_BASIS) & p["reason"].isna() & ~p["clear_ahead"].astype(bool)
+           & (p["ref_status"] == "measured") & ~E.is_yielding(p["tag"]) & np.isfinite(gap) & (gap >= 0)
+           & (gap < E.FOLLOW_MAX_GAP_S))
+    out = {}
+    for era, spec in E.ERAS.items():
+        in_era = p["season"].astype(int).isin(spec["fit"])
+        out[era] = (sorted(p.loc[in_era, "race_id"].astype(str).unique()),
+                    sorted(p.loc[in_era & fit, "race_id"].astype(str).unique()))
+    return out
+
 
 # --------------------------------------------------------------------------- the run
 
@@ -311,7 +387,8 @@ def run_g1_tests() -> tuple[bool, str]:
 
 
 def run_pipeline(src: Sources, evidence: Path, n_draws: int = E.N_BOOT, seed: int = E.SEED,
-                 synthetic: bool = False, g1_summary: str = "synthetic call: G1 not run here") -> C.EraResult | None:
+                 synthetic: bool = False, g1_summary: str = "synthetic call: G1 not run here",
+                 a5: str | None = None) -> C.EraResult | None:
     """The registered order. Returns the main-era result, or None when G3 or G2 stopped the run."""
     if not synthetic and (n_draws != E.N_BOOT or seed != E.SEED):
         raise RefusedError("refused: B and the seed are fixed (§8c)")
@@ -336,14 +413,25 @@ def run_pipeline(src: Sources, evidence: Path, n_draws: int = E.N_BOOT, seed: in
         _log(evidence, f"{COMPLETED}: G2 failed; nothing fitted or scored")
         return None
     panel, _ = src.yardstick()
-    prepared = E.prepare_passes(src.passes(), src.calendar())
+    raw = src.passes()
+    cal = src.calendar()
+    prepared = E.prepare_passes(raw, cal)
     held = E.ERAS["main"]["held_out"]
     g6, g6_counts = g6_joins(panel, prepared, held)
     g1 = C.Check("G1", True, "synthetic tests committed and passing before the run", g1_summary)
     g4 = C.Check("G4", True, "no held-out row in any fit (asserted in code; a leak raises)", "asserted")
     held_races = sorted(panel.loc[panel["race_year"].astype(int) == held, "race_id"].astype(str).unique())
-    result = C.run_era(prepared, panel, held_races, "main", n_draws=n_draws, seed=seed,
-                       setup_checks=[g1, g2, *g3, g4, g6])
+    lists = era_lists(src, prepared, panel, a5)
+    if lists["main"][0] is None and lists["main"][2]:
+        # A4 ruling 4b as written: the run stops before any curve or score. Recorded as no verdict.
+        line = (f"{C.VERDICT_TEXT[C.NO_VERDICT]} Fit-race list: {lists['main'][2]} (A4 ruling 4b; "
+                "see draft amendment A5). Nothing was fitted or scored.")
+        (evidence / "SCORECARD.md").write_text(line + "\n")
+        _log(evidence, f"{COMPLETED}: A4 4b fit-race lists differ; nothing fitted or scored")
+        return None
+    result = C.run_era(prepared, lists["main"][1], held_races, "main", n_draws=n_draws, seed=seed,
+                       setup_checks=[g1, g2, *g3, g4, g6], fit_races=lists["main"][0],
+                       race_circuit=lists["main"][3])
     result.main_table.to_csv(evidence / "main_curve.csv", index=False)
     result.dirty_table.to_csv(evidence / "class_curve_dirty_air.csv", index=False)
     result.held_up_table.to_csv(evidence / "class_curve_held_up.csv", index=False)
@@ -356,10 +444,138 @@ def run_pipeline(src: Sources, evidence: Path, n_draws: int = E.N_BOOT, seed: in
         lo, hi = (np.percentile(th, E.CI_PERCENTILES) if np.isfinite(th).all() else (np.nan, np.nan))
         pd.DataFrame([{"theta_now": result.contest.theta_point, "ci_lower": lo, "ci_upper": hi,
                        "n_draws": len(th)}]).to_csv(evidence / "theta_now.csv", index=False)
-    (evidence / "SCORECARD.md").write_text(C.scorecard(result))
+    (evidence / "SCORECARD.md").write_text(C.scorecard(result))  # Table 1 first: a later crash cannot lose it
     _log(evidence, f"G6 counts: {json.dumps(g6_counts)}")
+    _log(evidence, f"VERDICT WRITTEN: {result.verdict_code}")
+    first, rows = table2(src, evidence, raw, cal, prepared, panel, result, lists, held_races, g1, g2, g3,
+                         n_draws, seed)
+    t1 = C.scorecard(result).splitlines()
+    card = t1[:4] + first + ([""] if first else []) + t1[4:]
+    (evidence / "SCORECARD.md").write_text("\n".join(card) + "\n" + RP.table2_text(rows))
     _log(evidence, f"{COMPLETED}: verdict {result.verdict_code}")
     return result
+
+
+def era_lists(src: Sources, prepared: pd.DataFrame, panel: pd.DataFrame, a5: str | None) -> dict:
+    """Per era: (fit_races or None, the panel to use, problem text, race_circuit or None).
+
+    a5 None (A4 ruling 4b as written): no explicit list; the problem text is set when the curve's fit races
+    and θ_now's panel races differ, and the era is then not run. a5 "union" / "built" (DRAFT A5, once adopted):
+    the explicit list from contest.fit_race_list; under "built" the panel's fit-season laps outside the list
+    are left out of θ_now."""
+    out = {}
+    rc_all = None
+    for era, spec in E.ERAS.items():
+        if a5 is None:
+            fit = E.fit_passes(prepared, era)
+            curve_races = set(fit["race_key"].astype(str))
+            theta_races = set(C.theta_fit_rows(panel, era)["race_id"].astype(str))
+            prob = ""
+            if curve_races != theta_races:
+                prob = (f"θ_now panel races and curve fit races differ: panel only "
+                        f"{sorted(theta_races - curve_races)[:6]}, curve only {sorted(curve_races - theta_races)[:6]}")
+            out[era] = (None, panel, prob, None)
+            continue
+        rc_all = rc_all if rc_all is not None else src.race_circuit_map()
+        races, rc = C.fit_race_list(prepared, panel, rc_all, era, a5)
+        pan = panel
+        if a5 == "built":
+            in_fit = pan["race_year"].astype(int).isin(spec["fit"])
+            pan = pan[~in_fit | pan["race_id"].astype(str).isin(races)]
+        out[era] = (races, pan, "", rc)
+    return out
+
+
+def table2(src, evidence, raw, cal, prepared, panel, result, lists, held_races, g1, g2, g3, n_draws, seed):
+    """The report-only steps (§12b, §11, L5, L6, L4). Each is logged; one that cannot be computed is shown as
+    "—" with the reason and the others go on. Returns (first lines for the scorecard, Table 2 rows)."""
+    from tasks.wake_calibration import pitstop as P
+    from tasks.wake_calibration import sensitivity as S
+    rows: list[dict] = []
+    first: list[str] = []
+    held = E.ERAS["main"]["held_out"]
+
+    def step(name, fn):
+        try:
+            out = fn()
+            _log(evidence, f"TABLE 2 {name}: done")
+            return out
+        except Exception as exc:  # report-only: recorded, shown as "—", never silently dropped
+            _log(evidence, f"TABLE 2 {name}: not computed ({type(exc).__name__}: {str(exc)[:200]})")
+            rows.append({"item": name, "value": f"{RP.UNAVAILABLE} (not computed: {type(exc).__name__})"})
+            return None
+
+    lap_info = step("bronze lap info", src.lap_info)
+
+    def counts():
+        RP.no_car_ahead_counts(prepared, lap_info).to_csv(evidence / "counts_no_car_ahead.csv", index=False)
+        E.no_reference_counts(prepared).to_csv(evidence / "counts_no_reference.csv", index=False)
+        RP.class_bin_counts(prepared).to_csv(evidence / "counts_class_bin_season_race.csv", index=False)
+        rows.append({"item": "counts (§12b)", "value": "counts_no_car_ahead.csv, counts_no_reference.csv, "
+                     "counts_class_bin_season_race.csv, lap_drops.csv; G6 counts in PROVENANCE.txt"})
+    step("counts", counts)
+
+    def teams():
+        tm = RP.team_map(lap_info)
+        cov = RP.coverage_per_team(prepared, tm, None if result.scored is None else result.scored.laps)
+        cov.to_csv(evidence / "coverage_per_team.csv", index=False)
+        per = RP.contest_per_team(result, tm)
+        per.to_csv(evidence / "contest_per_team.csv", index=False)
+        rows.extend(RP.team_rows(cov, per, held))
+    if lap_info is not None:
+        step("coverage and contest per team", teams)
+    step("contest context", lambda: rows.extend(RP.contest_context_rows(result)))
+    step("under attack", lambda: rows.extend(RP.under_attack_rows(result.under_attack)))
+    pits = step("bronze pit laps", src.pits)
+
+    def pit(label, era_res, seasons, tag):
+        if era_res is None or era_res.main_draws is None or (era_res.main_table["status"] != E.CURVE_OK).any():
+            rows.append({"item": f"pit-stop figure, {label}", "value": f"{RP.UNAVAILABLE} (curve not estimable)"})
+            return
+        fig = P.pit_figure(prepared, pits, seasons, C.curve_array(era_res.main_table), era_res.main_draws,
+                           n_draws=n_draws)
+        fig.events.to_csv(evidence / f"pit_events_{tag}.csv", index=False)
+        fig.drops.to_csv(evidence / f"pit_drops_{tag}.csv", index=False)
+        rows.extend({"item": f"{label}: {r['item']}", "value": r["value"]} for r in fig.table2_rows())
+    if pits is not None:
+        step("pit-stop figure 2022-2025", lambda: pit("main curve, 2022-2025", result, (2022, 2023, 2024, 2025), "main"))
+        step("pit-stop figure 2025", lambda: pit("main curve, 2025 only", result, (2025,), "2025"))
+
+    def older():
+        fr, pan, prob, rc = lists["older"]
+        if fr is None and prob:
+            rows.extend(RP.older_rows(None, f"fit-race list (A4 ruling 4b; see draft A5): {prob}"))
+            return None
+        oh = E.ERAS["older"]["held_out"]
+        g6o, _ = g6_joins(pan, prepared, oh)
+        g4o = C.Check("G4", True, "no 2021 row in the older fit (asserted in code)", "asserted")
+        races = sorted(pan.loc[pan["race_year"].astype(int) == oh, "race_id"].astype(str).unique())
+        res = C.run_era(prepared, pan, races, "older", n_draws=n_draws, seed=seed,
+                        setup_checks=[g1, g2, *g3, g4o, g6o], fit_races=fr, race_circuit=rc)
+        res.main_table.to_csv(evidence / "older_curve.csv", index=False)
+        res.dirty_table.to_csv(evidence / "older_class_curve_dirty_air.csv", index=False)
+        if res.contest is not None:
+            pd.DataFrame([{"set": s, **r} for s, r in res.contest.point.items()]).to_csv(
+                evidence / "older_contest.csv", index=False)
+        rows.extend(RP.older_rows(res))
+        return res
+    old = step("older cars", older)
+    if pits is not None and old is not None:
+        step("pit-stop figure 2018-2021", lambda: pit("older curve, 2018-2021", old, (2018, 2019, 2020, 2021), "older"))
+
+    def sens():
+        fr, pan, _, rc = lists["main"]
+        outs = S.run_variants(raw, prepared, pan, cal, held_races, n_draws=n_draws, seed=seed, fit_races=fr,
+                              race_circuit=rc)
+        rows.extend(S.table2_rows(outs))
+        first.extend(S.first_lines(result, outs))
+    step("sensitivity runs", sens)
+    rows.append({"item": "reference-fit diagnostic (§2e, §12b)",
+                 "value": "the procedure that produced 0.331 returns 0.305 (95 % interval 0.269 to 0.341, n 135,675) "
+                          "on the 2026-10-28 data; diagnostic only, not the benchmark"})
+    rows.append({"item": "minimum-speed agreement per corner class (WC-02, observation only)",
+                 "value": "_evidence/WC-02-2026-10-27/check3_by_class.csv"})
+    return first, rows
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -379,14 +595,15 @@ def main(argv: list[str] | None = None) -> int:
     if Path(args.pass_table_dir).resolve().is_relative_to(WAREHOUSE.parent.resolve()):
         raise RefusedError("refused: --pass-table-dir must not be inside data/")
     check_evidence_fresh(args.evidence_dir)
+    a5_refusal(fit_race_preflight(args.pass_table_dir), A5_FIT_RACE_LIST)
     if args.check_only:
-        print("checks passed; no data read")
+        print("checks passed; no warehouse or bronze data read (pass-table structure only, for the A5 pre-flight)")
         return 0
     ok, tail = run_g1_tests()  # before any data is read; a failure is a refusal, not a result
     if not ok:
         raise RefusedError(f"refused: G1 synthetic tests do not pass ({tail})")
     src = ScratchSources(db, args.pass_table_dir, db.parent)
-    result = run_pipeline(src, args.evidence_dir, g1_summary=f"pytest: {tail}")
+    result = run_pipeline(src, args.evidence_dir, g1_summary=f"pytest: {tail}", a5=A5_FIT_RACE_LIST)
     print((Path(args.evidence_dir) / "SCORECARD.md").read_text().splitlines()[0])
     return 0 if result is not None else 2
 

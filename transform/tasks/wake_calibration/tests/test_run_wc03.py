@@ -7,6 +7,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from tasks.wake_calibration import contest as C
@@ -19,9 +21,10 @@ class FakeSources:
     far smaller than 135,841 rows, so its row count and pooled slope are reported, not computed)."""
 
     def __init__(self, sha=R.G3_DB_SHA256, bronze=(R.G3_BRONZE_FILES, R.G3_BRONZE_SHA256), rows=R.G3_PANEL_ROWS,
-                 slope=R.G3_POOLED_SLOPE, g2=(), seed=21):
+                 slope=R.G3_POOLED_SLOPE, g2=(), seed=21, races_per_season=2, n_drivers=4):
         self.sha, self.bronze, self.rows, self.slope, self.g2 = sha, bronze, rows, slope, list(g2)
-        self.prepared, self.panel, self.cal, _ = world(seed=seed, races_per_season=2, n_drivers=4)
+        self.prepared, self.panel, self.cal, _ = world(seed=seed, races_per_season=races_per_season,
+                                                       n_drivers=n_drivers)
         self.raw = self.prepared[[c for c in self.prepared.columns if c not in
                                   {"reason_wc03", "yielding", "circuit", "corner_key", "ref_spread_s",
                                    "leader_time_s", "racecraft", "pass_class", "under_attack", "gap_bin",
@@ -56,6 +59,18 @@ class FakeSources:
 
     def calendar(self):
         return self.cal
+
+    def race_circuit_map(self):
+        ids = {f"{s}_{r}": c for (s, r), (c, _) in self.cal.items()}
+        return ids
+
+    def pits(self):
+        k = self.prepared[["season", "race_id", "driver", "lap"]].drop_duplicates()
+        return k.assign(pit_in=False, pit_out=False)
+
+    def lap_info(self):
+        k = self.prepared[["season", "race_id", "driver", "lap"]].drop_duplicates()
+        return k.assign(team=k["driver"].map(lambda d: "T" + str(int(d[1:]) // 2)), position=2.0)
 
 
 # ---------------------------------------------------------------- refusals
@@ -212,3 +227,150 @@ def test_bronze_digest_matches_the_registered_shell_recipe(tmp_path):
                                  env={"LC_ALL": "C"}, check=True).stdout
     want = hashlib.sha256(sorted_text.encode()).hexdigest()
     assert n == 6 and digest == want
+
+
+# ---------------------------------------------------------------- Table 2 and draft amendment A5 (decision records L4-L7)
+
+
+@pytest.fixture
+def judged_classes(monkeypatch):
+    """As world() does: the synthetic car ahead is redrawn at every corner, so the class rule calls nearly
+    every following pass racecraft and the dirty-air curve has empty bins (G7). Assign held up / dirty air at
+    random among following passes with a measured reference, so the run reaches the contest."""
+    from tasks.wake_calibration import estimator as E
+    original = E.prepare_passes
+
+    def prepare(passes, calendar, half_window=4):
+        out = original(passes, calendar, half_window)
+        rng = np.random.default_rng(0)
+        j = out["pass_class"].notna() & (out["ref_status"] == "measured")
+        out.loc[j, "pass_class"] = np.where(rng.random(int(j.sum())) < 0.5, E.HELD_UP, E.DIRTY_AIR)
+        return out
+
+    monkeypatch.setattr(E, "prepare_passes", prepare)
+
+
+def test_full_synthetic_run_writes_table_2_after_table_1(tmp_path, judged_classes):
+    ev = tmp_path / "ev"
+    res = R.run_pipeline(FakeSources(seed=14, races_per_season=3, n_drivers=6), ev, n_draws=4, synthetic=True)
+    assert res.contest is not None  # a world large enough for every bin: the contest and its context run
+    card = (ev / "SCORECARD.md").read_text()
+    lines = card.splitlines()
+    assert lines[0] == res.verdict_line and lines[2] == C.WITHIN_STINT_LINE
+    assert card.index("Table 1") < card.index("Table 2")
+    t2 = card[card.index("Table 2"):]
+    for item in ("pit-stop figure", "older cars", "sensitivity, reference window ±2 laps",
+                 "sensitivity, without 2024 Las Vegas", "coverage 2025", "under-attack difference",
+                 "mixed_stints", "reference-fit diagnostic"):
+        assert item in t2, item
+    body = t2.split("\n", 1)[1]  # the title says "never pass or fail"; the rows must not
+    for word in (" pass ", " fail ", " passed ", " failed "):
+        assert word not in body.lower().replace("|", " ")
+    for f in ("counts_no_car_ahead.csv", "counts_no_reference.csv", "coverage_per_team.csv"):
+        assert (ev / f).exists(), f
+    prov = (ev / "PROVENANCE.txt").read_text()
+    assert "VERDICT WRITTEN" in prov and prov.index("VERDICT WRITTEN") < prov.index(R.COMPLETED)
+
+
+def test_a_failing_table_2_step_is_a_dash_and_the_verdict_stands(tmp_path):
+    class NoPits(FakeSources):
+        def pits(self):
+            raise OSError("bronze laps unreadable")
+
+    ev = tmp_path / "ev"
+    res = R.run_pipeline(NoPits(), ev, n_draws=3, synthetic=True)
+    card = (ev / "SCORECARD.md").read_text()
+    assert card.splitlines()[0] == res.verdict_line
+    assert "| bronze pit laps | — (not computed: OSError) |" in card
+    assert "TABLE 2 bronze pit laps: not computed" in (ev / "PROVENANCE.txt").read_text()
+
+
+def _wet_race_sources():
+    """A fit race whose passes are all excluded (as 2022 Japan, 2024 São Paulo), with panel laps."""
+    src = FakeSources(seed=14, races_per_season=3, n_drivers=6)
+    wet = sorted(src.raw.loc[src.raw["season"] == 2023, "race_id"].unique())[0]
+    src.raw = src.raw.copy()
+    src.raw.loc[src.raw["race_id"] == wet, "reason"] = "wet"
+    return src, wet
+
+
+def test_a4_4b_as_written_stops_before_any_curve_when_a_fit_race_has_no_fit_pass(tmp_path):
+    src, wet = _wet_race_sources()
+    ev = tmp_path / "ev"
+    assert R.run_pipeline(src, ev, n_draws=3, synthetic=True) is None
+    first = (ev / "SCORECARD.md").read_text().splitlines()[0]
+    assert first.startswith(C.VERDICT_TEXT[C.NO_VERDICT]) and wet in first and "A5" in first
+    assert not (ev / "main_curve.csv").exists()
+
+
+def test_a5_union_runs_with_a_fit_race_that_has_no_fit_pass(tmp_path, judged_classes):
+    src, wet = _wet_race_sources()
+    res = R.run_pipeline(src, tmp_path / "ev", n_draws=3, synthetic=True, a5="union")
+    assert res is not None and wet in res.plan.fit_races
+    assert res.contest is not None and np.isfinite(res.contest.theta_draws).all()
+
+
+def test_a5_refusal_before_the_warehouse_only_while_a5_is_undecided():
+    ok = {"main": (["a", "b"], ["a", "b"]), "older": (["c"], [])}
+    bad = {"main": (["a", "b"], ["a"]), "older": (["c"], ["c"])}
+    R.a5_refusal(ok, None)  # the older era never refuses the run: it is report-only
+    with pytest.raises(R.RefusedError):
+        R.a5_refusal(bad, None)
+    R.a5_refusal(bad, "union")
+    assert R.A5_FIT_RACE_LIST is None  # the owner sets it, not an agent
+
+
+def test_fit_race_lists_use_structural_columns_and_find_the_race_with_no_fit_pass():
+    src, wet = _wet_race_sources()
+    lists = R._fit_race_lists(src.raw)
+    built, contributing = lists["main"]
+    assert wet in built and wet not in contributing
+
+
+def test_registration_requires_a5_once_it_is_switched_on(tmp_path, monkeypatch):
+    log, wc = _registration(tmp_path)
+    assert R.registration_problems(log, wc, committed=lambda p: True) == []
+    monkeypatch.setattr(R, "A5_FIT_RACE_LIST", "union")
+    probs = R.registration_problems(log, wc, committed=lambda p: True)
+    assert len(probs) == 1 and "A5" in probs[0]
+
+
+def _relabel(frame, cols, old="2025", new="2021"):
+    out = frame.copy()
+    for c in cols:
+        if c in out:
+            out[c] = out[c].astype(str).str.replace(old, new, regex=False)
+    return out
+
+
+class OlderSources(FakeSources):
+    """Main world (2022-2024 fit, 2025 held out) plus an older world (2018-2020 fit, 2021 held out)."""
+
+    def __init__(self):
+        super().__init__(seed=14, races_per_season=3, n_drivers=6)
+        op, opan, ocal, _ = world(seed=15, seasons=(2018, 2019, 2020), races_per_season=3, n_drivers=6)
+        op = _relabel(op, ["race_id", "race", "race_key", "corner_key"])
+        op["season"] = op["season"].replace(2025, 2021)
+        opan = _relabel(opan, ["race_id", "lap_id", "stint_id"])
+        opan["race_year"] = opan["race_year"].replace(2025, 2021)
+        self.prepared = pd.concat([self.prepared, op], ignore_index=True)
+        self.panel = pd.concat([self.panel, opan], ignore_index=True)
+        self.cal = {**self.cal, **{((2021 if s == 2025 else s), r.replace("2025", "2021")): v
+                                   for (s, r), v in ocal.items()}}
+        self.raw = self.prepared[[c for c in self.raw.columns]]
+
+
+def test_the_older_car_run_is_wired_in_after_the_main_scorecard_and_never_decides(tmp_path, judged_classes):
+    ev = tmp_path / "ev"
+    res = R.run_pipeline(OlderSources(), ev, n_draws=3, synthetic=True)
+    assert res.era == "main"
+    assert (ev / "older_curve.csv").exists() and (ev / "older_class_curve_dirty_air.csv").exists()
+    card = (ev / "SCORECARD.md").read_text()
+    assert card.splitlines()[0] == res.verdict_line  # the older result never changes the first line
+    t2 = card[card.index("Table 2"):]
+    assert "older cars (2018-2020 fit, 2021 scored; never decides the verdict): W1" in t2
+    assert "older curve, 2018-2021: pit-stop figure" in t2
+    oc = pd.read_csv(ev / "older_curve.csv")
+    assert len(oc) == 24
+    prov = (ev / "PROVENANCE.txt").read_text()
+    assert prov.index("VERDICT WRITTEN") < prov.index("TABLE 2 older cars: done")

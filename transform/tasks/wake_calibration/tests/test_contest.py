@@ -452,3 +452,55 @@ def test_g1_viii_timing_of_the_theta_now_refit_and_rescoring_per_draw():
     secs = time.perf_counter() - t0
     print(f"G1(viii): θ_now refit + 2025 rescoring, one draw {secs:.3f} s; x {E.N_BOOT} ~ {secs * E.N_BOOT / 60:.1f} min")
     assert secs < 30.0
+
+
+# ---------------------------------------------------------------- draft amendment A5 (fit-race list)
+
+
+def _wet_world(seed=16):
+    prepared, panel, cal, races = world(seed=seed, races_per_season=2, n_drivers=4)
+    wet = sorted(prepared.loc[prepared["season"] == 2023, "race_key"].unique())[0]
+    prepared = prepared.copy()
+    prepared.loc[prepared["race_key"] == wet, "reason"] = "wet"
+    rc = {f"{s}_{r}": c for (s, r), (c, _) in cal.items()}
+    return prepared, panel, rc, wet
+
+
+def test_a5_fit_race_list_union_and_built():
+    prepared, panel, rc, wet = _wet_world()
+    extra = panel[panel["race_id"] == wet].assign(race_id="2022_panel_only")
+    rc2 = {**rc, "2022_panel_only": "C0"}
+    pan = pd.concat([panel, extra.assign(lap_id=extra["lap_id"] + "p", stint_id=extra["stint_id"] + "p")])
+    union, _ = C.fit_race_list(prepared, pan, rc2, "main", "union")
+    built, _ = C.fit_race_list(prepared, pan, rc2, "main", "built")
+    assert wet in union and wet in built and "2022_panel_only" in union and "2022_panel_only" not in built
+    with pytest.raises(E.EstimatorError):
+        C.fit_race_list(prepared, pan, rc, "main", "union")  # no circuit for the panel-only race
+
+
+def test_a5_a4_4b_raises_but_the_explicit_list_runs_and_keeps_theta_on_every_panel_race():
+    prepared, panel, rc, wet = _wet_world()
+    held = sorted(panel.loc[panel["race_year"] == 2025, "race_id"].unique())
+    with pytest.raises(E.EstimatorError):
+        C.run_era(prepared, panel, held, n_draws=3)  # A4 ruling 4b as written
+    races, circ = C.fit_race_list(prepared, panel, rc, "main", "union")
+    res = C.run_era(prepared, panel, held, n_draws=3, fit_races=races, race_circuit=circ)
+    assert wet in res.plan.fit_races and res.contest is not None
+    assert res.contest.theta_point == pytest.approx(C.theta_now_weighted(C.theta_fit_rows(panel)), abs=1e-12)
+    dropped = next(r for r in races if r != wet)  # a race that does contribute fit passes
+    with pytest.raises(E.EstimatorError):  # a fit pass from a race off the list is refused
+        C.run_era(prepared, panel, held, n_draws=2, fit_races=[r for r in races if r != dropped],
+                  race_circuit=circ)
+
+
+def test_a5_theta_draws_subset_mode():
+    prepared, panel, rc, wet = _wet_world()
+    races, circ = C.fit_race_list(prepared, panel, rc, "main", "union")
+    plan = E.resample_plan(races, circ, ["2025_x"], n_draws=2)
+    pfit = C.theta_fit_rows(panel)
+    with pytest.raises(E.EstimatorError):
+        C.theta_now_draws(pfit[pfit["race_id"] != races[1]], plan)
+    th = C.theta_now_draws(pfit[pfit["race_id"] != races[1]], plan, subset=True)
+    assert np.isfinite(th).all()
+    with pytest.raises(E.EstimatorError):
+        C.theta_now_draws(pfit.assign(race_id="off_list"), plan, subset=True)

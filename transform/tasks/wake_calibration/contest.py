@@ -13,9 +13,11 @@ Like estimator.py this is a library of pure functions on DataFrames: it reads no
 and writes nothing. It has been run on synthetic data only (tests/test_contest.py). The real run is
 run_wc03.py, which refuses to start until every amendment is committed and its SHA-256 recorded.
 
-Not here: the §11 pit-stop comparison group, adjusted jump and predicted drop; the §12b sensitivity runs
-(±2 / ±6 reference windows, without 2024 Las Vegas); coverage per team. They are reported only (Table 2)
-and never enter the verdict.
+Not here (report-only, Table 2, never a verdict input): the §11 pit-stop figure (pitstop.py), the §12b
+sensitivity runs (sensitivity.py) and coverage per team and Table 2 itself (report.py).
+
+DRAFT amendment A5 (wi/WC-03-amendment-A5-fit-race-list-DRAFT.md, not adopted): run_era can draw the plan
+over an explicit fit-race list (fit_race_list, run_era(fit_races=...)). Off unless the caller passes it.
 """
 
 from __future__ import annotations
@@ -127,12 +129,19 @@ def theta_fit_rows(panel: pd.DataFrame, era: str = "main") -> pd.DataFrame:
     return p[keep].reset_index(drop=True)
 
 
-def theta_now_draws(panel_fit: pd.DataFrame, plan: E.BootstrapPlan) -> np.ndarray:
-    """θ_now refitted in every draw on the draw's fit-race multiplicities (A1: over all circuit copies; A4
-    ruling 4b: the panel's fit races must be exactly the plan's fit races)."""
+def theta_now_draws(panel_fit: pd.DataFrame, plan: E.BootstrapPlan, subset: bool = False) -> np.ndarray:
+    """θ_now refitted in every draw on the draw's fit-race multiplicities (A1: over all circuit copies).
+
+    subset False (A4 ruling 4b as written): the panel's fit races must be exactly the plan's fit races.
+    subset True (DRAFT amendment A5, only when the owner adopts it): the plan is drawn over an explicit
+    fit-race list, and the panel's fit races must lie inside it. A listed race with no panel lap adds no row."""
     races = list(plan.fit_races)
     panel_races = sorted(panel_fit["race_id"].astype(str).unique())
-    if panel_races != races:
+    if subset:
+        outside = sorted(set(panel_races) - set(races))
+        if outside:
+            raise E.EstimatorError(f"θ_now panel races not on the fit-race list (A5): {outside[:3]}")
+    elif panel_races != races:
         only_panel = sorted(set(panel_races) - set(races))
         only_plan = sorted(set(races) - set(panel_races))
         raise E.EstimatorError(f"θ_now fit races differ from the curve's fit races (A4 4b): panel only "
@@ -513,29 +522,75 @@ class EraResult:
     checks: list[Check]
     verdict_code: str
     verdict_line: str
+    # Kept for the report-only Table 2 (pit-stop figure, per-team contest, under attack); never verdict inputs.
+    main_draws: np.ndarray | None = None
+    plan: E.BootstrapPlan | None = None
+    p1: Check | None = None
+    p2: Check | None = None
+    under_attack: pd.DataFrame | None = None
+    design: np.ndarray | None = None
+
+
+def fit_race_list(prepared: pd.DataFrame, panel: pd.DataFrame, race_circuit: dict[str, str], era: str = "main",
+                  option: str = "union") -> tuple[list[str], dict[str, str]]:
+    """DRAFT amendment A5 (not in force until the owner adopts it): the era's fit-race list and each race's
+    circuit. "union" (option a): every fit-season race with a pass-table row or a panel row. "built" (option
+    b): every fit-season race with a pass-table row. `race_circuit` maps race_id -> §6 circuit key (from the
+    race calendar) and must cover every listed race."""
+    seasons = E.ERAS[era]["fit"]
+    built = set(prepared.loc[prepared["season"].astype(int).isin(seasons), "race_key"].astype(str))
+    in_panel = set(panel.loc[panel["race_year"].astype(int).isin(seasons), "race_id"].astype(str))
+    if option == "union":
+        races = sorted(built | in_panel)
+    elif option == "built":
+        races = sorted(built)
+    else:
+        raise E.EstimatorError(f"unknown A5 option {option!r}")
+    missing = [r for r in races if r not in race_circuit]
+    if missing:
+        raise E.EstimatorError(f"no circuit for listed fit race(s) {missing[:3]} (A5)")
+    return races, {r: str(race_circuit[r]) for r in races}
 
 
 def run_era(prepared: pd.DataFrame, panel: pd.DataFrame, held_out_races: list[str], era: str = "main",
-            n_draws: int = E.N_BOOT, seed: int = E.SEED, setup_checks: list[Check] | None = None) -> EraResult:
+            n_draws: int = E.N_BOOT, seed: int = E.SEED, setup_checks: list[Check] | None = None,
+            fit_races: list[str] | None = None, race_circuit: dict[str, str] | None = None) -> EraResult:
     """Curve, class curves, θ_now, scored set, contest and verdict for one era, in that order, with one plan
     (A1) for every draw. `setup_checks` are the checks run before this (G1-G4, G6) by the caller; a failed one
-    is carried to the verdict. Nothing here reads or writes a file."""
+    is carried to the verdict. Nothing here reads or writes a file.
+
+    fit_races None: the plan is drawn over the races that contribute fit passes and θ_now's panel races must
+    equal them (A4 ruling 4b as written). fit_races given (DRAFT amendment A5, only once adopted): the plan
+    is drawn over that list with `race_circuit` for every listed race; fit passes and θ_now's panel races
+    must lie inside it."""
     setup = list(setup_checks or [])
     fit = E.fit_passes(prepared, era)
-    plan = E.resample_plan(sorted(fit["race_key"].unique()), E.race_circuits(fit), list(held_out_races),
-                           n_draws=n_draws, seed=seed)
+    if fit_races is None:
+        plan = E.resample_plan(sorted(fit["race_key"].unique()), E.race_circuits(fit), list(held_out_races),
+                               n_draws=n_draws, seed=seed)
+    else:
+        outside = sorted(set(fit["race_key"].astype(str)) - set(fit_races))
+        if outside:
+            raise E.EstimatorError(f"fit passes from races not on the fit-race list (A5): {outside[:3]}")
+        own = E.race_circuits(fit) if len(fit) else {}
+        bad = sorted(r for r, c in own.items() if race_circuit.get(r) != c)
+        if bad:
+            raise E.EstimatorError(f"fit-race list circuit differs from the passes' circuit (A5): {bad[:3]}")
+        plan = E.resample_plan(list(fit_races), race_circuit, list(held_out_races), n_draws=n_draws, seed=seed)
     main_table, main_draws = E.curve_with_intervals(fit, plan, role="main")
     classes = E.class_curves_with_intervals(fit, plan)
     dirty_table, dirty_draws = classes[E.DIRTY_AIR]
     held_table, _ = classes[E.HELD_UP]
+    under = E.under_attack_difference(fit, plan) if len(fit) else None
     g7 = g7_curve_identified(main_table, dirty_table)
     setup.append(g7)
     if not g7.passed:
         code, line = verdict(setup, None, None, None)
-        return EraResult(era, main_table, dirty_table, held_table, None, None, setup, code, line)
+        return EraResult(era, main_table, dirty_table, held_table, None, None, setup, code, line,
+                         main_draws=main_draws, plan=plan, under_attack=under)
     panel_fit = theta_fit_rows(panel, era)
     theta_pt = theta_now_weighted(panel_fit)
-    theta_dr = theta_now_draws(panel_fit, plan)
+    theta_dr = theta_now_draws(panel_fit, plan, subset=fit_races is not None)
     scored = scored_set(panel, prepared, theta_pt, era)
     design = lap_design(scored.laps, prepared[prepared["season"].astype(int) == E.ERAS[era]["held_out"]])
     res = run_contest(scored.laps, design, curve_array(main_table), main_draws, theta_pt, theta_dr, plan)
@@ -543,9 +598,11 @@ def run_era(prepared: pd.DataFrame, panel: pd.DataFrame, held_out_races: list[st
     setup.append(g5)
     c1 = w1(res)
     c2 = w2(res)
-    c3 = w3(p1(curve_array(main_table), main_draws), p2(curve_array(dirty_table), dirty_draws))
+    cp1, cp2 = p1(curve_array(main_table), main_draws), p2(curve_array(dirty_table), dirty_draws)
+    c3 = w3(cp1, cp2)
     code, line = verdict(setup, c1, c2, c3)
-    return EraResult(era, main_table, dirty_table, held_table, res, scored, setup + [c1, c2, c3], code, line)
+    return EraResult(era, main_table, dirty_table, held_table, res, scored, setup + [c1, c2, c3], code, line,
+                     main_draws=main_draws, plan=plan, p1=cp1, p2=cp2, under_attack=under, design=design)
 
 
 def scorecard(result: EraResult) -> str:

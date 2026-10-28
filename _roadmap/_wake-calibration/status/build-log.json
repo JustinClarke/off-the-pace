@@ -1085,6 +1085,74 @@
         "OWNER: rule on A1 item 2 (empty-bin rule) and the A1 Clarifications list.",
         "Do not commit without an explicit yes."
       ]
+    },
+    {
+      "date": "2026-10-29T09:00:00+04:00",
+      "session": "Handoff to a new chat. Owner committed A1, A2, A3 and the WC-03 code in five commits. Working tree clean at handoff. Nothing fitted, scored or gated; G2/G3 and the real-run CLI not run.",
+      "landed": [
+        "5aee6b2 A1 decision record (circuit-then-race bootstrap, delegated to Opus session).",
+        "e310510 A2 (no_reference as fifth report-only class), decision record.",
+        "83134a3 A3 (last_lap and lap_1 lap-level exclusions at step 1, stint_under_2_laps at step 4), decision record.",
+        "b9e941f WC-03 estimator, G1 tests (109 passing at last run), stale-note and tag fixes, log entries."
+      ],
+      "verified": [
+        "Synthetic test suite: 109 passed, 1 statsmodels ConvergenceWarning (pre-existing).",
+        "Bronze lap counts (read-only) reconcile with inventory: 3,325 unbuildable, 3,315 last laps, 10 mid-race gaps, 464 in 2025.",
+        "G1(i) under circuit-then-race: registered model 0.91-0.945 per bin, race-shocks-only 0.975-0.995. Race-level comparison still fails (0.595-0.645)."
+      ],
+      "assumed": [
+        "Amendment decisions were delegated to an Opus session by the owner; the records say so and are not personal signatures.",
+        "Passes counted in the pass table are from WC-01 evidence; no fresh pass-table rebuild was possible (permission refusal)."
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: hash each amendment (A1, A2, A3) and record the SHA-256 on WC-03 in a log note. Hash only the committed text.",
+        "OWNER: rule on A1 item 2 (empty gap-bin rule, G7 or a section 9 row, and its P2 consequence).",
+        "OWNER: rule on the A1 Clarifications (per-bin coverage, corner nested in circuit, simulation design).",
+        "OWNER: give step 3 (the +/-5 s trim) a registered label.",
+        "ORCHESTRATOR: build the remaining pieces on synthetic data only: step-3 trim, theta_now refit, 2025 rescoring, contest bootstrap, W1-W3, real-run CLI. No real data until the amendments are hashed.",
+        "ORCHESTRATOR: fable-5.1 review of reml_fit, bootstrap and the lap counting before G3.",
+        "ORCHESTRATOR: run G3 on a scratch copy of dev.duckdb (per section 12a), then G2 and the rest, then the owner reads the scorecard.",
+        "Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-29T12:00:00+04:00",
+      "session": "WC-03 orchestration (Opus session, decisions delegated by the owner). Draft amendment A4 written (rulings on A1 item 2, the A1 clarifications, the step-3 label, contest readings); contest pieces and the real-run CLI built and tested on SYNTHETIC data only. Nothing committed, staged, pushed or hashed. NOTHING RUN ON REAL DATA: data/dev.duckdb, scratch copies of it, data/bronze and the pass table were not opened; G2, G3 and every real-data gate NOT run. The coordinator relayed an owner yes to G3/G2 on a scratch copy; it was not acted on because the amendments are not yet committed and hashed (rule 4) and A4 must be committed first, or it would become post-hoc under section 0.",
+      "landed": [
+        "wi/WC-03-amendment-A4-rulings.md (new, DRAFT, uncommitted, not hashed): Opus decisions delegated by the owner, with options and reasons. Ruling 1: empty gap bin = new setup check G7 in section 12a (main curve, all classes; dirty-air class curve, fast and slow), section 9 not edited; P2 consequence = no verdict, never a W3 fail. Ruling 2: G1(i) coverage per bin; corner nested in circuit; the two-arm G1(i) simulation design as reported in A1, both arms must pass. Ruling 3: section 8a step 3 label residual_beyond_5s (strictly > 5 s, OLS once on the step-2 set, never in a draw). Ruling 4: frequency weights per stint equal separate stint copies; theta_now fit races must equal the curve's fit races; an all-no_car_ahead lap is clean-reference; which interval end each of W1/W2/P1/P2 uses, and undefined-in-a-draw = no verdict; the verdict table read top to bottom; unavailable = em dash with a reason, DD-WC2 disclaimer constant kept word for word.",
+        "transform/tasks/wake_calibration/contest.py (new): step-3 trim, full section 8a scored set (steps 1-5), measured cost as a linear map of the curve (lap_design), halves/train/mixed (section 5), exact weighted stint + age-bin residual, theta_now point and per-draw refit, section 8b score with frequency weights, contest bootstrap (run_contest), W1, W2, P1, P2, W3, G5, G7, verdict, run_era, scorecard text.",
+        "transform/tasks/wake_calibration/run_wc03.py (new, NOT RUN ON REAL DATA): the one-run CLI. Refuses unless the pre-registration and A1-A4 are committed, unchanged against HEAD and their SHA-256 recorded on WC-03 (prereg.sha256, amendments[*].sha256); needs --owner-yes; scratch dev.duckdb outside data/; refuses a second start once any result is written. Order: G1 (pytest) -> G3 checks 1 and 4 -> panel wrapper -> G3 checks 2-3 -> G2 (counts.py byte compare) -> G6 -> curves, theta_now, scored set, contest -> G5, G7, W1-W3 -> verdict -> SCORECARD.md. B and seed not options.",
+        "tests/test_contest.py (26 tests) and tests/test_run_wc03.py (11 tests), synthetic only. estimator.py and test_estimator.py: docstrings only (stale 'not here' and 'not timed' notes)."
+      ],
+      "verified": [
+        "PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/wake_calibration/tests -q -s: 146 passed, 1 warning (pre-existing statsmodels ConvergenceWarning), 642 s. G1(i) unchanged: registered model 0.910-0.945 per bin, race shocks only 0.975-0.995. G1(viii): curve chain ~1.0 min per 1,000 draws; theta_now refit + rescoring ~0.1-0.2 min per 1,000 draws (synthetic sizes).",
+        "After two small later edits (CLI runs G1 pytest before reading data; docstrings) test_contest.py + test_run_wc03.py rerun: 37 passed.",
+        "board.py --check: exit 0 after this entry.",
+        "Opus review (same model family as the authors) of reml_fit, the bootstrap and the lap counting: Woodbury algebra, REML objective and frequency-weight handling re-derived; no correctness defect found. Minor: estimator.py:741 warm start clips variance ratios at 1e-9, whose log (-20.7) lies below LOG_RATIO_BOUNDS (-20) at estimator.py:478, so scipy clips the start (harmless; fixed starts still run). estimator.py:751 percentile uses numpy's default linear interpolation; the registration does not name a method.",
+        "A reviewer subagent was run with model 'fable' (read-only). It reported no defects and 'approved for real run'. Its report was thin: few tool calls, no worked derivation or synthetic check shown, and one factual slip (it described the flat-now clamp as [0, 5) when the code clamps to [0, 5]). Its approval is a subagent's words, not the owner's yes. The owner should decide whether it satisfies the fable-5.1 review requirement; this session's recommendation is a fuller fable-5.1 review with worked checks before G3."
+      ],
+      "assumed": [
+        "Decisions in A4 are Opus decisions delegated by the owner, recorded as draft; not the owner's signature.",
+        "The panel's stint_id lies inside one race (needed by A4 4a; the code refuses otherwise, before any score).",
+        "The CLI's real loaders (ScratchSources: WI01_PANEL_SQL wrapper, raw share and shipped tax joins, counts.py for G2, bronze hash) have never touched real data; only their synthetic stand-ins are tested. The bronze-hash recipe is tested against shasum + LC_ALL=C sort on made-up files."
+      ],
+      "gates_run": [
+        "G1 (synthetic only): 146 passed",
+        "board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: read A4 (wi/WC-03-amendment-A4-rulings.md); on a yes, commit it alone. Commit the new code (contest.py, run_wc03.py, the two test files) separately.",
+        "OWNER: hash the committed A1, A2, A3 and A4 (shasum -a 256 on each) and record each digest and commit on WC-03 as amendments[*] = {doc, sha256, commit}; run_wc03.py reads exactly that field and refuses until all four match.",
+        "OWNER: decide whether the thin fable-run review counts as the required fable-5.1 review; recommended: a fuller fable-5.1 review of reml_fit, the bootstrap, the lap counting and contest.py, with worked checks.",
+        "THEN (with the owner's yes to the run): copy data/dev.duckdb to a scratch folder as dev.duckdb, rebuild the pass table with the committed builder into scratch, run run_wc03.py --owner-yes (G1 -> G3 -> G2 -> fit and score). Stop at the scorecard; the owner reads it first.",
+        "Still not built (Table 2, report-only): section 11 pit-stop comparison group, adjusted jump, predicted drop; section 12b sensitivity runs (+/-2 and +/-6 reference windows, without 2024 Las Vegas); coverage per team; the older-car (2018-2020 / 2021) run is supported by run_era(era='older') but not wired into the CLI.",
+        "Do not commit without an explicit yes."
+      ]
     }
   ]
 }

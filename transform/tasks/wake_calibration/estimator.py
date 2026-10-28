@@ -31,9 +31,10 @@ last_lap, no_pass_rows, by position in the panel), the step-4 short-stint drop (
 applied once to whatever step 3 kept, and step-5
 counting of each dropped lap once, at its first step. And (amendment A2) the §12b no_reference counts.
 
-Not here (WC-04 or the run itself): §8a step 3 (the ±5 s trim on the no-traffic baseline), the
-contest bootstrap, W1-W3, P1/P2, the pit-stop comparison group, G2, G3, G5 contest minimums, G6,
-PROVENANCE and the evidence files.
+Not here: §8a step 3 (the ±5 s trim, label residual_beyond_5s, amendment A4), the θ_now refit per draw, the
+2025 rescoring, the contest bootstrap, W1-W3, P1/P2, G5 and G7 are in contest.py; G2, G3, G6, PROVENANCE and
+the evidence files are in run_wc03.py (the CLI, not run on real data). Still not built: the pit-stop
+comparison group, adjusted jump and predicted drop (§11), and the §12b sensitivity runs.
 """
 
 from __future__ import annotations

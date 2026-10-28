@@ -1078,7 +1078,8 @@ def test_g1_viii_timing_of_one_draw():
     three corner classes each (9 REML fits and 9 PAVA steps), on a synthetic fit set of 400,000 passes over
     68 races (about the 2022-2024 share of the 1,071,162 measured passes in §2a, an upper bound).
 
-    Not timed: the θ_now refit and the 2025 rescoring, which belong to WC-04 and are not built yet."""
+    The θ_now refit and the 2025 rescoring per draw are timed in test_contest.py
+    (test_g1_viii_timing_of_the_theta_now_refit_and_rescoring_per_draw)."""
     rng = np.random.default_rng(20)
     parts = []
     for c, cls in enumerate(E.CORNER_CLASSES):

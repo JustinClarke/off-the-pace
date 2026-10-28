@@ -67,7 +67,7 @@ AMENDMENTS = (
 # sets "union" (option a) or "built" (option b) once A5 is decided, committed and its SHA-256 recorded; the
 # CLI then also requires A5's digest (registration_problems). Not to be changed by an agent.
 A5_DOC = "wi/WC-03-amendment-A5-fit-race-list-DRAFT.md"
-A5_FIT_RACE_LIST: str | None = None
+A5_FIT_RACE_LIST: str | None = "union"
 WAREHOUSE = REPO / "data/dev.duckdb"
 BRONZE = REPO / "data/bronze"
 D1_SCRIPT = REPO / "_roadmap/_fixes/_evidence/wi-12-2026-09-27/d1_build_panels_wi12.py"

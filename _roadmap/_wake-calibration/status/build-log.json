@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "wake-calibration: own-reference corner loss with an upstream gap (measured / modelled / unavailable)",
-  "updated": "2026-10-28T18:00:00+04:00",
+  "updated": "2026-10-28T23:30:00+04:00",
   "pointer": "WC-03",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -123,7 +123,7 @@
       "doc": "wi/WC-03-estimator.md",
       "cost": "3-5 wk",
       "model": "fable-5.1",
-      "note": "Pre-registration signed 2026-10-28 (SHA-256 518c3348a619...), committed at 839e0f4 together with other wake-calibration files, not alone as rule 4 asks. Nothing has been fitted or scored yet; the first step is G3 (sections 12a and 17b), run before any fit or score. Model tag kept at fable-5.1, but the estimator and G1 tests (2026-10-28/29) were built by Opus subagents, not fable-5.1: a fable-5.1 review of estimator.py and test_estimator.py is required before the real run (owner instruction 2026-10-28).",
+      "note": "Pre-registration signed 2026-10-28 (SHA-256 518c3348a619...), committed at 839e0f4 together with other wake-calibration files, not alone as rule 4 asks. Nothing has been fitted or scored yet; the first step is G3 (sections 12a and 17b), run before any fit or score. Model tag kept at fable-5.1, but the estimator and G1 tests (2026-10-28/29) were built by Opus subagents, not fable-5.1: a fable-5.1 review of estimator.py and test_estimator.py is required before the real run (owner instruction 2026-10-28). 2026-10-28 lead session: draft A5 (fit-race list) needed before the run (DD-WC14); section 11, 12b, per-team and older-era code built on synthetic data; run package in _evidence/WC-03-prep-2026-10-28/RUN-PACKAGE.md.",
       "prereg": {
         "status": "SIGNED",
         "signed": "2026-10-28",
@@ -388,6 +388,17 @@
       "recommendation": null,
       "resolved": "2026-10-28",
       "resolution": "Owner 2026-10-28: yes. No-loss check moved to the 2-3 s band. Recommendation adopted."
+    },
+    {
+      "id": "DD-WC14",
+      "raised": "2026-10-28",
+      "blocking": [
+        "WC-03"
+      ],
+      "status": "OPEN",
+      "question": "Adopt draft amendment A5 (wi/WC-03-amendment-A5-fit-race-list-DRAFT.md): draw the bootstrap plan over every fit-season race (union of pass-table and panel races), not only the races that contribute fit passes?",
+      "context": "Two built 2022-2024 races (2022 Japan 2022_18, 2024 Sao Paulo 2024_21) have no fit-eligible pass (all wet); older era: 2019_11, 2020_14, plus 2018 Australia/Bahrain and 2020 Sakhir/Tuscany with laps but no pass table. Under A4 ruling 4b as written the run stops after G3 is written (= the one run, no verdict). The CLI now refuses before any warehouse read while A5 is undecided. Options: (a) union [recommended], (b) built races only, (c) keep A4 4b. Outcome-blind counts only (_evidence/WC-03-prep-2026-10-28/).",
+      "recommendation": "(a) union: changes no registered fit set; matches the 68 races of section 8c."
     }
   ],
   "watch_vocabulary": {
@@ -1152,6 +1163,74 @@
         "THEN (with the owner's yes to the run): copy data/dev.duckdb to a scratch folder as dev.duckdb, rebuild the pass table with the committed builder into scratch, run run_wc03.py --owner-yes (G1 -> G3 -> G2 -> fit and score). Stop at the scorecard; the owner reads it first.",
         "Still not built (Table 2, report-only): section 11 pit-stop comparison group, adjusted jump, predicted drop; section 12b sensitivity runs (+/-2 and +/-6 reference windows, without 2024 Las Vegas); coverage per team; the older-car (2018-2020 / 2021) run is supported by run_era(era='older') but not wired into the CLI.",
         "Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-29T13:00:00+04:00",
+      "session": "Handoff to a new chat. Owner committed c872547 (A4 draft, contest.py, run_wc03.py, tests). Owner rule: the agent never commits, pushes or stages; the owner commits. Nothing run on real data; no hashes recorded yet.",
+      "landed": [
+        "c872547: A4 draft (wi/WC-03-amendment-A4-rulings.md), contest.py, run_wc03.py, tests/test_contest.py, tests/test_run_wc03.py, estimator.py docstring fixes, build-log entry. A4 was NOT committed alone and the code NOT separately, as the Opus session asked; both are in one commit."
+      ],
+      "verified": [
+        "Before this handoff entry the tree was clean (c872547 is HEAD). This entry itself is an uncommitted edit to build-log.json for the owner to commit.",
+        "Synthetic suite: 146 passed, 1 pre-existing warning (Opus session, before c872547). 37 passed on the two new files after last edits.",
+        "board.py --check exits 0."
+      ],
+      "assumed": [
+        "The Opus session's review found no correctness defect, but it is the same model family as the authors; the fable-5.1 review has NOT been done. The fable-run reviewer that ran was thin (no worked checks) and misdescribed the flat-now clamp as [0,5) where the code uses [0,5]; do not count it.",
+        "Owner said yes to all rulings and the build plan on 2026-10-29, but explicitly not to committing. Real-data runs need a further yes at the point of running."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "pytest transform/tasks/wake_calibration (synthetic only)"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: hash the committed A1, A2, A3 and A4 (shasum -a 256 on each file as committed in c872547 or earlier) and record digest and commit on WC-03 as amendments[*] = {doc, sha256, commit}. run_wc03.py reads exactly that field and refuses until all four match. The agent may compute the digests if asked, but the owner records them and commits.",
+        "OWNER (or Opus session on owner's behalf, recorded as delegated): decide whether to split A4 and the code into separate commits. Not required for the run; required by the Opus session's own rule 4 reading. Owner decides.",
+        "OWNER: commission a full fable-5.1 review of reml_fit, the bootstrap, the lap counting and contest.py, with worked checks and synthetic cases. This is a hard gate before G3.",
+        "THEN, with an explicit yes to the run: copy data/dev.duckdb to a scratch folder as dev.duckdb, rebuild the pass table there with the committed builder, run run_wc03.py --owner-yes (G1 -> G3 -> G2 -> fit and score), and stop at the scorecard for the owner to read first.",
+        "Not yet built (report-only, Table 2): section 11 pit-stop comparison group, adjusted jump and predicted drop; section 12b sensitivity runs (+/-2 and +/-6 reference windows, without 2024 Las Vegas); coverage per team; older-car (2018-2020 / 2021) run is supported by run_era(era='older') but not wired into run_wc03.py.",
+        "Do not commit without an explicit yes. The agent never commits, pushes or stages (owner rule, 2026-10-29)."
+      ]
+    },
+    {
+      "date": "2026-10-28T23:30:00+04:00",
+      "session": "WC-03 lead session (Opus, delegated by the owner). Prepare, clean, count and test only. NOTHING FITTED, SCORED, CLASSIFIED OR GATED ON REAL DATA: G1-G7 not run on real data; data/dev.duckdb not opened, copied or hashed (stat only); bronze not hashed. Nothing committed, staged or pushed. Clock note: earlier entries carry 2026-10-29 stamps; this machine's date is 2026-10-28.",
+      "landed": [
+        "Snag 1 (resolved, no plan change): _artifacts/WC-01-pass-table/ held the FIRST WC-01 build (pass a, 7c841ec8..., no segment_basis). The registered pass d (d343a5be...bd4c2e4a..., races de680b39...) was copied byte for byte from the surviving WC-02 scratch rebuild into _artifacts/WC-01-pass-table-d/ with SHA256SUMS; old folder marked SUPERSEDED.txt for the owner to delete.",
+        "Snag 2 (changes the plan; owner decision DD-WC14): 66 of 68 main-fit races and 53 of 55 older-fit races have a fit-eligible pass (2022_18, 2024_21, 2019_11, 2020_14 all wet). Under A4 ruling 4b the run would stop after G3 was written (one run, no verdict). Draft amendment wi/WC-03-amendment-A5-fit-race-list-DRAFT.md (options union/built/keep); code behind run_wc03.A5_FIT_RACE_LIST = None; the CLI refuses before any warehouse read while A5 is undecided.",
+        "wi/WC-03-lead-decisions-2026-10-28-DRAFT.md: decision records L1-L8 (Opus-delegated, draft): artefact fix, outcome-blind counting rules, section 11 readings, 12b readings, team coverage, older-era wiring, integrity pre-flight, readings fixed while building.",
+        "_evidence/WC-03-prep-2026-10-28/: NOISE-INVENTORY.md (23 sources, handling, verdict on handling, proposals), RUN-PACKAGE.md (owner steps, exact commands, expected outputs, pre-read checks, committed digests of A1-A4 for the owner to verify), PROVENANCE.txt, noise_counts.py, preflight_integrity.py and five count CSVs.",
+        "Code (synthetic only): pitstop.py (section 11 comparison group, adjusted jump, predicted drop, race bootstrap), sensitivity.py (12b +/-2, +/-6, without 2024 Las Vegas), report.py (coverage and contest per team, 12b counts, Table 2), contest.py (fit_race_list, run_era fit_races option, keeps draws/plan/P1/P2/under-attack for Table 2), run_wc03.py (A5 switch and pre-flight refusal, Table 2 steps, older-era run after the main scorecard, sensitivity first lines), estimator.py (reference_spread/prepare_passes half_window, default 4; docstrings). Tests: test_pitstop.py, test_sensitivity.py, test_report.py, additions to test_contest.py and test_run_wc03.py."
+      ],
+      "verified": [
+        "Pass d copy: shasum of all 8 seasons and races.csv equals the registered fingerprints.",
+        "Integrity pre-flight on the real pass table (pass/fail only): calendar covers 169 races; one season and one circuit per race; unique rows; reference-donor identity on 1,071,162 measured rows. Fit-race lists: main 68 built / 66 contributing; older 55 / 53.",
+        "Outcome-blind counts: following braking passes 973,408, of which 216,280 (22.2%) have a measured reference (2025: 17.0%); main fit population before the loss trim 77,575 passes, 66 races; thinnest cell fast 0-0.3 s: 321 passes, 51 races.",
+        "Committed SHA-256: prereg 518c3348... (matches the log); A1 19a39c42... (5aee6b2), A2 6464e28a... (e310510), A3 f3e10f14... (83134a3), A4 99241331... (c872547). Computed only; NOT recorded on WC-03 (owner step).",
+        "Synthetic suite (cd transform && ../.venv/bin/python -m pytest -q tasks/wake_calibration/tests): 191 passed, 1 pre-existing statsmodels warning, 665 s (was 146; +22 pitstop, +6 sensitivity, +6 report, +3 contest A5, +8 run_wc03).",
+        "board.py --check exits 0 after this entry."
+      ],
+      "assumed": [
+        "Whether the yardstick panel holds laps of the four wet races or the four unbuilt races is not known without G3 check 2; A5 option (a) makes it irrelevant.",
+        "Run duration on real data not measured (five 1,000-draw chains plus G1).",
+        "The fable-5.1 review has not been done; its scope now also covers pitstop.py, sensitivity.py, report.py, the A5 path and reference_spread(half_window).",
+        "Decision records L1-L8 and A5 are Opus-delegated drafts, not the owner's signature."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "pytest transform/tasks/wake_calibration/tests (synthetic only)"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: decide DD-WC14 (draft A5; recommended option a, union). Commit A5 alone; set run_wc03.A5_FIT_RACE_LIST in a separate commit.",
+        "OWNER: record amendments[*] = {doc, sha256, commit} on WC-03 for A1-A4 (digests in RUN-PACKAGE.md, verify them) and A5.",
+        "OWNER: commit this session's working-tree changes (list in the session report) so the run's PROVENANCE can name a code commit.",
+        "OWNER: commission the fable-5.1 review (scope in RUN-PACKAGE.md section A.5), with worked checks.",
+        "OWNER: explicit yes to the run; then follow RUN-PACKAGE.md sections B-D exactly, and read SCORECARD.md first.",
+        "OWNER (housekeeping): delete _artifacts/WC-01-pass-table/ (pass a, superseded).",
+        "Do not commit without an explicit yes. The agent never commits, pushes or stages."
       ]
     }
   ]

@@ -30,6 +30,8 @@ python3 _roadmap/_wake-calibration/status/board.py --check    # invariants; run 
 
 **State lives in `status/build-log.json` and nowhere else.** If a work-item doc seems to record that something is done, the log wins.
 
+**Artefacts live in `_artifacts/`, not in scratch.** Pass tables and other working parquet go in `_artifacts/<item>/` with a `SHA256SUMS`. That folder is git-ignored, so the parquet is never committed. Provenance, counts and hashes are committed in `_evidence/`. (BUILD-ORDER rule 8.)
+
 ## Phases
 
 | Phase | Item | Weeks (rough) | Done when |

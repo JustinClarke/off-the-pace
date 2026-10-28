@@ -1,0 +1,15 @@
+era,flag,fit_eligible_pre_trim,share,races
+main,all,77575,1.0,66
+main,lv2024_feed,825,0.0106,1
+main,layout_changed_race,6137,0.0791,6
+main,leader_track_limits,872,0.0112,48
+main,leader_lapped_car,11431,0.1474,57
+main,leader_one_lap_up,5042,0.065,51
+main,gap_bin0_under_0p3s,2258,0.0291,66
+older,all,72799,1.0,53
+older,lv2024_feed,0,0.0,0
+older,layout_changed_race,0,0.0,0
+older,leader_track_limits,230,0.0032,12
+older,leader_lapped_car,17015,0.2337,49
+older,leader_one_lap_up,7112,0.0977,49
+older,gap_bin0_under_0p3s,1459,0.02,52

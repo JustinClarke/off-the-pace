@@ -27,10 +27,14 @@ python3 _roadmap/_wake-calibration/status/board.py --ship         # exit 1 while
 6. No number from the archived dirty-air method (DA-03) is used, as a fallback or otherwise.
 7. Every modelled value carries the disclaimer recorded in DD-WC2, word for word; unavailable is
    shown as "—" with a reason, never 0; totals print the modelled share.
+8. Working artefacts (pass tables, intermediate parquet, scorecards) are written to
+   `_roadmap/_wake-calibration/_artifacts/<item>/`, never to session scratch. Each folder has a
+   `SHA256SUMS`. The parquet is git-ignored and rebuildable; the provenance, counts and hashes
+   are committed under `_evidence/`.
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-28T18:00:00+04:00`. Run `python3 _roadmap/_wake-calibration/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-10-28T23:30:00+04:00`. Run `python3 _roadmap/_wake-calibration/status/board.py --write-order` after any edit to the log._
 
 **7 live items** (0 blocked). The pointer is on **WC-03** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 2 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
 
@@ -56,6 +60,7 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 ### Open decisions — these are yours, not tasks
 
 - **DD-WC3** (blocks nothing) — Licence the OpenF1 live data feed (paid; non-commercial, share-alike licence) for any live use of the method?
+- **DD-WC14** (blocks `WC-03`) — Adopt draft amendment A5 (wi/WC-03-amendment-A5-fit-race-list-DRAFT.md): draw the bootstrap plan over every fit-season race (union of pass-table and panel races), not only the races that contribute fit passes? _Recommended: (a) union: changes no registered fit set; matches the 68 races of section 8c._
 
 ### Watch list — kept an eye on, not tasks and not rulings
 

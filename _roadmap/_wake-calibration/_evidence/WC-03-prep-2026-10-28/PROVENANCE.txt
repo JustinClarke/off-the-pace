@@ -1,0 +1,36 @@
+WC-03 preparation (Opus lead session, delegated; 2026-10-28, local clock +04:00)
+==============================================================================
+Nothing fitted, scored, classified or gated on real data. data/dev.duckdb not opened, copied or hashed (stat
+only: Oct 26 12:12:10 2026, 1905799168 bytes). Bronze not hashed (G3 check 4 not run). No DA-03 number used.
+Nothing committed, staged or pushed.
+
+Interpreter: /Users/justin/github/off-the-pace/.venv/bin/python. Base commit c872547 (working tree changes listed
+in the session report).
+
+INPUT: registered pass table, pass "d" (WC-01 PROVENANCE fourth section; WC-02 PROVENANCE; prereg §2a)
+  _roadmap/_wake-calibration/_artifacts/WC-01-pass-table-d/  (SHA256SUMS there), copied byte for byte from
+  /private/tmp/claude-501/-Users-justin-github-off-the-pace/b032368a-69cb-47e7-b591-7234689fb01e/scratchpad/wc01re/full/
+  d343a5be... 2018, ad97ce5a... 2019, abb44da2... 2020, 1c9e2f52... 2021, 58c87498... 2022, 94c1f79a... 2023,
+  572d587b... 2024, bd4c2e4a... 2025, races.csv de680b39...: all equal to the registered fingerprints.
+  The earlier folder _artifacts/WC-01-pass-table/ holds pass "a" (7c841ec8...); marked SUPERSEDED.txt, not used.
+
+COMMANDS (repository root)
+  .venv/bin/python _roadmap/_wake-calibration/_evidence/WC-03-prep-2026-10-28/noise_counts.py \
+      _roadmap/_wake-calibration/_artifacts/WC-01-pass-table-d _roadmap/_wake-calibration/_evidence/WC-03-prep-2026-10-28
+    -> noise_summary.csv, following_by_season.csv, fit_eligible_pre_trim_by_bin.csv, coverage_per_team.csv
+  noise_counts.fit_population_flags(<pass dir>, <this folder>)  (inline call)  -> fit_population_flags.csv
+  PYTHONPATH=transform .venv/bin/python _roadmap/_wake-calibration/_evidence/WC-03-prep-2026-10-28/preflight_integrity.py \
+      _roadmap/_wake-calibration/_artifacts/WC-01-pass-table-d
+    -> 5 PASS (calendar, season per race, unique rows, circuit per race, donor identity on 1,071,162 rows);
+       2 FAIL: main built 68 / contributing 66 (2022_18, 2024_21); older built 55 / contributing 53 (2019_11, 2020_14)
+  git show HEAD:<doc> | shasum -a 256   for the prereg and A1-A4 (RUN-PACKAGE.md table)
+
+Rules for these counts: decision record L2 and L7 (wi/WC-03-lead-decisions-2026-10-28-DRAFT.md), written before
+each count was run.
+361b1dd9e7d1db6f9373addba9c6f81756c2d2690e6eb6ab0a0505db57f8672b  coverage_per_team.csv
+389dd616b95c9afe4365ae13abf9bdbf51933b9af42a06025ec41d955fc9b810  fit_eligible_pre_trim_by_bin.csv
+78d6ca6e13ce6fd140f8f6a68eacf096de705b70380f3169e1e39c36acdbe672  fit_population_flags.csv
+7e44312d144abef8865ebc005f195d6cd3e16a45d9a936bb5cd31f92e8bfb79e  following_by_season.csv
+aeb8e8b425d689404270630526163892adc61536303af57e3a9716d745a84ae5  noise_summary.csv
+874b34c59afe2525ee0947ce893f93930fd57945d54f1384f2fa83e43f6354a1  noise_counts.py
+6178650af538b3f50cb107dac76cb9819e52d2256fe4dfb704d8afff532d873e  preflight_integrity.py

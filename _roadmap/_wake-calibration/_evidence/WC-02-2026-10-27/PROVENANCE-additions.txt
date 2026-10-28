@@ -1,0 +1,36 @@
+WC-02 check 1 salvage: provenance additions (2026-10-27)
+Scratch only. Nothing written to data/dev.duckdb, data/ci.duckdb or bronze (read-only). Builder not changed.
+No commit, no push. build-log.json and BUILD-ORDER.md not edited. No fit/coefficient/curve/gate. No DA-03 number.
+Interpreter: /Users/justin/github/off-the-pace/.venv/bin/python
+Scratch folder: /private/tmp/claude-501/-Users-justin-github-off-the-pace/b032368a-69cb-47e7-b591-7234689fb01e/scratchpad/salvage/
+Input: the same WC-01 races.csv (169 ok) as PROVENANCE.txt; bronze laps and telemetry; the builder's load_race,
+race_geometry, find_apex_events and interp_time (imported, unchanged).
+
+PRE-DECLARATION: SALVAGE-predeclared.txt (copy of scratch PREDECLARED.txt)
+  sha256 2e10e3028a8474fda0ae853538e540f6f0586054836d801b4420cda8c57316e2 (final, with Amendments 1 and 2)
+
+COMMAND 3 (test, 3 races; numbers seen before Amendment 1):
+  python salvage.py test 2023:azerbaijan_grand_prix 2021:belgian_grand_prix 2018:austrian_grand_prix
+COMMAND 3 (full):
+  python salvage.py full
+  sha256 salvage.py 7622d01305c9c9dad0703ff18d0b5de4325224328c972863cdef5648c056cbe1
+  outputs (scratch): full/salvage_per_race.csv 402827f4321a47cdfbdd63a76f6d97eda74ddfe0f4c931cfc2ec40195baa87c6
+                     full/salvage_crossings.parquet b0dd48d30b8b6b16e3023402043d529995be210dc5a01d0f9da89beea99e6d9c
+                     full/salvage_pairs.parquet 5d71c38b6c8c26a91a25e327dfc6d347588e8d9a0e3f4108dfa8ab2c9b766e8f
+COMMAND 4: python analyse.py full
+  sha256 analyse.py 0eb999428b85a4ac8b4fb5fe53c62ef7019501f55614bc232bd87c73d0ce0ce5
+  output full/salvage_summary_per_race.csv d9afe6c2403716f9d1323a9e20154a9ff0ac411a11adecbc79db6fd487eaec4c
+         -> copied here as salvage_per_race.csv (169 rows)
+         full/salvage_pairs_all3.parquet 2ad07c440b95b62bc25124adb11b9c7f4086d8f1e4d11347a2b3302df4b01367 (scratch)
+  Source of: the main table, by-line, sampling, gap-size, season, variance-share and finish-constant numbers.
+  The summary medians in SALVAGE-timing.md come from a short inline pandas read of this csv.
+COMMAND 5 (POST-HOC, Amendment 2): python feedcheck.py full
+  sha256 feedcheck.py 52eff2dacb6b0d6c5b9eec305217512e43a65fdfeb280ec6485f985fa593a5da
+  output full/feed_rebuilt_per_race.csv 2cb5e5a42309b1562fe2b01247c013e94c1d4569fa5b5b8cd3c2b970423ffd04
+         -> copied here as salvage_feed_rebuilt_per_race.csv
+         full/feed_consistency_per_race.csv b83fdc34a67421409bb7b8450afc2feef24cea6acba7866802277d884b6dd808 (scratch)
+  Source of: the 2024 Las Vegas feed self-inconsistency, the rebuilt-time scores, "101 of 169 worse", 2023 Dutch 2.15 s.
+COMMAND 6 (inline, no file): per-lap telemetry first/last SessionTime vs feed LapStartTime/Time for 2023 Azerbaijan
+  and 2018 Austria (difference 0.000 s on every lap), plus the per-driver Sector1SessionTime - (LapStartTime +
+  Sector1Time) table for the 2023 and 2024 Las Vegas races, and the per-driver C2 offsets at 2023-2025 Las Vegas,
+  read from full/salvage_crossings.parquet.

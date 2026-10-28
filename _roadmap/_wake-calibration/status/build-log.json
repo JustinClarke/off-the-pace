@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "project": "wake-calibration: own-reference corner loss with an upstream gap (measured / modelled / unavailable)",
-  "updated": "2026-10-27T14:10:00+04:00",
-  "pointer": "WC-01",
+  "updated": "2026-10-28T18:00:00+04:00",
+  "pointer": "WC-02",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -71,7 +71,7 @@
     {
       "id": "WC-01",
       "group": "0-data",
-      "stage": "MEASURED",
+      "stage": "LANDED",
       "depends_on": [],
       "title": "Per-corner pass table from bronze: gap 300-50 m before the corner, own clean reference within ±4 laps, exclusions",
       "sources": [
@@ -86,7 +86,7 @@
       "doc": "wi/WC-01-data-and-reference.md",
       "cost": "2-3 wk",
       "model": "opus-5",
-      "note": "DD-WC1 approved by the owner 2026-10-27. Not registered. Scratch copy only, never data/dev.duckdb. Stint coverage to check against: 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable. 2026-10-27: pass table built from bronze over 2018-2025 (169 races built, 4 skipped) to a session scratch folder; 24 synthetic tests pass; counts and PROVENANCE.txt in _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/. Builder choices listed in PROVENANCE.txt await owner review (W4). MEASURED, not LANDED: the orchestrator has not re-run the definition of done. 2026-10-27b: flat-out corners kept with a fixed 100 m segment start, track-limits laps excluded, sector-yellow rule measured only; rebuilt and recounted (see PROVENANCE second section). Still MEASURED. 2026-10-27c: owner rulings implemented - (a) yellow by sector: SC/VSC/red still neutralise the whole lap; a race_control sector yellow in k excludes corners in k and k+1 (reason yellow_sector; marshal sectors approximated by even spacing, bronze has no marshal-sector positions); (b) track-limit scope unchanged; (c) wi/WC-01 spec edited to match the build. Rebuilt: kept 2,132,637 -> 2,188,484; 55,872 neutralised -> kept, 25 kept -> yellow_sector. Still MEASURED. 2026-10-27d: owner rulings DD-WC4..DD-WC8 recorded; layout flag added (DD-WC6): columns layout_changed and layout_note on every pass row, flag only. Rebuilt 2018-2025: all pass-c columns identical; 8 races flagged (119,454 passes, 82,601 kept); see PROVENANCE fourth section and layout_flagged_races.csv. Still MEASURED."
+      "note": "DD-WC1 approved by the owner 2026-10-27. Not registered. Scratch copy only, never data/dev.duckdb. Stint coverage to check against: 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable. 2026-10-27: pass table built from bronze over 2018-2025 (169 races built, 4 skipped) to a session scratch folder; 24 synthetic tests pass; counts and PROVENANCE.txt in _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/. Builder choices listed in PROVENANCE.txt await owner review (W4). MEASURED, not LANDED: the orchestrator has not re-run the definition of done. 2026-10-27b: flat-out corners kept with a fixed 100 m segment start, track-limits laps excluded, sector-yellow rule measured only; rebuilt and recounted (see PROVENANCE second section). Still MEASURED. 2026-10-27c: owner rulings implemented - (a) yellow by sector: SC/VSC/red still neutralise the whole lap; a race_control sector yellow in k excludes corners in k and k+1 (reason yellow_sector; marshal sectors approximated by even spacing, bronze has no marshal-sector positions); (b) track-limit scope unchanged; (c) wi/WC-01 spec edited to match the build. Rebuilt: kept 2,132,637 -> 2,188,484; 55,872 neutralised -> kept, 25 kept -> yellow_sector. Still MEASURED. 2026-10-27d: owner rulings DD-WC4..DD-WC8 recorded; layout flag added (DD-WC6): columns layout_changed and layout_note on every pass row, flag only. Rebuilt 2018-2025: all pass-c columns identical; 8 races flagged (119,454 passes, 82,601 kept); see PROVENANCE fourth section and layout_flagged_races.csv. Still MEASURED. 2026-10-27e: orchestrator re-ran the definition of done in this session. pytest tasks/wake_calibration: 44 passed. Full rebuild 2018-2025 to a session scratch folder: 173 race folders, 169 built, 4 skipped (same 4), 0 failed, 46 s. Recount reproduces counts_by_season.csv, passes_by_corner_class.csv, exclusion_reasons_by_season.csv, layout_flagged_races.csv and circuit_info_fallbacks.csv byte-identical to the evidence folder; races.csv identical apart from the timing column. Totals: 2,927,753 rows, 2,188,484 kept, 1,071,162 measured reference, 1,117,322 no clean reference, 739,269 excluded. Promoted to LANDED (working tree only, uncommitted). W4 owner choices 25-28 and W3 commit remain open. 2026-10-27f: owner committed the builder, tests and evidence (97e0760); W3 cleared."
     },
     {
       "id": "WC-02",
@@ -122,7 +122,16 @@
       "doc": "wi/WC-03-estimator.md",
       "cost": "3-5 wk",
       "model": "fable-5.1",
-      "note": "No pre-registration exists. It is written, approved by the owner, committed alone and its SHA-256 recorded on this item before anything is fitted. The archived DA-03 estimator is not reused. 2026-10-27: nothing in the WC-01 table separates tow from wake loss on flat-out (fixed_before_apex) passes; the pre-registration must either keep them out of the dirty-air curve or pre-register a tow split (TS-1, see _evidence/WC-01-2026-10-27/DECISION-next-steps.md and W5)."
+      "note": "Pre-registration signed 2026-10-28 and committed alone at dc15e88 (SHA-256 518c3348a619...). Nothing has been fitted or scored yet; the first step is G3 (sections 12a and 17b), run before any fit or score.",
+      "prereg": {
+        "status": "SIGNED",
+        "signed": "2026-10-28",
+        "doc": "wi/WC-03-preregistration-DRAFT.md",
+        "commit": "dc15e887c906881f735d3a5288fba3526a7e83ca",
+        "sha256": "518c3348a619ebf6a964486bbe6313dcdc86c64ae05ca3daed8db202d9653a63",
+        "committed_alone": true,
+        "g3_checks": 4
+      }
     },
     {
       "id": "WC-04",
@@ -267,7 +276,7 @@
       "blocking": [],
       "status": "OPEN",
       "question": "Licence the OpenF1 live data feed (paid; non-commercial, share-alike licence) for any live use of the method?",
-      "context": "OpenF1 live data is paid and licensed non-commercial share-alike (design note). It blocks any live ingest; no live-ingest item exists yet, so blocking is empty. It does NOT block WC-07 (archived races from bronze) or WC-09 (2026 from archived FastF1 timing). 2026-10-27: owner keeps it OPEN. No live ingest is wired; the WC-07 doc defines a ReplaySource input interface (pass-table columns, telemetry columns, is_live) so a live source can be added later. No live code exists.",
+      "context": "OpenF1 live data is paid and licensed non-commercial share-alike (design note). It blocks any live ingest; no live-ingest item exists yet, so blocking is empty. It does NOT block WC-07 (archived races from bronze) or WC-09 (2026 from archived FastF1 timing). 2026-10-27: owner keeps it OPEN. No live ingest is wired; the WC-07 doc defines a ReplaySource input interface (pass-table columns, telemetry columns, is_live) so a live source can be added later. No live code exists. 2026-10-27 owner: not urgent; OK to leave open while the archived-race mechanism works.",
       "recommendation": null
     },
     {
@@ -323,7 +332,7 @@
       "context": "W6. Bronze is append-only; the builder approximates marshal sectors by even spacing.",
       "recommendation": null,
       "resolved": "2026-10-27",
-      "resolution": "Owner decided 2026-10-27: marshal-sector re-ingest is DEFERRED, not rejected. Bronze is not rewritten; W6 stays open as debt."
+      "resolution": "Owner 2026-10-27: no marshal-sector re-ingest; bronze data is the same. W6 approximation accepted."
     }
   ],
   "watch_vocabulary": {
@@ -354,7 +363,9 @@
       "clears_when": "The pre-registration is committed alone and its SHA-256 is recorded on WC-03.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-28",
+      "resolution": "Pre-registration signed and committed alone at dc15e88, SHA-256 518c3348a619ebf6a964486bbe6313dcdc86c64ae05ca3daed8db202d9653a63."
     },
     {
       "id": "W2",
@@ -383,7 +394,9 @@
       "clears_when": "The owner commits the builder, tests and evidence folder, or rules them out.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-27",
+      "resolution": "Owner committed the builder, tests and evidence (commit 97e0760 on main)."
     },
     {
       "id": "W4",
@@ -396,7 +409,9 @@
       "clears_when": "The owner accepts or changes each listed choice; any change is rebuilt and recounted before WC-02 starts.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-27",
+      "resolution": "Owner accepted choices 25-28 (layout flag) on 2026-10-27."
     },
     {
       "id": "W5",
@@ -409,7 +424,9 @@
       "clears_when": "The WC-03 pre-registration either keeps fixed_before_apex passes out of the dirty-air curve or names a tow/wake split (e.g. TS-1) with its thresholds, before any fit.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-28",
+      "resolution": "Pre-registration C1 keeps fixed_before_apex (flat-out) passes out of the curve and the lap totals (section 4b), before any fit."
     },
     {
       "id": "W6",
@@ -422,7 +439,9 @@
       "clears_when": "Marshal-sector positions are in bronze and the builder uses them, or the owner accepts the approximation.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-10-27",
+      "resolution": "Owner accepted the even-spacing marshal-sector approximation; no re-ingest (DD-WC8)."
     }
   ],
   "history": [
@@ -668,6 +687,78 @@
       "next_action": [
         "OWNER: decide whether to commit the working tree (W3); review choices 25-28 and remaining W4 choices; DD-WC3 licence stays open; approve or defer bronze re-ingest.",
         "ORCHESTRATOR: re-run the WC-01 definition of done and promote if it reproduces; then WC-02 (check 1 first), with WC-07 as an internal debugging view alongside it. No loss estimate before the WC-03 pre-registration is committed and hashed (W1)."
+      ]
+    },
+    {
+      "date": "2026-10-27T14:46:35+04:00",
+      "session": "Orchestrator re-ran the WC-01 definition of done and promoted WC-01 to LANDED (working tree). Counts and exclusions only; no coefficient, curve or gate computed.",
+      "landed": [
+        "WC-01 stage MEASURED -> LANDED, note extended (2026-10-27e)."
+      ],
+      "verified": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q: 44 passed.",
+        "Full rebuild to scratch: 169 built, 4 skipped, 0 failed; 2,927,753 rows.",
+        "Recount against _evidence/WC-01-2026-10-27/: counts_by_season.csv, passes_by_corner_class.csv, exclusion_reasons_by_season.csv, layout_flagged_races.csv, circuit_info_fallbacks.csv identical; races.csv identical except the timing column.",
+        "Kept 2,188,484; measured 1,071,162; no clean reference 1,117,322; yellow_sector 14,253. Matches the recorded baseline."
+      ],
+      "assumed": [
+        "Scratch rebuild is the same code as the evidence run: builder and tests are unchanged since the fourth section (uncommitted sha256 016c3bd6..., 285b7c88...).",
+        "W4 (builder choices 25-28) and W3 (commit) are still owner calls; LANDED does not clear them."
+      ],
+      "gates_run": [
+        "cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration -q",
+        "cd transform && ../.venv/bin/python -m tasks.wake_calibration.build_pass_table --out <session scratch>/wc01re/full --workers 4",
+        "../.venv/bin/python _roadmap/_wake-calibration/_evidence/WC-01-2026-10-27/counts.py <session scratch>/wc01re/full <session scratch>/wc01re/ev",
+        "python3 _roadmap/_wake-calibration/status/board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: rule on W4 choices 25-28 and the remaining choices; decide whether to commit the working tree (W3); DD-WC3 stays open; approve or defer bronze re-ingest.",
+        "ORCHESTRATOR: WC-02 (check 1 first) is next once the owner has ruled on W4; WC-07 can run alongside as an internal debugging view."
+      ]
+    },
+    {
+      "date": "2026-10-27T15:10:00+04:00",
+      "session": "Owner rulings: W4 choices 25-28 accepted; DD-WC8 no re-ingest (W6 approximation accepted); DD-WC3 left open, not urgent; W3 cleared on owner's commit 97e0760.",
+      "landed": [
+        "Watch rules W3, W4, W6 resolved in the log; DD-WC8 resolved; DD-WC3 kept OPEN and non-blocking."
+      ],
+      "verified": [
+        "board.py --check after edits."
+      ],
+      "assumed": [
+        "Owner's 'data is the same' means re-ingest cannot change the pass table, so the even-spacing marshal-sector approximation stands."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_wake-calibration/status/board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "ORCHESTRATOR: WC-02 (timing checks, check 1 first) is now unblocked; run it on a scratch copy, no coefficients."
+      ]
+    },
+    {
+      "date": "2026-10-28T12:00:00+04:00",
+      "session": "WC-03 pre-registration drafted, revised after paper review, and finalised for signature. Owner chose benchmark option B (shipped 0.331 kept, data-unchanged gate G3 added), confirmed choices C1-C14 and N1-N5 (N1 refit). Unsigned and uncommitted. Nothing fitted or scored.",
+      "landed": [
+        "wi/WC-03-preregistration-DRAFT.md: status 'DRAFT FOR SIGNATURE', all choices marked confirmed, G3 gate (database hash 7173444b, 135,841 panel rows, first-step fingerprint 0.4777453471 within 1e-9).",
+        "_evidence/WC-03-2026-10-27/: PAPER-REVIEW.md, REVISION-LOG.md, FINALISE-LOG.md.",
+        "Yardstick rerun (diagnostic only): 0.305, interval 0.269 to 0.341, n 135,675. Shipped 0.331 remains the benchmark."
+      ],
+      "verified": [
+        "Finalise pass: section 0 fixed numbers match the body; race counts 68, 24, 55, 22 match the WC-01 count file.",
+        "Two cross-reference fixes made (section 0 table; section 2f pointer)."
+      ],
+      "assumed": [
+        "G3 tolerance 1e-9 (from the original script); the file hash covers only the database file, not the parquet files the views read, so G3 relies on row count and fingerprint for those."
+      ],
+      "gates_run": [
+        "python3 _roadmap/_wake-calibration/status/board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: read wi/WC-03-preregistration-DRAFT.md; decide the two items (G3 tolerance 1e-9; database-only hash) and sign.",
+        "ORCHESTRATOR: once signed, commit the draft alone, record its SHA-256 on WC-03 in this log, then WC-02 check outstanding items per the owner."
       ]
     }
   ]

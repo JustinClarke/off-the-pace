@@ -1,0 +1,4 @@
+corner_class,n,spearman_time_vs_minus_minspeed,sign_agreement,n_nonzero,median_delta_min_kph
+fast,374282,-0.642,0.762,347123,0.0
+medium,368923,-0.586,0.737,326105,-0.5
+slow,327957,-0.47,0.684,276488,0.0

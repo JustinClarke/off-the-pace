@@ -1,0 +1,62 @@
+WC-02 timing salvage: corrections declared BEFORE any corrected number was computed.
+Written 2026-10-27, after reading check 1's per-race table (seen: S2 gap error > S1 on almost every flagged race;
+finish crossing error a negative constant per race). Nothing corrected had been computed when this was written.
+
+Question: why do telemetry-derived line-crossing gaps disagree with the timing feed, and does a documented
+rule-based correction recover them?
+
+Hypotheses (mechanisms), each with the test that would show it:
+ H1 constant per race per line (like the finish -0.085 s): cancels in every gap by construction. Test: report
+    the share of crossing-error variance that is a per-race-per-line constant. Cannot explain gap error.
+ H2 lap-distance drift: telemetry distance is integrated speed from the lap start, so the place check 1 used
+    for the line (a fixed lap-relative distance) drifts car to car and lap to lap, more with distance into
+    the lap (S2 > S1). Test: crossing error vs (this lap's integrated length - race median lap length).
+ H3 per-car constant (sensor/speed scaling per car): Test: share of variance explained by a per-car mean.
+ H4 sampling: error grows with telemetry sample spacing at the line. Test: error vs sample spacing.
+ H5 feed side: the feed itself mis-times some crossings. Not testable without a third source; residual only.
+
+Corrections, fixed now (no tuning after seeing results):
+ C0  baseline: check 1's locator (fixed lap-relative distance per race per line). Reproduction.
+ C1  lap-length rescale: each car-lap's distance multiplied by (race median lap length / that lap's max distance)
+     before locating the line. Rule-based, no feed input beyond check 1's.
+ C2  position locator: the line is a point and direction in X/Y (median X/Y and median heading of all cars at
+     the feed's crossing times, per race per line, the same "feed places the line once per race" step check 1
+     used for distance); a car's crossing is when its X/Y trace passes that line (signed along-track
+     coordinate changes sign), searched within +-10 s of the feed time, linear interpolation between samples.
+ C3  apex-anchored distance (what the WC-01 builder actually does for gaps): line = nearest corner apex found
+     by the builder's own apex finder on that lap, plus the race median distance from that apex to the line.
+ Diagnostic only, NOT an admissible correction: C1d per-car per-race constant removed (estimated from the
+     feed itself; reported to size H3, never used as the salvage).
+
+Implementation details fixed with the script, before its first run:
+ - C2 search: +-10 s around the feed time; the crossing must pass within 30 m (300 X/Y units) of the line point.
+ - Any locator result more than 2 s from the feed time is a failed locate (dropped), all methods alike.
+ - Methods are compared on the SAME crossings (those every method located), so pair counts are identical.
+
+Acceptance rule (unchanged from WC-02 check 1): a race agrees when its pooled median absolute pair gap error
+over S1, S2 and finish is <= 0.1 s. Pairs as in check 1 (car ahead = nearest earlier feed crossing of the
+same line by another car within 3 s; pit in/out laps excluded). Same threshold, same pairing.
+Primary correction: C2 if it and C3 agree on the cause; C3 is reported as the builder-faithful view.
+A race is reported "recovered" only under a correction listed here.
+
+AMENDMENT 1 (after a 3-race test run: 2018 Austria, 2021 Belgium, 2023 Azerbaijan; before the full run):
+ - Found: each lap's telemetry is cut at the feed's own lap start and lap end times (FastF1 interpolates a
+   sample at the lap edges), so any locator that uses lap-relative distance (C0, C1) is anchored to the feed's
+   finish crossing. C1 at the finish line returns the feed time exactly (error 0.0000 on every pair): circular.
+   C0 at the finish places the line at the median lap length, so cars whose lap integrates shorter cannot be
+   located and the rest are located early: the "constant -0.085 s finish offset" is this cut, not a timing offset.
+ - Change: C1 is scored on S1 and S2 only and is a diagnostic of the drift mechanism, not an admissible salvage
+   (it uses each lap's feed-defined length). C0 and C1 finish values are reported but not pooled into verdicts.
+ - Verdict comparison: C2 and C3 pooled over S1, S2, finish on the crossings both locate; C0, C1 vs C2, C3
+   compared on S1+S2 on the crossings all four locate. Threshold unchanged (0.1 s).
+ - The three test races' numbers were seen before this amendment; no threshold or method parameter was changed.
+
+AMENDMENT 2 (POST-HOC: chosen after seeing the full-run results; NOT pre-declared):
+ - Seen: after C2/C3, only 2024 Las Vegas stays over 0.1 s. Its S1/S2 errors are a per-driver constant
+   (about -0.30 to +0.23 s, same at S1 and S2, ~0 at the finish). In the same race the feed's own S1 clock time
+   (Sector1SessionTime) differs from lap start + S1 duration (LapStartTime + Sector1Time) by a per-driver
+   constant of 0 to 0.52 s, which roughly mirrors the telemetry offsets.
+ - Post-hoc candidate F1: rebuild the feed's line times from durations: S1 = lap start + S1 duration,
+   S2 = that + S2 duration, finish = feed lap end (unchanged). Scored with C2 and C3, same pairs, same 0.1 s.
+ - This was chosen by looking at the data. It is reported separately and labelled post-hoc; the main
+   verdict stays C2/C3 against the feed's recorded line times.

@@ -1,0 +1,54 @@
+WC-02 measurement checks: provenance
+Run date: 2026-10-27. Scratch only. Nothing written to data/dev.duckdb, data/ci.duckdb or bronze.
+Scripts (not in repo): /private/tmp/claude-501/-Users-justin-github-off-the-pace/b032368a-69cb-47e7-b591-7234689fb01e/scratchpad/wc02/check1.py, /private/tmp/claude-501/-Users-justin-github-off-the-pace/b032368a-69cb-47e7-b591-7234689fb01e/scratchpad/wc02/check23.py
+Interpreter: /Users/justin/github/off-the-pace/.venv/bin/python
+
+INPUT: WC-01 pass table (scratch build, checked intact: 8 season files read, 2,927,753 rows in total)
+  /private/tmp/claude-501/-Users-justin-github-off-the-pace/b032368a-69cb-47e7-b591-7234689fb01e/scratchpad/wc01re/full/
+  sha256:
+    d343a5bee0ffc4d65d375f0dc100c29f45c6d2deef46c9e18bf601ab0a51b345  pass_table_2018.parquet
+    ad97ce5aca63b25117a51e6586e171a106c3fc51d6eeb2f66b822c1ba424d5a2  pass_table_2019.parquet
+    abb44da28125f79563690a9a9d74ec41a5cf12db6dbfae50395fbdf8b9889b71  pass_table_2020.parquet
+    1c9e2f52c1d0dde282dbb98175f8b00905a43feff882b88ceccc04fa36eb53fe  pass_table_2021.parquet
+    58c8749821a6f9192c25a9b62263b4cd27e7bc9a8b4ff7491cb14dc56a1befdc  pass_table_2022.parquet
+    94c1f79aa4e50f10879edeabe8a9fc78f9b26488555cabbf50e05c6fcf5f44b5  pass_table_2023.parquet
+    572d587b46056b63ef50aeb6515e7dddf89823da1c6a7ac5bfb16e9a9ff50d4b  pass_table_2024.parquet
+    bd4c2e4a571001c22b93f13194ac8739fb32f755c17cc10522c61214bd234aa7  pass_table_2025.parquet
+    de680b3964d3b5341ee8bf78353e8c0ce2723da50c928697ac4fc017fe40d7f8  races.csv
+  WC-01 races: 169 ok, 4 skipped (2018 Australian and Bahrain: no telemetry; 2020 Sakhir and Tuscan: no circuit_info corners).
+
+COMMAND 1 (check 1, timing agreement):
+  python check1.py /private/tmp/claude-501/-Users-justin-github-off-the-pace/b032368a-69cb-47e7-b591-7234689fb01e/scratchpad/wc02/out
+  Reads bronze laps (sector and lap-end session times), telemetry, and the builder's load_race / build_car_trace.
+  Outputs: check1_per_race.csv (169 rows), check1_pooled_per_race.csv (169 rows), check1_pairs.csv (229,861 pair rows)
+  sha256 check1_per_race.csv        8d8fea98a49899bb40de4f78674877b310b0512358bcc49a49774e83883355d2
+  sha256 check1_pooled_per_race.csv 69e43b684f2a9f3ed77d63c5fa78f315bf5fdcdc286181e8b6b91ec421e507d6
+  sha256 check1_pairs.csv (scratch only, not copied) 9a2b7a34d467d97fcb92454eb713717b8a89b53011de3f0614f59cb8fa992afe
+  Counts: 169 races; crossings with usable timing; pairs: S1 98,776, S2 101,515, finish 29,570.
+  Definition: telemetry-derived crossing time (lap-relative distance at which the feed puts the line, per race median)
+  minus feed session time, per car and lap. Pair gap error = difference of two cars' errors, the car ahead being the
+  nearest earlier crossing of the same line by another car within 3 s on the timing feed. Pit laps (in or out) excluded.
+  Flag rule per WI: pooled median absolute gap error per race > 0.1 s.
+
+COMMAND 2 (checks 2 and 3):
+  python check23.py /private/tmp/claude-501/-Users-justin-github-off-the-pace/b032368a-69cb-47e7-b591-7234689fb01e/scratchpad/wc02/out /private/tmp/claude-501/-Users-justin-github-off-the-pace/b032368a-69cb-47e7-b591-7234689fb01e/scratchpad/wc01re/full
+  Outputs: check2_events_with_pit_windows.csv (2,551 rows), check2_summary_by_season.csv,
+           check3_by_class.csv, check3_by_class_season.csv
+  sha256 check2_events_with_pit_windows.csv  496755a16d733fb3976d0bf9f107a1963473d67a04c590b56c7a7b0cba0fa5a7
+  sha256 check2_summary_by_season.csv       9ebeedb0f31f6cd47abff6099a1f7849d3feea924c31bc4b8d402451c9ac0c30
+  sha256 check3_by_class.csv                c8fffe6ef9de0795a22abcae4a53515e59cd8c001c8c00c469abd5321656faa2
+  sha256 check3_by_class_season.csv         6b5c9cea31a49aa576df899b91345181b97eae340a4b1ec793bd91b5276f4a4d
+
+  Check 2 event definition used: a follower's pass row where the car ahead (by apex order) is within 1.5 s on the approach
+  gap (positive), that car is on its pit-in lap, and the follower's own lap is that lap with no pit in or out.
+  "Stays out" = no pit in or out for the follower in laps L-2 to L+2. Counts: 2,551 candidate events, 1,970 stay out,
+  1,910 with pass rows two laps either side on a shared corner, 530 with measured deltas both sides.
+  The WI target was 1,124 events (83 in 2018 to 192 in 2024). This definition does not reproduce it (see report).
+
+  Check 3 definition: reference minimum speed = median of the driver's clean passes of the same corner within +-4 laps,
+  same stint and compound (same donor rule as WC-01), own pass excluded. Delta = pass minimum speed minus reference.
+  Only measured-reference, unexcluded passes with a segment delta. Per corner class: Spearman correlation of
+  delta time against minus delta minimum speed, and share of non-zero pairs with the same sign.
+
+NO fit, coefficient, loss curve or gate result computed. No DA-03 (archived dirty-air) number used.
+No commit, no push, build-log.json and BUILD-ORDER.md not edited.

@@ -104,7 +104,7 @@
       "doc": "wi/WC-02-measurement-checks.md",
       "cost": "1-2 wk",
       "model": "opus-5",
-      "note": "Not registered. Builds and counts the event set; the car-ahead-pits contrast itself is read in WC-04 and WC-05.",
+      "note": "Not registered. Builds and counts the event set; the car-ahead-pits contrast itself is read in WC-04 and WC-05. Closing WC-02 needs owner answers to DD-WC9 to DD-WC13 (see BEST-MOVE-NEXT.md in the WC-02 evidence folder).",
       "order_hint": 1
     },
     {
@@ -334,6 +334,61 @@
       "recommendation": null,
       "resolved": "2026-10-27",
       "resolution": "Owner 2026-10-27: no marshal-sector re-ingest; bronze data is the same. W6 approximation accepted."
+    },
+    {
+      "id": "DD-WC9",
+      "raised": "2026-10-28",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Restated car-ahead-pits event set: retire the 1,124 figure and count events under our own definition (2 laps before the car ahead's pit-entry lap, each stop counted once)?",
+      "context": "BEST-MOVE-NEXT.md, decision 4. The 1,124 figure is not recorded as ruled either way. Closing WC-02 needs this answer. Non-blocking in the board's sense; closing WC-02 depends on it.",
+      "recommendation": null,
+      "resolved": "2026-10-28",
+      "resolution": "Owner 2026-10-28: yes. Retire the 1,124 figure; count events under the restated definition (2 laps before the car ahead's pit-entry lap, each stop counted once). Recommendation adopted."
+    },
+    {
+      "id": "DD-WC10",
+      "raised": "2026-10-28",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Drop the 246 car-ahead-pits events where the two cars are on different lap numbers?",
+      "context": "BEST-MOVE-NEXT.md, decision 4 (the 'different lap numbers' rule). Not recorded as ruled. Non-blocking in the board's sense; closing WC-02 depends on it.",
+      "recommendation": null,
+      "resolved": "2026-10-28",
+      "resolution": "Owner 2026-10-28: yes. Drop the 246 car-ahead-pits events where the two cars are on different lap numbers. Recommendation adopted."
+    },
+    {
+      "id": "DD-WC11",
+      "raised": "2026-10-28",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Timing check: keep all 34 races flagged by the first check in the set, as the note says 'you ruled'?",
+      "context": "BEST-MOVE-NEXT.md refers to a ruling that is not recorded in build-log.json. The salvage (168 of 169 races agree within 0.1 s) is the current evidence. Needs an explicit owner answer. Non-blocking in the board's sense; closing WC-02 depends on it.",
+      "recommendation": null,
+      "resolved": "2026-10-28",
+      "resolution": "Owner 2026-10-28: yes. Retire the 34-race flag as a locator artefact; keep all races; 2024 Las Vegas marked as a feed-inconsistent race. Recommendation adopted."
+    },
+    {
+      "id": "DD-WC12",
+      "raised": "2026-10-28",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Minimum-speed check: record as an observation only, with no pass mark?",
+      "context": "BEST-MOVE-NEXT.md, Part 1. Not recorded as ruled. Non-blocking in the board's sense; closing WC-02 depends on it.",
+      "recommendation": null,
+      "resolved": "2026-10-28",
+      "resolution": "Owner 2026-10-28: yes. Minimum-speed check recorded as an observation only, with no pass mark. Recommendation adopted."
+    },
+    {
+      "id": "DD-WC13",
+      "raised": "2026-10-28",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "No-loss check moved to the 2-3 s band (above 3 s it is true by construction)?",
+      "context": "BEST-MOVE-NEXT.md, Part 2 smaller fixes. Not recorded as ruled. Non-blocking in the board's sense; closing WC-02 depends on it.",
+      "recommendation": null,
+      "resolved": "2026-10-28",
+      "resolution": "Owner 2026-10-28: yes. No-loss check moved to the 2-3 s band. Recommendation adopted."
     }
   ],
   "watch_vocabulary": {
@@ -760,6 +815,30 @@
       "next_action": [
         "OWNER: read wi/WC-03-preregistration-DRAFT.md; decide the two items (G3 tolerance 1e-9; database-only hash) and sign.",
         "ORCHESTRATOR: once signed, commit the draft alone, record its SHA-256 on WC-03 in this log, then WC-02 check outstanding items per the owner."
+      ]
+    },
+    {
+      "date": "2026-10-28T19:00:00+04:00",
+      "session": "WC-03 pre-registration signed and committed (commit 839e0f4, not alone; log corrected to match). Next task is G3, the data-unchanged gate, read-only, before any fit or score.",
+      "landed": [
+        "WC-03 prereg record: SIGNED 2026-10-28, SHA-256 518c3348..., committed_alone false.",
+        "W1 and W5 resolved.",
+        "DD-WC9 to DD-WC13 added (open, non-blocking): the WC-02 recommendations not yet ruled on."
+      ],
+      "verified": [
+        "board.py --check passes after each edit."
+      ],
+      "assumed": [
+        "The signed text on main is the text whose SHA-256 is recorded (checked: git show HEAD:<file> hashes to 518c3348...)."
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "ORCHESTRATOR: run G3 (WC-03 prereg section 12a, checks 1-4) read-only on a scratch copy of dev.duckdb and the bronze files. No fit, no score. If any check fails: stop, record 'no verdict', tell the owner.",
+        "OWNER: answer DD-WC9 to DD-WC13 before WC-02 is closed.",
+        "Do not commit without an explicit yes."
       ]
     }
   ]

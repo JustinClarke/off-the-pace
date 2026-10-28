@@ -1,6 +1,8 @@
 # Wake calibration: design note (2026-10-27)
 
-**Status: plan only. Nothing is registered, built, fitted or run.** No pre-registration exists yet; one is written and committed before anything is fitted (WC-03). Owner decisions DD-WC1 and DD-WC2 are open in [`../status/build-log.json`](../status/build-log.json).
+**Status: plan, written 2026-10-27.** The method has since been registered for WC-03 and WC-04 in [`WC-03-preregistration-DRAFT.md`](WC-03-preregistration-DRAFT.md) (SIGNED 2026-10-28). Where this note and the registered text differ, the registered text governs. Nothing has been fitted on real data. DD-WC1 and DD-WC2 are resolved in [`../status/build-log.json`](../status/build-log.json).
+
+_Note correction 2026-10-28: the status line read "Nothing is registered … No pre-registration exists yet … DD-WC1 and DD-WC2 are open". That is stale against prereg §0/§17b and the build log. The method notes below are the original plan and are not re-edited. The registered rules differ in places: following under 3.0 s (§5 C4), no lateral racecraft rule (§5 C5), no tow/straights number (§4b C1, §16), and the bootstrap (§8c; draft amendment A1)._
 
 Sources: the research recommendation ("Measuring time lost to traffic in F1", 2026-10-27, section 4) and the decision memo of the same date. Both were written in a session scratchpad, not in the repo.
 
@@ -37,7 +39,7 @@ These are count-only figures from the bronze lap parquet (lap-end line gap, whol
 
 Totals add measured and modelled only with the modelled share printed beside them, for example "3.4 s (28% modelled)". Unavailable laps are left out of totals and counted, never treated as zero.
 
-**Disclaimer for modelled stints** (wording pending owner confirmation, DD-WC2; use exactly):
+**Disclaimer for modelled stints** (wording confirmed by the owner 2026-10-27, DD-WC2; use exactly) _[note correction 2026-10-28: was "pending owner confirmation"]_:
 
 > Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.
 

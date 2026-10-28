@@ -1,6 +1,6 @@
 # WC-05 - Phase 4: modelled-stint calibration and the labels
 
-**Status: not started, not registered.** Depends on WC-04. Waits on DD-WC2 (owner confirms the disclaimer wording). The modelled-reference rules and the checks below go into a pre-registration before anything is fitted. Design: [`WC-design-note.md`](WC-design-note.md).
+**Status: not started, not registered.** Depends on WC-04. DD-WC2 (disclaimer wording) was resolved on 2026-10-27. _[note correction 2026-10-28: was "Waits on DD-WC2"]_ The modelled-reference rules and the checks below go into a pre-registration before anything is fitted. Design: [`WC-design-note.md`](WC-design-note.md).
 
 **Goal.** Give a modelled reference to stints with no clean lap, check it, and assign every stint and pass one label: measured, modelled or unavailable.
 
@@ -21,7 +21,7 @@ Neither exists: the stint is **unavailable**. It is not filled from the pooled c
 
 **Labels.** measured (number with interval); modelled (wider interval, marked "modelled", with the disclaimer); unavailable ("—" with the reason, never 0).
 
-**Disclaimer for modelled stints** (pending DD-WC2; use exactly):
+**Disclaimer for modelled stints** (approved by the owner 2026-10-27, DD-WC2; use exactly) _[note correction 2026-10-28: was "pending DD-WC2"]_:
 
 > Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.
 

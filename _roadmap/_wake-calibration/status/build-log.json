@@ -123,7 +123,7 @@
       "doc": "wi/WC-03-estimator.md",
       "cost": "3-5 wk",
       "model": "fable-5.1",
-      "note": "Pre-registration signed 2026-10-28 (SHA-256 518c3348a619...), committed at 839e0f4 together with other wake-calibration files, not alone as rule 4 asks. Nothing has been fitted or scored yet; the first step is G3 (sections 12a and 17b), run before any fit or score.",
+      "note": "Pre-registration signed 2026-10-28 (SHA-256 518c3348a619...), committed at 839e0f4 together with other wake-calibration files, not alone as rule 4 asks. Nothing has been fitted or scored yet; the first step is G3 (sections 12a and 17b), run before any fit or score. Model tag kept at fable-5.1, but the estimator and G1 tests (2026-10-28/29) were built by Opus subagents, not fable-5.1: a fable-5.1 review of estimator.py and test_estimator.py is required before the real run (owner instruction 2026-10-28).",
       "prereg": {
         "status": "SIGNED",
         "signed": "2026-10-28",
@@ -149,8 +149,8 @@
       ],
       "doc": "wi/WC-04-validation.md",
       "cost": "2-3 wk",
-      "model": "opus-5",
-      "note": "Held-out season and thresholds named in the WC-03 pre-registration before any run. Not registered."
+      "model": "fable-5.1",
+      "note": "Held-out season and thresholds named in the WC-03 pre-registration before any run; WC-04 is registered there (prereg header and §0: the document covers the fit and the held-out verdict). Model retagged opus-5 -> fable-5.1 on the owner's instruction 2026-10-28: the core is estimator and inference work (contest bootstrap, theta_now refit per draw, W1/W2 intervals)."
     },
     {
       "id": "WC-05",
@@ -167,8 +167,7 @@
       "doc": "wi/WC-05-modelled-stints-and-labels.md",
       "cost": "2-4 wk",
       "model": "fable-5.1",
-      "blocked_by_decision": "DD-WC2",
-      "note": "Not registered. 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable. Modelled values carry the disclaimer (pending DD-WC2): \"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\""
+      "note": "Not registered. 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable. Modelled values carry the disclaimer approved in DD-WC2 (resolved 2026-10-27):\"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\""
     },
     {
       "id": "WC-06",
@@ -186,8 +185,7 @@
       "doc": "wi/WC-06-app-output.md",
       "cost": "2-3 wk",
       "model": "opus-5",
-      "blocked_by_decision": "DD-WC2",
-      "note": "Not registered. Disclaimer text on every modelled value (pending DD-WC2). No old-method (DA-03) number anywhere. Phase 5 has its own item (WC-06) so each phase keeps one item."
+      "note": "Not registered. Disclaimer text on every modelled value, word for word as approved in DD-WC2 (resolved 2026-10-27). No old-method (DA-03) number anywhere. Phase 5 has its own item (WC-06) so each phase keeps one item."
     },
     {
       "id": "WC-07",
@@ -862,6 +860,229 @@
       "next_action": [
         "OWNER: decide the WC-03 prereg commit question (bundled in 839e0f4, or a log note). G3 cannot run until answered (BUILD-ORDER rule 4).",
         "ORCHESTRATOR: once answered, run G3 (WC-03 prereg section 12a, checks 1-4) read-only on a scratch copy of dev.duckdb and the bronze files. No fit, no score.",
+        "Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-28T21:00:00+04:00",
+      "session": "Handoff. Pointer on WC-03 (estimator). Run by a fable-5.1 session per the item's recorded model, not by Haiku.",
+      "landed": [
+        "WC-02 CLOSED (02f679b). Results: _evidence/WC-02-2026-10-27/WC-02-RESULTS.md."
+      ],
+      "verified": [
+        "board.py --check passes at handoff."
+      ],
+      "assumed": [
+        "The prereg-commit question is open. Owner has said move on; G3 still needs a ruling on the bundled commit 839e0f4 (log note vs history rewrite)."
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "ORCHESTRATOR (fable-5.1): build the WC-03 estimator and G1 synthetic tests only (BUILD-ORDER rule 4: no fit or gate result on real data). Brief: wi/WC-03-estimator.md and wi/WC-03-preregistration-DRAFT.md (signed 2026-10-28).",
+        "OWNER: rule on the prereg commit question (log note vs history rewrite). G3 waits on it.",
+        "ORCHESTRATOR: run G3 only after that ruling, read-only on a scratch copy of dev.duckdb, per prereg section 12a.",
+        "Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-28T23:00:00+04:00",
+      "session": "WC-03 estimator and G1 synthetic tests built in the working tree, uncommitted. Run by an Opus subagent (not fable-5.1, the item's recorded model). Synthetic data only; no real data read, nothing fitted or scored on real data, G3 not run.",
+      "landed": [
+        "transform/tasks/wake_calibration/estimator.py (new, uncommitted): per-pass loss, no_car_ahead, reference spread, car-ahead time, racecraft / no_leader_time / held_up / dirty_air classes, under-attack flag, section 6 fit set with the G4 leak guard, REML curve (bin fixed effects, circuit and nested corner random effects, closed-form likelihood checked against statsmodels MixedLM), weighted PAVA, race-level bootstrap plan and refit, section 7 lap weights, plus the contest pieces G1 names (flat-now, section 8a step 2, theta_now point fit, section 8b score) and the section 11 pit-stop event builder.",
+        "transform/tasks/wake_calibration/tests/test_estimator.py (new, uncommitted): G1 (i)-(viii) on synthetic data."
+      ],
+      "verified": [
+        "PYTHONPATH=transform .venv/bin/pytest transform/tasks/wake_calibration/tests -q: 81 passed, 1 failed.",
+        "The failure is G1 (i) coverage under a design with the registered model's own circuit and corner random effects and about 3 races per circuit: 0.60-0.65 per bin against the 90 % bar. With race shocks only it passes (0.91-0.97 per bin). 200 simulations x 200 draws each.",
+        "G1 (viii): one draw of the curve chain (main plus held-up and dirty-air class curves, 3 corner classes) on 400,000 synthetic passes over 68 races took 0.054 s; theta_now refit and 2025 rescoring not timed (not built).",
+        "board.py --check passes."
+      ],
+      "assumed": [
+        "The pre-registration does not fix the G1 (i) simulation design, whether coverage is per bin or pooled, how a race drawn twice maps to circuit and corner random-effect groups, whether the corner random effect is nested in the circuit, the class of a following pass with no measured reference, the racecraft neighbour sequence, or the RNG draw order. Each is put to the owner in the handoff; none is ruled here."
+      ],
+      "gates_run": [
+        "G1 (synthetic only): 81 passed, 1 failed (G1 i, registered-model design)",
+        "board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: rule on the G1 (i) design and on race-level versus circuit-level resampling (a pre-result amendment if the bootstrap changes). G1 does not pass as built.",
+        "OWNER: rule on the other open estimator questions listed in the WC-03 handoff.",
+        "OWNER: rule on the prereg commit question (log note vs history rewrite). G3 waits on it.",
+        "Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-29T01:00:00+04:00",
+      "session": "WC-03 estimator review fixes Q5-Q7 and G1 (i) investigation, in the working tree, uncommitted. Opus subagent. Synthetic data only; no real data read, nothing fitted or scored on real data, G3 not run. Pre-registration and thresholds untouched.",
+      "landed": [
+        "estimator.py (uncommitted): Q5 explicit report-only 'no_reference' class for a following pass with no measured reference (order: racecraft, no_leader_time, no_reference, held_up, dirty_air); Q6 an empty gap bin no longer raises: main curve -> status no_verdict plus main_curve_verdict_line(), class curves -> not_estimable for that corner class, every one of the B draws still fitted (empty draws recorded as NaN, none skipped or redrawn); Q7 under_attack_difference(): per corner class and bin, mean loss flagged minus not flagged on the main fit set, interval over the same race draws, rule fixed in its docstring; class_curves_with_intervals(); clarification comments (per-bin coverage, corner nested as circuit|corner_id, race multiplicity weights) with no behaviour change.",
+        "estimator.py bug fix: reml_fit with a warm start searched from that start only and could stop on the variance-ratio boundary short of the REML optimum (synthetic case: -2 log L -3540.50 vs -3540.74). Every fit now also searches the three fixed starts and keeps the best. G1 (i) race-level numbers on the registered-model design are unchanged by it.",
+        "test_estimator.py (uncommitted): tests for no_reference, empty bins (point fit and some draws, main and class), under-attack difference, the warm-start regression.",
+        "Scratch only (not in repo, not wired into G1): /private/tmp/claude-501/-Users-justin-github-off-the-pace/26364562-3fdd-4302-a053-1da8b6939c6f/scratchpad/g1i/coverage_compare.py with a candidate two-stage circuit-then-race bootstrap."
+      ],
+      "verified": [
+        "G1 (i) coverage, 200 sims x 200 draws, 68 races / 23 circuits / 8 corners each, per bin. Registered-model design (sd circuit 0.05, corner 0.05, race 0.03): race-level (registered) 0.595-0.645, FAILS; circuit-level candidate 0.91-0.945, passes. Race-shocks-only design: race-level 0.905-0.965; circuit-level 0.975-0.995.",
+        "The registered G1 (i) test still fails as built; its design and the 90 % bar were not changed."
+      ],
+      "assumed": [
+        "No-verdict on an empty main-curve bin and not-estimable on a class-curve bin are not listed in prereg sections 9 or 12a; put to the owner as a possible pre-result amendment.",
+        "The under-attack rule (plain pass means, main fit set, same draws) is not fixed by the registration beyond section 12b's one line; fixed in code before any run, needs owner confirmation."
+      ],
+      "gates_run": [
+        "G1 (synthetic only): 88 passed, 1 failed (G1 i, registered-model design, 0.595-0.645 per bin), 628 s",
+        "board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: choose the G1 (i) resolution: keep race-level resampling (G1 i fails on the registered-model design) or adopt circuit-level resampling by a pre-result amendment to section 8c, committed and hashed before any real fit.",
+        "OWNER: confirm the clarifications (per-bin coverage, nested corner effect, multiplicity weights) and the Q5-Q7 rules, and the commit question. Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-29T03:00:00+04:00",
+      "session": "WC-03: circuit-then-race curve bootstrap adopted on the owner's decision (amendment A1, drafted, uncommitted, unhashed). Opus subagent. Synthetic data only; no real data read, nothing fitted or scored on real data, G3 not run. Registered pre-registration text not edited; 90 % bar and all thresholds unchanged.",
+      "landed": [
+        "estimator.py (uncommitted): BootstrapPlan and resample_plan(fit_races, race_circuit, held_out_races, method='circuit') as the adopted curve bootstrap: circuits resampled with replacement, then each drawn circuit's races; a circuit drawn twice enters REML as two distinct circuit and corner groups (plan_draw_stats). B=1000, seed 20261027, 2.5/97.5 percentiles, whole-chain refit (REML then PAVA) per draw, held-out side still race level. bootstrap_curves, curve_with_intervals, class_curves_with_intervals and under_attack_difference now take the plan; empty-bin no-verdict / not-estimable, no_reference and under-attack rules kept. Race-level resample kept only as method='race' (BOOTSTRAP_COMPARISON), labelled comparison.",
+        "test_estimator.py (uncommitted): G1 (i) uses the adopted plan; simulation (registered model) and the per-bin 90 % bar unchanged. New tests: draw order fixed by the seed, circuit copies are distinct groups (checked against a hand-relabelled data set), race-level comparison equals frequency weights, plan/circuit mismatch refused.",
+        "wi/WC-03-amendment-A1-circuit-bootstrap.md (new, uncommitted, not hashed): item 1 the change to §0 'Chance', §6 Intervals and §8c, with reason, numbers, made-after-synthetic-failure disclosure, owner decision and exact new text; item 2 the empty-bin rule, PENDING OWNER CONFIRMATION."
+      ],
+      "verified": [
+        "PYTHONPATH=transform .venv/bin/pytest transform/tasks/wake_calibration/tests -q -s: 93 passed, 605 s.",
+        "G1 (i) registered-model design, adopted circuit-then-race, 200 sims x 200 draws, per bin: 0.945 0.93 0.94 0.93 0.91 0.935 0.915 0.93 (hits 189 186 188 186 182 187 183 186). Passes; lowest bin 0.91.",
+        "G1 (i) race-shocks-only design, adopted: 0.995 0.985 0.975 0.975 0.98 0.975 0.98 0.985. Passes.",
+        "Race-level comparison through the new code path (scratch compare_after_A1.py), registered design: 0.60 0.645 0.645 0.635 0.60 0.595 0.615 0.61, identical to the recorded failure.",
+        "G1 (viii): one circuit-then-race draw of the curve chain on 400,000 synthetic passes 0.057 s.",
+        "board.py --check passes."
+      ],
+      "assumed": [
+        "theta_now is refitted per draw on the same circuit-then-race fit-race multiset; class curves, under-attack difference and sensitivity runs share the main curve's plan; the §11 pit-stop race-bootstrap interval is not changed. Written into amendment A1 for the owner to confirm.",
+        "The plan's circuit list is the circuits of the fit races passed in; circuit = the §6 circuit key."
+      ],
+      "gates_run": [
+        "G1 (synthetic only): 93 passed, 0 failed (G1 i under the adopted circuit-then-race bootstrap)",
+        "board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: read and sign amendment A1 item 1; confirm or rule on item 2 (empty-bin rule) and the readings listed under item 1.",
+        "OWNER: commit the amendment alone, then record its SHA-256 on WC-03; nothing is fitted on real data before that (rule 4).",
+        "OWNER: yes or no on committing estimator.py and test_estimator.py; and the still-open prereg commit question before G3.",
+        "Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-28T23:30:00+04:00",
+      "session": "Data-coverage inventory and risk pass (Opus subagent), uncommitted. Read-only on bronze; data/dev.duckdb not opened or written; nothing fitted, scored or gated; G2/G3 not run; pre-registration and amendment A1 not edited.",
+      "landed": [
+        "Stale blockers: blocked_by_decision DD-WC2 removed from WC-05 and WC-06 (DD-WC2 resolved 2026-10-27); 'pending DD-WC2' notes fixed on WC-05 and WC-06 here and in wi/WC-05, wi/WC-06.",
+        "Model tags (owner instruction 2026-10-28): WC-04 retagged opus-5 -> fable-5.1; WC-03 kept fable-5.1 with a note that it was built on Opus and needs a fable-5.1 review before the real run. WC-04 note no longer says 'Not registered'.",
+        "Note corrections (registered meaning unchanged, sections cited): wi/WC-03-estimator.md (status; following 3.0 s C4; no lateral rule C5; class rule C6/N3; bootstrap §8c + draft A1; no tow/straights §4b/§16), wi/WC-04-validation.md (status; items 1-2 superseded §16; item 3 = P1; item 4 observation only DD-WC12; item 6 = W1/W2), wi/WC-design-note.md (status, DD-WC2).",
+        "estimator.py pit_stop_events (owner instruction): uses every braking-corner pass whatever its WC-01 reason, per §11 'every braking corner' (was reason NULL only); jump uses corners with a segment time on both sides; donors still clean. test_estimator.py: test_g1_iv_every_braking_corner_whatever_its_reason."
+      ],
+      "verified": [
+        "PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/wake_calibration/tests -q -s: 94 passed, 1 warning, 606 s. G1 (i) adopted circuit-then-race: registered model 0.91-0.945 per bin; race shocks only 0.975-0.995.",
+        "Leakage: partial_residual_s components (field pace per race x lap; fuel factor seed window 2018_to_2024; compound cells point-in-time, 2025 cells fitted on 2018-2024) take no 2025 data into any fit-season lap. Checked on the committed seeds, not on the warehouse tables.",
+        "Bronze inventory (read-only): 173 races 2018-2025; builder never builds a driver's last lap (3,325 laps); restart rule flags 2,560 laps on VSC endings only; off_track 0 passes; 2025 Miami 354 laps with no Stint."
+      ],
+      "assumed": [
+        "The real-data effect of the pit-stop change on event counts is NOT counted: the scratch pass-table rebuild was refused by the permission system in this session.",
+        "no_reference class and the under-attack rule left as they are: the registration does not settle them; for the owner's ruling.",
+        "BUILD-ORDER.md generated block not regenerated (orchestrator instruction): board.py --check reports it stale because WC-04's model changed."
+      ],
+      "gates_run": [
+        "G1 (synthetic only): 94 passed",
+        "board.py --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --write-order",
+      "next_action": [
+        "OWNER: allow board.py --write-order so BUILD-ORDER.md picks up WC-04's new model tag (--check fails stale until then).",
+        "OWNER: rule on no_reference (5th report-only class) and the under-attack rule (fix in an amendment before the run); on Job 1 findings (last lap never built, VSC endings as restarts, unknown-stint laps).",
+        "ORCHESTRATOR (fable-5.1): review estimator.py and test_estimator.py before any real run.",
+        "Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-28T18:10:00+04:00",
+      "session": "WC-03: amendments A2 (no_reference as a fifth, report-only pass class) and A3 (last_lap, and lap_1 at lap level, as named exclusions counted at §8a step 1) drafted on the owner's choice of option B for both. Opus subagent. Drafts only: not committed, not staged, not hashed, not signed. Registered pre-registration text and amendment A1 not edited; no threshold changed. data/dev.duckdb not opened; bronze not read; pass table not rebuilt; nothing fitted, scored, classified or gated; G2, G3 and the real-run CLI not run. Local clock is 2026-10-28T18:10; some earlier entries carry 2026-10-29 stamps.",
+      "landed": [
+        "wi/WC-03-amendment-A2-no-reference-class.md (new, uncommitted, not hashed): exact replacement text for §5 row 'Pass class' (order racecraft, no_leader_time, no_reference, held_up, dirty_air; no_reference report-only, never in a §6 fit), §12a G1 (vi) ('exactly one of five classes'), §12b 'Counts' (adds no_reference per season and corner class); drafted-after-synthetic-G1(i)-failure disclosure, no real-data result seen.",
+        "wi/WC-03-amendment-A3-last-lap-exclusion.md (new, uncommitted, not hashed): exact replacement text for §4a first paragraph, a new §4a paragraph registering lap-level last_lap and lap_1 (builder needs L-1 and L+1 telemetry, CarTrace.lap_complete), §8a steps 1 and 5 (drop at step 1, counted once under lap_1 / last_lap / no_pass_rows, summing to §2f's 'panel laps with no passes'); a last lap is simply out of the scored set; same disclosure as A2. lap_1 registered in the same amendment (same mechanism; already excluded, so no scored lap changes)."
+      ],
+      "verified": [
+        "Counts from the 2026-10-28 inventory CSVs only (scratchpad/inventory/bronze_laps_vs_telemetry_complete.csv, bronze_laps_by_season.csv): not-buildable laps from lap 2 with telemetry 3,325 (2018-2025), of which driver's last lap 3,315, last lap and not pit 3,043; 2025: 464 / 464 / 425; 2022-2024: 1,320 / 1,319 / 1,216. Bronze lap-1 rows 3,449 (2025: 476).",
+        "Not verified: 'about 50,000 passes' on those laps. No file holds it; it was a ~16 passes per lap estimate in a scratch note. Stated as not counted in A3.",
+        "exclusion_reasons_by_season.csv: pass-level lap_1 = 0 in every season (WC-01 PROVENANCE item 13).",
+        "board.py --check: exits 1, 'BUILD-ORDER.md's generated task list is stale' (pre-existing since the WC-04 model retag; --write-order not run, per instruction)."
+      ],
+      "assumed": [
+        "last_lap is identified at §8a step 1 as the driver's highest lap_number among the race's panel rows, applied only to panel laps with no pass row; the residual label no_pass_rows is a counting label, not an exclusion. For the owner to confirm with A3.",
+        "No code changed: estimator.py already implements no_reference; lap-level lap_1/last_lap/no_pass_rows counting at §8a step 1 is not yet in code and is to be written after A3 is signed."
+      ],
+      "gates_run": [
+        "board.py --check (exit 1, stale generated block, pre-existing)"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: read and sign A2 and A3 (confirm or strike lap_1 in A3, and the last_lap identification rule); commit each alone, record its SHA-256 on WC-03; nothing is fitted on real data before that (rule 4).",
+        "OWNER: allow board.py --write-order so --check passes again.",
+        "Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-28T18:25:00+04:00",
+      "session": "A2/A3 lap-level counting built and tested (Opus subagent), uncommitted. Amendments A1-A3 and the pre-registration not edited, signed or hashed; builder and pass-level reason codes unchanged (G2 unaffected); data/dev.duckdb not opened; pass table not rebuilt; nothing fitted, scored or gated; G2/G3 not run.",
+      "landed": [
+        "estimator.py (A3): lap_step1_reason(panel, passes) -> Series per panel row: lap_1 if lap_number < 2; last_lap if the driver's highest lap_number among the race's panel rows; otherwise no_pass_rows; None if the lap has pass rows. Pure; refuses duplicate or keyless panel rows. Also short_stint_reason (§8a step 4, label stint_under_2_laps, the code's own name) and lap_drop_counts (§8a step 5: each lap counted once, at its first step).",
+        "estimator.py (A2): no_reference_counts(prepared) for the §12b count (per season and corner class, share of following braking passes). PASS_CLASSES/pass_class unchanged; already matched A2.",
+        "test_estimator.py: test_a2_* (5) and test_a3_* (8), synthetic only."
+      ],
+      "verified": [
+        "PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/wake_calibration/tests -q -s: 107 passed, 1 warning (statsmodels ConvergenceWarning in test_reml_matches_statsmodels_mixedlm, pre-existing), 624 s.",
+        "Coordinator-directed read-only counting check on bronze laps and telemetry 2018-2025 (scratch only; panel stand-in = bronze laps, pass-row stand-in = builder lap_complete test): lap_step1_reason reproduces the inventory exactly (3,325 not buildable with telemetry = 3,315 last_lap + 10 no_pass_rows; 2025: 464; lap_1 3,449). Counts only; no loss, score or gate value."
+      ],
+      "assumed": [
+        "§8a step 4 label stint_under_2_laps is not registered text; step 3 (±5 s trim) still not in code.",
+        "Laps with no telemetry at all (2018 Australia/Bahrain etc.) fall under last_lap (44) or no_pass_rows (1,860) by A3's order; 2025 has none."
+      ],
+      "gates_run": [
+        "G1 (synthetic only): 107 passed",
+        "board.py --check: exit 0, build-log.json OK (the stale-block failure was already cleared by the pre-existing working-tree BUILD-ORDER.md change; not edited here)"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: read and sign A2 and A3; commit each alone and record SHA-256 on WC-03 (rule 4).",
+        "Do not commit without an explicit yes."
+      ]
+    },
+    {
+      "date": "2026-10-28T18:55:00+04:00",
+      "session": "WC-03 amendments A1-A3: decisions recorded (delegated), A3 labelling reading fixed in text, step-4 label registered. Opus subagent. Nothing committed, staged, pushed or hashed. Pre-registration not edited; no registered threshold changed; data/dev.duckdb not opened; pass table not rebuilt; nothing fitted, scored or gated; G2/G3 and the real-run CLI not run.",
+      "landed": [
+        "wi/WC-03-amendment-A3-last-lap-exclusion.md: step-1 reading made explicit in §4a and §8a step 1 text: labels go by the lap's position in the panel, not by why it has no pass row (a driver's last panel lap with no telemetry of its own is last_lap; lap 1 is lap_1; every other lap with no pass row is no_pass_rows). Step-4 label stint_under_2_laps registered (§4a new paragraph, §8a step 5). Scale note adds the 44 no-telemetry last laps (2018: 40; 2019-2022: 1 each) and 1,860 no-telemetry no_pass_rows laps. Stale 'no code changes' bullet corrected. Decision record added.",
+        "wi/WC-03-amendment-A2-no-reference-class.md: decision record added (option B, no_reference as a fifth report-only class).",
+        "wi/WC-03-amendment-A1-circuit-bootstrap.md (committed at 0e14d7f, now modified in the working tree): decision record for item 1 (circuit-then-race bootstrap) added; item 2 and the Clarifications list still pending owner.",
+        "Decision text in each file: 'Decided 2026-10-28. Decided by the owner, delegated to the Opus session on 2026-10-28; not the owner's personal signature.'",
+        "estimator.py: no logic change (lap_step1_reason already applied the position reading); docstring and comments state the reading and that stint_under_2_laps is registered by A3.",
+        "test_estimator.py: test_a3_labels_go_by_position_even_for_a_lap_with_no_telemetry, test_a3_step_4_label_is_the_registered_name (synthetic)."
+      ],
+      "verified": [
+        "PYTHONPATH=transform ./.venv/bin/pytest transform/tasks/wake_calibration/tests -q -s: 109 passed, 1 warning (statsmodels ConvergenceWarning in test_reml_matches_statsmodels_mixedlm, pre-existing), 599.54 s.",
+        "Read-only bronze step-1 recount (scratch a3_step1_bronze.py, in-memory duckdb over bronze parquet): identical to the earlier run: 3,325 not buildable with telemetry = 3,315 last_lap + 10 no_pass_rows; 2025: 464; lap_1 3,449; no-telemetry laps 44 last_lap + 1,860 no_pass_rows. Counts only; bronze laps stand in for the yardstick panel, which was not counted."
+      ],
+      "assumed": [
+        "Decisions recorded under delegation from the owner to the Opus session; not the owner's personal signature.",
+        "§8a step 3 (±5 s trim) has no registered label and is not in code."
+      ],
+      "gates_run": [
+        "G1 (synthetic only): 109 passed"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: read A1-A3 and the decision records; on a yes, commit each amendment alone and record its SHA-256 on WC-03 (rule 4).",
+        "OWNER: rule on A1 item 2 (empty-bin rule) and the A1 Clarifications list.",
         "Do not commit without an explicit yes."
       ]
     }

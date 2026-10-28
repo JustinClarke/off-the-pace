@@ -1,6 +1,6 @@
 # WC-06 - Phase 5: app output
 
-**Status: not started, not registered.** Depends on WC-05. Waits on DD-WC2 (disclaimer wording). Design: [`WC-design-note.md`](WC-design-note.md).
+**Status: not started, not registered.** Depends on WC-05. DD-WC2 (disclaimer wording) was resolved on 2026-10-27, so this item no longer waits on it. _[note correction 2026-10-28: was "Waits on DD-WC2"]_ Design: [`WC-design-note.md`](WC-design-note.md).
 
 **Goal.** Show the traffic cost in the app with its label on every number.
 
@@ -12,7 +12,7 @@
 - **Totals show the modelled share**, for example "3.4 s (28% modelled)". Unavailable laps are left out of totals and counted.
 - No number from the archived dirty-air method (DA-03) appears anywhere.
 
-**Disclaimer on every modelled value** (pending DD-WC2; use exactly):
+**Disclaimer on every modelled value** (approved by the owner 2026-10-27, DD-WC2; use exactly) _[note correction 2026-10-28: was "pending DD-WC2"]_:
 
 > Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.
 

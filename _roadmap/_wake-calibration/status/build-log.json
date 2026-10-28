@@ -133,7 +133,34 @@
         "committed_alone": false,
         "g3_checks": 4,
         "note": "Committed with 22 other files in one commit (not alone, contrary to rule 4). Pushed; not rewritten. The SHA-256 identifies the signed text."
-      }
+      },
+      "amendments": [
+        {
+          "doc": "wi/WC-03-amendment-A1-circuit-bootstrap.md",
+          "sha256": "19a39c42a12e2ed46ba8e2afb8721f5daece2636e7e7a2e9ad2b0c6eefaaf99b",
+          "commit": "5aee6b2"
+        },
+        {
+          "doc": "wi/WC-03-amendment-A2-no-reference-class.md",
+          "sha256": "6464e28a419b3304e4d46552f996a529484df2a446257f14c6d3ae0921ce4082",
+          "commit": "e310510"
+        },
+        {
+          "doc": "wi/WC-03-amendment-A3-last-lap-exclusion.md",
+          "sha256": "f3e10f14abacf7718a9c1467e1ea8d2438167a69b983d3fbf36b455ddea693e3",
+          "commit": "83134a3"
+        },
+        {
+          "doc": "wi/WC-03-amendment-A4-rulings.md",
+          "sha256": "992413314afb0cf34f3e25c7de9056d459928d9ffb016ac218d0518a67f8ddb1",
+          "commit": "c872547"
+        },
+        {
+          "doc": "wi/WC-03-amendment-A5-fit-race-list-DRAFT.md",
+          "sha256": "db40870f31f788925ba250d6e74f991ea8eeb59045690f9c4af0ab91af852c2d",
+          "commit": "PENDING: set when A5 is committed"
+        }
+      ]
     },
     {
       "id": "WC-04",
@@ -395,10 +422,12 @@
       "blocking": [
         "WC-03"
       ],
-      "status": "OPEN",
+      "status": "RESOLVED",
       "question": "Adopt draft amendment A5 (wi/WC-03-amendment-A5-fit-race-list-DRAFT.md): draw the bootstrap plan over every fit-season race (union of pass-table and panel races), not only the races that contribute fit passes?",
       "context": "Two built 2022-2024 races (2022 Japan 2022_18, 2024 Sao Paulo 2024_21) have no fit-eligible pass (all wet); older era: 2019_11, 2020_14, plus 2018 Australia/Bahrain and 2020 Sakhir/Tuscany with laps but no pass table. Under A4 ruling 4b as written the run stops after G3 is written (= the one run, no verdict). The CLI now refuses before any warehouse read while A5 is undecided. Options: (a) union [recommended], (b) built races only, (c) keep A4 4b. Outcome-blind counts only (_evidence/WC-03-prep-2026-10-28/).",
-      "recommendation": "(a) union: changes no registered fit set; matches the 68 races of section 8c."
+      "recommendation": "(a) union: changes no registered fit set; matches the 68 races of section 8c.",
+      "resolved": "2026-10-29",
+      "resolution": "Owner chose option (a), union of both race lists, per draft A5 (2026-10-29). Owner also ruled: D3 (the pre-flight loss trim) is reverted, so the pre-flight reads no loss column. A5 is not yet committed or hashed; A5_FIT_RACE_LIST stays None until that is done."
     }
   ],
   "watch_vocabulary": {

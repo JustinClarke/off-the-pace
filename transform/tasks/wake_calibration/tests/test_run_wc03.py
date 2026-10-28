@@ -374,3 +374,116 @@ def test_the_older_car_run_is_wired_in_after_the_main_scorecard_and_never_decide
     assert len(oc) == 24
     prov = (ev / "PROVENANCE.txt").read_text()
     assert prov.index("VERDICT WRITTEN") < prov.index("TABLE 2 older cars: done")
+
+
+# ---------------------------------------------------------------- review fixes D1-D3 (Opus review, 2026-10-28)
+
+
+def _prov(folder: Path, *lines: str) -> None:
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "PROVENANCE.txt").write_text("".join(f"t {x}\n" for x in lines))
+
+
+def test_d1_a_result_in_any_wc03_or_wc04_folder_refuses_a_new_run(tmp_path):
+    root = tmp_path / "_evidence"
+    _prov(root / "WC-04-2026-10-29", R.STARTED)  # started, nothing seen: a restart is allowed
+    _prov(root / "WC-02-2026-10-27", R.STARTED, R.RESULTS)  # not a WC-03/WC-04 folder
+    R.check_no_result_anywhere(root)
+    _prov(root / "WC-03-2026-10-30" / "sub", R.STARTED, R.RESULTS)  # nested PROVENANCE counts too
+    with pytest.raises(R.RefusedError, match="WC-03-2026-10-30"):
+        R.check_no_result_anywhere(root)
+    root2 = tmp_path / "_evidence2"
+    _prov(root2 / "WC-04-a", R.STARTED, R.RESULTS, R.COMPLETED)
+    with pytest.raises(R.RefusedError):
+        R.check_no_result_anywhere(root2)
+
+
+def test_d1_main_refuses_a_second_run_under_a_new_evidence_folder(tmp_path, monkeypatch):
+    root = tmp_path / "_evidence"
+    _prov(root / "WC-04-2026-10-29", R.STARTED, R.RESULTS, R.COMPLETED)
+    monkeypatch.setattr(R, "EVIDENCE_ROOT", root)
+    monkeypatch.setattr(R, "registration_problems", lambda *a, **k: [])
+    db = tmp_path / "scratch" / "dev.duckdb"
+    db.parent.mkdir()
+    db.write_bytes(b"")  # an empty stand-in; main refuses before reading it
+    preflight = []
+    monkeypatch.setattr(R, "fit_race_preflight", lambda d: preflight.append(d))
+    with pytest.raises(R.RefusedError, match="already exists"):
+        R.main(["--scratch-db", str(db), "--pass-table-dir", str(tmp_path / "pt"),
+                "--evidence-dir", str(root / "WC-04-2026-10-30"), "--owner-yes", "--check-only"])
+    assert preflight == []  # refused before the pass table is read
+
+
+def test_d1_a_real_call_of_run_pipeline_also_checks_every_folder(tmp_path, monkeypatch):
+    root = tmp_path / "_evidence"
+    _prov(root / "WC-03-x", R.STARTED, R.RESULTS)
+    monkeypatch.setattr(R, "EVIDENCE_ROOT", root)
+    src = FakeSources()
+    with pytest.raises(R.RefusedError):
+        R.run_pipeline(src, root / "WC-04-new")  # synthetic False: B and seed as registered
+    assert src.read == []
+
+
+def test_d2_an_error_after_g3_is_a_recorded_no_verdict_and_spends_the_run(tmp_path):
+    class Broken(FakeSources):
+        def passes(self):
+            raise RuntimeError("pass table unreadable")
+
+    ev = tmp_path / "ev"
+    assert R.run_pipeline(Broken(), ev, n_draws=3, synthetic=True) is None
+    first = (ev / "SCORECARD.md").read_text().splitlines()[0]
+    assert first.startswith(C.VERDICT_TEXT[C.NO_VERDICT])
+    assert "the run stopped with an error" in first and "RuntimeError: pass table unreadable" in first
+    prov = (ev / "PROVENANCE.txt").read_text()
+    assert prov.index(R.RESULTS) < prov.index("ERROR after") < prov.index(R.COMPLETED)
+    assert "Traceback" in prov
+    with pytest.raises(R.RefusedError):  # §0: spent, never repeated
+        R.check_evidence_fresh(ev)
+
+
+def test_d2_a5_incomplete_fit_race_list_is_recorded_as_no_verdict(tmp_path):
+    src, wet = _wet_race_sources()
+    full = src.race_circuit_map()
+    src.race_circuit_map = lambda: {k: v for k, v in full.items() if k != wet}  # the calendar lacks one race
+    ev = tmp_path / "ev"
+    assert R.run_pipeline(src, ev, n_draws=3, synthetic=True, a5="union") is None
+    first = (ev / "SCORECARD.md").read_text().splitlines()[0]
+    assert first.startswith(C.VERDICT_TEXT[C.NO_VERDICT]) and R.FIT_RACE_LIST_CAUSE in first and wet in first
+    assert not (ev / "main_curve.csv").exists()
+    assert f"{R.COMPLETED}: no verdict ({R.FIT_RACE_LIST_CAUSE})" in (ev / "PROVENANCE.txt").read_text()
+
+
+def test_d2_an_older_era_fit_race_list_problem_stays_in_table_2(tmp_path, judged_classes):
+    src = OlderSources()
+    full = FakeSources.race_circuit_map(src)
+    older_race = sorted(r for r in full if r.startswith("2019_"))[0]
+    src.race_circuit_map = lambda: {k: v for k, v in full.items() if k != older_race}
+    ev = tmp_path / "ev"
+    res = R.run_pipeline(src, ev, n_draws=3, synthetic=True, a5="union")
+    assert res is not None
+    card = (ev / "SCORECARD.md").read_text()
+    assert card.splitlines()[0] == res.verdict_line
+    assert R.FIT_RACE_LIST_CAUSE in card[card.index("Table 2"):]
+
+
+def test_d2_an_error_assembling_table_2_keeps_the_verdict(tmp_path, monkeypatch):
+    def boom(rows):
+        raise ValueError("table 2 text")
+
+    monkeypatch.setattr(R.RP, "table2_text", boom)
+    ev = tmp_path / "ev"
+    res = R.run_pipeline(FakeSources(), ev, n_draws=3, synthetic=True)
+    assert res is not None
+    assert (ev / "SCORECARD.md").read_text().splitlines()[0] == res.verdict_line
+    prov = (ev / "PROVENANCE.txt").read_text()
+    assert "TABLE 2 assembly: not computed (ValueError: table 2 text)" in prov
+    assert f"{R.COMPLETED}: verdict {res.verdict_code}" in prov
+
+
+def test_verdict_line_names_the_w_checks_not_run():
+    code, line = C.verdict([C.Check("G7", False, "", "main/slow: point empty bins [7]")], None, None, None)
+    assert code == C.NO_VERDICT and "a W check" not in line
+    assert line.endswith("G7 failed: main/slow: point empty bins [7]; W1, W2, W3 not run")
+    code, line = C.verdict([], C.Check("W1", True, "", ""), C.Check("W2", None, "", "", "undefined in a draw"),
+                           C.Check("W3", True, "", ""))
+    assert code == C.NO_VERDICT and line.endswith("W2 not assessable: undefined in a draw")

@@ -66,6 +66,11 @@ DD_WC2_DISCLAIMER = ("Normalised from other compounds, based on stints from othe
                      "performance of the tyres after removing other factors.")
 
 
+class FitRaceListError(E.EstimatorError):
+    """DRAFT amendment A5: a race with a fit pass or a fit-season panel lap is not on the fit-race list, or the
+    list has no circuit for a race. The run records "no verdict: fit-race list incomplete" (run_wc03)."""
+
+
 # --------------------------------------------------------------------------- stint + tyre-age residual (§2d, §8b)
 
 
@@ -140,7 +145,7 @@ def theta_now_draws(panel_fit: pd.DataFrame, plan: E.BootstrapPlan, subset: bool
     if subset:
         outside = sorted(set(panel_races) - set(races))
         if outside:
-            raise E.EstimatorError(f"θ_now panel races not on the fit-race list (A5): {outside[:3]}")
+            raise FitRaceListError(f"θ_now panel races not on the fit-race list (A5): {outside[:3]}")
     elif panel_races != races:
         only_panel = sorted(set(panel_races) - set(races))
         only_plan = sorted(set(races) - set(panel_races))
@@ -493,12 +498,15 @@ def g5_minimums(res: ContestResult | None, laps: pd.DataFrame, fit_races: int, h
 def verdict(setup: list[Check], c_w1: Check | None, c_w2: Check | None, c_w3: Check | None) -> tuple[str, str]:
     """§9, read top to bottom (A4 4e). Returns (code, the scorecard's first line)."""
     failed = [c for c in setup if c.passed is not True]
-    undefined = [c for c in (c_w1, c_w2, c_w3) if c is None or c.passed is None]
-    if failed or undefined:
-        why = "; ".join([f"{c.name} failed: {c.value}" for c in failed]
-                        + [f"{c.name if c else 'a W check'} not assessable: {c.reason if c else 'not run'}"
-                           for c in undefined])
-        return NO_VERDICT, f"{VERDICT_TEXT[NO_VERDICT]} {why}"
+    w_checks = list(zip(("W1", "W2", "W3"), (c_w1, c_w2, c_w3)))
+    not_run = [n for n, c in w_checks if c is None]
+    undefined = [c for _, c in w_checks if c is not None and c.passed is None]
+    if failed or not_run or undefined:
+        why = ([f"{c.name} failed: {c.value}" for c in failed]
+               + [f"{c.name} not assessable: {c.reason}" for c in undefined])
+        if not_run:
+            why.append(f"{', '.join(not_run)} not run")
+        return NO_VERDICT, f"{VERDICT_TEXT[NO_VERDICT]} {'; '.join(why)}"
     if c_w1.passed and c_w2.passed and c_w3.passed:
         return REPLACE, VERDICT_TEXT[REPLACE]
     if c_w1.passed and c_w3.passed and not c_w2.passed:
@@ -548,7 +556,7 @@ def fit_race_list(prepared: pd.DataFrame, panel: pd.DataFrame, race_circuit: dic
         raise E.EstimatorError(f"unknown A5 option {option!r}")
     missing = [r for r in races if r not in race_circuit]
     if missing:
-        raise E.EstimatorError(f"no circuit for listed fit race(s) {missing[:3]} (A5)")
+        raise FitRaceListError(f"no circuit for listed fit race(s) {missing[:3]} (A5)")
     return races, {r: str(race_circuit[r]) for r in races}
 
 
@@ -571,11 +579,11 @@ def run_era(prepared: pd.DataFrame, panel: pd.DataFrame, held_out_races: list[st
     else:
         outside = sorted(set(fit["race_key"].astype(str)) - set(fit_races))
         if outside:
-            raise E.EstimatorError(f"fit passes from races not on the fit-race list (A5): {outside[:3]}")
+            raise FitRaceListError(f"fit passes from races not on the fit-race list (A5): {outside[:3]}")
         own = E.race_circuits(fit) if len(fit) else {}
         bad = sorted(r for r, c in own.items() if race_circuit.get(r) != c)
         if bad:
-            raise E.EstimatorError(f"fit-race list circuit differs from the passes' circuit (A5): {bad[:3]}")
+            raise FitRaceListError(f"fit-race list circuit differs from the passes' circuit (A5): {bad[:3]}")
         plan = E.resample_plan(list(fit_races), race_circuit, list(held_out_races), n_draws=n_draws, seed=seed)
     main_table, main_draws = E.curve_with_intervals(fit, plan, role="main")
     classes = E.class_curves_with_intervals(fit, plan)

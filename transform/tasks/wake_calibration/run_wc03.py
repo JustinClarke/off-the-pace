@@ -41,6 +41,7 @@ import json
 import os
 import subprocess
 import sys
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Protocol
@@ -158,6 +159,28 @@ def check_evidence_fresh(evidence: Path) -> None:
     text = prov.read_text() if prov.exists() else ""
     if RESULTS in text or COMPLETED in text:
         raise RefusedError("refused: a result was already written in this evidence folder; n_runs = 1 is final (§0)")
+
+
+EVIDENCE_ROOT = WC / "_evidence"
+RUN_EVIDENCE_GLOBS = ("WC-03-*", "WC-04-*")
+
+
+def check_no_result_anywhere(evidence_root: Path = EVIDENCE_ROOT) -> None:
+    """§0 formal: a run is completed once any file under a WC-03 or WC-04 evidence folder holds a result. Refuse
+    when the PROVENANCE.txt of any such folder (at any depth) records a result, whatever --evidence-dir is, so a
+    second run cannot start under a new folder name (review D1)."""
+    hits = []
+    for pattern in RUN_EVIDENCE_GLOBS:
+        for folder in sorted(Path(evidence_root).glob(pattern)):
+            if not folder.is_dir():
+                continue
+            for prov in sorted(folder.rglob("PROVENANCE.txt")):
+                text = prov.read_text(errors="replace")
+                if RESULTS in text or COMPLETED in text:
+                    hits.append(str(prov.relative_to(evidence_root)))
+    if hits:
+        raise RefusedError("refused: a WC-03/WC-04 result already exists (" + ", ".join(hits)
+                           + "); n_runs = 1 is final (§0)")
 
 
 # --------------------------------------------------------------------------- data sources
@@ -294,9 +317,10 @@ def race_circuit_map(bronze: Path, calendar: dict) -> dict:
 
 
 def fit_race_preflight(pass_dir: Path) -> dict[str, tuple[list[str], list[str]]]:
-    """Before any warehouse read or gate: per era, the built fit-season races and those with a fit-eligible
-    pass before the loss trim (structural columns only; no outcome is read). Under A4 ruling 4b as written a
-    built race with no fit pass makes the run stop after G3; main() refuses instead (draft A5)."""
+    """Before any warehouse read or gate: per era, the built fit-season races and those with a fit pass before the
+    ±2 s loss trim (reverted from review D3, so no loss column is read here). Only race ids are returned.
+    Under A4 ruling 4b as written a built race with no fit pass makes the run stop after G3; main() refuses
+    instead (draft A5)."""
     cols = ["season", "race_id", "segment_basis", "reason", "clear_ahead", "gap_s", "ref_status", "tag"]
     files = sorted(glob.glob(str(Path(pass_dir) / "pass_table_*.parquet")))
     p = pd.concat([pd.read_parquet(f, columns=cols) for f in files], ignore_index=True)
@@ -389,14 +413,17 @@ def run_g1_tests() -> tuple[bool, str]:
 def run_pipeline(src: Sources, evidence: Path, n_draws: int = E.N_BOOT, seed: int = E.SEED,
                  synthetic: bool = False, g1_summary: str = "synthetic call: G1 not run here",
                  a5: str | None = None) -> C.EraResult | None:
-    """The registered order. Returns the main-era result, or None when G3 or G2 stopped the run."""
+    """The registered order. Returns the main-era result, or None when G3, G2, the A4 4b guard or an error after
+    G3 stopped the run (each recorded as no verdict with its cause; review D2)."""
     if not synthetic and (n_draws != E.N_BOOT or seed != E.SEED):
         raise RefusedError("refused: B and the seed are fixed (§8c)")
     evidence = Path(evidence)
     evidence.mkdir(parents=True, exist_ok=True)
     check_evidence_fresh(evidence)
+    if not synthetic:
+        check_no_result_anywhere(EVIDENCE_ROOT)
     _log(evidence, f"{STARTED}: n_draws {n_draws}, seed {seed}, synthetic {synthetic}, python {sys.version.split()[0]}")
-    g3 = g3_checks(src)
+    g3 = g3_checks(src)  # an error here is before RESULTS: nothing was seen, a restart is allowed (§0)
     _log(evidence, RESULTS)
     _log(evidence, "G3: " + "; ".join(f"{c.name} {'pass' if c.passed else 'FAIL'} ({c.value})" for c in g3))
     if not all(c.passed for c in g3):
@@ -405,6 +432,52 @@ def run_pipeline(src: Sources, evidence: Path, n_draws: int = E.N_BOOT, seed: in
                                                "Nothing was fitted or scored. The owner is told before anything else.\n")
         _log(evidence, f"{COMPLETED}: G3 failed; nothing fitted or scored")
         return None
+    # Review D2: from here on the run is spent (§0). Any error up to the verdict is recorded as no verdict, with
+    # its cause, on the scorecard's first line and in PROVENANCE.txt; it is never left as a bare crash.
+    try:
+        stage = _through_verdict(src, evidence, g3, n_draws, seed, g1_summary, a5)
+    except Exception as exc:  # noqa: BLE001 - recorded, never swallowed silently
+        _record_error_no_verdict(evidence, exc)
+        return None
+    if stage is None:
+        return None
+    result, ctx = stage
+    # After the verdict line is written, an error while assembling Table 2 keeps the Table 1 scorecard and the
+    # verdict (Table 2 never decides it); it is logged and the run is completed.
+    try:
+        first, rows = table2(src, evidence, *ctx, n_draws, seed)
+        t1 = C.scorecard(result).splitlines()
+        card = t1[:4] + first + ([""] if first else []) + t1[4:]
+        (evidence / "SCORECARD.md").write_text("\n".join(card) + "\n" + RP.table2_text(rows))
+    except Exception as exc:  # noqa: BLE001
+        _log(evidence, f"TABLE 2 assembly: not computed ({type(exc).__name__}: {str(exc)[:300]}); "
+                       "SCORECARD.md keeps Table 1 and the verdict")
+        for tb_line in traceback.format_exc().rstrip().splitlines():
+            _log(evidence, f"  | {tb_line}")
+    _log(evidence, f"{COMPLETED}: verdict {result.verdict_code}")
+    return result
+
+
+FIT_RACE_LIST_CAUSE = "fit-race list incomplete"  # draft A5 "Order": the recorded no-verdict cause
+
+
+def _record_error_no_verdict(evidence: Path, exc: Exception) -> None:
+    """Review D2: an error after G3 was written is a no verdict with its cause (§0: the run is spent)."""
+    cause = FIT_RACE_LIST_CAUSE if isinstance(exc, C.FitRaceListError) else "the run stopped with an error"
+    line = (f"{C.VERDICT_TEXT[C.NO_VERDICT]} No verdict: {cause} ({type(exc).__name__}: {str(exc)[:300]}). "
+            "The error came after G3 had been written, so under §0 this run is spent and is not repeated; "
+            "nothing after the error is a result.")
+    (evidence / "SCORECARD.md").write_text(line + "\n")
+    _log(evidence, f"ERROR after {RESULTS}: {type(exc).__name__}: {str(exc)[:300]}")
+    for tb_line in traceback.format_exc().rstrip().splitlines():
+        _log(evidence, f"  | {tb_line}")
+    _log(evidence, f"{COMPLETED}: no verdict ({cause})")
+
+
+def _through_verdict(src: Sources, evidence: Path, g3: list, n_draws: int, seed: int, g1_summary: str,
+                     a5: str | None):
+    """G2 to the verdict line (the part of run_pipeline after G3). Returns None when G2 or the A4 4b guard
+    stopped the run (already recorded), else (main-era result, the arguments table2 needs)."""
     g2_bad = src.g2_mismatches()
     g2 = C.Check("G2", not g2_bad, "WC-01 count files reproduce byte for byte", ", ".join(g2_bad) or "all identical")
     _log(evidence, f"G2: {'pass' if g2.passed else 'FAIL'} ({g2.value})")
@@ -447,13 +520,7 @@ def run_pipeline(src: Sources, evidence: Path, n_draws: int = E.N_BOOT, seed: in
     (evidence / "SCORECARD.md").write_text(C.scorecard(result))  # Table 1 first: a later crash cannot lose it
     _log(evidence, f"G6 counts: {json.dumps(g6_counts)}")
     _log(evidence, f"VERDICT WRITTEN: {result.verdict_code}")
-    first, rows = table2(src, evidence, raw, cal, prepared, panel, result, lists, held_races, g1, g2, g3,
-                         n_draws, seed)
-    t1 = C.scorecard(result).splitlines()
-    card = t1[:4] + first + ([""] if first else []) + t1[4:]
-    (evidence / "SCORECARD.md").write_text("\n".join(card) + "\n" + RP.table2_text(rows))
-    _log(evidence, f"{COMPLETED}: verdict {result.verdict_code}")
-    return result
+    return result, (raw, cal, prepared, panel, result, lists, held_races, g1, g2, g3)
 
 
 def era_lists(src: Sources, prepared: pd.DataFrame, panel: pd.DataFrame, a5: str | None) -> dict:
@@ -477,7 +544,14 @@ def era_lists(src: Sources, prepared: pd.DataFrame, panel: pd.DataFrame, a5: str
             out[era] = (None, panel, prob, None)
             continue
         rc_all = rc_all if rc_all is not None else src.race_circuit_map()
-        races, rc = C.fit_race_list(prepared, panel, rc_all, era, a5)
+        try:
+            races, rc = C.fit_race_list(prepared, panel, rc_all, era, a5)
+        except C.FitRaceListError as exc:
+            if era == "main":
+                raise  # recorded by run_pipeline as "no verdict: fit-race list incomplete" (review D2)
+            # The older-car run is report-only (Table 2): its incomplete list is shown there, never a verdict.
+            out[era] = (None, panel, f"{FIT_RACE_LIST_CAUSE}: {exc}", None)
+            continue
         pan = panel
         if a5 == "built":
             in_fit = pan["race_year"].astype(int).isin(spec["fit"])
@@ -595,6 +669,7 @@ def main(argv: list[str] | None = None) -> int:
     if Path(args.pass_table_dir).resolve().is_relative_to(WAREHOUSE.parent.resolve()):
         raise RefusedError("refused: --pass-table-dir must not be inside data/")
     check_evidence_fresh(args.evidence_dir)
+    check_no_result_anywhere(EVIDENCE_ROOT)  # review D1: every WC-03-* / WC-04-* folder, not only this one
     a5_refusal(fit_race_preflight(args.pass_table_dir), A5_FIT_RACE_LIST)
     if args.check_only:
         print("checks passed; no warehouse or bronze data read (pass-table structure only, for the A5 pre-flight)")

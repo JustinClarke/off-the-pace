@@ -60,7 +60,6 @@ Recorded per item in the log, not chosen at the keyboard, so the choice is revie
 ### Open decisions — these are yours, not tasks
 
 - **DD-WC3** (blocks nothing) — Licence the OpenF1 live data feed (paid; non-commercial, share-alike licence) for any live use of the method?
-- **DD-WC14** (blocks `WC-03`) — Adopt draft amendment A5 (wi/WC-03-amendment-A5-fit-race-list-DRAFT.md): draw the bootstrap plan over every fit-season race (union of pass-table and panel races), not only the races that contribute fit passes? _Recommended: (a) union: changes no registered fit set; matches the 68 races of section 8c._
 
 ### Watch list — kept an eye on, not tasks and not rulings
 

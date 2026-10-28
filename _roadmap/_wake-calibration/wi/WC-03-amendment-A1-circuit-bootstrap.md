@@ -1,6 +1,6 @@
 # WC-03 pre-registration, amendment A1: circuit-then-race curve bootstrap
 
-**Status: DRAFT. Not committed, not hashed, not signed.** Item 1 is the owner's decision (below). Item 2 is **pending owner confirmation**. This file amends `wi/WC-03-preregistration-DRAFT.md` (signed 2026-10-28, SHA-256 `518c3348a619ebf6a964486bbe6313dcdc86c64ae05ca3daed8db202d9653a63`, commit `839e0f4`). The registered text is **not edited**: this file is read beside it, and where the two differ this file governs once it is committed and its SHA-256 is recorded on WC-03 in `status/build-log.json`.
+**Status: DRAFT. Not committed, not hashed. Item 1: decision recorded 2026-10-28 (see "Owner's decision" under item 1): decided by the owner, delegated to the Opus session on 2026-10-28; not the owner's personal signature.** Item 2 is **pending owner confirmation**. This file amends `wi/WC-03-preregistration-DRAFT.md` (signed 2026-10-28, SHA-256 `518c3348a619ebf6a964486bbe6313dcdc86c64ae05ca3daed8db202d9653a63`, commit `839e0f4`). The registered text is **not edited**: this file is read beside it, and where the two differ this file governs once it is committed and its SHA-256 is recorded on WC-03 in `status/build-log.json`.
 
 **When it was made, stated plainly.** This amendment was drafted on 2026-10-28, **after** the synthetic G1 (i) test was seen to fail under the registered race-level bootstrap. No real data has been read for it: nothing has been fitted, scored or gated on the pass table, the warehouse or the bronze files, and G3 has not been run. It is a pre-result amendment in the sense of §0 (no curve, contest score, verdict or real-data gate result exists), but it was **not** written blind: the owner chose it knowing the synthetic numbers below. Whether that calls for any extra label beyond the disclosure in this paragraph is for the owner to rule.
 
@@ -35,7 +35,9 @@ Why race-level fails: the registered model has a random effect per circuit, and 
 
 ### Owner's decision
 
-The owner decided on 2026-10-28, in session, to adopt circuit-then-race resampling for the curve bootstrap, to disclose it as this amendment, and to keep the 90 % bar and every threshold unchanged. (The preceding build-log entry is stamped 2026-10-29T01:00+04:00; the owner should confirm the decision date when signing.)
+The owner decided on 2026-10-28, in session, to adopt circuit-then-race resampling for the curve bootstrap, to disclose it as this amendment, and to keep the 90 % bar and every threshold unchanged. (The preceding build-log entry is stamped 2026-10-29T01:00+04:00.)
+
+**Decision record (item 1).** **Decided 2026-10-28. Decided by the owner, delegated to the Opus session on 2026-10-28; not the owner's personal signature.** The curve bootstrap on the fit side is the circuit-then-race bootstrap: circuits resampled with replacement, then each drawn circuit's races with replacement, a circuit drawn twice entering the fit as two separate circuit and corner groups; the held-out side stays race-level. The exact new text below for §0 "Chance", §6 "Intervals" and §8c is adopted as written. B = 1,000, seed 20261027, the 95 % percentile interval, the G1 (i) 90 % bar and every other threshold are unchanged. The decision date is 2026-10-28. This record covers item 1 only; item 2 and the "Clarifications" list below are not decided by it.
 
 ### Exact new text
 
@@ -110,7 +112,7 @@ Recorded in the 2026-10-28/29 build-log entries and in code comments; listed so 
 - The §6 corner random effect is **nested** in the circuit (`circuit|corner_id`).
 - The G1 (i) simulation design is the registered model's own (circuit and corner effects, race shock, about 3 races per circuit), as above.
 
-## After the owner signs
+## After the decision is recorded
 
 1. Commit this file alone.
 2. `shasum -a 256 _roadmap/_wake-calibration/wi/WC-03-amendment-A1-circuit-bootstrap.md`; record the digest and commit on WC-03 in `status/build-log.json`.

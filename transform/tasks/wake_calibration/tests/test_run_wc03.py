@@ -253,6 +253,28 @@ def test_bronze_digest_matches_the_registered_shell_recipe(tmp_path):
     assert n == 6 and digest == want
 
 
+def test_bronze_digest_hashes_an_nfd_name_as_its_nfc_form(tmp_path, monkeypatch):
+    """Draft amendment A6: a file whose name glob returns in NFD (combining tilde) hashes as its NFC name."""
+    import unicodedata
+    nfc = unicodedata.normalize("NFC", "são_paulo_grand_prix")
+    nfd = unicodedata.normalize("NFD", nfc)
+    assert nfc != nfd
+    content = b"laps content"
+    rel_nfc = f"laps/season=2021/race={nfc}/laps.parquet"
+    want_text = f"{hashlib.sha256(content).hexdigest()}  {rel_nfc}\n"
+    want = hashlib.sha256(want_text.encode()).hexdigest()
+    for name in (nfd, nfc):
+        b = tmp_path / ("bronze_" + ("nfd" if name == nfd else "nfc"))
+        f = b / f"laps/season=2021/race={name}/laps.parquet"
+        f.parent.mkdir(parents=True)
+        f.write_bytes(content)
+        assert R.bronze_digest(b) == (1, want)
+    # Independent of what the file system stores: an NFD path from glob is normalised before hashing.
+    real = R.glob.glob
+    monkeypatch.setattr(R.glob, "glob", lambda pattern: [unicodedata.normalize("NFD", p) for p in real(pattern)])
+    assert R.bronze_digest(tmp_path / "bronze_nfd") == (1, want)
+
+
 # ---------------------------------------------------------------- Table 2 and draft amendment A5 (decision records L4-L7)
 
 

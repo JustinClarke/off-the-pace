@@ -42,6 +42,7 @@ import os
 import subprocess
 import sys
 import traceback
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Protocol
@@ -202,9 +203,11 @@ class Sources(Protocol):
 
 def bronze_digest(bronze: Path = BRONZE) -> tuple[int, str]:
     """G3 check 4: per file `<sha256>  <path relative to data/bronze>`, lines sorted bytewise by path, SHA-256
-    of the text (each line newline-terminated, as `shasum` prints it)."""
+    of the text (each line newline-terminated, as `shasum` prints it). Paths are NFC-normalised before the sort
+    and the line: the registered digest used NFC names, and glob can return NFD ones (são_paulo_grand_prix,
+    run WC-04-2026-10-29; draft amendment A6)."""
     files = sorted({p for g in G3_BRONZE_GLOBS for p in glob.glob(str(Path(bronze) / g))})
-    lines = [(os.path.relpath(p, bronze), sha256_file(Path(p))) for p in files]
+    lines = [(unicodedata.normalize("NFC", os.path.relpath(p, bronze)), sha256_file(Path(p))) for p in files]
     lines.sort(key=lambda x: x[0].encode())
     text = "".join(f"{h}  {rel}\n" for rel, h in lines)
     return len(lines), hashlib.sha256(text.encode()).hexdigest()

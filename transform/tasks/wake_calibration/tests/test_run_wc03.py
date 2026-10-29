@@ -90,16 +90,19 @@ def test_refuses_the_warehouse_and_anything_inside_data(tmp_path):
     assert R.check_scratch_db(good) == good.resolve()
 
 
-def _registration(tmp_path, record=True, tamper=None):
+def _registration(tmp_path, record=True, tamper=None, with_a5=True):
+    """A temporary copy of the registration: the pre-registration, A1-A4 and (with_a5) A5, each hashed and,
+    when record, its SHA-256 recorded on WC-03 in a temporary build log."""
     wc = tmp_path / "wc"
     (wc / "wi").mkdir(parents=True)
+    amendments = (*R.AMENDMENTS, *((R.A5_DOC,) if with_a5 else ()))
     shas = {}
-    for doc in (R.PREREG, *R.AMENDMENTS):
+    for doc in (R.PREREG, *amendments):
         (wc / doc).write_text(f"text of {doc}\n")
         shas[doc] = hashlib.sha256((wc / doc).read_bytes()).hexdigest()
     item = {"id": "WC-03", "prereg": {"sha256": shas[R.PREREG]}}
     if record:
-        item["amendments"] = [{"doc": d, "sha256": shas[d], "commit": "abc"} for d in R.AMENDMENTS]
+        item["amendments"] = [{"doc": d, "sha256": shas[d], "commit": "abc"} for d in amendments]
     if tamper:
         (wc / tamper).write_text("edited after hashing\n")
     log = tmp_path / "build-log.json"
@@ -108,23 +111,44 @@ def _registration(tmp_path, record=True, tamper=None):
 
 
 def test_registration_ready_only_when_every_amendment_is_hashed_committed_and_unchanged(tmp_path):
+    assert R.A5_FIT_RACE_LIST is not None  # A5 decided (DD-WC14), so A5 is part of the registration
+    all_amendments = (*R.AMENDMENTS, R.A5_DOC)
     log, wc = _registration(tmp_path)
     assert R.registration_problems(log, wc, committed=lambda p: True) == []
-    probs = R.registration_problems(log, wc, committed=lambda p: "A4" not in p.name)
-    assert len(probs) == 1 and "A4" in probs[0]
+    for doc in all_amendments:  # each amendment, A5 included, refuses when not committed
+        name = Path(doc).name
+        probs = R.registration_problems(log, wc, committed=lambda p, n=name: p.name != n)
+        assert len(probs) == 1 and doc in probs[0] and "not committed" in probs[0]
     log, wc = _registration(tmp_path / "b", record=False)
-    assert len(R.registration_problems(log, wc, committed=lambda p: True)) == len(R.AMENDMENTS)
-    log, wc = _registration(tmp_path / "c", tamper=R.AMENDMENTS[0])
-    assert any("differs" in p for p in R.registration_problems(log, wc, committed=lambda p: True))
+    probs = R.registration_problems(log, wc, committed=lambda p: True)
+    assert len(probs) == len(all_amendments) and all("no SHA-256 recorded" in p for p in probs)
+    for i, doc in enumerate(all_amendments):  # each amendment, A5 included, refuses when changed after hashing
+        log, wc = _registration(tmp_path / f"c{i}", tamper=doc)
+        probs = R.registration_problems(log, wc, committed=lambda p: True)
+        assert len(probs) == 1 and doc in probs[0] and "differs" in probs[0]
+    log, wc = _registration(tmp_path / "d")
+    (wc / R.A5_DOC).unlink()
+    probs = R.registration_problems(log, wc, committed=lambda p: True)
+    assert probs == [f"{R.A5_DOC}: missing"]
 
 
-def test_the_repository_registration_is_not_ready_today():
-    """Reads only the build log and the wi/ files: A1-A4 have no recorded SHA-256 and A4 is not committed, so
-    the CLI must refuse. (When the owner records the digests this test is expected to need updating.)"""
-    assert R.registration_problems() != []
-    with pytest.raises(R.RefusedError):
-        R.main(["--scratch-db", "/nonexistent/dev.duckdb", "--pass-table-dir", "/nonexistent",
-                "--evidence-dir", "/nonexistent", "--owner-yes", "--check-only"])
+def test_the_repository_registration_is_ready_today(tmp_path, monkeypatch):
+    """Reads only the build log and the wi/ files: the pre-registration and A1-A5 are committed, unchanged and
+    their SHA-256 recorded on WC-03 (A5 at 71cf22b, DD-WC14), so the registration check passes and the CLI gets
+    past it to the next refusal (the scratch copy does not exist). A not-ready registration, from a temporary
+    copy, still makes the CLI refuse at the registration check."""
+    assert R.registration_problems() == []
+    argv = ["--scratch-db", "/nonexistent/dev.duckdb", "--pass-table-dir", "/nonexistent",
+            "--evidence-dir", "/nonexistent", "--owner-yes", "--check-only"]
+    with pytest.raises(R.RefusedError) as e:
+        R.main(argv)
+    assert "registration is not ready" not in str(e.value) and "does not exist" in str(e.value)
+    real = R.registration_problems
+    log, wc = _registration(tmp_path, record=False)
+    monkeypatch.setattr(R, "registration_problems", lambda: real(log, wc, committed=lambda p: True))
+    with pytest.raises(R.RefusedError) as e:
+        R.main(argv)
+    assert "registration is not ready" in str(e.value) and R.A5_DOC in str(e.value)
 
 
 def test_b_and_seed_are_fixed_outside_synthetic_tests(tmp_path):
@@ -310,14 +334,18 @@ def test_a5_union_runs_with_a_fit_race_that_has_no_fit_pass(tmp_path, judged_cla
     assert res.contest is not None and np.isfinite(res.contest.theta_draws).all()
 
 
-def test_a5_refusal_before_the_warehouse_only_while_a5_is_undecided():
+def test_a5_refusal_before_the_warehouse_only_while_a5_is_undecided(monkeypatch):
     ok = {"main": (["a", "b"], ["a", "b"]), "older": (["c"], [])}
     bad = {"main": (["a", "b"], ["a"]), "older": (["c"], ["c"])}
     R.a5_refusal(ok, None)  # the older era never refuses the run: it is report-only
     with pytest.raises(R.RefusedError):
         R.a5_refusal(bad, None)
     R.a5_refusal(bad, "union")
-    assert R.A5_FIT_RACE_LIST is None  # the owner sets it, not an agent
+    assert R.A5_FIT_RACE_LIST == "union"  # the owner's decision, DD-WC14 option (a)
+    R.a5_refusal(bad, R.A5_FIT_RACE_LIST)  # as main() calls it: the decided A5 does not refuse
+    monkeypatch.setattr(R, "A5_FIT_RACE_LIST", None)  # undecided A5 still refuses, as main() calls it
+    with pytest.raises(R.RefusedError):
+        R.a5_refusal(bad, R.A5_FIT_RACE_LIST)
 
 
 def test_fit_race_lists_use_structural_columns_and_find_the_race_with_no_fit_pass():
@@ -328,11 +356,17 @@ def test_fit_race_lists_use_structural_columns_and_find_the_race_with_no_fit_pas
 
 
 def test_registration_requires_a5_once_it_is_switched_on(tmp_path, monkeypatch):
-    log, wc = _registration(tmp_path)
+    log, wc = _registration(tmp_path, with_a5=False)  # a registration with A1-A4 only
+    monkeypatch.setattr(R, "A5_FIT_RACE_LIST", None)
     assert R.registration_problems(log, wc, committed=lambda p: True) == []
-    monkeypatch.setattr(R, "A5_FIT_RACE_LIST", "union")
+    for a5 in ("union", "built"):
+        monkeypatch.setattr(R, "A5_FIT_RACE_LIST", a5)
+        probs = R.registration_problems(log, wc, committed=lambda p: True)
+        assert probs == [f"{R.A5_DOC}: missing"]
+    monkeypatch.undo()
+    assert R.A5_FIT_RACE_LIST == "union"  # as decided: A5 is required with no monkeypatch
     probs = R.registration_problems(log, wc, committed=lambda p: True)
-    assert len(probs) == 1 and "A5" in probs[0]
+    assert probs == [f"{R.A5_DOC}: missing"]
 
 
 def _relabel(frame, cols, old="2025", new="2021"):

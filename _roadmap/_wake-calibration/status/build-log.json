@@ -158,7 +158,18 @@
         {
           "doc": "wi/WC-03-amendment-A5-fit-race-list-DRAFT.md",
           "sha256": "db40870f31f788925ba250d6e74f991ea8eeb59045690f9c4af0ab91af852c2d",
-          "commit": "PENDING: set when A5 is committed"
+          "commit": "71cf22b"
+        }
+      ],
+      "owner_rulings": [
+        {
+          "date": "2026-10-29",
+          "ruling": "Owner: 'we can only use opus, we dont have fable'. The independent review is taken as Opus's review (Opus review, 2026-10-29, after fixes D1-D3 and the verdict line: 200 passing, numerics PASS, run-script issues fixed). The fable-5.1 hard gate is replaced by this owner ruling; the fable-run review that was cut short is not counted.",
+          "also": "Owner: 'YES you can run on real data' (2026-10-29), on the scratch copy per RUN-PACKAGE B, one run, stop at the scorecard for the owner to read first."
+        },
+        {
+          "date": "2026-10-29",
+          "ruling": "Owner: go ahead on the B2 check change. RUN-PACKAGE B2 now compares the eight pass_table_*.parquet files with pass d and no longer compares races.csv: its seconds column is the builder's build time, not data, so it can never match. Timing consistency is WC-02's check and is not repeated by the run. Restart the run from B2 (no result was written before the stop)."
         }
       ]
     },

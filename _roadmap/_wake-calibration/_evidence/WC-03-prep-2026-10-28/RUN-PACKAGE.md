@@ -36,7 +36,8 @@ cp data/dev.duckdb $RUN/warehouse/dev.duckdb
 cd transform
 ../.venv/bin/python -m tasks.wake_calibration.build_pass_table --out ../$RUN/pass-table --workers 6
 cd ..
-(cd $RUN/pass-table && shasum -a 256 pass_table_*.parquet races.csv) | diff - <(grep -v layout_checks _roadmap/_wake-calibration/_artifacts/WC-01-pass-table-d/SHA256SUMS) && echo "pass table = pass d"
+(cd $RUN/pass-table && shasum -a 256 pass_table_*.parquet) | diff - <(grep pass_table_ _roadmap/_wake-calibration/_artifacts/WC-01-pass-table-d/SHA256SUMS) && echo "pass table = pass d"
+#    (races.csv is not compared: its seconds column is the builder build time, not data; decision logged 2026-10-29)
 (cd $RUN/pass-table && shasum -a 256 * > SHA256SUMS)
 
 # 3. Dry check (reads pass-table structure only; no warehouse, no bronze, no gate)

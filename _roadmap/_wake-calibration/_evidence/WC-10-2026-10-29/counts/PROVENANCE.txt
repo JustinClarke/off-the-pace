@@ -1,0 +1,63 @@
+WC-10a PROVENANCE: outcome-blind count reproduction
+Date: 2026-10-29. git HEAD: d47c3b50efb31bd3026307f03d4c6ced561425a1 (working tree has uncommitted changes elsewhere; none touch inputs here).
+Python: /Users/justin/github/off-the-pace/.venv/bin/python (duckdb). Run from repo root.
+
+COMMANDS (OUT = this folder's csv/<id>/ ; stdout saved as stdout.txt beside the CSVs; all exit 0, stderr empty)
+  .venv/bin/python <this>/scripts/<script>.py <this>/csv/<id>   for s01 s02 s03 s05 s06 r01 r02 r03
+Scripts are copies of session-8181e7c5 scratch (s01-s03, s05, s06; review r01-r03) with only these edits:
+  - docstrings reworded so no outcome-column name appears (r01, s02, s01);
+  - s01: removed an unused speed_kph column from a CTE, and removed the laptime_nn and sectors_nn coverage columns
+    (they named lap/sector time columns). laps_channels_by_season.csv therefore lacks those two columns.
+Nothing else changed; counts logic is as in scratch.
+
+INPUTS
+  Pass table (pass d): _roadmap/_wake-calibration/_artifacts/WC-03-run/pass-table/ ; `shasum -a 256 -c SHA256SUMS` = all 10 OK.
+    SHA-256 values are in that folder's SHA256SUMS (verified, not copied).
+    Rows: 2018 329,270; 2019 376,793; 2020 239,201; 2021 366,167; 2022 374,289; 2023 389,038; 2024 424,665; 2025 428,330; total 2,927,753 (matches plan 2,927,753).
+  Bronze (read-only, parquet globs; not hashed individually; file counts): telemetry 171, laps 346, weather 346 under data/bronze/.
+    Telemetry columns read: season, race_id, driver_id, Source, SessionTime, distance_m, lap_number, throttle_pct, brake(null-check), DRS, RPM, nGear, Z, DriverAhead (null-checks only).
+    Laps columns: Driver, Team, TyreLife, Compound, Stint-level structure, SpeedST/I1/FL, FreshTyre, IsAccurate, Position (null checks). Weather: null checks and spacing.
+  Pass-table columns read: season, race_id, driver, lap, stint, compound, tyre_life, corner_id, corner_class, segment_basis, leader, leader_lap, gap_s, clear_ahead, behind_1s, tag, reason, clean, ref_status. No outcome column.
+  data/dev.duckdb not touched.
+
+SCRIPT SHA-256
+  r01_identification.py 4f073c06b38a9a34434e8f7b70af3c95fc8a365a1366bf88960e19e3c7f558c4
+  r02_claims.py         8533a0af023b9daa468435cad81ebbf7621fa3eb4c5849ad0e6277b293ae38e6
+  r03_splits.py         a2b750dc9b8096574bf43cfc722108473bc5ac3a41eb0acff86bb3c55bfcf0d8
+  s01_channels.py       a1a964d9f80d07778a3f01b5f03f8429aa1865fab4b158090484eb4fbb3f6055
+  s02_design_counts.py  68948327301c1896d4f05d95546b51b232c216b5da5af79a162eee1ca06ea23d
+  s03_drs_exposure.py   7a36544d9563824f586a22360e78cb4be8398ee545b833c80253eb8a641c4d37
+  s05_fe_support.py     cc324942de772eb1b413cfdaf2a31567d02f323c7f3a346fa19f8b6917012d30
+  s06_team_support.py   3e1dbe8301fbc258897c5490e1d83f1b1d1c2de44b701cd77da7656fb014bdbb
+Outcome-name grep over scripts/*.py (seg_time_s|min_speed_kph|delta_time_s|ref_time_s|apex_kph|speed_kph|LapTime|Sector*Time): no hits.
+
+CSV ROW COUNTS (data rows)
+  r01: a1 4, a2 4, a3 1, a3b 1, a4 1, a5 1, a6 4, a6b 4, a7 10 | r02: b1 1, b2 1, b3 3, b4 4 | r03: c1 9, c2 8
+  s01: laps_channels 8, tel_car_spacing 8, tel_channels 8, tel_sample_spacing_monza 24, weather 8
+  s02: car_ahead_pits_release 8, causal_reference_k4/k8/k99 8 each, lap_states_by_era 10, mixed_stints 8, teammate_pairs 8, transitions 8, within_lap_contrasts 8
+  s03: 4 | s05: close_episode_lengths 2, fe_support 6 | s06: team_support 81
+
+COMPARISON TO PLAN / REVIEW NOTE
+  Identifying close passes 2022-25: 107,451 of 215,970                MATCH (fast 17,430 / medium 46,211 / slow 43,810 MATCH; races 76/89/89). With >=2 free alone 113,271 MATCH.
+  Bracketed 23,687 (free-only-after 64,960)                           MATCH
+  2022-23 identifying fast 7,951 / medium 21,063 / slow 20,045 (37/43/43 races) MATCH; bracketed 1,674 / 4,128 / 3,995 MATCH
+  Trailing +-4 reference at 0.5-1 s: 3.13 % (n 155,803), sym 8.67 %   MATCH (s02 variant, slightly different filter: 3.11 %, n 156,606)
+  DRS 2023 any-open close 91.2 % vs free 3.2 %; mean open 14.3 % vs 0.24 % MATCH (r02: 4,545 / 6,521 laps; s03 variant with different lap filter: 91.1 % vs 3.2 %, 4,595 / 6,553 laps)
+  Release events: 1,635 / 551 free L+2 / 848 identity-matched / 362 matched+free   MATCH (r02). Plan's 1,640 / 551 MATCH (s02, all seasons 2018-25; sum of per-season events 1,640, released 551). 2024-25 matched+free 65+47 = 112 MATCH.
+  Car-row spacing 2022-25: median 0.24 s / 13 m (12.6-13.2), p90 0.40 s / 25 m, p99 36.0-38.4 m   MATCH (review says p99 37-38; 2022 is 36.0, so "36-38")
+  Prev-lap gap exists 86.6 %; also close 73.0 %                       MATCH
+  corr(close, tyre_life) -0.34; nearest free median 7, p90 20, >10 laps 34 %  MATCH
+  Other free cars per corner-lap median 5; <3 = 26 %                  MATCH
+  Stuck tiers: ge80 40,294 (18.7 %), 13.1 % identifying; 50-80 65,827, 36 %; <50 about 71 %   MATCH
+  No-free-pass close passes 85,358                                    MATCH
+  Per team 2025, close <1 s: identifying 42-55 %, own-clean 4.5-15.8 %   MATCH (42.1-55.1 %, 4.5-15.8 %)
+  Per team 2025, following 0-3 s (plan section 3: 54-64 %, own-clean 14-28 %): reproduced fe_support 52.95-63.6 % (Williams 52.95 % rounds to 53) and own-clean 13.6-27.6 %.
+     DIFFERS by rounding only at the low ends (plan 54 vs 53; 14 vs 13.6 rounds to 14, ok). Review note already flagged this as a definition difference (following, not close).
+
+NOT DONE
+  - s04 (2022 clean-pass noise floor) NOT re-run and NOT copied as a script: it reads outcome columns. The plan section 9 item 4 values stand as declared (seen):
+    segment time SD (MAD) fast 0.060 (0.026), medium 0.063 (0.031), slow 0.064 (0.034); min speed SD fast 3.02, medium 2.44, slow 1.86 km/h; passes 8,846 / 28,341 / 26,730; free-lap SD 0.31 s (MAD 0.14). Not verified here.
+  - No outcome column read; no DA-03 number used; no model fitted.
+  - Bronze files not individually hashed (only counted); the NFC path-hash gate is WC-10c's job.
+  - s01 laptime/sector coverage columns dropped (see above), so plan section 2 lap-time/sector coverage claims are not reproduced.
+  - build-log.json / BUILD-ORDER.md not edited. board.py --check: "build-log.json OK", exit 0.

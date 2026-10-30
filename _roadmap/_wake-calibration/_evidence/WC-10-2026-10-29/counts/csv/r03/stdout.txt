@@ -1,0 +1,23 @@
+--- c1_support_by_split
+          split corner_class  identifying  bracketed  races
+0  conf 2024-25         fast       9479.0     2100.0     39
+1  conf 2024-25       medium      25148.0     5970.0     46
+2  conf 2024-25         slow      23765.0     5820.0     46
+3  disc 2022-23         fast       7951.0     1674.0     37
+4  disc 2022-23       medium      21063.0     4128.0     43
+5  disc 2022-23         slow      20045.0     3995.0     43
+6           old         fast      11525.0     2480.0     63
+7           old       medium      32164.0     7456.0     72
+8           old         slow      27194.0     6686.0     73
+
+--- c2_release_by_season
+   season  events  matched_free_L2
+0    2018     127             35.0
+1    2019     197             44.0
+2    2020     142             36.0
+3    2021     197             48.0
+4    2022     227             39.0
+5    2023     222             48.0
+6    2024     275             65.0
+7    2025     248             47.0
+

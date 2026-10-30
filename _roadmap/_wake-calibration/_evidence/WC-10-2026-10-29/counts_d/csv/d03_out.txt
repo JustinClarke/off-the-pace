@@ -1,0 +1,92 @@
+--- B1_free_passes_in_groups_with_supported_following
+corner_class  free_passes  in_groups_with_supported_following   frac
+        fast        26011                             23089.0 0.8877
+      medium        76558                             66809.0 0.8727
+        slow        69844                             60946.0 0.8726
+        None       172413                            150844.0 0.8749
+
+--- B1_groups
+ groups_with_free  with_supported_following  no_following
+            19137                   15634.0        1890.0
+
+--- B4_race_list
+ season race_id                      race           circuit  passes
+   2022  2022_1        bahrain_grand_prix            Sakhir    8979
+   2022 2022_10        british_grand_prix       Silverstone    6868
+   2022 2022_11       austrian_grand_prix         Spielberg    7732
+   2022 2022_12         french_grand_prix      Le Castellet    8693
+   2022 2022_13      hungarian_grand_prix          Budapest   10664
+   2022 2022_14        belgian_grand_prix Spa-Francorchamps    5805
+   2022 2022_15          dutch_grand_prix         Zandvoort   10466
+   2022 2022_16        italian_grand_prix             Monza    6771
+   2022 2022_17      singapore_grand_prix        Marina Bay    3955
+   2022 2022_19  united_states_grand_prix            Austin    9921
+   2022  2022_2  saudi_arabian_grand_prix            Jeddah    7693
+   2022 2022_20    mexico_city_grand_prix       Mexico City   19463
+   2022 2022_21      são_paulo_grand_prix         São Paulo    8665
+   2022 2022_22      abu_dhabi_grand_prix        Yas Island    8229
+   2022  2022_3     australian_grand_prix         Melbourne    7901
+   2022  2022_4 emilia_romagna_grand_prix             Imola   10606
+   2022  2022_5          miami_grand_prix             Miami   12543
+   2022  2022_6        spanish_grand_prix         Barcelona   13190
+   2022  2022_7         monaco_grand_prix            Monaco    8703
+   2022  2022_8     azerbaijan_grand_prix              Baku    9704
+   2022  2022_9       canadian_grand_prix          Montréal   10357
+   2023  2023_1        bahrain_grand_prix            Sakhir    9313
+   2023 2023_10        british_grand_prix       Silverstone    7875
+   2023 2023_11      hungarian_grand_prix          Budapest   14507
+   2023 2023_12        belgian_grand_prix Spa-Francorchamps    6091
+   2023 2023_13          dutch_grand_prix         Zandvoort    6957
+   2023 2023_14        italian_grand_prix             Monza    8233
+   2023 2023_15      singapore_grand_prix        Marina Bay   14426
+   2023 2023_16       japanese_grand_prix            Suzuka    6620
+   2023 2023_17          qatar_grand_prix            Lusail    5879
+   2023 2023_18  united_states_grand_prix            Austin   11410
+   2023 2023_19    mexico_city_grand_prix       Mexico City   17043
+   2023  2023_2  saudi_arabian_grand_prix            Jeddah   10357
+   2023 2023_20      são_paulo_grand_prix         São Paulo    9769
+   2023 2023_21      las_vegas_grand_prix         Las Vegas    7220
+   2023 2023_22      abu_dhabi_grand_prix        Yas Island    7619
+   2023  2023_3     australian_grand_prix         Melbourne    7964
+   2023  2023_4     azerbaijan_grand_prix              Baku   11499
+   2023  2023_5          miami_grand_prix             Miami   16153
+   2023  2023_6         monaco_grand_prix            Monaco   15914
+   2023  2023_7        spanish_grand_prix         Barcelona   10842
+   2023  2023_8       canadian_grand_prix          Montréal   11670
+   2023  2023_9       austrian_grand_prix         Spielberg    7495
+
+--- B4_circuit_list
+          circuit  races
+           Austin      2
+             Baku      2
+        Barcelona      2
+         Budapest      2
+            Imola      1
+           Jeddah      2
+        Las Vegas      1
+     Le Castellet      1
+           Lusail      1
+       Marina Bay      2
+        Melbourne      2
+      Mexico City      2
+            Miami      2
+           Monaco      2
+         Montréal      2
+            Monza      2
+           Sakhir      2
+      Silverstone      2
+Spa-Francorchamps      2
+        Spielberg      2
+           Suzuka      1
+        São Paulo      2
+       Yas Island      2
+        Zandvoort      2
+
+--- S5_thin_compound_cells
+ cells  cells_lt3_drivers  cells_1_driver  free_passes_in_thin_cells  free_passes_all
+   329               47.0            40.0                     1539.0         172413.0
+
+--- S5_following_in_thin_cells
+ following_passes  in_thin_cells
+           247203         2376.0
+

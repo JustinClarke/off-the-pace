@@ -1,0 +1,6 @@
+step,seconds,note
+"design A point fit, 3 outcomes (real structure, synthetic y)",19.512138833058998,
+"one bootstrap draw, draw_stats (mean of 20)",0.09130531249684282,
+lap arm fit (synthetic lap times),0.7084353329846635,FAILED: EstimatorError: step 1 did not converge in 10000 sweeps (§6b: run error)
+one lap-arm draw (mean of 20),,not timed: the lap arm fit failed
+"projected design A + lap arm, B = 1,000 (single process)",111.52588666288648,"diagnostics (200 draws), per-lap scores and tyre carry-over not timed"

@@ -1,0 +1,17 @@
+date: 2026-10-29
+command: cd transform && ../.venv/bin/python -m tasks.wake_calibration.data_gate (run twice, outputs identical)
+
+bronze scope laps+telemetry+weather: files 517  digest: 80d9623bf0c0447bdb3ef642af0250f6eb70c00e254e039ac8bb81ffdd068b3d
+bronze full run_wc03 file set: files 1214  digest: aed1c27da1cc00fb80eea470bb0c5c4879ee09556c81ff35bc17ad4aff1690b4
+bronze full set matches WC-03 registered 1214/aed1c27d... (sanity only): True
+pass-table files: 8  digest: 188dac5e31279a4d4edf6629a095ac1dfb7511254e5a59d9ad0d619bd734dc24
+  d343a5bee0ffc4d65d375f0dc100c29f45c6d2deef46c9e18bf601ab0a51b345  pass_table_2018.parquet
+  ad97ce5aca63b25117a51e6586e171a106c3fc51d6eeb2f66b822c1ba424d5a2  pass_table_2019.parquet
+  abb44da28125f79563690a9a9d74ec41a5cf12db6dbfae50395fbdf8b9889b71  pass_table_2020.parquet
+  1c9e2f52c1d0dde282dbb98175f8b00905a43feff882b88ceccc04fa36eb53fe  pass_table_2021.parquet
+  58c8749821a6f9192c25a9b62263b4cd27e7bc9a8b4ff7491cb14dc56a1befdc  pass_table_2022.parquet
+  94c1f79aa4e50f10879edeabe8a9fc78f9b26488555cabbf50e05c6fcf5f44b5  pass_table_2023.parquet
+  572d587b46056b63ef50aeb6515e7dddf89823da1c6a7ac5bfb16e9a9ff50d4b  pass_table_2024.parquet
+  bd4c2e4a571001c22b93f13194ac8739fb32f755c17cc10522c61214bd234aa7  pass_table_2025.parquet
+pass-table vs SHA256SUMS (pass d): MATCH, 8 files
+outcome columns read: none (file bytes and path names only)

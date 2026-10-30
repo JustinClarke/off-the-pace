@@ -1,0 +1,10 @@
+split,corner_class,identifying,bracketed,races
+conf 2024-25,fast,9479.0,2100.0,39
+conf 2024-25,medium,25148.0,5970.0,46
+conf 2024-25,slow,23765.0,5820.0,46
+disc 2022-23,fast,7951.0,1674.0,37
+disc 2022-23,medium,21063.0,4128.0,43
+disc 2022-23,slow,20045.0,3995.0,43
+old,fast,11525.0,2480.0,63
+old,medium,32164.0,7456.0,72
+old,slow,27194.0,6686.0,73

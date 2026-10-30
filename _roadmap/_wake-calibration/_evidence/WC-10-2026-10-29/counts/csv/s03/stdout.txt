@@ -1,0 +1,5 @@
+            state  laps  mean_open_share  share_laps_any_drs
+0        close<1s  4595         0.142262            0.911208
+1  following1-1.5  1982         0.027475            0.336024
+2            free  6553         0.002479            0.031894
+3           other  5253         0.007899            0.098801

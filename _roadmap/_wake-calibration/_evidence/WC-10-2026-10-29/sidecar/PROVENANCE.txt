@@ -1,0 +1,68 @@
+WC-10b sidecar table: PROVENANCE (coverage only; W9)
+written: 2026-10-29T13:59:00+04:00
+command: python -m tasks.wake_calibration.sidecar --workers 8 --out ../_roadmap/_wake-calibration/_artifacts/WC-10/sidecar --evidence ../_roadmap/_wake-calibration/_evidence/WC-10-2026-10-29/sidecar
+git HEAD: d47c3b50efb31bd3026307f03d4c6ced561425a1 (sidecar.py is uncommitted working-tree code)
+sidecar.py sha256: 8d2047b9a3c8e70d2b355f0773c5ad7e2a30c8bdd0fefc87c66166bc6b2cec8b
+build_pass_table.py sha256: 016c3bd653c256476a3c13b788006ad2cf9f7bea5ee33733bd773ef65e3b8e12 (unchanged; used read-only)
+pass table: /Users/justin/github/off-the-pace/_roadmap/_wake-calibration/_artifacts/WC-03-run/pass-table ; SHA256SUMS 10/10 files match (read only)
+pass-table columns read: season, race_id, driver, lap, corner_id, race, corner_class, seg_offset_m, seg_end_t, gap_s, clear_ahead, reason (no segment time, minimum speed, reference or delta)
+bronze: /Users/justin/github/off-the-pace/data/bronze/telemetry (car rows: Source == 'car') and circuit_info, read only; data/dev.duckdb not touched
+artifacts: ../_roadmap/_wake-calibration/_artifacts/WC-10/sidecar (sidecar_<season>.parquet, races.csv, SHA256SUMS; git-ignored)
+
+Row counts and join (key season, race_id, driver, lap, corner_id):
+ season  pass_rows  sidecar_rows  key_unique  joined_1to1
+   2018     329270        329270        True         True
+   2019     376793        376793        True         True
+   2020     239201        239201        True         True
+   2021     366167        366167        True         True
+   2022     374289        374289        True         True
+   2023     389038        389038        True         True
+   2024     424665        424665        True         True
+   2025     428330        428330        True         True
+total pass rows 2927753, sidecar rows 2927753
+
+Races: 169 in the pass table; 169 rebuilt; others got null channel columns:
+  (none)
+apex recomputed for 2927753 of 2927753 passes in rebuilt races; seg_end_t agrees (|dt| <= 1e-6 s) for 2927753 of 2927753 compared
+
+Coverage, all passes: share of rows with the column non-null, per season
+column  exit_speed_kph  coast_time_s  partial_throttle_share  drs_open_approach  prev_lap_gap_s
+season                                                                                         
+2018            1.0000        0.7981                  1.0000             1.0000          0.9567
+2019            0.9999        0.7968                  1.0000             1.0000          0.9607
+2020            0.9991        0.7653                  0.9992             0.9992          0.9574
+2021            0.9981        0.7644                  0.9994             0.9999          0.9628
+2022            0.9917        0.8008                  1.0000             0.9999          0.9533
+2023            0.9868        0.7657                  0.9999             1.0000          0.9553
+2024            0.9912        0.7641                  1.0000             1.0000          0.9567
+2025            0.9830        0.7728                  1.0000             0.9998          0.9553
+
+Coverage, kept passes (reason is null)
+column  exit_speed_kph  coast_time_s  partial_throttle_share  drs_open_approach  prev_lap_gap_s
+season                                                                                         
+2018            1.0000        0.7881                  1.0000             1.0000          0.9677
+2019            0.9999        0.7816                  1.0000             1.0000          0.9654
+2020            0.9988        0.7522                  0.9989             0.9990          0.9639
+2021            0.9979        0.7614                  0.9993             0.9998          0.9710
+2022            0.9910        0.7852                  1.0000             0.9999          0.9586
+2023            0.9861        0.7586                  0.9999             1.0000          0.9592
+2024            0.9906        0.7599                  1.0000             1.0000          0.9612
+2025            0.9824        0.7641                  1.0000             1.0000          0.9647
+
+By corner class and scope: sidecar_coverage.csv (same folder).
+
+Sanity range check (pass/fail and counts only; no value is summarised, W9):
+                column        range    nan  out_of_range    ok
+        exit_speed_kph [0.0, 400.0]  20259             0  True
+          coast_time_s  [0.0, 30.0] 648695            16 False
+partial_throttle_share   [0.0, 1.0]    472             0  True
+     drs_open_approach      boolean    374             0  True
+
+Definitions (constants in sidecar.py; the registration WC-10d fixes them):
+  exit_speed_kph: car-row speed at apex + 100 m, linear in distance; null if the bracketing car samples are > 50 m apart
+  coast_time_s: brake off and throttle < 5 % run immediately before the driver's own car-row brake onset (last rising edge in 300 m before apex), first coast sample to onset sample, capped 300 m; 0 if none observed; null without an onset or when a car-sample gap > 1.0 s lies inside the run
+  partial_throttle_share: share of car samples in the pass-table segment with 5 <= throttle < 98; null below 3 samples or without a segment start
+  drs_open_approach: any car sample with DRS in (10, 12, 14) in the 300 m before the segment start (the gap window); null without samples or a segment start
+  prev_lap_gap_s: pass-table gap_s, same driver and corner, lap - 1; null if that pass is missing or had no car ahead (prev_lap_clear_ahead tells them apart); never 0
+
+Caveats: car rows are ~4 Hz (median 0.24 s / 13 m; p90 0.40 s / 25 m). Exit speed interpolates across that spacing; coast time resolves to one sample interval (~0.24 s) and is a lower bound; brake is on/off only, so onset shifts under one sample spacing are invisible; throttle share is a sample share, not time-weighted. coast_time_s is null where the driver did not brake (flat corners), by definition.

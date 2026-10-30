@@ -1,0 +1,57 @@
+--- a1_support_2022_25
+  corner_class  close_all  id_free2  id_free2_close2  grp_no_free  grp_one_free
+0         fast      35023   18358.0          17430.0      13858.0        2807.0
+1       medium      94806   48895.0          46211.0      38401.0        7510.0
+2         slow      86141   46018.0          43810.0      33099.0        7024.0
+3         None     215970  113271.0         107451.0      85358.0       17341.0
+
+--- a2_bracketing_2022_25
+  corner_class  id_close  bracketed  free_only_before  free_only_after
+0         fast     17430     3774.0            2681.0          10975.0
+1       medium     46211    10098.0            8148.0          27965.0
+2         slow     43810     9815.0            7975.0          26020.0
+3         None    107451    23687.0           18804.0          64960.0
+
+--- a3_tyre_gap_to_nearest_free_2022_25
+        n  med_laps  p90_laps  share_gt5  share_gt10
+0  107451       7.0      20.0   0.602208     0.34292
+
+--- a3b_close_vs_tyrelife_corr_2022_25
+   within_group_corr_close_tyrelife       n
+0                         -0.340525  265108
+
+--- a4_field_lap_support_2022_25
+        n  med_other_free  share_lt3  share_zero
+0  107451             5.0   0.263506    0.000326
+
+--- a5_prev_lap_gap_2022_25
+        n  share_prev_kept  share_prev_gap  share_prev_also_close
+0  107451         0.865939        0.865939               0.729861
+
+--- a6_stuck_stints_2022_25
+    tier  stints  close_passes  share_of_all_close
+0  20-50    1001       76390.0            0.353707
+1  50-80     518       65827.0            0.304797
+2   ge80     365       40294.0            0.186572
+3   lt20    2311       33459.0            0.154924
+
+--- a6b_support_by_close_share_tier_2022_25
+    tier  close_passes  share_identifying
+0  20-50         76390           0.711913
+1  50-80         65827           0.362891
+2   ge80         40294           0.130665
+3   lt20         33459           0.714755
+
+--- a7_team_2025
+              team  close_passes  own_clean_share  id_free2  id_free2_close2  follow3_free2
+0           Alpine          6090         0.045484  0.465846         0.448440       0.603490
+1     Aston Martin          6305         0.086598  0.509278         0.489770       0.611527
+2          Ferrari          4722         0.097840  0.471410         0.436891       0.603349
+3     Haas F1 Team          8299         0.058561  0.499940         0.493915       0.580721
+4      Kick Sauber          7341         0.063343  0.560005         0.550879       0.622210
+5          McLaren          3546         0.158488  0.587704         0.537225       0.628142
+6         Mercedes          5820         0.085911  0.452234         0.420962       0.537937
+7     Racing Bulls          6265         0.079010  0.515084         0.495770       0.561614
+8  Red Bull Racing          5770         0.083362  0.547314         0.525477       0.636182
+9         Williams          6723         0.090287  0.460955         0.449799       0.529546
+

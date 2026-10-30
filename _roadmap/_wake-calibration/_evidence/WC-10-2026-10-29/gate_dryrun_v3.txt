@@ -1,0 +1,8 @@
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.prefix, expected /Users/justin/github/off-the-pace/.venv, got /Users/justin/github/off-the-pace/transform/../.venv
+<frozen site>:101: RuntimeWarning: Unexpected value in sys.exec_prefix, expected /Users/justin/github/off-the-pace/.venv, got /Users/justin/github/off-the-pace/transform/../.venv
+check 1 pass table: PASS  files 8 (want 8)  digest 188dac5e31279a4d4edf6629a095ac1dfb7511254e5a59d9ad0d619bd734dc24 (want 188dac5e31279a4d4edf6629a095ac1dfb7511254e5a59d9ad0d619bd734dc24)  per-file vs SHA256SUMS: MATCH
+check 2 scoped bronze (laps+telemetry+weather): PASS  files 517 (want 517)  digest 80d9623bf0c0447bdb3ef642af0250f6eb70c00e254e039ac8bb81ffdd068b3d (want 80d9623bf0c0447bdb3ef642af0250f6eb70c00e254e039ac8bb81ffdd068b3d)
+check 3 sidecar: PASS  files 8 (want 8)  digest 8595ce93ca6ff211551bce2546d6635078f0a2cb60dd92ee92f1917cf5ea9d91 (want 8595ce93ca6ff211551bce2546d6635078f0a2cb60dd92ee92f1917cf5ea9d91)  per-file vs SHA256SUMS: MATCH
+check 4 full bronze (run_wc03 file set): PASS  files 1214 (want 1214)  digest aed1c27da1cc00fb80eea470bb0c5c4879ee09556c81ff35bc17ad4aff1690b4 (want aed1c27da1cc00fb80eea470bb0c5c4879ee09556c81ff35bc17ad4aff1690b4)
+outcome columns read: none (file bytes and path names only)
+GATE: PASS

@@ -1,0 +1,26 @@
+corners with >1 segment_basis: 0 of 739
+{'brake_onset': 590298, 'fixed_before_apex': 173029}
+brake_onset share per corner quantiles {0.0: 0.0, 0.05: 0.0, 0.1: 0.0, 0.25: 1.0, 0.5: 1.0, 0.75: 1.0, 0.9: 1.0, 1.0: 1.0}
+braking corners (majority) per race median 12.0
+driver-laps 46250 rows==nb 45996 all eligible 0
+share of driver-laps missing >=1 braking corner for segment_basis alone: 0.0
+laps all eligible ignoring racecraft: 32194
+per-lap ineligible corner count quantiles (no racecraft): {0.1: 0.0, 0.25: 0.0, 0.5: 0.0, 0.75: 9.0}
+reasons: {None: 427447, 'neutralised': 45993, 'wet': 31387, 'pit_lap': 27952, 'restart': 26716, 'pit_lap_leader': 22171, 'track_limits': 5724, 'yellow_sector': 2908}
+rc share among e0: 0.095
+laps with zero racecraft: 29625 of 46250
+rc share by segment_basis in p: {'brake_onset': 0.129, 'fixed_before_apex': 0.0}
+dtype elig bool bool elig sum 381504
+check: 23663 0
+elig vs e0&~rc disagree: 0 elig sum q 381504 x sum 381504
+Empty DataFrame
+Columns: [segment_basis, reason, tag, rc, e0, elig]
+Index: []
+{'race_id': dtype('O'), 'driver': dtype('O'), 'lap': dtype('int64'), 'ne': dtype('int64'), 'ne0': dtype('int64'), 'nrc': dtype('int64'), 'nb': dtype('int64')}
+  race_id driver  lap  ne  ne0  nrc  nb
+0  2022_1    ALB    2  12   12    0  12
+1  2022_1    ALB    3  12   12    0  12
+4  2022_1    ALB    6  12   12    0  12
+LAP ARM scored 23663 free 9504 following 13325 supported following 5401 supported near 1087
+ W=5 near bracketed 20 following bracketed 474
+ W=8 near bracketed 48 following bracketed 757

@@ -1,0 +1,70 @@
+rows 763327
+eligible (no compound filter) 421764  compound null among them 0
+free 172413 follow 247203 neg 2148 follow&free overlap 0
+supported following: [23008, 65511, 61981] total 150500
+supported close: [8405, 22484, 21275] total 52164
+close bracketed unlimited: [1862, 4738, 4510] total 11110
+local W=5 supported following bracketed: [3636, 11347, 10362] total 25345
+local W=5 near bracketed: [518, 1444, 1336] total 3298
+local W=5 near bracketed, racecraft out: [428, 1035, 959] total 2422
+local W=6 supported following bracketed: [4170, 12856, 11792] total 28818
+local W=6 near bracketed: [607, 1687, 1573] total 3867
+local W=6 near bracketed, racecraft out: [512, 1238, 1169] total 2919
+local W=8 supported following bracketed: [4958, 15060, 13976] total 33994
+local W=8 near bracketed: [745, 2047, 1942] total 4734
+local W=8 near bracketed, racecraft out: [638, 1544, 1482] total 3664
+local W=10 supported following bracketed: [5512, 16520, 15373] total 37405
+local W=10 near bracketed: [863, 2274, 2156] total 5293
+local W=10 near bracketed, racecraft out: [748, 1741, 1671] total 4160
+near supported: [5837, 15362, 14435] total 35634
+near supported racecraft out: [5254, 13248, 12657] total 31159
+far bracketed W5: [1603, 5027, 4618] total 11248
+phi windows supported following W0/W1/W2/unsup: [124041, 8957, 5371, 12131]
+phi unsupported close: 7373 of 52164
+phi-unsupported share by race: top 8
+             n  unsup     share
+race_id                       
+2023_3   3771    910  0.241315
+2023_20  3368    727  0.215855
+2023_10  2515    516  0.205169
+2023_19  6685   1244  0.186088
+2022_16  2453    421  0.171627
+2023_13  2606    433  0.166155
+2023_15  4783    741  0.154924
+2023_14  2799    404  0.144337
+median share 0.0568 races with share > 0.20: 3  top-5 races hold 0.386 of drops
+phi-unsupported share by circuit top 6
+                  n  unsup     share
+circuit                            
+Melbourne     7612   1240  0.162901
+Monza         5252    825  0.157083
+Silverstone   3827    594  0.155213
+Mexico City  16619   2301  0.138456
+Zandvoort     5819    757  0.130091
+Marina Bay    5970    741  0.124121
+near W5 bracketed, racecraft out, phi ok: [424, 1030, 952] total 2406
+near one-sided, racecraft out, phi ok: [4051, 10344, 9854] total 24249
+bracketed near distinct groups by class [318, 802, 716]  distinct (group, prev, next) baselines [348, 875, 818]
+bracketed near |db-da| distribution (share 0,1,2,3,4): [0.189, 0.352, 0.281, 0.118, 0.06]
+fast bracketed {'shrink': 0.396, 'from_free': 0.33, 'steady': 0.12, 'grow': 0.116, 'unknown': 0.038} 
+   one-sided {'shrink': 0.366, 'grow': 0.263, 'steady': 0.243, 'unknown': 0.099, 'from_free': 0.029}
+medium bracketed {'shrink': 0.48, 'from_free': 0.284, 'grow': 0.101, 'steady': 0.089, 'unknown': 0.046} 
+   one-sided {'shrink': 0.368, 'steady': 0.259, 'grow': 0.258, 'unknown': 0.094, 'from_free': 0.022}
+slow bracketed {'shrink': 0.495, 'from_free': 0.267, 'grow': 0.124, 'steady': 0.083, 'unknown': 0.032} 
+   one-sided {'shrink': 0.363, 'steady': 0.274, 'grow': 0.267, 'unknown': 0.075, 'from_free': 0.022}
+tier bracketed {'<20': 0.648, '20-50': 0.322, '50-80': 0.03, '>=80': 0.0}
+tier one-sided {'<20': 0.201, '20-50': 0.51, '50-80': 0.248, '>=80': 0.041}
+free passes in groups with supported following: 150844 of 172413
+supported near passes in groups with >=3 free: 31023 of 35634
+supported near in groups >=3 free and free tyre-age spread >=4: 25488
+near d-bar by class [-7.4, -6.56, -7.56]  far [-2.8, -2.37, -3.16]
+cells 329 lt3 47 eq1 40
+race-class cells with exactly one braking corner: {'fast': 15, 'medium': 2, 'slow': 2}  of races per class {'fast': 37, 'medium': 43, 'slow': 43}
+cross-fit class known (N_F>=2, N_L>=2, leader eligible, own phi ok) by class: [4124, 11576, 11131] of [7249, 18305, 17441]
+  components: N_F>=2 41378  leader eligible 41040  N_L>=2 30746
+  old rule (leader group at c >=2 free) among these: 28845 of 42995
+train (leader's own gap <1.0, any row) among supported close non-racecraft: 16277 of 42995
+lap arm: scored laps (structure only, LapTime not checked) 0 free 0 following 0 supported following 0 supported near 0
+  lap arm near bracketed W=5: 0  all following bracketed: 0
+  lap arm near bracketed W=8: 0  all following bracketed: 0
+races 43 circuits 24

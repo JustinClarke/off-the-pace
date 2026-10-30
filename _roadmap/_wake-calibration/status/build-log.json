@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "project": "wake-calibration: own-reference corner loss with an upstream gap (measured / modelled / unavailable)",
-  "updated": "2026-10-28T23:30:00+04:00",
-  "pointer": "WC-03",
+  "updated": "2026-10-30T12:53:15+04:00",
+  "pointer": "WC-10e",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -65,6 +65,12 @@
       "title": "Data - new seasons",
       "parallel": false,
       "summary": "Bronze ingestion of seasons not yet in bronze. Blocks nothing in the archived replay."
+    },
+    {
+      "id": "8-levels",
+      "title": "WC-10 - exploratory traffic levels (pace, aero, tyre) on the replay",
+      "parallel": false,
+      "summary": "Design A from wi/WC-10-exploratory-levels-PLAN-DRAFT.md (within driver x stint x compound x corner, field corner-lap effect, tyre trend). Outcome-blind prep, then a discovery registration (2022-23), a sealed confirmatory registration and one run (2024-25), a scorecard, then levels on the WC-07 replay. Not registered. Nothing fitted. Every owner step is an OPEN decision (DD-WC15..DD-WC21), not an item."
     }
   ],
   "items": [
@@ -111,7 +117,7 @@
     {
       "id": "WC-03",
       "group": "2-estimator",
-      "stage": "SPEC",
+      "stage": "CLOSED",
       "depends_on": [
         "WC-02"
       ],
@@ -123,7 +129,7 @@
       "doc": "wi/WC-03-estimator.md",
       "cost": "3-5 wk",
       "model": "fable-5.1",
-      "note": "Pre-registration signed 2026-10-28 (SHA-256 518c3348a619...), committed at 839e0f4 together with other wake-calibration files, not alone as rule 4 asks. Nothing has been fitted or scored yet; the first step is G3 (sections 12a and 17b), run before any fit or score. Model tag kept at fable-5.1, but the estimator and G1 tests (2026-10-28/29) were built by Opus subagents, not fable-5.1: a fable-5.1 review of estimator.py and test_estimator.py is required before the real run (owner instruction 2026-10-28). 2026-10-28 lead session: draft A5 (fit-race list) needed before the run (DD-WC14); section 11, 12b, per-team and older-era code built on synthetic data; run package in _evidence/WC-03-prep-2026-10-28/RUN-PACKAGE.md.",
+      "note": "Pre-registration signed 2026-10-28 (SHA-256 518c3348a619...), committed at 839e0f4 together with other wake-calibration files, not alone as rule 4 asks. Nothing has been fitted or scored yet; the first step is G3 (sections 12a and 17b), run before any fit or score. Model tag kept at fable-5.1, but the estimator and G1 tests (2026-10-28/29) were built by Opus subagents, not fable-5.1: a fable-5.1 review of estimator.py and test_estimator.py is required before the real run (owner instruction 2026-10-28). 2026-10-28 lead session: draft A5 (fit-race list) needed before the run (DD-WC14); section 11, 12b, per-team and older-era code built on synthetic data; run package in _evidence/WC-03-prep-2026-10-28/RUN-PACKAGE.md. CLOSED 2026-10-29 (DD-WC15): no verdict: G3.4 digest mismatch (NFC path names); nothing fitted or scored. The 11:36 run is the one run under prereg section 0; prereg section 9 first row applies and the flat penalty stays. Evidence: _evidence/WC-04-2026-10-29/. Do not re-open without new evidence named in the reason.",
       "prereg": {
         "status": "SIGNED",
         "signed": "2026-10-28",
@@ -171,12 +177,13 @@
           "date": "2026-10-29",
           "ruling": "Owner: go ahead on the B2 check change. RUN-PACKAGE B2 now compares the eight pass_table_*.parquet files with pass d and no longer compares races.csv: its seconds column is the builder's build time, not data, so it can never match. Timing consistency is WC-02's check and is not repeated by the run. Restart the run from B2 (no result was written before the stop)."
         }
-      ]
+      ],
+      "closed": "2026-10-29"
     },
     {
       "id": "WC-04",
       "group": "3-validation",
-      "stage": "SPEC",
+      "stage": "CLOSED",
       "depends_on": [
         "WC-03"
       ],
@@ -188,14 +195,15 @@
       "doc": "wi/WC-04-validation.md",
       "cost": "2-3 wk",
       "model": "fable-5.1",
-      "note": "Held-out season and thresholds named in the WC-03 pre-registration before any run; WC-04 is registered there (prereg header and §0: the document covers the fit and the held-out verdict). Model retagged opus-5 -> fable-5.1 on the owner's instruction 2026-10-28: the core is estimator and inference work (contest bootstrap, theta_now refit per draw, W1/W2 intervals)."
+      "note": "Held-out season and thresholds named in the WC-03 pre-registration before any run; WC-04 is registered there (prereg header and §0: the document covers the fit and the held-out verdict). Model retagged opus-5 -> fable-5.1 on the owner's instruction 2026-10-28: the core is estimator and inference work (contest bootstrap, theta_now refit per draw, W1/W2 intervals). CLOSED 2026-10-29 (DD-WC15): no verdict: G3.4 digest mismatch (NFC path names); nothing fitted or scored. Registered with WC-03; the held-out season was never read.",
+      "closed": "2026-10-29"
     },
     {
       "id": "WC-05",
       "group": "4-modelled",
       "stage": "SPEC",
       "depends_on": [
-        "WC-04"
+        "WC-10i"
       ],
       "title": "Modelled-stint calibration (own other stint, teammate) and the measured / modelled / unavailable labels",
       "sources": [
@@ -205,7 +213,7 @@
       "doc": "wi/WC-05-modelled-stints-and-labels.md",
       "cost": "2-4 wk",
       "model": "fable-5.1",
-      "note": "Not registered. 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable. Modelled values carry the disclaimer approved in DD-WC2 (resolved 2026-10-27):\"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\""
+      "note": "Not registered. 16.7% of stints (1,177) have no clean lap; about 86% of those can be filled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable. Modelled values carry the disclaimer approved in DD-WC2 (resolved 2026-10-27):\"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\" 2026-10-29 (DD-WC15): was waiting on WC-04, now CLOSED with no verdict; re-pointed to WC-10i (the confirmatory scorecard) so closing WC-04 does not unblock it."
     },
     {
       "id": "WC-06",
@@ -249,8 +257,7 @@
       "group": "6-replay",
       "stage": "SPEC",
       "depends_on": [
-        "WC-03",
-        "WC-04",
+        "WC-10i",
         "WC-05",
         "WC-07"
       ],
@@ -262,7 +269,7 @@
       "doc": "wi/WC-08-replay-loss-scale.md",
       "cost": "1 wk",
       "model": "opus-5",
-      "note": "Not registered. Owner ruling 2026-10-27: depends on WC-05 as well as WC-03, WC-04 and WC-07 (modelled values and labels come from WC-05). Every value carries measured / modelled / unavailable and every modelled value the DD-WC2 disclaimer word for word; unavailable is '—', never 0; totals print the modelled share. No DA-03 number."
+      "note": "Not registered. Owner ruling 2026-10-27: depends on WC-05 as well as WC-03, WC-04 and WC-07 (modelled values and labels come from WC-05). Every value carries measured / modelled / unavailable and every modelled value the DD-WC2 disclaimer word for word; unavailable is '—', never 0; totals print the modelled share. No DA-03 number. 2026-10-29 (DD-WC15): WC-03 and WC-04 are CLOSED with no verdict; the gate is re-pointed to WC-10i (title text 'only after WC-03, WC-04 and WC-05' is historical). Closing them does not unblock this item."
     },
     {
       "id": "WC-09",
@@ -278,6 +285,334 @@
       "cost": "1-2 wk",
       "model": "sonnet-5",
       "note": "Verified 2026-10-27: no season=2026 in any bronze dataset (all stop at 2025). Blocks nothing in WC-07, which covers 2018-2025. Not the OpenF1 live feed (DD-WC3). 2026 has no DRS: counted separately, method refit later. Step up to opus-5 if the 2026 schema leaves a choice open."
+    },
+    {
+      "id": "WC-10a",
+      "group": "8-levels",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Stage 0: reproduce the plan's and the review note's outcome-blind counts into _evidence/WC-10-<date>/ with PROVENANCE",
+      "sources": [
+        "_roadmap/_wake-calibration/_artifacts/WC-03-run/pass-table/",
+        "data/bronze/telemetry/",
+        "data/bronze/laps/",
+        "data/bronze/weather/",
+        "_roadmap/_wake-calibration/wi/WC-10-exploratory-levels-PLAN-DRAFT.md"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "1 d",
+      "model": "sonnet-5",
+      "model_reason": "Definitions are written down (plan sections 2-3 and the 2026-10-29 review note); the work is re-running counts and matching numbers. Not haiku-4-5: the scratch scripts are session-temporary and may have to be re-derived from the written definitions without touching an outcome column.",
+      "done_when": [
+        "_evidence/WC-10-<date>/ holds PROVENANCE.txt (pass-table SHA256SUMS checked against pass d, bronze paths read, script SHA-256s, git HEAD), the scripts and their CSVs.",
+        "Numbers reproduce, or PROVENANCE explains each difference: identifying close passes 2022-25 107,451 of 215,970 (fast 17,430, medium 46,211, slow 43,810); bracketed 23,687; 2022-23 identifying fast 7,951 / medium 21,063 / slow 20,045; trailing +-4 reference at 0.5-1 s 3.1 %; DRS 2023 any-open 91.2 % close vs 3.2 % free; release events 1,635 / 551 free on L+2 / 848 identity-matched / 362 matched and free; car-row spacing median 0.24 s, 13 m.",
+        "A grep of every script shows none of seg_time_s, min_speed_kph, delta_time_s, ref_time_s, apex_kph, speed_kph, LapTime or Sector*Time. The 2022 noise floor (plan section 9 item 4) is copied as declared, not re-run.",
+        "board.py --check exits 0."
+      ],
+      "note": "Scratch originals: .../scratchpad/scripts/s01-s06 (plan) and .../scratchpad/review/scripts/r01-r03 (review), session 8181e7c5. Rule 8: the scratch copies do not count as evidence. Landed 2026-10-29: counts reproduced into _evidence/WC-10-2026-10-29/counts/ (PROVENANCE.txt, scripts, csv). All plan and review-note counts MATCH except small differences: sample-spacing p99 (36-38 m vs 37-38 m) and per-team 2025 following-pass coverage (53-64 % and 13.6-27.6 % vs 54-64 % and 14-28 %). Not re-run: s04 noise floor (reads outcome columns; plan's declared values quoted only). Plan section 2's lap-time coverage claim not reproduced (lap and sector-time columns removed to keep the outcome-blind grep clean).",
+      "order_hint": 2,
+      "closed": "2026-10-29"
+    },
+    {
+      "id": "WC-10b",
+      "group": "8-levels",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Stage 0: sidecar table keyed by pass (exit speed at apex+100 m, coast time, partial-throttle share, DRS open in the 300 m approach, previous-lap gap), synthetic tests",
+      "sources": [
+        "transform/tasks/wake_calibration/build_pass_table.py",
+        "data/bronze/telemetry/",
+        "_roadmap/_wake-calibration/_artifacts/WC-03-run/pass-table/"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "2-4 d",
+      "model": "opus-5",
+      "model_reason": "New derived columns whose definitions the registration inherits (apex location, coast threshold, interpolation across 13-25 m sample spacing): a feature-contract choice, not a mechanical port.",
+      "done_when": [
+        "transform/tasks/wake_calibration/sidecar.py and tests/test_sidecar.py exist; synthetic tests cover interpolation across a sample gap, DRS codes 10/12/14 as open, a missing previous lap as null (never 0) and an NFD race path; the wake_calibration test suite passes.",
+        "build_pass_table.PASS_COLUMNS is unchanged (git diff shows no change to it).",
+        "Built for 2018-2025 into _roadmap/_wake-calibration/_artifacts/WC-10/sidecar/ with SHA256SUMS; key (season, race_id, driver, lap, corner_id) is unique and joins 1:1 to the pass-table rows (row-count check in PROVENANCE).",
+        "Evidence is coverage only: non-null share per column, season and corner class in _evidence/WC-10-<date>/sidecar_coverage.csv. No mean, quantile or distribution of exit speed, coast time or throttle share is written anywhere (watch W9)."
+      ],
+      "note": "Review note: car rows carry distance_m, throttle_pct, brake (on/off), DRS; median 0.24 s / 13 m, p90 0.40 s / 25 m. Previous-lap gap comes from the pass table (present for 86.6 % of identifying close passes). Landed 2026-10-29: transform/tasks/wake_calibration/sidecar.py + tests/test_sidecar.py (25 tests); artefacts in _artifacts/WC-10/sidecar/ (sidecar_2018..2025.parquet, SHA256SUMS); evidence in _evidence/WC-10-2026-10-29/sidecar/ (PROVENANCE.txt, sidecar_coverage.csv). 2,927,753 rows, 1:1 with the pass table. Coverage: exit speed 0.983-1.0, coast 0.764-0.801, partial-throttle >=0.999, DRS-approach >=0.999, previous-lap gap 0.953-0.963. 16 coast-time rows >30 s flagged, not removed (cap decision for WC-10d). Thresholds (coast <5 %, partial 5-98 %) are provisional picks for WC-10d to fix. Resolution ~4 Hz; exit speed interpolated; coast time is a lower bound. No value summarised (W9).",
+      "order_hint": 2,
+      "closed": "2026-10-29"
+    },
+    {
+      "id": "WC-10c",
+      "group": "8-levels",
+      "stage": "LANDED",
+      "depends_on": [],
+      "title": "Stage 0: NFC-safe input data gate (content hashes on NFC-normalised paths) with a dry run that reads no outcome column",
+      "sources": [
+        "transform/tasks/wake_calibration/run_wc03.py",
+        "transform/tasks/wake_calibration/tests/test_run_wc03.py",
+        "data/bronze/",
+        "_roadmap/_wake-calibration/_artifacts/WC-03-run/pass-table/"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "1-2 d",
+      "model": "sonnet-5",
+      "model_reason": "The fix and its test already exist (uncommitted NFC change in run_wc03.bronze_digest, draft A6); this ports them into a standalone gate with a named dry run. Step up to opus-5 if the gate's scope leaves a choice open.",
+      "done_when": [
+        "transform/tasks/wake_calibration/data_gate.py and tests/test_data_gate.py exist; tests show an NFD file name hashes as its NFC form, the digest does not depend on glob order, and the dry run reads file bytes and paths only (no parquet column is decoded).",
+        "A dry run on the real inputs writes gate_dryrun.txt into _evidence/WC-10-<date>/ with file counts and digests for the pass table (8 files, equal to pass d SHA256SUMS) and the bronze laps, telemetry and weather in scope; on run_wc03's file set it reproduces 1,214 files / aed1c27d..., or PROVENANCE says why the scope differs.",
+        "Two consecutive dry runs give identical output.",
+        "run_wc03.py and its tests are not edited (A6 is undecided: DD-WC16)."
+      ],
+      "note": "Closes the trap that ended WC-03 (G3.4 digest mismatch from NFD paths). The restart rule itself is registration text (WC-10d). Landed 2026-10-29: transform/tasks/wake_calibration/data_gate.py + tests/test_data_gate.py (6 tests); _evidence/WC-10-2026-10-29/gate_dryrun.txt. NFC-safe. Scoped bronze digest (laps, telemetry, weather) 517 files 80d9623b...; full 1,214-file digest reproduces aed1c27d...; pass-table 8 files MATCH pass-d SHA256SUMS. No parquet decode (tested); restartable-failure rule in the module. Full tasks/wake_calibration suite 231 passed.",
+      "order_hint": 2,
+      "closed": "2026-10-29"
+    },
+    {
+      "id": "WC-10d",
+      "group": "8-levels",
+      "stage": "LANDED",
+      "depends_on": [
+        "WC-10a",
+        "WC-10b",
+        "WC-10c"
+      ],
+      "title": "Stage 1: discovery pre-registration draft (2022-23; 2024-25 sealed): design A, outcomes, sidecar, seen list, data gate, restart rule, review-note checks",
+      "sources": [
+        "_roadmap/_wake-calibration/wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+        "_roadmap/_wake-calibration/wi/WC-03-preregistration-DRAFT.md",
+        "_roadmap/_wake-calibration/_evidence/WC-10-<date>/"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "2-3 d",
+      "model": "opus-5",
+      "model_reason": "Identification text (FE structure, drift model, bracketed-subset tolerance, pass-class rule): the failure mode is a plausible spec that does not identify. If fable-5.1 is unavailable, opus-5 plus an independent opus-5 review, as the owner ruled for WC-03 on 2026-10-29. Re-tagged fable-5.1 -> opus-5 2026-10-29: the owner ruled earlier that an Opus review stands in place of Fable (WC-03, 'we can only use opus, we dont have fable').",
+      "done_when": [
+        "wi/WC-10-discovery-registration-DRAFT.md exists with a checklist table mapping each element to a section: plan section 9 'fix up front' items that apply to discovery; review-note items 1-5 (bracketed-subset estimate with a numeric tolerance, close-share tiers with an 'extrapolated' flag at >=80 %, identity-matched release set, minimum free-car count for the field corner-lap effect with a fallback, shrinking vs growing gap split as the primary catching check); the seen list (plan section 9 items 1-4 plus WC-10a evidence); the WC-10c gate; the rule that a gate failure reading no outcome is restartable and a run completes only when an outcome-derived number is written; the switch rule to the lap-level pace-only fallback.",
+        "No fitted or outcome-derived number appears in the text.",
+        "The identification text of this registration gets an explicit adversarial review pass by an independent opus-5 reviewer (a plausible spec that does not identify: fixed-effect structure, drift model, tolerance, pass-class rule) and the review's findings and fixes are recorded before the owner's signing step.",
+        "Stops at the draft. Signing, committing it alone and recording its SHA-256 is the owner's step (DD-WC20)."
+      ],
+      "note": "Cut-point rule (DD-WC17) can stay open here: the discovery registration lists cut points as an output under whichever rule the owner picks. Open points WC-10d must fix (2026-10-29): (1) coast-time cap (16 rows >30 s flagged, not removed); (2) sidecar thresholds (coast <5 %, partial 5-98 %) are provisional; (3) 'bracketed' vs one-sided support definition; (4) the NFC fix in run_wc03.py (and its test) is still uncommitted in the working tree - owner commits."
+    },
+    {
+      "id": "WC-10e",
+      "group": "8-levels",
+      "stage": "BUILDING",
+      "depends_on": [
+        "WC-10d"
+      ],
+      "title": "Stage 2: discovery fit of design A on 2022-23 (pace, min speed, exit speed, lap arm, held-up/dirty split, tyre carry-over) and the registered diagnostics",
+      "sources": [
+        "transform/tasks/wake_calibration/",
+        "_roadmap/_wake-calibration/_artifacts/WC-03-run/pass-table/",
+        "_roadmap/_wake-calibration/_artifacts/WC-10/sidecar/"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "1-2 wk",
+      "model": "opus-5",
+      "model_reason": "High-dimensional fixed effects, race-cluster bootstrap and drift diagnostics: a wrong derivation produces a plausible number, not an error. Re-tagged fable-5.1 -> opus-5 2026-10-29: the owner ruled earlier that an Opus review stands in place of Fable (WC-03, 'we can only use opus, we dont have fable').",
+      "done_when": [
+        "_evidence/WC-10-discovery-<date>/PROVENANCE.txt names the registration SHA-256 recorded in DD-WC20's resolution, the code commit, and the WC-10c gate digests (gate passed before RUN START).",
+        "A loader guard refuses any season outside 2022-23 (test), and the run log lists only 2022-23 files opened.",
+        "Before the real run, a synthetic test recovers a planted gap dose-response and a planted tyre drift (one-sided support, as in the real data) within the registered tolerance.",
+        "Every output the registration lists exists, including the go/no-go line (design A or the fallback) computed by the registered rule."
+      ],
+      "note": "Waits on the owner signing the discovery registration (DD-WC20). Watch W7. 2026-10-30: estimator built and committed (1a9ef80, 306 tests green); B1 committed (b89e54c). BLOCKED ON FIX: rows with NaN tyre_life make step 1 fail to converge in 2022_7 and 2022_11 for design A AND the lap arm (history 2026-10-30 handoff entry). Needs amendment B2 (drop NaN-tyre_life rows, counted; layout 6d after the drop), a code fix, and a full re-run of SG1-SG7. Pointer stays here; do not RUN START.",
+      "blocked_by_decision": [
+        "DD-WC20"
+      ]
+    },
+    {
+      "id": "WC-10f",
+      "group": "8-levels",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "WC-10e"
+      ],
+      "title": "Stage 2b: level cut points from the discovery fit; one 2023 race as a static per-lap level table (exploratory, in-sample)",
+      "sources": [
+        "_roadmap/_wake-calibration/_evidence/",
+        "_roadmap/_wake-calibration/wi/WC-10-exploratory-levels-PLAN-DRAFT.md"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "2-3 d",
+      "model": "opus-5",
+      "model_reason": "Turns the fit into the level scale (per-lap score aggregation, the 'none' rule, interval-overlap confidence): a claim boundary, not new inference.",
+      "done_when": [
+        "cut_points.csv (factor x era x boundary, fixed decimals) and the script that regenerates it byte-identically from the discovery outputs, in _evidence/WC-10-discovery-<date>/.",
+        "Only 2022-23 discovery outputs are read (guard and test).",
+        "One 2023 race as a static per-lap table (CSV or HTML) headed 'exploratory, discovery data, in-sample, not confirmed'; every level labelled modelled with the DD-WC2 disclaimer verbatim; unavailable shown as '—' with the reason, never 0 or 'none'."
+      ],
+      "note": "DD-WC17 resolved 2026-10-29: quantile cut-offs; page text says levels are relative to the typical following lap. Physical cuts may be revisited here, before WC-10g is signed."
+    },
+    {
+      "id": "WC-10g",
+      "group": "8-levels",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "WC-10f"
+      ],
+      "title": "Stage 3a: confirmatory registration draft: fixed cut points, gates C1-C5 with Holm, bracketed-subset tolerance, draws and seed, data gate, restart rule, labels",
+      "sources": [
+        "_roadmap/_wake-calibration/wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+        "_roadmap/_wake-calibration/_evidence/"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "2-3 d",
+      "model": "opus-5",
+      "model_reason": "Gate and inference design that will be scored once and cannot be changed after: a wrong gate is a plausible verdict. Re-tagged fable-5.1 -> opus-5 2026-10-29: the owner ruled earlier that an Opus review stands in place of Fable (WC-03, 'we can only use opus, we dont have fable').",
+      "done_when": [
+        "wi/WC-10-confirmatory-registration-DRAFT.md exists; its cut-point numbers equal cut_points.csv (a script diff, cited with the CSV's SHA-256).",
+        "It fixes C1-C5 and Holm, the bracketed-subset tolerance, bootstrap draws and seed, the WC-10c gate digests, the restart rule, the labels and disclaimer per DD-WC18, and 'replay v1 is retrospective'; release check C4 uses the identity-matched event set.",
+        "The identification text of this registration gets an explicit adversarial review pass by an independent opus-5 reviewer (a plausible spec that does not identify: fixed-effect structure, drift model, tolerance, pass-class rule) and the review's findings and fixes are recorded before the owner's signing step.",
+        "Stops at the draft. Signing, committing it alone and recording its SHA-256 is the owner's step (DD-WC21)."
+      ],
+      "note": "DD-WC18 resolved 2026-10-29: the DD-WC2 disclaimer verbatim plus a separate second line 'Level = typical effect for a car in this situation, not a measurement of this lap'. DD-WC17: quantile cut-offs unless revisited at WC-10f."
+    },
+    {
+      "id": "WC-10h",
+      "group": "8-levels",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "WC-10g",
+        "WC-10c"
+      ],
+      "title": "Stage 3b: one confirmatory run on 2024-25 under the signed registration",
+      "sources": [
+        "transform/tasks/wake_calibration/",
+        "_roadmap/_wake-calibration/_artifacts/WC-03-run/pass-table/",
+        "_roadmap/_wake-calibration/_artifacts/WC-10/sidecar/"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "3-5 d",
+      "model": "opus-5",
+      "model_reason": "Wires the registered contest (bootstrap per gate, Holm) and runs it once; an inference slip here is not recoverable. Re-tagged fable-5.1 -> opus-5 2026-10-29: the owner ruled earlier that an Opus review stands in place of Fable (WC-03, 'we can only use opus, we dont have fable').",
+      "done_when": [
+        "Exactly one run on 2024-25; RUN START is written only after the WC-10c gate passes; PROVENANCE names the confirmatory SHA-256 recorded in DD-WC21's resolution.",
+        "A test shows the run guard allows a restart after a gate failure that wrote no outcome-derived number, and refuses one after.",
+        "Gate results for C1-C5 are written to _evidence/WC-10-confirm-<date>/."
+      ],
+      "note": "Waits on the owner signing the confirmatory registration and saying yes to the run (DD-WC21). Watch W8.",
+      "blocked_by_decision": [
+        "DD-WC21"
+      ]
+    },
+    {
+      "id": "WC-10i",
+      "group": "8-levels",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-10h"
+      ],
+      "title": "Stage 3c: scorecard: which of pace / aero / tyre get a level, per C1-C5",
+      "sources": [
+        "_roadmap/_wake-calibration/_evidence/",
+        "_roadmap/_wake-calibration/wi/WC-10-exploratory-levels-PLAN-DRAFT.md"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "2-3 d",
+      "model": "opus-5",
+      "model_reason": "Turns gate results into a claim the owner reads first.",
+      "done_when": [
+        "SCORECARD.md line 1 states, per factor, level or '—' with the failed gate; tyre '—' unless C5 passes.",
+        "Every number in it traces to a file in the run output (script check).",
+        "The owner reads line 1 before any use of the result."
+      ],
+      "note": "No number goes to the replay or the app before the owner has read the scorecard."
+    },
+    {
+      "id": "WC-10j",
+      "group": "8-levels",
+      "stage": "BLOCKED",
+      "depends_on": [
+        "WC-10i",
+        "WC-07"
+      ],
+      "title": "Stage 4a: replay levels spec and levels(season, race) input on WC-07: three chips per lap and car with label, confidence, 'extrapolated' flag and disclaimer",
+      "sources": [
+        "_roadmap/_wake-calibration/wi/WC-07-replay-dashboard.md",
+        "transform/tasks/wake_calibration/",
+        "_roadmap/_wake-calibration/_evidence/"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "3-5 d",
+      "model": "opus-5",
+      "model_reason": "Moves the WC-07 contract (a modelled value on a measurement-only page) and fixes the on-screen label and confidence rules.",
+      "done_when": [
+        "The WC-07 doc carries the owner's DD-WC19 ruling; levels(season, race) is documented on ReplaySource and implemented for archived races with a 'retrospective' badge.",
+        "Per lap and car: car ahead, gap, and pace / aero / tyre chips, each with measured / modelled / unavailable, confidence firm / between / uncertain, and the 'extrapolated' flag for stints with a close share of 80 % or more.",
+        "Fixture tests on one race per season pass."
+      ],
+      "note": "Waits on DD-WC18 (disclaimer line) and DD-WC19 (relaxing WC-07's no-loss rule).",
+      "blocked_by_decision": [
+        "DD-WC19"
+      ]
+    },
+    {
+      "id": "WC-10k",
+      "group": "8-levels",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-10j"
+      ],
+      "title": "Stage 4b: replay levels wiring and label tests",
+      "sources": [
+        "transform/tasks/wake_calibration/",
+        "_roadmap/_wake-calibration/wi/WC-07-replay-dashboard.md"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "3-5 d",
+      "model": "sonnet-5",
+      "model_reason": "The spec is settled by WC-10j; this is wiring plus named tests. Step up to opus-5 if the spec leaves a display choice open.",
+      "done_when": [
+        "Tests: every displayed value has a label; every modelled level carries the DD-WC2 disclaimer byte for byte (plus the DD-WC18 line if ruled); unavailable is '—' with a reason, never 0 and never 'none'; no DA-03 value or identifier is reachable (grep test).",
+        "One race per season renders end to end.",
+        "The owner reviewing one race per season is the owner's step, not part of this item."
+      ],
+      "note": "Watch W10 (ship-blocker, raised once WC-10j is under way) and W11."
+    },
+    {
+      "id": "WC-10l",
+      "group": "8-levels",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-10i"
+      ],
+      "title": "Optional (stage 5): trailing-only (causal) level variant under its own registration; agreement with the retrospective v1",
+      "sources": [
+        "_roadmap/_wake-calibration/wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+        "transform/tasks/wake_calibration/"
+      ],
+      "doc": "wi/WC-10-exploratory-levels-PLAN-DRAFT.md",
+      "cost": "1-2 wk",
+      "model": "opus-5",
+      "model_reason": "A variant of a confirmed method plus an agreement table. Step up to fable-5.1 if it needs a new estimator.",
+      "done_when": [
+        "Its own registration is committed alone and hashed before any fit (a new owner decision is raised when this item is reached).",
+        "An agreement table (trailing vs retrospective level, per factor and season) is in _evidence/WC-10-causal-<date>/."
+      ],
+      "note": "Optional. The trailing own-clean reference is too thin (3.1 % at 0.5-1 s, review note), so this uses design A curves with lap state only."
+    },
+    {
+      "id": "WC-10m",
+      "group": "8-levels",
+      "stage": "SPEC",
+      "depends_on": [
+        "WC-10e"
+      ],
+      "title": "FALLBACK CANDIDATE (built later): pooled general dirty-air estimator: all drivers pooled, controls for race, lap, corner, compound, tyre age and one fixed effect per driver per race; loss per gap bin; run beside design A",
+      "sources": [
+        "transform/tasks/wake_calibration/",
+        "_roadmap/_wake-calibration/_artifacts/WC-03-run/pass-table/",
+        "_roadmap/_wake-calibration/wi/WC-10-discovery-preregistration-DRAFT.md"
+      ],
+      "doc": "wi/WC-10-discovery-preregistration-DRAFT.md",
+      "cost": "3-5 d",
+      "model": "opus-5",
+      "model_reason": "A second estimator with its own identifying assumption (constant pace per driver per race). Step up to fable-5.1 if the inference needs new machinery.",
+      "done_when": [
+        "Its own registration section (or amendment) is committed alone and hashed before any fit; it is first a DIAGNOSTIC and cannot move the go/no-go line without an owner ruling.",
+        "A synthetic recovery check passes on the real 2022-23 structure before any real read.",
+        "A comparison table (design A curve vs pooled curve, per class and gap bin, with intervals) is in the evidence folder."
+      ],
+      "note": "Raised 2026-10-29 by the owner. Not on the critical path: WC-10d proceeds without it. Use as the fallback if design A returns NEITHER or FALLBACK-lap-arm is too coarse; it has far more support than design A (no stint x corner grouping) but cannot see within-stint changes (tyre saving, pushing)."
     }
   ],
   "decisions": [
@@ -439,6 +774,116 @@
       "recommendation": "(a) union: changes no registered fit set; matches the 68 races of section 8c.",
       "resolved": "2026-10-29",
       "resolution": "Owner chose option (a), union of both race lists, per draft A5 (2026-10-29). Owner also ruled: D3 (the pre-flight loss trim) is reverted, so the pre-flight reads no loss column. A5 is not yet committed or hashed; A5_FIT_RACE_LIST stays None until that is done."
+    },
+    {
+      "id": "DD-WC15",
+      "raised": "2026-10-29",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Close WC-03 and WC-04 as CLOSED, 'no verdict: G3.4 digest mismatch (NFC path names); nothing fitted or scored' (prereg section 9 first row, so the flat penalty stays), or keep them open?",
+      "context": "The 11:36 run wrote RUN START and a G3 result, so it is the one run under prereg section 0; the run guard refuses a restart. Closing WC-03/WC-04 would unblock WC-05 and WC-08 unless they are pointed at WC-10 (plan section 10). Not ruled; WC-03/04/05/08 stages left unchanged on 2026-10-29. WC-10 does not depend on this. Resolved 2026-10-29.",
+      "recommendation": "Close both with that reason, and in the same ruling point WC-05 and WC-08 at WC-10 so closing does not unblock them.",
+      "resolved": "2026-10-29",
+      "resolution": "Owner (reply 'lets go' to the agent's recommendations, 2026-10-29): close WC-03 and WC-04 as CLOSED, reason 'no verdict: G3.4 digest mismatch (NFC path names); nothing fitted or scored' (prereg section 9 first row; the flat penalty stays). WC-05 and WC-08 are pointed at WC-10i so closing does not unblock them."
+    },
+    {
+      "id": "DD-WC16",
+      "raised": "2026-10-29",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Draft A6 (NFC bronze digest): record it as 'not adopted for WC-03' and commit the NFC fix and its test as the record of the cause, or drop it?",
+      "context": "A6 cannot rescue the WC-03 run (section 0). The fix is uncommitted in run_wc03.py with test test_bronze_digest_hashes_an_nfd_name_as_its_nfc_form. WC-10c ports NFC hashing into a separate gate without editing run_wc03.py, so WC-10 does not wait on this.",
+      "recommendation": "Not adopted for WC-03; commit the fix and test as the record of the cause.",
+      "resolved": "2026-10-29",
+      "resolution": "Owner (reply 'lets go' to the agent's recommendations, 2026-10-29): draft A6 is 'not adopted for WC-03'. The owner commits the NFC fix in run_wc03.py bronze_digest and its test (test_bronze_digest_hashes_an_nfd_name_as_its_nfc_form) as the record of the cause. NFC-normalised hashing is carried into WC-10c."
+    },
+    {
+      "id": "DD-WC17",
+      "raised": "2026-10-29",
+      "blocking": [
+        "WC-10f"
+      ],
+      "status": "RESOLVED",
+      "question": "WC-10 level cut rule: quantile cuts on the discovery distribution (50/75/90/98th percentiles) or physical cuts (e.g. tenths of a second)?",
+      "context": "Plan section 4. Physical cuts would be chosen after seeing discovery effects, allowed only because discovery is declared seen. Either way the numbers are fixed in the confirmatory registration (WC-10g) before 2024-25 is read.",
+      "recommendation": "Quantile cuts: no effect size is known yet.",
+      "resolved": "2026-10-29",
+      "resolution": "Owner (reply 'lets go' to the agent's recommendations, 2026-10-29): quantile level cut-offs for now. The page text must say levels are relative to the typical following lap. Physical cuts may be revisited at WC-10f, before the confirmatory registration (WC-10g) is signed."
+    },
+    {
+      "id": "DD-WC18",
+      "raised": "2026-10-29",
+      "blocking": [
+        "WC-10g",
+        "WC-10j"
+      ],
+      "status": "RESOLVED",
+      "question": "Keep the DD-WC2 disclaimer verbatim on every WC-10 level and add a second, separate line: 'Level = typical effect for a car in this situation, not a measurement of this lap'?",
+      "context": "Plan section 4. Rule 7 requires the DD-WC2 text word for word; it was written for modelled references and fits a level badly. Adding a line is a change the owner must rule on.",
+      "recommendation": "Keep DD-WC2 verbatim and add the second line.",
+      "resolved": "2026-10-29",
+      "resolution": "Owner (reply 'lets go' to the agent's recommendations, 2026-10-29): keep the DD-WC2 disclaimer verbatim on every WC-10 level AND add a separate second line: 'Level = typical effect for a car in this situation, not a measurement of this lap'."
+    },
+    {
+      "id": "DD-WC19",
+      "raised": "2026-10-29",
+      "blocking": [
+        "WC-10j"
+      ],
+      "status": "OPEN",
+      "question": "Relax WC-07's 'no loss, delta, coefficient, curve or scale' rule so the replay can show WC-10 levels after the confirmatory scorecard (WC-10i), making WC-10 the successor to WC-08's gate?",
+      "context": "WC-07 is measurement only; WC-08 (loss scale) is gated on WC-03/04/05. Plan section 10. WC-07 and WC-08 are unchanged until ruled.",
+      "recommendation": "Yes, only for levels whose gate passed in WC-10i, each labelled modelled with the disclaimer."
+    },
+    {
+      "id": "DD-WC20",
+      "raised": "2026-10-29",
+      "blocking": [
+        "WC-10e"
+      ],
+      "status": "RESOLVED",
+      "question": "OWNER GATE: sign the WC-10 discovery registration (WC-10d), commit it alone, record its SHA-256 here, and say yes to the discovery run on 2022-23?",
+      "context": "Rule 4: nothing is fitted before a registration is committed alone and its SHA-256 recorded. Record the resolution as 'signed <date>, commit <sha>, SHA-256 <hex>, yes to run'.",
+      "recommendation": null,
+      "resolved": "2026-10-30",
+      "resolution": "signed 2026-10-30, commit 6fd03302c83cb8a23e080e7ab59fee599644761c, SHA-256 4d679bf6c94b12cf186776467478400c1feef89930be87d3fe36be49f1e8d248, yes to run. Recorded on the owner's instruction ('yeah record it', answering the option: approve the registration as written and say yes to the discovery run on 2022-23). Note: the committed file still reads 'DRAFT, unsigned' on its status line and its section 20b boxes are blank; the sign-off is the commit message and this record, not the file."
+    },
+    {
+      "id": "DD-WC21",
+      "raised": "2026-10-29",
+      "blocking": [
+        "WC-10h"
+      ],
+      "status": "OPEN",
+      "question": "OWNER GATE: sign the WC-10 confirmatory registration (WC-10g), commit it alone, record its SHA-256 here, and say yes to one run on 2024-25?",
+      "context": "Rule 4. 2024-25 stay sealed until this resolves (watch W8).",
+      "recommendation": null
+    },
+    {
+      "id": "DD-WC22",
+      "raised": "2026-10-30",
+      "blocking": [
+        "WC-10e"
+      ],
+      "status": "RESOLVED",
+      "question": "Rule the twelve open choices in the WC-10 discovery estimator (amendment B1) before any result?",
+      "context": "Builder and review flagged five open choices plus six more and one reading (NaN median gap under FALLBACK). Each is checked only when its case turns up, so after OUTCOME DECODED a code change would be post-hoc. Rulings were put to the owner with plain-English reasons and recommendations.",
+      "recommendation": "Accept all as recommended.",
+      "resolved": "2026-10-30",
+      "resolution": "accepted on the owner's instruction ('I agree with this', then 'yeah I do'). Committed alone as b89e54c, SHA-256 c9566233bb25dcf078a8cc336682b289ec2d7494cfe6fb7189662d3c56b7b500 (git show b89e54c:_roadmap/_wake-calibration/wi/WC-10-amendment-B1-open-choices-DRAFT.md | shasum -a 256, read back 2026-10-30). Rulings 1-5: racecraft free passes dropped from step 1; empty comparison corner skipped; unidentified prediction dropped and counted; undefined bootstrap draws propagate (undefined count printed); race drawn twice = separate copy. Rulings 6-12: x1_trim=registered_tau; modal_leader_tie=drop; fallback_negative_median=bin_0.3-0.5 (and 0-0.3 s bin priced at 0.3-0.5 s under FALLBACK); parquet to _artifacts/WC-10/discovery/; summary line 2 kept word for word; S_aero literal formula, no weights; NaN median gap under FALLBACK is not priced (shown as a dash). Status line of the file still reads DRAFT, unsigned; the sign-off is the commit plus this record."
+    },
+    {
+      "id": "DD-WC23",
+      "raised": "2026-10-30",
+      "blocking": [
+        "WC-10e"
+      ],
+      "status": "OPEN",
+      "question": "Amendment B2: rows with missing tyre_life are left out of step 1 (design A and lap arm), counted under their own reason, with the parameter layout (registration 6d) computed AFTER the drop. Draft B2, commit it alone, record its SHA-256 here.",
+      "context": "Owner accepted the three rulings on 2026-10-30 ('yes to both'; recommendation was layout AFTER the drop). Open until B2 is drafted, committed alone and hashed. Registration 6b: 'failure to converge is a run error and a post-hoc amendment case', so this must be committed before RUN START and before the SG re-run. See the 2026-10-30 handoff entry in history for root cause, counts and the exact fix.",
+      "recommendation": "Layout AFTER the drop (the layout then describes the data actually fitted).",
+      "resolved": null,
+      "resolution": null
     }
   ],
   "watch_vocabulary": {
@@ -548,6 +993,156 @@
       },
       "resolved": "2026-10-27",
       "resolution": "Owner accepted the even-spacing marshal-sector approximation; no re-ingest (DD-WC8)."
+    },
+    {
+      "id": "W7",
+      "raised": "2026-10-29",
+      "kind": "hazard",
+      "item": "WC-10e",
+      "recommended_model": "opus",
+      "title": "No WC-10 outcome (segment time, minimum or exit speed, coast, throttle share, lap time) is read before the discovery registration is committed alone and its SHA-256 recorded",
+      "detail": "WC-10a-d are outcome-blind. The only outcome values seen are those declared in plan section 9 (the 2022 clean-pass noise floor). Any other read before DD-WC20 resolves lets the specification follow the data.",
+      "clears_when": "DD-WC20 is resolved with the commit and SHA-256 recorded.",
+      "trigger": {
+        "clear": {
+          "decision": "DD-WC20"
+        }
+      },
+      "decision": "DD-WC20"
+    },
+    {
+      "id": "W8",
+      "raised": "2026-10-29",
+      "kind": "hazard",
+      "item": "WC-10h",
+      "recommended_model": "opus",
+      "title": "2024-25 are sealed: no 2024-25 outcome is read, and no cut point or gate changes after the confirmatory registration is hashed",
+      "detail": "Discovery is 2022-23 only. Cut points and gates are written into the confirmatory registration before 2024-25 is read; one run only.",
+      "clears_when": "DD-WC21 is resolved and WC-10h has landed.",
+      "trigger": {
+        "clear": {
+          "all": [
+            {
+              "decision": "DD-WC21"
+            },
+            {
+              "item": "WC-10h"
+            }
+          ]
+        }
+      },
+      "decision": "DD-WC21"
+    },
+    {
+      "id": "W9",
+      "raised": "2026-10-29",
+      "kind": "hazard",
+      "item": "WC-10b",
+      "recommended_model": "sonnet",
+      "title": "The sidecar's exit speed, coast time and throttle share are outcomes: before DD-WC20, report coverage only",
+      "detail": "WC-10b computes them into _artifacts/WC-10/sidecar/. Writing a mean, quantile or distribution of them (even 'just to check') before the discovery registration is hashed is an outcome read.",
+      "clears_when": "DD-WC20 is resolved.",
+      "trigger": {
+        "clear": {
+          "decision": "DD-WC20"
+        }
+      }
+    },
+    {
+      "id": "W10",
+      "raised": "2026-10-29",
+      "kind": "ship-blocker",
+      "item": "WC-10k",
+      "recommended_model": "sonnet",
+      "title": "Levels: DD-WC2 disclaimer verbatim on every modelled level; unavailable is '—' with a reason, never 0 and never 'none'",
+      "detail": "Rule 7. A level chip defaulting to 'none' for a lap with no gap, an excluded lap or a failed gate would read as a measurement of no effect.",
+      "clears_when": "WC-10k has landed with the label tests passing.",
+      "trigger": {
+        "raise": {
+          "item": "WC-10j",
+          "stage": [
+            "BUILDING",
+            "MEASURED",
+            "LANDED"
+          ]
+        },
+        "clear": {
+          "item": "WC-10k"
+        }
+      }
+    },
+    {
+      "id": "W11",
+      "raised": "2026-10-29",
+      "kind": "hazard",
+      "item": "WC-10k",
+      "recommended_model": "sonnet",
+      "title": "No archived dirty-air (DA-03) number in any WC-10 output, as a fallback or otherwise",
+      "detail": "Rule 6. WC-10 does not decide the label's flat penalty; that stays where WC-03 left it.",
+      "clears_when": "WC-10k has landed and its grep test shows no DA-03 value or identifier.",
+      "trigger": {
+        "clear": {
+          "item": "WC-10k"
+        }
+      }
+    },
+    {
+      "id": "W12",
+      "raised": "2026-10-29",
+      "kind": "unverified",
+      "item": "WC-10a",
+      "recommended_model": "haiku",
+      "title": "The WC-10 plan's and review note's counts exist only in session scratch",
+      "detail": "Scripts and CSVs are under /private/tmp/.../scratchpad/ (session 8181e7c5), which is not evidence under rule 8 and may be deleted.",
+      "clears_when": "WC-10a has landed with PROVENANCE in _evidence/WC-10-<date>/.",
+      "trigger": {
+        "clear": {
+          "item": "WC-10a"
+        }
+      }
+    },
+    {
+      "id": "W13",
+      "raised": "2026-10-29",
+      "kind": "uncommitted",
+      "item": "WC-10a",
+      "recommended_model": "haiku",
+      "title": "WC-10 plan, its review note and the WC-10 entries in this log live only in the working tree",
+      "detail": "Uncommitted as of 2026-10-30: WC-10 plan wi/WC-10-exploratory-levels-PLAN-DRAFT.md, REVIEW-1, REVIEW-2, WC-03-amendment-A6-nfc-bronze-digest-DRAFT.md, _evidence/WC-04-2026-10-29/, _evidence/WC-10-2026-10-29/ (gate_dryrun v2-v4, b1_support_impact.md, sg/ partials), and the build-log.json / BUILD-ORDER.md edits. Committing is the owner's call.",
+      "clears_when": "The owner commits them, or rules them out.",
+      "trigger": {
+        "clear": "manual"
+      }
+    },
+    {
+      "id": "W14",
+      "raised": "2026-10-30",
+      "kind": "gate-gap",
+      "item": "WC-10e",
+      "recommended_model": "opus",
+      "title": "run_wc10 real mode does not check that SG1-SG7 passed or that B1/B2 are committed",
+      "detail": "Its docstring says so. RUN START currently enforces only the eight OPEN_CHOICES preflight and the data gate line. Add a check that refuses real mode unless an SG pass record (post-fix) and the B1 and B2 hashes exist.",
+      "clears_when": "run_wc10 real mode refuses without them, with a test.",
+      "trigger": {
+        "clear": "manual"
+      },
+      "resolved": null,
+      "resolution": null
+    },
+    {
+      "id": "W15",
+      "raised": "2026-10-30",
+      "kind": "stale-artifact",
+      "item": "WC-10e",
+      "recommended_model": "sonnet",
+      "title": "Pre-fix SG partial results are not valid evidence",
+      "detail": "_evidence/WC-10-2026-10-29/sg/ holds partial SG1-SG7 results from before the NaN tyre_life fix, on a synthetic outcome that silently skipped NaN rows (groupby().sum()), so it never exercised 2022_7 / 2022_11. They look like passes and are not. Re-run all of SG1-SG7 on fixed code and mark the old folder superseded.",
+      "clears_when": "SG1-SG7 are re-run after B2 and the code fix, and the pre-fix files are marked superseded.",
+      "trigger": {
+        "clear": "manual"
+      },
+      "resolved": null,
+      "resolution": null
     }
   ],
   "history": [
@@ -1271,6 +1866,283 @@
         "OWNER: explicit yes to the run; then follow RUN-PACKAGE.md sections B-D exactly, and read SCORECARD.md first.",
         "OWNER (housekeeping): delete _artifacts/WC-01-pass-table/ (pass a, superseded).",
         "Do not commit without an explicit yes. The agent never commits, pushes or stages."
+      ]
+    },
+    {
+      "date": "2026-10-29T18:00:00+04:00",
+      "session": "Handoff to a new chat. Real run of WC-03 is NOT yet done: no RUN START, no PROVENANCE, no SCORECARD, no result written. Owner said yes to run on real data and ruled that the Opus review stands in place of fable.",
+      "landed": [
+        "d47c3b5: RUN-PACKAGE B2 compares the eight pass_table parquet files only (races.csv seconds column is build time, not data); four stale registration tests updated to the decided A5 state (no check weakened); owner rulings recorded.",
+        "730d115: A5_FIT_RACE_LIST = 'union' (DD-WC14 option a). 5583b1b: review fixes D1, D2, verdict line; D3 reverted; A1-A5 hashes recorded (A1 19a39c42, A2 6464e28a, A3 f3e10f14, A4 99241331, A5 db40870f, A5 committed at 71cf22b)."
+      ],
+      "verified": [
+        "Full synthetic suite: 199 passed, 0 failed, 1 warning (Opus, after d47c3b5 test fix).",
+        "Amendment hashes recomputed and match RUN-PACKAGE.md; board.py --check exits 0.",
+        "Scratch pass table at _roadmap/_wake-calibration/_artifacts/WC-03-run/pass-table/: 8 parquet files match pass d; SHA256SUMS written. Scratch warehouse at _artifacts/WC-03-run/warehouse/dev.duckdb (1,905,799,168 bytes).",
+        "data/dev.duckdb: stat unchanged (Oct 26 12:12:10 2026, 1905799168 bytes) across all attempts; git status clean for data/.",
+        "Attempt 1 stopped at B2 on races.csv (timing column). Attempt 2 stopped at B4: G1 refused on 4 stale tests (now fixed). Neither wrote a result."
+      ],
+      "assumed": [
+        "The Opus review (Opus review, 2026-10-29) stands in for the fable-5.1 gate, by owner ruling. The earlier fable review was cut short and is not counted.",
+        "The scratch warehouse copy is byte-identical to data/dev.duckdb: not verified, because the rules forbid hashing dev.duckdb.",
+        "The commits d47c3b5 and 730d115 are the commit named for the run package; PROVENANCE should record HEAD at run time."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "pytest transform/tasks/wake_calibration (199 passed)",
+        "B0 stat",
+        "B2 parquet diff (pass d)",
+        "B3 dry check (expected line)"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "ORCHESTRATOR (Opus): restart at RUN-PACKAGE B4 only. Do not rebuild the pass table. First check: no RUN START, RESULT WRITING STARTED or PROVENANCE exists for WC-03/WC-04. Run B4 exactly once; G1 runs the suite again (about 11 min).",
+        "ORCHESTRATOR: if B4 stops before RESULT WRITING STARTED, do not restart without an owner ruling; report exit code and reason.",
+        "ORCHESTRATOR: after the run, perform RUN-PACKAGE section D checks 1-7 with actual values. Read only line 1 of SCORECARD.md. Report every TABLE 2 'not computed' line and its reason.",
+        "OWNER: read SCORECARD.md first, before any use of the result (§15). No figure goes to the app, the label or the replay view until the owner has ruled.",
+        "OWNER: known gaps still open and report-only: the section 15 chart; the split of evidence into WC-03-<date> and WC-04-<date>; the six layout-flagged races sensitivity run is not drafted.",
+        "OWNER decision still open: the 'more runs' rule. Recommended against: the pre-registration says one run (§0). Any change is a pre-run amendment, not a silent edit.",
+        "Do not commit without an explicit yes. The agent never commits, pushes or stages."
+      ]
+    },
+    {
+      "date": "2026-10-29",
+      "session": "Handoff to a new chat after the failed WC-03 B4 run and a re-run attempt that the run guard refused. Owner has not yet ruled on closing out the registration or on a redesign. No commits made.",
+      "landed": [
+        "Nothing committed. Uncommitted: NFC fix in transform/tasks/wake_calibration/run_wc03.py bronze_digest (lines 206-210) and a new test test_bronze_digest_hashes_an_nfd_name_as_its_nfc_form; draft amendment A6 at wi/WC-03-amendment-A6-nfc-bronze-digest-DRAFT.md (not adopted).",
+        "Synthetic suite with the fix: 200 passed, 1 warning. bronze_digest on data/bronze returns 1214 and aed1c27da1cc00fb80eea470bb0c5c4879ee09556c81ff35bc17ad4aff1690b4, matching the registered value.",
+        "Failed run, recorded as is: _evidence/WC-04-2026-10-29/ (PROVENANCE.txt, SCORECARD.md). RUN START 11:36:53 +04:00, RESULT WRITING STARTED, G3.1 pass, G3.4 FAIL (aaaf711d...c45a94), exit code 2. Cause: five são_paulo_grand_prix laps filenames come back from glob in NFD form; the registered digest used NFC.",
+        "Re-run attempt refused by the run guard (check_no_result_anywhere, run_wc03.py ~169-187): 'n_runs = 1 is final (§0)'. Nothing was moved, deleted or edited under _evidence/."
+      ],
+      "verified": [
+        "data/dev.duckdb: stat Oct 26 12:12:10 2026, 1905799168 bytes; git status data/ empty (rechecked after the re-run attempt).",
+        "Failed-run PROVENANCE.txt read directly; SCORECARD.md line 1 read directly.",
+        "Read-only assessment of closing out (ad92b06): CLOSED is a status, not a deletion; WC-05 and WC-08 would be unblocked by a CLOSED WC-03/WC-04 unless pointed at a redesign item."
+      ],
+      "assumed": [
+        "The owner's 'fix it and run it again' was treated as not enough to lift the one-run rule; the guard refused and no override was attempted.",
+        "The 11:36 run counts as the one run under §0 (a result line was written).",
+        "The 18:00 entry above is wrong: it says no RUN START or PROVENANCE exists, but the run at 11:36 wrote both. Not edited here; correct it in the next session, by a new entry."
+      ],
+      "gates_run": [
+        "board.py --check (before this entry)",
+        "pytest transform/tasks/wake_calibration/tests (200 passed, with the NFC fix)",
+        "bronze_digest on data/bronze (read only)"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: rule on closing WC-03 and WC-04 as CLOSED with 'no verdict' (the recommended route), or keep them open.",
+        "OWNER: rule on the NFC fix: commit it as the record of the cause, or drop it.",
+        "OWNER: rule on a redesign as a new work item with a new pre-registration, labelled exploratory, committed alone and hashed before any fit (BUILD-ORDER rule 4).",
+        "OWNER: commit the failed run's evidence folder _evidence/WC-04-2026-10-29/, this log and the notes. The agent does not commit.",
+        "AGENT, after a ruling: mark A6 'not adopted'; set WC-03 and WC-04 to CLOSED with a date and reason; point WC-05 and WC-08 at the redesign item; correct the 18:00 entry by a new entry; run board.py --check.",
+        "Do not re-run B4. The run guard refuses any new start; a second run needs a registration that allows it.",
+        "Do not commit without an explicit yes. The agent never commits, pushes or stages."
+      ]
+    },
+    {
+      "date": "2026-10-29T13:45:00+04:00",
+      "session": "WC-10 queued as a build order (Opus review agent, delegated). Outcome-blind review of the WC-10 plan, then items, open decisions and watch rules added to this log. NOTHING FITTED, SCORED OR GATED; no outcome column read; data/dev.duckdb not touched; nothing committed, staged or pushed. WC-03, WC-04, WC-05, WC-08 and A6 stages and texts unchanged.",
+      "landed": [
+        "Group 8-levels and items WC-10a..WC-10l (doc: wi/WC-10-exploratory-levels-PLAN-DRAFT.md), each with model_reason and done_when. WC-10a/b/c carry order_hint 2 so they list right after WC-07.",
+        "Open decisions DD-WC15 (close WC-03/04), DD-WC16 (A6), DD-WC17 (cut rule; blocks WC-10f), DD-WC18 (disclaimer second line; blocks WC-10g, WC-10j), DD-WC19 (relax WC-07 no-loss rule; blocks WC-10j), DD-WC20 and DD-WC21 (owner gates: sign, commit alone and hash the discovery / confirmatory registrations; block WC-10e, WC-10h).",
+        "Watch rules W7-W13 (no outcome before the discovery hash; 2024-25 sealed; sidecar outcomes coverage-only; disclaimer and '—' ship-blocker, dormant until WC-10j starts; no DA-03; scratch-only counts; uncommitted).",
+        "Pointer moved WC-03 -> WC-10a: WC-03 has nothing an agent can run until the owner rules (run guard; DD-WC15). WC-03's stage is unchanged.",
+        "Plan file: a dated 'Review note, 2026-10-29' appended at the end; the body is not edited.",
+        "Correction to the 2026-10-29T18:00 entry, as the previous entry asked: the WC-03 run at 11:36 did write RUN START and PROVENANCE (_evidence/WC-04-2026-10-29/); that entry's 'no RUN START, no PROVENANCE' is wrong. The entry itself is not edited."
+      ],
+      "verified": [
+        "Outcome-blind, on _artifacts/WC-03-run/pass-table (pass d) and data/bronze, structural columns only (scripts .../scratchpad/review/scripts/r01-r03): 107,451 / 215,970 identifying close passes 2022-25 CONFIRMED (definition: >=2 close AND >=2 free in the group); per-team 2025 54-64 % DIFFERS in definition (0-3 s following; close <1 s gives 42-55 % vs own-clean 4.5-15.8 %); trailing reference 3.13 % CONFIRMED; DRS 2023 91.2 % vs 3.2 % CONFIRMED; release events 1,635 / 551 CONFIRMED as counted, but only 848 have the pitting car equal to the car ahead (362 matched and free; 112 in 2024-25); car rows median 0.24 s / 13 m, p90 25 m, so the sidecar is derivable with interpolation.",
+        "Identification holes found: only 23,687 (22 %) of identifying close passes are bracketed by free passes; 60 % have free passes only later in the stint (within-group corr(close, tyre_life) -0.34; nearest free pass a median 7 tyre-age laps away). Stints >=80 % close hold 18.7 % of close passes, 13 % identified. 26 % of identifying close passes have <3 other free cars for the field lap effect. The previous-lap gap is close again 73 % of the time, so the lagged-gap check is weak. Changes are written into WC-10d's done_when and the plan's review note.",
+        "Stage-0 go/no-go passes on counts: 2022-23 identifying fast 7,951 (37 races), medium 21,063, slow 20,045.",
+        "board.py --check exits 0; --write-order regenerated BUILD-ORDER.md."
+      ],
+      "assumed": [
+        "fable-5.1 is available now (the delegating request lists it). The owner said on 2026-10-29 'we can only use opus, we dont have fable'; where fable-5.1 is unavailable, items tagged fable-5.1 run on opus-5 with an independent opus-5 review, as ruled for WC-03.",
+        "Owner gates are recorded as OPEN decisions (DD-WC20, DD-WC21), the log's existing human-call mechanism, not as items.",
+        "Item-level fields model_reason and done_when are new; board.py does not read them.",
+        "Scratch scripts may be lost with the session; WC-10a re-derives them from the written definitions if so."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "board.py --write-order",
+        "outcome-blind review counts r01-r03 (read-only)"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "AGENT (sonnet-5): WC-10a. AGENT (opus-5): WC-10b. AGENT (sonnet-5): WC-10c. The three are independent and can run in parallel.",
+        "OWNER: rule on DD-WC15 to DD-WC19 when convenient; none blocks WC-10a-d. DD-WC20 is needed after WC-10d.",
+        "OWNER: commit the WC-10 plan, its review note and this log (W13). The agent never commits, pushes or stages."
+      ]
+    },
+    {
+      "date": "2026-10-29T14:30:00+04:00",
+      "session": "Bookkeeping only after the owner said 'lets go' to the agent's recommendations on DD-WC15 to DD-WC18. No code, data or evidence touched; nothing fitted or scored; nothing committed, staged or pushed. WC-10a/b/c content not touched (other agents are running them).",
+      "landed": [
+        "DD-WC15 to DD-WC18 RESOLVED 2026-10-29 (resolver: owner, reply 'lets go'). DD-WC19, DD-WC20, DD-WC21 left OPEN (DD-WC19 deferred until after confirmation; DD-WC20/21 are signatures on drafts that do not exist yet).",
+        "WC-03 and WC-04 set to CLOSED, closed 2026-10-29: 'no verdict: G3.4 digest mismatch (NFC path names); nothing fitted or scored' (prereg section 9 first row; flat penalty stays).",
+        "WC-05 now depends on WC-10i (was WC-04); WC-08 now depends on WC-10i, WC-05, WC-07 (was WC-03, WC-04, WC-05, WC-07). CLOSED counts as terminal in board.py, so without this they would have become runnable.",
+        "WC-10d, WC-10e, WC-10g, WC-10h re-tagged fable-5.1 -> opus-5 (owner ruled earlier that an Opus review stands in place of Fable); WC-10d and WC-10g gain a done_when clause for an explicit adversarial review of the identification text.",
+        "WC-10f and WC-10g: resolved DD-WC17/DD-WC18 removed from blocked_by_decision (WC-10j keeps DD-WC19); notes record the rulings.",
+        "Correction to the 2026-10-29T18:00 entry, as the last handoff asked: that entry's 'no RUN START, no PROVENANCE' is wrong; the 11:36 run wrote RUN START and PROVENANCE (_evidence/WC-04-2026-10-29/). The 13:45 entry already noted this; the old entries are not edited."
+      ],
+      "verified": [
+        "board.py --check and --write-order run after the edits (see gates_run).",
+        "Dependency semantics read in board.py: TERMINAL = CLOSED/LANDED; a dependency in a terminal stage counts as met, so closing WC-03/WC-04 alone would have unblocked WC-05 and WC-08."
+      ],
+      "assumed": [
+        "WC-05 stays tagged fable-5.1 (the instruction retagged only 8-levels items). WC-08's title still names WC-03/WC-04 and is left as written.",
+        "Closing DD-WC17/18 does not change which owner gates apply: DD-WC20 and DD-WC21 stay OPEN."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "board.py --write-order"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "AGENT: WC-10a, WC-10b, WC-10c (independent, running in parallel).",
+        "OWNER: commit the NFC fix and its test (DD-WC16), the failed-run evidence folder _evidence/WC-04-2026-10-29/, this log and the notes. The agent never commits, pushes or stages.",
+        "OWNER: DD-WC19 after confirmation; DD-WC20/DD-WC21 once the drafts exist."
+      ]
+    },
+    {
+      "date": "2026-10-29T16:00:00+04:00",
+      "session": "Bookkeeping only after WC-10a, WC-10b and WC-10c finished. Log edited; nothing fitted or scored; no outcome column read by this entry; nothing committed, staged or pushed.",
+      "landed": [
+        "WC-10a, WC-10b, WC-10c set to LANDED, closed 2026-10-29, with facts in their notes (evidence under _evidence/WC-10-2026-10-29/, sidecar in _artifacts/WC-10/sidecar/).",
+        "WC-10d note gains the open points it must fix: coast-time cap, sidecar thresholds, 'bracketed' vs one-sided support, uncommitted NFC fix in run_wc03.py.",
+        "Pointer moved WC-10a -> WC-10d."
+      ],
+      "verified": [
+        "Against the files: counts PROVENANCE (MATCH list, p99 and per-team 2025 differences, s04 not re-run, lap-time claim not reproduced); sidecar_coverage.csv ranges; sidecar PROVENANCE 2,927,753 rows 1:1 and 16 coast rows >30 s; gate_dryrun.txt digests and MATCH; test counts by def-count (18 + 6 test functions in the files; the 25-test figure for test_sidecar.py is as supplied, likely parametrised); git status shows run_wc03.py and its test still modified (uncommitted).",
+        "board.py --check and --write-order run after the edit (see gates_run). The 231-passed suite figure was taken from the request, not re-run here."
+      ],
+      "assumed": [
+        "LANDED (terminal) is the right stage; closed field added as for CLOSED items though board.py only requires it for CLOSED.",
+        "WC-10d done_when untouched; open points are in its note only."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "board.py --write-order"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py",
+      "next_action": [
+        "AGENT (opus-5): WC-10d, the discovery registration draft plus independent adversarial review.",
+        "OWNER: commit the uncommitted work (NFC fix, sidecar.py, data_gate.py, tests, evidence, log). The agent never commits, pushes or stages."
+      ]
+    },
+    {
+      "date": "2026-10-29T17:00:00+04:00",
+      "session": "WC-10d handoff (owner out of time). Bookkeeping only: this entry and the review file. Nothing committed, staged or pushed; nothing fitted or scored; no outcome column read; data/dev.duckdb not touched.",
+      "landed": [
+        "WC-10d draft written: wi/WC-10-discovery-preregistration-DRAFT.md (unsigned, uncommitted, unhashed).",
+        "Independent adversarial review is PARTIAL: wi/WC-10-discovery-preregistration-REVIEW-1.md. Provisional verdict: sign after fixes. Blockers: B1 S3 drift check may pass by construction; B2 S2 tolerance scales with the full estimate (admits ~100% one-sided inflation) and the bracketed set has no distance limit; B3 pass class shares the follower's prediction error with tau (aero contrast); B4 bootstrap race/circuit list not enumerated (WC-03 A4/A5 trap)."
+      ],
+      "verified": [
+        "Pass-table digest 188dac5e... (8 files) and sidecar digest 8595ce93... (8 files) recomputed with data_gate.digest_lines; scoped bronze 517 files = laps 173 + telemetry 171 + weather 173; sidecar.py sha256 8d2047b9... matches WC-10b PROVENANCE; DD-WC2 and DD-WC18 lines verbatim in the draft."
+      ],
+      "assumed": [
+        "Known gaps: the draft's file name differs from WC-10d done_when (wi/WC-10-discovery-registration-DRAFT.md); data_gate.py lacks checks 3 (sidecar digest) and 4 (full 1,214-file digest) as pass/fail; the seen list's caveat that WC-02 check 3 and the 2026-10-21 scoping are pooled loss values over 2018-2025 including the discovery and sealed seasons."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "board.py --write-order"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "AGENT (opus-5, independent reviewer): finish the review's unvisited areas (list at the end of REVIEW-1).",
+        "AGENT (drafter): fix the blockers B1-B4 and the should-fix items in the draft.",
+        "OWNER: read and sign the registration (DD-WC20), commit it alone, record its SHA-256 on DD-WC20.",
+        "Then WC-10e."
+      ]
+    },
+    {
+      "date": "2026-10-29T20:30:00+04:00",
+      "session": "WC-10d revision for REVIEW-1 and REVIEW-2, data_gate checks 3-4, WC-10m raised. Nothing committed, staged or pushed; nothing fitted or scored; no outcome column read; data/dev.duckdb not touched.",
+      "landed": [
+        "Draft revised for REVIEW-1 B1-B4/S1-S8 and REVIEW-2 R2-B1..B5, SG7, S-R2-1..11 (D1-D30). Second review: wi/WC-10-discovery-preregistration-REVIEW-2.md, verdict SIGN AFTER FIXES; fixes applied, and the applied text was checked against REVIEW-2 section 4 by script.",
+        "data_gate.py: checks 3 (sidecar) and 4 (full bronze) pass/fail, exit 1 on failure, 12 tests pass; dry run twice on real inputs, identical, all four digests reproduce (_evidence/WC-10-2026-10-29/gate_dryrun_v2.txt). data_gate.py sha256 cab8c7479d42bb62d019681ff7ccf5aae15f8217c74c098621c22999bf5f3142 recorded in the draft.",
+        "Counts and scripts d01-d08 with PROVENANCE in _evidence/WC-10-2026-10-29/counts_d/.",
+        "WC-10m raised (owner): pooled general dirty-air estimator, fallback candidate, built later, diagnostic first."
+      ],
+      "verified": [
+        "data_gate.py sha256 recomputed by the orchestrator; dry-run output read; board.py --check."
+      ],
+      "assumed": [
+        "Revised draft has not had a third review (REVIEW-2 said a script check of replacements is enough). data_gate.py, sidecar.py and the run_wc03.py NFC fix are uncommitted. File-name mismatch (draft vs WC-10d done_when) still for the owner."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "board.py --write-order"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "OWNER: commit data_gate.py, sidecar.py and the run_wc03.py fix; resolve the file name; read the draft; sign (DD-WC20), commit it alone, record its SHA-256.",
+        "Then WC-10e."
+      ]
+    },
+    {
+      "date": "2026-10-30T10:00:00+04:00",
+      "session": "WC-10d closed: registration committed and recorded. Bookkeeping only. Nothing fitted or scored; no outcome column read; data/dev.duckdb not touched. The owner ran all git commits; the agent ran none.",
+      "landed": [
+        "Owner committed the code: b978f20 (data_gate.py four pass/fail checks, sidecar.py, run_wc03.py NFC fix, tests). data_gate.py sha256 cab8c7479d42bb62d019681ff7ccf5aae15f8217c74c098621c22999bf5f3142; sidecar.py sha256 8d2047b9a3c8e70d2b35 (prefix; full value in WC-10b PROVENANCE).",
+        "Owner committed the registration alone: 6fd03302c83cb8a23e080e7ab59fee599644761c, 1 file, SHA-256 4d679bf6c94b12cf186776467478400c1feef89930be87d3fe36be49f1e8d248 (git show HEAD:... | shasum -a 256).",
+        "DD-WC20 RESOLVED 2026-10-30 on the owner's instruction. WC-10d LANDED; WC-10e SPEC (unblocked); pointer moved to WC-10e."
+      ],
+      "verified": [
+        "Commit contents and the committed-file hash read back with git show/log (read-only). board.py --check and --write-order pass."
+      ],
+      "assumed": [
+        "The committed registration file still reads 'DRAFT, unsigned' on its status line and its section 20b boxes are blank; the sign-off is the commit message plus the DD-WC20 resolution. Not corrected, because any edit changes the registered hash.",
+        "Open from the draft: the file-name mismatch (done_when names WC-10-discovery-registration-DRAFT.md); REVIEW-1, REVIEW-2, the WC-10 plan, counts_d/, gate_dryrun_v2.txt, build-log and BUILD-ORDER changes are uncommitted (W13).",
+        "WC-10m (pooled estimator, fallback candidate) is in the log, SPEC, not started."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "board.py --write-order"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "AGENT (opus-5): WC-10e stage 1: build the estimator code (design A, pass class, S1-S3, lap arm, loader that refuses 2024-25, OUTCOME DECODED ledger). No outcome read.",
+        "AGENT (sonnet-5): tests for it, then SG1-SG7 synthetic checks on the real 2022-23 structure. If any fail, nothing real is read; amend first.",
+        "AGENT: re-run the data gate (gate_dryrun, twice) into the discovery evidence folder before RUN START.",
+        "OWNER: commit the estimator code and the SG results before the real run; say go for RUN START."
+      ]
+    },
+    {
+      "date": "2026-10-30T12:53:15+04:00",
+      "session": "WC-10e stage 1 built and committed; twelve open choices ruled (B1); SG1-SG7 started; a blocker found before any real read (NaN tyre_life). HANDOFF: the next session must draft B2, fix the code and re-run SG1-SG7. Nothing fitted on real data; no outcome column read; data/dev.duckdb not touched. The owner ran all git commits; the agent ran none.",
+      "landed": [
+        "Data gate re-run twice on 2026-10-30: all four checks PASS, byte-identical, sha256 96c4b655ff0863fad82ad6f7b71b7d366318980c1369ffba4a54904080765ac8 (_evidence/WC-10-2026-10-29/gate_dryrun_v3.txt, v4; v2 unchanged).",
+        "Amendment B1 committed alone: b89e54c, SHA-256 c9566233bb25dcf078a8cc336682b289ec2d7494cfe6fb7189662d3c56b7b500. DD-WC22 RESOLVED. It holds twelve rulings (see DD-WC22).",
+        "Code committed: 1a9ef80 'WC-10e: design A estimator, carry-over, diagnostics X1-X15, run CLI; twelve rulings implemented'. Files in transform/tasks/wake_calibration/: wc10_io.py (2024-25 seal, ledger, OUTCOME DECODED, restart rule, loaders), design_a.py (OPEN_CHOICES + preflight, estimator, S1-S3, bootstrap by reweighting), lap_arm.py (F1), carryover.py (9b), diagnostics.py (X1-X15, per-lap scores, three more OPEN_CHOICES), run_wc10.py (CLI; real mode exits 2 without --run-start; outputs to _artifacts/WC-10/discovery/), tests/test_design_a.py, tests/test_wc10_remainder.py. Full suite at that point: 306 passed, 0 failed, 1 statsmodels convergence warning.",
+        "Support impact of ruling 1 measured from structure columns only (_evidence/WC-10-2026-10-29/b1_support_impact.md): 543 groups fall under the 2-free-pass floor (fast 70, medium 236, slow 226); 5,365 following passes (1,393 near band) go unsupported; 11,950 of 172,413 free passes are racecraft. No registered floor changes status. S2-pace 500 AGREE floor met in medium and slow, not fast (as before). S2-aero DISAGREE at risk (needs >=35.5% dirty air of 282 fast passes).",
+        "SG1-SG7 agent built sg_checks.py and tests/test_sg_checks.py (new, UNCOMMITTED, files under transform/tasks/wake_calibration/) and ran run 1 and a determinism repeat (200 sims x 200 draws, real 2022-23 structure). PRE-FIX interim results, NOT valid evidence (see blocker): SG1 PASS (worst coverage 0.925, bias +0.4%), SG2 PASS (0.91, bias <2%), SG4 PASS (reweight == literal refit to 5e-15 incl. circuit copy + duplicate race), SG5 timing OK (point fit ~13-18 s, one draw ~0.08 s, B=1,000 ~100 s), SG7 PASS (medium/slow AGREE 95.5% of sims, INCONCLUSIVE 4.5%, fast INCONCLUSIVE 100% with 383 bracketed passes), SG3/SG6 unfinished; determinism not shown (run 2 never finished a set); lap arm did not converge in 2022_7 and 2022_11 in SG5. sg_checks.py sha256 655bd30af3d760e2ce60472b1d42d66aeb669ea5f8bd9321552bdb319cf8d55c, tests/test_sg_checks.py sha256 991a574e1cec50c3395e3643d7ba089e2dd0a22a4f6b535e84a7409a42155541 (9 passed, 1 skipped). All SG processes confirmed stopped. README at _evidence/WC-10-2026-10-29/sg/README.md marks everything PRE-FIX; run 1 in sg/run1/, derived tables in sg/partial_run1/ (verdicts_PRE_FIX.json). The runs were STOPPED on the owner's instruction on 2026-10-30; partials saved under _evidence/WC-10-2026-10-29/sg/ with a README saying they are pre-fix (verify the README exists; W15)."
+      ],
+      "verified": [
+        "B1 hash read back with git show at HEAD: c9566233bb25dcf078a8cc336682b289ec2d7494cfe6fb7189662d3c56b7b500. board.py --check OK before this entry.",
+        "Root cause of the blocker established by a read-only diagnosis, structure columns only, with a fake y on a scratch copy of the logic: scratch scripts in /private/tmp/claude-501/-Users-justin-github-off-the-pace/885ba8d8-f683-485f-bcf1-ec11563a5da3/scratchpad/lap/ (build.py, an.py, fix.py), session scratch, not committed."
+      ],
+      "assumed": [
+        "BLOCKER (found 2026-10-30, before any real read). Scored free laps in races 2022_7 (Monaco) and 2022_11 (Spielberg) include rows where tyre_life (t) is NaN: lap arm 12 of 110 rows in 2022_7 (all LAT stint 4, MEDIUM) and 45 of 179 in 2022_11 (stint 3 of eight drivers, mostly compound UNKNOWN) = 57 free laps; design A has 958 free passes with NaN t in the same two races; 78 following laps with NaN t (69 in 2022_11, 9 in 2022_7) currently vanish silently through isfinite(tau). NaN goes into the tyre-trend columns Z, so ap_demean's test np.abs(NaN).max() < tol is never true and it runs the full 10,000 sweeps; fit_step1 / fit_lap_arm raise EstimatorError. The other 41 races converge in <=1,220 sweeps; theta has full rank everywhere; AP matches direct lstsq to 3e-9; lstsq also breaks on NaN, so a different solver or tolerance does NOT fix it. With real seg_time_s design A would fail at RUN START in all three classes (and, after OUTCOME DECODED, that is an ordinary exception, not an infrastructure cause, so a restart would need a post-hoc amendment).",
+        "WHY SG DID NOT CATCH IT (corrected by the SG agent's final report): in sg_checks.py plant(), g = th1*t + th2*t^2 (and the SG2/SG3 drift terms) turn a NaN tyre_life into a NaN synthetic outcome; free_set then drops that row as a null outcome, so it never reaches step 1. Fix: compute the tyre terms on np.nan_to_num(t) (or 0 where t is NaN) while keeping keys['t'] NaN, and do the same for the SG3 drift term and its cell mean; add a test that a free pass with NaN t gets a finite synthetic outcome. groupby().sum() is used only for the SG5 synthetic lap times: switch it to sum(min_count=1).",
+        "B2 RULINGS (owner accepted 2026-10-30, DD-WC23): (1) tyre_life is required for a row to enter step 1, in design A and the lap arm; (2) rows dropped for missing tyre_life carry their own named drop reason (e.g. tyre_life_missing) and are counted in the outputs and ledger, also for the 78 following laps that now vanish silently; (3) the theta layout (registration 6d) is computed AFTER the drop. Side effect to state in B2: 2022_11 UNKNOWN compound flips from estimated to thin/reference and n_params goes from 151 to 149. The registration 5 eligibility text asks only for non-null stint and compound, which is why this is an amendment and not a pure solver fix; registration 6b: 'failure to converge is a run error and a post-hoc amendment case'. No other race has an eligible NaN-t row (structure check).",
+        "OTHER BEFORE RUN START: (a) label mismatch: code design_a.RULED_CHOICES has duplicate_race_in_copy='separate_copy' but committed B1 D(2) says 'copy'. Behaviour matches ruling 5 (SG4 proves it). B1 is committed and hashed so do NOT edit B1: change the code constant/accepted value to 'copy' (and the tests) and say so in B2. (b) run_wc10 real mode does not check SG results or B1/B2 (W14). (c) The committed registration still reads DRAFT, unsigned on its status line; the sign-off is the commit plus DD-WC20.",
+        "Risks still open: fast class is thin (383 bracketed passes vs the 500 AGREE floor) so expect a dash for fast, not a level; S2-aero cannot reach AGREE; SG7 pre-fix put INCONCLUSIVE in medium or slow at ~4.5% (design A blocked -> FALLBACK WC-10m only then); 2024-25 confirmatory run (DD-WC21) is the real accuracy test.",
+        "House rules for the next session: never run git add/commit/push (owner commits; memory 'never-commit'); thresholds and gates are not changed after a result (BUILD-ORDER rule 4) and no outcome column is read before RUN START: that includes seg_start_t, seg_end_t and seg_time_s; 2024-25 stays sealed (the loader refuses it; do not work around it); scratch warehouse copy must be named dev.duckdb in its own folder, never touch data/dev.duckdb; no DA-03 number anywhere."
+      ],
+      "gates_run": [
+        "board.py --check (before this entry)",
+        "git log / git show hash read-back"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "AGENT (opus-5): read this entry, DD-WC22/DD-WC23, registration 5, 6b, 6d and B1 (wi/WC-10-amendment-B1-open-choices-DRAFT.md, committed b89e54c; do not edit). Draft wi/WC-10-amendment-B2-tyre-life-DRAFT.md in B1's style with the three rulings above, the counts (57 lap-arm free laps, 958 design A free passes, 78 following laps, 151 -> 149 n_params), and the 'copy' label alignment. Status line DRAFT, hash blank.",
+        "OWNER: commit B2 alone, run git show HEAD:<file> | shasum -a 256, give the hash. AGENT then records it in DD-WC23 and resolves it.",
+        "AGENT (opus-5): code fix: tyre_life required in step 1 for design A and lap_arm; named drop reason, counted in outputs and ledger; layout 6d computed after the drop; align 'copy' label; real mode refuses without B1/B2 hashes and an SG pass record (W14); tests for each, incl. a test with NaN-t rows in the synthetic structure; run cd transform && ../.venv/bin/python -m pytest tasks/wake_calibration/tests -q to the end.",
+        "AGENT (sonnet-5): fix sg_checks.py plant() per the corrected cause in 'assumed' (NaN t must give a finite synthetic outcome; sum(min_count=1) for SG5); then re-run ALL of SG1-SG7 (run twice for determinism, ~30 min per set with 6 workers; SG5 point fit ~13-18 s) into a fresh evidence folder; mark the pre-fix sg/ folder superseded (W15). If any SG fails, nothing real is read; amend first; never tune to pass.",
+        "OWNER: commit the code fix, sg_checks.py, tests and evidence; then say go for RUN START. Also commit the standing uncommitted material (W13).",
+        "AGENT (opus-5) after RUN START is given: the real discovery fit on 2022-23 via run_wc10 (WC-10e), then WC-10f (cut points) and WC-10g (confirmatory registration draft); DD-WC21 and DD-WC19 are the owner's calls."
       ]
     }
   ]

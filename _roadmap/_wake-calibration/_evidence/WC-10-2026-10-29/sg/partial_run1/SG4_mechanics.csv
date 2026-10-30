@@ -1,0 +1,14 @@
+item,scope,detail,pass
+class rule: exactly one of held up / dirty air / unknown / racecraft per following pass,fast,"following 37274; dirty_air 7206, held_up 5599, racecraft 3000, unknown 21469",True
+"a null outcome is never filled (left out, counted)",fast seg_time_s,nulls among following 3709; counted outcome_null 1666; null and valid 0,True
+"a null outcome is never filled (left out, counted)",fast min_speed_kph,nulls among following 5552; counted outcome_null 2613; null and valid 0,True
+class rule: exactly one of held up / dirty air / unknown / racecraft per following pass,medium,"following 107915; dirty_air 23432, held_up 20839, racecraft 11823, unknown 51821",True
+"a null outcome is never filled (left out, counted)",medium seg_time_s,nulls among following 10308; counted outcome_null 4539; null and valid 0,True
+"a null outcome is never filled (left out, counted)",medium min_speed_kph,nulls among following 16037; counted outcome_null 7338; null and valid 0,True
+class rule: exactly one of held up / dirty air / unknown / racecraft per following pass,slow,"following 102014; dirty_air 22128, held_up 19006, racecraft 11339, unknown 49541",True
+"a null outcome is never filled (left out, counted)",slow seg_time_s,nulls among following 9705; counted outcome_null 4390; null and valid 0,True
+"a null outcome is never filled (left out, counted)",slow min_speed_kph,nulls among following 14921; counted outcome_null 6829; null and valid 0,True
+a null outcome is never filled (step 1),free set,free passes with null outcome in step 1: 0,True
+the loader refuses 2024-25 (before any file is opened),wc10_io,8 requests refused with SealError: 8; parquet files opened: 0,True
+the gate decodes no column,data_gate.run_checks on fake inputs,"reader calls 0; gate result FAIL (fake digests, expected); lines 4; exception none",True
+restart guard: allowed after a gate failure with nothing written; refused after,wc10_io.Ledger,state after gate failure FAILED_RESTARTABLE; restart allowed; restart after OUTCOME-DERIVED WRITTEN refused,True

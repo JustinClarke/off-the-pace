@@ -1,0 +1,4 @@
+appendix rows 24 computed 24 EQUAL: True
+appendix text NFC: True
+calendar 2022-23 events not in kept passes: [(2022, 'japanese_grand_prix'), (2022, 'pre_season_test'), (2022, 'pre_season_track_session'), (2023, 'pre_season_testing')]
+races present in pass table rows (any reason) but no kept braking pass: ['2022_18']

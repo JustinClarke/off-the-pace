@@ -1,0 +1,5 @@
+corner_class  supported_following  local_bracketed  near_supported  near_local_bracketed  far_supported  far_local_bracketed
+        fast                23008           3636.0          5837.0                 518.0         6519.0               1603.0
+      medium                65511          11347.0         15362.0                1444.0        19769.0               5027.0
+        slow                61981          10362.0         14435.0                1336.0        18616.0               4618.0
+        None               150500          25345.0         35634.0                3298.0        44904.0              11248.0

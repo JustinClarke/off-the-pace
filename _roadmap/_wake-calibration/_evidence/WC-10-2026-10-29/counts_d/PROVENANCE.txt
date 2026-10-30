@@ -1,0 +1,31 @@
+WC-10d review-fix counts PROVENANCE. 2026-10-29. Structural columns only; 2022-23; run from repo root with .venv/bin/python; data/dev.duckdb not touched.
+d01, d02 are copies of session scratch (8181e7c5) with outputs d01_out.txt, d02_out.txt. d03, d04 written for REVIEW-1 fixes B1, B4, S5, B2.
+Inputs: pass table pass_table_{2022,2023}.parquet (digest in data gate), sidecar_{2022,2023}.parquet (d01/d02 only), bronze schedule via build_pass_table.race_calendar.
+
+SCRIPT SHA-256
+bf69464b518f8eb97d17d34ac11d1a16bdae7a528eb6b3c7a3b5a54320d29a23  scripts/d01_support_2022_23.py
+eb9f11b7419500593b170636f72f9d6036b8e5f98b02432bfdd4bdd830d122d5  scripts/d02_phi_window.py
+79083499782e6eac690336b8753cd6b7bb4869b876557febffc58cdfb6e12026  scripts/d03_review_counts.py
+5620baac0a5a4434bc91c7079393ee53c3a909433abd7c5f95a869d7f22bf04b  scripts/d04_local_bracket.py
+
+OUTPUT SHA-256
+f227aca4cbbab9fae695e97d05b40dc80533e415b7117303c35f05850805dc67  csv/d01_out.txt
+9c6c4691e7a8c1689497cc78739a138af92809d582f3af484bf919ce5cd5f7fc  csv/d02_out.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  csv/d03_err.txt
+22e171fa88d1aa92b72fb2d961b81cde0f218ab600049c4d671f43af9ae0c5d4  csv/d03_out.txt
+81a0a8e3ee9a4a82b7704b70ec3ac6769b96af17d064e2fdab087b7c7f0ad8c7  csv/d04_out.txt
+
+REVIEW-2 ADDITIONS (2026-10-29). d05-d08 are byte copies of the REVIEW-2 reviewer's session scratch (r2_counts.py -> d05_review2_counts.py, r2_s3.py -> d06_s3_population.py, r2_lap.py -> d07_lap_arm.py, r2_app.py -> d08_appendix_check.py), rerun from repo root with .venv/bin/python, stderr empty for all four. Structural columns only (pass table structural columns; sidecar prev_lap_gap_s, prev_lap_clear_ahead, prev_lap_reason; bronze schedule via race_calendar); d08 also reads the draft's Appendix A text. No outcome column read; nothing fitted; data/dev.duckdb not touched. d05 output equals the reviewer's r2_out.txt apart from line 1.
+Notes: d05's last 'lap arm' lines print 0 (that block of the reviewer's first pass does not produce the lap-arm counts; not diagnosed here); the lap-arm counts used in the draft come from d07, the reviewer's separate lap-arm script. d01_out.txt ends in a traceback (its last query, 'groups', fails on a reserved word); no draft number depends on that query.
+
+SCRIPT SHA-256 (REVIEW-2)
+869cb784d6f6ed68c008aed0e232c160dc8ea0cca8eee237ff27ed5bcab22138  scripts/d05_review2_counts.py
+a5714bcf114d6d7d9656f52d51d2a4dd6e506aba016aa3e8cb55ac171055e90c  scripts/d06_s3_population.py
+fa3a70f9026844e20877c3284a7dca1f4b02426717311a4d97203d6a886fe24d  scripts/d07_lap_arm.py
+a7001ba7295233b67fde75ed005ec31f6e1501df6dc9376634850747e04bee2d  scripts/d08_appendix_check.py
+
+OUTPUT SHA-256 (REVIEW-2)
+755796ba0508b9eadfa2c3cbd15e30150e89d93b6af2d7d663f6191e3c2ca5da  csv/d05_out.txt
+d8f26d0157bd9e0f539cdaeecb93c3590425c0e1005a8f6a85d8c0db21651242  csv/d06_out.txt
+c29ae2d29f9e592d18b47fb87fa84d8e13d74791491139c1a5b21dee20384636  csv/d07_out.txt
+29561a6919506b0dff3d10f0ce30a1e74e1ce8ee72fad6586489ffab3219c95f  csv/d08_out.txt

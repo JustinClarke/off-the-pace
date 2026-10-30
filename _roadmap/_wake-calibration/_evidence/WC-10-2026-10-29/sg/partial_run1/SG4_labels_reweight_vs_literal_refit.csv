@@ -1,0 +1,7 @@
+case,class,passes_compared,label_mismatches
+circuit copy + duplicate race,fast,2995,0
+circuit copy + duplicate race,medium,6530,0
+circuit copy + duplicate race,slow,4995,0
+duplicate race only,fast,2995,0
+duplicate race only,medium,6530,0
+duplicate race only,slow,4995,0

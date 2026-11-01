@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "wake-calibration: own-reference corner loss with an upstream gap (measured / modelled / unavailable)",
-  "updated": "2026-11-01T01:30:00+04:00",
+  "updated": "2026-11-01T22:00:52+04:00",
   "pointer": "WC-16",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -2745,6 +2745,37 @@
         "board --check"
       ],
       "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check"
+    },
+    {
+      "date": "2026-11-01T22:00:52+04:00",
+      "session": "CI repair on PR #29 (branch wc-11-16-placeholder-and-ci). Owner committed and pushed; agents never ran git write. Handoff to a new chat.",
+      "landed": [
+        "PR #29 first run: 6 red checks. Causes found: CI byte-stability baseline was recorded on macOS arm64 and never matched the ubuntu runner (red on main since 2026-10-26); ML CI built the wrong marts (selector) and had never got past the old dbt pin; .agents/ hidden only by local .git/info/exclude; /project-graph.html is generated and gitignored; reference generator crashed on CI because fastf1/pandas are not installed there (ingest.mdx came out empty).",
+        "Fixes committed and pushed (85d7d33, c538e16, 73b71fb): 4 fct_* entries in transform/tests/model_hashes.ci.baseline.json set to CI-produced hashes (fct_cliff_prediction_features was NOT changed by the pit fix: platform difference only); dbt-ci.yml now writes target/model_hashes.ci.actual.json into the dbt-artifacts upload; ml-ci.yml selects the four ML contract marts; .gitignore adds .agents/; project-graph links replaced by plain text; scripts/gen_cli_reference.py stubs fastf1/pandas/numpy/pyarrow, fixes COLUMNS=80, fails on empty --help.",
+        "ml/src/train.py _season_folds: folds now from seasons that have rows in groups_train; two seasons give one fold; real-data folds proven identical for all 5 targets. New ml/tests/test_season_folds.py (4 tests); ml/tests 286 passed locally.",
+        "PR #26 (release-please) runs were approved by API; release-please.yml takes token RELEASE_PLEASE_TOKEN || GITHUB_TOKEN (secret not yet created)."
+      ],
+      "verified": [
+        "After push 73b71fb: 23 checks pass on PR #29 (App CI, App E2E, App Performance, Docs CI incl. Mintlify, reference drift and docs audit, Worker CI, CodeQL, OSV, Security Scan, gitleaks, pip-audit, ml-leakage-guard)."
+      ],
+      "assumed": [
+        "Gate 1c (byte-stability) status on the latest dbt-build run was not read; the job failed later at a pytest step, so confirm it from the log.",
+        "The Mac-vs-ubuntu hash difference is inferred (no Linux available locally)."
+      ],
+      "next": [
+        "dbt-build still red: transform/tasks/coefficients/tests/test_fit_dirty_air_microsector.py::test_entry_crossing_noise_passes_gate_1_but_not_the_lag_check raises numpy LinAlgError (singular matrix) on the CI runner (job 124862763455, run 41311528638). Also check an 'F44 ERROR TypeError: > not supported between NoneType' line in the same log (Driver Circuit Affinity 'vs own average' check).",
+        "ml-smoke still red: ModuleNotFoundError: No module named 'lifelines' at the smoke step (job 124862762954, run 41311528442). Add lifelines to what ml-ci.yml installs (check ml requirements) and re-run; the train fold fix itself is not the blocker now.",
+        "After a dbt-ci run exists on the new commits: download dbt-artifacts, copy model_hashes.ci.actual.json over transform/tests/model_hashes.ci.baseline.json (only if the 4 fct_* hashes match the current baseline) to clear the 8 non-fct warnings and 2 new-model notices.",
+        "scripts/ml_docs_facts.py: TEST_GROUPS says 270, pytest collects 286 (ERROR locally; was WARN-level gap 270 vs 282 before). One-number fix.",
+        "Do not merge release PR #26 until PR #29 is green and staging data is published; repo variables for Deploy (GCP_WORKLOAD_IDENTITY_PROVIDER etc.) are still unset.",
+        "Optional: set Settings > Actions > General fork approval to the 'new to GitHub' option, or create RELEASE_PLEASE_TOKEN PAT. Optional: make int_sector_residual_decomposed window STDDEV row-order independent (warn-only)."
+      ],
+      "gates_run": [
+        "gh pr checks 29 (after push 73b71fb)",
+        "ml/tests (286 passed, local)",
+        "docs-drift 57/57 OK (local, before the docs CI fixes)"
+      ],
+      "next_command": "gh pr checks 29"
     }
   ]
 }

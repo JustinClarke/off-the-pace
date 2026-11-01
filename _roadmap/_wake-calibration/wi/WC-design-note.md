@@ -43,6 +43,8 @@ Totals add measured and modelled only with the modelled share printed beside the
 
 > Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.
 
+_[note correction 2026-11-01: DD-WC2 was reworded by the owner on 2026-10-31 for the WC-11 placeholder. The text quoted here is the 2026-10-27 wording, kept because it describes this item's modelled sources (other compound / other driver). Re-confirm the wording with the owner when this item starts.]_
+
 ## Top risks (from the research)
 
 1. **Selection.** Drivers stuck in traffic have no clean reference, and that is where the loss is largest. Shows as a high modelled share for midfield teams, and measured losses smaller than modelled at the same gap.

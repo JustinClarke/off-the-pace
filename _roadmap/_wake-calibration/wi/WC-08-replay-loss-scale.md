@@ -7,7 +7,7 @@
 **Rules.**
 - Nothing is shown before WC-04's scorecard is in `_evidence/WC-04-<date>/` and the owner has read it.
 - Every value carries its label: measured, modelled or unavailable. Unavailable is "—" with the reason, never 0.
-- Every modelled value carries the DD-WC2 disclaimer word for word: "Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors."
+- Every modelled value carries the DD-WC2 disclaimer word for word: "Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors." _[note correction 2026-11-01: DD-WC2 was reworded by the owner on 2026-10-31 for the WC-11 placeholder. The text quoted here is the 2026-10-27 wording, kept because it describes this item's modelled sources (other compound / other driver). Re-confirm the wording with the owner when this item starts.]_
 - Totals print the modelled share beside them.
 - Flat-out corners (`segment_basis = fixed_before_apex`) show a loss only if the WC-03 pre-registration split tow from wake loss for them; otherwise they show "—" with that reason.
 - No archived dirty-air (DA-03) number, as a fallback or otherwise.

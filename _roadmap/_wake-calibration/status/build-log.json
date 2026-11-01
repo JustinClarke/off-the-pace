@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "project": "wake-calibration: own-reference corner loss with an upstream gap (measured / modelled / unavailable)",
-  "updated": "2026-10-30T12:53:15+04:00",
-  "pointer": "WC-10e",
+  "updated": "2026-11-01T01:30:00+04:00",
+  "pointer": "WC-16",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -71,6 +71,12 @@
       "title": "WC-10 - exploratory traffic levels (pace, aero, tyre) on the replay",
       "parallel": false,
       "summary": "Design A from wi/WC-10-exploratory-levels-PLAN-DRAFT.md (within driver x stint x compound x corner, field corner-lap effect, tyre trend). Outcome-blind prep, then a discovery registration (2022-23), a sealed confirmatory registration and one run (2024-25), a scorecard, then levels on the WC-07 replay. Not registered. Nothing fitted. Every owner step is an OPEN decision (DD-WC15..DD-WC21), not an item."
+    },
+    {
+      "id": "9-interim",
+      "title": "Interim placeholder values (WC-10 paused)",
+      "parallel": false,
+      "summary": "Arbitrary, clearly labelled per-circuit placeholder wake values for the cost display while WC-10 is paused. Assumptions, not fits; never an ML feature or target; replaceable by calibrated values with no downstream change."
     }
   ],
   "items": [
@@ -394,7 +400,7 @@
     {
       "id": "WC-10e",
       "group": "8-levels",
-      "stage": "BUILDING",
+      "stage": "BLOCKED",
       "depends_on": [
         "WC-10d"
       ],
@@ -414,9 +420,10 @@
         "Before the real run, a synthetic test recovers a planted gap dose-response and a planted tyre drift (one-sided support, as in the real data) within the registered tolerance.",
         "Every output the registration lists exists, including the go/no-go line (design A or the fallback) computed by the registered rule."
       ],
-      "note": "Waits on the owner signing the discovery registration (DD-WC20). Watch W7. 2026-10-30: estimator built and committed (1a9ef80, 306 tests green); B1 committed (b89e54c). BLOCKED ON FIX: rows with NaN tyre_life make step 1 fail to converge in 2022_7 and 2022_11 for design A AND the lap arm (history 2026-10-30 handoff entry). Needs amendment B2 (drop NaN-tyre_life rows, counted; layout 6d after the drop), a code fix, and a full re-run of SG1-SG7. Pointer stays here; do not RUN START.",
+      "note": "Waits on the owner signing the discovery registration (DD-WC20). Watch W7. 2026-10-30: estimator built and committed (1a9ef80, 306 tests green); B1 committed (b89e54c). BLOCKED ON FIX: rows with NaN tyre_life make step 1 fail to converge in 2022_7 and 2022_11 for design A AND the lap arm (history 2026-10-30 handoff entry). Needs amendment B2 (drop NaN-tyre_life rows, counted; layout 6d after the drop), a code fix, and a full re-run of SG1-SG7. Pointer stays here; do not RUN START. 2026-10-30 (later): code fix for B2 written and tested (334 passed, 0 failed, 1 skipped) but UNCOMMITTED; B2 draft written but UNCOMMITTED and not yet reconciled with the code (see the latest history entry). PAUSED 2026-10-30 (DD-WC24): owner paused 2026-10-30: interim placeholder values shipped instead; resume when calibrated levels are wanted. Stage before the pause: BUILDING; restore it on resume.",
       "blocked_by_decision": [
-        "DD-WC20"
+        "DD-WC20",
+        "DD-WC24"
       ]
     },
     {
@@ -440,7 +447,10 @@
         "Only 2022-23 discovery outputs are read (guard and test).",
         "One 2023 race as a static per-lap table (CSV or HTML) headed 'exploratory, discovery data, in-sample, not confirmed'; every level labelled modelled with the DD-WC2 disclaimer verbatim; unavailable shown as '—' with the reason, never 0 or 'none'."
       ],
-      "note": "DD-WC17 resolved 2026-10-29: quantile cut-offs; page text says levels are relative to the typical following lap. Physical cuts may be revisited here, before WC-10g is signed."
+      "note": "DD-WC17 resolved 2026-10-29: quantile cut-offs; page text says levels are relative to the typical following lap. Physical cuts may be revisited here, before WC-10g is signed. PAUSED 2026-10-30 (DD-WC24): owner paused 2026-10-30: interim placeholder values shipped instead; resume when calibrated levels are wanted. Stage before the pause: BLOCKED; restore it on resume.",
+      "blocked_by_decision": [
+        "DD-WC24"
+      ]
     },
     {
       "id": "WC-10g",
@@ -464,7 +474,10 @@
         "The identification text of this registration gets an explicit adversarial review pass by an independent opus-5 reviewer (a plausible spec that does not identify: fixed-effect structure, drift model, tolerance, pass-class rule) and the review's findings and fixes are recorded before the owner's signing step.",
         "Stops at the draft. Signing, committing it alone and recording its SHA-256 is the owner's step (DD-WC21)."
       ],
-      "note": "DD-WC18 resolved 2026-10-29: the DD-WC2 disclaimer verbatim plus a separate second line 'Level = typical effect for a car in this situation, not a measurement of this lap'. DD-WC17: quantile cut-offs unless revisited at WC-10f."
+      "note": "DD-WC18 resolved 2026-10-29: the DD-WC2 disclaimer verbatim plus a separate second line 'Level = typical effect for a car in this situation, not a measurement of this lap'. DD-WC17: quantile cut-offs unless revisited at WC-10f. PAUSED 2026-10-30 (DD-WC24): owner paused 2026-10-30: interim placeholder values shipped instead; resume when calibrated levels are wanted. Stage before the pause: BLOCKED; restore it on resume.",
+      "blocked_by_decision": [
+        "DD-WC24"
+      ]
     },
     {
       "id": "WC-10h",
@@ -489,15 +502,16 @@
         "A test shows the run guard allows a restart after a gate failure that wrote no outcome-derived number, and refuses one after.",
         "Gate results for C1-C5 are written to _evidence/WC-10-confirm-<date>/."
       ],
-      "note": "Waits on the owner signing the confirmatory registration and saying yes to the run (DD-WC21). Watch W8.",
+      "note": "Waits on the owner signing the confirmatory registration and saying yes to the run (DD-WC21). Watch W8. PAUSED 2026-10-30 (DD-WC24): owner paused 2026-10-30: interim placeholder values shipped instead; resume when calibrated levels are wanted. Stage before the pause: BLOCKED; restore it on resume.",
       "blocked_by_decision": [
-        "DD-WC21"
+        "DD-WC21",
+        "DD-WC24"
       ]
     },
     {
       "id": "WC-10i",
       "group": "8-levels",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "WC-10h"
       ],
@@ -515,7 +529,10 @@
         "Every number in it traces to a file in the run output (script check).",
         "The owner reads line 1 before any use of the result."
       ],
-      "note": "No number goes to the replay or the app before the owner has read the scorecard."
+      "note": "No number goes to the replay or the app before the owner has read the scorecard. PAUSED 2026-10-30 (DD-WC24): owner paused 2026-10-30: interim placeholder values shipped instead; resume when calibrated levels are wanted. Stage before the pause: SPEC; restore it on resume.",
+      "blocked_by_decision": [
+        "DD-WC24"
+      ]
     },
     {
       "id": "WC-10j",
@@ -540,15 +557,16 @@
         "Per lap and car: car ahead, gap, and pace / aero / tyre chips, each with measured / modelled / unavailable, confidence firm / between / uncertain, and the 'extrapolated' flag for stints with a close share of 80 % or more.",
         "Fixture tests on one race per season pass."
       ],
-      "note": "Waits on DD-WC18 (disclaimer line) and DD-WC19 (relaxing WC-07's no-loss rule).",
+      "note": "Waits on DD-WC18 (disclaimer line) and DD-WC19 (relaxing WC-07's no-loss rule). PAUSED 2026-10-30 (DD-WC24): owner paused 2026-10-30: interim placeholder values shipped instead; resume when calibrated levels are wanted. Stage before the pause: BLOCKED; restore it on resume.",
       "blocked_by_decision": [
-        "DD-WC19"
+        "DD-WC19",
+        "DD-WC24"
       ]
     },
     {
       "id": "WC-10k",
       "group": "8-levels",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "WC-10j"
       ],
@@ -566,12 +584,15 @@
         "One race per season renders end to end.",
         "The owner reviewing one race per season is the owner's step, not part of this item."
       ],
-      "note": "Watch W10 (ship-blocker, raised once WC-10j is under way) and W11."
+      "note": "Watch W10 (ship-blocker, raised once WC-10j is under way) and W11. PAUSED 2026-10-30 (DD-WC24): owner paused 2026-10-30: interim placeholder values shipped instead; resume when calibrated levels are wanted. Stage before the pause: SPEC; restore it on resume.",
+      "blocked_by_decision": [
+        "DD-WC24"
+      ]
     },
     {
       "id": "WC-10l",
       "group": "8-levels",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "WC-10i"
       ],
@@ -588,12 +609,15 @@
         "Its own registration is committed alone and hashed before any fit (a new owner decision is raised when this item is reached).",
         "An agreement table (trailing vs retrospective level, per factor and season) is in _evidence/WC-10-causal-<date>/."
       ],
-      "note": "Optional. The trailing own-clean reference is too thin (3.1 % at 0.5-1 s, review note), so this uses design A curves with lap state only."
+      "note": "Optional. The trailing own-clean reference is too thin (3.1 % at 0.5-1 s, review note), so this uses design A curves with lap state only. PAUSED 2026-10-30 (DD-WC24): owner paused 2026-10-30: interim placeholder values shipped instead; resume when calibrated levels are wanted. Stage before the pause: SPEC; restore it on resume.",
+      "blocked_by_decision": [
+        "DD-WC24"
+      ]
     },
     {
       "id": "WC-10m",
       "group": "8-levels",
-      "stage": "SPEC",
+      "stage": "BLOCKED",
       "depends_on": [
         "WC-10e"
       ],
@@ -612,7 +636,169 @@
         "A synthetic recovery check passes on the real 2022-23 structure before any real read.",
         "A comparison table (design A curve vs pooled curve, per class and gap bin, with intervals) is in the evidence folder."
       ],
-      "note": "Raised 2026-10-29 by the owner. Not on the critical path: WC-10d proceeds without it. Use as the fallback if design A returns NEITHER or FALLBACK-lap-arm is too coarse; it has far more support than design A (no stint x corner grouping) but cannot see within-stint changes (tyre saving, pushing)."
+      "note": "Raised 2026-10-29 by the owner. Not on the critical path: WC-10d proceeds without it. Use as the fallback if design A returns NEITHER or FALLBACK-lap-arm is too coarse; it has far more support than design A (no stint x corner grouping) but cannot see within-stint changes (tyre saving, pushing). PAUSED 2026-10-30 (DD-WC24): owner paused 2026-10-30: interim placeholder values shipped instead; resume when calibrated levels are wanted. Stage before the pause: SPEC; restore it on resume.",
+      "blocked_by_decision": [
+        "DD-WC24"
+      ]
+    },
+    {
+      "id": "WC-11",
+      "group": "9-interim",
+      "stage": "MEASURED",
+      "depends_on": [],
+      "title": "Interim placeholder wake values per circuit (assumed s/lap within 1 s, tapering to 0 at 2 s) for the dirty-air cost page; labelled modelled/placeholder, never ML",
+      "sources": [
+        "transform/seeds/wake_placeholder_values.csv",
+        "transform/models/intermediate/int_lap_wake_placeholder_cost.sql",
+        "transform/models/intermediate/int_lap_proximity.sql",
+        "app/src/features/dirty-air-cost/",
+        "scripts/export_app_data.py"
+      ],
+      "doc": "wi/WC-11-interim-placeholder-values.md",
+      "cost": "2-3 d",
+      "model": "opus-5",
+      "model_reason": "Chooses assumed values, decides where they may and may not flow (display only, never the ML label), and the labelling: a claim boundary.",
+      "done_when": [
+        "Seed covers every race_to_track circuit; every row value_kind placeholder with a basis.",
+        "int_lap_wake_placeholder_cost builds on a scratch copy with its schema tests and assert_wake_placeholder_labels passing.",
+        "test_wc11_placeholder.py passes: no DA-03 number or identifier, DD-WC2 verbatim, nothing in ml/ or other dbt models reads the placeholder.",
+        "dirty-air-cost page: every value labelled modelled/placeholder with both disclaimer lines, unavailable is '—' with a reason, field total prints the modelled share; vitest passes.",
+        "Owner ruled on the placeholder second line (DD-WC25: kept); export re-run after a trusted rebuild; docs-claims reviewer verdict for reading-signal-dirty-air-cost."
+      ],
+      "note": "Owner decision 2026-10-30 (WC-10 paused, DD-WC24). Built and tested in the working tree on a scratch warehouse copy (data/dev.duckdb not touched); UNCOMMITTED. Values: fast 0.45, medium 0.30, slow 0.20 s per full lap within 1 s (0.40 was moved to 0.45 because it equalled a DA-03 CI bound at 3 dp). int_dirty_air_tax_component, theta_air, the ML feature contract and targets unchanged."
+    },
+    {
+      "id": "WC-12",
+      "group": "9-interim",
+      "stage": "MEASURED",
+      "depends_on": [
+        "WC-11"
+      ],
+      "title": "Per-race placeholder wake loss: a transparent rule from the layout's corner mix (structure columns only) x an assumed regulation-era factor, bounded 0.15-0.55 s; flagged class fallback; still modelled/placeholder, never ML",
+      "sources": [
+        "transform/seeds/wake_placeholder_rule.csv",
+        "transform/seeds/wake_placeholder_race_structure.csv",
+        "transform/tasks/wake_calibration/wc12_structure.py",
+        "transform/models/intermediate/int_wake_placeholder_race_loss.sql",
+        "transform/models/intermediate/int_lap_wake_placeholder_cost.sql",
+        "app/src/features/dirty-air-cost/"
+      ],
+      "doc": "wi/WC-11-interim-placeholder-values.md",
+      "cost": "1-2 d",
+      "model": "opus-5",
+      "model_reason": "Chooses the factors, how they combine and the bounds, and rules on what counts as outcome-contaminated: a claim boundary.",
+      "done_when": [
+        "Every race_to_track race has a loss in [0.15, 0.55]; fallbacks flagged loss_source = class_fallback; bounded rows flagged.",
+        "No outcome column read by the structure builder or the race model; no rule constant or per-race value equals a DA-03 number at 3 dp.",
+        "dbt build of the placeholder seeds, models and tests passes on a scratch copy; test_wc11_placeholder.py and vitest pass.",
+        "Placeholder line reads 'at this circuit and season' everywhere; docs-claims verdict PASS for reading-signal-dirty-air-cost, then docsDrift --update by the owner."
+      ],
+      "note": "2026-10-30, UNCOMMITTED. Rule: corner_index = 1.00 fast + 0.50 medium + 0.25 slow + 0.25 flat kinks (layout medians of the WC-03 pass table's corner_class/segment_basis); loss = era x 0.35 x index/8, clamped 0.15-0.55, rounded 0.01. Era: 2017-18 1.00, 2019-21 0.90, 2022 0.65, 2023 0.75, 2024-25 0.80, 2026+ 0.80 unassessed. 169 races by rule, 4 fallback (2018_1, 2018_2, 2020_9, 2020_16); 4 at the floor. Within a layout only the era factor varies."
+    },
+    {
+      "id": "WC-13",
+      "group": "9-interim",
+      "stage": "MEASURED",
+      "depends_on": [
+        "WC-12"
+      ],
+      "title": "Placeholder wake loss per lap: race value x an assumed bounded tyre factor (relative dry compound: SOFT 1.10, MEDIUM 1.00, HARD 0.96; wet/inter neutral) x a car factor (per season x constructor_id, neutral 1.00 for every team), clamped 0.15-0.55 s; missing keys neutral and flagged; still modelled/placeholder, never ML",
+      "sources": [
+        "transform/seeds/wake_placeholder_compound_factor.csv",
+        "transform/seeds/wake_placeholder_constructor_factor.csv",
+        "transform/seeds/wake_placeholder_rule.csv",
+        "transform/models/intermediate/int_lap_wake_placeholder_cost.sql",
+        "transform/tests/assert_wake_placeholder_factors.sql",
+        "app/src/features/dirty-air-cost/"
+      ],
+      "doc": "wi/WC-11-interim-placeholder-values.md",
+      "cost": "1 d",
+      "model": "opus-5",
+      "model_reason": "Sets the factor values and bounds, rules on what counts as citable public evidence for a per-team factor and what is outcome-contaminated: a claim boundary.",
+      "done_when": [
+        "Tyre factor bounded 0.90-1.15 and monotone SOFT >= MEDIUM >= HARD; INTERMEDIATE/WET neutral by rule; 2018 legacy names mapped to the race's relative class by softness rank of its three dry compounds.",
+        "Constructor table has a row for every (season, constructor_id) in stg_laps (81 rows, 2018-2025), all neutral_default 1.00 unless a row is public_concept with a cited source, bounded 0.95-1.05.",
+        "Missing compound / constructor / seed row gives the neutral 1.00 and a factor_flag (assert_wake_placeholder_factors).",
+        "Every race x tyre x car value in [0.15, 0.55] and off the DA-03 numbers at 3 dp; lap model reads only identity columns from stg_laps; nothing in ml/ or the label spine reads it.",
+        "dbt build of the placeholder seeds, models and tests passes on a scratch copy; test_wc11_placeholder.py and vitest pass.",
+        "Placeholder line reads 'on this tyre and car' everywhere (DD-WC26); docs-claims verdict PASS recorded; docsDrift --update by the owner."
+      ],
+      "note": "2026-10-30, UNCOMMITTED. Per-lap loss = ROUND(clamp(race x tyre x car, 0.15, 0.55), 4); rounded to 4 dp, not 0.01, because at 0.01 some race x tyre products land on 0.40 (a DA-03 number). HARD is 0.96 not 0.95 for the same reason (0.43 x 0.95 = 0.4085 -> 0.409). C-numbers not used: tyre_allocations is user-supplied, not re-sourced, 2025 carried forward (DD-WC28). Car factor: no per-team value set; nothing found that is public, non-outcome and directional about wake sensitivity (DD-WC27). Scratch result: 189,418 laps, per-lap loss 0.15-0.517 s (mean 0.256); 2,134 laps held at the floor (HARD laps at the four 2022 floor races); 1,129 laps flagged (no compound recorded); 10,120 wet/inter laps neutral; season mean cost moves by at most 0.0015 s vs WC-12."
+    },
+    {
+      "id": "WC-14",
+      "group": "9-interim",
+      "stage": "MEASURED",
+      "depends_on": [
+        "WC-13"
+      ],
+      "title": "Dirty Air Cost page visuals: per-driver bar chart and a lap-by-lap \"how the cost is built\" diagram (measured exposure strip above the assumed cost strip), display only",
+      "sources": [
+        "app/src/features/dirty-air-cost/"
+      ],
+      "doc": "wi/WC-11-interim-placeholder-values.md",
+      "cost": "0.5 d",
+      "model": "opus-5",
+      "model_reason": "Display work on existing data; no claim boundary.",
+      "done_when": [
+        "Bars labelled placeholder, modelled; unavailable drivers show a dash and a reason, never a 0 bar.",
+        "Lap diagram shows measured exposure and assumed cost per lap; neutralised laps hatched, never 0; keyboard and table view.",
+        "No warehouse, dbt, export or ML change; DA-03 test and vitest, typecheck, lint pass."
+      ],
+      "note": "2026-10-31, UNCOMMITTED. Lap-level columns already exported, so no export change. Display only."
+    },
+    {
+      "id": "WC-15",
+      "group": "9-interim",
+      "stage": "MEASURED",
+      "depends_on": [
+        "WC-14"
+      ],
+      "title": "Dirty Air Cost table redesign (collapsible rows, tidied notes block with an Assumptions disclosure) and a zero-exposure check on GAS/TSU (2025 round 5): finding is no bug, both retired on lap 1 and lap 1 is neutralised; correlation of the Lap Air Map air-state lap counts with the placeholder cost reported",
+      "sources": [
+        "app/src/features/dirty-air-cost/",
+        "transform/models/intermediate/int_lap_wake_placeholder_cost.sql"
+      ],
+      "doc": "wi/WC-11-interim-placeholder-values.md",
+      "cost": "0.5 d",
+      "model": "opus-5",
+      "model_reason": "Display work plus a data check; no claim boundary.",
+      "done_when": [
+        "Collapsed row shows rank, driver, team, total, avg/lap and a modelled label; a click, Enter or Space opens the detail; several rows can be open; Export CSV keeps the full detail columns.",
+        "DD-WC2, the placeholder line, the field total and modelled share stay visible; assumption detail is in one closed disclosure.",
+        "Unavailable stays a dash with a reason, a modelled zero stays 0.00 s; vitest, tsc, eslint and test_wc11_placeholder.py pass."
+      ],
+      "note": "2026-10-31, UNCOMMITTED. Display only; no dbt, export or ML change. GAS/TSU: no bug (see WC-11 note, WC-15 section)."
+    },
+    {
+      "id": "WC-16",
+      "group": "9-interim",
+      "stage": "MEASURED",
+      "depends_on": [
+        "WC-13"
+      ],
+      "title": "Placeholder tyre factor by Pirelli C-number (step by C-number distance from the race medium: 0.93/0.96/1.00/1.10/1.17, clamped 0.90-1.17; medium shift dropped by DD-WC29; 2018 relative class), verified 173-race allocation seed, DD-WC2 reworded, car factor research (all neutral)",
+      "sources": [
+        "transform/seeds/wake_placeholder_tyre_allocation.csv",
+        "transform/seeds/wake_placeholder_c_number_factor.csv",
+        "transform/models/intermediate/int_lap_wake_placeholder_cost.sql",
+        "transform/tests/assert_wake_placeholder_tyre_allocation.sql",
+        "transform/tests/assert_wake_placeholder_factors.sql",
+        "app/src/features/dirty-air-cost/",
+        "_roadmap/_wake-calibration/_evidence/WC-16-2026-10-31/"
+      ],
+      "doc": "wi/WC-11-interim-placeholder-values.md",
+      "cost": "1 d",
+      "model": "opus-5",
+      "model_reason": "Rules on the factor rule, the DA-03 boundary and the disclaimer text: claim boundaries.",
+      "done_when": [
+        "Allocation seed has all 173 races, trios in hardness order, C1-C6 accepted, 2018 named with NULL C-numbers.",
+        "Factor constants in a seed with basis and source; SQL holds none; c_number / relative_class / neutral flagged per lap.",
+        "DA-03 grep test passes, unweakened (DD-WC29: medium shift dropped).",
+        "Scratch dbt build, full pytest, vitest, tsc, eslint, sqlfluff pass; then the narrow real-warehouse build, export and a :5173 check.",
+        "DD-WC2 new wording verbatim everywhere in the placeholder; docs-claims verdict PASS; docsDrift --update by the owner."
+      ],
+      "note": "2026-10-31, UNCOMMITTED. Scratch and real warehouse identical: 189,418 laps (173,679 with value), per-lap loss 0.15-0.517 s, mean cost 0.085597 s/lap (WC-13 0.085599); only 224 laps at the skip races 2025_13/19/20 (HARD 0.96->0.93) and 2022_3 (SOFT 1.10->1.17) change; season means unchanged at 4 dp except 2025 -0.00002. Laps: c_number 156,211, relative_class 21,958, neutral 11,249. DA-03 0 collisions. Real narrow build PASS=140, export run, :5173 2025_5 page verified (Jeddah, C-number labels, new DD-WC2 line). tyre_allocations.csv differs from the verified seed at 12 rows (WC-11 note, WC-16 section). Owed: docsDrift --update by the owner, commit."
     }
   ],
   "decisions": [
@@ -640,8 +826,14 @@
       "question": "Confirm the disclaimer wording for stints whose values are normalised from other sources: \"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\"",
       "context": "To be used exactly, in the product and in the work-item docs, on every modelled value. The modelled sources in the plan are the same driver's other stint (with a compound offset) and the teammate on the same compound. The owner confirms the wording; the agent has not changed it.",
       "recommendation": null,
-      "resolved": "2026-10-27",
-      "resolution": "Owner approved 2026-10-27: disclaimer wording as written: \"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\" Used exactly on every modelled value."
+      "resolved": "2026-10-31",
+      "resolution": "Owner reworded 2026-10-31 (WC-16): the disclaimer now reads, word for word: \"Modelled: an assumed typical loss for this circuit, season, tyre and car, applied to the measured time spent close behind another car. Not calibrated on this driver's own stints.\" Applied to the WC-11 placeholder everywhere it was mandated (int_lap_wake_placeholder_cost, its schema accepted_values, assert_wake_placeholder_labels, the Dirty Air Cost app page, docs/app/dirty-air-cost.mdx, the AI copy and test_wc11_placeholder.py). NOT changed, outside this ruling (owner to decide): contest.py DD_WC2_DISCLAIMER and test_contest.py (WC-03/04 scorecard, holds no modelled value), run_wc10.py DD_WC2 (WC-10, paused), and the specs that quote the 2026-10-27 text (WC-05, WC-06, WC-08, WC-design-note, WC-10 discovery pre-registration and levels plan). Overlap: this line and the DD-WC26 placeholder line now say much the same thing (assumed typical cost for this circuit, season, tyre and car, not a measurement); both kept as ruled, owner to decide later. History: the 2026-10-27 approval (old wording) is kept in history. Per-file rulings 2026-11-01 (delegated to Opus): WC-05, WC-06, WC-08, WC-design-note and the WC-10 levels plan keep the 2026-10-27 quote, with a dated note that it describes their modelled sources (other compound / other driver) and must be re-confirmed with the owner when each item starts; the WC-10 discovery pre-registration (signed, 4d679bf6, commit 6fd0330), run_wc10.py, contest.py and test_contest.py are unchanged, and WC-10 keeps the registered old wording unless a new signed amendment B3 adopts the new one (owner call on resume, DD-WC24).",
+      "history": [
+        {
+          "date": "2026-10-27",
+          "resolution": "Owner approved 2026-10-27: disclaimer wording as written: \"Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.\" Used exactly on every modelled value."
+        }
+      ]
     },
     {
       "id": "DD-WC3",
@@ -832,7 +1024,7 @@
       ],
       "status": "OPEN",
       "question": "Relax WC-07's 'no loss, delta, coefficient, curve or scale' rule so the replay can show WC-10 levels after the confirmatory scorecard (WC-10i), making WC-10 the successor to WC-08's gate?",
-      "context": "WC-07 is measurement only; WC-08 (loss scale) is gated on WC-03/04/05. Plan section 10. WC-07 and WC-08 are unchanged until ruled.",
+      "context": "WC-07 is measurement only; WC-08 (loss scale) is gated on WC-03/04/05. Plan section 10. WC-07 and WC-08 are unchanged until ruled. 2026-10-30: deferred with the WC-10 pause (DD-WC24); still open.",
       "recommendation": "Yes, only for levels whose gate passed in WC-10i, each labelled modelled with the disclaimer."
     },
     {
@@ -856,7 +1048,7 @@
       ],
       "status": "OPEN",
       "question": "OWNER GATE: sign the WC-10 confirmatory registration (WC-10g), commit it alone, record its SHA-256 here, and say yes to one run on 2024-25?",
-      "context": "Rule 4. 2024-25 stay sealed until this resolves (watch W8).",
+      "context": "Rule 4. 2024-25 stay sealed until this resolves (watch W8). 2026-10-30: deferred with the WC-10 pause (DD-WC24); still open.",
       "recommendation": null
     },
     {
@@ -880,10 +1072,97 @@
       ],
       "status": "OPEN",
       "question": "Amendment B2: rows with missing tyre_life are left out of step 1 (design A and lap arm), counted under their own reason, with the parameter layout (registration 6d) computed AFTER the drop. Draft B2, commit it alone, record its SHA-256 here.",
-      "context": "Owner accepted the three rulings on 2026-10-30 ('yes to both'; recommendation was layout AFTER the drop). Open until B2 is drafted, committed alone and hashed. Registration 6b: 'failure to converge is a run error and a post-hoc amendment case', so this must be committed before RUN START and before the SG re-run. See the 2026-10-30 handoff entry in history for root cause, counts and the exact fix.",
+      "context": "Owner accepted the three rulings on 2026-10-30 ('yes to both'; recommendation was layout AFTER the drop). Open until B2 is drafted, committed alone and hashed. Registration 6b: 'failure to converge is a run error and a post-hoc amendment case', so this must be committed before RUN START and before the SG re-run. See the 2026-10-30 handoff entry in history for root cause, counts and the exact fix. Update 2026-10-30 (later): B2 draft exists (wi/WC-10-amendment-B2-tyre-life-DRAFT.md, working-tree sha256 69f719fe6371adada99ae5f6bd5c00cb6753d2c3c4d499e2d78006c35da04016, will change when reconciled). Three points are NOT yet confirmed by the owner (see the latest history entry, 'OWNER QUESTIONS'). 2026-10-30: deferred with the WC-10 pause (DD-WC24); still open.",
       "recommendation": "Layout AFTER the drop (the layout then describes the data actually fitted).",
       "resolved": null,
       "resolution": null
+    },
+    {
+      "id": "DD-WC24",
+      "raised": "2026-10-30",
+      "blocking": [
+        "WC-10e",
+        "WC-10f",
+        "WC-10g",
+        "WC-10h",
+        "WC-10i",
+        "WC-10j",
+        "WC-10k",
+        "WC-10l",
+        "WC-10m"
+      ],
+      "status": "OPEN",
+      "question": "Resume the paused WC-10 chain (WC-10e to WC-10l and the WC-10m fallback)?",
+      "context": "owner paused 2026-10-30: interim placeholder values shipped instead; resume when calibrated levels are wanted. Stages before the pause: WC-10e BUILDING, WC-10f BLOCKED, WC-10g BLOCKED, WC-10h BLOCKED, WC-10i SPEC, WC-10j BLOCKED, WC-10k SPEC, WC-10l SPEC, WC-10m SPEC. On resume: resolve this, drop DD-WC24 from each item's blocked_by_decision, restore those stages, pointer back to WC-10e (handoff: history entry 2026-10-30T13:27:50). WC-10 drafts, B2 code fix and tests are left untouched in the working tree. DD-WC19, DD-WC21, DD-WC23 and watch rules W8, W11, W14, W15 stay open, deferred with the chain.",
+      "recommendation": null
+    },
+    {
+      "id": "DD-WC25",
+      "raised": "2026-10-30",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Keep a second, placeholder line beside the DD-WC2 disclaimer on every WC-11 placeholder value (DD-WC18 precedent)?",
+      "context": "WC-11 added 'Placeholder = an assumed typical cost for a car this close at this type of circuit, not a measurement of this lap.' without a ruling. WC-12 makes values per race, so the wording was adjusted, meaning kept.",
+      "recommendation": "Keep DD-WC2 verbatim and keep the second line.",
+      "resolved": "2026-10-30",
+      "resolution": "Owner 2026-10-30: keep the second line. Since WC-12 it reads, word for word: \"Placeholder = an assumed typical cost for a car this close at this circuit and season, not a measurement of this lap.\" (meaning unchanged; 'this type of circuit' -> 'this circuit and season' because values are now per race). DD-WC2 stays verbatim beside it."
+    },
+    {
+      "id": "DD-WC26",
+      "raised": "2026-10-30",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Accept the reworded placeholder second line now that the value varies by tyre and car?",
+      "context": "WC-13 multiplies the race value by a tyre and a car factor, so the WC-12 line ('...at this circuit and season, not a measurement of this lap.') understated what the value depends on. Applied in the model, schema accepted_values, assert_wake_placeholder_labels, app, docs page, AI copy and tests.",
+      "recommendation": "Accept: \"Placeholder = an assumed typical cost for a car this close at this circuit and season, on this tyre and car, not a measurement of this lap.\" DD-WC2 stays verbatim beside it.",
+      "resolved": "2026-10-31",
+      "resolution": "Owner 2026-10-31: accepted as is. The placeholder line reads, word for word: \"Placeholder = an assumed typical cost for a car this close at this circuit and season, on this tyre and car, not a measurement of this lap.\" Nothing reworded. It now overlaps in meaning with the reworded DD-WC2 line; both kept, owner to decide later. Superseded 2026-11-01 by DD-WC30 (delegated ruling): the placeholder line now reads \"Placeholder = an interim value set by a fixed rule, not a measurement of this lap.\" The text above is kept as the record of this ruling."
+    },
+    {
+      "id": "DD-WC27",
+      "raised": "2026-10-30",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Should any constructor get a non-neutral wake-sensitivity factor in the placeholder?",
+      "context": "WC-13 built the per-(season, constructor_id) table with every row neutral 1.00 ('neutral default, no public evidence used'). A non-neutral row needs a public, non-outcome, checkable source (source_type = public_concept, 0.95-1.05). Car-concept differences are public (e.g. high rake 2018-20, sidepod concepts 2022), but no team or regulation document states which way a concept moves wake sensitivity; drivers' and teams' comments on following are outcome reports. None met the bar.",
+      "recommendation": "Keep all neutral until WC-10 (or a later calibration) measures per-car sensitivity; do not set per-team numbers from concept inference.",
+      "resolved": "2026-10-31",
+      "resolution": "Owner 2026-10-31: non-neutral car factors only where a public, citable, non-outcome source supports a direction. WC-16 research (_evidence/WC-16-2026-10-31/constructor_report.md): 0 of 81 rows qualify (all sources are era-wide or concept-only; none says which way a team concept moves wake sensitivity). All 81 rows stay neutral 1.00; no value changed."
+    },
+    {
+      "id": "DD-WC28",
+      "raised": "2026-10-30",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Key the tyre factor on Pirelli's absolute C-number instead of the relative SOFT/MEDIUM/HARD class?",
+      "context": "tyre_allocations (2019-2025) maps relative labels to C1-C6 but is user-supplied and self-verified, only 47 of 128 source URLs resolve and every 2025 row is carried forward; its own docs say not to quote it until re-sourced. WC-13 therefore uses the relative class.",
+      "recommendation": "Stay on the relative class; revisit only after tyre_allocations is re-sourced.",
+      "resolved": "2026-10-31",
+      "resolution": "Owner 2026-10-31: use absolute C-numbers. WC-16 verified a hard/medium/soft trio with a fetched source for all 173 races (seeds/wake_placeholder_tyre_allocation.csv; tyre_allocations.csv not read or edited). Rule accepted from the research (option B): step by C-number distance from the race medium (0.93/0.96/1.00/1.10/1.17) x medium shift (C2 0.97, C3 1.00, C4 1.03, C5 1.06), clamped 0.90-1.17; 2018 and races with no trio keep the relative class (compound_factor_scale = relative_class). Implemented; the medium shift was then dropped by DD-WC29 (DA-03 collisions), so the factor is the step alone."
+    },
+    {
+      "id": "DD-WC29",
+      "raised": "2026-10-31",
+      "blocking": [
+        "WC-16"
+      ],
+      "status": "RESOLVED",
+      "question": "The ruled C-number tyre rule puts 23 race x tyre per-lap values on an archived DA-03 number at 3 dp (rule 6 grep test fails). Which remedy?",
+      "context": "Every collision comes from the medium shift (e.g. 2019_5 MEDIUM 0.26 x 0.97 = 0.2522; 2023_8 HARD 0.19 x 0.9888 = 0.1879). Step only (no shift) gives 0 collisions. No +-0.01 or +-0.02 nudge of any combination of the seven non-reference constants gives 0 (best 5: C2 0.96, C4 1.04). Factor rounded to 2 dp: 19; per-lap loss to 0.01: 4. The constants and per-race values themselves are clear. Implemented exactly as ruled; test left failing; real warehouse build and export NOT run.",
+      "recommendation": "(a) Drop the medium shift: set the four medium_shift rows to 1.00 (seed-only change, 0 collisions, keeps the C-number step incl. skip races). Alternative (b): rule that per-lap products landing on a DA-03 value at 3 dp are coincidences, not use, and narrow the grep to constants and per-race values (a rule-6 test change, owner only).",
+      "resolved": "2026-10-31",
+      "resolution": "Owner 2026-10-31: option (a), drop the medium shift. All four medium_shift rows are 1.00 (rows kept so a calibrated shift can slot in later); rule 6 stays strict and the DA-03 grep test is unchanged. Result: 0 of 11,544 race x tyre x car values collide. The tyre factor is the C-number step alone (0.93 / 0.96 / 1.00 / 1.10 / 1.17)."
+    },
+    {
+      "id": "DD-WC30",
+      "raised": "2026-11-01",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "The reworded DD-WC2 line and the DD-WC26 placeholder line now say much the same thing (an assumed typical cost for this circuit, season, tyre and car, not a measurement). Keep both as is, or reword one?",
+      "context": "Left open by DD-WC2 (2026-10-31) and DD-WC26 ('both kept, owner to decide later'). Every placeholder value shows both lines.",
+      "recommendation": "Keep DD-WC2 word for word; reword the placeholder line so it only says what DD-WC2 does not: the value is interim and set by a fixed rule.",
+      "resolved": "2026-11-01",
+      "resolution": "Delegated ruling: owner delegated to Opus, supersedes DD-WC26's text; DD-WC2 unchanged. The placeholder line reads, word for word: \"Placeholder = an interim value set by a fixed rule, not a measurement of this lap.\" Applied in int_lap_wake_placeholder_cost (disclaimer_placeholder), its schema accepted_values, assert_wake_placeholder_labels, the Dirty Air Cost app transform and its vitest, docs/app/dirty-air-cost.mdx, the AI copy (pageSummaries.generated.json) and test_wc11_placeholder.py (the DD-WC26 sentence is now in OLD_PLACEHOLDER_LINES). The DD-WC26 text stays in that decision as history."
     }
   ],
   "watch_vocabulary": {
@@ -1143,6 +1422,32 @@
       },
       "resolved": null,
       "resolution": null
+    },
+    {
+      "id": "W16",
+      "raised": "2026-10-30",
+      "kind": "hazard",
+      "item": "WC-11",
+      "recommended_model": "sonnet",
+      "title": "Placeholder wake values must never become an ML feature or target, or be labelled measured",
+      "detail": "They are assumptions. A model trained on them relearns the assumption and looks validated. test_wc11_placeholder.py guards ml/ and the dbt graph; a new consumer must keep value_label modelled, value_kind placeholder and the DD-WC2 disclaimer.",
+      "clears_when": "The placeholder seed is replaced by calibrated values and value_kind is no longer placeholder.",
+      "trigger": {
+        "clear": "manual"
+      }
+    },
+    {
+      "id": "W17",
+      "raised": "2026-10-30",
+      "kind": "uncommitted",
+      "item": "WC-11",
+      "recommended_model": "haiku",
+      "title": "WC-11 seed, model, tests, app page, docs and this log's pause entries live only in the working tree",
+      "detail": "See the WC-11 note's file table. Also owed: export_app_data.py re-run after a trusted rebuild, and a docs-claims reviewer verdict for reading-signal-dirty-air-cost. WC-12 (2026-10-30) adds wake_placeholder_rule.csv, wake_placeholder_race_structure.csv, wc12_structure.py, int_wake_placeholder_race_loss and edits to the WC-11 files; also owed: docsDrift --update for dirty-air-cost (verdict PASS recorded). WC-16 (2026-10-31) adds wake_placeholder_tyre_allocation.csv, wake_placeholder_c_number_factor.csv, assert_wake_placeholder_tyre_allocation.sql, _evidence/WC-16-2026-10-31/ and edits to the WC-11 model, tests, app, docs and this log; real-warehouse rebuild and export done 2026-10-31; also owed: docsDrift --update for dirty-air-cost (verdict PASS recorded 2026-10-31).",
+      "clears_when": "The owner commits them, or rules them out.",
+      "trigger": {
+        "clear": "manual"
+      }
     }
   ],
   "history": [
@@ -2144,6 +2449,302 @@
         "OWNER: commit the code fix, sg_checks.py, tests and evidence; then say go for RUN START. Also commit the standing uncommitted material (W13).",
         "AGENT (opus-5) after RUN START is given: the real discovery fit on 2022-23 via run_wc10 (WC-10e), then WC-10f (cut points) and WC-10g (confirmatory registration draft); DD-WC21 and DD-WC19 are the owner's calls."
       ]
+    },
+    {
+      "date": "2026-10-30T13:27:50+04:00",
+      "session": "WC-10e: e7bd2c2 committed by the owner; B2 drafted and the B2 code fix written and tested, both UNCOMMITTED. HANDOFF for a new chat: reconcile B2 with the code, get the owner's three answers, commit B2 alone, record its hash, then commit the code, fix and re-run SG1-SG7. Nothing fitted on real data; no outcome column read; data/dev.duckdb not touched; no real-mode run. The owner ran all git commits; the agent ran none.",
+      "landed": [
+        "Owner committed e7bd2c2: gate dry-runs v3-v4, b1_support_impact.md, SG pre-fix partials (sg/ with README marking them PRE-FIX), sg_checks.py + tests/test_sg_checks.py, review notes, plan, A6 draft, and the first handoff in this log. Git log: e7bd2c2 <- 1a9ef80 (code) <- b89e54c (B1, SHA-256 c9566233bb25dcf078a8cc336682b289ec2d7494cfe6fb7189662d3c56b7b500) <- 6fd0330 (registration).",
+        "B2 draft written, UNCOMMITTED: wi/WC-10-amendment-B2-tyre-life-DRAFT.md, working-tree sha256 69f719fe6371adada99ae5f6bd5c00cb6753d2c3c4d499e2d78006c35da04016. DRAFT, unsigned, hash blank. Records the three rulings (tyre_life required; own named drop reason tyre_life_missing; layout 6d after the drop), root cause, counts, label alignment 'copy', preflight addition. Counts re-derived from structure columns only on a read-only copy of 1a9ef80 and matched: lap arm 12/110 (2022_7) + 45/179 (2022_11) = 57 free laps; 78 following laps (69 + 9); design A 958 free passes with NaN t; only 2022_7 and 2022_11; lap arm n_params 151 -> 149. Sweep counts (<=1,220) not re-checked by the B2 agent.",
+        "B2 code fix written, UNCOMMITTED, full suite 334 passed, 0 failed, 1 skipped (12 min). Edited (sha256): design_a.py 1585e6e34d7ad74d1c9ec96df30bcd7695eef25f44be8e4c8301e7c515f56ae3; lap_arm.py 2be072d6061ff5c5762cbc23991179ed8e3ad4005b8fc5c6e338469df78a1c08; wc10_io.py 75f147f707d0f09baefa2f79455ad3796446f8a4ac5bb64c82e2ab77a7a01916; diagnostics.py a0052a97a9086062df7c033b0bbf1834730342c38894e8b357a24bdef1a23402; run_wc10.py 0aa0fe6a07e810d0add82f75190d8f36c8aed7ed461de2c8d17c5709ace65b34; carryover.py b7bd815bafcb1c260a8678bb7461b9c2eed1d5e987f46e8a3ca7595af1f4fd10; tests/test_design_a.py bd1befaee08817bca791e9f0c54744cbfc04329cea9c64e1c73cd8465bc4ab31; tests/test_wc10_remainder.py 42dcc3eccb1df1db42576e9c1cc6dc173ed3b49e63a9d5f8c9ea4af39c309fd7.",
+        "What the code does now: a row without tyre_life cannot enter step 1 in design A, the lap arm, X5, X14, X6/X15 lap fit and the carry-over fit; theta layout is built from the rows left after that drop; dropped rows counted under 'tyre_life_missing' (pass-class table also has 'leader_tyre_life_missing'), free passes per outcome and following passes per class and outcome, copied into support_rulings and the ledger 'rulings' line; lap arm: every following lap is used or has a named drop reason. duplicate_race_in_copy is now 'copy' and preflight refuses 'separate_copy'. Real mode exits 2 before reading anything unless: --b1-sha256 matches the recorded hash and the B1 file at HEAD (git show); --b2-sha256 matches the B2 file at HEAD and wc10_io.B2_SHA256 once recorded (None for now); --sg-record is a JSON file {\"checks\":{\"SG1\"..\"SG7\":\"PASS\"},\"b2_sha256\":<hash>} not marked pre_fix; the RUN START line records both hashes and the record's sha256. Tests: one per ruling, a synthetic race with tyre_life-missing free rows (converges, counted, layout flips), 10 refusal cases.",
+        "Structure-only verification (fake y): all 43 races converge, at most 3,063 sweeps (the B2 draft's 1,220 figure was the pre-fix 41 clean races); lap arm 151 -> 149 (2022_11 UNKNOWN goes from estimated to the reference curve); each design A class loses 2 parameters; design A: 958 free passes lack tyre_life, of which 127 are racecraft and stay counted under ruling 1, so 831 are counted as tyre_life_missing."
+      ],
+      "verified": [
+        "git log and git status read back 2026-10-30: HEAD e7bd2c2; modified-uncommitted = the eight .py files above; untracked = the B2 draft. B2 draft hash read from the working tree (not committed).",
+        "board.py --check passes with this entry."
+      ],
+      "assumed": [
+        "OWNER QUESTIONS (put to the owner, NOT yet answered; the owner asked for this handoff instead): (1) the 1,378 design A following passes with NaN t that drop silently through isfinite(gy) in effects(): count them under tyre_life_missing. Recommended yes; the B2 draft reads ruling 2 as covering them and the code appears to count following passes per class. (2) COUNT ORDER when a row has two drop reasons: the B2 draft proposes tyre_life_missing counted LAST, but the CODE checks tyre_life_missing BEFORE the other reasons (unsupported, racecraft, phi-unsupported). The 127-racecraft figure suggests racecraft still wins for free passes, which does not match 'checked before'. RECONCILE: read the code, state the actual order, make B2 match the code (recommended: keep the code's order, fix the B2 text), and confirm the 831 / 127 split. (3) SG pass record format: the code uses {checks SG1..SG7, b2_sha256, not pre_fix}; recommended to add the code commit and the sha256 of the two determinism runs so the record enforces determinism. The owner has not yet agreed to 2 or 3.",
+        "OPEN IN sg_checks.py (committed in e7bd2c2): (a) plant(): g = th1*t + th2*t^2 (and the SG2/SG3 drift terms) turn NaN tyre_life into a NaN outcome so free_set drops the row before step 1: compute tyre terms on np.nan_to_num(t) (or 0 where NaN) while keeping keys['t'] NaN, same for the SG3 drift term and its cell mean; test that a free pass with NaN t gets a finite synthetic outcome. (b) groupby().sum() used for SG5 lap times: use sum(min_count=1). (c) lap_arm_convergence (~line 640) has its own copy of lap-arm step 1 using free_lap without the drop: it should call L.lap_free(sc). The code agent could not touch sg_checks.py (off-limits to it).",
+        "B2_SHA256 hash timing: wc10_io.B2_SHA256 is None until B2 is committed. Order: (1) reconcile B2 text, owner confirms; (2) OWNER commits B2 alone and gives git show HEAD:<file> | shasum -a 256; (3) AGENT records it in DD-WC23 and sets wc10_io.B2_SHA256 (small code edit, then re-run tests); (4) OWNER commits the code fix; (5) SG fixes and the full SG1-SG7 re-run; (6) owner decides RUN START. Do NOT commit the code before B2; B2 must be committed first (registration 6b).",
+        "Pre-fix SG partials in the committed sg/ folder are superseded (W15): they must not be cited. Still open: fast class thin (383 bracketed passes vs the 500 floor, expect a dash); S2-aero cannot reach AGREE; SG7 pre-fix put INCONCLUSIVE in medium or slow at about 4.5% (WC-10m fallback only then); the 2024-25 confirmatory run (DD-WC21) is the accuracy test; W14 (real-mode gate gap) is now largely addressed in code but stays open until SG record and B1/B2 hashes exist and a test of the full real-mode path is reviewed.",
+        "House rules for the next session: never run git add/commit/push (owner commits; memory 'never-commit'); no outcome column before RUN START (incl. seg_start_t, seg_end_t, seg_time_s); 2024-25 sealed, the loader refuses it, do not work around it; thresholds and gates are frozen (rule 4); scratch warehouse copy named dev.duckdb in its own folder, never touch data/dev.duckdb; no DA-03 number anywhere; the full test suite takes ~12 min, wait for it. Structure-only scratch scripts from the diagnosis are in /private/tmp/claude-501/-Users-justin-github-off-the-pace/885ba8d8-f683-485f-bcf1-ec11563a5da3/scratchpad/lap/ (session scratch, may be gone)."
+      ],
+      "gates_run": [
+        "git log / git status read-back",
+        "board.py --check",
+        "full test suite (code agent): 334 passed, 0 failed, 1 skipped"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check",
+      "next_action": [
+        "AGENT (opus-5): read this entry, DD-WC23, the B2 draft and the changed code. Reconcile B2 with the code on count order (and the 831/127 split, and the 3,063-sweep figure), add the 1,378 following passes and the SG record format to B2, once the owner has answered the three OWNER QUESTIONS. Do not edit B1 or the registration.",
+        "OWNER: answer the three questions; then commit B2 alone and give the hash (git show HEAD:_roadmap/_wake-calibration/wi/WC-10-amendment-B2-tyre-life-DRAFT.md | shasum -a 256).",
+        "AGENT: record the B2 hash in DD-WC23 (resolve it), set wc10_io.B2_SHA256, extend the SG record format if the owner agreed, re-run the full suite to the end. OWNER commits the code.",
+        "AGENT (sonnet-5): fix sg_checks.py (a)-(c) above, then re-run ALL of SG1-SG7 twice for determinism into a fresh evidence folder (~30 min per set with 6 workers), write the SG pass record, mark the pre-fix sg/ folder superseded (W15). If any SG fails, nothing real is read; amend first; never tune to pass. OWNER commits.",
+        "OWNER: say go for RUN START; AGENT (opus-5) runs the real discovery fit on 2022-23 via run_wc10 with --b1-sha256, --b2-sha256, --sg-record; then WC-10f and WC-10g. DD-WC21 and DD-WC19 remain the owner's calls."
+      ]
+    },
+    {
+      "date": "2026-10-30T18:00:00+04:00",
+      "session": "Owner paused WC-10 and asked for interim placeholder values (WC-11). The agent ran no git command that writes; data/dev.duckdb not touched.",
+      "landed": [
+        "WC-10e..WC-10m set BLOCKED on new OPEN decision DD-WC24 (pause, reason verbatim); prior stages recorded in each note and in DD-WC24. Drafts, code and tests untouched.",
+        "WC-11 built (MEASURED, uncommitted): seed wake_placeholder_values.csv, int_lap_wake_placeholder_cost, assert_wake_placeholder_labels, test_wc11_placeholder.py, dirty-air-cost page + docs + AI summary, export entry. Pointer -> WC-11. Watch W16 (never ML / never measured) and W17 (uncommitted) added."
+      ],
+      "verified": [
+        "dbt build of the seed, model and tests on a scratch copy (scratchpad/dbt-wc11/dev.duckdb): PASS=30 ERROR=0.",
+        "pytest test_wc11_placeholder.py: 10 passed. vitest dirty-air-cost: 10 passed. tsc --noEmit clean. docsDrift: dirty-air-cost content now NEEDS REVIEW (claim verdict owed), other failures pre-existing."
+      ],
+      "assumed": [
+        "Placeholder values fast 0.45 / medium 0.30 / slow 0.20 s per full lap within 1 s, linear taper to 0 at 2 s, circuit classes by general F1 knowledge.",
+        "A second placeholder disclaimer line beside DD-WC2 is acceptable (not yet ruled)."
+      ],
+      "gates_run": [
+        "none: nothing fitted; no outcome column read; no registration applies"
+      ],
+      "next_action": [
+        "OWNER: review the WC-11 files, rule on the second disclaimer line, commit.",
+        "AGENT (haiku): after a trusted rebuild, run scripts/export_app_data.py; get a docs-claims-reviewer verdict for reading-signal-dirty-air-cost, then docsDrift --update.",
+        "To resume WC-10: resolve DD-WC24 per wi/WC-11-interim-placeholder-values.md."
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-30T20:30:00+04:00",
+      "session": "WC-12: per-race placeholder wake loss (owner: as track- and year-specific as responsible, still an assumption). Owner ruled to keep the placeholder second line (DD-WC25). No git write; data/dev.duckdb not touched; WC-10 drafts, code and tests untouched.",
+      "landed": [
+        "Seeds wake_placeholder_rule.csv (weights, scale, bounds, era factors, each with basis) and wake_placeholder_race_structure.csv (169 races, from wc12_structure.py reading only pass-table corner_class/segment_basis and layout_checks n_corners/lap_len_m).",
+        "Model int_wake_placeholder_race_loss (one row per race); int_lap_wake_placeholder_cost reads it and adds era, era_factor, loss_source, loss_bounded, loss_basis. Placeholder line reworded to 'at this circuit and season' in model, schema test, assert_wake_placeholder_labels, app, docs, tests.",
+        "App shows the race's assumed loss and its basis line (FALLBACK flagged); methodology, docs page and AI summary updated; docs-claims verdict PASS recorded for reading-signal-dirty-air-cost."
+      ],
+      "verified": [
+        "dbt build (3 seeds, 2 models, 62 tests) on scratchpad/dbt-wc11/dev.duckdb: PASS=67 ERROR=0.",
+        "pytest test_wc11_placeholder.py: 19 passed. vitest dirty-air-cost: 14 passed. tsc --noEmit clean.",
+        "Per-race range 0.15-0.47 s (mean 0.26); 4 class_fallback; 4 at the 0.15 floor (2022 Monza, Austria, France, Abu Dhabi)."
+      ],
+      "assumed": [
+        "All rule constants and era factors (see seed basis); corner_class taken as structure per the registration although WC-01 derived it from clear-air apex speed."
+      ],
+      "gates_run": [
+        "none: nothing fitted; no outcome column read; no registration applies"
+      ],
+      "next_action": [
+        "OWNER: review WC-11/WC-12 files and commit; run `node scripts/docs-drift/docsDrift.mjs --update` from app/ (note it also records other changed pages without claims).",
+        "After a trusted rebuild: scripts/export_app_data.py."
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-30T22:00:00+04:00",
+      "session": "WC-13: tyre (compound) and car (constructor) multipliers on the placeholder wake loss. No git write; data/dev.duckdb not touched; WC-10 drafts, code and tests untouched.",
+      "landed": [
+        "Seeds wake_placeholder_compound_factor.csv (SOFT 1.10, MEDIUM 1.00, HARD 0.96, INTERMEDIATE/WET 1.00 neutral, each with basis) and wake_placeholder_constructor_factor.csv (81 season x constructor_id rows, all neutral_default 1.00); rule seed gains factor/neutral_default 1.00.",
+        "int_lap_wake_placeholder_cost: loss_s_per_lap_within_1s is now per lap (race x tyre x car, clamped, 4 dp); new columns race_loss_s_per_lap_within_1s, compound, compound_class, compound_factor, compound_factor_source, compound_basis, constructor_id, constructor_lineage_id, constructor_factor, constructor_factor_source, constructor_basis, lap_loss_bounded, factor_flag, lap_loss_basis. New singular test assert_wake_placeholder_factors.",
+        "Placeholder line reworded to '..., on this tyre and car, ...' everywhere (DD-WC26 OPEN). App shows Team, Tyre factor and Car factor columns plus banner lines; methodology, docs page and AI summary updated; docs-claims verdict PASS recorded for reading-signal-dirty-air-cost."
+      ],
+      "verified": [
+        "dbt build (3 seeds, 2 models, 80 tests) on scratchpad/dbt-wc11/dev.duckdb: PASS=85 ERROR=0.",
+        "pytest test_wc11_placeholder.py: 24 passed. vitest dirty-air-cost: 19 passed. tsc --noEmit clean.",
+        "Per-lap loss 0.15-0.517 s; 2,134 laps at the floor (flagged lap_loss_bounded); 1,129 laps flagged for a missing compound; no constructor row missing."
+      ],
+      "assumed": [
+        "Tyre factor values and their direction (stated assumption, not measured); 2018 race nomination = the three dry compounds seen in the race's laps (true for all 21 races); wet/inter neutral."
+      ],
+      "next": "Owner: rule on DD-WC26 (wording), DD-WC27 and DD-WC28; run docsDrift --update; commit. Export re-run after a trusted rebuild still open (WC-11).",
+      "gates_run": [
+        "none: nothing fitted; no outcome column read (only compound and constructor identity); no registration applies"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-31T00:30:00+04:00",
+      "session": "WC-14: Dirty Air Cost visuals. No git write; warehouse, dbt, export and ML untouched.",
+      "landed": [
+        "DriverCostBars and CostBuildDiagram (HTML/CSS, app tokens) with lap query on the already exported table; docs and methodology updated."
+      ],
+      "verified": [
+        "vitest, tsc, eslint and test_wc11_placeholder.py run; preview screenshots at 1280 and 400 px, light and dark."
+      ],
+      "assumed": [
+        "Display only; every value stays labelled placeholder, modelled."
+      ],
+      "next": "Owner: review, docs-claims verdict for the page, docsDrift --update, commit.",
+      "gates_run": [
+        "none: nothing fitted"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-31T02:00:00+04:00",
+      "session": "WC-15: table redesign, GAS/TSU check, Lap Air Map correlation. No git write; warehouse, dbt, export and ML untouched.",
+      "landed": [
+        "DriverCostTable (collapsible rows), assumptionNotes/fieldTotalLine helpers, Assumptions disclosure, tests, docs and methodology text."
+      ],
+      "verified": [
+        "GAS and TSU have one lap each (retired lap 1), and lap 1 is neutralised for all drivers: not a bug.",
+        "Spearman of map dirty_air + drs_train laps vs placeholder cost: per-race mean 0.88, pooled 0.81 (dirty_air alone 0.76 / 0.69).",
+        "vitest, tsc, eslint, test_wc11_placeholder.py; preview screenshots at 1280 and 400 px, light and dark."
+      ],
+      "assumed": [
+        "Display only; every value stays labelled placeholder, modelled."
+      ],
+      "next": "Owner: review, docs-claims verdict for the page, docsDrift --update, commit.",
+      "gates_run": [
+        "none: nothing fitted"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-31T03:00:00+04:00",
+      "session": "WC-15: fix Dirty Air Cost deep link (?race=2025_5 was wiped on first load by the season-change effect); race now cleared only when the season changes after mount, and a race from another season sets the season. Display routing only; no git write.",
+      "landed": [
+        "app/src/features/dirty-air-cost/useRaceParam.ts (+ test), page.tsx uses it."
+      ],
+      "verified": [
+        "vitest, tsc, eslint; Playwright against :5173: ?race=2025_5 opens on Jeddah, a season change clears the race."
+      ],
+      "assumed": [
+        "Season in the URL is the page's season; a race id season_round implies its season."
+      ],
+      "next": "Owner: review and commit with the rest of WC-15.",
+      "gates_run": [
+        "none: nothing fitted"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-31T13:00:00+04:00",
+      "session": "WC-16: C-number tyre factor (DD-WC28), DD-WC2 reworded, DD-WC26 accepted, DD-WC27 resolved neutral. No git write. Scratch warehouse copy only; data/dev.duckdb not built (DA-03 gate fails).",
+      "landed": [
+        "Seeds wake_placeholder_tyre_allocation (173 races) and wake_placeholder_c_number_factor; model columns compound_factor_scale, tyre_c_number, race_medium_c; assert_wake_placeholder_tyre_allocation; extended factor/label tests and test_wc11_placeholder.py; app text and C-number labels; docs page and AI copy; evidence copied to _evidence/WC-16-2026-10-31/."
+      ],
+      "verified": [
+        "Scratch dbt build PASS=140; vitest 45/45, tsc, eslint, sqlfluff clean; docs-claims PASS recorded.",
+        "test_combined_value_bounded_and_off_da03 FAILS: 23 per-lap values on DA-03 numbers at 3 dp, all from the medium shift; no small nudge clears it."
+      ],
+      "assumed": [
+        "New flag column named compound_factor_scale because compound_basis already holds the basis text."
+      ],
+      "next": "Owner: rule DD-WC29; then real-warehouse build, export, :5173 check; docsDrift --update; commit.",
+      "gates_run": [
+        "DA-03 grep (rule 6): FAIL"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-31T14:00:00+04:00",
+      "session": "WC-16 finish: DD-WC29 ruled (drop the medium shift); real narrow rebuild and export. No git write.",
+      "landed": [
+        "medium_shift rows 1.00 with DD-WC29 basis; shift text removed from model comments, schema, app, docs, AI copy and the WC-11 note; tests assert the neutral shift and step-only factors."
+      ],
+      "verified": [
+        "DA-03 grep: 0 collisions (test unchanged).",
+        "Full pytest 364 passed, 1 skipped; vitest 45/45; tsc, eslint, sqlfluff clean.",
+        "Scratch and real dbt build PASS=140, identical results; data/dev.duckdb backed up (sha256 verified) before the build.",
+        "export --check and export OK; only the two known marts and the manifest changed among tracked files.",
+        ":5173 /aero/dirty-air?race=2025_5: Jeddah selected, no Query failed, new DD-WC2 line and C-number tyre text and labels, 1280/400 px light and dark (before the rebuild it showed Query failed: the old export lacked tyre_c_number).",
+        "docs-claims PASS recorded at the new page sha."
+      ],
+      "assumed": [
+        "Per-lap products are checked by the DA-03 grep unchanged; no number from the archived method is used."
+      ],
+      "next": "Owner: docsDrift --update for dirty-air-cost, correct tyre_allocations.csv if wanted, decide the DD-WC2 / DD-WC26 overlap and whether the new DD-WC2 wording applies to WC-05/06/08/WC-10 and contest.py, commit.",
+      "gates_run": [
+        "DA-03 grep (rule 6): PASS"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check"
+    },
+    {
+      "date": "2026-10-31T15:55:00+04:00",
+      "session": "Handoff after WC-11..WC-16 plus a read-only review of the uncommitted placeholder work (seeds, both models, singular tests, schema, structure builder, pytest, app feature, docs, export). No source edits, no git write, no warehouse rebuild or export. Only build-log.json and the generated block of BUILD-ORDER.md were edited.",
+      "landed": [
+        "State: WC-11, WC-12, WC-13, WC-14, WC-15 and WC-16 are all MEASURED (built, tested, real narrow rebuild and export done in the 14:00 session); pointer stays on WC-16 until the owner commits and the items are moved to LANDED.",
+        "Decisions: DD-WC24 OPEN (WC-10 chain WC-10e..WC-10m paused, owner 2026-10-30; resume only when calibrated levels are wanted; DD-WC19, DD-WC21, DD-WC23 and watch W8, W11, W14, W15 stay deferred with it). DD-WC25 RESOLVED (keep the second placeholder line). DD-WC26 RESOLVED (accepted as is, placeholder line with 'on this tyre and car'). DD-WC27 RESOLVED (car factor non-neutral only where a citable public source supports it; 0 sources found, all 81 rows neutral 1.00). DD-WC28 RESOLVED (absolute C-numbers). DD-WC29 RESOLVED (medium shift dropped; all four medium_shift rows 1.00). DD-WC2 reworded by the owner 2026-10-31 and applied word for word in the placeholder files.",
+        "Review findings (no serious defect; the numbers, joins, clamps, labels and ML isolation are correct):",
+        "R1 MEDIUM app/src/features/dirty-air-cost/page.tsx:62 ('How It's Calculated' badge) still states the WC-13 relative tyre factors for every race ('softest dry compound of the race 1.10, middle 1.00, hardest 0.96'). Since WC-16, 2019-2025 laps use the C-number step, including 0.93 and 1.17 at races whose compounds skip a number (e.g. 2022_3 SOFT C5 gets 1.17; 2025_13 / 2025_19 / 2025_20 HARD gets 0.93). The badge disagrees with the SQL, methodology.tsx and the docs page; no test reads badge text. Fix: reuse TYRE_FACTOR_SUMMARY from transform.ts.",
+        "R2 LOW app/src/features/dirty-air-cost/queries.ts:92 (laps_lap_loss_bounded) and :93 (factor_flags) aggregate over every lap, including unavailable ones, while the other tyre counts filter to modelled laps. The Assumptions note then says 'N laps held to the 0.15-0.55 s bounds' counting laps that have no value: 92 such laps in the warehouse today. Fix: add FILTER (WHERE wake_cost_placeholder_s IS NOT NULL).",
+        "R3 LOW app/src/features/dirty-air-cost/page.tsx:23 the race query has no enabled: !!raceId, so with no race selected it still registers the season's parquet and runs a query for race ''. Wasted download, no wrong value shown.",
+        "R4 LOW state not reset on selection change: DriverCostTable keeps its open-row set when the race changes (driver ids recur, so the same rows stay open on the new race), and CostBuildDiagram keeps its lap cursor when the selected driver changes (the readout can show a lap of the new driver until the next hover). Fix: key both components by season|race (and driver).",
+        "R5 LOW rounding fragility, int_wake_placeholder_race_loss.sql:181: the fallback race 2020_9 (Tuscan, fast) is 0.90 x 0.45 = 0.405, exactly on the half; DuckDB and Python both round it to 0.41 today, and 0.40 is an archived-method number. The rule 6 grep test checks a Python mirror of the seeds, not the built table; a numeric-type or rounding-mode change could put 2020_9 on 0.40 without that test failing. Checked the built table directly: 83 distinct per-lap losses, 28 race values, 5 tyre factors, none equal an archived-method number at 3 dp.",
+        "R6 INFO the table's Label column (the 'modelled' pill) is hidden at phone width (DriverCostTable.tsx:72 and :101, hidden sm:table-cell); the column headers still say '(placeholder)' and the docs page states this, so not a rule 7 break."
+      ],
+      "verified": [
+        "pytest tasks/wake_calibration/tests/test_wc11_placeholder.py: 30 passed. vitest src/features/dirty-air-cost: 45/45 (4 files). tsc --noEmit: clean.",
+        "Read-only queries on data/dev.duckdb: int_lap_wake_placeholder_cost 189,418 rows = int_lap_proximity 189,418, lap_id unique (no fan-out, no dropped laps); int_wake_placeholder_race_loss 173 rows, one per race; fallback races exactly 2018_1, 2018_2, 2020_9, 2020_16 (0.30, 0.30, 0.41, 0.27).",
+        "Tyre factors in the built table are only 0.93, 0.96, 1.00, 1.10, 1.17; 2018 laps all resolve by race order (none unresolved) and every 2018 class matches the named trio in wake_placeholder_tyre_allocation; wet / intermediate / missing compound laps are all neutral 1.00.",
+        "Labels: 173,679 modelled laps all have a value; 15,739 unavailable laps (13,745 neutralised, 1,994 no gap) all NULL with a reason; exposure 0..1; per-lap loss 0.15..0.517.",
+        "Exported parquet (app/public/data/intermediates/int_lap_wake_placeholder_cost) carries the new DD-WC2 line and the step-only tyre factors.",
+        "No dbt model, ML code or ML schema reads the placeholder (pytest isolation tests plus a read of the export script: it goes to the app only)."
+      ],
+      "assumed": [
+        "R1-R6 are reported, not fixed: the review was read-only by instruction."
+      ],
+      "next": "Owner items, in order: (1) from app/, run `node scripts/docs-drift/docsDrift.mjs --update`: hidden-performance and pit-strategy are UNSETTLED and race-control is FAIL, which blocks three pages; the new constructors page is not in the manifest until the update runs. (2) Optional: correct 12 wrong rows in your seeds/tyre_allocations.csv (2024_16 Italy; 2025_5, 2025_7, 2025_8, 2025_10, 2025_12, 2025_13, 2025_15, 2025_16, 2025_17, 2025_19, 2025_20) and add the missing 2025_6 row; the placeholder reads its own wake_placeholder_tyre_allocation seed, not that file. (3) Decide the overlap between the DD-WC2 line and the DD-WC26 placeholder line (both shown together and say much the same). (4) Decide whether the new DD-WC2 wording replaces the old sentence still in contest.py, run_wc10.py and the WC-05, WC-06, WC-08, design-note and WC-10 specs (left alone: WC-10 is paused). (5) Fix R1 (stale tyre text in the page badge) before commit if wanted; R2-R5 are low. (6) Stale doc text outside this work: field-pace-curve says two green laps but its SQL uses 4; driver-consistency says seven-term but its SQL header says 5-term. (7) The sibling dirty-air-lap-map page has the same race-param effect bug that useRaceParam.ts fixed here. (8) Commit the two drifted parquets (mart_corner_skill_driver/2020.parquet, mart_degradation_history_envelope.parquet) in a separate data-refresh commit, not with WC-11..WC-16. (9) Delete the untracked README.md-E (a sed backup). (10) DD-WC3 (OpenF1 licensing) is still open. (11) Owner commits; then move WC-11..WC-16 to LANDED.",
+      "gates_run": [
+        "pytest test_wc11_placeholder.py: PASS (30)",
+        "vitest dirty-air-cost: PASS (45)",
+        "tsc --noEmit: PASS",
+        "board.py --check: PASS"
+      ],
+      "next_command": "cd app && node scripts/docs-drift/docsDrift.mjs --update"
+    },
+    {
+      "date": "2026-10-31T20:40:00+04:00",
+      "session": "Fix of review findings R1-R5 on the WC-11..WC-16 placeholder work (R6 info, no change). No git write. Scratch warehouse copy only; data/dev.duckdb not rebuilt, app/public/data not exported; no value changed.",
+      "landed": [
+        "R1: the 'How It's Calculated' badge text is HOW_CALCULATED in transform.ts, built from TYRE_FACTOR_SUMMARY (C-number steps 0.93/0.96/1.00/1.10/1.17 for 2019+, relative class for 2018); page.tsx uses it. New vitest reads the two tyre seeds and fails if the summary or badge drifts from them.",
+        "R2: queries.ts counts laps_lap_loss_bounded and aggregates factor_flags only over laps with a value (92 bounded laps with no value were overcounted). Vitest pins both FILTER clauses.",
+        "R3: the race query is enabled only when a race is picked; the ?race= deep link and the select-a-race state still work (new page.test.tsx).",
+        "R4: DriverCostTable is keyed by season|race and CostBuildDiagram by season|race|driver, so open rows and the lap cursor reset (page.test.tsx; both tests fail without the keys).",
+        "R5: new dbt singular test assert_wake_placeholder_off_archived_numbers.sql checks the BUILT race loss, per-lap loss, tyre and car factors against the archived fit.json numbers at 3 dp (within 0.0005, any rounding of a halfway value), with vacuity guards; registered in transform/tests/README.md (assert_wake_placeholder_tyre_allocation.sql, missing there since WC-16, registered too). SQL rounding left as is: explicit DECIMAL rounding was tried and changed 2025_13 and 2024_14 from 0.24 to 0.25 (raw 0.245), so it was reverted. pytest test_built_tables_are_checked_against_the_archive_in_dbt ties the dbt test to the same archive set.",
+        "Docs counts regenerated from a scratch dbt parse (transform_docs_facts.py logic, scratch manifest) and overview_docs_facts.py --write: 1505 tests (1371 generic + 134 singular; includes the WC-16 schema tests not yet counted); README.md updated to match."
+      ],
+      "verified": [
+        "Scratch dbt: seeds + both models rebuilt; tables identical to the pre-change snapshot (EXCEPT ALL both ways, 173 and 189,418 rows); the four wake singular tests PASS; mutation 2020_9 = 0.40 fails the new test.",
+        "sqlfluff clean on the new test and int_wake_placeholder_race_loss.sql.",
+        "pytest test_wc11_placeholder.py 31 passed; vitest full 624 passed, 2 failed (src/assistant/honesty/sources.node.test.ts, docs/app/degradation-simulator.mdx:65, not touched here); dirty-air-cost 55/55; tsc clean; eslint clean on the feature (3 errors elsewhere, tyre-cliff-survival).",
+        "transform_docs_facts check PASS against the scratch manifest; docs_facts and overview_docs_facts PASS; docs-drift: README and snippets OK, 1 FAIL (constructors not in manifest) and 7 NEEDS REVIEW pages, all pre-existing; --update not run."
+      ],
+      "assumed": [
+        "transform/target/manifest.json in the repo is stale (13:24); CI's transform_docs_facts check needs a fresh dbt parse, which yields the committed counts."
+      ],
+      "next": "Owner: review and commit; run `node scripts/docs-drift/docsDrift.mjs --update` from app/ after reviewing the NEEDS REVIEW pages; then move WC-11..WC-16 to LANDED.",
+      "gates_run": [
+        "pytest test_wc11_placeholder.py: PASS (31)",
+        "vitest dirty-air-cost: PASS (55)",
+        "tsc --noEmit: PASS",
+        "scratch dbt test (wake singular tests): PASS (4)",
+        "board.py --check: PASS"
+      ],
+      "next_command": "cd app && node scripts/docs-drift/docsDrift.mjs --update"
+    },
+    {
+      "date": "2026-11-01T01:30:00+04:00",
+      "session": "Delegated rulings (owner delegated to Opus): DD-WC30 placeholder line, ghost p_beats_next tie guard, tyre_allocations known-wrong documentation, DD-WC2 per-file rulings. No git write. Real warehouse: int_lap_wake_placeholder_cost rebuilt and re-exported only.",
+      "landed": [
+        "DD-WC30: placeholder line now \"Placeholder = an interim value set by a fixed rule, not a measurement of this lap.\" in the model, schema accepted_values, assert_wake_placeholder_labels, app transform + vitest, docs/app/dirty-air-cost.mdx, pageSummaries and test_wc11_placeholder.py (DD-WC26 sentence added to OLD_PLACEHOLDER_LINES). DD-WC2 unchanged.",
+        "fct_ghost_race_finish: comment only (p_beats_next NULL for tied drivers); new singular test assert_ghost_race_finish_no_rank_ties.sql (error), 0 ties; dbt test count 1506 -> 1507.",
+        "tyre_allocations: KNOWN WRONG paragraph (12 rows + missing 2025_6) in seeds/schema.yml and stg_tyre_allocations.sql; stale comments fixed in int_power_law_lap.sql, staging README and docs/transform/families/staging.mdx. Seed not edited (held for the ML redo, PK1).",
+        "DD-WC2: dated notes added beside the old quote in WC-05, WC-06, WC-08, WC-design-note and the WC-10 levels plan; signed pre-registration and WC-10 code untouched."
+      ],
+      "verified": [
+        "Scratch copy and real warehouse: dbt build -s int_lap_wake_placeholder_cost+ PASS=45; assert_ghost_race_finish_no_rank_ties PASS. Export: only the 8 int_lap_wake_placeholder_cost partitions changed; manifest version/generatedAt updated; export_app_data.py --check clean."
+      ],
+      "assumed": [
+        "fct_ghost_race_finish not rebuilt on the real warehouse: its change is comment-only, and a rebuild at threads 4 moves floats by ~1e-13 and breaks the model_hashes baseline (seen on the scratch copy)."
+      ],
+      "next": [
+        "Owner commits; docs-drift review of the changed docs pages."
+      ],
+      "gates_run": [
+        "test_wc11_placeholder.py",
+        "dbt build (placeholder)+tie test",
+        "docs_facts / overview_docs_facts / transform_docs_facts",
+        "export_app_data.py --check",
+        "board --check"
+      ],
+      "next_command": "python3 _roadmap/_wake-calibration/status/board.py --check"
     }
   ]
 }

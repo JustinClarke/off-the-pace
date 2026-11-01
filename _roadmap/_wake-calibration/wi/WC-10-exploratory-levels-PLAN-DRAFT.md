@@ -92,6 +92,8 @@ Inference uses a race-cluster bootstrap. Passes with gap under 0.3 s are reporte
 
 **OWNER**: the DD-WC2 wording was written for modelled references and fits a level badly. Rule 7 requires it verbatim. Recommendation: keep it verbatim and add a second, separate line, "Level = typical effect for a car in this situation, not a measurement of this lap". That needs a ruling, because rule 7 says "word for word".
 
+_[note correction 2026-11-01: DD-WC2 was reworded by the owner on 2026-10-31 for the WC-11 placeholder. The text quoted here is the 2026-10-27 wording, kept because it describes this item's modelled sources (other compound / other driver). Re-confirm the wording with the owner when this item starts.]_
+
 ## 5. The tyre factor, stated plainly
 
 - **Estimand:** θ_carry is the lap time a driver still loses on **free** laps after an episode close behind, per close lap in that episode. It sits beyond the tyre-age trend of their own free laps in the same stint, with the field lap effect removed.

@@ -25,6 +25,8 @@ Neither exists: the stint is **unavailable**. It is not filled from the pooled c
 
 > Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.
 
+_[note correction 2026-11-01: DD-WC2 was reworded by the owner on 2026-10-31 for the WC-11 placeholder. The text quoted here is the 2026-10-27 wording, kept because it describes this item's modelled sources (other compound / other driver). Re-confirm the wording with the owner when this item starts.]_
+
 **Done when.** Each stint and pass carries a label and, for modelled, its source; both checks are in `_evidence/WC-05-<date>/`; the owner has confirmed the disclaimer (DD-WC2).
 
 **Risks.**

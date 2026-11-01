@@ -16,6 +16,8 @@
 
 > Normalised from other compounds, based on stints from other drivers or the general performance of the tyres after removing other factors.
 
+_[note correction 2026-11-01: DD-WC2 was reworded by the owner on 2026-10-31 for the WC-11 placeholder. The text quoted here is the 2026-10-27 wording, kept because it describes this item's modelled sources (other compound / other driver). Re-confirm the wording with the owner when this item starts.]_
+
 **Stint coverage the UI must handle.** 16.7% of stints (1,177) have no clean lap; about 86% of those are modelled from another stint of the same driver or the teammate; about 2% of all stints (162) are unavailable.
 
 **Done when.** App tests are green; the owner reviews the label and disclaimer on screen; nothing ships without the owner's yes. Whether this replaces or sits beside the existing 0.331 × share tax is an owner call at this gate, and a label change goes through the ML retrain plan.

@@ -65,7 +65,13 @@ jobs:
       - name: Build the cliff mart from fixtures
         if: steps.fixtures.outputs.present == 'true'
         working-directory: ./transform
-        # --indirect-selection cautious: this is a partial DAG (only the cliff-features
+        # Selector: `@` on each ML-contract mart (ml/tests/test_manifest_contract.py
+        # ML_CONTRACT_MARTS) = the mart, its descendants, and every ancestor of those
+        # descendants. `+fct_cliff_prediction_features+` was not enough: it built the
+        # child fct_power_law_training without its other parent int_cell_power_law_fit
+        # (Catalog Error), ran the cliff mart's relationships tests without dim_drivers /
+        # dim_constructors, and never built fct_stint_features, which the guards read.
+        # --indirect-selection cautious: this is a partial DAG (only the ML-contract
         # lineage is built), so a singular test must run ONLY when every model it refs is
         # in the build set. Eager (the default) would pull in tests that also ref un-built
         # models (e.g. stg_laps_qualifying, int_synthetic_teammate) → Catalog Error.
@@ -73,7 +79,7 @@ jobs:
           dbt deps --profiles-dir profiles --target ci
           dbt seed --profiles-dir profiles --target ci
           dbt build --profiles-dir profiles --target ci \
-            --select +fct_cliff_prediction_features+ \
+            --select @fct_cliff_prediction_features @fct_stint_features @fct_lap_residuals @fct_driver_skill_features \
             --indirect-selection cautious \
             --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 
@@ -129,13 +135,14 @@ jobs:
       - name: Build the cliff mart from fixtures
         if: steps.fixtures.outputs.present == 'true'
         working-directory: ./transform
-        # See ml-leakage-guard: cautious indirect selection keeps tests that ref
+        # See ml-leakage-guard for the selector (ML-contract marts with @) and why
+        # cautious indirect selection keeps tests that ref
         # un-built models out of this partial-DAG build.
         run: |
           dbt deps --profiles-dir profiles --target ci
           dbt seed --profiles-dir profiles --target ci
           dbt build --profiles-dir profiles --target ci \
-            --select +fct_cliff_prediction_features+ \
+            --select @fct_cliff_prediction_features @fct_stint_features @fct_lap_residuals @fct_driver_skill_features \
             --indirect-selection cautious \
             --vars '{"bronze_base": "../transform/tests/fixtures/bronze", "fits_base": "../transform/tests/fixtures/fits"}'
 

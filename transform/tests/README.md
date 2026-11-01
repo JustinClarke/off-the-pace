@@ -189,10 +189,16 @@ Style fixes must not move model *output*. The **byte-stability oracle**
 (`scripts/snapshot_model_hashes.py`) enforces that: it computes an order-independent
 content hash of every materialized model and hard-fails (`--check`) if any `fct_*`
 mart drifts from the committed baseline (`tests/model_hashes.baseline.json`). `duckdb`
-is pinned in `requirements.txt` so the float-content hashes match across environments.
-Treat the baseline like an approval test: when model *logic* changes intentionally,
-regenerate it with `make lint-oracle-snapshot` and commit. The gate runs as CI
-"Gate 1c" and in `make transform-check`.
+is pinned in `requirements.txt`, but that does not make the float-content hashes
+portable: on the same fixtures and pins, a macOS arm64 build and the ubuntu x86_64 CI
+runner hash 12 float-heavy models (4 of them `fct_*`) differently, deterministically on
+each (measured 2026-11-01). So CI's "Gate 1c" checks its own baseline,
+`tests/model_hashes.ci.baseline.json`, which must be taken from the runner: every
+dbt CI run writes `target/model_hashes.ci.actual.json` into its `dbt-artifacts`
+upload, and that file is what gets committed when model *logic* changes intentionally.
+A local snapshot is not a valid CI baseline. Treat both baselines like approval tests:
+for the local one, regenerate with `make lint-oracle-snapshot` and commit; it is
+checked in `make transform-check`.
 
 ## Fixtures
 

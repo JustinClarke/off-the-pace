@@ -87,10 +87,18 @@ jobs:
       # CI baseline (transform/tests/model_hashes.ci.baseline.json), recorded from the
       # fixture warehouse data/ci.duckdb. The dev-sized baseline (model_hashes.baseline.json)
       # is checked by pipeline.yml against data/dev.duckdb. Guards against cosmetic /
-      # lint changes silently moving model output. duckdb is pinned in requirements.txt so
-      # the float-content hashes match the baseline. Regenerate with `dbt build --target ci`
-      # followed by `python scripts/snapshot_model_hashes.py --baseline tests/model_hashes.ci.baseline.json`
-      # when model logic changes intentionally.
+      # lint changes silently moving model output. Pinning duckdb is NOT enough to make the
+      # hashes portable: a macOS arm64 build of the same fixtures and pins hashes 12 models
+      # (incl. 4 fct_*, all float-heavy: median/regr/stddev/pow) differently from this
+      # ubuntu x86_64 runner, deterministically on each platform (2026-11-01). So this baseline must come from THIS runner, never a local build:
+      # the step below writes the runner's own snapshot to target/model_hashes.ci.actual.json
+      # (uploaded in the dbt-artifacts bundle). When model logic changes intentionally,
+      # download that file from the PR's run and commit it as tests/model_hashes.ci.baseline.json.
+      - name: Snapshot this runner's model hashes (for re-baselining)
+        if: always()
+        working-directory: ./transform
+        run: python scripts/snapshot_model_hashes.py --baseline target/model_hashes.ci.actual.json
+
       - name: Gate 1c   byte-stability oracle (fct_* output)
         working-directory: ./transform
         run: python scripts/snapshot_model_hashes.py --check --baseline tests/model_hashes.ci.baseline.json

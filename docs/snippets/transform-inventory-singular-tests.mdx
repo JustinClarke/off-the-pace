@@ -18,6 +18,7 @@
 | Identity-Closure | `assert_lap_7term_identity.sql` | Active | `int_lap_residual_decomposed` |
 | Identity-Closure | `assert_mart_race_teammate_gap.sql` | Active | `int_driver_race_skill_loro`, `mart_race_driver_summary` |
 | Identity-Closure | `assert_mart_season_teammate_gap.sql` | Active | `mart_driver_season_summary` |
+| Identity-Closure | `assert_microsector_lap_total_identity.sql` | Active | `int_microsector_proximity`, `stg_laps` |
 | Identity-Closure | `assert_qualifying_7term_identity.sql` | Active | `int_qualifying_decomposed` |
 | Identity-Closure | `assert_residual_components_not_in_base.sql` | Active | `int_lap_residual_decomposed`, `int_track_evolution` |
 | Identity-Closure | `assert_residual_decomposition_identity.sql` | Active | `int_lap_residual_decomposed` |
@@ -34,13 +35,16 @@
 | Domain Constraint | `assert_compound_pace_units.sql` | Active | `int_compound_cliff_predicted` |
 | Domain Constraint | `assert_compound_params_cover_mart.sql` | Active | `dim_compounds_season`, `int_stint_geometry` |
 | Domain Constraint | `assert_compound_wear_bounded.sql` | Active | `int_compound_cliff_predicted` |
+| Domain Constraint | `assert_compound_wear_not_extrapolated.sql` | Active | `int_compound_cliff_predicted` |
 | Domain Constraint | `assert_constructor_coefficient_signs.sql` | Active | `int_constructor_structural_pace` |
+| Domain Constraint | `assert_constructor_pace_propagates.sql` | Active | `int_constructor_structural_pace` |
 | Domain Constraint | `assert_corner_inputs_lap_grain_closure.sql` | Active | `int_corner_skill_residuals`, `int_lap_corner_inputs` |
 | Domain Constraint | `assert_corner_skill_cell_winsorized.sql` | Active | `mart_corner_skill_driver` |
 | Domain Constraint | `assert_corner_skill_phase_gate.sql` | Active | `mart_corner_skill_driver` |
 | Domain Constraint | `assert_corner_skill_sign_convention.sql` | Active | `int_corner_metrics`, `int_corner_skill_residuals`, `mart_corner_skill_driver` |
 | Domain Constraint | `assert_corner_trailing_window_no_forward_reach.sql` | Active | `int_corner_skill_residuals` |
 | Domain Constraint | `assert_corner_window_geometry.sql` | Active | `dim_corners`, `stg_circuit_info` |
+| Domain Constraint | `assert_degradation_rate_follows_wear_hold.sql` | Active | `int_compound_cliff_predicted` |
 | Domain Constraint | `assert_degradation_source_classes_reachable.sql` | Active | `fct_cliff_prediction_features`, `int_tyre_surface_vs_bulk_decoupling` |
 | Domain Constraint | `assert_dim_driver_seasons_single_driver_id.sql` | Active |   |
 | Domain Constraint | `assert_dirty_air_share_monotone.sql` | Active | `int_lap_air_state`, `int_stint_geometry` |
@@ -48,12 +52,15 @@
 | Domain Constraint | `assert_dirty_air_tax_null_only_when_unmeasured.sql` | Active | `int_dirty_air_tax_component`, `int_lap_air_state`, `int_stint_geometry` |
 | Domain Constraint | `assert_driver_skill_residual_reasonable.sql` | Active | `fct_lap_residuals` |
 | Domain Constraint | `assert_dsq_not_classified.sql` | Active | `stg_results` |
+| Domain Constraint | `assert_envelope_has_pooled_row.sql` | Active | `mart_degradation_history_envelope` |
 | Domain Constraint | `assert_event_driven_excluded_or_weighted.sql` | Active | `fct_cliff_prediction_features`, `int_event_corrections` |
+| Domain Constraint | `assert_field_base_drift_tracks_observed.sql` | Active | `int_compound_cliff_predicted`, `int_lap_fuel_state`, `stg_laps`, `stg_weather` |
 | Domain Constraint | `assert_field_pace_honest_range.sql` | Active | `int_field_pace_curve`, `stg_laps`, `stg_weather` |
 | Domain Constraint | `assert_field_pace_restart_cells_own_mean.sql` | Active | `int_field_pace_curve`, `int_stint_geometry` |
 | Domain Constraint | `assert_field_pace_smoothing_respects_boundaries.sql` | Active | `int_field_pace_curve`, `int_stint_geometry` |
 | Domain Constraint | `assert_fuel_curve_monotonicity.sql` | Active | `int_lap_fuel_state` |
 | Domain Constraint | `assert_fuel_load_matches_scheduled_distance.sql` | Active | `dim_circuits`, `int_lap_fuel_state`, `stg_laps` |
+| Domain Constraint | `assert_ghost_race_finish_no_rank_ties.sql` | Active | `fct_ghost_race_finish` |
 | Domain Constraint | `assert_ghost_recombination.sql` | Active | `fct_ghost_car_pace` |
 | Domain Constraint | `assert_ghost_self_scenario_rank.sql` | Active | `fct_ghost_race_finish`, `stg_results` |
 | Domain Constraint | `assert_hardness_rank_2018_from_lap_name.sql` | Active | `int_power_law_lap` |
@@ -62,11 +69,18 @@
 | Domain Constraint | `assert_isolation_recovery_share.sql` | Active | `int_driver_isolation_lap_panel` |
 | Domain Constraint | `assert_isolation_sign_convention.sql` | Active | `fct_driver_isolation_lap`, `fct_driver_isolation_pair_lap`, `int_lap_residual_decomposed` |
 | Domain Constraint | `assert_isolation_small_sample_nulls.sql` | Active | `fct_driver_isolation_lap`, `fct_driver_isolation_race`, `fct_driver_isolation_stint` |
+| Domain Constraint | `assert_isolation_thin_cell_tax_matches_component.sql` | Active | `int_dirty_air_tax_component`, `int_driver_isolation_lap_panel`, `int_lap_air_state`, `int_stint_geometry` |
 | Domain Constraint | `assert_isolation_window_no_forward_reach.sql` | Active | `fct_driver_isolation_lap` |
 | Domain Constraint | `assert_label_window_has_measured_base.sql` | Active | `fct_cliff_prediction_features`, `int_field_pace_curve` |
 | Domain Constraint | `assert_low_sample_cliff_cells_unshifted.sql` | Active | `int_constructor_deg_sensitivity` |
 | Domain Constraint | `assert_mad_floor.sql` | Active | `int_lap_anomaly_flags` |
 | Domain Constraint | `assert_mart_positions_gained_pit_lane.sql` | Active | `mart_race_driver_summary`, `stg_results` |
+| Domain Constraint | `assert_microsector_agrees_with_blue_flags.sql` | Active | `int_lap_proximity`, `int_microsector_proximity`, `stg_laps`, `stg_race_control` |
+| Domain Constraint | `assert_microsector_car_ahead_is_previous_crossing.sql` | Active | `int_microsector_crossings`, `int_microsector_proximity`, `stg_pits` |
+| Domain Constraint | `assert_microsector_corner_class_covers_panel.sql` | Active | `int_microsector_corner_class`, `int_microsector_crossings` |
+| Domain Constraint | `assert_microsector_excludes_pit_lane.sql` | Active | `int_microsector_proximity`, `stg_pits` |
+| Domain Constraint | `assert_microsector_flat_high_disjoint.sql` | Active | `int_microsector_corner_class` |
+| Domain Constraint | `assert_microsector_validity_rules.sql` | Active | `int_microsector_proximity` |
 | Domain Constraint | `assert_no_cap_valued_wear.sql` | Active | `int_compound_cliff_predicted` |
 | Domain Constraint | `assert_no_future_leakage.sql` | Active | `int_lap_thermal_proxy`, `int_stint_geometry` |
 | Domain Constraint | `assert_p_beats_next_geq_half.sql` | Active | `fct_ghost_race_finish` |
@@ -76,10 +90,12 @@
 | Domain Constraint | `assert_pit_ended_stints_have_stop.sql` | Active | `int_pit_strategy_value`, `int_stint_end_regime` |
 | Domain Constraint | `assert_pit_loss_excludes_neutralised.sql` | Active | `dim_circuits`, `int_pit_loss_circuit`, `stg_laps`, `stg_pits`, `stg_results`, `stg_track_status` |
 | Domain Constraint | `assert_pit_loss_pushes_optimum_later.sql` | Active | `int_pit_strategy_cost_curve` |
+| Domain Constraint | `assert_pit_not_taken_from_joined_boundary.sql` | Active | `int_pit_strategy_value`, `int_stint_end_regime`, `int_stint_geometry`, `stg_lap_tyre_qa` |
+| Domain Constraint | `assert_pit_overrun_graded_when_stop_and_optimum.sql` | Active | `int_pit_strategy_value` |
 | Domain Constraint | `assert_pit_stop_grain.sql` | Active | `stg_pits` |
 | Domain Constraint | `assert_power_law_fit_bounds.sql` | Active | `int_cell_power_law_fit`, `int_power_law_lap`, `int_stint_power_law_fit` |
 | Domain Constraint | `assert_power_law_no_seed_columns.sql` | Active | `fct_power_law_training`, `int_cell_power_law_fit`, `int_power_law_lap`, `int_stint_power_law_fit` |
-| Domain Constraint | `assert_proximity_agrees_with_blue_flags.sql` | Active | `int_lap_proximity`, `stg_race_control` |
+| Domain Constraint | `assert_proximity_agrees_with_blue_flags.sql` | Active | `int_lap_proximity`, `stg_laps`, `stg_race_control` |
 | Domain Constraint | `assert_proximity_crossing_total_order.sql` | Active | `stg_telemetry_position` |
 | Domain Constraint | `assert_proximity_excludes_pit_lane.sql` | Active | `int_lap_proximity`, `stg_pits` |
 | Domain Constraint | `assert_proximity_train_subset_of_within1s.sql` | Active | `int_lap_proximity` |
@@ -94,22 +110,29 @@
 | Domain Constraint | `assert_raw_laps_has_both_sessions.sql` | Active | `stg_laps`, `stg_laps_qualifying` |
 | Domain Constraint | `assert_raw_laps_race_depth_is_race_only.sql` | Active |   |
 | Domain Constraint | `assert_residual_skips_thin_field_cells.sql` | Active | `int_field_pace_curve`, `int_lap_residual_decomposed` |
+| Domain Constraint | `assert_residual_variance_shrinks.sql` | Active | `fct_lap_residuals` |
 | Domain Constraint | `assert_sc_hazard_no_forward_leakage.sql` | Active | `int_sc_hazard_history`, `stg_laps`, `stg_track_status` |
 | Domain Constraint | `assert_sc_hazard_probability_bounds.sql` | Active | `int_sc_hazard_history` |
 | Domain Constraint | `assert_stint1_includes_lap1.sql` | Active | `int_stint_geometry` |
-| Domain Constraint | `assert_stint_boundaries_match_pits.sql` | Active | `int_lap_residual_decomposed`, `int_stint_geometry`, `stg_pits` |
+| Domain Constraint | `assert_stint_boundaries_match_pits.sql` | Active | `int_lap_residual_decomposed`, `int_stint_geometry`, `stg_lap_tyre_qa`, `stg_pits` |
 | Domain Constraint | `assert_stint_boundary_integrity.sql` | Active | `int_lap_air_state`, `int_lap_fuel_state`, `int_lap_thermal_proxy` |
 | Domain Constraint | `assert_stint_censoring_partition.sql` | Active | `fct_stint_features` |
 | Domain Constraint | `assert_stint_end_cause_partition.sql` | Active | `int_stint_end_regime`, `int_stint_geometry`, `stg_results` |
 | Domain Constraint | `assert_stint_geometry_2018_compound_code_null.sql` | Active | `int_stint_geometry` |
 | Domain Constraint | `assert_survival_weight_neutral_without_prior_curve.sql` | Active | `fct_cliff_prediction_features`, `int_lap_residual_decomposed` |
 | Domain Constraint | `assert_synthetic_teammate_identity.sql` | Active | `int_stint_geometry`, `int_synthetic_teammate` |
+| Domain Constraint | `assert_telemetry_deltas_null_when_side_missing.sql` | Active | `fct_telemetry_deltas`, `int_corner_metrics` |
+| Domain Constraint | `assert_telemetry_deltas_teammates_only.sql` | Active | `fct_telemetry_deltas`, `stg_laps` |
 | Domain Constraint | `assert_thermal_variance_positive.sql` | Active | `int_track_evolution` |
 | Domain Constraint | `assert_theta_panel_has_measured_base.sql` | Active | `int_dirty_air_tax_component`, `int_lap_residual_decomposed` |
 | Domain Constraint | `assert_track_evolution_monotone_dry.sql` | Active | `int_field_pace_curve`, `stg_weather` |
 | Domain Constraint | `assert_track_evolution_monotone_wet.sql` | Active | `int_field_pace_curve`, `stg_weather` |
 | Domain Constraint | `assert_track_status_flag_partition.sql` | Active | `stg_laps` |
 | Domain Constraint | `assert_tyre_allocations_rows_per_season.sql` | Active | `stg_tyre_allocations` |
-| Regression Gate | `assert_constructor_pace_propagates.sql` | Active |   |
+| Domain Constraint | `assert_tyre_run_key.sql` | Active | `int_stint_geometry`, `stg_lap_tyre_qa`, `stg_race_control`, `stg_results` |
+| Domain Constraint | `assert_vsc_stop_censored.sql` | Active | `int_stint_end_regime` |
+| Domain Constraint | `assert_wake_placeholder_factors.sql` | Active | `int_lap_wake_placeholder_cost` |
+| Domain Constraint | `assert_wake_placeholder_labels.sql` | Active | `int_lap_wake_placeholder_cost` |
+| Domain Constraint | `assert_wake_placeholder_off_archived_numbers.sql` | Active | `int_lap_wake_placeholder_cost`, `int_wake_placeholder_race_loss` |
+| Domain Constraint | `assert_wake_placeholder_tyre_allocation.sql` | Active |   |
 | Regression Gate | `assert_prior_season_labels_frozen.sql` | Active | `fct_cliff_prediction_features`, `int_dirty_air_tax_component` |
-| Regression Gate | `assert_residual_variance_shrinks.sql` | Active |   |

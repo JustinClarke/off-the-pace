@@ -16,6 +16,7 @@ One row per constructor (team) name, from a fixed list in the model rather than 
 flowchart LR
   dim_constructors --> fct_driver_skill_features
   dim_constructors --> fct_lap_residuals
+  dim_constructors --> int_lap_wake_placeholder_cost
   style dim_constructors fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -27,7 +28,7 @@ flowchart LR
 | Family | [Reference](/transform/families/reference) |
 | Contract enforced | No |
 
-**27 tests** [guard](/transform/ci/overview) this model  -  26 generic, 1 singular.
+**28 tests** [guard](/transform/ci/overview) this model  -  27 generic, 1 singular.
 
 ## Columns
 

@@ -24,6 +24,7 @@ flowchart LR
   int_stint_geometry --> int_dirty_air_tax_component
   int_track_evolution --> int_dirty_air_tax_component
   int_dirty_air_tax_component --> fct_stint_features
+  int_dirty_air_tax_component --> int_driver_isolation_lap_panel
   int_dirty_air_tax_component --> int_lap_residual_decomposed
   style int_dirty_air_tax_component fill:#e40404,stroke:#e40404,color:#fff
 ```
@@ -38,7 +39,7 @@ flowchart LR
 | Tags | `causal_decomposition`, `dirty_air` |
 | Upstream | [`int_lap_fuel_state`](./int_lap_fuel_state), [`int_field_pace_curve`](./int_field_pace_curve), [`int_compound_cliff_predicted`](./int_compound_cliff_predicted), [`int_stint_geometry`](./int_stint_geometry), [`int_lap_air_state`](./int_lap_air_state), [`int_event_corrections`](./int_event_corrections), [`int_track_evolution`](./int_track_evolution) |
 
-**13 tests** [guard](/transform/ci/overview) this model  -  8 generic, 5 singular.
+**14 tests** [guard](/transform/ci/overview) this model  -  8 generic, 6 singular.
 
 ## Columns
 

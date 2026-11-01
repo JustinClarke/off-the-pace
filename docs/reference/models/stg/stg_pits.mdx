@@ -15,6 +15,7 @@ One row per pit stop: a lap carrying PitInTime. Bronze splits a stop across two 
 ```mermaid
 flowchart LR
   stg_pits --> int_lap_proximity
+  stg_pits --> int_microsector_proximity
   stg_pits --> int_pit_loss_circuit
   stg_pits --> int_pit_strategy_value
   stg_pits --> stg_lap_tyre_qa
@@ -29,7 +30,7 @@ flowchart LR
 | Family | [Staging](/transform/families/staging) |
 | Contract enforced | No |
 
-**10 tests** [guard](/transform/ci/overview) this model  -  6 generic, 4 singular.
+**12 tests** [guard](/transform/ci/overview) this model  -  6 generic, 6 singular.
 
 ## Columns
 

@@ -1,50 +1,90 @@
 ---
 title: "How many seconds did dirty air cost each driver?"
 sidebarTitle: "Dirty Air Cost"
-description: "A leaderboard of the cumulative time each driver lost to running in disturbed airflow during a race, from a single dirty-air coefficient shared by every circuit and season."
+description: "A leaderboard of the approximate time each driver lost to the wake of the car ahead during a race, from placeholder per-race values (an assumed rule from the circuit layout and the car generation, adjusted per lap by a small assumed tyre factor from the lap's Pirelli compound) scaled by the measured time spent close behind another car."
 ---
 
-Following another car costs lap time: the wake disrupts downforce and overheats the tyres. The dirty air cost leaderboard quantifies that loss in seconds for each driver in a race, accumulating a flat per-lap charge for every lap that followed a lap spent close behind another car. It turns "stuck in traffic" into a number you can rank.
+Following another car costs lap time: the wake disrupts downforce and overheats the tyres. The dirty air cost leaderboard gives a rough size for that loss in seconds for each driver in a race. Every value on it is a **placeholder**: modelled, not measured.
 
 ## What it shows
 
-Each driver carries three dirty-air figures:
+Each driver carries these figures:
 
-- **Total cost (`cumulative_dirty_air_tax_race_s`)**: the race-end sum of the per-lap dirty-air charge. Drivers who spent more laps closely following another car accumulate a larger total.
-- **Average per lap (`dirty_air_tax_s`)**: the mean charge over the driver's scored laps. Every charged lap is charged the same amount, so this is the share of laps spent following times that amount. It does not measure how close the driver followed.
-- **Taxed laps**: the count of laps where any dirty-air tax was applied (`dirty_air_tax_s > 0`).
+- **Total (placeholder)**: the sum of the per-lap placeholder cost over the driver's laps that have a value.
+- **Avg/Lap (placeholder)**: the mean per-lap placeholder cost over those laps.
+- **Team**: the driver's constructor (`constructor_id`).
+- **Tyre factor (assumed)**: the tyre factors applied on the driver's modelled laps, with the lap's Pirelli C-number from 2019, for example `MEDIUM (C3) x1.00, SOFT (C4) x1.10` (2018 laps show no C-number, for example `HARD x0.96`). A lap with no recorded compound gets the neutral 1.00 and the cell says it was flagged.
+- **Car factor**: the car multiplier and its basis. Today it is `1.00 (neutral default, no public evidence used)` for every team.
+- **Label**: `modelled` for every value. Nothing on the page is measured.
+- **Laps with value** and **Laps unavailable**: a lap with no measured gap, or a safety car, VSC or red flag lap, has no value. It is shown as "—" with its reason, never as 0.
 
-The charge comes from **one coefficient shared by every circuit and every season**: a single OLS slope of lap pace against the field on whether the previous lap was spent following. A lap counts as following when the median gap to the car ahead through the middle third of the lap was under 1.5 s. A lap is charged that coefficient if the previous lap in the same stint was following, and nothing otherwise. It is not a per-circuit estimate, and it is not a function of how close the car was.
+A banner above the charts always shows the DD-WC2 disclaimer, the placeholder line, the field total and its **modelled share** (100%: every value is a placeholder). One **Assumptions** line, closed by default, gives the race's assumed loss before the tyre and car factors; open it for how that loss was set (the corner mix and era factor, or **FALLBACK** when the race has no corner data), the tyre factors, and whether every car factor is the neutral default.
+
+The table is collapsed to the essentials: rank, driver, team, total, average per lap and a `modelled` label (at phone width only driver, total and average per lap). Select a row, or press Enter or Space on its driver button, to open its detail: the tyre and car factors, laps with a value, laps unavailable with their reasons, and total laps. Several rows can be open at once. A driver with no value shows "—" and the label `unavailable`, never 0. A driver whose measured laps all have no car within 2 s shows a modelled 0.00 s. Export CSV always has the full detail columns.
+
+## The two charts
+
+Above the table are two visuals. Both are labelled "placeholder, modelled".
+
+- **Bar chart by driver**: each driver's total placeholder cost, in the same order as the table. The top three are labelled directly, and hovering or focusing a bar shows the driver's total, average per lap, and laps with and without a value. A driver with no value shows "—" and the reason, never an empty bar of 0. Select a driver to feed the second chart.
+- **How the cost is built**: for the selected driver, one column per lap. The top strip is the measured share of the lap within 1 s of the car ahead and between 1 and 2 s. The bottom strip is the assumed cost for that lap, which is the assumed loss times the exposure. Safety car, VSC, red flag and no-gap laps are hatched, never 0. A blank column is a measured lap with no car within 2 s (a modelled 0). Use the left and right arrow keys, or hover, to read a lap. A lap table sits below it.
+
+The table below the charts holds the same numbers.
+
+## How the placeholder is built
+
+1. **Assumed loss per race.** A fixed rule, not a fit, sets the loss for a full lap spent within 1 s of the car ahead:
+   - The race layout's braking corners are counted by apex speed as **fast-corner equivalents**: fast (200 km/h or more) 1, medium (120 to 200 km/h) 0.5, slow (under 120 km/h) 0.25, and a kink taken flat 0.25. The counts are the median over every season of the same layout.
+   - A lap of 8 equivalents is assumed to cost **0.35 s** with 2017-18 cars.
+   - An assumed **car-generation factor** scales it: 2017-18 1.00, 2019-21 0.90, 2022 0.65, 2023 0.75, 2024-25 0.80. The 2022 ground-effect rules were designed to make following easier, and teams won some of the wake back from 2023. A later season carries the 2024-25 factor and is marked as not assessed.
+   - The result is kept between **0.15 s and 0.55 s** and rounded to 0.01 s.
+   - A race with no corner data uses a circuit-class value (fast 0.45 s, medium 0.30 s, slow 0.20 s) times the same factor, and is marked **FALLBACK**.
+
+   Corner counts come from the circuit layout, never from lap times. Every number in the rule is an assumption from general F1 knowledge and the published rule changes.
+2. **Tyre and car factors (assumed).** Each lap's race value is multiplied by two small factors and kept between 0.15 s and 0.55 s:
+   - **Tyre**: from 2019, the lap's Pirelli C-number (C1 hardest to C6 softest) against the race's medium compound. One step softer gets 1.10, two or more steps softer 1.17, one step harder 0.96, two or more steps harder 0.93, and the medium itself 1.00. Steps are counted in C-numbers, so at a race whose three compounds skip a number (for example C1, C3 and C4) the factor follows the real gap. The factor is kept between 0.90 and 1.17. Each race's three compounds come from a table of Pirelli's nominations, each checked against a published source. In 2018 Pirelli used names, not C-numbers, so the race's three dry compounds are ranked by softness: the softest gets 1.10, the middle 1.00 and the hardest 0.96. A car in the wake slides more and runs hotter tyres, and a softer compound overheats sooner. This is a per-lap sensitivity, not tyre wear: wear builds over a stint and is not modelled. Intermediate and wet laps get 1.00, because the dry ranking does not extend to them.
+   - **Car**: 1.00 for every team in every season. A team gets a different value only if a public, checkable source about its car concept supports one, and none does today. No team is assumed to suffer more or less in the wake.
+   - A lap with no recorded compound or team gets the neutral 1.00 and a flag.
+3. **Measured exposure.** The share of the lap spent within 1 s of the car ahead, plus half the share spent between 1 and 2 s. The loss tapers to nothing at 2 s. Gaps are crossing-time gaps: the difference between two cars passing the same point on track.
+4. **Per-lap cost** is the per-lap assumed loss (race value x tyre x car) times the exposure.
 
 <Note>
-  The first lap of each stint and the lap after a safety car, VSC or red flag lap are never charged. Pit laps and neutralised laps are not scored.
+  Not included: being held up by a slower car, the tow gain on straights, DRS, and tyre wear. The car-generation and tyre factors are assumptions, not measurements. These values are not used to train any model: the machine-learning models see the measured gaps only.
 </Note>
 
 ## How to use it
 
 1. **Select a race** from the filter bar; the leaderboard loads.
-2. **Sort by total cost** to see who lost the most to traffic over the full race.
-3. **Compare average per lap** to see what share of each driver's race was spent following. Because every charged lap costs the same, it cannot tell you who was in the worst air.
-4. **Read taxed laps** to size how much of the race each driver spent following.
+2. **Sort by total** to see who spent the most time close behind other cars, priced at the race's assumed rate.
+3. **Read laps unavailable** before comparing drivers: a driver with many unavailable laps has a smaller total because fewer laps were priced.
 
 ## Reading the signal correctly
 
-Dirty-air cost is largely a function of **track position and car pace**, not driver error a quick car stuck behind a slower one accrues a large penalty through no fault of the driver. Read it as "how much traffic shaped this race", and pair it with the [lap air map](/app/dirty-air-lap-map) to see exactly when the driver was in disturbed air.
+The total is mostly a function of **track position and car pace**, not driver error. Read it as "how much traffic shaped this race", and pair it with the [lap air map](/app/dirty-air-lap-map) to see when the driver was close behind another car.
 
 <Warning>
-  The charge is one pooled coefficient, not a direct aero measurement and not a per-circuit or per-season estimate. A lap spent following at a circuit where following is aerodynamically cheap is charged the same as one at a circuit where it is expensive, and measured season by season the cost of following was highest in 2018. Totals differ between drivers only through how many laps each spent following.
+  Modelled: an assumed typical loss for this circuit, season, tyre and car, applied to the measured time spent close behind another car. Not calibrated on this driver's own stints.
+
+  Placeholder = an interim value set by a fixed rule, not a measurement of this lap.
 </Warning>
 
 ## Data source
 
-The chart queries `int_dirty_air_tax_component` via DuckDB-Wasm in the browser, for a single race.
+The chart queries `int_lap_wake_placeholder_cost` via DuckDB-Wasm in the browser, for a single race. The per-race loss comes from `int_wake_placeholder_race_loss`; the rule's numbers live in `transform/seeds/wake_placeholder_rule.csv`, the corner counts in `transform/seeds/wake_placeholder_race_structure.csv`, the C-number tyre rule in `transform/seeds/wake_placeholder_c_number_factor.csv` with each race's compounds in `transform/seeds/wake_placeholder_tyre_allocation.csv`, the 2018 and fallback tyre factors (and the neutral wet and intermediate rows) in `transform/seeds/wake_placeholder_compound_factor.csv`, and the car factors in `transform/seeds/wake_placeholder_constructor_factor.csv`. They will be replaced by calibrated values later.
 
 | Column | Meaning |
 |---|---|
-| `cumulative_dirty_air_tax_race_s` | Race-end cumulative dirty-air penalty (the total) |
-| `dirty_air_tax_s` | Per-lap penalty, averaged for the per-lap figure |
-| `taxed_lap_count` | Laps where any dirty-air tax was applied |
+| `wake_cost_placeholder_s` | Per-lap placeholder cost (NULL when unavailable) |
+| `wake_exposure` | Measured exposure, 0 to 1 |
+| `loss_s_per_lap_within_1s` | The lap's assumed loss for a full lap within 1 s (race value x tyre x car, 0.15 to 0.55 s) |
+| `race_loss_s_per_lap_within_1s` | The race's assumed loss before the tyre and car factors |
+| `compound_class`, `compound_factor` | The lap's relative dry compound and its assumed tyre factor |
+| `tyre_c_number`, `compound_factor_scale` | The lap's Pirelli C-number (none in 2018), and whether the tyre factor came from the C-number rule (`c_number`), the 2018 softness ranking (`relative_class`) or is neutral (`neutral`) |
+| `constructor_id`, `constructor_factor`, `constructor_basis` | The team, its car factor (1.00 neutral default) and why |
+| `factor_flag` | Set when a tyre or car factor fell back to the neutral 1.00 |
+| `era`, `era_factor` | The car generation and its assumed factor |
+| `loss_source` | `race_structure` (the rule) or `class_fallback` |
+| `loss_basis` | One line saying how the race's loss was set |
+| `unavailable_reason` | Why a lap has no value |
 
 This is a **single-race** view across **2018–2025** data.
-
-For the full model definition, see the [`int_dirty_air_tax_component` reference](/reference/models/int/int_dirty_air_tax_component).

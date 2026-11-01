@@ -94,15 +94,15 @@ Under a fixed one-stop the pit-lane loss is the same whenever you take it, so it
 Strategy verdicts on pit timing are then a plain ordered `CASE`, not a regression a stop within one lap of the modelled optimum is `'optimal'`; later is `'overran'`; earlier counts as `'undercut_forced'` only if the stop landed inside the window where the undercut threat opened, otherwise it's `'early'`:
 
 ```sql
-WHEN ABS(r.actual_offset - r.pick_offset) <= 1 THEN 'optimal'
-WHEN r.actual_offset > r.pick_offset + 1 THEN 'overran'
+WHEN ABS(r.pick_actual_offset - r.pick_offset) <= 1 THEN 'optimal'
+WHEN r.pick_actual_offset > r.pick_offset + 1 THEN 'overran'
 WHEN r.first_undercut_threat_lap IS NOT NULL
      AND r.actual_pit_lap BETWEEN r.first_undercut_threat_lap - 2
                               AND r.first_undercut_threat_lap + 3
      THEN 'undercut_forced'
 ```
 
-Laps are compared as offsets in valid laps rather than lap numbers, so an invalid lap before the stop cannot skew the comparison.
+Laps are compared as offsets in valid laps rather than lap numbers, so an invalid lap before the stop cannot skew the comparison. Both offsets are read on the same horizon: where the two-stint window has no optimum, the optimum and the actual offset fall back to the race remainder together (`pick_actual_offset`).
 
 ## Design notes
 

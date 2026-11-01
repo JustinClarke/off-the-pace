@@ -80,14 +80,14 @@
       }
     },
     "docs/app/dirty-air-cost.mdx": {
-      "83cdbff1734127a09b5a0c238ee5cb2d9efb621d605b65577d9eb9801d44c1b6": {
+      "870e03b65bff94aebd1abb79b32f6bd47429226a62e1f3ca94968aaa8acb81e7": {
         "reviewer": "docs-claims-reviewer",
-        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "recordedAt": "2026-10-31T21:18:33.559Z",
         "claims": {
           "reading-signal-dirty-air-cost": {
             "verdict": "PASS",
-            "evidence": "One pooled coefficient, 1.5 s following rule, 2018 highest match methodology.tsx:20-30 and int_dirty_air_tax_component.sql:42-43 (per-season theta +0.418 in 2018); summary carries it.",
-            "at": "2026-10-22T07:44:24.418Z"
+            "evidence": "Section statements match methodology.tsx and queries.ts; DD-WC2 sentence matches DD_WC2_DISCLAIMER verbatim; DD-WC30 line matches PLACEHOLDER_LINE; AI summary carries the warning and placeholder line verbatim.",
+            "at": "2026-10-31T21:18:33.559Z"
           }
         }
       }
@@ -119,14 +119,14 @@
       }
     },
     "docs/app/driver-consistency.mdx": {
-      "b7b1f1a3f384a4f23f8e489f02209915fcffc098d15b388573885df5ba87d4d7": {
+      "89685025304ed09ea593a7a6571502bb23995ea6996b712e1339b74891e5c270": {
         "reviewer": "docs-claims-reviewer",
-        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "recordedAt": "2026-10-31T08:14:46.135Z",
         "claims": {
           "reading-signal-driver-consistency": {
-            "verdict": "FAIL",
-            "evidence": "docs/app/driver-consistency.mdx:38 \"Circuits that carry a `REVIEW_REQUIRED` flag in the data quality audit\" vs the flag living in transform/seeds/circuit_reference.csv / dim_circuits (docs/decomposition/limitations.mdx:19 \"in dim_circuits\"); app/src/features/data-quality-audit/queries.ts:28-44 selects only int_lap_anomaly_flags columns and never surfaces REVIEW_REQUIRED, so the audit page does not carry it. Summary repeats the misattribution.",
-            "at": "2026-10-22T07:44:24.418Z"
+            "verdict": "PASS",
+            "evidence": "Section lines 31-38 match int_lap_residual_decomposed.sql, fct_driver_skill_features.sql, queries.ts and methodology.tsx; REVIEW_REQUIRED warning holds (calibration_flag not selected by dim_circuits, not shown in feature); AI copy carries the whole section.",
+            "at": "2026-10-31T08:14:46.135Z"
           }
         }
       }
@@ -171,14 +171,14 @@
       }
     },
     "docs/app/field-pace-curve.mdx": {
-      "8149d2b1f8bdfe6b48961b90dd9470bee6f24d703ca7a350b5fb3ef3dcdd5895": {
+      "e0ce6d52996b6121bff971b0a3d216fc7dc7d4566ec8656bd94dc18d62c3a695": {
         "reviewer": "docs-claims-reviewer",
-        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "recordedAt": "2026-10-31T17:31:01.381Z",
         "claims": {
           "reading-signal-field-pace-curve": {
-            "verdict": "FAIL",
-            "evidence": "docs/app/field-pace-curve.mdx:30 \"deliberately discards the top and bottom 20%\" vs transform/models/intermediate/int_field_pace_curve.sql:236-244 \"10% trim = drop top and bottom 10%\" (pct_rank BETWEEN 0.10 AND 0.90); also :30 \"a downward slope is fuel burn\" vs int_field_pace_curve.sql:2-3 the curve is fuel- and compound-corrected. features/field-pace-curve/methodology.tsx (20th-80th, <4 cars) is likewise stale vs sql (<5, line 261).",
-            "at": "2026-10-22T07:44:24.418Z"
+            "verdict": "PASS",
+            "evidence": "Every statement matches int_field_pace_curve.sql (trimmed mean 0.10-0.90, weight-corrected time, compound cost removed, low_sample_flag) and methodology.tsx; caveats appear in the field-pace-curve entry of pageSummaries.generated.json.",
+            "at": "2026-10-31T17:31:01.381Z"
           }
         }
       }
@@ -197,14 +197,14 @@
       }
     },
     "docs/app/hidden-performance.mdx": {
-      "5c43adfceb57c728aaae9784defed7b3f0941222ae4edf97a205ca8fee942bbc": {
+      "289bd57c3a04efc53602d45faa02cbdad95eeee89ffe05376430e2b94bdf213d": {
         "reviewer": "docs-claims-reviewer",
-        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "recordedAt": "2026-10-31T18:37:54.362Z",
         "claims": {
           "reading-signal-hidden-performance": {
-            "verdict": "FAIL",
-            "evidence": "docs/app/hidden-performance.mdx:33 \"predicted finish should equal actual finish\" (also :26) vs app/src/features/hidden-performance/methodology.tsx:20-23 \"the predicted per-lap pace should match the actual per-lap pace. Finish position ... will differ from actual finish.\" Summary carries the contradicted statement.",
-            "at": "2026-10-22T07:44:24.418Z"
+            "verdict": "PASS",
+            "evidence": "Every statement in the Reading the signal section appears in methodology.tsx (pace vs result caveat, rounding-error equality, finish delta expected, 94% = 2,617 of 2,786 dated 2026-10-31); queries.ts supports is_self_scenario and actual_finish_position filters; AI copy carries the same caveats. Re-review at current sha.",
+            "at": "2026-10-31T18:37:54.362Z"
           }
         }
       }
@@ -236,14 +236,14 @@
       }
     },
     "docs/app/pit-strategy.mdx": {
-      "0f802a7bb25930af9da345f45034aea4157d3b112f584fc736b81edcce9d1dac": {
+      "c4bef509db1c5f2bb1188a6d02ddc2387289cdebdd4cbf873670231a32e240bc": {
         "reviewer": "docs-claims-reviewer",
-        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "recordedAt": "2026-10-31T19:26:59.937Z",
         "claims": {
           "reading-signal-pit-strategy": {
-            "verdict": "FAIL",
-            "evidence": "docs/app/pit-strategy.mdx:32 \"Across the 2018-2025 seasons the median stop came one lap earlier than the model's optimum\" vs median overrun_laps = -3 (n=4905, 2018-2025) in data/dev.duckdb int_pit_strategy_value (overrun_laps defined int_pit_strategy_value.sql:429-433); schema.yml:2318 \"Median -1\" is for seven seasons only. Rest of the paragraph (one-stop horizon, stint plus next) matches int_pit_strategy_cost_curve.sql:48-60.",
-            "at": "2026-10-22T07:44:24.418Z"
+            "verdict": "PASS",
+            "evidence": "Updated int_pit_strategy_value.sql (pick_actual_offset COALESCE, horizon_source, overrun_laps, verdict CASE) matches the section; methodology.tsx carries one-stop, next-set-as-new, no-track-position and pit-lane/safety-car statements; AI summary reproduces the section and Warning verbatim.",
+            "at": "2026-10-31T19:26:59.937Z"
           }
         }
       }
@@ -275,14 +275,14 @@
       }
     },
     "docs/app/race-control.mdx": {
-      "d6f585c2c7a71f2e4b3bea155e52c9b4f797cb7d11df793d1d7274568143903a": {
+      "8f95e07d7f064303c2bf521fd30e1d058510ab899f4131dd6a53650ffee1d54a": {
         "reviewer": "docs-claims-reviewer",
-        "recordedAt": "2026-10-22T07:44:24.418Z",
+        "recordedAt": "2026-10-31T18:37:54.362Z",
         "claims": {
           "reading-signal-race-control": {
-            "verdict": "FAIL",
-            "evidence": "docs/app/race-control.mdx:35 \"The warehouse holds about 4.1 races per circuit\" (149 races; also table :42-47 and :59 \"0.178 across the 128 rows ... never exceeds 0.413\", :57 \"0.019 to 0.033\") vs warehouse now 173 races 2018-2025 (int_stint_geometry in data/dev.duckdb), int_sc_hazard_history: 137 rows with prior, mean weight 0.2245, max 0.4516, shrunk any-hazard 0.0166-0.0326. Figures are a 2018-2024 snapshot (methodology.tsx:297 repeats 149); summary and assistant-docs/race-control.md carry the same stale numbers.",
-            "at": "2026-10-22T07:44:24.418Z"
+            "verdict": "PASS",
+            "evidence": "Page statements match methodology.tsx: naive estimator 0.27 any caution / 0.32 safety car, 0.000/0.015 shares, p=0.37, shrink weight L/(L+600) mean 0.202 over 152 rows max 0.452 debut=0, 2018 blank, 15 debut rows, 129 windows from 137 onsets. AI copy race-control.md carries every caveat. Runtime data figures not checkable from sources but consistent.",
+            "at": "2026-10-31T18:37:54.362Z"
           }
         }
       }

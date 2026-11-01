@@ -16,6 +16,8 @@ Deliberately NOT a copy of stg_telemetry with a different WHERE clause: it carri
 ```mermaid
 flowchart LR
   stg_telemetry_position --> int_lap_proximity
+  stg_telemetry_position --> int_microsector_corner_class
+  stg_telemetry_position --> int_microsector_crossings
   style stg_telemetry_position fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -44,3 +46,6 @@ flowchart LR
 | `pos_y` | `double` | Yes |   | Track-frame Y coordinate (1/10 m). Carried for racing-line deviation; no current consumer. |
 | `driver_ahead_number` | `varchar` | Yes |   | FastF1's own answer to "who is ahead". A car NUMBER, not the three-letter code driver_id uses; int_lap_proximity resolves it through stg_results. Kept so the incumbent measure can be scored against the new one rather than replaced by assertion. |
 | `distance_to_ahead_m` | `double` | Yes |   | FastF1's DistanceToDriverAhead (m). The single number every incumbent traffic feature in this warehouse descends from. Diagnostic here. |
+| `distance_m` | `double` | Yes |   | DA-02P. FastF1 lap distance of the sample (m), unfiltered (no 6500 m cut). distance_m / relative_distance is the lap length the lap fraction was computed against; int_microsector_corner_class uses it to place micro-sector boundaries in metres. |
+| `drs_code` | `integer` | Yes |   | The raw FastF1 DRS code FastF1 merged onto the position sample (DA-02P). |
+| `drs_state` | `varchar` | Yes |   | DA-02P. Same decode as stg_telemetry.drs_state: off (0, 1), eligible (8), open (10, 12, 14), unknown (any other code), NULL when the code is NULL. |

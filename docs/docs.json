@@ -281,6 +281,10 @@
                   "reference/models/int/int_lap_residual_stint_detrend",
                   "reference/models/int/int_lap_telemetry_aggregates",
                   "reference/models/int/int_lap_thermal_proxy",
+                  "reference/models/int/int_lap_wake_placeholder_cost",
+                  "reference/models/int/int_microsector_corner_class",
+                  "reference/models/int/int_microsector_crossings",
+                  "reference/models/int/int_microsector_proximity",
                   "reference/models/int/int_pit_loss_circuit",
                   "reference/models/int/int_pit_strategy_cost_curve",
                   "reference/models/int/int_pit_strategy_value",
@@ -297,7 +301,8 @@
                   "reference/models/int/int_synthetic_teammate",
                   "reference/models/int/int_track_evolution",
                   "reference/models/int/int_track_geometry",
-                  "reference/models/int/int_tyre_surface_vs_bulk_decoupling"
+                  "reference/models/int/int_tyre_surface_vs_bulk_decoupling",
+                  "reference/models/int/int_wake_placeholder_race_loss"
                 ]
               },
               {

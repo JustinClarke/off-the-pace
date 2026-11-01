@@ -17,7 +17,7 @@ Each stint is a horizontal bar spanning its actual race laps:
 - **Opportunity cost**: `Total_Cost(actual)` minus `Total_Cost(optimal)`, in seconds so stopping too early carries a cost too, not only overrunning.
 
 <Note>
-  **unknown** means the stint's compound has no fitted degradation curve at that circuit and season, so there is nothing to minimise over 266 stints of 7,129. It is shown explicitly rather than being forced into a verdict.
+  **unknown** means the stint's compound has no fitted degradation curve at that circuit and season, so there is nothing to minimise over. That is 69 of the 5,169 stints that ended in a stop. It is shown explicitly rather than being forced into a verdict.
 </Note>
 
 ## How to use it
@@ -29,21 +29,25 @@ Each stint is a horizontal bar spanning its actual race laps:
 
 ## Reading the signal correctly
 
-The optimal lap is a **model counterfactual** computed from the fitted degradation curve, the circuit's pit-lane loss and its safety-car rate it assumes the rest of the race plays out as observed, and that exactly one stop happens inside the horizon. The horizon is this stint plus the next, so the verdict grades the lap the stop landed on, not the number of stops the team chose. The column `overrun_laps` is actual laps run on the set minus the model-optimal laps, counted in valid laps per stint. A negative `overrun_laps` means the stop came earlier than the model's optimum. Across the 2018–2025 seasons the median `overrun_laps` is **-3 valid laps per stint** (n = 4,905 stints that have both an actual stop and a model optimum). Per season, the median `overrun_laps` ranges from -1 valid lap (2018 and 2021) to -4 valid laps (2019, 2020 and 2022). In 61% of those 4,905 stints the stop came earlier than the model's optimum. The model does not price track position. So a stop that looks early may have been the correct response to something the model does not measure.
+The optimal lap is a **model counterfactual** computed from the fitted degradation curve, the circuit's pit-lane loss and its safety-car rate. It takes the rest of the strategy as the team actually ran it (the horizon ends where the driver's next stint ends, and the next set is the compound actually fitted, as new), and it assumes exactly one stop happens inside the horizon. The horizon is this stint plus the next, so the verdict grades the lap the stop landed on, not the number of stops the team chose. Where no next stint exists (the driver's last stint of the race), the model falls back to the race-remainder horizon, from this stint's first lap to the driver's last lap, and `horizon_source` records which horizon was used. The column `overrun_laps` is actual laps run on the set minus the model-optimal laps, counted in valid laps per stint. A negative `overrun_laps` means the stop came earlier than the model's optimum. The model does not price track position. So a stop that looks early may have been the correct response to something the model does not measure.
 
 <Warning>
   Neither **overran** nor **early** is automatically a mistake: teams trade lap-time loss for track position, safety-car optionality, or tyre-offset at the end. Read the opportunity cost as the pace price paid, not as proof of an error.
 </Warning>
 
+## On the 2026-10-31 build
+
+This paragraph reports figures from the 2018–2025 warehouse build of 2026-10-31 and will change when the data is rebuilt. Of the 5,100 stints that have both an actual stop and a model optimum, 4,835 were graded on the two-stint horizon and 265 on the race-remainder horizon. Across the 2018–2025 seasons, the median `overrun_laps` is **-2 valid laps per stint** (n = 5,100). Per season, the median `overrun_laps` ranges from 0 valid laps (2018) to -4 valid laps (2020). In 59% of those 5,100 stints the stop came earlier than the model's optimum. The verdicts on those stints are 2,571 early, 1,526 overran, 839 optimal and 164 undercut forced.
+
 ## Data source
 
-The chart joins `fct_stint_features` (stint windows and cliff lap), `fct_lap_residuals` (lap windows), and `int_pit_strategy_value` (the optimal-lap counterfactual), via DuckDB-Wasm in the browser.
+The chart joins `fct_stint_features` (stint windows and cliff lap), `fct_lap_residuals` (the race's lap count), and `int_pit_strategy_value` (the optimal-lap counterfactual), via DuckDB-Wasm in the browser.
 
 | Column | Meaning |
 |---|---|
 | `cliff_lap_in_stint` | Lap within the stint where the compound crossed the cliff (`fct_stint_features`) |
 | `optimal_pit_lap_in_stint` | Model-optimal stop lap, in valid laps on the set (`int_pit_strategy_value`) |
-| `opportunity_cost_s` | `Total_Cost(actual)` - `Total_Cost(optimal)`; median 5.5 s, p95 83 s |
+| `opportunity_cost_s` | `Total_Cost(actual)` - `Total_Cost(optimal)`; median 4.6 s, p95 34 s across stints that ended in a stop |
 | `strategy_verdict` | optimal / overran / early / undercut_forced / unknown |
 
 This is a **single-race** view across **2018–2025** data.

@@ -22,6 +22,8 @@ flowchart LR
   stg_results --> int_lap_proximity
   stg_telemetry_position --> int_lap_proximity
   int_lap_proximity --> fct_cliff_prediction_features
+  int_lap_proximity --> int_lap_wake_placeholder_cost
+  int_lap_proximity --> int_wake_placeholder_race_loss
   style int_lap_proximity fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -34,7 +36,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`stg_telemetry_position`](../stg/stg_telemetry_position), [`stg_results`](../stg/stg_results), [`stg_pits`](../stg/stg_pits), [`int_stint_geometry`](./int_stint_geometry) |
 
-**12 tests** [guard](/transform/ci/overview) this model  -  9 generic, 3 singular.
+**13 tests** [guard](/transform/ci/overview) this model  -  9 generic, 4 singular.
 
 ## Columns
 

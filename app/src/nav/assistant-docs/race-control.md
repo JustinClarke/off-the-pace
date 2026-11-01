@@ -25,11 +25,13 @@ Lap-axis blocks: Safety Car (pit stop costs roughly half of normal), VSC, Red Fl
   A per-circuit rate at 4.8 races carries a standard error of **20 points**. Thirty-six circuits of pure noise would spread about **93 points**. The observed spread is **100 points**: ten circuits sit at 100% and one at 0%. Baku City Circuit had a caution in 7 of 7 races; printing "Baku: 100% chance of a caution" would be reporting seven coin flips as a forecast.
 </Warning>
 
-Only pooled rates, with Wilson 95% CI. Any caution 128/173 races (74.0%, CI 67.0-80.0); safety car 98/173 (56.6%, CI 49.2-63.8); virtual safety car 74/173 (42.8%, CI 35.6-50.2); red flag 19/173 (11.0%, CI 7.1-16.5). 9.03% of race laps 2018-2025 were under a caution (n = 10,373 race laps). Races with a caution: 90.5% in 2018, 58.3% in 2024, 75.0% in 2025.
+Naive estimator (counts noise as signal): 0.32 safety car, 0.27 any caution.
+
+Only pooled rates, with Wilson 95% CI. Any caution 128/173 (74.0%, CI 67.0-80.0); safety car 98/173 (56.6%, CI 49.2-63.8); VSC 74/173 (42.8%, CI 35.6-50.2); red flag 19/173 (11.0%, CI 7.1-16.5). 9.03% of race laps 2018-2025 ran under caution (n = 10,373 race laps). Races with a caution: 2018 90.5%, 2024 58.3%, 2025 75.0%.
 
 ### The per-circuit strip, and what it actually is
 
-Raw per-circuit rate: 0.000 to 0.100 onsets per racing lap; noise, never read. Shrunk rate (`any_hazard_per_lap_shrunk`): 0.017 to 0.033 per racing lap. Circuit weight `L / (L + 600)` (L = prior racing laps at that circuit) averages 0.202 over 152 circuit-season rows (2019-2025), max 0.452. Roughly four fifths of the value shown is the all-circuits pooled rate wearing a circuit's name.
+Raw rate: 0.000 to 0.100 per racing lap; noise, never read. Shrunk rate (`any_hazard_per_lap_shrunk`): 0.017 to 0.033 per lap. Circuit weight `L / (L + 600)` (L = prior racing laps) averages 0.202 over 152 circuit-season rows with a prior season (2019-2025; debut rows = weight 0), max 0.452. Roughly four fifths of the value shown is the all-circuits pooled rate wearing a circuit's name.
 
 ### Why 2018 is blank
 
@@ -37,7 +39,7 @@ The hazard is season-lagged, so all 21 rows for 2018 are null: **not measurable*
 
 ### How a "window" is counted
 
-Contiguous caution laps merge: 129 safety-car windows from 137 logged onsets (2018-2025), exact in 88 of the 98 races with safety-car laps. Accurate on which laps were neutralised; a slight undercount of how many times race control acted.
+Adjacent caution laps merge: 129 safety-car windows from 137 logged onsets (2018-2025), exact in 88 of the 98 races with SC laps. Accurate on which laps were neutralised; a slight undercount of how many times race control acted.
 
 ## Data source
 

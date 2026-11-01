@@ -14,6 +14,7 @@ SC/VSC/yellow/red timeline from FastF1 session.track_status. One row per status-
 
 ```mermaid
 flowchart LR
+  stg_track_status --> int_microsector_proximity
   stg_track_status --> int_pit_loss_circuit
   stg_track_status --> int_sc_hazard_history
   style stg_track_status fill:#e40404,stroke:#e40404,color:#fff

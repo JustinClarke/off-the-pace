@@ -14,6 +14,7 @@ Driver isolation step 0: the clean-lap panel Ω and the field-centred isolated t
 
 ```mermaid
 flowchart LR
+  int_dirty_air_tax_component --> int_driver_isolation_lap_panel
   int_lap_air_state --> int_driver_isolation_lap_panel
   int_lap_anomaly_flags --> int_driver_isolation_lap_panel
   int_lap_residual_decomposed --> int_driver_isolation_lap_panel
@@ -30,9 +31,9 @@ flowchart LR
 | Family | [Skill](/transform/families/skill) |
 | Contract enforced | No |
 | Tags | `driver_isolation` |
-| Upstream | [`int_lap_residual_decomposed`](./int_lap_residual_decomposed), [`int_lap_anomaly_flags`](./int_lap_anomaly_flags), [`int_stint_geometry`](./int_stint_geometry), [`int_lap_air_state`](./int_lap_air_state) |
+| Upstream | [`int_stint_geometry`](./int_stint_geometry), [`int_lap_air_state`](./int_lap_air_state), [`int_lap_residual_decomposed`](./int_lap_residual_decomposed), [`int_lap_anomaly_flags`](./int_lap_anomaly_flags), [`int_dirty_air_tax_component`](./int_dirty_air_tax_component) |
 
-**35 tests** [guard](/transform/ci/overview) this model  -  31 generic, 4 singular.
+**37 tests** [guard](/transform/ci/overview) this model  -  32 generic, 5 singular.
 
 ## Columns
 
@@ -60,7 +61,8 @@ flowchart LR
 | `field_n` |   | Yes | [`not_null`](/transform/ci/structural) | Ω laps on this (race, lap); &gt;= var('isolation_min_field_n') by construction (T40). |
 | `lap_time_s` |   | Yes | [`not_null`](/transform/ci/structural) | Raw lap time, s. |
 | `compound_component_s` |   | Yes | [`not_null`](/transform/ci/structural) | C: the compound seed's expected cost of this tyre state, s, positive = slower (int_lap_residual_decomposed). Never COALESCEd: an unknown tyre is not in Ω. |
-| `dirty_air_tax_s` |   | Yes | [`not_null`](/transform/ci/structural) | D: dirty-air tax, s, positive = slower (int_lap_residual_decomposed). |
+| `dirty_air_tax_s` |   | Yes | [`not_null`](/transform/ci/structural) | D: dirty-air tax, s, positive = slower (int_lap_residual_decomposed). On a thin field-base cell (is_thin_cell_tax) it is priced in this panel as theta_air x the previous lap's dirty-air share, clamped to [0, 5] (W10, v17). |
+| `is_thin_cell_tax` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE where the lap sits in a thin field-base cell (no int_dirty_air_tax_component row) and its tax was priced in this panel (W10, v17). The label spine is unchanged on these laps. |
 | `x_s` |   | Yes | [`not_null`](/transform/ci/structural) | lap_time_s - compound_component_s - dirty_air_tax_s, s. |
 | `field_median_x_s` |   | Yes |   | Median of x_s over the Ω laps on this (race, lap), s. |
 | `y_s` |   | Yes | [`not_null`](/transform/ci/structural) | x_s minus the lap's Ω field median of x_s, s. POSITIVE = SLOWER than the field- typical car and driver on the lap. Invariant to the field base, fuel, rubber and ambient terms, which depend on (race, lap) only (T41). |

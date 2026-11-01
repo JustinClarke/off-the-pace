@@ -207,7 +207,11 @@ def sample_weight_scheme(spec: S.TargetSpec) -> str:
 
 def _season_folds(seasons: np.ndarray, training_seasons: list[int], n_splits: int):
     """Yield (train_idx, val_idx) where whole seasons move together (expanding window)."""
-    uniq = np.asarray(sorted(training_seasons))
+    # Only seasons that actually have rows for this target can validate or train a fold: a
+    # target's labelled rows can skip a season the warehouse carries (CI fixture: a season
+    # with no non-null label), which left an empty validation fold. Identity on real data,
+    # where every training season has rows for every target.
+    uniq = np.asarray(sorted(set(training_seasons) & set(np.unique(seasons).tolist())))
     # An expanding window over whole seasons needs one season to validate each fold, so
     # n_splits folds need n_splits+1 seasons. Fold down to what the data actually carries
     # rather than dying: a fixture-built warehouse (CI: 3 seasons) can't feed the
@@ -219,7 +223,13 @@ def _season_folds(seasons: np.ndarray, training_seasons: list[int], n_splits: in
         )
     if usable < n_splits:
         print(f"[cv] {len(uniq)} training seasons supports {usable} folds, not {n_splits}")
-    for tr_seasons_idx, val_seasons_idx in TimeSeriesSplit(n_splits=usable).split(uniq):
+    # sklearn's TimeSeriesSplit refuses n_splits < 2. Two seasons is one fold: train on the
+    # first, validate on the second (what TimeSeriesSplit would yield for its last split).
+    if usable == 1:
+        splits = [(np.array([0]), np.array([1]))]
+    else:
+        splits = TimeSeriesSplit(n_splits=usable).split(uniq)
+    for tr_seasons_idx, val_seasons_idx in splits:
         tr = np.isin(seasons, uniq[tr_seasons_idx])
         val = np.isin(seasons, uniq[val_seasons_idx])
         yield np.where(tr)[0], np.where(val)[0]

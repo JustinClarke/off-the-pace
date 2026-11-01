@@ -60,7 +60,7 @@ TEST_GROUPS = [
      "The proper-score arithmetic, on synthetic data: a collapsed trio integrates exactly to MAE, the `mcb - dsc + unc` decomposition reconstructs CRPS on imperfectly-calibrated predictions, `unc` matches the unconditional pinball loss at each alpha, and a single quantile level is refused."),
     ("Targets",          "test_targets.py",       3,
      "Stint-life target is synthesised without leaking `stint_length_laps`; the censoring flag rides in metadata and never becomes a feature; AFT bounds encode censoring as a point vs a half-line."),
-    ("Survival",         "test_survival.py",     36,
+    ("Survival",         "test_survival.py",     38,
      "The AFT contract itself: the +1 shift keeps zero-life stints off log(0), margins round-trip to laps, quantiles bracket the median and widen with scale, censored rows are not punished for over-prediction, and C-index ranks. `aft_params` refuses a non-AFT booster. The survival metrics are pinned on synthetic data: D-calibration passes a correctly specified fit and fails a biased one, IPCW Brier and time-dependent AUC reward the better model, and the copula-graphic estimator reduces to Kaplan-Meier at tau = 0."),
     ("Version Contract", "test_manifest_contract.py", 30,
      "The manifest names a version whose artefacts exist, declares the input width the boosters actually take, and matches the copy the browser loads, ONNX hashes included; the survival output block reconstructs the booster; every `beats_baseline` on the card carries an interval; no ML-contract mart reads the driver-isolation ratings; and the interval and lineage gates are each proven to fire."),
@@ -74,8 +74,12 @@ TEST_GROUPS = [
      "The hyperparameter space is declared once and `_suggest` builds from it, so no suggestion can leave the bounds the pin detector reads; `boundary_params` names a best-params set that stopped on an edge, and is proven to fire at each ceiling, at each floor, and to stay silent in the interior."),
     ("Power-law Tyre Curve", "test_powerlaw_export.py", 37,
      "Neither the feature allowlist nor the training frame carries a cliff-seed, `expected_*` or compound-net column, and the denylist is proven to catch each one; the shape model never sees the level-only features; the per-cell fit matches dbt; the curve is monotone and zero at its anchor; the two ONNX files stay under 500 KB together and match XGBoost to `1e-5` on the test fold."),
+    ("Flag Chance",      "test_flag_chance.py",  10,
+     "The laps-to-flag cap and the flag-chance lookup behave as specified on the Python side, and the committed parity fixture the browser mirror (`flagChance.ts`) is tested against is reproducible and hash-pinned, so the two implementations agree by transitivity."),
+    ("Season Folds",     "test_season_folds.py",  4,
+     "Cross-validation folds are built from seasons that actually have rows: the full season set reproduces the legacy fold builder exactly, and a season with no rows never yields an empty fold, two seasons give one fold, and a single season raises."),
 ]
-EXPECTED_TOTAL = sum(t[2] for t in TEST_GROUPS)  # 270
+EXPECTED_TOTAL = sum(t[2] for t in TEST_GROUPS)  # 286
 
 
 def load_card() -> dict:

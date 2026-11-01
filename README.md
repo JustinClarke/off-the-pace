@@ -145,7 +145,7 @@ If you want to run the React app or the documentation site locally, you'll also 
 | Ingestion (Bronze) | ✅ Built | `ingestion/src/`: FastF1 + OpenF1 → Hive-partitioned Parquet, 8 seasons / 173 races |
 | Transform (99 models, 1507 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
 | Coefficients (KM tyre cliff) | ✅ Fitted | `transform/tasks/coefficients/`: seeds |
-| ML (5 XGBoost models, 270 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life survival (AFT); ONNX parity; v14 models on a 39-column contract (the cliff classifier reads all 39 features; the other four mask the 7 qualifying columns) |
+| ML (5 XGBoost models, 286 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life survival (AFT); ONNX parity; v14 models on a 39-column contract (the cliff classifier reads all 39 features; the other four mask the 7 qualifying columns) |
 | Frontend (React + DuckDB-Wasm) | ✅ Built | [`app/`](app/): 32 interactive features, zero server, sub-10ms queries; deployed to Firebase Hosting |
 | Docs | ✅ Built | [`docs/`](docs/): Mintlify site with 5 tabs (Start Here, Data, Transform, Machine Learning, App) |
 | Platform | ✅ Built | CI/CD, security scanning, observability (Sentry), E2E tests (Playwright), IaC (Terraform) |
@@ -170,7 +170,7 @@ Reproduce end-to-end (one venv, warehouse read-only, nothing written to `app/`):
 ```bash
 make ml-setup        # install ml/requirements.txt
 make ml-all          # features → tune → train → evaluate → predict → onnx → card → docs
-make ml-test         # 270 tests: leakage spine, ONNX parity, survival/AFT contract, version contract, output schema, beats-baseline, attainable ceilings + intervals, power-law tyre curve
+make ml-test         # 286 tests: leakage spine, ONNX parity, survival/AFT contract, version contract, output schema, beats-baseline, attainable ceilings + intervals, power-law tyre curve
 ```
 
 Full auto-generated **[model card](docs/reference/ml/degradation-model.mdx)** (metrics, baselines, calibration, dual feature importance, limitations) is built from `ml/model_card.yml`.

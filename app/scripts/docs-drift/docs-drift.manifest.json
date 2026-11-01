@@ -558,7 +558,7 @@
       "sha256": "2f0c7dcbbd9592a999746b7a7e514bfa4a742aec0e8c6f257ab83b60e04b131c"
     },
     "docs/ml/overview.mdx": {
-      "sha256": "1f90c19024c9bff39697c32d9341882e473d43e34a9b0ed97e40af6c31b9570a"
+      "sha256": "d03373c461e342402d1e1928135bafd82b11191ca08c27bc57ce0ef810f2e8c7"
     },
     "docs/reference/models/dim/dim_compounds_season.mdx": {
       "sha256": "35fc2782f338c4ef785d0f03ff5834e479a13a3a5153ac10d92e176780ec17f9"
@@ -567,7 +567,7 @@
       "sha256": "df3008350b0908e253f2760ab63d4b0039437fad638f693e1db163bf26f7e164"
     },
     "docs/snippets/ml-inventory.mdx": {
-      "sha256": "796940df0d8ae88cff557c50197072b899b4f4bcc5801cfd84ee3d99dfce6b34"
+      "sha256": "160d264204b76134fe1d980846082a22dfd8f2152df669df223af216123c2731"
     },
     "docs/snippets/overview-numbers.mdx": {
       "sha256": "11c82b3b194a4d430ee12baf055dc7d16e91d4921b26e166b1bb3a3f48386e33"
@@ -579,7 +579,7 @@
       "sha256": "3ef114b03e59e56e94979af035131dc4c648da0be96f51041d6651274f5e1129"
     },
     "README.md": {
-      "sha256": "847578c65e39319146d0d77af47c51b065cb451525554d49bb9774e729dd7469"
+      "sha256": "212e57e8af57796ca06eef1c18362e73d2d42665f40c530949f37930d4f8ef8d"
     }
   }
 }

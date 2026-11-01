@@ -309,8 +309,12 @@ def test_lag_gap_is_a_separate_spec_and_the_primary_is_unchanged(result):
 def test_entry_crossing_noise_passes_gate_1_but_not_the_lag_check():
     # No true effect at all and no true gap under 1 s. Only the shared entry-crossing
     # error puts rows under 1 s, and the same error makes y slower there.
+    # tyre_age=False: the synthetic tyre_life equals the lap number, so tyre_life x micro
+    # is near-collinear with the lap FE (condition ~1e13). Linux/OpenBLAS then hits a
+    # singular Cholesky solve where macOS does not. The tyre term is irrelevant here.
     res = fm.fit_specs(make_panel(lt1_effect=0.0, band_effects=dict.fromkeys(TRUE, 0.0),
-                                  gap_floor_s=1.05, entry_timing_noise_s=0.10, seed=5))
+                                  gap_floor_s=1.05, entry_timing_noise_s=0.10, seed=5),
+                       tyre_age=False)
     g = fm.evaluate_gates(res)
     assert g["beta_lt1_positive_ci_excludes_0"]
     assert not g["lag_gap_pass"]

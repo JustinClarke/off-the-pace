@@ -30,7 +30,7 @@ Silent regressions are the failure mode that matters most for an analytics wareh
 
 ## Lineage
 
-Lineage is not drawn after the fact: dbt resolves the `{{ ref() }}` graph and builds models in dependency order, and the full DAG is generated as a [browsable lineage graph](/project-graph.html). Every model and every column is documented in the [Model Reference](/reference/models/fct/fct_lap_residuals), generated from the dbt manifest so it cannot drift from the code.
+Lineage is not drawn after the fact: dbt resolves the `{{ ref() }}` graph and builds models in dependency order, and the full DAG is generated locally as a browsable lineage graph (`make project-graph`). Every model and every column is documented in the [Model Reference](/reference/models/fct/fct_lap_residuals), generated from the dbt manifest so it cannot drift from the code.
 
 ## Orchestration
 

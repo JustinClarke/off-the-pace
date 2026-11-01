@@ -65,7 +65,7 @@ What this buys, and what it costs:
 ## The "why" companions
 
 - **[Architecture decisions](/platform/architecture-decisions)** records each choice as an ADR, including ADR-002 (client-side analytics), ADR-003 (CDN Parquet over an active warehouse), and ADR-010 (version-stamped cache-busting so a data change is never masked by a stale cache).
-- **[The project lineage graph](/project-graph.html)** is the live, generated DAG of every model and its dependencies, the same view dbt builds the warehouse from.
+- **The project lineage graph** is a generated DAG of every model and its dependencies, the same view dbt builds the warehouse from. It is built locally with `make project-graph` and is not published.
 
 ## Where to go next
 

@@ -9,6 +9,7 @@ Also writes/updates docs/reference/cli/index.md.
 Run: python scripts/gen_cli_reference.py
 """
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -32,16 +33,48 @@ CLI_COMMANDS: list[tuple[str, list[str], str]] = [
 ]
 
 
+# Heavy third-party imports that a CLI pulls in at module level but that --help never uses.
+# They are stubbed (always, not only when missing) so the generated page is identical on a
+# bare CI runner and on a full dev environment.
+_STUBBED_MODULES = ("fastf1", "pandas", "numpy", "pyarrow")
+
+_HELP_RUNNER = """
+import importlib.abc, importlib.machinery, runpy, sys
+from unittest import mock
+
+class _Stub(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+    def find_spec(self, name, path, target=None):
+        if name.split(".")[0] in {stubbed!r}:
+            return importlib.machinery.ModuleSpec(name, self, is_package=True)
+    def create_module(self, spec):
+        return mock.MagicMock(name=spec.name, __path__=[])
+    def exec_module(self, module):
+        pass
+
+sys.meta_path.insert(0, _Stub())
+script = sys.argv[1]
+sys.path.insert(0, __import__("os").path.dirname(script))
+sys.argv = [script, "--help"]
+runpy.run_path(script, run_name="__main__")
+"""
+
+
 def run_help(command_args: list[str]) -> str:
+    # command_args is [python, script, "--help"]; the script is run through the stub runner.
+    script = command_args[1]
+    env = {**os.environ, "COLUMNS": "80", "PYTHONDONTWRITEBYTECODE": "1"}
     result = subprocess.run(
-        command_args,
+        [command_args[0], "-c", _HELP_RUNNER.format(stubbed=_STUBBED_MODULES), script],
         capture_output=True,
         text=True,
         cwd=str(REPO_ROOT),
+        env=env,
     )
-    # argparse prints --help to stdout; some tools use stderr
-    output = result.stdout or result.stderr
-    return output.strip()
+    # argparse prints --help to stdout. An empty stdout means the CLI failed to start; fail
+    # loudly instead of committing an empty page.
+    if result.returncode != 0 or not result.stdout.strip():
+        raise RuntimeError(f"--help failed for {script}:\n{result.stderr}")
+    return result.stdout.strip()
 
 
 def parse_argparse_help(raw_help: str) -> dict:

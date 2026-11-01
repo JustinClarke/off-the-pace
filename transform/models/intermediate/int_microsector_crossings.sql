@@ -5,7 +5,7 @@
 --
 -- WHAT IT IS. The session clock at which a driver reaches each of
 -- var('microsector_n') fixed track positions per lap (DD8, owner 2026-10-24:
--- 20, fixed for every circuit; 10 is the pre-registered sensitivity check).
+-- 20, fixed for every circuit; 10 is the declared sensitivity check).
 -- Boundary m of lap L sits at lap fraction L + m / N on the unwrapped
 -- coordinate u = lap_number + relative_distance, so boundary 0 of lap L+1 is
 -- the lap line and the micro-sector m = N - 1 closes into the next lap.

@@ -11,6 +11,10 @@ DIAGNOSTIC and is not built here.
 Owner rulings applied here (design_a.RULED_CHOICES): a lap prediction whose driver level (alpha) and field effect
 (phi) lie in different connected components is dropped and counted (ruling 3, drops["disconnected"]); an
 undefined Near_lap in any draw makes the F1 interval undefined, so F1 fails (ruling 4).
+
+Amendment B2 (DD-WC23): a lap without tyre_life (t) does not enter step 1 (lap_free); the theta layout is computed
+after that drop; dropped free and following laps are counted under drops["tyre_life_missing_free"] and
+drops["tyre_life_missing"] (following laps: before B2 they vanished silently through isfinite(tau)).
 """
 
 from __future__ import annotations
@@ -63,6 +67,11 @@ def lap_frame(p: pd.DataFrame, lap_times: pd.DataFrame | None = None) -> pd.Data
     return lap
 
 
+def lap_free(sc: pd.DataFrame) -> np.ndarray:
+    """Free scored laps that enter the lap-arm step 1: free, and tyre_life present (B2 ruling 1)."""
+    return sc["free_lap"].to_numpy(dtype=bool) & A.tyre_ok(sc)
+
+
 @dataclass
 class LapArm:
     lap: pd.DataFrame  # the scored laps used, with A_tau (tau, no gamma) and valid
@@ -79,7 +88,7 @@ def fit_lap_arm(lap: pd.DataFrame) -> LapArm:
     phi under the §6c rule over distinct other free drivers on that lap; support >= 3 free laps; tau = LapTime -
     prediction for following scored laps."""
     sc = lap[lap["scored"]].reset_index(drop=True)
-    free = sc["free_lap"].to_numpy()
+    free = lap_free(sc)  # B2: tyre_life required; the layout below is computed after this drop
     f = sc[free]
     lay = A.theta_layout(sc, free, race_key="race_id")
     lin, quad = A.theta_ids(lay, f["race_id"], f["compound"])
@@ -103,14 +112,22 @@ def fit_lap_arm(lap: pd.DataFrame) -> LapArm:
     g = np.where(lin_q >= 0, th[np.clip(lin_q, 0, None)] * t, 0.0) + np.where(
         quad_q >= 0, th[np.clip(quad_q, 0, None)] * t * t, np.nan)
     tau = fol["lap_time_s"].to_numpy(dtype=float) - (a["y"].to_numpy(dtype=float) + py + g)
+    t_ok = A.tyre_ok(fol)
     supported = nfree >= LAP_MIN_FREE
-    has = supported & p_ok & np.isfinite(tau)
+    has = t_ok & supported & p_ok & np.isfinite(tau)
     ok = A._component_check(has, a["comp"].to_numpy(dtype=float), pc)  # ruling 3: disconnected dropped, counted
     with np.errstate(invalid="ignore"):
         valid = ok & (np.abs(tau) <= LAP_TRIM_S)
-    drops = {"following_laps": int(len(fol)), "not_supported": int((~supported).sum()),
-             "phi_unsupported": int((supported & ~p_ok).sum()), "disconnected": int((has & ~ok).sum()),
-             "trimmed": int((ok & ~valid).sum())}
+    sc_free = sc["free_lap"].to_numpy(dtype=bool)
+    drops = {"following_laps": int(len(fol)),
+             A.TYRE_LIFE_MISSING: int((~t_ok).sum()),  # B2: counted first, as an entry condition
+             "not_supported": int((t_ok & ~supported).sum()),
+             "phi_unsupported": int((t_ok & supported & ~p_ok).sum()),
+             "other_undefined": int((t_ok & supported & p_ok & ~np.isfinite(tau)).sum()),
+             "disconnected": int((has & ~ok).sum()),
+             "trimmed": int((ok & ~valid).sum()),
+             "free_laps": int(sc_free.sum()),
+             A.TYRE_LIFE_MISSING + "_free": int((sc_free & ~A.tyre_ok(sc)).sum())}
     return LapArm(lap=fol, tau=tau, valid=valid, bins=fol["bin"].to_numpy(), race_idx=fol["race_idx"].to_numpy(),
                   drops=drops, sweeps=sol.sweeps)
 

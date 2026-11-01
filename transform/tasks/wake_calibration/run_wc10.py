@@ -7,12 +7,19 @@ DD-WC20) and status/BUILD-ORDER.md. THE REAL MODE HAS NOT BEEN RUN.
     cd transform
     ../.venv/bin/python -m tasks.wake_calibration.run_wc10 --mode synthetic --out <scratch folder> \
         [--draws 30] [--assume-choices name=value,...]
-    ../.venv/bin/python -m tasks.wake_calibration.run_wc10 --mode real --run-start      # the one discovery run
+    ../.venv/bin/python -m tasks.wake_calibration.run_wc10 --mode real --run-start \
+        --b1-sha256 <hash> --b2-sha256 <hash> --sg-record <SG pass record .json>      # the one discovery run
 
 Real mode, in this order (§0a, §16):
   0. Refused outright (exit 2, nothing read, no ledger line) unless --run-start is given; refused if the artifact
      folder already holds files; --draws and --assume-choices are refused (B = 1,000, diagnostics 200, seed and
-     open choices are the registered / owner-set values only).
+     open choices are the registered / owner-set values only). Refused too unless the amendment hashes and the
+     SG pass record check out (check_prerequisites, W14): --b1-sha256 must equal wc10_io.B1_SHA256 and the
+     SHA-256 of B1 as committed at HEAD; --b2-sha256 must equal the SHA-256 of B2 as committed at HEAD (and
+     wc10_io.B2_SHA256 once recorded); --sg-record must name a JSON file
+         {"checks": {"SG1": "PASS", ..., "SG7": "PASS"}, "b2_sha256": "<the B2 hash>"}
+     with every check PASS, written after B2 and the code fix (no "pre_fix": true). The hashes and the record's
+     digest are written on the RUN START line.
   1. START in the ledger `_evidence/WC-10-discovery-<date>/PROVENANCE.txt` (wc10_io.Ledger; restart rule).
   2. The data gate (data_gate.run_checks: file bytes and names only). Its lines and PASS / FAIL go to the ledger.
      A failure stops here: FAILED_RESTARTABLE.
@@ -24,8 +31,8 @@ Real mode, in this order (§0a, §16):
   Every exception after START is caught; only its type, file and line reach the ledger and stderr (§0a).
 
 Outputs (the per-lap parquet, the CSVs, SUMMARY.md) go to `_roadmap/_wake-calibration/_artifacts/WC-10/discovery/`
-with a SHA256SUMS (registration §13, BUILD-ORDER rule 8; owner ruling on the output location); the ledger stays in the evidence folder. SG1-SG7 (§17) are not built here and are not checked by
-this tool: they must pass on the committed code before RUN START.
+with a SHA256SUMS (registration §13, BUILD-ORDER rule 8; owner ruling on the output location); the ledger stays in the evidence folder. SG1-SG7 (§17) are not built here; this
+tool checks only that a pass record for them exists (see step 0).
 
 Synthetic mode makes a small world (structure and outcomes invented, three Appendix A races), fits it with a plan
 restricted to those races, and writes the same outputs to --out, marked SYNTHETIC. It never opens a real file
@@ -303,7 +310,8 @@ def support_tables(model: A.Model) -> dict:
         ef = cm.eff[A.TIME]
         wcat = np.where(ft["W"] == 0, "W=0", np.where(ft["W"] >= 1, "W>=1", "phi-unsupported"))
         t = pd.DataFrame({"bin": ft["bin"], "W": wcat, "bracketed": ft["bracketed"], "tier": ft["tier"],
-                          "following": 1, "supported": ft["supported"].astype(int),
+                          "following": 1, A.TYRE_LIFE_MISSING: (~A.tyre_ok(ft)).astype(int),
+                          "supported": ft["supported"].astype(int),
                           "not_racecraft": (ft["supported"] & ~ft["racecraft"]).astype(int),
                           "phi_supported": (ft["supported"] & ~ft["racecraft"] & (ft["W"] >= 0)).astype(int),
                           "valid": ef.valid.astype(int), "entering_beta": cd.keep[A.TIME].astype(int)})
@@ -338,8 +346,9 @@ def support_tables(model: A.Model) -> dict:
                                  np.where(np.isfinite(ft["lap_b"]), "before_only_within5", "none_within5")))
         for b in range(A.N_BINS):
             m = sup & (ft["bin"].to_numpy() == b)
-            r = {"class": k, "bin": b, "supported": int(m.sum()), "mean_signed_tyre_age_distance": float(np.mean(d[m]))
-                 if m.any() else np.nan}
+            md = m & np.isfinite(d)  # B2: a pass without tyre_life has no distance
+            r = {"class": k, "bin": b, "supported": int(m.sum()), "mean_signed_tyre_age_distance": float(np.mean(d[md]))
+                 if md.any() else np.nan}
             for sname in ("bracketed", "after_only_within5", "before_only_within5", "none_within5"):
                 r[f"share_{sname}"] = float(np.mean(side[m] == sname)) if m.any() else np.nan
             exp_rows.append(r)
@@ -436,7 +445,17 @@ def analyse(inp: Inputs, plan: A.Plan, n_diag: int = D.DIAG_DRAWS) -> Results:
         [{"ruling": "1 racecraft free passes dropped", "class": "all", "outcome": o, "count": int(n)}
          for o, n in model.racecraft_free_dropped.items()]
         + [{"ruling": "2 skipped other corners (empty alpha-bar)", "class": k, "outcome": A.TIME,
-            "count": int(cm.cls.skipped_corners)} for k, cm in model.classes.items()])
+            "count": int(cm.cls.skipped_corners)} for k, cm in model.classes.items()]
+        + [{"ruling": "B2 tyre_life_missing free passes (step 1)", "class": "all", "outcome": o, "count": int(n)}
+           for o, n in model.tyre_life_free_dropped.items()]
+        + [{"ruling": "B2 tyre_life_missing following passes", "class": k, "outcome": o,
+            "count": int(ef.drops[A.TYRE_LIFE_MISSING])} for k, cm in model.classes.items() for o, ef in cm.eff.items()]
+        + [{"ruling": "B2 tyre_life_missing free laps (lap arm step 1)", "class": "lap", "outcome": "lap_time_s",
+            "count": int(arm.drops[A.TYRE_LIFE_MISSING + "_free"])},
+           {"ruling": "B2 tyre_life_missing following laps (lap arm)", "class": "lap", "outcome": "lap_time_s",
+            "count": int(arm.drops[A.TYRE_LIFE_MISSING])},
+           {"ruling": "B2 tyre_life_missing free laps (carry-over fit)", "class": "lap", "outcome": "lap_time_s",
+            "count": int(cf.counts["free_laps_tyre_life_missing"])}])
     tables["support_other"] = pd.DataFrame([{"coast_implausible_set_null": inp.coast_capped,
                                              "x14_free_time": dres["x14_meta"]["free_time"],
                                              "x14_dropped_washout": dres["x14_meta"]["dropped_washout"]}])
@@ -606,6 +625,67 @@ def synthetic_plan(n_draws: int, races=SYN_RACES, seed: int = A.SEED) -> A.Plan:
     return A.Plan(weights=W)
 
 
+# --------------------------------------------------------------------------- prerequisites before RUN START (W14)
+
+
+_HEX64 = frozenset("0123456789abcdef")
+
+
+def committed_sha256(rel: str) -> str | None:
+    """SHA-256 of `_roadmap/_wake-calibration/<rel>` as committed at HEAD (git show HEAD:path); None if absent."""
+    path = (WC / rel).relative_to(IO.REPO).as_posix()
+    try:
+        data = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=IO.REPO, capture_output=True, check=True).stdout
+    except Exception:  # noqa: BLE001 - absent or not committed: refused by the caller
+        return None
+    return hashlib.sha256(data).hexdigest()
+
+
+def _is_hash(v) -> bool:
+    return isinstance(v, str) and len(v) == 64 and set(v) <= _HEX64
+
+
+def check_prerequisites(b1: str | None, b2: str | None, sg_record: Path | None, committed=None) -> str:
+    """W14: refuse (Refused, exit 2, nothing read) unless amendments B1 and B2 are committed with the hashes
+    supplied and an SG1-SG7 pass record exists for this B2. Returns the detail for the RUN START line.
+    `committed(rel) -> sha256 or None` defaults to committed_sha256 (tests pass a stub)."""
+    committed = committed or committed_sha256
+    if not _is_hash(b1):
+        raise Refused("REFUSED: --b1-sha256 (amendment B1, 64 lowercase hex) is required; nothing was read")
+    if b1 != IO.B1_SHA256:
+        raise Refused(f"REFUSED: --b1-sha256 differs from the recorded B1 hash {IO.B1_SHA256}; nothing was read")
+    if committed(IO.B1_PATH) != b1:
+        raise Refused(f"REFUSED: {IO.B1_PATH} as committed at HEAD does not hash to --b1-sha256; nothing was read")
+    if not _is_hash(b2):
+        raise Refused("REFUSED: --b2-sha256 (amendment B2, committed alone, 64 lowercase hex) is required; "
+                      "nothing was read")
+    if IO.B2_SHA256 is not None and b2 != IO.B2_SHA256:
+        raise Refused(f"REFUSED: --b2-sha256 differs from the recorded B2 hash {IO.B2_SHA256}; nothing was read")
+    if committed(IO.B2_PATH) != b2:
+        raise Refused(f"REFUSED: {IO.B2_PATH} is not committed at HEAD with hash --b2-sha256; nothing was read")
+    if sg_record is None:
+        raise Refused("REFUSED: --sg-record (the SG1-SG7 pass record, JSON) is required; nothing was read")
+    path = Path(sg_record)
+    try:
+        raw = path.read_bytes()
+        rec = json.loads(raw)
+    except (OSError, ValueError):
+        raise Refused(f"REFUSED: SG pass record {path} is missing or not JSON; nothing was read") from None
+    checks = rec.get("checks") if isinstance(rec, dict) else None
+    if not isinstance(checks, dict):
+        raise Refused(f"REFUSED: SG pass record {path} has no 'checks' object; nothing was read")
+    failed = [c for c in IO.SG_CHECKS if checks.get(c) != "PASS"]
+    if failed:
+        raise Refused(f"REFUSED: SG pass record {path}: not PASS (or missing): {failed}; nothing was read")
+    if rec.get("pre_fix"):
+        raise Refused(f"REFUSED: SG pass record {path} is marked pre_fix (superseded, W15); nothing was read")
+    if rec.get("b2_sha256") != b2:
+        raise Refused(f"REFUSED: SG pass record {path} was not made under this B2 (b2_sha256 differs); "
+                      "nothing was read")
+    return (f"b1_sha256={b1} b2_sha256={b2} sg_record={unicodedata.normalize('NFC', str(path))} "
+            f"sg_record_sha256={hashlib.sha256(raw).hexdigest()}")
+
+
 # --------------------------------------------------------------------------- command line
 
 
@@ -660,6 +740,7 @@ def run_real(a, gate_fn=None) -> int:
         raise Refused("REFUSED: real mode needs --run-start (the owner's explicit RUN START); nothing was read")
     if a.draws is not None or a.assume_choices:
         raise Refused("REFUSED: --draws and --assume-choices are synthetic-only (B = 1,000 and owner-set choices)")
+    prereq = check_prerequisites(a.b1_sha256, a.b2_sha256, a.sg_record)  # W14: B1, B2 and SG pass record
     art = Path(a.artifacts_dir)
     if art.exists() and any(art.iterdir()):
         raise Refused(f"REFUSED: {art} already holds files (one discovery run, §0a)")
@@ -685,7 +766,7 @@ def run_real(a, gate_fn=None) -> int:
         lap_structure = IO.load_lap_structure(a.bronze, ledger=ledger)
         expected = read_release_expected()
         D.preflight()  # the diagnostics' open choices must be set by the owner before RUN START
-        ledger.run_start()  # wc10_io also runs design_a.preflight here
+        ledger.run_start(extra=prereq)  # wc10_io also runs design_a.preflight here
         print("RUN START written")
         outcomes = IO.load_outcomes(ledger, a.pass_table_dir, a.sidecar_dir, a.bronze)
         inp = assemble_inputs(structure, outcomes, lap_structure, expected)
@@ -732,6 +813,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--bronze", type=Path, default=IO.DEFAULT_BRONZE)
     ap.add_argument("--pass-table-dir", type=Path, default=IO.DEFAULT_PASS_DIR)
     ap.add_argument("--sidecar-dir", type=Path, default=IO.DEFAULT_SIDECAR_DIR)
+    ap.add_argument("--b1-sha256", default=None, help="real mode: SHA-256 of amendment B1 as committed")
+    ap.add_argument("--b2-sha256", default=None, help="real mode: SHA-256 of amendment B2 as committed")
+    ap.add_argument("--sg-record", type=Path, default=None, help="real mode: SG1-SG7 pass record (JSON)")
     ap.add_argument("--prior-exit-status", type=int, default=None)
     ap.add_argument("--reason", default="discovery run")
     return ap

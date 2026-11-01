@@ -16,6 +16,14 @@ models:
     tags: [intermediate]
     meta:
       family: physics
+      aggregation_scope_exemptions:
+        - keys: [race_year, race_id, driver_id, stint_number]
+          status: accepted
+          reason: >
+            CO-09 (D4) fragment_bounds, one row per FastF1 stint fragment, used only
+            to decide whether a fragment continues the previous tyre run; the decision
+            for fragment k reads fragment k-1's end and fragment k's first lap.
+            Signed by the owner 2026-10-31.
     columns:
       - name: stint_id
         description: >
@@ -2449,6 +2457,12 @@ models:
       Two horizons are reported. The verdict follows the two-stint window (this stint's first
       lap through the next stint's last), the only framing well posed for the 61% of stints in
       a 2-stop or longer race; the race-remainder optimum is carried alongside as a diagnostic.
+      Where the two-stint window has no optimum (horizon_source = 'race_remainder'), the
+      optimum, the actual offset, overrun_laps and the verdict all fall back to the race
+      remainder together: 265 stints with a stop on the 2026-10-31 build. Until 2026-10-31
+      only the optimum fell back, so those 265 had overrun_laps NULL and were graded early
+      (233) or undercut_forced (32) without the optimal/overran tests being reached; they are
+      217 optimal and 48 overran (assert_pit_overrun_graded_when_stop_and_optimum).
       opportunity_cost_s is now Total_Cost(actual) - Total_Cost(optimal), so pitting early
       carries a cost too, which the overrun-only definition could not express.
       Pit-loss is per circuit from int_pit_loss_circuit's empirical, EB-shrunk estimate
@@ -2499,15 +2513,19 @@ models:
         description: >
           Actual laps run on the set minus optimal, in valid laps. Negative = pitted early.
           Compared as offsets rather than lap numbers so an invalid lap before the stop cannot
-          skew it. NULL when either side is NULL. Median -3 valid laps per stint across
-          2018-2025 (n = 4,905 stints with both an actual stop and a model optimum; per-season
-          medians -1 to -4): teams stop earlier than a degradation-only optimum, which is what
-          track position buys.
+          skew it. Read on the verdict's horizon (horizon_source), the actual offset falling
+          back to the race remainder with the optimum; on both horizons it equals
+          stint_length_laps - optimal_pit_lap_in_stint. NULL when either side is NULL. Median
+          -2 valid laps per stint across 2018-2025 (n = 5,100 stints with both an actual stop
+          and a model optimum, 4,835 on the two-stint horizon and 265 on the race remainder;
+          per-season medians 2018 0, 2019 -3, 2020 -4, 2021 -1, 2022 -3, 2023 -3, 2024 -2,
+          2025 -3; 59% earlier): teams stop earlier than a degradation-only optimum, which is
+          what track position buys.
       - name: opportunity_cost_s
         description: >
           Total_Cost(actual) - Total_Cost(optimal), in seconds. Non-negative by construction:
           the optimum is a minimum over the same curve. Zero for a stint that never stopped,
-          which had no pit decision to grade. Median 5.5 s, p95 83 s.
+          which had no pit decision to grade. Median 4.6 s, p95 34 s across stints that ended in a stop.
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
@@ -4373,6 +4391,8 @@ models:
       boundary 0 of lap L + 1 is the lap line. bracket_s is the width of the straddling pair;
       on_track is TRUE when both samples are OnTrack. No label reads it. _roadmap/_dirty-air.
     tags: [intermediate, dirty_air_dynamic]
+    meta:
+      family: physics
     columns:
       - name: crossing_time_s
         tests: [not_null]
@@ -4419,6 +4439,8 @@ models:
       reference. No label, ML mart or isolation model reads it. Design:
       _roadmap/_dirty-air/wi/DA-design-note.md, DA-02-tables.md.
     tags: [intermediate, dirty_air_dynamic]
+    meta:
+      family: physics
     columns:
       - name: microsector_id
         tests: [not_null, unique]
@@ -4506,6 +4528,8 @@ models:
       its end, link otherwise. Built from geometry and speed only; it reads no gap or time loss.
       Thresholds are registered in the DA-03 pre-registration amendment (DA-02P).
     tags: [intermediate, dirty_air_dynamic]
+    meta:
+      family: physics
     columns:
       - name: race_microsector_id
         tests: [not_null, unique]
@@ -4538,3 +4562,285 @@ models:
       - dbt_utils.unique_combination_of_columns:
           arguments:
             combination_of_columns: [race_year, race_id, microsector]
+
+  - name: int_lap_wake_placeholder_cost
+    description: >
+      WC-11 INTERIM PLACEHOLDER: one row per lap, an ASSUMED wake (dirty-air) cost in seconds
+      for the cost display only. loss_s_per_lap_within_1s is set per race by
+      int_wake_placeholder_race_loss (WC-12: an assumed rule from the layout's corner mix and a
+      regulation-era factor, with the circuit-class values of seeds/wake_placeholder_values.csv
+      as the flagged fallback; assumptions, not measurements); it is multiplied by the lap's MEASURED exposure (share of
+      the lap within 1 s of the car ahead, plus half the share between 1 and 2 s, from
+      int_lap_proximity's crossing-time gaps). WC-13: the race value is multiplied per lap by an
+      assumed tyre factor and a car factor (neutral 1.00 for every team), bounded and flagged.
+      WC-16: the tyre factor is set by the lap's Pirelli C-number relative to the race's medium
+      (seeds/wake_placeholder_tyre_allocation.csv x seeds/wake_placeholder_c_number_factor.csv) for
+      2019-2025, and by the relative dry class (seeds/wake_placeholder_compound_factor.csv) for 2018
+      or a race with no C-number trio (compound_factor_scale). Every value is labelled modelled / placeholder and
+      carries the DD-WC2 disclaimer word for word plus a placeholder line; an unavailable lap is
+      NULL with a reason, never 0. NOT an ML feature or target and not read by the label spine;
+      dirty_air_tax_s is unchanged. Replace the seed's numbers with calibrated values later and
+      nothing downstream changes. See _roadmap/_wake-calibration/wi/WC-11-interim-placeholder-values.md.
+    tags: [intermediate, wake_placeholder]
+    meta:
+      family: physics
+    columns:
+      - name: lap_id
+        description: PK, FK to stg_laps
+        tests: [not_null, unique]
+      - name: corner_class
+        description: Circuit wake class from the seed (fast / medium / slow).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [fast, medium, slow]
+                quote: true
+      - name: class_source
+        description: circuit_entry, circuit_entry_override (per-circuit loss in the seed) or unlisted_circuit_default.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [circuit_entry, circuit_entry_override, unlisted_circuit_default]
+                quote: true
+      - name: era
+        description: WC-12 regulation era of the season (seeds/wake_placeholder_rule.csv).
+        tests: [not_null]
+      - name: era_factor
+        description: WC-12 assumed era multiplier (2017-18 = 1.00).
+        tests: [not_null]
+      - name: loss_source
+        description: WC-12 race_structure (the rule) or class_fallback (no corner structure for the race; flagged).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [race_structure, class_fallback]
+                quote: true
+      - name: loss_bounded
+        description: WC-12 true when the rule's raw value was held to the seed's min/max bounds.
+        tests: [not_null]
+      - name: loss_basis
+        description: WC-12 one-line, human-readable statement of how this race's assumed loss was set.
+        tests: [not_null]
+      - name: loss_s_per_lap_within_1s
+        description: >
+          Assumed loss for a full lap within 1 s of the car ahead (placeholder, s), PER LAP since
+          WC-13: race_loss_s_per_lap_within_1s x compound_factor x constructor_factor, held to the
+          rule's 0.15-0.55 s bounds (lap_loss_bounded) and rounded to 4 dp.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0.15
+                max_value: 0.55
+                inclusive: true
+      - name: race_loss_s_per_lap_within_1s
+        description: WC-13 the race's assumed loss before the tyre and car factors (int_wake_placeholder_race_loss). Calibrated per-race values slot in here.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0.15
+                max_value: 0.55
+                inclusive: true
+      - name: compound
+        description: WC-13 FastF1 compound name on the lap (stg_laps; absolute legacy names in 2018). NULL when not recorded.
+      - name: compound_class
+        description: >
+          WC-13 the lap's relative dry class in its race (SOFT / MEDIUM / HARD), or INTERMEDIATE / WET.
+          2018 laps are ranked within the race's three dry compounds. NULL when missing or unresolved.
+        tests:
+          - accepted_values:
+              arguments:
+                values: [SOFT, MEDIUM, HARD, INTERMEDIATE, WET]
+                quote: true
+      - name: compound_factor
+        description: >
+          Assumed tyre multiplier. WC-16, c_number scale: ROUND(clamp(step x medium shift, 0.90, 1.17), 4)
+          from seeds/wake_placeholder_c_number_factor.csv (step by C-number distance from the race medium;
+          medium shift 1.00 for every medium since DD-WC29); relative_class scale (2018, or no trio): the
+          WC-13 relative factor (seeds/wake_placeholder_compound_factor.csv); neutral 1.00 when wet,
+          intermediate, missing or unresolved (flagged as before).
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0.9
+                max_value: 1.17
+                inclusive: true
+      - name: compound_factor_source
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [assumed_c_number, assumed_relative_label, assumed_race_order_2018, neutral_wet_or_intermediate, neutral_missing_compound, neutral_unresolved_compound]
+                quote: true
+      - name: compound_basis
+        description: >
+          Why the tyre factor has its value: WC-16 one line naming the lap's C-number, its distance from
+          the race medium and the two constants (c_number scale), or the relative seed's basis. NULL when
+          the compound is missing or unresolved.
+      - name: compound_factor_scale
+        description: >
+          WC-16 which scale set the tyre factor: c_number (2019-2025 dry lap, verified race trio),
+          relative_class (2018 named compounds, or a race with no trio), neutral (wet, intermediate,
+          missing or unresolved compound).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [c_number, relative_class, neutral]
+                quote: true
+      - name: tyre_c_number
+        description: WC-16 the lap's Pirelli C-number (C1-C6) from the race's verified trio; NULL unless compound_factor_scale = c_number.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6']
+      - name: race_medium_c
+        description: WC-16 the race's MEDIUM C-number (2019 on); NULL in 2018.
+      - name: constructor_id
+        description: WC-13 stg_laps.constructor_id (FastF1 team name, the key the ML side uses).
+      - name: constructor_lineage_id
+        description: WC-13 dim_constructors lineage (groups a team's renames).
+      - name: constructor_factor
+        description: WC-13 per-(season, constructor) car multiplier; neutral 1.00 for every team today (no per-team claim).
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0.95
+                max_value: 1.05
+                inclusive: true
+      - name: constructor_factor_source
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [neutral_default, public_concept, neutral_missing_constructor, neutral_no_constructor_row]
+                quote: true
+      - name: constructor_basis
+        tests: [not_null]
+      - name: lap_loss_bounded
+        description: WC-13 true when race value x tyre x car fell outside 0.15-0.55 s and was held to the bound.
+        tests: [not_null]
+      - name: factor_flag
+        description: WC-13 NULL when both factors resolved; otherwise which factor fell back to the neutral 1.00 and why.
+      - name: lap_loss_basis
+        description: WC-13 one line stating race value x tyre x car for this lap.
+        tests: [not_null]
+      - name: wake_exposure
+        description: Measured exposure 0..1 (see model description). NULL when the lap is unavailable.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+                inclusive: true
+      - name: wake_cost_placeholder_s
+        description: >
+          Placeholder cost in seconds = loss_s_per_lap_within_1s (per lap, WC-13) x wake_exposure. Modelled, not
+          measured. NULL (shown as "—" with unavailable_reason) when the lap is unavailable; 0.0
+          only for a measured lap with no car within 2 s.
+        tests:
+          - not_null:
+              config:
+                where: "unavailable_reason is null"
+      - name: value_label
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [modelled, unavailable]
+                quote: true
+      - name: value_kind
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [placeholder]
+                quote: true
+      - name: unavailable_reason
+        description: Why the lap has no value (no gap measured; neutralised lap; no circuit value). NULL when the lap has a value.
+      - name: disclaimer
+        description: >
+          The DD-WC2 disclaimer, word for word (reworded by the owner 2026-10-31). Written with a doubled
+          quote here because accepted_values pastes the value into SQL unescaped.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Modelled: an assumed typical loss for this circuit, season, tyre and car, applied to the measured time spent close behind another car. Not calibrated on this driver''s own stints."]
+                quote: true
+      - name: disclaimer_placeholder
+        description: The placeholder line (owner ruling 2026-10-30, kept beside DD-WC2), word for word.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['Placeholder = an interim value set by a fixed rule, not a measurement of this lap.']
+                quote: true
+
+  - name: int_wake_placeholder_race_loss
+    description: >
+      WC-12: one row per race (every race in race_to_track or int_lap_proximity), the ASSUMED loss
+      in seconds for a full lap within 1 s of the car ahead, read by int_lap_wake_placeholder_cost.
+      A transparent rule, not a fit: corner_index (fast-corner equivalents from the layout's corner
+      mix, seeds/wake_placeholder_race_structure.csv) x an era factor x a reference scale, clamped
+      and rounded; constants and their reasons in seeds/wake_placeholder_rule.csv. No lap time,
+      segment time or speed is read. A race with no corner structure falls back to
+      era_factor x the circuit-class value and is flagged loss_source = class_fallback. Display
+      only: never an ML feature or target. See
+      _roadmap/_wake-calibration/wi/WC-11-interim-placeholder-values.md (WC-12 section).
+    tags: [intermediate, wake_placeholder]
+    meta:
+      family: physics
+    columns:
+      - name: race_id
+        tests: [not_null, unique]
+      - name: race_year
+        tests: [not_null]
+      - name: era
+        tests: [not_null]
+      - name: era_factor
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0.5
+                max_value: 1.0
+                inclusive: true
+      - name: loss_source
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [race_structure, class_fallback]
+                quote: true
+      - name: corner_index
+        description: Fast-corner equivalents on the layout; NULL on a class_fallback race.
+        tests:
+          - not_null:
+              config:
+                where: "loss_source = 'race_structure'"
+      - name: loss_s_per_lap_within_1s
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0.15
+                max_value: 0.55
+                inclusive: true
+      - name: loss_bounded
+        tests: [not_null]
+      - name: loss_basis
+        tests: [not_null]
+      - name: value_kind
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [placeholder]
+                quote: true

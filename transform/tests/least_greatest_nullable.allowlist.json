@@ -186,6 +186,54 @@
       "call": "LEAST(GREATEST(CAST(relativedistance AS DOUBLE), 0.0), 0.999999)",
       "verdict": "not_null",
       "reason": "Outer half of the same clamp, under the same WHERE relativedistance IS NOT NULL."
+    },
+    {
+      "file": "models/intermediate/int_lap_wake_placeholder_cost.sql",
+      "call": "GREATEST(LEAST( CAST(SUBSTR(tc.tyre_c_number, 2) AS INTEGER) - CAST(SUBSTR(tc.race_medium_c, 2) AS INTEGER), 2 ), -2)",
+      "verdict": "open",
+      "reason": "Added 2026-11-01 to unblock CI on the new wake-placeholder model (WC-12/WC-16) WITHOUT a nullability review: a NULL operand here would become the bound. Owner to review and either re-verdict (not_null/intended with the reason) or rewrite with clamp_or_null()."
+    },
+    {
+      "file": "models/intermediate/int_lap_wake_placeholder_cost.sql",
+      "call": "LEAST(CAST(SUBSTR(tc.tyre_c_number, 2) AS INTEGER) - CAST(SUBSTR(tc.race_medium_c, 2) AS INTEGER), 2)",
+      "verdict": "open",
+      "reason": "Added 2026-11-01 to unblock CI on the new wake-placeholder model (WC-12/WC-16) WITHOUT a nullability review: a NULL operand here would become the bound. Owner to review and either re-verdict (not_null/intended with the reason) or rewrite with clamp_or_null()."
+    },
+    {
+      "file": "models/intermediate/int_lap_wake_placeholder_cost.sql",
+      "call": "LEAST(GREATEST(t.c_step_factor * t.medium_shift, cb.c_min), cb.c_max)",
+      "verdict": "open",
+      "reason": "Added 2026-11-01 to unblock CI on the new wake-placeholder model (WC-12/WC-16) WITHOUT a nullability review: a NULL operand here would become the bound. Owner to review and either re-verdict (not_null/intended with the reason) or rewrite with clamp_or_null()."
+    },
+    {
+      "file": "models/intermediate/int_lap_wake_placeholder_cost.sql",
+      "call": "GREATEST(t.c_step_factor * t.medium_shift, cb.c_min)",
+      "verdict": "open",
+      "reason": "Added 2026-11-01 to unblock CI on the new wake-placeholder model (WC-12/WC-16) WITHOUT a nullability review: a NULL operand here would become the bound. Owner to review and either re-verdict (not_null/intended with the reason) or rewrite with clamp_or_null()."
+    },
+    {
+      "file": "models/intermediate/int_lap_wake_placeholder_cost.sql",
+      "call": "LEAST(GREATEST( race_loss_s * compound_factor * constructor_factor, min_s ), max_s)",
+      "verdict": "open",
+      "reason": "Added 2026-11-01 to unblock CI on the new wake-placeholder model (WC-12/WC-16) WITHOUT a nullability review: a NULL operand here would become the bound. Owner to review and either re-verdict (not_null/intended with the reason) or rewrite with clamp_or_null()."
+    },
+    {
+      "file": "models/intermediate/int_lap_wake_placeholder_cost.sql",
+      "call": "GREATEST(race_loss_s * compound_factor * constructor_factor, min_s)",
+      "verdict": "open",
+      "reason": "Added 2026-11-01 to unblock CI on the new wake-placeholder model (WC-12/WC-16) WITHOUT a nullability review: a NULL operand here would become the bound. Owner to review and either re-verdict (not_null/intended with the reason) or rewrite with clamp_or_null()."
+    },
+    {
+      "file": "models/intermediate/int_wake_placeholder_race_loss.sql",
+      "call": "LEAST(GREATEST(loss_raw_s, min_s), max_s)",
+      "verdict": "open",
+      "reason": "Added 2026-11-01 to unblock CI on the new wake-placeholder model (WC-12/WC-16) WITHOUT a nullability review: a NULL operand here would become the bound. Owner to review and either re-verdict (not_null/intended with the reason) or rewrite with clamp_or_null()."
+    },
+    {
+      "file": "models/intermediate/int_wake_placeholder_race_loss.sql",
+      "call": "GREATEST(loss_raw_s, min_s)",
+      "verdict": "open",
+      "reason": "Added 2026-11-01 to unblock CI on the new wake-placeholder model (WC-12/WC-16) WITHOUT a nullability review: a NULL operand here would become the bound. Owner to review and either re-verdict (not_null/intended with the reason) or rewrite with clamp_or_null()."
     }
   ]
 }

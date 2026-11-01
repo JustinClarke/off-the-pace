@@ -94,6 +94,8 @@ TABLES: list[tuple[str, str, str | None, bool]] = [
     ("int_corner_metrics",         "intermediates", "race_year", False),
     ("int_corner_skill_residuals", "intermediates", "race_year", False),
     ("int_lap_air_state",          "intermediates", "race_year", False),
+    # WC-11: interim placeholder wake cost (dirty-air-cost page only; never ML)
+    ("int_lap_wake_placeholder_cost", "intermediates", "race_year", False),
     ("int_lap_anomaly_flags",      "intermediates", "race_year", False),
     ("int_sector_residual_decomposed", "intermediates", "race_year", True),
 
@@ -122,11 +124,11 @@ ENRICHED_TABLES: list[tuple[str, str]] = [
 # race_caution_timeline collapses int_stint_geometry's per-driver lap flags to
 # one row per (race, lap). int_stint_geometry is the table that carries real
 # caution flags; fct_lap_residuals carries the same three column NAMES and they
-# are FALSE on every one of its 137,447 rows, because that mart is pre-filtered
+# are FALSE on every one of its 161,040 rows, because that mart is pre-filtered
 # to green racing laps. stg_track_status holds the event log but has no lap
 # axis (session_time_s only) and, like every staging view, resolves its bronze
 # parquet path relative to transform/, which is why stg_pits is already an
-# optional export. 8,929 rows, 801 of them caution laps.
+# optional export. 10,373 rows, 937 of them caution laps.
 DERIVED_TABLES: list[tuple[str, str, str]] = [
     (
         "race_caution_timeline",

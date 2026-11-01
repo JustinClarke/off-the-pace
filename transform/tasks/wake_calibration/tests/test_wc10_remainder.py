@@ -489,12 +489,30 @@ def _no_read(*a, **k):
     raise AssertionError("nothing may be read")
 
 
-def test_real_mode_gate_failure_is_restartable_and_reads_nothing(tmp_path, monkeypatch):
+B2_FAKE = "ab" * 32  # stands in for the B2 hash in tests (B2 is not committed yet)
+
+
+def _sg_record(path, checks=None, b2=B2_FAKE, **extra):
+    import json
+    rec = {"checks": checks if checks is not None else {c: "PASS" for c in IO.SG_CHECKS}, "b2_sha256": b2, **extra}
+    path.write_text(json.dumps(rec))
+    return path
+
+
+@pytest.fixture
+def prereq(tmp_path, monkeypatch):
+    """CLI arguments that satisfy check_prerequisites, with the git lookup stubbed (B1 and B2 'committed')."""
+    monkeypatch.setattr(R, "committed_sha256", {IO.B1_PATH: IO.B1_SHA256, IO.B2_PATH: B2_FAKE}.get)
+    rec = _sg_record(tmp_path / "sg_pass.json")
+    return ["--b1-sha256", IO.B1_SHA256, "--b2-sha256", B2_FAKE, "--sg-record", str(rec)]
+
+
+def test_real_mode_gate_failure_is_restartable_and_reads_nothing(tmp_path, monkeypatch, prereq):
     for name in ("load_structure", "load_lap_structure", "load_outcomes"):
         monkeypatch.setattr(IO, name, _no_read)
     monkeypatch.setattr(R, "calendar_2022_23", _no_read)
     ev, art = tmp_path / "ev", tmp_path / "art"
-    rc = R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(art)],
+    rc = R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(art)] + prereq,
                 gate_fn=lambda: (False, ["check 1 pass table: FAIL"]))
     assert rc == 1
     led = IO.Ledger(ev)
@@ -503,7 +521,7 @@ def test_real_mode_gate_failure_is_restartable_and_reads_nothing(tmp_path, monke
     assert "AssertionError" not in led.path.read_text()
     assert not art.exists()
     # restartable: a second start is allowed
-    assert R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(art)],
+    assert R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(art)] + prereq,
                   gate_fn=lambda: (False, ["check 1 pass table: FAIL"])) == 1
     assert len(led.starts()) == 2
 
@@ -529,12 +547,12 @@ def _stub_real(monkeypatch, analyse):
     return calls
 
 
-def test_real_mode_order_gate_runstart_decode_written(tmp_path, monkeypatch):
+def test_real_mode_order_gate_runstart_decode_written(tmp_path, monkeypatch, prereq):
     res = R.Results(tables={"t": pd.DataFrame({"a": [1.0]})}, summary="GO/NO-GO: X\n", n_intervals=0,
                     verdict="X", line="GO/NO-GO: X")
     calls = _stub_real(monkeypatch, lambda *a, **k: res)
     ev, art = tmp_path / "ev", tmp_path / "art"
-    rc = R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(art)],
+    rc = R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(art)] + prereq,
                 gate_fn=lambda: (True, ["check 1 pass table: PASS"]))
     assert rc == 0
     assert calls == ["structure", "calendar", "appendix", "laps", "outcomes"]
@@ -543,19 +561,21 @@ def test_real_mode_order_gate_runstart_decode_written(tmp_path, monkeypatch):
                                         "OUTPUT", "EXIT")]
     assert order[:5] == ["START", "GATE", "RUN START", "OUTCOME DECODED", "OUTCOME-DERIVED WRITTEN"]
     assert order[-1] == "EXIT" and "OUTPUT" in order
+    rs = [ln for ln in (ev / "PROVENANCE.txt").read_text().splitlines() if ln.split("  ")[1] == "RUN START"][0]
+    assert f"b1_sha256={IO.B1_SHA256}" in rs and f"b2_sha256={B2_FAKE}" in rs and "sg_record_sha256=" in rs
     assert (art / "SHA256SUMS").is_file() and IO.Ledger(ev).current().state == "COMPLETED"
     # one run: a second start is refused
     assert R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev),
-                   "--artifacts-dir", str(tmp_path / "art2")], gate_fn=lambda: (True, [])) == 1
+                   "--artifacts-dir", str(tmp_path / "art2")] + prereq, gate_fn=lambda: (True, [])) == 1
 
 
-def test_real_mode_exception_writes_type_file_line_only(tmp_path, monkeypatch, capsys):
+def test_real_mode_exception_writes_type_file_line_only(tmp_path, monkeypatch, capsys, prereq):
     def boom(*a, **k):
         raise ValueError("secret 1.2345 outcome value")
 
     _stub_real(monkeypatch, boom)
     ev, art = tmp_path / "ev", tmp_path / "art"
-    rc = R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(art)],
+    rc = R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(art)] + prereq,
                 gate_fn=lambda: (True, []))
     assert rc == 1
     text = (ev / "PROVENANCE.txt").read_text()
@@ -590,3 +610,124 @@ def test_assemble_inputs_caps_coast_and_aligns():
            "laps": pd.DataFrame({"race_id": ["2022_1"], "driver": ["A"], "lap": [2], "lap_time_s": [90.0]})}
     inp = R.assemble_inputs(s, out, None, None)
     assert list(inp.y["seg_time_s"]) == [2.1, 2.0] and inp.coast_capped == 1 and np.isnan(inp.coast.iloc[0])
+
+
+# --------------------------------------------------------------------------- W14 and amendment B2 in the outputs
+
+
+def _w14_cases(tmp_path):
+    good = {c: "PASS" for c in IO.SG_CHECKS}
+    ok_rec = _sg_record(tmp_path / "ok.json")
+    return {
+        "no b1": ["--b2-sha256", B2_FAKE, "--sg-record", str(ok_rec)],
+        "wrong b1": ["--b1-sha256", "cd" * 32, "--b2-sha256", B2_FAKE, "--sg-record", str(ok_rec)],
+        "no b2": ["--b1-sha256", IO.B1_SHA256, "--sg-record", str(ok_rec)],
+        "b2 not committed": ["--b1-sha256", IO.B1_SHA256, "--b2-sha256", "ef" * 32, "--sg-record", str(ok_rec)],
+        "no sg record": ["--b1-sha256", IO.B1_SHA256, "--b2-sha256", B2_FAKE],
+        "sg record missing file": ["--b1-sha256", IO.B1_SHA256, "--b2-sha256", B2_FAKE, "--sg-record",
+                                   str(tmp_path / "absent.json")],
+        "sg fail": ["--b1-sha256", IO.B1_SHA256, "--b2-sha256", B2_FAKE, "--sg-record",
+                    str(_sg_record(tmp_path / "f.json", checks={**good, "SG3": "FAIL"}))],
+        "sg incomplete": ["--b1-sha256", IO.B1_SHA256, "--b2-sha256", B2_FAKE, "--sg-record",
+                          str(_sg_record(tmp_path / "i.json", checks={c: "PASS" for c in IO.SG_CHECKS[:6]}))],
+        "sg pre-fix": ["--b1-sha256", IO.B1_SHA256, "--b2-sha256", B2_FAKE, "--sg-record",
+                       str(_sg_record(tmp_path / "pf.json", pre_fix=True))],
+        "sg other b2": ["--b1-sha256", IO.B1_SHA256, "--b2-sha256", B2_FAKE, "--sg-record",
+                        str(_sg_record(tmp_path / "ob.json", b2="12" * 32))],
+    }
+
+
+@pytest.mark.parametrize("case", ["no b1", "wrong b1", "no b2", "b2 not committed", "no sg record",
+                                  "sg record missing file", "sg fail", "sg incomplete", "sg pre-fix", "sg other b2"])
+def test_w14_real_mode_refuses_without_b1_b2_and_sg_pass_record(tmp_path, monkeypatch, capsys, case):
+    """W14: real mode refuses (exit 2, no ledger, nothing read) unless the B1 and B2 hashes match the committed
+    files and an SG1-SG7 pass record made under this B2 exists."""
+    monkeypatch.setattr(R, "committed_sha256", {IO.B1_PATH: IO.B1_SHA256, IO.B2_PATH: B2_FAKE}.get)
+    for name in ("load_structure", "load_lap_structure", "load_outcomes"):
+        monkeypatch.setattr(IO, name, _no_read)
+    monkeypatch.setattr(R, "calendar_2022_23", _no_read)
+    ev, art = tmp_path / "ev", tmp_path / "art"
+    rc = R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(art)]
+                + _w14_cases(tmp_path)[case], gate_fn=_no_read)
+    assert rc == 2 and not ev.exists() and not art.exists()
+    assert "REFUSED" in capsys.readouterr().err
+
+
+def test_w14_recorded_b2_hash_must_match(tmp_path, monkeypatch, prereq):
+    monkeypatch.setattr(IO, "B2_SHA256", "99" * 32)
+    ev = tmp_path / "ev"
+    rc = R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(tmp_path / "a")]
+                + prereq, gate_fn=_no_read)
+    assert rc == 2 and not ev.exists()
+
+
+def test_w14_committed_b1_hash_read_from_git():
+    """B1 as committed at HEAD hashes to the recorded value (git show; read-only)."""
+    h = R.committed_sha256(IO.B1_PATH)
+    if h is None:
+        pytest.skip("git or the committed B1 is not available")
+    assert h == IO.B1_SHA256
+
+
+def _nan_t_inputs():
+    inp = R.synthetic_world()
+    s = inp.structure
+    m = (s["race_id"] == "2022_2") & (s["stint"] == 2.0) & s["driver"].isin(["D03", "D07"])
+    s.loc[m, "tyre_life"] = np.nan
+    return inp, m.to_numpy()
+
+
+@pytest.fixture(scope="module")
+def analysed_nan():
+    saved = _set_all()
+    inp, m = _nan_t_inputs()
+    res = R.analyse(inp, R.synthetic_plan(6))
+    _restore(saved)
+    return inp, m, res
+
+
+def test_b2_counts_in_outputs_and_ledger(analysed_nan, tmp_path, monkeypatch, prereq):
+    """B2 (2): tyre_life_missing rows are counted in the outputs (support_rulings, lap-arm drops, carry-over
+    counts, support table) and in the ledger's rulings line; the run still completes."""
+    inp, m, res = analysed_nan
+    p = A.prepare(inp.structure)
+    rl = res.tables["support_rulings"]
+    b2 = rl[rl["ruling"].str.startswith("B2")]
+    free_n = int((m & p["free"].to_numpy() & ~p["racecraft"].to_numpy()).sum())
+    fol_n = int((m & p["following"].to_numpy()).sum())
+    got_free = b2[b2["ruling"] == "B2 tyre_life_missing free passes (step 1)"].set_index("outcome")["count"]
+    assert got_free[A.TIME] == free_n > 0
+    got_fol = b2[(b2["ruling"] == "B2 tyre_life_missing following passes") & (b2["outcome"] == A.TIME)]
+    assert int(got_fol["count"].sum()) == fol_n > 0
+    lapd = res.tables["lap_arm_drops"].iloc[0]
+    assert lapd[A.TYRE_LIFE_MISSING + "_free"] > 0 and A.TYRE_LIFE_MISSING in lapd.index
+    assert res.tables["tyre_carry_counts"].iloc[0]["free_laps_tyre_life_missing"] > 0
+    assert int(res.tables["support_class_bin_W"][A.TYRE_LIFE_MISSING].sum()) == fol_n
+    assert np.isfinite(res.tables["support_exposure_by_bin"]["mean_signed_tyre_age_distance"].dropna()).all()
+    # the ledger's rulings line carries the B2 counts
+    _stub_real(monkeypatch, lambda *a, **k: res)
+    ev, art = tmp_path / "ev", tmp_path / "art"
+    rc = R.main(["--mode", "real", "--run-start", "--evidence-dir", str(ev), "--artifacts-dir", str(art)] + prereq,
+                gate_fn=lambda: (True, []))
+    assert rc == 0
+    line = [ln for ln in (ev / "PROVENANCE.txt").read_text().splitlines() if "  INFO  rulings" in ln][0]
+    assert f"[B2 tyre_life_missing free passes (step 1)|all|{A.TIME}]={free_n}" in line
+    assert "B2 tyre_life_missing following laps (lap arm)" in line
+
+
+def test_b2_diagnostics_lap_step1_matches_lap_arm_with_nan_tyre_life():
+    saved = _set_all()
+    try:
+        inp, _ = _nan_t_inputs()
+        p = A.prepare(inp.structure)
+        lap = L.lap_frame(p, inp.lap_times)
+        arm = L.fit_lap_arm(lap)
+        ls = D.lap_step1(lap)
+        assert np.allclose(ls.tau, arm.tau, equal_nan=True) and np.array_equal(ls.valid, arm.valid)
+        sc = C.carry_frame(lap)
+        assert not sc.loc[~np.isfinite(sc["t"].to_numpy(float)), "carry_fit"].any()
+        cf = C.fit_carry(sc)
+        assert cf.counts["free_laps_tyre_life_missing"] == int(
+            (sc["free_lap"] & ~np.isfinite(sc["t"].to_numpy(float))).sum()) > 0
+    finally:
+        _restore(saved)

@@ -1,0 +1,41 @@
+row_kind,key,corner_class,loss_s_per_lap_within_1s,value_kind,basis
+class_default,fast,fast,0.45,placeholder,"Assumption, not a measurement: wake (aero) loss is largest where lap time is made in high-speed corners; set at the top of the few-tenths range for a car within 1 s all lap"
+class_default,medium,medium,0.30,placeholder,"Assumption, not a measurement: mid-range of the few-tenths-per-lap loss commonly reported for a car within about 1 s of the car ahead"
+class_default,slow,slow,0.20,placeholder,"Assumption, not a measurement: low-speed corners rely on mechanical grip, so the aero wake costs less; being held up is NOT included"
+unlisted_default,unlisted,medium,,placeholder,"A circuit with no row here (e.g. a new venue) uses the medium class value, flagged class_source = unlisted_circuit_default"
+circuit,70th_anniversary_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,belgian_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,british_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,dutch_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,japanese_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,qatar_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,saudi_arabian_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,spanish_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,turkish_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,tuscan_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,united_states_grand_prix,fast,,placeholder,Circuit class by general F1 knowledge (high-speed corners dominate the lap); inherits the class value
+circuit,abu_dhabi_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,australian_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,austrian_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,bahrain_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,brazilian_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,chinese_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,eifel_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,emilia_romagna_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,french_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,german_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,hungarian_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,miami_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,portuguese_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,russian_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,sakhir_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,styrian_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,são_paulo_grand_prix,medium,,placeholder,Circuit class by general F1 knowledge (mixed or medium-speed corners); inherits the class value
+circuit,azerbaijan_grand_prix,slow,,placeholder,"Circuit class by general F1 knowledge (low-speed corners and long straights, or low-downforce setup); inherits the class value"
+circuit,canadian_grand_prix,slow,,placeholder,"Circuit class by general F1 knowledge (low-speed corners and long straights, or low-downforce setup); inherits the class value"
+circuit,italian_grand_prix,slow,,placeholder,"Circuit class by general F1 knowledge (low-speed corners and long straights, or low-downforce setup); inherits the class value"
+circuit,las_vegas_grand_prix,slow,,placeholder,"Circuit class by general F1 knowledge (low-speed corners and long straights, or low-downforce setup); inherits the class value"
+circuit,mexican_grand_prix,slow,,placeholder,"Circuit class by general F1 knowledge (low-speed corners and long straights, or low-downforce setup); inherits the class value"
+circuit,mexico_city_grand_prix,slow,,placeholder,"Circuit class by general F1 knowledge (low-speed corners and long straights, or low-downforce setup); inherits the class value"
+circuit,monaco_grand_prix,slow,,placeholder,"Circuit class by general F1 knowledge (low-speed corners and long straights, or low-downforce setup); inherits the class value"
+circuit,singapore_grand_prix,slow,,placeholder,"Circuit class by general F1 knowledge (low-speed corners and long straights, or low-downforce setup); inherits the class value"

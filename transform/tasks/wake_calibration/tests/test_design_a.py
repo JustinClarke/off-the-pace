@@ -451,3 +451,134 @@ def test_go_no_go_table():
     v, aero, line = A.go_no_go(ok, {k: A.INCONCLUSIVE for k in A.CLASSES}, A.DISAGREE, ok, False, s2_unpowered=True,
                                undefined=u)
     assert v == "DESIGN A" and aero == "—" and "S2 unpowered" in line
+
+
+# --------------------------------------------------------------------------- amendment B2 (tyre_life) and B1 label
+
+
+def test_b1_label_duplicate_race_in_copy_is_copy(monkeypatch):
+    """B1 D(2) names the value "copy"; the old code label "separate_copy" is no longer accepted."""
+    assert A.RULED_CHOICES["duplicate_race_in_copy"] == "copy" == A.OPEN_CHOICES["duplicate_race_in_copy"]
+    A.preflight()
+    monkeypatch.setitem(A.OPEN_CHOICES, "duplicate_race_in_copy", "separate_copy")
+    with pytest.raises(A.OpenChoicesUnset, match="duplicate_race_in_copy"):
+        A.preflight()
+
+
+def test_b2_ruling1_tyre_life_required_for_step1(fitted):
+    """B2 (1): a free pass without tyre_life never enters step 1; (2) it is counted, racecraft first."""
+    f, p, _ = fitted
+    y = f["seg_time_s"].reset_index(drop=True)
+    q = p.copy()
+    idx = q.index[q["free"] & ~q["racecraft"]][:40]
+    q.loc[idx, "t"] = np.nan
+    rc = q.index[q["free"] & ~q["racecraft"]][40:45]
+    q.loc[rc, ["t", "racecraft"]] = [np.nan, True]  # racecraft and no tyre_life: counted under ruling 1 only
+    fs = A.free_set(q, y, A.TIME)
+    assert not fs[idx].any() and not fs[rc].any()
+    assert A.tyre_life_free_dropped(q, y) == 40
+    assert A.racecraft_free_dropped(q, y) == int((q["free"] & q["racecraft"]).sum())
+
+
+def _nan_t_world():
+    """The synthetic world with, in race 2022_1, stint 2 of the three drivers with the most free stint-2 passes on
+    compound UNKNOWN (3 drivers: an estimated theta cell) and every pass of the third one's stint 2 with tyre_life
+    missing (free and following rows)."""
+    f = world()
+    s2 = (f["race_id"] == "2022_1") & (f["stint"] == 2.0)
+    free = f["clear_ahead"].fillna(False).astype(bool) | (f["gap_s"] >= 3.0)
+    top = f[s2 & free].groupby("driver").size().sort_values(ascending=False).index[:3]  # 3 drivers with free passes
+    unk = s2 & f["driver"].isin(top)
+    f.loc[unk, "compound"] = "UNKNOWN"
+    nan_t = s2 & (f["driver"] == top[2])
+    f.loc[nan_t, "tyre_life"] = np.nan
+    return f, nan_t.to_numpy()
+
+
+def test_b2_nan_tyre_life_free_rows_fit_converges_counted_and_layout_after_drop():
+    """B2 (1)-(3) on a synthetic structure with NaN-tyre_life free rows in a race: the fit converges, the rows are
+    counted under tyre_life_missing, and the theta layout is computed after the drop (UNKNOWN flips from estimated
+    to the reference curve; two parameters fewer per class)."""
+    f, nan_t = _nan_t_world()
+    p = A.prepare(f)
+    y = ys(p, f)
+    assert (nan_t & p["free"].to_numpy()).sum() > 0 and (nan_t & p["following"].to_numpy()).sum() > 0
+    m = A.fit_model(p, y)  # before B2 this raised EstimatorError (no convergence in 10,000 sweeps)
+    for k, cm in m.classes.items():
+        for o, s1 in cm.step1.items():
+            assert s1.sweeps < A.MAX_SWEEPS and np.isfinite(s1.ry).all()
+    # counted: free passes per outcome; following passes per class, under their own reason
+    free_nan = nan_t & p["free"].to_numpy() & ~p["racecraft"].to_numpy()
+    for o in A.OUTCOMES:
+        assert m.tyre_life_free_dropped[o] == int((free_nan & np.isfinite(y[o].to_numpy())).sum()) > 0
+    assert not m.st.free_time[nan_t].any()
+    fol_nan = int((nan_t & p["following"].to_numpy()).sum())
+    for o in A.OUTCOMES:
+        assert sum(cm.eff[o].drops[A.TYRE_LIFE_MISSING] for cm in m.classes.values()) == fol_nan
+    for cm in m.classes.values():
+        rows = cm.ft["row"].to_numpy()
+        assert not cm.eff[A.TIME].valid[nan_t[rows]].any()
+        reasons = set(cm.cls.unknown_reason[nan_t[rows]])
+        assert reasons <= {A.TYRE_LIFE_MISSING, "racecraft"}
+    # layout after the drop
+    free_before = p["free"].to_numpy() & ~p["racecraft"].to_numpy()
+    for k in A.CLASSES:
+        cmask = (p["corner_class"] == k).to_numpy()
+        before = A.theta_layout(p, free_before, class_mask=cmask).table.set_index(["race_id", "compound"])
+        after = m.st.theta[k]
+        tab = after.table.set_index(["race_id", "compound"])
+        assert before.loc[("2022_1", "UNKNOWN"), "lin"] >= 0  # 3 drivers before the drop: estimated
+        assert tab.loc[("2022_1", "UNKNOWN"), "lin"] == -1  # 2 drivers after: the reference curve
+        assert tab.loc[("2022_1", "UNKNOWN"), "quad"] == after.default_quad["2022_1"]
+        assert after.n_params == A.theta_layout(p, free_before, class_mask=cmask).n_params - 2
+
+
+def test_b2_lap_arm_nan_tyre_life_laps_counted_not_silent():
+    """B2 for the lap arm: free laps without tyre_life leave step 1, following laps without it are counted under
+    tyre_life_missing (before B2 they vanished through isfinite(tau)); the layout is after the drop."""
+    f, nan_t = _nan_t_world()
+    p = A.prepare(f)
+    lap = L.lap_frame(p, lap_times_from(f))
+    arm = L.fit_lap_arm(lap)
+    sc = lap[lap["scored"]]
+    tn = ~np.isfinite(sc["t"].to_numpy(float))
+    assert arm.drops[A.TYRE_LIFE_MISSING] == int((tn & sc["following_lap"].to_numpy()).sum())
+    assert arm.drops[A.TYRE_LIFE_MISSING + "_free"] == int((tn & sc["free_lap"].to_numpy()).sum()) > 0
+    assert arm.sweeps < A.MAX_SWEEPS
+    d = arm.drops
+    accounted = (d[A.TYRE_LIFE_MISSING] + d["not_supported"] + d["phi_unsupported"] + d["other_undefined"]
+                 + d["disconnected"] + d["trimmed"] + int(arm.valid.sum()))
+    assert accounted == d["following_laps"]  # every following lap is valid or carries a named reason
+    lay = A.theta_layout(sc.reset_index(drop=True), L.lap_free(sc.reset_index(drop=True)))
+    assert lay.table.set_index(["race_id", "compound"]).loc[("2022_1", "UNKNOWN"), "lin"] == -1
+
+
+@pytest.mark.skipif(not (IO.DEFAULT_PASS_DIR / "pass_table_2022.parquet").is_file()
+                    or not (IO.DEFAULT_SIDECAR_DIR / "sidecar_2022.parquet").is_file(),
+                    reason="2022-23 structure artifacts not present")
+def test_b2_real_structure_all_43_races_step1_converges():
+    """Structure columns only (load_structure refuses every outcome column); y and lap times are FAKE finite
+    constants. After B2 every corner class's step 1 and the lap arm converge over all 43 races, and the lap-arm
+    layout has 149 parameters (2022_11 UNKNOWN on the reference curve; 151 before the drop)."""
+    s = IO.load_structure()
+    assert not set(s.columns) & IO.GUARDED_COLUMNS
+    p = A.prepare(s)
+    y = pd.Series(np.zeros(len(p)))
+    st = A.structure_sets(p, y)
+    races = set()
+    for k in A.CLASSES:
+        s1 = A.fit_step1(p, y, A.TIME, k, st, st.free_time)
+        assert s1.sweeps < A.MAX_SWEEPS
+        races |= set(np.flatnonzero(s1.n_r > 0))
+        assert st.theta[k].table.set_index(["race_id", "compound"]).loc[("2022_11", "UNKNOWN"), "lin"] == -1
+    assert races == set(range(A.N_RACES)) and A.N_RACES == 43
+    lt = p[["race_id", "driver", "lap"]].drop_duplicates().assign(lap_time_s=0.0)
+    lap = L.lap_frame(p, lt)
+    arm = L.fit_lap_arm(lap)
+    assert arm.sweeps < A.MAX_SWEEPS and arm.lap["race_id"].nunique() == 43
+    sc = lap[lap["scored"]].reset_index(drop=True)
+    assert A.theta_layout(sc, sc["free_lap"].to_numpy()).n_params == 151
+    lay = A.theta_layout(sc, L.lap_free(sc))
+    assert lay.n_params == 149
+    assert lay.table.set_index(["race_id", "compound"]).loc[("2022_11", "UNKNOWN"), "lin"] == -1
+    assert arm.drops[A.TYRE_LIFE_MISSING] == 78 and arm.drops[A.TYRE_LIFE_MISSING + "_free"] == 57

@@ -272,6 +272,7 @@ race_pick AS (
         o.optimal_offset AS optimal_offset_race,
         o.optimal_pit_lap AS optimal_pit_lap_race,
         o.optimal_total_cost_s AS optimal_total_cost_race_s,
+        a.actual_offset AS actual_offset_race,
         a.actual_total_cost_s AS actual_total_cost_race_s
     FROM optimum AS o
     LEFT JOIN actual_cost AS a
@@ -397,6 +398,7 @@ assembled AS (
         rp.optimal_offset_race,
         rp.optimal_pit_lap_race,
         rp.optimal_total_cost_race_s,
+        rp.actual_offset_race,
         rp.actual_total_cost_race_s,
         CASE
             WHEN wp.optimal_offset IS NOT NULL THEN 'two_stint'
@@ -413,11 +415,18 @@ assembled AS (
     LEFT JOIN race_pick AS rp ON sb.stint_id = rp.stint_id
 ),
 
--- Fall back to the race-remainder horizon where no next stint exists.
+-- Fall back to the race-remainder horizon where no next stint exists. The
+-- actual offset falls back with the optimum: both are read on the same
+-- horizon, and on either one the actual offset is the stint's own valid-lap
+-- count (actual_cost above). Until 2026-10-31 only the optimum fell back, so
+-- the 265 race-remainder stints with a stop had overrun_laps NULL and a
+-- verdict that skipped the optimal/overran tests straight to undercut_forced
+-- or early.
 resolved AS (
     SELECT
         a.*,
         COALESCE(a.optimal_offset, a.optimal_offset_race) AS pick_offset,
+        COALESCE(a.actual_offset, a.actual_offset_race) AS pick_actual_offset,
         COALESCE(a.optimal_pit_lap, a.optimal_pit_lap_race) AS pick_pit_lap,
         COALESCE(a.horizon_laps, a.race_horizon_laps) AS pick_horizon_laps,
         COALESCE(
@@ -461,7 +470,7 @@ SELECT
     -- offsets, so an invalid lap before the stop cannot skew it.
     CASE
         WHEN r.actual_pit_lap IS NULL OR r.pick_offset IS NULL THEN NULL
-        ELSE r.actual_offset - r.pick_offset
+        ELSE r.pick_actual_offset - r.pick_offset
     END AS overrun_laps,
     -- Opportunity cost: Total_Cost(actual) - Total_Cost(optimal). Zero for a
     -- stint that never stopped, which had no pit decision to grade.
@@ -500,11 +509,11 @@ SELECT
         WHEN r.pick_offset IS NULL
             THEN 'unknown'
         WHEN
-            ABS(r.actual_offset - r.pick_offset)
+            ABS(r.pick_actual_offset - r.pick_offset)
             <= {{ var('pit_strategy_optimal_band_laps', 1) }}
             THEN 'optimal'
         WHEN
-            r.actual_offset
+            r.pick_actual_offset
             > r.pick_offset + {{ var('pit_strategy_optimal_band_laps', 1) }}
             THEN 'overran'
         -- The stop came early AND it came as the undercut window opened.

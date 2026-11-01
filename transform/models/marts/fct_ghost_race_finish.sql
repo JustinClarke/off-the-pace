@@ -9,7 +9,8 @@
 -- driver who completed 10 laps is compared fairly against one who ran the full race.
 -- Short runs (DNF / partial) are flagged via is_short_run so the app can annotate
 -- them rather than silently trusting a small-sample estimate.
--- Ties broken by actual finish position.
+-- Ties are not broken: RANK() gives drivers with equal predicted pace the same
+-- predicted_finish_position and skips the positions after them.
 --
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Honest confidence via SE propagation
@@ -44,6 +45,9 @@
 -- where var_self_d = (sd_slope_d*age_d)^2 + (se_shift_d*sev*frac_d)^2 + lap_pace_sd^2/L_d.
 -- host_pace SE enters the marginal predicted_mean_lap_se_s but drops out of every
 -- pairwise comparison. p_beats_next = P(driver beats the one ranked just below it);
+-- NULL for the last-placed driver and, if two drivers ever tie on predicted pace,
+-- for both tied drivers (RANK() skips the next position, so no row is ranked just
+-- below them; assert_ghost_race_finish_no_rank_ties.sql fails on any tie).
 -- finish_pos_se = sqrt(sum_k p_k(1-p_k)) (Poisson-binomial sd of #drivers ahead).
 -- Independence across the pairwise events is an approximation (shared host coeffs
 -- induce mild correlation in the residual terms) honest enough for calibration,

@@ -21,6 +21,9 @@ DD-WC20). THIS HAS NOT BEEN RUN ON REAL DATA. Library only: opens no file, write
   - The episode-length tier fit replaces C_l by its three parts: close laps from episodes of 1-2, 3-4 and >= 5
     laps (every episode before a free lap is complete, so its length is known).
   - A regressor with no variation left after the fixed effects is reported "—, not identified" (never 0).
+  - Amendment B2 (DD-WC23), as in the lap arm: a free lap without tyre_life does not enter the fit (nor the >= 3
+    free-lap count), the theta layout is computed after that drop, and the dropped free laps are counted
+    (counts["free_laps_tyre_life_missing"]). Close laps and C_l need no tyre_life and are unchanged.
 """
 
 from __future__ import annotations
@@ -82,8 +85,10 @@ def carry_frame(lap: pd.DataFrame) -> pd.DataFrame:
     sc["laps_to_next_episode"] = nxt - lapn
     for j in PRE_TREND_LAPS:
         sc[f"pi_{j}"] = (sc["laps_to_next_episode"].to_numpy() == j).astype(float)
-    nfree = sc.groupby(L.STINT_KEY)["free_lap"].transform("sum").to_numpy()
-    sc["carry_fit"] = sc["free_lap"].to_numpy() & (nfree >= CARRY_MIN_FREE)
+    free_t = L.lap_free(sc)  # B2: tyre_life required to enter the fit
+    sc["free_tyre_life_missing"] = sc["free_lap"].to_numpy(dtype=bool) & ~free_t
+    nfree = pd.Series(free_t).groupby(sc[L.STINT_KEY].to_numpy()).transform("sum").to_numpy()
+    sc["carry_fit"] = free_t & (nfree >= CARRY_MIN_FREE)
     return sc
 
 
@@ -136,7 +141,9 @@ def fit_carry(sc: pd.DataFrame) -> CarryFit:
               "free_laps_in_fit": int(len(f)), "stints_in_fit": int(f[L.STINT_KEY].nunique()),
               "free_laps_with_C_gt_0": int((f["C"] > 0).sum()),
               **{f"free_laps_pi_{j}": int(f[f"pi_{j}"].sum()) for j in PRE_TREND_LAPS},
-              "races_in_fit": int(f["race_id"].nunique())}
+              "races_in_fit": int(f["race_id"].nunique()),
+              "free_laps_tyre_life_missing": int(sc["free_tyre_life_missing"].sum())
+              if "free_tyre_life_missing" in sc.columns else 0}
     return CarryFit(terms=terms, sxx=sxx, sxy=sxy, counts=counts, sweeps=sol.sweeps)
 
 

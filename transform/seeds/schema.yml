@@ -134,6 +134,22 @@ seeds:
       the earlier unverified 2025 rows for this reason). Do not quote a 2025 compound_code as sourced until each
       row is checked against source. The per-season row counts are pinned by
       assert_tyre_allocations_rows_per_season.
+
+      KNOWN WRONG (WC-16, 2026-10-31). A fetched source for every race
+      (_roadmap/_wake-calibration/_evidence/WC-16-2026-10-31/c_numbers.csv and
+      c_numbers_report.md) confirms all 104 rows for 2019-2023 and 23 of 24 for 2024, but 12 rows
+      here are wrong (seed hard/medium/soft -> verified): 2024_16 Italy C2/C3/C4 -> C3/C4/C5;
+      2025_5 Saudi Arabia C2/C3/C4 -> C3/C4/C5; 2025_7 Emilia Romagna C3/C4/C5 -> C4/C5/C6;
+      2025_8 Monaco C3/C4/C5 -> C4/C5/C6; 2025_10 Canada C3/C4/C5 -> C4/C5/C6; 2025_12 Britain
+      C1/C2/C3 -> C2/C3/C4; 2025_13 Belgium C2/C3/C4 -> C1/C3/C4; 2025_15 Netherlands C1/C2/C3 ->
+      C2/C3/C4; 2025_16 Italy C2/C3/C4 -> C3/C4/C5; 2025_17 Azerbaijan C3/C4/C5 -> C4/C5/C6;
+      2025_19 United States C2/C3/C4 -> C1/C3/C4; 2025_20 Mexico City C3/C4/C5 -> C2/C4/C5. The
+      missing 2025_6 Miami row is C3/C4/C5. So 11 of the 23 carried 2025 rows are wrong. The
+      correction is HELD: this seed feeds fct_power_law_training (via int_stint_geometry and
+      int_power_law_lap), an ML input, so it is corrected together with the ML redo (PK1,
+      _roadmap/_ai-integration). The C6 rows also need the C1-C5 accepted_values below widened.
+      The wake placeholder does not read this seed; it uses the verified copy in
+      wake_placeholder_tyre_allocation.
     columns:
       - name: race_year
         description: Season year, 2019-2025.
@@ -389,3 +405,343 @@ seeds:
         description: AVG(next_5_lap_cumulative_jump_s) for this season, at freeze time, rounded to 4 places.
         tests:
           - not_null
+
+  - name: wake_placeholder_values
+    description: >
+      WC-11 INTERIM PLACEHOLDER wake-cost values (owner decision 2026-10-30: ship arbitrary,
+      clearly-labelled per-circuit values while the WC-10 calibration is paused). Every number is
+      an ASSUMPTION from general F1 knowledge, not a measurement or a fit: a car within about 1 s
+      of the car ahead for a whole lap is assumed to lose a few tenths per lap from the wake
+      (fast-corner circuits 0.45 s, medium 0.30 s, slow 0.20 s), tapering linearly to nothing by
+      2 s (the taper is in int_lap_wake_placeholder_cost). Row kinds: class_default (the per-class
+      value), circuit (the circuit's class; a non-blank loss overrides the class value),
+      unlisted_default (class for circuits with no row). No number here comes from the archived
+      dirty-air method (DA-03). To swap in calibrated values: replace the loss column (per class or
+      per circuit), set value_kind and widen the accepted values below; consumers do not change.
+      Rationale per row in `basis`; full note in
+      _roadmap/_wake-calibration/wi/WC-11-interim-placeholder-values.md.
+    columns:
+      - name: row_kind
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [class_default, circuit, unlisted_default]
+                quote: true
+      - name: key
+        description: Corner class for class_default rows, race_to_track.track_id for circuit rows, 'unlisted' for the default row.
+        tests: [not_null, unique]
+      - name: corner_class
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [fast, medium, slow]
+                quote: true
+      - name: loss_s_per_lap_within_1s
+        description: Assumed seconds per lap for a full lap within 1 s of the car ahead. Required on class_default rows; blank on circuit rows inherits the class value.
+        tests:
+          - not_null:
+              config:
+                where: "row_kind = 'class_default'"
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1.0
+                inclusive: true
+      - name: value_kind
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [placeholder]
+                quote: true
+      - name: basis
+        description: Why the row has this value (an assumption, stated as one).
+        tests: [not_null]
+
+  - name: wake_placeholder_rule
+    description: >
+      WC-12: the constants of the placeholder wake rule in int_wake_placeholder_race_loss
+      (loss = era_factor x loss_at_reference_s x corner_index / reference_index, clamped to
+      [min_s, max_s], rounded to 0.01 s). Every value is an ASSUMPTION from general F1 knowledge and
+      the published rule changes, stated in `basis`; nothing is fitted and no lap time, segment time
+      or speed was read to set them. No number here comes from the archived dirty-air method
+      (DA-03). Rows: weight (fast-corner equivalents per corner class), scale, bound, era
+      (season_from..season_to inclusive), factor (WC-13: neutral_default, the 1.00 used, and
+      flagged, when a lap's compound or constructor factor cannot be resolved).
+    columns:
+      - name: param_kind
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [weight, scale, bound, era, factor]
+                quote: true
+      - name: param
+        tests: [not_null, unique]
+      - name: value
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 10
+                inclusive: true
+      - name: basis
+        tests: [not_null]
+
+  - name: wake_placeholder_race_structure
+    description: >
+      WC-12: per-race corner STRUCTURE for the placeholder rule, written by
+      transform/tasks/wake_calibration/wc12_structure.py from the WC-03 pass table's structure
+      columns (corner_class, segment_basis) and layout_checks.csv (FastF1 corner count, telemetry lap
+      length). No outcome column is read. n_fast / n_medium / n_slow count braking corners by apex
+      class (slow < 120, medium 120-200, fast >= 200 km/h, fixed by the WC-01 builder); n_flat
+      counts kinks taken flat. n_* are medians over every season of the same layout (circuit slug and
+      FastF1 corner count); race_n_* are that race's own counts, kept for audit.
+    columns:
+      - name: race_id
+        tests: [not_null, unique]
+      - name: season
+        tests: [not_null]
+      - name: layout_seasons
+        tests: [not_null]
+
+  - name: wake_placeholder_compound_factor
+    description: >
+      WC-13: an ASSUMED per-lap tyre multiplier on the race's placeholder wake loss, by the lap's
+      RELATIVE dry compound class in that race (SOFT / MEDIUM / HARD = softest / middle / hardest of the
+      race's three nominated dry compounds), plus INTERMEDIATE and WET (neutral 1.00, flagged). A small
+      bounded thermal and grip sensitivity (softer compounds overheat and slide more when following),
+      NOT tyre wear: wear builds over a stint and is not a per-lap aero loss, so it stays out. Bounded
+      0.90-1.15 and monotone SOFT >= MEDIUM >= HARD (tested). WC-16 (DD-WC28): a 2019+ race with a
+      verified C-number trio (wake_placeholder_tyre_allocation) now uses the C-number rule
+      (wake_placeholder_c_number_factor) instead; the SOFT / MEDIUM / HARD rows here are the
+      relative-class fallback for 2018 (named compounds, no C-numbers) and any race with no trio
+      (compound_factor_basis = relative_class). INTERMEDIATE and WET stay neutral. The user-supplied
+      tyre_allocations seed is still not read. Nothing here is fitted and no lap time or speed was
+      read. See the WC-13 and WC-16 sections of
+      _roadmap/_wake-calibration/wi/WC-11-interim-placeholder-values.md.
+    columns:
+      - name: compound_class
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              arguments:
+                values: [SOFT, MEDIUM, HARD, INTERMEDIATE, WET]
+                quote: true
+      - name: factor
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0.9
+                max_value: 1.15
+                inclusive: true
+      - name: source_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [assumed, neutral_by_rule]
+                quote: true
+      - name: basis
+        tests: [not_null]
+
+  - name: wake_placeholder_constructor_factor
+    description: >
+      WC-13: per-(season, constructor_id) car multiplier on the placeholder wake loss. PLUMBING ONLY:
+      every row is a neutral 1.00 with basis "neutral default, no public evidence used". Without
+      measured outcomes any per-team number would be a guess, and a guess shown as "team X suffers
+      more in the wake" is an unsupported claim about a real company. A non-neutral row is allowed
+      only with a public, non-outcome, checkable reason recorded in basis (source_type =
+      public_concept), bounded 0.95-1.05. Keyed by stg_laps.constructor_id (the FastF1 team name, the
+      same key the ML side uses) per season, so a rename (Racing Point -> Aston Martin, Toro Rosso ->
+      AlphaTauri -> RB -> Racing Bulls) is its own row; constructor_lineage_id
+      (dim_constructors) groups the names one team has raced under. One row per (season,
+      constructor_id) in stg_laps, 2018-2025 (81 rows; assert_wake_placeholder_factors checks coverage).
+      WC-16 (DD-WC27, 2026-10-31): a public-concept search over all 81 rows found no explicit,
+      citable, non-outcome, team-specific source for which way a car concept moves wake
+      sensitivity (sources are era-wide or concept-only;
+      _roadmap/_wake-calibration/_evidence/WC-16-2026-10-31/constructor_report.md), so every row stays
+      neutral 1.00.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [season, constructor_id]
+    columns:
+      - name: season
+        tests: [not_null]
+      - name: constructor_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_constructors')
+                field: constructor_id
+      - name: constructor_lineage_id
+        tests: [not_null]
+      - name: factor
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0.95
+                max_value: 1.05
+                inclusive: true
+      - name: source_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [neutral_default, public_concept]
+                quote: true
+      - name: basis
+        tests: [not_null]
+
+  - name: wake_placeholder_tyre_allocation
+    description: >
+      WC-16: Pirelli's dry-compound nomination for every race 2018-2025 (173 rows, one per race in
+      race_to_track), read ONLY by int_lap_wake_placeholder_cost for the placeholder's C-number tyre
+      factor. Each row was fetched and quoted from a page (source_url; primary_pirelli = Pirelli's own
+      release, secondary = a page restating it, mostly formula1.com) by the 2026-10-31 research pass
+      (_roadmap/_wake-calibration/_evidence/WC-16-2026-10-31/c_numbers_report.md and c_numbers.csv,
+      which has the evidence quote per row). 2019 on: hard_c / medium_c / soft_c are the C-codes
+      badged hard / medium / soft (compound_scale = c_number; C6 occurs in 2025). 2018: Pirelli's
+      named compounds (HYPERSOFT..HARD) are in hard_name / medium_name / soft_name and the C columns
+      are NULL (compound_scale = named_2018); the model keeps the relative-class factor for 2018.
+      A label can skip a C-number (2022_3 C2/C3/C5; 2025_13 and 2025_19 C1/C3/C4; 2025_20 C2/C4/C5).
+      This is NOT the user-supplied tyre_allocations seed and does not change it: it differs from
+      that file at 2024_16 and 11 carried-forward 2025 rows, and has 2025_6, which that file lacks
+      (notes says so per row). assert_wake_placeholder_tyre_allocation checks hardness order.
+    columns:
+      - name: race_id
+        tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('race_to_track')
+                field: race_id
+      - name: season
+        tests: [not_null]
+      - name: round
+        tests: [not_null]
+      - name: circuit
+        tests: [not_null]
+      - name: compound_scale
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [c_number, named_2018]
+                quote: true
+      - name: hard_c
+        description: C-code badged hard (P Zero White). NULL for 2018.
+        tests:
+          - not_null:
+              config:
+                where: "compound_scale = 'c_number'"
+          - accepted_values:
+              arguments:
+                values: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6']
+      - name: medium_c
+        description: C-code badged medium (P Zero Yellow). NULL for 2018.
+        tests:
+          - not_null:
+              config:
+                where: "compound_scale = 'c_number'"
+          - accepted_values:
+              arguments:
+                values: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6']
+      - name: soft_c
+        description: C-code badged soft (P Zero Red). NULL for 2018.
+        tests:
+          - not_null:
+              config:
+                where: "compound_scale = 'c_number'"
+          - accepted_values:
+              arguments:
+                values: ['C1', 'C2', 'C3', 'C4', 'C5', 'C6']
+      - name: hard_name
+        description: 2018 only, the Pirelli name badged hardest of the race's three.
+        tests:
+          - not_null:
+              config:
+                where: "compound_scale = 'named_2018'"
+          - accepted_values:
+              arguments:
+                values: ['HARD', 'MEDIUM', 'SOFT', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
+      - name: medium_name
+        tests:
+          - not_null:
+              config:
+                where: "compound_scale = 'named_2018'"
+          - accepted_values:
+              arguments:
+                values: ['HARD', 'MEDIUM', 'SOFT', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
+      - name: soft_name
+        tests:
+          - not_null:
+              config:
+                where: "compound_scale = 'named_2018'"
+          - accepted_values:
+              arguments:
+                values: ['HARD', 'MEDIUM', 'SOFT', 'SUPERSOFT', 'ULTRASOFT', 'HYPERSOFT']
+      - name: source_url
+        tests: [not_null]
+      - name: source_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [primary_pirelli, secondary]
+                quote: true
+
+  - name: wake_placeholder_c_number_factor
+    description: >
+      WC-16: the constants of the placeholder's C-number tyre factor (assumptions, not fits; owner
+      accepted the research's option B on 2026-10-31, DD-WC28). Per lap, for a race with a C-number
+      trio: tyre factor = ROUND(clamp(step x medium_shift, bound min, bound max), 4), where step is
+      keyed by the lap compound's distance in C-numbers from the race's MEDIUM (positive = softer;
+      -2 and 2 mean "two or more"), and medium_shift by which C-number is the race's MEDIUM. Owner
+      ruling DD-WC29 (2026-10-31): every medium_shift row is 1.00. The proposed 0.97 / 1.00 / 1.03 /
+      1.06 put 23 per-lap values on archived-method numbers at 3 dp and no small nudge cleared them,
+      so the shift was dropped and rule 6 stays strict; the rows stay so a calibrated shift can slot
+      in later. A race
+      whose MEDIUM has no medium_shift row (C1 or C6) fails assert_wake_placeholder_tyre_allocation.
+      Replace these rows to change the rule; the SQL holds no constant. NOT tyre wear. Source:
+      _roadmap/_wake-calibration/_evidence/WC-16-2026-10-31/c_numbers_report.md.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [param_kind, param]
+    columns:
+      - name: param_kind
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [step, medium_shift, bound]
+                quote: true
+      - name: param
+        tests: [not_null]
+      - name: value
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0.9
+                max_value: 1.17
+                inclusive: true
+      - name: source_type
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [assumed]
+                quote: true
+      - name: basis
+        tests: [not_null]

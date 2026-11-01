@@ -27,10 +27,12 @@
 --     (08p). tyre_allocations has no 2018 rows and is never consulted for 2018.
 --   * 2019+: compound_code (C1-C5) from int_stint_geometry's tyre_allocations
 --     join.
---   * 2025: tyre_allocations stops at 2024 (the unverified 2025 rows were
---     dropped in the W50 rewrite), so compound_code, and with it the rank, is
---     NULL for 2025. Those laps stay in the lap set, and so in the per-stint
---     fits, but no (race, rank) cell can form for them.
+--   * 2025: tyre_allocations has 23 rows CARRIED FORWARD from each circuit's
+--     2023 or 2024 allocation (no 2025_6 Miami row; Miami's laps carry no
+--     compound label, so none reach this model anyway), so compound_code and
+--     the rank are set for 2025 laps. 11 of those 23 rows, and 2024_16, are
+--     known wrong (WC-16 evidence; see seeds/schema.yml, tyre_allocations); the
+--     correction is held for the ML redo (PK1).
 --
 -- F2/FD3 guard: nothing here reads compound_cliff_params,
 -- int_compound_cliff_predicted or any column priced from them

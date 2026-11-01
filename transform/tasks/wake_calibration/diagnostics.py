@@ -24,6 +24,10 @@ preflight() refuses RUN START unless all eight choices (these three and design_a
 The five design_a choices are ruled (design_a.RULED_CHOICES) and applied here as there: racecraft free passes
 dropped, disconnected predictions dropped, undefined draws propagate (an interval with an undefined draw is
 undefined), every entry of a race in a draw is a separate copy.
+
+Amendment B2 (DD-WC23) is applied here as in design_a and lap_arm: rows without tyre_life do not enter any step 1
+(X5 free sets, X14 refit via the time free set, the lap step 1 for X6 / X15), and following rows without it are
+counted under drops["tyre_life_missing"].
 """
 
 from __future__ import annotations
@@ -198,10 +202,10 @@ class Context:
 
 
 def _free_x(p: pd.DataFrame, y: pd.Series, limit: float) -> np.ndarray:
-    """Free passes for an X5 outcome: as design_a.free_set (racecraft free passes dropped, ruling 1), with the X5
-    trim (§6e)."""
+    """Free passes for an X5 outcome: as design_a.free_set (racecraft free passes dropped, ruling 1; free passes
+    without tyre_life dropped, B2), with the X5 trim (§6e)."""
     yv = y.to_numpy(dtype=float)
-    base = p["free"].to_numpy() & np.isfinite(yv) & ~p["racecraft"].to_numpy(dtype=bool)
+    base = p["free"].to_numpy() & np.isfinite(yv) & ~p["racecraft"].to_numpy(dtype=bool) & A.tyre_ok(p)
     med = pd.Series(yv[base]).groupby(p["group"].to_numpy()[base]).median()
     m = p["group"].map(med).to_numpy(dtype=float)
     with np.errstate(invalid="ignore"):
@@ -216,11 +220,11 @@ def effects_signed(p: pd.DataFrame, y: pd.Series, s1: A.Step1, ft: pd.DataFrame,
     fy, fx, f_ok, fc = A.phi_tilde(s1, ft, ft["W"].to_numpy())
     gy, gx = A.g_parts(s1, ft["race_id"], ft["compound"], ft["t"].to_numpy())
     b = ft["behind"].to_numpy()
-    base = ft["supported"].to_numpy() & ~ft["racecraft"].to_numpy() & (ft["W"].to_numpy() >= 0)
+    base, d0 = A._following_base(ft)  # B2: rows without tyre_life counted first, under tyre_life_missing
     present = base & np.isfinite(yv)
     has = present & a_ok & f_ok & np.isfinite(gy)
     valid = A._component_check(has, ac, fc)
-    drops = {"outcome_null": int((base & ~np.isfinite(yv)).sum()),
+    drops = {A.TYRE_LIFE_MISSING: d0[A.TYRE_LIFE_MISSING], "outcome_null": int((base & ~np.isfinite(yv)).sum()),
              "no_free_pass_this_outcome": int((present & ~a_ok).sum()), "disconnected": int((has & ~valid).sum())}
     Aa = s * (yv - (ay + fy + gy))
     Bb = s * ((ax + fx + gx) - b)
@@ -365,7 +369,7 @@ def lap_step1(lap: pd.DataFrame) -> LapStep1:
     """§9a step 1, as lap_arm.fit_lap_arm, keeping the pieces X6 and X15 need: a prediction for every scored lap,
     the free laps' residuals and the lap-arm bracket (free lap 1-5 laps earlier and 1-5 later in the stint)."""
     sc = lap[lap["scored"]].reset_index(drop=True)
-    free = sc["free_lap"].to_numpy()
+    free = L.lap_free(sc)  # B2: tyre_life required; layout after the drop
     f = sc[free]
     lay = A.theta_layout(sc, free, race_key="race_id")
     lin, quad = A.theta_ids(lay, f["race_id"], f["compound"])

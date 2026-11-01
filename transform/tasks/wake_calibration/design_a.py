@@ -13,6 +13,13 @@ the ruled values). The code implements only the ruled behaviour. `preflight()` r
 any value is None or differs from the ruling, and wc10_io.Ledger.run_start calls it, so RUN START cannot be
 written with an open choice.
 
+Amendment B2 (owner-accepted rulings, DD-WC23). (1) tyre_life (t) is required for a row to enter step 1: a free
+pass with a missing t is left out of free_set (so out of support, the phi windows, the bracket and the theta
+layout as well). (2) Such rows carry their own drop reason, TYRE_LIFE_MISSING: free passes are counted by
+tyre_life_free_dropped (per outcome), following passes by Effects.drops["tyre_life_missing"] (they have no
+tyre-trend term g, so no prediction), and the pass class names them "tyre_life_missing" /
+"leader_tyre_life_missing". (3) The theta layout (§6d) is computed AFTER the drop, from the step-1 free set.
+
 How the bootstrap is computed (§10). Every quantity of the chain except gamma_k (the car-behind coefficient,
 pooled per corner class) is race-internal: alpha groups, phi cells, theta cells, the phi windows, trims, the
 bracket, the pass class (via alpha-bar, which averages within a race) all live inside one race. A circuit drawn
@@ -121,11 +128,15 @@ RULED_CHOICES: dict[str, str] = {
     # draw). "propagate": the interval is undefined; no draw is skipped or redrawn; the go/no-go line prints the
     # number of undefined draws; an undefined S2 interval is INCONCLUSIVE.
     "undefined_draws": "propagate",
-    # Ruling 5. §10 "A race drawn twice within one copy counts twice." "separate_copy": like a circuit copy, the
-    # race enters as a separate copy; sigma's degrees of freedom count its parameters once per entry.
-    "duplicate_race_in_copy": "separate_copy",
+    # Ruling 5. §10 "A race drawn twice within one copy counts twice." "copy" (the value named in amendment B1
+    # D(2)): like a circuit copy, the race enters as a separate copy; sigma's degrees of freedom count its
+    # parameters once per entry.
+    "duplicate_race_in_copy": "copy",
 }
 OPEN_CHOICES: dict[str, str | None] = dict(RULED_CHOICES)
+
+# Amendment B2 ruling 2: the named drop reason for a row left out because tyre_life is missing.
+TYRE_LIFE_MISSING = "tyre_life_missing"
 
 
 class EstimatorError(ValueError):
@@ -205,11 +216,17 @@ def gap_change(p: pd.DataFrame) -> np.ndarray:
                          ["unknown", "arrived_from_free", "shrinking", "growing"], default="steady")
 
 
+def tyre_ok(frame: pd.DataFrame) -> np.ndarray:
+    """B2 ruling 1: tyre_life (column `t`) present. A row without it cannot enter step 1."""
+    return np.isfinite(frame["t"].to_numpy(dtype=float))
+
+
 def free_set(p: pd.DataFrame, y: pd.Series, outcome: str) -> np.ndarray:
     """Free passes entering step 1 for one outcome: free, outcome not null, trim (i) against the group's
-    free-pass median (§6f), racecraft free passes dropped (ruling 1; counted by racecraft_free_dropped)."""
+    free-pass median (§6f), racecraft free passes dropped (ruling 1; counted by racecraft_free_dropped), free
+    passes without tyre_life dropped (B2 ruling 1; counted by tyre_life_free_dropped)."""
     yv = y.to_numpy(dtype=float)
-    base = p["free"].to_numpy() & np.isfinite(yv) & ~p["racecraft"].to_numpy(dtype=bool)
+    base = p["free"].to_numpy() & np.isfinite(yv) & ~p["racecraft"].to_numpy(dtype=bool) & tyre_ok(p)
     med = pd.Series(yv[base]).groupby(p["group"].to_numpy()[base]).median()
     m = p["group"].map(med).to_numpy(dtype=float)
     with np.errstate(invalid="ignore"):
@@ -222,13 +239,21 @@ def racecraft_free_dropped(p: pd.DataFrame, y: pd.Series) -> int:
                 & p["racecraft"].to_numpy(dtype=bool)).sum())
 
 
+def tyre_life_free_dropped(p: pd.DataFrame, y: pd.Series) -> int:
+    """B2 ruling 2 count: free passes with the outcome present, not racecraft (counted under ruling 1 first), whose
+    tyre_life is missing, so left out of step 1 under the reason tyre_life_missing."""
+    return int((p["free"].to_numpy() & np.isfinite(y.to_numpy(dtype=float))
+                & ~p["racecraft"].to_numpy(dtype=bool) & ~tyre_ok(p)).sum())
+
+
 # --------------------------------------------------------------------------- the fixed structure sets (§6a)
 
 
 @dataclass
 class Structure:
     """Support, bracket, phi windows, the theta layout (reference compound, thin cells): fixed once from the
-    seg_time_s free-pass trim and reused for every outcome (§6a)."""
+    seg_time_s free-pass trim and reused for every outcome (§6a). The free set already excludes rows without
+    tyre_life, so the theta layout is computed after that drop (B2 ruling 3)."""
 
     free_time: np.ndarray  # bool per row
     n_free_group: np.ndarray  # free passes in the row's group (time set)
@@ -318,7 +343,7 @@ def theta_ids(layout: ThetaLayout, races: pd.Series, compounds: pd.Series, race_
 
 
 def structure_sets(p: pd.DataFrame, y_time: pd.Series) -> Structure:
-    """§6a, §6c, §6d, §8a from the seg_time_s free-pass trim."""
+    """§6a, §6c, §6d, §8a from the seg_time_s free-pass trim (B2: rows without tyre_life already dropped)."""
     ft = free_set(p, y_time, TIME)
     gcode = pd.factorize(p["group"])[0]
     nfg = np.bincount(gcode, weights=ft.astype(float), minlength=gcode.max() + 1)[gcode]
@@ -554,7 +579,7 @@ class Effects:
     rows: np.ndarray
     A: np.ndarray
     B: np.ndarray
-    valid: np.ndarray  # supported, not racecraft, phi-supported, outcome present, alpha present
+    valid: np.ndarray  # tyre_life present, supported, not racecraft, phi-supported, outcome present, alpha present
     Aloc: np.ndarray
     Bloc: np.ndarray
     loc_ok: np.ndarray  # bracketed and both bracket passes present in this outcome's fit
@@ -580,6 +605,21 @@ def _component_check(ok: np.ndarray, c_alpha: np.ndarray, c_phi: np.ndarray) -> 
     return ok & (c_phi >= 0) & (c_alpha == c_phi)
 
 
+def _following_base(ft: pd.DataFrame) -> tuple[np.ndarray, dict]:
+    """Following passes that can be predicted, before the outcome is looked at, and the counted drops in order:
+    tyre_life_missing (B2: no tyre-trend term, so no prediction; counted first, as an entry condition), then
+    not_supported, racecraft, phi_unsupported among the rows with tyre_life."""
+    t_ok = tyre_ok(ft)
+    sup = ft["supported"].to_numpy(dtype=bool)
+    rc = ft["racecraft"].to_numpy(dtype=bool)
+    w_ok = ft["W"].to_numpy() >= 0
+    drops = {TYRE_LIFE_MISSING: int((~t_ok).sum()),
+             "not_supported": int((t_ok & ~sup).sum()),
+             "racecraft": int((t_ok & sup & rc).sum()),
+             "phi_unsupported": int((t_ok & sup & ~rc & ~w_ok).sum())}
+    return t_ok & sup & ~rc & w_ok, drops
+
+
 def effects(p: pd.DataFrame, y: pd.Series, s1: Step1, ft: pd.DataFrame) -> Effects:
     """§6e tau for every following pass of the class, and the §8a interpolated local-baseline tau-loc."""
     s = SIGN[s1.outcome]
@@ -588,10 +628,7 @@ def effects(p: pd.DataFrame, y: pd.Series, s1: Step1, ft: pd.DataFrame) -> Effec
     fy, fx, f_ok, fc = phi_tilde(s1, ft, ft["W"].to_numpy())
     gy, gx = g_parts(s1, ft["race_id"], ft["compound"], ft["t"].to_numpy())
     b = ft["behind"].to_numpy()
-    base = ft["supported"].to_numpy() & ~ft["racecraft"].to_numpy() & (ft["W"].to_numpy() >= 0)
-    drops = {"not_supported": int((~ft["supported"]).sum()),
-             "racecraft": int((ft["supported"] & ft["racecraft"]).sum()),
-             "phi_unsupported": int((ft["supported"] & ~ft["racecraft"] & (ft["W"] < 0)).sum())}
+    base, drops = _following_base(ft)
     present = base & np.isfinite(yv)
     drops["outcome_null"] = int((base & ~np.isfinite(yv)).sum())
     has = present & a_ok & f_ok & np.isfinite(gy)
@@ -729,11 +766,13 @@ def class_parts(p: pd.DataFrame, st: Structure, s1: Step1, ft: pd.DataFrame) -> 
     yF_y, yF_x = abFy + oFy + fFy + gFy, abFx + oFx + fFx + gFx
     yL_y, yL_x = abLy + oLy + fLy + gLy, abLx + oLx + fLx + gLx
     L_elig = q["L_elig"].fillna(False).astype(bool).to_numpy()
+    tF_ok = np.isfinite(q["t"].to_numpy(dtype=float))
+    tL_ok = np.isfinite(q["t_L"].to_numpy(dtype=float))
     reason = np.select(
-        [q["racecraft"].to_numpy(), ~L_elig, NF < 2, NL < 2, ~fL_ok, ~fF_ok,
+        [q["racecraft"].to_numpy(), ~tF_ok, ~L_elig, ~tL_ok, NF < 2, NL < 2, ~fL_ok, ~fF_ok,
          ~(np.isfinite(yF_y) & np.isfinite(yL_y) & np.isfinite(yF_x) & np.isfinite(yL_x))],
-        ["racecraft", "leader_not_eligible", "N_F<2", "N_L<2", "leader_phi_unsupported", "own_phi_unsupported",
-         "alpha_bar_or_curve_undefined"], default="")
+        ["racecraft", TYRE_LIFE_MISSING, "leader_not_eligible", "leader_" + TYRE_LIFE_MISSING, "N_F<2", "N_L<2",
+         "leader_phi_unsupported", "own_phi_unsupported", "alpha_bar_or_curve_undefined"], default="")
     known = reason == ""
     with np.errstate(invalid="ignore", divide="ignore"):
         s0 = np.sqrt(1.0 / NL + 1.0 / NF)
@@ -765,6 +804,7 @@ class Model:
     st: Structure
     classes: dict  # k -> ClassModel
     racecraft_free_dropped: dict = field(default_factory=dict)  # ruling 1: outcome -> count
+    tyre_life_free_dropped: dict = field(default_factory=dict)  # B2 ruling 2: outcome -> count of free passes
 
 
 def fit_model(p: pd.DataFrame, y: dict[str, pd.Series], outcomes=OUTCOMES) -> Model:
@@ -784,7 +824,8 @@ def fit_model(p: pd.DataFrame, y: dict[str, pd.Series], outcomes=OUTCOMES) -> Mo
         s3 = _s3_pieces(p, st, s1[TIME], ft)
         classes[k] = ClassModel(k=k, ft=ft, step1=s1, eff=eff, cls=cp, **s3)
     return Model(prep=p, st=st, classes=classes,
-                 racecraft_free_dropped={o: racecraft_free_dropped(p, y[o]) for o in outcomes})
+                 racecraft_free_dropped={o: racecraft_free_dropped(p, y[o]) for o in outcomes},
+                 tyre_life_free_dropped={o: tyre_life_free_dropped(p, y[o]) for o in outcomes})
 
 
 def _s3_pieces(p: pd.DataFrame, st: Structure, s1: Step1, ft: pd.DataFrame) -> dict:

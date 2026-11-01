@@ -16,6 +16,9 @@ SHA-256 4d679bf6..., DD-WC20). Section numbers (§) point into it. Nothing here 
   - §0a error rule: `safe_exception_line` gives type, file and line only, never the message or arguments.
   - Preflight: `Ledger.run_start` refuses RUN START (PreflightError) while any design_a.OPEN_CHOICES value is
     None or differs from the owner's ruling (design_a.preflight).
+  - Amendments: B1_* and B2_* name the committed amendments. run_wc10 real mode refuses before anything is read
+    unless the B1 and B2 SHA-256 are supplied, match the committed files (and the values recorded here), and an
+    SG1-SG7 pass record exists (run_wc10.check_prerequisites); RUN START then records them (`extra`).
 
 Columns. `OUTCOME_COLUMNS` is the §0a list. `OUTCOME_EQUIVALENT_COLUMNS` adds `seg_start_t` and `seg_end_t`:
 they are not on the §0a list, but seg_end_t - seg_start_t is the segment time, so this module treats them as
@@ -48,6 +51,16 @@ DEFAULT_BRONZE = REPO / "data" / "bronze"
 REGISTRATION = "wi/WC-10-discovery-preregistration-DRAFT.md"
 REGISTRATION_COMMIT = "6fd03302c83cb8a23e080e7ab59fee599644761c"
 REGISTRATION_SHA256 = "4d679bf6c94b12cf186776467478400c1feef89930be87d3fe36be49f1e8d248"
+
+# Amendment B1 (twelve open choices; committed b89e54c, DD-WC22) and amendment B2 (tyre_life, DD-WC23). B2_SHA256
+# is recorded here once the owner has committed B2 alone and given its hash; until then it is None and the supplied
+# --b2-sha256 is checked against the committed file only.
+B1_PATH = "wi/WC-10-amendment-B1-open-choices-DRAFT.md"
+B1_COMMIT = "b89e54c"
+B1_SHA256 = "c9566233bb25dcf078a8cc336682b289ec2d7494cfe6fb7189662d3c56b7b500"
+B2_PATH = "wi/WC-10-amendment-B2-tyre-life-DRAFT.md"
+B2_SHA256: str | None = None
+SG_CHECKS = ("SG1", "SG2", "SG3", "SG4", "SG5", "SG6", "SG7")  # §17: all must PASS before RUN START
 
 DISCOVERY_SEASONS = (2022, 2023)  # §4
 SEALED_SEASONS = (2024, 2025)  # §4: no outcome column decoded until DD-WC21 is resolved
@@ -291,7 +304,9 @@ class Ledger:
         if not ok:
             self.exit(cause="gate")
 
-    def run_start(self) -> None:
+    def run_start(self, extra: str = "") -> None:
+        """RUN START after a passing gate and the preflight. `extra` (names and digests only: amendment hashes,
+        SG record digest) is appended to the line."""
         cur = self.current()
         if cur.gate is not True:
             raise LedgerError("RUN START refused: no passing gate line in this start (§0a)")
@@ -303,7 +318,8 @@ class Ledger:
             A.preflight()
         except A.OpenChoicesUnset as exc:
             raise PreflightError(str(exc)) from exc
-        self._write(EV_RUN_START, f"registration_sha256={REGISTRATION_SHA256}")
+        extra = " ".join(str(extra).split())
+        self._write(EV_RUN_START, f"registration_sha256={REGISTRATION_SHA256}" + (f" {extra}" if extra else ""))
 
     def require_run_start(self) -> StartRecord:
         cur = self.current()

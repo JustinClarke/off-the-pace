@@ -1,6 +1,6 @@
 # .github/workflows/-CI Pipeline Index
 
-Fifteen GitHub Actions workflows run on the repository. The four code-layer gates each mirror
+Sixteen GitHub Actions workflows run on the repository. The four code-layer gates each mirror
 the `make` targets you can run locally if it passes locally, it passes here. Runbooks:
 `.github/DEPLOYMENT.md` (release), `.github/OBSERVABILITY.md` (SLOs), `.github/DATA_PIPELINE.md`
 (orchestration + data quality), `.github/PERFORMANCE.md` (E2E + perf budgets + coverage).
@@ -9,12 +9,12 @@ the `make` targets you can run locally if it passes locally, it passes here. Run
 
 | Workflow | File | Triggers on | What it gates |
 |---|---|---|---|
-| **dbt CI** | `dbt-ci.yml` | Changes to `transform/`, `ingestion/`, `requirements.txt` | Build every model and run the full dbt test suite, including `assert_additive_identity`, so the lap identity holds on every lap |
-| **Docs CI** | `docs-ci.yml` | PRs touching `docs/`, `scripts/`, any layer directory, the `.github/*.md` platform docs, `README.md`, or any source file | Mintlify validate + broken links; reference-MDX drift (`build_reference.py` then `git diff --exit-code docs/reference/`); snippet drift (Bronze coverage, overview numbers, transform and ML inventories); headline-count reconciliation; app feature-page coverage; README / tour-footer / file-header audit; banned planning-language lint |
-| **ML CI** | `ml-ci.yml` | Changes to `ml/`, `scripts/gen_ml_reference.py` | Leakage spine (static guards always run; warehouse-dependent guards gate on bronze fixtures); ONNX parity; beats-baseline; no hardcoded holdout year in `ml/src`; model-card MDX drift check |
-| **App CI** | `app-ci.yml` | Changes to `app/**` | pnpm typecheck, ESLint, the vitest suite **with the coverage-threshold ratchet** (`--coverage`), and a production build (defaults to the CDN data base, so no warehouse export is needed) |
-| **App E2E** | `app-e2e.yml` | Changes to `app/**` | Playwright headless-Chromium smoke: serves the prod bundle (`vite preview`) against the live CDN and asserts DuckDB-wasm init + a real query, an ONNX inference, and the additive-identity UI all boot |
-| **App Performance** | `app-perf.yml` | Changes to `app/**` | Bundle-size budget (**blocking**, `check_bundle_size.mjs` vs `perf-budget.json`) + Lighthouse CI (advisory CWV/a11y on the shell routes) |
+| **dbt CI** | `dbt-ci.yml` | Push/PR changing `transform/`, `ingestion/`; manual | Build every model and run the full dbt test suite, including `assert_additive_identity`, so the lap identity holds on every lap |
+| **Docs CI** | `docs-ci.yml` | Manual, and PRs touching `docs/`, `scripts/`, any layer directory, the `.github/*.md` platform docs, `README.md`, or any source file | Mintlify validate + broken links; reference-MDX drift (`build_reference.py` then `git diff --exit-code docs/reference/`); snippet drift (Bronze coverage, overview numbers, transform and ML inventories); headline-count reconciliation; app feature-page coverage; README / tour-footer / file-header audit; banned planning-language lint (excludes `_roadmap/` and the `transform/tasks/wake_calibration/` research harness). The Bronze-coverage check SKIPs on a clean checkout (bronze is gitignored) and only compares locally |
+| **ML CI** | `ml-ci.yml` | Changes to `ml/`, `scripts/gen_ml_reference.py`; manual | Leakage spine (static guards always run; warehouse-dependent guards gate on bronze fixtures); ONNX parity; beats-baseline; no hardcoded holdout year in `ml/src`; model-card MDX drift check. dbt/duckdb pins are read from `requirements.txt` |
+| **App CI** | `app-ci.yml` | PRs changing `app/**` (and the docs/claims sources); manual | pnpm typecheck, ESLint, the vitest suite **with the coverage-threshold ratchet** (`--coverage`, floors in `vitest.config.ts` re-baselined for vitest 5 on 2026-11-01), and a production build (defaults to the CDN data base, so no warehouse export is needed) |
+| **App E2E** | `app-e2e.yml` | PRs changing `app/**`; manual | Playwright headless-Chromium smoke: serves the prod bundle (`vite preview`) against the live CDN and asserts DuckDB-wasm init + a real query, an ONNX inference, and the additive-identity UI all boot |
+| **App Performance** | `app-perf.yml` | PRs changing `app/**`; manual | Bundle-size budget (**blocking**, `check_bundle_size.mjs` vs `perf-budget.json`) + Lighthouse CI (advisory CWV/a11y on the shell routes) |
 | **CodeQL** | `codeql.yml` | Push/PR to `main`, weekly | SAST over Python and TS/JS with the `security-extended` query pack; results to the Security tab |
 | **Security Scan** | `security-scan.yml` | Push/PR to `main`, weekly | gitleaks secret scan (**blocking**); `pip-audit` (root + `ml/`) and `pnpm audit` dependency CVE scans (non-blocking until the backlog is clean) |
 | **OSV-Scanner** | `osv-scanner.yml` | Push/PR to `main`, weekly | Cross-ecosystem lockfile CVE scan (OSV database) → SARIF in the Security tab; PR runs flag only newly-introduced vulnerabilities |
@@ -23,9 +23,13 @@ the `make` targets you can run locally if it passes locally, it passes here. Run
 | **Deploy** | `deploy.yml` | Release published, manual | Keyless (WIF): smoke staging → promote staging→prod → `firebase deploy` → smoke prod |
 | **Preview Deploy** | `preview.yml` | App PRs | Keyless (WIF): build against staging data → Firebase preview channel `pr-<n>` + PR comment |
 | **Synthetic Monitor** | `synthetic-monitor.yml` | Every 30 min + daily | Black-box probe of the live site/CDN: manifest + sample parquet + site 200, freshness, and a daily headless ONNX inference. Alerts on breach (guards the 2026-06-11 incident class) |
-| **Data Pipeline** | `pipeline.yml` | Manual + weekly | Orchestrated DAG: ingest → dbt build + oracles → data-quality → ml → export → publish(staging) → verify (auto-rollback). Self-hosted runner + WIF; guards on `PIPELINE_ENABLED` |
+| **Worker CI** | `worker-ci.yml` | PRs changing `worker/**`, `app/**`, `firebase.json` | Worker typecheck + vitest |
+| **Data Pipeline** | `pipeline.yml` | Manual + weekly | Orchestrated DAG: ingest → dbt build + oracles → data-quality → ml → export → publish(staging) → verify (auto-rollback). Self-hosted runner + WIF; guards on `PIPELINE_ENABLED`. Stage 3 (data-quality) is advisory until the ML redo re-snapshots the data-profile baseline |
 
 ## Local equivalents
+
+The PR-only gates (App CI, App E2E, App Performance, Docs CI, ML CI) never run on a direct push
+to `main`; each has a `workflow_dispatch` trigger, so run them from the Actions tab to check main.
 
 ```bash
 make dbt-test          # mirrors dbt-ci.yml

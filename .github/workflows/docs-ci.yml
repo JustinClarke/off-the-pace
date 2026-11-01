@@ -1,6 +1,9 @@
 name: Docs CI
 
 on:
+  # Manual run (Actions tab -> Run workflow) so the gate can be checked against main, which
+  # owner pushes land on directly (pull_request-only gates otherwise never see main).
+  workflow_dispatch:
   pull_request:
     paths:
       - 'docs/**'
@@ -83,6 +86,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # transform/tasks/wake_calibration is excluded like _roadmap: it is the wake-calibration
+      # research harness, whose comments cite the signed pre-registration by section (§n) on
+      # purpose (~416 hits). Re-tighten by dropping that --exclude-dir once the harness is
+      # retired or its comments stop citing the plan.
       - name: Fail if banned patterns found in source
         run: |
           ! grep -rn \
@@ -90,7 +97,8 @@ jobs:
             --include="*.sql" --include="*.yml" --include="*.yaml" --include="*.tf" \
             -E -f .github/lint-comments-patterns.txt \
             --exclude-dir=".git" --exclude-dir="_roadmap" --exclude-dir="node_modules" \
-            --exclude-dir=".venv" --exclude-dir=".agents" --exclude-dir="target" . \
+            --exclude-dir=".venv" --exclude-dir=".agents" --exclude-dir="target" \
+            --exclude-dir="wake_calibration" . \
             || { echo "Banned planning/history language in source. See CLEANUP_PLAN.md for the rule."; exit 1; }
 
   docs-app-audit:
@@ -167,7 +175,9 @@ jobs:
           cache: pip
 
       - name: Install dbt and generators
-        run: pip install dbt-core==1.11.9 dbt-duckdb==1.10.1
+        # dbt/duckdb pins come from requirements.txt so CI matches local. The old
+        # hardcoded dbt-core 1.11.9 caps mashumaro <3.15, which cannot import on Python 3.14.
+        run: pip install $(grep -E '^(dbt-core|dbt-duckdb|duckdb)==' requirements.txt)
 
       - name: Install dbt packages
         working-directory: transform
@@ -202,7 +212,9 @@ jobs:
           cache: pip
 
       - name: Install dbt and generators
-        run: pip install dbt-core==1.11.9 dbt-duckdb==1.10.1
+        # dbt/duckdb pins come from requirements.txt so CI matches local. The old
+        # hardcoded dbt-core 1.11.9 caps mashumaro <3.15, which cannot import on Python 3.14.
+        run: pip install $(grep -E '^(dbt-core|dbt-duckdb|duckdb)==' requirements.txt)
 
       - name: Install dbt packages
         working-directory: transform

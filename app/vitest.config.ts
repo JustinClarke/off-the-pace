@@ -24,11 +24,18 @@ export default defineConfig({
       // default) in the denominator, including the untested-by-design React page/methodology/query
       // modules that v2 left out. That is the more honest measure (untested modules now drag the
       // number down), so the floor was re-baselined to the new actuals rather than papered over.
+      //
+      // 2026-11-01 re-baseline (vitest/coverage-v8 5): measured on a clean checkout (no exported
+      // parquet, so data-dependent suites skip, as in CI) at stmts 34.1%, branches 28.1%, fns 28.7%,
+      // lines 32.5%. v5 counts branches/functions far more finely than v3 did (the old 68% branch
+      // floor was a v3 number and failed on every run), so the floors are reset to ~2 points below
+      // the v5 actuals. Re-tighten by raising each value to just below the current actual as
+      // coverage grows.
       thresholds: {
-        statements: 15,
-        branches: 68,
-        functions: 32,
-        lines: 15,
+        statements: 32,
+        branches: 26,
+        functions: 27,
+        lines: 30,
       },
     },
   },

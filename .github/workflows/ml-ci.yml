@@ -6,6 +6,9 @@ name: ML CI
 # model-card drift) always run. Builds nothing into app/ and never commits.
 
 on:
+  # Manual run (Actions tab -> Run workflow) so the gate can be checked against main, which
+  # owner pushes land on directly (pull_request-only gates otherwise never see main).
+  workflow_dispatch:
   pull_request:
     branches: [main]
     paths:
@@ -38,7 +41,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r ml/requirements.txt
-          pip install dbt-core==1.11.9 dbt-duckdb==1.10.1
+          # dbt/duckdb pins come from requirements.txt so CI matches local. The old hardcoded
+          # dbt-core 1.11.9 caps mashumaro <3.15, which cannot import on Python 3.14.
+          pip install $(grep -E '^(dbt-core|dbt-duckdb|duckdb)==' requirements.txt)
 
       # Static guards - no warehouse, no fixtures needed.
       - name: Guard - no hardcoded holdout year
@@ -107,7 +112,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r ml/requirements.txt
-          pip install dbt-core==1.11.9 dbt-duckdb==1.10.1
+          # dbt/duckdb pins come from requirements.txt so CI matches local. The old hardcoded
+          # dbt-core 1.11.9 caps mashumaro <3.15, which cannot import on Python 3.14.
+          pip install $(grep -E '^(dbt-core|dbt-duckdb|duckdb)==' requirements.txt)
 
       - name: Check fixture data exists
         id: fixtures

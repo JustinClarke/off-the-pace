@@ -11,7 +11,7 @@ Usage:
   python scripts/ingestion_docs_facts.py --write   # regenerate the snippet in place
 
 CI (docs-ci.yml):
-  python scripts/ingestion_docs_facts.py
+  python scripts/ingestion_docs_facts.py   # SKIPs (exit 0) when data/bronze is empty
 """
 
 import argparse
@@ -22,6 +22,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SNIPPET = ROOT / "docs" / "snippets" / "bronze-coverage.mdx"
 VERIFY_SCRIPT = ROOT / "ingestion" / "verify_bronze.py"
+BRONZE = ROOT / "data" / "bronze"
+
+
+def bronze_present() -> bool:
+    """True if any bronze data is on disk. data/bronze is gitignored (only .gitkeep is
+    tracked), so a fresh CI checkout has none and the snippet cannot be regenerated there."""
+    return BRONZE.is_dir() and any(p.name != ".gitkeep" for p in BRONZE.iterdir())
 
 
 def generate() -> str:
@@ -41,6 +48,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     print("── ingestion_docs_facts: Bronze coverage snippet ────────────────────────────")
+    if not args.write and not bronze_present():
+        # Not a pass: nothing was compared. Run locally (with data/bronze) to check it.
+        print("  SKIP  data/bronze is empty (gitignored; a clean checkout has no bronze),")
+        print("        so the snippet cannot be regenerated here. Run this locally to check it.")
+        return 0
     fresh = generate()
 
     if args.write:

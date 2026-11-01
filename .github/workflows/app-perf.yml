@@ -8,6 +8,9 @@ name: App Performance
 # See app/perf-budget.json + app/lighthouserc.json + .github/PERFORMANCE.md.
 
 on:
+  # Manual run (Actions tab -> Run workflow) so the gate can be checked against main, which
+  # owner pushes land on directly (pull_request-only gates otherwise never see main).
+  workflow_dispatch:
   pull_request:
     paths:
       - 'app/**'

@@ -1,7 +1,10 @@
 // Runs the page's real lookup (RACE_TRACK_SQL + PROFILES_SQL + findProfile) against the
 // published parquet files in app/public/data, with duckdb-wasm's node build.
+// The parquet under public/data/dimensions is gitignored (written by `make app-data`), so on a
+// clean checkout (CI) the suite skips instead of failing on a missing file.
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { createDuckDB, NODE_RUNTIME, ConsoleLogger, DuckDBDataProtocol } from '@duckdb/duckdb-wasm/blocking'
 import { PROFILES_SQL, RACE_TRACK_SQL } from './queries'
@@ -10,18 +13,21 @@ import { findProfile } from './transform'
 
 const DATA = path.resolve(__dirname, '../../../public/data')
 const DIST = path.resolve(__dirname, '../../../node_modules/@duckdb/duckdb-wasm/dist')
+const FILES: [string, string][] = [['race_to_track', 'dimensions/race_to_track.parquet'], ['dim_compounds_season', 'dimensions/dim_compounds_season.parquet']]
+const HAVE_DATA = FILES.every(([, file]) => existsSync(path.join(DATA, file)))
 
-let db: any
-let conn: any
+let db: Awaited<ReturnType<typeof createDuckDB>>
+let conn: ReturnType<typeof db.connect>
 
 function all<T>(sql: string, params: unknown[]): T[] {
   const stmt = conn.prepare(sql)
-  const rows = stmt.query(...params).toArray().map((r: any) => ({ ...r.toJSON() })) as T[]
+  const rows = stmt.query(...params).toArray().map((r: { toJSON(): Record<string, unknown> }) => ({ ...r.toJSON() })) as T[]
   stmt.close()
   return rows
 }
 
 beforeAll(async () => {
+  if (!HAVE_DATA) return
   db = await createDuckDB(
     { mvp: { mainModule: path.join(DIST, 'duckdb-mvp.wasm'), mainWorker: path.join(DIST, 'duckdb-node-mvp.worker.cjs') },
       eh: { mainModule: path.join(DIST, 'duckdb-eh.wasm'), mainWorker: path.join(DIST, 'duckdb-node-eh.worker.cjs') } },
@@ -29,7 +35,7 @@ beforeAll(async () => {
     NODE_RUNTIME,
   )
   await db.instantiate()
-  for (const [name, file] of [['race_to_track', 'dimensions/race_to_track.parquet'], ['dim_compounds_season', 'dimensions/dim_compounds_season.parquet']]) {
+  for (const [name, file] of FILES) {
     db.registerFileURL(`${name}.parquet`, path.join(DATA, file), DuckDBDataProtocol.NODE_FS, false)
   }
   conn = db.connect()
@@ -37,7 +43,8 @@ beforeAll(async () => {
   conn.query(`CREATE VIEW dim_compounds_season AS SELECT * FROM read_parquet('dim_compounds_season.parquet')`)
 })
 
-afterAll(() => { conn?.close(); db?.terminate?.() })
+// The blocking node bindings run in-process (no worker), so there is nothing to terminate.
+afterAll(() => { conn?.close() })
 
 /** What the page does: race id -> circuit -> profile for the compound. */
 function profileFor(raceId: string, compound: string): CompoundProfileRow | null {
@@ -47,7 +54,7 @@ function profileFor(raceId: string, compound: string): CompoundProfileRow | null
   return findProfile(profiles, trackId, compound)
 }
 
-describe('tyre survival profile lookup on the published data', () => {
+describe.skipIf(!HAVE_DATA)('tyre survival profile lookup on the published data', () => {
   // [race, compound]: 2023 R1 Australia, 2021 R5 Monaco, 2024 R10 (Spain) across three seasons
   it.each([
     ['2023_1', 'SOFT'],

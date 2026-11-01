@@ -49,6 +49,16 @@ APP_TAB_NAME = "App"
 # Query Lab is the one bespoke shipped feature: not a FeaturePage, no methodologyHref.
 QUERY_LAB_SLUG = "query-lab"
 
+# Feature dirs whose docs page lives under a different slug. Every rule above still applies,
+# checked against the aliased page (it must exist, pass page_problems, sit in the App tab,
+# and be the methodologyHref target). A dir listed here carries no featureId route (it is a
+# pillar-level view), so it is left out of the routes.ts count reconciliation.
+#   constructor-team-averages -> docs/app/constructors.mdx (sidebarTitle "Team Averages"),
+#   routed at /constructors/team-averages without a featureId.
+DOCS_SLUG_ALIASES: dict[str, str] = {
+    "constructor-team-averages": "constructors",
+}
+
 # methodologyHref is a template literal: `${CANONICAL_DOCS_BASE}/app/<dir>`. Capture the
 # quote char (backtick / single / double) and the body, then resolve the constant.
 HREF_RE = re.compile(r"methodologyHref\s*=\s*([`'\"])(.*?)\1", re.DOTALL)
@@ -165,15 +175,16 @@ def audit() -> tuple[list[str], list[str], int, int]:
     # ── 1. Per-feature coverage ──────────────────────────────────────────────
     documented = 0
     for dir_name, href in dirs:
-        slug_path = f"app/{dir_name}"
-        expected_href = f"{CANONICAL_DOCS_BASE}/app/{dir_name}"
+        slug = DOCS_SLUG_ALIASES.get(dir_name, dir_name)
+        slug_path = f"app/{slug}"
+        expected_href = f"{CANONICAL_DOCS_BASE}/app/{slug}"
         feature_errs: list[str] = []
 
-        page = DOCS_APP / f"{dir_name}.mdx"
+        page = DOCS_APP / f"{slug}.mdx"
         if not page.exists():
-            feature_errs.append("no docs/app/%s.mdx" % dir_name)
+            feature_errs.append("no docs/app/%s.mdx" % slug)
         else:
-            feature_errs.extend(page_problems(dir_name))
+            feature_errs.extend(page_problems(slug))
 
         if slug_path not in nav_pages:
             feature_errs.append(f"'{slug_path}' not in docs.json App tab")
@@ -202,13 +213,15 @@ def audit() -> tuple[list[str], list[str], int, int]:
 
     # ── 3. Count reconciliation against routes.ts ────────────────────────────
     shipped_routes = shipped_featureid_route_count()
-    if shipped_routes != len(dirs):
+    routed_dirs = [d for d, _ in dirs if d not in DOCS_SLUG_ALIASES]
+    if shipped_routes != len(routed_dirs):
         errors.append(
             f"[reconcile] {shipped_routes} shipped featureId routes in nav/routes.ts "
-            f"but {len(dirs)} feature dirs export a methodologyHref (drift)"
+            f"but {len(routed_dirs)} feature dirs (excluding slug aliases) export a "
+            f"methodologyHref (drift)"
         )
     else:
-        ok.append(f"reconcile: {shipped_routes} shipped routes == {len(dirs)} feature dirs")
+        ok.append(f"reconcile: {shipped_routes} shipped routes == {len(routed_dirs)} feature dirs")
 
     return errors, ok, documented, len(dirs)
 

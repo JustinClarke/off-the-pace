@@ -9,6 +9,9 @@ name: App E2E
 # deploy instead, set E2E_BASE_URL to a Firebase preview-channel URL. See app/e2e/ + .github/PERFORMANCE.md.
 
 on:
+  # Manual run (Actions tab -> Run workflow) so the gate can be checked against main, which
+  # owner pushes land on directly (pull_request-only gates otherwise never see main).
+  workflow_dispatch:
   pull_request:
     paths:
       - 'app/**'

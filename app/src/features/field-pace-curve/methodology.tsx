@@ -12,7 +12,7 @@ export const methodologyContent = (
     <ul className="list-disc pl-4 mt-3 space-y-1">
       <li><strong>Smoothed curve</strong>: 5-lap centred rolling average of the
         trimmed mean. The window never crosses a safety car, VSC or red flag lap,
-        and the first two green laps after a safety car or red flag keep their own
+        and the first four green laps after a safety car or red flag keep their own
         trimmed mean. This is the primary reference for "what did the field
         actually run this lap?"</li>
       <li><strong>Raw trimmed mean</strong>: mean corrected lap time per lap number

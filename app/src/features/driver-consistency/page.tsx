@@ -27,7 +27,7 @@ export default function DriverConsistencyPage() {
         },
         {
           label: 'Why It Matters',
-          content: 'Driver skill residuals are estimated via the seven-term additive identity a CI-enforced causal decomposition, not correlation. The methodology drawer links to the full reference.',
+          content: 'Driver skill residuals are estimated via the five-term additive identity a CI-enforced causal decomposition, not correlation. The methodology drawer links to the full reference.',
         },
         {
           label: "How It's Calculated",

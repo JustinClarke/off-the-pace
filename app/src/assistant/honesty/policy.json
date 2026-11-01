@@ -1701,17 +1701,12 @@
         {
           "file": "docs/app/degradation-simulator.mdx",
           "line": 65,
-          "quote": "**This number failed its 2025 acceptance bar.**"
-        },
-        {
-          "file": "docs/app/degradation-simulator.mdx",
-          "line": 65,
-          "quote": "It is provisional until 2026 races are scored."
+          "quote": "**The chance failed its 2025 acceptance bar, so it is not shown.**"
         },
         {
           "file": "docs/app/degradation-simulator.mdx",
           "line": 19,
-          "quote": "the gauge also shows an **experimental** chance to reach the flag"
+          "quote": "The gauge does not show a chance to reach the flag."
         }
       ],
       "examples": [
@@ -1800,7 +1795,7 @@
         {
           "file": "docs/app/degradation-simulator.mdx",
           "line": 65,
-          "quote": "**This number failed its 2025 acceptance bar.**"
+          "quote": "**The chance failed its 2025 acceptance bar, so it is not shown.**"
         }
       ],
       "examples": [

@@ -25,7 +25,9 @@ export const methodologyContent = (
       <strong className="text-[rgb(var(--color-text))]">0.000</strong> for &ldquo;did this race
       have any caution&rdquo; (the between-circuit mean square falls below the within-circuit one)
       and 0.015 for &ldquo;did this race have a safety car&rdquo;, which a permutation test puts at
-      p = 0.37 — not distinguishable from zero. The naive estimator reads 0.32 and 0.27. A
+      p = 0.37 — not distinguishable from zero. The naive between-circuit estimator (variance of
+      the circuit means over the variance of all races), which counts sampling noise as circuit
+      signal, reads 0.27 for any caution and 0.32 for safety car. A
       per-circuit any-caution rate at this volume carries a standard error of 20 points, and
       36 circuits of pure noise would spread about 93 points from best to worst. The observed
       spread is 100 points: ten circuits sit at exactly 100% and one at 0%. Baku had a caution in
@@ -44,8 +46,10 @@ export const methodologyContent = (
       per-circuit hazard and an empirical-Bayes shrunk one; the raw column spans 0.000 to
       0.100 per lap and is never read into this app. The shrunk column spans 0.017 to 0.033, and
       the reason it is narrow is worth stating plainly: with a 600-lap pseudo-count, the weight a
-      circuit&apos;s own history carries averages 0.20 (152 circuit-season rows, 2019–2025),
-      so roughly four fifths of the value shown
+      circuit&apos;s own history is <code className="text-xs">L / (L + 600)</code>, where L is
+      the circuit&apos;s racing laps in earlier seasons. That weight averages 0.202 across the 152
+      circuit-season rows that have a prior season (2019–2025; a circuit&apos;s debut row counts
+      as weight 0) and never exceeds 0.452, so roughly four fifths of the value shown
       is the all-circuits pooled rate wearing a circuit&apos;s name. That is the correct answer at
       this volume, and the page prints the weight beside the number instead of letting a moving
       bar imply a circuit signal.

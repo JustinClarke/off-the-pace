@@ -1,12 +1,12 @@
 {
-  "version": "30f91247d7cb651e",
-  "generatedAt": "2026-10-16T21:27:55.082377+00:00",
+  "version": "7673b6b4630157f0",
+  "generatedAt": "2026-10-31T21:10:41.859270+00:00",
   "stats": {
     "total_laps": 161040,
     "total_drivers": 43,
     "total_events": 6,
     "total_circuits": 36,
-    "dbt_models": 93,
+    "dbt_models": 99,
     "ml_models": 5,
     "seasons": "2018\u20132025",
     "seasons_list": [
@@ -1092,6 +1092,46 @@
       ]
     },
     {
+      "name": "int_lap_wake_placeholder_cost",
+      "path": "/data/intermediates/int_lap_wake_placeholder_cost",
+      "partitioned": true,
+      "partitionKey": "race_year",
+      "partitions": [
+        {
+          "value": 2018,
+          "path": "/data/intermediates/int_lap_wake_placeholder_cost/2018.parquet"
+        },
+        {
+          "value": 2019,
+          "path": "/data/intermediates/int_lap_wake_placeholder_cost/2019.parquet"
+        },
+        {
+          "value": 2020,
+          "path": "/data/intermediates/int_lap_wake_placeholder_cost/2020.parquet"
+        },
+        {
+          "value": 2021,
+          "path": "/data/intermediates/int_lap_wake_placeholder_cost/2021.parquet"
+        },
+        {
+          "value": 2022,
+          "path": "/data/intermediates/int_lap_wake_placeholder_cost/2022.parquet"
+        },
+        {
+          "value": 2023,
+          "path": "/data/intermediates/int_lap_wake_placeholder_cost/2023.parquet"
+        },
+        {
+          "value": 2024,
+          "path": "/data/intermediates/int_lap_wake_placeholder_cost/2024.parquet"
+        },
+        {
+          "value": 2025,
+          "path": "/data/intermediates/int_lap_wake_placeholder_cost/2025.parquet"
+        }
+      ]
+    },
+    {
       "name": "int_lap_anomaly_flags",
       "path": "/data/intermediates/int_lap_anomaly_flags",
       "partitioned": true,
@@ -1864,6 +1904,46 @@
               "path": "/data/intermediates/int_sector_residual_decomposed/2025/2025_9.parquet"
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "stg_pits",
+      "path": "/data/intermediates/stg_pits",
+      "partitioned": true,
+      "partitionKey": "race_year",
+      "partitions": [
+        {
+          "value": 2018,
+          "path": "/data/intermediates/stg_pits/2018.parquet"
+        },
+        {
+          "value": 2019,
+          "path": "/data/intermediates/stg_pits/2019.parquet"
+        },
+        {
+          "value": 2020,
+          "path": "/data/intermediates/stg_pits/2020.parquet"
+        },
+        {
+          "value": 2021,
+          "path": "/data/intermediates/stg_pits/2021.parquet"
+        },
+        {
+          "value": 2022,
+          "path": "/data/intermediates/stg_pits/2022.parquet"
+        },
+        {
+          "value": 2023,
+          "path": "/data/intermediates/stg_pits/2023.parquet"
+        },
+        {
+          "value": 2024,
+          "path": "/data/intermediates/stg_pits/2024.parquet"
+        },
+        {
+          "value": 2025,
+          "path": "/data/intermediates/stg_pits/2025.parquet"
         }
       ]
     },

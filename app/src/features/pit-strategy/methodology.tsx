@@ -35,6 +35,27 @@ export const methodologyContent = (
       &ldquo;unknown&rdquo; means the compound has no fitted degradation curve
       to minimise over, shown explicitly rather than as a silent null.
     </p>
+    <p>
+      <strong className="text-[rgb(var(--color-text))]">Horizon</strong> is this stint plus
+      the next: it ends where the driver&rsquo;s next stint ends, the next set is the compound
+      actually fitted (treated as new), and exactly one stop is assumed inside it. So the rest of
+      the strategy is taken as the team actually ran it, and the verdict grades the lap the stop
+      landed on, not the number of stops. Where no next stint exists (the driver&rsquo;s last
+      stint), the model falls back to the race-remainder horizon, from this stint&rsquo;s first
+      lap to the driver&rsquo;s last lap; <code className="text-xs">horizon_source</code> records
+      which was used. The cost has no track-position term, so a stop that looks early may have
+      been the right response to something the model does not measure.
+    </p>
+    <p>
+      <strong className="text-[rgb(var(--color-text))]">On the 2018&ndash;2025 warehouse build of
+      2026-10-31</strong>, 5,100 stints have both an actual stop and a model optimum: 4,835
+      graded on the two-stint horizon and 265 on the race-remainder horizon.{' '}
+      <code className="text-xs">overrun_laps</code> (actual laps on the set minus model-optimal
+      laps, in valid laps; negative = earlier than the optimum) has a median of -2 valid laps per
+      stint; per season the median ranges from 0 (2018) to -4 (2020). In 59% of those stints the
+      stop came earlier than the model&rsquo;s optimum. The verdicts are 2,571 early, 1,526
+      overran, 839 optimal and 164 undercut forced.
+    </p>
     <p className="text-xs">
       Source:{' '}
       <code>fct_stint_features</code> &times; <code>fct_lap_residuals</code> (for

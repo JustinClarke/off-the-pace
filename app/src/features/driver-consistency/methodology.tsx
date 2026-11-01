@@ -22,7 +22,7 @@ export const methodologyContent = (
     </p>
     <p className="mt-3 text-muted/70">
       Residuals accumulate from <code>fct_driver_skill_features</code> via the
-      seven-term additive decomposition enforced by <code>assert_additive_identity</code>.
+      five-term additive decomposition enforced by <code>assert_additive_identity</code>.
     </p>
   </>
 )

@@ -11,12 +11,13 @@ import { findProfile } from './transform'
 const DATA = path.resolve(__dirname, '../../../public/data')
 const DIST = path.resolve(__dirname, '../../../node_modules/@duckdb/duckdb-wasm/dist')
 
-let db: any
-let conn: any
+type Db = Awaited<ReturnType<typeof createDuckDB>>
+let db: Db
+let conn: ReturnType<Db['connect']>
 
 function all<T>(sql: string, params: unknown[]): T[] {
   const stmt = conn.prepare(sql)
-  const rows = stmt.query(...params).toArray().map((r: any) => ({ ...r.toJSON() })) as T[]
+  const rows = stmt.query(...params).toArray().map((r: { toJSON(): object }) => ({ ...r.toJSON() })) as T[]
   stmt.close()
   return rows
 }
@@ -37,7 +38,7 @@ beforeAll(async () => {
   conn.query(`CREATE VIEW dim_compounds_season AS SELECT * FROM read_parquet('dim_compounds_season.parquet')`)
 })
 
-afterAll(() => { conn?.close(); db?.terminate?.() })
+afterAll(() => { conn?.close(); (db as { terminate?: () => void } | undefined)?.terminate?.() })
 
 /** What the page does: race id -> circuit -> profile for the compound. */
 function profileFor(raceId: string, compound: string): CompoundProfileRow | null {

@@ -300,7 +300,7 @@ app-parity:  ## Prove in-browser ONNX == booster ground truth
 app-coverage:  ## Vitest unit tests with coverage threshold
 	cd app && pnpm test:coverage
 
-app-bundle:  ## Check the built JS bundle against the size budget (run app-build first)
+app-bundle:  ## Check the built JS bundle against the size budget (run app-build first; for a VITE_ASSISTANT_ENABLED=true build use: cd app && pnpm build --manifest)
 	cd app && pnpm run bundlesize
 
 app-bundle-budget-update:  ## Rewrite app/perf-budget.json from the current build (+8% headroom)

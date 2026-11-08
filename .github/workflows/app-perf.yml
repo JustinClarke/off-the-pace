@@ -41,7 +41,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build app
-        run: pnpm build
+        # --manifest writes dist/.vite/manifest.json; the split assistant budget in check_bundle_size.mjs needs it on a flag-on build
+        run: pnpm build --manifest
 
       - name: Bundle-size budget (blocking)
         run: pnpm run bundlesize

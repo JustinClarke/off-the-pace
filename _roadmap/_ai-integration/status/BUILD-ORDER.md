@@ -29,7 +29,7 @@ python3 _roadmap/_ai-integration/status/board.py --ship         # exit 1 while a
 
 <!-- BEGIN GENERATED TASKS -- do not hand-edit; `board.py --write-order` -->
 
-_Generated from [`build-log.json`](build-log.json) at `updated: 2026-11-09T01:00:00+04:00`. Run `python3 _roadmap/_ai-integration/status/board.py --write-order` after any edit to the log._
+_Generated from [`build-log.json`](build-log.json) at `updated: 2026-11-09T02:00:00+04:00`. Run `python3 _roadmap/_ai-integration/status/board.py --write-order` after any edit to the log._
 
 **11 live items** (5 blocked). The pointer is on **AX-10** — that is the one to run next; the rest of the order is what becomes runnable after it, with anything waiting on one of your rulings sorted behind the work that isn't. 37 terminal items are finished and not listed here — run `board.py` for the per-group view, or read their `closed` field in [`build-log.json`](build-log.json).
 
@@ -78,7 +78,7 @@ Each watch rule is tagged with the recommended model (haiku/sonnet/opus) for tok
 | AXW1 | ship-blocker | AX-12 | `sonnet` | No public Worker route without the per-question limit and a cap at or under the free allowance | AX-20 lands with the real cap. |
 | AXW2 | hazard | AX-16 | `sonnet` | No archived DA-03 number, and no flat 0.331 x share price presented as measured traffic cost | AX-16 lands with the deny-list test in CI. |
 | AXW4 | hazard | AX-08 | `sonnet` | Catalogue and tool skew between the app and the Worker | The 409 version check is tested and deployed (AX-12). |
-| AXW7 | unverified | AX-12 | `sonnet` | gpt-oss-20b tool-call support on Workers AI, and reasoning tokens against MAX_OUTPUT_TOKENS=800, not re-confirmed | Confirmed from the model page and measured in AX-13. |
+| AXW7 | unverified | AX-12 | `sonnet` | gpt-oss-20b: tool calls confirmed; effort parameter and reasoning-token accounting against MAX_OUTPUT_TOKENS (2500) still unconfirmed | Confirmed from the model page and measured in AX-13. |
 | AXW6 | pending-ruling | AX-17 | `opus` | The chance line stays EXCLUDE (AD5): no card kind may read flag_chance_lookup.json | The registry guard test exists (AX-17). |
 | AXW8 | pending-ruling | AX-18 | `opus` | D9/D14 re-measures owed on the redo model; pit-verdict cards stay held | The re-measure is recorded (XM resolved). |
 

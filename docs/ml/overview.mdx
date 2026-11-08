@@ -87,7 +87,7 @@ make ml-all   # features → tune → train → evaluate → predict → onnx �
 ```
 
 ```bash Test
-make ml-test  # 270 tests: leakage spine, ONNX parity, survival/AFT contract, version contract, output schema, beats-baseline, attainable ceilings + intervals, power-law tyre curve
+make ml-test  # 282 tests: leakage spine, ONNX parity, survival/AFT contract, version contract, output schema, beats-baseline, attainable ceilings + intervals, power-law tyre curve, flag chance
 ```
 
 </CodeGroup>
@@ -105,7 +105,7 @@ make ml-test  # 270 tests: leakage spine, ONNX parity, survival/AFT contract, ve
     Season-grouped time-series cross-validation, the leakage spine, calibration coverage, and the `MAX+1`-derived holdout policy.
   </Card>
   <Card title="The CI Contract" href="/ml/ci/overview" icon="flask-conical">
-    All 270 tests 34 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 19 evaluation gates, 5 CRPS, 3 target/censoring, 36 survival/AFT, 30 version-contract, 19 attainable-ceiling, 33 within-stint attribution, 31 fit-parity, 15 search-space, 37 power-law tyre curve grouped and explained.
+    All 282 tests 34 leakage-spine guards, 5 ONNX parity, 3 predict-schema, 19 evaluation gates, 5 CRPS, 3 target/censoring, 38 survival/AFT, 30 version-contract, 19 attainable-ceiling, 33 within-stint attribution, 31 fit-parity, 15 search-space, 37 power-law tyre curve, 10 flag-chance grouped and explained.
   </Card>
   <Card title="Model Reference" href="/reference/ml/degradation-model" icon="database">
     The generated model card: per-model hyperparameters, headline metrics, calibration, cohorts, and reproducibility.

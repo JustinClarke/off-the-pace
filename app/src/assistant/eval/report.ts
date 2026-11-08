@@ -23,11 +23,11 @@ export const BAR = {
     grounded_rate: 'share of runs (answered or not, endpoint errors excluded) whose every answer number matches a card the model received this question, a query_data / compare_lap_times / make_chart result, or a number in the question (findUngroundedNumbers, assistant/grounding.ts)',
     refusal_rate: 'share of runs of expect=refuse|hedge questions where the answer gives every held_reason key of the question (eval/grade.ts HELD_REASON_PATTERNS), carries no must_not claim, and, for refuse, has refusal wording and states no number other than those the user typed',
     right_tool_rate: 'share of runs where the first expected tool was called (and the expected bundle, when the question names one); a question with no expected tool passes only with zero tool calls',
-    max_run_tokens: 'no run over 18,000 tokens: prompt + completion tokens summed over every model round of the run (budget.total: endpoint usage when reported, else chars/4 and marked estimated)',
+    max_run_tokens: 'no run over 18,000 tokens of PEAK CONTEXT (budget.peak_context: the largest single-round context). AX-13 ruling 1 (2026-11-08): the bar was meant as a window-safety bar against the 20,480-token window (design-ai-access.md:269), not a sum over rounds. budget.total (prompt + completion summed over the rounds, what neurons are billed on) is reported and does not gate',
     human_read: 'owner (or a delegate) reads the 10 answers printed by --human-read and records pass/fail with a note per answer in human-read.json',
     repeats: 'each question is run 5 times; a run with an endpoint error is listed and re-run, not counted',
   },
-  reported_not_gating: ['expected_value', 'honesty', 'rules_fired', 'must_not (part of refusal for refuse/hedge questions)', 'all_tools', 'limits', 'answered', 'repair-turn rate', 'neurons per answer', 'answers per day'],
+  reported_not_gating: ['budget.total (tokens summed over rounds)', 'expected_value', 'honesty', 'rules_fired', 'must_not (part of refusal for refuse/hedge questions)', 'all_tools', 'limits', 'answered', 'repair-turn rate', 'neurons per answer', 'answers per day'],
 } as const
 
 export interface RateRow {
@@ -65,7 +65,7 @@ export interface Summary {
     grounded: { value: number | null; threshold: number; pass: boolean }
     refusal: { value: number | null; threshold: number; pass: boolean }
     right_tool: { value: number | null; threshold: number; pass: boolean }
-    tokens: { max: number; threshold: number; over: number; pass: boolean }
+    tokens: { max: number; total_max: number; threshold: number; over: number; pass: boolean }
     human_read: HumanRead
     repeats: { min: number; required: number; pass: boolean }
   }
@@ -80,6 +80,9 @@ export interface Summary {
     rounds_reporting_reasoning: number
     reasoning_tokens_total: number
     rounds_at_output_cap: number
+    /** AX-12 ruling 1: rounds the endpoint reports finish_reason "length" for, of those that report one. */
+    rounds_finish_length: number
+    rounds_reporting_finish_reason: number
     usage_rounds: number
     /** Rounds with endpoint completion_tokens: their sum, and the chars/4 estimate of the visible reply in the same rounds. */
     completion_tokens_reported: number
@@ -138,7 +141,9 @@ export function summarize(questions: readonly Question[], observations: RunObser
   const totals = okObs.map((o) => o.budget.total)
   const neurons = okObs.map((o) => o.budget.neurons)
   const meanNeurons = mean(neurons)
+  const peaks = okObs.map((o) => o.budget.peak_context)
   const maxTokens = totals.length ? Math.max(...totals) : 0
+  const maxPeak = peaks.length ? Math.max(...peaks) : 0
   const usageRounds = observations.flatMap((o) => o.usage_rounds)
   const reported = usageRounds.filter((u) => typeof u.completion_tokens === 'number')
 
@@ -154,7 +159,8 @@ export function summarize(questions: readonly Question[], observations: RunObser
     grounded: { value: checks.grounded.rate, threshold: BAR.grounded_rate, pass: checks.grounded.fail === 0 },
     refusal: { value: checks.refusal.rate, threshold: BAR.refusal_rate, pass: checks.refusal.fail === 0 },
     right_tool: { value: checks.right_tool.rate, threshold: BAR.right_tool_rate_min, pass: (checks.right_tool.rate ?? 0) >= BAR.right_tool_rate_min },
-    tokens: { max: maxTokens, threshold: BAR.max_run_tokens, over: totals.filter((t) => t > BAR.max_run_tokens).length, pass: totals.length > 0 && maxTokens <= BAR.max_run_tokens },
+    // AX-13 ruling 1: gates on the peak context; max is the largest peak, total_max (the sum over rounds) is reported only.
+    tokens: { max: maxPeak, total_max: maxTokens, threshold: BAR.max_run_tokens, over: peaks.filter((t) => t > BAR.max_run_tokens).length, pass: peaks.length > 0 && maxPeak <= BAR.max_run_tokens },
     human_read: humanRead,
     repeats: { min: repeatsMin, required: BAR.repeats, pass: repeatsMin >= BAR.repeats },
   }
@@ -214,6 +220,8 @@ export function summarize(questions: readonly Question[], observations: RunObser
       rounds_reporting_reasoning: usageRounds.filter((u) => typeof u.reasoning_tokens === 'number').length,
       reasoning_tokens_total: usageRounds.reduce((a, u) => a + (u.reasoning_tokens ?? 0), 0),
       rounds_at_output_cap: usageRounds.filter((u) => (u.completion_tokens ?? 0) >= WORKER_MAX_OUTPUT_TOKENS).length,
+      rounds_finish_length: usageRounds.filter((u) => u.finish_reason === 'length').length,
+      rounds_reporting_finish_reason: usageRounds.filter((u) => typeof u.finish_reason === 'string').length,
       usage_rounds: usageRounds.length,
       completion_tokens_reported: reported.reduce((a, u) => a + (u.completion_tokens ?? 0), 0),
       visible_tokens_estimated: reported.reduce((a, u) => a + Math.ceil((u.visible_chars ?? 0) / 4), 0),
@@ -246,7 +254,7 @@ export function renderSummary(s: Summary, header: string, perQuestion: { id: str
     `| numbers grounded | ${p(b.grounded.value)} | 100% | ${b.grounded.pass ? 'yes' : 'NO'} |`,
     `| refusal / hedge cases correct | ${p(b.refusal.value)} | 100% | ${b.refusal.pass ? 'yes' : 'NO'} |`,
     `| right tool | ${p(b.right_tool.value)} | >= 95% | ${b.right_tool.pass ? 'yes' : 'NO'} |`,
-    `| max tokens in one run | ${b.tokens.max} (${b.tokens.over} over) | <= ${b.tokens.threshold} | ${b.tokens.pass ? 'yes' : 'NO'} |`,
+    `| max peak context in one run | ${b.tokens.max} (${b.tokens.over} over) | <= ${b.tokens.threshold} | ${b.tokens.pass ? 'yes' : 'NO'} |`,
     `| human read (10 answers) | ${b.human_read.status} | pass | ${b.human_read.status === 'pass' ? 'yes' : b.human_read.status === 'fail' ? 'NO' : '-'} |`,
     `| repeats per question | ${b.repeats.min} | 5 | ${b.repeats.pass ? 'yes' : 'NO'} |`,
     '',
@@ -268,14 +276,14 @@ export function renderSummary(s: Summary, header: string, perQuestion: { id: str
     '',
     '## Cost and capacity',
     '',
-    `- Tokens per run (prompt + completion over all rounds): mean ${s.tokens.mean_total}, p50 ${s.tokens.p50_total}, p90 ${s.tokens.p90_total}, max ${s.tokens.max_total}; mean peak context ${s.tokens.mean_peak_context}; runs on the chars/4 estimate: ${s.tokens.estimated_runs}.`,
+    `- Peak context per run (the bar, max ${s.bar.tokens.max} against ${BAR.max_run_tokens}); tokens per run summed over all rounds (reported, not gating): mean ${s.tokens.mean_total}, p50 ${s.tokens.p50_total}, p90 ${s.tokens.p90_total}, max ${s.tokens.max_total}; mean peak context ${s.tokens.mean_peak_context}; runs on the chars/4 estimate: ${s.tokens.estimated_runs}.`,
     `- Neurons per answer: mean ${s.neurons.mean}, p90 ${s.neurons.p90}, max ${s.neurons.max} (${s.neurons.from_usage ? 'from endpoint usage' : 'ESTIMATED from chars/4, not a measurement'}).`,
     `- Answers per day at the ${DAILY_NEURON_CAP}-neuron cap: ${s.neurons.answers_per_day_at_cap ?? 'n/a'} (${s.neurons.from_usage ? 'measured usage' : 'estimate only'}).`,
     `- Rounds per run: mean ${s.rounds.mean}, max ${s.rounds.max}; runs with 2+ model rounds: ${s.rounds.multi_round_runs}, of which answered after a tool result: ${s.rounds.multi_round_ok}.`,
     `- Tool calls per run: mean ${s.tool_calls.mean}, max ${s.tool_calls.max}.`,
     `- Repair turns: ${s.repair.runs_repaired} runs (${p(s.repair.rate)}); repair skipped (no round left): ${s.repair.skipped}; first-draft failures: ${Object.entries(s.repair.first_draft_codes).map(([k, v]) => `${k} ${v}`).join(', ') || 'none'}.`,
     `- Questions no tool could answer (no ok tool result in any run): ${s.no_tool_could_answer.questions.join(', ') || 'none'} (${p(s.no_tool_could_answer.share)}).`,
-    `- Reasoning tokens: ${s.reasoning.rounds_reporting_reasoning} of ${s.reasoning.usage_rounds} usage rounds report a reasoning-token field (total ${s.reasoning.reasoning_tokens_total}); rounds whose completion reached MAX_OUTPUT_TOKENS (${WORKER_MAX_OUTPUT_TOKENS}): ${s.reasoning.rounds_at_output_cap}.`,
+    `- Reasoning tokens: ${s.reasoning.rounds_reporting_reasoning} of ${s.reasoning.usage_rounds} usage rounds report a reasoning-token field (total ${s.reasoning.reasoning_tokens_total}); rounds whose completion reached MAX_OUTPUT_TOKENS (${WORKER_MAX_OUTPUT_TOKENS}): ${s.reasoning.rounds_at_output_cap}; finish_reason "length" (truncated): ${s.reasoning.rounds_finish_length} of ${s.reasoning.rounds_reporting_finish_reason} rounds that report one (AX-12 ruling 4 rule: raise the cap only above 1%).`,
     `- Hidden output: in rounds with endpoint usage, completion_tokens total ${s.reasoning.completion_tokens_reported} against ${s.reasoning.visible_tokens_estimated} estimated (chars/4) for the visible reply; ${s.reasoning.rounds_hidden_output} rounds bill more than twice their visible text (reasoning tokens counted as output, so against MAX_OUTPUT_TOKENS). No endpoint usage = not measured.`,
     '',
     '## Per question',

@@ -91,19 +91,48 @@ def relation_columns(con: duckdb.DuckDBPyConnection, schema: str, identifier: st
     return [r[0] for r in rows]
 
 
+# Decimal places kept when hashing DOUBLE/FLOAT columns (TX-14 ruling 2a). Summation
+# order inside AVG / VAR_SAMP / window SUM differs run to run even at 1 thread and moves
+# a value by ~1e-15 (measured max |delta| 3.6e-15), which flips a raw byte hash with no
+# real change. Hashing ROUND(x, 9) absorbs that; no published figure shows 9 decimals.
+# `+ 0.0` also folds -0.0 into 0.0: a signed zero (equal value, different text) is the
+# other float artefact seen (int_pit_strategy_cost_curve.baseline_cost_s).
+FLOAT_HASH_DECIMALS = 9
+FLOAT_TYPES = {"DOUBLE", "FLOAT"}
+
+
+def float_columns(con: duckdb.DuckDBPyConnection, schema: str, identifier: str) -> list[str]:
+    rows = con.execute(
+        "SELECT column_name FROM information_schema.columns "
+        "WHERE table_schema = ? AND table_name = ? AND data_type IN ('DOUBLE', 'FLOAT')",
+        [schema, identifier],
+    ).fetchall()
+    return [r[0] for r in rows]
+
+
 def hash_relation(con: duckdb.DuckDBPyConnection, schema: str, identifier: str) -> str:
     """Order-independent md5 of a relation's contents, excluding volatile columns.
+
+    DOUBLE/FLOAT columns are hashed as ROUND(x, 9) + 0.0 (see FLOAT_HASH_DECIMALS).
 
     Combines per-row `md5_number` hashes with `bit_xor` (commutative, associative,
     O(1)-memory) rather than sorting and concatenating them — see module docstring.
     """
     quoted = f'"{schema}"."{identifier}"'
     exclude = VOLATILE_COLS & set(relation_columns(con, schema, identifier))
+    floats = [c for c in float_columns(con, schema, identifier) if c not in exclude]
+    clauses = []
     if exclude:
-        cols = ", ".join(f'"{c}"' for c in sorted(exclude))
-        source = f"(SELECT * EXCLUDE ({cols}) FROM {quoted})"
-    else:
-        source = quoted
+        clauses.append("EXCLUDE (" + ", ".join(f'"{c}"' for c in sorted(exclude)) + ")")
+    if floats:
+        clauses.append(
+            "REPLACE ("
+            + ", ".join(
+                f'ROUND("{c}", {FLOAT_HASH_DECIMALS}) + 0.0 AS "{c}"' for c in floats
+            )
+            + ")"
+        )
+    source = f"(SELECT * {' '.join(clauses)} FROM {quoted})" if clauses else quoted
     sql = (
         "SELECT md5(CAST(bit_xor(md5_number(CAST(t AS VARCHAR))) AS VARCHAR)) "
         f"FROM {source} t"

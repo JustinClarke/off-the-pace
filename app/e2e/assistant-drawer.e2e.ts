@@ -21,7 +21,24 @@ interface Seen {
 }
 
 /** Round 1 asks for cards, round 2 (and any repair turn) answers. Mimics the Worker's header checks. */
-async function mockWorker(page: Page, answer: string, seen: Seen[] = []) {
+type Answer = string | ((toolResult: string) => string)
+type CardsCall = { scopes: Record<string, unknown>[]; kinds: string[] }
+
+/** First object in a tool result that has an `id` starting with `prefix` and a `display` string. */
+function findCard(json: string, prefix: string): { id: string; display: string } | null {
+  const walk = (v: unknown): { id: string; display: string } | null => {
+    if (Array.isArray(v)) for (const x of v) { const r = walk(x); if (r) return r }
+    else if (v && typeof v === 'object') {
+      const o = v as Record<string, unknown>
+      if (typeof o.id === 'string' && o.id.startsWith(prefix) && typeof o.display === 'string') return { id: o.id, display: o.display }
+      for (const x of Object.values(o)) { const r = walk(x); if (r) return r }
+    }
+    return null
+  }
+  try { return walk(JSON.parse(json)) } catch { return null }
+}
+
+async function mockWorker(page: Page, answer: Answer, seen: Seen[] = [], calls?: CardsCall[]) {
   await page.route(WORKER, async (route: Route) => {
     const req = route.request()
     const headers = req.headers()
@@ -32,17 +49,14 @@ async function mockWorker(page: Page, answer: string, seen: Seen[] = []) {
     if (process.env.AX14_DEBUG && n === 2) console.log('TOOL RESULT', seen[1].lastTool)
     if (!headers['x-catalogue-version']) return route.fulfill({ status: 409, json: { error: 'app_updated' } })
     if (n > 1 && headers['x-question-ticket'] !== 'T1') return route.fulfill({ status: 403, json: { error: 'abuse_check_failed' } })
+    const toolCalls = (calls ?? [
+      { scopes: [{ race_id: '2024_1', driver_id: 'VER' }], kinds: ['driver_race.pit_stops'] },
+      { scopes: [{ season: 2024, driver_id: 'VER' }], kinds: ['era_rating.season'] },
+    ]).map((c, i) => ({ id: `call_${i + 1}`, type: 'function', function: { name: 'get_fact_cards', arguments: JSON.stringify(c) } }))
     const message =
       n === 1
-        ? {
-            role: 'assistant',
-            content: null,
-            tool_calls: [
-              { id: 'call_1', type: 'function', function: { name: 'get_fact_cards', arguments: JSON.stringify({ scopes: [{ race_id: '2024_1', driver_id: 'VER' }], kinds: ['driver_race.pit_stops'] }) } },
-              { id: 'call_2', type: 'function', function: { name: 'get_fact_cards', arguments: JSON.stringify({ scopes: [{ season: 2024, driver_id: 'VER' }], kinds: ['era_rating.season'] }) } },
-            ],
-          }
-        : { role: 'assistant', content: answer }
+        ? { role: 'assistant', content: null, tool_calls: toolCalls }
+        : { role: 'assistant', content: typeof answer === 'function' ? answer(tool?.content ?? '') : answer }
     return route.fulfill({ json: { message, usage: { prompt_tokens: 900, completion_tokens: 60 }, ticket: 'T1' } })
   })
 }
@@ -90,7 +104,7 @@ if (MODE === 'on') {
       const stops = page.getByRole('link', { name: /^2, measured/ })
       await expect(stops).toBeVisible({ timeout: 120_000 })
       // Two chips (2 stops; -0.357 modelled), one struck number (7.77)
-      const era = page.getByRole('link', { name: /0\.357.*modelled/ })
+      const era = page.getByRole('link', { name: /^-0\.357.*modelled/ })
       await expect(era).toBeVisible()
       expect(await era.getAttribute('style')).toContain('repeating-linear-gradient')
       await expect(page.getByTestId('struck-number')).toHaveText(/7\.77/)
@@ -111,6 +125,33 @@ if (MODE === 'on') {
       await expect(page.getByRole('dialog')).toHaveCount(0)
       const sel = page.locator('select', { has: page.locator('option[value="2024_1"]') }).first()
       await expect(sel).toHaveValue('2024_1', { timeout: 60_000 })
+    })
+
+    // AX-14 ruling 4: a chip whose card is scoped to a driver lands on the page with the race AND the driver selected.
+    test('a driver-scoped chip link lands with the race and the driver selected', async ({ page }) => {
+      test.setTimeout(180_000)
+      await mockWorker(
+        page,
+        (tool) => {
+          const c = findCard(tool, 'race_lost.component')
+          if (!c) throw new Error('mock Worker: no race_lost.component card in the tool result (is the export finalized?)')
+          return `VER lost ${c.display} in the 2024 opener (${c.id}).`
+        },
+        [],
+        [{ scopes: [{ race_id: '2024_1', driver_id: 'VER' }], kinds: ['race_lost.component'] }],
+      )
+      await openDrawer(page)
+      await ask(page, 'Where did VER lose time in the opener?')
+      const link = page.getByRole('link', { name: /open the page that explains it/ }).first()
+      await expect(link).toBeVisible({ timeout: 120_000 })
+      await link.click()
+      await expect(page).toHaveURL(/\/lap-decomposition\/race-lost\?/)
+      const q = new URL(page.url()).searchParams
+      expect(q.get('race')).toBe('2024_1')
+      expect(q.get('driver')).toBe('VER')
+      const select = (value: string) => page.locator('select', { has: page.locator(`option[value="${value}"]`) }).first()
+      await expect(select('2024_1')).toHaveValue('2024_1', { timeout: 60_000 })
+      await expect(select('VER')).toHaveValue('VER', { timeout: 60_000 })
     })
 
     test('keyboard only: open, type, send, Escape closes and focus returns to the launcher; roles and names are exposed', async ({ page }) => {

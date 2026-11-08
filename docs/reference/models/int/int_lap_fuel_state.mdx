@@ -18,8 +18,10 @@ flowchart LR
   int_stint_geometry --> int_lap_fuel_state
   stg_laps --> int_lap_fuel_state
   int_lap_fuel_state --> fct_power_law_training
+  int_lap_fuel_state --> fct_stint_features
   int_lap_fuel_state --> int_constructor_structural_pace
   int_lap_fuel_state --> int_dirty_air_tax_component
+  int_lap_fuel_state --> int_driver_race_paired_laps
   int_lap_fuel_state --> int_driver_race_skill_loro
   int_lap_fuel_state --> int_field_pace_curve
   int_lap_fuel_state --> int_lap_normalized_pace
@@ -38,7 +40,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`int_stint_geometry`](./int_stint_geometry), [`stg_laps`](../stg/stg_laps), [`dim_circuits`](../dim/dim_circuits) |
 
-**11 tests** [guard](/transform/ci/overview) this model  -  5 generic, 6 singular.
+**12 tests** [guard](/transform/ci/overview) this model  -  5 generic, 7 singular.
 
 ## Columns
 

@@ -1,6 +1,6 @@
 {
-  "version": "045fb3796bd2527e",
-  "generatedAt": "2026-11-08T04:03:42.690033+00:00",
+  "version": "e5b324bf3e6d07a6",
+  "generatedAt": "2026-11-08T19:12:33.205445+00:00",
   "stats": {
     "total_laps": 161040,
     "total_drivers": 43,
@@ -34,10 +34,10 @@
     "n_races": 172,
     "n_races_scheduled": 173,
     "model_version": null,
-    "dbt_invocation_id": "ebf8b944-8221-4b33-aa90-ef7d385d0ca2",
-    "built_at": "2026-11-08T07:55:15.651807+04:00",
+    "dbt_invocation_id": "24c1a41a-d519-47ab-9412-7192092e0e91",
+    "built_at": "2026-11-08T23:05:51.348156+04:00",
     "dbt_version": "1.12.6",
-    "git_sha": "ed5724581f95a66e0e01756f11ac40d6c31edc65",
+    "git_sha": "bf041a02b79d104affedfba5a207676305878b35",
     "git_dirty": true
   },
   "tables": [
@@ -46,7 +46,7 @@
       "path": "/data/dimensions/dim_circuits.parquet",
       "partitioned": false,
       "rows": 44,
-      "hash": "f9295e6561bc90ab6925d4e3d3d92516"
+      "hash": "513bfb99ce44a5339c5937cf805e00c0"
     },
     {
       "name": "dim_compounds_season",
@@ -158,7 +158,7 @@
       "path": "/data/marts/mart_race_driver_summary.parquet",
       "partitioned": false,
       "rows": 3138,
-      "hash": "54b2971a3d871d9c459dfc9468441a44"
+      "hash": "81ff17f5b77d85f34e23c2089ac2f5f5"
     },
     {
       "name": "mart_driver_season_summary",
@@ -180,6 +180,20 @@
       "partitioned": false,
       "rows": 3102,
       "hash": "697b93e2acab1ac3208d9287240b330d"
+    },
+    {
+      "name": "fct_driver_isolation_stint",
+      "path": "/data/facts/fct_driver_isolation_stint.parquet",
+      "partitioned": false,
+      "rows": 26325,
+      "hash": "4d05e2b00a327532a21138b1a666bbcb"
+    },
+    {
+      "name": "mart_race_coverage",
+      "path": "/data/marts/mart_race_coverage.parquet",
+      "partitioned": false,
+      "rows": 173,
+      "hash": "35d4bffaad1a19ad4b1c054dab9891db"
     },
     {
       "name": "fct_lap_residuals",
@@ -1983,6 +1997,55 @@
       "hash": "9824e99982a94630c4f6d56188713c8d"
     },
     {
+      "name": "stg_pits",
+      "path": "/data/intermediates/stg_pits",
+      "partitioned": true,
+      "partitionKey": "race_year",
+      "partitions": [
+        {
+          "value": 2018,
+          "path": "/data/intermediates/stg_pits/2018.parquet"
+        },
+        {
+          "value": 2019,
+          "path": "/data/intermediates/stg_pits/2019.parquet"
+        },
+        {
+          "value": 2020,
+          "path": "/data/intermediates/stg_pits/2020.parquet"
+        },
+        {
+          "value": 2021,
+          "path": "/data/intermediates/stg_pits/2021.parquet"
+        },
+        {
+          "value": 2022,
+          "path": "/data/intermediates/stg_pits/2022.parquet"
+        },
+        {
+          "value": 2023,
+          "path": "/data/intermediates/stg_pits/2023.parquet"
+        },
+        {
+          "value": 2024,
+          "path": "/data/intermediates/stg_pits/2024.parquet"
+        },
+        {
+          "value": 2025,
+          "path": "/data/intermediates/stg_pits/2025.parquet"
+        }
+      ],
+      "rows": 6177,
+      "hash": "79604fb50ff662fcc7158ae517fe59bc"
+    },
+    {
+      "name": "stg_results",
+      "path": "/data/intermediates/stg_results.parquet",
+      "partitioned": false,
+      "rows": 3458,
+      "hash": "8a47a4852ae311363fbf585a4d797e59"
+    },
+    {
       "name": "race_caution_timeline",
       "path": "/data/marts/race_caution_timeline.parquet",
       "partitioned": false,
@@ -2128,6 +2191,898 @@
       "partitioned": false,
       "rows": 296,
       "hash": "37ede10cf86abf22e8cdb9123a55be55"
+    },
+    {
+      "name": "qv_laps",
+      "path": "/data/assistant/qv/qv_laps",
+      "partitioned": true,
+      "partitionKey": "season",
+      "partitions": [
+        {
+          "value": 2018,
+          "path": "/data/assistant/qv/qv_laps/2018.parquet"
+        },
+        {
+          "value": 2019,
+          "path": "/data/assistant/qv/qv_laps/2019.parquet"
+        },
+        {
+          "value": 2020,
+          "path": "/data/assistant/qv/qv_laps/2020.parquet"
+        },
+        {
+          "value": 2021,
+          "path": "/data/assistant/qv/qv_laps/2021.parquet"
+        },
+        {
+          "value": 2022,
+          "path": "/data/assistant/qv/qv_laps/2022.parquet"
+        },
+        {
+          "value": 2023,
+          "path": "/data/assistant/qv/qv_laps/2023.parquet"
+        },
+        {
+          "value": 2024,
+          "path": "/data/assistant/qv/qv_laps/2024.parquet"
+        },
+        {
+          "value": 2025,
+          "path": "/data/assistant/qv/qv_laps/2025.parquet"
+        }
+      ],
+      "rows": 161040,
+      "hash": "04385f89c17ff58fe03e499c7a4f4245"
+    },
+    {
+      "name": "qv_stints",
+      "path": "/data/assistant/qv/qv_stints.parquet",
+      "partitioned": false,
+      "rows": 8945,
+      "hash": "c5103a723617ee80e476bf8d60d3a413"
+    },
+    {
+      "name": "qv_pit_stops",
+      "path": "/data/assistant/qv/qv_pit_stops.parquet",
+      "partitioned": false,
+      "rows": 5507,
+      "hash": "a77451d380287b772912001ee958000c"
+    },
+    {
+      "name": "qv_driver_race",
+      "path": "/data/assistant/qv/qv_driver_race.parquet",
+      "partitioned": false,
+      "rows": 3138,
+      "hash": "a1a81d49f3c3361e04551f115dd58bde"
+    },
+    {
+      "name": "qv_race_laps",
+      "path": "/data/assistant/qv/qv_race_laps.parquet",
+      "partitioned": false,
+      "rows": 10373,
+      "hash": "3e0e64c3c8f0c1076f646eddafd99275"
+    },
+    {
+      "name": "qv_circuit_history",
+      "path": "/data/assistant/qv/qv_circuit_history.parquet",
+      "partitioned": false,
+      "rows": 173,
+      "hash": "fed58767656b96f5994fae7038350cae"
+    },
+    {
+      "name": "qv_teammate_corners",
+      "path": "/data/assistant/qv/qv_teammate_corners",
+      "partitioned": true,
+      "partitionKey": "season",
+      "partitions": [
+        {
+          "value": 2018,
+          "path": "/data/assistant/qv/qv_teammate_corners/2018",
+          "subPartitions": [
+            {
+              "value": "2018_10",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_10.parquet"
+            },
+            {
+              "value": "2018_11",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_11.parquet"
+            },
+            {
+              "value": "2018_12",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_12.parquet"
+            },
+            {
+              "value": "2018_13",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_13.parquet"
+            },
+            {
+              "value": "2018_14",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_14.parquet"
+            },
+            {
+              "value": "2018_15",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_15.parquet"
+            },
+            {
+              "value": "2018_16",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_16.parquet"
+            },
+            {
+              "value": "2018_17",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_17.parquet"
+            },
+            {
+              "value": "2018_18",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_18.parquet"
+            },
+            {
+              "value": "2018_19",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_19.parquet"
+            },
+            {
+              "value": "2018_20",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_20.parquet"
+            },
+            {
+              "value": "2018_21",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_21.parquet"
+            },
+            {
+              "value": "2018_3",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_3.parquet"
+            },
+            {
+              "value": "2018_4",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_4.parquet"
+            },
+            {
+              "value": "2018_5",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_5.parquet"
+            },
+            {
+              "value": "2018_6",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_6.parquet"
+            },
+            {
+              "value": "2018_7",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_7.parquet"
+            },
+            {
+              "value": "2018_8",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_8.parquet"
+            },
+            {
+              "value": "2018_9",
+              "path": "/data/assistant/qv/qv_teammate_corners/2018/2018_9.parquet"
+            }
+          ]
+        },
+        {
+          "value": 2019,
+          "path": "/data/assistant/qv/qv_teammate_corners/2019",
+          "subPartitions": [
+            {
+              "value": "2019_1",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_1.parquet"
+            },
+            {
+              "value": "2019_10",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_10.parquet"
+            },
+            {
+              "value": "2019_11",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_11.parquet"
+            },
+            {
+              "value": "2019_12",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_12.parquet"
+            },
+            {
+              "value": "2019_13",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_13.parquet"
+            },
+            {
+              "value": "2019_14",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_14.parquet"
+            },
+            {
+              "value": "2019_15",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_15.parquet"
+            },
+            {
+              "value": "2019_16",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_16.parquet"
+            },
+            {
+              "value": "2019_17",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_17.parquet"
+            },
+            {
+              "value": "2019_18",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_18.parquet"
+            },
+            {
+              "value": "2019_19",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_19.parquet"
+            },
+            {
+              "value": "2019_2",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_2.parquet"
+            },
+            {
+              "value": "2019_20",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_20.parquet"
+            },
+            {
+              "value": "2019_21",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_21.parquet"
+            },
+            {
+              "value": "2019_3",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_3.parquet"
+            },
+            {
+              "value": "2019_4",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_4.parquet"
+            },
+            {
+              "value": "2019_5",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_5.parquet"
+            },
+            {
+              "value": "2019_6",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_6.parquet"
+            },
+            {
+              "value": "2019_7",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_7.parquet"
+            },
+            {
+              "value": "2019_8",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_8.parquet"
+            },
+            {
+              "value": "2019_9",
+              "path": "/data/assistant/qv/qv_teammate_corners/2019/2019_9.parquet"
+            }
+          ]
+        },
+        {
+          "value": 2020,
+          "path": "/data/assistant/qv/qv_teammate_corners/2020",
+          "subPartitions": [
+            {
+              "value": "2020_1",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_1.parquet"
+            },
+            {
+              "value": "2020_10",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_10.parquet"
+            },
+            {
+              "value": "2020_11",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_11.parquet"
+            },
+            {
+              "value": "2020_12",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_12.parquet"
+            },
+            {
+              "value": "2020_13",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_13.parquet"
+            },
+            {
+              "value": "2020_14",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_14.parquet"
+            },
+            {
+              "value": "2020_15",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_15.parquet"
+            },
+            {
+              "value": "2020_17",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_17.parquet"
+            },
+            {
+              "value": "2020_2",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_2.parquet"
+            },
+            {
+              "value": "2020_3",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_3.parquet"
+            },
+            {
+              "value": "2020_4",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_4.parquet"
+            },
+            {
+              "value": "2020_5",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_5.parquet"
+            },
+            {
+              "value": "2020_6",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_6.parquet"
+            },
+            {
+              "value": "2020_7",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_7.parquet"
+            },
+            {
+              "value": "2020_8",
+              "path": "/data/assistant/qv/qv_teammate_corners/2020/2020_8.parquet"
+            }
+          ]
+        },
+        {
+          "value": 2021,
+          "path": "/data/assistant/qv/qv_teammate_corners/2021",
+          "subPartitions": [
+            {
+              "value": "2021_1",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_1.parquet"
+            },
+            {
+              "value": "2021_10",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_10.parquet"
+            },
+            {
+              "value": "2021_11",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_11.parquet"
+            },
+            {
+              "value": "2021_13",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_13.parquet"
+            },
+            {
+              "value": "2021_14",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_14.parquet"
+            },
+            {
+              "value": "2021_15",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_15.parquet"
+            },
+            {
+              "value": "2021_16",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_16.parquet"
+            },
+            {
+              "value": "2021_17",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_17.parquet"
+            },
+            {
+              "value": "2021_18",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_18.parquet"
+            },
+            {
+              "value": "2021_19",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_19.parquet"
+            },
+            {
+              "value": "2021_2",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_2.parquet"
+            },
+            {
+              "value": "2021_20",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_20.parquet"
+            },
+            {
+              "value": "2021_21",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_21.parquet"
+            },
+            {
+              "value": "2021_22",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_22.parquet"
+            },
+            {
+              "value": "2021_3",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_3.parquet"
+            },
+            {
+              "value": "2021_4",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_4.parquet"
+            },
+            {
+              "value": "2021_5",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_5.parquet"
+            },
+            {
+              "value": "2021_6",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_6.parquet"
+            },
+            {
+              "value": "2021_7",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_7.parquet"
+            },
+            {
+              "value": "2021_8",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_8.parquet"
+            },
+            {
+              "value": "2021_9",
+              "path": "/data/assistant/qv/qv_teammate_corners/2021/2021_9.parquet"
+            }
+          ]
+        },
+        {
+          "value": 2022,
+          "path": "/data/assistant/qv/qv_teammate_corners/2022",
+          "subPartitions": [
+            {
+              "value": "2022_1",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_1.parquet"
+            },
+            {
+              "value": "2022_10",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_10.parquet"
+            },
+            {
+              "value": "2022_11",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_11.parquet"
+            },
+            {
+              "value": "2022_12",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_12.parquet"
+            },
+            {
+              "value": "2022_13",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_13.parquet"
+            },
+            {
+              "value": "2022_14",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_14.parquet"
+            },
+            {
+              "value": "2022_15",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_15.parquet"
+            },
+            {
+              "value": "2022_16",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_16.parquet"
+            },
+            {
+              "value": "2022_17",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_17.parquet"
+            },
+            {
+              "value": "2022_18",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_18.parquet"
+            },
+            {
+              "value": "2022_19",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_19.parquet"
+            },
+            {
+              "value": "2022_2",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_2.parquet"
+            },
+            {
+              "value": "2022_20",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_20.parquet"
+            },
+            {
+              "value": "2022_21",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_21.parquet"
+            },
+            {
+              "value": "2022_22",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_22.parquet"
+            },
+            {
+              "value": "2022_3",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_3.parquet"
+            },
+            {
+              "value": "2022_4",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_4.parquet"
+            },
+            {
+              "value": "2022_5",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_5.parquet"
+            },
+            {
+              "value": "2022_6",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_6.parquet"
+            },
+            {
+              "value": "2022_7",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_7.parquet"
+            },
+            {
+              "value": "2022_8",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_8.parquet"
+            },
+            {
+              "value": "2022_9",
+              "path": "/data/assistant/qv/qv_teammate_corners/2022/2022_9.parquet"
+            }
+          ]
+        },
+        {
+          "value": 2023,
+          "path": "/data/assistant/qv/qv_teammate_corners/2023",
+          "subPartitions": [
+            {
+              "value": "2023_1",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_1.parquet"
+            },
+            {
+              "value": "2023_10",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_10.parquet"
+            },
+            {
+              "value": "2023_11",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_11.parquet"
+            },
+            {
+              "value": "2023_12",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_12.parquet"
+            },
+            {
+              "value": "2023_13",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_13.parquet"
+            },
+            {
+              "value": "2023_14",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_14.parquet"
+            },
+            {
+              "value": "2023_15",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_15.parquet"
+            },
+            {
+              "value": "2023_16",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_16.parquet"
+            },
+            {
+              "value": "2023_17",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_17.parquet"
+            },
+            {
+              "value": "2023_18",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_18.parquet"
+            },
+            {
+              "value": "2023_19",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_19.parquet"
+            },
+            {
+              "value": "2023_2",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_2.parquet"
+            },
+            {
+              "value": "2023_20",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_20.parquet"
+            },
+            {
+              "value": "2023_21",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_21.parquet"
+            },
+            {
+              "value": "2023_22",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_22.parquet"
+            },
+            {
+              "value": "2023_3",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_3.parquet"
+            },
+            {
+              "value": "2023_4",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_4.parquet"
+            },
+            {
+              "value": "2023_5",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_5.parquet"
+            },
+            {
+              "value": "2023_6",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_6.parquet"
+            },
+            {
+              "value": "2023_7",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_7.parquet"
+            },
+            {
+              "value": "2023_8",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_8.parquet"
+            },
+            {
+              "value": "2023_9",
+              "path": "/data/assistant/qv/qv_teammate_corners/2023/2023_9.parquet"
+            }
+          ]
+        },
+        {
+          "value": 2024,
+          "path": "/data/assistant/qv/qv_teammate_corners/2024",
+          "subPartitions": [
+            {
+              "value": "2024_1",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_1.parquet"
+            },
+            {
+              "value": "2024_10",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_10.parquet"
+            },
+            {
+              "value": "2024_11",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_11.parquet"
+            },
+            {
+              "value": "2024_12",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_12.parquet"
+            },
+            {
+              "value": "2024_13",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_13.parquet"
+            },
+            {
+              "value": "2024_14",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_14.parquet"
+            },
+            {
+              "value": "2024_15",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_15.parquet"
+            },
+            {
+              "value": "2024_16",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_16.parquet"
+            },
+            {
+              "value": "2024_17",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_17.parquet"
+            },
+            {
+              "value": "2024_18",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_18.parquet"
+            },
+            {
+              "value": "2024_19",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_19.parquet"
+            },
+            {
+              "value": "2024_2",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_2.parquet"
+            },
+            {
+              "value": "2024_20",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_20.parquet"
+            },
+            {
+              "value": "2024_21",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_21.parquet"
+            },
+            {
+              "value": "2024_22",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_22.parquet"
+            },
+            {
+              "value": "2024_23",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_23.parquet"
+            },
+            {
+              "value": "2024_24",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_24.parquet"
+            },
+            {
+              "value": "2024_3",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_3.parquet"
+            },
+            {
+              "value": "2024_4",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_4.parquet"
+            },
+            {
+              "value": "2024_5",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_5.parquet"
+            },
+            {
+              "value": "2024_6",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_6.parquet"
+            },
+            {
+              "value": "2024_7",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_7.parquet"
+            },
+            {
+              "value": "2024_8",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_8.parquet"
+            },
+            {
+              "value": "2024_9",
+              "path": "/data/assistant/qv/qv_teammate_corners/2024/2024_9.parquet"
+            }
+          ]
+        },
+        {
+          "value": 2025,
+          "path": "/data/assistant/qv/qv_teammate_corners/2025",
+          "subPartitions": [
+            {
+              "value": "2025_1",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_1.parquet"
+            },
+            {
+              "value": "2025_10",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_10.parquet"
+            },
+            {
+              "value": "2025_11",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_11.parquet"
+            },
+            {
+              "value": "2025_12",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_12.parquet"
+            },
+            {
+              "value": "2025_13",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_13.parquet"
+            },
+            {
+              "value": "2025_14",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_14.parquet"
+            },
+            {
+              "value": "2025_15",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_15.parquet"
+            },
+            {
+              "value": "2025_16",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_16.parquet"
+            },
+            {
+              "value": "2025_17",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_17.parquet"
+            },
+            {
+              "value": "2025_18",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_18.parquet"
+            },
+            {
+              "value": "2025_19",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_19.parquet"
+            },
+            {
+              "value": "2025_2",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_2.parquet"
+            },
+            {
+              "value": "2025_20",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_20.parquet"
+            },
+            {
+              "value": "2025_21",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_21.parquet"
+            },
+            {
+              "value": "2025_22",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_22.parquet"
+            },
+            {
+              "value": "2025_23",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_23.parquet"
+            },
+            {
+              "value": "2025_24",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_24.parquet"
+            },
+            {
+              "value": "2025_3",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_3.parquet"
+            },
+            {
+              "value": "2025_4",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_4.parquet"
+            },
+            {
+              "value": "2025_5",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_5.parquet"
+            },
+            {
+              "value": "2025_6",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_6.parquet"
+            },
+            {
+              "value": "2025_7",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_7.parquet"
+            },
+            {
+              "value": "2025_8",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_8.parquet"
+            },
+            {
+              "value": "2025_9",
+              "path": "/data/assistant/qv/qv_teammate_corners/2025/2025_9.parquet"
+            }
+          ]
+        }
+      ],
+      "rows": 1529933,
+      "hash": "268b6ccf854a7e74563451e570678f97"
+    },
+    {
+      "name": "qv_circuits",
+      "path": "/data/assistant/qv/qv_circuits.parquet",
+      "partitioned": false,
+      "rows": 44,
+      "hash": "4224daf8f56bff7bf5ab56af08950560"
+    },
+    {
+      "name": "qv_compounds",
+      "path": "/data/assistant/qv/qv_compounds.parquet",
+      "partitioned": false,
+      "rows": 499,
+      "hash": "9fe5615fe4f190b72a5643c6648b6d53"
     }
-  ]
+  ],
+  "assistant": {
+    "card_schema": "1",
+    "catalogue_version": "8d2412984b64ef3f8d17ebda2965b192d0abfa82b77b3b6e3cc4003487811f75",
+    "registry": "9122b2bd177ce45fea50617d72e8857f867f5f9c3c10e9eb95272ec0eb499736",
+    "label_version": "v16",
+    "model_version": null,
+    "cards": [
+      {
+        "season": 2018,
+        "path": "/data/assistant/cards/2018.parquet",
+        "rows": 7383,
+        "sha256": "c43230bc13ce3efae20ae2039781a9d3b1ce90ed5aa9d0e37b012829315b32a8"
+      },
+      {
+        "season": 2019,
+        "path": "/data/assistant/cards/2019.parquet",
+        "rows": 7739,
+        "sha256": "b807b4bf99e9fdb2d0fd3807cdbcccb0904f833ea170ed0f20aba86f17334f1e"
+      },
+      {
+        "season": 2020,
+        "path": "/data/assistant/cards/2020.parquet",
+        "rows": 6410,
+        "sha256": "7dc8149aa30f35cf827c44f562d57ba339ad61444f2fde057ac8c5c861dd19f2"
+      },
+      {
+        "season": 2021,
+        "path": "/data/assistant/cards/2021.parquet",
+        "rows": 8048,
+        "sha256": "7e60f4bf968a4feb024748ed21991431be28aa51174e82f56eeba46a87f7e949"
+      },
+      {
+        "season": 2022,
+        "path": "/data/assistant/cards/2022.parquet",
+        "rows": 8413,
+        "sha256": "017d3c8b1f944ca4ba1fc638bd9ad129d3f7258d76ae219f5852b7a6a4e1e2f6"
+      },
+      {
+        "season": 2023,
+        "path": "/data/assistant/cards/2023.parquet",
+        "rows": 8596,
+        "sha256": "255e5dfe06e0b198bc3c1d0e5e070e8aa8ba677bea55ce6f270998407aa05770"
+      },
+      {
+        "season": 2024,
+        "path": "/data/assistant/cards/2024.parquet",
+        "rows": 8948,
+        "sha256": "b3f35d766dc784ecffdd0c461b99401869a526888a4874495c3c113a15755072"
+      },
+      {
+        "season": 2025,
+        "path": "/data/assistant/cards/2025.parquet",
+        "rows": 8755,
+        "sha256": "6ebebafb8b1b4b66e0d6d454ed71bcb7746d232e38517ce075694b2a9a3fc514"
+      },
+      {
+        "season": null,
+        "path": "/data/assistant/cards/_global.parquet",
+        "rows": 4,
+        "sha256": "b9c38db5a38cdcc54bd78ea7b85b76f01612684a06fd9accbc48e00cae595dea"
+      }
+    ],
+    "classes_live": [
+      "T"
+    ],
+    "classes_held": [
+      "DA",
+      "TRAFFIC"
+    ],
+    "parquet_writer": "duckdb 1.5.6"
+  }
 }

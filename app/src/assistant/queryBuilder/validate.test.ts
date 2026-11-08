@@ -72,6 +72,28 @@ describe('validate', () => {
     const f = [...base.filters, ...['driver_id', 'constructor_id', 'compound', 'stint_id', 'lap_number'].map((col) => ({ col, op: 'eq', val: col === 'lap_number' ? 1 : 'A' }))]
     expect(code({ ...base, filters: f })).toBe('too_many_filters')
   })
+  describe('AX-13 ruling 6: the catalogue season cap', () => {
+    const seasons3 = [{ col: 'season', op: 'in', val: [2022, 2023, 2024] }]
+    const stints = { view: 'qv_stints', filters: seasons3, group_by: ['driver_id'], aggregate: { fn: 'count', col: 'stints' } }
+    it('unpartitioned view with max_seasons null: no per-request season cap', () => {
+      expect(catalogue.views.find((v) => v.name === 'qv_stints')).toMatchObject({ partition_key: null, max_seasons: null })
+      expect(code(stints)).toBe('ok')
+      expect(code({ ...stints, filters: [{ col: 'season', op: 'between', val: [2018, 2025] }] })).toBe('ok')
+    })
+    it('partitioned view with max_seasons null keeps 2', () => {
+      const cat = { ...catalogue, views: catalogue.views.map((v) => (v.name === 'qv_laps' ? { ...v, max_seasons: null } : v)) }
+      const req = { ...base, filters: seasons3, group_by: [] }
+      const r = validate(req, cat)
+      expect('status' in r && (r as QueryError).code).toBe('too_many_seasons')
+      expect('status' in validate({ ...req, filters: [{ col: 'season', op: 'in', val: [2023, 2024] }] }, cat)).toBe(false)
+    })
+    it('a set max_seasons is used as is', () => {
+      const cat = { ...catalogue, views: catalogue.views.map((v) => (v.name === 'qv_laps' ? { ...v, max_seasons: 3 } : v)) }
+      expect('status' in validate({ ...base, filters: seasons3, group_by: [] }, cat)).toBe(false)
+      expect(code({ ...base, filters: seasons3, group_by: [] })).toBe('too_many_seasons') // catalogue's qv_laps stays at 2
+    })
+  })
+
   it('too_many_seasons', () => {
     expect(code({ ...base, filters: [{ col: 'season', op: 'in', val: [2022, 2023, 2024] }], group_by: [] })).toBe('too_many_seasons')
     expect(code({ ...base, filters: [{ col: 'season', op: 'between', val: [2018, 2025] }], group_by: [] })).toBe('too_many_seasons')

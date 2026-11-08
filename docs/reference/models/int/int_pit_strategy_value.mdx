@@ -20,6 +20,7 @@ flowchart LR
   int_pit_strategy_cost_curve --> int_pit_strategy_value
   int_stint_end_regime --> int_pit_strategy_value
   int_stint_geometry --> int_pit_strategy_value
+  stg_lap_tyre_qa --> int_pit_strategy_value
   stg_pits --> int_pit_strategy_value
   int_pit_strategy_value --> fct_driver_isolation_stint
   int_pit_strategy_value --> fct_stint_features
@@ -34,9 +35,9 @@ flowchart LR
 | Family | [Strategy](/transform/families/strategy) |
 | Contract enforced | No |
 | Tags | `simulation`, `strategy` |
-| Upstream | [`int_stint_geometry`](./int_stint_geometry), [`int_compound_cliff_predicted`](./int_compound_cliff_predicted), [`int_pit_loss_circuit`](./int_pit_loss_circuit), [`stg_pits`](../stg/stg_pits), [`int_lap_air_state`](./int_lap_air_state), [`int_pit_strategy_cost_curve`](./int_pit_strategy_cost_curve), [`int_stint_end_regime`](./int_stint_end_regime) |
+| Upstream | [`int_stint_geometry`](./int_stint_geometry), [`int_compound_cliff_predicted`](./int_compound_cliff_predicted), [`int_pit_loss_circuit`](./int_pit_loss_circuit), [`stg_pits`](../stg/stg_pits), [`int_lap_air_state`](./int_lap_air_state), [`int_pit_strategy_cost_curve`](./int_pit_strategy_cost_curve), [`stg_lap_tyre_qa`](../stg/stg_lap_tyre_qa), [`int_stint_end_regime`](./int_stint_end_regime) |
 
-**14 tests** [guard](/transform/ci/overview) this model  -  13 generic, 1 singular.
+**15 tests** [guard](/transform/ci/overview) this model  -  13 generic, 2 singular.
 
 ## Columns
 

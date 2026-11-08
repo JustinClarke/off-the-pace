@@ -82,7 +82,7 @@ export const STUB_PLANS: Record<string, StubPlan> = {
 
   'oc-pits-VER-2024': { rounds: [[qd({ view: 'qv_pit_stops', filters: [eq('season', 2024), eq('driver_id', 'VER')], aggregate: { fn: 'count', col: 'stops' } })]] },
   'oc-pits-top3-2024': { rounds: [[qd({ view: 'qv_pit_stops', filters: [eq('season', 2024)], group_by: ['driver_id'], aggregate: { fn: 'count', col: 'stops' }, order: 'value_desc', limit: 3 })]] },
-  'oc-wins-VER-2023': { rounds: [[qd({ view: 'qv_driver_race', filters: [eq('season', 2023), eq('driver_id', 'VER'), eq('actual_finish_position', 1)], aggregate: { fn: 'count', col: 'races' } })]] },
+  'oc-wins-VER-2023': { rounds: [[kinds(['season.results'], { season: 2023, driver_id: 'VER' })]] },
   'oc-sc-laps-2024': { rounds: [[qd({ view: 'qv_race_laps', filters: [eq('season', 2024), eq('caution_status', 'safety_car')], aggregate: { fn: 'count', col: 'laps' } })]] },
   'oc-soft-stint-2024': { rounds: [[qd({ view: 'qv_stints', filters: [eq('season', 2024), eq('compound', 'SOFT'), eq('is_censored_stint', false)], aggregate: { fn: 'avg', col: 'stint_length_laps' } })]] },
   'oc-dnf-LEC-2022': {

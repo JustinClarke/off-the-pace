@@ -8,18 +8,27 @@
 //   node scripts/check_bundle_size.mjs            # check dist/ against the committed budget (CI gate)
 //   node scripts/check_bundle_size.mjs --update   # rewrite the budget from the current build (+ headroom)
 //
+// Split budget (AX-14 ruling 1): a build with VITE_ASSISTANT_ENABLED=true also ships the lazy assistant chunks
+// (everything reachable ONLY through the lazy AssistantLauncher import). Those are measured separately from the
+// Vite manifest (build with `vite build --manifest`) and checked against maxAssistant* limits; every other JS file
+// is checked against the unchanged global limits, so a flag-on build cannot hide a regression in the main app.
+// A flag-off build has no launcher chunk and is checked exactly as before. `--dist <dir>` checks a scratch build.
+//
 // Run `pnpm build` first. The budget carries ~8% headroom so ordinary churn doesn't flake the gate;
 // regenerate it deliberately (make app-bundle-budget-update) when a real size change is intended.
 
 import { readdirSync, statSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
-import { join, dirname, extname } from 'node:path'
+import { join, dirname, extname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
-const DIST = join(appRoot, 'dist')
+const distArg = process.argv.indexOf('--dist')
+const DIST = distArg > -1 && process.argv[distArg + 1] ? resolve(process.argv[distArg + 1]) : join(appRoot, 'dist')
 const BUDGET_FILE = join(appRoot, 'perf-budget.json')
 const HEADROOM = 1.08 // budgets written by --update get 8% slack above the current build
+const ASSISTANT_HEADROOM = 1.1 // assistant limits: measured + 10%, rounded up to the next 10 KB
+const LAUNCHER_SRC = 'assistant/drawer/AssistantLauncher.tsx'
 const JS_EXT = new Set(['.js', '.mjs', '.cjs'])
 
 const update = process.argv.includes('--update')
@@ -48,15 +57,59 @@ if (files.length === 0) {
   process.exit(1)
 }
 
-let totalJsBytes = 0
-let gzipJsBytes = 0
-let largest = { path: '', size: 0 }
-for (const f of files) {
-  totalJsBytes += f.size
-  gzipJsBytes += gzipSync(readFileSync(f.path)).length
-  if (f.size > largest.size) largest = f
+// Files reachable only through the lazy launcher import (needs the Vite manifest).
+function assistantOnlyFiles() {
+  const manifestPath = join(DIST, '.vite', 'manifest.json')
+  const hasLauncherChunk = files.some((f) => /AssistantLauncher-[^/]*\.js$/.test(f.path))
+  if (!existsSync(manifestPath)) {
+    if (hasLauncherChunk) {
+      console.error('❌  this build contains the assistant launcher chunk but no .vite/manifest.json; rebuild with `vite build --manifest`.')
+      process.exit(1)
+    }
+    return new Set()
+  }
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  const launcherKey = Object.keys(manifest).find((k) => k.endsWith(LAUNCHER_SRC))
+  if (!launcherKey) return new Set() // flag-off build: nothing assistant-only
+  const reach = (roots, skip) => {
+    const seen = new Set()
+    const stack = [...roots]
+    while (stack.length) {
+      const k = stack.pop()
+      if (seen.has(k) || k === skip || !manifest[k]) continue
+      seen.add(k)
+      stack.push(...(manifest[k].imports ?? []), ...(manifest[k].dynamicImports ?? []))
+    }
+    return seen
+  }
+  const rest = reach(Object.keys(manifest).filter((k) => manifest[k].isEntry), launcherKey)
+  const launcher = reach([launcherKey], null)
+  const out = new Set()
+  for (const k of launcher) if (!rest.has(k)) out.add(join(DIST, manifest[k].file))
+  return out
 }
-const measured = { totalJsBytes, gzipJsBytes, largestJsBytes: largest.size }
+
+const assistantSet = assistantOnlyFiles()
+const sum = (list) => {
+  let total = 0
+  let gz = 0
+  let big = { path: '', size: 0 }
+  for (const f of list) {
+    total += f.size
+    gz += gzipSync(readFileSync(f.path)).length
+    if (f.size > big.size) big = f
+  }
+  return { totalJsBytes: total, gzipJsBytes: gz, largestJsBytes: big.size, largest: big }
+}
+const mainFiles = files.filter((f) => !assistantSet.has(f.path))
+const asstFiles = files.filter((f) => assistantSet.has(f.path))
+const main = sum(mainFiles)
+const asst = asstFiles.length ? sum(asstFiles) : null
+const totalJsBytes = main.totalJsBytes
+const gzipJsBytes = main.gzipJsBytes
+const largest = main.largest
+const measured = { totalJsBytes, gzipJsBytes, largestJsBytes: main.largestJsBytes }
+const roundUp10k = (b) => Math.ceil((b * ASSISTANT_HEADROOM) / 10240) * 10240
 
 if (update) {
   const budget = {
@@ -66,6 +119,14 @@ if (update) {
     maxTotalJsBytes: Math.ceil((totalJsBytes * HEADROOM) / 1024) * 1024,
     maxGzipJsBytes: Math.ceil((gzipJsBytes * HEADROOM) / 1024) * 1024,
     maxLargestJsBytes: Math.ceil((largest.size * HEADROOM) / 1024) * 1024,
+  }
+  const prev = existsSync(BUDGET_FILE) ? JSON.parse(readFileSync(BUDGET_FILE, 'utf8')) : {}
+  if (asst) {
+    budget.maxAssistantTotalJsBytes = roundUp10k(asst.totalJsBytes)
+    budget.maxAssistantGzipJsBytes = roundUp10k(asst.gzipJsBytes)
+    budget.maxAssistantLargestJsBytes = roundUp10k(asst.largestJsBytes)
+  } else {
+    for (const k of ['maxAssistantTotalJsBytes', 'maxAssistantGzipJsBytes', 'maxAssistantLargestJsBytes']) if (prev[k] !== undefined) budget[k] = prev[k]
   }
   writeFileSync(BUDGET_FILE, JSON.stringify(budget, null, 2) + '\n')
   console.log(`✅  wrote ${BUDGET_FILE} (+${Math.round((HEADROOM - 1) * 100)}% headroom)`)
@@ -85,7 +146,19 @@ const checks = [
   ['largest chunk', measured.largestJsBytes, budget.maxLargestJsBytes, kb, 'KB'],
 ]
 
-console.log(`── Bundle-size budget (${files.length} JS assets in dist/) ──`)
+if (asst) {
+  checks.push(
+    ['assistant (raw)', asst.totalJsBytes, budget.maxAssistantTotalJsBytes, kb, 'KB'],
+    ['assistant (gzip)', asst.gzipJsBytes, budget.maxAssistantGzipJsBytes, kb, 'KB'],
+    ['assistant largest', asst.largestJsBytes, budget.maxAssistantLargestJsBytes, kb, 'KB'],
+  )
+  if (checks.slice(-3).some((c) => typeof c[2] !== 'number')) {
+    console.error('❌  assistant chunks present but perf-budget.json has no maxAssistant* limits; seed with --update.')
+    process.exit(1)
+  }
+}
+
+console.log(`── Bundle-size budget (${mainFiles.length} JS assets${asst ? ` + ${asstFiles.length} assistant-only` : ''} in ${DIST.replace(appRoot + '/', '')}) ──`)
 let failed = false
 for (const [label, actual, max, fmt, unit] of checks) {
   const pct = ((actual / max) * 100).toFixed(0)

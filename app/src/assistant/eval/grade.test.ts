@@ -221,12 +221,15 @@ describe('AX-13 grader: held_class', () => {
     const g = expectFail(hQ, obs(hQ, `Traffic cost is held, not available yet: it waits on the ML redo [card ${hCards[0]}].`, { cards_received: hCards }), ['refusal'])
     expect(g.checks.refusal.detail).toMatch(/traffic_remeasure/)
   })
-  it('FAILS an over-budget run (18,001 tokens)', () => {
-    const g = expectFail(hQ, obs(hQ, hOk, { cards_received: hCards, budget: { total: 18001, peak_context: 9000, rounds: 5, neurons: 400, estimated: false } }), ['budget'])
+  it('FAILS an over-budget run (peak context 18,001 tokens; AX-13 ruling 1)', () => {
+    const g = expectFail(hQ, obs(hQ, hOk, { cards_received: hCards, budget: { total: 9000, peak_context: 18001, rounds: 5, neurons: 400, estimated: false } }), ['budget'])
     expect(g.checks.budget.detail).toMatch(/18001/)
   })
-  it('passes exactly at the limit (18,000 tokens)', () => {
-    expectPass(hQ, obs(hQ, hOk, { cards_received: hCards, budget: { total: 18000, peak_context: 9000, rounds: 5, neurons: 400, estimated: false } }))
+  it('passes exactly at the limit (peak context 18,000 tokens)', () => {
+    expectPass(hQ, obs(hQ, hOk, { cards_received: hCards, budget: { total: 9000, peak_context: 18000, rounds: 5, neurons: 400, estimated: false } }))
+  })
+  it('does not gate on the sum over rounds: total 30,000 with a 9,000 peak passes, and total stays reported', () => {
+    expectPass(hQ, obs(hQ, hOk, { cards_received: hCards, budget: { total: 30000, peak_context: 9000, rounds: 5, neurons: 600, estimated: false } }))
   })
 })
 

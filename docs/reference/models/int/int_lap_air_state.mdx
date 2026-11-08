@@ -23,6 +23,7 @@ flowchart LR
   int_lap_air_state --> int_lap_normalized_pace
   int_lap_air_state --> int_pit_strategy_value
   int_lap_air_state --> int_sector_residual_decomposed
+  int_lap_air_state --> mart_race_coverage
   style int_lap_air_state fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -35,7 +36,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`int_stint_geometry`](./int_stint_geometry), [`stg_laps`](../stg/stg_laps) |
 
-**11 tests** [guard](/transform/ci/overview) this model  -  5 generic, 6 singular.
+**12 tests** [guard](/transform/ci/overview) this model  -  5 generic, 7 singular.
 
 ## Columns
 

@@ -1,0 +1,276 @@
+{
+ "card_schema": "1",
+ "versions": {
+  "data_version": "aeb04af5248296b9",
+  "label_version": "v16",
+  "model_version": null,
+  "card_schema": "1",
+  "registry": "9122b2bd177ce45fea50617d72e8857f867f5f9c3c10e9eb95272ec0eb499736"
+ },
+ "classes_live": [
+  "T"
+ ],
+ "classes_held": [
+  "DA",
+  "TRAFFIC"
+ ],
+ "kinds": [
+  {
+   "kind": "constructor_circuit_interaction.season",
+   "class": "DA",
+   "held": 81,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "constructor_structural_pace.season",
+   "class": "DA",
+   "held": 81,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "constructor_team_averages.season",
+   "class": "DA",
+   "held": 81,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "corner_phase.season",
+   "class": "T",
+   "held": 0,
+   "params": 8,
+   "active": 483,
+   "refused": 0
+  },
+  {
+   "kind": "counterfactual_championship.season",
+   "class": "DA",
+   "held": 81,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "data_quality.race",
+   "class": "DA",
+   "held": 173,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "dirty_air.price",
+   "class": "TRAFFIC",
+   "held": 3458,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "driver_consistency.season",
+   "class": "DA",
+   "held": 173,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "driver_isolation.race",
+   "class": "TRAFFIC",
+   "held": 3458,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "driver_isolation.stint",
+   "class": "TRAFFIC",
+   "held": 3458,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "driver_race.pit_stops",
+   "class": "T",
+   "held": 0,
+   "params": 173,
+   "active": 3312,
+   "refused": 1
+  },
+  {
+   "kind": "era_rating.season",
+   "class": "T",
+   "held": 0,
+   "params": 173,
+   "active": 173,
+   "refused": 0
+  },
+  {
+   "kind": "ghost_race.standings",
+   "class": "DA",
+   "held": 3458,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "hidden_performance.season",
+   "class": "DA",
+   "held": 81,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "lap_waterfall.component",
+   "class": "DA",
+   "held": 3458,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "party_mode.season",
+   "class": "DA",
+   "held": 81,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "pit_strategy.opportunity_cost",
+   "class": "T",
+   "held": 8943,
+   "params": 173,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "pit_strategy.optimal_lap",
+   "class": "T",
+   "held": 8943,
+   "params": 173,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "pit_strategy.verdict",
+   "class": "TRAFFIC",
+   "held": 8943,
+   "params": 173,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "race.cautions",
+   "class": "T",
+   "held": 0,
+   "params": 173,
+   "active": 173,
+   "refused": 0
+  },
+  {
+   "kind": "race.coverage",
+   "class": "T",
+   "held": 0,
+   "params": 173,
+   "active": 173,
+   "refused": 0
+  },
+  {
+   "kind": "race.result",
+   "class": "T",
+   "held": 0,
+   "params": 173,
+   "active": 3458,
+   "refused": 0
+  },
+  {
+   "kind": "race.teammate_gap",
+   "class": "T",
+   "held": 0,
+   "params": 173,
+   "active": 3458,
+   "refused": 0
+  },
+  {
+   "kind": "race_control.pooled_rate",
+   "class": "T",
+   "held": 0,
+   "params": 1,
+   "active": 36,
+   "refused": 0
+  },
+  {
+   "kind": "race_driver.skill_components",
+   "class": "DA",
+   "held": 3458,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "race_lost.component",
+   "class": "DA",
+   "held": 0,
+   "params": 3312,
+   "active": 0,
+   "refused": 19872
+  },
+  {
+   "kind": "season.results",
+   "class": "T",
+   "held": 0,
+   "params": 8,
+   "active": 173,
+   "refused": 0
+  },
+  {
+   "kind": "season.teammate_gap",
+   "class": "T",
+   "held": 0,
+   "params": 8,
+   "active": 173,
+   "refused": 0
+  },
+  {
+   "kind": "season_driver.skill_benchmark",
+   "class": "DA",
+   "held": 173,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "sector_decomposition.component",
+   "class": "DA",
+   "held": 3458,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "tyre_cliff_survival.profile",
+   "class": "DA",
+   "held": 471,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  },
+  {
+   "kind": "wet_race.specialist",
+   "class": "DA",
+   "held": 173,
+   "params": 1,
+   "active": 0,
+   "refused": 0
+  }
+ ],
+ "cards": 64296
+}

@@ -27,6 +27,8 @@ export interface ModelReply {
   usage?: ModelUsage | null
   /** AX-13: the endpoint's usage object as returned (reasoning-token fields, if any), for the eval record. */
   raw_usage?: unknown
+  /** AX-13 / AX-12 ruling 1: the endpoint's finish_reason for the round ("stop", "length", "tool_calls"), when it sends one. "length" is truncation at MAX_OUTPUT_TOKENS. */
+  finish_reason?: string | null
 }
 
 export interface ModelRequest {

@@ -63,7 +63,7 @@ describe('AX-04 registry', () => {
     const stubs = new Set(stubKinds.map((s) => s.kind)) // AX-15a held stubs: registry.held.test.ts
     expect(registry.map((s) => s.kind).filter((k) => !stubs.has(k)).sort()).toEqual([
       'corner_phase.season', 'driver_race.pit_stops', 'era_rating.season', 'pit_strategy.opportunity_cost', 'pit_strategy.optimal_lap',
-      'pit_strategy.verdict', 'race.cautions', 'race.coverage', 'race.result', 'race.teammate_gap', 'race_control.pooled_rate', 'race_lost.component', 'season.teammate_gap',
+      'pit_strategy.verdict', 'race.cautions', 'race.coverage', 'race.result', 'race.teammate_gap', 'race_control.pooled_rate', 'race_lost.component', 'season.results', 'season.teammate_gap',
     ])
   })
 

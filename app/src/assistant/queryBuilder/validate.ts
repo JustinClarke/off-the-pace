@@ -201,7 +201,10 @@ function validateInner(req: unknown, cat: Catalogue): ValidatedRequest | QueryEr
     seasons = cat.seasons.filter((s) => named.includes(s))
     const unknown = seasonFilter.op === 'between' ? [] : nums.filter((s) => !cat.seasons.includes(s))
     if (unknown.length > 0) return err('bad_value', 'season', 'season not in the data', { seasons: cat.seasons })
-    const max = Math.min(2, view.max_seasons ?? 2)
+    // AX-13 ruling 6: honour the catalogue. A set max_seasons is the cap; null on an unpartitioned view
+    // (one file loaded whole whatever the seasons) means no per-request season cap; null on a
+    // partitioned view keeps 2.
+    const max = view.max_seasons ?? (view.partition_key ? 2 : Number.POSITIVE_INFINITY)
     if (seasonFilter.op === 'between' && nums[1] - nums[0] + 1 > max)
       return err('too_many_seasons', 'season', `at most ${max} season(s) per request`, { seasons: cat.seasons })
     if (seasons.length > max) return err('too_many_seasons', 'season', `at most ${max} season(s) per request`, { seasons: cat.seasons })

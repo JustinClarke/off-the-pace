@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "project": "off the pace AI integration v2 (assistant data access)",
-  "updated": "2026-11-08T22:15:00+04:00",
+  "updated": "2026-11-08T23:55:00+04:00",
   "pointer": "TX-14",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
@@ -80,7 +80,7 @@
     {
       "id": "TX-01",
       "group": "1-transform",
-      "stage": "MEASURED",
+      "stage": "LANDED",
       "depends_on": [],
       "title": "Race-rating CI rebuilt from the paired gaps: expose the paired-lap n, add a trust label",
       "sources": [
@@ -90,8 +90,8 @@
       ],
       "doc": "wi/TX-01.md",
       "cost": "0.5-1d",
-      "model": "opus-5",
-      "note": "P0. rating_s is the median of paired lap-time gaps to the teammate, but the CI is 1.96 x the SE of a different, field-relative residual. 128 of 3,138 race ratings rest on fewer than 5 paired laps (2020_14 HAM: -6.617 s from one paired lap, CI [-6.89, -6.34]). The paired-lap count exists at int_driver_race_skill_loro.sql:297 and the mart drops it. 2026-11-07 lane A: new int_driver_race_paired_laps (125,780 rows), exact order-statistic CI on the median, trust label ok 2,930 / thin 70 / suppressed 138; CI brackets the rating on every row; median width 0.434 -> 0.490 s; int_driver_race_skill_loro byte-identical; build 142/142. OWNER: the 6/10 paired-lap thresholds and keeping rating_s when suppressed (kept). Not committed. OPUS 2026-11-08: raise the 'ok' threshold from 10 to 12 (floor stays 6; at n=5 the best exact interval covers only 93.75%): ok/thin/suppressed becomes 2,906 / 94 / 138. rating_s and teammate_gap_s stay in the mart (the spec and the mirror test require it); a card never shows a suppressed number. 2026-11-08 lane H (sonnet): threshold change done on scratch: ok/thin/suppressed 2,906 / 94 / 138 exactly; only the 24 rows with n=10 or 11 moved (ok -> thin), all other mart columns identical (EXCEPT = 0 rows); build PASS=59 ERROR=0 at 1 thread; no oracle --check snapshot taken (before-state no longer buildable), compared by SQL. The REAL data/dev.duckdb and the exported manifest still carry the old threshold: one more rebuild + export is owed."
+      "model": "sonnet-5",
+      "note": "P0. rating_s is the median of paired lap-time gaps to the teammate, but the CI is 1.96 x the SE of a different, field-relative residual. 128 of 3,138 race ratings rest on fewer than 5 paired laps (2020_14 HAM: -6.617 s from one paired lap, CI [-6.89, -6.34]). The paired-lap count exists at int_driver_race_skill_loro.sql:297 and the mart drops it. 2026-11-07 lane A: new int_driver_race_paired_laps (125,780 rows), exact order-statistic CI on the median, trust label ok 2,930 / thin 70 / suppressed 138; CI brackets the rating on every row; median width 0.434 -> 0.490 s; int_driver_race_skill_loro byte-identical; build 142/142. OWNER: the 6/10 paired-lap thresholds and keeping rating_s when suppressed (kept). Not committed. OPUS 2026-11-08: raise the 'ok' threshold from 10 to 12 (floor stays 6; at n=5 the best exact interval covers only 93.75%): ok/thin/suppressed becomes 2,906 / 94 / 138. rating_s and teammate_gap_s stay in the mart (the spec and the mirror test require it); a card never shows a suppressed number. 2026-11-08 lane H (sonnet): threshold change done on scratch: ok/thin/suppressed 2,906 / 94 / 138 exactly; only the 24 rows with n=10 or 11 moved (ok -> thin), all other mart columns identical (EXCEPT = 0 rows); build PASS=59 ERROR=0 at 1 thread; no oracle --check snapshot taken (before-state no longer buildable), compared by SQL. The REAL data/dev.duckdb and the exported manifest still carry the old threshold: one more rebuild + export is owed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-TX-01): 1 thresholds 6/12 and rating_s kept: confirmed, not reopened. 2 generated docs: house step; make docs-reference + docs-coverage once, in lane D, after all TX SQL (TX-14 incl.). 3 LANDED when lane D's real rebuild shows ok/thin/suppressed 2,906/94/138 on data/dev.duckdb and the exported manifest (SQL counts; committed hash baselines stale until owner step E). Runnable by sonnet-5 in lane D; blocked on TX-14. Model opus-5 -> sonnet-5: the open choices are ruled, so the method is written down. | LANDED 2026-11-08 (orchestrator re-check on data/dev.duckdb after the lane-D rebuild): mart_race_driver_summary rating_trust_label ok 2,906 / thin 94 / suppressed 138, matches the ruling. Evidence: _roadmap/_ai-integration/_evidence/ax-07-lineage/ungrounded.json (export line) and app/public/data/_manifest.json. Hash baselines stay stale until the owner re-takes them (step E)."
     },
     {
       "id": "TX-02",
@@ -114,7 +114,7 @@
     {
       "id": "TX-03",
       "group": "1-transform",
-      "stage": "MEASURED",
+      "stage": "LANDED",
       "depends_on": [
         "TX-02"
       ],
@@ -125,8 +125,8 @@
       ],
       "doc": "wi/TX-03.md",
       "cost": "0.5d",
-      "model": "opus-5",
-      "note": "P0. int_lap_residual_decomposed.sql:285-290 zero-fills it, reaching 6,460 clean laps; every driver in 2018_1 and 2018_2 shows mean_dirty_air_tax_s = 0.0. Breaks the project's own never-0 rule. Must not move a label: aggregate-level handling first, any label change goes through the owner. 2026-11-07 lane A: aggregate-level fix only, no lap value moved. Race mart missing dirty-air means 52 -> 92; season mart 172 of 173 rows moved by at most 0.013 s; benchmark dirty-air mean 2018 0.0782 -> 0.0865. Spec's 103,280 'measured zeros' is really 96,820 measured + 6,460 filled. OWNER: option B (lap-level 0.0 fill) not done and still reaches dirty-air-cost, lap-waterfall, team-averages, race-lost, 10 models and 3 scripts. Build 79/79. Not committed. OPUS 2026-11-08: option B (lap-level fill) is DO LATER, with wake calibration or AX-15b, not in v1: 11,588 laps would go NULL in three columns, total_explained_s NULL on 9,941; four model hashes change; sealed v16 label should not move (inferred from SQL, not built)."
+      "model": "sonnet-5",
+      "note": "P0. int_lap_residual_decomposed.sql:285-290 zero-fills it, reaching 6,460 clean laps; every driver in 2018_1 and 2018_2 shows mean_dirty_air_tax_s = 0.0. Breaks the project's own never-0 rule. Must not move a label: aggregate-level handling first, any label change goes through the owner. 2026-11-07 lane A: aggregate-level fix only, no lap value moved. Race mart missing dirty-air means 52 -> 92; season mart 172 of 173 rows moved by at most 0.013 s; benchmark dirty-air mean 2018 0.0782 -> 0.0865. Spec's 103,280 'measured zeros' is really 96,820 measured + 6,460 filled. OWNER: option B (lap-level 0.0 fill) not done and still reaches dirty-air-cost, lap-waterfall, team-averages, race-lost, 10 models and 3 scripts. Build 79/79. Not committed. OPUS 2026-11-08: option B (lap-level fill) is DO LATER, with wake calibration or AX-15b, not in v1: 11,588 laps would go NULL in three columns, total_explained_s NULL on 9,941; four model hashes change; sealed v16 label should not move (inferred from SQL, not built). RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-TX-03): 1 option B (lap-level NULL) confirmed DO LATER, belongs to wake calibration / AX-15b; consumer list kept in the item note. 2 keep n_dirty_air_measured_laps and dirty_air_unavailable_reason; WC-05/06 adds beside them, renames nothing. 3 LANDED when lane D shows the 34 2018_1/2018_2 rows NULL with NO_MEASURED_LAPS on the real warehouse and both new tests pass. sonnet-5 in lane D; blocked on TX-14. Model opus-5 -> sonnet-5: the open choices are ruled, so the method is written down. | LANDED 2026-11-08: on the real data/dev.duckdb, 2018_1 and 2018_2 give 34 rows, all mean_dirty_air_tax_s NULL with dirty_air_unavailable_reason NO_MEASURED_LAPS. Evidence: the same query, and _roadmap/_ai-integration/_evidence/ax-07-lineage/ungrounded.json. Option B stays DO LATER (WC/AX-15b track)."
     },
     {
       "id": "TX-04",
@@ -182,7 +182,7 @@
     {
       "id": "TX-07",
       "group": "1-transform",
-      "stage": "BUILDING",
+      "stage": "LANDED",
       "depends_on": [
         "TX-12"
       ],
@@ -198,7 +198,7 @@
       "doc": "wi/TX-07.md",
       "cost": "0.5d",
       "model": "sonnet-5",
-      "note": "P2. At least two entries look wrong against known F1 history (not checked against data). Check nothing in the app reads it before removing. 2026-11-07 lane B: dim_events removed everywhere (nothing read it) and the home tiles fixed (ml_models_total, no 'or 5'); pytest 11/11, typecheck clean, vitest 671 pass / 2 fail (same CHANCE_LINE cites). NOT DONE: step 6, removing dim_events keys from the committed baselines, which the owner re-takes once. Docs edited by hand, not regenerated. Not committed."
+      "note": "P2. At least two entries look wrong against known F1 history (not checked against data). Check nothing in the app reads it before removing. 2026-11-07 lane B: dim_events removed everywhere (nothing read it) and the home tiles fixed (ml_models_total, no 'or 5'); pytest 11/11, typecheck clean, vitest 671 pass / 2 fail (same CHANCE_LINE cites). NOT DONE: step 6, removing dim_events keys from the committed baselines, which the owner re-takes once. Docs edited by hand, not regenerated. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-TX-07): 1 step 6 DROPPED: the owner's single baseline re-take (handoff E) after TX-14 + lane D regenerates all three files; acceptance becomes 'after E, grep dim_events transform/tests/*.baseline.json is empty' (owner checks in E). 2 keep stg_events and raw_dim_events.csv for v1 (ingestion checks read the seed). 3 leave the orphan dim_events table; D drops nothing. 4 generated docs regenerated in D; hand edits to non-generated docs stand. 5 TX-12 fixture already clean. sonnet-5 in lane D; blocked on TX-14. | LANDED 2026-11-08 (lane D): make docs-reference passes after int_microsector_crossings, int_microsector_proximity and int_microsector_corner_class got meta.family physics in transform/models/intermediate/schema.yml (the older copy's pages also say Physics); 21 existing singular tests that were missing from transform/tests/README.md were added to its Domain Constraint table so transform_docs_facts.py --write runs. dim_events greps: none in docs, app, scripts or models except stg_events/raw_dim_events (kept by ruling 2) and ADR text; the three *.baseline.json still hold dim_events keys until the owner's step E re-take (acceptance: grep dim_events transform/tests/*.baseline.json empty). make docs-coverage still ends non-zero at ml_docs_facts (TEST_GROUPS 270 vs 184 collected: 5 ml/tests files fail to collect in this env), which is not TX-07."
     },
     {
       "id": "TX-08",
@@ -495,7 +495,7 @@
     {
       "id": "AX-07",
       "group": "3-foundations",
-      "stage": "MEASURED",
+      "stage": "LANDED",
       "depends_on": [
         "AX-04",
         "AX-01",
@@ -510,8 +510,8 @@
       ],
       "doc": "wi/AX-07.md",
       "cost": "2-3d",
-      "model": "opus-5",
-      "note": "Replaces v1's AI-01. Only transform-class cards go live (TX-01..TX-06 fixed first); dirty-air, ML and traffic-cost classes are held by design. Acceptance: every card has every field or is refused with a reason; a thin and a clean race differ in n and interval; the interval kind is never relabelled; parity with the page for 20 (driver, race) pairs across at least 3 seasons; the lineage table is saved as evidence. Step 1 is the column-level lineage spike (HD13); results in _evidence/ax-07a-lineage-2026-11-07/lineage.md. Open classification defaults taken from that agent's recommendations: hold fuel/compound/constructor components where stacked against the skill bar; compound seed is transform-only with a caveat; lap filters built on the taxed residual are dirty-air-dependent; exposure shares and gaps are traffic. 2026-11-08 lane L (opus): demo question works end to end as class-T cards, classesLive=['T']. Full card run on a scratch export (threshold still 10): 35,380 cards + 19,876 refusals; race.result 3,458 (from stg_results, never laps_completed); race.teammate_gap 3,458 (3,000 with a value: ok 2,930 / thin 70, n = paired laps, order-statistic CI, AIR_STATE_FILTER caveat; 458 unavailable: 138 suppressed 'rated on k paired laps (fewer than 6)' with the rating never on the card, 280 no paired clean laps, 20 in 2021_12, 20 in 2021_16); race.coverage 173; race.cautions 173; driver_race.pit_stops 3,312; era_rating.season 173 live; pit_strategy optimal_lap/verdict/opportunity_cost held 8,211 each (PIT_CALL_REPRODUCTION_RATE); race_lost.component refused 19,872 (dirty-air dependent, no interval). Demo races: 2024_1 VER -0.622 s/lap vs PER (46 paired laps, CI [-0.755,-0.390], ok); 2020_14 HAM unavailable (1 paired lap); 2018_1 HAM -1.477 vs BOT (37 laps, no-telemetry note); 2021_16 HAM unavailable (ALL_WET_NO_DRY_PAIRS). Tests: app vitest 874 pass / 2 pre-existing fail; with scratch export src/assistant 367 pass / 2 fail; 20-pair parity 82/82; headless parity 19/19 (race-lost oracle updated to the AP-06 closed lap set); pytest scripts/tests 46 pass / 3 skipped. NOT BUILT: five minimum-set kinds data_quality.race, race_control.pooled_rate, tyre_cliff_survival.profile, corner_phase.season, season.teammate_gap (AX-07b). OWNER-LEVEL: era ratings are live now (class T with caveat); teammate gap labelled computed, not modelled. FIX OWED BEFORE THE REAL EXPORT (AX-08): stg_results and stg_pits only export when the export script runs from transform/, so a plain make app-data from the repo root would refuse every result and teammate-gap card. Not committed.",
+      "model": "sonnet-5",
+      "note": "Replaces v1's AI-01. Only transform-class cards go live (TX-01..TX-06 fixed first); dirty-air, ML and traffic-cost classes are held by design. Acceptance: every card has every field or is refused with a reason; a thin and a clean race differ in n and interval; the interval kind is never relabelled; parity with the page for 20 (driver, race) pairs across at least 3 seasons; the lineage table is saved as evidence. Step 1 is the column-level lineage spike (HD13); results in _evidence/ax-07a-lineage-2026-11-07/lineage.md. Open classification defaults taken from that agent's recommendations: hold fuel/compound/constructor components where stacked against the skill bar; compound seed is transform-only with a caveat; lap filters built on the taxed residual are dirty-air-dependent; exposure shares and gaps are traffic. 2026-11-08 lane L (opus): demo question works end to end as class-T cards, classesLive=['T']. Full card run on a scratch export (threshold still 10): 35,380 cards + 19,876 refusals; race.result 3,458 (from stg_results, never laps_completed); race.teammate_gap 3,458 (3,000 with a value: ok 2,930 / thin 70, n = paired laps, order-statistic CI, AIR_STATE_FILTER caveat; 458 unavailable: 138 suppressed 'rated on k paired laps (fewer than 6)' with the rating never on the card, 280 no paired clean laps, 20 in 2021_12, 20 in 2021_16); race.coverage 173; race.cautions 173; driver_race.pit_stops 3,312; era_rating.season 173 live; pit_strategy optimal_lap/verdict/opportunity_cost held 8,211 each (PIT_CALL_REPRODUCTION_RATE); race_lost.component refused 19,872 (dirty-air dependent, no interval). Demo races: 2024_1 VER -0.622 s/lap vs PER (46 paired laps, CI [-0.755,-0.390], ok); 2020_14 HAM unavailable (1 paired lap); 2018_1 HAM -1.477 vs BOT (37 laps, no-telemetry note); 2021_16 HAM unavailable (ALL_WET_NO_DRY_PAIRS). Tests: app vitest 874 pass / 2 pre-existing fail; with scratch export src/assistant 367 pass / 2 fail; 20-pair parity 82/82; headless parity 19/19 (race-lost oracle updated to the AP-06 closed lap set); pytest scripts/tests 46 pass / 3 skipped. NOT BUILT: five minimum-set kinds data_quality.race, race_control.pooled_rate, tyre_cliff_survival.profile, corner_phase.season, season.teammate_gap (AX-07b). OWNER-LEVEL: era ratings are live now (class T with caveat); teammate gap labelled computed, not modelled. FIX OWED BEFORE THE REAL EXPORT (AX-08): stg_results and stg_pits only export when the export script runs from transform/, so a plain make app-data from the repo root would refuse every result and teammate-gap card. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-07): 1 race.teammate_gap label 'computed' confirmed. 2 era_rating.season live as T + AIR_STATE_FILTER confirmed (applies HD13 via lineage.md). 3 AX-21 glossary names canonical; already consistent in app/src. 4 model projection gains trust / rank_sep / cov short keys (cards/project.ts), only when present. 5 new card kind season.results (driver x season wins, podiums, classified, starts, DNFs from stg_results; class T, measured, interval none, n = starts); do NOT make qv_driver_race.actual_finish_position a dimension (ghost-finish source, confidence >= 0.3, paired-lap drivers only: would undercount). 6 LANDED when lane D's real export gives ok 2,906 / thin 94, 20-pair parity passes and ungrounded.json is regenerated. Now sonnet-5 (lane L1, then D). Runnable now. Model opus-5 -> sonnet-5: the open choices are ruled, so the method is written down. | LANDED 2026-11-08: real export rebuilt (app/public/data/assistant, 64,296 cards; race.teammate_gap unavailable-reason rows from ok 2,906 / thin 94; season.results 173 cards from ruling 5; projection trust/rank_sep/cov from ruling 4). ungrounded.json regenerated on the real export: _roadmap/_ai-integration/_evidence/ax-07-lineage/ungrounded.json. Rulings 1-3 confirmed as recorded in OR-AX-07.",
       "blocked_by_decision": [
         "HD1"
       ]
@@ -601,7 +601,7 @@
       "doc": "wi/AX-10.md",
       "cost": "2d",
       "model": "sonnet-5",
-      "note": "Replaces v1's AI-04. Acceptance: loop limit, empty result, refused call and number-without-source tests with the model stubbed; 10 sample questions headless; budget log per slot. 2026-11-08 lane U (sonnet): BUILT, ALL RUNS USED A SCRIPTED MODEL (real-model behaviour not measured). app/src/assistant/core/ (types, validateArgs, budget, cardStore, preload, dispatcher, loop, modelClient, cli, nodeDeps, nodeTools, sampleQuestions, testKit + tests) and assistant/grounding.ts (the real findUngroundedNumbers; AX-21's stand-in swapped out in forbidden-chains.test.ts, 25/25 pass). Dispatcher for all 7 tools; make_chart and compare_lap_times registered for real; the AX-11 check repeated: no row-cap string in the generated tools or template, query_data limit tops out at 25, compare_lap_times takes only race_id/driver_a/driver_b, a rowCap/row_cap/rowcap key is refused by the strict top-level key check. Loop cap 4 tool calls (5 rounds) with a final 'answer from what you have'; empty result -> no-data answer with no digit; refused calls come back as structured tool errors; a number without a source triggers exactly one repair message. CLI app/scripts/assistant-cli.mjs (Vite SSR loader, no new dependency; --stub --sample / --demo deterministic and offline; real mode --endpoint <url> --protocol worker|openai; ran end to end against a local stand-in server mimicking the Worker contract incl. ticket headers: one-off scratch script, not a test). 10 sample questions all answered, pass checker and grounding, none needed a repair turn; 5 demo teammate_race questions: 1 tool call, 2 rounds, peak context 2,649-2,659 of 13,100, about 4,800 tokens total (about 90 neurons), figures are chars/4 estimates. Tests: full app vitest 1213 pass / 2 pre-existing fail (no env); 1332 pass with AX04_DATA_DIR, AX06_DATA_DIR and AX10_CARDS (laneR/cards-07b/cards.json); core 92 (102 with data); grounding 13. Evidence in _evidence/AX-10-2026-11-08/. OWNER-LEVEL FINDINGS: (1) teammate_id is derived from the race.teammate_gap card's display text ('vs PER') else the other driver on the same constructor: fragile, fix = policy_fields.teammate_id on the gap card (mart has the column); (2) the repair turn shares the ticket's 5 rounds: a question using 4 tool calls plus the answer cannot be repaired (REPAIR_SKIPPED); alternative = AX-12 grants a 6th round for repair only; (3) worker/src/generated/tools.ts is STALE (built from an older 10-kind index): run cd worker && npm run gen-tools after make app-data before any deploy; (4) grounding rules: sources are card value, interval ends, interval level (grounds '95%' only), n, display text and reason texts, every number in query_data/compare/chart results, numbers in the question; unchecked: years 1950-2099, ids, citations, list markers, numbers glued to letters; a whole number must match a whole source exactly or round a source of 10 or more; display counts as a source though the model projection lacks it (so AX-14 can reuse it at render time); (5) the checker runs on every card the model received, not only cited ones: conservative, can cost repair turns; (6) a compliant teammate_race answer must carry three sentences (pit-call reproduction rate, held-card wording, 'different measures') and system.md covers only the first two ideas, so a real model may often need the repair turn -> tune in AX-13. Not committed.",
+      "note": "Replaces v1's AI-04. Acceptance: loop limit, empty result, refused call and number-without-source tests with the model stubbed; 10 sample questions headless; budget log per slot. 2026-11-08 lane U (sonnet): BUILT, ALL RUNS USED A SCRIPTED MODEL (real-model behaviour not measured). app/src/assistant/core/ (types, validateArgs, budget, cardStore, preload, dispatcher, loop, modelClient, cli, nodeDeps, nodeTools, sampleQuestions, testKit + tests) and assistant/grounding.ts (the real findUngroundedNumbers; AX-21's stand-in swapped out in forbidden-chains.test.ts, 25/25 pass). Dispatcher for all 7 tools; make_chart and compare_lap_times registered for real; the AX-11 check repeated: no row-cap string in the generated tools or template, query_data limit tops out at 25, compare_lap_times takes only race_id/driver_a/driver_b, a rowCap/row_cap/rowcap key is refused by the strict top-level key check. Loop cap 4 tool calls (5 rounds) with a final 'answer from what you have'; empty result -> no-data answer with no digit; refused calls come back as structured tool errors; a number without a source triggers exactly one repair message. CLI app/scripts/assistant-cli.mjs (Vite SSR loader, no new dependency; --stub --sample / --demo deterministic and offline; real mode --endpoint <url> --protocol worker|openai; ran end to end against a local stand-in server mimicking the Worker contract incl. ticket headers: one-off scratch script, not a test). 10 sample questions all answered, pass checker and grounding, none needed a repair turn; 5 demo teammate_race questions: 1 tool call, 2 rounds, peak context 2,649-2,659 of 13,100, about 4,800 tokens total (about 90 neurons), figures are chars/4 estimates. Tests: full app vitest 1213 pass / 2 pre-existing fail (no env); 1332 pass with AX04_DATA_DIR, AX06_DATA_DIR and AX10_CARDS (laneR/cards-07b/cards.json); core 92 (102 with data); grounding 13. Evidence in _evidence/AX-10-2026-11-08/. OWNER-LEVEL FINDINGS: (1) teammate_id is derived from the race.teammate_gap card's display text ('vs PER') else the other driver on the same constructor: fragile, fix = policy_fields.teammate_id on the gap card (mart has the column); (2) the repair turn shares the ticket's 5 rounds: a question using 4 tool calls plus the answer cannot be repaired (REPAIR_SKIPPED); alternative = AX-12 grants a 6th round for repair only; (3) worker/src/generated/tools.ts is STALE (built from an older 10-kind index): run cd worker && npm run gen-tools after make app-data before any deploy; (4) grounding rules: sources are card value, interval ends, interval level (grounds '95%' only), n, display text and reason texts, every number in query_data/compare/chart results, numbers in the question; unchecked: years 1950-2099, ids, citations, list markers, numbers glued to letters; a whole number must match a whole source exactly or round a source of 10 or more; display counts as a source though the model projection lacks it (so AX-14 can reuse it at render time); (5) the checker runs on every card the model received, not only cited ones: conservative, can cost repair turns; (6) a compliant teammate_race answer must carry three sentences (pit-call reproduction rate, held-card wording, 'different measures') and system.md covers only the first two ideas, so a real model may often need the repair turn -> tune in AX-13. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-10): 1 no 6th round: MAX_ROUNDS stays 5; REPAIR_SKIPPED drafts carry their failures as notes and AX-14 strikes at render; revisit only if REPAIR_SKIPPED > 5% of real runs. 2 checker on every card received stays for v1; narrow to cited + bundle cards only if > 10% of runs repair solely on an uncited card's rule. 3 grounding rules accepted as built; sign/direction is not grounding (expected_value + human read). 4 no agent build work left; LANDED when AX-13's real run shows an answered 2+ round run with no round-2+ endpoint error. Needs owner (real model run).",
       "blocked_by_decision": [
         "HD1"
       ]
@@ -609,7 +609,7 @@
     {
       "id": "AX-11",
       "group": "4-assistant",
-      "stage": "MEASURED",
+      "stage": "LANDED",
       "depends_on": [
         "AX-06"
       ],
@@ -621,7 +621,7 @@
       "doc": "wi/AX-11.md",
       "cost": "2d",
       "model": "sonnet-5",
-      "note": "Replaces v1's AI-11. Acceptance: more than 6 series or 500 points rejected; a 2-driver comparison renders with n; no chart rows reach the model context (headless check). 2026-11-08 lane S (sonnet): built except spec step 5 (registering the tools in the AX-10 dispatcher / generated catalogue, which do not exist yet). makeChart(spec) and compareLapTimes(a,b,race,deps) are plain functions. The row cap is an internal function argument only (compile(v,{rowCap}), runQuery(req,deps,{rowCap}), integer 1..200); validate() rejects rowCap/row_cap/rowcap as unknown keys and limit above 25; the catalogue JSON has no cap field (RE-CHECK once AX-08's generated schemas are wired in AX-10). result_id includes the cap. Model-facing returns: {chart_id,n,series_count} / {chart_id,n_a,n_b,laps_missing} / no_data / error; context-leak test: no lap rows, no rows key, no array of more than 10 numbers. New ChartCard.tsx (recharts, computed_not_card label, n per series, hidden data table, <img onerror> title renders as text); shared ui/charts untouched. Three sample charts from the real qv_laps files (LEC vs VER 2024_8 n=[76,74]; LEC vs SAI n=[76,76]; LEC median lap by tyre age 2024 n=[24]). Tests: charts + queryBuilder 57 pass / 3 skipped; real-data 3/3. Not committed.",
+      "note": "Replaces v1's AI-11. Acceptance: more than 6 series or 500 points rejected; a 2-driver comparison renders with n; no chart rows reach the model context (headless check). 2026-11-08 lane S (sonnet): built except spec step 5 (registering the tools in the AX-10 dispatcher / generated catalogue, which do not exist yet). makeChart(spec) and compareLapTimes(a,b,race,deps) are plain functions. The row cap is an internal function argument only (compile(v,{rowCap}), runQuery(req,deps,{rowCap}), integer 1..200); validate() rejects rowCap/row_cap/rowcap as unknown keys and limit above 25; the catalogue JSON has no cap field (RE-CHECK once AX-08's generated schemas are wired in AX-10). result_id includes the cap. Model-facing returns: {chart_id,n,series_count} / {chart_id,n_a,n_b,laps_missing} / no_data / error; context-leak test: no lap rows, no rows key, no array of more than 10 numbers. New ChartCard.tsx (recharts, computed_not_card label, n per series, hidden data table, <img onerror> title renders as text); shared ui/charts untouched. Three sample charts from the real qv_laps files (LEC vs VER 2024_8 n=[76,74]; LEC vs SAI n=[76,76]; LEC median lap by tyre age 2024 n=[24]). Tests: charts + queryBuilder 57 pass / 3 skipped; real-data 3/3. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-11): 1 after lane D's gen-tools: generated tools.ts names make_chart and compare_lap_times, has no rowCap/row_cap/rowcap, query_data limit max 25; worker npm test. LANDED on that check. sonnet-5, blocked on lane D. | LANDED 2026-11-08: worker/src/generated/tools.ts (regenerated after the real export) names make_chart and compare_lap_times, has no rowCap/row_cap/rowcap, caps query_data limit at 25; cd worker && npm test: 34 pass. Evidence: worker/src/generated/tools.ts.",
       "blocked_by_decision": [
         "HD1"
       ]
@@ -643,7 +643,7 @@
       "doc": "wi/AX-12.md",
       "cost": "1-2d",
       "model": "sonnet-5",
-      "note": "As built, every model round spends a single-use Turnstile token and a visitor slot, so round 2 fails and a visitor gets about 2 questions a day; DAILY_NEURON_CAP defaults to 90,909 against the free 10,000; MAX_OUTPUT_TOKENS is 800; TOOLS is empty. Acceptance: the existing 16 tests pass; a 5-round question spends 1 token and 1 slot; round 6 refused; version mismatch gives 409; default cap <= 10,000; bundle scan fails on a planted key. Needs an owner preview deploy. 2026-11-08 lane P (sonnet): CODE DONE, nothing deployed. Question ticket (HMAC, ticket.ts): round 1 takes Turnstile + a visitor slot and returns a ticket; rounds 2-5 send X-Question-Ticket; ledger counts rounds per question; round 6 -> 429 round_limit; forged/expired/other-visitor/replayed tickets refused. Missing or different X-Catalogue-Version -> 409 app_updated before Turnstile or any slot. Ledger split answers into rounds and questions. Defaults per HD6: 3 questions/visitor/day, daily cap 10,000 neurons; MAX_OUTPUT_TOKENS 2,500 PROVISIONAL (reasoning-token accounting unverified); tool messages capped at 5,000 chars. firebase.json CSP stays Report-Only with challenges.cloudflare.com added to script-src, frame-src, connect-src (HD11) plus WORKER_HOST_PLACEHOLDER. worker-ci.yml now runs app build, scan-bundle, a planted-key negative step and gen-tools:check. Worker tests 33 pass (16 old + 6 gen-tools + 3 ticket + 8 v2); worker and app typecheck clean. Existing tests modified (none deleted): the ignores-browser-tools test, the usage test, the chat helper. UNVERIFIED (left to AX-13): multi-round tool use, reasoning tokens vs max output, prefix caching. OWNER STEPS, in order: (1) make app-data then cd worker && npm run gen-tools && npm test; (2) wrangler secret put TURNSTILE_SECRET, ADMIN_TOKEN, TICKET_SECRET, then wrangler deploy for the preview; (3) replace WORKER_HOST_PLACEHOLDER in firebase.json, firebase deploy --only hosting:app; (4) ./scripts/publish_cdn.sh --dry-run (must list assistant/) then make app-publish; (5) client sends X-Catalogue-Version and X-Question-Ticket (AX-10/AX-14), run the preview 3-round check and read /admin/usage. Not committed.",
+      "note": "As built, every model round spends a single-use Turnstile token and a visitor slot, so round 2 fails and a visitor gets about 2 questions a day; DAILY_NEURON_CAP defaults to 90,909 against the free 10,000; MAX_OUTPUT_TOKENS is 800; TOOLS is empty. Acceptance: the existing 16 tests pass; a 5-round question spends 1 token and 1 slot; round 6 refused; version mismatch gives 409; default cap <= 10,000; bundle scan fails on a planted key. Needs an owner preview deploy. 2026-11-08 lane P (sonnet): CODE DONE, nothing deployed. Question ticket (HMAC, ticket.ts): round 1 takes Turnstile + a visitor slot and returns a ticket; rounds 2-5 send X-Question-Ticket; ledger counts rounds per question; round 6 -> 429 round_limit; forged/expired/other-visitor/replayed tickets refused. Missing or different X-Catalogue-Version -> 409 app_updated before Turnstile or any slot. Ledger split answers into rounds and questions. Defaults per HD6: 3 questions/visitor/day, daily cap 10,000 neurons; MAX_OUTPUT_TOKENS 2,500 PROVISIONAL (reasoning-token accounting unverified); tool messages capped at 5,000 chars. firebase.json CSP stays Report-Only with challenges.cloudflare.com added to script-src, frame-src, connect-src (HD11) plus WORKER_HOST_PLACEHOLDER. worker-ci.yml now runs app build, scan-bundle, a planted-key negative step and gen-tools:check. Worker tests 33 pass (16 old + 6 gen-tools + 3 ticket + 8 v2); worker and app typecheck clean. Existing tests modified (none deleted): the ignores-browser-tools test, the usage test, the chat helper. UNVERIFIED (left to AX-13): multi-round tool use, reasoning tokens vs max output, prefix caching. OWNER STEPS, in order: (1) make app-data then cd worker && npm run gen-tools && npm test; (2) wrangler secret put TURNSTILE_SECRET, ADMIN_TOKEN, TICKET_SECRET, then wrangler deploy for the preview; (3) replace WORKER_HOST_PLACEHOLDER in firebase.json, firebase deploy --only hosting:app; (4) ./scripts/publish_cdn.sh --dry-run (must list assistant/) then make app-publish; (5) client sends X-Catalogue-Version and X-Question-Ticket (AX-10/AX-14), run the preview 3-round check and read /admin/usage. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-12): 1 forward finish_reason in worker/src/handler.ts (+ test); nothing else in the contract. 2 Origin stays strict; clients send --origin. 3 no 6th round. 4 keep 2,500 unless real-run finish_reason=length (or empty answer at cap) > 1% of rounds; then smallest multiple of 250 >= 1.25 x p99 completion, with peak prompt + cap <= 20,480; never below 2,500. 5 VISITOR_DAILY_LIMIT raised by --var for the eval only; default stays 3. Lane L2 runnable now (sonnet-5); LANDED needs the owner's preview deploy. | 2026-11-08 ruling 1 CODE DONE: worker/src/handler.ts forwards the Workers AI finish_reason in its JSON reply, with a test (worker npm test 34 pass). Nothing deployed: LANDED needs the owner's preview deploy and the 3-round check.",
       "blocked_by_decision": [
         "HD1",
         "HD6",
@@ -665,8 +665,8 @@
       ],
       "doc": "wi/AX-13.md",
       "cost": "3d",
-      "model": "opus-5",
-      "note": "Replaces v1's AI-07. Held classes must be refused or hedged with the held reason. Records neurons per answer, which turns into answers per day (about 12-40 a day total on the free allowance: the design agent's arithmetic, not a measurement). Acceptance: bar recorded in the log first; the grader fails a planted wrong answer for every question type. 2026-11-08 lane V (opus), CUT OFF by the usage limit at the very end but PROVENANCE, bar and baseline were already saved; I re-ran app vitest src/assistant/eval: 66 pass / 6 skipped, app typecheck clean. Built: app/src/assistant/eval/ (questions.json 76 questions in groups a-e + 3 more = 79 runs-questions in the baseline, questions.ts with questionsHash, grade.ts, stubModel.ts, run.ts, report.ts + tests), app/scripts/assistant-eval.mjs (--record-bar, --stub, --endpoint, --resume, --human-read), bar.json written BEFORE any result (question-file hash 901ed60e..., recorded 2026-11-08T09:59:33Z). Grader proven to FAIL a planted wrong answer for every playbook type and all 8 acceptance wrong-answer kinds. STUB baseline (a scripted model: measures the harness, NOT a model): 395 runs over 79 questions x 5 repeats, 0 endpoint errors, grounded 100%, refusals correct 100%, right tool 100%, max 7,918 tokens in one run (bar 18,000); verdict INCOMPLETE because the human read of 10 answers is not applicable to a stub. system.md now carries the two sentences a teammate_race answer needs beside the gap (990 tokens by gen-tools chars/4, 1,132 by estimateTokens, slot 1,200); worker/src/generated/tools.ts regenerated from fixtures. Small additive edits to AX-10 core (types.ts raw_usage, modelClient.ts origin header). OPEN FINDINGS: (1) 'no run over 18,000 tokens' is defined on budget.total (prompt+completion summed over rounds), not peak context: confirm; (2) honesty-checker pass rate, expected_value and rules_fired are reported but not gating: recommend adding '100% honesty checker pass' to the AX-20 bar; (3) 5 repeats x 79 questions cannot run inside one day's 10,000 neurons: run over days with --resume or approve a paid day, and raise VISITOR_DAILY_LIMIT locally for the run only; (4) the model projection carries no display and no policy_fields so the model cannot see rating_trust_label, rank_separated_from_next, coverage_reason: option = add trust/rank fields to cards/project.ts (about 40 chars per card); (5) no tool path for 'how many races did X win' (actual_finish_position is a measure, not filterable or groupable; race.result cards are one per race > the 10-card cap): make it a dimension or add a season-wins card; (6) query_data allows at most 2 seasons per request even where the catalogue max_seasons is null; (7) the Worker refuses a request without an allowed Origin header and the AX-10 client sent none (origin option added); (8) the Worker does not forward finish_reason; (9) h-ml-band has no card kind until AX-17. Real run: see PROVENANCE OWNER RUN. Not committed.",
+      "model": "sonnet-5",
+      "note": "Replaces v1's AI-07. Held classes must be refused or hedged with the held reason. Records neurons per answer, which turns into answers per day (about 12-40 a day total on the free allowance: the design agent's arithmetic, not a measurement). Acceptance: bar recorded in the log first; the grader fails a planted wrong answer for every question type. 2026-11-08 lane V (opus), CUT OFF by the usage limit at the very end but PROVENANCE, bar and baseline were already saved; I re-ran app vitest src/assistant/eval: 66 pass / 6 skipped, app typecheck clean. Built: app/src/assistant/eval/ (questions.json 76 questions in groups a-e + 3 more = 79 runs-questions in the baseline, questions.ts with questionsHash, grade.ts, stubModel.ts, run.ts, report.ts + tests), app/scripts/assistant-eval.mjs (--record-bar, --stub, --endpoint, --resume, --human-read), bar.json written BEFORE any result (question-file hash 901ed60e..., recorded 2026-11-08T09:59:33Z). Grader proven to FAIL a planted wrong answer for every playbook type and all 8 acceptance wrong-answer kinds. STUB baseline (a scripted model: measures the harness, NOT a model): 395 runs over 79 questions x 5 repeats, 0 endpoint errors, grounded 100%, refusals correct 100%, right tool 100%, max 7,918 tokens in one run (bar 18,000); verdict INCOMPLETE because the human read of 10 answers is not applicable to a stub. system.md now carries the two sentences a teammate_race answer needs beside the gap (990 tokens by gen-tools chars/4, 1,132 by estimateTokens, slot 1,200); worker/src/generated/tools.ts regenerated from fixtures. Small additive edits to AX-10 core (types.ts raw_usage, modelClient.ts origin header). OPEN FINDINGS: (1) 'no run over 18,000 tokens' is defined on budget.total (prompt+completion summed over rounds), not peak context: confirm; (2) honesty-checker pass rate, expected_value and rules_fired are reported but not gating: recommend adding '100% honesty checker pass' to the AX-20 bar; (3) 5 repeats x 79 questions cannot run inside one day's 10,000 neurons: run over days with --resume or approve a paid day, and raise VISITOR_DAILY_LIMIT locally for the run only; (4) the model projection carries no display and no policy_fields so the model cannot see rating_trust_label, rank_separated_from_next, coverage_reason: option = add trust/rank fields to cards/project.ts (about 40 chars per card); (5) no tool path for 'how many races did X win' (actual_finish_position is a measure, not filterable or groupable; race.result cards are one per race > the 10-card cap): make it a dimension or add a season-wins card; (6) query_data allows at most 2 seasons per request even where the catalogue max_seasons is null; (7) the Worker refuses a request without an allowed Origin header and the AX-10 client sent none (origin option added); (8) the Worker does not forward finish_reason; (9) h-ml-band has no card kind until AX-17. Real run: see PROVENANCE OWNER RUN. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-13): 1 'no run over 18,000 tokens' is on budget.peak_context (largest single round), per design-ai-access.md:269 'Peak context ... Under AI-07's 18,000 bar'; budget.total reported, not gating; re-record bar.json with --amend and align grade.ts BEFORE the first real run (no real run yet, stub passes either way: intent restored, not tuned). 2 honesty-checker rate not added to the scored bar; non-scored line in AX-20's gate. 3 run over days with --resume on the free allowance; a paid day is the owner's (default no). 4/5 see OR-AX-07 (projection fields; season.results; point the two wins questions at it, same --amend). 6 validate.ts honours catalogue max_seasons; null on an unpartitioned view means no per-request season cap; partitioned null keeps 2. 7 h-ml-band graded as refuse with the ML held reason, no ML stub kind. 8 scored baseline via the Worker contract (wrangler dev remote binding or preview); Ollama unscored only. 9 the scored run uses the export AX-19 freezes. Prep is sonnet-5 (lane L1) and runnable now; the real run and human read need the owner. Model opus-5 -> sonnet-5: the open choices are ruled, so the method is written down. | 2026-11-08 bar re-recorded with --amend (peak-context ruling 1, win-count questions ruling 5): _evidence/AX-13-2026-11-08/bar.json questions_hash is now 7466b286db5c86a1b9d1cd7ba10a8e112818889c9cfd300a768b3040031d905b (amended_from keeps the earlier hashes). finish_reason recorded in core/modelClient.ts, core/types.ts, eval/run.ts; validate.ts honours the catalogue max_seasons. Real run and human read still owed by the owner.",
       "blocked_by_decision": [
         "HD1"
       ]
@@ -688,7 +688,7 @@
       "doc": "wi/AX-14.md",
       "cost": "3d",
       "model": "sonnet-5",
-      "note": "Replaces v1's AI-08. Acceptance: phone width, keyboard, screen reader, reduced motion, proxy-down message; an unmatched number is struck and noted; e2e and the perf budget pass. 2026-11-08 lane W (sonnet): chat drawer in app/src/assistant/drawer/ (flag, runtime, useChat, AnswerView, NumberChip, Turnstile gate, ChatDrawer, AssistantLauncher + tests); AppShell mounts a lazy launcher ONLY when VITE_ASSISTANT_ENABLED === 'true' (default OFF); also VITE_ASSISTANT_WORKER_URL and VITE_TURNSTILE_SITE_KEY. Step-text progress, no streaming. Render-time grounding via findUngroundedNumbers: matched number -> chip linking to the card's page with a details panel (value, interval, n, label, versions); unmatched number STRUCK with 'this number is not backed by a card or a query result'; measured/computed plain, modelled/experimental hatched with the word, query numbers tagged 'plain count/average'; unavailable/held cards listed with a dash and their reason, never 0; rule notes in a visible box; distinct messages for network, 503 paused, 429 limit, 429 round_limit, 409 (Reload button), Turnstile failure, unconfigured Worker URL. Modal dialog with focus trap, Escape, focus return, aria-live log, reduced-motion. Small additive core edits: modelClient EndpointError.code and function-valued Turnstile token, loop AskResult.visibleResults, grounding exports numberMatches/sourceNumbersOfCard. Tests: drawer 31 pass; full app vitest 1246 pass / 2 pre-existing fail; Playwright (scratch config, mocked Worker only, real DuckDB reading the card parquet and real dispatcher/checker): flag-on 9 pass (two chips + one struck number, chip link lands on /tyre-strategy/pit-gantt?race_id=2024_1, ticket headers seen, keyboard-only, 320/390 px no horizontal scroll, reduced motion, proxy-down, 503/429/409 messages); flag-off build 9 pass (no launcher/dialog/assistant request + existing card-links 6 and smoke 2). Flag-off bundle: same 90 JS files, +5 bytes (3,273,573 vs 3,273,568), passes perf-budget.json, no assistant strings. OWNER-LEVEL: (1) the flag-ON build is over the perf budget (106 files, 3,600,742 bytes / 1,076,985 gz vs budgets 3,407,872 / 1,005,568): re-baseline in AX-20 or trim chunks; (2) worker/src/generated/tools.ts schemas stale (run gen-tools after the real export); (3) cold start loads every season's card parquet (about 64k cards) and boots DuckDB: consider per-season loading; (4) Turnstile widget never run against Cloudflare (no network calls); leave the site key empty only for a Worker with TURNSTILE_ENABLED=false; (5) no exact traffic-cost disclaimer wording yet (generic modelled note shown; wire when WC-06/AX-16 provide it); (6) driver selection only covered by the AX-03 card-links spec; (7) cosmetic: the minus sign shows outside the chip ('- 0.357'); (8) typecheck has one error in src/assistant/eval/grade.ts (CardScope cast) belonging to the AX-13 lane, still running. UI makes no multi-round or reasoning-token claims. Not committed.",
+      "note": "Replaces v1's AI-08. Acceptance: phone width, keyboard, screen reader, reduced motion, proxy-down message; an unmatched number is struck and noted; e2e and the perf budget pass. 2026-11-08 lane W (sonnet): chat drawer in app/src/assistant/drawer/ (flag, runtime, useChat, AnswerView, NumberChip, Turnstile gate, ChatDrawer, AssistantLauncher + tests); AppShell mounts a lazy launcher ONLY when VITE_ASSISTANT_ENABLED === 'true' (default OFF); also VITE_ASSISTANT_WORKER_URL and VITE_TURNSTILE_SITE_KEY. Step-text progress, no streaming. Render-time grounding via findUngroundedNumbers: matched number -> chip linking to the card's page with a details panel (value, interval, n, label, versions); unmatched number STRUCK with 'this number is not backed by a card or a query result'; measured/computed plain, modelled/experimental hatched with the word, query numbers tagged 'plain count/average'; unavailable/held cards listed with a dash and their reason, never 0; rule notes in a visible box; distinct messages for network, 503 paused, 429 limit, 429 round_limit, 409 (Reload button), Turnstile failure, unconfigured Worker URL. Modal dialog with focus trap, Escape, focus return, aria-live log, reduced-motion. Small additive core edits: modelClient EndpointError.code and function-valued Turnstile token, loop AskResult.visibleResults, grounding exports numberMatches/sourceNumbersOfCard. Tests: drawer 31 pass; full app vitest 1246 pass / 2 pre-existing fail; Playwright (scratch config, mocked Worker only, real DuckDB reading the card parquet and real dispatcher/checker): flag-on 9 pass (two chips + one struck number, chip link lands on /tyre-strategy/pit-gantt?race_id=2024_1, ticket headers seen, keyboard-only, 320/390 px no horizontal scroll, reduced motion, proxy-down, 503/429/409 messages); flag-off build 9 pass (no launcher/dialog/assistant request + existing card-links 6 and smoke 2). Flag-off bundle: same 90 JS files, +5 bytes (3,273,573 vs 3,273,568), passes perf-budget.json, no assistant strings. OWNER-LEVEL: (1) the flag-ON build is over the perf budget (106 files, 3,600,742 bytes / 1,076,985 gz vs budgets 3,407,872 / 1,005,568): re-baseline in AX-20 or trim chunks; (2) worker/src/generated/tools.ts schemas stale (run gen-tools after the real export); (3) cold start loads every season's card parquet (about 64k cards) and boots DuckDB: consider per-season loading; (4) Turnstile widget never run against Cloudflare (no network calls); leave the site key empty only for a Worker with TURNSTILE_ENABLED=false; (5) no exact traffic-cost disclaimer wording yet (generic modelled note shown; wire when WC-06/AX-16 provide it); (6) driver selection only covered by the AX-03 card-links spec; (7) cosmetic: the minus sign shows outside the chip ('- 0.357'); (8) typecheck has one error in src/assistant/eval/grade.ts (CardScope cast) belonging to the AX-13 lane, still running. UI makes no multi-round or reasoning-token claims. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-14): 1 split the perf budget: assistant-only lazy chunks get their own limits (measured + 10%, rounded up to 10 KB) in perf-budget.json via the Vite manifest in check_bundle_size.mjs; the existing limits stay unchanged for everything else; flag-off must pass as before. 2 defer per-season card loading (payload about 0.4-0.8 MB, loaded on drawer open); revisit above 2 MB. 3 minus sign fixed in the drawer render only; grounding.ts unchanged. 4 add the driver-param assertion to assistant-drawer.e2e.ts. 5 no traffic-cost wording in v1. 6 empty Turnstile key only with TURNSTILE_ENABLED=false. Close-out sonnet-5 (lane L3, scratch --outDir) runnable now; LANDED after AX-20's real-Worker run. | 2026-11-08 close-out CODE DONE (lane L3): rulings 1-4 (split assistant-chunk perf budget in app/perf-budget.json + app/scripts/check_bundle_size.mjs, minus-sign chip fix, driver-param assertion in app/e2e/assistant-drawer.e2e.ts). e2e NOT run. LANDED after AX-20's run against the real Worker.",
       "blocked_by_decision": [
         "HD1"
       ]
@@ -812,7 +812,7 @@
       "doc": "wi/AX-19.md",
       "cost": "0.5d",
       "model": "sonnet-5",
-      "note": "Replaces v1's AI-03. A 'no ML' freeze is allowed under HD5 A. Acceptance: a re-export with an unchanged warehouse reproduces the checksums.",
+      "note": "Replaces v1's AI-03. A 'no ML' freeze is allowed under HD5 A. Acceptance: a re-export with an unchanged warehouse reproduces the checksums. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-19): 1 the freeze needs AX-13's REAL baseline passing the amended bar incl. human read; the stub's INCOMPLETE does not count. 2 write assistant_freeze.py, its tests and the make assistant-freeze-verify target now (lane L4); --write only after lane D, owner step E and AX-13's real pass, on the same export. 3 classes_live [T], classes_held [T*, WC, ML], model_version null (HD5-A). Script runnable now (sonnet-5); the freeze is blocked. | 2026-11-08 script DONE: scripts/assistant_freeze.py, scripts/tests/test_assistant_freeze.py and make assistant-freeze-verify exist. --write is BLOCKED until AX-13's real pass (same export, after owner step E).",
       "blocked_by_decision": [
         "HD5"
       ]
@@ -832,7 +832,7 @@
       "doc": "wi/AX-20.md",
       "cost": "1d",
       "model": "sonnet-5",
-      "note": "Replaces v1's AI-12. Acceptance: 100% of numbers grounded, 100% of refusals correct, right tool at least 95%, no run over 18,000 tokens, human read passes; cost per answer recorded. Needs the owner's yes."
+      "note": "Replaces v1's AI-12. Acceptance: 100% of numbers grounded, 100% of refusals correct, right tool at least 95%, no run over 18,000 tokens, human read passes; cost per answer recorded. Needs the owner's yes. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-AX-20): 1 AX-13's bar.json after the peak-context amendment, unchanged after that. 2 write app/e2e/assistant-launch.e2e.ts (skipped without ASSISTANT_E2E_ENDPOINT) and the launch-run.md template now (lane L3). 3 add a non-scored checklist line: checker pass rate and REPAIR_SKIPPED rate; flag-on perf uses the AX-14 split budget. Spec work runnable now (sonnet-5); run and switch-on need the owner. | 2026-11-08 spec work CODE DONE: app/e2e/assistant-launch.e2e.ts (skipped unless ASSISTANT_E2E_ENDPOINT is set) and _roadmap/_ai-integration/_evidence/ax-20/launch-run.md template with the non-scored checker-pass and REPAIR_SKIPPED line. e2e not run; the run and switch-on need the owner."
     },
     {
       "group": "2-app-fixes",
@@ -942,7 +942,7 @@
     {
       "id": "TX-14",
       "group": "1-transform",
-      "stage": "SPEC",
+      "stage": "MEASURED",
       "depends_on": [
         "TX-08"
       ],
@@ -955,8 +955,8 @@
       ],
       "doc": "wi/TX-14.md",
       "cost": "1d",
-      "model": "opus-5",
-      "note": "Found by TX-08 (F2). At 1 thread with no source change, fct_driver_isolation_stint flips between two hashes, int_pit_strategy_cost_curve and int_sector_residual_decomposed also differ run to run; row counts are equal. A byte-hash baseline cannot certify anything until this is understood (non-deterministic tie-breaking, unordered aggregation, or a volatile column)."
+      "model": "sonnet-5",
+      "note": "Found by TX-08 (F2). At 1 thread with no source change, fct_driver_isolation_stint flips between two hashes, int_pit_strategy_cost_curve and int_sector_residual_decomposed also differ run to run; row counts are equal. A byte-hash baseline cannot certify anything until this is understood (non-deterministic tie-breaking, unordered aggregation, or a volatile column). RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-TX-14): 1 5 rebuilds per model in own scratch dev.duckdb at 1 thread; row diff on grain key; max |delta| per column. 2a all diffs <= 1e-9 on float columns: fix the oracle (snapshot_model_hashes.py hashes floats as ROUND(x, 9) for every model), no value moves, do not edit baselines (owner re-takes in E). 2b larger diffs (tie winners: ROW_NUMBER int_pit_strategy_cost_curve.sql:81, sector rolling median): total-order tie-break with the grain key in the model. 2c volatile column: VOLATILE_COLS. 3 pick the tie-break reproducing the more frequent observed output; stop only if the deterministic output matches no observed output on an exported row. 4 transform/scripts/check_determinism.py, no Makefile target, not in default CI. 5 dev-profile thread pin is lane D's, not TX-14's. Now sonnet-5 (escalate to opus-5 if the cause is outside 2a-2c or the stop fires). Runnable now. Model opus-5 -> sonnet-5: the open choices are ruled, so the method is written down. | 2026-11-08 CODE DONE, OWNER RUN PENDING. Ruling 2a (oracle fix): transform/scripts/snapshot_model_hashes.py now hashes DOUBLE/FLOAT columns as ROUND(x, 9) + 0.0 (FLOAT_HASH_DECIMALS), for every model; new transform/scripts/check_determinism.py (no Makefile target, not in CI). OWNER, from transform/: ../.venv/bin/python scripts/check_determinism.py --select fct_driver_isolation_stint int_pit_strategy_cost_curve int_sector_residual_decomposed --runs 2 ; then re-take the baselines (step E) BEFORE PROVENANCE. Not LANDED until that run passes."
     },
     {
       "id": "AX-07c",
@@ -1244,6 +1244,149 @@
       "recommendation": "Filter-only use is transform-only, with a caveat on the card. AX-07a's column-level lineage confirms each source.",
       "resolved": "2026-11-07",
       "resolution": "Owner 2026-11-07 (accepted the recommendation): Filter-only use of the air-state table counts as transform-only, with a caveat on the card; AX-07a's column-level lineage confirms each source before it is classed."
+    },
+    {
+      "id": "OR-TX-01",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices in wi/TX-01.md: docs regeneration and the closing criterion.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/TX-01.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 thresholds 6/12 and rating_s kept: confirmed, not reopened. 2 generated docs: house step; make docs-reference + docs-coverage once, in lane D, after all TX SQL (TX-14 incl.). 3 LANDED when lane D's real rebuild shows ok/thin/suppressed 2,906/94/138 on data/dev.duckdb and the exported manifest (SQL counts; committed hash baselines stale until owner step E). Runnable by sonnet-5 in lane D; blocked on TX-14."
+    },
+    {
+      "id": "OR-TX-03",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices in wi/TX-03.md: option B, column names vs WC-05/06, closing criterion.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/TX-03.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 option B (lap-level NULL) confirmed DO LATER, belongs to wake calibration / AX-15b; consumer list kept in the item note. 2 keep n_dirty_air_measured_laps and dirty_air_unavailable_reason; WC-05/06 adds beside them, renames nothing. 3 LANDED when lane D shows the 34 2018_1/2018_2 rows NULL with NO_MEASURED_LAPS on the real warehouse and both new tests pass. sonnet-5 in lane D; blocked on TX-14."
+    },
+    {
+      "id": "OR-TX-07",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices in wi/TX-07.md: step 6 baseline-key edit, stg_events/seed, orphan table, hand-edited docs.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/TX-07.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 step 6 DROPPED: the owner's single baseline re-take (handoff E) after TX-14 + lane D regenerates all three files; acceptance becomes 'after E, grep dim_events transform/tests/*.baseline.json is empty' (owner checks in E). 2 keep stg_events and raw_dim_events.csv for v1 (ingestion checks read the seed). 3 leave the orphan dim_events table; D drops nothing. 4 generated docs regenerated in D; hand edits to non-generated docs stand. 5 TX-12 fixture already clean. sonnet-5 in lane D; blocked on TX-14."
+    },
+    {
+      "id": "OR-TX-14",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices in wi/TX-14.md: diagnosis protocol, fix choice per cause, the 'published value' stop condition, where the determinism check lives.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/TX-14.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 5 rebuilds per model in own scratch dev.duckdb at 1 thread; row diff on grain key; max |delta| per column. 2a all diffs <= 1e-9 on float columns: fix the oracle (snapshot_model_hashes.py hashes floats as ROUND(x, 9) for every model), no value moves, do not edit baselines (owner re-takes in E). 2b larger diffs (tie winners: ROW_NUMBER int_pit_strategy_cost_curve.sql:81, sector rolling median): total-order tie-break with the grain key in the model. 2c volatile column: VOLATILE_COLS. 3 pick the tie-break reproducing the more frequent observed output; stop only if the deterministic output matches no observed output on an exported row. 4 transform/scripts/check_determinism.py, no Makefile target, not in default CI. 5 dev-profile thread pin is lane D's, not TX-14's. Now sonnet-5 (escalate to opus-5 if the cause is outside 2a-2c or the stop fires). Runnable now."
+    },
+    {
+      "id": "OR-AX-07",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices in AX-07 PROVENANCE owner decisions 1-6 and AX-13 findings 4-5.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/AX-07.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 race.teammate_gap label 'computed' confirmed. 2 era_rating.season live as T + AIR_STATE_FILTER confirmed (applies HD13 via lineage.md). 3 AX-21 glossary names canonical; already consistent in app/src. 4 model projection gains trust / rank_sep / cov short keys (cards/project.ts), only when present. 5 new card kind season.results (driver x season wins, podiums, classified, starts, DNFs from stg_results; class T, measured, interval none, n = starts); do NOT make qv_driver_race.actual_finish_position a dimension (ghost-finish source, confidence >= 0.3, paired-lap drivers only: would undercount). 6 LANDED when lane D's real export gives ok 2,906 / thin 94, 20-pair parity passes and ungrounded.json is regenerated. Now sonnet-5 (lane L1, then D). Runnable now."
+    },
+    {
+      "id": "OR-AX-10",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices in AX-10 owner-level findings 2, 4, 5.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/AX-10.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 no 6th round: MAX_ROUNDS stays 5; REPAIR_SKIPPED drafts carry their failures as notes and AX-14 strikes at render; revisit only if REPAIR_SKIPPED > 5% of real runs. 2 checker on every card received stays for v1; narrow to cited + bundle cards only if > 10% of runs repair solely on an uncited card's rule. 3 grounding rules accepted as built; sign/direction is not grounding (expected_value + human read). 4 no agent build work left; LANDED when AX-13's real run shows an answered 2+ round run with no round-2+ endpoint error. Needs owner (real model run)."
+    },
+    {
+      "id": "OR-AX-11",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choice: the Worker schemas name check.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/AX-11.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 after lane D's gen-tools: generated tools.ts names make_chart and compare_lap_times, has no rowCap/row_cap/rowcap, query_data limit max 25; worker npm test. LANDED on that check. sonnet-5, blocked on lane D."
+    },
+    {
+      "id": "OR-AX-12",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices: finish_reason, Origin, 6th round, final MAX_OUTPUT_TOKENS, eval visitor limit.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/AX-12.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 forward finish_reason in worker/src/handler.ts (+ test); nothing else in the contract. 2 Origin stays strict; clients send --origin. 3 no 6th round. 4 keep 2,500 unless real-run finish_reason=length (or empty answer at cap) > 1% of rounds; then smallest multiple of 250 >= 1.25 x p99 completion, with peak prompt + cap <= 20,480; never below 2,500. 5 VISITOR_DAILY_LIMIT raised by --var for the eval only; default stays 3. Lane L2 runnable now (sonnet-5); LANDED needs the owner's preview deploy."
+    },
+    {
+      "id": "OR-AX-13",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices: AX-13 PROVENANCE owner decisions/findings 1-9.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/AX-13.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 'no run over 18,000 tokens' is on budget.peak_context (largest single round), per design-ai-access.md:269 'Peak context ... Under AI-07's 18,000 bar'; budget.total reported, not gating; re-record bar.json with --amend and align grade.ts BEFORE the first real run (no real run yet, stub passes either way: intent restored, not tuned). 2 honesty-checker rate not added to the scored bar; non-scored line in AX-20's gate. 3 run over days with --resume on the free allowance; a paid day is the owner's (default no). 4/5 see OR-AX-07 (projection fields; season.results; point the two wins questions at it, same --amend). 6 validate.ts honours catalogue max_seasons; null on an unpartitioned view means no per-request season cap; partitioned null keeps 2. 7 h-ml-band graded as refuse with the ML held reason, no ML stub kind. 8 scored baseline via the Worker contract (wrangler dev remote binding or preview); Ollama unscored only. 9 the scored run uses the export AX-19 freezes. Prep is sonnet-5 (lane L1) and runnable now; the real run and human read need the owner."
+    },
+    {
+      "id": "OR-AX-14",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices in AX-14 owner-level findings 1, 3-7.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/AX-14.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 split the perf budget: assistant-only lazy chunks get their own limits (measured + 10%, rounded up to 10 KB) in perf-budget.json via the Vite manifest in check_bundle_size.mjs; the existing limits stay unchanged for everything else; flag-off must pass as before. 2 defer per-season card loading (payload about 0.4-0.8 MB, loaded on drawer open); revisit above 2 MB. 3 minus sign fixed in the drawer render only; grounding.ts unchanged. 4 add the driver-param assertion to assistant-drawer.e2e.ts. 5 no traffic-cost wording in v1. 6 empty Turnstile key only with TURNSTILE_ENABLED=false. Close-out sonnet-5 (lane L3, scratch --outDir) runnable now; LANDED after AX-20's real-Worker run."
+    },
+    {
+      "id": "OR-AX-19",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices: what counts as AX-13's pass, timing, class lists.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/AX-19.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 the freeze needs AX-13's REAL baseline passing the amended bar incl. human read; the stub's INCOMPLETE does not count. 2 write assistant_freeze.py, its tests and the make assistant-freeze-verify target now (lane L4); --write only after lane D, owner step E and AX-13's real pass, on the same export. 3 classes_live [T], classes_held [T*, WC, ML], model_version null (HD5-A). Script runnable now (sonnet-5); the freeze is blocked."
+    },
+    {
+      "id": "OR-AX-20",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Open choices: which bar, what can start now, checklist additions.",
+      "context": "Agent ruling (opus, decision-maker), not an owner call. Full table with reasons: status/rulings-2026-11-08.md. Where it differs from wi/AX-20.md, the ruling wins.",
+      "recommendation": "See resolution.",
+      "resolved": "2026-11-08",
+      "resolution": "1 AX-13's bar.json after the peak-context amendment, unchanged after that. 2 write app/e2e/assistant-launch.e2e.ts (skipped without ASSISTANT_E2E_ENDPOINT) and the launch-run.md template now (lane L3). 3 add a non-scored checklist line: checker pass rate and REPAIR_SKIPPED rate; flag-on perf uses the AX-14 split budget. Spec work runnable now (sonnet-5); run and switch-on need the owner."
+    },
+    {
+      "id": "OR-CD11",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "CD11 (chance-line citations): is it still the rule the honesty citations and CHANCE_LINE_* tests follow?",
+      "context": "Agent record of a state change, not a new owner call. The committed simulator doc and UI show the chance line nowhere.",
+      "recommendation": "Record as superseded.",
+      "resolved": "2026-11-08",
+      "resolution": "CD11 is SUPERSEDED by the committed simulator doc/UI: chance is shown nowhere. app/src/assistant/honesty/policy.json citations were updated to match, and the chance line stays EXCLUDE (AD5, AXW6). NOTE: the CHANCE_LINE_EXPERIMENTAL required wording still accepts 'experimental'/'provisional'; the owner may add 'not shown' to that list. Not done here."
     }
   ],
   "history": [
@@ -1703,6 +1846,56 @@
         "board.py --check after every edit"
       ],
       "next_command": "NEW CHAT, in this order. (A) AGENT sonnet: resume nothing; read this entry, then python3 _roadmap/_ai-integration/status/board.py. (B) OWNER FIRST: commit the working tree in logical pieces (suggest: 1 roadmap/archive+evidence, 2 transform TX-01..07,13, 3 tests/CI TX-08, 4 export script + AX-02/05/08, 5 app pages AP-*, 6 assistant cards/core/prompt/honesty, 7 drawer + worker). (C) AGENT opus: TX-14 (find the cause of the 3 non-deterministic models; evidence wi/TX-14.md). (D) AGENT: final real rebuild with the proper source build (make dbt-dev-full or at least dbt build at 1 thread; pin settings.threads: 1 on the dev target in transform/profiles/profiles.yml), then make app-data (runs export, build-cards --stage, --finalize), make app-cards-check, cd worker && npm run gen-tools && npm test; expect ok/thin/suppressed 2906/94/138. (E) OWNER: re-take byte-oracle and data-profile baselines ONCE after TX-14 and (D) (also covers dim_events removal, dim_circuits, the three new models); apply make real-data-gate (draft in _evidence/TX-08-2026-11-08/AI-13-real-data-gate.Makefile.draft); decide a 2025 row for seeds/label_stability_baseline.csv. (F) OWNER, Worker preview: wrangler secret put TURNSTILE_SECRET / ADMIN_TOKEN / TICKET_SECRET, wrangler deploy; put the Worker host in firebase.json (replace WORKER_HOST_PLACEHOLDER), firebase deploy --only hosting:app; ./scripts/publish_cdn.sh --dry-run (must list assistant/) then make app-publish. (G) AGENT/OWNER: AX-13 real run (command in _evidence/AX-13-2026-11-08/PROVENANCE.txt OWNER RUN; run over days with --resume or approve a paid day; measure neurons/answer, repair-turn rate, reasoning tokens vs MAX_OUTPUT_TOKENS (provisional 2500), multi-round tool use); then set final MAX_OUTPUT_TOKENS and answers/day (HD6 estimate 10-12 for a 4-call answer; bundles should do better). (H) AX-19 freeze, then AX-20 launch run + OWNER switch-on (VITE_ASSISTANT_ENABLED=true needs a rebuild; flag-on build is over the perf budget: re-baseline or trim). HELD UNTIL OTHER TRACKS: AX-15b/AX-16 (wake calibration WC-05/06, XW), AX-17/AX-18, TX-09 (ML redo, XM)."
+    },
+    {
+      "date": "2026-11-08T23:30:00+04:00",
+      "session": "Rulings pass: every open choice in the live leaf docs ruled (opus decision-maker); no code edited",
+      "landed": [
+        "status/rulings-2026-11-08.md (one section per live item: choice, ruling, why, model)",
+        "decisions OR-TX-01, OR-TX-03, OR-TX-07, OR-TX-14, OR-AX-07, OR-AX-10, OR-AX-11, OR-AX-12, OR-AX-13, OR-AX-14, OR-AX-19, OR-AX-20 (RESOLVED, agent rulings)",
+        "model opus-5 -> sonnet-5 on TX-01, TX-03, TX-14, AX-07, AX-13 (choices now made)"
+      ],
+      "verified": [
+        "Checked while ruling: no loro_race_skill / era_normalised_rating string left in app/src; scripts/tests has no dim_events; dim_events keys still in the 3 baseline files (left for owner step E); dev profile is threads 4 with no settings (pin in lane D); validate.ts:204 caps every view at 2 seasons; qv_driver_race.actual_finish_position comes from fct_ghost_race_finish self-scenario rows; design-ai-access.md:269 ties the 18,000 bar to peak context"
+      ],
+      "assumed": [
+        "Card payload size (0.4-0.8 MB) extrapolated from AX-08's 8 files of 45-59 KB at 35k cards; not re-measured at 64k",
+        "No test or build was run in this pass"
+      ],
+      "gates_run": [
+        "board.py --check"
+      ],
+      "next_command": "In parallel now (no shared files; only A1 runs dbt, in its own scratch dev.duckdb): A1 TX-14 (sonnet-5); L1 AX-07 rulings 4-5 + AX-13 rulings 1,5-7 + client finish_reason (sonnet-5); L2 AX-12 finish_reason in worker/ (sonnet-5); L3 AX-14 close-out + AX-20 e2e spec (sonnet-5, scratch --outDir); L4 AX-19 freeze script (sonnet-5). Then OWNER commit, then lane D (exclusive final rebuild: pin dev threads, dbt build, make app-data, cards check, gen-tools, docs regen; closes TX-01/03/07, AX-07, AX-11). Then OWNER E (baselines) and F (Worker preview), AX-13 real run over days + human read, AX-19 --write, AX-20 + owner gate. See status/rulings-2026-11-08.md."
+    },
+    {
+      "date": "2026-11-08T23:55:00+04:00",
+      "session": "Lane D close-out and record of state, after the real rebuild and export (agent record; owner steps E, F and the AX-13 real run still owed).",
+      "landed": [
+        "TX-01, TX-03, AX-07, AX-11 and TX-07 moved to LANDED on the real data/dev.duckdb and real export (evidence in each item's note).",
+        "TX-07: meta.family physics added to int_microsector_crossings/proximity/corner_class; 21 singular tests added to transform/tests/README.md; make docs-reference passes; transform_docs_facts --write passes.",
+        "AX-13 bar.json re-recorded: questions_hash 7466b286db5c86a1b9d1cd7ba10a8e112818889c9cfd300a768b3040031d905b.",
+        "Code done, not LANDED: TX-14 (now MEASURED, owner run pending), AX-12 finish_reason forwarding, AX-14 close-out, AX-20 spec and template, AX-19 script.",
+        "OR-CD11 recorded: CD11 superseded; policy.json citations updated; EXCLUDE kept."
+      ],
+      "verified": [
+        "data/dev.duckdb: rating_trust_label ok 2,906 / thin 94 / suppressed 138; 2018_1/2018_2: 34 rows, NULL mean, NO_MEASURED_LAPS.",
+        "worker: generated/tools.ts names make_chart and compare_lap_times, no rowCap, limit max 25; npm test 34 pass.",
+        "app/public/data/assistant: 64,296 cards, race.teammate_gap 3,458 and season.results 173.",
+        "bar.json questions_hash read back from the file."
+      ],
+      "assumed": [
+        "Nothing ran a real model; AX-12 preview deploy, AX-14/AX-20 e2e, and the AX-13 real run are not done.",
+        "TX-14 oracle fix is untested by the determinism run until the owner runs it; every committed hash baseline still differs from the new oracle until step E.",
+        "make docs-coverage still exits non-zero at ml_docs_facts (ML test collection, 5 files fail to import here); unrelated to TX-07.",
+        "CHANCE_LINE_EXPERIMENTAL wording still accepts 'experimental'/'provisional'."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "make docs-reference",
+        "scripts/transform_docs_facts.py --write",
+        "cd worker && npm test"
+      ],
+      "next_command": "OWNER: (1) commit the working tree in logical pieces. (2) from transform/: ../.venv/bin/python scripts/check_determinism.py --select fct_driver_isolation_stint int_pit_strategy_cost_curve int_sector_residual_decomposed --runs 2 ; then re-take the byte-oracle and data-profile baselines once (step E) and check grep dim_events transform/tests/*.baseline.json is empty. (3) Worker preview deploy (step F), then AX-13 real run over days with --resume, human read, AX-19 --write, AX-20 run and switch-on. Pointer stays on TX-14 until the owner reports the determinism result."
     }
   ],
   "watch_vocabulary": {

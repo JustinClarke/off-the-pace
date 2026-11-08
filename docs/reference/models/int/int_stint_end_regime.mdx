@@ -31,7 +31,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`int_stint_geometry`](./int_stint_geometry), [`stg_results`](../stg/stg_results) |
 
-**23 tests** [guard](/transform/ci/overview) this model  -  21 generic, 2 singular.
+**28 tests** [guard](/transform/ci/overview) this model  -  24 generic, 4 singular.
 
 ## Columns
 
@@ -41,7 +41,7 @@ flowchart LR
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year. |
 | `race_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | Race identifier (numeric FastF1 event id cast to string). |
 | `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code (e.g. VER, HAM). |
-| `stint_number` |   | Yes |   | Stint ordinal within the driver's race. NULL for stints built from laps FastF1 never assigned to a stint -- two since WI-05 filled the 2018 lap-1 gap (2018_2 RIC, 2018_10 HAR; 325 before); those carry stint_end_cause NULL and end_cause_confidence 'unassigned_stint'. |
+| `stint_number` |   | Yes |   | Stint ordinal within the driver's race: since CO-09, the FastF1 number of the tyre run's first stint, so numbers can skip after a joined run. NULL for stints built from laps FastF1 never assigned to a stint -- two since WI-05 filled the 2018 lap-1 gap (2018_2 RIC, 2018_10 HAR; 325 before); those carry stint_end_cause NULL and end_cause_confidence 'unassigned_stint'. |
 | `end_lap_id` |   | Yes | [`not_null`](/transform/ci/structural) | Foreign key to stg_laps - the lap the stint ended on, chronologically. For an uncensored stint this is the in-lap. |
 | `end_lap_number` |   | Yes | [`not_null`](/transform/ci/structural) | Race lap number of the stint's final lap. |
 | `end_lap_in_stint` |   | Yes | [`not_null`](/transform/ci/structural) | Chronological ordinal of the stint's final lap within the stint (equals stint_length_actual). |
@@ -50,5 +50,7 @@ flowchart LR
 | `is_multi_regime_end` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when the final lap carried more than one of red/SC/VSC, so severity precedence had to choose which one names the ending. |
 | `ended_on_pit_lap` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when the stint's final lap carries a pit marker. FALSE on an uncensored stint means the tyre change is known from the existence of a later stint but is not visible on the lap itself. |
 | `was_running_at_flag` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE when the driver's classified status says the car was still circulating at the chequered flag ('Finished', '+N Lap(s)', 'Lapped'). Disqualification is resolved on distance instead, because it is a post-race ruling rather than a reason a stint ended. Only meaningful on a censored stint. |
-| `stint_end_cause` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Six-class answer to "why did this stint end": green_pit, sc_pit, vsc_pit, red for the four uncensored causes, race_end and retirement for the two censored ones. NULL where stint_number is NULL - the row is an artefact of unassigned laps, not a stint that ended. |
+| `stint_end_cause` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | Six-class answer to "why did this stint end": green_pit, sc_pit, vsc_pit, red for the four causes the older is_censored_stint flag treats as uncensored (for is_stint_life_censored both SC and VSC stops are censored), race_end and retirement for the two censored ones. NULL where stint_number is NULL - the row is an artefact of unassigned laps, not a stint that ended. |
 | `end_cause_confidence` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | How confidently the cause is known. 'observed' where every input was read; 'inferred' where severity precedence had to choose, where the pit marker is missing on an uncensored stint, or where disqualification hides whether the driver was running; 'unassigned_stint' where the row is not a stint. |
+| `is_stint_life_censored` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_values`](/transform/ci/range-and-domain) | CO-09 (label version v16; owner rulings D5, D6). The stint-life censoring flag. TRUE unless the tyre run ended in a green-flag tyre change (stint_end_cause = 'green_pit'): a red-flag tyre change (D5), a safety-car or VSC stop (D6), the flag and a retirement all cut the tyre's life short, so remaining stint life is a lower bound there. TRUE on the unassigned stints. Read by ml/src/features.py through schema.STINT_LIFE_CENSOR_COLUMN. Never a model feature. |
+| `reached_flag` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | CO-09. The flag question's outcome. TRUE on race_end; FALSE on a green, safety-car or VSC tyre change; NULL (censored, unknown) on a red-flag tyre change -- a free change at a suspension is not a strategic stop -- on a retirement and on an unassigned stint. |

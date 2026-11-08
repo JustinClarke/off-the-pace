@@ -42,6 +42,21 @@ describe('AX-01 toModelProjection', () => {
     expect(why.endsWith('…')).toBe(true)
   })
 
+  it('AX-07 ruling 4: trust, rank_sep and cov appear only when the card carries them', () => {
+    const base = toModelProjection(makeCard())
+    expect(base).not.toHaveProperty('trust')
+    expect(base).not.toHaveProperty('rank_sep')
+    expect(base).not.toHaveProperty('cov')
+    const p = toModelProjection(makeCard({ policy_fields: { rating_trust_label: 'thin', rank_separated_from_next: false, coverage_reason: 'OK' } }))
+    expect(p).toMatchObject({ trust: 'thin', rank_sep: false, cov: 'OK' })
+    // about 40 chars per card, well inside the 70-token cap
+    expect(estimateTokens(JSON.stringify(p))).toBeLessThanOrEqual(70)
+    // null values are not emitted
+    const n = toModelProjection(makeCard({ policy_fields: { rating_trust_label: null, rank_separated_from_next: null } }))
+    expect(n).not.toHaveProperty('trust')
+    expect(n).not.toHaveProperty('rank_sep')
+  })
+
   it('gives iv null for no interval or kind none', () => {
     expect(toModelProjection(validCards[2]).iv).toBeNull()
     expect(toModelProjection(validCards[3]).iv).toBeNull()

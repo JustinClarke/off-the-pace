@@ -1,6 +1,9 @@
 {
-  "_comment": "Bundle-size budget for app/scripts/check_bundle_size.mjs (Phase 5 / F9). JS bytes in dist/ (.wasm excluded). Regenerate with `make app-bundle-budget-update` after an intentional size change.",
+  "_comment": "Bundle-size budget for app/scripts/check_bundle_size.mjs (Phase 5 / F9). JS bytes in dist/ (.wasm excluded). Regenerate with `make app-bundle-budget-update` after an intentional size change. Assistant limits (AX-14 ruling 1) cover the chunks reachable only through the lazy AssistantLauncher import: measured + 10%, rounded up to the next 10 KB; checked from the Vite manifest (vite build --manifest), absent in flag-off builds.",
   "maxTotalJsBytes": 3407872,
   "maxGzipJsBytes": 1005568,
-  "maxLargestJsBytes": 835584
+  "maxLargestJsBytes": 835584,
+  "maxAssistantTotalJsBytes": 358400,
+  "maxAssistantGzipJsBytes": 112640,
+  "maxAssistantLargestJsBytes": 225280
 }

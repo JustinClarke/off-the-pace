@@ -13,7 +13,8 @@
 //   right_tool       the first expected tool was called (and the expected bundle, when one is named);
 //                    a question with no expected tool passes only when no tool was called
 //   all_tools        every expected tool was called (reported, not part of the bar)
-//   budget           tokens for the run (prompt + completion summed over its rounds) <= 18,000
+//   budget           peak context of the run (budget.peak_context, the largest single-round context) <= 18,000.
+//                    AX-13 ruling 1 (2026-11-08): the peak was meant, not the sum over rounds; budget.total is reported only
 //   limits           no call refused by the 4-call limit, no ROUND_LIMIT, rounds <= 5
 //   answered         the run ended with an answer (no endpoint error, no round-limit stop)
 import type { Card } from '../cards/card.types'
@@ -26,7 +27,7 @@ import { MAX_TOOL_CALLS } from '../core/budget'
 import { MAX_ROUNDS } from '../core/loop'
 import type { ExpectedCard, Question } from './questions'
 
-/** AI-07 / AX-13 Decided: no run over 18,000 tokens. */
+/** AI-07 / AX-13 Decided: no run over 18,000 tokens of peak context (AX-13 ruling 1: peak_context, not the sum over rounds). */
 export const RUN_TOKEN_LIMIT = 18000
 
 /** Held / refusal reasons a refuse or hedge answer must give, by key (all keys of a question must match). */
@@ -66,6 +67,8 @@ export interface UsageRound {
   completion_tokens?: number
   /** From the endpoint's usage when it reports one (completion_tokens_details.reasoning_tokens or similar). */
   reasoning_tokens?: number
+  /** The endpoint's finish_reason for the round ("length" = cut at MAX_OUTPUT_TOKENS). Absent when the endpoint sends none. */
+  finish_reason?: string | null
   /** Characters of the visible reply (content + tool calls): completion_tokens far above chars/4 of this means hidden (reasoning) tokens are billed as output. */
   visible_chars?: number
   raw?: unknown
@@ -260,7 +263,7 @@ export function grade(q: Question, obs: RunObservation, table: CardTable): Grade
     checks.all_tools = missingTools.length ? bad(`not called: ${missingTools.join(',')}`) : ok()
   }
 
-  checks.budget = errored ? na('errored run') : obs.budget.total <= RUN_TOKEN_LIMIT ? ok(`${obs.budget.total}`) : bad(`${obs.budget.total} tokens > ${RUN_TOKEN_LIMIT}`)
+  checks.budget = errored ? na('errored run') : obs.budget.peak_context <= RUN_TOKEN_LIMIT ? ok(`peak ${obs.budget.peak_context}`) : bad(`peak context ${obs.budget.peak_context} tokens > ${RUN_TOKEN_LIMIT}`)
 
   const limitHits = obs.tools.filter((t) => t.reason === 'tool_call_limit').length
   const dispatched = obs.tools.length - limitHits

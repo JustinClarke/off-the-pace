@@ -16,6 +16,7 @@ Staged for one reason: the blue flags are a traffic label produced by race contr
 ```mermaid
 flowchart LR
   stg_results --> stg_race_control
+  stg_race_control --> int_stint_geometry
   style stg_race_control fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -29,7 +30,7 @@ flowchart LR
 | Upstream | [`stg_results`](./stg_results) |
 | Model-level tests | `unique_combination_of_columns` |
 
-**8 tests** [guard](/transform/ci/overview) this model  -  7 generic, 1 singular.
+**10 tests** [guard](/transform/ci/overview) this model  -  7 generic, 3 singular.
 
 ## Columns
 

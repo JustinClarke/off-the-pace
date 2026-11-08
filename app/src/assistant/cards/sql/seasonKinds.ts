@@ -2,6 +2,7 @@
 //   season.teammate_gap     mart_driver_season_summary: teammate_gap_s (= the season rating) with its 95% CI
 //                           (rating_s -/+ 1.96 x rating_se_s, ci_normal_95) and n_races. rank_separated_from_next
 //                           travels in policy_fields, so a rank is never quoted without the CI test.
+//   season.results          stg_results wins / podiums / classified / starts / DNFs per driver-season (AX-07 ruling 5).
 //   corner_phase.season     mart_corner_skill_driver braking / mid-corner / exit skill with *_se_s (se_1 band).
 //   race_control.pooled_rate pooled safety-car / VSC / red-flag / any-caution rate per season and all seasons.
 //                           Pooled only: no per-circuit rate (the audit's forbidden chain).
@@ -11,7 +12,7 @@ import type { CardIndex, QueryRunner, ValueOutcome } from '../kinds'
 import { summarisePooled, wilson } from '../../../features/race-control/transform'
 import type { PooledRateRow } from '../../../features/race-control/queries'
 import '../../../features/race-control/queries'
-import type { CornerSeasonRow, SeasonRatingRow } from './queries'
+import type { CornerSeasonRow, SeasonRatingRow, SeasonResultsRow } from './queries'
 import './queries'
 
 const seasonsOf = async (index: CardIndex) => index.seasons.map((season) => ({ season }))
@@ -70,6 +71,49 @@ export const seasonTeammateGap = defineKind<{ season: number }, SeasonRatingRow[
   },
   pageParams: () => ({}),
   caveatRules: [{ code: 'AIR_STATE_FILTER', when: (o) => o.value !== null }],
+  onScreen: () => [],
+})
+
+// ---------------------------------------------------------------- season.results
+// AX-07 ruling 5: "how many races did X win" has a card. stg_results only (same source as race.result),
+// never qv_driver_race.actual_finish_position. value = wins; the other counts travel in display.
+export const seasonResults = defineKind<{ season: number }, SeasonResultsRow[]>({
+  kind: 'season.results',
+  class: 'T',
+  metric: 'wins',
+  label: 'measured',
+  unit: 'races',
+  intervalKind: 'none',
+  intervalLevel: null,
+  nUnit: 'races',
+  source: {
+    mart: 'stg_results',
+    columns: ['finish_position', 'is_classified', 'status'],
+    feature: null,
+    query: 'cards.season-results',
+    transform: null,
+  },
+  route: null,
+  docsSlug: null,
+  rev: 1,
+  enumerate: async (index) => seasonsOf(index),
+  compute: ({ season }, q) => q.run<SeasonResultsRow[]>('cards.season-results', { season }),
+  refusal: (rows) => (rows.length ? null : 'no result rows for this season in stg_results'),
+  ids: ({ season }) => [`season.results:${season}:*`],
+  build({ season }, rows) {
+    const pl = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`
+    return rows.map((r) => ({
+      key: [season, r.driver_id],
+      scope: { season, driver_id: r.driver_id },
+      value: r.wins,
+      display: `${pl(r.wins, 'win')}, ${pl(r.podiums, 'podium')}, ${r.classified} classified finishes, ${pl(r.dnfs, 'DNF')} in ${pl(r.starts, 'start')} (${season})`,
+      n: r.starts,
+      interval: null,
+      pageParams: {},
+    }))
+  },
+  pageParams: () => ({}),
+  caveatRules: [],
   onScreen: () => [],
 })
 
@@ -191,4 +235,4 @@ export const racePooledRate = defineKind<Record<string, never>, PooledRateRow[]>
   onScreen: () => [],
 })
 
-export const cardKinds = [seasonTeammateGap, cornerPhaseSeason, racePooledRate]
+export const cardKinds = [seasonTeammateGap, seasonResults, cornerPhaseSeason, racePooledRate]

@@ -15,7 +15,9 @@ One row per driver-season, shaped for plain-language explanations ("22nd of 22")
 ```mermaid
 flowchart LR
   fct_lap_residuals --> mart_driver_season_summary
+  int_dirty_air_tax_component --> mart_driver_season_summary
   int_era_normalized_driver_rating --> mart_driver_season_summary
+  mart_race_driver_summary --> mart_driver_season_summary
   style mart_driver_season_summary fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -26,10 +28,10 @@ flowchart LR
 | Layer | `marts` |
 | Family | [Marts](/transform/families/marts) |
 | Contract enforced | No |
-| Upstream | [`fct_lap_residuals`](./fct_lap_residuals), [`int_era_normalized_driver_rating`](../int/int_era_normalized_driver_rating) |
+| Upstream | [`fct_lap_residuals`](./fct_lap_residuals), [`int_dirty_air_tax_component`](../int/int_dirty_air_tax_component), [`int_era_normalized_driver_rating`](../int/int_era_normalized_driver_rating), [`mart_race_driver_summary`](./mart_race_driver_summary) |
 | Model-level tests | `unique_combination_of_columns` |
 
-**15 tests** [guard](/transform/ci/overview) this model  -  14 generic, 1 singular.
+**29 tests** [guard](/transform/ci/overview) this model  -  25 generic, 4 singular.
 
 ## Columns
 
@@ -38,9 +40,9 @@ flowchart LR
 | `driver_id` |   | Yes | [`not_null`](/transform/ci/structural), `relationships` | FastF1 three-letter driver code (e.g. VER, HAM). |
 | `race_year` |   | Yes | [`not_null`](/transform/ci/structural) | Season year. |
 | `rating_s` |   | Yes | [`not_null`](/transform/ci/structural) | Season rating (era_adjusted_rating), seconds. Negative = faster than teammate(s). |
-| `teammate_gap_rank` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | Rank of rating_s (the gap to one's own teammate) within the season; 1 = furthest ahead of his teammate. Not a ranking of driver speed against the field: a driver in a weak car can rank high and one in a strong car can rank low. Ties share a rank. |
-| `n_drivers` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | Number of rated drivers that season. |
-| `teammate_gap_percentile` |   | Yes | [`accepted_range`](/transform/ci/range-and-domain) | 1 - (teammate_gap_rank - 1) / (n_drivers - 1). 1.0 = largest lead over his own teammate in the season, 0.0 = largest deficit. Not a field-speed percentile. |
+| `teammate_gap_rank` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | Rank of rating_s (the gap to one's own teammate) within the season; 1 = furthest ahead of his teammate. Not a ranking of driver speed against the field: a driver in a weak car can rank high and one in a strong car can rank low. Ties share a rank. A point ordering of rating_s with no uncertainty: adjacent ranks are almost never separated by the CI (171 of 173 drivers' CIs overlap the next-ranked driver's on the v16 build), so quote a rank only with the CI; rank_separated_from_next says when it is separated. |
+| `n_drivers` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | Number of rated drivers that season (rows of this mart for the season; assert_ai_mart_counts_consistent). At least 2: the rating is a gap to a teammate. |
+| `teammate_gap_percentile` |   | Yes | [`accepted_range`](/transform/ci/range-and-domain) | 1 - (teammate_gap_rank - 1) / (n_drivers - 1). 1.0 = largest lead over his own teammate in the season, 0.0 = largest deficit. Not a field-speed percentile. A point ordering of rating_s like teammate_gap_rank: adjacent places are almost never separated by the CI, so quote it only with the CI. |
 | `ci_low` |   | Yes |   | Lower bound of the 95% CI on rating_s (era_adjusted_rating_ci_low_s). |
 | `ci_high` |   | Yes |   | Upper bound of the 95% CI on rating_s (era_adjusted_rating_ci_high_s). |
 | `n_races` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | Races behind the season rating. |
@@ -51,4 +53,13 @@ flowchart LR
 | `mean_fuel_component_s` |   | Yes |   | Mean fuel component over ml_eligible laps, seconds. |
 | `mean_compound_component_s` |   | Yes |   | Mean compound component over ml_eligible laps, seconds. |
 | `mean_constructor_component_s` |   | Yes |   | Mean constructor component over ml_eligible laps, seconds. |
-| `mean_dirty_air_tax_s` |   | Yes |   | Mean dirty-air tax over ml_eligible laps, seconds. |
+| `mean_dirty_air_tax_s` |   | Yes |   | Mean dirty-air tax over the season's ml_eligible laps with a measured air state (a row in int_dirty_air_tax_component with a non-NULL tax), seconds. NULL when none (dirty_air_unavailable_reason). fct_lap_residuals' 0.0 on unmeasured laps is excluded. |
+| `n_dirty_air_measured_laps` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | ml_eligible laps behind mean_dirty_air_tax_s (measured dirty-air tax). 0 when none. |
+| `dirty_air_unavailable_reason` |   | Yes | [`accepted_values`](/transform/ci/range-and-domain) | NO_MEASURED_LAPS when mean_dirty_air_tax_s is NULL; NULL otherwise. |
+| `n_races_unrated` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | Races the driver has laps for in fct_lap_residuals that season with no mart_race_driver_summary row (no race rating; e.g. 2021_16, all wet). mart_race_coverage says why per race. 0 when every race is rated. |
+| `rating_se_s` |   | Yes | [`not_null`](/transform/ci/structural) | Standard error of rating_s (int_era_normalized_driver_rating.era_adjusted_rating_se_s), seconds. ci_low / ci_high = rating_s -/+ 1.96 x rating_se_s. |
+| `rating_confidence` |   | Yes | [`not_null`](/transform/ci/structural), [`accepted_range`](/transform/ci/range-and-domain) | int_era_normalized_driver_rating.rating_confidence, 0-1 (higher = more data behind the rating). |
+| `total_clean_laps_n` |   | Yes | [`not_null`](/transform/ci/structural) | Clean laps behind the season rating (int_era_normalized_driver_rating.total_clean_laps_n). |
+| `bridge_driver_anchor_flag` |   | Yes | [`not_null`](/transform/ci/structural) | int_era_normalized_driver_rating.bridge_driver_anchor_flag, carried unchanged. |
+| `low_anchor_sample_flag` |   | Yes | [`not_null`](/transform/ci/structural) | int_era_normalized_driver_rating.low_anchor_sample_flag, carried unchanged (FALSE on every row of the v16 build; kept so a future TRUE is visible). |
+| `rank_separated_from_next` |   | Yes |   | TRUE when this driver's ci_high &lt; the ci_low of the next-ranked driver in the same season (next by rating_s, ties broken by driver_id), i.e. the CI separates this rank from the next one. NULL for the season's last-ranked driver (no next). Read by AX-21's RANK_WITHIN_CI rule; keep the name. |

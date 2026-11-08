@@ -185,7 +185,9 @@ export async function handle(req: Request, env: Env, deps: Deps): Promise<Respon
     if (!message) return json({ error: "upstream_error" }, 502, c);
     // Tool calls are passed through untouched; the Worker never runs a query.
     const ticket = await signTicket(env.TICKET_SECRET, { v: visitor, q, exp: Math.floor(deps.now().getTime() / 1000) + TICKET_TTL_S });
-    return json({ message, usage: result?.usage ?? null, ticket }, 200, c);
+    // finish_reason is forwarded (AX-12 ruling 1) so the eval can tell truncation ("length") from a normal stop.
+    const finish_reason = result?.choices?.[0]?.finish_reason ?? null;
+    return json({ message, usage: result?.usage ?? null, finish_reason, ticket }, 200, c);
   } catch (e) {
     deps.log(redact(`error: ${String((e as any)?.message ?? e)}`, env));
     return json({ error: "internal_error" }, 500, c);

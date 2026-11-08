@@ -4377,6 +4377,8 @@ models:
       boundary 0 of lap L + 1 is the lap line. bracket_s is the width of the straddling pair;
       on_track is TRUE when both samples are OnTrack. No label reads it. _roadmap/_dirty-air.
     tags: [intermediate, dirty_air_dynamic]
+    meta:
+      family: physics
     columns:
       - name: crossing_time_s
         tests: [not_null]
@@ -4423,6 +4425,8 @@ models:
       reference. No label, ML mart or isolation model reads it. Design:
       _roadmap/_dirty-air/wi/DA-design-note.md, DA-02-tables.md.
     tags: [intermediate, dirty_air_dynamic]
+    meta:
+      family: physics
     columns:
       - name: microsector_id
         tests: [not_null, unique]
@@ -4510,6 +4514,8 @@ models:
       its end, link otherwise. Built from geometry and speed only; it reads no gap or time loss.
       Thresholds are registered in the DA-03 pre-registration amendment (DA-02P).
     tags: [intermediate, dirty_air_dynamic]
+    meta:
+      family: physics
     columns:
       - name: race_microsector_id
         tests: [not_null, unique]

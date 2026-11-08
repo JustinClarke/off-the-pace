@@ -21,8 +21,10 @@ flowchart LR
   dim_constructors --> fct_lap_residuals
   dim_drivers --> fct_lap_residuals
   int_lap_residual_decomposed --> fct_lap_residuals
+  fct_lap_residuals --> mart_build_provenance
   fct_lap_residuals --> mart_driver_season_summary
   fct_lap_residuals --> mart_metric_benchmark
+  fct_lap_residuals --> mart_race_coverage
   fct_lap_residuals --> mart_race_driver_summary
   style fct_lap_residuals fill:#e40404,stroke:#e40404,color:#fff
 ```
@@ -36,7 +38,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`int_lap_residual_decomposed`](../int/int_lap_residual_decomposed), [`dim_drivers`](../dim/dim_drivers), [`dim_constructors`](../dim/dim_constructors) |
 
-**23 tests** [guard](/transform/ci/overview) this model  -  22 generic, 1 singular.
+**28 tests** [guard](/transform/ci/overview) this model  -  22 generic, 6 singular.
 
 ## Columns
 
@@ -56,6 +58,7 @@ flowchart LR
 | `ambient_component_s` | `double` | Yes | [`not_null`](/transform/ci/structural) | Ambient/weather component. |
 | `constructor_component_s` | `double` | Yes | [`not_null`](/transform/ci/structural) | Constructor structural pace component. |
 | `dirty_air_tax_s` | `double` | Yes | [`not_null`](/transform/ci/structural) | Per-lap dirty-air slowdown component. NULL on a lap with a measured base whose previous lap's air state is unmeasured (FD6 / CO-04); driver_skill_residual_s is NULL there too. |
+| `dirty_air_tax_se_s` | `double` | Yes |   | Convention, not an estimate: 0.15 × the tax. Zero on clean-air laps. Not propagated from θ's interval. Do not quote as a standard error. (TX-04; same text as int_dirty_air_tax_component.dirty_air_tax_se_s.) |
 | `driver_skill_residual_s` | `double` | Yes | [`not_null`](/transform/ci/structural) | Residual after fuel/compound/constructor/dirty-air (driver skill). WI-01/F1: NULL, not a fabricated number, when base_track_pace_s, compound_component_s or dirty_air_tax_s is itself unmeasured -- see pace_delta_s. |
 | `base_track_pace_s` | `double` | Yes |   | Field pace baseline (int_field_pace_curve), fuel- and compound-neutral. NULL when the field curve has no measured row for this (race, lap_number) (F1) -- not COALESCEd to a fabricated value. |
 | `pace_delta_s` | `double` | Yes |   | lap_time_s - base_track_pace_s. NULL when base_track_pace_s is NULL (F1). |

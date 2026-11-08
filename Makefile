@@ -263,6 +263,9 @@ app-data-canary:  ## Export canary tables only (fast)
 app-data-check:  ## CI drift gate: regenerate manifest and diff (no write)
 	./.venv/bin/python scripts/export_app_data.py --check
 
+assistant-freeze-verify:  ## AX-19: recompute the assistant freeze from disk and diff against freeze.json (exit 1 names the field)
+	./.venv/bin/python scripts/assistant_freeze.py --verify
+
 ##   Models
 app-models:  ## Copy ONNX models (version per manifest) + manifest/encoders → app/public/models/
 	@mkdir -p app/public/models

@@ -51,13 +51,21 @@ export function pieces(answer: string, sources: AnswerSources): { parts: Piece[]
     if (n.index < at) continue
     if (n.index > at) parts.push({ kind: 'text', text: answer.slice(at, n.index) })
     at = n.index + n.text.length
+    // AX-14 ruling 3: a leading minus (- or U+2212) belongs to the chip. Render only: matching still uses the bare number.
+    let sign = ''
+    const last = parts[parts.length - 1]
+    if (last && last.kind === 'text' && !(parts.length > 1 && last.text.length === 1) && /(^|[^A-Za-z0-9)\].])[-\u2212]$/.test(last.text)) {
+      sign = last.text.slice(-1)
+      last.text = last.text.slice(0, -1)
+      if (last.text === '') parts.pop()
+    }
     if (badAt.has(n.index)) {
-      parts.push({ kind: 'struck', text: n.text })
+      parts.push({ kind: 'struck', text: sign + n.text })
       continue
     }
     const src = sourceFor(n, answer, sources)
-    if (src) parts.push({ kind: 'chip', key: `${n.index}`, text: n.text, source: src })
-    else parts.push({ kind: 'text', text: n.text })
+    if (src) parts.push({ kind: 'chip', key: `${n.index}`, text: sign + n.text, source: src })
+    else parts.push({ kind: 'text', text: sign + n.text })
   }
   if (at < answer.length) parts.push({ kind: 'text', text: answer.slice(at) })
   return { parts, ungrounded: bad.map((b) => b.text) }

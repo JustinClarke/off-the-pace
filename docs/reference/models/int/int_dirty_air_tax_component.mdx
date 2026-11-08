@@ -24,7 +24,11 @@ flowchart LR
   int_stint_geometry --> int_dirty_air_tax_component
   int_track_evolution --> int_dirty_air_tax_component
   int_dirty_air_tax_component --> fct_stint_features
+  int_dirty_air_tax_component --> int_driver_isolation_lap_panel
   int_dirty_air_tax_component --> int_lap_residual_decomposed
+  int_dirty_air_tax_component --> mart_driver_season_summary
+  int_dirty_air_tax_component --> mart_metric_benchmark
+  int_dirty_air_tax_component --> mart_race_driver_summary
   style int_dirty_air_tax_component fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -38,7 +42,7 @@ flowchart LR
 | Tags | `causal_decomposition`, `dirty_air` |
 | Upstream | [`int_lap_fuel_state`](./int_lap_fuel_state), [`int_field_pace_curve`](./int_field_pace_curve), [`int_compound_cliff_predicted`](./int_compound_cliff_predicted), [`int_stint_geometry`](./int_stint_geometry), [`int_lap_air_state`](./int_lap_air_state), [`int_event_corrections`](./int_event_corrections), [`int_track_evolution`](./int_track_evolution) |
 
-**13 tests** [guard](/transform/ci/overview) this model  -  8 generic, 5 singular.
+**17 tests** [guard](/transform/ci/overview) this model  -  8 generic, 9 singular.
 
 ## Columns
 
@@ -47,7 +51,7 @@ flowchart LR
 | `lap_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | PK, FK to stg_laps |
 | `dirty_air_intensity_lag1` |   | Yes |   | One-lap-lagged dirty-air intensity (dirty_air_share_lap) from int_lap_air_state, over the stint's full lap sequence; 0.0 on the stint's first lap. NULL when the previous lap's air state is unmeasured (FD6 / CO-04: no gap and not the leader), not 0.0. Asserted by assert_dirty_air_tax_null_only_when_unmeasured. |
 | `dirty_air_tax_s` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Per-lap dirty-air slowdown in seconds. θ_air × dirty_air_intensity_lag1. Positive (slower cost). Bounded [0, 5.0]. θ_air is the declared theta_air_label_value (0.331 s/lap, W40), fitted outside dbt on the two-arm calibration panel (see the model description). Because dirty_air_intensity_lag1 is one bit per lap, this column takes two values per build — 0.0 on a clean-air lap and θ_air on a dirty-air lap. A dose-response on the measured gap (int_lap_air_state.min_gap_s / stg_telemetry_position.distance_to_ahead_m) is the standing follow-up; removing the treated-arm filter is the identification fix, not the measurement fix. NULL exactly where dirty_air_intensity_lag1 is (FD6 / CO-04). |
-| `dirty_air_tax_se_s` |   | Yes | [`not_null`](/transform/ci/structural) | Standard error of the tax estimate via propagation. NULL where the tax is. |
-| `tax_calibration_confidence` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Confidence in the tax [0, 1], as n / (n + 500) over the calibration sample n. Since 08q restored both arms to that panel, n is the full two-arm panel (138,970 laps on the WI-01 label) rather than the 28,523 treated laps it was through v12, so this reads ~0.996 rather than ~0.983. It measures calibration SAMPLE SIZE ONLY and is not a statement about whether θ_air is distinguishable from zero in a given season — it is near 1.0 on every season including 2021 and 2024, where the per-season estimate straddles zero. |
+| `dirty_air_tax_se_s` |   | Yes | [`not_null`](/transform/ci/structural) | Convention, not an estimate: 0.15 × the tax. Zero on clean-air laps. Not propagated from θ's interval. Do not quote as a standard error. NULL where the tax is. Pinned by assert_dirty_air_se_is_declared_convention (TX-04). |
+| `tax_calibration_confidence` |   | Yes | [`not_null`](/transform/ci/structural), [`expect_column_values_to_be_between`](/transform/ci/range-and-domain) | Confidence in the tax [0, 1], as n / (n + 500) over the calibration sample n. Since 08q restored both arms to that panel, n is the full two-arm panel (138,970 laps on the WI-01 label) rather than the 28,523 treated laps it was through v12, so this reads ~0.996 rather than ~0.983. It measures calibration SAMPLE SIZE ONLY and is not a statement about whether θ_air is distinguishable from zero in a given season — it is near 1.0 on every season including 2021 and 2024, where the per-season estimate straddles zero. It is one constant per build (the same value on every row) and is not a confidence in the tax value of any lap (TX-04). |
 | `cumulative_dirty_air_tax_race_s` |   | Yes |   | Running race-cumulative sum of per-lap dirty-air tax for each driver, over laps with a measured base. NULL from the first lap with an unknown tax (FD6 / CO-04) onward. |
 | `dirtiest_air_lap_in_race_flag` |   | Yes | [`not_null`](/transform/ci/structural) | TRUE on the lap where this driver's per-lap tax is at its maximum in the race |

@@ -38,6 +38,7 @@ export async function runOnce(q: Question, repeat: number, model: ModelClient, d
         prompt_tokens: r.usage?.prompt_tokens,
         completion_tokens: r.usage?.completion_tokens,
         reasoning_tokens: reasoningOf(r.raw_usage),
+        ...(r.finish_reason !== undefined ? { finish_reason: r.finish_reason } : {}),
         visible_chars: (r.content ?? '').length + (r.tool_calls.length ? JSON.stringify(r.tool_calls).length : 0),
         ...(r.raw_usage ? { raw: r.raw_usage } : {}),
       })

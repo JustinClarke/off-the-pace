@@ -84,3 +84,27 @@ describe('race_control.pooled_rate', () => {
     expect(r.ungrounded.length).toBeGreaterThan(0)
   })
 })
+
+describe('season.results (AX-07 ruling 5)', () => {
+  const rows = [
+    { driver_id: 'VER', constructor_ids: 'Red Bull Racing', starts: 22, wins: 19, podiums: 21, classified: 22, dnfs: 0 },
+    { driver_id: 'ONE', constructor_ids: 'X', starts: 1, wins: 0, podiums: 0, classified: 0, dnfs: 1 },
+  ]
+  it('measured, T, wins as value, n = starts in races, no interval, counts in display', async () => {
+    const { seasonResults } = await import('./seasonKinds')
+    const r = await buildCards({ specs: [seasonResults], q: qOf({ 'cards.season-results': rows }), index: idx })
+    const by = Object.fromEntries(r.cards.map((c) => [c.id, c]))
+    expect(by['season.results:2024:VER']).toMatchObject({
+      status: 'active', label: 'measured', value: 19, n: { count: 22, unit: 'races' }, interval: null,
+    })
+    expect(by['season.results:2024:VER'].display).toBe('19 wins, 21 podiums, 22 classified finishes, 0 DNFs in 22 starts (2024)')
+    expect(by['season.results:2024:ONE'].display).toMatch(/^0 wins, 0 podiums, 0 classified finishes, 1 DNF in 1 start/)
+    expect(r.ungrounded).toEqual([])
+  })
+  it('refuses a season with no rows', async () => {
+    const { seasonResults } = await import('./seasonKinds')
+    const r = await buildCards({ specs: [seasonResults], q: qOf({ 'cards.season-results': [] }), index: idx })
+    expect(r.cards).toEqual([])
+    expect(r.ungrounded[0].reason).toMatch(/no result rows/)
+  })
+})

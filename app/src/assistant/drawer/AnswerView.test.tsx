@@ -100,6 +100,21 @@ describe('AnswerView render-time grounding', () => {
     expect(parts.filter((p) => p.kind === 'struck').map((p) => p.text)).toEqual(['9.87'])
   })
 
+  it('a leading minus (hyphen or U+2212) is inside the chip or the strike, and the text stays intact', () => {
+    for (const sign of ['-', '\u2212']) {
+      const answer = `Change of ${sign}0.0413 s, not ${sign}9.87 s.`
+      const { parts } = pieces(answer, sourcesOf([corner]))
+      expect(parts.filter((p) => p.kind === 'chip').map((p) => p.text)).toEqual([`${sign}0.0413`])
+      expect(parts.filter((p) => p.kind === 'struck').map((p) => p.text)).toEqual([`${sign}9.87`])
+      expect(parts.map((p) => p.text).join('')).toBe(answer)
+    }
+  })
+
+  it('a range such as 3-5 does not pull the hyphen into a chip', () => {
+    const { parts } = pieces('Laps 3-5 held.', sourcesOf([corner]))
+    expect(parts.some((p) => p.kind !== 'text' && p.text.startsWith('-'))).toBe(false)
+  })
+
   it('does not execute markup in the answer text', () => {
     const { container } = wrap(<AnswerView answer={'<img src=x onerror=alert(1)> 0.0413'} sources={sourcesOf([corner])} />)
     expect(container.querySelector('img')).toBeNull()

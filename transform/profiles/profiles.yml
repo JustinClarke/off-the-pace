@@ -4,7 +4,10 @@ off_the_pace:
     dev:
       type: duckdb
       path: '../data/dev.duckdb'
-      threads: 4
+      # threads: 1 + settings.threads: 1 as on ci (byte-reproducible builds; see ci comment).
+      threads: 1
+      settings:
+        threads: 1
     ci:
       type: duckdb
       path: '../data/ci.duckdb'

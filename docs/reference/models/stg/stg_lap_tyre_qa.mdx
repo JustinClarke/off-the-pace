@@ -8,7 +8,7 @@ description: "Bronze tyre QA (WI-05: F24, F25), one row per race lap; int_stint_
 
 <Note>Part of the [Staging](/transform/families/staging) family.</Note>
 
-Bronze tyre QA (WI-05: F24, F25), one row per race lap; int_stint_geometry reads stint_number / tyre_life / compound from here instead of raw bronze. (1) F25 repair: a driver's first unassigned laps (&lt;= var('tyre_qa_max_unassigned_leading_laps'), the 2018 lap-1 gap) join the first stint, and that stint's TyreLife is offset by the laps filled, since bronze counted it from the first assigned lap; laps up to a stop taken inside the gap are the stint before, with unknown tyres. (2) F24 cross-check: every race's stint numbering is compared with stg_pits. A race is quarantined when it has &gt;= var('tyre_qa_race_unexplained_boundaries_min') stint changes with no in-lap in the var('tyre_qa_boundary_window_laps') laps before them (and no red flag) or whose in-lap an earlier change already claimed (one stop, one change), or when &gt;= var('tyre_qa_race_unmatched_pit_share_min') of its racing stops (&gt;= 3) have no stint change after them; outside those races a driver-race is quarantined on any such unexplained change or on laps bronze never assigned. A quarantined unit serves the pit record's stint ordinal and NULL compound / tyre_life, never a boundary that contradicts the pit record. As built on the 2018-2025 warehouse the quarantined races are 2018_3, 2022_7, 2022_11 and 2025_6 (see tyre_qa_status).
+Bronze tyre QA (WI-05: F24, F25), one row per race lap; int_stint_geometry reads stint_number / tyre_life / compound from here instead of raw bronze. (1) F25 repair: a driver's first unassigned laps (&lt;= var('tyre_qa_max_unassigned_leading_laps'), the 2018 lap-1 gap) join the first stint, and that stint's TyreLife is offset by the laps filled, since bronze counted it from the first assigned lap; laps up to a stop taken inside the gap are the stint before, with unknown tyres. (2) F24 cross-check: every race's stint numbering is compared with stg_pits. A race is quarantined when it has &gt;= var('tyre_qa_race_unexplained_boundaries_min') stint changes with no in-lap in the var('tyre_qa_boundary_window_laps') laps before them (and no red flag) or whose in-lap an earlier change already claimed (one stop, one change), or when &gt;= var('tyre_qa_race_unmatched_pit_share_min') of its racing stops (&gt;= 3) have no stint change after them; outside those races a driver-race is quarantined on any such unexplained change or on laps bronze never assigned. A quarantined unit serves the pit record's stint ordinal and NULL compound / tyre_life, never a boundary that contradicts the pit record. As built on the 2018-2025 warehouse (re-checked 2026-11-07, TX-02) the quarantined races are 2018_3 and 2025_6 (2,120 laps 'quarantined_race'); 2022_7 has 63 'quarantined_driver' laps and 2022_11 is all 'ok' (its thin bronze TyreLife, 73% non-null, is an owner-accepted KNOWN_THIN exception, surfaced as TYRE_LIFE_PARTIAL in mart_race_coverage). See tyre_qa_status.
 
 ## Lineage
 
@@ -16,8 +16,10 @@ Bronze tyre QA (WI-05: F24, F25), one row per race lap; int_stint_geometry reads
 flowchart LR
   stg_laps --> stg_lap_tyre_qa
   stg_pits --> stg_lap_tyre_qa
+  stg_lap_tyre_qa --> int_pit_strategy_value
   stg_lap_tyre_qa --> int_sector_residual_decomposed
   stg_lap_tyre_qa --> int_stint_geometry
+  stg_lap_tyre_qa --> mart_race_coverage
   style stg_lap_tyre_qa fill:#e40404,stroke:#e40404,color:#fff
 ```
 
@@ -30,7 +32,7 @@ flowchart LR
 | Contract enforced | No |
 | Upstream | [`stg_laps`](./stg_laps), [`stg_pits`](./stg_pits) |
 
-**6 tests** [guard](/transform/ci/overview) this model  -  6 generic, 0 singular.
+**9 tests** [guard](/transform/ci/overview) this model  -  6 generic, 3 singular.
 
 ## Columns
 

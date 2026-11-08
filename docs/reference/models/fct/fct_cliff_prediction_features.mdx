@@ -120,7 +120,7 @@ flowchart LR
 | `circuit_hazard_prior_racing_laps` | `bigint` | Yes | [`not_null`](/transform/ci/structural) | 02d. Racing laps of prior-season exposure the hazard estimate rests on, at this venue, seasons strictly before this one. 0 on a venue's debut season. Never NULL -- the source reports it unfloored, and 0 is the measured "no prior exposure" rather than an invented value. Carried as its own channel so the ablation can separate safety-car risk from calendar tenure, which has no SC mechanism in it (arm C). |
 | `circuit_hazard_prior_seasons_n` | `bigint` | Yes | [`not_null`](/transform/ci/structural) | 02d. Distinct prior seasons in which this venue appears, strictly before this one. 0 on a debut season. The companion count to circuit_hazard_prior_racing_laps and the second half of arm C. |
 | `expected_compound_pace_s` | `double` | Yes |   | Model-expected compound pace contribution from int_compound_cliff_predicted |
-| `expected_degradation_rate_s_per_lap` | `double` | Yes |   | Model-expected degradation rate (s/lap) at current tyre age |
+| `expected_degradation_rate_s_per_lap` | `double` | Yes |   | Model-expected degradation rate (s/lap) at current tyre age: the slope of compound_wear_s. The wear gradient until cliff onset + 5 laps (0 after, CO-15 wear hold), plus the cliff ramp's slope while the ramp climbs. |
 | `cliff_onset_passed` | `boolean` | Yes |   | TRUE if tyre has passed its fitted cliff onset lap |
 | `laps_past_cliff` | `double` | Yes |   | Laps elapsed since cliff onset (0 if not passed) |
 | `ambient_temp_delta` | `double` | Yes |   | Difference between current ambient temp and optimal temp midpoint (°C) |

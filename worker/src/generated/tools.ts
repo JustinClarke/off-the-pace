@@ -38,8 +38,22 @@ export const TOOLS: unknown[] = [
             "items": {
               "type": "string",
               "enum": [
+                "constructor_circuit_interaction.season",
+                "constructor_structural_pace.season",
+                "constructor_team_averages.season",
+                "corner_phase.season",
+                "counterfactual_championship.season",
+                "data_quality.race",
+                "dirty_air.price",
+                "driver_consistency.season",
+                "driver_isolation.race",
+                "driver_isolation.stint",
                 "driver_race.pit_stops",
                 "era_rating.season",
+                "ghost_race.standings",
+                "hidden_performance.season",
+                "lap_waterfall.component",
+                "party_mode.season",
                 "pit_strategy.opportunity_cost",
                 "pit_strategy.optimal_lap",
                 "pit_strategy.verdict",
@@ -47,7 +61,15 @@ export const TOOLS: unknown[] = [
                 "race.coverage",
                 "race.result",
                 "race.teammate_gap",
-                "race_lost.component"
+                "race_control.pooled_rate",
+                "race_driver.skill_components",
+                "race_lost.component",
+                "season.results",
+                "season.teammate_gap",
+                "season_driver.skill_benchmark",
+                "sector_decomposition.component",
+                "tyre_cliff_survival.profile",
+                "wet_race.specialist"
               ]
             }
           },

@@ -43,6 +43,37 @@ export const queryRaceResults = registerQuery<{ race_id: string }, ResultRow[]>(
 })
 
 /**
+ * AX-07 ruling 5: driver x season result counts from stg_results (the same source as race.result).
+ * Wins and podiums count classified finishers only (is_classified, finish_position 1 / <= 3), so a
+ * disqualified driver never counts. DNFs repeat stg_results' is_dnf rule on status + is_classified (no new
+ * lineage column). Not qv_driver_race.actual_finish_position (it undercounts).
+ */
+export interface SeasonResultsRow {
+  driver_id: string
+  constructor_ids: string | null
+  starts: number
+  wins: number
+  podiums: number
+  classified: number
+  dnfs: number
+}
+
+export const querySeasonResults = registerQuery<{ season: number }, SeasonResultsRow[]>('cards.season-results', async ({ season }) => {
+  await reg('stg_results')
+  return rawQuery<SeasonResultsRow>(
+    `SELECT driver_id,
+            STRING_AGG(DISTINCT constructor_id, ', ') AS constructor_ids,
+            CAST(COUNT(*) AS INTEGER) AS starts,
+            CAST(COUNT(*) FILTER (WHERE is_classified AND finish_position = 1) AS INTEGER) AS wins,
+            CAST(COUNT(*) FILTER (WHERE is_classified AND finish_position <= 3) AS INTEGER) AS podiums,
+            CAST(COUNT(*) FILTER (WHERE is_classified) AS INTEGER) AS classified,
+            CAST(COUNT(*) FILTER (WHERE NOT is_classified AND status NOT LIKE '%Lap%' AND status <> 'Finished') AS INTEGER) AS dnfs
+       FROM stg_results WHERE race_year = ? GROUP BY driver_id ORDER BY driver_id`,
+    [season],
+  )
+})
+
+/**
  * Every (season, race_id) in mart_race_coverage (one row per scheduled race, 173): the enumeration
  * grain of the race kinds. Not fct_lap_residuals: a race with no valid lap (2021_12) still has a
  * result, cautions and a coverage reason.

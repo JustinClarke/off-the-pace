@@ -47,4 +47,6 @@ flowchart LR
 | `rpm` | `double` | Yes |   | Engine speed (revolutions per minute). |
 | `n_gear` | `integer` | Yes |   | Selected gear (0 = neutral). |
 | `drs_active` | `boolean` | Yes |   | TRUE when DRS was open/active (FastF1 codes 10/12/14). |
+| `drs_code` | `integer` | Yes |   | The raw FastF1 DRS code of the sample (DA-02P). |
+| `drs_state` | `varchar` | Yes |   | DA-02P. The DRS code decoded with code 8 kept as its own state: off (0, 1), eligible (8, within 1 s at the detection line, may open in the next zone), open (10, 12, 14), unknown (any other code), NULL when the code is NULL. drs_active is unchanged. |
 | `source_channel` | `varchar` | Yes | [`not_null`](/transform/ci/structural) | FastF1 sample provenance ('car' = true channel cadence; 'pos'/'interpolation' = forward-filled). |

@@ -16,6 +16,8 @@ Foundation for all downstream window functions. One row per race lap (the FULL c
 flowchart LR
   stg_lap_tyre_qa --> int_stint_geometry
   stg_laps --> int_stint_geometry
+  stg_race_control --> int_stint_geometry
+  stg_results --> int_stint_geometry
   stg_tyre_allocations --> int_stint_geometry
   int_stint_geometry --> fct_stint_features
   int_stint_geometry --> int_compound_cliff_predicted
@@ -30,6 +32,7 @@ flowchart LR
   int_stint_geometry --> int_lap_proximity
   int_stint_geometry --> int_lap_residual_decomposed
   int_stint_geometry --> int_lap_thermal_proxy
+  int_stint_geometry --> int_microsector_proximity
   int_stint_geometry --> int_pit_strategy_cost_curve
   int_stint_geometry --> int_pit_strategy_value
   int_stint_geometry --> int_power_law_lap
@@ -45,15 +48,15 @@ flowchart LR
 | Layer | `intermediate` |
 | Family | [Physics](/transform/families/physics) |
 | Contract enforced | No |
-| Upstream | [`stg_laps`](../stg/stg_laps), [`stg_lap_tyre_qa`](../stg/stg_lap_tyre_qa), [`stg_tyre_allocations`](../stg/stg_tyre_allocations) |
+| Upstream | [`stg_laps`](../stg/stg_laps), [`stg_lap_tyre_qa`](../stg/stg_lap_tyre_qa), [`stg_tyre_allocations`](../stg/stg_tyre_allocations), [`stg_race_control`](../stg/stg_race_control), [`stg_results`](../stg/stg_results) |
 
-**30 tests** [guard](/transform/ci/overview) this model  -  15 generic, 15 singular.
+**33 tests** [guard](/transform/ci/overview) this model  -  15 generic, 18 singular.
 
 ## Columns
 
 | Column | Type | Nullable | Tests | Description |
 |---|---|---|---|---|
-| `stint_id` |   | Yes | [`not_null`](/transform/ci/structural) | Surrogate key combining race_year, race_id, driver_id, stint_number |
+| `stint_id` |   | Yes | [`not_null`](/transform/ci/structural) | Surrogate key combining race_year, race_id, driver_id, stint_number. Since CO-09 (D4) it keys a TYRE RUN: consecutive FastF1 stints on the same compound with tyre age continuing at + 1 across a non-green boundary (safety-car drive-through, red-flag pause) are one stint. A green-flag boundary joins only when race control recorded a drive-through, stop-go or time penalty for that car within one lap of the earlier stint's last lap (a penalty served on the same tyres; owner 2026-10-24, on CD14); other green same-tyre stops stay split. A run that was never joined keeps its old id; a joined run takes the id of its first fragment. |
 | `lap_id` |   | Yes | [`not_null`](/transform/ci/structural), [`unique`](/transform/ci/structural) | Foreign key to stg_laps |
 | `lap_in_stint` |   | Yes | [`not_null`](/transform/ci/structural) | Chronological ordinal within the stint (1, 2, 3, ...), counting every lap including SC/VSC/pit/invalid ones. |
 | `valid_lap_in_stint` |   | Yes |   | Ordinal among valid laps only within the stint (NULL on invalid laps). Use for pace-fitting position/length logic instead of lap_in_stint. |

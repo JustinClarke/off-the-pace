@@ -15,6 +15,7 @@ Equal-car driver skill, race grain (race_year, race_id, driver_id). driver_skill
 ```mermaid
 flowchart LR
   int_constructor_car_fe --> int_driver_race_skill_loro
+  int_driver_race_paired_laps --> int_driver_race_skill_loro
   int_event_corrections --> int_driver_race_skill_loro
   int_field_pace_curve --> int_driver_race_skill_loro
   int_lap_fuel_state --> int_driver_race_skill_loro
@@ -23,6 +24,7 @@ flowchart LR
   int_driver_race_skill_loro --> int_driver_circuit_affinity
   int_driver_race_skill_loro --> int_driver_circuit_era_affinity
   int_driver_race_skill_loro --> int_driver_season_ratings
+  int_driver_race_skill_loro --> mart_race_coverage
   int_driver_race_skill_loro --> mart_race_driver_summary
   style int_driver_race_skill_loro fill:#e40404,stroke:#e40404,color:#fff
 ```
@@ -35,9 +37,9 @@ flowchart LR
 | Family | [Skill](/transform/families/skill) |
 | Contract enforced | No |
 | Tags | `driver_rating`, `causal_decomposition` |
-| Upstream | [`int_lap_fuel_state`](./int_lap_fuel_state), [`int_field_pace_curve`](./int_field_pace_curve), [`stg_laps`](../stg/stg_laps), [`int_event_corrections`](./int_event_corrections), [`int_track_evolution`](./int_track_evolution), [`int_constructor_car_fe`](./int_constructor_car_fe) |
+| Upstream | [`int_lap_fuel_state`](./int_lap_fuel_state), [`int_field_pace_curve`](./int_field_pace_curve), [`stg_laps`](../stg/stg_laps), [`int_event_corrections`](./int_event_corrections), [`int_track_evolution`](./int_track_evolution), [`int_constructor_car_fe`](./int_constructor_car_fe), [`int_driver_race_paired_laps`](./int_driver_race_paired_laps) |
 
-**11 tests** [guard](/transform/ci/overview) this model  -  9 generic, 2 singular.
+**12 tests** [guard](/transform/ci/overview) this model  -  9 generic, 3 singular.
 
 ## Columns
 

@@ -88,3 +88,20 @@ describe('scripted model', () => {
     expect(m.requests).toHaveLength(3)
   })
 })
+
+describe('finish_reason (AX-12 ruling 1, AX-13)', () => {
+  it('the Worker client carries the forwarded finish_reason; absent stays absent', async () => {
+    const { f } = fakeFetch([
+      { body: { message: { role: 'assistant', content: 'cut' }, usage: { prompt_tokens: 1, completion_tokens: 2500 }, finish_reason: 'length', ticket: 'T' } },
+      { body: { message: { role: 'assistant', content: 'ok' }, ticket: 'T' } },
+    ])
+    const c = createWorkerClient({ endpoint: 'http://x/v1/chat', catalogueVersion: 'v', fetch: f })
+    expect((await c.chat({ messages: [], round: 1 })).finish_reason).toBe('length')
+    expect(await c.chat({ messages: [], round: 2 })).not.toHaveProperty('finish_reason')
+  })
+  it('the OpenAI-style client reads choices[0].finish_reason', async () => {
+    const { f } = fakeFetch([{ body: { choices: [{ message: { role: 'assistant', content: 'x' }, finish_reason: 'stop' }], usage: { prompt_tokens: 1, completion_tokens: 1 } } }])
+    const c = createOpenAIClient({ endpoint: 'http://x', model: 'm', system: 's', tools: [], fetch: f })
+    expect((await c.chat({ messages: [], round: 1 })).finish_reason).toBe('stop')
+  })
+})

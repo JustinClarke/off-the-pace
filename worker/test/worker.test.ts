@@ -57,6 +57,15 @@ describe("fixed server-side settings", () => {
   });
 });
 
+describe("finish_reason", () => {
+  it("is forwarded from Workers AI, and is null when absent", async () => {
+    const t = setup({}, async () => ({ choices: [{ message: { role: "assistant", content: "" }, finish_reason: "length" }], usage: { prompt_tokens: 1, completion_tokens: 1 } }));
+    expect(((await (await t.chat()).json()) as any).finish_reason).toBe("length");
+    const t2 = setup();
+    expect(((await (await t2.chat()).json()) as any).finish_reason).toBeNull();
+  });
+});
+
 describe("abuse check", () => {
   it("refuses a failed Turnstile check and a missing token", async () => {
     const bad = setup({}, undefined, false);

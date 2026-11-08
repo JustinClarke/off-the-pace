@@ -68,7 +68,7 @@ export function alwaysCalls(name: string, args: unknown): ScriptedModel {
 
 type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>
 
-function replyFrom(message: unknown, usage: unknown): ModelReply {
+function replyFrom(message: unknown, usage: unknown, finishReason?: unknown): ModelReply {
   const m = (message ?? {}) as { content?: unknown; tool_calls?: unknown }
   const u = usage as { prompt_tokens?: number; completion_tokens?: number } | null | undefined
   return {
@@ -76,6 +76,7 @@ function replyFrom(message: unknown, usage: unknown): ModelReply {
     tool_calls: parseToolCalls(m.tool_calls),
     usage: u ? { prompt_tokens: u.prompt_tokens, completion_tokens: u.completion_tokens } : null,
     ...(u ? { raw_usage: u } : {}),
+    ...(typeof finishReason === 'string' ? { finish_reason: finishReason } : {}),
   }
 }
 
@@ -115,10 +116,10 @@ export function createWorkerClient(o: WorkerClientOptions): ModelClient {
         if (t) headers['X-Turnstile-Token'] = t
       }
       const res = await doFetch(o.endpoint, { method: 'POST', headers, body: JSON.stringify({ messages: req.messages }) })
-      const body = (await res.json().catch(() => ({}))) as { message?: unknown; usage?: unknown; ticket?: string; error?: string }
+      const body = (await res.json().catch(() => ({}))) as { message?: unknown; usage?: unknown; finish_reason?: unknown; ticket?: string; error?: string }
       if (!res.ok) throw new EndpointError(res.status, `endpoint answered ${res.status} ${body.error ?? ''}`.trim(), typeof body.error === 'string' ? body.error : null)
       if (typeof body.ticket === 'string') ticket = body.ticket
-      return replyFrom(body.message, body.usage)
+      return replyFrom(body.message, body.usage, body.finish_reason)
     },
   }
 }
@@ -146,9 +147,9 @@ export function createOpenAIClient(o: OpenAIClientOptions): ModelClient {
         stream: false,
       }
       const res = await doFetch(o.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const j = (await res.json().catch(() => ({}))) as { choices?: { message?: unknown }[]; usage?: unknown }
+      const j = (await res.json().catch(() => ({}))) as { choices?: { message?: unknown; finish_reason?: unknown }[]; usage?: unknown }
       if (!res.ok) throw new EndpointError(res.status, `endpoint answered ${res.status}`)
-      return replyFrom(j.choices?.[0]?.message, j.usage)
+      return replyFrom(j.choices?.[0]?.message, j.usage, j.choices?.[0]?.finish_reason)
     },
   }
 }

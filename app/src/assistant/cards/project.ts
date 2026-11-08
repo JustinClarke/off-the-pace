@@ -18,6 +18,12 @@ export interface ModelProjection {
   iv: [number, number, string] | null
   cav: string[]
   pg: string | null
+  /** AX-07 ruling 4: rating_trust_label, only when the card carries it. */
+  trust?: string
+  /** rank_separated_from_next, only when present (boolean). */
+  rank_sep?: boolean
+  /** coverage_reason, only when present. */
+  cov?: string
   /** The unavailable or held reason; present only when v is null. */
   why?: string
 }
@@ -53,6 +59,10 @@ export function toModelProjection(card: Card): ModelProjection {
     cav: card.caveats,
     pg: card.page?.docs_slug ?? null,
   }
+  const pf = card.policy_fields ?? {}
+  if (typeof pf.rating_trust_label === 'string') out.trust = pf.rating_trust_label
+  if (typeof pf.rank_separated_from_next === 'boolean') out.rank_sep = pf.rank_separated_from_next
+  if (typeof pf.coverage_reason === 'string') out.cov = pf.coverage_reason
   if (out.v === null) {
     const why = card.status === 'held' ? card.held_reason : card.unavailable_reason
     out.why = clip(why ?? (card.status === 'held' ? 'held' : 'unavailable'))

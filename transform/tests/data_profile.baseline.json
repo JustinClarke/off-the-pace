@@ -11,6 +11,13 @@
           "mean": 2.227273,
           "null_rate": 0.0
         },
+        "calibration_flag": {
+          "category_shares": {
+            "REVIEW_REQUIRED": 0.022727,
+            "SKIPPED": 0.977273
+          },
+          "null_rate": 0.0
+        },
         "circuit_id": {
           "category_shares": {
             "albert_park_circuit": 0.022727,
@@ -134,85 +141,92 @@
       "columns": {
         "circuit_key": {
           "category_shares": {
-            "70th_anniversary_grand_prix": 0.005825,
-            "abu_dhabi_grand_prix": 0.04466,
-            "australian_grand_prix": 0.034951,
-            "austrian_grand_prix": 0.04466,
-            "azerbaijan_grand_prix": 0.034951,
-            "bahrain_grand_prix": 0.04466,
-            "belgian_grand_prix": 0.040777,
-            "brazilian_grand_prix": 0.01165,
-            "british_grand_prix": 0.050485,
-            "canadian_grand_prix": 0.036893,
-            "chinese_grand_prix": 0.023301,
-            "dutch_grand_prix": 0.031068,
-            "eifel_grand_prix": 0.005825,
-            "emilia_romagna_grand_prix": 0.03301,
-            "french_grand_prix": 0.021359,
-            "german_grand_prix": 0.015534,
-            "hungarian_grand_prix": 0.048544,
-            "italian_grand_prix": 0.04466,
-            "japanese_grand_prix": 0.03301,
-            "las_vegas_grand_prix": 0.017476,
-            "mexican_grand_prix": 0.01165,
-            "mexico_city_grand_prix": 0.029126,
-            "miami_grand_prix": 0.023301,
-            "monaco_grand_prix": 0.048544,
-            "portuguese_grand_prix": 0.01165,
-            "qatar_grand_prix": 0.023301,
-            "russian_grand_prix": 0.023301,
-            "sakhir_grand_prix": 0.005825,
-            "saudi_arabian_grand_prix": 0.027184,
-            "singapore_grand_prix": 0.034951,
-            "spanish_grand_prix": 0.04466,
-            "styrian_grand_prix": 0.01165,
-            "s\u00e3o_paulo_grand_prix": 0.029126,
-            "turkish_grand_prix": 0.005825,
-            "tuscan_grand_prix": 0.005825,
-            "united_states_grand_prix": 0.040777
+            "70th_anniversary_grand_prix": 0.006012,
+            "abu_dhabi_grand_prix": 0.046092,
+            "australian_grand_prix": 0.034068,
+            "austrian_grand_prix": 0.046092,
+            "azerbaijan_grand_prix": 0.036072,
+            "bahrain_grand_prix": 0.046092,
+            "belgian_grand_prix": 0.04008,
+            "brazilian_grand_prix": 0.012024,
+            "british_grand_prix": 0.052104,
+            "canadian_grand_prix": 0.034068,
+            "chinese_grand_prix": 0.016032,
+            "dutch_grand_prix": 0.032064,
+            "eifel_grand_prix": 0.006012,
+            "emilia_romagna_grand_prix": 0.032064,
+            "french_grand_prix": 0.022044,
+            "german_grand_prix": 0.016032,
+            "hungarian_grand_prix": 0.0501,
+            "italian_grand_prix": 0.046092,
+            "japanese_grand_prix": 0.034068,
+            "las_vegas_grand_prix": 0.016032,
+            "mexican_grand_prix": 0.012024,
+            "mexico_city_grand_prix": 0.03006,
+            "miami_grand_prix": 0.018036,
+            "monaco_grand_prix": 0.0501,
+            "portuguese_grand_prix": 0.012024,
+            "qatar_grand_prix": 0.024048,
+            "russian_grand_prix": 0.024048,
+            "sakhir_grand_prix": 0.006012,
+            "saudi_arabian_grand_prix": 0.026052,
+            "singapore_grand_prix": 0.036072,
+            "spanish_grand_prix": 0.046092,
+            "styrian_grand_prix": 0.012024,
+            "s\u00e3o_paulo_grand_prix": 0.026052,
+            "turkish_grand_prix": 0.006012,
+            "tuscan_grand_prix": 0.006012,
+            "united_states_grand_prix": 0.042084
           },
           "null_rate": 0.0
         },
         "compound_cliff_onset_laps": {
-          "mean": 22.706214,
+          "mean": 23.82004,
           "null_rate": 0.0
         },
         "compound_cliff_severity": {
-          "mean": 0.899359,
+          "mean": 0.935411,
           "null_rate": 0.0
         },
         "compound_code": {
           "category_shares": {
-            "HARD": 0.273786,
-            "HYPERSOFT": 0.01165,
-            "INTERMEDIATE": 0.040777,
-            "MEDIUM": 0.300971,
-            "SOFT": 0.295146,
-            "SUPERSOFT": 0.029126,
-            "ULTRASOFT": 0.027184,
-            "WET": 0.021359
+            "HARD": 0.280561,
+            "HYPERSOFT": 0.012024,
+            "INTERMEDIATE": 0.038076,
+            "MEDIUM": 0.306613,
+            "SOFT": 0.288577,
+            "SUPERSOFT": 0.03006,
+            "ULTRASOFT": 0.026052,
+            "WET": 0.018036
           },
           "null_rate": 0.0
         },
         "compound_grip_peak": {
-          "mean": 1.003165,
+          "mean": 1.002986,
           "null_rate": 0.0
         },
         "compound_optimal_temp_high": {
-          "mean": 103.279612,
+          "mean": 103.645291,
           "null_rate": 0.0
         },
         "compound_optimal_temp_low": {
-          "mean": 74.883495,
+          "mean": 75.240481,
           "null_rate": 0.0
         },
         "compound_wear_gradient": {
-          "mean": 0.079057,
+          "mean": 0.086489,
           "null_rate": 0.0
         },
         "data_window": {
           "category_shares": {
-            "2018_to_2024": 1.0
+            "2018_to_2018": 0.122244,
+            "2018_to_2018_in_sample": 0.124248,
+            "2018_to_2019": 0.102204,
+            "2018_to_2020": 0.122244,
+            "2018_to_2021": 0.126253,
+            "2018_to_2022": 0.132265,
+            "2018_to_2023": 0.142285,
+            "2018_to_2024": 0.128257
           },
           "null_rate": 0.0
         },
@@ -221,52 +235,46 @@
         },
         "fit_source": {
           "category_shares": {
-            "carried_forward_2022": 0.001942,
-            "carried_forward_2023": 0.005825,
-            "carried_forward_2024": 0.137864,
-            "compound_class_default": 0.050485,
-            "cox_km_survival": 0.654369,
-            "cross_season_fallback": 0.149515
+            "compound_class_default": 0.234469,
+            "cox_km_survival": 0.741483,
+            "cross_season_fallback": 0.024048
           },
           "null_rate": 0.0
         },
         "gradient_source": {
           "category_shares": {
-            "carried_forward": 0.116505,
-            "class_default": 0.252427,
-            "cross_season_fallback": 0.126214,
-            "fitted": 0.504854
+            "class_default": 0.318637,
+            "cross_season_fallback": 0.022044,
+            "fitted": 0.659319
           },
           "null_rate": 0.0
         },
         "notes": {
-          "n_distinct": 167,
+          "n_distinct": 175,
           "null_rate": 0.0
         },
         "onset_source": {
           "category_shares": {
-            "carried_forward": 0.12233,
-            "class_default": 0.217476,
-            "cross_season_fallback": 0.141748,
-            "fitted": 0.518447
+            "class_default": 0.272545,
+            "cross_season_fallback": 0.024048,
+            "fitted": 0.703407
           },
           "null_rate": 0.0
         },
         "season": {
-          "mean": 2021.675728,
+          "mean": 2021.611222,
           "null_rate": 0.0
         },
         "severity_source": {
           "category_shares": {
-            "carried_forward": 0.133981,
-            "class_default": 0.099029,
-            "cross_season_fallback": 0.149515,
-            "fitted": 0.617476
+            "class_default": 0.242485,
+            "cross_season_fallback": 0.024048,
+            "fitted": 0.733467
           },
           "null_rate": 0.0
         }
       },
-      "row_count": 515
+      "row_count": 499
     },
     "dim_constructors": {
       "columns": {
@@ -291,6 +299,21 @@
             "Sauber": 0.052632,
             "Toro Rosso": 0.052632,
             "Williams": 0.052632
+          },
+          "null_rate": 0.0
+        },
+        "constructor_lineage_id": {
+          "category_shares": {
+            "ferrari": 0.052632,
+            "force_india": 0.157895,
+            "haas_f1_team": 0.052632,
+            "mclaren": 0.052632,
+            "mercedes": 0.052632,
+            "red_bull_racing": 0.052632,
+            "renault": 0.105263,
+            "sauber": 0.210526,
+            "toro_rosso": 0.210526,
+            "williams": 0.052632
           },
           "null_rate": 0.0
         },
@@ -464,6 +487,59 @@
       },
       "row_count": 2844
     },
+    "dim_driver_seasons": {
+      "columns": {
+        "driver_code": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "driver_id": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "first_name": {
+          "n_distinct": 42,
+          "null_rate": 0.0
+        },
+        "full_name": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "last_name": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "season": {
+          "mean": 2021.572254,
+          "null_rate": 0.0
+        },
+        "team_name": {
+          "category_shares": {
+            "Alfa Romeo": 0.023121,
+            "Alfa Romeo Racing": 0.040462,
+            "AlphaTauri": 0.057803,
+            "Alpine": 0.069364,
+            "Aston Martin": 0.063584,
+            "Ferrari": 0.092486,
+            "Force India": 0.011561,
+            "Haas F1 Team": 0.104046,
+            "Kick Sauber": 0.023121,
+            "McLaren": 0.092486,
+            "Mercedes": 0.092486,
+            "RB": 0.017341,
+            "Racing Bulls": 0.011561,
+            "Racing Point": 0.028902,
+            "Red Bull Racing": 0.092486,
+            "Renault": 0.034682,
+            "Sauber": 0.011561,
+            "Toro Rosso": 0.023121,
+            "Williams": 0.109827
+          },
+          "null_rate": 0.0
+        }
+      },
+      "row_count": 173
+    },
     "dim_drivers": {
       "columns": {
         "career_races_in_dataset": {
@@ -524,133 +600,91 @@
       },
       "row_count": 43
     },
-    "dim_events": {
+    "dim_drivers_tactical_pending": {
       "columns": {
-        "circuit_name": {
+        "driver_id": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "era": {
           "category_shares": {
-            "Interlagos": 0.166667,
-            "Istanbul": 0.166667,
-            "Monza": 0.166667,
-            "Silverstone": 0.333333,
-            "Spa": 0.166667
+            "post2022": 0.604651,
+            "pre2022": 0.395349
           },
           "null_rate": 0.0
         },
-        "event_description": {
+        "fit_source": {
           "category_shares": {
-            "Brazilian GP sprint weekend": 0.166667,
-            "Hamilton grid penalty": 0.166667,
-            "Mercedes engine upgrade": 0.166667,
-            "Red Bull aero tweak": 0.166667,
-            "Turkish GP tyre chaos": 0.166667,
-            "Verstappen mechanical DNF": 0.166667
+            "bayesian_hierarchical_v1": 1.0
           },
           "null_rate": 0.0
         },
-        "event_id": {
-          "category_shares": {
-            "E001": 0.166667,
-            "E002": 0.166667,
-            "E003": 0.166667,
-            "E004": 0.166667,
-            "E005": 0.166667,
-            "E006": 0.166667
-          },
+        "fit_timestamp": {
           "null_rate": 0.0
         },
-        "event_severity_multiplier": {
-          "mean": 0.133333,
+        "mu_posterior_mean_s": {
+          "mean": -2e-06,
           "null_rate": 0.0
         },
-        "event_type": {
-          "category_shares": {
-            "DNF": 0.166667,
-            "FORMAT": 0.166667,
-            "PENALTY": 0.166667,
-            "UPGRADE": 0.333333,
-            "WEATHER": 0.166667
-          },
+        "mu_posterior_se_s": {
+          "mean": 7e-06,
           "null_rate": 0.0
         },
-        "is_performance_impact": {
-          "category_shares": {
-            "false": 0.666667,
-            "true": 0.333333
-          },
+        "mu_raw_mean_s": {
+          "mean": 0.00083,
           "null_rate": 0.0
         },
-        "is_reliability_impact": {
-          "category_shares": {
-            "false": 0.833333,
-            "true": 0.166667
-          },
+        "n_seasons": {
+          "mean": 4.023256,
           "null_rate": 0.0
         },
-        "race_id": {
-          "category_shares": {
-            "2021_10": 0.333333,
-            "2021_12": 0.166667,
-            "2021_14": 0.166667,
-            "2021_16": 0.166667,
-            "2021_19": 0.166667
-          },
-          "null_rate": 0.0
-        },
-        "round_number": {
-          "mean": 13.5,
-          "null_rate": 0.0
-        },
-        "target_driver_code": {
-          "category_shares": {
-            "ALL": 0.333333,
-            "HAM": 0.333333,
-            "VER": 0.333333
-          },
+        "n_stints": {
+          "mean": 141.953488,
           "null_rate": 0.0
         }
       },
-      "row_count": 6
+      "row_count": 43
     },
     "fct_cliff_prediction_features": {
       "columns": {
         "age_in_stint": {
-          "mean": 16.07386,
-          "null_rate": 0.025503
+          "mean": 16.062632,
+          "null_rate": 0.015189
         },
         "ahead_identity_stability": {
-          "mean": 0.946966,
-          "null_rate": 0.293672
+          "mean": 0.948563,
+          "null_rate": 0.31219
         },
         "air_state_dominant": {
           "category_shares": {
-            "dirty_air": 0.082377,
-            "drs_train": 0.129005,
-            "free_air": 0.759178,
+            "dirty_air": 0.116617,
+            "drs_train": 0.094778,
+            "free_air": 0.74982,
             "tow_zone": 0.02944
           },
-          "null_rate": 0.0
+          "null_rate": 0.009346
         },
         "ambient_temp_delta": {
-          "mean": 0.613164,
+          "mean": 0.540776,
           "null_rate": 0.0
         },
         "anomaly_class": {
           "category_shares": {
-            "clean_cliff": 0.012506,
-            "conditions": 0.018896,
-            "event_driven": 0.06232,
-            "mistake": 0.05254,
-            "normal": 0.853738
+            "clean_cliff": 0.018567,
+            "conditions": 0.040797,
+            "event_driven": 0.060314,
+            "mistake": 0.056824,
+            "normal": 0.823497
           },
           "null_rate": 0.0
         },
         "baseline_observations_n": {
-          "mean": 12.417412,
+          "mean": 12.450373,
           "null_rate": 0.0
         },
         "braking_point_drift_m": {
-          "mean": -10.273211,
-          "null_rate": 0.062463
+          "mean": -9.778963,
+          "null_rate": 0.069778
         },
         "circuit_abrasiveness_index": {
           "mean": 2.667101,
@@ -719,54 +753,54 @@
         },
         "cliff_candidate_flag": {
           "category_shares": {
-            "false": 0.983874,
-            "true": 0.013686
+            "false": 0.956576,
+            "true": 0.020653
           },
-          "null_rate": 0.00244
+          "null_rate": 0.022771
         },
         "cliff_onset_passed": {
           "category_shares": {
-            "false": 0.717188,
-            "true": 0.257309
+            "false": 0.743759,
+            "true": 0.241052
           },
-          "null_rate": 0.025503
+          "null_rate": 0.015189
         },
         "compound": {
           "category_shares": {
-            "HARD": 0.372274,
+            "HARD": 0.377267,
             "HYPERSOFT": 0.004502,
-            "INTERMEDIATE": 0.043759,
-            "MEDIUM": 0.335842,
-            "SOFT": 0.165915,
+            "INTERMEDIATE": 0.044318,
+            "MEDIUM": 0.339611,
+            "SOFT": 0.165953,
             "SUPERSOFT": 0.032843,
             "ULTRASOFT": 0.018101,
-            "WET": 0.001379
+            "WET": 0.002757
           },
-          "null_rate": 0.025385
+          "null_rate": 0.014649
         },
         "compound_cliff_onset_laps": {
-          "mean": 23.295764,
-          "null_rate": 0.025385
+          "mean": 25.032606,
+          "null_rate": 0.014649
         },
         "compound_cliff_severity": {
-          "mean": 0.827547,
-          "null_rate": 0.025385
+          "mean": 0.893623,
+          "null_rate": 0.014649
         },
         "compound_grip_peak": {
-          "mean": 0.99608,
-          "null_rate": 0.025385
+          "mean": 0.995891,
+          "null_rate": 0.014649
         },
         "compound_optimal_temp_high": {
-          "mean": 104.265903,
-          "null_rate": 0.025385
+          "mean": 104.167084,
+          "null_rate": 0.014649
         },
         "compound_optimal_temp_low": {
-          "mean": 75.219742,
-          "null_rate": 0.025385
+          "mean": 75.109188,
+          "null_rate": 0.014649
         },
         "compound_wear_gradient": {
-          "mean": 0.073219,
-          "null_rate": 0.025385
+          "mean": 0.083042,
+          "null_rate": 0.014649
         },
         "constructor_id": {
           "category_shares": {
@@ -793,104 +827,104 @@
           "null_rate": 0.0
         },
         "corner_braking_drift_max_s": {
-          "mean": 0.65054,
-          "null_rate": 0.314822
+          "mean": 0.650113,
+          "null_rate": 0.313357
         },
         "corner_braking_drift_mean_s": {
-          "mean": 0.022297,
-          "null_rate": 0.314822
+          "mean": 0.022125,
+          "null_rate": 0.313357
         },
         "corner_braking_drift_sd_s": {
-          "mean": 0.331087,
-          "null_rate": 0.314822
+          "mean": 0.331161,
+          "null_rate": 0.313357
         },
         "corner_braking_loss_max_s": {
-          "mean": 0.660475,
-          "null_rate": 0.050267
+          "mean": 0.660476,
+          "null_rate": 0.050261
         },
         "corner_braking_loss_mean_s": {
           "mean": 0.007325,
-          "null_rate": 0.050267
+          "null_rate": 0.050261
         },
         "corner_braking_loss_sd_s": {
           "mean": 0.333291,
-          "null_rate": 0.050273
+          "null_rate": 0.050267
         },
         "corner_drift_coverage": {
-          "mean": 0.570994,
+          "mean": 0.572138,
           "null_rate": 0.0
         },
         "corner_exit_drift_max_s": {
-          "mean": 0.301529,
-          "null_rate": 0.372175
+          "mean": 0.301357,
+          "null_rate": 0.370678
         },
         "corner_exit_drift_mean_s": {
-          "mean": 0.025954,
-          "null_rate": 0.372175
+          "mean": 0.025855,
+          "null_rate": 0.370678
         },
         "corner_exit_drift_sd_s": {
-          "mean": 0.184877,
-          "null_rate": 0.388531
+          "mean": 0.184938,
+          "null_rate": 0.387115
         },
         "corner_exit_residual_max_s": {
-          "mean": 0.366138,
-          "null_rate": 0.11304
+          "mean": 0.366136,
+          "null_rate": 0.113034
         },
         "corner_exit_residual_mean_s": {
           "mean": 0.05077,
-          "null_rate": 0.11304
+          "null_rate": 0.113034
         },
         "corner_exit_residual_sd_s": {
-          "mean": 0.200937,
-          "null_rate": 0.132992
+          "mean": 0.200936,
+          "null_rate": 0.132986
         },
         "corner_input_coverage": {
           "mean": 0.800631,
           "null_rate": 0.0
         },
         "corner_mid_drift_max_s": {
-          "mean": 0.294952,
-          "null_rate": 0.31042
+          "mean": 0.295571,
+          "null_rate": 0.308954
         },
         "corner_mid_drift_mean_s": {
-          "mean": 0.052212,
-          "null_rate": 0.31042
+          "mean": 0.05231,
+          "null_rate": 0.308954
         },
         "corner_mid_drift_sd_s": {
-          "mean": 0.133253,
-          "null_rate": 0.31042
+          "mean": 0.133399,
+          "null_rate": 0.308954
         },
         "corner_mid_residual_max_s": {
-          "mean": 0.232978,
+          "mean": 0.232992,
           "null_rate": 0.044082
         },
         "corner_mid_residual_mean_s": {
-          "mean": -0.010296,
+          "mean": -0.010298,
           "null_rate": 0.044082
         },
         "corner_mid_residual_sd_s": {
-          "mean": 0.140184,
+          "mean": 0.140188,
           "null_rate": 0.044082
         },
         "cumulative_push_load_bulk": {
-          "mean": 1.755693,
-          "null_rate": 0.051422
+          "mean": 1.134844,
+          "null_rate": 0.050987
         },
         "cumulative_push_load_surface": {
-          "mean": 1.214192,
-          "null_rate": 0.051422
+          "mean": 0.781201,
+          "null_rate": 0.050987
         },
         "dirty_air_share_lap": {
-          "mean": 0.230117,
-          "null_rate": 0.0
+          "mean": 0.320011,
+          "null_rate": 0.009346
         },
         "dirty_air_thermal_load_bulk": {
-          "mean": 0.392014,
-          "null_rate": 0.0
+          "mean": 0.396004,
+          "null_rate": 0.009929
         },
         "dirty_air_thermal_load_surface": {
-          "mean": 0.429432,
-          "null_rate": 0.0
+          "mean": 0.433503,
+          "null_rate": 0.00965
         },
         "driver_id": {
           "n_distinct": 43,
@@ -898,42 +932,42 @@
         },
         "event_flag_any": {
           "category_shares": {
-            "false": 0.928813,
-            "true": 0.071187
+            "false": 0.928807,
+            "true": 0.071193
           },
           "null_rate": 0.0
         },
         "expected_compound_pace_s": {
-          "mean": 2.294143,
-          "null_rate": 0.025503
+          "mean": 1.317328,
+          "null_rate": 0.015189
         },
         "expected_degradation_rate_s_per_lap": {
-          "mean": 0.091931,
-          "null_rate": 0.025503
+          "mean": 0.078246,
+          "null_rate": 0.015189
         },
         "fuel_mass_kg": {
           "mean": 55.247598,
           "null_rate": 0.0
         },
         "gap_ahead_median_s": {
-          "mean": 4.862139,
+          "mean": 4.863527,
           "null_rate": 0.009935
         },
         "gap_ahead_min_s": {
-          "mean": 3.594476,
+          "mean": 3.758895,
           "null_rate": 0.009935
         },
         "is_rain_lap": {
           "category_shares": {
-            "false": 0.980731,
-            "true": 0.019269
+            "false": 0.957495,
+            "true": 0.042505
           },
           "null_rate": 0.0
         },
         "is_training_eligible": {
           "category_shares": {
-            "false": 0.144567,
-            "true": 0.855433
+            "false": 0.225466,
+            "true": 0.774534
           },
           "null_rate": 0.0
         },
@@ -942,7 +976,7 @@
           "null_rate": 0.0
         },
         "lap_in_stint": {
-          "mean": 15.410917,
+          "mean": 15.513879,
           "null_rate": 0.0
         },
         "lap_number": {
@@ -950,17 +984,17 @@
           "null_rate": 0.0
         },
         "laps_past_cliff": {
-          "mean": 2.309591,
-          "null_rate": 0.025503
+          "mean": 2.417453,
+          "null_rate": 0.015189
         },
         "laps_until_cliff_class": {
           "category_shares": {
-            "0_to_2": 0.101186,
-            "3_to_5": 0.08406,
-            "6_plus": 0.144349,
-            "none_in_stint": 0.618983
+            "0_to_2": 0.091139,
+            "3_to_5": 0.097976,
+            "6_plus": 0.172895,
+            "none_in_stint": 0.436457
           },
-          "null_rate": 0.051422
+          "null_rate": 0.201534
         },
         "lift_coast_share": {
           "mean": 0.075196,
@@ -975,11 +1009,11 @@
           "null_rate": 0.009935
         },
         "mid_corner_speed_loss_kph": {
-          "mean": 0.425159,
-          "null_rate": 0.06168
+          "mean": 0.454764,
+          "null_rate": 0.068834
         },
         "n_distinct_cars_ahead_3s": {
-          "mean": 1.034295,
+          "mean": 0.977578,
           "null_rate": 0.009935
         },
         "n_gear_changes": {
@@ -987,20 +1021,20 @@
           "null_rate": 0.009935
         },
         "next_3_lap_cumulative_jump_s": {
-          "mean": -0.106739,
-          "null_rate": 0.19135
+          "mean": -0.030742,
+          "null_rate": 0.260029
         },
         "next_5_lap_cumulative_jump_s": {
-          "mean": -0.385285,
-          "null_rate": 0.304011
+          "mean": -0.101312,
+          "null_rate": 0.365518
         },
         "next_lap_degradation_jump_detrended_s": {
-          "mean": 0.00406,
-          "null_rate": 0.051422
+          "mean": 0.001876,
+          "null_rate": 0.130086
         },
         "next_lap_degradation_jump_s": {
-          "mean": -0.005138,
-          "null_rate": 0.051422
+          "mean": -0.004359,
+          "null_rate": 0.130086
         },
         "pct_drs_active": {
           "mean": 0.032045,
@@ -1011,8 +1045,8 @@
           "null_rate": 0.009935
         },
         "push_residual": {
-          "mean": 0.200001,
-          "null_rate": 0.051422
+          "mean": -0.123868,
+          "null_rate": 0.050987
         },
         "quali_constructor_pace_mean_s": {
           "mean": -0.014522,
@@ -1039,7 +1073,7 @@
           "null_rate": 0.010929
         },
         "quali_skill_session_avg_s": {
-          "mean": -0.695023,
+          "mean": -0.749349,
           "null_rate": 0.010929
         },
         "race_id": {
@@ -1051,44 +1085,44 @@
           "null_rate": 0.0
         },
         "share_lap_behind_within_1s": {
-          "mean": 0.214455,
-          "null_rate": 0.0
+          "mean": 0.21626,
+          "null_rate": 0.009935
         },
         "share_lap_in_train": {
-          "mean": 0.082629,
-          "null_rate": 0.0
+          "mean": 0.083328,
+          "null_rate": 0.009935
         },
         "share_lap_within_1s": {
-          "mean": 0.21502,
-          "null_rate": 0.0
+          "mean": 0.216843,
+          "null_rate": 0.009935
         },
         "share_lap_within_2s": {
-          "mean": 0.442084,
-          "null_rate": 0.0
+          "mean": 0.446045,
+          "null_rate": 0.009935
         },
         "short_shift_index": {
           "mean": 0.553046,
           "null_rate": 0.010494
         },
         "stint_id": {
-          "n_distinct": 8281,
+          "n_distinct": 8211,
           "null_rate": 0.0
         },
         "surface_bulk_ratio": {
-          "mean": 0.372715,
-          "null_rate": 0.147721
+          "mean": 0.426667,
+          "null_rate": 0.271069
         },
         "survival_weight": {
-          "mean": 1.513865,
+          "mean": 1.518233,
           "null_rate": 0.0
         },
         "throttle_trace_decay": {
-          "mean": -0.006552,
-          "null_rate": 0.061463
+          "mean": -0.006334,
+          "null_rate": 0.06866
         },
         "time_within_1s": {
-          "mean": 19.283414,
-          "null_rate": 0.0
+          "mean": 19.454863,
+          "null_rate": 0.009935
         },
         "track_energy_index": {
           "mean": 84.57514,
@@ -1100,6 +1134,945 @@
         }
       },
       "row_count": 161040
+    },
+    "fct_driver_isolation_lap": {
+      "columns": {
+        "age_in_stint": {
+          "mean": 16.279198,
+          "null_rate": 0.0
+        },
+        "air_state_dominant": {
+          "category_shares": {
+            "dirty_air": 0.112398,
+            "drs_train": 0.102357,
+            "free_air": 0.767713,
+            "tow_zone": 0.017493
+          },
+          "null_rate": 3.9e-05
+        },
+        "car_iso_s": {
+          "mean": -0.017676,
+          "null_rate": 0.123937
+        },
+        "car_term_source": {
+          "category_shares": {
+            "driver_id": 0.876063,
+            "no_fit_row": 0.008041,
+            "not_estimated": 0.035387,
+            "unidentified": 0.080509
+          },
+          "null_rate": 0.0
+        },
+        "compound": {
+          "category_shares": {
+            "HARD": 0.405237,
+            "HYPERSOFT": 0.004628,
+            "MEDIUM": 0.370258,
+            "SOFT": 0.170942,
+            "SUPERSOFT": 0.032602,
+            "ULTRASOFT": 0.016332
+          },
+          "null_rate": 0.0
+        },
+        "compound_component_s": {
+          "mean": 1.373281,
+          "null_rate": 0.0
+        },
+        "constructor_id": {
+          "category_shares": {
+            "Alfa Romeo": 0.024867,
+            "Alfa Romeo Racing": 0.036022,
+            "AlphaTauri": 0.045569,
+            "Alpine": 0.066844,
+            "Aston Martin": 0.06766,
+            "Ferrari": 0.100646,
+            "Force India": 0.005075,
+            "Haas F1 Team": 0.096426,
+            "Kick Sauber": 0.028562,
+            "McLaren": 0.102121,
+            "Mercedes": 0.105439,
+            "RB": 0.014701,
+            "Racing Bulls": 0.014811,
+            "Racing Point": 0.028241,
+            "Red Bull Racing": 0.102019,
+            "Renault": 0.032798,
+            "Sauber": 0.009892,
+            "Toro Rosso": 0.022796,
+            "Williams": 0.095508
+          },
+          "null_rate": 0.0
+        },
+        "dirty_air_tax_s": {
+          "mean": 0.110793,
+          "null_rate": 0.0
+        },
+        "driver_id": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "era": {
+          "category_shares": {
+            "post2022": 0.547138,
+            "pre2022": 0.452862
+          },
+          "null_rate": 0.0
+        },
+        "field_n": {
+          "mean": 16.414917,
+          "null_rate": 0.0
+        },
+        "identity_car_advantage_gain_s": {
+          "mean": 0.00101,
+          "null_rate": 0.25273
+        },
+        "identity_n_pair_laps": {
+          "mean": 4.034263,
+          "null_rate": 0.133633
+        },
+        "identity_pace_gap_gain_s": {
+          "mean": -0.001362,
+          "null_rate": 0.25273
+        },
+        "identity_relative_pace_gain_s": {
+          "mean": 8.3e-05,
+          "null_rate": 0.25273
+        },
+        "identity_traffic_advantage_gain_s": {
+          "mean": 0.000415,
+          "null_rate": 0.25273
+        },
+        "is_dirty_air_lap": {
+          "category_shares": {
+            "false": 0.887563,
+            "true": 0.112398
+          },
+          "null_rate": 3.9e-05
+        },
+        "is_recovery": {
+          "category_shares": {
+            "false": 0.949606,
+            "true": 0.050394
+          },
+          "null_rate": 0.0
+        },
+        "lap_id": {
+          "n_distinct": 127476,
+          "null_rate": 0.0
+        },
+        "lap_number": {
+          "mean": 31.216919,
+          "null_rate": 0.0
+        },
+        "lap_time_s": {
+          "mean": 88.091717,
+          "null_rate": 0.0
+        },
+        "laps_past_cliff": {
+          "mean": 2.535266,
+          "null_rate": 0.0
+        },
+        "lift_coast_excess_share": {
+          "mean": 0.000134,
+          "null_rate": 8e-06
+        },
+        "lift_coast_share": {
+          "mean": 0.074939,
+          "null_rate": 8e-06
+        },
+        "n_peers": {
+          "mean": 4.375835,
+          "null_rate": 0.0
+        },
+        "n_teammate_peers": {
+          "mean": 0.341711,
+          "null_rate": 0.0
+        },
+        "pace_isolated_gain_s": {
+          "mean": 0.067912,
+          "null_rate": 0.123937
+        },
+        "pure_is_extrapolated": {
+          "category_shares": {
+            "false": 0.736562,
+            "true": 0.263438
+          },
+          "null_rate": 0.0
+        },
+        "pure_skill_5lap_confidence_pct": {
+          "mean": 0.0,
+          "null_rate": 0.433344
+        },
+        "pure_skill_5lap_gain_s": {
+          "mean": -0.041615,
+          "null_rate": 0.433344
+        },
+        "pure_skill_5lap_lambda": {
+          "mean": 0.864593,
+          "null_rate": 0.433344
+        },
+        "pure_skill_5lap_se_s": {
+          "mean": 0.251987,
+          "null_rate": 0.433344
+        },
+        "pure_skill_5lap_shrunk_gain_s": {
+          "mean": -0.035489,
+          "null_rate": 0.433344
+        },
+        "pure_skill_5lap_trust_label": {
+          "category_shares": {
+            "suppress": 0.566656
+          },
+          "null_rate": 0.433344
+        },
+        "pure_skill_gain_s": {
+          "mean": 0.067912,
+          "null_rate": 0.123937
+        },
+        "race_id": {
+          "n_distinct": 163,
+          "null_rate": 0.0
+        },
+        "race_year": {
+          "mean": 2021.756111,
+          "null_rate": 0.0
+        },
+        "relative_pace_5lap_confidence_pct": {
+          "mean": 67.436136,
+          "null_rate": 0.152703
+        },
+        "relative_pace_5lap_gain_s": {
+          "mean": 0.009794,
+          "null_rate": 0.152703
+        },
+        "relative_pace_5lap_lambda": {
+          "mean": 0.786758,
+          "null_rate": 0.152703
+        },
+        "relative_pace_5lap_se_s": {
+          "mean": 0.388476,
+          "null_rate": 0.152703
+        },
+        "relative_pace_5lap_shrunk_gain_s": {
+          "mean": 0.010562,
+          "null_rate": 0.152703
+        },
+        "relative_pace_5lap_trust_label": {
+          "category_shares": {
+            "indicative": 0.435062,
+            "solid": 0.314891,
+            "suppress": 0.013273,
+            "thin": 0.084071
+          },
+          "null_rate": 0.152703
+        },
+        "relative_pace_gain_s": {
+          "mean": -0.000403,
+          "null_rate": 0.133633
+        },
+        "relative_pace_raw_gain_s": {
+          "mean": -0.000403,
+          "null_rate": 0.133633
+        },
+        "season_neff_factor": {
+          "mean": 0.707129,
+          "null_rate": 0.0
+        },
+        "season_sigma_w_s": {
+          "mean": 0.431694,
+          "null_rate": 0.0
+        },
+        "stint_id": {
+          "n_distinct": 7253,
+          "null_rate": 0.0
+        },
+        "stint_number": {
+          "mean": 1.956313,
+          "null_rate": 0.0
+        },
+        "stint_phase": {
+          "category_shares": {
+            "cliff": 0.252659,
+            "early": 0.217547,
+            "mid": 0.4794,
+            "recovery": 0.050394
+          },
+          "null_rate": 0.0
+        },
+        "tyre_offset_vs_field_s": {
+          "mean": 0.030044,
+          "null_rate": 0.0
+        },
+        "tyre_phase": {
+          "category_shares": {
+            "cliff": 0.263438,
+            "early": 0.226819,
+            "mid": 0.509743
+          },
+          "null_rate": 0.0
+        },
+        "valid_lap_in_stint": {
+          "mean": 13.790353,
+          "null_rate": 0.0
+        },
+        "window_first_lap_number": {
+          "mean": 27.887312,
+          "null_rate": 0.0
+        },
+        "window_mixed_phase": {
+          "category_shares": {
+            "false": 0.682599,
+            "true": 0.317401
+          },
+          "null_rate": 0.0
+        },
+        "window_n_laps": {
+          "mean": 4.154547,
+          "null_rate": 0.0
+        },
+        "window_n_pair_laps": {
+          "mean": 18.59008,
+          "null_rate": 0.0
+        },
+        "window_n_pure_laps": {
+          "mean": 2.722599,
+          "null_rate": 0.0
+        },
+        "window_n_relative_laps": {
+          "mean": 3.625396,
+          "null_rate": 0.0
+        },
+        "y_s": {
+          "mean": -0.016302,
+          "null_rate": 0.0
+        }
+      },
+      "row_count": 127476
+    },
+    "fct_driver_isolation_pair_lap": {
+      "columns": {
+        "age_in_stint": {
+          "mean": 14.866316,
+          "null_rate": 0.0
+        },
+        "car_advantage_gain_s": {
+          "mean": 0.0,
+          "null_rate": 0.201261
+        },
+        "compound": {
+          "category_shares": {
+            "HARD": 0.365559,
+            "HYPERSOFT": 0.004005,
+            "MEDIUM": 0.44622,
+            "SOFT": 0.155654,
+            "SUPERSOFT": 0.020591,
+            "ULTRASOFT": 0.00797
+          },
+          "null_rate": 0.0
+        },
+        "constructor_id": {
+          "category_shares": {
+            "Alfa Romeo": 0.025586,
+            "Alfa Romeo Racing": 0.026613,
+            "AlphaTauri": 0.044753,
+            "Alpine": 0.075152,
+            "Aston Martin": 0.068914,
+            "Ferrari": 0.107192,
+            "Force India": 0.003361,
+            "Haas F1 Team": 0.087945,
+            "Kick Sauber": 0.026937,
+            "McLaren": 0.113384,
+            "Mercedes": 0.11613,
+            "RB": 0.019135,
+            "Racing Bulls": 0.016744,
+            "Racing Point": 0.023291,
+            "Red Bull Racing": 0.106858,
+            "Renault": 0.024481,
+            "Sauber": 0.005816,
+            "Toro Rosso": 0.013994,
+            "Williams": 0.093714
+          },
+          "null_rate": 0.0
+        },
+        "driver_id": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "is_dirty_air_lap": {
+          "category_shares": {
+            "false": 0.868006,
+            "true": 0.131927
+          },
+          "null_rate": 6.6e-05
+        },
+        "is_teammate": {
+          "category_shares": {
+            "false": 0.921909,
+            "true": 0.078091
+          },
+          "null_rate": 0.0
+        },
+        "lap_id": {
+          "n_distinct": 110441,
+          "null_rate": 0.0
+        },
+        "lap_number": {
+          "mean": 24.890272,
+          "null_rate": 0.0
+        },
+        "pace_gap_gain_s": {
+          "mean": -0.0,
+          "null_rate": 0.201261
+        },
+        "peer_age_in_stint": {
+          "mean": 14.866316,
+          "null_rate": 0.0
+        },
+        "peer_constructor_id": {
+          "category_shares": {
+            "Alfa Romeo": 0.025586,
+            "Alfa Romeo Racing": 0.026613,
+            "AlphaTauri": 0.044753,
+            "Alpine": 0.075152,
+            "Aston Martin": 0.068914,
+            "Ferrari": 0.107192,
+            "Force India": 0.003361,
+            "Haas F1 Team": 0.087945,
+            "Kick Sauber": 0.026937,
+            "McLaren": 0.113384,
+            "Mercedes": 0.11613,
+            "RB": 0.019135,
+            "Racing Bulls": 0.016744,
+            "Racing Point": 0.023291,
+            "Red Bull Racing": 0.106858,
+            "Renault": 0.024481,
+            "Sauber": 0.005816,
+            "Toro Rosso": 0.013994,
+            "Williams": 0.093714
+          },
+          "null_rate": 0.0
+        },
+        "peer_driver_id": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "peer_is_dirty_air_lap": {
+          "category_shares": {
+            "false": 0.868006,
+            "true": 0.131927
+          },
+          "null_rate": 6.6e-05
+        },
+        "peer_lap_id": {
+          "n_distinct": 110441,
+          "null_rate": 0.0
+        },
+        "peer_stint_id": {
+          "n_distinct": 6521,
+          "null_rate": 0.0
+        },
+        "peer_stint_phase": {
+          "category_shares": {
+            "cliff": 0.223768,
+            "early": 0.254293,
+            "mid": 0.465125,
+            "recovery": 0.056815
+          },
+          "null_rate": 0.0
+        },
+        "peer_tyre_phase": {
+          "category_shares": {
+            "cliff": 0.234091,
+            "early": 0.267684,
+            "mid": 0.498225
+          },
+          "null_rate": 0.0
+        },
+        "pure_gap_gain_s": {
+          "mean": -0.0,
+          "null_rate": 0.201261
+        },
+        "race_id": {
+          "n_distinct": 163,
+          "null_rate": 0.0
+        },
+        "race_year": {
+          "mean": 2022.150115,
+          "null_rate": 0.0
+        },
+        "relative_pace_gain_s": {
+          "mean": -0.0,
+          "null_rate": 0.0
+        },
+        "relative_pace_raw_gain_s": {
+          "mean": -0.0,
+          "null_rate": 0.0
+        },
+        "stint_id": {
+          "n_distinct": 6521,
+          "null_rate": 0.0
+        },
+        "stint_phase": {
+          "category_shares": {
+            "cliff": 0.223768,
+            "early": 0.254293,
+            "mid": 0.465125,
+            "recovery": 0.056815
+          },
+          "null_rate": 0.0
+        },
+        "traffic_advantage_gain_s": {
+          "mean": 0.0,
+          "null_rate": 0.0
+        },
+        "tyre_phase": {
+          "category_shares": {
+            "cliff": 0.234091,
+            "early": 0.267684,
+            "mid": 0.498225
+          },
+          "null_rate": 0.0
+        }
+      },
+      "row_count": 557814
+    },
+    "fct_driver_isolation_race": {
+      "columns": {
+        "car_iso_s": {
+          "mean": -0.005439,
+          "null_rate": 0.135397
+        },
+        "car_term_source": {
+          "category_shares": {
+            "driver_id": 0.864603,
+            "no_fit_row": 0.011605,
+            "not_estimated": 0.040297,
+            "unidentified": 0.083495
+          },
+          "null_rate": 0.0
+        },
+        "constructor_id": {
+          "category_shares": {
+            "Alfa Romeo": 0.026435,
+            "Alfa Romeo Racing": 0.035461,
+            "AlphaTauri": 0.047066,
+            "Alpine": 0.066086,
+            "Aston Martin": 0.068021,
+            "Ferrari": 0.099936,
+            "Force India": 0.005158,
+            "Haas F1 Team": 0.098324,
+            "Kick Sauber": 0.028369,
+            "McLaren": 0.100903,
+            "Mercedes": 0.102515,
+            "RB": 0.014184,
+            "Racing Bulls": 0.013862,
+            "Racing Point": 0.027402,
+            "Red Bull Racing": 0.100903,
+            "Renault": 0.032882,
+            "Sauber": 0.010316,
+            "Toro Rosso": 0.023211,
+            "Williams": 0.098968
+          },
+          "null_rate": 0.0
+        },
+        "dirty_air_lap_share": {
+          "mean": 0.121952,
+          "null_rate": 0.0
+        },
+        "driver_id": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "driver_race_id": {
+          "n_distinct": 3102,
+          "null_rate": 0.0
+        },
+        "era": {
+          "category_shares": {
+            "post2022": 0.548356,
+            "pre2022": 0.451644
+          },
+          "null_rate": 0.0
+        },
+        "identity_car_advantage_gain_s": {
+          "mean": -0.020843,
+          "null_rate": 0.144745
+        },
+        "identity_n_pair_laps": {
+          "mean": 145.176931,
+          "null_rate": 0.010638
+        },
+        "identity_pace_gap_gain_s": {
+          "mean": -0.010586,
+          "null_rate": 0.144745
+        },
+        "identity_relative_pace_gain_s": {
+          "mean": -0.034042,
+          "null_rate": 0.144745
+        },
+        "identity_traffic_advantage_gain_s": {
+          "mean": -0.002252,
+          "null_rate": 0.144745
+        },
+        "lift_coast_excess_share": {
+          "mean": 5.3e-05,
+          "null_rate": 0.0
+        },
+        "n_laps": {
+          "mean": 41.094778,
+          "null_rate": 0.0
+        },
+        "n_pair_laps": {
+          "mean": 179.823985,
+          "null_rate": 0.0
+        },
+        "n_pure_laps": {
+          "mean": 26.518375,
+          "null_rate": 0.0
+        },
+        "n_relative_laps": {
+          "mean": 35.603159,
+          "null_rate": 0.0
+        },
+        "n_stints": {
+          "mean": 2.338169,
+          "null_rate": 0.0
+        },
+        "n_teammate_pair_laps": {
+          "mean": 14.042553,
+          "null_rate": 0.0
+        },
+        "pace_isolated_gain_s": {
+          "mean": 0.060709,
+          "null_rate": 0.135397
+        },
+        "pure_season_offset_gain_s": {
+          "mean": 0.0,
+          "null_rate": 0.0
+        },
+        "pure_skill_confidence_pct": {
+          "mean": 0.0,
+          "null_rate": 0.135397
+        },
+        "pure_skill_gain_s": {
+          "mean": -0.066475,
+          "null_rate": 0.135397
+        },
+        "pure_skill_lambda": {
+          "mean": 0.946842,
+          "null_rate": 0.135397
+        },
+        "pure_skill_se_s": {
+          "mean": 0.105657,
+          "null_rate": 0.135397
+        },
+        "pure_skill_shrunk_gain_s": {
+          "mean": -0.061267,
+          "null_rate": 0.135397
+        },
+        "pure_skill_trust_label": {
+          "category_shares": {
+            "suppress": 0.864603
+          },
+          "null_rate": 0.135397
+        },
+        "race_id": {
+          "n_distinct": 163,
+          "null_rate": 0.0
+        },
+        "race_year": {
+          "mean": 2021.720181,
+          "null_rate": 0.0
+        },
+        "relative_pace_confidence_pct": {
+          "mean": 80.09171,
+          "null_rate": 0.01225
+        },
+        "relative_pace_gain_s": {
+          "mean": -0.035683,
+          "null_rate": 0.010638
+        },
+        "relative_pace_lambda": {
+          "mean": 0.934308,
+          "null_rate": 0.01225
+        },
+        "relative_pace_raw_gain_s": {
+          "mean": -0.035683,
+          "null_rate": 0.010638
+        },
+        "relative_pace_se_s": {
+          "mean": 0.178248,
+          "null_rate": 0.01225
+        },
+        "relative_pace_shrunk_gain_s": {
+          "mean": -0.02782,
+          "null_rate": 0.01225
+        },
+        "relative_pace_trust_label": {
+          "category_shares": {
+            "indicative": 0.060928,
+            "solid": 0.910703,
+            "suppress": 0.00677,
+            "thin": 0.010961
+          },
+          "null_rate": 0.010638
+        },
+        "tyre_offset_vs_field_s": {
+          "mean": 0.02667,
+          "null_rate": 0.0
+        }
+      },
+      "row_count": 3102
+    },
+    "fct_driver_isolation_stint": {
+      "columns": {
+        "compound": {
+          "category_shares": {
+            "HARD": 0.332688,
+            "HYPERSOFT": 0.007407,
+            "MEDIUM": 0.397949,
+            "SOFT": 0.216296,
+            "SUPERSOFT": 0.026743,
+            "ULTRASOFT": 0.018917
+          },
+          "null_rate": 0.0
+        },
+        "constructor_id": {
+          "category_shares": {
+            "Alfa Romeo": 0.026591,
+            "Alfa Romeo Racing": 0.034416,
+            "AlphaTauri": 0.048585,
+            "Alpine": 0.067768,
+            "Aston Martin": 0.070579,
+            "Ferrari": 0.098841,
+            "Force India": 0.004634,
+            "Haas F1 Team": 0.097702,
+            "Kick Sauber": 0.029136,
+            "McLaren": 0.101804,
+            "Mercedes": 0.10416,
+            "RB": 0.014055,
+            "Racing Bulls": 0.014435,
+            "Racing Point": 0.027009,
+            "Red Bull Racing": 0.10188,
+            "Renault": 0.029972,
+            "Sauber": 0.009003,
+            "Toro Rosso": 0.021462,
+            "Williams": 0.097968
+          },
+          "null_rate": 0.0
+        },
+        "dirty_air_lap_share": {
+          "mean": 0.137392,
+          "null_rate": 3.8e-05
+        },
+        "driver_id": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "era": {
+          "category_shares": {
+            "post2022": 0.572422,
+            "pre2022": 0.427578
+          },
+          "null_rate": 0.0
+        },
+        "first_lap_number": {
+          "mean": 22.922393,
+          "null_rate": 0.0
+        },
+        "identity_car_advantage_gain_s": {
+          "mean": -0.008761,
+          "null_rate": 0.227047
+        },
+        "identity_n_pair_laps": {
+          "mean": 37.856154,
+          "null_rate": 0.105831
+        },
+        "identity_pace_gap_gain_s": {
+          "mean": -0.00824,
+          "null_rate": 0.227047
+        },
+        "identity_relative_pace_gain_s": {
+          "mean": -0.024045,
+          "null_rate": 0.227047
+        },
+        "identity_traffic_advantage_gain_s": {
+          "mean": -0.007753,
+          "null_rate": 0.227047
+        },
+        "is_censored_stint": {
+          "category_shares": {
+            "false": 0.604444,
+            "true": 0.395556
+          },
+          "null_rate": 0.0
+        },
+        "last_lap_number": {
+          "mean": 32.9317,
+          "null_rate": 0.0
+        },
+        "lift_coast_excess_share": {
+          "mean": -4.5e-05,
+          "null_rate": 0.0
+        },
+        "line_slope_s_per_lap2": {
+          "mean": -5.8e-05,
+          "null_rate": 0.235783
+        },
+        "max_age_in_stint": {
+          "mean": 17.673732,
+          "null_rate": 0.0
+        },
+        "min_age_in_stint": {
+          "mean": 7.664425,
+          "null_rate": 0.0
+        },
+        "n_laps": {
+          "mean": 9.684786,
+          "null_rate": 0.0
+        },
+        "n_line_laps": {
+          "mean": 11.002317,
+          "null_rate": 0.0
+        },
+        "n_pair_laps": {
+          "mean": 42.379031,
+          "null_rate": 0.0
+        },
+        "n_pure_laps": {
+          "mean": 6.249573,
+          "null_rate": 0.0
+        },
+        "n_relative_laps": {
+          "mean": 8.390579,
+          "null_rate": 0.0
+        },
+        "n_teammate_pair_laps": {
+          "mean": 3.309402,
+          "null_rate": 0.0
+        },
+        "opportunity_cost_s": {
+          "mean": 5.641571,
+          "null_rate": 0.0
+        },
+        "pace_isolated_gain_s": {
+          "mean": 0.048073,
+          "null_rate": 0.12623
+        },
+        "pure_skill_confidence_pct": {
+          "mean": 0.0,
+          "null_rate": 0.244786
+        },
+        "pure_skill_gain_s": {
+          "mean": -0.042721,
+          "null_rate": 0.244786
+        },
+        "pure_skill_lambda": {
+          "mean": 0.872887,
+          "null_rate": 0.244786
+        },
+        "pure_skill_se_s": {
+          "mean": 0.22695,
+          "null_rate": 0.244786
+        },
+        "pure_skill_shrunk_gain_s": {
+          "mean": -0.036977,
+          "null_rate": 0.244786
+        },
+        "pure_skill_trust_label": {
+          "category_shares": {
+            "suppress": 0.755214
+          },
+          "null_rate": 0.244786
+        },
+        "race_id": {
+          "n_distinct": 163,
+          "null_rate": 0.0
+        },
+        "race_year": {
+          "mean": 2021.826135,
+          "null_rate": 0.0
+        },
+        "relative_pace_confidence_pct": {
+          "mean": 71.348885,
+          "null_rate": 0.117417
+        },
+        "relative_pace_gain_s": {
+          "mean": -0.02402,
+          "null_rate": 0.105831
+        },
+        "relative_pace_lambda": {
+          "mean": 0.832366,
+          "null_rate": 0.117417
+        },
+        "relative_pace_raw_gain_s": {
+          "mean": -0.02402,
+          "null_rate": 0.105831
+        },
+        "relative_pace_se_s": {
+          "mean": 0.331017,
+          "null_rate": 0.117417
+        },
+        "relative_pace_shrunk_gain_s": {
+          "mean": -0.010234,
+          "null_rate": 0.117417
+        },
+        "relative_pace_trust_label": {
+          "category_shares": {
+            "indicative": 0.321557,
+            "solid": 0.487255,
+            "suppress": 0.020779,
+            "thin": 0.064577
+          },
+          "null_rate": 0.105831
+        },
+        "stint_end_cause": {
+          "category_shares": {
+            "green_pit": 0.510655,
+            "race_end": 0.362887,
+            "red": 0.007142,
+            "retirement": 0.032669,
+            "sc_pit": 0.061197,
+            "vsc_pit": 0.025451
+          },
+          "null_rate": 0.0
+        },
+        "stint_id": {
+          "n_distinct": 7253,
+          "null_rate": 0.0
+        },
+        "stint_number": {
+          "mean": 1.963609,
+          "null_rate": 0.0
+        },
+        "stint_phase": {
+          "category_shares": {
+            "all": 0.275518,
+            "cliff": 0.121861,
+            "early": 0.271377,
+            "mid": 0.247673,
+            "recovery": 0.083571
+          },
+          "null_rate": 0.0
+        },
+        "stint_phase_id": {
+          "n_distinct": 26325,
+          "null_rate": 0.0
+        },
+        "strategy_verdict": {
+          "category_shares": {
+            "early": 0.321254,
+            "optimal": 0.078632,
+            "overran": 0.216182,
+            "undercut_forced": 0.00661
+          },
+          "null_rate": 0.377322
+        },
+        "tyre_offset_vs_field_s": {
+          "mean": -0.052872,
+          "null_rate": 0.0
+        }
+      },
+      "row_count": 26325
     },
     "fct_driver_skill_features": {
       "columns": {
@@ -1153,12 +2126,8 @@
           "null_rate": 0.0
         },
         "clean_lap_count": {
-          "mean": 41.770531,
+          "mean": 40.862923,
           "null_rate": 0.0
-        },
-        "constructor_aero_pace_index_final": {
-          "mean": -0.003656,
-          "null_rate": 0.019928
         },
         "constructor_id": {
           "category_shares": {
@@ -1185,12 +2154,12 @@
           "null_rate": 0.0
         },
         "constructor_index_confidence_final": {
-          "mean": 0.177525,
-          "null_rate": 0.019928
+          "mean": 0.1688,
+          "null_rate": 0.039553
         },
         "constructor_power_pace_index_final": {
-          "mean": -0.003656,
-          "null_rate": 0.019928
+          "mean": -0.003825,
+          "null_rate": 0.06401
         },
         "driver_debut_year": {
           "mean": 2018.897041,
@@ -1205,36 +2174,35 @@
           "null_rate": 0.0
         },
         "driver_residual_mean_s": {
-          "mean": -2.140319,
-          "null_rate": 0.003925
+          "mean": 0.016328,
+          "null_rate": 0.06401
         },
         "driver_residual_median_s": {
-          "mean": -2.087155,
-          "null_rate": 0.003925
+          "mean": -0.004978,
+          "null_rate": 0.06401
         },
         "driver_residual_stddev_s": {
-          "mean": 1.090139,
-          "null_rate": 0.009058
+          "mean": 0.721792,
+          "null_rate": 0.070954
         },
         "driver_skill_proxy_mean_s": {
-          "mean": 0.053232,
-          "null_rate": 0.072162
+          "mean": 0.065069,
+          "null_rate": 0.070954
         },
         "ml_eligible_lap_share": {
-          "mean": 0.801513,
+          "mean": 0.791976,
           "null_rate": 0.0
         },
         "pair_quality_weight_mean": {
-          "mean": 0.661826,
-          "null_rate": 0.041969
+          "mean": 0.659951,
+          "null_rate": 0.05163
         },
         "pu_family": {
           "category_shares": {
-            "ferrari_pu": 0.237017,
-            "honda_pu": 0.184783,
+            "ferrari_pu": 0.299819,
+            "honda_pu": 0.198671,
             "mercedes_pu": 0.402174,
-            "renault_pu": 0.099336,
-            "unknown_pu": 0.076691
+            "renault_pu": 0.099336
           },
           "null_rate": 0.0
         },
@@ -1244,8 +2212,8 @@
         },
         "race_wet_flag": {
           "category_shares": {
-            "false": 0.951087,
-            "true": 0.048913
+            "false": 0.892814,
+            "true": 0.107186
           },
           "null_rate": 0.0
         },
@@ -1254,13 +2222,13 @@
           "null_rate": 0.0
         },
         "strategic_divergence_share": {
-          "mean": 0.324693,
+          "mean": 0.32067,
           "null_rate": 0.0
         },
         "teammate_available_flag": {
           "category_shares": {
-            "false": 0.041969,
-            "true": 0.958031
+            "false": 0.05163,
+            "true": 0.94837
           },
           "null_rate": 0.0
         },
@@ -1274,99 +2242,99 @@
     "fct_ghost_car_pace": {
       "columns": {
         "actual_lap_time_s": {
-          "mean": 88.472443,
+          "mean": 88.044499,
           "null_rate": 0.0
         },
         "actual_residual_pace_s": {
-          "mean": 87.068562,
+          "mean": 86.678034,
           "null_rate": 0.0
         },
         "age_in_stint": {
-          "mean": 15.769102,
+          "mean": 16.593009,
           "null_rate": 0.0
         },
         "ambient_component_s": {
-          "mean": -0.001304,
+          "mean": -0.041507,
           "null_rate": 0.0
         },
         "base_track_pace_s": {
-          "mean": 86.410819,
-          "null_rate": 0.080494
+          "mean": 85.129479,
+          "null_rate": 0.0
         },
         "circuit_interaction_s": {
-          "mean": 0.001146,
+          "mean": 0.000711,
           "null_rate": 0.0
         },
         "cliff_interaction_s": {
-          "mean": -0.000147,
+          "mean": -2.4e-05,
           "null_rate": 0.0
         },
         "compound_cliff_severity": {
-          "mean": 0.804078,
+          "mean": 0.876087,
           "null_rate": 0.0
         },
         "compound_component_s": {
-          "mean": 2.291979,
-          "null_rate": 0.024872
+          "mean": 1.360551,
+          "null_rate": 0.0
         },
         "deg_interaction_s": {
-          "mean": 0.000869,
+          "mean": 0.001671,
           "null_rate": 0.0
         },
         "delta_vs_actual_lap_s": {
-          "mean": 0.026557,
+          "mean": 0.024733,
           "null_rate": 0.0
         },
         "dirty_air_tax_s": {
-          "mean": 0.036578,
+          "mean": 0.103688,
           "null_rate": 0.0
         },
         "driver_skill_residual_s": {
-          "mean": -2.051273,
+          "mean": 0.107401,
           "null_rate": 0.0
         },
         "ego_cliff_active": {
-          "mean": 0.268946,
+          "mean": 0.265751,
           "null_rate": 0.0
         },
         "ego_cliff_shift_laps": {
-          "mean": 0.015131,
+          "mean": 0.014631,
           "null_rate": 0.0
         },
         "ego_cliff_shift_se_laps": {
-          "mean": 0.10598,
+          "mean": 0.093904,
           "null_rate": 0.0
         },
         "ego_constructor_id": {
           "category_shares": {
-            "Alfa Romeo": 0.024446,
-            "Alfa Romeo Racing": 0.035934,
-            "AlphaTauri": 0.045442,
-            "Alpine": 0.065083,
-            "Aston Martin": 0.066557,
-            "Ferrari": 0.100956,
-            "Force India": 0.006437,
-            "Haas F1 Team": 0.097584,
-            "Kick Sauber": 0.02811,
-            "McLaren": 0.102311,
-            "Mercedes": 0.105194,
-            "RB": 0.013894,
-            "Racing Bulls": 0.014366,
-            "Racing Point": 0.027597,
-            "Red Bull Racing": 0.101393,
-            "Renault": 0.033331,
-            "Sauber": 0.010976,
-            "Toro Rosso": 0.023618,
-            "Williams": 0.09677
+            "Alfa Romeo": 0.024323,
+            "Alfa Romeo Racing": 0.037719,
+            "AlphaTauri": 0.04576,
+            "Alpine": 0.065525,
+            "Aston Martin": 0.066259,
+            "Ferrari": 0.100938,
+            "Force India": 0.00541,
+            "Haas F1 Team": 0.097031,
+            "Kick Sauber": 0.027524,
+            "McLaren": 0.102014,
+            "Mercedes": 0.105378,
+            "RB": 0.013728,
+            "Racing Bulls": 0.014307,
+            "Racing Point": 0.02905,
+            "Red Bull Racing": 0.101671,
+            "Renault": 0.033701,
+            "Sauber": 0.010043,
+            "Toro Rosso": 0.023493,
+            "Williams": 0.096128
           },
           "null_rate": 0.0
         },
         "ego_deg_slope_s_per_lap": {
-          "mean": 0.001,
+          "mean": 0.000641,
           "null_rate": 0.0
         },
         "ego_deg_slope_sd_s_per_lap": {
-          "mean": 0.00475,
+          "mean": 0.004364,
           "null_rate": 0.0
         },
         "ego_driver_id": {
@@ -1374,50 +2342,50 @@
           "null_rate": 0.0
         },
         "ego_host_regime_overlap_n": {
-          "mean": 92.63367,
+          "mean": 90.857893,
           "null_rate": 0.0
         },
         "fuel_component_s": {
-          "mean": 1.403881,
+          "mean": 1.366465,
           "null_rate": 0.0
         },
         "ghost_id": {
-          "n_distinct": 1511349,
+          "n_distinct": 1384558,
           "null_rate": 0.0
         },
         "host_cliff_active": {
-          "mean": 0.268882,
+          "mean": 0.265446,
           "null_rate": 0.0
         },
         "host_cliff_shift_laps": {
-          "mean": 0.020385,
+          "mean": 0.01423,
           "null_rate": 0.0
         },
         "host_cliff_shift_se_laps": {
-          "mean": 0.106607,
+          "mean": 0.094108,
           "null_rate": 0.0
         },
         "host_constructor_id": {
           "category_shares": {
-            "Alfa Romeo": 0.025103,
-            "Alfa Romeo Racing": 0.035012,
-            "AlphaTauri": 0.046476,
-            "Alpine": 0.065823,
-            "Aston Martin": 0.066578,
-            "Ferrari": 0.099909,
-            "Force India": 0.006357,
-            "Haas F1 Team": 0.098776,
-            "Kick Sauber": 0.02902,
-            "McLaren": 0.100628,
-            "Mercedes": 0.100715,
-            "RB": 0.014474,
-            "Racing Bulls": 0.014254,
-            "Racing Point": 0.027423,
-            "Red Bull Racing": 0.10009,
-            "Renault": 0.03405,
-            "Sauber": 0.011493,
-            "Toro Rosso": 0.024112,
-            "Williams": 0.099708
+            "Alfa Romeo": 0.025015,
+            "Alfa Romeo Racing": 0.036461,
+            "AlphaTauri": 0.047178,
+            "Alpine": 0.065504,
+            "Aston Martin": 0.066593,
+            "Ferrari": 0.099645,
+            "Force India": 0.005374,
+            "Haas F1 Team": 0.098912,
+            "Kick Sauber": 0.028346,
+            "McLaren": 0.100605,
+            "Mercedes": 0.100605,
+            "RB": 0.014449,
+            "Racing Bulls": 0.013898,
+            "Racing Point": 0.028638,
+            "Red Bull Racing": 0.100605,
+            "Renault": 0.034012,
+            "Sauber": 0.01069,
+            "Toro Rosso": 0.023903,
+            "Williams": 0.099565
           },
           "null_rate": 0.0
         },
@@ -1426,88 +2394,88 @@
           "null_rate": 0.0
         },
         "host_constructor_pace_se_s": {
-          "mean": 0.123632,
+          "mean": 0.108148,
           "null_rate": 0.0
         },
         "host_deg_slope_s_per_lap": {
-          "mean": 0.001119,
+          "mean": 0.000681,
           "null_rate": 0.0
         },
         "host_deg_slope_sd_s_per_lap": {
-          "mean": 0.004813,
+          "mean": 0.004445,
           "null_rate": 0.0
         },
         "lap_number": {
-          "mean": 31.772178,
+          "mean": 32.617002,
           "null_rate": 0.0
         },
         "predicted_lap_time_s": {
-          "mean": 88.499,
+          "mean": 88.069232,
           "null_rate": 0.0
         },
         "predicted_residual_pace_s": {
-          "mean": 87.095119,
+          "mean": 86.702767,
           "null_rate": 0.0
         },
         "race_id": {
-          "n_distinct": 170,
+          "n_distinct": 162,
           "null_rate": 0.0
         },
         "race_year": {
-          "mean": 2021.696553,
+          "mean": 2021.680127,
           "null_rate": 0.0
         },
         "recombination_confidence": {
-          "mean": 0.626958,
+          "mean": 0.625025,
           "null_rate": 0.0
         },
         "rubber_component_s": {
-          "mean": 0.000659,
+          "mean": -0.041482,
           "null_rate": 0.0
         }
       },
-      "row_count": 1511349
+      "row_count": 1384558
     },
     "fct_ghost_race_finish": {
       "columns": {
         "actual_dnf_cause": {
           "category_shares": {
-            "mechanical": 0.070887,
-            "non_classified": 0.00437,
-            "racing": 0.021257
+            "mechanical": 0.066702,
+            "non_classified": 0.005602,
+            "racing": 0.019608
           },
-          "null_rate": 0.903487
+          "null_rate": 0.908087
         },
         "actual_finish_position": {
-          "mean": 9.281707,
-          "null_rate": 0.096513
+          "mean": 9.289167,
+          "null_rate": 0.091913
         },
         "actual_is_dnf": {
           "category_shares": {
-            "false": 0.903487,
-            "true": 0.096513
+            "false": 0.908087,
+            "true": 0.091913
           },
           "null_rate": 0.0
         },
         "actual_mean_lap_s": {
-          "mean": 90.091481,
+          "mean": 89.511054,
           "null_rate": 0.0
         },
         "actual_mean_residual_pace_s": {
-          "mean": 88.644073,
+          "mean": 88.101279,
           "null_rate": 0.0
         },
         "actual_total_race_time_s": {
-          "mean": 4131.899239,
+          "mean": 3989.505941,
           "null_rate": 0.0
         },
         "avg_recombination_confidence": {
-          "mean": 0.585982,
+          "mean": 0.584637,
           "null_rate": 0.0
         },
         "delta_vs_actual_position": {
-          "mean": 0.472379,
-          "null_rate": 0.096513
+          "mean": 0.846017,
+          "null_rate": 0.091913
         },
         "ego_driver_id": {
           "n_distinct": 43,
@@ -1520,150 +2488,154 @@
           "null_rate": 0.0
         },
         "finish_pos_se": {
-          "mean": 1.293419,
+          "mean": 1.349754,
           "null_rate": 0.0
         },
         "ghost_race_id": {
-          "n_distinct": 32037,
+          "n_distinct": 30344,
           "null_rate": 0.0
         },
         "host_constructor_id": {
           "category_shares": {
-            "Alfa Romeo": 0.025439,
-            "Alfa Romeo Racing": 0.034304,
-            "AlphaTauri": 0.047383,
-            "Alpine": 0.06558,
-            "Aston Martin": 0.066173,
-            "Ferrari": 0.099666,
-            "Force India": 0.00643,
-            "Haas F1 Team": 0.098511,
-            "Kick Sauber": 0.028249,
-            "McLaren": 0.100915,
-            "Mercedes": 0.101445,
-            "RB": 0.01389,
-            "Racing Bulls": 0.013859,
-            "Racing Point": 0.027749,
-            "Red Bull Racing": 0.100322,
-            "Renault": 0.034741,
-            "Sauber": 0.012267,
-            "Toro Rosso": 0.024597,
-            "Williams": 0.09848
+            "Alfa Romeo": 0.026035,
+            "Alfa Romeo Racing": 0.03546,
+            "AlphaTauri": 0.048379,
+            "Alpine": 0.066537,
+            "Aston Martin": 0.067592,
+            "Ferrari": 0.098767,
+            "Force India": 0.004811,
+            "Haas F1 Team": 0.098866,
+            "Kick Sauber": 0.027979,
+            "McLaren": 0.101272,
+            "Mercedes": 0.101272,
+            "RB": 0.014533,
+            "Racing Bulls": 0.013446,
+            "Racing Point": 0.028276,
+            "Red Bull Racing": 0.100053,
+            "Renault": 0.03368,
+            "Sauber": 0.010776,
+            "Toro Rosso": 0.023234,
+            "Williams": 0.099031
           },
           "null_rate": 0.0
         },
         "is_self_scenario": {
           "category_shares": {
-            "false": 0.899585,
-            "true": 0.100415
+            "false": 0.899387,
+            "true": 0.100613
           },
           "null_rate": 0.0
         },
         "is_short_run": {
           "category_shares": {
-            "false": 0.952867,
-            "true": 0.047133
+            "false": 0.956268,
+            "true": 0.043732
           },
           "null_rate": 0.0
         },
         "lap_coverage": {
-          "mean": 0.914981,
+          "mean": 0.920438,
           "null_rate": 0.0
         },
         "laps_counted": {
-          "mean": 46.74414,
+          "mean": 45.332026,
           "null_rate": 0.0
         },
         "p_beats_next": {
-          "mean": 0.618516,
-          "null_rate": 0.051971
+          "mean": 0.607382,
+          "null_rate": 0.052333
         },
         "predicted_finish_position": {
-          "mean": 10.153822,
+          "mean": 10.096823,
           "null_rate": 0.0
         },
         "predicted_mean_lap_s": {
-          "mean": 90.092687,
+          "mean": 89.518386,
           "null_rate": 0.0
         },
         "predicted_mean_lap_se_s": {
-          "mean": 0.30058,
+          "mean": 0.243986,
           "null_rate": 0.0
         },
         "predicted_mean_residual_pace_s": {
-          "mean": 88.645279,
+          "mean": 88.108611,
           "null_rate": 0.0
         },
         "predicted_total_race_time_s": {
-          "mean": 4133.027768,
+          "mean": 3990.588192,
           "null_rate": 0.0
         },
         "race_distance_laps": {
-          "mean": 50.849549,
+          "mean": 49.052234,
           "null_rate": 0.0
         },
         "race_id": {
-          "n_distinct": 169,
+          "n_distinct": 161,
           "null_rate": 0.0
         },
         "race_year": {
-          "mean": 2021.663139,
+          "mean": 2021.694767,
           "null_rate": 0.0
         }
       },
-      "row_count": 32037
+      "row_count": 30344
     },
     "fct_lap_residuals": {
       "columns": {
         "age_in_stint": {
-          "mean": 16.07386,
-          "null_rate": 0.025503
+          "mean": 16.062632,
+          "null_rate": 0.015189
         },
         "ambient_component_s": {
-          "mean": -0.001078,
+          "mean": -0.00553,
           "null_rate": 0.0
         },
         "ambient_temp_delta": {
-          "mean": 0.613164,
+          "mean": 0.540776,
           "null_rate": 0.0
+        },
+        "base_track_pace_s": {
+          "mean": 85.496222,
+          "null_rate": 0.071957
         },
         "cliff_onset_passed": {
           "category_shares": {
-            "false": 0.717188,
-            "true": 0.257309
+            "false": 0.743759,
+            "true": 0.241052
           },
-          "null_rate": 0.025503
+          "null_rate": 0.015189
         },
         "compound": {
           "category_shares": {
-            "HARD": 0.372274,
+            "HARD": 0.377267,
             "HYPERSOFT": 0.004502,
-            "INTERMEDIATE": 0.043759,
-            "MEDIUM": 0.335842,
-            "SOFT": 0.165915,
+            "INTERMEDIATE": 0.044318,
+            "MEDIUM": 0.339611,
+            "SOFT": 0.165953,
             "SUPERSOFT": 0.032843,
             "ULTRASOFT": 0.018101,
-            "WET": 0.001379
+            "WET": 0.002757
           },
-          "null_rate": 0.025385
+          "null_rate": 0.014649
         },
         "compound_component_s": {
-          "mean": 2.294143,
-          "null_rate": 0.025503
+          "mean": 1.317328,
+          "null_rate": 0.015189
         },
         "constructor_component_ci_high_s": {
-          "mean": 0.214964,
-          "null_rate": 0.015114
+          "mean": 0.191271,
+          "null_rate": 0.048168
         },
         "constructor_component_ci_low_s": {
-          "mean": -0.264318,
-          "null_rate": 0.015114
+          "mean": -0.23198,
+          "null_rate": 0.048168
         },
         "constructor_component_s": {
-          "mean": -0.024304,
+          "mean": -0.019374,
           "null_rate": 0.0
         },
         "constructor_component_se_s": {
-          "mean": 0.233765,
+          "mean": 0.102771,
           "null_rate": 0.0
         },
         "constructor_id": {
@@ -1692,29 +2664,29 @@
         },
         "correction_class": {
           "category_shares": {
-            "clean": 0.928813,
+            "clean": 0.928807,
             "exclude": 0.0009,
-            "neutralisation": 0.034234,
+            "neutralisation": 0.03424,
             "soft_outlier": 0.009128,
             "yellow": 0.026925
           },
           "null_rate": 0.0
         },
         "correction_weight": {
-          "mean": 0.960715,
+          "mean": 0.96071,
           "null_rate": 0.0
         },
         "cumulative_dirty_air_tax_race_s": {
-          "mean": 1.026096,
-          "null_rate": 0.0
+          "mean": 2.838022,
+          "null_rate": 0.001198
         },
         "dirty_air_tax_s": {
-          "mean": 0.034618,
-          "null_rate": 0.0
+          "mean": 0.095559,
+          "null_rate": 0.000192
         },
         "dirty_air_tax_se_s": {
-          "mean": 0.005193,
-          "null_rate": 0.0
+          "mean": 0.014334,
+          "null_rate": 0.000192
         },
         "driver_debut_year": {
           "mean": 2018.89679,
@@ -1725,12 +2697,12 @@
           "null_rate": 0.0
         },
         "driver_skill_residual_s": {
-          "mean": -2.071172,
-          "null_rate": 0.0
+          "mean": 0.114785,
+          "null_rate": 0.077111
         },
         "expected_degradation_rate_s_per_lap": {
-          "mean": 0.091931,
-          "null_rate": 0.025503
+          "mean": 0.078246,
+          "null_rate": 0.015189
         },
         "fuel_component_s": {
           "mean": 1.409908,
@@ -1756,8 +2728,8 @@
         },
         "is_pre_controlled_lap": {
           "category_shares": {
-            "false": 0.984594,
-            "true": 0.015406
+            "false": 0.984588,
+            "true": 0.015412
           },
           "null_rate": 0.0
         },
@@ -1791,7 +2763,7 @@
           "null_rate": 0.0
         },
         "lap_in_stint": {
-          "mean": 15.410917,
+          "mean": 15.513879,
           "null_rate": 0.0
         },
         "lap_number": {
@@ -1803,15 +2775,19 @@
           "null_rate": 0.0
         },
         "laps_past_cliff": {
-          "mean": 2.309591,
-          "null_rate": 0.025503
+          "mean": 2.417453,
+          "null_rate": 0.015189
         },
         "ml_eligible": {
           "category_shares": {
-            "false": 0.095573,
-            "true": 0.904427
+            "false": 0.084675,
+            "true": 0.915325
           },
           "null_rate": 0.0
+        },
+        "pace_delta_s": {
+          "mean": 2.927299,
+          "null_rate": 0.071957
         },
         "position": {
           "mean": 9.641766,
@@ -1819,11 +2795,10 @@
         },
         "pu_family": {
           "category_shares": {
-            "ferrari_pu": 0.233631,
-            "honda_pu": 0.185084,
+            "ferrari_pu": 0.297752,
+            "honda_pu": 0.199137,
             "mercedes_pu": 0.404626,
-            "renault_pu": 0.098485,
-            "unknown_pu": 0.078173
+            "renault_pu": 0.098485
           },
           "null_rate": 0.0
         },
@@ -1837,34 +2812,34 @@
         },
         "rainfall_flag": {
           "category_shares": {
-            "false": 0.828782,
-            "true": 0.019269
+            "false": 0.885538,
+            "true": 0.042505
           },
-          "null_rate": 0.15195
+          "null_rate": 0.071957
         },
         "rubber_component_s": {
-          "mean": 0.000988,
+          "mean": 0.019258,
           "null_rate": 0.0
         },
         "stint_id": {
-          "n_distinct": 8281,
+          "n_distinct": 8211,
           "null_rate": 0.0
         },
         "stint_length_actual": {
-          "mean": 28.836097,
+          "mean": 28.988661,
           "null_rate": 0.0
         },
         "total_explained_s": {
-          "mean": 3.655767,
-          "null_rate": 0.0
+          "mean": 2.804869,
+          "null_rate": 0.015381
         },
         "track_temp_c": {
-          "mean": 36.032217,
-          "null_rate": 0.15195
+          "mean": 35.710611,
+          "null_rate": 0.071957
         },
         "track_unexplained_s": {
-          "mean": -0.003476,
-          "null_rate": 0.15195
+          "mean": -0.004063,
+          "null_rate": 0.071957
         },
         "weight_corrected_lap_time": {
           "mean": 87.255871,
@@ -1873,56 +2848,224 @@
       },
       "row_count": 161040
     },
+    "fct_power_law_training": {
+      "columns": {
+        "alpha_s": {
+          "mean": 0.041102,
+          "null_rate": 0.0
+        },
+        "beta": {
+          "mean": 1.316026,
+          "null_rate": 0.0
+        },
+        "beta_at_grid_edge": {
+          "category_shares": {
+            "false": 0.582051,
+            "true": 0.417949
+          },
+          "null_rate": 0.0
+        },
+        "cell_id": {
+          "n_distinct": 390,
+          "null_rate": 0.0
+        },
+        "circuit_abrasiveness_index": {
+          "mean": 2.674359,
+          "null_rate": 0.0
+        },
+        "circuit_id": {
+          "category_shares": {
+            "albert_park_circuit": 0.025641,
+            "autodromo_enzo_e_dino_ferrari": 0.025641,
+            "autodromo_hermanos_rodriguez": 0.041026,
+            "autodromo_internacional_do_algarve": 0.015385,
+            "autodromo_internazionale_del_mugello": 0.007692,
+            "autodromo_jose_carlos_pace": 0.035897,
+            "autodromo_nazionale_monza": 0.048718,
+            "bahrain_international_circuit": 0.048718,
+            "bahrain_international_circuit_outer": 0.007692,
+            "baku_city_circuit": 0.035897,
+            "circuit_de_barcelona_catalunya": 0.048718,
+            "circuit_de_monaco": 0.046154,
+            "circuit_de_spa_francorchamps": 0.035897,
+            "circuit_gilles_villeneuve": 0.033333,
+            "circuit_of_the_americas": 0.041026,
+            "circuit_paul_ricard": 0.023077,
+            "circuit_zandvoort": 0.035897,
+            "hockenheimring": 0.010256,
+            "hungaroring": 0.053846,
+            "jeddah_corniche_circuit": 0.028205,
+            "las_vegas_street_circuit": 0.015385,
+            "lusail_international_circuit": 0.023077,
+            "marina_bay_street_circuit": 0.04359,
+            "miami_international_autodrome": 0.015385,
+            "n_rburgring": 0.007692,
+            "red_bull_ring": 0.064103,
+            "shanghai_international_circuit": 0.020513,
+            "silverstone_circuit": 0.051282,
+            "sochi_autodrom": 0.025641,
+            "suzuka_circuit": 0.035897,
+            "yas_marina_circuit": 0.048718
+          },
+          "null_rate": 0.0
+        },
+        "compound_code": {
+          "category_shares": {
+            "C1": 0.071795,
+            "C2": 0.212821,
+            "C3": 0.34359,
+            "C4": 0.197436,
+            "C5": 0.041026
+          },
+          "null_rate": 0.133333
+        },
+        "compound_hardness_rank": {
+          "mean": 3.174359,
+          "null_rate": 0.0
+        },
+        "compound_label": {
+          "category_shares": {
+            "HARD": 0.312821,
+            "HYPERSOFT": 0.012821,
+            "MEDIUM": 0.374359,
+            "SOFT": 0.235897,
+            "SUPERSOFT": 0.033333,
+            "ULTRASOFT": 0.030769
+          },
+          "null_rate": 0.0
+        },
+        "constructor_pace_s": {
+          "mean": -0.020502,
+          "null_rate": 0.0
+        },
+        "curve_incr_10_s": {
+          "mean": 0.219924,
+          "null_rate": 0.0
+        },
+        "curve_incr_15_s": {
+          "mean": 0.389532,
+          "null_rate": 0.0
+        },
+        "curve_incr_20_s": {
+          "mean": 0.600462,
+          "null_rate": 0.0
+        },
+        "curve_incr_5_s": {
+          "mean": 0.079648,
+          "null_rate": 0.0
+        },
+        "dirty_air_share": {
+          "mean": 0.321487,
+          "null_rate": 0.0
+        },
+        "era_code": {
+          "mean": 1.366667,
+          "null_rate": 0.0
+        },
+        "hardness_era": {
+          "category_shares": {
+            "2018": 0.133333,
+            "2019-21": 0.366667,
+            "2022+": 0.5
+          },
+          "null_rate": 0.0
+        },
+        "n_laps": {
+          "mean": 354.228205,
+          "null_rate": 0.0
+        },
+        "n_stints": {
+          "mean": 17.674359,
+          "null_rate": 0.0
+        },
+        "r2_within": {
+          "mean": 0.2326,
+          "null_rate": 0.0
+        },
+        "race_id": {
+          "n_distinct": 165,
+          "null_rate": 0.0
+        },
+        "race_year": {
+          "mean": 2021.476923,
+          "null_rate": 0.0
+        },
+        "stint_start_fuel_kg": {
+          "mean": 77.121003,
+          "null_rate": 0.0
+        },
+        "track_energy_index": {
+          "mean": 86.137179,
+          "null_rate": 0.0
+        },
+        "track_temp_c": {
+          "mean": 35.645078,
+          "null_rate": 0.010256
+        }
+      },
+      "row_count": 390
+    },
     "fct_stint_features": {
       "columns": {
+        "clean_laps_to_cut": {
+          "mean": 12.560235,
+          "null_rate": 0.885858
+        },
         "cliff_lap_in_stint": {
-          "mean": 26.062406,
-          "null_rate": 0.858118
+          "mean": 25.410401,
+          "null_rate": 0.821576
         },
         "compound": {
           "category_shares": {
-            "HARD": 0.270536,
-            "HYPERSOFT": 0.006614,
-            "INTERMEDIATE": 0.068061,
-            "MEDIUM": 0.348304,
-            "SOFT": 0.22061,
-            "SUPERSOFT": 0.023256,
-            "ULTRASOFT": 0.020162,
-            "WET": 0.008748
+            "HARD": 0.275573,
+            "HYPERSOFT": 0.006819,
+            "INTERMEDIATE": 0.065847,
+            "MEDIUM": 0.351593,
+            "SOFT": 0.221465,
+            "SUPERSOFT": 0.024259,
+            "ULTRASOFT": 0.021017,
+            "WET": 0.011179
           },
-          "null_rate": 0.03371
+          "null_rate": 0.022247
         },
         "constructor_id": {
           "category_shares": {
-            "Alfa Romeo": 0.02731,
-            "Alfa Romeo Racing": 0.035417,
-            "AlphaTauri": 0.051739,
-            "Alpine": 0.0655,
-            "Aston Martin": 0.068807,
-            "Ferrari": 0.098464,
-            "Force India": 0.005654,
-            "Haas F1 Team": 0.099957,
-            "Kick Sauber": 0.02795,
-            "McLaren": 0.100384,
-            "Mercedes": 0.103051,
-            "RB": 0.013441,
-            "Racing Bulls": 0.013015,
-            "Racing Point": 0.025069,
-            "Red Bull Racing": 0.102944,
-            "Renault": 0.029336,
-            "Sauber": 0.009708,
-            "Toro Rosso": 0.021229,
-            "Williams": 0.101024
+            "Alfa Romeo": 0.026831,
+            "Alfa Romeo Racing": 0.035103,
+            "AlphaTauri": 0.05109,
+            "Alpine": 0.064617,
+            "Aston Martin": 0.068083,
+            "Ferrari": 0.098155,
+            "Force India": 0.005925,
+            "Haas F1 Team": 0.100391,
+            "Kick Sauber": 0.027278,
+            "McLaren": 0.099832,
+            "Mercedes": 0.102851,
+            "RB": 0.013527,
+            "Racing Bulls": 0.01308,
+            "Racing Point": 0.025489,
+            "Red Bull Racing": 0.103522,
+            "Renault": 0.030073,
+            "Sauber": 0.010061,
+            "Toro Rosso": 0.022135,
+            "Williams": 0.101956
           },
           "null_rate": 0.0
         },
         "cumulative_dirty_air_tax_s": {
-          "mean": 0.594716,
+          "mean": 1.720053,
           "null_rate": 0.0
         },
         "cumulative_thermal_load_end": {
-          "mean": 1.700134,
-          "null_rate": 0.134841
+          "mean": 0.957219,
+          "null_rate": 0.099609
+        },
+        "cut_reason": {
+          "category_shares": {
+            "sc_pit": 0.084516,
+            "vsc_pit": 0.029625
+          },
+          "null_rate": 0.885858
         },
         "driver_id": {
           "n_distinct": 43,
@@ -1930,137 +3073,232 @@
         },
         "end_cause_confidence": {
           "category_shares": {
-            "inferred": 0.041391,
-            "observed": 0.958396,
-            "unassigned_stint": 0.000213
+            "inferred": 0.03611,
+            "observed": 0.963667,
+            "unassigned_stint": 0.000224
           },
           "null_rate": 0.0
         },
         "end_of_stint_pace_falloff_s_per_lap": {
-          "mean": -0.128672,
-          "null_rate": 0.147856
+          "mean": 0.085165,
+          "null_rate": 0.150252
         },
         "end_regime": {
           "category_shares": {
-            "green": 0.788457,
-            "red_flag": 0.045231,
-            "safety_car": 0.130041,
-            "vsc": 0.036271
+            "green": 0.823589,
+            "red_flag": 0.035439,
+            "safety_car": 0.102851,
+            "vsc": 0.038122
           },
           "null_rate": 0.0
         },
         "is_censored_stint": {
           "category_shares": {
-            "false": 0.632067,
-            "true": 0.367933
+            "false": 0.614421,
+            "true": 0.385579
           },
           "null_rate": 0.0
         },
+        "is_fresh_tyre_raw": {
+          "category_shares": {
+            "false": 0.227613,
+            "true": 0.772387
+          },
+          "null_rate": 0.0
+        },
+        "is_stint_life_censored": {
+          "category_shares": {
+            "false": 0.468753,
+            "true": 0.531247
+          },
+          "null_rate": 0.0
+        },
+        "mean_clean_pace_s": {
+          "mean": 88.028402,
+          "null_rate": 0.906987
+        },
         "pit_decision_class": {
           "category_shares": {
-            "early": 0.287497,
-            "optimal": 0.077555,
-            "overran": 0.15799,
-            "undercut_forced": 0.022296,
-            "unknown": 0.015042
+            "early": 0.313471,
+            "optimal": 0.069536,
+            "overran": 0.165232,
+            "undercut_forced": 0.021912,
+            "unknown": 0.007714
           },
-          "null_rate": 0.43962
+          "null_rate": 0.422135
         },
         "race_id": {
           "n_distinct": 173,
           "null_rate": 0.0
         },
         "race_year": {
-          "mean": 2021.758054,
+          "mean": 2021.724874,
           "null_rate": 0.0
+        },
+        "reached_flag": {
+          "category_shares": {
+            "false": 0.582895,
+            "true": 0.330688
+          },
+          "null_rate": 0.086417
         },
         "short_stint_flag": {
           "category_shares": {
-            "false": 0.900683,
-            "true": 0.099317
+            "false": 0.935048,
+            "true": 0.064952
           },
           "null_rate": 0.0
         },
+        "slope_reliable": {
+          "category_shares": {
+            "false": 0.029849,
+            "true": 0.084293
+          },
+          "null_rate": 0.885858
+        },
+        "slope_to_cut_s_per_lap": {
+          "mean": -0.029033,
+          "null_rate": 0.915707
+        },
         "starting_tyre_age_laps": {
-          "mean": 1.015765,
-          "null_rate": 0.032323
+          "mean": 0.695732,
+          "null_rate": 0.02303
         },
         "stint_end_cause": {
           "category_shares": {
-            "green_pit": 0.449755,
-            "race_end": 0.315554,
-            "red": 0.041498,
-            "retirement": 0.052166,
-            "sc_pit": 0.112545,
-            "vsc_pit": 0.02827
+            "green_pit": 0.468753,
+            "race_end": 0.330688,
+            "red": 0.031526,
+            "retirement": 0.054667,
+            "sc_pit": 0.084516,
+            "vsc_pit": 0.029625
           },
-          "null_rate": 0.000213
+          "null_rate": 0.000224
         },
         "stint_id": {
-          "n_distinct": 9374,
+          "n_distinct": 8945,
           "null_rate": 0.0
         },
         "stint_length_laps": {
-          "mean": 20.206742,
+          "mean": 21.175852,
           "null_rate": 0.0
         },
         "tyre_management_score": {
-          "mean": -0.952751,
-          "null_rate": 0.501387
+          "mean": -0.083132,
+          "null_rate": 0.594075
         }
       },
-      "row_count": 9374
+      "row_count": 8945
     },
     "fct_telemetry_deltas": {
       "columns": {
         "braking_point_delta_m": {
-          "mean": -0.15257,
-          "null_rate": 0.0
+          "mean": -0.562488,
+          "null_rate": 0.40223
         },
         "corner_name": {
           "category_shares": {
-            "Turn_1": 0.060972,
-            "Turn_10": 0.060897,
-            "Turn_11": 0.056699,
-            "Turn_12": 0.05414,
-            "Turn_12A": 0.003357,
-            "Turn_13": 0.054137,
-            "Turn_14": 0.054132,
-            "Turn_15": 0.042289,
-            "Turn_16": 0.034452,
-            "Turn_17": 0.027938,
-            "Turn_18": 0.023288,
-            "Turn_19": 0.015709,
-            "Turn_1A": 0.003359,
-            "Turn_2": 0.060963,
-            "Turn_20": 0.007776,
-            "Turn_21": 0.003222,
-            "Turn_22": 0.002212,
-            "Turn_23": 0.002212,
-            "Turn_24": 0.001436,
-            "Turn_25": 0.001436,
-            "Turn_26": 0.001436,
-            "Turn_27": 0.001436,
-            "Turn_3": 0.060955,
-            "Turn_4": 0.060941,
-            "Turn_5": 0.060935,
-            "Turn_6": 0.060932,
-            "Turn_7": 0.060923,
-            "Turn_8": 0.060913,
-            "Turn_9": 0.060904
+            "Turn_1": 0.06088,
+            "Turn_10": 0.060852,
+            "Turn_11": 0.056674,
+            "Turn_12": 0.054168,
+            "Turn_12A": 0.003381,
+            "Turn_13": 0.054168,
+            "Turn_14": 0.054167,
+            "Turn_15": 0.042424,
+            "Turn_16": 0.034589,
+            "Turn_17": 0.028128,
+            "Turn_18": 0.023383,
+            "Turn_19": 0.015693,
+            "Turn_1A": 0.003381,
+            "Turn_2": 0.060878,
+            "Turn_20": 0.007771,
+            "Turn_21": 0.003206,
+            "Turn_22": 0.002199,
+            "Turn_23": 0.002199,
+            "Turn_24": 0.001451,
+            "Turn_25": 0.001451,
+            "Turn_26": 0.001451,
+            "Turn_27": 0.001451,
+            "Turn_3": 0.060875,
+            "Turn_4": 0.060868,
+            "Turn_5": 0.060867,
+            "Turn_6": 0.060868,
+            "Turn_7": 0.060866,
+            "Turn_8": 0.060859,
+            "Turn_9": 0.060853
           },
           "null_rate": 0.0
         },
         "driver_a": {
-          "n_distinct": 41,
+          "category_shares": {
+            "ALB": 0.074266,
+            "ALO": 0.078717,
+            "ANT": 0.014722,
+            "BEA": 0.016797,
+            "BOR": 0.014307,
+            "BOT": 0.086537,
+            "COL": 0.010391,
+            "DEV": 0.006595,
+            "DOO": 0.004211,
+            "ERI": 0.011567,
+            "FIT": 0.000699,
+            "GAS": 0.084001,
+            "GIO": 0.033562,
+            "GRO": 0.031602,
+            "HAD": 0.01431,
+            "HAM": 0.055669,
+            "HUL": 0.053297,
+            "KUB": 0.012378,
+            "LAT": 0.020513,
+            "LAW": 0.007572,
+            "LEC": 0.072955,
+            "MAG": 0.011849,
+            "MAZ": 0.011364,
+            "NOR": 0.089922,
+            "OCO": 0.019976,
+            "PER": 0.073718,
+            "RAI": 0.01193,
+            "RIC": 0.026822,
+            "SIR": 0.011574,
+            "STR": 0.02449,
+            "TSU": 0.01369
+          },
           "null_rate": 0.0
         },
         "driver_b": {
-          "n_distinct": 41,
+          "category_shares": {
+            "COL": 0.004762,
+            "GAS": 0.014602,
+            "HAM": 0.046055,
+            "HAR": 0.011255,
+            "HUL": 0.015573,
+            "KUB": 0.000963,
+            "KVY": 0.021169,
+            "LAT": 0.012684,
+            "LAW": 0.013266,
+            "LEC": 0.026657,
+            "MAG": 0.058165,
+            "MSC": 0.023213,
+            "OCO": 0.066908,
+            "PER": 0.012153,
+            "PIA": 0.042912,
+            "RAI": 0.032599,
+            "RIC": 0.04673,
+            "RUS": 0.089023,
+            "SAI": 0.099599,
+            "SAR": 0.021682,
+            "STR": 0.075023,
+            "TSU": 0.053633,
+            "VAN": 0.01177,
+            "VER": 0.102072,
+            "VET": 0.05705,
+            "ZHO": 0.040482
+          },
           "null_rate": 0.0
         },
         "lap_number": {
-          "mean": 30.108486,
+          "mean": 30.652866,
           "null_rate": 0.0
         },
         "race_id": {
@@ -2068,71 +3306,142 @@
           "null_rate": 0.0
         },
         "throttle_point_delta_m": {
-          "mean": 0.541394,
-          "null_rate": 0.0
+          "mean": 1.128676,
+          "null_rate": 0.545278
         },
         "track_id": {
           "category_shares": {
-            "70th_anniversary_grand_prix": 0.006125,
-            "abu_dhabi_grand_prix": 0.049647,
-            "australian_grand_prix": 0.023181,
-            "austrian_grand_prix": 0.033646,
-            "azerbaijan_grand_prix": 0.04405,
-            "bahrain_grand_prix": 0.037438,
-            "belgian_grand_prix": 0.033897,
-            "brazilian_grand_prix": 0.01315,
-            "british_grand_prix": 0.042033,
-            "canadian_grand_prix": 0.036091,
-            "chinese_grand_prix": 0.022271,
-            "dutch_grand_prix": 0.032212,
-            "eifel_grand_prix": 0.00492,
-            "emilia_romagna_grand_prix": 0.036123,
-            "french_grand_prix": 0.019595,
-            "german_grand_prix": 0.013429,
-            "hungarian_grand_prix": 0.053724,
-            "italian_grand_prix": 0.028073,
-            "japanese_grand_prix": 0.031547,
-            "las_vegas_grand_prix": 0.015299,
-            "mexican_grand_prix": 0.014551,
-            "mexico_city_grand_prix": 0.035675,
-            "miami_grand_prix": 0.027162,
-            "monaco_grand_prix": 0.060134,
-            "portuguese_grand_prix": 0.012746,
-            "qatar_grand_prix": 0.021397,
-            "russian_grand_prix": 0.023056,
-            "saudi_arabian_grand_prix": 0.038801,
-            "singapore_grand_prix": 0.04525,
-            "spanish_grand_prix": 0.04939,
-            "styrian_grand_prix": 0.008455,
-            "s\u00e3o_paulo_grand_prix": 0.02973,
-            "turkish_grand_prix": 0.01013,
-            "united_states_grand_prix": 0.047069
+            "70th_anniversary_grand_prix": 0.005732,
+            "abu_dhabi_grand_prix": 0.048771,
+            "australian_grand_prix": 0.024291,
+            "austrian_grand_prix": 0.033651,
+            "azerbaijan_grand_prix": 0.043316,
+            "bahrain_grand_prix": 0.036542,
+            "belgian_grand_prix": 0.034383,
+            "brazilian_grand_prix": 0.013016,
+            "british_grand_prix": 0.043942,
+            "canadian_grand_prix": 0.035732,
+            "chinese_grand_prix": 0.021761,
+            "dutch_grand_prix": 0.0307,
+            "eifel_grand_prix": 0.005544,
+            "emilia_romagna_grand_prix": 0.036376,
+            "french_grand_prix": 0.019237,
+            "german_grand_prix": 0.01332,
+            "hungarian_grand_prix": 0.054098,
+            "italian_grand_prix": 0.027557,
+            "japanese_grand_prix": 0.031951,
+            "las_vegas_grand_prix": 0.015697,
+            "mexican_grand_prix": 0.014649,
+            "mexico_city_grand_prix": 0.03686,
+            "miami_grand_prix": 0.026661,
+            "monaco_grand_prix": 0.060461,
+            "portuguese_grand_prix": 0.012086,
+            "qatar_grand_prix": 0.021801,
+            "russian_grand_prix": 0.022552,
+            "saudi_arabian_grand_prix": 0.039193,
+            "singapore_grand_prix": 0.044255,
+            "spanish_grand_prix": 0.048654,
+            "styrian_grand_prix": 0.008236,
+            "s\u00e3o_paulo_grand_prix": 0.031092,
+            "turkish_grand_prix": 0.009909,
+            "united_states_grand_prix": 0.047973
           },
           "null_rate": 0.0
         },
         "v_min_delta_kph": {
-          "mean": -0.1139,
+          "mean": -0.174716,
+          "null_rate": 0.135224
+        }
+      },
+      "row_count": 1623427
+    },
+    "mart_build_provenance": {
+      "columns": {
+        "built_at": {
+          "null_rate": 0.0
+        },
+        "data_season_max": {
+          "mean": 2025.0,
+          "null_rate": 0.0
+        },
+        "data_season_min": {
+          "mean": 2018.0,
+          "null_rate": 0.0
+        },
+        "dbt_invocation_id": {
+          "category_shares": {
+            "24c1a41a-d519-47ab-9412-7192092e0e91": 1.0
+          },
+          "null_rate": 0.0
+        },
+        "dbt_version": {
+          "category_shares": {
+            "1.12.6": 1.0
+          },
+          "null_rate": 0.0
+        },
+        "dirty_air_method": {
+          "category_shares": {
+            "flat_theta_0.331_lag1_share_unvalidated": 1.0
+          },
+          "null_rate": 0.0
+        },
+        "era_boundary": {
+          "mean": 2022.0,
+          "null_rate": 0.0
+        },
+        "holdout_season": {
+          "mean": 2026.0,
+          "null_rate": 0.0
+        },
+        "label_sealed_on": {
+          "null_rate": 0.0
+        },
+        "label_version": {
+          "category_shares": {
+            "v16": 1.0
+          },
+          "null_rate": 0.0
+        },
+        "model_version": {
+          "category_shares": {},
+          "null_rate": 1.0
+        },
+        "n_races": {
+          "mean": 172.0,
+          "null_rate": 0.0
+        },
+        "n_races_scheduled": {
+          "mean": 173.0,
+          "null_rate": 0.0
+        },
+        "theta_air_fit_season_max": {
+          "mean": 2025.0,
+          "null_rate": 0.0
+        },
+        "theta_air_label_value": {
+          "mean": 0.331,
           "null_rate": 0.0
         }
       },
-      "row_count": 28628356
+      "row_count": 1
     },
     "mart_corner_skill_driver": {
       "columns": {
         "braking_cells_n": {
-          "mean": 249.279503,
+          "mean": 245.049689,
           "null_rate": 0.0
         },
         "braking_skill_s": {
-          "mean": 3.2e-05,
+          "mean": 2e-06,
           "null_rate": 0.0
         },
         "braking_skill_se_s": {
-          "mean": 0.01676,
+          "mean": 0.016964,
           "null_rate": 0.0
         },
         "braking_skill_z": {
-          "mean": -0.000435,
+          "mean": -0.001056,
           "null_rate": 0.0
         },
         "constructor_id": {
@@ -2143,15 +3452,14 @@
             "Alpine": 0.062112,
             "Aston Martin": 0.062112,
             "Ferrari": 0.099379,
-            "Force India": 0.012422,
             "Haas F1 Team": 0.099379,
             "Kick Sauber": 0.024845,
             "McLaren": 0.099379,
             "Mercedes": 0.099379,
             "RB": 0.012422,
-            "Racing Bulls": 0.006211,
-            "Racing Point": 0.024845,
-            "Red Bull Racing": 0.10559,
+            "Racing Bulls": 0.012422,
+            "Racing Point": 0.037267,
+            "Red Bull Racing": 0.099379,
             "Renault": 0.037267,
             "Sauber": 0.012422,
             "Toro Rosso": 0.024845,
@@ -2159,8 +3467,36 @@
           },
           "null_rate": 0.0
         },
+        "constructors_driven": {
+          "category_shares": {
+            "Alfa Romeo": 0.024845,
+            "Alfa Romeo Racing": 0.037267,
+            "AlphaTauri": 0.055901,
+            "Alpine": 0.062112,
+            "Aston Martin": 0.062112,
+            "Ferrari": 0.099379,
+            "Force India, Racing Point": 0.012422,
+            "Haas F1 Team": 0.099379,
+            "Kick Sauber": 0.024845,
+            "McLaren": 0.099379,
+            "Mercedes": 0.099379,
+            "RB": 0.012422,
+            "Racing Bulls": 0.006211,
+            "Racing Bulls, Red Bull Racing": 0.006211,
+            "Racing Point": 0.024845,
+            "Red Bull Racing": 0.086957,
+            "Red Bull Racing, Racing Bulls": 0.006211,
+            "Red Bull Racing, Toro Rosso": 0.006211,
+            "Renault": 0.037267,
+            "Sauber": 0.012422,
+            "Toro Rosso": 0.018634,
+            "Toro Rosso, Red Bull Racing": 0.006211,
+            "Williams": 0.099379
+          },
+          "null_rate": 0.0
+        },
         "corner_skill_index": {
-          "mean": 0.002264,
+          "mean": 0.000629,
           "null_rate": 0.012422
         },
         "driver_id": {
@@ -2209,39 +3545,39 @@
           "null_rate": 0.0
         },
         "exit_cells_n": {
-          "mean": 185.726708,
+          "mean": 183.273292,
           "null_rate": 0.0
         },
         "exit_skill_s": {
-          "mean": -0.00045,
+          "mean": -0.000462,
           "null_rate": 0.0
         },
         "exit_skill_se_s": {
-          "mean": 0.018453,
+          "mean": 0.01903,
           "null_rate": 0.0
         },
         "exit_skill_z": {
-          "mean": -0.004025,
+          "mean": -0.004151,
           "null_rate": 0.012422
         },
         "mapped_corners": {
-          "mean": 281.167702,
+          "mean": 276.807453,
           "null_rate": 0.0
         },
         "mid_cells_n": {
-          "mean": 281.167702,
+          "mean": 276.807453,
           "null_rate": 0.0
         },
         "mid_corner_skill_s": {
-          "mean": 0.00023,
+          "mean": 0.000201,
           "null_rate": 0.0
         },
         "mid_corner_skill_se_s": {
-          "mean": 0.007461,
+          "mean": 0.007611,
           "null_rate": 0.0
         },
         "mid_corner_skill_z": {
-          "mean": 0.006398,
+          "mean": 0.005714,
           "null_rate": 0.0
         },
         "race_year": {
@@ -2255,152 +3591,152 @@
       "columns": {
         "circuit_id": {
           "category_shares": {
-            "albert_park_circuit": 0.03406,
-            "autodromo_enzo_e_dino_ferrari": 0.038147,
-            "autodromo_hermanos_rodriguez": 0.047436,
-            "autodromo_internacional_do_algarve": 0.020312,
-            "autodromo_internazionale_del_mugello": 0.008794,
-            "autodromo_jose_carlos_pace": 0.040996,
-            "autodromo_nazionale_monza": 0.038023,
-            "bahrain_international_circuit": 0.03084,
-            "bahrain_international_circuit_outer": 0.015358,
-            "baku_city_circuit": 0.037899,
-            "circuit_de_barcelona_catalunya": 0.031954,
-            "circuit_de_monaco": 0.060565,
-            "circuit_de_spa_francorchamps": 0.03084,
-            "circuit_gilles_villeneuve": 0.047189,
-            "circuit_of_the_americas": 0.035794,
-            "circuit_paul_ricard": 0.035175,
-            "circuit_zandvoort": 0.039881,
-            "hockenheimring": 0.016473,
-            "hungaroring": 0.044092,
-            "istanbul_park": 0.01189,
-            "jeddah_corniche_circuit": 0.025142,
-            "las_vegas_street_circuit": 0.011271,
-            "lusail_international_circuit": 0.025638,
-            "marina_bay_street_circuit": 0.048799,
-            "miami_international_autodrome": 0.016968,
-            "n_rburgring": 0.011147,
-            "red_bull_ring": 0.039633,
-            "shanghai_international_circuit": 0.027743,
-            "silverstone_circuit": 0.033688,
-            "sochi_autodrom": 0.022294,
-            "suzuka_circuit": 0.030964,
-            "yas_marina_circuit": 0.040996
+            "albert_park_circuit": 0.035367,
+            "autodromo_enzo_e_dino_ferrari": 0.037954,
+            "autodromo_hermanos_rodriguez": 0.04732,
+            "autodromo_internacional_do_algarve": 0.020209,
+            "autodromo_internazionale_del_mugello": 0.009119,
+            "autodromo_jose_carlos_pace": 0.040912,
+            "autodromo_nazionale_monza": 0.038078,
+            "bahrain_international_circuit": 0.030684,
+            "bahrain_international_circuit_outer": 0.015527,
+            "baku_city_circuit": 0.037954,
+            "circuit_de_barcelona_catalunya": 0.031793,
+            "circuit_de_monaco": 0.060382,
+            "circuit_de_spa_francorchamps": 0.030684,
+            "circuit_gilles_villeneuve": 0.04695,
+            "circuit_of_the_americas": 0.035613,
+            "circuit_paul_ricard": 0.034997,
+            "circuit_zandvoort": 0.039926,
+            "hockenheimring": 0.016389,
+            "hungaroring": 0.043869,
+            "istanbul_park": 0.01183,
+            "jeddah_corniche_circuit": 0.026741,
+            "las_vegas_street_circuit": 0.011214,
+            "lusail_international_circuit": 0.025508,
+            "marina_bay_street_circuit": 0.048552,
+            "miami_international_autodrome": 0.016882,
+            "n_rburgring": 0.011091,
+            "red_bull_ring": 0.039556,
+            "shanghai_international_circuit": 0.027603,
+            "silverstone_circuit": 0.033518,
+            "sochi_autodrom": 0.022181,
+            "suzuka_circuit": 0.030807,
+            "yas_marina_circuit": 0.040789
           },
           "null_rate": 0.0
         },
         "circuit_name": {
           "category_shares": {
-            "Albert Park Circuit": 0.03406,
-            "Autodromo Enzo e Dino Ferrari": 0.038147,
-            "Autodromo Hermanos Rodriguez": 0.047436,
-            "Autodromo Internacional do Algarve": 0.020312,
-            "Autodromo Internazionale del Mugello": 0.008794,
-            "Autodromo Jose Carlos Pace": 0.040996,
-            "Autodromo Nazionale Monza": 0.038023,
-            "Bahrain International Circuit": 0.03084,
-            "Bahrain International Circuit (outer)": 0.015358,
-            "Baku City Circuit": 0.037899,
-            "Circuit Gilles Villeneuve": 0.047189,
-            "Circuit Paul Ricard": 0.035175,
-            "Circuit Zandvoort": 0.039881,
-            "Circuit de Barcelona-Catalunya": 0.031954,
-            "Circuit de Monaco": 0.060565,
-            "Circuit de Spa-Francorchamps": 0.03084,
-            "Circuit of the Americas": 0.035794,
-            "Hockenheimring": 0.016473,
-            "Hungaroring": 0.044092,
-            "Istanbul Park": 0.01189,
-            "Jeddah Corniche Circuit": 0.025142,
-            "Las Vegas Street Circuit": 0.011271,
-            "Lusail International Circuit": 0.025638,
-            "Marina Bay Street Circuit": 0.048799,
-            "Miami International Autodrome": 0.016968,
-            "N\u00fcrburgring": 0.011147,
-            "Red Bull Ring": 0.039633,
-            "Shanghai International Circuit": 0.027743,
-            "Silverstone Circuit": 0.033688,
-            "Sochi Autodrom": 0.022294,
-            "Suzuka Circuit": 0.030964,
-            "Yas Marina Circuit": 0.040996
+            "Albert Park Circuit": 0.035367,
+            "Autodromo Enzo e Dino Ferrari": 0.037954,
+            "Autodromo Hermanos Rodriguez": 0.04732,
+            "Autodromo Internacional do Algarve": 0.020209,
+            "Autodromo Internazionale del Mugello": 0.009119,
+            "Autodromo Jose Carlos Pace": 0.040912,
+            "Autodromo Nazionale Monza": 0.038078,
+            "Bahrain International Circuit": 0.030684,
+            "Bahrain International Circuit (outer)": 0.015527,
+            "Baku City Circuit": 0.037954,
+            "Circuit Gilles Villeneuve": 0.04695,
+            "Circuit Paul Ricard": 0.034997,
+            "Circuit Zandvoort": 0.039926,
+            "Circuit de Barcelona-Catalunya": 0.031793,
+            "Circuit de Monaco": 0.060382,
+            "Circuit de Spa-Francorchamps": 0.030684,
+            "Circuit of the Americas": 0.035613,
+            "Hockenheimring": 0.016389,
+            "Hungaroring": 0.043869,
+            "Istanbul Park": 0.01183,
+            "Jeddah Corniche Circuit": 0.026741,
+            "Las Vegas Street Circuit": 0.011214,
+            "Lusail International Circuit": 0.025508,
+            "Marina Bay Street Circuit": 0.048552,
+            "Miami International Autodrome": 0.016882,
+            "N\u00fcrburgring": 0.011091,
+            "Red Bull Ring": 0.039556,
+            "Shanghai International Circuit": 0.027603,
+            "Silverstone Circuit": 0.033518,
+            "Sochi Autodrom": 0.022181,
+            "Suzuka Circuit": 0.030807,
+            "Yas Marina Circuit": 0.040789
           },
           "null_rate": 0.0
         },
         "compound": {
           "category_shares": {
-            "HARD": 0.23941,
-            "HYPERSOFT": 0.00867,
-            "INTERMEDIATE": 0.027991,
-            "MEDIUM": 0.217241,
-            "SOFT": 0.14652,
-            "SUPERSOFT": 0.050533,
-            "ULTRASOFT": 0.035051,
-            "_all": 0.274585
+            "HARD": 0.240049,
+            "HYPERSOFT": 0.008626,
+            "INTERMEDIATE": 0.028219,
+            "MEDIUM": 0.216636,
+            "SOFT": 0.145779,
+            "SUPERSOFT": 0.050277,
+            "ULTRASOFT": 0.03512,
+            "_all": 0.275293
           },
           "null_rate": 0.0
         },
         "dirty_air_deg_mult": {
-          "mean": 1.074011,
+          "mean": 1.073637,
           "null_rate": 0.0
         },
         "era": {
           "category_shares": {
-            "post2022": 0.409091,
-            "pre2022": 0.590909
+            "post2022": 0.409119,
+            "pre2022": 0.590881
           },
           "null_rate": 0.0
         },
         "lap_in_stint": {
-          "mean": 20.126703,
+          "mean": 20.189526,
           "null_rate": 0.0
         },
         "n_observations": {
-          "mean": 35.558459,
+          "mean": 35.703882,
           "null_rate": 0.0
         },
         "obs_deg_from_fresh_p10_mono_s": {
-          "mean": -1.355705,
-          "null_rate": 0.0
+          "mean": -1.355368,
+          "null_rate": 0.005422
         },
         "obs_deg_from_fresh_p10_s": {
-          "mean": -1.314574,
+          "mean": -1.329696,
           "null_rate": 0.0
         },
         "obs_deg_from_fresh_p50_mono_s": {
-          "mean": 0.283295,
-          "null_rate": 0.0
+          "mean": 0.283915,
+          "null_rate": 0.005422
         },
         "obs_deg_from_fresh_p50_s": {
-          "mean": 0.205253,
+          "mean": 0.188786,
           "null_rate": 0.0
         },
         "obs_deg_from_fresh_p90_mono_s": {
-          "mean": 2.467582,
-          "null_rate": 0.0
+          "mean": 2.468598,
+          "null_rate": 0.005422
         },
         "obs_deg_from_fresh_p90_s": {
-          "mean": 2.143011,
+          "mean": 2.123666,
           "null_rate": 0.0
         },
         "obs_fuel_removed_pace_p10_s": {
-          "mean": 86.145608,
+          "mean": 86.139134,
           "null_rate": 0.0
         },
         "obs_fuel_removed_pace_p50_s": {
-          "mean": 87.665435,
+          "mean": 87.657617,
           "null_rate": 0.0
         },
         "obs_fuel_removed_pace_p90_s": {
-          "mean": 89.603193,
+          "mean": 89.592497,
           "null_rate": 0.0
         },
         "ref_green_pace_s": {
-          "mean": 87.460181,
+          "mean": 87.46883,
           "null_rate": 0.0
         },
         "temp_headroom_c": {
-          "mean": 9.483032,
+          "mean": 9.472951,
           "null_rate": 0.0
         },
         "temp_penalty_s_per_deg": {
@@ -2408,7 +3744,530 @@
           "null_rate": 0.0
         }
       },
-      "row_count": 8074
+      "row_count": 8115
+    },
+    "mart_driver_season_summary": {
+      "columns": {
+        "bridge_driver_anchor_flag": {
+          "category_shares": {
+            "false": 0.248555,
+            "true": 0.751445
+          },
+          "null_rate": 0.0
+        },
+        "ci_high": {
+          "mean": 0.251687,
+          "null_rate": 0.0
+        },
+        "ci_low": {
+          "mean": -0.233488,
+          "null_rate": 0.0
+        },
+        "constructor_id": {
+          "category_shares": {
+            "Alfa Romeo": 0.023121,
+            "Alfa Romeo Racing": 0.040462,
+            "AlphaTauri": 0.057803,
+            "Alpine": 0.069364,
+            "Aston Martin": 0.063584,
+            "Ferrari": 0.092486,
+            "Force India": 0.011561,
+            "Haas F1 Team": 0.104046,
+            "Kick Sauber": 0.023121,
+            "McLaren": 0.092486,
+            "Mercedes": 0.092486,
+            "RB": 0.017341,
+            "Racing Bulls": 0.011561,
+            "Racing Point": 0.028902,
+            "Red Bull Racing": 0.092486,
+            "Renault": 0.034682,
+            "Sauber": 0.011561,
+            "Toro Rosso": 0.023121,
+            "Williams": 0.109827
+          },
+          "null_rate": 0.0
+        },
+        "constructor_rank": {
+          "mean": 5.751445,
+          "null_rate": 0.0
+        },
+        "dirty_air_unavailable_reason": {
+          "category_shares": {},
+          "null_rate": 1.0
+        },
+        "driver_id": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "low_anchor_sample_flag": {
+          "category_shares": {
+            "false": 1.0
+          },
+          "null_rate": 0.0
+        },
+        "mean_compound_component_s": {
+          "mean": 1.327807,
+          "null_rate": 0.0
+        },
+        "mean_constructor_component_s": {
+          "mean": 0.027318,
+          "null_rate": 0.0
+        },
+        "mean_dirty_air_tax_s": {
+          "mean": 0.104977,
+          "null_rate": 0.0
+        },
+        "mean_fuel_component_s": {
+          "mean": 1.397937,
+          "null_rate": 0.0
+        },
+        "n_dirty_air_measured_laps": {
+          "mean": 814.526012,
+          "null_rate": 0.0
+        },
+        "n_drivers": {
+          "mean": 21.705202,
+          "null_rate": 0.0
+        },
+        "n_races": {
+          "mean": 18.138728,
+          "null_rate": 0.0
+        },
+        "n_races_unrated": {
+          "mean": 1.00578,
+          "null_rate": 0.0
+        },
+        "race_year": {
+          "mean": 2021.572254,
+          "null_rate": 0.0
+        },
+        "rank_separated_from_next": {
+          "category_shares": {
+            "false": 0.942197,
+            "true": 0.011561
+          },
+          "null_rate": 0.046243
+        },
+        "rating_confidence": {
+          "mean": 0.757905,
+          "null_rate": 0.0
+        },
+        "rating_s": {
+          "mean": 0.0091,
+          "null_rate": 0.0
+        },
+        "rating_se_s": {
+          "mean": 0.123769,
+          "null_rate": 0.0
+        },
+        "teammate_gap_percentile": {
+          "mean": 0.5,
+          "null_rate": 0.0
+        },
+        "teammate_gap_rank": {
+          "mean": 11.352601,
+          "null_rate": 0.0
+        },
+        "teammate_gap_s": {
+          "mean": 0.0091,
+          "null_rate": 0.0
+        },
+        "teammate_id": {
+          "category_shares": {
+            "ALB": 0.040462,
+            "ALO": 0.034682,
+            "ANT": 0.00578,
+            "BEA": 0.00578,
+            "BOR": 0.00578,
+            "BOT": 0.040462,
+            "COL": 0.00578,
+            "DEV": 0.00578,
+            "ERI": 0.00578,
+            "GAS": 0.052023,
+            "GIO": 0.023121,
+            "GRO": 0.017341,
+            "HAD": 0.00578,
+            "HAM": 0.046243,
+            "HAR": 0.00578,
+            "HUL": 0.034682,
+            "KUB": 0.00578,
+            "KVY": 0.011561,
+            "LAT": 0.023121,
+            "LAW": 0.00578,
+            "LEC": 0.046243,
+            "MAG": 0.040462,
+            "MAZ": 0.00578,
+            "MSC": 0.011561,
+            "NOR": 0.040462,
+            "OCO": 0.046243,
+            "PER": 0.046243,
+            "PIA": 0.017341,
+            "RAI": 0.023121,
+            "RIC": 0.034682,
+            "RUS": 0.046243,
+            "SAI": 0.046243,
+            "SAR": 0.011561,
+            "SIR": 0.00578,
+            "STR": 0.052023,
+            "TSU": 0.046243,
+            "VAN": 0.00578,
+            "VER": 0.046243,
+            "VET": 0.028902,
+            "ZHO": 0.017341
+          },
+          "null_rate": 0.0
+        },
+        "total_clean_laps_n": {
+          "mean": 805.289017,
+          "null_rate": 0.0
+        }
+      },
+      "row_count": 173
+    },
+    "mart_metric_benchmark": {
+      "columns": {
+        "mean": {
+          "mean": 15.199291,
+          "null_rate": 0.0
+        },
+        "metric_name": {
+          "category_shares": {
+            "compound_component_s": 0.166667,
+            "constructor_component_s": 0.166667,
+            "dirty_air_tax_s": 0.166667,
+            "driver_skill_residual_s": 0.166667,
+            "fuel_component_s": 0.166667,
+            "lap_time_s": 0.166667
+          },
+          "null_rate": 0.0
+        },
+        "p05": {
+          "mean": 11.303542,
+          "null_rate": 0.0
+        },
+        "p50": {
+          "mean": 14.79847,
+          "null_rate": 0.0
+        },
+        "p95": {
+          "mean": 19.568317,
+          "null_rate": 0.0
+        },
+        "race_year": {
+          "mean": 2021.5,
+          "null_rate": 0.0
+        },
+        "sample_size": {
+          "mean": 18155.041667,
+          "null_rate": 0.0
+        },
+        "sd": {
+          "mean": 2.545964,
+          "null_rate": 0.0
+        },
+        "unit": {
+          "category_shares": {
+            "s": 1.0
+          },
+          "null_rate": 0.0
+        }
+      },
+      "row_count": 48
+    },
+    "mart_race_coverage": {
+      "columns": {
+        "air_measured_share": {
+          "mean": 0.98858,
+          "null_rate": 0.0
+        },
+        "base_measured_share": {
+          "mean": 0.918531,
+          "null_rate": 0.00578
+        },
+        "bronze_tyre_life_share": {
+          "mean": 0.993145,
+          "null_rate": 0.0
+        },
+        "circuit_id": {
+          "category_shares": {
+            "albert_park_circuit": 0.034682,
+            "autodromo_enzo_e_dino_ferrari": 0.028902,
+            "autodromo_hermanos_rodriguez": 0.040462,
+            "autodromo_internacional_do_algarve": 0.011561,
+            "autodromo_internazionale_del_mugello": 0.00578,
+            "autodromo_jose_carlos_pace": 0.040462,
+            "autodromo_nazionale_monza": 0.046243,
+            "bahrain_international_circuit": 0.046243,
+            "bahrain_international_circuit_outer": 0.00578,
+            "baku_city_circuit": 0.040462,
+            "circuit_de_barcelona_catalunya": 0.046243,
+            "circuit_de_monaco": 0.040462,
+            "circuit_de_spa_francorchamps": 0.046243,
+            "circuit_gilles_villeneuve": 0.034682,
+            "circuit_of_the_americas": 0.040462,
+            "circuit_paul_ricard": 0.023121,
+            "circuit_zandvoort": 0.028902,
+            "hockenheimring": 0.011561,
+            "hungaroring": 0.046243,
+            "istanbul_park": 0.011561,
+            "jeddah_corniche_circuit": 0.028902,
+            "las_vegas_street_circuit": 0.017341,
+            "lusail_international_circuit": 0.023121,
+            "marina_bay_street_circuit": 0.034682,
+            "miami_international_autodrome": 0.023121,
+            "n_rburgring": 0.00578,
+            "red_bull_ring": 0.057803,
+            "shanghai_international_circuit": 0.023121,
+            "silverstone_circuit": 0.052023,
+            "sochi_autodrom": 0.023121,
+            "suzuka_circuit": 0.034682,
+            "yas_marina_circuit": 0.046243
+          },
+          "null_rate": 0.0
+        },
+        "coverage_reason": {
+          "category_shares": {
+            "ALL_WET_NO_DRY_PAIRS": 0.00578,
+            "NO_RACING_LAPS": 0.00578,
+            "NO_TELEMETRY": 0.011561,
+            "OK": 0.953757,
+            "TYRE_LIFE_PARTIAL": 0.011561,
+            "TYRE_QA_QUARANTINED": 0.011561
+          },
+          "null_rate": 0.0
+        },
+        "has_rating": {
+          "category_shares": {
+            "false": 0.011561,
+            "true": 0.988439
+          },
+          "null_rate": 0.0
+        },
+        "has_telemetry": {
+          "category_shares": {
+            "false": 0.011561,
+            "true": 0.988439
+          },
+          "null_rate": 0.0
+        },
+        "n_lap_rows": {
+          "mean": 930.867052,
+          "null_rate": 0.0
+        },
+        "n_ml_eligible_laps": {
+          "mean": 852.046243,
+          "null_rate": 0.0
+        },
+        "n_rated_drivers": {
+          "mean": 18.138728,
+          "null_rate": 0.0
+        },
+        "race_id": {
+          "n_distinct": 173,
+          "null_rate": 0.0
+        },
+        "race_year": {
+          "mean": 2021.647399,
+          "null_rate": 0.0
+        },
+        "rain_lap_share": {
+          "mean": 0.050241,
+          "null_rate": 0.00578
+        },
+        "residual_measured_share": {
+          "mean": 0.912968,
+          "null_rate": 0.00578
+        },
+        "tyre_qa_status": {
+          "category_shares": {
+            "ok": 0.936416,
+            "partial": 0.052023,
+            "quarantined_race": 0.011561
+          },
+          "null_rate": 0.0
+        }
+      },
+      "row_count": 173
+    },
+    "mart_race_driver_summary": {
+      "columns": {
+        "avg_lap_time_s": {
+          "mean": 89.843645,
+          "null_rate": 0.016571
+        },
+        "ci_high": {
+          "mean": 0.308068,
+          "null_rate": 0.043977
+        },
+        "ci_low": {
+          "mean": -0.308068,
+          "null_rate": 0.043977
+        },
+        "ci_unavailable_reason": {
+          "category_shares": {
+            "PAIRED_N_BELOW_MIN": 0.043977
+          },
+          "null_rate": 0.956023
+        },
+        "circuit_id": {
+          "category_shares": {
+            "albert_park_circuit": 0.033142,
+            "autodromo_enzo_e_dino_ferrari": 0.029955,
+            "autodromo_hermanos_rodriguez": 0.041428,
+            "autodromo_internacional_do_algarve": 0.01211,
+            "autodromo_internazionale_del_mugello": 0.001912,
+            "autodromo_jose_carlos_pace": 0.038878,
+            "autodromo_nazionale_monza": 0.048438,
+            "bahrain_international_circuit": 0.048438,
+            "bahrain_international_circuit_outer": 0.005099,
+            "baku_city_circuit": 0.042702,
+            "circuit_de_barcelona_catalunya": 0.048438,
+            "circuit_de_monaco": 0.041428,
+            "circuit_de_spa_francorchamps": 0.038878,
+            "circuit_gilles_villeneuve": 0.036966,
+            "circuit_of_the_americas": 0.042065,
+            "circuit_paul_ricard": 0.024219,
+            "circuit_zandvoort": 0.031867,
+            "hockenheimring": 0.00956,
+            "hungaroring": 0.045252,
+            "istanbul_park": 0.004461,
+            "jeddah_corniche_circuit": 0.028681,
+            "las_vegas_street_circuit": 0.017208,
+            "lusail_international_circuit": 0.022945,
+            "marina_bay_street_circuit": 0.034417,
+            "miami_international_autodrome": 0.024857,
+            "n_rburgring": 0.006373,
+            "red_bull_ring": 0.059911,
+            "shanghai_international_circuit": 0.024857,
+            "silverstone_circuit": 0.049713,
+            "sochi_autodrom": 0.023582,
+            "suzuka_circuit": 0.033779,
+            "yas_marina_circuit": 0.048438
+          },
+          "null_rate": 0.0
+        },
+        "constructor_id": {
+          "category_shares": {
+            "Alfa Romeo": 0.025494,
+            "Alfa Romeo Racing": 0.035692,
+            "AlphaTauri": 0.046526,
+            "Alpine": 0.063735,
+            "Aston Martin": 0.067559,
+            "Ferrari": 0.100064,
+            "Force India": 0.006373,
+            "Haas F1 Team": 0.098789,
+            "Kick Sauber": 0.028043,
+            "McLaren": 0.100064,
+            "Mercedes": 0.104525,
+            "RB": 0.014022,
+            "Racing Bulls": 0.014022,
+            "Racing Point": 0.026769,
+            "Red Bull Racing": 0.100701,
+            "Renault": 0.034417,
+            "Sauber": 0.011472,
+            "Toro Rosso": 0.023582,
+            "Williams": 0.098152
+          },
+          "null_rate": 0.0
+        },
+        "constructor_rank": {
+          "mean": 5.309877,
+          "null_rate": 0.012747
+        },
+        "dirty_air_unavailable_reason": {
+          "category_shares": {
+            "NO_MEASURED_LAPS": 0.029318
+          },
+          "null_rate": 0.970682
+        },
+        "driver_id": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        },
+        "has_dnf": {
+          "category_shares": {
+            "false": 0.904716,
+            "true": 0.095284
+          },
+          "null_rate": 0.0
+        },
+        "laps_completed": {
+          "mean": 48.926386,
+          "null_rate": 0.0
+        },
+        "mean_compound_component_s": {
+          "mean": 1.290322,
+          "null_rate": 0.016571
+        },
+        "mean_constructor_component_s": {
+          "mean": -0.010712,
+          "null_rate": 0.016571
+        },
+        "mean_dirty_air_tax_s": {
+          "mean": 0.108567,
+          "null_rate": 0.029318
+        },
+        "mean_fuel_component_s": {
+          "mean": 1.447534,
+          "null_rate": 0.016571
+        },
+        "n_clean_laps": {
+          "mean": 45.593325,
+          "null_rate": 0.016571
+        },
+        "n_dirty_air_measured_laps": {
+          "mean": 42.855959,
+          "null_rate": 0.0
+        },
+        "n_drivers": {
+          "mean": 18.647546,
+          "null_rate": 0.0
+        },
+        "paired_lap_count": {
+          "mean": 40.082855,
+          "null_rate": 0.0
+        },
+        "positions_gained": {
+          "mean": 0.204641,
+          "null_rate": 0.011154
+        },
+        "race_id": {
+          "n_distinct": 171,
+          "null_rate": 0.0
+        },
+        "race_year": {
+          "mean": 2021.670491,
+          "null_rate": 0.0
+        },
+        "rating_s": {
+          "mean": 0.0,
+          "null_rate": 0.0
+        },
+        "rating_trust_label": {
+          "category_shares": {
+            "ok": 0.926068,
+            "suppressed": 0.043977,
+            "thin": 0.029955
+          },
+          "null_rate": 0.0
+        },
+        "residual_unavailable_reason": {
+          "category_shares": {
+            "NO_ML_ELIGIBLE_LAPS": 0.004461,
+            "TYRE_QA_QUARANTINED": 0.01211
+          },
+          "null_rate": 0.983429
+        },
+        "teammate_gap_s": {
+          "mean": 0.0,
+          "null_rate": 0.0
+        },
+        "teammate_id": {
+          "n_distinct": 43,
+          "null_rate": 0.0
+        }
+      },
+      "row_count": 3138
     }
   }
 }

@@ -1,0 +1,66 @@
+AX-03 Route parameter schema, navigate v2, card page links - provenance (2026-11-07)
+Status: DONE (unit tests, typecheck, e2e all pass locally). Not committed.
+
+Files added
+  app/src/nav/routeParams.ts        routeParams (every shipped path, key = exact URL key the page reads),
+                                    ParamSpec, buildRouteUrl(route, params), cardLink(card), latestSeason()
+  app/src/nav/routeParams.test.ts   coverage + key-read static test (follows App.tsx lazy import and
+                                    `export { default } from` chains to the page file), encode round trip,
+                                    bad values, cardLink null cases, the 5 e2e links
+  app/src/state/urlParams.ts        intParam(): integer or null, never NaN
+  app/e2e/card-links.e2e.ts         Playwright: 5 card links + race key survives mount
+Files changed
+  app/src/nav/assistantTools.ts     navigate v2 = shipped-route check + buildRouteUrl; ALLOWED_FILTERS /
+                                    FilterKey / NavFilters REMOVED (no importer anywhere, grep-checked)
+  app/src/nav/assistantTools.test.ts  old `race:7` pit-gantt expectation replaced (it selected nothing);
+                                    added rejects-unknown/malformed/lower-case/sql/url test; route-list
+                                    checks unchanged
+  app/src/state/FilterContext.tsx   season/race/driver/constructor parsed with intParam (race=2024_8 -> null, not NaN)
+  app/src/data/manifest.ts          + peekManifest() (cached manifest or null; never fetches)
+  13 page.tsx files: mount-time clear replaced by "clear only when season changes" (useRef prev-season,
+    same pattern tyre-cliff-survival already had): dirty-air-cost, party-mode, race-lost, track-evolution,
+    constructor-structural-pace, dirty-air-lap-map, field-pace-curve, pit-strategy, race-control,
+    sector-decomposition, stint-degradation-timeline (11 race/race_id pages) + counterfactual-championship,
+    hidden-performance (same defect on the `constructor` key; fixed too, beyond the spec's 12).
+  race-lost/page.tsx: driver seeded from ?driver=XXX (^[A-Z]{3}$); the [raceId] effect that cleared the
+    driver on mount now clears only on race change. lap-waterfall/page.tsx: selectedDriver seeded from ?driver.
+
+Behaviour notes
+  - Season bounds 2018..latestSeason(): manifest stats.seasons_list max when loaded, else LATEST_SEASON (2025).
+  - A race key (2024_8) also sets season=2024 when the route reads season (the pages list races per
+    season, so without it the link would select nothing); a contradicting season is refused.
+  - Waterfall race encode round_int: race=2024_8 -> season=2024&race=8.
+  - Routes whose page does not read season (e.g. /drivers/ratings-timeline, /tyre-strategy/recovery,
+    /drivers/circuit-affinity, /drivers/wet-race, /constructors/circuits, /ml/metrics, pillar roots)
+    get an EMPTY entry, so navigate refuses season there.
+  - Denied keys on every route: sql, url, query, href, redirect. Errors return {ok:false, error, key, allowed}.
+  - cardLink returns null for: no page, unknown route, any invalid param, or params that name a
+    different race/driver than card.scope (link must select what the card describes).
+
+Log note correction (flag for the owner/orchestrator; build-log.json NOT edited by me)
+  The log says eleven pages read `race` as a string. Code: 9 pages read `race` (string) via
+  searchParams.get('race'), 3 read `race_id` (pit-gantt, race-control, survival), 1 reads race as an
+  integer round via useFilters (waterfall). Plus 2 pages read `constructor` (string) with the same
+  mount-clear defect.
+
+Commands and results
+  npx vitest run src/nav                -> 77 passed (3 files)
+  npx vitest run src/assistant src/nav  -> 221 passed, 2 failed (pre-existing sources.node), 11 skipped (AX-04 parity, no env)
+  npm run typecheck                     -> passes
+  eslint on touched files               -> 0 errors (warnings pre-existing: react-refresh on FilterContext/ThemeContext,
+                                           set-state-in-effect on untouched pages)
+  E2E, run 1 (CDN data): `vite build --outDir <scratch>/dist-cdn`, Playwright via a scratch config
+    (<scratch>/pw/playwright.config.ts: testDir app/e2e, webServer `vite preview --outDir ... --port 4174`,
+    started and stopped by Playwright) -> 6 passed.
+  E2E negative control: rebuilt with race-lost/page.tsx temporarily restored from HEAD (my version
+    saved and put back; diff re-checked) -> race-lost link test FAILS (race select "" instead of
+    "2024_8"), confirming the mount-clear defect and that the test detects it.
+  E2E, run 2 (LOCAL data): VITE_DATA_BASE="" build to <scratch>/dist-local with dist-local/data ->
+    the AX-04 scratch export (symlink) -> card-links 6 passed (together with AX-04's card-render 3 passed).
+
+Not verified
+  - Default repo mode (`pnpm test:e2e`, builds app/dist and previews :4173) not run, to avoid writing app/dist;
+    the spec runs there unchanged (card-render.e2e.ts skips without AX04_EXPECT).
+  - Dev-mode StrictMode double effects: reasoned (ref compare is idempotent), not exercised (preview = prod build).
+  - Only the 5 listed pages plus 4 race pages were opened in a browser; the other mount-clear fixes are
+    covered by the same code pattern, not by a browser run each.

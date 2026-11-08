@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import EraRatingsTimelineChart from './EraRatingsTimelineChart'
@@ -15,6 +16,7 @@ const DEFAULT_SELECTED_N = 6
 const COHORT_ORDER: SpanCohort[] = ['bridge', 'full-span', 'joined', 'left', 'cameo']
 
 export default function EraRatingsTimelinePage() {
+  const prov = useProvenance()
   const { data, isLoading, error } = useQuery<EraRatingRow[]>(
     'era-ratings-timeline.all',
     undefined
@@ -82,7 +84,7 @@ export default function EraRatingsTimelinePage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025', nObs: result?.series.length }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion, nObs: result?.series.length }}
       csvRows={csvRows}
       csvFilename="era-ratings-timeline.csv"
       isLoading={isLoading}

@@ -1,0 +1,702 @@
+{
+  "mode": "stub",
+  "tokens": {
+    "tools": 1053,
+    "catalogue": 87,
+    "system": 931
+  },
+  "records": [
+    {
+      "id": "sample-1",
+      "kind": "card-only (teammate_race bundle)",
+      "question": "How did Verstappen do against Perez in Bahrain 2024?",
+      "page": null,
+      "status": "answered",
+      "answer": "Verstappen was 0.62 s per lap faster than Perez in Bahrain 2024: a teammate-paired median gap over 46 paired laps, 95% CI -0.76 to -0.39 s [card race.teammate_gap:2024_1:VER]. The laps were chosen with the air-state filter; it is not a dirty-air estimate. For context, 0 caution laps in a race of 57 laps [card race.cautions:2024_1]; a count of laps does not explain the gap. Verstappen has a pit-stop card [card driver_race.pit_stops:2024_1:VER]. I do not judge the stops: the pit-call method matches the team's real call only about a third of the time (a reproduction rate, not a verdict). A split of the lap time into causes is held: it is not available yet, waiting on wake calibration [card race_driver.skill_components:2024_1:VER:red_bull_racing]. These are different measures: the lap residual in this held split is not the teammate-paired median gap above.",
+      "tools": [
+        {
+          "name": "get_fact_cards",
+          "arguments": {
+            "bundle": "teammate_race",
+            "scopes": [
+              {
+                "race_id": "2024_1",
+                "driver_id": "VER"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [
+        "race.teammate_gap:2024_1:VER",
+        "race.cautions:2024_1",
+        "driver_race.pit_stops:2024_1:VER",
+        "race_driver.skill_components:2024_1:VER:red_bull_racing"
+      ],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "PIT_CALL_REPRODUCTION_RATE",
+            "verdict": "pass"
+          },
+          {
+            "code": "HELD_CARD_WORDING",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE",
+            "verdict": "pass"
+          },
+          {
+            "code": "AIR_STATE_FILTER",
+            "verdict": "pass"
+          },
+          {
+            "code": "COUNT_NOT_CAUSE",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE_NAMED",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 331,
+          "output": 250
+        },
+        "peak_context": 2652,
+        "total": 4794,
+        "rounds": 2,
+        "neurons": 90,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=331/4800 output=250/2500 | peak_context=2652/13100 total=4794 rounds=2 neurons=90 (estimated chars/4)"
+    },
+    {
+      "id": "sample-2",
+      "kind": "card-only (season_standing bundle)",
+      "question": "Where does Norris rank against his teammate in 2024?",
+      "page": null,
+      "status": "answered",
+      "answer": "Norris's 2024 era rating, his season gap to his teammate, was 0.22 s per lap faster (95% CI -0.42 to -0.02 s) [card season.teammate_gap:2024:NOR]. His interval overlaps the next driver's, so he is in a group whose intervals overlap, not at a clear place. The laps were chosen with the air-state filter; it is not a dirty-air estimate. The championship what-if is held: it is not available yet, waiting on wake calibration; when published it is a statistical, expected-value reconstruction, not a simulation [card counterfactual_championship.season:2024:alpine].",
+      "tools": [
+        {
+          "name": "get_fact_cards",
+          "arguments": {
+            "bundle": "season_standing",
+            "scopes": [
+              {
+                "season": 2024,
+                "driver_id": "NOR"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [
+        "season.teammate_gap:2024:NOR",
+        "counterfactual_championship.season:2024:alpine"
+      ],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "HELD_CARD_WORDING",
+            "verdict": "pass"
+          },
+          {
+            "code": "GHOST_IS_COUNTERFACTUAL",
+            "verdict": "pass"
+          },
+          {
+            "code": "AIR_STATE_FILTER",
+            "verdict": "pass"
+          },
+          {
+            "code": "RANK_WITHIN_CI",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE_NAMED",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 118,
+          "output": 174
+        },
+        "peak_context": 2363,
+        "total": 4503,
+        "rounds": 2,
+        "neurons": 84,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=118/4800 output=174/2500 | peak_context=2363/13100 total=4503 rounds=2 neurons=84 (estimated chars/4)"
+    },
+    {
+      "id": "sample-3",
+      "kind": "card-only (safety_car_rate bundle)",
+      "question": "How often do safety cars happen in 2024?",
+      "page": null,
+      "status": "answered",
+      "answer": "Across all circuits in 2024 the safety car rate is pooled: 38% of races, from 24 races [card race_control.pooled_rate:2024:safety_car]. The data shows no reliable difference between circuits, so I cannot give a figure for one circuit.",
+      "tools": [
+        {
+          "name": "get_fact_cards",
+          "arguments": {
+            "bundle": "safety_car_rate",
+            "scopes": [
+              {
+                "season": 2024
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [
+        "race_control.pooled_rate:2024:safety_car"
+      ],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "POOLED_SC_RATE_ONLY",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 381,
+          "output": 87
+        },
+        "peak_context": 2539,
+        "total": 4668,
+        "rounds": 2,
+        "neurons": 86,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=381/4800 output=87/2500 | peak_context=2539/13100 total=4668 rounds=2 neurons=86 (estimated chars/4)"
+    },
+    {
+      "id": "sample-4",
+      "kind": "query_data (count)",
+      "question": "How many pit stops did Verstappen make in 2024?",
+      "page": null,
+      "status": "answered",
+      "answer": "Verstappen made 37 pit stops in 2024 [result d97e84f3ca94]. This is a plain count computed from the data, not a rating.",
+      "tools": [
+        {
+          "name": "query_data",
+          "arguments": {
+            "view": "qv_pit_stops",
+            "filters": [
+              {
+                "col": "season",
+                "op": "eq",
+                "val": 2024
+              },
+              {
+                "col": "driver_id",
+                "op": "eq",
+                "val": "VER"
+              }
+            ],
+            "aggregate": {
+              "fn": "count",
+              "col": "stops"
+            }
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "COMPUTED_NOT_CARD_WORDING",
+            "verdict": "pass"
+          },
+          {
+            "code": "COUNT_NOT_CAUSE",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 202,
+          "output": 83
+        },
+        "peak_context": 2356,
+        "total": 4521,
+        "rounds": 2,
+        "neurons": 83,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=202/4800 output=83/2500 | peak_context=2356/13100 total=4521 rounds=2 neurons=83 (estimated chars/4)"
+    },
+    {
+      "id": "sample-5",
+      "kind": "query_data (grouped, top 3)",
+      "question": "Which three drivers made the most pit stops in 2024?",
+      "page": null,
+      "status": "answered",
+      "answer": "The three drivers with the most pit stops in 2024 were PER with 43, STR with 43, ZHO with 42 [result 6e9a3f75e15a]. These are plain counts computed from the data, not a rating.",
+      "tools": [
+        {
+          "name": "query_data",
+          "arguments": {
+            "view": "qv_pit_stops",
+            "filters": [
+              {
+                "col": "season",
+                "op": "eq",
+                "val": 2024
+              }
+            ],
+            "group_by": [
+              "driver_id"
+            ],
+            "aggregate": {
+              "fn": "count",
+              "col": "stops"
+            },
+            "order": "value_desc",
+            "limit": 3
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "COMPUTED_NOT_CARD_WORDING",
+            "verdict": "pass"
+          },
+          {
+            "code": "COUNT_NOT_CAUSE",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 219,
+          "output": 101
+        },
+        "peak_context": 2391,
+        "total": 4560,
+        "rounds": 2,
+        "neurons": 84,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=219/4800 output=101/2500 | peak_context=2391/13100 total=4560 rounds=2 neurons=84 (estimated chars/4)"
+    },
+    {
+      "id": "sample-6",
+      "kind": "list_values alias (\"Checo\")",
+      "question": "Who is Checo?",
+      "page": null,
+      "status": "answered",
+      "answer": "Checo is Sergio Pérez (PER); his driver code in the data is PER, and he appears in seasons 2018-2024.",
+      "tools": [
+        {
+          "name": "list_values",
+          "arguments": {
+            "domain": "driver",
+            "query": "Checo"
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": []
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 30,
+          "output": 48
+        },
+        "peak_context": 2149,
+        "total": 4259,
+        "rounds": 2,
+        "neurons": 78,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=30/4800 output=48/2500 | peak_context=2149/13100 total=4259 rounds=2 neurons=78 (estimated chars/4)"
+    },
+    {
+      "id": "sample-7",
+      "kind": "on-screen (0 tool calls)",
+      "question": "How many laps were under caution in this race?",
+      "page": {
+        "route": "/race-craft/race-control",
+        "params": {
+          "season": 2024,
+          "race_id": "2024_1"
+        }
+      },
+      "status": "answered",
+      "answer": "0 laps in this race were under caution, out of 57 laps [card race.cautions:2024_1].",
+      "tools": [],
+      "cards_cited": [
+        "race.cautions:2024_1"
+      ],
+      "on_screen": [
+        "race.cautions:2024_1"
+      ],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "COUNT_NOT_CAUSE",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 1,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 68,
+          "history": 0,
+          "tool_results": 0,
+          "output": 22
+        },
+        "peak_context": 2161,
+        "total": 2175,
+        "rounds": 1,
+        "neurons": 40,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=68/600 history=0/2000 tool_results=0/4800 output=22/2500 | peak_context=2161/13100 total=2175 rounds=1 neurons=40 (estimated chars/4)"
+    },
+    {
+      "id": "sample-8",
+      "kind": "held class (refused with its reason)",
+      "question": "How much did traffic cost Hamilton at Silverstone 2023?",
+      "page": null,
+      "status": "answered",
+      "answer": "That figure is held: it is not available yet, while traffic cost is re-measured with wake calibration [card dirty_air.price:2023_10:HAM:mercedes]. The card says: \"Traffic cost is being re-measured; no number is available yet…\" Dirty-air cost is modelled, not measured, and I will not estimate it.",
+      "tools": [
+        {
+          "name": "get_fact_cards",
+          "arguments": {
+            "kinds": [
+              "dirty_air.price"
+            ],
+            "scopes": [
+              {
+                "race_id": "2023_10",
+                "driver_id": "HAM"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [
+        "dirty_air.price:2023_10:HAM:mercedes"
+      ],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "HELD_CARD_WORDING",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 64,
+          "output": 109
+        },
+        "peak_context": 2244,
+        "total": 4388,
+        "rounds": 2,
+        "neurons": 81,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=64/4800 output=109/2500 | peak_context=2244/13100 total=4388 rounds=2 neurons=81 (estimated chars/4)"
+    },
+    {
+      "id": "sample-9",
+      "kind": "what-if (link only)",
+      "question": "What if Verstappen had pitted on lap 20 in Bahrain 2024?",
+      "page": null,
+      "status": "answered",
+      "answer": "I do not compute what-if tyre strategies. The Degradation Simulator lets you try it yourself: /ml/simulator?season=2024",
+      "tools": [
+        {
+          "name": "navigate",
+          "arguments": {
+            "route": "/ml/simulator",
+            "params": {
+              "season": 2024
+            }
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": []
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [
+        "/ml/simulator?season=2024"
+      ],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 13,
+          "output": 56
+        },
+        "peak_context": 2140,
+        "total": 4274,
+        "rounds": 2,
+        "neurons": 79,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=13/4800 output=56/2500 | peak_context=2140/13100 total=4274 rounds=2 neurons=79 (estimated chars/4)"
+    },
+    {
+      "id": "sample-10",
+      "kind": "navigate",
+      "question": "Take me to the pit strategy page for Monaco 2024.",
+      "page": null,
+      "status": "answered",
+      "answer": "Here is the pit strategy page for Monaco 2024: /tyre-strategy/pit-gantt?season=2024&race_id=2024_8",
+      "tools": [
+        {
+          "name": "navigate",
+          "arguments": {
+            "route": "/tyre-strategy/pit-gantt",
+            "params": {
+              "season": 2024,
+              "race_id": "2024_8"
+            }
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": []
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [
+        "/tyre-strategy/pit-gantt?season=2024&race_id=2024_8"
+      ],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 19,
+          "output": 58
+        },
+        "peak_context": 2148,
+        "total": 4287,
+        "rounds": 2,
+        "neurons": 79,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=19/4800 output=58/2500 | peak_context=2148/13100 total=4287 rounds=2 neurons=79 (estimated chars/4)"
+    }
+  ]
+}

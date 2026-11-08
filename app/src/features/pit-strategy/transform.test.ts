@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { transform } from './transform'
+import { transform, toCsvRows } from './transform'
+import { pitConfidenceLabel } from '../../ui/charts/ganttLabels'
 import type { PitGanttRow } from './queries'
 
 const baseRow = (overrides: Partial<PitGanttRow> = {}): PitGanttRow => ({
@@ -10,6 +11,7 @@ const baseRow = (overrides: Partial<PitGanttRow> = {}): PitGanttRow => ({
   start_lap: 1,
   end_lap: 14,
   stint_length_laps: 14,
+  next_compound: null,
   cliff_lap_in_stint: null,
   tyre_management_score: null,
   verdict: 'unknown',
@@ -97,5 +99,50 @@ describe('transform', () => {
     const rows = [baseRow({ verdict: 'something_else' as any })]
     const result = transform(rows, 57)
     expect(result.stints[0].verdict).toBeNull()
+  })
+})
+
+describe('optimal pit lap confidence (AP-03)', () => {
+  it('passes through to the stint and the CSV (3 dp)', () => {
+    const result = transform([baseRow({ optimal_pit_lap_confidence: 0.98648648, optimal_pit_lap_in_stint: 12 })], 57)
+    expect(result.stints[0].optimalPitLapConfidence).toBeCloseTo(0.98648648, 8)
+    const [row] = toCsvRows(result)
+    expect(row.optimal_pit_lap_confidence).toBe(0.986)
+  })
+
+  it('is on every CSV row, including 0.0', () => {
+    const result = transform([
+      baseRow({ optimal_pit_lap_confidence: 0 }),
+      baseRow({ driver_id: 'LEC', optimal_pit_lap_confidence: 0.5, optimal_pit_lap_in_stint: 9 }),
+    ], 57)
+    const rows = toCsvRows(result)
+    expect(rows.every(r => 'optimal_pit_lap_confidence' in r)).toBe(true)
+    expect(rows.map(r => r.optimal_pit_lap_confidence)).toEqual([0, 0.5])
+  })
+
+  it('renders 0.0 with no optimum as "no cost curve", not 0% confident', () => {
+    expect(pitConfidenceLabel(0, null)).toBe('no cost curve')
+    expect(pitConfidenceLabel(null, null)).toBe('no cost curve')
+  })
+
+  it('renders 0.0 with an optimum as a flat curve, and other values as a share', () => {
+    expect(pitConfidenceLabel(0, 14)).toBe('0% (flat curve)')
+    expect(pitConfidenceLabel(0.62, 14)).toBe('62% of laps >1 s worse')
+  })
+})
+
+describe('AP-08 next compound', () => {
+  // 2018_10 SAI: the old page order (int_pit_strategy_value rows only) read no next compound after
+  // stint 2; in stint-number order he went on to HARD. 142 stops differed this way across the 2018-2025 data.
+  it('passes through the next compound from the stint-number order, per driver and stint', () => {
+    const rows = [
+      baseRow({ driver_id: 'SAI', stint_number: 1, compound: 'MEDIUM', next_compound: 'SOFT' }),
+      baseRow({ driver_id: 'SAI', stint_number: 2, compound: 'SOFT', next_compound: 'HARD', start_lap: 15, end_lap: 30 }),
+      baseRow({ driver_id: 'SAI', stint_number: 3, compound: 'HARD', next_compound: null, start_lap: 31, end_lap: 52 }),
+    ]
+    const { nextCompound } = transform(rows, 52)
+    expect(nextCompound['SAI:2']).toBe('HARD')
+    expect(nextCompound['SAI:3']).toBeNull()
+    expect(nextCompound['SAI:1']).toBe('SOFT')
   })
 })

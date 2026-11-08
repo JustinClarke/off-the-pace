@@ -1,0 +1,7 @@
+FAIL WITH: Error: ENOENT: no such file or directory, open '/Users/justin/github/off-the-pace/app/public/data/dimensions/race_to_track.parquet'
+ FAIL  src/features/tyre-cliff-survival/profileLookup.test.ts [ src/features/tyre-cliff-survival/profileLookup.test.ts ]
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/assistant/honesty/sources.node.test.ts > AI-02 source citations > CHANCE_LINE_EXPERIMENTAL cites lines that still say what the rule claims
+ FAIL  src/assistant/honesty/sources.node.test.ts > AI-02 source citations > CHANCE_LINE_QUOTABLE cites lines that still say what the rule claims
+ Test Files  2 failed | 53 passed | 1 skipped (56)
+      Tests  2 failed | 671 passed | 1 expected fail | 6 skipped (680)

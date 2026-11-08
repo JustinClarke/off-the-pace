@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from 'react'
+import { useProvenance } from '../../data/provenance'
+import { useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import CautionTimeline from './CautionTimeline'
@@ -39,11 +40,16 @@ function RateLine({
 }
 
 export default function RaceControlPage() {
+  const prov = useProvenance()
   const { season } = useFilters()
   const [searchParams, setSearchParams] = useSearchParams()
   const raceId = searchParams.get('race_id') ?? ''
 
+  // Clear 'race_id' when the season changes, not on mount, so a deep link survives load (AX-03)
+  const prevSeason = useRef(season)
   useEffect(() => {
+    if (prevSeason.current === season) return
+    prevSeason.current = season
     setSearchParams(p => { p.delete('race_id'); return p }, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [season])
@@ -92,7 +98,7 @@ export default function RaceControlPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={result ? toCsvRows(raceId, result) : undefined}
       csvFilename={`race-control-${raceId || season}.csv`}
       isLoading={isLoading && ready}

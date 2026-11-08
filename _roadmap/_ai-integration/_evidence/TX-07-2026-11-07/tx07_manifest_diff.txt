@@ -1,0 +1,5 @@
+tables removed: ['dim_events'] added: []
+stats dbt_models 97 -> 98
+stats ml_models_total <absent> -> 5
+stats total_events 6 -> <absent>
+other table entries differing: []

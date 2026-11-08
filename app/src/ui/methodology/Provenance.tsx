@@ -4,6 +4,10 @@ export interface ProvenanceMeta {
   nObs?: number
   modelVersion?: string
   datasetFingerprint?: string
+  /** Data build id (manifest version); rendered as data:<first 8> */
+  dataVersion?: string
+  /** Label version from the data manifest (TX-05), e.g. "v16"; rendered as "label v16" */
+  labelVersion?: string
 }
 
 interface ProvenanceProps {
@@ -17,6 +21,8 @@ export default function Provenance({ meta }: ProvenanceProps) {
   if (meta.nObs !== undefined) parts.push(`n=${meta.nObs.toLocaleString()}`)
   if (meta.modelVersion) parts.push(`v${meta.modelVersion}`)
   if (meta.datasetFingerprint) parts.push(`sha:${meta.datasetFingerprint.slice(0, 8)}`)
+  if (meta.dataVersion) parts.push(`data:${meta.dataVersion.slice(0, 8)}`)
+  if (meta.labelVersion) parts.push(`label ${meta.labelVersion}`)
   if (!parts.length) return null
 
   return (

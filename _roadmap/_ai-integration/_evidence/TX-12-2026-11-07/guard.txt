@@ -1,0 +1,2 @@
+ERROR: refusing to write a scratch warehouse into app/public/data; pass --out
+exit 2

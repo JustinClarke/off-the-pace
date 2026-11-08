@@ -1,5 +1,9 @@
 -- Per-metric distribution by season over clean (ml_eligible) laps, so an LLM
 -- can say what is typical. Grain: (metric_name, race_year).
+-- TX-03: the dirty_air_tax_s row is over laps with a MEASURED dirty-air tax
+-- only (a row in int_dirty_air_tax_component with a non-NULL tax).
+-- fct_lap_residuals writes 0.0 on laps with no such row; counting those as
+-- clean air pulled the mean down. The other five metrics are unchanged.
 {{ config(materialized='table') }}
 
 WITH clean AS (
@@ -33,10 +37,13 @@ long AS (
     FROM clean
     UNION ALL
     SELECT
-        race_year,
+        c.race_year,
         'dirty_air_tax_s' AS metric_name,
-        dirty_air_tax_s AS v
-    FROM clean
+        c.dirty_air_tax_s AS v
+    FROM clean AS c
+    INNER JOIN {{ ref('int_dirty_air_tax_component') }} AS da
+        ON c.lap_id = da.lap_id
+    WHERE da.dirty_air_tax_s IS NOT NULL
     UNION ALL
     SELECT
         race_year,

@@ -8,8 +8,10 @@ export interface TeamAverageRow {
   laps_n: number
   /** Mean of the team's per-race car component (s). NULL when no race has a reading. */
   avg_car_component_s: number | null
-  /** Mean of the team's per-race dirty-air tax (s). NULL when unmeasured. */
+  /** Mean of the team's per-race dirty-air tax (s), over laps with pace_delta_s IS NOT NULL only (TX-03: unmeasured dirty air is a filled 0.0). NULL when no lap is measured. */
   avg_dirty_air_tax_s: number | null
+  /** Laps behind the dirty-air mean (pace_delta_s IS NOT NULL). 0 = unavailable (AP-05). */
+  n_dirty_air_laps: number
   /** Mean of the team's per-race driver-skill residual (s). NULL when unmeasured. */
   avg_driver_skill_residual_s: number | null
 }
@@ -31,7 +33,8 @@ export const queryTeamAverages = registerQuery<{ season: number }, TeamAverageRo
           race_id,
           COUNT(*)                          AS laps_n,
           AVG(constructor_component_s)      AS car_component_s,
-          AVG(dirty_air_tax_s)              AS dirty_air_tax_s,
+          AVG(CASE WHEN pace_delta_s IS NOT NULL THEN dirty_air_tax_s END) AS dirty_air_tax_s,
+          COUNT(CASE WHEN pace_delta_s IS NOT NULL THEN dirty_air_tax_s END) AS n_dirty_air_laps,
           AVG(driver_skill_residual_s)      AS driver_skill_residual_s
         FROM fct_lap_residuals_${season}
         WHERE ml_eligible
@@ -48,7 +51,9 @@ export const queryTeamAverages = registerQuery<{ season: number }, TeamAverageRo
         MAX(d.drivers_n)                          AS drivers_n,
         SUM(r.laps_n)                             AS laps_n,
         ROUND(AVG(r.car_component_s), 3)          AS avg_car_component_s,
-        ROUND(AVG(r.dirty_air_tax_s), 3)          AS avg_dirty_air_tax_s,
+        CASE WHEN SUM(r.n_dirty_air_laps) > 0
+             THEN ROUND(AVG(r.dirty_air_tax_s), 3) END AS avg_dirty_air_tax_s,
+        SUM(r.n_dirty_air_laps)                   AS n_dirty_air_laps,
         ROUND(AVG(r.driver_skill_residual_s), 3)  AS avg_driver_skill_residual_s
       FROM per_race r
       JOIN drivers d USING (constructor_id)

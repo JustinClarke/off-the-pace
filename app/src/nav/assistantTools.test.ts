@@ -54,13 +54,27 @@ describe('navigate: route list', () => {
     expect(navigate('/races').ok).toBe(false)
     expect(navigate('/nope').ok).toBe(false)
   })
-  it('allows only the four URL filters, as integers', () => {
-    expect(navigate('/tyre-strategy/pit-gantt', { season: 2024, race: 7 })).toEqual({
+  // AX-03: the old test expected ?season=2024&race=7 here, a link the pit page never reads
+  // (it reads race_id, a string). navigate v2 accepts only the keys each page reads.
+  it('builds the keys the page reads: pit-gantt takes race_id as a race key', () => {
+    expect(navigate('/tyre-strategy/pit-gantt', { season: 2024, race_id: '2024_7' })).toEqual({
       ok: true,
-      url: '/tyre-strategy/pit-gantt?season=2024&race=7',
+      url: '/tyre-strategy/pit-gantt?season=2024&race_id=2024_7',
     })
+    expect(navigate('/tyre-strategy/pit-gantt', { season: 2024, race: 7 }).ok).toBe(false)
     expect(navigate('/', { sql: 1 }).ok).toBe(false)
-    expect(navigate('/', { season: '2024' }).ok).toBe(false)
+    expect(navigate('/drivers/consistency', { season: '2024' })).toEqual({ ok: true, url: '/drivers/consistency?season=2024' })
+  })
+  it('rejects unknown keys, a malformed race, a lower-case driver, and any sql or url key', () => {
+    const r = navigate('/lap-decomposition/race-lost', { season: 2024, team: 'x' })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.allowed).toEqual(['season', 'race', 'driver'])
+    expect(navigate('/lap-decomposition/race-lost', { race: '2024-8' }).ok).toBe(false)
+    expect(navigate('/lap-decomposition/race-lost', { race: '2024_8', driver: 'lec' }).ok).toBe(false)
+    for (const route of shippedPaths) {
+      expect(navigate(route, { sql: 'select 1' }).ok, route).toBe(false)
+      expect(navigate(route, { url: 'https://evil.example' }).ok, route).toBe(false)
+    }
   })
 })
 

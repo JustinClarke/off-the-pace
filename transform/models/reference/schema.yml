@@ -66,6 +66,20 @@ models:
       - name: era_start_year
         description: First season of the regulation era this circuit row applies to (e.g. 2022 ground-effect).
         data_type: integer
+      - name: calibration_flag
+        description: >
+          TX-13. Outcome of the per-circuit weight-penalty calibration (fit_weight_penalty.py), carried
+          unchanged from circuit_reference.calibration_flag. SKIPPED: the circuit was not calibrated
+          (too few laps for a fit attempt), so weight_penalty_factor is the hand-set prior.
+          INSUFFICIENT_DATA: a fit was attempted but the data were too thin, prior kept.
+          REVIEW_REQUIRED: the measured factor differs from the prior by more than
+          PRIOR_DEVIATION_THRESHOLD, so the prior was adopted and the measured value is only recorded.
+          Any other value means the measured factor was adopted. The assistant reads REVIEW_REQUIRED and
+          INSUFFICIENT_DATA as the CALIBRATION_FLAGGED_CIRCUIT rule (policy.json). On the v16 build:
+          43 SKIPPED, 1 REVIEW_REQUIRED.
+        data_type: varchar
+        tests:
+          - not_null
 
   - name: dim_compounds_season
     description: >

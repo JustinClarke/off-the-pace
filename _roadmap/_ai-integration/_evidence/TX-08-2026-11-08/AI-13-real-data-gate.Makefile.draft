@@ -1,0 +1,64 @@
+# TX-08 / old AI-13 — DRAFT ONLY. Not applied to /Makefile (owner decision: any workflow change).
+# Choice (c): a local make gate the owner runs before every export, read-only on the warehouse
+# that is about to be exported (data/dev.duckdb). Why, in PROVENANCE.txt ("AI-13 CHOICE").
+#
+# Proposed change to /Makefile, section "##   Data export":
+#
+#   1. a new target real-data-gate (read-only: `dbt test` selects, it never writes a model;
+#      the two python checks only read);
+#   2. app-data and app-data-check depend on it, so an export cannot run on a build whose
+#      full-data tests are red. app-data-canary stays ungated (fast local loop, never published).
+#   3. An escape hatch is NOT added on purpose: skipping the gate means calling
+#      scripts/export_app_data.py directly, which is visible in the shell history.
+#
+# --- patch (unified, against Makefile lines 251-259 of 2026-11-08) ---------------------------
+#
+# ##   Data export
+#-app-data:  ## Export warehouse → app/public/data/ parquet + _manifest.json
+#+real-data-gate:  ## Real-data gate (TX-08/AI-13): every dbt test at full-data thresholds + fct_* oracle + data profile, read-only on data/dev.duckdb
+#+	cd transform && ../.venv/bin/dbt test --profiles-dir profiles --target dev
+#+	cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py --check --db ../data/dev.duckdb
+#+	./.venv/bin/python transform/scripts/snapshot_data_profile.py --db data/dev.duckdb --check
+#+
+#+app-data: real-data-gate  ## Export warehouse → app/public/data/ parquet + _manifest.json (after real-data-gate)
+# 	./.venv/bin/python scripts/export_app_data.py
+#
+# app-data-canary:  ## Export canary tables only (fast)
+# 	./.venv/bin/python scripts/export_app_data.py --canary
+#
+#-app-data-check:  ## CI drift gate: regenerate manifest and diff (no write)
+#+app-data-check: real-data-gate  ## CI drift gate: regenerate manifest and diff (no write)
+# 	./.venv/bin/python scripts/export_app_data.py --check
+#
+# and add real-data-gate to the .PHONY list at the top.
+#
+# Caveats the owner should know before applying:
+#   - the hash and profile baselines are re-taken once after TX-01..07 land (TX-07 note); until
+#     then the second and third lines report the known TX-01..07 drift and the gate is red for that
+#     reason alone. Apply this after the re-take.
+#   - `dbt test` on dev runs ~1,100 tests at 1 dbt thread as configured in profiles (dev: threads 4);
+#     measured on the scratch copy in PROVENANCE.txt.
+#
+# --- optional (a): the same gate as a workflow on the self-hosted runner -----------------------
+# Not recommended now (no runner is configured: pipeline.yml is guarded by vars.PIPELINE_ENABLED
+# and vars.PIPELINE_RUNNER). If the owner later configures the runner, this job is the read-only
+# shape: it never builds, it tests the reviewed build already on the runner's disk.
+#
+# name: dbt real-data gate
+# on:
+#   workflow_dispatch: {}
+# permissions:
+#   contents: read
+# jobs:
+#   real-data-tests:
+#     if: ${{ vars.PIPELINE_ENABLED == 'true' }}
+#     runs-on: ${{ vars.PIPELINE_RUNNER }}
+#     timeout-minutes: 60
+#     steps:
+#       - uses: actions/checkout@v7
+#       - name: dbt test (full data, read-only)
+#         run: cd transform && ../.venv/bin/dbt test --profiles-dir profiles --target dev
+#       - name: fct_* oracle + data profile
+#         run: |
+#           cd transform && ../.venv/bin/python scripts/snapshot_model_hashes.py --check --db ../data/dev.duckdb
+#           cd .. && ./.venv/bin/python transform/scripts/snapshot_data_profile.py --db data/dev.duckdb --check

@@ -1,0 +1,3 @@
+FAIL: byte-stable fct_* models drifted (1): fct_driver_isolation_stint
+  fct_driver_isolation_stint: e369af6163a5a34f686f343c5d45d29f -> cecbc18559be86194303619aabc17696
+WARNING: non-fct model output changed (2): int_pit_strategy_cost_curve, int_sector_residual_decomposed

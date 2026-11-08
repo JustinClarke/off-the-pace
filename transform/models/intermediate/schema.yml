@@ -1575,7 +1575,9 @@ models:
                 min_value: 0
                 max_value: 5.0
       - name: dirty_air_tax_se_s
-        description: Standard error of the tax estimate via propagation. NULL where the tax is.
+        description: >
+          Convention, not an estimate: 0.15 × the tax. Zero on clean-air laps. Not propagated from θ's interval. Do not quote as a standard error.
+          NULL where the tax is. Pinned by assert_dirty_air_se_is_declared_convention (TX-04).
         tests:
           - not_null:
               config:
@@ -1589,6 +1591,8 @@ models:
           It measures calibration SAMPLE SIZE ONLY and is not a statement about whether θ_air is
           distinguishable from zero in a given season — it is near 1.0 on every season including
           2021 and 2024, where the per-season estimate straddles zero.
+          It is one constant per build (the same value on every row) and is not a confidence in
+          the tax value of any lap (TX-04).
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:

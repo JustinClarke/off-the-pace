@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import { Heatmap } from '../../ui/charts'
 import type { HeatmapCell } from '../../ui/charts'
@@ -38,6 +39,7 @@ function InteractionTooltip({
 }
 
 export default function ConstructorCircuitInteractionPage() {
+  const prov = useProvenance()
   const { data, isLoading, error } = useQuery<CircuitInteractionRow[]>(
     'constructor-circuit-interaction.all',
     undefined
@@ -65,7 +67,7 @@ export default function ConstructorCircuitInteractionPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={data ? toCsvRows(data) : undefined}
       csvFilename="constructor-circuit-interaction.csv"
       isLoading={isLoading}

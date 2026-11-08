@@ -9,8 +9,11 @@
 -- relative_pace_raw_gain_s > 0 and relative_pace_gain_s > 0. With the same car and the
 -- same C, p_fast - p_slow = (t_slow - t_fast) + (D_fast - D_slow) > 0.5 - 0.25.
 --
--- Vacuity guard (25 on the CI fixture, which measures 43): at least 100 such pairs must exist (thousands do on the full build), so
+-- Vacuity guard: at least 100 such pairs must exist (thousands do on the full build), so
 -- the test cannot pass by matching nothing.
+-- CI branch (kept, TX-08 2026-11-08): the guard is 25 on the CI target because the
+-- 3-race fixture cannot reach 100 pairs: it has 42 (fixture build 2026-11-08; 43 when
+-- the branch was written). The sign checks themselves are the same on every target.
 
 WITH raw AS (
     SELECT

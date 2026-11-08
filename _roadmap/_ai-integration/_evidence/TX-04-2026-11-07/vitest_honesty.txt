@@ -1,0 +1,60 @@
+npm warn Unknown project config "node-linker". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm warn Unknown project config "onlyBuiltDependencies". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+ RUN  v5.0.5 /Users/justin/github/off-the-pace/app
+
+ ❯ src/assistant/honesty/sources.node.test.ts (24 tests | 2 failed) 12ms
+   ❯ AI-02 source citations (24)
+     × CHANCE_LINE_EXPERIMENTAL cites lines that still say what the rule claims 3ms
+     × CHANCE_LINE_QUOTABLE cites lines that still say what the rule claims 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/assistant/honesty/sources.node.test.ts > AI-02 source citations > CHANCE_LINE_EXPERIMENTAL cites lines that still say what the rule claims
+AssertionError: CHANCE_LINE_EXPERIMENTAL: docs/app/degradation-simulator.mdx:65 no longer says: **This number failed its 2025 acceptance bar.**: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ checkRef src/assistant/honesty/sources.node.test.ts:27:102
+     25|   }
+     26|   const line = text.split('\n')[ref.line - 1] ?? ''
+     27|   expect(line.includes(ref.quote), `${label}: ${ref.file}:${ref.line} …
+       |                                                                                                      ^
+     28| }
+     29|
+ ❯ src/assistant/honesty/sources.node.test.ts:43:25
+ ❯ src/assistant/honesty/sources.node.test.ts:43:10
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/assistant/honesty/sources.node.test.ts > AI-02 source citations > CHANCE_LINE_QUOTABLE cites lines that still say what the rule claims
+AssertionError: CHANCE_LINE_QUOTABLE: docs/app/degradation-simulator.mdx:65 no longer says: **This number failed its 2025 acceptance bar.**: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ checkRef src/assistant/honesty/sources.node.test.ts:27:102
+     25|   }
+     26|   const line = text.split('\n')[ref.line - 1] ?? ''
+     27|   expect(line.includes(ref.quote), `${label}: ${ref.file}:${ref.line} …
+       |                                                                                                      ^
+     28| }
+     29|
+ ❯ src/assistant/honesty/sources.node.test.ts:43:25
+ ❯ src/assistant/honesty/sources.node.test.ts:43:10
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  2 failed | 84 passed (86)
+   Start at  21:38:40
+   Duration  396ms (environment 43%, setup 32%, tests 13%, transform 7%, import 4%, worker 2%)
+

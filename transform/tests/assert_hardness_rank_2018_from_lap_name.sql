@@ -8,7 +8,11 @@
 --   * take it from its own name: hardness_identity = compound_label, era '2018', and the rank
 --     equal to compound_hardness_scale's rank for that name;
 --   * have no compound_code, i.e. nothing reached it through tyre_allocations;
--- and tyre_allocations must hold no 2018 row at all. Non-vacuous: 2018 must have laps (skipped on target ci, whose fixture has no 2018 race).
+-- and tyre_allocations must hold no 2018 row at all. Non-vacuous: 2018 must have laps.
+-- CI branch (kept, TX-08 2026-11-08): only that "2018 must have laps" guard is skipped on
+-- the CI target, because the fixture holds no 2018 race (2020_8, 2023_1, 2024_21;
+-- int_power_law_lap has 0 laps of 2018 on the fixture build of 2026-11-08). The
+-- tyre_allocations check still runs on CI.
 
 WITH laps_2018 AS (
     SELECT * FROM {{ ref('int_power_law_lap') }}

@@ -1,0 +1,46 @@
+TX-10 - README counts derived from the dbt manifest; _roadmap/README.md pointer   (2026-11-07, lane G)
+Scope: trimmed v1 (step 1 + the _roadmap/README.md:13 pointer). Steps 2 (columns), board regen, 4 (leftover tables) NOT done (deferred by spec). Nothing committed.
+
+SCRATCH: <scratchpad>/laneG, dev.duckdb copied from <scratchpad>/base/dev.duckdb, threads 1.
+  cd transform; dbt parse --profiles-dir laneG --target-path laneG/target --log-path laneG/logs   (no build, no model run)
+  data/dev.duckdb and data/ci.duckdb not opened. No baseline JSON touched.
+
+COUNTS (manifest of the working tree at 2026-11-08 ~02:48, includes lanes A/B edits)
+  models      99   resource_type model: 81 table + 18 view; staging 17, reference 6, intermediate 57, marts 19
+  data tests  1433 resource_type test (generic 1294 + singular 139); 'dbt build' calls these "data tests"
+  unit tests  3    (not in the README figure)
+  Cross-check against the base build log (base/build.log): 79 table + 18 view = 97 models, 1373 data tests, 2 unit tests.
+    97 + mart_race_coverage + int_driver_race_paired_laps + mart_build_provenance - dim_events = 99 (matches the TX-01/02/05/07 evidence).
+    1373 -> 1433 = +60 tests from TX-01..07; 2 -> 3 unit tests = TX-01's paired_laps unit test.
+  Not a build result: the 99/1433 are parsed, not run. Only the base 97/1373 is a build log.
+  README old figures 94/1320 were stale before this work (base build already 97/1373).
+
+RACES (scratch base warehouse, read-only): race_to_track 173; fct_lap_residuals 172 distinct races (161,040 laps);
+  mart_race_driver_summary 171. 2021_12 has no racing laps; 2021_16 is all-wet, unrated. Matches TX-02.
+  README line 23 headline now 172 with a footnote naming both races; ingestion lines (Bronze, 8 seasons / 173 races) stay 173 (scheduled).
+
+FILES
+  README.md                              94->99 models, 1320->1433 tests (lines 5, 23, 65, 95, 96, 148, 225), 173->172 races on line 23 + footnote
+  docs/snippets/transform-inventory.mdx  by hand: "99 models", "1433 tests", Marts 19, intermediate 57, 1294 generic + 139 hand-written, "19 Marts" card
+  _roadmap/README.md                     line 13: no longer "the live board as of 2026-10-15"; points at v2 build-log.json and the archive
+  scripts/docs_facts.py                  new check_manifest(): README model/test figures must equal the dbt manifest
+                                         (--manifest PATH, default transform/target/manifest.json; skipped with a notice if absent; --require-manifest fails instead)
+  scripts/tests/test_docs_facts.py       new, 4 tests
+
+CHECKS
+  docs_facts.py --manifest laneG/target/manifest.json --require-manifest -> PASSED (README 99 / 1433)
+  Same check on the old README (git HEAD): MANIFEST MISMATCH models ['94'] vs 99, tests ['1320'] vs 1433 (fails as required)
+  pytest scripts/tests -q -> 17 passed
+  make docs-facts -> PASSED (manifest check skipped: transform/target/manifest.json absent in the tree)
+  _ai-integration/status/board.py --check -> build-log.json OK (the v2 board)
+  The spec's _fixes/status/board.py --check / --write-order: DEFERRED, not run.
+
+NOT VERIFIED / OWNER
+  - docs/snippets/transform-inventory.mdx is only partly hand-updated. Its other cards (890 structural, 179 range, 24 identity-closure,
+    86 domain + 3 regression, per-family counts, and the inventory tables) are stale. transform_docs_facts.py cannot regenerate them now:
+    it raises "int_microsector_crossings has no meta.family" (3 models lack meta.family) and 20 singular tests are missing from
+    transform/tests/README.md (e.g. assert_microsector_*, assert_build_provenance_one_row_matches_vars, assert_dirty_air_se_is_declared_convention).
+    Unrelated to TX-10 but blocks `make docs-coverage-check`. By the generator's own constants the fresh split would be 950 structural / 209 range
+    (unchecked against its output). Owner: fix those, then run make docs-coverage once all lanes land.
+  - docs-ci.yml's docs-facts job runs without a manifest, so the new check skips in CI. To enforce it there, run dbt parse first and pass --require-manifest.
+  - Other docs saying "94"/"1320": none found by grep outside README and the snippet.

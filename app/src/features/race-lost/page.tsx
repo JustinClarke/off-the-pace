@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useProvenance } from '../../data/provenance'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import { Waterfall } from '../../ui/charts'
@@ -11,18 +12,31 @@ import './queries'
 import type { RaceLostRow } from './queries'
 
 export default function RaceLostPage() {
+  const prov = useProvenance()
   const { season } = useFilters()
   const [searchParams, setSearchParams] = useSearchParams()
   const raceId = searchParams.get('race') ?? ''
-  const [driverId, setDriverId] = useState<string>('')
+  // A card link can preselect the driver with ?driver=LEC (AX-03); anything else is ignored.
+  const [driverId, setDriverId] = useState<string>(() => {
+    const d = searchParams.get('driver') ?? ''
+    return /^[A-Z]{3}$/.test(d) ? d : ''
+  })
 
+  // Clear 'race' when the season changes, not on mount, so a deep link survives load (AX-03)
+  const prevSeason = useRef(season)
   useEffect(() => {
+    if (prevSeason.current === season) return
+    prevSeason.current = season
     setSearchParams(p => { p.delete('race'); return p }, { replace: true })
     setDriverId('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [season])
 
+  // Reset the driver when the race changes, not on mount, so a linked driver survives load.
+  const prevRace = useRef(raceId)
   useEffect(() => {
+    if (prevRace.current === raceId) return
+    prevRace.current = raceId
     setDriverId('')
   }, [raceId])
 
@@ -64,7 +78,7 @@ export default function RaceLostPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={row && driverId ? toCsvRows(driverId, row) : undefined}
       csvFilename={`race-lost-${raceId}-${driverId}.csv`}
       isLoading={isLoading}

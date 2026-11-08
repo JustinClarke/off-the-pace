@@ -1,0 +1,110 @@
+{
+ "generated": "2026-11-08",
+ "item": "AX-07",
+ "data_version": "ef29bc060076f6e8",
+ "label_version": "v16",
+ "registry": "862f269c0a780e85569143d6f328b6594e5bae5ab2c392e0fb85196215ca342f",
+ "export": "scratch export of the laneE warehouse copy (TX-01 at its first cut, ok threshold 10); not the sealed real export",
+ "command": "node app/scripts/build-cards.mjs --data <scratch>/laneL/out --out <scratch>/laneL/cards-full",
+ "cards_total": 35380,
+ "ungrounded_total": 19876,
+ "refusals": [
+  {
+   "kind": "driver_race.pit_stops",
+   "count": 1,
+   "reason": "no stints for this race in int_pit_strategy_value"
+  },
+  {
+   "kind": "pit_strategy.opportunity_cost",
+   "count": 1,
+   "reason": "no stints for this race in int_pit_strategy_value"
+  },
+  {
+   "kind": "pit_strategy.optimal_lap",
+   "count": 1,
+   "reason": "no stints for this race in int_pit_strategy_value"
+  },
+  {
+   "kind": "pit_strategy.verdict",
+   "count": 1,
+   "reason": "no stints for this race in int_pit_strategy_value"
+  },
+  {
+   "kind": "race_lost.component",
+   "count": 19872,
+   "reason": "no interval: race-lost.driver returns component sums and n_laps only, and a modelled card needs an interval (AX-04 finding 6; AX-07/AX-15a decide the interval source). Class DA: the dirty-air tax is inside total_explained_s and the skill bar."
+  }
+ ],
+ "cards_by_kind": [
+  {
+   "kind": "driver_race.pit_stops",
+   "status": "active",
+   "label": "measured",
+   "count": 3312
+  },
+  {
+   "kind": "era_rating.season",
+   "status": "active",
+   "label": "modelled",
+   "count": 173
+  },
+  {
+   "kind": "pit_strategy.opportunity_cost",
+   "status": "held",
+   "label": "modelled",
+   "count": 8211
+  },
+  {
+   "kind": "pit_strategy.optimal_lap",
+   "status": "held",
+   "label": "modelled",
+   "count": 8211
+  },
+  {
+   "kind": "pit_strategy.verdict",
+   "status": "held",
+   "label": "modelled",
+   "count": 8211
+  },
+  {
+   "kind": "race.cautions",
+   "status": "active",
+   "label": "measured",
+   "count": 173
+  },
+  {
+   "kind": "race.coverage",
+   "status": "active",
+   "label": "measured",
+   "count": 173
+  },
+  {
+   "kind": "race.result",
+   "status": "active",
+   "label": "measured",
+   "count": 3458
+  },
+  {
+   "kind": "race.teammate_gap",
+   "status": "active",
+   "label": "computed",
+   "count": 3000
+  },
+  {
+   "kind": "race.teammate_gap",
+   "status": "active",
+   "label": "unavailable",
+   "count": 458
+  }
+ ],
+ "teammate_gap_unavailable_by_reason": {
+  "not rated: no paired clean laps with a teammate in this race": 280,
+  "rated on 5 paired laps": 10,
+  "rated on 2 paired laps": 36,
+  "rated on 1 paired lap": 58,
+  "rated on 4 paired laps": 22,
+  "rated on 3 paired laps": 12,
+  "not rated: race coverage NO_RACING_LAPS": 20,
+  "not rated: race coverage ALL_WET_NO_DRY_PAIRS": 20
+ }
+}

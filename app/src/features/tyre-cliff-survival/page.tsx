@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import { useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import FeaturePage from '../../ui/layout/FeaturePage'
@@ -48,6 +49,7 @@ function Select({
 }
 
 export default function TyreCliffSurvivalPage() {
+  const prov = useProvenance()
   const { season } = useFilters()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -142,7 +144,7 @@ export default function TyreCliffSurvivalPage() {
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
       provenance={{
-        dataWindow: profile?.data_window ?? '2018-2025',
+        dataWindow: profile?.data_window ?? prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion,
         nObs: result?.actualStintCount,
         fitDate: profile?.fit_date ?? undefined,
       }}

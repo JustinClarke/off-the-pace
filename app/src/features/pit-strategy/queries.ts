@@ -10,6 +10,8 @@ export interface PitGanttRow {
   start_lap: number
   end_lap: number
   stint_length_laps: number
+  /** Compound of the next stint of this driver in stint-number order; null after the last one. */
+  next_compound: string | null
   // from fct_stint_features
   cliff_lap_in_stint: number | null
   tyre_management_score: number | null
@@ -56,9 +58,14 @@ export const queryRaceOptions = registerQuery<SeasonParams, { race_id: string }[
 /**
  * Loads per-stint Gantt data for a race.
  *
- * Derives contiguous start/end laps from int_pit_strategy_value using window
- * functions, in the order the stints ran (end_lap_number, the lap each one ended
- * on): end_lap = the stop (actual_pit_lap) for a stint that ended in one, else
+ * AP-08: stints are taken from fct_stint_features (all of them) in stint-number order
+ * (suffix of stint_id), with int_pit_strategy_value LEFT-joined for the verdict columns:
+ * that mart lacks 734 of 8,945 stints in 136 races, and ordering by its rows alone gave
+ * the wrong next compound on 142 stops. A stint with no mart row ends at the running sum of
+ * stint_length_laps (exact on all 8,943 numbered stints against int_stint_end_regime; two
+ * orphan ids with no stint number and no compound, 2018_2018_2_RIC_ and 2018_2018_10_HAR_, are skipped,
+ * as they were before).
+ * Contiguous start/end laps use window functions in that order: end_lap = the stop (actual_pit_lap) for a stint that ended in one, else
  * the stint's own last lap (the flag, or a retirement on track); start_lap = the
  * previous stint's end_lap + 1 (or 1). This avoids the gaps that arise when
  * using fct_lap_residuals, which excludes pit/safety-car laps from its coverage.
@@ -82,42 +89,50 @@ export const queryPitGantt = registerQuery<GanttParams, PitGanttRow[]>(
     ])
 
     return rawQuery<PitGanttRow>(`
-      WITH ordered AS (
+      WITH base AS (
         SELECT
-          pv.stint_id,
-          pv.driver_id,
-          pv.race_id,
-          pv.compound,
-          pv.stint_length_laps,
-          COALESCE(pv.actual_pit_lap, pv.end_lap_number) AS end_lap,
-          pv.cliff_onset_lap_in_stint,
+          f.stint_id, f.driver_id, f.race_id, f.constructor_id, f.compound,
+          f.stint_length_laps, f.cliff_lap_in_stint, f.tyre_management_score,
+          TRY_CAST(regexp_extract(f.stint_id, '([0-9]+)$', 1) AS INTEGER) AS stint_number
+        FROM fct_stint_features f
+        WHERE f.race_id = ?
+          AND regexp_matches(f.stint_id, '[0-9]+$')
+      ),
+      chained AS (
+        SELECT
+          b.*,
+          pv.actual_pit_lap,
           pv.optimal_pit_lap_in_stint,
           pv.overrun_laps,
           pv.opportunity_cost_s,
           pv.strategy_verdict,
           pv.pit_lane_loss_s,
           pv.optimal_pit_lap_confidence,
-          ROW_NUMBER() OVER (
-            PARTITION BY pv.race_id, pv.driver_id
-            ORDER BY pv.end_lap_number
-          ) AS stint_number,
-          LAG(COALESCE(pv.actual_pit_lap, pv.end_lap_number)) OVER (
-            PARTITION BY pv.race_id, pv.driver_id
-            ORDER BY pv.end_lap_number
-          ) AS prev_end_lap
-        FROM int_pit_strategy_value pv
-        WHERE pv.race_id = ?
+          SUM(b.stint_length_laps) OVER (
+            PARTITION BY b.race_id, b.driver_id
+            ORDER BY b.stint_number
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+          ) AS cum_end_lap
+        FROM base b
+        LEFT JOIN int_pit_strategy_value pv ON pv.stint_id = b.stint_id
+      ),
+      ordered AS (
+        SELECT
+          c.*,
+          COALESCE(c.actual_pit_lap, c.cum_end_lap) AS end_lap
+        FROM chained c
       )
       SELECT
         o.driver_id,
-        s.constructor_id,
+        o.constructor_id,
         CAST(o.stint_number AS INTEGER)                        AS stint_number,
         o.compound,
-        CAST(COALESCE(o.prev_end_lap + 1, 1) AS INTEGER)      AS start_lap,
+        CAST(COALESCE(LAG(o.end_lap) OVER w + 1, 1) AS INTEGER) AS start_lap,
         CAST(o.end_lap AS INTEGER)                             AS end_lap,
         CAST(o.stint_length_laps AS INTEGER)                   AS stint_length_laps,
-        CAST(s.cliff_lap_in_stint AS INTEGER)                  AS cliff_lap_in_stint,
-        s.tyre_management_score,
+        LEAD(o.compound) OVER w                                AS next_compound,
+        CAST(o.cliff_lap_in_stint AS INTEGER)                  AS cliff_lap_in_stint,
+        o.tyre_management_score,
         o.strategy_verdict                                     AS verdict,
         CAST(o.overrun_laps AS INTEGER)                        AS overrun_laps,
         o.opportunity_cost_s,
@@ -125,7 +140,7 @@ export const queryPitGantt = registerQuery<GanttParams, PitGanttRow[]>(
         o.pit_lane_loss_s,
         CAST(o.optimal_pit_lap_confidence AS DOUBLE)           AS optimal_pit_lap_confidence
       FROM ordered o
-      LEFT JOIN fct_stint_features s ON o.stint_id = s.stint_id
+      WINDOW w AS (PARTITION BY o.race_id, o.driver_id ORDER BY o.stint_number)
       ORDER BY o.driver_id, o.stint_number
     `, [race_id])
   }

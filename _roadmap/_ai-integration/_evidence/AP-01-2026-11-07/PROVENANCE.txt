@@ -1,0 +1,8 @@
+AP-01 COALESCE(...,0) removed from lap-waterfall and race-lost (2026-11-08). Not committed.
+Files: app/src/features/lap-waterfall/{queries,transform,transform.test}.ts, app/src/features/race-lost/{queries,transform,transform.test}.ts,
+  app/src/ui/charts/Waterfall.tsx (value number|null, unavailable, note, closureGap null badge, notes list),
+  app/src/ui/charts/waterfallBars.ts (NEW shared buildBar).
+Dirty air: AVG/SUM over CASE WHEN pace_delta_s IS NOT NULL (TX-03 rule), n_dirty_air_tax_s counted the same way. TX-03's guard test not re-checked here.
+Tests: vitest lap-waterfall + race-lost 21 passed (was 12). typecheck clean. Full vitest: 2 failed (pre-existing sources.node) + profileLookup file (pre-existing).
+Not run: pnpm dev visual check of 2018_1 RIC, CSV from a real race (needs app/public/data, off limits). Full-data race parity is by construction (AVG without COALESCE equals the old value when no NULL).
+Dirty air on a full-data race can differ slightly from before only if unmeasured laps (dirty_air_tax_s=0, pace_delta_s NULL) were included in the old average; that is the intended fix.

@@ -1,0 +1,31 @@
+AP-08 - pit-strategy next compound (2026-11-08, lane S). Status: DONE (not committed)
+Scratch warehouse laneE/dev.duckdb, opened read-only via .venv python; verifier: scratchpad/ap08_verify.py.
+
+Reproduced: ordering the stints as the page did (int_pit_strategy_value rows by end_lap_number) vs stint-number order
+  (numeric suffix of stint_id over fct_stint_features): next compound differs on 142 of 8,211 compared stops.
+  Example 2018_2018_10_SAI_2: old next = none, right next = SOFT (compound HARD).
+Fix (app/src/features/pit-strategy/queries.ts, transform.ts, transform.test.ts): gantt query now starts from
+  fct_stint_features (stint number from the stint_id suffix), LEFT JOINs int_pit_strategy_value for the verdict columns, and
+  adds next_compound = LEAD(compound) in that order. Stints with no mart row end at the running sum of
+  stint_length_laps (cumulative end equals int_stint_end_regime.end_lap_number on all 8,945 stints; checked).
+  int_stint_end_regime is not in the app manifest so it is not used. Two orphan ids ending in "_" (2018_2018_2_RIC_,
+  2018_2018_10_HAR_: no stint number, no compound, in no mart) are skipped, as before. TRY_CAST because DuckDB may evaluate
+  the cast before the filter.
+Checked on all 8,943 numbered stints: compound and end_lap identical to the old page's value for every stint the mart has
+  (0 mismatches); end_lap for the 734 added stints equals int_stint_end_regime (0 mismatches); new next_compound equals
+  stint-number order on all. The Gantt is otherwise identical except that the 734 missing stints now appear (start_lap of
+  stints after a missing one also becomes correct). transform() exposes nextCompound[`${driver}:${stint}`]; a test pins the
+  SAI case. Gantt component not edited (another lane touches it); nothing renders next_compound yet.
+Tests: pit-strategy + assistant charts/queryBuilder 69 passed, 6 skipped; full app 975 passed, 2 failed (the pre-existing
+  sources.node CHANCE_LINE_*), 1 expected fail; tsc clean.
+
+WHY 734 STINTS / 136 RACES ARE MISSING (report only, not fixed):
+  int_pit_strategy_value builds from stint_meta, which keeps only int_stint_geometry rows with is_valid_lap = TRUE
+  (int_pit_strategy_value.sql lines ~61-72). All 734 missing stints have zero valid laps in int_stint_geometry (734/734),
+  so they never enter the model. 546 have stint_length_laps <= 2; by end cause: red 175, sc_pit 160, retirement 158,
+  green_pit 149, race_end 61, vsc_pit 29, none 2.
+  Proposed transform fix: either (a) make the final select start from int_stint_end_regime / fct_stint_features and LEFT JOIN
+  the simulation outputs, leaving verdict columns NULL for stints with no valid lap, or (b) emit a stub row per stint with
+  actual_pit_lap/end_lap_number filled from int_stint_end_regime. Option (a) fixes the page query with no workaround, and
+  would let the Gantt query drop the cumulative-length derivation. Also add int_stint_end_regime to the export if the page
+  should use the true end lap.

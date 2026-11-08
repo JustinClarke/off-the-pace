@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useProvenance } from '../../data/provenance'
+import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import RankedTable from '../../ui/charts/RankedTable'
@@ -22,10 +23,12 @@ function paceClass(v: unknown) {
 }
 
 function ciLabel(lo: unknown, hi: unknown) {
+  if (lo == null || hi == null) return '—'
   return `[${(lo as number).toFixed(2)}, ${(hi as number).toFixed(2)}]`
 }
 
 export default function ConstructorStructuralPacePage() {
+  const prov = useProvenance()
   const { season } = useFilters()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -35,7 +38,11 @@ export default function ConstructorStructuralPacePage() {
   const setParam = (key: string, value: string) =>
     setSearchParams(p => { value ? p.set(key, value) : p.delete(key); return p }, { replace: true })
 
+  // Clear 'race' when the season changes, not on mount, so a deep link survives load (AX-03)
+  const prevSeason = useRef(season)
   useEffect(() => {
+    if (prevSeason.current === season) return
+    prevSeason.current = season
     setSearchParams(p => { p.delete('race'); return p }, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [season])
@@ -47,7 +54,7 @@ export default function ConstructorStructuralPacePage() {
     { season, raceId: raceId || null, mode }
   )
 
-  const entries = data ? transform(data) : []
+  const entries = data ? transform(data, raceId ? 'race' : 'season') : []
 
   const title = raceId
     ? raceOptions.find(r => r.value === raceId)?.label ?? raceId
@@ -68,12 +75,12 @@ export default function ConstructorStructuralPacePage() {
         },
         {
           label: '95% CI',
-          content: 'Width reflects how many clean same-team laps went into the estimate. A team with only one driver completing a race has a wider interval.',
+          content: 'Race view: width reflects how many clean same-team laps went into the estimate. Season view: width reflects how much the car\'s pace moves from race to race (or the per-race error, if larger) over the k races, using a t interval. Fewer than 3 races: no interval (shown as a dash).',
         },
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018-2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={entries.length ? toCsvRows(entries, mode) : undefined}
       csvFilename={`constructor-pace-${season}-${raceId || 'season'}-${mode}.csv`}
       isLoading={isLoading}
@@ -145,12 +152,17 @@ export default function ConstructorStructuralPacePage() {
               { key: 'observations', header: 'Obs', align: 'right' },
               {
                 key: 'races',
-                header: 'Races',
+                header: 'Races (k)',
                 align: 'right',
                 render: v => (v as number) > 1 ? String(v) : ' ',
               },
             ]}
           />
+          {!raceId && (
+            <p className="text-xs text-muted mt-2" title="Races with an estimate (k); races under 10 measured laps are excluded">
+              Races (k) = races with an estimate; races under 10 measured laps are excluded. Obs counts only those races.
+            </p>
+          )}
         </>
       )}
     </FeaturePage>

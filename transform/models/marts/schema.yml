@@ -1392,35 +1392,6 @@ models:
             column_B: obs_fuel_removed_pace_p50_s
             or_equal: true
 
-  - name: dim_events
-    description: >
-      Race-level event dimension. One row per event (damage, retirement, penalty).
-      Currently populated from the raw_dim_events seed (manual entries for 2021).
-      No dbt model refs it today; it is published as a parquet for the app. It is not joined onto
-      fct_lap_residuals or int_lap_anomaly_flags.
-    tags: [marts]
-    meta:
-      family: marts
-    columns:
-      - name: event_id
-        description: Surrogate PK for the event.
-        tests:
-          - not_null
-          - unique
-      - name: race_id
-        description: >
-          Race identifier the event belongs to, in the pipeline's 'YYYY_N' form (e.g. 2021_10).
-          Typed varchar on the seed (dbt_project.yml); untyped, DuckDB reads it as the integer 202110.
-        tests:
-          - not_null
-          - dbt_expectations.expect_column_values_to_match_regex:
-              arguments:
-                regex: '^[0-9]{4}_[0-9]+$'
-          - relationships:
-              arguments:
-                to: ref('race_to_track')
-                field: race_id
-
   - name: fct_lap_residuals
     description: >
       Lap-grain analytics table. One row per valid race lap. Exposes the full
@@ -1537,6 +1508,11 @@ models:
           - not_null:
               config:
                 where: "base_track_pace_s IS NULL OR compound_component_s IS NULL OR driver_skill_residual_s IS NOT NULL"
+      - name: dirty_air_tax_se_s
+        description: >
+          Convention, not an estimate: 0.15 × the tax. Zero on clean-air laps. Not propagated from θ's interval. Do not quote as a standard error.
+          (TX-04; same text as int_dirty_air_tax_component.dirty_air_tax_se_s.)
+        data_type: double
       - name: driver_skill_residual_s
         description: >
           Residual after fuel/compound/constructor/dirty-air (driver skill). WI-01/F1:
@@ -2652,20 +2628,30 @@ models:
           Rank of rating_s (the gap to one's own teammate) within the season; 1 = furthest
           ahead of his teammate. Not a ranking of driver speed against the field: a driver in
           a weak car can rank high and one in a strong car can rank low. Ties share a rank.
+          A point ordering of rating_s with no uncertainty: adjacent ranks are almost never
+          separated by the CI (171 of 173 drivers' CIs overlap the next-ranked driver's on the
+          v16 build), so quote a rank only with the CI; rank_separated_from_next says when it
+          is separated.
         tests:
           - not_null
           - dbt_utils.accepted_range:
               arguments:
                 min_value: 1
       - name: n_drivers
-        description: Number of rated drivers that season.
+        description: >
+          Number of rated drivers that season (rows of this mart for the season;
+          assert_ai_mart_counts_consistent). At least 2: the rating is a gap to a teammate.
         tests:
           - not_null
           - dbt_utils.accepted_range:
               arguments:
-                min_value: 1
+                min_value: 2
       - name: teammate_gap_percentile
-        description: 1 - (teammate_gap_rank - 1) / (n_drivers - 1). 1.0 = largest lead over his own teammate in the season, 0.0 = largest deficit. Not a field-speed percentile.
+        description: >
+          1 - (teammate_gap_rank - 1) / (n_drivers - 1). 1.0 = largest lead over his own teammate
+          in the season, 0.0 = largest deficit. Not a field-speed percentile. A point ordering of
+          rating_s like teammate_gap_rank: adjacent places are almost never separated by the CI,
+          so quote it only with the CI.
         tests:
           - dbt_utils.accepted_range:
               arguments:
@@ -2708,7 +2694,63 @@ models:
       - name: mean_constructor_component_s
         description: Mean constructor component over ml_eligible laps, seconds.
       - name: mean_dirty_air_tax_s
-        description: Mean dirty-air tax over ml_eligible laps, seconds.
+        description: >
+          Mean dirty-air tax over the season's ml_eligible laps with a measured air state (a row
+          in int_dirty_air_tax_component with a non-NULL tax), seconds. NULL when none
+          (dirty_air_unavailable_reason). fct_lap_residuals' 0.0 on unmeasured laps is excluded.
+      - name: n_dirty_air_measured_laps
+        description: ml_eligible laps behind mean_dirty_air_tax_s (measured dirty-air tax). 0 when none.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: dirty_air_unavailable_reason
+        description: NO_MEASURED_LAPS when mean_dirty_air_tax_s is NULL; NULL otherwise.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['NO_MEASURED_LAPS']
+      - name: n_races_unrated
+        description: >
+          Races the driver has laps for in fct_lap_residuals that season with no
+          mart_race_driver_summary row (no race rating; e.g. 2021_16, all wet).
+          mart_race_coverage says why per race. 0 when every race is rated.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: rating_se_s
+        description: >
+          Standard error of rating_s (int_era_normalized_driver_rating.era_adjusted_rating_se_s),
+          seconds. ci_low / ci_high = rating_s -/+ 1.96 x rating_se_s.
+        tests: [not_null]
+      - name: rating_confidence
+        description: int_era_normalized_driver_rating.rating_confidence, 0-1 (higher = more data behind the rating).
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: total_clean_laps_n
+        description: Clean laps behind the season rating (int_era_normalized_driver_rating.total_clean_laps_n).
+        tests: [not_null]
+      - name: bridge_driver_anchor_flag
+        description: int_era_normalized_driver_rating.bridge_driver_anchor_flag, carried unchanged.
+        tests: [not_null]
+      - name: low_anchor_sample_flag
+        description: >
+          int_era_normalized_driver_rating.low_anchor_sample_flag, carried unchanged (FALSE on
+          every row of the v16 build; kept so a future TRUE is visible).
+        tests: [not_null]
+      - name: rank_separated_from_next
+        description: >
+          TRUE when this driver's ci_high < the ci_low of the next-ranked driver in the same
+          season (next by rating_s, ties broken by driver_id), i.e. the CI separates this rank
+          from the next one. NULL for the season's last-ranked driver (no next). Read by
+          AX-21's RANK_WITHIN_CI rule; keep the name.
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -2720,7 +2762,10 @@ models:
       fct_lap_residuals, so an explanation can say what is typical for a value.
       Grain: (metric_name, race_year). Covers driver_skill_residual_s,
       fuel_component_s, compound_component_s, constructor_component_s,
-      dirty_air_tax_s and lap_time_s. Null values are dropped before aggregation.
+      dirty_air_tax_s and lap_time_s. Null values are dropped before aggregation. The
+      dirty_air_tax_s row excludes unmeasured laps: only laps with a row in
+      int_dirty_air_tax_component and a non-NULL tax count (fct_lap_residuals writes 0.0 on
+      the rest, which is not clean air).
     tags: [marts]
     meta:
       family: marts
@@ -2755,12 +2800,13 @@ models:
               arguments:
                 values: [s]
       - name: sample_size
-        description: Non-null lap count behind the row.
+        description: >
+          Non-null lap count behind the row. Recounted from fct_lap_residuals by
+          assert_ai_mart_counts_consistent (and, for dirty_air_tax_s, by
+          assert_dirty_air_mean_excludes_unmeasured); the old range test (>= 1, against a
+          minimum of 13,501) could not fail and was removed by TX-08.
         tests:
           - not_null
-          - dbt_utils.accepted_range:
-              arguments:
-                min_value: 1
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -2773,9 +2819,13 @@ models:
       driver_skill_loro_s (median lap-by-lap gap to the teammate; negative = faster).
       There is no within-race rank: ordering every driver's gap to his own teammate
       across the field reads as a speed ranking and is not one (CO-01/T4), so it was
-      dropped. ci_low / ci_high are rating_s +/- 1.96 x the standard error of clean-lap
-      driver_skill_residual_s: a lap-noise band, not the season Bayesian CI. Component
-      means are over ml_eligible laps (seconds, positive = slower).
+      dropped. ci_low / ci_high (TX-01) are a distribution-free 95% CI for that median,
+      built from the same paired lap gaps (int_driver_race_paired_laps): the order
+      statistics [x_j, x_{n-j+1}] of the n = paired_lap_count sorted gaps, where j is the
+      largest k with P(Bin(n, 1/2) <= k - 1) <= 0.025 (coverage >= 95%). NULL when n < 6,
+      where no such interval exists. Not the season Bayesian CI. rating_trust_label says
+      how far to trust rating_s: suppressed (n < 6), thin (6 <= n < 12), ok (n >= 12).
+      Component means are over ml_eligible laps (seconds, positive = slower).
     tags: [marts]
     meta:
       family: marts
@@ -2810,22 +2860,34 @@ models:
         description: Race rating (driver_skill_loro_s), seconds. Negative = faster than the teammate.
         tests: [not_null]
       - name: n_drivers
-        description: Number of rated drivers in the race.
+        description: >
+          Number of rated drivers in the race (rows of this mart for the race;
+          assert_ai_mart_counts_consistent). At least 2: the rating is a paired gap to a
+          same-car teammate.
         tests:
           - not_null
           - dbt_utils.accepted_range:
               arguments:
-                min_value: 1
+                min_value: 2
       - name: ci_low
-        description: rating_s - 1.96 x standard error of clean-lap driver_skill_residual_s.
+        description: >
+          Lower bound of a distribution-free 95% CI for the median paired gap (rating_s):
+          x_j, the j-th smallest of the paired_lap_count paired gaps, with j the largest k
+          such that P(Bin(n, 1/2) <= k - 1) <= 0.025. Seconds. NULL when paired_lap_count < 6.
+          Not symmetric about rating_s.
       - name: ci_high
-        description: rating_s + 1.96 x standard error of clean-lap driver_skill_residual_s.
+        description: >
+          Upper bound of the same CI: x_{n-j+1}, the j-th largest paired gap. Seconds. NULL
+          when paired_lap_count < 6. For a two-driver car it is minus the teammate's ci_low.
       - name: n_clean_laps
-        description: ml_eligible laps behind the components and the CI band.
+        description: >
+          ml_eligible laps behind the component means. Not the sample behind rating_s or its
+          CI (that is paired_lap_count). NULL, never 0, when the driver has none
+          (residual_unavailable_reason says why; assert_reason_iff_missing).
         tests:
           - dbt_utils.accepted_range:
               arguments:
-                min_value: 0
+                min_value: 1
               config:
                 where: "n_clean_laps is not null"
       - name: teammate_id
@@ -2852,17 +2914,23 @@ models:
       - name: mean_constructor_component_s
         description: Mean constructor component over ml_eligible laps, seconds.
       - name: mean_dirty_air_tax_s
-        description: Mean dirty-air tax over ml_eligible laps, seconds.
+        description: >
+          Mean dirty-air tax over the driver's ml_eligible laps in the race with a measured air
+          state (a row in int_dirty_air_tax_component with a non-NULL tax), seconds. NULL when
+          none (dirty_air_unavailable_reason). fct_lap_residuals' 0.0 on unmeasured laps is
+          excluded.
       - name: avg_lap_time_s
         description: Mean lap time over ml_eligible laps, seconds.
       - name: laps_completed
-        description: All laps the driver has in fct_lap_residuals for the race, clean or not.
+        description: >
+          All laps the driver has in fct_lap_residuals for the race, clean or not. A rated
+          driver has laps, so never NULL and at least 1 (recounted by
+          assert_ai_mart_counts_consistent).
         tests:
+          - not_null
           - dbt_utils.accepted_range:
               arguments:
-                min_value: 0
-              config:
-                where: "laps_completed is not null"
+                min_value: 1
       - name: positions_gained
         description: >
           grid_position - finish_position from stg_results. Positive = places gained. NULL when
@@ -2870,6 +2938,60 @@ models:
       - name: has_dnf
         description: TRUE when stg_results marks the driver as a DNF. FALSE when no result row exists.
         tests: [not_null]
+      - name: paired_lap_count
+        description: >
+          Laps paired with a same-car teammate's clean lap on the same lap number: the n behind
+          rating_s (their median) and its CI. Equals int_driver_race_skill_loro.paired_lap_count.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 1
+      - name: rating_trust_label
+        description: >
+          How far to trust rating_s, from paired_lap_count: 'suppressed' when n < 6 (too few
+          paired laps for a 95% distribution-free CI; ci_low / ci_high NULL), 'thin' when
+          6 <= n < 12, 'ok' when n >= 12.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['ok', 'thin', 'suppressed']
+      - name: ci_unavailable_reason
+        description: >
+          Why ci_low / ci_high are NULL: PAIRED_N_BELOW_MIN (paired_lap_count < 6, no 95%
+          distribution-free CI exists). NULL when the CI is present.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['PAIRED_N_BELOW_MIN']
+      - name: residual_unavailable_reason
+        description: >
+          Why n_clean_laps and the component means are NULL (the driver has no ml_eligible
+          laps): NO_TELEMETRY (race has_telemetry FALSE in mart_race_coverage),
+          TYRE_QA_QUARANTINED (race tyre_qa_status = 'quarantined_race'), else
+          NO_ML_ELIGIBLE_LAPS. NULL when n_clean_laps is present.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['NO_TELEMETRY', 'TYRE_QA_QUARANTINED', 'NO_ML_ELIGIBLE_LAPS']
+      - name: n_dirty_air_measured_laps
+        description: >
+          ml_eligible laps behind mean_dirty_air_tax_s (measured dirty-air tax). 0 when none.
+          A driver can have clean laps (n_clean_laps) with no measured dirty air.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: dirty_air_unavailable_reason
+        description: >
+          NO_MEASURED_LAPS when mean_dirty_air_tax_s is NULL; NULL otherwise. Separate from
+          residual_unavailable_reason, which is about n_clean_laps.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['NO_MEASURED_LAPS']
     tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

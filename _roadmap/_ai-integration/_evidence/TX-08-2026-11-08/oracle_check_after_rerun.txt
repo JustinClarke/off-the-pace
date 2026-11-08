@@ -1,0 +1,2 @@
+WARNING: non-fct model output changed (1): int_sector_residual_decomposed
+OK: all 12 fct_* models byte-stable vs baseline.

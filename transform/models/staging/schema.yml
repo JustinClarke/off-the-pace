@@ -566,8 +566,11 @@ models:
       change after them; outside those races a driver-race is quarantined on any such
       unexplained change or on laps bronze never assigned. A quarantined unit serves the
       pit record's stint ordinal and NULL compound / tyre_life, never a boundary that
-      contradicts the pit record. As built on the 2018-2025 warehouse the quarantined races
-      are 2018_3, 2022_7, 2022_11 and 2025_6 (see tyre_qa_status).
+      contradicts the pit record. As built on the 2018-2025 warehouse (re-checked
+      2026-11-07, TX-02) the quarantined races are 2018_3 and 2025_6 (2,120 laps
+      'quarantined_race'); 2022_7 has 63 'quarantined_driver' laps and 2022_11 is all 'ok'
+      (its thin bronze TyreLife, 73% non-null, is an owner-accepted KNOWN_THIN exception,
+      surfaced as TYRE_LIFE_PARTIAL in mart_race_coverage). See tyre_qa_status.
     meta:
       family: staging
       aggregation_scope_exemptions:

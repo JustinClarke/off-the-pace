@@ -23,5 +23,6 @@ SELECT
     CAST(track_energy_index AS DOUBLE) AS track_energy_index,
     CAST(abrasiveness_index AS INTEGER) AS abrasiveness_index,
     CAST(weight_penalty_factor AS DOUBLE) AS weight_penalty_factor,
-    CAST(era_start_year AS INTEGER) AS era_start_year
+    CAST(era_start_year AS INTEGER) AS era_start_year,
+    CAST(calibration_flag AS VARCHAR) AS calibration_flag
 FROM {{ ref('circuit_reference') }}

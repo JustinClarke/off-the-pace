@@ -14,16 +14,36 @@ export interface LapResidualRow {
   /** race_id when a race is selected; 'season' when aggregated across the full season */
   race_id: string
   race_year: number
-  fuel_component_s: number
-  compound_component_s: number
-  constructor_component_s: number
-  dirty_air_tax_s: number
-  driver_skill_residual_s: number
-  track_unexplained_s: number
-  total_explained_s: number
-  /** Reconstructed observed delta: total_explained + skill + track (pace_delta_s is not exported) */
-  pace_delta_s: number
+  // A component is NULL when no lap in the group has a measured value (AP-01).
+  // It is never coalesced to 0 s.
+  fuel_component_s: number | null
+  compound_component_s: number | null
+  constructor_component_s: number | null
+  /** Mean over laps with pace_delta_s IS NOT NULL only (TX-03: unmeasured dirty air is written as 0.0) */
+  dirty_air_tax_s: number | null
+  driver_skill_residual_s: number | null
+  track_unexplained_s: number | null
+  // AP-06: the identity pace_delta = fuel + compound + constructor + dirty_air + skill is
+  // only checked on ONE lap set: the laps where all five terms and pace_delta_s are
+  // non-NULL. The closed_* means are over that set; the means above each cover their own
+  // (possibly larger) set and are the fallback when the closed set is empty.
+  closed_fuel_component_s: number | null
+  closed_compound_component_s: number | null
+  closed_constructor_component_s: number | null
+  closed_dirty_air_tax_s: number | null
+  closed_driver_skill_residual_s: number | null
+  /** AVG(pace_delta_s) over the closed set; NULL when the set is empty */
+  pace_delta_s: number | null
+  /** Size of the closed set */
+  n_closed_laps: number
   n_laps: number
+  /** Laps behind each mean (COUNT of the non-NULL values); less than n_laps = partial coverage */
+  n_fuel_component_s: number
+  n_compound_component_s: number
+  n_constructor_component_s: number
+  n_dirty_air_tax_s: number
+  n_driver_skill_residual_s: number
+  n_track_unexplained_s: number
 }
 
 interface Params {
@@ -41,21 +61,39 @@ export const queryLapWaterfall = registerQuery<Params, LapResidualRow[]>(
     if (raceId) {
       // Single race: one row per driver for that race
       return rawQuery<LapResidualRow>(`
+        WITH laps AS (
+          SELECT *, (pace_delta_s IS NOT NULL
+            AND compound_component_s IS NOT NULL
+            AND constructor_component_s IS NOT NULL
+            AND dirty_air_tax_s IS NOT NULL
+            AND driver_skill_residual_s IS NOT NULL) AS in_closed_set
+          FROM fct_lap_residuals_${season}
+        )
         SELECT
           driver_id,
           race_id,
           race_year,
-          COALESCE(AVG(fuel_component_s), 0)          AS fuel_component_s,
-          COALESCE(AVG(compound_component_s), 0)      AS compound_component_s,
-          COALESCE(AVG(constructor_component_s), 0)   AS constructor_component_s,
-          COALESCE(AVG(dirty_air_tax_s), 0)           AS dirty_air_tax_s,
-          COALESCE(AVG(driver_skill_residual_s), 0)   AS driver_skill_residual_s,
-          COALESCE(AVG(track_unexplained_s), 0)       AS track_unexplained_s,
-          COALESCE(AVG(total_explained_s), 0)         AS total_explained_s,
-          COALESCE(AVG(total_explained_s), 0)
-            + COALESCE(AVG(driver_skill_residual_s), 0)  AS pace_delta_s,
-          COUNT(*)                                    AS n_laps
-        FROM fct_lap_residuals_${season}
+          AVG(fuel_component_s)                       AS fuel_component_s,
+          AVG(compound_component_s)                   AS compound_component_s,
+          AVG(constructor_component_s)                AS constructor_component_s,
+          AVG(CASE WHEN pace_delta_s IS NOT NULL THEN dirty_air_tax_s END) AS dirty_air_tax_s,
+          AVG(driver_skill_residual_s)                AS driver_skill_residual_s,
+          AVG(track_unexplained_s)                    AS track_unexplained_s,
+          AVG(fuel_component_s)         FILTER (WHERE in_closed_set) AS closed_fuel_component_s,
+          AVG(compound_component_s)     FILTER (WHERE in_closed_set) AS closed_compound_component_s,
+          AVG(constructor_component_s)  FILTER (WHERE in_closed_set) AS closed_constructor_component_s,
+          AVG(dirty_air_tax_s)          FILTER (WHERE in_closed_set) AS closed_dirty_air_tax_s,
+          AVG(driver_skill_residual_s)  FILTER (WHERE in_closed_set) AS closed_driver_skill_residual_s,
+          AVG(pace_delta_s)             FILTER (WHERE in_closed_set) AS pace_delta_s,
+          COUNT(*) FILTER (WHERE in_closed_set) AS n_closed_laps,
+          COUNT(*)                                    AS n_laps,
+          COUNT(fuel_component_s)                     AS n_fuel_component_s,
+          COUNT(compound_component_s)                 AS n_compound_component_s,
+          COUNT(constructor_component_s)              AS n_constructor_component_s,
+          COUNT(CASE WHEN pace_delta_s IS NOT NULL THEN dirty_air_tax_s END) AS n_dirty_air_tax_s,
+          COUNT(driver_skill_residual_s)              AS n_driver_skill_residual_s,
+          COUNT(track_unexplained_s)                  AS n_track_unexplained_s
+        FROM laps
         WHERE race_year = ?
           AND race_id = ?
           AND NOT is_major_outlier_lap
@@ -67,21 +105,39 @@ export const queryLapWaterfall = registerQuery<Params, LapResidualRow[]>(
 
     // No race selected: season average per driver (one row per driver)
     return rawQuery<LapResidualRow>(`
+      WITH laps AS (
+        SELECT *, (pace_delta_s IS NOT NULL
+            AND compound_component_s IS NOT NULL
+            AND constructor_component_s IS NOT NULL
+            AND dirty_air_tax_s IS NOT NULL
+            AND driver_skill_residual_s IS NOT NULL) AS in_closed_set
+        FROM fct_lap_residuals_${season}
+      )
       SELECT
         driver_id,
         'season'                                      AS race_id,
         race_year,
-        COALESCE(AVG(fuel_component_s), 0)          AS fuel_component_s,
-        COALESCE(AVG(compound_component_s), 0)      AS compound_component_s,
-        COALESCE(AVG(constructor_component_s), 0)   AS constructor_component_s,
-        COALESCE(AVG(dirty_air_tax_s), 0)           AS dirty_air_tax_s,
-        COALESCE(AVG(driver_skill_residual_s), 0)   AS driver_skill_residual_s,
-        COALESCE(AVG(track_unexplained_s), 0)       AS track_unexplained_s,
-        COALESCE(AVG(total_explained_s), 0)         AS total_explained_s,
-        COALESCE(AVG(total_explained_s), 0)
-          + COALESCE(AVG(driver_skill_residual_s), 0)  AS pace_delta_s,
-        COUNT(*)                                    AS n_laps
-      FROM fct_lap_residuals_${season}
+        AVG(fuel_component_s)                       AS fuel_component_s,
+        AVG(compound_component_s)                   AS compound_component_s,
+        AVG(constructor_component_s)                AS constructor_component_s,
+        AVG(CASE WHEN pace_delta_s IS NOT NULL THEN dirty_air_tax_s END) AS dirty_air_tax_s,
+        AVG(driver_skill_residual_s)                AS driver_skill_residual_s,
+        AVG(track_unexplained_s)                    AS track_unexplained_s,
+        AVG(fuel_component_s)         FILTER (WHERE in_closed_set) AS closed_fuel_component_s,
+        AVG(compound_component_s)     FILTER (WHERE in_closed_set) AS closed_compound_component_s,
+        AVG(constructor_component_s)  FILTER (WHERE in_closed_set) AS closed_constructor_component_s,
+        AVG(dirty_air_tax_s)          FILTER (WHERE in_closed_set) AS closed_dirty_air_tax_s,
+        AVG(driver_skill_residual_s)  FILTER (WHERE in_closed_set) AS closed_driver_skill_residual_s,
+        AVG(pace_delta_s)             FILTER (WHERE in_closed_set) AS pace_delta_s,
+        COUNT(*) FILTER (WHERE in_closed_set) AS n_closed_laps,
+        COUNT(*)                                    AS n_laps,
+        COUNT(fuel_component_s)                     AS n_fuel_component_s,
+        COUNT(compound_component_s)                 AS n_compound_component_s,
+        COUNT(constructor_component_s)              AS n_constructor_component_s,
+        COUNT(CASE WHEN pace_delta_s IS NOT NULL THEN dirty_air_tax_s END) AS n_dirty_air_tax_s,
+        COUNT(driver_skill_residual_s)              AS n_driver_skill_residual_s,
+        COUNT(track_unexplained_s)                  AS n_track_unexplained_s
+      FROM laps
       WHERE race_year = ?
         AND NOT is_major_outlier_lap
         AND fuel_component_s IS NOT NULL

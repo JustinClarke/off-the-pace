@@ -1,0 +1,60 @@
+TX-05 — provenance table mart_build_provenance and the manifest `provenance` block   (2026-11-07, lane B)
+
+Files changed
+  transform/dbt_project.yml                    vars label_version: 'v16', label_sealed_on: '2026-10-26' (beside
+                                               theta_air_label_value / TX-04's dirty_air_method, reused); stale
+                                               "label version v17" at old line 264 corrected to v16 per D11.
+  transform/models/marts/mart_build_provenance.sql   NEW, one row (vars + data window + dbt invocation)
+  transform/models/marts/_provenance.yml        NEW, own yml (not marts/schema.yml): every column described;
+                                               not_null on all but model_version; accepted_values label_version ['v16']
+  transform/tests/assert_build_provenance_one_row_matches_vars.sql   NEW singular test
+  transform/scripts/snapshot_model_hashes.py    VOLATILE_COLS += built_at, dbt_invocation_id (nothing else)
+  scripts/export_app_data.py                    TABLES += ("mart_build_provenance","marts",None,False);
+                                               build_provenance_block(): the row + git_sha (rev-parse HEAD) +
+                                               git_dirty (status --porcelain non-empty); manifest top-level
+                                               `provenance` (null + warning if the table is missing);
+                                               --check ignores provenance.git_sha / git_dirty only (a committed
+                                               manifest can never carry its own commit's sha).
+  scripts/tests/test_export_app_data.py         tiny fixture gains a one-row mart_build_provenance; 2 new tests
+  No app code changed: DataManifest is a TS interface applied by cast (no runtime validation), so the
+  extra key is tolerated.
+
+Scratch: S=<scratchpad>/laneB, oracle $S/before.json (taken for TX-04 after an unchanged 1-thread rebuild).
+  $S/dbt.sh build --select mart_build_provenance -> PASS=17 WARN=0 ERROR=0 (twice)
+  Row (scratch): label_version v16, label_sealed_on 2026-10-26, theta_air_label_value 0.331,
+    theta_air_fit_season_max 2025, dirty_air_method flat_theta_0.331_lag1_share_unvalidated, era_boundary 2022,
+    holdout_season 2026, data_season_min/max 2018/2025, n_races 172, n_races_scheduled 173, model_version NULL,
+    dbt_invocation_id / built_at non-NULL, dbt_version 1.12.6.  Row count 1.
+  Stability: snapshot after build 1 ($S/after1.json), rebuild, --check vs after1 -> no drift for
+    mart_build_provenance (hash cd9d8e96d034d663da0b48cc67c6c160 both builds, volatile cols excluded).
+  --check vs before.json -> "NEW models: mart_build_provenance, mart_race_coverage" (the latter is lane A's),
+    "OK: all 12 fct_* models byte-stable", no non-fct drift warning.
+  sqlfluff lint models/marts/mart_build_provenance.sql (dbt templater pointed at the laneB profile via a
+    scratch config, NOT the repo's ci target) -> clean.
+  Scratch export --db $S/dev.duckdb --out $S/tx05/out -> exit 0, 39 tables; --check same flags -> No drift, exit 0.
+  pytest scripts/tests -q -> 13 passed, 0 failed.  app pnpm typecheck -> clean.
+  grep -n "label version v17" transform/dbt_project.yml -> nothing.
+  git status --short app/public/data -> empty.
+
+Provenance block (scratch manifest, manifest_provenance_block.json):
+  {"label_version":"v16","label_sealed_on":"2026-10-26","theta_air_label_value":0.331,
+   "theta_air_fit_season_max":2025,"dirty_air_method":"flat_theta_0.331_lag1_share_unvalidated",
+   "era_boundary":2022,"holdout_season":2026,"data_season_min":2018,"data_season_max":2025,"n_races":172,
+   "n_races_scheduled":173,"model_version":null,"dbt_invocation_id":"80399a1f-601a-46b0-8f9d-1fb8c0dddef2",
+   "built_at":"2026-11-07T21:49:42.462217+04:00","dbt_version":"1.12.6",
+   "git_sha":"ed5724581f95a66e0e01756f11ac40d6c31edc65","git_dirty":true}
+
+Things the owner / TX-11 must know
+  - Default `make app-data-check` / `make app-data` against data/dev.duckdb now stops with
+    "FAILED: mart_build_provenance: Table ... does not exist" (exit 1; it was exit 1 for drift before).
+    data/dev.duckdb predates this model: rebuild before the real export (TX-11).
+  - Exposing git_sha in the public manifest (owner decision in the wi doc). git_dirty will read true for any
+    export from an uncommitted tree.
+  - built_at is written with the exporting machine's offset (+04:00), same instant as dbt's UTC run_started_at.
+  - Stale "(W10, v17" wording remains at dbt_project.yml lines 255 and 261 (same D11 issue; the spec named only
+    the "label version v17" line, so they were left).
+  - Docs: no reference page for mart_build_provenance yet; `make docs-reference` / `make docs-coverage` should be
+    run once all lanes land (docs-coverage-check will flag the inventory snippets until then).
+  - Query Lab's schema explorer lists manifest tables, so the new parquet will appear there after the real export.
+
+Not verified: full dbt build/test; the default (no-flag) full export path writing app/public/data (not run, HD12).

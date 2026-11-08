@@ -1,0 +1,92 @@
+AX-05 - query catalogue v1: qv_* views, catalogue.json, deny-list   (2026-11-08, lane K)
+Status: DONE (see below). Written incrementally.
+
+Scratch: S=/private/tmp/claude-501/-Users-justin-github-off-the-pace/bf41f451-ffc1-4ccc-bc71-e73e8a654460/scratchpad/laneK
+  dev.duckdb copied from <scratchpad>/laneE/dev.duckdb (TX-11 marts present). laneA's copy was tried first and
+  fails the export: it has no mart_build_provenance table.
+  Export: .venv/bin/python scripts/export_app_data.py --db $S/dev.duckdb --out $S/out  -> rc 0, 54 tables
+  (45 before + 9 qv_*). data/dev.duckdb, data/ci.duckdb and app/public/data not opened or written
+  (app/public/data/assistant does not exist; the M/?? entries under app/public/data predate this lane, mtime 08:03).
+
+Files
+  scripts/assistant_query_views.py   (new) view definitions, DENY_PATTERNS, build_catalogue, export_query_views
+  scripts/export_app_data.py         one 3-line hook after assistant_entities, before stats/manifest
+
+Views (rows; size on the scratch export)
+  qv_laps              161,040; 8 season partitions, 696 KB total, largest 100 KB
+  qv_stints              8,945; 53.5 KB
+  qv_pit_stops           5,507; 30.2 KB
+  qv_driver_race         3,138; 39.4 KB   (present: mart_race_driver_summary is exported since TX-11)
+  qv_race_laps          10,373; 5.6 KB
+  qv_circuit_history       173; 2.6 KB
+  qv_teammate_corners 1,529,933; season x race sub-partitions, 6.28 MB total, largest file 64.5 KB
+  qv_circuits               44; 2.9 KB
+  qv_compounds             499; 1.7 KB
+  catalogue.json: 9 views, catalogue_version 8d2412984b64... (sha256 of canonical JSON without the field)
+
+Determinism: two full exports into $S/out and $S/out2 -> sha256 of all 184 files under assistant/ IDENTICAL.
+  --check on $S/out -> "No drift manifest is current." (in-memory DuckDB with threads=1, ORDER BY ALL)
+
+More files
+  scripts/tests/test_assistant_query_views.py  (new, 26 tests: 23 synthetic always run, 3 need AX05_EXPORT)
+  app/src/assistant/catalogue/catalogue.ts     (new) Catalogue type, parseCatalogue (runtime shape check), loadCatalogue, getView
+  app/src/assistant/catalogue/catalogue.test.ts (new, 2 tests) + __fixtures__/catalogue.json (real scratch output)
+
+Tests
+  .venv/bin/python -m pytest scripts/tests -q                     -> 46 passed, 3 skipped (before AX-05: 23 passed)
+  AX05_EXPORT=$S/out .venv/bin/python -m pytest scripts/tests -q  -> 49 passed
+    (schema vs catalogue per partition file, deny-list over real views, every file <= 5 MB, two rebuilds +
+     the published copy sha256-identical, qv_driver_race NULL actuals never 0)
+  npx vitest run src/assistant/catalogue -> 2 passed; npm run typecheck clean.
+  Nothing in the Makefile runs the AX05_EXPORT tests yet.
+
+Status: DONE (not committed). The real export (make app-data) was NOT run; app/public/data untouched.
+
+Decisions and deviations (owner please read)
+  D1 pit-lane loss EXCLUDED from qv_pit_stops (departure from spec's pit_lane_loss_measured_s).
+     In the export pit_loss_imputed_flag is FALSE on all 8,211 rows and pit_lane_loss_s takes ONE value per race
+     (0 of 172 races have more than one distinct value across stops). It is int_pit_loss_circuit's EB-shrunk,
+     venue-pooled prior (intermediate/schema.yml:3372-3381), not a stop's measured time, so under HD4 A it is a
+     modelled value. qv_pit_stops keeps counts, actual_pit_lap and compounds. If a per-stop loss is wanted it
+     needs a transform item (in-lap + out-lap minus reference per stop).
+  D2 compound_after: the LEAD over int_pit_strategy_value ordered by end_lap_number (as pit-strategy/queries.ts)
+     is WRONG on 142 stops, because int_pit_strategy_value lacks 734 of fct_stint_features' 8,945 stints (136
+     races). Built instead over fct_stint_features in stint-number order (suffix of stint_id). Same latent issue
+     in the pit-strategy page's start_lap/LAG: worth an AP item.
+  D3 Stop rows: stints with stint_end_cause green_pit/sc_pit/vsc_pit or a recorded actual_pit_lap: 5,507 rows;
+     actual_pit_lap NULL on the stops int_pit_strategy_value has no row for. Verdict, optimum, confidence and
+     pit_decision_class are excluded (lineage: TRAFFIC + HELD).
+  D4 qv_laps takes lap_in_stint, age_in_stint, stint_id from fct_lap_residuals rather than joining
+     fct_cliff_prediction_features: on all 161,040 lap_ids the three columns are identical (0 differences), and
+     no lap is missing from either side. rainfall_flag (T-F) not exposed.
+  D5 qv_driver_race: laps_completed renamed timed_laps (lineage 3.1: it counts valid timed laps, not classified
+     laps). Row set is the race mart's (drivers with a paired teammate lap; T-F row set). actual_finish_position /
+     actual_dnf_cause from ghost self-scenario rows: NULL on 190 of 3,138 driver-races; lineage marks that row set
+     DA (recombination_confidence filter). Values are T. Switch to stg_results once it is in the export (it is an
+     optional export and absent from the scratch build: bronze results missing).
+  D6 qv_teammate_corners is sub-partitioned season x race (spec: by season). Scratch telemetry is 1.6M rows; the
+     real one is ~28.6M (TX-12 note: 7.3 MB vs ~200 MB), so a per-season file would be ~20 MB and fail the 5 MB
+     gate inside make app-data. Largest scratch race file 64.5 KB -> roughly 1.7 MB at real scale (estimate, not
+     measured). race_id must be a single eq filter. Teammate filter via constructor per (race, driver) from
+     fct_lap_residuals: 1,529,933 of 1,623,427 delta rows kept.
+  D7 qv_stints: pit_decision_class removed (lineage 3.4: TRAFFIC + HELD). mean_clean_pace_s kept (lineage T) but it
+     is fuel-corrected and filled only on sc_pit / vsc_pit runs (CO-09); stated in the note.
+  D8 qv_circuit_history keeps exactly season_races_n, prior_races_n, prior_racing_laps, prior_sc_onsets,
+     prior_vsc_onsets (cast to INTEGER). Every hazard column is denied, shrunk or not (spec finding 6; tightens the
+     design's *hazard*_shrunk).
+  D9 qv_compounds = keys of dim_compounds_season (season, circuit_key, compound_code); the fitted parameters are
+     T [S] model fits and left out. It lists compounds with a profile, not compounds actually run (not verified).
+     qv_circuits drops avg_lateral_g, fuel rate, energy/abrasiveness indices, weight_penalty_factor.
+  D10 qv_race_laps is a single file (10,373 rows), not partitioned; season still required.
+  D11 Deny-list TIGHTENED beyond the spec + log: rating (anywhere, not only ^rating), shrunk, pit_lane_loss,
+     pit_loss, optimal, verdict, opportunity_cost, pit_decision_class, ci_low, ci_high, _se_s$, confidence, skill,
+     air_state, share_lap, gap_ahead, anomaly, falloff, total_explained. The log's dirty_air_tax_se_s and
+     cumulative_dirty_air_tax_race_s are listed explicitly. The export itself fails (ValueError) on a denied
+     column, a column/type mismatch with the catalogue, or a file over 5 MB.
+  D12 count requests: aggregate {fn: count, col: <view.count_name>} (laps, stints, stops, races, corners,
+     circuits, compounds, rows) compile to COUNT(*); count_name is not a parquet column.
+  D13 catalogue_version = sha256 of the canonical JSON (sort_keys, compact) without the field. AX-08 copies it
+     into the manifest. publish_cdn.sh still does not sync assistant/ (finding 7, AX-08 step 4).
+  Not done: list_values columns provider (AX-02 left a hook; can be registered from the catalogue in AX-10).
+  Coordinator note: stg_results / stg_pits export only when export_app_data.py runs from transform/ (relative
+  bronze paths); AX-08 fixes that. Not changed here. D5's switch to stg_results waits on it.

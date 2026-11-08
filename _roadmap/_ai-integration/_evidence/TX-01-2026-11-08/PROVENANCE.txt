@@ -1,0 +1,6 @@
+TX-01 follow-up 2026-11-08 (lane H): rating_trust_label 'ok' threshold 10 -> 12 (floor 6), Opus ruling in build-log TX-01 note. Nothing committed.
+Edits: transform/models/marts/mart_race_driver_summary.sql (CASE + header), transform/models/marts/schema.yml (model + rating_trust_label text),
+ transform/tests/assert_mart_race_ci_brackets_rating.sql (label check 12), transform/tests/README.md row, _roadmap/_ai-integration/wi/TX-01.md (method step 3, owner decision).
+Run: scratch laneH/dev.duckdb copied from laneA (TX-01..06 built); dbt build --select mart_race_driver_summary+ assert_mart_race_ci_brackets_rating -> PASS=59 ERROR=0 (1 thread).
+Before (threshold 10): ok 2930 / thin 70 / suppressed 138.  After: see below.
+After (threshold 12): ok 2906 / thin 94 / suppressed 138 (matches expectation). All other columns EXCEPT = 0 rows; only the 24 rows with n=10,11 moved ok->thin. sqlfluff clean. assert_mart_race_ci_brackets_rating passes.

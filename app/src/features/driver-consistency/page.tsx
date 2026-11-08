@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import DriverConsistencyChart from './DriverConsistencyChart'
 import { methodologyContent, methodologyHref } from './methodology'
@@ -8,6 +9,7 @@ import './queries' // side-effect: registers the named query in the registry
 import type { DriverConsistencyRow } from './queries'
 
 export default function DriverConsistencyPage() {
+  const prov = useProvenance()
   const { season } = useFilters()
   const { data, isLoading, error } = useQuery<DriverConsistencyRow[]>(
     'driver-consistency.season',
@@ -36,7 +38,7 @@ export default function DriverConsistencyPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025', nObs: result?.points.length }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion, nObs: result?.points.length }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename={`driver-consistency-${season}.csv`}
       isLoading={isLoading}

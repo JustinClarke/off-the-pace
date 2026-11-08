@@ -1,0 +1,6574 @@
+[
+{
+"domain": "caution_status",
+"code": "green",
+"display": "Green flag running",
+"aliases": [
+"green"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "caution_status",
+"code": "red_flag",
+"display": "Red flag",
+"aliases": [
+"red_flag",
+"red flag",
+"red"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "caution_status",
+"code": "safety_car",
+"display": "Safety car",
+"aliases": [
+"safety_car",
+"safety car",
+"sc"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "caution_status",
+"code": "vsc",
+"display": "Virtual safety car",
+"aliases": [
+"vsc",
+"virtual safety car"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "circuit",
+"code": "70th_anniversary_grand_prix",
+"display": "Silverstone Circuit",
+"aliases": [
+"Silverstone Circuit",
+"silverstone_circuit",
+"70th anniversary grand prix",
+"Great Britain",
+"Silverstone",
+"70th Anniversary"
+],
+"seasons": [
+2020
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "silverstone_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "abu_dhabi_grand_prix",
+"display": "Yas Marina Circuit",
+"aliases": [
+"Yas Marina Circuit",
+"yas_marina_circuit",
+"abu dhabi grand prix",
+"Abu Dhabi",
+"United Arab Emirates",
+"Yas Island",
+"Yas Marina"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "yas_marina_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "argentine_grand_prix",
+"display": "Autodromo Juan Manuel Fangio",
+"aliases": [
+"Autodromo Juan Manuel Fangio",
+"autodromo_juan_manuel_fangio",
+"argentine grand prix"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {
+"circuit_id": "autodromo_juan_manuel_fangio"
+}
+},
+{
+"domain": "circuit",
+"code": "australian_grand_prix",
+"display": "Albert Park Circuit",
+"aliases": [
+"Albert Park Circuit",
+"albert_park_circuit",
+"australian grand prix",
+"Australia",
+"Melbourne",
+"Albert Park"
+],
+"seasons": [
+2018,
+2019,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "albert_park_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "austrian_grand_prix",
+"display": "Red Bull Ring",
+"aliases": [
+"Red Bull Ring",
+"red_bull_ring",
+"austrian grand prix",
+"Austria",
+"Spielberg"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "red_bull_ring"
+}
+},
+{
+"domain": "circuit",
+"code": "azerbaijan_grand_prix",
+"display": "Baku City Circuit",
+"aliases": [
+"Baku City Circuit",
+"baku_city_circuit",
+"azerbaijan grand prix",
+"Azerbaijan",
+"Baku"
+],
+"seasons": [
+2018,
+2019,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "baku_city_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "bahrain_grand_prix",
+"display": "Bahrain International Circuit",
+"aliases": [
+"Bahrain International Circuit",
+"bahrain_international_circuit",
+"bahrain grand prix",
+"Bahrain",
+"Sakhir"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "bahrain_international_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "belgian_grand_prix",
+"display": "Circuit de Spa-Francorchamps",
+"aliases": [
+"Circuit de Spa-Francorchamps",
+"circuit_de_spa_francorchamps",
+"belgian grand prix",
+"Belgium",
+"Spa-Francorchamps",
+"Spa",
+"Eau Rouge"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "circuit_de_spa_francorchamps"
+}
+},
+{
+"domain": "circuit",
+"code": "brazilian_grand_prix",
+"display": "Autodromo Jose Carlos Pace",
+"aliases": [
+"Autodromo Jose Carlos Pace",
+"autodromo_jose_carlos_pace",
+"brazilian grand prix",
+"Brazil",
+"São Paulo",
+"Interlagos",
+"Sao Paulo"
+],
+"seasons": [
+2018,
+2019
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "autodromo_jose_carlos_pace"
+}
+},
+{
+"domain": "circuit",
+"code": "british_grand_prix",
+"display": "Silverstone Circuit",
+"aliases": [
+"Silverstone Circuit",
+"silverstone_circuit",
+"british grand prix",
+"Great Britain",
+"Silverstone",
+"United Kingdom"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "silverstone_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "canadian_grand_prix",
+"display": "Circuit Gilles Villeneuve",
+"aliases": [
+"Circuit Gilles Villeneuve",
+"circuit_gilles_villeneuve",
+"canadian grand prix",
+"Canada",
+"Montréal",
+"Montreal",
+"Gilles Villeneuve"
+],
+"seasons": [
+2018,
+2019,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "circuit_gilles_villeneuve"
+}
+},
+{
+"domain": "circuit",
+"code": "chinese_grand_prix",
+"display": "Shanghai International Circuit",
+"aliases": [
+"Shanghai International Circuit",
+"shanghai_international_circuit",
+"chinese grand prix",
+"China",
+"Shanghai"
+],
+"seasons": [
+2018,
+2019,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "shanghai_international_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "danish_grand_prix",
+"display": "Jyllandsringen",
+"aliases": [
+"Jyllandsringen",
+"danish grand prix"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {
+"circuit_id": "jyllandsringen"
+}
+},
+{
+"domain": "circuit",
+"code": "dutch_grand_prix",
+"display": "Circuit Zandvoort",
+"aliases": [
+"Circuit Zandvoort",
+"circuit_zandvoort",
+"dutch grand prix",
+"Netherlands",
+"Zandvoort"
+],
+"seasons": [
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "circuit_zandvoort"
+}
+},
+{
+"domain": "circuit",
+"code": "eifel_grand_prix",
+"display": "Nürburgring",
+"aliases": [
+"Nürburgring",
+"n_rburgring",
+"eifel grand prix",
+"Germany"
+],
+"seasons": [
+2020
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "n_rburgring"
+}
+},
+{
+"domain": "circuit",
+"code": "emilia_romagna_grand_prix",
+"display": "Autodromo Enzo e Dino Ferrari",
+"aliases": [
+"Autodromo Enzo e Dino Ferrari",
+"autodromo_enzo_e_dino_ferrari",
+"emilia romagna grand prix",
+"Imola",
+"Italy"
+],
+"seasons": [
+2020,
+2021,
+2022,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "autodromo_enzo_e_dino_ferrari"
+}
+},
+{
+"domain": "circuit",
+"code": "french_grand_prix",
+"display": "Circuit Paul Ricard",
+"aliases": [
+"Circuit Paul Ricard",
+"circuit_paul_ricard",
+"french grand prix",
+"France",
+"Le Castellet"
+],
+"seasons": [
+2018,
+2019,
+2021,
+2022
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "circuit_paul_ricard"
+}
+},
+{
+"domain": "circuit",
+"code": "german_grand_prix",
+"display": "Hockenheimring",
+"aliases": [
+"Hockenheimring",
+"german grand prix",
+"Germany",
+"Hockenheim"
+],
+"seasons": [
+2018,
+2019
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "hockenheimring"
+}
+},
+{
+"domain": "circuit",
+"code": "greek_grand_prix",
+"display": "Hellenic Motorsport Park",
+"aliases": [
+"Hellenic Motorsport Park",
+"hellenic_motorsport_park",
+"greek grand prix"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {
+"circuit_id": "hellenic_motorsport_park"
+}
+},
+{
+"domain": "circuit",
+"code": "hungarian_grand_prix",
+"display": "Hungaroring",
+"aliases": [
+"Hungaroring",
+"hungarian grand prix",
+"Budapest",
+"Hungary"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "hungaroring"
+}
+},
+{
+"domain": "circuit",
+"code": "indonesian_grand_prix",
+"display": "Pertamina Grand Prix",
+"aliases": [
+"Pertamina Grand Prix",
+"pertamina_grand_prix",
+"indonesian grand prix"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {
+"circuit_id": "pertamina_grand_prix"
+}
+},
+{
+"domain": "circuit",
+"code": "italian_grand_prix",
+"display": "Autodromo Nazionale Monza",
+"aliases": [
+"Autodromo Nazionale Monza",
+"autodromo_nazionale_monza",
+"italian grand prix",
+"Italy",
+"Monza",
+"Temple of Speed"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "autodromo_nazionale_monza"
+}
+},
+{
+"domain": "circuit",
+"code": "japanese_grand_prix",
+"display": "Suzuka Circuit",
+"aliases": [
+"Suzuka Circuit",
+"suzuka_circuit",
+"japanese grand prix",
+"Japan",
+"Suzuka"
+],
+"seasons": [
+2018,
+2019,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "suzuka_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "las_vegas_grand_prix",
+"display": "Las Vegas Street Circuit",
+"aliases": [
+"Las Vegas Street Circuit",
+"las_vegas_street_circuit",
+"las vegas grand prix",
+"Las Vegas",
+"United States"
+],
+"seasons": [
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "las_vegas_street_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "luxembourg_grand_prix",
+"display": "Circuit de Spa-Francorchamps",
+"aliases": [
+"Circuit de Spa-Francorchamps",
+"circuit_de_spa_francorchamps",
+"luxembourg grand prix"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {
+"circuit_id": "circuit_de_spa_francorchamps"
+}
+},
+{
+"domain": "circuit",
+"code": "mexican_grand_prix",
+"display": "Autodromo Hermanos Rodriguez",
+"aliases": [
+"Autodromo Hermanos Rodriguez",
+"autodromo_hermanos_rodriguez",
+"mexican grand prix",
+"Mexico",
+"Mexico City",
+"Hermanos Rodriguez"
+],
+"seasons": [
+2018,
+2019
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "autodromo_hermanos_rodriguez"
+}
+},
+{
+"domain": "circuit",
+"code": "mexico_city_grand_prix",
+"display": "Autodromo Hermanos Rodriguez",
+"aliases": [
+"Autodromo Hermanos Rodriguez",
+"autodromo_hermanos_rodriguez",
+"mexico city grand prix",
+"Mexico",
+"Mexico City",
+"Hermanos Rodriguez"
+],
+"seasons": [
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "autodromo_hermanos_rodriguez"
+}
+},
+{
+"domain": "circuit",
+"code": "miami_grand_prix",
+"display": "Miami International Autodrome",
+"aliases": [
+"Miami International Autodrome",
+"miami_international_autodrome",
+"miami grand prix",
+"Miami",
+"Miami Gardens",
+"United States"
+],
+"seasons": [
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "miami_international_autodrome"
+}
+},
+{
+"domain": "circuit",
+"code": "monaco_grand_prix",
+"display": "Circuit de Monaco",
+"aliases": [
+"Circuit de Monaco",
+"circuit_de_monaco",
+"monaco grand prix",
+"Monaco",
+"Monte Carlo"
+],
+"seasons": [
+2018,
+2019,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "circuit_de_monaco"
+}
+},
+{
+"domain": "circuit",
+"code": "portuguese_grand_prix",
+"display": "Autodromo Internacional do Algarve",
+"aliases": [
+"Autodromo Internacional do Algarve",
+"autodromo_internacional_do_algarve",
+"portuguese grand prix",
+"Portimão",
+"Portugal"
+],
+"seasons": [
+2020,
+2021
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "autodromo_internacional_do_algarve"
+}
+},
+{
+"domain": "circuit",
+"code": "qatar_grand_prix",
+"display": "Lusail International Circuit",
+"aliases": [
+"Lusail International Circuit",
+"lusail_international_circuit",
+"qatar grand prix",
+"Lusail",
+"Qatar"
+],
+"seasons": [
+2021,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "lusail_international_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "russian_grand_prix",
+"display": "Sochi Autodrom",
+"aliases": [
+"Sochi Autodrom",
+"sochi_autodrom",
+"russian grand prix",
+"Russia",
+"Sochi"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "sochi_autodrom"
+}
+},
+{
+"domain": "circuit",
+"code": "sakhir_grand_prix",
+"display": "Bahrain International Circuit (outer)",
+"aliases": [
+"Bahrain International Circuit (outer)",
+"bahrain_international_circuit_outer",
+"sakhir grand prix",
+"Bahrain",
+"Sakhir"
+],
+"seasons": [
+2020
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "bahrain_international_circuit_outer"
+}
+},
+{
+"domain": "circuit",
+"code": "saudi_arabian_grand_prix",
+"display": "Jeddah Corniche Circuit",
+"aliases": [
+"Jeddah Corniche Circuit",
+"jeddah_corniche_circuit",
+"saudi arabian grand prix",
+"Jeddah",
+"Saudi Arabia"
+],
+"seasons": [
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "jeddah_corniche_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "singapore_grand_prix",
+"display": "Marina Bay Street Circuit",
+"aliases": [
+"Marina Bay Street Circuit",
+"marina_bay_street_circuit",
+"singapore grand prix",
+"Marina Bay",
+"Singapore"
+],
+"seasons": [
+2018,
+2019,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "marina_bay_street_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "south_african_grand_prix",
+"display": "Kyalami Circuit",
+"aliases": [
+"Kyalami Circuit",
+"kyalami_circuit",
+"south african grand prix"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {
+"circuit_id": "kyalami_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "spanish_grand_prix",
+"display": "Circuit de Barcelona-Catalunya",
+"aliases": [
+"Circuit de Barcelona-Catalunya",
+"circuit_de_barcelona_catalunya",
+"spanish grand prix",
+"Barcelona",
+"Spain",
+"Catalunya",
+"Montmelo"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "circuit_de_barcelona_catalunya"
+}
+},
+{
+"domain": "circuit",
+"code": "styrian_grand_prix",
+"display": "Red Bull Ring",
+"aliases": [
+"Red Bull Ring",
+"red_bull_ring",
+"styrian grand prix",
+"Austria",
+"Spielberg"
+],
+"seasons": [
+2020,
+2021
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "red_bull_ring"
+}
+},
+{
+"domain": "circuit",
+"code": "são_paulo_grand_prix",
+"display": "Autodromo Jose Carlos Pace",
+"aliases": [
+"Autodromo Jose Carlos Pace",
+"autodromo_jose_carlos_pace",
+"são paulo grand prix",
+"Brazil",
+"São Paulo",
+"Interlagos",
+"Sao Paulo"
+],
+"seasons": [
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "autodromo_jose_carlos_pace"
+}
+},
+{
+"domain": "circuit",
+"code": "thai_grand_prix",
+"display": "Buriram International Circuit",
+"aliases": [
+"Buriram International Circuit",
+"buriram_international_circuit",
+"thai grand prix"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {
+"circuit_id": "buriram_international_circuit"
+}
+},
+{
+"domain": "circuit",
+"code": "turkish_grand_prix",
+"display": "Istanbul Park",
+"aliases": [
+"Istanbul Park",
+"istanbul_park",
+"turkish grand prix",
+"Istanbul",
+"Turkey"
+],
+"seasons": [
+2020,
+2021
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "istanbul_park"
+}
+},
+{
+"domain": "circuit",
+"code": "tuscan_grand_prix",
+"display": "Autodromo Internazionale del Mugello",
+"aliases": [
+"Autodromo Internazionale del Mugello",
+"autodromo_internazionale_del_mugello",
+"tuscan grand prix",
+"Italy",
+"Mugello"
+],
+"seasons": [
+2020
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "autodromo_internazionale_del_mugello"
+}
+},
+{
+"domain": "circuit",
+"code": "united_states_grand_prix",
+"display": "Circuit of the Americas",
+"aliases": [
+"Circuit of the Americas",
+"circuit_of_the_americas",
+"united states grand prix",
+"Austin",
+"United States",
+"COTA"
+],
+"seasons": [
+2018,
+2019,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"circuit_id": "circuit_of_the_americas"
+}
+},
+{
+"domain": "circuit",
+"code": "vietnamese_grand_prix",
+"display": "Hanoi Street Circuit",
+"aliases": [
+"Hanoi Street Circuit",
+"hanoi_street_circuit",
+"vietnamese grand prix"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {
+"circuit_id": "hanoi_street_circuit"
+}
+},
+{
+"domain": "compound",
+"code": "HARD",
+"display": "Hard",
+"aliases": [
+"HARD",
+"Whites"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "compound",
+"code": "HYPERSOFT",
+"display": "Hypersoft",
+"aliases": [
+"HYPERSOFT"
+],
+"seasons": [
+2018
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "compound",
+"code": "INTERMEDIATE",
+"display": "Intermediate",
+"aliases": [
+"INTERMEDIATE",
+"Inters",
+"Green tyres"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "compound",
+"code": "MEDIUM",
+"display": "Medium",
+"aliases": [
+"MEDIUM",
+"Yellows"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "compound",
+"code": "SOFT",
+"display": "Soft",
+"aliases": [
+"SOFT",
+"Reds"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "compound",
+"code": "SUPERSOFT",
+"display": "Supersoft",
+"aliases": [
+"SUPERSOFT"
+],
+"seasons": [
+2018
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "compound",
+"code": "ULTRASOFT",
+"display": "Ultrasoft",
+"aliases": [
+"ULTRASOFT"
+],
+"seasons": [
+2018
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "compound",
+"code": "WET",
+"display": "Wet",
+"aliases": [
+"WET",
+"Full wets"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "constructor",
+"code": "ferrari",
+"display": "Ferrari",
+"aliases": [
+"Ferrari",
+"Scuderia Ferrari",
+"Prancing Horse"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"constructor_lineage_id": "ferrari",
+"constructor_ids": [
+"Ferrari"
+]
+}
+},
+{
+"domain": "constructor",
+"code": "force_india",
+"display": "Aston Martin",
+"aliases": [
+"Aston Martin",
+"Force India",
+"Racing Point"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"constructor_lineage_id": "force_india",
+"constructor_ids": [
+"Aston Martin",
+"Force India",
+"Racing Point"
+]
+}
+},
+{
+"domain": "constructor",
+"code": "haas_f1_team",
+"display": "Haas F1 Team",
+"aliases": [
+"Haas F1 Team",
+"Haas",
+"Haas F1"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"constructor_lineage_id": "haas_f1_team",
+"constructor_ids": [
+"Haas F1 Team"
+]
+}
+},
+{
+"domain": "constructor",
+"code": "mclaren",
+"display": "McLaren",
+"aliases": [
+"McLaren",
+"Mclaren Racing"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"constructor_lineage_id": "mclaren",
+"constructor_ids": [
+"McLaren"
+]
+}
+},
+{
+"domain": "constructor",
+"code": "mercedes",
+"display": "Mercedes",
+"aliases": [
+"Mercedes",
+"Mercedes AMG",
+"Silver Arrows"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"constructor_lineage_id": "mercedes",
+"constructor_ids": [
+"Mercedes"
+]
+}
+},
+{
+"domain": "constructor",
+"code": "red_bull_racing",
+"display": "Red Bull Racing",
+"aliases": [
+"Red Bull Racing",
+"Red Bull",
+"RBR",
+"Oracle Red Bull"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"constructor_lineage_id": "red_bull_racing",
+"constructor_ids": [
+"Red Bull Racing"
+]
+}
+},
+{
+"domain": "constructor",
+"code": "renault",
+"display": "Alpine",
+"aliases": [
+"Alpine",
+"Renault",
+"Alpine F1"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"constructor_lineage_id": "renault",
+"constructor_ids": [
+"Alpine",
+"Renault"
+]
+}
+},
+{
+"domain": "constructor",
+"code": "sauber",
+"display": "Kick Sauber",
+"aliases": [
+"Alfa Romeo",
+"Alfa Romeo Racing",
+"Kick Sauber",
+"Sauber",
+"Stake",
+"Alfa"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"constructor_lineage_id": "sauber",
+"constructor_ids": [
+"Alfa Romeo",
+"Alfa Romeo Racing",
+"Kick Sauber",
+"Sauber"
+]
+}
+},
+{
+"domain": "constructor",
+"code": "toro_rosso",
+"display": "Racing Bulls",
+"aliases": [
+"AlphaTauri",
+"RB",
+"Racing Bulls",
+"Toro Rosso",
+"Alpha Tauri",
+"VCARB",
+"Visa Cash App RB"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"constructor_lineage_id": "toro_rosso",
+"constructor_ids": [
+"AlphaTauri",
+"RB",
+"Racing Bulls",
+"Toro Rosso"
+]
+}
+},
+{
+"domain": "constructor",
+"code": "williams",
+"display": "Williams",
+"aliases": [
+"Williams",
+"Williams Racing"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"constructor_lineage_id": "williams",
+"constructor_ids": [
+"Williams"
+]
+}
+},
+{
+"domain": "driver",
+"code": "AIT",
+"display": "Jack Aitken (AIT)",
+"aliases": [
+"Jack Aitken",
+"Aitken",
+"Jack",
+"AIT"
+],
+"seasons": [
+2020
+],
+"parent_code": null,
+"extra": {
+"given_name": "Jack",
+"family_name": "Aitken",
+"driver_number": "89",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "ALB",
+"display": "Alexander Albon (ALB)",
+"aliases": [
+"Alexander Albon",
+"Albon",
+"Alexander",
+"ALB"
+],
+"seasons": [
+2019,
+2020,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Alexander",
+"family_name": "Albon",
+"driver_number": "23",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "ALO",
+"display": "Fernando Alonso (ALO)",
+"aliases": [
+"Fernando Alonso",
+"Alonso",
+"Fernando",
+"ALO",
+"Nando",
+"El Plan"
+],
+"seasons": [
+2018,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Fernando",
+"family_name": "Alonso",
+"driver_number": "14",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "ANT",
+"display": "Andrea Kimi Antonelli (ANT)",
+"aliases": [
+"Andrea Kimi Antonelli",
+"Antonelli",
+"Andrea Kimi",
+"ANT",
+"Kimi Antonelli"
+],
+"seasons": [
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Andrea Kimi",
+"family_name": "Antonelli",
+"driver_number": "12",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "BEA",
+"display": "Oliver Bearman (BEA)",
+"aliases": [
+"Oliver Bearman",
+"Bearman",
+"Oliver",
+"BEA"
+],
+"seasons": [
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Oliver",
+"family_name": "Bearman",
+"driver_number": "87",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "BOR",
+"display": "Gabriel Bortoleto (BOR)",
+"aliases": [
+"Gabriel Bortoleto",
+"Bortoleto",
+"Gabriel",
+"BOR"
+],
+"seasons": [
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Gabriel",
+"family_name": "Bortoleto",
+"driver_number": "5",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "BOT",
+"display": "Valtteri Bottas (BOT)",
+"aliases": [
+"Valtteri Bottas",
+"Bottas",
+"Valtteri",
+"BOT"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024
+],
+"parent_code": null,
+"extra": {
+"given_name": "Valtteri",
+"family_name": "Bottas",
+"driver_number": "77",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "COL",
+"display": "Franco Colapinto (COL)",
+"aliases": [
+"Franco Colapinto",
+"Colapinto",
+"Franco",
+"COL"
+],
+"seasons": [
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Franco",
+"family_name": "Colapinto",
+"driver_number": "43",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "DEV",
+"display": "Nyck de Vries (DEV)",
+"aliases": [
+"Nyck de Vries",
+"de Vries",
+"Nyck",
+"DEV"
+],
+"seasons": [
+2022,
+2023
+],
+"parent_code": null,
+"extra": {
+"given_name": "Nyck",
+"family_name": "de Vries",
+"driver_number": "21",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "DOO",
+"display": "Jack Doohan (DOO)",
+"aliases": [
+"Jack Doohan",
+"Doohan",
+"Jack",
+"DOO"
+],
+"seasons": [
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Jack",
+"family_name": "Doohan",
+"driver_number": "7",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "ERI",
+"display": "Marcus Ericsson (ERI)",
+"aliases": [
+"Marcus Ericsson",
+"Ericsson",
+"Marcus",
+"ERI"
+],
+"seasons": [
+2018
+],
+"parent_code": null,
+"extra": {
+"given_name": "Marcus",
+"family_name": "Ericsson",
+"driver_number": "9",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "FIT",
+"display": "Pietro Fittipaldi (FIT)",
+"aliases": [
+"Pietro Fittipaldi",
+"Fittipaldi",
+"Pietro",
+"FIT"
+],
+"seasons": [
+2020
+],
+"parent_code": null,
+"extra": {
+"given_name": "Pietro",
+"family_name": "Fittipaldi",
+"driver_number": "51",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "GAS",
+"display": "Pierre Gasly (GAS)",
+"aliases": [
+"Pierre Gasly",
+"Gasly",
+"Pierre",
+"GAS"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Pierre",
+"family_name": "Gasly",
+"driver_number": "10",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "GIO",
+"display": "Antonio Giovinazzi (GIO)",
+"aliases": [
+"Antonio Giovinazzi",
+"Giovinazzi",
+"Antonio",
+"GIO"
+],
+"seasons": [
+2019,
+2020,
+2021
+],
+"parent_code": null,
+"extra": {
+"given_name": "Antonio",
+"family_name": "Giovinazzi",
+"driver_number": "99",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "GRO",
+"display": "Romain Grosjean (GRO)",
+"aliases": [
+"Romain Grosjean",
+"Grosjean",
+"Romain",
+"GRO"
+],
+"seasons": [
+2018,
+2019,
+2020
+],
+"parent_code": null,
+"extra": {
+"given_name": "Romain",
+"family_name": "Grosjean",
+"driver_number": "8",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "HAD",
+"display": "Isack Hadjar (HAD)",
+"aliases": [
+"Isack Hadjar",
+"Hadjar",
+"Isack",
+"HAD"
+],
+"seasons": [
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Isack",
+"family_name": "Hadjar",
+"driver_number": "6",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "HAM",
+"display": "Lewis Hamilton (HAM)",
+"aliases": [
+"Lewis Hamilton",
+"Hamilton",
+"Lewis",
+"HAM",
+"Sir Lewis"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Lewis",
+"family_name": "Hamilton",
+"driver_number": "44",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "HAR",
+"display": "Brendon Hartley (HAR)",
+"aliases": [
+"Brendon Hartley",
+"Hartley",
+"Brendon",
+"HAR"
+],
+"seasons": [
+2018
+],
+"parent_code": null,
+"extra": {
+"given_name": "Brendon",
+"family_name": "Hartley",
+"driver_number": "28",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "HUL",
+"display": "Nico Hülkenberg (HUL)",
+"aliases": [
+"Nico Hülkenberg",
+"Hülkenberg",
+"Nico",
+"HUL",
+"Hulk",
+"Nico Hulkenberg"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Nico",
+"family_name": "Hülkenberg",
+"driver_number": "27",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "KUB",
+"display": "Robert Kubica (KUB)",
+"aliases": [
+"Robert Kubica",
+"Kubica",
+"Robert",
+"KUB"
+],
+"seasons": [
+2019,
+2021
+],
+"parent_code": null,
+"extra": {
+"given_name": "Robert",
+"family_name": "Kubica",
+"driver_number": "88",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "KVY",
+"display": "Daniil Kvyat (KVY)",
+"aliases": [
+"Daniil Kvyat",
+"Kvyat",
+"Daniil",
+"KVY"
+],
+"seasons": [
+2019,
+2020
+],
+"parent_code": null,
+"extra": {
+"given_name": "Daniil",
+"family_name": "Kvyat",
+"driver_number": "26",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "LAT",
+"display": "Nicholas Latifi (LAT)",
+"aliases": [
+"Nicholas Latifi",
+"Latifi",
+"Nicholas",
+"LAT"
+],
+"seasons": [
+2020,
+2021,
+2022
+],
+"parent_code": null,
+"extra": {
+"given_name": "Nicholas",
+"family_name": "Latifi",
+"driver_number": "6",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "LAW",
+"display": "Liam Lawson (LAW)",
+"aliases": [
+"Liam Lawson",
+"Lawson",
+"Liam",
+"LAW"
+],
+"seasons": [
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Liam",
+"family_name": "Lawson",
+"driver_number": "30",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "LEC",
+"display": "Charles Leclerc (LEC)",
+"aliases": [
+"Charles Leclerc",
+"Leclerc",
+"Charles",
+"LEC",
+"Charlie"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Charles",
+"family_name": "Leclerc",
+"driver_number": "16",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "MAG",
+"display": "Kevin Magnussen (MAG)",
+"aliases": [
+"Kevin Magnussen",
+"Magnussen",
+"Kevin",
+"MAG",
+"K-Mag",
+"Kmag"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2022,
+2023,
+2024
+],
+"parent_code": null,
+"extra": {
+"given_name": "Kevin",
+"family_name": "Magnussen",
+"driver_number": "20",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "MAZ",
+"display": "Nikita Mazepin (MAZ)",
+"aliases": [
+"Nikita Mazepin",
+"Mazepin",
+"Nikita",
+"MAZ"
+],
+"seasons": [
+2021
+],
+"parent_code": null,
+"extra": {
+"given_name": "Nikita",
+"family_name": "Mazepin",
+"driver_number": "9",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "MSC",
+"display": "Mick Schumacher (MSC)",
+"aliases": [
+"Mick Schumacher",
+"Schumacher",
+"Mick",
+"MSC"
+],
+"seasons": [
+2021,
+2022
+],
+"parent_code": null,
+"extra": {
+"given_name": "Mick",
+"family_name": "Schumacher",
+"driver_number": "47",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "NOR",
+"display": "Lando Norris (NOR)",
+"aliases": [
+"Lando Norris",
+"Norris",
+"Lando",
+"NOR"
+],
+"seasons": [
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Lando",
+"family_name": "Norris",
+"driver_number": "4",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "OCO",
+"display": "Esteban Ocon (OCO)",
+"aliases": [
+"Esteban Ocon",
+"Ocon",
+"Esteban",
+"OCO"
+],
+"seasons": [
+2018,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Esteban",
+"family_name": "Ocon",
+"driver_number": "31",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "PER",
+"display": "Sergio Pérez (PER)",
+"aliases": [
+"Sergio Pérez",
+"Pérez",
+"Sergio",
+"PER",
+"Checo",
+"Sergio Perez"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024
+],
+"parent_code": null,
+"extra": {
+"given_name": "Sergio",
+"family_name": "Pérez",
+"driver_number": "11",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "PIA",
+"display": "Oscar Piastri (PIA)",
+"aliases": [
+"Oscar Piastri",
+"Piastri",
+"Oscar",
+"PIA"
+],
+"seasons": [
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Oscar",
+"family_name": "Piastri",
+"driver_number": "81",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "RAI",
+"display": "Kimi Räikkönen (RAI)",
+"aliases": [
+"Kimi Räikkönen",
+"Räikkönen",
+"Kimi",
+"RAI",
+"Iceman",
+"Kimi Raikkonen"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021
+],
+"parent_code": null,
+"extra": {
+"given_name": "Kimi",
+"family_name": "Räikkönen",
+"driver_number": "7",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "RIC",
+"display": "Daniel Ricciardo (RIC)",
+"aliases": [
+"Daniel Ricciardo",
+"Ricciardo",
+"Daniel",
+"RIC",
+"Danny Ric",
+"Honey Badger"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024
+],
+"parent_code": null,
+"extra": {
+"given_name": "Daniel",
+"family_name": "Ricciardo",
+"driver_number": "3",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "RUS",
+"display": "George Russell (RUS)",
+"aliases": [
+"George Russell",
+"Russell",
+"George",
+"RUS"
+],
+"seasons": [
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "George",
+"family_name": "Russell",
+"driver_number": "63",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "SAI",
+"display": "Carlos Sainz (SAI)",
+"aliases": [
+"Carlos Sainz",
+"Sainz",
+"Carlos",
+"SAI",
+"Smooth Operator"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Carlos",
+"family_name": "Sainz",
+"driver_number": "55",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "SAR",
+"display": "Logan Sargeant (SAR)",
+"aliases": [
+"Logan Sargeant",
+"Sargeant",
+"Logan",
+"SAR"
+],
+"seasons": [
+2023,
+2024
+],
+"parent_code": null,
+"extra": {
+"given_name": "Logan",
+"family_name": "Sargeant",
+"driver_number": "2",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "SIR",
+"display": "Sergey Sirotkin (SIR)",
+"aliases": [
+"Sergey Sirotkin",
+"Sirotkin",
+"Sergey",
+"SIR"
+],
+"seasons": [
+2018
+],
+"parent_code": null,
+"extra": {
+"given_name": "Sergey",
+"family_name": "Sirotkin",
+"driver_number": "35",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "STR",
+"display": "Lance Stroll (STR)",
+"aliases": [
+"Lance Stroll",
+"Stroll",
+"Lance",
+"STR"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Lance",
+"family_name": "Stroll",
+"driver_number": "18",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "TSU",
+"display": "Yuki Tsunoda (TSU)",
+"aliases": [
+"Yuki Tsunoda",
+"Tsunoda",
+"Yuki",
+"TSU"
+],
+"seasons": [
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Yuki",
+"family_name": "Tsunoda",
+"driver_number": "22",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "VAN",
+"display": "Stoffel Vandoorne (VAN)",
+"aliases": [
+"Stoffel Vandoorne",
+"Vandoorne",
+"Stoffel",
+"VAN"
+],
+"seasons": [
+2018
+],
+"parent_code": null,
+"extra": {
+"given_name": "Stoffel",
+"family_name": "Vandoorne",
+"driver_number": "2",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "VER",
+"display": "Max Verstappen (VER)",
+"aliases": [
+"Max Verstappen",
+"Verstappen",
+"Max",
+"VER",
+"Mad Max"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022,
+2023,
+2024,
+2025
+],
+"parent_code": null,
+"extra": {
+"given_name": "Max",
+"family_name": "Verstappen",
+"driver_number": "1",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "VET",
+"display": "Sebastian Vettel (VET)",
+"aliases": [
+"Sebastian Vettel",
+"Vettel",
+"Sebastian",
+"VET",
+"Seb"
+],
+"seasons": [
+2018,
+2019,
+2020,
+2021,
+2022
+],
+"parent_code": null,
+"extra": {
+"given_name": "Sebastian",
+"family_name": "Vettel",
+"driver_number": "5",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "driver",
+"code": "ZHO",
+"display": "Guanyu Zhou (ZHO)",
+"aliases": [
+"Guanyu Zhou",
+"Zhou",
+"Guanyu",
+"ZHO",
+"Zhou Guanyu"
+],
+"seasons": [
+2022,
+2023,
+2024
+],
+"parent_code": null,
+"extra": {
+"given_name": "Guanyu",
+"family_name": "Zhou",
+"driver_number": "24",
+"name_source": "jolpica"
+}
+},
+{
+"domain": "race",
+"code": "2018_1",
+"display": "2018 Australian Grand Prix (round 1)",
+"aliases": [
+"Australian Grand Prix",
+"Albert Park Circuit",
+"Melbourne",
+"Australia",
+"Albert Park"
+],
+"seasons": [
+2018
+],
+"parent_code": "australian_grand_prix",
+"extra": {
+"season": 2018,
+"round": 1,
+"circuit_key": "australian_grand_prix",
+"circuit_name": "Albert Park Circuit",
+"grand_prix": "Australian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_10",
+"display": "2018 British Grand Prix (round 10)",
+"aliases": [
+"British Grand Prix",
+"Silverstone Circuit",
+"Silverstone",
+"Great Britain"
+],
+"seasons": [
+2018
+],
+"parent_code": "british_grand_prix",
+"extra": {
+"season": 2018,
+"round": 10,
+"circuit_key": "british_grand_prix",
+"circuit_name": "Silverstone Circuit",
+"grand_prix": "British Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_11",
+"display": "2018 German Grand Prix (round 11)",
+"aliases": [
+"German Grand Prix",
+"Hockenheimring",
+"Hockenheim",
+"Germany"
+],
+"seasons": [
+2018
+],
+"parent_code": "german_grand_prix",
+"extra": {
+"season": 2018,
+"round": 11,
+"circuit_key": "german_grand_prix",
+"circuit_name": "Hockenheimring",
+"grand_prix": "German Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_12",
+"display": "2018 Hungarian Grand Prix (round 12)",
+"aliases": [
+"Hungarian Grand Prix",
+"Hungaroring",
+"Budapest",
+"Hungary"
+],
+"seasons": [
+2018
+],
+"parent_code": "hungarian_grand_prix",
+"extra": {
+"season": 2018,
+"round": 12,
+"circuit_key": "hungarian_grand_prix",
+"circuit_name": "Hungaroring",
+"grand_prix": "Hungarian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_13",
+"display": "2018 Belgian Grand Prix (round 13)",
+"aliases": [
+"Belgian Grand Prix",
+"Circuit de Spa-Francorchamps",
+"Spa-Francorchamps",
+"Belgium",
+"Spa",
+"Eau Rouge"
+],
+"seasons": [
+2018
+],
+"parent_code": "belgian_grand_prix",
+"extra": {
+"season": 2018,
+"round": 13,
+"circuit_key": "belgian_grand_prix",
+"circuit_name": "Circuit de Spa-Francorchamps",
+"grand_prix": "Belgian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_14",
+"display": "2018 Italian Grand Prix (round 14)",
+"aliases": [
+"Italian Grand Prix",
+"Autodromo Nazionale Monza",
+"Monza",
+"Italy",
+"Temple of Speed"
+],
+"seasons": [
+2018
+],
+"parent_code": "italian_grand_prix",
+"extra": {
+"season": 2018,
+"round": 14,
+"circuit_key": "italian_grand_prix",
+"circuit_name": "Autodromo Nazionale Monza",
+"grand_prix": "Italian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_15",
+"display": "2018 Singapore Grand Prix (round 15)",
+"aliases": [
+"Singapore Grand Prix",
+"Marina Bay Street Circuit",
+"Singapore",
+"Marina Bay"
+],
+"seasons": [
+2018
+],
+"parent_code": "singapore_grand_prix",
+"extra": {
+"season": 2018,
+"round": 15,
+"circuit_key": "singapore_grand_prix",
+"circuit_name": "Marina Bay Street Circuit",
+"grand_prix": "Singapore Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_16",
+"display": "2018 Russian Grand Prix (round 16)",
+"aliases": [
+"Russian Grand Prix",
+"Sochi Autodrom",
+"Sochi",
+"Russia"
+],
+"seasons": [
+2018
+],
+"parent_code": "russian_grand_prix",
+"extra": {
+"season": 2018,
+"round": 16,
+"circuit_key": "russian_grand_prix",
+"circuit_name": "Sochi Autodrom",
+"grand_prix": "Russian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_17",
+"display": "2018 Japanese Grand Prix (round 17)",
+"aliases": [
+"Japanese Grand Prix",
+"Suzuka Circuit",
+"Suzuka",
+"Japan"
+],
+"seasons": [
+2018
+],
+"parent_code": "japanese_grand_prix",
+"extra": {
+"season": 2018,
+"round": 17,
+"circuit_key": "japanese_grand_prix",
+"circuit_name": "Suzuka Circuit",
+"grand_prix": "Japanese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_18",
+"display": "2018 United States Grand Prix (round 18)",
+"aliases": [
+"United States Grand Prix",
+"Circuit of the Americas",
+"Austin",
+"United States",
+"COTA"
+],
+"seasons": [
+2018
+],
+"parent_code": "united_states_grand_prix",
+"extra": {
+"season": 2018,
+"round": 18,
+"circuit_key": "united_states_grand_prix",
+"circuit_name": "Circuit of the Americas",
+"grand_prix": "United States Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_19",
+"display": "2018 Mexican Grand Prix (round 19)",
+"aliases": [
+"Mexican Grand Prix",
+"Autodromo Hermanos Rodriguez",
+"Mexico City",
+"Mexico",
+"Hermanos Rodriguez"
+],
+"seasons": [
+2018
+],
+"parent_code": "mexican_grand_prix",
+"extra": {
+"season": 2018,
+"round": 19,
+"circuit_key": "mexican_grand_prix",
+"circuit_name": "Autodromo Hermanos Rodriguez",
+"grand_prix": "Mexican Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_2",
+"display": "2018 Bahrain Grand Prix (round 2)",
+"aliases": [
+"Bahrain Grand Prix",
+"Bahrain International Circuit",
+"Sakhir",
+"Bahrain"
+],
+"seasons": [
+2018
+],
+"parent_code": "bahrain_grand_prix",
+"extra": {
+"season": 2018,
+"round": 2,
+"circuit_key": "bahrain_grand_prix",
+"circuit_name": "Bahrain International Circuit",
+"grand_prix": "Bahrain Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_20",
+"display": "2018 Brazilian Grand Prix (round 20)",
+"aliases": [
+"Brazilian Grand Prix",
+"Autodromo Jose Carlos Pace",
+"São Paulo",
+"Brazil",
+"Interlagos",
+"Sao Paulo"
+],
+"seasons": [
+2018
+],
+"parent_code": "brazilian_grand_prix",
+"extra": {
+"season": 2018,
+"round": 20,
+"circuit_key": "brazilian_grand_prix",
+"circuit_name": "Autodromo Jose Carlos Pace",
+"grand_prix": "Brazilian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_21",
+"display": "2018 Abu Dhabi Grand Prix (round 21)",
+"aliases": [
+"Abu Dhabi Grand Prix",
+"Yas Marina Circuit",
+"Yas Marina",
+"United Arab Emirates",
+"Abu Dhabi"
+],
+"seasons": [
+2018
+],
+"parent_code": "abu_dhabi_grand_prix",
+"extra": {
+"season": 2018,
+"round": 21,
+"circuit_key": "abu_dhabi_grand_prix",
+"circuit_name": "Yas Marina Circuit",
+"grand_prix": "Abu Dhabi Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_3",
+"display": "2018 Chinese Grand Prix (round 3)",
+"aliases": [
+"Chinese Grand Prix",
+"Shanghai International Circuit",
+"Shanghai",
+"China"
+],
+"seasons": [
+2018
+],
+"parent_code": "chinese_grand_prix",
+"extra": {
+"season": 2018,
+"round": 3,
+"circuit_key": "chinese_grand_prix",
+"circuit_name": "Shanghai International Circuit",
+"grand_prix": "Chinese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_4",
+"display": "2018 Azerbaijan Grand Prix (round 4)",
+"aliases": [
+"Azerbaijan Grand Prix",
+"Baku City Circuit",
+"Baku",
+"Azerbaijan"
+],
+"seasons": [
+2018
+],
+"parent_code": "azerbaijan_grand_prix",
+"extra": {
+"season": 2018,
+"round": 4,
+"circuit_key": "azerbaijan_grand_prix",
+"circuit_name": "Baku City Circuit",
+"grand_prix": "Azerbaijan Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_5",
+"display": "2018 Spanish Grand Prix (round 5)",
+"aliases": [
+"Spanish Grand Prix",
+"Circuit de Barcelona-Catalunya",
+"Barcelona",
+"Spain",
+"Catalunya",
+"Montmelo"
+],
+"seasons": [
+2018
+],
+"parent_code": "spanish_grand_prix",
+"extra": {
+"season": 2018,
+"round": 5,
+"circuit_key": "spanish_grand_prix",
+"circuit_name": "Circuit de Barcelona-Catalunya",
+"grand_prix": "Spanish Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_6",
+"display": "2018 Monaco Grand Prix (round 6)",
+"aliases": [
+"Monaco Grand Prix",
+"Circuit de Monaco",
+"Monte Carlo",
+"Monaco"
+],
+"seasons": [
+2018
+],
+"parent_code": "monaco_grand_prix",
+"extra": {
+"season": 2018,
+"round": 6,
+"circuit_key": "monaco_grand_prix",
+"circuit_name": "Circuit de Monaco",
+"grand_prix": "Monaco Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_7",
+"display": "2018 Canadian Grand Prix (round 7)",
+"aliases": [
+"Canadian Grand Prix",
+"Circuit Gilles Villeneuve",
+"Montréal",
+"Canada",
+"Montreal",
+"Gilles Villeneuve"
+],
+"seasons": [
+2018
+],
+"parent_code": "canadian_grand_prix",
+"extra": {
+"season": 2018,
+"round": 7,
+"circuit_key": "canadian_grand_prix",
+"circuit_name": "Circuit Gilles Villeneuve",
+"grand_prix": "Canadian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_8",
+"display": "2018 French Grand Prix (round 8)",
+"aliases": [
+"French Grand Prix",
+"Circuit Paul Ricard",
+"Le Castellet",
+"France"
+],
+"seasons": [
+2018
+],
+"parent_code": "french_grand_prix",
+"extra": {
+"season": 2018,
+"round": 8,
+"circuit_key": "french_grand_prix",
+"circuit_name": "Circuit Paul Ricard",
+"grand_prix": "French Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2018_9",
+"display": "2018 Austrian Grand Prix (round 9)",
+"aliases": [
+"Austrian Grand Prix",
+"Red Bull Ring",
+"Spielberg",
+"Austria"
+],
+"seasons": [
+2018
+],
+"parent_code": "austrian_grand_prix",
+"extra": {
+"season": 2018,
+"round": 9,
+"circuit_key": "austrian_grand_prix",
+"circuit_name": "Red Bull Ring",
+"grand_prix": "Austrian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_1",
+"display": "2019 Australian Grand Prix (round 1)",
+"aliases": [
+"Australian Grand Prix",
+"Albert Park Circuit",
+"Melbourne",
+"Australia",
+"Albert Park"
+],
+"seasons": [
+2019
+],
+"parent_code": "australian_grand_prix",
+"extra": {
+"season": 2019,
+"round": 1,
+"circuit_key": "australian_grand_prix",
+"circuit_name": "Albert Park Circuit",
+"grand_prix": "Australian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_10",
+"display": "2019 British Grand Prix (round 10)",
+"aliases": [
+"British Grand Prix",
+"Silverstone Circuit",
+"Silverstone",
+"Great Britain"
+],
+"seasons": [
+2019
+],
+"parent_code": "british_grand_prix",
+"extra": {
+"season": 2019,
+"round": 10,
+"circuit_key": "british_grand_prix",
+"circuit_name": "Silverstone Circuit",
+"grand_prix": "British Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_11",
+"display": "2019 German Grand Prix (round 11)",
+"aliases": [
+"German Grand Prix",
+"Hockenheimring",
+"Hockenheim",
+"Germany"
+],
+"seasons": [
+2019
+],
+"parent_code": "german_grand_prix",
+"extra": {
+"season": 2019,
+"round": 11,
+"circuit_key": "german_grand_prix",
+"circuit_name": "Hockenheimring",
+"grand_prix": "German Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_12",
+"display": "2019 Hungarian Grand Prix (round 12)",
+"aliases": [
+"Hungarian Grand Prix",
+"Hungaroring",
+"Budapest",
+"Hungary"
+],
+"seasons": [
+2019
+],
+"parent_code": "hungarian_grand_prix",
+"extra": {
+"season": 2019,
+"round": 12,
+"circuit_key": "hungarian_grand_prix",
+"circuit_name": "Hungaroring",
+"grand_prix": "Hungarian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_13",
+"display": "2019 Belgian Grand Prix (round 13)",
+"aliases": [
+"Belgian Grand Prix",
+"Circuit de Spa-Francorchamps",
+"Spa-Francorchamps",
+"Belgium",
+"Spa",
+"Eau Rouge"
+],
+"seasons": [
+2019
+],
+"parent_code": "belgian_grand_prix",
+"extra": {
+"season": 2019,
+"round": 13,
+"circuit_key": "belgian_grand_prix",
+"circuit_name": "Circuit de Spa-Francorchamps",
+"grand_prix": "Belgian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_14",
+"display": "2019 Italian Grand Prix (round 14)",
+"aliases": [
+"Italian Grand Prix",
+"Autodromo Nazionale Monza",
+"Monza",
+"Italy",
+"Temple of Speed"
+],
+"seasons": [
+2019
+],
+"parent_code": "italian_grand_prix",
+"extra": {
+"season": 2019,
+"round": 14,
+"circuit_key": "italian_grand_prix",
+"circuit_name": "Autodromo Nazionale Monza",
+"grand_prix": "Italian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_15",
+"display": "2019 Singapore Grand Prix (round 15)",
+"aliases": [
+"Singapore Grand Prix",
+"Marina Bay Street Circuit",
+"Singapore",
+"Marina Bay"
+],
+"seasons": [
+2019
+],
+"parent_code": "singapore_grand_prix",
+"extra": {
+"season": 2019,
+"round": 15,
+"circuit_key": "singapore_grand_prix",
+"circuit_name": "Marina Bay Street Circuit",
+"grand_prix": "Singapore Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_16",
+"display": "2019 Russian Grand Prix (round 16)",
+"aliases": [
+"Russian Grand Prix",
+"Sochi Autodrom",
+"Sochi",
+"Russia"
+],
+"seasons": [
+2019
+],
+"parent_code": "russian_grand_prix",
+"extra": {
+"season": 2019,
+"round": 16,
+"circuit_key": "russian_grand_prix",
+"circuit_name": "Sochi Autodrom",
+"grand_prix": "Russian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_17",
+"display": "2019 Japanese Grand Prix (round 17)",
+"aliases": [
+"Japanese Grand Prix",
+"Suzuka Circuit",
+"Suzuka",
+"Japan"
+],
+"seasons": [
+2019
+],
+"parent_code": "japanese_grand_prix",
+"extra": {
+"season": 2019,
+"round": 17,
+"circuit_key": "japanese_grand_prix",
+"circuit_name": "Suzuka Circuit",
+"grand_prix": "Japanese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_18",
+"display": "2019 Mexican Grand Prix (round 18)",
+"aliases": [
+"Mexican Grand Prix",
+"Autodromo Hermanos Rodriguez",
+"Mexico City",
+"Mexico",
+"Hermanos Rodriguez"
+],
+"seasons": [
+2019
+],
+"parent_code": "mexican_grand_prix",
+"extra": {
+"season": 2019,
+"round": 18,
+"circuit_key": "mexican_grand_prix",
+"circuit_name": "Autodromo Hermanos Rodriguez",
+"grand_prix": "Mexican Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_19",
+"display": "2019 United States Grand Prix (round 19)",
+"aliases": [
+"United States Grand Prix",
+"Circuit of the Americas",
+"Austin",
+"United States",
+"COTA"
+],
+"seasons": [
+2019
+],
+"parent_code": "united_states_grand_prix",
+"extra": {
+"season": 2019,
+"round": 19,
+"circuit_key": "united_states_grand_prix",
+"circuit_name": "Circuit of the Americas",
+"grand_prix": "United States Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_2",
+"display": "2019 Bahrain Grand Prix (round 2)",
+"aliases": [
+"Bahrain Grand Prix",
+"Bahrain International Circuit",
+"Sakhir",
+"Bahrain"
+],
+"seasons": [
+2019
+],
+"parent_code": "bahrain_grand_prix",
+"extra": {
+"season": 2019,
+"round": 2,
+"circuit_key": "bahrain_grand_prix",
+"circuit_name": "Bahrain International Circuit",
+"grand_prix": "Bahrain Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_20",
+"display": "2019 Brazilian Grand Prix (round 20)",
+"aliases": [
+"Brazilian Grand Prix",
+"Autodromo Jose Carlos Pace",
+"São Paulo",
+"Brazil",
+"Interlagos",
+"Sao Paulo"
+],
+"seasons": [
+2019
+],
+"parent_code": "brazilian_grand_prix",
+"extra": {
+"season": 2019,
+"round": 20,
+"circuit_key": "brazilian_grand_prix",
+"circuit_name": "Autodromo Jose Carlos Pace",
+"grand_prix": "Brazilian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_21",
+"display": "2019 Abu Dhabi Grand Prix (round 21)",
+"aliases": [
+"Abu Dhabi Grand Prix",
+"Yas Marina Circuit",
+"Yas Island",
+"Abu Dhabi",
+"Yas Marina"
+],
+"seasons": [
+2019
+],
+"parent_code": "abu_dhabi_grand_prix",
+"extra": {
+"season": 2019,
+"round": 21,
+"circuit_key": "abu_dhabi_grand_prix",
+"circuit_name": "Yas Marina Circuit",
+"grand_prix": "Abu Dhabi Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_3",
+"display": "2019 Chinese Grand Prix (round 3)",
+"aliases": [
+"Chinese Grand Prix",
+"Shanghai International Circuit",
+"Shanghai",
+"China"
+],
+"seasons": [
+2019
+],
+"parent_code": "chinese_grand_prix",
+"extra": {
+"season": 2019,
+"round": 3,
+"circuit_key": "chinese_grand_prix",
+"circuit_name": "Shanghai International Circuit",
+"grand_prix": "Chinese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_4",
+"display": "2019 Azerbaijan Grand Prix (round 4)",
+"aliases": [
+"Azerbaijan Grand Prix",
+"Baku City Circuit",
+"Baku",
+"Azerbaijan"
+],
+"seasons": [
+2019
+],
+"parent_code": "azerbaijan_grand_prix",
+"extra": {
+"season": 2019,
+"round": 4,
+"circuit_key": "azerbaijan_grand_prix",
+"circuit_name": "Baku City Circuit",
+"grand_prix": "Azerbaijan Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_5",
+"display": "2019 Spanish Grand Prix (round 5)",
+"aliases": [
+"Spanish Grand Prix",
+"Circuit de Barcelona-Catalunya",
+"Barcelona",
+"Spain",
+"Catalunya",
+"Montmelo"
+],
+"seasons": [
+2019
+],
+"parent_code": "spanish_grand_prix",
+"extra": {
+"season": 2019,
+"round": 5,
+"circuit_key": "spanish_grand_prix",
+"circuit_name": "Circuit de Barcelona-Catalunya",
+"grand_prix": "Spanish Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_6",
+"display": "2019 Monaco Grand Prix (round 6)",
+"aliases": [
+"Monaco Grand Prix",
+"Circuit de Monaco",
+"Monte Carlo",
+"Monaco"
+],
+"seasons": [
+2019
+],
+"parent_code": "monaco_grand_prix",
+"extra": {
+"season": 2019,
+"round": 6,
+"circuit_key": "monaco_grand_prix",
+"circuit_name": "Circuit de Monaco",
+"grand_prix": "Monaco Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_7",
+"display": "2019 Canadian Grand Prix (round 7)",
+"aliases": [
+"Canadian Grand Prix",
+"Circuit Gilles Villeneuve",
+"Montréal",
+"Canada",
+"Montreal",
+"Gilles Villeneuve"
+],
+"seasons": [
+2019
+],
+"parent_code": "canadian_grand_prix",
+"extra": {
+"season": 2019,
+"round": 7,
+"circuit_key": "canadian_grand_prix",
+"circuit_name": "Circuit Gilles Villeneuve",
+"grand_prix": "Canadian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_8",
+"display": "2019 French Grand Prix (round 8)",
+"aliases": [
+"French Grand Prix",
+"Circuit Paul Ricard",
+"Le Castellet",
+"France"
+],
+"seasons": [
+2019
+],
+"parent_code": "french_grand_prix",
+"extra": {
+"season": 2019,
+"round": 8,
+"circuit_key": "french_grand_prix",
+"circuit_name": "Circuit Paul Ricard",
+"grand_prix": "French Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2019_9",
+"display": "2019 Austrian Grand Prix (round 9)",
+"aliases": [
+"Austrian Grand Prix",
+"Red Bull Ring",
+"Spielberg",
+"Austria"
+],
+"seasons": [
+2019
+],
+"parent_code": "austrian_grand_prix",
+"extra": {
+"season": 2019,
+"round": 9,
+"circuit_key": "austrian_grand_prix",
+"circuit_name": "Red Bull Ring",
+"grand_prix": "Austrian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_1",
+"display": "2020 Austrian Grand Prix (round 1)",
+"aliases": [
+"Austrian Grand Prix",
+"Red Bull Ring",
+"Spielberg",
+"Austria"
+],
+"seasons": [
+2020
+],
+"parent_code": "austrian_grand_prix",
+"extra": {
+"season": 2020,
+"round": 1,
+"circuit_key": "austrian_grand_prix",
+"circuit_name": "Red Bull Ring",
+"grand_prix": "Austrian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_10",
+"display": "2020 Russian Grand Prix (round 10)",
+"aliases": [
+"Russian Grand Prix",
+"Sochi Autodrom",
+"Sochi",
+"Russia"
+],
+"seasons": [
+2020
+],
+"parent_code": "russian_grand_prix",
+"extra": {
+"season": 2020,
+"round": 10,
+"circuit_key": "russian_grand_prix",
+"circuit_name": "Sochi Autodrom",
+"grand_prix": "Russian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_11",
+"display": "2020 Eifel Grand Prix (round 11)",
+"aliases": [
+"Eifel Grand Prix",
+"Nürburgring",
+"Germany"
+],
+"seasons": [
+2020
+],
+"parent_code": "eifel_grand_prix",
+"extra": {
+"season": 2020,
+"round": 11,
+"circuit_key": "eifel_grand_prix",
+"circuit_name": "Nürburgring",
+"grand_prix": "Eifel Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_12",
+"display": "2020 Portuguese Grand Prix (round 12)",
+"aliases": [
+"Portuguese Grand Prix",
+"Autodromo Internacional do Algarve",
+"Portimão",
+"Portugal"
+],
+"seasons": [
+2020
+],
+"parent_code": "portuguese_grand_prix",
+"extra": {
+"season": 2020,
+"round": 12,
+"circuit_key": "portuguese_grand_prix",
+"circuit_name": "Autodromo Internacional do Algarve",
+"grand_prix": "Portuguese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_13",
+"display": "2020 Emilia Romagna Grand Prix (round 13)",
+"aliases": [
+"Emilia Romagna Grand Prix",
+"Autodromo Enzo e Dino Ferrari",
+"Imola",
+"Italy"
+],
+"seasons": [
+2020
+],
+"parent_code": "emilia_romagna_grand_prix",
+"extra": {
+"season": 2020,
+"round": 13,
+"circuit_key": "emilia_romagna_grand_prix",
+"circuit_name": "Autodromo Enzo e Dino Ferrari",
+"grand_prix": "Emilia Romagna Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_14",
+"display": "2020 Turkish Grand Prix (round 14)",
+"aliases": [
+"Turkish Grand Prix",
+"Istanbul Park",
+"Istanbul",
+"Turkey"
+],
+"seasons": [
+2020
+],
+"parent_code": "turkish_grand_prix",
+"extra": {
+"season": 2020,
+"round": 14,
+"circuit_key": "turkish_grand_prix",
+"circuit_name": "Istanbul Park",
+"grand_prix": "Turkish Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_15",
+"display": "2020 Bahrain Grand Prix (round 15)",
+"aliases": [
+"Bahrain Grand Prix",
+"Bahrain International Circuit",
+"Sakhir",
+"Bahrain"
+],
+"seasons": [
+2020
+],
+"parent_code": "bahrain_grand_prix",
+"extra": {
+"season": 2020,
+"round": 15,
+"circuit_key": "bahrain_grand_prix",
+"circuit_name": "Bahrain International Circuit",
+"grand_prix": "Bahrain Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_16",
+"display": "2020 Sakhir Grand Prix (round 16)",
+"aliases": [
+"Sakhir Grand Prix",
+"Bahrain International Circuit (outer)",
+"Sakhir",
+"Bahrain"
+],
+"seasons": [
+2020
+],
+"parent_code": "sakhir_grand_prix",
+"extra": {
+"season": 2020,
+"round": 16,
+"circuit_key": "sakhir_grand_prix",
+"circuit_name": "Bahrain International Circuit (outer)",
+"grand_prix": "Sakhir Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_17",
+"display": "2020 Abu Dhabi Grand Prix (round 17)",
+"aliases": [
+"Abu Dhabi Grand Prix",
+"Yas Marina Circuit",
+"Yas Island",
+"Abu Dhabi",
+"Yas Marina"
+],
+"seasons": [
+2020
+],
+"parent_code": "abu_dhabi_grand_prix",
+"extra": {
+"season": 2020,
+"round": 17,
+"circuit_key": "abu_dhabi_grand_prix",
+"circuit_name": "Yas Marina Circuit",
+"grand_prix": "Abu Dhabi Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_2",
+"display": "2020 Styrian Grand Prix (round 2)",
+"aliases": [
+"Styrian Grand Prix",
+"Red Bull Ring",
+"Spielberg",
+"Austria"
+],
+"seasons": [
+2020
+],
+"parent_code": "styrian_grand_prix",
+"extra": {
+"season": 2020,
+"round": 2,
+"circuit_key": "styrian_grand_prix",
+"circuit_name": "Red Bull Ring",
+"grand_prix": "Styrian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_3",
+"display": "2020 Hungarian Grand Prix (round 3)",
+"aliases": [
+"Hungarian Grand Prix",
+"Hungaroring",
+"Budapest",
+"Hungary"
+],
+"seasons": [
+2020
+],
+"parent_code": "hungarian_grand_prix",
+"extra": {
+"season": 2020,
+"round": 3,
+"circuit_key": "hungarian_grand_prix",
+"circuit_name": "Hungaroring",
+"grand_prix": "Hungarian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_4",
+"display": "2020 British Grand Prix (round 4)",
+"aliases": [
+"British Grand Prix",
+"Silverstone Circuit",
+"Silverstone",
+"Great Britain"
+],
+"seasons": [
+2020
+],
+"parent_code": "british_grand_prix",
+"extra": {
+"season": 2020,
+"round": 4,
+"circuit_key": "british_grand_prix",
+"circuit_name": "Silverstone Circuit",
+"grand_prix": "British Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_5",
+"display": "2020 70th Anniversary Grand Prix (round 5)",
+"aliases": [
+"70th Anniversary Grand Prix",
+"Silverstone Circuit",
+"Silverstone",
+"Great Britain",
+"70th Anniversary"
+],
+"seasons": [
+2020
+],
+"parent_code": "70th_anniversary_grand_prix",
+"extra": {
+"season": 2020,
+"round": 5,
+"circuit_key": "70th_anniversary_grand_prix",
+"circuit_name": "Silverstone Circuit",
+"grand_prix": "70th Anniversary Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_6",
+"display": "2020 Spanish Grand Prix (round 6)",
+"aliases": [
+"Spanish Grand Prix",
+"Circuit de Barcelona-Catalunya",
+"Barcelona",
+"Spain",
+"Catalunya",
+"Montmelo"
+],
+"seasons": [
+2020
+],
+"parent_code": "spanish_grand_prix",
+"extra": {
+"season": 2020,
+"round": 6,
+"circuit_key": "spanish_grand_prix",
+"circuit_name": "Circuit de Barcelona-Catalunya",
+"grand_prix": "Spanish Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_7",
+"display": "2020 Belgian Grand Prix (round 7)",
+"aliases": [
+"Belgian Grand Prix",
+"Circuit de Spa-Francorchamps",
+"Spa-Francorchamps",
+"Belgium",
+"Spa",
+"Eau Rouge"
+],
+"seasons": [
+2020
+],
+"parent_code": "belgian_grand_prix",
+"extra": {
+"season": 2020,
+"round": 7,
+"circuit_key": "belgian_grand_prix",
+"circuit_name": "Circuit de Spa-Francorchamps",
+"grand_prix": "Belgian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_8",
+"display": "2020 Italian Grand Prix (round 8)",
+"aliases": [
+"Italian Grand Prix",
+"Autodromo Nazionale Monza",
+"Monza",
+"Italy",
+"Temple of Speed"
+],
+"seasons": [
+2020
+],
+"parent_code": "italian_grand_prix",
+"extra": {
+"season": 2020,
+"round": 8,
+"circuit_key": "italian_grand_prix",
+"circuit_name": "Autodromo Nazionale Monza",
+"grand_prix": "Italian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2020_9",
+"display": "2020 Tuscan Grand Prix (round 9)",
+"aliases": [
+"Tuscan Grand Prix",
+"Autodromo Internazionale del Mugello",
+"Mugello",
+"Italy"
+],
+"seasons": [
+2020
+],
+"parent_code": "tuscan_grand_prix",
+"extra": {
+"season": 2020,
+"round": 9,
+"circuit_key": "tuscan_grand_prix",
+"circuit_name": "Autodromo Internazionale del Mugello",
+"grand_prix": "Tuscan Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_1",
+"display": "2021 Bahrain Grand Prix (round 1)",
+"aliases": [
+"Bahrain Grand Prix",
+"Bahrain International Circuit",
+"Sakhir",
+"Bahrain"
+],
+"seasons": [
+2021
+],
+"parent_code": "bahrain_grand_prix",
+"extra": {
+"season": 2021,
+"round": 1,
+"circuit_key": "bahrain_grand_prix",
+"circuit_name": "Bahrain International Circuit",
+"grand_prix": "Bahrain Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_10",
+"display": "2021 British Grand Prix (round 10)",
+"aliases": [
+"British Grand Prix",
+"Silverstone Circuit",
+"Silverstone",
+"Great Britain"
+],
+"seasons": [
+2021
+],
+"parent_code": "british_grand_prix",
+"extra": {
+"season": 2021,
+"round": 10,
+"circuit_key": "british_grand_prix",
+"circuit_name": "Silverstone Circuit",
+"grand_prix": "British Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_11",
+"display": "2021 Hungarian Grand Prix (round 11)",
+"aliases": [
+"Hungarian Grand Prix",
+"Hungaroring",
+"Budapest",
+"Hungary"
+],
+"seasons": [
+2021
+],
+"parent_code": "hungarian_grand_prix",
+"extra": {
+"season": 2021,
+"round": 11,
+"circuit_key": "hungarian_grand_prix",
+"circuit_name": "Hungaroring",
+"grand_prix": "Hungarian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_12",
+"display": "2021 Belgian Grand Prix (round 12)",
+"aliases": [
+"Belgian Grand Prix",
+"Circuit de Spa-Francorchamps",
+"Spa-Francorchamps",
+"Belgium",
+"Spa",
+"Eau Rouge"
+],
+"seasons": [
+2021
+],
+"parent_code": "belgian_grand_prix",
+"extra": {
+"season": 2021,
+"round": 12,
+"circuit_key": "belgian_grand_prix",
+"circuit_name": "Circuit de Spa-Francorchamps",
+"grand_prix": "Belgian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_13",
+"display": "2021 Dutch Grand Prix (round 13)",
+"aliases": [
+"Dutch Grand Prix",
+"Circuit Zandvoort",
+"Zandvoort",
+"Netherlands"
+],
+"seasons": [
+2021
+],
+"parent_code": "dutch_grand_prix",
+"extra": {
+"season": 2021,
+"round": 13,
+"circuit_key": "dutch_grand_prix",
+"circuit_name": "Circuit Zandvoort",
+"grand_prix": "Dutch Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_14",
+"display": "2021 Italian Grand Prix (round 14)",
+"aliases": [
+"Italian Grand Prix",
+"Autodromo Nazionale Monza",
+"Monza",
+"Italy",
+"Temple of Speed"
+],
+"seasons": [
+2021
+],
+"parent_code": "italian_grand_prix",
+"extra": {
+"season": 2021,
+"round": 14,
+"circuit_key": "italian_grand_prix",
+"circuit_name": "Autodromo Nazionale Monza",
+"grand_prix": "Italian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_15",
+"display": "2021 Russian Grand Prix (round 15)",
+"aliases": [
+"Russian Grand Prix",
+"Sochi Autodrom",
+"Sochi",
+"Russia"
+],
+"seasons": [
+2021
+],
+"parent_code": "russian_grand_prix",
+"extra": {
+"season": 2021,
+"round": 15,
+"circuit_key": "russian_grand_prix",
+"circuit_name": "Sochi Autodrom",
+"grand_prix": "Russian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_16",
+"display": "2021 Turkish Grand Prix (round 16)",
+"aliases": [
+"Turkish Grand Prix",
+"Istanbul Park",
+"Istanbul",
+"Turkey"
+],
+"seasons": [
+2021
+],
+"parent_code": "turkish_grand_prix",
+"extra": {
+"season": 2021,
+"round": 16,
+"circuit_key": "turkish_grand_prix",
+"circuit_name": "Istanbul Park",
+"grand_prix": "Turkish Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_17",
+"display": "2021 United States Grand Prix (round 17)",
+"aliases": [
+"United States Grand Prix",
+"Circuit of the Americas",
+"Austin",
+"United States",
+"COTA"
+],
+"seasons": [
+2021
+],
+"parent_code": "united_states_grand_prix",
+"extra": {
+"season": 2021,
+"round": 17,
+"circuit_key": "united_states_grand_prix",
+"circuit_name": "Circuit of the Americas",
+"grand_prix": "United States Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_18",
+"display": "2021 Mexico City Grand Prix (round 18)",
+"aliases": [
+"Mexico City Grand Prix",
+"Autodromo Hermanos Rodriguez",
+"Mexico City",
+"Mexico",
+"Hermanos Rodriguez"
+],
+"seasons": [
+2021
+],
+"parent_code": "mexico_city_grand_prix",
+"extra": {
+"season": 2021,
+"round": 18,
+"circuit_key": "mexico_city_grand_prix",
+"circuit_name": "Autodromo Hermanos Rodriguez",
+"grand_prix": "Mexico City Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_19",
+"display": "2021 São Paulo Grand Prix (round 19)",
+"aliases": [
+"São Paulo Grand Prix",
+"Autodromo Jose Carlos Pace",
+"São Paulo",
+"Brazil",
+"Interlagos",
+"Sao Paulo"
+],
+"seasons": [
+2021
+],
+"parent_code": "são_paulo_grand_prix",
+"extra": {
+"season": 2021,
+"round": 19,
+"circuit_key": "são_paulo_grand_prix",
+"circuit_name": "Autodromo Jose Carlos Pace",
+"grand_prix": "São Paulo Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_2",
+"display": "2021 Emilia Romagna Grand Prix (round 2)",
+"aliases": [
+"Emilia Romagna Grand Prix",
+"Autodromo Enzo e Dino Ferrari",
+"Imola",
+"Italy"
+],
+"seasons": [
+2021
+],
+"parent_code": "emilia_romagna_grand_prix",
+"extra": {
+"season": 2021,
+"round": 2,
+"circuit_key": "emilia_romagna_grand_prix",
+"circuit_name": "Autodromo Enzo e Dino Ferrari",
+"grand_prix": "Emilia Romagna Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_20",
+"display": "2021 Qatar Grand Prix (round 20)",
+"aliases": [
+"Qatar Grand Prix",
+"Lusail International Circuit",
+"Lusail",
+"Qatar"
+],
+"seasons": [
+2021
+],
+"parent_code": "qatar_grand_prix",
+"extra": {
+"season": 2021,
+"round": 20,
+"circuit_key": "qatar_grand_prix",
+"circuit_name": "Lusail International Circuit",
+"grand_prix": "Qatar Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_21",
+"display": "2021 Saudi Arabian Grand Prix (round 21)",
+"aliases": [
+"Saudi Arabian Grand Prix",
+"Jeddah Corniche Circuit",
+"Jeddah",
+"Saudi Arabia"
+],
+"seasons": [
+2021
+],
+"parent_code": "saudi_arabian_grand_prix",
+"extra": {
+"season": 2021,
+"round": 21,
+"circuit_key": "saudi_arabian_grand_prix",
+"circuit_name": "Jeddah Corniche Circuit",
+"grand_prix": "Saudi Arabian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_22",
+"display": "2021 Abu Dhabi Grand Prix (round 22)",
+"aliases": [
+"Abu Dhabi Grand Prix",
+"Yas Marina Circuit",
+"Yas Island",
+"Abu Dhabi",
+"Yas Marina"
+],
+"seasons": [
+2021
+],
+"parent_code": "abu_dhabi_grand_prix",
+"extra": {
+"season": 2021,
+"round": 22,
+"circuit_key": "abu_dhabi_grand_prix",
+"circuit_name": "Yas Marina Circuit",
+"grand_prix": "Abu Dhabi Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_3",
+"display": "2021 Portuguese Grand Prix (round 3)",
+"aliases": [
+"Portuguese Grand Prix",
+"Autodromo Internacional do Algarve",
+"Portimão",
+"Portugal"
+],
+"seasons": [
+2021
+],
+"parent_code": "portuguese_grand_prix",
+"extra": {
+"season": 2021,
+"round": 3,
+"circuit_key": "portuguese_grand_prix",
+"circuit_name": "Autodromo Internacional do Algarve",
+"grand_prix": "Portuguese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_4",
+"display": "2021 Spanish Grand Prix (round 4)",
+"aliases": [
+"Spanish Grand Prix",
+"Circuit de Barcelona-Catalunya",
+"Barcelona",
+"Spain",
+"Catalunya",
+"Montmelo"
+],
+"seasons": [
+2021
+],
+"parent_code": "spanish_grand_prix",
+"extra": {
+"season": 2021,
+"round": 4,
+"circuit_key": "spanish_grand_prix",
+"circuit_name": "Circuit de Barcelona-Catalunya",
+"grand_prix": "Spanish Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_5",
+"display": "2021 Monaco Grand Prix (round 5)",
+"aliases": [
+"Monaco Grand Prix",
+"Circuit de Monaco",
+"Monte Carlo",
+"Monaco"
+],
+"seasons": [
+2021
+],
+"parent_code": "monaco_grand_prix",
+"extra": {
+"season": 2021,
+"round": 5,
+"circuit_key": "monaco_grand_prix",
+"circuit_name": "Circuit de Monaco",
+"grand_prix": "Monaco Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_6",
+"display": "2021 Azerbaijan Grand Prix (round 6)",
+"aliases": [
+"Azerbaijan Grand Prix",
+"Baku City Circuit",
+"Baku",
+"Azerbaijan"
+],
+"seasons": [
+2021
+],
+"parent_code": "azerbaijan_grand_prix",
+"extra": {
+"season": 2021,
+"round": 6,
+"circuit_key": "azerbaijan_grand_prix",
+"circuit_name": "Baku City Circuit",
+"grand_prix": "Azerbaijan Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_7",
+"display": "2021 French Grand Prix (round 7)",
+"aliases": [
+"French Grand Prix",
+"Circuit Paul Ricard",
+"Le Castellet",
+"France"
+],
+"seasons": [
+2021
+],
+"parent_code": "french_grand_prix",
+"extra": {
+"season": 2021,
+"round": 7,
+"circuit_key": "french_grand_prix",
+"circuit_name": "Circuit Paul Ricard",
+"grand_prix": "French Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_8",
+"display": "2021 Styrian Grand Prix (round 8)",
+"aliases": [
+"Styrian Grand Prix",
+"Red Bull Ring",
+"Spielberg",
+"Austria"
+],
+"seasons": [
+2021
+],
+"parent_code": "styrian_grand_prix",
+"extra": {
+"season": 2021,
+"round": 8,
+"circuit_key": "styrian_grand_prix",
+"circuit_name": "Red Bull Ring",
+"grand_prix": "Styrian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2021_9",
+"display": "2021 Austrian Grand Prix (round 9)",
+"aliases": [
+"Austrian Grand Prix",
+"Red Bull Ring",
+"Spielberg",
+"Austria"
+],
+"seasons": [
+2021
+],
+"parent_code": "austrian_grand_prix",
+"extra": {
+"season": 2021,
+"round": 9,
+"circuit_key": "austrian_grand_prix",
+"circuit_name": "Red Bull Ring",
+"grand_prix": "Austrian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_1",
+"display": "2022 Bahrain Grand Prix (round 1)",
+"aliases": [
+"Bahrain Grand Prix",
+"Bahrain International Circuit",
+"Sakhir",
+"Bahrain"
+],
+"seasons": [
+2022
+],
+"parent_code": "bahrain_grand_prix",
+"extra": {
+"season": 2022,
+"round": 1,
+"circuit_key": "bahrain_grand_prix",
+"circuit_name": "Bahrain International Circuit",
+"grand_prix": "Bahrain Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_10",
+"display": "2022 British Grand Prix (round 10)",
+"aliases": [
+"British Grand Prix",
+"Silverstone Circuit",
+"Silverstone",
+"Great Britain"
+],
+"seasons": [
+2022
+],
+"parent_code": "british_grand_prix",
+"extra": {
+"season": 2022,
+"round": 10,
+"circuit_key": "british_grand_prix",
+"circuit_name": "Silverstone Circuit",
+"grand_prix": "British Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_11",
+"display": "2022 Austrian Grand Prix (round 11)",
+"aliases": [
+"Austrian Grand Prix",
+"Red Bull Ring",
+"Spielberg",
+"Austria"
+],
+"seasons": [
+2022
+],
+"parent_code": "austrian_grand_prix",
+"extra": {
+"season": 2022,
+"round": 11,
+"circuit_key": "austrian_grand_prix",
+"circuit_name": "Red Bull Ring",
+"grand_prix": "Austrian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_12",
+"display": "2022 French Grand Prix (round 12)",
+"aliases": [
+"French Grand Prix",
+"Circuit Paul Ricard",
+"Le Castellet",
+"France"
+],
+"seasons": [
+2022
+],
+"parent_code": "french_grand_prix",
+"extra": {
+"season": 2022,
+"round": 12,
+"circuit_key": "french_grand_prix",
+"circuit_name": "Circuit Paul Ricard",
+"grand_prix": "French Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_13",
+"display": "2022 Hungarian Grand Prix (round 13)",
+"aliases": [
+"Hungarian Grand Prix",
+"Hungaroring",
+"Budapest",
+"Hungary"
+],
+"seasons": [
+2022
+],
+"parent_code": "hungarian_grand_prix",
+"extra": {
+"season": 2022,
+"round": 13,
+"circuit_key": "hungarian_grand_prix",
+"circuit_name": "Hungaroring",
+"grand_prix": "Hungarian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_14",
+"display": "2022 Belgian Grand Prix (round 14)",
+"aliases": [
+"Belgian Grand Prix",
+"Circuit de Spa-Francorchamps",
+"Spa-Francorchamps",
+"Belgium",
+"Spa",
+"Eau Rouge"
+],
+"seasons": [
+2022
+],
+"parent_code": "belgian_grand_prix",
+"extra": {
+"season": 2022,
+"round": 14,
+"circuit_key": "belgian_grand_prix",
+"circuit_name": "Circuit de Spa-Francorchamps",
+"grand_prix": "Belgian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_15",
+"display": "2022 Dutch Grand Prix (round 15)",
+"aliases": [
+"Dutch Grand Prix",
+"Circuit Zandvoort",
+"Zandvoort",
+"Netherlands"
+],
+"seasons": [
+2022
+],
+"parent_code": "dutch_grand_prix",
+"extra": {
+"season": 2022,
+"round": 15,
+"circuit_key": "dutch_grand_prix",
+"circuit_name": "Circuit Zandvoort",
+"grand_prix": "Dutch Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_16",
+"display": "2022 Italian Grand Prix (round 16)",
+"aliases": [
+"Italian Grand Prix",
+"Autodromo Nazionale Monza",
+"Monza",
+"Italy",
+"Temple of Speed"
+],
+"seasons": [
+2022
+],
+"parent_code": "italian_grand_prix",
+"extra": {
+"season": 2022,
+"round": 16,
+"circuit_key": "italian_grand_prix",
+"circuit_name": "Autodromo Nazionale Monza",
+"grand_prix": "Italian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_17",
+"display": "2022 Singapore Grand Prix (round 17)",
+"aliases": [
+"Singapore Grand Prix",
+"Marina Bay Street Circuit",
+"Marina Bay",
+"Singapore"
+],
+"seasons": [
+2022
+],
+"parent_code": "singapore_grand_prix",
+"extra": {
+"season": 2022,
+"round": 17,
+"circuit_key": "singapore_grand_prix",
+"circuit_name": "Marina Bay Street Circuit",
+"grand_prix": "Singapore Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_18",
+"display": "2022 Japanese Grand Prix (round 18)",
+"aliases": [
+"Japanese Grand Prix",
+"Suzuka Circuit",
+"Suzuka",
+"Japan"
+],
+"seasons": [
+2022
+],
+"parent_code": "japanese_grand_prix",
+"extra": {
+"season": 2022,
+"round": 18,
+"circuit_key": "japanese_grand_prix",
+"circuit_name": "Suzuka Circuit",
+"grand_prix": "Japanese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_19",
+"display": "2022 United States Grand Prix (round 19)",
+"aliases": [
+"United States Grand Prix",
+"Circuit of the Americas",
+"Austin",
+"United States",
+"COTA"
+],
+"seasons": [
+2022
+],
+"parent_code": "united_states_grand_prix",
+"extra": {
+"season": 2022,
+"round": 19,
+"circuit_key": "united_states_grand_prix",
+"circuit_name": "Circuit of the Americas",
+"grand_prix": "United States Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_2",
+"display": "2022 Saudi Arabian Grand Prix (round 2)",
+"aliases": [
+"Saudi Arabian Grand Prix",
+"Jeddah Corniche Circuit",
+"Jeddah",
+"Saudi Arabia"
+],
+"seasons": [
+2022
+],
+"parent_code": "saudi_arabian_grand_prix",
+"extra": {
+"season": 2022,
+"round": 2,
+"circuit_key": "saudi_arabian_grand_prix",
+"circuit_name": "Jeddah Corniche Circuit",
+"grand_prix": "Saudi Arabian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_20",
+"display": "2022 Mexico City Grand Prix (round 20)",
+"aliases": [
+"Mexico City Grand Prix",
+"Autodromo Hermanos Rodriguez",
+"Mexico City",
+"Mexico",
+"Hermanos Rodriguez"
+],
+"seasons": [
+2022
+],
+"parent_code": "mexico_city_grand_prix",
+"extra": {
+"season": 2022,
+"round": 20,
+"circuit_key": "mexico_city_grand_prix",
+"circuit_name": "Autodromo Hermanos Rodriguez",
+"grand_prix": "Mexico City Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_21",
+"display": "2022 São Paulo Grand Prix (round 21)",
+"aliases": [
+"São Paulo Grand Prix",
+"Autodromo Jose Carlos Pace",
+"São Paulo",
+"Brazil",
+"Interlagos",
+"Sao Paulo"
+],
+"seasons": [
+2022
+],
+"parent_code": "são_paulo_grand_prix",
+"extra": {
+"season": 2022,
+"round": 21,
+"circuit_key": "são_paulo_grand_prix",
+"circuit_name": "Autodromo Jose Carlos Pace",
+"grand_prix": "São Paulo Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_22",
+"display": "2022 Abu Dhabi Grand Prix (round 22)",
+"aliases": [
+"Abu Dhabi Grand Prix",
+"Yas Marina Circuit",
+"Yas Island",
+"Abu Dhabi",
+"Yas Marina"
+],
+"seasons": [
+2022
+],
+"parent_code": "abu_dhabi_grand_prix",
+"extra": {
+"season": 2022,
+"round": 22,
+"circuit_key": "abu_dhabi_grand_prix",
+"circuit_name": "Yas Marina Circuit",
+"grand_prix": "Abu Dhabi Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_3",
+"display": "2022 Australian Grand Prix (round 3)",
+"aliases": [
+"Australian Grand Prix",
+"Albert Park Circuit",
+"Melbourne",
+"Australia",
+"Albert Park"
+],
+"seasons": [
+2022
+],
+"parent_code": "australian_grand_prix",
+"extra": {
+"season": 2022,
+"round": 3,
+"circuit_key": "australian_grand_prix",
+"circuit_name": "Albert Park Circuit",
+"grand_prix": "Australian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_4",
+"display": "2022 Emilia Romagna Grand Prix (round 4)",
+"aliases": [
+"Emilia Romagna Grand Prix",
+"Autodromo Enzo e Dino Ferrari",
+"Imola",
+"Italy"
+],
+"seasons": [
+2022
+],
+"parent_code": "emilia_romagna_grand_prix",
+"extra": {
+"season": 2022,
+"round": 4,
+"circuit_key": "emilia_romagna_grand_prix",
+"circuit_name": "Autodromo Enzo e Dino Ferrari",
+"grand_prix": "Emilia Romagna Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_5",
+"display": "2022 Miami Grand Prix (round 5)",
+"aliases": [
+"Miami Grand Prix",
+"Miami International Autodrome",
+"Miami",
+"United States"
+],
+"seasons": [
+2022
+],
+"parent_code": "miami_grand_prix",
+"extra": {
+"season": 2022,
+"round": 5,
+"circuit_key": "miami_grand_prix",
+"circuit_name": "Miami International Autodrome",
+"grand_prix": "Miami Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_6",
+"display": "2022 Spanish Grand Prix (round 6)",
+"aliases": [
+"Spanish Grand Prix",
+"Circuit de Barcelona-Catalunya",
+"Barcelona",
+"Spain",
+"Catalunya",
+"Montmelo"
+],
+"seasons": [
+2022
+],
+"parent_code": "spanish_grand_prix",
+"extra": {
+"season": 2022,
+"round": 6,
+"circuit_key": "spanish_grand_prix",
+"circuit_name": "Circuit de Barcelona-Catalunya",
+"grand_prix": "Spanish Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_7",
+"display": "2022 Monaco Grand Prix (round 7)",
+"aliases": [
+"Monaco Grand Prix",
+"Circuit de Monaco",
+"Monaco",
+"Monte Carlo"
+],
+"seasons": [
+2022
+],
+"parent_code": "monaco_grand_prix",
+"extra": {
+"season": 2022,
+"round": 7,
+"circuit_key": "monaco_grand_prix",
+"circuit_name": "Circuit de Monaco",
+"grand_prix": "Monaco Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_8",
+"display": "2022 Azerbaijan Grand Prix (round 8)",
+"aliases": [
+"Azerbaijan Grand Prix",
+"Baku City Circuit",
+"Baku",
+"Azerbaijan"
+],
+"seasons": [
+2022
+],
+"parent_code": "azerbaijan_grand_prix",
+"extra": {
+"season": 2022,
+"round": 8,
+"circuit_key": "azerbaijan_grand_prix",
+"circuit_name": "Baku City Circuit",
+"grand_prix": "Azerbaijan Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2022_9",
+"display": "2022 Canadian Grand Prix (round 9)",
+"aliases": [
+"Canadian Grand Prix",
+"Circuit Gilles Villeneuve",
+"Montréal",
+"Canada",
+"Montreal",
+"Gilles Villeneuve"
+],
+"seasons": [
+2022
+],
+"parent_code": "canadian_grand_prix",
+"extra": {
+"season": 2022,
+"round": 9,
+"circuit_key": "canadian_grand_prix",
+"circuit_name": "Circuit Gilles Villeneuve",
+"grand_prix": "Canadian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_1",
+"display": "2023 Bahrain Grand Prix (round 1)",
+"aliases": [
+"Bahrain Grand Prix",
+"Bahrain International Circuit",
+"Sakhir",
+"Bahrain"
+],
+"seasons": [
+2023
+],
+"parent_code": "bahrain_grand_prix",
+"extra": {
+"season": 2023,
+"round": 1,
+"circuit_key": "bahrain_grand_prix",
+"circuit_name": "Bahrain International Circuit",
+"grand_prix": "Bahrain Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_10",
+"display": "2023 British Grand Prix (round 10)",
+"aliases": [
+"British Grand Prix",
+"Silverstone Circuit",
+"Silverstone",
+"Great Britain"
+],
+"seasons": [
+2023
+],
+"parent_code": "british_grand_prix",
+"extra": {
+"season": 2023,
+"round": 10,
+"circuit_key": "british_grand_prix",
+"circuit_name": "Silverstone Circuit",
+"grand_prix": "British Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_11",
+"display": "2023 Hungarian Grand Prix (round 11)",
+"aliases": [
+"Hungarian Grand Prix",
+"Hungaroring",
+"Budapest",
+"Hungary"
+],
+"seasons": [
+2023
+],
+"parent_code": "hungarian_grand_prix",
+"extra": {
+"season": 2023,
+"round": 11,
+"circuit_key": "hungarian_grand_prix",
+"circuit_name": "Hungaroring",
+"grand_prix": "Hungarian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_12",
+"display": "2023 Belgian Grand Prix (round 12)",
+"aliases": [
+"Belgian Grand Prix",
+"Circuit de Spa-Francorchamps",
+"Spa-Francorchamps",
+"Belgium",
+"Spa",
+"Eau Rouge"
+],
+"seasons": [
+2023
+],
+"parent_code": "belgian_grand_prix",
+"extra": {
+"season": 2023,
+"round": 12,
+"circuit_key": "belgian_grand_prix",
+"circuit_name": "Circuit de Spa-Francorchamps",
+"grand_prix": "Belgian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_13",
+"display": "2023 Dutch Grand Prix (round 13)",
+"aliases": [
+"Dutch Grand Prix",
+"Circuit Zandvoort",
+"Zandvoort",
+"Netherlands"
+],
+"seasons": [
+2023
+],
+"parent_code": "dutch_grand_prix",
+"extra": {
+"season": 2023,
+"round": 13,
+"circuit_key": "dutch_grand_prix",
+"circuit_name": "Circuit Zandvoort",
+"grand_prix": "Dutch Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_14",
+"display": "2023 Italian Grand Prix (round 14)",
+"aliases": [
+"Italian Grand Prix",
+"Autodromo Nazionale Monza",
+"Monza",
+"Italy",
+"Temple of Speed"
+],
+"seasons": [
+2023
+],
+"parent_code": "italian_grand_prix",
+"extra": {
+"season": 2023,
+"round": 14,
+"circuit_key": "italian_grand_prix",
+"circuit_name": "Autodromo Nazionale Monza",
+"grand_prix": "Italian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_15",
+"display": "2023 Singapore Grand Prix (round 15)",
+"aliases": [
+"Singapore Grand Prix",
+"Marina Bay Street Circuit",
+"Marina Bay",
+"Singapore"
+],
+"seasons": [
+2023
+],
+"parent_code": "singapore_grand_prix",
+"extra": {
+"season": 2023,
+"round": 15,
+"circuit_key": "singapore_grand_prix",
+"circuit_name": "Marina Bay Street Circuit",
+"grand_prix": "Singapore Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_16",
+"display": "2023 Japanese Grand Prix (round 16)",
+"aliases": [
+"Japanese Grand Prix",
+"Suzuka Circuit",
+"Suzuka",
+"Japan"
+],
+"seasons": [
+2023
+],
+"parent_code": "japanese_grand_prix",
+"extra": {
+"season": 2023,
+"round": 16,
+"circuit_key": "japanese_grand_prix",
+"circuit_name": "Suzuka Circuit",
+"grand_prix": "Japanese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_17",
+"display": "2023 Qatar Grand Prix (round 17)",
+"aliases": [
+"Qatar Grand Prix",
+"Lusail International Circuit",
+"Lusail",
+"Qatar"
+],
+"seasons": [
+2023
+],
+"parent_code": "qatar_grand_prix",
+"extra": {
+"season": 2023,
+"round": 17,
+"circuit_key": "qatar_grand_prix",
+"circuit_name": "Lusail International Circuit",
+"grand_prix": "Qatar Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_18",
+"display": "2023 United States Grand Prix (round 18)",
+"aliases": [
+"United States Grand Prix",
+"Circuit of the Americas",
+"Austin",
+"United States",
+"COTA"
+],
+"seasons": [
+2023
+],
+"parent_code": "united_states_grand_prix",
+"extra": {
+"season": 2023,
+"round": 18,
+"circuit_key": "united_states_grand_prix",
+"circuit_name": "Circuit of the Americas",
+"grand_prix": "United States Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_19",
+"display": "2023 Mexico City Grand Prix (round 19)",
+"aliases": [
+"Mexico City Grand Prix",
+"Autodromo Hermanos Rodriguez",
+"Mexico City",
+"Mexico",
+"Hermanos Rodriguez"
+],
+"seasons": [
+2023
+],
+"parent_code": "mexico_city_grand_prix",
+"extra": {
+"season": 2023,
+"round": 19,
+"circuit_key": "mexico_city_grand_prix",
+"circuit_name": "Autodromo Hermanos Rodriguez",
+"grand_prix": "Mexico City Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_2",
+"display": "2023 Saudi Arabian Grand Prix (round 2)",
+"aliases": [
+"Saudi Arabian Grand Prix",
+"Jeddah Corniche Circuit",
+"Jeddah",
+"Saudi Arabia"
+],
+"seasons": [
+2023
+],
+"parent_code": "saudi_arabian_grand_prix",
+"extra": {
+"season": 2023,
+"round": 2,
+"circuit_key": "saudi_arabian_grand_prix",
+"circuit_name": "Jeddah Corniche Circuit",
+"grand_prix": "Saudi Arabian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_20",
+"display": "2023 São Paulo Grand Prix (round 20)",
+"aliases": [
+"São Paulo Grand Prix",
+"Autodromo Jose Carlos Pace",
+"São Paulo",
+"Brazil",
+"Interlagos",
+"Sao Paulo"
+],
+"seasons": [
+2023
+],
+"parent_code": "são_paulo_grand_prix",
+"extra": {
+"season": 2023,
+"round": 20,
+"circuit_key": "são_paulo_grand_prix",
+"circuit_name": "Autodromo Jose Carlos Pace",
+"grand_prix": "São Paulo Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_21",
+"display": "2023 Las Vegas Grand Prix (round 21)",
+"aliases": [
+"Las Vegas Grand Prix",
+"Las Vegas Street Circuit",
+"Las Vegas",
+"United States"
+],
+"seasons": [
+2023
+],
+"parent_code": "las_vegas_grand_prix",
+"extra": {
+"season": 2023,
+"round": 21,
+"circuit_key": "las_vegas_grand_prix",
+"circuit_name": "Las Vegas Street Circuit",
+"grand_prix": "Las Vegas Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_22",
+"display": "2023 Abu Dhabi Grand Prix (round 22)",
+"aliases": [
+"Abu Dhabi Grand Prix",
+"Yas Marina Circuit",
+"Yas Island",
+"Abu Dhabi",
+"Yas Marina"
+],
+"seasons": [
+2023
+],
+"parent_code": "abu_dhabi_grand_prix",
+"extra": {
+"season": 2023,
+"round": 22,
+"circuit_key": "abu_dhabi_grand_prix",
+"circuit_name": "Yas Marina Circuit",
+"grand_prix": "Abu Dhabi Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_3",
+"display": "2023 Australian Grand Prix (round 3)",
+"aliases": [
+"Australian Grand Prix",
+"Albert Park Circuit",
+"Melbourne",
+"Australia",
+"Albert Park"
+],
+"seasons": [
+2023
+],
+"parent_code": "australian_grand_prix",
+"extra": {
+"season": 2023,
+"round": 3,
+"circuit_key": "australian_grand_prix",
+"circuit_name": "Albert Park Circuit",
+"grand_prix": "Australian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_4",
+"display": "2023 Azerbaijan Grand Prix (round 4)",
+"aliases": [
+"Azerbaijan Grand Prix",
+"Baku City Circuit",
+"Baku",
+"Azerbaijan"
+],
+"seasons": [
+2023
+],
+"parent_code": "azerbaijan_grand_prix",
+"extra": {
+"season": 2023,
+"round": 4,
+"circuit_key": "azerbaijan_grand_prix",
+"circuit_name": "Baku City Circuit",
+"grand_prix": "Azerbaijan Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_5",
+"display": "2023 Miami Grand Prix (round 5)",
+"aliases": [
+"Miami Grand Prix",
+"Miami International Autodrome",
+"Miami",
+"United States"
+],
+"seasons": [
+2023
+],
+"parent_code": "miami_grand_prix",
+"extra": {
+"season": 2023,
+"round": 5,
+"circuit_key": "miami_grand_prix",
+"circuit_name": "Miami International Autodrome",
+"grand_prix": "Miami Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_6",
+"display": "2023 Monaco Grand Prix (round 6)",
+"aliases": [
+"Monaco Grand Prix",
+"Circuit de Monaco",
+"Monaco",
+"Monte Carlo"
+],
+"seasons": [
+2023
+],
+"parent_code": "monaco_grand_prix",
+"extra": {
+"season": 2023,
+"round": 6,
+"circuit_key": "monaco_grand_prix",
+"circuit_name": "Circuit de Monaco",
+"grand_prix": "Monaco Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_7",
+"display": "2023 Spanish Grand Prix (round 7)",
+"aliases": [
+"Spanish Grand Prix",
+"Circuit de Barcelona-Catalunya",
+"Barcelona",
+"Spain",
+"Catalunya",
+"Montmelo"
+],
+"seasons": [
+2023
+],
+"parent_code": "spanish_grand_prix",
+"extra": {
+"season": 2023,
+"round": 7,
+"circuit_key": "spanish_grand_prix",
+"circuit_name": "Circuit de Barcelona-Catalunya",
+"grand_prix": "Spanish Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_8",
+"display": "2023 Canadian Grand Prix (round 8)",
+"aliases": [
+"Canadian Grand Prix",
+"Circuit Gilles Villeneuve",
+"Montréal",
+"Canada",
+"Montreal",
+"Gilles Villeneuve"
+],
+"seasons": [
+2023
+],
+"parent_code": "canadian_grand_prix",
+"extra": {
+"season": 2023,
+"round": 8,
+"circuit_key": "canadian_grand_prix",
+"circuit_name": "Circuit Gilles Villeneuve",
+"grand_prix": "Canadian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2023_9",
+"display": "2023 Austrian Grand Prix (round 9)",
+"aliases": [
+"Austrian Grand Prix",
+"Red Bull Ring",
+"Spielberg",
+"Austria"
+],
+"seasons": [
+2023
+],
+"parent_code": "austrian_grand_prix",
+"extra": {
+"season": 2023,
+"round": 9,
+"circuit_key": "austrian_grand_prix",
+"circuit_name": "Red Bull Ring",
+"grand_prix": "Austrian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_1",
+"display": "2024 Bahrain Grand Prix (round 1)",
+"aliases": [
+"Bahrain Grand Prix",
+"Bahrain International Circuit",
+"Sakhir",
+"Bahrain"
+],
+"seasons": [
+2024
+],
+"parent_code": "bahrain_grand_prix",
+"extra": {
+"season": 2024,
+"round": 1,
+"circuit_key": "bahrain_grand_prix",
+"circuit_name": "Bahrain International Circuit",
+"grand_prix": "Bahrain Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_10",
+"display": "2024 Spanish Grand Prix (round 10)",
+"aliases": [
+"Spanish Grand Prix",
+"Circuit de Barcelona-Catalunya",
+"Barcelona",
+"Spain",
+"Catalunya",
+"Montmelo"
+],
+"seasons": [
+2024
+],
+"parent_code": "spanish_grand_prix",
+"extra": {
+"season": 2024,
+"round": 10,
+"circuit_key": "spanish_grand_prix",
+"circuit_name": "Circuit de Barcelona-Catalunya",
+"grand_prix": "Spanish Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_11",
+"display": "2024 Austrian Grand Prix (round 11)",
+"aliases": [
+"Austrian Grand Prix",
+"Red Bull Ring",
+"Spielberg",
+"Austria"
+],
+"seasons": [
+2024
+],
+"parent_code": "austrian_grand_prix",
+"extra": {
+"season": 2024,
+"round": 11,
+"circuit_key": "austrian_grand_prix",
+"circuit_name": "Red Bull Ring",
+"grand_prix": "Austrian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_12",
+"display": "2024 British Grand Prix (round 12)",
+"aliases": [
+"British Grand Prix",
+"Silverstone Circuit",
+"Silverstone",
+"United Kingdom"
+],
+"seasons": [
+2024
+],
+"parent_code": "british_grand_prix",
+"extra": {
+"season": 2024,
+"round": 12,
+"circuit_key": "british_grand_prix",
+"circuit_name": "Silverstone Circuit",
+"grand_prix": "British Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_13",
+"display": "2024 Hungarian Grand Prix (round 13)",
+"aliases": [
+"Hungarian Grand Prix",
+"Hungaroring",
+"Budapest",
+"Hungary"
+],
+"seasons": [
+2024
+],
+"parent_code": "hungarian_grand_prix",
+"extra": {
+"season": 2024,
+"round": 13,
+"circuit_key": "hungarian_grand_prix",
+"circuit_name": "Hungaroring",
+"grand_prix": "Hungarian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_14",
+"display": "2024 Belgian Grand Prix (round 14)",
+"aliases": [
+"Belgian Grand Prix",
+"Circuit de Spa-Francorchamps",
+"Spa-Francorchamps",
+"Belgium",
+"Spa",
+"Eau Rouge"
+],
+"seasons": [
+2024
+],
+"parent_code": "belgian_grand_prix",
+"extra": {
+"season": 2024,
+"round": 14,
+"circuit_key": "belgian_grand_prix",
+"circuit_name": "Circuit de Spa-Francorchamps",
+"grand_prix": "Belgian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_15",
+"display": "2024 Dutch Grand Prix (round 15)",
+"aliases": [
+"Dutch Grand Prix",
+"Circuit Zandvoort",
+"Zandvoort",
+"Netherlands"
+],
+"seasons": [
+2024
+],
+"parent_code": "dutch_grand_prix",
+"extra": {
+"season": 2024,
+"round": 15,
+"circuit_key": "dutch_grand_prix",
+"circuit_name": "Circuit Zandvoort",
+"grand_prix": "Dutch Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_16",
+"display": "2024 Italian Grand Prix (round 16)",
+"aliases": [
+"Italian Grand Prix",
+"Autodromo Nazionale Monza",
+"Monza",
+"Italy",
+"Temple of Speed"
+],
+"seasons": [
+2024
+],
+"parent_code": "italian_grand_prix",
+"extra": {
+"season": 2024,
+"round": 16,
+"circuit_key": "italian_grand_prix",
+"circuit_name": "Autodromo Nazionale Monza",
+"grand_prix": "Italian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_17",
+"display": "2024 Azerbaijan Grand Prix (round 17)",
+"aliases": [
+"Azerbaijan Grand Prix",
+"Baku City Circuit",
+"Baku",
+"Azerbaijan"
+],
+"seasons": [
+2024
+],
+"parent_code": "azerbaijan_grand_prix",
+"extra": {
+"season": 2024,
+"round": 17,
+"circuit_key": "azerbaijan_grand_prix",
+"circuit_name": "Baku City Circuit",
+"grand_prix": "Azerbaijan Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_18",
+"display": "2024 Singapore Grand Prix (round 18)",
+"aliases": [
+"Singapore Grand Prix",
+"Marina Bay Street Circuit",
+"Marina Bay",
+"Singapore"
+],
+"seasons": [
+2024
+],
+"parent_code": "singapore_grand_prix",
+"extra": {
+"season": 2024,
+"round": 18,
+"circuit_key": "singapore_grand_prix",
+"circuit_name": "Marina Bay Street Circuit",
+"grand_prix": "Singapore Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_19",
+"display": "2024 United States Grand Prix (round 19)",
+"aliases": [
+"United States Grand Prix",
+"Circuit of the Americas",
+"Austin",
+"United States",
+"COTA"
+],
+"seasons": [
+2024
+],
+"parent_code": "united_states_grand_prix",
+"extra": {
+"season": 2024,
+"round": 19,
+"circuit_key": "united_states_grand_prix",
+"circuit_name": "Circuit of the Americas",
+"grand_prix": "United States Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_2",
+"display": "2024 Saudi Arabian Grand Prix (round 2)",
+"aliases": [
+"Saudi Arabian Grand Prix",
+"Jeddah Corniche Circuit",
+"Jeddah",
+"Saudi Arabia"
+],
+"seasons": [
+2024
+],
+"parent_code": "saudi_arabian_grand_prix",
+"extra": {
+"season": 2024,
+"round": 2,
+"circuit_key": "saudi_arabian_grand_prix",
+"circuit_name": "Jeddah Corniche Circuit",
+"grand_prix": "Saudi Arabian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_20",
+"display": "2024 Mexico City Grand Prix (round 20)",
+"aliases": [
+"Mexico City Grand Prix",
+"Autodromo Hermanos Rodriguez",
+"Mexico City",
+"Mexico",
+"Hermanos Rodriguez"
+],
+"seasons": [
+2024
+],
+"parent_code": "mexico_city_grand_prix",
+"extra": {
+"season": 2024,
+"round": 20,
+"circuit_key": "mexico_city_grand_prix",
+"circuit_name": "Autodromo Hermanos Rodriguez",
+"grand_prix": "Mexico City Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_21",
+"display": "2024 São Paulo Grand Prix (round 21)",
+"aliases": [
+"São Paulo Grand Prix",
+"Autodromo Jose Carlos Pace",
+"São Paulo",
+"Brazil",
+"Interlagos",
+"Sao Paulo"
+],
+"seasons": [
+2024
+],
+"parent_code": "são_paulo_grand_prix",
+"extra": {
+"season": 2024,
+"round": 21,
+"circuit_key": "são_paulo_grand_prix",
+"circuit_name": "Autodromo Jose Carlos Pace",
+"grand_prix": "São Paulo Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_22",
+"display": "2024 Las Vegas Grand Prix (round 22)",
+"aliases": [
+"Las Vegas Grand Prix",
+"Las Vegas Street Circuit",
+"Las Vegas",
+"United States"
+],
+"seasons": [
+2024
+],
+"parent_code": "las_vegas_grand_prix",
+"extra": {
+"season": 2024,
+"round": 22,
+"circuit_key": "las_vegas_grand_prix",
+"circuit_name": "Las Vegas Street Circuit",
+"grand_prix": "Las Vegas Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_23",
+"display": "2024 Qatar Grand Prix (round 23)",
+"aliases": [
+"Qatar Grand Prix",
+"Lusail International Circuit",
+"Lusail",
+"Qatar"
+],
+"seasons": [
+2024
+],
+"parent_code": "qatar_grand_prix",
+"extra": {
+"season": 2024,
+"round": 23,
+"circuit_key": "qatar_grand_prix",
+"circuit_name": "Lusail International Circuit",
+"grand_prix": "Qatar Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_24",
+"display": "2024 Abu Dhabi Grand Prix (round 24)",
+"aliases": [
+"Abu Dhabi Grand Prix",
+"Yas Marina Circuit",
+"Yas Island",
+"United Arab Emirates",
+"Yas Marina",
+"Abu Dhabi"
+],
+"seasons": [
+2024
+],
+"parent_code": "abu_dhabi_grand_prix",
+"extra": {
+"season": 2024,
+"round": 24,
+"circuit_key": "abu_dhabi_grand_prix",
+"circuit_name": "Yas Marina Circuit",
+"grand_prix": "Abu Dhabi Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_3",
+"display": "2024 Australian Grand Prix (round 3)",
+"aliases": [
+"Australian Grand Prix",
+"Albert Park Circuit",
+"Melbourne",
+"Australia",
+"Albert Park"
+],
+"seasons": [
+2024
+],
+"parent_code": "australian_grand_prix",
+"extra": {
+"season": 2024,
+"round": 3,
+"circuit_key": "australian_grand_prix",
+"circuit_name": "Albert Park Circuit",
+"grand_prix": "Australian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_4",
+"display": "2024 Japanese Grand Prix (round 4)",
+"aliases": [
+"Japanese Grand Prix",
+"Suzuka Circuit",
+"Suzuka",
+"Japan"
+],
+"seasons": [
+2024
+],
+"parent_code": "japanese_grand_prix",
+"extra": {
+"season": 2024,
+"round": 4,
+"circuit_key": "japanese_grand_prix",
+"circuit_name": "Suzuka Circuit",
+"grand_prix": "Japanese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_5",
+"display": "2024 Chinese Grand Prix (round 5)",
+"aliases": [
+"Chinese Grand Prix",
+"Shanghai International Circuit",
+"Shanghai",
+"China"
+],
+"seasons": [
+2024
+],
+"parent_code": "chinese_grand_prix",
+"extra": {
+"season": 2024,
+"round": 5,
+"circuit_key": "chinese_grand_prix",
+"circuit_name": "Shanghai International Circuit",
+"grand_prix": "Chinese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_6",
+"display": "2024 Miami Grand Prix (round 6)",
+"aliases": [
+"Miami Grand Prix",
+"Miami International Autodrome",
+"Miami",
+"United States"
+],
+"seasons": [
+2024
+],
+"parent_code": "miami_grand_prix",
+"extra": {
+"season": 2024,
+"round": 6,
+"circuit_key": "miami_grand_prix",
+"circuit_name": "Miami International Autodrome",
+"grand_prix": "Miami Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_7",
+"display": "2024 Emilia Romagna Grand Prix (round 7)",
+"aliases": [
+"Emilia Romagna Grand Prix",
+"Autodromo Enzo e Dino Ferrari",
+"Imola",
+"Italy"
+],
+"seasons": [
+2024
+],
+"parent_code": "emilia_romagna_grand_prix",
+"extra": {
+"season": 2024,
+"round": 7,
+"circuit_key": "emilia_romagna_grand_prix",
+"circuit_name": "Autodromo Enzo e Dino Ferrari",
+"grand_prix": "Emilia Romagna Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_8",
+"display": "2024 Monaco Grand Prix (round 8)",
+"aliases": [
+"Monaco Grand Prix",
+"Circuit de Monaco",
+"Monaco",
+"Monte Carlo"
+],
+"seasons": [
+2024
+],
+"parent_code": "monaco_grand_prix",
+"extra": {
+"season": 2024,
+"round": 8,
+"circuit_key": "monaco_grand_prix",
+"circuit_name": "Circuit de Monaco",
+"grand_prix": "Monaco Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2024_9",
+"display": "2024 Canadian Grand Prix (round 9)",
+"aliases": [
+"Canadian Grand Prix",
+"Circuit Gilles Villeneuve",
+"Montréal",
+"Canada",
+"Montreal",
+"Gilles Villeneuve"
+],
+"seasons": [
+2024
+],
+"parent_code": "canadian_grand_prix",
+"extra": {
+"season": 2024,
+"round": 9,
+"circuit_key": "canadian_grand_prix",
+"circuit_name": "Circuit Gilles Villeneuve",
+"grand_prix": "Canadian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_1",
+"display": "2025 Australian Grand Prix (round 1)",
+"aliases": [
+"Australian Grand Prix",
+"Albert Park Circuit",
+"Melbourne",
+"Australia",
+"Albert Park"
+],
+"seasons": [
+2025
+],
+"parent_code": "australian_grand_prix",
+"extra": {
+"season": 2025,
+"round": 1,
+"circuit_key": "australian_grand_prix",
+"circuit_name": "Albert Park Circuit",
+"grand_prix": "Australian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_10",
+"display": "2025 Canadian Grand Prix (round 10)",
+"aliases": [
+"Canadian Grand Prix",
+"Circuit Gilles Villeneuve",
+"Montréal",
+"Canada",
+"Montreal",
+"Gilles Villeneuve"
+],
+"seasons": [
+2025
+],
+"parent_code": "canadian_grand_prix",
+"extra": {
+"season": 2025,
+"round": 10,
+"circuit_key": "canadian_grand_prix",
+"circuit_name": "Circuit Gilles Villeneuve",
+"grand_prix": "Canadian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_11",
+"display": "2025 Austrian Grand Prix (round 11)",
+"aliases": [
+"Austrian Grand Prix",
+"Red Bull Ring",
+"Spielberg",
+"Austria"
+],
+"seasons": [
+2025
+],
+"parent_code": "austrian_grand_prix",
+"extra": {
+"season": 2025,
+"round": 11,
+"circuit_key": "austrian_grand_prix",
+"circuit_name": "Red Bull Ring",
+"grand_prix": "Austrian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_12",
+"display": "2025 British Grand Prix (round 12)",
+"aliases": [
+"British Grand Prix",
+"Silverstone Circuit",
+"Silverstone",
+"United Kingdom"
+],
+"seasons": [
+2025
+],
+"parent_code": "british_grand_prix",
+"extra": {
+"season": 2025,
+"round": 12,
+"circuit_key": "british_grand_prix",
+"circuit_name": "Silverstone Circuit",
+"grand_prix": "British Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_13",
+"display": "2025 Belgian Grand Prix (round 13)",
+"aliases": [
+"Belgian Grand Prix",
+"Circuit de Spa-Francorchamps",
+"Spa-Francorchamps",
+"Belgium",
+"Spa",
+"Eau Rouge"
+],
+"seasons": [
+2025
+],
+"parent_code": "belgian_grand_prix",
+"extra": {
+"season": 2025,
+"round": 13,
+"circuit_key": "belgian_grand_prix",
+"circuit_name": "Circuit de Spa-Francorchamps",
+"grand_prix": "Belgian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_14",
+"display": "2025 Hungarian Grand Prix (round 14)",
+"aliases": [
+"Hungarian Grand Prix",
+"Hungaroring",
+"Budapest",
+"Hungary"
+],
+"seasons": [
+2025
+],
+"parent_code": "hungarian_grand_prix",
+"extra": {
+"season": 2025,
+"round": 14,
+"circuit_key": "hungarian_grand_prix",
+"circuit_name": "Hungaroring",
+"grand_prix": "Hungarian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_15",
+"display": "2025 Dutch Grand Prix (round 15)",
+"aliases": [
+"Dutch Grand Prix",
+"Circuit Zandvoort",
+"Zandvoort",
+"Netherlands"
+],
+"seasons": [
+2025
+],
+"parent_code": "dutch_grand_prix",
+"extra": {
+"season": 2025,
+"round": 15,
+"circuit_key": "dutch_grand_prix",
+"circuit_name": "Circuit Zandvoort",
+"grand_prix": "Dutch Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_16",
+"display": "2025 Italian Grand Prix (round 16)",
+"aliases": [
+"Italian Grand Prix",
+"Autodromo Nazionale Monza",
+"Monza",
+"Italy",
+"Temple of Speed"
+],
+"seasons": [
+2025
+],
+"parent_code": "italian_grand_prix",
+"extra": {
+"season": 2025,
+"round": 16,
+"circuit_key": "italian_grand_prix",
+"circuit_name": "Autodromo Nazionale Monza",
+"grand_prix": "Italian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_17",
+"display": "2025 Azerbaijan Grand Prix (round 17)",
+"aliases": [
+"Azerbaijan Grand Prix",
+"Baku City Circuit",
+"Baku",
+"Azerbaijan"
+],
+"seasons": [
+2025
+],
+"parent_code": "azerbaijan_grand_prix",
+"extra": {
+"season": 2025,
+"round": 17,
+"circuit_key": "azerbaijan_grand_prix",
+"circuit_name": "Baku City Circuit",
+"grand_prix": "Azerbaijan Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_18",
+"display": "2025 Singapore Grand Prix (round 18)",
+"aliases": [
+"Singapore Grand Prix",
+"Marina Bay Street Circuit",
+"Marina Bay",
+"Singapore"
+],
+"seasons": [
+2025
+],
+"parent_code": "singapore_grand_prix",
+"extra": {
+"season": 2025,
+"round": 18,
+"circuit_key": "singapore_grand_prix",
+"circuit_name": "Marina Bay Street Circuit",
+"grand_prix": "Singapore Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_19",
+"display": "2025 United States Grand Prix (round 19)",
+"aliases": [
+"United States Grand Prix",
+"Circuit of the Americas",
+"Austin",
+"United States",
+"COTA"
+],
+"seasons": [
+2025
+],
+"parent_code": "united_states_grand_prix",
+"extra": {
+"season": 2025,
+"round": 19,
+"circuit_key": "united_states_grand_prix",
+"circuit_name": "Circuit of the Americas",
+"grand_prix": "United States Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_2",
+"display": "2025 Chinese Grand Prix (round 2)",
+"aliases": [
+"Chinese Grand Prix",
+"Shanghai International Circuit",
+"Shanghai",
+"China"
+],
+"seasons": [
+2025
+],
+"parent_code": "chinese_grand_prix",
+"extra": {
+"season": 2025,
+"round": 2,
+"circuit_key": "chinese_grand_prix",
+"circuit_name": "Shanghai International Circuit",
+"grand_prix": "Chinese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_20",
+"display": "2025 Mexico City Grand Prix (round 20)",
+"aliases": [
+"Mexico City Grand Prix",
+"Autodromo Hermanos Rodriguez",
+"Mexico City",
+"Mexico",
+"Hermanos Rodriguez"
+],
+"seasons": [
+2025
+],
+"parent_code": "mexico_city_grand_prix",
+"extra": {
+"season": 2025,
+"round": 20,
+"circuit_key": "mexico_city_grand_prix",
+"circuit_name": "Autodromo Hermanos Rodriguez",
+"grand_prix": "Mexico City Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_21",
+"display": "2025 São Paulo Grand Prix (round 21)",
+"aliases": [
+"São Paulo Grand Prix",
+"Autodromo Jose Carlos Pace",
+"São Paulo",
+"Brazil",
+"Interlagos",
+"Sao Paulo"
+],
+"seasons": [
+2025
+],
+"parent_code": "são_paulo_grand_prix",
+"extra": {
+"season": 2025,
+"round": 21,
+"circuit_key": "são_paulo_grand_prix",
+"circuit_name": "Autodromo Jose Carlos Pace",
+"grand_prix": "São Paulo Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_22",
+"display": "2025 Las Vegas Grand Prix (round 22)",
+"aliases": [
+"Las Vegas Grand Prix",
+"Las Vegas Street Circuit",
+"Las Vegas",
+"United States"
+],
+"seasons": [
+2025
+],
+"parent_code": "las_vegas_grand_prix",
+"extra": {
+"season": 2025,
+"round": 22,
+"circuit_key": "las_vegas_grand_prix",
+"circuit_name": "Las Vegas Street Circuit",
+"grand_prix": "Las Vegas Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_23",
+"display": "2025 Qatar Grand Prix (round 23)",
+"aliases": [
+"Qatar Grand Prix",
+"Lusail International Circuit",
+"Lusail",
+"Qatar"
+],
+"seasons": [
+2025
+],
+"parent_code": "qatar_grand_prix",
+"extra": {
+"season": 2025,
+"round": 23,
+"circuit_key": "qatar_grand_prix",
+"circuit_name": "Lusail International Circuit",
+"grand_prix": "Qatar Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_24",
+"display": "2025 Abu Dhabi Grand Prix (round 24)",
+"aliases": [
+"Abu Dhabi Grand Prix",
+"Yas Marina Circuit",
+"Yas Island",
+"United Arab Emirates",
+"Yas Marina",
+"Abu Dhabi"
+],
+"seasons": [
+2025
+],
+"parent_code": "abu_dhabi_grand_prix",
+"extra": {
+"season": 2025,
+"round": 24,
+"circuit_key": "abu_dhabi_grand_prix",
+"circuit_name": "Yas Marina Circuit",
+"grand_prix": "Abu Dhabi Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_3",
+"display": "2025 Japanese Grand Prix (round 3)",
+"aliases": [
+"Japanese Grand Prix",
+"Suzuka Circuit",
+"Suzuka",
+"Japan"
+],
+"seasons": [
+2025
+],
+"parent_code": "japanese_grand_prix",
+"extra": {
+"season": 2025,
+"round": 3,
+"circuit_key": "japanese_grand_prix",
+"circuit_name": "Suzuka Circuit",
+"grand_prix": "Japanese Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_4",
+"display": "2025 Bahrain Grand Prix (round 4)",
+"aliases": [
+"Bahrain Grand Prix",
+"Bahrain International Circuit",
+"Sakhir",
+"Bahrain"
+],
+"seasons": [
+2025
+],
+"parent_code": "bahrain_grand_prix",
+"extra": {
+"season": 2025,
+"round": 4,
+"circuit_key": "bahrain_grand_prix",
+"circuit_name": "Bahrain International Circuit",
+"grand_prix": "Bahrain Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_5",
+"display": "2025 Saudi Arabian Grand Prix (round 5)",
+"aliases": [
+"Saudi Arabian Grand Prix",
+"Jeddah Corniche Circuit",
+"Jeddah",
+"Saudi Arabia"
+],
+"seasons": [
+2025
+],
+"parent_code": "saudi_arabian_grand_prix",
+"extra": {
+"season": 2025,
+"round": 5,
+"circuit_key": "saudi_arabian_grand_prix",
+"circuit_name": "Jeddah Corniche Circuit",
+"grand_prix": "Saudi Arabian Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_6",
+"display": "2025 Miami Grand Prix (round 6)",
+"aliases": [
+"Miami Grand Prix",
+"Miami International Autodrome",
+"Miami Gardens",
+"United States"
+],
+"seasons": [
+2025
+],
+"parent_code": "miami_grand_prix",
+"extra": {
+"season": 2025,
+"round": 6,
+"circuit_key": "miami_grand_prix",
+"circuit_name": "Miami International Autodrome",
+"grand_prix": "Miami Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_7",
+"display": "2025 Emilia Romagna Grand Prix (round 7)",
+"aliases": [
+"Emilia Romagna Grand Prix",
+"Autodromo Enzo e Dino Ferrari",
+"Imola",
+"Italy"
+],
+"seasons": [
+2025
+],
+"parent_code": "emilia_romagna_grand_prix",
+"extra": {
+"season": 2025,
+"round": 7,
+"circuit_key": "emilia_romagna_grand_prix",
+"circuit_name": "Autodromo Enzo e Dino Ferrari",
+"grand_prix": "Emilia Romagna Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_8",
+"display": "2025 Monaco Grand Prix (round 8)",
+"aliases": [
+"Monaco Grand Prix",
+"Circuit de Monaco",
+"Monaco",
+"Monte Carlo"
+],
+"seasons": [
+2025
+],
+"parent_code": "monaco_grand_prix",
+"extra": {
+"season": 2025,
+"round": 8,
+"circuit_key": "monaco_grand_prix",
+"circuit_name": "Circuit de Monaco",
+"grand_prix": "Monaco Grand Prix"
+}
+},
+{
+"domain": "race",
+"code": "2025_9",
+"display": "2025 Spanish Grand Prix (round 9)",
+"aliases": [
+"Spanish Grand Prix",
+"Circuit de Barcelona-Catalunya",
+"Barcelona",
+"Spain",
+"Catalunya",
+"Montmelo"
+],
+"seasons": [
+2025
+],
+"parent_code": "spanish_grand_prix",
+"extra": {
+"season": 2025,
+"round": 9,
+"circuit_key": "spanish_grand_prix",
+"circuit_name": "Circuit de Barcelona-Catalunya",
+"grand_prix": "Spanish Grand Prix"
+}
+},
+{
+"domain": "season",
+"code": "2018",
+"display": "2018 season",
+"aliases": [
+"2018"
+],
+"seasons": [
+2018
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "season",
+"code": "2019",
+"display": "2019 season",
+"aliases": [
+"2019"
+],
+"seasons": [
+2019
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "season",
+"code": "2020",
+"display": "2020 season",
+"aliases": [
+"2020"
+],
+"seasons": [
+2020
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "season",
+"code": "2021",
+"display": "2021 season",
+"aliases": [
+"2021"
+],
+"seasons": [
+2021
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "season",
+"code": "2022",
+"display": "2022 season",
+"aliases": [
+"2022"
+],
+"seasons": [
+2022
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "season",
+"code": "2023",
+"display": "2023 season",
+"aliases": [
+"2023"
+],
+"seasons": [
+2023
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "season",
+"code": "2024",
+"display": "2024 season",
+"aliases": [
+"2024"
+],
+"seasons": [
+2024
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "season",
+"code": "2025",
+"display": "2025 season",
+"aliases": [
+"2025"
+],
+"seasons": [
+2025
+],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "stint_end_cause",
+"code": "green_pit",
+"display": "green pit",
+"aliases": [
+"green_pit",
+"green pit",
+"planned pit stop",
+"green flag pit"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "stint_end_cause",
+"code": "race_end",
+"display": "race end",
+"aliases": [
+"race_end",
+"race end",
+"chequered flag",
+"finished"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "stint_end_cause",
+"code": "red",
+"display": "red",
+"aliases": [
+"red",
+"red flag stop"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "stint_end_cause",
+"code": "retirement",
+"display": "retirement",
+"aliases": [
+"retirement",
+"DNF",
+"retired"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "stint_end_cause",
+"code": "sc_pit",
+"display": "sc pit",
+"aliases": [
+"sc_pit",
+"sc pit",
+"pitted under safety car"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {}
+},
+{
+"domain": "stint_end_cause",
+"code": "vsc_pit",
+"display": "vsc pit",
+"aliases": [
+"vsc_pit",
+"vsc pit",
+"pitted under virtual safety car"
+],
+"seasons": [],
+"parent_code": null,
+"extra": {}
+}
+]

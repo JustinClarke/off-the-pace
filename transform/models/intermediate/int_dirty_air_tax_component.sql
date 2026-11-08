@@ -351,6 +351,10 @@ with_tax AS (
             WHEN ta.theta_air * wl.dirty_air_share_lag1 > 5.0 THEN 5.0
             ELSE ta.theta_air * wl.dirty_air_share_lag1
         END AS dirty_air_tax_s,
+        -- dirty_air_tax_se_s is a CONVENTION, not an estimate: 0.15 × the tax.
+        -- Zero on clean-air laps; NOT propagated from θ's interval. Do not
+        -- quote it as a standard error (TX-04; pinned by
+        -- assert_dirty_air_se_is_declared_convention).
         ABS(ta.theta_air * wl.dirty_air_share_lag1 * 0.15)
             AS dirty_air_tax_se_s,
         -- Continuous shrinkage-towards-prior: n / (n + k) where k = 500 (prior

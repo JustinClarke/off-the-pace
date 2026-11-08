@@ -17,7 +17,9 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install --with-deps chromium",
-    "bundlesize": "node scripts/check_bundle_size.mjs"
+    "bundlesize": "node scripts/check_bundle_size.mjs",
+    "assistant-cli": "node scripts/assistant-cli.mjs",
+    "assistant-eval": "node scripts/assistant-eval.mjs"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.29.0",

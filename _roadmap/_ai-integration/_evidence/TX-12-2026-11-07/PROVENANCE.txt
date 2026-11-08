@@ -1,0 +1,44 @@
+TX-12 — export_app_data.py --db / --out, guard, scripts/tests/   (2026-11-07, lane B)
+
+Files changed
+  scripts/export_app_data.py          (diff: export_app_data.diff)
+    - build_parser() added; --db PATH (default DB_PATH), --out DIR (default APP_DATA)
+    - main(argv=None) passes db_path/out_root to run_export(); module constants not reassigned
+    - run_export(..., db_path=None, out_root=None); _run_export_to connects to db_path;
+      --check compares against <out_root>/_manifest.json (default APP_DATA, as before)
+    - guard: non-default --db + out == APP_DATA + no --check -> exit 2,
+      "refusing to write a scratch warehouse into app/public/data; pass --out"
+    - Usage block in module docstring lists the two flags and which paths do NOT follow --db
+  scripts/tests/conftest.py            (new; puts scripts/ on sys.path)
+  scripts/tests/test_export_app_data.py (new; 4 tests)
+  No Makefile change. No TABLES entry, stats key or manifest field changed.
+
+Scratch: S=<scratchpad>/laneB ; $S/dev.duckdb copied from <scratchpad>/base/dev.duckdb. No dbt run.
+
+Commands and results
+  1. Before edit: .venv/bin/python scripts/export_app_data.py --check > check_before.txt  -> exit 1
+     (DRIFT DETECTED: served manifest is stale, the known TX-11 state)
+  2. After edit:  same command > check_after.txt -> exit 1 (same)
+     Masked diff (temp-dir name, and the fct_telemetry_deltas total size) -> IDENTICAL.
+     The telemetry total size jitters between runs of the SAME code (199.98 / 199.96 / 199.98 MB in
+     check_before / check_after / check_after2): DuckDB parallel COPY, not this change.
+  3. Guard: --db $S/dev.duckdb (no --out, no --check) -> exit 2, message printed, nothing written (guard.txt)
+  4. Scratch export: --db $S/dev.duckdb --out $S/tx-12/out -> exit 0 (export_scratch.txt)
+     stats: total_laps 161040, total_drivers 43, total_events 6, total_circuits 36, dbt_models 97
+  5. Scratch check: --db $S/dev.duckdb --out $S/tx-12/out --check -> "No drift manifest is current." exit 0
+  6. .venv/bin/python -m py_compile scripts/export_app_data.py -> ok
+  7. .venv/bin/python -m pytest scripts/tests -q -> 4 passed, 0 failed
+     (parser defaults; main() spy gets DB_PATH/APP_DATA; tiny-db round trip export -> check 0 ->
+      insert fct_lap_residuals row -> check 1; guard exit 2 with app/public/data/_manifest.json mtime unchanged)
+  8. git status --short app/public/data -> empty
+
+Notes for later items
+  - stats.dbt_models comes from transform/target/manifest.json, ML parquet from data/marts/ and
+    ml/model_card.json: these do not follow --db (by spec). A scratch dbt build with its own
+    --target-path still reports the repo's model count.
+  - The scratch base copy differs from data/dev.duckdb (e.g. fct_telemetry_deltas 7.34 MB vs ~200 MB,
+    total_events 6). Not investigated; not this item.
+
+Not verified
+  - make app-data was NOT run (HD12). The default full-write path (no --check) was not executed;
+    it is covered by code reading and the main() spy test only.

@@ -261,7 +261,8 @@ vars:
   # int_field_pace_curve (W10, v17, owner ruling 2b): how many green laps after an SC or red
   # flag take their own trimmed mean as the base instead of a smoothed window. Was 2. The
   # third lap leaned -0.185 s (smoothed minus own trimmed mean, 100 cells, v16 dev build)
-  # and the fourth -0.051 s. Changing it moves the label (label version v17).
+  # and the fourth -0.051 s. Changing it moves the label (label version v16, sealed
+  # 2026-10-26 by CO-33; per D11 v16 is the transform label and v17 the ML model).
   field_restart_adjacent_laps: 4
   # DA-02 (_roadmap/_dirty-air): the micro-sector panel. microsector_n = micro-sectors per lap
   # (DD8, owner 2026-10-24: 20, fixed for every circuit; 10 is the pre-registered
@@ -325,6 +326,18 @@ vars:
   # interim) -> 0.331. To move it: rebuild, re-run d1/d2 on the new panel,
   # edit this var, re-take seeds/label_stability_baseline.csv.
   theta_air_label_value: 0.331
+  # Method tag for every dirty-air number (TX-04): flat theta_air_label_value
+  # x lagged dirty-air share, not validated (WC-03/04 closed with no verdict,
+  # DD-WC15). It MUST change whenever theta_air_label_value or the dirty-air
+  # method changes. No mart column carries it; TX-05's mart_build_provenance
+  # carries it once and each card carries it in `versions`.
+  dirty_air_method: 'flat_theta_0.331_lag1_share_unvalidated'
+  # Transform label version and the date it was sealed (TX-05; D11: v16 is the
+  # transform label, v17 the ML model). A label bump edits BOTH vars in the same
+  # change that re-takes seeds/label_stability_baseline.csv. Published once, in
+  # mart_build_provenance (and so in the app manifest's `provenance` block).
+  label_version: 'v16'
+  label_sealed_on: '2026-10-26'
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]

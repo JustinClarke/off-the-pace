@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useProvenance } from '../../data/provenance'
+import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import ChampionshipChart from './ChampionshipChart'
@@ -42,6 +43,7 @@ function Select({
 }
 
 export default function CounterfactualChampionshipPage() {
+  const prov = useProvenance()
   const { season } = useFilters()
   const [searchParams, setSearchParams] = useSearchParams()
   const hostConstructorId = searchParams.get('constructor') ?? ''
@@ -49,7 +51,11 @@ export default function CounterfactualChampionshipPage() {
   const setConstructor = (v: string) =>
     setSearchParams(p => { v ? p.set('constructor', v) : p.delete('constructor'); return p }, { replace: true })
 
+  // Clear 'constructor' when the season changes, not on mount, so a deep link survives load (AX-03)
+  const prevSeason = useRef(season)
   useEffect(() => {
+    if (prevSeason.current === season) return
+    prevSeason.current = season
     setSearchParams(p => { p.delete('constructor'); return p }, { replace: true })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [season])
@@ -92,7 +98,7 @@ export default function CounterfactualChampionshipPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018-2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={result ? toCsvRows(result.ghostStandings) : undefined}
       csvFilename={`counterfactual-championship-${season}-${hostConstructorId || 'all'}.csv`}
       isLoading={isLoading && ready}

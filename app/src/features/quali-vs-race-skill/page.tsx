@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import QualiVsRaceChart from './QualiVsRaceChart'
 import { methodologyContent, methodologyHref } from './methodology'
@@ -8,6 +9,7 @@ import './queries'
 import type { QualiVsRaceRow } from './queries'
 
 export default function QualiVsRacePage() {
+  const prov = useProvenance()
   const { season } = useFilters()
   const { data, isLoading, error } = useQuery<QualiVsRaceRow[]>(
     'quali-vs-race.season',
@@ -36,7 +38,7 @@ export default function QualiVsRacePage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025', nObs: result?.points.length }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion, nObs: result?.points.length }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename={`quali-vs-race-${season}.csv`}
       isLoading={isLoading}

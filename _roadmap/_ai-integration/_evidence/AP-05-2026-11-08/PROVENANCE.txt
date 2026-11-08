@@ -1,0 +1,8 @@
+AP-05 (2026-11-08, lane H). Not committed.
+Files: app/src/features/constructor-team-averages/{queries,transform,transform.test,page}.ts(x)
+Change: dirty air averaged only over laps with pace_delta_s IS NOT NULL (per race, then equal weight per race, as before); n_dirty_air_laps returned
+ (SUM of per-race measured counts); avg_dirty_air_tax_s NULL when n=0; transform maps n=0 to null even if a stale 0 arrives; page renders "unavailable"; CSV blank.
+Other columns unchanged.
+SQL fixture (python duckdb, the query text lifted from queries.ts, 5-lap synthetic table): team all filled zeros -> NULL, n=0; mixed team (measured 0.4 in r1, 0.2 in r2, one filled 0) -> 0.3, n=2 (filled zero excluded).
+Vitest: constructor-team-averages 7 passed (was 5 before, +2 AP-05 tests). Full vitest/typecheck: see lane report.
+Not run: visual check, real-data values (app/public/data off limits).

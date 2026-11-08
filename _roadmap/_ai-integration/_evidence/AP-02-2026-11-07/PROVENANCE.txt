@@ -1,0 +1,9 @@
+AP-02 provenance from manifests (2026-11-08). Not committed.
+NEW app/src/data/provenance.ts (useProvenance, deriveProvenance), provenance.test.ts, app/src/ui/methodology/Provenance.test.tsx.
+Changed: Provenance.tsx + FeaturePage.tsx footer (dataVersion -> data:<8>, labelVersion -> "label v16"), data/manifest.ts (optional provenance type),
+  degradation-simulator/page.tsx (model version/fingerprint from model manifest; ONNX parity moved to a labelled note, value derived),
+  28 feature page.tsx files replaced literal dataWindow with the hook (incl. tyre-cliff-survival fallback).
+Kept (computed): model-metrics, blind-test-scoreboard, ghost-race-standings (eraLabel).
+Greps: dataWindow: '2018 -> none; b8a37b7c / modelVersion: '3' -> none in src (test fixtures 'vT' only).
+Tests: full vitest 704 passed, 2 failed (pre-existing). typecheck clean. lint: 3 errors all in pre-existing profileLookup.test.ts.
+Not run: pnpm dev / e2e. Served manifest has no provenance block yet, so the label chip renders only after the TX-11 re-export.

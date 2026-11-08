@@ -1,8 +1,10 @@
 import {
-  MAX_BODY_BYTES, MAX_MESSAGES, MAX_MESSAGE_CHARS, MAX_OUTPUT_TOKENS, MODEL, NEURONS_PER_M_INPUT,
-  NEURONS_PER_M_OUTPUT, PAUSED_MESSAGE, REASONING, SYSTEM_PROMPT, TOOLS,
+  CATALOGUE_VERSION, DEFAULT_DAILY_NEURON_CAP, DEFAULT_VISITOR_DAILY_LIMIT, MAX_BODY_BYTES, MAX_MESSAGES,
+  MAX_MESSAGE_CHARS, MAX_OUTPUT_TOKENS, MAX_ROUNDS, MAX_TOOL_MESSAGE_CHARS, MODEL, NEURONS_PER_M_INPUT,
+  NEURONS_PER_M_OUTPUT, PAUSED_MESSAGE, REASONING, SYSTEM_PROMPT, TICKET_TTL_S, TOOLS,
 } from "./config";
 import { dayKey, type Ledger } from "./ledger";
+import { signTicket, verifyTicket } from "./ticket";
 
 export interface Env {
   AI: { run(model: string, input: unknown): Promise<any> };
@@ -13,6 +15,8 @@ export interface Env {
   VISITOR_DAILY_LIMIT?: string;
   TURNSTILE_ENABLED?: string;
   TURNSTILE_SECRET?: string;
+  /** HMAC key for question tickets (wrangler secret). */
+  TICKET_SECRET?: string;
   ADMIN_TOKEN?: string;
 }
 export interface Deps {
@@ -37,7 +41,7 @@ function cors(req: Request, env: Env): Record<string, string> {
   if (allowed.includes(origin)) {
     h["Access-Control-Allow-Origin"] = origin;
     h["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS";
-    h["Access-Control-Allow-Headers"] = "Content-Type, X-Turnstile-Token, Authorization";
+    h["Access-Control-Allow-Headers"] = "Content-Type, X-Turnstile-Token, X-Question-Ticket, X-Catalogue-Version, Authorization";
   }
   return h;
 }
@@ -67,7 +71,7 @@ export function parseMessages(raw: unknown): Msg[] | null {
   for (const m of list) {
     if (!m || typeof m !== "object") return null;
     if (!["user", "assistant", "tool"].includes(m.role)) return null; // no client "system"
-    if (typeof m.content !== "string" || m.content.length > MAX_MESSAGE_CHARS) return null;
+    if (typeof m.content !== "string" || m.content.length > (m.role === "tool" ? MAX_TOOL_MESSAGE_CHARS : MAX_MESSAGE_CHARS)) return null;
     const msg: Msg = { role: m.role, content: m.content };
     if (m.role === "assistant" && Array.isArray(m.tool_calls)) msg.tool_calls = m.tool_calls;
     if (m.role === "tool" && typeof m.tool_call_id === "string") msg.tool_call_id = m.tool_call_id;
@@ -107,10 +111,13 @@ export async function handle(req: Request, env: Env, deps: Deps): Promise<Respon
     const origin = req.headers.get("Origin") ?? "";
     if (!c["Access-Control-Allow-Origin"]) return json({ error: "origin_not_allowed", origin }, 403, c);
 
+    // 0. Version skew: before Turnstile and before any slot is spent.
+    if (req.headers.get("X-Catalogue-Version") !== CATALOGUE_VERSION) return json({ error: "app_updated" }, 409, c);
+
     // 1. Pause switch (config value, or the stored flag set by /admin/pause). Checked before the
     //    single-use Turnstile token is spent.
     const st = await deps.ledger.state(day);
-    const cap = Number(env.DAILY_NEURON_CAP ?? 90909);
+    const cap = Number(env.DAILY_NEURON_CAP ?? DEFAULT_DAILY_NEURON_CAP);
     if (env.AI_PAUSED === "true" || st.paused || st.exhausted || st.neurons >= cap)
       return json({ error: "paused", message: PAUSED_MESSAGE }, 503, c);
 
@@ -124,25 +131,35 @@ export async function handle(req: Request, env: Env, deps: Deps): Promise<Respon
     const messages = parseMessages(parsed);
     if (!messages) return json({ error: "bad_request" }, 400, c);
 
-    // 3. Turnstile.
-    if (env.TURNSTILE_ENABLED !== "false") {
-      const token = req.headers.get("X-Turnstile-Token") ?? "";
-      const ip = req.headers.get("CF-Connecting-IP") ?? "";
-      let ok = false;
-      if (token && env.TURNSTILE_SECRET) {
-        const form = new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token });
-        if (ip) form.set("remoteip", ip);
-        const r = await deps.fetch(SITEVERIFY, { method: "POST", body: form });
-        ok = r.ok && ((await r.json()) as any).success === true;
-      }
-      if (!ok) return json({ error: "abuse_check_failed" }, 403, c);
-    }
-
-    // 4. Per-visitor daily limit.
+    // 3. Who is asking. Round 1 of a question: Turnstile, then a visitor slot, then a ticket.
+    //    Rounds 2-5: the ticket from the previous response (no Turnstile, no slot).
+    if (!env.TICKET_SECRET) return json({ error: "internal_error" }, 500, c);
     const visitor = await hashVisitor(req.headers.get("CF-Connecting-IP") ?? "unknown", day);
-    const limit = Number(env.VISITOR_DAILY_LIMIT ?? 10);
-    if (!(await deps.ledger.takeVisitorSlot(day, visitor, limit)))
-      return json({ error: "visitor_limit", message: "daily question limit reached" }, 429, c);
+    const presented = req.headers.get("X-Question-Ticket");
+    let q: string;
+    if (presented) {
+      const p = await verifyTicket(env.TICKET_SECRET, presented, deps.now().getTime());
+      if (!p || p.v !== visitor) return json({ error: "abuse_check_failed" }, 403, c);
+      q = p.q;
+    } else {
+      if (env.TURNSTILE_ENABLED !== "false") {
+        const token = req.headers.get("X-Turnstile-Token") ?? "";
+        const ip = req.headers.get("CF-Connecting-IP") ?? "";
+        let ok = false;
+        if (token && env.TURNSTILE_SECRET) {
+          const form = new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token });
+          if (ip) form.set("remoteip", ip);
+          const r = await deps.fetch(SITEVERIFY, { method: "POST", body: form });
+          ok = r.ok && ((await r.json()) as any).success === true;
+        }
+        if (!ok) return json({ error: "abuse_check_failed" }, 403, c);
+      }
+      const limit = Number(env.VISITOR_DAILY_LIMIT ?? DEFAULT_VISITOR_DAILY_LIMIT);
+      if (!(await deps.ledger.takeVisitorSlot(day, visitor, limit)))
+        return json({ error: "visitor_limit", message: "daily question limit reached" }, 429, c);
+      q = [...crypto.getRandomValues(new Uint8Array(12))].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+    if (!(await deps.ledger.takeRound(day, q, MAX_ROUNDS))) return json({ error: "round_limit" }, 429, c);
 
     // 5. Model call: everything but the messages is fixed here.
     let result: any;
@@ -167,7 +184,8 @@ export async function handle(req: Request, env: Env, deps: Deps): Promise<Respon
     await deps.ledger.record(day, neurons);
     if (!message) return json({ error: "upstream_error" }, 502, c);
     // Tool calls are passed through untouched; the Worker never runs a query.
-    return json({ message, usage: result?.usage ?? null }, 200, c);
+    const ticket = await signTicket(env.TICKET_SECRET, { v: visitor, q, exp: Math.floor(deps.now().getTime() / 1000) + TICKET_TTL_S });
+    return json({ message, usage: result?.usage ?? null, ticket }, 200, c);
   } catch (e) {
     deps.log(redact(`error: ${String((e as any)?.message ?? e)}`, env));
     return json({ error: "internal_error" }, 500, c);

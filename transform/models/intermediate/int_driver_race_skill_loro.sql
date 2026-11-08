@@ -171,26 +171,18 @@ driver_race_agg AS (
     GROUP BY race_year, race_id, constructor_id, driver_id
 ),
 
--- F40 / FD5 option C. Pair every clean lap with each same-car teammate's
--- clean lap on the SAME lap number. (race_year, race_id, driver_id,
--- lap_number) is unique in int_lap_fuel_state, so a two-driver car yields at
--- most one pair per lap per direction, and the teammate's row for a lap is
--- this row with the sign flipped.
+-- F40 / FD5 option C. Every clean lap paired with each same-car teammate's
+-- clean lap on the SAME lap number. TX-01: the pairing lives in
+-- int_driver_race_paired_laps (same clean filter as clean_panel above), so
+-- the race mart can build the CI for this median from the same rows.
 paired_laps AS (
     SELECT
-        own.race_year,
-        own.race_id,
-        own.constructor_id,
-        own.driver_id,
-        own.lap_time_s - mate.lap_time_s AS paired_delta_s
-    FROM clean_panel AS own
-    INNER JOIN clean_panel AS mate
-        ON
-            own.race_year = mate.race_year
-            AND own.race_id = mate.race_id
-            AND own.constructor_id = mate.constructor_id
-            AND own.lap_number = mate.lap_number
-            AND own.driver_id <> mate.driver_id
+        race_year,
+        race_id,
+        constructor_id,
+        driver_id,
+        paired_delta_s
+    FROM {{ ref('int_driver_race_paired_laps') }}
 ),
 
 paired_agg AS (

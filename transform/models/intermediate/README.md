@@ -38,7 +38,7 @@ All models are materialised as **tables**, except `int_lap_fuel_state_qualifying
 | `int_pit_strategy_value` | stint | Optimal pit lap (argmin of the cost curve) and the verdict on the actual one |
 | `int_qualifying_decomposed` | lap | Qualifying pace decomposition |
 | `int_lap_anomaly_flags` | lap | Anomaly classification (mistake, conditions, etc.) |
-| `int_event_corrections` | lap | Manual correction weights from `stg_events` |
+| `int_event_corrections` | lap | Manual correction weights from `stg_laps` and the `seed_manual_lap_exceptions` seed (it does not read `stg_events`) |
 | `int_synthetic_teammate` | driver × race | Virtual teammate reference pace |
 | `int_driver_circuit_affinity` | driver × circuit | Bayesian-shrunken circuit gap to the teammate; `affinity_vs_driver_mean_s` = deviation from the driver's own mean (the drawn affinity, F44) |
 | `int_driver_season_ratings` | driver × season | Posterior season rating with CIs: median lap-by-lap gap to the teammate (F40), shrunk toward the season mean |

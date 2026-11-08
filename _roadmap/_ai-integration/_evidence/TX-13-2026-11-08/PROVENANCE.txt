@@ -1,0 +1,18 @@
+TX-13 calibration_flag export - provenance (2026-11-08, lane R). Not committed.
+SCRATCH (S = /private/tmp/claude-501/-Users-justin-github-off-the-pace/bf41f451-ffc1-4ccc-bc71-e73e8a654460/scratchpad)
+  cp $S/laneE/dev.duckdb $S/laneR/dev.duckdb; $S/laneR/profiles.yml threads 1 + settings threads 1; $S/laneR/dbt.sh (--target-path/--log-path in laneR).
+  data/dev.duckdb, data/ci.duckdb, app/public/data: not touched. Baselines in transform/tests not touched.
+EDITS
+  transform/models/reference/dim_circuits.sql: + CAST(calibration_flag AS VARCHAR) AS calibration_flag
+  transform/models/reference/schema.yml: + calibration_flag (description from fit_weight_penalty.py: SKIPPED / INSUFFICIENT_DATA / REVIEW_REQUIRED; not_null)
+  transform/tests/assert_dim_circuits_calibration_flag_matches_seed.sql (new singular test, dim vs seed on every row)
+  scripts/tests/test_export_app_data.py: + test_tx13_exported_calibration_flag_equals_seed (env-gated TX13_EXPORT_DIR)
+RESULTS
+  before snapshot (snapshot_model_hashes.py --baseline $S/laneR/before.json): 99 models. After dbt run -s dim_circuits: only dim_circuits differs (99 compared).
+  dbt test dim_circuits + new test: 19 + 1 PASS. Values: 43 SKIPPED, 1 REVIEW_REQUIRED (no INSUFFICIENT_DATA on this build).
+  export $S/laneR/out (full, 13 s) then --check: "No drift manifest is current". Exported dimensions/dim_circuits.parquet equals seed on all 44 rows (pytest with TX13_EXPORT_DIR).
+  pytest scripts/tests: 53 passed, 3 skipped (with TX13_EXPORT_DIR set).
+NOTES
+  Producer only: CALIBRATION_FLAGGED_CIRCUIT fires once a card sets policy_fields.calibration_flag or the caveat from dim_circuits; no card kind reads dim_circuits yet.
+  dim_circuits model hash changes by design; a committed model_hashes baseline/data_profile (if it lists dim_circuits columns) needs the owner's re-baseline: not touched here.
+  The real app/public/data dim_circuits.parquet is not re-exported (HD12 run).

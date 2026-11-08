@@ -1,13 +1,11 @@
 // Read-only navigation and page-explainer tools for the assistant (AI-10).
-//   navigate(route, filters?)  validated against the app's own route table, shipped routes only
+//   navigate(route, params?)   v2 (AX-03): shipped routes only; each key and value validated
+//                              against routeParams.ts (the keys the page really reads)
 //   explainPage(pageId)        pre-cut docs summary (<= 800 tokens), generated at build time
 import { routes } from './routes'
+import { buildRouteUrl, routeParams } from './routeParams'
+import type { LinkResult } from './routeParams'
 import generated from './pageSummaries.generated.json'
-
-/** The only URL filters the app reads (see state/FilterContext.tsx). All are integers. */
-export const ALLOWED_FILTERS = ['season', 'race', 'driver', 'constructor'] as const
-export type FilterKey = (typeof ALLOWED_FILTERS)[number]
-export type NavFilters = Partial<Record<FilterKey, number>>
 
 /** Shipped routes with a concrete path. Dynamic routes (":param") are excluded: nothing resolves them. */
 /** Table-shipped routes that the built app renders as a "coming soon" stub: never navigable. */
@@ -62,24 +60,19 @@ export const routeToPageId: Record<string, string> = {
   '/data-quality': 'data-quality-audit',
 }
 
-export type NavResult = { ok: true; url: string } | { ok: false; error: string }
+export type NavResult = LinkResult
 
-export function navigate(route: string, filters: Record<string, unknown> = {}): NavResult {
+/**
+ * Read-only: returns a URL for a shipped route, never navigates. Values may be strings or
+ * numbers; every key must be one the route's page reads (routeParams.ts), and every value must
+ * match its pattern. Errors list the allowed keys.
+ */
+export function navigate(route: string, params: Record<string, unknown> = {}): NavResult {
   if (!shippedPaths.includes(route)) {
     return { ok: false, error: `Unknown or unshipped route "${route}". Shipped routes: ${shippedPaths.join(', ')}` }
   }
-  const params = new URLSearchParams()
-  for (const [k, v] of Object.entries(filters)) {
-    if (!(ALLOWED_FILTERS as readonly string[]).includes(k)) {
-      return { ok: false, error: `Filter "${k}" is not allowed. Allowed: ${ALLOWED_FILTERS.join(', ')}` }
-    }
-    if (typeof v !== 'number' || !Number.isInteger(v)) {
-      return { ok: false, error: `Filter "${k}" must be an integer` }
-    }
-    params.set(k, String(v))
-  }
-  const qs = params.toString()
-  return { ok: true, url: qs ? `${route}?${qs}` : route }
+  if (!routeParams[route]) return { ok: false, error: `Route "${route}" has no parameter schema` }
+  return buildRouteUrl(route, params)
 }
 
 export type ExplainResult =

@@ -7,6 +7,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "dev": "wrangler dev",
+    "gen-tools": "node scripts/gen-tools.mjs",
+    "gen-tools:check": "node scripts/gen-tools.mjs --check",
     "scan-bundle": "node scripts/scan-bundle.mjs ../app/dist"
   },
   "devDependencies": {

@@ -3,7 +3,8 @@ docs_facts.py   Headline-count reconciliation across key documentation files.
 
 Asserts that the numbers stated in README.md and the ML front-door pages agree for:
  -dbt model count
- -dbt test count
+ -dbt test count (both also checked against transform/target/manifest.json,
+  or --manifest PATH; skipped with a notice when absent unless --require-manifest)
  -ML model count
  -ML test count
  -ML feature count
@@ -19,6 +20,7 @@ CI:
 """
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -71,7 +73,46 @@ AUTHORITIES: dict[str, tuple[str, re.Pattern]] = {
 }
 
 
-def check_facts(quiet: bool = False) -> int:
+DEFAULT_MANIFEST = ROOT / "transform" / "target" / "manifest.json"
+
+
+def manifest_counts(path: Path) -> dict[str, int]:
+    """dbt models and data tests as `dbt build` counts them, read from a parsed manifest.
+
+    Models are resource_type "model" in this project's package; data tests are every
+    resource_type "test" node (generic + singular). Unit tests are not in the README figure.
+    """
+    nodes = json.loads(path.read_text(encoding="utf-8"))["nodes"].values()
+    return {
+        "dbt models": sum(1 for n in nodes if n["resource_type"] == "model" and n.get("package_name") == "off_the_pace"),
+        "dbt tests": sum(1 for n in nodes if n["resource_type"] == "test"),
+    }
+
+
+def check_manifest(texts: dict[str, str], manifest: Path, required: bool, quiet: bool) -> list[str]:
+    """Every README model/test figure must equal what the dbt manifest says."""
+    if not manifest.exists():
+        if required:
+            return [f"MISSING MANIFEST  {manifest} not found; run dbt parse first"]
+        if not quiet:
+            print(f"  SKIP dbt manifest check: {manifest} not found (pass --manifest or --require-manifest)")
+        return []
+    truth = manifest_counts(manifest)
+    errors: list[str] = []
+    for label, patterns in TARGETED:
+        if label not in truth:
+            continue
+        for name, text in texts.items():
+            found = {m for pattern in patterns for m in pattern.findall(text)}
+            bad = sorted(v for v in found if int(v) != truth[label])
+            if bad:
+                errors.append(f"MANIFEST MISMATCH  {label}: {name} says {bad}, dbt manifest has {truth[label]}")
+            elif found and not quiet:
+                print(f"  OK   {label}: {name} matches dbt manifest ({truth[label]})")
+    return errors
+
+
+def check_facts(quiet: bool = False, manifest: Path = DEFAULT_MANIFEST, require_manifest: bool = False) -> int:
     errors: list[str] = []
     texts: dict[str, str] = {}
     for name, path in FILES.items():
@@ -127,6 +168,8 @@ def check_facts(quiet: bool = False) -> int:
                     if authority_name else "")
             errors.append(f"MISMATCH  {label}: {per_file}{hint}")
 
+    errors += check_manifest(texts, manifest, require_manifest, quiet)
+
     if errors:
         print()
         for e in errors:
@@ -142,10 +185,13 @@ def check_facts(quiet: bool = False) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--quiet", action="store_true", help="Silent on success")
+    parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST,
+                        help="dbt manifest.json whose model/test counts the README must match")
+    parser.add_argument("--require-manifest", action="store_true", help="Fail if the manifest is missing")
     args = parser.parse_args(argv)
     if not args.quiet:
         print("── docs_facts: headline-count reconciliation ───────────────────────────────")
-    return check_facts(quiet=args.quiet)
+    return check_facts(quiet=args.quiet, manifest=args.manifest, require_manifest=args.require_manifest)
 
 
 if __name__ == "__main__":

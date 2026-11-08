@@ -1,0 +1,608 @@
+{
+  "generated": "2026-11-08",
+  "item": "AX-07",
+  "method": "Column classes from the AX-07a column-level read (ax-07a-lineage-2026-11-07/lineage.md, dbt parse manifest walk + SQL read), updated for TX-01/TX-02 columns that landed after it. Classes: T, T-F (filter-only air-state use, HD13: published as card class T with caveat AIR_STATE_FILTER), DA, TRAFFIC, ML.",
+  "defaults_applied": [
+    "Q1: fuel/compound/constructor components stacked against the skill bar are held (DA)",
+    "Q2: compound seed [S] is transform-only with a caveat",
+    "Q3: lap filters built on the taxed residual are DA",
+    "Q5: exposure shares and gaps are TRAFFIC"
+  ],
+  "rows": [
+    {
+      "source": "mart_race_driver_summary",
+      "column": "teammate_gap_s",
+      "class": "T-F",
+      "rule": "filter-only: int_lap_air_state reaches the value only through the rain filter COALESCE(e.rainfall_flag,FALSE)=FALSE joining int_track_evolution (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air",
+      "evidence": "transform/models/marts/mart_race_driver_summary.sql:109 (= rating_s when a teammate exists); ax-07a-lineage-2026-11-07/lineage.md section 1",
+      "kinds": [
+        "race.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "teammate_id",
+      "class": "T-F",
+      "rule": "filter-only: int_lap_air_state reaches the value only through the rain filter COALESCE(e.rainfall_flag,FALSE)=FALSE joining int_track_evolution (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air",
+      "evidence": "transform/models/marts/mart_race_driver_summary.sql:67-84 (picked by join on ratings, n_clean_laps tie-break)",
+      "kinds": [
+        "race.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "ci_low",
+      "class": "T-F",
+      "rule": "filter-only: int_lap_air_state reaches the value only through the rain filter COALESCE(e.rainfall_flag,FALSE)=FALSE joining int_track_evolution (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air",
+      "evidence": "TX-01: order-statistic CI of the paired-lap median (int_driver_race_paired_laps, macros/median_ci_order_rank.sql); replaces the old lap_se_s CI that ax-07a-lineage-2026-11-07/lineage.md:27 found DA",
+      "kinds": [
+        "race.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "ci_high",
+      "class": "T-F",
+      "rule": "filter-only: int_lap_air_state reaches the value only through the rain filter COALESCE(e.rainfall_flag,FALSE)=FALSE joining int_track_evolution (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air",
+      "evidence": "as ci_low",
+      "kinds": [
+        "race.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "paired_lap_count",
+      "class": "T-F",
+      "rule": "filter-only: int_lap_air_state reaches the value only through the rain filter COALESCE(e.rainfall_flag,FALSE)=FALSE joining int_track_evolution (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air",
+      "evidence": "TX-01: COUNT of paired clean laps in int_driver_race_paired_laps",
+      "kinds": [
+        "race.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "rating_trust_label",
+      "class": "T-F",
+      "rule": "filter-only: int_lap_air_state reaches the value only through the rain filter COALESCE(e.rainfall_flag,FALSE)=FALSE joining int_track_evolution (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air",
+      "evidence": "TX-01: CASE on paired_lap_count (suppressed < 6, thin < ok threshold)",
+      "kinds": [
+        "race.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "rating_s",
+      "class": "T-F",
+      "rule": "filter-only (as teammate_gap_s); read only to cross-check, not carried on a card",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md section 1 row 1",
+      "kinds": []
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "mean_dirty_air_tax_s",
+      "class": "DA",
+      "rule": "price: dirty_air_tax_s",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md 3.1",
+      "kinds": []
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "mean_fuel_component_s",
+      "class": "DA",
+      "rule": "owner default (AX-07 log note): components stacked against the skill bar are held with the decomposition",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md section 6 Q1",
+      "kinds": []
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "mean_compound_component_s",
+      "class": "DA",
+      "rule": "owner default (AX-07 log note): components stacked against the skill bar are held with the decomposition",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md section 6 Q1",
+      "kinds": []
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "mean_constructor_component_s",
+      "class": "DA",
+      "rule": "owner default (AX-07 log note): components stacked against the skill bar are held with the decomposition",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md section 6 Q1",
+      "kinds": []
+    },
+    {
+      "source": "mart_race_driver_summary",
+      "column": "laps_completed",
+      "class": "T",
+      "rule": "not used: counts valid timed laps, not classified laps; race.result reads stg_results instead",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md 3.1",
+      "kinds": []
+    },
+    {
+      "source": "stg_results",
+      "column": "finish_position",
+      "class": "T",
+      "rule": "staging of Jolpica results; no air-state, tax, WC or ML upstream (dbt ls: stg_results has no model parents)",
+      "evidence": "transform/models/staging/stg_results.sql",
+      "kinds": [
+        "race.result"
+      ]
+    },
+    {
+      "source": "stg_results",
+      "column": "classified_position",
+      "class": "T",
+      "rule": "staging of Jolpica results; no air-state, tax, WC or ML upstream (dbt ls: stg_results has no model parents)",
+      "evidence": "transform/models/staging/stg_results.sql",
+      "kinds": [
+        "race.result"
+      ]
+    },
+    {
+      "source": "stg_results",
+      "column": "grid_position",
+      "class": "T",
+      "rule": "staging of Jolpica results; no air-state, tax, WC or ML upstream (dbt ls: stg_results has no model parents)",
+      "evidence": "transform/models/staging/stg_results.sql",
+      "kinds": [
+        "race.result"
+      ]
+    },
+    {
+      "source": "stg_results",
+      "column": "status",
+      "class": "T",
+      "rule": "staging of Jolpica results; no air-state, tax, WC or ML upstream (dbt ls: stg_results has no model parents)",
+      "evidence": "transform/models/staging/stg_results.sql",
+      "kinds": [
+        "race.result"
+      ]
+    },
+    {
+      "source": "stg_results",
+      "column": "is_classified",
+      "class": "T",
+      "rule": "staging of Jolpica results; no air-state, tax, WC or ML upstream (dbt ls: stg_results has no model parents)",
+      "evidence": "transform/models/staging/stg_results.sql",
+      "kinds": [
+        "race.result"
+      ]
+    },
+    {
+      "source": "stg_results",
+      "column": "points",
+      "class": "T",
+      "rule": "staging of Jolpica results; no air-state, tax, WC or ML upstream (dbt ls: stg_results has no model parents)",
+      "evidence": "transform/models/staging/stg_results.sql",
+      "kinds": [
+        "race.result"
+      ]
+    },
+    {
+      "source": "mart_race_coverage",
+      "column": "coverage_reason",
+      "class": "T",
+      "rule": "data-availability codes (TX-02): counts and presence shares only. Reads fct_lap_residuals for row counts and NULL-presence shares (mart_race_coverage.sql:51), int_lap_air_state only for the share of laps with a non-NULL air_state_dominant (:58-60, a presence test, never a gap, share-of-traffic or price), int_driver_race_skill_loro for the rated-driver count (:84)",
+      "evidence": "transform/models/marts/mart_race_coverage.sql; _evidence/TX-02-2026-11-07/PROVENANCE.txt DERIVATIONS",
+      "kinds": [
+        "race.coverage"
+      ]
+    },
+    {
+      "source": "mart_race_coverage",
+      "column": "n_lap_rows",
+      "class": "T",
+      "rule": "data-availability codes (TX-02): counts and presence shares only. Reads fct_lap_residuals for row counts and NULL-presence shares (mart_race_coverage.sql:51), int_lap_air_state only for the share of laps with a non-NULL air_state_dominant (:58-60, a presence test, never a gap, share-of-traffic or price), int_driver_race_skill_loro for the rated-driver count (:84)",
+      "evidence": "transform/models/marts/mart_race_coverage.sql; _evidence/TX-02-2026-11-07/PROVENANCE.txt DERIVATIONS",
+      "kinds": [
+        "race.coverage"
+      ]
+    },
+    {
+      "source": "mart_race_coverage",
+      "column": "n_rated_drivers",
+      "class": "T",
+      "rule": "data-availability codes (TX-02): counts and presence shares only. Reads fct_lap_residuals for row counts and NULL-presence shares (mart_race_coverage.sql:51), int_lap_air_state only for the share of laps with a non-NULL air_state_dominant (:58-60, a presence test, never a gap, share-of-traffic or price), int_driver_race_skill_loro for the rated-driver count (:84)",
+      "evidence": "transform/models/marts/mart_race_coverage.sql; _evidence/TX-02-2026-11-07/PROVENANCE.txt DERIVATIONS",
+      "kinds": [
+        "race.coverage"
+      ]
+    },
+    {
+      "source": "mart_race_coverage",
+      "column": "has_rating",
+      "class": "T",
+      "rule": "data-availability codes (TX-02): counts and presence shares only. Reads fct_lap_residuals for row counts and NULL-presence shares (mart_race_coverage.sql:51), int_lap_air_state only for the share of laps with a non-NULL air_state_dominant (:58-60, a presence test, never a gap, share-of-traffic or price), int_driver_race_skill_loro for the rated-driver count (:84)",
+      "evidence": "transform/models/marts/mart_race_coverage.sql; _evidence/TX-02-2026-11-07/PROVENANCE.txt DERIVATIONS",
+      "kinds": [
+        "race.coverage"
+      ]
+    },
+    {
+      "source": "mart_race_coverage",
+      "column": "has_telemetry",
+      "class": "T",
+      "rule": "data-availability codes (TX-02): counts and presence shares only. Reads fct_lap_residuals for row counts and NULL-presence shares (mart_race_coverage.sql:51), int_lap_air_state only for the share of laps with a non-NULL air_state_dominant (:58-60, a presence test, never a gap, share-of-traffic or price), int_driver_race_skill_loro for the rated-driver count (:84)",
+      "evidence": "transform/models/marts/mart_race_coverage.sql; _evidence/TX-02-2026-11-07/PROVENANCE.txt DERIVATIONS",
+      "kinds": [
+        "race.coverage"
+      ]
+    },
+    {
+      "source": "race_caution_timeline",
+      "column": "lap_number",
+      "class": "T",
+      "rule": "export-derived view over int_stint_geometry; no flagged upstream",
+      "evidence": "scripts/export_app_data.py DERIVED_TABLES; ax-07a-lineage-2026-11-07/lineage.md 3.6",
+      "kinds": [
+        "race.cautions",
+        "race_control.pooled_rate"
+      ]
+    },
+    {
+      "source": "race_caution_timeline",
+      "column": "caution_status",
+      "class": "T",
+      "rule": "export-derived view over int_stint_geometry; no flagged upstream",
+      "evidence": "scripts/export_app_data.py DERIVED_TABLES; ax-07a-lineage-2026-11-07/lineage.md 3.6",
+      "kinds": [
+        "race.cautions",
+        "race_control.pooled_rate"
+      ]
+    },
+    {
+      "source": "race_caution_timeline",
+      "column": "race_laps",
+      "class": "T",
+      "rule": "export-derived view over int_stint_geometry; no flagged upstream",
+      "evidence": "scripts/export_app_data.py DERIVED_TABLES; ax-07a-lineage-2026-11-07/lineage.md 3.6",
+      "kinds": [
+        "race.cautions",
+        "race_control.pooled_rate"
+      ]
+    },
+    {
+      "source": "int_pit_strategy_value",
+      "column": "actual_pit_lap",
+      "class": "T",
+      "rule": "observed stint/stop columns; the modelled columns of the table are not read",
+      "evidence": "transform/models/intermediate/int_pit_strategy_value.sql:144,454 (stg_pits); ax-07a-lineage-2026-11-07/lineage.md section 1",
+      "kinds": [
+        "driver_race.pit_stops"
+      ]
+    },
+    {
+      "source": "int_pit_strategy_value",
+      "column": "compound",
+      "class": "T",
+      "rule": "observed stint/stop columns; the modelled columns of the table are not read",
+      "evidence": "fct_stint_features.sql:34-36; ax-07a-lineage-2026-11-07/lineage.md section 1",
+      "kinds": [
+        "driver_race.pit_stops"
+      ]
+    },
+    {
+      "source": "int_pit_strategy_value",
+      "column": "stint_length_laps",
+      "class": "T",
+      "rule": "observed stint/stop columns; the modelled columns of the table are not read",
+      "evidence": "fct_stint_features.sql:34-36; ax-07a-lineage-2026-11-07/lineage.md section 1",
+      "kinds": [
+        "driver_race.pit_stops"
+      ]
+    },
+    {
+      "source": "int_pit_strategy_value",
+      "column": "end_lap_number",
+      "class": "T",
+      "rule": "observed stint/stop columns; the modelled columns of the table are not read",
+      "evidence": "int_stint_geometry; ax-07a-lineage-2026-11-07/lineage.md section 1",
+      "kinds": [
+        "driver_race.pit_stops"
+      ]
+    },
+    {
+      "source": "int_pit_strategy_value",
+      "column": "optimal_pit_lap_in_stint",
+      "class": "T",
+      "rule": "T [S] (compound seed, transform-only with caveat by owner default) but HELD: PIT_CALL_REPRODUCTION_RATE (D9, AXW8)",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md section 1 (int_pit_strategy_cost_curve.sql:149,207,238,280)",
+      "kinds": [
+        "pit_strategy.optimal_lap",
+        "pit_strategy.opportunity_cost"
+      ]
+    },
+    {
+      "source": "int_pit_strategy_value",
+      "column": "optimal_pit_lap_confidence",
+      "class": "T",
+      "rule": "T [S] (compound seed, transform-only with caveat by owner default) but HELD: PIT_CALL_REPRODUCTION_RATE (D9, AXW8)",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md section 1 (int_pit_strategy_cost_curve.sql:149,207,238,280)",
+      "kinds": [
+        "pit_strategy.optimal_lap",
+        "pit_strategy.opportunity_cost"
+      ]
+    },
+    {
+      "source": "int_pit_strategy_value",
+      "column": "opportunity_cost_s",
+      "class": "T",
+      "rule": "T [S] (compound seed, transform-only with caveat by owner default) but HELD: PIT_CALL_REPRODUCTION_RATE (D9, AXW8)",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md section 1 (int_pit_strategy_cost_curve.sql:149,207,238,280)",
+      "kinds": [
+        "pit_strategy.optimal_lap",
+        "pit_strategy.opportunity_cost"
+      ]
+    },
+    {
+      "source": "int_pit_strategy_value",
+      "column": "overrun_laps",
+      "class": "T",
+      "rule": "T [S] (compound seed, transform-only with caveat by owner default) but HELD: PIT_CALL_REPRODUCTION_RATE (D9, AXW8)",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md section 1 (int_pit_strategy_cost_curve.sql:149,207,238,280)",
+      "kinds": [
+        "pit_strategy.optimal_lap",
+        "pit_strategy.opportunity_cost"
+      ]
+    },
+    {
+      "source": "int_pit_strategy_value",
+      "column": "strategy_verdict",
+      "class": "TRAFFIC",
+      "rule": "[A] the undercut_forced branch reads int_lap_air_state.min_gap_s as a value; also HELD (D9)",
+      "evidence": "transform/models/intermediate/int_pit_strategy_value.sql:517-522; ax-07a-lineage-2026-11-07/lineage.md section 1",
+      "kinds": [
+        "pit_strategy.verdict"
+      ]
+    },
+    {
+      "source": "int_era_normalized_driver_rating",
+      "column": "era_adjusted_rating",
+      "class": "T-F",
+      "rule": "filter-only: built from driver_skill_loro_s (paired teammate gap); CI inside the same chain",
+      "evidence": "transform/models/intermediate/int_era_normalized_driver_rating.sql:154,178-179; ax-07a-lineage-2026-11-07/lineage.md section 1",
+      "kinds": [
+        "era_rating.season"
+      ]
+    },
+    {
+      "source": "int_era_normalized_driver_rating",
+      "column": "era_adjusted_rating_ci_low_s",
+      "class": "T-F",
+      "rule": "filter-only: built from driver_skill_loro_s (paired teammate gap); CI inside the same chain",
+      "evidence": "transform/models/intermediate/int_era_normalized_driver_rating.sql:154,178-179; ax-07a-lineage-2026-11-07/lineage.md section 1",
+      "kinds": [
+        "era_rating.season"
+      ]
+    },
+    {
+      "source": "int_era_normalized_driver_rating",
+      "column": "era_adjusted_rating_ci_high_s",
+      "class": "T-F",
+      "rule": "filter-only: built from driver_skill_loro_s (paired teammate gap); CI inside the same chain",
+      "evidence": "transform/models/intermediate/int_era_normalized_driver_rating.sql:154,178-179; ax-07a-lineage-2026-11-07/lineage.md section 1",
+      "kinds": [
+        "era_rating.season"
+      ]
+    },
+    {
+      "source": "int_era_normalized_driver_rating",
+      "column": "n_races",
+      "class": "T-F",
+      "rule": "filter-only: built from driver_skill_loro_s (paired teammate gap); CI inside the same chain",
+      "evidence": "transform/models/intermediate/int_era_normalized_driver_rating.sql:154,178-179; ax-07a-lineage-2026-11-07/lineage.md section 1",
+      "kinds": [
+        "era_rating.season"
+      ]
+    },
+    {
+      "source": "fct_lap_residuals",
+      "column": "fuel_component_s",
+      "class": "DA",
+      "rule": "race-lost decomposition: dirty_air_tax_s / driver_skill_residual_s carry the tax; the other components are held with it (owner default Q1)",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md 3.3, section 6 Q1",
+      "kinds": [
+        "race_lost.component"
+      ]
+    },
+    {
+      "source": "fct_lap_residuals",
+      "column": "compound_component_s",
+      "class": "DA",
+      "rule": "race-lost decomposition: dirty_air_tax_s / driver_skill_residual_s carry the tax; the other components are held with it (owner default Q1)",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md 3.3, section 6 Q1",
+      "kinds": [
+        "race_lost.component"
+      ]
+    },
+    {
+      "source": "fct_lap_residuals",
+      "column": "constructor_component_s",
+      "class": "DA",
+      "rule": "race-lost decomposition: dirty_air_tax_s / driver_skill_residual_s carry the tax; the other components are held with it (owner default Q1)",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md 3.3, section 6 Q1",
+      "kinds": [
+        "race_lost.component"
+      ]
+    },
+    {
+      "source": "fct_lap_residuals",
+      "column": "dirty_air_tax_s",
+      "class": "DA",
+      "rule": "race-lost decomposition: dirty_air_tax_s / driver_skill_residual_s carry the tax; the other components are held with it (owner default Q1)",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md 3.3, section 6 Q1",
+      "kinds": [
+        "race_lost.component"
+      ]
+    },
+    {
+      "source": "fct_lap_residuals",
+      "column": "driver_skill_residual_s",
+      "class": "DA",
+      "rule": "race-lost decomposition: dirty_air_tax_s / driver_skill_residual_s carry the tax; the other components are held with it (owner default Q1)",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md 3.3, section 6 Q1",
+      "kinds": [
+        "race_lost.component"
+      ]
+    },
+    {
+      "source": "fct_lap_residuals",
+      "column": "track_unexplained_s",
+      "class": "DA",
+      "rule": "race-lost decomposition: dirty_air_tax_s / driver_skill_residual_s carry the tax; the other components are held with it (owner default Q1)",
+      "evidence": "ax-07a-lineage-2026-11-07/lineage.md 3.3, section 6 Q1",
+      "kinds": [
+        "race_lost.component"
+      ]
+    },
+    {
+      "source": "mart_corner_skill_driver",
+      "column": "braking_skill_s",
+      "class": "T-F",
+      "rule": "filter-only: telemetry corner residuals have no air-state or tax upstream; int_lap_air_state enters only through the rain filter joining int_track_evolution (mart_corner_skill_driver.sql:61-62,96-97); the residual is a corner-level telemetry residual, not driver_skill_residual_s",
+      "evidence": "transform/models/marts/mart_corner_skill_driver.sql:61-62,96-97; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "corner_phase.season"
+      ]
+    },
+    {
+      "source": "mart_corner_skill_driver",
+      "column": "mid_corner_skill_s",
+      "class": "T-F",
+      "rule": "filter-only: telemetry corner residuals have no air-state or tax upstream; int_lap_air_state enters only through the rain filter joining int_track_evolution (mart_corner_skill_driver.sql:61-62,96-97); the residual is a corner-level telemetry residual, not driver_skill_residual_s",
+      "evidence": "transform/models/marts/mart_corner_skill_driver.sql:61-62,96-97; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "corner_phase.season"
+      ]
+    },
+    {
+      "source": "mart_corner_skill_driver",
+      "column": "exit_skill_s",
+      "class": "T-F",
+      "rule": "filter-only: telemetry corner residuals have no air-state or tax upstream; int_lap_air_state enters only through the rain filter joining int_track_evolution (mart_corner_skill_driver.sql:61-62,96-97); the residual is a corner-level telemetry residual, not driver_skill_residual_s",
+      "evidence": "transform/models/marts/mart_corner_skill_driver.sql:61-62,96-97; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "corner_phase.season"
+      ]
+    },
+    {
+      "source": "mart_corner_skill_driver",
+      "column": "braking_skill_se_s",
+      "class": "T-F",
+      "rule": "filter-only: telemetry corner residuals have no air-state or tax upstream; int_lap_air_state enters only through the rain filter joining int_track_evolution (mart_corner_skill_driver.sql:61-62,96-97); the residual is a corner-level telemetry residual, not driver_skill_residual_s",
+      "evidence": "transform/models/marts/mart_corner_skill_driver.sql:61-62,96-97; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "corner_phase.season"
+      ]
+    },
+    {
+      "source": "mart_corner_skill_driver",
+      "column": "mid_corner_skill_se_s",
+      "class": "T-F",
+      "rule": "filter-only: telemetry corner residuals have no air-state or tax upstream; int_lap_air_state enters only through the rain filter joining int_track_evolution (mart_corner_skill_driver.sql:61-62,96-97); the residual is a corner-level telemetry residual, not driver_skill_residual_s",
+      "evidence": "transform/models/marts/mart_corner_skill_driver.sql:61-62,96-97; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "corner_phase.season"
+      ]
+    },
+    {
+      "source": "mart_corner_skill_driver",
+      "column": "exit_skill_se_s",
+      "class": "T-F",
+      "rule": "filter-only: telemetry corner residuals have no air-state or tax upstream; int_lap_air_state enters only through the rain filter joining int_track_evolution (mart_corner_skill_driver.sql:61-62,96-97); the residual is a corner-level telemetry residual, not driver_skill_residual_s",
+      "evidence": "transform/models/marts/mart_corner_skill_driver.sql:61-62,96-97; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "corner_phase.season"
+      ]
+    },
+    {
+      "source": "mart_corner_skill_driver",
+      "column": "braking_cells_n",
+      "class": "T-F",
+      "rule": "filter-only: telemetry corner residuals have no air-state or tax upstream; int_lap_air_state enters only through the rain filter joining int_track_evolution (mart_corner_skill_driver.sql:61-62,96-97); the residual is a corner-level telemetry residual, not driver_skill_residual_s",
+      "evidence": "transform/models/marts/mart_corner_skill_driver.sql:61-62,96-97; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "corner_phase.season"
+      ]
+    },
+    {
+      "source": "mart_corner_skill_driver",
+      "column": "mid_cells_n",
+      "class": "T-F",
+      "rule": "filter-only: telemetry corner residuals have no air-state or tax upstream; int_lap_air_state enters only through the rain filter joining int_track_evolution (mart_corner_skill_driver.sql:61-62,96-97); the residual is a corner-level telemetry residual, not driver_skill_residual_s",
+      "evidence": "transform/models/marts/mart_corner_skill_driver.sql:61-62,96-97; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "corner_phase.season"
+      ]
+    },
+    {
+      "source": "mart_corner_skill_driver",
+      "column": "exit_cells_n",
+      "class": "T-F",
+      "rule": "filter-only: telemetry corner residuals have no air-state or tax upstream; int_lap_air_state enters only through the rain filter joining int_track_evolution (mart_corner_skill_driver.sql:61-62,96-97); the residual is a corner-level telemetry residual, not driver_skill_residual_s",
+      "evidence": "transform/models/marts/mart_corner_skill_driver.sql:61-62,96-97; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "corner_phase.season"
+      ]
+    },
+    {
+      "source": "mart_driver_season_summary",
+      "column": "teammate_gap_s",
+      "class": "T-F",
+      "rule": "filter-only: season rating_s = era_adjusted_rating from the teammate-paired era chain; air state reaches it only through the rain filter (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air. ci_low/ci_high = rating_s -/+ 1.96 x rating_se_s",
+      "evidence": "transform/models/marts/mart_driver_season_summary.sql (ratings CTE, final SELECT); marts/schema.yml rating_se_s; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "season.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_driver_season_summary",
+      "column": "ci_low",
+      "class": "T-F",
+      "rule": "filter-only: season rating_s = era_adjusted_rating from the teammate-paired era chain; air state reaches it only through the rain filter (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air. ci_low/ci_high = rating_s -/+ 1.96 x rating_se_s",
+      "evidence": "transform/models/marts/mart_driver_season_summary.sql (ratings CTE, final SELECT); marts/schema.yml rating_se_s; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "season.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_driver_season_summary",
+      "column": "ci_high",
+      "class": "T-F",
+      "rule": "filter-only: season rating_s = era_adjusted_rating from the teammate-paired era chain; air state reaches it only through the rain filter (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air. ci_low/ci_high = rating_s -/+ 1.96 x rating_se_s",
+      "evidence": "transform/models/marts/mart_driver_season_summary.sql (ratings CTE, final SELECT); marts/schema.yml rating_se_s; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "season.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_driver_season_summary",
+      "column": "n_races",
+      "class": "T-F",
+      "rule": "filter-only: season rating_s = era_adjusted_rating from the teammate-paired era chain; air state reaches it only through the rain filter (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air. ci_low/ci_high = rating_s -/+ 1.96 x rating_se_s",
+      "evidence": "transform/models/marts/mart_driver_season_summary.sql (ratings CTE, final SELECT); marts/schema.yml rating_se_s; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "season.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_driver_season_summary",
+      "column": "teammate_id",
+      "class": "T-F",
+      "rule": "filter-only: season rating_s = era_adjusted_rating from the teammate-paired era chain; air state reaches it only through the rain filter (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air. ci_low/ci_high = rating_s -/+ 1.96 x rating_se_s",
+      "evidence": "transform/models/marts/mart_driver_season_summary.sql (ratings CTE, final SELECT); marts/schema.yml rating_se_s; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "season.teammate_gap"
+      ]
+    },
+    {
+      "source": "mart_driver_season_summary",
+      "column": "rank_separated_from_next",
+      "class": "T-F",
+      "rule": "filter-only: season rating_s = era_adjusted_rating from the teammate-paired era chain; air state reaches it only through the rain filter (int_driver_race_skill_loro.sql:156); no tax, no residual, no theta_air. ci_low/ci_high = rating_s -/+ 1.96 x rating_se_s",
+      "evidence": "transform/models/marts/mart_driver_season_summary.sql (ratings CTE, final SELECT); marts/schema.yml rating_se_s; ax-07a-lineage-2026-11-07/lineage.md section 1 and 3.2; AX-07b",
+      "kinds": [
+        "season.teammate_gap"
+      ]
+    }
+  ]
+}

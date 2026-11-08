@@ -1,0 +1,53 @@
+
+[CHECK MODE] Off The Pace app data export
+  warehouse:  /Users/justin/github/off-the-pace/data/dev.duckdb
+  output:     /var/folders/2n/q30rjkp110q2k18xvb29yqt40000gn/T/tmpebwrnvam
+
+  dim_circuits  →  tmpebwrnvam/dimensions/dim_circuits.parquet  (4.4 KB)
+  dim_compounds_season  →  tmpebwrnvam/dimensions/dim_compounds_season.parquet  (11.8 KB)
+  dim_drivers  →  tmpebwrnvam/dimensions/dim_drivers.parquet  (1.1 KB)
+  dim_constructors  →  tmpebwrnvam/dimensions/dim_constructors.parquet  (656 B)
+  dim_events  →  tmpebwrnvam/dimensions/dim_events.parquet  (1.8 KB)
+  race_to_track  →  tmpebwrnvam/dimensions/race_to_track.parquet  (1.2 KB)
+  fct_driver_skill_features  →  tmpebwrnvam/facts/fct_driver_skill_features.parquet  (221.4 KB)
+  fct_ghost_race_finish  →  tmpebwrnvam/facts/fct_ghost_race_finish.parquet  (2.18 MB)
+  fct_stint_features  →  tmpebwrnvam/facts/fct_stint_features.parquet  (167.5 KB)
+  mart_corner_skill_driver  →  tmpebwrnvam/marts/mart_corner_skill_driver/  (8 partitions, 0.03 MB total)
+  mart_degradation_history_envelope  →  tmpebwrnvam/marts/mart_degradation_history_envelope.parquet  (404.6 KB)
+  fct_lap_residuals  →  tmpebwrnvam/facts/fct_lap_residuals/  (8 partitions, 6.55 MB total)
+  fct_cliff_prediction_features  →  tmpebwrnvam/facts/fct_cliff_prediction_features/  (8 partitions, 32.14 MB total)
+  fct_ghost_car_pace  →  tmpebwrnvam/facts/fct_ghost_car_pace/  (8 partitions, 59.39 MB total)
+  int_era_normalized_driver_rating  →  tmpebwrnvam/intermediates/int_era_normalized_driver_rating.parquet  (14.7 KB)
+  int_constructor_structural_pace  →  tmpebwrnvam/intermediates/int_constructor_structural_pace.parquet  (59.2 KB)
+  int_constructor_structural_pace_qualifying  →  tmpebwrnvam/intermediates/int_constructor_structural_pace_qualifying.parquet  (59.4 KB)
+  int_driver_circuit_affinity  →  tmpebwrnvam/intermediates/int_driver_circuit_affinity.parquet  (68.6 KB)
+  int_driver_circuit_era_affinity  →  tmpebwrnvam/intermediates/int_driver_circuit_era_affinity.parquet  (70.4 KB)
+  int_driver_race_skill_loro  →  tmpebwrnvam/intermediates/int_driver_race_skill_loro.parquet  (138.6 KB)
+  int_circuit_x_constructor_interaction  →  tmpebwrnvam/intermediates/int_circuit_x_constructor_interaction.parquet  (22.0 KB)
+  int_qualifying_decomposed  →  tmpebwrnvam/intermediates/int_qualifying_decomposed.parquet  (712.4 KB)
+  int_compound_cliff_predicted  →  tmpebwrnvam/intermediates/int_compound_cliff_predicted.parquet  (1.59 MB)
+  int_tyre_surface_vs_bulk_decoupling  →  tmpebwrnvam/intermediates/int_tyre_surface_vs_bulk_decoupling.parquet  (905.3 KB)
+  int_synthetic_teammate  →  tmpebwrnvam/intermediates/int_synthetic_teammate.parquet  (3.78 MB)
+  int_track_evolution  →  tmpebwrnvam/intermediates/int_track_evolution.parquet  (234.1 KB)
+  int_field_pace_curve  →  tmpebwrnvam/intermediates/int_field_pace_curve.parquet  (144.5 KB)
+  int_pit_strategy_value  →  tmpebwrnvam/intermediates/int_pit_strategy_value.parquet  (182.6 KB)
+  int_sc_hazard_history  →  tmpebwrnvam/intermediates/int_sc_hazard_history.parquet  (9.5 KB)
+  int_corner_metrics  →  tmpebwrnvam/intermediates/int_corner_metrics/  (8 partitions, 32.50 MB total)
+  int_corner_skill_residuals  →  tmpebwrnvam/intermediates/int_corner_skill_residuals/  (8 partitions, 39.91 MB total)
+  int_lap_air_state  →  tmpebwrnvam/intermediates/int_lap_air_state/  (8 partitions, 4.48 MB total)
+  int_lap_anomaly_flags  →  tmpebwrnvam/intermediates/int_lap_anomaly_flags/  (8 partitions, 5.20 MB total)
+  int_sector_residual_decomposed  →  tmpebwrnvam/intermediates/int_sector_residual_decomposed/  (8 partitions, 22.71 MB total)
+  stg_pits  →  skipped (optional: IO Error: No files found that match the pattern "../data/bronze/laps/*/*/*.parquet")
+  race_caution_timeline (derived)  →  tmpebwrnvam/marts/race_caution_timeline.parquet  (6.6 KB)
+  int_dirty_air_tax_component (enriched)  →  tmpebwrnvam/intermediates/int_dirty_air_tax_component/  (8 partitions, 0.32 MB total)
+  int_coast_tax_component  →  skipped (optional enriched: Catalog Error: Table with name int_coast_tax_component does not exist!
+Did you mean "int_dirty_air_tax_component"?
+
+LINE 3:             FROM int_coast_tax_component t
+                         ^)
+  fct_telemetry_deltas  →  tmpebwrnvam/facts/fct_telemetry_deltas/  (8 partitions, 199.98 MB total)
+  mart_degradation_predictions  →  ml/mart_degradation_predictions/  (8 partitions, 8.30 MB total)
+  driver_network_rating  →  ml/driver_network_rating.parquet  (5.2 KB)
+
+  ⚠️  DRIFT DETECTED: manifest is out of date. Run: make app-data
+exit 1

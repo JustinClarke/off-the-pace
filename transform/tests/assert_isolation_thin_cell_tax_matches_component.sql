@@ -8,8 +8,10 @@
 -- 1e-9 s), so the two copies of the rule cannot drift apart. It also pins:
 --   * a repriced lap is never in 2018_1 or 2018_2 (no telemetry, 6% measured);
 --   * a repriced lap's tax is never NULL and lies in [0, 5];
---   * the panel gained laps from this (vacuity guard: at least 1,000 repriced laps;
---     50 on the CI fixture, which measures 91).
+--   * the panel gained laps from this (vacuity guard: at least 1,000 repriced laps).
+-- CI branch (kept, TX-08 2026-11-08): the guard is 50 on the CI target because the
+-- 3-race fixture cannot reach 1,000 repriced laps: it has 91 (fixture build 2026-11-08).
+-- The pricing-rule and range checks are the same on every target.
 
 WITH theta AS (
     SELECT CAST({{ var('theta_air_label_value') }} AS DOUBLE) AS theta_air

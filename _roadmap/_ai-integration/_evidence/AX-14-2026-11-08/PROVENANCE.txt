@@ -1,0 +1,17 @@
+AX-14 Chat drawer - provenance (2026-11-08). Written incrementally. Not committed (owner commits).
+PROGRESS
+  [0] Read wi/AX-14.md, BUILD-ORDER, PROVENANCE of AX-10/12?/21/07/11/01/03. E2E data: scratch finalized export laneP/outA (assistant block + 8 card parquet + qv + catalogue), read-only, symlinked into a scratch dist.
+  [1] Core touch-ups (AX-10 files, small): modelClient.ts EndpointError.code (Worker error body), WorkerClientOptions.turnstileToken may be a function (fresh token per question);
+      loop.ts AskResult.visibleResults (the tool results the grounding check treated as sources, so render time uses the same set); grounding.ts exports numberMatches + sourceNumbersOfCard (same function, not a fork).
+  [2] Drawer files written (assistant/drawer/: flag, runtime, useChat, NumberChip, AnswerView, chartsLazy, turnstile, TurnstileGate, ChatDrawer, AssistantLauncher); AppShell lazy mounts launcher behind VITE_ASSISTANT_ENABLED; vite-env.d.ts + 3 vars.
+  [3] AnswerView.test.tsx 10 passed. Next: useChat.test.ts, ChatDrawer.test.tsx, e2e.
+  [4] useChat.test.ts, ChatDrawer.test.tsx, AnswerView.test.tsx: drawer vitest 31 passed. flag-off build vs baseline (scratch copy at HEAD AppShell): 90 js files each, total 3,273,573 vs 3,273,568 bytes (+5), gz 970,746 vs 970,594; no drawer string in off build. e2e spec app/e2e/assistant-drawer.e2e.ts written (gated AX14_E2E=on|off).
+  [5] E2E (Playwright via scratch config, build to scratchpad/ax14/on, preview :4175, data = symlink to finalized scratch export laneP/outA, Worker = page.route /mock-worker/v1/chat):
+      flag-on: 9 passed (canned answer with 2 chips + 1 struck number + rule notes; chip link -> /tyre-strategy/pit-gantt?race_id=2024_1 with 2024_1 selected; headers X-Catalogue-Version then X-Question-Ticket T1;
+      keyboard-only + aria snapshot; 320 and 390 no horizontal scroll; reduced motion animationName none; proxy down + navigation; 503, 429, 409).
+      flag-off build (:4176): assistant-drawer off check + card-links (6) + smoke (2) = 9 passed. The pipeline was REAL end to end (browser DuckDB reads card parquet, real dispatcher, real checker); only the Worker was mocked.
+      First run found a mock-design bug (a broad scope returned 10 other cards, so a number was correctly struck): the strike path works on real data.
+  [6] SIZES (JS bytes, same method as check_bundle_size.mjs): flag-off 3,273,573 / gz 970,746 / largest 772,759, 90 files; baseline (same tree, HEAD AppShell, drawer dir removed) 3,273,568 / gz 970,594, 90 files => +5 bytes raw.
+      Budget (perf-budget.json): 3,407,872 / 1,005,568 / 835,584: flag-off passes. FLAG-ON build: 3,600,742 / gz 1,076,985, 106 files: OVER the total and gz budget (+16 lazy chunks). Not changed here; AX-20 must re-baseline before switch-on.
+TESTS: full app vitest 1246 passed, 2 failed (pre-existing sources.node CHANCE_LINE_*), 1 expected fail, 122 skipped (1371). With scratch data env: 754 passed, 2 failed (src/assistant). Drawer: 31 (AnswerView 10, useChat 13, ChatDrawer 8).
+ tsc: one error in src/assistant/eval/grade.ts (AX-13 lane, not mine); none in my files. eslint on drawer/AppShell/core/grounding: 0 errors (react-refresh warnings for exported helpers).

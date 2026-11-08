@@ -323,6 +323,18 @@ moves only a season's level against other seasons.
 
 ---
 
+### `median_ci_order_rank(n_relation, n_col='n', alpha_half=0.025)`
+
+TX-01. The order-statistic rank j of a distribution-free CI for a median: for n sorted values,
+`[x_j, x_{n-j+1}]` covers the median with probability ≥ 1 − 2·alpha_half, with j the largest k
+such that P(Bin(n, ½) ≤ k − 1) ≤ alpha_half (binomial pmf from `lgamma`, 1e-12 tolerance). j is
+NULL where no such k exists (n < 6 at 0.025). Returns `(n, ci_rank_j)`, one row per distinct n in
+`n_relation.n_col`; use it as a CTE body. Deterministic, so the byte oracle stays stable.
+
+**Used by:** `mart_race_driver_summary`. **Tested by:** `assert_median_ci_order_rank_known_values`.
+
+---
+
 ## Future Candidates
 
 Patterns that appear in 3+ models but are not yet extracted to macros:

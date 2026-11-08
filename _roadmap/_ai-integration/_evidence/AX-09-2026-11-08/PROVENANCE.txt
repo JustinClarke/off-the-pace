@@ -1,0 +1,86 @@
+AX-09 - honesty policy additions   (2026-11-08, lane K)
+Status: DONE (not committed; owner commits).
+
+Files changed
+  app/src/assistant/honesty/policy.json   +7 rules (17 -> 24), +2 kinds (computed_not_card, held_card),
+                                          updated 2026-11-07 -> 2026-11-08. Written by add_rules.py (this folder):
+                                          loads the file at run time, drops only its own 7 codes, appends them,
+                                          dumps with indent=2 ensure_ascii=False (verified byte-exact round trip
+                                          before writing). The 17 rules present at start (16 + TX-04's
+                                          DIRTY_AIR_MODELLED_NOT_MEASURED, CHANCE_LINE_QUOTABLE among them) are
+                                          byte-for-byte unchanged (per-rule JSON compare vs a snapshot taken before
+                                          the edit); contradictions X1-X5, X7, X8 unchanged.
+  app/src/assistant/honesty/checker.ts    + Trigger variant {cards_distinct_values: {field, min}} and its branch in
+                                          evalTrigger (fires when >= min distinct non-null values of the dotted
+                                          field appear across cards). No existing branch changed.
+Files added
+  app/src/assistant/honesty/queryCard.ts            queryResultToCheckerCard(result) -> {id: result_id,
+                                          metric: "<view>.<aggregate.col>", label: computed_not_card, aggregate_fn,
+                                          n: min(row n) (0 when no rows), n_unit: rows, source_page: <view>}.
+                                          Input is structural (QueryResultLike) so honesty/ does not import the
+                                          query builder; AX-06's QueryResult satisfies it.
+  app/src/assistant/honesty/checker.distinct.test.ts (5 tests: fires at 2, not at 1, ignores null/missing,
+                                          dotted path + min, pass with wording)
+  app/src/assistant/honesty/queryCard.test.ts        (3 tests: projection, empty rows, rule fires/passes)
+  app/src/assistant/honesty/policy.new-rules.test.ts (9 tests: codes unique + present, kinds declared,
+                                          fail/pass/not_fired present and holding for each of the 7 rules)
+
+Rules added (code / kind / trigger)
+  COMPUTED_NOT_CARD_WORDING  computed_not_card  label eq computed_not_card          src: build-log.json AD3 (line null)
+  HELD_CARD_WORDING          held_card          status eq held                      src: design-ai-access.md:143, BUILD-ORDER.md:23
+  UNAVAILABLE_IS_NOT_ZERO    known_gap          label eq unavailable                src: driver-isolation.mdx:168, design-ai-access.md:91
+  LAP_MAP_GREY_CELL          known_gap          source_page matches dirty-air-lap-map  src: dirty-air-lap-map.mdx:21
+  SURVIVAL_LOWER_BOUND       known_gap          source_page ~ tyre-cliff-survival AND metric ~ surviv|km_|kaplan|tyre_life|median_life
+                                                                                    src: tyre-cliff-survival.mdx:34
+  GHOST_IS_COUNTERFACTUAL    known_gap          source_page ~ ghost-race-standings|counterfactual-championship|hidden-performance
+                                                                                    src: ghost-race-standings.mdx:21, counterfactual-championship.mdx:31
+  ONE_SKILL_MEASURE          known_gap          cards_distinct_values {field: skill_measure, min: 2}
+                                                                                    src: audit-app.md:166
+  Rule 4 (DIRTY_AIR_POOLED_ESTIMATE) not added, as the spec says (merged into TX-04's rule).
+
+countByKind (24): known_gap 8, low_confidence 4, in_sample 2, graded_below_pass 2, open_ruling 2, no_data 1,
+  thin_sample 1, envelope 1, graded 1, computed_not_card 1, held_card 1.
+
+Commands and results (app/)
+  before:  npx vitest run src/assistant/honesty -> 84 passed, 2 failed (86)
+  after:   npx vitest run src/assistant/honesty -> 136 passed, 2 failed (138); files 4 passed, 1 failed
+           The 2 failures are the PRE-EXISTING sources.node CHANCE_LINE_EXPERIMENTAL / CHANCE_LINE_QUOTABLE
+           (docs/app/degradation-simulator.mdx:65 no longer carries its quote). Every new rule's citations pass,
+           every new pass example passes the whole policy (checker.test.ts, unchanged).
+  npm run typecheck -> clean.
+
+Deviations / findings for the owner
+  1. ONE_SKILL_MEASURE "single-card form" (any skill card must name its measure) is NOT implemented. The rule
+     format has one required_wording per rule, so a second trigger with min 1 would force single-card answers to
+     say "different measures". Options: (a) an 8th rule ONE_SKILL_MEASURE_NAMED with trigger
+     skill_measure matches "." (breaks the spec's 24 count; AX-21 makes it 30), or (b) leave it to AX-21's
+     glossary rules. Recommended (b).
+  2. skill_measure is not yet a field in card.schema.json policy_fields (CardPolicyFields has trust_label,
+     car_term_source, calibration_flag, is_in_envelope, beats_baseline_significant). toCheckerCard spreads
+     policy_fields to top level, so the rule reads field "skill_measure". AX-07 / AX-15a must add it to the
+     schema when the card kinds set it.
+  3. THIN_SAMPLE (existing, untouched) fires on every held or unavailable card with n_unit "stints", because
+     AX-01 requires n.count = 0 on those cards and THIN_SAMPLE tests n < 8. Found when an unavailable pit-loss
+     example failed the whole policy; the example was moved to a laps-unit card. Held pit cards (AX-04's
+     pit_strategy.optimal_lap) will therefore demand thin-sample wording. Suggest adding {status ne held,
+     label ne unavailable} to THIN_SAMPLE's second trigger (owner; it is one of the 17 frozen rules).
+  4. CALIBRATION_FLAGGED_CIRCUIT has no producer: calibration_flag is absent from dim_circuits and
+     export_app_data.py (only in policy.json, page summaries and transform/seeds/circuit_reference.csv). It is a
+     transform + export change, not done here; flag as its own item. (The spec asked for a not_fired example
+     recording the gap; not added, because it would edit one of the 17 frozen rules. The gap is recorded here.)
+  5. DD-WC2 (exact disclaimer for modelled traffic-cost stints) is deferred to AX-16, as the spec says.
+  6. Held reasons the rule accepts: wake calibration, ML/model redo, re-measure, reproduction rate, dirty-air
+     calibration. AX-04's transitional reason "CLASS_NOT_LIVE" is not among them; once AX-07 makes T live only
+     DA/TRAFFIC/ML/pit cards stay held, and those map onto the list.
+  7. Fragile citations: BUILD-ORDER.md:23 (rules part above the generated block) and design-ai-access.md:91/143
+     are cited by line; an insertion above them fails sources.node.test.ts until the line is bumped.
+  No contradiction found by the new rules; contradictions list unchanged.
+
+Update 2026-11-08 (coordinator, after AX-07 landed)
+  ONE_SKILL_MEASURE examples now use the AX-21 glossary names: skill_measure "teammate_paired_median" and
+  "era_rating" (were loro_race_skill / era_normalised_rating). Done by two exact string replacements in
+  policy.json (6 occurrences, all in this rule); AX-07's AIR_STATE_FILTER rule left untouched; the policy now has
+  25 rules (16 + TX-04 + AX-07's AIR_STATE_FILTER + these 7). add_rules.py in this folder is updated to match, but
+  do NOT re-run it as is: it drops and re-appends its 7 rules, which would move them after AIR_STATE_FILTER.
+  npx vitest run src/assistant/honesty -> 140 passed, 2 failed (142); the 2 are the pre-existing CHANCE_LINE_*.
+  skill_measure is now in card.types.ts (AX-07), so finding 2 above is resolved.

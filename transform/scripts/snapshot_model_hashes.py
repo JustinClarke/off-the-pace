@@ -55,7 +55,8 @@ MANDATORY_PREFIX = "fct_"
 # additionally requires DuckDB's *internal* thread count pinned to 1 (profiles `settings:
 # threads: 1`) so non-associative float aggregation can't reorder dbt's own `threads:`
 # only controls model-level concurrency, not intra-query parallelism.
-VOLATILE_COLS = {"fit_timestamp"}
+# `built_at` / `dbt_invocation_id` are mart_build_provenance's per-build metadata (TX-05).
+VOLATILE_COLS = {"fit_timestamp", "built_at", "dbt_invocation_id"}
 
 
 def load_model_relations(manifest_path: Path) -> dict[str, dict[str, str]]:

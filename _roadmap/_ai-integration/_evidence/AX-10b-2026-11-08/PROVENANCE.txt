@@ -1,0 +1,9 @@
+AX-10b teammate_id policy field - provenance (2026-11-08). Not committed.
+EDITED: cards/card.schema.json (policy_fields.teammate_id), regenerated card.types.ts + scripts/assistant_cards/card_types.py (gen-card-types --check rc 0),
+ cards/sql/raceKinds.ts (race.teammate_gap sets policy_fields.teammate_id = r?.teammate_id ?? null; kept on suppressed cards, null when the mart has none),
+ core/cardStore.ts (teammateOf: field first, then display-text regex, then constructor pairing).
+TESTS added: cardStore.test.ts (5 demo races same teammate by field; garbled display still resolves; wrong-field proves field wins; unavailable keeps field),
+ cards.race.test.ts (OKK/SUP BBB, unrated null).
+RESULT: npx vitest run src/assistant -> 614 passed, 2 failed (pre-existing sources.node CHANCE_LINE_*), 119 skipped (env-gated). tsc clean.
+NOT DONE: no re-export against the scratch mart (scratch cards in laneR predate the field; the 5 demo races were checked via the fixture fallback = field equivalence test).
+Existing built cards.json files lack the field and keep working through the fallback.

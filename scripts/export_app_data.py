@@ -12,6 +12,17 @@ Usage:
   python scripts/export_app_data.py --check   # regenerate and diff (CI drift gate)
   python scripts/export_app_data.py --canary  # export only canary tables
   python scripts/export_app_data.py --table fct_driver_skill_features
+  python scripts/export_app_data.py --db S/dev.duckdb --out S/out          # scratch export
+  python scripts/export_app_data.py --db S/dev.duckdb --out S/out --check  # diff vs S/out/_manifest.json
+
+  python scripts/export_app_data.py --finalize [--out DIR] [--check]   # AX-08, no warehouse (see assistant_finalize.py)
+
+  --db PATH   warehouse to read (default data/dev.duckdb)
+  --out DIR   output root (default app/public/data); --check compares against
+              DIR/_manifest.json. A non-default --db without --out (and without
+              --check) is refused, so a scratch warehouse never overwrites
+              app/public/data. ML parquet (data/marts/), ml/model_card.json and
+              transform/target/manifest.json (stats.dbt_models) do not follow --db.
 
 Rules:
  -Reference dims and small marts: single parquet, load once.
@@ -40,6 +51,7 @@ APP_DATA = ROOT / "app" / "public" / "data"
 OUT_ROOT_GLOBAL = APP_DATA
 MART_PREDS = ROOT / "data" / "marts" / "mart_degradation_predictions.parquet"
 DRIVER_NETWORK_RATING = ROOT / "data" / "marts" / "driver_network_rating.parquet"
+MODEL_CARD = ROOT / "ml" / "models" / "model_card.json"
 
 MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB gate
 
@@ -54,7 +66,6 @@ TABLES: list[tuple[str, str, str | None, bool]] = [
     ("dim_compounds_season",       "dimensions", None,        False),
     ("dim_drivers",                "dimensions", None,        False),
     ("dim_constructors",           "dimensions", None,        False),
-    ("dim_events",                 "dimensions", None,        False),
     ("race_to_track",              "dimensions", None,        False),
 
     # ── Small marts (load once) ────────────────────────────────────────────
@@ -63,6 +74,17 @@ TABLES: list[tuple[str, str, str | None, bool]] = [
     ("fct_stint_features",         "facts",       None,        False),
     ("mart_corner_skill_driver",   "marts",       "race_year", False),
     ("mart_degradation_history_envelope", "marts", None,        False),
+    ("mart_build_provenance",      "marts",       None,        False),
+    # TX-11: the rating and isolation marts the assistant quotes (all < 5 MB, one file each).
+    # The other fct_driver_isolation_* tables and fct_power_law_training stay unexported.
+    ("mart_race_driver_summary",   "marts",       None,        False),
+    ("mart_driver_season_summary", "marts",       None,        False),
+    ("mart_metric_benchmark",      "marts",       None,        False),
+    ("fct_driver_isolation_race",  "facts",       None,        False),
+    # AX-15a: the stint isolation mart is exported too, so AX-15b is a build and a switch, not an export change.
+    ("fct_driver_isolation_stint", "facts",       None,        False),
+    # AX-07: the race.coverage card reads TX-02's coverage table (173 rows, one per race).
+    ("mart_race_coverage",         "marts",       None,        False),
 
     # ── Large marts (partition by season; heaviest also by race) ──────────
     ("fct_lap_residuals",          "facts",       "race_year", False),
@@ -171,11 +193,14 @@ DERIVED_TABLES: list[tuple[str, str, str]] = [
 # being present; skipped gracefully if missing).
 OPTIONAL_TABLES: list[tuple[str, str, str | None, bool]] = [
     ("stg_pits",                   "intermediates", "race_year", False),
+    # AX-07: the race.result card (finish, grid, status, points) reads stg_results,
+    # never mart_race_driver_summary.laps_completed (that counts valid timed laps only).
+    ("stg_results",                "intermediates", None,        False),
 ]
 
 # Canary subset: just enough for the canary feature (#14) and platform validation
 CANARY_TABLES = {
-    "dim_circuits", "dim_compounds_season", "dim_drivers", "dim_constructors", "dim_events",
+    "dim_circuits", "dim_compounds_season", "dim_drivers", "dim_constructors",
     "race_to_track",
     "fct_driver_skill_features", "fct_lap_residuals", "fct_ghost_race_finish",
     "fct_stint_features", "fct_cliff_prediction_features",
@@ -210,11 +235,47 @@ def _check_size(path: Path, name: str) -> None:
 
 def _content_hash(directory: Path) -> str:
     """SHA-256 over all parquet file sizes + names (fast, stable proxy for content)."""
-    h = hashlib.sha256()
-    for f in sorted(directory.rglob("*.parquet")):
-        h.update(f.name.encode())
-        h.update(str(f.stat().st_size).encode())
-    return h.hexdigest()[:16]
+    # AX-08: assistant/cards/ is excluded; the finalize stage folds the card sha256s into the version.
+    from assistant_finalize import table_hash
+    return table_hash(directory)
+
+
+# Per-build metadata, excluded from the content hash exactly as in
+# transform/scripts/snapshot_model_hashes.py (VOLATILE_COLS).
+VOLATILE_COLS = {"fit_timestamp", "built_at", "dbt_invocation_id"}
+
+
+def _entry_files(entry: dict, out_root: Path) -> list[Path]:
+    rel = entry["path"].removeprefix("/data/")
+    p = out_root / rel
+    return sorted(p.rglob("*.parquet")) if p.is_dir() else [p]
+
+
+def add_freshness(entries: list[dict], out_root: Path) -> None:
+    """TX-11: give every manifest entry `rows` and `hash` (content, not file size).
+
+    Same method as the byte oracle (md5_number per row, bit_xor combine, order
+    independent) over the parquet just written, so a table whose rows changed
+    but whose stats did not still moves the manifest and --check fails.
+    """
+    import duckdb
+
+    conn = duckdb.connect()
+    conn.execute("SET TimeZone='UTC'")
+    for entry in entries:
+        files = _entry_files(entry, out_root)
+        glob = "[" + ", ".join("'" + str(f).replace("'", "''") + "'" for f in files) + "]"
+        src = f"read_parquet({glob}, union_by_name=true)"
+        cols = [r[0] for r in conn.execute(f"DESCRIBE SELECT * FROM {src}").fetchall()]
+        drop = sorted(VOLATILE_COLS & set(cols))
+        sel = f"SELECT * EXCLUDE ({', '.join(drop)}) FROM {src}" if drop else f"SELECT * FROM {src}"
+        rows, digest = conn.execute(
+            "SELECT count(*), md5(CAST(bit_xor(md5_number(CAST(t AS VARCHAR))) AS VARCHAR)) "
+            f"FROM ({sel}) t"
+        ).fetchone()
+        entry["rows"] = rows
+        entry["hash"] = digest
+    conn.close()
 
 
 # ─── Core export functions ────────────────────────────────────────────────────
@@ -509,6 +570,65 @@ def export_driver_network_rating(dest_dir: Path, size_report: list) -> dict | No
     }
 
 
+def count_significant_models(path: Path) -> tuple[int, int] | None:
+    """(significant, total) from a model card's ``model_card.models`` list.
+
+    Counts models whose ``beats_baseline_significant`` is true. Returns None when
+    the file is missing, unreadable or not shaped ``{"model_card": {"models": [...]}}``.
+    """
+    try:
+        with open(path) as f:
+            card = json.load(f)
+        models = card["model_card"]["models"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    if not isinstance(models, list) or not all(isinstance(m, dict) for m in models):
+        return None
+    significant = sum(1 for m in models if m.get("beats_baseline_significant") is True)
+    return significant, len(models)
+
+
+def _git(*args: str) -> str | None:
+    try:
+        return subprocess.run(
+            ["git", *args], cwd=ROOT, capture_output=True, text=True, check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def build_provenance_block(conn) -> dict | None:
+    """The one mart_build_provenance row, plus git_sha / git_dirty (dbt cannot read git).
+
+    None (published as null, with a warning) when the warehouse has no such table.
+    """
+    try:
+        cur = conn.execute("SELECT * FROM mart_build_provenance")
+        cols = [d[0] for d in cur.description]
+        rows = cur.fetchall()
+    except Exception as e:  # noqa: BLE001 — any catalog error means "not built"
+        print(f"  WARNING: no mart_build_provenance in the warehouse ({e}); publishing provenance: null")
+        return None
+    if len(rows) != 1:
+        print(f"  WARNING: mart_build_provenance has {len(rows)} rows, expected 1; publishing provenance: null")
+        return None
+    from decimal import Decimal
+
+    def _jsonable(v):
+        if hasattr(v, "isoformat"):
+            return v.isoformat()
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
+
+    block = {c: _jsonable(v) for c, v in zip(cols, rows[0])}
+    sha = _git("rev-parse", "HEAD")
+    status = _git("status", "--porcelain")
+    block["git_sha"] = sha.strip() if sha is not None else None
+    block["git_dirty"] = bool(status.strip()) if status is not None else None
+    return block
+
+
 def build_stats_block(conn) -> dict:
     """Build the pre-baked stats block for the home page (zero SQL in browser)."""
     total_laps = conn.execute("SELECT COUNT(*) FROM fct_lap_residuals").fetchone()[0]
@@ -530,20 +650,14 @@ def build_stats_block(conn) -> dict:
         import glob as _glob
         dbt_model_count = len(_glob.glob(str(ROOT / "transform" / "models" / "**" / "*.sql"), recursive=True))
 
-    # ML models: count from model_card.json's beats_baseline_significant flags
-    ml_model_count = 0
-    model_card_path = ROOT / "ml" / "model_card.json"
-    if model_card_path.exists():
-        try:
-            with open(model_card_path) as f:
-                model_card = json.load(f)
-            # Count models where beats_baseline_significant is True
-            ml_model_count = sum(
-                1 for model in model_card.get("models", [])
-                if model.get("beats_baseline_significant", False)
-            )
-        except Exception:
-            ml_model_count = 0
+    # ML models: (significant, total) from ml/models/model_card.json. No fallback:
+    # an unreadable card publishes null, never a made-up count (TX-07 / AP-04).
+    ml_counts = count_significant_models(MODEL_CARD)
+    if ml_counts is None:
+        print(f"  WARNING: could not count ML models from {MODEL_CARD}; publishing ml_models: null")
+        ml_model_count, ml_model_total = None, None
+    else:
+        ml_model_count, ml_model_total = ml_counts
 
     # Read era_boundary from transform/dbt_project.yml vars so the manifest
     # stays in sync with the dbt var without a separate hardcode here.
@@ -559,7 +673,6 @@ def build_stats_block(conn) -> dict:
         pass  # fall back to default
 
     total_drivers = conn.execute("SELECT COUNT(*) FROM dim_drivers").fetchone()[0]
-    total_events = conn.execute("SELECT COUNT(*) FROM dim_events").fetchone()[0]
     # Count only raced circuits: circuits that appear in race_to_track
     total_circuits = conn.execute(
         "SELECT COUNT(DISTINCT circuit_key) FROM (SELECT DISTINCT track_id AS circuit_key FROM race_to_track)"
@@ -568,10 +681,10 @@ def build_stats_block(conn) -> dict:
     return {
         "total_laps": total_laps,
         "total_drivers": total_drivers,
-        "total_events": total_events,
         "total_circuits": total_circuits,
         "dbt_models": dbt_model_count,
-        "ml_models": ml_model_count or 5,
+        "ml_models": ml_model_count,
+        "ml_models_total": ml_model_total,
         "seasons": f"{seasons[0]}–{seasons[1]}",
         "seasons_list": list(range(seasons[0], seasons[1] + 1)),
         "era_boundary": era_boundary,
@@ -584,20 +697,39 @@ def run_export(
     canary_only: bool = False,
     target_table: str | None = None,
     check_mode: bool = False,
+    db_path: Path | None = None,
+    out_root: Path | None = None,
 ) -> None:
     import duckdb
 
-    if not DB_PATH.exists():
-        print(f"ERROR: warehouse not found at {DB_PATH}")
+    db_path = Path(db_path).resolve() if db_path is not None else DB_PATH
+    out_root = Path(out_root).resolve() if out_root is not None else APP_DATA
+
+    if not db_path.exists():
+        print(f"ERROR: warehouse not found at {db_path}")
         sys.exit(1)
 
+    # AX-08: the stg_* views resolve their bronze parquet path relative to transform/, so the export
+    # always runs from there (stg_results / stg_pits were silently skipped from the repo root).
+    # db_path and out_root are absolute by now, so nothing else depends on the cwd.
+    prev_cwd = os.getcwd()
+    os.chdir(ROOT / "transform")
+    try:
+        _run_export_dispatch(canary_only, target_table, check_mode, db_path, out_root)
+    finally:
+        os.chdir(prev_cwd)
+
+
+def _run_export_dispatch(canary_only, target_table, check_mode, db_path, out_root) -> None:
     if check_mode:
-        # Write to a temp dir, then diff
+        # Write to a temp dir, then diff against <out_root>/_manifest.json
         with tempfile.TemporaryDirectory() as tmp:
-            _run_export_to(Path(tmp), canary_only, target_table, check_mode=True)
+            _run_export_to(Path(tmp), canary_only, target_table, check_mode=True,
+                           db_path=db_path, compare_root=out_root)
         return
 
-    _run_export_to(APP_DATA, canary_only, target_table, check_mode=False)
+    _run_export_to(out_root, canary_only, target_table, check_mode=False,
+                   db_path=db_path)
 
 
 def _run_export_to(
@@ -605,16 +737,21 @@ def _run_export_to(
     canary_only: bool,
     target_table: str | None,
     check_mode: bool,
+    db_path: Path | None = None,
+    compare_root: Path | None = None,
 ) -> None:
     global OUT_ROOT_GLOBAL
     OUT_ROOT_GLOBAL = out_root
     import duckdb
 
+    db_path = db_path if db_path is not None else DB_PATH
+    compare_root = compare_root if compare_root is not None else APP_DATA
+
     t0 = time.time()
-    conn = duckdb.connect(str(DB_PATH), read_only=True)
+    conn = duckdb.connect(str(db_path), read_only=True)
 
     print(f"\n{'[CHECK MODE] ' if check_mode else ''}Off The Pace app data export")
-    print(f"  warehouse:  {DB_PATH}")
+    print(f"  warehouse:  {db_path}")
     print(f"  output:     {out_root}")
     if canary_only:
         print("  scope:      canary tables only")
@@ -677,9 +814,20 @@ def _run_export_to(
         if network_entry:
             manifest_entries.append(network_entry)
 
+        # AX-02: assistant_entities (names from bronze reference data; the one non-published-file input).
+        from assistant_entities import export_assistant_entities
+        manifest_entries.append(export_assistant_entities(conn, out_root, size_report))
+
+        # AX-05: qv_* query views + assistant/catalogue.json, built from the files written above.
+        from assistant_query_views import export_query_views
+        manifest_entries.extend(export_query_views(out_root, manifest_entries, size_report, progress=_progress))
+
     # Stats block
     stats = build_stats_block(conn)
+    provenance = build_provenance_block(conn)
     conn.close()
+
+    add_freshness(manifest_entries, out_root)
 
     # Manifest
     version_hash = _content_hash(out_root)
@@ -687,13 +835,14 @@ def _run_export_to(
         "version": version_hash,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "stats": stats,
+        "provenance": provenance,
         "tables": manifest_entries,
     }
 
     manifest_path = out_root / "_manifest.json"
     if check_mode:
         # In check mode: compare against current manifest
-        existing = APP_DATA / "_manifest.json"
+        existing = compare_root / "_manifest.json"
         if existing.exists():
             with open(existing) as f:
                 current = json.load(f)
@@ -702,14 +851,30 @@ def _run_export_to(
                 m = dict(m)
                 m.pop("generatedAt", None)
                 m.pop("version", None)
+                m.pop("assistant", None)  # AX-08: written by --finalize, verified separately below
                 if "stats" in m:
                     m["stats"] = dict(m["stats"])
+                # git_sha / git_dirty describe the export run, not the data: a
+                # committed manifest can never carry its own commit's sha.
+                if isinstance(m.get("provenance"), dict):
+                    m["provenance"] = {
+                        k: v for k, v in m["provenance"].items()
+                        if k not in ("git_sha", "git_dirty")
+                    }
                 return m
             if _strip(current) != _strip(manifest):
                 print("\n  ⚠️  DRIFT DETECTED: manifest is out of date. Run: make app-data")
                 sys.exit(1)
             else:
                 print("  ✅  No drift manifest is current.")
+            # AX-08: every file the assistant block names must still hash to the manifest value.
+            if current.get("assistant"):
+                from assistant_finalize import verify_assistant
+                problems = verify_assistant(compare_root, current)
+                for pr in problems:
+                    print(f"  ⚠️  {pr}")
+                if problems:
+                    sys.exit(1)
         else:
             print("  ⚠️  No existing manifest found.")
         return
@@ -733,7 +898,7 @@ def _run_export_to(
     print(f"  Stats block:  {stats}")
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Export Off The Pace warehouse to app/public/data/ parquet.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -754,12 +919,52 @@ def main() -> None:
         metavar="NAME",
         help="Export a single named table (for fast re-export of one table).",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--db",
+        metavar="PATH",
+        type=Path,
+        default=DB_PATH,
+        help="Warehouse to read (default: data/dev.duckdb).",
+    )
+    parser.add_argument(
+        "--out",
+        metavar="DIR",
+        type=Path,
+        default=APP_DATA,
+        help="Output root (default: app/public/data). --check compares against DIR/_manifest.json.",
+    )
+    parser.add_argument(
+        "--finalize",
+        action="store_true",
+        help="AX-08: no warehouse. Convert assistant/_staging (build-cards --stage) to card parquet, write the "
+             "manifest assistant block and the final version. With --check: verify only.",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = build_parser().parse_args(argv)
+
+    if args.finalize:
+        from assistant_finalize import finalize
+        schema = ROOT / "app" / "src" / "assistant" / "cards" / "card.schema.json"
+        sys.exit(finalize(args.out.resolve(), schema, check=args.check))
+
+    # Guard: a scratch warehouse must never be written into app/public/data.
+    if (
+        args.db.resolve() != DB_PATH.resolve()
+        and args.out.resolve() == APP_DATA.resolve()
+        and not args.check
+    ):
+        print("ERROR: refusing to write a scratch warehouse into app/public/data; pass --out")
+        sys.exit(2)
 
     run_export(
         canary_only=args.canary,
         target_table=args.table,
         check_mode=args.check,
+        db_path=args.db,
+        out_root=args.out,
     )
 
 

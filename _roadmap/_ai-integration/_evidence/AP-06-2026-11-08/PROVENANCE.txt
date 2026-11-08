@@ -1,0 +1,23 @@
+AP-06 (2026-11-08, lane H). Not committed.
+Files: app/src/features/race-lost/{queries,transform,transform.test}.ts, app/src/features/lap-waterfall/{queries,transform,transform.test}.ts
+Change: one lap set per query = the "closed set": laps (after the existing outlier/fuel filters) where pace_delta_s, compound, constructor, dirty_air_tax and
+ driver_skill_residual are all non-NULL (fuel is already non-NULL by the filter). SQL FILTER (WHERE in_closed_set) returns closed_* terms, pace_delta
+ (= SUM/AVG of the real pace_delta_s column over that set, so the closure check is a real check, not total_explained+skill) and n_closed_laps.
+ Bars use the closed set (note "based on k of n laps"); closure badge = sum(5 terms) - pace_delta over that set; n/a (NULL) only if the set is empty, in which case
+ bars fall back to their own coverage (a NULL-only component keeps AP-01's unavailable bar). Track Noise is informational, own coverage, never in the closure.
+ Fix found on the way: race-lost's old closure summed Track Noise in too (six terms vs a five-term pace delta); now five. Race-lost CSV now writes the displayed bar values.
+ Removed from the row types: total_explained_s (both), the old mixed-set pace delta. Page files unchanged.
+Tests: race-lost + lap-waterfall + constructor-team-averages 35 passed in these three dirs; full vitest 828 passed, 2 failed (pre-existing sources.node CHANCE_LINE_*), 1 expected fail, 14 skipped; typecheck (tsc -p tsconfig.app.json) clean.
+BEFORE vs AFTER, race-lost "total pace delta" (s) read from app/public/data/facts/fct_lap_residuals (read only, all seasons), non-outlier laps:
+  race_id driver  laps  closed  old(sum total_explained + sum skill)  new(sum pace_delta over closed set)  change
+  2022_11 STR     58    35      168.739                               99.880                                 -68.859
+  2022_11 ALO     64    37      134.340                               94.235                                 -40.106
+  2025_23 OCO     49    40      168.746                               134.169                                -34.577
+  2020_14 VER     43    39       84.296                                62.719                                -21.577
+  2024_1  VER     51    48       90.607                                82.783                                 -7.824
+  2018_1  HAM     45    0        n/a                                   n/a  (no closed lap; stays unavailable, closure n/a)
+ 3,243 of 3,312 driver-races have at least one lap outside the closed set, so the old pace delta differed from the sum of its terms on almost all of them.
+ (lap-waterfall shows the per-lap mean; same set, so it moves by the same factor / n.)
+NOT RUN: browser check; the headless parity test (app/src/assistant/cards/headless/headless.parity.test.ts, AX-07's) is among the 2 skipped files here. Its race-lost
+ oracle line "totalPaceDelta = sum(total_explained_s)+sum(skill)" and the bar sums over ALL non-outlier laps will no longer match when it runs; it needs the oracle
+ filtered to the closed set (not edited: another lane's file).

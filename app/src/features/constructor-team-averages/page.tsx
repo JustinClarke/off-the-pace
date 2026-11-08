@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import RankedTable from '../../ui/charts/RankedTable'
 import { methodologyContent, methodologyHref } from './methodology'
@@ -22,6 +23,7 @@ function carClass(v: unknown) {
 }
 
 export default function ConstructorTeamAveragesPage() {
+  const prov = useProvenance()
   const { season } = useFilters()
 
   const { data, isLoading, error } = useQuery<TeamAverageRow[]>(
@@ -51,7 +53,7 @@ export default function ConstructorTeamAveragesPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018-2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={entries.length ? toCsvRows(entries) : undefined}
       csvFilename={`constructor-team-averages-${season}.csv`}
       isLoading={isLoading}
@@ -78,7 +80,7 @@ export default function ConstructorTeamAveragesPage() {
                   render: v => fmt(v),
                   cellClass: carClass,
                 },
-                { key: 'dirty_air_s', header: 'Dirty-air tax', align: 'right', render: v => fmt(v) },
+                { key: 'dirty_air_s', header: 'Dirty-air tax', align: 'right', render: v => (v === null || v === undefined ? 'unavailable' : fmt(v)), cellClass: v => (v === null || v === undefined ? 'text-muted' : '') },
                 { key: 'driver_skill_s', header: 'Driver skill', align: 'right', render: v => fmt(v) },
               ]}
             />

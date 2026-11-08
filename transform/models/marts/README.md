@@ -21,9 +21,9 @@ tables. Schemas on the two primary ML inputs are enforced via dbt model contract
 | `fct_driver_isolation_race` | driver × race | Driver isolation ratings rolled up per race |
 | `fct_power_law_training` | race × compound hardness rank | Power-law tyre-curve training frame for `ml/src/powerlaw.py` |
 | `mart_driver_season_summary` | driver × season | Season rating, teammate-gap rank (not a field-speed rank), teammate gap and component means, shaped for plain-language explanations |
-| `mart_race_driver_summary` | driver × race | Race rating (the gap to the teammate; no within-race rank), components and result, shaped for plain-language explanations |
+| `mart_race_driver_summary` | driver × race | Race rating (the gap to the teammate; no within-race rank), its paired-lap n, order-statistic CI and trust label, why a CI or residual is missing, components and result, shaped for plain-language explanations |
+| `mart_race_coverage` | race | What was measured per `race_to_track` race and, when a race is unrated or thin, why (`coverage_reason`); documented in [_coverage.yml](_coverage.yml) |
 | `mart_metric_benchmark` | metric × season | p05 / p50 / p95, mean and sd of each decomposition component over clean laps |
-| `dim_events` | event | Race event flags (damage, retirement, penalty) |
 
 Exposures pointing at `ml/` are declared in [exposures.yml](exposures.yml).
 

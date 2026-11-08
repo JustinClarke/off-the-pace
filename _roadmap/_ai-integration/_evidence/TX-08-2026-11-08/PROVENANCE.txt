@@ -1,0 +1,115 @@
+TX-08 - Tests that can fail (vacuous range tests, residual bound, CI branches, vacuity audit, AI-13 real-data check)
+Date: 2026-11-08. Lane I. Nothing committed. Written incrementally.
+
+SCRATCH COPY
+  <scratchpad>/laneI/dev.duckdb copied from <scratchpad>/laneA/dev.duckdb (TX-01/02/03/06 built there).
+  profiles.yml threads: 1 + settings {threads: 1, memory_limit: 4GB}; --target-path/--log-path in laneI.
+  data/dev.duckdb and data/ci.duckdb not touched. Committed baselines not touched.
+
+LOG
+  [1] Read TX-08, AI-13, BUILD-ORDER, TX-01..07 PROVENANCE. TX-01 (bracket test), TX-02 (coverage test,
+      reason test), TX-03 (dirty-air tests), TX-06 (season uncertainty test) have landed in the tree:
+      no coverage or bracket test is added here; they are in the vacuity audit.
+  [2] Started full unchanged 1-thread dbt build on laneI (build_before.log) and a fixture build
+      ($S/ci/ci.duckdb, own profiles dir, target ci, dbt-ci.yml vars) before any edit (ci_build_before.log).
+  Plan: AI-13 choice = (c) local make gate (draft patch only, Makefile not edited); see below when written.
+  [3] FIXTURE BUILD BEFORE EDITS (unchanged tree, target ci, own ci.duckdb in laneI/ci):
+      PASS=1523 WARN=1 ERROR=1 SKIP=29 NO-OP=3 TOTAL=1557.
+      FINDING F1: assert_every_lap_race_rated_or_explained (TX-02) FAILS on the fixture, 168 rows, all
+        'no_telemetry_not_a_known_gap': race_to_track (seed) lists all 173 races, mart_race_coverage has a
+        row for each, the 170 races with no fixture laps get has_telemetry FALSE, and 168 of them are not
+        in the 2018_1/2018_2 gap list. In `dbt build` this test failure SKIPs mart_driver_season_summary
+        and its 28 tests on CI (SKIP=29). dbt-ci.yml Gate 1b would be red (checked by running the same
+        command locally; the workflow itself was not run).
+      WARN 2 assert_prior_season_labels_frozen (expected: season stats vs full seed; 2020 465/9,383, 2023 401/12,654).
+      Fixture measurements for the CI branches: field-base pooled cells 142; sign-convention pairs 42;
+        thin-cell repriced laps 91; int_power_law_lap 2018 laps 0. Fixture lap races: 2020_8, 2023_1, 2024_21.
+  [4] EDITS so far: assert_driver_skill_residual_reasonable.sql (15.0 s rule, header fixed);
+      assert_prior_season_labels_frozen.sql (error on every target, season check skipped on ci, MAX-season
+      filter removed: frozen = seasons in the seed); comments with fixture numbers + reason in
+      assert_field_base_component_neutral / assert_isolation_sign_convention /
+      assert_isolation_thin_cell_tax_matches_component / assert_hardness_rank_2018_from_lap_name (values kept);
+      new assert_ai_mart_counts_consistent.sql.
+  [5] DEV FULL BUILD BEFORE EDITS (unchanged tree; tests parsed before my edits): PASS=1554 WARN=0 ERROR=0
+      SKIP=0 NO-OP=3 TOTAL=1557 (laneI/build_before.log). Snapshot laneI/before.json: 99 models, 0 missing
+      (copied here as before.json).
+      Real-data numbers: race mart 3,138 rows, n_drivers 6..20, laps_completed NULL 0 / min 1,
+        n_clean_laps NULL 52 / min 1; season mart 173 rows, n_drivers min 20, n_races 1..24,
+        max(rank - n_drivers) 0; benchmark sample_size 13,501..22,087.
+        ml_eligible |residual|: max 13.8206 s (2024_12 PER lap 22), next 13.0735 (2024_12 LEC 22),
+        12.7268 (2025_18 HAM 62), 8 laps > 10 s, 0 > 15 s, p99.99 9.5361 s.
+        Coverage: only race with n_lap_rows 0 is 2021_12 (has_telemetry TRUE, NO_RACING_LAPS).
+        2025 label stats (not in seed): 14,027 rows, mean -0.0334 (owner may add as seed row).
+      New test assert_ai_mart_counts_consistent compiled by hand on dev: 0 rows.
+  [6] Edits: assert_every_lap_race_rated_or_explained 'no_telemetry_not_a_known_gap' scoped to
+      n_lap_rows > 0 (fixes F1; no change on real data). schema.yml (marts): race n_drivers min 1->2,
+      season n_drivers 1->2, n_clean_laps min 0->1 (where not null kept: NULL is explained),
+      laps_completed not_null + min 1 (where dropped), sample_size range test removed (recount test).
+      tests/README.md rows updated/added.
+  [7] dbt test on dev, changed singular tests + all generic tests of the 3 AI marts: PASS=67 ERROR=0.
+  [8] FIXTURE BUILD AFTER EDITS (laneI/ci, target ci, dbt-ci.yml vars): PASS=1555 WARN=0 ERROR=0 SKIP=0
+      NO-OP=3 TOTAL=1558 (ci_build_after.log). F1 cleared; label-freeze now PASS on ci (theta check as error).
+      (Run while the audit [9] was running on the dev copy; separate db and target dirs.)
+  sqlfluff (repo .sqlfluff rules, jinja templater via scratch config so no profile/db is touched):
+      assert_ai_mart_counts_consistent, assert_driver_skill_residual_reasonable,
+      assert_every_lap_race_rated_or_explained clean; assert_prior_season_labels_frozen 2 LT05 on
+      pre-existing code lines. Tests are not linted by dbt-ci.yml (models/ only).
+  [9] Vacuity audit running: laneI/mutate.py (backup copy of each table in schema tx08_bak, mutate,
+      `dbt test -s <test>`, restore from backup). Results -> vacuity_table.tsv here.
+  [9] VACUITY AUDIT DONE: 106 distinct tests, 123 mutations (vacuity_table.tsv; driver mutate.py).
+      Every mutation changed >= 1 row and every test FAILED under it: 0 vacuous after TX-08's edits.
+      Re-run after the final rewrite of assert_ai_mart_counts_consistent (9 mutations),
+      assert_driver_skill_residual_reasonable (15.5 s lap) and assert_every_lap_race_rated_or_explained
+      (3 mutations): all FAIL as required. tx08_bak schema dropped afterwards.
+  [10] FIXTURE FINAL (final test files): PASS=1555 WARN=0 ERROR=0 SKIP=0 NO-OP=3 TOTAL=1558 (fixture_build.log);
+      Gate 2 equivalent `dbt test --select test_type:singular` on the fixture: PASS=140 ERROR=0.
+      Gate 1c equivalent on my fixture db vs committed model_hashes.ci.baseline.json (read only):
+      "OK: all 12 fct_* models byte-stable"; NEW int_driver_race_paired_laps, mart_build_provenance,
+      mart_race_coverage; non-fct changed: int_sector_residual_decomposed, mart_driver_season_summary,
+      mart_metric_benchmark, mart_race_driver_summary (other lanes' TX-01..07 model edits, not TX-08).
+  [11] DEV FINAL FULL BUILD (after audit, tx08_bak dropped): PASS=1555 WARN=0 ERROR=0 SKIP=0 NO-OP=3
+      TOTAL=1558 (build_after.log). 1558 = 1557 + assert_ai_mart_counts_consistent; the removed
+      sample_size range test and the added laps_completed not_null cancel.
+      --check vs before.json (oracle_check.txt): fct_driver_isolation_stint drifted, non-fct
+      int_pit_strategy_cost_curve, int_sector_residual_decomposed changed. No model source changed
+      between the two builds (only marts/schema.yml, test entries). Rebuilt just those 3 models with
+      `dbt run`: fct_driver_isolation_stint went back to its before hash (e369af61...), the other two
+      moved again; row counts equal every time (26,325 / 475,607 / 477,069). Final --check vs before.json
+      (oracle_check_after_rerun.txt): "OK: all 12 fct_* models byte-stable"; non-fct changed:
+      int_sector_residual_decomposed only.
+      FINDING F2: these 3 models are NOT byte-reproducible run to run on a 1-thread build (they flip
+      between hashes with identical inputs). None is a model TX-08 mutated: fct_lap_residuals, the three
+      AI marts and mart_race_coverage all hash equal to before.json. Owner / TX-07: the fct_* oracle can
+      go red on fct_driver_isolation_stint with no change at all (likely an unordered window or
+      float-sum order); investigate before re-taking the baselines.
+
+AI-13 CHOICE: (c) a local make gate the owner runs before every export.
+  Why not (a): no self-hosted runner is configured (pipeline.yml waits on vars.PIPELINE_ENABLED and
+    vars.PIPELINE_RUNNER); a job that cannot run is not a check. Drafted anyway as optional, read-only.
+  Why not (b) alone: the fixture holds 3 races; the label-freeze season check, the 1,000-cell /
+    100-pair / 1,000-lap vacuity guards and 2018-only checks cannot hold at fixture scale (measured
+    above), so (b) is applied only where a test can (theta check now errors on CI; coverage test fixed).
+  Why (c): the export reads data/dev.duckdb on the owner's machine; gating `make app-data` on
+    `dbt test --target dev` + fct_* oracle + data profile is read-only on the very build being
+    published. Draft: AI-13-real-data-gate.Makefile.draft (Makefile NOT edited; owner applies after
+    re-taking the baselines). No workflow edited, PIPELINE_ENABLED untouched, no secrets.
+
+CI BRANCHES (5)
+  assert_prior_season_labels_frozen  CHANGED: error on every target; only the season check skipped on
+      ci (fixture can never match the full seed); MAX-season filter removed (frozen = seed seasons).
+  assert_field_base_component_neutral         KEPT 100 vs 1000: fixture has 142 cells.
+  assert_isolation_sign_convention            KEPT 25 vs 100: fixture has 42 pairs.
+  assert_isolation_thin_cell_tax_matches_component KEPT 50 vs 1000: fixture has 91 laps.
+  assert_hardness_rank_2018_from_lap_name     KEPT skip of the "2018 has laps" guard: fixture has 0 2018 laps.
+  Reasons written into each file with the 2026-11-08 fixture number.
+
+OWNER DECISIONS
+  - Apply the make gate (draft) and when (after baselines are re-taken).
+  - Add a 2025 row to seeds/label_stability_baseline.csv to freeze 2025 (measured: 14,027 rows,
+    mean -0.0334). Not done: seed is a baseline.
+  - F1 fix is in TX-02's test (scope n_lap_rows > 0). Alternative: model-side has_telemetry NULL when
+    a race has no laps (model change, not TX-08's).
+  - F2 nondeterminism of fct_driver_isolation_stint / int_pit_strategy_cost_curve /
+    int_sector_residual_decomposed.
+NOT VERIFIED: GitHub workflows not run (dbt-ci.yml gates reproduced locally by command only); pytest
+  harness and `sqlfluff lint models/` not run (no model touched).

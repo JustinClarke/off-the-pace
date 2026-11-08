@@ -14,6 +14,18 @@ export function registerQuery<TParams, TResult>(
   return fn
 }
 
+/** The registered query function for a name, or undefined. Used by the headless card builder (AX-04). */
+export function getRegisteredQuery<TParams = unknown, TResult = unknown>(
+  name: string
+): QueryFn<TParams, TResult> | undefined {
+  return queryRegistry.get(name) as QueryFn<TParams, TResult> | undefined
+}
+
+/** Names of every registered query (AX-04 registry guard). */
+export function registeredQueryNames(): string[] {
+  return [...queryRegistry.keys()]
+}
+
 export function useQuery<TResult>(
   name: string,
   params: unknown = {},

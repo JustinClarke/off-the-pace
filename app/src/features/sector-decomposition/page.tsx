@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useProvenance } from '../../data/provenance'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import { RankedTable } from '../../ui/charts'
@@ -60,12 +61,17 @@ const columns: RankedTableColumn<SectorDriverResult>[] = [
 type SectorTab = 'S1' | 'S2' | 'S3'
 
 export default function SectorDecompositionPage() {
+  const prov = useProvenance()
   const { season } = useFilters()
   const [searchParams, setSearchParams] = useSearchParams()
   const raceId = searchParams.get('race') ?? ''
   const [activeTab, setActiveTab] = useState<SectorTab>('S1')
 
+  // Clear 'race' when the season changes, not on mount, so a deep link survives load (AX-03)
+  const prevSeason = useRef(season)
   useEffect(() => {
+    if (prevSeason.current === season) return
+    prevSeason.current = season
     setSearchParams(p => { p.delete('race'); return p }, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [season])
@@ -104,7 +110,7 @@ export default function SectorDecompositionPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={data && raceId ? toCsvRows(data) : undefined}
       csvFilename={`sector-decomposition-${raceId || season}.csv`}
       isLoading={isLoading}

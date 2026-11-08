@@ -1,0 +1,163 @@
+AP-03 Three interval defects - provenance (2026-11-08)
+Status: DONE (tests, typecheck pass; lint clean on touched files). Not committed. Owner decisions open (section 5).
+Warehouse for checks: scratch laneA/dev.duckdb, opened read_only (never data/dev.duckdb, never app/public/data).
+Prior lanes' edits kept: AX-03/AP-01/AP-02 edited pit-strategy/page.tsx, constructor-structural-pace/page.tsx,
+party-mode/page.tsx (useProvenance + prev-season useRef). Not reverted.
+
+1. Pit confidence
+  Finding (spec premise correction): optimal_pit_lap_confidence = 0.0 has TWO meanings in the warehouse.
+    8,211 rows, 0 NULL, range 0.0-0.986. 3,376 rows are exactly 0.0:
+      141 have optimal_pit_lap_in_stint NULL  -> no cost curve (COALESCE(...,0.0) in int_pit_strategy_value.sql:475)
+    3,235 have an optimum                     -> a curve exists but no candidate lap is >1 s worse (flat curve)
+    No row has confidence > 0 with a NULL optimum.
+  So rendering every 0.0 as "no cost curve" (spec wording) would mislabel 3,235 stints. Rule implemented:
+    confidence 0 AND optimum NULL -> "no cost curve"; confidence 0 with an optimum -> "0% (flat curve)";
+    else "NN% of laps >1 s worse". Tooltip row "Optimum sharpness" (always shown). CSV column
+    optimal_pit_lap_confidence (3 dp) on every row (0.0 stays 0 in the CSV; methodology explains).
+  Files: ui/charts/Gantt.tsx (GanttStint.optimalPitLapConfidence + tooltip row; only pit-strategy uses
+    Gantt), ui/charts/ganttLabels.ts (NEW: pitConfidenceLabel, split out for react-refresh lint),
+    pit-strategy/transform.ts (map + CSV), pit-strategy/methodology.tsx (one paragraph).
+
+2. Season Structural Pace interval  (constructor-structural-pace/queries.ts season branch, transform.ts seasonMeanSe)
+  Derivation. Season point = plain mean of the k per-race estimates, m = (1/k) Σ p_i.
+    Var(m) = (1/k²) Σ_i Σ_j Cov(p_i, p_j). If the per-race estimation errors are independent
+    (each race is fitted on its own laps: int_constructor_structural_pace.sql groups by race, the
+    field-pace curve it subtracts is per race), Cov = 0 for i≠j, so Var(m) = Σ se_i² / k² and
+    SE(m) = sqrt(Σ se_i²) / k.  CI = m ± 1.96·SE(m)  (per-race CIs are exactly ±1.96·SE:
+    max |ci_high - p - 1.96·se| = 2.2e-16 race, 3.6e-15 quali).
+    Estimand: the average over THIS season's races of each race's structural pace. Circuit-to-circuit
+    variation in the true pace is not sampling noise for that estimand. If independence fails, or the
+    per-race SEs are understated (they are SD/sqrt(n) of lap deltas for a MEDIAN, ignoring lap-to-lap
+    autocorrelation; the asymptotic SE of a median under normality is already 1.25x that), the
+    interval is too narrow -> stated as a LOWER BOUND in methodology.tsx.
+  Choice: option (a) (plain mean, sqrt(Σse²)/k). Reasons:
+    - the season point fans see does not move (only the interval changes);
+    - option (b) (precision-weighted) moves points (race: median |shift| 0.046 s, max 0.170 s; quali
+      median 0.073 s, max 0.852 s) and is UNDEFINED in quali: 10 qualifying rows have se = 0, giving
+      infinite weight (e.g. McLaren 2025 quali: weighted mean NaN, SE 0);
+    - (b) is the fixed-effect meta-analysis estimator, whose SE is the smaller of the two and is
+      valid only if every race estimates the same true value, which the data reject (below).
+    Not mixed: point and SE are both the plain mean's.
+  NULL handling: 42 of 1,644 race rows have NULL pace (CO-04), and their SE is NULL with them
+    (count(pace) = count(se) = 1,602). SUM(se²) and COUNT(pace) skip the same rows; k = COUNT(pace).
+    races_n is now that k (was COUNT(*)): changes the "Races" column in 22 of 81 race-mode
+    season cells (e.g. 2018 Mercedes 21 -> 18). Quali: no NULLs. panel_observations_n unchanged.
+  Hand-worked team-season (race mode, Mercedes 2020, scratch warehouse, k = 16):
+    per-race se: .05835 .08803 .13153 .07794 .09232 .15774 .07180 .08409 .03833 .08824 .20151
+                 .10434 .08588 .10746 .08549 .10870
+    Σ se² = 0.178959038  sqrt = 0.423035504  / 16 = SE 0.026439719
+    Σ p = -20.373185829  mean = -1.273324114  CI = [-1.32515, -1.22150]
+    before: SE = AVG(se) = 0.098860, CI = [AVG(lo), AVG(hi)] = [-1.46709, -1.07956]
+    vitest reproduces 0.02643971902628201 to 12 dp from the 16 SEs (transform.test.ts).
+  Whole-population check (81 season x team cells each mode):
+    race:  median SE before 0.1125 -> after 0.0265 (median ratio 4.23x; after range 0.019-0.041)
+    quali: median SE before 0.1834 -> after 0.0538 (median ratio 3.27x; after range 0.017-0.624)
+  Before/after, RACE mode (point unchanged; CI = point ± 1.96·SE):
+    season team             k   point    CI before            CI after              SE before  SE after
+    2019   Mercedes        20  -1.4625  [-1.6501, -1.2749]  [-1.5062, -1.4188]     0.0957    0.0223
+    2022   Red Bull Racing 21  -1.2072  [-1.4276, -0.9868]  [-1.2591, -1.1553]     0.1125    0.0265
+    2025   McLaren         22  -0.9928  [-1.1606, -0.8250]  [-1.0296, -0.9560]     0.0856    0.0188
+    (more rows, and quali mode, in the table at the end of this section)
+  Heterogeneity / owner flag: the empirical SE of the mean, SD(p_i)/sqrt(k), which treats the season's
+    races as a sample of circuits, is LARGER than (a) in all 81 race-mode cells (median 0.0815 s,
+    3.09x (a)) and in 58/81 quali cells (median 1.27x). So the per-race estimates scatter far more
+    than their SEs allow: true pace varies by circuit and/or the per-race SEs are understated. Under
+    (a) the season CI is ~4x narrower than today; if the question fans read it as answering is
+    "how fast is this car over a season", the empirical SE (about 0.08 s, i.e. close to today's
+    0.11 s width) is the more honest interval. That is NOT one of the spec's two options; reported,
+    not implemented. OWNER DECISION.
+  SQL check: the new season query text (extracted from queries.ts) run on the scratch warehouse returns
+    Mercedes 2020 race: pace -1.273324114303026, SE 0.02643971902628201, CI [-1.32515, -1.22150], races_n 16 = hand result.
+    Race-grain branch of queries.ts not edited (diff shows only the season branch).
+  Full before/after extract (se_old = today's AVG(se), se_a = shipped, se_b/p_b = option (b), se_emp = SD/sqrt(k)):
+    == int_constructor_structural_pace 81
+    se_old median 0.1125 min 0.0856 max 0.1604
+    se_a median 0.0265 min 0.0188 max 0.0412
+    se_b median 0.0216 min 0.0152 max 0.0343
+    se_emp median 0.0815 min 0.0516 max 0.1472
+    ratio old/a median 4.23 emp/a median 3.09 cells emp>a 81
+    point shift b: median 0.0460 max 0.1702
+     race_year  constructor_id  k   p_old  lo_old  hi_old  se_old   se_a   se_b     p_b  se_emp
+          2019        Mercedes 20 -1.4625 -1.6501 -1.2749  0.0957 0.0223 0.0184 -1.3815  0.1189
+          2019         Ferrari 20 -1.3087 -1.5240 -1.0935  0.1098 0.0262 0.0205 -1.3022  0.1022
+          2019 Red Bull Racing 20 -0.8398 -1.0801 -0.5995  0.1226 0.0297 0.0228 -0.8678  0.0928
+          2019         McLaren 20  0.0836 -0.1455  0.3128  0.1169 0.0269 0.0244  0.0857  0.0821
+          2022 Red Bull Racing 21 -1.2072 -1.4276 -0.9868  0.1125 0.0265 0.0205 -1.1837  0.0813
+          2022         Ferrari 21 -1.1171 -1.3366 -0.8976  0.1120 0.0254 0.0218 -1.0955  0.0805
+          2022        Mercedes 21 -0.7224 -0.9605 -0.4842  0.1215 0.0320 0.0195 -0.6919  0.1005
+          2022         McLaren 21  0.2255  0.0025  0.4486  0.1138 0.0262 0.0211  0.2168  0.0768
+          2025         McLaren 22 -0.9928 -1.1606 -0.8250  0.0856 0.0188 0.0168 -0.9901  0.0731
+          2025         Ferrari 22 -0.4390 -0.6454 -0.2325  0.1053 0.0254 0.0180 -0.4895  0.1076
+          2025        Mercedes 21 -0.3355 -0.5095 -0.1615  0.0888 0.0204 0.0168 -0.4730  0.1107
+          2025 Red Bull Racing 22 -0.3282 -0.5541 -0.1023  0.1152 0.0264 0.0217 -0.3111  0.0797
+    == int_constructor_structural_pace_qualifying 81
+    se_old median 0.1834 min 0.0692 max 0.8717
+    se_a median 0.0538 min 0.0170 max 0.6235
+    se_b median 0.0169 min 0.0000 max 0.0318
+    se_emp median 0.0660 min 0.0263 max 0.7771
+    ratio old/a median 3.27 emp/a median 1.27 cells emp>a 58
+    point shift b: median 0.0734 max 0.8518
+     race_year  constructor_id  k   p_old  lo_old  hi_old  se_old   se_a   se_b     p_b  se_emp
+          2019        Mercedes 21 -0.8079 -1.4456 -0.1701  0.3254 0.2420 0.0136 -0.7466  0.0549
+          2019         Ferrari 21 -0.7875 -1.0894 -0.4855  0.1541 0.0533 0.0151 -0.6838  0.0676
+          2019 Red Bull Racing 21 -0.4801 -0.8474 -0.1128  0.1874 0.0662 0.0144 -0.3299  0.0489
+          2019         McLaren 21 -0.0921 -0.6090  0.4248  0.2637 0.0944 0.0282 -0.1175  0.0437
+          2022         Ferrari 22 -0.8197 -1.0410 -0.5984  0.1129 0.0272 0.0148 -0.7475  0.0659
+          2022 Red Bull Racing 22 -0.7024 -1.1403 -0.2644  0.2234 0.0797 0.0183 -0.5924  0.0935
+          2022        Mercedes 22 -0.2981 -0.6386  0.0425  0.1737 0.0633 0.0163 -0.2011  0.0791
+          2022         McLaren 22  0.0520 -0.6885  0.7925  0.3778 0.2322 0.0223  0.0376  0.0455
+          2025         McLaren 24 -0.3973 -0.5330 -0.2616  0.0692 0.0170 0.0000     NaN  0.0332
+          2025 Red Bull Racing 24 -0.2224 -0.5112  0.0665  0.1474 0.0378 0.0186 -0.0963  0.0433
+          2025        Mercedes 24 -0.2014 -0.3932 -0.0096  0.0979 0.0295 0.0127 -0.2261  0.0363
+          2025         Ferrari 24 -0.1070 -0.2794  0.0653  0.0879 0.0252 0.0097 -0.0821  0.0348
+
+3. Party Mode delta SE  (party-mode/queries.ts, transform.ts, page.tsx, methodology.tsx)
+  Race grain: delta_se = sqrt(se_q² + se_r²) (independence of the two sessions' estimation errors
+    assumed; stated). Season grain: se_r = sqrt(Σse_r²)/k_r and se_q = sqrt(Σse_q²)/k_q over the
+    joined races (step-2 rule), then combined the same way. CI = delta ± 1.96·delta_se.
+  SQL returns race_se_s / quali_se_s; transform.ts deltaSe()/deltaInterval() add delta_se_s,
+    delta_ci_low_s, delta_ci_high_s, delta_ci_covers_zero to each entry. CSV gains delta_se_s,
+    delta_ci_low_s, delta_ci_high_s (3 dp). Table gains a "Delta 95% CI" column. Point deltas and
+    the party/balanced/race labels are UNCHANGED. The covers-zero flag is computed on the entry
+    only; it is not shown and not in the CSV, and no third label ships (owner decision).
+  Counts (scratch warehouse):
+    race grain: 1,644 joined rows, 1,602 with a delta (42 have NULL race pace, CO-04).
+      median delta SE 0.168 s (> the 0.15 s band). 378 balanced, 1,224 labelled party/race.
+      855 have a 95% CI covering 0; 478 of those are LABELLED party (283) or race (195).
+      (spec estimated "about 477"; exact is 478.)
+    season grain: 81 cells; median delta SE 0.060 s. 24 balanced, 57 labelled.
+      23 CIs cover 0; 6 of those are LABELLED party/race.
+    Season examples (delta, SE, CI): 2022 McLaren -0.1665 0.2445 [-0.646, 0.313] (party, covers 0);
+      2022 Red Bull Racing 0.4959 0.0875 [0.324, 0.668]; 2025 McLaren 0.6007 0.0258 [0.550, 0.651];
+      2025 Red Bull Racing 0.1073 0.0462 [0.017, 0.198] (balanced, CI excludes 0).
+  Side fix: race-grain rows with a NULL race pace (42) made fmt()/toFixed throw in the table and
+    the CSV. fmt() and the CSV formatter now print "—"/null. classify(null) still returns
+    'balanced' (pre-existing; left).
+
+4. Files changed (all uncommitted)
+  app/src/ui/charts/Gantt.tsx, app/src/ui/charts/ganttLabels.ts (new)
+  app/src/features/pit-strategy/{transform.ts, transform.test.ts, methodology.tsx}
+  app/src/features/constructor-structural-pace/{queries.ts, transform.ts, transform.test.ts, methodology.tsx}
+  app/src/features/party-mode/{queries.ts, transform.ts, transform.test.ts, page.tsx, methodology.tsx}
+  page.tsx edits by AX-03/AP-01/AP-02 kept (structural-pace and pit-strategy page.tsx not touched by me).
+
+  Commands (in app/)
+    pnpm exec vitest run src/features/pit-strategy src/features/constructor-structural-pace src/features/party-mode
+      -> 3 files, 29 passed (pit 11 incl. 4 new; structural pace 8 incl. 4 new; party mode 10 incl. 5 new)
+    pnpm typecheck -> clean
+    pnpm exec eslint <touched files> -> 0 problems
+    pnpm lint -> 3 errors, all in tyre-cliff-survival/profileLookup.test.ts (pre-existing, not mine)
+    pnpm exec vitest run (full) -> 828 passed, 2 failed (pre-existing sources.node CHANCE_LINE_*),
+      1 expected fail, 14 skipped
+  Not done: app/public/data not regenerated (nothing in it changes; all changes are app-side SQL/TS).
+  Numbers above are from the scratch warehouse; the shipped parquet may differ slightly.
+
+5. Owner decisions
+  a. Season Structural Pace interval narrows ~4x (race median SE 0.112 -> 0.026 s; quali 0.183 -> 0.054 s);
+     points unchanged. Before/after in section 2. Needs sign-off before it lands.
+  b. Heterogeneity: race-to-race scatter SE (SD/sqrt k, median 0.082 s race) exceeds the shipped SE in
+     81/81 race cells. Option to show that (random-effects style) interval instead, or beside it, for
+     "how fast is the car this season". Not in the spec's options; not implemented.
+  c. "Not distinguishable" Party Mode label: would relabel 478 of 1,224 labelled race-grain rows and
+     6 of 57 labelled season cells. Flag computed (delta_ci_covers_zero), not shown. Ships only on a yes.
+  d. races_n in the season view now counts races with an estimate (k), not all rows (22 race-mode cells).

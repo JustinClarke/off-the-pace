@@ -23,3 +23,20 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - run: npm run gen-tools:check
+        # AX-08/AX-12: the committed generated tools match the catalogue in app/public/data, once that holds assistant/
+        if: ${{ hashFiles('app/public/data/assistant/catalogue.json') != '' }}
+      # AX-12: key scan on the real built bundle. Needs the app build (pnpm), so install it first.
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.4.0
+      - run: pnpm install --frozen-lockfile
+        working-directory: app
+      - run: pnpm build
+        working-directory: app
+      - run: npm run scan-bundle
+      - name: Negative check, a planted key must fail the scan
+        run: |
+          d="$(mktemp -d)"
+          printf 'const k = "sk-%s";\n' "$(printf 'a%.0s' $(seq 1 30))" > "$d/planted.js"
+          if node scripts/scan-bundle.mjs "$d"; then echo "scan passed on a planted key" >&2; exit 1; fi

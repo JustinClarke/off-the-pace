@@ -1,0 +1,19 @@
+AX-08 / AX-12 (lane P, 2026-11-08). Written incrementally. Not committed.
+[0] Read specs, BUILD-ORDER, provenance of TX-12/TX-11/AX-02/04/05/06/07. Nothing built before the limit reset.
+[1] export_app_data.py run_export now resolves db/out to absolute and chdirs to transform/ (try/finally). Scratch export from repo root AND transform/ (--db laneP/dev.duckdb --out laneP/outA, outB): both export stg_pits (8 partitions) and stg_results, 56 tables. build-cards.mjs: --stage flag writes assistant/_staging/{cards,build}.json + assistant/index.json.
+[2] scripts/assistant_finalize.py (new) + export_app_data.py: --finalize (+ --check verify-only), _content_hash excludes assistant/cards, --check verifies assistant block. Scratch laneP/outA: build-cards --stage 35,380 cards 22 s; finalize -> 8 card files (45-59 KB each), version b345a49825b3f2b1, catalogue 8d2412984b64; rerun on same staging: 2024.parquet byte-identical, same version; finalize --check rc 0.
+[3] scripts/tests/test_assistant_finalize.py (5 tests) -> pytest scripts/tests 51 passed, 3 skipped.
+[4] manifest.ts AssistantBlock; Makefile app-data = export + build-cards --stage + --finalize, new app-cards-check (scripts/check_cards.py); publish_cdn.sh sync+cache-control include assistant. check_cards.py on laneP/outA rc 0 (8 files reproduce sha256).
+[5] worker: scripts/gen-tools.mjs, src/generated/tools.ts (from laneP/outA catalogue 8d2412984b64; tokens tools 854 / catalogue 87 / system 254), config.ts re-exports, npm scripts gen-tools(:check), app/src/assistant/prompt/{system.md,tools.template.json} minimal (AX-21 owns system.md content), test/gen-tools.test.ts (6) + fixtures. worker npm test 22 passed incl. 16 old (1 old assertion updated: tools now equal generated TOOLS). publish_cdn.sh bash -n ok; --dry-run needs gcloud+bucket: OWNER.
+[6] docs/platform/architecture-decisions.mdx: ADR-011 added (AD1-AD5 verbatim from build-log); description ten -> eleven. AX-08 DONE pending final test run.
+[7] AX-12 code edits in worker/src (config, ticket.ts new, ledger, handler, wrangler.jsonc); tests next.
+[8] AX-12: worker/src/{config,ticket(new),ledger,handler}.ts, wrangler.jsonc (cap 10000, limit 3, TICKET_SECRET secret), firebase.json CSP (Report-Only kept; challenges.cloudflare.com in script/frame/connect-src; connect-src host https://WORKER_HOST_PLACEHOLDER), .github/workflows/worker-ci.yml (gen-tools:check when data holds assistant/, app build, scan-bundle, negative planted-key step; planted key locally -> rc 1).
+    worker npm test 33 passed (16 old + 6 gen-tools + 3 ticket + 8 new); typecheck clean. pytest scripts/tests 52 passed, 3 skipped. app tsc clean; vitest src/data + registry 45 passed.
+    Old tests changed: 'ignores browser-sent tools' now expects generated TOOLS; usage test reads rounds/questions instead of answers; chat helper sends X-Catalogue-Version; env gets TICKET_SECRET.
+    Step 10 (tool-call support): scratchpad/check-workers-ai.md, Cloudflare model page fetched 2026-11-07: function calling listed. Multi-round tool use, reasoning tokens vs max output, prefix caching: UNVERIFIED, left to AX-13.
+OWNER STEPS (not run):
+  1 make app-data (real export, then build-cards, --finalize), then: cd worker && npm run gen-tools && npm test  (regenerates tools.ts from the real catalogue; committed file is from the scratch export, catalogue 8d2412984b64)
+  2 cd worker && wrangler secret put TURNSTILE_SECRET; ... ADMIN_TOKEN; ... TICKET_SECRET; wrangler deploy (preview)
+  3 replace WORKER_HOST_PLACEHOLDER in firebase.json with the deployed host; firebase deploy --only hosting:app
+  4 ./scripts/publish_cdn.sh --dry-run  (must list assistant/), then make app-publish
+  5 the app must send X-Catalogue-Version = manifest.assistant.catalogue_version and X-Question-Ticket (AX-10/AX-14 client work)

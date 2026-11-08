@@ -1,0 +1,26 @@
+{
+  "spec": {
+    "type": "line",
+    "title": "LEC median lap time by tyre age, 2024",
+    "x": {
+      "col": "age_in_stint",
+      "label": "Tyre age (laps)"
+    },
+    "y": {
+      "col": "value",
+      "label": "Median lap time (s)"
+    },
+    "series": [
+      {
+        "result_id": "71b0a7af0913",
+        "label": "LEC",
+        "x_col": "age_in_stint",
+        "y_col": "value"
+      }
+    ]
+  },
+  "n": [
+    24
+  ],
+  "note": null
+}

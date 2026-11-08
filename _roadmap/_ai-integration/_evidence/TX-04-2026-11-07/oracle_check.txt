@@ -1,0 +1,2 @@
+note: 1 model(s) not materialized in dev.duckdb: int_driver_race_paired_laps
+OK: all 12 fct_* models byte-stable vs baseline.

@@ -2,7 +2,7 @@
 
 > **When a car is off the pace, why?**
 
-**A browser-native, full-stack F1 analytics platform.** It ingests 8 seasons of telemetry, models it through a 94-table dbt warehouse, trains 5 ML models, and serves 31 interactive analytics features with **no server, no login, and no cost to serve**.
+**A browser-native, full-stack F1 analytics platform.** It ingests 8 seasons of telemetry, models it through a 99-table dbt warehouse, trains 5 ML models, and serves 31 interactive analytics features with **no server, no login, and no cost to serve**.
 
 Under the hood, every lap is decomposed into five additive, physically-grounded components, so lost time is attributed to an exact, named cause rather than a vibe.
 
@@ -20,7 +20,9 @@ Under the hood, every lap is decomposed into five additive, physically-grounded 
 
 ![Off The Pace: browser-native F1 analytics dashboard decomposing every lap into named causes](docs/images/off-the-pace-home.png)
 
-**161,040** laps decomposed · **173** races · **43** drivers · **44** circuits · **94** dbt models · **1320** tests · **5/5** ML models beat baseline · **31** browser features · **0** servers
+**161,040** laps decomposed · **172** races[^races] · **43** drivers · **44** circuits · **99** dbt models · **1433** tests · **5/5** ML models beat baseline · **31** browser features · **0** servers
+
+[^races]: 172 of the 173 scheduled races (2018-2025) carry modelled laps. 2021_12 (Spa, no racing laps) is absent from the lap tables, and 2021_16 (all-wet) has no driver-skill rating, so the rating marts cover 171. `mart_race_coverage` gives the reason for every race. Ingestion still counts all 173.
 
 ---
 
@@ -60,7 +62,7 @@ Trained on 2018–2025. The 2026 season is the designated holdout: evaluation sw
 ```mermaid
 flowchart LR
     A["FastF1 + OpenF1"] --> B["Bronze<br/>Hive-partitioned Parquet<br/>8 seasons · 173 races"]
-    B --> C["Transform<br/>dbt + DuckDB<br/>94 models · 1320 tests"]
+    B --> C["Transform<br/>dbt + DuckDB<br/>99 models · 1433 tests"]
     C --> D["ML<br/>5 XGBoost models<br/>→ ONNX, 39 features"]
     C --> E["GCS CDN<br/>parquet + models"]
     D --> E
@@ -90,8 +92,8 @@ Requires Python 3.11+.
 git clone https://github.com/justinclarke/off-the-pace
 cd off-the-pace
 make setup           # build venv + install Python/dbt deps
-make dbt-dev         # build the transform layer (94 models)
-make dbt-test        # run 1320 tests including assert_additive_identity
+make dbt-dev         # build the transform layer (99 models)
+make dbt-test        # run 1433 tests including assert_additive_identity
 ```
 
 No cloud credentials required. DuckDB runs locally at `data/dev.duckdb`.
@@ -143,7 +145,7 @@ If you want to run the React app or the documentation site locally, you'll also 
 | Subsystem | State | Evidence |
 |---|---|---|
 | Ingestion (Bronze) | ✅ Built | `ingestion/src/`: FastF1 + OpenF1 → Hive-partitioned Parquet, 8 seasons / 173 races |
-| Transform (94 models, 1320 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
+| Transform (99 models, 1433 tests) | ✅ Built | `transform/models/`: schema.yml and singular tests; additive identity enforced in CI |
 | Coefficients (KM tyre cliff) | ✅ Fitted | `transform/tasks/coefficients/`: seeds |
 | ML (5 XGBoost models, 270 tests) | ✅ Built | [`ml/`](ml/): degradation quantile trio + cliff classifier + stint-life survival (AFT); ONNX parity; v14 models on a 39-column contract (the cliff classifier reads all 39 features; the other four mask the 7 qualifying columns) |
 | Frontend (React + DuckDB-Wasm) | ✅ Built | [`app/`](app/): 31 interactive features, zero server, sub-10ms queries; deployed to Firebase Hosting |
@@ -220,7 +222,7 @@ The in-app assistant reads short AI-facing summaries of the docs, while readers 
 | Layer | Tech |
 |---|---|
 | Ingestion | FastF1 + OpenF1 → Hive-partitioned Parquet |
-| Transform | dbt-core (DuckDB local, 94 models, 1320 tests) |
+| Transform | dbt-core (DuckDB local, 99 models, 1433 tests) |
 | ML | XGBoost (degradation quantile trio, cliff classifier, remaining life) → ONNX v14 (39 features) |
 | Frontend | React + DuckDB-Wasm (sub-10ms queries, zero compute cost) |
 | Hosting | Firebase Hosting (frontend) + GCS CDN `gs://off-the-pace-cdn` (data + models) |

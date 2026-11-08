@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "_comment": "AX-21 analyst playbook. Question types, card recipes (in order), the conclusion each allows, the rule codes that enforce it, and held links with the reason the model gives. Card kinds follow the AX-07 registry (registry wins). Id templates use AX-01's pattern kind:scope...; a trailing * is a prefix the store expands. bundle:false types have no card recipe and are left out of get_fact_cards' bundle enum.",
+  "classes_live": ["T"],
+  "pending_kinds": {
+    "ml.cliff_probability": { "owner": "AX-17", "expected": "held", "held_reason": "ML cliff probabilities are held until the ML redo (models are v14, labels v16)." },
+    "ml.prediction_band": { "owner": "AX-17", "expected": "held", "held_reason": "ML prediction bands are held until the ML redo (models are v14, labels v16)." }
+  },
+  "glossary": [
+    { "skill_measure": "lap_residual", "column": "driver_skill_residual_s", "line": "lap time left after fuel, compound, car and dirty air; means unexplained, not driver error", "status": "held",
+      "kinds": ["race_driver.skill_components", "lap_waterfall.component", "race_lost.component"] },
+    { "skill_measure": "consistency_residual", "column": "driver_residual_mean_s", "line": "mean and spread of the lap residual", "status": "held",
+      "kinds": ["driver_consistency.season"] },
+    { "skill_measure": "wet_proxy", "column": "driver_skill_proxy_mean_s", "line": "wet-race proxy", "status": "held",
+      "kinds": ["wet_race.specialist"] },
+    { "skill_measure": "teammate_paired_median", "column": "rating_s", "line": "median lap-time gap to the teammate on paired laps (one race)", "status": "live",
+      "kinds": ["race.teammate_gap"] },
+    { "skill_measure": "era_rating", "column": "era_adjusted_rating", "line": "season rating built on the paired median, bridged across teammates", "status": "live",
+      "kinds": ["era_rating.season", "season.teammate_gap"] },
+    { "skill_measure": "proxy_family", "column": "corner_skill_index", "line": "corner-phase, synthetic-teammate and qualifying-decomposed proxies, each on its own scale", "status": "live",
+      "kinds": ["corner_phase.season"], "no_card": ["synthetic_teammate", "qualifying_decomposed"] }
+  ],
+  "types": [
+    {
+      "type": "teammate_race", "v1": "live", "bundle": true,
+      "examples": ["How did Verstappen do against Perez in Bahrain 2024, and what explains it?", "Did Hamilton beat Bottas at the 2020 Turkish GP?"],
+      "recipe": [
+        { "kind": "race.coverage", "id": "race.coverage:{race_id}", "scope_from": ["race_id"], "required": true },
+        { "kind": "race.teammate_gap", "id": "race.teammate_gap:{race_id}:{driver_id}", "scope_from": ["race_id", "driver_id"], "required": true },
+        { "kind": "race.teammate_gap", "id": "race.teammate_gap:{race_id}:{teammate_id}", "scope_from": ["race_id", "teammate_id"], "required": false },
+        { "kind": "race.result", "id": "race.result:{race_id}:{driver_id}", "scope_from": ["race_id", "driver_id"], "required": true },
+        { "kind": "race.result", "id": "race.result:{race_id}:{teammate_id}", "scope_from": ["race_id", "teammate_id"], "required": false },
+        { "kind": "race.cautions", "id": "race.cautions:{race_id}", "scope_from": ["race_id"], "required": true },
+        { "kind": "driver_race.pit_stops", "id": "driver_race.pit_stops:{race_id}:{driver_id}", "scope_from": ["race_id", "driver_id"], "required": true }
+      ],
+      "allowed_conclusion": "The median paired-lap gap with its n and CI. thin: hedge. suppressed: no reliable gap, no value. Unrated: the coverage reason. Cautions and stops are context, consistent with the gap, never a breakdown.",
+      "forbidden_codes": ["RATING_TRUST_LABEL", "COUNT_NOT_CAUSE", "UNAVAILABLE_IS_NOT_ZERO", "AIR_STATE_FILTER", "ONE_SKILL_MEASURE_NAMED"],
+      "held_links": [
+        { "kind": "race_driver.skill_components", "id": "race_driver.skill_components:{race_id}:{driver_id}:*", "held_reason": "The time-loss breakdown includes the unvalidated flat dirty-air term; held until wake calibration reports." }
+      ]
+    },
+    {
+      "type": "season_standing", "v1": "live", "bundle": true,
+      "examples": ["Where does Norris rank against teammates in 2023?"],
+      "recipe": [
+        { "kind": "season.teammate_gap", "id": "season.teammate_gap:{season}:{driver_id}", "scope_from": ["season", "driver_id"], "required": true }
+      ],
+      "allowed_conclusion": "A rank only where rank_separated_from_next is true; otherwise in a group whose intervals overlap.",
+      "forbidden_codes": ["RANK_WITHIN_CI", "ONE_SKILL_MEASURE", "ONE_SKILL_MEASURE_NAMED", "NOT_INDEPENDENT_EVIDENCE"],
+      "held_links": [
+        { "kind": "counterfactual_championship.season", "id": "counterfactual_championship.season:{season}:*", "held_reason": "Ghost standings are built on ghost-car pace, which includes the unvalidated dirty-air term; held until wake calibration reports." }
+      ]
+    },
+    {
+      "type": "why_slow", "v1": "partial", "bundle": true,
+      "examples": ["Why was Leclerc slow at Monaco 2024?"],
+      "recipe": [
+        { "kind": "race.coverage", "id": "race.coverage:{race_id}", "scope_from": ["race_id"], "required": true },
+        { "kind": "race.cautions", "id": "race.cautions:{race_id}", "scope_from": ["race_id"], "required": true },
+        { "kind": "driver_race.pit_stops", "id": "driver_race.pit_stops:{race_id}:{driver_id}", "scope_from": ["race_id", "driver_id"], "required": true },
+        { "kind": "race.teammate_gap", "id": "race.teammate_gap:{race_id}:{driver_id}", "scope_from": ["race_id", "driver_id"], "required": true }
+      ],
+      "allowed_conclusion": "Lists the observed context and says the data cannot split the time loss into causes in v1.",
+      "forbidden_codes": ["COUNT_NOT_CAUSE", "HELD_CARD_WORDING", "RATING_TRUST_LABEL"],
+      "held_links": [
+        { "kind": "data_quality.race", "id": "data_quality.race:{race_id}", "held_reason": "Usable-lap counts depend on the dirty-air air-state filter; held until wake calibration reports." },
+        { "kind": "race_driver.skill_components", "id": "race_driver.skill_components:{race_id}:{driver_id}:*", "held_reason": "The time-loss breakdown includes the unvalidated flat dirty-air term; held until wake calibration reports." },
+        { "kind": "lap_waterfall.component", "id": "lap_waterfall.component:{race_id}:{driver_id}:*", "held_reason": "The lap waterfall includes the unvalidated flat dirty-air term; held until wake calibration reports." },
+        { "kind": "sector_decomposition.component", "id": "sector_decomposition.component:{race_id}:{driver_id}:*", "held_reason": "Sector attribution includes the dirty-air term and waits on CO-16; held until wake calibration reports." }
+      ]
+    },
+    {
+      "type": "stint_describe", "v1": "describe_only", "bundle": true,
+      "examples": ["Was Leclerc's pit call right at Monaco 2024?", "Describe Hamilton's stints in Bahrain 2024."],
+      "recipe": [
+        { "kind": "driver_race.pit_stops", "id": "driver_race.pit_stops:{race_id}:{driver_id}", "scope_from": ["race_id", "driver_id"], "required": true },
+        { "kind": "race.cautions", "id": "race.cautions:{race_id}", "scope_from": ["race_id"], "required": true }
+      ],
+      "allowed_conclusion": "Stops and compounds against the safety-car timing; not a verdict; the 33.9% reproduction-rate wording.",
+      "forbidden_codes": ["PIT_CALL_REPRODUCTION_RATE", "HELD_CARD_WORDING", "COUNT_NOT_CAUSE"],
+      "held_links": [
+        { "kind": "pit_strategy.verdict", "id": "pit_strategy.verdict:{race_id}:{driver_id}:*", "held_reason": "Pit-call verdicts are held until the reproduction rate is re-measured on the ML redo (AX-18)." },
+        { "kind": "pit_strategy.optimal_lap", "id": "pit_strategy.optimal_lap:{race_id}:{driver_id}:*", "held_reason": "The model-optimal lap is held until the reproduction rate is re-measured on the ML redo (AX-18)." }
+      ]
+    },
+    {
+      "type": "safety_car_rate", "v1": "pooled_only", "bundle": true,
+      "examples": ["How often do safety cars happen?", "What is the chance of a safety car at Monaco?"],
+      "recipe": [
+        { "kind": "race_control.pooled_rate", "id": "race_control.pooled_rate:all:*", "scope_from": [], "required": true },
+        { "kind": "race_control.pooled_rate", "id": "race_control.pooled_rate:{season}:*", "scope_from": ["season"], "required": false }
+      ],
+      "allowed_conclusion": "The pooled rate with its race count; no reliable difference between circuits; 2018 per-circuit history is unavailable, not 0.",
+      "forbidden_codes": ["POOLED_SC_RATE_ONLY", "UNAVAILABLE_IS_NOT_ZERO"],
+      "held_links": []
+    },
+    {
+      "type": "tyre_life", "v1": "held", "bundle": true,
+      "examples": ["How long does the soft last in Bahrain 2024?"],
+      "recipe": [],
+      "allowed_conclusion": "Held in v1: the held reason and the survival page link. Once live: a lower bound, never a tyre limit.",
+      "forbidden_codes": ["HELD_CARD_WORDING", "SURVIVAL_LOWER_BOUND"],
+      "held_links": [
+        { "kind": "tyre_cliff_survival.profile", "id": "tyre_cliff_survival.profile:{race_id}:*", "held_reason": "The survival curve is a lower bound and its stints are chosen by a dirty-air-dependent filter; held until wake calibration reports." },
+        { "kind": "ml.cliff_probability", "id": "ml.cliff_probability:{race_id}:*", "held_reason": "ML cliff probabilities are held until the ML redo (models are v14, labels v16)." }
+      ]
+    },
+    {
+      "type": "corner_phase", "v1": "live", "bundle": true,
+      "examples": ["Is Norris stronger on braking, mid-corner or exit in 2024?"],
+      "recipe": [
+        { "kind": "corner_phase.season", "id": "corner_phase.season:{season}:{driver_id}:*", "scope_from": ["season", "driver_id"], "required": true }
+      ],
+      "allowed_conclusion": "Within-team strengths (the baseline is the team mean); name the measure.",
+      "forbidden_codes": ["ONE_SKILL_MEASURE_NAMED", "ONE_SKILL_MEASURE", "AIR_STATE_FILTER"],
+      "held_links": []
+    },
+    {
+      "type": "observed_count", "v1": "query_data", "bundle": false,
+      "examples": ["How many laps did Verstappen lead in 2023?"],
+      "recipe": [
+        { "tool": "list_values", "scope_from": [], "required": true },
+        { "tool": "query_data", "scope_from": [], "required": true }
+      ],
+      "allowed_conclusion": "A plain count or average with n, from the data, not a rating; no cause.",
+      "forbidden_codes": ["COMPUTED_NOT_CARD_WORDING", "COUNT_NOT_CAUSE"],
+      "held_links": []
+    },
+    {
+      "type": "lookup_navigate", "v1": "live", "bundle": false,
+      "examples": ["Who is Checo?", "Show me the Monaco 2024 pit Gantt."],
+      "recipe": [
+        { "tool": "list_values", "scope_from": [], "required": true },
+        { "tool": "navigate", "scope_from": [], "required": false },
+        { "tool": "explain_page", "scope_from": [], "required": false }
+      ],
+      "allowed_conclusion": "A link and the page explanation; no number unless it comes from a card.",
+      "forbidden_codes": [],
+      "held_links": []
+    },
+    {
+      "type": "what_if", "v1": "link_only", "bundle": false,
+      "examples": ["What if Verstappen had pitted on lap 20?"],
+      "recipe": [
+        { "tool": "navigate", "scope_from": [], "required": true }
+      ],
+      "allowed_conclusion": "A link to the Simulator only; the chance line is never quoted.",
+      "forbidden_codes": ["CHANCE_LINE_QUOTABLE", "CHANCE_LINE_EXPERIMENTAL"],
+      "held_links": []
+    },
+    {
+      "type": "held_class", "v1": "refuse", "bundle": false,
+      "examples": ["How much did traffic cost Hamilton at Silverstone 2023?", "Who wins the ghost-car championship in 2021?", "What does the model predict for the soft's cliff?"],
+      "recipe": [
+        { "tool": "get_fact_cards", "scope_from": [], "required": true }
+      ],
+      "allowed_conclusion": "The held reason and the page link; no estimate, no probably.",
+      "forbidden_codes": ["HELD_CARD_WORDING", "GHOST_IS_COUNTERFACTUAL", "DIRTY_AIR_MODELLED_NOT_MEASURED"],
+      "held_links": [
+        { "kind": "dirty_air.price", "id": "dirty_air.price:{race_id}:{driver_id}:*", "held_reason": "Traffic cost is being re-measured; no number is available yet (dirty-air calibration)." },
+        { "kind": "ghost_race.standings", "id": "ghost_race.standings:{race_id}:{driver_id}:*", "held_reason": "Built on ghost-car pace, which includes the unvalidated dirty-air term; held until wake calibration reports." },
+        { "kind": "counterfactual_championship.season", "id": "counterfactual_championship.season:{season}:*", "held_reason": "Built on ghost-car pace, which includes the unvalidated dirty-air term; held until wake calibration reports." },
+        { "kind": "ml.prediction_band", "id": "ml.prediction_band:{race_id}:{driver_id}", "held_reason": "ML prediction bands are held until the ML redo (models are v14, labels v16)." },
+        { "kind": "pit_strategy.verdict", "id": "pit_strategy.verdict:{race_id}:{driver_id}:*", "held_reason": "Pit-call verdicts are held until the reproduction rate is re-measured on the ML redo (AX-18)." }
+      ]
+    }
+  ]
+}

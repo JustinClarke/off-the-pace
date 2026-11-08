@@ -6,7 +6,9 @@ export interface TeamAverageEntry {
   drivers: number
   laps: number
   car_s: number | null
+  /** NULL (unavailable) when no lap of the team-season has a measured dirty-air value. Never 0 for unmeasured. */
   dirty_air_s: number | null
+  n_dirty_air_laps: number
   driver_skill_s: number | null
 }
 
@@ -17,7 +19,8 @@ export function transform(rows: TeamAverageRow[]): TeamAverageEntry[] {
     drivers: r.drivers_n,
     laps: r.laps_n,
     car_s: r.avg_car_component_s,
-    dirty_air_s: r.avg_dirty_air_tax_s,
+    dirty_air_s: (r.n_dirty_air_laps ?? 0) > 0 ? r.avg_dirty_air_tax_s : null,
+    n_dirty_air_laps: Number(r.n_dirty_air_laps ?? 0),
     driver_skill_s: r.avg_driver_skill_residual_s,
   }))
 }

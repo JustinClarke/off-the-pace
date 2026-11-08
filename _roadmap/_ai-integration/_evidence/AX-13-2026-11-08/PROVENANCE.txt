@@ -1,0 +1,153 @@
+AX-13 Analyst eval v2 - provenance (2026-11-08). Written incrementally. Not committed (owner commits).
+No real model is reachable from this session (no deployed Worker, no network): everything that needs none is built here;
+the real run is one documented owner command (see OWNER RUN below once written).
+
+PROGRESS
+  [0] Read wi/AX-13.md, wi/AI-07-analyst-eval-set.md, status/BUILD-ORDER.md, PROVENANCE of AX-10, AX-21, AX-07, AX-07b, AX-15a
+      (no AX-12 evidence folder exists; read wi/AX-12.md and worker/src/{config,handler}.ts instead).
+      Facts that shape the design:
+       - Loop (core/loop.ts): 4 tool calls, 5 model rounds (repair turn shares them), checker + findUngroundedNumbers on the draft.
+       - Budget (core/budget.ts): budget.total = prompt + completion tokens summed over the rounds (what neurons are charged on);
+         budget.peak_context = the slot sum (largest context of one round). chars/4 estimate when usage is absent.
+       - Worker returns {message, usage, ticket}; neurons = ceil((in*18182 + out*27273)/1e6) (handler.ts neuronsFor).
+         MAX_OUTPUT_TOKENS is now 2500 (config.ts), not 800 as AXW7 says. finish_reason is NOT forwarded by the Worker.
+       - Worker refuses a request without an allowed Origin header (cors); the AX-10 Worker client sends none.
+       - Worker caps: VISITOR_DAILY_LIMIT 3 questions/day, DAILY_NEURON_CAP 10,000: a 5-repeat eval of the full set cannot
+         run on one day's free allowance (owner decision, below).
+       - AX-10 finding 7: compliant teammate_race answer needs 3 ideas (pit-call reproduction rate, held wording,
+         "different measures"); system.md carries the first two.
+      Cards (read-only): AX10_CARDS = laneR/cards-07b/cards.json (64,123 cards). Data (read-only): AX06_DATA_DIR = laneK/out.
+  [1] NEW app/src/assistant/eval/questions.json (76 questions, groups a-e) + eval/questions.ts (types, questionsHash = sha256 of the
+      canonical JSON). NEW eval/grade.ts (checks grounded, expected_value, honesty, rules_fired, refusal, must_not, right_tool,
+      all_tools, budget, limits, answered; reuses findUngroundedNumbers and checkAnswer unchanged).
+  [2] system.md (AX-10 finding 7): the Refusals paragraph now quotes the two sentences a teammate_race answer needs beside the gap:
+        "The pit-call method matches the team's real call only about a third of the time, so this is not a verdict."
+        "The time-loss breakdown is held until wake calibration reports; its lap residual and the teammate-paired gap are different measures."
+      3,960 chars = 1,132 tokens by estimateTokens (chars/3.5; slot 1,200), 990 by gen-tools chars/4 (was 931).
+      worker/src/generated/tools.ts regenerated as AX-21 did (cd worker && node scripts/gen-tools.mjs --data test/fixtures):
+      diff = the system prompt paragraph only.
+      Findings while writing the stub: the model projection (cards/project.ts toModelProjection) carries no display and no
+      policy_fields, so the model cannot see rating_trust_label (thin/suppressed), rank_separated_from_next or a race.result's
+      grid slot; it sees n (paired laps), v and why only. The stub infers thin from n < 12 (as AX-10's did) and always words
+      season gaps as "in a group whose intervals overlap".
+  [3] NEW eval/stubModel.ts (STUB plans for all questions; answer composed from tool results; teammate_race sentences parsed out of
+      system.md). Small additive edits to AX-10 core (AX-14 lane edits modelClient.ts concurrently; mine are 3 lines):
+      core/types.ts ModelReply.raw_usage?; core/modelClient.ts replyFrom keeps raw_usage; WorkerClientOptions.origin? + Origin header.
+  [4] NEW eval/run.ts (runOnce/runEval: real ask() loop, wrapped dispatcher + model to record results and raw usage),
+      eval/report.ts (BAR, summarize, renderSummary), app/scripts/assistant-eval.mjs (launcher: --record-bar, --stub, --endpoint,
+      --resume, --human-read), eval/questions.test.ts (24 with AX10_CARDS: schema, counts, no typed numbers, kinds, STUB plan per
+      question, rules_should_fire fire on the cards the correct calls return), eval/grade.test.ts (31: per playbook type a
+      compliant answer passes and a planted wrong answer FAILS; all 8 acceptance wrong-answer kinds). No eval run before the bar.
+  [5] BAR RECORDED 2026-11-08T09:58:29Z (13:58 +04:00), BEFORE ANY RUN (stub or real): _evidence/AX-13-2026-11-08/bar.json
+        100% of numbers grounded | 100% of refusal/hedge cases correct | right tool >= 95% of runs | no run over 18,000 tokens
+        (prompt+completion summed over the run's rounds) | human read of 10 answers passes | 5 repeats per question.
+      Thresholds = wi/AX-13.md Decided verbatim (AI-07). questions_hash 08a4631ec349676f9f22c3c838c3633410706fadc858e4a3fb6e3b7f7391a2ed
+      (79 questions; tools: get_fact_cards 37, query_data 17, navigate 7, explain_page 6, list_values 5, make_chart 5,
+      compare_lap_times 5; refuse/hedge 30; 9 families; seasons 2018-2025). grader sha256 grade.ts c2639138..., report.ts a3348de5...
+      For the orchestrator: append bar.json to status/build-log.json history (not done here).
+  [6] STUB dev run (scratch only: $S/ax13/dev, 1 repeat, a copy of bar.json; not a baseline, not in evidence) found:
+       a) a QUESTION defect: h-race-lost-2024_1-PER must_not "\bdriver error\b" failed the system.md wording "not driver error".
+          Fixed to exempt a negated mention (as ONE_SKILL_MEASURE_NAMED does). Bar RE-RECORDED with --amend at
+          2026-11-08T09:59:33Z: questions_hash 901ed60e1060afbd860636ff79830e40ada0a188cc43e04bdfbff7b869b9d6a7; thresholds unchanged;
+          bar.json keeps amended_from (the first hash, 09:58:29Z) and the reason.
+       b) STUB plan bug: ch-sc-laps-season asked for 8 seasons; the builder allows at most 2 per request (too_many_seasons). Stub now
+          asks 2024-2025 (harness fix, not a question change).
+       c) Finding (kept, not fixed): "How many races did Verstappen win" has no tool path. qv_driver_race's actual_finish_position is
+          a measure (not a filter or group_by column) and race.result cards are one per race (22 > the 10-card cap). oc-wins-VER-2023
+          and ch-wins-2023 answer "no data": they show up under "questions no tool could answer".
+  [7] STUB BASELINE (first, at 2026-11-08T09:59Z after the amended bar): stub-baseline.json / -summary.md / .runs.jsonl here.
+      Then: report.ts bar edge case fixed (grounded/refusal pass = no failing run; before it also needed >= 1 applicable run, which
+      made a --ids subset with no refusal question read as failing). Thresholds unchanged; no number in the baseline changes.
+      NEW eval/evalDry.test.ts (12: 3 STUB answers end to end through the real loop + grader + summary; teammate_race minimum
+      wording sufficient and each of its 4 parts necessary; constants in step with worker/src/config.ts) and eval/eval.node.test.ts
+      (3, env-gated: the whole set once over the real files). Baseline re-run below with the final harness.
+  [8] Real-run measurements added (no model needed to build them): UsageRound.visible_chars (grade.ts type), runOnce records it,
+      summary.reasoning gains completion_tokens_reported / visible_tokens_estimated / rounds_hidden_output (completion_tokens >
+      2 x chars/4 of the visible reply + 20 = hidden reasoning billed as output). NEW eval/run.test.ts (2: the Worker contract over an
+      injected fetch: Origin header, ticket carry, usage + reasoning tokens recorded, neurons from usage; a 409 recorded as an
+      errored run, never a pass).
+  [9] FINAL STUB BASELINE (final harness): 2026-11-08T10:03:27Z, 395 runs = 79 questions x 5 repeats, questions_hash 901ed60e...
+      files here: stub-baseline.json (every run + grade), stub-baseline-summary.md, stub-baseline.runs.jsonl.
+      LABEL: STUB. It measures the harness, NOT a model. Tokens are chars/4 of a scripted model (no reasoning tokens).
+        bar: grounded 395/395 = 100% | refusal/hedge 150/150 = 100% | right tool 395/395 = 100% | max run 7,918 tokens (0 over 18,000)
+             | human read not applicable (template answers) | 5 repeats -> verdict INCOMPLETE (by design: no human read for a stub).
+        reported: expected_value 80/80, honesty 395/395, must_not 395/395, limits 395/395, rules_fired 260/270 (the 10 misses are the
+             two "wins" questions, see [6c]).
+        tokens/run mean 4,786 (p50 4,652, p90 5,124, max 7,918); peak context mean 2,472; rounds mean 2.04 (max 3); tool calls mean 1.04
+        (max 2); repair turns 0/395; neurons/answer 88.4 mean (p90 94, max 146) ESTIMATED -> 113 answers/day at 10,000 (estimate only).
+        teammate_race: 6 questions x 5 = 30 runs, 0 repairs, 4,906-4,928 tokens: the two system.md sentences suffice
+        (evalDry.test: dropping any of gap / air-state clause / pit sentence / held+measures sentence fails).
+        Static slots (in-memory gen from laneK catalogue + all registry kinds): tools 1,053 / catalogue 87 / system 990 (chars/4).
+
+FILES
+  NEW  app/src/assistant/eval/{questions.json, questions.ts, grade.ts, stubModel.ts, run.ts, report.ts}
+  NEW  app/src/assistant/eval/{questions.test.ts, grade.test.ts, evalDry.test.ts, run.test.ts, eval.node.test.ts}
+  NEW  app/scripts/assistant-eval.mjs ; app/package.json script "assistant-eval"
+  EDIT app/src/assistant/prompt/system.md (Refusals paragraph: the two quoted teammate_race sentences)
+  EDIT worker/src/generated/tools.ts (regenerated from test/fixtures as AX-21 did; SYSTEM_PROMPT paragraph only)
+  EDIT app/src/assistant/core/types.ts (ModelReply.raw_usage?), core/modelClient.ts (raw_usage kept; WorkerClientOptions.origin?)
+  NEW  _evidence/AX-13-2026-11-08/{PROVENANCE.txt, bar.json, stub-baseline.json, stub-baseline-summary.md, stub-baseline.runs.jsonl}
+  Not touched: status/build-log.json, app/public/data, data/*.duckdb, app/src/ui, app/src/routes, policy.json, playbook.json. No git writes.
+
+TESTS (app/)
+  npx vitest run (no env)                  -> 1312 passed, 2 failed (pre-existing sources.node CHANCE_LINE_*), 1 expected fail, 128 skipped (1443)
+  with AX04_DATA_DIR=laneL/out AX06_DATA_DIR=laneK/out AX10_CARDS=laneR/cards-07b/cards.json
+                                           -> 1437 passed, 2 failed (same), 1 expected fail, 3 skipped (1443)
+  src/assistant/eval: 66 passed + 6 skipped without env; 72 passed with env
+     (questions 24, grade 31, evalDry 12, run 2, eval.node 3). npm run typecheck clean; eslint src/assistant/eval clean.
+  worker: npx vitest run -> 33 passed (3 files), incl. gen-tools staleness after the regenerate.
+
+OWNER RUN (the real baseline; nothing below was run here, nothing is claimed)
+  D = the data folder the cards were built from (laneK/out for these cards, or app/public/data after `make app-data`)
+  C = a build-cards cards.json over the same data (laneR/cards-07b/cards.json, or a fresh `node scripts/build-cards.mjs`)
+  1. cd worker && node scripts/gen-tools.mjs --data $D
+       (else the Worker answers 409 app_updated: its CATALOGUE_VERSION is the test/fixtures one, and its kinds enum is the old
+        10-kind index, so the model could not ask for held kinds). Afterwards restore the committed one:
+        node scripts/gen-tools.mjs --data test/fixtures   (the worker staleness test pins it).
+  2. worker/.dev.vars (never committed): TICKET_SECRET=<long random>  ADMIN_TOKEN=<long random>
+     npx wrangler login ; npx wrangler dev --var ALLOWED_ORIGINS:http://localhost:5173 --var TURNSTILE_ENABLED:false \
+        --var VISITOR_DAILY_LIMIT:1000          (DAILY_NEURON_CAP stays 10000; the AI binding runs on Cloudflare and bills the account)
+  3. curl -s -H "Authorization: Bearer $ADMIN_TOKEN" http://127.0.0.1:8787/admin/usage      (ledger before)
+  4. cd app && node scripts/assistant-eval.mjs --endpoint http://127.0.0.1:8787/v1/chat --protocol worker \
+        --origin http://localhost:5173 --data $D --cards $C \
+        --evidence ../_roadmap/_ai-integration/_evidence/AX-13-2026-11-08 --repeats 5 --resume
+     Writes baseline.json, baseline-summary.md, baseline.runs.jsonl next to bar.json (refuses if bar.json's hash != questions.json).
+     Capacity: the STUB estimate is ~88 neurons/answer before reasoning tokens, so 395 runs need >= ~35,000 neurons: more than one
+     day's 10,000. When the cap is hit the Worker answers 503 paused; those runs are recorded as errors and re-run by the same
+     command with --resume the next day (or start with --repeats 1, then --repeats 5 --resume).
+  5. curl the ledger again: (neurons after - before) / questions = neurons per answer, to cross-check the eval's usage figure.
+  6. node scripts/assistant-eval.mjs --human-read --evidence ../_roadmap/_ai-integration/_evidence/AX-13-2026-11-08
+     -> fill baseline.human-read.json (pass/note per answer, status pass|fail), then re-run step 4 (--resume keeps every run) so the
+     summary carries the human read and the verdict.
+  What to read in baseline-summary.md (measure, do not assume):
+     - neurons per answer from usage ("from endpoint usage", not "ESTIMATED"), p90, max; answers per day at 10,000.
+     - repair-turn rate and the first-draft codes it fixed (AX-10 decision (b): checker on every card received).
+     - reasoning tokens: rounds reporting a reasoning field; "Hidden output" line (completion_tokens vs chars/4 of the visible reply)
+       = whether reasoning counts as output and so against MAX_OUTPUT_TOKENS=2500; rounds at the 2,500 cap (empty answer at the cap
+       = reasoning ate the budget). Then set the final MAX_OUTPUT_TOKENS (AXW7).
+     - multi-round tool use: runs with 2+ rounds answered after a tool result, and endpoint errors on round 2+.
+     - every failure with its cause; questions no tool could answer.
+  Ollama alternative (no Worker): --endpoint http://127.0.0.1:11434/v1/chat/completions --protocol openai --model gpt-oss:20b
+     (the CLI sends the system prompt and tools; Ollama's usage has no neuron meaning: use it for behaviour, not capacity).
+
+OWNER DECISIONS / FINDINGS
+  1. Bar as written: no change to the spec's thresholds. "No run over 18,000 tokens" is defined on budget.total (prompt + completion
+     summed over the run's rounds, what neurons are billed on), not on the per-round peak context (bounded at 13,100 by the slots).
+     Say if the peak was meant.
+  2. Not gating, by the spec: the honesty checker pass rate, expected_value, rules_fired. Recommend adding "100% honesty checker pass"
+     to the bar for AX-20; it is reported in every summary.
+  3. Capacity vs the eval: 5 repeats x 79 questions cannot run inside one day's 10,000 neurons; run over days with --resume, or approve
+     a paid day. VISITOR_DAILY_LIMIT (3) must be raised for the eval run (local --var only).
+  4. The model projection carries no display and no policy_fields: the model cannot see rating_trust_label (thin / suppressed),
+     rank_separated_from_next, coverage_reason or a result's grid slot, though system.md tells it to act on the first two. Suppressed
+     and unrated come through `why`; thin only through n. Option: add trust/rank fields to the projection (cards/project.ts, ~40 chars
+     per card).
+  5. No tool path for "how many races did X win": actual_finish_position is a measure in qv_driver_race (not filterable, not a
+     group_by), and race.result cards are one per race (> the 10-card cap). Option: make it a dimension, or a season wins card.
+  6. query_data allows at most 2 seasons per request (too_many_seasons) even on views whose catalogue max_seasons is null; a
+     "per season" chart over 2018-2025 needs 4 calls (the tool cap) or a season card.
+  7. worker/src/generated/tools.ts stays generated from test/fixtures (old 10-kind index): the real run must regenerate it from the
+     data (step 1). AX-10 finding 4 still open.
+  8. system.md grew 931 -> 990 tokens (chars/4; 1,132 by estimateTokens, slot 1,200) for the teammate_race sentences.
+  9. h-ml-band (ML prediction band): no card kind exists yet (pending AX-17), so get_fact_cards rejects the kind; the right answer
+     comes from system.md alone. Counted under "no tool could answer" until AX-17.

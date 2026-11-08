@@ -1,0 +1,7 @@
+Three read-only audits by Opus subagents, 2026-11-07, run in one session at the owner's request:
+  audit-transform.md   transform layer, checked with SQL on a scratch copy of data/dev.duckdb
+                       (scratch dbt build: 1491 pass, 0 errors; data/dev.duckdb itself untouched)
+  audit-app.md         the 43 shipped app routes as inference sources (code read; app and tests not run)
+  design-ai-access.md  inventory of the v1 AI items, data-access design, draft AX order
+Each report ends with a "not verified" list. Claims about the CDN, the ML redo branch and
+Workers AI pricing were not checked. No git operation was run by any agent.

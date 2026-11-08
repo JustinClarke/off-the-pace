@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import RankedTable from '../../ui/charts/RankedTable'
 import { methodologyContent, methodologyHref } from './methodology'
@@ -18,6 +19,7 @@ function fmt(s: number) {
 }
 
 export default function SyntheticTeammatePage() {
+  const prov = useProvenance()
   const { season } = useFilters()
   const { data, isLoading, error } = useQuery<SyntheticTmRow[]>(
     'synthetic-teammate.season',
@@ -46,7 +48,7 @@ export default function SyntheticTeammatePage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025', nObs: result?.points.length }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion, nObs: result?.points.length }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename={`synthetic-teammate-${season}.csv`}
       isLoading={isLoading}

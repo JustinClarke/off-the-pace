@@ -1,0 +1,48 @@
+{
+  "provenance": {
+    "label_version": "v16",
+    "label_sealed_on": "2026-10-26",
+    "theta_air_label_value": 0.331,
+    "theta_air_fit_season_max": 2025,
+    "dirty_air_method": "flat_theta_0.331_lag1_share_unvalidated",
+    "era_boundary": 2022,
+    "holdout_season": 2026,
+    "data_season_min": 2018,
+    "data_season_max": 2025,
+    "n_races": 172,
+    "n_races_scheduled": 173,
+    "model_version": null,
+    "dbt_invocation_id": "80399a1f-601a-46b0-8f9d-1fb8c0dddef2",
+    "built_at": "2026-11-07T21:49:42.462217+04:00",
+    "dbt_version": "1.12.6",
+    "git_sha": "ed5724581f95a66e0e01756f11ac40d6c31edc65",
+    "git_dirty": true
+  },
+  "stats": {
+    "total_laps": 161040,
+    "total_drivers": 43,
+    "total_circuits": 36,
+    "dbt_models": 99,
+    "ml_models": 5,
+    "ml_models_total": 5,
+    "seasons": "2018\u20132025",
+    "seasons_list": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "era_boundary": 2022
+  },
+  "keys": [
+    "version",
+    "generatedAt",
+    "stats",
+    "provenance",
+    "tables"
+  ]
+}

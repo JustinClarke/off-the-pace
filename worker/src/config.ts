@@ -1,15 +1,21 @@
 // Everything the browser must not control is fixed here.
 export const MODEL = "@cf/openai/gpt-oss-20b";
-export const MAX_OUTPUT_TOKENS = 800;
+// Provisional (design 2.6): AX-13 measures real output incl. reasoning tokens and sets the final value.
+// Whether reasoning tokens count against this cap is UNVERIFIED (measure in AX-13). Do not raise without a measurement.
+export const MAX_OUTPUT_TOKENS = 2500;
 export const MAX_BODY_BYTES = 32 * 1024;
 export const MAX_MESSAGES = 40;
 export const MAX_MESSAGE_CHARS = 8000;
+export const MAX_TOOL_MESSAGE_CHARS = 5000; // the tool-result slot (design 2.8)
+export const MAX_ROUNDS = 5; // model rounds per question: 4 tool calls plus the final answer
+export const TICKET_TTL_S = 120;
+export const DEFAULT_VISITOR_DAILY_LIMIT = 3; // questions, not rounds (HD6)
+export const DEFAULT_DAILY_NEURON_CAP = 10000; // the free allowance (AD4-B, HD6)
 export const REASONING = { effort: "low" } as const;
 
-// Placeholder: AI-04 owns the real system prompt and the seven tool definitions.
-export const SYSTEM_PROMPT =
-  "You are the Off the Pace assistant. Answer only from the app's published data and tools. State uncertainty plainly.";
-export const TOOLS: unknown[] = [];
+// AX-08: the system prompt, the seven tool schemas and CATALOGUE_VERSION are generated from the exported
+// catalogue (npm run gen-tools), so the Worker and the app cannot disagree.
+export { SYSTEM_PROMPT, TOOLS, CATALOGUE_VERSION } from "./generated/tools";
 
 // Workers AI pricing, gpt-oss-20b, checked 2026-10-23
 // https://developers.cloudflare.com/workers-ai/platform/pricing/

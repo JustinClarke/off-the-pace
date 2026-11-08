@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { pillars } from '../nav/pillars'
 import { FEATURE_FLAGS, APP_CONFIG } from '../config'
 import type { DataManifest } from '../data/manifest'
-import { DATA_CDN_BASE } from '../data/manifest'
+import { DATA_CDN_BASE, formatMlModelsTile } from '../data/manifest'
 
 function useManifestStats() {
   return useQuery<DataManifest>({
@@ -82,7 +82,7 @@ export default function Landing() {
         <div className="flex flex-wrap divide-x divide-border border border-border rounded-lg mb-10 overflow-hidden">
           <StatPill value={stats.total_laps} label="laps decomposed" />
           <StatPill value={stats.dbt_models} label="dbt models" />
-          <StatPill value={stats.ml_models + '/5'} label="ML models beat baseline" />
+          <StatPill value={formatMlModelsTile(stats)} label="ML models beat baseline" />
           <StatPill value={stats.seasons} label="seasons" />
         </div>
       )}

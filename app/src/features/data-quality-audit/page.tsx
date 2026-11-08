@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import { useMemo } from 'react'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import { RankedTable } from '../../ui/charts'
@@ -35,6 +36,7 @@ const columns: RankedTableColumn<QualityResult>[] = [
 
 
 export default function DataQualityAuditPage() {
+  const prov = useProvenance()
   const { season } = useFilters()
 
   const { data, isLoading, error } = useQuery<QualityAuditRow[]>(
@@ -70,7 +72,7 @@ export default function DataQualityAuditPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={data ? toCsvRows(data) : undefined}
       csvFilename={`data-quality-${season}.csv`}
       isLoading={isLoading}

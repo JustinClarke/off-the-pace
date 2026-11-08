@@ -87,7 +87,7 @@ echo
 
 # ── 1. Sync data subdirs (no delete; preserves dest-only objects e.g. ml/) ──────
 # Manifest is uploaded separately, last, so exclude it from the dir sync.
-for sub in dimensions facts intermediates marts; do
+for sub in dimensions facts intermediates marts assistant; do
   if [[ -d "$DATA_DIR/$sub" ]]; then
     echo "── syncing data/$sub ──"
     gcloud storage rsync -r $DRY_RUN \
@@ -112,6 +112,7 @@ if [[ -z "$DRY_RUN" ]]; then
     "$DATA_DEST/facts/**" \
     "$DATA_DEST/intermediates/**" \
     "$DATA_DEST/marts/**" \
+    "$DATA_DEST/assistant/**" \
     --cache-control="$DATA_CACHE_CONTROL" --quiet >/dev/null
 fi
 

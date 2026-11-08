@@ -1,0 +1,8 @@
+Q [cli] Who is Checo?
+  answer: Checo is Sergio Perez; his driver code in the data is PER.
+  tools:  list_values({"domain":"driver","query":"Checo"}) -> ok
+  cards cited: (none)
+  checker: pass   fired: (none)
+  grounding: ok
+  budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=30/4800 output=60/2500 | peak_context=2161/13100 total=4560 rounds=2 neurons=84
+

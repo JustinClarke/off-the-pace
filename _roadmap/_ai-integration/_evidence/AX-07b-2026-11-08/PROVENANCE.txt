@@ -1,0 +1,22 @@
+AX-07b minimum-set kinds - provenance (2026-11-08, lane R). Written incrementally. Not committed.
+[1] data_quality.race: HELD stub, built in AX-15a (sql/heldStubs.ts, grain race, 173 cards, reason R_DQ).
+[2] lineage.json += rows: mart_corner_skill_driver (9 cols, T-F), mart_driver_season_summary (6 cols, T-F); race_caution_timeline rows now list race_control.pooled_rate.
+[3] Decision from lineage: tyre_cliff_survival.profile - the page's stint query filters anomaly_class IN ('normal','clean_cliff'), a filter built on the taxed residual =
+    DA [R] by Q3 default (lineage.md 3.5/line 173). So the kind is HELD (stub), not live. Owner may rule T-F with a second caveat.
+[4] Built: app/src/assistant/cards/sql/seasonKinds.ts (season.teammate_gap, corner_phase.season, race_control.pooled_rate; all class T),
+    queries.ts += cards.corner-skill, cards.season-ratings, cards.stub-scopes (race_compound grain); heldStubs.ts += tyre_cliff_survival.profile (18 stubs);
+    registry.ts, registry.test.ts updated. skill_measure: season.teammate_gap era_rating; corner_phase.season proxy_family (AX-21 glossary 6); no new names.
+[5] Tests: sql/seasonKinds.test.ts (live, unavailable, relabel guard per kind), parity.07b.test.ts (3 seasons 2018/2022/2025 vs SQL oracle over the parquet), registry.held.test.ts (held cases).
+[6] Full card run (node scripts/build-cards.mjs --data $S/laneL/out --out $S/laneR/cards-07b): 64,123 cards, 19,873 ungrounded.
+    season.teammate_gap 173 live | corner_phase.season 483 live (161 driver-seasons x 3 phases) | race_control.pooled_rate 36 live (9 scopes x 4 rates) |
+    tyre_cliff_survival.profile 471 held | data_quality.race 173 held. Refused 0 for all five.
+[7] Tests: tsc clean; eslint src/assistant/cards clean; vitest whole app 1015 passed, 2 failed (sources.node CHANCE_LINE_*, pre-existing), 1 expected fail;
+    AX04_DATA_DIR vitest src/assistant: 512 passed, 5 failed = 2 CHANCE_LINE + 3 headless.parity pit-strategy (2024_8, 2019_1, 2022_5), caused by the
+    concurrent pit-strategy/transform.ts edit (AP-08 lane: stint ordering), not by these kinds.
+OWNER DECISIONS
+  1. tyre_cliff_survival.profile is HELD (filter built on the taxed residual = DA by Q3). Rule T-F + second caveat to make it live.
+  2. race_control.pooled_rate has no interval: the Wilson CI the page shows has no kind in the card interval enum. Add wilson_95 to the enum (schema change) or accept none.
+  3. season.teammate_gap: the season mart has no rating_trust_label, so none travels (policy_fields has rank_separated_from_next, skill_measure era_rating).
+     It equals the era rating numerically (era_rating.season is the same quantity from the era table).
+  4. corner_phase.season interval is value +/- 1 SE (se_1, level null); n is the cell count of that phase.
+  5. race_lost.component stays refused (not converted to a held stub); the AX-15a table lists it.

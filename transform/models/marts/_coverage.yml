@@ -1,0 +1,79 @@
+version: 2
+
+# TX-02. Own yml file to keep marts/schema.yml collisions down.
+models:
+  - name: mart_race_coverage
+    description: >
+      One row per race_to_track race: what the warehouse measured for it and, when a race has
+      no rating or thin residuals, why (coverage_reason). Every value is derived from the
+      data, never from a hand list of race ids. On the 2018-2025 build: 173 races in
+      race_to_track, 172 in fct_lap_residuals (2021_12 has no racing laps), 171 rated
+      (2021_16 is all wet, so the rating's clean panel has no dry pairs).
+    tags: [marts]
+    meta:
+      family: marts
+    columns:
+      - name: race_id
+        description: Race identifier (race_to_track).
+        tests: [unique, not_null]
+      - name: race_year
+        description: Season year, from race_id.
+        tests: [not_null]
+      - name: circuit_id
+        description: Physical circuit identifier from dim_circuits.
+      - name: n_lap_rows
+        description: Laps in fct_lap_residuals for the race. 0 when it has none.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: n_ml_eligible_laps
+        description: ml_eligible laps in fct_lap_residuals. 0 when none.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+      - name: base_measured_share
+        description: Share of the race's fct_lap_residuals laps with a base_track_pace_s. NULL when n_lap_rows = 0.
+      - name: residual_measured_share
+        description: Share of the race's fct_lap_residuals laps with a driver_skill_residual_s. NULL when n_lap_rows = 0.
+      - name: rain_lap_share
+        description: Share of the race's fct_lap_residuals laps with rainfall_flag. NULL when n_lap_rows = 0.
+      - name: air_measured_share
+        description: Share of the race's int_lap_air_state laps with a measured air state (air_state_dominant not NULL).
+      - name: bronze_tyre_life_share
+        description: >
+          Share of the race's stg_lap_tyre_qa laps with a bronze TyreLife. Below 0.90 (the
+          bronze_checks MIN_LAP_KEY_SHARE) the load is thin.
+      - name: tyre_qa_status
+        description: >
+          'quarantined_race' when stg_lap_tyre_qa quarantines the whole race, 'partial' when it
+          quarantines any driver-race, 'ok' otherwise. NULL when the race has no stg_lap_tyre_qa rows.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['quarantined_race', 'partial', 'ok']
+      - name: has_telemetry
+        description: >
+          air_measured_share > var('isolation_thin_min_air_measured_share') (0.5). FALSE on the
+          races bronze has no per-lap telemetry for (KNOWN_TELEMETRY_GAPS: 2018_1, 2018_2).
+        tests: [not_null]
+      - name: n_rated_drivers
+        description: Drivers with a race rating (rows mart_race_driver_summary keeps). 0 when none.
+        tests: [not_null]
+      - name: has_rating
+        description: TRUE when at least one driver in the race has a race rating.
+        tests: [not_null]
+      - name: coverage_reason
+        description: >
+          Why coverage is short, first match wins: NO_RACING_LAPS (no fct_lap_residuals rows),
+          ALL_WET_NO_DRY_PAIRS (no rating and rain_lap_share > 0.5), NO_TELEMETRY (has_telemetry
+          FALSE), TYRE_QA_QUARANTINED (tyre_qa_status = 'quarantined_race'), TYRE_LIFE_PARTIAL
+          (bronze_tyre_life_share < 0.90), OK.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['NO_RACING_LAPS', 'ALL_WET_NO_DRY_PAIRS', 'NO_TELEMETRY', 'TYRE_QA_QUARANTINED', 'TYRE_LIFE_PARTIAL', 'OK']

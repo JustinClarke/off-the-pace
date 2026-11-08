@@ -1,0 +1,459 @@
+{
+  "mode": "stub",
+  "tokens": {
+    "tools": 1053,
+    "catalogue": 87,
+    "system": 931
+  },
+  "records": [
+    {
+      "id": "demo-1",
+      "kind": "demo teammate_race",
+      "question": "How did Verstappen do against Perez in Bahrain 2024?",
+      "page": null,
+      "status": "answered",
+      "answer": "Verstappen was 0.62 s per lap faster than Perez in Bahrain 2024: a teammate-paired median gap over 46 paired laps, 95% CI -0.76 to -0.39 s [card race.teammate_gap:2024_1:VER]. The laps were chosen with the air-state filter; it is not a dirty-air estimate. For context, 0 caution laps in a race of 57 laps [card race.cautions:2024_1]; a count of laps does not explain the gap. Verstappen has a pit-stop card [card driver_race.pit_stops:2024_1:VER]. I do not judge the stops: the pit-call method matches the team's real call only about a third of the time (a reproduction rate, not a verdict). A split of the lap time into causes is held: it is not available yet, waiting on wake calibration [card race_driver.skill_components:2024_1:VER:red_bull_racing]. These are different measures: the lap residual in this held split is not the teammate-paired median gap above.",
+      "tools": [
+        {
+          "name": "get_fact_cards",
+          "arguments": {
+            "bundle": "teammate_race",
+            "scopes": [
+              {
+                "race_id": "2024_1",
+                "driver_id": "VER"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [
+        "race.teammate_gap:2024_1:VER",
+        "race.cautions:2024_1",
+        "driver_race.pit_stops:2024_1:VER",
+        "race_driver.skill_components:2024_1:VER:red_bull_racing"
+      ],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "PIT_CALL_REPRODUCTION_RATE",
+            "verdict": "pass"
+          },
+          {
+            "code": "HELD_CARD_WORDING",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE",
+            "verdict": "pass"
+          },
+          {
+            "code": "AIR_STATE_FILTER",
+            "verdict": "pass"
+          },
+          {
+            "code": "COUNT_NOT_CAUSE",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE_NAMED",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 331,
+          "output": 250
+        },
+        "peak_context": 2652,
+        "total": 4794,
+        "rounds": 2,
+        "neurons": 90,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=331/4800 output=250/2500 | peak_context=2652/13100 total=4794 rounds=2 neurons=90 (estimated chars/4)"
+    },
+    {
+      "id": "demo-2",
+      "kind": "demo teammate_race",
+      "question": "How did Hamilton do against Bottas in the 2020 Emilia Romagna GP?",
+      "page": null,
+      "status": "answered",
+      "answer": "There is no reliable gap for Hamilton against Bottas in the 2020 Emilia Romagna GP: no value for the teammate-paired median gap [card race.teammate_gap:2020_14:HAM]. rated on 1 paired lap (fewer than 6): suppressed, no value For context, 4 caution laps in a race of 58 laps [card race.cautions:2020_14]; a count of laps does not explain the gap. Hamilton has a pit-stop card [card driver_race.pit_stops:2020_14:HAM]. I do not judge the stops: the pit-call method matches the team's real call only about a third of the time (a reproduction rate, not a verdict). A split of the lap time into causes is held: it is not available yet, waiting on wake calibration [card race_driver.skill_components:2020_14:HAM:mercedes]. These are different measures: the lap residual in this held split is not the teammate-paired median gap above.",
+      "tools": [
+        {
+          "name": "get_fact_cards",
+          "arguments": {
+            "bundle": "teammate_race",
+            "scopes": [
+              {
+                "race_id": "2020_14",
+                "driver_id": "HAM"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [
+        "race.teammate_gap:2020_14:HAM",
+        "race.cautions:2020_14",
+        "driver_race.pit_stops:2020_14:HAM",
+        "race_driver.skill_components:2020_14:HAM:mercedes"
+      ],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "PIT_CALL_REPRODUCTION_RATE",
+            "verdict": "pass"
+          },
+          {
+            "code": "HELD_CARD_WORDING",
+            "verdict": "pass"
+          },
+          {
+            "code": "UNAVAILABLE_IS_NOT_ZERO",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE",
+            "verdict": "pass"
+          },
+          {
+            "code": "RATING_TRUST_LABEL",
+            "verdict": "pass"
+          },
+          {
+            "code": "COUNT_NOT_CAUSE",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE_NAMED",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 340,
+          "output": 242
+        },
+        "peak_context": 2653,
+        "total": 4801,
+        "rounds": 2,
+        "neurons": 90,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=340/4800 output=242/2500 | peak_context=2653/13100 total=4801 rounds=2 neurons=90 (estimated chars/4)"
+    },
+    {
+      "id": "demo-3",
+      "kind": "demo teammate_race",
+      "question": "How did Ricciardo do against Verstappen in the 2018 Australian GP?",
+      "page": null,
+      "status": "answered",
+      "answer": "Ricciardo was 0.62 s per lap faster than Verstappen in the 2018 Australian GP: a teammate-paired median gap over 38 paired laps, 95% CI -0.90 to -0.34 s [card race.teammate_gap:2018_1:RIC]. The laps were chosen with the air-state filter; it is not a dirty-air estimate. For context, 7 caution laps in a race of 58 laps [card race.cautions:2018_1]; a count of laps does not explain the gap. Ricciardo has a pit-stop card [card driver_race.pit_stops:2018_1:RIC]. I do not judge the stops: the pit-call method matches the team's real call only about a third of the time (a reproduction rate, not a verdict). A split of the lap time into causes is held: it is not available yet, waiting on wake calibration [card race_driver.skill_components:2018_1:RIC:red_bull_racing]. These are different measures: the lap residual in this held split is not the teammate-paired median gap above.",
+      "tools": [
+        {
+          "name": "get_fact_cards",
+          "arguments": {
+            "bundle": "teammate_race",
+            "scopes": [
+              {
+                "race_id": "2018_1",
+                "driver_id": "RIC"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [
+        "race.teammate_gap:2018_1:RIC",
+        "race.cautions:2018_1",
+        "driver_race.pit_stops:2018_1:RIC",
+        "race_driver.skill_components:2018_1:RIC:red_bull_racing"
+      ],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "PIT_CALL_REPRODUCTION_RATE",
+            "verdict": "pass"
+          },
+          {
+            "code": "HELD_CARD_WORDING",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE",
+            "verdict": "pass"
+          },
+          {
+            "code": "AIR_STATE_FILTER",
+            "verdict": "pass"
+          },
+          {
+            "code": "COUNT_NOT_CAUSE",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE_NAMED",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 335,
+          "output": 253
+        },
+        "peak_context": 2659,
+        "total": 4808,
+        "rounds": 2,
+        "neurons": 90,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=335/4800 output=253/2500 | peak_context=2659/13100 total=4808 rounds=2 neurons=90 (estimated chars/4)"
+    },
+    {
+      "id": "demo-4",
+      "kind": "demo teammate_race",
+      "question": "How did Hamilton do against Bottas in the 2021 Turkish GP?",
+      "page": null,
+      "status": "answered",
+      "answer": "There is no reliable gap for Hamilton against Bottas in the 2021 Turkish GP: no value for the teammate-paired median gap [card race.teammate_gap:2021_16:HAM]. not rated: race coverage ALL_WET_NO_DRY_PAIRS (wet race: no… For context, 0 caution laps in a race of 58 laps [card race.cautions:2021_16]; a count of laps does not explain the gap. Hamilton has a pit-stop card [card driver_race.pit_stops:2021_16:HAM]. I do not judge the stops: the pit-call method matches the team's real call only about a third of the time (a reproduction rate, not a verdict). A split of the lap time into causes is held: it is not available yet, waiting on wake calibration [card race_driver.skill_components:2021_16:HAM:mercedes]. These are different measures: the lap residual in this held split is not the teammate-paired median gap above.",
+      "tools": [
+        {
+          "name": "get_fact_cards",
+          "arguments": {
+            "bundle": "teammate_race",
+            "scopes": [
+              {
+                "race_id": "2021_16",
+                "driver_id": "HAM"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [
+        "race.teammate_gap:2021_16:HAM",
+        "race.cautions:2021_16",
+        "driver_race.pit_stops:2021_16:HAM",
+        "race_driver.skill_components:2021_16:HAM:mercedes"
+      ],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "PIT_CALL_REPRODUCTION_RATE",
+            "verdict": "pass"
+          },
+          {
+            "code": "HELD_CARD_WORDING",
+            "verdict": "pass"
+          },
+          {
+            "code": "UNAVAILABLE_IS_NOT_ZERO",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE",
+            "verdict": "pass"
+          },
+          {
+            "code": "COUNT_NOT_CAUSE",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE_NAMED",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 346,
+          "output": 240
+        },
+        "peak_context": 2657,
+        "total": 4802,
+        "rounds": 2,
+        "neurons": 90,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=346/4800 output=240/2500 | peak_context=2657/13100 total=4802 rounds=2 neurons=90 (estimated chars/4)"
+    },
+    {
+      "id": "demo-5",
+      "kind": "demo teammate_race",
+      "question": "How did Norris do against Piastri in the 2024 Chinese GP?",
+      "page": null,
+      "status": "answered",
+      "answer": "Norris was 1.30 s per lap faster than Piastri in the 2024 Chinese GP: a teammate-paired median gap over 40 paired laps, 95% CI -1.57 to -0.96 s [card race.teammate_gap:2024_5:NOR]. The laps were chosen with the air-state filter; it is not a dirty-air estimate. For context, 11 caution laps in a race of 56 laps [card race.cautions:2024_5]; a count of laps does not explain the gap. Norris has a pit-stop card [card driver_race.pit_stops:2024_5:NOR]. I do not judge the stops: the pit-call method matches the team's real call only about a third of the time (a reproduction rate, not a verdict). A split of the lap time into causes is held: it is not available yet, waiting on wake calibration [card race_driver.skill_components:2024_5:NOR:mclaren]. These are different measures: the lap residual in this held split is not the teammate-paired median gap above.",
+      "tools": [
+        {
+          "name": "get_fact_cards",
+          "arguments": {
+            "bundle": "teammate_race",
+            "scopes": [
+              {
+                "race_id": "2024_5",
+                "driver_id": "NOR"
+              }
+            ]
+          },
+          "status": "ok"
+        }
+      ],
+      "cards_cited": [
+        "race.teammate_gap:2024_5:NOR",
+        "race.cautions:2024_5",
+        "driver_race.pit_stops:2024_5:NOR",
+        "race_driver.skill_components:2024_5:NOR:mclaren"
+      ],
+      "on_screen": [],
+      "checker": {
+        "ok": true,
+        "failed": [],
+        "pending": [],
+        "fired": [
+          {
+            "code": "PIT_CALL_REPRODUCTION_RATE",
+            "verdict": "pass"
+          },
+          {
+            "code": "HELD_CARD_WORDING",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE",
+            "verdict": "pass"
+          },
+          {
+            "code": "AIR_STATE_FILTER",
+            "verdict": "pass"
+          },
+          {
+            "code": "COUNT_NOT_CAUSE",
+            "verdict": "pass"
+          },
+          {
+            "code": "ONE_SKILL_MEASURE_NAMED",
+            "verdict": "pass"
+          }
+        ]
+      },
+      "grounding": {
+        "ungrounded": []
+      },
+      "notes": [],
+      "repaired": false,
+      "first_draft": null,
+      "rounds": 2,
+      "links": [],
+      "chart_ids": [],
+      "budget": {
+        "slots": {
+          "instructions": 931,
+          "tools": 1053,
+          "catalogue": 87,
+          "page_context": 0,
+          "history": 0,
+          "tool_results": 330,
+          "output": 248
+        },
+        "peak_context": 2649,
+        "total": 4793,
+        "rounds": 2,
+        "neurons": 90,
+        "estimated": true,
+        "over_slot": [],
+        "rows_dropped": 0
+      },
+      "budget_line": "budget instructions=931/1200 tools=1053/1400 catalogue=87/600 page_context=0/600 history=0/2000 tool_results=330/4800 output=248/2500 | peak_context=2649/13100 total=4793 rounds=2 neurons=90 (estimated chars/4)"
+    }
+  ]
+}

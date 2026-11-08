@@ -1,0 +1,50 @@
+AX-07a lineage evidence: provenance
+Date: 2026-11-07
+Repo state: HEAD ed57245, working tree. The only uncommitted changes are under _roadmap/; transform/ is unmodified.
+Output written: this folder only (lineage.md, PROVENANCE.txt). No git add/commit/push. data/*.duckdb not touched.
+
+WHAT WAS RUN
+1. Scratch DB copy (never the live warehouse):
+   cp .../scratchpad/dbt1/dev.duckdb  .../scratchpad/ax07a/dev.duckdb
+   Scratch profiles: .../scratchpad/ax07a/profiles/profiles.yml (target dev -> the copy above)
+   (.../scratchpad = /private/tmp/claude-501/-Users-justin-github-off-the-pace/bf41f451-ffc1-4ccc-bc71-e73e8a654460/scratchpad)
+2. cd transform && ../.venv/bin/dbt parse \
+      --profiles-dir .../scratchpad/ax07a/profiles \
+      --target-path  .../scratchpad/ax07a/target
+   dbt 1.12.6, duckdb adapter 1.11.0, full parse. Manifest: .../scratchpad/ax07a/target/manifest.json (sha256 prefix 8008c2028a13cb43)
+   Side effect: dbt appended to transform/logs/dbt.log, which is gitignored (transform/.gitignore:3).
+3. Model-level lineage: python3 -I .../scratchpad/ax07a/scripts/lin.py manifest.json model_lineage.json
+   This walks depends_on.nodes transitively and flags int_lap_air_state, int_dirty_air_tax_component,
+   int_driver_isolation_lap_panel, int_lap_proximity and int_microsector_proximity upstream.
+   Output: .../scratchpad/ax07a/model_lineage.json (sha256 prefix b8d225ebf4263b78), summarised in lineage.md section 2.
+4. Column level: read the SQL of every card or app source model and each of its upstream models, by hand
+   (cited file:line in lineage.md). Also read the offline fit scripts that write seeds and fits sources:
+   transform/tasks/coefficients/fit_compound_cliff.py, survival.py and fit_constructor_car_fe.py.
+   App columns came from app/src/features/*/queries.ts; export sources from scripts/export_app_data.py.
+5. Read-only queries on the scratch copy (duckdb read_only=True, run from transform/ so that the stg_* views resolve
+   ../data/bronze, which is read-only):
+   - anomaly_class distribution, usable_for_modelling and mad_score>3 counts (int_lap_anomaly_flags)
+   - laps with positive or NULL dirty_air_tax_s (int_lap_residual_decomposed)
+   - valid timed laps with no int_track_evolution row, and those of them marked rain by stg_weather
+   - int_driver_race_skill_loro rows and non-null ratings
+   The numbers are in lineage.md sections 3.1 and 5. The scratch DB is the dbt1 build of 2026-11-07 19:39 on the
+   current tree. It is NOT the sealed v16 export, and no number here was checked against app/public/data.
+
+WHAT WAS NOT VERIFIED
+- No column-level lineage tool was used. The manifest gives model-level edges only, and every column verdict comes
+  from reading SQL. Columns not listed in lineage.md were not classified.
+- The live seed compound_cliff_params.csv (fit_date 2026-10-15, git_sha dbc18b3) was not refitted or diffed. The
+  claim that it was fitted on dirty-air-normalised pace (theta_time) rests on the current fit code path
+  (fit_compound_cliff.py prefers fuel_corrected_pace_s, which is derived from int_lap_normalized_pace). Whether the
+  sha dbc18b3 fit ran with that path was not checked.
+- The fits parquet files (data/fits/constructor_car_fe*.parquet, degradation_isotonic.parquet) were not opened or
+  re-derived. Their classes come from the fit code alone.
+- How many [R] labels (mistake / clean_cliff / usable) would flip if the residual were computed without the tax was
+  not measured.
+- The 11,588 laps with no int_track_evolution row were not split into those missing because of the air-state rule
+  and those missing because of SC or thin cells.
+- App transform.ts files were not traced beyond the registered SQL (for example, any client-side reweighting).
+- int_sector_residual_decomposed, the power-law models, fct_telemetry_deltas and mart_degradation_history_envelope
+  were classified at model level only. They are not v1 T sources.
+- Design 2.5's qv_teammate_corners (fct_telemetry_deltas) was not traced column by column. At model level it has no
+  air-state or tax upstream.

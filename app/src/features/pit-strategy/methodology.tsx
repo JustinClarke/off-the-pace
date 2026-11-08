@@ -35,6 +35,14 @@ export const methodologyContent = (
       &ldquo;unknown&rdquo; means the compound has no fitted degradation curve
       to minimise over, shown explicitly rather than as a silent null.
     </p>
+    <p>
+      <strong>Optimum sharpness</strong> (tooltip; <code>optimal_pit_lap_confidence</code> in
+      the CSV) is the share of candidate pit laps whose total cost is more than a second worse
+      than the optimum: near 100% means one lap clearly stands out, near 0% means the cost
+      curve is flat and the exact lap barely matters. The CSV writes 0.0 both for a perfectly
+      flat curve and for a stint with no cost curve at all; the tooltip tells them apart
+      (no optimal lap means no cost curve).
+    </p>
     <p className="text-xs">
       Source:{' '}
       <code>fct_stint_features</code> &times; <code>fct_lap_residuals</code> (for

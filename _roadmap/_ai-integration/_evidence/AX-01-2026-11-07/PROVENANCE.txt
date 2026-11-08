@@ -1,0 +1,59 @@
+AX-01 Card schema v1 - provenance (2026-11-07)
+Status: DONE. Not committed (owner commits).
+
+Files added
+  app/src/assistant/cards/card.schema.json   JSON Schema 2020-12; every design-2.2 field + policy_fields;
+                                             if/then rules; parquet layout of assistant_cards in $comment
+  app/src/assistant/cards/card.types.ts      GENERATED (do not edit)
+  scripts/assistant_cards/card_types.py      GENERATED TypedDicts (py3.9-compatible typing)
+  app/scripts/gen-card-types.mjs             generator; `node scripts/gen-card-types.mjs [--check]`
+  app/src/assistant/cards/validate.ts        validateCard(card, {expectedIntervalKind}) -> {ok, errors[]}
+  app/src/assistant/cards/project.ts         toModelProjection, toCheckerCard
+  app/src/assistant/cards/card.fixture.ts    10 valid + 10 bad cards
+  app/src/assistant/cards/{validate,project,generated}.test.ts
+Files changed
+  app/src/assistant/honesty/checker.ts       doc comment only + `export type { Card } from '../cards/card.types'`.
+                                             FactCard, triggers and policy.json untouched by AX-01.
+
+Decisions (run notes)
+  - Validator: HAND-WRITTEN schema interpreter, NO ajv, no dependency added. validate.ts evaluates
+    card.schema.json itself (keywords: type enum const pattern minLength minimum maximum required
+    properties additionalProperties items if then not anyOf allOf); a test fails if the schema uses
+    any other keyword. Reason: no validator in package.json; the only ajv in node_modules is
+    eslint's ajv 6 (no 2020-12). Semantic checks a schema cannot state: low <= high, id starts
+    with kind + ':', interval.kind == expectedIntervalKind (relabel check), finite value.
+  - Finding 3 applied: interval may be null for measured/computed AND for unavailable/held.
+    The modelled/experimental interval rule applies only when status != held.
+  - Finding 4 applied strictly: n.count integer >= 0 on every card and == 0 on held and
+    unavailable cards (enforced by the schema).
+  - interval.kind enum includes ci_normal_95 and ci_order_stat_median. When kind != none,
+    low/high must be numbers.
+  - Projection: v and iv numbers rounded to 6 significant digits; `why` (held/unavailable reason)
+    clipped to 64 chars with an ellipsis (full reason stays on the card). Without the clip a
+    realistic held reason gave 74 tokens (> 70 bound). m = metric with '_' -> ' '.
+  - toCheckerCard passes through id, kind, metric, label, status, value, unit, scope, caveats,
+    sample, grade, interval and flattens n/n_unit/source_page/source_table/model_version/policy_fields.
+
+Commands and results (app/, pnpm toolchain, vitest 5.0.5)
+  node scripts/gen-card-types.mjs --check            -> exit 0
+  npx vitest run src/assistant/cards/validate.test.ts src/assistant/cards/project.test.ts src/assistant/cards/generated.test.ts
+                                                     -> all pass (part of the counts below)
+  npx vitest run src/assistant (after AX-01 only)    -> 121 passed, 2 failed (123)
+  npm run typecheck                                  -> passes (no output)
+  The 2 failures are PRE-EXISTING at baseline (before any edit): sources.node.test.ts
+  CHANCE_LINE_EXPERIMENTAL / CHANCE_LINE_QUOTABLE ("docs/app/degradation-simulator.mdx:65 no longer
+  says ..."), a docs-drift citation, not touched by this item. So the acceptance line
+  "npx vitest run src/assistant/honesty passes" does NOT hold, at baseline or after; checker.test.ts
+  passes unchanged. checker.test.ts, sources.node.test.ts and policy.json not edited by me
+  (policy.json shows as modified in git: that is another lane's edit, not AX-01).
+
+Acceptance
+  - 10 valid accepted, 10 bad rejected, each with the expected reason text: PASS
+  - toCheckerCard: n={5,stints} fires THIN_SAMPLE; docs_slug=blind-test-scoreboard + sample=in_sample
+    fires IN_SAMPLE_FIT (both triggers): PASS
+  - every valid fixture projection <= 70 tokens by estimateTokens; no route/params/source_columns/versions: PASS
+  - generated files not stale: PASS
+
+Not verified
+  - The Python TypedDicts are only imported (python 3.9 and .venv 3.x), not type-checked with mypy.
+  - The parquet column layout is documented only; nothing writes assistant_cards yet (AX-07/AX-08).

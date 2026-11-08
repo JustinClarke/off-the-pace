@@ -1,7 +1,7 @@
 ---
 title: "Architecture Decision Log"
 sidebarTitle: "Architecture Decisions"
-description: "The ten key decisions that shape Off The Pace's stack DuckDB, CDN parquet, ONNX browser runtime, and more. Each entry captures the decision, rationale, and tradeoff."
+description: "The eleven key decisions that shape Off The Pace's stack DuckDB, CDN parquet, ONNX browser runtime, and more. Each entry captures the decision, rationale, and tradeoff."
 ---
 
 These decisions were made to minimise infrastructure cost, eliminate server-side compute, and keep the entire analytical pipeline reproducible from a single clone. They are recorded here so new contributors can understand *why* the stack looks the way it does.
@@ -90,6 +90,22 @@ These decisions were made to minimise infrastructure cost, eliminate server-side
     <Note>
       This decision was triggered by the 2026-06-11 incident where a rebuilt mart was correct on disk but the public HTTP endpoint served a months-old cached generation with a pre-expansion schema.
     </Note>
+  </Accordion>
+
+  <Accordion title="ADR-011 Assistant data access: cards plus a bounded catalogue, published-only" icon="bot">
+    **Decision:** The assistant reaches data in two ways only. Modelled and rated numbers come from fact cards, one card per quotable number with its sample size, interval, label and reason when held, built from the published files. Observed values come from a bounded query builder over a catalogue of narrow `qv_*` parquet views, with the model choosing only view, filters, grouping and one aggregate (no model-written SQL, chart code or URLs). Cards and views are built from `app/public/data`, never straight from `data/dev.duckdb`, and ship with the app data: `make app-data` exports the tables, builds the cards from them, then `--finalize` writes the manifest `assistant` block (a sha256 per card file and the `catalogue_version`) and folds it into `manifest.version`. The Worker's tools and prompt are generated from the same catalogue and it refuses a request whose `X-Catalogue-Version` differs.
+
+    **Rationale:** A number the assistant quotes must be traceable to a card or a query result and checkable by the checker; building from published files means the assistant can only say what the site can show, and a stale or mismatched deployment is caught by a version hash instead of by a wrong answer.
+
+    **Tradeoff:** Questions outside the catalogue and the card kinds are refused rather than answered, the first release covers the transform class of cards only, and the manifest version changes whenever any card changes.
+
+    **Owner rulings recorded with this decision (taken verbatim from the build log):**
+
+    - **AD1 (2026-10-15)**, who pays for the answers: Cloudflare Workers AI, on the account's free allowance (about 10,000 neurons a day) for now. The proxy is a Cloudflare Worker that calls Workers AI; the key/binding lives in the Worker, never the browser bundle. Firebase Hosting stays; the Worker is the only thing that touches the model API. Nothing else is decided (no paid tier, no bring-your-own-key path).
+    - **AD2 (2026-10-22)**, which model and tool shape: Owner ruling 2026-10-22. Model: gpt-oss-20b, mixture-of-experts, 20,480-token window, budget split in the AI-04 and AI-07 docs. Tools: fact cards (get_fact_cards), bounded query builder (query_data), exact-code lookup (list_values), lap-time comparison (compare_lap_times), charts (make_chart), page explainer (explain_page), navigation (navigate). No model-written SQL in v1. Worker fixes model, prompt, tool set and output cap server-side; browser-sent tools, max_tokens and reasoning are ignored.
+    - **AD3 (2026-10-22)**, may the assistant quote query-builder numbers: Owner ruling 2026-10-22: yes. Query-builder results are labelled computed_not_card and the answer must state they are plain counts or averages. Fact cards remain the only source for rated or modelled numbers.
+    - **AD4 (2026-10-23)**, launch cost and access limit: Owner ruling 2026-10-23: B for now (free allowance only). Owner's words earlier: "get this working properly before heading into monetisation". Mapping to B is now confirmed. W1 stays open: the placeholder daily cap is still required until AI-12 lands.
+    - **AD5 (2026-10-22)**, the experimental chance-to-make-the-flag number: Owner ruling 2026-10-22: EXCLUDE. The assistant does not quote the experimental chance number; the line stays on the simulator only (CD11). AI-02 writes this into policy.json.
   </Accordion>
 
 </AccordionGroup>

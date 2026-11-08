@@ -1,4 +1,6 @@
+import { useProvenance } from '../../data/provenance'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import LapWaterfallChart from './LapWaterfallChart'
 import { methodologyContent, methodologyHref } from './methodology'
@@ -10,9 +12,15 @@ import type { LapResidualRow } from './queries'
 import './queries'
 
 export default function LapWaterfallPage() {
+  const prov = useProvenance()
   const { season, raceId } = useFilters()
   const filterKey = `${season}-${raceId}`
-  const [selectedDriver, setSelectedDriver] = useState<string | null>(null)
+  const [searchParams] = useSearchParams()
+  // A card link can preselect the driver with ?driver=LEC (AX-03); anything else is ignored.
+  const [selectedDriver, setSelectedDriver] = useState<string | null>(() => {
+    const d = searchParams.get('driver')
+    return d && /^[A-Z]{3}$/.test(d) ? d : null
+  })
   const [lastFilterKey, setLastFilterKey] = useState(filterKey)
   if (filterKey !== lastFilterKey) {
     setSelectedDriver(null)
@@ -57,7 +65,7 @@ export default function LapWaterfallPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025', nObs: activeResult?.nLaps }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion, nObs: activeResult?.nLaps }}
       csvRows={csvRows}
       csvFilename={`lap-waterfall-${season}${raceKey ? `-${raceKey}` : ''}.csv`}
       isLoading={isLoading}

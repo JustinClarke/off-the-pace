@@ -22,7 +22,11 @@
 -- neutral.
 --
 -- Fails with one row per offending scope ('pooled' or a season), and also if
--- the check has fewer than 1,000 cells (100 on the CI fixture, which measures 149) to work with (vacuity guard).
+-- the check has fewer than 1,000 cells to work with (vacuity guard).
+-- CI branch (kept, TX-08 2026-11-08): the guard is 100 on the CI target because the
+-- 3-race fixture cannot reach 1,000 cells: it has 142 pooled cells (fixture build
+-- 2026-11-08; 149 when the branch was written). The slope bound itself is the same on
+-- every target. Full build: see the measured count above.
 {{ config(severity='error') }}
 
 WITH per_lap AS (

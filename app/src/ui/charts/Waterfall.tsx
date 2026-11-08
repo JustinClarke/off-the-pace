@@ -13,12 +13,17 @@ import {
 
 export interface WaterfallBar {
   label: string
-  value: number
+  /** null when the component is unavailable (no measured laps): never drawn as 0 */
+  value: number | null
   /** Running start offset for the floating bar illusion */
   start: number
   /** Positive component or negative component */
   sign: 'positive' | 'negative'
   color?: string
+  /** True when the component has no measured laps. No height, adds nothing to the running sum. */
+  unavailable?: boolean
+  /** Reason or coverage text, e.g. "no measured laps" or "based on 40 of 55 laps" */
+  note?: string
 }
 
 export interface WaterfallProps {
@@ -28,7 +33,7 @@ export interface WaterfallProps {
    * Closure check: difference between sum of components and the observed total.
    * Rendered as a coloured foot badge: green if |gap| < 1e-4, amber otherwise.
    */
-  closureGap?: number
+  closureGap?: number | null
   xLabel?: string
   yLabel?: string
   /** Whether negative values are "bad" (cost) affects colour defaults */
@@ -45,8 +50,11 @@ function CustomTooltip({ active, payload }: TooltipContentProps<number, string>)
     <div className="bg-[rgb(var(--color-bg-elevated,28,28,32))] border border-border rounded px-3 py-2 text-xs shadow-lg">
       <p className="font-medium text-[rgb(var(--color-text))]">{d.label}</p>
       <p className="font-mono text-muted mt-0.5">
-        {d.value >= 0 ? '+' : ''}{d.value.toFixed(4)} s
+        {d.value === null || d.unavailable
+          ? 'unavailable'
+          : `${d.value >= 0 ? '+' : ''}${d.value.toFixed(4)} s`}
       </p>
+      {d.note && <p className="text-muted mt-0.5">{d.note}</p>}
     </div>
   )
 }
@@ -63,15 +71,16 @@ export default function Waterfall({
   const data = bars.map(b => ({
     ...b,
     spacer: b.start,
-    magnitude: Math.abs(b.value),
+    magnitude: b.value === null ? 0 : Math.abs(b.value),
   }))
 
-  const allValues = bars.map(b => b.start + b.value).concat(bars.map(b => b.start))
+  const allValues = bars.map(b => b.start + (b.value ?? 0)).concat(bars.map(b => b.start))
   const yMin = Math.min(...allValues)
   const yMax = Math.max(...allValues)
   const pad = (yMax-yMin) * 0.12 || 0.05
 
-  const hasClosureIssue = closureGap !== undefined && Math.abs(closureGap) >= 1e-4
+  const noted = bars.filter(b => b.note)
+  const hasClosureIssue = closureGap != null && Math.abs(closureGap) >= 1e-4
 
   return (
     <div className="flex flex-col gap-3">
@@ -111,18 +120,30 @@ export default function Waterfall({
         </BarChart>
       </ResponsiveContainer>
 
+      {noted.length > 0 && (
+        <ul className="text-xs text-muted font-mono flex flex-col gap-0.5">
+          {noted.map(b => (
+            <li key={b.label}>
+              {b.label}: {b.unavailable ? 'unavailable' : 'partial'} ({b.note})
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* Closure badge */}
       {closureGap !== undefined && (
         <div className="flex items-center gap-2 self-end text-xs font-mono">
           <span className="text-muted">closure check</span>
           <span
             className={`px-2 py-0.5 rounded border font-medium ${
-              hasClosureIssue
+              closureGap === null || hasClosureIssue
                 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                 : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
             }`}
           >
-            {hasClosureIssue
+            {closureGap === null
+              ? 'n/a (a term is unavailable)'
+              : hasClosureIssue
               ? `gap ${closureGap >= 0 ? '+' : ''}${closureGap.toFixed(6)} s ⚠`
               : `✓ closed (${closureGap.toFixed(6)} s)`}
           </span>

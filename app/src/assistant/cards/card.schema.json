@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://off-the-pace.app/schemas/assistant-card/1",
+  "title": "Card",
+  "description": "AX-01 assistant fact card, schema v1. One card per number the assistant may quote. Design: _roadmap/_ai-integration/_evidence/ax-audit-2026-11-07/design-ai-access.md section 2.2.",
+  "$comment": "Stored form: the assistant_cards parquet table, one row per card, one partition per season (season=<yyyy>) plus one _global partition for cards with scope.season null. Scalar columns: id VARCHAR, kind VARCHAR, metric VARCHAR, label VARCHAR, value VARCHAR (JSON-encoded scalar, so numbers, strings and booleans share one column; NULL when the card has no value), unit VARCHAR, display VARCHAR, unavailable_reason VARCHAR, n_count INTEGER, n_unit VARCHAR, interval_low DOUBLE, interval_high DOUBLE, interval_level DOUBLE, interval_kind VARCHAR (NULL when interval is null), sample VARCHAR, grade VARCHAR, status VARCHAR, held_reason VARCHAR, season INTEGER (= scope.season). JSON-string columns: interval_source_columns, scope, source, versions, page, caveats, policy_fields. Generated types: app/scripts/gen-card-types.mjs writes app/src/assistant/cards/card.types.ts and scripts/assistant_cards/card_types.py; a test fails when they are stale. The validator (validate.ts) interprets this file directly, using only the keywords listed in SUPPORTED_KEYWORDS there.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "kind", "metric", "label", "value", "unit", "display", "unavailable_reason", "n", "interval",
+    "scope", "source", "versions", "page", "caveats", "sample", "grade", "status", "held_reason", "policy_fields"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Deterministic id, kind ':' scope key ':' variant, for example race_lost.component:2024_8:LEC:compound. Must start with the card's kind followed by ':'.",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*:[^\\s]+$"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Registry key (AX-04).",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+    },
+    "metric": { "type": "string", "minLength": 1, "description": "Source metric name, for example era_adjusted_rating." },
+    "label": {
+      "type": "string",
+      "enum": ["measured", "modelled", "computed", "experimental", "unavailable"],
+      "description": "What kind of number this is. unavailable is a value with a reason, never 0."
+    },
+    "value": {
+      "type": ["number", "string", "boolean", "null"],
+      "description": "The number. Null only when label is unavailable or status is held."
+    },
+    "unit": { "type": ["string", "null"], "description": "Unit of value, for example s, laps, pct." },
+    "display": { "type": ["string", "null"], "description": "Value pre-formatted at the page's display precision." },
+    "unavailable_reason": { "type": ["string", "null"], "description": "Required when label is unavailable." },
+    "n": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "unit"],
+      "description": "Sample size. Required on every card; 0 for held and unavailable cards.",
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "unit": {
+          "type": "string",
+          "enum": ["laps", "stints", "races", "drivers", "cells", "rows"],
+          "description": "Enum because the THIN_SAMPLE policy trigger matches the literal stints."
+        }
+      }
+    },
+    "interval": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["low", "high", "level", "kind", "source_columns"],
+      "description": "Uncertainty interval. kind is copied from the registry entry, never inferred. Required (non-null, kind not none) for modelled and experimental cards that are not held.",
+      "properties": {
+        "low": { "type": ["number", "null"] },
+        "high": { "type": ["number", "null"] },
+        "level": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "ci_bayes", "ci_bootstrap", "ci_normal_95", "ci_order_stat_median",
+            "lap_noise_band", "pred_band_p10_p90", "se_1", "wilson_95", "none"
+          ],
+          "description": "ci_normal_95 is estimate +/- 1.96 x SE (era rating). ci_order_stat_median is the distribution-free CI for a median (race rating after TX-01). wilson_95 is the Wilson score interval for a proportion at 95% (race-control pooled rates, features/race-control/transform.ts#wilson)."
+        },
+        "source_columns": { "type": "array", "items": { "type": "string" } }
+      },
+      "if": { "properties": { "kind": { "not": { "const": "none" } } } },
+      "then": { "properties": { "low": { "type": "number" }, "high": { "type": "number" } } }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["season", "race_id", "driver_id", "constructor_id", "circuit_id", "compound", "stint_id", "lap"],
+      "properties": {
+        "season": { "type": ["integer", "null"] },
+        "race_id": { "type": ["string", "null"], "pattern": "^\\d{4}_\\d{1,2}$" },
+        "driver_id": { "type": ["string", "null"] },
+        "constructor_id": { "type": ["string", "null"] },
+        "circuit_id": { "type": ["string", "null"] },
+        "compound": { "type": ["string", "null"] },
+        "stint_id": { "type": ["string", "null"] },
+        "lap": { "type": ["integer", "null"] }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mart", "columns", "feature", "query", "transform"],
+      "properties": {
+        "mart": { "type": ["string", "null"], "description": "Published table the value comes from." },
+        "columns": { "type": "array", "items": { "type": "string" } },
+        "feature": { "type": ["string", "null"] },
+        "query": { "type": ["string", "null"], "description": "Registered query name (useQuery registry)." },
+        "transform": { "type": ["string", "null"], "description": "path#export of the transform the card is built from." }
+      }
+    },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data_version", "label_version", "model_version", "card_schema", "registry"],
+      "properties": {
+        "data_version": { "type": ["string", "null"], "description": "manifest.version (ADR-010 content hash)." },
+        "label_version": { "type": ["string", "null"], "description": "Transform label version (D11)." },
+        "model_version": { "type": ["string", "null"], "description": "ML model version where it applies (HD8)." },
+        "card_schema": { "type": "string", "const": "1" },
+        "registry": { "type": ["string", "null"], "description": "sha256 of the serialised registry specs (AX-04)." }
+      }
+    },
+    "page": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["route", "params", "docs_slug"],
+      "properties": {
+        "route": { "type": "string", "pattern": "^/" },
+        "params": {
+          "type": "object",
+          "additionalProperties": { "type": ["string", "number"] }
+        },
+        "docs_slug": { "type": ["string", "null"] }
+      }
+    },
+    "caveats": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+      "description": "AI-02 policy rule codes."
+    },
+    "sample": { "type": "string", "enum": ["in_sample", "holdout", "na"] },
+    "grade": { "type": ["string", "null"] },
+    "status": { "type": "string", "enum": ["active", "held", "withdrawn"] },
+    "held_reason": { "type": ["string", "null"] },
+    "policy_fields": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Registry-supplied flags that policy.json triggers read; flattened onto the checker card by toCheckerCard.",
+      "properties": {
+        "trust_label": { "type": ["string", "null"] },
+        "car_term_source": { "type": ["string", "null"] },
+        "calibration_flag": { "type": ["string", "null"] },
+        "is_in_envelope": { "type": ["boolean", "null"] },
+        "beats_baseline_significant": { "type": ["boolean", "null"] },
+        "rating_trust_label": { "type": ["string", "null"], "description": "TX-01 race-rating trust label (ok, thin, suppressed); not the isolation trust_label." },
+        "rank_separated_from_next": { "type": ["boolean", "null"] },
+        "skill_measure": { "type": ["string", "null"], "description": "Which of the six skill measures the value is (AX-21 glossary), e.g. teammate_paired_median." },
+        "shared_input_group": { "type": ["string", "null"], "description": "Cards in one group share inputs and are not independent evidence (AX-21)." },
+        "coverage_reason": { "type": ["string", "null"], "description": "TX-02 mart_race_coverage.coverage_reason for the card's race." },
+        "teammate_id": { "type": ["string", "null"], "description": "AX-10b: the teammate the value is measured against, from mart_race_driver_summary.teammate_id; null when the mart has none. The card store reads this before any display-text derivation." }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "unavailable: no value, and a reason.",
+      "if": { "properties": { "label": { "const": "unavailable" } } },
+      "then": {
+        "properties": {
+          "value": { "type": "null" },
+          "unavailable_reason": { "type": "string", "minLength": 1 },
+          "n": { "properties": { "count": { "const": 0 } } }
+        }
+      }
+    },
+    {
+      "$comment": "held: published without a value, with a reason.",
+      "if": { "properties": { "status": { "const": "held" } } },
+      "then": {
+        "properties": {
+          "value": { "type": "null" },
+          "held_reason": { "type": "string", "minLength": 1 },
+          "n": { "properties": { "count": { "const": 0 } } }
+        }
+      }
+    },
+    {
+      "$comment": "modelled and experimental cards that carry a value need a real interval.",
+      "if": {
+        "properties": {
+          "label": { "enum": ["modelled", "experimental"] },
+          "status": { "not": { "const": "held" } }
+        }
+      },
+      "then": {
+        "properties": {
+          "interval": {
+            "type": "object",
+            "properties": { "kind": { "not": { "const": "none" } } }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "value is null only when the card is unavailable or held.",
+      "if": { "properties": { "value": { "type": "null" } } },
+      "then": {
+        "anyOf": [
+          { "properties": { "label": { "const": "unavailable" } } },
+          { "properties": { "status": { "const": "held" } } }
+        ]
+      }
+    }
+  ]
+}

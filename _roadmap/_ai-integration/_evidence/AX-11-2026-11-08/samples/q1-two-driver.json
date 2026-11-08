@@ -1,0 +1,33 @@
+{
+  "spec": {
+    "type": "line",
+    "title": "LEC vs VER lap times, 2024_8",
+    "x": {
+      "col": "lap_number",
+      "label": "Lap"
+    },
+    "y": {
+      "col": "value",
+      "label": "Lap time (s)"
+    },
+    "series": [
+      {
+        "result_id": "9bed5ff26118",
+        "label": "LEC",
+        "x_col": "lap_number",
+        "y_col": "value"
+      },
+      {
+        "result_id": "9bed5ff26118",
+        "label": "VER",
+        "x_col": "lap_number",
+        "y_col": "value"
+      }
+    ]
+  },
+  "n": [
+    76,
+    74
+  ],
+  "note": "Observed green racing laps, major outliers excluded; not fuel- or tyre-corrected."
+}

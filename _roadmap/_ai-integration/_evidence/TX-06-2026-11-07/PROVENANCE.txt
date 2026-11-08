@@ -1,0 +1,51 @@
+TX-06 - Season mart keeps its upstream uncertainty (SE, rating confidence, anchor flags)
+Date: 2026-11-07. Lane A, last after TX-01/02/03 on the same scratch copy. Nothing committed.
+
+SCRATCH COPY: <scratchpad>/laneA/dev.duckdb (from <scratchpad>/base/dev.duckdb), 1 thread. data/dev.duckdb,
+data/ci.duckdb and committed baselines untouched.
+
+COMMANDS (from transform/, own profiles/target/logs in laneA)
+  dbt build --select mart_driver_season_summary      # unchanged (post TX-03): PASS=22
+  snapshot_model_hashes.py ... --baseline laneA/before_tx06.json   # copied here as before.json
+  ...edits...
+  dbt build --select mart_driver_season_summary  -> PASS=29 ERROR=0 (build.log)
+  sqlfluff lint (duckdb) model + test -> clean
+  snapshot_model_hashes.py --check ... --baseline laneA/before_tx06.json
+      -> non-fct changed: mart_driver_season_summary only; OK: all 12 fct_* byte-stable.
+  Whole lane, final: dbt build --select int_driver_race_paired_laps+ int_driver_race_skill_loro+ mart_race_coverage+
+      mart_metric_benchmark+ assert_median_ci_order_rank_known_values assert_dirty_air_fill_only_where_base_unmeasured
+      assert_prior_season_labels_frozen -> PASS=189 ERROR=0 (final_lane_build.log); --check vs TX-01's before.json:
+      changed only mart_driver_season_summary, mart_metric_benchmark, mart_race_driver_summary (+ new
+      int_driver_race_paired_laps, mart_race_coverage); int_driver_race_skill_loro and all 12 fct_* unchanged.
+
+FILES
+  edit  transform/models/marts/mart_driver_season_summary.sql (5 carried columns, rank_separated_from_next, header)
+  edit  transform/models/marts/schema.yml (rank/percentile text; 6 new column entries + tests, targeted edits)
+  new   transform/tests/assert_mart_season_uncertainty_carried.sql
+  edit  transform/tests/README.md
+
+RESULTS
+  173 rows. Old columns (base copy's list minus mean_dirty_air_tax_s, which TX-03 moved): EXCEPT both ways 0 / 0.
+  ci_high - rating_s = 1.96 x rating_se_s: max error 5.6e-17 (test at 1e-12 passes, both sides).
+  rating_confidence 0.1667 to 0.8276; bridge_driver_anchor_flag TRUE 130 / 173; low_anchor_sample_flag TRUE 0.
+  rank_separated_from_next: TRUE 2 (2025 VER rank 1, 2025 STR rank 20), FALSE 163, NULL 8 (each season's
+    last-ranked driver has no next). Matches the spec's 2 of 173.
+  2024 top 6:
+    rk drv  rating_s  se      ci_low   ci_high  conf   n_races  separated
+     1 VER  -0.3568  0.1077  -0.5680  -0.1456  0.815  22       false
+     2 ALB  -0.2521  0.1150  -0.4774  -0.0267  0.792  19       false
+     3 ALO  -0.2375  0.1056  -0.4446  -0.0305  0.821  23       false
+     4 NOR  -0.2186  0.1036  -0.4217  -0.0155  0.828  24       false
+     5 HUL  -0.2170  0.1056  -0.4240  -0.0099  0.821  23       false
+     6 LEC  -0.1018  0.1036  -0.3049   0.1013  0.828  24       false
+
+SKIPPED (spec step 3)
+  Season rating_trust_label NOT added: TX-01's trust-label ruling is still the owner's, and the season thresholds
+  (n_races or rating_confidence) are the owner's to set. No thresholds invented.
+
+DESIGN CHOICES
+  "Next-ranked" = next by rating_s ascending, ties broken by driver_id (LEAD). NULL (not FALSE) for the last-ranked.
+  rank_separated_from_next has no not_null test because of that NULL.
+
+NOT VERIFIED
+  - CI fixture build not run (the test's no-rows guard relies on the fixture producing season rows, per the spec).

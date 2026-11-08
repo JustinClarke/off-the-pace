@@ -1,0 +1,97 @@
+AX-21 Analyst playbook - provenance (2026-11-08). Written incrementally. Not committed (owner commits).
+Session resumed after a usage-limit stop; nothing had been written before the stop (no prompt/ dir, no evidence).
+
+PROGRESS
+  [0] Read wi/AX-21.md, BUILD-ORDER, audit-app.md s2-3, PROVENANCE of AX-01/04/07/09.
+      estimateTokens = ceil(chars/3.5) (app/src/nav/pageSummaries.mjs:38) -> system.md <= 4,200 chars.
+      AX-08 artefacts absent at start: no app/src/assistant/prompt/, no worker/scripts/gen-tools.mjs, no tools.template.json.
+  [1] Read state: policy.json 25 rules (incl. AX-07 AIR_STATE_FILTER, AX-09's 7). Registry kinds: era_rating.season,
+      race_lost.component (DA, all refused), pit_strategy.{optimal_lap,verdict,opportunity_cost} (held), race.{result,
+      teammate_gap,coverage,cautions}, driver_race.pit_stops. AX-07b's five kinds and AX-15a's stubs NOT in the registry yet.
+      Scratch cards: $S/laneL/cards-full/cards.json (35,380; read-only). Confirmed THIN_SAMPLE fires on held pit cards
+      (n {0, stints}).
+  Plan: new rules RATING_TRUST_LABEL, RANK_WITHIN_CI, POOLED_SC_RATE_ONLY, NOT_INDEPENDENT_EVIDENCE, COUNT_NOT_CAUSE,
+      + ONE_SKILL_MEASURE_NAMED (single-card case; separate code because one rule has one required_wording) -> 31.
+      THIN_SAMPLE trigger 2 += {status ne held}, {label ne unavailable} (coordinator-scoped change to a frozen rule).
+  [2] checker.ts: cards_distinct_values gains optional where:{field, eq} (one `continue` line; no other branch touched).
+  [3] policy.json via add_rules.py (this folder; idempotent; byte-exact round trip checked; appends after AIR_STATE_FILTER):
+      +6 rules -> 31. Per-rule JSON compare vs snapshot taken before: of the 25 present at start ONLY THIN_SAMPLE changed
+      (trigger 2 += status ne held, label ne unavailable); order, kinds and contradictions unchanged.
+      COUNT_NOT_CAUSE kind = known_gap (not computed_not_card: AX-09's test pins computed_not_card count to 1).
+      POOLED_SC_RATE_ONLY trigger narrowed vs spec: kind eq race_control.pooled_rate OR (source_page ~ race-control AND
+      metric ~ rate|probab|hazard|per_lap|per_race), because race.cautions has docs_slug race-control and would fire on
+      every teammate_race answer. COUNT_NOT_CAUSE adds a third trigger: kind in context kinds (cautions, pit_stops,
+      coverage, data_quality.race).
+      vitest src/assistant/honesty -> 174 passed, 2 failed (176): the 2 pre-existing CHANCE_LINE_* citations.
+  [4] Mid-run, other lanes landed: AX-07b seasonKinds.ts (season.teammate_gap T skill_measure era_rating, corner_phase.season
+      T proxy_family, race_control.pooled_rate T), AX-15a heldStubs.ts (18 DA/TRAFFIC stubs incl. data_quality.race and
+      tyre_cliff_survival.profile), AX-08 prompt/system.md (placeholder) + prompt/tools.template.json (bundle x-fill) +
+      worker/scripts/gen-tools.mjs (system.md bound ceil(chars/4) <= 1,200). Playbook built against that registry.
+  [5] NEW app/src/assistant/prompt/playbook.json (11 types, 7 with bundle:true) and prompt/bundles.ts (resolveBundle,
+      bundleTypes, fillTemplate; options expand/has/teammateOf; cap 10, held links keep one stub, missing stub -> `held`).
+      worker/scripts/gen-tools.mjs: one-line filter so bundle:false types are not in the enum (AX-08's file, targeted edit).
+      Recipe links changed to match the registry (registry wins):
+        teammate_race / why_slow held link race_lost.component -> race_driver.skill_components (AX-15a stub on the race-lost
+          page; race_lost.component stays registered but every row is refused, so it never yields a stub).
+        stint_describe: pit_strategy.stint does not exist -> stint layout from driver_race.pit_stops; held links
+          pit_strategy.verdict + pit_strategy.optimal_lap.
+        why_slow: data_quality.race is HELD (AX-15a stub, DA lineage) -> moved from recipe to held_links.
+        tyre_life: tyre_cliff_survival.profile is HELD (DA stub filter) -> type v1 'held', recipe empty, held link only.
+        season_standing: ghost/era held link -> counterfactual_championship.season stub.
+        sector components -> sector_decomposition.component; ghost -> ghost_race.standings; traffic -> dirty_air.price.
+        ML kinds (ml.cliff_probability, ml.prediction_band) do not exist: pending_kinds owner AX-17, expected held.
+  [6] NEW prompt/system.md content (replaces AX-08's placeholder): 3,722 chars = 1,064 tokens by estimateTokens
+      (chars/3.5), 931 by gen-tools' chars/4. No data values (no decimals or percentages).
+      Regenerated worker/src/generated/tools.ts: `node scripts/gen-tools.mjs --data test/fixtures` (the fixture the
+      staleness test uses) -> tokens tools 908 / catalogue 87 / system 931; bundle enum = corner_phase, safety_car_rate,
+      season_standing, stint_describe, teammate_race, tyre_life, why_slow. worker vitest -> 33 passed (3 files).
+  [7] Stub ids carry the constructor slug (race_driver.skill_components:2024_1:VER:red_bull_racing), so race_driver-grain
+      held links are prefix templates ({race_id}:{driver_id}:*).
+      NEW prompt/__fixtures__/demo-cards.json: 173 real cards copied from $S/laneR/cards-07b/cards.json (read-only; newest
+      build, has AX-07b kinds + AX-15a stubs), only kinds the playbook names, for 2024_1 VER/PER, 2020_14 HAM/BOT,
+      2018_1 RIC/VER, 2021_16 HAM/BOT, 2024_5 NOR/PIA (SC laps 23-31), plus 2024 season / pooled cards.
+      NEW tests: playbook.schema.test.ts, playbook.registry.test.ts (29 tests with schema), bundles.test.ts (12).
+      Demo teammate_race bundles (model projection + held list, estimateTokens):
+        2024_1 VER 8 cards 378 tok | 2020_14 HAM 8 / 388 | 2018_1 RIC 8 / 381 | 2021_16 HAM 8 / 394 | 2024_5 NOR 8 / 376.
+  [8] NEW prompt/prompt.size.test.ts (6: size, no data values, names types + measures, no multi-round / reasoning-token
+      claim, section order, gen-tools builds with the bundle enum), prompt/forbidden-chains.test.ts (25: 12 planted +
+      12 corrected + count), honesty/policy.ax21-rules.test.ts (16: 6 rules x fail/pass/not_fired + whole-policy pass,
+      where filter, THIN_SAMPLE exclusions incl. real thin cards still firing, single-card ONE_SKILL_MEASURE_NAMED).
+      Chain 9 (grounding) uses a test-local stand-in `ungroundedNumbers` and reports code GROUNDING; AX-10 owns the real check.
+
+FINAL STATE (2026-11-08)
+  Types (11): teammate_race, season_standing, why_slow, stint_describe, safety_car_rate, tyre_life, corner_phase (bundle:true)
+              observed_count, lookup_navigate, what_if, held_class (tool-only, bundle:false).
+  Rules: 31 = 25 at start + 6. By kind: known_gap 13, low_confidence 5, in_sample 2, thin_sample 2, graded_below_pass 2,
+         open_ruling 2, no_data 1, envelope 1, graded 1, computed_not_card 1, held_card 1.
+  Of the 25 at start, only THIN_SAMPLE changed (trigger 2 exclusions, coordinator-scoped); 24 byte-identical per-rule.
+
+TESTS (app/, vitest)
+  npx vitest run src/assistant/prompt src/assistant/honesty/policy.ax21-rules.test.ts -> 89 passed (6 files)
+  npx vitest run src/assistant (no env)          -> 503 passed, 2 failed, 107 skipped (612)
+  AX04_DATA_DIR=$S/laneL/out vitest src/assistant -> 605 passed, 2 failed, 6 skipped (613)
+     (a first data run showed 2 race_control.pooled_rate failures from another lane's in-progress edit; gone on rerun)
+  npx vitest run (whole app, no env)             -> 1104 passed, 2 failed, 1 expected fail, 110 skipped (1217); files 1 failed | 89 | 6 skipped
+  The 2 failures everywhere: pre-existing sources.node CHANCE_LINE_EXPERIMENTAL / CHANCE_LINE_QUOTABLE.
+  npm run typecheck -> clean. eslint on prompt/, checker.ts, policy.ax21-rules.test.ts -> clean.
+  worker: npx vitest run -> 33 passed (3 files), incl. gen-tools staleness after regenerating tools.ts.
+  data/*.duckdb not opened; app/public/data not written; build-log.json not edited; no git writes.
+
+OWNER DECISIONS
+  1. THIN_SAMPLE (a frozen rule) changed: trigger 2 += status ne held, label ne unavailable. Proven: n=5 stint cards
+     (no status / active) still fire; held stub and unavailable card (n=0) do not; caveat trigger unchanged.
+  2. Single-card skill-measure case is a NEW code ONE_SKILL_MEASURE_NAMED (one rule has one required_wording, and
+     ONE_SKILL_MEASURE's "different measures" wording cannot apply to one card). Also forbids "driver error" for a residual.
+  3. POOLED_SC_RATE_ONLY trigger narrower than the spec (kind / metric guard) so race.cautions does not fire it.
+  4. COUNT_NOT_CAUSE kind known_gap (spec silent; AX-09's test pins computed_not_card = 1) and a third trigger on the
+     context kinds; no required wording, only forbidden causal patterns.
+  5. NOT_INDEPENDENT_EVIDENCE needs shared_input_group on cards. Live race_rating kinds carry it; AX-15a's constructor stubs
+     (constructor_structural_pace/party_mode/constructor_team_averages/circuit_interaction) do NOT, so the constructor_pace
+     trigger cannot fire on real cards until AX-15a adds shared_input_group: 'constructor_pace' (and race_rating on
+     ghost_race.standings). Not edited here (AX-15a's file).
+  6. season.teammate_gap carries skill_measure era_rating (AX-07b); the glossary lists it under era_rating, and
+     race.teammate_gap + season.teammate_gap in one answer therefore fires ONE_SKILL_MEASURE and NOT_INDEPENDENT_EVIDENCE.
+  7. resolveBundle needs the teammate: scope.teammate_id or opts.teammateOf (AX-10's store reads teammate_id from the
+     race mart). tools.template.json's scope schema has no teammate_id; AX-10 decides whether to add it.
+  8. ML held links (ml.cliff_probability, ml.prediction_band) are pending_kinds owned by AX-17; names to confirm there.
+  9. AX-08's system.md placeholder was replaced and worker/src/generated/tools.ts regenerated from test/fixtures.

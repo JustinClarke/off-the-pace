@@ -17,6 +17,12 @@ interface ImportMetaEnv {
   readonly VITE_RUM_ENDPOINT?: string
   /** RUM sampling rate, 0–1 (default 1 = send every metric). */
   readonly VITE_RUM_SAMPLE_RATE?: string
+  /** AX-14: 'true' builds the assistant chat drawer in. Default off (nothing renders, nothing is fetched). */
+  readonly VITE_ASSISTANT_ENABLED?: string
+  /** AX-14: the assistant Worker chat URL (POST). */
+  readonly VITE_ASSISTANT_WORKER_URL?: string
+  /** AX-14: Cloudflare Turnstile site key (public). */
+  readonly VITE_TURNSTILE_SITE_KEY?: string
 }
 
 interface ImportMeta {

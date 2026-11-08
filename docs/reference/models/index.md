@@ -91,7 +91,6 @@ Auto-generated reference for all 94 dbt models.
 
 | Model | Description |
 |---|---|
-| [`dim_events`](/reference/models/dim/dim_events) | Race-level event dimension. |
 | [`fct_cliff_prediction_features`](/reference/models/fct/fct_cliff_prediction_features) | Lap-grain feature table for the tyre cliff XGBoost model. |
 | [`fct_driver_isolation_lap`](/reference/models/fct/fct_driver_isolation_lap) | Driver isolation per Ω lap with the rolling rating: the lap's three ratings, its tier-3 peer aggregates and identity split, and a trailing window per rating (the Ω laps of the same stint with lap_number in [l - 4, l]; never forward, T44), each NULL below var('isolation_window_min_laps') contributing laps, with SE, lambda, a shrunk value, confidence_pct and trust_label. |
 | [`fct_driver_isolation_pair_lap`](/reference/models/fct/fct_driver_isolation_pair_lap) | Driver isolation tier 3 per pair of cars: for every Ω lap, each peer on the same race, lap number and compound with tyre age within var('isolation_peer_age_tolerance'), teammates included. |

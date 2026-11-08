@@ -8,6 +8,8 @@ export interface GanttResult {
   topCostStints: GanttStint[]
   verdictCounts: Record<string, number>
   totalOpportunityCostS: number
+  /** Compound the driver fitted after each stint (key `${driver_id}:${stint_number}`), null after the last (AP-08). */
+  nextCompound: Record<string, string | null>
 }
 
 function coerceVerdict(v: string | null): StrategyVerdict {
@@ -37,6 +39,7 @@ export function transform(rows: PitGanttRow[], totalLaps: number): GanttResult {
     cliffLapInStint: r.cliff_lap_in_stint,
     pitDurationS: r.pit_lane_loss_s,
     tyreManagementScore: r.tyre_management_score,
+    optimalPitLapConfidence: r.optimal_pit_lap_confidence,
   }))
 
   const verdictCounts: Record<string, number> = {
@@ -66,7 +69,10 @@ export function transform(rows: PitGanttRow[], totalLaps: number): GanttResult {
   // flag) is past it, by up to 6 laps -- so the axis has to reach the last bar.
   const axisLaps = stints.reduce((m, s) => Math.max(m, s.endLap), totalLaps)
 
-  return { stints, totalLaps: axisLaps, topCostStints, verdictCounts, totalOpportunityCostS }
+  const nextCompound: Record<string, string | null> = {}
+  for (const r of rows) nextCompound[`${r.driver_id}:${r.stint_number}`] = r.next_compound
+
+  return { stints, totalLaps: axisLaps, topCostStints, verdictCounts, totalOpportunityCostS, nextCompound }
 }
 
 export function toCsvRows(result: GanttResult): Record<string, string | number | null>[] {
@@ -82,6 +88,7 @@ export function toCsvRows(result: GanttResult): Record<string, string | number |
     overrun_laps: s.overrunLaps,
     opportunity_cost_s: s.opportunityCostS != null ? +s.opportunityCostS.toFixed(3) : null,
     optimal_pit_lap_in_stint: s.optimalPitLapInStint,
+    optimal_pit_lap_confidence: s.optimalPitLapConfidence != null ? +s.optimalPitLapConfidence.toFixed(3) : null,
     tyre_management_score: s.tyreManagementScore != null ? +s.tyreManagementScore.toFixed(4) : null,
     pit_lane_loss_s: s.pitDurationS != null ? +s.pitDurationS.toFixed(3) : null,
   }))

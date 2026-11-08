@@ -8,6 +8,7 @@ const mkRow = (constructor_id: string, overrides: Partial<TeamAverageRow> = {}):
   laps_n: 400,
   avg_car_component_s: 0.1,
   avg_dirty_air_tax_s: 0.05,
+  n_dirty_air_laps: 300,
   avg_driver_skill_residual_s: -0.02,
   ...overrides,
 })
@@ -19,8 +20,22 @@ describe('transform', () => {
   })
 
   it('keeps null team averages as null', () => {
-    const [e] = transform([mkRow('ALPINE', { avg_dirty_air_tax_s: null })])
+    const [e] = transform([mkRow('ALPINE', { avg_dirty_air_tax_s: null, n_dirty_air_laps: 0 })])
     expect(e.dirty_air_s).toBeNull()
+  })
+
+  it('AP-05: a team-season whose dirty-air laps are all unmeasured is unavailable, never 0', () => {
+    // A stale 0.0 average with zero measured laps must not surface as a measured zero.
+    const [e] = transform([mkRow('HAAS', { avg_dirty_air_tax_s: 0, n_dirty_air_laps: 0 })])
+    expect(e.dirty_air_s).toBeNull()
+    expect(e.n_dirty_air_laps).toBe(0)
+    expect(toCsvRows([e])[0].dirty_air_tax_avg_s).toBe('')
+  })
+
+  it('AP-05: a measured team-season keeps its mean and its measured-lap count', () => {
+    const [e] = transform([mkRow('MERCEDES', { avg_dirty_air_tax_s: 0.2, n_dirty_air_laps: 120 })])
+    expect(e.dirty_air_s).toBe(0.2)
+    expect(e.n_dirty_air_laps).toBe(120)
   })
 })
 
@@ -43,7 +58,7 @@ describe('meanOfRaces', () => {
 
 describe('toCsvRows', () => {
   it('formats to three decimals and leaves missing readings blank', () => {
-    const csv = toCsvRows(transform([mkRow('HAAS', { avg_dirty_air_tax_s: null, avg_car_component_s: 0.12345 })]))
+    const csv = toCsvRows(transform([mkRow('HAAS', { avg_dirty_air_tax_s: null, n_dirty_air_laps: 0, avg_car_component_s: 0.12345 })]))
     expect(csv[0].car_component_avg_s).toBe('0.123')
     expect(csv[0].dirty_air_tax_avg_s).toBe('')
   })

@@ -71,7 +71,7 @@ if [[ -f "$LOCAL_MANIFEST" ]]; then
 import json, sys
 loc = json.load(open(sys.argv[1])).get("stats", {})
 pub = json.load(open(sys.argv[2])).get("stats", {})
-keys = ["total_laps", "total_drivers", "total_events", "total_circuits"]
+keys = ["total_laps", "total_drivers", "total_circuits"]
 bad = [k for k in keys if k in loc and loc.get(k) != pub.get(k)]
 if bad:
     for k in bad:

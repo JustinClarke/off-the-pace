@@ -15,6 +15,7 @@ import { methodologyContent, methodologyHref } from './methodology'
 import { useQuery } from '../../data/hooks/useQuery'
 import { useFilters } from '../../state/FilterContext'
 import { loadManifest } from '../../data/manifest'
+import { useProvenance } from '../../data/provenance'
 import { predictLaps } from '../../ml'
 import type { LapPrediction, FeatureRow } from '../../ml'
 import { buildStintRows, constructorPaceOffset, DEFAULT_INPUTS, DEFAULT_FUEL_CONSUMPTION_RATE } from './inputs'
@@ -38,6 +39,7 @@ const num = (v: unknown, d: number) => {
 }
 
 export default function DegradationSimulatorPage() {
+  const prov = useProvenance({ models: true })
   const { season } = useFilters()
   const [inputs, setInputs] = useState<SimulatorInputs>(DEFAULT_INPUTS)
   // Default to the synthetic what-if (Scenario); Replay is the 'show me real data' tab.
@@ -270,9 +272,11 @@ export default function DegradationSimulatorPage() {
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
       provenance={{
-        modelVersion: '3',
-        datasetFingerprint: 'b8a37b7c',
-        dataWindow: 'ONNX parity 7.6e-6 (max abs) vs trained boosters',
+        dataWindow: prov.dataWindow,
+        dataVersion: prov.dataVersion,
+        labelVersion: prov.labelVersion,
+        modelVersion: prov.modelVersion,
+        datasetFingerprint: prov.datasetFingerprint,
       }}
       csvRows={result.laptimeCurve.length || result.fan.length ? toCsvRows(result) : undefined}
       csvFilename={`degradation-simulator-${inputs.constants.compound.toLowerCase()}.csv`}
@@ -308,6 +312,11 @@ export default function DegradationSimulatorPage() {
           />
         </div>
       </div>
+      {prov.onnxParityMaxAbs && (
+        <p className="mt-4 text-xs text-muted/60 font-mono">
+          ONNX parity: max abs difference {prov.onnxParityMaxAbs} vs the trained boosters
+        </p>
+      )}
     </FeaturePage>
   )
 }

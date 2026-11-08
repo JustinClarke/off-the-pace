@@ -1,0 +1,5 @@
+[0m17:42:54  2 of 5 PASS not_null_stg_events_stg_event_id ................................... [[32mPASS[0m in 0.01s]
+[0m17:42:54  3 of 5 PASS relationships_stg_events_driver_id__driver_id__ref_dim_drivers_ .... [[32mPASS[0m in 0.01s]
+[0m17:42:54  4 of 5 PASS relationships_stg_events_race_id__race_id__ref_race_to_track_ ...... [[32mPASS[0m in 0.01s]
+[0m17:42:54  5 of 5 PASS unique_stg_events_stg_event_id ..................................... [[32mPASS[0m in 0.01s]
+[0m17:42:54  Done. PASS=5 WARN=0 ERROR=0 SKIP=0 NO-OP=0 REUSED=0 TOTAL=5

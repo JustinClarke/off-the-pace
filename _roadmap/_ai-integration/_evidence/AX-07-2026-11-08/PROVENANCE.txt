@@ -1,0 +1,103 @@
+AX-07 Class-T cards - provenance (2026-11-08, lane L). Written incrementally. Not committed.
+
+SCRATCH (S = /private/tmp/claude-501/-Users-justin-github-off-the-pace/bf41f451-ffc1-4ccc-bc71-e73e8a654460/scratchpad)
+  cp $S/laneE/dev.duckdb $S/laneL/dev.duckdb   (own folder, copy named dev.duckdb; laneE untouched)
+  cd transform && ../.venv/bin/python ../scripts/export_app_data.py --db $S/laneL/dev.duckdb --out $S/laneL/out
+    -> rc 0, 45 tables, manifest 5fdd429f65eb502b, provenance.label_version v16.
+    Run from transform/ so the stg_* views resolve ../data/bronze (stg_pits exported; from the repo root it is skipped).
+  The laneE build carries TX-01 at the first cut (ok threshold 10): rating_trust_label ok 2,930 / thin 70 / suppressed 138.
+  The ruled threshold 12 (ok 2,906 / thin 94 / suppressed 138) is another lane's mart edit; cards read the label
+  from the mart, never recompute it, so they follow it on the next build. Suppressed (n < 6) is 138 either way.
+  data/dev.duckdb, data/ci.duckdb, app/public/data: not touched.
+
+DEMO ROWS (scratch mart_race_driver_summary, before any card code)
+  2024_1 VER rating -0.622, paired 46, ok, CI [-0.755, -0.390], teammate PER
+  2020_14 HAM rating -6.617, paired 1, suppressed, CI NULL (PAIRED_N_BELOW_MIN)
+  2018_1 coverage NO_TELEMETRY (air_measured_share 0.062, base_measured_share 0); ratings still exist (lap times)
+  2021_16 coverage ALL_WET_NO_DRY_PAIRS; no race-mart rows
+
+PROGRESS
+  [1] scripts/export_app_data.py: TABLES += mart_race_coverage (marts/); OPTIONAL_TABLES += stg_results
+      (intermediates/, single file). Re-export -> 47 tables, manifest ef29bc060076f6e8.
+  [2] card.schema.json policy_fields += rating_trust_label, rank_separated_from_next, skill_measure,
+      shared_input_group, coverage_reason; card.types.ts + scripts/assistant_cards/card_types.py regenerated (--check rc 0).
+  [3] kinds.ts ValueOutcome.unavailable_reason; build.ts assembleCard emits label unavailable / value null / n 0 /
+      interval null when set; label_version read from manifest.provenance.label_version (labelVersionOf).
+  [4] new app/src/assistant/cards/sql/queries.ts (cards.* sqlKind queries) and sql/raceKinds.ts
+      (race.result, race.teammate_gap, race.coverage, race.cautions, driver_race.pit_stops).
+  Coordinator note mid-run: AP-06 landed; race-lost oracle in headless.parity.test.ts must use the closed lap set.
+  [5] pit-strategy/cards.ts += pit_strategy.verdict (class TRAFFIC, held) and pit_strategy.opportunity_cost (T, held),
+      same PIT_CALL_REPRODUCTION_RATE held reason. era-ratings-timeline/cards.ts: class T-F -> T + caveat AIR_STATE_FILTER,
+      rev 2, policy_fields skill_measure era_rating / shared_input_group race_rating.
+  [6] registry.ts: classesLive = ['T']; registry += race kinds.
+  [7] policy.json: NEW rule AIR_STATE_FILTER (known_gap, active; cites build-log HD13 resolution + ax-07a lineage.md:210;
+      fail + pass example). Inserted as one block before "contradictions"; AX-09's rules (24 at the time) untouched.
+      vitest src/assistant/honesty: 140 passed, 2 failed (pre-existing CHANCE_LINE_* sources).
+  [8] Full headless run (node scripts/build-cards.mjs --data $S/laneL/out --out $S/laneL/cards-full), 23.4 s, before rounding fix:
+      35,380 cards, 19,876 ungrounded. race.teammate_gap 3,458 = ok 2,930 + thin 70 (value) + suppressed 138 + not rated 320 (unavailable).
+      era_rating.season 173 active (modelled, ci_normal_95). race_lost.component 19,872 refused (unchanged, DA + no interval).
+  [9] raceKinds: gap value and CI rounded to 4 dp (float noise only); display notes thin / NO_TELEMETRY. tsc -p tsconfig.app.json clean.
+  [10] AP-06 follow-up: headless.parity.test.ts race-lost oracle now sums the five closure terms and the pace delta over the
+       closed lap set (fallback to own coverage only when it is empty; Track Noise over its own coverage, outside the closure),
+       checks nClosedLaps. AX04_DATA_DIR=$S/laneL/out vitest src/assistant/cards/headless -> 19 passed.
+  [11] registry.test.ts updated (kind list, classesLive ['T'], null-feature skip). vitest src/assistant/cards -> 60 passed, 11 skipped.
+  [12] Evidence: _evidence/ax-07-lineage/lineage.json (45 rows), lineage.md (rule, deltas since AX-07a, design 2.4 reconciled),
+       ungrounded.json (refusals by kind+reason, cards by kind/status/label) from the final full run:
+       35,380 cards, 19,876 ungrounded (race_lost 19,872; 2021_12 no stints x4 kinds).
+  [13] raceKinds: dropped the 4 dp pre-rounding (double-rounded a half-ms median: 2022_15 ALO -0.0365 showed -0.037 vs
+       mart -0.036 at 3 dp); values are raw mart values, display toFixed(3).
+  [14] NEW app/src/assistant/cards/parity.20pairs.test.ts: 20 pairs (4 demo + 16 from random.Random(20261108).sample over
+       stg_results ordered by race_id, driver_id; 8 seasons) + thin case 2019_1 NOR. Oracle: separate wasm engine, SQL over
+       the parquet. AX04_DATA_DIR=$S/laneL/out -> 82 passed.
+  [15] NEW tests: src/assistant/cards/lineage.test.ts (lineage + class guard + caveat codes in policy), sql/cards.race.test.ts
+       (fixtures: ok/thin/suppressed/unrated/no-teammate, refused when CI missing, relabelled interval kind fails), heldPit.test.ts,
+       ungrounded.test.ts. Unavailable-reason refinement: race-level coverage reason only when the race has no rating at all.
+  [16] Final full run: 35,380 cards, 19,876 ungrounded (unchanged counts). Evidence files regenerated.
+
+FINAL STATE
+  Kinds (registry 862f269c..., classesLive ['T']):
+    live T:   race.result 3,458 | race.teammate_gap 3,458 (3,000 value: ok 2,930 + thin 70; 458 unavailable) |
+              race.coverage 173 | race.cautions 173 | driver_race.pit_stops 3,312 | era_rating.season 173 (modelled, ci_normal_95)
+    held:     pit_strategy.optimal_lap / .verdict (TRAFFIC) / .opportunity_cost: 8,211 each (PIT_CALL_REPRODUCTION_RATE)
+    refused:  race_lost.component 19,872 (DA, no interval); 2021_12 no stints (x4 kinds)
+  teammate_gap unavailable reasons: no paired clean laps 280; rated on 1/2/3/4/5 paired laps 58/36/12/22/10 (= 138 suppressed);
+    race coverage NO_RACING_LAPS 20 (2021_12), ALL_WET_NO_DRY_PAIRS 20 (2021_16).
+
+DEMO RACES (cards as built)
+  2024_1 VER: result P1 from grid P1 (Finished, 26 pts); gap -0.622 s/lap vs PER, median of 46 paired laps, CI [-0.755, -0.390]
+    ci_order_stat_median, trust ok, caveat AIR_STATE_FILTER; coverage OK (20 rated); cautions 0 of 57; pit 2 stops (laps 17, 37) SOFT-HARD-SOFT.
+  2020_14 HAM: result P1 from grid P6 (25 pts); gap UNAVAILABLE "rated on 1 paired lap (fewer than 6): suppressed, no value"
+    (mart rating -6.617 never appears on the card); coverage OK (14 rated); cautions 4 of 58 (VSC laps 12-15); pit 1 stop (lap 8) WET-INTERMEDIATE.
+  2018_1 HAM: result P2 from grid P1 (18 pts); gap -1.477 s/lap vs BOT (37 paired laps; note "no telemetry: rain filter did not run"),
+    CI [-1.797, -1.126]; coverage NO_TELEMETRY; cautions 7 of 58 (VSC lap 25, SC laps 26-31); pit 1 stop (lap 19).
+    GAS 2018_1: unavailable, rated on 5 paired laps.
+  2021_16 HAM: result P5 from grid P11 (10 pts); gap UNAVAILABLE "not rated: race coverage ALL_WET_NO_DRY_PAIRS (wet race...)";
+    coverage ALL_WET_NO_DRY_PAIRS (0 rated); cautions 0 of 58; pit 1 stop (lap 50) INTERMEDIATE-INTERMEDIATE.
+
+TESTS (app/, vitest)
+  npx vitest run src/assistant/cards (no data env)        -> 85 passed, 93 skipped
+  AX04_DATA_DIR=$S/laneL/out npx vitest run src/assistant -> 367 passed, 2 failed (pre-existing sources.node CHANCE_LINE_*)
+  npx vitest run (whole app, no env)                       -> 874 passed, 2 failed (same pre-existing), 1 expected fail, 96 skipped;
+                                                              files 1 failed | 68 passed | 3 skipped. (A first run mid-way saw party-mode
+                                                              / constructor failures and a party-mode tsc error from another lane's
+                                                              in-progress edit; gone on rerun.)
+  npm run typecheck -> clean.  eslint on my files -> clean.  pytest scripts/tests -> 46 passed, 3 skipped.
+  app/public/data: nothing written. data/*.duckdb: not opened.
+
+NOT DONE (minimum set items not built in this pass)
+  data_quality.race, race_control.pooled_rate, tyre_cliff_survival.profile, corner_phase.season, season.teammate_gap.
+  onScreen() for the no-page kinds returns []; race.cautions returns its own id.
+  Rendered-page (Playwright) check not run for the new kinds (race.cautions / pit_stops pages only; others have no page).
+
+OWNER DECISIONS
+  1. race.teammate_gap label 'computed' (a median of observed lap-time gaps) rather than 'modelled'; the kind still refuses an
+     ok/thin row without a CI (validator), so the interval is enforced either way.
+  2. era_rating.season goes LIVE (class T + AIR_STATE_FILTER, per HD13 lineage). Say no if era ratings should wait for AX-15a.
+  3. AIR_STATE_FILTER rule added to policy.json by this item (AX-21 planned the wording; AX-09 owns policy.json). RATING_TRUST_LABEL
+     is NOT added (AX-21); the trust label travels in policy_fields.rating_trust_label.
+  4. skill_measure names: this item uses AX-21's glossary (teammate_paired_median, era_rating); AX-09's examples use
+     loro_race_skill / era_normalised_rating. Pick one set.
+  5. stg_results (like stg_pits) exports only when export_app_data.py runs from transform/ (the view's bronze path is relative);
+     from the repo root it is skipped as optional and every race.result / race.teammate_gap would be refused (compute failed).
+     AX-08 should fix the cwd or the view before the real export. (pit_stops reads int_pit_strategy_value, not stg_pits.)
+  6. Cards were built on the threshold-10 scratch build; re-run after the TX-01 threshold-12 lane (expect ok 2,906 / thin 94).

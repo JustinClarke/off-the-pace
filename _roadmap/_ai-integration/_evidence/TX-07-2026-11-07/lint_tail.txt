@@ -1,0 +1,25 @@
+
+/Users/justin/github/off-the-pace/app/src/state/ThemeContext.tsx
+  53:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/justin/github/off-the-pace/app/src/ui/layout/AppShell.tsx
+  27:5  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/justin/github/off-the-pace/app/src/ui/layout/AppShell.tsx:27:5
+  25 |   // Close the mobile drawer whenever the route changes (covers programmatic / back-button nav).
+  26 |   useEffect(() => {
+> 27 |     setMobileOpen(false)
+     |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  28 |   }, [pathname])
+  29 |
+  30 |   // Close on Escape while the drawer is open  react-hooks/set-state-in-effect
+
+✖ 16 problems (3 errors, 13 warnings)
+
+[ELIFECYCLE] Command failed with exit code 1.

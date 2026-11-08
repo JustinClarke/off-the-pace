@@ -1,0 +1,20 @@
+AX-15a held stubs - provenance (2026-11-08, lane R). Written incrementally. Not committed.
+START: nothing of lane R existed on disk at resume (no ax-15a evidence, no laneR scratch, no heldStubs.ts).
+PLAN: new app/src/assistant/cards/sql/heldStubs.ts (one generic stub factory, table of T* kinds), scope queries in sql/queries.ts
+      (cards.stub-* over stg_results only: scope keys, never a value column), registry += stub kinds, tests, classes.md.
+DONE
+  files: app/src/assistant/cards/sql/heldStubs.ts (new, 17 stub kinds), sql/queries.ts (+cards.stub-scopes), registry.ts (+stubKinds),
+         registry.test.ts (kind list), new tests registry.held / stub.no-value / deny-list / held-links (.test.ts),
+         scripts/export_app_data.py (+fct_driver_isolation_stint), scripts/tests/test_export_app_data.py (+stint table, +list test),
+         _evidence/ax-15a/classes.md.
+  full run: node scripts/build-cards.mjs --data $S/laneL/out --out $S/laneR/cards-15a -> 62,666 cards, 19,879 ungrounded.
+  stub cards held: lap_waterfall 3,458 | sector_decomposition 3,458 | ghost_race.standings 3,458 | race_driver.skill_components 3,458 |
+    driver_isolation.race 3,458 | driver_isolation.stint 3,458 | dirty_air.price 3,458 | counterfactual_championship 81 | hidden_performance 81 |
+    constructor_structural_pace 81 | party_mode 81 | constructor_circuit_interaction 81 | constructor_team_averages 81 |
+    season_driver.skill_benchmark 173 | driver_consistency 173 | wet_race.specialist 173 | data_quality.race 173
+  constructor ids are display names ('Toro Rosso'): slugged in the card id, raw in scope, constructor page param only if it matches the route pattern.
+  Not done: manifest classes_live/classes_held (AX-08 block, other lane); race_lost.component not converted to a stub.
+  Seen, not mine: pit_strategy.* compute failed x2 ("Could not convert string '' to INT32") on the current scratch export.
+AX-07b started (see _evidence/AX-07b-2026-11-08/PROVENANCE.txt). lineage.json += 15 rows (corner skill, season mart) for AX-07b.
+UPDATE: 18 stub kinds (tyre_cliff_survival.profile added by AX-07b), held cards total 3,458x7 + 81x6 + 173x4(skill_benchmark, consistency, wet, dq) + 471(tyre) ; see AX-07b PROVENANCE for the final run.
+Test counts: see AX-07b PROVENANCE [7]. pytest scripts/tests: 52 passed, 3 skipped (before the list test: +1 run below).

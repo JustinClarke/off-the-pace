@@ -1,0 +1,136 @@
+--- /private/tmp/claude-501/-Users-justin-github-off-the-pace/bf41f451-ffc1-4ccc-bc71-e73e8a654460/scratchpad/laneB/tx-12/export_app_data.before.py	2026-11-07 21:31:53
++++ scripts/export_app_data.py	2026-11-07 21:32:19
+@@ -12,6 +12,15 @@
+   python scripts/export_app_data.py --check   # regenerate and diff (CI drift gate)
+   python scripts/export_app_data.py --canary  # export only canary tables
+   python scripts/export_app_data.py --table fct_driver_skill_features
++  python scripts/export_app_data.py --db S/dev.duckdb --out S/out          # scratch export
++  python scripts/export_app_data.py --db S/dev.duckdb --out S/out --check  # diff vs S/out/_manifest.json
++
++  --db PATH   warehouse to read (default data/dev.duckdb)
++  --out DIR   output root (default app/public/data); --check compares against
++              DIR/_manifest.json. A non-default --db without --out (and without
++              --check) is refused, so a scratch warehouse never overwrites
++              app/public/data. ML parquet (data/marts/), ml/model_card.json and
++              transform/target/manifest.json (stats.dbt_models) do not follow --db.
+ 
+ Rules:
+  -Reference dims and small marts: single parquet, load once.
+@@ -584,20 +593,27 @@
+     canary_only: bool = False,
+     target_table: str | None = None,
+     check_mode: bool = False,
++    db_path: Path | None = None,
++    out_root: Path | None = None,
+ ) -> None:
+     import duckdb
+ 
+-    if not DB_PATH.exists():
+-        print(f"ERROR: warehouse not found at {DB_PATH}")
++    db_path = Path(db_path) if db_path is not None else DB_PATH
++    out_root = Path(out_root) if out_root is not None else APP_DATA
++
++    if not db_path.exists():
++        print(f"ERROR: warehouse not found at {db_path}")
+         sys.exit(1)
+ 
+     if check_mode:
+-        # Write to a temp dir, then diff
++        # Write to a temp dir, then diff against <out_root>/_manifest.json
+         with tempfile.TemporaryDirectory() as tmp:
+-            _run_export_to(Path(tmp), canary_only, target_table, check_mode=True)
++            _run_export_to(Path(tmp), canary_only, target_table, check_mode=True,
++                           db_path=db_path, compare_root=out_root)
+         return
+ 
+-    _run_export_to(APP_DATA, canary_only, target_table, check_mode=False)
++    _run_export_to(out_root, canary_only, target_table, check_mode=False,
++                   db_path=db_path)
+ 
+ 
+ def _run_export_to(
+@@ -605,16 +621,21 @@
+     canary_only: bool,
+     target_table: str | None,
+     check_mode: bool,
++    db_path: Path | None = None,
++    compare_root: Path | None = None,
+ ) -> None:
+     global OUT_ROOT_GLOBAL
+     OUT_ROOT_GLOBAL = out_root
+     import duckdb
+ 
++    db_path = db_path if db_path is not None else DB_PATH
++    compare_root = compare_root if compare_root is not None else APP_DATA
++
+     t0 = time.time()
+-    conn = duckdb.connect(str(DB_PATH), read_only=True)
++    conn = duckdb.connect(str(db_path), read_only=True)
+ 
+     print(f"\n{'[CHECK MODE] ' if check_mode else ''}Off The Pace app data export")
+-    print(f"  warehouse:  {DB_PATH}")
++    print(f"  warehouse:  {db_path}")
+     print(f"  output:     {out_root}")
+     if canary_only:
+         print("  scope:      canary tables only")
+@@ -693,7 +714,7 @@
+     manifest_path = out_root / "_manifest.json"
+     if check_mode:
+         # In check mode: compare against current manifest
+-        existing = APP_DATA / "_manifest.json"
++        existing = compare_root / "_manifest.json"
+         if existing.exists():
+             with open(existing) as f:
+                 current = json.load(f)
+@@ -733,7 +754,7 @@
+     print(f"  Stats block:  {stats}")
+ 
+ 
+-def main() -> None:
++def build_parser() -> argparse.ArgumentParser:
+     parser = argparse.ArgumentParser(
+         description="Export Off The Pace warehouse to app/public/data/ parquet.",
+         formatter_class=argparse.RawDescriptionHelpFormatter,
+@@ -754,12 +775,41 @@
+         metavar="NAME",
+         help="Export a single named table (for fast re-export of one table).",
+     )
+-    args = parser.parse_args()
++    parser.add_argument(
++        "--db",
++        metavar="PATH",
++        type=Path,
++        default=DB_PATH,
++        help="Warehouse to read (default: data/dev.duckdb).",
++    )
++    parser.add_argument(
++        "--out",
++        metavar="DIR",
++        type=Path,
++        default=APP_DATA,
++        help="Output root (default: app/public/data). --check compares against DIR/_manifest.json.",
++    )
++    return parser
+ 
++
++def main(argv: list[str] | None = None) -> None:
++    args = build_parser().parse_args(argv)
++
++    # Guard: a scratch warehouse must never be written into app/public/data.
++    if (
++        args.db.resolve() != DB_PATH.resolve()
++        and args.out.resolve() == APP_DATA.resolve()
++        and not args.check
++    ):
++        print("ERROR: refusing to write a scratch warehouse into app/public/data; pass --out")
++        sys.exit(2)
++
+     run_export(
+         canary_only=args.canary,
+         target_table=args.table,
+         check_mode=args.check,
++        db_path=args.db,
++        out_root=args.out,
+     )
+ 
+ 

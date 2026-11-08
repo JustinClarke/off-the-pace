@@ -1,0 +1,51 @@
+TX-04 — dirty-air SE and method made honest; DIRTY_AIR_MODELLED_NOT_MEASURED rule   (2026-11-07, lane B)
+
+Default variant only (owner decision on SE values NOT taken): the 0.15 convention is kept and
+documented. No value moves.
+
+Files changed
+  transform/models/intermediate/schema.yml   dirty_air_tax_se_s description (line 1578-1580) rewritten:
+      "Convention, not an estimate: 0.15 × the tax. Zero on clean-air laps. Not propagated from θ's
+       interval. Do not quote as a standard error." ; tax_calibration_confidence gains "one constant
+       per build ... not a confidence in the tax value of any lap".
+  transform/models/marts/schema.yml          fct_lap_residuals: new column entry dirty_air_tax_se_s
+                                             (same text; data_type double). Only that entry touched.
+  transform/models/intermediate/int_dirty_air_tax_component.sql  comment above the SE expression only.
+  transform/dbt_project.yml                  new var dirty_air_method: 'flat_theta_0.331_lag1_share_unvalidated'
+                                             beside theta_air_label_value, with must-change comment.
+                                             (TX-05 had not added it; TX-05 reuses it.)
+  transform/tests/assert_dirty_air_se_is_declared_convention.sql  new singular test.
+  app/src/assistant/honesty/policy.json      new rule DIRTY_AIR_MODELLED_NOT_MEASURED (kind known_gap,
+                                             active), 2 fail + 1 pass examples; updated 2026-10-22 -> 2026-11-07.
+
+Scratch: S=<scratchpad>/laneB, dev.duckdb copied from <scratchpad>/base/dev.duckdb (1-thread base build),
+profiles.yml threads: 1 + settings.threads: 1 (memory_limit 4GB), --target-path $S/target.
+
+Commands
+  $S/dbt.sh build --select int_dirty_air_tax_component           (before edit, unchanged) PASS=15 ERROR=0
+  snapshot_model_hashes.py --db $S/dev.duckdb --manifest $S/target/manifest.json --baseline $S/before.json
+      -> 97 models hashed (1 missing: int_driver_race_paired_laps, lane A's new model, not built here)
+  ...edits...
+  $S/dbt.sh build --select int_dirty_air_tax_component assert_dirty_air_se_is_declared_convention
+      -> PASS=16 WARN=0 ERROR=0 (new test PASS)
+  snapshot_model_hashes.py --check --baseline $S/before.json
+      -> "OK: all 12 fct_* models byte-stable vs baseline." no non-fct WARNING line (no other drift) exit 0
+  grep -rn "via propagation" transform/models -> nothing
+  cd app && npx vitest run src/assistant/honesty
+      before: 79 passed / 2 failed (81)   after: 84 passed / 2 failed (86)
+      The 2 failures are PRE-EXISTING and unrelated: CHANCE_LINE_EXPERIMENTAL / CHANCE_LINE_QUOTABLE cite
+      docs/app/degradation-simulator.mdx:65, which no longer carries its quote. The 5 new tests
+      (3 examples, pass-example-vs-whole-policy, source cite) pass.
+
+Counts (scratch, unchanged by this item)
+  int_dirty_air_tax_component: 149,452 rows; 46,483 tax > 0; 102,938 tax = 0; 31 NULL;
+  tax_calibration_confidence: 1 distinct value, 0.996333; max SE 0.04965 s.
+
+Fragility to note
+  The rule's first source cites transform/models/intermediate/schema.yml line 1579 by number. Any
+  insertion above it in that file (e.g. another item editing intermediate/schema.yml) will fail
+  sources.node.test.ts until the line number is bumped.
+
+Not verified
+  No full dbt build; only the int_dirty_air_tax_component selection was rebuilt (comment-only SQL, so
+  downstream is unaffected by construction). Not checked on data/dev.duckdb or CI fixtures.

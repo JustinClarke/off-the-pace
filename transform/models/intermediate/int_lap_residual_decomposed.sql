@@ -52,7 +52,16 @@
 --   dirty_air_tax_s -- 0.0 below where int_dirty_air_tax_component has NO
 --     ROW. It has a row for every lap with a measured base (F23b, T17), so a
 --     missing row only happens where pace_delta_s is already NULL and the 0
---     never reaches driver_skill_residual_s. A row whose tax is NULL (the
+--     never reaches driver_skill_residual_s (tested:
+--     assert_dirty_air_fill_only_where_base_unmeasured). It DOES reach every
+--     lap-grain consumer that reads the column (11,588 laps on the v16
+--     build, 6,460 of them ml_eligible, e.g. all of 2018_1 and 2018_2), and
+--     a 0.0 there is not a measured clean-air lap: averaging it as one pulls
+--     means down. The rating marts and mart_metric_benchmark average over
+--     measured laps only (TX-03); app pages reading fct_lap_residuals
+--     directly still see the 0.0 and must tell it apart by
+--     pace_delta_s IS NULL. Same fill for dirty_air_tax_se_s and
+--     cumulative_dirty_air_tax_race_s. A row whose tax is NULL (the
 --     previous lap's air state unmeasured, FD6 / CO-04) is NOT filled: the
 --     tax, total_explained_s and driver_skill_residual_s are NULL there.
 --     (schema.yml's not_null on this column is scoped to match.)
@@ -279,7 +288,9 @@ combined AS (
         -- Dirty-air tax: per-lap seconds attributable to following another
         -- car. Filled with 0 only where int_dirty_air_tax_component has no
         -- row, which is only where the base is unmeasured (pace_delta_s NULL),
-        -- so the fill never reaches driver_skill_residual_s (header note). A
+        -- so the fill never reaches driver_skill_residual_s (header note). It
+        -- does reach lap-grain consumers of this column, where it reads as
+        -- clean air; aggregates must average measured laps only (TX-03). A
         -- row with a NULL tax (unmeasured previous lap, FD6) stays NULL: a
         -- COALESCE here would price it as clean air one step downstream.
         CASE

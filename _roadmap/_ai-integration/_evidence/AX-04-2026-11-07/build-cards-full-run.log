@@ -1,0 +1,38 @@
+{
+  "versions": {
+    "data_version": "dcd8e426ef1336ae",
+    "label_version": null,
+    "model_version": null,
+    "card_schema": "1",
+    "registry": "52ac83f4ac922934bdbf3f6b4dcf074ef9a842465d5965b21842398dcff469d6"
+  },
+  "counts": {
+    "era_rating.season": {
+      "params": 173,
+      "active": 0,
+      "held": 173,
+      "refused": 0
+    },
+    "race_lost.component": {
+      "params": 3312,
+      "active": 0,
+      "held": 0,
+      "refused": 19872
+    },
+    "pit_strategy.optimal_lap": {
+      "params": 173,
+      "active": 0,
+      "held": 8211,
+      "refused": 1
+    }
+  },
+  "cards": 8384,
+  "ungrounded": 19873,
+  "ungroundedReasons": {
+    "race_lost.component: no interval: race-lost.driver returns component sums and n_laps only, and a modelled card ": 19872,
+    "pit_strategy.optimal_lap: no stints for this race in int_pit_strategy_value": 1
+  },
+  "ms": 19494
+}
+wrote /private/tmp/claude-501/-Users-justin-github-off-the-pace/bf41f451-ffc1-4ccc-bc71-e73e8a654460/scratchpad/ax04/cards-full/cards.json and ungrounded.json
+node scripts/build-cards.mjs --data $S/ax04/data --out $S/ax04/cards-full  17.69s user 0.26s system 91% cpu 19.676 total

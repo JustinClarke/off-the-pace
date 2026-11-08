@@ -1,0 +1,63 @@
+AX-06 - bounded query builder (query_data)   (2026-11-08, lane K)
+Status: DONE (not committed). Written incrementally.
+
+Files added (app/src/assistant/queryBuilder/)
+  types.ts        QueryRequest, QueryResult, QueryNoData, QueryError (12 codes)
+  validate.ts     validate(req, catalogue) -> ValidatedRequest | QueryError; never throws
+  compile.ts      compile(ValidatedRequest) -> {sql, params, seasons, aliases}
+  run.ts          runQuery(req, {catalogue, manifest, engine, dataBase?, timeoutMs?}); Engine interface
+  store.ts        session store of results by result_id (AX-14 grounding)
+  realEngine.ts   browser engine: own connection, prepared statements, cancelSent + close/reopen; queryData();
+                  dev-only window.__axQueryBuilder hook (import.meta.env.DEV)
+  __fixtures__/fixtures.ts  catalogue fixture, synthetic manifest, spy engine, seeded PRNG
+  tests: validate.test.ts (16), compile.test.ts (5), fuzz.test.ts (1 test, 500 cases), run.test.ts (9),
+         noForbiddenImports.test.ts (6)
+Uses registerParquet only; no import of runLabQuery, assertReadOnly, registerPartitionedParquet or queryLab
+(static scan test). queryLab.ts unchanged. app/public/data unchanged.
+
+Results so far
+  npx vitest run src/assistant/queryBuilder -> 37 passed
+  npm run typecheck clean; npx eslint src/assistant clean
+  realData.node.test.ts (3, skipped unless AX06_DATA_DIR): runQuery on duckdb-wasm's Node bundle over the
+         real AX-05 qv files vs an independent SQL oracle: median lap time per driver 2024_8 (all rows + row_count
+         equal), 2-season stint count by compound with a planted "'; DROP TABLE x; --" in an IN list, one-race
+         teammate corners registering exactly one file. AX06_DATA_DIR=$S/out -> 3 passed.
+  app/e2e/query-builder.e2e.ts (skipped unless AX06_E2E=1)
+
+Final results
+  npx vitest run src/assistant/queryBuilder -> 37 passed, 3 skipped (40); with AX06_DATA_DIR -> 40 passed
+  fuzz: 500 cases, seed 20261108; about 30% are catalogue-built valid requests carrying planted strings in
+        values; every outcome is error / no_data / ok, none throws, no planted string in the SQL text, no
+        prototype pollution; asserts > 5 ok and > 300 errors.
+  Full app: npx vitest run -> 911 passed, 2 failed, 1 expected fail, 99 skipped (1013); the 2 failures are the
+        pre-existing sources.node CHANCE_LINE_*.
+  npm run typecheck clean; npx eslint src/assistant e2e/query-builder.e2e.ts clean.
+  Playwright (real engine, chromium): PASS, 1 test, 5.1 s. Setup, all in scratch:
+    $S/e2e/pub = symlinks to app/public/{duckdb,models,ort,favicon.svg,audif1.webp} + data -> $S/out
+    $S/e2e/vite.config.ts = app/vite.config.ts with publicDir $S/e2e/pub, port 5199
+    VITE_DATA_BASE="" npx vite --config $S/e2e/vite.config.ts
+    AX06_E2E=1 E2E_BASE_URL=http://localhost:5199 npx playwright test e2e/query-builder.e2e.ts
+    The page imports realEngine.ts through the dev server; queryData on qv_laps returns 5 rows; a 2e11-row
+    cross join is stopped at 3 s by cancelSent + close, then SELECT 42 and a qv_stints count succeed.
+
+FINDING (changed the engine): with conn.query / stmt.query the slow statement BLOCKED the duckdb-wasm worker:
+  cancelSent, close and every later query queued behind it and the test hung to its 120 s timeout. The engine now
+  runs statements with stmt.send() (a pending, polled query) and reads the batches; cancelSent then interrupts it.
+  So the design's "Promise.race plus cancelSent()" works only with send(), not query().
+
+Departures (owner please read)
+  - rows_dropped is exact: COUNT(*) OVER () AS total_groups instead of LIMIT n+1 (spec asked to record this).
+  - Result carries status:'ok', aggregate and group_by besides the AI-09 fields (status discriminates the three
+    outcomes; aggregate.col feeds queryResultToCheckerCard's metric "<view>.<col>").
+  - n is COUNT(<measure>) (non-null rows behind the value) for avg/median/min/max/sum, COUNT(*) for count.
+  - A count request names the view's count_name (laps, stints, stops, races, ...) as col.
+  - LIMIT is a validated integer (1..25) interpolated, not bound; everything else is bound.
+  - Season filters: eq / in / between only, at most 2 seasons on any view (1 on qv_teammate_corners), each in
+    catalogue.seasons; season integers for aliases are taken from the catalogue list. Race-partitioned aliases
+    carry sha256(race_id)[:12], never the request string; file URLs come from manifest paths only.
+  - One filter per column; unknown request keys (including __proto__ from JSON.parse) are bad_value.
+  - Default filter is_major_outlier_lap = false on qv_laps unless the request filters that column (and a note).
+  - Not wired into the app: nothing imports realEngine.ts yet (AX-10 does). The DEV-only window hook is behind
+    import.meta.env.DEV; a production build was not run to prove it is stripped (the module is not in the
+    bundle at all today).
+  - AX-14 grounding store: store.ts keeps the last 200 results per session.

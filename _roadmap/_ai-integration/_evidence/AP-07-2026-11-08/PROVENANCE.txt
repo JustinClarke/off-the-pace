@@ -1,0 +1,17 @@
+AP-07 Season SP interval, Party Mode labels, Races column (2026-11-08)
+Status: IN PROGRESS. Not committed. Scratch warehouse laneA/dev.duckdb read_only only.
+Plan: t975 table df 2..60 (scipy ppf 4dp), fallback 1.96; edits only in constructor-structural-pace/ and party-mode/.
+Done so far: structural queries/transform/page/methodology edited (header 'Races (k)' + footnote since RankedTable has no header tooltip; ui/ not mine).
+party-mode queries/transform/page/methodology edited; next tests + counts
+
+FINAL (2026-11-08): DONE. Not committed. Scratch warehouse only (read_only).
+Files: app/src/features/constructor-structural-pace/{queries,transform,transform.test,page,methodology}.ts(x);
+  app/src/features/party-mode/{queries,transform,transform.test,page,methodology}.ts(x). AP-03 pit-strategy work and null-race-pace fixes kept.
+Acceptance (scratch warehouse, SQL text of queries.ts): Mercedes 2020 race k=16 mean -1.273324114303026 SE 0.10038245862558223
+  CI [-1.4873, -1.0594] (t15=2.1314), obs 1440. Test reproduces to 12 dp.
+Race-grain labels: party 364, race 382, no clear gap 856, null 42 (= ruling).
+Season-grain labels (81 cells, t(k-1) 4dp table): party 27, race 20, no clear gap 34 (= ruling).
+t975 table df 2..60 generated from scipy.stats.t.ppf(0.975, df) rounded to 4 dp; 1.96 beyond.
+Tests: structural+party 33 passed; full vitest 874 passed, 2 failed (pre-existing sources.node), 1 expected fail, 96 skipped.
+tsc clean; eslint clean on both folders.
+Deviation: RankedTable headers are strings (shared ui/ not mine), so Races header is "Races (k)" plus a footnote/title under the table instead of a header tooltip.

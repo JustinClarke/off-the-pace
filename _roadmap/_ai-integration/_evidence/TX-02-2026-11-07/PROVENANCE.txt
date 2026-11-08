@@ -1,0 +1,60 @@
+TX-02 - Race coverage table and reason columns
+Date: 2026-11-07. Lane A, run after TX-01 on the same scratch copy. Nothing committed.
+
+SCRATCH COPY: <scratchpad>/laneA/dev.duckdb (copy of <scratchpad>/base/dev.duckdb, with TX-01 built),
+1 thread (threads: 1 + settings threads: 1). data/dev.duckdb, data/ci.duckdb, committed baselines untouched.
+
+COMMANDS (from transform/, own --profiles-dir/--target-path/--log-path in laneA)
+  dbt build --select mart_race_driver_summary mart_driver_season_summary     # unchanged tree (post TX-01): PASS=39
+  snapshot_model_hashes.py ... --baseline laneA/before_tx02.json              # 97 models; copied here as before.json
+  ...edits...
+  dbt build --select mart_race_coverage mart_race_driver_summary mart_driver_season_summary  -> PASS=59 ERROR=0 (build.log)
+  sqlfluff lint (duckdb) 3 models + 2 tests -> clean
+  snapshot_model_hashes.py --check ... --baseline laneA/before_tx02.json
+      -> NEW mart_race_coverage; non-fct changed: mart_driver_season_summary, mart_race_driver_summary;
+         OK: all 12 fct_* byte-stable.
+
+FILES
+  new   transform/models/marts/mart_race_coverage.sql, transform/models/marts/_coverage.yml
+  new   transform/tests/assert_every_lap_race_rated_or_explained.sql, transform/tests/assert_reason_iff_missing.sql
+  edit  transform/models/marts/mart_race_driver_summary.sql (ci_unavailable_reason, residual_unavailable_reason; joins mart_race_coverage)
+  edit  transform/models/marts/mart_driver_season_summary.sql (n_races_unrated)
+  edit  transform/models/marts/schema.yml (3 new column entries, targeted edits)
+  edit  transform/models/staging/schema.yml (stale stg_lap_tyre_qa quarantined-race text fixed)
+  edit  transform/models/marts/README.md, transform/tests/README.md (registry rows)
+
+RESULTS (full table: mart_race_coverage.csv)
+  173 rows, 173 unique race_id. race_to_track 173 / fct_lap_residuals 172 / rated 171 (for TX-10's README).
+  coverage_reason: NO_RACING_LAPS 2021_12; ALL_WET_NO_DRY_PAIRS 2021_16; NO_TELEMETRY 2018_1, 2018_2;
+    TYRE_QA_QUARANTINED 2018_3, 2025_6; TYRE_LIFE_PARTIAL 2022_7, 2022_11; OK 165. Exactly the spec's expectation.
+  tyre_qa_status: ok 162, partial 9 (any quarantined_driver lap), quarantined_race 2.
+  Race mart reasons: PAIRED_N_BELOW_MIN 138 (= CI NULL rows); residual_unavailable_reason 52 (= n_clean_laps NULL):
+    TYRE_QA_QUARANTINED 38 (2018_3 x20, 2025_6 x18), NO_ML_ELIGIBLE_LAPS 14 (single drivers in 2018_13/15/18/4/5,
+    2020_1/3, 2022_7, 2023_8), NO_TELEMETRY 0 (2018_1/2 drivers do have ml_eligible laps; their residuals are NULL
+    per lap but n_clean_laps is not, so by the spec's "reason iff n_clean_laps NULL" rule they get no reason here;
+    the race-level NO_TELEMETRY code in mart_race_coverage covers them).
+  2025_6 HAD: rating -1.206, n_clean_laps NULL, CI [-1.451, -0.957] (21 paired laps, TX-01), reason TYRE_QA_QUARANTINED.
+  2018_1/2/3 + 2025_6: 72 rows, 70 with a TX-01 CI (spec: 70 of 72).
+  Season mart n_races_unrated: total 174 driver-races over 108 driver-seasons (2018 27, 2019 10, 2020 22, 2021 37,
+    2022 26, 2023 14, 2024 15, 2025 23). It counts every lap-race with no race-mart row, not only 2021_16
+    (drivers alone in a car, no dry pairs with the teammate, etc.); every 2021 driver includes 2021_16.
+  Existing columns of both rating marts: EXCEPT both ways vs the base copy (old column list, ci_low/ci_high excluded
+    because TX-01 moved them) = 0 / 0 rows for each mart.
+
+DERIVATIONS (no hand list of race ids in any model)
+  has_telemetry = air_measured_share (int_lap_air_state.air_state_dominant not NULL) > var isolation_thin_min_air_measured_share (0.5).
+  TYRE_LIFE_PARTIAL = bronze_tyre_life_share (stg_lap_tyre_qa.bronze_tyre_life not NULL) < 0.90, the bronze_checks
+    MIN_LAP_KEY_SHARE threshold. Picks exactly 2025_6 (0.648, already TYRE_QA_QUARANTINED), 2022_11 (0.729), 2022_7 (0.863);
+    next lowest 2025_13 at 0.915. Added column bronze_tyre_life_share and air_measured_share beyond the spec's list.
+  ALL_WET_NO_DRY_PAIRS = no rating AND rain_lap_share > 0.5 (2021_16: 0.982).
+  2021_12 dropping step: stg_laps.is_valid_lap. Of 60 rows (3 laps x 20) only lap 1 has a lap time and is_valid_lap
+    excludes lap_number = 1 (laps 2-3 have no time; lap 3 red flag), so int_lap_fuel_state (WHERE is_valid_lap) is empty.
+  n_rated_drivers is counted from int_driver_race_skill_loro (driver_skill_loro_s not NULL), the race mart's own filter,
+    because the race mart reads mart_race_coverage (a cycle otherwise). The coverage test checks against the mart itself.
+  The coverage test holds the KNOWN_TELEMETRY_GAPS ids as a literal list intersected with race_to_track, so it never
+    requires a race to exist (CI fixture safe).
+
+NOT VERIFIED
+  - CI fixture build not run (ci.duckdb not to be touched).
+  - Reason-code names are a choice; change them before AX cards depend on them (spec: no owner decision needed).
+  - README.md not edited (TX-10 owns the counts): hand back 173 / 172 / 171.

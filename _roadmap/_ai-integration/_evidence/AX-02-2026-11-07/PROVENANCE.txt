@@ -1,0 +1,34 @@
+AX-02 - assistant_entities export and list_values   (2026-11-07, lane E)
+
+HD7 coverage check (data/bronze/reference/jolpica/driver_standings, seasons 2011-2025, 77 distinct driver_code):
+  all 43 dim_drivers codes are present in Jolpica -> 43 of 43 names from Jolpica, 0 from FastF1 results.
+  FastF1 results bronze also covers 43 of 43 (kept as the gap filler; the export fails naming codes if neither has one).
+  The spec also mentions a Jolpica "results" folder: it does not exist; only driver_standings.
+  A few codes (HAR, MSC, VER) have two name spellings across seasons in Jolpica; the latest season wins.
+  Display = "Given Family (CODE)", e.g. "Sergio Pérez (PER)": OWNER TO CONFIRM.
+
+Files
+  scripts/assistant_entities.py        (new; build_rows, export_assistant_entities); one hook in export_app_data.py
+  app/src/assistant/entities/aliases.json   (new; 21 drivers, 10 constructor lineages, 21 circuit keys, compounds, stint causes)
+  app/src/assistant/listValues.ts      (new; pure matcher + loader via registerParquet + session cache + providers)
+  app/src/assistant/listValues.test.ts (new; 47 tests)
+  app/src/assistant/entities/__fixtures__/assistant_entities.json, coverage_ids.json  (real scratch-export output)
+  app/src/data/hooks/useDrivers.ts     rewritten over list_values (no importer; no missing column any more)
+  scripts/tests/test_assistant_entities.py (new; 3 tests: sources, fail on unnamed driver, unknown alias key)
+
+Table (dimensions/assistant_entities.parquet): 296 rows = driver 43, constructor 10 lineages, race 173, circuit 44,
+  season 8, compound 8, caution_status 4, stint_end_cause 6. Manifest entry rows 296, hash 37ede10cf86abf22e8cdb9123a55be55.
+Coverage: every driver_id (43), constructor_id (19, each resolves to its lineage row) and race_id (173) found in any
+  parquet of the scratch export resolves (checked in Python and in the vitest coverage tests).
+Results: pytest scripts/tests 23 passed; vitest listValues 47 passed (30 alias fixtures incl. Checo->PER,
+  Alfa Romeo/Sauber/Kick Sauber->sauber, Interlagos 2021->2021_19); full vitest 751 passed, same 2 pre-existing
+  failures + 1 suite error; pnpm typecheck clean. Scratch --check passes with the table in.
+
+Decisions / deviations
+  - seasons in list_values output is a compact string ("2018-2024"), not an array, to fit 400 tokens at 20 rows.
+  - The token cap is enforced on the whole serialised result (rows dropped from the tail; note says "Showing n of m").
+  - Constructor domain is one row per lineage; constructor_ids and renames are aliases (no per-id rows).
+  - columns and card_kind return no_data with a note until AX-05 / AX-04 call registerListProvider.
+  - page domain: code = route path (what navigate takes), display = docs page id.
+  - Fixtures are checked in because app/public/data holds no dimensions locally.
+Not done: the real export (OWNER, with the TX-11 steps); owner confirmation of the display convention.

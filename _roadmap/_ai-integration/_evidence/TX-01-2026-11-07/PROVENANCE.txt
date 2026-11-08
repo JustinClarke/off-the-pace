@@ -1,0 +1,71 @@
+TX-01 - Race-rating CI rebuilt from the paired gaps; paired_lap_count and rating_trust_label
+Date: 2026-11-07. Agent lane A (TX-01 -> TX-02 -> TX-03 -> TX-06). Nothing committed.
+
+SCRATCH COPY
+  Folder: <scratchpad>/laneA/ ; dev.duckdb copied from <scratchpad>/base/dev.duckdb (shared base,
+  full 1-thread build of the tree, PASS=1491). profiles.yml threads: 1, settings {threads: 1,
+  memory_limit: 4GB}; --target-path and --log-path inside laneA. data/dev.duckdb and
+  data/ci.duckdb not touched. Committed model_hashes*.baseline.json not touched.
+
+COMMANDS (from transform/, D = --profiles-dir laneA --target-path laneA/target --log-path laneA/logs)
+  dbt build $D --select int_driver_race_skill_loro+                      # unchanged; PASS=126
+  snapshot_model_hashes.py --db laneA/dev.duckdb --manifest laneA/target/manifest.json --baseline laneA/before_tx01.json  (97 models; copy here as before.json)
+  ...edits...
+  dbt build $D --select int_driver_race_paired_laps+ int_driver_race_skill_loro+ assert_median_ci_order_rank_known_values
+      -> PASS=142 WARN=0 ERROR=0 SKIP=0 (build.log)
+  sqlfluff lint (duckdb) the three model files + two new tests -> clean
+  snapshot_model_hashes.py --check ... --baseline laneA/before_tx01.json
+      -> NEW int_driver_race_paired_laps; non-fct changed: mart_race_driver_summary only;
+         OK: all 12 fct_* byte-stable.
+
+FILES
+  new   transform/models/intermediate/int_driver_race_paired_laps.sql  (125,780 rows)
+  new   transform/models/intermediate/_paired_laps.yml
+  new   transform/macros/median_ci_order_rank.sql
+  new   transform/tests/assert_mart_race_ci_brackets_rating.sql
+  new   transform/tests/assert_median_ci_order_rank_known_values.sql
+  edit  transform/models/intermediate/int_driver_race_skill_loro.sql  (paired_laps CTE reads the new model)
+  edit  transform/models/intermediate/unit_tests_rating_chain.yml  (loro unit test given the paired rows;
+        new unit test paired_laps_pair_clean_laps_on_lap_number pins the clean filter on the same fixture)
+  edit  transform/models/marts/mart_race_driver_summary.sql  (CI, paired_lap_count, rating_trust_label, header)
+  edit  transform/models/marts/schema.yml  (race mart description, ci_low/ci_high/n_clean_laps text, 2 new columns + tests)
+  edit  transform/macros/README.md, transform/tests/README.md  (registry rows)
+
+BEFORE / AFTER (mart_race_driver_summary; before = base copy, after = laneA)
+  rows                           3,138 / 3,138
+  CI NULL                          103 / 138   (after: exactly paired_lap_count < 6)
+  median CI width (s)            0.4336 / 0.4900
+  rows with both CIs: 2,916; new CI wider on 1,753
+  rating_trust_label            ok 2,930 / thin 70 / suppressed 138
+  paired_lap_count < 5: 128; < 10: 208; min 1
+  CI brackets rating_s           0 violations
+  2020_14 HAM  rating -6.617, n=1, suppressed, CI NULL   (old CI -6.893 / -6.341)
+  2020_14 BOT  rating +6.617, n=1, suppressed, CI NULL   (old  5.625 /  7.609)
+  2018_13 VET  rating -5.397, n=1, suppressed, CI NULL   (old -5.645 / -5.149)
+  2024_1 VER   rating -0.622, n=46, ok, CI [-0.755, -0.390]  (old [-0.892, -0.352])  = spec prototype
+  All other mart columns: EXCEPT both ways on old column list minus ci_low/ci_high = 0 / 0 rows.
+  int_driver_race_skill_loro: EXCEPT both ways vs base = 0 / 0 rows, and hash OK in the oracle.
+
+TESTS ADDED (all pass on laneA)
+  assert_mart_race_ci_brackets_rating (bracket, NULL iff n<6, two-driver mirror 1e-9, n and median
+    equal the intermediate's, label thresholds; vacuity guard on bracket rows only)
+  assert_median_ci_order_rank_known_values (j(1)=NULL, j(5)=NULL, j(6)=1, j(10)=2, j(20)=6)
+  unit test paired_laps_pair_clean_laps_on_lap_number
+  schema: paired_lap_count not_null + accepted_range min 1; rating_trust_label not_null +
+    accepted_values [ok, thin, suppressed]; new model not_null on all columns + unique grain.
+
+NOT VERIFIED
+  - The CI fixture build (ci.duckdb; 2020 Monza, 2023 Bahrain, 2024 Sao Paulo) was not run (not to
+    be touched). The new tests carry no race id, and the bracket guard needs at least one row with a CI.
+  - docs/reference/models/ not regenerated: gen_dbt_reference.py reads the repo's own
+    transform/target/manifest.json and rewrites every page; there is no marts folder there. Owner step.
+  - Full-project dbt build not run (selection only).
+
+DESIGN NOTE
+  The clean filter now exists in two models (int_driver_race_skill_loro still needs unpaired laps and
+  pace_delta_s for its median/field signals). assert_mart_race_ci_brackets_rating fails if the two drift
+  (n or median differ on any rated driver-race).
+
+OWNER DECISIONS PENDING (spec defaults implemented, nothing published moves: mart not exported)
+  - thresholds 6 / 10 (audit suggested 5); rating_s kept (not NULLed) when suppressed.
+  - re-taking model_hashes*.baseline.json after TX-01..07.

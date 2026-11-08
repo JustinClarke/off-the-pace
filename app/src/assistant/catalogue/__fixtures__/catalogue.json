@@ -1,0 +1,1289 @@
+{
+  "schema_version": 1,
+  "seasons": [
+    2018,
+    2019,
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "ops": {
+    "eq": {
+      "arity": "scalar"
+    },
+    "ne": {
+      "arity": "scalar"
+    },
+    "lt": {
+      "arity": "scalar"
+    },
+    "lte": {
+      "arity": "scalar"
+    },
+    "gt": {
+      "arity": "scalar"
+    },
+    "gte": {
+      "arity": "scalar"
+    },
+    "in": {
+      "arity": "list"
+    },
+    "between": {
+      "arity": "pair"
+    }
+  },
+  "aggregates": {
+    "count": "COUNT(*) of the rows matched (use the view's count_name as col).",
+    "avg": "Arithmetic mean of non-null values.",
+    "median": "Median of non-null values.",
+    "min": "Minimum.",
+    "max": "Maximum.",
+    "sum": "Sum; only on count-like measures."
+  },
+  "orders": [
+    "value_asc",
+    "value_desc",
+    "group_asc"
+  ],
+  "limits": {
+    "max_filters": 6,
+    "max_in_values": 20,
+    "max_group_by": 2,
+    "max_limit": 25,
+    "max_string_length": 64,
+    "timeout_ms": 3000,
+    "thin_n": 5,
+    "decimals": 3
+  },
+  "views": [
+    {
+      "name": "qv_laps",
+      "grain": "driver x lap",
+      "note": "Green racing laps only: fct_lap_residuals is pre-filtered (no safety-car, VSC or red-flag laps). Observed lap times, not fuel- or tyre-corrected. Major outlier laps are excluded unless the request filters on is_major_outlier_lap.",
+      "count_name": "laps",
+      "required_filters": [
+        "season"
+      ],
+      "group_by_requires": {
+        "lap_number": [
+          "race_id"
+        ]
+      },
+      "default_filters": [
+        {
+          "col": "is_major_outlier_lap",
+          "op": "eq",
+          "val": false
+        }
+      ],
+      "max_seasons": 2,
+      "columns": [
+        {
+          "name": "season",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Season (race_year)."
+        },
+        {
+          "name": "race_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Race id, <season>_<round> (e.g. 2024_8). Use list_values(domain: race)."
+        },
+        {
+          "name": "driver_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Three-letter driver code (e.g. LEC)."
+        },
+        {
+          "name": "constructor_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Constructor id for that season."
+        },
+        {
+          "name": "compound",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Tyre compound name (SOFT, MEDIUM, HARD, INTERMEDIATE, WET, and pre-2019 names)."
+        },
+        {
+          "name": "stint_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Stint id."
+        },
+        {
+          "name": "lap_number",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Lap number in the race. Grouping by it requires a race_id filter."
+        },
+        {
+          "name": "lap_in_stint",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Lap number within the stint (1 = first lap of the stint)."
+        },
+        {
+          "name": "age_in_stint",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Tyre age in laps at that lap."
+        },
+        {
+          "name": "is_major_outlier_lap",
+          "role": "dimension",
+          "type": "boolean",
+          "ops": [
+            "eq"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Major outlier lap flag (int_event_corrections). Excluded by default."
+        },
+        {
+          "name": "lap_time_s",
+          "role": "measure",
+          "type": "number",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Observed lap time in seconds."
+        }
+      ],
+      "partition_key": "season",
+      "sub_partition_key": null
+    },
+    {
+      "name": "qv_stints",
+      "grain": "stint",
+      "note": "One row per stint (fct_stint_features). Censored stints (ended by the flag or a retirement) are not tyre-life observations: filter on is_censored_stint. mean_clean_pace_s is filled only on sc_pit / vsc_pit runs.",
+      "count_name": "stints",
+      "required_filters": [
+        "season"
+      ],
+      "group_by_requires": {},
+      "default_filters": [],
+      "max_seasons": null,
+      "columns": [
+        {
+          "name": "season",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Season (race_year)."
+        },
+        {
+          "name": "race_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Race id, <season>_<round> (e.g. 2024_8). Use list_values(domain: race)."
+        },
+        {
+          "name": "driver_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Three-letter driver code (e.g. LEC)."
+        },
+        {
+          "name": "constructor_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Constructor id for that season."
+        },
+        {
+          "name": "stint_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Stint id."
+        },
+        {
+          "name": "compound",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Tyre compound name."
+        },
+        {
+          "name": "stint_end_cause",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Why the stint ended: green_pit, sc_pit, vsc_pit, red, race_end, retirement."
+        },
+        {
+          "name": "is_censored_stint",
+          "role": "dimension",
+          "type": "boolean",
+          "ops": [
+            "eq"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "TRUE when the stint ended at the flag or in a retirement (no tyre-change decision)."
+        },
+        {
+          "name": "reached_flag",
+          "role": "dimension",
+          "type": "boolean",
+          "ops": [
+            "eq"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "TRUE race_end; FALSE green / SC / VSC tyre change; NULL on a red-flag change, a retirement or an unassigned stint."
+        },
+        {
+          "name": "short_stint_flag",
+          "role": "dimension",
+          "type": "boolean",
+          "ops": [
+            "eq"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "TRUE when the stint is under 3 laps."
+        },
+        {
+          "name": "stint_length_laps",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max",
+            "sum"
+          ],
+          "group_by": false,
+          "description": "Laps in the stint."
+        },
+        {
+          "name": "starting_tyre_age_laps",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Tyre age in laps at the start of the stint."
+        },
+        {
+          "name": "mean_clean_pace_s",
+          "role": "measure",
+          "type": "number",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Mean fuel-corrected lap time over the run's clean laps; only on sc_pit / vsc_pit runs, else NULL."
+        }
+      ],
+      "partition_key": null,
+      "sub_partition_key": null
+    },
+    {
+      "name": "qv_pit_stops",
+      "grain": "pit stop",
+      "note": "One row per stint that ended in a pit stop (stint_end_cause green_pit / sc_pit / vsc_pit, or a recorded actual_pit_lap). compound_after is the next stint's compound in stint order; NULL after the last stint. actual_pit_lap is NULL where int_pit_strategy_value has no row for the stint. No pit-lane loss: the published value is a venue prior, not this stop's time.",
+      "count_name": "stops",
+      "required_filters": [
+        "season"
+      ],
+      "group_by_requires": {},
+      "default_filters": [],
+      "max_seasons": null,
+      "columns": [
+        {
+          "name": "season",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Season (race_year)."
+        },
+        {
+          "name": "race_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Race id, <season>_<round> (e.g. 2024_8). Use list_values(domain: race)."
+        },
+        {
+          "name": "driver_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Three-letter driver code (e.g. LEC)."
+        },
+        {
+          "name": "constructor_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Constructor id for that season."
+        },
+        {
+          "name": "stint_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "The stint the stop ended."
+        },
+        {
+          "name": "stint_end_cause",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "green_pit, sc_pit, vsc_pit (or red / retirement with a recorded pit lap)."
+        },
+        {
+          "name": "compound_before",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Compound of the stint the stop ended."
+        },
+        {
+          "name": "compound_after",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Compound of the next stint; NULL after the last stint."
+        },
+        {
+          "name": "actual_pit_lap",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "min",
+            "max",
+            "median",
+            "avg"
+          ],
+          "group_by": false,
+          "description": "Race lap of the stop; NULL where not recorded."
+        }
+      ],
+      "partition_key": null,
+      "sub_partition_key": null
+    },
+    {
+      "name": "qv_driver_race",
+      "grain": "driver x race",
+      "note": "Rows are the driver-races in mart_race_driver_summary, which carries only drivers with a paired teammate lap (3,138 of about 3,275 driver-races). actual_finish_position and actual_dnf_cause come from fct_ghost_race_finish self-scenario rows and are NULL where that table has none (it keeps recombination_confidence >= 0.3); NULL is missing, never 0. timed_laps counts valid timed laps, not classified laps completed.",
+      "count_name": "races",
+      "required_filters": [],
+      "group_by_requires": {},
+      "default_filters": [],
+      "max_seasons": null,
+      "columns": [
+        {
+          "name": "season",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Season (race_year)."
+        },
+        {
+          "name": "race_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Race id, <season>_<round> (e.g. 2024_8). Use list_values(domain: race)."
+        },
+        {
+          "name": "circuit_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Circuit id."
+        },
+        {
+          "name": "driver_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Three-letter driver code (e.g. LEC)."
+        },
+        {
+          "name": "constructor_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Constructor id for that season."
+        },
+        {
+          "name": "has_dnf",
+          "role": "dimension",
+          "type": "boolean",
+          "ops": [
+            "eq"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Did not finish."
+        },
+        {
+          "name": "actual_dnf_cause",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Retirement cause; NULL when finished or not available."
+        },
+        {
+          "name": "positions_gained",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max",
+            "sum"
+          ],
+          "group_by": false,
+          "description": "Grid position minus finish position."
+        },
+        {
+          "name": "timed_laps",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max",
+            "sum"
+          ],
+          "group_by": false,
+          "description": "Valid timed laps in the race (not classified laps completed)."
+        },
+        {
+          "name": "avg_lap_time_s",
+          "role": "measure",
+          "type": "number",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Mean observed lap time over valid laps (s)."
+        },
+        {
+          "name": "n_clean_laps",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max",
+            "sum"
+          ],
+          "group_by": false,
+          "description": "Clean (ml_eligible) laps in the race."
+        },
+        {
+          "name": "actual_finish_position",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Classified finish position; NULL where not available."
+        }
+      ],
+      "partition_key": null,
+      "sub_partition_key": null
+    },
+    {
+      "name": "qv_race_laps",
+      "grain": "race x lap",
+      "note": "One row per race lap with its caution status (red flag > safety car > VSC > green).",
+      "count_name": "laps",
+      "required_filters": [
+        "season"
+      ],
+      "group_by_requires": {
+        "lap_number": [
+          "race_id"
+        ]
+      },
+      "default_filters": [],
+      "max_seasons": null,
+      "columns": [
+        {
+          "name": "season",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Season (race_year)."
+        },
+        {
+          "name": "race_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Race id, <season>_<round> (e.g. 2024_8). Use list_values(domain: race)."
+        },
+        {
+          "name": "circuit_slug",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Event slug (e.g. british_grand_prix)."
+        },
+        {
+          "name": "lap_number",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Lap number."
+        },
+        {
+          "name": "caution_status",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "green, vsc, safety_car, red_flag."
+        },
+        {
+          "name": "race_laps",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "max",
+            "min"
+          ],
+          "group_by": false,
+          "description": "Laps in the race (max lap number)."
+        }
+      ],
+      "partition_key": null,
+      "sub_partition_key": null
+    },
+    {
+      "name": "qv_circuit_history",
+      "grain": "circuit x season",
+      "note": "Counts only, from int_sc_hazard_history. prior_* count earlier seasons at the event; 2018 has none.",
+      "count_name": "rows",
+      "required_filters": [],
+      "group_by_requires": {},
+      "default_filters": [],
+      "max_seasons": null,
+      "columns": [
+        {
+          "name": "circuit_slug",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Event slug."
+        },
+        {
+          "name": "season",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Season (race_year)."
+        },
+        {
+          "name": "season_races_n",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "sum",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Races at the event that season."
+        },
+        {
+          "name": "prior_races_n",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "sum",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Races at the event in earlier seasons."
+        },
+        {
+          "name": "prior_racing_laps",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "sum",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Racing laps at the event in earlier seasons."
+        },
+        {
+          "name": "prior_sc_onsets",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "sum",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Safety-car deployments at the event in earlier seasons."
+        },
+        {
+          "name": "prior_vsc_onsets",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "sum",
+            "max"
+          ],
+          "group_by": false,
+          "description": "VSC deployments at the event in earlier seasons."
+        }
+      ],
+      "partition_key": null,
+      "sub_partition_key": null
+    },
+    {
+      "name": "qv_teammate_corners",
+      "grain": "teammate pair x corner x lap",
+      "note": "Teammate pairs only (same constructor in that race, driver_a < driver_b). Deltas are driver_a minus driver_b and NULL where either side is missing, never 0 (CO-22). One race per request: race_id must be a single eq filter.",
+      "count_name": "corners",
+      "required_filters": [
+        "season",
+        "race_id"
+      ],
+      "group_by_requires": {},
+      "default_filters": [],
+      "max_seasons": 1,
+      "columns": [
+        {
+          "name": "season",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Season (race_year)."
+        },
+        {
+          "name": "race_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Race id; a single eq filter is required."
+        },
+        {
+          "name": "circuit_slug",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Event slug."
+        },
+        {
+          "name": "constructor_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Constructor id for that season."
+        },
+        {
+          "name": "driver_a",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "First driver of the pair (alphabetically smaller code)."
+        },
+        {
+          "name": "driver_b",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Second driver of the pair."
+        },
+        {
+          "name": "corner_name",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Named corner (e.g. Turn_1)."
+        },
+        {
+          "name": "lap_number",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Lap number."
+        },
+        {
+          "name": "braking_point_delta_m",
+          "role": "measure",
+          "type": "number",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median"
+          ],
+          "group_by": false,
+          "description": "driver_a minus driver_b braking point (m); positive = driver_a brakes later."
+        },
+        {
+          "name": "v_min_delta_kph",
+          "role": "measure",
+          "type": "number",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median"
+          ],
+          "group_by": false,
+          "description": "driver_a minus driver_b minimum corner speed (km/h); positive = driver_a carries more speed."
+        },
+        {
+          "name": "throttle_point_delta_m",
+          "role": "measure",
+          "type": "number",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median"
+          ],
+          "group_by": false,
+          "description": "driver_a minus driver_b throttle-application point (m); positive = driver_a gets on power later."
+        }
+      ],
+      "partition_key": "season",
+      "sub_partition_key": "race_id"
+    },
+    {
+      "name": "qv_circuits",
+      "grain": "circuit (event slug)",
+      "note": "Reference facts only (dim_circuits); modelled indices and fuel constants are left out.",
+      "count_name": "circuits",
+      "required_filters": [],
+      "group_by_requires": {},
+      "default_filters": [],
+      "max_seasons": null,
+      "columns": [
+        {
+          "name": "circuit_key",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Event slug (matches circuit_slug elsewhere)."
+        },
+        {
+          "name": "circuit_id",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Physical venue id."
+        },
+        {
+          "name": "circuit_name",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Venue name."
+        },
+        {
+          "name": "lap_length_km",
+          "role": "measure",
+          "type": "number",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Lap length (km)."
+        },
+        {
+          "name": "corner_count",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "avg",
+            "median",
+            "min",
+            "max"
+          ],
+          "group_by": false,
+          "description": "Number of corners."
+        },
+        {
+          "name": "era_start_year",
+          "role": "measure",
+          "type": "integer",
+          "ops": [],
+          "aggregates": [
+            "min",
+            "max"
+          ],
+          "group_by": false,
+          "description": "First year of the current layout."
+        }
+      ],
+      "partition_key": null,
+      "sub_partition_key": null
+    },
+    {
+      "name": "qv_compounds",
+      "grain": "circuit x season x compound",
+      "note": "Keys of dim_compounds_season only: which compounds have a profile for each event and season. The fitted compound parameters are modelled and left out. Not a list of compounds actually run.",
+      "count_name": "compounds",
+      "required_filters": [],
+      "group_by_requires": {},
+      "default_filters": [],
+      "max_seasons": null,
+      "columns": [
+        {
+          "name": "season",
+          "role": "dimension",
+          "type": "integer",
+          "ops": [
+            "eq",
+            "ne",
+            "lt",
+            "lte",
+            "gt",
+            "gte",
+            "in",
+            "between"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Season (race_year)."
+        },
+        {
+          "name": "circuit_key",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Event slug."
+        },
+        {
+          "name": "compound_code",
+          "role": "dimension",
+          "type": "string",
+          "ops": [
+            "eq",
+            "ne",
+            "in"
+          ],
+          "aggregates": [],
+          "group_by": true,
+          "description": "Compound name."
+        }
+      ],
+      "partition_key": null,
+      "sub_partition_key": null
+    }
+  ],
+  "catalogue_version": "8d2412984b64ef3f8d17ebda2965b192d0abfa82b77b3b6e3cc4003487811f75"
+}

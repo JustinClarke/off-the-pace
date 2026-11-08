@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import { RankedTable } from '../../ui/charts'
 import type { RankedTableColumn } from '../../ui/charts'
@@ -60,6 +61,7 @@ const columns: RankedTableColumn<CornerPhaseResult>[] = [
 ]
 
 export default function CornerPhaseSkillPage() {
+  const prov = useProvenance()
   const { season } = useFilters()
 
   const { data, isLoading, error } = useQuery<CornerPhaseResult[]>(
@@ -89,7 +91,7 @@ export default function CornerPhaseSkillPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename={`corner-phase-skill-${season}.csv`}
       isLoading={isLoading}

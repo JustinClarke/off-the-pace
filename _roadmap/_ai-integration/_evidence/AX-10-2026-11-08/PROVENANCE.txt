@@ -1,0 +1,76 @@
+AX-10 Assistant core v2 - provenance (2026-11-08). Written incrementally. Not committed (owner commits).
+
+PROGRESS
+  [0] Read wi/AX-10.md, BUILD-ORDER, PROVENANCE of AX-01/02/03/04/06/07/07b/08/09/11/15a/21, worker handler.ts + generated tools.ts.
+      Facts that shape the design:
+       - Worker v2: client roles user|assistant|tool only (no client "system"); tool message <= 5,000 chars (MAX_TOOL_MESSAGE_CHARS);
+         5 model rounds per ticket (MAX_ROUNDS) -> a repair turn is a model round and shares the 5.
+       - tools.template.json scope items: season, race_id, driver_id, constructor_id. No teammate_id.
+       - make_chart schema is {result_id, kind}; AX-11's makeChart() takes a full spec -> the dispatcher adapts.
+       - race.teammate_gap card carries no teammate_id field (only in display "vs PER" and in source.columns).
+       - No runtime card store exists yet (cards are parquet via export --finalize; build-cards emits cards.json).
+  [1] NEW app/src/assistant/core/: types.ts, validateArgs.ts (schema subset interpreter, top-level unknown keys refused),
+      budget.ts (slots 1200/1400/600/600/2000/4800/2500 = 13,100; chars/4; fitToolResult sets rows_dropped; fitHistory last 2 turns),
+      cardStore.ts (CardStore over Card[]; parquet row decoder; teammateOf), preload.ts, dispatcher.ts, loop.ts, modelClient.ts.
+      NEW app/src/assistant/grounding.ts (findUngroundedNumbers).
+  [2] Grounding: real check landed (assistant/grounding.ts). forbidden-chains.test.ts stand-in SWAPPED for findUngroundedNumbers
+      (3 small supporting edits so real cards ground their own numbers: cards/project.ts toCheckerCard now also carries
+      interval.level, display, unavailable_reason, held_reason; checker.ts FactCard.interval gets optional level; the
+      hand-built thinNOR fixture got level 0.95). Chain 9 now fails GROUNDING through the real function.
+  [3] Tests so far: core/budget.test, validateArgs.test, dispatcher.test (33), grounding.test (12). Next: loop, cardStore/preload, modelClient, CLI.
+  [4] Core tests: loop.test (20), cardStore/preload (12), modelClient (7), dispatcher (33), budget (12), validateArgs (5) = 89 in core/ + grounding 12.
+      Decisions taken while testing: (a) onPage returns only cards tied to the route params when any exist (page-wide pooled-rate
+      cards would otherwise fire POOLED_SC_RATE_ONLY on a race-control answer); (b) the checker is given EVERY card the model received
+      (not only cited ones) - conservative; AX-13 measures the repair rate; (c) the repair turn shares the ticket's 5 rounds.
+  Next: CLI (scripts/assistant-cli.mjs + core/cli.ts), sample scenarios, 10 sample questions, explain 5 pages, budget for 5 demo questions.
+  [5] CLI: app/scripts/assistant-cli.mjs (launcher; Vite SSR loader as build-cards.mjs, no new dependency) + core/cli.ts, nodeDeps.ts,
+      nodeTools.ts (worker gen-tools `generate` in memory over a temp folder), sampleQuestions.ts (10 sample + 5 demo scripts), modelClient.ts
+      (ScriptedModel; Worker v2 client with ticket carry; OpenAI-compatible/Ollama client). Spec names scripts/assistant-cli.ts; delivered as
+      .mjs because the sources use extensionless imports and JSON imports that Node type stripping cannot load.
+      Scratch inputs (read-only): data AX06_DATA_DIR=laneK/out (qv files, catalogue, assistant_entities); cards laneR/cards-07b/cards.json
+      (64,123 cards, newest build with AX-07b kinds and AX-15a stubs); laneL/out not needed.
+  [6] Evidence written here: sample-run.json (10 sample questions), demo-run.json (5 demo teammate_race questions), explain-5-pages.txt
+      (step 8: explain_page for 5 pages through the CLI), real-mode-local-endpoint.txt (CLI --endpoint against a local loopback stand-in
+      for the Worker contract, scratch script; not a test). Spec asked for _evidence/ax-10/...; written here as instructed.
+
+FILES
+  NEW app/src/assistant/core/: types, validateArgs, budget, cardStore, preload, dispatcher, loop, modelClient, cli, nodeDeps, nodeTools,
+       sampleQuestions, testKit + tests (budget, validateArgs, dispatcher, loop, cardStore, modelClient, cli, cli.node)
+  NEW app/src/assistant/grounding.ts + grounding.test.ts
+  NEW app/scripts/assistant-cli.mjs ; app/package.json script "assistant-cli"
+  EDIT cards/project.ts (toCheckerCard also carries interval.level, display, unavailable_reason, held_reason), honesty/checker.ts (type only:
+       FactCard.interval.level?), prompt/forbidden-chains.test.ts (stand-in -> findUngroundedNumbers; thinNOR fixture got level 0.95)
+  Not touched: worker/, cards/*Stubs*, card.schema.json, pit-strategy cards, parity test, policy.json, build-log.json, app/public/data, any .duckdb.
+
+TESTS (app/)
+  npx vitest run                         -> 1213 passed, 2 failed (pre-existing sources.node CHANCE_LINE_*), 1 expected fail, 122 skipped (1338)
+  with AX04_DATA_DIR=laneL/out AX06_DATA_DIR=laneK/out AX10_CARDS=laneR/cards-07b/cards.json -> 1332 passed, 2 failed, 1 expected fail, 3 skipped (1338)
+  src/assistant/core: 102 tests (with data), 92 without the 10 node ones ; grounding 13. tsc clean. eslint clean on core/ and grounding.ts.
+
+OWNER DECISIONS / FINDINGS
+  1. teammate_id: NOT added to tools.template.json (keeps the Worker tools and token count unchanged). The card store derives the teammate for
+     resolveBundle's teammateOf: from the race.teammate_gap card display ("... vs PER ..."), else the one other driver of the same constructor in
+     race.result; null if none or ambiguous (then the teammate steps are reported in missing_scope). Fragile if the display format changes;
+     a policy_fields.teammate_id on the gap card (AX-07 / mart column teammate_id already exists) would be sturdier. Owner: accept or add the field.
+  2. make_chart / compare_lap_times registered for real (AX-11 landed), not as stubs. make_chart's schema is {result_id, kind}; the dispatcher builds
+     the chart spec from the stored result (group_by[0] on x, value on y). Row-cap check repeated: no row_cap/rowCap/maxRows string in the generated
+     tools.ts or tools.template.json; query_data limit max 25; compare_lap_times schema = race_id, driver_a, driver_b only; a rowCap key sent to
+     any tool is refused by the strict top-level key check before the tool runs (tested for three spellings).
+  3. The Worker's ticket allows 5 model rounds; the repair turn is a model round and shares them. A question that spends all 5 (4 tool calls + answer)
+     cannot be repaired: it returns the draft with notes REPAIR_SKIPPED. Option: AX-12 grants a 6th round for repair only.
+  4. worker/src/generated/tools.ts is generated from an OLDER card index (10 kinds): get_fact_cards kinds enum lacks the AX-07b / AX-15a kinds
+     (e.g. dirty_air.price), so a real model could not ask for them by kind. The CLI regenerates in memory from the registry. Owner: re-run
+     `cd worker && npm run gen-tools` after `make app-data` (AX-08 step 1) before any Worker deploy.
+  5. Grounding rules (grounding.ts header): sources = card value, interval ends and level (level grounds "95%" only), n, display and reason
+     texts; every number in query_data / compare / chart results; numbers in the question. Not checked: years 1950-2099, ids, citations, list
+     markers, numbers glued to letters. Whole numbers match exactly (or round a source >= 10). display is accepted although the model projection
+     does not carry it (render-time use by AX-14 needs it); a stricter model-visible-only mode is a one-line change if wanted.
+  6. The checker is run on EVERY card the model received this question, not only the cited ones (a held stub it ignored still demands HELD wording).
+     Conservative; AX-13 should measure how often that costs a repair turn.
+  7. Finding for AX-21/AX-13: the teammate_race bundle includes driver_race.pit_stops, whose source (int_pit_strategy_value) fires
+     PIT_CALL_REPRODUCTION_RATE, and the held race_driver.skill_components stub fires HELD_CARD_WORDING + ONE_SKILL_MEASURE; a compliant
+     teammate_race answer must carry the pit-call-reproduction sentence, the held wording and the "different measures" sentence. system.md has
+     the first two ideas; the third is only in the glossary. A real model may need the repair turn on most teammate_race questions: measure in AX-13.
+  8. Cloudflare facts: function calling listed as supported (fetched 2026-11-07). Multi-round tool use and reasoning-token accounting UNVERIFIED;
+     nothing here claims them. All token figures are chars/4 estimates of a SCRIPTED model; AX-13 measures the real ones.
+  9. History replays only (question, final answer) of the last two turns; tool results are never replayed.

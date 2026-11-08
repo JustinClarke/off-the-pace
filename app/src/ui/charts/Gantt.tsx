@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { pitConfidenceLabel } from './ganttLabels'
 
 export type StrategyVerdict =
   | 'optimal'
@@ -24,7 +25,15 @@ export interface GanttStint {
   cliffLapInStint: number | null
   pitDurationS: number | null
   tyreManagementScore: number | null
+  /**
+   * Share of candidate pit laps whose total cost is more than 1 s worse than
+   * the optimum (int_pit_strategy_value.optimal_pit_lap_confidence). 1.0 = one
+   * lap stands out; near 0 = flat curve. 0.0 is also written where no cost
+   * curve exists (then optimalPitLapInStint is null). See pitConfidenceLabel.
+   */
+  optimalPitLapConfidence: number | null
 }
+
 
 export interface GanttProps {
   stints: GanttStint[]
@@ -310,6 +319,12 @@ export default function Gantt({ stints, totalLaps, compoundColor }: GanttProps) 
               <span className="font-mono text-red-400">+{tooltip.stint.opportunityCostS.toFixed(1)} s</span>
             </p>
           )}
+          <p>
+            <span className="text-muted">Optimum sharpness: </span>
+            <span className="font-mono">
+              {pitConfidenceLabel(tooltip.stint.optimalPitLapConfidence, tooltip.stint.optimalPitLapInStint)}
+            </span>
+          </p>
           {tooltip.stint.pitDurationS != null && (
             <p>
               <span className="text-muted">Pit time: </span>

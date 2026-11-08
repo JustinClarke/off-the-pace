@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import { RankedTable } from '../../ui/charts'
 import type { RankedTableColumn } from '../../ui/charts'
@@ -59,6 +60,7 @@ const columns: RankedTableColumn<RecoveryRow>[] = [
 ]
 
 export default function TyreRecoveryForecastPage() {
+  const prov = useProvenance()
   const { data, isLoading, error } = useQuery<RecoveryRow[]>(
     'tyre-recovery-forecast.all',
     {}
@@ -84,7 +86,7 @@ export default function TyreRecoveryForecastPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={data ? toCsvRows(data) : undefined}
       csvFilename="tyre-recovery-forecast.csv"
       isLoading={isLoading}

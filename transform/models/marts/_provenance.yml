@@ -1,0 +1,75 @@
+version: 2
+
+# TX-05. Own yml file to keep marts/schema.yml collisions down.
+models:
+  - name: mart_build_provenance
+    description: >
+      Exactly one row per build: the transform label version, the dirty-air coefficient and
+      method, the regulation-era and holdout settings, the data window, and the dbt run that
+      built this warehouse. One provenance table instead of a column on every mart. The app
+      export copies this row into _manifest.json as the top-level `provenance` object and adds
+      git_sha / git_dirty there (dbt cannot read git). Pinned to dbt_project.yml by
+      assert_build_provenance_one_row_matches_vars.
+    tags: [marts]
+    meta:
+      family: marts
+    columns:
+      - name: label_version
+        description: >
+          Transform label version (var label_version). v16 per D11 (v16 = transform label,
+          v17 = ML model); sealed by CO-33. A label bump edits the var.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['v16']
+      - name: label_sealed_on
+        description: Date the label version was sealed (var label_sealed_on).
+        tests: [not_null]
+      - name: theta_air_label_value
+        description: >
+          θ_air, the dirty-air coefficient in s/lap applied by int_dirty_air_tax_component
+          (var theta_air_label_value). Declared, fitted outside dbt.
+        tests: [not_null]
+      - name: theta_air_fit_season_max
+        description: Last season in θ_air's calibration population (var theta_air_fit_season_max).
+        tests: [not_null]
+      - name: dirty_air_method
+        description: >
+          Method tag for every dirty-air number (var dirty_air_method, TX-04): flat θ × lagged
+          dirty-air share, not validated.
+        tests: [not_null]
+      - name: era_boundary
+        description: First season of the current regulation era (var era_boundary).
+        tests: [not_null]
+      - name: holdout_season
+        description: Season held out of estimation (var holdout_season).
+        tests: [not_null]
+      - name: data_season_min
+        description: First season in fct_lap_residuals.
+        tests: [not_null]
+      - name: data_season_max
+        description: Last season in fct_lap_residuals.
+        tests: [not_null]
+      - name: n_races
+        description: Distinct races with at least one lap in fct_lap_residuals.
+        tests: [not_null]
+      - name: n_races_scheduled
+        description: >
+          Distinct races in race_to_track. Can exceed n_races: a race with no racing laps
+          (2021_12) is scheduled but has no lap rows.
+        tests: [not_null]
+      - name: model_version
+        description: >
+          No promoted ML model yet (XM); named v17 per D11 / HD8 when promoted. NULL until then.
+      - name: dbt_invocation_id
+        description: dbt invocation_id of the build. Changes every build; excluded from the byte oracle.
+        tests: [not_null]
+      - name: built_at
+        description: >
+          dbt run_started_at of the build, as a timestamp with time zone (the export writes it as
+          ISO 8601 with offset). Changes every build; excluded from the byte oracle.
+        tests: [not_null]
+      - name: dbt_version
+        description: dbt-core version that built the warehouse.
+        tests: [not_null]

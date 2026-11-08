@@ -25,26 +25,31 @@
 --     theta is read back as the tax on laps whose lagged dirty-air share is 1
 --     (the share is binary, so tax = theta there, inside the [0, 5] clamp).
 --
--- Severity is target-conditional: error everywhere except the CI target, warn on CI.
--- The CI warehouse is a 3-race fixture (transform/tests/fixtures/bronze), so its
--- per-season row counts and means can never match the full-season baseline seed
--- (2020: 465 vs 9,360 rows; 2023: 401 vs 12,654) -- the season check is meaningless
--- there and would fail unconditionally. On a full-data build (dev, prod) it passes
--- (0 failing rows) and must hold: a pooled-across-seasons parameter (theta_air, a
--- compound seed refit, ...) silently relabelling published history is the F5 defect.
--- A deliberate label-version bump fails this on purpose; the fix is to refresh the
+-- CI branch (TX-08, 2026-11-08). Severity is error on every target. Until TX-08
+-- the whole test was warn-only on the CI target, which also silenced the theta
+-- check; that check does not depend on data volume and now fails CI like any
+-- other test. Only the season check is skipped on CI, because it compares
+-- against the full-data seed and the CI warehouse is a 3-race fixture
+-- (transform/tests/fixtures/bronze): its per-season counts can never match
+-- (fixture build 2026-11-08: 2020 465 vs 9,383 rows; 2023 401 vs 12,654), so it
+-- would fail unconditionally. On a full-data build (dev, prod) it runs and must
+-- hold: a pooled-across-seasons parameter (theta_air, a compound seed refit,
+-- ...) silently relabelling published history is the F5 defect. A deliberate
+-- label-version bump fails this on purpose; the fix is to refresh the
 -- label_stability_baseline seed in the same change, as described above.
 --
--- The season check excludes the latest ingested season: a season still
--- receiving new races is expected to have moving label statistics as rows are
--- added (more laps, more stints), which is not the F5 defect (a pooled
--- parameter silently recomputed over an ever-growing pool of ALREADY-COMPLETE
--- seasons).
+-- Which seasons are frozen: exactly the seasons with a row in
+-- label_stability_baseline. Until TX-08 the check also dropped the latest
+-- ingested season (race_year < MAX); the INNER JOIN to the seed already
+-- restricts it to seed seasons, so that filter only ever mattered for a seed
+-- season that is also the latest, where it silently disabled the freeze. A
+-- season still receiving races is kept out of the seed instead. The seed holds
+-- 2018-2024: 2025 labels are NOT frozen until the owner adds its row.
 --
 -- Statistics are on next_5_lap_cumulative_jump_s (the primary trained
 -- target): driver_skill_residual_s itself is an intermediate column, not
 -- exposed on this mart.
-{{ config(severity='warn' if target.name == 'ci' else 'error') }}
+{{ config(severity='error') }}
 
 WITH current_stats AS (
     SELECT
@@ -52,7 +57,6 @@ WITH current_stats AS (
         COUNT(*) FILTER (WHERE next_5_lap_cumulative_jump_s IS NOT NULL) AS row_count,
         ROUND(AVG(next_5_lap_cumulative_jump_s), 4) AS mean_next_5_lap_jump_s
     FROM {{ ref('fct_cliff_prediction_features') }}
-    WHERE race_year < (SELECT MAX(race_year) FROM {{ ref('fct_cliff_prediction_features') }})
     GROUP BY race_year
 ),
 
@@ -74,8 +78,11 @@ SELECT
 FROM current_stats AS cs
 INNER JOIN {{ ref('label_stability_baseline') }} AS b ON cs.race_year = b.race_year
 WHERE
-    cs.row_count != b.row_count
-    OR ABS(cs.mean_next_5_lap_jump_s - b.mean_next_5_lap_jump_s) > 0.001
+    '{{ target.name }}' != 'ci'
+    AND (
+        cs.row_count != b.row_count
+        OR ABS(cs.mean_next_5_lap_jump_s - b.mean_next_5_lap_jump_s) > 0.001
+    )
 
 UNION ALL
 

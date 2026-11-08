@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import { Heatmap } from '../../ui/charts'
 import type { HeatmapCell } from '../../ui/charts'
@@ -49,6 +50,7 @@ function CircuitAffinityTooltip({
 }
 
 export default function DriverCircuitAffinityPage() {
+  const prov = useProvenance()
   const { data, isLoading, error } = useQuery<CircuitAffinityRow[]>(
     'driver-circuit-affinity.all',
     undefined
@@ -76,7 +78,7 @@ export default function DriverCircuitAffinityPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025' }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion }}
       csvRows={data ? toCsvRows(data) : undefined}
       csvFilename="driver-circuit-affinity.csv"
       isLoading={isLoading}

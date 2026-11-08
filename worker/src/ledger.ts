@@ -3,7 +3,10 @@
 export interface LedgerState {
   day: string;
   neurons: number;
-  answers: number;
+  /** Model rounds (one per HTTP request that reached the model). */
+  rounds: number;
+  /** Questions (a visitor slot taken: round 1 of a question). */
+  questions: number;
   exhausted: boolean;
   paused: boolean;
 }
@@ -11,6 +14,8 @@ export interface Ledger {
   state(day: string): Promise<LedgerState>;
   /** Atomically take one visitor slot. Returns false when the visitor is at the limit. */
   takeVisitorSlot(day: string, visitor: string, limit: number): Promise<boolean>;
+  /** Atomically count one round for question q. Returns false when q has used `max` rounds. */
+  takeRound(day: string, q: string, max: number): Promise<boolean>;
   record(day: string, neurons: number): Promise<void>;
   markExhausted(day: string): Promise<void>;
   setPaused(paused: boolean): Promise<void>;
@@ -19,28 +24,36 @@ export interface Ledger {
 export const dayKey = (d = new Date()) => d.toISOString().slice(0, 10); // UTC, resets 00:00 UTC
 
 export class MemoryLedger implements Ledger {
-  days = new Map<string, { neurons: number; answers: number; exhausted: boolean; visitors: Map<string, number> }>();
+  days = new Map<string, { neurons: number; rounds: number; questions: number; exhausted: boolean; visitors: Map<string, number>; qrounds: Map<string, number> }>();
   paused = false;
   private d(day: string) {
     let v = this.days.get(day);
-    if (!v) this.days.set(day, (v = { neurons: 0, answers: 0, exhausted: false, visitors: new Map() }));
+    if (!v) this.days.set(day, (v = { neurons: 0, rounds: 0, questions: 0, exhausted: false, visitors: new Map(), qrounds: new Map() }));
     return v;
   }
   async state(day: string) {
     const v = this.d(day);
-    return { day, neurons: v.neurons, answers: v.answers, exhausted: v.exhausted, paused: this.paused };
+    return { day, neurons: v.neurons, rounds: v.rounds, questions: v.questions, exhausted: v.exhausted, paused: this.paused };
   }
   async takeVisitorSlot(day: string, visitor: string, limit: number) {
     const v = this.d(day);
     const n = v.visitors.get(visitor) ?? 0;
     if (n >= limit) return false;
     v.visitors.set(visitor, n + 1);
+    v.questions += 1;
+    return true;
+  }
+  async takeRound(day: string, q: string, max: number) {
+    const v = this.d(day);
+    const n = v.qrounds.get(q) ?? 0;
+    if (n >= max) return false;
+    v.qrounds.set(q, n + 1);
     return true;
   }
   async record(day: string, neurons: number) {
     const v = this.d(day);
     v.neurons += neurons;
-    v.answers += 1;
+    v.rounds += 1;
   }
   async markExhausted(day: string) { this.d(day).exhausted = true; }
   async setPaused(p: boolean) { this.paused = p; }
@@ -50,7 +63,7 @@ export class MemoryLedger implements Ledger {
 export class Ledger_DO {
   constructor(private ctx: DurableObjectState) {}
   async fetch(req: Request): Promise<Response> {
-    const { op, day, visitor, limit, neurons, paused } = (await req.json()) as Record<string, any>;
+    const { op, day, visitor, limit, neurons, paused, q, max } = (await req.json()) as Record<string, any>;
     const s = this.ctx.storage;
     const get = async <T>(k: string, def: T) => ((await s.get<T>(k)) ?? def);
     let out: unknown = { ok: true };
@@ -58,7 +71,8 @@ export class Ledger_DO {
       out = {
         day,
         neurons: await get(`n:${day}`, 0),
-        answers: await get(`a:${day}`, 0),
+        rounds: await get(`a:${day}`, 0),
+        questions: await get(`q:${day}`, 0),
         exhausted: await get(`x:${day}`, false),
         paused: await get("paused", false),
       };
@@ -66,6 +80,14 @@ export class Ledger_DO {
       const k = `v:${day}:${visitor}`;
       const n = await get(k, 0);
       if (n >= limit) out = { ok: false };
+      else {
+        await s.put(k, n + 1);
+        await s.put(`q:${day}`, (await get(`q:${day}`, 0)) + 1);
+      }
+    } else if (op === "round") {
+      const k = `r:${day}:${q}`;
+      const n = await get(k, 0);
+      if (n >= max) out = { ok: false };
       else await s.put(k, n + 1);
     } else if (op === "record") {
       await s.put(`n:${day}`, (await get(`n:${day}`, 0)) + neurons);
@@ -85,6 +107,9 @@ export class StubLedger implements Ledger {
   state(day: string) { return this.call<LedgerState>({ op: "state", day }); }
   async takeVisitorSlot(day: string, visitor: string, limit: number) {
     return (await this.call<{ ok: boolean }>({ op: "slot", day, visitor, limit })).ok;
+  }
+  async takeRound(day: string, q: string, max: number) {
+    return (await this.call<{ ok: boolean }>({ op: "round", day, q, max })).ok;
   }
   async record(day: string, neurons: number) { await this.call({ op: "record", day, neurons }); }
   async markExhausted(day: string) { await this.call({ op: "exhausted", day }); }

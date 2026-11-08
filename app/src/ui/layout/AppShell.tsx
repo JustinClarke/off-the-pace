@@ -1,11 +1,15 @@
 // Root layout shell renders Sidebar + TopBar wrapper around the outlet. The sidebar is docked at
 // lg and up; below lg it becomes an off-canvas drawer (hamburger in the TopBar opens it, the
 // backdrop / a nav tap / Escape / any route change closes it).
-import { ReactNode, useEffect, useState } from 'react'
+import { lazy, ReactNode, Suspense, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import { preferences } from '../../state/preferences'
+
+// AX-14: the assistant drawer exists only in a build with VITE_ASSISTANT_ENABLED=true. The check is a build-time
+// constant, so a flag-off build drops this import: no chunk, no request, no DOM.
+const AssistantLauncher = import.meta.env.VITE_ASSISTANT_ENABLED === 'true' ? lazy(() => import('../../assistant/drawer/AssistantLauncher')) : null
 
 interface AppShellProps {
   children: ReactNode
@@ -70,6 +74,11 @@ export default function AppShell({ children }: AppShellProps) {
           {children}
         </main>
       </div>
+      {AssistantLauncher ? (
+        <Suspense fallback={null}>
+          <AssistantLauncher />
+        </Suspense>
+      ) : null}
     </div>
   )
 }

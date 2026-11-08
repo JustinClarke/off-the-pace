@@ -1,13 +1,13 @@
 {
-  "version": "30f91247d7cb651e",
-  "generatedAt": "2026-10-16T21:27:55.082377+00:00",
+  "version": "045fb3796bd2527e",
+  "generatedAt": "2026-11-08T04:03:42.690033+00:00",
   "stats": {
     "total_laps": 161040,
     "total_drivers": 43,
-    "total_events": 6,
     "total_circuits": 36,
-    "dbt_models": 93,
+    "dbt_models": 99,
     "ml_models": 5,
+    "ml_models_total": 5,
     "seasons": "2018\u20132025",
     "seasons_list": [
       2018,
@@ -21,51 +21,81 @@
     ],
     "era_boundary": 2022
   },
+  "provenance": {
+    "label_version": "v16",
+    "label_sealed_on": "2026-10-26",
+    "theta_air_label_value": 0.331,
+    "theta_air_fit_season_max": 2025,
+    "dirty_air_method": "flat_theta_0.331_lag1_share_unvalidated",
+    "era_boundary": 2022,
+    "holdout_season": 2026,
+    "data_season_min": 2018,
+    "data_season_max": 2025,
+    "n_races": 172,
+    "n_races_scheduled": 173,
+    "model_version": null,
+    "dbt_invocation_id": "ebf8b944-8221-4b33-aa90-ef7d385d0ca2",
+    "built_at": "2026-11-08T07:55:15.651807+04:00",
+    "dbt_version": "1.12.6",
+    "git_sha": "ed5724581f95a66e0e01756f11ac40d6c31edc65",
+    "git_dirty": true
+  },
   "tables": [
     {
       "name": "dim_circuits",
       "path": "/data/dimensions/dim_circuits.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 44,
+      "hash": "f9295e6561bc90ab6925d4e3d3d92516"
     },
     {
       "name": "dim_compounds_season",
       "path": "/data/dimensions/dim_compounds_season.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 499,
+      "hash": "9a3d5817069382f7f19d861d7a2a745e"
     },
     {
       "name": "dim_drivers",
       "path": "/data/dimensions/dim_drivers.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 43,
+      "hash": "25a7682e7971c8a88906414e30366a9c"
     },
     {
       "name": "dim_constructors",
       "path": "/data/dimensions/dim_constructors.parquet",
-      "partitioned": false
-    },
-    {
-      "name": "dim_events",
-      "path": "/data/dimensions/dim_events.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 19,
+      "hash": "7241f9cd269189968c89ac094ff75a99"
     },
     {
       "name": "race_to_track",
       "path": "/data/dimensions/race_to_track.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 173,
+      "hash": "fafed8a87f938982325568fc2e645564"
     },
     {
       "name": "fct_driver_skill_features",
       "path": "/data/facts/fct_driver_skill_features.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 3312,
+      "hash": "d1eed94479788a85962b4a137e576d57"
     },
     {
       "name": "fct_ghost_race_finish",
       "path": "/data/facts/fct_ghost_race_finish.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 30344,
+      "hash": "c1a1257052278f135f9f234a47464f67"
     },
     {
       "name": "fct_stint_features",
       "path": "/data/facts/fct_stint_features.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 8945,
+      "hash": "160a1e657ca6c1afe77a46d2a8608be5"
     },
     {
       "name": "mart_corner_skill_driver",
@@ -105,12 +135,51 @@
           "value": 2025,
           "path": "/data/marts/mart_corner_skill_driver/2025.parquet"
         }
-      ]
+      ],
+      "rows": 161,
+      "hash": "ad6a5ad755ae3291c8aabe37a1a9c852"
     },
     {
       "name": "mart_degradation_history_envelope",
       "path": "/data/marts/mart_degradation_history_envelope.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 8115,
+      "hash": "8145494f617d3ef7e1a4cc6b391857e9"
+    },
+    {
+      "name": "mart_build_provenance",
+      "path": "/data/marts/mart_build_provenance.parquet",
+      "partitioned": false,
+      "rows": 1,
+      "hash": "cd9d8e96d034d663da0b48cc67c6c160"
+    },
+    {
+      "name": "mart_race_driver_summary",
+      "path": "/data/marts/mart_race_driver_summary.parquet",
+      "partitioned": false,
+      "rows": 3138,
+      "hash": "54b2971a3d871d9c459dfc9468441a44"
+    },
+    {
+      "name": "mart_driver_season_summary",
+      "path": "/data/marts/mart_driver_season_summary.parquet",
+      "partitioned": false,
+      "rows": 173,
+      "hash": "e8e4e4d88c95996ba89bc26df48ed102"
+    },
+    {
+      "name": "mart_metric_benchmark",
+      "path": "/data/marts/mart_metric_benchmark.parquet",
+      "partitioned": false,
+      "rows": 48,
+      "hash": "1b8b81d3d5fe21243f1534945f5582b1"
+    },
+    {
+      "name": "fct_driver_isolation_race",
+      "path": "/data/facts/fct_driver_isolation_race.parquet",
+      "partitioned": false,
+      "rows": 3102,
+      "hash": "697b93e2acab1ac3208d9287240b330d"
     },
     {
       "name": "fct_lap_residuals",
@@ -150,7 +219,9 @@
           "value": 2025,
           "path": "/data/facts/fct_lap_residuals/2025.parquet"
         }
-      ]
+      ],
+      "rows": 161040,
+      "hash": "74ce8f5323cc1ddee5893db6c7d8ed3b"
     },
     {
       "name": "fct_cliff_prediction_features",
@@ -190,7 +261,9 @@
           "value": 2025,
           "path": "/data/facts/fct_cliff_prediction_features/2025.parquet"
         }
-      ]
+      ],
+      "rows": 161040,
+      "hash": "28dd90a0589c69b009532ad1860fdae4"
     },
     {
       "name": "fct_ghost_car_pace",
@@ -894,82 +967,114 @@
             }
           ]
         }
-      ]
+      ],
+      "rows": 1384558,
+      "hash": "68dd5adffef15c927105a852d9fd3004"
     },
     {
       "name": "int_era_normalized_driver_rating",
       "path": "/data/intermediates/int_era_normalized_driver_rating.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 173,
+      "hash": "b0be0ef487c5a3766637bf72f0a86eec"
     },
     {
       "name": "int_constructor_structural_pace",
       "path": "/data/intermediates/int_constructor_structural_pace.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 1644,
+      "hash": "6e5583fd64dc2713ceee95ebc433e813"
     },
     {
       "name": "int_constructor_structural_pace_qualifying",
       "path": "/data/intermediates/int_constructor_structural_pace_qualifying.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 1730,
+      "hash": "1d08cd7c0ed926de0615c45c902eca24"
     },
     {
       "name": "int_driver_circuit_affinity",
       "path": "/data/intermediates/int_driver_circuit_affinity.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 1024,
+      "hash": "d3586b07529bdc67d9c421f331c0b81a"
     },
     {
       "name": "int_driver_circuit_era_affinity",
       "path": "/data/intermediates/int_driver_circuit_era_affinity.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 1419,
+      "hash": "4841d09bad4776c5ada198de2038362b"
     },
     {
       "name": "int_driver_race_skill_loro",
       "path": "/data/intermediates/int_driver_race_skill_loro.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 3275,
+      "hash": "751e086a4d2f3037bc275f9556bee327"
     },
     {
       "name": "int_circuit_x_constructor_interaction",
       "path": "/data/intermediates/int_circuit_x_constructor_interaction.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 1644,
+      "hash": "a159dbe711f569e0f519b772bd8248d1"
     },
     {
       "name": "int_qualifying_decomposed",
       "path": "/data/intermediates/int_qualifying_decomposed.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 16876,
+      "hash": "002cbefdca383a827842f1102c2c83e3"
     },
     {
       "name": "int_compound_cliff_predicted",
       "path": "/data/intermediates/int_compound_cliff_predicted.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 161040,
+      "hash": "84c4035e0af2785ad488a83448294abf"
     },
     {
       "name": "int_tyre_surface_vs_bulk_decoupling",
       "path": "/data/intermediates/int_tyre_surface_vs_bulk_decoupling.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 38819,
+      "hash": "578890fdcdc4f25d3b0b68f0be55d6e1"
     },
     {
       "name": "int_synthetic_teammate",
       "path": "/data/intermediates/int_synthetic_teammate.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 140460,
+      "hash": "f46096541534d9895063c1fde9885043"
     },
     {
       "name": "int_track_evolution",
       "path": "/data/intermediates/int_track_evolution.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 8667,
+      "hash": "5e14177dc860be90daa8aa5aad41af44"
     },
     {
       "name": "int_field_pace_curve",
       "path": "/data/intermediates/int_field_pace_curve.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 9136,
+      "hash": "06012f6ae396c285675a2a52c8dd41eb"
     },
     {
       "name": "int_pit_strategy_value",
       "path": "/data/intermediates/int_pit_strategy_value.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 8211,
+      "hash": "ae3dac3e4bbd651eed199d10d203cbf3"
     },
     {
       "name": "int_sc_hazard_history",
       "path": "/data/intermediates/int_sc_hazard_history.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 173,
+      "hash": "5cf1ee43bc61b0fea75a5ef5ea19237b"
     },
     {
       "name": "int_corner_metrics",
@@ -1009,7 +1114,9 @@
           "value": 2025,
           "path": "/data/intermediates/int_corner_metrics/2025.parquet"
         }
-      ]
+      ],
+      "rows": 3036871,
+      "hash": "16e6224781f319ac37c7f881b2355b65"
     },
     {
       "name": "int_corner_skill_residuals",
@@ -1049,7 +1156,9 @@
           "value": 2025,
           "path": "/data/intermediates/int_corner_skill_residuals/2025.parquet"
         }
-      ]
+      ],
+      "rows": 2585908,
+      "hash": "c76163b25f9df48460e5cf67f2beee53"
     },
     {
       "name": "int_lap_air_state",
@@ -1089,7 +1198,9 @@
           "value": 2025,
           "path": "/data/intermediates/int_lap_air_state/2025.parquet"
         }
-      ]
+      ],
+      "rows": 189418,
+      "hash": "3c055e084656067d7e645b2a0190591f"
     },
     {
       "name": "int_lap_anomaly_flags",
@@ -1129,7 +1240,9 @@
           "value": 2025,
           "path": "/data/intermediates/int_lap_anomaly_flags/2025.parquet"
         }
-      ]
+      ],
+      "rows": 161040,
+      "hash": "02623553b8cea15d46ff11d2c9811907"
     },
     {
       "name": "int_sector_residual_decomposed",
@@ -1865,12 +1978,16 @@
             }
           ]
         }
-      ]
+      ],
+      "rows": 477069,
+      "hash": "9824e99982a94630c4f6d56188713c8d"
     },
     {
       "name": "race_caution_timeline",
       "path": "/data/marts/race_caution_timeline.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 10373,
+      "hash": "bba7b3b267c37f587373472ca445873e"
     },
     {
       "name": "int_dirty_air_tax_component",
@@ -1910,7 +2027,9 @@
           "value": 2025,
           "path": "/data/intermediates/int_dirty_air_tax_component/2025.parquet"
         }
-      ]
+      ],
+      "rows": 149452,
+      "hash": "53c8656a3b2a025ff4d975a52cd67a97"
     },
     {
       "name": "fct_telemetry_deltas",
@@ -1950,7 +2069,9 @@
           "value": 2025,
           "path": "/data/facts/fct_telemetry_deltas/2025.parquet"
         }
-      ]
+      ],
+      "rows": 1623427,
+      "hash": "b5564dcab08e43b033af13464d502923"
     },
     {
       "name": "mart_degradation_predictions",
@@ -1990,12 +2111,23 @@
           "value": 2025,
           "path": "/data/ml/mart_degradation_predictions/2025.parquet"
         }
-      ]
+      ],
+      "rows": 160207,
+      "hash": "95f9fff1f9dafecfe9594fbf2673677b"
     },
     {
       "name": "driver_network_rating",
       "path": "/data/ml/driver_network_rating.parquet",
-      "partitioned": false
+      "partitioned": false,
+      "rows": 100,
+      "hash": "2c19954e4d03a5354df8ebce7ae59f5f"
+    },
+    {
+      "name": "assistant_entities",
+      "path": "/data/dimensions/assistant_entities.parquet",
+      "partitioned": false,
+      "rows": 296,
+      "hash": "37ede10cf86abf22e8cdb9123a55be55"
     }
   ]
 }

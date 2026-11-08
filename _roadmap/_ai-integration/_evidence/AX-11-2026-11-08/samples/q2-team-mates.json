@@ -1,0 +1,33 @@
+{
+  "spec": {
+    "type": "line",
+    "title": "LEC vs SAI lap times, 2024_8",
+    "x": {
+      "col": "lap_number",
+      "label": "Lap"
+    },
+    "y": {
+      "col": "value",
+      "label": "Lap time (s)"
+    },
+    "series": [
+      {
+        "result_id": "2a28932a3022",
+        "label": "LEC",
+        "x_col": "lap_number",
+        "y_col": "value"
+      },
+      {
+        "result_id": "2a28932a3022",
+        "label": "SAI",
+        "x_col": "lap_number",
+        "y_col": "value"
+      }
+    ]
+  },
+  "n": [
+    76,
+    76
+  ],
+  "note": "Observed green racing laps, major outliers excluded; not fuel- or tyre-corrected."
+}

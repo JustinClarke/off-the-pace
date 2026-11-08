@@ -1,0 +1,67 @@
+TX-03 - Stop unmeasured dirty air being written as 0.0 s into aggregates (default: aggregate level only)
+Date: 2026-11-07. Lane A, after TX-01 and TX-02 on the same scratch copy. Nothing committed.
+
+SCRATCH COPY: <scratchpad>/laneA/dev.duckdb (from <scratchpad>/base/dev.duckdb), 1 thread. data/dev.duckdb,
+data/ci.duckdb and committed baselines untouched. int_dirty_air_tax_component.sql NOT edited (TX-04's file;
+only ref'd). Its table in laneA is the base build's.
+
+COMMANDS (from transform/, own profiles/target/logs in laneA)
+  dbt build --select mart_race_driver_summary mart_driver_season_summary mart_metric_benchmark   # unchanged (post TX-02): PASS=56
+  snapshot_model_hashes.py ... --baseline laneA/before_tx03.json   # copied here as before.json
+  ...edits...
+  dbt build --select mart_race_coverage mart_race_driver_summary mart_driver_season_summary mart_metric_benchmark
+                     assert_prior_season_labels_frozen assert_dirty_air_fill_only_where_base_unmeasured
+      -> PASS=79 WARN=0 ERROR=0 (build.log); assert_prior_season_labels_frozen PASS
+  sqlfluff lint (duckdb) 4 models + 2 tests -> clean
+  snapshot_model_hashes.py --check ... --baseline laneA/before_tx03.json
+      -> non-fct changed: mart_driver_season_summary, mart_metric_benchmark, mart_race_driver_summary;
+         OK: all 12 fct_* byte-stable. ("NEW mart_build_provenance" in that output is another lane's model that
+         appeared in the shared tree's manifest; not mine, not built by me.)
+
+FILES
+  edit  transform/models/marts/mart_race_driver_summary.sql (dirty_air CTE; mean over measured laps;
+        n_dirty_air_measured_laps, dirty_air_unavailable_reason)
+  edit  transform/models/marts/mart_driver_season_summary.sql (same at season grain)
+  edit  transform/models/marts/mart_metric_benchmark.sql (dirty_air arm joins int_dirty_air_tax_component)
+  edit  transform/models/intermediate/int_lap_residual_decomposed.sql (header + inline comment only; no SQL change;
+        not rebuilt, so int_*/fct_* untouched)
+  edit  transform/models/marts/schema.yml (descriptions + 4 column entries, targeted)
+  new   transform/tests/assert_dirty_air_mean_excludes_unmeasured.sql
+  new   transform/tests/assert_dirty_air_fill_only_where_base_unmeasured.sql
+  edit  transform/tests/README.md
+  The new mean is computed in its own CTE so the other component means keep their exact input order (bit-identical).
+
+BEFORE / AFTER (before = base copy; after = laneA)
+  fct_lap_residuals laps with no dirty-air row: 11,588 (6,460 ml_eligible; 2018_2 732, 2018_1 622, 2022_11 189,
+    2025_23 120, 2023_10 118, 2024_12 110). No-row <=> pace_delta_s NULL holds on every lap (test passes).
+  ml_eligible laps with a MEASURED tax of exactly 0: 96,820. The spec's 103,280 is fct dirty_air_tax_s = 0 incl. the
+    6,460 filled laps (96,820 + 6,460 = 103,280).
+  Race mart (3,138 rows): mean NULL 52 -> 92 (40 became NULL: 2018_1 x16, 2018_2 x18, and 2018_16 HAR, 2021_6 OCO,
+    2022_18 BOT, 2023_3 ALB, 2024_14 ZHO, 2024_3 VER); of the rows non-NULL both times, 2,331 changed, 405 by > 0.01 s,
+    max |delta| 0.248 s. 2018_1/2: 34 rows, all NULL, n_dirty_air_measured_laps 0, reason NO_MEASURED_LAPS.
+    dirty_air_unavailable_reason set on 92 rows (incl. the 52 with no ml_eligible laps).
+  Season mart (173 rows): 172 changed, 8 by > 0.01 s, max |delta| 0.0130 s; no NULL means; reason set on 0 rows.
+  Benchmark dirty_air_tax_s, mean old -> new (n old -> new), p50 0.0 every season before and after:
+    2018 0.0782 -> 0.0865 (15,845 -> 14,333)   2019 0.0901 -> 0.0918 (19,088 -> 18,733)
+    2020 0.1055 -> 0.1090 (13,946 -> 13,501)   2021 0.0927 -> 0.0945 (19,291 -> 18,922)
+    2022 0.1062 -> 0.1110 (17,079 -> 16,346)   2023 0.1069 -> 0.1127 (19,335 -> 18,349)
+    2024 0.0972 -> 0.1025 (22,087 -> 20,933)   2025 0.1134 -> 0.1186 (20,702 -> 19,796)
+  Every other column of the race and season marts: EXCEPT both ways vs base (minus ci_low/ci_high, moved by TX-01,
+    and mean_dirty_air_tax_s) = 0 / 0. Benchmark's other 40 rows: EXCEPT both ways = 0 / 0 (48 rows total).
+
+FOLLOW-UP FOR THE OWNER (not done here, by design: option B / lap grain moves fct_* hashes, the data-profile
+baseline and app pages). Consumers that read the lap-grain dirty_air_tax_s (with the 0.0 fill) directly:
+  app: app/src/features/dirty-air-cost/queries.ts, lap-waterfall/queries.ts + transform.ts,
+       constructor-team-averages/queries.ts + transform.ts, race-lost/queries.ts + cards.ts
+       (AP-01 tells unmeasured apart by pace_delta_s IS NULL, now a tested invariant).
+  transform models reading a dirty_air_tax_s column (whether each averages the fill is NOT checked):
+       fct_stint_features, fct_driver_isolation_lap, fct_ghost_car_pace, fct_driver_isolation_pair_lap,
+       int_driver_isolation_lap_pace, int_lap_normalized_pace, int_driver_isolation_lap_panel,
+       int_driver_isolation_lap_values, int_qualifying_decomposed, int_sector_residual_decomposed.
+  scripts: validate_driver_isolation.py, analyze_race_case_study.py, estimate_theta_air_08q.py.
+
+NOT VERIFIED
+  - CI fixture build not run. New tests carry no race id.
+  - If TX-04 changes int_dirty_air_tax_component's rows (not just SE/method columns), these means move with it.
+  - Column names kept generic (n_dirty_air_measured_laps, dirty_air_unavailable_reason) for WC-05/WC-06's later
+    measured/modelled/unavailable labels; not checked against a WC-05 spec.

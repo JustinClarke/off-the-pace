@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query'
 import { motion, useReducedMotion } from 'framer-motion'
 import { APP_CONFIG } from '../../config'
 import type { DataManifest } from '../../data/manifest'
-import { DATA_CDN_BASE } from '../../data/manifest'
+import { DATA_CDN_BASE, formatMlModelsTile } from '../../data/manifest'
 import {
   GhostCarViz, SurvivalViz, WaterfallViz, PitGanttViz, QuantileFanViz,
   DegTimelineViz, MatrixViz, RankedBarsViz, AffinityViz, WetViz, CornerPhaseViz, AirMapViz,
@@ -198,7 +198,7 @@ function StatCluster({ stats }: { stats: NonNullable<DataManifest['stats']> }) {
     { value: stats.total_drivers ?? 40, label: 'drivers modeled' },
     { value: stats.total_circuits ?? 44, label: 'circuits covered' },
     { value: stats.dbt_models, label: 'dbt models' },
-    { value: `${stats.ml_models}/5`, label: 'ml models beat baseline' },
+    { value: formatMlModelsTile(stats), label: 'ml models beat baseline' },
     { value: stats.seasons, label: 'seasons' },
   ]
   return (

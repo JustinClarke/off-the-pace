@@ -1,0 +1,118 @@
+{
+  "recorded_at": "2026-11-08T09:59:33.404Z",
+  "note": "Recorded BEFORE any eval run (stub or real). The thresholds are wi/AX-13.md Decided verbatim and are not tuned to any result. The orchestrator appends this to status/build-log.json history; this script never edits the log.",
+  "bar": {
+    "item": "AX-13",
+    "source": "_roadmap/_ai-integration/wi/AX-13.md, Decided: \"Pass bar (from AI-07, do not change)\"",
+    "grounded_rate": 1,
+    "refusal_rate": 1,
+    "right_tool_rate_min": 0.95,
+    "max_run_tokens": 18000,
+    "human_read": "pass on 10 answers (term defined or linked at first use; says what the number does not show when a wrong reading is likely; plain tone)",
+    "repeats": 5,
+    "definitions": {
+      "grounded_rate": "share of runs (answered or not, endpoint errors excluded) whose every answer number matches a card the model received this question, a query_data / compare_lap_times / make_chart result, or a number in the question (findUngroundedNumbers, assistant/grounding.ts)",
+      "refusal_rate": "share of runs of expect=refuse|hedge questions where the answer gives every held_reason key of the question (eval/grade.ts HELD_REASON_PATTERNS), carries no must_not claim, and, for refuse, has refusal wording and states no number other than those the user typed",
+      "right_tool_rate": "share of runs where the first expected tool was called (and the expected bundle, when the question names one); a question with no expected tool passes only with zero tool calls",
+      "max_run_tokens": "no run over 18,000 tokens: prompt + completion tokens summed over every model round of the run (budget.total: endpoint usage when reported, else chars/4 and marked estimated)",
+      "human_read": "owner (or a delegate) reads the 10 answers printed by --human-read and records pass/fail with a note per answer in human-read.json",
+      "repeats": "each question is run 5 times; a run with an endpoint error is listed and re-run, not counted"
+    },
+    "reported_not_gating": [
+      "expected_value",
+      "honesty",
+      "rules_fired",
+      "must_not (part of refusal for refuse/hedge questions)",
+      "all_tools",
+      "limits",
+      "answered",
+      "repair-turn rate",
+      "neurons per answer",
+      "answers per day"
+    ]
+  },
+  "questions_file": "app/src/assistant/eval/questions.json",
+  "questions_hash": "901ed60e1060afbd860636ff79830e40ada0a188cc43e04bdfbff7b869b9d6a7",
+  "questions_file_sha256": "f092fa2878811c94fff612177dee45399df5b36304ae8a27e13ecb731a7d7db6",
+  "grader_sha256": {
+    "eval/grade.ts": "c26391381bff9feedd25e0aac06ea5cff0372cffb00850c0689aec359c278554",
+    "eval/report.ts": "a3348de5e6176c4cdf7a0658fac0d9a1ca66b6c349658649513cd9d4c3af100b"
+  },
+  "counts": {
+    "questions": 79,
+    "by_tool": {
+      "compare_lap_times": 5,
+      "explain_page": 6,
+      "get_fact_cards": 37,
+      "list_values": 5,
+      "make_chart": 5,
+      "navigate": 7,
+      "query_data": 17
+    },
+    "query_data": 17,
+    "refuse_or_hedge": 30,
+    "families": [
+      "aero-conditions",
+      "constructors",
+      "data-validation",
+      "drivers",
+      "ghost-car",
+      "lap-decomposition",
+      "race-craft",
+      "the-machine",
+      "tyre-strategy"
+    ],
+    "seasons": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "by_class": {
+      "ML": 3,
+      "T": 36,
+      "T*": 10,
+      "WC": 2,
+      "X": 9,
+      "nav": 17,
+      "whatif": 2
+    },
+    "by_type": {
+      "corner_phase": 2,
+      "held_class": 13,
+      "lookup_navigate": 19,
+      "observed_count": 18,
+      "safety_car_rate": 3,
+      "season_standing": 6,
+      "stint_describe": 2,
+      "teammate_race": 7,
+      "tyre_life": 3,
+      "what_if": 3,
+      "why_slow": 3
+    },
+    "by_group": {
+      "a": 4,
+      "b": 26,
+      "c": 11,
+      "d": 12,
+      "e": 26
+    },
+    "demo": 5,
+    "human_read": 10
+  },
+  "amended_from": {
+    "recorded_at": "2026-11-08T09:58:29.352Z",
+    "questions_hash": "08a4631ec349676f9f22c3c838c3633410706fadc858e4a3fb6e3b7f7391a2ed",
+    "reason": "h-race-lost-2024_1-PER must_not matched the system.md wording 'not driver error' (a compliant answer); pattern now exempts a negated mention, as policy ONE_SKILL_MEASURE_NAMED does. Found by the first STUB dev run (scratch, 1 repeat, not a baseline). Thresholds unchanged."
+  },
+  "history": [
+    {
+      "recorded_at": "2026-11-08T09:58:29.352Z",
+      "questions_hash": "08a4631ec349676f9f22c3c838c3633410706fadc858e4a3fb6e3b7f7391a2ed"
+    }
+  ]
+}

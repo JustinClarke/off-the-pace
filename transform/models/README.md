@@ -7,7 +7,7 @@ Four layers, each in its own subdirectory. The DAG flows top to bottom.
 | Staging | `staging/` | view | Bronze → clean column names, type casts, validity flags (12 views) |
 | Reference | `reference/` | table | Seed-backed dimensions: circuits, compounds, drivers, constructors (4 tables) |
 | Intermediate | `intermediate/` | table / view | Physics layers 03–05: fuel, air state, thermal proxy, compound cliff, field pace, track evolution, constructor pace, synthetic teammate, event corrections, residual decomposition, anomaly flags (34 models) |
-| Marts | `marts/` | table | Feature tables for ML and analytics: `fct_driver_skill_features`, `fct_cliff_prediction_features`, `fct_lap_residuals`, `fct_telemetry_deltas`, `fct_stint_features`, `fct_ghost_car_pace`, `fct_ghost_race_finish`, `mart_corner_skill_driver`, `mart_degradation_history_envelope`, `dim_events` (10 tables) |
+| Marts | `marts/` | table | Feature tables for ML and analytics: `fct_driver_skill_features`, `fct_cliff_prediction_features`, `fct_lap_residuals`, `fct_telemetry_deltas`, `fct_stint_features`, `fct_ghost_car_pace`, `fct_ghost_race_finish`, `mart_corner_skill_driver`, `mart_degradation_history_envelope` (9 tables) |
 
 See [../README.md](../README.md) for the full model DAG and running instructions.
 

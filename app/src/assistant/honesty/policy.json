@@ -2,7 +2,7 @@
   "schema_version": 1,
   "policy_id": "AI-02",
   "title": "Honesty policy: the docs' uncertainty rules as a machine-checkable list",
-  "updated": "2026-10-22",
+  "updated": "2026-11-08",
   "how_to_read": [
     "Each rule fires when any of its triggers holds. A trigger is a predicate on one fact card (all listed field tests must hold on the same card), a regex on the user's question, a regex on the drafted answer, or a cross-card era test.",
     "A fired active rule passes when every required_wording group has at least one match in the answer and no forbidden_claim pattern matches. Regexes are case-insensitive.",
@@ -20,7 +20,9 @@
     "graded_below_pass": "Metrics or ratings graded below pass.",
     "known_gap": "Known data or method gaps.",
     "open_ruling": "Claim limits set by an open or unfinished ruling.",
-    "pending_ruling": "A rule the docs cannot finish without an owner ruling."
+    "pending_ruling": "A rule the docs cannot finish without an owner ruling.",
+    "computed_not_card": "A query-builder result: a plain aggregate over published observed rows, not a fact card (AD3).",
+    "held_card": "A card whose figure is held until wake calibration, the ML redo or a re-measure lands."
   },
   "rules": [
     {
@@ -390,6 +392,16 @@
               "field": "n",
               "op": "lt",
               "value": 8
+            },
+            {
+              "field": "status",
+              "op": "ne",
+              "value": "held"
+            },
+            {
+              "field": "label",
+              "op": "ne",
+              "value": "unavailable"
             }
           ]
         }
@@ -1848,6 +1860,2036 @@
               }
             ],
             "answer": "The model's middle estimate is 1.8 s, with a p10-p90 band of 0.9 to 2.9 s [card c7]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "DIRTY_AIR_MODELLED_NOT_MEASURED",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [
+          "/app/dirty-air-cost"
+        ],
+        "metrics": [
+          "dirty_air_tax_s and anything summed from it (dirty-air cost per lap, race or season); dirty_air_tax_se_s"
+        ]
+      },
+      "condition": "A card carries a dirty-air value. Every dirty-air number is modelled: a flat 0.331 s/lap x lagged dirty-air share, one pooled coefficient fitted outside dbt and not validated (method tag dirty_air_method = flat_theta_0.331_lag1_share_unvalidated). Its SE column is a 0.15 x tax convention, not a standard error, and a 0.0 can be an unmeasured lap.",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "caveats",
+              "op": "has",
+              "value": "DIRTY_AIR_MODELLED_NOT_MEASURED"
+            }
+          ]
+        },
+        {
+          "card": [
+            {
+              "field": "metric",
+              "op": "matches",
+              "value": "dirty_air_tax"
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Say the value is modelled, name the flat 0.331 s/lap x share method, and say it is one pooled coefficient (not a per-car, per-circuit or measured value) that wake calibration may replace.",
+        "all_of": [
+          [
+            "\\bmodell?ed\\b"
+          ],
+          [
+            "\\b0\\.331\\b",
+            "\\bflat\\b[^.]{0,40}\\b(coefficient|penalty|rate|charge)\\b"
+          ],
+          [
+            "\\bpooled\\b",
+            "\\bnot (a )?per[- ](car|circuit)\\b"
+          ],
+          [
+            "\\bwake calibration\\b",
+            "\\bmay be replaced\\b",
+            "\\bnot (yet )?validated\\b",
+            "\\bunvalidated\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Call a dirty-air value measured, put a ± or a standard error on it, or read a 0.0 as clean air / no dirty air.",
+        "patterns": [
+          "\\bmeasured (dirty[- ]air|aero)\\b",
+          "(?<!not )\\ba measured\\b",
+          "\\bdirty[- ]air (cost|tax|penalty|loss|time)\\b[^.]{0,30}\\b(was|is) measured\\b",
+          "±",
+          "\\+/-",
+          "\\bplus or minus\\b",
+          "\\bstandard error\\b",
+          "\\b0(\\.0+)?(?![.\\d])( ?s\\b| seconds\\b)?[^.]{0,60}\\b(clean air|no dirty air)\\b",
+          "\\b(clean air|no dirty air)\\b[^.]{0,60}\\b0(\\.0+)?(?![.\\d])",
+          "\\b(clean air|no dirty air)\\b[^.]{0,60}\\bzero\\b",
+          "\\bzero\\b[^.]{0,60}\\b(clean air|no dirty air)\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "transform/models/intermediate/schema.yml",
+          "line": 1579,
+          "quote": "Convention, not an estimate: 0.15 × the tax. Zero on clean-air laps. Not propagated from θ's interval. Do not quote as a standard error."
+        },
+        {
+          "file": "docs/app/dirty-air-cost.mdx",
+          "line": 35,
+          "quote": "The charge is one pooled coefficient, not a direct aero measurement and not a per-circuit or per-season estimate."
+        }
+      ],
+      "examples": [
+        {
+          "name": "calls the dirty-air cost measured and puts a ± on it",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "d1",
+                "metric": "dirty_air_tax_s",
+                "value": 4.2,
+                "unit": "s",
+                "scope": {
+                  "driver": "HAM",
+                  "race": "2023_10"
+                }
+              }
+            ],
+            "answer": "Hamilton lost a measured 4.2 s to dirty air at Silverstone 2023, ± 0.6 s [card d1]."
+          }
+        },
+        {
+          "name": "reads a 0.0 as clean air",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "d2",
+                "metric": "dirty_air_tax_s",
+                "value": 0.0,
+                "unit": "s",
+                "scope": {
+                  "driver": "VER",
+                  "race": "2023_10"
+                }
+              }
+            ],
+            "answer": "Verstappen ran in clean air all race: 0.0 s of dirty-air cost [card d2]."
+          }
+        },
+        {
+          "name": "says modelled, names the flat method and the pooled coefficient",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "d1",
+                "metric": "dirty_air_tax_s",
+                "value": 4.2,
+                "unit": "s",
+                "scope": {
+                  "driver": "HAM",
+                  "race": "2023_10"
+                }
+              }
+            ],
+            "answer": "The app puts Hamilton's dirty-air cost at Silverstone 2023 at about 4.2 s [card d1]. That figure is modelled, not observed: a flat 0.331 s per lap charged on each lap spent following, one pooled coefficient for every car, circuit and season, which wake calibration may replace."
+          }
+        }
+      ]
+    },
+    {
+      "code": "COMPUTED_NOT_CARD_WORDING",
+      "kind": "computed_not_card",
+      "status": "active",
+      "ruling": "AD3",
+      "applies_to": {
+        "pages": [],
+        "metrics": [
+          "every query_data result (AX-06), projected by queryResultToCheckerCard"
+        ]
+      },
+      "condition": "The answer uses a query-builder result. It is a plain aggregate over published, observed rows, not a fact card and not a model output (AD3, HD4 A).",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "label",
+              "op": "eq",
+              "value": "computed_not_card"
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Say the number is a plain count, average, median, minimum, maximum or total, computed from the data.",
+        "all_of": [
+          [
+            "\\b(plain|simple|raw|straight) (count|average|mean|median|total|sum|minimum|maximum|min|max)s?\\b"
+          ],
+          [
+            "\\bfrom the (published |app |lap |race |stint )?data\\b",
+            "\\b(computed|counted|averaged|summed|taken) (directly |straight )?(from|over)\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Call a computed aggregate a rating, a skill measure, modelled or predicted.",
+        "patterns": [
+          "(?<!not a )(?<!no )\\bratings?\\b",
+          "(?<!not )\\bmodell?ed\\b",
+          "(?<!not )\\bpredict(ed|ion|s)?\\b",
+          "(?<!not a )(?<!no )\\bskill\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "_roadmap/_ai-integration/status/build-log.json",
+          "line": null,
+          "quote": "Query-builder results are labelled computed_not_card and the answer must state they are plain counts or averages."
+        }
+      ],
+      "examples": [
+        {
+          "name": "calls a median pit-lane loss a modelled skill rating",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "q3f9a1c0d2b7e",
+                "metric": "qv_pit_stops.pit_lane_loss_measured_s",
+                "label": "computed_not_card",
+                "aggregate_fn": "median",
+                "n": 14,
+                "n_unit": "rows",
+                "source_page": "qv_pit_stops"
+              }
+            ],
+            "answer": "McLaren's crews rate best: their modelled pit skill is 21.4 s [result q3f9a1c0d2b7e]."
+          }
+        },
+        {
+          "name": "says it is a plain median computed from the data",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "q3f9a1c0d2b7e",
+                "metric": "qv_pit_stops.pit_lane_loss_measured_s",
+                "label": "computed_not_card",
+                "aggregate_fn": "median",
+                "n": 14,
+                "n_unit": "rows",
+                "source_page": "qv_pit_stops"
+              }
+            ],
+            "answer": "Across the 14 stops with a measured loss, the plain median pit-lane loss was 21.4 s, computed from the published stop data [result q3f9a1c0d2b7e]."
+          }
+        },
+        {
+          "name": "a fact card with label measured does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "c1",
+                "metric": "stint_length_laps",
+                "label": "measured",
+                "n": 40,
+                "n_unit": "stints"
+              }
+            ],
+            "answer": "The stint lasted 22 laps [card c1]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "HELD_CARD_WORDING",
+      "kind": "held_card",
+      "status": "active",
+      "applies_to": {
+        "pages": [],
+        "metrics": [
+          "every card with status held (dirty-air-dependent, traffic-cost, ML and pit-call classes in v1)"
+        ]
+      },
+      "condition": "A card is held: the figure exists in the app but may not be quoted until wake calibration, the ML redo or the pit-call re-measure lands.",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "status",
+              "op": "eq",
+              "value": "held"
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Say the figure is not available yet (held), and say what it waits on: wake calibration, the ML redo, or the pit-call re-measure.",
+        "all_of": [
+          [
+            "\\bheld\\b",
+            "\\bnot (yet )?available( yet)?\\b",
+            "\\bnot (yet )?published\\b"
+          ],
+          [
+            "\\bwake[- ]calibration\\b",
+            "\\b(ML|model) redo\\b",
+            "\\bre-?measure",
+            "\\breproduction rate\\b",
+            "\\bdirty[- ]air (work|calibration)\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Give an estimate, a guess or a 'probably' for the held figure.",
+        "patterns": [
+          "\\bprobably\\b",
+          "\\b(likely|roughly|approximately|around|about|~) ?[-+]?\\d",
+          "\\b(my|a rough|our|best) (estimate|guess)\\b",
+          "\\bI(?:'d| would) (estimate|guess)\\b",
+          "\\bshould be (around|about|near)\\b",
+          "\\bin the region of\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "_roadmap/_ai-integration/_evidence/ax-audit-2026-11-07/design-ai-access.md",
+          "line": 143,
+          "quote": "A `held` card is published so the assistant can say why a number is not available yet. A held card has no `value`."
+        },
+        {
+          "file": "_roadmap/_ai-integration/status/BUILD-ORDER.md",
+          "line": 23,
+          "quote": "A card may only be published for a class that is live."
+        }
+      ],
+      "examples": [
+        {
+          "name": "guesses the held figure",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "era_rating.season:2024:LEC",
+                "metric": "era_adjusted_rating",
+                "label": "modelled",
+                "status": "held",
+                "held_reason": "Dirty-air-dependent: waits on wake calibration (XW).",
+                "value": null,
+                "n": 0,
+                "n_unit": "races"
+              }
+            ],
+            "answer": "Leclerc's 2024 era rating is not out yet, but it is probably around 0.2 s [card era_rating.season:2024:LEC]."
+          }
+        },
+        {
+          "name": "says it is held and what it waits on",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "era_rating.season:2024:LEC",
+                "metric": "era_adjusted_rating",
+                "label": "modelled",
+                "status": "held",
+                "held_reason": "Dirty-air-dependent: waits on wake calibration (XW).",
+                "value": null,
+                "n": 0,
+                "n_unit": "races"
+              }
+            ],
+            "answer": "Leclerc's 2024 era rating is held: it is not available yet because it waits on the wake calibration work [card era_rating.season:2024:LEC]."
+          }
+        },
+        {
+          "name": "an active card does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "c1",
+                "metric": "stint_length_laps",
+                "label": "measured",
+                "status": "active",
+                "n": 40,
+                "n_unit": "stints"
+              }
+            ],
+            "answer": "The stint lasted 22 laps [card c1]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "UNAVAILABLE_IS_NOT_ZERO",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [],
+        "metrics": [
+          "every card with label unavailable (P5: unavailable is a value with a reason, never 0)"
+        ]
+      },
+      "condition": "A card has no value: the quantity was not measured or cannot be computed for that scope. Complements MISSING_RATING_IS_NOT_ZERO, which covers the pure-pace case.",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "label",
+              "op": "eq",
+              "value": "unavailable"
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Say there is no value: not measured, unavailable, or no data for that scope.",
+        "all_of": [
+          [
+            "\\bno value\\b",
+            "\\bnot (been )?measured\\b",
+            "\\bunavailable\\b",
+            "\\bnot available\\b",
+            "\\bno (data|figure|number|measurement)\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Read the missing value as 0, zero or no difference.",
+        "patterns": [
+          "\\b(is|was|reads|equals?|of|at|scored|rated) (0(\\.0+)?|zero)(?![.\\d])",
+          "\\bno (pace )?(advantage|difference|loss|gain)\\b",
+          "\\bnothing (was )?(lost|gained)\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "docs/decomposition/driver-isolation.mdx",
+          "line": 168,
+          "quote": "a missing race is not a zero"
+        },
+        {
+          "file": "_roadmap/_ai-integration/_evidence/ax-audit-2026-11-07/design-ai-access.md",
+          "line": 91,
+          "quote": "\"Unavailable\" is a value with a reason, never 0"
+        }
+      ],
+      "examples": [
+        {
+          "name": "reads an unavailable corner delta as zero",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "teammate_corner:2023_10:HAM-RUS:T15",
+                "metric": "v_min_delta_kph",
+                "label": "unavailable",
+                "value": null,
+                "n": 0,
+                "n_unit": "laps",
+                "unavailable_reason": "one side's telemetry is missing for this corner (CO-22)"
+              }
+            ],
+            "answer": "Hamilton and Russell were level through Turn 15: the minimum-speed delta was 0, no difference [card teammate_corner:2023_10:HAM-RUS:T15]."
+          }
+        },
+        {
+          "name": "says no value was measured",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "teammate_corner:2023_10:HAM-RUS:T15",
+                "metric": "v_min_delta_kph",
+                "label": "unavailable",
+                "value": null,
+                "n": 0,
+                "n_unit": "laps",
+                "unavailable_reason": "one side's telemetry is missing for this corner (CO-22)"
+              }
+            ],
+            "answer": "There is no value for the Turn 15 minimum-speed delta between Hamilton and Russell: one side's telemetry is missing, so it was not measured [card teammate_corner:2023_10:HAM-RUS:T15]."
+          }
+        },
+        {
+          "name": "a measured card does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "c1",
+                "metric": "v_min_delta_kph",
+                "label": "measured",
+                "value": 3.2,
+                "n": 12,
+                "n_unit": "laps"
+              }
+            ],
+            "answer": "Hamilton carried 3.2 km/h more minimum speed through Turn 15 [card c1]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "LAP_MAP_GREY_CELL",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [
+          "/app/dirty-air-lap-map"
+        ],
+        "metrics": [
+          "per-lap air state cells and shares on the lap map"
+        ]
+      },
+      "condition": "A card comes from the dirty-air lap map, where laps with missing telemetry are drawn as free air (grey).",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "source_page",
+              "op": "matches",
+              "value": "dirty-air-lap-map"
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Say a grey (free-air) cell can mean clean air or missing telemetry.",
+        "all_of": [
+          [
+            "\\b(clean|free)[- ]air\\b"
+          ],
+          [
+            "\\b(missing|absent|no) (telemetry|data|gap data)\\b",
+            "\\btelemetry (is |was )?(missing|absent)\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Read a grey cell or a free-air lap as certainly clean air.",
+        "patterns": [
+          "\\bgr[ae]y\\b[^.]{0,30}\\b(means|shows|is|are|=)\\b[^.]{0,15}\\b(clean|free)[- ]air\\b(?! or)",
+          "\\b(definitely|certainly|always) (in )?(clean|free)[- ]air\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "docs/app/dirty-air-lap-map.mdx",
+          "line": 21,
+          "quote": "so a grey cell can mean clean air *or* absent data"
+        }
+      ],
+      "examples": [
+        {
+          "name": "reads grey cells as clean air",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "lap_map:2023_10:HAM",
+                "metric": "dirty_air_lap_share",
+                "label": "measured",
+                "value": 0.42,
+                "n": 52,
+                "n_unit": "laps",
+                "source_page": "app/dirty-air-lap-map"
+              }
+            ],
+            "answer": "The grey cells mean clean air: Hamilton spent the last 20 laps out of traffic [card lap_map:2023_10:HAM]."
+          }
+        },
+        {
+          "name": "says grey can be clean air or missing telemetry",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "lap_map:2023_10:HAM",
+                "metric": "dirty_air_lap_share",
+                "label": "measured",
+                "value": 0.42,
+                "n": 52,
+                "n_unit": "laps",
+                "source_page": "app/dirty-air-lap-map"
+              }
+            ],
+            "answer": "Hamilton's lap map shows traffic on 42% of laps [card lap_map:2023_10:HAM]. A grey cell can mean free air or missing telemetry, so the grey run late in the race is not certain to be clean."
+          }
+        },
+        {
+          "name": "a card from another page does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "c1",
+                "metric": "stint_length_laps",
+                "label": "measured",
+                "n": 40,
+                "n_unit": "stints",
+                "source_page": "app/pit-strategy"
+              }
+            ],
+            "answer": "The stint lasted 22 laps [card c1]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "SURVIVAL_LOWER_BOUND",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [
+          "/app/tyre-cliff-survival"
+        ],
+        "metrics": [
+          "Kaplan-Meier survival curve values, median and quantile tyre life"
+        ]
+      },
+      "condition": "A card gives a tyre-life survival figure. Where most stints end in a pit stop before the cliff (censored), the curve is a lower bound on tyre life.",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "source_page",
+              "op": "matches",
+              "value": "tyre-cliff-survival"
+            },
+            {
+              "field": "metric",
+              "op": "matches",
+              "value": "surviv|\\bkm_|kaplan|tyre_life|median_life"
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Say the figure is a lower bound on tyre life (because stints are censored by pit stops).",
+        "all_of": [
+          [
+            "\\blower bound\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Say the tyre will last that long, or call it the tyre's limit.",
+        "patterns": [
+          "\\btyres? (will|would|can) last\\b",
+          "\\bwill last\\b",
+          "(?<!not )(?<!not the )\\b(true|real) (tyre )?(life|limit)\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "docs/app/tyre-cliff-survival.mdx",
+          "line": 34,
+          "quote": "should be read as a lower bound on tyre life"
+        }
+      ],
+      "examples": [
+        {
+          "name": "says the tyre will last that long",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "survival:2024:SOFT",
+                "metric": "km_survival_median_laps",
+                "label": "computed",
+                "value": 18,
+                "n": 60,
+                "n_unit": "stints",
+                "source_page": "app/tyre-cliff-survival"
+              }
+            ],
+            "answer": "The soft tyre will last 18 laps in 2024 [card survival:2024:SOFT]."
+          }
+        },
+        {
+          "name": "calls it a lower bound",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "survival:2024:SOFT",
+                "metric": "km_survival_median_laps",
+                "label": "computed",
+                "value": 18,
+                "n": 60,
+                "n_unit": "stints",
+                "source_page": "app/tyre-cliff-survival"
+              }
+            ],
+            "answer": "Half the 2024 soft stints were still alive at 18 laps [card survival:2024:SOFT]. Most of them ended in a pit stop first, so read it as a lower bound on tyre life, not the tyre's limit."
+          }
+        },
+        {
+          "name": "a non-survival card from the same page does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "c1",
+                "metric": "stints_n",
+                "label": "computed",
+                "value": 60,
+                "n": 60,
+                "n_unit": "stints",
+                "source_page": "app/tyre-cliff-survival"
+              }
+            ],
+            "answer": "The page has 60 soft stints for 2024 [card c1]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "GHOST_IS_COUNTERFACTUAL",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [
+          "/app/ghost-race-standings",
+          "/app/counterfactual-championship",
+          "/app/hidden-performance"
+        ],
+        "metrics": [
+          "ghost finish positions, ghost points and transplanted-car standings"
+        ]
+      },
+      "condition": "A card comes from a ghost or counterfactual page. Those are statistical, expected-value reconstructions of equal-car pace, not simulations of the race.",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "source_page",
+              "op": "matches",
+              "value": "ghost-race-standings|counterfactual-championship|hidden-performance"
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Say it is a statistical, expected-value reconstruction, not a simulation.",
+        "all_of": [
+          [
+            "\\bstatistical\\b",
+            "\\bexpected[- ]value\\b"
+          ],
+          [
+            "\\bnot a (physics |race )?simulation\\b",
+            "\\bnot (a )?simulat(ed|ion)\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Say the driver would have won, or that the reconstruction proves anything.",
+        "patterns": [
+          "\\bwould have (won|beaten|taken|finished)\\b",
+          "(?<!not )(?<!n't )\\bprov(e|es|ed|ing)\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "docs/app/ghost-race-standings.mdx",
+          "line": 21,
+          "quote": "This is a statistical reconstruction of equal-car pace, not a physics simulation"
+        },
+        {
+          "file": "docs/app/counterfactual-championship.mdx",
+          "line": 31,
+          "quote": "expected-value** reconstruction, not a simulation"
+        }
+      ],
+      "examples": [
+        {
+          "name": "says the driver would have won",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "ghost_standings:2021:NOR",
+                "metric": "ghost_points",
+                "label": "modelled",
+                "value": 312,
+                "n": 22,
+                "n_unit": "races",
+                "source_page": "app/ghost-race-standings"
+              }
+            ],
+            "answer": "In an equal car Norris would have won the 2021 title with 312 points [card ghost_standings:2021:NOR]; that proves the car held him back."
+          }
+        },
+        {
+          "name": "calls it a statistical reconstruction, not a simulation",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "ghost_standings:2021:NOR",
+                "metric": "ghost_points",
+                "label": "modelled",
+                "value": 312,
+                "n": 22,
+                "n_unit": "races",
+                "source_page": "app/ghost-race-standings"
+              }
+            ],
+            "answer": "In the equal-car standings Norris scores 312 points for 2021 [card ghost_standings:2021:NOR]. That is a statistical, expected-value reconstruction of pace, not a simulation of the races."
+          }
+        },
+        {
+          "name": "a card from another page does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "c1",
+                "metric": "stint_length_laps",
+                "label": "measured",
+                "n": 40,
+                "n_unit": "stints",
+                "source_page": "app/pit-strategy"
+              }
+            ],
+            "answer": "The stint lasted 22 laps [card c1]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "ONE_SKILL_MEASURE",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [],
+        "metrics": [
+          "cards that carry policy_fields.skill_measure (waterfall residual, consistency residual, wet-race proxy, LORO race skill, era-normalised rating, corner / synthetic / qualifying proxies)"
+        ]
+      },
+      "condition": "An answer uses cards from two or more different 'skill' measures. Their ranks can disagree; they are different measures, not one scale.",
+      "triggers": [
+        {
+          "cards_distinct_values": {
+            "field": "skill_measure",
+            "min": 2
+          }
+        }
+      ],
+      "required_wording": {
+        "description": "Name each measure and say they are different measures, not one scale.",
+        "all_of": [
+          [
+            "\\bdifferent (skill )?(measures|definitions|metrics)\\b",
+            "\\bnot the same (measure|scale|definition)\\b",
+            "\\bseparate (skill )?measures\\b",
+            "\\bnot (on )?(one|a single|the same) scale\\b"
+          ],
+          [
+            "\\b(LORO|leave-one-race-out|race[- ]skill|teammate[- ]paired|race rating)\\b",
+            "\\bera[- ](normali[sz]ed|adjusted)\\b",
+            "\\b(waterfall|consistency) residual\\b",
+            "\\bwet[- ]race\\b",
+            "\\b(corner|synthetic|qualifying) (skill|proxy|teammate)\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Rank or combine the measures as if they were one scale.",
+        "patterns": [
+          "(?<!not )\\bon (one|a single|the same) scale\\b",
+          "\\b(overall|combined|aggregate) (skill )?(rank|ranking|score)\\b",
+          "\\b(both|all) (measures|ratings) (agree|say|show) (he|she|they) (is|are) (the )?(best|better)\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "_roadmap/_ai-integration/_evidence/ax-audit-2026-11-07/audit-app.md",
+          "line": 166,
+          "quote": "Ranking drivers across different \"skill\" measures."
+        }
+      ],
+      "examples": [
+        {
+          "name": "ranks two skill measures as one scale",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "race_skill:2024_8:LEC",
+                "metric": "rating_s",
+                "label": "computed",
+                "value": -0.12,
+                "n": 40,
+                "n_unit": "laps",
+                "skill_measure": "teammate_paired_median"
+              },
+              {
+                "id": "era_rating.season:2024:LEC",
+                "metric": "era_adjusted_rating",
+                "label": "modelled",
+                "value": 0.31,
+                "n": 24,
+                "n_unit": "races",
+                "skill_measure": "era_rating",
+                "interval": {
+                  "low": 0.1,
+                  "high": 0.5,
+                  "kind": "ci_normal_95"
+                }
+              }
+            ],
+            "answer": "Leclerc's overall skill ranking is high: -0.12 s at Monaco and 0.31 s for the season [card race_skill:2024_8:LEC] [card era_rating.season:2024:LEC]."
+          }
+        },
+        {
+          "name": "names both measures and says they differ",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "race_skill:2024_8:LEC",
+                "metric": "rating_s",
+                "label": "computed",
+                "value": -0.12,
+                "n": 40,
+                "n_unit": "laps",
+                "skill_measure": "teammate_paired_median"
+              },
+              {
+                "id": "era_rating.season:2024:LEC",
+                "metric": "era_adjusted_rating",
+                "label": "modelled",
+                "value": 0.31,
+                "n": 24,
+                "n_unit": "races",
+                "skill_measure": "era_rating",
+                "interval": {
+                  "low": 0.1,
+                  "high": 0.5,
+                  "kind": "ci_normal_95"
+                }
+              }
+            ],
+            "answer": "Leclerc's LORO race skill at Monaco 2024 was -0.12 s [card race_skill:2024_8:LEC], and his era-adjusted rating for 2024 was 0.31 s (95% CI 0.10 to 0.50 s) [card era_rating.season:2024:LEC]. These are different measures, not one scale, so their ranks need not agree."
+          }
+        },
+        {
+          "name": "two cards on the same measure do not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "race_skill:2024_8:LEC",
+                "metric": "rating_s",
+                "label": "computed",
+                "value": -0.12,
+                "n": 40,
+                "n_unit": "laps",
+                "skill_measure": "teammate_paired_median"
+              },
+              {
+                "id": "race_skill:2024_9:LEC",
+                "metric": "rating_s",
+                "label": "computed",
+                "value": -0.05,
+                "n": 40,
+                "n_unit": "laps",
+                "skill_measure": "teammate_paired_median"
+              }
+            ],
+            "answer": "Leclerc's LORO race skill was -0.12 s at Monaco and -0.05 s at Canada."
+          }
+        }
+      ]
+    },
+    {
+      "code": "AIR_STATE_FILTER",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [
+          "(no page) race.teammate_gap",
+          "/drivers/ratings-timeline"
+        ],
+        "metrics": [
+          "teammate_gap_s and its paired-lap CI (mart_race_driver_summary)",
+          "era_adjusted_rating (int_era_normalized_driver_rating)"
+        ]
+      },
+      "condition": "A transform-only card whose laps were chosen with a rule that depends on the air-state (gap to the car ahead) table: the rain filter joins int_track_evolution, which only has rows for field-pace cells built from free-air and tow laps (HD13: filter-only use is transform-only, with this caveat). The value carries no dirty-air price. On about 0.6% of laps the rain filter does not apply.",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "caveats",
+              "op": "has",
+              "value": "AIR_STATE_FILTER"
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Say the laps were chosen with the air-state (clean-air) filter, or that the number is not a dirty-air estimate.",
+        "all_of": [
+          [
+            "\\bnot a dirty[- ]air (estimate|figure|number|adjustment|correction)\\b",
+            "\\b(clean[- ]air|air[- ]state) (rule|filter)\\b",
+            "\\btraffic laps (were )?(left out|excluded|dropped)\\b",
+            "\\blaps (were )?(chosen|selected|filtered)\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Present the number as corrected or adjusted for dirty air or traffic.",
+        "patterns": [
+          "\\b(adjusted|corrected|normali[sz]ed|controlled) for (dirty[- ]air|traffic)\\b",
+          "\\bdirty[- ]air[- ](adjusted|corrected|free)\\b",
+          "\\bnet of (dirty[- ]air|traffic)\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "_roadmap/_ai-integration/status/build-log.json",
+          "line": null,
+          "quote": "Filter-only use of the air-state table counts as transform-only, with a caveat on the card"
+        },
+        {
+          "file": "_roadmap/_ai-integration/_evidence/ax-07a-lineage-2026-11-07/lineage.md",
+          "line": 210,
+          "quote": "on about 0.6 % of laps a rain filter that depends on it does not apply"
+        }
+      ],
+      "examples": [
+        {
+          "name": "calls the paired gap dirty-air corrected",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "race.teammate_gap:2024_1:VER",
+                "metric": "teammate_gap_s",
+                "label": "computed",
+                "value": -0.622,
+                "unit": "s",
+                "n": 46,
+                "n_unit": "laps",
+                "caveats": [
+                  "AIR_STATE_FILTER"
+                ],
+                "scope": {
+                  "driver": "VER",
+                  "race": "2024_1"
+                }
+              }
+            ],
+            "answer": "Verstappen was 0.622 s per lap faster than Perez in Bahrain 2024, corrected for dirty air [card race.teammate_gap:2024_1:VER]."
+          }
+        },
+        {
+          "name": "says the laps were chosen with the air-state filter",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "race.teammate_gap:2024_1:VER",
+                "metric": "teammate_gap_s",
+                "label": "computed",
+                "value": -0.622,
+                "unit": "s",
+                "n": 46,
+                "n_unit": "laps",
+                "caveats": [
+                  "AIR_STATE_FILTER"
+                ],
+                "scope": {
+                  "driver": "VER",
+                  "race": "2024_1"
+                }
+              }
+            ],
+            "answer": "On the 46 laps both drivers ran clean, Verstappen's median lap was 0.622 s quicker than Perez's in Bahrain 2024 [card race.teammate_gap:2024_1:VER]. The laps were chosen with the air-state filter; the gap is not a dirty-air estimate."
+          }
+        }
+      ]
+    },
+    {
+      "code": "RATING_TRUST_LABEL",
+      "kind": "thin_sample",
+      "status": "active",
+      "applies_to": {
+        "pages": [],
+        "metrics": [
+          "race.teammate_gap (rating_s, TX-01 trust label in policy_fields.rating_trust_label)"
+        ]
+      },
+      "condition": "A teammate-gap card is thin (6 to 11 paired laps) or suppressed (fewer than 6: no CI, no value). A thin gap is quoted with a hedge; a suppressed gap has no value at all (AX-21).",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "rating_trust_label",
+              "op": "in",
+              "value": [
+                "suppressed",
+                "thin"
+              ]
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Suppressed: say there is no reliable gap. Thin: say it rests on few paired laps and is directional.",
+        "all_of": [
+          [
+            "\\bno reliable (gap|rating|value|number)\\b",
+            "\\bthin\\b",
+            "\\b(only|just) \\d+ paired laps?\\b",
+            "\\b(few|fewer than \\d+) paired laps\\b",
+            "\\bsmall sample\\b",
+            "\\btentative\\b",
+            "\\bdirectional\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "State a thin or suppressed gap with certainty.",
+        "patterns": [
+          "\\b(clearly|definitely|conclusively|certainly|decisively)\\b",
+          "\\b(dominated|destroyed|thrashed|crushed)\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "transform/models/marts/schema.yml",
+          "line": 2952,
+          "quote": "How far to trust rating_s, from paired_lap_count: 'suppressed' when n < 6 (too few"
+        }
+      ],
+      "examples": [
+        {
+          "name": "states a thin gap with certainty",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "race.teammate_gap:2019_1:NOR",
+                "kind": "race.teammate_gap",
+                "metric": "teammate_gap_s",
+                "label": "computed",
+                "value": -0.472,
+                "unit": "s",
+                "n": 8,
+                "n_unit": "laps",
+                "rating_trust_label": "thin",
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "interval": {
+                  "low": -0.926,
+                  "high": 0.336,
+                  "kind": "ci_order_stat_median"
+                }
+              }
+            ],
+            "answer": "Norris clearly beat Sainz by 0.472 s per lap in race 2019_1 [card race.teammate_gap:2019_1:NOR]."
+          }
+        },
+        {
+          "name": "quotes a suppressed rating as a number",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "race.teammate_gap:2020_14:HAM",
+                "kind": "race.teammate_gap",
+                "metric": "teammate_gap_s",
+                "label": "unavailable",
+                "value": null,
+                "unit": "s",
+                "n": 0,
+                "n_unit": "laps",
+                "rating_trust_label": "suppressed",
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "unavailable_reason": "rated on 1 paired lap (fewer than 6): suppressed, no value"
+              }
+            ],
+            "answer": "Hamilton was definitely 6.6 s per lap quicker than Bottas in race 2020_14 [card race.teammate_gap:2020_14:HAM]."
+          }
+        },
+        {
+          "name": "hedges a thin gap",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "race.teammate_gap:2019_1:NOR",
+                "kind": "race.teammate_gap",
+                "metric": "teammate_gap_s",
+                "label": "computed",
+                "value": -0.472,
+                "unit": "s",
+                "n": 8,
+                "n_unit": "laps",
+                "rating_trust_label": "thin",
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "interval": {
+                  "low": -0.926,
+                  "high": 0.336,
+                  "kind": "ci_order_stat_median"
+                }
+              }
+            ],
+            "answer": "Norris's median gap to Sainz in race 2019_1 was -0.472 s per lap (95% CI -0.926 to 0.336) [card race.teammate_gap:2019_1:NOR], but it rests on only 8 paired laps, so it is thin: read it as directional."
+          }
+        },
+        {
+          "name": "says a suppressed gap has no reliable value",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "race.teammate_gap:2020_14:HAM",
+                "kind": "race.teammate_gap",
+                "metric": "teammate_gap_s",
+                "label": "unavailable",
+                "value": null,
+                "unit": "s",
+                "n": 0,
+                "n_unit": "laps",
+                "rating_trust_label": "suppressed",
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "unavailable_reason": "rated on 1 paired lap (fewer than 6): suppressed, no value"
+              }
+            ],
+            "answer": "There is no reliable gap for Hamilton against Bottas in race 2020_14: there is no value, because he was rated on only 1 paired lap [card race.teammate_gap:2020_14:HAM]."
+          }
+        },
+        {
+          "name": "an ok gap does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "race.teammate_gap:2024_1:VER",
+                "kind": "race.teammate_gap",
+                "metric": "teammate_gap_s",
+                "label": "computed",
+                "value": -0.622,
+                "unit": "s",
+                "n": 46,
+                "n_unit": "laps",
+                "rating_trust_label": "ok",
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "interval": {
+                  "low": -0.755,
+                  "high": -0.39,
+                  "kind": "ci_order_stat_median"
+                }
+              }
+            ],
+            "answer": "Verstappen's median gap to Perez on 46 paired laps was -0.622 s per lap [card race.teammate_gap:2024_1:VER]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "RANK_WITHIN_CI",
+      "kind": "low_confidence",
+      "status": "active",
+      "applies_to": {
+        "pages": [],
+        "metrics": [
+          "season.teammate_gap rank (TX-06 rank_separated_from_next in policy_fields)"
+        ]
+      },
+      "condition": "A season card's rank is not separated from the next driver's by the CI (rank_separated_from_next false). Adjacent ranks are almost never separated.",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "rank_separated_from_next",
+              "op": "eq",
+              "value": false
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Say the driver is in a group whose intervals overlap, not at a clear place.",
+        "all_of": [
+          [
+            "\\b(intervals?|CIs?|confidence intervals?|ranges?) overlap\\b",
+            "\\bnot (clearly |reliably )?separated\\b",
+            "\\bcannot be (separated|ranked|told apart)\\b",
+            "\\bin a group\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "An ordinal claim (ranked 3rd, second-best, top of the field) for an unseparated rank.",
+        "patterns": [
+          "(?<!not )\\brank(ed|s)? (\\d+(st|nd|rd|th)|first|second|third|fourth|fifth|top|highest|lowest)\\b",
+          "\\b(\\d+(st|nd|rd|th)|first|second|third|fourth|fifth)[- ](best|fastest|quickest|placed)\\b",
+          "\\b(is|was) (the )?(\\d+(st|nd|rd|th)|first|second|third|fourth|fifth) (best|fastest|quickest|strongest)\\b",
+          "\\b(top|best) (of|in) the (season|field|grid|year)\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "transform/models/marts/schema.yml",
+          "line": 2633,
+          "quote": "so quote a rank only with the CI; rank_separated_from_next says when it"
+        }
+      ],
+      "examples": [
+        {
+          "name": "gives an unseparated rank as a place",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "season.teammate_gap:2023:NOR",
+                "kind": "season.teammate_gap",
+                "metric": "season_teammate_gap_s",
+                "label": "computed",
+                "value": -0.15,
+                "unit": "s",
+                "n": 22,
+                "n_unit": "races",
+                "interval": {
+                  "low": -0.25,
+                  "high": -0.05,
+                  "kind": "ci_normal_95"
+                },
+                "rank": 3,
+                "rank_separated_from_next": false,
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "scope": {
+                  "season": 2023,
+                  "driver_id": "NOR"
+                }
+              }
+            ],
+            "answer": "Norris ranked 3rd against his teammate in 2023, with a median gap of -0.15 s per lap [card season.teammate_gap:2023:NOR]."
+          }
+        },
+        {
+          "name": "places the driver in an overlapping group",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "season.teammate_gap:2023:NOR",
+                "kind": "season.teammate_gap",
+                "metric": "season_teammate_gap_s",
+                "label": "computed",
+                "value": -0.15,
+                "unit": "s",
+                "n": 22,
+                "n_unit": "races",
+                "interval": {
+                  "low": -0.25,
+                  "high": -0.05,
+                  "kind": "ci_normal_95"
+                },
+                "rank": 3,
+                "rank_separated_from_next": false,
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "scope": {
+                  "season": 2023,
+                  "driver_id": "NOR"
+                }
+              }
+            ],
+            "answer": "Norris's 2023 season median gap to his teammate was -0.15 s per lap (95% CI -0.25 to -0.05) [card season.teammate_gap:2023:NOR]. His interval overlaps the next driver's, so he sits in a group whose intervals overlap rather than at a clear place."
+          }
+        },
+        {
+          "name": "a separated rank does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "season.teammate_gap:2023:VER",
+                "kind": "season.teammate_gap",
+                "metric": "season_teammate_gap_s",
+                "label": "computed",
+                "value": -0.6,
+                "unit": "s",
+                "n": 22,
+                "n_unit": "races",
+                "interval": {
+                  "low": -0.8,
+                  "high": -0.4,
+                  "kind": "ci_normal_95"
+                },
+                "rank": 1,
+                "rank_separated_from_next": true,
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "scope": {
+                  "season": 2023,
+                  "driver_id": "VER"
+                }
+              }
+            ],
+            "answer": "Verstappen's 2023 season median gap to his teammate was -0.6 s per lap (95% CI -0.8 to -0.4) [card season.teammate_gap:2023:VER]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "POOLED_SC_RATE_ONLY",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [
+          "/race-craft/race-control"
+        ],
+        "metrics": [
+          "race_control.pooled_rate (Wilson rate per race or per lap)"
+        ]
+      },
+      "condition": "A caution rate from Race Control. The between-circuit share is 0.000, so only the pooled rate exists; no circuit has its own safety-car probability. race.cautions (a per-race lap count) shares the page but carries no rate and does not fire this.",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "kind",
+              "op": "eq",
+              "value": "race_control.pooled_rate"
+            }
+          ]
+        },
+        {
+          "card": [
+            {
+              "field": "source_page",
+              "op": "matches",
+              "value": "race-control"
+            },
+            {
+              "field": "metric",
+              "op": "matches",
+              "value": "rate|probab|hazard|per_lap|per_race"
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "Say the rate is pooled across circuits and that the data shows no reliable difference between circuits.",
+        "all_of": [
+          [
+            "\\bpooled\\b",
+            "\\bacross (all|every) (circuits|races|tracks|seasons)\\b"
+          ],
+          [
+            "\\bno (reliable |measurable |detectable )?difference between (circuits|tracks|venues)\\b",
+            "\\b(circuits|tracks) (do not|don't) (reliably )?differ\\b",
+            "\\bnot (a )?(per|single)[- ](circuit|track)\\b",
+            "\\bindistinguishable\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Give one circuit its own safety-car probability or call a circuit more or less prone to them.",
+        "patterns": [
+          "\\b(chance|probability|likelihood|odds|risk) of an? (safety[- ]car|SC|VSC|caution)\\b[^.]{0,30}\\b(at|in) (?!all\\b|any\\b|every\\b|each\\b|a\\b|the field\\b)\\w+",
+          "\\b(at|in) (?!all\\b|any\\b|every\\b|each\\b|a\\b|the\\b)\\w+[^.]{0,25}\\b(chance|probability|likelihood|odds|risk) of an? (safety[- ]car|SC|VSC)\\b",
+          "\\b(safety[- ]car|SC|VSC|caution) (probability|chance|odds|risk|rate) (at|for|in) (?!all\\b|any\\b|every\\b|each\\b|a\\b)\\w+",
+          "\\b(more|less) (likely|prone) to (bring out|have|see|produce|get) (a )?(safety[- ]cars?|SCs?|VSCs?|cautions?)\\b",
+          "\\bsafety[- ]car (magnet|hotspot)\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "docs/app/race-control.mdx",
+          "line": 42,
+          "quote": "So the only caution probability shown is **pooled** across every circuit and season"
+        },
+        {
+          "file": "docs/app/race-control.mdx",
+          "line": 35,
+          "quote": "puts the between-circuit share at **0.000** for any caution"
+        }
+      ],
+      "examples": [
+        {
+          "name": "gives Monaco its own safety-car chance",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "race_control.pooled_rate:sc",
+                "kind": "race_control.pooled_rate",
+                "metric": "sc_onset_rate_per_race",
+                "label": "computed",
+                "value": 0.43,
+                "n": 173,
+                "n_unit": "races",
+                "interval": {
+                  "low": 0.36,
+                  "high": 0.5,
+                  "kind": "wilson_95"
+                },
+                "source_page": "race-control"
+              }
+            ],
+            "answer": "At Monaco there is a 60% chance of a safety car [card race_control.pooled_rate:sc]."
+          }
+        },
+        {
+          "name": "quotes the pooled rate and says circuits do not differ",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "race_control.pooled_rate:sc",
+                "kind": "race_control.pooled_rate",
+                "metric": "sc_onset_rate_per_race",
+                "label": "computed",
+                "value": 0.43,
+                "n": 173,
+                "n_unit": "races",
+                "interval": {
+                  "low": 0.36,
+                  "high": 0.5,
+                  "kind": "wilson_95"
+                },
+                "source_page": "race-control"
+              }
+            ],
+            "answer": "Across every circuit and season the pooled rate is 0.43 safety-car periods per race (95% CI 0.36 to 0.50, 173 races) [card race_control.pooled_rate:sc]. The data shows no reliable difference between circuits, so I cannot give Monaco a figure of its own."
+          }
+        },
+        {
+          "name": "a per-race caution lap count does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "race.cautions:2020_14",
+                "kind": "race.cautions",
+                "metric": "caution_laps",
+                "label": "measured",
+                "value": 4,
+                "unit": "laps",
+                "n": 58,
+                "n_unit": "laps",
+                "source_page": "race-control"
+              }
+            ],
+            "answer": "Race 2020_14 had 4 laps under caution, all under the VSC [card race.cautions:2020_14]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "NOT_INDEPENDENT_EVIDENCE",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [
+          "/drivers/circuit-affinity",
+          "/drivers/ratings-timeline",
+          "/drivers/era-translator",
+          "/ghost-car/standings",
+          "/constructors/structural",
+          "/constructors/team-averages",
+          "/tyre-strategy/party-mode"
+        ],
+        "metrics": [
+          "cards sharing policy_fields.shared_input_group race_rating or constructor_pace"
+        ]
+      },
+      "condition": "Two or more different card kinds from one shared-input group are used together: affinity, era ratings and ghost standings share the race-grain rating; Team Averages' car term, Structural Pace and Party Mode share the car-pace laps. They are not separate confirmations.",
+      "triggers": [
+        {
+          "cards_distinct_values": {
+            "field": "kind",
+            "min": 2,
+            "where": {
+              "field": "shared_input_group",
+              "eq": "race_rating"
+            }
+          }
+        },
+        {
+          "cards_distinct_values": {
+            "field": "kind",
+            "min": 2,
+            "where": {
+              "field": "shared_input_group",
+              "eq": "constructor_pace"
+            }
+          }
+        }
+      ],
+      "required_wording": {
+        "description": "Say the figures share their inputs and are not independent evidence.",
+        "all_of": [
+          [
+            "\\bnot independent\\b",
+            "\\bshare (the same |their )?(inputs?|data|laps|rating)\\b",
+            "\\b(built|based) on the same\\b",
+            "\\bsame (underlying )?(laps|data|rating|inputs?)\\b",
+            "\\bnot (two|three|separate) (confirmations|checks)\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Count them as separate confirmations.",
+        "patterns": [
+          "(?<!not )(?<!not as )(?<!not an )\\b(independent|separate) (confirmations?|evidence|checks?|lines of evidence)\\b",
+          "\\b(both|all three|two|three) (pages|measures|sources|numbers|ratings) (confirm|corroborate|independently)\\b",
+          "\\bconfirm(s|ed)? each other\\b",
+          "\\bindependently (confirm|corroborate|support)s?\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "docs/app/driver-circuit-affinity.mdx",
+          "line": 35,
+          "quote": "Affinity and the era ratings share the same race-grain rating; do not stack them as if independent."
+        },
+        {
+          "file": "_roadmap/_ai-integration/_evidence/ax-audit-2026-11-07/audit-app.md",
+          "line": 176,
+          "quote": "Team Averages `constructor_component_s` against the Structural Pace panel FE."
+        }
+      ],
+      "examples": [
+        {
+          "name": "stacks affinity on the era rating",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "era_rating.season:2024:LEC",
+                "kind": "era_rating.season",
+                "metric": "era_adjusted_rating",
+                "label": "modelled",
+                "value": 0.31,
+                "unit": "s",
+                "n": 24,
+                "n_unit": "races",
+                "interval": {
+                  "low": 0.1,
+                  "high": 0.5,
+                  "kind": "ci_normal_95"
+                },
+                "skill_measure": "era_rating",
+                "shared_input_group": "race_rating"
+              },
+              {
+                "id": "driver_circuit_affinity.circuit:2024:LEC:monaco",
+                "kind": "driver_circuit_affinity.circuit",
+                "metric": "affinity_deviation_s",
+                "label": "modelled",
+                "value": 0.4,
+                "unit": "s",
+                "n": 6,
+                "n_unit": "races",
+                "shared_input_group": "race_rating"
+              }
+            ],
+            "answer": "Leclerc's era rating of 0.31 s [card era_rating.season:2024:LEC] and his Monaco affinity of +0.40 s [card driver_circuit_affinity.circuit:2024:LEC:monaco] are two independent confirmations that he excels there."
+          }
+        },
+        {
+          "name": "says they share the race-grain rating",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "era_rating.season:2024:LEC",
+                "kind": "era_rating.season",
+                "metric": "era_adjusted_rating",
+                "label": "modelled",
+                "value": 0.31,
+                "unit": "s",
+                "n": 24,
+                "n_unit": "races",
+                "interval": {
+                  "low": 0.1,
+                  "high": 0.5,
+                  "kind": "ci_normal_95"
+                },
+                "skill_measure": "era_rating",
+                "shared_input_group": "race_rating"
+              },
+              {
+                "id": "driver_circuit_affinity.circuit:2024:LEC:monaco",
+                "kind": "driver_circuit_affinity.circuit",
+                "metric": "affinity_deviation_s",
+                "label": "modelled",
+                "value": 0.4,
+                "unit": "s",
+                "n": 6,
+                "n_unit": "races",
+                "shared_input_group": "race_rating"
+              }
+            ],
+            "answer": "Leclerc's 2024 era rating is 0.31 s (95% CI 0.10 to 0.50) [card era_rating.season:2024:LEC] and his Monaco affinity is +0.40 s [card driver_circuit_affinity.circuit:2024:LEC:monaco]. They share the same race-grain rating, so they are not independent: read them as one signal."
+          }
+        },
+        {
+          "name": "one kind across two seasons does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "era_rating.season:2024:LEC",
+                "kind": "era_rating.season",
+                "metric": "era_adjusted_rating",
+                "label": "modelled",
+                "value": 0.31,
+                "unit": "s",
+                "n": 24,
+                "n_unit": "races",
+                "interval": {
+                  "low": 0.1,
+                  "high": 0.5,
+                  "kind": "ci_normal_95"
+                },
+                "skill_measure": "era_rating",
+                "shared_input_group": "race_rating"
+              },
+              {
+                "id": "era_rating.season:2023:LEC",
+                "kind": "era_rating.season",
+                "metric": "era_adjusted_rating",
+                "label": "modelled",
+                "value": 0.22,
+                "unit": "s",
+                "n": 24,
+                "n_unit": "races",
+                "interval": {
+                  "low": 0.02,
+                  "high": 0.42,
+                  "kind": "ci_normal_95"
+                },
+                "skill_measure": "era_rating",
+                "shared_input_group": "race_rating"
+              }
+            ],
+            "answer": "Leclerc's era rating was 0.22 s in 2023 and 0.31 s in 2024 [card era_rating.season:2023:LEC] [card era_rating.season:2024:LEC]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "COUNT_NOT_CAUSE",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [],
+        "metrics": [
+          "query_data results (computed_not_card, n_unit rows)",
+          "context cards: race.cautions, driver_race.pit_stops, race.coverage, data_quality.race"
+        ]
+      },
+      "condition": "The answer uses a count, a query result or a context card. In v1 no live card is a time-loss breakdown, so a count can be consistent with a gap but never explains it (AX-21).",
+      "triggers": [
+        {
+          "card": [
+            {
+              "field": "label",
+              "op": "eq",
+              "value": "computed_not_card"
+            }
+          ]
+        },
+        {
+          "card": [
+            {
+              "field": "n_unit",
+              "op": "eq",
+              "value": "rows"
+            }
+          ]
+        },
+        {
+          "card": [
+            {
+              "field": "kind",
+              "op": "in",
+              "value": [
+                "race.cautions",
+                "driver_race.pit_stops",
+                "race.coverage",
+                "data_quality.race"
+              ]
+            }
+          ]
+        }
+      ],
+      "required_wording": {
+        "description": "None. The rule forbids causal wording; 'consistent with' is the allowed form.",
+        "all_of": []
+      },
+      "forbidden_claim": {
+        "description": "Give the count as the cause of a gap or a result.",
+        "patterns": [
+          "\\bbecause of\\b",
+          "\\bcaused by\\b",
+          "\\bdue to\\b",
+          "\\b(cost|lost) (him|her|them) (the race|the win|\\d)",
+          "(?<!not )(?<!n't )\\bexplains? (the|his|her|their|why)\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "_roadmap/_ai-integration/wi/AX-21.md",
+          "line": 20,
+          "quote": "Never \"because\" or \"caused by\" from a count, a `computed_not_card` result, or context cards."
+        }
+      ],
+      "examples": [
+        {
+          "name": "blames the gap on the caution laps",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "race.teammate_gap:2024_1:VER",
+                "kind": "race.teammate_gap",
+                "metric": "teammate_gap_s",
+                "label": "computed",
+                "value": -0.622,
+                "unit": "s",
+                "n": 46,
+                "n_unit": "laps",
+                "rating_trust_label": "ok",
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "interval": {
+                  "low": -0.755,
+                  "high": -0.39,
+                  "kind": "ci_order_stat_median"
+                }
+              },
+              {
+                "id": "race.cautions:2020_14",
+                "kind": "race.cautions",
+                "metric": "caution_laps",
+                "label": "measured",
+                "value": 4,
+                "unit": "laps",
+                "n": 58,
+                "n_unit": "laps",
+                "source_page": "race-control"
+              }
+            ],
+            "answer": "Verstappen's -0.622 s per lap median gap to Perez on 46 paired laps [card race.teammate_gap:2024_1:VER] was caused by the 4 VSC laps [card race.cautions:2020_14]."
+          }
+        },
+        {
+          "name": "calls a query count the reason",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "q7c1d2e3f4a5b",
+                "metric": "qv_laps.lap_time_s",
+                "label": "computed_not_card",
+                "aggregate_fn": "count",
+                "n": 4,
+                "n_unit": "rows",
+                "source_page": "qv_laps"
+              }
+            ],
+            "answer": "He finished behind due to the 4 slow laps, a plain count computed from the lap data [result q7c1d2e3f4a5b]."
+          }
+        },
+        {
+          "name": "reports the count as context only",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "race.cautions:2020_14",
+                "kind": "race.cautions",
+                "metric": "caution_laps",
+                "label": "measured",
+                "value": 4,
+                "unit": "laps",
+                "n": 58,
+                "n_unit": "laps",
+                "source_page": "race-control"
+              }
+            ],
+            "answer": "Race 2020_14 had 4 laps under caution [card race.cautions:2020_14]. That is context: a count does not split lap time into causes."
+          }
+        },
+        {
+          "name": "a card without counts does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "race.result:2024_1:VER",
+                "kind": "race.result",
+                "metric": "finish_position",
+                "label": "measured",
+                "value": 1,
+                "n": 1,
+                "n_unit": "races"
+              }
+            ],
+            "answer": "Verstappen won from pole [card race.result:2024_1:VER]."
+          }
+        }
+      ]
+    },
+    {
+      "code": "ONE_SKILL_MEASURE_NAMED",
+      "kind": "known_gap",
+      "status": "active",
+      "applies_to": {
+        "pages": [],
+        "metrics": [
+          "any card carrying policy_fields.skill_measure (AX-21 glossary)"
+        ]
+      },
+      "condition": "The single-card case of ONE_SKILL_MEASURE: any skill card is quoted. At least six 'skill' measures ship and their ranks can disagree, so the answer names the one it quotes. A separate code because ONE_SKILL_MEASURE's wording (\"different measures\") only fits two or more.",
+      "triggers": [
+        {
+          "cards_distinct_values": {
+            "field": "skill_measure",
+            "min": 1
+          }
+        }
+      ],
+      "required_wording": {
+        "description": "Name the measure quoted (teammate-paired median gap, era rating, lap residual, ...).",
+        "all_of": [
+          [
+            "\\bteammate[- ]paired\\b",
+            "\\bpaired[- ]laps?\\b",
+            "\\bmedian (lap[- ]time )?gap\\b",
+            "\\bera[- ](rating|adjusted|normali[sz]ed)\\b",
+            "\\bLORO\\b",
+            "\\brace[- ]skill\\b",
+            "\\b(lap|waterfall|consistency) residual\\b",
+            "\\bwet[- ]race (proxy|skill)\\b",
+            "\\bcorner[- ](skill|phase)\\b",
+            "\\bsynthetic[- ]teammate\\b",
+            "\\bqualifying[- ]decomposed\\b"
+          ]
+        ]
+      },
+      "forbidden_claim": {
+        "description": "Read a residual as driver error, or a measure as the driver's true skill.",
+        "patterns": [
+          "(?<!not )(?<!not a )(?<!n't )\\bdriver errors?\\b",
+          "\\b(his|her|their) (true|real|overall) skill\\b"
+        ]
+      },
+      "sources": [
+        {
+          "file": "_roadmap/_ai-integration/_evidence/ax-audit-2026-11-07/audit-app.md",
+          "line": 174,
+          "quote": "An assistant must name which one it quotes."
+        },
+        {
+          "file": "_roadmap/_ai-integration/wi/AX-21.md",
+          "line": 80,
+          "quote": "It means \"unexplained\", not \"driver error\"."
+        }
+      ],
+      "examples": [
+        {
+          "name": "quotes a skill card without naming the measure",
+          "expect": "fail",
+          "input": {
+            "cards": [
+              {
+                "id": "race.teammate_gap:2024_1:VER",
+                "kind": "race.teammate_gap",
+                "metric": "teammate_gap_s",
+                "label": "computed",
+                "value": -0.622,
+                "unit": "s",
+                "n": 46,
+                "n_unit": "laps",
+                "rating_trust_label": "ok",
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "interval": {
+                  "low": -0.755,
+                  "high": -0.39,
+                  "kind": "ci_order_stat_median"
+                }
+              }
+            ],
+            "answer": "Verstappen's true skill put him 0.622 s per lap ahead of Perez in race 2024_1 [card race.teammate_gap:2024_1:VER]."
+          }
+        },
+        {
+          "name": "names the measure",
+          "expect": "pass",
+          "input": {
+            "cards": [
+              {
+                "id": "race.teammate_gap:2024_1:VER",
+                "kind": "race.teammate_gap",
+                "metric": "teammate_gap_s",
+                "label": "computed",
+                "value": -0.622,
+                "unit": "s",
+                "n": 46,
+                "n_unit": "laps",
+                "rating_trust_label": "ok",
+                "skill_measure": "teammate_paired_median",
+                "shared_input_group": "race_rating",
+                "interval": {
+                  "low": -0.755,
+                  "high": -0.39,
+                  "kind": "ci_order_stat_median"
+                }
+              }
+            ],
+            "answer": "Verstappen's median gap to Perez on 46 paired laps in race 2024_1 was -0.622 s per lap (95% CI -0.755 to -0.390) [card race.teammate_gap:2024_1:VER]."
+          }
+        },
+        {
+          "name": "a card with no skill measure does not fire it",
+          "expect": "not_fired",
+          "input": {
+            "cards": [
+              {
+                "id": "race.result:2024_1:VER",
+                "kind": "race.result",
+                "metric": "finish_position",
+                "label": "measured",
+                "value": 1,
+                "n": 1,
+                "n_unit": "races"
+              }
+            ],
+            "answer": "Verstappen won from pole [card race.result:2024_1:VER]."
           }
         }
       ]

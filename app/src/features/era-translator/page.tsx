@@ -1,3 +1,4 @@
+import { useProvenance } from '../../data/provenance'
 import FeaturePage from '../../ui/layout/FeaturePage'
 import RankedTable from '../../ui/charts/RankedTable'
 import { methodologyContent, methodologyHref } from './methodology'
@@ -13,6 +14,7 @@ function fmtRating(v: number) {
 }
 
 export default function EraTranslatorPage() {
+  const prov = useProvenance()
   const { season } = useFilters()
   const { data, isLoading, error } = useQuery<EraTranslatorRow[]>(
     'era-translator.season',
@@ -41,7 +43,7 @@ export default function EraTranslatorPage() {
       ]}
       methodology={methodologyContent}
       methodologyHref={methodologyHref}
-      provenance={{ dataWindow: '2018–2025', nObs: result?.rows.length }}
+      provenance={{ dataWindow: prov.dataWindow, dataVersion: prov.dataVersion, labelVersion: prov.labelVersion, nObs: result?.rows.length }}
       csvRows={result ? toCsvRows(result) : undefined}
       csvFilename={`era-translator-${season}.csv`}
       isLoading={isLoading}

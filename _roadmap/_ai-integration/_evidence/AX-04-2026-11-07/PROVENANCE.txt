@@ -1,0 +1,95 @@
+AX-04 Card registry and headless runner - provenance (2026-11-07)
+Status: DONE. Not committed. No dependency added (package.json / pnpm-lock.yaml unchanged).
+
+Engine spike (finding 4): duckdb-wasm's Node BLOCKING bundle (@duckdb/duckdb-wasm 1.32.0,
+  dist/duckdb-node-blocking.cjs, NODE_FS file protocol) reads local parquet: PASS. Spike script:
+  engine-spike.cjs in this folder; `node engine-spike.cjs <export>/intermediates/int_era_normalized_driver_rating.parquet`
+  -> 173 rows, DuckDB v1.4.3, ~360 ms incl. instantiate. @duckdb/node-api NOT needed, not added.
+  Same package and DuckDB build as the browser (EH bundle), so SQL semantics match the page.
+
+TX-12 status: LANDED. scripts/export_app_data.py --help shows --db PATH and --out DIR.
+Scratch export (rule 5: published files, not the warehouse):
+  cp <scratch>/base/dev.duckdb <scratch>/ax04/wh/dev.duckdb      (own folder, copy named dev.duckdb; base untouched)
+  .venv/bin/python scripts/export_app_data.py --db <scratch>/ax04/wh/dev.duckdb --out <scratch>/ax04/data
+    -> rc 0, 38 tables, 224.25 MB, manifest hash dcd8e426ef1336ae, seasons 2018-2025.
+  (<scratch> = /private/tmp/claude-501/-Users-justin-github-off-the-pace/bf41f451-ffc1-4ccc-bc71-e73e8a654460/scratchpad)
+  data/dev.duckdb, data/ci.duckdb, app/public/data: not touched (app/public/data tracked, git clean, no newer files).
+
+Files added
+  app/src/assistant/cards/kinds.ts       CardKindSpec {kind, class, metric, label, unit, intervalKind, intervalLevel,
+                                         nUnit, source, route, docsSlug, held?, rev, enumerate, compute, refusal,
+                                         ids, build, pageParams, caveatRules, onScreen}; CardClass T|T-F|DA|TRAFFIC|ML
+  app/src/assistant/cards/registry.ts    registry (3 kinds), classesLive = [], registryHash, computeRegistryHash,
+                                         heldReasonFor, forbiddenSourceOf / assertSpecs (flag_chance_lookup guard)
+  app/src/assistant/cards/build.ts       buildCards, buildIndex, assembleCard, registryQueryRunner
+  app/src/assistant/cards/sha256.ts      sync pure-TS sha256 (same hash in browser / SSR / vitest)
+  app/src/assistant/cards/headless/{adapter,client,register,manifest}.ts   the three seams (finding 3)
+  app/scripts/build-cards.mjs            Vite SSR loader (createServer middlewareMode, appType custom) +
+                                         resolveId plugin that swaps the seams by RESOLVED path; CLI
+  app/src/features/era-ratings-timeline/cards.ts   era_rating.season: value era_adjusted_rating, interval
+                                         ci_low/high as ci_normal_95 level 0.95, n = n_races (races), class T-F
+  app/src/features/race-lost/cards.ts    race_lost.component: registered, EVERY row refused (finding 6) with reason;
+                                         class DA
+  app/src/features/pit-strategy/cards.ts pit_strategy.optimal_lap: held, reason built from policy.json
+                                         PIT_CALL_REPRODUCTION_RATE; caveat PIT_CALL_REPRODUCTION_RATE; class T
+  tests: registry.test.ts, sha256.test.ts, headless/adapter.test.ts, headless/headless.parity.test.ts
+  app/e2e/card-render.e2e.ts             rendered-page check (skips unless AX04_EXPECT is set)
+Files changed
+  app/src/data/hooks/useQuery.ts         + getRegisteredQuery(name), + registeredQueryNames() (finding 5)
+  No page.tsx touched for AX-04.
+
+Design notes
+  - Publish gate: spec.held -> held; else class not in classesLive -> held "CLASS_NOT_LIVE ..."; else value.
+    With classesLive = [] EVERY card is held today. AX-07 adds 'T' (and 'T-F' per HD13) to classesLive.
+  - registryHash covers declarative spec fields + rev + caveat codes + classesLive; NOT function bodies
+    (Vite SSR / vitest / browser rewrite imports inside them differently, so the hash would depend on the
+    loader). Logic changes must bump `rev`. Current hash: 52ac83f4ac922934bdbf3f6b4dcf074ef9a842465d5965b21842398dcff469d6.
+  - Seam swap gotcha found and fixed: a stand-in that imports the real module must get it under a distinct
+    id (`?ax04-real`), otherwise Vite's url->module cache hands the stand-in back to itself.
+  - Adapter maps CDN / origin / server-relative URLs to <dataDir>/..., drops ?v=, refuses paths outside
+    /data/ or escaping dataDir; directories are registered file by file (browser globs over HTTP).
+  - buildCards: refusal -> one ungrounded entry per id the refusal covers; missing n -> ungrounded;
+    validateCard failure -> ungrounded "invalid card: ..."; duplicate id -> ungrounded; compute error -> ungrounded.
+
+Full run (CLI)
+  node scripts/build-cards.mjs --data <scratch>/ax04/data --out <scratch>/ax04/cards-full   (19.5 s)
+    era_rating.season        173 params -> 173 held (CLASS_NOT_LIVE)
+    race_lost.component     3312 params -> 19872 refused (6 components each; reason: no interval + class DA)
+    pit_strategy.optimal_lap 173 params -> 8211 held, 1 refused (2021_12: no stints in int_pit_strategy_value)
+    8384 cards, all validate; 19873 ungrounded. Log: build-cards-full-run.log in this folder.
+
+Tests (vitest 5.0.5, app/)
+  npx vitest run src/assistant/cards/registry.test.ts src/assistant/cards/sha256.test.ts   -> 10 passed
+  npx vitest run src/assistant/cards/headless (no env)                                     -> 8 passed, parity 11 skipped
+  AX04_DATA_DIR=<scratch>/ax04/data npx vitest run src/assistant/cards/headless            -> 19 passed (8 + 11)
+  AX04_DATA_DIR=... npx vitest run src/assistant      -> 155 passed, 2 failed (157)
+  npx vitest run (whole app, no env)                  -> 689 passed, 2 failed, 1 expected fail, 17 skipped (709);
+                                                          files 2 failed | 56 passed | 2 skipped (60)
+    baseline before any of my edits: 569 passed, 2 failed, 1 expected fail, 6 skipped (578); files 2 failed | 48 passed | 1 skipped.
+    The 2 failing tests (sources.node CHANCE_LINE_*) and the failing file profileLookup.test.ts
+    (ENOENT app/public/data/dimensions/race_to_track.parquet: no local data) are PRE-EXISTING.
+  npm run typecheck -> passes.
+  Parity precision per field: era value / ci low / ci high 3 dp (tooltip LineWithCIRibbon.tsx:70);
+    race-lost component totals and pace delta 4 dp (Waterfall.tsx:48); pit stints, end laps, optimal lap: integers.
+  Parameter sets: era LEC 2024, HAM 2019, VER 2021; race-lost 2024_8 LEC, 2019_1 HAM, 2022_5 VER;
+    pit 2024_8, 2019_1, 2022_5. Each compared card/compute output vs (a) the registered query + transform
+    called step by step and (b) an independent SQL oracle on a separate engine connection reading the
+    parquet directly (race-lost oracle sums raw lap rows in JS). All equal.
+  Rendered values (Playwright, chromium headless shell installed): VITE_DATA_BASE="" build in
+    <scratch>/dist-local with /data -> the scratch export; parity test wrote <scratch>/ax04/expect.json
+    (AX04_EXPECT_OUT); AX04_EXPECT=... playwright card-render.e2e.ts -> 3 passed: race-lost CSV
+    (2024_8 LEC, 4 dp), era timeline CSV (default selected drivers, 4 dp value + CI), pit-gantt CSV
+    (2024_8 stints, laps, optimal lap) equal to the headless values.
+
+For the next items
+  - AX-07: add classes to classesLive; the era kind is T-F by lineage and needs the HD13 caveat, but
+    policy.json has no rule code for it yet (no caveat code was invented here; AX-09). race-lost stays
+    refused until an interval source exists (AX-15a/15b) and Q1 is ruled. Lineage says the race-mart
+    ci_* are DA - do not use them as a race-rating interval.
+  - AX-08 should publish the 8384 held cards only if held cards are wanted on the CDN before AX-07.
+  - The headless adapter is ready for AX-13 / parity tests of other features (add a cards.ts, register in registry.ts).
+
+Not verified
+  - Browser parity was read from the pages' CSV export (the rendered data), not from SVG text or tooltips.
+  - Only 3 parameter sets per feature were compared to an oracle; the full run checks validity, not values.
+  - `vite preview` (Playwright webServer) prints a native-config-loader warning about __dirname in app/vite.config.ts; harmless, not addressed.

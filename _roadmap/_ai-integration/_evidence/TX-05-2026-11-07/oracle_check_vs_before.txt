@@ -1,0 +1,3 @@
+note: 2 model(s) not materialized in dev.duckdb: int_driver_race_paired_laps, mart_race_coverage
+NEW models (not in baseline): mart_build_provenance, mart_race_coverage
+OK: all 12 fct_* models byte-stable vs baseline.

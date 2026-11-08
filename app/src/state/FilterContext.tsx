@@ -2,6 +2,7 @@
 import { createContext, useContext, ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { LATEST_SEASON } from '../data/constants'
+import { intParam } from './urlParams'
 
 interface FilterState {
   season: number
@@ -22,10 +23,12 @@ const FilterContext = createContext<FilterContextValue | null>(null)
 export function FilterProvider({ children }: { children: ReactNode }) {
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const season = Number(searchParams.get('season') ?? LATEST_SEASON)
-  const raceId = searchParams.get('race') ? Number(searchParams.get('race')) : null
-  const driverId = searchParams.get('driver') ? Number(searchParams.get('driver')) : null
-  const constructorId = searchParams.get('constructor') ? Number(searchParams.get('constructor')) : null
+  const season = intParam(searchParams.get('season')) ?? LATEST_SEASON
+  // Pages also use these keys for string ids (race=2024_8, driver=LEC, constructor=ferrari).
+  // Those are not this context's integers: read them as null, never NaN (AX-03 finding 2).
+  const raceId = intParam(searchParams.get('race'))
+  const driverId = intParam(searchParams.get('driver'))
+  const constructorId = intParam(searchParams.get('constructor'))
 
   const setSeason = (v: number) =>
     setSearchParams(p => { p.set('season', String(v)); return p }, { replace: true })

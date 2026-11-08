@@ -10,15 +10,36 @@ import { loadManifest, getTablePath } from '../../data/manifest'
 import { registerParquet } from '../../data/duckdb/register'
 
 export interface RaceLostRow {
-  total_fuel_s: number
-  total_compound_s: number
-  total_constructor_s: number
-  total_dirty_air_s: number
-  total_skill_s: number
-  total_track_s: number
-  total_explained_s: number
-  total_pace_delta_s: number
+  // A total is NULL when no lap in the group has a measured value (AP-01).
+  // It is never coalesced to 0 s.
+  total_fuel_s: number | null
+  total_compound_s: number | null
+  total_constructor_s: number | null
+  /** Sum over laps with pace_delta_s IS NOT NULL only (TX-03: unmeasured dirty air is written as 0.0) */
+  total_dirty_air_s: number | null
+  total_skill_s: number | null
+  total_track_s: number | null
+  // AP-06: the identity pace_delta = fuel + compound + constructor + dirty_air + skill is
+  // only checked on ONE lap set: the laps where all five terms and pace_delta_s are
+  // non-NULL. The closed_* sums below are over that set; the total_* sums above each cover
+  // their own (possibly larger) set and are the fallback when the closed set is empty.
+  closed_fuel_s: number | null
+  closed_compound_s: number | null
+  closed_constructor_s: number | null
+  closed_dirty_air_s: number | null
+  closed_skill_s: number | null
+  /** SUM(pace_delta_s) over the closed set; NULL when the set is empty */
+  total_pace_delta_s: number | null
+  /** Size of the closed set */
+  n_closed_laps: number
   n_laps: number
+  /** Laps behind each total (COUNT of the non-NULL values); less than n_laps = partial coverage */
+  n_fuel_component_s: number
+  n_compound_component_s: number
+  n_constructor_component_s: number
+  n_dirty_air_tax_s: number
+  n_driver_skill_residual_s: number
+  n_track_unexplained_s: number
 }
 
 interface Params {
@@ -41,23 +62,43 @@ export const queryRaceLost = registerQuery<Params, RaceLostRow[]>(
     const alias = await registerLapResiduals(season)
 
     return rawQuery<RaceLostRow>(`
+      WITH laps AS (
+        SELECT
+          *,
+          (pace_delta_s IS NOT NULL
+            AND compound_component_s IS NOT NULL
+            AND constructor_component_s IS NOT NULL
+            AND dirty_air_tax_s IS NOT NULL
+            AND driver_skill_residual_s IS NOT NULL) AS in_closed_set
+        FROM ${alias}
+        WHERE race_year = ?
+          AND race_id   = ?
+          AND driver_id = ?
+          AND NOT is_major_outlier_lap
+          AND fuel_component_s IS NOT NULL
+      )
       SELECT
-        COALESCE(SUM(fuel_component_s), 0)          AS total_fuel_s,
-        COALESCE(SUM(compound_component_s), 0)      AS total_compound_s,
-        COALESCE(SUM(constructor_component_s), 0)   AS total_constructor_s,
-        COALESCE(SUM(dirty_air_tax_s), 0)           AS total_dirty_air_s,
-        COALESCE(SUM(driver_skill_residual_s), 0)   AS total_skill_s,
-        COALESCE(SUM(track_unexplained_s), 0)       AS total_track_s,
-        COALESCE(SUM(total_explained_s), 0)         AS total_explained_s,
-        COALESCE(SUM(total_explained_s), 0)
-          + COALESCE(SUM(driver_skill_residual_s), 0)   AS total_pace_delta_s,
-        COUNT(*)                                    AS n_laps
-      FROM ${alias}
-      WHERE race_year = ?
-        AND race_id   = ?
-        AND driver_id = ?
-        AND NOT is_major_outlier_lap
-        AND fuel_component_s IS NOT NULL
+        SUM(fuel_component_s)                       AS total_fuel_s,
+        SUM(compound_component_s)                   AS total_compound_s,
+        SUM(constructor_component_s)                AS total_constructor_s,
+        SUM(CASE WHEN pace_delta_s IS NOT NULL THEN dirty_air_tax_s END) AS total_dirty_air_s,
+        SUM(driver_skill_residual_s)                AS total_skill_s,
+        SUM(track_unexplained_s)                    AS total_track_s,
+        SUM(fuel_component_s)         FILTER (WHERE in_closed_set) AS closed_fuel_s,
+        SUM(compound_component_s)     FILTER (WHERE in_closed_set) AS closed_compound_s,
+        SUM(constructor_component_s)  FILTER (WHERE in_closed_set) AS closed_constructor_s,
+        SUM(dirty_air_tax_s)          FILTER (WHERE in_closed_set) AS closed_dirty_air_s,
+        SUM(driver_skill_residual_s)  FILTER (WHERE in_closed_set) AS closed_skill_s,
+        SUM(pace_delta_s)             FILTER (WHERE in_closed_set) AS total_pace_delta_s,
+        COUNT(*) FILTER (WHERE in_closed_set)       AS n_closed_laps,
+        COUNT(*)                                    AS n_laps,
+        COUNT(fuel_component_s)                     AS n_fuel_component_s,
+        COUNT(compound_component_s)                 AS n_compound_component_s,
+        COUNT(constructor_component_s)              AS n_constructor_component_s,
+        COUNT(CASE WHEN pace_delta_s IS NOT NULL THEN dirty_air_tax_s END) AS n_dirty_air_tax_s,
+        COUNT(driver_skill_residual_s)              AS n_driver_skill_residual_s,
+        COUNT(track_unexplained_s)                  AS n_track_unexplained_s
+      FROM laps
     `, [season, raceId, driverId])
   }
 )

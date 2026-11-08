@@ -29,7 +29,7 @@
 	lint lint-fix lint-oracle-snapshot lint-oracle-check \
 	test-all test-fast transform-check data-profile-snapshot data-profile-check dq-test \
 	ml-features ml-tune ml-train ml-retrain ml-evaluate ml-attribution ml-predict ml-onnx ml-card ml-reference ml-all ml-test ml-clean ml-docs-images \
-	app-data app-data-wave0 app-data-check app-models app-dev app-dev-local app-build app-parity app-coverage app-bundle app-bundle-budget-update app-e2e app-e2e-install app-lighthouse app-publish app-publish-staging app-publish-dry app-smoke app-promote app-rollback verify-published bucket-lifecycle app-deploy \
+	app-data app-cards-check app-data-wave0 app-data-check app-models app-dev app-dev-local app-build app-parity app-coverage app-bundle app-bundle-budget-update app-e2e app-e2e-install app-lighthouse app-publish app-publish-staging app-publish-dry app-smoke app-promote app-rollback verify-published bucket-lifecycle app-deploy \
 	tf-init tf-validate tf-plan tf-apply tf-import \
 	docs-reference docs-coverage docs-coverage-check project-graph watch-graph docs-audit docs-facts docs-app-audit lint-comments docs-site docs-install \
 	add-season \
@@ -249,8 +249,13 @@ ml-clean:  ## Remove built models + predictions
 ##@ 6. App
 
 ##   Data export
-app-data:  ## Export warehouse → app/public/data/ parquet + _manifest.json
+app-data:  ## Export warehouse → app/public/data/ parquet + _manifest.json, then cards (AX-08: export, build-cards, --finalize)
 	./.venv/bin/python scripts/export_app_data.py
+	cd app && node scripts/build-cards.mjs --data public/data --stage
+	./.venv/bin/python scripts/export_app_data.py --finalize
+
+app-cards-check:  ## Rebuild cards into a temp copy of app/public/data and compare card sha256 with the manifest (no warehouse)
+	./.venv/bin/python scripts/check_cards.py
 
 app-data-canary:  ## Export canary tables only (fast)
 	./.venv/bin/python scripts/export_app_data.py --canary

@@ -1,0 +1,23 @@
+AX-11 - make_chart and compare_lap_times (2026-11-08, lane S)
+Status: DONE except tool registration (not committed)
+
+Files added (app/src/assistant/charts/): chartStore.ts, makeChart.ts, compareLapTimes.ts, ChartCard.tsx,
+  testHelpers.ts, tests: chartStore, makeChart, compareLapTimes (incl. rowCap), ChartCard, contextLeak, realData.node.
+Files edited (queryBuilder, small): compile.ts (compile(v, {rowCap}), MAX_INTERNAL_ROW_CAP=200, throws on bad cap),
+  run.ts (runQuery(req, deps, internal={rowCap}); rows_shown honours it; result_id includes rowCap so a capped
+  result never collides with the 25-row one).
+rowCap: a third function argument / compile option only. validate() rejects any unknown request key (rowCap,
+  row_cap, rowcap tested) and limit > 25; the catalogue JSON contains no cap field (tested). AX-08's generated
+  schemas derive from the catalogue, so none can expose it; re-check when AX-08 lands.
+Rows: query_data already saves rows via rememberResult (queryBuilder/store.ts); no AX-06 write added. chartStore
+  reads them via getResult, so only this session's result_ids resolve. Model gets {chart_id,n,series_count} or
+  {chart_id,n_a,n_b,laps_missing}. Context-leak test: no rows key, no lap_number, no >10-number array, <200 chars.
+Chart rendering: new multi-series recharts wrapper in assistant/charts (shared ui/charts files untouched, as the doc
+  allows); colours from tokens.ts; title is a React text child (img onerror test).
+Tests: npx vitest run src/assistant/charts src/assistant/queryBuilder -> 57 passed, 3 skipped (60).
+  Real data (AX06_DATA_DIR=laneK/out): realData.node 3 passed. Samples in samples/: q1 LEC v VER 2024_8 n=[76,74],
+  q2 LEC v SAI 2024_8 n=[76,76], q3 custom LEC median lap by tyre age 2024 n=[24].
+  Full app: 970 passed, 5 failed (2 pre-existing sources.node; 3 are AX-15a lane: held-links, stub.no-value x2).
+  tsc clean; eslint clean on assistant/charts + queryBuilder.
+NOT DONE: spec step 5 (register in AX-10 dispatcher) - AX-10 and the AX-08 catalogue do not exist yet. The CLI
+  evidence is the node test above, not a CLI run. makeChart/compareLapTimes are plain functions ready to register.

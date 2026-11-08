@@ -10,8 +10,11 @@
 // An answer passes overall when no active rule fails. Pending hits are listed separately.
 import policyData from './policy.json'
 
-/** A fact card as AI-01 defines it, plus the optional flags the triggers read. Loose on purpose
- *  until AI-01 lands its schema: unknown fields are allowed and read by dotted path. */
+export type { Card } from '../cards/card.types'
+
+/** The flat card shape the policy triggers read. Loose on purpose: unknown fields are allowed and
+ *  read by dotted path. The schema'd card is `Card` in ../cards/card.types.ts (AX-01); convert it
+ *  with `toCheckerCard` from ../cards/project.ts, which flattens n, page, source and versions. */
 export interface FactCard {
   id: string
   metric: string
@@ -19,7 +22,7 @@ export interface FactCard {
   unit?: string
   n?: number | null
   n_unit?: string
-  interval?: { low: number; high: number; kind: string } | null
+  interval?: { low: number; high: number; kind: string; level?: number } | null
   scope?: Record<string, unknown>
   source_table?: string
   source_page?: string
@@ -51,6 +54,16 @@ export type Trigger =
         metric_matches: string
         season_field: string
         eras: [number, number][]
+      }
+    }
+  | {
+      /** AX-09: fires when at least `min` distinct non-null values of `field` (dotted path)
+       *  appear across the supplied cards, e.g. two different skill measures in one answer. */
+      cards_distinct_values: {
+        field: string
+        min: number
+        /** AX-21: count only cards whose dotted `field` equals `eq` (e.g. one shared-input group). */
+        where?: { field: string; eq: unknown }
       }
     }
 
@@ -174,6 +187,20 @@ function evalTrigger(t: Trigger, input: CheckInput): string[] {
   }
   if ('answer' in t) {
     return rx(t.answer).test(input.answer) ? ['answer matches'] : []
+  }
+  if ('cards_distinct_values' in t) {
+    const { field, min, where } = t.cards_distinct_values
+    const seen = new Map<string, string>()
+    for (const c of input.cards) {
+      if (where && getPath(c, where.field) !== where.eq) continue
+      const v = getPath(c, field)
+      if (v === null || v === undefined) continue
+      const key = JSON.stringify(v)
+      if (!seen.has(key)) seen.set(key, c.id)
+    }
+    return seen.size >= min
+      ? [`cards ${[...seen.values()].join(', ')} carry ${seen.size} distinct ${field} values: ${[...seen.keys()].join(', ')}`]
+      : []
   }
   const { metric_matches, season_field, eras } = t.cards_span_eras
   const hit = input.cards.filter((c) => rx(metric_matches).test(c.metric))

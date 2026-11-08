@@ -1,0 +1,43 @@
+version: 2
+
+# TX-01. Own yml file to keep intermediate/schema.yml collisions down.
+models:
+  - name: int_driver_race_paired_laps
+    description: >
+      The paired lap-time gaps behind the race rating. Grain: (race_id, driver_id,
+      lap_number, teammate_id). paired_delta_s = own lap_time_s - the same-car teammate's
+      lap_time_s on the same lap number, over laps both drivers ran clean (lap time present,
+      correction_weight = 1, no rainfall on the lap: the same clean filter as
+      int_driver_race_skill_loro). int_driver_race_skill_loro.driver_skill_loro_s is the
+      median of these rows and paired_lap_count their count, per (race_id, driver_id);
+      mart_race_driver_summary builds the order-statistic CI for that median from them.
+      For a two-driver car the teammate's rows are the driver's with the sign flipped.
+    tags: [intermediate, driver_rating, causal_decomposition]
+    meta:
+      family: skill
+    columns:
+      - name: race_year
+        description: Season year.
+        tests: [not_null]
+      - name: race_id
+        description: Race identifier.
+        tests: [not_null]
+      - name: constructor_id
+        description: Constructor of the car both drivers drove.
+        tests: [not_null]
+      - name: driver_id
+        description: The driver whose gap this is.
+        tests: [not_null]
+      - name: teammate_id
+        description: The same-car teammate the lap is paired with.
+        tests: [not_null]
+      - name: lap_number
+        description: Lap number both drivers ran clean.
+        tests: [not_null]
+      - name: paired_delta_s
+        description: Own lap time minus the teammate's on the same lap, seconds. Negative = faster.
+        tests: [not_null]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, driver_id, lap_number, teammate_id]

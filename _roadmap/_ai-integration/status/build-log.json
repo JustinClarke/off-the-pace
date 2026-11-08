@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
   "project": "off the pace AI integration v2 (assistant data access)",
-  "updated": "2026-11-08T23:55:00+04:00",
-  "pointer": "TX-14",
+  "updated": "2026-11-09T01:00:00+04:00",
+  "pointer": "AX-10",
   "stage_vocabulary": {
     "SPEC": "Reverified and specced in its WI doc. Nothing run.",
     "BUILDING": "In progress.",
@@ -198,7 +198,7 @@
       "doc": "wi/TX-07.md",
       "cost": "0.5d",
       "model": "sonnet-5",
-      "note": "P2. At least two entries look wrong against known F1 history (not checked against data). Check nothing in the app reads it before removing. 2026-11-07 lane B: dim_events removed everywhere (nothing read it) and the home tiles fixed (ml_models_total, no 'or 5'); pytest 11/11, typecheck clean, vitest 671 pass / 2 fail (same CHANCE_LINE cites). NOT DONE: step 6, removing dim_events keys from the committed baselines, which the owner re-takes once. Docs edited by hand, not regenerated. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-TX-07): 1 step 6 DROPPED: the owner's single baseline re-take (handoff E) after TX-14 + lane D regenerates all three files; acceptance becomes 'after E, grep dim_events transform/tests/*.baseline.json is empty' (owner checks in E). 2 keep stg_events and raw_dim_events.csv for v1 (ingestion checks read the seed). 3 leave the orphan dim_events table; D drops nothing. 4 generated docs regenerated in D; hand edits to non-generated docs stand. 5 TX-12 fixture already clean. sonnet-5 in lane D; blocked on TX-14. | LANDED 2026-11-08 (lane D): make docs-reference passes after int_microsector_crossings, int_microsector_proximity and int_microsector_corner_class got meta.family physics in transform/models/intermediate/schema.yml (the older copy's pages also say Physics); 21 existing singular tests that were missing from transform/tests/README.md were added to its Domain Constraint table so transform_docs_facts.py --write runs. dim_events greps: none in docs, app, scripts or models except stg_events/raw_dim_events (kept by ruling 2) and ADR text; the three *.baseline.json still hold dim_events keys until the owner's step E re-take (acceptance: grep dim_events transform/tests/*.baseline.json empty). make docs-coverage still ends non-zero at ml_docs_facts (TEST_GROUPS 270 vs 184 collected: 5 ml/tests files fail to collect in this env), which is not TX-07."
+      "note": "P2. At least two entries look wrong against known F1 history (not checked against data). Check nothing in the app reads it before removing. 2026-11-07 lane B: dim_events removed everywhere (nothing read it) and the home tiles fixed (ml_models_total, no 'or 5'); pytest 11/11, typecheck clean, vitest 671 pass / 2 fail (same CHANCE_LINE cites). NOT DONE: step 6, removing dim_events keys from the committed baselines, which the owner re-takes once. Docs edited by hand, not regenerated. Not committed. RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-TX-07): 1 step 6 DROPPED: the owner's single baseline re-take (handoff E) after TX-14 + lane D regenerates all three files; acceptance becomes 'after E, grep dim_events transform/tests/*.baseline.json is empty' (owner checks in E). 2 keep stg_events and raw_dim_events.csv for v1 (ingestion checks read the seed). 3 leave the orphan dim_events table; D drops nothing. 4 generated docs regenerated in D; hand edits to non-generated docs stand. 5 TX-12 fixture already clean. sonnet-5 in lane D; blocked on TX-14. | LANDED 2026-11-08 (lane D): make docs-reference passes after int_microsector_crossings, int_microsector_proximity and int_microsector_corner_class got meta.family physics in transform/models/intermediate/schema.yml (the older copy's pages also say Physics); 21 existing singular tests that were missing from transform/tests/README.md were added to its Domain Constraint table so transform_docs_facts.py --write runs. dim_events greps: none in docs, app, scripts or models except stg_events/raw_dim_events (kept by ruling 2) and ADR text; the three *.baseline.json still hold dim_events keys until the owner's step E re-take (acceptance: grep dim_events transform/tests/*.baseline.json empty). make docs-coverage still ends non-zero at ml_docs_facts (TEST_GROUPS 270 vs 184 collected: 5 ml/tests files fail to collect in this env), which is not TX-07. | 2026-11-08 review (opus): README rows for the 21 new singular tests checked against each test file; 19 accurate, 2 widened to the tested tolerance (assert_microsector_lap_total_identity, assert_microsector_validity_rules). meta.family physics on int_microsector_crossings/proximity/corner_class confirmed (micro-sector twin of int_lap_proximity, which is physics). Ruling 3 amended by OR-E-BASELINES: drop the orphan dim_events table before the data-profile re-take."
     },
     {
       "id": "TX-08",
@@ -942,7 +942,7 @@
     {
       "id": "TX-14",
       "group": "1-transform",
-      "stage": "MEASURED",
+      "stage": "LANDED",
       "depends_on": [
         "TX-08"
       ],
@@ -956,7 +956,7 @@
       "doc": "wi/TX-14.md",
       "cost": "1d",
       "model": "sonnet-5",
-      "note": "Found by TX-08 (F2). At 1 thread with no source change, fct_driver_isolation_stint flips between two hashes, int_pit_strategy_cost_curve and int_sector_residual_decomposed also differ run to run; row counts are equal. A byte-hash baseline cannot certify anything until this is understood (non-deterministic tie-breaking, unordered aggregation, or a volatile column). RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-TX-14): 1 5 rebuilds per model in own scratch dev.duckdb at 1 thread; row diff on grain key; max |delta| per column. 2a all diffs <= 1e-9 on float columns: fix the oracle (snapshot_model_hashes.py hashes floats as ROUND(x, 9) for every model), no value moves, do not edit baselines (owner re-takes in E). 2b larger diffs (tie winners: ROW_NUMBER int_pit_strategy_cost_curve.sql:81, sector rolling median): total-order tie-break with the grain key in the model. 2c volatile column: VOLATILE_COLS. 3 pick the tie-break reproducing the more frequent observed output; stop only if the deterministic output matches no observed output on an exported row. 4 transform/scripts/check_determinism.py, no Makefile target, not in default CI. 5 dev-profile thread pin is lane D's, not TX-14's. Now sonnet-5 (escalate to opus-5 if the cause is outside 2a-2c or the stop fires). Runnable now. Model opus-5 -> sonnet-5: the open choices are ruled, so the method is written down. | 2026-11-08 CODE DONE, OWNER RUN PENDING. Ruling 2a (oracle fix): transform/scripts/snapshot_model_hashes.py now hashes DOUBLE/FLOAT columns as ROUND(x, 9) + 0.0 (FLOAT_HASH_DECIMALS), for every model; new transform/scripts/check_determinism.py (no Makefile target, not in CI). OWNER, from transform/: ../.venv/bin/python scripts/check_determinism.py --select fct_driver_isolation_stint int_pit_strategy_cost_curve int_sector_residual_decomposed --runs 2 ; then re-take the baselines (step E) BEFORE PROVENANCE. Not LANDED until that run passes."
+      "note": "Found by TX-08 (F2). At 1 thread with no source change, fct_driver_isolation_stint flips between two hashes, int_pit_strategy_cost_curve and int_sector_residual_decomposed also differ run to run; row counts are equal. A byte-hash baseline cannot certify anything until this is understood (non-deterministic tie-breaking, unordered aggregation, or a volatile column). RULINGS 2026-11-08 (status/rulings-2026-11-08.md, decision OR-TX-14): 1 5 rebuilds per model in own scratch dev.duckdb at 1 thread; row diff on grain key; max |delta| per column. 2a all diffs <= 1e-9 on float columns: fix the oracle (snapshot_model_hashes.py hashes floats as ROUND(x, 9) for every model), no value moves, do not edit baselines (owner re-takes in E). 2b larger diffs (tie winners: ROW_NUMBER int_pit_strategy_cost_curve.sql:81, sector rolling median): total-order tie-break with the grain key in the model. 2c volatile column: VOLATILE_COLS. 3 pick the tie-break reproducing the more frequent observed output; stop only if the deterministic output matches no observed output on an exported row. 4 transform/scripts/check_determinism.py, no Makefile target, not in default CI. 5 dev-profile thread pin is lane D's, not TX-14's. Now sonnet-5 (escalate to opus-5 if the cause is outside 2a-2c or the stop fires). Runnable now. Model opus-5 -> sonnet-5: the open choices are ruled, so the method is written down. | 2026-11-08 CODE DONE, OWNER RUN PENDING. Ruling 2a (oracle fix): transform/scripts/snapshot_model_hashes.py now hashes DOUBLE/FLOAT columns as ROUND(x, 9) + 0.0 (FLOAT_HASH_DECIMALS), for every model; new transform/scripts/check_determinism.py (no Makefile target, not in CI). OWNER, from transform/: ../.venv/bin/python scripts/check_determinism.py --select fct_driver_isolation_stint int_pit_strategy_cost_curve int_sector_residual_decomposed --runs 2 ; then re-take the baselines (step E) BEFORE PROVENANCE. Not LANDED until that run passes. | 2026-11-08 OR-E-BASELINES: an agent (sonnet-5) may run the determinism check and step E; exit 1 stops it and escalates to opus-5 (ruling 2b). | LANDED 2026-11-08 (sonnet-5, OR-E-BASELINES): check_determinism.py --select fct_driver_isolation_stint int_pit_strategy_cost_curve int_sector_residual_decomposed --runs 2 exited 0 (run-to-run hashes equal: b23bedf8, 0572740b, 2e44824d), in own scratch copy of dev.duckdb, deleted after. Step E done: orphan main.dim_events dropped from data/dev.duckdb; the three baselines re-taken (dev 99 models, ci 98 models from a fresh fixture build in scratch ci.duckdb at 1 thread, data profile 26 tables), missing lists empty; grep dim_events transform/tests/*.baseline.json empty; --check passes for dev, ci and data profile. Not staged or committed; owner reviews the diff."
     },
     {
       "id": "AX-07c",
@@ -1387,6 +1387,28 @@
       "recommendation": "Record as superseded.",
       "resolved": "2026-11-08",
       "resolution": "CD11 is SUPERSEDED by the committed simulator doc/UI: chance is shown nowhere. app/src/assistant/honesty/policy.json citations were updated to match, and the chance line stays EXCLUDE (AD5, AXW6). NOTE: the CHANCE_LINE_EXPERIMENTAL required wording still accepts 'experimental'/'provisional'; the owner may add 'not shown' to that list. Not done here."
+    },
+    {
+      "id": "OR-E-BASELINES",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "Owner call 2 (rulings-2026-11-08.md): may an agent run check_determinism.py and then re-take transform/tests/model_hashes.baseline.json, model_hashes.ci.baseline.json and data_profile.baseline.json (step E), without committing?",
+      "context": "Agent ruling (opus, decision-maker, delegated by the owner), not an owner call. Re-taking is a reversible tracked-file regeneration: no deploy, publish, cost, credential or flag. The owner still reviews the diff when committing.",
+      "recommendation": "Yes, gated on the determinism check.",
+      "resolved": "2026-11-08",
+      "resolution": "YES, sonnet-5, after lane D and while nothing else holds data/dev.duckdb. (1) check_determinism.py --runs 2 on the three TX-14 models must exit 0; on exit 1 STOP: do not re-take anything, escalate TX-14 to opus-5 (ruling 2b). (2) Drop the orphan table main.dim_events from data/dev.duckdb (amends TX-07 ruling 3: snapshot_data_profile.py profiles every dim_/fct_/mart_ table in the DB, so the orphan would put the key back into data_profile.baseline.json; it is the only orphan, checked 2026-11-08, and nothing reads it). (3) Dev hash baseline from data/dev.duckdb with a dev manifest; CI hash baseline from a FRESH fixture build in the agent's own scratch folder (file named ci.duckdb, target ci), never from data/ci.duckdb (provenance unknown, handoff 2026-11-08). (4) Data profile from data/dev.duckdb. (5) Post-check: grep dim_events transform/tests/*.baseline.json is empty, and all three --check runs pass. Never stage or commit. TX-14 moves to LANDED only after (1) passes and the re-take is recorded."
+    },
+    {
+      "id": "OR-CHANCE-WORDING",
+      "raised": "2026-11-08",
+      "blocking": [],
+      "status": "RESOLVED",
+      "question": "CHANCE_LINE_EXPERIMENTAL required wording accepts 'experimental'/'provisional', but docs/app/degradation-simulator.mdx now says the chance 'is not shown'. Add 'not shown'?",
+      "context": "Agent ruling (opus, decision-maker, delegated by the owner), not an owner call. Follows OR-CD11's note.",
+      "recommendation": "Add 'not shown', drop 'provisional'.",
+      "resolved": "2026-11-08",
+      "resolution": "Done in app/src/assistant/honesty/policy.json: group 1 is now experimental | not shown; 'provisional' removed (the doc no longer supports it, and it implies the chance awaits scoring when it failed). Group 2 (failed its 2025 bar / 5 of 10 / 19.9) is unchanged, and CHANCE_LINE_QUOTABLE (EXCLUDE) is untouched, so no exclusion is weakened. Pass example reworded. npx vitest run src/assistant/honesty: 192 pass."
     }
   ],
   "history": [
@@ -1896,6 +1918,56 @@
         "cd worker && npm test"
       ],
       "next_command": "OWNER: (1) commit the working tree in logical pieces. (2) from transform/: ../.venv/bin/python scripts/check_determinism.py --select fct_driver_isolation_stint int_pit_strategy_cost_curve int_sector_residual_decomposed --runs 2 ; then re-take the byte-oracle and data-profile baselines once (step E) and check grep dim_events transform/tests/*.baseline.json is empty. (3) Worker preview deploy (step F), then AX-13 real run over days with --resume, human read, AX-19 --write, AX-20 run and switch-on. Pointer stays on TX-14 until the owner reports the determinism result."
+    },
+    {
+      "date": "2026-11-09T00:20:00+04:00",
+      "session": "Decision pass on the Lane D close-out leftovers (opus decision-maker, delegated); small edits only, nothing staged or committed",
+      "landed": [
+        "transform/tests/README.md: 2 of the 21 new rows corrected (lap-total tolerance 0.5 s / 0.5% + vacuity guard; validity rules incl. band edges, y_s field size, Gate A).",
+        "app/src/assistant/honesty/policy.json: CHANCE_LINE_EXPERIMENTAL wording experimental | not shown (OR-CHANCE-WORDING).",
+        "Decisions OR-E-BASELINES (owner call 2 ruled: agent may run determinism check + step E), OR-CHANCE-WORDING. AXW13 resolved (tree committed)."
+      ],
+      "verified": [
+        "21 README rows read against each test header and ref() list.",
+        "worker/test/fixtures/assistant/{index,catalogue}.json byte-identical to app/public/data/assistant/; worker gen-tools tests 6/6; gen-tools --check up to date. Kept: the test's stated design is a copy of the export tools.ts was made from, and worker-ci.yml runs gen-tools:check against the real export.",
+        "int_microsector_* family physics: fits (int_lap_proximity is physics).",
+        "data/dev.duckdb (read-only): dim_events is the only dim_/fct_/mart_ orphan vs the manifest.",
+        "npx vitest run src/assistant/honesty 192 pass; cards/lineage + pit-strategy 20 pass."
+      ],
+      "assumed": [
+        "TX-14 applied ruling 2a without a recorded per-column |delta| diagnosis; the determinism run is what tests it.",
+        "Owner calls not ruled: 3 real-data-gate (wiring app-data to the byte oracle would block every new-race export on pipeline.yml until baselines are re-taken: a workflow policy, the owner's), 4 label row, 5-11 deploy/publish/cost/flag/human gates, 12 scope."
+      ],
+      "gates_run": [
+        "board.py --check",
+        "board.py --write-order"
+      ],
+      "next_command": "sonnet-5 (no owner credential): run the determinism check, then step E per OR-E-BASELINES; on exit 1 stop and hand TX-14 to opus-5. On every future re-export, copy app/public/data/assistant/{catalogue,index}.json into worker/test/fixtures/assistant/ after npm run gen-tools. Then OWNER: F (Worker preview), AX-13 real run, real-data-gate call."
+    },
+    {
+      "date": "2026-11-09T01:00:00+04:00",
+      "session": "Determinism check and step E baseline re-take (sonnet-5, per OR-E-BASELINES); nothing staged or committed",
+      "landed": [
+        "TX-14 LANDED: check_determinism.py --runs 2 exit 0 on the three models.",
+        "data/dev.duckdb: orphan main.dim_events dropped (only real-warehouse write).",
+        "transform/tests/{model_hashes.baseline,model_hashes.ci.baseline,data_profile.baseline}.json re-taken; dim_events absent from all three."
+      ],
+      "verified": [
+        "snapshot_model_hashes.py --check: dev OK (12 fct_* byte-stable), ci OK (fresh scratch fixture build, dbt build PASS=1557 ERROR=0); snapshot_data_profile.py --check: no drift across 26 tables.",
+        "grep dim_events transform/tests/*.baseline.json: 0 hits in each file; baselines' missing lists are [] (dev 99 models, ci 98).",
+        "git status --short transform/tests: the 3 baselines plus README.md (already modified before this run)."
+      ],
+      "assumed": [
+        "dbt parse --target dev rewrote the git-ignored transform/target/manifest.json as the dev manifest."
+      ],
+      "gates_run": [
+        "check_determinism.py --runs 2 (exit 0)",
+        "snapshot_model_hashes.py --check dev and ci",
+        "snapshot_data_profile.py --check",
+        "board.py --check",
+        "board.py --write-order"
+      ],
+      "next_command": "OWNER: review and commit the baseline diff; then F (Worker preview), AX-13 real run, real-data-gate call. Next runnable item: AX-10."
     }
   ],
   "watch_vocabulary": {
@@ -2098,7 +2170,9 @@
       "clears_when": "Owner commits it and records it here.",
       "trigger": {
         "clear": "manual"
-      }
+      },
+      "resolved": "2026-11-08",
+      "resolution": "Committed by the owner: HEAD fbb2b9f (with bf041a0) carries _roadmap/_archive/_ai-integration-v1/, the board, wi/ and _evidence/; git status was clean at the start of the 2026-11-08 decision pass."
     }
   ],
   "status_summary": {

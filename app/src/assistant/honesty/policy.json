@@ -1688,11 +1688,11 @@
         }
       ],
       "required_wording": {
-        "description": "Label it experimental or provisional, and say it failed its 2025 calibration bar.",
+        "description": "Label it experimental or say it is not shown, and say it failed its 2025 calibration bar. Not 'provisional': the doc no longer says that, and the chance failed rather than awaits scoring.",
         "all_of": [
           [
             "\\bexperimental\\b",
-            "\\bprovisional\\b"
+            "\\bnot shown\\b"
           ],
           [
             "\\bfailed (its|the) (2025 )?(acceptance|calibration)",
@@ -1754,7 +1754,7 @@
                 "source_page": "/app/degradation-simulator"
               }
             ],
-            "answer": "The simulator's flag line is experimental and provisional: it failed its 2025 acceptance bar, with only 5 of 10 calibration bins within 5 points. I do not quote the number here; open the simulator."
+            "answer": "The simulator's flag line is experimental and not shown: it failed its 2025 acceptance bar, with only 5 of 10 calibration bins within 5 points. I do not quote the number here."
           }
         }
       ]

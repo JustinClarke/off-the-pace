@@ -1,0 +1,62 @@
+[
+ {
+  "id": "N1",
+  "group": "navigate",
+  "question": "Take me to the tyre degradation page.",
+  "expected_route": "/tyre-strategy/degradation"
+ },
+ {
+  "id": "N2",
+  "group": "navigate",
+  "question": "Show me the ghost standings.",
+  "expected_route": "/ghost-car/standings"
+ },
+ {
+  "id": "N3",
+  "group": "navigate",
+  "question": "Where can I see constructor circuit interaction?",
+  "expected_route": "/constructors/circuits"
+ },
+ {
+  "id": "N4",
+  "group": "navigate",
+  "question": "Open the page that shows how driver ratings changed across eras.",
+  "expected_route": "/drivers/ratings-timeline"
+ },
+ {
+  "id": "E1",
+  "group": "explain",
+  "question": "What does the cliff survival profile show?",
+  "expected_route": "/tyre-strategy/survival"
+ },
+ {
+  "id": "E2",
+  "group": "explain",
+  "question": "What is the constructor structural pace page about?",
+  "expected_route": "/constructors/structural"
+ },
+ {
+  "id": "E3",
+  "group": "explain",
+  "question": "What is the blind test scoreboard page for?",
+  "expected_route": "/ml/blind-test"
+ },
+ {
+  "id": "C1",
+  "group": "combine",
+  "question": "For Alexander Albon in 2020, how did his gap to his teammate compare with his season results?",
+  "expected_route": ""
+ },
+ {
+  "id": "C2",
+  "group": "combine",
+  "question": "For Max Verstappen in 2024, how did his gap to his teammate compare with his season results?",
+  "expected_route": ""
+ },
+ {
+  "id": "C3",
+  "group": "combine",
+  "question": "In 2018, how many cautions were there in round 1, and what was the pooled safety car rate for the season?",
+  "expected_route": ""
+ }
+]

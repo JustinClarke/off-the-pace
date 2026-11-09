@@ -121,4 +121,4 @@ graphify-out/
 /Users/justin/github/off-the-pace/_roadmap/_archive
 docs/project-graph.html
 # Wake calibration working artefacts (parquet rebuilt from bronze by build_pass_table.py; provenance in _evidence)
-_roadmap/_wake-calibration/_artifacts/
+_roadmap/_archive/_wake-calibration/_artifacts/

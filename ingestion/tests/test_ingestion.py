@@ -464,6 +464,56 @@ def test_race_control_timedelta_column(tmp_path, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# Race control: datetime Time column (UTC) and the session-start clock fix
+# ---------------------------------------------------------------------------
+
+def test_race_control_datetime_column_corrected_clock(tmp_path, monkeypatch):
+    """Datetime Time: session_time_s stays since UTC midnight (unchanged);
+    session_time_corrected_s is measured from session t0 (the fix)."""
+    monkeypatch.setattr(ingest, "RC_DIR", tmp_path)
+
+    t0 = pd.Timestamp("2024-03-02 14:00:00", tz="UTC")
+    rc_df = pd.DataFrame({
+        "Time":     pd.to_datetime(["2024-03-02 14:01:00", "2024-03-02 14:02:30"], utc=True),
+        "Category": ["Flag", "SafetyCar"],
+        "Message":  ["GREEN FLAG", "SAFETY CAR DEPLOYED"],
+    })
+    mock_session = MagicMock()
+    mock_session.race_control_messages = rc_df
+    mock_session.t0_date = t0
+
+    ingest._write_race_control(mock_session, 2024, 1, "test_race")
+
+    written = pd.read_parquet(tmp_path / "season=2024" / "race=test_race" / "race_control.parquet")
+    # Old behaviour preserved: seconds since UTC midnight (14h = 50400 s).
+    assert list(written["session_time_s"]) == [50400.0 + 60.0, 50400.0 + 150.0]
+    # Fix: seconds since session start.
+    assert list(written["session_time_corrected_s"]) == [60.0, 150.0]
+    assert written["session_time_corrected_s"].notna().all()
+
+
+def test_race_control_datetime_without_t0_leaves_corrected_nan(tmp_path, monkeypatch):
+    """If the session has no usable t0_date, the corrected column is NaN and
+    the old session_time_s is still written (guarded, no crash)."""
+    monkeypatch.setattr(ingest, "RC_DIR", tmp_path)
+
+    rc_df = pd.DataFrame({
+        "Time":     pd.to_datetime(["2024-03-02 14:01:00"], utc=True),
+        "Category": ["Flag"],
+        "Message":  ["GREEN FLAG"],
+    })
+    mock_session = MagicMock()
+    mock_session.race_control_messages = rc_df
+    mock_session.t0_date = None
+
+    ingest._write_race_control(mock_session, 2024, 1, "test_race")
+
+    written = pd.read_parquet(tmp_path / "season=2024" / "race=test_race" / "race_control.parquet")
+    assert written["session_time_s"].notna().all()
+    assert written["session_time_corrected_s"].isna().all()
+
+
+# ---------------------------------------------------------------------------
 # v0.2 Writers (results, track_status, session_status, circuit_info, schedule)
 # ---------------------------------------------------------------------------
 

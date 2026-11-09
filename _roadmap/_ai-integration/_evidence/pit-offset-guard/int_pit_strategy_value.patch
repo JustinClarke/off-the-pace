@@ -1,0 +1,14 @@
+--- off-the-pace/transform/models/intermediate/int_pit_strategy_value.sql	2026-11-07 18:12:55
++++ off-the-pace-/transform/models/intermediate/int_pit_strategy_value.sql	2026-11-03 21:18:15
+@@ -499,6 +499,11 @@
+             THEN NULL
+         WHEN r.pick_offset IS NULL
+             THEN 'unknown'
++        -- A stop whose offset is not a candidate in the cost curve has no
++        -- actual cost to compare. Without this the NULL comparisons below
++        -- fall through to 'undercut_forced' or 'early' (265 stints).
++        WHEN r.actual_offset IS NULL
++            THEN 'unknown'
+         WHEN
+             ABS(r.actual_offset - r.pick_offset)
+             <= {{ var('pit_strategy_optimal_band_laps', 1) }}

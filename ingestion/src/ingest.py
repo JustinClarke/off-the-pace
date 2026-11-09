@@ -278,11 +278,23 @@ def _write_race_control(session, year: int, round_num: int, slug: str) -> None:
         if "Time" in rc.columns:
             # Handles both timedelta64 and datetime-with-timezone correctly
             raw = rc["Time"]
+            # session_time_corrected_s is on the laps/telemetry SessionTime clock.
+            # session_time_s is kept as before; for datetime Time it is seconds
+            # since UTC midnight, not session time.
+            rc["session_time_corrected_s"] = float("nan")
             if pd.api.types.is_timedelta64_dtype(raw):
                 rc["session_time_s"] = raw.dt.total_seconds()
+                rc["session_time_corrected_s"] = rc["session_time_s"]
             elif pd.api.types.is_datetime64_any_dtype(raw):
                 epoch = raw.iloc[0].replace(hour=0, minute=0, second=0, microsecond=0)
                 rc["session_time_s"] = (raw-epoch).dt.total_seconds()
+                # Time is UTC; t0_date is the UTC moment at which SessionTime is 0.
+                try:
+                    t0 = session.t0_date
+                    if isinstance(t0, pd.Timestamp):
+                        rc["session_time_corrected_s"] = (raw - t0).dt.total_seconds()
+                except Exception as exc:
+                    logger.warning(f"  Race control session clock not set for {slug}: {exc}")
             else:
                 rc["session_time_s"] = pd.to_timedelta(raw, errors="coerce").dt.total_seconds()
         rc = rc.rename(columns={"Category": "category", "Message": "message"})

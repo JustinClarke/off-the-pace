@@ -6,6 +6,8 @@ import { useMemo, useState, type ReactNode } from 'react'
 import type { Card } from '../cards/card.types'
 import { ChartCard } from './chartsLazy'
 import type { Note } from '../core/loop'
+import { Link } from 'react-router-dom'
+import { explainPage, shippedPaths } from '../../nav/assistantTools'
 import { cardLink } from '../../nav/routeParams'
 import { collectSourceNumbers, extractAnswerNumbers, findUngroundedNumbers, numberMatches, sourceNumbersOfCard, type AnswerNumber } from '../grounding'
 import NumberChip, { isHatched, MODELLED_NOTE, RESULT_NOTE, type ChipSource } from './NumberChip'
@@ -23,6 +25,8 @@ interface Props {
   sources: AnswerSources
   notes?: readonly Note[]
   chartIds?: readonly string[]
+  /** URLs the navigate tool returned this question (AskResult.links). Only shipped routes become buttons. */
+  links?: readonly string[]
   repairSkipped?: boolean
   /** Close the drawer when a chip link is followed (phone width). */
   onNavigate?(): void
@@ -99,7 +103,26 @@ function CardDetails({ card }: { card: Card }) {
   )
 }
 
-export default function AnswerView({ answer, sources, notes = [], chartIds = [], repairSkipped, onNavigate }: Props) {
+export interface PageLink {
+  url: string
+  title: string
+}
+
+/** navigate results to "Go to page" buttons: only a URL whose path is a shipped route; the label is that page's title. */
+export function pageLinksOf(links: readonly string[]): PageLink[] {
+  const out: PageLink[] = []
+  for (const url of links) {
+    if (!url.startsWith('/') || url.startsWith('//')) continue
+    const path = url.split(/[?#]/)[0]
+    if (!shippedPaths.includes(path) || out.some((l) => l.url === url)) continue
+    const e = explainPage(path)
+    out.push({ url, title: e.ok ? e.title : path })
+  }
+  return out
+}
+
+export default function AnswerView({ answer, sources, notes = [], chartIds = [], links = [], repairSkipped, onNavigate }: Props) {
+  const pageLinks = useMemo(() => pageLinksOf(links), [links])
   const { parts, ungrounded } = useMemo(() => pieces(answer, sources), [answer, sources])
   const [hover, setHover] = useState<string | null>(null)
   const [pinned, setPinned] = useState<string | null>(null)
@@ -165,6 +188,18 @@ export default function AnswerView({ answer, sources, notes = [], chartIds = [],
           ))}
         </ul>
       ) : null}
+
+      {pageLinks.map((l) => (
+        <Link
+          key={l.url}
+          to={l.url}
+          onClick={onNavigate}
+          data-testid="go-to-page"
+          className="inline-flex min-h-9 items-center rounded border border-border px-3 text-sm text-accent hover:underline focus-visible:outline focus-visible:outline-2"
+        >
+          Go to page: {l.title}
+        </Link>
+      ))}
 
       {chartIds.map((id) => (
         <ChartCard key={id} chartId={id} />

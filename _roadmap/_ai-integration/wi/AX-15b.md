@@ -12,7 +12,7 @@ Content carried from the old AX-15 (lift procedure and builders); the held stubs
 
 **Sources:**
 - AX-15a's `_evidence/ax-15a/classes.md` and stub registry, and AX-07's lineage (`_evidence/ax-07-lineage/`).
-- `_roadmap/_wake-calibration/wi/WC-05-*.md` and `WC-06-app-output.md`, as landed.
+- `_roadmap/_archive/_wake-calibration/wi/WC-05-*.md` and `WC-06-app-output.md`, as landed.
 - TX-05's `mart_build_provenance`, `policy.json` (`VALIDATION_GRADE_BELOW_PASS`, `PURE_PACE_WITHIN_ERA`), and design 2.3-2.4.
 
 ---

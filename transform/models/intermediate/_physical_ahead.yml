@@ -1,0 +1,111 @@
+version: 2
+
+# Measurement-only traffic exposure (physical car ahead). Own yml file to keep intermediate/schema.yml
+# collisions down. Not wired to any page. Definitions and validation history: header of
+# int_lap_physical_ahead.py; experiments 18, 26, 27, 28 in the f1-chat sandbox.
+models:
+  - name: int_lap_physical_ahead
+    description: >
+      Physical car ahead per race lap, from X/Y positions (never FastF1 DriverAhead /
+      DistanceToDriverAhead, decision D2). One row per lap of the int_stint_geometry spine. MEASUREMENT
+      ONLY: how close the car ahead was, never what it cost. Only validity_class = 'valid_same_lap'
+      carries the gap columns and is_within_1s_of_car_ahead; every other class has them NULL and must
+      not be read as clear air or as following. 'unknown' is never clear air.
+    config:
+      materialized: table
+      # NOT validated (exp 26 exploratory, exp 28 inconclusive). Default off. Turn on only for a
+      # measured comparison: dbt run --vars '{physical_ahead_drop_zero_xy: true}'.
+      drop_zero_xy: "{{ var('physical_ahead_drop_zero_xy', false) }}"
+      unknown_max_share: "{{ var('physical_ahead_unknown_max_share', 0.05) }}"
+      min_class_samples: "{{ var('physical_ahead_min_class_samples', 4) }}"
+    tags: [intermediate, traffic_exposure, measurement_only]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, driver_id, lap_number]
+    columns:
+      - name: lap_id
+        tests: [unique, not_null]
+      - name: race_id
+        tests: [not_null]
+      - name: season
+        tests: [not_null]
+      - name: driver_id
+        tests: [not_null]
+      - name: lap_number
+        tests: [not_null]
+      - name: validity_class
+        description: >
+          Exactly one of valid_same_lap, lap1, side_by_side, lapped, overlapping, unknown (precedence:
+          unknown > lap1 > lapped > overlapping > side_by_side > valid_same_lap).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['valid_same_lap', 'lap1', 'side_by_side', 'lapped', 'overlapping', 'unknown']
+      - name: is_within_1s_of_car_ahead
+        description: >
+          TRUE if the lap's minimum physical gap to a same-lap car ahead was under 1 s; FALSE if it was
+          not (including no car within 300 m). NULL unless validity_class = 'valid_same_lap'.
+      - name: gap_ahead_phys_s
+        description: >
+          Minimum over the lap of the physical time gap to the car ahead, SECONDS: the time the follower
+          took to reach the point where the car ahead was. NULL when no same-lap car was within 300 m
+          or the lap is not valid_same_lap.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 30
+                inclusive: true
+              config:
+                where: "gap_ahead_phys_s IS NOT NULL"
+      - name: gap_ahead_phys_median_s
+        description: Median of the same per-sample gap over the lap's same-lap samples, seconds.
+      - name: gap_ahead_phys_min_m
+        description: Minimum forward arc distance to the car ahead along the reference lap, METRES.
+      - name: gap_ahead_phys_min_driver_id
+        description: Car ahead at the lap's minimum gap. Diagnostic for the int_lap_proximity agreement test.
+      - name: time_within_1s_phys_s
+        description: Seconds of the lap (known samples) spent under 1 s behind a same-lap car ahead.
+      - name: time_measured_s
+        description: Seconds of the lap covered by known samples (denominator for shares).
+      - name: is_neutralised_lap
+        description: SC, VSC or red-flag lap (int_stint_geometry). Excluded from exposure in the summaries.
+      - name: n_ahead_flips
+        description: >
+          Car-ahead identity changes between consecutive samples <= 1 s apart, both with a car ahead.
+          Known limit, 0.18-0.83% of pairs per race in experiments 26-27.
+      - name: zero_xy_guard_on
+        description: Whether the unvalidated X = Y = 0 guard was applied in this build (default false).
+
+  - name: int_traffic_exposure_driver_race
+    description: >
+      MEASUREMENT ONLY. Per driver per race: time close behind the car ahead (< 1 s), bunching share,
+      and lapped / overlapping / unknown lap shares. No time-loss, dirty-air or tax columns.
+      Built only from int_lap_physical_ahead. Not wired to any page.
+    tags: [intermediate, traffic_exposure, measurement_only]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [race_id, driver_id]
+    columns:
+      - name: share_time_close_behind
+        tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 1, inclusive: true}
+              config: {where: "share_time_close_behind IS NOT NULL"}
+      - name: bunching_share
+        tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 1, inclusive: true}
+              config: {where: "bunching_share IS NOT NULL"}
+
+  - name: int_traffic_exposure_race
+    description: >
+      MEASUREMENT ONLY. Per race roll-up of int_traffic_exposure_driver_race, plus the car-ahead identity
+      flip rate as a visible known limit. Not wired to any page.
+    tags: [intermediate, traffic_exposure, measurement_only]
+    columns:
+      - name: race_id
+        tests: [unique, not_null]

@@ -159,6 +159,7 @@ export default function ChatDrawer({ open, onClose, chat, turnstileRef }: Props)
                       sources={t.sources}
                       notes={t.result.notes}
                       chartIds={t.result.chartIds}
+                      links={t.result.links}
                       repairSkipped={t.result.repairSkipped}
                       onNavigate={onClose}
                     />

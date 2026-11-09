@@ -120,3 +120,21 @@ describe('AnswerView render-time grounding', () => {
     expect(container.querySelector('img')).toBeNull()
   })
 })
+
+describe('AnswerView "Go to page" buttons (navigate results)', () => {
+  const sources = { cards: [], results: [], texts: [] }
+  it('renders a button to a shipped route, labelled with the page title, routed by the app router', () => {
+    wrap(<AnswerView answer="Here it is." sources={sources} links={['/tyre-strategy/degradation?season=2024']} />)
+    const a = screen.getByTestId('go-to-page')
+    expect(a.getAttribute('href')).toBe('/tyre-strategy/degradation?season=2024')
+    expect(a.textContent).toMatch(/^Go to page: \S/)
+  })
+  it('renders nothing for a route that is not shipped, an external URL or a protocol-relative URL', () => {
+    wrap(<AnswerView answer="x" sources={sources} links={['/nope?season=2024', 'https://evil.example/', '//evil.example/a', '/race-craft']} />)
+    expect(screen.queryByTestId('go-to-page')).toBeNull()
+  })
+  it('renders no button when there are no links', () => {
+    wrap(<AnswerView answer="x" sources={sources} />)
+    expect(screen.queryByTestId('go-to-page')).toBeNull()
+  })
+})

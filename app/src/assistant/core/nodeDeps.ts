@@ -12,7 +12,7 @@ import type { DataManifest } from '../../data/manifest'
 import { listValuesFromRows, type EntityRow, type ListValuesInput } from '../listValues'
 import { routeToPageId } from '../../nav/assistantTools'
 import { runQuery, type Engine } from '../queryBuilder/run'
-import { createCardStore, type CardStore } from './cardStore'
+import { cardFromParquetRow, createCardStore, type CardStore } from './cardStore'
 import { createDispatcher, type Dispatcher, type KindInfo } from './dispatcher'
 import type { LoopDeps } from './loop'
 import type { OnScreenSpec } from './preload'
@@ -22,7 +22,8 @@ import type { ToolDef } from './validateArgs'
 export interface NodeRuntimeOptions {
   /** A data root with _manifest.json, assistant/catalogue.json, assistant/qv/** and dimensions/assistant_entities.parquet. */
   dataDir: string
-  cards: readonly Card[]
+  /** Cards to serve. Absent: read the published card parquet files the manifest lists (manifest.assistant.cards). */
+  cards?: readonly Card[]
   tools: readonly ToolDef[]
   /** The Worker's system prompt (budget meter only). */
   system: string
@@ -34,11 +35,36 @@ export interface NodeRuntime {
   store: CardStore
   catalogue: Catalogue
   manifest: DataManifest
+  /** Read from the data folder, never hard-coded: the export's manifest version and the catalogue version the Worker checks. */
+  versions: DataVersions
   entities: EntityRow[]
   /** A fresh dispatcher (own list_values cache and session record) over the shared adapter. */
   newDispatcher(): Dispatcher
   loopDeps(model: ModelClient, dispatcher?: Dispatcher): LoopDeps
   close(): void
+}
+
+export interface DataVersions {
+  manifest_version: string
+  generated_at: string
+  catalogue_version: string
+  /** Where the cards came from: 'parquet' (the published files) or 'json' (a build-cards cards.json). */
+  cards_source: 'parquet' | 'json'
+  cards: number
+}
+
+/** The published card files (manifest.assistant.cards), decoded back to Cards. The files must sit in one folder
+ *  (assistant/cards/); the folder is read whole and its row count checked against the manifest's list. */
+export async function loadPublishedCards(adapter: Adapter, manifest: DataManifest): Promise<Card[]> {
+  const files = manifest.assistant?.cards ?? []
+  if (!files.length) throw new Error('the manifest lists no assistant cards (manifest.assistant.cards)')
+  const dirs = new Set(files.map((f) => f.path.slice(0, f.path.lastIndexOf('/') + 1)))
+  if (dirs.size !== 1) throw new Error(`card files are not in one folder: ${[...dirs].join(', ')}`)
+  await adapter.registerParquet('assistant_cards', [...dirs][0])
+  const rows = await adapter.query<Record<string, unknown>>('SELECT * FROM assistant_cards')
+  const listed = files.reduce((n, f) => n + f.rows, 0)
+  if (rows.length !== listed) throw new Error(`card folder holds ${rows.length} rows, the manifest lists ${listed}`)
+  return rows.map(cardFromParquetRow)
 }
 
 export function loadCardsJson(path: string): Card[] {
@@ -84,7 +110,20 @@ export async function createNodeRuntime(o: NodeRuntimeOptions): Promise<NodeRunt
     cancel: async () => undefined,
   }
   const runDeps = { catalogue, manifest, engine }
-  const store = createCardStore(o.cards)
+  const cards = o.cards ?? (await loadPublishedCards(adapter, manifest))
+  const store = createCardStore(cards)
+  const catalogueVersion = catalogue.catalogue_version
+  const listed = manifest.assistant?.catalogue_version
+  if (listed && catalogueVersion && listed !== catalogueVersion) {
+    throw new Error(`catalogue.json version ${catalogueVersion.slice(0, 12)} differs from the manifest's ${listed.slice(0, 12)}: mixed export`)
+  }
+  const versions: DataVersions = {
+    manifest_version: manifest.version,
+    generated_at: manifest.generatedAt,
+    catalogue_version: catalogueVersion ?? listed ?? '',
+    cards_source: o.cards ? 'json' : 'parquet',
+    cards: cards.length,
+  }
 
   const newDispatcher = () =>
     createDispatcher({
@@ -100,6 +139,7 @@ export async function createNodeRuntime(o: NodeRuntimeOptions): Promise<NodeRunt
     store,
     catalogue,
     manifest,
+    versions,
     entities,
     newDispatcher,
     loopDeps: (model, dispatcher) => ({

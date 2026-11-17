@@ -43,6 +43,11 @@ describe('findUngroundedNumbers', () => {
     expect(findUngroundedNumbers(a, { cards: [] })).toEqual([])
   })
 
+  it('does not check the sport name "Formula 1" (any space), but still checks a number after it', () => {
+    expect(findUngroundedNumbers('Sergio Pérez, the Mexican Formula 1 driver; formula 1 and Formula1.', { cards: [] })).toEqual([])
+    expect(findUngroundedNumbers('In Formula 1 he won 6 races.', { cards: [] }).map((b) => b.text)).toEqual(['6'])
+  })
+
   it('a bare year-like count with a decimal or percent is still checked', () => {
     expect(findUngroundedNumbers('It was 2024.5 s.', { cards: [] }).map((b) => b.text)).toEqual(['2024.5'])
   })

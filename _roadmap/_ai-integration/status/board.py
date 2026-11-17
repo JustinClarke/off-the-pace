@@ -413,10 +413,33 @@ def plan(log: dict) -> list[dict]:
     return ordered
 
 
+# Category index for the generated order. One category per live item; an unlisted item
+# falls into the last category. Keep the hand-written index in BUILD-ORDER.md in step.
+CATEGORIES = [
+    ("Transform close (data honesty)", "Fix the numbers the assistant would otherwise quote wrongly.",
+     "TX-15 TX-16 TX-17 TX-18 TX-19 TX-20 TX-21 TX-29 TX-30 TX-31 DM-01 DM-02 DM-03 DM-07 AX-27 AUD-01 AUD-02 AUD-03 AUD-04 AUD-05 AUD-06 AUD-07 AUD-08 AUD-09 AUD-10 AUD-11 AUD-12 AUD-13 AUD-14"),
+    ("Launch of the assistant (AI work)", "Pages and cards for the new data, then the assistant core, worker, eval and drawer.",
+     "AP-09 AP-10 AX-28 AX-10 AX-12 AX-13 AX-14"),
+    ("New data features", "New measured sources into staging and marts.",
+     "TX-23 TX-26 TX-27 TX-28"),
+    ("Launch", "Freeze the snapshot, then the owner switches the assistant on.",
+     "AX-19 AX-20"),
+    ("Held or after launch", "Dirty air, ML, uncertainty and the ghost chain; all wait on launch or a ruling.",
+     "AX-23 AX-24 AX-26 AX-15b AX-16 DM-04 AX-17 AX-18 ML-01 DM-06 UNC-01 DM-05 TX-09 AUD-15"),
+]
+
+
 def waiting_on(i: dict, items: dict, decisions: dict) -> list[str]:
     out = [d for d in i["depends_on"] if items.get(d, {}).get("stage") not in TERMINAL]
     out += [f"**{d}** (human call)" for d in open_decs(i, decisions)]
     return out
+
+
+def short(t: str, n: int = 45) -> str:
+    """Cut to about n characters at a word boundary."""
+    if len(t) <= n:
+        return t
+    return t[:n].rsplit(" ", 1)[0].rstrip(",;:-") + "…"
 
 
 def render_order(log: dict) -> str:
@@ -440,15 +463,25 @@ def render_order(log: dict) -> str:
                f"run `board.py` for the per-group view, or read their `closed` field in "
                f"[`build-log.json`](build-log.json).")
     out.append("")
-    out.append("| # | Item | Group | Stage | Cost | Model | Sources | Task | Waiting on |")
-    out.append("| ---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
-    for n, i in enumerate(seq, 1):
-        wait = ", ".join(waiting_on(i, items, decisions)) or "—"
-        mark = " ▶" if i["id"] == ptr else ""
-        cell = f"[{i['id']}](../{i['doc']}){mark}"
-        out.append(f"| {n} | {cell} | {i['group']} | {i['stage']} | {i.get('cost','—')} "
-                   f"| `{i.get('model','—')}` | {', '.join(i['sources'])} | {i['title']} | {wait} |")
-    out.append("")
+    cat_of = {i: n for n, (_, _, ids) in enumerate(CATEGORIES) for i in ids.split()}
+    for n, (name, desc, _) in enumerate(CATEGORIES):
+        rows = [(k, i) for k, i in enumerate(seq, 1) if cat_of.get(i["id"], len(CATEGORIES) - 1) == n]
+        if not rows:
+            continue
+        out.append(f"#### {n + 1}. {name} ({len(rows)})")
+        out.append("")
+        out.append(f"_{desc}_")
+        out.append("")
+        out.append("| # | Item | Stage | Waits on | Owner decision |")
+        out.append("| ---: | :--- | :--- | :--- | :--- |")
+        for k, i in rows:
+            waits = ", ".join(d for d in i["depends_on"]
+                              if items.get(d, {}).get("stage") not in TERMINAL) or "—"
+            owner = ", ".join(open_decs(i, decisions)) or "—"
+            mark = " ▶" if i["id"] == ptr else ""
+            out.append(f"| {k} | [{i['id']}](../{i['doc']}){mark} {short(i['title'])} "
+                       f"| {i['stage']} | {waits} | {owner} |")
+        out.append("")
 
     out.append("### Which model to run it on")
     out.append("")
@@ -464,8 +497,8 @@ def render_order(log: dict) -> str:
         out.append("")
         for d in open_d:
             blocks = ", ".join(f"`{b}`" for b in d["blocking"]) if d["blocking"] else "nothing"
-            rec = f" _Recommended: {d['recommendation']}_" if d.get("recommendation") else ""
-            out.append(f"- **{d['id']}** (blocks {blocks}) — {d['question']}{rec}")
+            q = d["question"].split(". ")[0]
+            out.append(f"- **{d['id']}** (blocks {blocks}) — {short(q, 110)}")
         out.append("")
 
     if watch := open_watch(log):

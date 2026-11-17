@@ -1,0 +1,25 @@
+key_columns=race_id|constructor_id|lap_number|corner_name,column,old_published,new_scratch,abs_delta
+2020_1|Williams|31|Turn_2,braking_point_delta_m,-381.6,356.2,737.8
+2020_1|Ferrari|1|Turn_2,braking_point_delta_m,-318.7,236.3,555.0
+2020_1|McLaren|1|Turn_4,braking_point_delta_m,351.2,-176.0,527.2
+2020_1|Williams|23|Turn_6,braking_point_delta_m,-123.3,386.7,510.0
+2023_13|AlphaTauri|65|Turn_9,braking_point_delta_m,305.3,-174.4,479.70000000000005
+2020_1|Williams|26|Turn_2,braking_point_delta_m,-293.9,156.5,450.4
+2020_1|Renault|6|Turn_1,braking_point_delta_m,-122.4,324.6,447.0
+2020_1|Williams|25|Turn_2,braking_point_delta_m,-236.1,208.0,444.1
+2020_1|Williams|32|Turn_2,v_min_delta_kph,-176.0,213.66,389.65999999999997
+2020_1|Williams|33|Turn_2,v_min_delta_kph,-171.0,207.37,378.37
+2020_1|Williams|31|Turn_3,v_min_delta_kph,182.0,-188.85,370.85
+2020_1|Williams|34|Turn_2,v_min_delta_kph,-162.0,207.0,369.0
+2020_1|Williams|30|Turn_3,v_min_delta_kph,177.5,-190.0,367.5
+2020_1|Williams|32|Turn_3,v_min_delta_kph,177.0,-186.0,363.0
+2020_1|Williams|35|Turn_2,v_min_delta_kph,-157.0,201.32,358.32
+2020_1|Williams|45|Turn_2,v_min_delta_kph,-157.0,201.0,358.0
+2020_1|Mercedes|3|Turn_3,throttle_point_delta_m,-86.6,131.4,218.0
+2020_1|Williams|36|Turn_3,throttle_point_delta_m,-70.7,144.5,215.2
+2020_1|Haas F1 Team|17|Turn_7,throttle_point_delta_m,-73.1,135.7,208.79999999999998
+2020_1|Williams|36|Turn_8,throttle_point_delta_m,128.1,-79.2,207.3
+2020_1|Williams|34|Turn_3,throttle_point_delta_m,-89.1,103.7,192.8
+2020_1|Williams|37|Turn_1,throttle_point_delta_m,-38.0,149.7,187.7
+2020_1|Williams|35|Turn_3,throttle_point_delta_m,-64.6,116.0,180.6
+2020_1|Haas F1 Team|18|Turn_9,throttle_point_delta_m,-72.2,102.2,174.4

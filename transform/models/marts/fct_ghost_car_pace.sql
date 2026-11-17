@@ -216,8 +216,19 @@ ghost_recombined AS (
             AS host_constructor_pace_is_prior,
         hi.circuit_constructor_interaction_s IS NULL
             AS circuit_interaction_is_prior,
+        -- The deg flags also cover host/ego_cliff_shift_laps: both come from
+        -- the same int_constructor_deg_sensitivity row, and a row never has
+        -- one NULL without the other (TX-30 sweep check on the TX-15 build).
         deg_host.deg_slope_s_per_lap IS NULL AS host_deg_slope_is_prior,
         deg_ego.deg_slope_s_per_lap IS NULL AS ego_deg_slope_is_prior,
+        -- TX-18 (sweep): no field cliff parameters for the ego lap
+        -- (int_compound_cliff_predicted severity or onset NULL). Severity is
+        -- then filled 0 and onset 999 below, so the cliff term is 0 (no
+        -- cliff) by fill, not by estimate. Prior pending the same ruling.
+        (
+            el.compound_cliff_severity IS NULL
+            OR el.compound_cliff_onset_laps IS NULL
+        ) AS cliff_params_is_prior,
         -- Deg interaction: host-vs-ego degradation slope delta × tyre
         -- age.
         -- COALESCE both lookups to 0 (field-average) so the ego == host case is
@@ -417,6 +428,7 @@ SELECT
     circuit_interaction_is_prior,
     host_deg_slope_is_prior,
     ego_deg_slope_is_prior,
+    cliff_params_is_prior,
     -- SE-propagation ingredients (consumed by fct_ghost_race_finish).
     host_constructor_pace_se_s,
     host_deg_slope_sd_s_per_lap,

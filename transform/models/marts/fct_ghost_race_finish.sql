@@ -87,7 +87,17 @@ WITH ghost_laps AS (
         age_in_stint,
         compound_cliff_severity,
         host_cliff_active,
-        ego_cliff_active
+        ego_cliff_active,
+        -- TX-18 (sweep): TRUE when a point estimate in this lap's
+        -- recombination is the 0 / field-average fill (prior pending a ruling).
+        -- circuit_interaction_is_prior is left out: that term is not in the
+        -- recombined sum.
+        (
+            host_constructor_pace_is_prior
+            OR host_deg_slope_is_prior
+            OR ego_deg_slope_is_prior
+            OR cliff_params_is_prior
+        )                                       AS lap_has_prior_fill
     FROM {{ ref('fct_ghost_car_pace') }}
     WHERE recombination_confidence >= 0.3   -- minimum confidence for position sim
 ),
@@ -179,6 +189,7 @@ race_totals AS (
         SUM(predicted_lap_time_s)               AS predicted_total_race_time_s,
         SUM(actual_lap_time_s)                  AS actual_total_race_time_s,
         COUNT(*)                                AS laps_counted,
+        COUNT(*) FILTER (WHERE lap_has_prior_fill) AS n_laps_prior_filled,
         AVG(recombination_confidence)           AS lap_mean_confidence,
         -- Aggregated exposures (constant-ish per scenario averaged over laps)
         AVG(host_constructor_pace_se_s)         AS host_pace_se,
@@ -345,6 +356,8 @@ SELECT
     r.predicted_total_race_time_s,
     r.actual_total_race_time_s,
     r.laps_counted,
+    -- TX-18 (sweep): laps whose recombination used a 0 / field-average fill.
+    r.n_laps_prior_filled,
     r.race_distance_laps,
     r.lap_coverage,
     r.is_short_run,

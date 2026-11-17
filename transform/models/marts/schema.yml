@@ -1015,23 +1015,46 @@ models:
         description: >
           TX-18. As host_deg_slope_is_prior, for the ego constructor.
         tests: [not_null]
+      - name: cliff_params_is_prior
+        description: >
+          TX-18 (TX-30 sweep). TRUE when the ego lap has no field cliff parameters
+          (int_compound_cliff_predicted severity or onset NULL), so compound_cliff_severity is
+          the 0 fill, the onset is the 999-lap fill and cliff_interaction_s is 0 by fill, not by
+          estimate (prior pending the same owner ruling).
+        tests: [not_null]
+      - name: compound_cliff_severity
+        description: >
+          Field cliff severity (s) for the ego lap's compound. 0 when the lap has no cliff
+          parameters, flagged by cliff_params_is_prior.
+        tests:
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 0, inclusive: true}
+              config: {where: "cliff_params_is_prior"}
       - name: cliff_interaction_s
         description: >
           severity x [hinge(host) - hinge(ego)] where
           hinge(c) = GREATEST(0, age - field_onset - cliff_onset_shift(c)). The nonlinear
           host-dependent term: it only fires once tyres approach/pass the cliff, reordering
           drivers on long stints. Exactly 0 when ego == host. Guardrail-clipped to +/-2 s.
+          Exactly 0 when cliff_params_is_prior (no field cliff parameters: 0 by fill).
         tests:
           - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               arguments:
                 min_value: -2.0
                 max_value: 2.0
+          - dbt_utils.accepted_range:
+              arguments: {min_value: 0, max_value: 0, inclusive: true}
+              config: {where: "cliff_params_is_prior"}
       - name: host_cliff_shift_laps
-        description: Host constructor's cliff-onset shift (laps) for the ego lap's compound; 0 when no cell.
+        description: >
+          Host constructor's cliff-onset shift (laps) for the ego lap's compound; 0 (prior pending
+          owner ruling) when no cell, flagged by host_deg_slope_is_prior (same cell).
         tests: [not_null]
       - name: ego_cliff_shift_laps
-        description: Ego constructor's cliff-onset shift (laps) for the ego lap's compound; 0 when no cell.
+        description: >
+          Ego constructor's cliff-onset shift (laps) for the ego lap's compound; 0 (prior pending
+          owner ruling) when no cell, flagged by ego_deg_slope_is_prior (same cell).
         tests: [not_null]
       - name: recombination_confidence
         description: >
@@ -1122,6 +1145,17 @@ models:
       - name: actual_mean_residual_pace_s
         description: Mean fuel-adjusted actual pace (AVG of actual_residual_pace_s over counted laps).
         tests: [not_null]
+      - name: n_laps_prior_filled
+        description: >
+          TX-18 (TX-30 sweep). Counted laps whose recombination used a 0 / field-average fill
+          (fct_ghost_car_pace host_constructor_pace_is_prior, host_deg_slope_is_prior,
+          ego_deg_slope_is_prior or cliff_params_is_prior). 0 when every lap is estimated; equal
+          to laps_counted when the whole scenario rests on the fill. Prior pending owner ruling.
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              arguments:
+                min_value: 0
       - name: lap_coverage
         description: laps_counted / race_distance_laps in [0,1]; fraction of the race the driver contributes.
       - name: is_short_run
@@ -1540,15 +1574,15 @@ models:
                 # Only enforce non-null where the curve has both of its inputs.
                 where: "compound IS NOT NULL AND age_in_stint IS NOT NULL"
       - name: rubber_component_s
-        description: Track-rubber evolution component.
+        description: >
+          Track-rubber evolution component. NULL where int_track_evolution has no row for the
+          lap (TX-30 step e; was 0.0). Informational, outside the residual identity.
         data_type: double
-        tests:
-          - not_null
       - name: ambient_component_s
-        description: Ambient/weather component.
+        description: >
+          Ambient/weather component. NULL under the same condition as rubber_component_s
+          (TX-30 step e; was 0.0).
         data_type: double
-        tests:
-          - not_null
       - name: constructor_component_s
         description: Constructor structural pace component.
         data_type: double

@@ -1,1 +1,2 @@
 race_year,race_id,driver_id,lap_number,event_type,correction_weight_override,note
+2019,2019_20,MAG,5,exclude,0.0,"HD22 (owner 2026-11-17): FastF1 3.9.2 lap time 152.844 s; official Jolpica lap time 76.220 s; timing glitch. event_type 'exclude' also forces is_valid_lap FALSE in stg_laps."

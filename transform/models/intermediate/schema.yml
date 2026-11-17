@@ -1118,8 +1118,48 @@ models:
       - name: constructor_component_s
         description: >
           Constructor structural pace in seconds from int_constructor_structural_pace.
-          Positive = slower than field.
+          Positive = slower than field. 0.0 where the structural-pace panel has no estimate for
+          the (race, constructor) (mostly all-wet races): the 0.0 stays because the identity needs
+          a number; constructor_pace_is_filled marks those laps (TX-30 step e).
         tests: [not_null]
+      - name: constructor_pace_is_filled
+        description: >
+          TX-30 step e. TRUE where constructor_component_s is the 0.0 fill, not a measured
+          estimate. Filter on it to leave filled laps out of any average of the car term.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
+                quote: false
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "IS NOT TRUE OR (constructor_component_s = 0.0 AND constructor_component_se_s IS NULL)"
+      - name: constructor_component_se_s
+        description: >
+          Estimation SE of constructor_component_s, in seconds. NULL where the structural-pace
+          panel has no estimate (the same laps as constructor_pace_is_filled), not 0.0 (TX-30
+          step e). Not part of the identity; no model reads it as a number.
+      - name: rubber_component_s
+        description: >
+          Track-rubber evolution component from int_track_evolution, informational (inside
+          base_track_pace_s, not in the identity). NULL where int_track_evolution has no row for
+          the lap (track_evolution_unavailable_reason); no longer filled with 0.0 (TX-30 step e).
+      - name: ambient_component_s
+        description: >
+          Ambient/weather component from int_track_evolution, informational like
+          rubber_component_s. NULL under the same condition and reason; no longer 0.0.
+      - name: track_evolution_unavailable_reason
+        description: >
+          TX-30 step e. Why rubber_component_s and ambient_component_s are NULL:
+          NO_EVOLUTION_ROW (int_track_evolution has no row for the race lap). NULL when measured.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['NO_EVOLUTION_ROW']
+          - dbt_utils.expression_is_true:
+              arguments:
+                expression: "IS NULL AND rubber_component_s IS NOT NULL AND ambient_component_s IS NOT NULL OR track_evolution_unavailable_reason IS NOT NULL AND rubber_component_s IS NULL AND ambient_component_s IS NULL"
       - name: dirty_air_tax_s
         description: >
           Per-lap dirty-air slowdown cost from int_dirty_air_tax_component.

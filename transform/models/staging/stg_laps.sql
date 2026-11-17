@@ -138,6 +138,18 @@ flagged AS (
         AND is_accurate
         AND NOT REGEXP_MATCHES(track_status, '.*[4567].*')
         AND lap_number > 1
+        -- HD22: laps the owner excluded by hand (seed_manual_lap_exceptions,
+        -- event_type 'exclude')
+        AND NOT EXISTS (
+            SELECT 1
+            FROM {{ ref('seed_manual_lap_exceptions') }} AS x
+            WHERE
+                x.event_type = 'exclude'
+                AND x.race_year = renamed.race_year
+                AND x.race_id = renamed.race_id
+                AND x.driver_id = renamed.driver_id
+                AND x.lap_number = renamed.lap_number
+        )
             AS is_valid_lap
     FROM renamed
 )

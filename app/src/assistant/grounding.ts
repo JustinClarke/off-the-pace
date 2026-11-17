@@ -8,7 +8,8 @@
 // (so "1" never matches 0.8); it may round a source of 10 or more ("47 laps" for 46.8).
 //
 // What is not checked: a 4-digit year 1950-2099, digits inside an id (race.result:2024_1:VER, 2024_1),
-// a bracketed citation, a list marker at a line start, and a number glued to letters before it (F1, v16, CO-16).
+// a bracketed citation, a list marker at a line start, a number glued to letters before it (F1, v16, CO-16),
+// and the sport's name "Formula 1" with any space between (a real gpt-oss draft wrote "Formula\u202f1").
 // "round 5" / "race 5" is accepted when a source carries a race id ending in _5.
 import type { Card } from './cards/card.types'
 import type { FactCard } from './honesty/checker'
@@ -42,6 +43,7 @@ export interface UngroundedNumber {
 const ID_TOKEN = /\b[a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+:[A-Za-z0-9_:.*-]+/g
 const RACE_ID = /\b(\d{4})_(\d{1,2})\b/g
 const BRACKET_CITE = /\[[^\]\n]{0,160}\]/g
+const SPORT_NAME = /\bFormula[\s\u00a0\u202f]*1\b/gi
 
 function blank(text: string, rx: RegExp): string {
   return text.replace(rx, (m) => ' '.repeat(m.length))
@@ -53,6 +55,7 @@ export function extractAnswerNumbers(answer: string): AnswerNumber[] {
   let t = blank(answer, BRACKET_CITE)
   t = blank(t, ID_TOKEN)
   t = blank(t, RACE_ID)
+  t = blank(t, SPORT_NAME)
   t = t.replace(/^[ \t]*\d{1,2}[.)](?=\s)/gm, (m) => ' '.repeat(m.length))
   const out: AnswerNumber[] = []
   const rx = /(?<![A-Za-z0-9_.])(?<![A-Za-z]-)(P)?(\d[\d,]*)(?:\.(\d+))?(%)?/g

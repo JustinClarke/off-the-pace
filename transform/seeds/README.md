@@ -13,7 +13,7 @@ its column types are pinned in `dbt_project.yml`.
 | `tyre_allocations.csv` | race | Pirelli weekend compound nominations, 2019 onward | When new seasons are ingested |
 | `compound_hardness_scale.csv` | compound × era | Declared cross-era hardness rank (1 = hardest) for the power-law tyre curve | When Pirelli changes the range |
 | `raw_dim_events.csv` | event | Manual (2021 season only) | Expand as automated detection is built |
-| `seed_manual_lap_exceptions.csv` | driver × lap | Manual correction-weight overrides, read by `int_event_corrections` (empty today) | As needed |
+| `seed_manual_lap_exceptions.csv` | driver × lap | Manual correction-weight overrides, read by `int_event_corrections`; rows with `event_type = 'exclude'` also force `is_valid_lap = FALSE` in `stg_laps` (HD22; one row today) | As needed |
 | `driver_isolation_method_scores.csv` | rating | Written by `scripts/validate_driver_isolation.py --write-seed` | When the isolation validation reruns |
 | `label_stability_baseline.csv` | season | Frozen per-season label snapshot that `assert_prior_season_labels_frozen` compares against | Only when the label version bumps |
 

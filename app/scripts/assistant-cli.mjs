@@ -10,7 +10,7 @@
 //   node scripts/assistant-cli.mjs --data <dir> --cards <cards.json> --call 'explain_page={"page":"/drivers/ratings-timeline"}'
 //
 // --data   a folder laid out like app/public/data (default: $AX06_DATA_DIR, else app/public/data). Read-only.
-// --cards  a build-cards cards.json (the published parquet cards are read by the browser store, AX-14).
+// --cards  a build-cards cards.json. Default: the published card parquet files the manifest lists.
 // --stub   scripted model for --sample / --demo (deterministic, no network).
 // --endpoint  worker: the AX-12 contract (X-Catalogue-Version, tickets); openai: Ollama-style /v1/chat/completions
 //          (then --model, and the system prompt + tools are sent by this CLI).
@@ -91,9 +91,10 @@ try {
   ])
   const kinds = reg.registry.map((s) => ({ kind: s.kind, held_reason: reg.heldReasonFor(s) }))
   const gen = await nodeTools.generateTools({ catalogueJson: join(dataDir, 'assistant/catalogue.json'), kinds: kinds.map((k) => k.kind), appDir: APP_DIR })
-  const cards = args.cards ? nodeDeps.loadCardsJson(resolve(args.cards)) : []
-  if (!cards.length) console.error('warning: no --cards given; get_fact_cards will find nothing')
+  const cards = args.cards ? nodeDeps.loadCardsJson(resolve(args.cards)) : undefined
   rt = await nodeDeps.createNodeRuntime({ dataDir, cards, tools: gen.tools, system: gen.system, kinds, specs: reg.registry })
+  const v = rt.versions
+  console.error(`data ${dataDir}: manifest ${v.manifest_version} (${v.generated_at}), catalogue ${v.catalogue_version.slice(0, 12)}, ${v.cards} cards from ${v.cards_source}`)
 
   if (args.calls.length) {
     const d = rt.newDispatcher()
@@ -144,7 +145,7 @@ try {
     })
     if (args.out) {
       mkdirSync(dirname(resolve(args.out)), { recursive: true })
-      writeFileSync(resolve(args.out), JSON.stringify({ mode: args.stub ? 'stub' : `endpoint:${args.protocol}`, data_dir: dataDir, catalogue_version: gen.catalogue_version, tokens: gen.tokens, records }, null, 2))
+      writeFileSync(resolve(args.out), JSON.stringify({ mode: args.stub ? 'stub' : `endpoint:${args.protocol}`, data_dir: dataDir, versions: rt.versions, catalogue_version: gen.catalogue_version, tokens: gen.tokens, records }, null, 2))
       console.log(`wrote ${resolve(args.out)}`)
     }
     if (args.textOut) writeFileSync(resolve(args.textOut), text.join('\n\n') + '\n')

@@ -68,7 +68,10 @@
 --   constructor_component_s -- 0 where int_constructor_structural_pace has
 --     no (race, constructor) row, mostly all-wet races; see the comment at
 --     the column for why that cancels from the labels and what it does not
---     cancel from.
+--     cancel from. constructor_pace_is_filled marks these laps (TX-30 e).
+--   rubber_component_s, ambient_component_s, constructor_component_se_s --
+--     NULL where unmeasured (TX-30 e, 2026-11-18); no longer 0.0. The first
+--     two carry track_evolution_unavailable_reason.
 --
 -- correction_weight from int_event_corrections is carried but NOT applied here.
 {{ config(materialized='table') }}
@@ -249,10 +252,15 @@ combined AS (
         -- window)
         fp.field_pace_smoothed_s AS base_track_pace_s,
 
-        -- Track evolution components (NULL for low-sample laps, filled 0 to
-        -- preserve row)
-        COALESCE(e.rubber_component_s, 0.0) AS rubber_component_s,
-        COALESCE(e.ambient_component_s, 0.0) AS ambient_component_s,
+        -- Track evolution components (TX-30 step e, owner ruling 2026-11-18):
+        -- NULL where int_track_evolution has no row for the lap, no longer
+        -- filled with 0.0. Both are informational and sit outside the
+        -- identity (F22), so NULL changes no residual. The reason says why.
+        e.rubber_component_s,
+        e.ambient_component_s,
+        CASE
+            WHEN e.lap_number IS NULL THEN 'NO_EVOLUTION_ROW'
+        END AS track_evolution_unavailable_reason,
         e.track_unexplained_s,
         e.track_temp_c,
         e.rainfall_flag,
@@ -277,8 +285,13 @@ combined AS (
         -- driver alone.
         COALESCE(cs.constructor_structural_pace_s, 0.0)
             AS constructor_component_s,
-        COALESCE(cs.constructor_structural_pace_se_s, 0.0)
-            AS constructor_component_se_s,
+        -- TX-30 step e: the flag lists every lap whose constructor term is
+        -- the 0.0 fill above (no structural-pace row or a NULL estimate).
+        -- Values are unchanged; filter on it to leave filled laps out.
+        (cs.constructor_structural_pace_s IS NULL)
+            AS constructor_pace_is_filled,
+        -- TX-30 step e: NULL where unmeasured (was 0.0). Not in the identity.
+        cs.constructor_structural_pace_se_s AS constructor_component_se_s,
         cs.constructor_structural_pace_ci_low_s
             AS constructor_component_ci_low_s,
         cs.constructor_structural_pace_ci_high_s
@@ -428,6 +441,8 @@ SELECT
     track_temp_c,
     rainfall_flag,
     constructor_component_se_s,
+    constructor_pace_is_filled,
+    track_evolution_unavailable_reason,
     constructor_component_ci_low_s,
     constructor_component_ci_high_s,
     constructor_panel_n,

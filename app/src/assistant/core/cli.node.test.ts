@@ -1,10 +1,11 @@
 // @vitest-environment node
 // AX-10: the 10 sample questions and the 5 demo questions, headless, over real published files (the AX-04 Node
 // adapter) with a SCRIPTED model: no network. Skipped unless AX06_DATA_DIR (a data root with assistant/qv, the
-// catalogue and assistant_entities) and AX10_CARDS (a build-cards cards.json) are set. With AX10_EVIDENCE_DIR
-// also set, writes sample-run.json and demo-run.json there.
+// catalogue, assistant_entities and the card parquet files, e.g. app/public/data) is set. AX10_CARDS (a build-cards
+// cards.json) replaces the published card parquet when set. With AX10_EVIDENCE_DIR also set, writes sample-run.json
+// and demo-run.json there.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { registry, heldReasonFor } from '../cards/registry'
 import { runQuestions, type RunRecord } from './cli'
@@ -17,7 +18,7 @@ import { PEAK_TOKENS } from './budget'
 const DATA = process.env.AX06_DATA_DIR
 const CARDS = process.env.AX10_CARDS
 const OUT = process.env.AX10_EVIDENCE_DIR
-const enabled = !!DATA && !!CARDS && existsSync(join(DATA, 'assistant', 'catalogue.json')) && existsSync(CARDS)
+const enabled = !!DATA && existsSync(join(DATA, 'assistant', 'catalogue.json')) && (!CARDS || existsSync(CARDS))
 
 describe.skipIf(!enabled)('AX-10 headless CLI over published files', () => {
   let rt: NodeRuntime
@@ -29,19 +30,30 @@ describe.skipIf(!enabled)('AX-10 headless CLI over published files', () => {
     const kinds = registry.map((s) => ({ kind: s.kind, held_reason: heldReasonFor(s) }))
     const gen = await generateTools({ catalogueJson: join(DATA!, 'assistant/catalogue.json'), kinds: kinds.map((k) => k.kind), appDir: resolve(__dirname, '../../..') })
     tokens = gen.tokens
-    rt = await createNodeRuntime({ dataDir: DATA!, cards: loadCardsJson(CARDS!), tools: gen.tools, system: gen.system, kinds, specs: registry })
+    rt = await createNodeRuntime({ dataDir: DATA!, cards: CARDS ? loadCardsJson(CARDS) : undefined, tools: gen.tools, system: gen.system, kinds, specs: registry })
     const opts = { modelFor: (s: { script?: ConstructorParameters<typeof ScriptedModel>[0] }) => new ScriptedModel(s.script ?? []), depsFor: (m: ScriptedModel) => rt.loopDeps(m) }
     sample = await runQuestions(SAMPLE_QUESTIONS, opts)
     demo = await runQuestions(DEMO_QUESTIONS, opts)
     if (OUT) {
       mkdirSync(OUT, { recursive: true })
-      writeFileSync(join(OUT, 'sample-run.json'), JSON.stringify({ mode: 'stub', tokens, records: sample }, null, 2))
-      writeFileSync(join(OUT, 'demo-run.json'), JSON.stringify({ mode: 'stub', tokens, records: demo }, null, 2))
+      writeFileSync(join(OUT, 'sample-run.json'), JSON.stringify({ mode: 'stub', versions: rt.versions, tokens, records: sample }, null, 2))
+      writeFileSync(join(OUT, 'demo-run.json'), JSON.stringify({ mode: 'stub', versions: rt.versions, tokens, records: demo }, null, 2))
     }
   }, 120_000)
   afterAll(() => rt?.close())
 
   const by = (id: string) => sample.find((r) => r.id === id)!
+
+  it('reads the export version from the data folder (manifest + catalogue), never a hard-coded one', () => {
+    const manifest = JSON.parse(readFileSync(join(DATA!, '_manifest.json'), 'utf8'))
+    expect(rt.versions.manifest_version).toBe(manifest.version)
+    expect(rt.versions.catalogue_version).toBe(JSON.parse(readFileSync(join(DATA!, 'assistant/catalogue.json'), 'utf8')).catalogue_version)
+    if (!CARDS) {
+      expect(rt.versions.cards_source).toBe('parquet')
+      const listed = (manifest.assistant?.cards ?? []).reduce((s: number, f: { rows: number }) => s + f.rows, 0)
+      expect(rt.versions.cards).toBe(listed)
+    }
+  })
 
   it('runs 10 samples: 3 card-only, 2 query_data, 1 list_values alias, 1 on-screen, 1 held, 1 what-if, 1 navigate', () => {
     expect(sample).toHaveLength(10)

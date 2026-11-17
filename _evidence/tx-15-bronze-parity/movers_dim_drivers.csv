@@ -1,0 +1,9 @@
+key_columns=driver_id,column,old_published,new_scratch,abs_delta
+LAW,career_races_in_dataset,35.0,54.0,19.0
+RUS,career_races_in_dataset,152.0,171.0,19.0
+ANT,career_races_in_dataset,24.0,43.0,19.0
+BEA,career_races_in_dataset,27.0,46.0,19.0
+COL,career_races_in_dataset,26.0,45.0,19.0
+HAM,career_races_in_dataset,172.0,190.0,18.0
+ALB,career_races_in_dataset,128.0,146.0,18.0
+BOR,career_races_in_dataset,24.0,42.0,18.0
